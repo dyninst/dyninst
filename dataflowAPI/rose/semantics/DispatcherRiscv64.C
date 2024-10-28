@@ -13,14 +13,16 @@
 
 // RISC-V is not supported by ROSE
 // Instead, we're using SAIL (https://github.com/riscv/sail-riscv) for instruction semantics
-// For consistency, the class and function names are all compatible with ROSE
-// But internally, we use the RISC-V SAIL model for instruction semantics.
 
 namespace rose {
     namespace BinaryAnalysis {
         namespace InstructionSemantics2 {
 
+#define XLENBITS 64
+
 #define EXTR(lo, hi)    IntegerOps::extract2<B>(lo, hi, raw)
+
+#define PC ops->number_(64, insn->get_address())
 
 /*******************************************************************************************************************************
  *                                      Support functions
@@ -63,16 +65,62 @@ namespace rose {
                 }
 
 /*******************************************************************************************************************************
+ *                                      Helper functions                                    
+ *******************************************************************************************************************************/
+
+                inline size_t
+                lrsc_width_str(SgAsmRiscv64Instruction *insn) {
+                    if (insn->get_mnemonic().find(".b") != std::string::npos) {
+                        return 1;
+                    }
+                    else if (insn->get_mnemonic().find(".h") != std::string::npos) {
+                        return 2;
+                    }
+                    else if (insn->get_mnemonic().find(".w") != std::string::npos) {
+                        return 4;
+                    }
+                    else if (insn->get_mnemonic().find(".d") != std::string::npos) {
+                        return 8;
+                    }
+                    else {
+                        assert(0 && "Invalid RISC-V lrsc width");
+                    }
+                }
+
+                inline size_t
+                amo_signed_str(SgAsmRiscv64Instruction *insn) {
+                    if (insn->get_mnemonic().find("u_") != std::string::npos) {
+                        return 1;
+                    }
+                    else {
+                        return 0;
+                    }
+                }
+
+                inline bool
+                is_c_ext(SgAsmRiscv64Instruction *insn) {
+                    return insn->get_mnemonic().find(".c") != std::string::npos;
+                }
+
+                inline size_t
+                get_next_pc(SgAsmRiscv64Instruction *insn) {
+                    return insn->get_address() + insn->get_size();
+                }
+
+
+/*******************************************************************************************************************************
  *                                      Functors that handle individual Riscv64 instructions kinds
  *******************************************************************************************************************************/
                 typedef InsnProcessor P;
 
-                struct IP_utype : P {
-                    // Derived from https://github.com/riscv/sail-riscv/blob/master/model/riscv_insts_base.sail
+                struct IP_UTYPE : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr off = ops->signExtend(ops->shiftLeft(d->read(args[1], 64), ops->number_(64, 12)), 64);
+                        SgAsmExpression *imm = args[1];
+                        SgAsmExpression *rd = args[0];
+                        enum Riscv64InstructionKind op = insn->get_kind();
+                        BaseSemantics::SValuePtr off = d->SignExtend(ops->shiftLeft(d->read(imm, 64), ops->number_(64, 12)), 64);
                         BaseSemantics::SValuePtr ret;
-                        switch (insn->get_kind()) {
+                        switch (op) {
                             case rose_riscv64_op_lui:
                                 ret = off;
                                 break;
@@ -81,22 +129,932 @@ namespace rose {
                                 break;
                             default:
                                 assert(0 && "Invalid RISC-V instruction kind");
-                                break;
-                        }
-                        d->write(args[0], ret);
+                        };
+                        d->write(rd, ret);
                     }
                 };
 
-                struct IP_jal : P {
-                    // Derived from https://github.com/riscv/sail-riscv/blob/master/model/riscv_insts_base.sail
+                struct IP_RISCV_JAL : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr t = ops->add(ops->number_(64, insn->get_address()), ops->signExtend(d->read(args[1]), 64));
+                        SgAsmExpression *imm = args[1];
+                        SgAsmExpression *rd = args[0];
+                        enum Riscv64InstructionKind op = insn->get_kind();
+                        BaseSemantics::SValuePtr t = ops->add(PC, d->SignExtend(d->read(imm, 64), 64));
+                        BaseSemantics::SValuePtr target = t;
+                        d->write(rd, (ops->number_(64, insn->get_address() + insn->get_size())));
+                        d->BranchTo(target);
                     }
                 };
 
-                // TODO more instructions need to be added
+                struct IP_RISCV_JALR : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *rd = args[0];
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *imm = args[2];
 
+                        BaseSemantics::SValuePtr t = ops->add(d->read(rs1, XLENBITS), d->SignExtend(d->read(imm, XLENBITS), XLENBITS));
+                        d->write(rd, ops->number_(XLENBITS, get_next_pc(insn)));
+                        d->BranchTo(t);
+                    }
+                };
+                struct IP_BTYPE : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *imm = args[2];
+                        SgAsmExpression *rs2 = args[1];
+                        SgAsmExpression *rs1 = args[0];
+                        enum Riscv64InstructionKind op = insn->get_kind();
+                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, 64);
+                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, 64);
+                        BaseSemantics::SValuePtr taken;
+                        switch (op) {
+                            case rose_riscv64_op_beq:
+                                taken = ops->isEqual(rs1_val, rs2_val);
+                                break;
+                            case rose_riscv64_op_bne:
+                                taken = ops->isNotEqual(rs1_val, rs2_val);
+                                break;
+                            case rose_riscv64_op_blt:
+                                taken = ops->isSignedLessThan(rs1_val, rs2_val);
+                                break;
+                            case rose_riscv64_op_bge:
+                                taken = ops->isSignedGreaterThanOrEqual(rs1_val, rs2_val);
+                                break;
+                            case rose_riscv64_op_bltu:
+                                taken = ops->isUnsignedLessThan(rs1_val, rs2_val);
+                                break;
+                            case rose_riscv64_op_bgeu:
+                                taken = ops->isUnsignedGreaterThanOrEqual(rs1_val, rs2_val);
+                                break;
+                            default:
+                                assert(0 && "Invalid RISC-V instruction kind");
+                        };
+                        BaseSemantics::SValuePtr t = ops->add(PC, d->SignExtend(d->read(imm, 64), 64));
+                        BaseSemantics::SValuePtr target = ops->ite(taken, t, PC);
+                        d->BranchTo(target);
+                    }
+                };
 
+                struct IP_ITYPE : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *imm = args[2];
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *rd = args[0];
+                        enum Riscv64InstructionKind op = insn->get_kind();
+                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, 64);
+                        BaseSemantics::SValuePtr immext = d->SignExtend(d->read(imm, 64), 64);
+                        BaseSemantics::SValuePtr result;
+                        switch (op) {
+                            case rose_riscv64_op_addi:
+                                result = ops->add(rs1_val, immext);
+                                break;
+                            case rose_riscv64_op_slti:
+                                result = d->ZeroExtend(ops->isSignedLessThan(rs1_val, immext), 64);
+                                break;
+                            case rose_riscv64_op_sltiu:
+                                result = d->ZeroExtend(ops->isUnsignedLessThan(rs1_val, immext), 64);
+                                break;
+                            case rose_riscv64_op_andi:
+                                result = ops->and_(rs1_val, immext);
+                                break;
+                            case rose_riscv64_op_ori:
+                                result = ops->or_(rs1_val, immext);
+                                break;
+                            case rose_riscv64_op_xori:
+                                result = ops->xor_(rs1_val, immext);
+                                break;
+                            default:
+                                assert(0 && "Invalid RISC-V instruction kind");
+                        };
+                        d->write(rd, result);
+                    }
+                };
+
+                struct IP_SHIFTIOP : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *shamt = args[2];
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *rd = args[0];
+                        enum Riscv64InstructionKind op = insn->get_kind();
+                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, 64);
+                        BaseSemantics::SValuePtr result;
+                        switch (op) {
+                            case rose_riscv64_op_slli:
+                                result = ops->shiftLeft(rs1_val, d->read(shamt, 64));
+                                break;
+                            case rose_riscv64_op_srli:
+                                result = ops->shiftRight(rs1_val, d->read(shamt, 64));
+                                break;
+                            case rose_riscv64_op_srai:
+                                result = ops->shiftRightArithmetic(rs1_val, d->read(shamt, 64));
+                                break;
+                            default:
+                                assert(0 && "Invalid RISC-V instruction kind");
+                        };
+                        d->write(rd, result);
+                    }
+                };
+
+                struct IP_RTYPE : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *rs2 = args[2];
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *rd = args[0];
+                        enum Riscv64InstructionKind op = insn->get_kind();
+                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, 64);
+                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, 64);
+                        BaseSemantics::SValuePtr result;
+                        switch (op) {
+                            case rose_riscv64_op_add:
+                                result = ops->add(rs1_val, rs2_val);
+                                break;
+                            case rose_riscv64_op_slt:
+                                result = d->ZeroExtend(ops->isSignedLessThan(rs1_val, rs2_val), 64);
+                                break;
+                            case rose_riscv64_op_sltu:
+                                result = d->ZeroExtend(ops->isUnsignedLessThan(rs1_val, rs2_val), 64);
+                                break;
+                            case rose_riscv64_op_and:
+                                result = ops->and_(rs1_val, rs2_val);
+                                break;
+                            case rose_riscv64_op_or:
+                                result = ops->or_(rs1_val, rs2_val);
+                                break;
+                            case rose_riscv64_op_xor:
+                                result = ops->xor_(rs1_val, rs2_val);
+                                break;
+                            case rose_riscv64_op_sll:
+                                result = ops->shiftLeft(rs1_val, ops->extract(rs2_val, 0, 5));
+                                break;
+                            case rose_riscv64_op_srl:
+                                result = ops->shiftRight(rs1_val, ops->extract(rs2_val, 0, 5));
+                                break;
+                            case rose_riscv64_op_sub:
+                                result = ops->subtract(rs1_val, rs2_val);
+                                break;
+                            case rose_riscv64_op_sra:
+                                result = ops->shiftRightArithmetic(rs1_val, ops->extract(rs2_val, 0, 5));
+                                break;
+                            default:
+                                assert(0 && "Invalid RISC-V instruction kind");
+                        };
+                        d->write(rd, result);
+                    }
+                };
+
+                struct IP_LOAD : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *rd = args[0];
+                        enum Riscv64InstructionKind op = insn->get_kind();
+                        BaseSemantics::SValuePtr read_addr = d->effectiveAddress(args[1]);
+                        size_t width_bytes;
+                        int is_unsigned;
+                        switch (insn->get_kind()) {
+                            case rose_riscv64_op_lb:
+                                width_bytes = 1;
+                                is_unsigned = 1;
+                                break;
+                            case rose_riscv64_op_lbu:
+                                width_bytes = 1;
+                                is_unsigned = 0;
+                                break;
+                            case rose_riscv64_op_lh:
+                                width_bytes = 2;
+                                is_unsigned = 1;
+                                break;
+                            case rose_riscv64_op_lhu:
+                                width_bytes = 2;
+                                is_unsigned = 0;
+                                break;
+                            case rose_riscv64_op_lw:
+                                width_bytes = 4;
+                                is_unsigned = 1;
+                                break;
+                            case rose_riscv64_op_lwu:
+                                width_bytes = 4;
+                                is_unsigned = 0;
+                                break;
+                            case rose_riscv64_op_ld:
+                                width_bytes = 8;
+                                is_unsigned = 1;
+                                break;
+                            default:
+                                assert(0 && "Invalid RISC-V instruction kind");
+                        }
+
+                        BaseSemantics::SValuePtr read_data = d->readMemory(read_addr, width_bytes);
+
+                        BaseSemantics::SValuePtr result = read_data;
+                        d->write(rd, (is_unsigned ? d->SignExtend(result, 64) : d->ZeroExtend(result, 64)));
+                    }
+                };
+
+                struct IP_STORE : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *rs2 = args[0];
+                        enum Riscv64InstructionKind op = insn->get_kind();
+                        BaseSemantics::SValuePtr write_addr = d->effectiveAddress(args[1]);
+                        size_t width_bytes;
+                        switch (insn->get_kind()) {
+                            case rose_riscv64_op_sb:
+                                width_bytes = 1;
+                                break;
+                            case rose_riscv64_op_sh:
+                                width_bytes = 2;
+                                break;
+                            case rose_riscv64_op_sw:
+                                width_bytes = 4;
+                                break;
+                            case rose_riscv64_op_sd:
+                                width_bytes = 8;
+                                break;
+                            default:
+                                assert(0 && "Invalid RISC-V instruction kind");
+                        }
+
+                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, 64);
+                        d->writeMemory(write_addr, width_bytes, rs2_val);
+                    }
+                };
+
+                struct IP_ADDIW : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *imm = args[2];
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *rd = args[0];
+                        enum Riscv64InstructionKind op = insn->get_kind();
+                        BaseSemantics::SValuePtr result = ops->add(d->SignExtend(d->read(imm, 64), 64), d->read(rs1, 64));
+                        d->write(rd, d->SignExtend(ops->extract(result, 0, 31), 64));
+                    }
+                };
+
+                struct IP_SHIFTW : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *rd = args[0];
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *rs2 = args[2];
+
+                        BaseSemantics::SValuePtr rs1_val = ops->extract(d->read(rs1, XLENBITS), 0, 31);
+                        BaseSemantics::SValuePtr result;
+                        switch (insn->get_kind()) {
+                            case rose_riscv64_op_sllw:
+                                result = ops->shiftLeft(rs1_val, d->read(rs2, XLENBITS));
+                                break;
+                            case rose_riscv64_op_srlw:
+                                result = ops->shiftRight(rs1_val, d->read(rs2, XLENBITS));
+                                break;
+                            case rose_riscv64_op_sraw:
+                                result = ops->shiftRightArithmetic(rs1_val, d->read(rs2, XLENBITS));
+                                break;
+                            default:
+                                assert(0 && "Invalid RISC-V instruction kind");
+                        }
+                        d->write(rd, d->SignExtend(result, XLENBITS));
+                    }
+                };
+
+                struct IP_RTYPEW : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *rs2 = args[2];
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *rd = args[0];
+                        enum Riscv64InstructionKind op = insn->get_kind();
+                        BaseSemantics::SValuePtr rs1_val = ops->extract(d->read(rs1, 64), 0, 31);
+                        BaseSemantics::SValuePtr rs2_val = ops->extract(d->read(rs2, 64), 0, 31);
+                        BaseSemantics::SValuePtr result;
+                        switch (op) {
+                            case rose_riscv64_op_addw:
+                                result = ops->add(rs1_val, rs2_val);
+                                break;
+                            case rose_riscv64_op_subw:
+                                result = ops->subtract(rs1_val, rs2_val);
+                                break;
+                            case rose_riscv64_op_sllw:
+                                result = ops->shiftLeft(rs1_val, ops->extract(rs2_val, 0, 4));
+                                break;
+                            case rose_riscv64_op_srlw:
+                                result = ops->shiftRight(rs1_val, ops->extract(rs2_val, 0, 4));
+                                break;
+                            case rose_riscv64_op_sraw:
+                                result = ops->shiftRightArithmetic(rs1_val, ops->extract(rs2_val, 0, 4));
+                                break;
+                            default:
+                                assert(0 && "Invalid RISC-V instruction kind");
+                        };
+                        d->write(rd, d->SignExtend(result, 64));
+                    }
+                };
+
+                struct IP_SHIFTIWOP : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *shamt = args[2];
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *rd = args[0];
+                        enum Riscv64InstructionKind op = insn->get_kind();
+                        BaseSemantics::SValuePtr rs1_val = ops->extract(d->read(rs1, 64), 0, 31);
+                        BaseSemantics::SValuePtr result;
+                        switch (op) {
+                            case rose_riscv64_op_slliw:
+                                result = ops->shiftLeft(rs1_val, d->read(shamt, 64));
+                                break;
+                            case rose_riscv64_op_srliw:
+                                result = ops->shiftRight(rs1_val, d->read(shamt, 64));
+                                break;
+                            case rose_riscv64_op_sraiw:
+                                result = ops->shiftRightArithmetic(rs1_val, d->read(shamt, 64));
+                                break;
+                            default:
+                                assert(0 && "Invalid RISC-V instruction kind");
+                        };
+                        d->write(rd, d->SignExtend(result, 64));
+                    }
+                };
+
+                // FIXME: How to multiply a signed value with an unsigned one?
+                struct IP_MUL : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *rd = args[0];
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *rs2 = args[2];
+
+                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, XLENBITS);
+                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, XLENBITS);
+
+                        BaseSemantics::SValuePtr result;
+                        switch (insn->get_kind()) {
+                            case rose_riscv64_op_mul:
+                                result = ops->extract(ops->signedMultiply(rs1_val, rs2_val), 0, 31);
+                                break;
+                            case rose_riscv64_op_mulh:
+                                result = ops->extract(ops->signedMultiply(rs1_val, rs2_val), 32, 63);
+                                break;
+                            case rose_riscv64_op_mulhsu:
+                                result = ops->extract(ops->signedMultiply(rs1_val, rs2_val), 32, 63);
+                                break;
+                            case rose_riscv64_op_mulhu:
+                                result = ops->extract(ops->unsignedMultiply(rs1_val, rs2_val), 32, 63);
+                                break;
+                            default:
+                                assert(0 && "Invalid RISC-V instruction kind");
+                        }
+                        d->write(rd, result);
+                    }
+                };
+
+                struct IP_DIV : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *rd = args[0];
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *rs2 = args[2];
+
+                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, XLENBITS);
+                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, XLENBITS);
+
+                        BaseSemantics::SValuePtr result;
+                        switch (insn->get_kind()) {
+                            case rose_riscv64_op_div:
+                                result = ops->signedDivide(rs1_val, rs2_val);
+                                break;
+                            case rose_riscv64_op_divu:
+                                result = ops->unsignedDivide(rs1_val, rs2_val);
+                                break;
+                            default:
+                                assert(0 && "Invalid RISC-V instruction kind");
+                        }
+                        d->write(rd, result);
+                    }
+                };
+
+                struct IP_REM : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *rd = args[0];
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *rs2 = args[2];
+
+                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, XLENBITS);
+                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, XLENBITS);
+
+                        BaseSemantics::SValuePtr result;
+                        switch (insn->get_kind()) {
+                            case rose_riscv64_op_rem:
+                                result = ops->signedModulo(rs1_val, rs2_val);
+                                break;
+                            case rose_riscv64_op_remu:
+                                result = ops->unsignedModulo(rs1_val, rs2_val);
+                                break;
+                            default:
+                                assert(0 && "Invalid RISC-V instruction kind");
+                        }
+                        d->write(rd, result);
+                    }
+                };
+
+                struct IP_MULW : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *rd = args[0];
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *rs2 = args[2];
+
+                        BaseSemantics::SValuePtr rs1_val = ops->extract(d->read(rs1, 32), 0, 31);
+                        BaseSemantics::SValuePtr rs2_val = ops->extract(d->read(rs2, 32), 0, 31);
+                        BaseSemantics::SValuePtr result32 = ops->extract(ops->signedMultiply(rs1_val, rs2_val), 0, 31);
+                        BaseSemantics::SValuePtr result = d->SignExtend(result32, XLENBITS);
+                        d->write(rd, result);
+                    }
+                };
+
+                struct IP_DIVW : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *rd = args[0];
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *rs2 = args[2];
+
+                        BaseSemantics::SValuePtr rs1_val = ops->extract(d->read(rs1, 32), 0, 31);
+                        BaseSemantics::SValuePtr rs2_val = ops->extract(d->read(rs2, 32), 0, 31);
+                        BaseSemantics::SValuePtr q;
+                        switch (insn->get_kind()) {
+                            case rose_riscv64_op_divw:
+                                q = ops->signedDivide(rs1_val, rs2_val);
+                                break;
+                            case rose_riscv64_op_divuw:
+                                q = ops->unsignedDivide(rs1_val, rs2_val);
+                                break;
+                            default:
+                                assert(0 && "Invalid RISC-V instruction kind");
+                        }
+                        d->write(rd, d->SignExtend(q, XLENBITS));
+                    }
+                };
+
+                struct IP_REMW : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *rd = args[0];
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *rs2 = args[2];
+
+                        BaseSemantics::SValuePtr rs1_val = ops->extract(d->read(rs1, 32), 0, 31);
+                        BaseSemantics::SValuePtr rs2_val = ops->extract(d->read(rs2, 32), 0, 31);
+                        BaseSemantics::SValuePtr result;
+                        switch (insn->get_kind()) {
+                            case rose_riscv64_op_remw:
+                                result = ops->signedModulo(rs1_val, rs2_val);
+                                break;
+                            case rose_riscv64_op_remuw:
+                                result = ops->unsignedModulo(rs1_val, rs2_val);
+                                break;
+                            default:
+                                assert(0 && "Invalid RISC-V instruction kind");
+                        }
+                        d->write(rd, d->SignExtend(result, XLENBITS));
+                    }
+                };
+
+                struct IP_LOADRES : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *rd = args[0];
+                        size_t width_bytes = lrsc_width_str(insn);
+                        BaseSemantics::SValuePtr read_addr = d->effectiveAddress(rs1);
+                        enum Riscv64InstructionKind op = insn->get_kind();
+
+                        BaseSemantics::SValuePtr read_data = d->readMemory(read_addr, width_bytes);
+
+                        BaseSemantics::SValuePtr result = read_data;
+
+                        d->write(rd, d->SignExtend(result, 64));
+                    }
+                };
+
+                struct IP_STORECON : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *rs2 = args[2];
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *rd = args[0];
+                        size_t width_bytes = lrsc_width_str(insn);
+                        BaseSemantics::SValuePtr write_addr = d->effectiveAddress(rs1);
+                        enum Riscv64InstructionKind op = insn->get_kind();
+
+                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, 64);
+                        d->writeMemory(write_addr, width_bytes, rs2_val);
+                    }
+                };
+
+                struct IP_AMO : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpression *rs2 = args[1];
+                        SgAsmExpression *rs1 = args[2];
+                        SgAsmExpression *rd = args[0];
+                        size_t width_bytes = lrsc_width_str(insn);
+                        bool is_unsigned = amo_signed_str(insn);
+                        BaseSemantics::SValuePtr addr = d->effectiveAddress(rs1);
+                        BaseSemantics::SValuePtr read_addr = addr;
+                        BaseSemantics::SValuePtr write_addr = addr;
+                        enum Riscv64InstructionKind op = insn->get_kind();
+
+                        BaseSemantics::SValuePtr rs2_val = ops->extract(d->read(rs2, 64), 0, ((width_bytes * 8) - 1));
+                        BaseSemantics::SValuePtr read_data = d->readMemory(read_addr, width_bytes);
+
+                        BaseSemantics::SValuePtr loaded = read_data;
+                        BaseSemantics::SValuePtr result;
+                        switch (op) {
+                            case rose_riscv64_op_amoswap_w:
+                            case rose_riscv64_op_amoswap_w_aq:
+                            case rose_riscv64_op_amoswap_w_aq_rl:
+                            case rose_riscv64_op_amoswap_w_rl:
+                            case rose_riscv64_op_amoswap_d:
+                            case rose_riscv64_op_amoswap_d_aq:
+                            case rose_riscv64_op_amoswap_d_aq_rl:
+                            case rose_riscv64_op_amoswap_d_rl:
+                                result = rs2_val;
+                                break;
+                            case rose_riscv64_op_amoadd_w:
+                            case rose_riscv64_op_amoadd_w_aq:
+                            case rose_riscv64_op_amoadd_w_aq_rl:
+                            case rose_riscv64_op_amoadd_w_rl:
+                            case rose_riscv64_op_amoadd_d:
+                            case rose_riscv64_op_amoadd_d_aq:
+                            case rose_riscv64_op_amoadd_d_aq_rl:
+                            case rose_riscv64_op_amoadd_d_rl:
+                                result = ops->add(rs2_val, loaded);
+                                break;
+                            case rose_riscv64_op_amoxor_w:
+                            case rose_riscv64_op_amoxor_w_aq:
+                            case rose_riscv64_op_amoxor_w_aq_rl:
+                            case rose_riscv64_op_amoxor_w_rl:
+                            case rose_riscv64_op_amoxor_d:
+                            case rose_riscv64_op_amoxor_d_aq:
+                            case rose_riscv64_op_amoxor_d_aq_rl:
+                            case rose_riscv64_op_amoxor_d_rl:
+                                result = ops->xor_(rs2_val, loaded);
+                                break;
+                            case rose_riscv64_op_amoand_w:
+                            case rose_riscv64_op_amoand_w_aq:
+                            case rose_riscv64_op_amoand_w_aq_rl:
+                            case rose_riscv64_op_amoand_w_rl:
+                            case rose_riscv64_op_amoand_d:
+                            case rose_riscv64_op_amoand_d_aq:
+                            case rose_riscv64_op_amoand_d_aq_rl:
+                            case rose_riscv64_op_amoand_d_rl:
+                                result = ops->and_(rs2_val, loaded);
+                                break;
+                            case rose_riscv64_op_amoor_w:
+                            case rose_riscv64_op_amoor_w_aq:
+                            case rose_riscv64_op_amoor_w_aq_rl:
+                            case rose_riscv64_op_amoor_w_rl:
+                            case rose_riscv64_op_amoor_d:
+                            case rose_riscv64_op_amoor_d_aq:
+                            case rose_riscv64_op_amoor_d_aq_rl:
+                            case rose_riscv64_op_amoor_d_rl:
+                                result = ops->or_(rs2_val, loaded);
+                                break;
+                            case rose_riscv64_op_amomin_w:
+                            case rose_riscv64_op_amomin_w_aq:
+                            case rose_riscv64_op_amomin_w_aq_rl:
+                            case rose_riscv64_op_amomin_w_rl:
+                            case rose_riscv64_op_amomin_d:
+                            case rose_riscv64_op_amomin_d_aq:
+                            case rose_riscv64_op_amomin_d_aq_rl:
+                            case rose_riscv64_op_amomin_d_rl:
+                                result = ops->ite(ops->isSignedLessThan(rs2_val, loaded), rs2_val, loaded);
+                                break;
+                            case rose_riscv64_op_amomax_w:
+                            case rose_riscv64_op_amomax_w_aq:
+                            case rose_riscv64_op_amomax_w_aq_rl:
+                            case rose_riscv64_op_amomax_w_rl:
+                            case rose_riscv64_op_amomax_d:
+                            case rose_riscv64_op_amomax_d_aq:
+                            case rose_riscv64_op_amomax_d_aq_rl:
+                            case rose_riscv64_op_amomax_d_rl:
+                                result = ops->ite(ops->isSignedGreaterThan(rs2_val, loaded), rs2_val, loaded);
+                                break;
+                            case rose_riscv64_op_amominu_w:
+                            case rose_riscv64_op_amominu_w_aq:
+                            case rose_riscv64_op_amominu_w_aq_rl:
+                            case rose_riscv64_op_amominu_w_rl:
+                            case rose_riscv64_op_amominu_d:
+                            case rose_riscv64_op_amominu_d_aq:
+                            case rose_riscv64_op_amominu_d_aq_rl:
+                            case rose_riscv64_op_amominu_d_rl:
+                                result = ops->ite(ops->isUnsignedLessThan(rs2_val, loaded), rs2_val, loaded);
+                                break;
+                            case rose_riscv64_op_amomaxu_w:
+                            case rose_riscv64_op_amomaxu_w_aq:
+                            case rose_riscv64_op_amomaxu_w_aq_rl:
+                            case rose_riscv64_op_amomaxu_w_rl:
+                            case rose_riscv64_op_amomaxu_d:
+                            case rose_riscv64_op_amomaxu_d_aq:
+                            case rose_riscv64_op_amomaxu_d_aq_rl:
+                            case rose_riscv64_op_amomaxu_d_rl:
+                                result = ops->ite(ops->isUnsignedGreaterThan(rs2_val, loaded), rs2_val, loaded);
+                                break;
+                            default:
+                                assert(0 && "Invalid RISC-V instruction kind");
+                        };
+                        d->writeMemory(write_addr, width_bytes, rs2_val);
+                    }
+                };
+                struct IP_C_NOP : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{};
+                    }
+                };
+
+                struct IP_C_ADDI4SPN : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[1], args[2]};
+                        SgAsmRiscv64Instruction new_insn{0, "addi", rose_riscv64_op_addi};
+                        auto conv = Riscv64::IP_ITYPE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_LW : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "lw", rose_riscv64_op_lw};
+                        auto conv = Riscv64::IP_LOAD{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_LD : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "ld", rose_riscv64_op_ld};
+                        auto conv = Riscv64::IP_LOAD{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_SW : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "sw", rose_riscv64_op_sw};
+                        auto conv = Riscv64::IP_STORE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_SD : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "sd", rose_riscv64_op_sd};
+                        auto conv = Riscv64::IP_STORE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_ADDI : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "addi", rose_riscv64_op_addi};
+                        auto conv = Riscv64::IP_ITYPE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_JAL : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmDirectRegisterExpression dre1{d->findRegister("x1", 64)};
+                        SgAsmExpressionPtrList new_args{&dre1, args[0]};
+                        SgAsmRiscv64Instruction new_insn{0, "jal", rose_riscv64_op_jal};
+                        auto conv = Riscv64::IP_RISCV_JAL{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_ADDIW : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "addiw", rose_riscv64_op_addiw};
+                        auto conv = Riscv64::IP_ADDIW{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_LI : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
+                        SgAsmExpressionPtrList new_args{args[0], &dre0, args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "addi", rose_riscv64_op_addi};
+                        auto conv = Riscv64::IP_ITYPE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_ADDI16SP : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmDirectRegisterExpression dre2{d->findRegister("x2", 64)};
+                        SgAsmExpressionPtrList new_args{&dre2, &dre2, args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "addi", rose_riscv64_op_addi};
+                        auto conv = Riscv64::IP_ITYPE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_LUI : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "lui", rose_riscv64_op_lui};
+                        auto conv = Riscv64::IP_UTYPE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_SRLI : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "srli", rose_riscv64_op_srli};
+                        auto conv = Riscv64::IP_SHIFTIOP{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_SRAI : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "srai", rose_riscv64_op_srai};
+                        auto conv = Riscv64::IP_SHIFTIOP{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_ANDI : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "andi", rose_riscv64_op_andi};
+                        auto conv = Riscv64::IP_ITYPE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_SUB : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "sub", rose_riscv64_op_sub};
+                        auto conv = Riscv64::IP_RTYPE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_XOR : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "xor", rose_riscv64_op_xor};
+                        auto conv = Riscv64::IP_RTYPE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_OR : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "or", rose_riscv64_op_or};
+                        auto conv = Riscv64::IP_RTYPE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_AND : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "and", rose_riscv64_op_and};
+                        auto conv = Riscv64::IP_RTYPE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_SUBW : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "subw", rose_riscv64_op_subw};
+                        auto conv = Riscv64::IP_RTYPEW{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_ADDW : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "addw", rose_riscv64_op_addw};
+                        auto conv = Riscv64::IP_RTYPEW{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_J : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
+                        SgAsmExpressionPtrList new_args{&dre0, args[0]};
+                        SgAsmRiscv64Instruction new_insn{0, "jal", rose_riscv64_op_jal};
+                        auto conv = Riscv64::IP_RISCV_JAL{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_BEQZ : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
+                        SgAsmExpressionPtrList new_args{args[0], &dre0, args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "beq", rose_riscv64_op_beq};
+                        auto conv = Riscv64::IP_BTYPE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_BNEZ : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
+                        SgAsmExpressionPtrList new_args{args[0], &dre0, args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "bne", rose_riscv64_op_bne};
+                        auto conv = Riscv64::IP_BTYPE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_SLLI : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "slli", rose_riscv64_op_slli};
+                        auto conv = Riscv64::IP_SHIFTIOP{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_LWSP : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "lw", rose_riscv64_op_lw};
+                        auto conv = Riscv64::IP_LOAD{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_LDSP : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "ld", rose_riscv64_op_ld};
+                        auto conv = Riscv64::IP_LOAD{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_SWSP : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "sw", rose_riscv64_op_sw};
+                        auto conv = Riscv64::IP_STORE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_SDSP : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "sd", rose_riscv64_op_sd};
+                        auto conv = Riscv64::IP_STORE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_JR : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
+                        SgAsmExpressionPtrList new_args{&dre0, args[0], &dre0};
+                        SgAsmRiscv64Instruction new_insn{0, "jalr", rose_riscv64_op_jalr};
+                        auto conv = Riscv64::IP_RISCV_JALR{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_JALR : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmDirectRegisterExpression dre1{d->findRegister("x1", 64)};
+                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
+                        SgAsmExpressionPtrList new_args{&dre1, args[0], &dre0};
+                        SgAsmRiscv64Instruction new_insn{0, "jalr", rose_riscv64_op_jalr};
+                        auto conv = Riscv64::IP_RISCV_JALR{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_MV : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
+                        SgAsmExpressionPtrList new_args{args[0], &dre0, args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "add", rose_riscv64_op_add};
+                        auto conv = Riscv64::IP_RTYPE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
+
+                struct IP_C_ADD : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        SgAsmExpressionPtrList new_args{args[0], args[0], args[1]};
+                        SgAsmRiscv64Instruction new_insn{0, "add", rose_riscv64_op_add};
+                        auto conv = Riscv64::IP_RTYPE{};
+                        conv.p(d, ops, &new_insn, new_args, raw);
+                    }
+                };
             } // namespace
 
 /*******************************************************************************************************************************
@@ -105,15 +1063,197 @@ namespace rose {
 
             void
             DispatcherRiscv64::iproc_init() {
-                iproc_set(rose_riscv64_op_lui, new Riscv64::IP_utype);
-                iproc_set(rose_riscv64_op_auipc, new Riscv64::IP_utype);
+                iproc_set(rose_riscv64_op_add, new Riscv64::IP_RTYPE);
+                iproc_set(rose_riscv64_op_addi, new Riscv64::IP_ITYPE);
+                iproc_set(rose_riscv64_op_addiw, new Riscv64::IP_ADDIW);
+                iproc_set(rose_riscv64_op_addw, new Riscv64::IP_RTYPEW);
+                iproc_set(rose_riscv64_op_amoadd_d, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoadd_d_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoadd_d_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoadd_d_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoadd_w, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoadd_w_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoadd_w_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoadd_w_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoand_d, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoand_d_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoand_d_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoand_d_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoand_w, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoand_w_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoand_w_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoand_w_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomax_d, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomax_d_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomax_d_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomax_d_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomax_w, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomax_w_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomax_w_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomax_w_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomaxu_d, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomaxu_d_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomaxu_d_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomaxu_d_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomaxu_w, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomaxu_w_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomaxu_w_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomaxu_w_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomin_d, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomin_d_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomin_d_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomin_d_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomin_w, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomin_w_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomin_w_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amomin_w_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amominu_d, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amominu_d_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amominu_d_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amominu_d_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amominu_w, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amominu_w_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amominu_w_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amominu_w_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoor_d, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoor_d_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoor_d_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoor_d_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoor_w, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoor_w_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoor_w_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoor_w_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoswap_d, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoswap_d_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoswap_d_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoswap_d_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoswap_w, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoswap_w_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoswap_w_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoswap_w_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoxor_d, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoxor_d_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoxor_d_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoxor_d_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoxor_w, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoxor_w_aq, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoxor_w_aq_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_amoxor_w_rl, new Riscv64::IP_AMO);
+                iproc_set(rose_riscv64_op_and, new Riscv64::IP_RTYPE);
+                iproc_set(rose_riscv64_op_andi, new Riscv64::IP_ITYPE);
+                iproc_set(rose_riscv64_op_auipc, new Riscv64::IP_UTYPE);
+                iproc_set(rose_riscv64_op_beq, new Riscv64::IP_BTYPE);
+                iproc_set(rose_riscv64_op_bge, new Riscv64::IP_BTYPE);
+                iproc_set(rose_riscv64_op_bgeu, new Riscv64::IP_BTYPE);
+                iproc_set(rose_riscv64_op_blt, new Riscv64::IP_BTYPE);
+                iproc_set(rose_riscv64_op_bltu, new Riscv64::IP_BTYPE);
+                iproc_set(rose_riscv64_op_bne, new Riscv64::IP_BTYPE);
+                iproc_set(rose_riscv64_op_c_add, new Riscv64::IP_C_ADD);
+                iproc_set(rose_riscv64_op_c_addi, new Riscv64::IP_C_ADDI);
+                iproc_set(rose_riscv64_op_c_addi16sp, new Riscv64::IP_C_ADDI16SP);
+                iproc_set(rose_riscv64_op_c_addi4spn, new Riscv64::IP_C_ADDI4SPN);
+                iproc_set(rose_riscv64_op_c_addiw, new Riscv64::IP_C_ADDIW);
+                iproc_set(rose_riscv64_op_c_addw, new Riscv64::IP_C_ADDW);
+                iproc_set(rose_riscv64_op_c_and, new Riscv64::IP_C_AND);
+                iproc_set(rose_riscv64_op_c_andi, new Riscv64::IP_C_ANDI);
+                iproc_set(rose_riscv64_op_c_beqz, new Riscv64::IP_C_BEQZ);
+                iproc_set(rose_riscv64_op_c_bnez, new Riscv64::IP_C_BNEZ);
+                iproc_set(rose_riscv64_op_c_j, new Riscv64::IP_C_J);
+                iproc_set(rose_riscv64_op_c_jal, new Riscv64::IP_C_JAL);
+                iproc_set(rose_riscv64_op_c_jalr, new Riscv64::IP_C_JALR);
+                iproc_set(rose_riscv64_op_c_jr, new Riscv64::IP_C_JR);
+                iproc_set(rose_riscv64_op_c_ld, new Riscv64::IP_C_LD);
+                iproc_set(rose_riscv64_op_c_ldsp, new Riscv64::IP_C_LDSP);
+                iproc_set(rose_riscv64_op_c_li, new Riscv64::IP_C_LI);
+                iproc_set(rose_riscv64_op_c_lui, new Riscv64::IP_C_LUI);
+                iproc_set(rose_riscv64_op_c_lw, new Riscv64::IP_C_LW);
+                iproc_set(rose_riscv64_op_c_lwsp, new Riscv64::IP_C_LWSP);
+                iproc_set(rose_riscv64_op_c_mv, new Riscv64::IP_C_MV);
+                iproc_set(rose_riscv64_op_c_nop, new Riscv64::IP_C_NOP);
+                iproc_set(rose_riscv64_op_c_or, new Riscv64::IP_C_OR);
+                iproc_set(rose_riscv64_op_c_sd, new Riscv64::IP_C_SD);
+                iproc_set(rose_riscv64_op_c_sdsp, new Riscv64::IP_C_SDSP);
+                iproc_set(rose_riscv64_op_c_slli, new Riscv64::IP_C_SLLI);
+                iproc_set(rose_riscv64_op_c_srai, new Riscv64::IP_C_SRAI);
+                iproc_set(rose_riscv64_op_c_srli, new Riscv64::IP_C_SRLI);
+                iproc_set(rose_riscv64_op_c_sub, new Riscv64::IP_C_SUB);
+                iproc_set(rose_riscv64_op_c_subw, new Riscv64::IP_C_SUBW);
+                iproc_set(rose_riscv64_op_c_sw, new Riscv64::IP_C_SW);
+                iproc_set(rose_riscv64_op_c_swsp, new Riscv64::IP_C_SWSP);
+                iproc_set(rose_riscv64_op_c_xor, new Riscv64::IP_C_XOR);
+                iproc_set(rose_riscv64_op_div, new Riscv64::IP_DIV);
+                iproc_set(rose_riscv64_op_divu, new Riscv64::IP_DIV);
+                iproc_set(rose_riscv64_op_divuw, new Riscv64::IP_DIVW);
+                iproc_set(rose_riscv64_op_divw, new Riscv64::IP_DIVW);
+                iproc_set(rose_riscv64_op_jal, new Riscv64::IP_RISCV_JAL);
+                iproc_set(rose_riscv64_op_jalr, new Riscv64::IP_RISCV_JALR);
+                iproc_set(rose_riscv64_op_lb, new Riscv64::IP_LOAD);
+                iproc_set(rose_riscv64_op_lbu, new Riscv64::IP_LOAD);
+                iproc_set(rose_riscv64_op_ld, new Riscv64::IP_LOAD);
+                iproc_set(rose_riscv64_op_lh, new Riscv64::IP_LOAD);
+                iproc_set(rose_riscv64_op_lhu, new Riscv64::IP_LOAD);
+                iproc_set(rose_riscv64_op_lr_d, new Riscv64::IP_LOADRES);
+                iproc_set(rose_riscv64_op_lr_d_aq, new Riscv64::IP_LOADRES);
+                iproc_set(rose_riscv64_op_lr_d_aq_rl, new Riscv64::IP_LOADRES);
+                iproc_set(rose_riscv64_op_lr_d_rl, new Riscv64::IP_LOADRES);
+                iproc_set(rose_riscv64_op_lr_w, new Riscv64::IP_LOADRES);
+                iproc_set(rose_riscv64_op_lr_w_aq, new Riscv64::IP_LOADRES);
+                iproc_set(rose_riscv64_op_lr_w_aq_rl, new Riscv64::IP_LOADRES);
+                iproc_set(rose_riscv64_op_lr_w_rl, new Riscv64::IP_LOADRES);
+                iproc_set(rose_riscv64_op_lui, new Riscv64::IP_UTYPE);
+                iproc_set(rose_riscv64_op_lw, new Riscv64::IP_LOAD);
+                iproc_set(rose_riscv64_op_lwu, new Riscv64::IP_LOAD);
+                iproc_set(rose_riscv64_op_mul, new Riscv64::IP_MUL);
+                iproc_set(rose_riscv64_op_mulh, new Riscv64::IP_MUL);
+                iproc_set(rose_riscv64_op_mulhsu, new Riscv64::IP_MUL);
+                iproc_set(rose_riscv64_op_mulhu, new Riscv64::IP_MUL);
+                iproc_set(rose_riscv64_op_mulw, new Riscv64::IP_MULW);
+                iproc_set(rose_riscv64_op_or, new Riscv64::IP_RTYPE);
+                iproc_set(rose_riscv64_op_ori, new Riscv64::IP_ITYPE);
+                iproc_set(rose_riscv64_op_rem, new Riscv64::IP_REM);
+                iproc_set(rose_riscv64_op_remu, new Riscv64::IP_REM);
+                iproc_set(rose_riscv64_op_remuw, new Riscv64::IP_REMW);
+                iproc_set(rose_riscv64_op_remw, new Riscv64::IP_REMW);
+                iproc_set(rose_riscv64_op_sb, new Riscv64::IP_STORE);
+                iproc_set(rose_riscv64_op_sc_d, new Riscv64::IP_STORECON);
+                iproc_set(rose_riscv64_op_sc_d_aq, new Riscv64::IP_STORECON);
+                iproc_set(rose_riscv64_op_sc_d_aq_rl, new Riscv64::IP_STORECON);
+                iproc_set(rose_riscv64_op_sc_d_rl, new Riscv64::IP_STORECON);
+                iproc_set(rose_riscv64_op_sc_w, new Riscv64::IP_STORECON);
+                iproc_set(rose_riscv64_op_sc_w_aq, new Riscv64::IP_STORECON);
+                iproc_set(rose_riscv64_op_sc_w_aq_rl, new Riscv64::IP_STORECON);
+                iproc_set(rose_riscv64_op_sc_w_rl, new Riscv64::IP_STORECON);
+                iproc_set(rose_riscv64_op_sd, new Riscv64::IP_STORE);
+                iproc_set(rose_riscv64_op_sh, new Riscv64::IP_STORE);
+                iproc_set(rose_riscv64_op_sll, new Riscv64::IP_RTYPE);
+                iproc_set(rose_riscv64_op_slli, new Riscv64::IP_SHIFTIOP);
+                iproc_set(rose_riscv64_op_slliw, new Riscv64::IP_SHIFTIWOP);
+                iproc_set(rose_riscv64_op_sllw, new Riscv64::IP_SHIFTW);
+                iproc_set(rose_riscv64_op_slt, new Riscv64::IP_RTYPE);
+                iproc_set(rose_riscv64_op_slti, new Riscv64::IP_ITYPE);
+                iproc_set(rose_riscv64_op_sltiu, new Riscv64::IP_ITYPE);
+                iproc_set(rose_riscv64_op_sltu, new Riscv64::IP_RTYPE);
+                iproc_set(rose_riscv64_op_sra, new Riscv64::IP_RTYPE);
+                iproc_set(rose_riscv64_op_srai, new Riscv64::IP_SHIFTIOP);
+                iproc_set(rose_riscv64_op_sraiw, new Riscv64::IP_SHIFTIWOP);
+                iproc_set(rose_riscv64_op_sraw, new Riscv64::IP_SHIFTW);
+                iproc_set(rose_riscv64_op_srl, new Riscv64::IP_RTYPE);
+                iproc_set(rose_riscv64_op_srli, new Riscv64::IP_SHIFTIOP);
+                iproc_set(rose_riscv64_op_srliw, new Riscv64::IP_SHIFTIWOP);
+                iproc_set(rose_riscv64_op_srlw, new Riscv64::IP_SHIFTW);
+                iproc_set(rose_riscv64_op_sub, new Riscv64::IP_RTYPE);
+                iproc_set(rose_riscv64_op_subw, new Riscv64::IP_RTYPEW);
+                iproc_set(rose_riscv64_op_sw, new Riscv64::IP_STORE);
+                iproc_set(rose_riscv64_op_xor, new Riscv64::IP_RTYPE);
+                iproc_set(rose_riscv64_op_xori, new Riscv64::IP_ITYPE);
             }
 
             void
             DispatcherRiscv64::regcache_init() {
                 if (regdict) {
                     REG_PC = findRegister("pc", 64);
-                    REG_SCC = findRegister("x2", 64);
+                    REG_RA = findRegister("x1", 64);
+                    REG_SP = findRegister("x2", 64);
                 }
             }
 
@@ -141,7 +1281,7 @@ namespace rose {
 
             RegisterDescriptor
             DispatcherRiscv64::stackPointerRegister() const {
-                return REG_SCC;
+                return REG_SP;
             }
 
             static bool
@@ -546,17 +1686,10 @@ namespace rose {
                     BaseSemantics::SValuePtr lhs = effectiveAddress(op->get_lhs(), nbits);
                     BaseSemantics::SValuePtr rhs = effectiveAddress(op->get_rhs(), nbits);
                     retval = operators->add(lhs, rhs);
-                } else if (SgAsmBinaryMultiply *op = isSgAsmBinaryMultiply(addressExpression)) {
-                    BaseSemantics::SValuePtr lhs = effectiveAddress(op->get_lhs(), nbits);
-                    BaseSemantics::SValuePtr rhs = effectiveAddress(op->get_rhs(), nbits);
-                    retval = operators->unsignedMultiply(lhs, rhs);
-                } else if (SgAsmBinaryLsl *lshift = isSgAsmBinaryLsl(addressExpression)) {
-                    SgAsmExpression *lhs = lshift->get_lhs();
-                    SgAsmExpression *rhs = lshift->get_rhs();
-                    size_t nbits = std::max(lhs->get_nBits(), rhs->get_nBits());
-                    retval = operators->shiftLeft(read(lhs, lhs->get_nBits()), read(rhs, rhs->get_nBits()));
                 } else if (SgAsmIntegerValueExpression *ival = isSgAsmIntegerValueExpression(addressExpression)) {
                     retval = operators->number_(ival->get_significantBits(), ival->get_value());
+                } else if (SgAsmDoubleWordValueExpression *ival = isSgAsmDoubleWordValueExpression(addressExpression)) {
+                    retval = operators->number_(ival->get_bit_size(), ival->get_value());
                 }
 
                 ASSERT_not_null(retval);
