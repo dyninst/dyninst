@@ -318,6 +318,18 @@ SgAsmExpression *ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
                                dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
                                return dre;
                            }
+        case Arch_riscv64: {
+                               int regClass_;
+                               int regNum;
+                               int regPos;
+
+                               machReg.getROSERegister(regClass_, regNum, regPos);
+                               if (regClass_ < 0) return NULL;
+                               SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass_, regNum, regPos, machReg.size() * 8));
+                               dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
+                               return dre;
+
+                           }
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a: 
         case Arch_amdgpu_gfx940: {
