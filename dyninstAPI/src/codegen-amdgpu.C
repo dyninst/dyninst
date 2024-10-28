@@ -115,11 +115,16 @@ void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link) {
 
 void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool link) {
     long disp = (to - from);
+    long wordOffset = disp/4;
 
-    if (labs(disp) > MAX_BRANCH_OFFSET) {
-        generateLongBranch(gen, from, to, link);
-    }else
-        generateBranch(gen, disp, link);
+    Emitter *emitter = gen.emitter();
+
+    if (wordOffset >= INT16_MIN && wordOffset <= INT16_MAX) {
+      emitter->emitShortJump(wordOffset, gen);
+    } else {
+      // TODO: Right now hardcoding s90. But this needs to use a pair of dead registers.
+      emitter->emitLongJump(90, to, gen);
+    }
 }
 
 void insnCodeGen::generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Address to) {
