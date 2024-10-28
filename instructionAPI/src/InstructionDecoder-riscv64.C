@@ -76,7 +76,7 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
                     // it jumps to [RS1] + offset, so we need to know the offset in advance
                     cs_riscv_op* nextOperand = &(detail->operands[i + 1]);
                     assert(nextOperand->type == RISCV_OP_IMM);
-                    Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, nextOperand->imm));
+                    Expression::Ptr immAST = Immediate::makeImmediate(Result(u32, nextOperand->imm));
                     Expression::Ptr target(makeAddExpression(regAST, immAST, u64));
                     insn->addSuccessor(target, false, false, false, false);
                     // the next operand is already handled. skip it
@@ -95,7 +95,7 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
                 insn->appendOperand(regAST, isRead, isWritten, false);
             }
         } else if (operand->type == RISCV_OP_IMM) {
-            Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, operand->imm));
+            Expression::Ptr immAST = Immediate::makeImmediate(Result(u32, operand->imm));
             if (isCFT && isJumpOffset && jumpOpIndex == i) {
                 Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
                 Expression::Ptr target(makeAddExpression(IP, immAST, u64));
@@ -261,7 +261,7 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
                     break;
             }
             // offsets are 12 bits long signed integers
-            Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, mem->disp));
+            Expression::Ptr immAST = Immediate::makeImmediate(Result(u32, mem->disp));
             effectiveAddr = makeAddExpression(effectiveAddr, immAST, u64);
             if (type == invalid_type) {
                 err = true;
