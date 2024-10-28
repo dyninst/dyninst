@@ -607,9 +607,11 @@ assert(0);
 //
 void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
     assert((size % instruction::size()) == 0);
+
+    Emitter *emitter = gen.emitter();
+
     while (size) {
-        instruction insn(NOOP);
-        insnCodeGen::generate(gen, insn);
+        emitter->emitNops(1, gen);
         size -= instruction::size();
     }
 }
