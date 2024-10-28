@@ -42,7 +42,7 @@ if(DYNINST_OS_UNIX)
   elseif(DYNINST_HOST_ARCH_AARCH64)
     list(APPEND _sources src/RTthread-aarch64.c)
   elseif(DYNINST_ARCH_amdgpu)
-    list(APPEND _sources src/RTthread-amdgpu.c )
+    list(APPEND _sources src/RTthread-amdgpu.c)
   endif()
 
   if(DYNINST_HOST_ARCH_X86_64)

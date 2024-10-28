@@ -6,91 +6,84 @@
 
 include_guard(GLOBAL)
 
-
 ## amdgpu special
 if(DYNINST_ARCH_amdgpu)
 
-## Only x86_64 for now, straight copy
+  ## Only x86_64 for now, straight copy
 
-  set(ARCH_DEFINES
-	-Darch_amdgpu
-	-Darch_64bit
-	)
+  set(ARCH_DEFINES -Darch_amdgpu -Darch_64bit)
   set(CAP_DEFINES
-      ${CAP_DEFINES}
-      -Dcap_fixpoint_gen
-      -Dcap_noaddr_gen
-      -Dcap_registers
+      ${CAP_DEFINES} -Dcap_fixpoint_gen -Dcap_noaddr_gen -Dcap_registers
       -Dcap_tramp_liveness
       #-Dcap_stack_mods
       )
 
-## amdgpu is 64 bit,no 32 bit arch
-#      -Dcap_32_64
-#      -Dcap_stripped_binaries
+  ## amdgpu is 64 bit,no 32 bit arch
+  #      -Dcap_32_64
+  #      -Dcap_stripped_binaries
 
-#endif()
-## Ignore the RT lib for now, chat with bart
-#  ## no dynamic lib on amdgpu
-#  set(CAP_DEFINES
-#      ${CAP_DEFINES}
-#	-DDYNINST_RT_STATIC_LIB
-#      )
+  #endif()
+  ## Ignore the RT lib for now, chat with bart
+  #  ## no dynamic lib on amdgpu
+  #  set(CAP_DEFINES
+  #      ${CAP_DEFINES}
+  #	-DDYNINST_RT_STATIC_LIB
+  #      )
 
-## amdgpu special
+  ## amdgpu special
 else()
 
-set(CAP_DEFINES -Dcap_dynamic_heap -Dcap_liveness -Dcap_threads)
+  set(CAP_DEFINES -Dcap_dynamic_heap -Dcap_liveness -Dcap_threads)
 
-if(DYNINST_HOST_ARCH_I386)
-  set(ARCH_DEFINES_TESTSUITE -Darch_x86)
-elseif(DYNINST_HOST_ARCH_X86_64)
-  set(ARCH_DEFINES_TESTSUITE -Darch_x86_64 -Darch_64bit)
-elseif(DYNINST_HOST_ARCH_PPC64LE)
-  set(ARCH_DEFINES_TESTSUITE -Darch_power -Darch_64bit)
-elseif(DYNINST_HOST_ARCH_AARCH64)
-  set(ARCH_DEFINES_TESTSUITE -Darch_aarch64 -Darch_64bit)
-endif()
+  if(DYNINST_HOST_ARCH_I386)
+    set(ARCH_DEFINES_TESTSUITE -Darch_x86)
+  elseif(DYNINST_HOST_ARCH_X86_64)
+    set(ARCH_DEFINES_TESTSUITE -Darch_x86_64 -Darch_64bit)
+  elseif(DYNINST_HOST_ARCH_PPC64LE)
+    set(ARCH_DEFINES_TESTSUITE -Darch_power -Darch_64bit)
+  elseif(DYNINST_HOST_ARCH_AARCH64)
+    set(ARCH_DEFINES_TESTSUITE -Darch_aarch64 -Darch_64bit)
+  endif()
 
-if(DYNINST_CODEGEN_ARCH_I386)
-  set(ARCH_DEFINES_CODEGEN -Darch_x86)
-  set(CAP_DEFINES
-      ${CAP_DEFINES}
-      -Dcap_fixpoint_gen
-      -Dcap_noaddr_gen
-      -Dcap_stripped_binaries
-      -Dcap_tramp_liveness
-      -Dcap_virtual_registers
-      -Dcap_stack_mods)
+  if(DYNINST_CODEGEN_ARCH_I386)
+    set(ARCH_DEFINES_CODEGEN -Darch_x86)
+    set(CAP_DEFINES
+        ${CAP_DEFINES}
+        -Dcap_fixpoint_gen
+        -Dcap_noaddr_gen
+        -Dcap_stripped_binaries
+        -Dcap_tramp_liveness
+        -Dcap_virtual_registers
+        -Dcap_stack_mods)
 
-elseif(DYNINST_CODEGEN_ARCH_X86_64)
-  set(ARCH_DEFINES_CODEGEN -Darch_x86_64 -Darch_64bit)
-  set(CAP_DEFINES
-      ${CAP_DEFINES}
-      -Dcap_32_64
-      -Dcap_fixpoint_gen
-      -Dcap_noaddr_gen
-      -Dcap_registers
-      -Dcap_stripped_binaries
-      -Dcap_tramp_liveness
-      -Dcap_stack_mods)
+  elseif(DYNINST_CODEGEN_ARCH_X86_64)
+    set(ARCH_DEFINES_CODEGEN -Darch_x86_64 -Darch_64bit)
+    set(CAP_DEFINES
+        ${CAP_DEFINES}
+        -Dcap_32_64
+        -Dcap_fixpoint_gen
+        -Dcap_noaddr_gen
+        -Dcap_registers
+        -Dcap_stripped_binaries
+        -Dcap_tramp_liveness
+        -Dcap_stack_mods)
 
-elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
-  set(ARCH_DEFINES_CODEGEN -Darch_power -Darch_64bit)
-  set(CAP_DEFINES ${CAP_DEFINES} -Dcap_32_64 -Dcap_registers -Dcap_toc_64)
-elseif(DYNINST_CODEGEN_ARCH_AARCH64)
-  set(ARCH_DEFINES_CODEGEN -Darch_aarch64 -Darch_64bit)
-  set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
-elseif(DYNINST_CODEGEN_ARCH_RISCV64)
-  set(ARCH_DEFINES_CODEGEN -Darch_riscv64 -Darch_64bit)
-  set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
-elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx908 -Darch_64bit)
-elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A)
-  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx90a -Darch_64bit)
-elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
-  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_64bit)
-endif()
+  elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
+    set(ARCH_DEFINES_CODEGEN -Darch_power -Darch_64bit)
+    set(CAP_DEFINES ${CAP_DEFINES} -Dcap_32_64 -Dcap_registers -Dcap_toc_64)
+  elseif(DYNINST_CODEGEN_ARCH_AARCH64)
+    set(ARCH_DEFINES_CODEGEN -Darch_aarch64 -Darch_64bit)
+    set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
+  elseif(DYNINST_CODEGEN_ARCH_RISCV64)
+    set(ARCH_DEFINES_CODEGEN -Darch_riscv64 -Darch_64bit)
+    set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
+  elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx908 -Darch_64bit)
+  elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A)
+    set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx90a -Darch_64bit)
+  elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
+    set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_64bit)
+  endif()
 ## amdgpu special
 endif()
 
@@ -102,26 +95,17 @@ if(DYNINST_ARCH_amdgpu)
   ## Need to differentiate OS of target vs OS of host.
   ## Leave os_linux for now for host part of dyninst
   set(OS_DEFINES -Dos_linux)
-  set(CAP_DEFINES
-	${CAP_DEFINES}
-	-Dcap_async_events
-	-Dcap_binary_rewriter
-	-Dcap_dwarf
-	-Dcap_ptrace
-        -Dcap_mutatee_traps
-	)
-#	-Dcap_mutatee_traps
-  set(BUG_DEFINES
-	-Dbug_syscall_changepc_rewind
-	-Dbug_force_terminate_failure
-	)
+  set(CAP_DEFINES ${CAP_DEFINES} -Dcap_async_events -Dcap_binary_rewriter -Dcap_dwarf
+                  -Dcap_ptrace -Dcap_mutatee_traps)
+  #	-Dcap_mutatee_traps
+  set(BUG_DEFINES -Dbug_syscall_changepc_rewind -Dbug_force_terminate_failure)
   ## might need to suck in -Dwhatever defines here
   ## I was trying to cooperate, but too much stuff
 
   ## I"m doing to leave out the -D<arch>[_unknown]_linux[0-9_]+  for
   ## now to see what else breaks
 
-## amdgpu special (was if)
+  ## amdgpu special (was if)
 elseif(DYNINST_OS_Linux)
   set(OS_DEFINES -Dos_linux)
   set(CAP_DEFINES ${CAP_DEFINES} -Dcap_async_events -Dcap_binary_rewriter -Dcap_dwarf
