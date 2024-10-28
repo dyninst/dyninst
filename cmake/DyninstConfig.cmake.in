@@ -28,5 +28,4 @@ endforeach()
 check_required_components(Dyninst)
 
 # -- DO NOT USE -- This is for legacy purposes only
-set_and_check(DYNINST_INCLUDE_DIR
-              "${CMAKE_CURRENT_LIST_DIR}/../../../@DYNINST_INSTALL_INCLUDEDIR@")
+set_and_check(DYNINST_INCLUDE_DIR "@PACKAGE_DYNINST_INSTALL_INCLUDEDIR@")
