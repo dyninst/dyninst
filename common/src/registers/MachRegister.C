@@ -169,11 +169,8 @@ namespace Dyninst {
       case Arch_ppc32:
       case Arch_ppc64:
       case Arch_aarch32:
-<<<<<<< HEAD
-=======
       case Arch_aarch64:
       case Arch_riscv64:
->>>>>>> 8b3dfeb9a (Add RISC-V registers and mnemonics)
       case Arch_intelGen9:
       case Arch_cuda:
       case Arch_none:
@@ -632,8 +629,6 @@ namespace Dyninst {
     return false;
   }
 
-<<<<<<< HEAD
-=======
   static void getRiscv64RoseRegister(int& reg_class, int& reg_idx, int& offset,
                                           const int& reg) {
     signed int category = (reg & 0x00ff0000);
@@ -2732,7 +2727,6 @@ namespace Dyninst {
     return -1;
   }
 
->>>>>>> 8b3dfeb9a (Add RISC-V registers and mnemonics)
   MachRegister MachRegister::getArchReg(unsigned int regNum, Dyninst::Architecture arch) {
     switch(arch) {
       case Arch_aarch64:

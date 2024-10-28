@@ -292,6 +292,7 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
     case Arch_ppc32:
     case Arch_ppc64:
     case Arch_aarch64:
+    case Arch_riscv64:
     case Arch_amdgpu_gfx908:
     case Arch_amdgpu_gfx90a:
     case Arch_amdgpu_gfx940: {
