@@ -273,7 +273,7 @@ RegisterDictionary::dictionary_riscv64() {
 
         /* All of the general purpose registers  */
         for (unsigned idx = 0; idx < 32; idx++) {
-            regs->insert("x" + StringUtility::numberToString(idx), riscv64_regclass_gpr, riscv64_gpr_x0 + idx, 0, 32);
+            regs->insert("x" + StringUtility::numberToString(idx), riscv64_regclass_gpr, riscv64_gpr_x0 + idx, 0, 64);
         }
 
         /* All of the floating point registers  */
