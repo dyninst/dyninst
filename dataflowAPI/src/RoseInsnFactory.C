@@ -328,8 +328,7 @@ bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode,
     return true;
   }
     break;
-  case power_op_sc:
-  case power_op_svcs: {
+  case power_op_sc: {
     //cerr << "special-casing syscall insn" << endl;
     unsigned int raw = 0;
     std::vector<unsigned char> bytes = rose_insn->get_raw_bytes();
@@ -374,7 +373,7 @@ void RoseInsnPPCFactory::massageOperands(const Instruction &insn,
     std::swap(operands[1], operands[2]);
   }
   if(insn.getOperation().format().find(".") != std::string::npos &&
-     insn.getOperation().getID() != power_op_stwcx_rc) {
+     insn.getOperation().getID() != power_op_stwcx) {
     operands.pop_back();
   }
 
