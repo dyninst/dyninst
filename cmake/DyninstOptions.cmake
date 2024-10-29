@@ -47,10 +47,8 @@ mark_as_advanced(DYNINST_CXXSTDLIB)
 option(DYNINST_FORCE_RUNPATH "Require the use of RUNPATH instead of compiler's default"
        OFF)
 
-option(
-  DYNINST_CODEGEN_ARCH
-  "Override default host architecture detction for cross-architecture support"
-  OFF)
+option(DYNINST_CODEGEN_ARCH
+       "Override default host architecture detction for cross-architecture support" OFF)
 
 # This is intended for use by developers to facilitate
 # unit testing of internal libraries that don't export
