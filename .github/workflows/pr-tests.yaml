@@ -58,6 +58,7 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.get-oses.outputs.all) }}
         compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
+        install-dir: ["${GITHUB_WORKSPACE}/install", "/usr"]
     permissions:
       packages: read
     container:
@@ -65,7 +66,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
-    name: PR tests (${{ matrix.os }}, ${{ matrix.compiler }})
+    name: PR tests (${{ matrix.os }}, ${{ matrix.compiler }}, ${{ matrix.install-dir }})
     steps:
       - name: Checkout Dyninst
         uses: actions/checkout@v4
@@ -79,7 +80,7 @@ jobs:
           compiler: ${{ matrix.compiler }}
           extra-cmake-flags: "-DDYNINST_EXPORT_ALL=ON"  # needed for unit tests
           src-dir: "${GITHUB_WORKSPACE}/src"
-          install-dir: "${GITHUB_WORKSPACE}/install"
+          install-dir: ${{ matrix.install-dir }}
 
       - name: Checkout Test Suite
         if: ${{ matrix.compiler != 'clang' }}
@@ -94,7 +95,7 @@ jobs:
         run: |
           set -ex
           cd ${GITHUB_WORKSPACE}/testsuite; mkdir build; cd build
-          cmake .. -DDyninst_ROOT=${GITHUB_WORKSPACE}/install
+          cmake .. -DDyninst_ROOT=${{ matrix.install-dir }}
           cmake --build . --parallel 2
 
       - name: Checkout Examples
@@ -108,7 +109,7 @@ jobs:
         run: |
           set -ex
           cd ${GITHUB_WORKSPACE}/examples; mkdir build; cd build
-          cmake .. -DDyninst_ROOT=${GITHUB_WORKSPACE}/install
+          cmake .. -DDyninst_ROOT=${{ matrix.install-dir }}
           cmake --build . --parallel 2
 
       - name: Checkout External Tests
@@ -122,7 +123,7 @@ jobs:
         run: |
           set -ex
           cd ${GITHUB_WORKSPACE}/external-tests; mkdir build; cd build
-          cmake .. -DDyninst_ROOT=${GITHUB_WORKSPACE}/install
+          cmake .. -DDyninst_ROOT=${{ matrix.install-dir }}
           cmake --build . --parallel 2
 
       - name: Run external tests
@@ -130,7 +131,7 @@ jobs:
         shell: bash
         run: |
           set -ex
-          export DYNINSTAPI_RT_LIB=$(find ${GITHUB_WORKSPACE}/install/ -name libdyninstAPI_RT.so)
+          export DYNINSTAPI_RT_LIB=$(find ${{ matrix.install-dir }} -name libdyninstAPI_RT.so)
           cd ${GITHUB_WORKSPACE}/external-tests/build
           ctest -VV --output-on-failure .
 
@@ -145,7 +146,7 @@ jobs:
         run: |
           set -ex
           cd unit-tests; mkdir build; cd build
-          cmake .. -DDyninst_ROOT=${GITHUB_WORKSPACE}/install -DDYNINST_SOURCE_TREE=${GITHUB_WORKSPACE}/src
+          cmake .. -DDyninst_ROOT=${{ matrix.install-dir }} -DDYNINST_SOURCE_TREE=${GITHUB_WORKSPACE}/src
           cmake --build . --parallel 2
 
       - name: Run unit tests
@@ -153,5 +154,5 @@ jobs:
         run: |
           set -ex
           cd ${GITHUB_WORKSPACE}/unit-tests/build
-          export DYNINSTAPI_RT_LIB=$(find ${GITHUB_WORKSPACE}/install/ -name libdyninstAPI_RT.so)
+          export DYNINSTAPI_RT_LIB=$(find ${{ matrix.install-dir }} -name libdyninstAPI_RT.so)
           ctest -VV --output-on-failure .
