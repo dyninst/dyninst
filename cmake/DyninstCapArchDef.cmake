@@ -14,7 +14,7 @@ elseif(DYNINST_HOST_ARCH_x86_64)
   set(HOST_ARCH_DEFINES -Dhost_arch_x86_64 -Dhost_arch_64bit)
 elseif(DYNINST_HOST_ARCH_ppc64le)
   set(HOST_ARCH_DEFINES -Dhost_arch_power -Dhost_arch_64bit)
-elseif(DYNINST_HOST_ARCH_ahost_arch64)
+elseif(DYNINST_HOST_ARCH_host_arch64)
   set(HOST_ARCH_DEFINES -Dhost_arch_ahost_arch64 -Dhost_arch_64bit)
 endif()
 
