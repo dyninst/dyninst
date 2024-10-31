@@ -49,6 +49,23 @@ if(DYNINST_OS_Linux OR DYNINST_OS_FreeBSD)
   set(DYNINST_OS_UNIX TRUE)
 endif()
 
+if(${_host_arch} IN_LIST _64bit_x86_arches)
+  set(DYNINST_HOST_ARCH_x86_64 TRUE)
+elseif(${_host_arch} STREQUAL "aarch64")
+  set(DYNINST_HOST_ARCH_aarch64 TRUE)
+elseif(${_host_arch} STREQUAL "ppc64le")
+  set(DYNINST_HOST_ARCH_ppc64le TRUE)
+elseif(${_host_arch} IN_LIST _32bit_x86_arches)
+  set(DYNINST_HOST_ARCH_i386 TRUE)
+elseif(${_host_arch} STREQUAL "amdgpu_gfx908")
+  set(DYNINST_HOST_ARCH_amdgpu_gfx908 TRUE)
+elseif(${_host_arch} STREQUAL "amdgpu_gfx90a")
+  set(DYNINST_HOST_ARCH_amdgpu_gfx90a TRUE)
+elseif(${_host_arch} STREQUAL "amdgpu_gfx940")
+  set(DYNINST_HOST_ARCH_amdgpu_gfx940 TRUE)
+endif()
+
+
 if(DYNINST_CODEGEN_ARCH)
   if(NOT DYNINST_CODEGEN_ARCH IN_LIST _known_arches)
     message(

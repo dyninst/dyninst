@@ -493,7 +493,7 @@ DyninstInstFrameStepperImpl::~DyninstInstFrameStepperImpl()
 
 //DebugStepper defined here
 //#if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64))
-#if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64) || defined(arch_aarch64) )
+#if (defined(os_linux) || defined(os_freebsd)) && (defined(host_arch_x86) || defined(host_arch_x86_64) || defined(host_arch_aarch64) )
 #include "stackwalk/src/dbgstepper-impl.h"
 #define PIMPL_IMPL_CLASS DebugStepperImpl
 #endif
@@ -505,7 +505,7 @@ DyninstInstFrameStepperImpl::~DyninstInstFrameStepperImpl()
 #undef PIMPL_NAME
 
 //StepperWanderer defined here
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(host_arch_x86) || defined(host_arch_x86_64)
 #include "stackwalk/src/x86-swk.h"
 #define PIMPL_IMPL_CLASS StepperWandererImpl
 #endif

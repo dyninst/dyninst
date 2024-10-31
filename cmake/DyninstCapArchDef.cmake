@@ -8,6 +8,18 @@ include_guard(GLOBAL)
 
 set(CAP_DEFINES -Dcap_dynamic_heap -Dcap_liveness -Dcap_threads)
 
+
+if(DYNINST_HOST_ARCH_i386)
+  set(HOST_ARCH_DEFINES -Dhost_arch_x86)
+elseif(DYNINST_HOST_ARCH_x86_64)
+  set(HOST_ARCH_DEFINES -Dhost_arch_x86_64 -Dhost_arch_64bit)
+elseif(DYNINST_HOST_ARCH_ppc64le)
+  set(HOST_ARCH_DEFINES -Dhost_arch_power -Dhost_arch_64bit)
+elseif(DYNINST_HOST_ARCH_ahost_arch64)
+  set(HOST_ARCH_DEFINES -Dhost_arch_ahost_arch64 -Dhost_arch_64bit)
+endif()
+
+
 if(DYNINST_ARCH_i386)
   set(ARCH_DEFINES -Darch_x86)
   set(CAP_DEFINES
@@ -77,4 +89,4 @@ elseif(DYNINST_OS_Windows)
 endif()
 
 set(DYNINST_PLATFORM_CAPABILITIES ${CAP_DEFINES} ${BUG_DEFINES} ${ARCH_DEFINES}
-                                  ${OS_DEFINES} ${OLD_DEFINES})
+                                  ${OS_DEFINES} ${OLD_DEFINES} ${HOST_ARCH_DEFINES})
