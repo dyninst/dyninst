@@ -59,7 +59,6 @@ elseif(${_host_arch} IN_LIST _32bit_x86_arches)
   set(DYNINST_HOST_ARCH_i386 TRUE)
 endif()
 
-
 if(DYNINST_CODEGEN_ARCH)
   if(NOT DYNINST_CODEGEN_ARCH IN_LIST _known_arches)
     message(

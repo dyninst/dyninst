@@ -8,7 +8,6 @@ include_guard(GLOBAL)
 
 set(CAP_DEFINES -Dcap_dynamic_heap -Dcap_liveness -Dcap_threads)
 
-
 if(DYNINST_HOST_ARCH_i386)
   set(HOST_ARCH_DEFINES -Dhost_arch_x86)
 elseif(DYNINST_HOST_ARCH_x86_64)
@@ -18,7 +17,6 @@ elseif(DYNINST_HOST_ARCH_ppc64le)
 elseif(DYNINST_HOST_ARCH_ahost_arch64)
   set(HOST_ARCH_DEFINES -Dhost_arch_ahost_arch64 -Dhost_arch_64bit)
 endif()
-
 
 if(DYNINST_ARCH_i386)
   set(ARCH_DEFINES -Darch_x86)
