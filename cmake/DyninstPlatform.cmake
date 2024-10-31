@@ -57,12 +57,6 @@ elseif(${_host_arch} STREQUAL "ppc64le")
   set(DYNINST_HOST_ARCH_ppc64le TRUE)
 elseif(${_host_arch} IN_LIST _32bit_x86_arches)
   set(DYNINST_HOST_ARCH_i386 TRUE)
-elseif(${_host_arch} STREQUAL "amdgpu_gfx908")
-  set(DYNINST_HOST_ARCH_amdgpu_gfx908 TRUE)
-elseif(${_host_arch} STREQUAL "amdgpu_gfx90a")
-  set(DYNINST_HOST_ARCH_amdgpu_gfx90a TRUE)
-elseif(${_host_arch} STREQUAL "amdgpu_gfx940")
-  set(DYNINST_HOST_ARCH_amdgpu_gfx940 TRUE)
 endif()
 
 
