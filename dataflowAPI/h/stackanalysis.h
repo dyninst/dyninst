@@ -53,7 +53,7 @@
 
 // FreeBSD is missing a MINLONG and MAXLONG
 #if defined(os_freebsd) 
-#if defined(arch_64bit)
+#if defined(DYNINST_host_arch_64bit)
 #define MINLONG INT64_MIN
 #define MAXLONG INT64_MAX
 #else

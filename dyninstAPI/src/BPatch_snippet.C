@@ -66,11 +66,11 @@ using namespace Dyninst::SymtabAPI;
 
 // Need REG_MT_POS, defined in inst-<arch>...
 
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_host_arch_x86) || defined(DYNINST_host_arch_x86_64)
 #include "inst-x86.h"
-#elif defined(arch_power)
+#elif defined(DYNINST_host_arch_power)
 #include "inst-power.h"
-#elif defined(arch_aarch64)
+#elif defined(DYNINST_host_arch_aarch64)
 #include "inst-aarch64.h"
 #else
 #error "Unknown architecture, expected x86, x86_64, power or aarch64"

@@ -8,8 +8,8 @@ include_guard(GLOBAL)
 
 set(CAP_DEFINES -Dcap_dynamic_heap -Dcap_liveness -Dcap_threads)
 
-if(DYNINST_ARCH_i386)
-  set(ARCH_DEFINES -Darch_x86)
+if(DYNINST_HOST_ARCH_i386)
+  set(ARCH_DEFINES -DDYNINST_host_arch_x86)
   set(CAP_DEFINES
       ${CAP_DEFINES}
       -Dcap_fixpoint_gen
@@ -19,8 +19,8 @@ if(DYNINST_ARCH_i386)
       -Dcap_virtual_registers
       -Dcap_stack_mods)
 
-elseif(DYNINST_ARCH_x86_64)
-  set(ARCH_DEFINES -Darch_x86_64 -Darch_64bit)
+elseif(DYNINST_HOST_ARCH_x86_64)
+  set(ARCH_DEFINES -DDYNINST_host_arch_x86_64 -DDYNINST_host_arch_64bit)
   set(CAP_DEFINES
       ${CAP_DEFINES}
       -Dcap_32_64
@@ -31,12 +31,12 @@ elseif(DYNINST_ARCH_x86_64)
       -Dcap_tramp_liveness
       -Dcap_stack_mods)
 
-elseif(DYNINST_ARCH_ppc64le)
-  set(ARCH_DEFINES -Darch_power -Darch_64bit)
+elseif(DYNINST_HOST_ARCH_ppc64le)
+  set(ARCH_DEFINES -DDYNINST_host_arch_power -DDYNINST_host_arch_64bit)
   set(CAP_DEFINES ${CAP_DEFINES} -Dcap_32_64 -Dcap_registers -Dcap_toc_64)
 
-elseif(DYNINST_ARCH_aarch64)
-  set(ARCH_DEFINES -Darch_aarch64 -Darch_64bit)
+elseif(DYNINST_HOST_ARCH_aarch64)
+  set(ARCH_DEFINES -DDYNINST_host_arch_aarch64 -DDYNINST_host_arch_64bit)
   set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
 endif()
 
@@ -46,14 +46,14 @@ if(DYNINST_OS_Linux)
                   -Dcap_mutatee_traps -Dcap_ptrace)
   set(BUG_DEFINES -Dbug_syscall_changepc_rewind -Dbug_force_terminate_failure)
 
-  if(DYNINST_ARCH_i386)
+  if(DYNINST_HOST_ARCH_i386)
     set(OLD_DEFINES -Di386_unknown_linux2_0)
-  elseif(DYNINST_ARCH_x86_64)
+  elseif(DYNINST_HOST_ARCH_x86_64)
     set(OLD_DEFINES -Dx86_64_unknown_linux2_4)
-  elseif(DYNINST_ARCH_ppc64le)
+  elseif(DYNINST_HOST_ARCH_ppc64le)
     set(OLD_DEFINES -Dppc64_linux)
     set(BUG_DEFINES ${BUG_DEFINES} -Dbug_registers_after_exit)
-  elseif(DYNINST_ARCH_aarch64)
+  elseif(DYNINST_HOST_ARCH_aarch64)
     set(OLD_DEFINES -Daarch64_unknown_linux)
   endif()
 
@@ -64,9 +64,9 @@ elseif(DYNINST_OS_FreeBSD)
       -Dbug_freebsd_missing_sigstop -Dbug_freebsd_mt_suspend -Dbug_freebsd_change_pc
       -Dbug_phdrs_first_page -Dbug_syscall_changepc_rewind)
 
-  if(DYNINST_ARCH_i386)
+  if(DYNINST_HOST_ARCH_i386)
     set(OLD_DEFINES -Di386_unknown_freebsd7_0)
-  elseif(DYNINST_ARCH_x86_64)
+  elseif(DYNINST_HOST_ARCH_x86_64)
     set(OLD_DEFINES -Damd64_unknown_freebsd7_0)
   endif()
 

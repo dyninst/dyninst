@@ -30,23 +30,23 @@
 
 // Architecture include. Use this one instead of arch-<platform>
 
-#if !defined(arch_h)
+#if !defined(DYNINST_host_arch_h)
 #define arch_h
 
 #include <assert.h>
 #include <vector>
 
-#if defined(arch_power)
+#if defined(DYNINST_host_arch_power)
 #include "arch-power.h"
 using namespace NS_power;
 
 #elif defined(i386_unknown_nt4_0) \
-   || defined(arch_x86)           \
-   || defined(arch_x86_64)
+   || defined(DYNINST_host_arch_x86)           \
+   || defined(DYNINST_host_arch_x86_64)
 #include "arch-x86.h"
 using namespace NS_x86;
 
-#elif defined(arch_aarch64)
+#elif defined(DYNINST_host_arch_aarch64)
 #include "arch-aarch64.h"
 using namespace NS_aarch64;
 #else

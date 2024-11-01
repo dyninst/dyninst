@@ -47,7 +47,7 @@ using namespace InstructionAPI;
 BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
 							 Dyninst::Address current, bool is64)
 {
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_host_arch_x86) || defined(DYNINST_host_arch_x86_64)
     static unsigned int log2[] = { 0, 0, 1, 1, 2, 2, 2, 2, 3 };
     
   // TODO 16-bit registers
@@ -221,7 +221,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
         }
     }
     return NULL;
-#elif defined(arch_aarch64) 
+#elif defined(DYNINST_host_arch_aarch64) 
     std::vector<Operand> operands;
     insn.getOperands(operands);
     for(std::vector<Operand>::iterator op = operands.begin();

@@ -3,7 +3,7 @@
    .abiversion 2
 
 #ifndef __clang__
-# if defined(arch_64bit)
+# if defined(DYNINST_host_arch_64bit)
    .machine "ppc64"       
 # else
    .machine "ppc"       
