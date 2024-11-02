@@ -132,11 +132,11 @@ ABI* ABI::getABI(int addr_width){
 #endif
 
 // We _only_ support instrumenting 32-bit binaries on 64-bit systems
-#if !defined arch_64bit || defined cap_32_64
+#if !defined(DYNINST_host_arch_64bit) || defined(cap_32_64)
 	initialize32();
 #endif
 
-#ifdef arch_64bit
+#if defined(DYNINST_host_arch_64bit)
 	initialize64();
 #endif
     }

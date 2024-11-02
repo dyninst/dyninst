@@ -180,7 +180,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
   }
   assert(nac < 3);
   return bmap;
-#elif defined arch_power
+#elif defined(DYNINST_host_arch_power)
     std::vector<Operand> operands;
     insn.getOperands(operands);
     for(std::vector<Operand>::iterator op = operands.begin();
@@ -269,7 +269,7 @@ void BPatch_memoryAccessAdapter::visit(RegisterAST* r)
     //fprintf(stderr, "base: %d\n", base.val());
 	    
 	unsigned int converted = base.val() & 0xFFFF;
-	#if defined arch_power
+	#if defined(DYNINST_host_arch_power)
     if((ra == -1) && !setImm) {
         ra = converted;
         return;
