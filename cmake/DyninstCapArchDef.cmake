@@ -78,3 +78,11 @@ endif()
 
 set(DYNINST_PLATFORM_CAPABILITIES ${CAP_DEFINES} ${BUG_DEFINES} ${ARCH_DEFINES}
                                   ${OS_DEFINES} ${OLD_DEFINES})
+
+# The testsuite assumes the architecture defines look like `arch_x86_64`
+# so we need to keep that format.
+
+string(REGEX REPLACE "DYNINST_host_" "" _ARCH_DEFINES_TESTSUITE "${ARCH_DEFINES}")
+
+set(TESTSUITE_PLATFORM_CAPABILITIES
+    ${CAP_DEFINES} ${BUG_DEFINES} ${_ARCH_DEFINES_TESTSUITE} ${OS_DEFINES} ${OLD_DEFINES})
