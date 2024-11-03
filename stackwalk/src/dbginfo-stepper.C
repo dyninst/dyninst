@@ -46,7 +46,7 @@
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
 
-#ifdef arch_aarch64
+#if defined(DYNINST_host_arch_aarch64)
 # include "registers/aarch64_regs.h"
 #endif
 
