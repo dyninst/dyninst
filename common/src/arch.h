@@ -30,7 +30,7 @@
 
 // Architecture include. Use this one instead of arch-<platform>
 
-#if !defined(DYNINST_host_arch_h)
+#if !defined(arch_h)
 #define arch_h
 
 #include <assert.h>
