@@ -555,7 +555,7 @@ int image::findMain()
 #elif defined(i386_unknown_linux2_0) \
     || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
     || (defined(os_freebsd) \
-            && (defined(DYNINST_host_arch_x86) || defined(DYNINST_host_arch_x86_64)))
+            && (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)))
     // Only look for main in executables, but do allow position-independent
     // executables (PIE) which look like shared objects with an INTERP.
     // (Some strange DSOs also have INTERP, but this is rare.)

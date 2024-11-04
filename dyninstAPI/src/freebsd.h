@@ -43,7 +43,7 @@
 
 class PCProcess;
 
-#if defined(DYNINST_host_arch_x86) || defined(DYNINST_host_arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
 #include "freebsd-x86.h"
 #else
 #error Invalid or unknown architecture-os inclusion

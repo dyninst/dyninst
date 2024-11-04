@@ -1003,7 +1003,7 @@ void trampTrapMappings::clearTrapMappings()
 void trampTrapMappings::addTrapMapping(Address from, Address to, 
                                        bool write_to_mutatee)
 {
-#if defined(DYNINST_host_arch_x86) || defined(DYNINST_host_arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
    //x86 traps occur at +1 addr
    from++;
 #endif
@@ -1022,7 +1022,7 @@ void trampTrapMappings::addTrapMapping(Address from, Address to,
    }
    needs_updating = true;
 #endif
-#if defined(DYNINST_host_arch_x86) || defined(DYNINST_host_arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
    from--;
 #endif
 }

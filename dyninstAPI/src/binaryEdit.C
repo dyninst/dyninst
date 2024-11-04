@@ -415,9 +415,9 @@ bool BinaryEdit::getResolvedLibraryPath(const std::string &, std::vector<std::st
 }
 #endif
 
-#if !(defined(cap_binary_rewriter) && (defined(DYNINST_host_arch_x86) || defined(DYNINST_host_arch_x86_64)\
-		|| defined(DYNINST_host_arch_power)   \
-		|| defined(DYNINST_host_arch_aarch64) \
+#if !(defined(cap_binary_rewriter) && (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)\
+		|| defined(DYNINST_HOST_ARCH_POWER)   \
+		|| defined(DYNINST_HOST_ARCH_AARCH64) \
 		)) 
 bool BinaryEdit::doStaticBinarySpecialCases() {
     return true;

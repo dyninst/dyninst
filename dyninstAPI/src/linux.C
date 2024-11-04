@@ -107,7 +107,7 @@ void PCProcess::inferiorMallocConstraints(Address near, Address &lo, Address &hi
         inferiorHeapType /* type */ ) 
 {
     if (near) {
-#if !defined(DYNINST_host_arch_x86_64) && !defined(DYNINST_host_arch_power) && !defined(DYNINST_host_arch_aarch64)
+#if !defined(DYNINST_HOST_ARCH_X86_64) && !defined(DYNINST_HOST_ARCH_POWER) && !defined(DYNINST_HOST_ARCH_AARCH64)
         lo = region_lo(near);
         hi = region_hi(near);
 #else
