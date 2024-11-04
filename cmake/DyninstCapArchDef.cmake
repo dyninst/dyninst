@@ -82,7 +82,6 @@ set(DYNINST_PLATFORM_CAPABILITIES ${CAP_DEFINES} ${BUG_DEFINES} ${ARCH_DEFINES}
 # The testsuite assumes the architecture defines look like `arch_x86_64`
 # so we need to keep that format.
 
-
 string(TOLOWER "${ARCH_DEFINES}" _LOWER_ARCH_DEFINES)
 string(REGEX REPLACE "dyninst_host_" "" _ARCH_DEFINES_TESTSUITE "${_LOWER_ARCH_DEFINES}")
 
