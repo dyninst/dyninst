@@ -271,10 +271,6 @@ class AddressSpace : public InstructionSource {
 
 	// Fast lookups across all mapped_objects
 	func_instance *findFuncByEntry(const block_instance *block);
-
-    //findJumpTargetFuncByAddr Acts like findFunc, but if it fails,
-    // checks if 'addr' is a jump to a function.
-    func_instance *findJumpTargetFuncByAddr(Address addr);
     
     // true if the addrs are in the same object and region within the object
     bool sameRegion(Dyninst::Address addr1, Dyninst::Address addr2);

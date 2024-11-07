@@ -940,46 +940,6 @@ void AddressSpace::getAllModules(std::vector<mapped_module *> &mods){
    }
 }
 
-//Acts like findTargetFuncByAddr, but also finds the function if addr
-// is an indirect jump to a function.
-//I know this is an odd function, but darn I need it.
-func_instance *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
-
-   Address addr2 = 0;
-   func_instance *f = findOneFuncByAddr(addr);
-   if (f)
-      return f;
-
-   if (!findObject(addr)) return NULL;
-
-   using namespace Dyninst::InstructionAPI;
-   InstructionDecoder decoder((const unsigned char*)getPtrToInstruction(addr),
-                              InstructionDecoder::maxInstructionLength,
-                              getArch());
-   Instruction curInsn = decoder.decode();
-    
-   Expression::Ptr target = curInsn.getControlFlowTarget();
-   RegisterAST thePC = RegisterAST::makePC(getArch());
-   target->bind(&thePC, Result(u32, addr));
-   Result cft = target->eval();
-   if(cft.defined)
-   {
-      switch(cft.type)
-      {
-         case u32:
-            addr2 = cft.val.u32val;
-            break;
-         case s32:
-            addr2 = cft.val.s32val;
-            break;
-         default:
-            assert(!"Not implemented for non-32 bit CFTs yet!");
-            break;
-      }
-   }
-   return findOneFuncByAddr(addr2);
-}
-
 AstNodePtr AddressSpace::trampGuardAST() {
    if (!trampGuardBase_) {
       // Don't have it yet....
