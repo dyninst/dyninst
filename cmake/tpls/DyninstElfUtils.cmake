@@ -170,6 +170,7 @@ else()
             [=[LDFLAGS=-Wl,-rpath='$$ORIGIN']=] <SOURCE_DIR>/configure
             --enable-install-elfh --prefix=${TPL_STAGING_PREFIX} --disable-libdebuginfod
             --disable-debuginfod --enable-thread-safety
+            --libdir=${TPL_STAGING_PREFIX}/lib
         BUILD_COMMAND make install
         BUILD_BYPRODUCTS ${_eu_build_byproducts}
         INSTALL_COMMAND "")
