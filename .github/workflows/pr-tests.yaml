@@ -123,7 +123,7 @@ jobs:
         run: |
           set -ex
           cd ${GITHUB_WORKSPACE}/external-tests; mkdir build; cd build
-          cmake .. -DDyninst_ROOT=${{ matrix.install-dir }}
+          cmake .. -DDyninst_ROOT=${{ matrix.install-dir }} -DCMAKE_CXX_STANDARD=17
           cmake --build . --parallel 2
 
       - name: Run external tests
