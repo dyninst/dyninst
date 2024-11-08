@@ -169,7 +169,7 @@ namespace Dyninst {
         return 4;
       }
       case Arch_ppc64: {
-        if((reg & 0x00ff0000) == aarch64::FPR)
+        if((reg & 0x00ff0000) == ppc64::FPR)
           return 16;
         return 8;
       }
