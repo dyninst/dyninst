@@ -326,9 +326,6 @@ namespace Dyninst { namespace InstructionAPI {
     if(getCategory() == c_NoCategory || isCompare() || isPrefetch()) {
       return Expression::Ptr();
     }
-    if(isReturn()) {
-      return makeReturnExpression();
-    }
     DECODE_OPERANDS();
     if(m_Successors.empty()) {
       return Expression::Ptr();
@@ -415,14 +412,6 @@ namespace Dyninst { namespace InstructionAPI {
   DYNINST_EXPORT bool Instruction::isLegalInsn() const { return (m_InsnOp.getID() != e_No_Entry); }
 
   DYNINST_EXPORT Architecture Instruction::getArch() const { return arch_decoded_from; }
-
-  Expression::Ptr Instruction::makeReturnExpression() const {
-    Expression::Ptr stackPtr =
-        Expression::Ptr(new RegisterAST(MachRegister::getStackPointer(arch_decoded_from), 0,
-                                        MachRegister::getStackPointer(arch_decoded_from).size()));
-    Expression::Ptr retLoc = Expression::Ptr(new Dereference(stackPtr, u32));
-    return retLoc;
-  }
 
   DYNINST_EXPORT InsnCategory Instruction::getCategory() const {
     if(m_InsnOp.isVectorInsn)
