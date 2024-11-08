@@ -1845,12 +1845,25 @@ namespace Dyninst
             sGetImplicitOPs(decodedInstruction->getEntry()->impl_dec);
         InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 
-        if (decodedInstruction->getEntry()->getID() == e_ret_near ||
-            decodedInstruction->getEntry()->getID() == e_ret_far) {
-           Expression::Ptr ret_addr = makeDereferenceExpression(makeRegisterExpression(is64BitMode ? x86_64::rsp : x86::esp),
-                                                                is64BitMode ? u64 : u32);
-           insn_to_complete->addSuccessor(ret_addr, false, true, false, false, true);
-	    }
+        if(insn_to_complete->getCategory() == c_ReturnInsn) {
+          /************************************************************************
+           *  AMD64 Architecture Programmer’s Manual Volume 3. Version 3.33. Nov 2021
+           *
+           *  RET (Near) pops the rIP from the stack. It can also accept an
+           *  immediate value operand that it adds to the rSP after it pops the
+           *  target rIP. This form is assumed not to be used in the general case
+           *  of returning from a procedure.
+           *
+           *  RET (Far) also pops the Code Segment (CS) register from the stack.
+           *  We don't account for that here since the CS is neither a control flow
+           *  target nor an operand of `RETF`.
+           ************************************************************************/
+          auto sp = is64BitMode ? x86_64::rsp : x86::esp;
+          auto type = is64BitMode ? u64 : u32;
+          auto action = makeDereferenceExpression(makeRegisterExpression(sp), type);
+          insn_to_complete->addSuccessor(action, false, true, false, false, true);
+        }
+
         if (insn_to_complete->getOperation().getID() == e_endbr32 ||
             insn_to_complete->getOperation().getID() == e_endbr64) {
             insn_to_complete->m_Operands.clear();
