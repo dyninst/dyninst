@@ -29,16 +29,16 @@
  */
 
 #if !defined(OPERAND_H)
-#  define OPERAND_H
+#define OPERAND_H
 
-#  include "BinaryFunction.h"
-#  include "Expression.h"
-#  include "Immediate.h"
-#  include "Register.h"
-#  include "util.h"
+#include "BinaryFunction.h"
+#include "Expression.h"
+#include "Immediate.h"
+#include "Register.h"
+#include "util.h"
 
-#  include <set>
-#  include <string>
+#include <set>
+#include <string>
 
 namespace Dyninst { namespace InstructionAPI {
   class Operand {
