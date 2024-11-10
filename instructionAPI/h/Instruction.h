@@ -79,9 +79,7 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT Instruction(Operation what, size_t size, const unsigned char* raw,
                                Dyninst::Architecture arch);
     DYNINST_EXPORT Instruction();
-
     DYNINST_EXPORT virtual ~Instruction();
-
     DYNINST_EXPORT Instruction(const Instruction& o);
     DYNINST_EXPORT const Instruction& operator=(const Instruction& rhs);
 
@@ -89,46 +87,38 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT const Operation& getOperation() const;
 
     DYNINST_EXPORT void getOperands(std::vector<Operand>& operands) const;
+    DYNINST_EXPORT Operand getOperand(int index) const;
 
     DYNINST_EXPORT std::vector<Operand> getDisplayOrderedOperands() const;
-
-    DYNINST_EXPORT Operand getOperand(int index) const;
 
     DYNINST_EXPORT Operand getPredicateOperand() const;
     DYNINST_EXPORT bool hasPredicateOperand() const;
 
     DYNINST_EXPORT unsigned char rawByte(unsigned int index) const;
+    DYNINST_EXPORT const void* ptr() const;
 
     DYNINST_EXPORT size_t size() const;
 
-    DYNINST_EXPORT const void* ptr() const;
-
     DYNINST_EXPORT void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
-
     DYNINST_EXPORT void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
 
     DYNINST_EXPORT bool isRead(Expression::Ptr candidate) const;
-
     DYNINST_EXPORT bool isWritten(Expression::Ptr candidate) const;
 
     DYNINST_EXPORT bool readsMemory() const;
-
-    DYNINST_EXPORT ArchSpecificFormatter& getFormatter() const;
-
     DYNINST_EXPORT bool writesMemory() const;
 
     DYNINST_EXPORT void getMemoryReadOperands(std::set<Expression::Ptr>& memAccessors) const;
-
     DYNINST_EXPORT void getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const;
 
     DYNINST_EXPORT Expression::Ptr getControlFlowTarget() const;
 
     DYNINST_EXPORT bool allowsFallThrough() const;
 
+    DYNINST_EXPORT ArchSpecificFormatter& getFormatter() const;
     DYNINST_EXPORT std::string format(Address addr = 0) const;
 
     DYNINST_EXPORT bool isValid() const;
-
     DYNINST_EXPORT bool isLegalInsn() const;
 
     DYNINST_EXPORT Architecture getArch() const;
@@ -136,9 +126,7 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT InsnCategory getCategory() const;
 
     typedef std::list<CFT>::const_iterator cftConstIter;
-
     DYNINST_EXPORT cftConstIter cft_begin() const { return m_Successors.begin(); }
-
     DYNINST_EXPORT cftConstIter cft_end() const { return m_Successors.end(); }
 
     DYNINST_EXPORT bool operator<(const Instruction& rhs) const {
