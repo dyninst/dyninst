@@ -67,17 +67,6 @@ namespace Dyninst
     namespace InstructionAPI
     {
 
-        static const int IAPI_major_version = DYNINST_MAJOR_VERSION;
-        static const int IAPI_minor_version = DYNINST_MINOR_VERSION;
-        static const int IAPI_maintenance_version = DYNINST_PATCH_VERSION;
-
-        void Instruction::version(int& major, int& minor, int& maintenance)
-        {
-            major = IAPI_major_version;
-            minor = IAPI_minor_version;
-            maintenance = IAPI_maintenance_version;
-        }
-
         int Instruction::numInsnsAllocated = 0;
         DYNINST_EXPORT Instruction::Instruction(Operation what,
                 size_t size, const unsigned char* raw,

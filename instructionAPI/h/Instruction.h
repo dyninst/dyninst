@@ -47,7 +47,6 @@
 
 namespace Dyninst { namespace InstructionAPI {
   class Instruction {
-    DYNINST_EXPORT static void version(int& major, int& minor, int& maintenance);
 
     union raw_insn_T {
 #if defined(__powerpc__) || defined(__powerpc64__)
