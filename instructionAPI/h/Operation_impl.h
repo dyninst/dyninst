@@ -42,22 +42,6 @@
 #include <stddef.h>
 #include <string>
 
-// OpCode = operation + encoding
-// contents:
-// hex value
-// information on how to decode operands
-// operation encoded
-
-// Operation = what an instruction does
-// contents:
-// read/write semantics on explicit operands
-// register implicit read/write lists, including flags
-// string/enum representation of the operation
-
-// Use cases:
-// OpCode + raw instruction -> Operation + ExpressionPtrs
-// Operation + ExpressionPtrs -> Instruction + Operands
-
 namespace NS_x86 {
   struct ia32_entry;
   class ia32_prefixes;
