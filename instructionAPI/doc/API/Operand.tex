@@ -23,6 +23,8 @@ Operand(Expression::Ptr val, bool read, bool written)
     \code{val} is a reference-counted pointer to the \code{Expression} that will
     be contained in the \code{Operand} being constructed. \code{read} is true if
     this operand is read. \code{written} is true if this operand is written.
+    
+    An instruction can be true predicated, false predicated, or not predicated at all.
 }
 
 \begin{apient}
