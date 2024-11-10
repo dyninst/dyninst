@@ -97,7 +97,6 @@ namespace Dyninst { namespace InstructionAPI {
     mutable VCSet otherEffAddrsRead;
     mutable VCSet otherEffAddrsWritten;
 
-  protected:
     mutable entryID operationID;
     Architecture archDecodedFrom;
     prefixEntryID prefixID;
