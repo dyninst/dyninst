@@ -361,37 +361,6 @@ namespace Dyninst { namespace InstructionAPI {
       formattedOperands.push_back(currOperand->format(getArch(), addr));
     }
 
-#if defined(DEBUG_READ_WRITE)
-    std::set<RegisterAST::Ptr> tmp;
-    getReadSet(tmp);
-    cout << "Read set:" << endl;
-    for(std::set<RegisterAST::Ptr>::iterator i = tmp.begin(); i != tmp.end(); ++i) {
-      cout << (*i)->format() << " ";
-    }
-    cout << endl;
-    tmp.clear();
-    getWriteSet(tmp);
-    cout << "Write set:" << endl;
-    for(std::set<RegisterAST::Ptr>::iterator i = tmp.begin(); i != tmp.end(); ++i) {
-      cout << (*i)->format() << " ";
-    }
-    cout << endl;
-    std::set<Expression::Ptr> mem;
-    getMemoryReadOperands(mem);
-    cout << "Read mem:" << endl;
-    for(std::set<Expression::Ptr>::iterator i = mem.begin(); i != mem.end(); ++i) {
-      cout << (*i)->format() << " ";
-    }
-    cout << endl;
-    mem.clear();
-    getMemoryWriteOperands(mem);
-    cout << "Write mem:" << endl;
-    for(std::set<Expression::Ptr>::iterator i = mem.begin(); i != mem.end(); ++i) {
-      cout << (*i)->format() << " ";
-    }
-    cout << endl;
-#endif // defined(DEBUG_READ_WRITE)
-
     return opstr + formatter->getInstructionString(formattedOperands);
   }
 
