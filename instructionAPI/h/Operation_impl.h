@@ -84,7 +84,7 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT bool isRead(Expression::Ptr candidate);
     DYNINST_EXPORT bool isWritten(Expression::Ptr candidate);
 
-    void updateMnemonic(std::string new_mnemonic) { mnemonic = new_mnemonic; }
+    void updateMnemonic(std::string new_mnemonic) { mnemonic = std::move(new_mnemonic); }
 
     bool isVectorInsn;
 
