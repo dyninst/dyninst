@@ -37,9 +37,6 @@
 #include "entryIDs.h"
 #include "util.h"
 
-#include <boost/flyweight.hpp>
-#include <boost/thread/lockable_adapter.hpp>
-#include <boost/thread/recursive_mutex.hpp>
 #include <mutex>
 #include <set>
 #include <stddef.h>
@@ -67,9 +64,10 @@ namespace NS_x86 {
 }
 class ia32_locations;
 
+
 namespace Dyninst { namespace InstructionAPI {
 
-  class Operation : public boost::lockable_adapter<boost::recursive_mutex> {
+  class Operation {
   public:
     typedef std::set<RegisterAST::Ptr> registerSet;
     typedef std::set<Expression::Ptr> VCSet;
