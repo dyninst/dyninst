@@ -64,20 +64,11 @@ using namespace NS_x86;
 
 namespace Dyninst { namespace InstructionAPI {
 
-  int Instruction::numInsnsAllocated = 0;
-
   DYNINST_EXPORT Instruction::Instruction(Operation what, size_t size, const unsigned char* raw,
                                           Dyninst::Architecture arch)
       : m_InsnOp(what), m_Valid(what.getID() != e_No_Entry), arch_decoded_from(arch),
         formatter(&ArchSpecificFormatter::getFormatter(arch)) {
     copyRaw(size, raw);
-
-#if defined(DEBUG_INSN_ALLOCATIONS)
-    numInsnsAllocated++;
-    if((numInsnsAllocated % 1000) == 0) {
-      fprintf(stderr, "Instruction CTOR, %d insns allocated\n", numInsnsAllocated);
-    }
-#endif
   }
 
   void Instruction::copyRaw(size_t size, const unsigned char* raw) {
@@ -106,12 +97,6 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT Instruction::Instruction()
       : m_Valid(false), m_size(0), arch_decoded_from(Arch_none), formatter(nullptr) {
-#if defined(DEBUG_INSN_ALLOCATIONS)
-    numInsnsAllocated++;
-    if((numInsnsAllocated % 1000) == 0) {
-      fprintf(stderr, "Instruction CTOR, %d insns allocated\n", numInsnsAllocated);
-    }
-#endif
   }
 
   DYNINST_EXPORT Instruction::~Instruction() {
@@ -119,13 +104,6 @@ namespace Dyninst { namespace InstructionAPI {
     if(m_size > sizeof(m_RawInsn.small_insn)) {
       delete[] m_RawInsn.large_insn;
     }
-
-#if defined(DEBUG_INSN_ALLOCATIONS)
-    numInsnsAllocated--;
-    if((numInsnsAllocated % 1000) == 0) {
-      fprintf(stderr, "Instruction DTOR, %d insns allocated\n", numInsnsAllocated);
-    }
-#endif
   }
 
   DYNINST_EXPORT Instruction::Instruction(const Instruction& o)
@@ -142,13 +120,6 @@ namespace Dyninst { namespace InstructionAPI {
     }
 
     m_Successors = o.m_Successors;
-
-#if defined(DEBUG_INSN_ALLOCATIONS)
-    numInsnsAllocated++;
-    if((numInsnsAllocated % 1000) == 0) {
-      fprintf(stderr, "Instruction COPY CTOR, %d insns allocated\n", numInsnsAllocated);
-    }
-#endif
   }
 
   DYNINST_EXPORT const Instruction& Instruction::operator=(const Instruction& rhs) {
