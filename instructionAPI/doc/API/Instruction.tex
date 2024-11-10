@@ -158,8 +158,7 @@ bool isWritten(Expression::Ptr candidate) const
 bool readsMemory() const
 \end{apient}
 \apidesc{
-    Returns \code{true} if the instruction reads at least one memory address as
-    data.
+    Returns \code{true} if the instruction reads from at least one memory address.
 
     If any operand containing a \code{Dereference} object is read, the
     instruction reads the memory at that address. Also, on platforms where a
@@ -171,8 +170,7 @@ bool readsMemory() const
 bool writesMemory() const
 \end{apient}
 \apidesc{
-    Returns \code{true} if the instruction writes at least one memory address as
-    data.
+    Returns \code{true} if the instruction writes to at least one memory address.
 
     If any operand containing a \code{Dereference} object is write, the
     instruction writes the memory at that address. Also, on platforms where a
