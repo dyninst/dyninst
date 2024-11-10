@@ -51,33 +51,25 @@ namespace Dyninst { namespace InstructionAPI {
           m_isTruePredicate(trueP), m_isFalsePredicate(falseP) {}
 
     DYNINST_EXPORT void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
-
     DYNINST_EXPORT void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
 
     DYNINST_EXPORT RegisterAST::Ptr getPredicate() const;
+    DYNINST_EXPORT bool isTruePredicate() const { return m_isTruePredicate; }
+    DYNINST_EXPORT bool isFalsePredicate() const { return m_isFalsePredicate; }
 
     DYNINST_EXPORT bool isRead(Expression::Ptr candidate) const;
-
     DYNINST_EXPORT bool isWritten(Expression::Ptr candidate) const;
 
     DYNINST_EXPORT bool isRead() const { return m_isRead; }
-
     DYNINST_EXPORT bool isWritten() const { return m_isWritten; }
 
     DYNINST_EXPORT bool isImplicit() const { return m_isImplicit; }
-
     DYNINST_EXPORT void setImplicit(bool i) { m_isImplicit = i; }
 
-    DYNINST_EXPORT bool isTruePredicate() const { return m_isTruePredicate; }
-
-    DYNINST_EXPORT bool isFalsePredicate() const { return m_isFalsePredicate; }
-
     DYNINST_EXPORT bool readsMemory() const;
-
     DYNINST_EXPORT bool writesMemory() const;
 
     DYNINST_EXPORT void addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const;
-
     DYNINST_EXPORT void addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const;
 
     DYNINST_EXPORT std::string format(Architecture arch, Address addr = 0) const;
