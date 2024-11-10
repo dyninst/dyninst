@@ -96,7 +96,6 @@ namespace Dyninst
 
       DYNINST_EXPORT void getOperands(std::vector<Operand>& operands) const;
 
-      /// Returns a vector of non-implicit operands in printed order
       DYNINST_EXPORT std::vector<Operand> getDisplayOrderedOperands() const;
 
       DYNINST_EXPORT Operand getOperand(int index) const;
