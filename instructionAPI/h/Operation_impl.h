@@ -92,31 +92,24 @@ namespace Dyninst
 
       DYNINST_EXPORT const Operation& operator=(const Operation& o);
       
-      DYNINST_EXPORT const registerSet& implicitReads() ;
+      DYNINST_EXPORT const registerSet& implicitReads();
+      DYNINST_EXPORT const registerSet& implicitWrites();
 
-      DYNINST_EXPORT const registerSet& implicitWrites() ;
+      DYNINST_EXPORT const VCSet& getImplicitMemReads();
+      DYNINST_EXPORT const VCSet& getImplicitMemWrites();
 
       DYNINST_EXPORT std::string format() const;
 
       DYNINST_EXPORT entryID getID() const;
-
       DYNINST_EXPORT prefixEntryID getPrefixID() const;
 
-
-      DYNINST_EXPORT bool isRead(Expression::Ptr candidate) ;
-
-      DYNINST_EXPORT bool isWritten(Expression::Ptr candidate) ;
-
-      DYNINST_EXPORT const VCSet& getImplicitMemReads() ;
-
-      DYNINST_EXPORT const VCSet& getImplicitMemWrites() ;
+      DYNINST_EXPORT bool isRead(Expression::Ptr candidate);
+      DYNINST_EXPORT bool isWritten(Expression::Ptr candidate);
 
       void updateMnemonic(std::string new_mnemonic){
         mnemonic = new_mnemonic;
       }
 
-
-      DYNINST_EXPORT const VCSet& getImplicitMemWrites() const;
       bool isVectorInsn;
 
     private:
