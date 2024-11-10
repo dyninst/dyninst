@@ -64,7 +64,6 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT bool isWritten() const { return m_isWritten; }
 
     DYNINST_EXPORT bool isImplicit() const { return m_isImplicit; }
-    DYNINST_EXPORT void setImplicit(bool i) { m_isImplicit = i; }
 
     DYNINST_EXPORT bool readsMemory() const;
     DYNINST_EXPORT bool writesMemory() const;
