@@ -71,31 +71,6 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-    /// An %Operation object represents a family of opcodes (operation encodings)
-    /// that perform the same task (e.g. the \c MOV family).  It includes
-    /// information about the number of operands, their read/write semantics,
-    /// the implicit register reads and writes, and the control flow behavior
-    /// of a particular assembly language operation.  It additionally provides
-    /// access to the assembly mnemonic, which allows any semantic details that
-    /// are not encoded in the %Instruction representation to be added by higher
-    /// layers of analysis.
-    ///
-    /// As an example, the \c CMP operation on IA32/AMD64 processors has the following
-    /// properties:
-    ///   - %Operand 1 is read, but not written
-    ///   - %Operand 2 is read, but not written
-    ///   - The following flags are written:
-    ///     - Overflow
-    ///     - Sign
-    ///     - Zero
-    ///     - Parity
-    ///     - Carry
-    ///     - Auxiliary
-    ///   - No other registers are read, and no implicit memory operations are performed
-    ///
-    /// %Operations are constructed by the %InstructionDecoder as part of the process
-    /// of constructing an %Instruction.
-    
     class Operation : public boost::lockable_adapter<boost::recursive_mutex>
     {
     public:
@@ -117,27 +92,23 @@ namespace Dyninst
 
       DYNINST_EXPORT const Operation& operator=(const Operation& o);
       
-      /// Returns the set of registers implicitly read (i.e. those not included in the operands, but read anyway)
       DYNINST_EXPORT const registerSet& implicitReads() ;
-      /// Returns the set of registers implicitly written (i.e. those not included in the operands, but written anyway)
+
       DYNINST_EXPORT const registerSet& implicitWrites() ;
-      /// Returns the mnemonic for the operation.  Like \c instruction::format, this is exposed for debugging
-      /// and will be replaced with stream operators in the public interface.
+
       DYNINST_EXPORT std::string format() const;
-      /// Returns the entry ID corresponding to this operation.  Entry IDs are enumerated values that correspond
-      /// to assembly mnemonics.
+
       DYNINST_EXPORT entryID getID() const;
-      /// Returns the prefix entry ID corresponding to this operation, if any.
-      /// Prefix IDs are enumerated values that correspond to assembly prefix mnemonics.
+
       DYNINST_EXPORT prefixEntryID getPrefixID() const;
 
-      /// Returns true if the expression represented by \c candidate is read implicitly.
+
       DYNINST_EXPORT bool isRead(Expression::Ptr candidate) ;
-      /// Returns true if the expression represented by \c candidate is written implicitly.
+
       DYNINST_EXPORT bool isWritten(Expression::Ptr candidate) ;
-      /// Returns the set of memory locations implicitly read.
+
       DYNINST_EXPORT const VCSet& getImplicitMemReads() ;
-      /// Returns the set of memory locations implicitly written.
+
       DYNINST_EXPORT const VCSet& getImplicitMemWrites() ;
 
       void updateMnemonic(std::string new_mnemonic){
