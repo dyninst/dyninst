@@ -50,8 +50,6 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-      class InstructionDecoder;
-
     class Instruction
     {
         DYNINST_EXPORT static void version(int& major, int& minor, int& maintenance);
