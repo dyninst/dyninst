@@ -26,7 +26,27 @@ As an example, the \code{CMP} operation on IA32/AMD64 processors has the followi
 \end{itemize}
 
 Operations are constructed by the \code{InstructionDecoder} as part of the
-process of constructing an Instruction. 
+process of constructing an Instruction.
+
+OpCode = operation + encoding
+\begin{itemize}
+\item hex value
+\item information on how to decode operands
+\item operation encoded
+\end{itemize}
+
+Operation = what an instruction does
+\begin{itemize}
+\item read/write semantics on explicit operands
+\item register implicit read/write lists, including flags
+\item string/enum representation of the operation
+\end{itemize}
+
+Some use cases include
+
+OpCode + raw instruction -> Operation + ExpressionPtrs
+Operation + ExpressionPtrs -> Instruction + Operands
+
 
 \begin{apient}
 const Operation::registerSet & implicitReads () const
