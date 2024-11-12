@@ -31,6 +31,25 @@ pointing to machine language, using the InstructionDecoder class.  See
 InstructionDecoder for more details. 
 
 \begin{apient}
+enum InsnCategory {
+  c_CallInsn,          // procedure call (NOT system calls)
+  c_ReturnInsn,        // procedure return
+  c_BranchInsn,        // conditional, direct, and indirect jump/branch
+  c_ConditionalInsn,   // implicitly reads condition/status flags
+  c_CompareInsn,       // comparisons (includes vector comparisons)
+  c_PrefetchInsn,      // cache prefetch
+  c_SysEnterInsn,      // x86 sysenter
+  c_SyscallInsn,       // system call
+  c_InterruptInsn,     // software interrupt
+  c_VectorInsn,        // operates on more than one value simultaneously
+  c_GPUKernelExitInsn, // AMD GPU kernel exit
+  c_TransactionalInsn, // memory transaction (fences, hardware locks, etc.)
+  c_NoCategory
+}
+\end{apient}
+
+
+\begin{apient}
 Instruction (Operation::Ptr what, 
              size_t size,
              const unsigned char * raw,
