@@ -946,7 +946,7 @@ Parser::finalize(Function *f)
         Block *b = f->entry();
         Block::Insns insns;
         b->getInsns(insns);
-        if (insns.size() == 1 && insns.begin()->second.getCategory() == c_BranchInsn) {
+        if (insns.size() == 1 && insns.begin()->second.isBranch()) {
             Block::edgelist targets;
             b->copy_targets(targets);
             for (auto e : targets) {
@@ -1796,7 +1796,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                             false)
                         );
                 break;
-            } else if(ah->getInstruction().getCategory()==c_GPUKernelExitInsn) {
+            } else if(ah->getInstruction().isGPUKernelExit()) {
                 // this is special treatment for non-returning instruction
                 // examples are amdgpu_op_s_endpgm and amddgpu_op_s_endpgm_saved
                 //cout << "calling endblock for non-returning instruction " << std::hex <<ah->getAddr() << endl; 

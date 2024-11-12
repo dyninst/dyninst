@@ -138,7 +138,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
             extSens_++;
             thunk_++;
             continue;
-        } else if (insn.getCategory() == c_CallInsn && exceptionSensitive(addr+insn.size(), block)) {
+        } else if (insn.isCall() && exceptionSensitive(addr+insn.size(), block)) {
             extSens = true;
             sensitivity_cerr << "\tException sensitive @ " << hex << addr << dec << endl;
         }
@@ -406,7 +406,7 @@ bool PCSensitiveTransformer::insnIsThunkCall(Instruction insn,
                                              Address addr,
                                              Absloc &destination) {
   // Should be able to handle this much more efficiently by following the CFG
-  if (insn.getCategory() != c_CallInsn) {
+  if (!insn.isCall()) {
     return false;
   }
   Expression::Ptr CFT = insn.getControlFlowTarget();
@@ -450,7 +450,7 @@ bool PCSensitiveTransformer::insnIsThunkCall(Instruction insn,
 
     if(firstInsn.isValid() && firstInsn.getOperation().getID() == e_mov
        && firstInsn.readsMemory() && !firstInsn.writesMemory()
-       && secondInsn.isValid() && secondInsn.getCategory() == c_ReturnInsn) {
+       && secondInsn.isValid() && secondInsn.isReturn()) {
 
       // Check to be sure we're reading memory
       std::set<RegisterAST::Ptr> reads;

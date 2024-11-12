@@ -271,7 +271,7 @@ bool IA_x86::isThunk() const {
     Instruction thunkFirst = targetChecker.decode();
     Instruction thunkSecond = targetChecker.decode();
     if((thunkFirst.getOperation().getID() == e_mov) &&
-        (thunkSecond.getCategory() == c_ReturnInsn))
+        (thunkSecond.isReturn()))
     {
         if(thunkFirst.isRead(stackPtr[_isrc->getArch()]))
         {
@@ -322,7 +322,7 @@ bool IA_x86::isTailCall(const Function *context, EdgeTypeEnum type, unsigned int
 
     Function* callee = _obj->findFuncByEntry(_cr, addr);
     Block* target = _obj->findBlockByEntry(_cr, addr);
-    if(curInsn().getCategory() == c_BranchInsn &&
+    if(curInsn().isBranch() &&
        valid &&
        callee && 
        callee != context &&
@@ -343,7 +343,7 @@ bool IA_x86::isTailCall(const Function *context, EdgeTypeEnum type, unsigned int
       return true;
     }    
 
-    if (curInsn().getCategory() == c_BranchInsn &&
+    if (curInsn().isBranch() &&
             valid &&
             !callee) {
     if (knownTargets.find(addr) != knownTargets.end()) {
@@ -354,7 +354,7 @@ bool IA_x86::isTailCall(const Function *context, EdgeTypeEnum type, unsigned int
     }
 
     if(allInsns.size() < 2) {
-      if(context->addr() == _curBlk->start() && curInsn().getCategory() == c_BranchInsn)
+      if(context->addr() == _curBlk->start() && curInsn().isBranch())
       {
 	parsing_printf("\tjump as only insn in entry block, TAIL CALL\n");
 	tailCalls[type] = true;
@@ -369,7 +369,7 @@ bool IA_x86::isTailCall(const Function *context, EdgeTypeEnum type, unsigned int
       }
     }
 
-    if ((curInsn().getCategory() == c_BranchInsn))
+    if (curInsn().isBranch())
     {
         //std::map<Address, Instruction::Ptr>::const_iterator prevIter =
                 //allInsns.find(current);
@@ -491,7 +491,7 @@ bool IA_x86::isStackFramePreamble() const
 bool IA_x86::cleansStack() const
 {
     Instruction ci = curInsn();
-	if (ci.getCategory() != c_ReturnInsn) return false;
+	if (!ci.isReturn()) return false;
     std::vector<Operand> ops;
 	ci.getOperands(ops);
 	return (ops.size() > 1);
@@ -504,7 +504,7 @@ bool IA_x86::isReturn(Dyninst::ParseAPI::Function * /*context*/,
     // However, for powerpc, the return instruction BLR can be a return or
     // an indirect jump used for jump tables etc. Hence, we need to function and block
     // to determine if an instruction is a return. But these parameters are unused for x86. 
-    return curInsn().getCategory() == c_ReturnInsn;
+    return curInsn().isReturn();
 }
 
 bool IA_x86::isReturnAddrSave(Dyninst::Address&) const
@@ -563,8 +563,7 @@ bool IA_x86::isFakeCall() const
 
     // follow ctrl transfers until you get a block containing non-ctrl 
     // transfer instructions, or hit a return instruction
-    while (insn.getCategory() == c_CallInsn ||
-           insn.getCategory() == c_BranchInsn)
+    while (insn.isCall() || insn.isBranch())
     {
        boost::tie(valid, entry) = ah->getCFT();
        if ( !valid || ! _cr->contains(entry) || ! _isrc->isCode(entry) ) {
@@ -595,9 +594,7 @@ bool IA_x86::isFakeCall() const
     while(true) {
 
         // exit condition 1
-        if (insn.getCategory() == c_CallInsn ||
-            insn.getCategory() == c_ReturnInsn ||
-            insn.getCategory() == c_BranchInsn)
+        if (insn.isCall() || insn.isReturn() || insn.isBranch())
         {
             break;
         }
@@ -730,7 +727,7 @@ bool IA_x86::isFakeCall() const
     } 
 
     // not a fake call if it ends w/ a return instruction
-    if (insn.getCategory() == c_ReturnInsn) {
+  if (insn.isReturn()) {
         delete ah;
         return false;
     }
@@ -814,8 +811,7 @@ bool IA_x86::isIATcall(std::string &calleeName) const
 
 bool IA_x86::isNopJump() const
 {
-    InsnCategory cat = curInsn().getCategory();
-    if (c_BranchInsn != cat) {
+    if (curInsn().isBranch()) {
         return false;
     }
     bool valid; Address addr;

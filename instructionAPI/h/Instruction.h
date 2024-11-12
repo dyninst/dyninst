@@ -124,6 +124,15 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT Architecture getArch() const;
 
     DYNINST_EXPORT InsnCategory getCategory() const;
+    DYNINST_EXPORT bool isCall() const { return getCategory() == c_CallInsn; }
+    DYNINST_EXPORT bool isReturn() const { return getCategory() == c_ReturnInsn; }
+    DYNINST_EXPORT bool isBranch() const { return getCategory() == c_BranchInsn; }
+    DYNINST_EXPORT bool isCompare() const { return getCategory() == c_CompareInsn; }
+    DYNINST_EXPORT bool isPrefetch() const { return getCategory() == c_PrefetchInsn; }
+    DYNINST_EXPORT bool isSysEnter() const { return getCategory() == c_SysEnterInsn; }
+    DYNINST_EXPORT bool isSyscall() const { return getCategory() == c_SyscallInsn; }
+    DYNINST_EXPORT bool isVector() const { return getCategory() == c_VectorInsn; }
+    DYNINST_EXPORT bool isGPUKernelExit() const { return getCategory() == c_GPUKernelExitInsn; }
 
     typedef std::list<CFT>::const_iterator cftConstIter;
     DYNINST_EXPORT cftConstIter cft_begin() const { return m_Successors.begin(); }

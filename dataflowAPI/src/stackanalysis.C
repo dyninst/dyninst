@@ -2435,11 +2435,11 @@ void StackAnalysis::handleDefault(Instruction insn, Block *block,
 }
 
 bool StackAnalysis::isCall(Instruction insn) {
-   return insn.getCategory() == c_CallInsn;
+   return insn.isCall();
 }
 
 bool StackAnalysis::isJump(Instruction insn) {
-   return insn.getCategory() == c_BranchInsn;
+   return insn.isBranch();
 }
 
 bool StackAnalysis::handleNormalCall(Instruction insn, Block *block,
@@ -2788,7 +2788,7 @@ bool StackAnalysis::handleThunkCall(Instruction insn, Block *block,
 
    // We know that we're not a normal call, so it depends on whether the CFT is
    // "next instruction" or not.
-   if (insn.getCategory() != c_CallInsn || !insn.getControlFlowTarget()) {
+   if (!insn.isCall() || !insn.getControlFlowTarget()) {
       return false;
    }
 

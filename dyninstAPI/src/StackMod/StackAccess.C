@@ -287,7 +287,7 @@ bool getAccesses(ParseAPI::Function *func,
     // If this instruction is a call, check if any stack pointers are possibly
     // being passed as parameters.  If so, we don't know what the callee will
     // access through that pointer and need to return false.
-    if (insn.getCategory() == InstructionAPI::c_CallInsn) {
+    if (insn.isCall()) {
         // Check parameter registers for stack pointers
         ABI *abi = ABI::getABI(word_size);
         const bitArray &callParamRegs = abi->getParameterRegisters();

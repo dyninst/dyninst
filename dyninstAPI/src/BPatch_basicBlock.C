@@ -358,7 +358,7 @@ bool isStore(Instruction i)
 }
 bool isPrefetch(Instruction i)
 {
-  return i.getCategory() == c_PrefetchInsn;
+  return i.isPrefetch();
 }
 
 struct funcPtrPredicate : public insnPredicate

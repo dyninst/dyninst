@@ -289,14 +289,8 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
                                            Instruction insn,
                                            Address &target) {
   target = 0;
-  switch(insn.getCategory())
-  {
-      case c_CallInsn:
-      case c_BranchInsn:
-      case c_ReturnInsn:
-          return false;
-      default:
-	  break;
+  if(insn.isCall() || insn.isBranch() || insn.isReturn()) {
+    return false;
   }
   if (insn.getControlFlowTarget()) return false;
 
@@ -411,7 +405,7 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
   // Check for call to thunk.
   // TODO: need a return register parameter.
 
-   if (insn.getCategory() != InstructionAPI::c_CallInsn) return false;
+   if (!insn.isCall()) return false;
 
   // Okay: checking for call + size
   Expression::Ptr CFT = insn.getControlFlowTarget();
@@ -479,7 +473,7 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
 
     if(firstInsn.isValid() && firstInsn.getOperation().getID() == e_mov
        && firstInsn.readsMemory() && !firstInsn.writesMemory()
-       && secondInsn.isValid() && secondInsn.getCategory() == c_ReturnInsn) {
+       && secondInsn.isValid() && secondInsn.isReturn()) {
 
       thunkVisitor visitor;
       relocation_cerr << "Checking operand "

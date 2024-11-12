@@ -131,7 +131,7 @@ bool IA_aarch64::isTailCall(const Function* context, EdgeTypeEnum type, unsigned
     Function *callee = _obj->findFuncByEntry(_cr, addr);
     Block *target = _obj->findBlockByEntry(_cr, addr);
 
-    if(curInsn().getCategory() == c_BranchInsn &&
+    if(curInsn().isBranch() &&
        valid &&
        callee && 
        callee != context &&
@@ -152,7 +152,7 @@ bool IA_aarch64::isTailCall(const Function* context, EdgeTypeEnum type, unsigned
       return true;
     }    
 
-    if (curInsn().getCategory() == c_BranchInsn &&
+    if (curInsn().isBranch() &&
             valid &&
             !callee) {
     if (knownTargets.find(addr) != knownTargets.end()) {
@@ -231,7 +231,7 @@ bool IA_aarch64::isReturnAddrSave(Address&) const
 
 bool IA_aarch64::isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block*) const
 {
-    return curInsn().getCategory() == c_ReturnInsn;
+    return curInsn().isReturn();
 }
 
 bool IA_aarch64::isFakeCall() const

@@ -526,10 +526,7 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Addr
       }
     }
   }
-  InsnCategory category = curInsn.getCategory();
-  switch(category)
-  {
-  case c_CallInsn:
+  if(curInsn.isCall()) {
       // Call instructions not at the end of a block are thunks, which are not ABI-compliant.
       // So make conservative assumptions about what they may read (ABI) but don't assume they write anything.
       ret.read |= (abi->getCallReadRegisters());
@@ -537,32 +534,26 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Addr
       {
           ret.written |= (abi->getCallWrittenRegisters());
       }
-    break;
-  case c_ReturnInsn:
+  }
+  else if(curInsn.isReturn()) {
     ret.read |= (abi->getReturnReadRegisters());
     // Nothing written implicitly by a return
-    break;
-  case c_BranchInsn:
+  }
+  else if(curInsn.isBranch()) {
     if(!curInsn.allowsFallThrough() && isExitBlock(blk))
     {
       //Tail call, union of call and return
-      ret.read |= ((abi->getCallReadRegisters()) |
-		   (abi->getReturnReadRegisters()));
+      ret.read |= ((abi->getCallReadRegisters()) | (abi->getReturnReadRegisters()));
       ret.written |= (abi->getCallWrittenRegisters());
     }
-    break;
-  default:
-    {
-      const bool isInterrupt = Dyninst::InstructionAPI::isSoftwareInterrupt(curInsn);
-      const bool isSyscall = Dyninst::InstructionAPI::isSystemCall(curInsn);
-
-      if (isInterrupt || isSyscall) {
-	ret.read |= (abi->getSyscallReadRegisters());
-	ret.written |= (abi->getSyscallWrittenRegisters());
-      }
+  }
+  else {
+    auto is_interrupt = Dyninst::InstructionAPI::isSoftwareInterrupt(curInsn);
+    if (is_interrupt || curInsn.isSyscall()) {
+      ret.read |= (abi->getSyscallReadRegisters());
+      ret.written |= (abi->getSyscallWrittenRegisters());
     }
-    break;
-  }	  
+  }
   return ret;
 }
 

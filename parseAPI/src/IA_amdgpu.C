@@ -118,7 +118,7 @@ bool IA_amdgpu::isReturnAddrSave(Address& ) const
 
 bool IA_amdgpu::isReturn(Dyninst::ParseAPI::Function * , Dyninst::ParseAPI::Block*) const
 {
-    return curInsn().getCategory() == c_ReturnInsn;
+    return curInsn().isReturn();
 }
 
 bool IA_amdgpu::isFakeCall() const

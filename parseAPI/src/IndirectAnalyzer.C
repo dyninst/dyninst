@@ -278,7 +278,7 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 	InsnAdapter::IA_IAPI* insnBlock = InsnAdapter::IA_IAPI::makePlatformIA_IAPI(b->obj()->cs()->getArch(), dec, b->start(), b->obj() , b->region(), b->obj()->cs(), b);
 	Address cur = b->start();
 	while (cur < b->end()) {
-        if (insnBlock->getInstruction().getCategory() == c_CallInsn && insnBlock->isThunk()) {
+        if (insnBlock->getInstruction().isCall() && insnBlock->isThunk()) {
             bool valid;
             Address addr;
             boost::tie(valid, addr) = insnBlock->getCFT();
