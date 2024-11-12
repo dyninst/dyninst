@@ -71,6 +71,28 @@ namespace Dyninst { namespace InstructionAPI {
           : target(t), isCall(call), isIndirect(indir), isConditional(cond), isFallthrough(ft) {}
     };
 
+    class category_t final {
+      friend class Instruction;
+      std::vector<InsnCategory> categories{};
+
+    public:
+      explicit category_t(std::vector<InsnCategory> c) noexcept : categories{std::move(c)} {}
+      category_t() = default;
+      category_t& operator=(std::vector<InsnCategory>&& c) {
+        categories = std::move(c);
+        return *this;
+      }
+
+      bool satisfies(InsnCategory category) const {
+        for(auto c : categories) {
+          if(c == category) {
+            return true;
+          }
+        }
+        return false;
+      }
+    };
+
     DYNINST_EXPORT Instruction(Operation what, size_t size, const unsigned char* raw,
                                Dyninst::Architecture arch);
     DYNINST_EXPORT Instruction();
@@ -167,6 +189,7 @@ namespace Dyninst { namespace InstructionAPI {
     mutable std::list<CFT> m_Successors;
     // formatter is a non-owning pointer to a singleton object
     ArchSpecificFormatter* formatter;
+    mutable category_t categories;
   };
 }}
 
