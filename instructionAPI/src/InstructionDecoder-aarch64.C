@@ -2999,12 +2999,15 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                     insn_in_progress->appendOperand(makePstateExpr(), isPstateRead, isPstateWritten, true);
             }
 
-            if(insn_in_progress->getCategory() == c_ReturnInsn) {
+            if(insn_in_progress->getOperation().getID() == aarch64_op_ret) {
               /*********************************************************************
                *  Arm A64 Instruction Set Architecture Armv8. March 2021
                *
                *  The conventional return sequence is to use `ret {Xn}` where the
                *  register is optional (in which case it is assumed to be X30).
+               *
+               *  There is no representation for `retaa` and `retab`, yet.
+               *
                *********************************************************************/
               auto res = [this]() -> std::pair<Expression::Ptr,bool> {
                 if(this->insn_in_progress->m_Operands.size()) {

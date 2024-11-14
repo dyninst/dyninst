@@ -1845,7 +1845,8 @@ namespace Dyninst
             sGetImplicitOPs(decodedInstruction->getEntry()->impl_dec);
         InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 
-        if(insn_to_complete->getCategory() == c_ReturnInsn) {
+        if (decodedInstruction->getEntry()->getID() == e_ret_near ||
+            decodedInstruction->getEntry()->getID() == e_ret_far) {
           /************************************************************************
            *  AMD64 Architecture Programmer’s Manual Volume 3. Version 3.33. Nov 2021
            *
