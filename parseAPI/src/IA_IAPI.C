@@ -286,16 +286,14 @@ bool IA_IAPI::hasCFT() const
         parsing_printf("\t Returning cached entry: %d\n",hascftstatus.second);
         return hascftstatus.second;
     }
-    InsnCategory c = curInsn().getCategory();
     hascftstatus.second = false;
-    if(c == c_BranchInsn ||
-            c == c_ReturnInsn) {
+    if(curInsn().isBranch() || curInsn().isReturn()) {
         if ( likely ( ! (_obj->defensiveMode() && isNopJump()) ) ) {
             parsing_printf("\t branch or return, ret true\n");
             hascftstatus.second = true;
         }
     }
-    else if(c == c_CallInsn) {
+    else if(curInsn().isCall()) {
         if(isRealCall()) {
             hascftstatus.second = true;
         }
@@ -306,11 +304,11 @@ bool IA_IAPI::hasCFT() const
             hascftstatus.second = true;
         }
     }
-    else if(c == c_SysEnterInsn) 
+    else if(curInsn().isSysEnter())
     {
         hascftstatus.second = true;
     }
-    else if (c == c_SyscallInsn)
+    else if (curInsn().isSyscall())
     {
         hascftstatus.second = true;
     }
@@ -428,7 +426,7 @@ bool IA_IAPI::isFrameSetupInsn() const
 bool IA_IAPI::isDynamicCall() const
 {
     Instruction ci = curInsn();
-    if(ci.isValid() && (ci.getCategory() == c_CallInsn))
+    if(ci.isValid() && ci.isCall())
     {
         Address addr;
         bool success;
@@ -444,7 +442,7 @@ bool IA_IAPI::isDynamicCall() const
 bool IA_IAPI::isAbsoluteCall() const
 {
     Instruction ci = curInsn();
-    if(ci.getCategory() == c_CallInsn)
+    if(ci.isCall())
     {
         Expression::Ptr cft = ci.getControlFlowTarget();
         if(cft && boost::dynamic_pointer_cast<Immediate>(cft))
@@ -461,27 +459,27 @@ bool IA_IAPI::isAbsoluteCall() const
 
 bool IA_IAPI::isBranch() const
 {
-    return curInsn().getCategory() == c_BranchInsn;
+    return curInsn().isBranch();
 }
 bool IA_IAPI::isCall() const
 {
-    return curInsn().getCategory() == c_CallInsn;
+    return curInsn().isCall();
 }
 
 bool IA_IAPI::isInterruptOrSyscall() const
 {
-    return (Dyninst::InstructionAPI::isSoftwareInterrupt(curInsn()) || Dyninst::InstructionAPI::isSystemCall(curInsn()));
+    auto is_interrupt = Dyninst::InstructionAPI::isSoftwareInterrupt(curInsn());
+    return is_interrupt || curInsn().isSyscall();
 }
 
 bool IA_IAPI::isSysEnter() const
 {
-    Instruction ci = curInsn();
-    return (ci.getOperation().getID() == e_sysenter);
+    return curInsn().isSysEnter();
 }
 
 bool IA_IAPI::isIndirectJump() const {
     Instruction ci = curInsn();
-    if(ci.getCategory() != c_BranchInsn) return false;
+    if(ci.isBranch()) return false;
     if(ci.allowsFallThrough()) return false;
     bool valid;
     Address target;
@@ -506,7 +504,7 @@ void IA_IAPI::parseSysEnter(std::vector<std::pair<Address, EdgeTypeEnum> >& outE
     do {
         scratch->advance();
     } while(scratch->isNop());
-    if(scratch->curInsn().getCategory() == c_BranchInsn)
+    if(scratch->curInsn().isBranch())
     {
         parsing_printf("[%s:%d] Detected Linux-ish sysenter idiom at 0x%lx\n",
                 FILE__, __LINE__, getAddr());
@@ -535,7 +533,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
     Instruction ci = curInsn();
 
     // Only call this on control flow instructions!
-    if(ci.getCategory() == c_CallInsn)
+    if(ci.isCall())
     {
         bool success; 
         Address target;
@@ -591,7 +589,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
         }
         return;
     }
-    else if(ci.getCategory() == c_BranchInsn)
+    else if(ci.isBranch())
     {
         if(ci.allowsFallThrough())
         {
@@ -678,7 +676,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             return;
         }
     }
-    else if(ci.getCategory() == c_ReturnInsn)
+    else if(ci.isReturn())
     {
         parsing_printf("%s[%d]: return candidate %s at 0x%lx\n", FILE__, __LINE__,
                 ci.format().c_str(), current);
@@ -728,8 +726,7 @@ bool IA_IAPI::isIPRelativeBranch() const
     Address target;
     boost::tie(valid, target) = getCFT();
 
-    if(ci.getCategory() == c_BranchInsn &&
-            !valid) {
+    if(ci.isBranch() && !valid) {
         Expression::Ptr cft = ci.getControlFlowTarget();
         if(cft->isUsed(thePC[_isrc->getArch()]))
         {
@@ -841,7 +838,7 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
 bool IA_IAPI::isRelocatable(InstrumentableLevel lvl) const
 {
     Instruction ci = curInsn();
-    if(ci.isValid() && (ci.getCategory() == c_CallInsn))
+    if(ci.isValid() && ci.isCall())
     {
         if(!isDynamicCall())
         {

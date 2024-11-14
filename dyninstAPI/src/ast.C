@@ -2211,7 +2211,7 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
        return false;
 
    InstructionAPI::Instruction insn = gen.point()->block()->getInsn(gen.point()->block()->last());
-   if (insn.getCategory() == c_ReturnInsn) {
+   if (insn.isReturn()) {
       // if this is a return instruction our AST reads the top stack value
       if (retReg == Dyninst::Null_Register) {
          retReg = allocateAndKeep(gen, noCost);

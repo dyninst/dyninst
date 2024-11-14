@@ -133,7 +133,7 @@ bool IA_power::isTailCall(const Function* context, EdgeTypeEnum type, unsigned i
         callee = preambleCallee;
         target = preambleTarget;
     }
-    if(curInsn().getCategory() == c_BranchInsn &&
+    if(curInsn().isBranch() &&
        valid &&
        callee && 
        callee != context &&
@@ -154,7 +154,7 @@ bool IA_power::isTailCall(const Function* context, EdgeTypeEnum type, unsigned i
       return true;
     }    
 
-    if (curInsn().getCategory() == c_BranchInsn &&
+    if (curInsn().isBranch() &&
             valid &&
             !callee) {
     if (knownTargets.find(addr) != knownTargets.end()) {
@@ -165,7 +165,7 @@ bool IA_power::isTailCall(const Function* context, EdgeTypeEnum type, unsigned i
     }
 
     if(allInsns.size() < 2) {
-      if(context->addr() == _curBlk->start() && curInsn().getCategory() == c_BranchInsn)
+      if(context->addr() == _curBlk->start() && curInsn().isBranch())
       {
 	parsing_printf("\tjump as only insn in entry block, TAIL CALL\n");
 	tailCalls[type] = true;
@@ -312,7 +312,7 @@ bool IA_power::isReturnAddrSave(Address& retAddr) const
 bool IA_power::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const
 {
   /* Check for leaf node or lw - mflr - blr pattern */
-  if (curInsn().getCategory() != c_ReturnInsn) {
+  if (curInsn().isReturn()) {
 	parsing_printf(" Not BLR - returning false \n");
 	return false;
    }

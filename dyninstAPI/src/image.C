@@ -729,8 +729,7 @@ int image::findMain()
             while( numCalls < 4 && curInsn && curInsn->isValid() &&
                     bytesSeen < eReg->getMemSize())
             {
-                InsnCategory category = curInsn->getCategory();
-                if( category == c_CallInsn ) {
+                if( curInsn->isCall() ) {
                     numCalls++;
                 }
 

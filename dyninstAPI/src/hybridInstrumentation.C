@@ -751,7 +751,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
             using namespace InstructionAPI;
             Address curFallThroughAddr = (*cIter)->getCallFallThroughAddr();
             if ((*cIter)->getInsnAtPoint().isValid() &&
-                c_BranchInsn != (*cIter)->getInsnAtPoint().getCategory() &&
+                !(*cIter)->getInsnAtPoint().isBranch() &&
                 BPatch_defensiveMode == (*cIter)->llpoint()->func()->obj()->hybridMode() &&
                 ! hasEdge((*cIter)->getFunction(), 
                           (Address)((*cIter)->llpoint()->block()->start()), 

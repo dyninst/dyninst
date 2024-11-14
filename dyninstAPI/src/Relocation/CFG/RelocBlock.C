@@ -317,9 +317,7 @@ void RelocBlock::createCFWidget() {
 
    InstructionAPI::Instruction insn = elements_.back()->insn();
    if (insn.isValid()) {
-      if (insn.getCategory() == c_CallInsn ||
-          insn.getCategory() == c_ReturnInsn ||
-          insn.getCategory() == c_BranchInsn) {
+      if (insn.isCall() || insn.isReturn() || insn.isBranch()) {
          hasCF = true;
       }
    }

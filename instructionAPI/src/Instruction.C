@@ -251,7 +251,7 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT bool Instruction::readsMemory() const {
     DECODE_OPERANDS();
-    if(getCategory() == c_PrefetchInsn) {
+    if(isPrefetch()) {
       return false;
     }
     for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
@@ -323,11 +323,10 @@ namespace Dyninst { namespace InstructionAPI {
     // an implicit write, and that we have decoded the control flow
     // target's full location as the first and only operand.
     // If this is not the case, we'll squawk for the time being...
-    if(getCategory() == c_NoCategory || getCategory() == c_CompareInsn ||
-       getCategory() == c_PrefetchInsn) {
+    if(getCategory() == c_NoCategory || isCompare() || isPrefetch()) {
       return Expression::Ptr();
     }
-    if(getCategory() == c_ReturnInsn) {
+    if(isReturn()) {
       return makeReturnExpression();
     }
     DECODE_OPERANDS();

@@ -1211,8 +1211,8 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
             stubs[idx].src->getInsns(insns);
             InstructionAPI::Instruction cf = insns[stubs[idx].src->last()];
             assert(cf.isValid());
-            switch (cf.getCategory()) {
-            case c_CallInsn:
+
+            if(cf.isCall()) {
                 if (stubs[idx].trg == stubs[idx].src->end())
                 {
                     edgeType = CALL_FT;
@@ -1221,13 +1221,13 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
                 {
                     edgeType = CALL;
                 }
-                break;
-            case c_ReturnInsn:
+            } else
+            if(cf.isReturn()) {
                 //edgeType = RET;
                 // The above doesn't work according to Nate
                 edgeType = INDIRECT;
-                break;
-            case c_BranchInsn:
+            } else
+            if(cf.isBranch()) {
                 if (cf.readsMemory())
                 {
                     edgeType = INDIRECT;
@@ -1244,10 +1244,9 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
                 {
                     edgeType = COND_TAKEN;
                 }
-                break;
-            default:
+            }
+            else {
                 edgeType = FALLTHROUGH;
-                break;
             }
         }
 
