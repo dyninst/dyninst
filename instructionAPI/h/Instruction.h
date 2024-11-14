@@ -169,7 +169,7 @@ namespace Dyninst { namespace InstructionAPI {
     void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit = false,
                        bool trueP = false, bool falseP = false) const;
     void copyRaw(size_t size, const unsigned char* raw);
-    Expression::Ptr makeReturnExpression() const;
+
     mutable std::list<Operand> m_Operands;
     mutable Operation m_InsnOp;
     bool m_Valid;

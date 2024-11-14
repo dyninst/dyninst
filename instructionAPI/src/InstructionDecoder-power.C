@@ -319,17 +319,20 @@ namespace Dyninst
         {
             std::mem_fn(*curFn)(this);
         }
-        if(current->op == power_op_bclr)
-        {
-	  // blrl is in practice a return-and-link, not a call-through-LR
-	  // so we'll treat it as such
-            insn_in_progress->addSuccessor(makeRegisterExpression(ppc32::lr),
-                                           /*field<31,31>(insn) == 1*/ false, true, 
-					   bcIsConditional, false);
-            if(bcIsConditional)
-            {
-                insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
-            }
+
+        // bclr is either a conventional branch or used as a return from a procedure
+        if(current->op == power_op_bclr) {
+          if(bcIsConditional) {
+            insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
+          } else {
+            /*********************************************************************
+             *  Power ISA Version 3.1, Book I. May 2020. 2.4 Branch Instructions
+             *
+             *  The conventional return sequence is to use `bclr` (Branch
+             *  Conditional to Link Register) with BH=0b00.
+             *********************************************************************/
+            insn_in_progress->addSuccessor(makeRegisterExpression(ppc32::lr), false, true, false, false, true);
+          }
         }
         if(current->op == power_op_bcctr)
         {
