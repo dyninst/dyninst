@@ -17,6 +17,7 @@ set(_sources
     src/ArchSpecificFormatters.C
     src/Immediate.C
     src/InstructionDecoder.C
+    src/InstructionDecoder-x86.C
     src/InstructionDecoder-Capstone.C
     src/InstructionDecoder-power.C
     src/InstructionDecoder-aarch64.C
