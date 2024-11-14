@@ -131,6 +131,7 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT bool isPrefetch() const { return getCategory() == c_PrefetchInsn; }
     DYNINST_EXPORT bool isSysEnter() const { return getCategory() == c_SysEnterInsn; }
     DYNINST_EXPORT bool isSyscall() const { return getCategory() == c_SyscallInsn; }
+    DYNINST_EXPORT bool isInterrupt() const { return getCategory() == c_InterruptInsn; }
     DYNINST_EXPORT bool isVector() const { return getCategory() == c_VectorInsn; }
     DYNINST_EXPORT bool isGPUKernelExit() const { return getCategory() == c_GPUKernelExitInsn; }
 

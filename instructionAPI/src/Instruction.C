@@ -36,6 +36,7 @@
 #include "Operation_impl.h"
 #include "common/src/arch-x86.h"
 #include "dyninstversion.h"
+#include "interrupts.h"
 
 #include <algorithm>
 #include <boost/iterator/indirect_iterator.hpp>
@@ -438,6 +439,9 @@ namespace Dyninst { namespace InstructionAPI {
       if(m_InsnOp.getID() == power_op_bclr) {
         return c_ReturnInsn;
       }
+    }
+    if(isSoftwareInterrupt(*this)) {
+      return c_InterruptInsn;
     }
     return c;
   }

@@ -47,6 +47,7 @@ namespace Dyninst
       c_PrefetchInsn,
       c_SysEnterInsn,
       c_SyscallInsn,
+      c_InterruptInsn,     // software interrupt
       c_VectorInsn,
       c_GPUKernelExitInsn,
       c_NoCategory
