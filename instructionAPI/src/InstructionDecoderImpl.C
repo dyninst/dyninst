@@ -30,13 +30,13 @@
 
 #include "InstructionDecoderImpl.h"
 #include "common/src/singleton_object_pool.h"
-#include "x86/decoder.h"
+#include "InstructionDecoder-x86.h"
 #include "InstructionDecoder-power.h"
 #include "InstructionDecoder-aarch64.h"
+#include "InstructionDecoder-Capstone.h"
 #include "AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h"
 #include "AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h"
 #include "AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h"
-#include "InstructionDecoder-Capstone.h"
 
 #include "BinaryFunction.h"
 #include "Dereference.h"
@@ -71,17 +71,17 @@ namespace Dyninst
             {
                 case Arch_x86:
                 case Arch_x86_64:
-                    return Ptr(new x86_decoder(a));
+                    return Ptr(new InstructionDecoder_x86(a));
                 case Arch_ppc32:
                 case Arch_ppc64:
                     return Ptr(new InstructionDecoder_power(a));
                 case Arch_aarch32:
                 case Arch_aarch64:
                     return Ptr(new InstructionDecoder_aarch64(a));
-                case Arch_amdgpu_gfx908:
-                    return Ptr(new InstructionDecoder_amdgpu_gfx908(a));
                 case Arch_riscv64:
                     return Ptr(new InstructionDecoder_Capstone(a));
+                case Arch_amdgpu_gfx908:
+                    return Ptr(new InstructionDecoder_amdgpu_gfx908(a));
                case Arch_amdgpu_gfx90a:
                     return Ptr(new InstructionDecoder_amdgpu_gfx90a(a));
                case Arch_amdgpu_gfx940:
