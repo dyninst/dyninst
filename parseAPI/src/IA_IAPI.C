@@ -468,8 +468,7 @@ bool IA_IAPI::isCall() const
 
 bool IA_IAPI::isInterruptOrSyscall() const
 {
-    auto is_interrupt = Dyninst::InstructionAPI::isSoftwareInterrupt(curInsn());
-    return is_interrupt || curInsn().isSyscall();
+    return curInsn().isInterrupt() || curInsn().isSyscall();
 }
 
 bool IA_IAPI::isSysEnter() const

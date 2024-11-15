@@ -548,8 +548,7 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Addr
     }
   }
   else {
-    auto is_interrupt = Dyninst::InstructionAPI::isSoftwareInterrupt(curInsn);
-    if (is_interrupt || curInsn.isSyscall()) {
+    if (curInsn.isInterrupt() || curInsn.isSyscall()) {
       ret.read |= (abi->getSyscallReadRegisters());
       ret.written |= (abi->getSyscallWrittenRegisters());
     }
