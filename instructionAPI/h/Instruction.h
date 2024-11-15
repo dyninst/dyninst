@@ -112,6 +112,7 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT void getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const;
 
     DYNINST_EXPORT Expression::Ptr getControlFlowTarget() const;
+    DYNINST_EXPORT bool hasControlFlowTarget() const { return m_Successors.empty(); }
 
     DYNINST_EXPORT bool allowsFallThrough() const;
 

@@ -239,6 +239,21 @@ if any, of this instruction.
 }
 
 \begin{apient}
+bool hasControlFlowTarget() const
+\end{apient}
+\apidesc{
+    Checks if the instruction has a control flow target.
+    
+    For an Instruction object `insn`, these are equivalent:
+    
+    `if(ins.hasControlFlowTarget())`
+    `if(ins.getControlFlowTarget())`
+    
+    but the first does not do any expression evaluation and
+    can be substantially cheaper.
+}
+
+\begin{apient}
 bool allowsFallThrough() const
 \end{apient}
 \apidesc{

@@ -251,8 +251,7 @@ static Address PCValue(Address addr, Instruction insn) {
 bool adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr,
                                            Instruction insn,
                                            Address &target) {
-   Expression::Ptr cf = insn.getControlFlowTarget();
-   if (!cf) return false;
+   if (!insn.hasControlFlowTarget()) return false;
    
 //   Architecture fixme = insn->getArch();
 //   if (fixme == Arch_ppc32) fixme = Arch_ppc64;
@@ -271,7 +270,8 @@ bool adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr,
 	// Bind succeeded, eval to get target address
 	Result res = exp->eval();
 	if (!res.defined) {
-	  cerr << "ERROR: failed bind/eval at " << std::hex << ptr->addr() << endl;if (insn.getControlFlowTarget()) return false;
+	  cerr << "ERROR: failed bind/eval at " << std::hex << ptr->addr() << endl;
+	  if (insn.hasControlFlowTarget()) return false;
 	}
 	assert(res.defined);
 	target = res.convert<Address>();
@@ -292,7 +292,7 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
   if(insn.isCall() || insn.isBranch() || insn.isReturn()) {
     return false;
   }
-  if (insn.getControlFlowTarget()) return false;
+  if (insn.hasControlFlowTarget()) return false;
 
 
   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn.getArch())));

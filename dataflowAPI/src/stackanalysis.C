@@ -2459,7 +2459,7 @@ bool StackAnalysis::handleNormalCall(Instruction insn, Block *block,
       }
    }
 
-   if (!insn.getControlFlowTarget()) return false;
+   if (!insn.hasControlFlowTarget()) return false;
 
    // Must be a thunk based on parsing.
    if (off != block->lastInsnAddr()) return false;
@@ -2788,7 +2788,7 @@ bool StackAnalysis::handleThunkCall(Instruction insn, Block *block,
 
    // We know that we're not a normal call, so it depends on whether the CFT is
    // "next instruction" or not.
-   if (!insn.isCall() || !insn.getControlFlowTarget()) {
+   if (!insn.isCall() || !insn.hasControlFlowTarget()) {
       return false;
    }
 
