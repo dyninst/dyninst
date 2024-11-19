@@ -9,7 +9,6 @@ include_guard(GLOBAL)
 set(CAP_DEFINES -Dcap_dynamic_heap -Dcap_liveness -Dcap_threads)
 
 if(DYNINST_HOST_ARCH_I386)
-  set(ARCH_DEFINES -DDYNINST_HOST_ARCH_X86)
   set(ARCH_DEFINES_TESTSUITE -Darch_x86)
   set(CAP_DEFINES
       ${CAP_DEFINES}
@@ -21,7 +20,6 @@ if(DYNINST_HOST_ARCH_I386)
       -Dcap_stack_mods)
 
 elseif(DYNINST_HOST_ARCH_X86_64)
-  set(ARCH_DEFINES -DDYNINST_HOST_ARCH_X86_64 -DDYNINST_HOST_ARCH_64BIT)
   set(ARCH_DEFINES_TESTSUITE -Darch_x86_64 -Darch_64bit)
   set(CAP_DEFINES
       ${CAP_DEFINES}
@@ -34,12 +32,10 @@ elseif(DYNINST_HOST_ARCH_X86_64)
       -Dcap_stack_mods)
 
 elseif(DYNINST_HOST_ARCH_PPC64LE)
-  set(ARCH_DEFINES -DDYNINST_HOST_ARCH_POWER -DDYNINST_HOST_ARCH_64BIT)
   set(ARCH_DEFINES_TESTSUITE -Darch_power -Darch_64bit)
   set(CAP_DEFINES ${CAP_DEFINES} -Dcap_32_64 -Dcap_registers -Dcap_toc_64)
 
 elseif(DYNINST_HOST_ARCH_AARCH64)
-  set(ARCH_DEFINES -DDYNINST_HOST_ARCH_AARCH64 -DDYNINST_HOST_ARCH_64BIT)
   set(ARCH_DEFINES_TESTSUITE -Darch_aarch64 -Darch_64bit)
   set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
 endif()
@@ -79,6 +75,10 @@ elseif(DYNINST_OS_Windows)
   set(CAP_DEFINES ${CAP_DEFINES} -Dcap_mutatee_traps)
   set(OLD_DEFINES -Di386_unknown_nt4_0)
 endif()
+
+string(REGEX REPLACE "-D" "-DDYNINST_HOST_" _LOWER_ARCH_DEFINES
+                     "${ARCH_DEFINES_TESTSUITE}")
+string(TOUPPER "${_LOWER_ARCH_DEFINES}" ARCH_DEFINES)
 
 set(DYNINST_PLATFORM_CAPABILITIES ${CAP_DEFINES} ${BUG_DEFINES} ${ARCH_DEFINES}
                                   ${OS_DEFINES} ${OLD_DEFINES})
