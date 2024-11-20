@@ -323,8 +323,7 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
   // Didn't use the PC to read memory; thus we have to grind through
   // all the operands. We didn't do this directly because the 
   // memory-topping deref stops eval...
-  vector<Operand> operands;
-  insn.getOperands(operands);
+  auto operands = insn.getAllOperands();
   for (vector<Operand>::iterator iter = operands.begin();
        iter != operands.end(); ++iter) {
     // If we can bind the PC, then we're in the operand

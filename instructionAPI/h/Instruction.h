@@ -32,6 +32,7 @@
 #define INSTRUCTION_H
 
 #include "ArchSpecificFormatters.h"
+#include "compiler_annotations.h"
 #include "Expression.h"
 #include "InstructionCategories.h"
 #include "Operand.h"
@@ -89,7 +90,9 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT std::vector<Operand> getAllOperands() const;
     DYNINST_EXPORT std::vector<Operand> getExplicitOperands() const;
     DYNINST_EXPORT std::vector<Operand> getImplicitOperands() const;
-    DYNINST_EXPORT void getOperands(std::vector<Operand>& operands) const;
+
+    DYNINST_EXPORT DYNINST_DEPRECATED("Use getallOperands()")
+    void getOperands(std::vector<Operand>& operands) const;
     DYNINST_EXPORT Operand getOperand(int index) const;
 
     DYNINST_EXPORT std::vector<Operand> getDisplayOrderedOperands() const;

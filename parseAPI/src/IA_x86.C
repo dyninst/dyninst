@@ -186,8 +186,7 @@ bool isNopInsn(Instruction insn) {
     if (insn.getOperation().getID() == e_nop)  {
         return true;
     }  else if (insn.getOperation().getID() == e_lea)  {
-        std::vector<Operand> operands;
-        insn.getOperands(operands);
+        auto operands = insn.getAllOperands();
 
         if (operands.size() != 2)  {
             parsing_printf("%s[%d]: malformed lea instruction number of operands (%lu) not 2",
@@ -492,8 +491,7 @@ bool IA_x86::cleansStack() const
 {
     Instruction ci = curInsn();
 	if (!ci.isReturn()) return false;
-    std::vector<Operand> ops;
-	ci.getOperands(ops);
+    auto ops = ci.getAllOperands();
 	return (ops.size() > 1);
 }
 

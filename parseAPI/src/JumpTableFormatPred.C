@@ -421,8 +421,7 @@ static Assignment::Ptr SearchForWrite(SliceNode::Ptr n, AbsRegion &src, Slicer::
                     parsing_printf("\t\tFind matching at %lx\n", targetAddr);
 
                     // Now we try to identify the source register
-                    std::vector<Operand> ops;
-                    i.getOperands(ops);
+                    auto ops = i.getAllOperands();
                     for (auto oit = ops.begin(); oit != ops.end(); ++oit) {
                         if (!(*oit).writesMemory() && !(*oit).readsMemory()) {
                             std::set<RegisterAST::Ptr> regsRead;

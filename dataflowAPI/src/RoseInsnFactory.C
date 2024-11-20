@@ -83,8 +83,7 @@ SgAsmInstruction *RoseInsnFactory::convert(const Instruction &insn, uint64_t add
   }
 
    //std::cerr << "no special handling by opcode, checking if we should mangle operands..." << std::endl;
-  std::vector<InstructionAPI::Operand> operands;
-  insn.getOperands(operands);
+  auto operands = insn.getAllOperands();
   massageOperands(insn, operands);
   int i = 0;
   //std::cerr << "converting insn " << insn.format(addr) << std::endl;

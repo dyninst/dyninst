@@ -520,8 +520,7 @@ void AssignmentConverter::convert(const Instruction &I,
         // SGPR_PAIR[0] = PC & 0xffffffff
         // SGPR_PARI[1] = PC >> 32
         //
-        std::vector<Operand> operands;
-        I.getOperands(operands);
+        auto operands = I.getAllOperands();
         assert(operands.size() == 2);
         MultiRegisterAST::Ptr pc_reg  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
         const std::vector<RegisterAST::Ptr> & pc_regasts = pc_reg->getRegs();
@@ -560,8 +559,7 @@ void AssignmentConverter::convert(const Instruction &I,
                 block,
                 pc);
 
-        std::vector<Operand> operands;
-        I.getOperands(operands);
+        auto operands = I.getAllOperands();
         assert(operands.size() == 2);
         MultiRegisterAST::Ptr pc_reg  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
         const std::vector<RegisterAST::Ptr> & pc_regasts = pc_reg->getRegs();
@@ -576,8 +574,7 @@ void AssignmentConverter::convert(const Instruction &I,
     case amdgpu_gfx908_op_S_SWAPPC_B64:
     case amdgpu_gfx90a_op_S_SWAPPC_B64: 
     case amdgpu_gfx940_op_S_SWAPPC_B64: {
-        std::vector<Operand> operands;
-        I.getOperands(operands);
+        auto operands = I.getAllOperands();
         assert(operands.size() == 4);
 
         MultiRegisterAST::Ptr pc_src_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[1].getValue());
@@ -628,9 +625,7 @@ void AssignmentConverter::convert(const Instruction &I,
     case amdgpu_gfx908_op_S_ADD_U32:
     case amdgpu_gfx90a_op_S_ADD_U32: 
     case amdgpu_gfx940_op_S_ADD_U32: {
-        std::vector<Operand> operands;
-        I.getOperands(operands);
-
+        auto operands = I.getAllOperands();
 
         assert(operands.size() == 4);
 
@@ -679,8 +674,7 @@ void AssignmentConverter::convert(const Instruction &I,
     case amdgpu_gfx908_op_S_ADDC_U32:
     case amdgpu_gfx90a_op_S_ADDC_U32: 
     case amdgpu_gfx940_op_S_ADDC_U32: {
-        std::vector<Operand> operands;
-        I.getOperands(operands);
+        auto operands = I.getAllOperands();
         assert(operands.size() == 5);
 
         RegisterAST::Ptr dst_sgpr = boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
@@ -715,8 +709,7 @@ void AssignmentConverter::convert(const Instruction &I,
     // SP = SP - 4 
     // *SP = <register>
  
-    std::vector<Operand> operands;
-    I.getOperands(operands);
+    auto operands = I.getAllOperands();
 
     // According to the InstructionAPI, the first operand will be the argument, the second will be ESP.
     assert(operands.size() == 2);
@@ -789,8 +782,7 @@ void AssignmentConverter::convert(const Instruction &I,
 
     // As with push, eSP shows up as operand 1. 
 
-    std::vector<Operand> operands;
-    I.getOperands(operands);
+    auto operands = I.getAllOperands();
 
     // According to the InstructionAPI, the first operand will be the explicit register, the second will be ESP.
     assert(operands.size() == 2);
@@ -883,8 +875,7 @@ void AssignmentConverter::convert(const Instruction &I,
   case e_xchg: {
     // xchg defines two abslocs, and uses them as appropriate...
 
-    std::vector<Operand> operands;
-    I.getOperands(operands);
+    auto operands = I.getAllOperands();
 
     // According to the InstructionAPI, the first operand will be the argument, the second will be ESP.
     assert(operands.size() == 2);
@@ -922,8 +913,7 @@ void AssignmentConverter::convert(const Instruction &I,
 
 
   case power_op_stwu: {
-    std::vector<Operand> operands;
-    I.getOperands(operands);
+    auto operands = I.getAllOperands();
 
     // stwu <a>, <b>, <c>
     // <a> = R1

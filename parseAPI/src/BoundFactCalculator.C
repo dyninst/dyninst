@@ -376,8 +376,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     int derefSize = 0;
     if (node->assign() && node->assign()->insn().isValid() && node->assign()->insn().readsMemory()) {
         Instruction i = node->assign()->insn();
-	std::vector<Operand> ops;
-	i.getOperands(ops);
+	auto ops = i.getAllOperands();
 	for (auto oit = ops.begin(); oit != ops.end(); ++oit) {
 	    Operand o = *oit;
 	    if (o.readsMemory()) {
