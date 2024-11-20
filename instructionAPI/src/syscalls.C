@@ -52,21 +52,23 @@ namespace x86 {
     bool valid{true};
     bool found_deref{false};
 
-    void visit(di::BinaryFunction*) override { valid = false; }
+    void visit(di::BinaryFunction*) override {}
 
     void visit(di::Immediate* imm) override {
       num_imm++;
       value = imm->eval();
     }
 
-    void visit(di::RegisterAST*) override { valid = false; }
+    void visit(di::RegisterAST* reg) override {
+      valid = valid && (reg->getID() == Dyninst::x86::gs);
+    }
     void visit(di::MultiRegisterAST*) override { valid = false; }
 
     void visit(di::Dereference*) override { found_deref = true; }
   };
 
   namespace {
-    di::RegisterAST::Ptr gs(new di::RegisterAST(Dyninst::x86::gs));
+    di::Expression::Ptr gs(new di::RegisterAST(Dyninst::x86::gs));
   }
 
   /* Check for system call idioms
@@ -138,8 +140,7 @@ namespace x86 {
         return false;
       }
 
-      auto in = ins; // 'isRead' isn't const
-      if(!in.getOperation().isRead(gs)) {
+      if(!ins.isRead(gs)) {
         return false;
       }
 
