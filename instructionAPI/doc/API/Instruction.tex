@@ -82,6 +82,39 @@ const Operation & getOperation() const
 }
 
 \begin{apient}
+std::vector<Operand> getAllOperands() const
+\end{apient}
+\apidesc{
+Returns the operands in the order that they were decoded.
+
+For the instruction \code{add rax, rcx}, the operands are \code{rax},
+\code{rcx}, and \code{EFLAGS}. \code{EFLAGS} is included because it
+is implicitly modified to update the overflow and carry flags.   
+}
+
+\begin{apient}
+std::vector<Operand> getImplicitOperands() const
+\end{apient}
+\apidesc{
+Returns the *implicit* operands in the order that they were decoded.
+
+For the instruction \code{add rax, rcx}, the implicit operand is
+\code{EFLAGS} because it is implicitly modified to update the
+overflow and carry flags.
+}
+
+\begin{apient}
+std::vector<Operand> getExplicitOperands() const
+\end{apient}
+\apidesc{
+Returns the *explicit* operands in the order that they were decoded.
+
+For the instruction \code{add rax, rcx}, the explitic operands are \code{rax}
+and \code{rcx}. \code{EFLAGS} is not included because it is *implicitly*
+modified to update the overflow and carry flags.
+}
+
+\begin{apient}
 void getOperands(std::vector<Operand> & operands) const
 \end{apient}
 \apidesc{
