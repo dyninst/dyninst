@@ -1930,9 +1930,12 @@ namespace Dyninst
     }
 
     
-      DYNINST_EXPORT Instruction InstructionDecoder_x86::decode(InstructionDecoder::buffer& b)
-    {
-        return InstructionDecoderImpl::decode(b);
+    DYNINST_EXPORT Instruction InstructionDecoder_x86::decode(InstructionDecoder::buffer& b) {
+      const unsigned char* start = b.start;
+      decodeOpcode(b);
+      unsigned int decodedSize = b.start - start;
+
+      return Instruction(m_Operation, decodedSize, start, m_Arch);
     }
     void InstructionDecoder_x86::doDelayedDecode(const Instruction* insn_to_complete)
     {

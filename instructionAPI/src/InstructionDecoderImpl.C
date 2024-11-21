@@ -53,17 +53,6 @@ namespace Dyninst
             return boost::make_shared<Instruction>(tmp, decodedSize, raw, m_Arch);
         }
 
-
-        Instruction InstructionDecoderImpl::decode(InstructionDecoder::buffer& b)
-        {
-            //setMode(m_Arch == Arch_x86_64);
-            const unsigned char* start = b.start;
-            decodeOpcode(b);
-            unsigned int decodedSize = b.start - start;
-
-            return Instruction(m_Operation, decodedSize, start, m_Arch);
-        }
-
         InstructionDecoderImpl::Ptr InstructionDecoderImpl::makeDecoderImpl(Architecture a)
         {
             switch(a)
