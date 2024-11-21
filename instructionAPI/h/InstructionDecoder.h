@@ -70,7 +70,7 @@ namespace Dyninst
       /// a null %Instruction pointer will be returned.  The %Instruction's \c size field will contain
       /// the size of the instruction decoded.
       Instruction decode(const unsigned char *buffer);
-      void doDelayedDecode(const Instruction* insn_to_complete);
+
       struct DYNINST_EXPORT buffer
       {
           const unsigned char* start;
@@ -97,6 +97,7 @@ namespace Dyninst
         private:
             buffer m_buf;
       boost::shared_ptr<InstructionDecoderImpl> m_Impl;
+      void doDelayedDecode(const Instruction* insn_to_complete);
     };
 
   }
