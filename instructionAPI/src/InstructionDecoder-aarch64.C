@@ -871,7 +871,7 @@ namespace Dyninst {
                                 //dup (general), ins (general)
                             case 0x1:
                             case 0x3:
-                                if (imm5 & 0x1 || imm5 & 0x2 || imm5 & 0x4) {
+                                if ((imm5 & 0x1) || (imm5 & 0x2) || (imm5 & 0x4)) {
                                     reg = encoding == 31 ? aarch64::wzr : aarch64::w0;
                                 }
                                 else {
