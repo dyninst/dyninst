@@ -16,9 +16,19 @@ BinaryFunction(Expression::Ptr arg1,
                funcT:Ptr func)
 \end{apient}
 \apidesc{
-The constructor for a \code{BinaryFunction} may take a reference-\/counted pointer or a plain C++ pointer to each of the child \code{Expression}s that represent its arguments. Since the reference-\/counted implementation requires explicit construction, we provide overloads for all four combinations of plain and reference-\/counted pointers. Note that regardless of which constructor is used, the pointers \code{arg1} and \code{arg2} become owned by the \code{BinaryFunction} being constructed, and should not be deleted. They will be cleaned up when the \code{BinaryFunction} object is destroyed.
+The constructor for a \code{BinaryFunction} may take a reference-\/counted pointer or a plain C++ pointer
+to each of the child \code{Expression}s that represent its arguments. Since the reference-\/counted
+implementation requires explicit construction, we provide overloads for all four combinations of plain
+and reference-\/counted pointers. Note that regardless of which constructor is used, the pointers
+\code{arg1} and \code{arg2} become owned by the \code{BinaryFunction} being constructed, and should
+not be deleted. They will be cleaned up when the \code{BinaryFunction} object is destroyed.
 
-The \code{func} parameter is a binary functor on two \code{Result}s. It should be derived from \code{funcT}. \code{addResult} and \code{multResult}, which respectively add and multiply two \code{Result}s, are provided as part of the InstructionAPI, as they are necessary for representing address calculations. Other \code{funcTs} may be implemented by the user if desired. \code{funcTs} have names associated with them for output and debugging purposes. The addition and multiplication functors provided with the Instruction API are named "+" and "*", respectively. 
+The \code{func} parameter is a binary functor on two \code{Result}s. It should be derived from\code{funcT}.
+\code{addResult} and \code{multResult}, which respectively add and multiply two \code{Result}s, are provided
+as part of the InstructionAPI, as they are necessary for representing address calculations. Other \code{funcTs}
+may be implemented by the user if desired. \code{funcTs} have names associated with them for output and
+debugging purposes. The addition and multiplication functors provided with the Instruction API are named
+"+" and "*", respectively. 
 }
 
 \begin{apient}
