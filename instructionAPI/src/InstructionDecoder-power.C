@@ -266,13 +266,6 @@ namespace Dyninst
       isFPInsn = false;
       bcIsConditional = false;
       insn = Dyninst::read_memory_as<uint32_t>(b.start);
-#if defined(DEBUG_RAW_INSN)        
-        cout.width(0);
-        cout << "0x";
-        cout.width(8);
-        cout.fill('0');
-        cout << hex << insn << "\t";
-#endif
         mainDecode();
         b.start += 4;
         return *(insn_in_progress.get());
@@ -1219,10 +1212,6 @@ using namespace boost::assign;
     void InstructionDecoder_power::BO()
     {
         bcIsConditional = true;
-#if defined(DEBUG_BO_FIELD)        
-        cout << "BO: " << field<6,6>(insn) << field<7,7>(insn) << field<8,8>(insn) << field<9,9>(insn) << field<10,10>(insn)
-                << endl;
-#endif
         invertBranchCondition = false;
         if(!field<8, 8>(insn))
         {
@@ -1261,9 +1250,6 @@ using namespace boost::assign;
 			taken ^= field<10,10>(insn) ? true : false;
             insn_in_progress->getOperation().mnemonic += (taken ? "+" : "-");
         }
-#if defined(DEBUG_BO_FIELD)
-        cout << "bcIsConditional = " << (bcIsConditional ? "true" : "false") << endl;
-#endif
         return;
     }
     void InstructionDecoder_power::syscall()

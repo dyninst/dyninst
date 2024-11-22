@@ -35,7 +35,6 @@
 #include <string>
 #include "Immediate.h"
 #include "registers/ppc32_regs.h"
-//#define DEBUG_FIELD
 
 namespace Dyninst {
     namespace InstructionAPI
@@ -238,10 +237,6 @@ namespace Dyninst {
 
                 template <int start, int end>
                 int field(unsigned int raw) {
-#if defined DEBUG_FIELD
-                    std::cerr << start << "-" << end << ":" << std::dec << (raw >> (31 - (end)) &
-                            (0xFFFFFFFF >> (31 - (end - start)))) << " ";
-#endif
                     return (raw >> (31 - (end)) & (0xFFFFFFFF >> (31 - (end - start))));
                 }
                 template <int size>
