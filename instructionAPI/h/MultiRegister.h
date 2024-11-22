@@ -46,46 +46,27 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-    /// A %MultiRegisterAST object represents a ordered collection of registers as a single operand
-    /// As a %MultiRegisterAST is a %Expression, it may contain the physical register's contents if
-    /// they are known.
-    ///
-
-
     class DYNINST_EXPORT MultiRegisterAST : public Expression
     {
     public:
-      /// \brief A type definition for a reference-counted pointer to a %MultiRegisterAST.
       typedef boost::shared_ptr<MultiRegisterAST> Ptr;
       
-      /// Construct a register, assigning it the ID \c id.
       MultiRegisterAST(MachRegister r, uint32_t num_elements = 1 );
       MultiRegisterAST(std::vector<RegisterAST::Ptr> _in);
   
       virtual ~MultiRegisterAST() = default;
       MultiRegisterAST(const MultiRegisterAST&) = default;
       
-      /// By definition, a %MultiRegisterAST object has no children.
-      /// \param children Since a %MultiRegisterAST has no children, the \c children parameter is unchanged by this method.
       virtual void getChildren(vector<InstructionAST::Ptr>& children) const;
       virtual void getChildren(vector<Expression::Ptr>& children) const;
 
-      /// By definition, the use set of a %MultiRegisterAST object is itself.
-      /// \param uses This %MultiRegisterAST will be inserted into \c uses.
       virtual void getUses(set<InstructionAST::Ptr>& uses);
 
-      /// \c isUsed returns true if \c findMe is a %MultiRegisterAST that represents
-      /// the same register as this %MultiRegisterAST, and false otherwise.
       virtual bool isUsed(InstructionAST::Ptr findMe) const;
 
-      /// The \c format method on a %MultiRegisterAST object returns the name associated with its ID.
       virtual std::string format(Architecture, formatStyle how = defaultStyle) const;
-      /// The \c format method on a %MultiRegisterAST object returns the name associated with its ID.
       virtual std::string format(formatStyle how = defaultStyle) const;
 
-      /// We define a partial ordering on registers by their register number so that they may be placed into sets
-      /// or other sorted containers.
-      //  For multiRegisters, the partial order is determined by baseReg ID, followed by length
       bool operator<(const MultiRegisterAST& rhs) const;
 
       virtual void apply(Visitor* v);
@@ -111,4 +92,4 @@ namespace Dyninst
 
   
 
-#endif // !defined(MULTIREGISTER_H)
+#endif
