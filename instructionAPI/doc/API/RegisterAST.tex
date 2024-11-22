@@ -1,81 +1,71 @@
 \subsection{RegisterAST Class}
 \label{sec:registerAST}
 
-A \code{RegisterAST} object represents a register contained in an operand. As a \code{RegisterAST} is an \code{Expression}, it may contain the physical register's contents if they are known. 
+A \code{RegisterAST} object represents a register contained in an operand. As a \code{RegisterAST}
+is an \code{Expression}, it may contain the physical register's contents if they
+are known.
 
 \begin{apient}
-typedef dyn\_detail::boost::shared\_ptr<RegisterAST> Ptr
+  typedef dyn\_detail::boost::shared\_ptr<RegisterAST> Ptr
 \end{apient}
-\apidesc{
-A type definition for a reference-counted pointer to a \code{RegisterAST}.
-}
+\apidesc{ A type definition for a reference-counted pointer to a \code{RegisterAST}. }
 
 \begin{apient}
-RegisterAST (MachRegister r)
+  RegisterAST (MachRegister r)
 \end{apient}
-\apidesc{
-Construct a register using the provided register object \code{r}. The
-\code{MachRegister} datatype is Dyninst's register representation and
-should not be constructed manually. 
-}
+\apidesc{ Construct a register using the provided register object \code{r}. The \code{MachRegister} datatype
+is Dyninst's register representation and should not be constructed manually. }
 
 \begin{apient}
-void getChildren (vector< InstructionAST::Ptr > & children) const
+  void getChildren (vector< InstructionAST::Ptr > & children) const
 \end{apient}
-\apidesc{
-By definition, a \code{RegisterAST} object has no children.
-Since a \code{RegisterAST} has no children, the \code{children} parameter is unchanged by this
-method.
-}
+\apidesc{ By definition, a \code{RegisterAST} object has no children. Since a \code{RegisterAST} has no children, 
+the \code{children} parameter is unchanged by this method. }
 
 \begin{apient}
-void getUses (set< InstructionAST::Ptr > & uses)
+  void getUses (set< InstructionAST::Ptr > & uses)
 \end{apient}
-\apidesc{
-By definition, the use set of a \code{RegisterAST} object is itself.
-This \code{RegisterAST} will be inserted into \code{uses}.
-}
+\apidesc{ By definition, the use set of a \code{RegisterAST} object is itself. This \code{RegisterAST} will be 
+inserted into \code{uses}. }
 
 \begin{apient}
-bool isUsed (InstructionAST::Ptr findMe) const
+  bool isUsed (InstructionAST::Ptr findMe) const
 \end{apient}
-\apidesc{
-\code{isUsed} returns \code{true} if \code{findMe} is a \code{RegisterAST} that represents the same register as this \code{RegisterAST}, and \code{false} otherwise.
-}
+\apidesc{ \code{isUsed} returns \code{true} if \code{findMe} is a \code{RegisterAST} that represents the same 
+register as this \code{RegisterAST}, and \code{false} otherwise. }
 
 \begin{apient}
-std::string format (formatStyle how = defaultStyle) const
+  std::string format (formatStyle how = defaultStyle) const
 \end{apient}
-\apidesc{
-The format method on a \code{RegisterAST} object returns the name associated with its ID.
-}
+\apidesc{ The format method on a \code{RegisterAST} object returns the name associated with its ID. }
 
 \begin{apient}
-RegisterAST makePC (Dyninst::Architecture arch) [static]
+  RegisterAST makePC (Dyninst::Architecture arch) [static]
 \end{apient}
-\apidesc{
-Utility function to get a \code{Register} object that represents the program counter.
-\code{makePC} is provided to support platform-independent control flow analysis.
-}
+\apidesc{ Utility function to get a \code{Register} object that represents the program counter. \code{makePC} 
+is provided to support platform-independent control flow analysis. }
 
 \begin{apient}
-bool operator< (const RegisterAST & rhs) const
+  bool operator< (const RegisterAST & rhs) const
 \end{apient}
-\apidesc{
-We define a partial ordering on registers by their register number so that they may be placed into sets or other sorted containers.
-}
+\apidesc{ We define a partial ordering on registers by their register number so that they may be placed into 
+sets or other sorted containers. }
 
 \begin{apient}
-MachRegister getID () const
+  MachRegister getID () const
 \end{apient}
-\apidesc{
-The \code{getID} function returns underlying register represented by
-this AST. 
-}
+\apidesc{ The \code{getID} function returns underlying register represented by this AST. }
 
 \begin{apient}
-RegisterAST::Ptr promote (const InstructionAST::Ptr reg) [static]
+  RegisterAST::Ptr promote (const InstructionAST::Ptr reg) [static]
 \end{apient}
-\apidesc{
-Utility function to hide aliasing complexity on platforms (IA-32) that allow addressing part or all of a register
-}
+\apidesc{ Utility function to hide aliasing complexity on platforms (IA-32) that allow addressing part 
+or all of a register }
+
+
+\subsection{MaskRegisterAST Class}
+\label{sec:MaskRegisterAST}
+
+Class for mask register operands. This class is the same as the RegisterAST
+class except it handles the syntactial differences between register operands
+and mask register operands.
