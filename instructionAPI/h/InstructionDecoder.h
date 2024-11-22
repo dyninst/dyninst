@@ -32,57 +32,54 @@
 #define INSTRUCTION_DECODER_H
 
 #include "Instruction.h"
+
 #include <stddef.h>
 
-namespace Dyninst
-{
-  namespace InstructionAPI
-  {
-      class InstructionDecoderImpl;
+namespace Dyninst { namespace InstructionAPI {
+  class InstructionDecoderImpl;
 
-    class DYNINST_EXPORT InstructionDecoder
-    {
-      friend class Instruction;
-        public:
-        static const unsigned int maxInstructionLength = 16;
+  class DYNINST_EXPORT InstructionDecoder {
+    friend class Instruction;
 
-      InstructionDecoder(const unsigned char* buffer, size_t size, Architecture arch);
-      InstructionDecoder(const void* buffer, size_t size, Architecture arch);
+  public:
+    static const unsigned int maxInstructionLength = 16;
 
-      DYNINST_EXPORT ~InstructionDecoder() = default;
-      DYNINST_EXPORT InstructionDecoder(const InstructionDecoder& o) = default;
-      DYNINST_EXPORT InstructionDecoder& operator=(const InstructionDecoder  & o) = default;
+    InstructionDecoder(const unsigned char* buffer, size_t size, Architecture arch);
+    InstructionDecoder(const void* buffer, size_t size, Architecture arch);
 
-      Instruction decode();
-      Instruction decode(const unsigned char *buffer);
+    DYNINST_EXPORT ~InstructionDecoder() = default;
+    DYNINST_EXPORT InstructionDecoder(const InstructionDecoder& o) = default;
+    DYNINST_EXPORT InstructionDecoder& operator=(const InstructionDecoder& o) = default;
 
-      struct DYNINST_EXPORT buffer
-      {
-          const unsigned char* start;
-          const unsigned char* end;
-          buffer(const unsigned char* b, unsigned int len) :
-                  start(b), end(b+len) {}
-          buffer(const void* b, unsigned int len) :
-	start(reinterpret_cast<const unsigned char*>(b)), end(start+len) {}
-          buffer(const unsigned char* b, const unsigned char* e) :
-                  start(b), end(e) {}
-      };
+    Instruction decode();
+    Instruction decode(const unsigned char* buffer);
 
-      struct unknown_instruction {
-		  using callback_t = Instruction(*)(buffer);
-		  static void register_callback(callback_t);
-		  static callback_t unregister_callback();
-		  unknown_instruction() = delete;
-		  ~unknown_instruction() = delete;
-      };
+    struct DYNINST_EXPORT buffer {
+      const unsigned char* start;
+      const unsigned char* end;
 
-        private:
-            buffer m_buf;
-      boost::shared_ptr<InstructionDecoderImpl> m_Impl;
-      void doDelayedDecode(const Instruction* insn_to_complete);
+      buffer(const unsigned char* b, unsigned int len) : start(b), end(b + len) {}
+
+      buffer(const void* b, unsigned int len)
+          : start(reinterpret_cast<const unsigned char*>(b)), end(start + len) {}
+
+      buffer(const unsigned char* b, const unsigned char* e) : start(b), end(e) {}
     };
 
-  }
-}
+    struct unknown_instruction {
+      using callback_t = Instruction (*)(buffer);
+      static void register_callback(callback_t);
+      static callback_t unregister_callback();
+      unknown_instruction() = delete;
+      ~unknown_instruction() = delete;
+    };
 
-#endif //!defined(INSTRUCTION_DECODER_H)
+  private:
+    buffer m_buf;
+    boost::shared_ptr<InstructionDecoderImpl> m_Impl;
+    void doDelayedDecode(const Instruction* insn_to_complete);
+  };
+
+}}
+
+#endif
