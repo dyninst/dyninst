@@ -67,6 +67,7 @@ namespace Dyninst
                 default:
                     assert(!"unexpected machine register size!");
             }
+            return {};
         }
 
         Expression::Expression(uint32_t size) :
