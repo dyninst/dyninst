@@ -63,6 +63,7 @@ namespace Dyninst {
             case aarch64_op_lsr_ubfm: return "lsr";
             default: assert(!"no alias for entryID");
             };
+            return nullptr;
         }
         const char* InstructionDecoder_aarch64::condInsnAliasMap(entryID e) {
             switch(e) {
@@ -76,6 +77,7 @@ namespace Dyninst {
             case aarch64_op_cneg_csneg: return "cneg";
             default: assert(!"no alias for entryID");
             };
+            return nullptr;
         }
         
         struct aarch64_insn_entry {
