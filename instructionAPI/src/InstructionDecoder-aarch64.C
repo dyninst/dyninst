@@ -243,14 +243,6 @@ namespace Dyninst {
             insn = b.start[3] << 24 | b.start[2] << 16 |
                    b.start[1] << 8 | b.start[0];
 
-#if defined(DEBUG_RAW_INSN)
-            cout.width(0);
-            cout << "0x";
-            cout.width(8);
-            cout.fill('0');
-            cout << hex << insn << "\t";
-#endif
-
             mainDecode();
             b.start += 4;
 

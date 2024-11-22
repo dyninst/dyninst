@@ -92,10 +92,6 @@ namespace Dyninst {
 
             template<int start, int end>
             int field(unsigned int raw) {
-#if defined DEBUG_FIELD
-                std::cerr << start << "-" << end << ":" << std::dec << (raw >> (start) &
-                        (0xFFFFFFFF >> (31 - (end - start)))) << " ";
-#endif
                 return (raw >> (start) & (0xFFFFFFFF >> (31 - (end - start))));
             }
 
