@@ -142,6 +142,11 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    enum nodeType { sequenceNode_t, opCodeNode_t, operandNode_t, callNode_t, scrambleRegisters_t};
    enum class operandType { Constant, 
                       ConstantString,
+
+                      // Specific to AMDGPU. This represents an address in the form of (PlaceholderReg + Offset).
+                      // Codegen may assign the same, or a different register in different contexts. Offset must be a constant.
+                      AddressAsPlaceholderRegAndOffset,
+
                       DataReg,
                       DataIndir,
                       Param,
@@ -610,7 +615,27 @@ class AstOperandNode : public AstNode {
 			  int size, const instPoint* point, AddressSpace* as);
 
     virtual bool initRegisters(codeGen &gen);
-        
+
+// AMDGPU-specific start
+    static int lastOffset; // Last offset in our GPU memory buffer.
+
+    // maps variable name to an offset in our GPU memory buffer
+    static std::map<std::string, int> allocTable;
+
+    static void addToTable(const std::string &variableName, unsigned size) {
+      // We shouldn't allocate more than once.
+      assert(allocTable.find(variableName) == allocTable.end() && "Can't allocate variable twice");
+
+      allocTable[variableName] = lastOffset;
+      lastOffset += size;
+    }
+
+    static int getOffset(const std::string &variableName) {
+      assert(allocTable.find(variableName) != allocTable.end() && "Variable must be allocated");
+      return allocTable[variableName];
+    }
+// AMDGPU-specific end
+
  private:
     virtual bool generateCode_phase2(codeGen &gen,
                                      bool noCost,

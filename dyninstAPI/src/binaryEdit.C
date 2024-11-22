@@ -417,7 +417,7 @@ bool BinaryEdit::getResolvedLibraryPath(const std::string &, std::vector<std::st
 
 #if !(defined(cap_binary_rewriter) && (defined(arch_x86) || defined(arch_x86_64)\
 		|| defined(arch_power)   \
-		|| defined(arch_aarch64) \
+		|| defined(arch_aarch64) || defined(arch_amdgpu)\
 		)) 
 bool BinaryEdit::doStaticBinarySpecialCases() {
     return true;

@@ -319,11 +319,46 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
 
 #if defined(cap_mutatee_traps)
 
+#if defined(arch_amdgpu)
+/* The saved state of a stopped GPU process
+
+   At the moment, this is just a placeholder
+   which NEEDS to have a PC that can be
+   saved restored, so that existing code
+   works.
+
+   Making a real one, which the entire GPU state
+   (or finding the appropriate AMD structure)
+   is a task for the future.
+
+   FOr now, this allows compilation of things
+   Dyninst ish when there is an amdgpu target.
+
+   As we don't differentiate architectures in
+   Dyninst, well best we can do at the moment.
+*/
+
+struct amdgpu_user_context {
+	/* It's really two 32 bit registers, just make
+	it easy as it is never used */
+	unsigned long long	amdgpu_uc_pc;
+};
+/* This will undoubtely conflict with something, and ucontext_t
+   will need to be changed.  Egads the fallout. */
+typedef struct amdgpu_user_context dyn_ucontext_t;
+#define UC_PC(x) x->amdgpu_uc_pc
+#else
 #include <ucontext.h>
+typedef ucontext_t dyn_ucontext_t;
+#endif
 
 // Register numbers experimentally verified
 
-#if defined(arch_x86)
+#if defined(arch_amdgpu)
+	/* XXX OK, I need to make my own context, which
+	reflects the saved CPU state of stopped GPU. */
+
+#elif defined(arch_x86)
   #define UC_PC(x) x->uc_mcontext.gregs[14]
 #elif defined(arch_x86_64)
   #if defined(MUTATEE_32)
@@ -371,7 +406,7 @@ extern volatile unsigned long dyninstTrapTableIsSorted;
  *      parameter is the address in dyninstTrapHandler the popf/ret can be found.
  **/
 
-void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
+void dyninstTrapHandler(int sig, siginfo_t *sg, dyn_ucontext_t *context)
 {
    void *orig_ip;
    void *trap_to;

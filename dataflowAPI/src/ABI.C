@@ -46,6 +46,13 @@
 #  include "registers/aarch64_regs.h"
 #endif
 
+#if defined(arch_amdgpu)
+#  include "registers/AMDGPU/amdgpu_gfx908_regs.h"
+#  include "registers/AMDGPU/amdgpu_gfx90a_regs.h"
+#  include "registers/AMDGPU/amdgpu_gfx940_regs.h"
+#endif
+
+
 using namespace Dyninst;
 using namespace DataflowAPI;
 
@@ -136,8 +143,15 @@ ABI* ABI::getABI(int addr_width){
 	initialize32();
 #endif
 
+#if defined(arch_amdgpu)
+	globalABI64_->addr_width = 8;
+	globalABI64_->index = &machRegIndex_amdgpu_gfx908(); // TODO : This shouldn't be hardcoded.
+  initialize64(Arch_amdgpu_gfx908);
+  return globalABI64_;
+#else
 #ifdef arch_64bit
 	initialize64();
+#endif
 #endif
     }
     return (addr_width == 4) ? globalABI_ : globalABI64_;
@@ -230,6 +244,7 @@ const bitArray &ABI::getAllRegs() const
       return *allRegs_;
    }
 }
+
 
 bitArray ABI::getBitArray()  {
   return bitArray(index->size());

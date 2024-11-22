@@ -52,6 +52,11 @@ namespace NS_aarch64{
 		class instruction;
 }
 using namespace NS_aarch64;
+#elif defined(arch_amdgpu)
+namespace NS_amdgpu {
+    class instruction;
+}
+using namespace NS_amdgpu;
 #else
 #error "unknown architecture"
 

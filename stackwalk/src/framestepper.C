@@ -493,7 +493,7 @@ DyninstInstFrameStepperImpl::~DyninstInstFrameStepperImpl()
 
 //DebugStepper defined here
 //#if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64))
-#if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64) || defined(arch_aarch64) )
+#if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64) || defined(arch_aarch64) || defined(arch_amdgpu))
 #include "stackwalk/src/dbgstepper-impl.h"
 #define PIMPL_IMPL_CLASS DebugStepperImpl
 #endif

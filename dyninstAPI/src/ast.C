@@ -64,6 +64,9 @@ using namespace Dyninst::InstructionAPI;
 #include "emit-x86.h"
 #elif defined(arch_aarch64)
 #include "inst-aarch64.h"
+#elif defined(arch_amdgpu)
+#include "inst-amdgpu.h"
+#include "emit-amdgpu.h"
 #else
 #error "Unknown architecture in ast.h"
 #endif
