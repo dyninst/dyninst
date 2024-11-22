@@ -44,20 +44,6 @@ namespace Dyninst
 {
     namespace InstructionAPI
     {
-    
-    /// The %InstructionDecoder class decodes instructions, given a buffer of bytes and a length,
-    /// and constructs an %Instruction.
-    /// The %InstructionDecoder will, by default, be constructed to decode machine language
-    /// on the platform on which it has been compiled.  The buffer
-    /// will be treated as if there is an instruction stream starting at the beginning of the buffer.
-    /// %InstructionDecoder objects are given a buffer from which to decode at construction.
-    /// Calls to \c decode will proceed to decode instructions sequentially from that buffer until its
-    /// end is reached.  At that point, all subsequent calls to \c decode will return an invalid
-    /// %Instruction object.
-        ///
-    /// An %InstructionDecoder object may alternately be constructed without designating a buffer,
-    /// and the buffer may be specified at the time \c decode is called.  This method of use may be
-    /// more convenient for users who are decoding non-contiguous instructions.
 
         class InstructionDecoder_x86 : public InstructionDecoderImpl
         {
