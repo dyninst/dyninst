@@ -28,74 +28,55 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "ArchSpecificFormatters.h"
+#include "InstructionDecoder-power.h"
 #include "Ternary.h"
-#include <vector>
+#include "Visitor.h"
+
 #include <set>
 #include <sstream>
-#include "Visitor.h"
-#include "InstructionDecoder-power.h"
-#include "ArchSpecificFormatters.h"
+#include <vector>
 
 using namespace std;
 
-namespace Dyninst
-{
-  namespace InstructionAPI
-  {
-    TernaryAST::TernaryAST(Expression::Ptr c, Expression::Ptr f, Expression::Ptr s , Result_Type result_type_):
-        Expression(result_type_) , cond(c) , first(f) , second(s)
-    {
-    }
+namespace Dyninst { namespace InstructionAPI {
+  TernaryAST::TernaryAST(Expression::Ptr c, Expression::Ptr f, Expression::Ptr s,
+                         Result_Type result_type_)
+      : Expression(result_type_), cond(c), first(f), second(s) {}
 
+  TernaryAST::~TernaryAST() {}
 
-    TernaryAST::~TernaryAST()
-    {
-    }
-    void TernaryAST::getChildren(vector<InstructionAST::Ptr>& /*children*/) const
-    {
-      return;
-    }
-    void TernaryAST::getChildren(vector<Expression::Ptr>& /*children*/) const
-    {
-        return;
-    }
-    void TernaryAST::getUses(set<InstructionAST::Ptr>& uses)
-    {
-        uses.insert(shared_from_this());
-        return;
-    }
-    bool TernaryAST::isUsed(InstructionAST::Ptr) const
-    {
-        return false; //TODO
-    }
+  void TernaryAST::getChildren(vector<InstructionAST::Ptr>& /*children*/) const { return; }
 
-    std::string TernaryAST::format(Architecture, formatStyle f) const
-    {
-        return TernaryAST::format(f); // TODO
-    }
+  void TernaryAST::getChildren(vector<Expression::Ptr>& /*children*/) const { return; }
 
-    std::string TernaryAST::format(formatStyle) const
-    {
-        std::string name = "("+cond->format() +"?" + first->format() + ":" + second->format()+ ")";
-        for (auto &c: name) c = ::toupper(c);
-        return name;
-    }
-    
-    bool TernaryAST::operator<(const TernaryAST&) const
-    {
-        return false;
-    }
-    bool TernaryAST::isStrictEqual(const InstructionAST&) const
-    {
-          return false;
-    }
-
-    void TernaryAST::apply(Visitor*)
-    {
-    }
-    bool TernaryAST::bind(Expression*, const Result&)
-    {
-        return false; // TODO
-    }
+  void TernaryAST::getUses(set<InstructionAST::Ptr>& uses) {
+    uses.insert(shared_from_this());
+    return;
   }
-}
+
+  bool TernaryAST::isUsed(InstructionAST::Ptr) const {
+    return false; // TODO
+  }
+
+  std::string TernaryAST::format(Architecture, formatStyle f) const {
+    return TernaryAST::format(f); // TODO
+  }
+
+  std::string TernaryAST::format(formatStyle) const {
+    std::string name = "(" + cond->format() + "?" + first->format() + ":" + second->format() + ")";
+    for(auto& c : name)
+      c = ::toupper(c);
+    return name;
+  }
+
+  bool TernaryAST::operator<(const TernaryAST&) const { return false; }
+
+  bool TernaryAST::isStrictEqual(const InstructionAST&) const { return false; }
+
+  void TernaryAST::apply(Visitor*) {}
+
+  bool TernaryAST::bind(Expression*, const Result&) {
+    return false; // TODO
+  }
+}}
