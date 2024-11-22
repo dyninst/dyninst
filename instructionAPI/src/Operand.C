@@ -56,7 +56,7 @@ namespace Dyninst { namespace InstructionAPI {
       } else {
 
         MultiRegisterAST::Ptr multitmp = boost::dynamic_pointer_cast<MultiRegisterAST>(*curUse);
-        if(tmp) {
+        if(multitmp) {
           for(auto reg : multitmp->getRegs()) {
             if(m_isRead || !(*reg == *op_value))
               regsRead.insert(reg);
@@ -75,7 +75,7 @@ namespace Dyninst { namespace InstructionAPI {
 
         MultiRegisterAST::Ptr op_as_multireg =
             boost::dynamic_pointer_cast<MultiRegisterAST>(op_value);
-        if(op_as_reg) {
+        if(op_as_multireg) {
           for(auto reg : op_as_multireg->getRegs()) {
             regsWritten.insert(reg);
           }
