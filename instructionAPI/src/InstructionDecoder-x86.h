@@ -93,4 +93,4 @@ namespace Dyninst
 }
 
 
-#endif // !defined(INSTRUCTION_DECODER_X86_H)
+#endif

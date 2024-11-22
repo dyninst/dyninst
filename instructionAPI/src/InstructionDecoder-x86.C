@@ -41,8 +41,6 @@
 #include "registers/abstract_regs.h"
 #include <boost/make_shared.hpp>
 
-// #define VEX_DEBUG
-
 using namespace std;
 using namespace NS_x86;
 namespace Dyninst
@@ -754,10 +752,6 @@ namespace Dyninst
         /* Check to see if this is just a normal MMX register access */
         if(type >= AVX_NONE || type < 0)
         {
-#ifdef VEX_DEBUG
-            printf("VEX OPERAND:  REGNUM: %d  ", regnum);
-            printf("REG_TYPE: AVX_NONE (%d)\n", type);
-#endif
             /* Only registers XMM0 - XMM15 are usable */
 
             /* The register must be valid */
@@ -841,10 +835,6 @@ namespace Dyninst
             default:  break;/** SSE instruction */
         }
 
-#ifdef VEX_DEBUG
-        printf("VEX OPERAND:  REGNUM: %d  ", regnum);
-#endif
-
         /* Operand is potentially XMM, YMM or ZMM */
         int setnum = 0;
         if(regnum < 8)
@@ -863,18 +853,12 @@ namespace Dyninst
             setnum = 3;
             *bank_index = regnum - 24;
         } else {
-#ifdef VEX_DEBUG
-            printf("AVX REGISTER NUMBER:   %d   is invalid!!\n", regnum);
-#endif
             return false;
         }
 
         switch(type)
         {
             case AVX_XMM:
-#ifdef VEX_DEBUG
-                printf("REG_TYPE: AVX_XMM (%d)\n", type);
-#endif
                 if(setnum == 0)
                     bank = b_xmm_set0;
                 else if(setnum == 1)
@@ -886,9 +870,6 @@ namespace Dyninst
                 else return true;
                 break;
             case AVX_YMM:
-#ifdef VEX_DEBUG
-                printf("REG_TYPE: AVX_YMM (%d)\n", type);
-#endif
                 if(setnum == 0)
                     bank = b_ymm_set0;
                 else if(setnum == 1)
@@ -900,9 +881,6 @@ namespace Dyninst
                 else return true;
                 break;
             case AVX_ZMM:
-#ifdef VEX_DEBUG
-                printf("REG_TYPE: AVX_ZMM (%d)\n", type);
-#endif
                 if(setnum == 0)
                     bank = b_zmm_set0;
                 else if(setnum == 1)
