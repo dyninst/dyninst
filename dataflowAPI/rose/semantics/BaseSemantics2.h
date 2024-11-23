@@ -1863,6 +1863,8 @@ namespace rose {
                     /** Multiplies two signed values. The width of the result will be the sum of the widths of @p a and @p b. */
                     virtual SValuePtr signedMultiply(const SValuePtr &a, const SValuePtr &b) = 0;
 
+                    virtual SValuePtr signedUnsignedMultiply(const SValuePtr &a, const SValuePtr &b) = 0;
+
                     /** Divides two unsigned values. The width of the result is the same as the width of operand @p a. */
                     virtual SValuePtr unsignedDivide(const SValuePtr &a, const SValuePtr &b) = 0;
 
