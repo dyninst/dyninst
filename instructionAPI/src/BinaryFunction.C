@@ -152,11 +152,6 @@ namespace Dyninst { namespace InstructionAPI {
         return Result(ResultT, arg1.convert<Result_type2type<s64>::type>() << shiftAmount);
       case u64:
         return Result(ResultT, arg1.convert<Result_type2type<u64>::type>() << shiftAmount);
-      /*case sp_float:
-                    return Result(ResultT, arg1.convert<Result_type2type<sp_float>::type >() *
-      arg2.convert< Result_type2type<sp_float>::type >()); case dp_float: return Result(ResultT,
-      arg1.convert<Result_type2type<dp_float>::type >() * arg2.convert<
-                      Result_type2type<dp_float>::type >());*/
       case bit_flag:
         return Result(ResultT, arg1.convert<Result_type2type<bit_flag>::type>() << shiftAmount);
       default:
@@ -189,11 +184,6 @@ namespace Dyninst { namespace InstructionAPI {
         return Result(ResultT, arg1.convert<Result_type2type<s64>::type>() >> shiftAmount);
       case u64:
         return Result(ResultT, arg1.convert<Result_type2type<u64>::type>() >> shiftAmount);
-      /*case sp_float:
-                    return Result(ResultT, arg1.convert<Result_type2type<sp_float>::type >() *
-      arg2.convert< Result_type2type<sp_float>::type >()); case dp_float: return Result(ResultT,
-      arg1.convert<Result_type2type<dp_float>::type >() * arg2.convert<
-                      Result_type2type<dp_float>::type >());*/
       case bit_flag:
         return Result(ResultT, arg1.convert<Result_type2type<bit_flag>::type>() >> shiftAmount);
       default:
@@ -224,11 +214,6 @@ namespace Dyninst { namespace InstructionAPI {
       case u64:
         return Result(u64, arg1.convert<Result_type2type<u64>::type>() &
                                arg2.convert<Result_type2type<u64>::type>());
-      /*case sp_float:
-                    return Result(ResultT, arg1.convert<Result_type2type<sp_float>::type >() +
-      arg2.convert< Result_type2type<sp_float>::type >()); case dp_float: return Result(ResultT,
-      arg1.convert<Result_type2type<dp_float>::type >() + arg2.convert<
-                      Result_type2type<dp_float>::type >());*/
       case bit_flag:
         return Result(ResultT, arg1.convert<Result_type2type<bit_flag>::type>() &
                                    arg2.convert<Result_type2type<bit_flag>::type>());
@@ -260,11 +245,6 @@ namespace Dyninst { namespace InstructionAPI {
       case u64:
         return Result(u64, arg1.convert<Result_type2type<u64>::type>() |
                                arg2.convert<Result_type2type<u64>::type>());
-      /*case sp_float:
-                    return Result(ResultT, arg1.convert<Result_type2type<sp_float>::type >() +
-      arg2.convert< Result_type2type<sp_float>::type >()); case dp_float: return Result(ResultT,
-      arg1.convert<Result_type2type<dp_float>::type >() + arg2.convert<
-                      Result_type2type<dp_float>::type >());*/
       case bit_flag:
         return Result(ResultT, arg1.convert<Result_type2type<bit_flag>::type>() |
                                    arg2.convert<Result_type2type<bit_flag>::type>());
