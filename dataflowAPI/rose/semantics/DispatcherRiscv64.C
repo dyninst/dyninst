@@ -469,7 +469,6 @@ namespace rose {
                     }
                 };
 
-                // FIXME: How to multiply a signed value with an unsigned one?
                 struct IP_MUL : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         SgAsmExpression *rd = args[0];
@@ -488,7 +487,7 @@ namespace rose {
                                 result = ops->extract(ops->signedMultiply(rs1_val, rs2_val), 32, 63);
                                 break;
                             case rose_riscv64_op_mulhsu:
-                                result = ops->extract(ops->signedMultiply(rs1_val, rs2_val), 32, 63);
+                                result = ops->extract(ops->signedUnsignedMultiply(rs1_val, rs2_val), 32, 63);
                                 break;
                             case rose_riscv64_op_mulhu:
                                 result = ops->extract(ops->unsignedMultiply(rs1_val, rs2_val), 32, 63);
