@@ -409,6 +409,41 @@ RiscOperators::signedMultiply(const BaseSemantics::SValuePtr &a_, const BaseSema
     }
 }
 
+RiscOperators::signedUnsignedMultiply(const BaseSemantics::SValuePtr &a_, const BaseSemantics::SValuePtr &b_) {
+    // FIXME[Robb P. Matzke 2015-03-31]: BitVector doesn't have a multiply method
+    ASSERT_require2(a_->get_width() <= 64, "not implemented");
+    ASSERT_require2(b_->get_width() <= 64, "not implemented");
+
+    if (a_->get_width() == 64 && b_->get_width() == 64) {
+        // Do long multiplication with 32 bits at a time in 64-bit variables (32 bits * 32 bits = 64 bits)
+        // FIXME[Robb P. Matzke 2015-03-23]: use arbitrary width vector multiply in Sawyer when it's available.
+        uint64_t a0 = a_->get_number() & 0xffffffff;
+        uint64_t a1 = a_->get_number() >> 32;
+        uint64_t b0 = b_->get_number() & 0xffffffff;
+        uint64_t b1 = b_->get_number() >> 32;
+        uint64_t c0 = a0 * b0;
+        uint64_t c1 = (a0 * b1) + (a1 * b0) + (c0 >> 32);
+        uint64_t c2 = (a1 * b1) + (c1 >> 32);
+        c0 &= 0xffffffff;
+        c1 &= 0xffffffff;
+        //c2: use all 64 bits
+
+        BitVector product(128);
+        product.fromInteger(BitRange::baseSize( 0, 64), (c1 << 32) | c0);
+        product.fromInteger(BitRange::baseSize(64, 64), c2);
+        return svalue_number(product);
+    } else if (a_->get_width() + b_->get_width() > 64) {
+        throw BaseSemantics::Exception("signedMultiply x[" + StringUtility::addrToString(a_->get_width()) +
+                                       "] * y[" + StringUtility::addrToString(b_->get_width()) +
+                                       "] is not implemented", currentInstruction());
+    } else {
+        ASSERT_require2(a_->get_width() + b_->get_width() <= 64, "not implemented yet");
+        int64_t a = IntegerOps::signExtend2(a_->get_number(), a_->get_width(), 64);
+        int64_t b = b_->get_number();
+        return svalue_number(a_->get_width() + b_->get_width(), a * b);
+    }
+}
+
 BaseSemantics::SValuePtr
 RiscOperators::unsignedDivide(const BaseSemantics::SValuePtr &a_, const BaseSemantics::SValuePtr &b_) {
     SValuePtr a = SValue::promote(a_);

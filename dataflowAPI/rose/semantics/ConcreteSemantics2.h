@@ -492,6 +492,9 @@ namespace rose {
                     virtual BaseSemantics::SValuePtr signedMultiply(const BaseSemantics::SValuePtr &a_,
                                                                     const BaseSemantics::SValuePtr &b_);
 
+                    virtual BaseSemantics::SValuePtr signedUnsignedMultiply(const BaseSemantics::SValuePtr &a_,
+                                                                      const BaseSemantics::SValuePtr &b_);
+
                     virtual BaseSemantics::SValuePtr unsignedDivide(const BaseSemantics::SValuePtr &a_,
                                                                     const BaseSemantics::SValuePtr &b_);
 
