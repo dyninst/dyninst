@@ -698,6 +698,11 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::signedMultiply(cons
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::sMultOp, a_, b_);
 }
 
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::signedUnsignedMultiply(const BaseSemantics::SValuePtr &a_,
+                                                                         const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::sMultOp, a_, b_);
+}
+
 BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::unsignedDivide(const BaseSemantics::SValuePtr &a_,
                                                                        const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::uDivOp, a_, b_);
