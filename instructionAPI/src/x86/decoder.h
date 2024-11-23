@@ -57,7 +57,7 @@ namespace Dyninst { namespace InstructionAPI {
     x86_decoder &operator=(x86_decoder &&) = delete;
     ~x86_decoder();
 
-    void setMode(bool) override {}
+    Instruction decode(InstructionDecoder::buffer &) override;
 
     Instruction decode(InstructionDecoder::buffer&) override;
 

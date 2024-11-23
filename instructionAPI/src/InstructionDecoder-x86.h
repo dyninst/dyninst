@@ -44,9 +44,6 @@ namespace Dyninst { namespace InstructionAPI {
   class InstructionDecoder_x86 : public InstructionDecoderImpl {
     friend class Instruction;
 
-  public:
-    DYNINST_EXPORT virtual void setMode(bool is64);
-
   protected:
     bool decodeOneOperand(const InstructionDecoder::buffer& b, const NS_x86::ia32_operand& operand,
                           int& imm_index, const Instruction* insn_to_complete, bool isRead,

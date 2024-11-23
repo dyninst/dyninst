@@ -128,10 +128,6 @@ namespace Dyninst { namespace InstructionAPI {
 
   static const unsigned char modrm_use_sib = 4;
 
-  DYNINST_EXPORT void InstructionDecoder_x86::setMode(bool is64) {
-    InstructionDecoder_x86::is64BitMode = is64;
-  }
-
   Expression::Ptr InstructionDecoder_x86::makeSIBExpression(const InstructionDecoder::buffer& b) {
     unsigned scale;
     Register index;
