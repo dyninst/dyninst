@@ -64,6 +64,9 @@
 #elif defined(DYNINST_HOST_ARCH_AARCH64)
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "dyninstAPI/src/emit-aarch64.h"
+#elif defined (arch_riscv64)
+#include "dyninstAPI/src/inst-riscv64.h"
+#include "dyninstAPI/src/emit-riscv64.h"
 #endif
 
 registerSpace *registerSpace::globalRegSpace_ = NULL;
@@ -107,6 +110,19 @@ unsigned registerSlot::encoding() const {
     // Should do a mapping here from entire register space to "expected" encodings.
     return number;
 #elif defined(DYNINST_HOST_ARCH_AARCH64) 
+    switch (type) {
+        case GPR:
+            return registerSpace::GPR(number);
+            break;
+        case FPR:
+            return registerSpace::FPR(number);
+            break;
+        default:
+            assert(0);
+            return Null_Register;
+            break;
+    }
+#elif defined(arch_riscv64) 
     switch (type) {
         case GPR:
             return registerSpace::GPR(number);
@@ -725,6 +741,10 @@ bool registerSpace::readProgramRegister(codeGen &gen,
 //#warning "This fucntion is not implemented yet!"
 		assert(0);
 		return false;
+#elif defined(arch_riscv64)
+        // TODO
+		assert(0);
+		return false;
 #else
     // Real version that uses stored information
 
@@ -774,6 +794,16 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
                                          Register source,
                                          unsigned) {
 #if defined(DYNINST_HOST_ARCH_AARCH64)
+		// Silence compiler warnings
+		(void)gen;
+		(void)destination;
+		(void)source;
+
+		//not implemented yet
+		return false;
+#elif defined(arch_riscv64)
+        // TODO
+
 		// Silence compiler warnings
 		(void)gen;
 		(void)destination;
@@ -1491,6 +1521,9 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 #if defined(DYNINST_HOST_ARCH_AARCH64)
 	assert(0);
 	//#error "aarch64 should not be 32bit long"
+#elif defined(arch_riscv64)
+	assert(0);
+	//#error "riscv64 should not be 32bit long"
 #else
 		range = regToMachReg32.equal_range(reg);
 		live = &live1;

@@ -50,6 +50,9 @@ using namespace NS_x86;
 #elif defined(DYNINST_HOST_ARCH_AARCH64)
 using namespace NS_aarch64;
 
+#elif defined(arch_riscv64)
+using namespace NS_riscv64;
+
 #else
 #error "unknown architecture"
 
