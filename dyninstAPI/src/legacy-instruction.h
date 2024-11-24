@@ -28,49 +28,46 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// $Id: linux.h,v 1.37 2007/12/04 18:05:24 legendre Exp $
+#ifndef LEGACY_BPATCH_INSTRUCTION_H
+#define LEGACY_BPATCH_INSTRUCTION_H
 
-#if !defined(os_linux)
-#error "invalid architecture-os inclusion"
-#endif
+/*
+ * Legacy support for BPatch_instruction and BPatch_memoryAccess,
+ * both of which hold a pointer to an opaque type containing the
+ * platform-specific `instruction' type.
+ */
 
-#ifndef LINUX_PD_HDR
-#define LINUX_PD_HDR
-class PCProcess;
+#include "arch-forward-decl.h"
 
-#include "common/src/linuxKludges.h"
-#include "symtabAPI/h/Symtab.h"
-#include "symtabAPI/h/Archive.h"
+#if defined(DYNINST_HOST_ARCH_POWER)
+using namespace NS_power;
 
-#define EXIT_NAME "_exit"
+#elif defined(i386_unknown_nt4_0) \
+   || defined(DYNINST_HOST_ARCH_X86)           \
+   || defined(DYNINST_HOST_ARCH_X86_64)
+using namespace NS_x86;
 
-#if !defined(DYNINST_HOST_ARCH_X86_64)
-#define SIGNAL_HANDLER	 "__restore"
+#elif defined(DYNINST_HOST_ARCH_AARCH64)
+using namespace NS_aarch64;
+
+#elif defined(arch_riscv64)
+using namespace NS_riscv64;
+
 #else
-#define SIGNAL_HANDLER   "__restore_rt"
-#endif
-
-#if (defined(os_linux) || defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4)) && \
-   (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64))
-#include "linux-x86.h"
-#elif defined(os_linux) && defined(DYNINST_HOST_ARCH_POWER)
-#include "linux-power.h"
-#elif defined(os_linux) && defined(DYNINST_HOST_ARCH_AARCH64)
-#include "linux-aarch64.h"
-#elif defined(os_linux) && defined(arch_riscv64)
-#include "linux-riscv64.h"
-#else
-#error Invalid or unknown architecture-os inclusion
-#endif
-
-#include "unix.h"
-
-#ifndef WNOWAIT
-#define WNOWAIT WNOHANG
-#endif
-
-bool get_linux_version(int &major, int &minor, int &subvers);
-bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers);
+#error "unknown architecture"
 
 #endif
+
+class internal_instruction {
+ public:
+    explicit internal_instruction(instruction * insn)
+        : _insn(insn)
+    { }
+
+    instruction * insn() const { return _insn; }
+ private:
+    instruction * _insn; 
+};
+
+
+#endif 
