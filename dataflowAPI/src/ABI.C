@@ -46,6 +46,10 @@
 #  include "registers/aarch64_regs.h"
 #endif
 
+#if defined(arch_riscv64)
+#  include "registers/riscv64_regs.h"
+#endif
+
 using namespace Dyninst;
 using namespace DataflowAPI;
 
@@ -129,6 +133,12 @@ ABI* ABI::getABI(int addr_width){
 	globalABI64_->addr_width = 8;
 	globalABI_->index = &machRegIndex_aarch64();
 	globalABI64_->index = &machRegIndex_aarch64();
+#endif
+
+#if defined(arch_riscv64)
+	globalABI64_->addr_width = 8;
+	globalABI_->index = &machRegIndex_riscv64();
+	globalABI64_->index = &machRegIndex_riscv64();
 #endif
 
 // We _only_ support instrumenting 32-bit binaries on 64-bit systems
@@ -694,7 +704,6 @@ void ABI::initialize64(){
 	allRegs64_ = &getBitArray(sz)->set();
 }
 #endif
-
 
 void ABI::initialize64(Architecture arch){
     int sz;
