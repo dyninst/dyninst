@@ -52,7 +52,6 @@ class Codegen {
    bool generateCallPPC32(Address addr, const std::vector<Address> &args);
    bool generateCallPPC64(Address addr, const std::vector<Address> &args);
 
-
    bool generatePreamble();
    bool generatePreambleIA32();
    bool generatePreambleAMD64();
@@ -65,6 +64,9 @@ class Codegen {
 
    bool generatePreambleAARCH64();
    bool generateCallAARCH64(Address addr, const std::vector<Address> &args);
+
+   bool generatePreambleRISCV64();
+   bool generateCallRISCV64(Address addr, const std::vector<Address> &args);
 
    bool generateTrap();
    bool generateNoops();

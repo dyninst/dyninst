@@ -52,6 +52,12 @@ namespace NS_aarch64{
 		class instruction;
 }
 using namespace NS_aarch64;
+#elif defined(arch_riscv64) \
+	 || defined(riscv64_unknown_linux)
+namespace NS_riscv64{
+		class instruction;
+}
+using namespace NS_riscv64;
 #else
 #error "unknown architecture"
 
