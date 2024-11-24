@@ -129,6 +129,8 @@ bool Codegen::generateCall(Address addr, const std::vector<Address> &args) {
          return generateCallPPC64(addr, args);
       case Arch_aarch64:
          return generateCallAARCH64(addr, args);
+      case Arch_riscv64:
+         return generateCallRISCV64(addr, args);
 	  default:
          return false;
    }
@@ -150,7 +152,10 @@ bool Codegen::generateNoops() {
          break;
       case Arch_aarch64:
          copyInt(0xd503201f);
-	 break;
+         break;
+      case Arch_riscv64:
+         // TODO
+         break;
       default:
          return false;
          break;
@@ -170,7 +175,10 @@ bool Codegen::generateTrap() {
          break;
       case Arch_aarch64:
          copyInt(0xd4200000);
-	 break;
+         break;
+      case Arch_riscv64:
+         // TODO
+         break;
       default:
          return false;
          break;
@@ -190,6 +198,8 @@ bool Codegen::generatePreamble() {
          return generatePreamblePPC32();
       case Arch_ppc64:
          return generatePreamblePPC64();
+      case Arch_riscv64:
+         return generatePreambleRISCV64();
 #endif //!defined(os_windows)
 #if defined(DYNINST_HOST_ARCH_AARCH64)
       case Arch_aarch64:
