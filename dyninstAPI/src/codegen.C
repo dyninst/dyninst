@@ -727,6 +727,9 @@ void codeGen::beginTrackRegDefs()
     regsDefined_ = bitArray(registerSpace::lastReg);
 #elif defined(DYNINST_HOST_ARCH_AARCH64)
     regsDefined_ = bitArray(registerSpace::fpsr);
+#elif defined(DYNINST_HOST_ARCH_RISCV64)
+    // TODO
+    regsDefined_ = bitArray();
 #else
     regsDefined_ = bitArray();
 #endif
