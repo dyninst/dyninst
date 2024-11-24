@@ -59,6 +59,7 @@ set(_private_headers
     src/arch-aarch64.h
     src/arch-power.h
     src/arch-x86.h
+    src/arch-riscv64.h
     src/debug_common.h
     src/dthread.h
     src/dyn_register.h
@@ -106,6 +107,7 @@ set(_sources
     src/arch-x86.C
     src/arch-power.C
     src/arch-aarch64.C
+    src/arch-riscv64.C
     src/debug_common.C
     src/VariableLocation.C
     src/Buffer.C
