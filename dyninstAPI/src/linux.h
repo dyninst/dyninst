@@ -57,6 +57,8 @@ class PCProcess;
 #include "linux-power.h"
 #elif defined(os_linux) && defined(arch_aarch64)
 #include "linux-aarch64.h"
+#elif defined(os_linux) && defined(arch_riscv64)
+#include "linux-riscv64.h"
 #else
 #error Invalid or unknown architecture-os inclusion
 #endif

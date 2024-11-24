@@ -55,6 +55,7 @@ set(_private_headers
     src/codegen.h
     src/codegen-power.h
     src/codegen-x86.h
+    src/codegen-riscv64.h
     src/codeRange.h
     src/debug.h
     src/dynProcess.h
@@ -245,6 +246,18 @@ elseif(DYNINST_ARCH_aarch64)
     src/stackwalk-aarch64.C
     src/Relocation/Widgets/CFWidget-aarch64.C
     src/Relocation/Widgets/PCWidget-aarch64.C)
+elseif(DYNINST_ARCH_riscv64)
+  list(
+    APPEND
+    _sources
+    src/inst-riscv64.C
+    src/emit-riscv64.C
+    src/codegen-riscv64.C
+    src/parse-riscv64.C
+    src/RegisterConversion-riscv64.C)
+    #src/stackwalk-aarch64.C
+    #src/Relocation/Widgets/CFWidget-aarch64.C
+    #src/Relocation/Widgets/PCWidget-aarch64.C)
 endif()
 
 if(DYNINST_OS_FreeBSD)

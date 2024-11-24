@@ -333,7 +333,7 @@ class parse_func : public ParseAPI::Function
    bool isTrueCallInsn(const instruction insn);
 #endif
 
-#if defined(arch_power) || defined(arch_aarch64)
+#if defined(arch_power) || defined(arch_aarch64) || defined(arch_riscv64)
    bool savesReturnAddr() const { return saves_return_addr_; }
 #endif
 

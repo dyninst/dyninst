@@ -51,12 +51,18 @@ namespace NS_aarch64 {
   class instruction;
 }
 
+namespace NS_riscv64 {
+  class instruction;
+}
+
 #if defined(arch_x86) || defined(arch_x86_64)
 typedef NS_x86::instruction arch_insn;
 #elif defined (arch_power) 
 typedef NS_power::instruction arch_insn;
 #elif defined (arch_aarch64)
 typedef NS_aarch64::instruction arch_insn;
+#elif defined (arch_riscv64)
+typedef NS_riscv64::instruction arch_insn;
 #else
 #error "Unknown architecture"
 #endif

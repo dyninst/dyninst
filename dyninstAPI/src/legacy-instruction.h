@@ -50,6 +50,9 @@ using namespace NS_x86;
 #elif defined(arch_aarch64)
 using namespace NS_aarch64;
 
+#elif defined(arch_riscv64)
+using namespace NS_riscv64;
+
 #else
 #error "unknown architecture"
 

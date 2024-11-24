@@ -64,6 +64,8 @@ using namespace Dyninst::InstructionAPI;
 #include "emit-x86.h"
 #elif defined(arch_aarch64)
 #include "inst-aarch64.h"
+#elif defined(arch_riscv64)
+#include "inst-riscv64.h"
 #else
 #error "Unknown architecture in ast.h"
 #endif
@@ -2239,6 +2241,9 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
                   retReg,
                   gen, noCost);
 #elif defined (arch_aarch64)
+			//#warning "This function is not implemented yet!"
+			assert(0);
+#elif defined (arch_riscv64)
 			//#warning "This function is not implemented yet!"
 			assert(0);
 #else
