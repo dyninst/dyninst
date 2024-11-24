@@ -45,6 +45,7 @@
 #include "registers/abstract_regs.h"
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
+#include "registers/riscv64_regs.h"
 
 #if defined(DYNINST_HOST_ARCH_AARCH64)
 # include "registers/aarch64_regs.h"
@@ -103,6 +104,8 @@ static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
       arch = Dyninst::Arch_x86_64;
 #elif defined(DYNINST_HOST_ARCH_AARCH64)
     arch = Dyninst::Arch_aarch64;
+#elif defined(arch_riscv64)
+    arch = Dyninst::Arch_riscv64;
 #endif
 
    DwarfFrameParser::Ptr dresult = DwarfFrameParser::create(*dwarf->frame_dbg(), dwarf->origFile()->e_elfp(), arch);
