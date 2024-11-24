@@ -282,6 +282,8 @@ elseif(DYNINST_OS_Linux)
     list(APPEND _sources src/linux-power.C)
   elseif(DYNINST_HOST_ARCH_AARCH64)
     list(APPEND _sources src/linux-aarch64.C)
+  elseif(DYNINST_HOST_ARCH_RISCV64)
+    list(APPEND _sources src/linux-riscv64.C)
   endif()
 elseif(DYNINST_OS_Windows)
   list(
