@@ -61,9 +61,11 @@ set(_sources
     src/loadLibrary/codegen-x86.C
     src/loadLibrary/codegen-ppc.C
     src/loadLibrary/codegen-aarch64.C
+    src/loadLibrary/codegen-riscv64.C
     src/x86_process.C
     src/ppc_process.C
     src/arm_process.C
+    src/riscv_process.C
     src/pcmachsyscall.C)
 
 if(DYNINST_OS_UNIX)
