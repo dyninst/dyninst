@@ -191,23 +191,28 @@ const char *platform_string()
 	const char *plat_str = getenv("PLATFORM");
 	if (plat_str)
 		return plat_str;
-
 #if defined(DYNINST_HOST_ARCH_X86)
 #if defined (os_linux)
-	return "i386-unknown-linux2.4";
+    return "i386-unknown-linux2.4";
 #elif defined (os_windows)
-	return "i386-unknown-nt4.0";
+    return "i386-unknown-nt4.0";
 #endif
 #elif defined(DYNINST_HOST_ARCH_X86_64)
 #if defined (os_linux)
-	return "x86_64-unknown-linux2.4";
+    return "x86_64-unknown-linux2.4";
 #elif defined (os_windows)
-	return "x86_64-unknown-nt4.0";
+    return "x86_64-unknown-nt4.0";
 #endif
 #elif defined(DYNINST_HOST_ARCH_POWER)
 #if defined (os_linux)
 #if defined(DYNINST_HOST_ARCH_64BIT)
 	return "ppc64_linux";
+#endif
+#endif
+#elif defined (DYNINST_HOST_ARCH_RISCV64)
+#if defined (os_linux)
+#if defined (arch_64bit)
+    return "riscv64_linux";
 #endif
 #endif
 #endif

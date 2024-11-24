@@ -47,6 +47,7 @@
 #include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
 #include "registers/aarch64_regs.h"
+#include "registers/riscv64_regs.h"
 #include "common/h/dyntypes.h"
 #include "common/src/vm_maps.h"
 #include "compiler_annotations.h"
@@ -753,6 +754,9 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 #elif defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_AARCH32)
 #define DEFAULT_PROCESS_TYPE linux_arm_process
 #define DEFAULT_THREAD_TYPE linux_arm_thread
+#elif defined(arch_riscv64)
+#define DEFAULT_PROCESS_TYPE linux_riscv_process
+#define DEFAULT_THREAD_TYPE linux_riscv_thread
 #endif
 
 int_process *int_process::createProcess(Dyninst::PID p, std::string e)
@@ -1247,6 +1251,38 @@ Dyninst::Architecture linux_arm_process::getTargetArch()
    return arch;
 }
 
+linux_riscv_process::linux_riscv_process(Dyninst::PID p, std::string e, std::vector<std::string> a,
+                                     std::vector<std::string> envp, std::map<int,int> f) :
+   int_process(p, e, a, envp, f),
+   resp_process(p, e, a, envp, f),
+   linux_process(p, e, a, envp, f),
+   riscv_process(p, e, a, envp, f)
+{
+}
+
+linux_riscv_process::linux_riscv_process(Dyninst::PID pid_, int_process *p) :
+   int_process(pid_, p),
+   resp_process(pid_, p),
+   linux_process(pid_, p),
+   riscv_process(pid_, p)
+{
+}
+
+
+linux_riscv_process::~linux_riscv_process()
+{
+}
+
+Dyninst::Architecture linux_riscv_process::getTargetArch()
+{
+   if (arch != Dyninst::Arch_none) {
+      return arch;
+   }
+   int addr_width = computeAddrWidth();
+   arch = (addr_width == 4) ? Dyninst::Arch_aarch32 : Dyninst::Arch_aarch64;
+   assert(arch == Dyninst::Arch_aarch64); //should be aarch64 at this stage
+   return arch;
+}
 static std::vector<unsigned int> fake_async_msgs;
 void linux_thread::fake_async_main(void *)
 {
@@ -3056,6 +3092,18 @@ linux_arm_thread::linux_arm_thread(int_process *p, Dyninst::THR_ID t, Dyninst::L
 }
 
 linux_arm_thread::~linux_arm_thread()
+{
+}
+
+linux_riscv_thread::linux_riscv_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
+   int_thread(p, t, l),
+   thread_db_thread(p, t, l),
+   linux_thread(p, t, l),
+   riscv_thread(p, t, l)
+{
+}
+
+linux_riscv_thread::~linux_riscv_thread()
 {
 }
 

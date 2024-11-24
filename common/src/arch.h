@@ -49,6 +49,9 @@ using namespace NS_x86;
 #elif defined(DYNINST_HOST_ARCH_AARCH64)
 #include "arch-aarch64.h"
 using namespace NS_aarch64;
+#elif defined(arch_riscv64)
+#include "arch-aarch64.h"
+using namespace NS_riscv64;
 #else
 #error "unknown architecture"
 
