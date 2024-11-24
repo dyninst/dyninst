@@ -1417,7 +1417,6 @@ RegisterMap &machRegIndex_amdgpu_gfx908() {
     return *mrmap;
 }
 
-
 RegisterMap &machRegIndex_amdgpu_gfx90a() {
    static dyn_tls RegisterMap* mrmap = NULL;
    if (mrmap == NULL) {
@@ -2674,6 +2673,114 @@ RegisterMap &machRegIndex_amdgpu_gfx940() {
      {amdgpu_gfx940::acc255,619}};
     }
     return *mrmap;
+}
+
+RegisterMap &machRegIndex_riscv64() {
+   static dyn_tls RegisterMap* mrmap = NULL;
+   if (mrmap == NULL) {
+      mrmap = new RegisterMap();
+      *mrmap = {
+	 {riscv64::x0, 0},
+	 {riscv64::x1, 1},
+	 {riscv64::x2, 2},
+	 {riscv64::x3, 3},
+	 {riscv64::x4, 4},
+	 {riscv64::x5, 5},
+	 {riscv64::x6, 6},
+	 {riscv64::x7, 7},
+	 {riscv64::x8, 8},
+	 {riscv64::x9, 9},
+	 {riscv64::x10, 10},
+	 {riscv64::x11, 11},
+	 {riscv64::x12, 12},
+	 {riscv64::x13, 13},
+	 {riscv64::x14, 14},
+	 {riscv64::x15, 15},
+	 {riscv64::x16, 16},
+	 {riscv64::x17, 17},
+	 {riscv64::x18, 18},
+	 {riscv64::x19, 19},
+	 {riscv64::x20, 20},
+	 {riscv64::x21, 21},
+	 {riscv64::x22, 22},
+	 {riscv64::x23, 23},
+	 {riscv64::x24, 24},
+	 {riscv64::x25, 25},
+	 {riscv64::x26, 26},
+	 {riscv64::x27, 27},
+	 {riscv64::x28, 28},
+	 {riscv64::x29, 29},
+     {riscv64::x30, 30},
+     {riscv64::x31, 31},
+	 {riscv64::f0_32, 32},
+	 {riscv64::f1_32, 33},
+	 {riscv64::f2_32, 34},
+	 {riscv64::f3_32, 35},
+	 {riscv64::f4_32, 36},
+	 {riscv64::f5_32, 37},
+	 {riscv64::f6_32, 38},
+	 {riscv64::f7_32, 39},
+	 {riscv64::f8_32, 40},
+	 {riscv64::f9_32, 41},
+	 {riscv64::f10_32, 42},
+	 {riscv64::f11_32, 43},
+	 {riscv64::f12_32, 44},
+	 {riscv64::f13_32, 45},
+	 {riscv64::f14_32, 46},
+	 {riscv64::f15_32, 47},
+	 {riscv64::f16_32, 48},
+	 {riscv64::f17_32, 49},
+	 {riscv64::f18_32, 50},
+	 {riscv64::f19_32, 51},
+	 {riscv64::f20_32, 52},
+	 {riscv64::f21_32, 53},
+	 {riscv64::f22_32, 54},
+	 {riscv64::f23_32, 55},
+	 {riscv64::f24_32, 56},
+	 {riscv64::f25_32, 57},
+	 {riscv64::f26_32, 58},
+	 {riscv64::f27_32, 59},
+	 {riscv64::f28_32, 60},
+	 {riscv64::f29_32, 61},
+     {riscv64::f30_32, 62},
+     {riscv64::f31_32, 63},
+	 {riscv64::f0_64, 64},
+	 {riscv64::f1_64, 65},
+	 {riscv64::f2_64, 66},
+	 {riscv64::f3_64, 67},
+	 {riscv64::f4_64, 68},
+	 {riscv64::f5_64, 69},
+	 {riscv64::f6_64, 70},
+	 {riscv64::f7_64, 71},
+	 {riscv64::f8_64, 72},
+	 {riscv64::f9_64, 73},
+	 {riscv64::f10_64, 74},
+	 {riscv64::f11_64, 75},
+	 {riscv64::f12_64, 76},
+	 {riscv64::f13_64, 77},
+	 {riscv64::f14_64, 78},
+	 {riscv64::f15_64, 79},
+	 {riscv64::f16_64, 80},
+	 {riscv64::f17_64, 81},
+	 {riscv64::f18_64, 82},
+	 {riscv64::f19_64, 83},
+	 {riscv64::f20_64, 84},
+	 {riscv64::f21_64, 85},
+	 {riscv64::f22_64, 86},
+	 {riscv64::f23_64, 87},
+	 {riscv64::f24_64, 88},
+	 {riscv64::f25_64, 89},
+	 {riscv64::f26_64, 90},
+	 {riscv64::f27_64, 91},
+	 {riscv64::f28_64, 92},
+	 {riscv64::f29_64, 93},
+     {riscv64::f30_64, 94},
+     {riscv64::f31_64, 95},
+     {riscv64::pc, 96},
+   };
+   return *mrmap;
+}
+
 }
 }
 }
