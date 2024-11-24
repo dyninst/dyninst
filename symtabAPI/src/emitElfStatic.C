@@ -1043,7 +1043,8 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
     char *newTargetData = lmap.allocatedData;
 
 #if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64) || \
-    defined(DYNINST_HOST_ARCH_AARCH64) || (defined(DYNINST_HOST_ARCH_POWER) && defined(DYNINST_HOST_ARCH_64BIT))
+    defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_RISCV64) || \
+    (defined(DYNINST_HOST_ARCH_POWER) && defined(DYNINST_HOST_ARCH_64BIT))
     if( lmap.gotSize > 0 ) {
        buildGOT(target, lmap);
         target->addRegion(globalOffset + lmap.gotRegionOffset,

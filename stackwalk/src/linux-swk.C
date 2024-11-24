@@ -309,7 +309,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
    vsys_info *vsyscall = getVsysInfo(ps);
    if (!vsyscall)
    {
-#if !defined(DYNINST_HOST_ARCH_X86_64) && !defined(DYNINST_HOST_ARCH_AARCH64)
+#if !defined(DYNINST_HOST_ARCH_X86_64) && !defined(DYNINST_HOST_ARCH_AARCH64) && !defined(DYNINST_HOST_ARCH_RISCV64)
       sw_printf("[%s:%d] - Odd.  Couldn't find vsyscall page. Signal handler"
                 " stepping may not work\n", FILE__, __LINE__);
 #endif
