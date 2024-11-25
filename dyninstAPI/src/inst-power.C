@@ -1982,7 +1982,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
                 break;
 
             case divOp:
-                instOp = DIVWxop;   // POWER divide instruction
+                instOp = DIVSop;   // POWER divide instruction
                                    // Same as DIVWop for PowerPC
                 if (s)
                     instXop = DIVLSxop; // Extended opcode for signed division

@@ -41,7 +41,7 @@ with open("mnemonics.{0:s}".format(args.arch), "w") as f:
       f.write("{0:s}_{1:s}, /* pseudo mnemonic */\n".format(mnemonics.dyninst_prefix, p))
 
   if mnemonics.aliases is not None:
-    for m in sorted(mnemonics.capstone):
+    for m in mnemonics.capstone:
       if m not in mnemonics.aliases:
         f.write("{0:s}_{1:s},\n".format(mnemonics.dyninst_prefix, m))
         continue
@@ -52,10 +52,6 @@ with open("mnemonics.{0:s}".format(args.arch), "w") as f:
         for a in mnemonics.aliases[m]["values"]:
           f.write("{0:s}_{1:s} = {0:s}_{2:s},\n".format(mnemonics.dyninst_prefix, a, m))
           mnemonics.aliases[a]["seen"] = True
-  else:
-    for m in sorted(mnemonics.capstone):
-      f.write("{0:s}_{1:s},\n".format(mnemonics.dyninst_prefix, m))
-
 
 # New mnemonics added from Capstone
 print("New mnemonics added from Capstone: ", end='')
@@ -63,7 +59,7 @@ capset = set(mnemonics.capstone)
 dynset = set(mnemonics.dyninst)
 new_mnemonics = capset - dynset
 if len(new_mnemonics) > 0:
-  for m in sorted(new_mnemonics):
+  for m in new_mnemonics:
     print("\t{0:s}".format(m))
 else:
   print("None")
@@ -100,13 +96,9 @@ if mnemonics.missing is not None:
   # Ignore known missing
   missing -= set(mnemonics.missing)
 
-if mnemonics.pseudo is not None:
-  # Ignore pseudo opcodes
-  missing -= set(mnemonics.pseudo)
-
 if len(missing) > 0:
   print()
-  for m in sorted(missing):
+  for m in missing:
     print("\t{0:s}".format(m))
 else:
   print("None")

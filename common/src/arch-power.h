@@ -401,6 +401,7 @@ typedef unsigned codeBufIndex_t;
 #define TIop             3      /* trap immediate */
 #define MULIop           7      /* multiply immediate */
 #define SFIop            8      /* subtract from immediate */
+#define DOZIop           9
 #define CMPLIop         10
 #define CMPIop		11	/* compare immediate */
 #define SIop            12      /* subtract immediate */
@@ -525,6 +526,7 @@ typedef unsigned codeBufIndex_t;
 #define SLxop           24
 #define CNTLZxop        26
 #define SLDxop          27
+#define MASKGxop        29
 #define CMPLxop         32
 #define SUBFxop         40
 #define DCBSxop         54
@@ -534,37 +536,66 @@ typedef unsigned codeBufIndex_t;
 #define DCBFxop         86
 #define LBZXxop         87
 #define NEGxop         104
+#define MULxop         107
+#define CLFxop         118
 #define NORxop         124
 #define SFExop         136
 #define AExop          138
 #define MTCRFxop       144
 #define MTMSRxop       146
+#define SLQxop         152
+#define SLExop         153
+#define SLIQxop        184
 #define SFZExop        200
 #define AZExop         202
 #define MTSRxop        210
+#define SLLQxop        216
+#define SLEQxop        217
 #define SFMExop        232
 #define AMExop         234
 #define MTSRIxop       242
 #define DCBTSTxop      246
+#define SLLIQxop       248
+#define DOZxop         264
+#define LSCBXxop       277
 #define DCBTxop        278
 #define EQVxop         284
 #define TLBIxop        306
+#define DIVxop         331
+#define ABSxop         360
 #define ORCxop         412
 #define DIVWUxop       459
 #define MTSPRop         31
 #define MTSPRxop       467
 #define DCBIxop        470
 #define NANDxop        476
+#define NABSxop        488
 #define DIVWxop        491
+#define CLIxop         502
+#define CLCSxop        531
 #define SRxop          536
+#define RRIBxop        537
 #define SRDxop         539
+#define MASKIRxop      541
 #define LFSUXxop       567
 #define MFSRxop        595
+#define MFSRIxop       627
+#define DCLSTxop       630
 #define MFSRINxop      659
+#define SRQxop         664
+#define SRExop         665
+#define SRIQxop        696
+#define SRLQxop        728
+#define SREQxop        729
+#define SRLIQxop       760
 #define SRAxop         792
+#define RACxop         818
 #define SRAIxop        824
 #define EIEIOxop       854
+#define SRAQxop        920
+#define SREAxop        921
 #define EXTSxop        922
+#define SRAIQxop       952
 #define EXTSBxop       954
 #define ICBIxop        982
 #define DCLZxop       1014
@@ -592,6 +623,8 @@ typedef unsigned codeBufIndex_t;
 #define MULLxop         233     /* multiply long -- 64-bit integer multiplication */
 #define CAXop		31      /* compute address -- XFPop */
 #define CAXxop		266     /* compute address -- ADDxop */
+#define DIVSop          31      /* divide short -- XFPop */
+#define DIVSxop         363     /* divide short -- replacing DIVWxop */
 #define DIVLSxop        489     /* divide signed long  -- 64-bit integer divison */
 #define DIVLUxop        457     /* divide unsigned long  -- 64-bit integer divison */
 
@@ -640,6 +673,7 @@ typedef unsigned codeBufIndex_t;
 #define RLIMIop         20      /* rotate left immediate then mask insert */
 #define RLINMxop        21      /* rotate left immediate then AND with mask
                                  * -- RLWINMxop */
+#define RLMIop          22
 #define RLNMop          23
 
 #define RLDICLop        30      /* Rotate Left Doubleword Imm and Clear Left */
