@@ -1,0 +1,90 @@
+\subsection{MultiRegister Class}
+\label{sec:MultiRegister}
+
+A \code{MultiMultiRegister} object represents a ordered collection of registers as a single operand
+As a \code{MultiMultiRegister} is a \code{Expression}, it may contain the physical register\'s contents if
+they are known.
+ 
+
+\begin{apient}
+typedef dyn\_detail::boost::shared\_ptr<MultiRegister> Ptr
+\end{apient}
+\apidesc{
+A type definition for a reference-counted pointer to a \code{MultiRegister}.
+}
+
+\begin{apient}
+MultiRegister (MachRegister r)
+\end{apient}
+\apidesc{
+Construct a register using the provided register object \code{r}. The
+\code{MachRegister} datatype is Dyninst's register representation and
+should not be constructed manually. 
+}
+
+\begin{apient}
+MultiRegisterAST(std::vector<RegisterAST::Ptr> _in);
+\end{apient}
+
+
+\begin{apient}
+void getChildren (vector< InstructionAST::Ptr > & children) const
+\end{apient}
+\apidesc{
+By definition, a \code{MultiRegister} object has no children.
+Since a \code{MultiRegister} has no children, the \code{children} parameter is unchanged by this
+method.
+}
+
+\begin{apient}
+void getUses (set< InstructionAST::Ptr > & uses)
+\end{apient}
+\apidesc{
+By definition, the use set of a \code{MultiRegister} object is itself.
+This \code{MultiRegister} will be inserted into \code{uses}.
+}
+
+\begin{apient}
+bool isUsed (InstructionAST::Ptr findMe) const
+\end{apient}
+\apidesc{
+\code{isUsed} returns \code{true} if \code{findMe} is a \code{MultiRegister} that represents the same register as this \code{MultiRegister}, and \code{false} otherwise.
+}
+
+\begin{apient}
+std::string format (formatStyle how = defaultStyle) const
+\end{apient}
+\apidesc{
+The format method on a \code{MultiRegister} object returns the name associated with its ID.
+}
+
+\begin{apient}
+MultiRegister makePC (Dyninst::Architecture arch) [static]
+\end{apient}
+\apidesc{
+Utility function to get a \code{Register} object that represents the program counter.
+\code{makePC} is provided to support platform-independent control flow analysis.
+}
+
+\begin{apient}
+bool operator< (const MultiRegister & rhs) const
+\end{apient}
+\apidesc{
+We define a partial ordering on registers by their register number so that they may be placed
+into sets or other sorted containers.
+}
+
+\begin{apient}
+MachRegister getID () const
+\end{apient}
+\apidesc{
+The \code{getID} function returns underlying register represented by
+this AST. 
+}
+
+\begin{apient}
+MultiRegister::Ptr promote (const InstructionAST::Ptr reg) [static]
+\end{apient}
+\apidesc{
+Utility function to hide aliasing complexity on platforms (IA-32) that allow addressing part or all of a register
+}

@@ -57,7 +57,10 @@ mechanism proceeds to determine the address being read by the \code{Dereference}
 this information can be determined given the contents of the registers. This
 address is available from the Dereference through its child in the tree, even
 though calling \code{eval} on the Dereference returns a \code{Result} with an
-undefined value. 
+undefined value.
+
+\dotfile deref-eval.dot
+"Applying eval to a Dereference tree with the state of the registers known and the state of memory unknown"
 
 \begin{figure}
     \centering

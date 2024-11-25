@@ -7,7 +7,17 @@ over an expression tree. The visitor concept applies a user-specified
 visitor class to all nodes in an expression tree (in a post-order
 traversal). The visitor paradigm can be used as a more efficient
 replacement for bind/eval, to identify whether an expression has a
-desired pattern, or to locate children of an expression tree. 
+desired pattern, or to locate children of an expression tree.
+
+A \code{Visitor} performs postfix-order traversal of the AST represented by
+an \code{Expression}.  The \code{Visitor} class specifies the interface from which
+users may derive \code{Visitors} that perform specific tasks.
+
+The \code{visit} method must be overridden for each type of \code{Expression} node
+(\code{BinaryFunction}, \code{Immediate}, \code{RegisterAST}, and \code{Dereference}).  Any state that
+the \code{Visitor} needs to preserve between nodes must be kept within the class.
+\code{Visitors} are invoked by calling \code{Expression::apply(Visitor* v);} the \code{visit} method
+should not be invoked by user code ordinarily.
 
 A visitor is a user-defined class that inherits from the
 \code{Visitor} class defined in \code{Visitor.h}. That class is
@@ -21,6 +31,7 @@ class Visitor {
     virtual void visit(BinaryFunction* b) = 0;
     virtual void visit(Immediate* i) = 0;
     virtual void visit(RegisterAST* r) = 0;
+    virtual void visit(MultiRegisterAST* r) = 0;
     virtual void visit(Dereference* d) = 0;
 };
 \end{apient}

@@ -1,11 +1,16 @@
 \subsection{Dereference Class}
 \label{sec:dereference}
 
-A \code{Dereference} object is an \code{Expression} that dereferences another \code{ValueComputation}.
+A \code{Dereference} object is an \code{Expression} that dereferences another
+\code{ValueComputation}.
 
-A \code{Dereference} contains an \code{Expression} representing an effective address computation. Its use set is the same as the use set of the \code{Expression} being dereferenced.
+A \code{Dereference} contains an \code{Expression} representing an effective address
+computation. Its use set is the same as the use set of the \code{Expression} being
+dereferenced.
 
-It is not possible, given the information in a single instruction, to evaluate the result of a dereference. \code{eval} may still be called on an \code{Expression} that includes dereferences, but the expected use case is as follows:
+It is not possible, given the information in a single instruction, to evaluate the
+result of a dereference. \code{eval} may still be called on an \code{Expression}
+that includes dereferences, but the expected use case is as follows:
 
 \begin{itemize}
 \item Determine the address being used in a dereference via the \code{eval} mechanism
@@ -13,7 +18,17 @@ It is not possible, given the information in a single instruction, to evaluate t
 \item If necessary, fill in the \code{Dereference} node with the contents of that addresss, using \code{setValue} 
 \end{itemize}
 
-The type associated with a \code{Dereference} node will be the type of the value {\itshape read\/} {\itshape from\/} {\itshape memory\/}, not the type used for the address computation. Two \code{Dereference}s that access the same address but interpret the contents of that memory as different types will produce different values. The children of a \code{Dereference} at a given address are identical, regardless of the type of dereference being performed at that address. For example, the \code{Expression} shown in Figure 6 could have its root \code{Dereference}, which interprets the memory being dereferenced as a unsigned 16-\/bit integer, replaced with a \code{Dereference} that interprets the memory being dereferenced as any other type. The remainder of the \code{Expression} tree would, however, remain unchanged. 
+The type associated with a \code{Dereference} node will be the type of the value
+{\itshape read\/} {\itshape from\/} {\itshape memory\/}, not the type used for
+the address computation. Two \code{Dereference}s that access the same address but
+interpret the contents of that memory as different types will produce different values.
+The children of a \code{Dereference} at a given address are identical,
+regardless of the type of dereference being performed at that address. For example,
+the \code{Expression} shown in Figure 6 could have its root \code{Dereference}, which
+interprets the memory being dereferenced as a unsigned 16-\/bit integer, replaced
+with a \code{Dereference} that interprets the memory being dereferenced as any
+other type. The remainder of the \code{Expression} tree would, however, remain
+unchanged.
 
 \begin{apient}
 Dereference (Expression::Ptr addr, Result_Type result_type)
