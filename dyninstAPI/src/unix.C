@@ -878,7 +878,9 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
             emptyFuncSize = 16;
 #elif defined(DYNINST_HOST_ARCH_RISCV64)
             // TODO
-            static unsigned char empty[] = {};
+            static unsigned char empty[] = {
+	        0x93, 0x00, 0x00, 0x00
+	    };
             emptyFunction = empty;
             emptyFuncSize = 0;
 #endif //defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
