@@ -878,9 +878,11 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
             emptyFuncSize = 16;
 #elif defined (arch_riscv64)
             // TODO
-            static unsigned char empty[] = {};
+            static unsigned char empty[] = {
+	        0x93, 0x00, 0x00, 0x00
+	    };
             emptyFunction = empty;
-            emptyFuncSize = 0;
+            emptyFuncSize = 4;
 #endif //defined(arch_x86) || defined(arch_x86_64)
 
             linkedFile->addRegion(highWaterMark_, (void*)(emptyFunction), emptyFuncSize, ".fini.dyninst",
