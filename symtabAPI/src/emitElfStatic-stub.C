@@ -90,7 +90,7 @@ bool emitElfStatic::isGOTRelocation(unsigned long) {
     return false;
 }
 
-Offset emitElfStatic::getGOTSize(LinkMap &) {
+Offset emitElfStatic::getGOTSize(Symtab *, LinkMap &, Offset &) {
     assert(!EMIT_STATIC_ASSERT);
     return 0;
 }
@@ -100,7 +100,7 @@ Offset emitElfStatic::getGOTAlign(LinkMap &) {
     return 0;
 }
 
-void emitElfStatic::buildGOT(LinkMap &) {
+void emitElfStatic::buildGOT(Symtab *, LinkMap &) {
     assert(!EMIT_STATIC_ASSERT);
 }
 
