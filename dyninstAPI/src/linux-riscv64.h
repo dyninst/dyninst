@@ -28,38 +28,30 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// Architecture include. Use this one instead of arch-<platform>
 
-#if !defined(arch_h)
-#define arch_h
-
-#include <assert.h>
-#include <vector>
-
-#if defined(DYNINST_HOST_ARCH_POWER)
-#include "arch-power.h"
-using namespace NS_power;
-
-#elif defined(i386_unknown_nt4_0) \
-   || defined(DYNINST_HOST_ARCH_X86)           \
-   || defined(DYNINST_HOST_ARCH_X86_64)
-#include "arch-x86.h"
-using namespace NS_x86;
-
-#elif defined(DYNINST_HOST_ARCH_AARCH64)
-#include "arch-aarch64.h"
-using namespace NS_aarch64;
-#elif defined(arch_riscv64)
-#include "arch-riscv64.h"
-using namespace NS_riscv64;
-#else
-#error "unknown architecture"
-
+#if !defined(os_linux) || !defined(arch_riscv64)
+#error "invalid architecture-os inclusion"
 #endif
 
-// For platforms that require bit-twiddling. These should go away in the future.
-#define GET_PTR(insn, gen) codeBuf_t *insn = (codeBuf_t *)(gen).cur_ptr()
-#define SET_PTR(insn, gen) (gen).update(insn)
-#define REGET_PTR(insn, gen) insn = (codeBuf_t *)(gen).cur_ptr()
+#ifndef LINUX_RISCV64_HDR
+#define LINUX_RISCV64_HDR
+
+#include "dyntypes.h"
+
+// floor of inferior malloc address range within a single branch of x
+// for 32-bit ELF RISC-V mutatees
+extern Dyninst::Address region_lo(const Dyninst::Address x);
+
+// floor of inferior malloc address range within a single branch of x
+// for 64-bit ELF RISC-V mutatees
+extern Dyninst::Address region_lo_64(const Dyninst::Address x);
+
+// ceiling of inferior malloc address range within a single branch of x
+// for 32-bit ELF RISC-V mutatees
+extern Dyninst::Address region_hi(const Dyninst::Address x);
+
+// ceiling of inferior malloc address range within a single branch of x
+// for 64-bit ELF RISC-V mutatees
+extern Dyninst::Address region_hi_64(const Dyninst::Address x);
 
 #endif

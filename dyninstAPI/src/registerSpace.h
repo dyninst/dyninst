@@ -500,7 +500,7 @@ class registerSpace {
 #if defined(arch_riscv64)
     typedef enum { r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12,
                    r13, r14, r15, r16, r17, r18, r19, r20, r21, r22, r23,
-                   r24, r25, r26, r27, r28, r29, r30,
+                   r24, r25, r26, r27, r28, r29, r30, r31,
                    fpr32_0, fpr32_1, fpr32_2, fpr32_3, fpr32_4, fpr32_5, fpr32_6,
                    fpr32_7, fpr32_8, fpr32_9, fpr32_10, fpr32_11, fpr32_12, fpr32_13,
                    fpr32_14, fpr32_15, fpr32_16, fpr32_17, fpr32_18, fpr32_19, fpr32_20,
@@ -511,7 +511,7 @@ class registerSpace {
                    fpr64_14, fpr64_15, fpr64_16, fpr64_17, fpr64_18, fpr64_19, fpr64_20,
                    fpr64_21, fpr64_22, fpr64_23, fpr64_24, fpr64_25, fpr64_26, fpr64_27,
                    fpr64_28, fpr64_29, fpr64_30, fpr64_31,
-                   pc, } riscv64Registers_t;
+                   pc, ignored } riscv64Registers_t;
     static unsigned GPR(Dyninst::Register x) { return x; }
     static unsigned FPR(Dyninst::Register x) { return x - fpr32_0; } // For 64-bit floating point registers, the index of fpr64_i will be 32 + i
     int framePointer() { return r29; }
