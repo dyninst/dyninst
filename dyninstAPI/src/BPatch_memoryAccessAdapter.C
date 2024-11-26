@@ -211,7 +211,8 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
                 bytes = byteOverride->eval().convert<unsigned int>();
                 if(bytes == 0) bytes = 32;
             }
-            if(insn.getOperation().getID() == power_op_lswx)
+            if(insn.getOperation().getID() == power_op_lswx ||
+               insn.getOperation().getID() == power_op_stswx)
             {
                 return new BPatch_memoryAccess(new internal_instruction(NULL), current, isLoad, isStore, (long)0, ra, rb, (long)0, 9999, -1);
             }

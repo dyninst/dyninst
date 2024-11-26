@@ -316,9 +316,9 @@ which are both 0).
         insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
       }
     }
-    if(current->op == power_op_addic || current->op == power_op_andi ||
-       current->op == power_op_andis || current->op == power_op_stwcx ||
-       current->op == power_op_stdcx) {
+    if(current->op == power_op_addic || current->op == power_op_andi_rc ||
+       current->op == power_op_andis_rc || current->op == power_op_stwcx_rc ||
+       current->op == power_op_stdcx_rc) {
       insn_in_progress->appendOperand(makeCR0Expr(), false, true);
     }
 
