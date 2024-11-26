@@ -105,10 +105,10 @@ namespace NS_riscv64 {
 #define MIN_IMM52   ((long)(~MAX_IMM52))
 
 //Would probably want to use the register category as well (FPR/SPR/GPR), but for the uses of these macros, this should suffice
-#define SPR_LR      (((Dyninst::aarch64::x29).val()) & 0x1F)
-#define SPR_NZCV    (((Dyninst::aarch64::pstate).val()) & 0x1F)
-#define SPR_FPCR    (((Dyninst::aarch64::fpcr).val()) & 0x1F)
-#define SPR_FPSR    (((Dyninst::aarch64::fpsr).val()) & 0x1F)
+#define SPR_LR      (((Dyninst::riscv64::ra).val()) & 0x1F)
+#define SPR_NZCV    (((Dyninst::riscv64::pstate).val()) & 0x1F)
+#define SPR_FPCR    (((Dyninst::riscv64::fpcr).val()) & 0x1F)
+#define SPR_FPSR    (((Dyninst::riscv64::fpsr).val()) & 0x1F)
 
 #define INSN_SET(I, s, e, v)    ((I).setBits(s, e - s + 1, (v)))
 
@@ -294,6 +294,6 @@ class COMMON_EXPORT instruction {
 };
 
 }
-//end of NS_aarch64
+//end of NS_riscv64
 
 #endif
