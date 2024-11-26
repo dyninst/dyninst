@@ -37,7 +37,7 @@
 
 #include "stackwalk/src/linuxbsd-swk.h"
 #include "stackwalk/src/dbgstepper-impl.h"
-#include "registers/roscv64_regs.h"
+#include "registers/riscv64_regs.h"
 #include "registers/MachRegister.h"
 #include "frame.h"
 
@@ -109,26 +109,26 @@ bool DebugStepperImpl::isFrameRegister(MachRegister reg)
 {
    if (getProcessState()->getAddressWidth() == 4){
        assert(0);
-      return (reg == roscv64::x29);
+      return (reg == riscv64::x29);
    }
    else
-      return (reg == roscv64::x29);
+      return (reg == riscv64::x29);
 }
 
 bool DebugStepperImpl::isStackRegister(MachRegister reg)
 {
    if (getProcessState()->getAddressWidth() == 4){
        assert(0);
-      return (reg == roscv64::sp);
+      return (reg == riscv64::sp);
    }
    else
-      return (reg == roscv64::sp);
+      return (reg == riscv64::sp);
 }
 
 static     ucontext_t dummy_context;
-static int sp_offset = (char*)&(dummy_context.uc_mcontext.sp)       - (char*)&dummy_context;
-static int fp_offset = (char*)&(dummy_context.uc_mcontext.regs[29]) - (char*)&dummy_context;
-static int pc_offset = (char*)&(dummy_context.uc_mcontext.pc)       - (char*)&dummy_context;
+static int sp_offset = (char*)&(dummy_context.uc_mcontext.__gregs[2]) - (char*)&dummy_context;
+static int fp_offset = (char*)&(dummy_context.uc_mcontext.__gregs[8]) - (char*)&dummy_context;
+static int pc_offset = (char*)&(dummy_context.uc_mcontext.__gregs[0]) - (char*)&dummy_context;
 
 gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
                                                     Frame & out)
