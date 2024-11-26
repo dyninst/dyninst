@@ -37,9 +37,9 @@
 
 namespace Dyninst { namespace filesystem {
 
-  DYNINST_EXPORT std::string extract_filename(const std::string& path);
+    DYNINST_EXPORT std::string extract_filename(const std::string& path);
 
-  DYNINST_EXPORT std::string canonicalize(std::string);
+        DYNINST_EXPORT std::string canonicalize(std::string);
 
 }}
 
