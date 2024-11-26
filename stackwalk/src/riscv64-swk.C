@@ -47,9 +47,9 @@ using namespace Dyninst::Stackwalker;
 
 // TODO
 #if defined(os_linux)
-#define GET_FRAME_POINTER(spr)     __asm__("mov %0, x29;" : "=r"(spr))
-#define GET_RET_ADDR(spr)       __asm__("mov %0, x30;" : "=r"(spr))
-#define GET_STACK_POINTER(spr)  __asm__("mov %0, sp;"  : "=r"(spr))
+#define GET_FRAME_POINTER(spr)     __asm__("add %0, zero, fp;" : "=r"(spr))
+#define GET_RET_ADDR(spr)       __asm__("add %0, zero, ra;" : "=r"(spr))
+#define GET_STACK_POINTER(spr)  __asm__("add %0, zero, sp;"  : "=r"(spr))
 #else
 #error Unknown platform
 #endif
@@ -197,9 +197,9 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
     }
     else
     {
-		//aarch32 is not supported now
+		//riscv32 is not supported now
 		assert(0);
-        //result = getProcessState()->getRegValue(aarch32::lr, in.getThread(), out_ra);
+        //result = getProcessState()->getRegValue(riscv32::lr, in.getThread(), out_ra);
     }
     if (!result) {
         sw_printf("[%s:%d] - Error getting PC value for thrd %d\n",
@@ -219,7 +219,7 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
         out_ra = actual_frame_pair_p->LR;
     }
     else {
-		//aarch32 is not supported now
+		//riscv32 is not supported now
 		assert(0);
     }
   }
