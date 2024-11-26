@@ -27,28 +27,31 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#ifndef REGISTERMAP_H
-#define REGISTERMAP_H
 
-#include <map>
-#include "registers/MachRegister.h"
 
-namespace Dyninst {
-namespace DataflowAPI {
+#if !defined(os_linux) || !defined(arch_riscv64)
+#error "invalid architecture-os inclusion"
+#endif
 
-typedef std::map<MachRegister, int> RegisterMap;
+#ifndef LINUX_RISCV64_HDR
+#define LINUX_RISCV64_HDR
 
-RegisterMap &machRegIndex_x86();
-RegisterMap &machRegIndex_x86_64();
-RegisterMap &machRegIndex_ppc();
-RegisterMap &machRegIndex_ppc_64();
-RegisterMap &machRegIndex_aarch64();
-RegisterMap &machRegIndex_amdgpu_gfx908();
-RegisterMap &machRegIndex_amdgpu_gfx90a();
-RegisterMap &machRegIndex_amdgpu_gfx940();
-RegisterMap &machRegIndex_riscv64();
+#include "dyntypes.h"
 
-}
-}
-#endif //REGISTERMAP_H
+// floor of inferior malloc address range within a single branch of x
+// for 32-bit ELF RISC-V mutatees
+extern Dyninst::Address region_lo(const Dyninst::Address x);
 
+// floor of inferior malloc address range within a single branch of x
+// for 64-bit ELF RISC-V mutatees
+extern Dyninst::Address region_lo_64(const Dyninst::Address x);
+
+// ceiling of inferior malloc address range within a single branch of x
+// for 32-bit ELF RISC-V mutatees
+extern Dyninst::Address region_hi(const Dyninst::Address x);
+
+// ceiling of inferior malloc address range within a single branch of x
+// for 64-bit ELF RISC-V mutatees
+extern Dyninst::Address region_hi_64(const Dyninst::Address x);
+
+#endif
