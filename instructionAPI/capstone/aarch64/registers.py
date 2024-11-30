@@ -119,6 +119,7 @@ def _read_capstone_registers(file:str):
   ignore = [
     "x28_fp",   # nonsense alias of x28 to frame pointer (real alias is x29)
     "lr_xzr",   # Unused
+    "fpmr",     # Floating-point mode register; not in ARM
   ]
   
   def _find_reg_defs(fd):

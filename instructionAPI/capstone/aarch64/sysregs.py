@@ -96,9 +96,6 @@ def parse_capstone(file:str):
           continue
         return category
 
-  # Ignore Capstone's additional internal representations for EL{0,1,2}
-  el_name_exclude_fmt = re.compile(r"_el\d{2}$", flags=re.IGNORECASE)
-
   _ignored_registers = [
     # Armv8-m profile (microcontrollers) Memory Processing Unit (MPU) Protection Region registers
     # We can ignore these for now as we're unlikely to encounter microcontroller code. This helps
@@ -115,13 +112,58 @@ def parse_capstone(file:str):
     "cntvfrq",
     
     # Capstone marks this as FeatureAppleA7SysReg. I can't find it in the Armv8 spec.
-    "cpm_ioacc_ctl"
+    "cpm_ioacc_ctl",
+
+    # D8.10.3 System and Special-purpose register aliasing
+    "afsr0_el12",        # afsr0_el1
+    "afsr1_el12",        # afsr1_el1
+    "amair2_el12",       # amair2_el1
+    "amair_el12",        # amair_el1
+    "brbcr_el12",        # brbcr_el1
+    "cntkctl_el12",      # cntkctl_el1
+    "contextidr_el12",   # contextidr_el1
+    "cpacr_el12",        # cpacr_el1
+    "elr_el12",          # elr_el1
+    "esr_el12",          # esr_el1
+    "far_el12",          # far_el1
+    "gcscr_el12",        # gcscr_el1
+    "gcspr_el12",        # gcspr_el1
+    "mair2_el12",        # mair2_el1
+    "mair_el12",         # mair_el1
+    "mpam1_el12",        # mpam1_el1
+    "pfar_el12",         # pfar_el1
+    "pire0_el12",        # pire0_el1
+    "pir_el12",          # pir_el1
+    "pmscr_el12",        # pmscr_el1
+    "por_el12",          # por_el1
+    "sctlr2_el12",       # sctlr2_el1
+    "sctlr_el12",        # sctlr_el1
+    "scxtnum_el12",      # scxtnum_el1
+    "smcr_el12",         # smcr_el1
+    "spmaccessr_el12",   # spmaccessr_el1
+    "spsr_el12",         # spsr_el1
+    "tcr2_el12",         # tcr2_el1
+    "tcr_el12",          # tcr_el1
+    "tfsr_el12",         # tfsr_el1
+    "trcitecr_el12",     # trcitecr_el1
+    "trfcr_el12",        # trfcr_el1
+    "ttbr0_el12",        # ttbr0_el1
+    "ttbr1_el12",        # ttbr1_el1
+    "vbar_el12",         # vbar_el1
+    "zcr_el12",          # zcr_el1
+    "cntp_ctl_el02",     # cntp_ctl_el0
+    "cntp_cval_el02",    # cntp_cval_el0
+    "cntp_tval_el02",    # cntp_tval_el0
+    "cntv_ctl_el02",     # cntv_ctl_el0
+    "cntv_cval_el02",    # cntv_cval_el0
+    "cntv_tval_el02",    # cntv_tval_el0
   ]
 
   def _excluded(name):
-    if re.search(el_name_exclude_fmt, name) is not None:
-      return True
     if "_" in name:
+      if name.lower() in _ignored_registers:
+        return True
+      
       # Transform names like 'prlar5_el1' to 'prlar'
       import string
       prefix = name[:name.rindex("_")].strip(string.digits)
