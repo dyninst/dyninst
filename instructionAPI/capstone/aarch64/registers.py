@@ -45,12 +45,18 @@ class registers:
     
     
     _aliases = {
-      "x29": "fp",    # Frame Pointer
-      "x30": "lr",    # Link Register
+      "fp": "x29",    # Frame Pointer
+      "lr": "x30",    # Link Register
       "Ip0": "x16",   # First intra-procedure-call scratch register (capitalized to avoid conflict with DEF_REGISTER(p0))
       "Ip1": "x17"    # Second intra-procedure-call scratch register
     }
     self.aliases = [{"alias":a, "primary":_aliases[a]} for a in _aliases]
+    
+    # These Capstone aliases can't be parsed via _read_capstone_registers
+    for r in ["x29", "x30"]:
+      if not r in self.capstone: 
+        self.capstone.append(r)
+
 
   @staticmethod
   def export_lengths(f):
@@ -399,9 +405,7 @@ _capstone_by_prefix = {
 
 _capstone_by_name = {
   "ffr": _capstone_by_prefix["p"],                         # First Fault Register, same size/category as predicate registers
-  "fp": {"size":"FULL", "categories":["SPR"]},             # Frame (stack) pointer
   "fpcr": {"size":"D_REG", "categories":["SPR"]},          # Floating-Point Control Register
-  "lr": {"size":"FULL", "categories":["SPR"]},             # Link register
   "nzcv": {"size":"BIT", "categories":["SPR"]},            # Condition flag bits
   "vg": {"size":"FULL", "categories":["SVE"]},             # 64-bit SVE vector granule pseudo-register (needed for DWARF mappings)
   
