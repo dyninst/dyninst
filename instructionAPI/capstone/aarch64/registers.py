@@ -41,9 +41,8 @@ class registers:
     self.capstone_sysregs = aarch64.sysregs.parse_capstone(cap_dir + "/include/capstone/aarch64.h")
     self.dyninst = _read_dyninst_registers(dyn_dir + "/common/h/registers/aarch64_regs.h")
     spec_sysregs = aarch64.sysregs.parse_xml_specs(spec_dir)
-    self.all = _process_regs(self.capstone, self.capstone_sysregs, spec_sysregs)
-    
-    
+
+    # Architecture aliases
     _aliases = {
       "fp": "x29",    # Frame Pointer
       "lr": "x30",    # Link Register
@@ -56,6 +55,28 @@ class registers:
     for r in ["x29", "x30"]:
       if not r in self.capstone: 
         self.capstone.append(r)
+
+    # Internal Capstone aliases
+    _capstone_aliases = {
+      "pn0": "p0",    # SVE predicate registers: PN<N> is an LLVM alias of P<N>
+      "pn1": "p1",
+      "pn2": "p2",
+      "pn3": "p3",
+      "pn4": "p4",
+      "pn5": "p5",
+      "pn6": "p6",
+      "pn7": "p7",
+      "pn8": "p8",
+      "pn9": "p9",
+      "pn10": "p10",
+      "pn11": "p11",
+      "pn12": "p12",
+      "pn13": "p13",
+      "pn14": "p14",
+      "pn15": "p15",
+    }
+    
+    self.all = _process_regs(self.capstone, self.capstone_sysregs, spec_sysregs, _aliases | _capstone_aliases)
 
 
   @staticmethod
@@ -159,7 +180,7 @@ def _read_dyninst_registers(file:str):
   return sorted(regs)
 
 
-def _process_regs(capstone, capstone_sysregs, spec_sysregs):
+def _process_regs(capstone, capstone_sysregs, spec_sysregs, aliases):
   regs = []
   
   for r in capstone:
@@ -171,6 +192,8 @@ def _process_regs(capstone, capstone_sysregs, spec_sysregs):
       details = _capstone_by_prefix[r[:2]]
     elif r in _capstone_by_name:
       details = _capstone_by_name[r]
+    elif r in aliases:
+      continue
     else:
       raise Exception("Unknown register: '{0:s}'".format(r))
     
