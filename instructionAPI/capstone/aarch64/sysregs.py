@@ -125,20 +125,20 @@ def parse_capstone(file:str):
       # Transform names like 'prlar5_el1' to 'prlar'
       import string
       prefix = name[:name.rindex("_")].strip(string.digits)
-      if prefix in _ignored_registers:
+      if prefix.lower() in _ignored_registers:
         return True
     return False
 
   def _read_category(file, category):
-    fmt = "AArch64_{0:s}_".format(category.upper())
+    fmt = "AARCH64_{0:s}_".format(category.upper())
     for line in file:
       if not fmt in line:
         continue
-      # Format:  AArch64_CATEGORY_NAME = 0xNUMBER,
+      # Format:  AARCH64_CATEGORY_NAME = 0xNUMBER,
       line = line.strip().replace(",", "")
       if "ENDING" in line:
         return
-      name = line[len(fmt):line.find(' ')].lower()
+      name = line[len(fmt):line.find(' ')]
       if _excluded(name):
         continue
       yield name
@@ -150,7 +150,7 @@ def parse_capstone(file:str):
       if category is None:
         break
       for reg in _read_category(f, category):
-        sysregs[reg] = {"categories": [category]}
+        sysregs[reg.lower()] = {"categories": [category]}
   
   return sysregs
 

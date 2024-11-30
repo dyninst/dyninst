@@ -124,7 +124,7 @@ def _read_capstone_registers(file:str):
   def _find_reg_defs(fd):
     # Capstone register enumerations start with a '*_INVALID' entry
     for line in fd:
-      if "AArch64_REG_INVALID" in line:
+      if "AARCH64_REG_INVALID" in line:
         return True
     return False
 
@@ -133,10 +133,10 @@ def _read_capstone_registers(file:str):
     if not _find_reg_defs(f):
       raise Exception("Unable to find register definitions in '{0:s}'".format(file)) 
 
-    marker = "AArch64_REG_"
+    marker = "AARCH64_REG_"
     for line in f:
       if marker in line:
-        # Format: AArch64_REG_NAME = NUMBER,
+        # Format: AARCH64_REG_NAME = NUMBER,
         line = line.strip().replace(",", "")
         name = line[len(marker):line.find(' ')].lower()
         if name == "ending":
