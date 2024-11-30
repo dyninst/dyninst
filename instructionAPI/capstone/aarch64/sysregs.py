@@ -413,6 +413,8 @@ _category_descriptions = {
   "DBGW": "debug watchpoint",
   "DVCR": "debug vector catch",
   "EXCP": "exception",
+  "FWTE": "fine-grained write traps el3",
+  "GCSR": "guarded control stack registers",
   "HYPRDBG": "hypervisor debug fine-grained",
   "IMPLDEF": "implementation defined",
   "MPAM": "memory partitioning and monitoring extension",
