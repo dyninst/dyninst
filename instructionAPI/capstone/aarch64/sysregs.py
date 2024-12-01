@@ -208,6 +208,9 @@ def export_categories(f):
   decl = "const int32_t %-{0:d}s = SYSREG | 0x00%02X0000;  // %s\n".format(max_len)
   id = 0
   for n in names:
+    # This causes a collision
+    if id == 0x1A:
+      id += 1
     f.write(decl % (n, id, _category_descriptions[n]))
     id += 1
 
