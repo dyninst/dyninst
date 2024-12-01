@@ -14,6 +14,13 @@
 
 namespace {
   const std::string invalid_reg_name{"<INVALID_REG>"};
+
+  int32_t getID(Dyninst::MachRegister r) {
+    return r.val() & 0x000000ff;
+  }
+  int32_t getAlias(Dyninst::MachRegister r) {
+    return r.val() & 0x0000ff00;
+  }
 }
 
 namespace Dyninst { namespace registers {
@@ -72,9 +79,53 @@ namespace Dyninst {
 	    return MachRegister((reg & ~0x00ff0000) | x86_64::ZMM);
         else
           return *this;
-      case Arch_ppc32:
-      case Arch_ppc64:
-      case Arch_none: return *this;
+
+      case Arch_aarch64: {
+        if(category == aarch64::GPR) {
+          auto const alias = getAlias(*this);
+
+          // For GPRs, the most-basal registers are 64-bits
+          if(alias == aarch64::FULL)
+            return *this;
+
+          // This is a w<N> register
+          auto const offset = getID(*this) - getID(aarch64::w0);
+          auto const id = offset + getID(aarch64::x0);
+          auto const r = id | aarch64::FULL | aarch64::GPR | Arch_aarch64;
+          return MachRegister(r);
+        }
+
+        if(category == aarch64::FPR) {
+          auto const alias = getAlias(*this);
+
+          // The standard FPRs are aliases of the SVE registers. However, Dyninst
+          // doesn't handle them, so we just consider the standard FPRs.
+          if(alias == aarch64::Q_REG) {
+            return *this;
+          }
+
+          // This is an 8-bit b<N>, 16-bit h<N>, 32-bit s<N>, or 64-bit d<N> register
+          auto const first_of_len = [&]() -> MachRegister {
+            switch(alias) {
+              case aarch64::B_REG: return aarch64::b0;  // 8-bit
+              case aarch64::W_REG: return aarch64::h0;  // 16-bit
+              case aarch64::D_REG: return aarch64::s0;  // 32-bit
+              case aarch64::FULL: return aarch64::d0;   // 64-bit
+            }
+            return aarch64::q0;
+          }();
+
+          auto const first_seq_num = getID(first_of_len);
+          auto const cur_seq_num = getID(*this);
+          auto const offset = cur_seq_num - first_seq_num;
+          auto const new_seq_num = getID(aarch64::q0) + offset;
+          auto const new_len_type = aarch64::Q_REG;
+          auto const r = new_seq_num | new_len_type | aarch64::FPR | Arch_aarch64;
+          return MachRegister(r);
+        }
+        return *this;
+      }
+
       case Arch_amdgpu_gfx908:
         switch(category) {
           case amdgpu_gfx908::SGPR: return MachRegister((reg & 0x000000ff) | amdgpu_gfx908::s0);
@@ -92,6 +143,7 @@ namespace Dyninst {
 
           default: return *this;
         }
+
       case Arch_amdgpu_gfx940:
         switch(category) {
           case amdgpu_gfx940::SGPR: return MachRegister((reg & 0x000000ff) | amdgpu_gfx940::s0);
@@ -101,11 +153,12 @@ namespace Dyninst {
           default: return *this;
         }
 
+      case Arch_ppc32:
+      case Arch_ppc64:
       case Arch_aarch32:
-      case Arch_aarch64:
       case Arch_intelGen9:
       case Arch_cuda:
-        // not verified
+      case Arch_none:
         return *this;
       default: return InvalidReg;
     }
