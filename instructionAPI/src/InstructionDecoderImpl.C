@@ -35,6 +35,7 @@
 #include "AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h"
 #include "AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h"
 #include "AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h"
+#include "InstructionDecoder-Capstone.h"
 
 #include "BinaryFunction.h"
 #include "Dereference.h"
@@ -66,6 +67,8 @@ namespace Dyninst
                 case Arch_aarch32:
                 case Arch_aarch64:
                     return Ptr(new InstructionDecoder_aarch64(a));
+                case Arch_riscv64:
+                    return Ptr(new InstructionDecoder_Capstone(a));
                 case Arch_amdgpu_gfx908:
                     return Ptr(new InstructionDecoder_amdgpu_gfx908(a));
                case Arch_amdgpu_gfx90a:
