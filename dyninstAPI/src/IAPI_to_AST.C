@@ -83,9 +83,8 @@ void ASTFactory::visit(Immediate* i)
 void ASTFactory::visit(RegisterAST* r)
 {
 #if defined(arch_x86) || defined(arch_x86_64)  
-    bool unused;
     m_stack.push_back(AstNode::operandNode(AstNode::operandType::origRegister,
-                      (void*)(intptr_t)(convertRegID(r, unused))));
+                      (void*)(intptr_t)(convertRegID(r))));
 #else
     MachRegister reg = r->getID();
     reg = reg.getBaseRegister();

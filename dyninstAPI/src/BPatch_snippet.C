@@ -876,8 +876,7 @@ BPatch_registerExpr::BPatch_registerExpr(BPatch_register reg)
 }
 
 BPatch_registerExpr::BPatch_registerExpr(Dyninst::MachRegister mach) {
-   bool whocares;
-   Register reg = convertRegID(mach, whocares);
+   Register reg = convertRegID(mach);
    ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::operandType::origRegister,
                                                  (void *)(intptr_t)reg));
     assert(BPatch::bpatch != NULL);
@@ -1167,8 +1166,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                 AstNodePtr variableAst;
                 BPatch_storageClass in_storage = lv->convertToBPatchStorage(& locs[i]);
                 void *in_address = (void *) locs[i].frameOffset;
-                bool ignored;
-                int in_register = convertRegID(locs[i].mr_reg, ignored);
+                int in_register = convertRegID(locs[i].mr_reg);
                 switch (in_storage) {
                         case BPatch_storageAddr:
                                 variableAst = AstNode::operandNode(AstNode::operandType::DataAddr, in_address);

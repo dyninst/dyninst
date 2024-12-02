@@ -42,9 +42,9 @@ using namespace Dyninst;
 extern std::multimap<Register, MachRegister> regToMachReg32;
 extern std::multimap<Register, MachRegister> regToMachReg64;
 
-Register convertRegID(Dyninst::InstructionAPI::RegisterAST::Ptr toBeConverted, bool& wasUpcast);
-Register convertRegID(Dyninst::InstructionAPI::RegisterAST* toBeConverted, bool& wasUpcast);
-Register convertRegID(Dyninst::MachRegister reg, bool &wasUpcast);
+Register convertRegID(Dyninst::InstructionAPI::RegisterAST::Ptr toBeConverted);
+Register convertRegID(Dyninst::InstructionAPI::RegisterAST* toBeConverted);
+Register convertRegID(Dyninst::MachRegister reg);
 Dyninst::MachRegister convertRegID(Register r, Dyninst::Architecture arch);
 
 #endif //!defined(REGISTER_CONVERSION_H)

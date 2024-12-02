@@ -841,8 +841,7 @@ bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost,
     gen.setInsertNaked(true);
     gen.setModifiedStackFrame(true);
 
-    bool ignored;
-    Dyninst::Register reg_sp = convertRegID(MachRegister::getStackPointer(gen.getArch()), ignored);
+    Dyninst::Register reg_sp = convertRegID(MachRegister::getStackPointer(gen.getArch()));
 
     Emitterx86* emitter = dynamic_cast<Emitterx86*>(gen.codeEmitter());
     assert(emitter);
@@ -947,8 +946,7 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost,
     gen.setInsertNaked(true);
     gen.setModifiedStackFrame(true);
 
-    bool ignored;
-    Dyninst::Register reg_sp = convertRegID(MachRegister::getStackPointer(gen.getArch()), ignored);
+    Dyninst::Register reg_sp = convertRegID(MachRegister::getStackPointer(gen.getArch()));
 
     Emitterx86* emitter = dynamic_cast<Emitterx86*>(gen.codeEmitter());
     assert(emitter);

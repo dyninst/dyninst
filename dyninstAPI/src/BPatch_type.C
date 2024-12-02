@@ -489,8 +489,7 @@ int BPatch_localVar::getRegister() {
     if (!locs.size())
         return -1;
 
-    bool ignored;
-    return convertRegID(locs[0].mr_reg, ignored);
+    return convertRegID(locs[0].mr_reg);
 }
 
 BPatch_storageClass BPatch_localVar::getStorageClass() {
