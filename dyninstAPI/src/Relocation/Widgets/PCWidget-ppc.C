@@ -92,8 +92,7 @@ bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuf
 }
 
 bool PCWidget::PCtoReg(const codeGen &templ, const RelocBlock *t, CodeBuffer &buffer) {
-  bool ignored;
-  Register reg = convertRegID(a_.reg(), ignored);
+  Register reg = convertRegID(a_.reg());
 
   if(templ.addrSpace()->proc()) {
     // Move immediate to register?

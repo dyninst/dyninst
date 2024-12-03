@@ -189,8 +189,7 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
   (aarch64::fpsr,   registerSpace::fpsr)
   ;
 
-Register convertRegID(MachRegister reg, bool &wasUpcast) {
-    wasUpcast = false;
+Register convertRegID(MachRegister reg) {
 
     MachRegister baseReg = MachRegister((reg.getBaseRegister().val() & ~reg.getArchitecture()) | Arch_aarch64);
 //    RegisterAST::Ptr debug(new RegisterAST(baseReg));
@@ -207,18 +206,18 @@ Register convertRegID(MachRegister reg, bool &wasUpcast) {
 }
 
 
-Register convertRegID(RegisterAST::Ptr toBeConverted, bool& wasUpcast)
+Register convertRegID(RegisterAST::Ptr toBeConverted)
 {
-    return convertRegID(toBeConverted.get(), wasUpcast);
+    return convertRegID(toBeConverted.get());
 }
 
-Register convertRegID(RegisterAST* toBeConverted, bool& wasUpcast)
+Register convertRegID(RegisterAST* toBeConverted)
 {
     if(!toBeConverted) {
         //assert(0);
       return registerSpace::ignored;
     }
-    return convertRegID(toBeConverted->getID(), wasUpcast);
+    return convertRegID(toBeConverted->getID());
 }
 
 MachRegister convertRegID(Register r, Dyninst::Architecture arch) {

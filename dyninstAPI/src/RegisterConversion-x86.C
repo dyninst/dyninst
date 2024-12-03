@@ -462,9 +462,7 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
         (x86_64::st7, REGNUM_DUMMYFPR)
         ;
 
-Register convertRegID(MachRegister reg, bool &wasUpcast) {
-    wasUpcast = false;
-    if(reg.getBaseRegister().val() != reg.val()) wasUpcast = true;
+Register convertRegID(MachRegister reg) {
     MachRegister baseReg = MachRegister((reg.getBaseRegister().val() & ~reg.getArchitecture()) | Arch_x86_64);
 //    RegisterAST::Ptr debug(new RegisterAST(baseReg));
 //    fprintf(stderr, "DEBUG: converting %s", toBeConverted->format().c_str());
@@ -476,7 +474,6 @@ Register convertRegID(MachRegister reg, bool &wasUpcast) {
 		return REGNUM_IGNORED;
     }
     if(found->second == REGNUM_DUMMYFPR) {
-        wasUpcast = true;
         if(reg.getArchitecture() == Arch_x86)
         {
             return IA32_FPR_VIRTUAL_REGISTER;
@@ -486,18 +483,18 @@ Register convertRegID(MachRegister reg, bool &wasUpcast) {
 }
 
 
-Register convertRegID(RegisterAST::Ptr toBeConverted, bool& wasUpcast)
+Register convertRegID(RegisterAST::Ptr toBeConverted)
 {
-    return convertRegID(toBeConverted.get(), wasUpcast);
+    return convertRegID(toBeConverted.get());
 }
         
-Register convertRegID(RegisterAST* toBeConverted, bool& wasUpcast)
+Register convertRegID(RegisterAST* toBeConverted)
 {
     if(!toBeConverted) {
         //assert(0);
         return REGNUM_IGNORED;
     }
-    return convertRegID(toBeConverted->getID(), wasUpcast);
+    return convertRegID(toBeConverted->getID());
 }
 
 map<Register, MachRegister> machRegisterMapx86_64 = map_list_of
