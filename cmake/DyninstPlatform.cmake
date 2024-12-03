@@ -13,7 +13,9 @@ cmake_host_system_information(RESULT _host_arch QUERY OS_PLATFORM)
 
 set(_32bit_x86_arches "i386" "i686")
 set(_64bit_x86_arches "x86_64" "amd64")
-set(_known_arches "ppc64le" "aarch64" ${_32bit_x86_arches} ${_64bit_x86_arches})
+set(_amdgpu_arches "amdgpu_gfx908" "amdgpu_gfx90a" "amdgpu_gfx940")
+set(_known_arches "ppc64le" "aarch64" ${_32bit_x86_arches} ${_64bit_x86_arches}
+                  ${_amdgpu_arches})
 
 if(NOT ${_host_arch} IN_LIST _known_arches)
   message(FATAL_ERROR "Unsupported architecture: '${_host_arch}'")
@@ -48,6 +50,27 @@ if(DYNINST_OS_Linux OR DYNINST_OS_FreeBSD)
 endif()
 
 if(${_host_arch} IN_LIST _64bit_x86_arches)
+  set(DYNINST_HOST_ARCH_x86_64 TRUE)
+elseif(${_host_arch} STREQUAL "aarch64")
+  set(DYNINST_HOST_ARCH_aarch64 TRUE)
+elseif(${_host_arch} STREQUAL "ppc64le")
+  set(DYNINST_HOST_ARCH_ppc64le TRUE)
+elseif(${_host_arch} IN_LIST _32bit_x86_arches)
+  set(DYNINST_HOST_ARCH_i386 TRUE)
+endif()
+
+if(DYNINST_CODEGEN_ARCH)
+  if(NOT DYNINST_CODEGEN_ARCH IN_LIST _known_arches)
+    message(
+      FATAL_ERROR
+        "Unsupported DYNINST_CODEGEN_ARCH, expect one of  '${_known_arches}', got '${DYNINST_CODEGEN_ARCH}'"
+      )
+  else()
+    set(${_host_arch} ${DYNINST_CODEGEN_ARCH})
+  endif()
+endif()
+
+if(${_host_arch} IN_LIST _64bit_x86_arches)
   set(DYNINST_ARCH_x86_64 TRUE)
 elseif(${_host_arch} STREQUAL "aarch64")
   set(DYNINST_ARCH_aarch64 TRUE)
@@ -55,6 +78,12 @@ elseif(${_host_arch} STREQUAL "ppc64le")
   set(DYNINST_ARCH_ppc64le TRUE)
 elseif(${_host_arch} IN_LIST _32bit_x86_arches)
   set(DYNINST_ARCH_i386 TRUE)
+elseif(${_host_arch} STREQUAL "amdgpu_gfx908")
+  set(DYNINST_ARCH_amdgpu_gfx908 TRUE)
+elseif(${_host_arch} STREQUAL "amdgpu_gfx90a")
+  set(DYNINST_ARCH_amdgpu_gfx90a TRUE)
+elseif(${_host_arch} STREQUAL "amdgpu_gfx940")
+  set(DYNINST_ARCH_amdgpu_gfx940 TRUE)
 endif()
 
 # --- DEPRECATED ---
