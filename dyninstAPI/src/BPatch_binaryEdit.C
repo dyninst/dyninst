@@ -185,6 +185,19 @@ BPatch_binaryEdit::~BPatch_binaryEdit()
   assert(BPatch::bpatch != NULL);
 }
 
+#if defined(arch_amdgpu)
+static void writeInstrumentedFunctionNames(const std::string &filePath) {
+  std::ofstream namesFile(filePath);
+  assert(namesFile.is_open());
+
+  for (const auto& function : BPatch_addressSpace::instrumentedFunctions) {
+    namesFile << function->getMangledName() << std::endl;
+  }
+
+  namesFile.close();
+}
+#endif
+
 bool BPatch_binaryEdit::writeFile(const char * outFile)
 {
     assert(pendingInsertions);
@@ -214,6 +227,9 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
 
 
    if( !origBinEdit->writeFile(outFile) ) return false;
+#if defined(arch_amdgpu)
+   writeInstrumentedFunctionNames(std::string(outFile) + ".names");
+#endif
 
    std::map<std::string, BinaryEdit *>::iterator curBinEdit;
    for (curBinEdit = llBinEdits.begin(); curBinEdit != llBinEdits.end(); curBinEdit++) {

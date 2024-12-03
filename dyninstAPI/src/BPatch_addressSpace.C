@@ -869,6 +869,14 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
                                                                     BPatch_callWhen when,
                                                                     BPatch_snippetOrder order)
 {
+
+#if defined (arch_amdgpu)
+  for (auto i = 0; i < points.size(); ++i) {
+    BPatch_function *f = points[i]->getFunction();
+    instrumentedFunctions.insert(f);
+  }
+#endif
+
   BPatchSnippetHandle *retHandle = new BPatchSnippetHandle(this);
 
   if (dyn_debug_inst) {
@@ -1148,3 +1156,4 @@ Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_addressSp
    }
 }
 
+std::set<BPatch_function *> BPatch_addressSpace::instrumentedFunctions = {};
