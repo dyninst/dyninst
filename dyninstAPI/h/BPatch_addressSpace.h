@@ -408,6 +408,9 @@ class DYNINST_EXPORT BPatch_addressSpace {
   // Returns true if the underlying image represents a 
   // statically-linked executable, false otherwise
   bool  isStaticExecutable();
+
+  // THIS IS SPECIFIC TO AMDGPU
+  static std::set<BPatch_function *> instrumentedFunctions;
 };
 
 
