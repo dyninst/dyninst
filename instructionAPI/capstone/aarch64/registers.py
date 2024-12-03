@@ -41,16 +41,43 @@ class registers:
     self.capstone_sysregs = aarch64.sysregs.parse_capstone(cap_dir + "/include/capstone/aarch64.h")
     self.dyninst = _read_dyninst_registers(dyn_dir + "/common/h/registers/aarch64_regs.h")
     spec_sysregs = aarch64.sysregs.parse_xml_specs(spec_dir)
-    self.all = _process_regs(self.capstone, self.capstone_sysregs, spec_sysregs)
-    
-    
+
+    # Architecture aliases
     _aliases = {
-      "x29": "fp",    # Frame Pointer
-      "x30": "lr",    # Link Register
+      "fp": "x29",    # Frame Pointer
+      "lr": "x30",    # Link Register
       "Ip0": "x16",   # First intra-procedure-call scratch register (capitalized to avoid conflict with DEF_REGISTER(p0))
       "Ip1": "x17"    # Second intra-procedure-call scratch register
     }
     self.aliases = [{"alias":a, "primary":_aliases[a]} for a in _aliases]
+    
+    # These Capstone aliases can't be parsed via _read_capstone_registers
+    for r in ["x29", "x30"]:
+      if not r in self.capstone: 
+        self.capstone.append(r)
+
+    # Internal Capstone aliases
+    _capstone_aliases = {
+      "pn0": "p0",    # SVE predicate registers: PN<N> is an LLVM alias of P<N>
+      "pn1": "p1",
+      "pn2": "p2",
+      "pn3": "p3",
+      "pn4": "p4",
+      "pn5": "p5",
+      "pn6": "p6",
+      "pn7": "p7",
+      "pn8": "p8",
+      "pn9": "p9",
+      "pn10": "p10",
+      "pn11": "p11",
+      "pn12": "p12",
+      "pn13": "p13",
+      "pn14": "p14",
+      "pn15": "p15",
+    }
+    
+    self.all = _process_regs(self.capstone, self.capstone_sysregs, spec_sysregs, _aliases | _capstone_aliases)
+
 
   @staticmethod
   def export_lengths(f):
@@ -92,12 +119,13 @@ def _read_capstone_registers(file:str):
   ignore = [
     "x28_fp",   # nonsense alias of x28 to frame pointer (real alias is x29)
     "lr_xzr",   # Unused
+    "fpmr",     # Floating-point mode register; not in ARM
   ]
   
   def _find_reg_defs(fd):
     # Capstone register enumerations start with a '*_INVALID' entry
     for line in fd:
-      if "AArch64_REG_INVALID" in line:
+      if "AARCH64_REG_INVALID" in line:
         return True
     return False
 
@@ -106,10 +134,10 @@ def _read_capstone_registers(file:str):
     if not _find_reg_defs(f):
       raise Exception("Unable to find register definitions in '{0:s}'".format(file)) 
 
-    marker = "AArch64_REG_"
+    marker = "AARCH64_REG_"
     for line in f:
       if marker in line:
-        # Format: AArch64_REG_NAME = NUMBER,
+        # Format: AARCH64_REG_NAME = NUMBER,
         line = line.strip().replace(",", "")
         name = line[len(marker):line.find(' ')].lower()
         if name == "ending":
@@ -153,7 +181,7 @@ def _read_dyninst_registers(file:str):
   return sorted(regs)
 
 
-def _process_regs(capstone, capstone_sysregs, spec_sysregs):
+def _process_regs(capstone, capstone_sysregs, spec_sysregs, aliases):
   regs = []
   
   for r in capstone:
@@ -165,6 +193,8 @@ def _process_regs(capstone, capstone_sysregs, spec_sysregs):
       details = _capstone_by_prefix[r[:2]]
     elif r in _capstone_by_name:
       details = _capstone_by_name[r]
+    elif r in aliases:
+      continue
     else:
       raise Exception("Unknown register: '{0:s}'".format(r))
     
@@ -399,9 +429,7 @@ _capstone_by_prefix = {
 
 _capstone_by_name = {
   "ffr": _capstone_by_prefix["p"],                         # First Fault Register, same size/category as predicate registers
-  "fp": {"size":"FULL", "categories":["SPR"]},             # Frame (stack) pointer
   "fpcr": {"size":"D_REG", "categories":["SPR"]},          # Floating-Point Control Register
-  "lr": {"size":"FULL", "categories":["SPR"]},             # Link register
   "nzcv": {"size":"BIT", "categories":["SPR"]},            # Condition flag bits
   "vg": {"size":"FULL", "categories":["SVE"]},             # 64-bit SVE vector granule pseudo-register (needed for DWARF mappings)
   
