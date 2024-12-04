@@ -128,7 +128,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
    if (addr_size == 4) {
      group->addStepper(parent_stepper, 0xbfbfffb4, 0xbfbfffb4+1);
    }
-#if defined(arch_64bit)
+#if defined(DYNINST_HOST_ARCH_64BIT)
    else {
      group->addStepper(parent_stepper, 0x00007fffffffffc4, 0x00007fffffffffc4+1);
    }  

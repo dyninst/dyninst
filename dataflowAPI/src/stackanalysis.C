@@ -2827,9 +2827,9 @@ void StackAnalysis::createEntryInput(AbslocState &input) {
    // IA32 - the in height includes the return address and therefore
    // is <wordsize>
    // POWER - the in height is 0
-#if defined(arch_power)
+#if defined(DYNINST_HOST_ARCH_POWER)
    input[Absloc(sp())].addInitSet(Height(0));
-#elif (defined(arch_x86) || defined(arch_x86_64))
+#elif (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64))
    input[Absloc(sp())].addInitSet(Height(-word_size));
    if (sp() == x86_64::rsp) {
       input[Absloc(x86_64::esp)].addInitSet(Height(-word_size));

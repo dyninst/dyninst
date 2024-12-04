@@ -56,7 +56,7 @@
 
 #define SOCKLEN_T socklen_t
 
-#if !(defined(arch_power) && defined(os_linux))
+#if !(defined(DYNINST_HOST_ARCH_POWER) && defined(os_linux))
 void RTmutatedBinary_init(void)
 {
     return;
@@ -245,7 +245,7 @@ try_again:
 void *map_region(void *addr, int len, int fd) {
      void *result;
     int flags = DYNINSTheap_mmapFlags;
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
     if(addr == 0) flags |= MAP_32BIT;
 #endif
      result = mmap(addr, len, PROT_READ|PROT_WRITE|PROT_EXEC,

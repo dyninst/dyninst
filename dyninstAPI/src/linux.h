@@ -44,7 +44,7 @@ class PCProcess;
 
 #define EXIT_NAME "_exit"
 
-#if !defined(arch_x86_64)
+#if !defined(DYNINST_HOST_ARCH_X86_64)
 #define SIGNAL_HANDLER	 "__restore"
 #else
 #define SIGNAL_HANDLER   "__restore_rt"
@@ -53,9 +53,9 @@ class PCProcess;
 #if defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4)
 #include "linux-x86.h"
-#elif defined(os_linux) && defined(arch_power)
+#elif defined(os_linux) && defined(DYNINST_HOST_ARCH_POWER)
 #include "linux-power.h"
-#elif defined(os_linux) && defined(arch_aarch64)
+#elif defined(os_linux) && defined(DYNINST_HOST_ARCH_AARCH64)
 #include "linux-aarch64.h"
 #else
 #error Invalid or unknown architecture-os inclusion

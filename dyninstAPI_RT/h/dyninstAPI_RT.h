@@ -124,7 +124,7 @@ typedef struct {
    void *start_pc;   /*The pc of this threads initial function*/
 } BPatch_newThreadEventRecord;
 
-#if defined(arch_x86_64) /* cannot use MUTATEE_32 here b/c libdyninstAPI.so compiles this */
+#if defined(DYNINST_HOST_ARCH_X86_64) /* cannot use MUTATEE_32 here b/c libdyninstAPI.so compiles this */
 /*these are the 32 bit structures for use with 32 bit mutatees on AMD64*/
 typedef struct {
   unsigned int call_site_addr;

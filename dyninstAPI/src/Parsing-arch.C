@@ -39,7 +39,7 @@
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-#if defined(arch_power) || defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_POWER) || defined(DYNINST_HOST_ARCH_AARCH64)
 void 
 DynParseCallback::instruction_cb(Function*f,Block *,Address,insn_details*det)
 {

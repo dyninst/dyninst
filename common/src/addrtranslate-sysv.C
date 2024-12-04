@@ -1019,7 +1019,7 @@ bool AddressTranslateSysV::plat_getTrapAddr() {
 }
 
 Address AddressTranslateSysV::adjustForAddrSpaceWrap(Address base, std::string name) {
-#if !defined(arch_64bit)
+#if !defined(DYNINST_HOST_ARCH_64BIT)
    (void)name; // unused
    return base;
 #else

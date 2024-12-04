@@ -154,7 +154,7 @@ map_entries *getVMMaps(int pid, unsigned &maps_size) {
 int sysctl_computeAddrWidth(pid_t pid) {
     int retSize = sizeof(void *);
 
-#if defined(arch_64bit)
+#if defined(DYNINST_HOST_ARCH_64BIT)
     const int X86_ADDR_WIDTH = 4;
 
     size_t length;

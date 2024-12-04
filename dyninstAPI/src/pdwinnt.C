@@ -975,7 +975,7 @@ bool PCProcess::getDyninstRTLibName()
 {
     startup_printf("Begin getDyninstRTLibName\n");
     bool use_abi_rt = false;
-#if defined(arch_64bit)
+#if defined(DYNINST_HOST_ARCH_64BIT)
     use_abi_rt = (getAddressWidth() == 4);
 #endif
 

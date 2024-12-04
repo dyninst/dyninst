@@ -135,7 +135,7 @@ class DynParseCallback : public Dyninst::ParseAPI::ParseCallback {
   virtual void remove_edge_cb(Dyninst::ParseAPI::Block *, Dyninst::ParseAPI::Edge *, edge_type_t);
   virtual void remove_block_cb(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block *);
 
-#if defined(arch_power) || defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_POWER) || defined(DYNINST_HOST_ARCH_AARCH64)
   void instruction_cb(Dyninst::ParseAPI::Function*, Dyninst::ParseAPI::Block *, Dyninst::Address, insn_details*);
 #endif
  private:

@@ -190,7 +190,7 @@ void emitAddRM64(Address addr, int imm, codeGen &gen);
 void emitOpRegImm64(unsigned opcode, unsigned opcode_ext, Register rm_reg, int imm,
 		    bool is_64, codeGen &gen);
 
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
 class EmitterAMD64 : public Emitterx86 {
 
 public:

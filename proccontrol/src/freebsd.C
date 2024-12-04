@@ -65,7 +65,7 @@
 #include <sched.h>
 #include <sys/event.h>
 
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
 #include <machine/psl.h>
 #endif
 
@@ -1010,10 +1010,10 @@ Dyninst::Architecture freebsd_process::getTargetArch() {
     }
     int addr_width = sysctl_computeAddrWidth(getPid());
 
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
     assert(addr_width == 4 || addr_width == 8);
     arch = (addr_width == 4) ? Dyninst::Arch_x86 : Dyninst::Arch_x86_64;
-#elif defined(arch_power)
+#elif defined(DYNINST_HOST_ARCH_POWER)
     assert(addr_width == 4 || addr_width == 8);
     arch = (addr_width == 4) ? Dyninst::Arch_ppc32 : Dyninst::Arch_ppc64;
 #else
@@ -1638,7 +1638,7 @@ static void init_dynreg_to_user() {
         return;
     }
 
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
     dynreg_to_user[x86_64::r15] =   make_pair(offsetof(reg, r_r15), 8);
     dynreg_to_user[x86_64::r14] =   make_pair(offsetof(reg, r_r14), 8);
     dynreg_to_user[x86_64::r13] =   make_pair(offsetof(reg, r_r13), 8);
@@ -1674,7 +1674,7 @@ static void init_dynreg_to_user() {
     dynreg_to_user[x86::ss] = make_pair(offsetof(reg, r_ss), 4);
     dynreg_to_user[x86::cs] = make_pair(offsetof(reg, r_cs), 4);
     
-#elif defined(arch_x86)
+#elif defined(DYNINST_HOST_ARCH_X86)
     dynreg_to_user[x86::fs] = make_pair(offsetof(reg, r_fs), 4);
     dynreg_to_user[x86::es] = make_pair(offsetof(reg, r_es), 4);
     dynreg_to_user[x86::ds] = make_pair(offsetof(reg, r_ds), 4);
@@ -1766,7 +1766,7 @@ bool freebsd_thread::plat_getAllRegisters(int_registerPool &regpool) {
     return true;
 }
 
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
 static bool validateRegisters(struct reg *regs, Dyninst::LWP lwp) {
     struct reg old_regs;
     if( 0 != ptrace(PT_GETREGS, lwp, (caddr_t)&old_regs, 0) ) {
@@ -1778,12 +1778,12 @@ static bool validateRegisters(struct reg *regs, Dyninst::LWP lwp) {
     // registers and not set in the current set of registers -- 
     // the OS doesn't allow us to change this flag, change it to the
     // current value
-#if defined(arch_x86)
+#if defined(DYNINST_HOST_ARCH_X86)
     if( (old_regs.r_eflags & PSL_RF) != (regs->r_eflags & PSL_RF) ) {
         if( old_regs.r_eflags & PSL_RF ) regs->r_eflags |= PSL_RF;
         else regs->r_eflags &= ~PSL_RF;
     }
-#elif defined(arch_x86_64)
+#elif defined(DYNINST_HOST_ARCH_X86_64)
     if( (old_regs.r_rflags & PSL_RF) != (regs->r_rflags & PSL_RF) ) {
         if( old_regs.r_rflags & PSL_RF ) regs->r_rflags |= PSL_RF;
         else regs->r_rflags &= ~PSL_RF;

@@ -257,7 +257,7 @@ DLLEXPORT void DYNINST_instForkEntry(void) {
    side uses the normal version. */
 DLLEXPORT void DYNINST_instForkExit(void *arg1) {
 //#warning "This function is not implemented for AARCH64 yet!"
-#if !defined(arch_aarch64)
+#if !defined(DYNINST_HOST_ARCH_AARCH64)
    tc_lock_lock(&DYNINST_trace_lock);
 
    /* Set the state so the mutator knows what's up */
@@ -287,7 +287,7 @@ DLLEXPORT void DYNINST_instForkExit(void *arg1) {
 /* Used to instrument (and report) the entry of exec */
 DLLEXPORT void DYNINST_instExecEntry(void *arg1) {
 //#warning "This function is not implemented for AARCH64 yet!"
-#if !defined(arch_aarch64)
+#if !defined(DYNINST_HOST_ARCH_AARCH64)
    tc_lock_lock(&DYNINST_trace_lock);
 
    /* Set the state so the mutator knows what's up */

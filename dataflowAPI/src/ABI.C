@@ -32,17 +32,17 @@
 #include "dataflowAPI/src/RegisterMap.h"
 #include <stdio.h>
 
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
 #  include "registers/x86_regs.h"
 #  include "registers/x86_64_regs.h"
 #endif
 
-#if defined(arch_power)
+#if defined(DYNINST_HOST_ARCH_POWER)
 #  include "registers/ppc32_regs.h"
 #  include "registers/ppc64_regs.h"
 #endif
 
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
 #  include "registers/aarch64_regs.h"
 #endif
 
@@ -111,13 +111,13 @@ ABI* ABI::getABI(int addr_width){
 	globalABI_->addr_width = 4;
 	globalABI64_ = new ABI();
 
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
 	globalABI64_->addr_width = 8;
 	globalABI_->index = &machRegIndex_x86();
 	globalABI64_->index = &machRegIndex_x86_64();
 #endif
 
-#if defined(arch_power)
+#if defined(DYNINST_HOST_ARCH_POWER)
 	globalABI64_->addr_width = 4;
 	globalABI_->index = &machRegIndex_ppc();
 	globalABI64_->index = &machRegIndex_ppc();
@@ -125,18 +125,18 @@ ABI* ABI::getABI(int addr_width){
 #endif
 
 //#warning "This is not verified yet!"
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
 	globalABI64_->addr_width = 8;
 	globalABI_->index = &machRegIndex_aarch64();
 	globalABI64_->index = &machRegIndex_aarch64();
 #endif
 
 // We _only_ support instrumenting 32-bit binaries on 64-bit systems
-#if !defined arch_64bit || defined cap_32_64
+#if !defined(DYNINST_HOST_ARCH_64BIT) || defined(cap_32_64)
 	initialize32();
 #endif
 
-#ifdef arch_64bit
+#if defined(DYNINST_HOST_ARCH_64BIT)
 	initialize64();
 #endif
     }
@@ -234,7 +234,7 @@ const bitArray &ABI::getAllRegs() const
 bitArray ABI::getBitArray()  {
   return bitArray(index->size());
 }
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
 void ABI::initialize32(){
 
    returnRegs_ = new bitArray(machRegIndex_x86().size());
@@ -403,7 +403,7 @@ void ABI::initialize64(){
 
 #endif
 
-#if defined(arch_power)
+#if defined(DYNINST_HOST_ARCH_POWER)
 void ABI::initialize32(){
     returnRegs_ = new bitArray(machRegIndex_ppc().size());
     (*returnRegs_)[machRegIndex_ppc()[ppc32::r3]] = true;
@@ -596,7 +596,7 @@ void ABI::initialize64(){
 #endif
 
 //#warning "This is not verified!"
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
 void ABI::initialize64(){
     RegisterMap aarch64Map = machRegIndex_aarch64();
 	int sz = aarch64Map.size();

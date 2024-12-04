@@ -75,7 +75,7 @@ extern unsigned long sizeOfAnyHeap1;
 
 static struct trap_mapping_header *getStaticTrapMap(unsigned long addr);
 
-#if defined(arch_power) && defined(arch_64bit) && defined(os_linux)
+#if defined(DYNINST_HOST_ARCH_POWER) && defined(DYNINST_HOST_ARCH_64BIT) && defined(os_linux)
 unsigned long DYNINSTlinkSave;
 unsigned long DYNINSTtocSave;
 #endif
@@ -214,7 +214,7 @@ int DYNINSTloadLibrary(char *libname)
    }
 
    get_dlopen_error();
-#if defined(arch_x86)
+#if defined(DYNINST_HOST_ARCH_X86)
    /* dlopen on recent glibcs has a "security check" so that
       only registered modules can call it. Unfortunately, progs
       that don't include libdl break this check, so that we
@@ -250,9 +250,9 @@ int DYNINSTloadLibrary(char *libname)
 // gettid and still run on one that does.
 #if !defined(SYS_gettid)
 
-#if defined(arch_x86)
+#if defined(DYNINST_HOST_ARCH_X86)
 #define SYS_gettid 224
-#elif defined(arch_x86_64)
+#elif defined(DYNINST_HOST_ARCH_X86_64)
 #define SYS_gettid 186
 #endif
 
@@ -323,19 +323,19 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
 
 // Register numbers experimentally verified
 
-#if defined(arch_x86)
+#if defined(DYNINST_HOST_ARCH_X86)
   #define UC_PC(x) x->uc_mcontext.gregs[14]
-#elif defined(arch_x86_64)
+#elif defined(DYNINST_HOST_ARCH_X86_64)
   #if defined(MUTATEE_32)
     #define UC_PC(x) x->uc_mcontext.gregs[14]
   #else // 64-bit
     #define UC_PC(x) x->uc_mcontext.gregs[16]
   #endif // amd-64
-#elif defined(arch_power)
-  #if defined(arch_64bit)
+#elif defined(DYNINST_HOST_ARCH_POWER)
+  #if defined(DYNINST_HOST_ARCH_64BIT)
     #define UC_PC(x) x->uc_mcontext.regs->nip
   #endif // power
-#elif defined(arch_aarch64)
+#elif defined(DYNINST_HOST_ARCH_AARCH64)
 	//#warning "UC_PC: in aarch64, pc is not directly accessable."
 	//aarch64 pc is not one of 31 GPRs, but an independent reg
 	#define UC_PC(x) x->uc_mcontext.pc
@@ -417,7 +417,7 @@ void r_debugCheck(void) { assert(_r_debug.r_map); }
 #define NUM_LIBRARIES_BITMASK_SIZE (1 + NUM_LIBRARIES / WORD_SIZE)
 struct trap_mapping_header *all_headers[NUM_LIBRARIES];
 
-#if !defined(arch_x86_64) || defined(MUTATEE_32)
+#if !defined(DYNINST_HOST_ARCH_X86_64) || defined(MUTATEE_32)
 typedef Elf32_Dyn ElfX_Dyn;
 #else
 typedef Elf64_Dyn ElfX_Dyn;
@@ -425,7 +425,7 @@ typedef Elf64_Dyn ElfX_Dyn;
 
 struct trap_mapping_header *getStaticTrapMap(unsigned long addr);
 
-#if !defined (arch_aarch64)
+#if !defined(DYNINST_HOST_ARCH_AARCH64)
 static unsigned all_headers_current[NUM_LIBRARIES_BITMASK_SIZE];
 static unsigned all_headers_last[NUM_LIBRARIES_BITMASK_SIZE];
 
@@ -444,7 +444,7 @@ static tc_lock_t trap_mapping_lock;
 
 static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
 {
-#if !defined (arch_aarch64)
+#if !defined(DYNINST_HOST_ARCH_AARCH64)
    struct trap_mapping_header *header;
    int i;
 
@@ -476,7 +476,7 @@ static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
 #endif
 }
 
-#if !defined (arch_aarch64)
+#if !defined(DYNINST_HOST_ARCH_AARCH64)
 static int parse_libs(void)
 {
    struct link_map *l_current;

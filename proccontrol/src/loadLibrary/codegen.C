@@ -129,7 +129,7 @@ bool Codegen::generateCall(Address addr, const std::vector<Address> &args) {
       case Arch_ppc64:
          return generateCallPPC64(addr, args);
 #endif //!defined(os_windows)
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
       case Arch_aarch64:
          return generateCallAARCH64(addr, args);
 #endif
@@ -195,7 +195,7 @@ bool Codegen::generatePreamble() {
       case Arch_ppc64:
          return generatePreamblePPC64();
 #endif //!defined(os_windows)
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
       case Arch_aarch64:
          return generatePreambleAARCH64();
 #endif

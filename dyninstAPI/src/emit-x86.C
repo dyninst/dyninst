@@ -58,7 +58,7 @@
 #include "unaligned_memory_access.h"
 
 const int EmitterIA32::mt_offset = -4;
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
 const int EmitterAMD64::mt_offset = -8;
 #endif
 
@@ -1009,7 +1009,7 @@ int Register_DWARFtoMachineEnc32(int n)
     return n;
 }
 
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
 
 bool isImm64bit(Address imm) {
    return (imm >> 32);
@@ -2826,7 +2826,7 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
     BinaryEdit *binEdit = addrSpace->edit();
     Address relocation_address;
     unsigned int jump_slot_size = 4;
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
     jump_slot_size = 8;
 #endif
 
@@ -2860,7 +2860,7 @@ Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
     BinaryEdit *binEdit = addrSpace->edit();
     Address relocation_address;
     unsigned int jump_slot_size = 4;
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
     jump_slot_size = 8;
 #endif
 
@@ -3077,7 +3077,7 @@ bool EmitterIA32::emitXorRegSegReg(Register /*dest*/, Register base, int disp, c
     return true;
 }
 
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
 void EmitterAMD64::emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size, codeGen &gen, Address offset)
 {
   Address addr;

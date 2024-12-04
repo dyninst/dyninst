@@ -124,7 +124,7 @@ void SHA1Final(unsigned char digest[20], SHA1_CTX* context);
 /* blk0() and blk() perform the initial expand. */
 /* I got the idea of expanding during the round function from SSLeay */
 /* TODOMJM - Need to determine is this is used by proccontrol, symtab, and/or stackwalk */
-#if defined(arch_power) //Big Endian
+#if defined(DYNINST_HOST_ARCH_POWER) //Big Endian
 #define blk0(i) block->l[i]
 #else
 #define blk0(i) (block->l[i] = (rol(block->l[i],24)&0xFF00FF00) \

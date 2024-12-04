@@ -100,7 +100,7 @@ class Frame {
   friend std::ostream & operator << ( std::ostream & s, Frame & m );
   bool setPC(Address newpc);
 
-#if defined(arch_power)
+#if defined(DYNINST_HOST_ARCH_POWER)
   // We store the actual return addr in a word on the stack
   bool setRealReturnAddr(Address retaddr);
 #endif

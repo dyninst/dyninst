@@ -199,7 +199,7 @@ void registerSpace::initialize32() {
 
 }
 
-#if defined arch_x86_64
+#if defined(DYNINST_HOST_ARCH_X86_64)
 void registerSpace::initialize64() {
     static bool done = false;
     if (done) return;
@@ -540,7 +540,7 @@ void registerSpace::initialize()
     
 
     initialize32();
-#if defined arch_x86_64
+#if defined(DYNINST_HOST_ARCH_X86_64)
     initialize64();
 #endif
 }
@@ -570,7 +570,7 @@ int cpuidCall() {
 #endif
 
 #if !defined(x86_64_unknown_linux2_4)              \
- && !(defined(os_freebsd) && defined(arch_x86_64))
+ && !(defined(os_freebsd) && defined(DYNINST_HOST_ARCH_X86_64))
 bool xmmCapable()
 {
   int features = cpuidCall();
@@ -2309,7 +2309,7 @@ Emitter *AddressSpace::getEmitter()
    static EmitterIA32Dyn emitter32Dyn;
    static EmitterIA32Stat emitter32Stat;
 
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
    static EmitterAMD64Dyn emitter64Dyn;
    static EmitterAMD64Stat emitter64Stat;
 
@@ -2332,7 +2332,7 @@ Emitter *AddressSpace::getEmitter()
    }
 }
 
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
 int registerSpace::framePointer() { 
    // Suppress warning (for compilers where it is a false positive)
    // The value of REGNUM_EBP and REGNUM_RBP are identical
@@ -2342,7 +2342,7 @@ int registerSpace::framePointer() {
 
    DYNINST_DIAGNOSTIC_END_SUPPRESS_DUPLICATED_BRANCHES
 }
-#elif defined(arch_x86)
+#elif defined(DYNINST_HOST_ARCH_X86)
 int registerSpace::framePointer() { 
    return REGNUM_EBP; 
 }

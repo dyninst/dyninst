@@ -274,7 +274,7 @@ void BottomOfStackStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_
    }
 }
 
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
 static const int heuristic_length = 2;
 static const Dyninst::Address heuristic_length_array[] = {0x38, 0x4C};
 static const uint8_t expectedValue = 0x97;

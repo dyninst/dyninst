@@ -29,7 +29,7 @@
  */
 
 
-#if !defined(os_linux) || !defined(arch_aarch64)
+#if !defined(os_linux) || !defined(DYNINST_HOST_ARCH_AARCH64)
 #error "invalid architecture-os inclusion"
 #endif
 

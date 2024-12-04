@@ -532,7 +532,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         if (newshdr->sh_addr) {
             newshdr->sh_addr += library_adjust;
 
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
             if (strcmp(name, ".plt")==0)
                 updateDynamic(DT_TLSDESC_PLT, library_adjust);
             if (strcmp(name, ".got")==0)
@@ -2418,7 +2418,7 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
             case DT_PLTGOT:
             case DT_INIT_ARRAY:
             case DT_FINI_ARRAY:
-#if defined(arch_power) && defined(arch_64bit)
+#if defined(DYNINST_HOST_ARCH_POWER) && defined(DYNINST_HOST_ARCH_64BIT)
             // DT_PPC64_GLINK specifies the addres of the
             // PLT resolver in Power ABI V2.
             //

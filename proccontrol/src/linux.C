@@ -77,7 +77,7 @@
 #include "unaligned_memory_access.h"
 
 //needed by GETREGSET/SETREGSET
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
 #include<sys/user.h>
 #include<sys/procfs.h>
 #include<sys/uio.h>
@@ -744,13 +744,13 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
    return true;
 }
 
-#if defined(arch_power)
+#if defined(DYNINST_HOST_ARCH_POWER)
 #define DEFAULT_PROCESS_TYPE linux_ppc_process
 #define DEFAULT_THREAD_TYPE linux_ppc_thread
-#elif defined(arch_x86) || defined(arch_x86_64)
+#elif defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
 #define DEFAULT_PROCESS_TYPE linux_x86_process
 #define DEFAULT_THREAD_TYPE linux_x86_thread
-#elif defined(arch_aarch64) || defined(arch_aarch32)
+#elif defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_AARCH32)
 #define DEFAULT_PROCESS_TYPE linux_arm_process
 #define DEFAULT_THREAD_TYPE linux_arm_thread
 #endif
@@ -1969,7 +1969,7 @@ static void init_dynreg_to_user()
       dynreg_to_user[x86::es]    = make_pair(cur+=8, 4);
       dynreg_to_user[x86::fs]    = make_pair(cur+=8, 4);
       dynreg_to_user[x86::gs]    = make_pair(cur+=8, 4);
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
       cur = OFFSETOF(user, u_debugreg);
 #endif
       dynreg_to_user[x86::dr0]   = make_pair(cur, 4);
@@ -1999,7 +1999,7 @@ static void init_dynreg_to_user()
       dynreg_to_user[x86::flags] = make_pair(cur+=4, 4);
       dynreg_to_user[x86::esp]   = make_pair(cur+=4, 4);
       dynreg_to_user[x86::ss]    = make_pair(cur+=4, 4);
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
       cur = OFFSETOF(user, u_debugreg);
 #endif
       dynreg_to_user[x86::dr0]   = make_pair(cur, 4);
@@ -2039,7 +2039,7 @@ static void init_dynreg_to_user()
    dynreg_to_user[x86_64::es]     = make_pair(cur+=8, 8);
    dynreg_to_user[x86_64::fs]     = make_pair(cur+=8, 8);
    dynreg_to_user[x86_64::gs]     = make_pair(cur+=8, 8);
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
    cur = OFFSETOF(user, u_debugreg);
 #endif
    dynreg_to_user[x86_64::dr0]   = make_pair(cur, 8);
@@ -2232,14 +2232,14 @@ static void init_dynreg_to_user()
 
 #if defined(PT_GETREGS)
 #define MY_PTRACE_GETREGS PTRACE_GETREGS
-#elif defined(arch_power)
+#elif defined(DYNINST_HOST_ARCH_POWER)
 //Kernel value for PPC_PTRACE_SETREGS 0x99
 #define MY_PTRACE_GETREGS 12
-#elif defined(arch_aarch64)
+#elif defined(DYNINST_HOST_ARCH_AARCH64)
 //leave blank
 #endif
 
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
 //31 GPR + SP + PC + PSTATE
 #define MAX_USER_REGS 34
 #define MAX_USER_SIZE (34*8)
@@ -2297,7 +2297,7 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
    }
    if (!have_getregs)
    {
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
         elf_gregset_t regs;
         struct iovec iovec;
         iovec.iov_base = &regs;
@@ -2416,7 +2416,7 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
  * I have to use GETREGSET instead of PEEKUSER
  */
    long result;
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
    elf_gregset_t regs;
    struct iovec iovec;
    iovec.iov_base = &regs;
@@ -2431,7 +2431,7 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) offset, NULL);
 #endif
    //unsigned long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) offset, NULL);
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
    if (ret != 0) {
 #else
    if (result == -1 && errno != 0) {
@@ -2451,7 +2451,7 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
 
 #if defined(PT_SETREGS)
 #define MY_PTRACE_SETREGS PT_SETREGS
-#elif defined(arch_aarch64)
+#elif defined(DYNINST_HOST_ARCH_AARCH64)
 //leave blank
 //#define MY_PTRACE_SETREGS PTRACE_SETREGSET
 #else
@@ -2507,7 +2507,7 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
    }
    if (!have_setregs)
    {
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
         //pthrd_printf("ARM-info: setAllregisters.\n");
         elf_gregset_t regs;
         struct iovec iovec;
@@ -2708,7 +2708,7 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
 
    }
 
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
    elf_gregset_t regs;
    struct iovec iovec;
    long ret;
@@ -2923,7 +2923,7 @@ bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
          break;
       }
       case Arch_aarch64:{
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
          struct iovec iovec;
          uint64_t reg;
 

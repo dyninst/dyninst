@@ -96,7 +96,7 @@ int P_gettid()
 vsys_info *Dyninst::Stackwalker::getVsysInfo(ProcessState *ps)
 {
 /*
-#if defined(arch_x86_64) || defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_X86_64) || defined(DYNINST_HOST_ARCH_AARCH64)
    if (ps->getAddressWidth() == 8)
       return NULL;
 #endif
@@ -309,7 +309,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
    vsys_info *vsyscall = getVsysInfo(ps);
    if (!vsyscall)
    {
-#if !defined(arch_x86_64) && !defined(arch_aarch64)
+#if !defined(DYNINST_HOST_ARCH_X86_64) && !defined(DYNINST_HOST_ARCH_AARCH64)
       sw_printf("[%s:%d] - Odd.  Couldn't find vsyscall page. Signal handler"
                 " stepping may not work\n", FILE__, __LINE__);
 #endif

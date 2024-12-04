@@ -192,21 +192,21 @@ const char *platform_string()
 	if (plat_str)
 		return plat_str;
 
-#if defined (arch_x86)
+#if defined(DYNINST_HOST_ARCH_X86)
 #if defined (os_linux)
 	return "i386-unknown-linux2.4";
 #elif defined (os_windows)
 	return "i386-unknown-nt4.0";
 #endif
-#elif defined (arch_x86_64)
+#elif defined(DYNINST_HOST_ARCH_X86_64)
 #if defined (os_linux)
 	return "x86_64-unknown-linux2.4";
 #elif defined (os_windows)
 	return "x86_64-unknown-nt4.0";
 #endif
-#elif defined (arch_power)
+#elif defined(DYNINST_HOST_ARCH_POWER)
 #if defined (os_linux)
-#if defined (arch_64bit)
+#if defined(DYNINST_HOST_ARCH_64BIT)
 	return "ppc64_linux";
 #endif
 #endif

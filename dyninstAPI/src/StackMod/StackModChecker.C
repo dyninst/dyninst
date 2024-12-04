@@ -35,9 +35,9 @@
 #include "BPatch_object.h"
 #include "BPatch_point.h"
 
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
 #include "inst-x86.h"
-#elif defined(arch_power)
+#elif defined(DYNINST_HOST_ARCH_POWER)
 #include "inst-power.h"
 #else
 #error "Unknown architecture, expected x86, x86_64, or power"

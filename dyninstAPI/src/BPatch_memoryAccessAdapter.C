@@ -47,7 +47,7 @@ using namespace InstructionAPI;
 BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
 							 Dyninst::Address current, bool is64)
 {
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
     static unsigned int log2[] = { 0, 0, 1, 1, 2, 2, 2, 2, 3 };
     
   // TODO 16-bit registers
@@ -180,7 +180,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
   }
   assert(nac < 3);
   return bmap;
-#elif defined arch_power
+#elif defined(DYNINST_HOST_ARCH_POWER)
     std::vector<Operand> operands;
     insn.getOperands(operands);
     for(std::vector<Operand>::iterator op = operands.begin();
@@ -221,7 +221,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
         }
     }
     return NULL;
-#elif defined(arch_aarch64) 
+#elif defined(DYNINST_HOST_ARCH_AARCH64) 
     std::vector<Operand> operands;
     insn.getOperands(operands);
     for(std::vector<Operand>::iterator op = operands.begin();
@@ -269,7 +269,7 @@ void BPatch_memoryAccessAdapter::visit(RegisterAST* r)
     //fprintf(stderr, "base: %d\n", base.val());
 	    
 	unsigned int converted = base.val() & 0xFFFF;
-	#if defined arch_power
+	#if defined(DYNINST_HOST_ARCH_POWER)
     if((ra == -1) && !setImm) {
         ra = converted;
         return;

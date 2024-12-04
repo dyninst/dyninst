@@ -46,7 +46,7 @@
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
 
-#ifdef arch_aarch64
+#if defined(DYNINST_HOST_ARCH_AARCH64)
 # include "registers/aarch64_regs.h"
 #endif
 
@@ -96,12 +96,12 @@ static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
    // MJMTODO - Need to check whether this is supposed to work or not
    // FIXME for ppc, if we ever support debug walking on ppc
    Architecture arch;
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
    if (orig_elf->wordSize() == 4)
       arch = Dyninst::Arch_x86;
    else
       arch = Dyninst::Arch_x86_64;
-#elif defined(arch_aarch64)
+#elif defined(DYNINST_HOST_ARCH_AARCH64)
     arch = Dyninst::Arch_aarch64;
 #endif
 
@@ -202,7 +202,7 @@ bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
       {
          result = symtab->getRegValueAtFrame(offset, reg, val, this);
       }
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
       if (!result) {
           sw_printf("Cast framestepper %p for frame %p to SigHandlerStepper at address %lx\n", (void*)prevDepthFrame->getStepper(), (const void*)prevDepthFrame, prevDepthFrame->getRA());
 
@@ -327,7 +327,7 @@ void DebugStepperImpl::registerStepperGroup(StepperGroup *group)
    addr_width = group->getWalker()->getProcessState()->getAddressWidth();
    if (addr_width == 4)
       group->addStepper(parent_stepper, 0, 0xffffffff);
-#if defined(arch_64bit)
+#if defined(DYNINST_HOST_ARCH_64BIT)
    else if (addr_width == 8)
       group->addStepper(parent_stepper, 0, 0xffffffffffffffff);
 #endif
@@ -344,7 +344,7 @@ DebugStepperImpl::~DebugStepperImpl()
 {
 }
 
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
 gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                                                    Frame &out, DwarfFrameParser::Ptr dinfo,
                                                    bool isVsyscallPage)
@@ -414,7 +414,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    if (addr_width == 4) {
        MAX_ADDR = 0xffffffff;
    }
-#if defined(arch_64bit)
+#if defined(DYNINST_HOST_ARCH_64BIT)
    else if (addr_width == 8){
        MAX_ADDR = 0xffffffffffffffff;
    }
@@ -479,7 +479,7 @@ bool DebugStepperImpl::lookupInCache(const Frame &cur, Frame &caller) {
    if (addr_width == 4) {
        MAX_ADDR = 0xffffffff;
    }
-#if defined(arch_64bit)
+#if defined(DYNINST_HOST_ARCH_64BIT)
    else if (addr_width == 8){
        MAX_ADDR = 0xffffffffffffffff;
    }
@@ -517,7 +517,7 @@ bool DebugStepperImpl::lookupInCache(const Frame &cur, Frame &caller) {
 #endif
 
 // for aarch64 architecure specifically
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
 gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                                                    Frame &out, DwarfFrameParser::Ptr dinfo,
                                                    bool isVsyscallPage)

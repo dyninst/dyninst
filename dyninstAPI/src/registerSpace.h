@@ -81,7 +81,7 @@ class RealRegister {
    int reg() const { return r; }
 };
 
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
 #include "inst-x86.h"
 #endif
 
@@ -463,7 +463,7 @@ class registerSpace {
     static bool hasXMM;  // for Intel architectures, XMM registers
 
  public:
-#if defined(arch_power)
+#if defined(DYNINST_HOST_ARCH_POWER)
     typedef enum { r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12,
                    r13, r14, r15, r16, r17, r18, r19, r20, r21, r22, r23,
                    r24, r25, r26, r27, r28, r29, r30, r31,
@@ -478,10 +478,10 @@ class registerSpace {
     static unsigned SPR(Dyninst::Register x);
     int framePointer() { return r1; }
 #endif
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
     int framePointer();
 #endif
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
 //#warning "Not verified yet!"
 	//31 GPRs, 32 FPRs
     typedef enum { r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12,

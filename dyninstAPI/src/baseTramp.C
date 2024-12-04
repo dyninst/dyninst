@@ -173,7 +173,7 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
    }
    regalloc_printf("[%s:%d] - Should regen found %d unneeded saves\n",
                    __FILE__, __LINE__, saved_unneeded);
-#if defined(arch_x86_64) || defined(arch_x86)
+#if defined(DYNINST_HOST_ARCH_X86_64) || defined(DYNINST_HOST_ARCH_X86)
    if (proc()->getAddressWidth() == 4)
    {
       //No regen if we did a pusha and saved more regs than the 

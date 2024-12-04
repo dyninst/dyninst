@@ -63,7 +63,7 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
      sw_printf("%p%p\n", (void*)frame_pointer, (void*)&frame_pointer);
   }
 
-#if defined(arch_x86_64) && (defined(os_linux) || defined(os_freebsd))
+#if defined(DYNINST_HOST_ARCH_X86_64) && (defined(os_linux) || defined(os_freebsd))
   __asm__("mov %%rbp, %0\n"
 	  : "=r"(frame_pointer));
 #elif defined(os_linux) || defined(os_freebsd)
@@ -127,7 +127,7 @@ static gcframe_ret_t HandleStandardFrame(const Frame &in, Frame &out, ProcessSta
   in_fp = in.getFP();
   out_sp = in_fp + (2 * addr_width);
 
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
   /**
    * On AMD64 we may be reading from a process with a different
    * address width than the current one.  We'll do the read at

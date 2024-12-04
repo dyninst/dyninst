@@ -216,7 +216,7 @@ enum AMD64_REG_NUMBERS {
 }
 ;
 
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
 #define maxGPR 16
 #else
 #define maxGPR 8
@@ -1001,7 +1001,7 @@ DYNINST_EXPORT Dyninst::Address get_target(const unsigned char *instr, unsigned 
 // Max size of a relocated thunk call
 #define CALL_RELOC_THUNK (13)
 
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
 // size of instruction seqeunce to get anywhere in address space
 // without touching any registers
 //#define JUMP_ABS64_SZ (17)
@@ -1182,7 +1182,7 @@ allocated anywhere (the tramp address "x" is ignored). */
 inline Dyninst::Address region_lo(const Dyninst::Address /*x*/) { return 0x00000000; }
 inline Dyninst::Address region_hi(const Dyninst::Address /*x*/) { return 0xf0000000; }
 
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
 // range functions for AMD64
 
 inline Dyninst::Address region_lo_64(const Dyninst::Address x) { return x & 0xffffffff80000000; }

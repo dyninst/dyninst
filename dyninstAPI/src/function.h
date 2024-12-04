@@ -207,7 +207,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   unsigned footprint(); // not const, calls ifunc()->extents()
   std::string get_name() const;
 
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
   //Replaces the function with a 'return val' statement.
   // currently needed only on Linux/x86
   // Defined in inst-x86.C
@@ -262,7 +262,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
 
 
-#if defined(arch_power) || defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_POWER) || defined(DYNINST_HOST_ARCH_AARCH64)
   bool savesReturnAddr() const { return ifunc()->savesReturnAddr(); }
 #endif
 

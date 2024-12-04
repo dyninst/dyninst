@@ -564,7 +564,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
 
                 // Find symbols that need to be put in the GOT
 
-#if defined(arch_power) && defined(arch_64bit)
+#if defined(DYNINST_HOST_ARCH_POWER) && defined(DYNINST_HOST_ARCH_64BIT)
 		// If statically linked binary, we need to put all the entries in region toc to GOT
 		if(target->isStaticBinary() && (regionName.compare(".toc") == 0)) {
                    // For every symbol in toc
@@ -780,7 +780,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
             lmap.originalDtorRegion = *reg_it;
         }
     }
-#if defined(arch_x86) || defined(arch_x86_64) || defined(arch_power)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64) || defined(DYNINST_HOST_ARCH_POWER)
     // Allocate the new TLS region, if necessary
     if( lmap.tlsRegions.size() > 0 ) {
         lmap.tlsRegionOffset = currentOffset;
@@ -1042,8 +1042,8 @@ Offset emitElfStatic::layoutRegions(deque<Region *> &regions,
 bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &lmap) {
     char *newTargetData = lmap.allocatedData;
 
-#if defined(arch_x86) || defined(arch_x86_64) || \
-    defined(arch_aarch64) || (defined(arch_power) && defined(arch_64bit))
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64) || \
+    defined(DYNINST_HOST_ARCH_AARCH64) || (defined(DYNINST_HOST_ARCH_POWER) && defined(DYNINST_HOST_ARCH_64BIT))
     if( lmap.gotSize > 0 ) {
        buildGOT(target, lmap);
         target->addRegion(globalOffset + lmap.gotRegionOffset,
@@ -1101,7 +1101,7 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
                 DATA_NAME, Region::RT_DATA, true, lmap.dataRegionAlign);
     }
 
-#if defined(arch_x86) || defined(arch_x86_64)  || defined(arch_power)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)  || defined(DYNINST_HOST_ARCH_POWER)
     if( lmap.tlsSize > 0 ) {
         target->addRegion(globalOffset + lmap.tlsRegionOffset,
                 reinterpret_cast<void *>(&newTargetData[lmap.tlsRegionOffset]),
@@ -1650,11 +1650,11 @@ Offset emitElfStatic::allocatePLTEntries(std::map<Symbol *, std::pair<Offset, Of
   //   For each indirect symbol
   //     Allocate a PLT entry for it
   //     Add it to entries
-#if defined(arch_x86)
+#if defined(DYNINST_HOST_ARCH_X86)
   unsigned entry_size = 16;
-#elif defined(arch_x86_64)
+#elif defined(DYNINST_HOST_ARCH_X86_64)
   unsigned entry_size = 16;
-#elif defined(arch_power)
+#elif defined(DYNINST_HOST_ARCH_POWER)
   unsigned entry_size = 0;
 #else
 	unsigned entry_size = 0;
@@ -1684,7 +1684,7 @@ bool emitElfStatic::buildPLT(Symtab *target, Offset globalOffset,
 			     LinkMap &lmap, StaticLinkError &err,
 			     string &errMsg) {
   (void)target; (void)globalOffset; (void)err; (void)errMsg; // unused
-#if !defined(arch_x86_64)
+#if !defined(DYNINST_HOST_ARCH_X86_64)
   return lmap.pltEntries.empty();
 #else
   unsigned char pltEntry[] = {0xff, 0x25, 0x00, 0x00, 0x00, 0x00, // jmp *<offset>, %rip
@@ -1717,13 +1717,13 @@ bool emitElfStatic::buildPLT(Symtab *target, Offset globalOffset,
 Offset emitElfStatic::allocateRelocationSection(std::map<Symbol *, std::pair<Offset, Offset> > &entries,
 						Offset relocOffset, Offset &size,
 						Symtab *target) {
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
   unsigned relocSize;
   if (addressWidth_ == 8)
     relocSize = sizeof(Elf64_Rela);
   else
     relocSize = sizeof(Elf32_Rel);
-#elif defined(arch_x86)
+#elif defined(DYNINST_HOST_ARCH_X86)
   // 32-bit only uses REL types
   unsigned relocSize = sizeof(Elf32_Rel);
 #else
@@ -1749,7 +1749,7 @@ Offset emitElfStatic::allocateRelocationSection(std::map<Symbol *, std::pair<Off
 
 Offset emitElfStatic::allocateRelGOTSection(const std::map<Symbol *, std::pair<Offset, Offset> > &entries,
 					    Offset relocOffset, Offset &size) {
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
   unsigned relocSize = sizeof(Elf64_Rela);
   (void)relocSize; // unused?!
 #else
@@ -1768,7 +1768,7 @@ bool emitElfStatic::buildRela(Symtab *target, Offset globalOffset,
   (void)err; (void)errMsg; // unused
   if (lmap.relSize == 0) return true;
 
-#if !defined(arch_x86_64)
+#if !defined(DYNINST_HOST_ARCH_X86_64)
   // TODO: implementation
   return false;
 #endif

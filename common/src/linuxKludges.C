@@ -415,8 +415,8 @@ bool AuxvParser::readAuxvInfo()
      free(buffer64);
   if (!page_size)
      page_size = getpagesize();
-//#if !defined(arch_x86) && !defined(arch_x86_64)
-#if !defined(arch_x86) && !defined(arch_x86_64) && !defined(arch_aarch64)
+//#if !defined(DYNINST_HOST_ARCH_X86) && !defined(DYNINST_HOST_ARCH_X86_64)
+#if !defined(DYNINST_HOST_ARCH_X86) && !defined(DYNINST_HOST_ARCH_X86_64) && !defined(DYNINST_HOST_ARCH_AARCH64)
   //No vsyscall page needed or present
   return true;
 #endif
@@ -439,11 +439,11 @@ bool AuxvParser::readAuxvInfo()
    **/
 
   // Guess some constants that we've seen before.
-#if defined(arch_x86)
+#if defined(DYNINST_HOST_ARCH_X86)
   guessed_addrs.push_back(0xffffe000); //Many early 2.6 systems
   guessed_addrs.push_back(0xffffd000); //RHEL4
 #endif
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
   guessed_addrs.push_back(0xffffffffff600000);
 #endif
 

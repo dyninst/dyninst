@@ -40,7 +40,7 @@ set(_sources
     src/sw_pcontrol.C
     src/symtab-swk.C)
 
-if(DYNINST_ARCH_i386 OR DYNINST_ARCH_x86_64)
+if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
   list(APPEND _sources src/x86-swk.C src/x86-wanderer.C)
 endif()
 
@@ -52,11 +52,11 @@ endif()
 
 if(DYNINST_OS_UNIX)
   list(APPEND _sources src/linuxbsd-swk.C src/linux-swk.C)
-  if(DYNINST_ARCH_ppc64le)
+  if(DYNINST_HOST_ARCH_PPC64LE)
     list(APPEND _sources src/linux-ppc-swk.C src/ppc-swk.C)
-  elseif(DYNINST_ARCH_aarch64)
+  elseif(DYNINST_HOST_ARCH_AARCH64)
     list(APPEND _sources src/linux-aarch64-swk.C src/aarch64-swk.C src/dbginfo-stepper.C)
-  elseif(DYNINST_ARCH_i386 OR DYNINST_ARCH_x86_64)
+  elseif(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
     list(APPEND _sources src/linux-x86-swk.C src/linuxbsd-x86-swk.C src/dbginfo-stepper.C)
     if(DYNINST_OS_FreeBSD)
       list(APPEND _sources src/freebsd-x86-swk.C)

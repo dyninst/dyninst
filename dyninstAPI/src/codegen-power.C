@@ -969,7 +969,7 @@ void insnCodeGen::loadImmIntoReg(codeGen &gen, Dyninst::Register rt, long value)
       insnCodeGen::generateImm(gen, CAUop,  rt, 0,  BOT_HI(value));
       insnCodeGen::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
    } 
-#if defined(arch_64bit)
+#if defined(DYNINST_HOST_ARCH_64BIT)
    else if (MIN_IMM48 <= value && value <= MAX_IMM48) {
       insnCodeGen::generateImm(gen, CALop,  rt, 0,  TOP_LO(value));
       insnCodeGen::generateLShift64(gen, rt, 32, rt);
@@ -1010,7 +1010,7 @@ void insnCodeGen::loadPartialImmIntoReg(codeGen &gen, Dyninst::Register rt, long
    if (MIN_IMM32 <= value && value <= MAX_IMM32) {
       insnCodeGen::generateImm(gen, CAUop,  rt, 0,  BOT_HI(value));       
    } 
-#if defined(arch_64bit)
+#if defined(DYNINST_HOST_ARCH_64BIT)
    else if (MIN_IMM48 <= value && value <= MAX_IMM48) {
       insnCodeGen::generateImm(gen, CALop,  rt, 0,  TOP_LO(value));
       insnCodeGen::generateLShift64(gen, rt, 32, rt);

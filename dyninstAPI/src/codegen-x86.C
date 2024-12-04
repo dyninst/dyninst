@@ -331,7 +331,7 @@ void insnCodeGen::generateCall(codeGen &gen,
     // C: return
     // D:
 
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
     // So we need to know where D is off of "from"
     if(gen.addrSpace()->getAddressWidth() == 8)
     {
@@ -417,7 +417,7 @@ unsigned pcRelJump::apply(Dyninst::Address addr)
 unsigned pcRelJump::maxSize()
 {
    unsigned prefixes = count_prefixes(orig_instruc.type());
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
    if (gen->addrSpace()->getAddressWidth() == 8)
       return prefixes + JUMP_ABS64_SZ;
 #endif
@@ -535,7 +535,7 @@ unsigned pcRelJCC::apply(Dyninst::Address addr)
 unsigned pcRelJCC::maxSize()
 {
    unsigned prefixes = count_prefixes(orig_instruc.type());
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
    if (gen->addrSpace()->getAddressWidth() == 8)
       return prefixes + JUMP_ABS64_SZ + 4;
 #endif
@@ -590,7 +590,7 @@ unsigned pcRelCall::apply(Dyninst::Address addr)
 unsigned pcRelCall::maxSize()
 {
    unsigned prefixes = count_prefixes(orig_instruc.type());
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
    if (gen->addrSpace()->getAddressWidth() == 8)
       return prefixes + 2*JUMP_ABS64_SZ;
 #endif
@@ -610,7 +610,7 @@ pcRelData::pcRelData(Dyninst::Address a, const instruction &i) :
 
 #define REL_DATA_MAXSIZE 2/*push r*/ + 10/*movImmToReg64*/ + 7/*orig insn*/ + 2/*pop r*/
 
-#if !defined(arch_x86_64)
+#if !defined(DYNINST_HOST_ARCH_X86_64)
 unsigned pcRelData::apply(Dyninst::Address) {
    assert(0);
    return 0;
@@ -1107,7 +1107,7 @@ bool insnCodeGen::modifyData(Dyninst::Address targetAddr, instruction &insn, cod
     /* Get the value of the Mod/RM byte */
     unsigned char mod_rm = *origInsn++;
 
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
     if (!is_disp32(newDisp+insnSz) && !is_addr32(targetAddr)) 
     {
         // Case C: replace with 64-bit.
@@ -1166,7 +1166,7 @@ bool insnCodeGen::modifyData(Dyninst::Address targetAddr, instruction &insn, cod
 
     SET_PTR(newInsn, gen);
 
-#if defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86_64)
     if (is_data_abs64) {
         // Cleanup on aisle pointer_reg...
         assert(pointer_reg != (Dyninst::Register)-1);

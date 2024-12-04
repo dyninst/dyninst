@@ -47,7 +47,7 @@
  * BPatch_instruction
  *************************************************************************/
 
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
 const unsigned int BPatch_instruction::nmaxacc_NP = 2;
 #else
 const unsigned int BPatch_instruction::nmaxacc_NP = 1;

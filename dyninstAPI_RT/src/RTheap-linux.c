@@ -52,7 +52,7 @@ int     DYNINSTheap_align = 4; /* heaps are word-aligned */
 
 Address DYNINSTheap_loAddr = 0x10000; /* Bump to 64k to make SELinux happier */
 Address DYNINSTheap_hiAddr = ~(Address)0x0;
-#elif defined(arch_power)
+#elif defined(DYNINST_HOST_ARCH_POWER)
 int     DYNINSTheap_align  = 4; /* heaps are word-aligned */
 Address DYNINSTheap_loAddr = ~(Address)0; // should be defined by getpagesize() when used.
 Address DYNINSTheap_hiAddr = ~(Address)0;

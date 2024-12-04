@@ -30,7 +30,7 @@
 
 // $Id: linux-power.h,v 1.4 2007/08/09 18:22:21 ssuen Exp $
 
-#if !defined(os_linux) || !defined(arch_power)
+#if !defined(os_linux) || !defined(DYNINST_HOST_ARCH_POWER)
 #error "invalid architecture-os inclusion"
 #endif
 

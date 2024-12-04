@@ -251,9 +251,9 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
 
 #include <ucontext.h>
 
-#if defined(arch_x86) || defined(MUTATEE_32)
+#if defined(DYNINST_HOST_ARCH_X86) || defined(MUTATEE_32)
 #define UC_PC(x) x->uc_mcontext.mc_eip
-#elif defined(arch_x86_64)
+#elif defined(DYNINST_HOST_ARCH_X86_64)
 #define UC_PC(x) x->uc_mcontext.mc_rip
 #endif // UC_PC
 
@@ -331,7 +331,7 @@ struct trap_mapping_header *all_headers[NUM_LIBRARIES];
 static unsigned all_headers_current[NUM_LIBRARIES_BITMASK_SIZE];
 static unsigned all_headers_last[NUM_LIBRARIES_BITMASK_SIZE];
 
-#if !defined(arch_x86_64) || defined(MUTATEE_32)
+#if !defined(DYNINST_HOST_ARCH_X86_64) || defined(MUTATEE_32)
 typedef Elf32_Dyn ElfX_Dyn;
 typedef Elf32_Ehdr ElfX_Ehdr;
 #else

@@ -48,13 +48,13 @@ if(DYNINST_OS_Linux OR DYNINST_OS_FreeBSD)
 endif()
 
 if(${_host_arch} IN_LIST _64bit_x86_arches)
-  set(DYNINST_ARCH_x86_64 TRUE)
+  set(DYNINST_HOST_ARCH_X86_64 TRUE)
 elseif(${_host_arch} STREQUAL "aarch64")
-  set(DYNINST_ARCH_aarch64 TRUE)
+  set(DYNINST_HOST_ARCH_AARCH64 TRUE)
 elseif(${_host_arch} STREQUAL "ppc64le")
-  set(DYNINST_ARCH_ppc64le TRUE)
+  set(DYNINST_HOST_ARCH_PPC64LE TRUE)
 elseif(${_host_arch} IN_LIST _32bit_x86_arches)
-  set(DYNINST_ARCH_i386 TRUE)
+  set(DYNINST_HOST_ARCH_I386 TRUE)
 endif()
 
 # --- DEPRECATED ---

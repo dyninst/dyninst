@@ -36,17 +36,17 @@
 #include <assert.h>
 #include <vector>
 
-#if defined(arch_power)
+#if defined(DYNINST_HOST_ARCH_POWER)
 #include "arch-power.h"
 using namespace NS_power;
 
 #elif defined(i386_unknown_nt4_0) \
-   || defined(arch_x86)           \
-   || defined(arch_x86_64)
+   || defined(DYNINST_HOST_ARCH_X86)           \
+   || defined(DYNINST_HOST_ARCH_X86_64)
 #include "arch-x86.h"
 using namespace NS_x86;
 
-#elif defined(arch_aarch64)
+#elif defined(DYNINST_HOST_ARCH_AARCH64)
 #include "arch-aarch64.h"
 using namespace NS_aarch64;
 #else

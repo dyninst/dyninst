@@ -1484,7 +1484,7 @@ class emulated_singlestep {
    std::set<response::ptr> clear_resps;
 };
 
-#if defined(arch_aarch64)
+#if defined(DYNINST_HOST_ARCH_AARCH64)
 /**
  * For aarch64 linux: 3.17.4-302.fc21.aarch64
  * there is a kernel bug on ptrace.

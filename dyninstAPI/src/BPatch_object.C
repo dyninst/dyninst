@@ -519,10 +519,10 @@ void funcSummaryFixpoint(std::set<BPatch_function *> funcSet,
         bool summarySuccess;
         if (currFunc->getName() == "__libc_memalign") {
             stackmods_printf("Using hard-coded summary for __libc_memalign\n");
-#if defined(arch_x86)
+#if defined(DYNINST_HOST_ARCH_X86)
             Absloc eax(x86::eax);
             summary[eax] = StackAnalysis::TransferFunc::retopFunc(eax);
-#elif defined(arch_x86_64)
+#elif defined(DYNINST_HOST_ARCH_X86_64)
             Absloc rax(x86_64::rax);
             Absloc eax(x86_64::eax);
             summary[rax] = StackAnalysis::TransferFunc::retopFunc(rax);

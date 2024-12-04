@@ -395,7 +395,7 @@ class image : public codeRange {
 
    std::unordered_map<Address, std::string> *getPltFuncs();
    void getPltFuncs(std::map<Address, std::string> &out);
-#if defined(arch_power)
+#if defined(DYNINST_HOST_ARCH_POWER)
    bool updatePltFunc(parse_func *caller_func, Address stub_targ);
 #endif
 
