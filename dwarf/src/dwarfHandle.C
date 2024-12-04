@@ -197,6 +197,9 @@ bool DwarfHandle::init_dbg()
         case EM_AARCH64:
             arch = Arch_aarch64;
             break;
+        case EM_RISCV:
+            arch = Arch_riscv64;
+            break;
         case EM_CUDA:
             arch = Dyninst::Arch_cuda;
             break;

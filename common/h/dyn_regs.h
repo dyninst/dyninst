@@ -42,6 +42,7 @@
 #include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
 #include "registers/aarch64_regs.h"
+#include "registers/riscv64_regs.h"
 #include "registers/AMDGPU/amdgpu_gfx908_regs.h"
 #include "registers/AMDGPU/amdgpu_gfx90a_regs.h"
 #include "registers/AMDGPU/amdgpu_gfx940_regs.h"
