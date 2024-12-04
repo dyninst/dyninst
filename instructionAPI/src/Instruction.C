@@ -92,6 +92,8 @@ namespace Dyninst { namespace InstructionAPI {
           return id != amdgpu_gfx90a_op_INVALID;
         case Arch_amdgpu_gfx940:
           return id != amdgpu_gfx940_op_INVALID;
+        case Arch_riscv64:
+          return id != riscv64_op_INVALID;
 
         case Arch_none:
         case Arch_aarch32:
