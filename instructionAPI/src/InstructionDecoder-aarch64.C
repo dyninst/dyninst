@@ -2993,29 +2993,6 @@ insn_in_progress->appendOperand(makeRnExpr(), true, true);
         insn_in_progress->appendOperand(makePstateExpr(), isPstateRead, isPstateWritten, true);
     }
 
-    if(insn_in_progress->getOperation().getID() == aarch64_op_ret) {
-      /*********************************************************************
-       *  Arm A64 Instruction Set Architecture Armv8. March 2021
-       *
-       *  The conventional return sequence is to use `ret {Xn}` where the
-       *  register is optional (in which case it is assumed to be X30).
-       *
-       *  There is no representation for `retaa` and `retab`, yet.
-       *
-       *********************************************************************/
-      auto res = [this]() -> std::pair<Expression::Ptr, bool> {
-        if(this->insn_in_progress->m_Operands.size()) {
-          // An explicit register was provided (e.g., `ret r0`)
-          return {insn_in_progress->getOperand(0).getValue(), false};
-        }
-        // For `ret`, `retaa`, and `retab`, implicitly use x30 (link register).
-        return {boost::make_shared<RegisterAST>(aarch64::x30), true};
-      }();
-      auto target = res.first;
-      auto is_implicit = res.second;
-      insn_in_progress->addSuccessor(target, false, true, false, false, is_implicit);
-    }
-
     return true;
   }
 
