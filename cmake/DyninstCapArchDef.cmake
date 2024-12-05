@@ -10,6 +10,16 @@ set(CAP_DEFINES -Dcap_dynamic_heap -Dcap_liveness -Dcap_threads)
 
 if(DYNINST_HOST_ARCH_I386)
   set(ARCH_DEFINES_TESTSUITE -Darch_x86)
+elseif(DYNINST_HOST_ARCH_X86_64)
+  set(ARCH_DEFINES_TESTSUITE -Darch_x86_64 -Darch_64bit)
+elseif(DYNINST_HOST_ARCH_PPC64LE)
+  set(ARCH_DEFINES_TESTSUITE -Darch_power -Darch_64bit)
+elseif(DYNINST_HOST_ARCH_AARCH64)
+  set(ARCH_DEFINES_TESTSUITE -Darch_aarch64 -Darch_64bit)
+endif()
+
+if(DYNINST_CODEGEN_ARCH_I386)
+  set(ARCH_DEFINES_CODEGEN -Darch_x86)
   set(CAP_DEFINES
       ${CAP_DEFINES}
       -Dcap_fixpoint_gen
@@ -19,8 +29,8 @@ if(DYNINST_HOST_ARCH_I386)
       -Dcap_virtual_registers
       -Dcap_stack_mods)
 
-elseif(DYNINST_HOST_ARCH_X86_64)
-  set(ARCH_DEFINES_TESTSUITE -Darch_x86_64 -Darch_64bit)
+elseif(DYNINST_CODEGEN_ARCH_X86_64)
+  set(ARCH_DEFINES_CODEGEN -Darch_x86_64 -Darch_64bit)
   set(CAP_DEFINES
       ${CAP_DEFINES}
       -Dcap_32_64
@@ -31,14 +41,20 @@ elseif(DYNINST_HOST_ARCH_X86_64)
       -Dcap_tramp_liveness
       -Dcap_stack_mods)
 
-elseif(DYNINST_HOST_ARCH_PPC64LE)
-  set(ARCH_DEFINES_TESTSUITE -Darch_power -Darch_64bit)
+elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
+  set(ARCH_DEFINES_CODEGEN -Darch_power -Darch_64bit)
   set(CAP_DEFINES ${CAP_DEFINES} -Dcap_32_64 -Dcap_registers -Dcap_toc_64)
-
-elseif(DYNINST_HOST_ARCH_AARCH64)
-  set(ARCH_DEFINES_TESTSUITE -Darch_aarch64 -Darch_64bit)
+elseif(DYNINST_CODEGEN_ARCH_AARCH64)
+  set(ARCH_DEFINES_CODEGEN -Darch_aarch64 -Darch_64bit)
   set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx908 -Darch_64bit)
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90a)
+  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx90a -Darch_64bit)
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
+  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_64bit)
 endif()
+
 
 if(DYNINST_OS_Linux)
   set(OS_DEFINES -Dos_linux)
@@ -80,8 +96,12 @@ string(REGEX REPLACE "-D" "-DDYNINST_HOST_" _LOWER_ARCH_DEFINES
                      "${ARCH_DEFINES_TESTSUITE}")
 string(TOUPPER "${_LOWER_ARCH_DEFINES}" ARCH_DEFINES)
 
+string(REGEX REPLACE "-D" "-DDYNINST_CODEGEN_" ARCH_DEFINES_CODEGEN
+                     "${ARCH_DEFINES_CODEGEN}")
+string(TOUPPER "${ARCH_DEFINES_CODEGEN}" ARCH_DEFINES_CODEGEN)
+
 set(DYNINST_PLATFORM_CAPABILITIES ${CAP_DEFINES} ${BUG_DEFINES} ${ARCH_DEFINES}
-                                  ${OS_DEFINES} ${OLD_DEFINES})
+                                  ${OS_DEFINES} ${OLD_DEFINES} ${ARCH_DEFINES_CODEGEN})
 
 # The testsuite assumes the architecture defines look like `arch_x86_64`
 # so we need to keep that format.
