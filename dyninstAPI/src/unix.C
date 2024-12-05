@@ -849,7 +849,7 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
         {
             unsigned char* emptyFunction = NULL;
             int emptyFuncSize = 0;
-#if defined(DYNINST_CODGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
             static unsigned char empty_32[] = { 0x55, 0x89, 0xe5, 0xc9, 0xc3 };
             static unsigned char empty_64[] = { 0x55, 0x48, 0x89, 0xe5, 0xc9, 0xc3 };
             if(linkedFile->getAddressWidth() == 8)
