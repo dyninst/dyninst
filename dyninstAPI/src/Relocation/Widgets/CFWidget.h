@@ -51,11 +51,11 @@ namespace NS_aarch64 {
   class instruction;
 }
 
-#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 typedef NS_x86::instruction arch_insn;
-#elif defined(DYNINST_HOST_ARCH_POWER) 
+#elif defined(DYNINST_CODEGEN_ARCH_POWER) 
 typedef NS_power::instruction arch_insn;
-#elif defined(DYNINST_HOST_ARCH_AARCH64)
+#elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 typedef NS_aarch64::instruction arch_insn;
 #else
 #error "Unknown architecture"
@@ -219,7 +219,7 @@ struct CFPatch : public Patch {
   unsigned char* insn_ptr;
 
 
-#if defined(DYNINST_HOST_ARCH_POWER)
+#if defined(DYNINST_CODEGEN_ARCH_POWER)
   // 64-bit PPC/Linux has a TOC register we need
   // to maintain. That puts it in "special case"
   // territory...
