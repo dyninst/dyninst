@@ -55,7 +55,6 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_64bit)
 endif()
 
-
 if(DYNINST_OS_Linux)
   set(OS_DEFINES -Dos_linux)
   set(CAP_DEFINES ${CAP_DEFINES} -Dcap_async_events -Dcap_binary_rewriter -Dcap_dwarf
