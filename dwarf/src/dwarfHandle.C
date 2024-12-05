@@ -34,7 +34,10 @@
 #include "dwarfHandle.h"
 #include "dwarfFrameParser.h"
 #include "debug_common.h"
+
 #include <cstring>
+#include <mutex>
+#include <map>
 
 using namespace Dyninst;
 using namespace DwarfDyninst;
@@ -315,11 +318,18 @@ DwarfHandle::~DwarfHandle()
         dwarf_end(file_data);
 }
 
-map<string, DwarfHandle::ptr> DwarfHandle::all_dwarf_handles;
+namespace {
+  map<string, DwarfHandle::ptr> all_dwarf_handles;
+  std::mutex handles_mutex;
+}
+
 DwarfHandle::ptr DwarfHandle::createDwarfHandle(string filename_, Elf_X *file_,
         void* /*Dwarf_Handler err_func_*/)
 {
     map<string, DwarfHandle::ptr>::iterator i;
+
+    std::unique_lock<std::mutex> _l(handles_mutex);
+
     i = all_dwarf_handles.find(filename_);
     if (i != all_dwarf_handles.end()) {
         return i->second;

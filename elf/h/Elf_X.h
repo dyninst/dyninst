@@ -33,9 +33,7 @@
 
 #include "libelf.h"
 #include <stddef.h>
-#include <utility>
 #include <string>
-#include <map>
 #include <vector>
 #include "util.h"
 #include "Architecture.h"
@@ -162,10 +160,6 @@ class DYNINST_EXPORT Elf_X {
     // Two maps:
     // One name/FD for Elf_Xs created that way
     // One name/baseaddr
-
-    static std::map<std::pair<std::string, int >, Elf_X *> elf_x_by_fd;
-    static std::map<std::pair<std::string, char *>, Elf_X *> elf_x_by_ptr;
-
 };
 
 // ------------------------------------------------------------------------

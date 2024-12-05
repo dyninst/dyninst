@@ -47,6 +47,9 @@
 #include <iomanip>
 #include <sstream>
 #include <libelf.h>
+#include <map>
+#include <utility>
+#include <mutex>
 
 #if DEBUGINFOD_LIB
 #include <elfutils/debuginfod.h>
@@ -66,8 +69,13 @@ template class std::map<std::pair<std::string, char*> , Elf_X*>;
 template class std::vector<Elf_X_Shdr>;
 template class std::vector<Elf_X_Phdr>;
 
-map<pair<string, int>, Elf_X *> Elf_X::elf_x_by_fd;
-map<pair<string, char *>, Elf_X *> Elf_X::elf_x_by_ptr;
+namespace {
+  map<pair<string, int>, Elf_X *> elf_x_by_fd;
+  map<pair<string, char *>, Elf_X *> elf_x_by_ptr;
+
+  std::mutex by_fd_mutex;
+  std::mutex by_ptr_mutex;
+}
 
 #define APPEND(X) X ## 1
 #define APPEND2(X) APPEND(X)
@@ -87,6 +95,9 @@ Elf_X *Elf_X::newElf_X(int input, Elf_Cmd cmd, Elf_X *ref, string name)
    if (name.empty()) {
       return new Elf_X(input, cmd, ref);
    }
+
+   std::unique_lock<std::mutex> _l(by_fd_mutex);
+
    auto i = elf_x_by_fd.find(make_pair(name, input));
    if (i != elf_x_by_fd.end()) {
      Elf_X *ret = i->second;
@@ -104,6 +115,9 @@ Elf_X *Elf_X::newElf_X(char *mem_image, size_t mem_size, string name)
    if (name.empty()) {
       return new Elf_X(mem_image, mem_size);
    }
+
+   std::unique_lock<std::mutex> _l(by_ptr_mutex);
+
    auto i = elf_x_by_ptr.find(make_pair(name, mem_image));
    if (i != elf_x_by_ptr.end()) {
      Elf_X *ret = i->second;
@@ -228,19 +242,24 @@ void Elf_X::end()
 Elf_X::~Elf_X()
 {
   // Unfortunately, we have to be slow here
-  for (auto iter = elf_x_by_fd.begin(); iter != elf_x_by_fd.end(); ++iter) {
-    if (iter->second == this) {
-      elf_x_by_fd.erase(iter);
-      return;
+  {
+    std::unique_lock<std::mutex> _l(by_fd_mutex);
+    for (auto iter = elf_x_by_fd.begin(); iter != elf_x_by_fd.end(); ++iter) {
+      if (iter->second == this) {
+        elf_x_by_fd.erase(iter);
+        return;
+      }
     }
   }
 
+  std::unique_lock<std::mutex> _l(by_ptr_mutex);
   for (auto iter = elf_x_by_ptr.begin(); iter != elf_x_by_ptr.end(); ++iter) {
     if (iter->second == this) {
       elf_x_by_ptr.erase(iter);
       return;
     }
   }
+
 }
 
 // Read Interface
