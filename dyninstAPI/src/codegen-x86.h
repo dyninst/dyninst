@@ -37,7 +37,7 @@
 #include "dyntypes.h"
 #include "dyn_register.h"
 
-#if !defined(DYNINST_HOST_ARCH_X86) && !defined(DYNINST_HOST_ARCH_X86_64)
+#if !defined(DYNINST_CODEGEN_ARCH_X86) && !defined(DYNINST_HOST_ARCH_X86_64)
  
 #error "invalid architecture-os inclusion"
 #endif

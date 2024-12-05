@@ -39,15 +39,15 @@
 
 #include "arch-forward-decl.h"
 
-#if defined(DYNINST_HOST_ARCH_POWER)
+#if defined(DYNINST_CODEGEN_ARCH_POWER)
 using namespace NS_power;
 
 #elif defined(i386_unknown_nt4_0) \
-   || defined(DYNINST_HOST_ARCH_X86)           \
-   || defined(DYNINST_HOST_ARCH_X86_64)
+   || defined(DYNINST_CODEGEN_ARCH_X86)           \
+   || defined(DYNINST_CODEGEN_ARCH_X86_64)
 using namespace NS_x86;
 
-#elif defined(DYNINST_HOST_ARCH_AARCH64)
+#elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 using namespace NS_aarch64;
 
 #else
