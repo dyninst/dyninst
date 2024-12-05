@@ -12155,7 +12155,7 @@ unsigned instruction::spaceToRelocate() const {
 
    // longJumpSize == size of code needed to get
    // anywhere in memory space.
-#if defined(DYNINST_HOST_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
    const int longJumpSize = JUMP_ABS64_SZ;
 #else
    const int longJumpSize = JUMP_ABS32_SZ;
@@ -12185,7 +12185,7 @@ unsigned instruction::spaceToRelocate() const {
    if (type() & IS_CALL) {
       // Worst case is approximated by two long jumps (AMD64) or a REL32 (x86)
       unsigned size;
-#if defined(DYNINST_HOST_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
       size = 2*JUMP_ABS64_SZ+count_prefixes(type());
 #else
       size = JUMP_SZ+count_prefixes(type());
@@ -12193,7 +12193,7 @@ unsigned instruction::spaceToRelocate() const {
       size = (size > CALL_RELOC_THUNK) ? size : CALL_RELOC_THUNK;
       return size;
    }
-#if defined(DYNINST_HOST_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
    if (type() & REL_D_DATA) {
       // Worst-case: replace RIP with push of IP, use, and cleanup
       // 8: unknown; previous constant
@@ -12205,7 +12205,7 @@ unsigned instruction::spaceToRelocate() const {
    return 0;
 }
 
-#if defined(DYNINST_HOST_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
 unsigned instruction::jumpSize(long disp, unsigned addr_width) 
 {
    if (addr_width == 8 && !is_disp32(disp))
@@ -12225,7 +12225,7 @@ unsigned instruction::jumpSize(Address from, Address to, unsigned addr_width)
    return jumpSize(disp, addr_width);
 }
 
-#if defined(DYNINST_HOST_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
 unsigned instruction::maxJumpSize(unsigned addr_width) 
 {
    if (addr_width == 8)
