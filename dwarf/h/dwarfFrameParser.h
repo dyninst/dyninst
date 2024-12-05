@@ -108,8 +108,6 @@ private:
         dwarf_status_error,
         dwarf_status_ok
     } dwarf_status_t;
-    
-    //std::map<frameParser_key, Ptr> frameParsers;
 
     // .debug_frame and .eh_frame are sections that contain frame info.
     // They might or might not be present, but we need at least one to create a
