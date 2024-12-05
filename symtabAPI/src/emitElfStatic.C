@@ -1101,7 +1101,7 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
                 DATA_NAME, Region::RT_DATA, true, lmap.dataRegionAlign);
     }
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODGEN_ARCH_X86_64)  || defined(DYNINST_CODEGEN_ARCH_POWER)
+#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)  || defined(DYNINST_CODEGEN_ARCH_POWER)
     if( lmap.tlsSize > 0 ) {
         target->addRegion(globalOffset + lmap.tlsRegionOffset,
                 reinterpret_cast<void *>(&newTargetData[lmap.tlsRegionOffset]),
