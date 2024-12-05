@@ -1484,35 +1484,6 @@ class emulated_singlestep {
    std::set<response::ptr> clear_resps;
 };
 
-#if defined(DYNINST_HOST_ARCH_AARCH64)
-/**
- * For aarch64 linux: 3.17.4-302.fc21.aarch64
- * there is a kernel bug on ptrace.
- * On the fast path, during the mid-syscall process, if the PTRACE
- * flags are changed, before exiting the syscall, it never checks flags
- * again. Hence, the syscall_exit_stop signal is not generated as on
- * other platform as we expected. The solution to this is that we insert
- * a breakpoint on the syscall's next instruction. And recognize it as
- * the exit stop. And check return values of syscall.
- */
-/*
-class syscall_exit_breakpoints{
-  public:
-    syscall_exit_breakpoints();
-    ~syscall_exit_breakpoints();
-
-    bool contains_breakpoints(Address addr) const;
-    bool is_enabled() const;
-    bool add(Address addr);
-
-  private:
-    bool enabled;
-    std::set<Address> addrs;
-    int_breakpoint *bp;
-};
-*/
-#endif
-
 struct clearError {
    void operator()(Process::ptr p) {
       p->clearLastError();
