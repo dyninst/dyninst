@@ -202,7 +202,7 @@ if(cap_stack_mods_found GREATER -1)
     src/StackMod/TMap.C)
 endif()
 
-if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
+if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
   list(
     APPEND
     _sources
@@ -216,7 +216,7 @@ if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
     src/dynProcess-x86.C
     src/parse-x86.C
     src/IAPI_to_AST.C)
-elseif(DYNINST_HOST_ARCH_PPC64LE)
+elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(
     APPEND
     _sources
@@ -227,7 +227,7 @@ elseif(DYNINST_HOST_ARCH_PPC64LE)
     src/stackwalk-ppc.C
     src/Relocation/Widgets/CFWidget-ppc.C
     src/Relocation/Widgets/PCWidget-ppc.C)
-elseif(DYNINST_HOST_ARCH_AARCH64)
+elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(
     APPEND
     _sources
@@ -259,11 +259,11 @@ elseif(DYNINST_OS_Linux)
     src/unix.C
     src/syscallNotification.C
     src/syscall-linux.C)
-  if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
+  if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     list(APPEND _sources src/linux-x86.C)
-  elseif(DYNINST_HOST_ARCH_PPC64LE)
+  elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
     list(APPEND _sources src/linux-power.C)
-  elseif(DYNINST_HOST_ARCH_AARCH64)
+  elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     list(APPEND _sources src/linux-aarch64.C)
   endif()
 elseif(DYNINST_OS_Windows)
