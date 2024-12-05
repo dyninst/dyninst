@@ -41,18 +41,37 @@
 #include <libelf.h>
 #include "registers/abstract_regs.h"
 
+#include <mutex>
+#include <map>
+
 using namespace Dyninst;
 using namespace DwarfDyninst;
 using namespace std;
 
+namespace {
+  struct frameParser_key {
+    Dwarf *dbg;
+    Elf *eh_frame;
+    Architecture arch;
 
-std::map<DwarfFrameParser::frameParser_key, DwarfFrameParser::Ptr> DwarfFrameParser::frameParsers;
+    bool operator<(const frameParser_key &rhs) const {
+      return (dbg < rhs.dbg) ||
+             (dbg == rhs.dbg && eh_frame < rhs.eh_frame) ||
+             (dbg == rhs.dbg && eh_frame == rhs.eh_frame && arch < rhs.arch);
+    }
+  };
+
+  std::mutex frameParsers_mutex;
+  std::map<frameParser_key, DwarfFrameParser::Ptr> frameParsers;
+}
 
 DwarfFrameParser::Ptr DwarfFrameParser::create(Dwarf * dbg, Elf * eh_frame, Architecture arch)
 {
     if(!dbg && !eh_frame) return NULL;
 
-    frameParser_key k(dbg, eh_frame, arch);
+    frameParser_key k{dbg, eh_frame, arch};
+
+    std::unique_lock<std::mutex> _l(frameParsers_mutex);
 
     auto iter = frameParsers.find(k);
     if (iter == frameParsers.end()) {
