@@ -31,7 +31,6 @@
 #if !defined(DWARF_SW_H_)
 #define DWARF_SW_H_
 
-#include <map>
 #include <utility>
 #include <stack>
 #include <vector>
@@ -104,31 +103,11 @@ private:
 
     void setupCFIData();
 
-    struct frameParser_key
-    {
-        Dwarf * dbg;
-        Elf * eh_frame;
-        Architecture arch;
-        frameParser_key(Dwarf * d, Elf * eh_frame_, Architecture a) : dbg(d), eh_frame(eh_frame_), arch(a)
-        {
-        }
-
-        bool operator< (const frameParser_key& rhs) const
-        {
-            return (dbg < rhs.dbg)
-                || (dbg == rhs.dbg && eh_frame < rhs.eh_frame)
-                || (dbg == rhs.dbg && eh_frame == rhs.eh_frame && arch < rhs.arch);
-        }
-
-    };
-
     typedef enum {
         dwarf_status_uninitialized,
         dwarf_status_error,
         dwarf_status_ok
     } dwarf_status_t;
-    
-    static std::map<frameParser_key, Ptr> frameParsers;
 
     // .debug_frame and .eh_frame are sections that contain frame info.
     // They might or might not be present, but we need at least one to create a
