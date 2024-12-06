@@ -33,7 +33,6 @@
 
 #include "elfutils/libdw.h"
 #include "dyntypes.h"
-#include <map>
 #include <string>
 #include <boost/shared_ptr.hpp>
 
@@ -71,7 +70,7 @@ class DYNINST_EXPORT DwarfHandle {
    bool hasFrameData(Elf_X *elfx);
    std::string filename;
    std::string debug_filename;
-   static std::map<std::string, DwarfHandle::ptr> all_dwarf_handles;
+
    /*static Dwarf_Handler defaultErrFunc;
    static void defaultDwarfError(Dwarf_Error err, Dwarf_Ptr arg);*/
 
