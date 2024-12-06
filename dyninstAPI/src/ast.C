@@ -57,12 +57,12 @@ using namespace Dyninst::InstructionAPI;
 #include "addressSpace.h"
 #include "binaryEdit.h"
 
-#if defined(DYNINST_HOST_ARCH_POWER)
+#if defined(DYNINST_CODEGEN_ARCH_POWER)
 #include "inst-power.h"
-#elif defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
+#elif defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "inst-x86.h"
 #include "emit-x86.h"
-#elif defined(DYNINST_HOST_ARCH_AARCH64)
+#elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "inst-aarch64.h"
 #else
 #error "Unknown architecture in ast.h"
@@ -1125,7 +1125,7 @@ bool AstOperatorNode::initRegisters(codeGen &g) {
             ret = false;
     }
 
-#if !defined(DYNINST_HOST_ARCH_X86)
+#if !defined(DYNINST_CODEGEN_ARCH_X86)
     // Override: if we're trying to save to an original
     // register, make sure it's saved on the stack.
     if(loperand) {
@@ -1142,7 +1142,7 @@ bool AstOperatorNode::initRegisters(codeGen &g) {
     return ret;
 }
 
-#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool noCost)
 {
    if(!(loperand && roperand)) { return false; }
@@ -1177,7 +1177,7 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool 
 
    if (roperand->getoType() == operandType::Constant) {
       //Looks like 'global = constant'
-#if defined(DYNINST_HOST_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
      if (laddr >> 32 || ((Address) roperand->getOValue()) >> 32 || size_ == 8) {
        // Make sure value and address are 32-bit values.
        return false;
@@ -2216,25 +2216,25 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
       }
       if (retReg == Dyninst::Null_Register) return false;
 
-#if defined(DYNINST_HOST_ARCH_X86)
+#if defined(DYNINST_CODEGEN_ARCH_X86)
         emitVload(loadRegRelativeOp,
                   (Address)0,
                   REGNUM_ESP,
                   retReg,
                   gen, noCost);
-#elif defined(DYNINST_HOST_ARCH_X86_64)
+#elif defined(DYNINST_CODEGEN_ARCH_X86_64)
         emitVload(loadRegRelativeOp,
                   (Address)0,
                   REGNUM_RSP,
                   retReg,
                   gen, noCost);
-#elif defined(DYNINST_HOST_ARCH_POWER) // KEVINTODO: untested
+#elif defined(DYNINST_CODEGEN_ARCH_POWER) // KEVINTODO: untested
         emitVload(loadRegRelativeOp,
                   (Address) sizeof(Address),
                   REG_SP,
                   retReg,
                   gen, noCost);
-#elif defined(DYNINST_HOST_ARCH_AARCH64)
+#elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 			//#warning "This function is not implemented yet!"
 			assert(0);
 #else
@@ -2261,7 +2261,7 @@ bool AstScrambleRegistersNode::generateCode_phase2(codeGen &gen,
 						  Dyninst::Register& )
 {
    (void)gen; // unused
-#if defined(DYNINST_HOST_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
       registerSlot *reg = gen.rs()->GPRs()[i];
       if (reg->encoding() != REGNUM_RBP && reg->encoding() != REGNUM_RSP)

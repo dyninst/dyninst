@@ -123,16 +123,12 @@ bool Codegen::generateCall(Address addr, const std::vector<Address> &args) {
          return generateCallIA32(addr, args);
       case Arch_x86_64:
          return generateCallAMD64(addr, args);
-#if !defined(os_windows)
 	  case Arch_ppc32:
          return generateCallPPC32(addr, args);
       case Arch_ppc64:
          return generateCallPPC64(addr, args);
-#endif //!defined(os_windows)
-#if defined(DYNINST_HOST_ARCH_AARCH64)
       case Arch_aarch64:
          return generateCallAARCH64(addr, args);
-#endif
 	  default:
          return false;
    }
