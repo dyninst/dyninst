@@ -503,8 +503,7 @@ bool ProbabilityCalculator::decodeInstruction(DecodeData &data, Address addr) {
 	
 	data.entry_id = insn.getOperation().getID();
 
-	vector<Operand> ops;
-	insn.getOperands(ops);
+	auto ops = insn.getAllOperands();
 	int args[2] = {NOARG,NOARG};
 	for(unsigned int i=0;i<2 && i<ops.size();++i) {
 	    Operand & op = ops[i];

@@ -130,8 +130,7 @@ namespace x86 {
      *  so we'll consider it as our special case here.
      */
     if(id == e_call) {
-      std::vector<di::Operand> operands;
-      ins.getOperands(operands);
+      auto operands = ins.getExplicitOperands();
 
       if(operands.size() != 1) {
         di::decode_printf("[%s:%d] Incorrect number of arguments to 'call'. Found %lu, expected 1\n",

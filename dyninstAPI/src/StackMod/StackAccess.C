@@ -100,8 +100,7 @@ bool isDebugType(StackAccess::StackAccessType t)
 
 int getAccessSize(InstructionAPI::Instruction insn)
 {
-    std::vector<InstructionAPI::Operand> operands;
-    insn.getOperands(operands);
+    auto operands = insn.getAllOperands();
     int accessSize = 0;
     for (unsigned i = 0; i < operands.size(); i++) {
         InstructionAPI::Expression::Ptr value = operands[i].getValue();
@@ -620,8 +619,7 @@ bool getMemoryOffset(ParseAPI::Function *func,
     InstructionAPI::RegisterAST* regAST = new InstructionAPI::RegisterAST(reg);
     InstructionAPI::RegisterAST::Ptr regASTPtr = InstructionAPI::RegisterAST::Ptr(regAST);
 
-    std::vector<InstructionAPI::Operand> operands;
-    insn.getOperands(operands);
+    auto operands = insn.getAllOperands();
 
     signed long disp = 0;  // Stack height of access
     signed long offset = 0;  // Offset from the base register used in the access

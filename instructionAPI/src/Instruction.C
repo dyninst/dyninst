@@ -153,22 +153,45 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT const Operation& Instruction::getOperation() const { return m_InsnOp; }
 
-  DYNINST_EXPORT void Instruction::getOperands(std::vector<Operand>& operands) const {
+  std::vector<Operand> Instruction::getAllOperands() const {
     DECODE_OPERANDS();
-    std::copy(m_Operands.begin(), m_Operands.end(), std::back_inserter(operands));
+    return std::vector<Operand>(m_Operands.begin(), m_Operands.end());
+  }
+
+  std::vector<Operand> Instruction::getExplicitOperands() const {
+    DECODE_OPERANDS();
+    std::vector<Operand> operands;
+    for(auto const& o : m_Operands) {
+      if(!o.isImplicit()) {
+        operands.push_back(o);
+      }
+    }
+    return operands;
+  }
+  std::vector<Operand> Instruction::getImplicitOperands() const {
+    DECODE_OPERANDS();
+    std::vector<Operand> operands;
+    for(auto const& o : m_Operands) {
+      if(o.isImplicit()) {
+        operands.push_back(o);
+      }
+    }
+    return operands;
+  }
+
+  void Instruction::getOperands(std::vector<Operand>& operands) const {
+    for(auto const& o : getAllOperands()) {
+      operands.push_back(o);
+    }
   }
 
   DYNINST_EXPORT std::vector<Operand> Instruction::getDisplayOrderedOperands() const {
     DECODE_OPERANDS();
 
-    std::vector<Operand> operands;
-    auto operandsInserter{std::back_inserter(operands)};
-    auto isNotImplicitPred = [](const Operand& x) { return !x.isImplicit(); };
+    auto operands = getExplicitOperands();
 
     if(formatter->operandPrintOrderReversed()) {
-      copy_if(m_Operands.crbegin(), m_Operands.crend(), operandsInserter, isNotImplicitPred);
-    } else {
-      copy_if(m_Operands.cbegin(), m_Operands.cend(), operandsInserter, isNotImplicitPred);
+      std::reverse(operands.begin(), operands.end());
     }
 
     return operands;

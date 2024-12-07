@@ -2472,8 +2472,7 @@ bool Parser::getSyscallNumber(Function * /*func*/,
     InstructionAPI::RegisterAST* regAST = new InstructionAPI::RegisterAST(syscallNumberReg);
     InstructionAPI::RegisterAST::Ptr regASTPtr = InstructionAPI::RegisterAST::Ptr(regAST);
 
-    std::vector<InstructionAPI::Operand> operands;
-    prevInsn.getOperands(operands);
+    auto operands = prevInsn.getAllOperands();
     for (unsigned i = 0; i < operands.size(); i++) {
         if (!operands[i].isWritten(regASTPtr)) {
             InstructionAPI::Expression::Ptr value = operands[i].getValue();

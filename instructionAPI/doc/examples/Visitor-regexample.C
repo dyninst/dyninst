@@ -23,8 +23,7 @@ class PrintVisitor : public Visitor {
 
 void printRegisters(Instruction::Ptr insn) {
    PrintVisitor pv;
-   std::vector<Operand> operands;
-   insn->getOperands(operands);
+   auto operands = insn.getAllOperands();
    // c++11x allows auto to determine the type of a variable;
    // if not using c++11x, use 'std::vector<Operand>::iterator' instead.
    // For gcc, use the -std=c++0x argument.

@@ -180,9 +180,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
   }
   assert(nac < 3);
   return bmap;
-#elif defined(DYNINST_HOST_ARCH_POWER)
-    std::vector<Operand> operands;
-    insn.getOperands(operands);
+    auto operands = insn.getAllOperands();
     for(std::vector<Operand>::iterator op = operands.begin();
         op != operands.end();
        ++op)
@@ -221,9 +219,9 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
         }
     }
     return NULL;
-#elif defined(DYNINST_HOST_ARCH_AARCH64) 
-    std::vector<Operand> operands;
-    insn.getOperands(operands);
+
+#elif defined(DYNINST_HOST_ARCH_AARCH64)
+    auto operands = insn.getAllOperands();
     for(std::vector<Operand>::iterator op = operands.begin();
         op != operands.end();
        ++op)

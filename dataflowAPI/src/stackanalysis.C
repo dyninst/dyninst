@@ -767,8 +767,7 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func_) {
       if (what != e_ret_near) continue;
 
       int val;
-      std::vector<Operand> ops;
-      insn.getOperands(ops);
+      std::vector<Operand> ops = insn.getAllOperands();
       if (ops.size() == 1) {
          val = 0;
       } else {
@@ -1140,8 +1139,7 @@ private:
 
 void StackAnalysis::handleXor(Instruction insn, Block *block,
                               const Offset off, TransferFuncs &xferFuncs) {
-   std::vector<Operand> operands;
-   insn.getOperands(operands);
+   auto operands = insn.getAllOperands();
    STACKANALYSIS_ASSERT(operands.size() == 2);
 
    // Handle the case where a register is being zeroed out.
@@ -1292,8 +1290,7 @@ void StackAnalysis::handleXor(Instruction insn, Block *block,
 
 void StackAnalysis::handleDiv(Instruction insn,
                               TransferFuncs &xferFuncs) {
-   std::vector<Operand> operands;
-   insn.getOperands(operands);
+   auto operands = insn.getAllOperands();
    STACKANALYSIS_ASSERT(operands.size() == 3);
 
    Expression::Ptr quotient = operands[1].getValue();
@@ -1324,8 +1321,7 @@ void StackAnalysis::handleMul(Instruction insn,
    //     -- reg1 = reg2/mem2 * imm3
    //   3. mul reg1, reg2, reg3/mem3
    //     -- reg1:reg2 = reg2 * reg3/mem3
-   std::vector<Operand> operands;
-   insn.getOperands(operands);
+   auto operands = insn.getAllOperands();
    STACKANALYSIS_ASSERT(operands.size() == 2 || operands.size() == 3);
 
    Expression::Ptr target = operands[0].getValue();
@@ -1500,8 +1496,7 @@ void StackAnalysis::handlePushPop(Instruction insn, Block *block,
 void StackAnalysis::handleReturn(Instruction insn,
                                  TransferFuncs &xferFuncs) {
    long delta = 0;
-   std::vector<Operand> operands;
-   insn.getOperands(operands);
+   auto operands = insn.getAllOperands();
    if (operands.size() < 2) {
       delta = word_size;
    } else {
@@ -1556,8 +1551,7 @@ void StackAnalysis::handleAddSub(Instruction insn, Block *block,
    //      a. If it can, mem1 is handled with a delta.
    //      b. Otherwise, nothing happens.
 
-   std::vector<Operand> operands;
-   insn.getOperands(operands);
+   auto operands = insn.getAllOperands();
    STACKANALYSIS_ASSERT(operands.size() == 2);
 
    std::set<RegisterAST::Ptr> readSet;
@@ -2000,8 +1994,7 @@ void StackAnalysis::handleMov(Instruction insn, Block *block,
    //    b. Otherwise, we ignore the store.
 
    // Extract operands
-   std::vector<Operand> operands;
-   insn.getOperands(operands);
+   auto operands = insn.getAllOperands();
    STACKANALYSIS_ASSERT(operands.size() == 2);
 
    // Extract written/read register sets
@@ -2150,8 +2143,7 @@ void StackAnalysis::handleZeroExtend(Instruction insn, Block *block,
    STACKANALYSIS_ASSERT(!insn.writesMemory());
 
    // Extract operands
-   std::vector<Operand> operands;
-   insn.getOperands(operands);
+   auto operands = insn.getAllOperands();
    STACKANALYSIS_ASSERT(operands.size() == 2);
 
    // Extract written/read register sets
@@ -2217,8 +2209,7 @@ void StackAnalysis::handleSignExtend(Instruction insn, Block *block,
    STACKANALYSIS_ASSERT(!insn.writesMemory());
 
    // Extract operands
-   std::vector<Operand> operands;
-   insn.getOperands(operands);
+   auto operands = insn.getAllOperands();
    STACKANALYSIS_ASSERT(operands.size() == 2);
 
    // Extract written/read register sets
