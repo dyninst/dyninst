@@ -26,6 +26,7 @@ set(_public_headers
     h/mnemonics/aarch64_entryIDs.h
     h/mnemonics/ppc_entryIDs.h
     h/mnemonics/x86_entryIDs.h
+    h/mnemonics/riscv64_entryIDs.h
     h/mnemonics/AMDGPU/gfx908_entryIDs.h
     h/mnemonics/AMDGPU/gfx90a_entryIDs.h
     h/mnemonics/AMDGPU/gfx940_entryIDs.h
@@ -43,6 +44,7 @@ set(_public_headers
     h/registers/ppc32_regs.h
     h/registers/ppc64_regs.h
     h/registers/reg_def.h
+    h/registers/riscv64_regs.h
     h/registers/x86_64_regs.h
     h/registers/x86_regs.h
     h/SymReader.h
