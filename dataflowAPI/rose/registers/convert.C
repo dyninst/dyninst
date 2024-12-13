@@ -73,6 +73,14 @@ namespace Dyninst { namespace DataflowAPI {
       case Arch_aarch64: {
         return aarch64Rose(category, baseID, subrange, num_bits);
       }
+      case Arch_aarch32:
+      case Arch_cuda:
+      case Arch_intelGen9:
+      case Arch_none:
+        // Set these output variable to invalid values and let the
+        // semantics code to throw exceptions
+        convert_printf("No ROSE register for architecture 0x%X\n", reg.getArchitecture());
+        return INVALID_REG;
     }
     convert_printf("Unknown Architecture 0x%X\n", reg.getArchitecture());
     return INVALID_REG;

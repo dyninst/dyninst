@@ -337,9 +337,16 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
       return dre;
     }
 
-    default:
-      return NULL;
+    case Arch_aarch32:
+    case Arch_cuda:
+    case Arch_intelGen9:
+    case Arch_none: {
+      convert_printf("No ROSE register for architecture 0x%X\n", machReg.getArchitecture());
+      return nullptr;
+    }
   }
+  convert_printf("Could not get ROSE expression for '%s'\n", regast->format().c_str());
+  return nullptr;
 }
 
 SgAsmExpression *ExpressionConversionVisitor::makeSegRegExpr() {
