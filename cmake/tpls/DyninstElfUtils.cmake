@@ -169,7 +169,7 @@ else()
             CXX=${CMAKE_CXX_COMPILER} CXXFLAGS=-fPIC\ -O3
             [=[LDFLAGS=-Wl,-rpath='$$ORIGIN']=] <SOURCE_DIR>/configure
             --enable-install-elfh --prefix=${TPL_STAGING_PREFIX} --disable-libdebuginfod
-            --disable-debuginfod --enable-thread-safety
+            --disable-debuginfod --enable-thread-safety ${ElfUtils_CONFIG_OPTIONS}
             --libdir=${TPL_STAGING_PREFIX}/lib
         BUILD_COMMAND make install
         BUILD_BYPRODUCTS ${_eu_build_byproducts}
