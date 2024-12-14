@@ -31,6 +31,7 @@
 #include "external/rose/amdgpuInstructionEnum.h"
 #include "external/rose/armv8InstructionEnum.h"
 #include "external/rose/powerpcInstructionEnum.h"
+#include "external/rose/rose-compat.h"
 #include "dataflowAPI/rose/registers/convert.h"
 
 #include "debug_dataflow.h"
@@ -46,6 +47,8 @@
 #include "MultiRegister.h"
 #include "rose/RegisterDescriptor.h"
 #include "../rose/SgAsmExpression.h"
+#include "rose/registers/convert.h"
+#include "debug_dataflow.h"
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
@@ -276,10 +279,6 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
   switch (arch) {
     case Arch_x86:
     case Arch_x86_64: {
-      int regClass_;
-      int regNum;
-      int regPos;
-
       if (machReg.isPC()) {
         // ideally this would be symbolic
         // When ip is read, the value read is not the address of the current instruction,
@@ -289,13 +288,16 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
           constAddrExpr = new SgAsmDoubleWordValueExpression(addr_ + size_);
         else
           constAddrExpr = new SgAsmQuadWordValueExpression(addr_ + size_);
-
         return constAddrExpr;
       }
-      machReg.getROSERegister(regClass_, regNum, regPos);
-      if (regClass_ < 0) return NULL;
-      return new SgAsmx86RegisterReferenceExpression((X86RegisterClass) regClass_, regNum,
-          (X86PositionInRegister) regPos);
+      auto regDesc = RegisterDescriptor(machReg);
+      if(!regDesc.is_valid()) {
+        convert_printf("Failed to find ROSE register for %s\n", machReg.name().c_str());
+        return nullptr;
+      }
+      auto const major = static_cast<X86RegisterClass>(regDesc.get_major());
+      auto const pos = static_cast<X86PositionInRegister>(regDesc.get_offset());
+      return new SgAsmx86RegisterReferenceExpression(major, regDesc.get_minor(), pos);
     }
 
     case Arch_ppc32:

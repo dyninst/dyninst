@@ -613,102 +613,6 @@ namespace Dyninst {
     signed int baseID = (reg & 0x000000ff);
 
     switch(getArchitecture()) {
-      case Arch_x86:
-        switch(category) {
-          case x86::GPR:
-            c = x86_regclass_gpr;
-            switch(baseID) {
-              case x86::BASEA: n = x86_gpr_ax; break;
-              case x86::BASEC: n = x86_gpr_cx; break;
-              case x86::BASED: n = x86_gpr_dx; break;
-              case x86::BASEB: n = x86_gpr_bx; break;
-              case x86::BASESP: n = x86_gpr_sp; break;
-              case x86::BASEBP: n = x86_gpr_bp; break;
-              case x86::BASESI: n = x86_gpr_si; break;
-              case x86::BASEDI: n = x86_gpr_di; break;
-              default: n = 0; break;
-            }
-            break;
-          case x86::SEG:
-            c = x86_regclass_segment;
-            switch(baseID) {
-              case x86::BASEDS: n = x86_segreg_ds; break;
-              case x86::BASEES: n = x86_segreg_es; break;
-              case x86::BASEFS: n = x86_segreg_fs; break;
-              case x86::BASEGS: n = x86_segreg_gs; break;
-              case x86::BASECS: n = x86_segreg_cs; break;
-              case x86::BASESS: n = x86_segreg_ss; break;
-              default: n = 0; break;
-            }
-            break;
-          case x86::FLAG:
-            c = x86_regclass_flags;
-            switch(baseID) {
-              case x86::CF: n = x86_flag_cf; break;
-              case x86::PF: n = x86_flag_pf; break;
-              case x86::AF: n = x86_flag_af; break;
-              case x86::ZF: n = x86_flag_zf; break;
-              case x86::SF: n = x86_flag_sf; break;
-              case x86::TF: n = x86_flag_tf; break;
-              case x86::IF: n = x86_flag_if; break;
-              case x86::DF: n = x86_flag_df; break;
-              case x86::OF: n = x86_flag_of; break;
-              case x86::FLAGC: n= x86_flag_iopl0; break;
-              case x86::FLAGD: n= x86_flag_iopl1; break;
-              case x86::NT: n = x86_flag_nt; break;
-              case x86::RF: n = x86_flag_rf; break;
-              case x86::VM: n= x86_flag_vm; break;
-              case x86::AC: n = x86_flag_ac; break;
-              case x86::VIF: n = x86_flag_vif; break;
-              case x86::VIP: n = x86_flag_vip; break;
-              case x86::ID: n = x86_flag_id; break;
-              default: assert(0); break;
-            }
-            break;
-          case x86::MISC: c = x86_regclass_unknown; break;
-          case x86::XMM:
-            c = x86_regclass_xmm;
-            n = baseID;
-            break;
-          case x86::MMX:
-            c = x86_regclass_mm;
-            n = baseID;
-            break;
-          case x86::X87:
-            c = x86_regclass_st_top;
-            n = baseID;
-            break;
-          case x86::YMM:
-            c = x86_regclass_ymm;
-            n = baseID;
-            break;
-          case x86::ZMM:
-            c = x86_regclass_zmm;
-            n = baseID;
-            break;
-          case x86::CTL:
-            c = x86_regclass_cr;
-            n = baseID;
-            break;
-          case x86::DBG:
-            c = x86_regclass_dr;
-            n = baseID;
-            break;
-          case x86::TST: c = x86_regclass_unknown; break;
-          case 0:
-            switch(baseID) {
-              case 0x10:
-                c = x86_regclass_ip;
-                n = 0;
-                break;
-              default: c = x86_regclass_unknown; break;
-            }
-            break;
-          default:
-              common_parsing_printf("Unknown category '%d' for Arch_x86\n", category);
-              break;
-        }
-        break;
       case Arch_x86_64:
         switch(category) {
           case x86_64::GPR:
@@ -830,25 +734,6 @@ namespace Dyninst {
     }
 
     switch(getArchitecture()) {
-      case Arch_x86:
-        switch(subrange) {
-          case x86::XMMS:
-          case x86::YMMS:
-          case x86::ZMMS:
-          case x86::KMSKS:
-          case x86::FPDBL: p = x86_regpos_qword; break;
-          case x86::MMS: p = x86_regpos_qword; break;
-          case x86::H_REG: p = x86_regpos_high_byte; break;
-          case x86::L_REG: p = x86_regpos_low_byte; break;
-          case x86::W_REG: p = x86_regpos_word; break;
-          case x86::FULL:
-          case x86::BIT: p = x86_regpos_all; break;
-          default:
-              common_parsing_printf("Unknown subrange value '%d' for Arch_x86\n", subrange);
-              break;
-        }
-        break;
-
       case Arch_x86_64:
         switch(subrange) {
           case x86_64::FULL:
