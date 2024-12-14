@@ -604,157 +604,15 @@ namespace Dyninst {
    * see dataflowAPI/src/ExpressionConversionVisitor.C
    */
 
-  void MachRegister::getROSERegister(int& c, int& n, int& p) {
+  void MachRegister::getROSERegister(int& c, int& n, int&) {
     // Rose: class, number, position
     // Dyninst: category, base id, subrange
 
-    signed int category = (reg & 0x00ff0000);
-    signed int subrange = (reg & 0x0000ff00);
-    signed int baseID = (reg & 0x000000ff);
-
     switch(getArchitecture()) {
-      case Arch_x86_64:
-        switch(category) {
-          case x86_64::GPR:
-            c = x86_regclass_gpr;
-            switch(baseID) {
-              case x86_64::BASEA: n = x86_gpr_ax; break;
-              case x86_64::BASEC: n = x86_gpr_cx; break;
-              case x86_64::BASED: n = x86_gpr_dx; break;
-              case x86_64::BASEB: n = x86_gpr_bx; break;
-              case x86_64::BASESP: n = x86_gpr_sp; break;
-              case x86_64::BASEBP: n = x86_gpr_bp; break;
-              case x86_64::BASESI: n = x86_gpr_si; break;
-              case x86_64::BASEDI: n = x86_gpr_di; break;
-              case x86_64::BASE8: n = x86_gpr_r8; break;
-              case x86_64::BASE9: n = x86_gpr_r9; break;
-              case x86_64::BASE10: n = x86_gpr_r10; break;
-              case x86_64::BASE11: n = x86_gpr_r11; break;
-              case x86_64::BASE12: n = x86_gpr_r12; break;
-              case x86_64::BASE13: n = x86_gpr_r13; break;
-              case x86_64::BASE14: n = x86_gpr_r14; break;
-              case x86_64::BASE15: n = x86_gpr_r15; break;
-              default: n = 0; break;
-            }
-            break;
-          case x86_64::SEG:
-            c = x86_regclass_segment;
-            switch(baseID) {
-              case x86_64::BASEDS: n = x86_segreg_ds; break;
-              case x86_64::BASEES: n = x86_segreg_es; break;
-              case x86_64::BASEFS: n = x86_segreg_fs; break;
-              case x86_64::BASEGS: n = x86_segreg_gs; break;
-              case x86_64::BASECS: n = x86_segreg_cs; break;
-              case x86_64::BASESS: n = x86_segreg_ss; break;
-              default: n = 0; break;
-            }
-            break;
-          case x86_64::FLAG:
-            c = x86_regclass_flags;
-            switch(baseID) {
-              case x86_64::CF: n = x86_flag_cf; break;
-              case x86_64::FLAG1: n = x86_flag_1; break;
-              case x86_64::PF: n = x86_flag_pf; break;
-              case x86_64::FLAG3: n = x86_flag_3; break;
-              case x86_64::AF: n = x86_flag_af; break;
-              case x86_64::FLAG5: n = x86_flag_5; break;
-              case x86_64::ZF: n = x86_flag_zf; break;
-              case x86_64::SF: n = x86_flag_sf; break;
-              case x86_64::TF: n = x86_flag_tf; break;
-              case x86_64::IF: n = x86_flag_if; break;
-              case x86_64::DF: n = x86_flag_df; break;
-              case x86_64::OF: n = x86_flag_of; break;
-              case x86_64::FLAGC: n = x86_flag_iopl0; break;
-              case x86_64::FLAGD: n = x86_flag_iopl1; break;
-              case x86_64::NT: n = x86_flag_nt; break;
-              case x86_64::FLAGF: n = x86_flag_15; break;
-              case x86_64::VM: n = x86_flag_vm; break;
-              case x86_64::RF: n = x86_flag_rf; break;
-              case x86_64::AC: n = x86_flag_ac; break;
-              case x86_64::VIF: n = x86_flag_vif; break;
-              case x86_64::VIP: n = x86_flag_vip; break;
-              case x86_64::ID: n = x86_flag_id; break;
-              default:
-                c = -1;
-                return;
-                break;
-            }
-            break;
-          case x86_64::MISC: c = x86_regclass_unknown; break;
-          case x86_64::KMASK:
-            c = x86_regclass_kmask;
-            n = baseID;
-            break;
-          case x86_64::ZMM:
-            c = x86_regclass_zmm;
-            n = baseID;
-            break;
-          case x86_64::YMM:
-            c = x86_regclass_ymm;
-            n = baseID;
-            break;
-          case x86_64::XMM:
-            c = x86_regclass_xmm;
-            n = baseID;
-            break;
-          case x86_64::MMX:
-            c = x86_regclass_mm;
-            n = baseID;
-            break;
-          case x86_64::X87:
-            c = x86_regclass_st_top;
-            n = baseID;
-            break;
-          case x86_64::CTL:
-            c = x86_regclass_cr;
-            n = baseID;
-            break;
-          case x86_64::DBG:
-            c = x86_regclass_dr;
-            n = baseID;
-            break;
-          case x86_64::TST: c = x86_regclass_unknown; break;
-          case 0:
-            switch(baseID) {
-              case 0x10:
-                c = x86_regclass_ip;
-                n = 0;
-                break;
-              default: c = x86_regclass_unknown; break;
-            }
-            break;
-          default:
-	    common_parsing_printf("Unknown category '%d' for Arch_x86_64\n", category);
-	    break;
-      } break;
       default:
         c = x86_regclass_unknown;
         n = 0;
         break;
-    }
-
-    switch(getArchitecture()) {
-      case Arch_x86_64:
-        switch(subrange) {
-          case x86_64::FULL:
-          case x86_64::XMMS:
-          case x86_64::MMS:
-          case x86_64::KMSKS:
-          case x86_64::YMMS:
-          case x86_64::ZMMS:
-          case x86_64::FPDBL: p = x86_regpos_qword; break;
-          case x86_64::H_REG: p = x86_regpos_high_byte; break;
-          case x86_64::L_REG: p = x86_regpos_low_byte; break;
-          case x86_64::W_REG: p = x86_regpos_word; break;
-          case x86_64::D_REG: p = x86_regpos_dword; break;
-          case x86_64::BIT: p = x86_regpos_all; break;
-          default:
-              common_parsing_printf("Unknown subrange value '%d' for Arch_x86_64\n", subrange);
-              break;
-        }
-        break;
-
-      default: p = x86_regpos_unknown;
     }
   }
 

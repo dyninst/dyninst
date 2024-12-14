@@ -79,6 +79,7 @@ set(_dataflow_private_headers
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/ppc32.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/ppc64.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/x86.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/x86_64.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/BaseSemantics2.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherAMDGPU.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherARM64.h
