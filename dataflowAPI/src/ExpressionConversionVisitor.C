@@ -261,88 +261,89 @@ void ExpressionConversionVisitor::visit(Dereference *deref) {
     roseExpression = result;
 }
 
-SgAsmExpression *ExpressionConversionVisitor::archSpecificRegisterProc(InstructionAPI::RegisterAST *regast,
-        uint64_t addr_, uint64_t size_) {
-    
-    MachRegister machReg = regast->getID();
+SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(InstructionAPI::RegisterAST *regast,
+    uint64_t addr_, uint64_t size_) {
 
-    //std::cout << " in " << __func__ << " idx = " << machReg << " arch = " << arch   << std::endl;
-    switch (arch) {
-        case Arch_x86:
-        case Arch_x86_64: {
-                              int regClass_;
-                              int regNum;
-                              int regPos;
+  MachRegister machReg = regast->getID();
 
-                              if (machReg.isPC()) {
-                                  // ideally this would be symbolic
-                                  // When ip is read, the value read is not the address of the current instruction,
-                                  // but the address of the next instruction.
-                                  SgAsmExpression *constAddrExpr;
-                                  if (arch == Arch_x86)
-                                      constAddrExpr = new SgAsmDoubleWordValueExpression(addr_ + size_);
-                                  else
-                                      constAddrExpr = new SgAsmQuadWordValueExpression(addr_ + size_);
+  //std::cout << " in " << __func__ << " idx = " << machReg << " arch = " << arch   << std::endl;
+  switch (arch) {
+    case Arch_x86:
+    case Arch_x86_64: {
+      int regClass_;
+      int regNum;
+      int regPos;
 
-                                  return constAddrExpr;
-                              }
-                              machReg.getROSERegister(regClass_, regNum, regPos);
-                              if (regClass_ < 0) return NULL;
-                              return new SgAsmx86RegisterReferenceExpression((X86RegisterClass) regClass_,
-                                      regNum,
-                                      (X86PositionInRegister) regPos);
-                          }
-        case Arch_ppc32: 
-        case Arch_ppc64: {
-                             int regClass_;
-                             int regNum;
-                             int regPos;
-                             SgAsmDirectRegisterExpression *dre;
-                             machReg.getROSERegister(regClass_, regNum, regPos);
-                             if (regClass_ < 0) return NULL;
-                             if (regClass_ == powerpc_regclass_cr) {
-                                 // ROSE treats CR as one register, so regNum is always 0. 
-                                 // CR0 to CR7 are 8 subfields within CR.
-                                 // CR0 has register offset 0
-                                 // CR1 has register offset 4
-                                 dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass_, regNum, regPos * 4, 4));
-                                 dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, 4, false));
-                             } else {
-                                 dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass_, regNum, regPos, machReg.size() * 8));
-                                 dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
-                             }
-                             return dre;
-                         }
-        case Arch_aarch64: {
-                               int regClass_;
-                               int regNum;
-                               int regPos;
+      if (machReg.isPC()) {
+        // ideally this would be symbolic
+        // When ip is read, the value read is not the address of the current instruction,
+        // but the address of the next instruction.
+        SgAsmExpression *constAddrExpr;
+        if (arch == Arch_x86)
+          constAddrExpr = new SgAsmDoubleWordValueExpression(addr_ + size_);
+        else
+          constAddrExpr = new SgAsmQuadWordValueExpression(addr_ + size_);
 
-                               machReg.getROSERegister(regClass_, regNum, regPos);
-                               if (regClass_ < 0) return NULL;
-                               SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass_, regNum, regPos, machReg.size() * 8));
-                               dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
-                               return dre;
-                           }
-        case Arch_amdgpu_gfx908:
-        case Arch_amdgpu_gfx90a: 
-        case Arch_amdgpu_gfx940: {
-                               int regClass_;
-                               int regNum;
-                               int regPos;
-
-                               machReg.getROSERegister(regClass_, regNum, regPos);
-                               if (regClass_ < 0) return NULL;
-                               //std::cout << " after get rose register, regClass_ = " << regClass_ << " regNum = " << regNum    << std::endl;
-                               // TODO : it is not clear how regsize adn such should be set, for now we just follow aarch64's implementation
-                               SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass_, regNum, regPos, machReg.size() * 8));
-                               dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
-                               return dre;
-                           }
- 
-        default:
-                          return NULL;
+        return constAddrExpr;
+      }
+      machReg.getROSERegister(regClass_, regNum, regPos);
+      if (regClass_ < 0) return NULL;
+      return new SgAsmx86RegisterReferenceExpression((X86RegisterClass) regClass_, regNum,
+          (X86PositionInRegister) regPos);
     }
+    case Arch_ppc32:
+    case Arch_ppc64: {
+      int regClass_;
+      int regNum;
+      int regPos;
+      SgAsmDirectRegisterExpression *dre;
+      machReg.getROSERegister(regClass_, regNum, regPos);
+      if (regClass_ < 0) return NULL;
+      if (regClass_ == powerpc_regclass_cr) {
+        // ROSE treats CR as one register, so regNum is always 0.
+        // CR0 to CR7 are 8 subfields within CR.
+        // CR0 has register offset 0
+        // CR1 has register offset 4
+        dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass_, regNum, regPos * 4, 4));
+        dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, 4, false));
+      } else {
+        dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass_, regNum, regPos, machReg.size() * 8));
+        dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
+      }
+      return dre;
+    }
+    case Arch_aarch64: {
+      int regClass_;
+      int regNum;
+      int regPos;
+
+      machReg.getROSERegister(regClass_, regNum, regPos);
+      if (regClass_ < 0) return NULL;
+      SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(
+          RegisterDescriptor(regClass_, regNum, regPos, machReg.size() * 8));
+      dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
+      return dre;
+    }
+    case Arch_amdgpu_gfx908:
+    case Arch_amdgpu_gfx90a:
+    case Arch_amdgpu_gfx940: {
+      int regClass_;
+      int regNum;
+      int regPos;
+
+      machReg.getROSERegister(regClass_, regNum, regPos);
+      if (regClass_ < 0) return NULL;
+      //std::cout << " after get rose register, regClass_ = " << regClass_ << " regNum = " << regNum    << std::endl;
+      // TODO : it is not clear how regsize adn such should be set, for now we just follow aarch64's implementation
+      SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(
+          RegisterDescriptor(regClass_, regNum, regPos, machReg.size() * 8));
+      dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
+      return dre;
+    }
+
+    default:
+      return NULL;
+  }
 }
 
 SgAsmExpression *ExpressionConversionVisitor::makeSegRegExpr() {
