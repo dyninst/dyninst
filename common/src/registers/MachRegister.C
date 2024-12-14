@@ -826,28 +826,6 @@ namespace Dyninst {
 	    break;
         }
         break;
-      case Arch_ppc32: {
-        baseID = reg & 0x0000FFFF;
-        n = baseID;
-        switch(category) {
-          case ppc32::GPR: c = powerpc_regclass_gpr; break;
-          case ppc32::FPR:
-          case ppc32::FSR: c = powerpc_regclass_fpr; break;
-          case ppc32::SPR: {
-            if(baseID < 613) {
-              c = powerpc_regclass_spr;
-            } else if(baseID < 621) {
-              c = powerpc_regclass_sr;
-            } else {
-              c = powerpc_regclass_cr;
-              n = 0;
-              p = baseID - 621;
-            }
-          } break;
-          default: c = -1; return;
-        }
-        return;
-      } break;
       case Arch_ppc64: {
         baseID = reg & 0x0000FFFF;
         n = baseID;

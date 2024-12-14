@@ -28,6 +28,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "ExpressionConversionVisitor.h"
+#include "external/rose/amdgpuInstructionEnum.h"
+#include "external/rose/powerpcInstructionEnum.h"
+#include "dataflowAPI/rose/registers/convert.h"
 
 #include "debug_dataflow.h"
 
@@ -295,23 +298,13 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
     }
     case Arch_ppc32:
     case Arch_ppc64: {
-      int regClass_;
-      int regNum;
-      int regPos;
-      SgAsmDirectRegisterExpression *dre;
-      machReg.getROSERegister(regClass_, regNum, regPos);
-      if (regClass_ < 0) return NULL;
-      if (regClass_ == powerpc_regclass_cr) {
-        // ROSE treats CR as one register, so regNum is always 0.
-        // CR0 to CR7 are 8 subfields within CR.
-        // CR0 has register offset 0
-        // CR1 has register offset 4
-        dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass_, regNum, regPos * 4, 4));
-        dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, 4, false));
-      } else {
-        dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass_, regNum, regPos, machReg.size() * 8));
-        dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
+      auto regDesc = RegisterDescriptor(machReg);
+      if(!regDesc.is_valid()) {
+        convert_printf("Failed to find ROSE register for %s\n", machReg.name().c_str());
+        return nullptr;
       }
+      auto *dre = new SgAsmDirectRegisterExpression(regDesc);
+      dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, regDesc.get_nbits(), false));
       return dre;
     }
     case Arch_aarch64: {
