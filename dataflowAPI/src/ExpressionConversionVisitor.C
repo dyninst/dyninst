@@ -266,7 +266,6 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
 
   MachRegister machReg = regast->getID();
 
-  //std::cout << " in " << __func__ << " idx = " << machReg << " arch = " << arch   << std::endl;
   switch (arch) {
     case Arch_x86:
     case Arch_x86_64: {
