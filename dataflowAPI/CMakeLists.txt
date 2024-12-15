@@ -9,6 +9,7 @@ set(_rose_sources
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/Registers.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/RegisterStateGeneric.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/SymEvalSemantics.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/convert.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Assert.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Attribute.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Combinatorics.C
@@ -72,6 +73,7 @@ set(_dataflow_private_headers
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/typedefs.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/x86_64InstructionSemantics.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/x86InstructionSemantics.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/convert.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/BaseSemantics2.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherAMDGPU.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherARM64.h

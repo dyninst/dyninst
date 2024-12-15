@@ -1,0 +1,48 @@
+#include "rose/registers/convert.h"
+
+#include "dataflowAPI/src/debug_dataflow.h"
+
+namespace Dyninst { namespace DataflowAPI {
+
+  rose_reg_raw_t convertToROSERegister(Dyninst::MachRegister reg) {
+
+    /*
+     * A ROSE register has a major version, minor version, position, and size.
+     *
+     * These map to a MachRegister as follows:
+     *
+     *  category -> major version
+     *  baseID   -> minor version
+     *  subrange -> position
+     *
+     * The major version, register position, and size (in bits) are based on the
+     * user-provided register.
+     *
+     * On most platforms, ROSE only has minor versions for the most-basal registers.
+     *
+     *  For example, the aarch64 8-bit FPR b0 is mapped to the 128-bit q0 represented
+     *  by armv8_simdfpr_v0.
+     *
+     *  For x86, ROSE sometimes uses the 16-bit names and sometimes the 64-bit names.
+     *
+     *  For example, the major version for 'rax' is x86_gpr_ax, and the major version
+     *  for 'r15' is x86_gpr_r15.
+     *
+     */
+    auto const category = reg.regClass();
+    auto const baseID = reg.getBaseRegister().val() & 0x000000ff;
+    auto const subrange = reg.val() & 0x0000ff00;
+
+    // MachRegister::size is in _bytes_
+    auto const num_bits = 8*static_cast<int32_t>(reg.size());
+
+    // A RegisterDescriptor descriptor is invalid if it has no bits
+    auto const INVALID_REG = std::make_tuple(0,0,0,0);
+
+    switch(reg.getArchitecture()) {
+    }
+    convert_printf("Unknown Architecture 0x%X\n", reg.getArchitecture());
+    return INVALID_REG;
+  }
+
+}}
