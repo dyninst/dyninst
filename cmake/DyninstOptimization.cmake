@@ -74,6 +74,10 @@ if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
   if(DYNINST_FORCE_RUNPATH)
     list(APPEND DYNINST_LINK_FLAGS "-Wl,--enable-new-dtags")
   endif()
+  
+  if(DYNINST_WARNINGS_AS_ERRORS)
+    list(APPEND DYNINST_LINK_FLAGS "-Wl,--fatal-warnings")
+  endif()
 elseif(MSVC)
   set(DYNINST_FORCE_FRAME_POINTER /Oy-)
 
