@@ -32,7 +32,7 @@
 #define DYNINST_MACHREGISTER_h
 
 #include "Architecture.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 
 #include <string>
 #include <vector>
