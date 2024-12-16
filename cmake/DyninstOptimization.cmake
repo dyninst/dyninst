@@ -108,3 +108,6 @@ unset(_build_type)
 
 # Merge the link flags for C++
 list(APPEND DYNINST_CXX_LINK_FLAGS ${DYNINST_LINK_FLAGS})
+
+message(STATUS "DYNINST_CXX_LINK_FLAGS: ${DYNINST_CXX_LINK_FLAGS}")
+message(STATUS "DYNINST_CXX_FLAGS: ${DYNINST_CXX_FLAGS}")
