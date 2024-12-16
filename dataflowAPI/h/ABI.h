@@ -30,6 +30,7 @@
 #ifndef ABI_H
 #define ABI_H
 
+#include "dyntypes.h"
 #include "registers/MachRegister.h"
 #include "bitArray.h"
 #include <map>
