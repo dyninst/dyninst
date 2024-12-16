@@ -28,8 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-//#warning "This file is not implemented yet!"
-
 #include <string>
 #include <dlfcn.h>
 
@@ -103,19 +101,10 @@ bool Frame::setPC(Dyninst::Address newpc) {
 
    //fprintf(stderr, "[%s:%u] - Frame::setPC setting %x to %x",
    //__FILE__, __LINE__, pcAddr_, newpc);
-   if (getProc()->getAddressWidth() == sizeof(uint64_t)) {
-      uint64_t newpc64 = newpc;
-      if (!getProc()->writeDataSpace((void*)pcAddr, sizeof(newpc64), &newpc64))
-         return false;
-      sw_frame_.setRA(newpc64);
-   }
-   else {
-      uint32_t newpc32 = newpc;
-      if (!getProc()->writeDataSpace((void*)pcAddr, sizeof(newpc32), &newpc32))
-         return false;
-      sw_frame_.setRA(newpc32);
-   }
-
+   uint64_t newpc64 = newpc;
+   if (!getProc()->writeDataSpace((void *)pcAddr, sizeof(newpc64), &newpc64))
+       return false;
+   sw_frame_.setRA(newpc64);
    return true;
 }
 
