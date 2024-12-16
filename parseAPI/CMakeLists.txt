@@ -57,8 +57,6 @@ set(DATAFLOW_SRC
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Visitors.C)
 
 set(ROSE_SRC
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/ExtentMap.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/rangemap.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Assert.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Message.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Sawyer.C
@@ -76,7 +74,6 @@ set(ROSE_SRC
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherPowerpc.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/RegisterParts.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/Registers.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/BinarySymbolicExpr.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/RegisterStateGeneric.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/SymEvalSemantics.C)
 

@@ -5,7 +5,6 @@
 #include "Registers.h"
 #include "../util/FormatRestorer.h"
 #include "../conversions.h"
-#include "SMTSolver.h"
 
 #include <ostream>
 #include <stddef.h>
@@ -23,6 +22,8 @@
 #include "../util/Map.h"
 #include "../util/Optional.h"
 #include "../util/Set.h"
+#include "../util/SharedPointer.h"
+#include "../util/SmallObject.h"
 
 namespace rose {
     namespace BinaryAnalysis {
@@ -646,8 +647,7 @@ namespace rose {
                      *  If you always want a copy regardless of whether the merge is necessary, then use the @ref createMerged convenience
                      *  function instead. */
                     virtual Sawyer::Optional<SValuePtr>
-                            createOptionalMerge(const SValuePtr &other, const MergerPtr &merger,
-                                                SMTSolver *solver) const = 0;
+                            createOptionalMerge(const SValuePtr &other, const MergerPtr &merger) const = 0;
 
                     /** Create a new value by merging two existing values.
                      *
@@ -655,9 +655,8 @@ namespace rose {
                      *  regardless of whether a merge was necessary.  In order to determine if a merge was necessary one can compare the
                      *  return value to @p this using @ref must_equal, although doing so is more expensive than calling @ref
                      *  createOptionalMerge. */
-                    SValuePtr createMerged(const SValuePtr &other, const MergerPtr &merger,
-                                           SMTSolver *solver) const /*final*/ {
-                        return createOptionalMerge(other, merger, solver).orElse(copy());
+                    SValuePtr createMerged(const SValuePtr &other, const MergerPtr &merger) const /*final*/ {
+                        return createOptionalMerge(other, merger).orElse(copy());
                     }
 
                     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -692,13 +691,6 @@ namespace rose {
 
                     virtual void set_width(size_t nbits) { width = nbits; }
                     /** @} */
-
-                    // Commenting these out because they're used nowhere
-                    /** Returns true if two values could be equal. The SMT solver is optional for many subclasses. */
-                    //virtual bool may_equal(const SValuePtr &other, SMTSolver *solver = NULL) const = 0;
-
-                    /** Returns true if two values must be equal.  The SMT solver is optional for many subclasses. */
-                    //virtual bool must_equal(const SValuePtr &other, SMTSolver *solver = NULL) const = 0;
 
                     /** Returns true if concrete non-zero. This is not virtual since it can be implemented in terms of @ref is_number and @ref
                      *  get_number. */
@@ -1408,7 +1400,6 @@ namespace rose {
                     SValuePtr protoval_;                                // Prototypical value used for its virtual constructors
                     StatePtr currentState_;                             // State upon which RISC operators operate
                     StatePtr initialState_;                             // Lazily updated initial state; see readMemory
-                    SMTSolver *solver_;                                 // Optional SMT solver
                     SgAsmInstruction *currentInsn_;                     // Current instruction, as set by latest startInstruction call
                     size_t nInsns_;                                     // Number of instructions processed
                     std::string name_;                                  // Name to use for debugging
@@ -1416,13 +1407,13 @@ namespace rose {
                     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                     // Real constructors
                 protected:
-                    explicit RiscOperators(const SValuePtr &protoval, SMTSolver *solver = NULL)
-                            : protoval_(protoval), solver_(solver), currentInsn_(NULL), nInsns_(0) {
+                    explicit RiscOperators(const SValuePtr &protoval)
+                            : protoval_(protoval), currentInsn_(NULL), nInsns_(0) {
                         ASSERT_not_null(protoval_);
                     }
 
-                    explicit RiscOperators(const StatePtr &state, SMTSolver *solver = NULL)
-                            : currentState_(state), solver_(solver), currentInsn_(NULL), nInsns_(0) {
+                    explicit RiscOperators(const StatePtr &state)
+                            : currentState_(state), currentInsn_(NULL), nInsns_(0) {
                         ASSERT_not_null(state);
                         protoval_ = state->protoval();
                     }
@@ -1444,13 +1435,13 @@ namespace rose {
                     /** Virtual allocating constructor.  The @p protoval is a prototypical semantic value that is used as a factory to create
                      *  additional values as necessary via its virtual constructors.  The state upon which the RISC operations operate must be
                      *  set by modifying the  @ref currentState property. An optional SMT solver may be specified (see @ref solver). */
-                    virtual RiscOperatorsPtr create(const SValuePtr &protoval, SMTSolver *solver = NULL) const = 0;
+                    virtual RiscOperatorsPtr create(const SValuePtr &protoval) const = 0;
 
                     /** Virtual allocating constructor.  The supplied @p state is that upon which the RISC operations operate and is also used
                      *  to define the prototypical semantic value. Other states can be supplied by setting @ref currentState. The prototypical
                      *  semantic value is used as a factory to create additional values as necessary via its virtual constructors. An optional
                      *  SMT solver may be specified (see @ref solver). */
-                    virtual RiscOperatorsPtr create(const StatePtr &state, SMTSolver *solver = NULL) const = 0;
+                    virtual RiscOperatorsPtr create(const StatePtr &state) const = 0;
 
                     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                     // Dynamic pointer casts.  No-op since this is the base class.
@@ -1472,24 +1463,6 @@ namespace rose {
                     virtual SValuePtr get_protoval() const {
                         return protoval();
                     }
-
-                    /** Property: Satisfiability module theory (SMT) solver.
-                     *
-                     *  This property holds a pointer to the satisfiability modulo theory (SMT) solver to use for certain operations.  An SMT
-                     *  solver is optional and not all semantic domains will make use of a solver.  Domains that use a solver will fall back to
-                     *  naive implementations when a solver is not available (for instance, equality of two values might be checked by looking
-                     *  at whether the values are identical).
-                     *
-                     * @{ */
-                    virtual SMTSolver *solver() const { return solver_; }
-
-                    virtual void solver(SMTSolver *s) { solver_ = s; }
-                    /** @} */
-
-                    // [Robb Matzke 2016-01-22]: deprecated
-                    virtual void set_solver(SMTSolver *s) { solver(s); }
-
-                    virtual SMTSolver *get_solver() const { return solver(); }
 
                     /** Property: Current semantic state.
                      *
