@@ -41,13 +41,12 @@
 
 #define GPRSIZE_32            4
 #define GPRSIZE_64            8
-#define FPRSIZE_32           32
+#define FPRSIZE_32            8
 #define FPRSIZE_64           16
 
-#define REG_FP               29
-#define REG_LR               30
-#define REG_SP               31
-#define REG_TOC               2   /* TOC anchor                            */
+#define REG_FP                8
+#define REG_RA                1
+#define REG_SP                2
 // REG_GUARD_OFFSET and REG_GUARD_VALUE could overlap.
 #define REG_GUARD_ADDR        5   /* Arbitrary                             */
 #define REG_GUARD_VALUE       6

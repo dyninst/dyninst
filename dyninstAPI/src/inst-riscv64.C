@@ -143,35 +143,14 @@ void registerSpace::initialize() {
 
 void EmitterRISCV64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset)
 {
-    // TODO
-    //     assert(scratchReg!=Null_Register);
-    // 
-    //     //TODO move map to common location
-    //     map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
-    //     if(!sysRegCodeMap.count(sprnum))
-    //         assert(!"Invalid/unknown system register passed to saveSPR()!");
-    // 
-    //     instruction insn;
-    //     insn.clear();
-    // 
-    //     //Set opcode for MRS instruction
-    //     INSN_SET(insn, 20, 31, MRSOp);
-    //     //Set destination register
-    //     INSN_SET(insn, 0, 4, scratchReg & 0x1F);
-    //     //Set bits representing source system register
-    //     INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
-    //     insnCodeGen::generate(gen, insn);
-    // 
-    //     insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, scratchReg,
-    //             REG_SP, stkOffset, 4, insnCodeGen::Pre);
+    // TODO RISC-V speical purpose register currently not supported
 }
 
 
 void EmitterRISCV64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save_off) {
     // TODO
     //     //Always performing save of the full FP register
-    //     insnCodeGen::generateMemAccessFP(gen, insnCodeGen::Store, reg, REG_SP, save_off, 0, true);
-
+    insnCodeGen::generateMemAccessFP(gen, insnCodeGen::Store, reg, REG_SP, save_off, 0, true);
 }
 
 /********************************* Public methods *********************************************/
@@ -179,21 +158,20 @@ void EmitterRISCV64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save
 unsigned EmitterRISCV64SaveRegs::saveGPRegisters(
         codeGen &gen, registerSpace *theRegSpace, int offset, int numReqGPRs)
 {
-    // TODO
     int ret = 0;
-    //     if(numReqGPRs == -1) numReqGPRs = theRegSpace->numGPRs();
-    // 
-    //     for(int idx = 0; idx < numReqGPRs; idx++) {
-    //         registerSlot *reg = theRegSpace->GPRs()[idx];
-    //  // We always save FP and LR for stack walking out of instrumentation
-    //         if (reg->liveState == registerSlot::live || reg->number == REG_FP || reg->number == REG_LR) {
-    //             int offset_from_sp = offset + (reg->encoding() * gen.width());
-    //             insnCodeGen::saveRegister(gen, reg->number, offset_from_sp);
-    //             theRegSpace->markSavedRegister(reg->number, offset_from_sp);
-    //             ret++;
-    //         }
-    //     }
-    // 
+    if (numReqGPRs == -1) numReqGPRs = theRegSpace->numGPRs();
+
+    for (int idx = 0; idx < numReqGPRs; idx++) {
+        registerSlot *reg = theRegSpace->GPRs()[idx];
+        // We always save FP and LR for stack walking out of instrumentation
+        if (reg->liveState == registerSlot::live || reg->number == REG_FP || reg->number == REG_RA) {
+            int offset_from_sp = offset + (reg->encoding() * gen.width());
+            insnCodeGen::saveRegister(gen, reg->number, offset_from_sp);
+            theRegSpace->markSavedRegister(reg->number, offset_from_sp);
+            ret++;
+        }
+    }
+
     return ret;
 }
 
@@ -202,17 +180,15 @@ unsigned EmitterRISCV64SaveRegs::saveFPRegisters(
 {
     unsigned ret = 0;
 
-    //     for(int idx = 0; idx < theRegSpace->numFPRs(); idx++) {
-    //         registerSlot *reg = theRegSpace->FPRs()[idx];
-    // 
-    //         //if(reg->liveState == registerSlot::live) {
-    //             int offset_from_sp = offset + (reg->encoding() * (idx < 32 ? FPRSIZE_32 : FPRSIZE_64));
-    //             saveFPRegister(gen, reg->number, offset_from_sp);
-    //             //reg->liveState = registerSlot::spilled;
-    //             theRegSpace->markSavedRegister(reg->number, offset_from_sp);
-    //             ret++;
-    //         //}
-    //     }
+    for (int idx = 0; idx < theRegSpace->numFPRs(); idx++) {
+        registerSlot *reg = theRegSpace->FPRs()[idx];
+
+        // no liveness for floating points currently, so save all
+        int offset_from_sp = offset + (reg->encoding() * (idx < 32 ? FPRSIZE_32 : FPRSIZE_64));
+        saveFPRegister(gen, reg->number, offset_from_sp);
+        theRegSpace->markSavedRegister(reg->number, offset_from_sp);
+        ret++;
+    }
 
     return ret;
 }
@@ -221,52 +197,22 @@ unsigned EmitterRISCV64SaveRegs::saveSPRegisters(
         codeGen &gen, registerSpace *theRegSpace, int offset, bool force_save)
 {
     int ret = 0;
-
-    //     std::vector<registerSlot *> spRegs;
-    //     map<registerSlot *, int> regMap;
-    // 
-    //     registerSlot *regNzcv = (*theRegSpace)[registerSpace::pstate];
-    //     assert(regNzcv);
-    //     regMap[regNzcv] = SPR_NZCV;
-    //     if(force_save || regNzcv->liveState == registerSlot::live)
-    //         spRegs.push_back(regNzcv);
-    // 
-    //     registerSlot *regFpcr = (*theRegSpace)[registerSpace::fpcr];
-    //     assert(regFpcr);
-    //     regMap[regFpcr] = SPR_FPCR;
-    //     if(force_save || regFpcr->liveState == registerSlot::live)
-    //         spRegs.push_back(regFpcr);
-    // 
-    //     registerSlot *regFpsr = (*theRegSpace)[registerSpace::fpsr];
-    //     assert(regFpsr);
-    //     regMap[regFpsr] = SPR_FPSR;
-    //     if(force_save || regFpsr->liveState == registerSlot::live)
-    //         spRegs.push_back(regFpsr);
-    // 
-    //     for(std::vector<registerSlot *>::iterator itr = spRegs.begin(); itr != spRegs.end(); itr++) {
-    //         registerSlot *cur = *itr;
-    //         saveSPR(gen, theRegSpace->getScratchRegister(gen, true), regMap[cur], -4*GPRSIZE_32);
-    //         theRegSpace->markSavedRegister(cur->number, offset);
-    // 
-    //         offset += 4*GPRSIZE_32;
-    //         ret++;
-    //     }
-
+    // TODO RISC-V speical purpose register currently not supported
     return ret;
 }
 
 void EmitterRISCV64SaveRegs::createFrame(codeGen &gen) {
-    //     //Save link register
-    //     Register linkRegister = gen.rs()->getRegByName("r30");
-    //     insnCodeGen::saveRegister(gen, linkRegister, -2*GPRSIZE_64);
-    // 
-    //     //Save frame pointer
-    //     Register framePointer = gen.rs()->getRegByName("r29");
-    //     insnCodeGen::saveRegister(gen, framePointer, -2*GPRSIZE_64);
-    // 
-    //     //Move stack pointer to frame pointer
-    //     Register stackPointer = gen.rs()->getRegByName("sp");
-    //     insnCodeGen::generateMoveSP(gen, stackPointer, framePointer, true);
+    // Save link register
+    Register linkRegister = gen.rs()->getRegByName("r1");
+    insnCodeGen::saveRegister(gen, linkRegister, -2 * GPRSIZE_64);
+
+    // Save frame pointer
+    Register framePointer = gen.rs()->getRegByName("r8");
+    insnCodeGen::saveRegister(gen, framePointer, -2 * GPRSIZE_64);
+
+    // Move stack pointer to frame pointer
+    Register stackPointer = gen.rs()->getRegByName("r2");
+    insnCodeGen::generateMoveSP(gen, stackPointer, framePointer, true);
 }
 
 /***********************************************************************************************/
@@ -281,16 +227,15 @@ unsigned EmitterRISCV64RestoreRegs::restoreGPRegisters(
 {
     unsigned ret = 0;
 
-    //     for(int idx = theRegSpace->numGPRs()-1; idx >=0; idx--) {
-    //         registerSlot *reg = theRegSpace->GPRs()[idx];
-    // 
-    //         if(reg->liveState == registerSlot::spilled) {
-    //             //#sasha this should be GPRSIZE_64 and not gen.width
-    //             int offset_from_sp = offset + (reg->encoding() * gen.width());
-    //             insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp);
-    //             ret++;
-    //         }
-    //     }
+    for (int idx = theRegSpace->numGPRs() - 1; idx >= 0; idx--) {
+        registerSlot *reg = theRegSpace->GPRs()[idx];
+
+        if (reg->liveState == registerSlot::spilled) {
+            int offset_from_sp = offset + (reg->encoding() * GPRSIZE_64);
+            insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp);
+            ret++;
+        }
+    }
 
     return ret;
 }
@@ -300,15 +245,14 @@ unsigned EmitterRISCV64RestoreRegs::restoreFPRegisters(
 {
     unsigned ret = 0;
 
-    //     for(int idx = theRegSpace->numFPRs() - 1; idx >= 0; idx--) {
-    //         registerSlot *reg = theRegSpace->FPRs()[idx];
-    // 
-    //         //if(reg->liveState == registerSlot::spilled) {
-    //             int offset_from_sp = offset + (reg->encoding() * (idx < 32 ? FPRSIZE_32 : FPRSIZE_64));
-    //             restoreFPRegister(gen, reg->number, offset_from_sp);
-    //             ret++;
-    //         //}
-    //     }
+    for (int idx = theRegSpace->numFPRs() - 1; idx >= 0; idx--) {
+        registerSlot *reg = theRegSpace->FPRs()[idx];
+
+        // no liveness for floating points currently, so save all
+        int offset_from_sp = offset + (reg->encoding() * (idx < 32 ? FPRSIZE_32 : FPRSIZE_64));
+        restoreFPRegister(gen, reg->number, offset_from_sp);
+        ret++;
+    }
 
     return ret;
 }
@@ -317,46 +261,18 @@ unsigned EmitterRISCV64RestoreRegs::restoreSPRegisters(
         codeGen &gen, registerSpace *theRegSpace, int, int force_save)
 {
     int ret = 0;
-
-    //     std::vector<registerSlot *> spRegs;
-    //     map<registerSlot *, int> regMap;
-    // 
-    // 
-    //     registerSlot *regFpsr = (*theRegSpace)[registerSpace::fpsr];
-    //     assert(regFpsr);
-    //     regMap[regFpsr] = SPR_FPSR;
-    //     if(force_save || regFpsr->liveState == registerSlot::spilled)
-    //         spRegs.push_back(regFpsr);
-    // 
-    //     registerSlot *regFpcr = (*theRegSpace)[registerSpace::fpcr];
-    //     assert(regFpcr);
-    //     regMap[regFpcr] = SPR_FPCR;
-    //     if(force_save || regFpcr->liveState == registerSlot::spilled)
-    //         spRegs.push_back(regFpcr);
-    // 
-    //     registerSlot *regNzcv = (*theRegSpace)[registerSpace::pstate];
-    //     assert(regNzcv);
-    //     regMap[regNzcv] = SPR_NZCV;
-    //     if(force_save || regNzcv->liveState == registerSlot::spilled)
-    //         spRegs.push_back(regNzcv);
-    // 
-    //     for(std::vector<registerSlot *>::iterator itr = spRegs.begin(); itr != spRegs.end(); itr++) {
-    //         registerSlot *cur = *itr;
-    //         restoreSPR(gen, theRegSpace->getScratchRegister(gen, true), regMap[cur], 4*GPRSIZE_32);
-    //         ret++;
-    //     }
-
+    // TODO RISC-V speical purpose register currently not supported
     return ret;
 }
 
 void EmitterRISCV64RestoreRegs::tearFrame(codeGen &gen) {
-    //     //Restore frame pointer
-    //     Register framePointer = gen.rs()->getRegByName("r29");
-    //     insnCodeGen::restoreRegister(gen, framePointer, 2*GPRSIZE_64);
-    // 
-    //     //Restore link register
-    //     Register linkRegister = gen.rs()->getRegByName("r30");
-    //     insnCodeGen::restoreRegister(gen, linkRegister, 2*GPRSIZE_64);
+    // Restore frame pointer
+    Register framePointer = gen.rs()->getRegByName("r8");
+    insnCodeGen::restoreRegister(gen, framePointer, 2 * GPRSIZE_64);
+
+    // Restore link register
+    Register linkRegister = gen.rs()->getRegByName("r1");
+    insnCodeGen::restoreRegister(gen, linkRegister, 2 * GPRSIZE_64);
 }
 
 
@@ -364,27 +280,11 @@ void EmitterRISCV64RestoreRegs::tearFrame(codeGen &gen) {
 
 void EmitterRISCV64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset)
 {
-    //     insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratchReg, REG_SP, stkOffset, 4);
-    // 
-    //     //TODO move map to common location
-    //     map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
-    //     if (!sysRegCodeMap.count(sprnum))
-    //         assert(!"Invalid/unknown system register passed to restoreSPR()!");
-    // 
-    //     instruction insn;
-    //     insn.clear();
-    // 
-    //     //Set opcode for MSR (register) instruction
-    //     INSN_SET(insn, 20, 31, MSROp);
-    //     //Set source register
-    //     INSN_SET(insn, 0, 4, scratchReg & 0x1F);
-    //     //Set bits representing destination system register
-    //     INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
-    //     insnCodeGen::generate(gen, insn);
+    // TODO RISC-V speical purpose register currently not supported
 }
 
 void EmitterRISCV64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, int save_off) {
-    //     insnCodeGen::generateMemAccessFP(gen, insnCodeGen::Load, reg, REG_SP, save_off, 0, true);
+    insnCodeGen::generateMemAccessFP(gen, insnCodeGen::Load, reg, REG_SP, save_off, 0, true);
 }
 
 /***********************************************************************************************/
@@ -395,77 +295,78 @@ void EmitterRISCV64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, in
  */
 void pushStack(codeGen &gen)
 {
-    //     if (gen.width() == 8)
-    //         insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Sub, 0,
-    //                 TRAMP_FRAME_SIZE_64, REG_SP, REG_SP, true);
-    //     else
-    //         assert(0); // 32 bit not implemented
+    if (gen.width() == 8)
+        insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Sub, 0,
+                                             TRAMP_FRAME_SIZE_64, REG_SP, REG_SP, true);
+    else
+        assert(0);  // 32 bit not implemented
 }
 
 void popStack(codeGen &gen)
 {
-    //     if (gen.width() == 8)
-    //         insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0,
-    //                 TRAMP_FRAME_SIZE_64, REG_SP, REG_SP, true);
-    //     else
-    //         assert(0); // 32 bit not implemented
+    if (gen.width() == 8)
+        insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0,
+                                             TRAMP_FRAME_SIZE_64, REG_SP, REG_SP, true);
+    else
+        assert(0);  // 32 bit not implemented
 }
 
 /*********************************** Base Tramp ***********************************************/
 bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
 {
-    //     regalloc_printf("========== baseTramp::generateSaves\n");
-    // 
-    //     // Make a stack frame.
-    //     pushStack(gen);
-    // 
-    //     EmitterRISCV64SaveRegs saveRegs;
-    //     unsigned int width = gen.width();
-    // 
-    //     saveRegs.saveGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
-    //     // After saving GPR, we move SP to FP to create the instrumentation frame.
-    //     // Note that Dyninst instrumentation frame has a different structure
-    //     // compared to stack frame created by the compiler.
-    //     //
-    //     // Dyninst instrumentation frame makes sure that FP and SP are the same.
-    //     // So, during stack walk, the FP retrived from the previous frame is 
-    //     // the SP of the current instrumentation frame.
-    //     //
-    //     // Note: If the implementation of the instrumentation frame layout
-    //     // needs to be changed, DyninstDynamicStepperImpl::getCallerFrameArch
-    //     // in stackwalk/src/riscv64-swk.C also likely needs to be changed accordingly
-    //     insnCodeGen::generateMoveSP(gen, REG_SP, REG_FP, true);
-    //     gen.markRegDefined(REG_FP);
-    // 
-    //     bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
-    //                    (BPatch::bpatch->isSaveFPROn()      &&
-    //                     gen.rs()->anyLiveFPRsAtEntry()     &&
-    //                     this->saveFPRs());
-    // 
-    //     if(saveFPRs) saveRegs.saveFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
-    //     this->savedFPRs = saveFPRs;
-    // 
-    //     saveRegs.saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
-    //     //gen.rs()->debugPrint();
+    regalloc_printf("========== baseTramp::generateSaves\n");
+
+    // Make a stack frame.
+    pushStack(gen);
+
+    EmitterRISCV64SaveRegs saveRegs;
+    unsigned int width = gen.width();
+
+    saveRegs.saveGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
+    // After saving GPR, we move SP to FP to create the instrumentation frame.
+    // Note that Dyninst instrumentation frame has a different structure
+    // compared to stack frame created by the compiler.
+    //
+    // Dyninst instrumentation frame makes sure that FP and SP are the same.
+    // So, during stack walk, the FP retrived from the previous frame is
+    // the SP of the current instrumentation frame.
+    //
+    // Note: If the implementation of the instrumentation frame layout
+    // needs to be changed, DyninstDynamicStepperImpl::getCallerFrameArch
+    // in stackwalk/src/riscv64-swk.C also likely needs to be changed accordingly
+    insnCodeGen::generateMoveSP(gen, REG_SP, REG_FP, true);
+    gen.markRegDefined(REG_FP);
+
+    bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
+                    (BPatch::bpatch->isSaveFPROn() &&
+                     gen.rs()->anyLiveFPRsAtEntry() &&
+                     this->saveFPRs());
+
+    if (saveFPRs) saveRegs.saveFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
+    this->savedFPRs = saveFPRs;
+
+    // TODO RISC-V speical purpose register currently not supported
+    //saveRegs.saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
 
     return true;
 }
 
 bool baseTramp::generateRestores(codeGen &gen, registerSpace *)
 {
-    //     EmitterRISCV64RestoreRegs restoreRegs;
-    //     unsigned int width = gen.width();
-    // 
-    //     restoreRegs.restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
-    // 
-    //     if(this->savedFPRs)
-    //         restoreRegs.restoreFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
-    // 
-    //     restoreRegs.restoreGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
-    // 
-    //     // Tear down the stack frame.
-    //     popStack(gen);
-    // 
+    EmitterRISCV64RestoreRegs restoreRegs;
+    unsigned int width = gen.width();
+
+    // TODO RISC-V speical purpose register currently not supported
+    //restoreRegs.restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
+
+    if (this->savedFPRs)
+        restoreRegs.restoreFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
+
+    restoreRegs.restoreGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
+
+    // Tear down the stack frame.
+    popStack(gen);
+
     return true;
 }
 
