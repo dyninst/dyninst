@@ -8,6 +8,7 @@
 
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/filesystem.hpp>
 #include <fcntl.h> /*for O_RDWR, etc.*/
 #include "../util/Stopwatch.h"
 
@@ -86,25 +87,18 @@ namespace rose {
             output_text = "";
 
             /* Generate the input file for the solver. */
+            namespace bf = boost::filesystem;
             struct TempFile {
                 std::ofstream file;
-                char name[L_tmpnam];
+                bf::path path;
 
                 TempFile() {
-                    while (1) {
-                        tmpnam(name);
-                        int fd = open(name, O_RDWR | O_EXCL | O_CREAT, 0666);
-                        if (fd >= 0) {
-                            close(fd);
-                            break;
-                        }
-                    }
-                    std::ofstream config(name);
-                    file.open(name);
+                  path = bf::unique_path("DYNINST_SMTSOLVER_%%%%-%%%%-%%%%-%%%%");
+                  file.open(path.native());
                 }
 
                 ~TempFile() {
-                    unlink(name);
+                    bf::remove(path);
                 }
             } tmpfile;
 
@@ -126,9 +120,9 @@ namespace rose {
 
             /* Show solver input */
             if (debug) {
-                fprintf(debug, "SMT Solver input in %s:\n", tmpfile.name);
+                fprintf(debug, "SMT Solver input in %s:\n", tmpfile.path.c_str());
                 size_t n = 0;
-                std::ifstream f(tmpfile.name);
+                std::ifstream f(tmpfile.path.native());
                 while (!f.eof()) {
                     std::string line;
                     std::getline(f, line);
@@ -139,7 +133,7 @@ namespace rose {
             /* Run the solver and read its output. The first line should be the word "sat" or "unsat" */
             {
                 Sawyer::Stopwatch stopwatch;
-                std::string cmd = get_command(tmpfile.name);
+                std::string cmd = get_command(tmpfile.path.native());
                 FILE *output = popen(cmd.c_str(), "r");
                 ASSERT_not_null(output);
                 char *line = NULL;
