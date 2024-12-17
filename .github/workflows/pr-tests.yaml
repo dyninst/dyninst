@@ -9,6 +9,8 @@ on:
        - '**.h'
        - '**.C'
        - '**.c'
+       - '**.cmake'
+       - '**CMakeLists.txt'
   workflow_dispatch:
 
 jobs:
