@@ -29,13 +29,9 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
-      with:
-        path: "build-checkout"
-
     - name: Build
       if: ${{ startsWith(inputs.os, 'fedora') }}
-      uses: ./build-checkout/.github/actions/build-fedora 
+      uses: dyninst/dyninst/.github/actions/build-fedora@master
       with:
         extra-cmake-flags: "-DDYNINST_WARNINGS_AS_ERRORS=ON ${{ inputs.extra-cmake-flags }}"
         compiler: ${{ inputs.compiler }}
@@ -48,7 +44,7 @@ runs:
 
     - name: Build
       if: ${{ startsWith(inputs.os, 'ubuntu') }}
-      uses: ./build-checkout/.github/actions/build-ubuntu
+      uses: dyninst/dyninst/.github/actions/build-ubuntu@master
       with:
         extra-cmake-flags: "-DDYNINST_WARNINGS_AS_ERRORS=ON ${{ inputs.extra-cmake-flags }}"
         compiler: ${{ inputs.compiler }}
