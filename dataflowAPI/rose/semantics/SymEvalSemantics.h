@@ -94,7 +94,7 @@ namespace rose {
                     }
 
                     virtual Sawyer::Optional<BaseSemantics::SValuePtr>
-                            createOptionalMerge(const BaseSemantics::SValuePtr &/*other*/, const BaseSemantics::MergerPtr&, SMTSolver*) const {
+                            createOptionalMerge(const BaseSemantics::SValuePtr &/*other*/, const BaseSemantics::MergerPtr&) const {
                         ASSERT_not_implemented("SValue::createOptionalMerge not implemented for use in dyninst");
                     }
 
@@ -468,35 +468,32 @@ namespace rose {
                  */
                 class RiscOperatorsAST : public BaseSemantics::RiscOperators {
                 protected:
-                    RiscOperatorsAST(const BaseSemantics::SValuePtr &protoval, SMTSolver *solver = NULL)
-                            : BaseSemantics::RiscOperators(protoval, solver) {
+                    RiscOperatorsAST(const BaseSemantics::SValuePtr &protoval)
+                            : BaseSemantics::RiscOperators(protoval) {
                         (void)SValue::promote(protoval);
                     }
 
-                    RiscOperatorsAST(const BaseSemantics::StatePtr &state, SMTSolver *solver = NULL)
-                            : BaseSemantics::RiscOperators(state, solver) {
+                    RiscOperatorsAST(const BaseSemantics::StatePtr &state)
+                            : BaseSemantics::RiscOperators(state) {
                         (void)SValue::promote(state->protoval());
                     }
 
                 public:
-                    static RiscOperatorsASTPtr instance(const BaseSemantics::SValuePtr &protoval,
-                                                     SMTSolver *solver = NULL) {
-                        return RiscOperatorsASTPtr(new RiscOperatorsAST(protoval, solver));
+                    static RiscOperatorsASTPtr instance(const BaseSemantics::SValuePtr &protoval) {
+                        return RiscOperatorsASTPtr(new RiscOperatorsAST(protoval));
                     }
 
-                    static RiscOperatorsASTPtr instance(const BaseSemantics::StatePtr &state, SMTSolver *solver = NULL) {
-                        return RiscOperatorsASTPtr(new RiscOperatorsAST(state, solver));
+                    static RiscOperatorsASTPtr instance(const BaseSemantics::StatePtr &state) {
+                        return RiscOperatorsASTPtr(new RiscOperatorsAST(state));
                     }
 
                 public:
-                    virtual BaseSemantics::RiscOperatorsPtr create(const BaseSemantics::SValuePtr &protoval,
-                                                                   SMTSolver *solver = NULL) const {
-                        return instance(protoval, solver);
+                    virtual BaseSemantics::RiscOperatorsPtr create(const BaseSemantics::SValuePtr &protoval) const {
+                        return instance(protoval);
                     }
 
-                    virtual BaseSemantics::RiscOperatorsPtr create(const BaseSemantics::StatePtr &state,
-                                                                   SMTSolver *solver = NULL) const {
-                        return instance(state, solver);
+                    virtual BaseSemantics::RiscOperatorsPtr create(const BaseSemantics::StatePtr &state) const {
+                        return instance(state);
                     }
 
                 public:

@@ -732,8 +732,7 @@ RegisterStateGeneric::merge(const BaseSemantics::RegisterStatePtr &other_, RiscO
         if (is_partly_stored(otherReg)) {
             BaseSemantics::SValuePtr dflt = ops->undefined_(otherReg.get_nbits());
             BaseSemantics::SValuePtr thisValue = readRegister(otherReg, dflt, ops);
-            if (BaseSemantics::SValuePtr merged = thisValue->createOptionalMerge(otherValue, merger(),
-                                                                                 ops->solver()).orDefault()) {
+            if (BaseSemantics::SValuePtr merged = thisValue->createOptionalMerge(otherValue, merger()).orDefault()) {
                 writeRegister(otherReg, merged, ops);
                 changed = true;
             }

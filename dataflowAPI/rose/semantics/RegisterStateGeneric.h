@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include "BaseSemantics2.h"
+#include "../ExtentMap.h"
 
 namespace rose {
 namespace BinaryAnalysis {
