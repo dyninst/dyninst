@@ -1,6 +1,7 @@
 #ifndef ROSE_AMDGPUINSTRUCTIONENUM_H
 #define ROSE_AMDGPUINSTRUCTIONENUM_H
 enum AMDGPURegisterClass{
+  amdgpu_regclass_unknown,
 	amdgpu_regclass_hwr,
 	amdgpu_regclass_pc,
 	amdgpu_regclass_misc,

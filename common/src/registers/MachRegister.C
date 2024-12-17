@@ -2,7 +2,7 @@
 #include "registers/MachRegisterCache.h"
 #include "debug_common.h"
 #include "dyn_regs.h"
-#include "external/rose/amdgpuInstructionEnum.h"
+
 #include "external/rose/armv8InstructionEnum.h"
 #include "external/rose/powerpcInstructionEnum.h"
 #include "external/rose/rose-compat.h"
@@ -593,128 +593,6 @@ namespace Dyninst {
     return false;
   }
 
-  // reg_idx needs to be set as the offset from base register
-  // offset needs to be set as the offset inside the register
-
-  static void getAmdgpuGfx908RoseRegister(int& reg_class, int& reg_idx, int& offset,
-                                          const int& reg) {
-    signed int category = (reg & 0x00ff0000);
-    signed int baseID = (reg & 0x000000ff);
-
-    offset = 0;
-    reg_idx = baseID;
-    switch(category) {
-      case amdgpu_gfx908::SGPR: {
-        reg_class = amdgpu_regclass_sgpr;
-        break;
-      }
-
-      case amdgpu_gfx908::VGPR: {
-        reg_class = amdgpu_regclass_vgpr;
-        break;
-      }
-
-      case amdgpu_gfx908::PC: {
-        reg_class = amdgpu_regclass_pc;
-        reg_idx = amdgpu_pc;
-        break;
-      }
-
-      case amdgpu_gfx908::HWR: {
-        reg_class = amdgpu_regclass_pc;
-        reg_idx = amdgpu_pc;
-        break;
-      }
-
-      default: {
-        assert(0 && "unsupported register type for amdgpu gfx908");
-      }
-    }
-    return;
-  }
-
-  static void getAmdgpuGfx90aRoseRegister(int& reg_class, int& reg_idx, int& offset,
-                                          const int& reg) {
-    signed int category = (reg & 0x00ff0000);
-    signed int baseID = (reg & 0x000000ff);
-
-    offset = 0;
-    reg_idx = baseID;
-    switch(category) {
-      case amdgpu_gfx90a::SGPR: {
-        reg_class = amdgpu_regclass_sgpr;
-        break;
-      }
-
-      case amdgpu_gfx90a::VGPR: {
-        reg_class = amdgpu_regclass_vgpr;
-        break;
-      }
-
-      case amdgpu_gfx90a::PC: {
-        reg_class = amdgpu_regclass_pc;
-        reg_idx = amdgpu_pc;
-        break;
-      }
-      case amdgpu_gfx90a::HWR: {
-        reg_class = amdgpu_regclass_hwr;
-        reg_idx = amdgpu_mode;
-        break;
-      }
-      case amdgpu_gfx90a::MISC: {
-        reg_class = amdgpu_regclass_misc;
-        break;
-      }
-
-      default: {
-        assert(0 && "unsupported register type for amdgpu gfx90a");
-      }
-    }
-    return;
-  }
-
-  static void getAmdgpuGfx940RoseRegister(int& reg_class, int& reg_idx, int& offset,
-                                          const int& reg) {
-    signed int category = (reg & 0x00ff0000);
-    signed int baseID = (reg & 0x000000ff);
-
-    offset = 0;
-    reg_idx = baseID;
-    switch(category) {
-      case amdgpu_gfx940::SGPR: {
-        reg_class = amdgpu_regclass_sgpr;
-        break;
-      }
-
-      case amdgpu_gfx940::VGPR: {
-        reg_class = amdgpu_regclass_vgpr;
-        break;
-      }
-
-      case amdgpu_gfx940::PC: {
-        reg_class = amdgpu_regclass_pc;
-        reg_idx = amdgpu_pc;
-        break;
-      }
-
-      case amdgpu_gfx940::HWR: {
-        reg_class = amdgpu_regclass_hwr;
-        reg_idx = amdgpu_mode;
-        break;
-      }
-
-      case amdgpu_gfx940::MISC: {
-        reg_class = amdgpu_regclass_misc;
-        break;
-      }
-
-      default: {
-        assert(0 && "unsupported register type for amdgpu gfx940");
-      }
-    }
-    return;
-  }
-
   /* This function should has a boolean return value
    * to indicate whether there is a corresponding
    * ROSE register.
@@ -737,18 +615,6 @@ namespace Dyninst {
     signed int baseID = (reg & 0x000000ff);
 
     switch(getArchitecture()) {
-      case Arch_amdgpu_gfx908: {
-        getAmdgpuGfx908RoseRegister(c, n, p, reg);
-        return;
-      }
-      case Arch_amdgpu_gfx90a: {
-        getAmdgpuGfx90aRoseRegister(c, n, p, reg);
-        return;
-      }
-      case Arch_amdgpu_gfx940: {
-        getAmdgpuGfx940RoseRegister(c, n, p, reg);
-        return;
-      }
       case Arch_x86:
         switch(category) {
           case x86::GPR:

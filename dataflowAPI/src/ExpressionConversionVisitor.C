@@ -29,6 +29,8 @@
  */
 #include "ExpressionConversionVisitor.h"
 
+#include "debug_dataflow.h"
+
 #include "Immediate.h"
 #include "BinaryFunction.h"
 #include "Dereference.h"
@@ -38,6 +40,7 @@
 
 #include "Register.h"
 #include "MultiRegister.h"
+#include "rose/RegisterDescriptor.h"
 #include "../rose/SgAsmExpression.h"
 
 using namespace Dyninst;
@@ -323,20 +326,18 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
       dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
       return dre;
     }
+
     case Arch_amdgpu_gfx908:
     case Arch_amdgpu_gfx90a:
     case Arch_amdgpu_gfx940: {
-      int regClass_;
-      int regNum;
-      int regPos;
-
-      machReg.getROSERegister(regClass_, regNum, regPos);
-      if (regClass_ < 0) return NULL;
-      //std::cout << " after get rose register, regClass_ = " << regClass_ << " regNum = " << regNum    << std::endl;
+      auto regDesc = RegisterDescriptor(machReg);
+      if(!regDesc.is_valid()) {
+        convert_printf("Failed to find ROSE register for %s\n", machReg.name().c_str());
+        return nullptr;
+      }
       // TODO : it is not clear how regsize adn such should be set, for now we just follow aarch64's implementation
-      SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(
-          RegisterDescriptor(regClass_, regNum, regPos, machReg.size() * 8));
-      dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
+      SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(regDesc);
+      dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, regDesc.get_nbits(), false));
       return dre;
     }
 

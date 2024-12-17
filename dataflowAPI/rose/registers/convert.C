@@ -1,5 +1,7 @@
 #include "rose/registers/convert.h"
 
+#include "dataflowAPI/rose/registers/amdgpu.h"
+
 #include "dataflowAPI/src/debug_dataflow.h"
 
 namespace Dyninst { namespace DataflowAPI {
@@ -40,6 +42,15 @@ namespace Dyninst { namespace DataflowAPI {
     auto const INVALID_REG = std::make_tuple(0,0,0,0);
 
     switch(reg.getArchitecture()) {
+      case Arch_amdgpu_gfx908: {
+        return AmdgpuGfx908Rose(category, baseID, subrange, num_bits);
+      }
+      case Arch_amdgpu_gfx90a: {
+        return AmdgpuGfx90aRose(category, baseID, subrange, num_bits);
+      }
+      case Arch_amdgpu_gfx940: {
+        return AmdgpuGfx940Rose(category, baseID, subrange, num_bits);
+      }
     }
     convert_printf("Unknown Architecture 0x%X\n", reg.getArchitecture());
     return INVALID_REG;
