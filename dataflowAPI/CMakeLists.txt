@@ -73,6 +73,7 @@ set(_dataflow_private_headers
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/typedefs.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/x86_64InstructionSemantics.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/x86InstructionSemantics.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/aarch64.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/amdgpu.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/convert.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/ppc32.h

@@ -3,7 +3,6 @@
 #include "debug_common.h"
 #include "dyn_regs.h"
 
-#include "external/rose/armv8InstructionEnum.h"
 #include "external/rose/powerpcInstructionEnum.h"
 #include "external/rose/rose-compat.h"
 
@@ -848,67 +847,6 @@ namespace Dyninst {
         }
         return;
       } break;
-      case Arch_aarch64: {
-        p = 0;
-        switch(category) {
-          case aarch64::GPR: {
-            c = armv8_regclass_gpr;
-            int regnum = baseID - (aarch64::x0 & 0xFF);
-            n = armv8_gpr_r0 + regnum;
-          } break;
-          case aarch64::SPR: {
-            n = 0;
-            if(baseID == (aarch64::pstate & 0xFF)) {
-              c = armv8_regclass_pstate;
-            } else if(baseID == (aarch64::xzr & 0xFF) || baseID == (aarch64::wzr & 0xFF)) {
-              c = armv8_regclass_gpr;
-              n = armv8_gpr_zr;
-            } else if(baseID == (aarch64::pc & 0xFF)) {
-              c = armv8_regclass_pc;
-            } else if(baseID == (aarch64::sp & 0xFF) || baseID == (aarch64::wsp & 0xFF)) {
-              c = armv8_regclass_sp;
-            }
-          } break;
-          case aarch64::FPR: {
-            c = armv8_regclass_simd_fpr;
-
-            int firstRegId;
-            switch(reg & 0xFF00) {
-              case aarch64::Q_REG: firstRegId = (aarch64::q0 & 0xFF); break;
-              case aarch64::HQ_REG:
-                firstRegId = (aarch64::hq0 & 0xFF);
-                p = 64;
-                break;
-              case aarch64::FULL: firstRegId = (aarch64::d0 & 0xFF); break;
-              case aarch64::D_REG: firstRegId = (aarch64::s0 & 0xFF); break;
-              case aarch64::W_REG: firstRegId = (aarch64::h0 & 0xFF); break;
-              case aarch64::B_REG: firstRegId = (aarch64::b0 & 0xFF); break;
-              default: assert(!"invalid register subcategory for ARM64!"); break;
-            }
-            n = armv8_simdfpr_v0 + (baseID - firstRegId);
-          } break;
-          case aarch64::FLAG: {
-            c = armv8_regclass_pstate;
-            n = 0;
-            switch(baseID) {
-              case aarch64::N_FLAG: p = armv8_pstatefield_n; break;
-              case aarch64::Z_FLAG: p = armv8_pstatefield_z; break;
-              case aarch64::V_FLAG: p = armv8_pstatefield_v; break;
-              case aarch64::C_FLAG: p = armv8_pstatefield_c; break;
-              default: c = -1; return;
-            }
-          } break;
-          default:
-            // We do not want to assert here.
-            // Set these output variable to invalid values and let the
-            // semantics code to throw exceptions
-            p = -1;
-            c = -1;
-            n = -1;
-            break;
-        }
-        return;
-      } break;
       default:
         c = x86_regclass_unknown;
         n = 0;
@@ -954,10 +892,7 @@ namespace Dyninst {
               break;
         }
         break;
-      case Arch_aarch64: {
-        c = -1;
-        return;
-      }
+
       default: p = x86_regpos_unknown;
     }
   }

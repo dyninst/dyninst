@@ -29,6 +29,7 @@
  */
 #include "ExpressionConversionVisitor.h"
 #include "external/rose/amdgpuInstructionEnum.h"
+#include "external/rose/armv8InstructionEnum.h"
 #include "external/rose/powerpcInstructionEnum.h"
 #include "dataflowAPI/rose/registers/convert.h"
 
@@ -296,6 +297,7 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
       return new SgAsmx86RegisterReferenceExpression((X86RegisterClass) regClass_, regNum,
           (X86PositionInRegister) regPos);
     }
+
     case Arch_ppc32:
     case Arch_ppc64: {
       auto regDesc = RegisterDescriptor(machReg);
@@ -307,16 +309,15 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
       dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, regDesc.get_nbits(), false));
       return dre;
     }
-    case Arch_aarch64: {
-      int regClass_;
-      int regNum;
-      int regPos;
 
-      machReg.getROSERegister(regClass_, regNum, regPos);
-      if (regClass_ < 0) return NULL;
-      SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(
-          RegisterDescriptor(regClass_, regNum, regPos, machReg.size() * 8));
-      dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
+    case Arch_aarch64: {
+      auto regDesc = RegisterDescriptor(machReg);
+      if(!regDesc.is_valid()) {
+        convert_printf("Failed to find ROSE register for %s\n", machReg.name().c_str());
+        return nullptr;
+      }
+      SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(regDesc);
+      dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, regDesc.get_nbits(), false));
       return dre;
     }
 
