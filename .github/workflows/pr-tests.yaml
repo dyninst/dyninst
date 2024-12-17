@@ -2,12 +2,15 @@ name: Pull Request Tests
 
 on:
   pull_request:
+     types: [opened, synchronize, reopened, ready_for_review]
      branches:
         - master
      paths:
        - '**.h'
        - '**.C'
        - '**.c'
+       - '**.cmake'
+       - '**CMakeLists.txt'
   workflow_dispatch:
 
 jobs:
