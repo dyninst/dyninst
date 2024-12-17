@@ -3,7 +3,6 @@
 #include "debug_common.h"
 #include "dyn_regs.h"
 
-#include "external/rose/powerpcInstructionEnum.h"
 #include "external/rose/rose-compat.h"
 
 #include <cassert>
@@ -823,29 +822,6 @@ namespace Dyninst {
           default:
 	    common_parsing_printf("Unknown category '%d' for Arch_x86_64\n", category);
 	    break;
-        }
-        break;
-      case Arch_ppc64: {
-        baseID = reg & 0x0000FFFF;
-        n = baseID;
-        switch(category) {
-          case ppc64::GPR: c = powerpc_regclass_gpr; break;
-          case ppc64::FPR:
-          case ppc64::FSR: c = powerpc_regclass_fpr; break;
-          case ppc64::SPR: {
-            if(baseID < 613) {
-              c = powerpc_regclass_spr;
-            } else if(baseID < 621) {
-              c = powerpc_regclass_sr;
-            } else {
-              c = powerpc_regclass_cr;
-              n = 0;
-              p = baseID - 621;
-            }
-          } break;
-          default: c = -1; return;
-        }
-        return;
       } break;
       default:
         c = x86_regclass_unknown;
