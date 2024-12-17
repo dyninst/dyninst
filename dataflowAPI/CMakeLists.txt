@@ -1,0 +1,121 @@
+# This exists purely to be included by parseAPI/CMakeLists.txt
+
+set(_rose_sources
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/BaseSemantics2.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherAMDGPU.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherARM64.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherPowerpc.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/RegisterParts.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/Registers.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/RegisterStateGeneric.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/SymEvalSemantics.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Assert.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Attribute.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Combinatorics.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/LinearCongruentialGenerator.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Message.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/rose_getline.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Sawyer.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/SmallObject.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Stopwatch.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/StringUtility.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Synchronization.C)
+
+# FIXME: Rose needs a bunch of warning cleanup
+set_source_files_properties(${_rose_sources} PROPERTIES LANGUAGE CXX COMPILE_FLAGS -w)
+
+set(_dataflow_sources
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ABI.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Absloc.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/AbslocInterface.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/convertOpcodes.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/debug_dataflow.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ExpressionConversionVisitor.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/InstructionCache.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/liveness.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RegisterMap.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RoseImpl.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RoseInsnFactory.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/slicing.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/stackanalysis.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymbolicExpansion.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEval.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEvalPolicy.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Visitors.C
+    ${_rose_sources})
+
+set(_dataflow_private_headers
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/debug_dataflow.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ExpressionConversionVisitor.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RegisterMap.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RoseInsnFactory.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymbolicExpansion.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEvalPolicy.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEvalVisitors.h
+    # ROSE
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/conversions.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/ExtentMap.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/integerOps.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/rangemap.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/RegisterDescriptor.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/rose.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semanticsModule.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/SgAsmAMDGPUInstruction.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/SgAsmArmv8Instruction.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/SgAsmExpression.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/SgAsmInstruction.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/SgAsmOperandList.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/SgAsmPowerpcInstruction.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/SgAsmType.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/SgAsmx86Instruction.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/SgNode.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/typedefs.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/x86_64InstructionSemantics.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/x86InstructionSemantics.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/BaseSemantics2.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherAMDGPU.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherARM64.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherPowerpc.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/RegisterParts.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/Registers.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/RegisterStateGeneric.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/SymEvalSemantics.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Assert.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Attribute.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/BiMap.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/BitVector.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/BitVectorSupport.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Buffer.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Combinatorics.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Exception.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/FormatRestorer.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Interval.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/IntervalMap.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/IntervalSet.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/IntervalSetMap.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/LinearCongruentialGenerator.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Map.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Message.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Optional.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/PoolAllocator.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/rose_getline.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Sawyer.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Set.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/SharedPointer.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/SmallObject.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Stopwatch.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/StringUtility.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Synchronization.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/WarningsOff.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/WarningsRestore.h)
+
+set(_dataflow_public_headers
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/ABI.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/Absloc.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/AbslocInterface.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/bitArray.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/InstructionCache.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/liveness.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/slicing.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/stackanalysis.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/SymEval.h)
