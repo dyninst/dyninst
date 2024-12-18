@@ -51,15 +51,6 @@ namespace {
         return std::make_tuple(c, n, pos, num_bits);
       }
 
-      case Dyninst::aarch64::SPR: {
-        int n = 0;
-        ARMv8RegisterClass c;
-        if(baseID == (Dyninst::aarch64::pstate & 0xFF)) {
-          c = armv8_regclass_pstate;
-        }
-        return std::make_tuple(c, n, pos, num_bits);
-      }
-
       case Dyninst::aarch64::FPR: {
         auto c = armv8_regclass_simd_fpr;
         auto p = 0;
