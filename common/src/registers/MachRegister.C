@@ -3,8 +3,6 @@
 #include "debug_common.h"
 #include "dyn_regs.h"
 
-#include "external/rose/rose-compat.h"
-
 #include <cassert>
 #include <unordered_map>
 #include <map>
@@ -589,31 +587,6 @@ namespace Dyninst {
 	return *this == getZeroFlag(getArchitecture());
     }
     return false;
-  }
-
-  /* This function should has a boolean return value
-   * to indicate whether there is a corresponding
-   * ROSE register.
-   *
-   * Since historically, this function does not
-   * have a return value. We set c to -1 to represent
-   * error cases
-   * c is set to regClass
-   * n is set to regNum
-   * p is set to regPosition
-   * see dataflowAPI/src/ExpressionConversionVisitor.C
-   */
-
-  void MachRegister::getROSERegister(int& c, int& n, int&) {
-    // Rose: class, number, position
-    // Dyninst: category, base id, subrange
-
-    switch(getArchitecture()) {
-      default:
-        c = x86_regclass_unknown;
-        n = 0;
-        break;
-    }
   }
 
   /*
