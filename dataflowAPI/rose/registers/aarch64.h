@@ -117,6 +117,17 @@ namespace {
       convert_printf("Unknown aarch64 FPR '%d'\n", baseID);
       return static_cast<ARMv8SimdFpRegister>(-1);
     }
+
+    ARMv8PstateFields pstate_field(int32_t baseID) {
+      switch(baseID) {
+        case Dyninst::aarch64::in: return armv8_pstatefield_n;
+        case Dyninst::aarch64::iz: return armv8_pstatefield_z;
+        case Dyninst::aarch64::ic: return armv8_pstatefield_c;
+        case Dyninst::aarch64::iv: return armv8_pstatefield_v;
+      }
+      convert_printf("Unknown aarch64 pstate register '%d'\n", baseID);
+      return static_cast<ARMv8PstateFields>(-1);
+    }
   }
 
   std::tuple<ARMv8RegisterClass, int, int, int>
@@ -138,17 +149,9 @@ namespace {
       }
 
       case Dyninst::aarch64::FLAG: {
-        auto c = armv8_regclass_pstate;
-        int n = 0;
-        int p = pos;
-        switch(baseID) {
-          case Dyninst::aarch64::N_FLAG: p = armv8_pstatefield_n; break;
-          case Dyninst::aarch64::Z_FLAG: p = armv8_pstatefield_z; break;
-          case Dyninst::aarch64::V_FLAG: p = armv8_pstatefield_v; break;
-          case Dyninst::aarch64::C_FLAG: p = armv8_pstatefield_c; break;
-          default:
-            c = static_cast<ARMv8RegisterClass>(-1);
-        }
+        auto const c = armv8_regclass_pstate;
+        auto const n = 0;
+        auto const p = aarch64_rose::pstate_field(baseID);
         return std::make_tuple(c, n, p, num_bits);
       }
     }
