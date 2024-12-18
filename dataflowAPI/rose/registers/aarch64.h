@@ -56,9 +56,6 @@ namespace {
         ARMv8RegisterClass c;
         if(baseID == (Dyninst::aarch64::pstate & 0xFF)) {
           c = armv8_regclass_pstate;
-        } else if(baseID == (Dyninst::aarch64::xzr & 0xFF) || baseID == (Dyninst::aarch64::wzr & 0xFF)) {
-          c = armv8_regclass_gpr;
-          n = armv8_gpr_zr;
         } else if(baseID == (Dyninst::aarch64::sp & 0xFF) || baseID == (Dyninst::aarch64::wsp & 0xFF)) {
           c = armv8_regclass_sp;
         }
