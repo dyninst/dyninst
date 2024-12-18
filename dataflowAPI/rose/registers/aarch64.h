@@ -56,8 +56,6 @@ namespace {
         ARMv8RegisterClass c;
         if(baseID == (Dyninst::aarch64::pstate & 0xFF)) {
           c = armv8_regclass_pstate;
-        } else if(baseID == (Dyninst::aarch64::sp & 0xFF) || baseID == (Dyninst::aarch64::wsp & 0xFF)) {
-          c = armv8_regclass_sp;
         }
         return std::make_tuple(c, n, pos, num_bits);
       }

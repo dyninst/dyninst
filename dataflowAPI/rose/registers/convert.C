@@ -84,6 +84,10 @@ namespace Dyninst { namespace DataflowAPI {
           // ROSE treats the zero register as a GPR
           return std::make_tuple(armv8_regclass_gpr, armv8_gpr_zr, 0, num_bits);
         }
+        if(reg.isStackPointer()) {
+          // ROSE docs: only minor value allowed is 0
+          return std::make_tuple(armv8_regclass_sp, 0, 0, num_bits);
+        }
         return aarch64Rose(category, baseID, subrange, num_bits);
       }
       case Arch_aarch32:
