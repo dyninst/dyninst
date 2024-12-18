@@ -276,6 +276,12 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
 
   MachRegister machReg = regast->getID();
 
+  auto regDesc = RegisterDescriptor(machReg);
+  if(!regDesc.is_valid()) {
+    convert_printf("Failed to find ROSE register for %s\n", machReg.name().c_str());
+    return nullptr;
+  }
+
   switch (arch) {
     case Arch_x86:
     case Arch_x86_64: {
@@ -283,17 +289,10 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
         // ideally this would be symbolic
         // When ip is read, the value read is not the address of the current instruction,
         // but the address of the next instruction.
-        SgAsmExpression *constAddrExpr;
-        if (arch == Arch_x86)
-          constAddrExpr = new SgAsmDoubleWordValueExpression(addr_ + size_);
-        else
-          constAddrExpr = new SgAsmQuadWordValueExpression(addr_ + size_);
-        return constAddrExpr;
-      }
-      auto regDesc = RegisterDescriptor(machReg);
-      if(!regDesc.is_valid()) {
-        convert_printf("Failed to find ROSE register for %s\n", machReg.name().c_str());
-        return nullptr;
+        if (arch == Arch_x86) {
+          return new SgAsmDoubleWordValueExpression(addr_ + size_);
+        }
+        return new SgAsmQuadWordValueExpression(addr_ + size_);
       }
       auto const major = static_cast<X86RegisterClass>(regDesc.get_major());
       auto const pos = static_cast<X86PositionInRegister>(regDesc.get_offset());
@@ -301,38 +300,13 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
     }
 
     case Arch_ppc32:
-    case Arch_ppc64: {
-      auto regDesc = RegisterDescriptor(machReg);
-      if(!regDesc.is_valid()) {
-        convert_printf("Failed to find ROSE register for %s\n", machReg.name().c_str());
-        return nullptr;
-      }
-      auto *dre = new SgAsmDirectRegisterExpression(regDesc);
-      dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, regDesc.get_nbits(), false));
-      return dre;
-    }
-
-    case Arch_aarch64: {
-      auto regDesc = RegisterDescriptor(machReg);
-      if(!regDesc.is_valid()) {
-        convert_printf("Failed to find ROSE register for %s\n", machReg.name().c_str());
-        return nullptr;
-      }
-      SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(regDesc);
-      dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, regDesc.get_nbits(), false));
-      return dre;
-    }
-
+    case Arch_ppc64:
+    case Arch_aarch64:
     case Arch_amdgpu_gfx908:
     case Arch_amdgpu_gfx90a:
     case Arch_amdgpu_gfx940: {
-      auto regDesc = RegisterDescriptor(machReg);
-      if(!regDesc.is_valid()) {
-        convert_printf("Failed to find ROSE register for %s\n", machReg.name().c_str());
-        return nullptr;
-      }
-      // TODO : it is not clear how regsize adn such should be set, for now we just follow aarch64's implementation
-      SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(regDesc);
+      // TODO, AMDGPU: it is not clear how regsize and such should be set, for now we just follow the default implementation
+      auto* dre = new SgAsmDirectRegisterExpression(regDesc);
       dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, regDesc.get_nbits(), false));
       return dre;
     }
