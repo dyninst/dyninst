@@ -75,6 +75,11 @@ namespace Dyninst { namespace DataflowAPI {
         return ppc64Rose(category, reg, num_bits);
       }
       case Arch_aarch64: {
+        // ROSE doesn't have register numbers for PC
+        if(reg.isPC()) {
+          // ROSE docs: only minor value allowed is 0
+          return std::make_tuple(armv8_regclass_pc, 0, 0, num_bits);
+        }
         return aarch64Rose(category, baseID, subrange, num_bits);
       }
       case Arch_aarch32:
