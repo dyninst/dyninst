@@ -89,8 +89,11 @@ namespace {
     X86Flag flag(int32_t baseID) {
       switch(baseID) {
         case Dyninst::x86::CF: return x86_flag_cf;
+        case Dyninst::x86::FLAG1: return x86_flag_1;
         case Dyninst::x86::PF: return x86_flag_pf;
+        case Dyninst::x86::FLAG3: return x86_flag_3;
         case Dyninst::x86::AF: return x86_flag_af;
+        case Dyninst::x86::FLAG5: return x86_flag_5;
         case Dyninst::x86::ZF: return x86_flag_zf;
         case Dyninst::x86::SF: return x86_flag_sf;
         case Dyninst::x86::TF: return x86_flag_tf;
@@ -100,8 +103,9 @@ namespace {
         case Dyninst::x86::FLAGC: return x86_flag_iopl0;
         case Dyninst::x86::FLAGD: return x86_flag_iopl1;
         case Dyninst::x86::NT: return x86_flag_nt;
-        case Dyninst::x86::RF: return x86_flag_rf;
+        case Dyninst::x86::FLAGF: return x86_flag_15;
         case Dyninst::x86::VM: return x86_flag_vm;
+        case Dyninst::x86::RF: return x86_flag_rf;
         case Dyninst::x86::AC: return x86_flag_ac;
         case Dyninst::x86::VIF: return x86_flag_vif;
         case Dyninst::x86::VIP: return x86_flag_vip;
