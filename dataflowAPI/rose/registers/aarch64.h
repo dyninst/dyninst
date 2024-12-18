@@ -39,6 +39,47 @@
 
 namespace {
 
+  namespace aarch64_rose {
+
+    ARMv8GeneralPurposeRegister gpr(int32_t baseID) {
+      switch(baseID) {
+        case Dyninst::aarch64::ix0: return armv8_gpr_r0;
+        case Dyninst::aarch64::ix1: return armv8_gpr_r1;
+        case Dyninst::aarch64::ix2: return armv8_gpr_r2;
+        case Dyninst::aarch64::ix3: return armv8_gpr_r3;
+        case Dyninst::aarch64::ix4: return armv8_gpr_r4;
+        case Dyninst::aarch64::ix5: return armv8_gpr_r5;
+        case Dyninst::aarch64::ix6: return armv8_gpr_r6;
+        case Dyninst::aarch64::ix7: return armv8_gpr_r7;
+        case Dyninst::aarch64::ix8: return armv8_gpr_r8;
+        case Dyninst::aarch64::ix9: return armv8_gpr_r9;
+        case Dyninst::aarch64::ix10: return armv8_gpr_r10;
+        case Dyninst::aarch64::ix11: return armv8_gpr_r11;
+        case Dyninst::aarch64::ix12: return armv8_gpr_r12;
+        case Dyninst::aarch64::ix13: return armv8_gpr_r13;
+        case Dyninst::aarch64::ix14: return armv8_gpr_r14;
+        case Dyninst::aarch64::ix15: return armv8_gpr_r15;
+        case Dyninst::aarch64::ix16: return armv8_gpr_r16;
+        case Dyninst::aarch64::ix17: return armv8_gpr_r17;
+        case Dyninst::aarch64::ix18: return armv8_gpr_r18;
+        case Dyninst::aarch64::ix19: return armv8_gpr_r19;
+        case Dyninst::aarch64::ix20: return armv8_gpr_r20;
+        case Dyninst::aarch64::ix21: return armv8_gpr_r21;
+        case Dyninst::aarch64::ix22: return armv8_gpr_r22;
+        case Dyninst::aarch64::ix23: return armv8_gpr_r23;
+        case Dyninst::aarch64::ix24: return armv8_gpr_r24;
+        case Dyninst::aarch64::ix25: return armv8_gpr_r25;
+        case Dyninst::aarch64::ix26: return armv8_gpr_r26;
+        case Dyninst::aarch64::ix27: return armv8_gpr_r27;
+        case Dyninst::aarch64::ix28: return armv8_gpr_r28;
+        case Dyninst::aarch64::ix29: return armv8_gpr_r29;
+        case Dyninst::aarch64::ix30: return armv8_gpr_r30;
+      }
+      convert_printf("Unknown aarch64 GPR '%d'\n", baseID);
+      return static_cast<ARMv8GeneralPurposeRegister>(-1);
+    }
+
+  }
   std::tuple<ARMv8RegisterClass, int, int, int>
   aarch64Rose(int32_t category, int32_t baseID, int32_t subrange, int32_t num_bits) {
     constexpr auto pos = 0;
@@ -46,8 +87,7 @@ namespace {
     switch(category) {
       case Dyninst::aarch64::GPR: {
         auto const c = armv8_regclass_gpr;
-        auto const regnum = baseID - (Dyninst::aarch64::x0 & 0xFF);
-        auto const n = armv8_gpr_r0 + regnum;
+        auto const n = aarch64_rose::gpr(baseID);
         return std::make_tuple(c, n, pos, num_bits);
       }
 
