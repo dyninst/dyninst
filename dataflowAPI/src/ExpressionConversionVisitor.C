@@ -28,13 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "ExpressionConversionVisitor.h"
-#include "external/rose/amdgpuInstructionEnum.h"
-#include "external/rose/armv8InstructionEnum.h"
-#include "external/rose/powerpcInstructionEnum.h"
-#include "external/rose/rose-compat.h"
 #include "dataflowAPI/rose/registers/convert.h"
-
-#include "debug_dataflow.h"
 
 #include "Immediate.h"
 #include "BinaryFunction.h"
