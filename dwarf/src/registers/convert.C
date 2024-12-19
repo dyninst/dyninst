@@ -1,4 +1,5 @@
 #include "dwarf/src/registers/convert.h"
+#include "dwarf/src/registers/x86.h"
 
 #include "debug_common.h"
 #include "registers/abstract_regs.h"
@@ -10,6 +11,8 @@ namespace DwarfDyninst {
 
     switch(arch) {
       case Dyninst::Arch_x86:
+        return x86_from_dwarf(encoding);
+
       case Dyninst::Arch_x86_64:
       case Dyninst::Arch_ppc32:
       case Dyninst::Arch_ppc64:
@@ -33,6 +36,8 @@ namespace DwarfDyninst {
 
     switch(reg.getArchitecture()) {
       case Dyninst::Arch_x86:
+        return x86_to_dwarf(reg);
+
       case Dyninst::Arch_x86_64:
       case Dyninst::Arch_ppc32:
       case Dyninst::Arch_ppc64:
