@@ -1,5 +1,6 @@
 #include "dwarf/src/registers/convert.h"
 #include "dwarf/src/registers/ppc32.h"
+#include "dwarf/src/registers/ppc64.h"
 #include "dwarf/src/registers/x86.h"
 #include "dwarf/src/registers/x86_64.h"
 
@@ -22,6 +23,8 @@ namespace DwarfDyninst {
         return ppc32_from_dwarf(encoding);
 
       case Dyninst::Arch_ppc64:
+        return ppc64_from_dwarf(encoding);
+
       case Dyninst::Arch_aarch64:
       case Dyninst::Arch_aarch32:
       case Dyninst::Arch_none:
@@ -51,6 +54,8 @@ namespace DwarfDyninst {
         return ppc32_to_dwarf(reg);
 
       case Dyninst::Arch_ppc64:
+        return ppc64_to_dwarf(reg);
+
       case Dyninst::Arch_aarch64:
       case Dyninst::Arch_aarch32:
       case Dyninst::Arch_none:
