@@ -589,35 +589,6 @@ namespace Dyninst {
     return false;
   }
 
-  MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arch) {
-    switch(arch) {
-      case Arch_cuda:
-        // ignore CUDA register encodings for now
-        return Dyninst::InvalidReg;
-        break;
-      case Arch_amdgpu_gfx908:
-      case Arch_amdgpu_gfx90a:
-      case Arch_amdgpu_gfx940:
-        // ignore AMD register encodings for now
-        return Dyninst::InvalidReg;
-        break;
-      case Arch_intelGen9: return Dyninst::InvalidReg; break;
-      case Arch_none: return Dyninst::InvalidReg; break;
-      default: return InvalidReg;
-    }
-    // Invalid Architecture passed
-    return Dyninst::InvalidReg;
-  }
-
-  int MachRegister::getDwarfEnc() const {
-    switch(getArchitecture()) {
-      case Arch_none: assert(0); return -1;
-      default: assert(0); return -1;
-    }
-    // Invalid register passed
-    return -1;
-  }
-
   MachRegister MachRegister::getArchReg(unsigned int regNum, Dyninst::Architecture arch) {
     switch(arch) {
       case Arch_aarch64:
