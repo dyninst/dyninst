@@ -57,6 +57,8 @@
 #include "addressSpace.h"
 #include "function.h"
 #include "baseTramp.h"
+#include "RegisterConversion.h"
+#include "registerSpace.h"
 
 //#warning "This file is not implemented yet!"
 using namespace Dyninst::SymtabAPI;
@@ -127,20 +129,20 @@ void parse_func::calcUsedRegs()
                 i = d.decode();
             }
         }
-        
-        for(std::set<RegisterAST::Ptr>::const_iterator curReg = writtenRegs.begin();
-                curReg != writtenRegs.end();
-                ++curReg)
-        {
-            MachRegister r = (*curReg)->getID();
-            if((r & aarch64::GPR) && (r <= aarch64::w30))
-            {
-                usedRegisters->generalPurposeRegisters.insert(r & 0xFF);
-            }
-            else if(((r & aarch64::FPR) && (r <= aarch64::s31)))
-            {
-                usedRegisters->floatingPointRegisters.insert(r & 0xFFFF);
-            }
+
+        for(auto const& reg : writtenRegs) {
+          MachRegister r = reg->getID();
+          auto regID = convertRegID(r.getBaseRegister());
+          if(regID == registerSpace::ignored) {
+            logLine("parse_func::calcUsedRegs: unknown written register\n");
+            continue;
+          }
+          if(r.regClass() == aarch64::GPR) {
+            usedRegisters->generalPurposeRegisters.insert(regID);
+          }
+          else if(r.regClass() == aarch64::FPR) {
+            usedRegisters->floatingPointRegisters.insert(regID);
+          }
         }
     }
     return;
