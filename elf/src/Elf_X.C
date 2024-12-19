@@ -1835,6 +1835,8 @@ Dyninst::Architecture Elf_X::getArch() const
         case EM_K10M:
         case EM_L10M:
             return Dyninst::Arch_x86_64;
+        case EM_RISCV:
+            return Dyninst::Arch_riscv64;
         case EM_CUDA:
             return Dyninst::Arch_cuda;
         case EM_INTEL_GEN9:
