@@ -28,21 +28,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "ExpressionConversionVisitor.h"
-#include "dataflowAPI/rose/registers/convert.h"
+#include "Register.h"
+#include "MultiRegister.h"
+#include "rose/RegisterDescriptor.h"
+#include "rose/SgAsmExpression.h"
+#include "rose/registers/convert.h"
+#include "debug_dataflow.h"
 
 #include "Immediate.h"
 #include "BinaryFunction.h"
 #include "Dereference.h"
 #include "compiler_annotations.h"
-
-#include <list>
-
-#include "Register.h"
-#include "MultiRegister.h"
-#include "rose/RegisterDescriptor.h"
-#include "../rose/SgAsmExpression.h"
-#include "rose/registers/convert.h"
-#include "debug_dataflow.h"
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
