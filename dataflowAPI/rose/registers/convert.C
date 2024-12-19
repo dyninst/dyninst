@@ -45,7 +45,7 @@ namespace Dyninst { namespace DataflowAPI {
     // MachRegister::size is in _bytes_
     auto const num_bits = 8*static_cast<int32_t>(reg.size());
 
-    // A RegisterDescriptor descriptor is invalid if it has no bits
+    // A RegisterDescriptor is invalid if it has no bits
     auto const INVALID_REG = std::make_tuple(0,0,0,0);
 
     switch(reg.getArchitecture()) {
