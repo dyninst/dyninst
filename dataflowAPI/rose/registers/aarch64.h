@@ -39,6 +39,97 @@
 
 namespace {
 
+  namespace aarch64_rose {
+
+    ARMv8GeneralPurposeRegister gpr(int32_t baseID) {
+      switch(baseID) {
+        case Dyninst::aarch64::ix0: return armv8_gpr_r0;
+        case Dyninst::aarch64::ix1: return armv8_gpr_r1;
+        case Dyninst::aarch64::ix2: return armv8_gpr_r2;
+        case Dyninst::aarch64::ix3: return armv8_gpr_r3;
+        case Dyninst::aarch64::ix4: return armv8_gpr_r4;
+        case Dyninst::aarch64::ix5: return armv8_gpr_r5;
+        case Dyninst::aarch64::ix6: return armv8_gpr_r6;
+        case Dyninst::aarch64::ix7: return armv8_gpr_r7;
+        case Dyninst::aarch64::ix8: return armv8_gpr_r8;
+        case Dyninst::aarch64::ix9: return armv8_gpr_r9;
+        case Dyninst::aarch64::ix10: return armv8_gpr_r10;
+        case Dyninst::aarch64::ix11: return armv8_gpr_r11;
+        case Dyninst::aarch64::ix12: return armv8_gpr_r12;
+        case Dyninst::aarch64::ix13: return armv8_gpr_r13;
+        case Dyninst::aarch64::ix14: return armv8_gpr_r14;
+        case Dyninst::aarch64::ix15: return armv8_gpr_r15;
+        case Dyninst::aarch64::ix16: return armv8_gpr_r16;
+        case Dyninst::aarch64::ix17: return armv8_gpr_r17;
+        case Dyninst::aarch64::ix18: return armv8_gpr_r18;
+        case Dyninst::aarch64::ix19: return armv8_gpr_r19;
+        case Dyninst::aarch64::ix20: return armv8_gpr_r20;
+        case Dyninst::aarch64::ix21: return armv8_gpr_r21;
+        case Dyninst::aarch64::ix22: return armv8_gpr_r22;
+        case Dyninst::aarch64::ix23: return armv8_gpr_r23;
+        case Dyninst::aarch64::ix24: return armv8_gpr_r24;
+        case Dyninst::aarch64::ix25: return armv8_gpr_r25;
+        case Dyninst::aarch64::ix26: return armv8_gpr_r26;
+        case Dyninst::aarch64::ix27: return armv8_gpr_r27;
+        case Dyninst::aarch64::ix28: return armv8_gpr_r28;
+        case Dyninst::aarch64::ix29: return armv8_gpr_r29;
+        case Dyninst::aarch64::ix30: return armv8_gpr_r30;
+      }
+      convert_printf("Unknown aarch64 GPR '%d'\n", baseID);
+      return static_cast<ARMv8GeneralPurposeRegister>(-1);
+    }
+
+    ARMv8SimdFpRegister fpr(int32_t baseID) {
+      switch(baseID) {
+        case Dyninst::aarch64::iq0: return armv8_simdfpr_v0;
+        case Dyninst::aarch64::iq1: return armv8_simdfpr_v1;
+        case Dyninst::aarch64::iq2: return armv8_simdfpr_v2;
+        case Dyninst::aarch64::iq3: return armv8_simdfpr_v3;
+        case Dyninst::aarch64::iq4: return armv8_simdfpr_v4;
+        case Dyninst::aarch64::iq5: return armv8_simdfpr_v5;
+        case Dyninst::aarch64::iq6: return armv8_simdfpr_v6;
+        case Dyninst::aarch64::iq7: return armv8_simdfpr_v7;
+        case Dyninst::aarch64::iq8: return armv8_simdfpr_v8;
+        case Dyninst::aarch64::iq9: return armv8_simdfpr_v9;
+        case Dyninst::aarch64::iq10: return armv8_simdfpr_v10;
+        case Dyninst::aarch64::iq11: return armv8_simdfpr_v11;
+        case Dyninst::aarch64::iq12: return armv8_simdfpr_v12;
+        case Dyninst::aarch64::iq13: return armv8_simdfpr_v13;
+        case Dyninst::aarch64::iq14: return armv8_simdfpr_v14;
+        case Dyninst::aarch64::iq15: return armv8_simdfpr_v15;
+        case Dyninst::aarch64::iq16: return armv8_simdfpr_v16;
+        case Dyninst::aarch64::iq17: return armv8_simdfpr_v17;
+        case Dyninst::aarch64::iq18: return armv8_simdfpr_v18;
+        case Dyninst::aarch64::iq19: return armv8_simdfpr_v19;
+        case Dyninst::aarch64::iq20: return armv8_simdfpr_v20;
+        case Dyninst::aarch64::iq21: return armv8_simdfpr_v21;
+        case Dyninst::aarch64::iq22: return armv8_simdfpr_v22;
+        case Dyninst::aarch64::iq23: return armv8_simdfpr_v23;
+        case Dyninst::aarch64::iq24: return armv8_simdfpr_v24;
+        case Dyninst::aarch64::iq25: return armv8_simdfpr_v25;
+        case Dyninst::aarch64::iq26: return armv8_simdfpr_v26;
+        case Dyninst::aarch64::iq27: return armv8_simdfpr_v27;
+        case Dyninst::aarch64::iq28: return armv8_simdfpr_v28;
+        case Dyninst::aarch64::iq29: return armv8_simdfpr_v29;
+        case Dyninst::aarch64::iq30: return armv8_simdfpr_v30;
+        case Dyninst::aarch64::iq31: return armv8_simdfpr_v31;
+      }
+      convert_printf("Unknown aarch64 FPR '%d'\n", baseID);
+      return static_cast<ARMv8SimdFpRegister>(-1);
+    }
+
+    ARMv8PstateFields pstate_field(int32_t baseID) {
+      switch(baseID) {
+        case Dyninst::aarch64::in: return armv8_pstatefield_n;
+        case Dyninst::aarch64::iz: return armv8_pstatefield_z;
+        case Dyninst::aarch64::ic: return armv8_pstatefield_c;
+        case Dyninst::aarch64::iv: return armv8_pstatefield_v;
+      }
+      convert_printf("Unknown aarch64 pstate register '%d'\n", baseID);
+      return static_cast<ARMv8PstateFields>(-1);
+    }
+  }
+
   std::tuple<ARMv8RegisterClass, int, int, int>
   aarch64Rose(int32_t category, int32_t baseID, int32_t subrange, int32_t num_bits) {
     constexpr auto pos = 0;
@@ -46,69 +137,21 @@ namespace {
     switch(category) {
       case Dyninst::aarch64::GPR: {
         auto const c = armv8_regclass_gpr;
-        auto const regnum = baseID - (Dyninst::aarch64::x0 & 0xFF);
-        auto const n = armv8_gpr_r0 + regnum;
-        return std::make_tuple(c, n, pos, num_bits);
-      }
-
-      case Dyninst::aarch64::SPR: {
-        int n = 0;
-        ARMv8RegisterClass c;
-        if(baseID == (Dyninst::aarch64::pstate & 0xFF)) {
-          c = armv8_regclass_pstate;
-        } else if(baseID == (Dyninst::aarch64::xzr & 0xFF) || baseID == (Dyninst::aarch64::wzr & 0xFF)) {
-          c = armv8_regclass_gpr;
-          n = armv8_gpr_zr;
-        } else if(baseID == (Dyninst::aarch64::pc & 0xFF)) {
-          c = armv8_regclass_pc;
-        } else if(baseID == (Dyninst::aarch64::sp & 0xFF) || baseID == (Dyninst::aarch64::wsp & 0xFF)) {
-          c = armv8_regclass_sp;
-        }
+        auto const n = aarch64_rose::gpr(baseID);
         return std::make_tuple(c, n, pos, num_bits);
       }
 
       case Dyninst::aarch64::FPR: {
-        auto c = armv8_regclass_simd_fpr;
-        auto p = 0;
-        int firstRegId;
-        switch(subrange) {
-          case Dyninst::aarch64::Q_REG:
-            firstRegId = (Dyninst::aarch64::q0 & 0xFF);
-            break;
-          case Dyninst::aarch64::HQ_REG:
-            firstRegId = (Dyninst::aarch64::hq0 & 0xFF);
-            p = 64;
-            break;
-          case Dyninst::aarch64::FULL:
-            firstRegId = (Dyninst::aarch64::d0 & 0xFF);
-            break;
-          case Dyninst::aarch64::D_REG:
-            firstRegId = (Dyninst::aarch64::s0 & 0xFF);
-            break;
-          case Dyninst::aarch64::W_REG:
-            firstRegId = (Dyninst::aarch64::h0 & 0xFF);
-            break;
-          case Dyninst::aarch64::B_REG:
-            firstRegId = (Dyninst::aarch64::b0 & 0xFF);
-            break;
-          default: assert(!"invalid register subcategory for ARM64!"); break;
-        }
-        auto n = armv8_simdfpr_v0 + (baseID - firstRegId);
+        auto const c = armv8_regclass_simd_fpr;
+        auto const n = aarch64_rose::fpr(baseID);
+        auto const p = (subrange == Dyninst::aarch64::HQ_REG) ? 64 : pos;
         return std::make_tuple(c, n, p, num_bits);
       }
 
       case Dyninst::aarch64::FLAG: {
-        auto c = armv8_regclass_pstate;
-        int n = 0;
-        int p = pos;
-        switch(baseID) {
-          case Dyninst::aarch64::N_FLAG: p = armv8_pstatefield_n; break;
-          case Dyninst::aarch64::Z_FLAG: p = armv8_pstatefield_z; break;
-          case Dyninst::aarch64::V_FLAG: p = armv8_pstatefield_v; break;
-          case Dyninst::aarch64::C_FLAG: p = armv8_pstatefield_c; break;
-          default:
-            c = static_cast<ARMv8RegisterClass>(-1);
-        }
+        auto const c = armv8_regclass_pstate;
+        auto const n = 0;
+        auto const p = aarch64_rose::pstate_field(baseID);
         return std::make_tuple(c, n, p, num_bits);
       }
     }
