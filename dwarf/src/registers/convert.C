@@ -1,5 +1,6 @@
 #include "dwarf/src/registers/convert.h"
 #include "dwarf/src/registers/x86.h"
+#include "dwarf/src/registers/x86_64.h"
 
 #include "debug_common.h"
 #include "registers/abstract_regs.h"
@@ -14,6 +15,8 @@ namespace DwarfDyninst {
         return x86_from_dwarf(encoding);
 
       case Dyninst::Arch_x86_64:
+        return x8664_from_dwarf(encoding);
+
       case Dyninst::Arch_ppc32:
       case Dyninst::Arch_ppc64:
       case Dyninst::Arch_aarch64:
@@ -39,6 +42,8 @@ namespace DwarfDyninst {
         return x86_to_dwarf(reg);
 
       case Dyninst::Arch_x86_64:
+        return x8664_to_dwarf(reg);
+
       case Dyninst::Arch_ppc32:
       case Dyninst::Arch_ppc64:
       case Dyninst::Arch_aarch64:
