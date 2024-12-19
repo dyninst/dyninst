@@ -1,0 +1,55 @@
+#include "dwarf/src/registers/convert.h"
+
+#include "debug_common.h"
+#include "registers/abstract_regs.h"
+
+namespace Dyninst {
+namespace DwarfDyninst {
+
+  Dyninst::MachRegister encoding_to_reg(int encoding, Dyninst::Architecture arch) {
+
+    switch(arch) {
+      case Dyninst::Arch_x86:
+      case Dyninst::Arch_x86_64:
+      case Dyninst::Arch_ppc32:
+      case Dyninst::Arch_ppc64:
+      case Dyninst::Arch_aarch64:
+      case Dyninst::Arch_aarch32:
+      case Dyninst::Arch_none:
+      case Dyninst::Arch_cuda:
+      case Dyninst::Arch_amdgpu_gfx908:
+      case Dyninst::Arch_amdgpu_gfx90a:
+      case Dyninst::Arch_amdgpu_gfx940:
+      case Dyninst::Arch_intelGen9: {
+        dwarf_printf("No known register for '%d' on '%u'\n", encoding, arch);
+        return Dyninst::InvalidReg;
+      }
+    }
+    dwarf_printf("No known register for '%d' on '%u'\n", encoding, arch);
+    return Dyninst::InvalidReg;
+  }
+
+  int register_to_dwarf(Dyninst::MachRegister reg) {
+
+    switch(reg.getArchitecture()) {
+      case Dyninst::Arch_x86:
+      case Dyninst::Arch_x86_64:
+      case Dyninst::Arch_ppc32:
+      case Dyninst::Arch_ppc64:
+      case Dyninst::Arch_aarch64:
+      case Dyninst::Arch_aarch32:
+      case Dyninst::Arch_none:
+      case Dyninst::Arch_cuda:
+      case Dyninst::Arch_amdgpu_gfx908:
+      case Dyninst::Arch_amdgpu_gfx90a:
+      case Dyninst::Arch_amdgpu_gfx940:
+      case Dyninst::Arch_intelGen9: {
+        dwarf_printf("No known DWARF encoding for '%s'\n", reg.name().c_str());
+        return Dyninst::InvalidReg;
+      }
+    }
+    dwarf_printf("No known DWARF encoding for '%s'\n", reg.name().c_str());
+    return -1;
+  }
+
+}}

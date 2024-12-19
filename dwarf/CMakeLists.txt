@@ -13,11 +13,14 @@ set(_public_headers h/dwarfExprParser.h h/dwarfFrameParser.h h/dwarfHandle.h
                     h/dwarfResult.h h/dwarf_unit_info.h)
 
 set(_sources src/dwarfResult.C src/dwarfExprParser.C src/dwarfFrameParser.C
-             src/dwarfHandle.C src/dwarf_subrange.cpp)
+             src/dwarfHandle.C src/dwarf_subrange.cpp src/registers/convert.C)
+
+set(_private_headers src/registers/convert.h)
 
 # cmake-format: off
 dyninst_library(
   dynDwarf
+  PRIVATE_HEADER_FILES ${_private_headers}
   PUBLIC_HEADER_FILES ${_public_headers}
   SOURCE_FILES ${_sources}
   DEFINES DYNDWARF_LIB
