@@ -1,0 +1,89 @@
+#include "rose/registers/convert.h"
+
+#include "dataflowAPI/rose/registers/aarch64.h"
+#include "dataflowAPI/rose/registers/amdgpu.h"
+#include "dataflowAPI/rose/registers/ppc32.h"
+#include "dataflowAPI/rose/registers/ppc64.h"
+#include "dataflowAPI/rose/registers/x86.h"
+#include "dataflowAPI/rose/registers/x86_64.h"
+
+#include "dataflowAPI/src/debug_dataflow.h"
+
+#include <tuple>
+
+namespace Dyninst { namespace DataflowAPI {
+
+  rose_reg_raw_t convertToROSERegister(Dyninst::MachRegister reg) {
+
+    /*
+     * A ROSE register has a major version, minor version, position, and size.
+     *
+     * These map to a MachRegister as follows:
+     *
+     *  category -> major version
+     *  baseID   -> minor version
+     *  subrange -> position
+     *
+     * The major version, register position, and size (in bits) are based on the
+     * user-provided register.
+     *
+     * On most platforms, ROSE only has minor versions for the most-basal registers.
+     *
+     *  For example, the aarch64 8-bit FPR b0 is mapped to the 128-bit q0 represented
+     *  by armv8_simdfpr_v0.
+     *
+     *  For x86, ROSE sometimes uses the 16-bit names and sometimes the 64-bit names.
+     *
+     *  For example, the major version for 'rax' is x86_gpr_ax, and the major version
+     *  for 'r15' is x86_gpr_r15.
+     *
+     */
+    auto const category = reg.regClass();
+    auto const baseID = reg.getBaseRegister().val() & 0x000000ff;
+    auto const subrange = reg.val() & 0x0000ff00;
+
+    // MachRegister::size is in _bytes_
+    auto const num_bits = 8*static_cast<int32_t>(reg.size());
+
+    // A RegisterDescriptor is invalid if it has no bits
+    auto const INVALID_REG = std::make_tuple(0,0,0,0);
+
+    switch(reg.getArchitecture()) {
+      case Arch_amdgpu_gfx908: {
+        return AmdgpuGfx908Rose(category, baseID, subrange, num_bits);
+      }
+      case Arch_amdgpu_gfx90a: {
+        return AmdgpuGfx90aRose(category, baseID, subrange, num_bits);
+      }
+      case Arch_amdgpu_gfx940: {
+        return AmdgpuGfx940Rose(category, baseID, subrange, num_bits);
+      }
+      case Arch_x86: {
+        return x86Rose(category, baseID, subrange, num_bits);
+      }
+      case Arch_x86_64: {
+        return x8664Rose(category, baseID, subrange, num_bits);
+      }
+      case Arch_ppc32: {
+        return ppc32Rose(category, reg, num_bits);
+      }
+      case Arch_ppc64: {
+        return ppc64Rose(category, reg, num_bits);
+      }
+      case Arch_aarch64: {
+        return aarch64Rose(category, baseID, subrange, num_bits);
+      }
+      case Arch_aarch32:
+      case Arch_cuda:
+      case Arch_intelGen9:
+      case Arch_none:
+        // Set these output variable to invalid values and let the
+        // semantics code to throw exceptions
+        convert_printf("No ROSE register for architecture 0x%X\n", reg.getArchitecture());
+        return INVALID_REG;
+    }
+    convert_printf("Unknown Architecture 0x%X\n", reg.getArchitecture());
+    return INVALID_REG;
+  }
+
+}}

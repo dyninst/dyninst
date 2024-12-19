@@ -6,6 +6,7 @@
 #define DYNINST_REGISTERDESCRIPTOR_H
 
 #include <iostream>
+#include "dataflowAPI/rose/registers/convert.h"
 
 /** Describes (part of) a physical CPU register.
  *
@@ -27,6 +28,12 @@ public:
             : majr(0), minr(0), offset(0), nbits(0) {}
     RegisterDescriptor(unsigned majr_, unsigned minr_, unsigned offset_, unsigned nbits_)
             : majr(majr_), minr(minr_), offset(offset_), nbits(nbits_) {}
+
+    RegisterDescriptor(Dyninst::MachRegister reg) : reg_{reg} {
+      namespace dd = Dyninst::DataflowAPI;
+      std::tie(majr, minr, offset, nbits) = dd::convertToROSERegister(reg);
+    }
+
     unsigned get_major() const {
         return majr;
     }
@@ -58,6 +65,9 @@ public:
         this->nbits = nbits_;
         return *this;
     }
+    Dyninst::MachRegister get_machine_register() const {
+      return reg_;
+    }
     bool operator<(const RegisterDescriptor &other) const;
     bool operator==(const RegisterDescriptor &other) const;
     bool operator!=(const RegisterDescriptor &other) const;
@@ -71,6 +81,7 @@ private:
     unsigned minr;	/** Register number within major division. */
     unsigned offset;	/** Low-bit offset within the physical register. */
     unsigned nbits;	/** Number of bits referenced by this descriptor. */
+    Dyninst::MachRegister reg_;
 };
 
 #endif //DYNINST_REGISTERDESCRIPTOR_H

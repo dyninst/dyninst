@@ -11,7 +11,8 @@ enum ARMv8RegisterClass {
     armv8_regclass_simd_fpr,	    /** TODO: Minors yet to be defined */
     armv8_regclass_pstate,	    /** Minor is the only one pstate register with its flags (defined in ARMv8Flag) being the only relevant fields */
     armv8_regclass_pc,		    /** Program counter, only allowed minor is 0 */
-    armv8_regclass_sp           /** Stack pointer, only allowed minor is 0 */
+    armv8_regclass_sp,          /** Stack pointer, only allowed minor is 0 */
+    armv8_regclass_unknown
 };
 
 /** ARMv8-A general purpose registers */

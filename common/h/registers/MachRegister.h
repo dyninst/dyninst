@@ -81,8 +81,6 @@ namespace Dyninst {
     bool isFlag() const;
     bool isZeroFlag() const;
 
-    void getROSERegister(int& c, int& n, int& p);
-
     static MachRegister DwarfEncToReg(int encoding, Dyninst::Architecture arch);
     static MachRegister getArchRegFromAbstractReg(MachRegister abstract,
                                                   Dyninst::Architecture arch);
