@@ -57,6 +57,8 @@
 #include "addressSpace.h"
 #include "function.h"
 #include "baseTramp.h"
+#include "RegisterConversion.h"
+#include "registerSpace.h"
 
 
 using namespace Dyninst::SymtabAPI;
@@ -222,20 +224,21 @@ void parse_func::calcUsedRegs()
             i.getWriteSet(writtenRegs);
         }
     }
-    for(std::set<RegisterAST::Ptr>::const_iterator curReg = writtenRegs.begin();
-        curReg != writtenRegs.end();
-       ++curReg)
-    {
-        MachRegister r = (*curReg)->getID();
-        if((r & ppc32::GPR) && (r <= ppc32::r13))
-        {
-            usedRegisters->generalPurposeRegisters.insert(r & 0xFFFF);
-        }
-        else if(((r & ppc32::FPR) && (r <= ppc32::fpr13)) ||
-                  ((r & ppc32::FSR) && (r <= ppc32::fsr13)))
-        {
-            usedRegisters->floatingPointRegisters.insert(r & 0xFFFF);
-        }
+
+    for(auto const& reg : writtenRegs) {
+      MachRegister r = reg->getID();
+      auto regID = convertRegID(r);
+      if(regID == registerSpace::ignored) {
+        logLine("parse_func::calcUsedRegs: unknown written register\n");
+        continue;
+      }
+      auto const category = r.regClass();
+      if(category == ppc32::GPR || category == ppc64::GPR) {
+        usedRegisters->generalPurposeRegisters.insert(regID);
+      }
+      else if(category == ppc32::FPR || category == ppc64::FPR) {
+        usedRegisters->floatingPointRegisters.insert(regID);
+      }
     }
    }
    return;
