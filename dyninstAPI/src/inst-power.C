@@ -1126,7 +1126,7 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
       std::set<Register>::iterator It2 = fprs->begin();
       for(unsigned i = 0; i < fprs->size(); i++)
       {
-          rs->FPRs()[*(It2++)]->beenUsed = true;
+          rs->FPRs()[registerSpace::FPR(*(It2++))]->beenUsed = true;
       }
     }
   else {
