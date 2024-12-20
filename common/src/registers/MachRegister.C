@@ -522,31 +522,37 @@ namespace Dyninst {
 
   bool MachRegister::isPC() const {
     if(*this == InvalidReg) return false;
-    return *this == getPC(getArchitecture());
+    auto const base = getBaseRegister();
+    return base == getPC(getArchitecture());
   }
 
   bool MachRegister::isFramePointer() const {
     if(*this == InvalidReg) return false;
-    return *this == FrameBase || *this == getFramePointer(getArchitecture());
+    auto const base = getBaseRegister();
+    return base == FrameBase || base == getFramePointer(getArchitecture());
   }
 
   bool MachRegister::isStackPointer() const {
     if(*this == InvalidReg) return false;
-    return *this == StackTop || *this == getStackPointer(getArchitecture());
+    auto const base = getBaseRegister();
+    return base == StackTop || base == getStackPointer(getArchitecture());
   }
 
   bool MachRegister::isSyscallNumberReg() const {
     if(*this == InvalidReg) return false;
-    return *this == getSyscallNumberReg(getArchitecture());
+    auto const base = getBaseRegister();
+    return base == getSyscallNumberReg(getArchitecture());
   }
 
   bool MachRegister::isSyscallReturnValueReg() const {
     if(*this == InvalidReg) return false;
-    return *this == getSyscallReturnValueReg(getArchitecture());
+    auto const base = getBaseRegister();
+    return base == getSyscallReturnValueReg(getArchitecture());
   }
 
   bool MachRegister::isFlag() const {
-    int regC = regClass();
+    auto const base = getBaseRegister();
+    auto const regC = base.regClass();
     switch(getArchitecture()) {
       case Arch_x86: return regC == x86::FLAG;
       case Arch_x86_64: return regC == x86_64::FLAG;
@@ -556,13 +562,13 @@ namespace Dyninst {
         // For power, we have a different register representation.
         // We do not use the subrange field for MachReigsters
         // and all lower 32 bits are base ID
-        int baseID = reg & 0x0000FFFF;
+        int baseID = base.val() & 0x0000FFFF;
         return (baseID <= 731 && baseID >= 700) || (baseID <= 629 && baseID >= 621);
       }
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940: {
-        return (reg & 0x0000F000);
+        return (base.val() & 0x0000F000);
       }
       case Arch_cuda: return false;
 
@@ -573,18 +579,19 @@ namespace Dyninst {
 
   bool MachRegister::isZeroFlag() const {
     if(*this == InvalidReg) return false;
+    auto const base = getBaseRegister();
     switch(getArchitecture()) {
       case Arch_ppc32:
       case Arch_ppc64: {
         // For power, we have a different register representation.
         // We do not use the subrange field for MachReigsters
         // and all lower 32 bits are base ID
-        int baseID = reg & 0x0000FFFF;
+        int baseID = base.val() & 0x0000FFFF;
         return (baseID <= 731 && baseID >= 700 && baseID % 4 == 2) ||
                (baseID <= 628 && baseID >= 621);
       }
       default:
-	return *this == getZeroFlag(getArchitecture());
+        return base == getZeroFlag(getArchitecture());
     }
     return false;
   }
