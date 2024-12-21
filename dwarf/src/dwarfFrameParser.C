@@ -40,6 +40,7 @@
 #include "debug_common.h" // dwarf_printf
 #include <libelf.h>
 #include "registers/abstract_regs.h"
+#include "dwarf/src/registers/convert.h"
 
 #include <mutex>
 #include <map>
@@ -275,7 +276,7 @@ bool DwarfFrameParser::getRegAtFrame(
         if (reg != Dyninst::ReturnAddr &&
                 reg != Dyninst::FrameBase &&
                 reg != Dyninst::CFA )
-            dwarf_reg = reg.getDwarfEnc();
+            dwarf_reg = DwarfDyninst::register_to_dwarf(reg);
 
         // now get the rule for the register reg
         // if its CFA (same as FrameBase) use dwarf_frame_cfa
