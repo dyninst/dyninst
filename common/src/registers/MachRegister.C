@@ -119,6 +119,15 @@ namespace Dyninst {
           auto const r = new_seq_num | new_len_type | aarch64::FPR | Arch_aarch64;
           return MachRegister(r);
         }
+
+        if(category == aarch64::SPR) {
+          if(*this == aarch64::wsp) {
+            return aarch64::sp;
+          }
+          if(*this == aarch64::wzr) {
+            return aarch64::xzr;
+          }
+        }
         return *this;
       }
 
