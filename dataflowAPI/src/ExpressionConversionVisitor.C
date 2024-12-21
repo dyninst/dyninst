@@ -302,6 +302,7 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
     }
 
     case Arch_aarch32:
+    case Arch_riscv64:
     case Arch_cuda:
     case Arch_intelGen9:
     case Arch_none: {
