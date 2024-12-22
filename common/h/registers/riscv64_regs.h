@@ -41,7 +41,7 @@ namespace Dyninst { namespace riscv64 {
   /**
    * For interpreting constants:
    *  Lowest 16 bits (0x000000ff) is base register ID
-   *  Next 16 bits (0x0000ff00) is ununsed
+   *  Next 16 bits (0x0000ff00) are used to distinguish between 32/64 bit floating point registers
    *  Next 16 bits (0x00ff0000) are the register category, GPR/FPR/MMX/...
    *  Top 16 bits (0xff000000) are the architecture.
    *
@@ -162,6 +162,40 @@ namespace Dyninst { namespace riscv64 {
   DEF_REGISTER(    f29_64,  29 | DEXT | FPR | Arch_riscv64, "riscv64");
   DEF_REGISTER(    f30_64,  30 | DEXT | FPR | Arch_riscv64, "riscv64");
   DEF_REGISTER(    f31_64,  31 | DEXT | FPR | Arch_riscv64, "riscv64");
+
+  // Ambiguous register: we know it's a floating-point register, but we're not sure if it's 32-bit or 64-bit.
+  DEF_REGISTER(        f0,   0 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(        f1,   1 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(        f2,   2 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(        f3,   3 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(        f4,   4 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(        f5,   5 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(        f6,   6 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(        f7,   7 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(        f8,   8 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(        f9,   9 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f10,  10 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f11,  11 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f12,  12 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f13,  13 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f14,  14 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f15,  15 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f16,  16 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f17,  17 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f18,  18 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f19,  19 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f20,  20 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f21,  21 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f22,  22 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f23,  23 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f24,  24 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f25,  25 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f26,  26 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f27,  27 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f28,  28 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f29,  29 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f30,  30 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(       f31,  31 | FPR | Arch_riscv64, "riscv64");
 
   // Aliases (ABI Name)
   DEF_REGISTER(      zero,   0 | GPR | Arch_riscv64, "riscv64");
