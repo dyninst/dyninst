@@ -554,12 +554,12 @@ namespace Dyninst {
       }
 
       case riscv64::FEXT: {
-        reg_class = riscv64_regclass_fpr32;
+        reg_class = riscv64_regclass_fpr;
         break;
       }
 
       case riscv64::DEXT: {
-        reg_class = riscv64_regclass_fpr64;
+        reg_class = riscv64_regclass_fpr;
         break;
       }
 

@@ -107,18 +107,9 @@ void registerSpace::initialize64() {
     registers.push_back(new registerSlot(pc, "pc", true, registerSlot::liveAlways, registerSlot::SPR));
 
     //FPRs
-    for (unsigned idx = fpr32_0; idx <= fpr32_31; idx++) {
+    for (unsigned idx = fpr0; idx <= fpr31; idx++) {
         char name[32];
-        sprintf(name, "fpr32_%u", idx - fpr32_0);
-        registers.push_back(new registerSlot(idx,
-                                             name,
-                                             false,
-                                             registerSlot::liveAlways,
-                                             registerSlot::FPR));
-    }
-    for (unsigned idx = fpr64_0; idx <= fpr64_31; idx++) {
-        char name[32];
-        sprintf(name, "fpr64_%u", idx - fpr64_0);
+        sprintf(name, "fpr%u", idx - fpr0);
         registers.push_back(new registerSlot(idx,
                                              name,
                                              false,
