@@ -130,6 +130,14 @@ namespace Dyninst {
         }
         return *this;
       }
+      case Arch_riscv64:
+        switch(category) {
+          case riscv64::GPR: return riscv64::x0;
+          case riscv64::FEXT: return riscv64::f0_32;
+          case riscv64::DEXT: return riscv64::f0_64;
+
+          default: return *this;
+        }
 
       case Arch_amdgpu_gfx908:
         switch(category) {
@@ -232,6 +240,11 @@ namespace Dyninst {
         return 8;
       }
       case Arch_aarch32: assert(0); break;
+      case Arch_riscv64: {
+        if((reg & 0x00ff0000) == riscv64::FPR && (reg & 0x0000ff00) == riscv64::DEXT)
+          return 8;
+        return 4;
+      }
 
       case Arch_cuda: return 8;
       case Arch_amdgpu_gfx908: {
@@ -376,6 +389,7 @@ namespace Dyninst {
       case Arch_aarch64: // aarch64: pc is not writable
         return aarch64::pc;
       case Arch_aarch32: return InvalidReg;
+      case Arch_riscv64: return riscv64::pc;
       case Arch_cuda: return cuda::pc;
       case Arch_intelGen9: return InvalidReg;
       case Arch_amdgpu_gfx908: return amdgpu_gfx908::pc_all;
@@ -395,6 +409,7 @@ namespace Dyninst {
       case Arch_aarch64:           // aarch64: x30 stores the RA for current frame
         return aarch64::x30;
       case Arch_aarch32:
+      case Arch_riscv64: return riscv64::ra;
       case Arch_cuda:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
@@ -413,6 +428,7 @@ namespace Dyninst {
       case Arch_ppc64: return ppc64::r1;
       case Arch_aarch64: return aarch64::x29; // aarch64: frame pointer is X29 by convention
       case Arch_aarch32:
+      case Arch_riscv64: return riscv64::fp;
       case Arch_cuda:
       case Arch_intelGen9:
       case Arch_amdgpu_gfx908:
@@ -431,6 +447,7 @@ namespace Dyninst {
       case Arch_ppc64: return ppc64::r1;
       case Arch_aarch64: return aarch64::sp; // aarch64: stack pointer is an independent register
       case Arch_aarch32:
+      case Arch_riscv64: return riscv64::sp;
       case Arch_cuda:
       case Arch_intelGen9:
       case Arch_amdgpu_gfx908:
@@ -449,6 +466,7 @@ namespace Dyninst {
       case Arch_ppc64: return ppc64::r0;
       case Arch_aarch64: return aarch64::x8;
       case Arch_aarch32:
+      case Arch_riscv64: return riscv64::a7;
       case Arch_cuda:
       case Arch_intelGen9:
       case Arch_amdgpu_gfx908:
@@ -466,6 +484,7 @@ namespace Dyninst {
       case Arch_ppc32: return ppc32::r0;
       case Arch_ppc64: return ppc64::r0;
       case Arch_aarch64: return aarch64::x8;
+      case Arch_riscv64: return riscv64::a7;
       case Arch_none: return InvalidReg;
       default: assert(0); return InvalidReg;
     }
@@ -480,6 +499,7 @@ namespace Dyninst {
       case Arch_ppc64: return ppc64::r3;
       case Arch_aarch64: return aarch64::x0; // returned value is save in x0
       case Arch_aarch32:
+      case Arch_riscv64: return riscv64::a0;
       case Arch_cuda:
       case Arch_intelGen9:
       case Arch_amdgpu_gfx908:
@@ -518,6 +538,7 @@ namespace Dyninst {
       case Arch_ppc64: return ppc64::cr0e;
       case Arch_aarch64: return aarch64::z;
       case Arch_aarch32:
+      case Arch_riscv64: // RISC-V does not have flag registers
       case Arch_cuda:
       case Arch_intelGen9:
       case Arch_amdgpu_gfx908:
@@ -566,6 +587,7 @@ namespace Dyninst {
       case Arch_x86: return regC == x86::FLAG;
       case Arch_x86_64: return regC == x86_64::FLAG;
       case Arch_aarch64: return regC == aarch64::FLAG;
+      case Arch_riscv64: return false; // RISC-V does not have flag registers
       case Arch_ppc32:
       case Arch_ppc64: {
         // For power, we have a different register representation.
@@ -599,6 +621,7 @@ namespace Dyninst {
         return (baseID <= 731 && baseID >= 700 && baseID % 4 == 2) ||
                (baseID <= 628 && baseID >= 621);
       }
+      case Arch_riscv64: return false; // RISC-V does not have flag registers
       default:
         return base == getZeroFlag(getArchitecture());
     }
@@ -627,6 +650,9 @@ namespace Dyninst {
    *  6th October 2023
    *  4.1 DWARF register names
    *  https://github.com/ARM-software/abi-aa/releases/download/2023Q3/aadwarf64.pdf
+   * Riscv64:
+   *  DWARF for the RISC-V 64-bit Architecture
+   *  https://github.com/riscv-non-isa/riscv-elf-psabi-doc/blob/master/riscv-dwarf.adoc
    */
   MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arch) {
     switch(arch) {
@@ -1462,6 +1488,81 @@ namespace Dyninst {
         }
         return Dyninst::InvalidReg;
       }
+      case Arch_riscv64: {
+        switch(encoding) {
+
+          // 64-bit general-purpose registers
+          case 0: return Dyninst::riscv64::x0;
+          case 1: return Dyninst::riscv64::x1;
+          case 2: return Dyninst::riscv64::x2;
+          case 3: return Dyninst::riscv64::x3;
+          case 4: return Dyninst::riscv64::x4;
+          case 5: return Dyninst::riscv64::x5;
+          case 6: return Dyninst::riscv64::x6;
+          case 7: return Dyninst::riscv64::x7;
+          case 8: return Dyninst::riscv64::x8;
+          case 9: return Dyninst::riscv64::x9;
+          case 10: return Dyninst::riscv64::x10;
+          case 11: return Dyninst::riscv64::x11;
+          case 12: return Dyninst::riscv64::x12;
+          case 13: return Dyninst::riscv64::x13;
+          case 14: return Dyninst::riscv64::x14;
+          case 15: return Dyninst::riscv64::x15;
+          case 16: return Dyninst::riscv64::x16;
+          case 17: return Dyninst::riscv64::x17;
+          case 18: return Dyninst::riscv64::x18;
+          case 19: return Dyninst::riscv64::x19;
+          case 20: return Dyninst::riscv64::x20;
+          case 21: return Dyninst::riscv64::x21;
+          case 22: return Dyninst::riscv64::x22;
+          case 23: return Dyninst::riscv64::x23;
+          case 24: return Dyninst::riscv64::x24;
+          case 25: return Dyninst::riscv64::x25;
+          case 26: return Dyninst::riscv64::x26;
+          case 27: return Dyninst::riscv64::x27;
+          case 28: return Dyninst::riscv64::x28;
+          case 29: return Dyninst::riscv64::x29;
+          case 30: return Dyninst::riscv64::x30;
+          case 31: return Dyninst::riscv64::x31;
+
+          // 64-bit floating point registers
+          // For RISC-V DWARF, it is unclear whether a specific floating point register is 32 or 64 bit
+          // without enough instruction context. Thus, we return the ambiguous version
+          case 32: return Dyninst::riscv64::f0;
+          case 33: return Dyninst::riscv64::f1;
+          case 34: return Dyninst::riscv64::f2;
+          case 35: return Dyninst::riscv64::f3;
+          case 36: return Dyninst::riscv64::f4;
+          case 37: return Dyninst::riscv64::f5;
+          case 38: return Dyninst::riscv64::f6;
+          case 39: return Dyninst::riscv64::f7;
+          case 40: return Dyninst::riscv64::f8;
+          case 41: return Dyninst::riscv64::f9;
+          case 42: return Dyninst::riscv64::f10;
+          case 43: return Dyninst::riscv64::f11;
+          case 44: return Dyninst::riscv64::f12;
+          case 45: return Dyninst::riscv64::f13;
+          case 46: return Dyninst::riscv64::f14;
+          case 47: return Dyninst::riscv64::f15;
+          case 48: return Dyninst::riscv64::f16;
+          case 49: return Dyninst::riscv64::f17;
+          case 50: return Dyninst::riscv64::f18;
+          case 51: return Dyninst::riscv64::f19;
+          case 52: return Dyninst::riscv64::f20;
+          case 53: return Dyninst::riscv64::f21;
+          case 54: return Dyninst::riscv64::f22;
+          case 55: return Dyninst::riscv64::f23;
+          case 56: return Dyninst::riscv64::f24;
+          case 57: return Dyninst::riscv64::f25;
+          case 58: return Dyninst::riscv64::f26;
+          case 59: return Dyninst::riscv64::f27;
+          case 60: return Dyninst::riscv64::f28;
+          case 61: return Dyninst::riscv64::f29;
+          case 62: return Dyninst::riscv64::f30;
+          case 63: return Dyninst::riscv64::f31;
+        }
+        return Dyninst::InvalidReg;
+      }
       case Arch_cuda:
         // ignore CUDA register encodings for now
         return Dyninst::InvalidReg;
@@ -2284,6 +2385,112 @@ namespace Dyninst {
           default: return -1;
         }
         break;
+      case Arch_riscv64: {
+        switch(val()) {
+
+          // 64-bit general-purpose registers
+          case Dyninst::riscv64::ix0: return 0;
+          case Dyninst::riscv64::ix1: return 1;
+          case Dyninst::riscv64::ix2: return 2;
+          case Dyninst::riscv64::ix3: return 3;
+          case Dyninst::riscv64::ix4: return 4;
+          case Dyninst::riscv64::ix5: return 5;
+          case Dyninst::riscv64::ix6: return 6;
+          case Dyninst::riscv64::ix7: return 7;
+          case Dyninst::riscv64::ix8: return 8;
+          case Dyninst::riscv64::ix9: return 9;
+          case Dyninst::riscv64::ix10: return 10;
+          case Dyninst::riscv64::ix11: return 11;
+          case Dyninst::riscv64::ix12: return 12;
+          case Dyninst::riscv64::ix13: return 13;
+          case Dyninst::riscv64::ix14: return 14;
+          case Dyninst::riscv64::ix15: return 15;
+          case Dyninst::riscv64::ix16: return 16;
+          case Dyninst::riscv64::ix17: return 17;
+          case Dyninst::riscv64::ix18: return 18;
+          case Dyninst::riscv64::ix19: return 19;
+          case Dyninst::riscv64::ix20: return 20;
+          case Dyninst::riscv64::ix21: return 21;
+          case Dyninst::riscv64::ix22: return 22;
+          case Dyninst::riscv64::ix23: return 23;
+          case Dyninst::riscv64::ix24: return 24;
+          case Dyninst::riscv64::ix25: return 25;
+          case Dyninst::riscv64::ix26: return 26;
+          case Dyninst::riscv64::ix27: return 27;
+          case Dyninst::riscv64::ix28: return 28;
+          case Dyninst::riscv64::ix29: return 29;
+          case Dyninst::riscv64::ix30: return 30;
+          case Dyninst::riscv64::ix31: return 31;
+
+          // 64-bit floating point registers
+          case Dyninst::riscv64::if0_32: return 32;
+          case Dyninst::riscv64::if1_32: return 33;
+          case Dyninst::riscv64::if2_32: return 34;
+          case Dyninst::riscv64::if3_32: return 35;
+          case Dyninst::riscv64::if4_32: return 36;
+          case Dyninst::riscv64::if5_32: return 37;
+          case Dyninst::riscv64::if6_32: return 38;
+          case Dyninst::riscv64::if7_32: return 39;
+          case Dyninst::riscv64::if8_32: return 40;
+          case Dyninst::riscv64::if9_32: return 41;
+          case Dyninst::riscv64::if10_32: return 42;
+          case Dyninst::riscv64::if11_32: return 43;
+          case Dyninst::riscv64::if12_32: return 44;
+          case Dyninst::riscv64::if13_32: return 45;
+          case Dyninst::riscv64::if14_32: return 46;
+          case Dyninst::riscv64::if15_32: return 47;
+          case Dyninst::riscv64::if16_32: return 48;
+          case Dyninst::riscv64::if17_32: return 49;
+          case Dyninst::riscv64::if18_32: return 50;
+          case Dyninst::riscv64::if19_32: return 51;
+          case Dyninst::riscv64::if20_32: return 52;
+          case Dyninst::riscv64::if21_32: return 53;
+          case Dyninst::riscv64::if22_32: return 54;
+          case Dyninst::riscv64::if23_32: return 55;
+          case Dyninst::riscv64::if24_32: return 56;
+          case Dyninst::riscv64::if25_32: return 57;
+          case Dyninst::riscv64::if26_32: return 58;
+          case Dyninst::riscv64::if27_32: return 59;
+          case Dyninst::riscv64::if28_32: return 60;
+          case Dyninst::riscv64::if29_32: return 61;
+          case Dyninst::riscv64::if30_32: return 62;
+
+          case Dyninst::riscv64::if0_64: return 32;
+          case Dyninst::riscv64::if1_64: return 33;
+          case Dyninst::riscv64::if2_64: return 34;
+          case Dyninst::riscv64::if3_64: return 35;
+          case Dyninst::riscv64::if4_64: return 36;
+          case Dyninst::riscv64::if5_64: return 37;
+          case Dyninst::riscv64::if6_64: return 38;
+          case Dyninst::riscv64::if7_64: return 39;
+          case Dyninst::riscv64::if8_64: return 40;
+          case Dyninst::riscv64::if9_64: return 41;
+          case Dyninst::riscv64::if10_64: return 42;
+          case Dyninst::riscv64::if11_64: return 43;
+          case Dyninst::riscv64::if12_64: return 44;
+          case Dyninst::riscv64::if13_64: return 45;
+          case Dyninst::riscv64::if14_64: return 46;
+          case Dyninst::riscv64::if15_64: return 47;
+          case Dyninst::riscv64::if16_64: return 48;
+          case Dyninst::riscv64::if17_64: return 49;
+          case Dyninst::riscv64::if18_64: return 50;
+          case Dyninst::riscv64::if19_64: return 51;
+          case Dyninst::riscv64::if20_64: return 52;
+          case Dyninst::riscv64::if21_64: return 53;
+          case Dyninst::riscv64::if22_64: return 54;
+          case Dyninst::riscv64::if23_64: return 55;
+          case Dyninst::riscv64::if24_64: return 56;
+          case Dyninst::riscv64::if25_64: return 57;
+          case Dyninst::riscv64::if26_64: return 58;
+          case Dyninst::riscv64::if27_64: return 59;
+          case Dyninst::riscv64::if28_64: return 60;
+          case Dyninst::riscv64::if29_64: return 61;
+          case Dyninst::riscv64::if30_64: return 62;
+
+          default: return -1;
+        }
+        return Dyninst::InvalidReg;
+      }
       case Arch_none: assert(0); return -1;
       default: assert(0); return -1;
     }
