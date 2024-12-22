@@ -78,70 +78,38 @@ multimap<Register, MachRegister> regToMachReg64 = map_list_of
   (registerSpace::r29, 		riscv64::x29)
   (registerSpace::r30, 		riscv64::x30)
   (registerSpace::r31, 		riscv64::x31)
-  (registerSpace::fpr32_0,  	riscv64::f0_32)
-  (registerSpace::fpr32_1,  	riscv64::f1_32)
-  (registerSpace::fpr32_2,  	riscv64::f2_32)
-  (registerSpace::fpr32_3,  	riscv64::f3_32)
-  (registerSpace::fpr32_4,  	riscv64::f4_32)
-  (registerSpace::fpr32_5,  	riscv64::f5_32)
-  (registerSpace::fpr32_6,  	riscv64::f6_32)
-  (registerSpace::fpr32_7,  	riscv64::f7_32)
-  (registerSpace::fpr32_8,  	riscv64::f8_32)
-  (registerSpace::fpr32_9,  	riscv64::f9_32)
-  (registerSpace::fpr32_10, 	riscv64::f10_32)
-  (registerSpace::fpr32_11, 	riscv64::f11_32)
-  (registerSpace::fpr32_12, 	riscv64::f12_32)
-  (registerSpace::fpr32_13, 	riscv64::f13_32)
-  (registerSpace::fpr32_14, 	riscv64::f14_32)
-  (registerSpace::fpr32_15, 	riscv64::f15_32)
-  (registerSpace::fpr32_16, 	riscv64::f16_32)
-  (registerSpace::fpr32_17, 	riscv64::f17_32)
-  (registerSpace::fpr32_18, 	riscv64::f18_32)
-  (registerSpace::fpr32_19, 	riscv64::f19_32)
-  (registerSpace::fpr32_20, 	riscv64::f20_32)
-  (registerSpace::fpr32_21, 	riscv64::f21_32)
-  (registerSpace::fpr32_22, 	riscv64::f22_32)
-  (registerSpace::fpr32_23, 	riscv64::f23_32)
-  (registerSpace::fpr32_24, 	riscv64::f24_32)
-  (registerSpace::fpr32_25, 	riscv64::f25_32)
-  (registerSpace::fpr32_26, 	riscv64::f26_32)
-  (registerSpace::fpr32_27, 	riscv64::f27_32)
-  (registerSpace::fpr32_28, 	riscv64::f28_32)
-  (registerSpace::fpr32_29, 	riscv64::f29_32)
-  (registerSpace::fpr32_30, 	riscv64::f30_32)
-  (registerSpace::fpr32_31, 	riscv64::f31_32)
-  (registerSpace::fpr64_0,  	riscv64::f0_64)
-  (registerSpace::fpr64_1,  	riscv64::f1_64)
-  (registerSpace::fpr64_2,  	riscv64::f2_64)
-  (registerSpace::fpr64_3,  	riscv64::f3_64)
-  (registerSpace::fpr64_4,  	riscv64::f4_64)
-  (registerSpace::fpr64_5,  	riscv64::f5_64)
-  (registerSpace::fpr64_6,  	riscv64::f6_64)
-  (registerSpace::fpr64_7,  	riscv64::f7_64)
-  (registerSpace::fpr64_8,  	riscv64::f8_64)
-  (registerSpace::fpr64_9,  	riscv64::f9_64)
-  (registerSpace::fpr64_10, 	riscv64::f10_64)
-  (registerSpace::fpr64_11, 	riscv64::f11_64)
-  (registerSpace::fpr64_12, 	riscv64::f12_64)
-  (registerSpace::fpr64_13, 	riscv64::f13_64)
-  (registerSpace::fpr64_14, 	riscv64::f14_64)
-  (registerSpace::fpr64_15, 	riscv64::f15_64)
-  (registerSpace::fpr64_16, 	riscv64::f16_64)
-  (registerSpace::fpr64_17, 	riscv64::f17_64)
-  (registerSpace::fpr64_18, 	riscv64::f18_64)
-  (registerSpace::fpr64_19, 	riscv64::f19_64)
-  (registerSpace::fpr64_20, 	riscv64::f20_64)
-  (registerSpace::fpr64_21, 	riscv64::f21_64)
-  (registerSpace::fpr64_22, 	riscv64::f22_64)
-  (registerSpace::fpr64_23, 	riscv64::f23_64)
-  (registerSpace::fpr64_24, 	riscv64::f24_64)
-  (registerSpace::fpr64_25, 	riscv64::f25_64)
-  (registerSpace::fpr64_26, 	riscv64::f26_64)
-  (registerSpace::fpr64_27, 	riscv64::f27_64)
-  (registerSpace::fpr64_28, 	riscv64::f28_64)
-  (registerSpace::fpr64_29, 	riscv64::f29_64)
-  (registerSpace::fpr64_30, 	riscv64::f30_64)
-  (registerSpace::fpr64_31, 	riscv64::f31_64)
+  (registerSpace::fpr0,  	riscv64::f0)
+  (registerSpace::fpr1,  	riscv64::f1)
+  (registerSpace::fpr2,  	riscv64::f2)
+  (registerSpace::fpr3,  	riscv64::f3)
+  (registerSpace::fpr4,  	riscv64::f4)
+  (registerSpace::fpr5,  	riscv64::f5)
+  (registerSpace::fpr6,  	riscv64::f6)
+  (registerSpace::fpr7,  	riscv64::f7)
+  (registerSpace::fpr8,  	riscv64::f8)
+  (registerSpace::fpr9,  	riscv64::f9)
+  (registerSpace::fpr10, 	riscv64::f10)
+  (registerSpace::fpr11, 	riscv64::f11)
+  (registerSpace::fpr12, 	riscv64::f12)
+  (registerSpace::fpr13, 	riscv64::f13)
+  (registerSpace::fpr14, 	riscv64::f14)
+  (registerSpace::fpr15, 	riscv64::f15)
+  (registerSpace::fpr16, 	riscv64::f16)
+  (registerSpace::fpr17, 	riscv64::f17)
+  (registerSpace::fpr18, 	riscv64::f18)
+  (registerSpace::fpr19, 	riscv64::f19)
+  (registerSpace::fpr20, 	riscv64::f20)
+  (registerSpace::fpr21, 	riscv64::f21)
+  (registerSpace::fpr22, 	riscv64::f22)
+  (registerSpace::fpr23, 	riscv64::f23)
+  (registerSpace::fpr24, 	riscv64::f24)
+  (registerSpace::fpr25, 	riscv64::f25)
+  (registerSpace::fpr26, 	riscv64::f26)
+  (registerSpace::fpr27, 	riscv64::f27)
+  (registerSpace::fpr28, 	riscv64::f28)
+  (registerSpace::fpr29, 	riscv64::f29)
+  (registerSpace::fpr30, 	riscv64::f30)
+  (registerSpace::fpr31, 	riscv64::f31)
   (registerSpace::pc, 		riscv64::pc)
   ;
 
@@ -177,70 +145,38 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
   (riscv64::x29,     registerSpace::r29)
   (riscv64::x30,     registerSpace::r30)
   (riscv64::x31,     registerSpace::r31)
-  (riscv64::f0_32,   registerSpace::fpr32_0)
-  (riscv64::f1_32,   registerSpace::fpr32_1)
-  (riscv64::f2_32,   registerSpace::fpr32_2)
-  (riscv64::f3_32,   registerSpace::fpr32_3)
-  (riscv64::f4_32,   registerSpace::fpr32_4)
-  (riscv64::f5_32,   registerSpace::fpr32_5)
-  (riscv64::f6_32,   registerSpace::fpr32_6)
-  (riscv64::f7_32,   registerSpace::fpr32_7)
-  (riscv64::f8_32,   registerSpace::fpr32_8)
-  (riscv64::f9_32,   registerSpace::fpr32_9)
-  (riscv64::f10_32,  registerSpace::fpr32_10)
-  (riscv64::f11_32,  registerSpace::fpr32_11)
-  (riscv64::f12_32,  registerSpace::fpr32_12)
-  (riscv64::f13_32,  registerSpace::fpr32_13)
-  (riscv64::f14_32,  registerSpace::fpr32_14)
-  (riscv64::f15_32,  registerSpace::fpr32_15)
-  (riscv64::f16_32,  registerSpace::fpr32_16)
-  (riscv64::f17_32,  registerSpace::fpr32_17)
-  (riscv64::f18_32,  registerSpace::fpr32_18)
-  (riscv64::f19_32,  registerSpace::fpr32_19)
-  (riscv64::f20_32,  registerSpace::fpr32_20)
-  (riscv64::f21_32,  registerSpace::fpr32_21)
-  (riscv64::f22_32,  registerSpace::fpr32_22)
-  (riscv64::f23_32,  registerSpace::fpr32_23)
-  (riscv64::f24_32,  registerSpace::fpr32_24)
-  (riscv64::f25_32,  registerSpace::fpr32_25)
-  (riscv64::f26_32,  registerSpace::fpr32_26)
-  (riscv64::f27_32,  registerSpace::fpr32_27)
-  (riscv64::f28_32,  registerSpace::fpr32_28)
-  (riscv64::f29_32,  registerSpace::fpr32_29)
-  (riscv64::f30_32,  registerSpace::fpr32_30)
-  (riscv64::f31_32,  registerSpace::fpr32_31)
-  (riscv64::f0_64,   registerSpace::fpr64_0)
-  (riscv64::f1_64,   registerSpace::fpr64_1)
-  (riscv64::f2_64,   registerSpace::fpr64_2)
-  (riscv64::f3_64,   registerSpace::fpr64_3)
-  (riscv64::f4_64,   registerSpace::fpr64_4)
-  (riscv64::f5_64,   registerSpace::fpr64_5)
-  (riscv64::f6_64,   registerSpace::fpr64_6)
-  (riscv64::f7_64,   registerSpace::fpr64_7)
-  (riscv64::f8_64,   registerSpace::fpr64_8)
-  (riscv64::f9_64,   registerSpace::fpr64_9)
-  (riscv64::f10_64,  registerSpace::fpr64_10)
-  (riscv64::f11_64,  registerSpace::fpr64_11)
-  (riscv64::f12_64,  registerSpace::fpr64_12)
-  (riscv64::f13_64,  registerSpace::fpr64_13)
-  (riscv64::f14_64,  registerSpace::fpr64_14)
-  (riscv64::f15_64,  registerSpace::fpr64_15)
-  (riscv64::f16_64,  registerSpace::fpr64_16)
-  (riscv64::f17_64,  registerSpace::fpr64_17)
-  (riscv64::f18_64,  registerSpace::fpr64_18)
-  (riscv64::f19_64,  registerSpace::fpr64_19)
-  (riscv64::f20_64,  registerSpace::fpr64_20)
-  (riscv64::f21_64,  registerSpace::fpr64_21)
-  (riscv64::f22_64,  registerSpace::fpr64_22)
-  (riscv64::f23_64,  registerSpace::fpr64_23)
-  (riscv64::f24_64,  registerSpace::fpr64_24)
-  (riscv64::f25_64,  registerSpace::fpr64_25)
-  (riscv64::f26_64,  registerSpace::fpr64_26)
-  (riscv64::f27_64,  registerSpace::fpr64_27)
-  (riscv64::f28_64,  registerSpace::fpr64_28)
-  (riscv64::f29_64,  registerSpace::fpr64_29)
-  (riscv64::f30_64,  registerSpace::fpr64_30)
-  (riscv64::f31_64,  registerSpace::fpr64_31)
+  (riscv64::f0,      registerSpace::fpr0)
+  (riscv64::f1,      registerSpace::fpr1)
+  (riscv64::f2,      registerSpace::fpr2)
+  (riscv64::f3,      registerSpace::fpr3)
+  (riscv64::f4,      registerSpace::fpr4)
+  (riscv64::f5,      registerSpace::fpr5)
+  (riscv64::f6,      registerSpace::fpr6)
+  (riscv64::f7,      registerSpace::fpr7)
+  (riscv64::f8,      registerSpace::fpr8)
+  (riscv64::f9,      registerSpace::fpr9)
+  (riscv64::f10,     registerSpace::fpr10)
+  (riscv64::f11,     registerSpace::fpr11)
+  (riscv64::f12,     registerSpace::fpr12)
+  (riscv64::f13,     registerSpace::fpr13)
+  (riscv64::f14,     registerSpace::fpr14)
+  (riscv64::f15,     registerSpace::fpr15)
+  (riscv64::f16,     registerSpace::fpr16)
+  (riscv64::f17,     registerSpace::fpr17)
+  (riscv64::f18,     registerSpace::fpr18)
+  (riscv64::f19,     registerSpace::fpr19)
+  (riscv64::f20,     registerSpace::fpr20)
+  (riscv64::f21,     registerSpace::fpr21)
+  (riscv64::f22,     registerSpace::fpr22)
+  (riscv64::f23,     registerSpace::fpr23)
+  (riscv64::f24,     registerSpace::fpr24)
+  (riscv64::f25,     registerSpace::fpr25)
+  (riscv64::f26,     registerSpace::fpr26)
+  (riscv64::f27,     registerSpace::fpr27)
+  (riscv64::f28,     registerSpace::fpr28)
+  (riscv64::f29,     registerSpace::fpr29)
+  (riscv64::f30,     registerSpace::fpr30)
+  (riscv64::f31,     registerSpace::fpr31)
   (riscv64::pc,      registerSpace::pc)
   ;
 
@@ -279,103 +215,71 @@ Register convertRegID(RegisterAST* toBeConverted, bool& wasUpcast)
 MachRegister convertRegID(Register r, Dyninst::Architecture arch) {
     if( arch == Arch_riscv64 ) {
         switch(r) {
-            case registerSpace::r0: 	return riscv64::x0;
-            case registerSpace::r1: 	return riscv64::x1;
-            case registerSpace::r2: 	return riscv64::x2;
-            case registerSpace::r3: 	return riscv64::x3;
-            case registerSpace::r4: 	return riscv64::x4;
-            case registerSpace::r5: 	return riscv64::x5;
-            case registerSpace::r6: 	return riscv64::x6;
-            case registerSpace::r7: 	return riscv64::x7;
-            case registerSpace::r8: 	return riscv64::x8;
-            case registerSpace::r9: 	return riscv64::x9;
-            case registerSpace::r10: 	return riscv64::x10;
-            case registerSpace::r11: 	return riscv64::x11;
-            case registerSpace::r12: 	return riscv64::x12;
-            case registerSpace::r13: 	return riscv64::x13;
-            case registerSpace::r14: 	return riscv64::x14;
-            case registerSpace::r15: 	return riscv64::x15;
-            case registerSpace::r16: 	return riscv64::x16;
-            case registerSpace::r17: 	return riscv64::x17;
-            case registerSpace::r18: 	return riscv64::x18;
-            case registerSpace::r19: 	return riscv64::x19;
-            case registerSpace::r20: 	return riscv64::x20;
-            case registerSpace::r21: 	return riscv64::x21;
-            case registerSpace::r22: 	return riscv64::x22;
-            case registerSpace::r23: 	return riscv64::x23;
-            case registerSpace::r24: 	return riscv64::x24;
-            case registerSpace::r25: 	return riscv64::x25;
-            case registerSpace::r26: 	return riscv64::x26;
-            case registerSpace::r27: 	return riscv64::x27;
-            case registerSpace::r28: 	return riscv64::x28;
-            case registerSpace::r29: 	return riscv64::x29;
-            case registerSpace::r30: 	return riscv64::x30;
-            case registerSpace::r31: 	return riscv64::x31;
-            case registerSpace::fpr32_0:  return riscv64::f0_32;
-            case registerSpace::fpr32_1:  return riscv64::f1_32;
-            case registerSpace::fpr32_2:  return riscv64::f2_32;
-            case registerSpace::fpr32_3:  return riscv64::f3_32;
-            case registerSpace::fpr32_4:  return riscv64::f4_32;
-            case registerSpace::fpr32_5:  return riscv64::f5_32;
-            case registerSpace::fpr32_6:  return riscv64::f6_32;
-            case registerSpace::fpr32_7:  return riscv64::f7_32;
-            case registerSpace::fpr32_8:  return riscv64::f8_32;
-            case registerSpace::fpr32_9:  return riscv64::f9_32;
-            case registerSpace::fpr32_10: return riscv64::f10_32;
-            case registerSpace::fpr32_11: return riscv64::f11_32;
-            case registerSpace::fpr32_12: return riscv64::f12_32;
-            case registerSpace::fpr32_13: return riscv64::f13_32;
-            case registerSpace::fpr32_14: return riscv64::f14_32;
-            case registerSpace::fpr32_15: return riscv64::f15_32;
-            case registerSpace::fpr32_16: return riscv64::f16_32;
-            case registerSpace::fpr32_17: return riscv64::f17_32;
-            case registerSpace::fpr32_18: return riscv64::f18_32;
-            case registerSpace::fpr32_19: return riscv64::f19_32;
-            case registerSpace::fpr32_20: return riscv64::f20_32;
-            case registerSpace::fpr32_21: return riscv64::f21_32;
-            case registerSpace::fpr32_22: return riscv64::f22_32;
-            case registerSpace::fpr32_23: return riscv64::f23_32;
-            case registerSpace::fpr32_24: return riscv64::f24_32;
-            case registerSpace::fpr32_25: return riscv64::f25_32;
-            case registerSpace::fpr32_26: return riscv64::f26_32;
-            case registerSpace::fpr32_27: return riscv64::f27_32;
-            case registerSpace::fpr32_28: return riscv64::f28_32;
-            case registerSpace::fpr32_29: return riscv64::f29_32;
-            case registerSpace::fpr32_30: return riscv64::f30_32;
-            case registerSpace::fpr32_31: return riscv64::f31_32;
-            case registerSpace::fpr64_0:  return riscv64::f0_64;
-            case registerSpace::fpr64_1:  return riscv64::f1_64;
-            case registerSpace::fpr64_2:  return riscv64::f2_64;
-            case registerSpace::fpr64_3:  return riscv64::f3_64;
-            case registerSpace::fpr64_4:  return riscv64::f4_64;
-            case registerSpace::fpr64_5:  return riscv64::f5_64;
-            case registerSpace::fpr64_6:  return riscv64::f6_64;
-            case registerSpace::fpr64_7:  return riscv64::f7_64;
-            case registerSpace::fpr64_8:  return riscv64::f8_64;
-            case registerSpace::fpr64_9:  return riscv64::f9_64;
-            case registerSpace::fpr64_10: return riscv64::f10_64;
-            case registerSpace::fpr64_11: return riscv64::f11_64;
-            case registerSpace::fpr64_12: return riscv64::f12_64;
-            case registerSpace::fpr64_13: return riscv64::f13_64;
-            case registerSpace::fpr64_14: return riscv64::f14_64;
-            case registerSpace::fpr64_15: return riscv64::f15_64;
-            case registerSpace::fpr64_16: return riscv64::f16_64;
-            case registerSpace::fpr64_17: return riscv64::f17_64;
-            case registerSpace::fpr64_18: return riscv64::f18_64;
-            case registerSpace::fpr64_19: return riscv64::f19_64;
-            case registerSpace::fpr64_20: return riscv64::f20_64;
-            case registerSpace::fpr64_21: return riscv64::f21_64;
-            case registerSpace::fpr64_22: return riscv64::f22_64;
-            case registerSpace::fpr64_23: return riscv64::f23_64;
-            case registerSpace::fpr64_24: return riscv64::f24_64;
-            case registerSpace::fpr64_25: return riscv64::f25_64;
-            case registerSpace::fpr64_26: return riscv64::f26_64;
-            case registerSpace::fpr64_27: return riscv64::f27_64;
-            case registerSpace::fpr64_28: return riscv64::f28_64;
-            case registerSpace::fpr64_29: return riscv64::f29_64;
-            case registerSpace::fpr64_30: return riscv64::f30_64;
-            case registerSpace::fpr64_31: return riscv64::f31_64;
-            case registerSpace::pc: 	return riscv64::pc;
+            case registerSpace::r0:    return riscv64::x0;
+            case registerSpace::r1:    return riscv64::x1;
+            case registerSpace::r2:    return riscv64::x2;
+            case registerSpace::r3:    return riscv64::x3;
+            case registerSpace::r4:    return riscv64::x4;
+            case registerSpace::r5:    return riscv64::x5;
+            case registerSpace::r6:    return riscv64::x6;
+            case registerSpace::r7:    return riscv64::x7;
+            case registerSpace::r8:    return riscv64::x8;
+            case registerSpace::r9:    return riscv64::x9;
+            case registerSpace::r10:   return riscv64::x10;
+            case registerSpace::r11:   return riscv64::x11;
+            case registerSpace::r12:   return riscv64::x12;
+            case registerSpace::r13:   return riscv64::x13;
+            case registerSpace::r14:   return riscv64::x14;
+            case registerSpace::r15:   return riscv64::x15;
+            case registerSpace::r16:   return riscv64::x16;
+            case registerSpace::r17:   return riscv64::x17;
+            case registerSpace::r18:   return riscv64::x18;
+            case registerSpace::r19:   return riscv64::x19;
+            case registerSpace::r20:   return riscv64::x20;
+            case registerSpace::r21:   return riscv64::x21;
+            case registerSpace::r22:   return riscv64::x22;
+            case registerSpace::r23:   return riscv64::x23;
+            case registerSpace::r24:   return riscv64::x24;
+            case registerSpace::r25:   return riscv64::x25;
+            case registerSpace::r26:   return riscv64::x26;
+            case registerSpace::r27:   return riscv64::x27;
+            case registerSpace::r28:   return riscv64::x28;
+            case registerSpace::r29:   return riscv64::x29;
+            case registerSpace::r30:   return riscv64::x30;
+            case registerSpace::r31:   return riscv64::x31;
+            case registerSpace::fpr0:  return riscv64::f0;
+            case registerSpace::fpr1:  return riscv64::f1;
+            case registerSpace::fpr2:  return riscv64::f2;
+            case registerSpace::fpr3:  return riscv64::f3;
+            case registerSpace::fpr4:  return riscv64::f4;
+            case registerSpace::fpr5:  return riscv64::f5;
+            case registerSpace::fpr6:  return riscv64::f6;
+            case registerSpace::fpr7:  return riscv64::f7;
+            case registerSpace::fpr8:  return riscv64::f8;
+            case registerSpace::fpr9:  return riscv64::f9;
+            case registerSpace::fpr10: return riscv64::f10;
+            case registerSpace::fpr11: return riscv64::f11;
+            case registerSpace::fpr12: return riscv64::f12;
+            case registerSpace::fpr13: return riscv64::f13;
+            case registerSpace::fpr14: return riscv64::f14;
+            case registerSpace::fpr15: return riscv64::f15;
+            case registerSpace::fpr16: return riscv64::f16;
+            case registerSpace::fpr17: return riscv64::f17;
+            case registerSpace::fpr18: return riscv64::f18;
+            case registerSpace::fpr19: return riscv64::f19;
+            case registerSpace::fpr20: return riscv64::f20;
+            case registerSpace::fpr21: return riscv64::f21;
+            case registerSpace::fpr22: return riscv64::f22;
+            case registerSpace::fpr23: return riscv64::f23;
+            case registerSpace::fpr24: return riscv64::f24;
+            case registerSpace::fpr25: return riscv64::f25;
+            case registerSpace::fpr26: return riscv64::f26;
+            case registerSpace::fpr27: return riscv64::f27;
+            case registerSpace::fpr28: return riscv64::f28;
+            case registerSpace::fpr29: return riscv64::f29;
+            case registerSpace::fpr30: return riscv64::f30;
+            case registerSpace::fpr31: return riscv64::f31;
+            case registerSpace::pc:    return riscv64::pc;
             default:
                 break;
         }
