@@ -310,16 +310,10 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTRiscv64::convert(const Registe
             mreg = Dyninst::MachRegister(base.val() + (minor - riscv64_gpr_x0));
             break;
         }
-        case riscv64_regclass_fpr32: {
+        case riscv64_regclass_fpr: {
             unsigned int minor = reg.get_minor();
-            Dyninst::MachRegister base = Dyninst::riscv64::f0_32;
-            mreg = Dyninst::MachRegister(base.val() + (minor - riscv64_fpr_f0_32));
-            break;
-        }
-        case riscv64_regclass_fpr64: {
-            unsigned int minor = reg.get_minor();
-            Dyninst::MachRegister base = Dyninst::riscv64::f0_64;
-            mreg = Dyninst::MachRegister(base.val() + (minor - riscv64_fpr_f0_64));
+            Dyninst::MachRegister base = Dyninst::riscv64::f0;
+            mreg = Dyninst::MachRegister(base.val() + (minor - riscv64_fpr_f0));
             break;
         }
         case riscv64_regclass_pc: {

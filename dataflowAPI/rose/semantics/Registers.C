@@ -278,10 +278,7 @@ RegisterDictionary::dictionary_riscv64() {
 
         /* All of the floating point registers  */
         for (unsigned idx = 0; idx < 32; idx++) {
-            regs->insert("f" + StringUtility::numberToString(idx) + "_32", riscv64_regclass_fpr32, riscv64_fpr_f0_32 + idx, 0, 32);
-        }
-        for (unsigned idx = 0; idx < 32; idx++) {
-            regs->insert("f" + StringUtility::numberToString(idx) + "_64", riscv64_regclass_fpr64, riscv64_fpr_f0_64 + idx, 0, 64);
+            regs->insert("f" + StringUtility::numberToString(idx), riscv64_regclass_fpr, riscv64_fpr_f0 + idx, 0, 32);
         }
 
         /* The program counter */
