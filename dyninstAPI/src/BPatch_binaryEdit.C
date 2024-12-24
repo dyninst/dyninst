@@ -59,6 +59,10 @@
 #include "mapped_object.h"
 #include "Relocation/DynAddrSpace.h"
 
+#if defined(arch_amdgpu)
+#include "amdgpu-prologue.h"
+#endif
+
 #include "boost/filesystem.hpp"
 using Dyninst::PatchAPI::DynAddrSpacePtr;
 using Dyninst::PatchAPI::DynAddrSpace;
@@ -196,6 +200,24 @@ static void writeInstrumentedFunctionNames(const std::string &filePath) {
 
   namesFile.close();
 }
+
+static void insertPrologueInInstrumentedFunctions() {
+  for (const auto &function : BPatch_addressSpace::instrumentedFunctions) {
+    std::vector<BPatch_point *> entryPoints;
+    function->getEntryPoints(entryPoints);
+
+    assert(entryPoints.size() == 1);
+
+    BPatch_point *entryPoint = entryPoints[0];
+    // TODO : This needs to be adjusted per kernel.
+    auto prologuePtr = boost::make_shared<AmdgpuPrologueSnippet>(94, 4, 0xabc);
+    auto prologueNodePtr = boost::make_shared<AmdgpuPrologueSnippetNode>(prologuePtr);
+
+    auto addressSpace = entryPoint->getAddressSpace();
+    BPatchSnippetHandle *handle = addressSpace->insertPrologue(prologueNodePtr, entryPoint);
+    assert(handle);
+  }
+}
 #endif
 
 bool BPatch_binaryEdit::writeFile(const char * outFile)
@@ -210,7 +232,10 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
 
     /* PatchAPI stuffs */
     if (as.size() > 0) {
-          ret = AddressSpace::patch(as[0]);
+#if defined(arch_amdgpu)
+      insertPrologueInInstrumentedFunctions();
+#endif
+      ret = AddressSpace::patch(as[0]);
     }
     /* end of PatchAPI stuffs */
 
