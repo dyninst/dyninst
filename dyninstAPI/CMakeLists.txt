@@ -222,7 +222,8 @@ if(DYNINST_ARCH_amdgpu)
     src/stackwalk-amdgpu.C
     src/Relocation/Widgets/CFWidget-amdgpu.C
     src/Relocation/Widgets/PCWidget-amdgpu.C
-    src/amdgpu-vega-details.cpp)
+    src/amdgpu-vega-details.cpp
+    src/amdgpu-prologue.cpp)
 else if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
   list(
     APPEND
