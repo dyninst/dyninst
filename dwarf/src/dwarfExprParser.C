@@ -38,6 +38,7 @@
 #include "VariableLocation.h"
 #include "ProcReader.h"
 #include "compiler_annotations.h"
+#include "dwarf/src/registers/convert.h"
 
 using namespace std;
 
@@ -88,10 +89,10 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
         /* reg0 - reg31: named registers (not their constants) */
         if ( DW_OP_reg0 <= locations[i].atom && locations[i].atom <= DW_OP_reg31 ) 
         {
-            dwarf_printf("\t\t Pushing reg %s\n",MachRegister::DwarfEncToReg(locations[i].atom - DW_OP_reg0,
+            dwarf_printf("\t\t Pushing reg %s\n",DwarfDyninst::encoding_to_reg(locations[i].atom - DW_OP_reg0,
                         arch).name().c_str());
 
-            cons.pushReg(MachRegister::DwarfEncToReg(locations[i].atom - DW_OP_reg0,
+            cons.pushReg(DwarfDyninst::encoding_to_reg(locations[i].atom - DW_OP_reg0,
                         arch));
             continue;
         }
@@ -99,10 +100,10 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
         /* breg0 - breg31: register contents plus an optional offset */
         if ( DW_OP_breg0 <= locations[i].atom && locations[i].atom <= DW_OP_breg31 ) 
         {
-            dwarf_printf("\t\t Pushing reg %s + %lu\n",MachRegister::DwarfEncToReg(locations[i].atom - DW_OP_reg0,
+            dwarf_printf("\t\t Pushing reg %s + %lu\n",DwarfDyninst::encoding_to_reg(locations[i].atom - DW_OP_reg0,
                         arch).name().c_str(),
                     locations[i].number);
-            cons.readReg(MachRegister::DwarfEncToReg(locations[i].atom - DW_OP_breg0,
+            cons.readReg(DwarfDyninst::encoding_to_reg(locations[i].atom - DW_OP_breg0,
                         arch));
             cons.pushSignedVal((Dyninst::MachRegisterVal) locations[i].number);
             cons.pushOp(DwarfResult::Add);
@@ -115,19 +116,19 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
             // The register is in number
             // The offset is in number2
             case DW_OP_bregx:
-                dwarf_printf("\t\t Pushing reg %s + %lu\n",MachRegister::DwarfEncToReg(locations[i].number,
+                dwarf_printf("\t\t Pushing reg %s + %lu\n",DwarfDyninst::encoding_to_reg(locations[i].number,
                             arch).name().c_str(),
                         locations[i].number2);
 
-                cons.readReg(MachRegister::DwarfEncToReg(locations[i].number, arch));
+                cons.readReg(DwarfDyninst::encoding_to_reg(locations[i].number, arch));
                 cons.pushSignedVal(locations[i].number2);
                 cons.pushOp(DwarfResult::Add);
                 break;
 
             case DW_OP_regx:
-                dwarf_printf("\t\t Pushing reg %s\n",MachRegister::DwarfEncToReg(locations[i].number,
+                dwarf_printf("\t\t Pushing reg %s\n",DwarfDyninst::encoding_to_reg(locations[i].number,
                             arch).name().c_str());
-                cons.pushReg(MachRegister::DwarfEncToReg(locations[i].number, arch));
+                cons.pushReg(DwarfDyninst::encoding_to_reg(locations[i].number, arch));
                 break;
 
             case DW_OP_nop:
