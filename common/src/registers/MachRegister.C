@@ -660,6 +660,45 @@ namespace Dyninst {
     // clang-format: on
   }
 
+  bool MachRegister::isControlStatus() const {
+    // clang-format: off
+    auto const category = regClass();
+    switch(getArchitecture()) {
+      case Arch_x86:
+        return category == x86::CTL ||
+               category == x86::FPCTL;
+
+      case Arch_x86_64:
+        return category == x86_64::CTL ||
+               category == x86_64::FPCTL;
+
+      case Arch_aarch64:
+        return (*this == aarch64::fpcr) ||
+               (*this == aarch64::fpsr);
+
+      case Arch_ppc32:
+        // Most of the current control-like registers aren't part
+        // of the ISA after v2.07 (Power8+).
+        return (*this == ppc32::ctr);
+
+      case Arch_ppc64:
+        // Most of the current control-like registers aren't part
+        // of the ISA after v2.07 (Power8+).
+        return (*this == ppc64::ctr);
+
+      case Arch_cuda:
+      case Arch_amdgpu_gfx908:
+      case Arch_amdgpu_gfx90a:
+      case Arch_amdgpu_gfx940:
+      case Arch_intelGen9:
+      case Arch_aarch32:
+      case Arch_none:
+        return false;
+    }
+    return false;
+    // clang-format: on
+  }
+
   bool MachRegister::isVector() const {
     // clang-format: off
     auto const category = regClass();

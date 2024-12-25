@@ -96,6 +96,19 @@ namespace Dyninst {
      */
     bool isVector() const;
 
+    /* Checks if this is a control/status register
+     *
+     *  Control registers influence the execution behavior of the
+     *  CPU. For example, enabling/disabling floating-point exceptions.
+     *
+     *  Status registers report behaviors of executed instructions.
+     *  For example, if a floating-point exception occurred.
+     *
+     *  NOTE: FLAG registers are not considered to be status registers.
+     *        Use `isFlag()` for that.
+     */
+    bool isControlStatus() const;
+
     static MachRegister getArchRegFromAbstractReg(MachRegister abstract,
                                                   Dyninst::Architecture arch);
 
