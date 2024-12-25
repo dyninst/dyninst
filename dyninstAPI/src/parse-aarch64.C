@@ -140,7 +140,7 @@ void parse_func::calcUsedRegs()
           if(r.isGeneralPurpose()) {
             usedRegisters->generalPurposeRegisters.insert(regID);
           }
-          else if(r.regClass() == aarch64::FPR) {
+          else if(r.isFloatingPoint()) {
             usedRegisters->floatingPointRegisters.insert(regID);
           }
         }

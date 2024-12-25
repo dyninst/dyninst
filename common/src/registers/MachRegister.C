@@ -99,7 +99,7 @@ namespace Dyninst {
           return MachRegister(r);
         }
 
-        if(category == aarch64::FPR) {
+        if(isFloatingPoint()) {
           auto const alias = getAlias(*this);
 
           // The standard FPRs are aliases of the SVE registers. However, Dyninst
@@ -330,7 +330,7 @@ namespace Dyninst {
       }
       break;
       case Arch_aarch64: {
-        if((reg & 0x00ff0000) == aarch64::FPR) {
+        if(isFloatingPoint()) {
           switch(reg & 0x0000ff00) {
             case aarch64::B_REG: return 1;
             case aarch64::W_REG: return 2;
@@ -653,6 +653,69 @@ namespace Dyninst {
 
       case Arch_intelGen9:
       case Arch_aarch32:
+      case Arch_none:
+        return false;
+    }
+    return false;
+    // clang-format: on
+  }
+
+  bool MachRegister::isFloatingPoint() const {
+    // clang-format: off
+    auto const category = regClass();
+    switch(getArchitecture()) {
+      case Arch_x86: {
+        auto const is_vec = isVector();
+        auto const is_x87 = (category == x86::X87);
+        auto const is_ctl = (category == x86::FPCTL);
+        auto const is_msk = (category == x86::KMASK);
+        return is_x87 || is_ctl || (is_vec && !is_msk);
+      }
+
+      case Arch_x86_64: {
+        auto const is_vec = isVector();
+        auto const is_x87 = (category == x86_64::X87);
+        auto const is_ctl = (category == x86_64::FPCTL);
+        auto const is_msk = (category == x86_64::KMASK);
+        return is_x87 || is_ctl || (is_vec && !is_msk);
+      }
+
+      case Arch_aarch64: {
+        auto const is_vec = isVector();
+        auto const is_fpr = (category == aarch64::FPR);
+        auto const is_ctl = (*this == aarch64::fpcr);
+        auto const is_sts = (*this == aarch64::fpsr);
+        return is_vec || is_fpr || is_ctl || is_sts;
+      }
+
+      case Arch_ppc32:
+        return category == ppc32::FPR;
+
+      case Arch_ppc64: {
+        auto const is_vec = isVector();
+        auto const is_fpr = (category == ppc64::FPR);
+        return is_vec || is_fpr;
+      }
+
+      case Arch_amdgpu_gfx908:
+        return category == amdgpu_gfx908::SGPR ||
+               category == amdgpu_gfx908::VGPR ||
+               category == amdgpu_gfx908::ACC_VGPR;
+
+
+      case Arch_amdgpu_gfx90a:
+        return category == amdgpu_gfx90a::SGPR ||
+               category == amdgpu_gfx90a::VGPR ||
+               category == amdgpu_gfx90a::ACC_VGPR;
+
+      case Arch_amdgpu_gfx940:
+        return category == amdgpu_gfx940::SGPR ||
+               category == amdgpu_gfx940::VGPR ||
+               category == amdgpu_gfx940::ACC_VGPR;
+
+      case Arch_intelGen9:
+      case Arch_aarch32:
+      case Arch_cuda:
       case Arch_none:
         return false;
     }
