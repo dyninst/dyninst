@@ -65,9 +65,36 @@ using namespace NS_x86;
 
 namespace Dyninst { namespace InstructionAPI {
 
+  namespace {
+    bool is_valid_mnemonic(Dyninst::Architecture arch, entryID id) {
+      switch(arch) {
+        case Arch_x86:
+        case Arch_x86_64:
+          return id != e_No_Entry;
+
+        case Arch_aarch64:
+          return id != aarch64_op_INVALID;
+
+        case Arch_ppc32:
+        case Arch_ppc64:
+          return id != power_op_INVALID;
+
+        case Arch_none:
+        case Arch_aarch32:
+        case Arch_cuda:
+        case Arch_intelGen9:
+        case Arch_amdgpu_gfx908:
+        case Arch_amdgpu_gfx90a:
+        case Arch_amdgpu_gfx940:
+          return false;
+      }
+      return false;
+    }
+  }
+
   DYNINST_EXPORT Instruction::Instruction(Operation what, size_t size, const unsigned char* raw,
                                           Dyninst::Architecture arch)
-      : m_InsnOp(what), m_Valid(what.getID() != e_No_Entry), arch_decoded_from(arch),
+      : m_InsnOp(what), m_Valid(is_valid_mnemonic(arch, what.getID())), arch_decoded_from(arch),
         formatter(&ArchSpecificFormatter::getFormatter(arch)) {
     copyRaw(size, raw);
   }
@@ -433,7 +460,7 @@ namespace Dyninst { namespace InstructionAPI {
     return false;
   }
 
-  DYNINST_EXPORT bool Instruction::isLegalInsn() const { return (m_InsnOp.getID() != e_No_Entry); }
+  DYNINST_EXPORT bool Instruction::isLegalInsn() const { return m_Valid; }
 
   DYNINST_EXPORT Architecture Instruction::getArch() const { return arch_decoded_from; }
 
