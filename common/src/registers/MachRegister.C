@@ -46,17 +46,26 @@ namespace Dyninst {
           return MachRegister(reg & 0xffff00ff);
         else if(category == x86::FLAG)
           return x86::flags;
-        else if(category == x86::MMX)
-          // Keep the register number, but change the category to X87 (e.g., MMX1 -> st1).
-          return MachRegister((reg & ~0x00ff0000) | x86::X87);
-        else if(category == x86::XMM)
+        else if(category == x86::MMX) {
+          // MMX<N> -> st<N>
+          auto const id = val() & 0xff;
+          auto const arch = getArchitecture();
+          return MachRegister(id | x86::FPDBL | x86::X87 | arch);
+        }
+        else if(category == x86::XMM) {
           // assume CPU is new enough that it always has AVX registers
-          // Keep the register number, but change the category to ZMM (e.g., XMM1 -> ZMM1).
-          return MachRegister((reg & ~0x00ff0000) | x86::ZMM);
-        else if(category == x86::YMM)
-            // assume CPU is new enough that it always has AVX-512 registers
-            // Keep the register number, but change the category to ZMM (e.g., YMM1 -> ZMM1).
-            return MachRegister((reg & ~0x00ff0000) | x86::ZMM);
+          // XMM<N> -> ZMM<N>
+          auto const id = val() & 0xff;
+          auto const arch = getArchitecture();
+          return MachRegister(id | x86::ZMMS | x86::ZMM | arch);
+        }
+        else if(category == x86::YMM) {
+          // assume CPU is new enough that it always has AVX-512 registers
+          // YMM<N> -> ZMM<N>
+          auto const id = val() & 0xff;
+          auto const arch = getArchitecture();
+          return MachRegister(id | x86::ZMMS | x86::ZMM | arch);
+        }
         else
           return *this;
       case Arch_x86_64:
@@ -64,15 +73,26 @@ namespace Dyninst {
           return MachRegister(reg & 0xffff00ff);
         else if(category == x86_64::FLAG)
           return x86_64::flags;
-        else if(category == x86_64::MMX)
-          // Keep the register number, but change the category to X87 (e.g., MMX1 -> st1).
-          return MachRegister((reg & ~0x00ff0000) | x86_64::X87);
-        else if(category == x86_64::XMM)
-            // Keep the register number, but change the category to ZMM (e.g., XMM1 -> ZMM1).
-	    return MachRegister((reg & ~0x00ff0000) | x86_64::ZMM);
-        else if(category == x86_64::YMM)
-            // Keep the register number, but change the category to ZMM (e.g., YMM1 -> ZMM1).
-	    return MachRegister((reg & ~0x00ff0000) | x86_64::ZMM);
+        else if(category == x86_64::MMX) {
+          // MMX<N> -> st<N>
+          auto const id = val() & 0xff;
+          auto const arch = getArchitecture();
+          return MachRegister(id | x86_64::FPDBL | x86_64::X87 | arch);
+        }
+        else if(category == x86_64::XMM) {
+          // assume CPU is new enough that it always has AVX registers
+          // XMM<N> -> ZMM<N>
+          auto const id = val() & 0xff;
+          auto const arch = getArchitecture();
+          return MachRegister(id | x86_64::ZMMS | x86_64::ZMM | arch);
+        }
+        else if(category == x86_64::YMM) {
+          // assume CPU is new enough that it always has AVX-512 registers
+          // YMM<N> -> ZMM<N>
+          auto const id = val() & 0xff;
+          auto const arch = getArchitecture();
+          return MachRegister(id | x86_64::ZMMS | x86_64::ZMM | arch);
+        }
         else
           return *this;
 
