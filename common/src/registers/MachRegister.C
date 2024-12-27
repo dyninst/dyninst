@@ -52,16 +52,9 @@ namespace Dyninst {
           auto const arch = getArchitecture();
           return MachRegister(id | x86::FPDBL | x86::X87 | arch);
         }
-        else if(category == x86::XMM) {
-          // assume CPU is new enough that it always has AVX registers
-          // XMM<N> -> ZMM<N>
-          auto const id = val() & 0xff;
-          auto const arch = getArchitecture();
-          return MachRegister(id | x86::ZMMS | x86::ZMM | arch);
-        }
-        else if(category == x86::YMM) {
+        else if(category == x86::XMM || category == x86::YMM) {
           // assume CPU is new enough that it always has AVX-512 registers
-          // YMM<N> -> ZMM<N>
+          // XMM<N> -> ZMM<N> and YMM<N> -> ZMM<N>
           auto const id = val() & 0xff;
           auto const arch = getArchitecture();
           return MachRegister(id | x86::ZMMS | x86::ZMM | arch);
@@ -79,16 +72,9 @@ namespace Dyninst {
           auto const arch = getArchitecture();
           return MachRegister(id | x86_64::FPDBL | x86_64::X87 | arch);
         }
-        else if(category == x86_64::XMM) {
-          // assume CPU is new enough that it always has AVX registers
-          // XMM<N> -> ZMM<N>
-          auto const id = val() & 0xff;
-          auto const arch = getArchitecture();
-          return MachRegister(id | x86_64::ZMMS | x86_64::ZMM | arch);
-        }
-        else if(category == x86_64::YMM) {
+        else if(category == x86_64::XMM || category == x86_64::YMM) {
           // assume CPU is new enough that it always has AVX-512 registers
-          // YMM<N> -> ZMM<N>
+          // XMM<N> -> ZMM<N> and YMM<N> -> ZMM<N>
           auto const id = val() & 0xff;
           auto const arch = getArchitecture();
           return MachRegister(id | x86_64::ZMMS | x86_64::ZMM | arch);
