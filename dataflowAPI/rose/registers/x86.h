@@ -157,6 +157,9 @@ namespace {
       case Dyninst::x86::ZMM:
         return std::make_tuple(x86_regclass_zmm, baseID, p, num_bits);
 
+      case Dyninst::x86::KMASK:
+        return std::make_tuple(x86_regclass_kmask, baseID, p, num_bits);
+
       case Dyninst::x86::CTL:
         return std::make_tuple(x86_regclass_cr, baseID, p, num_bits);
 
