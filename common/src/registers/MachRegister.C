@@ -79,8 +79,10 @@ namespace Dyninst {
           auto const arch = getArchitecture();
           return MachRegister(id | x86_64::ZMMS | x86_64::ZMM | arch);
         }
-        else
-          return *this;
+        else if(*this == x86_64::eip) {
+          return x86_64::rip;
+        }
+        return *this;
 
       case Arch_aarch64: {
         if(category == aarch64::GPR) {
