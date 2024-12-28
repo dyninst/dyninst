@@ -147,7 +147,7 @@ namespace {
         return std::make_tuple(x86_regclass_mm, baseID, p, num_bits);
 
       case Dyninst::x86::X87: {
-        auto const pos = static_cast<X86PositionInRegister>(0);  // ROSE docs: only value allowed is 0
+        auto const pos = x86_regpos_all;  // ROSE docs: only value allowed
         return std::make_tuple(x86_regclass_st_top, baseID, pos, num_bits);
       }
 
