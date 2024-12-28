@@ -111,10 +111,11 @@ namespace Dyninst {
           // This is an 8-bit b<N>, 16-bit h<N>, 32-bit s<N>, or 64-bit d<N> register
           auto const first_of_len = [&]() -> MachRegister {
             switch(alias) {
-              case aarch64::B_REG: return aarch64::b0;  // 8-bit
-              case aarch64::W_REG: return aarch64::h0;  // 16-bit
-              case aarch64::D_REG: return aarch64::s0;  // 32-bit
-              case aarch64::FULL: return aarch64::d0;   // 64-bit
+              case aarch64::B_REG: return aarch64::b0;    // 8-bit
+              case aarch64::W_REG: return aarch64::h0;    // 16-bit
+              case aarch64::D_REG: return aarch64::s0;    // 32-bit
+              case aarch64::FULL: return aarch64::d0;     // 64-bit
+              case aarch64::HQ_REG: return aarch64::hq0;  // Upper 64 bits in 128-bit reg
             }
             return aarch64::q0;
           }();
