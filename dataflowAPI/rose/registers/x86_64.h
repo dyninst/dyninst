@@ -179,12 +179,6 @@ namespace {
       case Dyninst::x86_64::TST:
         return std::make_tuple(x86_regclass_unknown, -1, p, 0);
 
-      case 0: {
-        switch(baseID) {
-          case 0x10:
-            return std::make_tuple(x86_regclass_ip, 0, p, num_bits);
-        }
-      }
     }
     convert_printf("Unknown x86_64 category '%d'\n", category);
     return std::make_tuple(x86_regclass_unknown, -1, p, 0);
