@@ -166,7 +166,7 @@ namespace {
 
       case Dyninst::x86_64::X87: {
         auto const pos = x86_regpos_all;  // ROSE docs: only value allowed
-        return std::make_tuple(x86_regclass_st_top, baseID, pos, num_bits);
+        return std::make_tuple(x86_regclass_st, baseID, pos, num_bits);
       }
 
       case Dyninst::x86_64::CTL:
