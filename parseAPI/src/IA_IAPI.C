@@ -327,8 +327,7 @@ bool IA_IAPI::isAbort() const
 
 bool IA_IAPI::isInvalidInsn() const
 {
-    entryID e = curInsn().getOperation().getID();
-    if(e == e_No_Entry)
+    if(!curInsn().isValid())
     {
         parsing_printf("...WARNING: un-decoded instruction at 0x%lx\n", current);
         return true;

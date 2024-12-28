@@ -395,7 +395,7 @@ bool IndirectControlFlowAnalyzer::FindJunkInstruction(Address addr) {
 
     while (!ahPtr->hasCFT()) {
         Instruction i = ahPtr->current_instruction();
-        if (i.getOperation().getID() == e_No_Entry) {
+        if (!i.isValid()) {
             return true;
         }
         if (i.size() == 2 && i.rawByte(0) == 0x00 && i.rawByte(1) == 0x00) {
