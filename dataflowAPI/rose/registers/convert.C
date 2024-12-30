@@ -67,7 +67,7 @@ namespace Dyninst { namespace DataflowAPI {
       }
       case Arch_x86_64: {
         if(reg.isPC()) {
-          auto const pos = (reg == Dyninst::x86_64::eip) ? x86_regpos_dword : x86_regpos_all;
+          auto const pos = (reg == Dyninst::x86_64::eip) ? x86_regpos_dword : x86_regpos_qword;
           // ROSE docs: only minor value allowed is 0
           return std::make_tuple(x86_regclass_ip, 0, pos, num_bits);
         }
