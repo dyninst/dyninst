@@ -339,7 +339,7 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
 	//#warning "UC_PC: in aarch64, pc is not directly accessable."
 	//aarch64 pc is not one of 31 GPRs, but an independent reg
 	#define UC_PC(x) x->uc_mcontext.pc
-#elif defined(arch_riscv64)
+#elif defined(DYNINST_HOST_ARCH_RISCV64)
     // PC is typically at index 0 in the general-purpose registers array
     #define UC_PC(x) x->uc_mcontext.__gregs[0]
 #endif // UC_PC

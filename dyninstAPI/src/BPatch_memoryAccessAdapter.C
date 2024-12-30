@@ -253,7 +253,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
         }
     }
 	return NULL;
-#elif defined(arch_riscv64)
+#elif defined(DYNINST_HOST_ARCH_RISCV64)
     // TODO
     assert(!"Unimplemented architecture");
 #else 
