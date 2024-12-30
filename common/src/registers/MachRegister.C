@@ -636,21 +636,38 @@ namespace Dyninst {
       case Arch_cuda:
         return category == cuda::GPR;
 
-      case Arch_amdgpu_gfx908:
-        return category == amdgpu_gfx908::SGPR ||
-               category == amdgpu_gfx908::VGPR ||
-               category == amdgpu_gfx908::ACC_VGPR;
+      case Arch_amdgpu_gfx908: {
+        switch(category) {
+          case amdgpu_gfx908::SGPR:
+          case amdgpu_gfx908::VGPR:
+          case amdgpu_gfx908::ACC_VGPR:
+          case amdgpu_gfx908::TTMP_SGPR:
+            return true;
+        }
+        return false;
+      }
 
+      case Arch_amdgpu_gfx90a: {
+        switch(category) {
+          case amdgpu_gfx90a::SGPR:
+          case amdgpu_gfx90a::VGPR:
+          case amdgpu_gfx90a::ACC_VGPR:
+          case amdgpu_gfx90a::TTMP_SGPR:
+            return true;
+        }
+        return false;
+      }
 
-      case Arch_amdgpu_gfx90a:
-        return category == amdgpu_gfx90a::SGPR ||
-               category == amdgpu_gfx90a::VGPR ||
-               category == amdgpu_gfx90a::ACC_VGPR;
-
-      case Arch_amdgpu_gfx940:
-        return category == amdgpu_gfx940::SGPR ||
-               category == amdgpu_gfx940::VGPR ||
-               category == amdgpu_gfx940::ACC_VGPR;
+      case Arch_amdgpu_gfx940: {
+        switch(category) {
+          case amdgpu_gfx940::SGPR:
+          case amdgpu_gfx940::VGPR:
+          case amdgpu_gfx940::ACC_VGPR:
+          case amdgpu_gfx940::TTMP_SGPR:
+            return true;
+        }
+        return false;
+      }
 
       case Arch_intelGen9:
       case Arch_aarch32:
