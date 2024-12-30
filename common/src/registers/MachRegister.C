@@ -706,13 +706,17 @@ namespace Dyninst {
         return is_vec || is_fpr || is_ctl || is_sts;
       }
 
-      case Arch_ppc32:
-        return category == ppc32::FPR;
+      case Arch_ppc32: {
+        auto const is_fpr = (category == ppc32::FPR);
+        auto const is_fsr = (category == ppc32::FSR);
+        return is_fpr || is_fsr;
+      }
 
       case Arch_ppc64: {
         auto const is_vec = isVector();
         auto const is_fpr = (category == ppc64::FPR);
-        return is_vec || is_fpr;
+        auto const is_fsr = (category == ppc64::FSR);
+        return is_vec || is_fpr || is_fsr;
       }
 
       case Arch_amdgpu_gfx908:
