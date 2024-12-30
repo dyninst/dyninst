@@ -761,15 +761,21 @@ namespace Dyninst {
         return (*this == aarch64::fpcr) ||
                (*this == aarch64::fpsr);
 
-      case Arch_ppc32:
+      case Arch_ppc32: {
         // Most of the current control-like registers aren't part
-        // of the ISA after v2.07 (Power8+).
+        // of the ISA after v2.07 (Power8+). In particular, the FSR
+        // registers are associated with instructions like 'qvfxxmadds',
+        // but those are no longer in the ISA.
         return (*this == ppc32::ctr);
+      }
 
-      case Arch_ppc64:
+      case Arch_ppc64: {
         // Most of the current control-like registers aren't part
-        // of the ISA after v2.07 (Power8+).
+        // of the ISA after v2.07 (Power8+). In particular, the FSR
+        // registers are associated with instructions like 'qvfxxmadds',
+        // but those are no longer in the ISA.
         return (*this == ppc64::ctr);
+      }
 
       case Arch_cuda:
       case Arch_amdgpu_gfx908:
