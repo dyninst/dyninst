@@ -46,7 +46,7 @@
 #  include "registers/aarch64_regs.h"
 #endif
 
-#if defined(arch_riscv64)
+#if defined(DYNINST_HOST_ARCH_RISCV64)
 #  include "registers/riscv64_regs.h"
 #endif
 
@@ -135,7 +135,7 @@ ABI* ABI::getABI(int addr_width){
 	globalABI64_->index = &machRegIndex_aarch64();
 #endif
 
-#if defined(arch_riscv64)
+#if defined(DYNINST_HOST_ARCH_RISCV64)
 	globalABI64_->addr_width = 8;
 	globalABI_->index = &machRegIndex_riscv64();
 	globalABI64_->index = &machRegIndex_riscv64();

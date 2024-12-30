@@ -2238,7 +2238,7 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 			//#warning "This function is not implemented yet!"
 			assert(0);
-#elif defined (arch_riscv64)
+#elif defined (DYNINST_HOST_ARCH_RISCV64)
 			//#warning "This function is not implemented yet!"
 			assert(0);
 #else
