@@ -758,7 +758,8 @@ namespace Dyninst {
 
       case Arch_aarch64:
         return (*this == aarch64::fpcr) ||
-               (*this == aarch64::fpsr);
+               (*this == aarch64::fpsr) ||
+               (*this == aarch64::ffr);
 
       case Arch_ppc32: {
         // Most of the current control-like registers aren't part
