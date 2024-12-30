@@ -104,7 +104,7 @@ static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
       arch = Dyninst::Arch_x86_64;
 #elif defined(DYNINST_HOST_ARCH_AARCH64)
     arch = Dyninst::Arch_aarch64;
-#elif defined(arch_riscv64)
+#elif defined(DYNINST_HOST_ARCH_RISCV64)
     arch = Dyninst::Arch_riscv64;
 #endif
 
@@ -691,7 +691,7 @@ bool DebugStepperImpl::lookupInCache(const Frame &cur, Frame &caller) {
 //end if defined aarch64
 
 // for riscv64 architecure specifically
-#if defined(arch_riscv64)
+#if defined(DYNINST_HOST_ARCH_RISCV64)
 gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                                                    Frame &out, DwarfFrameParser::Ptr dinfo,
                                                    bool isVsyscallPage)
