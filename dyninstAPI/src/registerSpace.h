@@ -497,7 +497,7 @@ class registerSpace {
     static unsigned FPR(Dyninst::Register x) { return x - fpr0; }
     int framePointer() { return r29; }
 #endif
-#if defined(arch_riscv64)
+#if defined(DYNINST_HOST_ARCH_RISCV64)
     typedef enum { r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12,
                    r13, r14, r15, r16, r17, r18, r19, r20, r21, r22, r23,
                    r24, r25, r26, r27, r28, r29, r30, r31,
