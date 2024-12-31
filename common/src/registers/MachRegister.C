@@ -749,12 +749,14 @@ namespace Dyninst {
     auto const category = regClass();
     switch(getArchitecture()) {
       case Arch_x86:
-        return category == x86::CTL ||
-               category == x86::FPCTL;
+        return category == x86::CTL   ||
+               category == x86::FPCTL ||
+               category == x86::KMASK;
 
       case Arch_x86_64:
-        return category == x86_64::CTL ||
-               category == x86_64::FPCTL;
+        return category == x86_64::CTL   ||
+               category == x86_64::FPCTL ||
+               category == x86_64::KMASK;
 
       case Arch_aarch64:
         return (*this == aarch64::fpcr) ||
