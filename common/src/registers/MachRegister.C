@@ -597,7 +597,7 @@ namespace Dyninst {
   bool MachRegister::isZeroFlag() const {
     if(*this == InvalidReg) return false;
     auto const arch = getArchitecture();
-    if(arch == Arch_ppc32 || arch == Arch_ppc64) {
+    if(arch == Arch_ppc32) {
       /*Power ISA
        * Version 3.1C, May 26, 2024
        * 2.3.1 Condition Register
@@ -611,6 +611,19 @@ namespace Dyninst {
         case Dyninst::ppc32::icr5e:
         case Dyninst::ppc32::icr6e:
         case Dyninst::ppc32::icr7e:
+          return true;
+      }
+    }
+    if(arch == Arch_ppc64) {
+      switch(reg) {
+        case Dyninst::ppc64::icr0e:
+        case Dyninst::ppc64::icr1e:
+        case Dyninst::ppc64::icr2e:
+        case Dyninst::ppc64::icr3e:
+        case Dyninst::ppc64::icr4e:
+        case Dyninst::ppc64::icr5e:
+        case Dyninst::ppc64::icr6e:
+        case Dyninst::ppc64::icr7e:
           return true;
       }
     }
