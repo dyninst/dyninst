@@ -61,11 +61,16 @@ namespace Dyninst { namespace DataflowAPI {
       case Arch_x86: {
         if(reg.isPC()) {
           // ROSE docs: only minor value allowed is 0
-          return std::make_tuple(x86_regclass_ip, 0, 0, num_bits);
+          return std::make_tuple(x86_regclass_ip, 0, x86_regpos_all, num_bits);
         }
         return x86Rose(category, baseID, subrange, num_bits);
       }
       case Arch_x86_64: {
+        if(reg.isPC()) {
+          auto const pos = (reg == Dyninst::x86_64::eip) ? x86_regpos_dword : x86_regpos_qword;
+          // ROSE docs: only minor value allowed is 0
+          return std::make_tuple(x86_regclass_ip, 0, pos, num_bits);
+        }
         return x8664Rose(category, baseID, subrange, num_bits);
       }
       case Arch_ppc32: {
