@@ -8,10 +8,6 @@
 #include <boost/foreach.hpp>
 #include <mutex>
 
-// These are here temporarily until the classes in this file can be moved into rose::BinaryAnalysis
-using namespace rose;
-using namespace rose::BinaryAnalysis;
-
 std::ostream&
 operator<<(std::ostream &o, const RegisterDictionary &dict)
 {
@@ -185,14 +181,6 @@ RegisterDictionary::resize(const std::string &name, unsigned new_nbits) {
     RegisterDescriptor new_desc = *old_desc;
     new_desc.set_nbits(new_nbits);
     insert(name, new_desc);
-}
-
-RegisterParts
-RegisterDictionary::getAllParts() const {
-    RegisterParts retval;
-    BOOST_FOREACH (const Entries::value_type &node, forward)
-        retval.insert(node.second);
-    return retval;
 }
 
 const RegisterDictionary::Entries &

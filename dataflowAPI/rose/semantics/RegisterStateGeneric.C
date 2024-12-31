@@ -1,4 +1,5 @@
 #include "../util/StringUtility.h"
+#include "../util/IntervalSet.h"
 //#include <sage3basic.h>
 //#include <Diagnostics.h>
 #include <iomanip>
