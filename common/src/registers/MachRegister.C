@@ -596,19 +596,18 @@ namespace Dyninst {
 
   bool MachRegister::isZeroFlag() const {
     if(*this == InvalidReg) return false;
-    auto const base = getBaseRegister();
     switch(getArchitecture()) {
       case Arch_ppc32:
       case Arch_ppc64: {
         // For power, we have a different register representation.
         // We do not use the subrange field for MachReigsters
         // and all lower 32 bits are base ID
-        int baseID = base.val() & 0x0000FFFF;
+        int baseID = val() & 0x0000FFFF;
         return (baseID <= 731 && baseID >= 700 && baseID % 4 == 2) ||
                (baseID <= 628 && baseID >= 621);
       }
       default:
-        return base == getZeroFlag(getArchitecture());
+        return *this == getZeroFlag(getArchitecture());
     }
     return false;
   }
