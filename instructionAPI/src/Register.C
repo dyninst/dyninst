@@ -156,7 +156,7 @@ namespace Dyninst { namespace InstructionAPI {
                                            regPtr->getPromotedReg().size());
   }
 
-  bool RegisterAST::isFlag() const { return m_Reg.getBaseRegister() == x86::flags; }
+  bool RegisterAST::isFlag() const { return m_Reg.isFlag(); }
 
   bool RegisterAST::checkRegID(MachRegister r, unsigned int low, unsigned int high) const {
     return (r.getBaseRegister() == m_Reg.getBaseRegister()) && (low <= m_High) && (high >= m_Low);
