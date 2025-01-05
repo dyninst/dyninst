@@ -935,6 +935,21 @@ char *BPatch_image::getProgramFileName(char *name, unsigned int len)
    return name;
 }
 
+std::string BPatch_image::getProgramFileName() const {
+   std::vector<AddressSpace*> addrSpaces;
+   addSpace->getAS(addrSpaces);
+   AddressSpace *addrSpace = addrSpaces[0];
+
+   if (!addrSpace->mappedObjects().size()) {
+      // No program defined yet
+      return "<no program defined>";
+   }
+
+   string fileName =  addrSpace->getAOut()->fileName();
+   if (fileName.empty()) fileName = "<unnamed file>";
+   return fileName;
+}
+
 BPatch_module *BPatch_image::findModule(mapped_module *base) 
 {
    ModMap::iterator iter = modmap.find(base);

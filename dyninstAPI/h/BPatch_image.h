@@ -258,6 +258,9 @@ class DYNINST_EXPORT BPatch_image: public BPatch_sourceObj {
 
   char * getProgramFileName(char *name, unsigned int len);
 
+  // Same as above, but doesn't require knowing the length.
+  std::string getProgramFileName() const;
+
   /* BPatch_image::parseNewFunctions
    *
    * This function uses function entry addresses to find and parse
