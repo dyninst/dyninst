@@ -190,6 +190,52 @@ BPatch_binaryEdit::~BPatch_binaryEdit()
 }
 
 #if defined(arch_amdgpu)
+
+struct AmdgpuKernelInfo {
+  AmdgpuKernelInfo(std::vector<std::string> &words) {
+    assert(words.size() == 3);
+    kdName = words[0];
+    kernargBufferSize = std::stoul(words[1]);
+    kernargPtrRegister = std::stoul(words[2]);
+  }
+
+  std::string getKernelName() const {
+    assert(kdName.length() > 3);
+    return kdName.substr(0, kdName.length() - 3);
+  }
+
+  std::string kdName;
+  unsigned kernargBufferSize;
+  unsigned kernargPtrRegister;
+};
+
+static void getWords(const std::string &str, std::vector<std::string> &words) {
+  std::stringstream ss(str);
+  std::string word;
+  while (ss >> word) {
+    words.push_back(word);
+  }
+}
+
+static void readKernelInfos(const std::string &filePath,
+                            std::vector<AmdgpuKernelInfo> &kernelInfos) {
+  std::ifstream infoFile(filePath);
+  std::string line;
+
+  assert(infoFile.is_open());
+
+  std::vector<std::string> words;
+
+  while (std::getline(infoFile, line)) {
+    getWords(line, words);
+    assert(words.size() == 3);
+
+    AmdgpuKernelInfo info(words);
+    kernelInfos.push_back(info);
+  }
+  infoFile.close();
+}
+
 static void writeInstrumentedFunctionNames(const std::string &filePath) {
   std::ofstream namesFile(filePath);
   assert(namesFile.is_open());
@@ -201,21 +247,33 @@ static void writeInstrumentedFunctionNames(const std::string &filePath) {
   namesFile.close();
 }
 
-static void insertPrologueInInstrumentedFunctions() {
+static void insertPrologueInInstrumentedFunctions(
+    std::vector<AmdgpuKernelInfo> &kernelInfos) {
+  // Go through information for instrumented kernels (functions) and set base
+  // register to kernargPtrRegister and offset to kernargBufferSize. The
+  // additional additional argument will be at the end of the kernarg buffer. We
+  // set up the prologue to load s[94:95] with address of our additional memory
+  // buffer that holds additional variables inserted during instrumentation.
   for (const auto &function : BPatch_addressSpace::instrumentedFunctions) {
     std::vector<BPatch_point *> entryPoints;
     function->getEntryPoints(entryPoints);
 
     assert(entryPoints.size() == 1);
-
     BPatch_point *entryPoint = entryPoints[0];
-    // TODO : This needs to be adjusted per kernel.
-    auto prologuePtr = boost::make_shared<AmdgpuPrologueSnippet>(94, 4, 0xabc);
-    auto prologueNodePtr = boost::make_shared<AmdgpuPrologueSnippetNode>(prologuePtr);
 
-    auto addressSpace = entryPoint->getAddressSpace();
-    BPatchSnippetHandle *handle = addressSpace->insertPrologue(prologueNodePtr, entryPoint);
-    assert(handle);
+    for (auto &kernelInfo : kernelInfos) {
+      if (kernelInfo.getKernelName() == function->getMangledName()) {
+        auto prologuePtr = boost::make_shared<AmdgpuPrologueSnippet>(
+            94, kernelInfo.kernargPtrRegister, kernelInfo.kernargBufferSize);
+        auto prologueNodePtr =
+            boost::make_shared<AmdgpuPrologueSnippetNode>(prologuePtr);
+
+        auto addressSpace = entryPoint->getAddressSpace();
+        BPatchSnippetHandle *handle =
+            addressSpace->insertPrologue(prologueNodePtr, entryPoint);
+        assert(handle);
+      }
+    }
   }
 }
 #endif
@@ -233,7 +291,11 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
     /* PatchAPI stuffs */
     if (as.size() > 0) {
 #if defined(arch_amdgpu)
-      insertPrologueInInstrumentedFunctions();
+      std::vector<AmdgpuKernelInfo> kernelInfos;
+      std::string inputFileName = this->getImage()->getProgramFileName();
+
+      readKernelInfos(inputFileName + ".info", kernelInfos);
+      insertPrologueInInstrumentedFunctions(kernelInfos);
 #endif
       ret = AddressSpace::patch(as[0]);
     }
