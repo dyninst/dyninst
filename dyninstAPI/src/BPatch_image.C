@@ -919,20 +919,33 @@ char *BPatch_image::getProgramName(char *name, unsigned int len)
 
 char *BPatch_image::getProgramFileName(char *name, unsigned int len)
 {
-   std::vector<AddressSpace*> as;
-   addSpace->getAS(as);
-   AddressSpace *aout = as[0];
+  std::string fileName = this->getProgramFileName();
 
-   if (!aout->mappedObjects().size()) {
+  if (len > fileName.size())  {
+    std::strcpy(name, fileName.c_str());
+  } else if (len > 0u) {
+    name[0] = '\0';
+  }
+
+  return name;
+}
+
+std::string BPatch_image::getProgramFileName() const {
+   std::vector<AddressSpace*> addrSpaces;
+   addSpace->getAS(addrSpaces);
+
+   assert(!addrSpaces.empty());
+   AddressSpace *addrSpace = addrSpaces[0];
+
+   assert(addrSpace);
+   if (addrSpace->mappedObjects().empty()) {
       // No program defined yet
-      strncpy(name, "<no program defined>", len);
+      return "<no program defined>";
    }
 
-   string imname =  aout->getAOut()->fileName();
-   if (imname.empty()) imname = "<unnamed image file>";
-
-   strncpy(name, imname.c_str(), len);
-   return name;
+   string fileName =  addrSpace->getAOut()->fileName();
+   if (fileName.empty()) fileName = "<unnamed file>";
+   return fileName;
 }
 
 BPatch_module *BPatch_image::findModule(mapped_module *base) 
