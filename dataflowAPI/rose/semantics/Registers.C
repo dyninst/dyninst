@@ -306,6 +306,9 @@ RegisterDictionary::dictionary_armv8() {
         /* 64-bit program counter register */
         regs->insert("pc", armv8_regclass_pc, 0, 0, 64);
 
+        /* 64-bit link register */
+        regs->insert("lr", armv8_regclass_sp, 0, 0, 64);
+
         /* 32-bit pstate register and the four relevant flags.*/
         /* Each flag is added as a separate register for individual access. Only allowed minor is 0 (since there is only one pstate register);
          * the different offsets indicate the positions of the flags within the pstate register. */
