@@ -44,6 +44,7 @@ set(_public_headers
     h/registers/ppc32_regs.h
     h/registers/ppc64_regs.h
     h/registers/reg_def.h
+    h/registers/riscv64_regs.h
     h/registers/x86_64_regs.h
     h/registers/x86_regs.h
     h/SymReader.h
@@ -59,8 +60,8 @@ set(_private_headers
     src/arch-aarch64.h
     src/arch.h
     src/arch-power.h
-    src/arch-x86.h
     src/arch-riscv64.h
+    src/arch-x86.h
     src/debug_common.h
     src/dthread.h
     src/dyn_register.h
