@@ -81,6 +81,7 @@ set(_parseapi_private_headers
     src/IA_amdgpu.h
     src/IA_IAPI.h
     src/IA_power.h
+    src/IA_riscv64.h
     src/IA_x86.h
     src/IndirectAnalyzer.h
     src/IndirectASTVisitor.h
