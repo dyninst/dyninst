@@ -49,7 +49,7 @@ using namespace Dyninst::Stackwalker;
 #if defined(os_linux)
 #define GET_FRAME_POINTER(spr)     __asm__("add %0, zero, fp;" : "=r"(spr))
 #define GET_RET_ADDR(spr)       __asm__("add %0, zero, ra;" : "=r"(spr))
-#define GET_STACK_POINTER(spr)  __asm__("add %0, zero, sp;"  : "=r"(spr))
+#define GET_STACK_POINTER(spr)  __asm__("syscall")
 #else
 #error Unknown platform
 #endif
@@ -61,41 +61,41 @@ struct ra_fp_pair_t  {
 
 bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegisterVal &val)
 {
-  ra_fp_pair_t *framePointer;
-  ra_fp_pair_t thisFramePair;
-  ra_fp_pair_t stackWalkFramePair;
+//   ra_fp_pair_t *framePointer;
+//   ra_fp_pair_t thisFramePair;
+//   ra_fp_pair_t stackWalkFramePair;
 
-  bool found_reg = false;
+//   bool found_reg = false;
 
-  ra_fp_pair_t * sp;
-  GET_STACK_POINTER(sp);
+//   ra_fp_pair_t * sp;
+//   GET_STACK_POINTER(sp);
 
-  framePointer = (ra_fp_pair_t *) sp;
-  if(!framePointer) return false;
-  if(!framePointer->FP) return false;
-  thisFramePair = *framePointer;
-  stackWalkFramePair = *( (ra_fp_pair_t*) (thisFramePair.FP));
+//   framePointer = (ra_fp_pair_t *) sp;
+//   if(!framePointer) return false;
+//   if(!framePointer->FP) return false;
+//   thisFramePair = *framePointer;
+//   stackWalkFramePair = *( (ra_fp_pair_t*) (thisFramePair.FP));
 
-  if (reg.isStackPointer() || reg == Dyninst::StackTop) {
-    val = (Dyninst::MachRegisterVal) ((ra_fp_pair_t*)framePointer->FP)->FP;
-    if(val != 0) found_reg = true;
-  }
+//   if (reg.isStackPointer() || reg == Dyninst::StackTop) {
+//     val = (Dyninst::MachRegisterVal) ((ra_fp_pair_t*)framePointer->FP)->FP;
+//     if(val != 0) found_reg = true;
+//   }
 
-  if (reg.isFramePointer()) {
-     val = (Dyninst::MachRegisterVal) ((ra_fp_pair_t*)framePointer->FP)->FP;
-     if( val != 0) found_reg = true;
-  }
+//   if (reg.isFramePointer()) {
+//      val = (Dyninst::MachRegisterVal) ((ra_fp_pair_t*)framePointer->FP)->FP;
+//      if( val != 0) found_reg = true;
+//   }
 
-  sw_printf("RISCV_DEBUG: ra %p\n", (void *) stackWalkFramePair.LR);
+//   sw_printf("RISCV_DEBUG: ra %p\n", (void *) stackWalkFramePair.LR);
 
-  if (reg.isPC() || reg == Dyninst::ReturnAddr) {
-     val = (Dyninst::MachRegisterVal) stackWalkFramePair.LR;
-     if( val != 0) found_reg = true;
-  }
+//   if (reg.isPC() || reg == Dyninst::ReturnAddr) {
+//      val = (Dyninst::MachRegisterVal) stackWalkFramePair.LR;
+//      if( val != 0) found_reg = true;
+//   }
 
-  sw_printf("[%s:%d] - Returning value %lx for reg %s\n",
-            FILE__, __LINE__, val, reg.name().c_str());
-  return found_reg;
+//   sw_printf("[%s:%d] - Returning value %lx for reg %s\n",
+//             FILE__, __LINE__, val, reg.name().c_str());
+//   return found_reg;
 }
 
 Dyninst::Architecture ProcSelf::getArchitecture()
