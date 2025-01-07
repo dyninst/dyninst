@@ -5,6 +5,7 @@ set(_rose_sources
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherAMDGPU.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherARM64.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherPowerpc.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherRiscv64.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/Registers.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/RegisterStateGeneric.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/SymEvalSemantics.C
@@ -84,6 +85,7 @@ set(_dataflow_private_headers
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherAMDGPU.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherARM64.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherPowerpc.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/DispatcherRiscv64.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/Registers.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/RegisterStateGeneric.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/semantics/SymEvalSemantics.h
