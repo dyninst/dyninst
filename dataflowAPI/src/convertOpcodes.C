@@ -39,6 +39,7 @@
 
 #include "external/rose/armv8InstructionEnum.h"
 #include "external/rose/amdgpuInstructionEnum.h"
+#include "external/rose/riscv64InstructionEnum.h"
 #include "../rose/x86InstructionSemantics.h"
 #include "external/rose/powerpcInstructionEnum.h"
 
