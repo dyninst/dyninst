@@ -126,9 +126,9 @@ bool DebugStepperImpl::isStackRegister(MachRegister reg)
 }
 
 static     ucontext_t dummy_context;
-static int sp_offset = (char*)&(dummy_context.uc_mcontext.__gregs[2]) - (char*)&dummy_context;
-static int fp_offset = (char*)&(dummy_context.uc_mcontext.__gregs[8]) - (char*)&dummy_context;
-static int pc_offset = (char*)&(dummy_context.uc_mcontext.__gregs[0]) - (char*)&dummy_context;
+static int sp_offset = (char*)&(dummy_context.uc_mcontext.gregs[2]) - (char*)&dummy_context;
+static int fp_offset = (char*)&(dummy_context.uc_mcontext.gregs[8]) - (char*)&dummy_context;
+static int pc_offset = (char*)&(dummy_context.uc_mcontext.gregs[0]) - (char*)&dummy_context;
 
 gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
                                                     Frame & out)
