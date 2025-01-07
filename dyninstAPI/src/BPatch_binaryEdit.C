@@ -315,7 +315,8 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
 
    if( !origBinEdit->writeFile(outFile) ) return false;
 #if defined(arch_amdgpu)
-   writeInstrumentedFunctionNames(std::string(outFile) + ".names");
+   std::string inputFileName = this->getImage()->getProgramFileName();
+   writeInstrumentedFunctionNames(inputFileName + ".instrumentedKernelNames");
 #endif
 
    std::map<std::string, BinaryEdit *>::iterator curBinEdit;
