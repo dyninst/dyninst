@@ -100,7 +100,7 @@
               )                                                     \
         )
 #else
-#error "Unknown operating system in inst-aarch64.h"
+#error "Unknown operating system in inst-riscv64.h"
 #endif
 
 
