@@ -10,6 +10,7 @@ enum Riscv64RegisterClass {
     riscv64_regclass_gpr,
     riscv64_regclass_fpr,
     riscv64_regclass_pc,
+    riscv64_regclass_unknown,
 };
 
 /** RISC-V general purpose registers */
@@ -50,42 +51,6 @@ enum Riscv64GeneralPurposeRegister {
 
 /** RISC-V FP 32 and 64 bit registers */
 enum Riscv64FloatingPointRegister {
-    riscv64_fpr_f0,
-    riscv64_fpr_f1,
-    riscv64_fpr_f2,
-    riscv64_fpr_f3,
-    riscv64_fpr_f4,
-    riscv64_fpr_f5,
-    riscv64_fpr_f6,
-    riscv64_fpr_f7,
-    riscv64_fpr_f8,
-    riscv64_fpr_f9,
-    riscv64_fpr_f10,
-    riscv64_fpr_f11,
-    riscv64_fpr_f12,
-    riscv64_fpr_f13,
-    riscv64_fpr_f14,
-    riscv64_fpr_f15,
-    riscv64_fpr_f16,
-    riscv64_fpr_f17,
-    riscv64_fpr_f18,
-    riscv64_fpr_f19,
-    riscv64_fpr_f20,
-    riscv64_fpr_f21,
-    riscv64_fpr_f22,
-    riscv64_fpr_f23,
-    riscv64_fpr_f24,
-    riscv64_fpr_f25,
-    riscv64_fpr_f26,
-    riscv64_fpr_f27,
-    riscv64_fpr_f28,
-    riscv64_fpr_f29,
-    riscv64_fpr_f30,
-    riscv64_fpr_f31,
-};
-
-/** RISC-V FP 64 bit registers */
-enum Riscv64FloatingPoint64Register {
     riscv64_fpr_f0,
     riscv64_fpr_f1,
     riscv64_fpr_f2,
