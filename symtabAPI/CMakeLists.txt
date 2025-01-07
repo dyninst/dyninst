@@ -74,13 +74,13 @@ if(DYNINST_OS_UNIX)
     src/emitElfStatic.C
     src/dwarfWalker.C)
 
-  if(DYNINST_ARCH_x86_64 OR DYNINST_ARCH_i386)
+  if(DYNINST_HOST_ARCH_X86_64 OR DYNINST_HOST_ARCH_I386)
     list(APPEND _sources src/emitElfStatic-x86.C src/relocationEntry-elf-x86.C)
-  elseif(DYNINST_ARCH_ppc64le)
+  elseif(DYNINST_HOST_ARCH_PPC64LE)
     list(APPEND _sources src/emitElfStatic-ppc64.C src/relocationEntry-elf-ppc64.C)
-  elseif(DYNINST_ARCH_aarch64)
+  elseif(DYNINST_HOST_ARCH_AARCH64)
     list(APPEND _sources src/emitElfStatic-aarch64.C src/relocationEntry-elf-aarch64.C)
-  elseif(DYNINST_ARCH_riscv64)
+  elseif(DYNINST_HOST_ARCH_RISCV64)
     list(APPEND _sources src/emitElfStatic-riscv64.C src/relocationEntry-elf-riscv64.C)
   else()
     list(APPEND _sources src/emitElfStatic-stub.C src/relocationEntry-stub.C)
@@ -96,9 +96,9 @@ dyninst_library(
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
   DEFINES SYMTAB_LIB
-  DYNINST_DEPS common dynElf dynDwarf
-  PRIVATE_DEPS OpenMP::OpenMP_CXX Dyninst::Boost
-  PUBLIC_DEPS Dyninst::ElfUtils
+  DYNINST_DEPS common
+  DYNINST_INTERNAL_DEPS dynDwarf dynElf
+  PRIVATE_DEPS OpenMP::OpenMP_CXX Dyninst::Boost Dyninst::ElfUtils
 )
 # cmake-format: on
 

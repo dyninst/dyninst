@@ -177,7 +177,7 @@ bool IA_riscv64::isStackFramePreamble() const
     if (!savesFP()) { // check c.addi sp, -16
         return false;
     }
-    entryID eid = insn.getOperation().getID();
+    //entryID eid = insn.getOperation().getID();
     InstructionDecoder tmp(dec);
     for (int i = 0; i < 2; ++i) {
         insn = tmp.decode();

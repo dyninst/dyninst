@@ -189,9 +189,9 @@ namespace Dyninst {
 
         class RoseInsnRiscv64Factory : public RoseInsnFactory {
         public:
-            DATAFLOW_EXPORT RoseInsnRiscv64Factory(Architecture arch) : a(arch) { }
+            DYNINST_EXPORT RoseInsnRiscv64Factory(Architecture arch) : a(arch) { }
 
-            DATAFLOW_EXPORT virtual ~RoseInsnRiscv64Factory() { }
+            DYNINST_EXPORT virtual ~RoseInsnRiscv64Factory() { }
 
         private:
             Architecture a;
