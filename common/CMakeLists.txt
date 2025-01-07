@@ -59,8 +59,8 @@ set(_private_headers
     src/addrtranslate-sysv.h
     src/arch-aarch64.h
     src/arch-power.h
-    src/arch-x86.h
     src/arch-riscv64.h
+    src/arch-x86.h
     src/debug_common.h
     src/dthread.h
     src/dyn_register.h

@@ -1,6 +1,7 @@
 #include "rose/registers/convert.h"
 
 #include "dataflowAPI/rose/registers/aarch64.h"
+#include "dataflowAPI/rose/registers/riscv64.h"
 #include "dataflowAPI/rose/registers/amdgpu.h"
 #include "dataflowAPI/rose/registers/ppc32.h"
 #include "dataflowAPI/rose/registers/ppc64.h"
