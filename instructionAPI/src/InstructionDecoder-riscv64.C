@@ -6,16 +6,13 @@ namespace Dyninst {
 
 namespace InstructionAPI {
 
-void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn, cs_detail* d) {
-    // Note: Compressed instructions currently does not work correctly.
-    // See https://github.com/capstone-engine/capstone/issues/2351
-
+void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn_to_complete, cs_detail* d) {
     bool isCFT = false;
     bool isConditional = false;
     bool isJumpReg = false;     // jump to an address in a register
     bool isJumpOffset = false;  // relative jump from program counter
     bool err = false;
-    entryID eid = insn->getOperation().getID();
+    entryID eid = insn_to_complete->getOperation().getID();
     cs_riscv* detail = &(d->riscv);
 
     MachRegister (InstructionDecoder_Capstone::*regTrans)(uint32_t);
@@ -23,7 +20,7 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
 
     // This is the index of the operand register to branch to
     int jumpOpIndex = -1;
-    InsnCategory cat = insn->getCategory();
+    InsnCategory cat = insn_to_complete->getCategory();
     if (cat == c_BranchInsn) {
         isCFT = true;
         switch (eid) {
@@ -72,19 +69,19 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
             Expression::Ptr regAST = makeRegisterExpression((this->*regTrans)(operand->reg));
             if (isCFT && isJumpReg && jumpOpIndex == i) {
                 if (isJumpOffset) {
-                    // special case: JALR RD1, RS1, OFFSET.
-                    // it jumps to [RS1] + offset, so we need to know the offset in advance
+                    // Special case: JALR RD1, RS1, OFFSET.
+                    // It jumps to [RS1] + offset, so we need to know the offset in advance
                     cs_riscv_op* nextOperand = &(detail->operands[i + 1]);
                     assert(nextOperand->type == RISCV_OP_IMM);
                     Expression::Ptr immAST = Immediate::makeImmediate(Result(u32, nextOperand->imm));
                     Expression::Ptr target(makeAddExpression(regAST, immAST, u64));
-                    insn->addSuccessor(target, false, false, false, false);
-                    // the next operand is already handled. skip it
+                    insn_to_complete->addSuccessor(target, false, false, false, false);
+                    // The next operand is already handled. skip it
                     ++i;
                 } else {
-                    // if a call or a jump has a register as an operand,
-                    // it should not be a conditional jump
-                    insn->addSuccessor(regAST, false, true, false, false);
+                    // If a call or a jump has a register as an operand,
+                    // It should not be a conditional jump
+                    insn_to_complete->addSuccessor(regAST, false, true, false, false);
                 }
             } else {
                 bool isRead = ((operand->access & CS_AC_READ) != 0);
@@ -92,27 +89,27 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
                 if (!isRead && !isWritten) {
                     isRead = isWritten = true;
                 }
-                insn->appendOperand(regAST, isRead, isWritten, false);
+                insn_to_complete->appendOperand(regAST, isRead, isWritten, false);
             }
         } else if (operand->type == RISCV_OP_IMM) {
             Expression::Ptr immAST = Immediate::makeImmediate(Result(u32, operand->imm));
             if (isCFT && isJumpOffset && jumpOpIndex == i) {
                 Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
                 Expression::Ptr target(makeAddExpression(IP, immAST, u64));
-                insn->addSuccessor(target, false, false, isConditional, false);
+                insn_to_complete->addSuccessor(target, false, false, isConditional, false);
                 if (isConditional) {
-                    insn->addSuccessor(IP, false, false, true, true);
+                    insn_to_complete->addSuccessor(IP, false, false, true, true);
                 }
             } else {
-                insn->appendOperand(immAST, false, false, false);
+                insn_to_complete->appendOperand(immAST, false, false, false);
             }
         } else if (operand->type == RISCV_OP_MEM) {
             riscv_op_mem* mem = &(operand->mem);
             Expression::Ptr effectiveAddr = makeRegisterExpression((this->*regTrans)(mem->base));
             Result_Type type = invalid_type;
             bool isLoad = false, isStore = false;
-            // memory access type depends on the instruction
-            // TODO Add and contribute RISC-V access size support directly to Capstone
+            // Memory access type depends on the instruction
+            // TODO Add RISC-V access size support directly to Capstone
             switch (eid) {
                 case riscv64_op_lb:
                 case riscv64_op_lbu:
@@ -260,7 +257,7 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
                 default:
                     break;
             }
-            // offsets are 12 bits long signed integers
+            // Offsets are 12 bits long signed integers
             Expression::Ptr immAST = Immediate::makeImmediate(Result(u32, mem->disp));
             effectiveAddr = makeAddExpression(effectiveAddr, immAST, u64);
             if (type == invalid_type) {
@@ -272,46 +269,24 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
             if (!isRead && !isWritten) {
                 isRead = isWritten = true;
             }
-            insn->appendOperand(memAST, isLoad, isStore, false);
+            insn_to_complete->appendOperand(memAST, isLoad, isStore, false);
         } else {
             fprintf(stderr, "Unhandled capstone operand type %d\n", operand->type);
         }
     }
 
-    // std::map< uint16_t, std::pair<bool, bool> > implicitRegs;
-    // for (int i = 0; i < d->regs_read_count; ++i) {
-    //     implicitRegs.insert(make_pair(d->regs_read[i], make_pair(true, false)));
-    // }
-    // for (int i = 0; i < d->regs_write_count; ++i) {
-    //     auto it = implicitRegs.find(d->regs_write[i]);
-    //     if (it == implicitRegs.end()) {
-    //         implicitRegs.insert(make_pair(d->regs_write[i], make_pair(false, true)));
-    //     } else {
-    //         it->second.second = true;
-    //     }
-    // }
-
-    // for (auto rit = implicitRegs.begin(); rit != implicitRegs.end(); ++rit) {
-    //     MachRegister reg = (this->*regTrans)((x86_reg)rit->first);
-    //     // Traditionally, instructionAPI only present individual flag fields,
-    //     // not the whole flag register
-    //     if (reg == x86::flags || reg == x86_64::flags) continue;
-    //     Expression::Ptr regAST = makeRegisterExpression(reg);
-    //     insn->appendOperand(regAST, rit->second.first, rit->second.second, true);
-    // }
-
     // Capstone does not handle implicit registers
-    // Handle pc explicitly
+    // Handle the program counter explicitly
 
     if (isCFT || eid == riscv64_op_auipc) {
         int isPcRead = eid != riscv64_op_c_jr;
         int isPcWrite = isCFT;
         MachRegister reg = riscv64::pc;
         Expression::Ptr regAST = makeRegisterExpression(reg);
-        insn->appendOperand(regAST, isPcRead, isPcWrite, true);
+        insn_to_complete->appendOperand(regAST, isPcRead, isPcWrite, true);
     }
 
-    if (err) fprintf(stderr, "\tinstruction %s\n", insn->format().c_str());
+    if (err) fprintf(stderr, "\tinstruction %s\n", insn_to_complete->format().c_str());
 }
 
 entryID InstructionDecoder_Capstone::opcodeTranslation_riscv64(unsigned int cap_id) {
