@@ -16,7 +16,6 @@ set(_public_headers
 set(_private_headers
     src/addrRange.h
     src/aarch64-swk.h
-    src/riscv64-swk.h
     src/analysis_stepper.h
     src/dbgstepper-impl.h
     src/framestepper_pimple.h
@@ -57,8 +56,6 @@ if(DYNINST_OS_UNIX)
     list(APPEND _sources src/linux-ppc-swk.C src/ppc-swk.C)
   elseif(DYNINST_HOST_ARCH_AARCH64)
     list(APPEND _sources src/linux-aarch64-swk.C src/aarch64-swk.C src/dbginfo-stepper.C)
-  elseif(DYNINST_HOST_ARCH_RISCV64)
-    list(APPEND _sources src/linux-riscv64-swk.C src/riscv64-swk.C src/dbginfo-stepper.C)
   elseif(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
     list(APPEND _sources src/linux-x86-swk.C src/linuxbsd-x86-swk.C src/dbginfo-stepper.C)
     if(DYNINST_OS_FreeBSD)

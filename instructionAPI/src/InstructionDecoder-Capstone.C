@@ -7,7 +7,6 @@ namespace Dyninst {
 
 namespace InstructionAPI {
 
-
 /**************  Architecture independent functions  **********************/
 dyn_tls bool InstructionDecoder_Capstone::handle_init = false;
 dyn_tls Architecture InstructionDecoder_Capstone::current_arch = Arch_none;
@@ -23,12 +22,13 @@ InstructionDecoder_Capstone::InstructionDecoder_Capstone(Architecture a):
     InstructionDecoderImpl(a)
     {}
 
+InstructionDecoder_Capstone::~InstructionDecoder_Capstone(){}
 
 bool InstructionDecoder_Capstone::openCapstoneHandle() {
     if (handle_init && m_Arch == current_arch) return true;
 
     if (!handle_init) {
-        // The first time of performing decoding
+        // The first time performing decoding
         initializeOpcodeData();
     }
     if (handle_init && m_Arch != current_arch) {
@@ -38,14 +38,14 @@ bool InstructionDecoder_Capstone::openCapstoneHandle() {
         cs_free(capstone_ins_with_detail, 1);
         cs_close(&handle_no_detail);
         cs_close(&handle_with_detail);
-    }    
+    }
 
-    cs_err ret1, ret2;    
+    cs_err ret1, ret2;
     handle_init = true;
     current_arch = m_Arch;
 
     switch (m_Arch) {
-        case Arch_x86: 
+        case Arch_x86:
             ret1 = cs_open(CS_ARCH_X86, CS_MODE_32, &handle_no_detail);
             ret2 = cs_open(CS_ARCH_X86, CS_MODE_32, &handle_with_detail);
             break;
@@ -62,7 +62,7 @@ bool InstructionDecoder_Capstone::openCapstoneHandle() {
             ret2 = cs_open(CS_ARCH_PPC, CS_MODE_64, &handle_with_detail);
             break;
         case Arch_aarch64:
-// Some versions of capstone are not compiled with CAPSTONE_AARCH64_COMPAT_HEADER enabled
+// Angus: some versions of capstone are not compiled with CAPSTONE_AARCH64_COMPAT_HEADER enabled
 // if CAPSTONE_AARCH64_COMPAT_HEADER is set, CS_ARCH_ARM64 will be defined
 // otherwise, CS_ARCH_AARCH64 will be defined
 #ifdef CAPSTONE_AARCH64_COMPAT_HEADER
@@ -83,25 +83,25 @@ bool InstructionDecoder_Capstone::openCapstoneHandle() {
     }
 
     if (ret1 == CS_ERR_OK && ret2 == CS_ERR_OK) {
-        cs_option(handle_no_detail, CS_OPT_DETAIL, CS_OPT_OFF); 
+        cs_option(handle_no_detail, CS_OPT_DETAIL, CS_OPT_OFF);
         capstone_ins_no_detail = cs_malloc(handle_no_detail);
-        cs_option(handle_with_detail, CS_OPT_DETAIL, CS_OPT_ON); 
+        cs_option(handle_with_detail, CS_OPT_DETAIL, CS_OPT_ON);
         capstone_ins_with_detail = cs_malloc(handle_with_detail);
         return true;
     }
     return false;
 }
 
-void InstructionDecoder_Capstone::doDelayedDecode(const Instruction* insn) {
+void InstructionDecoder_Capstone::doDelayedDecode(const Instruction* insn_to_complete) {
     if (!openCapstoneHandle()) {
         return;
     }
-    const unsigned char* code = (const unsigned char*) insn->ptr();
-    size_t codeSize = insn->size();
+    const unsigned char* code = (const unsigned char*) insn_to_complete->ptr();
+    size_t codeSize = insn_to_complete->size();
     uint64_t cap_addr = 0;
     if (cs_disasm_iter(handle_with_detail, &code, &codeSize, &cap_addr, capstone_ins_with_detail)) {
         if (m_Arch == Arch_riscv64) {
-            decodeOperands_riscv64(insn, capstone_ins_with_detail->detail);
+            decodeOperands_riscv64(insn_to_complete, capstone_ins_with_detail->detail);
         }
     }
 }
@@ -145,7 +145,7 @@ entryID InstructionDecoder_Capstone::opcodeTranslation(unsigned int cap_id) {
     }
     else {
         fprintf(stderr, "Unsupported architecture\n");
-        return e_No_Entry; 
+        return e_No_Entry;
     }
 }
 
@@ -158,7 +158,7 @@ Result_Type InstructionDecoder_Capstone::operandSizeTranslation(uint8_t cap_size
         case 10: return m80;
         case 12: return m96;
         case 14: return m14;
-        case 16: return dbl128; 
+        case 16: return dbl128;
         case 24: return m192;
         case 28: return m224;
         case 32: return m256;
@@ -176,6 +176,16 @@ bool InstructionDecoder_Capstone::checkCapstoneGroup(cs_detail *d, uint8_t g) {
     return false;
 }
 
+// Unused virtual functions for compatibility
+
+Instruction InstructionDecoder_Capstone::decode(InstructionDecoder::buffer& b) {
+    const unsigned char* start = b.start;
+    decodeOpcode(b);
+    unsigned int decodedSize = b.start - start;
+
+    return Instruction(m_Operation, decodedSize, start, m_Arch);
+}
+
 void InstructionDecoder_Capstone::setMode(bool) {
     // Unused
     return;
@@ -188,14 +198,14 @@ Result_Type InstructionDecoder_Capstone::makeSizeType(unsigned int) {
 
 
 void InstructionDecoder_Capstone::initializeOpcodeData() {
-    
+
     opcode_alias = new std::map<std::string, std::string>();
     opcode_alias->emplace("ja", "jnbe");
     opcode_alias->emplace("jae", "jnb");
     opcode_alias->emplace("je", "jz");
     opcode_alias->emplace("jne", "jnz");
     opcode_alias->emplace("jg", "jnle");
-    opcode_alias->emplace("jge", "jnl");    
+    opcode_alias->emplace("jge", "jnl");
 
     opcode_str = new dyn_hash_map<entryID, std::string>();
     opcode_str->reserve(2000);
@@ -2008,7 +2018,7 @@ void InstructionDecoder_Capstone::decodeOperands_ppc(const Instruction*, cs_deta
 }
 
 entryID InstructionDecoder_Capstone::opcodeTranslation_ppc(unsigned int) {
-    return e_No_Entry; 
+    return e_No_Entry;
 }
 
 
@@ -2019,7 +2029,7 @@ void InstructionDecoder_Capstone::decodeOperands_aarch64(const Instruction* , cs
 }
 
 entryID InstructionDecoder_Capstone::opcodeTranslation_aarch64(unsigned int) {
-    return e_No_Entry; 
+    return e_No_Entry;
 }
 
 } // namespace InstructionAPI

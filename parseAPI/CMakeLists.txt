@@ -38,6 +38,7 @@ set(_parseapi_sources
     src/IA_amdgpu.C
     src/IA_IAPI.C
     src/IA_power.C
+    src/IA_riscv64.C
     src/IA_x86.C
     src/IdiomModelDesc.C
     src/IndirectAnalyzer.C
