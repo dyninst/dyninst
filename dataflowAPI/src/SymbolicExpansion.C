@@ -42,26 +42,34 @@
 #include "../rose/semantics/DispatcherAMDGPU.h"
 #include "../rose/semantics/DispatcherPowerpc.h"
 
+#include "debug_dataflow.h"
+
 using namespace Dyninst;
 using namespace DataflowAPI;
 
 bool SymbolicExpansion::expandX86(SgAsmInstruction *rose_insn,
                                   SymEvalPolicy &policy) {
     SgAsmx86Instruction *insn = static_cast<SgAsmx86Instruction *>(rose_insn);
-
     X86InstructionSemantics<SymEvalPolicy, Handle> t(policy);
-    t.processInstruction(insn);
+    try {
+        t.processInstruction(insn);
+    } catch (rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception &e) {
+      expand_printf("Failed to process instruction '%s': %s\n", rose_insn->get_mnemonic().c_str(), e.what());
+      return false;
+    }
     return true;
 }
 
 bool SymbolicExpansion::expandX86_64(SgAsmInstruction *rose_insn,
                                      SymEvalPolicy_64 &policy) {
+    SgAsmx86Instruction *insn = static_cast<SgAsmx86Instruction *>(rose_insn);
+    X86_64InstructionSemantics<SymEvalPolicy_64, Handle> t(policy);
+
     try {
-        SgAsmx86Instruction *insn = static_cast<SgAsmx86Instruction *>(rose_insn);
-        X86_64InstructionSemantics<SymEvalPolicy_64, Handle> t(policy);
         t.processInstruction(insn);
     } catch (rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception &e) {
-        // fprintf(stderr, "Instruction processing threw exception for instruction: %s\n", insn_dump.c_str());
+      expand_printf("Failed to process instruction '%s': %s\n", rose_insn->get_mnemonic().c_str(), e.what());
+      return false;
     }
 
     return true;
@@ -77,7 +85,8 @@ bool SymbolicExpansion::expandPPC32(SgAsmInstruction *rose_insn,
     try {
         cpu->processInstruction(insn);
     } catch (rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception &e) {
-        // fprintf(stderr, "Instruction processing threw exception for instruction: %s\n", insn_dump.c_str());
+      expand_printf("Failed to process instruction '%s': %s\n", insn->get_mnemonic().c_str(), e.what());
+      return false;
     }
 
     return true;
@@ -92,8 +101,8 @@ bool SymbolicExpansion::expandPPC64(SgAsmInstruction *rose_insn,
     try {
         cpu->processInstruction(insn);
     } catch (rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception &e) {
-//         fprintf(stderr, "Instruction processing threw exception for instruction: %s\n", insn_dump.c_str());
-//	 std::cerr << e << std::endl;
+      expand_printf("Failed to process instruction '%s': %s\n", insn->get_mnemonic().c_str(), e.what());
+      return false;
     }
 
     return true;
@@ -107,10 +116,11 @@ bool SymbolicExpansion::expandAarch64(SgAsmInstruction *rose_insn, BaseSemantics
     try {
         cpu->processInstruction(insn);
     } catch (rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception &e) {
-        // fprintf(stderr, "Instruction processing threw exception for instruction: %s\n", insn_dump.c_str());
+      expand_printf("Failed to process instruction '%s': %s\n", insn->get_mnemonic().c_str(), e.what());
+      return false;
     }
 
-    return false;
+    return true;
 }
 
 
@@ -122,10 +132,11 @@ bool SymbolicExpansion::expandAMDGPU(SgAsmInstruction *rose_insn, BaseSemantics:
     try {
         cpu->processInstruction(insn);
     } catch (rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception &e) {
-        // fprintf(stderr, "Instruction processing threw exception for instruction: %s\n", insn_dump.c_str());
+        expand_printf("Failed to process instruction '%s': %s\n", insn->get_mnemonic().c_str(), e.what());
+        return false;
     }
 
-    return false;
+    return true;
 }
 
 
