@@ -1585,7 +1585,7 @@ namespace Dyninst { namespace aarch64 {
   const int32_t C_FLAG = 29;
   const int32_t V_FLAG = 28;
 
-  DEF_REGISTER( pstate,       2 | D_REG |    SPR | Arch_aarch64, "aarch64");
+  DEF_REGISTER( pstate,       2 | D_REG |   FLAG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      n,  N_FLAG |   BIT |   FLAG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      z,  Z_FLAG |   BIT |   FLAG | Arch_aarch64, "aarch64");
   DEF_REGISTER(      c,  C_FLAG |   BIT |   FLAG | Arch_aarch64, "aarch64");
