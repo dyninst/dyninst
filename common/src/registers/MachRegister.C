@@ -638,25 +638,41 @@ namespace Dyninst {
 
   bool MachRegister::isFramePointer() const {
     if(*this == InvalidReg) return false;
-    auto const base = getBaseRegister();
+    auto const arch = getArchitecture();
+    auto const is_ppc = (arch == Arch_ppc32 || arch == Arch_ppc64);
+
+    // ppc uses a specific GPR as its frame pointer
+    auto const base = (is_ppc) ? *this : getBaseRegister();
     return base == FrameBase || base == getFramePointer(getArchitecture());
   }
 
   bool MachRegister::isStackPointer() const {
     if(*this == InvalidReg) return false;
-    auto const base = getBaseRegister();
+    auto const arch = getArchitecture();
+    auto const is_ppc = (arch == Arch_ppc32 || arch == Arch_ppc64);
+
+    // ppc uses a specific GPR as its stack pointer
+    auto const base = (is_ppc) ? *this : getBaseRegister();
     return base == StackTop || base == getStackPointer(getArchitecture());
   }
 
   bool MachRegister::isSyscallNumberReg() const {
     if(*this == InvalidReg) return false;
-    auto const base = getBaseRegister();
+    auto const arch = getArchitecture();
+    auto const is_ppc = (arch == Arch_ppc32 || arch == Arch_ppc64);
+
+    // ppc uses a specific GPR as its syscall reg
+    auto const base = (is_ppc) ? *this : getBaseRegister();
     return base == getSyscallNumberReg(getArchitecture());
   }
 
   bool MachRegister::isSyscallReturnValueReg() const {
     if(*this == InvalidReg) return false;
-    auto const base = getBaseRegister();
+    auto const arch = getArchitecture();
+    auto const is_ppc = (arch == Arch_ppc32 || arch == Arch_ppc64);
+
+    // ppc uses a specific GPR as its return value reg
+    auto const base = (is_ppc) ? *this : getBaseRegister();
     return base == getSyscallReturnValueReg(getArchitecture());
   }
 
