@@ -42,7 +42,7 @@ namespace Dyninst {
     signed int category = (reg & 0x00ff0000);
     switch(getArchitecture()) {
       case Arch_x86:
-        if(category == x86::GPR)
+        if(isGeneralPurpose())
           return MachRegister(reg & 0xffff00ff);
         else if(category == x86::FLAG)
           return x86::flags;
@@ -745,6 +745,8 @@ namespace Dyninst {
     auto const category = regClass();
     switch(getArchitecture()) {
       case Arch_x86:
+        return category == x86::GPR;
+
       case Arch_x86_64:
       case Arch_aarch64:
       case Arch_ppc32:

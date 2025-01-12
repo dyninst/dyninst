@@ -2604,7 +2604,7 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
             //In this case our definition of GPR is anything stored in the elf_gregset_t of
             // the user struct.
             case Dyninst::Arch_x86:
-               is_gpr = ((rclass == x86::GPR) || (rclass == x86::FLAG) ||
+               is_gpr = (reg.isGeneralPurpose() || (rclass == x86::FLAG) ||
                          (rclass == x86::MISC) || (rclass == x86::SEG) || !rclass);
                break;
             case Dyninst::Arch_x86_64:
