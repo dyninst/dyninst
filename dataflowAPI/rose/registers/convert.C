@@ -67,7 +67,7 @@ namespace Dyninst { namespace DataflowAPI {
         return x86Rose(category, baseID, lengthID, num_bits);
       }
       case Arch_x86_64: {
-        return x8664Rose(category, baseID, subrange, num_bits);
+        return x8664Rose(category, baseID, lengthID, num_bits);
       }
       case Arch_ppc32: {
         return ppc32Rose(category, reg, num_bits);
