@@ -41,6 +41,7 @@ namespace Dyninst { namespace DataflowAPI {
     auto const category = reg.regClass();
     auto const baseID = reg.getBaseRegister().val() & 0x000000ff;
     auto const subrange = reg.val() & 0x0000ff00;
+    auto const lengthID = reg.getLengthID();
 
     // MachRegister::size is in _bytes_
     auto const num_bits = 8*static_cast<int32_t>(reg.size());

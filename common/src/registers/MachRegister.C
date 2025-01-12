@@ -38,6 +38,10 @@ namespace Dyninst {
 
   unsigned int MachRegister::regClass() const { return reg & 0x00ff0000; }
 
+  int32_t MachRegister::getLengthID() const {
+    return val() & 0x0000ff00;
+  }
+
   MachRegister MachRegister::getBaseRegister() const {
     signed int category = (reg & 0x00ff0000);
     switch(getArchitecture()) {
