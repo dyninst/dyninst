@@ -818,7 +818,34 @@ namespace Dyninst {
                category == x86_64::FPCTL ||
                category == x86_64::KMASK;
 
-      case Arch_aarch64:
+      case Arch_aarch64: {
+        switch(val()) {
+          case aarch64::ifpcr:
+          case aarch64::ifpsr:
+          case aarch64::iffr:
+          case aarch64::ip0:
+          case aarch64::ip1:
+          case aarch64::ip2:
+          case aarch64::ip3:
+          case aarch64::ip4:
+          case aarch64::ip5:
+          case aarch64::ip6:
+          case aarch64::ip7:
+          case aarch64::ip8:
+          case aarch64::ip9:
+          case aarch64::ip10:
+          case aarch64::ip11:
+          case aarch64::ip12:
+          case aarch64::ip13:
+          case aarch64::ip14:
+          case aarch64::ip15:
+          case aarch64::ivg:
+          case aarch64::izt0:
+            return true;
+        }
+        return false;
+      }
+
       case Arch_ppc32:
       case Arch_ppc64:
       case Arch_cuda:
