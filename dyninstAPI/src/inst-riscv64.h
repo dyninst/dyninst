@@ -74,7 +74,7 @@
 
 //TODO Fix for ARM
 #define GPRSAVE_64  (32*GPRSIZE_64)
-#define FPRSAVE_64  (64*FPRSIZE_64)
+#define FPRSAVE_64  (32*FPRSIZE_64)
 #define SPRSAVE_64  (1*8+3*4)
 // #sasha Are these necessary?
 #define FUNCSAVE_64 (32*8)

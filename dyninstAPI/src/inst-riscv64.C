@@ -89,8 +89,7 @@ void registerSpace::initialize64() {
 
     std::vector < registerSlot * > registers;
 
-    // TODO off-limits registers
-    //GPRs
+    // RISC-V GPRs
     for (unsigned idx = r0; idx <= r31; idx++) {
         char name[32];
         sprintf(name, "r%u", idx - r0);
@@ -100,13 +99,8 @@ void registerSpace::initialize64() {
                                              registerSlot::liveAlways,
                                              registerSlot::GPR));
     }
-    // registers.push_back(new registerSlot(r29, "r29", true, registerSlot::liveAlways, registerSlot::GPR));
-    // registers.push_back(new registerSlot(r30, "r30", true, registerSlot::liveAlways, registerSlot::GPR));
 
-    //PC
-    registers.push_back(new registerSlot(pc, "pc", true, registerSlot::liveAlways, registerSlot::SPR));
-
-    //FPRs
+    // RISC-V FPRs
     for (unsigned idx = fpr0; idx <= fpr31; idx++) {
         char name[32];
         sprintf(name, "fpr%u", idx - fpr0);
@@ -187,9 +181,8 @@ unsigned EmitterRISCV64SaveRegs::saveFPRegisters(
 unsigned EmitterRISCV64SaveRegs::saveSPRegisters(
         codeGen &gen, registerSpace *theRegSpace, int offset, bool force_save)
 {
-    int ret = 0;
     // TODO RISC-V speical purpose register currently not supported
-    return ret;
+    return 0;
 }
 
 void EmitterRISCV64SaveRegs::createFrame(codeGen &gen) {
