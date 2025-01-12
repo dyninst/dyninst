@@ -754,6 +754,8 @@ namespace Dyninst {
         return category == aarch64::GPR;
 
       case Arch_ppc32:
+        return category == ppc32::GPR;
+
       case Arch_ppc64:
       case Arch_cuda:
       case Arch_amdgpu_gfx908:
