@@ -85,7 +85,7 @@ namespace Dyninst {
         return *this;
 
       case Arch_aarch64: {
-        if(category == aarch64::GPR) {
+        if(isGeneralPurpose()) {
           auto const alias = getAlias(*this);
 
           // For GPRs, the most-basal registers are 64-bits
@@ -751,6 +751,8 @@ namespace Dyninst {
         return category == x86_64::GPR;
 
       case Arch_aarch64:
+        return category == aarch64::GPR;
+
       case Arch_ppc32:
       case Arch_ppc64:
       case Arch_cuda:
