@@ -862,6 +862,10 @@ namespace Dyninst {
                category == amdgpu_gfx90a::ACC_VGPR;
 
       case Arch_amdgpu_gfx940:
+        return category == amdgpu_gfx940::SGPR ||
+               category == amdgpu_gfx940::VGPR ||
+               category == amdgpu_gfx940::ACC_VGPR;
+
       case Arch_intelGen9:
       case Arch_aarch32:
       case Arch_cuda:
