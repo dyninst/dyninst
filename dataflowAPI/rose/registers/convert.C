@@ -51,7 +51,7 @@ namespace Dyninst { namespace DataflowAPI {
 
     switch(reg.getArchitecture()) {
       case Arch_amdgpu_gfx908: {
-        return AmdgpuGfx908Rose(category, baseID, subrange, num_bits);
+        return AmdgpuGfx908Rose(category, baseID, lengthID, num_bits);
       }
       case Arch_amdgpu_gfx90a: {
         return AmdgpuGfx90aRose(category, baseID, subrange, num_bits);
