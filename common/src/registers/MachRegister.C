@@ -62,7 +62,7 @@ namespace Dyninst {
         else
           return *this;
       case Arch_x86_64:
-        if(category == x86_64::GPR)
+        if(isGeneralPurpose())
           return MachRegister(reg & 0xffff00ff);
         else if(category == x86_64::FLAG)
           return x86_64::flags;
@@ -748,6 +748,8 @@ namespace Dyninst {
         return category == x86::GPR;
 
       case Arch_x86_64:
+        return category == x86_64::GPR;
+
       case Arch_aarch64:
       case Arch_ppc32:
       case Arch_ppc64:
