@@ -14,9 +14,6 @@ namespace {
   int32_t getID(Dyninst::MachRegister r) {
     return r.val() & 0x000000ff;
   }
-  int32_t getAlias(Dyninst::MachRegister r) {
-    return r.val() & 0x0000ff00;
-  }
 }
 
 namespace Dyninst { namespace registers {
