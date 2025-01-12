@@ -2324,14 +2324,14 @@ void StackAnalysis::handleDefault(Instruction insn, Block *block,
    std::set<Absloc> readLocs;
    for (auto iter = writtenRegs.begin(); iter != writtenRegs.end(); iter++) {
       const MachRegister &reg = (*iter)->getID();
-      if ((signed int) reg.regClass() == x86::GPR ||
+      if (reg.isGeneralPurpose() ||
          (signed int) reg.regClass() ==  x86_64::GPR) {
          writtenLocs.insert(Absloc(reg));
       }
    }
    for (auto iter = readRegs.begin(); iter != readRegs.end(); iter++) {
       const MachRegister &reg = (*iter)->getID();
-      if ((signed int) reg.regClass() == x86::GPR ||
+      if (reg.isGeneralPurpose() ||
          (signed int) reg.regClass() ==  x86_64::GPR) {
          readLocs.insert(Absloc(reg));
       }

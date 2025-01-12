@@ -1573,7 +1573,7 @@ namespace Dyninst { namespace InstructionAPI {
             unsigned int reg_id = (opcode_byte & 0x07);
             if(locs->rex_b) {
               // FP stack registers are not affected by the rex_b bit in AM_REG.
-              if(r.regClass() == (unsigned)x86::GPR) {
+              if(r.isGeneralPurpose()) {
                 int reg_op_type = op_d;
                 switch(size) {
                   case 1:
@@ -1598,7 +1598,7 @@ namespace Dyninst { namespace InstructionAPI {
             }
           }
 
-          if(sizePrefixPresent && (r.regClass() == (unsigned int)x86::GPR) && r.size() >= 4) {
+          if(sizePrefixPresent && r.isGeneralPurpose() && r.size() >= 4) {
             r = MachRegister((r.val() & ~x86::FULL) | x86::W_REG);
             assert(r.name() != "<INVALID_REG>");
           }
