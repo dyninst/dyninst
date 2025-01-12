@@ -93,7 +93,7 @@ namespace Dyninst { namespace DataflowAPI {
           // ROSE docs: only minor value allowed is 0
           return std::make_tuple(armv8_pstatefield_pstate, 0, 0, num_bits);
         }
-        return aarch64Rose(category, baseID, subrange, num_bits);
+        return aarch64Rose(category, baseID, lengthID, num_bits);
       }
       case Arch_aarch32:
       case Arch_cuda:
