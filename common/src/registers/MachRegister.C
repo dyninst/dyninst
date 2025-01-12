@@ -183,14 +183,22 @@ namespace Dyninst {
         return *this;
       }
 
-      case Arch_amdgpu_gfx90a:
-        switch(category) {
-          case amdgpu_gfx90a::SGPR: return MachRegister((reg & 0x000000ff) | amdgpu_gfx90a::s0);
-          case amdgpu_gfx90a::VGPR: return MachRegister((reg & 0x000000ff) | amdgpu_gfx90a::v0);
-          case amdgpu_gfx90a::HWR: return MachRegister(reg);
-
-          default: return *this;
+      case Arch_amdgpu_gfx90a: {
+        if(category == amdgpu_gfx90a::MISC) {
+          switch(val()) {
+            case amdgpu_gfx90a::ivcc_lo:
+            case amdgpu_gfx90a::ivcc_hi:
+              return amdgpu_gfx90a::vcc;
+            case amdgpu_gfx90a::iexec_lo:
+            case amdgpu_gfx90a::iexec_hi:
+              return amdgpu_gfx90a::exec;
+            case amdgpu_gfx90a::iflat_scratch_lo:
+            case amdgpu_gfx90a::iflat_scratch_hi:
+              return amdgpu_gfx90a::flat_scratch_all;
+          }
         }
+        return *this;
+      }
 
       case Arch_amdgpu_gfx940:
         switch(category) {
