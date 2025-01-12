@@ -814,6 +814,10 @@ namespace Dyninst {
                category == x86::KMASK;
 
       case Arch_x86_64:
+        return category == x86_64::CTL   ||
+               category == x86_64::FPCTL ||
+               category == x86_64::KMASK;
+
       case Arch_aarch64:
       case Arch_ppc32:
       case Arch_ppc64:
