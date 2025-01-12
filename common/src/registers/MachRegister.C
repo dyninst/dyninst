@@ -825,6 +825,10 @@ namespace Dyninst {
                (*this == x86_64::mxcsr);
 
       case Arch_aarch64:
+        return category == aarch64::SVE  ||
+               category == aarch64::SVE2 ||
+               category == aarch64::SME;
+
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
