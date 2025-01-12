@@ -33,7 +33,7 @@ add_executable(basereg_amdgpu_gfx908 amdgpu_gfx908.cpp)
 target_compile_options(basereg_amdgpu_gfx908 PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
 target_include_directories(basereg_amdgpu_gfx908 PRIVATE ${UNIT_TESTS_INCLUDES})
 target_link_libraries(basereg_amdgpu_gfx908 PRIVATE common)
-#add_test(NAME basereg_amdgpu_gfx908 COMMAND basereg_amdgpu_gfx908)
+add_test(NAME basereg_amdgpu_gfx908 COMMAND basereg_amdgpu_gfx908)
 
 add_executable(basereg_amdgpu_gfx90a amdgpu_gfx90a.cpp)
 target_compile_options(basereg_amdgpu_gfx90a PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
