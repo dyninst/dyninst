@@ -773,7 +773,17 @@ namespace Dyninst {
         return false;
       }
 
-      case Arch_amdgpu_gfx90a:
+      case Arch_amdgpu_gfx90a: {
+        switch(category) {
+          case amdgpu_gfx90a::SGPR:
+          case amdgpu_gfx90a::VGPR:
+          case amdgpu_gfx90a::ACC_VGPR:
+          case amdgpu_gfx90a::TTMP_SGPR:
+            return true;
+        }
+        return false;
+      }
+
       case Arch_amdgpu_gfx940:
       case Arch_intelGen9:
       case Arch_aarch32:
