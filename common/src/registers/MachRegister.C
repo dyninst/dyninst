@@ -90,10 +90,10 @@ namespace Dyninst {
 
       case Arch_aarch64: {
         if(isGeneralPurpose()) {
-          auto const alias = getAlias(*this);
+          auto const lengthID = getLengthID();
 
           // For GPRs, the most-basal registers are 64-bits
-          if(alias == aarch64::FULL)
+          if(lengthID == aarch64::FULL)
             return *this;
 
           // This is a w<N> register
@@ -104,20 +104,21 @@ namespace Dyninst {
         }
 
         if(isFloatingPoint()) {
-          auto const alias = getAlias(*this);
           if(isControlStatus()) {
             return *this;
           }
 
+          auto const lengthID = getLengthID();
+
           // The standard FPRs are aliases of the SVE registers. However, Dyninst
           // doesn't handle them, so we just consider the standard FPRs.
-          if(alias == aarch64::Q_REG) {
+          if(lengthID == aarch64::Q_REG) {
             return *this;
           }
 
           // This is an 8-bit b<N>, 16-bit h<N>, 32-bit s<N>, or 64-bit d<N> register
           auto const first_of_len = [&]() -> MachRegister {
-            switch(alias) {
+            switch(lengthID) {
               case aarch64::B_REG: return aarch64::b0;    // 8-bit
               case aarch64::W_REG: return aarch64::h0;    // 16-bit
               case aarch64::D_REG: return aarch64::s0;    // 32-bit
