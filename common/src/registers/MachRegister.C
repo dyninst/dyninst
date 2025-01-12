@@ -903,8 +903,26 @@ namespace Dyninst {
         return false;
       }
 
+      case Arch_amdgpu_gfx940: {
+        switch(val()) {
+        case amdgpu_gfx940::ivcc:
+        case amdgpu_gfx940::ivcc_lo:
+        case amdgpu_gfx940::ivcc_hi:
+        case amdgpu_gfx940::iexec:
+        case amdgpu_gfx940::iexec_lo:
+        case amdgpu_gfx940::iexec_hi:
+        case amdgpu_gfx940::isrc_scc:
+        case amdgpu_gfx940::isrc_vccz:
+        case amdgpu_gfx940::isrc_execz:
+        case amdgpu_gfx940::ixnack_mask_lo:
+        case amdgpu_gfx940::ixnack_mask_hi:
+        case amdgpu_gfx940::ihw_reg_status:
+            return true;
+        }
+        return false;
+      }
+
       case Arch_cuda:
-      case Arch_amdgpu_gfx940:
       case Arch_intelGen9:
       case Arch_aarch32:
       case Arch_none:
