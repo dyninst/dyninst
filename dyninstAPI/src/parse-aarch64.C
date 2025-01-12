@@ -137,7 +137,7 @@ void parse_func::calcUsedRegs()
             logLine("parse_func::calcUsedRegs: unknown written register\n");
             continue;
           }
-          if(r.regClass() == aarch64::GPR) {
+          if(r.isGeneralPurpose()) {
             usedRegisters->generalPurposeRegisters.insert(regID);
           }
           else if(r.regClass() == aarch64::FPR) {
