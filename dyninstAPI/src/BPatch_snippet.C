@@ -1015,11 +1015,16 @@ BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* 
                                                            void* offset,
                                                            BPatch_type* type)
 {
-
+#if defined(arch_amdgpu)
+  // Don't create a variable in the traditional sense.
+  // TODO: Refactor all code for variable allocations.
+  return new BPatch_variableExpr(in_addSpace, in_llAddSpace, NULL, type);
+#else
     int_variable* v = in_llAddSpace->getAOut()->getDefaultModule()->createVariable(name,
                                                                                    reinterpret_cast<Address>(offset),
                                                                                    type->getSize());
     return new BPatch_variableExpr(in_addSpace, in_llAddSpace, v, type);
+#endif
 }
 
 
