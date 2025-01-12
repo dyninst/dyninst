@@ -816,7 +816,14 @@ namespace Dyninst {
         return is_x87 || is_ctl || (is_vec && !is_msk);
       }
 
-      case Arch_x86_64:
+      case Arch_x86_64: {
+        auto const is_vec = isVector();
+        auto const is_x87 = (category == x86_64::X87);
+        auto const is_ctl = (category == x86_64::FPCTL);
+        auto const is_msk = (category == x86_64::KMASK);
+        return is_x87 || is_ctl || (is_vec && !is_msk);
+      }
+
       case Arch_aarch64:
       case Arch_ppc32:
       case Arch_ppc64:
