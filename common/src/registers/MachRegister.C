@@ -762,7 +762,17 @@ namespace Dyninst {
       case Arch_cuda:
         return category == cuda::GPR;
 
-      case Arch_amdgpu_gfx908:
+      case Arch_amdgpu_gfx908: {
+        switch(category) {
+          case amdgpu_gfx908::SGPR:
+          case amdgpu_gfx908::VGPR:
+          case amdgpu_gfx908::ACC_VGPR:
+          case amdgpu_gfx908::TTMP_SGPR:
+            return true;
+        }
+        return false;
+      }
+
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
       case Arch_intelGen9:
