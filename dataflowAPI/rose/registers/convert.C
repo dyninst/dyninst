@@ -92,9 +92,9 @@ namespace Dyninst { namespace DataflowAPI {
         if(reg.getBaseRegister() == Dyninst::aarch64::nzcv) {
           // Preserve the individual flags as separate registers
           auto const id = reg.val() & 0x000000ff;
-          return aarch64Rose(category, id, subrange, num_bits);
+          return aarch64Rose(category, id, lengthID, num_bits);
         }
-        return aarch64Rose(category, baseID, subrange, num_bits);
+        return aarch64Rose(category, baseID, lengthID, num_bits);
       }
       case Arch_aarch32:
       case Arch_cuda:
