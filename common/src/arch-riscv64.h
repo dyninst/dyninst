@@ -169,12 +169,14 @@ public:
 typedef union {
     unsigned char byte[4];
     unsigned int  raw;
+    unsigned char cbyte[2]; // Compressed Instructions
+    unsigned short craw;    // Compressed Instructions
 } instructUnion;
 
 typedef instructUnion codeBuf_t;
 typedef unsigned codeBufIndex_t;
 
-#define maxGPR 31           /* More space than is needed */
+#define maxGPR 32           /* More space than is needed */
 #define maxFPR 32           /* Save FPRs 0-13 */
 
 // Helps to mitigate host/target endian mismatches
@@ -183,28 +185,33 @@ unsigned int swapBytesIfNeeded(unsigned int i);
 class DYNINST_EXPORT instruction {
 	private:
     instructUnion insn_;
+    int insn_size;
 
 	public:
-    instruction() { insn_.raw = 0; }
+    instruction(): insn_(), insn_size(4) {}
     instruction(unsigned int raw) {
-        // Don't flip bits here.  Input is already in host byte order.
+        // Don't flip bits here
         insn_.raw = raw;
+        insn_size = 4;
+    }
+    instruction(unsigned short craw) {
+        // Don't flip bits here
+        insn_.craw = craw;
+        insn_size = 2;
     }
     // Pointer creation method
-    instruction(const void *ptr) {
+    instruction(const void *ptr, const int size) {
       insn_ = *((const instructUnion *)ptr);
-    }
-    instruction(const void *ptr, bool) {
-      insn_ = *((const instructUnion *)ptr);
+      insn_size = size;
     }
 
-    instruction(const instruction &insn) :        insn_(insn.insn_) {}
+    instruction(const instruction &insn) : insn_(insn.insn_), insn_size(insn.insn_size) {}
     instruction(instructUnion &insn) :
         insn_(insn) {}
 
     instruction *copy() const;
 
-    void clear() { insn_.raw = 0; }
+    void clear() { insn_ = instructUnion(); }
     void setInstruction(codeBuf_t *ptr, Dyninst::Address = 0);
     void setBits(unsigned int pos, unsigned int len, unsigned int value) {
         unsigned int mask;
@@ -218,7 +225,20 @@ class DYNINST_EXPORT instruction {
         insn_.raw = insn_.raw & mask;
         insn_.raw = insn_.raw | value;
     }
+    void setBits(unsigned int pos, unsigned int len, unsigned short value) {
+        unsigned short mask;
+
+        mask = ~((unsigned short)(~0) << len);
+        value = value & mask;
+
+        mask = ~(mask << pos);
+        value = value << pos;
+
+        insn_.craw = insn_.craw & mask;
+        insn_.craw = insn_.craw | value;
+    }
     unsigned int asInt() const { return insn_.raw; }
+    unsigned int asShort() const { return insn_.craw; }
     void setInstruction(unsigned char *ptr, Dyninst::Address = 0);
 
 
@@ -260,6 +280,9 @@ class DYNINST_EXPORT instruction {
     bool isInsnType(const unsigned mask, const unsigned match) const {
         return ((insn_.raw & mask) == match);
     }
+    bool isInsnType(const unsigned short mask, const unsigned short match) const {
+        return ((insn_.craw & mask) == match);
+    }
 
     Dyninst::Address getTarget(Dyninst::Address insnAddr) const;
 
@@ -274,7 +297,7 @@ class DYNINST_EXPORT instruction {
     bool isCall() const;
 
     static bool isAligned(Dyninst::Address addr) {
-        return !(addr & 0x3);
+        return !(addr & 0x1);
     }
 
     bool isBranchReg() const;
