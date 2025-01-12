@@ -784,7 +784,17 @@ namespace Dyninst {
         return false;
       }
 
-      case Arch_amdgpu_gfx940:
+      case Arch_amdgpu_gfx940: {
+        switch(category) {
+          case amdgpu_gfx940::SGPR:
+          case amdgpu_gfx940::VGPR:
+          case amdgpu_gfx940::ACC_VGPR:
+          case amdgpu_gfx940::TTMP_SGPR:
+            return true;
+        }
+        return false;
+      }
+
       case Arch_intelGen9:
       case Arch_aarch32:
       case Arch_none:
