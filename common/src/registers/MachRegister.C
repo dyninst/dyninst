@@ -835,8 +835,13 @@ namespace Dyninst {
         return is_vec || is_fpr || is_ctl || is_sts;
       }
 
-      case Arch_ppc32:
-      case Arch_ppc64:
+      case Arch_ppc32: {
+        auto const is_fpr = (category == ppc32::FPR);
+        auto const is_fsr = (category == ppc32::FSR);
+        auto const is_ctr = (getBaseRegister() == ppc32::fpscw);
+        return is_fpr || is_fsr || is_ctr;
+      }
+
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
