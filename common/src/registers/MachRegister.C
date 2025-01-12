@@ -139,14 +139,16 @@ namespace Dyninst {
         return *this;
       }
 
-      case Arch_amdgpu_gfx908:
+      case Arch_amdgpu_gfx908: {
         switch(category) {
-          case amdgpu_gfx908::SGPR: return MachRegister((reg & 0x000000ff) | amdgpu_gfx908::s0);
-          case amdgpu_gfx908::VGPR: return MachRegister((reg & 0x000000ff) | amdgpu_gfx908::v0);
-          case amdgpu_gfx908::HWR: return MachRegister(reg);
-
-          default: return *this;
+          case amdgpu_gfx908::SGPR: return amdgpu_gfx908::s0;
+          case amdgpu_gfx908::VGPR: return amdgpu_gfx908::v0;
+          case amdgpu_gfx908::ACC_VGPR: return amdgpu_gfx908::acc0;
+          case amdgpu_gfx908::TTMP_SGPR: return amdgpu_gfx908::ttmp0;
+          case amdgpu_gfx908::ATTR: return amdgpu_gfx908::attr0;
         }
+        return *this;
+      }
 
       case Arch_amdgpu_gfx90a:
         switch(category) {
