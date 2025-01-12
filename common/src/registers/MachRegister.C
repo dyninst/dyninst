@@ -99,8 +99,11 @@ namespace Dyninst {
           return MachRegister(r);
         }
 
-        if(category == aarch64::FPR) {
+        if(isFloatingPoint()) {
           auto const alias = getAlias(*this);
+          if(isControlStatus()) {
+            return *this;
+          }
 
           // The standard FPRs are aliases of the SVE registers. However, Dyninst
           // doesn't handle them, so we just consider the standard FPRs.
@@ -418,7 +421,7 @@ namespace Dyninst {
       }
       break;
       case Arch_aarch64: {
-        if((reg & 0x00ff0000) == aarch64::FPR) {
+        if(isFloatingPoint()) {
           switch(reg & 0x0000ff00) {
             case aarch64::B_REG: return 1;
             case aarch64::W_REG: return 2;
@@ -824,7 +827,14 @@ namespace Dyninst {
         return is_x87 || is_ctl || (is_vec && !is_msk);
       }
 
-      case Arch_aarch64:
+      case Arch_aarch64: {
+        auto const is_vec = isVector();
+        auto const is_fpr = (category == aarch64::FPR);
+        auto const is_ctl = (*this == aarch64::fpcr);
+        auto const is_sts = (*this == aarch64::fpsr);
+        return is_vec || is_fpr || is_ctl || is_sts;
+      }
+
       case Arch_ppc32:
       case Arch_ppc64:
       case Arch_amdgpu_gfx908:
