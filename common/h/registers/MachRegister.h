@@ -111,6 +111,12 @@ namespace Dyninst {
      */
     bool isControlStatus() const;
 
+    /* Checks if this register operates on floating-point data
+     *
+     *  NOTE: This includes any floating-point status/control registers.
+     */
+    bool isFloatingPoint() const;
+
     static MachRegister getArchRegFromAbstractReg(MachRegister abstract,
                                                   Dyninst::Architecture arch);
 
