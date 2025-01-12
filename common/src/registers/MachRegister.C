@@ -856,7 +856,17 @@ namespace Dyninst {
         return is_ctr || is_scw;
       }
 
-      case Arch_ppc64:
+      case Arch_ppc64: {
+        // Most of the current control-like registers aren't part
+        // of the ISA after v2.07 (Power8+). In particular, the FSR
+        // registers are associated with instructions like 'qvfxxmadds',
+        // but those are no longer in the ISA.
+        auto const is_ctr = (*this == ppc64::ctr);
+        auto const is_scw = (getBaseRegister() == ppc64::fpscw);
+        return is_ctr || is_scw;
+      }
+
+
       case Arch_cuda:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
