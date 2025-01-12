@@ -887,6 +887,8 @@ namespace Dyninst {
       }
 
       case Arch_ppc64:
+        return category == ppc64::VSR;
+
       case Arch_intelGen9:
       case Arch_aarch32:
       case Arch_none:
