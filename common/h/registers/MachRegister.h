@@ -64,6 +64,13 @@ namespace Dyninst {
     // Return the category of the MachRegister
     unsigned int regClass() const;
 
+    /* Returns the architecture-specific ID for the register's length
+     *
+     *  This is _not_ the number of bytes the register contains. For
+     *  that, use `size()`.
+     */
+    int32_t getLengthID() const;
+
     static MachRegister getPC(Dyninst::Architecture arch);
     static MachRegister getReturnAddress(Dyninst::Architecture arch);
     static MachRegister getFramePointer(Dyninst::Architecture arch);
