@@ -81,6 +81,14 @@ namespace Dyninst {
     bool isFlag() const;
     bool isZeroFlag() const;
 
+    /* Checks if this is a general-purpose register
+     *
+     *  General-purpose registers do not have a specific data
+     *  type or use. For example, they might be used for both
+     *  integer arithmetic and memory addressing.
+     */
+    bool isGeneralPurpose() const;
+
     static MachRegister getArchRegFromAbstractReg(MachRegister abstract,
                                                   Dyninst::Architecture arch);
 
