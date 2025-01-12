@@ -848,7 +848,25 @@ namespace Dyninst {
                category == amdgpu_gfx908::ACC_VGPR;
       }
 
-      case Arch_amdgpu_gfx90a:
+      case Arch_amdgpu_gfx90a: {
+        switch(val()) {
+        case amdgpu_gfx90a::ivcc:
+        case amdgpu_gfx90a::ivcc_lo:
+        case amdgpu_gfx90a::ivcc_hi:
+        case amdgpu_gfx90a::iexec:
+        case amdgpu_gfx90a::iexec_lo:
+        case amdgpu_gfx90a::iexec_hi:
+        case amdgpu_gfx90a::isrc_scc:
+        case amdgpu_gfx90a::isrc_vccz:
+        case amdgpu_gfx90a::isrc_execz:
+        case amdgpu_gfx90a::ixnack_mask_lo:
+        case amdgpu_gfx90a::ixnack_mask_hi:
+            return true;
+        }
+        return category == amdgpu_gfx90a::VGPR ||
+               category == amdgpu_gfx90a::ACC_VGPR;
+      }
+
       case Arch_amdgpu_gfx940:
       case Arch_ppc64:
       case Arch_intelGen9:
