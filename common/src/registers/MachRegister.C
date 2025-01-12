@@ -809,6 +809,13 @@ namespace Dyninst {
     auto const category = regClass();
     switch(getArchitecture()) {
       case Arch_x86:
+        return category == x86::MMX   ||
+               category == x86::XMM   ||
+               category == x86::YMM   ||
+               category == x86::ZMM   ||
+               category == x86::KMASK ||
+               (*this == x86::mxcsr);
+
       case Arch_x86_64:
       case Arch_aarch64:
       case Arch_amdgpu_gfx908:
