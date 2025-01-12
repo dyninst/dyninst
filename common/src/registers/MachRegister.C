@@ -817,6 +817,13 @@ namespace Dyninst {
                (*this == x86::mxcsr);
 
       case Arch_x86_64:
+        return category == x86_64::MMX ||
+               category == x86_64::XMM ||
+               category == x86_64::YMM ||
+               category == x86_64::ZMM ||
+               category == x86_64::KMASK ||
+               (*this == x86_64::mxcsr);
+
       case Arch_aarch64:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
