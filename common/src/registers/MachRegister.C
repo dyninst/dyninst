@@ -200,14 +200,22 @@ namespace Dyninst {
         return *this;
       }
 
-      case Arch_amdgpu_gfx940:
-        switch(category) {
-          case amdgpu_gfx940::SGPR: return MachRegister((reg & 0x000000ff) | amdgpu_gfx940::s0);
-          case amdgpu_gfx940::VGPR: return MachRegister((reg & 0x000000ff) | amdgpu_gfx940::v0);
-          case amdgpu_gfx940::HWR: return MachRegister(reg);
-
-          default: return *this;
+      case Arch_amdgpu_gfx940: {
+        if(category == amdgpu_gfx940::MISC) {
+          switch(val()) {
+            case amdgpu_gfx940::ivcc_lo:
+            case amdgpu_gfx940::ivcc_hi:
+              return amdgpu_gfx940::vcc;
+            case amdgpu_gfx940::iexec_lo:
+            case amdgpu_gfx940::iexec_hi:
+              return amdgpu_gfx940::exec;
+            case amdgpu_gfx940::iflat_scratch_lo:
+            case amdgpu_gfx940::iflat_scratch_hi:
+              return amdgpu_gfx940::flat_scratch_all;
+          }
         }
+        return *this;
+      }
 
       case Arch_ppc32: {
         auto ppc_id = [](MachRegister r) {
