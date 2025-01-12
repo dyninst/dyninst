@@ -866,9 +866,25 @@ namespace Dyninst {
         return is_ctr || is_scw;
       }
 
+      case Arch_amdgpu_gfx908: {
+        switch(val()) {
+        case amdgpu_gfx908::ivcc:
+        case amdgpu_gfx908::ivcc_lo:
+        case amdgpu_gfx908::ivcc_hi:
+        case amdgpu_gfx908::iexec:
+        case amdgpu_gfx908::iexec_lo:
+        case amdgpu_gfx908::iexec_hi:
+        case amdgpu_gfx908::isrc_scc:
+        case amdgpu_gfx908::isrc_vccz:
+        case amdgpu_gfx908::isrc_execz:
+        case amdgpu_gfx908::ixnack_mask_lo:
+        case amdgpu_gfx908::ixnack_mask_hi:
+            return true;
+        }
+        return false;
+      }
 
       case Arch_cuda:
-      case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
       case Arch_intelGen9:
