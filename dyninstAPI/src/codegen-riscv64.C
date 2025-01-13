@@ -446,6 +446,10 @@ void insnCodeGen::generateMove(codeGen &gen, int imm16, int shift, Dyninst::Regi
     insnCodeGen::generate(gen, insn);
 }
 
+void insnCodeGen::generateCMove(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
+
+}
+
 void insnCodeGen::generateMove(
         codeGen &gen, Dyninst::Register rd, Dyninst::Register rm, bool is64bit)
 {
@@ -868,5 +872,28 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
     }
 
     return true;
+}
+
+void insnCodeGen::generateAddi(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm) {
+
+}
+void insnCodeGen::generateSlli(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm) {
+
+}
+void insnCodeGen::generateOri(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
+
+}
+void insnCodeGen::generateLui(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
+
+}
+
+void generateCli(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
+    // If the value is 6 bits wide (-32 <= value < 32), we use the c.li instruction
+    if (imm >= -0x20 && imm < 0x20) {
+        return;
+    }
+}
+void generateMv(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
+    generateAddi(gen, rd, 0, imm);
 }
 
