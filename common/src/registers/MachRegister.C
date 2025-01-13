@@ -474,8 +474,14 @@ namespace Dyninst {
       case Arch_ppc32: return ppc32::r0;
       case Arch_ppc64: return ppc64::r0;
       case Arch_aarch64: return aarch64::x8;
-      case Arch_none: return InvalidReg;
-      default: assert(0); return InvalidReg;
+      case Arch_aarch32:
+      case Arch_none:
+      case Arch_cuda:
+      case Arch_amdgpu_gfx908:
+      case Arch_amdgpu_gfx90a:
+      case Arch_amdgpu_gfx940:
+      case Arch_intelGen9:
+        return InvalidReg;
     }
     return InvalidReg;
   }
