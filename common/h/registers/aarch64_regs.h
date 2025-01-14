@@ -183,16 +183,16 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(               fpcr,   10 |   FULL |       FLAG | Arch_aarch64, "aarch64");
 
   DEF_REGISTER(              pstate,   0 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
-  DEF_REGISTER(              allint,   1 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
-  DEF_REGISTER(           currentel,   2 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                 dit,   3 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                 pan,   4 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                  pm,   5 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
-  DEF_REGISTER(               spsel,   6 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                ssbs,   7 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                svcr,   8 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                 tco,   9 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                 uao,  10 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(              allint,   1 |    BIT |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(           currentel,   2 |    BIT |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 dit,   3 |    BIT |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 pan,   4 |    BIT |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  pm,   5 |    BIT |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(               spsel,   6 |    BIT |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                ssbs,   7 |    BIT |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                svcr,   8 |    BIT |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 tco,   9 |    BIT |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 uao,  10 |    BIT |     PSTATE | Arch_aarch64, "aarch64");
 
   DEF_REGISTER(                  pc,   2 |   FULL |        SPR | Arch_aarch64, "aarch64");
   DEF_REGISTER(                  sp,   3 |   FULL |        SPR | Arch_aarch64, "aarch64");
