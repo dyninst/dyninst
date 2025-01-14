@@ -60,7 +60,7 @@ namespace rose {
                  *
                  * @{ */
 
-                RegisterDescriptor REG_PC, REG_N, REG_Z, REG_C, REG_V, REG_SP;
+                RegisterDescriptor REG_PC, REG_N, REG_Z, REG_C, REG_V, REG_SP, REG_LR;
 
                 /** @}*/
 
