@@ -180,6 +180,7 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(                 a,     7 |    BIT |       FLAG | Arch_aarch64, "aarch64");
   DEF_REGISTER(                 i,     8 |    BIT |       FLAG | Arch_aarch64, "aarch64");
   DEF_REGISTER(                 f_,    9 |    BIT |       FLAG | Arch_aarch64, "aarch64");
+  DEF_REGISTER(               fpcr,   10 |   FULL |       FLAG | Arch_aarch64, "aarch64");
 
   DEF_REGISTER(              pstate,   0 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
   DEF_REGISTER(              allint,   1 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
@@ -193,7 +194,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(                 tco,   9 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
   DEF_REGISTER(                 uao,  10 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
 
-  DEF_REGISTER(                fpcr,   0 |  D_REG |        SPR | Arch_aarch64, "aarch64");
   DEF_REGISTER(                  pc,   2 |   FULL |        SPR | Arch_aarch64, "aarch64");
   DEF_REGISTER(                  sp,   3 |   FULL |        SPR | Arch_aarch64, "aarch64");
   DEF_REGISTER(                 wsp,   4 |  D_REG |        SPR | Arch_aarch64, "aarch64");

@@ -149,6 +149,7 @@ namespace Dyninst {
             case aarch64::ii:
             case aarch64::if_:
               return aarch64::daif;
+            // We don't track sub-fields for fpcr
           }
         }
 
