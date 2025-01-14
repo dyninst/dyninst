@@ -166,8 +166,34 @@ namespace Dyninst {
           default: return *this;
         }
 
-      case Arch_ppc32:
-      case Arch_ppc64:
+      case Arch_ppc32: {
+        auto ppc_id = [](MachRegister r) {
+          return r.val() & 0x0000FFFF;
+        };
+
+        auto const id = ppc_id(*this);
+
+        if(category == ppc32::FSR) {
+          // fsr<N> -> fpr<N>[0:31]
+          auto const base_id = ppc_id(ppc32::fsr0);
+          auto const offset = id - base_id;
+          auto const new_id = ppc_id(ppc32::fpr0) + offset;
+          auto const r = new_id | ppc32::FPR | Arch_ppc32;
+          return MachRegister(r);
+        }
+
+        // Condition register (cr<N>, cr<N><len>)
+        if((id >= 621 && id <= 628) || (id >= 700 && id <= 731)) {
+          return ppc32::cr;
+        }
+
+        // Floating-point Control/Status
+        if(id >= 602 && id <= 609) {
+          return ppc32::fpscw;
+        }
+        return *this;
+      }
+
       case Arch_aarch32:
       case Arch_intelGen9:
       case Arch_cuda:
