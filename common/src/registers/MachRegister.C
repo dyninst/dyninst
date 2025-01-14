@@ -152,6 +152,10 @@ namespace Dyninst {
           }
         }
 
+        if(category == aarch64::PSTATE) {
+          return aarch64::pstate;
+        }
+
         return *this;
       }
 

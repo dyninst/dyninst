@@ -181,6 +181,18 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(                 i,     8 |    BIT |       FLAG | Arch_aarch64, "aarch64");
   DEF_REGISTER(                 f_,    9 |    BIT |       FLAG | Arch_aarch64, "aarch64");
 
+  DEF_REGISTER(              pstate,   0 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(              allint,   1 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(           currentel,   2 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 dit,   3 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 pan,   4 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                  pm,   5 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(               spsel,   6 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                ssbs,   7 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                svcr,   8 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 tco,   9 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 uao,  10 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
+
   DEF_REGISTER(                fpcr,   0 |  D_REG |        SPR | Arch_aarch64, "aarch64");
   DEF_REGISTER(                  pc,   2 |   FULL |        SPR | Arch_aarch64, "aarch64");
   DEF_REGISTER(                  sp,   3 |   FULL |        SPR | Arch_aarch64, "aarch64");
@@ -573,7 +585,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(           afsr0_el3,   7 |   FULL |    IMPLDEF | Arch_aarch64, "aarch64");
   DEF_REGISTER(           afsr1_el3,   8 |   FULL |    IMPLDEF | Arch_aarch64, "aarch64");
   DEF_REGISTER(            aidr_el1,   9 |   FULL |    IMPLDEF | Arch_aarch64, "aarch64");
-  DEF_REGISTER(              allint,   0 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
   DEF_REGISTER(          amcfgr_el0,   0 |   FULL |        AMR | Arch_aarch64, "aarch64");
   DEF_REGISTER(        amcg1idr_el0,   1 |   FULL |        AMR | Arch_aarch64, "aarch64");
   DEF_REGISTER(          amcgcr_el0,   2 |   FULL |        AMR | Arch_aarch64, "aarch64");
@@ -807,8 +818,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(            cptr_el3,   0 |   FULL |        SEC | Arch_aarch64, "aarch64");
   DEF_REGISTER(          csselr_el1,   3 |   FULL |      SYSID | Arch_aarch64, "aarch64");
   DEF_REGISTER(             ctr_el0,   4 |   FULL |      SYSID | Arch_aarch64, "aarch64");
-  DEF_REGISTER(           currentel,   1 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                daif,   2 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
   DEF_REGISTER(   dbgauthstatus_el1,   0 |  D_REG |    DBGAUTH | Arch_aarch64, "aarch64");
   DEF_REGISTER(         dbgbcr0_el1,   0 |   FULL |     DBGBRK | Arch_aarch64, "aarch64");
   DEF_REGISTER(         dbgbcr1_el1,   1 |   FULL |     DBGBRK | Arch_aarch64, "aarch64");
@@ -883,7 +892,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(        dbgwvr15_el1,  31 |   FULL |       DBGW | Arch_aarch64, "aarch64");
   DEF_REGISTER(           dczid_el0,   5 |   FULL |      SYSID | Arch_aarch64, "aarch64");
   DEF_REGISTER(            disr_el1,   0 |   FULL |        RAS | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                 dit,   3 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
   DEF_REGISTER(             dlr_el0,   0 |   FULL |      DBGLR | Arch_aarch64, "aarch64");
   DEF_REGISTER(           dspsr_el0,   0 |   FULL |    DBGSPSR | Arch_aarch64, "aarch64");
   DEF_REGISTER(          erridr_el1,   1 |   FULL |        RAS | Arch_aarch64, "aarch64");
@@ -1049,11 +1057,9 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(          oseccr_el1,   3 |   FULL |      SYSOS | Arch_aarch64, "aarch64");
   DEF_REGISTER(           oslar_el1,   4 |  D_REG |      SYSOS | Arch_aarch64, "aarch64");
   DEF_REGISTER(           oslsr_el1,   5 |   FULL |      SYSOS | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                 pan,   4 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
   DEF_REGISTER(             par_el1,   0 |  Q_REG |       ADDR | Arch_aarch64, "aarch64");
   DEF_REGISTER(            pfar_el1,   0 |   FULL |    PHYSFAR | Arch_aarch64, "aarch64");
   DEF_REGISTER(            pfar_el2,   1 |   FULL |    PHYSFAR | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                  pm,   5 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
   DEF_REGISTER(          pmbidr_el1,   0 |   FULL |   STATPROF | Arch_aarch64, "aarch64");
   DEF_REGISTER(       pmblimitr_el1,   1 |   FULL |   STATPROF | Arch_aarch64, "aarch64");
   DEF_REGISTER(          pmbptr_el1,   2 |   FULL |   STATPROF | Arch_aarch64, "aarch64");
@@ -1300,10 +1306,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(          spmscr_el1, 200 |   FULL |        PMU | Arch_aarch64, "aarch64");
   DEF_REGISTER(         spmselr_el0, 201 |   FULL |        PMU | Arch_aarch64, "aarch64");
   DEF_REGISTER(           spmzr_el0, 202 |   FULL |        PMU | Arch_aarch64, "aarch64");
-  DEF_REGISTER(               spsel,   6 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                ssbs,   7 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                svcr,   8 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                 tco,   9 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
   DEF_REGISTER(         teecr32_el1,  22 |  D_REG |   SYSTIMER | Arch_aarch64, "aarch64");
   DEF_REGISTER(        teehbr32_el1,  23 |  D_REG |   SYSTIMER | Arch_aarch64, "aarch64");
   DEF_REGISTER(            tfsr_el1,  15 |   FULL |     SYSCTL | Arch_aarch64, "aarch64");
@@ -1543,7 +1545,6 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(         trcvmidcvr7, 224 |   FULL |      TRACE | Arch_aarch64, "aarch64");
   DEF_REGISTER(           trfcr_el1, 225 |   FULL |      TRACE | Arch_aarch64, "aarch64");
   DEF_REGISTER(           trfcr_el2, 226 |   FULL |      TRACE | Arch_aarch64, "aarch64");
-  DEF_REGISTER(                 uao,  10 |   FULL |     PSTATE | Arch_aarch64, "aarch64");
   DEF_REGISTER(            vbar_el1,   6 |   FULL |       EXCP | Arch_aarch64, "aarch64");
   DEF_REGISTER(            vbar_el2,  51 |   FULL |       VIRT | Arch_aarch64, "aarch64");
   DEF_REGISTER(            vbar_el3,   7 |   FULL | EXCP | SEC | Arch_aarch64, "aarch64");
