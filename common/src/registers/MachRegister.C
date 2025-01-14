@@ -136,6 +136,17 @@ namespace Dyninst {
             return aarch64::xzr;
           }
         }
+
+        if(category == aarch64::FLAG) {
+          switch(val()) {
+            case aarch64::in:
+            case aarch64::iz:
+            case aarch64::ic:
+            case aarch64::iv:
+              return aarch64::nzcv;
+          }
+        }
+
         return *this;
       }
 

@@ -184,6 +184,10 @@ def _read_dyninst_registers(file:str):
 def _process_regs(capstone, capstone_sysregs, spec_sysregs, aliases):
   regs = []
   
+  # TODO
+  #  Capstone doesn't encode the condition codes NZCV as registers. Instead, the condition
+  #  value is stored as cs_aarch64::cc. It can be converted into Dyninst registers using the
+  #  definitions in AArch64CC_CondCode and meanings in AArch64CC_getCondCodeName.
   for r in capstone:
     if r[0] in _capstone_by_prefix and r[1].isdigit():
       # <R><1-9> is a gpr, fpr, or SVE predicate
