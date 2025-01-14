@@ -175,6 +175,11 @@ namespace Dyninst { namespace aarch64 {
   DEF_REGISTER(                 z,     2 |    BIT |       FLAG | Arch_aarch64, "aarch64");
   DEF_REGISTER(                 c,     3 |    BIT |       FLAG | Arch_aarch64, "aarch64");
   DEF_REGISTER(                 v,     4 |    BIT |       FLAG | Arch_aarch64, "aarch64");
+  DEF_REGISTER(              daif,     5 |   FULL |       FLAG | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 d,     6 |    BIT |       FLAG | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 a,     7 |    BIT |       FLAG | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 i,     8 |    BIT |       FLAG | Arch_aarch64, "aarch64");
+  DEF_REGISTER(                 f_,    9 |    BIT |       FLAG | Arch_aarch64, "aarch64");
 
   DEF_REGISTER(                fpcr,   0 |  D_REG |        SPR | Arch_aarch64, "aarch64");
   DEF_REGISTER(                  pc,   2 |   FULL |        SPR | Arch_aarch64, "aarch64");

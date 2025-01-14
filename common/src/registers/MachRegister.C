@@ -144,6 +144,11 @@ namespace Dyninst {
             case aarch64::ic:
             case aarch64::iv:
               return aarch64::nzcv;
+            case aarch64::id:
+            case aarch64::ia:
+            case aarch64::ii:
+            case aarch64::if_:
+              return aarch64::daif;
           }
         }
 
