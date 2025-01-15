@@ -136,6 +136,27 @@ namespace Dyninst {
             return aarch64::xzr;
           }
         }
+
+        if(category == aarch64::FLAG) {
+          switch(val()) {
+            case aarch64::in:
+            case aarch64::iz:
+            case aarch64::ic:
+            case aarch64::iv:
+              return aarch64::nzcv;
+            case aarch64::id:
+            case aarch64::ia:
+            case aarch64::ii:
+            case aarch64::if_:
+              return aarch64::daif;
+            // We don't track sub-fields for fpcr
+          }
+        }
+
+        if(category == aarch64::PSTATE) {
+          return aarch64::pstate;
+        }
+
         return *this;
       }
 
