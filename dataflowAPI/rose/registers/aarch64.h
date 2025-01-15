@@ -130,10 +130,11 @@ namespace {
 
     ARMv8PstateFields pstate_field(int32_t baseID) {
       switch(baseID) {
-        case Dyninst::aarch64::N_FLAG: return armv8_pstatefield_n;
-        case Dyninst::aarch64::Z_FLAG: return armv8_pstatefield_z;
-        case Dyninst::aarch64::C_FLAG: return armv8_pstatefield_c;
-        case Dyninst::aarch64::V_FLAG: return armv8_pstatefield_v;
+        case 0: return armv8_pstatefield_pstate;
+        case 1: return armv8_pstatefield_n;
+        case 2: return armv8_pstatefield_z;
+        case 3: return armv8_pstatefield_c;
+        case 4: return armv8_pstatefield_v;
       }
       convert_printf("Unknown aarch64 pstate register '%d'\n", baseID);
       return static_cast<ARMv8PstateFields>(-1);
@@ -160,7 +161,7 @@ namespace {
 
       case Dyninst::aarch64::FLAG: {
         auto const c = armv8_regclass_pstate;
-        auto const n = 0;
+        auto const n = 0;  // ROSE docs: only minor value allowed is 0
         auto const p = aarch64_rose::pstate_field(baseID);
         return std::make_tuple(c, n, p, num_bits);
       }
