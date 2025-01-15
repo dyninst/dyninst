@@ -4901,6 +4901,19 @@ namespace rose {
                     }
                 };
 
+    struct IP_ret: P {
+      void p(D d, Ops ops, I insn, A args, B) {
+          BaseSemantics::SValue::Ptr targetVa;
+          if (args.empty()) {
+              targetVa = ops->readRegister(d->REG_LR);
+          } else {
+              assert_args(insn, args, 1);
+              targetVa = d->read(args[0]);
+          }
+          ops->writeRegister(d->REG_PC, targetVa);
+      }
+    };
+
             } // namespace
 
 /*******************************************************************************************************************************
@@ -5067,6 +5080,7 @@ namespace rose {
                 iproc_set(rose_aarch64_op_stlrh, new ARM64::IP_stlrh_execute);
                 iproc_set(rose_aarch64_op_udiv, new ARM64::IP_udiv_execute);
                 iproc_set(rose_aarch64_op_sdiv, new ARM64::IP_udiv_execute);
+                iproc_set(rose_aarch64_op_ret, new ARM64::IP_ret);
             }
 
             void
@@ -5078,6 +5092,7 @@ namespace rose {
                     REG_C = findRegister("c", 1);
                     REG_V = findRegister("v", 1);
                     REG_SP = findRegister("sp", 64);
+                    REG_LR = findRegister("lr", 64);
                 }
             }
 
