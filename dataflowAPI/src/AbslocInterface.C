@@ -174,14 +174,21 @@ void AbsRegionConverter::convertAll(const InstructionAPI::Instruction &insn,
 }
 
 AbsRegion AbsRegionConverter::convert(RegisterAST::Ptr reg) {
-  // We do not distinguish partial registers from full register.
-  // So, eax and rax are treated the same.
-  // But for flags, we want to separate CF, ZF, and so on
-  if (reg->getID().isFlag()) {
-    return AbsRegion(Absloc(reg->getID()));
-  } else {
+  /*
+   *  We do not distinguish partial registers from full register on x86, but
+   *  we _do_ on other platforms.
+   *
+   *  For example, eax and rax are treated the same, but the FLAG register
+   *  is separated into CF, ZF, etc.
+   */
+  auto const machReg = reg->getID();
+  auto const is_x86 = (machReg.getArchitecture() == Dyninst::Arch_x86);
+  auto const is_x86_64 = (machReg.getArchitecture() == Dyninst::Arch_x86_64);
+
+  if((is_x86 || is_x86_64) && !reg->getID().isFlag()) {
     return AbsRegion(Absloc(reg->getID().getBaseRegister()));
-  }		   
+  }
+  return AbsRegion(Absloc(reg->getID()));
 }
 
 AbsRegion AbsRegionConverter::convertPredicatedRegister(RegisterAST::Ptr r, RegisterAST::Ptr p, bool c) {
