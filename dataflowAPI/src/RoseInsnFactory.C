@@ -439,47 +439,39 @@ void RoseInsnAMDGPUFactory::massageOperands(const Instruction &insn,
     case amdgpu_gfx908_op_S_SWAPPC_B64:
     case amdgpu_gfx90a_op_S_SWAPPC_B64: 
     case amdgpu_gfx940_op_S_SWAPPC_B64: {
-        assert(operands.size() == 4);
-        operands.reserve(6);
-        operands.push_back(operands[2]);
-        operands.push_back(operands[3]);
-        MultiRegisterAST::Ptr src_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[1].getValue());
-        const std::vector<RegisterAST::Ptr> & src_reg_asts = src_regs->getRegs();
-        operands[3] = Operand(src_reg_asts[1]);
-        operands[2] = Operand(src_reg_asts[0]);
+        assert(operands.size() == 2);
+        operands.reserve(4);
         MultiRegisterAST::Ptr dst_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
         const std::vector<RegisterAST::Ptr> & dst_reg_asts = dst_regs->getRegs();
-        operands[1] = Operand(dst_reg_asts[1]);
+        MultiRegisterAST::Ptr src_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[1].getValue());
+        const std::vector<RegisterAST::Ptr> & src_reg_asts = src_regs->getRegs();
         operands[0] = Operand(dst_reg_asts[0]);
- 
-
+        operands[1] = Operand(dst_reg_asts[1]);
+        operands.push_back(Operand(src_reg_asts[0]));
+        operands.push_back(Operand(src_reg_asts[1]));
         break;
     }
     case amdgpu_gfx908_op_S_SETPC_B64:
     case amdgpu_gfx90a_op_S_SETPC_B64: 
     case amdgpu_gfx940_op_S_SETPC_B64: {
-        assert(operands.size() == 2);
-        operands.reserve(3);
-        operands.push_back(operands[1]);
+        assert(operands.size() == 1);
+        operands.reserve(2);
         MultiRegisterAST::Ptr src_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
         const std::vector<RegisterAST::Ptr> & src_reg_asts = src_regs->getRegs();
-        operands[1] = Operand(src_reg_asts[1]);
         operands[0] = Operand(src_reg_asts[0]);
-
+        operands.push_back(Operand(src_reg_asts[1]));
         break;
-
     }
     case amdgpu_gfx908_op_S_GETPC_B64:
     case amdgpu_gfx90a_op_S_GETPC_B64: 
     case amdgpu_gfx940_op_S_GETPC_B64: {
-        assert(operands.size() == 2);
+        assert(operands.size() == 1);
         operands.reserve(3);
-        operands.push_back(Operand(InstructionAPI::Immediate::makeImmediate(Result(u64,_addr+4)),false,false));
         MultiRegisterAST::Ptr dst_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
         const std::vector<RegisterAST::Ptr> & dst_reg_asts = dst_regs->getRegs();
-        operands[1] = Operand(dst_reg_asts[1]);
         operands[0] = Operand(dst_reg_asts[0]);
-
+        operands.push_back(Operand(dst_reg_asts[1]));
+        operands.push_back(Operand(InstructionAPI::Immediate::makeImmediate(Result(u64,_addr+4)),false,false));
         break;
     }
     default:
