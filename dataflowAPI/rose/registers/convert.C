@@ -63,6 +63,11 @@ namespace Dyninst { namespace DataflowAPI {
           // ROSE docs: only minor value allowed is 0
           return std::make_tuple(x86_regclass_ip, 0, x86_regpos_dword, num_bits);
         }
+        if(reg.isFlag()) {
+          // Split the flag register into its parts
+          auto const id = reg.val() & 0x000000ff;
+          return x86Rose(category, id, lengthID, num_bits);
+        }
         return x86Rose(category, baseID, lengthID, num_bits);
       }
       case Arch_x86_64: {
@@ -71,7 +76,12 @@ namespace Dyninst { namespace DataflowAPI {
           // ROSE docs: only minor value allowed is 0
           return std::make_tuple(x86_regclass_ip, 0, pos, num_bits);
         }
-        return x8664Rose(category, baseID, subrange, num_bits);
+        if(reg.isFlag()) {
+          // Split the flag register into its parts
+          auto const id = reg.val() & 0x000000ff;
+          return x8664Rose(category, id, lengthID, num_bits);
+        }
+        return x8664Rose(category, baseID, lengthID, num_bits);
       }
       case Arch_ppc32: {
         return ppc32Rose(category, reg, num_bits);
