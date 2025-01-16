@@ -130,7 +130,7 @@ namespace {
       case Dyninst::x86::SEG: {
         auto const c = x86_regclass_segment;
         auto const n = x86_rose::seg(baseID);
-        auto const pos = x86_regpos_all;  // ROSE docs: only value allowed
+        auto const pos = x86_regpos_dword;  // ROSE docs: only value allowed
         return std::make_tuple(c, static_cast<int>(n), pos, num_bits);
       }
 
