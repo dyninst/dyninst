@@ -42,77 +42,87 @@ namespace {
   namespace aarch64_rose {
 
     ARMv8GeneralPurposeRegister gpr(int32_t baseID) {
-      switch(baseID) {
-        case Dyninst::aarch64::ix0: return armv8_gpr_r0;
-        case Dyninst::aarch64::ix1: return armv8_gpr_r1;
-        case Dyninst::aarch64::ix2: return armv8_gpr_r2;
-        case Dyninst::aarch64::ix3: return armv8_gpr_r3;
-        case Dyninst::aarch64::ix4: return armv8_gpr_r4;
-        case Dyninst::aarch64::ix5: return armv8_gpr_r5;
-        case Dyninst::aarch64::ix6: return armv8_gpr_r6;
-        case Dyninst::aarch64::ix7: return armv8_gpr_r7;
-        case Dyninst::aarch64::ix8: return armv8_gpr_r8;
-        case Dyninst::aarch64::ix9: return armv8_gpr_r9;
-        case Dyninst::aarch64::ix10: return armv8_gpr_r10;
-        case Dyninst::aarch64::ix11: return armv8_gpr_r11;
-        case Dyninst::aarch64::ix12: return armv8_gpr_r12;
-        case Dyninst::aarch64::ix13: return armv8_gpr_r13;
-        case Dyninst::aarch64::ix14: return armv8_gpr_r14;
-        case Dyninst::aarch64::ix15: return armv8_gpr_r15;
-        case Dyninst::aarch64::ix16: return armv8_gpr_r16;
-        case Dyninst::aarch64::ix17: return armv8_gpr_r17;
-        case Dyninst::aarch64::ix18: return armv8_gpr_r18;
-        case Dyninst::aarch64::ix19: return armv8_gpr_r19;
-        case Dyninst::aarch64::ix20: return armv8_gpr_r20;
-        case Dyninst::aarch64::ix21: return armv8_gpr_r21;
-        case Dyninst::aarch64::ix22: return armv8_gpr_r22;
-        case Dyninst::aarch64::ix23: return armv8_gpr_r23;
-        case Dyninst::aarch64::ix24: return armv8_gpr_r24;
-        case Dyninst::aarch64::ix25: return armv8_gpr_r25;
-        case Dyninst::aarch64::ix26: return armv8_gpr_r26;
-        case Dyninst::aarch64::ix27: return armv8_gpr_r27;
-        case Dyninst::aarch64::ix28: return armv8_gpr_r28;
-        case Dyninst::aarch64::ix29: return armv8_gpr_r29;
-        case Dyninst::aarch64::ix30: return armv8_gpr_r30;
+      // The GPRs are in sequential order, so we can map
+      // directly to an offset relative to x0.
+      // NOTE: `baseID` is guaranteed to be from the
+      //       most-basal GPR at this point.
+      auto const id = baseID - (Dyninst::aarch64::x0 & 0x000000ff);
+      switch(id) {
+        case 0: return armv8_gpr_r0;
+        case 1: return armv8_gpr_r1;
+        case 2: return armv8_gpr_r2;
+        case 3: return armv8_gpr_r3;
+        case 4: return armv8_gpr_r4;
+        case 5: return armv8_gpr_r5;
+        case 6: return armv8_gpr_r6;
+        case 7: return armv8_gpr_r7;
+        case 8: return armv8_gpr_r8;
+        case 9: return armv8_gpr_r9;
+        case 10: return armv8_gpr_r10;
+        case 11: return armv8_gpr_r11;
+        case 12: return armv8_gpr_r12;
+        case 13: return armv8_gpr_r13;
+        case 14: return armv8_gpr_r14;
+        case 15: return armv8_gpr_r15;
+        case 16: return armv8_gpr_r16;
+        case 17: return armv8_gpr_r17;
+        case 18: return armv8_gpr_r18;
+        case 19: return armv8_gpr_r19;
+        case 20: return armv8_gpr_r20;
+        case 21: return armv8_gpr_r21;
+        case 22: return armv8_gpr_r22;
+        case 23: return armv8_gpr_r23;
+        case 24: return armv8_gpr_r24;
+        case 25: return armv8_gpr_r25;
+        case 26: return armv8_gpr_r26;
+        case 27: return armv8_gpr_r27;
+        case 28: return armv8_gpr_r28;
+        case 29: return armv8_gpr_r29;
+        case 30: return armv8_gpr_r30;
       }
       convert_printf("Unknown aarch64 GPR '%d'\n", baseID);
       return static_cast<ARMv8GeneralPurposeRegister>(-1);
     }
 
     ARMv8SimdFpRegister fpr(int32_t baseID) {
-      switch(baseID) {
-        case Dyninst::aarch64::iq0: return armv8_simdfpr_v0;
-        case Dyninst::aarch64::iq1: return armv8_simdfpr_v1;
-        case Dyninst::aarch64::iq2: return armv8_simdfpr_v2;
-        case Dyninst::aarch64::iq3: return armv8_simdfpr_v3;
-        case Dyninst::aarch64::iq4: return armv8_simdfpr_v4;
-        case Dyninst::aarch64::iq5: return armv8_simdfpr_v5;
-        case Dyninst::aarch64::iq6: return armv8_simdfpr_v6;
-        case Dyninst::aarch64::iq7: return armv8_simdfpr_v7;
-        case Dyninst::aarch64::iq8: return armv8_simdfpr_v8;
-        case Dyninst::aarch64::iq9: return armv8_simdfpr_v9;
-        case Dyninst::aarch64::iq10: return armv8_simdfpr_v10;
-        case Dyninst::aarch64::iq11: return armv8_simdfpr_v11;
-        case Dyninst::aarch64::iq12: return armv8_simdfpr_v12;
-        case Dyninst::aarch64::iq13: return armv8_simdfpr_v13;
-        case Dyninst::aarch64::iq14: return armv8_simdfpr_v14;
-        case Dyninst::aarch64::iq15: return armv8_simdfpr_v15;
-        case Dyninst::aarch64::iq16: return armv8_simdfpr_v16;
-        case Dyninst::aarch64::iq17: return armv8_simdfpr_v17;
-        case Dyninst::aarch64::iq18: return armv8_simdfpr_v18;
-        case Dyninst::aarch64::iq19: return armv8_simdfpr_v19;
-        case Dyninst::aarch64::iq20: return armv8_simdfpr_v20;
-        case Dyninst::aarch64::iq21: return armv8_simdfpr_v21;
-        case Dyninst::aarch64::iq22: return armv8_simdfpr_v22;
-        case Dyninst::aarch64::iq23: return armv8_simdfpr_v23;
-        case Dyninst::aarch64::iq24: return armv8_simdfpr_v24;
-        case Dyninst::aarch64::iq25: return armv8_simdfpr_v25;
-        case Dyninst::aarch64::iq26: return armv8_simdfpr_v26;
-        case Dyninst::aarch64::iq27: return armv8_simdfpr_v27;
-        case Dyninst::aarch64::iq28: return armv8_simdfpr_v28;
-        case Dyninst::aarch64::iq29: return armv8_simdfpr_v29;
-        case Dyninst::aarch64::iq30: return armv8_simdfpr_v30;
-        case Dyninst::aarch64::iq31: return armv8_simdfpr_v31;
+      // The FPRs are in sequential order, so we can map
+      // directly to an offset relative to q0.
+      // NOTE: `baseID` is guaranteed to be from the
+      //       most-basal FPR at this point.
+      auto const id = baseID - (Dyninst::aarch64::q0 & 0x000000ff);
+      switch(id) {
+        case 0: return armv8_simdfpr_v0;
+        case 1: return armv8_simdfpr_v1;
+        case 2: return armv8_simdfpr_v2;
+        case 3: return armv8_simdfpr_v3;
+        case 4: return armv8_simdfpr_v4;
+        case 5: return armv8_simdfpr_v5;
+        case 6: return armv8_simdfpr_v6;
+        case 7: return armv8_simdfpr_v7;
+        case 8: return armv8_simdfpr_v8;
+        case 9: return armv8_simdfpr_v9;
+        case 10: return armv8_simdfpr_v10;
+        case 11: return armv8_simdfpr_v11;
+        case 12: return armv8_simdfpr_v12;
+        case 13: return armv8_simdfpr_v13;
+        case 14: return armv8_simdfpr_v14;
+        case 15: return armv8_simdfpr_v15;
+        case 16: return armv8_simdfpr_v16;
+        case 17: return armv8_simdfpr_v17;
+        case 18: return armv8_simdfpr_v18;
+        case 19: return armv8_simdfpr_v19;
+        case 20: return armv8_simdfpr_v20;
+        case 21: return armv8_simdfpr_v21;
+        case 22: return armv8_simdfpr_v22;
+        case 23: return armv8_simdfpr_v23;
+        case 24: return armv8_simdfpr_v24;
+        case 25: return armv8_simdfpr_v25;
+        case 26: return armv8_simdfpr_v26;
+        case 27: return armv8_simdfpr_v27;
+        case 28: return armv8_simdfpr_v28;
+        case 29: return armv8_simdfpr_v29;
+        case 30: return armv8_simdfpr_v30;
+        case 31: return armv8_simdfpr_v31;
       }
       convert_printf("Unknown aarch64 FPR '%d'\n", baseID);
       return static_cast<ARMv8SimdFpRegister>(-1);
@@ -120,10 +130,11 @@ namespace {
 
     ARMv8PstateFields pstate_field(int32_t baseID) {
       switch(baseID) {
-        case Dyninst::aarch64::in: return armv8_pstatefield_n;
-        case Dyninst::aarch64::iz: return armv8_pstatefield_z;
-        case Dyninst::aarch64::ic: return armv8_pstatefield_c;
-        case Dyninst::aarch64::iv: return armv8_pstatefield_v;
+        case 0: return armv8_pstatefield_pstate;
+        case 1: return armv8_pstatefield_n;
+        case 2: return armv8_pstatefield_z;
+        case 3: return armv8_pstatefield_c;
+        case 4: return armv8_pstatefield_v;
       }
       convert_printf("Unknown aarch64 pstate register '%d'\n", baseID);
       return static_cast<ARMv8PstateFields>(-1);
@@ -150,7 +161,7 @@ namespace {
 
       case Dyninst::aarch64::FLAG: {
         auto const c = armv8_regclass_pstate;
-        auto const n = 0;
+        auto const n = 0;  // ROSE docs: only minor value allowed is 0
         auto const p = aarch64_rose::pstate_field(baseID);
         return std::make_tuple(c, n, p, num_bits);
       }
