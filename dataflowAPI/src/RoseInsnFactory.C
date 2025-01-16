@@ -432,9 +432,9 @@ void RoseInsnAMDGPUFactory::massageOperands(const Instruction &insn,
         std::vector<InstructionAPI::Operand> &operands) {
     switch (insn.getOperation().getID()) {
 
-    // SWAPPC has 4 operands, two multiregisters followed by two copies of PC
+    // SWAPPC has 2 operands, two multiregisters
     // Breaking up the multiregisters into individual registers 
-    // So we end up getting 6 operands
+    // So we end up getting 4 operands
     // Similar concept for SETPC and GETPC
     case amdgpu_gfx908_op_S_SWAPPC_B64:
     case amdgpu_gfx90a_op_S_SWAPPC_B64: 
