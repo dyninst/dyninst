@@ -45,10 +45,10 @@ namespace {
         case Dyninst::x86_64::XMMS:
         case Dyninst::x86_64::YMMS:
         case Dyninst::x86_64::ZMMS:
-        case Dyninst::x86_64::KMSKS:
         case Dyninst::x86_64::FPDBL:
         case Dyninst::x86_64::BIT: return x86_regpos_all; break;
         case Dyninst::x86_64::FULL:
+        case Dyninst::x86_64::KMSKS:
         case Dyninst::x86_64::MMS: return x86_regpos_qword; break;
         case Dyninst::x86_64::H_REG: return x86_regpos_high_byte; break;
         case Dyninst::x86_64::L_REG: return x86_regpos_low_byte; break;
