@@ -111,6 +111,7 @@ namespace NS_riscv64 {
 #define SPR_FPSR    (((Dyninst::riscv64::fpsr).val()) & 0x1F)
 
 #define INSN_SET(I, s, e, v)    ((I).setBits(s, e - s + 1, (v)))
+#define INSN_C_SET(I, s, e, v)    ((I).setCBits(s, e - s + 1, (v)))
 
 #define INSN_GET_ISCALL(I)          ((unsigned int) ((I).asInt() & 0x80000000))
 #define INSN_GET_CBRANCH_OFFSET(I)  ((unsigned int) (((I).asInt() >> 5) & 0x7ffff))
@@ -185,27 +186,27 @@ unsigned int swapBytesIfNeeded(unsigned int i);
 class DYNINST_EXPORT instruction {
 	private:
     instructUnion insn_;
-    int insn_size;
+    bool is_compressed;
 
 	public:
-    instruction(): insn_(), insn_size(4) {}
+    instruction(): insn_(), is_compressed(false) {}
     instruction(unsigned int raw) {
         // Don't flip bits here
         insn_.raw = raw;
-        insn_size = 4;
+        is_compressed = false;
     }
     instruction(unsigned short craw) {
         // Don't flip bits here
         insn_.craw = craw;
-        insn_size = 2;
+        is_compressed = true;
     }
     // Pointer creation method
-    instruction(const void *ptr, const int size) {
+    instruction(const void *ptr, const bool compressed) {
       insn_ = *((const instructUnion *)ptr);
-      insn_size = size;
+      is_compressed = compressed;
     }
 
-    instruction(const instruction &insn) : insn_(insn.insn_), insn_size(insn.insn_size) {}
+    instruction(const instruction &insn) : insn_(insn.insn_), is_compressed(insn.is_compressed) {}
     instruction(instructUnion &insn) :
         insn_(insn) {}
 
@@ -225,7 +226,7 @@ class DYNINST_EXPORT instruction {
         insn_.raw = insn_.raw & mask;
         insn_.raw = insn_.raw | value;
     }
-    void setBits(unsigned int pos, unsigned int len, unsigned short value) {
+    void setCBits(unsigned int pos, unsigned int len, unsigned short value) {
         unsigned short mask;
 
         mask = ~((unsigned short)(~0) << len);
@@ -237,6 +238,8 @@ class DYNINST_EXPORT instruction {
         insn_.craw = insn_.craw & mask;
         insn_.craw = insn_.craw | value;
     }
+
+    bool isCompressed() const { return is_compressed; }
     unsigned int asInt() const { return insn_.raw; }
     unsigned int asShort() const { return insn_.craw; }
     void setInstruction(unsigned char *ptr, Dyninst::Address = 0);
@@ -247,7 +250,7 @@ class DYNINST_EXPORT instruction {
     static instructUnion &swapBytes(instructUnion &i);
 
     // We need instruction::size() all _over_ the place.
-    static unsigned size() { return sizeof(instructUnion); }
+    unsigned size() { return is_compressed ? 2 : 4; }
 
     Dyninst::Address getBranchOffset() const;
     Dyninst::Address getBranchTargetAddress() const;
