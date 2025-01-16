@@ -52,3 +52,5 @@ option(DYNINST_FORCE_RUNPATH "Require the use of RUNPATH instead of compiler's d
 # all of their interfaces.
 option(DYNINST_EXPORT_ALL "Export all symbols" OFF)
 mark_as_advanced(DYNINST_EXPORT_ALL)
+
+option(DYNINST_ENABLE_TESTS "Build tests" OFF)

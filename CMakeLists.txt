@@ -63,4 +63,13 @@ add_subdirectory(dynC_API)
 add_subdirectory(parseThat)
 add_subdirectory(dyninstAPI_RT)
 
+if(DYNINST_ENABLE_TESTS)
+  if(NOT DYNINST_EXPORT_ALL)
+    message(FATAL_ERROR "DYNINST_EXPORT_ALL must be enabled for testing")
+  endif()
+  enable_testing()
+  message(STATUS "Enabling tests")
+  add_subdirectory(tests)
+endif()
+
 include(DyninstInstall)
