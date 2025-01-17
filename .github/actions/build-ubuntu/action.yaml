@@ -21,6 +21,9 @@ inputs:
     default: 2
   extra-libs:
     required: false
+  run-tests:
+    default: "false"
+    required: false
 
 runs:
   using: "composite"
@@ -91,5 +94,10 @@ runs:
 
         src="${{ inputs.src-dir }}"
         dest="${{ inputs.install-dir }}"
+
+        run_tests=
+        if test "${{ inputs.run-tests }}" = "true"; then
+          run_tests="-t"
+        fi
         
-        bash ${src}/docker/build.sh $src $dest -v -j ${{ inputs.num-jobs }} -c "${cmake_args}"
+        bash ${src}/docker/build.sh $src $dest ${run_tests} -v -j ${{ inputs.num-jobs }} -c "${cmake_args}"
