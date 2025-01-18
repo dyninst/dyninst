@@ -46,7 +46,7 @@ cmake -S ${src_dir} -B ${build_dir} -DCMAKE_INSTALL_PREFIX=${dest_dir} -DDYNINST
 cmake --build ${build_dir} --parallel ${num_jobs} ${verbose}
 
 if test "${run_tests}" = "Y"; then
-  ctest --test-dir ${build_dir} --output-on-error
+  ctest --test-dir ${build_dir} --output-on-failure
 fi
 
 cmake --install ${build_dir}
