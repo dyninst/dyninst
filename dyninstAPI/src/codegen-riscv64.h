@@ -117,73 +117,7 @@ public:
 
     static inline void loadImmIntoReg(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue value)
     {
-        // If the value is 6 bits wide (-32 <= value < 32), we use the c.li instruction
-        if (value >= -0x20 && value < 0x20) {
-            generateCli(gen, rd, value);
-            return;
-        }
-
-        // If the value is 12 bits wide (-2048 <= value < 2048), we use the addi instruction (mv pseudo instruction)
-        if (value >= -0x800 && value < 0x800) {
-            generateMv(gen, rd, value);
-            return;
-        }
-
-        // If the value is larger than 12 bits but less than 32 bits,
-        // the value must be loaded in two steps using lui and addi
-        if (value >= -0x80000000 && value < 0x80000000) {
-            Dyninst::RegValue lui_imm = (value & 0xfffff000) >> 12;
-            Dyninst::RegValue addi_imm = value & 0xfff;
-            // If the most significant bit of addi_imm is 1 (addi_imm is negative), we should add 1 to lui_imm
-            if (addi_imm & 0x800) {
-                lui_imm = (lui_imm + 1) & 0xfffff;
-            }
-            generateLui(gen, rd, lui_imm);
-            generateAddi(gen, rd, rd, addi_imm);
-            return;
-        }
-
-        // If the value is a 64 bit long, the sequence of instructions is more complicated
-        // See the following functions for more information on how GCC generates immediate integers
-        // https://gcc.gnu.org/git/?p=gcc.git;a=blob;f=gcc/config/riscv/riscv.cc;h=65e09842fde8b15b92a8399cea2493b5b239f93c;hb=HEAD#l828
-        // However, for the sake of simplicity, we will use a much simpler algorithm
-        // Assume that we want to perform li t0, 0xdeadbeefcafebabe
-        // We break the integer into the following
-        //   lui t0, 0xdeadc
-        //   addiw t0, t0, -0x111
-        //   slli t0, t0, 11
-        //   ori t0, t0, 0x657
-        //   slli t0, t0, 11
-        //   ori t0, t0, 0x7ae
-        //   slli t0, t0, 10
-        //   ori t0, t0, 0x2be
-        // There's of course room for improvement
-
-        // Top 32 bits
-        Dyninst::RegValue lui_imm = (value & 0xfffff00000000000) >> 44;
-        Dyninst::RegValue addi_imm = (value & 0xfff00000000) >> 32;
-        // If the most significant bit of addi_imm is 1 (addi_imm is negative), we should add 1 to lui_imm
-        if (addi_imm & 0x800) {
-            lui_imm = (lui_imm + 1) & 0xfffff;
-        }
-
-        // Bottom 32 bits
-        // We cannot use lui again because it will overwrite top 32 bits
-        // We instead use a series of slli and ori to construct the bottom 32 bits
-        Dyninst::RegValue ori_imm1 = (value & 0xffe00000) >> 21;
-        Dyninst::RegValue ori_imm2 = (value & 0x1ffc00) >> 10;
-        Dyninst::RegValue ori_imm3 = (value & 0x3ff);
-
-        generateLui(gen, rd, lui_imm);
-        generateAddi(gen, rd, rd, addi_imm);
-        generateSlli(gen, rd, rd, 11);
-        generateOri(gen, rd, rd, ori_imm1);
-        generateSlli(gen, rd, rd, 11);
-        generateOri(gen, rd, rd, ori_imm2);
-        generateSlli(gen, rd, rd, 10);
-        generateOri(gen, rd, rd, ori_imm3);
-
-        return;
+        generateLoadImm(gen, rd, 0, value);
     }
 
     static void saveRegister(codeGen &gen, Dyninst::Register r, int sp_offset, IndexMode im=Offset);
@@ -302,14 +236,17 @@ public:
                            NS_riscv64::instruction &insn,
                            codeGen &gen);
 
-    static void generateAddi(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
-    static void generateCli(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
-    static void generateSlli(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
-    static void generateOri(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
-    static void generateLui(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
-    static inline void generateMv(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
-        generateAddi(gen, rd, 0, imm);
+    static void generateAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
+    static void generateShiftImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
+    static void generateOrImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
+    static void generateLoadImm(codeGen &gen, DyninstRegister rd, Dyninst::Register rs1, Dyninst::RegValue imm);
+    static void generateLoadUpperImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
+    static inline void generateMove(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
+        generateAddImm(gen, rd, 0, imm);
     }
+
+    // Compressed Instructions
+    static void generateCLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
 };
 
 #endif
