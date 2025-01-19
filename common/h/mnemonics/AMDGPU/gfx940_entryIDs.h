@@ -1,3 +1,4 @@
+amdgpu_gfx940_op_INVALID,
 amdgpu_gfx940_op_BUFFER_ATOMIC_ADD,
 amdgpu_gfx940_op_BUFFER_ATOMIC_ADD_F32,
 amdgpu_gfx940_op_BUFFER_ATOMIC_ADD_F64,

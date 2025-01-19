@@ -37,6 +37,7 @@
 #include "common/src/arch-x86.h"
 #include "dyninstversion.h"
 #include "interrupts.h"
+#include "entryIDs.h"
 
 #include <algorithm>
 #include <boost/iterator/indirect_iterator.hpp>
@@ -79,13 +80,21 @@ namespace Dyninst { namespace InstructionAPI {
         case Arch_ppc64:
           return id != power_op_INVALID;
 
+        case Arch_cuda:
+          return id != cuda_op_INVALID;
+
+        case Arch_intelGen9:
+          return id != intel_gpu_op_INVALID;
+
+        case Arch_amdgpu_gfx908:
+          return id != amdgpu_gfx908_op_INVALID;
+        case Arch_amdgpu_gfx90a:
+          return id != amdgpu_gfx90a_op_INVALID;
+        case Arch_amdgpu_gfx940:
+          return id != amdgpu_gfx940_op_INVALID;
+
         case Arch_none:
         case Arch_aarch32:
-        case Arch_cuda:
-        case Arch_intelGen9:
-        case Arch_amdgpu_gfx908:
-        case Arch_amdgpu_gfx90a:
-        case Arch_amdgpu_gfx940:
           return false;
       }
       return false;
