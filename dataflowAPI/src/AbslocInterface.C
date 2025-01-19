@@ -98,7 +98,7 @@ void AbsRegionConverter::convertAll(const InstructionAPI::Instruction &insn,
             MachRegister machReg = (*i)->getID();
             std::vector<MachRegister> flagRegs = {aarch64::n, aarch64::z, aarch64::c, aarch64::v};
 
-            if(machReg == aarch64::pstate) {
+            if(machReg == aarch64::nzcv) {
                 for(std::vector<MachRegister>::iterator itr = flagRegs.begin(); itr != flagRegs.end(); itr++) {
                     used.push_back(AbsRegionConverter::convert(RegisterAST::Ptr(new RegisterAST(*itr))));
                 }
@@ -130,7 +130,7 @@ void AbsRegionConverter::convertAll(const InstructionAPI::Instruction &insn,
             MachRegister machReg = (*i)->getID();
             std::vector<MachRegister> flagRegs = {aarch64::n, aarch64::z, aarch64::c, aarch64::v};
 
-            if(machReg == aarch64::pstate) {
+            if(machReg == aarch64::nzcv) {
                 for(std::vector<MachRegister>::iterator itr = flagRegs.begin(); itr != flagRegs.end(); itr++) {
                     defined.push_back(AbsRegionConverter::convert(RegisterAST::Ptr(new RegisterAST(*itr))));
                 }

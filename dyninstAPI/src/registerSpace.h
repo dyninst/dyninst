@@ -492,7 +492,7 @@ class registerSpace {
                    fpr14, fpr15, fpr16, fpr17, fpr18, fpr19, fpr20,
                    fpr21, fpr22, fpr23, fpr24, fpr25, fpr26, fpr27,
                    fpr28, fpr29, fpr30, fpr31,
-                   lr, sp, pc, pstate, fpcr, fpsr, ignored } aarch64Registers_t;
+                   lr, sp, pc, nzcv, fpcr, fpsr, ignored } aarch64Registers_t;
     static unsigned GPR(Dyninst::Register x) { return x; }
     static unsigned FPR(Dyninst::Register x) { return x - fpr0; }
     int framePointer() { return r29; }

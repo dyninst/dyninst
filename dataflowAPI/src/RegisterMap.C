@@ -781,7 +781,8 @@ RegisterMap &machRegIndex_aarch64() {
      {aarch64::pc,  65},
      {aarch64::sp,  66},
      {aarch64::pstate, 67},
-     {aarch64::xzr, 68}};
+     {aarch64::xzr, 68},
+     {aarch64::nzcv, 69}};
    }
    return *mrmap;
 }
