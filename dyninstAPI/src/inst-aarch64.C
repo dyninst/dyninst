@@ -50,7 +50,7 @@
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/mapped_object.h"
-
+#include "RegisterConversion.h"
 #include "parseAPI/h/CFG.h"
 
 #include "emitter.h"
@@ -1094,17 +1094,12 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 					  Address addr,
 					  std::vector<AstNodePtr> &args)
 {
-    using namespace Dyninst::InstructionAPI;
-    Register branch_target = registerSpace::ignored;
+    namespace di = Dyninst::InstructionAPI;
 
-    for(Instruction::cftConstIter curCFT = i.cft_begin();
-            curCFT != i.cft_end(); ++curCFT)
-    {
-        auto target_reg = dynamic_cast<RegisterAST *>(curCFT->target.get());
-        if(!target_reg) return false;
-        branch_target = target_reg->getID() & 0x1f;
-        break;
-    }
+    auto cft = i.getControlFlowTarget();
+    auto target_reg = boost::dynamic_pointer_cast<di::RegisterAST>(cft);
+    if(!target_reg) return false;
+    auto branch_target = convertRegID(target_reg);
 
     if(branch_target == registerSpace::ignored) return false;
 
