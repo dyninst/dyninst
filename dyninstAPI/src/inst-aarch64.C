@@ -106,7 +106,7 @@ void registerSpace::initialize64() {
     //SPRs
     registers.push_back(new registerSlot(lr, "lr", true, registerSlot::liveAlways, registerSlot::SPR));
     registers.push_back(new registerSlot(sp, "sp", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(pstate, "nzcv", true, registerSlot::liveAlways, registerSlot::SPR));
+    registers.push_back(new registerSlot(nzcv, "nzcv", true, registerSlot::liveAlways, registerSlot::SPR));
     registers.push_back(new registerSlot(fpcr, "fpcr", true, registerSlot::liveAlways, registerSlot::SPR));
     registers.push_back(new registerSlot(fpsr, "fpsr", true, registerSlot::liveAlways, registerSlot::SPR));
 
@@ -217,7 +217,7 @@ unsigned EmitterAARCH64SaveRegs::saveSPRegisters(
     std::vector<registerSlot *> spRegs;
     map<registerSlot *, int> regMap;
 
-    registerSlot *regNzcv = (*theRegSpace)[registerSpace::pstate];
+    registerSlot *regNzcv = (*theRegSpace)[registerSpace::nzcv];
     assert(regNzcv);
     regMap[regNzcv] = SPR_NZCV;
     if(force_save || regNzcv->liveState == registerSlot::live)
@@ -326,7 +326,7 @@ unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(
     if(force_save || regFpcr->liveState == registerSlot::spilled)
         spRegs.push_back(regFpcr);
 
-    registerSlot *regNzcv = (*theRegSpace)[registerSpace::pstate];
+    registerSlot *regNzcv = (*theRegSpace)[registerSpace::nzcv];
     assert(regNzcv);
     regMap[regNzcv] = SPR_NZCV;
     if(force_save || regNzcv->liveState == registerSlot::spilled)
