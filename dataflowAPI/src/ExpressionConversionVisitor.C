@@ -316,7 +316,7 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
 SgAsmExpression *ExpressionConversionVisitor::makeSegRegExpr() {
     if (arch == Arch_x86 || arch == Arch_x86_64) {
         return new SgAsmx86RegisterReferenceExpression(x86_regclass_segment,
-                x86_segreg_none, x86_regpos_all);
+                x86_segreg_none, x86_regpos_dword);
     }
     else {
         return NULL;
