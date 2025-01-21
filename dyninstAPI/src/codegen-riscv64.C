@@ -348,6 +348,8 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
 }
 
 void insnCodeGen::generateAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm) {
+    assert(imm < 0x800 && imm >= -0x800);
+
     // If rd == rs == zero && imm == 0, the instruction is essentially NOP (c.nop)
     if (rd == 0 && rs == 0 && imm == 0) {
         generateNop(gen);
@@ -358,23 +360,27 @@ void insnCodeGen::generateAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::Re
     // we use the c.li instruction
     if (value >= -0x20 && value < 0x20 && rs == 0) {
         generateCLoadImm(gen, rd, imm);
+        return;
     }
 
     // If imm == 0, we use the c.mv instruction
     if (imm == 0) {
         generateCMove(gen, rd, rs);
+        return;
     }
 
     // If rs == sp && x8 <= rd < x16 && 0 <= imm < 1024 && imm % 4 == 0
     // we use c.addi4spn
     if (rs == 2 && rd >= 8 && rd < 16 && imm >= 0 && imm < 1024 && imm % 4 == 0) {
         generateCAddImmScale4SPn(gen, rd, imm >> 2);
+        return;
     }
 
     // If rd == rs == sp && -512 <= imm < 512 && imm % 16 == 0
     // we use c.addi16sp
     if (rs == 2 && rd >= 8 && rd < 16 && imm >= 0 && imm < 1024 && imm % 4 == 0) {
         generateCAddImmScale16SP(gen, imm >> 4);
+        return;
     }
 
     // If imm is 6 bits wide (-32 <= value < 32) and imm != 0 and rd != zero
@@ -383,6 +389,15 @@ void insnCodeGen::generateAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::Re
         generateCAddImm(gen, rd, value);
         return;
     }
+
+    // Otherwise, generate addi
+    INSN_SET(31, 20, imm); // imm[31:20]
+    INSN_SET(19, 15, rs);  // rs
+    INSN_SET(14, 12, 0x0); // funct3 = 000
+    INSN_SET(11, 7, rd);   // rd
+    INSN_SET(6, 0, 0x13);  // opcode = 0010011
+    insnCodeGen::generate(gen, insn);
+
 }
 void insnCodeGen::generateShiftImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm) {
 
@@ -396,6 +411,8 @@ void insnCodeGen::generateLoadUpperImm(codeGen &gen, Dyninst::Register rd, Dynin
         generateCLoadUpperImm(gen, rd, value);
         return;
     }
+
+    // Otherwise, generate lui
     INSN_SET(31, 12, imm); // imm[31:12]
     INSN_SET(11, 7, rd);   // rd
     INSN_SET(6, 2, 0xdu);  // opcode[6:2] = 01101
@@ -433,43 +450,97 @@ void insnCodeGen::generateLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::R
     // If imm is a 64 bit long, the sequence of instructions is more complicated
     // See the following functions for more information on how GCC generates immediate integers
     // https://gcc.gnu.org/git/?p=gcc.git;a=blob;f=gcc/config/riscv/riscv.cc;h=65e09842fde8b15b92a8399cea2493b5b239f93c;hb=HEAD#l828
-    // However, for the sake of simplicity, we will use a much simpler algorithm
+    // But for the sake of simplicity, we will use a much simpler algorithm
     // Assume that we want to perform li t0, 0xdeadbeefcafebabe
     // We break the integer into the following
     //   lui t0, 0xdeadc
-    //   addiw t0, t0, -0x111
-    //   slli t0, t0, 11
-    //   ori t0, t0, 0x657
-    //   slli t0, t0, 11
-    //   ori t0, t0, 0x7ae
-    //   slli t0, t0, 10
-    //   ori t0, t0, 0x2be
-    // There's of course room for improvement
+    //   addi t0, t0, -0x110
+    //   slli t0, t0, 12
+    //   addi t0, t0, -0x250
+    //   slli t0, t0, 12
+    //   addi t0, t0, -0x186
+    //   slli t0, t0, 8
+    //   addi t0, t0, 0xef
 
-    // Top 32 bits
+    // Decompose the immediate into various chunks
+    // For example, if imm == 0xdeadbeefcafebabe:
+    //  deadb     eef       caf       eba       be
+    // ------- --------- --------- --------- ---------
+    // lui_imm addi_imm0 addi_imm1 addi_imm2 addi_imm3
+
+    // Upper 32 bits
     Dyninst::RegValue lui_imm = (value & 0xfffff00000000000) >> 44;
-    Dyninst::RegValue addi_imm = (value & 0xfff00000000) >> 32;
-    // If the most significant bit of addi_imm is 1 (addi_imm is negative), we should add 1 to lui_imm
-    if (addi_imm & 0x800) {
-        lui_imm = (lui_imm + 1) & 0xfffff;
+    Dyninst::RegValue addi_imm0 = (value & 0xfff00000000) >> 32;
+    // Lower 32 bits
+    Dyninst::RegValue slli_imm1 = 12;
+    Dyninst::RegValue addi_imm1 = (value & 0xfff00000) >> 20;
+    Dyninst::RegValue slli_imm2 = 12;
+    Dyninst::RegValue addi_imm2 = (value & 0xfff00) >> 8;
+    Dyninst::RegValue slli_imm3 = 8;
+    Dyninst::RegValue addi_imm3 = (value & 0xff);
+
+    // For lui and addi, the immediates are signed extended, so we need to adjust the decomposed immediates
+    // according to their corresponding signedness.
+    int carry = 0;
+
+    // addi_imm2 does not need adjustment as addi_imm3 is 8 bits wide, meaning that it is 100% a positive value
+
+    // addi_imm1 requires adjustment if the most significant bit of addi_imm2 is 1
+    if (addi_imm2 & 0x800) {
+        addi_imm1 = (addi_imm1 + carry + 1) & 0xfff;
+        carry = (addi_imm1 == 0) ? 1 : 0;
     }
 
-    // Bottom 32 bits
-    // We cannot use lui again because it will overwrite top 32 bits
-    // We instead use a series of slli and ori to construct the bottom 32 bits
-    Dyninst::RegValue ori_imm1 = (value & 0xffe00000) >> 21;
-    Dyninst::RegValue ori_imm2 = (value & 0x1ffc00) >> 10;
-    Dyninst::RegValue ori_imm3 = (value & 0x3ff);
+    // addi_imm0 requires adjustment if the most significant bit of addi_imm1 is 1
+    if (addi_imm1 & 0x800) {
+        addi_imm0 = (addi_imm0 + carry + 1) & 0xfff;
+        carry = (addi_imm0 == 0) ? 1 : 0;
+    }
+
+    // lui_imm requires adjustment if the most significant bit of addi_imm0 is 1
+    // Here, we don't need to worry about the carry and overflow
+    // because the register will handle it for you naturally
+    if (addi_imm0 & 0x800) {
+        lui_imm = (lui_imm + carry + 1) & 0xfff;
+    }
+
+// deadb eef 000 000 be
+
+    addi_imm1 = 32
+    addi_imm2 = 0
+    addi_imm3 = 0
+
+    // Optimization: if any of the addi immediates are zero, we can omit them
+    // We should also adjust the number of bits to shift accordingly
+    if (addi_imm2 == 0) {
+        slli_imm2 += slli_imm3;
+        slli_imm3 = 0;
+    }
+    if (addi_imm1 == 0) {
+        slli_imm1 += slli_imm2;
+        slli_imm2 = 0;
+    }
 
     generateLoadUpperImm(gen, rd, lui_imm);
-    generateAddImm(gen, rd, rd, addi_imm);
-    generateShiftImm(gen, rd, rd, 11);
-    generateOrImm(gen, rd, rd, ori_imm1);
-    generateShiftImm(gen, rd, rd, 11);
-    generateOrImm(gen, rd, rd, ori_imm2);
-    generateShiftImm(gen, rd, rd, 10);
-    generateOrImm(gen, rd, rd, ori_imm3);
-    
+    if (addi_imm0 != 0) {
+        generateAddImm(gen, rd, rd, addi_imm0);
+    }
+    generateShiftImm(gen, rd, rd, slli_imm1);
+    if (addi_imm1 != 0) {
+        generateAddImm(gen, rd, rd, addi_imm1);
+    }
+    if (slli_imm2 != 0) {
+        generateShiftImm(gen, rd, rd, slli_imm2);
+    }
+    if (addi_imm2 != 0) {
+        generateAddImm(gen, rd, rd, addi_imm2);
+    }
+    if (slli_imm3 != 0) {
+        generateShiftImm(gen, rd, rd, slli_imm3);
+    }
+    if (addi_imm3 != 0) {
+        generateAddImm(gen, rd, rd, addi_imm3);
+    }
     return;
 }
 
