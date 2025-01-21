@@ -38,7 +38,7 @@ build_dir=$(mktemp -d "/tmp/XXXXXX")
 mkdir -p ${dest_dir}
 
 if test "${run_tests}" = "Y"; then
-  cmake_args="-DDYNINST_EXPORT_ALL=ON -DDYNINST_ENABLE_TESTS=ON ${cake_args}"
+  cmake_args="-DDYNINST_ENABLE_TESTS=ON ${cake_args}"
 fi
 
 cmake -S ${src_dir} -B ${build_dir} -DCMAKE_INSTALL_PREFIX=${dest_dir} -DDYNINST_WARNINGS_AS_ERRORS=ON ${cmake_args}
