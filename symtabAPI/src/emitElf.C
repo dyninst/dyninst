@@ -122,11 +122,15 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *ob
     // for the extra page for program headers.  This causes some significant
     // changes to the binary, and isn't well tested.
 
+
     library_adjust = 0;
+#if defined(arch_amdgpu)
+#else
     if (cannotRelocatePhdrs() && !movePHdrsFirst) {
         movePHdrsFirst = true;
         library_adjust = getpagesize();
     }
+#endif
 
     assert(obj && object && object == dynamic_cast<ObjectELF*>(obj->getObject()));
 }
