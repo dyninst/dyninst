@@ -233,10 +233,20 @@ void parse_func::calcUsedRegs()
         continue;
       }
       auto const category = r.regClass();
-      if(category == ppc32::GPR || category == ppc64::GPR) {
+
+      // ppc{32,64}::{G,F}PR can be the same value, so avoid a -Wlogical-op warning
+      auto const is_gpr32 = (category == ppc32::GPR);
+      auto const is_gpr64 = (category == ppc64::GPR);
+      auto const is_gpr = (is_gpr32 || is_gpr64);
+
+      auto const is_fpr32 = (category == ppc32::FPR);
+      auto const is_fpr64 = (category == ppc64::FPR);
+      auto const is_fpr = (is_fpr32 || is_fpr64);
+
+      if(is_gpr) {
         usedRegisters->generalPurposeRegisters.insert(regID);
       }
-      else if(category == ppc32::FPR || category == ppc64::FPR) {
+      else if(is_fpr) {
         usedRegisters->floatingPointRegisters.insert(regID);
       }
     }
