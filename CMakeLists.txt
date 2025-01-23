@@ -63,4 +63,10 @@ add_subdirectory(dynC_API)
 add_subdirectory(parseThat)
 add_subdirectory(dyninstAPI_RT)
 
+if(DYNINST_ENABLE_TESTS)
+  enable_testing()
+  message(STATUS "Enabling tests")
+  add_subdirectory(tests)
+endif()
+
 include(DyninstInstall)

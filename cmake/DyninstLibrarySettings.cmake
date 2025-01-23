@@ -15,7 +15,8 @@ endif()
 
 set(BUILD_SHARED_LIBS ON)
 
-if(DYNINST_EXPORT_ALL)
+# The unit tests need internal symbols
+if(DYNINST_ENABLE_TESTS)
   set(CMAKE_C_VISIBILITY_PRESET default)
   set(CMAKE_CXX_VISIBILITY_PRESET default)
   set(CMAKE_VISIBILITY_INLINES_HIDDEN OFF)
