@@ -1107,7 +1107,7 @@ void InstructionDecoder_aarch64::set32Mode()
   }
 
   Expression::Ptr InstructionDecoder_aarch64::makePstateExpr() {
-    MachRegister baseReg = aarch64::pstate;
+    MachRegister baseReg = aarch64::nzcv;
 
     return makeRegisterExpression(makeAarch64RegID(baseReg, 0));
   }

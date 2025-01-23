@@ -112,7 +112,7 @@ multimap<Register, MachRegister> regToMachReg64 = map_list_of
   (registerSpace::lr, 		aarch64::x30)
   (registerSpace::sp, 		aarch64::sp)
   (registerSpace::pc, 		aarch64::pc)
-  (registerSpace::pstate, 	aarch64::pstate)
+  (registerSpace::nzcv, 	aarch64::nzcv)
   (registerSpace::fpcr, 	aarch64::fpcr)
   (registerSpace::fpsr, 	aarch64::fpsr)
   ;
@@ -184,7 +184,7 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
   //(aarch64::x30,   registerSpace::lr)
   (aarch64::sp,   registerSpace::sp)
   (aarch64::pc,   registerSpace::pc)
-  (aarch64::pstate,   registerSpace::pstate)
+  (aarch64::nzcv,   registerSpace::nzcv)
   (aarch64::fpcr,   registerSpace::fpcr)
   (aarch64::fpsr,   registerSpace::fpsr)
   ;
@@ -289,7 +289,7 @@ MachRegister convertRegID(Register r, Dyninst::Architecture arch) {
             case registerSpace::lr: 	return aarch64::x30;
             case registerSpace::sp: 	return aarch64::sp;
             case registerSpace::pc: 	return aarch64::pc;
-            case registerSpace::pstate: 	return aarch64::pstate;
+            case registerSpace::nzcv: 	return aarch64::nzcv;
             default:
                 break;
         }
