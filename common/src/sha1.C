@@ -102,6 +102,7 @@ A million repetitions of "a"
 
 #include <stdio.h>
 #include <string.h>
+#include <cstdint>
 
 #include "dyntypes.h"
 #include "common/src/sha1.h"
