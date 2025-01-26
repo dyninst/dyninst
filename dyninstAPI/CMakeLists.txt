@@ -247,7 +247,7 @@ elseif(DYNINST_HOST_ARCH_AARCH64)
     src/stackwalk-aarch64.C
     src/Relocation/Widgets/CFWidget-aarch64.C
     src/Relocation/Widgets/PCWidget-aarch64.C)
-elseif(DYNINST_ARCH_riscv64)
+elseif(DYNINST_HOST_ARCH_RISCV64)
   list(
     APPEND
     _sources
