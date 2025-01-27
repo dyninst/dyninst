@@ -160,6 +160,7 @@ namespace {
       }
 
       case Dyninst::aarch64::FLAG: {
+        // ROSE supports NZCV, but not DAIF
         auto const c = armv8_regclass_pstate;
         auto const n = 0;  // ROSE docs: only minor value allowed is 0
         auto const p = aarch64_rose::pstate_field(baseID);
