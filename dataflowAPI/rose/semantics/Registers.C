@@ -250,8 +250,9 @@ RegisterDictionary::dictionary_amdgpu() {
         }
 
         regs->insert("pc_all", amdgpu_regclass_pc, 0, 0, 64);
-        regs->insert("src_scc", amdgpu_regclass_hwr, amdgpu_status, 0, 1);
-        regs->insert("vcc", amdgpu_regclass_misc, 2, 0, 64);
+        regs->insert("src_scc",amdgpu_regclass_misc,amdgpu_src_scc, 0, 1);
+        regs->insert("vcc_lo", amdgpu_regclass_misc, amdgpu_vcc_lo, 0, 32);
+        regs->insert("vcc_hi", amdgpu_regclass_misc, amdgpu_vcc_hi, 0, 32);
     });
     return regs;
 }
