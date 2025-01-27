@@ -280,8 +280,7 @@ void EmitterRISCV64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, in
 void pushStack(codeGen &gen)
 {
     if (gen.width() == 8)
-        insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Sub, 0,
-                                             TRAMP_FRAME_SIZE_64, REG_SP, REG_SP, true);
+        insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, TRAMP_FPR_OFFSET_64);
     else
         assert(0);  // 32 bit not implemented
 }
@@ -289,8 +288,7 @@ void pushStack(codeGen &gen)
 void popStack(codeGen &gen)
 {
     if (gen.width() == 8)
-        insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0,
-                                             TRAMP_FRAME_SIZE_64, REG_SP, REG_SP, true);
+        insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, TRAMP_FRAME_SIZE_64);
     else
         assert(0);  // 32 bit not implemented
 }
@@ -361,52 +359,52 @@ bool baseTramp::generateRestores(codeGen &gen, registerSpace *)
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
         codeGen &gen, bool /*noCost*/, registerSpace * /* rs */, bool s)
 {
-    switch (op) {
-        case plusOp:
-        case minusOp: {
-            Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-            insnCodeGen::generateAddSubShifted(gen,
-                                               op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub,
-                                               0, 0, rm, src1, dest, true);
-        } break;
-        case timesOp: {
-            Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-            insnCodeGen::generateMul(gen, rm, src1, dest, true);
-        } break;
-        case divOp: {
-            Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-            insnCodeGen::generateDiv(gen, rm, src1, dest, true, s);
-        } break;
-        case xorOp: {
-            Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-            insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Eor, 0, rm, 0, src1, dest, true);
-        } break;
-        case orOp: {
-            Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-            insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Or, 0, rm, 0, src1, dest, true);
-        } break;
-        case andOp: {
-            Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-            insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::And, 0, rm, 0, src1, dest, true);
-        } break;
-        case eqOp: {
-            Register scratch = gen.rs()->getScratchRegister(gen);
-            emitVload(loadConstOp, src2imm, 0, scratch, gen, true);
-            emitV(op, src1, scratch, dest, gen, true);
-        } break;
-        case neOp:
-        case lessOp:
-        case leOp:
-        case greaterOp:
-        case geOp:
-            // note that eqOp could be grouped here too.
-            // There's two ways to implement this.
-            gen.codeEmitter()->emitRelOpImm(op, dest, src1, src2imm, gen, s);
-            return;
-        default:
-            assert(0);  // not implemented or not valid
-            break;
-    }
+    //switch (op) {
+        //case plusOp:
+        //case minusOp: {
+            //Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
+            //insnCodeGen::generateAddSubShifted(gen,
+                                               //op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub,
+                                               //0, 0, rm, src1, dest, true);
+        //} break;
+        //case timesOp: {
+            //Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
+            //insnCodeGen::generateMul(gen, rm, src1, dest, true);
+        //} break;
+        //case divOp: {
+            //Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
+            //insnCodeGen::generateDiv(gen, rm, src1, dest, true, s);
+        //} break;
+        //case xorOp: {
+            //Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
+            //insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Eor, 0, rm, 0, src1, dest, true);
+        //} break;
+        //case orOp: {
+            //Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
+            //insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Or, 0, rm, 0, src1, dest, true);
+        //} break;
+        //case andOp: {
+            //Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
+            //insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::And, 0, rm, 0, src1, dest, true);
+        //} break;
+        //case eqOp: {
+            //Register scratch = gen.rs()->getScratchRegister(gen);
+            //emitVload(loadConstOp, src2imm, 0, scratch, gen, true);
+            //emitV(op, src1, scratch, dest, gen, true);
+        //} break;
+        //case neOp:
+        //case lessOp:
+        //case leOp:
+        //case greaterOp:
+        //case geOp:
+            //// note that eqOp could be grouped here too.
+            //// There's two ways to implement this.
+            //gen.codeEmitter()->emitRelOpImm(op, dest, src1, src2imm, gen, s);
+            //return;
+        //default:
+            //assert(0);  // not implemented or not valid
+            //break;
+    //}
 }
 
 void cleanUpAndExit(int status);

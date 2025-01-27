@@ -50,6 +50,8 @@
 
 #if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
 #define CODE_GEN_OFFSET_SIZE 1U
+#elif defined(DYNINST_HOST_ARCH_RISCV64)
+#define CODE_GEN_OFFSET_SIZE 2U
 #else
 #define CODE_GEN_OFFSET_SIZE (instruction::size())
 #endif
