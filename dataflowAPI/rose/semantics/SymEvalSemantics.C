@@ -246,6 +246,24 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateAST_amdgpu_gfx940::convert(const 
         }
         break;
     }
+    case amdgpu_regclass_misc : {
+        switch(minor){
+            case 2:
+                if (size == 32)
+                  mreg = Dyninst::amdgpu_gfx940::vcc_lo;
+                else
+                  mreg = Dyninst::amdgpu_gfx940::vcc;
+                found = true;
+                break;
+            case 3:
+                mreg = Dyninst::amdgpu_gfx940::vcc_hi;
+                found = true;
+                break;
+            default:
+                break;
+        }
+        break;
+    }
     default:
         ASSERT_always_forbid("Unexpected register major type.");
     }
