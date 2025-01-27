@@ -58,13 +58,20 @@ namespace NS_riscv64 {
 
 #define BREAK_POINT_INSN 0xd4200000
 
+#define ADDImmOp        0x0
+#define SLLImmOp        0x1
+#define XORImmOp        0x4
+#define SRLImmOp        0x5
+#define SRAImmOp        0x5
+#define ORImmOp         0x6
+#define ANDImmOp        0x7
+
 #define BOp             0x05
 #define BCondOp         0x2A
 #define BRegOp          0xD61F
 #define NOOP            0xD503201F
 
 #define ADDShiftOp      0x2B
-#define ADDImmOp        0x11
 #define SUBShiftOp      0x6B
 #define SUBImmOp        0x51
 #define MULOp           0xD8
@@ -258,11 +265,11 @@ class DYNINST_EXPORT instruction {
 
     // And tell us how much space we'll need...
     // Returns -1 if we can't do a branch due to architecture limitations
-    static unsigned jumpSize(Dyninst::Address from, Dyninst::Address to, unsigned addr_width);
-    static unsigned jumpSize(Dyninst::Address disp, unsigned addr_width);
-    static unsigned maxJumpSize(unsigned addr_width);
+    unsigned jumpSize(Dyninst::Address from, Dyninst::Address to, unsigned addr_width);
+    unsigned jumpSize(Dyninst::Address disp, unsigned addr_width);
+    unsigned maxJumpSize(unsigned addr_width);
 
-    static unsigned maxInterFunctionJumpSize(unsigned addr_width);
+    unsigned maxInterFunctionJumpSize(unsigned addr_width);
 
     // return the type of the instruction
     unsigned type() const;
@@ -289,7 +296,7 @@ class DYNINST_EXPORT instruction {
 
     Dyninst::Address getTarget(Dyninst::Address insnAddr) const;
 
-    unsigned spaceToRelocate() const;
+    unsigned spaceToRelocate();
     bool getUsedRegs(std::vector<int> &regs);
 
     bool valid() const {
