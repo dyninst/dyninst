@@ -56,8 +56,8 @@ namespace Dyninst { namespace riscv64 {
   //const int32_t VTR = 0x00040000; // vector registers
   const int32_t SPR = 0x00080000; // special purpose registers
 
-  const int32_t FEXT  = 0x00000000; // 32 bits (F registers)
-  const int32_t DEXT  = 0x00000100; // 64 bits (D registers)
+  const int32_t FEXT  = 0x00000100; // 32 bits (F registers)
+  const int32_t DEXT  = 0x00000200; // 64 bits (D registers)
 
   //          (      name,  ID | cat |         arch,      arch)
   DEF_REGISTER(        x0,   0 | GPR | Arch_riscv64, "riscv64");

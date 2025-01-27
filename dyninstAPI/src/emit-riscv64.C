@@ -82,8 +82,7 @@ codeBufIndex_t EmitterRISCV64::emitIf(
 
 void EmitterRISCV64::emitLoadConst(Register dest, Address imm, codeGen &gen)
 {
-    // TODO
-    // insnCodeGen::loadImmIntoReg(gen, dest, imm);
+    insnCodeGen::loadImmIntoReg(gen, dest, imm);
 }
 
 

@@ -172,7 +172,7 @@ const char *relocationEntry::relType2Str(unsigned long r, unsigned /*addressWidt
     return "?";
 }
 
-SYMTAB_EXPORT unsigned long relocationEntry::getGlobalRelType(unsigned addressWidth, Symbol *sym) {
+DYNINST_EXPORT unsigned long relocationEntry::getGlobalRelType(unsigned addressWidth, Symbol *sym) {
 // 	//#warning "This functions is not verified yet!"
 // 
 // 	//if it is 32bit arch?
