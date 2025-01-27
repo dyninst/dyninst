@@ -781,7 +781,7 @@ namespace Dyninst {
 
           case 100: return Dyninst::aarch64::sp;
           case 101: return Dyninst::aarch64::pc;
-          case 102: return Dyninst::aarch64::pstate;
+          case 102: return Dyninst::aarch64::nzcv;
           case 103: return Dyninst::aarch64::xzr;
           default: return InvalidReg;
         }
