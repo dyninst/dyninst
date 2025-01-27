@@ -41,17 +41,18 @@
 
 namespace {
 
-  std::tuple<AMDGPURegisterClass, AMDGPUHardwareRegister, int, int>
+  std::tuple<AMDGPURegisterClass, int, int, int>
   AmdgpuGfx908Rose(int32_t category, int32_t baseID, int32_t, int32_t size) {
-    auto const reg_idx = static_cast<AMDGPUHardwareRegister>(baseID);
     constexpr auto pos = 0;
 
     switch(category) {
       case Dyninst::amdgpu_gfx908::SGPR: {
+        auto const reg_idx = static_cast<AMDGPUScalarGeneralPurposeRegister>(baseID);
         return std::make_tuple(amdgpu_regclass_sgpr, reg_idx, pos, size);
       }
 
       case Dyninst::amdgpu_gfx908::VGPR: {
+        auto const reg_idx = static_cast<AMDGPUVectorGeneralPurposeRegister>(baseID);
         return std::make_tuple(amdgpu_regclass_vgpr, reg_idx, pos, size);
       }
 
@@ -59,25 +60,28 @@ namespace {
         return std::make_tuple(amdgpu_regclass_pc, amdgpu_pc, pos, size);
       }
 
-      case Dyninst::amdgpu_gfx908::HWR: {
-        return std::make_tuple(amdgpu_regclass_pc, amdgpu_pc, pos, size);
+      case Dyninst::amdgpu_gfx908::MISC: {
+        auto const reg_idx = static_cast<AMDGPUMiscRegister>(baseID);
+        return std::make_tuple(amdgpu_regclass_misc, reg_idx, pos, size);
       }
+
     }
     convert_printf("Unknown AmdgpuGfx908 category '%d'\n", category);
-    return std::make_tuple(amdgpu_regclass_unknown, reg_idx, pos, 0);
+    return std::make_tuple(amdgpu_regclass_unknown, baseID, pos, 0);
   }
 
-  std::tuple<AMDGPURegisterClass, AMDGPUHardwareRegister, int, int>
+  std::tuple<AMDGPURegisterClass, int, int, int>
   AmdgpuGfx90aRose(int32_t category, int32_t baseID, int32_t, int32_t size) {
-    auto const reg_idx = static_cast<AMDGPUHardwareRegister>(baseID);
     constexpr auto pos = 0;
 
     switch(category) {
       case Dyninst::amdgpu_gfx90a::SGPR: {
+        auto const reg_idx = static_cast<AMDGPUScalarGeneralPurposeRegister>(baseID);
         return std::make_tuple(amdgpu_regclass_sgpr, reg_idx, pos, size);
       }
 
       case Dyninst::amdgpu_gfx90a::VGPR: {
+        auto const reg_idx = static_cast<AMDGPUVectorGeneralPurposeRegister>(baseID);
         return std::make_tuple(amdgpu_regclass_vgpr, reg_idx, pos, size);
       }
 
@@ -85,30 +89,28 @@ namespace {
         return std::make_tuple(amdgpu_regclass_pc, amdgpu_pc, pos, size);
       }
 
-      case Dyninst::amdgpu_gfx90a::HWR: {
-        return std::make_tuple(amdgpu_regclass_hwr, amdgpu_mode, pos, size);
-      }
-
       case Dyninst::amdgpu_gfx90a::MISC: {
+        auto const reg_idx = static_cast<AMDGPUMiscRegister>(baseID);
         return std::make_tuple(amdgpu_regclass_misc, reg_idx, pos, size);
       }
     }
     convert_printf("Unknown AmdgpuGfx90a category '%d'\n", category);
-    return std::make_tuple(amdgpu_regclass_unknown, reg_idx, pos, 0);
+    return std::make_tuple(amdgpu_regclass_unknown, baseID, pos, 0);
   }
 
-  std::tuple<AMDGPURegisterClass, AMDGPUHardwareRegister, int, int>
+  std::tuple<AMDGPURegisterClass, int, int, int>
   AmdgpuGfx940Rose(int32_t category, int32_t baseID, int32_t, int32_t size) {
-    auto const reg_idx = static_cast<AMDGPUHardwareRegister>(baseID);
     constexpr auto pos = 0;
 
     switch(category) {
       case Dyninst::amdgpu_gfx940::SGPR: {
+        auto const reg_idx = static_cast<AMDGPUScalarGeneralPurposeRegister>(baseID);
         return std::make_tuple(amdgpu_regclass_sgpr, reg_idx, pos, size);
         break;
       }
 
       case Dyninst::amdgpu_gfx940::VGPR: {
+        auto const reg_idx = static_cast<AMDGPUVectorGeneralPurposeRegister>(baseID);
         return std::make_tuple(amdgpu_regclass_vgpr, reg_idx, pos, size);
       }
 
@@ -116,16 +118,13 @@ namespace {
         return std::make_tuple(amdgpu_regclass_pc, amdgpu_pc, pos, size);
       }
 
-      case Dyninst::amdgpu_gfx940::HWR: {
-        return std::make_tuple(amdgpu_regclass_hwr, amdgpu_mode, pos, size);
-      }
-
       case Dyninst::amdgpu_gfx940::MISC: {
+        auto const reg_idx = static_cast<AMDGPUMiscRegister>(baseID);
         return std::make_tuple(amdgpu_regclass_misc, reg_idx, pos, size);
       }
     }
     convert_printf("Unknown AmdgpuGfx940 category '%d'\n", category);
-    return std::make_tuple(amdgpu_regclass_unknown, reg_idx, pos, 0);
+    return std::make_tuple(amdgpu_regclass_unknown, baseID, pos, 0);
   }
 
 }

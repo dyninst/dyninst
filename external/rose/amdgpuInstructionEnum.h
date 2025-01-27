@@ -8,19 +8,46 @@ enum AMDGPURegisterClass{
 	amdgpu_regclass_ttmp_sgpr,
 	amdgpu_regclass_sgpr,
 	amdgpu_regclass_vgpr,
+    amdgpu_regclass_waitcnt,
+    amdgpu_regclass_dsmem,
+};
+enum AMDGPUPCRegister{
+  amdgpu_pc,
+};
+enum AMDGPUWaitcntRegister{
+  amdgpu_vmcnt,
+  amdgpu_expcnt,
+  amdgpu_lgkmcnt,
+};
+enum AMDGPUMiscRegister{
+    amdgpu_src_scc,
+    amdgpu_src_vccz,
+    amdgpu_vcc_lo,
+    amdgpu_vcc_hi,
+    amdgpu_src_execz,
+    amdgpu_exec_lo,
+    amdgpu_exec_hi,
+    amdgpu_flat_scratch_lo,
+    amdgpu_flat_scratch_hi,
+    amdgpu_m0,
+    amdgpu_src_literal,
+    amdgpu_src_pops_exiting_wave_id,
+    amdgpu_src_private_base,
+    amdgpu_src_private_limit,
+    amdgpu_src_shared_base,
+    amdgpu_src_shared_limit,
+    amdgpu_xnack_mask_lo,
+    amdgpu_xnack_mask_hi,
+    amdgpu_src_lds_direct,
+    amdgpu_dsmem,
 };
 enum AMDGPUHardwareRegister{
 	amdgpu_address_mode_32,
-	amdgpu_exec,
-	amdgpu_expcnt,
 	amdgpu_export_icount,
-	amdgpu_flat_scratch,
 	amdgpu_gpr_alloc,
 	amdgpu_ib_sts,
 	amdgpu_lds_alloc,
 	amdgpu_lds_gds_constant_message_count,
-	amdgpu_lgkmcnt,
-	amdgpu_m0,
 	amdgpu_mode,
 	amdgpu_pops_exiting_wave_id,
 	amdgpu_private_base,
@@ -33,11 +60,7 @@ enum AMDGPUHardwareRegister{
 	amdgpu_tma,
 	amdgpu_trap_base_address,
 	amdgpu_trap_memory_address,
-	amdgpu_vcc,
 	amdgpu_vectory_memory_icount,
-	amdgpu_vmcnt,
-	amdgpu_xnack_mask,
-	amdgpu_pc
 };
 enum AMDGPUScalarGeneralPurposeRegister{
 	amdgpu_sgpr0,
