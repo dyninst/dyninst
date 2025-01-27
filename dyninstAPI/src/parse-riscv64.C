@@ -132,8 +132,8 @@ void parse_func::calcUsedRegs()
             if ((r & riscv64::GPR) && (r >= riscv64::x0 && r <= riscv64::x31)) {
                 usedRegisters->generalPurposeRegisters.insert(r & 0xFF);
             } else if (((r & riscv64::FPR) && ((r >= riscv64::f0_32 && r <= riscv64::f31_32)
-            || (r >= riscv64::f0_64 && r <= riscv64::f31_64) <= riscv64::s31))) {
-                usedRegisters->floatingPointRegisters.insert(r & 0xFFFF);
+            || (r >= riscv64::f0_64 && r <= riscv64::f31_64) || (r >= riscv64::f0 && r <= riscv64::f31)))) {
+                usedRegisters->floatingPointRegisters.insert(r & 0xFF);
             }
         }
     }
