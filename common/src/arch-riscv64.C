@@ -158,7 +158,7 @@ unsigned instruction::maxInterFunctionJumpSize(unsigned addr_width) {
       return 4*instruction::size();
 }
 
-unsigned instruction::spaceToRelocate() const {
+unsigned instruction::spaceToRelocate() {
 		assert(0);
     return instruction::size();
 }
