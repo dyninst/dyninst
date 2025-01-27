@@ -341,7 +341,8 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
 	#define UC_PC(x) x->uc_mcontext.pc
 #elif defined(DYNINST_HOST_ARCH_RISCV64)
     // PC is typically at index 0 in the general-purpose registers array
-    #define UC_PC(x) x->uc_mcontext.__gregs[0]
+    // FIXME gregs or __gregs?
+    #define UC_PC(x) x->uc_mcontext.gregs[0]
 #endif // UC_PC
 
 extern volatile unsigned long dyninstTrapTableUsed;
