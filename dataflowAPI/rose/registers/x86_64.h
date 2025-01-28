@@ -42,18 +42,18 @@ namespace {
 
     X86PositionInRegister pos(int32_t subrange) {
       switch(subrange) {
-        case Dyninst::x86_64::FULL:
         case Dyninst::x86_64::XMMS:
-        case Dyninst::x86_64::MMS:
-        case Dyninst::x86_64::KMSKS:
         case Dyninst::x86_64::YMMS:
         case Dyninst::x86_64::ZMMS:
-        case Dyninst::x86_64::FPDBL: return x86_regpos_qword; break;
+        case Dyninst::x86_64::FPDBL:
+        case Dyninst::x86_64::BIT: return x86_regpos_all; break;
+        case Dyninst::x86_64::FULL:
+        case Dyninst::x86_64::KMSKS:
+        case Dyninst::x86_64::MMS: return x86_regpos_qword; break;
         case Dyninst::x86_64::H_REG: return x86_regpos_high_byte; break;
         case Dyninst::x86_64::L_REG: return x86_regpos_low_byte; break;
         case Dyninst::x86_64::W_REG: return x86_regpos_word; break;
         case Dyninst::x86_64::D_REG: return x86_regpos_dword; break;
-        case Dyninst::x86_64::BIT: return x86_regpos_all; break;
       }
       convert_printf("Unknown x86_64 subrange value '%d'\n", subrange);
       return x86_regpos_unknown;
@@ -139,7 +139,8 @@ namespace {
       case Dyninst::x86_64::SEG: {
         auto const c = x86_regclass_segment;
         auto const n = x86_64_rose::seg(baseID);
-        return std::make_tuple(c, static_cast<int>(n), p, num_bits);
+        auto const pos = x86_regpos_dword;  // ROSE docs: only value allowed
+        return std::make_tuple(c, static_cast<int>(n), pos, num_bits);
       }
 
       case Dyninst::x86_64::FLAG: {
@@ -165,8 +166,8 @@ namespace {
         return std::make_tuple(x86_regclass_mm, baseID, p, num_bits);
 
       case Dyninst::x86_64::X87: {
-        auto const pos = static_cast<X86PositionInRegister>(0);  // ROSE docs: only value allowed is 0
-        return std::make_tuple(x86_regclass_st_top, baseID, pos, num_bits);
+        auto const pos = x86_regpos_all;  // ROSE docs: only value allowed
+        return std::make_tuple(x86_regclass_st, baseID, pos, num_bits);
       }
 
       case Dyninst::x86_64::CTL:
@@ -179,12 +180,6 @@ namespace {
       case Dyninst::x86_64::TST:
         return std::make_tuple(x86_regclass_unknown, -1, p, 0);
 
-      case 0: {
-        switch(baseID) {
-          case 0x10:
-            return std::make_tuple(x86_regclass_ip, 0, p, num_bits);
-        }
-      }
     }
     convert_printf("Unknown x86_64 category '%d'\n", category);
     return std::make_tuple(x86_regclass_unknown, -1, p, 0);
