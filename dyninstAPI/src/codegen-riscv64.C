@@ -91,12 +91,65 @@ void insnCodeGen::generateTrap(codeGen &gen) {
     generate(gen,insn);
 }
 
-void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link) {
-    // TODO
+void insnCodeGen::generateJump(codeGen &gen, Dyninst::RegValue offset) {
+    assert(offset & 1 == 0);
+    assert(offset >= -0x100000 && offset < 0x100000);
+
+    if (offset >= -4096 && offset < 4096) {
+        // use c.j
+        generateCJump(gen, offset);
+        return;
+    }
+    generateJumpAndLink(gen, 0, offset);
 }
 
-void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool link) {
-    // TODO
+void insnCodeGen::generateJumpAndLink(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue offset) {
+    assert(offset & 1 == 0);
+    assert(offset >= -0x100000 && offset < 0x100000);
+
+    if (rd == 1 /* the default link register is ra (x1) */ && offset >= -4096 && offset < 4096) {
+        // use c.jal
+        generateCJumpAndLink(gen, offset);
+        return;
+    }
+
+    instruction insn{};
+    INSN_SET(insn, 31, 31, (offset & 0x100000) >> 20); // offset[20]
+    INSN_SET(insn, 30, 21, (offset & 0x7fe) >> 1);     // offset[10:1]
+    INSN_SET(insn, 20, 20, (offset & 0x800) >> 11);    // offset[11]
+    INSN_SET(insn, 19, 12, (offset & 0xff000) >> 12);  // offset[19:12]
+    INSN_SET(insn, 11, 7, rd);                         // rd
+    INSN_SET(insn, 6, 0, 0x6f);                        // 1101111
+    insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateJumpRegister(codeGen &gen, Dyninst::Register rs, Dyninst::RegValue offset) {
+    assert(offset >= -2048 && offset < 2048);
+
+    if (offset == 0) {
+        // use c.j
+        generateCJumpRegister(gen, rs);
+        return;
+    }
+    generateJumpAndLinkRegister(gen, 0, rs, offset);
+}
+
+void insnCodeGen::generateJumpAndLinkRegister(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue offset) {
+    assert(offset >= -2048 && offset < 2048);
+
+    if (offset == 0 && rd == 1) {
+        // use c.jal
+        generateCJumpAndLinkRegister(gen, rs);
+        return;
+    }
+
+    instruction insn{};
+    INSN_SET(insn, 31, 20, offset); // offset
+    INSN_SET(insn, 19, 15, rs);     // rs
+    INSN_SET(insn, 14, 12, 0x0);    // 000
+    INSN_SET(insn, 11, 7, rd);      // rd
+    INSN_SET(insn, 6, 0, 0x67);     // 1100111
+    insnCodeGen::generate(gen, insn);
 }
 
 void insnCodeGen::generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Address to) {
@@ -195,6 +248,7 @@ void insnCodeGen::generateMemLoad(codeGen &gen, LoadStore accType,
 {
     assert(size == 1 || size == 2 || size == 4 || size == 8);
     assert(!(size == 8 && isUnsigned)); // no ldu instruction
+    assert(offset >= -2048 && offset < 2048);
 
     instruction insn{};
 
@@ -214,55 +268,42 @@ void insnCodeGen::generateMemLoad(codeGen &gen, LoadStore accType,
     INSN_SET(insn, 19, 15, rs);     // rs
     INSN_SET(insn, 14, 12, memop);  // memop
     INSN_SET(insn, 11, 7, rd);      // rd
-    INSN_SET(insn, 6, 0, 0x2);      // 0000011
+    INSN_SET(insn, 6, 0, 0x3);      // 0000011
 
     insnCodeGen::generate(gen, insn);
 }
 
-// This is for generating STR/LDR (SIMD&FP) (immediate) for indexing modes of Post, Pre and Offset
-void insnCodeGen::generateMemAccessFP(codeGen &gen, LoadStore accType,
-        Dyninst::Register rt, Dyninst::Register rn, int immd, int size, bool is128bit)
+void insnCodeGen::generateMemStore(codeGen &gen, LoadStore accType,
+        Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue offset, Dyninst::RegValue size)
 {
-    // TODO
-}
+    assert(size == 1 || size == 2 || size == 4 || size == 8);
+    assert(offset >= -2048 && offset < 2048);
 
-// rlwinm ra,rs,n,0,31-n
-void insnCodeGen::generateLShift(codeGen &, Dyninst::Register, int, Dyninst::Register)
-{
-    // TODO
-}
+    instruction insn{};
 
-// rlwinm ra,rs,32-n,n,31
-void insnCodeGen::generateRShift(codeGen &, Dyninst::Register, int, Dyninst::Register)
-{
-    // TODO
-}
+    Dyninst::RegValue memop{};
+    switch (size) {
+        case 1: memop = 0x0; break; // lb = 000
+        case 2: memop = 0x1; break; // lh = 001
+        case 4: memop = 0x2; break; // lw = 010
+        case 8: memop = 0x4; break; // ld = 011
+        default: break;             // not gonna happen
+    }
 
-// sld ra, rs, rb
-void insnCodeGen::generateLShift64(codeGen &, Dyninst::Register, int, Dyninst::Register)
-{
-    // TODO
-}
+    INSN_SET(insn, 31, 25, (offset & 0xfe0) >> 5); // offset[11:5]
+    INSN_SET(insn, 24, 20, rs);                    // rs
+    INSN_SET(insn, 19, 15, rd);                    // rd
+    INSN_SET(insn, 14, 12, 0x2);                   // 010
+    INSN_SET(insn, 11, 7, (offset & 0x1f));        // offset[4:0]
+    INSN_SET(insn, 6, 0, 0x23);                    // 0100011
 
-// srd ra, rs, rb
-void insnCodeGen::generateRShift64(codeGen &, Dyninst::Register, int, Dyninst::Register)
-{
-    // TODO
+    insnCodeGen::generate(gen, insn);
 }
 
 //
 // generate an instruction that does nothing and has to side affect except to
 //   advance the program counter.
 //
-void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
-    // TODO
-}
-
-void insnCodeGen::generateRelOp(codeGen &, int, int, Dyninst::Register,
-                                Dyninst::Register, Dyninst::Register)
-{
-    // TODO
-}
 
 
 void insnCodeGen::saveRegister(codeGen &gen, Dyninst::Register r, int sp_offset)
@@ -734,6 +775,58 @@ void insnCodeGen::generateCAndImm(codeGen &gen, Dyninst::Register rd, Dyninst::R
     INSN_C_SET(insn, 9, 7, rd);                  // rd
     INSN_C_SET(insn, 6, 2, imm & 0x1f);          // imm[4:0]
     INSN_C_SET(insn, 1, 0, 0x1);                 // opcode = 01
+    insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateCJump(codeGen &gen, Dyninst::RegValue offset) {
+    assert(offset & 1 == 0 && offset >= -4096 && offset < 4096);
+
+    instruction insn{};
+    INSN_C_SET(insn, 15, 13, 0x5);                    // func3 = 101
+    INSN_C_SET(insn, 12, 12, (offset & 0x800) >> 11); // imm[11]
+    INSN_C_SET(insn, 11, 11, (offset & 0x10) >> 4);   // imm[4]
+    INSN_C_SET(insn, 10, 9, (offset & 0x300) >> 8);   // imm[9:8]
+    INSN_C_SET(insn, 8, 8, (offset & 0x400) >> 10);   // imm[10]
+    INSN_C_SET(insn, 7, 7, (offset & 0x40) >> 6);     // imm[6]
+    INSN_C_SET(insn, 6, 6, (offset & 0x80) >> 7);     // imm[7]
+    INSN_C_SET(insn, 5, 3, (offset & 0xe) >> 1);      // imm[3:1]
+    INSN_C_SET(insn, 2, 2, (offset & 0x20) >> 5);     // imm[5]
+    INSN_C_SET(insn, 1, 0, 0x1);                      // opcode = 01
+    insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateCJumpAndLink(codeGen &gen, Dyninst::RegValue offset) {
+    assert(offset & 1 == 0 && offset >= -4096 && offset < 4096);
+
+    instruction insn{};
+    INSN_C_SET(insn, 15, 13, 0x1);                    // func3 = 001
+    INSN_C_SET(insn, 12, 12, (offset & 0x800) >> 11); // imm[11]
+    INSN_C_SET(insn, 11, 11, (offset & 0x10) >> 4);   // imm[4]
+    INSN_C_SET(insn, 10, 9, (offset & 0x300) >> 8);   // imm[9:8]
+    INSN_C_SET(insn, 8, 8, (offset & 0x400) >> 10);   // imm[10]
+    INSN_C_SET(insn, 7, 7, (offset & 0x40) >> 6);     // imm[6]
+    INSN_C_SET(insn, 6, 6, (offset & 0x80) >> 7);     // imm[7]
+    INSN_C_SET(insn, 5, 3, (offset & 0xe) >> 1);      // imm[3:1]
+    INSN_C_SET(insn, 2, 2, (offset & 0x20) >> 5);     // imm[5]
+    INSN_C_SET(insn, 1, 0, 0x1);                      // opcode = 01
+    insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateCJumpRegister(codeGen &gen, Dyninst::Register rs) {
+    instruction insn{};
+    INSN_C_SET(insn, 15, 13, 0x4); // func3 = 100
+    INSN_C_SET(insn, 12, 12, 0x0); // 0
+    INSN_C_SET(insn, 11, 7, rs);   // rs
+    INSN_C_SET(insn, 6, 0, 0x2);   // 0000010
+    insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateCJumpAndLinkRegister(codeGen &gen, Dyninst::Register rs) {
+    instruction insn{};
+    INSN_C_SET(insn, 15, 13, 0x4); // func3 = 100
+    INSN_C_SET(insn, 12, 12, 0x1); // 1
+    INSN_C_SET(insn, 11, 7, rs);   // rs
+    INSN_C_SET(insn, 6, 0, 0x2);   // 0000010
     insnCodeGen::generate(gen, insn);
 }
 
