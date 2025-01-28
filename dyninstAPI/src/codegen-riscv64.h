@@ -74,14 +74,13 @@ public:
 
     static void generateIllegal(codeGen &gen);
 
-    static void generateBranch(codeGen &gen,
-                               long jump_off,
-                               bool link = false);
+    static void generateJump(codeGen &gen, Dyninst::RegValue offset);
 
-    static void generateBranch(codeGen &gen,
-                               Dyninst::Address from,
-                               Dyninst::Address to,
-                               bool link = false);
+    static void generateJumpAndLink(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue offset);
+
+    static void generateJumpRegister(codeGen &gen, Dyninst::Register rs);
+
+    static void generateJumpAndLinkRegister(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue offset);
 
     static void generateCall(codeGen &gen,
                              Dyninst::Address from,
@@ -102,12 +101,11 @@ public:
     static void generateConditionalBranch(codeGen& gen, Dyninst::Address to, unsigned opcode, bool s);
 
     // LDR/STR (immediate)
-    // immd in the range -256 to 255
     static void generateMemLoad(codeGen &gen, LoadStore accType, Dyninst::Register r1,
             Dyninst::Register r2, Dyninst::RegValue offset, Dyninst::RegValue size, bool isUnsigned);
 
-    static void generateMemAccessFP(codeGen &gen, LoadStore accType, Dyninst::Register rt,
-            Dyninst::Register rn, int immd, int size, bool is128bit);
+    static void generateMemStore(codeGen &gen, LoadStore accType, Dyninst::Register r1,
+            Dyninst::Register r2, Dyninst::RegValue offset, Dyninst::RegValue size);
 
     static inline void loadImmIntoReg(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue value)
     {
@@ -130,22 +128,6 @@ public:
 
     static void generateStoreReg64(codeGen &gen, Dyninst::Register rs,
                                    Dyninst::Register ra, Dyninst::Register rb);
-
-    static void generateLShift(codeGen &gen, Dyninst::Register rs,
-                               int shift, Dyninst::Register ra);
-
-    static void generateRShift(codeGen &gen, Dyninst::Register rs,
-                               int shift, Dyninst::Register ra);
-
-    static void generateLShift64(codeGen &gen, Dyninst::Register rs,
-                                 int shift, Dyninst::Register ra);
-
-    static void generateRShift64(codeGen &gen, Dyninst::Register rs,
-                                 int shift, Dyninst::Register ra);
-
-    static void generateRelOp(codeGen &gen, int cond,
-                              int mode, Dyninst::Register rs1,
-                              Dyninst::Register rs2, Dyninst::Register rd);
 
     static void loadPartialImmIntoReg(codeGen &gen, Dyninst::Register rt,
                                       long value);
@@ -206,8 +188,6 @@ public:
     static void removeStackFrame(codeGen &gen);
 
 
-    static void generateNOOP(codeGen &gen, unsigned size = 4);
-
     static bool modifyJump(Dyninst::Address target,
                            NS_riscv64::instruction &insn,
                            codeGen &gen);
@@ -250,6 +230,10 @@ public:
     static void generateCShiftRightArithmeticImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue uimm);
     static void generateCAndImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
     static void generateCNop(codeGen &gen);
+    static void generateCJump(codeGen &gen, Dyninst::RegValue offset);
+    static void generateCJumpAndLink(codeGen &gen, Dyninst::RegValue offset);
+    static void generateCJumpRegister(codeGen &gen, Dyninst::Register rs);
+    static void generateCJumpAndLinkRegister(codeGen &gen, Dyninst::Register rs);
     static void generateMove(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs);
     static void generateNop(codeGen &gen);
 };
