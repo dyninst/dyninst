@@ -120,7 +120,7 @@ const signed int BITS_512 = 0x00001000;
   DEF_REGISTER(  hw_reg_sq_perf_snapshot_pc_lo,  23 | BITS_32 |       HWR |Arch_amdgpu_gfx940, "amdgpu_gfx940");   
   DEF_REGISTER(  hw_reg_sq_perf_snapshot_pc_hi,  24 | BITS_32 |       HWR |Arch_amdgpu_gfx940, "amdgpu_gfx940"); 
 
-  DEF_REGISTER(                 src_scc,   0 | BITS_32 |      MISC |Arch_amdgpu_gfx940, "amdgpu_gfx940");
+  DEF_REGISTER(                 src_scc,   0 |  BITS_1 |      MISC |Arch_amdgpu_gfx940, "amdgpu_gfx940");
   DEF_REGISTER(                src_vccz,   1 |  BITS_1 |      MISC |Arch_amdgpu_gfx940, "amdgpu_gfx940");
   DEF_REGISTER(                  vcc_lo,   2 | BITS_32 |      MISC |Arch_amdgpu_gfx940, "amdgpu_gfx940");
   DEF_REGISTER(                  vcc_hi,   3 | BITS_32 |      MISC |Arch_amdgpu_gfx940, "amdgpu_gfx940");

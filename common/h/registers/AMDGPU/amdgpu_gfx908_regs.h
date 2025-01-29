@@ -116,7 +116,7 @@ namespace Dyninst { namespace amdgpu_gfx908 {
   DEF_REGISTER( hw_reg_sq_shader_tma_lo,  18 | BITS_32 |       HWR |Arch_amdgpu_gfx908, "amdgpu_gfx908"); // trap memory address holding data to be used
   DEF_REGISTER( hw_reg_sq_shader_tma_hi,  19 | BITS_32 |       HWR |Arch_amdgpu_gfx908, "amdgpu_gfx908");
 
-  DEF_REGISTER(                 src_scc,   0 | BITS_32 |      MISC |Arch_amdgpu_gfx908, "amdgpu_gfx908");
+  DEF_REGISTER(                 src_scc,   0 |  BITS_1 |      MISC |Arch_amdgpu_gfx908, "amdgpu_gfx908");
   DEF_REGISTER(                src_vccz,   1 |  BITS_1 |      MISC |Arch_amdgpu_gfx908, "amdgpu_gfx908");
   DEF_REGISTER(                  vcc_lo,   2 | BITS_32 |      MISC |Arch_amdgpu_gfx908, "amdgpu_gfx908");
   DEF_REGISTER(                  vcc_hi,   3 | BITS_32 |      MISC |Arch_amdgpu_gfx908, "amdgpu_gfx908");
