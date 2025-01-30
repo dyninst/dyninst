@@ -60,7 +60,7 @@ namespace Dyninst { namespace amdgpu_gfx90a {
 
   const signed int HWR       = 0x000C0000;
   const signed int TTMP_SGPR = 0x000D0000;
-  const signed int FLAGS     = 0x000E0000;
+  const signed int WAITCNT   = 0x000E0000;
   const signed int PC        = 0x000F0000;
   const signed int SYSREG    = 0x00100000;
   const signed int TGT       = 0x00110000; // I have no idea what TGT is yet
@@ -90,7 +90,7 @@ namespace Dyninst { namespace amdgpu_gfx90a {
   const signed int BITS_256 = 0x00000F00;
   const signed int BITS_512 = 0x00001000;
 
-  //          (                    name,  ID | alias   |      cat  |              arch,           arch )
+  //          (                    name,  ID | alias   |      cat  |              arch,            arch)
   DEF_REGISTER(                     tid,   0 | BITS_32 |    SYSREG |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
 
   DEF_REGISTER(                 invalid,   1 | BITS_32 |    SYSREG |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
@@ -102,7 +102,7 @@ namespace Dyninst { namespace amdgpu_gfx90a {
   DEF_REGISTER(            hw_reg_hw_id,   4 | BITS_32 |       HWR |Arch_amdgpu_gfx90a, "amdgpu_gfx90a"); // hardware id
   DEF_REGISTER(        hw_reg_gpr_alloc,   5 | BITS_32 |       HWR |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
   DEF_REGISTER(        hw_reg_lds_alloc,   6 | BITS_32 |       HWR |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
-  DEF_REGISTER(           hw_reg_ib_sts,   2 | BITS_32 |       HWR |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
+  DEF_REGISTER(           hw_reg_ib_sts,   7 | BITS_32 |       HWR |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
   DEF_REGISTER(            hw_reg_pc_lo,   8 | BITS_32 |       HWR |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
   DEF_REGISTER(            hw_reg_pc_hi,   9 | BITS_32 |       HWR |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
   DEF_REGISTER(         hw_reg_inst_dw0,  10 | BITS_32 |       HWR |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
@@ -116,7 +116,7 @@ namespace Dyninst { namespace amdgpu_gfx90a {
   DEF_REGISTER( hw_reg_sq_shader_tma_lo,  18 | BITS_32 |       HWR |Arch_amdgpu_gfx90a, "amdgpu_gfx90a"); // trap memory address holding data to be used
   DEF_REGISTER( hw_reg_sq_shader_tma_hi,  19 | BITS_32 |       HWR |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
 
-  DEF_REGISTER(                 src_scc,   0 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
+  DEF_REGISTER(                 src_scc,   0 |  BITS_1 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
   DEF_REGISTER(                src_vccz,   1 |  BITS_1 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
   DEF_REGISTER(                  vcc_lo,   2 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
   DEF_REGISTER(                  vcc_hi,   3 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
@@ -127,29 +127,30 @@ namespace Dyninst { namespace amdgpu_gfx90a {
   DEF_REGISTER(                 exec_hi,   6 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
   DEF_REGISTER(                    exec,   5 | BITS_64 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
 
-  DEF_REGISTER(         flat_scratch_lo,   7 | BITS_64 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
+  DEF_REGISTER(         flat_scratch_lo,   7 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
   DEF_REGISTER(         flat_scratch_hi,   8 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
-  DEF_REGISTER(        flat_scratch_all,   7 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
+  DEF_REGISTER(        flat_scratch_all,   7 | BITS_64 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
 
-  DEF_REGISTER(                      m0,  10 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
+  DEF_REGISTER(                      m0,   9 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
 
-  DEF_REGISTER(             src_literal,  11 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");//TODO
-  DEF_REGISTER(src_pops_exiting_wave_id,  12 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");//TODO
+  DEF_REGISTER(             src_literal,  10 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");//TODO
+  DEF_REGISTER(src_pops_exiting_wave_id,  11 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");//TODO
 
-  DEF_REGISTER(        src_private_base,  13 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
-  DEF_REGISTER(       src_private_limit,  14 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
-  DEF_REGISTER(         src_shared_base,  15 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
-  DEF_REGISTER(        src_shared_limit,  16 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
+  DEF_REGISTER(        src_private_base,  12 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
+  DEF_REGISTER(       src_private_limit,  13 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
+  DEF_REGISTER(         src_shared_base,  14 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
+  DEF_REGISTER(        src_shared_limit,  15 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
 
-  DEF_REGISTER(           xnack_mask_lo,  17 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
-  DEF_REGISTER(           xnack_mask_hi,  18 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
+  DEF_REGISTER(           xnack_mask_lo,  16 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
+  DEF_REGISTER(           xnack_mask_hi,  17 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
 
-  DEF_REGISTER(          src_lds_direct,  19 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
-  DEF_REGISTER(                   vmcnt,  20 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
-  DEF_REGISTER(                  expcnt,  21 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
-  DEF_REGISTER(                 lgkmcnt,  22 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
-  DEF_REGISTER(                   dsmem,  23 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
+  DEF_REGISTER(          src_lds_direct,  18 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
+  DEF_REGISTER(                   dsmem,  19 | BITS_32 |      MISC |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
 
+  DEF_REGISTER(                   vmcnt,   0 | BITS_32 |   WAITCNT |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
+  DEF_REGISTER(                  expcnt,   1 | BITS_32 |   WAITCNT |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
+  DEF_REGISTER(                 lgkmcnt,   2 | BITS_32 |   WAITCNT |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
+ 
   DEF_REGISTER(                   ttmp0,   0 | BITS_32 | TTMP_SGPR |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
   DEF_REGISTER(                   ttmp1,   1 | BITS_32 | TTMP_SGPR |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
   DEF_REGISTER(                   ttmp2,   2 | BITS_32 | TTMP_SGPR |Arch_amdgpu_gfx90a, "amdgpu_gfx90a");
