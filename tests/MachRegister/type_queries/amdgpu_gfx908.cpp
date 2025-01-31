@@ -3,9 +3,8 @@
 #include "type_query_check.h"
 
 constexpr auto arch = Dyninst::Arch_amdgpu_gfx908;
-using mreg = Dyninst::MachRegister;
 
-static bool is_arithmetic_vector(mreg);
+static bool is_arithmetic_vector(Dyninst::MachRegister);
 
 int main() {
   TYPE_QUERIES_CHECK(Dyninst::amdgpu_gfx908::pc_all, isPC);
@@ -87,7 +86,7 @@ int main() {
    *      Filtering
   *********************************************************************/
   {
-    for(auto reg : mreg::getAllRegistersForArch(arch)) {
+    for(auto reg : Dyninst::MachRegister::getAllRegistersForArch(arch)) {
       if(reg.isVector() && !reg.isControlStatus()) {
         TYPE_QUERIES_ASSERT_TRUE(reg, is_arithmetic_vector(reg));
       }
@@ -99,7 +98,7 @@ int main() {
   return EXIT_SUCCESS;
 }
 
-static bool is_arithmetic_vector(mreg reg) {
+static bool is_arithmetic_vector(Dyninst::MachRegister reg) {
   switch(reg) {
     case Dyninst::amdgpu_gfx908::iacc0:
     case Dyninst::amdgpu_gfx908::iacc1:

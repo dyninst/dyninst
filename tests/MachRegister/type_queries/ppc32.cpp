@@ -4,25 +4,24 @@
 #include <iostream>
 
 constexpr auto arch = Dyninst::Arch_ppc32;
-using mreg = Dyninst::MachRegister;
 
-static bool is_arithmetic_float(mreg);
+static bool is_arithmetic_float(Dyninst::MachRegister);
 
 int main() {
   TYPE_QUERIES_CHECK(Dyninst::ppc32::pc, isPC);
-  TYPE_QUERIES_CHECK(mreg::getPC(arch), isPC);
+  TYPE_QUERIES_CHECK(Dyninst::MachRegister::getPC(arch), isPC);
 
   TYPE_QUERIES_CHECK(Dyninst::ppc32::r1, isFramePointer);
-  TYPE_QUERIES_CHECK(mreg::getFramePointer(arch), isFramePointer);
+  TYPE_QUERIES_CHECK(Dyninst::MachRegister::getFramePointer(arch), isFramePointer);
 
   TYPE_QUERIES_CHECK(Dyninst::ppc32::r1, isStackPointer);
-  TYPE_QUERIES_CHECK(mreg::getStackPointer(arch), isStackPointer);
+  TYPE_QUERIES_CHECK(Dyninst::MachRegister::getStackPointer(arch), isStackPointer);
 
   TYPE_QUERIES_CHECK(Dyninst::ppc32::r0, isSyscallNumberReg);
-  TYPE_QUERIES_CHECK(mreg::getSyscallNumberReg(arch), isSyscallNumberReg);
+  TYPE_QUERIES_CHECK(Dyninst::MachRegister::getSyscallNumberReg(arch), isSyscallNumberReg);
 
   TYPE_QUERIES_CHECK(Dyninst::ppc32::r3, isSyscallReturnValueReg);
-  TYPE_QUERIES_CHECK(mreg::getSyscallReturnValueReg(arch), isSyscallReturnValueReg);
+  TYPE_QUERIES_CHECK(Dyninst::MachRegister::getSyscallReturnValueReg(arch), isSyscallReturnValueReg);
 
   /*********************************************************************
    *      General Purpose
@@ -88,7 +87,7 @@ int main() {
    *      Filtering
   *********************************************************************/
   {
-    for(auto reg : mreg::getAllRegistersForArch(arch)) {
+    for(auto reg : Dyninst::MachRegister::getAllRegistersForArch(arch)) {
       if(reg.isFloatingPoint() && !reg.isVector() && !reg.isControlStatus()) {
         TYPE_QUERIES_ASSERT_TRUE(reg, is_arithmetic_float(reg));
       }
@@ -100,7 +99,7 @@ int main() {
   return EXIT_SUCCESS;
 }
 
-static bool is_arithmetic_float(mreg reg) {
+static bool is_arithmetic_float(Dyninst::MachRegister reg) {
   switch(reg) {
     case Dyninst::ppc32::ifsr0:
     case Dyninst::ppc32::ifsr1:

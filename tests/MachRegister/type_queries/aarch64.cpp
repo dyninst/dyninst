@@ -6,24 +6,23 @@
 static bool is_arithmetic_vector(Dyninst::MachRegister);
 
 constexpr auto arch = Dyninst::Arch_aarch64;
-using mreg = Dyninst::MachRegister;
 
 int main() {
   TYPE_QUERIES_CHECK(Dyninst::aarch64::pc, isPC);
-  TYPE_QUERIES_CHECK(mreg::getPC(arch), isPC);
+  TYPE_QUERIES_CHECK(Dyninst::MachRegister::getPC(arch), isPC);
 
   TYPE_QUERIES_CHECK(Dyninst::aarch64::x29, isFramePointer);
   TYPE_QUERIES_CHECK(Dyninst::aarch64::fp, isFramePointer);
-  TYPE_QUERIES_CHECK(mreg::getFramePointer(arch), isFramePointer);
+  TYPE_QUERIES_CHECK(Dyninst::MachRegister::getFramePointer(arch), isFramePointer);
 
   TYPE_QUERIES_CHECK(Dyninst::aarch64::sp, isStackPointer);
   TYPE_QUERIES_CHECK(Dyninst::aarch64::wsp, isStackPointer);
   TYPE_QUERIES_CHECK(Dyninst::aarch64::wsp.getBaseRegister(), isStackPointer);
-  TYPE_QUERIES_CHECK(mreg::getStackPointer(arch), isStackPointer);
+  TYPE_QUERIES_CHECK(Dyninst::MachRegister::getStackPointer(arch), isStackPointer);
 
   TYPE_QUERIES_CHECK(Dyninst::aarch64::w8, isSyscallNumberReg);
   TYPE_QUERIES_CHECK(Dyninst::aarch64::x8, isSyscallNumberReg);
-  TYPE_QUERIES_CHECK(mreg::getSyscallNumberReg(arch), isSyscallNumberReg);
+  TYPE_QUERIES_CHECK(Dyninst::MachRegister::getSyscallNumberReg(arch), isSyscallNumberReg);
 
   TYPE_QUERIES_CHECK(Dyninst::aarch64::w0, isSyscallReturnValueReg);
   TYPE_QUERIES_CHECK(Dyninst::aarch64::x0, isSyscallReturnValueReg);
@@ -58,7 +57,7 @@ int main() {
   TYPE_QUERIES_CHECK_FALSE(Dyninst::aarch64::n, isZeroFlag);
   TYPE_QUERIES_CHECK_FALSE(Dyninst::aarch64::c, isZeroFlag);
   TYPE_QUERIES_CHECK_FALSE(Dyninst::aarch64::v, isZeroFlag);
-  TYPE_QUERIES_CHECK(mreg::getZeroFlag(arch), isZeroFlag);
+  TYPE_QUERIES_CHECK(Dyninst::MachRegister::getZeroFlag(arch), isZeroFlag);
 
   /*********************************************************************
    *      Control/Status
