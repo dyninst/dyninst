@@ -50,7 +50,7 @@ class PCProcess;
 #define SIGNAL_HANDLER   "__restore_rt"
 #endif
 
-#if (defined(i386_unknown_linux2_0) \
+#if (defined(os_linux) || defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4)) && \
    (defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64))
 #include "linux-x86.h"

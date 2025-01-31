@@ -1143,6 +1143,7 @@ bool AstOperatorNode::initRegisters(codeGen &g) {
 #if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool noCost)
 {
+   (void) size_;
    if(!(loperand && roperand)) { return false; }
 
    //Recognize the common case of 'a = a op constant' and try to

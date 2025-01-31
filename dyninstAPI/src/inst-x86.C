@@ -196,7 +196,7 @@ void registerSpace::initialize32() {
 
 }
 
-#if defined(DYNINST_HOST_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
 void registerSpace::initialize64() {
     static bool done = false;
     if (done) return;
@@ -566,8 +566,14 @@ int cpuidCall() {
 }
 #endif
 
-#if !defined(x86_64_unknown_linux2_4)              \
- && !(defined(os_freebsd) && defined(DYNINST_HOST_ARCH_X86_64))
+#if defined(x86_64_unknown_linux2_4)              \
+ || defined(os_freebsd) || defined(DYNINST_HOST_ARCH_X86_64) \
+ || !defined(DYNINST_HOST_ARCH_X86) || !defined(DYNINST_CODEGEN_ARCH_X86)
+bool xmmCapable()
+{
+  return true;
+}
+#else
 bool xmmCapable()
 {
   int features = cpuidCall();
@@ -577,11 +583,6 @@ bool xmmCapable()
     return true;
   else
     return false;
-}
-#else
-bool xmmCapable()
-{
-  return true;
 }
 #endif
 
