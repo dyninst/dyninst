@@ -91,7 +91,6 @@ bool SymEval::expand(Result_t &res,
             continue;
         }
         Assignment::Ptr ptr = i->first;
-
         bool success = expandInsn(ptr->insn(),
                 ptr->addr(),
                 res);
@@ -698,6 +697,12 @@ SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
 
 AST::Ptr SymEval::simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func, ParseAPI::Block *block) {
     if (!ast) return ast;
+    auto arch = func->isrc()->getArch();
+    // This is a hack to prevent parsing of AMGPU binaries from segfaulting
+    // in (common/h/Annotatable.h: Dyninst::AnnotatableSparse::getAnnosForObject）
+    // The problem seems to be that the annotation hash maps (annos_by_type_t) are not thread safe
+    if (arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940)
+      return ast;
     // Let's experiment with simplification
     StackAnalysis sA(func);
     StackAnalysis::Height sp = sA.findSP(block, addr);
