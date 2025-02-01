@@ -1595,8 +1595,7 @@ void StackAnalysis::handleAddSub(Instruction insn, Block *block,
          // Case 3a
          STACKANALYSIS_ASSERT(readSet.size() == 1);
          const MachRegister &srcReg = (*readSet.begin())->getID();
-         if ((signed int) srcReg.regClass() == x86::XMM ||
-            (signed int) srcReg.regClass() == x86_64::XMM) {
+         if (srcReg.isVector()) {
             // Assume XMM registers only contain FP values, not pointers
             xferFuncs.push_back(TransferFunc::copyFunc(writtenLoc, writtenLoc,
                true));
@@ -1624,8 +1623,7 @@ void StackAnalysis::handleAddSub(Instruction insn, Block *block,
    const MachRegister &written = (*writeSet.begin())->getID();
    Absloc writtenLoc(written);
 
-   if ((signed int) written.regClass() == x86::XMM ||
-      (signed int) written.regClass() == x86_64::XMM) {
+   if (written.isVector()) {
       // Assume XMM registers only contain FP values, not pointers
       xferFuncs.push_back(TransferFunc::retopFunc(writtenLoc));
       return;
@@ -1680,8 +1678,7 @@ void StackAnalysis::handleAddSub(Instruction insn, Block *block,
    } else {
       // Case 1
       const MachRegister &srcReg = (*readSet.begin())->getID();
-      if ((signed int) srcReg.regClass() == x86::XMM ||
-         (signed int) srcReg.regClass() == x86_64::XMM) {
+      if (srcReg.isVector()) {
          // Assume XMM registers only contain FP values, not pointers
          xferFuncs.push_back(TransferFunc::copyFunc(writtenLoc, writtenLoc,
             true));
@@ -2039,8 +2036,7 @@ void StackAnalysis::handleMov(Instruction insn, Block *block,
          // Case 4a
          STACKANALYSIS_ASSERT(readRegs.size() == 1);
          const MachRegister &reg = (*readRegs.begin())->getID();
-         if ((signed int) reg.regClass() == x86::XMM ||
-            (signed int) reg.regClass() == x86_64::XMM) {
+         if (reg.isVector()) {
             // Assume XMM registers only contain FP values, not pointers
             xferFuncs.push_back(TransferFunc::retopFunc(writtenLoc));
          } else {
@@ -2064,8 +2060,7 @@ void StackAnalysis::handleMov(Instruction insn, Block *block,
    const MachRegister &written = (*writtenRegs.begin())->getID();
    Absloc writtenLoc(written);
 
-   if ((signed int) written.regClass() == x86::XMM ||
-      (signed int) written.regClass() == x86_64::XMM) {
+   if (written.isVector()) {
       // Assume XMM registers only contain FP values, not pointers
       xferFuncs.push_back(TransferFunc::retopFunc(writtenLoc));
       return;
@@ -2119,8 +2114,7 @@ void StackAnalysis::handleMov(Instruction insn, Block *block,
 
    if (read.isValid()) {
       // Case 1
-      if ((signed int) read.regClass() == x86::XMM ||
-         (signed int) read.regClass() == x86_64::XMM) {
+      if (read.isVector()) {
          // Assume XMM registers only contain FP values, not pointers
          xferFuncs.push_back(TransferFunc::retopFunc(writtenLoc));
       } else {
@@ -2324,15 +2318,13 @@ void StackAnalysis::handleDefault(Instruction insn, Block *block,
    std::set<Absloc> readLocs;
    for (auto iter = writtenRegs.begin(); iter != writtenRegs.end(); iter++) {
       const MachRegister &reg = (*iter)->getID();
-      if ((signed int) reg.regClass() == x86::GPR ||
-         (signed int) reg.regClass() ==  x86_64::GPR) {
+      if (reg.isGeneralPurpose()) {
          writtenLocs.insert(Absloc(reg));
       }
    }
    for (auto iter = readRegs.begin(); iter != readRegs.end(); iter++) {
       const MachRegister &reg = (*iter)->getID();
-      if ((signed int) reg.regClass() == x86::GPR ||
-         (signed int) reg.regClass() ==  x86_64::GPR) {
+      if (reg.isGeneralPurpose()) {
          readLocs.insert(Absloc(reg));
       }
    }

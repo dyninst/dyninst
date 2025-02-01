@@ -40,7 +40,7 @@ namespace Dyninst { namespace DataflowAPI {
      */
     auto const category = reg.regClass();
     auto const baseID = reg.getBaseRegister().val() & 0x000000ff;
-    auto const subrange = reg.val() & 0x0000ff00;
+    auto const lengthID = reg.getLengthID();
 
     // MachRegister::size is in _bytes_
     auto const num_bits = 8*static_cast<int32_t>(reg.size());
@@ -50,23 +50,23 @@ namespace Dyninst { namespace DataflowAPI {
 
     switch(reg.getArchitecture()) {
       case Arch_amdgpu_gfx908: {
-        return AmdgpuGfx908Rose(category, baseID, subrange, num_bits);
+        return AmdgpuGfx908Rose(category, baseID, lengthID, num_bits);
       }
       case Arch_amdgpu_gfx90a: {
-        return AmdgpuGfx90aRose(category, baseID, subrange, num_bits);
+        return AmdgpuGfx90aRose(category, baseID, lengthID, num_bits);
       }
       case Arch_amdgpu_gfx940: {
-        return AmdgpuGfx940Rose(category, baseID, subrange, num_bits);
+        return AmdgpuGfx940Rose(category, baseID, lengthID, num_bits);
       }
       case Arch_x86: {
         if(reg.isPC()) {
           // ROSE docs: only minor value allowed is 0
           return std::make_tuple(x86_regclass_ip, 0, 0, num_bits);
         }
-        return x86Rose(category, baseID, subrange, num_bits);
+        return x86Rose(category, baseID, lengthID, num_bits);
       }
       case Arch_x86_64: {
-        return x8664Rose(category, baseID, subrange, num_bits);
+        return x8664Rose(category, baseID, lengthID, num_bits);
       }
       case Arch_ppc32: {
         return ppc32Rose(category, reg, num_bits);
@@ -91,9 +91,9 @@ namespace Dyninst { namespace DataflowAPI {
         if(reg.getBaseRegister() == Dyninst::aarch64::nzcv) {
           // Preserve the individual flags as separate registers
           auto const id = reg.val() & 0x000000ff;
-          return aarch64Rose(category, id, subrange, num_bits);
+          return aarch64Rose(category, id, lengthID, num_bits);
         }
-        return aarch64Rose(category, baseID, subrange, num_bits);
+        return aarch64Rose(category, baseID, lengthID, num_bits);
       }
       case Arch_aarch32:
       case Arch_cuda:
