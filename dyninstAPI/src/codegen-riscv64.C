@@ -226,7 +226,7 @@ void insnCodeGen::generateConditionalBranch(codeGen& gen, Dyninst::Address to, u
 }
 
 
-void insnCodeGen::generateMul(codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd, bool is64bit) {
+void insnCodeGen::generateMul(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2, bool is64bit) {
     // TODO
 }
 
@@ -302,54 +302,39 @@ void insnCodeGen::generateMemLoad(codeGen &gen, LoadStore accType,
     assert(!(size == 8 && isUnsigned)); // no ldu instruction
     assert(offset >= -0x800 && offset < 0x800);
 
-    instruction insn{};
-
-    Dyninst::RegValue memop{};
+    Dyninst::RegValue funct3{};
     switch (size) {
-        case 1: memop = 0x0; break; // lb = 000
-        case 2: memop = 0x1; break; // lh = 001
-        case 4: memop = 0x2; break; // lw = 010
-        case 8: memop = 0x4; break; // ld = 011
+        case 1: funct3 = 0x0; break; // lb = 000
+        case 2: funct3 = 0x1; break; // lh = 001
+        case 4: funct3 = 0x2; break; // lw = 010
+        case 8: funct3 = 0x4; break; // ld = 011
         default: break;             // not gonna happen
     }
     if (isUnsigned) {
-        memop |= 0x4; // lbu = 100, lhu = 101, lwu = 110
+        funct3 |= 0x4; // lbu = 100, lhu = 101, lwu = 110
     }
 
-    INSN_SET(insn, 20, 31, offset); // offset
-    INSN_SET(insn, 15, 19, rs);     // rs
-    INSN_SET(insn, 12, 14, memop);  // memop
-    INSN_SET(insn, 7, 11, rd);      // rd
-    INSN_SET(insn, 0, 6, 0x3);      // 0000011
-
-    insnCodeGen::generate(gen, insn);
+    // Load instructions are I-Type
+    generateITypeInsn(gen, rd, rs, offset, funct3, LOADOp);
 }
 
 void insnCodeGen::generateMemStore(codeGen &gen, LoadStore accType,
-        Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue offset, Dyninst::RegValue size)
+        Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue offset, Dyninst::RegValue size)
 {
     assert(size == 1 || size == 2 || size == 4 || size == 8);
     assert(offset >= -0x800 && offset < 0x800);
 
-    instruction insn{};
-
-    Dyninst::RegValue memop{};
+    Dyninst::RegValue funct3{};
     switch (size) {
-        case 1: memop = 0x0; break; // lb = 000
-        case 2: memop = 0x1; break; // lh = 001
-        case 4: memop = 0x2; break; // lw = 010
-        case 8: memop = 0x4; break; // ld = 011
+        case 1: funct3 = 0x0; break; // lb = 000
+        case 2: funct3 = 0x1; break; // lh = 001
+        case 4: funct3 = 0x2; break; // lw = 010
+        case 8: funct3 = 0x4; break; // ld = 011
         default: break;             // not gonna happen
     }
 
-    INSN_SET(insn, 25, 31, (offset & 0xfe0) >> 5); // offset[11:5]
-    INSN_SET(insn, 20, 24, rs);                    // rs
-    INSN_SET(insn, 15, 19, rd);                    // rd
-    INSN_SET(insn, 12, 14, 0x2);                   // 010
-    INSN_SET(insn, 7, 11, (offset & 0x1f));        // offset[4:0]
-    INSN_SET(insn, 0, 6, 0x23);                    // 0100011
-
-    insnCodeGen::generate(gen, insn);
+    // Store instructions are S-Type
+    generateSTypeInsn(gen, rs1, rs2, offset, funct3, STOREOp);
 }
 
 //
@@ -453,9 +438,11 @@ void insnCodeGen::generateUTypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst:
     assert(imm >= -0x80000 && imm < 0x80000);
 
     instruction insn{};
+
     INSN_SET(insn, 12, 31, imm);  // imm
     INSN_SET(insn, 7, 11, rd);    // rd
     INSN_SET(insn, 0, 6, opcode); // opcode
+
     insnCodeGen::generate(gen, insn);
 }
 
@@ -465,11 +452,13 @@ void insnCodeGen::generateITypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst:
     assert(imm >= -0x800 && imm < 0x800);
 
     instruction insn{};
+
     INSN_SET(insn, 20, 31, imm);    // imm
     INSN_SET(insn, 15, 19, rs);     // rs
     INSN_SET(insn, 12, 14, funct3); // 111
     INSN_SET(insn, 7, 11, rd);      // rd
     INSN_SET(insn, 0, 6, opcode);   // opcode
+
     insnCodeGen::generate(gen, insn);
 }
 
@@ -477,12 +466,14 @@ void insnCodeGen::generateITypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst:
 
 void insnCodeGen::generateRTypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2, unsigned funct7, unsigned funct3, unsigned opcode) {
     instruction insn{};
+
     INSN_SET(insn, 25, 31, funct7); // funct7
     INSN_SET(insn, 20, 24, rs2);    // rs2
     INSN_SET(insn, 15, 19, rs1);    // rs1
     INSN_SET(insn, 12, 14, funct3); // funct3
     INSN_SET(insn, 7, 11, rd);      // rd
     INSN_SET(insn, 0, 6, opcode);   // opcode
+
     insnCodeGen::generate(gen, insn);
 }
 
@@ -517,6 +508,22 @@ void insnCodeGen::generateJTypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst:
     INSN_SET(insn, 12, 19, (imm >> 12) & 0xff); // imm[19:12]
     INSN_SET(insn, 7, 11, rd);                  // rd
     INSN_SET(insn, 0, 6, opcode);               // opcode
+
+    insnCodeGen::generate(gen, insn);
+}
+
+// S-Type Instruction
+
+void insnCodeGen::generateSTypeInsn(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm, unsigned funct3, unsigned opcode) {
+    assert(imm >= -800 && imm < 0x800);         // 12-bit signed immediate
+
+    instruction insn{};
+    INSN_SET(insn, 25, 31, (imm >> 5) & 0x7f); // imm[11:5]
+    INSN_SET(insn, 20, 24, rs2);                // rs2
+    INSN_SET(insn, 15, 19, rs1);                // rs1
+    INSN_SET(insn, 12, 14, funct3);             // funct3
+    INSN_SET(insn, 7, 11, imm & 0x1f);          // imm[4:0]
+    INSN_SET(insn, 0, 6, opcode);               // opcode = 0100011 (store)
 
     insnCodeGen::generate(gen, insn);
 }
