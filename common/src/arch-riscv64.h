@@ -58,16 +58,21 @@ namespace NS_riscv64 {
 
 #define BREAK_POINT_INSN 0xd4200000
 
-#define ADDImmOp        0x0
-#define SLLImmOp        0x1
-#define XORImmOp        0x4
-#define SRLImmOp        0x5
-#define SRAImmOp        0x5
-#define ORImmOp         0x6
-#define ANDImmOp        0x7
+#define LUIOp         0x37
+#define IMMOp         0x13
 
+#define ADDIFunct3        0x0
+#define SLLIFunct3        0x1
+#define XORIFunct3        0x4
+#define SRLIFunct3        0x5
+#define SRAIFunct3        0x5
+#define ORIFunct3         0x6
+#define ANDIFunct3        0x7
+
+#define GPR_ZERO        0
 #define GPR_RA          1
 #define GPR_SP          2
+#define GPR_FP          8
 
 #define INSN_SET(I, s, e, v)    ((I).setBits(s, e - s + 1, (v)))
 #define INSN_C_SET(I, s, e, v)    ((I).setCBits(s, e - s + 1, (v)))
