@@ -22,7 +22,7 @@ namespace Dyninst { namespace DataflowAPI {
      *
      *  category -> major version
      *  baseID   -> minor version
-     *  subrange -> position
+     *  lengthID -> position
      *
      * The major version, register position, and size (in bits) are based on the
      * user-provided register.
