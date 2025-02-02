@@ -88,8 +88,9 @@ namespace Dyninst { namespace DataflowAPI {
           // ROSE docs: only minor value allowed is 0
           return std::make_tuple(armv8_regclass_sp, 0, 0, num_bits);
         }
-        if(reg.getBaseRegister() == Dyninst::aarch64::nzcv) {
-          // Preserve the individual flags as separate registers
+        if(reg.isFlag()) {
+          // Use the given register rather than the bas to preserve the
+          // individual flags as separate registers
           auto const id = reg.val() & 0x000000ff;
           return aarch64Rose(category, id, lengthID, num_bits);
         }

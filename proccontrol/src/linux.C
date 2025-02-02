@@ -2223,7 +2223,7 @@ static void init_dynreg_to_user()
    dynreg_to_user[aarch64::x30]        = make_pair(cur+=step, 8);
    dynreg_to_user[aarch64::sp]         = make_pair(cur+=step, 8);
    dynreg_to_user[aarch64::pc]         = make_pair(cur+=step, 8);
-   dynreg_to_user[aarch64::pstate]     = make_pair(cur+=step, 8);
+   dynreg_to_user[aarch64::nzcv]     = make_pair(cur+=step, 8);
 
    initialized = true;
 

@@ -688,7 +688,10 @@ namespace Dyninst {
     switch(getArchitecture()) {
       case Arch_x86: return regC == x86::FLAG;
       case Arch_x86_64: return regC == x86_64::FLAG;
-      case Arch_aarch64: return regC == aarch64::FLAG;
+      case Arch_aarch64: {
+        return regC == aarch64::FLAG ||
+               regC == aarch64::PSTATE;
+      }
       case Arch_ppc32:
       case Arch_ppc64: {
         // For power, we have a different register representation.
@@ -1140,7 +1143,7 @@ namespace Dyninst {
 
           case 100: return Dyninst::aarch64::sp;
           case 101: return Dyninst::aarch64::pc;
-          case 102: return Dyninst::aarch64::pstate;
+          case 102: return Dyninst::aarch64::nzcv;
           case 103: return Dyninst::aarch64::xzr;
           default: return InvalidReg;
         }
