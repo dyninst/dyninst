@@ -105,8 +105,8 @@ public:
     static void generateMemLoad(codeGen &gen, LoadStore accType, Dyninst::Register r1,
             Dyninst::Register r2, Dyninst::RegValue offset, Dyninst::RegValue size, bool isUnsigned);
 
-    static void generateMemStore(codeGen &gen, LoadStore accType, Dyninst::Register r1,
-            Dyninst::Register r2, Dyninst::RegValue offset, Dyninst::RegValue size);
+    static void generateMemStore(codeGen &gen, LoadStore accType, Dyninst::Register rs1,
+            Dyninst::Register rs2, Dyninst::RegValue offset, Dyninst::RegValue size);
 
     static inline void loadImmIntoReg(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue value)
     {
@@ -211,6 +211,7 @@ public:
     static void generateRTypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2, unsigned funct7, unsigned funct3, unsigned opcode);
     static void generateBTypeInsn(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm, unsigned funct3, unsigned opcode);
     static void generateJTypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm, unsigned opcode);
+    static void generateSTypeInsn(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm, unsigned funct3, unsigned opcode);
 
     static void generateAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
     static void generateShiftLeftImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
