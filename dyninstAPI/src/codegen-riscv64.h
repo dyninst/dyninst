@@ -74,17 +74,18 @@ public:
 
     static void generateIllegal(codeGen &gen);
 
-    static void generateJump(codeGen &gen, Dyninst::RegValue offset);
-
-    static void generateJumpAndLink(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue offset);
-
-    static void generateJumpRegister(codeGen &gen, Dyninst::Register rs);
-
-    static void generateJumpAndLinkRegister(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue offset);
-
     static void generateCall(codeGen &gen,
                              Dyninst::Address from,
                              Dyninst::Address to);
+
+    static void generateBranch(codeGen &gen,
+                               long jump_off,
+                               bool link = false);
+
+    static void generateBranch(codeGen &gen,
+                               Dyninst::Address from,
+                               Dyninst::Address to,
+                               bool link = false);
 
     static void generateLongBranch(codeGen &gen,
                                    Dyninst::Address from,
@@ -109,7 +110,7 @@ public:
 
     static inline void loadImmIntoReg(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue value)
     {
-        generateLoadImm(gen, rd, 0, value);
+        generateLoadImm(gen, rd, GPR_ZERO, value);
     }
 
     static void saveRegister(codeGen &gen, Dyninst::Register r, int sp_offset);
@@ -218,6 +219,11 @@ public:
     static void generateLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
     static void generateLoadUpperImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
 
+    static void generateJump(codeGen &gen, Dyninst::RegValue offset);
+    static void generateJumpAndLink(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue offset);
+    static void generateJumpRegister(codeGen &gen, Dyninst::Register rs);
+    static void generateJumpAndLinkRegister(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue offset);
+
     // Compressed Instructions
     static void generateCAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
     static void generateCAddImmScale4SPn(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
@@ -229,13 +235,13 @@ public:
     static void generateCShiftRightLogicallyImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue uimm);
     static void generateCShiftRightArithmeticImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue uimm);
     static void generateCAndImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
-    static void generateCNop(codeGen &gen);
+    static void generateCNOOP(codeGen &gen);
     static void generateCJump(codeGen &gen, Dyninst::RegValue offset);
     static void generateCJumpAndLink(codeGen &gen, Dyninst::RegValue offset);
     static void generateCJumpRegister(codeGen &gen, Dyninst::Register rs);
     static void generateCJumpAndLinkRegister(codeGen &gen, Dyninst::Register rs);
     static void generateMove(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs);
-    static void generateNop(codeGen &gen);
+    static void generateNOOP(codeGen &gen);
 };
 
 #endif
