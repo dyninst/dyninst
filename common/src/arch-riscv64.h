@@ -66,56 +66,8 @@ namespace NS_riscv64 {
 #define ORImmOp         0x6
 #define ANDImmOp        0x7
 
-#define BOp             0x05
-#define BCondOp         0x2A
-#define BRegOp          0xD61F
-#define NOOP            0xD503201F
-
-#define ADDShiftOp      0x2B
-#define SUBShiftOp      0x6B
-#define SUBImmOp        0x51
-#define MULOp           0xD8
-#define SDIVOp          0xD6
-
-#define ORRShiftOp      0x2A
-#define ANDShiftOp      0x0A
-#define EORShiftOp      0x4A
-
-#define LDRImmOp        0x1C2
-#define STRImmOp        0x1C0
-
-#define LDRFPImmOp      0x1E2
-#define STRFPImmOp      0x1E0
-
-#define LDRFPImmUOp     0xF5
-#define STRFPImmUOp     0xF4
-
-#define LDRImmUIOp      0xE5
-#define STRImmUIOp      0xE4
-
-#define LDRSWImmUIOp    0xE6
-
-#define MSROp           0xD51
-#define MRSOp           0xD53
-#define MSROp           0xD51
-#define MOVSPOp         0x44000
-
-#define MIN_IMM8    (-128)
-#define MAX_IMM8    (127)
-#define MIN_IMM16   (-32768)
-#define MAX_IMM16   (32767)
-#define MIN_IMM32   (-2147483647 - 1)
-#define MAX_IMM32   (2147483647)
-#define MAX_IMM48   ((long)(-1 >> 17))
-#define MIN_IMM48   ((long)(~MAX_IMM48))
-#define MAX_IMM52   ((long)(1 << 52))
-#define MIN_IMM52   ((long)(~MAX_IMM52))
-
-//Would probably want to use the register category as well (FPR/SPR/GPR), but for the uses of these macros, this should suffice
-#define SPR_LR      (((Dyninst::riscv64::x29).val()) & 0x1F)
-#define SPR_NZCV    (((Dyninst::riscv64::pstate).val()) & 0x1F)
-#define SPR_FPCR    (((Dyninst::riscv64::fpcr).val()) & 0x1F)
-#define SPR_FPSR    (((Dyninst::riscv64::fpsr).val()) & 0x1F)
+#define GPR_RA          1
+#define GPR_SP          2
 
 #define INSN_SET(I, s, e, v)    ((I).setBits(s, e - s + 1, (v)))
 #define INSN_C_SET(I, s, e, v)    ((I).setCBits(s, e - s + 1, (v)))
@@ -123,9 +75,8 @@ namespace NS_riscv64 {
 #define INSN_GET_ISCALL(I)          ((unsigned int) ((I).asInt() & 0x80000000))
 #define INSN_GET_CBRANCH_OFFSET(I)  ((unsigned int) (((I).asInt() >> 5) & 0x7ffff))
 
-#define MAX_BRANCH_OFFSET      0x07ffffff  // 128MB  Used for B
-#define MAX_CBRANCH_OFFSET     0x000fffff  //   1MB  Used for B.cond, CBZ and CBNZ
-#define MAX_TBRANCH_OFFSET     0x0007ffff  //  32KB  Used for TBZ and TBNZ
+#define MAX_BRANCH_OFFSET       0xfffff // 20 bits
+#define MAX_BRANCH_LINK_OFFSET  0xfff // 12 bits
 
 #define CHECK_INST(isInst) \
     !((insn_.raw&isInst##_MASK)^isInst)
