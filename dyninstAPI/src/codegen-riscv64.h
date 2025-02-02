@@ -205,8 +205,12 @@ public:
                            NS_riscv64::instruction &insn,
                            codeGen &gen);
 
-    static void generateUpperImmInsn(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm, int immop);
-    static void generateImmInsn(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm, int immop);
+    // Basic RISC-V instruction type generation
+    static void generateUTypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm, unsigned immop);
+    static void generateITypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm, unsigned funct3, unsigned opcode);
+    static void generateRTypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2, unsigned funct7, unsigned funct3, unsigned opcode);
+    static void generateBTypeInsn(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm, unsigned funct3, unsigned opcode);
+    static void generateJTypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm, unsigned opcode);
 
     static void generateAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
     static void generateShiftLeftImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
@@ -221,7 +225,7 @@ public:
 
     static void generateJump(codeGen &gen, Dyninst::RegValue offset);
     static void generateJumpAndLink(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue offset);
-    static void generateJumpRegister(codeGen &gen, Dyninst::Register rs);
+    static void generateJumpRegister(codeGen &gen, Dyninst::Register rs, Dyninst::RegValue offset);
     static void generateJumpAndLinkRegister(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue offset);
 
     // Compressed Instructions
