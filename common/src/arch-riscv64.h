@@ -60,14 +60,22 @@ namespace NS_riscv64 {
 
 #define LUIOp         0x37
 #define IMMOp         0x13
+#define JALOp         0x6f
+#define JALROp        0x67
+#define LOADOp        0x3
 
-#define ADDIFunct3        0x0
-#define SLLIFunct3        0x1
-#define XORIFunct3        0x4
-#define SRLIFunct3        0x5
-#define SRAIFunct3        0x5
-#define ORIFunct3         0x6
-#define ANDIFunct3        0x7
+#define MULFunct7     0x1
+
+#define ADDIFunct3    0x0
+#define SLLIFunct3    0x1
+#define XORIFunct3    0x4
+#define SRLIFunct3    0x5
+#define SRAIFunct3    0x5
+#define ORIFunct3     0x6
+#define ANDIFunct3    0x7
+#define JALRFunct3    0x0
+#define MULFunct3     0x0
+#define DIVFunct3     0x4
 
 #define GPR_ZERO        0
 #define GPR_RA          1
