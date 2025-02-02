@@ -153,7 +153,7 @@ void insnCodeGen::generateJumpAndLinkRegister(codeGen &gen, Dyninst::Register rd
 }
 
 void insnCodeGen::generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Address to) {
-    // TODO
+    generateBranch(gen, from, to, true);
 }
 
 void insnCodeGen::generateLongBranch(codeGen &gen,
@@ -161,7 +161,71 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
                                      Dyninst::Address to,
                                      bool isCall) 
 {
-    // TODO
+    Dyninst::Register scratch = Null_Register;
+
+    if (isCall) {
+        // use the link register ra (x1) as scratch since it will be overwritten at return
+        scratch = GPR_RA;
+        // load disp to ra
+        loadImmIntoReg(gen, scratch, to);
+        // generate jalr
+        generateJumpAndLinkRegister(gen, scratch, scratch, 0);
+        return;
+    }
+
+    instPoint *point = gen.point();
+    if (point) {
+        registerSpace *rs = registerSpace::actualRegSpace(point);
+        gen.setRegisterSpace(rs);
+
+        scratch = rs->getScratchRegister(gen, true);
+    }
+
+    if (scratch == Null_Register) {
+        //fprintf(stderr, " %s[%d] No registers. Calling generateBranchViaTrap...\n", FILE__, __LINE__);
+        generateBranchViaTrap(gen, from, to, isCall);
+        return;
+    }
+
+    loadImmIntoReg(gen, scratch, to);
+    generateJumpRegister(gen, scratch, 0);
+}
+
+void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link) {
+    if (link) {
+        if (labs(disp) > MAX_BRANCH_LINK_OFFSET) {
+            fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
+                    (unsigned long)labs(disp), (unsigned long) MAX_BRANCH_OFFSET);
+            bperr( "Error: attempted a branch and link of 0x%lx\n", (unsigned long)disp);
+            logLine("a branch and link too far\n");
+            showErrorCallback(52, "Internal error: branch and link too far");
+            bperr( "Attempted to make a branch and link of offset 0x%lx\n", (unsigned long)disp);
+            assert(0);
+        }
+        generateJumpAndLink(gen, GPR_RA, disp);
+    }
+    else {
+        if (labs(disp) > MAX_BRANCH_OFFSET) {
+            fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
+                    (unsigned long)labs(disp), (unsigned long) MAX_BRANCH_OFFSET);
+            bperr( "Error: attempted a branch of 0x%lx\n", (unsigned long)disp);
+            logLine("a branch too far\n");
+            showErrorCallback(52, "Internal error: branch too far");
+            bperr( "Attempted to make a branch of offset 0x%lx\n", (unsigned long)disp);
+            assert(0);
+        }
+        generateJump(gen, disp);
+    }
+}
+
+void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool link) {
+    long disp = (to - from);
+    if (labs(disp) > MAX_BRANCH_OFFSET) {
+        generateLongBranch(gen, from, to, link);
+    }
+    else {
+        generateBranch(gen, disp, link);
+    }
 }
 
 void insnCodeGen::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool isCall) {
@@ -429,7 +493,7 @@ void insnCodeGen::generateAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::Re
 
     // If rd == rs == zero && imm == 0, the instruction is essentially NOP (c.nop)
     if (rd == 0 && rs == 0 && imm == 0) {
-        generateNop(gen);
+        generateNOOP(gen);
         return;
     }
 
@@ -448,14 +512,14 @@ void insnCodeGen::generateAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::Re
 
     // If rs == sp && x8 <= rd < x16 && 0 <= imm < 1024 && imm % 4 == 0
     // we use c.addi4spn
-    if (rs == 2 && rd >= 8 && rd < 16 && imm >= 0 && imm < 1024 && imm % 4 == 0) {
+    if (rs == GPR_SP && rd >= GPR_FP && rd < 16 && imm >= 0 && imm < 1024 && imm % 4 == 0) {
         generateCAddImmScale4SPn(gen, rd, imm >> 2);
         return;
     }
 
     // If rd == rs == sp && -512 <= imm < 512 && imm % 16 == 0
     // we use c.addi16sp
-    if (rs == 2 && rd >= 8 && rd < 16 && imm >= 0 && imm < 1024 && imm % 4 == 0) {
+    if (rs == GPR_SP && rd >= GPR_FP && rd < 16 && imm >= 0 && imm < 1024 && imm % 4 == 0) {
         generateCAddImmScale16SP(gen, imm >> 4);
         return;
     }
@@ -622,8 +686,6 @@ void insnCodeGen::generateLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::R
         lui_imm = (lui_imm + carry + 1) & 0xfff;
     }
 
-// deadb eef 000 000 be
-
     addi_imm1 = 32;
     addi_imm2 = 0;
     addi_imm3 = 0;
@@ -639,11 +701,16 @@ void insnCodeGen::generateLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::R
         slli_imm2 = 0;
     }
 
+    // lui must be generated
     generateLoadUpperImm(gen, rd, lui_imm);
+
+    // If any of the following immediates are zero, there's no point of generating it
     if (addi_imm0 != 0) {
         generateAddImm(gen, rd, rd, addi_imm0);
     }
-    generateShiftLeftImm(gen, rd, rd, slli_imm1);
+    if (slli_imm1 != 0) {
+        generateShiftLeftImm(gen, rd, rd, slli_imm1);
+    }
     if (addi_imm1 != 0) {
         generateAddImm(gen, rd, rd, addi_imm1);
     }
@@ -659,7 +726,6 @@ void insnCodeGen::generateLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::R
     if (addi_imm3 != 0) {
         generateAddImm(gen, rd, rd, addi_imm3);
     }
-    return;
 }
 
 void insnCodeGen::generateCAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
@@ -830,13 +896,13 @@ void insnCodeGen::generateCJumpAndLinkRegister(codeGen &gen, Dyninst::Register r
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCNop(codeGen &gen) {
+void insnCodeGen::generateCNOOP(codeGen &gen) {
     instruction insn;
     INSN_C_SET(insn, 15, 0, 0x1);
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateNop(codeGen &gen) {
-    generateCNop(gen);
+void insnCodeGen::generateNOOP(codeGen &gen) {
+    generateCNOOP(gen);
 }
 
