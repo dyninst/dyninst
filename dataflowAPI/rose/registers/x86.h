@@ -45,14 +45,14 @@ namespace {
         case Dyninst::x86::XMMS:
         case Dyninst::x86::YMMS:
         case Dyninst::x86::ZMMS:
+        case Dyninst::x86::FPDBL:
+        case Dyninst::x86::BIT: return x86_regpos_all;
+        case Dyninst::x86::FULL: return x86_regpos_dword;
         case Dyninst::x86::KMSKS:
-        case Dyninst::x86::FPDBL: return x86_regpos_qword;
         case Dyninst::x86::MMS: return x86_regpos_qword;
         case Dyninst::x86::H_REG: return x86_regpos_high_byte;
         case Dyninst::x86::L_REG: return x86_regpos_low_byte;
         case Dyninst::x86::W_REG: return x86_regpos_word;
-        case Dyninst::x86::FULL:
-        case Dyninst::x86::BIT: return x86_regpos_all;
       }
       convert_printf("Unknown x86 subrange value '%d'\n", subrange);
       return x86_regpos_unknown;
@@ -130,7 +130,8 @@ namespace {
       case Dyninst::x86::SEG: {
         auto const c = x86_regclass_segment;
         auto const n = x86_rose::seg(baseID);
-        return std::make_tuple(c, static_cast<int>(n), p, num_bits);
+        auto const pos = x86_regpos_dword;  // ROSE docs: only value allowed
+        return std::make_tuple(c, static_cast<int>(n), pos, num_bits);
       }
 
       case Dyninst::x86::FLAG: {
@@ -147,8 +148,8 @@ namespace {
         return std::make_tuple(x86_regclass_mm, baseID, p, num_bits);
 
       case Dyninst::x86::X87: {
-        auto const pos = static_cast<X86PositionInRegister>(0);  // ROSE docs: only value allowed is 0
-        return std::make_tuple(x86_regclass_st_top, baseID, pos, num_bits);
+        auto const pos = x86_regpos_all;  // ROSE docs: only value allowed
+        return std::make_tuple(x86_regclass_st, baseID, pos, num_bits);
       }
 
       case Dyninst::x86::YMM:
@@ -156,6 +157,9 @@ namespace {
 
       case Dyninst::x86::ZMM:
         return std::make_tuple(x86_regclass_zmm, baseID, p, num_bits);
+
+      case Dyninst::x86::KMASK:
+        return std::make_tuple(x86_regclass_kmask, baseID, p, num_bits);
 
       case Dyninst::x86::CTL:
         return std::make_tuple(x86_regclass_cr, baseID, p, num_bits);
