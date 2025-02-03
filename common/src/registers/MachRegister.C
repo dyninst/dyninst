@@ -166,32 +166,56 @@ namespace Dyninst {
         return *this;
       }
 
-      case Arch_amdgpu_gfx908:
-        switch(category) {
-          case amdgpu_gfx908::SGPR: return MachRegister((reg & 0x000000ff) | amdgpu_gfx908::s0);
-          case amdgpu_gfx908::VGPR: return MachRegister((reg & 0x000000ff) | amdgpu_gfx908::v0);
-          case amdgpu_gfx908::HWR: return MachRegister(reg);
-
-          default: return *this;
+      case Arch_amdgpu_gfx908: {
+        if(category == amdgpu_gfx908::MISC) {
+          switch(val()) {
+            case amdgpu_gfx908::ivcc_lo:
+            case amdgpu_gfx908::ivcc_hi:
+              return amdgpu_gfx908::vcc;
+            case amdgpu_gfx908::iexec_lo:
+            case amdgpu_gfx908::iexec_hi:
+              return amdgpu_gfx908::exec;
+            case amdgpu_gfx908::iflat_scratch_lo:
+            case amdgpu_gfx908::iflat_scratch_hi:
+              return amdgpu_gfx908::flat_scratch_all;
+          }
         }
+        return *this;
+      }
 
-      case Arch_amdgpu_gfx90a:
-        switch(category) {
-          case amdgpu_gfx90a::SGPR: return MachRegister((reg & 0x000000ff) | amdgpu_gfx90a::s0);
-          case amdgpu_gfx90a::VGPR: return MachRegister((reg & 0x000000ff) | amdgpu_gfx90a::v0);
-          case amdgpu_gfx90a::HWR: return MachRegister(reg);
-
-          default: return *this;
+      case Arch_amdgpu_gfx90a: {
+        if(category == amdgpu_gfx90a::MISC) {
+          switch(val()) {
+            case amdgpu_gfx90a::ivcc_lo:
+            case amdgpu_gfx90a::ivcc_hi:
+              return amdgpu_gfx90a::vcc;
+            case amdgpu_gfx90a::iexec_lo:
+            case amdgpu_gfx90a::iexec_hi:
+              return amdgpu_gfx90a::exec;
+            case amdgpu_gfx90a::iflat_scratch_lo:
+            case amdgpu_gfx90a::iflat_scratch_hi:
+              return amdgpu_gfx90a::flat_scratch_all;
+          }
         }
+        return *this;
+      }
 
-      case Arch_amdgpu_gfx940:
-        switch(category) {
-          case amdgpu_gfx940::SGPR: return MachRegister((reg & 0x000000ff) | amdgpu_gfx940::s0);
-          case amdgpu_gfx940::VGPR: return MachRegister((reg & 0x000000ff) | amdgpu_gfx940::v0);
-          case amdgpu_gfx940::HWR: return MachRegister(reg);
-
-          default: return *this;
+      case Arch_amdgpu_gfx940: {
+        if(category == amdgpu_gfx940::MISC) {
+          switch(val()) {
+            case amdgpu_gfx940::ivcc_lo:
+            case amdgpu_gfx940::ivcc_hi:
+              return amdgpu_gfx940::vcc;
+            case amdgpu_gfx940::iexec_lo:
+            case amdgpu_gfx940::iexec_hi:
+              return amdgpu_gfx940::exec;
+            case amdgpu_gfx940::iflat_scratch_lo:
+            case amdgpu_gfx940::iflat_scratch_hi:
+              return amdgpu_gfx940::flat_scratch_all;
+          }
         }
+        return *this;
+      }
 
       case Arch_ppc32: {
         auto ppc_id = [](MachRegister r) {
