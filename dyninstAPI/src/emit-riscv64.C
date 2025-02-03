@@ -62,21 +62,6 @@ codeBufIndex_t EmitterRISCV64::emitIf(
         Register expr_reg, Register target, RegControl /*rc*/, codeGen &gen)
 {
     // TODO
-    // instruction insn;
-    // insn.clear();
-
-    // compare to 0 and branch
-    // register number, its value is compared to 0.
-    // INSN_SET(insn, 0, 4, expr_reg);
-    // INSN_SET(insn, 5, 23, (target+4)/4);
-    // INSN_SET(insn, 25, 30, 0x1a); // CBZ
-    // INSN_SET(insn, 31, 31, 1);
-
-    // insnCodeGen::generate(gen,insn);
-
-    // Retval: where the jump is in this sequence
-    // codeBufIndex_t retval = gen.getIndex();
-    // return retval;
     return 0;
 }
 
@@ -89,60 +74,48 @@ void EmitterRISCV64::emitLoadConst(Register dest, Address imm, codeGen &gen)
 void EmitterRISCV64::emitLoad(Register dest, Address addr, int size, codeGen &gen)
 {
     // TODO
-    // Register scratch = gen.rs()->getScratchRegister(gen);
-
-    // insnCodeGen::loadImmIntoReg(gen, scratch, addr);
-    // insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
-    //         scratch, 0, size, insnCodeGen::Post);
-
-    // gen.rs()->freeRegister(scratch);
-    // gen.markRegDefined(dest);
 }
 
 
 void EmitterRISCV64::emitStore(Address addr, Register src, int size, codeGen &gen)
 {
     // TODO
-    // Register scratch = gen.rs()->getScratchRegister(gen);
-
-    // insnCodeGen::loadImmIntoReg(gen, scratch, addr);
-    // insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, src,
-    //         scratch, 0, size, insnCodeGen::Pre);
-
-    // gen.rs()->freeRegister(scratch);
-    // gen.markRegDefined(src);
 }
 
 
 void EmitterRISCV64::emitOp(
         unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen)
 {
-    // TODO
-    // // dest = src1 + src2
-    // if( opcode == plusOp )
-    //     insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, 0, src1, src2, dest, true);
+    // dest = src1 + src2
+    if (opcode == plusOp) {
+        insnCodeGen::generateAdd(gen, src1, src2, dest);
+    }
 
-    // // dest = src1 - src2
-    // else if( opcode == minusOp )
-    //     insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Sub, 0, 0, src2, src1, dest, true);
+    // dest = src1 - src2
+    else if(opcode == minusOp) {
+        insnCodeGen::generateSub(gen, src1, src2, dest);
+    }
     
-    // // dest = src1 * src2
-    // else if( opcode == timesOp )
-    //     insnCodeGen::generateMul(gen, src1, src2, dest, true);
+    // dest = src1 * src2
+    else if (opcode == timesOp) {
+        insnCodeGen::generateMul(gen, src1, src2, dest);
+    }
 
-    // // dest = src1 & src2
-    // else if( opcode == andOp )
-    //     insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::And, 0, src1, 0, src2, dest, true);  
+    // dest = src1 & src2
+    else if (opcode == andOp) {
+        insnCodeGen::generateAnd(gen, src1, src2, dest);
+    }
 
-    // // dest = src1 | src2
-    // else if( opcode == orOp )
-    //     insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Or, 0, src1, 0, src2, dest, true);  
+    // dest = src1 | src2
+    else if (opcode == orOp) {
+        insnCodeGen::generateOr(gen, src1, src2, dest);
+    }
 
-    // // dest = src1 ^ src2
-    // else if( opcode == xorOp )
-    //     insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Eor, 0, src1, 0, src2, dest, true);
-
-    // else assert(0);
+    // dest = src1 ^ src2
+    else if (opcode == xorOp) {
+        insnCodeGen::generateXor(gen, src1, src2, dest);
+    }
+    else assert(0);
 }
 
 
@@ -150,22 +123,6 @@ void EmitterRISCV64::emitRelOp(
         unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen, bool s)
 {
     // TODO
-    // // CMP is an alias to SUBS;
-    // // dest here has src1-src2, which it's not important because the flags are
-    // // used for the comparison, not the subtration value.
-    // // Besides that dest must contain 1 for true or 0 for false, and the content
-    // // of dest is gonna be changed as follow.
-    // insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Sub, 0, 0, src2, src1, dest, true);
-
-    // // make dest = 1, meaning true
-    // insnCodeGen::loadImmIntoReg(gen, dest, 0x1);
-
-    // // insert conditional jump to skip dest=0 in case the comparison resulted true
-    // // therefore keeping dest=1
-    // insnCodeGen::generateConditionalBranch(gen, 8, opcode, s);
-
-    // // make dest = 0, in case it fails the branch
-    // insnCodeGen::loadImmIntoReg(gen, dest, 0x0);
 }
 
 
@@ -176,27 +133,6 @@ void EmitterRISCV64::emitGetParam(
         bool, codeGen &gen)
 {
     // TODO
-    // registerSlot *regSlot = NULL;
-    // switch (op) {
-    //     case getParamOp:
-    //         if(param_num <= 3) {
-    //             // param_num is 0..8 - it's a parameter number, not a register
-    //             regSlot = (*(gen.rs()))[registerSpace::r0 + param_num];
-    //             break;
-
-    //         } else {
-    //             assert(0);
-    //         }
-    //         break;
-    //     default:
-    //         assert(0);
-    //         break;
-    // } // end of swich(op)
-
-    // assert(regSlot);
-    // //Register reg = regSlot->number;
-
-    // //return reg;
 }
 
 
@@ -204,106 +140,28 @@ void EmitterRISCV64::emitRelOpImm(
         unsigned opcode, Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s)
 {
     // TODO
-    // //Register src2 = gen.rs()->allocateRegister(gen, true);
-    // Register src2 = gen.rs()->getScratchRegister(gen);
-    // emitLoadConst(src2, src2imm, gen);
-
-    // // CMP is an alias to SUBS;
-    // // dest here has src1-src2, which it's not important because the flags are
-    // // used for the comparison, not the subtration value.
-    // // Besides that dest must contain 1 for true or 0 for false, and the content
-    // // of dest is gonna be changed as follow.
-    // insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Sub, 0, 0, src2, src1, dest, true);
-
-    // // make dest = 1, meaning true
-    // insnCodeGen::loadImmIntoReg(gen, dest, 0x1);
-
-    // // insert conditional jump to skip dest=0 in case the comparison resulted true
-    // // therefore keeping dest=1
-    // insnCodeGen::generateConditionalBranch(gen, 8, opcode, s);
-
-    // // make dest = 0, in case it fails the branch
-    // insnCodeGen::loadImmIntoReg(gen, dest, 0x0);
-
-    // gen.rs()->freeRegister(src2);
-    // gen.markRegDefined(dest);
 }
 
 
 void EmitterRISCV64::emitLoadIndir(Register dest, Register addr_src, int size, codeGen &gen)
 {
     // TODO
-    // insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
-    //         addr_src, 0, size, insnCodeGen::Post);
-
-    // gen.markRegDefined(dest);
 }
 void EmitterRISCV64::emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen)
 {
     // TODO
-    // insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, src,
-    //         addr_reg, 0, size, insnCodeGen::Pre);
-
-    // gen.markRegDefined(addr_reg);
 }
 
 void EmitterRISCV64::emitLoadOrigRegRelative(
         Register dest, Address offset, Register base, codeGen &gen, bool deref)
 {
-
     // TODO
-    // gen.markRegDefined(dest);
-    // Register scratch = gen.rs()->getScratchRegister(gen);
-    // assert(scratch);
-    // gen.markRegDefined(scratch);
-
-    // // either load the address or the contents at that address
-    // if(deref)
-    // {
-    //     // load the stored register 'base' into scratch
-    //     emitLoadOrigRegister(base, scratch, gen);
-    //     // move offset(%scratch), %dest
-    //     insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
-    //         scratch, offset, /*size==8?true:false*/4, insnCodeGen::Offset);
-    // }
-    // else
-    // {
-    //     // load the stored register 'base' into dest
-	// emitLoadOrigRegister(base, scratch, gen);
-	// insnCodeGen::loadImmIntoReg(gen, dest, offset);
-	// insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, 0, dest, scratch, dest, true);
-    // }
 }
 
 
 void EmitterRISCV64::emitLoadOrigRegister(Address register_num, Register destination, codeGen &gen)
 {
-
     // TODO
-//    registerSlot *src = (*gen.rs())[register_num];
-//    assert(src);
-//    registerSlot *dest = (*gen.rs())[destination];
-//    assert(dest);
-
-//    if (src->name == "sp") {
-//       insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0,
-//              TRAMP_FRAME_SIZE_64, REG_SP, destination, true);
-
-//       return;
-//    }
-
-//    if (src->spilledState == registerSlot::unspilled)
-//    {
-//       // not on the stack. Directly move the value
-//       insnCodeGen::generateMove(gen, destination, (Register) register_num, true);
-//       return;
-//    }
-
-
-//     int offset = TRAMP_GPR_OFFSET(gen.width());
-//     // its on the stack so load it.
-//     insnCodeGen::restoreRegister(gen, destination, offset + (register_num * gen.width()),
-//             insnCodeGen::Offset);
 }
 
 
