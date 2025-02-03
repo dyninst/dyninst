@@ -118,26 +118,8 @@ public:
     static void restoreRegister(codeGen &gen, Dyninst::Register r, int sp_offset);
 
     /** TODO **/
-    static void generateLoadReg(codeGen &gen, Dyninst::Register rt,
-                                Dyninst::Register ra, Dyninst::Register rb);
-
-    static void generateStoreReg(codeGen &gen, Dyninst::Register rs,
-                                 Dyninst::Register ra, Dyninst::Register rb);
-
-    static void generateLoadReg64(codeGen &gen, Dyninst::Register rt,
-                                  Dyninst::Register ra, Dyninst::Register rb);
-
-    static void generateStoreReg64(codeGen &gen, Dyninst::Register rs,
-                                   Dyninst::Register ra, Dyninst::Register rb);
-
     static void loadPartialImmIntoReg(codeGen &gen, Dyninst::Register rt,
                                       long value);
-
-    static void generateMoveFromLR(codeGen &gen, Dyninst::Register rt);
-
-    static void generateMoveToLR(codeGen &gen, Dyninst::Register rs);
-
-    static void generateMoveToCR(codeGen &gen, Dyninst::Register rs);
 
     static bool generateMem(codeGen &gen,
                             instruction &insn,
@@ -148,20 +130,11 @@ public:
 
     /** *** **/
 
-    static void generateMul(codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd, bool is64bit);
 
     static void generateDiv(codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd, bool is64bit, bool s);
 
     static void generateBitwiseOpShifted(codeGen &gen, BitwiseOp op, int shift,
             Dyninst::Register rm, int imm6, Dyninst::Register rn, Dyninst::Register rd, bool is64bit);
-
-    // This is for MOVK, MOVN, and MOVZ. For MOV use the other generateMove()
-    static void generateMove(codeGen &gen, int imm16, int shift, Dyninst::Register rd, MoveOp movOp);
-
-    // This is for MOV, which is an alias for ORR. See ARMv8 Documentation.
-    static void generateMove(codeGen &gen, Dyninst::Register rd, Dyninst::Register rm, bool is64bit = true);
-
-    static void generateMoveSP(codeGen &gen, Dyninst::Register rn, Dyninst::Register rd, bool is64bit);
 
     static Dyninst::Register moveValueToReg(codeGen &gen, long int val, std::vector<Dyninst::Register> *exclude = NULL);
 
@@ -217,12 +190,25 @@ public:
     static void generateShiftLeftImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
     static void generateShiftRightLogicallyImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
     static void generateShiftRightArithmeticImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
-
     static void generateAndImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
     static void generateOrImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
     static void generateXorImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
     static void generateLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
     static void generateLoadUpperImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
+
+    static void generateNOOP(codeGen &gen);
+
+    static void generateAdd(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2);
+    static void generateSub(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2);
+    static void generateShiftLeft(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2);
+    static void generateShiftRightLogically(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2);
+    static void generateShiftRightArithmetic(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2);
+    static void generateAnd(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2);
+    static void generateOr(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2);
+    static void generateXor(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2);
+    static void generateMul(codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd);
+    static void generateDiv(codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd);
+    static void generateMove(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs);
 
     static void generateJump(codeGen &gen, Dyninst::RegValue offset);
     static void generateJumpAndLink(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue offset);
@@ -230,23 +216,25 @@ public:
     static void generateJumpAndLinkRegister(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue offset);
 
     // Compressed Instructions
+    static void generateCAdd(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs);
     static void generateCAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
     static void generateCAddImmScale4SPn(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
     static void generateCAddImmScale16SP(codeGen &gen, Dyninst::RegValue imm);
+    static void generateCAnd(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs);
+    static void generateCAndImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
     static void generateCLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
     static void generateCLoadUpperImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
-    static void generateCMove(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs);
     static void generateCShiftLeftImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue uimm);
     static void generateCShiftRightLogicallyImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue uimm);
     static void generateCShiftRightArithmeticImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue uimm);
-    static void generateCAndImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
-    static void generateCNOOP(codeGen &gen);
+    static void generateCMove(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs);
+    static void generateCOr(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs);
     static void generateCJump(codeGen &gen, Dyninst::RegValue offset);
     static void generateCJumpAndLink(codeGen &gen, Dyninst::RegValue offset);
     static void generateCJumpRegister(codeGen &gen, Dyninst::Register rs);
     static void generateCJumpAndLinkRegister(codeGen &gen, Dyninst::Register rs);
-    static void generateMove(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs);
-    static void generateNOOP(codeGen &gen);
+    static void generateCNop(codeGen &gen);
+    static void generateCXor(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs);
 };
 
 #endif
