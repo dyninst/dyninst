@@ -320,7 +320,7 @@ bool DwarfFrameParser::getRegAtFrame(
             if(nops == 0 && ops == ops_mem)
             {
                 dwarf_printf("\t case of undefined rule, treats as same_value\n");
-#if defined(DYNINST_HOST_ARCH_AARCH64)
+#if defined(DYNINST_CODEGEN_ARCH_AARCH64)
                 reg = MachRegister::getArchRegFromAbstractReg(reg, arch);
                 dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
 #endif
@@ -337,7 +337,7 @@ bool DwarfFrameParser::getRegAtFrame(
             if(nops == 0 && ops == NULL)
             {
                 dwarf_printf("\t case of same_value rule\n");
-#if defined(DYNINST_HOST_ARCH_AARCH64)
+#if defined(DYNINST_CODEGEN_ARCH_AARCH64)
                 reg = MachRegister::getArchRegFromAbstractReg(reg, arch);
                 dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
 #endif

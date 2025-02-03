@@ -48,3 +48,7 @@ option(DYNINST_FORCE_RUNPATH "Require the use of RUNPATH instead of compiler's d
        OFF)
 
 option(DYNINST_ENABLE_TESTS "Build tests" OFF)
+
+option(DYNINST_CODEGEN_ARCH
+       "Override default host architecture detection for cross-architecture support" OFF)
+mark_as_advanced(DYNINST_CODEGEN_ARCH)

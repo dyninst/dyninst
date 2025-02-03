@@ -220,6 +220,9 @@ namespace hd {
     bool gap_heuristics(CodeObject *co,CodeRegion *cr,Address addr)
     {
         bool ret = false;
+        (void ) co;
+        (void ) cr;
+        (void ) addr;
 #if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64) || defined(i386_unknown_nt4_0)
 
   #if defined(os_windows)

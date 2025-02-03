@@ -34,19 +34,19 @@
 // simple handling of architecture-specific forward declarations
 // from common/src/arch-*.h
 
-#if defined(DYNINST_HOST_ARCH_POWER)
+#if defined(DYNINST_CODEGEN_ARCH_POWER)
 namespace NS_power {
     class instruction;
 }
 using namespace NS_power;
 #elif defined(i386_unknown_nt4_0) \
-   || defined(DYNINST_HOST_ARCH_X86)           \
-   || defined(DYNINST_HOST_ARCH_X86_64)
+   || defined(DYNINST_CODEGEN_ARCH_X86)           \
+   || defined(DYNINST_CODEGEN_ARCH_X86_64)
 namespace NS_x86 {
     class instruction;
 }
 using namespace NS_x86;
-#elif defined(DYNINST_HOST_ARCH_AARCH64) \
+#elif defined(DYNINST_CODEGEN_ARCH_AARCH64) \
 	 || defined(aarch64_unknown_linux)
 namespace NS_aarch64{
 		class instruction;

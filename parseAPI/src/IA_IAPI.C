@@ -715,7 +715,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
 bool IA_IAPI::isIPRelativeBranch() const
 {
     // These don't exist on IA32...
-#if !defined(DYNINST_HOST_ARCH_X86_64)
+#if !defined(DYNINST_CODEGEN_ARCH_X86_64)
     return false;
 #endif
     Instruction ci = curInsn();
