@@ -36,7 +36,11 @@
 #include "MultiRegister.h"
 #include "Dereference.h"
 
-#include "common/src/arch.h"
+#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
+# include "common/src/arch-x86.h"
+#elif defined(DYNINST_HOST_ARCH_AARCH64)
+# include "common/src/arch-aarch64.h"
+#endif
 
 #include "legacy-instruction.h"
 
@@ -53,6 +57,8 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
   // TODO 16-bit registers
     
   int nac = 0;
+
+  using namespace NS_x86;
     
   ia32_memacc mac_[3];
   ia32_condition cnd;
@@ -221,6 +227,8 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
     return NULL;
 
 #elif defined(DYNINST_HOST_ARCH_AARCH64)
+    using namespace NS_aarch64;
+
     auto operands = insn.getAllOperands();
     for(std::vector<Operand>::iterator op = operands.begin();
         op != operands.end();

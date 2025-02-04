@@ -35,8 +35,6 @@
 
 #include "ParseData.h"
 
-#include "common/src/arch.h"
-
 #include "parseAPI/h/CodeObject.h"
 #include "parseAPI/h/CodeSource.h"
 #include "parseAPI/h/CFG.h"
@@ -53,6 +51,7 @@ using namespace Dyninst::ParseAPI;
 #if defined(cap_stripped_binaries)
 
 #include "ProbabilisticParser.h"
+#include "common/src/arch-x86.h"
 
 namespace hd {
     Address calc_end(Function * f) {
@@ -183,7 +182,7 @@ namespace hd {
             (const unsigned char*)(cr->getPtrToInstruction(addr));
         if(!bufferBegin)
             return false;
-        if (!isStackFramePrecheck_gcc(bufferBegin))
+        if (!NS_x86::isStackFramePrecheck_gcc(bufferBegin))
             return false;
 
         InstructionDecoder dec(bufferBegin, 
@@ -204,7 +203,7 @@ namespace hd {
             (const unsigned char*)(cr->getPtrToInstruction(addr));
         if(!bufferBegin)
             return false;
-        if (!isStackFramePrecheck_msvs(bufferBegin))
+        if (!NS_x86::isStackFramePrecheck_msvs(bufferBegin))
             return false;
     
         InstructionDecoder dec(bufferBegin, 

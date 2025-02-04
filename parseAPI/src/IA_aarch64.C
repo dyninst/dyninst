@@ -30,7 +30,7 @@
 
 #include "IA_aarch64.h"
 #include "instructionAPI/h/syscalls.h"
-#include "common/src/arch.h"
+#include "common/src/arch-aarch64.h"
 #include "registers/aarch64_regs.h"
 #include "parseAPI/src/debug_parse.h"
 

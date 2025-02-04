@@ -39,7 +39,7 @@
 #include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/inst-power.h"
-#include "common/src/arch.h"
+#include "common/src/arch-power.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
