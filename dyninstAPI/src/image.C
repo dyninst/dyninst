@@ -36,7 +36,6 @@
 #include <fstream>
 
 #include "image.h"
-#include "common/src/arch.h"
 #include "parRegion.h"
 #include "util.h"
 #include "inst.h"

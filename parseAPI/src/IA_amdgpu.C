@@ -33,8 +33,6 @@
 #include "Immediate.h"
 #include "BinaryFunction.h"
 
-#include "common/src/arch.h"
-
 #include "parseAPI/src/debug_parse.h"
 
 #include <deque>

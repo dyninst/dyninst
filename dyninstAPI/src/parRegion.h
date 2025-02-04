@@ -35,7 +35,6 @@
 #include <string.h>
 #include <string>
 #include "codeRange.h"
-#include "common/src/arch.h" // instruction
 #include "dyninstAPI/h/BPatch_parRegion.h"
 #include <unordered_map>
 #include <map>

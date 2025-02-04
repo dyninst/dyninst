@@ -36,7 +36,6 @@
 #include <map>
 #include "dyntypes.h"
 #include "dyn_register.h"
-#include "common/src/arch.h"
 #include "dyninstAPI/src/patch.h"
 
 #if defined(DYNINST_HOST_ARCH_POWER)
