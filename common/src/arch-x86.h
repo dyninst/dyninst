@@ -1124,7 +1124,6 @@ class instruction {
                *p == XOR_R32_RM32; }
   bool isANearBranch() const { return isJumpDir(); }
 
-  bool isTrueCallInsn() const { return (isCall() && !isCallIndir()); }
   bool isSysCallInsn() const { return op_ptr_[0] == SYSCALL[0] &&
                                    op_ptr_[1] == SYSCALL[1]; }
 
