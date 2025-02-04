@@ -99,13 +99,18 @@ public:
                                       bool isCall);
 
     // Generate conditional branch
-    static void generateConditionalBranch(codeGen& gen, Dyninst::Address to, unsigned opcode, bool s);
+    static void insnCodeGen::generateBranchEqual(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
+    static void insnCodeGen::generateBranchNotEqual(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
+    static void insnCodeGen::generateBranchLessThan(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
+    static void insnCodeGen::generateBranchGreaterThanEqual(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
+    static void insnCodeGen::generateBranchLessThanUnsigned(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
+    static void insnCodeGen::generateBranchGreaterThanEqualUnsigned(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
 
     // LDR/STR (immediate)
-    static void generateMemLoad(codeGen &gen, LoadStore accType, Dyninst::Register r1,
+    static void generateMemLoad(codeGen &gen, Dyninst::Register r1,
             Dyninst::Register r2, Dyninst::RegValue offset, Dyninst::RegValue size, bool isUnsigned);
 
-    static void generateMemStore(codeGen &gen, LoadStore accType, Dyninst::Register rs1,
+    static void generateMemStore(codeGen &gen, Dyninst::Register rs1,
             Dyninst::Register rs2, Dyninst::RegValue offset, Dyninst::RegValue size);
 
     static inline void loadImmIntoReg(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue value)

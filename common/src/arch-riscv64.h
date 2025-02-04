@@ -65,6 +65,7 @@ namespace NS_riscv64 {
 #define JALROp        0x67
 #define LOADOp        0x3
 #define STOREOp       0x23
+#define BRANCHOp      0x63
 
 #define ADDFunct7     0x0
 #define SUBFunct7     0x20
@@ -85,10 +86,16 @@ namespace NS_riscv64 {
 #define SRAFunct3    0x5
 #define ORFunct3     0x6
 #define ANDFunct3    0x7
-#define JALRFunct3    0x0
+#define JALRFunct3   0x0
+#define MULFunct3    0x0
+#define DIVFunct3    0x4
 
-#define MULFunct3     0x0
-#define DIVFunct3     0x4
+#define BGEFunct3    0x0
+#define BNEFunct3    0x1
+#define BLTFunct3    0x4
+#define BGEFunct3    0x5
+#define BLTUFunct3   0x6
+#define BGEUFunct3   0x7
 
 #define GPR_ZERO        0
 #define GPR_RA          1
