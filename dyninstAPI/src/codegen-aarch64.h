@@ -34,6 +34,7 @@
 #include <vector>
 #include "dyntypes.h"
 #include "common/src/dyn_register.h"
+#include "arch-aarch64.h"
 
 class AddressSpace;
 

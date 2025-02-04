@@ -34,6 +34,8 @@
 #include <vector>
 #include "dyntypes.h"
 #include "dyn_register.h"
+#include "arch-power.h"
+#include "patch.h"
 
 class AddressSpace;
 class codeGen;

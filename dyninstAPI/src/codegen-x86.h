@@ -36,11 +36,8 @@
 #include "entryIDs.h"
 #include "dyntypes.h"
 #include "dyn_register.h"
-
-#if !defined(DYNINST_HOST_ARCH_X86) && !defined(DYNINST_HOST_ARCH_X86_64)
- 
-#error "invalid architecture-os inclusion"
-#endif
+#include "arch-x86.h"
+#include "patch.h"
 
 #include "common/src/ia32_locations.h"
 
