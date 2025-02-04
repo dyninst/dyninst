@@ -72,7 +72,6 @@ using namespace Dyninst::InstructionAPI;
 #include "registerSpace.h"
 #include "mapped_module.h"
 
-#include "legacy-instruction.h"
 #include "mapped_object.h"
 #include "Buffer.h"
 
