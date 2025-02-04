@@ -41,7 +41,6 @@
 #include <unordered_map>
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "common/src/stats.h"
@@ -60,7 +59,6 @@
 
 #include "dyninstAPI/src/registerSpace.h"
 
-#include "dyninstAPI/src/instP.h" // class returnInstance
 #include "mapped_module.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "IAPI_to_AST.h"
@@ -2271,13 +2269,6 @@ bool func_instance::setReturnValue(int val)
     emitSimpleInsn(0xc3, gen); //ret
     
     return proc()->writeTextSpace((void *) addr(), gen.used(), gen.start_ptr());
-}
-
-unsigned saveRestoreRegistersInBaseTramp(AddressSpace * /*proc*/, 
-                                         baseTramp * /*bt*/,
-                                         registerSpace * /*rs*/)
-{
-  return 0;
 }
 
 /**

@@ -33,7 +33,6 @@
 #include "dyninstAPI/src/image.h"
 #include "function.h"
 #include "inst.h"
-#include "instP.h"
 #include "instPoint.h"
 #include "ast.h"
 #include "util.h"

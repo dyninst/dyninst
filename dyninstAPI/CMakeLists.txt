@@ -74,7 +74,6 @@ set(_private_headers
     src/infHeap.h
     src/inst-aarch64.h
     src/inst.h
-    src/instP.h
     src/instPoint.h
     src/inst-power.h
     src/inst-x86.h

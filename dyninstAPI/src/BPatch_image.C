@@ -38,7 +38,6 @@
 #include <string>
 
 #include "instPoint.h"
-#include "instP.h"
 #include "function.h"
 
 #include "mapped_module.h"

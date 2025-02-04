@@ -31,7 +31,6 @@
 // $Id: baseTramp.C,v 1.68 2008/09/03 06:08:44 jaw Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
-#include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/dynThread.h"
 #include "dyninstAPI/src/binaryEdit.h"
