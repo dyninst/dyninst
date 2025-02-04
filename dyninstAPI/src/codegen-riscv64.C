@@ -220,11 +220,36 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyn
     // TODO
 }
 
-void insnCodeGen::generateConditionalBranch(codeGen& gen, Dyninst::Address to, unsigned opcode, bool s)
+
+void insnCodeGen::generateBranchEqual(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm)
 {
-    // TODO
+    generateBTypeInsn(gen, rs1, rs2, imm, BEQFunct3, BRANCHOp);
 }
 
+void insnCodeGen::generateBranchNotEqual(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm)
+{
+    generateBTypeInsn(gen, rs1, rs2, imm, BNEFunct3, BRANCHOp);
+}
+
+void insnCodeGen::generateBranchLessThan(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm)
+{
+    generateBTypeInsn(gen, rs1, rs2, imm, BLTFunct3, BRANCHOp);
+}
+
+void insnCodeGen::generateBranchGreaterThanEqual(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm)
+{
+    generateBTypeInsn(gen, rs1, rs2, imm, BGEFunct3, BRANCHOp);
+}
+
+void insnCodeGen::generateBranchLessThanUnsigned(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm)
+{
+    generateBTypeInsn(gen, rs1, rs2, imm, BLTUFunct3, BRANCHOp);
+}
+
+void insnCodeGen::generateBranchGreaterThanEqualUnsigned(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm)
+{
+    generateBTypeInsn(gen, rs1, rs2, imm, BGEUFunct3, BRANCHOp);
+}
 
 void insnCodeGen::generateBitwiseOpShifted(
         codeGen &gen, insnCodeGen::BitwiseOp op, int shift, Dyninst::Register rm, int imm6,
@@ -245,11 +270,11 @@ Dyninst::Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, std::v
 //     LDRH/STRH  (immediate) for 16-bit
 //
 // Encoding classes allowed: Post-index, Pre-index and Unsigned Offset
-void insnCodeGen::generateMemLoad(codeGen &gen, LoadStore accType,
-        Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue offset, Dyninst::RegValue size, bool isUnsigned)
+void insnCodeGen::generateMemLoad(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue offset, Dyninst::RegValue size, bool isUnsigned)
 {
     assert(size == 1 || size == 2 || size == 4 || size == 8);
-    assert(!(size == 8 && isUnsigned)); // no ldu instruction
+    // no "ldu" instruction, but treat "ldu" as ld
+    //assert(!(size == 8 && isUnsigned));
     assert(offset >= -0x800 && offset < 0x800);
 
     Dyninst::RegValue funct3{};
@@ -258,7 +283,7 @@ void insnCodeGen::generateMemLoad(codeGen &gen, LoadStore accType,
         case 2: funct3 = 0x1; break; // lh = 001
         case 4: funct3 = 0x2; break; // lw = 010
         case 8: funct3 = 0x4; break; // ld = 011
-        default: break;             // not gonna happen
+        default: break;              // not gonna happen
     }
     if (isUnsigned) {
         funct3 |= 0x4; // lbu = 100, lhu = 101, lwu = 110
@@ -268,8 +293,7 @@ void insnCodeGen::generateMemLoad(codeGen &gen, LoadStore accType,
     generateITypeInsn(gen, rd, rs, offset, funct3, LOADOp);
 }
 
-void insnCodeGen::generateMemStore(codeGen &gen, LoadStore accType,
-        Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue offset, Dyninst::RegValue size)
+void insnCodeGen::generateMemStore(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue offset, Dyninst::RegValue size)
 {
     assert(size == 1 || size == 2 || size == 4 || size == 8);
     assert(offset >= -0x800 && offset < 0x800);
@@ -280,7 +304,7 @@ void insnCodeGen::generateMemStore(codeGen &gen, LoadStore accType,
         case 2: funct3 = 0x1; break; // lh = 001
         case 4: funct3 = 0x2; break; // lw = 010
         case 8: funct3 = 0x4; break; // ld = 011
-        default: break;             // not gonna happen
+        default: break;              // not gonna happen
     }
 
     // Store instructions are S-Type
