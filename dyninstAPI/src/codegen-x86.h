@@ -49,9 +49,6 @@
 
 // Code generation
 
-typedef unsigned char codeBuf_t;
-typedef unsigned codeBufIndex_t;
-
 class codeGen;
 class AddressSpace;
 
