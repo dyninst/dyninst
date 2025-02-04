@@ -37,33 +37,38 @@
  * platform-specific `instruction' type.
  */
 
-#include "arch-forward-decl.h"
-
 #if defined(DYNINST_HOST_ARCH_POWER)
-using namespace NS_power;
+
+#include "arch-power.h"
+namespace internal = NS_power;
 
 #elif defined(i386_unknown_nt4_0) \
    || defined(DYNINST_HOST_ARCH_X86)           \
    || defined(DYNINST_HOST_ARCH_X86_64)
-using namespace NS_x86;
+
+#include "arch-x86.h"
+namespace internal = NS_x86;
 
 #elif defined(DYNINST_HOST_ARCH_AARCH64)
-using namespace NS_aarch64;
+
+#include "arch-aarch64.h"
+namespace internal = NS_aarch64;
 
 #else
+
 #error "unknown architecture"
 
 #endif
 
 class internal_instruction {
  public:
-    explicit internal_instruction(instruction * insn)
+    explicit internal_instruction(internal::instruction * insn)
         : _insn(insn)
     { }
 
-    instruction * insn() const { return _insn; }
+    internal::instruction * insn() const { return _insn; }
  private:
-    instruction * _insn; 
+    internal::instruction * _insn;
 };
 
 

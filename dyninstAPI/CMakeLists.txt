@@ -41,7 +41,6 @@ set(_public_headers
 
 set(_private_headers
     src/addressSpace.h
-    src/arch-forward-decl.h
     src/ast.h
     src/baseTramp.h
     src/binaryEdit.h

@@ -45,8 +45,6 @@
 
 #include "dyninstAPI/src/baseTramp.h" // iterator
 
-#include "arch-forward-decl.h" // instruction
-
 #include "Point.h"
 #include "Snippet.h"
 #include "Relocation/DynPointMaker.h"
