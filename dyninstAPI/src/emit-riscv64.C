@@ -73,13 +73,26 @@ void EmitterRISCV64::emitLoadConst(Register dest, Address imm, codeGen &gen)
 
 void EmitterRISCV64::emitLoad(Register dest, Address addr, int size, codeGen &gen)
 {
-    // TODO
+    Register scratch = gen.rs()->getScratchRegister(gen);
+
+    insnCodeGen::loadImmIntoReg(gen, scratch, addr);
+    /* As we want to zero extend the dest register, we should set isUnsigned to true */
+    insnCodeGen::generateMemLoad(gen, dest, scratch, 0, size, true);
+
+    gen.rs()->freeRegister(scratch);
+    gen.markRegDefined(dest);
 }
 
 
 void EmitterRISCV64::emitStore(Address addr, Register src, int size, codeGen &gen)
 {
-    // TODO
+    Register scratch = gen.rs()->getScratchRegister(gen);
+
+    insnCodeGen::loadImmIntoReg(gen, scratch, addr);
+    insnCodeGen::generateMemStore(gen, scratch, dest, 0, size);
+
+    gen.rs()->freeRegister(scratch);
+    gen.markRegDefined(src);
 }
 
 
