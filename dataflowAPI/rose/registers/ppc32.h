@@ -40,8 +40,8 @@
 namespace {
 
   std::tuple<PowerpcRegisterClass, int, int, int>
-  ppc32Rose(int32_t category, int32_t reg, int32_t num_bits) {
-    int const baseID = reg & 0x0000FFFF;
+  ppc32Rose(int32_t category, Dyninst::MachRegister reg, int32_t num_bits) {
+    int const baseID = reg.val() & 0x0000FFFF;
     constexpr auto pos = 0;
 
     switch(category) {
@@ -53,18 +53,59 @@ namespace {
         return std::make_tuple(powerpc_regclass_fpr, baseID, pos, num_bits);
 
       case Dyninst::ppc32::SPR: {
-        if(baseID < 613) {
-          return std::make_tuple(powerpc_regclass_spr, baseID, pos, num_bits);
+        if(baseID >= 1 && baseID <= 282) {
+          // mq (0) doesn't have a ROSE representation
+          // xer (1) to crt (9) map directly to the PowerpcSpecialPurposeRegister values
+          // amr (13) and dscr (17) don't have ROSE representations
+          // dsisr (18) to dec (22) map directly to the PowerpcSpecialPurposeRegister values
+          // sdr1 (25) to ear (282) don't have ROSE representations
+          return std::make_tuple(powerpc_regclass_spr, baseID, 0, 0);
         }
-        if(baseID < 621) {
-          return std::make_tuple(powerpc_regclass_sr, baseID, pos, num_bits);
+        if(reg == Dyninst::ppc32::tbl_wo || reg == Dyninst::ppc32::tbl_ro) {
+          return std::make_tuple(powerpc_regclass_tbr, powerpc_tbr_tbl, 0, num_bits);
         }
-        // ROSE treats CR as one register, so `minor` is always 0.
-        constexpr auto minor = 0;
-        auto const offset = baseID - 621;
-        auto const pos = 4 * offset;
-        constexpr auto nbits = 4;
-        return std::make_tuple(powerpc_regclass_cr, minor, pos, nbits);
+        if(reg == Dyninst::ppc32::tbu_wo || reg == Dyninst::ppc32::tbu_ro) {
+          return std::make_tuple(powerpc_regclass_tbr, powerpc_tbr_tbu, 0, num_bits);
+        }
+        if(reg == Dyninst::ppc32::pvr) {
+          return std::make_tuple(powerpc_regclass_pvr, 0, 0, num_bits);
+        }
+        if(baseID >= 528 && baseID <= 600) {
+          // ibat9u (528) to pc (600) don't have ROSE representations
+          return std::make_tuple(powerpc_regclass_spr, baseID, 0, 0);
+        }
+        if(baseID >= 601 && baseID <= 609) {
+          // ROSE doesn't have fpscw0 -> fpscw9, so map them all to fpscw
+          return std::make_tuple(powerpc_regclass_fpscr, 0, 0, num_bits);
+        }
+        if(baseID == 610) {
+          return std::make_tuple(powerpc_regclass_msr, 0, 0, num_bits);
+        }
+        if(baseID >= 611 && baseID <= 612) {
+          // ivpr (611) and ivor8 (612) don't have ROSE representations
+          return std::make_tuple(powerpc_regclass_spr, baseID, 0, 0);
+        }
+        if(baseID >= 613 && baseID <= 620) {
+          auto const pos = baseID - 613;
+          return std::make_tuple(powerpc_regclass_sr, 0, pos, num_bits);
+        }
+        if(baseID >= 621 && baseID <= 628) {
+          auto const pos = baseID - 621;
+          return std::make_tuple(powerpc_regclass_cr, 0, pos, num_bits);
+        }
+        if(baseID == 629) {
+          return std::make_tuple(powerpc_regclass_cr, 0, 0, num_bits);
+        }
+        if(baseID >= 630 && baseID <= 631) {
+          // or3 (630) and trap (631) don't have ROSE representations
+          return std::make_tuple(powerpc_regclass_spr, baseID, 0, 0);
+        }
+        if(baseID >= 700 && baseID <= 731) {
+          // cr0l to cr7s
+          auto const pos = baseID - 700;
+          return std::make_tuple(powerpc_regclass_cr, 0, pos, 1);
+        }
+        return std::make_tuple(powerpc_regclass_spr, baseID, 0, 0);
       }
     }
     convert_printf("Unknown ppc32 category '%d'\n", category);
