@@ -76,7 +76,6 @@ set(_private_headers
     src/instPoint.h
     src/inst-power.h
     src/inst-x86.h
-    src/legacy-instruction.h
     src/LinearVariable.h
     src/linux-aarch64.h
     src/linux.h

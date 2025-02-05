@@ -42,8 +42,6 @@
 # include "common/src/arch-aarch64.h"
 #endif
 
-#include "legacy-instruction.h"
-
 using namespace Dyninst;
 using namespace InstructionAPI;
 
@@ -90,13 +88,13 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
       if(first) {
         if(mac.prefetch) {
           if(mac.prefetchlvl > 0) // Intel
-            bmap = new BPatch_memoryAccess(new internal_instruction(NULL), current,
+            bmap = new BPatch_memoryAccess(current,
 					   false, false,
                                            mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                            0, -1, -1, 0,
                                            bmapcond, false, mac.prefetchlvl);
           else // AMD
-	    bmap = new BPatch_memoryAccess(new internal_instruction(NULL), current,
+	    bmap = new BPatch_memoryAccess(current,
 					   false, false,
                                            mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                            0, -1, -1, 0,
@@ -104,41 +102,41 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
         }
         else switch(mac.sizehack) { // translation to pseudoregisters
         case 0:
-	  bmap = new BPatch_memoryAccess(new internal_instruction(NULL), current,
+	  bmap = new BPatch_memoryAccess(current,
 					 mac.read, mac.write,
                                          mac.size, mac.imm, mac.regs[0], mac.regs[1], mac.scale, 
                                          bmapcond, mac.nt);
           break;
         case shREP: // use ECX register to compute final size as mac.size * ECX
-	  bmap = new BPatch_memoryAccess(new internal_instruction(NULL), current,
+	  bmap = new BPatch_memoryAccess(current,
                                          mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                          0, -1, 1 , log2[mac.size],
                                          bmapcond, false);
           break;
         case shREPESCAS:
-	  bmap = new BPatch_memoryAccess(new internal_instruction(NULL), current,
+	  bmap = new BPatch_memoryAccess(current,
 					 mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                          0, -1, IA32_ESCAS, log2[mac.size],
                                          bmapcond, false);
           break;
         case shREPNESCAS:
-	  bmap = new BPatch_memoryAccess(new internal_instruction(NULL), current,
+	  bmap = new BPatch_memoryAccess(current,
 					 mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                          0, -1, IA32_NESCAS, log2[mac.size],
                                          bmapcond, false);
           break;
         case shREPECMPS:
-	  bmap = new BPatch_memoryAccess(new internal_instruction(NULL), current,
+	  bmap = new BPatch_memoryAccess(current,
 					 mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                          0, -1, IA32_ECMPS, log2[mac.size],
                                          bmapcond, false);
           break;
         case shREPNECMPS:
-	  bmap = new BPatch_memoryAccess(new internal_instruction(NULL), current,
+	  bmap = new BPatch_memoryAccess(current,
 					 mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                          0, -1, IA32_NECMPS, log2[mac.size],
@@ -218,9 +216,9 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
             if(insn.getOperation().getID() == power_op_lswx ||
                insn.getOperation().getID() == power_op_stswx)
             {
-                return new BPatch_memoryAccess(new internal_instruction(NULL), current, isLoad, isStore, (long)0, ra, rb, (long)0, 9999, -1);
+                return new BPatch_memoryAccess(current, isLoad, isStore, (long)0, ra, rb, (long)0, 9999, -1);
             }
-			return new BPatch_memoryAccess(new internal_instruction(NULL), current, isLoad, isStore,
+			return new BPatch_memoryAccess(current, isLoad, isStore,
                                        bytes, imm, ra, rb);
         }
     }
@@ -249,7 +247,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
 			//fprintf(stderr, "instruction: %s, operand %s\n", insn.format().c_str(),op->getValue()->format().c_str());
 			//fprintf(stderr, "imm: %d, ra: %d, rb: %d, scale: %d\n", imm, ra, rb, sc);
 
-			return new BPatch_memoryAccess(new internal_instruction(NULL), current, isLoad, isStore,
+			return new BPatch_memoryAccess(current, isLoad, isStore,
                                        bytes, imm, ra, rb, sc);
         }
     }
