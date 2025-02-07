@@ -251,16 +251,28 @@ void insnCodeGen::generateBranchGreaterThanEqualUnsigned(codeGen &gen, Dyninst::
     generateBTypeInsn(gen, rs1, rs2, imm, BGEUFunct3, BRANCHOp);
 }
 
-void insnCodeGen::generateBitwiseOpShifted(
-        codeGen &gen, insnCodeGen::BitwiseOp op, int shift, Dyninst::Register rm, int imm6,
-        Dyninst::Register rn, Dyninst::Register rd, bool is64bit)
-{
-    // TODO
+Dyninst::Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, std::vector<Dyninst::Register> *exclude) {
+    Dyninst::Register scratchReg;
+    if (exclude) {
+	    scratchReg = gen.rs()->getScratchRegister(gen, *exclude, true);
+    }
+    else {
+	    scratchReg = gen.rs()->getScratchRegister(gen, true);
+    }
+
+    if (scratchReg == Null_Register) {
+        fprintf(stderr, " %s[%d] No scratch register available to generate add instruction!", FILE__, __LINE__);
+        assert(0);
+    }
+
+    loadImmIntoReg(gen, scratchReg, static_cast<Dyninst::RegValue>(val));
+
+    return scratchReg;
 }
 
 
-Dyninst::Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, std::vector<Dyninst::Register> *exclude) {
-    // TODO
+void insnCodeGen::loadImmIntoReg(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue value) {
+    generateLoadImm(gen, rd, GPR_ZERO, value);
 }
 
 // Generate memory access through Load or Store
@@ -538,6 +550,10 @@ void insnCodeGen::generateAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::Re
 
     // Otherwise, generate addi
     generateITypeInsn(gen, rd, rs, imm, ADDSUBFunct3, IMMOp);
+}
+
+void insnCodeGen::generateSubImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm) {
+    generateAddImm(gen, rd, rs, -imm);
 }
 
 void insnCodeGen::generateShiftLeftImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm) {

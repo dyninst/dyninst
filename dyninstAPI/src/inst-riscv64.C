@@ -338,11 +338,12 @@ bool baseTramp::generateRestores(codeGen &gen, registerSpace *)
     EmitterRISCV64RestoreRegs restoreRegs;
     unsigned int width = gen.width();
 
-    // TODO RISC-V speical purpose register currently not supported
+    // RISC-V speical purpose register currently not supported
     //restoreRegs.restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
 
-    if (this->savedFPRs)
+    if (this->savedFPRs) {
         restoreRegs.restoreFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
+    }
 
     restoreRegs.restoreGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
 
@@ -355,56 +356,53 @@ bool baseTramp::generateRestores(codeGen &gen, registerSpace *)
 /***********************************************************************************************/
 /***********************************************************************************************/
 
-//TODO: 32-/64-bit regs?
-void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
-        codeGen &gen, bool /*noCost*/, registerSpace * /* rs */, bool s)
+void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, codeGen &gen, bool /*noCost*/, registerSpace * /* rs */, bool s)
 {
-    //switch (op) {
-        //case plusOp:
-        //case minusOp: {
-            //Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-            //insnCodeGen::generateAddSubShifted(gen,
-                                               //op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub,
-                                               //0, 0, rm, src1, dest, true);
-        //} break;
-        //case timesOp: {
-            //Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-            //insnCodeGen::generateMul(gen, rm, src1, dest, true);
-        //} break;
-        //case divOp: {
-            //Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-            //insnCodeGen::generateDiv(gen, rm, src1, dest, true, s);
-        //} break;
-        //case xorOp: {
-            //Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-            //insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Eor, 0, rm, 0, src1, dest, true);
-        //} break;
-        //case orOp: {
-            //Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-            //insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Or, 0, rm, 0, src1, dest, true);
-        //} break;
-        //case andOp: {
-            //Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-            //insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::And, 0, rm, 0, src1, dest, true);
-        //} break;
-        //case eqOp: {
-            //Register scratch = gen.rs()->getScratchRegister(gen);
-            //emitVload(loadConstOp, src2imm, 0, scratch, gen, true);
-            //emitV(op, src1, scratch, dest, gen, true);
-        //} break;
-        //case neOp:
-        //case lessOp:
-        //case leOp:
-        //case greaterOp:
-        //case geOp:
-            //// note that eqOp could be grouped here too.
-            //// There's two ways to implement this.
-            //gen.codeEmitter()->emitRelOpImm(op, dest, src1, src2imm, gen, s);
-            //return;
-        //default:
-            //assert(0);  // not implemented or not valid
-            //break;
-    //}
+    switch (op) {
+        case plusOp: {
+            insnCodeGen::generateAddImm(gen, dest, src1, src2imm);
+            break;
+        }
+        case minusOp: {
+            insnCodeGen::generateSubImm(gen, dest, src1, src2imm);
+            break;
+        }
+        case timesOp: {
+            // No multiply immediate in RISC-V
+            Register scratch = insnCodeGen::moveValueToReg(gen, src2imm);
+            insnCodeGen::generateMul(gen, dest, src1, scratch);
+            break;
+        }
+        case divOp: {
+            // No multiply immediate in RISC-V
+            Register scratch = insnCodeGen::moveValueToReg(gen, src2imm);
+            insnCodeGen::generateDiv(gen, dest, src1, scratch);
+            break;
+        }
+        case xorOp: {
+            insnCodeGen::generateXorImm(gen, dest, src1, src2imm);
+            break;
+        }
+        case orOp: {
+            insnCodeGen::generateOrImm(gen, dest, src1, src2imm);
+            break;
+        }
+        case andOp: {
+            insnCodeGen::generateAndImm(gen, dest, src1, src2imm);
+            break;
+        }
+        case eqOp:
+        case neOp:
+        case lessOp:
+        case leOp:
+        case greaterOp:
+        case geOp:
+            gen.codeEmitter()->emitRelOpImm(op, dest, src1, src2imm, gen, s);
+            return;
+        default:
+            assert(0); // not implemented or not valid
+            break;
+    }
 }
 
 void cleanUpAndExit(int status);
@@ -412,38 +410,40 @@ void cleanUpAndExit(int status);
 /* Recursive function that goes to where our instrumentation is calling
 to figure out what registers are clobbered there, and in any function
 that it calls, to a certain depth ... at which point we clobber everything
-
-Update-12/06, njr, since we're going to a cached system we are just going to
-look at the first level and not do recursive, since we would have to also
-store and reexamine every call out instead of doing it on the fly like before*/
+*/
 bool EmitterRISCV64::clobberAllFuncCall(registerSpace *rs,
                                         func_instance *callee) {
-    //     if(!callee)
-    //         return true;
-    // 
-    //     stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
-    // 
-    //     if(callee->ifunc()->isLeafFunc()) {
-    //         std::set<Register> *gpRegs = callee->ifunc()->usedGPRs();
-    //         for(std::set<Register>::iterator itr = gpRegs->begin(); itr != gpRegs->end(); itr++)
-    //             rs->GPRs()[*itr]->beenUsed = true;
-    // 
-    //         std::set<Register> *fpRegs = callee->ifunc()->usedFPRs();
-    //         for(std::set<Register>::iterator itr = fpRegs->begin(); itr != fpRegs->end(); itr++) {
-    //             if (*itr <= rs->FPRs().size())
-    //               rs->FPRs()[*itr]->beenUsed = true;
-    //             else
-    //               // parse_func::calcUsedRegs includes the subtype; we only want the regno
-    //               rs->FPRs()[*itr & 0xff]->beenUsed = true;
-    //         }
-    //     } else {
-    //         for(int idx = 0; idx < rs->numGPRs(); idx++)
-    //             rs->GPRs()[idx]->beenUsed = true;
-    //         for(int idx = 0; idx < rs->numFPRs(); idx++)
-    //             rs->FPRs()[idx]->beenUsed = true;
-    //     }
-    // 
-    //     stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
+    if (!callee) {
+        return true;
+    }
+
+    stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
+
+    if (callee->ifunc()->isLeafFunc()) {
+        std::set<Register> *gpRegs = callee->ifunc()->usedGPRs();
+        for (std::set<Register>::iterator itr = gpRegs->begin(); itr != gpRegs->end(); itr++) {
+            rs->GPRs()[*itr]->beenUsed = true;
+        }
+
+        std::set<Register> *fpRegs = callee->ifunc()->usedFPRs();
+        for (std::set<Register>::iterator itr = fpRegs->begin(); itr != fpRegs->end(); itr++) {
+            if (*itr <= rs->FPRs().size()) {
+                rs->FPRs()[*itr]->beenUsed = true;
+            }
+            else {
+                rs->FPRs()[*itr & 0xff]->beenUsed = true;
+            }
+        }
+    } else {
+        for (int idx = 0; idx < rs->numGPRs(); idx++) {
+            rs->GPRs()[idx]->beenUsed = true;
+        }
+        for (int idx = 0; idx < rs->numFPRs(); idx++) {
+            rs->FPRs()[idx]->beenUsed = true;
+        }
+    }
+
+    stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
 
     return false;
 }
@@ -696,21 +696,21 @@ void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &) {
 // VG(03/15/02): Restore mutatee value of GPR reg to dest GPR
 static inline void restoreGPRtoGPR(codeGen &gen,
                                    Register reg, Register dest) {
-    //     int frame_size, gpr_size, gpr_off;
-    // 
-    //     frame_size = TRAMP_FRAME_SIZE_64;
-    //     gpr_size   = GPRSIZE_64;
-    //     gpr_off    = TRAMP_GPR_OFFSET_64;   
-    //     
-    //     //Stack Point Register
-    //     if(reg == 31) {
-    //         insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, frame_size, REG_SP, dest, true); 
-    //     }
-    //     else {
-    //         insnCodeGen::restoreRegister(gen, dest, gpr_off + reg*gpr_size);
-    //     }
-    //     
-    //     return;
+    int frame_size, gpr_size, gpr_off;
+
+    frame_size = TRAMP_FRAME_SIZE_64;
+    gpr_size   = GPRSIZE_64;
+    gpr_off    = TRAMP_GPR_OFFSET_64;   
+
+    //Stack Point Register
+    if (reg == 31) {
+        insnCodeGen::generateAddImm(gen, frame_size, REG_SP, dest);
+    }
+    else {
+        insnCodeGen::restoreRegister(gen, dest, gpr_off + reg * gpr_size);
+    }
+
+    return;
 }
 
 // VG(03/15/02): Restore mutatee value of XER to dest GPR
@@ -729,7 +729,7 @@ static inline void moveGPR2531toGPR(codeGen &,
 // VG(03/15/02): Made functionality more obvious by adding the above functions
 static inline void emitAddOriginal(Register src, Register acc,
                                    codeGen &gen, bool noCost) {
-    //     emitV(plusOp, src, acc, acc, gen, noCost, 0);
+    emitV(plusOp, src, acc, acc, gen, noCost, 0);
 }
 
 
@@ -798,38 +798,38 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
                registerSpace * /*rs*/, int size,
                const instPoint * /* location */, AddressSpace *)
 {
-    //     switch(op)
-    //     {
-    //         case loadConstOp:
-    //             // dest is a temporary
-    //             // src1 is an immediate value
-    //             // dest = src1:imm32
-    //             gen.codeEmitter()->emitLoadConst(dest, src1, gen);
-    //             break;
-    //         case loadOp:
-    //             // dest is a temporary
-    //             // src1 is the address of the operand
-    //             // dest = [src1]
-    //             gen.codeEmitter()->emitLoad(dest, src1, size, gen);
-    //             break;
-    //         case loadRegRelativeAddr:
-    //             // (readReg(src2) + src1)
-    //             // dest is a temporary
-    //             // src2 is the register
-    //             // src1 is the offset from the address in src2
-    //             gen.codeEmitter()->emitLoadOrigRegRelative(dest, src1, src2, gen, false);
-    //             break;
-    //         case loadRegRelativeOp:
-    //             // *(readReg(src2) + src1)
-    //             // dest is a temporary
-    //             // src2 is the register
-    //             // src1 is the offset from the address in src2
-    //             gen.codeEmitter()->emitLoadOrigRegRelative(dest, src1, src2, gen, true);
-    //             break;
-    //         default:
-    //             assert(0); //Not implemented
-    //             break;
-    //     }
+    switch(op)
+    {
+        case loadConstOp:
+            // dest is a temporary
+            // src1 is an immediate value
+            // dest = src1:imm32
+            gen.codeEmitter()->emitLoadConst(dest, src1, gen);
+            break;
+        case loadOp:
+            // dest is a temporary
+            // src1 is the address of the operand
+            // dest = [src1]
+            gen.codeEmitter()->emitLoad(dest, src1, size, gen);
+            break;
+        case loadRegRelativeAddr:
+            // (readReg(src2) + src1)
+            // dest is a temporary
+            // src2 is the register
+            // src1 is the offset from the address in src2
+            gen.codeEmitter()->emitLoadOrigRegRelative(dest, src1, src2, gen, false);
+            break;
+        case loadRegRelativeOp:
+            // *(readReg(src2) + src1)
+            // dest is a temporary
+            // src2 is the register
+            // src1 is the offset from the address in src2
+            gen.codeEmitter()->emitLoadOrigRegRelative(dest, src1, src2, gen, true);
+            break;
+        default:
+            assert(0); //Not implemented
+            break;
+    }
 }
 
 void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
@@ -837,15 +837,15 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
         registerSpace * /* rs */, int size,
         const instPoint * /* location */, AddressSpace *)
 {
-    //     if (op ==  storeOp) {
-    //         // [dest] = src1
-    //         // dest has the address where src1 is to be stored
-    //         // src1 is a temporary
-    //         // src2 is a "scratch" register, we don't need it in this architecture
-    //         gen.codeEmitter()->emitStore(dest, src1, size, gen);
-    //     }else{
-    //         assert(0); //Not implemented
-    //     }
+    if (op == storeOp) {
+        // [dest] = src1
+        // dest has the address where src1 is to be stored
+        // src1 is a temporary
+        // src2 is a "scratch" register, we don't need it in this architecture
+        gen.codeEmitter()->emitStore(dest, src1, size, gen);
+    } else {
+        assert(0); //Not implemented
+    }
     return;
 }
 

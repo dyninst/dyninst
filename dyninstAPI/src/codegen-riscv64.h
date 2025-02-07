@@ -44,28 +44,6 @@ class codeGen;
 class insnCodeGen {
 public:
 
-    enum MoveOp {
-        MovOp_MOVK = 0xE5,
-        MovOp_MOVN = 0x25,
-        MovOp_MOVZ = 0xA5
-    };
-
-    enum LoadStore {
-        Load,
-        Store
-    };
-
-    enum ArithOp {
-        Add,
-        Sub
-    };
-
-    enum BitwiseOp {
-        Or,
-        And,
-        Eor
-    };
-
     static instructUnion *insnPtr(codeGen &gen);
     //static instructUnion *ptrAndInc(codeGen &gen);
 
@@ -107,16 +85,11 @@ public:
     static void insnCodeGen::generateBranchGreaterThanEqualUnsigned(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
 
     // LDR/STR (immediate)
-    static void generateMemLoad(codeGen &gen, Dyninst::Register r1,
-            Dyninst::Register r2, Dyninst::RegValue offset, Dyninst::RegValue size, bool isUnsigned);
+    static void generateMemLoad(codeGen &gen, Dyninst::Register rd,
+            Dyninst::Register rs, Dyninst::RegValue offset, Dyninst::RegValue size, bool isUnsigned);
 
     static void generateMemStore(codeGen &gen, Dyninst::Register rs1,
             Dyninst::Register rs2, Dyninst::RegValue offset, Dyninst::RegValue size);
-
-    static inline void loadImmIntoReg(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue value)
-    {
-        generateLoadImm(gen, rd, GPR_ZERO, value);
-    }
 
     static void saveRegister(codeGen &gen, Dyninst::Register r, int sp_offset);
 
@@ -138,10 +111,9 @@ public:
 
     static void generateDiv(codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd, bool is64bit, bool s);
 
-    static void generateBitwiseOpShifted(codeGen &gen, BitwiseOp op, int shift,
-            Dyninst::Register rm, int imm6, Dyninst::Register rn, Dyninst::Register rd, bool is64bit);
-
     static Dyninst::Register moveValueToReg(codeGen &gen, long int val, std::vector<Dyninst::Register> *exclude = NULL);
+
+    static void loadImmIntoReg(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue value);
 
     static void generate(codeGen &gen, instruction &insn);
 
@@ -192,6 +164,7 @@ public:
     static void generateSTypeInsn(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm, unsigned funct3, unsigned opcode);
 
     static void generateAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
+    static void generateSubImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
     static void generateShiftLeftImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
     static void generateShiftRightLogicallyImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
     static void generateShiftRightArithmeticImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
@@ -211,8 +184,8 @@ public:
     static void generateAnd(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2);
     static void generateOr(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2);
     static void generateXor(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2);
-    static void generateMul(codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd);
-    static void generateDiv(codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd);
+    static void generateMul(codeGen &gen, Dyninst::Register rd, Dyninst::Register rm, Dyninst::Register rn);
+    static void generateDiv(codeGen &gen, Dyninst::Register rd, Dyninst::Register rm, Dyninst::Register rn);
     static void generateMove(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs);
 
     static void generateJump(codeGen &gen, Dyninst::RegValue offset);
