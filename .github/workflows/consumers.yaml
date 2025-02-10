@@ -66,9 +66,6 @@ jobs:
         run: |
           set -ex
           spack/bin/spack external find --not-buildable cmake git m4 gmake meson ninja pkgconf curl python curl cmake
-          
-          add="${GITHUB_WORKSPACE}/src/.github/scripts/add_spack_package.py"
-          python3 ${add} $HOME/.spack --lib dyninst --version master --location /dyninst/install
 
       - name: Build
         shell: bash
