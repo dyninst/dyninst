@@ -667,7 +667,7 @@ void insnCodeGen::generateMul(codeGen &gen, Dyninst::Register rd, Dyninst::Regis
     generateRTypeInsn(gen, rd, rs1, rs2, MULFunct7, MULFunct3, REGOp);
 }
 
-void insnCodeGen::generateMul(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
+void insnCodeGen::generateDiv(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
     generateRTypeInsn(gen, rd, rs1, rs2, DIVFunct7, DIVFunct3, REGOp);
 }
 
