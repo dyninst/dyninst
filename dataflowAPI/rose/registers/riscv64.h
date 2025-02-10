@@ -120,7 +120,7 @@ namespace {
   }
 
   std::tuple<Riscv64RegisterClass, int, int, int>
-  riscv64Rose(int32_t category, int32_t baseID, int32_t subrange, int32_t num_bits) {
+  riscv64Rose(int32_t category, int32_t baseID, int32_t num_bits) {
     constexpr auto pos = 0;
 
     switch(category) {

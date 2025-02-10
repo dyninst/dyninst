@@ -166,6 +166,13 @@ namespace Dyninst {
         return *this;
       }
 
+      case Arch_riscv64:
+         switch(category) {
+             case riscv64::GPR: return riscv64::x0;
+             case riscv64::FPR: return riscv64::f0;
+             default: return *this;
+         }
+
       case Arch_amdgpu_gfx908: {
         if(category == amdgpu_gfx908::MISC) {
           switch(val()) {
@@ -291,7 +298,6 @@ namespace Dyninst {
       }
 
       case Arch_aarch32:
-      case Arch_riscv64:
       case Arch_intelGen9:
       case Arch_cuda:
       case Arch_none:
@@ -607,7 +613,6 @@ namespace Dyninst {
       case Arch_ppc64: return ppc64::r0;
       case Arch_aarch64: return aarch64::x8;
       case Arch_aarch32:
-      case Arch_none:
       case Arch_cuda:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
@@ -789,6 +794,9 @@ namespace Dyninst {
       case Arch_aarch64:
         return category == aarch64::GPR;
 
+      case Arch_riscv64:
+        return category == riscv64::GPR;
+
       case Arch_ppc32:
         return category == ppc32::GPR;
 
@@ -866,6 +874,12 @@ namespace Dyninst {
         auto const is_ctl = (*this == aarch64::fpcr);
         auto const is_sts = (*this == aarch64::fpsr);
         return is_vec || is_fpr || is_ctl || is_sts;
+      }
+
+      case Arch_riscv64: {
+        auto const is_vec = isVector();
+        auto const is_fpr = (category == riscv64::FPR);
+        return is_vec || is_fpr;
       }
 
       case Arch_ppc32: {
@@ -949,6 +963,10 @@ namespace Dyninst {
             return true;
         }
         return false;
+      }
+
+      case Arch_riscv64: {
+        return false; // csrs currently not supported
       }
 
       case Arch_ppc32: {
@@ -1061,6 +1079,9 @@ namespace Dyninst {
         return category == aarch64::SVE  ||
                category == aarch64::SVE2 ||
                category == aarch64::SME;
+
+      case Arch_riscv64:
+        return false; // vector currently not supported
 
       case Arch_amdgpu_gfx908: {
         switch(val()) {

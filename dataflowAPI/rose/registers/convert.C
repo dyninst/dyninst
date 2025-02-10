@@ -116,7 +116,7 @@ namespace Dyninst { namespace DataflowAPI {
         if(reg.isPC()) {
           return std::make_tuple(riscv64_regclass_pc, 0, 0, num_bits);
         }
-        return riscv64Rose(category, baseID, subrange, num_bits);
+        return riscv64Rose(category, baseID, num_bits);
       }
       case Arch_aarch32:
       case Arch_cuda:
