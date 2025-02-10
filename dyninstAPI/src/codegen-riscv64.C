@@ -38,24 +38,11 @@
 #include "dyninstAPI/src/emit-riscv64.h"
 #include "dyninstAPI/src/function.h"
 
-// TODO implement RISC-V codegen
 // "Casting" methods. We use a "base + offset" model, but often need to
 // turn that into "current instruction pointer".
 codeBuf_t *insnCodeGen::insnPtr(codeGen &gen) {
     return (instructUnion *)gen.cur_ptr();
 }
-
-#if 0
-// Same as above, but increment offset to point at the next insn.
-codeBuf_t *insnCodeGen::ptrAndInc(codeGen &gen) {
-  // MAKE SURE THAT ret WILL STAY VALID!
-  gen.realloc(gen.used() + sizeof(instruction));
-
-  instructUnion *ret = insnPtr(gen);
-  gen.moveIndex(instruction::size());
-  return ret;
-}
-#endif
 
 void insnCodeGen::generate(codeGen &gen, instruction &insn) {
     unsigned raw, size;
@@ -667,7 +654,7 @@ void insnCodeGen::generateMul(codeGen &gen, Dyninst::Register rd, Dyninst::Regis
     generateRTypeInsn(gen, rd, rs1, rs2, MULFunct7, MULFunct3, REGOp);
 }
 
-void insnCodeGen::generateMul(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
+void insnCodeGen::generateDiv(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
     generateRTypeInsn(gen, rd, rs1, rs2, DIVFunct7, DIVFunct3, REGOp);
 }
 
@@ -1033,8 +1020,12 @@ void insnCodeGen::generateCNop(codeGen &gen) {
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateNOOP(codeGen &gen) {
-    generateCNop(gen);
+void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
+    assert((size % 2) == 0);
+    while (size) {
+        generateCNop(gen);
+        size -= 2;
+    }
 }
 
 void insnCodeGen::generateCXor(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs) {
