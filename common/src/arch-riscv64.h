@@ -90,7 +90,7 @@ namespace NS_riscv64 {
 #define MULFunct3    0x0
 #define DIVFunct3    0x4
 
-#define BGEFunct3    0x0
+#define BEQFunct3    0x0
 #define BNEFunct3    0x1
 #define BLTFunct3    0x4
 #define BGEFunct3    0x5
@@ -120,42 +120,44 @@ namespace NS_riscv64 {
 typedef const unsigned int insn_mask;
 class ATOMIC_t {
 public:
-    static insn_mask LD_MASK =  (0x3f400000);
-    static insn_mask ST_MASK =  (0x3f400000);
-    static insn_mask LD =    (0x08400000);
-    static insn_mask ST =    (0x08000000);
+    static insn_mask LDST_MASK  =  (0x0000007f);
+    static insn_mask LD         =  (0x00000003);
+    static insn_mask ST         =  (0x00000023);
+    static insn_mask CLDST_MASK =  (0xe003);
+    static insn_mask CLW        =  (0x4000);
+    static insn_mask CLD        =  (0x6000);
+    static insn_mask CSW        =  (0xc000);
+    static insn_mask CSD        =  (0xe000);
+    static insn_mask CLWSP      =  (0x4002);
+    static insn_mask CLDSP      =  (0x6002);
+    static insn_mask CSWSP      =  (0xc002);
+    static insn_mask CSDSP      =  (0xe002);
 };
 
 class UNCOND_BR_t {
 public:
-    static insn_mask IMM_MASK  =(0x7c000000);
-    static insn_mask IMM       =(0x14000000);
-    static insn_mask IMM_OFFSET_MASK   =(0x03ffffff);
-    static insn_mask IMM_OFFSHIFT   = 0;
-    static insn_mask REG_MASK  =(0xfe000000);
-    static insn_mask REG       =(0xd6000000);
-    static insn_mask REG_OFFSET_MASK   =(0x000001e0);
-    static insn_mask REG_OFFSHIFT   =5;
+    static insn_mask JUMP_MASK       = (0x0000007f);
+    static insn_mask JUMP_LINK       = (0x0000006f);
+    static insn_mask JUMP_LINK_REG   = (0x00000067);
+    static insn_mask JUMP_REG_MASK   = (0x00000f80);
+    static insn_mask JUMP_REG_SHIFT  = 7;
+    static insn_mask CJUMP_MASK      = (0xe003);
+    static insn_mask CJUMP_REG_MASK  = (0x0f80);
+    static insn_mask CJUMP_REG_SHIFT = 7;
+    static insn_mask CJ              = (0xa001);
+    static insn_mask CJAL            = (0x2001);
+    static insn_mask CJR             = (0x8002);
+    static insn_mask CJALR           = (0x8002);
 };
 
 
 class COND_BR_t {
+    static insn_mask BRANCH_MASK  = (0x0000007f);
+    static insn_mask BRANCH       = (0x00000063);
+    static insn_mask CBRANCH_MASK = (0xe003);
+    static insn_mask CBEQZ        = (0xc001);
+    static insn_mask CBNEZ        = (0xe001);
 public:
-    static insn_mask BR_MASK = 0xfe000000; // conditional br mask
-    static insn_mask CB_MASK = 0x7e000000; // comp&B
-    static insn_mask TB_MASK = 0x7e000000; // test&B
-
-    static insn_mask BR =      0x54000000; // Conditional B
-    static insn_mask CB =      0x34000000; // Compare & B
-    static insn_mask TB =      0x36000000; // Test & B
-
-    static insn_mask CB_OFFSET_MASK = 0x07fffff0;
-    static insn_mask TB_OFFSET_MASK = 0x0007fff0;
-    static insn_mask BR_OFFSET_MASK = 0x07fffff0;
-
-    static insn_mask CB_OFFSHIFT = 4;
-    static insn_mask TB_OFFSHIFT = 4;
-    static insn_mask BR_OFFSHIFT = 4;
 };
 
 typedef union {
@@ -240,7 +242,6 @@ class DYNINST_EXPORT instruction {
     static int signExtend(unsigned int i, unsigned int pos);
     static instructUnion &swapBytes(instructUnion &i);
 
-    // We need instruction::size() all _over_ the place.
     unsigned size() { return is_compressed ? 2 : 4; }
 
     Dyninst::Address getBranchOffset() const;

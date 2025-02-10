@@ -479,114 +479,8 @@ Register EmitterRISCV64::emitCall(opCode op,
                                   bool,
                                   func_instance *callee) 
 {
-    //     //#sasha This function implementation is experimental.
-    // 
-    //     if (op != callOp) {
-    //         cerr << "ERROR: emitCall with op == " << op << endl;
-    //     }
-    //     assert(op == callOp);
-    // 
-    //     std::vector<Register> srcs;
-    //     std::vector<Register> saves;
-    // 
-    //     //  Sanity check for NULL address arg
-    //     if (!callee) 
-    //     {
-    //         char msg[256];
-    //         sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
-    //                 "callee argument", __FILE__, __LINE__);
-    //         showErrorCallback(80, msg);
-    //         assert(0);
-    //     }
-    // 
-    //     vector<int> savedRegs;
-    // 
-    //     // save r0-r7
-    //     for(int id = 0; id < gen.rs()->numgprs(); id++)
-    //     {
-    //         registerslot *reg = gen.rs()->gprs()[id];
-    // 
-    //         // we must save if:
-    //         // refcount > 0 (and not a source register)
-    //         // keptvalue == true (keep over the call)
-    //         // livestate == live (technically, only if not saved by the callee)
-    // 
-    //         if ((reg->refcount > 0) || reg->keptvalue || (reg->livestate == registerslot::live))
-    //         {
-    //             insncodegen::saveregister(gen, registerspace::r0 + id,
-    //                     -2*gprsize_64, insncodegen::post);
-    //             savedregs.push_back(reg->number);
-    //         }
-    //     }
-    // 
-    //     // passing operands to registers
-    //     for(size_t id = 0; id < operands.size(); id++)
-    //     {
-    //         register reg = null_register;
-    //         if (gen.rs()->allocatespecificregister(gen, registerspace::r0 + id, true))
-    //             reg = registerspace::r0 + id;
-    // 
-    //         address unnecessary = addr_null;
-    //         if (!operands[id]->generatecode_phase2(gen, false, unnecessary, reg))
-    //             assert(0);
-    //         assert(reg!=null_register);
-    //     }
-    // 
-    //     assert(gen.rs());
-    // 
-    //     // address of function to call in scratch register
-    //     register scratch = gen.rs()->getscratchregister(gen);
-    //     assert(scratch != null_register && "cannot get a scratch register");
-    //     gen.markregdefined(scratch);
-    // 
-    //     if (gen.addrspace()->edit() != null
-    //     && (gen.func()->obj() != callee->obj()
-    //         || gen.addrspace()->needspic())) {
-    //         // gen.as.edit() checks if we are in rewriter mode
-    //         address dest = getintermodulefuncaddr(callee, gen);
-    // 
-    //         // emit adr instruction
-    // 
-    //         long disp = dest - gen.curraddr();
-    //         instruction insn;
-    //         insn.clear();
-    //         insn_set(insn, 31, 31, 0);
-    //         insn_set(insn, 28, 28, 1);
-    //         insn_set(insn, 5, 23, disp >> 2);
-    //         insn_set(insn, 0, 4, scratch);
-    //         insncodegen::generate(gen, insn);
-    // 
-    //         insncodegen::generatememaccess(gen, insncodegen::load, scratch, scratch, 0, 8, insncodegen::offset);
-    //     } else {
-    //         insncodegen::loadimmintoreg(gen, scratch, callee->addr());
-    //     }
-    // 
-    //     instruction branchinsn;
-    //     branchinsn.clear();
-    // 
-    //     //set bits which are 0 for both br and blr
-    //     insn_set(branchinsn, 0, 4, 0);
-    //     insn_set(branchinsn, 10, 15, 0);
-    // 
-    //     //set register
-    //     insn_set(branchinsn, 5, 9, scratch);
-    // 
-    //     //set other bits. basically, these are the opcode bits.
-    //     //the only difference between br and blr is that bit 21 is 1 for blr.
-    //     insn_set(branchinsn, 16, 31, bregop);
-    //     insn_set(branchinsn, 21, 21, 1);
-    //     insncodegen::generate(gen, branchinsn);
-    // 
-    //     /*
-    //      * restoring registers
-    //      */
-    // 
-    //     // r7-r0
-    //     for (signed int ui = savedregs.size()-1; ui >= 0; ui--) {
-    //         insncodegen::restoreregister(gen, registerspace::r0 + savedregs[ui],
-    //                 2*gprsize_64, insncodegen::post);
-    //     }
-
+    // Not used currently
+    assert(0);
     return 0;
 }
 
@@ -596,24 +490,24 @@ codeBufIndex_t emitA(opCode op, Register src1, Register, long dest,
 {
     codeBufIndex_t retval = 0;
 
-    //     switch (op) {
-    //         case ifOp: 
-    //             {
-    //                 // if src1 == 0 jump to dest
-    //                 // src1 is a temporary
-    //                 // dest is a target address
-    //                 retval = gen.codeEmitter()->emitIf(src1, dest, rc, gen);
-    //                 break;
-    //             }
-    //         case branchOp:
-    //             {
-    //                 insnCodeGen::generateBranch(gen, dest);
-    //                 retval = gen.getIndex();
-    //                 break;
-    //             }
-    //         default:
-    //             assert(0);        // op not implemented or not expected for this emit!
-    //     }
+    switch (op) {
+        case ifOp: 
+            {
+                // if src1 == 0 jump to dest
+                // src1 is a temporary
+                // dest is a target address
+                retval = gen.codeEmitter()->emitIf(src1, dest, rc, gen);
+                break;
+            }
+        case branchOp:
+            {
+                insnCodeGen::generateBranch(gen, dest);
+                retval = gen.getIndex();
+                break;
+            }
+        default:
+            assert(0);        // op not implemented or not expected for this emit!
+    }
 
     return retval;
 }
@@ -622,69 +516,63 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
                codeGen &gen, bool /*noCost*/,
                const instPoint *, bool /*for_MT*/)
 {
-    //     registerSlot *regSlot = NULL;
-    //     unsigned addrWidth = gen.width();
-    // 
-    //     switch(op){
-    //         case getRetValOp:
-    //             regSlot = (*(gen.rs()))[registerSpace::r0];
-    //             break;
-    //         case getParamOp:
-    //             // src1 is the number of the argument
-    //             // dest is a register where we can store the value
-    //             //gen.codeEmitter()->emitGetParam(dest, src1, location->type(), op,
-    //             //        false, gen);
-    // 
-    //             if(src1 <= 7) {
-    //                 // src1 is 0..7 - it's a parameter order number, not a register
-    //                 regSlot = (*(gen.rs()))[registerSpace::r0 + src1];
-    //                 break;
-    // 
-    //             } else {
-    //                 int stkOffset = TRAMP_FRAME_SIZE_64 + (src1 - 8) * sizeof(long);
-    //                 // printf("TRAMP_FRAME_SIZE_64: %d\n", TRAMP_FRAME_SIZE_64);
-    //                 // printf("stdOffset = TRAMP_xxx_64 + (argc - 8) * 8 = { %d }\n", stkOffset);
-    //                 // TODO: PARAM_OFFSET(addrWidth) is currently not used
-    //                 // should delete that macro if it's useless
-    // 
-    //                 if (src2 != Null_Register) insnCodeGen::saveRegister(gen, src2, stkOffset);
-    //                 insnCodeGen::restoreRegister(gen, dest, stkOffset);
-    // 
-    //                 return dest;
-    //             }
-    //             break;
-    //         default:
-    //             assert(0);
-    //     }
-    // 
-    //     assert(regSlot);
-    //     Register reg = regSlot->number;
-    // 
-    //     switch(regSlot->liveState) {
-    //         case registerSlot::spilled:
-    //             {
-    //                 int offset = TRAMP_GPR_OFFSET(addrWidth);
-    //                 // its on the stack so load it.
-    //                 //if (src2 != Null_Register) saveRegister(gen, src2, reg, offset);
-    //                 insnCodeGen::restoreRegister(gen, dest, offset + (reg * gen.width()));
-    //                 return(dest);
-    //             }
-    //         case registerSlot::live:
-    //             {
-    //                 // its still in a register so return the register it is in.
-    //                 cerr << "emitR state:" << reg << " live" << endl;
-    //                 assert(0);
-    //                 return(reg);
-    //             }
-    //         case registerSlot::dead:
-    //             {
-    //                 cerr << "emitR state" << reg << ": dead" << endl;
-    //                 // Uhhh... wha?
-    //                 assert(0);
-    //             }
-    //     }
-    //     return reg;
-    return Register{};
+    registerSlot *regSlot = NULL;
+    unsigned addrWidth = gen.width();
+
+    switch(op){
+        case getRetValOp:
+            regSlot = (*(gen.rs()))[registerSpace::r10];
+            break;
+        case getParamOp:
+            if(src1 <= 7) {
+                // src1 is 0..7 - it's a parameter order number, not a register
+                regSlot = (*(gen.rs()))[registerSpace::r10 + src1];
+                break;
+
+            } else {
+                int stkOffset = TRAMP_FRAME_SIZE_64 + (src1 - 8) * sizeof(long);
+                // printf("TRAMP_FRAME_SIZE_64: %d\n", TRAMP_FRAME_SIZE_64);
+                // printf("stdOffset = TRAMP_xxx_64 + (argc - 8) * 8 = { %d }\n", stkOffset);
+                // TODO: PARAM_OFFSET(addrWidth) is currently not used
+                // should delete that macro if it's useless
+
+                if (src2 != Null_Register) insnCodeGen::saveRegister(gen, src2, stkOffset);
+                insnCodeGen::restoreRegister(gen, dest, stkOffset);
+
+                return dest;
+            }
+            break;
+        default:
+            assert(0);
+    }
+
+    assert(regSlot);
+    Register reg = regSlot->number;
+
+    switch(regSlot->liveState) {
+        case registerSlot::spilled:
+            {
+                int offset = TRAMP_GPR_OFFSET(addrWidth);
+                // its on the stack so load it.
+                //if (src2 != Null_Register) saveRegister(gen, src2, reg, offset);
+                insnCodeGen::restoreRegister(gen, dest, offset + (reg * gen.width()));
+                return(dest);
+            }
+        case registerSlot::live:
+            {
+                // its still in a register so return the register it is in.
+                cerr << "emitR state:" << reg << " live" << endl;
+                assert(0);
+                return(reg);
+            }
+        case registerSlot::dead:
+            {
+                cerr << "emitR state" << reg << ": dead" << endl;
+                // Uhhh... wha?
+                assert(0);
+            }
+    }
+    return reg;
 }
 
 void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &) {
@@ -735,13 +623,8 @@ static inline void emitAddOriginal(Register src, Register acc,
 
 //Not correctly implemented
 void MovePCToReg(Register dest, codeGen &gen) {
-    //     instruction insn;
-    //     insn.clear();
-    // 
-    //     INSN_SET(insn, 28, 28, 1);
-    //     INSN_SET(insn, 0, 4, dest);
-    // 
-    //     insnCodeGen::generate(gen, insn);
+    // Not used currently
+    assert(0);
     return;
 }
 
@@ -751,41 +634,41 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
                 codeGen &gen,
                 bool) {
 
-    //     // Haven't implemented non-zero shifts yet
-    //     assert(stackShift == 0);
-    //     long int imm = as->getImm();
-    //     int ra  = as->getReg(0);
-    //     int rb  = as->getReg(1);
-    //     int sc  = as->getScale();
-    //     gen.markRegDefined(dest);
-    //     if(ra > -1) {
-    //         if(ra == 32) {
-    //         // Special case where the actual address is store in imm.
-    //         // Need to change this for rewriting PIE or shared libraries
-    //         insnCodeGen::loadImmIntoReg(gen, dest, static_cast<Address>(imm));
-    //         return;
-    //     }
-    //     else {
-    //         restoreGPRtoGPR(gen, ra, dest);
-    //     }
-    //     } else {
-    //         insnCodeGen::loadImmIntoReg(gen, dest, static_cast<Address>(0));
-    //     }
-    //     if(rb > -1) {
-    //         std::vector<Register> exclude;
-    //     exclude.push_back(dest);
-    //         Register scratch = gen.rs()->getScratchRegister(gen, exclude);
-    //         assert(scratch != Null_Register && "cannot get a scratch register");
-    //         gen.markRegDefined(scratch);
-    //         restoreGPRtoGPR(gen, rb, scratch);
-    //         // call adds, save 2^scale * rb to dest
-    //     insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, sc, scratch, dest, dest, true);
-    //     }
-    //     
-    //     // emit code to load the immediate (constant offset) into dest; this
-    //     // writes at gen+base and updates base, we must update insn..
-    //     if (imm) 
-    //         insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, imm, dest, dest, true);  
+    // Haven't implemented non-zero shifts yet
+    assert(stackShift == 0);
+    long int imm = as->getImm();
+    int ra  = as->getReg(0);
+    int rb  = as->getReg(1);
+    int sc  = as->getScale();
+    gen.markRegDefined(dest);
+    if(ra > -1) {
+        if(ra == 32) {
+            // Special case where the actual address is store in imm.
+            // Need to change this for rewriting PIE or shared libraries
+            insnCodeGen::loadImmIntoReg(gen, dest, static_cast<Address>(imm));
+            return;
+        }
+        else {
+            restoreGPRtoGPR(gen, ra, dest);
+        }
+    } else {
+        insnCodeGen::loadImmIntoReg(gen, dest, static_cast<Address>(0));
+    }
+    if(rb > -1) {
+        std::vector<Register> exclude;
+        exclude.push_back(dest);
+        Register scratch = gen.rs()->getScratchRegister(gen, exclude);
+        assert(scratch != Null_Register && "cannot get a scratch register");
+        gen.markRegDefined(scratch);
+        restoreGPRtoGPR(gen, rb, scratch);
+        // call adds, save 2^scale * rb to dest
+        insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, sc, scratch, dest, dest, true);
+    }
+
+    // emit code to load the immediate (constant offset) into dest; this
+    // writes at gen+base and updates base, we must update insn..
+    if (imm) 
+        insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, imm, dest, dest, true);  
 }
 
 void emitCSload(const BPatch_addrSpec_NP *, Register, codeGen &,
@@ -854,40 +737,40 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
            registerSpace * /*rs*/, int size,
            const instPoint * /* location */, AddressSpace *proc, bool s) 
 {
-    //     switch(op){
-    //         case plusOp:
-    //         case minusOp:
-    //         case timesOp:
-    //         case orOp:
-    //         case andOp:
-    //         case xorOp:
-    //             gen.codeEmitter()->emitOp(op, dest, src1, src2, gen);
-    //             break;
-    //         case divOp:
-    //         insnCodeGen::generateDiv(gen, src2, src1, dest, true, s);
-    //         break;
-    //         case lessOp:
-    //         case leOp:
-    //         case greaterOp:
-    //         case geOp:
-    //         case eqOp:
-    //         case neOp:
-    //             gen.codeEmitter()->emitRelOp(op, dest, src1, src2, gen, s);
-    //             break;
-    //         case loadIndirOp:
-    //             size = !size ? proc->getAddressWidth() : size;
-    //             // same as loadOp, but the value to load is already in a register
-    //             gen.codeEmitter()->emitLoadIndir(dest, src1, size, gen);
-    //             break;
-    //         case storeIndirOp:
-    //             size = !size ? proc->getAddressWidth() : size;
-    //             gen.codeEmitter()->emitStoreIndir(dest, src1, size, gen);
-    //             break;
-    //         default:
-    //             //std::cout << "operation not implemented= " << op << endl;
-    //             assert(0); // Not implemented
-    //             break;
-    //     }
+    switch (op) {
+        case plusOp:
+        case minusOp:
+        case timesOp:
+        case orOp:
+        case andOp:
+        case xorOp:
+            gen.codeEmitter()->emitOp(op, dest, src1, src2, gen);
+            break;
+        case divOp:
+            insnCodeGen::generateDiv(gen, src2, src1, dest, true, s);
+            break;
+        case lessOp:
+        case leOp:
+        case greaterOp:
+        case geOp:
+        case eqOp:
+        case neOp:
+            gen.codeEmitter()->emitRelOp(op, dest, src1, src2, gen, s);
+            break;
+        case loadIndirOp:
+            size = !size ? proc->getAddressWidth() : size;
+            // same as loadOp, but the value to load is already in a register
+            gen.codeEmitter()->emitLoadIndir(dest, src1, size, gen);
+            break;
+        case storeIndirOp:
+            size = !size ? proc->getAddressWidth() : size;
+            gen.codeEmitter()->emitStoreIndir(dest, src1, size, gen);
+            break;
+        default:
+            //std::cout << "operation not implemented= " << op << endl;
+            assert(0); // Not implemented
+            break;
+    }
     return;
 }
 
@@ -1031,8 +914,8 @@ bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 
 bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &, Address,
                              func_instance *, Address) {
-    assert(0); //Not implemented
-    assert(0 && "TODO!");
+    // Not used currently
+    assert(0);
     return false;
 }
 
@@ -1060,43 +943,19 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
                       Address addr,
                       std::vector<AstNodePtr> &args)
 {
-    //     using namespace Dyninst::InstructionAPI;
-    //     Register branch_target = registerSpace::ignored;
-    // 
-    //     for(Instruction::cftConstIter curCFT = i.cft_begin();
-    //             curCFT != i.cft_end(); ++curCFT)
-    //     {
-    //         auto target_reg = dynamic_cast<RegisterAST *>(curCFT->target.get());
-    //         if(!target_reg) return false;
-    //         branch_target = target_reg->getID() & 0x1f;
-    //         break;
-    //     }
-    // 
-    //     if(branch_target == registerSpace::ignored) return false;
-    // 
-    //     //jumping to Xn (BLR Xn)
-    //     args.push_back(AstNode::operandNode(AstNode::operandType::origRegister,(void *)(long)branch_target));
-    //     args.push_back(AstNode::operandNode(AstNode::operandType::Constant, (void *) addr));
-    // 
-    //     //inst_printf("%s[%d]:  Inserting dynamic call site instrumentation for %s\n",
-    //     //        FILE__, __LINE__, cft->format(insn.getArch()).c_str());
+    // Not used currently
+    assert(0);
     return true;
 }
 
 bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f) {
-    //     Address val_to_write = f->addr();
-    //     return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);
-    return false;
+    Address val_to_write = f->addr();
+    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);
 }
 
 Emitter *AddressSpace::getEmitter() {
-    static EmitterRISCV64Stat emitter64Stat;
-    static EmitterRISCV64Dyn emitter64Dyn;
-
-    if (proc())
-        return &emitter64Dyn;
-
-    return &emitter64Stat;
+    static EmitterRISCV64 emitter64;
+    return &emitter64;
 }
 
 #define GET_IP      0x429f0005
@@ -1126,42 +985,21 @@ bool image::updatePltFunc(parse_func *caller_func, Address stub_addr)
 */
 
 bool EmitterRISCV64::emitCallRelative(Register, Address, Register, codeGen &) {
-    assert(0); //Not implemented
+    // Not used currently
+    assert(0);
     return true;
 }
 
 bool EmitterRISCV64::emitLoadRelative(Register dest, Address offset, Register baseReg, int size, codeGen &gen) {
-    //     signed long long sOffset = (signed long long) offset;
-    //     if(sOffset >=-256 && sOffset <=255)
-    //         insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
-    //                 baseReg, sOffset, size, insnCodeGen::Pre);
-    //     else{
-    //         std::vector<Register> exclude;
-    //         exclude.push_back(baseReg);
-    //         // mov sOffset to a reg
-    //         auto addReg = insnCodeGen::moveValueToReg(gen, labs(offset), &exclude);
-    //         // add/sub sOffset to baseReg
-    //         insnCodeGen::generateAddSubShifted(gen,
-    //                 sOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
-    //                 0, 0, addReg, baseReg, baseReg, true);
-    //         insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
-    //                 baseReg, 0, size, insnCodeGen::Pre);
-    //     }
-    // 
-    //     gen.markRegDefined(dest);
+    // Not used currently
+    assert(0);
     return true;
 }
 
 
 void EmitterRISCV64::emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen) {
-    //     if((signed long long)offset <=255 && (signed long long)offset >=-256)
-    //         insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
-    //                 base, offset, size, insnCodeGen::Pre);
-    //     else{
-    //         assert(0 && "offset in emitStoreRelative not in (-256,255)");
-    //         //insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
-    //         //        base, offset, size, insnCodeGen::Pre);
-    //     }
+    // Not used currently
+    assert(0);
 }
 
 bool EmitterRISCV64::emitMoveRegToReg(registerSlot *,
@@ -1238,7 +1076,8 @@ bool EmitterRISCV64Dyn::emitPIC(codeGen &gen, Address origAddr, Address relocAdd
 */
 
 bool EmitterRISCV64Stat::emitPLTCommon(func_instance *, bool, codeGen &) {
-    assert(0); //Not implemented
+    // Not used currently
+    assert(0);
     return true;
 }
 
@@ -1326,100 +1165,46 @@ bool EmitterRISCV64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
 #endif
 
 bool EmitterRISCV64Dyn::emitTOCCommon(block_instance *, bool, codeGen &) {
-    assert(0); //Not implemented
+    // Not used currently
+    assert(0);
     return true;
 }
 
 bool EmitterRISCV64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
-    //     Address dest = getInterModuleFuncAddr(callee, gen);
-    //     long varOffset = dest - gen.currAddr();
-    // 
-    //     Register baseReg = gen.rs()->getScratchRegister(gen, true);
-    //     assert(baseReg != Null_Register && "cannot get a scratch register");
-    //     emitMovePCToReg(baseReg, gen);
-    // 
-    //     std::vector<Register> exclude;
-    //     exclude.push_back(baseReg);
-    //     // mov offset to a reg
-    //     auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
-    //     // add/sub offset to baseReg
-    //     insnCodeGen::generateAddSubShifted(gen,
-    //             (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
-    //             0, 0, addReg, baseReg, baseReg, true);
-    //     insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, baseReg,
-    //             baseReg, 0, 8, insnCodeGen::Offset);
-    // 
-    //     // call instruction
-    //     instruction branchInsn;
-    //     branchInsn.clear();
-    //     //Set bits which are 0 for both BR and BLR
-    //     INSN_SET(branchInsn, 0, 4, 0);
-    //     INSN_SET(branchInsn, 10, 15, 0);
-    //     //Set register
-    //     INSN_SET(branchInsn, 5, 9, baseReg);
-    //     //Set other bits. Basically, these are the opcode bits.
-    //     //The only difference between BR and BLR is that bit 21 is 1 for BLR.
-    //     INSN_SET(branchInsn, 16, 31, BRegOp);
-    //     INSN_SET(branchInsn, 21, 21, 1);
-    //     insnCodeGen::generate(gen, branchInsn);
-
+    // Not used currently
+    assert(0);
     return true;
 }
 
 bool EmitterRISCV64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
-    //     Address dest = getInterModuleFuncAddr(callee, gen);
-    //     long varOffset = dest - gen.currAddr();
-    // 
-    //     Register baseReg = gen.rs()->getScratchRegister(gen, true);
-    //     assert(baseReg != Null_Register && "cannot get a scratch register");
-    //     emitMovePCToReg(baseReg, gen);
-    // 
-    //     std::vector<Register> exclude;
-    //     exclude.push_back(baseReg);
-    //     // mov offset to a reg
-    //     auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
-    //     // add/sub offset to baseReg
-    //     insnCodeGen::generateAddSubShifted(gen,
-    //             (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
-    //             0, 0, addReg, baseReg, baseReg, true);
-    //     insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, baseReg,
-    //             baseReg, 0, 8, insnCodeGen::Offset);
-    // 
-    //     // jump instruction
-    //     instruction branchInsn;
-    //     branchInsn.clear();
-    //     //Set bits which are 0 for both BR and BLR
-    //     INSN_SET(branchInsn, 0, 4, 0);
-    //     INSN_SET(branchInsn, 10, 15, 0);
-    //     //Set register
-    //     INSN_SET(branchInsn, 5, 9, baseReg);
-    //     //Set other bits. Basically, these are the opcode bits.
-    //     //The only difference between BR and BLR is that bit 21 is 1 for BLR.
-    //     INSN_SET(branchInsn, 16, 31, BRegOp);
-    //     insnCodeGen::generate(gen, branchInsn);
-
+    // Not used currently
+    assert(0);
     return true;
 }
 
 bool EmitterRISCV64Stat::emitTOCCall(block_instance *block, codeGen &gen) {
-    assert(0); //Not implemented
+    // Not used currently
+    assert(0);
     return emitTOCCommon(block, true, gen);
 }
 
 bool EmitterRISCV64Stat::emitTOCJump(block_instance *block, codeGen &gen) {
-    assert(0); //Not implemented
+    // Not used currently
+    assert(0);
     return emitTOCCommon(block, false, gen);
 }
 
 bool EmitterRISCV64Stat::emitTOCCommon(block_instance *, bool, codeGen &) {
-    assert(0); //Not implemented
+    // Not used currently
+    assert(0);
     return false;
 }
 
 bool EmitterRISCV64Stat::emitCallInstruction(codeGen &,
                                              func_instance *,
                                              bool, Address) {
-    assert(0); //Not implemented
+    // Not used currently
+    assert(0);
     return true;
 }
 
@@ -1429,232 +1214,144 @@ bool EmitterRISCV64Stat::emitCallInstruction(codeGen &,
 // This should be able to stomp on the link register (LR) and TOC
 // register (r2), as they were saved by Emitter::emitCall() as necessary.
 bool EmitterRISCV64::emitCallInstruction(codeGen &, func_instance *, bool, Address) {
-    assert(0); //Not implemented
+    // Not used currently
+    assert(0);
     return true;
 }
 
 void EmitterRISCV64::emitLoadShared(opCode op, Register dest, const image_variable *var,
         bool is_local, int size, codeGen &gen, Address offset)
 {
-    //     // create or retrieve jump slot
-    //     Address addr;
-    //     int stackSize = 0;
-    // 
-    //     if(!var) {
-    //         addr = offset;
-    //     }
-    //     else if(!is_local) {
-    //         addr = getInterModuleVarAddr(var, gen);
-    //     }
-    //     else {
-    //         addr = (Address)var->getOffset();
-    //     }
-    // 
-    //     // load register with address from jump slot
-    //     Register baseReg = gen.rs()->getScratchRegister(gen, true);
-    //     assert(baseReg != Null_Register && "cannot get a scratch register");
-    // 
-    //     emitMovePCToReg(baseReg, gen);
-    //     Address varOffset = addr - gen.currAddr() + 4;
-    // 
-    //     if (op ==loadOp ) {
-    //         if(!is_local && (var != NULL)){
-    //             emitLoadRelative(dest, varOffset, baseReg, gen.width(), gen);
-    //             // Deference the pointer to get the variable
-    //             // emitLoadRelative(dest, 0, dest, size, gen);
-    //             // Offset mode to load back to itself
-    //             insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest, dest, 0, 8,
-    //                     insnCodeGen::Offset);
-    //         } else {
-    //             emitLoadRelative(dest, varOffset, baseReg, size, gen);
-    //         }
-    //     } else { //loadConstop
-    //         if(!is_local && (var != NULL)){
-    //             emitLoadRelative(dest, varOffset, baseReg, gen.width(), gen);
-    //         } else {
-    //             std::vector<Register> exclude;
-    //             exclude.push_back(baseReg);
-    //             auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
-    //             insnCodeGen::generateAddSubShifted(gen,
-    //                     (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
-    //                     0, 0, addReg, baseReg, baseReg, true);
-    //             insnCodeGen::generateMove(gen, dest, baseReg, true);
-    //         }
-    //     }
-    // 
-    //     assert(stackSize <= 0 && "stack not empty at the end");
+    // Not used currently
+    assert(0);
 }
 
 void EmitterRISCV64::emitStoreShared(Register source, const image_variable *var,
         bool is_local, int size, codeGen &gen)
 {
-    //     // create or retrieve jump slot
-    //     Address addr;
-    //     int stackSize = 0;
-    //     if(!is_local) {
-    //         addr = getInterModuleVarAddr(var, gen);
-    //     }
-    //     else {
-    //         addr = (Address)var->getOffset();
-    //     }
-    // 
-    //     // load register with address from jump slot
-    //     Register baseReg = gen.rs()->getScratchRegister(gen, true);
-    //     assert(baseReg != Null_Register && "cannot get a scratch register");
-    // 
-    //     emitMovePCToReg(baseReg, gen);
-    //     Address varOffset = addr - gen.currAddr() + 4;
-    // 
-    //     if(!is_local) {
-    //         std::vector<Register> exclude;
-    //         exclude.push_back(baseReg);
-    //         Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
-    //         assert(scratchReg1 != Null_Register && "cannot get a scratch register");
-    //         emitLoadRelative(scratchReg1, varOffset, baseReg, gen.width(), gen);
-    //         emitStoreRelative(source, 0, scratchReg1, size, gen);
-    //     } else {
-    //         std::vector<Register> exclude;
-    //         exclude.push_back(baseReg);
-    //         // mov offset to a reg
-    //         auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
-    //         // add/sub offset to baseReg
-    //         insnCodeGen::generateAddSubShifted(gen,
-    //                 (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
-    //                 0, 0, addReg, baseReg, baseReg, true);
-    //         insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
-    //                 baseReg, 0, size, insnCodeGen::Pre);
-    //     }
-    // 
-    //     assert(stackSize <= 0 && "stack not empty at the end");
+    // Not used currently
+    assert(0);
 }
 
 Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen &gen) {
-    //     AddressSpace *addrSpace = gen.addrSpace();
-    //     if (!addrSpace)
-    //         assert(0 && "No AddressSpace associated with codeGen object");
-    // 
-    //     BinaryEdit *binEdit = addrSpace->edit();
-    //     Address relocation_address;
-    // 
-    //     unsigned int jump_slot_size;
-    //     switch (addrSpace->getAddressWidth()) {
-    //         case 4: jump_slot_size = 4; break;
-    //         case 8: jump_slot_size = 8; break;
-    //         default: assert(0 && "Encountered unknown address width");
-    //     }
-    // 
-    //     if (!binEdit || !var) {
-    //         assert(!"Invalid variable load (variable info is missing)");
-    //     }
-    // 
-    //     // find the Symbol corresponding to the int_variable
-    //     std::vector<SymtabAPI::Symbol *> syms;
-    //     var->svar()->getSymbols(syms);
-    // 
-    //     if (syms.size() == 0) {
-    //         char msg[256];
-    //         snprintf(msg, sizeof(msg), "%s[%d]:  internal error:  cannot find symbol %s"
-    //                 , __FILE__, __LINE__, var->symTabName().c_str());
-    //         showErrorCallback(80, msg);
-    //         assert(0);
-    //     }
-    // 
-    //     // try to find a dynamic symbol
-    //     // (take first static symbol if none are found)
-    //     SymtabAPI::Symbol *referring = syms[0];
-    //     for (unsigned k=0; k<syms.size(); k++) {
-    //         if (syms[k]->isInDynSymtab()) {
-    //             referring = syms[k];
-    //             break;
-    //         }
-    //     }
-    // 
-    //     // have we added this relocation already?
-    //     relocation_address = binEdit->getDependentRelocationAddr(referring);
-    // 
-    //     if (!relocation_address) {
-    //         // inferiorMalloc addr location and initialize to zero
-    //         relocation_address = binEdit->inferiorMalloc(jump_slot_size);
-    //         unsigned char dat[8] = {0};
-    //         binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, dat);
-    // 
-    //         // add write new relocation symbol/entry
-    //         binEdit->addDependentRelocation(relocation_address, referring);
-    //     }
-    // 
-    //     return relocation_address;
+    AddressSpace *addrSpace = gen.addrSpace();
+    if (!addrSpace)
+        assert(0 && "No AddressSpace associated with codeGen object");
+    
+    BinaryEdit *binEdit = addrSpace->edit();
+    Address relocation_address;
+    
+    unsigned int jump_slot_size;
+    switch (addrSpace->getAddressWidth()) {
+        case 4: jump_slot_size = 4; break;
+        case 8: jump_slot_size = 8; break;
+        default: assert(0 && "Encountered unknown address width");
+    }
+    
+    if (!binEdit || !var) {
+        assert(!"Invalid variable load (variable info is missing)");
+    }
+    
+    // find the Symbol corresponding to the int_variable
+    std::vector<SymtabAPI::Symbol *> syms;
+    var->svar()->getSymbols(syms);
+    
+    if (syms.size() == 0) {
+        char msg[256];
+        snprintf(msg, sizeof(msg), "%s[%d]:  internal error:  cannot find symbol %s"
+                , __FILE__, __LINE__, var->symTabName().c_str());
+        showErrorCallback(80, msg);
+        assert(0);
+    }
+    
+    // try to find a dynamic symbol
+    // (take first static symbol if none are found)
+    SymtabAPI::Symbol *referring = syms[0];
+    for (unsigned k=0; k<syms.size(); k++) {
+        if (syms[k]->isInDynSymtab()) {
+            referring = syms[k];
+            break;
+        }
+    }
+    
+    // have we added this relocation already?
+    relocation_address = binEdit->getDependentRelocationAddr(referring);
+    
+    if (!relocation_address) {
+        // inferiorMalloc addr location and initialize to zero
+        relocation_address = binEdit->inferiorMalloc(jump_slot_size);
+        unsigned char dat[8] = {0};
+        binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, dat);
+    
+        // add write new relocation symbol/entry
+        binEdit->addDependentRelocation(relocation_address, referring);
+    }
+    
+    return relocation_address;
 }
 
 Address EmitterRISCV64::emitMovePCToReg(Register dest, codeGen &gen) {
-    //     instruction insn;
-    //     insn.clear();
-    // 
-    //     INSN_SET(insn, 28, 28, 1);
-    //     INSN_SET(insn, 0, 4, dest);
-    // 
-    //     insnCodeGen::generate(gen, insn);
-    //     Address ret = gen.currAddr();
-    //     return ret;
+    // Not used currently
+    assert(0);
     return gen.currAddr();
 }
 
 Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
-    //     // from POWER64 getInterModuleFuncAddr
-    // 
-    //     AddressSpace *addrSpace = gen.addrSpace();
-    //     if (!addrSpace)
-    //         assert(0 && "No AddressSpace associated with codeGen object");
-    // 
-    //     BinaryEdit *binEdit = addrSpace->edit();
-    //     Address relocation_address;
-    //     
-    //     unsigned int jump_slot_size;
-    //     switch (addrSpace->getAddressWidth()) {
-    //     case 4: jump_slot_size =  4; break; // l: not needed
-    //     case 8: 
-    //       jump_slot_size = 24;
-    //       break;
-    //     default: assert(0 && "Encountered unknown address width");
-    //     }
-    // 
-    //     if (!binEdit || !func) {
-    //         assert(!"Invalid function call (function info is missing)");
-    //     }
-    // 
-    //     // find the Symbol corresponding to the func_instance
-    //     std::vector<SymtabAPI::Symbol *> syms;
-    //     func->ifunc()->func()->getSymbols(syms);
-    // 
-    //     if (syms.size() == 0) {
-    //         char msg[256];
-    //         snprintf(msg, sizeof(msg), "%s[%d]:  internal error:  cannot find symbol %s"
-    //                 , __FILE__, __LINE__, func->symTabName().c_str());
-    //         showErrorCallback(80, msg);
-    //         assert(0);
-    //     }
-    // 
-    //     // try to find a dynamic symbol
-    //     // (take first static symbol if none are found)
-    //     SymtabAPI::Symbol *referring = syms[0];
-    //     for (unsigned k=0; k<syms.size(); k++) {
-    //         if (syms[k]->isInDynSymtab()) {
-    //             referring = syms[k];
-    //             break;
-    //         }
-    //     }
-    //     // have we added this relocation already?
-    //     relocation_address = binEdit->getDependentRelocationAddr(referring);
-    // 
-    //     if (!relocation_address) {
-    //         // inferiorMalloc addr location and initialize to zero
-    //         relocation_address = binEdit->inferiorMalloc(jump_slot_size);
-    //         unsigned char dat[24] = {0};
-    //         binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, dat);
-    //         // add write new relocation symbol/entry
-    //         binEdit->addDependentRelocation(relocation_address, referring);
-    //     }
-    //     return relocation_address;
-    return Address{};
+    // from POWER64 getInterModuleFuncAddr
+    
+    AddressSpace *addrSpace = gen.addrSpace();
+    if (!addrSpace)
+        assert(0 && "No AddressSpace associated with codeGen object");
+    
+    BinaryEdit *binEdit = addrSpace->edit();
+    Address relocation_address;
+    
+    unsigned int jump_slot_size;
+    switch (addrSpace->getAddressWidth()) {
+    case 4: jump_slot_size =  4; break; // l: not needed
+    case 8: 
+      jump_slot_size = 24;
+      break;
+    default: assert(0 && "Encountered unknown address width");
+    }
+    
+    if (!binEdit || !func) {
+        assert(!"Invalid function call (function info is missing)");
+    }
+    
+    // find the Symbol corresponding to the func_instance
+    std::vector<SymtabAPI::Symbol *> syms;
+    func->ifunc()->func()->getSymbols(syms);
+    
+    if (syms.size() == 0) {
+        char msg[256];
+        snprintf(msg, sizeof(msg), "%s[%d]:  internal error:  cannot find symbol %s"
+                , __FILE__, __LINE__, func->symTabName().c_str());
+        showErrorCallback(80, msg);
+        assert(0);
+    }
+    
+    // try to find a dynamic symbol
+    // (take first static symbol if none are found)
+    SymtabAPI::Symbol *referring = syms[0];
+    for (unsigned k=0; k<syms.size(); k++) {
+        if (syms[k]->isInDynSymtab()) {
+            referring = syms[k];
+            break;
+        }
+    }
+    // have we added this relocation already?
+    relocation_address = binEdit->getDependentRelocationAddr(referring);
+    
+    if (!relocation_address) {
+        // inferiorMalloc addr location and initialize to zero
+        relocation_address = binEdit->inferiorMalloc(jump_slot_size);
+        unsigned char dat[24] = {0};
+        binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, dat);
+        // add write new relocation symbol/entry
+        binEdit->addDependentRelocation(relocation_address, referring);
+    }
+    return relocation_address;
 }
 
 
