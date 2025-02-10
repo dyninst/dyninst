@@ -77,12 +77,12 @@ public:
                                       bool isCall);
 
     // Generate conditional branch
-    static void insnCodeGen::generateBranchEqual(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
-    static void insnCodeGen::generateBranchNotEqual(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
-    static void insnCodeGen::generateBranchLessThan(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
-    static void insnCodeGen::generateBranchGreaterThanEqual(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
-    static void insnCodeGen::generateBranchLessThanUnsigned(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
-    static void insnCodeGen::generateBranchGreaterThanEqualUnsigned(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
+    static void generateBranchEqual(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
+    static void generateBranchNotEqual(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
+    static void generateBranchLessThan(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
+    static void generateBranchGreaterThanEqual(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
+    static void generateBranchLessThanUnsigned(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
+    static void generateBranchGreaterThanEqualUnsigned(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm);
 
     // LDR/STR (immediate)
     static void generateMemLoad(codeGen &gen, Dyninst::Register rd,
@@ -105,11 +105,6 @@ public:
                             Dyninst::Address newAddr,
                             Dyninst::Register newLoadReg,
                             Dyninst::Register newStoreReg);
-
-    /** *** **/
-
-
-    static void generateDiv(codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd, bool is64bit, bool s);
 
     static Dyninst::Register moveValueToReg(codeGen &gen, long int val, std::vector<Dyninst::Register> *exclude = NULL);
 
