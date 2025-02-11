@@ -61,6 +61,7 @@
 
 #if defined(arch_amdgpu)
 #include "amdgpu-prologue.h"
+#include <fstream>
 #endif
 
 #include "boost/filesystem.hpp"
