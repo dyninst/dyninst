@@ -124,7 +124,6 @@ namespace Dyninst {
      */
     bool isFloatingPoint() const;
 
-    static MachRegister getArchReg(unsigned int regNum, Dyninst::Architecture arch);
     static std::vector<MachRegister> const& getAllRegistersForArch(Dyninst::Architecture);
   };
 }
