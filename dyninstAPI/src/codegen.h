@@ -36,7 +36,6 @@
 #include <map>
 #include "dyntypes.h"
 #include "dyn_register.h"
-#include "common/src/arch.h"
 #include "dyninstAPI/src/patch.h"
 
 #if defined(DYNINST_HOST_ARCH_POWER)
@@ -57,7 +56,10 @@ using namespace NS_aarch64;
 #include "bitArray.h"
 #include "pcrel.h"
 
-#include "arch-forward-decl.h" // instruction
+// For platforms that require bit-twiddling. These should go away in the future.
+#define GET_PTR(insn, gen) codeBuf_t *insn = (codeBuf_t *)(gen).cur_ptr()
+#define SET_PTR(insn, gen) (gen).update(insn)
+#define REGET_PTR(insn, gen) insn = (codeBuf_t *)(gen).cur_ptr()
 
 //hateful windows.h
 #if defined(_MSC_VER)

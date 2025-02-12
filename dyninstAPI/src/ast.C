@@ -33,7 +33,6 @@
 #include "dyninstAPI/src/image.h"
 #include "function.h"
 #include "inst.h"
-#include "instP.h"
 #include "instPoint.h"
 #include "ast.h"
 #include "util.h"
@@ -73,7 +72,6 @@ using namespace Dyninst::InstructionAPI;
 #include "registerSpace.h"
 #include "mapped_module.h"
 
-#include "legacy-instruction.h"
 #include "mapped_object.h"
 #include "Buffer.h"
 

@@ -48,7 +48,7 @@ void insnCodeGen::generate(codeGen &gen, instruction &insn, unsigned position) {
     gen.insert(&raw, sizeof(unsigned), position);
 }
 
-void insnCodeGen::generateIllegal(codeGen &gen) { // instP.h
+void insnCodeGen::generateIllegal(codeGen &gen) {
     instruction insn;
     generate(gen,insn);
 }

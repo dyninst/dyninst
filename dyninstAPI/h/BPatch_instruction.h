@@ -38,8 +38,6 @@
 class BPatch_basicBlock;
 class BPatch_point;
 
-class internal_instruction;
-
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
@@ -55,7 +53,6 @@ class DYNINST_EXPORT BPatch_instruction {
  protected:
 
   unsigned int nacc;
-  internal_instruction *insn_;
   bool *isLoad;
   bool *isStore;
   int *preFcn;       // prefetch function (-1 = none)
@@ -67,13 +64,10 @@ class DYNINST_EXPORT BPatch_instruction {
   long unsigned int addr;
  public:
 
-  BPatch_instruction(internal_instruction *insn,
-	  Dyninst::Address _addr);
+  BPatch_instruction(Dyninst::Address _addr);
   virtual ~BPatch_instruction();
 
   void getInstruction(const unsigned char *&_buffer, unsigned char &_length);
-
-  internal_instruction *insn();
 
   // Not yet implemented
   char *getMnemonic() const { return NULL; }
@@ -118,10 +112,9 @@ class DYNINST_EXPORT BPatch_branchInstruction : public BPatch_instruction{
     friend class BPatch_basicBlock;
 
  public:
-    BPatch_branchInstruction(internal_instruction *insn,
-                             long unsigned int _addr,
+    BPatch_branchInstruction(long unsigned int _addr,
                              void *target) :
-        BPatch_instruction(insn, _addr),
+        BPatch_instruction(_addr),
         target_(target) {}
 
     ~BPatch_branchInstruction() {}

@@ -41,7 +41,6 @@ set(_public_headers
 
 set(_private_headers
     src/addressSpace.h
-    src/arch-forward-decl.h
     src/ast.h
     src/baseTramp.h
     src/binaryEdit.h
@@ -74,11 +73,9 @@ set(_private_headers
     src/infHeap.h
     src/inst-aarch64.h
     src/inst.h
-    src/instP.h
     src/instPoint.h
     src/inst-power.h
     src/inst-x86.h
-    src/legacy-instruction.h
     src/LinearVariable.h
     src/linux-aarch64.h
     src/linux.h

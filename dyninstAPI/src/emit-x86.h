@@ -39,7 +39,7 @@
 #include <assert.h>
 #include <vector>
 #include "common/src/headers.h"
-#include "common/src/arch.h"
+#include "common/src/arch-x86.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"
 

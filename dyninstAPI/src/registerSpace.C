@@ -32,7 +32,6 @@
 
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"

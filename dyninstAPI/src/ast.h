@@ -53,8 +53,6 @@
 // The great experiment: boost shared_ptr libraries
 #include "BPatch_type.h"
 
-#include "arch-forward-decl.h" // instruction
-
 class AddressSpace;
 class instPoint;
 class func_instance;
