@@ -40,6 +40,7 @@
 #include "debug_common.h" // dwarf_printf
 #include <libelf.h>
 #include "registers/abstract_regs.h"
+#include "registers/aarch64_regs.h"
 #include "dwarf/src/registers/convert.h"
 
 #include <mutex>
@@ -64,6 +65,20 @@ namespace {
 
   std::mutex frameParsers_mutex;
   std::map<frameParser_key, DwarfFrameParser::Ptr> frameParsers;
+
+  // This only for aarch64
+  MachRegister convert_abstract(MachRegister abstract) {
+    if(abstract == ReturnAddr)
+      return aarch64::x30;
+    if(abstract == FrameBase)
+      return aarch64::x29;
+    if(abstract == StackTop)
+      return aarch64::sp;
+    if(abstract == CFA)
+      dwarf_printf("No aarch64 register for abstract CFA");
+
+    return Dyninst::InvalidReg;
+  }
 }
 
 DwarfFrameParser::Ptr DwarfFrameParser::create(Dwarf * dbg, Elf * eh_frame, Architecture arch)
@@ -320,10 +335,11 @@ bool DwarfFrameParser::getRegAtFrame(
             if(nops == 0 && ops == ops_mem)
             {
                 dwarf_printf("\t case of undefined rule, treats as same_value\n");
-#if defined(DYNINST_HOST_ARCH_AARCH64)
-                reg = MachRegister::getArchRegFromAbstractReg(reg, arch);
-                dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
-#endif
+                if(this->arch == Arch_aarch64) {
+                  reg = convert_abstract(reg);
+                  dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
+                }
+
                 // Dyninst treats as same_value ???
                 if (reg != Dyninst::ReturnAddr) {
                     cons.readReg(reg);
@@ -337,10 +353,10 @@ bool DwarfFrameParser::getRegAtFrame(
             if(nops == 0 && ops == NULL)
             {
                 dwarf_printf("\t case of same_value rule\n");
-#if defined(DYNINST_HOST_ARCH_AARCH64)
-                reg = MachRegister::getArchRegFromAbstractReg(reg, arch);
-                dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
-#endif
+                if(this->arch == Arch_aarch64) {
+                  reg = convert_abstract(reg);
+                  dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
+                }
                 if (reg != Dyninst::ReturnAddr) {
                     cons.readReg(reg);
                     return true;
