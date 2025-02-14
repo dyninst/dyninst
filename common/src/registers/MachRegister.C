@@ -775,9 +775,6 @@ namespace Dyninst {
           return true;
       }
     }
-    if(arch == Arch_riscv64) {
-      return false; // RISC-V does not have flag registers
-    }
     return *this == getZeroFlag(getArchitecture());
   }
 
