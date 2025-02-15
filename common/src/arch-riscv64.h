@@ -118,46 +118,66 @@ namespace NS_riscv64 {
     (((insn_.raw&thisInst##_OFFSET_MASK)>>thisInst##_OFFSHIFT)<<2)
 
 typedef const unsigned int insn_mask;
+typedef const unsigned short cinsn_mask;
 class ATOMIC_t {
 public:
-    static insn_mask LDST_MASK  =  (0x0000007f);
-    static insn_mask LD         =  (0x00000003);
-    static insn_mask ST         =  (0x00000023);
-    static insn_mask CLDST_MASK =  (0xe003);
-    static insn_mask CLW        =  (0x4000);
-    static insn_mask CLD        =  (0x6000);
-    static insn_mask CSW        =  (0xc000);
-    static insn_mask CSD        =  (0xe000);
-    static insn_mask CLWSP      =  (0x4002);
-    static insn_mask CLDSP      =  (0x6002);
-    static insn_mask CSWSP      =  (0xc002);
-    static insn_mask CSDSP      =  (0xe002);
+    static insn_mask LDST_INSN_MASK = 0x0000007f;
+    static insn_mask LD_INSN        = 0x00000003;
+    static insn_mask ST_INSN        = 0x00000023;
+
+    static cinsn_mask CLDST_INSN_MASK = 0xe003;
+    static cinsn_mask CLW_INSN        = 0x4000;
+    static cinsn_mask CLD_INSN        = 0x6000;
+    static cinsn_mask CSW_INSN        = 0xc000;
+    static cinsn_mask CSD_INSN        = 0xe000;
+    static cinsn_mask CLWSP_INSN      = 0x4002;
+    static cinsn_mask CLDSP_INSN      = 0x6002;
+    static cinsn_mask CSWSP_INSN      = 0xc002;
+    static cinsn_mask CSDSP_INSN      = 0xe002;
 };
 
 class UNCOND_BR_t {
 public:
-    static insn_mask JUMP_MASK       = (0x0000007f);
-    static insn_mask JUMP_LINK       = (0x0000006f);
-    static insn_mask JUMP_LINK_REG   = (0x00000067);
-    static insn_mask JUMP_REG_MASK   = (0x00000f80);
-    static insn_mask JUMP_REG_SHIFT  = 7;
-    static insn_mask CJUMP_MASK      = (0xe003);
-    static insn_mask CJUMP_REG_MASK  = (0x0f80);
-    static insn_mask CJUMP_REG_SHIFT = 7;
-    static insn_mask CJ              = (0xa001);
-    static insn_mask CJAL            = (0x2001);
-    static insn_mask CJR             = (0x8002);
-    static insn_mask CJALR           = (0x8002);
+    static insn_mask J_INSN_MASK = 0x0000007f;
+    static insn_mask JAL_INSN    = 0x0000006f;
+    static insn_mask JALR_INSN   = 0x00000067;
+
+    static insn_mask JALR_REG_MASK  = 0x000f8000;
+    static insn_mask JALR_REG_SHIFT = 15;
+    static insn_mask JALR_IMM_MASK  = 0xfff00000;
+    static insn_mask JALR_IMM_SHIFT = 20;
+
+    static insn_mask JAL_IMM_MASK  = 0xfffff000;
+    static insn_mask JAL_IMM_SHIFT = 12;
+
+    static cinsn_mask CJ_INSN_MASK = 0xe003;
+    static cinsn_mask CJ_INSN      = 0xa001;
+    static cinsn_mask CJAL_INSN    = 0x2001;
+
+    static cinsn_mask CJ_IMM_MASK  = 0x1ffc;
+    static cinsn_mask CJ_IMM_SHIFT = 2;
+
+    static cinsn_mask CJR_INSN_MASK = 0xf003;
+    static cinsn_mask CJR_INSN      = 0x8002;
+    static cinsn_mask CJALR_INSN    = 0x9002;
+
+    static cinsn_mask CJR_REG_MASK  = 0x0f80;
+    static cinsn_mask CJR_REG_SHIFT = 7;
 };
 
 
 class COND_BR_t {
-    static insn_mask BRANCH_MASK  = (0x0000007f);
-    static insn_mask BRANCH       = (0x00000063);
-    static insn_mask CBRANCH_MASK = (0xe003);
-    static insn_mask CBEQZ        = (0xc001);
-    static insn_mask CBNEZ        = (0xe001);
 public:
+    static insn_mask BRANCH_MASK  = 0x0000007f;
+    static insn_mask BRANCH_INSNS = 0x00000063;
+
+    static insn_mask BRANCH_IMM_MASK = 0xfe000f00;
+
+    static cinsn_mask CBRANCH_MASK = 0xe003;
+    static cinsn_mask CBEQZ_INSN   = 0xc001;
+    static cinsn_mask CBNEZ_INSN   = 0xe001;
+
+    static cinsn_mask CBRANCH_IMM_MASK = 0x1c7c;
 };
 
 typedef union {
@@ -296,6 +316,7 @@ class DYNINST_EXPORT instruction {
     }
 
     bool isBranchReg() const;
+    bool isBranchOffset() const;
     bool isCondBranch() const;
     bool isUncondBranch() const;
     bool isThunk() const;
