@@ -93,10 +93,19 @@ namespace Dyninst { namespace riscv64 {
   DEF_REGISTER(       x30,  30 | GPR | Arch_riscv64, "riscv64");
   DEF_REGISTER(       x31,  31 | GPR | Arch_riscv64, "riscv64");
 
-  // F extension defines 32 bit floating point registers f0 ~f31
+  // F extension defines 32 bit floating point registers f0 ~ f31
   // D extension widens f0 ~ f31, to 64 bits
-  // mnemonically speaking, 32 bit and 64 bit floating point registers both have the same name
-  // Hence, _32 and _64 are added to differentiate these two
+
+  // In riscv64, 32-bit FPRs are NaN-boxed to 64-bit FPRs.
+  // In other words, in RI64, when accessing 32-bit FPRs, you are actually accessing the entire register.
+
+  // Capstone distinguishes between 32-bit FPRs and 64-bit FPRs.
+  // So far, other libraries such as Dwarf does not distinguish between the two.
+  // So here f<N>_32 and f<N>_64 are used to handle Capstone registers
+  // On the other hand, f<N> are the "actual" FPRs that include both the NaN-boxed f<N>_32 and f<N>_64.
+  // Unless you are dealing with Capstone, you should always use f<N>.
+
+  // 32 bit FPRs f<N>_32 (Mainly for Capstone compatibility)
   DEF_REGISTER(     f0_32,   0 | FEXT | FPR | Arch_riscv64, "riscv64");
   DEF_REGISTER(     f1_32,   1 | FEXT | FPR | Arch_riscv64, "riscv64");
   DEF_REGISTER(     f2_32,   2 | FEXT | FPR | Arch_riscv64, "riscv64");
@@ -130,6 +139,7 @@ namespace Dyninst { namespace riscv64 {
   DEF_REGISTER(    f30_32,  30 | FEXT | FPR | Arch_riscv64, "riscv64");
   DEF_REGISTER(    f31_32,  31 | FEXT | FPR | Arch_riscv64, "riscv64");
 
+  // 64 bit FPRs f<N>_64 (Mainly for Capstone compatibility)
   DEF_REGISTER(     f0_64,   0 | DEXT | FPR | Arch_riscv64, "riscv64");
   DEF_REGISTER(     f1_64,   1 | DEXT | FPR | Arch_riscv64, "riscv64");
   DEF_REGISTER(     f2_64,   2 | DEXT | FPR | Arch_riscv64, "riscv64");
@@ -163,7 +173,7 @@ namespace Dyninst { namespace riscv64 {
   DEF_REGISTER(    f30_64,  30 | DEXT | FPR | Arch_riscv64, "riscv64");
   DEF_REGISTER(    f31_64,  31 | DEXT | FPR | Arch_riscv64, "riscv64");
 
-  // Ambiguous register: we know it's a floating-point register, but we're not sure if it's 32-bit or 64-bit.
+  // The "actual" 64 bit FPRs, including NaN-boxed 32-bit and 64-bit FPRs
   DEF_REGISTER(        f0,   0 | FPR | Arch_riscv64, "riscv64");
   DEF_REGISTER(        f1,   1 | FPR | Arch_riscv64, "riscv64");
   DEF_REGISTER(        f2,   2 | FPR | Arch_riscv64, "riscv64");
