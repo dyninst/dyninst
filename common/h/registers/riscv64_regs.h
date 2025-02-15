@@ -56,9 +56,6 @@ namespace Dyninst { namespace riscv64 {
   //const int32_t VTR = 0x00040000; // vector registers
   const int32_t SPR = 0x00080000; // special purpose registers
 
-  const int32_t FEXT  = 0x00000100; // 32 bits (F registers)
-  const int32_t DEXT  = 0x00000200; // 64 bits (D registers)
-
   //          (      name,  ID | cat |         arch,      arch)
   DEF_REGISTER(        x0,   0 | GPR | Arch_riscv64, "riscv64");
   DEF_REGISTER(        x1,   1 | GPR | Arch_riscv64, "riscv64");
@@ -103,75 +100,9 @@ namespace Dyninst { namespace riscv64 {
   // So far, other libraries such as Dwarf does not distinguish between the two.
   // So here f<N>_32 and f<N>_64 are used to handle Capstone registers
   // On the other hand, f<N> are the "actual" FPRs that include both the NaN-boxed f<N>_32 and f<N>_64.
+  // f<N>_32 and f<N>_64 are both aliases of f<N>
+
   // Unless you are dealing with Capstone, you should always use f<N>.
-
-  // 32 bit FPRs f<N>_32 (Mainly for Capstone compatibility)
-  DEF_REGISTER(     f0_32,   0 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f1_32,   1 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f2_32,   2 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f3_32,   3 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f4_32,   4 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f5_32,   5 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f6_32,   6 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f7_32,   7 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f8_32,   8 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f9_32,   9 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f10_32,  10 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f11_32,  11 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f12_32,  12 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f13_32,  13 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f14_32,  14 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f15_32,  15 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f16_32,  16 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f17_32,  17 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f18_32,  18 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f19_32,  19 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f20_32,  20 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f21_32,  21 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f22_32,  22 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f23_32,  23 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f24_32,  24 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f25_32,  25 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f26_32,  26 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f27_32,  27 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f28_32,  28 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f29_32,  29 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f30_32,  30 | FEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f31_32,  31 | FEXT | FPR | Arch_riscv64, "riscv64");
-
-  // 64 bit FPRs f<N>_64 (Mainly for Capstone compatibility)
-  DEF_REGISTER(     f0_64,   0 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f1_64,   1 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f2_64,   2 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f3_64,   3 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f4_64,   4 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f5_64,   5 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f6_64,   6 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f7_64,   7 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f8_64,   8 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(     f9_64,   9 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f10_64,  10 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f11_64,  11 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f12_64,  12 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f13_64,  13 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f14_64,  14 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f15_64,  15 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f16_64,  16 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f17_64,  17 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f18_64,  18 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f19_64,  19 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f20_64,  20 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f21_64,  21 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f22_64,  22 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f23_64,  23 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f24_64,  24 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f25_64,  25 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f26_64,  26 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f27_64,  27 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f28_64,  28 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f29_64,  29 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f30_64,  30 | DEXT | FPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(    f31_64,  31 | DEXT | FPR | Arch_riscv64, "riscv64");
 
   // The "actual" 64 bit FPRs, including NaN-boxed 32-bit and 64-bit FPRs
   DEF_REGISTER(        f0,   0 | FPR | Arch_riscv64, "riscv64");
@@ -241,6 +172,74 @@ namespace Dyninst { namespace riscv64 {
   DEF_REGISTER(        t4,  29 | GPR | Arch_riscv64, "riscv64");
   DEF_REGISTER(        t5,  31 | GPR | Arch_riscv64, "riscv64");
   DEF_REGISTER(        t6,  30 | GPR | Arch_riscv64, "riscv64");
+
+  // 32 bit FPRs f<N>_32 (Mainly for Capstone compatibility)
+  DEF_REGISTER(     f0_32,   0 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f1_32,   1 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f2_32,   2 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f3_32,   3 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f4_32,   4 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f5_32,   5 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f6_32,   6 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f7_32,   7 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f8_32,   8 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f9_32,   9 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f10_32,  10 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f11_32,  11 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f12_32,  12 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f13_32,  13 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f14_32,  14 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f15_32,  15 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f16_32,  16 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f17_32,  17 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f18_32,  18 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f19_32,  19 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f20_32,  20 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f21_32,  21 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f22_32,  22 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f23_32,  23 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f24_32,  24 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f25_32,  25 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f26_32,  26 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f27_32,  27 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f28_32,  28 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f29_32,  29 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f30_32,  30 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f31_32,  31 | FPR | Arch_riscv64, "riscv64");
+
+  // 64 bit FPRs f<N>_64 (Mainly stone compatibility)
+  DEF_REGISTER(     f0_64,   0 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f1_64,   1 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f2_64,   2 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f3_64,   3 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f4_64,   4 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f5_64,   5 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f6_64,   6 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f7_64,   7 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f8_64,   8 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(     f9_64,   9 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f10_64,  10 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f11_64,  11 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f12_64,  12 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f13_64,  13 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f14_64,  14 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f15_64,  15 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f16_64,  16 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f17_64,  17 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f18_64,  18 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f19_64,  19 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f20_64,  20 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f21_64,  21 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f22_64,  22 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f23_64,  23 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f24_64,  24 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f25_64,  25 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f26_64,  26 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f27_64,  27 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f28_64,  28 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f29_64,  29 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f30_64,  30 | FPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(    f31_64,  31 | FPR | Arch_riscv64, "riscv64");
 
   // special purpose register
   DEF_REGISTER(        pc,   0 | SPR | Arch_riscv64, "riscv64");
