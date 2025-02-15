@@ -39,7 +39,7 @@ COND_BR_t COND_BR;
 
 unsigned int swapBytesIfNeeded(unsigned int i)
 {
-        assert(0);
+    assert(0);
     return i;
 }
 
@@ -107,33 +107,46 @@ void instruction::setInstruction(unsigned char *ptr, Dyninst::Address) {
 }
 
 bool instruction::isBranchReg() const{
-    if (insn_.is_compressed) {
-        short code = insn_.craw & UNCOND_BR_t.CJUMP_MASK;
-        return code == UNCOND_BR_t.CJR || code == UNCOND_BR_t.CJALR;
+    if (is_compressed) {
+        unsigned short code = insn_.craw & UNCOND_BR.CJR_INSN_MASK;
+        return code == UNCOND_BR.CJR_INSN || code == UNCOND_BR.CJALR_INSN;
     } else {
-        int code = insn_.raw & UNCOND_BR_t.JUMP_MASK;
-        return code == UNCOND_BR_t.JUMP_LINK_REG;
+        unsigned int code = insn_.raw & UNCOND_BR.J_INSN_MASK;
+        return code == UNCOND_BR.JALR_INSN;
+    }
+}
+
+bool instruction::isBranchOffset() const{
+    if (isCondBranch()) {
+        return true;
+    }
+    else if (is_compressed) {
+        unsigned short code = insn_.craw & UNCOND_BR.CJR_INSN_MASK;
+        return code == UNCOND_BR.CJ_INSN || code == UNCOND_BR.CJAL_INSN;
+    } else {
+        unsigned int code = insn_.raw & UNCOND_BR.J_INSN_MASK;
+        return code == UNCOND_BR.JAL_INSN || code == UNCOND_BR.JALR_INSN;
     }
 }
 
 bool instruction::isUncondBranch() const {
-    if (insn_.is_compressed) {
-        short code = insn_.craw & UNCOND_BR_t.CJUMP_MASK;
-        return code == UNCOND_BR_t.CJ  || code == UNCOND_BR_t.CJAL ||
-               code == UNCOND_BR_t.CJR || code == UNCOND_BR_t.CJALR;
+    if (is_compressed) {
+        unsigned short code = insn_.craw & UNCOND_BR.CJ_INSN_MASK;
+        return code == UNCOND_BR.CJ_INSN || code == UNCOND_BR.CJAL_INSN
+                || code == UNCOND_BR.CJR_INSN || code == UNCOND_BR.CJALR_INSN;
     } else {
-        int code = insn_.raw & UNCOND_BR_t.JUMP_MASK;
-        return code == UNCOND_BR_t.JUMP_LINK || code == UNCOND_BR_t.JUMP_LINK_REG;
+        unsigned int code = insn_.raw & UNCOND_BR.J_INSN_MASK;
+        return code == UNCOND_BR.JAL_INSN || code == UNCOND_BR.JALR_INSN;
     }
 }
 
 bool instruction::isCondBranch() const {
-    if (insn_.is_compressed) {
-        short code = insn_.craw & COND_BR_t.CBRANCH_MASK;
-        return code == COND_BR_t.CBEQZ || code == COND_BR_t.CBNEZ ||
+    if (is_compressed) {
+        unsigned short code = insn_.craw & COND_BR.CBRANCH_MASK;
+        return code == COND_BR.CBEQZ_INSN || code == COND_BR.CBNEZ_INSN;
     } else {
-        int code = insn_.raw & COND_BR_t.BRANCH_MASK;
-        return code == COND_BR_t.BRANCH;
+        unsigned int code = insn_.raw & COND_BR.BRANCH_MASK;
+        return code == COND_BR.BRANCH_INSNS;
     }
 }
 
@@ -148,12 +161,12 @@ unsigned instruction::jumpSize(Dyninst::Address /*disp*/, unsigned /*addr_width*
                 return 0;
 }
 
-unsigned instruction::maxJumpSize(unsigned addr_width) {
+unsigned instruction::maxJumpSize(unsigned /*addr_width*/) {
                 assert(0);
                 return 0;
 }
 
-unsigned instruction::maxInterFunctionJumpSize(unsigned addr_width) {
+unsigned instruction::maxInterFunctionJumpSize(unsigned /*addr_width*/) {
                 assert(0);
                 return 0;
 }
@@ -182,45 +195,66 @@ bool instruction::isThunk() const {
 unsigned instruction::getBranchTargetReg() const{
     // keep sure this instruction is uncond b reg.
     assert (isBranchReg());
-    if (insn_.is_compressed) {
-        return (insn_ & UNCOND_BR_t.CJUMP_REG_MASK) >> UNCOND_BR_t.CJUMP_REG_SHIFT;
+    if (is_compressed) {
+        return (insn_.craw & UNCOND_BR.CJR_REG_MASK) >> UNCOND_BR.CJR_REG_SHIFT;
     } else {
-        return (insn_ & UNCOND_BR_t.JUMP_REG_MASK) >> UNCOND_BR_t.JUMP_REG_SHIFT;
+        return (insn_.raw & UNCOND_BR.JALR_REG_MASK) >> UNCOND_BR.JALR_REG_SHIFT;
     }
 }
 
 Dyninst::Address instruction::getBranchOffset() const {
+    assert( isBranchOffset() );
+    Dyninst::Address offset = 0;
     if (isUncondBranch()) {
-        if (insn_.is_compressed) {
-            Dyninst::Address addr = (insn_.craw & UNCOND_BR_t.CJUMP_IMM_MASK) >> UNCOND_BR_t.CJUMP_IMM_SHIFT;;
-            if ((insn_.craw & UNCOND_BR_t.CJUMP_MASK) == UNCOND_BR_t.CJ) {
-
-            }
-            else if ((insn_.craw & UNCOND_BR_t.CJUMP_MASK) == UNCOND_BR_t.CJAL) {
-
-            }
-            // Not a valid instruction
-            assert(0);
+        // c.j, c.jal
+        if (is_compressed) {
+            Dyninst::Address imm = (insn_.craw & UNCOND_BR.JALR_IMM_MASK) >> UNCOND_BR.JALR_IMM_SHIFT;
+            // TODO refactor
+            offset |= ((imm >> 10) & 0x1) << 11;
+            offset |= ((imm >>  9) & 0x1) << 4;
+            offset |= ((imm >>  8) & 0x1) << 9;
+            offset |= ((imm >>  7) & 0x1) << 8;
+            offset |= ((imm >>  6) & 0x1) << 10;
+            offset |= ((imm >>  5) & 0x1) << 6;
+            offset |= ((imm >>  4) & 0x1) << 7;
+            offset |= ((imm >>  3) & 0x1) << 3;
+            offset |= ((imm >>  2) & 0x1) << 2;
+            offset |= ((imm >>  1) & 0x1) << 1;
+            offset |= ((imm >>  0) & 0x1) << 5;
         }
+        // jalr
+        else if (isBranchReg()) {
+            offset = (insn_.craw & UNCOND_BR.JALR_IMM_MASK) >> UNCOND_BR.JALR_IMM_SHIFT;
+        }
+        // jal
         else {
-            if ((insn_.raw & UNCOND_BR_t.JUMP_MASK) == UNCOND_BR_T.JUMP_LINK) {
-
-            }
-            else if ((insn_.raw & UNCOND_BR_t.JUMP_MASK) == UNCOND_BR_T.JUMP_LINK_REG) {
-
-            }
+            Dyninst::Address imm = (insn_.craw & UNCOND_BR.JAL_IMM_MASK) >> UNCOND_BR.JAL_IMM_SHIFT;
+            offset |= ((imm >> 19) &   0x1) << 20;
+            offset |= ((imm >>  9) & 0x1ff) <<  1;
+            offset |= ((imm >>  8) &   0x1) << 11;
+            offset |= ((imm >>  0) &  0xff) << 12;
         }
     }
     else if (isUncondBranch()) {
-        if (insn_.is_compressed) {
-
+        // c.beqz, c.bnez
+        if (is_compressed) {
+            Dyninst::Address imm = (insn_.craw & COND_BR.CBRANCH_IMM_MASK);
+            offset |= ((imm >> 12) &  0x1) << 8;
+            offset |= ((imm >> 10) &  0x3) << 3;
+            offset |= ((imm >>  5) &  0x3) << 6;
+            offset |= ((imm >>  3) &  0x3) << 1;
+            offset |= ((imm >>  2) &  0x1) << 5;
         }
+        // beq, bne, blt, bge, bltu, bgeu
         else {
-
+            Dyninst::Address imm = (insn_.craw & COND_BR.BRANCH_IMM_MASK);
+            offset |= ((imm >> 31) &  0x1) << 12;
+            offset |= ((imm >> 25) & 0x3f) <<  5;
+            offset |= ((imm >>  8) &  0xf) <<  1;
+            offset |= ((imm >>  7) &  0x1) << 11;
         }
     }
-    assert(0);
-    return 0;
+    return offset;
 }
 
 unsigned instruction::opcode() const {
@@ -229,24 +263,24 @@ unsigned instruction::opcode() const {
 }
 
 bool instruction::isAtomicLoad() const {
-    if (insn_.is_compressed) {
-        short code = insn_.craw & ATOMIC_t.CLDST_MASK;
-        return code == ATOMIC_t.CLW   || code == ATOMIC_t.CLD   ||
-               code == ATOMIC_t.CLWSP || code == ATOMIC_t.CLDSP ||
+    if (is_compressed) {
+        unsigned short code = insn_.craw & ATOMIC.CLDST_INSN_MASK;
+        return code == ATOMIC.CLW_INSN   || code == ATOMIC.CLD_INSN   ||
+               code == ATOMIC.CLWSP_INSN || code == ATOMIC.CLDSP_INSN;
     } else {
-        int code = insn_.raw & ATOMIC_t.LDST_MASK;
-        return code == ATOMIC_t.LD;
+        unsigned int code = insn_.raw & ATOMIC.LDST_INSN_MASK;
+        return code == ATOMIC.LD_INSN;
     }
 }
 
 bool instruction::isAtomicStore() const {
-    if (insn_.is_compressed) {
-        short code = insn_.craw & ATOMIC_t.CLDST_MASK;
-        return code == ATOMIC_t.CSW   || code == ATOMIC_t.CSD   ||
-               code == ATOMIC_t.CSWSP || code == ATOMIC_t.CSDSP ||
+    if (is_compressed) {
+        unsigned short code = insn_.craw & ATOMIC.CLDST_INSN_MASK;
+        return code == ATOMIC.CSW_INSN   || code == ATOMIC.CSD_INSN   ||
+               code == ATOMIC.CSWSP_INSN || code == ATOMIC.CSDSP_INSN;
     } else {
-        int code = insn_.raw & ATOMIC_t.LDST_MASK;
-        return code == ATOMIC_t.ST;
+        unsigned int code = insn_.raw & ATOMIC.LDST_INSN_MASK;
+        return code == ATOMIC.ST_INSN;
     }
 }
 
