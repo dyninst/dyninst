@@ -364,9 +364,7 @@ namespace Dyninst {
       }
       case Arch_aarch32: assert(0); break;
       case Arch_riscv64: {
-        if(regClass() == riscv64::FPR && getLengthID() == riscv64::DEXT)
-          return 8;
-        return 4;
+        return 8;
       }
 
       case Arch_cuda: return 8;
