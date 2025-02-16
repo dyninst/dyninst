@@ -91,6 +91,12 @@ public:
     static void generateMemStore(codeGen &gen, Dyninst::Register rs1,
             Dyninst::Register rs2, Dyninst::RegValue offset, Dyninst::RegValue size);
 
+    static void generateMemLoadFp(codeGen &gen, Dyninst::Register rd,
+            Dyninst::Register rs, Dyninst::RegValue offset, Dyninst::RegValue size);
+
+    static void generateMemStoreFp(codeGen &gen, Dyninst::Register rs1,
+            Dyninst::Register rs2, Dyninst::RegValue offset, Dyninst::RegValue size);
+
     static void saveRegister(codeGen &gen, Dyninst::Register r, int sp_offset);
 
     static void restoreRegister(codeGen &gen, Dyninst::Register r, int sp_offset);
@@ -98,13 +104,6 @@ public:
     /** TODO **/
     static void loadPartialImmIntoReg(codeGen &gen, Dyninst::Register rt,
                                       long value);
-
-    static bool generateMem(codeGen &gen,
-                            instruction &insn,
-                            Dyninst::Address origAddr,
-                            Dyninst::Address newAddr,
-                            Dyninst::Register newLoadReg,
-                            Dyninst::Register newStoreReg);
 
     static Dyninst::Register moveValueToReg(codeGen &gen, long int val, std::vector<Dyninst::Register> *exclude = NULL);
 
@@ -169,7 +168,7 @@ public:
     static void generateLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
     static void generateLoadUpperImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
 
-    static void generateNOOP(codeGen &gen);
+    static void generateNOOP(codeGen &gen, unsigned size);
 
     static void generateAdd(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2);
     static void generateSub(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2);
