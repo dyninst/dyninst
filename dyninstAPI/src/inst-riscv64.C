@@ -135,7 +135,7 @@ void EmitterRISCV64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprn
 void EmitterRISCV64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save_off) {
     // TODO
     //     //Always performing save of the full FP register
-    insnCodeGen::generateMemAccessFP(gen, insnCodeGen::Store, reg, REG_SP, save_off, 0, true);
+    insnCodeGen::generateMemStoreFp(gen, REG_SP, reg, save_off, 8);
 }
 
 /********************************* Public methods *********************************************/
@@ -186,6 +186,8 @@ unsigned EmitterRISCV64SaveRegs::saveSPRegisters(
 }
 
 void EmitterRISCV64SaveRegs::createFrame(codeGen &gen) {
+    // Dyninst-style stack frame
+
     // Save link register
     Register linkRegister = gen.rs()->getRegByName("r1");
     insnCodeGen::saveRegister(gen, linkRegister, -2 * GPRSIZE_64);
@@ -196,7 +198,7 @@ void EmitterRISCV64SaveRegs::createFrame(codeGen &gen) {
 
     // Move stack pointer to frame pointer
     Register stackPointer = gen.rs()->getRegByName("r2");
-    insnCodeGen::generateMoveSP(gen, stackPointer, framePointer, true);
+    insnCodeGen::generateMove(gen, framePointer, stackPointer);
 }
 
 /***********************************************************************************************/
@@ -268,7 +270,8 @@ void EmitterRISCV64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, in
 }
 
 void EmitterRISCV64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, int save_off) {
-    insnCodeGen::generateMemAccessFP(gen, insnCodeGen::Load, reg, REG_SP, save_off, 0, true);
+    insnCodeGen::generateMemLoadFp(gen, reg, REG_SP, save_off, 8);
+    assert(0);
 }
 
 /***********************************************************************************************/
@@ -316,7 +319,7 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
     // Note: If the implementation of the instrumentation frame layout
     // needs to be changed, DyninstDynamicStepperImpl::getCallerFrameArch
     // in stackwalk/src/riscv64-swk.C also likely needs to be changed accordingly
-    insnCodeGen::generateMoveSP(gen, REG_SP, REG_FP, true);
+    insnCodeGen::generateMove(gen, REG_FP, REG_SP);
     gen.markRegDefined(REG_FP);
 
     bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
@@ -633,47 +636,16 @@ void MovePCToReg(Register dest, codeGen &gen) {
 void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
                 codeGen &gen,
                 bool) {
-
-    // Haven't implemented non-zero shifts yet
-    assert(stackShift == 0);
-    long int imm = as->getImm();
-    int ra  = as->getReg(0);
-    int rb  = as->getReg(1);
-    int sc  = as->getScale();
-    gen.markRegDefined(dest);
-    if(ra > -1) {
-        if(ra == 32) {
-            // Special case where the actual address is store in imm.
-            // Need to change this for rewriting PIE or shared libraries
-            insnCodeGen::loadImmIntoReg(gen, dest, static_cast<Address>(imm));
-            return;
-        }
-        else {
-            restoreGPRtoGPR(gen, ra, dest);
-        }
-    } else {
-        insnCodeGen::loadImmIntoReg(gen, dest, static_cast<Address>(0));
-    }
-    if(rb > -1) {
-        std::vector<Register> exclude;
-        exclude.push_back(dest);
-        Register scratch = gen.rs()->getScratchRegister(gen, exclude);
-        assert(scratch != Null_Register && "cannot get a scratch register");
-        gen.markRegDefined(scratch);
-        restoreGPRtoGPR(gen, rb, scratch);
-        // call adds, save 2^scale * rb to dest
-        insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, sc, scratch, dest, dest, true);
-    }
-
-    // emit code to load the immediate (constant offset) into dest; this
-    // writes at gen+base and updates base, we must update insn..
-    if (imm) 
-        insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, imm, dest, dest, true);  
+    // Not used currently
+    assert(0);
+    return;
 }
 
 void emitCSload(const BPatch_addrSpec_NP *, Register, codeGen &,
                 bool) {
-    assert(0); //Not implemented
+    // Not used currently
+    assert(0);
+    return;
 }
 
 void emitVload(opCode op, Address src1, Register src2, Register dest,
@@ -747,7 +719,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
             gen.codeEmitter()->emitOp(op, dest, src1, src2, gen);
             break;
         case divOp:
-            insnCodeGen::generateDiv(gen, src2, src1, dest, true, s);
+            insnCodeGen::generateDiv(gen, src2, src1, dest);
             break;
         case lessOp:
         case leOp:
