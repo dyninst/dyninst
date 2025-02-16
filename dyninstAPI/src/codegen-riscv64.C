@@ -310,6 +310,16 @@ void insnCodeGen::generateMemStore(codeGen &gen, Dyninst::Register rs1, Dyninst:
     generateSTypeInsn(gen, rs1, rs2, offset, funct3, STOREOp);
 }
 
+void insnCodeGen::generateMemLoadFp(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue offset, Dyninst::RegValue size)
+{
+    // TODO Load instructions for FPRs
+}
+
+void insnCodeGen::generateMemStoreFp(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue offset, Dyninst::RegValue size)
+{
+    // TODO Store instructions for FPRs
+}
+
 //
 // generate an instruction that does nothing and has to side affect except to
 //   advance the program counter.
@@ -318,13 +328,13 @@ void insnCodeGen::generateMemStore(codeGen &gen, Dyninst::Register rs1, Dyninst:
 
 void insnCodeGen::saveRegister(codeGen &gen, Dyninst::Register r, int sp_offset)
 {
-    // TODO
+    generateMemStore(gen, REG_SP, r, sp_offset, 8);
 }
 
 
 void insnCodeGen::restoreRegister(codeGen &gen, Dyninst::Register r, int sp_offset)
 {
-    // TODO
+    generateMemLoad(gen, r, REG_SP, sp_offset, 8, true);
 }
 
 
@@ -337,20 +347,14 @@ void insnCodeGen::loadPartialImmIntoReg(codeGen &, Dyninst::Register, long)
 }
 
 int insnCodeGen::createStackFrame(codeGen &, int, std::vector<Dyninst::Register>& freeReg, std::vector<Dyninst::Register>&){
-    // TODO
+    // Not used
+    assert(0);
+    return 0;
 }
 
 void insnCodeGen::removeStackFrame(codeGen &) {
-    // TODO
-}
-
-bool insnCodeGen::generateMem(codeGen &,
-                              instruction&,
-                              Dyninst::Address,
-                              Dyninst::Address,
-                              Dyninst::Register,
-                  Dyninst::Register) {
-    // TODO
+    // Not used
+    assert(0);
 }
 
 bool insnCodeGen::modifyJump(Dyninst::Address target,
@@ -497,7 +501,7 @@ void insnCodeGen::generateAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::Re
 
     // If rd == rs == zero && imm == 0, the instruction is essentially NOP (c.nop)
     if (rd == 0 && rs == 0 && imm == 0) {
-        generateNOOP(gen);
+        generateCNop(gen);
         return;
     }
 
@@ -536,7 +540,7 @@ void insnCodeGen::generateAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::Re
     }
 
     // Otherwise, generate addi
-    generateITypeInsn(gen, rd, rs, imm, ADDSUBFunct3, IMMOp);
+    generateITypeInsn(gen, rd, rs, imm, ADDFunct3, IMMOp);
 }
 
 void insnCodeGen::generateSubImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm) {
@@ -611,10 +615,10 @@ void insnCodeGen::generateAdd(codeGen &gen, Dyninst::Register rd, Dyninst::Regis
         generateCAdd(gen, rd, rs1);
         return;
     }
-    generateRTypeInsn(gen, rd, rs1, rs2, ADDFunct7, ADDSUBFunct3, REGOp);
+    generateRTypeInsn(gen, rd, rs1, rs2, ADDFunct7, ADDFunct3, REGOp);
 }
 void insnCodeGen::generateSub(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
-    generateRTypeInsn(gen, rd, rs1, rs2, SUBFunct7, ADDSUBFunct3, REGOp);
+    generateRTypeInsn(gen, rd, rs1, rs2, SUBFunct7, SUBFunct3, REGOp);
 }
 void insnCodeGen::generateShiftLeft(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
     generateRTypeInsn(gen, rd, rs1, rs2, SLLFunct7, SLLFunct3, REGOp);
