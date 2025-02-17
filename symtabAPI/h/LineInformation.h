@@ -66,8 +66,6 @@ public:
                   Offset lowInclusiveAddr,
                   Offset highExclusiveAddr );
 
-      void addLineInfo(LineInformation *lineInfo);	      
-
       bool addAddressRange( Offset lowInclusiveAddr, 
             Offset highExclusiveAddr, 
             const char * lineSource, 

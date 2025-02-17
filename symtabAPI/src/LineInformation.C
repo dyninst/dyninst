@@ -88,15 +88,6 @@ bool LineInformation::addLine( const std::string &lineSource,
     return addLine(i, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr);
 }
 
-void LineInformation::addLineInfo(LineInformation *lineInfo)
-{
-    if(!lineInfo)
-        return;
-#pragma omp critical (addLine)
-{
-    insert(lineInfo->begin(), lineInfo->end());
-}
-}
 
 bool LineInformation::addAddressRange( Offset lowInclusiveAddr, 
       Offset highExclusiveAddr, 
