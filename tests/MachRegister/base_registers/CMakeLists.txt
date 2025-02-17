@@ -16,6 +16,12 @@ target_include_directories(basereg_aarch64 PRIVATE ${UNIT_TESTS_INCLUDES})
 target_link_libraries(basereg_aarch64 PRIVATE common)
 add_test(NAME machregister_basereg_aarch64 COMMAND basereg_aarch64)
 
+add_executable(basereg_riscv64 riscv64.cpp)
+target_compile_options(basereg_riscv64 PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_include_directories(basereg_riscv64 PRIVATE ${UNIT_TESTS_INCLUDES})
+target_link_libraries(basereg_riscv64 PRIVATE common)
+add_test(NAME machregister_basereg_riscv64 COMMAND basereg_riscv64)
+
 add_executable(basereg_ppc64 ppc64.cpp)
 target_compile_options(basereg_ppc64 PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
 target_include_directories(basereg_ppc64 PRIVATE ${UNIT_TESTS_INCLUDES})
