@@ -167,11 +167,7 @@ namespace Dyninst {
       }
 
       case Arch_riscv64:
-         switch(category) {
-             case riscv64::GPR: return riscv64::x0;
-             case riscv64::FPR: return riscv64::f0;
-             default: return *this;
-         }
+        return *this;
 
       case Arch_amdgpu_gfx908: {
         if(category == amdgpu_gfx908::MISC) {
@@ -370,9 +366,7 @@ namespace Dyninst {
       }
       case Arch_aarch32: assert(0); break;
       case Arch_riscv64: {
-        if((reg & 0x00ff0000) == riscv64::FPR && (reg & 0x0000ff00) == riscv64::DEXT)
-          return 8;
-        return 4;
+        return 8;
       }
       case Arch_cuda: return 8;
       case Arch_amdgpu_gfx908: {
@@ -879,7 +873,8 @@ namespace Dyninst {
       case Arch_riscv64: {
         auto const is_vec = isVector();
         auto const is_fpr = (category == riscv64::FPR);
-        return is_vec || is_fpr;
+        auto const is_fcsr = (*this == riscv64::fcsr);
+        return is_vec || is_fpr || is_fcsr;
       }
 
       case Arch_ppc32: {
