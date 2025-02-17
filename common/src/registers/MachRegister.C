@@ -166,11 +166,7 @@ namespace Dyninst {
         return *this;
       }
       case Arch_riscv64:
-         switch(category) {
-             case riscv64::GPR: return riscv64::x0;
-             case riscv64::FPR: return riscv64::f0;
-             default: return *this;
-         }
+        return *this;
 
       case Arch_amdgpu_gfx908: {
         if(category == amdgpu_gfx908::MISC) {
