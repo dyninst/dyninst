@@ -57,7 +57,7 @@ namespace Dyninst {
             dyn_mutex lock;
         };
 
-        typedef boost::shared_ptr<StringTable> StringTablePtr;
+        using StringTablePtr = boost::shared_ptr<StringTable>;
 
         inline std::ostream& operator<<(std::ostream& s, StringTableEntry e)
         {

@@ -160,7 +160,7 @@ public:
     virtual Offset getDynamicAddr() const { return 0; }
 
     virtual void *getElfHandle() { return NULL; }
-    virtual LineInformation* parseLineInfoForObject(StringTablePtr) { return NULL; }
+    virtual LineInformation* parseLineInfoForObject() { return NULL; }
 
     DYNINST_EXPORT virtual bool isOnlyExecutable() const { return false; }
     DYNINST_EXPORT virtual bool isExecutable() const { return false; }

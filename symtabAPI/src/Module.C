@@ -178,12 +178,11 @@ LineInformation *Module::parseLineInformation() {
 
     if (!debug_info || is_cuda) {
 	objectLevelLineInfo = true;
-	lineInfo_ = exec()->getObject()->parseLineInfoForObject(strings_);
+	lineInfo_ = exec()->getObject()->parseLineInfoForObject();
 	return lineInfo_;
     }
 
     lineInfo_ = new LineInformation;
-    lineInfo_->setStrings(strings_);
 
     exec()->getObject()->parseLineInfoForCU(addr(), lineInfo_);
     return lineInfo_;
@@ -294,8 +293,7 @@ Module::Module(supportedLanguages lang, Offset adr,
    compDir_(""),
    language_(lang),
    addr_(adr),
-   exec_(img),
-   strings_(new StringTable)
+   exec_(img)
 {}
 
 Module::Module() :
@@ -305,8 +303,7 @@ Module::Module() :
    fileName_(""),
    language_(lang_Unknown),
    addr_(0),
-   exec_(NULL),
-   strings_(new StringTable)
+   exec_(NULL)
 {
 }
 
@@ -318,9 +315,7 @@ Module::Module(const Module &mod) :
    fileName_(mod.fileName_),
    language_(mod.language_),
    addr_(mod.addr_),
-   exec_(mod.exec_),
-   strings_(mod.strings_)
-
+   exec_(mod.exec_)
 {
 }
 
@@ -491,7 +486,7 @@ std::vector<ModRange*> Module::finalizeRanges()
     return mod_ranges;
 }
 
-StringTablePtr & Module::getStrings() {
-    return strings_;
+StringTablePtr Module::getStrings() {
+    return lineInfo_->getStrings();
 }
 

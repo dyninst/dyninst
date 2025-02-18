@@ -33,6 +33,7 @@
 #include <cstring>
 #include <boost/filesystem.hpp>
 #include "boost/functional/hash.hpp"
+#include <boost/make_shared.hpp>
 #include "common/src/headers.h"
 #include "Module.h"
 
@@ -46,7 +47,7 @@ using std::vector;
 #include "LineInformation.h"
 #include <sstream>
 
-LineInformation::LineInformation() :strings_(new StringTable)
+LineInformation::LineInformation()
 {
 }
 
@@ -65,7 +66,7 @@ bool LineInformation::addLine( unsigned int lineSource,
     Statement* the_stmt = new Statement(lineSource, lineNo, lineOffset,
                                         lowInclusiveAddr, highExclusiveAddr);
     Statement::Ptr insert_me(the_stmt);
-    insert_me->setStrings_(strings_);
+    insert_me->setStrings_(getStrings());
    bool result;
 #pragma omp critical (addLine)
 {
@@ -80,10 +81,10 @@ bool LineInformation::addLine( const std::string &lineSource,
                                Offset highExclusiveAddr )
 {
     // lookup or insert linesource in string table and get iterator
-    auto iter = strings_->get<1>().insert(StringTableEntry(lineSource,"")).first;
+    auto iter = stringTable->get<1>().insert(StringTableEntry(lineSource,"")).first;
 
     // get index of string in string table
-    auto i = boost::multi_index::project<0>(*strings_, iter) - strings_->get<0>().begin();
+    auto i = boost::multi_index::project<0>(*stringTable, iter) - stringTable->get<0>().begin();
 
     return addLine(i, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr);
 }
@@ -199,12 +200,12 @@ std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line
 LineInformation::range(std::string const& file, const unsigned int lineNo) const
 {
     using namespace boost::filesystem;
-    auto found_range = strings_->get<2>().equal_range(path(file).filename().string());
+    auto found_range = stringTable->get<2>().equal_range(path(file).filename().string());
 
     std::pair<const_line_info_iterator, const_line_info_iterator > bounds;
-    for(auto found = found_range.first; ((found != found_range.second) && (found != strings_->get<2>().end())); ++found)
+    for(auto found = found_range.first; ((found != found_range.second) && (found != stringTable->get<2>().end())); ++found)
     {
-        unsigned i = strings_->project<0>(found) - strings_->begin();
+        unsigned i = stringTable->project<0>(found) - stringTable->begin();
         auto idx = boost::make_tuple(i, lineNo);
         bounds =  get<Statement::line_info>().equal_range(idx);
         if(bounds.first != bounds.second) {
@@ -217,18 +218,15 @@ LineInformation::range(std::string const& file, const unsigned int lineNo) const
 
 std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator>
 LineInformation::equal_range(std::string const& file) const {
-    auto found = strings_->get<1>().find(file);
-    unsigned i = strings_->project<0>(found) - strings_->begin();
+    auto found = stringTable->get<1>().find(file);
+    unsigned i = stringTable->project<0>(found) - stringTable->begin();
     return get<Statement::line_info>().equal_range(i);
 }
 
 StringTablePtr LineInformation::getStrings()  {
-    return strings_;
+    return stringTable;
 }
 
-void LineInformation::setStrings(StringTablePtr strings) {
-    LineInformation::strings_ = strings;
-}
 
 LineInformation::const_iterator LineInformation::find(Offset addressInRange, const_iterator hint) const {
     while(hint != end())

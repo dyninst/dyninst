@@ -426,6 +426,7 @@ public:
   void parse_opd(Elf_X_Shdr *);
  public:
   void parseDwarfFileLineInfo();
+  void parseLineInfoForAddr(Offset addr_to_find);
 
   bool hasDebugInfo() override;
 
@@ -448,7 +449,7 @@ private:
     void lookupInlinedContext( std::vector<open_statement> &, open_statement &);
     
     LineInformation* li_for_object;
-    LineInformation* parseLineInfoForObject(StringTablePtr strings) override;
+    LineInformation* parseLineInfoForObject() override;
 
   void load_object(bool);
 

@@ -3181,7 +3181,6 @@ void ObjectELF::parseLineInfoForCU(Offset offset_, LineInformation* li_for_modul
         std::string filename = path(full_pathname).filename().string();
         strings->emplace_back(full_pathname, filename);
     }
-    li_for_module->setStrings(strings);
 
     /* The 'lines' returned are actually interval markers; the code
      generated from lineNo runs from lineAddr up to but not including
@@ -3408,7 +3407,7 @@ ObjectELF::lookupInlinedContext
 }
 
 
-LineInformation* ObjectELF::parseLineInfoForObject(StringTablePtr strings)
+LineInformation* ObjectELF::parseLineInfoForObject()
 {
     Region *debug_str = nullptr;
     std::string debug_str_secname = ".debug_str";
@@ -3421,7 +3420,7 @@ LineInformation* ObjectELF::parseLineInfoForObject(StringTablePtr strings)
         return li_for_object;
     }
     li_for_object = new LineInformation();
-    li_for_object->setStrings(strings);
+    StringTablePtr strings = li_for_object->getStrings();
     /* Initialize libdwarf. */
     Dwarf **dbg_ptr = dwarf->type_dbg();
     if (!dbg_ptr) return li_for_object;
@@ -3458,7 +3457,6 @@ LineInformation* ObjectELF::parseLineInfoForObject(StringTablePtr strings)
         string filename = path(dwarf_filename).filename().string();
         strings->emplace_back(dwarf_filename,filename);
     }
-    li_for_object->setStrings(strings);
     /* The 'lines' returned are actually interval markers; the code
      generated from lineNo runs from lineAddr up to but not including
      the lineAddr of the next line. */

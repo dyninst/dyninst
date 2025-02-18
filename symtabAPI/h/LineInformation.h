@@ -34,10 +34,12 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <boost/make_shared.hpp>
 #include "symutil.h"
 #include "RangeLookup.h"
 #include "Annotatable.h"
 #include "Statement.h"
+#include "StringTable.h"
 
 #define NEW_GETSOURCELINES_INTERFACE
 
@@ -91,11 +93,11 @@ public:
     void dump();
 
     ~LineInformation() = default;
-    StringTablePtr strings_;
 
     StringTablePtr getStrings() ;
 
-    void setStrings(StringTablePtr strings_);
+private:
+    StringTablePtr stringTable{boost::make_shared<StringTable>()};
 };
 
 }//namespace SymtabAPI

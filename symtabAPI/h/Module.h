@@ -156,7 +156,7 @@ namespace Dyninst { namespace SymtabAPI {
 
     bool hasRanges() const { return !ranges.empty(); }
 
-    StringTablePtr &getStrings();
+    StringTablePtr getStrings();
 
   private:
     bool objectLevelLineInfo;
@@ -170,8 +170,6 @@ namespace Dyninst { namespace SymtabAPI {
     Symtab *exec_;
     std::set<AddressRange> ranges;
     std::vector<ModRange *> finalizeRanges();
-
-    StringTablePtr strings_;
   };
 
   template <typename OS> OS &operator<<(OS &os, const Module &m) {
