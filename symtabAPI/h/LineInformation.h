@@ -53,45 +53,45 @@ public:
     typedef impl_t::index<Statement::addr_range>::type::const_iterator const_iterator;
     typedef impl_t::index<Statement::line_info>::type::const_iterator const_line_info_iterator;
     typedef traits::value_type Statement_t;
-      LineInformation();
+    LineInformation();
 
-      bool addLine( const std::string &lineSource,
-            unsigned int lineNo, 
-            unsigned int lineOffset, 
-            Offset lowInclusiveAddr, 
-            Offset highExclusiveAddr );
+    bool addLine( const std::string &lineSource,
+          unsigned int lineNo, 
+          unsigned int lineOffset, 
+          Offset lowInclusiveAddr, 
+          Offset highExclusiveAddr );
     bool addLine( unsigned int fileIndex,
-                  unsigned int lineNo,
-                  unsigned int lineOffset,
-                  Offset lowInclusiveAddr,
-                  Offset highExclusiveAddr );
+                unsigned int lineNo,
+                unsigned int lineOffset,
+                Offset lowInclusiveAddr,
+                Offset highExclusiveAddr );
 
-      bool addAddressRange( Offset lowInclusiveAddr, 
-            Offset highExclusiveAddr, 
-            const char * lineSource, 
-            unsigned int lineNo, 
-            unsigned int lineOffset = 0 );
+    bool addAddressRange( Offset lowInclusiveAddr, 
+          Offset highExclusiveAddr, 
+          const char * lineSource, 
+          unsigned int lineNo, 
+          unsigned int lineOffset = 0 );
 
-      bool getSourceLines(Offset addressInRange, std::vector<Statement_t> &lines);
+    bool getSourceLines(Offset addressInRange, std::vector<Statement_t> &lines);
     bool getSourceLines(Offset addressInRange, std::vector<Statement> &lines);
 
-      bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
-      const_line_info_iterator begin_by_source() const;
-      const_line_info_iterator end_by_source() const;
-      std::pair<const_line_info_iterator, const_line_info_iterator> range(std::string const& file,
-                                                                                const unsigned int lineNo) const;
-      std::pair<const_line_info_iterator, const_line_info_iterator> equal_range(std::string const& file) const;
-      const_iterator begin() const;
-      const_iterator end() const;
-      const_iterator find(Offset addressInRange) const;
-      const_iterator find(Offset addressInRange, const_iterator hint) const;
+    bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
+    const_line_info_iterator begin_by_source() const;
+    const_line_info_iterator end_by_source() const;
+    std::pair<const_line_info_iterator, const_line_info_iterator> range(std::string const& file,
+                                                                              const unsigned int lineNo) const;
+    std::pair<const_line_info_iterator, const_line_info_iterator> equal_range(std::string const& file) const;
+    const_iterator begin() const;
+    const_iterator end() const;
+    const_iterator find(Offset addressInRange) const;
+    const_iterator find(Offset addressInRange, const_iterator hint) const;
 
-      unsigned getSize() const;
+    unsigned getSize() const;
 
-      void dump();
+    void dump();
 
-      ~LineInformation() = default;
-        StringTablePtr strings_;
+    ~LineInformation() = default;
+    StringTablePtr strings_;
 
     StringTablePtr getStrings() ;
 
