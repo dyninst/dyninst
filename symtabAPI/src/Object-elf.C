@@ -87,8 +87,6 @@ using namespace boost::assign;
 // add some space to avoid looking for functions in data regions
 #define EXTRA_SPACE 8
 
-bool ObjectELF::truncateLineFilenames = false;
-
 std::vector<Symbol *> opdsymbols_;
 
 void (*dwarf_err_func)(const char *);   // error callback for dwarf errors
@@ -3161,39 +3159,27 @@ void ObjectELF::parseLineInfoForCU(Offset offset_, LineInformation* li_for_modul
     std::string comp_dir_str( comp_dir ? comp_dir : "" );
 
     // lambda function to convert relative to absolute path
-    auto convert_to_absolute = [&comp_dir_str](const char * &filename) -> std::string
+    auto convert_to_absolute = [&comp_dir_str](const char *filename) -> std::string
     {
-        if(!filename) return "";
-        std::string s_name(filename);
-
-        // change to absolute if it's relative
-        if(filename[0]!='/')
-        {
-            s_name = comp_dir_str + "/" + s_name;
-        }
-        return s_name;
+        // NULL or empty, return empty
+        if (!filename || !filename[0])
+            return "";
+        // absolute path, return unchanged
+        if (filename[0] == '/')
+            return filename;
+        // relative path, make absolute
+        return comp_dir_str + '/' + filename;
     };
 
     using namespace boost::filesystem;
     for(size_t i = 0; i < filecount; i++)
     {
-        auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
-        if(!filename) continue;
-        auto result = convert_to_absolute(filename);
-        filename = result.c_str();
+        auto dwarf_filename = dwarf_filesrc(files, i, nullptr, nullptr);
+        if(!dwarf_filename) continue;
+        auto full_pathname = convert_to_absolute(dwarf_filename);
 
-        string f = path(filename).filename().string();
-        auto tmp = strrchr(filename, '/');
-        if(tmp) ++tmp;
-
-        if(truncateLineFilenames && tmp)
-        {
-            strings->emplace_back(tmp, tmp);
-        }
-        else
-        {
-            strings->emplace_back(filename,f);
-        }
+        std::string filename = path(full_pathname).filename().string();
+        strings->emplace_back(full_pathname, filename);
     }
     li_for_module->setStrings(strings);
 
@@ -3466,21 +3452,11 @@ LineInformation* ObjectELF::parseLineInfoForObject(StringTablePtr strings)
     using namespace boost::filesystem;
     for(size_t i = 0; i < fileCount; i++)
     {
-        auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
-        if(!filename) continue;
+        auto dwarf_filename = dwarf_filesrc(files, i, nullptr, nullptr);
+        if(!dwarf_filename) continue;
 
-        string f = path(filename).filename().string();
-        auto tmp = strrchr(filename, '/');
-        if(tmp) ++tmp;
-
-        if(truncateLineFilenames && tmp)
-        {
-            strings->emplace_back(tmp,tmp);
-        }
-        else
-        {
-            strings->emplace_back(filename,f);
-        }
+        string filename = path(dwarf_filename).filename().string();
+        strings->emplace_back(dwarf_filename,filename);
     }
     li_for_object->setStrings(strings);
     /* The 'lines' returned are actually interval markers; the code
@@ -3628,7 +3604,6 @@ LineInformation* ObjectELF::parseLineInfoForObject(StringTablePtr strings)
     }
     return li_for_object;
 }
-
 
 void ObjectELF::parseLineInfoForAddr(Offset addr_to_find) {
     Dwarf **dbg_ptr = dwarf->line_dbg();
@@ -3939,13 +3914,6 @@ bool Region::isStandardCode() {
              (name_ == std::string(".fini"))));
 }
 
-void ObjectELF::setTruncateLinePaths(bool value) {
-    truncateLineFilenames = value;
-}
-
-bool ObjectELF::getTruncateLinePaths() {
-    return truncateLineFilenames;
-}
 
 Dyninst::Architecture ObjectELF::getArch() const {
     return elfHdr->getArch();

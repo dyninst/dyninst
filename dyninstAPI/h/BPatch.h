@@ -455,12 +455,6 @@ public:
     
     bool getInstrStackFrames();
 
-    //  BPatch::setTypeChecking:
-    //  Turn on/off line info truncating
-    
-
-    DYNINST_DEPRECATED("Does nothing")
-    void truncateLineInfoFilenames(bool);
 
     //  BPatch::setTrampRecursive:
     //  Turn on/off recursive trampolines

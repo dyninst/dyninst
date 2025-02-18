@@ -135,8 +135,6 @@ public:
     DYNINST_EXPORT virtual bool getABIVersion(int & /*major*/, int & /*minor*/) const { return false; }
 
 
-    virtual void setTruncateLinePaths(bool value);
-    virtual bool getTruncateLinePaths();
     virtual Region::RegionType getRelType() const { return Region::RT_INVALID; }
 
     virtual Offset getPreferedBase() const { return 0; }

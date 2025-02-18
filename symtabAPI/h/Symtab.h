@@ -247,8 +247,6 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
                        Offset addressInRange);
    bool getSourceLines(std::vector<LineNoTuple> &lines,
                                      Offset addressInRange);
-   void setTruncateLinePaths(bool value);
-   bool getTruncateLinePaths();
    
    /***** Type Information *****/
    virtual bool findType(boost::shared_ptr<Type>& type, std::string const& name);

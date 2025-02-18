@@ -388,12 +388,3 @@ bool Object::hasError() const
 {
   return has_error;
 }
-
-void Object::setTruncateLinePaths(bool)
-{
-}
-
-bool Object::getTruncateLinePaths()
-{
-   return false;
-}

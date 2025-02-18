@@ -1827,8 +1827,6 @@ int BPatch::getNotificationFD() {
 #endif
 }
 
-void BPatch::truncateLineInfoFilenames(bool) {}
-
 void BPatch::getBPatchVersion(int &major, int &minor, int &subminor) 
 {
    major = DYNINST_MAJOR;

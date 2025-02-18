@@ -1572,16 +1572,6 @@ DYNINST_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offs
     return true;
 }
 
-void Symtab::setTruncateLinePaths(bool value)
-{
-   getObject()->setTruncateLinePaths(value);
-}
-
-bool Symtab::getTruncateLinePaths()
-{
-   return getObject()->getTruncateLinePaths();
-}
-
 void Symtab::parseTypes()
 {
    Object *linkedFile = getObject();

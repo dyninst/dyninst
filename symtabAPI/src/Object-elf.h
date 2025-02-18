@@ -190,7 +190,6 @@ public:
   Offset getEntryAddress() const override { return entryAddress_; }
   // To be changed later - Giri
   Offset getBaseAddress() const override { return 0; }
-  static bool truncateLineFilenames;
 
   void insertPrereqLibrary(std::string libname) override;
   bool removePrereqLibrary(std::string libname) override;
@@ -302,9 +301,6 @@ public:
     Offset getInitAddr() const override {return init_addr_; }
     Offset getFiniAddr() const override { return fini_addr_; }
 
-    virtual void setTruncateLinePaths(bool value) override;
-    virtual bool getTruncateLinePaths() override;
-    
     void *getElfHandle() override { return elfHdr; }
 
     unsigned gotSize() const { return got_size_; }
@@ -430,7 +426,6 @@ public:
   void parse_opd(Elf_X_Shdr *);
  public:
   void parseDwarfFileLineInfo();
-  void parseLineInfoForAddr(Offset addr_to_find);
 
   bool hasDebugInfo() override;
 
