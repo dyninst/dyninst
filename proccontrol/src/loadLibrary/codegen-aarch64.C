@@ -6,12 +6,9 @@
 #include "PCProcess.h"
 #include "codegen.h"
 
-#include "common/src/arch-aarch64.h"
-
 #include "unaligned_memory_access.h"
 
 using namespace Dyninst;
-using namespace NS_aarch64;
 using namespace ProcControlAPI;
 using namespace std;
 

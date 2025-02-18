@@ -38,15 +38,12 @@
 #include <utility>
 #include <stdlib.h>
 #include "dyninstAPI/src/inst.h"
-#include "common/src/arch.h" // instruction
 #include "dyninstAPI/src/codeRange.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/ast.h"
 #include "bitArray.h"
 
 #include "dyninstAPI/src/baseTramp.h" // iterator
-
-#include "arch-forward-decl.h" // instruction
 
 #include "Point.h"
 #include "Snippet.h"

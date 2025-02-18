@@ -127,7 +127,7 @@ void insnCodeGen::generate(codeGen &gen, instruction&insn) {
   gen.copy(&raw, sizeof(unsigned));
 }
 
-void insnCodeGen::generateIllegal(codeGen &gen) { // instP.h
+void insnCodeGen::generateIllegal(codeGen &gen) {
     instruction insn;
     generate(gen,insn);
 }

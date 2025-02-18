@@ -137,11 +137,11 @@ BPatch_memoryAccess* BPatch_memoryAccess::init_tables()
 }
 
 // initializes only the first access; #bytes is a constant
-BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr,
+BPatch_memoryAccess::BPatch_memoryAccess(Dyninst::Address _addr,
                                          bool _isLoad, bool _isStore, unsigned int _bytes,
                                          long _imm, int _ra, int _rb, unsigned int _scale,
                                          int _cond, bool _nt) : 
-    BPatch_instruction(insn, _addr)
+    BPatch_instruction(_addr)
 {
     start = new BPatch_addrSpec_NP[nmaxacc_NP];
     count = new BPatch_countSpec_NP[nmaxacc_NP];
@@ -150,11 +150,11 @@ BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Ad
 }
 
 // initializes only the first access; #bytes is an expression w/scale
-BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr,
+BPatch_memoryAccess::BPatch_memoryAccess(Dyninst::Address _addr,
                     bool _isLoad, bool _isStore, long _imm_s, int _ra_s, int _rb_s,
                     unsigned int _scale_s, long _imm_c, int _ra_c, int _rb_c, 
                     unsigned int _scale_c, int _cond, bool _nt, int _preFcn) : 
-   BPatch_instruction(insn, _addr)
+   BPatch_instruction(_addr)
 {
    start = new BPatch_addrSpec_NP[nmaxacc_NP];
    count = new BPatch_countSpec_NP[nmaxacc_NP];
@@ -163,11 +163,11 @@ BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Ad
 }
 
 // initializes only the first access; #bytes is an expression
-BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr,
+BPatch_memoryAccess::BPatch_memoryAccess(Dyninst::Address _addr,
                     bool _isLoad, bool _isStore, bool _isPrefetch, long _imm_s, 
                     int _ra_s, int _rb_s, long _imm_c, int _ra_c, int _rb_c,
                     unsigned short _preFcn) : 
-   BPatch_instruction(insn, _addr)
+   BPatch_instruction(_addr)
 {
    start = new BPatch_addrSpec_NP[nmaxacc_NP];
    count = new BPatch_countSpec_NP[nmaxacc_NP];
@@ -177,10 +177,10 @@ BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Ad
 }
 
   // initializes only the first access; #bytes is an expression & not a prefetch
-BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr,
+BPatch_memoryAccess::BPatch_memoryAccess(Dyninst::Address _addr,
 	       bool _isLoad, bool _isStore, long _imm_s, int _ra_s, int _rb_s,
 	       long _imm_c, int _ra_c, int _rb_c) : 
-   BPatch_instruction(insn, _addr)
+   BPatch_instruction(_addr)
 {
    start = new BPatch_addrSpec_NP[nmaxacc_NP];
    count = new BPatch_countSpec_NP[nmaxacc_NP];
@@ -223,12 +223,12 @@ void BPatch_memoryAccess::set2nd(bool _isLoad, bool _isStore,
 }
 
 // initializes both accesses; #bytes is a constant
-BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr,
+BPatch_memoryAccess::BPatch_memoryAccess(Dyninst::Address _addr,
 		      bool _isLoad, bool _isStore, unsigned int _bytes,
             long _imm, int _ra, int _rb, unsigned int _scale,
             bool _isLoad2, bool _isStore2, unsigned int _bytes2,
             long _imm2, int _ra2, int _rb2, unsigned int _scale2) : 
-   BPatch_instruction(insn, _addr)
+   BPatch_instruction(_addr)
 {
    start = new BPatch_addrSpec_NP[nmaxacc_NP];
    count = new BPatch_countSpec_NP[nmaxacc_NP];
@@ -237,13 +237,13 @@ BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Ad
 }
 
   // initializes both accesses; #bytes is an expression & not a prefetch
-BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Dyninst::Address _addr,
+BPatch_memoryAccess::BPatch_memoryAccess(Dyninst::Address _addr,
          bool _isLoad, bool _isStore, long _imm_s, int _ra_s, int _rb_s, 
          unsigned int _scale_s, long _imm_c, int _ra_c, int _rb_c, 
          unsigned int _scale_c, bool _isLoad2, bool _isStore2, long _imm2_s, 
          int _ra2_s, int _rb2_s, unsigned int _scale2_s, long _imm2_c, 
          int _ra2_c, int _rb2_c, unsigned int _scale2_c) : 
-   BPatch_instruction(insn, _addr)
+   BPatch_instruction(_addr)
 {
    start = new BPatch_addrSpec_NP[nmaxacc_NP];
    count = new BPatch_countSpec_NP[nmaxacc_NP];

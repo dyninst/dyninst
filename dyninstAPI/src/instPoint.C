@@ -35,7 +35,6 @@
 #include <assert.h>
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "common/src/stats.h"
@@ -53,7 +52,6 @@ using namespace Dyninst::ParseAPI;
 
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/parse-cfg.h"
-#include "common/src/arch.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/emitter.h"
 #if defined(DYNINST_HOST_ARCH_X86_64)

@@ -34,6 +34,8 @@
 #include <vector>
 #include "dyntypes.h"
 #include "dyn_register.h"
+#include "arch-power.h"
+#include "patch.h"
 
 class AddressSpace;
 class codeGen;
@@ -106,11 +108,11 @@ class insnCodeGen {
     static void generateMoveToLR(codeGen &gen, Dyninst::Register rs);
     static void generateMoveToCR(codeGen &gen, Dyninst::Register rs);
 
-    static void generate(codeGen &gen, instruction &insn);
-    static void write(codeGen &gen, instruction &insn) { generate(gen,insn); }
+    static void generate(codeGen &gen, NS_power::instruction &insn);
+    static void write(codeGen &gen, NS_power::instruction &insn) { generate(gen,insn); }
 
     static bool generate(codeGen &gen,
-                         instruction &insn,
+                         NS_power::instruction &insn,
                          AddressSpace *proc,
                          Dyninst::Address origAddr,
                          Dyninst::Address newAddr,
@@ -118,7 +120,7 @@ class insnCodeGen {
                          patchTarget *targetOverride = NULL);
 
     static bool generateMem(codeGen &gen,
-                            instruction &insn,
+                            NS_power::instruction &insn,
                             Dyninst::Address origAddr,
                             Dyninst::Address newAddr,
                             Dyninst::Register newLoadReg,

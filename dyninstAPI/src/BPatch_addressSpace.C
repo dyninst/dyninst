@@ -32,7 +32,6 @@
 
 #include "binaryEdit.h"
 #include "inst.h"
-#include "instP.h"
 #include "function.h" // Dyninst::PatchAPI::PatchFunction
 #include "codeRange.h"
 #include "addressSpace.h"

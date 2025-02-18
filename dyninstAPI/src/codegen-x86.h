@@ -36,11 +36,8 @@
 #include "entryIDs.h"
 #include "dyntypes.h"
 #include "dyn_register.h"
-
-#if !defined(DYNINST_HOST_ARCH_X86) && !defined(DYNINST_HOST_ARCH_X86_64)
- 
-#error "invalid architecture-os inclusion"
-#endif
+#include "arch-x86.h"
+#include "patch.h"
 
 #include "common/src/ia32_locations.h"
 
@@ -49,15 +46,8 @@
 
 // Code generation
 
-typedef unsigned char codeBuf_t;
-typedef unsigned codeBufIndex_t;
-
 class codeGen;
 class AddressSpace;
-
-namespace NS_x86 {
-   class instruction;
-}
 
 class insnCodeGen {
  public:
@@ -78,14 +68,14 @@ class insnCodeGen {
   static void generateIllegal(codeGen &gen);
   static void generateTrap(codeGen &gen);
 
-  static void generate(codeGen &gen, instruction & insn);
+  static void generate(codeGen &gen, NS_x86::instruction & insn);
 
   // And generate an equivalent stream somewhere else...
   // fallthroughOverride and targetOverride are used for
   // making the behavior of jumps change. It won't work for 
   // jumptables; that should be cleared up sometime.
   static bool generate(codeGen &gen,
-                instruction & insn,
+                NS_x86::instruction & insn,
                 AddressSpace *addrSpace,
                 Dyninst::Address origAddr,
                 Dyninst::Address newAddr,
@@ -93,7 +83,7 @@ class insnCodeGen {
                 patchTarget *targetOverride = NULL);
 
   static bool generateMem(codeGen &gen,
-                   instruction & insn,
+                   NS_x86::instruction & insn,
                    Dyninst::Address origAddr,
                    Dyninst::Address newAddr,
                    Dyninst::Register newLoadReg,

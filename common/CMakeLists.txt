@@ -56,7 +56,6 @@ set(_private_headers
     src/addrtranslate.h
     src/addrtranslate-sysv.h
     src/arch-aarch64.h
-    src/arch.h
     src/arch-power.h
     src/arch-x86.h
     src/debug_common.h

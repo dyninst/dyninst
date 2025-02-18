@@ -36,14 +36,9 @@
 #define BASE_TRAMP_H
 
 #include "dyntypes.h"
-#include "inst.h" // callWhen
-#include "dyninstAPI/src/codeRange.h"
-//#include "arch.h"
+#include "bitArray.h"
 #include "ast.h"
 
-#include <list>
-
-class baseTramp;
 class AddressSpace;
 
 

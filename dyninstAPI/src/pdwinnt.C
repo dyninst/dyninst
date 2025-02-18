@@ -40,7 +40,7 @@
 #include "common/src/ntHeaders.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/emit-x86.h"
-#include "common/src/arch.h"
+#include "common/src/arch-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "image.h"

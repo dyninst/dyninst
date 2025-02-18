@@ -40,7 +40,6 @@
 #include <utility>
 #include <vector>
 #include <string>
-#include "common/src/arch.h" // instruction
 #include "codeRange.h"
 #include "parRegion.h"
 #include <unordered_map>
@@ -326,10 +325,6 @@ class parse_func : public ParseAPI::Function
             return (f1->getOffset() < f2->getOffset());
         }
     };
-
-#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
-   bool isTrueCallInsn(const instruction insn);
-#endif
 
 #if defined(DYNINST_HOST_ARCH_POWER) || defined(DYNINST_HOST_ARCH_AARCH64)
    bool savesReturnAddr() const { return saves_return_addr_; }

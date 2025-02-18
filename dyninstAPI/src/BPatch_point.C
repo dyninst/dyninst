@@ -46,7 +46,6 @@
 #include "BPatch_libInfo.h"
 #include "image.h"
 #include "instPoint.h"
-#include "instP.h"
 #include "baseTramp.h"
 #include "function.h"
 #include "addressSpace.h"
