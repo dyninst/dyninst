@@ -84,6 +84,20 @@ namespace Dyninst { namespace InstructionAPI {
       case power_op_bc:
       case power_op_bcctr:
       case power_op_bclr:
+      case riscv64_op_jal:
+      case riscv64_op_jalr:
+      case riscv64_op_c_j:
+      case riscv64_op_c_jal:
+      case riscv64_op_c_jr:
+      case riscv64_op_c_jalr:
+      case riscv64_op_beq:
+      case riscv64_op_bne:
+      case riscv64_op_blt:
+      case riscv64_op_bge:
+      case riscv64_op_bltu:
+      case riscv64_op_bgeu:
+      case riscv64_op_c_beqz:
+      case riscv64_op_c_bnez:
 #include "amdgpu_branchinsn_table.h"
         return c_BranchInsn;
 
