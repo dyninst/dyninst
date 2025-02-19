@@ -7,10 +7,13 @@ namespace Dyninst {
 namespace InstructionAPI {
 
 void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn_to_complete, cs_detail* d) {
-    bool isCFT = false;
-    bool isConditional = false;
-    bool isJumpReg = false;     // jump to an address in a register
-    bool isJumpOffset = false;  // relative jump from program counter
+    bool isCFT = false;         // branch instructions
+    //bool isJumpReg = false;     // jump to an address in a register
+    //bool isJumpOffset = false;  // relative jump from program counter
+    bool isCall = false;        // call instructions
+    bool isIndirect = false;    // indirect jump
+    bool isConditional = false; // conditional / unconditional branch
+
     bool err = false;
     entryID eid = insn_to_complete->getOperation().getID();
     cs_riscv* detail = &(d->riscv);
@@ -19,259 +22,426 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
     regTrans = &InstructionDecoder_Capstone::registerTranslation_riscv64;
 
     // This is the index of the operand register to branch to
-    int jumpOpIndex = -1;
-    InsnCategory cat = insn_to_complete->getCategory();
-    if (cat == c_BranchInsn) {
-        isCFT = true;
-        switch (eid) {
-            case riscv64_op_jal:
-                isJumpOffset = true;
-                jumpOpIndex = 1;
-                break;
-            case riscv64_op_jalr:
-                isJumpReg = true;
-                isJumpOffset = true;
-                jumpOpIndex = 1;
-                break;
-            case riscv64_op_beq:
-            case riscv64_op_bne:
-            case riscv64_op_blt:
-            case riscv64_op_bge:
-            case riscv64_op_bltu:
-            case riscv64_op_bgeu:
-                isJumpOffset = true;
-                isConditional = true;
-                jumpOpIndex = 2;
-                break;
-            case riscv64_op_c_jal:
-            case riscv64_op_c_j:
-                isJumpOffset = true;
-                jumpOpIndex = 0;
-                break;
-            case riscv64_op_c_jr:
-            case riscv64_op_c_jalr:
-                isJumpReg = true;
-                jumpOpIndex = 0;
-                break;
-            case riscv64_op_c_beqz:
-            case riscv64_op_c_bnez:
-                isJumpOffset = true;
-                jumpOpIndex = 1;
-                break;
-            default:
-                break;
-        }
-    }
+    //int jumpOpIndex = -1;
+    // This is the index of the link register
+    //int linkRegIndex = -1;
 
-    for (uint8_t i = 0; i < detail->op_count; ++i) {
-        cs_riscv_op* operand = &(detail->operands[i]);
-        if (operand->type == RISCV_OP_REG) {
-            Expression::Ptr regAST = makeRegisterExpression((this->*regTrans)(operand->reg));
-            if (isCFT && isJumpReg && jumpOpIndex == i) {
-                if (isJumpOffset) {
-                    // Special case: JALR RD1, RS1, OFFSET.
-                    // It jumps to [RS1] + offset, so we need to know the offset in advance
-                    cs_riscv_op* nextOperand = &(detail->operands[i + 1]);
-                    assert(nextOperand->type == RISCV_OP_IMM);
-                    Expression::Ptr immAST = Immediate::makeImmediate(Result(u32, nextOperand->imm));
-                    Expression::Ptr target(makeAddExpression(regAST, immAST, u64));
-                    insn_to_complete->addSuccessor(target, false, false, false, false);
-                    // The next operand is already handled. skip it
-                    ++i;
-                } else {
-                    // If a call or a jump has a register as an operand,
-                    // It should not be a conditional jump
-                    insn_to_complete->addSuccessor(regAST, false, true, false, false);
+    if (eid == riscv64_op_jal) {
+
+        assert(detail->op_count == 1 || detail->op_count == 2);
+
+        unsigned int rd = 0;
+        int64_t imm = 0;
+        // If rd == x1, Capstone will STRIP THE WHOLE RD ARGUMENT AWAY
+        // and leave only the offset there
+        // Which means that if rd == x1, detail->op_count becomes 1
+        if (detail->op_count == 1) {
+            rd = RISCV_REG_X1;
+            isCall = true; // jal is a call instruction only if rd == x1 (for now)
+                           // TODO: The obnoxious alternative link register
+            assert(detail->operands[0].type == RISCV_OP_IMM);
+            imm = detail->operands[0].imm;
+        } else {
+            assert(detail->operands[0].type == RISCV_OP_REG);
+            rd = detail->operands[0].reg;
+            assert(detail->operands[1].type == RISCV_OP_IMM);
+            imm = detail->operands[1].imm;
+        }
+
+        isCFT = true;
+        isIndirect = false;
+        isConditional = false;
+
+        Expression::Ptr rdAST = makeRegisterExpression((this->*regTrans)(rd));
+        // rd is not read, written, not implicit
+        insn_to_complete->appendOperand(rdAST, false, true, false);
+
+        Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, imm));
+        Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
+        Expression::Ptr target(makeAddExpression(IP, immAST, s32));
+        insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
+    }
+    else if (eid == riscv64_op_jalr) {
+
+        assert(detail->op_count == 3);
+
+        unsigned int rd = 0;
+        unsigned int rs = 0;
+        int64_t imm = 0;
+
+        assert(detail->operands[0].type == RISCV_OP_REG);
+        rd = detail->operands[0].reg;
+        assert(detail->operands[1].type == RISCV_OP_REG);
+        rs = detail->operands[1].reg;
+        assert(detail->operands[2].type == RISCV_OP_IMM);
+        imm = detail->operands[2].imm;
+        
+        isCFT = true;
+        isCall = (rd == RISCV_REG_X1); // jal is a call instruction only if rd == x1 (for now)
+                                       // TODO: The obnoxious alternative link register
+        isIndirect = true;
+        isConditional = false;
+
+        Expression::Ptr rdAST = makeRegisterExpression((this->*regTrans)(rd));
+        // rd is not read, written, not implicit
+        insn_to_complete->appendOperand(rdAST, false, true, false);
+
+        Expression::Ptr rsAST = makeRegisterExpression((this->*regTrans)(rs));
+        Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, imm));
+        Expression::Ptr target(makeAddExpression(rsAST, immAST, s32));
+        insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
+    }
+    else if (eid == riscv64_op_c_j) {
+
+        assert(detail->op_count == 1);
+
+        int64_t imm = 0;
+
+        assert(detail->operands[0].type == RISCV_OP_IMM);
+        imm = detail->operands[0].imm;
+        
+        isCFT = true;
+        isCall = false;
+        isIndirect = false;
+        isConditional = false;
+
+        Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, imm));
+        Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
+        Expression::Ptr target(makeAddExpression(IP, immAST, s32));
+        insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
+    }
+    else if (eid == riscv64_op_c_jr) {
+
+        assert(detail->op_count == 1);
+
+        unsigned int rs = 0;
+
+        assert(detail->operands[0].type == RISCV_OP_REG);
+        rs = detail->operands[0].reg;
+        
+        isCFT = true;
+        isCall = false;
+        isIndirect = true;
+        isConditional = false;
+
+        Expression::Ptr rsAST = makeRegisterExpression((this->*regTrans)(rs));
+        insn_to_complete->addSuccessor(rsAST, isCall, isIndirect, isConditional, false);
+    }
+    else if (eid == riscv64_op_c_jalr) {
+
+        assert(detail->op_count == 1);
+
+        unsigned int rs = 0;
+
+        assert(detail->operands[0].type == RISCV_OP_REG);
+        rs = detail->operands[0].reg;
+        
+        isCFT = true;
+        isCall = true;
+        isIndirect = true;
+        isConditional = false;
+
+        Expression::Ptr rsAST = makeRegisterExpression((this->*regTrans)(rs));
+        insn_to_complete->addSuccessor(rsAST, isCall, isIndirect, isConditional, false);
+    }
+    else if (eid == riscv64_op_c_jal) {
+
+        assert(detail->op_count == 1);
+
+        int64_t imm = 0;
+
+        assert(detail->operands[0].type == RISCV_OP_IMM);
+        imm = detail->operands[0].imm;
+        
+        isCFT = true;
+        isCall = true;
+        isIndirect = false;
+        isConditional = false;
+
+        Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, imm));
+        Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
+        Expression::Ptr target(makeAddExpression(IP, immAST, s32));
+        insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
+    }
+    else if (eid == riscv64_op_beq || eid == riscv64_op_bne || eid == riscv64_op_blt ||
+             eid == riscv64_op_bge || eid == riscv64_op_bltu || eid == riscv64_op_bgeu) {
+
+        assert(detail->op_count == 3);
+
+        unsigned int rs1 = 0;
+        unsigned int rs2 = 0;
+        int64_t imm = 0;
+
+        assert(detail->operands[0].type == RISCV_OP_REG);
+        rs1 = detail->operands[0].reg;
+        assert(detail->operands[1].type == RISCV_OP_REG);
+        rs2 = detail->operands[1].reg;
+        assert(detail->operands[2].type == RISCV_OP_IMM);
+        imm = detail->operands[2].imm;
+        
+        isCFT = true;
+        isCall = false;
+        isIndirect = false;
+        isConditional = true;
+
+        Expression::Ptr rs1AST = makeRegisterExpression((this->*regTrans)(rs1));
+        Expression::Ptr rs2AST = makeRegisterExpression((this->*regTrans)(rs2));
+        // rd is read, not written, not implicit
+        insn_to_complete->appendOperand(rs1AST, true, false, false);
+        insn_to_complete->appendOperand(rs2AST, true, false, false);
+
+        Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, imm));
+        Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
+        Expression::Ptr target(makeAddExpression(IP, immAST, s32));
+        insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
+        insn_to_complete->addSuccessor(IP, isCall, isIndirect, isConditional, true);
+    }
+    else if (eid == riscv64_op_c_beqz || eid == riscv64_op_c_bnez) {
+
+        assert(detail->op_count == 2);
+
+        unsigned int rs = 0;
+        int64_t imm = 0;
+
+        assert(detail->operands[0].type == RISCV_OP_REG);
+        rs = detail->operands[0].reg;
+        assert(detail->operands[1].type == RISCV_OP_IMM);
+        imm = detail->operands[1].imm;
+        
+        isCFT = true;
+        isCall = false;
+        isIndirect = false;
+        isConditional = true;
+
+        Expression::Ptr rsAST = makeRegisterExpression((this->*regTrans)(rs));
+        // rd is read, not written, not implicit
+        insn_to_complete->appendOperand(rsAST, true, false, false);
+
+        Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, imm));
+        Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
+        Expression::Ptr target(makeAddExpression(IP, immAST, s32));
+        insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
+        insn_to_complete->addSuccessor(IP, isCall, isIndirect, isConditional, true);
+    }
+    else {
+        for (uint8_t i = 0; i < detail->op_count; ++i) {
+            cs_riscv_op* operand = &(detail->operands[i]);
+            // jal & jalr: Determine whether the link register is ra (x1)
+            //if ((eid == riscv64_op_jal || eid == riscv64_op_jalr) && i == linkRegIndex) {
+                //assert(operand->type == RISCV_OP_REG);
+                //isCall = (operand->reg == 1);
+            //}
+            if (operand->type == RISCV_OP_REG) {
+                Expression::Ptr regAST = makeRegisterExpression((this->*regTrans)(operand->reg));
+                //if (isCFT && isJumpReg && jumpOpIndex == i) {
+                    //// Special case: jalr rd, rs, offset.
+                    //if (isJumpOffset) {
+                        //// It jumps to [rs] + offset, so we need to know the offset in advance
+                        //// to construct the jump target
+                        //cs_riscv_op* nextOperand = &(detail->operands[i + 1]);
+                        //assert(nextOperand->type == RISCV_OP_IMM);
+                        //Expression::Ptr immAST = Immediate::makeImmediate(Result(u32, nextOperand->imm));
+                        //Expression::Ptr target(makeAddExpression(regAST, immAST, s32));
+                        //insn_to_complete->addSuccessor(target, isCall, isIndirect, false, false);
+                        //// The next operand is already handled. skip it
+                        //++i;
+                    //}
+                    //// c.j
+                    //else {
+                        //// If a call or a jump has a register as an operand,
+                        //// It should not be a conditional jump
+                        //insn_to_complete->addSuccessor(regAST, isCall, isIndirect, false, false);
+                    //}
+                //} else {
+                    bool isRead = ((operand->access & CS_AC_READ) != 0);
+                    bool isWritten = ((operand->access & CS_AC_WRITE) != 0);
+                    if (!isRead && !isWritten) {
+                        isRead = isWritten = true;
+                    }
+                    insn_to_complete->appendOperand(regAST, isRead, isWritten, false);
+                //}
+            } else if (operand->type == RISCV_OP_IMM) {
+                Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, operand->imm));
+                //if (isCFT && isJumpOffset && jumpOpIndex == i) {
+                    //Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
+                    //Expression::Ptr target(makeAddExpression(IP, immAST, s32));
+                    //insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
+                    //if (isConditional) {
+                        //insn_to_complete->addSuccessor(IP, isCall, isIndirect, true, true);
+                    //}
+                //} else {
+                    insn_to_complete->appendOperand(immAST, false, false, false);
+                //}
+            } else if (operand->type == RISCV_OP_MEM) {
+                riscv_op_mem* mem = &(operand->mem);
+                Expression::Ptr effectiveAddr = makeRegisterExpression((this->*regTrans)(mem->base));
+                Result_Type type = invalid_type;
+                bool isLoad = false, isStore = false;
+                // Memory access type depends on the instruction
+                // TODO Add RISC-V access size support directly to Capstone
+                switch (eid) {
+                    case riscv64_op_lb:
+                    case riscv64_op_lbu:
+                        type = u8;
+                        isLoad = true;
+                        break;
+                    case riscv64_op_sb:
+                        type = u8;
+                        isStore = true;
+                        break;
+                    case riscv64_op_lh:
+                    case riscv64_op_lhu:
+                        isLoad = true;
+                        type = u16;
+                        break;
+                    case riscv64_op_sh:
+                        isStore = true;
+                        type = u16;
+                        break;
+                    case riscv64_op_c_flw:
+                    case riscv64_op_c_flwsp:
+                    case riscv64_op_c_lw:
+                    case riscv64_op_c_lwsp:
+                    case riscv64_op_flw:
+                    case riscv64_op_lw:
+                    case riscv64_op_lr_w:
+                    case riscv64_op_lwu:
+                        isLoad = true;
+                        type = u32;
+                        break;
+                    case riscv64_op_c_fsw:
+                    case riscv64_op_c_fswsp:
+                    case riscv64_op_c_sw:
+                    case riscv64_op_c_swsp:
+                    case riscv64_op_fsw:
+                    case riscv64_op_sw:
+                    case riscv64_op_sc_w:
+                    case riscv64_op_sc_w_aq:
+                    case riscv64_op_sc_w_aq_rl:
+                    case riscv64_op_sc_w_rl:
+                        isStore = true;
+                        type = u32;
+                        break;
+                    case riscv64_op_c_fldsp:
+                    case riscv64_op_c_ldsp:
+                    case riscv64_op_c_ld:
+                    case riscv64_op_fld:
+                    case riscv64_op_ld:
+                    case riscv64_op_lr_d:
+                        isLoad = true;
+                        type = u64;
+                        break;
+                    case riscv64_op_c_fsdsp:
+                    case riscv64_op_c_sd:
+                    case riscv64_op_c_sdsp:
+                    case riscv64_op_fsd:
+                    case riscv64_op_sd:
+                    case riscv64_op_sc_d:
+                    case riscv64_op_sc_d_aq:
+                    case riscv64_op_sc_d_aq_rl:
+                    case riscv64_op_sc_d_rl:
+                        isStore = true;
+                        type = u64;
+                        break;
+                    case riscv64_op_amoswap_w:
+                    case riscv64_op_amoswap_w_aq:
+                    case riscv64_op_amoswap_w_aq_rl:
+                    case riscv64_op_amoswap_w_rl:
+                    case riscv64_op_amoadd_w:
+                    case riscv64_op_amoadd_w_aq:
+                    case riscv64_op_amoadd_w_aq_rl:
+                    case riscv64_op_amoadd_w_rl:
+                    case riscv64_op_amoxor_w:
+                    case riscv64_op_amoxor_w_aq:
+                    case riscv64_op_amoxor_w_aq_rl:
+                    case riscv64_op_amoxor_w_rl:
+                    case riscv64_op_amoand_w:
+                    case riscv64_op_amoand_w_aq:
+                    case riscv64_op_amoand_w_aq_rl:
+                    case riscv64_op_amoand_w_rl:
+                    case riscv64_op_amoor_w:
+                    case riscv64_op_amoor_w_aq:
+                    case riscv64_op_amoor_w_aq_rl:
+                    case riscv64_op_amoor_w_rl:
+                    case riscv64_op_amomin_w:
+                    case riscv64_op_amomin_w_aq:
+                    case riscv64_op_amomin_w_aq_rl:
+                    case riscv64_op_amomin_w_rl:
+                    case riscv64_op_amomax_w:
+                    case riscv64_op_amomax_w_aq:
+                    case riscv64_op_amomax_w_aq_rl:
+                    case riscv64_op_amomax_w_rl:
+                    case riscv64_op_amominu_w:
+                    case riscv64_op_amominu_w_aq:
+                    case riscv64_op_amominu_w_aq_rl:
+                    case riscv64_op_amominu_w_rl:
+                    case riscv64_op_amomaxu_w:
+                    case riscv64_op_amomaxu_w_aq:
+                    case riscv64_op_amomaxu_w_aq_rl:
+                    case riscv64_op_amomaxu_w_rl:
+                        isLoad = true;
+                        isStore = true;
+                        type = u32;
+                        break;
+                    case riscv64_op_amoswap_d:
+                    case riscv64_op_amoswap_d_aq:
+                    case riscv64_op_amoswap_d_aq_rl:
+                    case riscv64_op_amoswap_d_rl:
+                    case riscv64_op_amoadd_d:
+                    case riscv64_op_amoadd_d_aq:
+                    case riscv64_op_amoadd_d_aq_rl:
+                    case riscv64_op_amoadd_d_rl:
+                    case riscv64_op_amoxor_d:
+                    case riscv64_op_amoxor_d_aq:
+                    case riscv64_op_amoxor_d_aq_rl:
+                    case riscv64_op_amoxor_d_rl:
+                    case riscv64_op_amoand_d:
+                    case riscv64_op_amoand_d_aq:
+                    case riscv64_op_amoand_d_aq_rl:
+                    case riscv64_op_amoand_d_rl:
+                    case riscv64_op_amoor_d:
+                    case riscv64_op_amoor_d_aq:
+                    case riscv64_op_amoor_d_aq_rl:
+                    case riscv64_op_amoor_d_rl:
+                    case riscv64_op_amomin_d:
+                    case riscv64_op_amomin_d_aq:
+                    case riscv64_op_amomin_d_aq_rl:
+                    case riscv64_op_amomin_d_rl:
+                    case riscv64_op_amomax_d:
+                    case riscv64_op_amomax_d_aq:
+                    case riscv64_op_amomax_d_aq_rl:
+                    case riscv64_op_amomax_d_rl:
+                    case riscv64_op_amominu_d:
+                    case riscv64_op_amominu_d_aq:
+                    case riscv64_op_amominu_d_aq_rl:
+                    case riscv64_op_amominu_d_rl:
+                    case riscv64_op_amomaxu_d:
+                    case riscv64_op_amomaxu_d_aq:
+                    case riscv64_op_amomaxu_d_aq_rl:
+                    case riscv64_op_amomaxu_d_rl:
+                        isLoad = true;
+                        isStore = true;
+                        type = u64;
+                        break;
+                    default:
+                        break;
                 }
-            } else {
+                // Offsets are 12 bits long signed integers
+                Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, mem->disp));
+                effectiveAddr = makeAddExpression(effectiveAddr, immAST, s32);
+                if (type == invalid_type) {
+                    err = true;
+                }
+                Expression::Ptr memAST = makeDereferenceExpression(effectiveAddr, type);
                 bool isRead = ((operand->access & CS_AC_READ) != 0);
                 bool isWritten = ((operand->access & CS_AC_WRITE) != 0);
                 if (!isRead && !isWritten) {
                     isRead = isWritten = true;
                 }
-                insn_to_complete->appendOperand(regAST, isRead, isWritten, false);
-            }
-        } else if (operand->type == RISCV_OP_IMM) {
-            Expression::Ptr immAST = Immediate::makeImmediate(Result(u32, operand->imm));
-            if (isCFT && isJumpOffset && jumpOpIndex == i) {
-                Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
-                Expression::Ptr target(makeAddExpression(IP, immAST, u64));
-                insn_to_complete->addSuccessor(target, false, false, isConditional, false);
-                if (isConditional) {
-                    insn_to_complete->addSuccessor(IP, false, false, true, true);
-                }
+                insn_to_complete->appendOperand(memAST, isLoad, isStore, false);
             } else {
-                insn_to_complete->appendOperand(immAST, false, false, false);
+                fprintf(stderr, "Unhandled capstone operand type %d\n", operand->type);
             }
-        } else if (operand->type == RISCV_OP_MEM) {
-            riscv_op_mem* mem = &(operand->mem);
-            Expression::Ptr effectiveAddr = makeRegisterExpression((this->*regTrans)(mem->base));
-            Result_Type type = invalid_type;
-            bool isLoad = false, isStore = false;
-            // Memory access type depends on the instruction
-            // TODO Add RISC-V access size support directly to Capstone
-            switch (eid) {
-                case riscv64_op_lb:
-                case riscv64_op_lbu:
-                    type = u8;
-                    isLoad = true;
-                    break;
-                case riscv64_op_sb:
-                    type = u8;
-                    isStore = true;
-                    break;
-                case riscv64_op_lh:
-                case riscv64_op_lhu:
-                    isLoad = true;
-                    type = u16;
-                    break;
-                case riscv64_op_sh:
-                    isStore = true;
-                    type = u16;
-                    break;
-                case riscv64_op_c_flw:
-                case riscv64_op_c_flwsp:
-                case riscv64_op_c_lw:
-                case riscv64_op_c_lwsp:
-                case riscv64_op_flw:
-                case riscv64_op_lw:
-                case riscv64_op_lr_w:
-                case riscv64_op_lwu:
-                    isLoad = true;
-                    type = u32;
-                    break;
-                case riscv64_op_c_fsw:
-                case riscv64_op_c_fswsp:
-                case riscv64_op_c_sw:
-                case riscv64_op_c_swsp:
-                case riscv64_op_fsw:
-                case riscv64_op_sw:
-                case riscv64_op_sc_w:
-                case riscv64_op_sc_w_aq:
-                case riscv64_op_sc_w_aq_rl:
-                case riscv64_op_sc_w_rl:
-                    isStore = true;
-                    type = u32;
-                    break;
-                case riscv64_op_c_fldsp:
-                case riscv64_op_c_ldsp:
-                case riscv64_op_c_ld:
-                case riscv64_op_fld:
-                case riscv64_op_ld:
-                case riscv64_op_lr_d:
-                    isLoad = true;
-                    type = u64;
-                    break;
-                case riscv64_op_c_fsdsp:
-                case riscv64_op_c_sd:
-                case riscv64_op_c_sdsp:
-                case riscv64_op_fsd:
-                case riscv64_op_sd:
-                case riscv64_op_sc_d:
-                case riscv64_op_sc_d_aq:
-                case riscv64_op_sc_d_aq_rl:
-                case riscv64_op_sc_d_rl:
-                    isStore = true;
-                    type = u64;
-                    break;
-                case riscv64_op_amoswap_w:
-                case riscv64_op_amoswap_w_aq:
-                case riscv64_op_amoswap_w_aq_rl:
-                case riscv64_op_amoswap_w_rl:
-                case riscv64_op_amoadd_w:
-                case riscv64_op_amoadd_w_aq:
-                case riscv64_op_amoadd_w_aq_rl:
-                case riscv64_op_amoadd_w_rl:
-                case riscv64_op_amoxor_w:
-                case riscv64_op_amoxor_w_aq:
-                case riscv64_op_amoxor_w_aq_rl:
-                case riscv64_op_amoxor_w_rl:
-                case riscv64_op_amoand_w:
-                case riscv64_op_amoand_w_aq:
-                case riscv64_op_amoand_w_aq_rl:
-                case riscv64_op_amoand_w_rl:
-                case riscv64_op_amoor_w:
-                case riscv64_op_amoor_w_aq:
-                case riscv64_op_amoor_w_aq_rl:
-                case riscv64_op_amoor_w_rl:
-                case riscv64_op_amomin_w:
-                case riscv64_op_amomin_w_aq:
-                case riscv64_op_amomin_w_aq_rl:
-                case riscv64_op_amomin_w_rl:
-                case riscv64_op_amomax_w:
-                case riscv64_op_amomax_w_aq:
-                case riscv64_op_amomax_w_aq_rl:
-                case riscv64_op_amomax_w_rl:
-                case riscv64_op_amominu_w:
-                case riscv64_op_amominu_w_aq:
-                case riscv64_op_amominu_w_aq_rl:
-                case riscv64_op_amominu_w_rl:
-                case riscv64_op_amomaxu_w:
-                case riscv64_op_amomaxu_w_aq:
-                case riscv64_op_amomaxu_w_aq_rl:
-                case riscv64_op_amomaxu_w_rl:
-                    isLoad = true;
-                    isStore = true;
-                    type = u32;
-                    break;
-                case riscv64_op_amoswap_d:
-                case riscv64_op_amoswap_d_aq:
-                case riscv64_op_amoswap_d_aq_rl:
-                case riscv64_op_amoswap_d_rl:
-                case riscv64_op_amoadd_d:
-                case riscv64_op_amoadd_d_aq:
-                case riscv64_op_amoadd_d_aq_rl:
-                case riscv64_op_amoadd_d_rl:
-                case riscv64_op_amoxor_d:
-                case riscv64_op_amoxor_d_aq:
-                case riscv64_op_amoxor_d_aq_rl:
-                case riscv64_op_amoxor_d_rl:
-                case riscv64_op_amoand_d:
-                case riscv64_op_amoand_d_aq:
-                case riscv64_op_amoand_d_aq_rl:
-                case riscv64_op_amoand_d_rl:
-                case riscv64_op_amoor_d:
-                case riscv64_op_amoor_d_aq:
-                case riscv64_op_amoor_d_aq_rl:
-                case riscv64_op_amoor_d_rl:
-                case riscv64_op_amomin_d:
-                case riscv64_op_amomin_d_aq:
-                case riscv64_op_amomin_d_aq_rl:
-                case riscv64_op_amomin_d_rl:
-                case riscv64_op_amomax_d:
-                case riscv64_op_amomax_d_aq:
-                case riscv64_op_amomax_d_aq_rl:
-                case riscv64_op_amomax_d_rl:
-                case riscv64_op_amominu_d:
-                case riscv64_op_amominu_d_aq:
-                case riscv64_op_amominu_d_aq_rl:
-                case riscv64_op_amominu_d_rl:
-                case riscv64_op_amomaxu_d:
-                case riscv64_op_amomaxu_d_aq:
-                case riscv64_op_amomaxu_d_aq_rl:
-                case riscv64_op_amomaxu_d_rl:
-                    isLoad = true;
-                    isStore = true;
-                    type = u64;
-                    break;
-                default:
-                    break;
-            }
-            // Offsets are 12 bits long signed integers
-            Expression::Ptr immAST = Immediate::makeImmediate(Result(u32, mem->disp));
-            effectiveAddr = makeAddExpression(effectiveAddr, immAST, u64);
-            if (type == invalid_type) {
-                err = true;
-            }
-            Expression::Ptr memAST = makeDereferenceExpression(effectiveAddr, type);
-            bool isRead = ((operand->access & CS_AC_READ) != 0);
-            bool isWritten = ((operand->access & CS_AC_WRITE) != 0);
-            if (!isRead && !isWritten) {
-                isRead = isWritten = true;
-            }
-            insn_to_complete->appendOperand(memAST, isLoad, isStore, false);
-        } else {
-            fprintf(stderr, "Unhandled capstone operand type %d\n", operand->type);
         }
     }
 
