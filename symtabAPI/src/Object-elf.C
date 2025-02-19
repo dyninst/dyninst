@@ -792,6 +792,9 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
                         plt_entry_size_ = 16;
                     }
                 }
+                else if (getArch() == Dyninst::Arch_riscv64) {
+                    plt_entry_size_ = 8;
+                }
             }
         } else if (strcmp(name, COMMENT_NAME) == 0) {
             /* comment section is a sequence of NULL-terminated strings. */
