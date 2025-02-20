@@ -119,7 +119,7 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
 
         return;
     }
-    if (eid == riscv64_op_c_jr || eid == riscv64_op_jalr) {
+    if (eid == riscv64_op_c_jr || eid == riscv64_op_c_jalr) {
 
         assert(detail->op_count == 1);
 
