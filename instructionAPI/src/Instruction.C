@@ -511,23 +511,25 @@ namespace Dyninst { namespace InstructionAPI {
       }
       // ret -> c.jr x1
       if(m_InsnOp.getID() == riscv64_op_c_jr) {
-        MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(cft_end()->target))->getID();
+        MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(cft_begin()->target))->getID();
         if (rd == riscv64::x1) {
           return c_ReturnInsn;
         }
       }
       // ret -> jalr x1, x0, 0
-      //if(m_InsnOp.getID() == riscv64_op_jalr) {
-        //cftConstIter cft = cft_begin();
-        //MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(cft->target))->getID();
-        //std::next(cft);
+      if(m_InsnOp.getID() == riscv64_op_jalr) {
+        MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(getOperand(0).getValue()))->getID();
+        vector<InstructionAST::Ptr> children;
+        (boost::dynamic_pointer_cast<BinaryFunction>(getOperand(1).getValue()))->getChildren(children);
+        MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(children[0]))->getID();
+        int32_t imm = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
+        if (rd == riscv64::x1 && rs == riscv64::x0 && imm == 0) {
+          return c_ReturnInsn;
+        }
+
         //MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(cft->target))->getID();
-        //std::next(cft);
         //auto imm = cft->target->eval().val.s32val;
-        //if (rd == riscv64::x1 && rs == riscv64::x0 && imm == 0) {
-          //return c_ReturnInsn;
-        //}
-      //}
+      }
     }
     if(isSoftwareInterrupt(*this)) {
       return c_InterruptInsn;
