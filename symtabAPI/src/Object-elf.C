@@ -793,7 +793,7 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
                     }
                 }
                 else if (getArch() == Dyninst::Arch_riscv64) {
-                    plt_entry_size_ = 8;
+                    plt_entry_size_ = 16;
                 }
             }
         } else if (strcmp(name, COMMENT_NAME) == 0) {
@@ -1322,6 +1322,8 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                 next_plt_entry_addr += plt_entry_size_;
 
             } else if (getArch() == Dyninst::Arch_aarch64) {
+                next_plt_entry_addr += 2 * plt_entry_size_;
+            } else if (getArch() == Dyninst::Arch_riscv64) {
                 next_plt_entry_addr += 2 * plt_entry_size_;
             } else {
                 next_plt_entry_addr += 4 * (plt_entry_size_); //1st 4 entries are special
