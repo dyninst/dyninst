@@ -38,6 +38,7 @@
 #include "dyninstversion.h"
 #include "interrupts.h"
 #include "entryIDs.h"
+#include "dyn_regs.h"
 
 #include <algorithm>
 #include <boost/iterator/indirect_iterator.hpp>
@@ -500,6 +501,33 @@ namespace Dyninst { namespace InstructionAPI {
         return c_BranchInsn;
       }
       return c_ReturnInsn;
+    }
+    if(c == c_BranchInsn && arch_decoded_from == Arch_riscv64) {
+      DECODE_OPERANDS();
+      for(cftConstIter cft = cft_begin(); cft != cft_end(); ++cft) {
+        if(cft->isCall) {
+          return c_CallInsn;
+        }
+      }
+      // ret -> c.jr x1
+      if(m_InsnOp.getID() == riscv64_op_c_jr) {
+        MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(cft_end()->target))->getID();
+        if (rd == riscv64::x1) {
+          return c_ReturnInsn;
+        }
+      }
+      // ret -> jalr x1, x0, 0
+      //if(m_InsnOp.getID() == riscv64_op_jalr) {
+        //cftConstIter cft = cft_begin();
+        //MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(cft->target))->getID();
+        //std::next(cft);
+        //MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(cft->target))->getID();
+        //std::next(cft);
+        //auto imm = cft->target->eval().val.s32val;
+        //if (rd == riscv64::x1 && rs == riscv64::x0 && imm == 0) {
+          //return c_ReturnInsn;
+        //}
+      //}
     }
     if(isSoftwareInterrupt(*this)) {
       return c_InterruptInsn;

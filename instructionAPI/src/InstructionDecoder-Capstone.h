@@ -71,8 +71,12 @@ class InstructionDecoder_Capstone : public InstructionDecoderImpl
         static dyn_tls Architecture current_arch;
         static dyn_tls cs_insn* capstone_ins_no_detail;
         static dyn_tls cs_insn* capstone_ins_with_detail;
+        static dyn_tls cs_insn* capstone_ins_rvc_no_detail;
+        static dyn_tls cs_insn* capstone_ins_rvc_with_detail;
         static dyn_tls csh handle_no_detail;
         static dyn_tls csh handle_with_detail;
+        static dyn_tls csh handle_rvc_no_detail;
+        static dyn_tls csh handle_rvc_with_detail;
         static dyn_tls std::map<std::string, std::string> *opcode_alias;
         static dyn_tls dyn_hash_map<entryID, std::string> *opcode_str;
 
