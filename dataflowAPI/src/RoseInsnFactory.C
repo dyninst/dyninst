@@ -44,6 +44,8 @@
 
 #include "ExpressionConversionVisitor.h"
 
+#include <boost/make_shared.hpp>
+
 // Assume Windows/MSVC is little-endian
 
 #if defined(_MSC_VER)
@@ -432,7 +434,21 @@ bool RoseInsnRiscv64Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgA
 void RoseInsnRiscv64Factory::massageOperands(const Instruction &insn,
         std::vector<InstructionAPI::Operand> &operands) {
     switch (insn.getOperation().getID()) {
-        // TODO
+        case riscv64_op_jalr: {
+          vector<InstructionAST::Ptr> children;
+          boost::dynamic_pointer_cast<BinaryFunction>(operands[1].getValue())->getChildren(children);
+          assert(children.size() == 2);
+          
+          MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(children[0]))->getID();
+          int32_t imm = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
+          operands.resize(3);
+
+          Expression::Ptr rsAST = boost::make_shared<RegisterAST>(rs, 0, rs.size() * 8, 1);
+          Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, imm));
+          operands[1] = Operand(rsAST, true, false, false);
+          operands[2] = Operand(immAST, true, false, false);
+        }
+        break;
         default:
                     break;
     }

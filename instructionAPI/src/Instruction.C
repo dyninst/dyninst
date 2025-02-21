@@ -520,7 +520,8 @@ namespace Dyninst { namespace InstructionAPI {
       if(m_InsnOp.getID() == riscv64_op_jalr) {
         MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(getOperand(0).getValue()))->getID();
         vector<InstructionAST::Ptr> children;
-        (boost::dynamic_pointer_cast<BinaryFunction>(getOperand(1).getValue()))->getChildren(children);
+        boost::dynamic_pointer_cast<BinaryFunction>(getOperand(1).getValue())->getChildren(children);
+        assert(children.size() == 2);
         MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(children[0]))->getID();
         int32_t imm = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
         if (rd == riscv64::x1 && rs == riscv64::x0 && imm == 0) {

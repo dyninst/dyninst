@@ -68,10 +68,6 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         Expression::Ptr target(makeAddExpression(IP, immAST, s32));
         insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
 
-        //MachRegister reg = riscv64::pc;
-        //Expression::Ptr regAST = makeRegisterExpression(reg);
-        //insn_to_complete->appendOperand(regAST, false, true, true);
-
         return;
     }
     if (eid == riscv64_op_jalr) {
@@ -113,13 +109,9 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         Expression::Ptr target(makeAddExpression(rsAST, immAST, s32));
         insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
 
-        //MachRegister reg = riscv64::pc;
-        //Expression::Ptr regAST = makeRegisterExpression(reg);
-        //insn_to_complete->appendOperand(regAST, false, true, true);
-
         return;
     }
-    if (eid == riscv64_op_c_jr || eid == riscv64_op_c_jalr) {
+    if (eid == riscv64_op_c_jr || eid == riscv64_op_jalr) {
 
         assert(detail->op_count == 1);
 
@@ -133,16 +125,14 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         isIndirect = true;
         isConditional = false;
 
+        // TODO move this to massageOperator
+
         unsigned int link_reg = (eid == riscv64_op_c_jr) ? RISCV_REG_X0 : RISCV_REG_X1;
         Expression::Ptr implicitAST = makeRegisterExpression((this->*regTrans)(link_reg));
         insn_to_complete->appendOperand(implicitAST, false, true, false);
 
         Expression::Ptr rsAST = makeRegisterExpression((this->*regTrans)(rs));
         insn_to_complete->addSuccessor(rsAST, isCall, isIndirect, isConditional, false);
-
-        //MachRegister reg = riscv64::pc;
-        //Expression::Ptr regAST = makeRegisterExpression(reg);
-        //insn_to_complete->appendOperand(regAST, false, true, true);
 
         return;
     }
@@ -169,10 +159,6 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
         Expression::Ptr target(makeAddExpression(IP, immAST, s32));
         insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
-
-        //MachRegister reg = riscv64::pc;
-        //Expression::Ptr regAST = makeRegisterExpression(reg);
-        //insn_to_complete->appendOperand(regAST, false, true, true);
 
         return;
     }
@@ -258,10 +244,6 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         Expression::Ptr target(makeAddExpression(IP, immAST, s32));
         insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
         insn_to_complete->addSuccessor(IP, isCall, isIndirect, isConditional, true);
-
-        //MachRegister reg = riscv64::pc;
-        //Expression::Ptr regAST = makeRegisterExpression(reg);
-        //insn_to_complete->appendOperand(regAST, false, true, true);
 
         return;
     }
