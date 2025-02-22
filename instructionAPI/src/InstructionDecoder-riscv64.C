@@ -72,7 +72,7 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
     }
     if (eid == riscv64_op_jalr) {
 
-        assert(detail->op_count == 0 || detail->op_count == 3);
+        assert(detail->op_count == 0 || detail->op_count == 1 || detail->op_count == 3);
 
         unsigned int rd = 0;
         unsigned int rs = 0;
@@ -82,6 +82,13 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         if (detail->op_count == 0) {
             rd = RISCV_REG_X0;
             rs = RISCV_REG_X1;
+            imm = 0;
+        }
+        // The jr pseudo instruction
+        else if (detail->op_count == 1) {
+            assert(detail->operands[0].type == RISCV_OP_REG);
+            rd = RISCV_REG_X1;
+            rs = detail->operands[0].reg;
             imm = 0;
         }
         else {

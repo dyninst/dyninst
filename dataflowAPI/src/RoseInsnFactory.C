@@ -447,10 +447,15 @@ void RoseInsnRiscv64Factory::massageOperands(const Instruction &insn,
           Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, imm));
           operands[1] = Operand(rsAST, true, false, false);
           operands[2] = Operand(immAST, true, false, false);
+          break;
         }
-        break;
         default:
-                    break;
+          break;
+    }
+    for (Operand &operand : operands) {
+        if (RegisterAST *regAST = boost::dynamic_cast<RegisterAST *>(operand.getValue())) {
+            // do something with moveable_john
+        }
     }
 }
 #pragma GCC diagnostic pop
