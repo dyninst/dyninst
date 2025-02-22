@@ -146,13 +146,14 @@ namespace rose {
                     }
                 };
 
-                struct IP_RISCV_JALR : P {
+                struct 
+                IP_RISCV_JALR : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         SgAsmExpression *rd = args[0];
                         SgAsmExpression *rs1 = args[1];
                         SgAsmExpression *imm = args[2];
 
-                        BaseSemantics::SValuePtr t = ops->add(d->read(rs1, XLENBITS), d->SignExtend(d->read(imm, XLENBITS), XLENBITS));
+                        BaseSemantics::SValuePtr t = ops->add(d->readRegister(rs1), d->SignExtend(d->read(imm, 64), 64));
                         d->write(rd, ops->number_(XLENBITS, get_next_pc(insn)));
                         d->BranchTo(t);
                     }
