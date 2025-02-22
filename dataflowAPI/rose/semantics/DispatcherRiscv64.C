@@ -153,7 +153,7 @@ namespace rose {
                         SgAsmExpression *rs1 = args[1];
                         SgAsmExpression *imm = args[2];
 
-                        BaseSemantics::SValuePtr t = ops->add(d->readRegister(rs1), d->SignExtend(d->read(imm, 64), 64));
+                        BaseSemantics::SValuePtr t = ops->add(d->read(rs1, 64), d->SignExtend(d->read(imm, 64), 64));
                         d->write(rd, ops->number_(XLENBITS, get_next_pc(insn)));
                         d->BranchTo(t);
                     }
