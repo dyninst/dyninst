@@ -509,7 +509,7 @@ class registerSpace {
                    pc, ignored } riscv64Registers_t;
     static unsigned GPR(Dyninst::Register x) { return x; }
     static unsigned FPR(Dyninst::Register x) { return x - fpr0; }
-    int framePointer() { return r29; }
+    int framePointer() { return r8; }
 #endif
     // Create a map of register names to register numbers
     std::map<std::string, Dyninst::Register> registersByName;
