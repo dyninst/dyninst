@@ -511,8 +511,9 @@ namespace Dyninst { namespace InstructionAPI {
       }
       // ret -> c.jr x1
       if(m_InsnOp.getID() == riscv64_op_c_jr) {
-        MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(cft_begin()->target))->getID();
-        if (rd == riscv64::x1) {
+        MachRegister rd = boost::dynamic_pointer_cast<RegisterAST>(getOperand(0).getValue())->getID();
+        MachRegister rs = boost::dynamic_pointer_cast<RegisterAST>(getOperand(1).getValue())->getID();
+        if (rd == riscv64::x0 && rs == riscv64::x1) {
           return c_ReturnInsn;
         }
       }
