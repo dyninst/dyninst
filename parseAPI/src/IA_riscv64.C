@@ -210,7 +210,7 @@ bool IA_riscv64::cleansStack() const
             return true;
         }
     }
-    else if (eid == riscv64_op_c_addi || eid == riscv64_op_c_addi16sp) {
+    if (eid == riscv64_op_c_addi || eid == riscv64_op_c_addi16sp) {
         // c.addi sp, n
         // c.addi16sp sp, n
         RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
@@ -240,29 +240,26 @@ bool IA_riscv64::isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Bloc
 {
     Instruction insn = curInsn();
     entryID eid = insn.getOperation().getID();
-    if (eid == riscv64_op_jalr) {
-        // jalr zero, ra, 0
-        RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
-        RegisterAST::Ptr op1 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue());
-        Immediate::Ptr op2 = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(2).getValue());
-
-        MachRegister reg0 = op0->getID();
-        MachRegister reg1 = op1->getID();
-        int offset2 = op2->eval().val.s32val;
-
-        if (reg0 == riscv64::zero && reg1 == riscv64::ra && offset2 == 0) {
+    if (eid == riscv64_op_c_jr) {
+        // c.jr x0, x1
+        MachRegister rd = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue())->getID();
+        MachRegister rs = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue())->getID();
+        if (rd == riscv64::x0 && rs == riscv64::x1) {
             return true;
         }
     }
-    else if (eid == riscv64_op_c_jr) {
+    if (eid == riscv64_op_jalr) {
         // jalr zero, ra, 0
-        RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
-
-        MachRegister reg0 = op0->getID();
-
-        if (reg0 == riscv64::ra) {
+        MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue()))->getID();
+        vector<InstructionAST::Ptr> children;
+        boost::dynamic_pointer_cast<BinaryFunction>(insn.getOperand(1).getValue())->getChildren(children);
+        assert(children.size() == 2);
+        MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(children[0]))->getID();
+        int32_t imm = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
+        if (rd == riscv64::x1 && rs == riscv64::x0 && imm == 0) {
             return true;
         }
+
     }
     return false;
 }
