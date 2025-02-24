@@ -2921,7 +2921,7 @@ namespace rose {
 
                 struct IP_ldp_gen_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[2]);
                         BaseSemantics::SValuePtr data1;
                         BaseSemantics::SValuePtr data2;
                         int dbytes = d->getDatasize(raw) / 8;
@@ -2975,7 +2975,7 @@ namespace rose {
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
                             } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
+                                address = ops->add(address, d->read(args[3]));
                             }
 
                             if (EXTR(5, 9) == 31) {
@@ -3892,7 +3892,7 @@ namespace rose {
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
                             } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
+                                address = ops->add(address, ops->number_(EXTR(12,20),9));
                             }
 
                             if (EXTR(5, 9) == 31) {
