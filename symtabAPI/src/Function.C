@@ -241,14 +241,17 @@ void FunctionBase::expandLocation(const VariableLocation &loc,
    }
 
    using namespace Dyninst::DwarfDyninst;
-   auto obj = getModule()->exec()->getObject();
-   DwarfFrameParser::Ptr frameParser =
-		   DwarfFrameParser::create(*obj->dwarf->frame_dbg(), obj->dwarf->origFile()->e_elfp(), obj->getArch());
-
    std::vector<VariableLocation> FDEs;
-   Dyninst::DwarfDyninst::FrameErrors_t err;
-   if(!frameParser) return;
-   frameParser->getRegsForFunction(std::make_pair(loc.lowPC, loc.hiPC), Dyninst::CFA, FDEs, err);
+   Object *obj = getModule()->exec()->getObject();
+   ObjectELF *obj_elf = dynamic_cast<ObjectELF *>(obj);
+   if (obj_elf) {
+      DwarfFrameParser::Ptr frameParser =
+            DwarfFrameParser::create(*obj_elf->dwarf->frame_dbg(), obj_elf->dwarf->origFile()->e_elfp(), obj_elf->getArch());
+
+      Dyninst::DwarfDyninst::FrameErrors_t err;
+      if(!frameParser) return;
+      frameParser->getRegsForFunction(std::make_pair(loc.lowPC, loc.hiPC), Dyninst::CFA, FDEs, err);
+   }
 
    if (FDEs.empty()) {
       // Odd, but happens

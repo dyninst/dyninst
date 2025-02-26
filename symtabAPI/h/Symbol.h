@@ -75,7 +75,6 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
 {
    friend class typeCommon;
    friend class Symtab;
-   friend class AObject;
    friend class Object;
    friend class Aggregate;
    friend class relocationEntry;

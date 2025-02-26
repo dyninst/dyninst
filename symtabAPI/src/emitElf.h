@@ -143,7 +143,7 @@ namespace Dyninst {
 
         template<class ElfTypes = ElfTypes64> class emitElf : public ElfTypes {
         public:
-            emitElf(Elf_X *pX, bool i, Object *pObject, void (*pFunction)(const char *), Symtab *pSymtab);
+            emitElf(Elf_X *pX, bool i, ObjectELF *pObject, void (*pFunction)(const char *), Symtab *pSymtab);
 
             typedef typename ElfTypes::Elf_Ehdr Elf_Ehdr;
             typedef typename ElfTypes::Elf_Phdr Elf_Phdr;
@@ -241,7 +241,7 @@ namespace Dyninst {
 
             bool isStripped;
             int library_adjust;
-            Object *object;
+            ObjectELF *object;
 
             void (*err_func_)(const char*);
 
