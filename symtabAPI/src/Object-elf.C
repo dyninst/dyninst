@@ -313,6 +313,7 @@ const char *EXCEPT_NAME = ".gcc_except_table";
 const char *EXCEPT_NAME_ALT = ".except_table";
 const char *MODINFO_NAME = ".modinfo";
 const char *GNU_LINKONCE_THIS_MODULE_NAME = ".gnu.linkonce.this_module";
+const char *RISCV_ATTRIBUTES = ".riscv.attributes";
 const char DEBUG_PREFIX[] = ".debug_";
 const char ZDEBUG_PREFIX[] = ".zdebug_";
 
@@ -336,7 +337,7 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
                         Elf_X_Shdr *&dynstr_scnp, Elf_X_Shdr *&dynamic_scnp,
                         Elf_X_Shdr *&eh_frame, Elf_X_Shdr *&gcc_except,
                         Elf_X_Shdr *&interp_scnp, Elf_X_Shdr *&opd_scnp,
-                        Elf_X_Shdr *&symtab_shndx_scnp,
+                        Elf_X_Shdr *&symtab_shndx_scnp, Elf_X_Shdr *&riscv_attr_scnp,
                         bool) {
     std::map<std::string, int> secnNameMap;
     dwarf_err_func = err_func_;
@@ -838,6 +839,8 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
             hasModinfo_ = true;
         } else if (strcmp(name, GNU_LINKONCE_THIS_MODULE_NAME) == 0) {
             hasGnuLinkonceThisModule_ = true;
+        } else if (strcmp(name, RISCV_ATTRIBUTES) == 0) {
+            riscv_attr_scnp = scnp;
         } else if ((int) i == dynamic_section_index) {
             dynamic_scnp = scnp;
             dynamic_addr_ = scn.sh_addr();
@@ -1455,6 +1458,7 @@ void ObjectELF::load_object(bool alloc_syms) {
     Elf_X_Shdr *interp_scnp = 0;
     Elf_X_Shdr *opd_scnp = NULL;
     Elf_X_Shdr *symtab_shndx_scnp = NULL;
+    Elf_X_Shdr *riscv_attr_scnp = NULL;
 
     { // binding contour (for "goto cleanup")
 
@@ -1470,7 +1474,7 @@ void ObjectELF::load_object(bool alloc_syms) {
         if (!loaded_elf(txtaddr, dataddr, bssscnp, symscnp, strscnp,
                         rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp,
                         dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp,
-                        opd_scnp, symtab_shndx_scnp, true)) {
+                        opd_scnp, symtab_shndx_scnp, riscv_attr_scnp, true)) {
             goto cleanup;
         }
 
