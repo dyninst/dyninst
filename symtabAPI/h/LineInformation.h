@@ -35,6 +35,8 @@
 #include <utility>
 #include <vector>
 #include <boost/make_shared.hpp>
+#include <mutex>
+#include <condition_variable>
 #include "symutil.h"
 #include "RangeLookup.h"
 #include "Annotatable.h"
@@ -46,6 +48,9 @@
 namespace Dyninst{
 namespace SymtabAPI{
 
+class Object;
+class Module;
+
 class DYNINST_EXPORT LineInformation final :
                         private RangeLookupTypes< Statement >::type
 {
@@ -55,7 +60,8 @@ public:
     typedef impl_t::index<Statement::addr_range>::type::const_iterator const_iterator;
     typedef impl_t::index<Statement::line_info>::type::const_iterator const_line_info_iterator;
     typedef traits::value_type Statement_t;
-    LineInformation();
+    LineInformation(Object *o = nullptr, Module *m = nullptr): obj(o), mod(m) {}
+    LineInformation(Module *m): LineInformation(nullptr, m) {}
 
     bool addLine( const std::string &lineSource,
           unsigned int lineNo, 
@@ -96,8 +102,90 @@ public:
 
     StringTablePtr getStrings() ;
 
+    void ReaderLock(bool init = true);  // if init, initialized LineInformation
+    void ReaderUnlock();
+    void WriterLock(bool init = true);  // if init, initialized LineInformation
+    void WriterUnlock();
+
+    void Initialize();
+    bool IsInitialized() const {return isInitialized;}
+
+    class ReaderLockGuard
+    {
+        public:
+            ReaderLockGuard() = default;
+            ReaderLockGuard(LineInformation *li, bool init = true) : lineInfo(li)  {
+                li->ReaderLock(init);
+            }
+            ~ReaderLockGuard()  {
+                if (lineInfo) lineInfo->ReaderUnlock();
+            }
+            ReaderLockGuard(const ReaderLockGuard&) = delete;
+            ReaderLockGuard& operator=(ReaderLockGuard&) = delete;
+            ReaderLockGuard(ReaderLockGuard &&rhs) noexcept : lineInfo(rhs.lineInfo)  {
+                rhs.lineInfo = nullptr;
+            }
+            ReaderLockGuard& operator=(ReaderLockGuard&& rhs) noexcept  {
+                if (this != &rhs)  {
+                    if (lineInfo) lineInfo->ReaderUnlock();
+                    lineInfo = rhs.lineInfo;
+                    rhs.lineInfo = nullptr;
+                }
+                return *this;
+            }
+        private:
+            LineInformation *lineInfo{};
+    };
+
+    class WriterLockGuard
+    {
+        public:
+            WriterLockGuard() = default;
+            WriterLockGuard(LineInformation *li, bool init = true) : lineInfo(li)  {
+                li->WriterLock(init);
+            }
+            ~WriterLockGuard()  {
+                if (lineInfo) lineInfo->WriterUnlock();
+            }
+            WriterLockGuard(const WriterLockGuard&) = delete;
+            WriterLockGuard& operator=(WriterLockGuard&) = delete;
+            WriterLockGuard(WriterLockGuard &&rhs) noexcept : lineInfo(rhs.lineInfo)  {
+                rhs.lineInfo = nullptr;
+            }
+            WriterLockGuard& operator=(WriterLockGuard&& rhs) noexcept  {
+                if (this != &rhs)  {
+                    if (lineInfo) lineInfo->WriterUnlock();
+                    lineInfo = rhs.lineInfo;
+                    rhs.lineInfo = nullptr;
+                }
+                return *this;
+            }
+        private:
+            LineInformation *lineInfo{};
+    };
+
+    ReaderLockGuard GetReaderLockGuard(bool init = true)  {
+        return ReaderLockGuard(this, init);
+    }
+    WriterLockGuard GetWriterLockGuard(bool init = true)  {
+        return WriterLockGuard(this, init);
+    }
+
 private:
     StringTablePtr stringTable{boost::make_shared<StringTable>()};
+
+    Object *obj{};              // Object associated with LinoInformation
+    Module *mod{};              // Module associated with LinoInformation
+
+    std::mutex                  lineInfoMutex;
+    std::condition_variable     writersCV;      // waiting writers
+    std::condition_variable     readersCV;      // waiting readers
+
+    // accessed only when lineInfoMutex is locked
+    bool    isInitialized{};    // line information is initialized
+    bool    activeWriter{};     // a writer holds the lock
+    int     activeReadersCnt{}; // number of readers holding lock
+    int     allWritersCnt{};    // number of writers holding and waiting on lock
 };
 
 }//namespace SymtabAPI

@@ -33,9 +33,9 @@
 #include <cstring>
 #include <boost/filesystem.hpp>
 #include "boost/functional/hash.hpp"
-#include <boost/make_shared.hpp>
 #include "common/src/headers.h"
 #include "Module.h"
+#include "Object.h"
 
 #include <functional>
 #include <iostream>
@@ -46,10 +46,6 @@ using std::vector;
 
 #include "LineInformation.h"
 #include <sstream>
-
-LineInformation::LineInformation()
-{
-}
 
 bool LineInformation::addLine( unsigned int lineSource,
       unsigned int lineNo, 
@@ -256,4 +252,71 @@ void LineInformation::dump()
       stmt->getLine() <<
       std::endl;
   }
+}
+
+// reader may proceed if there are no active or waiting writers
+void LineInformation::ReaderLock(bool init)
+{
+    std::unique_lock<std::mutex> lock(lineInfoMutex);
+    if (init && !IsInitialized())  {
+        Initialize();
+    }
+    readersCV.wait(lock, [&]{return allWritersCnt == 0;});
+    ++activeReadersCnt;
+    lock.unlock();
+}
+
+void LineInformation::ReaderUnlock()
+{
+    std::unique_lock<std::mutex> lock(lineInfoMutex);
+    --activeReadersCnt;
+    bool wakeWriter{allWritersCnt > 0 && activeReadersCnt == 0};
+    lock.unlock();
+    // wake a writer if one waiting and this was the last active reader
+    if (wakeWriter)  {
+        writersCV.notify_one();
+    }
+}
+
+// writer may proceed if there is not an active writer or reader
+void LineInformation::WriterLock(bool init)
+{
+    std::unique_lock<std::mutex> lock(lineInfoMutex);
+    if (init && !IsInitialized())  {
+        Initialize();
+    }
+    ++allWritersCnt;
+    writersCV.wait(lock, [&]{return !activeWriter && activeReadersCnt == 0;});
+    activeWriter = true;
+    lock.unlock();
+}
+
+void LineInformation::WriterUnlock()
+{
+    std::unique_lock<std::mutex> lock(lineInfoMutex);
+    activeWriter = false;
+    --allWritersCnt;
+    bool wakeWriter{allWritersCnt > 0};
+    lock.unlock();
+    if (wakeWriter)  {
+        // wake one writer if one is waiting
+        writersCV.notify_one();
+    }  else  {
+        // wake all waiting readers
+        readersCV.notify_all();
+    }
+}
+
+void LineInformation::Initialize()
+{
+    if (mod)  {
+        // this is a module based line info
+        mod->exec()->getObject()->parseLineInfoForCU(mod->addr(), this);
+    }  else if (obj)  {
+        // this is an object based line info
+	obj->parseLineInfoForObject();
+    }  else  {
+        // no initialization
+    }
+    isInitialized = true;
 }

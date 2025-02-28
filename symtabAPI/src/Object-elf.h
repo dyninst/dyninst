@@ -158,6 +158,7 @@ class open_statement {
 class ObjectELF final : public Object
 {
   friend class Module;
+  friend class LineInformation;
 
   // declared but not implemented; no copying allowed
   ObjectELF(const ObjectELF &);

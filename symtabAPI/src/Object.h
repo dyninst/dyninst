@@ -191,6 +191,7 @@ protected:
     // explicitly protected
     DYNINST_EXPORT Object(MappedFile *, void (*err_func)(const char *), Symtab*);
 friend class Module;
+friend class LineInformation;
     virtual void parseLineInfoForCU(Offset , LineInformation* ) { }
 
     MappedFile *mf;
