@@ -323,6 +323,22 @@ public:
   dyn_hash_map<int, unsigned long> secTagSizeMapping;
   dyn_hash_map<int, Region*> secTagRegionMapping;
 
+  // RISC-V attributes
+  union riscv_attr_t {
+    char *sval;
+    uint32_t ival;
+  };
+  enum riscv_attr_tags {
+    Tag_RISCV_stack_align = 4,
+    Tag_RISCV_arch = 5,
+    Tag_RISCV_unaligned_access = 6,
+    Tag_RISCV_priv_spec = 8,
+    Tag_RISCV_spec_minor = 10,
+    Tag_RISCV_priv_spec_revision = 12,
+    Tag_RISCV_atomic_abi = 14,
+    Tag_RISCV_x3_reg_usage = 16
+  };
+
   bool hasReldyn_;
   bool hasReladyn_;
   bool hasRelplt_;
@@ -484,6 +500,8 @@ private:
   void parse_dynamicSymbols( Elf_X_Shdr *& dyn_scnp, Elf_X_Data &symdata,
                              Elf_X_Data &strdata, bool shared_library);
 
+  bool parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp);
+
   void find_code_and_data(Elf_X &elf,
        Offset txtaddr, Offset dataddr);
 
@@ -517,6 +535,9 @@ private:
   const char* soname_;
   Function* containingFunc;
   std::unordered_map<void*, std::vector<open_statement> > contextMap;
+
+  // RISC-V Attributes
+  std::map<int, riscv_attr_t> riscv_attrs;
 
         };
 
