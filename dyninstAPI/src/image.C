@@ -60,9 +60,6 @@
 #include "parseAPI/h/CodeObject.h"
 #include "parseAPI/h/CFG.h"
 
-#include "dataflowAPI/h/AbslocInterface.h"
-#include "dataflowAPI/h/SymEval.h"
-
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
 #endif
@@ -330,22 +327,16 @@ int image::findMain()
   startup_printf("findMain: found '%s' at entry 0x%lx\n", entry_point->name().c_str(),
                  entry_address);
 
-  auto const& edges = entry_point->callEdges();
-  if(edges.empty()) {
-    startup_printf("findMain: no call edges\n");
-    return -1;
-  }
-
-  // In libc, the entry point is _start which only calls __libc_start_main, so
-  // assume the first call is the one we want.
-  pa::Block *b = (*edges.begin())->src();
-
   // Try architecture-specific searches
   auto main_addr = [this, &entry_point]() {
     auto file_arch = linkedFile->getArchitecture();
 
     if(file_arch == Dyninst::Arch_ppc32 || file_arch == Dyninst::Arch_ppc64) {
       return DyninstAPI::ppc::find_main(linkedFile, entry_point);
+    }
+
+    if(file_arch == Dyninst::Arch_x86 || file_arch == Dyninst::Arch_x86_64) {
+      return DyninstAPI::x86::find_main(entry_point);
     }
 
     return Dyninst::ADDR_NULL;
@@ -397,98 +388,6 @@ int image::findMain()
 
         if(!foundMain)
         {
-#if !defined(os_freebsd)
-	    Block::Insns insns;
-	    b->getInsns(insns);
-	    if (insns.size() < 2) {
-	        startup_printf("%s[%d]: should have at least two instructions\n", FILE__, __LINE__);   
-		return -1;
-	    }
-
-	    Address mainAddress = 0;
-
-	    // To get the secont to last instruction, which loads the address of main
-	    auto iit = insns.end();
-	    --iit;
-	    --iit;	    
-
-            /* Let's get the assignment for this instruction. */
-            std::vector<Assignment::Ptr> assignments;
-            Dyninst::AssignmentConverter assign_convert(true, false);
-            assign_convert.convert(iit->second, iit->first, entry_point, b, assignments);
-            if(assignments.size() >= 1)
-            {
-	        
-                Assignment::Ptr assignment = assignments[0];
-		std::pair<AST::Ptr, bool> res = DataflowAPI::SymEval::expand(assignment, false);
-		AST::Ptr ast = res.first;
-                if(!ast)
-                {
-                    /* expand failed */
-                    mainAddress = 0x0;
-		    startup_printf("%s[%d]:  cannot expand %s from instruction %s\n", FILE__, __LINE__, assignment->format().c_str(),
-                           assignment->insn().format().c_str());
-                } else { 
-		    startup_printf("%s[%d]:  try to visit  %s\n", FILE__, __LINE__, ast->format().c_str());   
-                    FindMainVisitor fmv;
-                    ast->accept(&fmv);
-                    if(fmv.resolved)
-                    {
-                        mainAddress = fmv.target;
-                    } else {
-                        mainAddress = 0x0;
-			startup_printf("%s[%d]:  FindMainVisitor cannot find main address in %s\n", FILE__, __LINE__, ast->format().c_str());   
-
-                    }
-                }
-            }
-#else
-            // Heuristic: main is the target of the 4th call in the text section
-            using namespace Dyninst::InstructionAPI;
-
-            unsigned bytesSeen = 0, numCalls = 0;
-            InstructionDecoder decoder(p, entry_region->getMemSize(), scs.getArch());
-
-            Instruction::Ptr curInsn = decoder.decode();
-            while( numCalls < 4 && curInsn && curInsn->isValid() &&
-                    bytesSeen < entry_region->getMemSize())
-            {
-                if( curInsn->isCall() ) {
-                    numCalls++;
-                }
-
-                if( numCalls < 4 ) {
-                    bytesSeen += curInsn->size();
-                    curInsn = decoder.decode();
-                }
-            }
-
-            if( numCalls != 4 ) {
-                logLine("heuristic for finding global constructor function failed\n");
-            }else{
-                Address callAddress = entry_region->getMemOffset() + bytesSeen;
-                RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(scs.getArch()));
-
-                Expression::Ptr callTarget = curInsn->getControlFlowTarget();
-
-                if( callTarget.get() ) {
-                    callTarget->bind(&thePC, Result(s64, callAddress));
-                    Result actualTarget = callTarget->eval();
-                    if( actualTarget.defined ) {
-                        mainAddress = actualTarget.convert<Address>();
-                    }
-                }
-            }
-#endif
-
-            if(!mainAddress || !scs.isValidAddress(mainAddress)) {
-                startup_printf("%s[%d]:  invalid main address 0x%lx\n",
-                        FILE__, __LINE__, mainAddress);   
-            } else {
-                startup_printf("%s[%d]:  set main address to 0x%lx\n",
-                        FILE__,__LINE__,mainAddress);
-            }
-
             /* Note: creating a symbol for main at the invalid address 
                anyway, because there is guard code for this later in the
                process and otherwise we end up in a weird "this is not an
@@ -498,6 +397,8 @@ int image::findMain()
                a way of gracefully indicating that it has failed. It should
                not return void. NR
                */
+
+            Address mainAddress = 0;
 
             Region *pltsec;
             if((linkedFile->findRegion(pltsec, ".plt")) && pltsec->isOffsetInRegion(mainAddress))
