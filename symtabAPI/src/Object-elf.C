@@ -4234,7 +4234,7 @@ bool Object::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
         return false;
     }
 
-    uint64_t section_len = data.d_size() - 1; // remove the attribute version ('A')
+    uint32_t section_len = data.d_size() - 1; // remove the attribute version ('A')
     p++;
 
     while (section_len > 0) {
@@ -4244,16 +4244,16 @@ bool Object::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
         }
 
         // The second word is the size of the attribute
-        uint64_t attr_len;
+        uint32_t attr_len = 0;
         memcpy(&attr_len, p, 4);
         p += 4;
 
         if (attr_len > section_len) {
-            create_printf("%s[%d]:  Bad attribute length (%lu > %lu)\n", FILE__, __LINE__, attr_len, section_len);
+            create_printf("%s[%d]:  Bad attribute length (%u > %u)\n", FILE__, __LINE__, attr_len, section_len);
             return false;
         }
         else if (attr_len < 5) {
-            create_printf("%s[%d]:  Attribute length of %lu is too small\n", FILE__, __LINE__, attr_len);
+            create_printf("%s[%d]:  Attribute length of %u is too small\n", FILE__, __LINE__, attr_len);
             return false;
 		}
         section_len -= attr_len;
@@ -4267,7 +4267,7 @@ bool Object::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
             return false;
         }
 
-        if (!strcmp(p, "riscv")) {
+        if (strcmp(p, "riscv")) {
             create_printf("%s[%d]:  Unexpected attribute section '%s'\n", FILE__, __LINE__, p);
             return false;
         }
@@ -4285,7 +4285,7 @@ bool Object::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
             memcpy(&size, p, 4);
 
             if (size > attr_len) {
-                create_printf("%s[%d]:  Bad subsection length (%u > %lu)\n", FILE__, __LINE__, size, attr_len);
+                create_printf("%s[%d]:  Bad subsection length (%u > %u)\n", FILE__, __LINE__, size, attr_len);
                 return false;
             }
             if (size < 6) {
@@ -4302,45 +4302,47 @@ bool Object::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
             }
 
             while (p < end) {
-                uint64_t shift = 0;
+                // The tags are supposed to be ULEB128 encoded
+                // But in reality it is actually just a single byte
 
                 tag = 0;
-                // The tags are ULEB128 encoded
-                while (p < end) {
-                    uint8_t byte = *p++;
-                    tag |= ((byte & 0x7f) << shift);
-                    shift += 7;
-                    if (!(byte & 0x80)) { // If the MSB is set, it is the end of ULEB128 number
-                        break;
-                    }
-                }
-                // The tag is mandatory; If the tool does not recognize this attribute and the tag number modulo 128 is less 
-                // than 64 ((N % 128) < 64), errors should be reported.
-                if (tag % 128 < 64) {
-                        create_printf("%s[%d]:  Unexpected riscv attribute tag (%d)", FILE__, __LINE__, tag);
-                    return false;
-                }
+                // uint64_t shift = 0;
+                // while (p < end) {
+                //     uint8_t byte = *p++;
+                //     tag |= ((byte & 0x7f) << shift);
+                //     shift += 7;
+                //     if (!(byte & 0x80)) { // If the MSB is set, it is the end of ULEB128 number
+                //         break;
+                //     }
+                // }
+                memcpy(&tag, p, 1);
+                p++;
 
-                // RISC-V attributes have a string value if the tag number is odd and an integer value if the tag number is even
-                if (tag % 1 != 0) {
+                // RISC-V attributes have a string value if the tag number is odd
+                // and an integer value if the tag number is even
+                if (tag % 2 != 0) {
                     // a string value
                     unsigned int slen = strnlen(p, end - p - 1) + 1;
                     riscv_attrs[tag].sval = strdup(p);
                     p += slen;
                 }
                 else {
+                    // an integer value
                     uint64_t ival = 0;
 
-                    // The integer values are also ULEB128 encoded
-                    shift = 0;
-                    while (p < end) {
-                        uint8_t byte = *p++;
-                        ival |= ((byte & 0x7f) << shift);
-                        shift += 7;
-                        if (!(byte & 0x80)) { // If the MSB is set, it is the end of ULEB128 number
-                            break;
-                        }
-                    }
+                    // The integer values are supposed to be ULEB128 encoded
+                    // But in reality it is actually just a single byte
+                    // shift = 0;
+                    // while (p < end) {
+                    //     uint8_t byte = *p++;
+                    //     ival |= ((byte & 0x7f) << shift);
+                    //     shift += 7;
+                    //     if (!(byte & 0x80)) { // If the MSB is set, it is the end of ULEB128 number
+                    //         break;
+                    //     }
+                    // }
+                    memcpy(&ival, p, 1);
+                    p++;
                     riscv_attrs[tag].ival = ival;
                 }
             }
