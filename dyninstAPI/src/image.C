@@ -60,9 +60,6 @@
 #include "parseAPI/h/CodeObject.h"
 #include "parseAPI/h/CFG.h"
 
-#include "dataflowAPI/h/AbslocInterface.h"
-#include "dataflowAPI/h/SymEval.h"
-
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
 #endif
@@ -272,6 +269,10 @@ int image::findMain()
       return DyninstAPI::ppc::find_main_by_toc(linkedFile, entry_point, b);
     }
 
+    if(file_arch == Dyninst::Arch_x86 || file_arch == Dyninst::Arch_x86_64) {
+      return DyninstAPI::x86::find_main(entry_point, b);
+    }
+
     return Dyninst::ADDR_NULL;
   }();
 
@@ -321,95 +322,6 @@ int image::findMain()
 
         if(!foundMain)
         {
-#if !defined(os_freebsd)
-	    Block::Insns insns;
-	    b->getInsns(insns);
-	    if (insns.size() < 2) {
-	        startup_printf("%s[%d]: should have at least two instructions\n", FILE__, __LINE__);   
-		return -1;
-	    }
-
-	    // To get the secont to last instruction, which loads the address of main
-	    auto iit = insns.end();
-	    --iit;
-	    --iit;	    
-
-            /* Let's get the assignment for this instruction. */
-            std::vector<Assignment::Ptr> assignments;
-            Dyninst::AssignmentConverter assign_convert(true, false);
-            assign_convert.convert(iit->second, iit->first, func, b, assignments);
-            if(assignments.size() >= 1)
-            {
-	        
-                Assignment::Ptr assignment = assignments[0];
-		std::pair<AST::Ptr, bool> res = DataflowAPI::SymEval::expand(assignment, false);
-		AST::Ptr ast = res.first;
-                if(!ast)
-                {
-                    /* expand failed */
-                    mainAddress = 0x0;
-		    startup_printf("%s[%d]:  cannot expand %s from instruction %s\n", FILE__, __LINE__, assignment->format().c_str(),
-                           assignment->insn().format().c_str());
-                } else { 
-		    startup_printf("%s[%d]:  try to visit  %s\n", FILE__, __LINE__, ast->format().c_str());   
-                    FindMainVisitor fmv;
-                    ast->accept(&fmv);
-                    if(fmv.resolved)
-                    {
-                        mainAddress = fmv.target;
-                    } else {
-                        mainAddress = 0x0;
-			startup_printf("%s[%d]:  FindMainVisitor cannot find main address in %s\n", FILE__, __LINE__, ast->format().c_str());   
-
-                    }
-                }
-            }
-#else
-            // Heuristic: main is the target of the 4th call in the text section
-            using namespace Dyninst::InstructionAPI;
-
-            unsigned bytesSeen = 0, numCalls = 0;
-            InstructionDecoder decoder(p, eReg->getMemSize(), scs.getArch());
-
-            Instruction::Ptr curInsn = decoder.decode();
-            while( numCalls < 4 && curInsn && curInsn->isValid() &&
-                    bytesSeen < eReg->getMemSize())
-            {
-                if( curInsn->isCall() ) {
-                    numCalls++;
-                }
-
-                if( numCalls < 4 ) {
-                    bytesSeen += curInsn->size();
-                    curInsn = decoder.decode();
-                }
-            }
-
-            if( numCalls != 4 ) {
-                logLine("heuristic for finding global constructor function failed\n");
-            }else{
-                Address callAddress = eReg->getMemOffset() + bytesSeen;
-                RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(scs.getArch()));
-
-                Expression::Ptr callTarget = curInsn->getControlFlowTarget();
-
-                if( callTarget.get() ) {
-                    callTarget->bind(&thePC, Result(s64, callAddress));
-                    Result actualTarget = callTarget->eval();
-                    if( actualTarget.defined ) {
-                        mainAddress = actualTarget.convert<Address>();
-                    }
-                }
-            }
-#endif
-
-            if(!mainAddress || !scs.isValidAddress(mainAddress)) {
-                startup_printf("%s[%d]:  invalid main address 0x%lx\n",
-                        FILE__, __LINE__, mainAddress);   
-            } else {
-                startup_printf("%s[%d]:  set main address to 0x%lx\n",
-                        FILE__,__LINE__,mainAddress);
-            }
 
             /* Note: creating a symbol for main at the invalid address 
                anyway, because there is guard code for this later in the
