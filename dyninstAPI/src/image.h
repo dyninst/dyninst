@@ -34,6 +34,7 @@
 #define SYMTAB_HDR
 #define REGEX_CHARSET "^*|?"
 
+#include <array>
 #include <map>
 #include <utility>
 #include <vector>
@@ -94,8 +95,19 @@ typedef bool (*functionNameSieve_t)(const char *test,void *data);
 #define USER_MODULE "USER_MODULE"
 #define LIBRARY_MODULE	"LIBRARY_MODULE"
 
-#define NUMBER_OF_MAIN_POSSIBILITIES 8
-extern char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20];
+inline std::array<char const*, 8> main_function_names() {
+  static constexpr std::array<char const *, 8> names = {
+    "main",
+    "_main",
+    "DYNINST_pltMain",
+    "WinMain",
+    "_WinMain",
+    "wWinMain",
+    "_wWinMain",
+    "tls_cb_0"
+  };
+  return names;
+}
 
 class image;
 class lineTable;
