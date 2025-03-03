@@ -2005,8 +2005,10 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
         } else if ((object->getRelType() == Region::RT_RELA) && (relocation_table[i].regionType() == Region::RT_RELA)) {
             relas[k].r_offset = relocation_table[i].rel_addr() + library_adjust;
             relas[k].r_addend = relocation_table[i].addend();
-            //if (relas[k].r_addend)
-            //   relas[k].r_addend += library_adjust;
+#if defined(DYNINST_HOST_ARCH_RISCV64)
+            if (relas[k].r_addend)
+                relas[k].r_addend += library_adjust;
+#endif
             unsigned long sym_offset = 0;
             std::string sym_name = relocation_table[i].name();
             if (!sym_name.empty()) {
