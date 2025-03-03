@@ -95,9 +95,16 @@ const char *relocationEntry::relType2Str(unsigned long r, unsigned /*addressWidt
         CASE_RETURN_STR(R_RISCV_SET32);
         CASE_RETURN_STR(R_RISCV_32_PCREL);
         CASE_RETURN_STR(R_RISCV_IRELATIVE);
+	// Some Platforms does not have R_RISCV_PLT32, R_RISCV_SET_ULEB128, and/or R_RISCV_SUB_ULEB128
+#ifdef R_RISCV_PLT32
         CASE_RETURN_STR(R_RISCV_PLT32);
+#endif
+#ifdef R_RISCV_SET_ULEB128
         CASE_RETURN_STR(R_RISCV_SET_ULEB128);
+#endif
+#ifdef R_RISCV_SUB_ULEB128
         CASE_RETURN_STR(R_RISCV_SUB_ULEB128);
+#endif
         default:
             return "Unknown relocation type";
     }
