@@ -277,6 +277,7 @@ static Region::RegionType getRelTypeByElfMachine(Elf_X *localHdr) {
         case EM_IA_64:
         case EM_AARCH64:
         case EM_AMDGPU:
+        case EM_RISCV:
             ret = Region::RT_RELA;
             break;
         default:
