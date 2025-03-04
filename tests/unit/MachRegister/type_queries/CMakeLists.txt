@@ -55,4 +55,3 @@ target_include_directories(type_query_amdgpu_gfx940 PRIVATE ${UNIT_TESTS_INCLUDE
 target_link_libraries(type_query_amdgpu_gfx940 PRIVATE common)
 add_test(NAME machregister_type_query_amdgpu_gfx940 COMMAND type_query_amdgpu_gfx940)
 set_tests_properties(machregister_type_query_amdgpu_gfx940 PROPERTIES LABELS "unit")
-
