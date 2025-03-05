@@ -230,8 +230,8 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    bool isExec() const;
    bool isExecutable() const;
    bool isSharedLibrary() const;
+   bool isRelocatableFile() const;
    bool isStripped();
-   ObjectType getObjectType() const;
    Dyninst::Architecture getArchitecture() const;
    bool isCode(const Offset where) const;
    bool isData(const Offset where) const;
@@ -487,7 +487,6 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    Offset entry_address_{};
    Offset base_address_{};
    Offset load_address_{};
-   ObjectType object_type_{obj_Unknown};
    bool is_eel_{false};
    std::vector<Segment> segments_{};
 

@@ -151,7 +151,6 @@ public:
     virtual Offset getBaseAddress() const = 0;
     virtual Offset getLoadAddress() const = 0;
     virtual bool isEEL() const { return false; }
-    virtual ObjectType objType() const = 0;
     virtual void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs) = 0;
 
     virtual void insertPrereqLibrary(std::string libname) = 0;
@@ -171,6 +170,7 @@ public:
     DYNINST_EXPORT virtual bool isOnlySharedLibrary() const { return false; }
     DYNINST_EXPORT virtual bool isDebugOnly() const { return false; }
     DYNINST_EXPORT virtual bool isLinuxKernelModule() const { return false; }
+    DYNINST_EXPORT virtual bool isRelocatableFile() const { return false; }
 
     virtual bool convertDebugOffset(Offset, Offset &) { return false; }
 

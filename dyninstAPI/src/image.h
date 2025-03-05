@@ -346,11 +346,8 @@ class image : public codeRange {
    bool isDyninstRTLib() const { return is_libdyninstRT; }
    bool isExecutable() const { return getObject()->isExec(); }
    bool isSharedLibrary() const { return getObject()->isSharedLibrary(); }
-   bool isSharedObject() const { 
-    return (getObject()->getObjectType() == SymtabAPI::obj_SharedLib); 
-   }
    bool isRelocatableObj() const { 
-    return (getObject()->getObjectType() == SymtabAPI::obj_RelocatableFile);
+    return (getObject()->isRelocatableFile());
    }
 
    bool getExecCodeRanges(std::vector<std::pair<Address, Address> > &ranges);

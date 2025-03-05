@@ -66,13 +66,6 @@ typedef enum {
 
 DYNINST_EXPORT const char *supportedLanguages2Str(supportedLanguages s);
 
-typedef enum {
-   obj_Unknown,
-   obj_SharedLib,
-   obj_Executable,
-   obj_RelocatableFile
-} ObjectType;
-
 typedef enum { 
    Obj_Parsing = 0,
    Syms_To_Functions,

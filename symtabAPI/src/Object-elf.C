@@ -344,11 +344,11 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
     int e_type = elfHdr->e_type();
 
     if (e_type == ET_DYN) {
-	obj_type_ = obj_SharedLib;
+	obj_type_ = ObjectType::SharedLib;
     } else if (e_type == ET_EXEC) {
-	obj_type_ = obj_Executable;
+	obj_type_ = ObjectType::Executable;
     } else if (e_type == ET_REL) {
-	obj_type_ = obj_RelocatableFile;
+	obj_type_ = ObjectType::RelocatableFile;
     }
 
     entryAddress_ = elfHdr->e_entry();
@@ -2292,7 +2292,7 @@ ObjectELF::ObjectELF(MappedFile *mf_, bool, void (*err_func)(const char *),
         isStripped(false),
         dwarf(NULL),
         EEL(false), did_open(false),
-        obj_type_(obj_Unknown),
+        obj_type_(ObjectType::Unknown),
         DbgSectionMapSorted(false),
         soname_(NULL),
         containingFunc(nullptr)
@@ -2994,7 +2994,7 @@ bool ObjectELF::find_catch_blocks(Elf_X_Shdr *eh_frame,
 
 #endif
 
-ObjectType ObjectELF::objType() const {
+ObjectELF::ObjectType ObjectELF::objType() const {
     return obj_type_;
 }
 
@@ -4005,7 +4005,7 @@ void ObjectELF::getSegmentsSymReader(vector<SymSegment> &segs) {
 //   elfclassify.c
 bool ObjectELF::isLoadable() const
 {
-    return (objType() == obj_Executable || objType() == obj_SharedLib)
+    return (objType() == ObjectType::Executable || objType() == ObjectType::SharedLib)
 		&& hasProgramLoad()
 		&& (no_of_sections() == 0 || hasBitsAlloc());
 }
@@ -4039,7 +4039,7 @@ bool ObjectELF::isExecutable() const
 {
     if (!isLoadable())  {
 	return false;
-    }  else if (objType() == obj_Executable)  {
+    }  else if (objType() == ObjectType::Executable)  {
 	return true;
     }  else if (hasPieFlag())  {
 	return true;
@@ -4083,7 +4083,7 @@ bool ObjectELF::isSharedLibrary() const
 {
     if (!isLoadable())  {
 	return false;
-    }  else if (objType() != obj_SharedLib)  {
+    }  else if (objType() != ObjectType::SharedLib)  {
 	return false;
     }  else if (!getDynamicAddr())  {
 	return false;
@@ -4105,7 +4105,7 @@ bool ObjectELF::isOnlySharedLibrary() const
 {
     if (!isLoadable())  {
 	return false;
-    }  else if (objType() == obj_Executable)  {
+    }  else if (objType() == ObjectType::Executable)  {
 	return false;
     }  else if (!getDynamicAddr())  {
 	return false;
@@ -4131,8 +4131,8 @@ bool ObjectELF::isDebugOnly() const
 {
     auto type = objType();
 
-    return (type == obj_RelocatableFile || type == obj_Executable
-                    || type == obj_SharedLib)
+    return (type == ObjectType::RelocatableFile || type == ObjectType::Executable
+                    || type == ObjectType::SharedLib)
 	    && (hasDebugSections() || getSymtabAddr())
 	    && !hasBitsAlloc();
 }
@@ -4144,7 +4144,14 @@ bool ObjectELF::isDebugOnly() const
 //   elfutils' elfclassify.c
 bool ObjectELF::isLinuxKernelModule() const
 {
-    return objType() == obj_RelocatableFile
+    return objType() == ObjectType::RelocatableFile
             && hasModinfo()
             && hasGnuLinkonceThisModule();
+}
+
+// ObjectELF::isRelocatableFile
+//   True if this object is a relocatable file.
+bool ObjectELF::isRelocatableFile() const
+{
+    return objType() == ObjectType::RelocatableFile;
 }
