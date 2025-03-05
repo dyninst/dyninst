@@ -455,6 +455,16 @@ int image::findMain()
     return -1;
   }
 
+  // It must have at least one code region
+  {
+    std::vector<st::Region*> regions;
+    linkedFile->getCodeRegions(regions);
+    if(regions.size() == 0UL) {
+      startup_printf("findMain: No main found; no code regions\n");
+      return -1;
+    }
+  }
+
 #if defined(ppc64_linux)
     using namespace Dyninst::InstructionAPI;
 
@@ -466,12 +476,6 @@ int image::findMain()
             this->address_of_main = funcs[0]->getFirstSymbol()->getOffset();
             foundMain = true;
         }
-
-        Region *eReg = NULL;
-        bool foundText = linkedFile->findRegion(eReg, ".text");
-
-        if (!foundText)
-            return -1;
 
         if(!foundMain)
         {
