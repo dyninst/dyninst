@@ -447,6 +447,8 @@ class FindMainVisitor : public ASTVisitor
 int image::findMain()
 {
 
+  startup_printf("findMain: looking for 'main' in %s\n", linkedFile->name().c_str());
+
   // Only look for 'main' in executables, including PIE, but not
   // other binaries that could be executable (for an example,
   // see ObjectELF::isOnlyExecutable()).
@@ -479,6 +481,12 @@ int image::findMain()
       this->address_of_main = funcs[0]->getFirstSymbol()->getOffset();
       return 0;
     }
+  }
+
+  // Report a non-stripped binary, but don't fail.
+  // This indicates we need to expand our list of possible symbols for 'main'
+  if(!linkedFile->isStripped()) {
+    startup_printf("findMain: no symbol found, but binary isn't stripped\n");
   }
 
 #if defined(ppc64_linux)
