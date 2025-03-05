@@ -65,10 +65,10 @@ jobs:
           #  *.hmac
           #    hash files
           #
-          #  libclang-cpp.so
-          #    causes debuginfod to hang on fedora-37
+          #  libclang*
+          #    causes hangs
 
           find ${dirs} -type f -name '*.so.*' \
              \! -name '*.hmac' \
-             \! -name 'libclang-cpp.so*' \
+             \! -name 'libclang*' \
            -print -exec /usr/bin/simpleParser {} \;
