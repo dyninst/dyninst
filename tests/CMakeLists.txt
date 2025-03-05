@@ -1,6 +1,23 @@
 include_guard(GLOBAL)
 
-add_subdirectory(dataflowAPI)
-add_subdirectory(instructionAPI)
-add_subdirectory(MachRegister)
-add_subdirectory(parseAPI)
+string(TOUPPER ${DYNINST_ENABLE_TESTS} _test_flag)
+
+if(_test_flag STREQUAL "REGRESSION" OR _test_flag STREQUAL "ALL")
+  add_subdirectory(regression)
+
+  # Implicitly enable integration tests
+  set(_test_flag "INTEGRATION")
+endif()
+
+if(_test_flag STREQUAL "INTEGRATION")
+  add_subdirectory(integration)
+
+  # Implicitly enable unit tests
+  set(_test_flag "UNIT")
+endif()
+
+if(_test_flag OR _test_flag STREQUAL "UNIT")
+  add_subdirectory(unit)
+endif()
+
+unset(_test_flag)
