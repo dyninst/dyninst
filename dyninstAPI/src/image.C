@@ -441,9 +441,8 @@ class FindMainVisitor : public ASTVisitor
 };
 
 /**
- * Search for the Main Symbols in the list of symbols, Only in case
- * if the file is a shared object. If not present add them to the
- * list. Returns zero on success, nonzero otherwise.
+ * Search for the 'main' function.
+ * Returns zero on success, nonzero otherwise.
  */
 int image::findMain()
 {
