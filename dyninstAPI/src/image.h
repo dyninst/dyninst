@@ -95,17 +95,20 @@ typedef bool (*functionNameSieve_t)(const char *test,void *data);
 #define USER_MODULE "USER_MODULE"
 #define LIBRARY_MODULE	"LIBRARY_MODULE"
 
-inline std::array<char const*, 8> main_function_names() {
-  static constexpr std::array<char const *, 8> names = {
+inline std::array<char const*, 11> const& main_function_names() {
+  static constexpr std::array<char const *, 11> names = {{
     "main",
     "_main",
+    "main_",
+    "MAIN_",
+    "MAIN__",
     "DYNINST_pltMain",
     "WinMain",
     "_WinMain",
     "wWinMain",
     "_wWinMain",
     "tls_cb_0"
-  };
+  }};
   return names;
 }
 
