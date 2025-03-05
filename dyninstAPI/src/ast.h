@@ -112,8 +112,6 @@ public:
 	};
 
 	int condLevel;
-	
-	static unsigned astHash(AstNode * const &ast);
 
   regTracker_t() : condLevel(0) {}
 
