@@ -48,11 +48,9 @@
 
 #include <set>
 
-#include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/codeRange.h"
-#include "dyninstAPI/src/infHeap.h"
-#include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/h/BPatch_enums.h"
+#include "debug.h"
 
 #include <unordered_map>
 
@@ -389,7 +387,7 @@ class image : public codeRange {
 
     int getNextBlockID() { return nextBlockID_++; }
 
-   Address get_main_call_addr() const { return main_call_addr_; }
+   Address getAddressOfMain() const { return address_of_main; }
 
    void * getErrFunc() const { return (void *) dyninst_log_perror; }
 
@@ -457,7 +455,7 @@ class image : public codeRange {
    //Address dataValidEnd_;
 
    bool is_libdyninstRT;
-   Address main_call_addr_; // address of call to main()
+   Address address_of_main{Dyninst::ADDR_NULL};
 
    // data from the symbol table 
    SymtabAPI::Symtab *linkedFile;

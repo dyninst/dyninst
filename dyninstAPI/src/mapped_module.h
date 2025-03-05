@@ -46,6 +46,7 @@ class image;
 #include <string>
 #include <set>
 #include <vector>
+#include "addressSpace.h"
 #include "dyninstAPI/src/image.h"
 #include "symtabAPI/h/Symtab.h"
 

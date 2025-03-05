@@ -34,7 +34,7 @@
 #include "Annotatable.h"
 #include "RangeLookup.h"
 #include "StringTable.h"
-#include "util.h"
+#include "common/h/util.h"
 
 namespace Dyninst { namespace SymtabAPI {
 

@@ -35,13 +35,13 @@
 #include <stddef.h>
 #include <string>
 #include <vector>
+
+#include "Symtab.h"
  
 class MappedFile;
 
 namespace Dyninst{
 namespace SymtabAPI{
-
-class Symtab;
 
 /**
  * Helps facilitate lazy parsing and quick lookup once parsing is finished

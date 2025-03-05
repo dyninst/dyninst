@@ -51,7 +51,4 @@ extern CntStatistic ptraceOtherOps;
 extern CntStatistic ptraceBytes;
 extern CntStatistic pointsUsed;
 
-void
-dyninst_log_perror(const char* msg);
-
 #endif /* UTIL_H */

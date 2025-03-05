@@ -31,6 +31,9 @@
 // $Id: Timer.C,v 1.19 2007/05/30 19:20:16 legendre Exp $
 
 #include "common/src/Timer.h"
+#include "common/src/headers.h"
+#include "common/h/util.h"
+
 #if defined(_MSC_VER)
 #include <time.h>
 #endif

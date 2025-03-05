@@ -480,7 +480,6 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    unsigned dataLen_{};
 
    bool is_a_out{false};
-   Offset main_call_addr_{}; // address of call to main()
 
    unsigned address_width_{sizeof(int)};
    std::string interpreter_name_{};

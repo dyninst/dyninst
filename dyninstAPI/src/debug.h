@@ -181,4 +181,6 @@ extern bool init_debug();
 extern bool init_stats();
 extern bool print_stats();
 
+void dyninst_log_perror(const char* msg);
+
 #endif /* SHOWERROR_H */
