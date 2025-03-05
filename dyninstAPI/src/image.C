@@ -519,11 +519,23 @@ class FindMainVisitor : public ASTVisitor
  */
 int image::findMain()
 {
+  namespace st = Dyninst::SymtabAPI;
+
   // Only look for 'main' in executables, including PIE and executable DSOs.
   // see ObjectELF::isOnlyExecutable()
   if(!linkedFile->isExec()) {
     startup_printf("findMain: not an executable\n");
     return -1;
+  }
+
+  // It must have at least one code region
+  {
+    std::vector<st::Region*> regions;
+    linkedFile->getCodeRegions(regions);
+    if(regions.size() == 0UL) {
+      startup_printf("findMain: No main found; no code regions\n");
+      return -1;
+    }
   }
 
 #if defined(ppc64_linux) && defined(DYNINST_CODEGEN_ARCH_POWER)
@@ -536,12 +548,6 @@ int image::findMain()
                 linkedFile->findFunctionsByName(funcs, "_main"))  {
             foundMain = true;
         }
-
-        Region *eReg = NULL;
-        bool foundText = linkedFile->findRegion(eReg, ".text");
-
-        if (!foundText)
-            return -1;
 
         if(!foundMain)
         {
