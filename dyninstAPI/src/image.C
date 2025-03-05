@@ -465,17 +465,26 @@ int image::findMain()
     }
   }
 
+  // Check for a known symbol name
+  for(char const* name : main_function_names()) {
+    std::vector<st::Function*> funcs;
+    if(linkedFile->findFunctionsByName(funcs, name)) {
+      if(dyn_debug_startup) {
+       startup_printf("findMain: found ");
+       for(auto *f : funcs) {
+         startup_printf("{ %s@0x%lx}, ", f->getName().c_str(), f->getOffset());
+       }
+       startup_printf("\n");
+      }
+      this->address_of_main = funcs[0]->getFirstSymbol()->getOffset();
+      return 0;
+    }
+  }
+
 #if defined(ppc64_linux)
     using namespace Dyninst::InstructionAPI;
 
         bool foundMain = false;
-        // check if 'main' is in allsymbols
-        vector <SymtabAPI::Function *> funcs;
-        if (linkedFile->findFunctionsByName(funcs, "main") ||
-                linkedFile->findFunctionsByName(funcs, "_main"))  {
-            this->address_of_main = funcs[0]->getFirstSymbol()->getOffset();
-            foundMain = true;
-        }
 
         if(!foundMain)
         {
@@ -553,11 +562,6 @@ int image::findMain()
 
         //check if 'main' is in allsymbols
         vector <SymtabAPI::Function *> funcs;
-        if (linkedFile->findFunctionsByName(funcs, "main") ||
-                linkedFile->findFunctionsByName(funcs, "_main")) {
-            this->address_of_main = funcs[0]->getFirstSymbol()->getOffset();
-            foundMain = true;
-        }
 
         if (linkedFile->findFunctionsByName(funcs, "_start")) {
             foundStart = true;
@@ -849,13 +853,6 @@ int image::findMain()
         Region *eReg = linkedFile->findEnclosingRegion(eAddr);
 
         bool found_main = false;
-        for(char const* name : main_function_names()) {
-            if(linkedFile->findFunctionsByName(funcs, name)) {
-                found_main = true;
-                this->address_of_main = funcs[0]->getFirstSymbol()->getOffset();
-                break;
-            }
-        }
         if (found_main) {
             if(!linkedFile->findSymbol(syms,"start",Symbol::ST_UNKNOWN, SymtabAPI::mangledName)) {
                 //use 'start' for mainCRTStartup.
