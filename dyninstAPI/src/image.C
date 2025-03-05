@@ -521,6 +521,8 @@ int image::findMain()
 {
   namespace st = Dyninst::SymtabAPI;
 
+  startup_printf("findMain: looking for 'main' in %s\n", linkedFile->name().c_str());
+
   // Only look for 'main' in executables, including PIE and executable DSOs.
   // see ObjectELF::isOnlyExecutable()
   if(!linkedFile->isExec()) {
@@ -552,6 +554,12 @@ int image::findMain()
       this->address_of_main = funcs[0]->getFirstSymbol()->getOffset();
       return 0;
     }
+  }
+
+  // Report a non-stripped binary, but don't fail.
+  // This indicates we need to expand our list of possible symbols for 'main'
+  if(!linkedFile->isStripped()) {
+    startup_printf("findMain: no symbol found, but binary isn't stripped\n");
   }
 
 #if defined(ppc64_linux) && defined(DYNINST_CODEGEN_ARCH_POWER)
