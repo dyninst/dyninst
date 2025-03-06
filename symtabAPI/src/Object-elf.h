@@ -196,7 +196,6 @@ public:
      return (char *)mf->base_addr();
   }
 
-  DYNINST_EXPORT ObjectType objType() const override;
   const char *interpreter_name() const override;
 
 
@@ -286,6 +285,7 @@ public:
     DYNINST_EXPORT bool isOnlySharedLibrary() const override;
     DYNINST_EXPORT bool isDebugOnly() const override;
     DYNINST_EXPORT bool isLinuxKernelModule() const override;
+    DYNINST_EXPORT bool isRelocatableFile() const override;
 
     bool getSegments(std::vector<Segment> &segs) const override;
 
@@ -373,9 +373,18 @@ public:
   Dyninst::DwarfDyninst::DwarfHandle::ptr dwarf;
   private:
 
+  enum class ObjectType {
+    Unknown,
+    SharedLib,
+    Executable,
+    RelocatableFile,
+  };
+
   bool      EEL;                 // true if EEL rewritten
   bool 	    did_open;		// true if the file has been mmapped
   ObjectType obj_type_;
+
+  ObjectType objType() const;
 
   // for sparc-solaris this is a table of PLT entry addr, function_name
   // for x86-solaris this is a table of GOT entry addr, function_name

@@ -334,7 +334,7 @@ Module::~Module()
 
 bool Module::isShared() const
 {
-   return exec_->getObjectType() == obj_SharedLib;
+   return exec_->getObject()->isSharedLibrary();
 }
 
 bool Module::getAllSymbolsByType(std::vector<Symbol *> &found, Symbol::SymbolType sType)

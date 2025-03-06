@@ -327,6 +327,11 @@ DYNINST_EXPORT bool Symtab::isSharedLibrary() const
     return obj_private->isSharedLibrary();
 }
 
+DYNINST_EXPORT bool Symtab::isRelocatableFile() const
+{
+    return obj_private->isRelocatableFile();
+}
+
 DYNINST_EXPORT bool Symtab::isStripped() 
 {
 #if defined(os_linux) || defined(os_freebsd)
@@ -662,7 +667,7 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
              * and their Region is undefined. In this case, always create a 
              * new variable.
              */
-            if( obj_RelocatableFile == getObjectType() &&
+            if( getObject()->isRelocatableFile() &&
                 ( var->getRegion() != sym->getRegion() ||
                   NULL == sym->getRegion() ) )
             {
@@ -913,7 +918,7 @@ bool Symtab::extractInfo(Object *linkedFile)
        }
        else 
        {
-           if( object_type_ != obj_RelocatableFile ||
+           if( !linkedFile->isRelocatableFile() ||
                linkedFile->code_ptr() == 0)
            {
                setSymtabError(Obj_Parsing);
@@ -985,7 +990,6 @@ bool Symtab::extractInfo(Object *linkedFile)
     entry_address_ = linkedFile->getEntryAddress();
     base_address_ = linkedFile->getBaseAddress();
     load_address_ = linkedFile->getLoadAddress();
-    object_type_  = linkedFile->objType();
     is_eel_ = linkedFile->isEEL();
     linkedFile->getSegments(segments_);
 
@@ -1151,7 +1155,7 @@ DYNINST_EXPORT bool Symtab::findPltEntryByTarget(const Address target_address, r
      * linker
      */
     if(relocation_table_.empty() && !isStaticBinary() &&
-       getObjectType() != obj_RelocatableFile)
+       !getObject()->isRelocatableFile())
     {
         fprintf(stderr, "%s[%d]:  WARN:  zero func bindings\n", FILE__, __LINE__);
     }
@@ -1958,11 +1962,6 @@ DYNINST_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 		newaddr += pgSize;
    return newaddr;
 #endif	
-}
-
-DYNINST_EXPORT ObjectType Symtab::getObjectType() const 
-{
-   return object_type_;
 }
 
 DYNINST_EXPORT Dyninst::Architecture Symtab::getArchitecture() const

@@ -636,7 +636,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
       if (Symtab::openFile(singleObject, path)) {
         std::unique_ptr<Symtab> obj{singleObject};
         if (auto temp = is_compatible(path, {})) {
-          if (obj->getObjectType() == obj_SharedLib || obj->getObjectType() == obj_Executable) {
+          if (obj->isSharedLibrary() || obj->isExecutable()) {
             startup_printf(
                 "%s[%d]: cannot load dynamic object(%s) when rewriting a static binary\n", FILE__,
                 __LINE__, path.c_str());
@@ -780,7 +780,7 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
 
     // Disable this for .o's and static binaries
     if( linkedFile->isStaticBinary() || 
-        linkedFile->getObjectType() == obj_RelocatableFile ) 
+        linkedFile->isRelocatableFile() ) 
     {
         return;
     }

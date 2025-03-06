@@ -1165,7 +1165,7 @@ image *image::parseImage(fileDescriptor &desc,
   image *ret = new image(desc, err, mode, parseGaps); 
   startup_printf("%s[%d]:  created image\n", FILE__, __LINE__);
 
-  if (ret->isSharedObject()) 
+  if (ret->isSharedLibrary()) 
       startup_printf("%s[%d]: processing shared object\n", FILE__, __LINE__);
   else  
       startup_printf("%s[%d]: processing executable object\n", FILE__, __LINE__);
@@ -1441,7 +1441,7 @@ image::image(fileDescriptor &desc,
    // if unable to parse object file (somehow??), try to
    //  notify user/calling process + return....    
    if (!imageLen_ && 
-       linkedFile->getObjectType() != SymtabAPI::obj_RelocatableFile)
+       !linkedFile->isRelocatableFile())
     {
       string msg = string("Parsing problem with executable file: ") + desc.file();
       statusLine(msg.c_str());
