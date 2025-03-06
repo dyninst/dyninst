@@ -38,9 +38,6 @@
 
 namespace Dyninst {
 
-DYNINST_EXPORT std::string itos(int);
-DYNINST_EXPORT std::string utos(unsigned);
-
 #define WILDCARD_CHAR '?'
 #define MULTIPLE_WILDCARD_CHAR '*'
 

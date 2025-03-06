@@ -41,21 +41,6 @@ using namespace std;
 
 namespace Dyninst {
 
-std::string itos(int in)
-{
-  char buf[16];
-  snprintf(buf, 16, "%d", in);
-  return std::string(buf);
-}
-
-std::string utos(unsigned in)
-{
-  char buf[16];
-  snprintf(buf, 16, "%u", in);
-  return std::string(buf);
-}
-
-
 // This function will match string s against pattern p.
 // Asterisks match 0 or more wild characters, and a question
 // mark matches exactly one wild character.  In other words,
