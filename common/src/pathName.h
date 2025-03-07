@@ -40,6 +40,5 @@
 
 DYNINST_EXPORT std::string extract_pathname_tail(const std::string &path);
 
-DYNINST_EXPORT std::string resolve_file_path(char const* path);
 DYNINST_EXPORT std::string resolve_file_path(std::string);
 #endif
