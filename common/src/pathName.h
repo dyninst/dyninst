@@ -34,7 +34,7 @@
 #ifndef _PATH_NAME_H_
 #define _PATH_NAME_H_
 
-#include "headers.h"
+#include "dyninst_visibility.h"
 
 #include <string>
 

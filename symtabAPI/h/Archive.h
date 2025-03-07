@@ -35,6 +35,8 @@
 #include <stddef.h>
 #include <string>
 #include <vector>
+#include "symutil.h"
+#include "Annotatable.h"
  
 class MappedFile;
 
@@ -56,12 +58,7 @@ class DYNINST_EXPORT ArchiveMember {
             member_(img) 
         {}
 
-        ~ArchiveMember() {
-            if( member_ != NULL ) {
-                delete member_;
-                member_ = NULL;
-            }
-        }
+        ~ArchiveMember();
 
         const std::string& getName()  { return name_; }
         Offset getOffset() { return offset_; }

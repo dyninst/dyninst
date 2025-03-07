@@ -39,6 +39,7 @@
 #include "function.h"
 #include "binaryEdit.h"
 #include "common/src/pathName.h"
+#include <sys/stat.h>
 
 #include <sstream>
 
