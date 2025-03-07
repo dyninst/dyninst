@@ -1441,7 +1441,7 @@ image::image(fileDescriptor &desc,
    // if unable to parse object file (somehow??), try to
    //  notify user/calling process + return....    
    if (!imageLen_ && 
-       !linkedFile->isRelocatableFile())
+       !linkedFile->isUnlinkedObjectFile())
     {
       string msg = string("Parsing problem with executable file: ") + desc.file();
       statusLine(msg.c_str());

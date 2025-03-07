@@ -583,7 +583,7 @@ bool parse_func::hasUnresolvedCF() {
 }
 
 bool parse_func::isInstrumentable() {
-   if(!isInstrumentableByFunctionName() || img()->isRelocatableFile())
+   if(!isInstrumentableByFunctionName() || img()->isUnlinkedObjectFile())
       return false;
    else {
       // Create instrumentation points for non-plt functions 

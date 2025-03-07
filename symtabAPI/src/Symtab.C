@@ -327,9 +327,9 @@ DYNINST_EXPORT bool Symtab::isSharedLibrary() const
     return obj_private->isSharedLibrary();
 }
 
-DYNINST_EXPORT bool Symtab::isRelocatableFile() const
+DYNINST_EXPORT bool Symtab::isUnlinkedObjectFile() const
 {
-    return obj_private->isRelocatableFile();
+    return obj_private->isUnlinkedObjectFile();
 }
 
 DYNINST_EXPORT bool Symtab::isStripped() 
@@ -667,7 +667,7 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
              * and their Region is undefined. In this case, always create a 
              * new variable.
              */
-            if( getObject()->isRelocatableFile() &&
+            if( getObject()->isUnlinkedObjectFile() &&
                 ( var->getRegion() != sym->getRegion() ||
                   NULL == sym->getRegion() ) )
             {
@@ -918,7 +918,7 @@ bool Symtab::extractInfo(Object *linkedFile)
        }
        else 
        {
-           if( !linkedFile->isRelocatableFile() ||
+           if( !linkedFile->isUnlinkedObjectFile() ||
                linkedFile->code_ptr() == 0)
            {
                setSymtabError(Obj_Parsing);
@@ -1155,7 +1155,7 @@ DYNINST_EXPORT bool Symtab::findPltEntryByTarget(const Address target_address, r
      * linker
      */
     if(relocation_table_.empty() && !isStaticBinary() &&
-       !getObject()->isRelocatableFile())
+       !getObject()->isUnlinkedObjectFile())
     {
         fprintf(stderr, "%s[%d]:  WARN:  zero func bindings\n", FILE__, __LINE__);
     }
