@@ -28,11 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-
-// pathName.h
-
-#ifndef _PATH_NAME_H_
-#define _PATH_NAME_H_
+#ifndef DYNINST_COMMON_PATHNAME_H
+#define DYNINST_COMMON_PATHNAME_H
 
 #include "dyninst_visibility.h"
 
