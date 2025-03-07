@@ -28,19 +28,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/src/pathName.h"
-#include <boost/filesystem.hpp>
+#include "pathName.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
-
-#if defined(os_windows) //ccw 20 july 2000 : 29 mar 2001
-	#define S_ISDIR(x) ((x) & _S_IFDIR)
-#else
-	#include <sys/types.h>
-	#include <sys/stat.h>
-	#include <unistd.h>
-	#include <pwd.h>
-#endif
+#include <boost/filesystem.hpp>
+#include <cstdlib>
+#include <string>
 
 std::string expand_tilde_pathname(const std::string &dir) {
 #ifdef os_windows
