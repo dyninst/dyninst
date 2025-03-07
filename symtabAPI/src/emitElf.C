@@ -648,7 +648,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             newshdr->sh_type = SHT_PROGBITS;
         }
         if (library_adjust > 0 &&
-                (strcmp(name, ".init_array") == 0 || strcmp(name, ".fini_array") == 0 ||
+                (strcmp(name, ".init_array") == 0 || strcmp(name, ".fini_array") == 0 || strcmp(name, ".preinit_array") ||
                  strcmp(name, "__libc_subfreeres") == 0 || strcmp(name, "__libc_atexit") == 0 ||
                  strcmp(name, "__libc_thread_subfreeres") == 0 || strcmp(name, "__libc_IO_vtables") == 0)) {
             for(std::size_t off = 0; off < newdata->d_size; off += sizeof(void*)) {
@@ -2419,6 +2419,7 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
             case DT_GNU_CONFLICT:
             case DT_JMPREL:
             case DT_PLTGOT:
+            case DT_PREINIT_ARRAY:
             case DT_INIT_ARRAY:
             case DT_FINI_ARRAY:
 #if defined(DYNINST_CODEGEN_ARCH_POWER) && defined(DYNINST_CODEGEN_ARCH_64BIT)
