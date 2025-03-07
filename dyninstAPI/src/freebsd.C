@@ -46,6 +46,7 @@
 #include "pcEventMuxer.h"
 #include "common/src/headers.h"
 #include "common/src/freebsdKludges.h"
+#include "common/src/freebsdHeaders.h"
 #include "common/src/pathName.h"
 
 #include "symtabAPI/h/Symtab.h"

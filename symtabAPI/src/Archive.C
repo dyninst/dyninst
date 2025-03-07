@@ -45,6 +45,10 @@ using namespace Dyninst::SymtabAPI;
  * See Archive-<platform> files for more info. 
  */
 
+ArchiveMember::~ArchiveMember() {
+  delete member_;
+}
+
 std::vector<Archive *> Archive::allArchives;
 std::string Archive::errMsg;
 SymtabError Archive::serr;

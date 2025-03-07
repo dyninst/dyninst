@@ -40,8 +40,11 @@
 /************************************************************************
  * header files.
 ************************************************************************/
-#include "common/src/headers.h"
-#include "common/h/util.h"
+#include "dyninst_visibility.h"
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
 
 /************************************************************************
  * class timer

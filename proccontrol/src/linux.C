@@ -70,6 +70,7 @@
 #include "snippets.h"
 
 #include "common/src/linuxKludges.h"
+#include "linuxHeaders.h"
 #include "common/src/parseauxv.h"
 
 #include "boost/shared_ptr.hpp"

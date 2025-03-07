@@ -51,7 +51,6 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/infHeap.h"
-#include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/h/BPatch_enums.h"
 
 #include <unordered_map>
@@ -68,7 +67,6 @@
 
 #include "parseAPI/h/CodeObject.h"
 #include "parseAPI/h/CodeSource.h"
-
 #include "dyninstAPI/src/Parsing.h"
 
 
