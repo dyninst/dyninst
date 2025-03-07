@@ -35,66 +35,83 @@
 #include <cstdlib>
 #include <string>
 
-std::string expand_tilde_pathname(const std::string &dir) {
 #ifdef os_windows
-	// no-op on Windows
-	return dir;
+
+static std::string expand_tilde(std::string path_name) { return path_name; }
+
 #else
-   // e.g. convert "~tamches/hello" to "/u/t/a/tamches/hello",
-   // or convert "~/hello" to same.
-   // In the spirit of Tcl_TildeSubst
-   if (dir.length()==0)
-      return dir;
 
-   const char *dir_cstr = dir.c_str();
-   if (dir_cstr[0] != '~')
-      return dir;
+#include <pwd.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <vector>
 
-   // Now, there are two possibilities: a tilde by itself (e.g. ~/x/y or ~), or
-   // a tilde followed by a username.
-   if (dir_cstr[1] == '/' || dir_cstr[1] == '\0') {
-      // It's the first case.  We need to find the environment vrble HOME and use it.
-      // It it doesn't exist (but it always does, I think) then I don't know what
-      // to do.
-      char *home_dir = getenv("HOME");
-      if (home_dir == NULL)
-         return dir; // yikes
+static std::string get_home_dir(std::string const& username = {}) {
 
-      if (home_dir[strlen(home_dir)-1] == '/' && dir_cstr[1] != '\0')
-         return std::string(home_dir) + &dir_cstr[2];
-      else
-         return std::string(home_dir) + &dir_cstr[1];
-   }
+  auto const size = []() -> long {
+    auto const s = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if(s == -1) return 16384;
+    return s;
+  }();
 
-   // It's the second case.  We need to find the username.  It starts at
-   // dir_cstr[1] and ends at (but not including) the first '/' or '\0'.
-   std::string userName;
+  std::vector<char> buf(size);
+  passwd pwd{};
+  passwd *result{};
 
-   const char *ptr = strchr(&dir_cstr[1], '/');
-   if (ptr == NULL)
-      userName = std::string(&dir_cstr[1]);
-   else {
-      char user_name_buffer[200];
-      unsigned user_name_len = ptr - &dir_cstr[1];
+  // If no name is given, use current effective user
+  if(username.empty()) {
+    getpwuid_r(geteuid(), &pwd, buf.data(), size, &result);
+  } else {
+    getpwnam_r(username.c_str(), &pwd, buf.data(), size, &result);
+  }
 
-      for (unsigned j=0; j < user_name_len; j++)
-	 user_name_buffer[j] = dir_cstr[1+j];
+  if(!result) {
+    // failed to find an entry
+    return {};
+  }
 
-      user_name_buffer[user_name_len] = '\0';
-      userName = user_name_buffer;
-   }
-
-   struct passwd *pwPtr = getpwnam(userName.c_str());
-   if (pwPtr == NULL) {
-      endpwent();
-      return dir; // something better needed...
-   }
-
-   std::string result = std::string(pwPtr->pw_dir) + (ptr ? ptr : "");
-   endpwent();
-   return result;
-#endif
+  return pwd.pw_dir;
 }
+
+// Replace unix `~` in a path with $HOME
+static std::string expand_tilde(std::string path_name) {
+  if (path_name.empty() || path_name[0] != '~') {
+    return path_name;
+  }
+
+  // ~/x -> $HOME/x
+  // NOTE: '/x' is optional
+  if (path_name.length() == 1UL || path_name[1] == '/') {
+
+    // If 'HOME' is set, use it
+    if(auto *home_dir = std::getenv("HOME")) {
+      return path_name.replace(0, 1, home_dir);
+    }
+
+    // Otherwise, use current user's entry in the passwd file
+    auto home = get_home_dir();
+    if(!home.empty()) {
+      return path_name.replace(0, 1, home);
+    }
+
+    // Failed to read the passwd file, so just return unexpanded path
+    return path_name;
+  }
+
+  // ~NAME/foo -> passwd(NAME).pw_dir/foo
+  // Note: NAME may not be the same as $USER
+  auto const idx_of_slash = path_name.find('/');
+  auto const user_name = path_name.substr(1, idx_of_slash-1);
+
+  // Everything after ~NAME
+  auto trailing_path = path_name.substr(user_name.length()+1);
+
+  namespace fs = boost::filesystem;
+  auto full_path = fs::path(get_home_dir(user_name)) / trailing_path;
+  return full_path.string();
+}
+
+#endif
 
 std::string extract_pathname_tail(const std::string &path)
 {
@@ -119,7 +136,7 @@ std::string resolve_file_path(std::string path) {
 	// If it has a tilde, expand tilde pathname
 	// This is a no-op on Windows
 	if(path.find("~") != std::string::npos) {
-		path = expand_tilde_pathname(path);
+		path = expand_tilde(path);
 	}
 
 	// Convert to a boost::filesystem::path
