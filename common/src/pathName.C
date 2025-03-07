@@ -109,9 +109,6 @@ std::string extract_pathname_tail(const std::string &path)
     return p.filename().string();
 }
 
-std::string resolve_file_path(char const* path) {
-	return resolve_file_path(std::string{path});
-}
 std::string resolve_file_path(std::string path) {
 	namespace ba = boost::algorithm;
 	namespace bf = boost::filesystem;
