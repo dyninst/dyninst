@@ -346,7 +346,7 @@ class image : public codeRange {
    bool isDyninstRTLib() const { return is_libdyninstRT; }
    bool isExecutable() const { return getObject()->isExec(); }
    bool isSharedLibrary() const { return getObject()->isSharedLibrary(); }
-   bool isRelocatableObj() const { 
+   bool isRelocatableFile() const {
     return (getObject()->isRelocatableFile());
    }
 
