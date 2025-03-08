@@ -4155,3 +4155,9 @@ bool ObjectELF::isUnlinkedObjectFile() const {
   return objType() == ObjectType::RelocatableFile;
 }
 
+// ObjectELF::isPositionIndependent
+//   True if this object contains position-independent code (PIC)
+bool ObjectELF::isPositionIndependent() const {
+  return isSharedLibrary() || hasPieFlag() || isUnlinkedObjectFile();
+}
+
