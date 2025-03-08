@@ -4226,7 +4226,7 @@ bool Object::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
         return false;
     }
 
-    char *p = static_cast<char *>(data.d_buf());
+    const char *p = static_cast<const char *>(data.d_buf());
     // The first character is the version of the attributes
     // Currently only version 1, (aka 'A') is recognised
 
@@ -4293,7 +4293,7 @@ bool Object::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
                 create_printf("%s[%d]:  Bad subsection length (%u < 6)\n", FILE__, __LINE__, size);
             }
             attr_len -= size;
-            char *end = p + size - 1;
+            const char *end = p + size - 1;
             p += 4;
 
             // RISC-V Attributes are File Attributes (1)
@@ -4303,29 +4303,30 @@ bool Object::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
             }
 
             while (p < end) {
-                // The tags are supposed to be ULEB128 encoded
-                // But in reality it is actually just a single byte
+                // The tags are ULEB128 encoded
 
-                uint32_t bytes_read = 0;
-                uint64_t tag = read_uleb128(p, &bytes_read);
-                p += bytes_read;
+                uint32_t attr_bytes_read = 0;
+                uint64_t attr_tag = read_uleb128(static_cast<const unsigned char *>(
+                                        reinterpret_cast<const void*>(p)), &attr_bytes_read);
+                p += attr_bytes_read;
 
                 // RISC-V attributes have a string value if the tag number is odd
                 // and an integer value if the tag number is even
-                if (tag % 2 != 0) {
+                if (attr_tag % 2 != 0) {
                     // a string value
                     uint32_t slen = strlen(p) + 1;
-                    riscv_attrs[tag].sval = strdup(p);
+                    riscv_attrs[attr_tag].sval = strdup(p);
                     p += slen;
                 }
                 else {
                     // an integer value
 
                     // The integer values are supposed to be ULEB128 encoded
-                    uint32_t bytes_read = 0;
-                    uint64_t ival = read_uleb128(p, &bytes_read);
-                    riscv_attrs[tag].ival = ival;
-                    p += bytes_read;
+                    uint32_t ival_bytes_read = 0;
+                    uint64_t ival = read_uleb128(static_cast<const unsigned char *>(
+                                            reinterpret_cast<const void*>(p)), &ival_bytes_read);
+                    riscv_attrs[attr_tag].ival = ival;
+                    p += ival_bytes_read;
                 }
             }
         }
