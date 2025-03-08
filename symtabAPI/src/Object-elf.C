@@ -431,10 +431,10 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
         if (!scn.isValid()) {  // section is malformed
             continue;
         }
-	if (scn.sh_type() != SHT_NOTE && scn.sh_type() != SHT_NOBITS
-		&& scn.sh_flags() & SHF_ALLOC)  {
-	    hasBitsAlloc_ = true;
-	}
+        if (scn.sh_type() != SHT_NOTE && scn.sh_type() != SHT_NOBITS
+                && scn.sh_flags() & SHF_ALLOC)  {
+            hasBitsAlloc_ = true;
+        }
         if ((dynamic_offset_ != 0) && (scn.sh_offset() == dynamic_offset_)) {
             if (!foundDynamicSection) {
                 dynamic_section_index = i;
@@ -513,12 +513,12 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
                         else if (dynsecData.d_val(j) == DT_RELA)
                             hasRelaplt_ = true;
                         break;
-		    case DT_FLAGS_1:
-			hasPieFlag_ = dynsecData.d_val(j) & DF_1_PIE;
-			break;
-		    case DT_DEBUG:
-			hasDtDebug_ = true;
-			break;
+                    case DT_FLAGS_1:
+                        hasPieFlag_ = dynsecData.d_val(j) & DF_1_PIE;
+                        break;
+                    case DT_DEBUG:
+                        hasDtDebug_ = true;
+                        break;
                 }
             }
         }
@@ -622,17 +622,17 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
         if (!scn.isFromDebugFile()) {
             allRegionHdrs.push_back(&scn);
             Elf_X_Data data = scn.get_data();
-	    if (elfHdr->e_machine() == EM_PPC || elfHdr->e_machine() == EM_PPC64) {
-	        if(strcmp(name, OPD_NAME) == 0 || strcmp(name, GOT_NAME) == 0) {
-		    data.d_type(ELF_T_XWORD);
-		    data.xlatetom(elfHdr->e_endian() ? ELFDATA2MSB : ELFDATA2LSB);
-		}
-		if(strcmp(name, TEXT_NAME) == 0 || strcmp(name, ".rodata") == 0||
-		strcmp(name, INIT_NAME) == 0 || strcmp(name, FINI_NAME) == 0 ||
+            if (elfHdr->e_machine() == EM_PPC || elfHdr->e_machine() == EM_PPC64) {
+                if(strcmp(name, OPD_NAME) == 0 || strcmp(name, GOT_NAME) == 0) {
+                    data.d_type(ELF_T_XWORD);
+                    data.xlatetom(elfHdr->e_endian() ? ELFDATA2MSB : ELFDATA2LSB);
+                }
+                if(strcmp(name, TEXT_NAME) == 0 || strcmp(name, ".rodata") == 0||
+                strcmp(name, INIT_NAME) == 0 || strcmp(name, FINI_NAME) == 0 ||
            (scn.sh_flags() & SHF_EXECINSTR)) {    data.d_type(ELF_T_WORD);
-		    data.xlatetom(elfHdr->e_endian() ? ELFDATA2MSB : ELFDATA2LSB);
-		}
-	    }
+                    data.xlatetom(elfHdr->e_endian() ? ELFDATA2MSB : ELFDATA2LSB);
+                }
+            }
 
             if (scn.sh_flags() & SHF_ALLOC) {
                 // .bss, etc. have a disk size of 0
@@ -1382,7 +1382,7 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                     dyn_c_hash_map<std::string,std::vector<Symbol*>>::const_accessor ca;
                     if (symbols_.find(ca, targ_name)) {
                         const vector<Symbol *> &syms = ca->second;
-			for (auto s: syms) {
+                        for (auto s: syms) {
                             if (!s->isInDynSymtab())
                                 continue;
                             dynsym_list.push_back(s);
@@ -1868,9 +1868,9 @@ bool ObjectELF::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
             }
 
             /* icc BUG: Variables in BSS are categorized as ST_NOTYPE instead of
-	 ST_OBJECT.  To fix this, we check if the symbol is in BSS and has
-	 size > 0. If so, we can almost always say it is a variable and hence,
-	 change the type from ST_NOTYPE to ST_OBJECT.
+         ST_OBJECT.  To fix this, we check if the symbol is in BSS and has
+         size > 0. If so, we can almost always say it is a variable and hence,
+         change the type from ST_NOTYPE to ST_OBJECT.
       */
             if (bssscnp) {
                 Offset bssStart = Offset(bssscnp->sh_addr());
@@ -1888,7 +1888,7 @@ bool ObjectELF::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 
 
             Region *sec;
-	    // SecNumber 0 is a NULL section, representing undef symbols
+            // SecNumber 0 is a NULL section, representing undef symbols
             if (secNumber >= 1 && secNumber < regions_.size()) {
                 sec = regions_[secNumber];
             } else {
@@ -2717,7 +2717,7 @@ int read_except_table_gcc3(
         
         // CFI error
         if(res == -1) {
-	  if (offset != saved_cur_offset) {
+          if (offset != saved_cur_offset) {
             continue; // Soft error, skip to the next CFI entry
           }
           // Since offset didn't advance, we can't skip this CFI entry and need to quit
@@ -3236,7 +3236,7 @@ void ObjectELF::parseLineInfoForCU(Offset offset_, LineInformation* li_for_modul
         /* Acquire the line number, address, source, and end of sequence flag. */
         status = dwarf_lineno(line, &current_statement.line_number);
         if (status != 0) {
-        	lineinfo_printf("dwarf_lineno failed\n");
+                lineinfo_printf("dwarf_lineno failed\n");
             continue;
         }
 
@@ -3245,7 +3245,7 @@ void ObjectELF::parseLineInfoForCU(Offset offset_, LineInformation* li_for_modul
 
         status = dwarf_lineaddr(line, &current_statement.start_addr);
         if (status != 0) {
-        	lineinfo_printf("dwarf_lineaddr failed\n");
+                lineinfo_printf("dwarf_lineaddr failed\n");
             continue;
         }
 
@@ -3260,7 +3260,7 @@ void ObjectELF::parseLineInfoForCU(Offset offset_, LineInformation* li_for_modul
 
         const char *file_name = dwarf_linesrc(line, NULL, NULL);
         if (!file_name) {
-        	lineinfo_printf("dwarf_linesrc - empty name\n");
+                lineinfo_printf("dwarf_linesrc - empty name\n");
             continue;
         }
 
@@ -3274,7 +3274,7 @@ void ObjectELF::parseLineInfoForCU(Offset offset_, LineInformation* li_for_modul
             }
         }
         if (index == -1) {
-        	lineinfo_printf("dwarf_linesrc didn't find index\n");
+                lineinfo_printf("dwarf_linesrc didn't find index\n");
             continue;
         }
         current_statement.string_table_index = index;
@@ -3282,7 +3282,7 @@ void ObjectELF::parseLineInfoForCU(Offset offset_, LineInformation* li_for_modul
         bool isEndOfSequence;
         status = dwarf_lineendsequence(line, &isEndOfSequence);
         if (status != 0) {
-        	lineinfo_printf("dwarf_lineendsequence failed\n");
+                lineinfo_printf("dwarf_lineendsequence failed\n");
             continue;
         }
         if (i == lineCount - 1) {
@@ -3291,7 +3291,7 @@ void ObjectELF::parseLineInfoForCU(Offset offset_, LineInformation* li_for_modul
         bool isStatement;
         status = dwarf_linebeginstatement(line, &isStatement);
         if (status != 0) {
-        	lineinfo_printf("dwarf_linebeginstatement failed\n");
+                lineinfo_printf("dwarf_linebeginstatement failed\n");
             continue;
         }
         if (current_line.uninitialized()) {
@@ -3300,15 +3300,15 @@ void ObjectELF::parseLineInfoForCU(Offset offset_, LineInformation* li_for_modul
         } else {
             current_line.end_addr = current_statement.start_addr;
             if(current_line.sameFileLineColumn(current_statement))
-            	lineinfo_printf("sameFileLineColumn\n");
+                lineinfo_printf("sameFileLineColumn\n");
             if (!current_line.sameFileLineColumn(current_statement) ||
                     isEndOfSequence) {
-            	auto success = li_for_module->addLine((unsigned int)(current_line.string_table_index),
+                auto success = li_for_module->addLine((unsigned int)(current_line.string_table_index),
                         (unsigned int)(current_line.line_number),
                         (unsigned int)(current_line.column_number),
                         current_line.start_addr, current_line.end_addr);
-            	lineinfo_printf("[%lu, %lu) %s:%d %s\n", current_line.start_addr, current_line.end_addr,
-            			((*strings)[current_line.string_table_index]).str.c_str(), current_line.line_number, (success?" inserted":" not"));
+                lineinfo_printf("[%lu, %lu) %s:%d %s\n", current_line.start_addr, current_line.end_addr,
+                                ((*strings)[current_line.string_table_index]).str.c_str(), current_line.line_number, (success?" inserted":" not"));
                 current_line = current_statement;
 
                 if (success) count++;
@@ -3350,9 +3350,9 @@ ObjectELF::recordLine
   lineinfo_printf("ObjectELF::recordLine for [%lx, %lx)\n", saved_statement.start_addr, saved_statement.end_addr);
   // record line map entry
   li_for_object->addLine((unsigned int)(saved_statement.string_table_index),
-			 (unsigned int)(saved_statement.line_number),
-			 (unsigned int)(saved_statement.column_number),
-			 saved_statement.start_addr, saved_statement.end_addr);    
+                         (unsigned int)(saved_statement.line_number),
+                         (unsigned int)(saved_statement.column_number),
+                         saved_statement.start_addr, saved_statement.end_addr);    
   // record inline context, if any
   if (debug_str != nullptr && inline_context.size()) {
 
@@ -4063,33 +4063,33 @@ bool ObjectELF::isExecutable() const
     }  else if (objType() == ObjectType::Executable)  {
 	return true;
     }  else if (hasPieFlag())  {
-	return true;
+        return true;
     }  else if (interpreter_name())  {
-	return true;
+        return true;
     }  else if (hasDtDebug())  {
-	return true;
+        return true;
     }  else  {
-	auto entry = getEntryAddress();
-	auto soname = getSoname();
-	const char ldSonamePrefix[] = "ld-linux";
-	const auto ldSonamePrefixLen = sizeof(ldSonamePrefix) - 1;
-	if (entry == getTextAddr())  {
-	    if (soname && strncmp(soname, ldSonamePrefix, ldSonamePrefixLen) == 0)  {
-		// Some ld.so objects happen to have their entry point be the
-		// beginning of the .txt section.  ld.so on linux are also
-		// executables so return true if this exception is found.
-		return true;
-	    }
-	}  else if (entry != getTextAddr() && isText(entry))  {
-	    // if entry point is in the .text section, but not the beginning
-	    // then this is likely an executable (and library) as the default
-	    // linker script sets entry to the beginning of .text or 0 if not
-	    // an executable
-	    if (!soname || strcmp(soname, "linux-gate.so.1"))  {
-		// with the exception of vdso32.so (soname of linux-gete.so.1)
-		return true;
-	    }
-	}
+        auto entry = getEntryAddress();
+        auto soname = getSoname();
+        const char ldSonamePrefix[] = "ld-linux";
+        const auto ldSonamePrefixLen = sizeof(ldSonamePrefix) - 1;
+        if (entry == getTextAddr())  {
+            if (soname && strncmp(soname, ldSonamePrefix, ldSonamePrefixLen) == 0)  {
+                // Some ld.so objects happen to have their entry point be the
+                // beginning of the .txt section.  ld.so on linux are also
+                // executables so return true if this exception is found.
+                return true;
+            }
+        }  else if (entry != getTextAddr() && isText(entry))  {
+            // if entry point is in the .text section, but not the beginning
+            // then this is likely an executable (and library) as the default
+            // linker script sets entry to the beginning of .text or 0 if not
+            // an executable
+            if (!soname || strcmp(soname, "linux-gate.so.1"))  {
+                // with the exception of vdso32.so (soname of linux-gete.so.1)
+                return true;
+            }
+        }
     }
 
     return false;
@@ -4107,11 +4107,11 @@ bool ObjectELF::isSharedLibrary() const
     }  else if (objType() != ObjectType::SharedLib)  {
 	return false;
     }  else if (!getDynamicAddr())  {
-	return false;
+        return false;
     }  else if (hasPieFlag())  {
-	return false;
+        return false;
     }  else if (hasDtDebug())  {
-	return false;
+        return false;
     }
 
     return true;
@@ -4129,15 +4129,15 @@ bool ObjectELF::isOnlySharedLibrary() const
     }  else if (objType() == ObjectType::Executable)  {
 	return false;
     }  else if (!getDynamicAddr())  {
-	return false;
+        return false;
     }  else if (hasPieFlag())  {
-	return false;
+        return false;
     }  else if (getSoname())  {
-	return true;
+        return true;
     }  else if (interpreter_name())  {
-	return false;
+        return false;
     }  else if (hasDtDebug())  {
-	return false;
+        return false;
     }
 
     return true;
@@ -4256,7 +4256,7 @@ bool Object::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
         else if (attr_len < 5) {
             create_printf("%s[%d]:  Attribute length of %u is too small\n", FILE__, __LINE__, attr_len);
             return false;
-		}
+                }
         section_len -= attr_len;
         attr_len -= 4; // subtract the attribute length itself
 
@@ -4281,7 +4281,7 @@ bool Object::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
                 create_printf("%s[%d]:  Unused bytes at end of section\n", FILE__, __LINE__);
                 return false;
             }
-            int tag = *p++;
+            uint64_t tag = *p++;
             uint32_t size;
             memcpy(&size, p, 4);
 
@@ -4298,7 +4298,7 @@ bool Object::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
 
             // RISC-V Attributes are File Attributes (1)
             if (tag != 1) {
-                create_printf("%s[%d]:  Unexpected attribute tag (%d)", FILE__, __LINE__, tag);
+                create_printf("%s[%d]:  Unexpected attribute tag (%lu)", FILE__, __LINE__, tag);
                 return false;
             }
 
@@ -4306,45 +4306,26 @@ bool Object::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
                 // The tags are supposed to be ULEB128 encoded
                 // But in reality it is actually just a single byte
 
-                tag = 0;
-                // uint64_t shift = 0;
-                // while (p < end) {
-                //     uint8_t byte = *p++;
-                //     tag |= ((byte & 0x7f) << shift);
-                //     shift += 7;
-                //     if (!(byte & 0x80)) { // If the MSB is set, it is the end of ULEB128 number
-                //         break;
-                //     }
-                // }
-                memcpy(&tag, p, 1);
-                p++;
+                uint32_t bytes_read = 0;
+                uint64_t tag = read_uleb128(p, &bytes_read);
+                p += bytes_read;
 
                 // RISC-V attributes have a string value if the tag number is odd
                 // and an integer value if the tag number is even
                 if (tag % 2 != 0) {
                     // a string value
-                    unsigned int slen = strnlen(p, end - p - 1) + 1;
+                    uint32_t slen = strlen(p) + 1;
                     riscv_attrs[tag].sval = strdup(p);
                     p += slen;
                 }
                 else {
                     // an integer value
-                    uint64_t ival = 0;
 
                     // The integer values are supposed to be ULEB128 encoded
-                    // But in reality it is actually just a single byte
-                    // shift = 0;
-                    // while (p < end) {
-                    //     uint8_t byte = *p++;
-                    //     ival |= ((byte & 0x7f) << shift);
-                    //     shift += 7;
-                    //     if (!(byte & 0x80)) { // If the MSB is set, it is the end of ULEB128 number
-                    //         break;
-                    //     }
-                    // }
-                    memcpy(&ival, p, 1);
-                    p++;
+                    uint32_t bytes_read = 0;
+                    uint64_t ival = read_uleb128(p, &bytes_read);
                     riscv_attrs[tag].ival = ival;
+                    p += bytes_read;
                 }
             }
         }
