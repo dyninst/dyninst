@@ -171,6 +171,7 @@ public:
     DYNINST_EXPORT virtual bool isDebugOnly() const { return false; }
     DYNINST_EXPORT virtual bool isLinuxKernelModule() const { return false; }
     DYNINST_EXPORT virtual bool isRelocatableFile() const { return false; }
+    DYNINST_EXPORT virtual bool isPositionIndependent() const { return false; }
 
     virtual bool convertDebugOffset(Offset, Offset &) { return false; }
 

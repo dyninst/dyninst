@@ -286,6 +286,7 @@ public:
     DYNINST_EXPORT bool isDebugOnly() const override;
     DYNINST_EXPORT bool isLinuxKernelModule() const override;
     DYNINST_EXPORT bool isRelocatableFile() const override;
+    DYNINST_EXPORT bool isPositionIndependent() const override;
 
     bool getSegments(std::vector<Segment> &segs) const override;
 

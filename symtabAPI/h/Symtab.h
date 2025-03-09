@@ -232,6 +232,7 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    bool isSharedLibrary() const;
    bool isRelocatableFile() const;
    bool isStripped();
+   bool isPositionIndependent() const;
    Dyninst::Architecture getArchitecture() const;
    bool isCode(const Offset where) const;
    bool isData(const Offset where) const;
