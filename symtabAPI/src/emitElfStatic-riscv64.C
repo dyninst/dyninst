@@ -197,11 +197,31 @@ static bool adjustValInRegion(Region *reg, Offset offInReg, Offset addressWidth,
 }
 
 bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int library_adjust) {
-    // Currently, only verified on x86 and x86_64 -- this may work on other architectures
     Region *targetRegion = obj->findEnclosingRegion(rel.rel_addr());
-    if( NULL == targetRegion ) {
+    if (NULL == targetRegion) {
         rewrite_printf("Failed to find enclosing Region for relocation");
         return false;
     }
+    unsigned addressWidth = obj->getAddressWidth();
+    if( addressWidth == 8 ) {
+        switch (rel.getRelType()) {
+            case R_RISCV_RELATIVE:
+            case R_RISCV_IRELATIVE:
+                rel.setAddend(rel.addend() + library_adjust);
+                break;
+            case R_RISCV_JUMP_SLOT:
+                if (!adjustValInRegion(targetRegion,
+                           rel.rel_addr() - targetRegion->getDiskOffset(),
+                           addressWidth, library_adjust))
+                {
+                    rewrite_printf("Failed to update relocation\n");
+                    return false;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
     return true;
 }
