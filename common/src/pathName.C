@@ -120,51 +120,39 @@ std::string extract_pathname_tail(const std::string &path)
 }
 
 std::string resolve_file_path(std::string path) {
-	namespace ba = boost::algorithm;
-	namespace bf = boost::filesystem;
+  namespace ba = boost::algorithm;
+  namespace bf = boost::filesystem;
 
-	// Remove all leading and trailing spaces in-place.
-	ba::trim(path);
+  // Remove all leading and trailing spaces in-place.
+  ba::trim(path);
 
-#ifndef os_windows
-	// On Linux-like OSes, collapse doubled directory separators
-	// similar to POSIX `realpath`. On Windows, '//' is a (possibly)
-	// meaningful separator, so don't change it.
-	ba::replace_all(path, "//", "/");
-#endif
+  // Collapse multiple slashes and remove terminal slashes
+  boost::algorithm::replace_all(path, "//", "/");
 
-	// If it has a tilde, expand tilde pathname
-	// This is a no-op on Windows
-	if(path.find("~") != std::string::npos) {
-		path = expand_tilde(path);
-	}
+  // If it has a tilde, expand tilde pathname
+  if (path.find('~') != std::string::npos) {
+    path = expand_tilde(path);
+  }
 
-	// Convert to a boost::filesystem::path
-	// This makes a copy of `path`.
-	auto boost_path = bf::path(path);
+  // Convert to a boost::filesystem::path
+  auto boost_path = bf::path(path);
 
-	// bf::canonical (see below) requires that the path exists.
-	if(!bf::exists(boost_path)) {
-		return {};
-	}
+  // bf::canonical (see below) requires that the path exists.
+  if (!bf::exists(boost_path)) {
+    return {};
+  }
 
-	/* Make the path canonical
-	 *
-	 * This converts the path to an absolute path (relative to the
-	 * current working directory) that has no symbolic links, '.',
-	 * or '..' elements and strips trailing directory separator.
-	 *
-	 * NOTE: makes a copy of the path.
-	 */
-	boost::system::error_code ec;
-	auto canonical_path = bf::canonical(boost_path, ec);
-	if(ec != boost::system::errc::success) {
-		return {};
-	}
+  /* Make the path canonical
+   *
+   * This converts the path to an absolute path (relative to the
+   * current working directory) that has no symbolic links, '.',
+   * or '..' elements and strips trailing directory separator.
+   */
+  boost::system::error_code ec;
+  auto canonical_path = bf::canonical(boost_path, ec);
+  if (ec != boost::system::errc::success) {
+    return {};
+  }
 
-	/* This is a bit strange, but is most optimal as it is the only
-	 * member string-conversion function that does not inhibit moving
-	 * the return value out (required here by C++11).
-	 */
-	return canonical_path.string<std::string>();
+  return canonical_path.string();
 }
