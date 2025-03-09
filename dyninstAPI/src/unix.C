@@ -780,7 +780,7 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
 
     // Disable this for .o's and static binaries
     if( linkedFile->isStaticBinary() || 
-        linkedFile->isRelocatableFile() ) 
+        linkedFile->isUnlinkedObjectFile() )
     {
         return;
     }

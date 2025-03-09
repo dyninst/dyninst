@@ -20,6 +20,7 @@ Method name & Return type & Method description \\
 \code{isStaticBinary} & bool & True if the binary was compiled statically. \\
 \code{isExecutable} & bool & True if the file is an executable. \\
 \code{isSharedLibrary} & bool & True if the file is a shared library. \\
+\code{isUnlinkedObjectFile} & bool & True if the file is an unlinked object file (e.g., linux ``.o'' or Windows PE ``.obj'') \\
 \code{isExec} & bool & True if the file is can only be an executable, false otherwise including files that are both exeutables and shared libraries.  Typically files that are both executables and shared libraries are primarily used as libraries, if you need to determine specifics use the methods \code{isExecutable} and \code{isSharedLibrary}. \\
 \code{isStripped} & bool & True if the file was stripped of symbol table information. \\
 \code{getAddressWidth} & unsigned & Size (in bytes) of a pointer value in the Symtab; 4 for 32-bit binaries and 8 for 64-bit binaries. \\

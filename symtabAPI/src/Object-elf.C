@@ -4149,9 +4149,9 @@ bool ObjectELF::isLinuxKernelModule() const
             && hasGnuLinkonceThisModule();
 }
 
-// ObjectELF::isRelocatableFile
-//   True if this object is a relocatable file.
-bool ObjectELF::isRelocatableFile() const
-{
-    return objType() == ObjectType::RelocatableFile;
+// ObjectELF::isUnlinkedObjectFile
+//   True if this object is a ".o" file
+bool ObjectELF::isUnlinkedObjectFile() const {
+  return objType() == ObjectType::RelocatableFile;
 }
+
