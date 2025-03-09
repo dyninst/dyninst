@@ -32,6 +32,7 @@ set(_private_headers
     src/emitWin.h
     src/LinkMap.h
     src/Object-elf.h
+    src/Object-pe.h
     src/Object.h
     src/Object-nt.h
     src/Type-mem.h
@@ -72,7 +73,8 @@ if(DYNINST_OS_UNIX)
     src/LinkMap.C
     src/emitElf.C
     src/emitElfStatic.C
-    src/dwarfWalker.C)
+    src/dwarfWalker.C
+    src/Object-pe.C)
 
   if(DYNINST_HOST_ARCH_X86_64 OR DYNINST_HOST_ARCH_I386)
     list(APPEND _sources src/emitElfStatic-x86.C src/relocationEntry-elf-x86.C)

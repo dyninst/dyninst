@@ -185,6 +185,8 @@ public:
     DYNINST_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &) {}
 	  DYNINST_EXPORT virtual void rebase(Offset) {}
     virtual void addModule(SymtabAPI::Module *) {}
+
+    FileFormat getFileFormat() const { return file_format_; }
 protected:
     DYNINST_EXPORT virtual ~Object();
     // explicitly protected
@@ -242,6 +244,7 @@ friend class Module;
     std::vector<ExceptionBlock> catch_addrs_; //Addresses of C++ try/catch blocks;
     Symtab* associated_symtab;
 
+    FileFormat file_format_;
 private:
     friend class SymbolIter;
     friend class Symtab;
@@ -260,6 +263,7 @@ private:
 
 #if defined(os_linux) || defined(os_freebsd)
 #include "Object-elf.h"
+#include "Object-pe.h"
 #elif defined(os_windows)
 #include "Object-nt.h"
 #else

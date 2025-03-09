@@ -91,6 +91,7 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    friend class relocationEntry;
    friend class Object;
    friend class ObjectELF;
+   friend class ObjectPE;
 
    // Hide implementation details that are complex or add large dependencies
    const std::unique_ptr<symtab_impl> impl;
@@ -236,6 +237,7 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    bool isCode(const Offset where) const;
    bool isData(const Offset where) const;
    bool isValidOffset(const Offset where) const;
+   FileFormat getFileFormat() const;
 
    bool getMappedRegions(std::vector<Region *> &mappedRegs) const;
 

@@ -297,7 +297,7 @@ DYNINST_EXPORT Object::Object(MappedFile *mf_, void (*err_func)(const char *), S
    has_error(false), is_static_binary_(false),
    no_of_sections_(0), no_of_symbols_(0),
   deferredParse(false), parsedAllLineInfo(false), err_func_(err_func), addressWidth_nbytes(4),
-  associated_symtab(st)
+  associated_symtab(st), file_format_(FileFormat::Unknown)
 {
 }
 
@@ -310,6 +310,8 @@ Object *Dyninst::SymtabAPI::parseObjectFile(MappedFile *mf,
     const char *mfa = (const char *)mf->base_addr();
     if (mfa[1] == 'E' && mfa[2] == 'L' && mfa[3] == 'F') {
         return new ObjectELF(mf, is_defensive, err, alloc_syms, symtab);
+    } else if (mfa[0] == 'M' && mfa[1] == 'Z') {
+        return new ObjectPE(mf, is_defensive, err, alloc_syms, symtab);
     } else {
         return NULL;
     }
