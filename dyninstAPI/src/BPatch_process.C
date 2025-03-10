@@ -67,6 +67,10 @@
 
 #include "Point.h"
 
+#ifndef os_windows
+#include <sys/stat.h>
+#endif
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using PatchAPI::DynObject;

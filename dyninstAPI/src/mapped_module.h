@@ -48,6 +48,7 @@ class image;
 #include <vector>
 #include "dyninstAPI/src/image.h"
 #include "symtabAPI/h/Symtab.h"
+#include "addressSpace.h"
 
 // pdmodule equivalent The internals tend to use images, while the
 // BPatch layer uses modules. On the other hand, "module" means
