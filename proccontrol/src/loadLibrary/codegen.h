@@ -36,6 +36,7 @@ class Codegen {
    Address copyString(std::string);
    Address copyBuf(void *buf, unsigned size);
    Address copyByte(unsigned char);
+   Address copyShort(unsigned short);
    Address copyInt(unsigned int);
    Address copyLong(unsigned long);
 

@@ -105,6 +105,12 @@ Address Codegen::copyByte(unsigned char c) {
    return ret;
 }
 
+Address Codegen::copyShort(unsigned short c) {
+   Address ret = buffer_.curAddr();
+   buffer_.push_back(c);
+   return ret;
+}
+
 Address Codegen::copyInt(unsigned int i) {
    Address ret = buffer_.curAddr();
    buffer_.push_back(i);
@@ -154,7 +160,15 @@ bool Codegen::generateNoops() {
          copyInt(0xd503201f);
          break;
       case Arch_riscv64:
-         // TODO
+         #if defined(__riscv_compressed)
+            copyShort(0x0001);
+            copyShort(0x0001);
+            copyShort(0x0001);
+            copyShort(0x0001);
+         #else
+            copyInt(0x00000013);
+            copyInt(0x00000013);
+         #endif
          break;
       default:
          return false;
@@ -177,7 +191,11 @@ bool Codegen::generateTrap() {
          copyInt(0xd4200000);
          break;
       case Arch_riscv64:
-         // TODO
+         #if defined(__riscv_compressed)
+            copyShort(0x9002);
+         #else
+            copyInt(0x00100073);
+         #endif
          break;
       default:
          return false;

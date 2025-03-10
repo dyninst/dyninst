@@ -32,13 +32,16 @@ using namespace std;
 
 
 bool Codegen::generatePreambleRISCV64(){
-    // TODO
-    //temporily I make 256byte space
-//#warning "This needs to be verified!"
-    //sub sp, sp, #48   ;#48 in decimal
-    unsigned long addr = copyInt(0xd100c3ff); //#48
-    pthrd_printf("generate Preamble:\n");
-    pthrd_printf("0x%8lx: 0x%8x\n",addr, 0xd10403ff);
+    //addi sp, sp, -48
+    #if defined(__riscv_compressed)
+        unsigned long addr = copyInt(0x7179);
+        pthrd_printf("generate Preamble:\n");
+        pthrd_printf("0x%4lx: 0x%4x\n",addr, 0x7179);
+    #else
+        unsigned long addr = copyInt(0xfd010113);
+        pthrd_printf("generate Preamble:\n");
+        pthrd_printf("0x%8lx: 0x%8x\n",addr, 0xfd010113);
+    #endif
     return true;
 }
 

@@ -37,6 +37,7 @@
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
 #include "registers/aarch64_regs.h"
+#include "registers/riscv64_regs.h"
 
 static const unsigned int linux_x86_64_mmap_flags_position = 26;
 static const unsigned int linux_x86_64_mmap_size_position = 43;
@@ -420,6 +421,12 @@ bool mmap_alloc_process::plat_collectAllocationResult(int_thread *thr, reg_respo
             bool result = thr->getRegister(aarch64::x0, resp);
             assert(result);
 	            if(!result) return false;
+            break;
+        }
+        case Arch_riscv64: {
+            bool result = thr->getRegister(riscv64::a0, resp);
+            assert(result);
+               if(!result) return false;
             break;
         }
         default:

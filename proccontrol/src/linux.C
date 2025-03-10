@@ -79,7 +79,7 @@
 #include "unaligned_memory_access.h"
 
 //needed by GETREGSET/SETREGSET
-#if defined(DYNINST_HOST_ARCH_AARCH64)
+#if defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_RISCV64)
 #include<sys/user.h>
 #include<sys/procfs.h>
 #include<sys/uio.h>
@@ -1279,10 +1279,7 @@ Dyninst::Architecture linux_riscv_process::getTargetArch()
    if (arch != Dyninst::Arch_none) {
       return arch;
    }
-   int addr_width = computeAddrWidth();
-   arch = (addr_width == 4) ? Dyninst::Arch_aarch32 : Dyninst::Arch_aarch64;
-   assert(arch == Dyninst::Arch_aarch64); //should be aarch64 at this stage
-   return arch;
+   return Dyninst::Arch_riscv64;
 }
 static std::vector<unsigned int> fake_async_msgs;
 void linux_thread::fake_async_main(void *)
@@ -2262,6 +2259,41 @@ static void init_dynreg_to_user()
    dynreg_to_user[aarch64::pc]         = make_pair(cur+=step, 8);
    dynreg_to_user[aarch64::nzcv]     = make_pair(cur+=step, 8);
 
+   cur = 0;
+   step = 8;
+   dynreg_to_user[riscv64::pc]         = make_pair(cur,    8);
+   dynreg_to_user[riscv64::x1]         = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x2]         = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x3]         = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x4]         = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x5]         = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x6]         = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x7]         = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x8]         = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x9]         = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x10]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x11]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x12]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x13]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x14]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x15]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x16]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x17]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x18]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x19]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x20]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x21]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x22]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x23]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x24]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x25]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x26]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x27]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x28]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x29]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x30]        = make_pair(cur+=step, 8);
+   dynreg_to_user[riscv64::x31]        = make_pair(cur+=step, 8);
+
    initialized = true;
 
    init_lock.unlock();
@@ -2272,7 +2304,7 @@ static void init_dynreg_to_user()
 #elif defined(DYNINST_HOST_ARCH_POWER)
 //Kernel value for PPC_PTRACE_SETREGS 0x99
 #define MY_PTRACE_GETREGS 12
-#elif defined(DYNINST_HOST_ARCH_AARCH64)
+#elif defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_RISCV64)
 //leave blank
 #endif
 
@@ -2280,8 +2312,11 @@ static void init_dynreg_to_user()
 //31 GPR + SP + PC + PSTATE
 #define MAX_USER_REGS 34
 #define MAX_USER_SIZE (34*8)
+#elif defined(DYNINST_HOST_ARCH_RISCV64)
+//32 PC + GPR without x0
+#define MAX_USER_REGS 32
+#define MAX_USER_SIZE (32*8)
 #else
-//912 is currently the x86_64 size, 128 bytes for just-because padding
 #define MAX_USER_SIZE (912+128)
 #endif
 bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
@@ -2334,7 +2369,7 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
    }
    if (!have_getregs)
    {
-#if defined(DYNINST_HOST_ARCH_AARCH64)
+#if defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_RISCV64)
         elf_gregset_t regs;
         struct iovec iovec;
         iovec.iov_base = &regs;
@@ -2449,11 +2484,11 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    val = 0;
 
 /*
- * Here it is different for aarch64,
+ * Here it is different for aarch64/riscv64,
  * I have to use GETREGSET instead of PEEKUSER
  */
    long result;
-#if defined(DYNINST_HOST_ARCH_AARCH64)
+#if defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_RISCV64)
    elf_gregset_t regs;
    struct iovec iovec;
    iovec.iov_base = &regs;
@@ -2468,7 +2503,7 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) offset, NULL);
 #endif
    //unsigned long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) offset, NULL);
-#if defined(DYNINST_HOST_ARCH_AARCH64)
+#if defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_RISCV64)
    if (ret != 0) {
 #else
    if (result == -1 && errno != 0) {
@@ -2488,7 +2523,7 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
 
 #if defined(PT_SETREGS)
 #define MY_PTRACE_SETREGS PT_SETREGS
-#elif defined(DYNINST_HOST_ARCH_AARCH64)
+#elif defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_RISCV64)
 //leave blank
 //#define MY_PTRACE_SETREGS PTRACE_SETREGSET
 #else
@@ -2544,7 +2579,7 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
    }
    if (!have_setregs)
    {
-#if defined(DYNINST_HOST_ARCH_AARCH64)
+#if defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_RISCV64)
         //pthrd_printf("ARM-info: setAllregisters.\n");
         elf_gregset_t regs;
         struct iovec iovec;
@@ -2572,7 +2607,7 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
                setLastError(err_internal, "Could not read user area from thread");
             return false;
         }
-#else //not aarch64
+#else //not aarch64/riscv64
       Dyninst::Architecture curplat = llproc()->getTargetArch();
       init_dynreg_to_user();
       for (int_registerPool::iterator i = regpool.regs.begin(); i != regpool.regs.end(); i++) {
@@ -2655,6 +2690,9 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
                is_gpr = true;
                break;
             case Dyninst::Arch_aarch64:
+               is_gpr = true;
+               break;
+            case Dyninst::Arch_riscv64:
                is_gpr = true;
                break;
             default:
@@ -2745,7 +2783,7 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
 
    }
 
-#if defined(DYNINST_HOST_ARCH_AARCH64)
+#if defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_RISCV64)
    elf_gregset_t regs;
    struct iovec iovec;
    long ret;
@@ -2759,7 +2797,7 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    }
 
    //set the corresponding reg
-   assert( (int)(offset/8) < 34 );
+   assert( (int)(offset/8) < MAX_USER_REGS );
    regs[(int)(offset/8)] = value;
 
    //store them back
@@ -2977,6 +3015,25 @@ bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
                setLastError(err_internal, "Error doing PTRACE_ARM_GET_THREAD_AREA\n");
             return false;
          }
+         addr = (Dyninst::Address) (reg-val);
+#elif defined(DYNINST_HOST_ARCH_RISCV64)
+         elf_gregset_t regs;
+         struct iovec iovec;
+         iovec.iov_base = &regs;
+         iovec.iov_len = sizeof(regs);
+         int result = do_ptrace((pt_req)PTRACE_GETREGSET, lwp, (void *)NT_PRSTATUS, &iovec);
+
+         if (result != 0) {
+            int error = errno;
+            perr_printf("Error doing PTRACE_RISCV_GET_THREAD_AREA on %d/%d: %s\n", llproc()->getPid(), lwp, strerror(error));
+            if (error == ESRCH)
+               setLastError(err_exited, "Process exited during operation");
+            else
+               setLastError(err_internal, "Error doing PTRACE_ARM_GET_THREAD_AREA\n");
+            return false;
+         }
+
+         uint64_t reg = regs[4]; // tp register where TLS is stored
          addr = (Dyninst::Address) (reg-val);
 #else
          assert(0);

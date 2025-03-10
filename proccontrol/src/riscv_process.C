@@ -130,10 +130,16 @@ riscv_process::~riscv_process()
 unsigned riscv_process::plat_breakpointSize()
 {
   //This size is the number of bytes of one
-  //trap instruction. In riscv64, this is BRK
+  //trap instruction. In riscv64, this is EBREAK
   //which stands for breakpoint, with a normal
-  //length of 32bits == 4bytes
-  return 4;
+  //length of 32bits == 4bytes.
+  //In compressed mode, the instruction is C.EBREAK and
+  //is 16bits == 2bytes.
+  #if defined(__riscv_compressed)
+    return 2;
+  #else
+    return 4;
+  #endif
 }
 
 void riscv_process::plat_breakpointBytes(unsigned char *buffer)
@@ -141,16 +147,18 @@ void riscv_process::plat_breakpointBytes(unsigned char *buffer)
   //memory oppucation:
   //high---low addr
   //[3] [2] [1] [0]
-  //this is a BRK instruction in riscv64, which incurs a
-  //software exception, the encoding is
-  //0b1101_0100_001x_xxxx_xxxx_xxxx_xxx0_0000
-  //(x is for imm16)
-  //the following instruction stands for
-  //BRK #0;
-  buffer[0] = 0x00;
-  buffer[1] = 0x00;
-  buffer[2] = 0x20;
-  buffer[3] = 0xd4;
+  //this is a EBREAK instruction in riscv64 for uncompressed
+  //and a C.EBREAK instruction for compressed
+  //compressed instruction is 2 bytes, uncompressed is 4 bytes
+  #if defined(__riscv_compressed)
+      buffer[0] = 0x02;
+      buffer[1] = 0x90;
+  #else
+      buffer[0] = 0x73;
+      buffer[1] = 0x00;
+      buffer[2] = 0x10;
+      buffer[3] = 0x00;
+   #endif
 }
 
 bool riscv_process::plat_breakpointAdvancesPC() const
