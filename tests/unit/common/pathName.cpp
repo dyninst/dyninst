@@ -77,6 +77,11 @@ int main() {
       path.erase(path.length() - 1);
     }
 
+    // bf::canonical (see below) requires that the path exists.
+    if(!bf::exists(path)) {
+      return bf::path(path);
+    }
+
     return bf::canonical(bf::path(path));
   };
 

@@ -157,7 +157,7 @@ std::string resolve_file_path(std::string path) {
 
   // bf::canonical (see below) requires that the path exists.
   if(!bf::exists(boost_path)) {
-    return {};
+    return path;
   }
 
   /* Make the path canonical
