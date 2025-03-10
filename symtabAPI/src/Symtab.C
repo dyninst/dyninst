@@ -1987,7 +1987,7 @@ DYNINST_EXPORT std::string Symtab::file() const
 
 DYNINST_EXPORT std::string Symtab::name() const 
 {
-  return extract_pathname_tail(mf->filename());
+  return Dyninst::extract_pathname_tail(mf->filename());
 }
 
 DYNINST_EXPORT std::string Symtab::memberName() const 

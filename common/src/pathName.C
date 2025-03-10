@@ -29,6 +29,7 @@
  */
 
 #include "pathName.h"
+
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem.hpp>
@@ -37,7 +38,13 @@
 
 #ifdef os_windows
 
-static std::string expand_tilde(std::string path_name) { return path_name; }
+namespace Dyninst {
+
+  static std::string expand_tilde(std::string path_name) {
+    return path_name;
+  }
+
+}
 
 #else
 
@@ -46,74 +53,78 @@ static std::string expand_tilde(std::string path_name) { return path_name; }
 #include <unistd.h>
 #include <vector>
 
-static std::string get_home_dir(std::string const& username = {}) {
+namespace Dyninst {
 
-  auto const size = []() -> long {
-    auto const s = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if(s == -1) return 16384;
-    return s;
-  }();
+  static std::string get_home_dir(const std::string& username = {}) {
 
-  std::vector<char> buf(size);
-  passwd pwd{};
-  passwd *result{};
+    const auto size = []() -> long {
+      auto const s = sysconf(_SC_GETPW_R_SIZE_MAX);
+      if(s == -1) {
+        return 16384;
+      }
+      return s;
+    }();
 
-  // If no name is given, use current effective user
-  if(username.empty()) {
-    getpwuid_r(geteuid(), &pwd, buf.data(), size, &result);
-  } else {
-    getpwnam_r(username.c_str(), &pwd, buf.data(), size, &result);
-  }
+    std::vector<char> buf(size);
+    passwd pwd{};
+    passwd* result{};
 
-  if(!result) {
-    // failed to find an entry
-    return {};
-  }
-
-  return pwd.pw_dir;
-}
-
-// Replace unix `~` in a path with $HOME
-static std::string expand_tilde(std::string path_name) {
-  if (path_name.empty() || path_name[0] != '~') {
-    return path_name;
-  }
-
-  // ~/x -> $HOME/x
-  // NOTE: '/x' is optional
-  if (path_name.length() == 1UL || path_name[1] == '/') {
-
-    // If 'HOME' is set, use it
-    if(auto *home_dir = std::getenv("HOME")) {
-      return path_name.replace(0, 1, home_dir);
+    // If no name is given, use current effective user
+    if(username.empty()) {
+      getpwuid_r(geteuid(), &pwd, buf.data(), size, &result);
+    } else {
+      getpwnam_r(username.c_str(), &pwd, buf.data(), size, &result);
     }
 
-    // Otherwise, use current user's entry in the passwd file
-    auto home = get_home_dir();
-    if(!home.empty()) {
-      return path_name.replace(0, 1, home);
+    if(!result) {
+      // failed to find an entry
+      return {};
     }
 
-    // Failed to read the passwd file, so just return unexpanded path
-    return path_name;
+    return pwd.pw_dir;
   }
 
-  // ~NAME/foo -> passwd(NAME).pw_dir/foo
-  // Note: NAME may not be the same as $USER
-  auto const idx_of_slash = path_name.find('/');
-  auto const user_name = path_name.substr(1, idx_of_slash-1);
+  // Replace unix `~` in a path with $HOME
+  static std::string expand_tilde(std::string path_name) {
+    if(path_name.empty() || path_name[0] != '~') {
+      return path_name;
+    }
 
-  // Everything after ~NAME
-  auto trailing_path = path_name.substr(user_name.length()+1);
+    // ~/x -> $HOME/x
+    // NOTE: '/x' is optional
+    if(path_name.length() == 1UL || path_name[1] == '/') {
 
-  namespace fs = boost::filesystem;
-  auto full_path = fs::path(get_home_dir(user_name)) / trailing_path;
-  return full_path.string();
-}
+      // If 'HOME' is set, use it
+      if(auto* home_dir = std::getenv("HOME")) {
+        return path_name.replace(0, 1, home_dir);
+      }
+
+      // Otherwise, use current user's entry in the passwd file
+      auto home = get_home_dir();
+      if(!home.empty()) {
+        return path_name.replace(0, 1, home);
+      }
+
+      // Failed to read the passwd file, so just return unexpanded path
+      return path_name;
+    }
+
+    // ~NAME/foo -> passwd(NAME).pw_dir/foo
+    // Note: NAME may not be the same as $USER
+    const auto idx_of_slash = path_name.find('/');
+    const auto user_name = path_name.substr(1, idx_of_slash - 1);
+
+    // Everything after ~NAME
+    auto trailing_path = path_name.substr(user_name.length() + 1);
+
+    namespace fs = boost::filesystem;
+    auto full_path = fs::path(get_home_dir(user_name)) / trailing_path;
+    return full_path.string();
+  }
 
 #endif
 
-std::string extract_pathname_tail(const std::string &path) {
+std::string extract_pathname_tail(const std::string& path) {
   boost::filesystem::path p(path);
   return p.filename().string();
 }
@@ -129,7 +140,7 @@ std::string resolve_file_path(std::string path) {
   boost::algorithm::replace_all(path, "//", "/");
 
   // If it has a tilde, expand tilde pathname
-  if (path.find('~') != std::string::npos) {
+  if(path.find('~') != std::string::npos) {
     path = expand_tilde(path);
   }
 
@@ -137,7 +148,7 @@ std::string resolve_file_path(std::string path) {
   auto boost_path = bf::path(path);
 
   // bf::canonical (see below) requires that the path exists.
-  if (!bf::exists(boost_path)) {
+  if(!bf::exists(boost_path)) {
     return {};
   }
 
@@ -149,9 +160,10 @@ std::string resolve_file_path(std::string path) {
    */
   boost::system::error_code ec;
   auto canonical_path = bf::canonical(boost_path, ec);
-  if (ec != boost::system::errc::success) {
+  if(ec != boost::system::errc::success) {
     return {};
   }
 
   return canonical_path.string();
+}
 }

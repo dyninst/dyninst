@@ -468,7 +468,7 @@ bool PCProcess::hasPassedMain()
       return true;
    }
 
-   std::string derefPath = resolve_file_path(path);
+   std::string derefPath = Dyninst::resolve_file_path(path);
 
    // Search for the dynamic linker in the loaded libraries
    const LibraryPool &libraries = pcProc_->libraries();
