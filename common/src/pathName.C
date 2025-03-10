@@ -114,11 +114,19 @@ namespace Dyninst {
     const auto idx_of_slash = path_name.find('/');
     const auto user_name = path_name.substr(1, idx_of_slash - 1);
 
+    // Find the user's entry in the passwd file
+    auto const& home = get_home_dir(user_name);
+
+    if(home.empty()) {
+      // Failed to read the passwd file, so just return unexpanded path
+      return path_name;
+    }
+
     // Everything after ~NAME
     auto trailing_path = path_name.substr(user_name.length() + 1);
 
     namespace fs = boost::filesystem;
-    auto full_path = fs::path(get_home_dir(user_name)) / trailing_path;
+    auto full_path = fs::path(home) / trailing_path;
     return full_path.string();
   }
 

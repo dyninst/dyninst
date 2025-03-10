@@ -50,13 +50,14 @@ int main() {
   }
 
   // clang-format off
-  const std::array<test, 6> tests = {{
+  const std::array<test, 7> tests = {{
     {"~", home},
     {"~//", home},
     {"~/" + test_file, test_file_path},
     {home, home},
     {"~" + user, home},
     {"~" + user + test_file, test_file_path},
+    {"~UNKNOWN###USER/dir", "~UNKNOWN###USER/dir"}
   }};
   // clang-format on
 
