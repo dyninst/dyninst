@@ -337,6 +337,11 @@ DYNINST_EXPORT FileFormat Symtab::getFileFormat() const
     return obj_private->getFileFormat();
 }
 
+DYNINST_EXPORT bool Symtab::isPositionIndependent() const
+{
+    return obj_private->isPositionIndependent();
+}
+
 DYNINST_EXPORT bool Symtab::isStripped() 
 {
 #if defined(os_linux) || defined(os_freebsd)
