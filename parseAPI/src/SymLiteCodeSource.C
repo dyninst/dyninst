@@ -40,7 +40,6 @@
 
 #include "SymLiteCodeSource.h"
 #include "debug_parse.h"
-#include "util.h"
 
 #include "symlite/h/SymLite-elf.h"
 

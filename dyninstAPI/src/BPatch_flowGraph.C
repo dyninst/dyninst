@@ -42,7 +42,7 @@
 #include "BPatch_edge.h"
 #include "BPatch_point.h"
 
-#include "util.h"
+#include "dyninst_visibility.h"
 #include "image.h"
 #include "instPoint.h"
 #include "debug.h"

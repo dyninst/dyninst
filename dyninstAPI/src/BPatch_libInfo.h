@@ -36,8 +36,6 @@
 #include "dyninstAPI/h/BPatch_point.h"
 #include <unordered_map>
 #include "dyntypes.h"
-#include "common/h/util.h"
-#include "util.h"
 
 class BPatch_libInfo {
 public:

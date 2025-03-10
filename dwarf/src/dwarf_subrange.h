@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "util.h"
+#include "dyninst_visibility.h"
 #include <boost/optional.hpp>
 #include <dwarf.h>
 #include <elfutils/libdw.h>

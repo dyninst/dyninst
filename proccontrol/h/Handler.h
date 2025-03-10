@@ -31,7 +31,7 @@
 #define HANDLER_H_
 
 #include "Event.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 
 #include <string>
 #include <set>

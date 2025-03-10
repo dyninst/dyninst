@@ -37,7 +37,6 @@
 #include <string>
 #include "common/src/ia32_locations.h"
 #include "codegen.h"
-#include "util.h"
 #include "debug.h"
 #include "addressSpace.h"
 

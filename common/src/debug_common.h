@@ -32,7 +32,7 @@
 #define COMMON_DEBUG_H
 
 #include <string>
-#include "util.h"
+#include "dyninst_visibility.h"
 #include "compiler_annotations.h"
 
 DYNINST_EXPORT extern int common_debug_dwarf;

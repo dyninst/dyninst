@@ -31,7 +31,7 @@
 #ifndef auxvparser_h
 #define auxvparser_h
 
-#include "util.h"
+#include "dyninst_visibility.h"
 #include <map>
 #include "dyntypes.h"
 

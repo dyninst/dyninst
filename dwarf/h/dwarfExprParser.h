@@ -35,7 +35,7 @@
 #include "Architecture.h"
 #include "elfutils/libdw.h"
 #include "dwarf.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 
 namespace Dyninst {
 

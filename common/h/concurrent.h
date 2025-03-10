@@ -31,7 +31,7 @@
 #ifndef _CONCURRENT_H_
 #define _CONCURRENT_H_
 
-#include "util.h"
+#include "dyninst_visibility.h"
 #include <memory>
 #include <stddef.h>
 #include <vector>

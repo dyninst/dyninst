@@ -31,7 +31,7 @@
 #define EVENTTYPE_H_
 
 #include <string>
-#include "util.h"
+#include "dyninst_visibility.h"
 
 namespace Dyninst {
 namespace ProcControlAPI {

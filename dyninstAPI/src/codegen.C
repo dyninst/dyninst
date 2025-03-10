@@ -39,7 +39,6 @@
 #include "dynProcess.h"
 #include "compiler_annotations.h"
 #include "codegen.h"
-#include "util.h"
 #include "function.h"
 #include "instPoint.h"
 #include "registerSpace.h"

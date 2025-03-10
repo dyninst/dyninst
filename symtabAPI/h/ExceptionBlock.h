@@ -33,7 +33,7 @@
 
 #include <iosfwd>
 
-#include "util.h"
+#include "dyninst_visibility.h"
 #include "dyntypes.h"
 #include "Annotatable.h"
 

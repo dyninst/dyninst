@@ -35,7 +35,7 @@
 #include "inst.h"
 #include "instPoint.h"
 #include "ast.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 #include "debug.h"
 
 extern int dyn_debug_ast;

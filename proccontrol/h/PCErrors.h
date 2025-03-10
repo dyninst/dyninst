@@ -39,7 +39,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "util.h"
+#include "dyninst_visibility.h"
 #include "dyntypes.h"
 
 DYNINST_EXPORT extern void pc_print_lock();

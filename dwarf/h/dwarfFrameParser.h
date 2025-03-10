@@ -39,7 +39,7 @@
 #include "registers/MachRegister.h"
 #include "ProcReader.h"
 #include "elfutils/libdw.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 #include <boost/thread/once.hpp>
 #include "concurrent.h"
 

@@ -32,7 +32,7 @@
 #define DTHREAD_H_
 
 #include <stdlib.h>
-#include "util.h"
+#include "dyninst_visibility.h"
 #include <cassert>
 
 #include <boost/thread/condition_variable.hpp>

@@ -48,6 +48,7 @@
 
 #include <set>
 
+#include "dyninst_visibility.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/infHeap.h"

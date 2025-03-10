@@ -31,7 +31,7 @@
 #define SYM_READER_H_
 
 #include "dyntypes.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 #include <string>
 #include <stddef.h>
 #include "Architecture.h"

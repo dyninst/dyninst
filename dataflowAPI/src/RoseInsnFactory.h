@@ -38,7 +38,7 @@
 #include "external/rose/amdgpuInstructionEnum.h"
 #include "Visitor.h"
 #include "Instruction.h"
-#include "common/h/util.h"
+#include "dyninst_visibility.h"
 #include "boost/shared_ptr.hpp"
 #include <vector>
 #include <stddef.h>

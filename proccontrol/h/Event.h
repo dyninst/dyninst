@@ -38,7 +38,7 @@
 #include "MachSyscall.h"
 #include "EventType.h"
 #include "PCProcess.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 
 class HandlerPool;
 class HandleCallbacks;

@@ -32,7 +32,6 @@
 #include "dyntypes.h"
 #include "registers/x86_regs.h"
 #include "IA_IAPI.h"
-#include "util.h"
 #include "Dereference.h"
 #include "Immediate.h"
 #include "BinaryFunction.h"

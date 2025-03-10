@@ -38,7 +38,6 @@
 #define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 #endif
 
-#include <string>
 #include "common/src/stats.h"
 
 extern void printDyninstStats();

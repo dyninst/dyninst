@@ -32,7 +32,7 @@
 #define INSTRUCTIONAPI_INTERRUPTS_H
 
 #include "Instruction.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 
 namespace Dyninst { namespace InstructionAPI {
 

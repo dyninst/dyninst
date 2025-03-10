@@ -30,6 +30,7 @@
 
 #include "dataflowAPI/src/RegisterMap.h"
 #include "dyn_regs.h"
+#include "dyntypes.h"
 
 // We use the singleton approach, rather than static construction, to ensure the
 // register maps are created correctly. In at least one case (Ubuntu 12.04) they

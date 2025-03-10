@@ -35,7 +35,7 @@
 #include "PCErrors.h"
 
 #include "common/src/dthread.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 
 #include <set>
 #include <map>

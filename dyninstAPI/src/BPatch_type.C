@@ -33,7 +33,7 @@
 #define BPATCH_FILE
 
 
-#include "util.h"
+#include "dyninst_visibility.h"
 #include "BPatch_Vector.h"
 #include "BPatch_collections.h"
 #include "debug.h"

@@ -33,7 +33,7 @@
 
 #include "registers/MachRegister.h"
 #include "dyntypes.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 
 namespace Dyninst {
 

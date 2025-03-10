@@ -29,7 +29,6 @@
  */
 
 #include "DynAST.h"
-#include "../../dyninstAPI/src/debug.h"
 
 using namespace Dyninst; 
 const int NOT_VISITED = 0;

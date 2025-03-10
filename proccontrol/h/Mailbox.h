@@ -31,7 +31,7 @@
 #define MAILBOX_H_
 
 #include "Event.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 
 namespace Dyninst {
 namespace ProcControlAPI {

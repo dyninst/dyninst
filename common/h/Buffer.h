@@ -32,9 +32,10 @@
 
 #include <assert.h>
 #include <string.h>
-#include "util.h"
 #include "dyntypes.h"
 #include "unaligned_memory_access.h"
+#include "dyninst_visibility.h"
+
 namespace Dyninst {
 
 // A class to support multiple forms of code generation. The design of this class is as 

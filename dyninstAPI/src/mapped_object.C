@@ -51,6 +51,7 @@
 #include "PatchCFG.h"
 #include "PCProcess.h"
 #include "compiler_annotations.h"
+#include "common/h/util.h"
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;

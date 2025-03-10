@@ -47,7 +47,6 @@
 #include "dyninstAPI/src/os.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/util.h" // getCurrWallTime
 #include "common/src/pathName.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/emit-x86.h"

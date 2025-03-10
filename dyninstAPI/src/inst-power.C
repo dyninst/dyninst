@@ -42,7 +42,6 @@
 #include "common/src/arch-power.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/instPoint.h" // class instPoint

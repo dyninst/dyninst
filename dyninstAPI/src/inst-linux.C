@@ -38,7 +38,6 @@
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/frame.h"
 

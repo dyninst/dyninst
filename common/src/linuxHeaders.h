@@ -63,7 +63,7 @@
 
 #include "compiler_annotations.h"
 #include "dyntypes.h"
-#include "common/h/util.h"
+#include "dyninst_visibility.h"
 
 #define PDSOCKET_ERROR (-1)
 typedef int PDSOCKET;

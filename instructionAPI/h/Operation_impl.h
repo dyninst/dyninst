@@ -35,7 +35,7 @@
 #include "Register.h"
 #include "Result.h"
 #include "entryIDs.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 
 #include <mutex>
 #include <set>

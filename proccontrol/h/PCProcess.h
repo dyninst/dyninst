@@ -43,7 +43,7 @@
 #include "Architecture.h"
 #include "registers/MachRegister.h"
 #include "EventType.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 #include "PCErrors.h"
 #include "boost/checked_delete.hpp"
 #include "boost/shared_ptr.hpp"

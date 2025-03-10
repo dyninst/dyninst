@@ -39,8 +39,6 @@
 #include <vector>
 #include <unordered_map>
 #include "dyntypes.h"
-#include "common/h/util.h"
-#include "util.h"
 
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
 // Bit pattern...

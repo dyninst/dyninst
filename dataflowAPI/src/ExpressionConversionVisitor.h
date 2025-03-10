@@ -32,7 +32,7 @@
 #define _EXPRESSION_CONVERSION_VISITOR_H_
 
 
-#include "util.h"
+#include "dyninst_visibility.h"
 #include "Architecture.h"
 
 class SgAsmx86Instruction;

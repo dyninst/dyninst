@@ -41,7 +41,6 @@
 #include <vector>
 #include "codegen.h"
 #include "codeRange.h"
-#include "util.h"
 #include "parse-cfg.h"
 
 #include "bitArray.h"

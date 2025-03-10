@@ -32,7 +32,6 @@
 #if !defined(DYN_REGS_H_)
 #define DYN_REGS_H_
 
-#include "util.h"
 #include "Architecture.h"
 #include "registers/MachRegister.h"
 

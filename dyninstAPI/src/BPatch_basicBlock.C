@@ -34,7 +34,7 @@
 #include <iostream>
 #include <boost/bind/bind.hpp>
 
-#include "util.h"
+#include "dyninst_visibility.h"
 
 #include "BPatch_flowGraph.h"
 #include "BPatch_collections.h"

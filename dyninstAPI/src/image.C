@@ -37,7 +37,6 @@
 
 #include "image.h"
 #include "parRegion.h"
-#include "util.h"
 #include "inst.h"
 #include "debug.h"
 #include "function.h"
@@ -46,9 +45,8 @@
 #include "common/src/Timer.h"
 #include "common/src/pathName.h"
 #include "common/src/MappedFile.h"
-
-#include "dyninstAPI/h/BPatch_flowGraph.h"
 #include "common/h/util.h"
+#include "dyninstAPI/h/BPatch_flowGraph.h"
 
 #include "symtabAPI/h/Function.h"
 

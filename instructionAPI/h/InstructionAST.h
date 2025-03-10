@@ -34,7 +34,7 @@
 #include "ArchSpecificFormatters.h"
 #include "Result.h"
 #include "boost/enable_shared_from_this.hpp"
-#include "util.h"
+#include "dyninst_visibility.h"
 
 #include <iostream>
 #include <set>

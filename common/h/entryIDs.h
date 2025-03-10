@@ -33,7 +33,7 @@
 
 #include <string>
 #include "dyntypes.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 
 /* clang-format off */
 enum entryID : unsigned int {

@@ -34,7 +34,6 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <string>
-#include "util.h"
 #include "BPatch.h"
 #include "dyninstAPI/src/debug.h"
 #include "common/src/dthread.h"

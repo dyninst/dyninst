@@ -36,7 +36,8 @@
 #include <string>
 //#include "Dictionary.h"
 #include "Timer.h"
-#include "common/h/util.h"
+#include "dyninst_visibility.h"
+#include "dyntypes.h"
 
 class StatContainer;  // All your class declarations are forward. 
 
