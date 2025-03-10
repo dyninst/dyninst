@@ -83,7 +83,7 @@ int main() {
   auto test_id = 1;
 
   for(auto t : tests) {
-    auto fp = resolve_file_path(t.input);
+    auto fp = Dyninst::resolve_file_path(t.input);
     if(simplify(fp) != simplify(t.expected)) {
       std::cerr << "Test " << test_id << " '" << t.input << "' failed: expected '"
                 << t.expected << "', got '" << fp << "'\n";

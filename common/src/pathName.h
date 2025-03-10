@@ -32,10 +32,15 @@
 #define DYNINST_COMMON_PATHNAME_H
 
 #include "dyninst_visibility.h"
+
 #include <string>
 
-DYNINST_EXPORT std::string extract_pathname_tail(const std::string &path);
+namespace Dyninst {
 
-DYNINST_EXPORT std::string resolve_file_path(std::string);
+  DYNINST_EXPORT std::string extract_pathname_tail(const std::string& path);
+
+  DYNINST_EXPORT std::string resolve_file_path(std::string);
+
+}
 
 #endif
