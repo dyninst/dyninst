@@ -111,35 +111,6 @@ bool wildcardEquiv(const std::string &us, const std::string &them, bool checkCas
 }
 
 
-const char *platform_string()
-{
-	const char *plat_str = getenv("PLATFORM");
-	if (plat_str)
-		return plat_str;
-
-#if defined(DYNINST_HOST_ARCH_X86)
-#if defined (os_linux)
-	return "i386-unknown-linux2.4";
-#elif defined (os_windows)
-	return "i386-unknown-nt4.0";
-#endif
-#elif defined(DYNINST_HOST_ARCH_X86_64)
-#if defined (os_linux)
-	return "x86_64-unknown-linux2.4";
-#elif defined (os_windows)
-	return "x86_64-unknown-nt4.0";
-#endif
-#elif defined(DYNINST_HOST_ARCH_POWER)
-#if defined (os_linux)
-#if defined(DYNINST_HOST_ARCH_64BIT)
-	return "ppc64_linux";
-#endif
-#endif
-#endif
-	return "bad_platform";
-}
-
-
 //SymElf code is exclusively linked in each component, but we still want to share
 //the cache information.  Thus the cache will live in libcommon.
 class SymElf;
