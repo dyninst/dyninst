@@ -43,7 +43,6 @@ namespace Dyninst {
 
 DYNINST_EXPORT bool wildcardEquiv(const std::string &us, const std::string &them, bool checkCase = false );
 
-const char *platform_string();
 }
 
 #endif
