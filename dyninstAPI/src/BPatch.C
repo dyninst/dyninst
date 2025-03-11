@@ -38,7 +38,6 @@
 #endif
 
 #define BPATCH_FILE
-#include "common/src/stats.h"
 #include "BPatch.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_collections.h"
@@ -133,9 +132,7 @@ BPatch::BPatch()
     type_Untyped(NULL)
 {
     init_debug();
-    init_stats();
 
-    memset(&stats, 0, sizeof(BPatch_stats));
     extern bool init();
 
     // Save a pointer to the one-and-only bpatch object.
@@ -1652,26 +1649,6 @@ bool BPatch::waitUntilStopped(BPatch_thread *appThread){
 
   done:
   return ret;
-}
-
-BPatch_stats &BPatch::getBPatchStatistics()
-{
-  updateStats();
-  return stats;
-}
-//  updateStats() -- an internal function called before returning
-//  statistics buffer to caller of BPatch_getStatistics(),
-//  -- just copies global variable statistics counters into 
-//  the buffer which is returned to the user.
-void BPatch::updateStats() 
-{
-  stats.pointsUsed = pointsUsed.value();
-  stats.totalMiniTramps = totalMiniTramps.value();
-  stats.trampBytes = trampBytes.value();
-  stats.ptraceOtherOps = ptraceOtherOps.value();
-  stats.ptraceOps = ptraceOps.value();
-  stats.ptraceBytes = ptraceBytes.value();
-  stats.insnGenerated = insnGenerated.value();
 }
 
 bool BPatch::registerThreadEventCallback(BPatch_asyncEventType type,

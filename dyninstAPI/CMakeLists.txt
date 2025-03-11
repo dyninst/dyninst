@@ -131,7 +131,6 @@ set(_sources
     src/pcEventHandler.C
     src/pcEventMuxer.C
     src/registerSpace.C
-    src/util.C
     src/variable.C
     src/BPatch.C
     src/BPatch_addressSpace.C
