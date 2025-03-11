@@ -165,7 +165,7 @@ public:
     static void generateAndImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
     static void generateOrImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
     static void generateXorImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
-    static void generateLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
+    static void generateLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
     static void generateLoadUpperImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
 
     static void generateNOOP(codeGen &gen, unsigned size);
