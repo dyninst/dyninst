@@ -72,22 +72,12 @@ extern int dyn_debug_regalloc;
 extern int dyn_debug_ast;
 extern int dyn_debug_write;
 extern int dyn_debug_infmalloc;
-extern int dyn_stats_instru;
-extern int dyn_stats_ptrace;
-extern int dyn_stats_parse;
 extern int dyn_debug_crash;
 extern int dyn_debug_rtlib;
 extern int dyn_debug_disassemble;
 extern int dyn_debug_stackmods;
 
 extern char *dyn_debug_crash_debugger;
-
-#include "common/src/stats.h"
-
-extern StatContainer stats_instru;
-extern StatContainer stats_ptrace;
-extern StatContainer stats_parse;
-extern StatContainer stats_codegen;
 
 extern const std::string INST_GENERATE_TIMER;
 extern const std::string INST_INSTALL_TIMER;
@@ -177,8 +167,5 @@ DECLARE_PRINTF_FUNC(stackmods_printf_int);
 
 // And initialization
 extern bool init_debug();
-
-extern bool init_stats();
-extern bool print_stats();
 
 #endif /* SHOWERROR_H */
