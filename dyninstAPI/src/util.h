@@ -38,17 +38,6 @@
 #define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 #endif
 
-#include "common/src/stats.h"
-
-extern void printDyninstStats();
-extern CntStatistic insnGenerated;
-extern CntStatistic totalMiniTramps;
-extern CntStatistic trampBytes;
-extern CntStatistic ptraceOps;
-extern CntStatistic ptraceOtherOps;
-extern CntStatistic ptraceBytes;
-extern CntStatistic pointsUsed;
-
 void
 dyninst_log_perror(const char* msg);
 

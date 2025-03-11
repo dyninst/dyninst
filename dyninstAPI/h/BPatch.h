@@ -75,23 +75,6 @@ class func_instance;
 #define DYNINST_SUBMINOR DYNINST_PATCH_VERSION
 
 
-//  BPatch_stats is a collection of instrumentation statistics.
-//  Introduced to export this information to paradyn, which 
-//  produces a summary of these numbers upon application exit.
-//  It probably makes more sense to maintain such numbers on a
-//  per-process basis.  But is set up globally due to historical
-//  precendent.   
-
-typedef struct {
-  unsigned int pointsUsed;
-  unsigned int totalMiniTramps;
-  unsigned int trampBytes;
-  unsigned int ptraceOtherOps;
-  unsigned int ptraceOps;
-  unsigned int ptraceBytes;
-  unsigned int insnGenerated;
-} BPatch_stats;
-
 // --------------------------------------------------------------------
 // This is a purposefully undocumented prototype of a "remote debugging"
 // interface.  Meant to generalize debuggers like remote gdb and wtx.
@@ -160,9 +143,6 @@ class DYNINST_EXPORT BPatch {
     bool delayedParsing_;
 
     bool instrFrames;
-
-    BPatch_stats stats;
-    void updateStats();
 
 	/* this is used to denote the fully qualified name of the prelink command on linux */
 	char *systemPrelinkCommand;
@@ -644,11 +624,6 @@ public:
 
     bool waitUntilStopped(BPatch_thread *appThread);
 
-    //  BPatch::getBPatchStatistics:
-    //  Get Instrumentation statistics
-    
-
-    BPatch_stats & getBPatchStatistics();
 
 
     
