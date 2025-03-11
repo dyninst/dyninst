@@ -63,12 +63,6 @@ void BPatch_reportError(int errLevel, int num, const char *str) {
     BPatch::reportError((BPatchErrorLevel) errLevel, num, str);
 }
 
-void
-dyninst_log_perror(const char* msg) {
-    sprintf(errorLine, "%s: %s\n", msg, strerror(errno));
-    logLine(errorLine);
-    // fprintf(stderr, "%s", log_buffer);
-}
 void showInfoCallback(std::string msg)
 {
     BPatch::reportError(BPatchWarning, 0, msg.c_str());

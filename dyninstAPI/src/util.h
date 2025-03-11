@@ -38,7 +38,4 @@
 #define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 #endif
 
-void
-dyninst_log_perror(const char* msg);
-
 #endif /* UTIL_H */
