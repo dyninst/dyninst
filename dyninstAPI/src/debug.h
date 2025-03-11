@@ -168,4 +168,7 @@ DECLARE_PRINTF_FUNC(stackmods_printf_int);
 // And initialization
 extern bool init_debug();
 
+extern bool init_stats();
+extern bool print_stats();
+
 #endif /* SHOWERROR_H */
