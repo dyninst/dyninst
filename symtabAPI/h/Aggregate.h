@@ -45,11 +45,12 @@
 #include "Annotatable.h"
 #include <boost/iterator/transform_iterator.hpp>
 #include <functional>
+#include "Symbol.h"
+#include "concurrent.h"
 
 namespace Dyninst{
 namespace SymtabAPI{
 
-class Symbol;
 class Module;
 class Symtab; 
 class Region; 
