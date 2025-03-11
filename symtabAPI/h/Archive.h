@@ -37,13 +37,12 @@
 #include <vector>
 #include "symutil.h"
 #include "Annotatable.h"
+#include "Symtab.h"
  
 class MappedFile;
 
 namespace Dyninst{
 namespace SymtabAPI{
-
-class Symtab;
 
 /**
  * Helps facilitate lazy parsing and quick lookup once parsing is finished
