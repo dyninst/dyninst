@@ -34,7 +34,7 @@
 #include <iosfwd>
 #include <string>
 
-#include "util.h"
+#include "dyninst_visibility.h"
 #include "dyntypes.h"
 #include "Annotatable.h"
 #include "Region.h"

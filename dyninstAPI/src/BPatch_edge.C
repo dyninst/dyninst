@@ -30,7 +30,7 @@
 
 #define BPATCH_FILE
 
-#include "util.h"
+#include "dyninst_visibility.h"
 #include "function.h"
 #include "BPatch_edge.h"
 #include "BPatch_flowGraph.h"

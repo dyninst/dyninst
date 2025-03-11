@@ -45,6 +45,7 @@
 #include <unordered_map>
 
 #include "Annotatable.h"
+#include "dyninst_visibility.h"
 #include "Node.h"
 
 

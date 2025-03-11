@@ -47,7 +47,7 @@
 #include <string>
 #include <utility>
 
-#include "util.h"
+#include "dyninst_visibility.h"
 #include "Node.h"
 #include "Edge.h"
 

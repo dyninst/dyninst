@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include <string>
 #include <vector>
+#include "dyntypes.h"
 
 /** template class for addrRangeTree. The implementation is based on red black
  * tree implementation for efficiency concerns and for getting sorted

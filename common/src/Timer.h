@@ -41,10 +41,6 @@
  * header files.
 ************************************************************************/
 #include "dyninst_visibility.h"
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
 
 /************************************************************************
  * class timer

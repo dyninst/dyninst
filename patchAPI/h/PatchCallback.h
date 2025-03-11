@@ -38,7 +38,7 @@
 
 #include <utility>
 #include <vector>
-#include "util.h"
+#include "dyninst_visibility.h"
 
 namespace Dyninst {
 namespace PatchAPI {

@@ -35,7 +35,7 @@
 #include <cstdint>
 #include <cassert>
 #include <string>
-#include "util.h"
+#include "dyninst_visibility.h"
 
 
 namespace Dyninst

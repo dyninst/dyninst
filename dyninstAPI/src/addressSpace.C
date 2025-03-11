@@ -65,6 +65,7 @@
 #include "dynThread.h"
 #include "pcEventHandler.h"
 #include "unaligned_memory_access.h"
+#include "common/h/util.h"
 
 // Implementations of non-virtual functions in the address space
 // class.

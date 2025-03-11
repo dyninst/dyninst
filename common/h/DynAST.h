@@ -37,7 +37,7 @@
 #include <sstream>
 #include <iostream>
 #include <map>
-#include "util.h"
+#include "dyninst_visibility.h"
 #include "boost/enable_shared_from_this.hpp"
 
 namespace Dyninst {

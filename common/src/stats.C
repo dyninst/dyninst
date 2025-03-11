@@ -35,7 +35,7 @@
 
 #include "common/src/headers.h"
 #include "common/src/stats.h"
-#include "common/h/util.h"
+#include "dyninst_visibility.h"
 #include <sstream>
 #include <string>
 

@@ -37,7 +37,7 @@
 #include "InstructionCategories.h"
 #include "Operand.h"
 #include "Operation_impl.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 
 #include <list>
 #include <set>

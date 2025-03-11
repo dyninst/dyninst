@@ -33,7 +33,6 @@
  */
 
 #include "common/src/headers.h"
-#include "dyninstAPI/src/util.h"
 #include "debug.h"
 
 using namespace Dyninst;

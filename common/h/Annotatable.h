@@ -35,6 +35,7 @@
 #define DYN_DETAIL_BOOST_NO_INTRINSIC_WCHAR_T 1
 #endif
 #include "dyntypes.h"
+#include "dyninst_visibility.h"
 #include <stddef.h>
 #include <vector>
 #include <map>
@@ -44,7 +45,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "util.h"
 #include "compiler_annotations.h"
 
 namespace Dyninst

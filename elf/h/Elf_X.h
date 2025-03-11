@@ -35,7 +35,7 @@
 #include <stddef.h>
 #include <string>
 #include <vector>
-#include "util.h"
+#include "dyninst_visibility.h"
 #include "Architecture.h"
 
 #ifndef EM_CUDA

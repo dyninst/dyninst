@@ -33,7 +33,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "util.h"
+#include "dyninst_visibility.h"
 #include "compiler_annotations.h"
 
 namespace Dyninst {

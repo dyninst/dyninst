@@ -35,7 +35,9 @@
 #include "Expression.h"
 #include "Immediate.h"
 #include "Register.h"
-#include "util.h"
+#include "dyninst_visibility.h"
+#include "dyntypes.h"
+#include "Architecture.h"
 
 #include <set>
 #include <string>

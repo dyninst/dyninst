@@ -34,7 +34,6 @@
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/addressSpace.h"
 

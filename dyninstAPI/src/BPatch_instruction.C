@@ -36,7 +36,7 @@
 #include "BPatch_basicBlock.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_process.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 #include "function.h"
 #include "instPoint.h"
 #include "addressSpace.h"

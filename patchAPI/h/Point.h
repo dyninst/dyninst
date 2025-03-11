@@ -37,7 +37,7 @@
 #include <stddef.h>
 #include "PatchCommon.h"
 #include "Snippet.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 #include "dyntypes.h"
 
 namespace Dyninst {

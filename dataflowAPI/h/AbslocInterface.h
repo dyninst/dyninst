@@ -40,7 +40,7 @@
 #include "Expression.h"
 #include "Operand.h"
 #include "Absloc.h"
-#include "util.h"
+#include "dyninst_visibility.h"
 
 class int_function;
 class BPatch_function;
