@@ -464,7 +464,6 @@ class image : public codeRange {
    //Address dataValidEnd_;
 
    bool is_libdyninstRT;
-   Address main_call_addr_; // address of call to main()
 
    // data from the symbol table 
    SymtabAPI::Symtab *linkedFile;
