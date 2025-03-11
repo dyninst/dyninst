@@ -128,7 +128,7 @@ bool fileDescriptor::IsEqual(const fileDescriptor &fd) const {
 #endif  
 
 #if defined(os_windows)
-    if(extract_pathname_tail(file_) == extract_pathname_tail(fd.file_)) file_match_ = true;
+    if(Dyninst::extract_pathname_tail(file_) == Dyninst::extract_pathname_tail(fd.file_)) file_match_ = true;
 #endif
 
     bool addr_match = (code_ == fd.code_ && data_ == fd.data_);
@@ -1419,7 +1419,7 @@ image::image(fileDescriptor &desc,
 
    err = false;
 
-   name_ = extract_pathname_tail(string(desc.file().c_str()));
+   name_ = Dyninst::extract_pathname_tail(string(desc.file().c_str()));
 
    pathname_ = desc.file().c_str();
 

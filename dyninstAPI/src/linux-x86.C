@@ -44,7 +44,6 @@
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "common/src/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/debug.h"
@@ -67,7 +66,7 @@
 #include "dyninstAPI/src/dynThread.h"
 #include "dyninstAPI/src/dynProcess.h"
 #include "common/src/linuxKludges.h"
-
+#include "common/src/linuxHeaders.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "instructionAPI/h/Instruction.h"
 

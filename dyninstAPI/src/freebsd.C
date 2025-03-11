@@ -46,6 +46,7 @@
 #include "pcEventMuxer.h"
 #include "common/src/headers.h"
 #include "common/src/freebsdKludges.h"
+#include "common/src/freebsdHeaders.h"
 #include "common/src/pathName.h"
 
 #include "symtabAPI/h/Symtab.h"
@@ -223,7 +224,7 @@ bool AddressSpace::getDyninstRTLibName() {
                      std::string(modifier) +
                      std::string(suffix);
 
-    dyninstRT_name = std::move(resolve_file_path(dyninstRT_name));
+    dyninstRT_name = std::move(Dyninst::resolve_file_path(dyninstRT_name));
 
     startup_printf("Dyninst RT Library name set to '%s'\n",
             dyninstRT_name.c_str());
