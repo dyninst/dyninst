@@ -79,7 +79,7 @@ void insnCodeGen::generateTrap(codeGen &gen) {
 }
 
 void insnCodeGen::generateJump(codeGen &gen, Dyninst::RegValue offset) {
-    assert(offset & 1 == 0);
+    assert((offset & 1) == 0);
     assert(offset >= -0x100000 && offset < 0x100000);
 
     if (offset >= -4096 && offset < 4096) {
@@ -91,7 +91,7 @@ void insnCodeGen::generateJump(codeGen &gen, Dyninst::RegValue offset) {
 }
 
 void insnCodeGen::generateJumpAndLink(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue offset) {
-    assert(offset & 1 == 0);
+    assert((offset & 1) == 0);
     assert(offset >= -0x100000 && offset < 0x100000);
 
     if (rd == 1 /* the default link register is ra (x1) */ && offset >= -4096 && offset < 4096) {
@@ -259,7 +259,7 @@ Dyninst::Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, std::v
 
 
 void insnCodeGen::loadImmIntoReg(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue value) {
-    generateLoadImm(gen, rd, GPR_ZERO, value);
+    generateLoadImm(gen, rd, value);
 }
 
 // Generate memory access through Load or Store
@@ -662,7 +662,7 @@ void insnCodeGen::generateDiv(codeGen &gen, Dyninst::Register rd, Dyninst::Regis
     generateRTypeInsn(gen, rd, rs1, rs2, DIVFunct7, DIVFunct3, REGOp);
 }
 
-void insnCodeGen::generateLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm) {
+void insnCodeGen::generateLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
     // If imm is 6 bits wide (-32 <= imm < 32), we use the c.li instruction
     if (imm >= -0x20 && imm < 0x20) {
         generateCLoadImm(gen, rd, imm);
@@ -958,7 +958,7 @@ void insnCodeGen::generateCOr(codeGen &gen, Dyninst::Register rd, Dyninst::Regis
 }
 
 void insnCodeGen::generateCJump(codeGen &gen, Dyninst::RegValue offset) {
-    assert(offset & 1 == 0 && offset >= -4096 && offset < 4096);
+    assert((offset & 1) == 0 && offset >= -4096 && offset < 4096);
 
     instruction insn{};
 
@@ -977,7 +977,7 @@ void insnCodeGen::generateCJump(codeGen &gen, Dyninst::RegValue offset) {
 }
 
 void insnCodeGen::generateCJumpAndLink(codeGen &gen, Dyninst::RegValue offset) {
-    assert(offset & 1 == 0 && offset >= -4096 && offset < 4096);
+    assert((offset & 1) == 0 && offset >= -4096 && offset < 4096);
 
     instruction insn{};
 
