@@ -7,6 +7,7 @@
 #include "concurrent.h"
 #include "indexed_symbols.hpp"
 #include "indexed_modules.h"
+#include "MappedFile.h"
 
 #include <mutex>
 #include <string>
@@ -37,6 +38,8 @@ namespace Dyninst { namespace SymtabAPI {
     FuncRangeLookup func_lookup{};
 
     Module* default_module{};
+
+    MappedFile *mf{};
 
     Module* getContainingModule(Offset offset) const {
       std::set<ModRange*> mods;
