@@ -38,7 +38,7 @@ build_dir=$(mktemp -d "/tmp/XXXXXX")
 mkdir -p ${dest_dir}
 
 if test "${run_tests}" = "Y"; then
-  cmake_args="-DDYNINST_ENABLE_TESTS=ON ${cake_args}"
+  cmake_args="-DDYNINST_ENABLE_TESTS=ALL ${cmake_args}"
 fi
 
 cmake -S ${src_dir} -B ${build_dir} -DCMAKE_INSTALL_PREFIX=${dest_dir} -DDYNINST_WARNINGS_AS_ERRORS=ON ${cmake_args}
@@ -46,7 +46,7 @@ cmake -S ${src_dir} -B ${build_dir} -DCMAKE_INSTALL_PREFIX=${dest_dir} -DDYNINST
 cmake --build ${build_dir} --parallel ${num_jobs} ${verbose}
 
 if test "${run_tests}" = "Y"; then
-  ctest --test-dir ${build_dir} --output-on-failure
+  ctest --test-dir ${build_dir} --parallel 2 --output-on-failure
 fi
 
 cmake --install ${build_dir}
