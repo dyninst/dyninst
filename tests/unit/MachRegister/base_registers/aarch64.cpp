@@ -71,5 +71,23 @@ int main() {
   // Floating-point control flags
   BASEREG_CHECK(aarch64::fpcr, aarch64::fpcr);
 
+  // Aliases
+  BASEREG_CHECK(aarch64::fp, aarch64::fp);
+  BASEREG_CHECK(aarch64::fp, aarch64::x29);
+  BASEREG_CHECK(aarch64::x29, aarch64::fp);
+  BASEREG_CHECK(aarch64::x29, aarch64::x29);
+  BASEREG_CHECK(aarch64::lr, aarch64::lr);
+  BASEREG_CHECK(aarch64::lr, aarch64::x30);
+  BASEREG_CHECK(aarch64::x30, aarch64::lr);
+  BASEREG_CHECK(aarch64::x30, aarch64::x30);
+  BASEREG_CHECK(aarch64::Ip0, aarch64::Ip0);
+  BASEREG_CHECK(aarch64::Ip0, aarch64::x16);
+  BASEREG_CHECK(aarch64::x16, aarch64::Ip0);
+  BASEREG_CHECK(aarch64::x16, aarch64::x16);
+  BASEREG_CHECK(aarch64::Ip1, aarch64::Ip1);
+  BASEREG_CHECK(aarch64::Ip1, aarch64::x17);
+  BASEREG_CHECK(aarch64::x17, aarch64::Ip1);
+  BASEREG_CHECK(aarch64::x17, aarch64::x17);
+
   return EXIT_SUCCESS;
 }
