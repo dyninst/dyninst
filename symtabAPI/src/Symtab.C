@@ -822,8 +822,8 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) : Symtab()
 #endif
 
    //  createMappedFile handles reference counting
-   mf = MappedFile::createMappedFile(filename);
-   if (!mf) {
+   impl->mf = MappedFile::createMappedFile(filename);
+   if (!impl->mf) {
       create_printf("%s[%d]: WARNING: creating symtab for %s, " 
                     "createMappedFile() failed\n", FILE__, __LINE__, 
                     filename.c_str());
@@ -831,7 +831,7 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) : Symtab()
       return;
    }
 
-   obj_private = parseObjectFile(mf, defensive_bin, 
+   obj_private = parseObjectFile(impl->mf, defensive_bin,
                                  symtab_log_perror, true, this);
    if (!obj_private || obj_private->hasError()) {
       create_printf("%s[%d]: WARNING: creating symtab for %s, " 
@@ -847,7 +847,7 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) : Symtab()
       err = true;
    }
 
-   member_name_ = mf->filename();
+   member_name_ = impl->mf->filename();
 
    defaultNamespacePrefix = "";
 }
@@ -863,8 +863,8 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
                  FILE__, __LINE__, (void*)mem_image);
 
    //  createMappedFile handles reference counting
-   mf = MappedFile::createMappedFile(mem_image, image_size, name);
-   if (!mf) {
+   impl->mf = MappedFile::createMappedFile(mem_image, image_size, name);
+   if (!impl->mf) {
       create_printf("%s[%d]: WARNING: creating symtab for memory image at " 
                     "addr %p, createMappedFile() failed\n", FILE__, __LINE__, 
                     (void*)mem_image);
@@ -872,7 +872,7 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
       return;
    }
 
-   obj_private = parseObjectFile(mf, defensive_bin, 
+   obj_private = parseObjectFile(impl->mf, defensive_bin,
                                  symtab_log_perror, true, this);
    if (!obj_private || obj_private->hasError()) {
      err = true;
@@ -886,7 +886,7 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
       err = true;
    }
 
-   member_name_ = mf->filename();
+   member_name_ = impl->mf->filename();
 
    defaultNamespacePrefix = "";
 }
@@ -1077,7 +1077,7 @@ bool Symtab::isCode(const Offset where)  const
    if (!codeRegions_.size()) 
    {
       create_printf("%s[%d] No code regions in %s \n",
-                    __FILE__, __LINE__, mf->filename().c_str());
+                    __FILE__, __LINE__, impl->mf->filename().c_str());
       return false;
    }
 
@@ -1122,7 +1122,7 @@ bool Symtab::isData(const Offset where)  const
    if (!dataRegions_.size()) 
    {
       create_printf("%s[%d] No data regions in %s \n",
-                    __FILE__,__LINE__,mf->filename().c_str());
+                    __FILE__,__LINE__,impl->mf->filename().c_str());
       return false;
    }
 
@@ -1280,7 +1280,7 @@ Symtab::~Symtab()
    // open method
    delete obj_private;
 
-   if (mf) MappedFile::closeMappedFile(mf);
+   if (impl->mf) MappedFile::closeMappedFile(impl->mf);
 
 }	
 
@@ -1348,7 +1348,7 @@ Symtab *Symtab::findOpenSymtab(std::string filename)
 	{
 		assert(allSymtabs[u]);
 		if (filename == allSymtabs[u]->file() && 
-          allSymtabs[u]->mf->canBeShared()) 
+          allSymtabs[u]->impl->mf->canBeShared())
 		{
             allSymtabs[u]->_ref_cnt++;
 			// return it
@@ -1981,18 +1981,18 @@ DYNINST_EXPORT Dyninst::Architecture Symtab::getArchitecture() const
 
 DYNINST_EXPORT char *Symtab::mem_image() const 
 {
-   return (char *)mf->base_addr();
+   return (char *)impl->mf->base_addr();
 }
 
 DYNINST_EXPORT std::string Symtab::file() const 
 {
-   assert(mf);
-   return mf->filename();
+   assert(impl->mf);
+   return impl->mf->filename();
 }
 
 DYNINST_EXPORT std::string Symtab::name() const 
 {
-  return Dyninst::extract_pathname_tail(mf->filename());
+  return Dyninst::extract_pathname_tail(impl->mf->filename());
 }
 
 DYNINST_EXPORT std::string Symtab::memberName() const 
@@ -2232,7 +2232,7 @@ DYNINST_EXPORT bool Symtab::isDefensiveBinary() const
 
 DYNINST_EXPORT bool Symtab::canBeShared()
 {
-   return mf->canBeShared();
+   return impl->mf->canBeShared();
 }
 
 DYNINST_EXPORT Offset Symtab::getInitOffset()

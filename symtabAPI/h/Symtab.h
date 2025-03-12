@@ -54,8 +54,6 @@
 
 #include "boost/shared_ptr.hpp"
 
-class MappedFile;
-
 #define SYM_MAJOR DYNINST_MAJOR_VERSION
 #define SYM_MINOR DYNINST_MINOR_VERSION
 #define SYM_BETA  DYNINST_PATCH_VERSION
@@ -474,7 +472,6 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    std::string member_name_{};
    Offset member_offset_{};
    Archive * parentArchive_{};
-   MappedFile *mf{};
 
    Offset preferedBase_{};
    Offset imageOffset_{};
