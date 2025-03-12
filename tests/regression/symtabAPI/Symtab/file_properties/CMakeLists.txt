@@ -7,6 +7,9 @@ if(POLICY CMP0083)
   cmake_policy(SET CMP0083 NEW)
 endif()
 
+include(CheckPIESupported)
+check_pie_supported()
+
 set(_all_tests "")
 
 macro(make_lib_test test_type test_name)
