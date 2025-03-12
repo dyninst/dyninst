@@ -273,7 +273,12 @@ namespace Dyninst {
           return to_vsr(id - ppc_id(ppc64::fsr0));
         }
 
-        // Condition register (cr<N>, cr<N><len>)
+        /* Power ISA
+         *  Version 3.1C
+         *  May 26, 2024
+         *  2.3.1 Condition Register
+         */
+        // Condition register (cr<N>, cr<N><len>) -> cr
         if((id >= 621 && id <= 628) || (id >= 700 && id <= 731)) {
           return ppc64::cr;
         }
