@@ -110,14 +110,4 @@ bool wildcardEquiv(const std::string &us, const std::string &them, bool checkCas
       return pattern_match( us.c_str(), them.c_str(), checkCase );
 }
 
-
-//SymElf code is exclusively linked in each component, but we still want to share
-//the cache information.  Thus the cache will live in libcommon.
-class SymElf;
-
-DYNINST_EXPORT map<string, SymElf *> *getSymelfCache() {
-   static map<string, SymElf *> elfmap;
-   return &elfmap;
-}
-
 } // namespace Dyninst

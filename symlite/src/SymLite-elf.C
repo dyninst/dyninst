@@ -36,7 +36,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <assert.h>
-#include <iostream> 
+#include <iostream>
+
+namespace {
+  std::map<std::string, Dyninst::SymElf*> symelf_cache;
+}
 
 using namespace std;
 using namespace Dyninst;
@@ -621,13 +625,9 @@ void *SymElf::getElfHandle() {
    return (void *) elf;
 }
 
-namespace Dyninst {
-extern map<string, SymElf *> *getSymelfCache();
-}
-
 SymElfFactory::SymElfFactory()
 {
-   open_symelfs = Dyninst::getSymelfCache();
+   open_symelfs = &symelf_cache;
    assert(open_symelfs);
 }
 
