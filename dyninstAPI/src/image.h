@@ -385,8 +385,6 @@ class image : public codeRange {
 
    Address get_main_call_addr() const { return main_call_addr_; }
 
-   void * getErrFunc() const { return (void *) dyninst_log_perror; }
-
    std::unordered_map<Address, std::string> *getPltFuncs();
    void getPltFuncs(std::map<Address, std::string> &out);
 #if defined(DYNINST_HOST_ARCH_POWER)
