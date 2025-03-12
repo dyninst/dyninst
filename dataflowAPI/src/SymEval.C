@@ -60,6 +60,11 @@
 /* once flag for the warning of unimplemented symbolic expansion */
 #include <mutex>
 
+//#include "amd_isa_spec_manager/include/amdisa/isa_decoder.h"
+#include "amdisa/isa_decoder.h"
+#include "isa_executor.h"
+#include "state_delta.h"
+#include "wave_state.h"
 using namespace std;
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -538,6 +543,35 @@ bool SymEval::expandInsn(const Instruction &insn,
         break;
     }
     case Arch_amdgpu_gfx90a: {
+        amdisa::WaveState wave_state;
+        amdisa::IsaDecoder decoder;
+        amdisa::IsaExecutor executor;
+        const int kWaveLength = 64; 
+        amdisa::InstructionInfoBundle inst_info_bundle;
+        std::string execute_err_message, decode_err_message;
+        uint64_t inst_value = 0;
+        if (insn.size() <= 4)
+          inst_value = *(const uint32_t*) insn.ptr();
+        else
+          inst_value = *(const uint64_t*) insn.ptr();
+
+        bool is_decoded = decoder.DecodeInstruction(inst_value, inst_info_bundle, decode_err_message);
+        if(is_decoded)
+        {
+          for (const auto& inst_info : inst_info_bundle.bundle)
+          {
+            bool is_executed = executor.Execute(inst_info, execute_err_message);
+            if (is_executed) {
+              amdisa::StateDelta delta;
+              bool is_retreived = executor.GetLastDelta(delta, execute_err_message);
+              if (is_retreived)
+              {
+              
+              }
+            }
+          }
+
+        }
 
         RoseInsnAMDGPUFactory fac(Arch_amdgpu_gfx90a);
         auto roseInsn = std::unique_ptr<SgAsmInstruction>(fac.convert(insn, addr));

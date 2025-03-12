@@ -90,14 +90,19 @@ endif()
 # cmake-format: off
 dyninst_library(
   parseAPI
-  PRIVATE_HEADER_FILES ${_parseapi_private_headers} ${_dataflow_private_headers}
+  PRIVATE_HEADER_FILES ${_parseapi_private_headers} ${_dataflow_private_headers} ${_isa_spec_private_headers}
   PUBLIC_HEADER_FILES ${_parseapi_public_headers} ${_dataflow_public_headers} 
-  SOURCE_FILES ${_parseapi_sources} ${_dataflow_sources}
+  SOURCE_FILES ${_parseapi_sources} ${_dataflow_sources} ${_isa_spec_sources}
   DYNINST_DEPS common instructionAPI ${SYMREADER}
   PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS OpenMP::OpenMP_CXX
 )
 # cmake-format: on
+
+#find_package(IsaExplorer REQUIRED COMPONENTS headers CONFIG PATHS "${PROJECT_SOURCE_DIR}/isa_spec_manager/build/linux/output/libisa_explorer_dynamic.so")
+#find_package(IsaDecoder REQUIRED COMPONENTS headers CONFIG PATHS "${PROJECT_SOURCE_DIR}/isa_spec_manager/build/linux/output/libisa_decoder_dynamic.so")
+
+#target_link_libraries(parseAPI PRIVATE IsaExplorer IsaDecoder)
 
 foreach(t ${parseAPI_TARGETS})
   # There is both a common/h/util.h and a parseAPI/h/util.h, so put
@@ -107,7 +112,13 @@ foreach(t ${parseAPI_TARGETS})
 
   target_include_directories(
     ${t} PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dataflowAPI/h>"
-                "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dataflowAPI/>")
+                "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dataflowAPI/>"
+                "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/isa_spec_manager/include/>"
+                "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/isa_spec_manager/source/isa_executor/generated_cpp/>"
+                "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/isa_spec_manager/source/isa_executor/>"
+                "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/isa_spec_manager/source/common>"
+                "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/isa_spec_manager/source/third_party/tinyxml2>"
+                )
 
   if(DYNINST_OS_Windows)
     target_compile_definitions(${t} PRIVATE "ROSE_UTIL_EXPORTS" "NOMINMAX")

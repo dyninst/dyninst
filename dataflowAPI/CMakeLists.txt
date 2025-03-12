@@ -125,3 +125,36 @@ set(_dataflow_public_headers
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/slicing.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/stackanalysis.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/SymEval.h)
+
+set(_isa_spec_sources
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/common/amdisa_utility.cpp
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/common/amdisa_structures.cpp
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/common/isa_xml_reader.cpp
+
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/isa_executor/isa_executor.cpp
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/isa_executor/generic.cpp
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/isa_executor/generic_op.cpp
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/isa_executor/wave_state.cpp
+
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/isa_decoder/isa_decoder.cpp
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/isa_decoder/encoding_condition_handler.hpp
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/third_party/tinyxml2/tinyxml2.cpp
+    )
+ 
+set(_isa_spec_private_headers
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/include/amdisa/isa_decoder.h
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/include/amdisa/api_version.h
+
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/common/amdisa_expression_tree_consts.h
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/common/amdisa_structures.h
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/common/amdisa_xml_element_consts.h
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/common/amdisa_utility.h
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/common/isa_xml_reader.h
+
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/isa_executor/isa_executor.h
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/isa_executor/generated_cpp/inst_execution.hpp
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/isa_executor/wave_state.h
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/isa_executor/state_delta.h
+    
+    ${PROJECT_SOURCE_DIR}/isa_spec_manager/source/third_party/tinyxml2/tinyxml2.h
+    )
