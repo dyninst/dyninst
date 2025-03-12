@@ -185,4 +185,10 @@ class StatContainer {
     dyn_hash_map< std::string, Statistic * > stats_;
 
 };
+
+extern StatContainer stats_instru;
+extern StatContainer stats_ptrace;
+extern StatContainer stats_parse;
+extern StatContainer stats_codegen;
+
 #endif

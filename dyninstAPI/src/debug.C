@@ -39,6 +39,7 @@
 #include "common/src/dthread.h"
 #include "compiler_annotations.h"
 #include "os.h"
+#include "stats.h"
 
 unsigned long getExecThreadID() {
 #if defined(os_windows)
