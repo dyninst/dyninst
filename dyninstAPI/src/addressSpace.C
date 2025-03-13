@@ -866,7 +866,7 @@ mapped_module *AddressSpace::findModule(const std::string &mod_name, bool wildca
    //  (there is only one module in each shared library, and that 
    //  is the library name)
    for(u_int j=0; j < mapped_objects.size(); j++){
-      mapped_module *mod = mapped_objects[j]->findModule(mod_name.c_str(), wildcard);
+      mapped_module *mod = mapped_objects[j]->findModule(mod_name, wildcard);
       if (mod) {
          return (mod);
       }

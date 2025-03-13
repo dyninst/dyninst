@@ -212,7 +212,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
 
     AddressSpace *proc() const;
 
-    mapped_module *findModule(string m_name, bool wildcard = false);
+    mapped_module *findModule(string const& m_name, bool wildcard = false);
     mapped_module *findModule(pdmodule *mod);
 
     mapped_module *getDefaultModule();
