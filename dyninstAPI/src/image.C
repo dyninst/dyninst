@@ -41,6 +41,12 @@
 #include "debug.h"
 #include "function.h"
 #include "Parsing.h"
+#include "DynAST.h"
+#include "dyntypes.h"
+#include "Graph.h"
+#include "Node.h"
+#include "slicing.h"
+#include "findMain.h"
 
 #include "common/src/Timer.h"
 #include "common/src/dyninst_filesystem.h"
@@ -143,302 +149,6 @@ void* fileDescriptor::rawPtr()
 extern unsigned enable_pd_sharedobj_debug;
 
 int codeBytesSeen = 0;
-
-#if defined(ppc64_linux)
-
-#include <dataflowAPI/h/slicing.h>
-#include <dataflowAPI/h/SymEval.h>
-#include <dataflowAPI/h/AbslocInterface.h>
-#include <dataflowAPI/h/Absloc.h>
-#include <common/h/DynAST.h>
-
-namespace {
-    /* On PPC GLIBC (32 & 64 bit) the address of main is in a structure
-       located in either .data or .rodata, depending on whether the 
-       binary is PIC. The structure has the following format:
-
-        struct 
-        {
-            void * // "small data area base"
-            main   // pointer to main
-            init   // pointer to init
-            fini   // pointer to fini
-        }
-
-        This structure is passed in GR8 as an argument to libc_start_main.
-
-        Annoyingly, the value in GR8 is computed in several different ways,
-        depending on how GLIBC was compiled.
-
-        This code follows the i386 linux version closely otherwise.
-    */
-
-    class Default_Predicates : public Slicer::Predicates {};
-
-    /* This visitor is capable of simplifying constant value computations
-       that involve additions and concatenations (lis instruction). This
-       is sufficient to handle the startup struct address calculation in
-       GLIBC that we have seen; if additional variants are introduced
-       (refer to start.S in glibc or equivalently to the compiled library)
-       this visitor should be expanded to handle any new operations */
-        
-    class SimpleArithVisitor : public ASTVisitor {
-
-        using ASTVisitor::visit;
-
-        virtual ASTPtr visit(AST * a) {return a->ptr();}
-        virtual ASTPtr visit(DataflowAPI::BottomAST *a) {return a->ptr(); }
-        virtual ASTPtr visit(DataflowAPI::ConstantAST *c) {return c->ptr();}
-        virtual ASTPtr visit(DataflowAPI::VariableAST *v) {return v->ptr();}
-
-        virtual ASTPtr visit(DataflowAPI::RoseAST * r) {
-            using namespace DataflowAPI;
-
-            AST::Children newKids;
-            for(unsigned i=0;i<r->numChildren();++i) {
-                newKids.push_back(r->child(i)->accept(this));
-            }
-
-            switch(r->val().op) {
-                case ROSEOperation::addOp:
-                    assert(newKids.size() == 2);
-                    if(newKids[0]->getID() == AST::V_ConstantAST &&
-                       newKids[1]->getID() == AST::V_ConstantAST)
-                    {
-                        ConstantAST::Ptr c1 = ConstantAST::convert(newKids[0]);
-                        ConstantAST::Ptr c2 = ConstantAST::convert(newKids[1]);
-                        return ConstantAST::create(
-                            Constant(c1->val().val+c2->val().val));
-                    }
-                    break;
-                case ROSEOperation::concatOp:
-                    assert(newKids.size() == 2);
-                    if(newKids[0]->getID() == AST::V_ConstantAST &&
-                       newKids[1]->getID() == AST::V_ConstantAST)
-                    {
-                        ConstantAST::Ptr c1 = ConstantAST::convert(newKids[0]);
-                        ConstantAST::Ptr c2 = ConstantAST::convert(newKids[1]);
-                        unsigned long result = c1->val().val;
-                        result |= (c2->val().val << c2->val().size);
-                        return ConstantAST::create(result);
-                    }
-                    break;
-                default:
-                    startup_printf("%s[%d] unhandled operation in simplification\n",FILE__,__LINE__);
-            }
-        
-            return RoseAST::create(r->val(), newKids);
-        }
-    };
-
-    struct libc_startup_info {
-        void * sda;
-        void * main_addr;
-        void * init_addr;
-        void * fini_addr;
-    };
-
-    void *get_raw_symtab_ptr(Symtab *linkedFile, Address addr)
-    {
-        Region *reg = linkedFile->findEnclosingRegion(addr);
-        if (reg != NULL) {
-            char *data = (char*)reg->getPtrToRawData();
-            data += addr - reg->getMemOffset();
-            return data;
-        }
-        return NULL;
-    }
-
-    Address deref_opd(Symtab *linkedFile, Address addr)
-    {
-        Region *reg = linkedFile->findEnclosingRegion(addr);
-        if (reg && reg->getRegionName() == ".opd") {
-            // opd symbol needing dereference
-            void *data = get_raw_symtab_ptr(linkedFile, addr);
-            if (data)
-                return *(Address*)data;
-        }
-        return addr;
-    }
-
-    /*
-     * b ends with a call to libc_start_main. We are looking for the
-     * value in GR8, which is the address of a structure that contains
-     * the address to main
-     */
-    Address evaluate_main_address(Symtab * linkedFile, Function * f, Block *b)
-    {
-        using namespace DataflowAPI;
-        using namespace InstructionAPI;
-        // looking for the *last* instruction in the block
-        // that defines GR8
-    
-        Instruction r8_def;
-        Address r8_def_addr;
-        bool find = false;
-    
-        InstructionDecoder dec(
-            b->region()->getPtrToInstruction(b->start()),
-            b->end()-b->start(),
-            b->region()->getArch());
-
-        RegisterAST::Ptr r2( new RegisterAST(ppc32::r2) );
-        RegisterAST::Ptr r8( new RegisterAST(ppc32::r8) );
-
-        Address cur_addr = b->start();
-        while(cur_addr < b->end()) {
-            Instruction cur = dec.decode();
-            if(cur.isWritten(r8)) {
-                find = true;
-                r8_def = cur;
-                r8_def_addr = cur_addr;  
-            }
-            cur_addr += cur.size();
-        }
-        if(!find)
-            return 0;
-
-        Address ss_addr = 0;
-
-        // Try a TOC-based lookup first
-        if (r8_def.isRead(r2)) {
-            set<Expression::Ptr> memReads;
-            r8_def.getMemoryReadOperands(memReads);
-            Address TOC = f->obj()->cs()->getTOC(r8_def_addr);
-            if (TOC != 0 && memReads.size() == 1) {
-                Expression::Ptr expr = *memReads.begin();
-                expr->bind(r2.get(), Result(u64, TOC));
-                const Result &res = expr->eval();
-                if (res.defined) {
-                    void *res_addr =
-                        get_raw_symtab_ptr(linkedFile, res.convert<Address>());
-                    if (res_addr)
-                        ss_addr = *(Address*)res_addr;
-                }
-            }
-        }
-
-        if (ss_addr == 0) {
-            // Get all of the assignments that happen in this instruction
-            AssignmentConverter conv(true, true);
-            vector<Assignment::Ptr> assigns;
-            conv.convert(r8_def,r8_def_addr,f,b,assigns);
-
-            // find the one we care about (r8)
-            vector<Assignment::Ptr>::iterator ait = assigns.begin();
-            for( ; ait != assigns.end(); ++ait) {
-                AbsRegion & outReg = (*ait)->out();
-                Absloc const& loc = outReg.absloc();
-                if(loc.reg() == r8->getID())
-                    break;
-            }
-            if(ait == assigns.end()) {
-                return 0;
-            }
-
-            // Slice back to the definition of R8, and, if possible, simplify
-            // to a constant
-            Slicer slc(*ait,b,f);
-            Default_Predicates preds;
-            Graph::Ptr slg = slc.backwardSlice(preds);
-            DataflowAPI::Result_t sl_res;
-            DataflowAPI::SymEval::expand(slg,sl_res);
-            AST::Ptr calculation = sl_res[*ait];
-            SimpleArithVisitor visit; 
-            AST::Ptr simplified = calculation->accept(&visit);
-            //printf("after simplification:\n%s\n",simplified->format().c_str());
-            if(simplified->getID() == AST::V_ConstantAST) { 
-                ConstantAST::Ptr cp = ConstantAST::convert(simplified);
-                ss_addr = cp->val().val;
-            }
-        }
-
-        // need a pointer to the image data
-        auto si = (struct libc_startup_info *)
-            get_raw_symtab_ptr(linkedFile, ss_addr);
-        if (si)
-            return (Address)si->main_addr;
-
-        return 0;
-    }
-}
-#endif
-
-#include <Graph.h>
-#include <Node.h>
-#include <DynAST.h>
-#include <dyntypes.h>
-#include <SymEval.h>
-#include <slicing.h>
-
-class FindMainVisitor : public ASTVisitor
-{
-    using ASTVisitor::visit;
-
-    public:
-    bool resolved;
-    bool hardFault;
-    Address target;
-    FindMainVisitor() : resolved(false), hardFault(false), target(0) {}
-
-    virtual AST::Ptr visit(DataflowAPI::RoseAST * r) 
-    {
-        using namespace DataflowAPI;
-
-        AST::Children newKids;
-        for(unsigned i = 0; i < r->numChildren(); i++) 
-            newKids.push_back(r->child(i)->accept(this));
-
-        switch(r->val().op) 
-        {
-            case ROSEOperation::addOp:
-
-                assert(newKids.size() == 2);
-                if(newKids[0]->getID() == AST::V_ConstantAST &&
-                        newKids[1]->getID() == AST::V_ConstantAST)
-                {
-                    ConstantAST::Ptr c1 = ConstantAST::convert(newKids[0]);
-                    ConstantAST::Ptr c2 = ConstantAST::convert(newKids[1]);
-                    if(!hardFault)
-                    {
-                        target = c1->val().val + c2->val().val;
-                        resolved = true;
-                    }
-                    return ConstantAST::create(
-                            Constant(c1->val().val + c2->val().val));
-                }
-                break;
-            default:
-                startup_printf("%s[%d] unhandled FindMainVisitor operation\n",
-                        FILE__,__LINE__);
-        }
-
-        return RoseAST::create(r->val(), newKids);
-    }
-
-    virtual ASTPtr visit(DataflowAPI::ConstantAST * c)
-    {
-        /* We can only handle constant values */
-        if(!target && !hardFault) 
-        {
-            resolved = true;
-            target = c->val().val;
-        }
-
-        return c->ptr();
-    }
-
-    virtual ASTPtr visit(DataflowAPI::VariableAST* v)
-    {
-        
-        /* If we visit a variable node, we can't do any analysis */
-        hardFault = true;
-        resolved = false;
-        target = 0;
-
-        return v->ptr();
-    }
-};
 
 /**
  * Search for the 'main' function.
@@ -554,6 +264,21 @@ int image::findMain()
   // assume the first call is the one we want.
   pa::Block *b = (*edges.begin())->src();
 
+  // Try architecture-specific searches
+  auto main_addr = [this, &entry_point, &b]() {
+    auto file_arch = linkedFile->getArchitecture();
+
+    if(file_arch == Dyninst::Arch_ppc32 || file_arch == Dyninst::Arch_ppc64) {
+      return DyninstAPI::ppc::find_main_by_toc(linkedFile, entry_point, b);
+    }
+
+    return Dyninst::ADDR_NULL;
+  }();
+
+  if(main_addr == Dyninst::ADDR_NULL || !scs.isValidAddress(main_addr)) {
+    startup_printf("findMain: unable to find valid entry for 'main'");
+    return -1;
+  }
 
 #if defined(ppc64_linux)
     using namespace Dyninst::InstructionAPI;
@@ -562,16 +287,6 @@ int image::findMain()
 
         if(!foundMain)
         {
-            Address mainAddress = evaluate_main_address(linkedFile,func,b);
-            mainAddress = deref_opd(linkedFile, mainAddress);
-
-            if(0 == mainAddress || !scs.isValidAddress(mainAddress)) {
-                startup_printf("%s[%d] failed to find main\n",FILE__,__LINE__);
-                return -1;
-            } else {
-                startup_printf("%s[%d] found main at %lx\n",
-                        FILE__,__LINE__,mainAddress);
-            }
             Symbol *newSym= new Symbol( "main", 
                     Symbol::ST_FUNCTION,
                     Symbol::SL_LOCAL,
