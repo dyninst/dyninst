@@ -16,6 +16,8 @@ namespace Dyninst { namespace DyninstAPI {
 
   Dyninst::Address find_main(st::Symtab*);
 
+  std::vector<st::Symbol*> get_missing_symbols(st::Symtab*, Dyninst::Address);
+
   namespace ppc {
     Dyninst::Address find_main(st::Symtab*, pa::Function*);
   }
