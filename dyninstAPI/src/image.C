@@ -61,11 +61,6 @@
 #include <sys/time.h>
 #endif
 
-#if defined( cap_dwarf )
-#include "dwarf.h"
-#include "elfutils/libdw.h"
-#endif
-
 #if defined(_MSC_VER)
 #include <dbghelp.h>
 #endif
