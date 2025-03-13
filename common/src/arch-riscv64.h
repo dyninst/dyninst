@@ -103,7 +103,6 @@ namespace NS_riscv64 {
 #define GPR_FP          8
 
 #define INSN_SET(I, s, e, v)    ((I).setBits(s, e - s + 1, (v)))
-#define INSN_C_SET(I, s, e, v)    ((I).setCBits(s, e - s + 1, (v)))
 
 #define INSN_GET_ISCALL(I)          ((unsigned int) ((I).asInt() & 0x80000000))
 #define INSN_GET_CBRANCH_OFFSET(I)  ((unsigned int) (((I).asInt() >> 5) & 0x7ffff))
@@ -213,6 +212,7 @@ class DYNINST_EXPORT instruction {
         insn_.craw = craw;
         is_compressed = true;
     }
+    instruction(bool compressed): insn_(), is_compressed(compressed) {}
     // Pointer creation method
     instruction(const void *ptr, const bool compressed) {
       insn_ = *((const instructUnion *)ptr);
