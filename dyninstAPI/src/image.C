@@ -46,13 +46,12 @@
 #include "Graph.h"
 #include "Node.h"
 #include "slicing.h"
-#include "findMain.h"
-
 #include "common/src/Timer.h"
 #include "common/src/dyninst_filesystem.h"
 #include "common/src/MappedFile.h"
 #include "common/h/util.h"
 #include "dyninstAPI/h/BPatch_flowGraph.h"
+#include "find_main.h"
 
 #include "symtabAPI/h/Function.h"
 
@@ -146,312 +145,6 @@ void* fileDescriptor::rawPtr()
 extern unsigned enable_pd_sharedobj_debug;
 
 int codeBytesSeen = 0;
-
-/**
- * Search for the 'main' function.
- * Returns zero on success, nonzero otherwise.
- */
-int image::findMain()
-{
-
-  namespace st = Dyninst::SymtabAPI;
-  namespace pa = Dyninst::ParseAPI;
-
-  startup_printf("findMain: looking for 'main' in %s\n", linkedFile->name().c_str());
-
-  // Only look for 'main' in executables, including PIE, but not
-  // other binaries that could be executable (for an example,
-  // see ObjectELF::isOnlyExecutable()).
-  if(!linkedFile->isExec()) {
-    startup_printf("findMain: not an executable\n");
-    return -1;
-  }
-
-  // It must have at least one code region
-  {
-    std::vector<st::Region*> regions;
-    linkedFile->getCodeRegions(regions);
-    if(regions.size() == 0UL) {
-      startup_printf("findMain: No main found; no code regions\n");
-      return -1;
-    }
-  }
-
-  // Check for a known symbol name
-  for(char const* name : main_function_names()) {
-    std::vector<st::Function*> funcs;
-    if(linkedFile->findFunctionsByName(funcs, name)) {
-      if(dyn_debug_startup) {
-       startup_printf("findMain: found ");
-       for(auto *f : funcs) {
-         startup_printf("{ %s@0x%lx}, ", f->getName().c_str(), f->getOffset());
-       }
-       startup_printf("\n");
-      }
-      this->address_of_main = funcs[0]->getFirstSymbol()->getOffset();
-      return 0;
-    }
-  }
-
-  // Report a non-stripped binary, but don't fail.
-  // This indicates we need to expand our list of possible symbols for 'main'
-  if(!linkedFile->isStripped()) {
-    startup_printf("findMain: no symbol found, but binary isn't stripped\n");
-  }
-
-  // We need to do actual binary analysis from here
-  startup_printf("findMain: no symbol found; attempting manual search\n");
-
-  auto const entry_address = static_cast<Dyninst::Address>(linkedFile->getEntryOffset());
-  st::Region const* entry_region = linkedFile->findEnclosingRegion(entry_address);
-
-  if(!entry_region) {
-    startup_printf("findMain: no region found at entry 0x%lx\n", entry_address);
-    return -1;
-  }
-
-  bool const parseInAllLoadableRegions = (BPatch_normalMode != this->mode_);
-  pa::SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
-
-  std::set<pa::CodeRegion*> regions;
-  scs.findRegions(entry_address,regions);
-
-  if(regions.empty()) {
-    startup_printf("findMain: no region contains 0x%lx\n", entry_address);
-    return -1;
-  }
-
-  // We should only get one region
-  if(regions.size() > 1UL) {
-    startup_printf("findMain: found %lu possibly-overlapping regions for 0x%lx\n", regions.size(), entry_address);
-    return -1;
-  }
-
-  pa::CodeObject co = [&scs]() {
-    // To save time, delay the parsing
-    pa::CFGFactory *f{};
-    pa::ParseCallback *cb{};
-    constexpr bool defensive_mode = false;
-    constexpr bool delay_parse = true;
-    return pa::CodeObject(&scs, f, cb, defensive_mode, delay_parse);
-  }();
-
-  pa::Function *entry_point = [&regions, entry_address](){
-    pa::CodeRegion* region = *(regions.begin());
-    constexpr bool recursive = true;
-    co.parse(region, entry_address, recursive);
-    return co.findFuncByEntry(region, entry_address);
-  }();
-
-  if(!entry_point) {
-    startup_printf("findMain: couldn't find function at entry 0x%lx\n", entry_address);
-    return -1;
-  }
-
-  startup_printf("findMain: found '%s' at entry 0x%lx\n", entry_point->name().c_str(),
-                 entry_address);
-
-  auto const& edges = entry_point->callEdges();
-  if(edges.empty()) {
-    startup_printf("findMain: no call edges\n");
-    return -1;
-  }
-
-  // In libc, the entry point is _start which only calls __libc_start_main, so
-  // assume the first call is the one we want.
-  pa::Block *b = (*edges.begin())->src();
-
-  // Try architecture-specific searches
-  auto main_addr = [this, &entry_point, &b]() {
-    auto file_arch = linkedFile->getArchitecture();
-
-    if(file_arch == Dyninst::Arch_ppc32 || file_arch == Dyninst::Arch_ppc64) {
-      return DyninstAPI::ppc::find_main_by_toc(linkedFile, entry_point, b);
-    }
-
-    if(file_arch == Dyninst::Arch_x86 || file_arch == Dyninst::Arch_x86_64) {
-      return DyninstAPI::x86::find_main(entry_point, b);
-    }
-
-    return Dyninst::ADDR_NULL;
-  }();
-
-  if(main_addr == Dyninst::ADDR_NULL || !scs.isValidAddress(main_addr)) {
-    startup_printf("findMain: unable to find valid entry for 'main'");
-    return -1;
-  }
-
-#if defined(ppc64_linux)
-    using namespace Dyninst::InstructionAPI;
-
-        bool foundMain = false;
-
-        if(!foundMain)
-        {
-            Symbol *newSym= new Symbol( "main", 
-                    Symbol::ST_FUNCTION,
-                    Symbol::SL_LOCAL,
-                    Symbol::SV_INTERNAL,
-                    mainAddress,
-                    linkedFile->getDefaultModule(),
-                    eReg, 
-                    0 );
-            linkedFile->addSymbol(newSym);
-            this->address_of_main = mainAddress;
-        }
-
-#elif defined(i386_unknown_linux2_0) \
-    || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
-    || (defined(os_freebsd) \
-            && (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)))
-
-        bool foundMain = false;
-        bool foundStart = false;
-        bool foundFini = false;
-
-        //check if 'main' is in allsymbols
-        vector <SymtabAPI::Function *> funcs;
-
-        if (linkedFile->findFunctionsByName(funcs, "_start")) {
-            foundStart = true;
-        }
-
-        if (linkedFile->findFunctionsByName(funcs, "_fini")) {
-            foundFini = true;
-        }
-
-        if(!foundMain)
-        {
-
-            /* Note: creating a symbol for main at the invalid address 
-               anyway, because there is guard code for this later in the
-               process and otherwise we end up in a weird "this is not an
-               a.out" path.
-
-               findMain, like all important utility functions, should have
-               a way of gracefully indicating that it has failed. It should
-               not return void. NR
-               */
-
-            Region *pltsec;
-            if((linkedFile->findRegion(pltsec, ".plt")) && pltsec->isOffsetInRegion(mainAddress))
-            {
-                //logLine( "No static symbol for function main\n" );
-                Symbol *newSym = new Symbol("DYNINST_pltMain", 
-                        Symbol::ST_FUNCTION, 
-                        Symbol::SL_LOCAL,
-                        Symbol::SV_INTERNAL,
-                        mainAddress,
-                        linkedFile->getDefaultModule(),
-                        eReg, 
-                        0 );
-                linkedFile->addSymbol( newSym );
-            }
-            else
-            {
-                Symbol *newSym= new Symbol( "main", 
-                        Symbol::ST_FUNCTION,
-                        Symbol::SL_LOCAL,
-                        Symbol::SV_INTERNAL,
-                        mainAddress,
-                        linkedFile->getDefaultModule(),
-                        eReg, 
-                        0 );
-                linkedFile->addSymbol(newSym);		
-                this->address_of_main = mainAddress;
-            }
-        }
-        if( !foundStart )
-        {
-            Symbol *startSym = new Symbol( "_start",
-                    Symbol::ST_FUNCTION,
-                    Symbol::SL_LOCAL,
-                    Symbol::SV_INTERNAL,
-                    eReg->getMemOffset(),
-                    linkedFile->getDefaultModule(),
-                    eReg,
-                    0 );
-            //cout << "sim for start!" << endl;
-
-            linkedFile->addSymbol(startSym);		
-        }
-        if( !foundFini )
-        {
-            Region *finisec = NULL;
-            if (linkedFile->findRegion(finisec,".fini")) {
-                Symbol *finiSym = new Symbol( "_fini",
-                        Symbol::ST_FUNCTION,
-                        Symbol::SL_LOCAL,
-                        Symbol::SV_INTERNAL,
-                        finisec->getMemOffset(),
-                        linkedFile->getDefaultModule(),
-                        finisec, 
-                        0 );
-                linkedFile->addSymbol(finiSym);	
-            }	
-        }
-
-    Region *dynamicsec;
-    vector < Symbol *>syms;
-    if(linkedFile->findRegion(dynamicsec, ".dynamic")==true)
-    {
-        if(linkedFile->findSymbol(syms,
-                    "_DYNAMIC",
-                    Symbol::ST_UNKNOWN,
-                    SymtabAPI::mangledName)==false)
-        {
-            Symbol *newSym = new Symbol( "_DYNAMIC", 
-                    Symbol::ST_OBJECT, 
-                    Symbol::SL_LOCAL,
-                    Symbol::SV_INTERNAL,
-                    dynamicsec->getMemOffset(), 
-                    linkedFile->getDefaultModule(),
-                    dynamicsec, 
-                    0 );
-            linkedFile->addSymbol(newSym);
-        }
-    }
-
-#elif defined(i386_unknown_nt4_0)
-
-        vector <Symbol *>syms;
-        vector<SymtabAPI::Function *> funcs;
-
-        bool found_main = false;
-        if (found_main) {
-            if(!linkedFile->findSymbol(syms,"start",Symbol::ST_UNKNOWN, SymtabAPI::mangledName)) {
-                //use 'start' for mainCRTStartup.
-                Symbol *startSym = new Symbol( "start", 
-                        Symbol::ST_FUNCTION,
-                        Symbol::SL_GLOBAL, 
-                        Symbol::SV_DEFAULT, 
-                        eAddr ,
-                        linkedFile->getDefaultModule(),
-                        eReg,
-                        UINT_MAX );
-                linkedFile->addSymbol(startSym);
-                this->address_of_main = eAddr;
-            }
-            syms.clear();
-        } 
-        else {
-            // add entry point as main given that nothing else was found
-            startup_printf("[%s:%u] - findmain could not find symbol "
-                    "for main, using binary entry point %x\n",
-                    __FILE__, __LINE__, eAddr);
-            linkedFile->addSymbol(new Symbol("main",
-                        Symbol::ST_FUNCTION, 
-                        Symbol::SL_GLOBAL, 
-                        Symbol::SV_DEFAULT,
-                        eAddr,
-                        linkedFile->getDefaultModule(),
-                        eReg));
-            this->address_of_main = eAddr;
-        }
-#endif
-
-    return 0; /* Success */
-}
 
 /*
  * Check if image is libdyninstRT
@@ -1003,15 +696,15 @@ image::image(fileDescriptor &desc,
       return;
    }
 
-   //Now add Main and Dynamic Symbols if they are not present
-   startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
-   if(findMain())
+   // Add 'main' and startup/shutdown symbols, if they are not present
    {
-        startup_printf("%s[%d]: ERROR: findMain analysis has failed!\n",
-                FILE__, __LINE__);
-   } else {
-        startup_printf("%s[%d]: findMain analysis succeeded.\n",
-                FILE__, __LINE__);
+     namespace dd = Dyninst::DyninstAPI;
+     auto const address_of_main = dd::find_main(this->linkedFile);
+     if(address_of_main != Dyninst::ADDR_NULL) {
+       for(auto *s : dd::get_missing_symbols(this->linkedFile, address_of_main)) {
+         linkedFile->addSymbol(s);
+       }
+     }
    }
 
    // Initialize ParseAPI 
