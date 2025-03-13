@@ -518,16 +518,16 @@ void insnCodeGen::generateAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::Re
         return;
     }
 
-    // If rs == sp && x8 <= rd < x16 && 0 <= imm < 1024 && imm % 4 == 0
+    // If rs == sp && x8 <= rd < x16 && 0 <= imm < 0x400 && imm % 4 == 0
     // we use c.addi4spn
-    if (rs == GPR_SP && rd >= GPR_FP && rd < 16 && imm >= 0 && imm < 1024 && imm % 4 == 0) {
+    if (rs == GPR_SP && rd >= 8 && rd < 16 && imm >= 0 && imm < 0x400 && imm % 4 == 0) {
         generateCAddImmScale4SPn(gen, rd, imm >> 2);
         return;
     }
 
-    // If rd == rs == sp && -512 <= imm < 512 && imm % 16 == 0
+    // If rd == rs == sp && -0x200 <= imm < 0x200 && imm % 16 == 0
     // we use c.addi16sp
-    if (rs == GPR_SP && rd >= GPR_FP && rd < 16 && imm >= 0 && imm < 1024 && imm % 4 == 0) {
+    if (rd == rs && rs == GPR_SP && imm >= -0x200 && imm < 0x200 && imm % 16 == 0) {
         generateCAddImmScale16SP(gen, imm >> 4);
         return;
     }
@@ -794,7 +794,7 @@ void insnCodeGen::generateMove(codeGen &gen, Dyninst::Register rd, Dyninst::Regi
 }
 
 void insnCodeGen::generateCAdd(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs) {
-    instruction insn;
+    instruction insn(true);
     INSN_SET(insn, 13, 15, 0x4); // func3 = 100
     INSN_SET(insn, 12, 12, 0x1); // imm[5] != 0
     INSN_SET(insn, 7, 11, rd);   // rsi/rd != 0
@@ -804,7 +804,7 @@ void insnCodeGen::generateCAdd(codeGen &gen, Dyninst::Register rd, Dyninst::Regi
 }
 
 void insnCodeGen::generateCAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
-    instruction insn;
+    instruction insn(true);
     INSN_SET(insn, 13, 15, 0x0);            // func3 = 000
     INSN_SET(insn, 12, 12, (imm >> 5) & 1); // imm[5] != 0
     INSN_SET(insn, 7, 11, rd);              // rsi/rd != 0
@@ -814,7 +814,7 @@ void insnCodeGen::generateCAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::R
 }
 
 void insnCodeGen::generateCAddImmScale4SPn(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
-    instruction insn;
+    instruction insn(true);
     INSN_SET(insn, 13, 15, 0x0);              // func3 = 000
     INSN_SET(insn, 11, 12, (imm >> 2) & 0x3); // imm[3:2]
     INSN_SET(insn, 7, 10, (imm >> 4) & 0xf);  // imm[7:4]
@@ -826,7 +826,7 @@ void insnCodeGen::generateCAddImmScale4SPn(codeGen &gen, Dyninst::Register rd, D
 }
 
 void insnCodeGen::generateCAddImmScale16SP(codeGen &gen, Dyninst::RegValue imm) {
-    instruction insn;
+    instruction insn(true);
 
     INSN_SET(insn, 13, 15, 0x3);              // func3 = 011
     INSN_SET(insn, 12, 12, (imm >> 5) & 0x1); // imm[5]
@@ -841,7 +841,7 @@ void insnCodeGen::generateCAddImmScale16SP(codeGen &gen, Dyninst::RegValue imm) 
 }
 
 void insnCodeGen::generateCAnd(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs) {
-    instruction insn;
+    instruction insn(true);
 
     INSN_SET(insn, 10, 15, 0x23); // 100011
     INSN_SET(insn, 7, 9, rd);     // rd
@@ -855,7 +855,7 @@ void insnCodeGen::generateCAnd(codeGen &gen, Dyninst::Register rd, Dyninst::Regi
 void insnCodeGen::generateCAndImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
     assert(rd >= 8 && rd < 16 && imm >= -32 && imm < 32);
 
-    instruction insn;
+    instruction insn(true);
 
     INSN_SET(insn, 13, 15, 0x4);            // func3 = 100
     INSN_SET(insn, 12, 12, (imm >> 5) & 1); // imm[5]
@@ -868,7 +868,7 @@ void insnCodeGen::generateCAndImm(codeGen &gen, Dyninst::Register rd, Dyninst::R
 }
 
 void insnCodeGen::generateCLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
-    instruction insn;
+    instruction insn(true);
     INSN_SET(insn, 13, 15, 0x2);            // func3 = 010
     INSN_SET(insn, 12, 12, (imm >> 5) & 1); // imm[5]
     INSN_SET(insn, 7, 11, rd);              // rd
@@ -878,7 +878,7 @@ void insnCodeGen::generateCLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::
 }
 
 void insnCodeGen::generateCLoadUpperImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
-    instruction insn;
+    instruction insn(true);
 
     INSN_SET(insn, 13, 15, 0x3);            // func3 = 011
     INSN_SET(insn, 12, 12, (imm >> 5) & 1); // imm[5]
@@ -892,7 +892,7 @@ void insnCodeGen::generateCLoadUpperImm(codeGen &gen, Dyninst::Register rd, Dyni
 void insnCodeGen::generateCShiftLeftImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue uimm) {
     assert(uimm >= 0 && uimm < 64);
 
-    instruction insn;
+    instruction insn(true);
 
     INSN_SET(insn, 13, 15, 0x2);             // func3 = 010
     INSN_SET(insn, 12, 12, (uimm >> 5) & 1); // uimm[5]
@@ -906,7 +906,7 @@ void insnCodeGen::generateCShiftLeftImm(codeGen &gen, Dyninst::Register rd, Dyni
 void insnCodeGen::generateCShiftRightLogicallyImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue uimm) {
     assert(rd >= 8 && rd < 16 && uimm >= 0 && uimm < 64);
 
-    instruction insn;
+    instruction insn(true);
 
     INSN_SET(insn, 13, 15, 0x4);             // func3 = 100
     INSN_SET(insn, 12, 12, (uimm >> 5) & 1); // uimm[5]
@@ -921,7 +921,7 @@ void insnCodeGen::generateCShiftRightLogicallyImm(codeGen &gen, Dyninst::Registe
 void insnCodeGen::generateCShiftRightArithmeticImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue uimm) {
     assert(rd >= 8 && rd < 16 && uimm >= 0 && uimm < 64);
 
-    instruction insn;
+    instruction insn(true);
 
     INSN_SET(insn, 13, 15, 0x4);             // func3 = 100
     INSN_SET(insn, 12, 12, (uimm >> 5) & 1); // uimm[5]
@@ -934,7 +934,7 @@ void insnCodeGen::generateCShiftRightArithmeticImm(codeGen &gen, Dyninst::Regist
 }
 
 void insnCodeGen::generateCMove(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs) {
-    instruction insn;
+    instruction insn(true);
 
     INSN_SET(insn, 13, 15, 0x4); // func3 = 100
     INSN_SET(insn, 12, 12, 0x0); // 0
@@ -946,7 +946,7 @@ void insnCodeGen::generateCMove(codeGen &gen, Dyninst::Register rd, Dyninst::Reg
 }
 
 void insnCodeGen::generateCOr(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs) {
-    instruction insn;
+    instruction insn(true);
 
     INSN_SET(insn, 10, 15, 0x23); // 100011
     INSN_SET(insn, 7, 9, rd);     // rd
@@ -960,7 +960,7 @@ void insnCodeGen::generateCOr(codeGen &gen, Dyninst::Register rd, Dyninst::Regis
 void insnCodeGen::generateCJump(codeGen &gen, Dyninst::RegValue offset) {
     assert((offset & 1) == 0 && offset >= -4096 && offset < 4096);
 
-    instruction insn{};
+    instruction insn(true);
 
     INSN_SET(insn, 13, 15, 0x5);                  // func3 = 101
     INSN_SET(insn, 12, 12, (offset >> 11) & 0x1); // imm[11]
@@ -979,7 +979,7 @@ void insnCodeGen::generateCJump(codeGen &gen, Dyninst::RegValue offset) {
 void insnCodeGen::generateCJumpAndLink(codeGen &gen, Dyninst::RegValue offset) {
     assert((offset & 1) == 0 && offset >= -4096 && offset < 4096);
 
-    instruction insn{};
+    instruction insn(true);
 
     INSN_SET(insn, 12, 12, (offset >> 11) & 0x1); // imm[11]
     INSN_SET(insn, 11, 11, (offset >> 4) & 0x1);  // imm[4]
@@ -995,7 +995,7 @@ void insnCodeGen::generateCJumpAndLink(codeGen &gen, Dyninst::RegValue offset) {
 }
 
 void insnCodeGen::generateCJumpRegister(codeGen &gen, Dyninst::Register rs) {
-    instruction insn{};
+    instruction insn(true);
 
     INSN_SET(insn, 13, 15, 0x4); // func3 = 100
     INSN_SET(insn, 12, 12, 0x0); // 0
@@ -1006,7 +1006,7 @@ void insnCodeGen::generateCJumpRegister(codeGen &gen, Dyninst::Register rs) {
 }
 
 void insnCodeGen::generateCJumpAndLinkRegister(codeGen &gen, Dyninst::Register rs) {
-    instruction insn{};
+    instruction insn(true);
 
     INSN_SET(insn, 13, 15, 0x4); // func3 = 100
     INSN_SET(insn, 12, 12, 0x1); // 1
@@ -1017,7 +1017,7 @@ void insnCodeGen::generateCJumpAndLinkRegister(codeGen &gen, Dyninst::Register r
 }
 
 void insnCodeGen::generateCNop(codeGen &gen) {
-    instruction insn;
+    instruction insn(true);
 
     INSN_SET(insn, 0, 15, 0x1);
 
@@ -1033,7 +1033,7 @@ void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
 }
 
 void insnCodeGen::generateCXor(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs) {
-    instruction insn;
+    instruction insn(true);
 
     INSN_SET(insn, 10, 15, 0x23); // 100011
     INSN_SET(insn, 7, 9, rd);     // rd
