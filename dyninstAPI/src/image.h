@@ -415,11 +415,6 @@ class image : public codeRange {
    //  ****  PRIVATE MEMBERS FUNCTIONS  ****
    //
 
-   // Platform-specific discovery of the "main" function
-   // FIXME There is a minor but fundamental design flaw that
-   //       needs to be resolved wrt findMain returning void.
-   int findMain();
-
    bool determineImageType();
    bool addSymtabVariables();
 
