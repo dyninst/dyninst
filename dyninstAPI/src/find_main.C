@@ -137,4 +137,124 @@ Dyninst::Address find_main(st::Symtab* linkedFile) {
   return main_addr;
 }
 
+std::vector<st::Symbol*> get_missing_symbols(st::Symtab* linkedFile, Dyninst::Address address_of_main) {
+
+  std::vector<st::Symbol*> new_symbols{};
+
+  const auto entry_address = static_cast<Dyninst::Address>(linkedFile->getEntryOffset());
+  st::Region* entry_region = linkedFile->findEnclosingRegion(entry_address);
+
+  // Windows PE has no startup/shutdown (e.g., .init/.fini) so treat it separately
+  // NOTE: adds global symbols with default visibility
+  if(linkedFile->getFileFormat() == st::FileFormat::PE) {
+
+    auto make_sym_ = [&](std::string const& name, Dyninst::Address addr, unsigned size) {
+      // clang-format off
+      return new st::Symbol(
+        name,
+        st::Symbol::ST_FUNCTION,
+        st::Symbol::SL_GLOBAL,
+        st::Symbol::SV_DEFAULT,
+        addr,
+        linkedFile->getDefaultModule(),
+        entry_region,
+        size
+      );
+      // clang-format on
+    };
+
+    std::vector<st::Symbol*> syms{};
+    if(!linkedFile->findSymbol(syms, "start", st::Symbol::ST_UNKNOWN, SymtabAPI::mangledName)) {
+      // use 'start' for mainCRTStartup.
+      new_symbols.push_back(make_sym_("start", entry_address, UINT_MAX));
+    } else {
+      // add entry point as main given that nothing else was found
+      new_symbols.push_back(make_sym_("main", address_of_main, 0U));
+    }
+    return new_symbols;
+  }
+
+  // ELF-like files
+  // NOTE: adds local symbols with internal visibility
+  auto make_sym_ = [&linkedFile](std::string const& name, Dyninst::Address addr, st::Region *region) {
+    // clang-format off
+    return new st::Symbol(
+      name,
+      st::Symbol::ST_FUNCTION,
+      st::Symbol::SL_LOCAL,
+      st::Symbol::SV_INTERNAL,
+      addr,
+      linkedFile->getDefaultModule(),
+      region,
+      0U
+    );
+    // clang-format on
+  };
+
+  // Add either a static or dynamic symbol for 'main'
+  {
+    st::Region* region{};
+    bool const has_plt = linkedFile->findRegion(region, ".plt");
+    if(has_plt && region->isOffsetInRegion(address_of_main)) {
+      auto* s = make_sym_("DYNINST_pltMain", address_of_main, entry_region);
+      new_symbols.push_back(s);
+    } else {
+      new_symbols.push_back(make_sym_("main", address_of_main, entry_region));
+    }
+  }
+
+  {
+    std::vector<st::Function*> funcs{};
+    if(!linkedFile->findFunctionsByName(funcs, "_start")) {
+      auto s = make_sym_("_start", entry_region->getMemOffset(), entry_region);
+      new_symbols.push_back(s);
+    }
+  }
+
+  // Add symbols for init/fini
+  for(std::string sec : {"init", "fini"}) {
+    std::vector<st::Function*> funcs{};
+    if(linkedFile->findFunctionsByName(funcs, "_"+sec)) {
+      st::Region* reg{};
+      if(linkedFile->findRegion(reg, "."+sec)) {
+        auto* s = make_sym_("_"+sec, reg->getMemOffset(), reg);
+        new_symbols.push_back(s);
+      }
+    }
+  }
+
+  /*
+   * System V Application Binary Interface
+   * AMD64 Architecture Processor Supplement
+   * Version 1.0 - February 22, 2024
+   *
+   * 5.2 Dynamic Linking
+   * Global Offset Table (GOT)
+   *
+   * This should be safe to use for any SystemV-compliant platform; not just x86.
+   */
+  st::Region* region{};
+  if(linkedFile->findRegion(region, ".dynamic")) {
+    std::vector<st::Symbol*> syms{};
+    linkedFile->findSymbol(syms, "_DYNAMIC", st::Symbol::ST_UNKNOWN, st::mangledName);
+    if(syms.empty()) {
+      // clang-format off
+      st::Symbol *s = new st::Symbol(
+        "_DYNAMIC",
+        st::Symbol::ST_OBJECT,
+        st::Symbol::SL_LOCAL,
+        st::Symbol::SV_INTERNAL,
+        region->getMemOffset(),
+        linkedFile->getDefaultModule(),
+        region,
+        0
+      );
+      // clang-format on
+      new_symbols.push_back(s);
+    }
+  }
+
+  return new_symbols;
+}
+
 }}
