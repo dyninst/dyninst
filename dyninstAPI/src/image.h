@@ -398,8 +398,6 @@ class image : public codeRange {
 
     int getNextBlockID() { return nextBlockID_++; }
 
-   Address getAddressOfMain() const { return address_of_main; }
-
    std::unordered_map<Address, std::string> *getPltFuncs();
    void getPltFuncs(std::map<Address, std::string> &out);
 #if defined(DYNINST_HOST_ARCH_POWER)
@@ -420,11 +418,6 @@ class image : public codeRange {
    //
    //  ****  PRIVATE MEMBERS FUNCTIONS  ****
    //
-
-   // Platform-specific discovery of the "main" function
-   // FIXME There is a minor but fundamental design flaw that
-   //       needs to be resolved wrt findMain returning void.
-   int findMain();
 
    bool determineImageType();
    bool addSymtabVariables();
@@ -464,7 +457,6 @@ class image : public codeRange {
    //Address dataValidEnd_;
 
    bool is_libdyninstRT;
-   Address address_of_main{Dyninst::ADDR_NULL};
 
    // data from the symbol table 
    SymtabAPI::Symtab *linkedFile;

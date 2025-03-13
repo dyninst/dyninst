@@ -4,10 +4,11 @@
 #include "debug.h"
 #include "DynAST.h"
 #include "dyntypes.h"
-#include "findMain.h"
+#include "find_main.h"
 #include "Function.h"
 #include "SymEval.h"
 #include "Symtab.h"
+#include "util.h"
 
 namespace Dyninst { namespace DyninstAPI { namespace x86 {
 

@@ -7,9 +7,9 @@ if(POLICY CMP0083)
   cmake_policy(SET CMP0083 NEW)
 endif()
 
-add_executable(findMain findMain.cpp)
-target_compile_options(findMain PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
-target_link_libraries(findMain PRIVATE symtabAPI dyninstAPI)
+add_executable(find_main find_main.cpp)
+target_compile_options(find_main PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(find_main PRIVATE symtabAPI dyninstAPI)
 
 foreach(lang_t "c" "cxx")
   foreach(pie_t "pie" "nopie")
@@ -17,7 +17,7 @@ foreach(lang_t "c" "cxx")
       foreach(strip_t "stripped" "nostripped")
 
         set(_targ "${lang_t}_${link_t}_${pie_t}_${strip_t}")
-        add_executable(${_targ} findMain_test.c)
+        add_executable(${_targ} find_main_test.c)
 
         if(lang_t STREQUAL "cxx")
           set_property(TARGET ${_targ} PROPERTY LANGUAGE "CXX")
@@ -46,8 +46,8 @@ foreach(lang_t "c" "cxx")
       set(_input_name "${lang_t}_${link_t}_${pie_t}")
       set(_input_stripped "$<TARGET_FILE_NAME:${_input_name}_stripped>")
       set(_input_nostripped "$<TARGET_FILE_NAME:${_input_name}_nostripped>")
-      set(_test_name "dyninstAPI_image_findMain_${_input_name}")
-      add_test(NAME ${_test_name} COMMAND findMain ${_input_nostripped}
+      set(_test_name "dyninstAPI_find_main_${_input_name}")
+      add_test(NAME ${_test_name} COMMAND find_main ${_input_nostripped}
                                           ${_input_stripped})
       set_tests_properties(${_test_name} PROPERTIES LABELS "regression")
 

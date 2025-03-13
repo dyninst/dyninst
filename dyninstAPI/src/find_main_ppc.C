@@ -4,7 +4,6 @@
 #include "CodeObject.h"
 #include "debug.h"
 #include "DynAST.h"
-#include "findMain.h"
 #include "Function.h"
 #include "InstructionDecoder.h"
 #include "Register.h"
@@ -17,6 +16,7 @@
 
 #include <set>
 #include <vector>
+#include "find_main.h"
 
 namespace {
 
