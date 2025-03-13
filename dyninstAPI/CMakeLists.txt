@@ -115,6 +115,7 @@ set(_sources
     src/dynProcess.C
     src/dynThread.C
     src/edge.C
+    src/find_main.C
     src/find_main_ppc.C
     src/find_main_x86.C
     src/frame.C

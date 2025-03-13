@@ -1,30 +1,29 @@
-#include "BPatch_enums.h"
 #include "dyninstAPI/src/debug.h"
-#include "image.h"
+#include "dyninstAPI/src/find_main.h"
 #include "Symtab.h"
 
 #include <array>
 #include <iostream>
 #include <vector>
 
-bool test_findMain(const char* filename, Dyninst::Address symtab_main_addr) {
-  std::cout << "Parsing image for " << filename << "\n";
-  fileDescriptor desc{filename, 0, 0};
-  constexpr auto analysisMode = BPatch_normalMode;
-  constexpr bool parseGaps = false;
-  image* img = image::parseImage(desc, analysisMode, parseGaps);
+namespace st = Dyninst::SymtabAPI;
+namespace dd = Dyninst::DyninstAPI;
 
-  if(!img) {
-    std::cerr << "failed to parse image for '" << filename << "\n";
+bool test_find_main(char const* filename, Dyninst::Address symtab_main_addr) {
+  std::cout << "Finding 'main' for " << filename << "\n";
+
+  st::Symtab* symtab{};
+  if(!st::Symtab::openFile(symtab, filename)) {
+    std::cerr << "Failed to open '" << filename << "'\n";
     return false;
   }
 
-  const auto image_main_addr = img->getAddressOfMain();
+  auto main_addr = dd::find_main(symtab);
 
-  std::cout << "findMain returned 0x" << std::hex << image_main_addr << "\n";
+  std::cout << "find_main returned 0x" << std::hex << main_addr << "\n";
 
-  if(image_main_addr != symtab_main_addr) {
-    std::cerr << "Addresses don't match: Symtab=0x" << std::hex << symtab_main_addr << ", image=0x" << image_main_addr
+  if(main_addr != symtab_main_addr) {
+    std::cerr << "Addresses don't match: Symtab=0x" << std::hex << symtab_main_addr << ", image=0x" << main_addr
               << "\n";
     return false;
   }
@@ -37,8 +36,6 @@ int main(int argc, char** argv) {
     std::cerr << "Usage: " << argv[0] << " file_with_syms file_without_syms\n";
     return EXIT_FAILURE;
   }
-
-  namespace st = Dyninst::SymtabAPI;
 
   st::Symtab* symtab{};
   if(!st::Symtab::openFile(symtab, argv[1])) {
@@ -67,13 +64,13 @@ int main(int argc, char** argv) {
 
   std::cout << "Symtab returned 0x" << std::hex << symtab_main_addr << "\n";
 
-  std::cout << "Testing findMain with symbols...\n";
-  if(!test_findMain(argv[1], symtab_main_addr)) {
+  std::cout << "Testing find_main with symbols...\n";
+  if(!test_find_main(argv[1], symtab_main_addr)) {
     return EXIT_FAILURE;
   }
 
-  std::cout << "Testing findMain without symbols...\n";
-  if(!test_findMain(argv[2], symtab_main_addr)) {
+  std::cout << "Testing find_main without symbols...\n";
+  if(!test_find_main(argv[2], symtab_main_addr)) {
     return EXIT_FAILURE;
   }
 

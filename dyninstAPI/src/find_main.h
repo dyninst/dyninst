@@ -1,14 +1,20 @@
 #ifndef DYNINST_DYNINSTAPI_FINDMAIN_H
 #define DYNINST_DYNINSTAPI_FINDMAIN_H
 
-#include "Function.h"
-#include "SymEval.h"
 #include "Symtab.h"
+#include "SymEval.h"
+#include "CFG.h"
+#include "dyntypes.h"
+#include "Symbol.h"
+
+#include <vector>
 
 namespace Dyninst { namespace DyninstAPI {
 
   namespace st = Dyninst::SymtabAPI;
   namespace pa = Dyninst::ParseAPI;
+
+  Dyninst::Address find_main(st::Symtab*);
 
   namespace ppc {
     Dyninst::Address find_main_by_toc(st::Symtab*, pa::Function*, pa::Block*);
