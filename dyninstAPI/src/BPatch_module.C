@@ -96,6 +96,14 @@ BPatch_object *BPatch_module::getObject() {
    return img->findOrCreateObject(mod->obj());
 }
 
+std::string const& BPatch_module::getName() const {
+  static std::string const empty_string{};
+  if(!mod) {
+    return empty_string;
+  }
+  return mod->fileName();
+}
+
 char *BPatch_module::getName(char *buffer, int length)
 {
    if (!mod)
