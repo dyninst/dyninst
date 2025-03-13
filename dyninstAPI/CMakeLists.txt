@@ -296,7 +296,7 @@ dyninst_library(
   DYNINST_DEPS common instructionAPI stackwalk pcontrol patchAPI parseAPI symtabAPI
   DYNINST_INTERNAL_DEPS dynDwarf dynElf
   PUBLIC_DEPS Dyninst::Boost_headers
-  PRIVATE_DEPS Dyninst::ElfUtils Threads::Threads
+  PRIVATE_DEPS Threads::Threads
 )
 # cmake-format: on
 
