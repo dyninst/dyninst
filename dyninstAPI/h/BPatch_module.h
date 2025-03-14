@@ -122,6 +122,8 @@ public:
     bool remove(instPoint*);
     // End functions for internal use only
   
+    std::string getName() const;
+
     // BPatch_module::getName
     // Returns file name associated with module
 
