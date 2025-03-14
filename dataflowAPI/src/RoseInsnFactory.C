@@ -42,6 +42,8 @@
 #include "../rose/SgAsmx86Instruction.h"
 #include "../rose/SgAsmExpression.h"
 
+#include "dyn_regs.h"
+
 #include "ExpressionConversionVisitor.h"
 
 #include <boost/make_shared.hpp>
@@ -434,19 +436,79 @@ bool RoseInsnRiscv64Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgA
 void RoseInsnRiscv64Factory::massageOperands(const Instruction &insn,
         std::vector<InstructionAPI::Operand> &operands) {
     switch (insn.getOperation().getID()) {
+        // Adjust jump registers
+        // Sail does not combine (reg + imm), so we flatten (reg + imm) to reg and imm separatelly
+        case riscv64_op_jal: {
+          vector<InstructionAST::Ptr> children;
+          boost::dynamic_pointer_cast<BinaryFunction>(operands[1].getValue())->getChildren(children);
+          assert(children.size() == 2);
+
+          int32_t imm = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
+          Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, imm));
+
+          operands[1] = Operand(immAST, true, false, false);
+          break;
+        }
         case riscv64_op_jalr: {
           vector<InstructionAST::Ptr> children;
           boost::dynamic_pointer_cast<BinaryFunction>(operands[1].getValue())->getChildren(children);
           assert(children.size() == 2);
-          
+
           MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(children[0]))->getID();
           int32_t imm = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
-          operands.resize(3);
 
           Expression::Ptr rsAST = boost::make_shared<RegisterAST>(rs, 0, rs.size() * 8, 1);
           Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, imm));
+
+          operands.resize(3);
           operands[1] = Operand(rsAST, true, false, false);
           operands[2] = Operand(immAST, true, false, false);
+          break;
+        }
+        case riscv64_op_c_jr:
+        case riscv64_op_c_jalr: {
+          MachRegister rs = (insn.getOperation().getID() == riscv64_op_c_jr) ? riscv64::x0 : riscv64::x1;
+          Expression::Ptr regAST = boost::make_shared<RegisterAST>(rs, 0, rs.size() * 8, 1);
+          Expression::Ptr imm0AST = Immediate::makeImmediate(Result(s32, 0));
+
+          operands.resize(3);
+          operands[0] = Operand(regAST, false, true, false);
+          operands[2] = Operand(imm0AST, true, false, false);
+          break;
+        }
+        case riscv64_op_c_j:
+        case riscv64_op_c_jal: {
+          vector<InstructionAST::Ptr> children;
+          boost::dynamic_pointer_cast<BinaryFunction>(operands[1].getValue())->getChildren(children);
+          assert(children.size() == 2);
+
+          int32_t imm = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
+          Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, imm));
+
+          operands.resize(2);
+          operands[1] = Operand(immAST, true, false, false);
+          break;
+        }
+        // Add x0 to some compressed instructions
+        // Since x0 is hardwired to 0, we create an immediate 0 directly instead
+        // This does not matter because the read function takes care of both immediates and registers
+        case riscv64_op_c_li:
+        case riscv64_op_c_beqz:
+        case riscv64_op_c_bnez:
+        case riscv64_op_c_mv: {
+          MachRegister x0 = riscv64::x0;
+          Expression::Ptr regX0AST = boost::make_shared<RegisterAST>(x0, 0, x0.size() * 8, 1);
+          operands.resize(3);
+          operands[2] = operands[1];
+          operands[1] = Operand(regX0AST, true, false, false);
+          break;
+        }
+        // Add x2 to c.addi16sp
+        case riscv64_op_c_addi16sp: {
+          MachRegister x2 = riscv64::x2;
+          Expression::Ptr regX2AST = boost::make_shared<RegisterAST>(x2, 0, x2.size() * 8, 1);
+          operands.resize(2);
+          operands[0] = Operand(regX2AST, true, true, false);
           break;
         }
         default:
