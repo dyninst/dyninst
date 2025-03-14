@@ -40,7 +40,7 @@
 #include "Type.h"
 #include "Function.h"
 #include "Module.h"
-#include "Object.h"
+#include "Object-elf.h"
 #include "Collections.h"
 #include "pathName.h"
 #include "Variable.h"

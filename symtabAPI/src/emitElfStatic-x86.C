@@ -48,6 +48,7 @@
 #include "Object.h"
 #include "Region.h"
 #include "debug.h"
+#include "elf.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
