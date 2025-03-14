@@ -343,7 +343,7 @@ bool mapped_object::analyze()
   return true;
 }
 
-mapped_module *mapped_object::findModule(string m_name, bool wildcard)
+mapped_module *mapped_object::findModule(string const& m_name, bool wildcard)
 {
    parsing_printf("findModule for %s (substr match %d)\n",
          m_name.c_str(), wildcard);
