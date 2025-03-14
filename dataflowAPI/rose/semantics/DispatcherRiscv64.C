@@ -814,8 +814,7 @@ namespace rose {
 
                 struct IP_C_JAL : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmDirectRegisterExpression dre1{d->findRegister("x1", 64)};
-                        SgAsmExpressionPtrList new_args{&dre1, args[1]};
+                        SgAsmExpressionPtrList new_args{args[0], args[1]};
                         SgAsmRiscv64Instruction new_insn{0, "jal", rose_riscv64_op_jal};
                         auto conv = Riscv64::IP_RISCV_JAL{};
                         conv.p(d, ops, &new_insn, new_args, raw);
@@ -833,8 +832,7 @@ namespace rose {
 
                 struct IP_C_LI : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
-                        SgAsmExpressionPtrList new_args{args[0], &dre0, args[1]};
+                        SgAsmExpressionPtrList new_args{args[0], args[1], args[2]};
                         SgAsmRiscv64Instruction new_insn{0, "addi", rose_riscv64_op_addi};
                         auto conv = Riscv64::IP_ITYPE{};
                         conv.p(d, ops, &new_insn, new_args, raw);
@@ -843,8 +841,7 @@ namespace rose {
 
                 struct IP_C_ADDI16SP : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmDirectRegisterExpression dre2{d->findRegister("x2", 64)};
-                        SgAsmExpressionPtrList new_args{&dre2, &dre2, args[1]};
+                        SgAsmExpressionPtrList new_args{args[0], args[0], args[1]};
                         SgAsmRiscv64Instruction new_insn{0, "addi", rose_riscv64_op_addi};
                         auto conv = Riscv64::IP_ITYPE{};
                         conv.p(d, ops, &new_insn, new_args, raw);
@@ -943,8 +940,7 @@ namespace rose {
 
                 struct IP_C_J : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
-                        SgAsmExpressionPtrList new_args{&dre0, args[1]};
+                        SgAsmExpressionPtrList new_args{args[0], args[1]};
                         SgAsmRiscv64Instruction new_insn{0, "jal", rose_riscv64_op_jal};
                         auto conv = Riscv64::IP_RISCV_JAL{};
                         conv.p(d, ops, &new_insn, new_args, raw);
@@ -953,8 +949,7 @@ namespace rose {
 
                 struct IP_C_BEQZ : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
-                        SgAsmExpressionPtrList new_args{args[0], &dre0, args[1]};
+                        SgAsmExpressionPtrList new_args{args[0], args[1], args[2]};
                         SgAsmRiscv64Instruction new_insn{0, "beq", rose_riscv64_op_beq};
                         auto conv = Riscv64::IP_BTYPE{};
                         conv.p(d, ops, &new_insn, new_args, raw);
@@ -963,8 +958,7 @@ namespace rose {
 
                 struct IP_C_BNEZ : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
-                        SgAsmExpressionPtrList new_args{args[0], &dre0, args[1]};
+                        SgAsmExpressionPtrList new_args{args[0], args[1], args[2]};
                         SgAsmRiscv64Instruction new_insn{0, "bne", rose_riscv64_op_bne};
                         auto conv = Riscv64::IP_BTYPE{};
                         conv.p(d, ops, &new_insn, new_args, raw);
@@ -1018,8 +1012,7 @@ namespace rose {
 
                 struct IP_C_JR : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
-                        SgAsmExpressionPtrList new_args{&dre0, args[1], &dre0};
+                        SgAsmExpressionPtrList new_args{args[0], args[1], args[2]};
                         SgAsmRiscv64Instruction new_insn{0, "jalr", rose_riscv64_op_jalr};
                         auto conv = Riscv64::IP_RISCV_JALR{};
                         conv.p(d, ops, &new_insn, new_args, raw);
@@ -1028,9 +1021,7 @@ namespace rose {
 
                 struct IP_C_JALR : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmDirectRegisterExpression dre1{d->findRegister("x1", 64)};
-                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
-                        SgAsmExpressionPtrList new_args{&dre1, args[1], &dre0};
+                        SgAsmExpressionPtrList new_args{args[0], args[1], args[2]};
                         SgAsmRiscv64Instruction new_insn{0, "jalr", rose_riscv64_op_jalr};
                         auto conv = Riscv64::IP_RISCV_JALR{};
                         conv.p(d, ops, &new_insn, new_args, raw);
@@ -1039,8 +1030,7 @@ namespace rose {
 
                 struct IP_C_MV : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
-                        SgAsmExpressionPtrList new_args{args[0], &dre0, args[1]};
+                        SgAsmExpressionPtrList new_args{args[0], args[1], args[2]};
                         SgAsmRiscv64Instruction new_insn{0, "add", rose_riscv64_op_add};
                         auto conv = Riscv64::IP_RTYPE{};
                         conv.p(d, ops, &new_insn, new_args, raw);
