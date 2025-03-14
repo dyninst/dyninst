@@ -73,8 +73,7 @@ if(DYNINST_OS_UNIX)
     src/LinkMap.C
     src/emitElf.C
     src/emitElfStatic.C
-    src/dwarfWalker.C
-    src/Object-pe.C)
+    src/dwarfWalker.C)
 
   if(DYNINST_HOST_ARCH_X86_64 OR DYNINST_HOST_ARCH_I386)
     list(APPEND _sources src/emitElfStatic-x86.C src/relocationEntry-elf-x86.C)
@@ -84,6 +83,12 @@ if(DYNINST_OS_UNIX)
     list(APPEND _sources src/emitElfStatic-aarch64.C src/relocationEntry-elf-aarch64.C)
   else()
     list(APPEND _sources src/emitElfStatic-stub.C src/relocationEntry-stub.C)
+  endif()
+
+  if(pe-parse_FOUND)
+    list(APPEND _sources src/Object-pe.C)
+  else()
+    list(APPEND _sources src/Object-pe-stub.C)
   endif()
 elseif(DYNINST_OS_Windows)
   list(APPEND _sources src/Object-nt.C src/emitWin.C src/relocationEntry-stub.C)
@@ -98,7 +103,7 @@ dyninst_library(
   DEFINES SYMTAB_LIB
   DYNINST_DEPS common
   DYNINST_INTERNAL_DEPS dynDwarf dynElf
-  PRIVATE_DEPS OpenMP::OpenMP_CXX Dyninst::Boost Dyninst::ElfUtils
+  PRIVATE_DEPS OpenMP::OpenMP_CXX Dyninst::Boost Dyninst::ElfUtils Dyninst::PeParse
 )
 # cmake-format: on
 
