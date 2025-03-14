@@ -37,6 +37,7 @@
 #include "Function.h"
 #include "VariableLocation.h"
 #include "Object.h"
+#include "Object-elf.h"
 #include "registers/abstract_regs.h"
 
 #if !defined(os_windows)

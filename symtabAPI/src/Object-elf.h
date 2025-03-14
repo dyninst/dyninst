@@ -57,8 +57,14 @@
 #include <elf.h>
 #include <libelf.h>
 #include <string>
-
+#include "relocationEntry.h"
 #include "Elf_X.h"
+#include "registers/MachRegister.h"
+#include "Region.h"
+#include "SymReader.h"
+#include "Object.h"
+#include "Symtab.h"
+#include "ExceptionBlock.h"
 
 #include <fcntl.h>
 #include <stdlib.h>

@@ -32,7 +32,7 @@
 
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Archive.h"
-#include "symtabAPI/src/Object.h"
+#include "symtabAPI/src/Object-elf.h"
 
 using namespace std;
 using namespace Dyninst;
