@@ -21,11 +21,6 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
     MachRegister (InstructionDecoder_Capstone::*regTrans)(uint32_t);
     regTrans = &InstructionDecoder_Capstone::registerTranslation_riscv64;
 
-    // This is the index of the operand register to branch to
-    //int jumpOpIndex = -1;
-    // This is the index of the link register
-    //int linkRegIndex = -1;
-
     if (eid == riscv64_op_jal) {
         assert(detail->op_count == 1 || detail->op_count == 2);
 
@@ -118,7 +113,7 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
 
         return;
     }
-    if (eid == riscv64_op_c_jr || eid == riscv64_op_jalr) {
+    if (eid == riscv64_op_c_jr || eid == riscv64_op_c_jalr) {
 
         assert(detail->op_count == 1);
 
