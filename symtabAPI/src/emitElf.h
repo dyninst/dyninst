@@ -31,7 +31,7 @@
 #if !defined(_emit_Elf_64_h_)
 #define _emit_Elf_64_h_
 
-#include "Object.h"
+#include "Object-elf.h"
 #include "debug.h"
 #include "Elf_X.h"
 #include <iostream>
