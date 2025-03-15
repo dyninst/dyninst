@@ -123,6 +123,8 @@ namespace rose {
                     return insn->get_kind();
                 }
 
+                virtual BaseSemantics::SValuePtr read(SgAsmExpression *e, size_t value_nbits/*=0*/, size_t addr_nbits/*=0*/);
+
                 virtual void write(SgAsmExpression *e, const BaseSemantics::SValuePtr &value, size_t addr_nbits = 0);
 
                 /** Architecture-specific read from register.
