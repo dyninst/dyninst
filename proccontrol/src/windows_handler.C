@@ -35,7 +35,7 @@
 
 #include "common/h/dyntypes.h"
 #include "symtabAPI/h/Symtab.h"
-#include "common/src/pathName.h"
+#include "common/src/dyninst_filesystem.h"
 #include "PCErrors.h"
 #include "Generator.h"
 #include "Event.h"

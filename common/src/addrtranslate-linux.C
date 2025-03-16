@@ -32,7 +32,7 @@
 #include "common/src/addrtranslate-sysv.h"
 #include "common/src/linuxKludges.h"
 #include "common/src/parseauxv.h"
-#include "common/src/pathName.h"
+#include "common/src/dyninst_filesystem.h"
 
 #include <elf.h>
 #include <cstdio>
@@ -189,7 +189,7 @@ string AddressTranslateSysV::getExecName()
    if (exec_name.empty()) {
       char name[64];
       snprintf(name, 64, "/proc/%d/exe", pid);
-      exec_name = Dyninst::resolve_file_path(name);
+      exec_name = Dyninst::filesystem::canonicalize(name);
    }
    return exec_name;
 }

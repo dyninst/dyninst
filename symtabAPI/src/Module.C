@@ -43,7 +43,7 @@
 #include "symutil.h"
 #include "annotations.h"
 
-#include "common/src/pathName.h"
+#include "common/src/dyninst_filesystem.h"
 #include "Object.h"
 #include <boost/foreach.hpp>
 #include <algorithm>

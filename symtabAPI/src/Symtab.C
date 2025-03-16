@@ -39,14 +39,14 @@
 #include <sstream>
 
 #include "common/src/Timer.h"
-#include "common/src/pathName.h"
+#include "common/src/dyninst_filesystem.h"
 
 #include "Symtab.h"
 #include "Module.h"
 #include "Collections.h"
 #include "Function.h"
 #include "Variable.h"
-#include "pathName.h"
+#include "dyninst_filesystem.h"
 #include "annotations.h"
 
 #include "debug.h"
@@ -1992,7 +1992,7 @@ DYNINST_EXPORT std::string Symtab::file() const
 
 DYNINST_EXPORT std::string Symtab::name() const 
 {
-  return Dyninst::extract_pathname_tail(impl->mf->filename());
+  return Dyninst::filesystem::extract_filename(impl->mf->filename());
 }
 
 DYNINST_EXPORT std::string Symtab::memberName() const 

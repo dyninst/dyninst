@@ -33,7 +33,7 @@
 #include <algorithm>
 #include "emitElf.h"
 #include "emitElfStatic.h"
-#include "common/src/pathName.h"
+#include "common/src/dyninst_filesystem.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "unaligned_memory_access.h"
 

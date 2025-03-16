@@ -49,7 +49,7 @@
 
 #include "common/src/parseauxv.h"
 #include "common/src/headers.h"
-#include "common/src/pathName.h"
+#include "common/src/dyninst_filesystem.h"
 #include "common/src/vm_maps.h"
 #include "common/src/addrtranslate.h"
 #include "common/src/addrtranslate-sysv.h"
@@ -866,7 +866,7 @@ FCNode::FCNode(string f, dev_t d, ino_t i, SymbolReaderFactory *factory_) :
    symreader(NULL),
    factory(factory_)
 {
-   filename = Dyninst::resolve_file_path(std::move(f));
+   filename = Dyninst::filesystem::canonicalize(std::move(f));
 }
 
 string FCNode::getFilename() {

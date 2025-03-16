@@ -43,7 +43,7 @@
 #include "Parsing.h"
 
 #include "common/src/Timer.h"
-#include "common/src/pathName.h"
+#include "common/src/dyninst_filesystem.h"
 #include "common/src/MappedFile.h"
 #include "common/h/util.h"
 #include "dyninstAPI/h/BPatch_flowGraph.h"
@@ -111,7 +111,7 @@ bool fileDescriptor::IsEqual(const fileDescriptor &fd) const {
 #endif  
 
 #if defined(os_windows)
-    if(Dyninst::extract_pathname_tail(file_) == Dyninst::extract_pathname_tail(fd.file_)) file_match_ = true;
+    if(Dyninst::filesystem::extract_filename(file_) == Dyninst::filesystem::extract_filename(fd.file_)) file_match_ = true;
 #endif
 
     bool addr_match = (code_ == fd.code_ && data_ == fd.data_);
@@ -1402,7 +1402,7 @@ image::image(fileDescriptor &desc,
 
    err = false;
 
-   name_ = Dyninst::extract_pathname_tail(string(desc.file().c_str()));
+   name_ = Dyninst::filesystem::extract_filename(string(desc.file().c_str()));
 
    pathname_ = desc.file().c_str();
 

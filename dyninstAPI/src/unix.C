@@ -38,7 +38,7 @@
 #include "dynThread.h"
 #include "function.h"
 #include "binaryEdit.h"
-#include "common/src/pathName.h"
+#include "common/src/dyninst_filesystem.h"
 #include <sys/stat.h>
 
 #include <sstream>
@@ -468,7 +468,7 @@ bool PCProcess::hasPassedMain()
       return true;
    }
 
-   std::string derefPath = Dyninst::resolve_file_path(path);
+   std::string derefPath = Dyninst::filesystem::canonicalize(path);
 
    // Search for the dynamic linker in the loaded libraries
    const LibraryPool &libraries = pcProc_->libraries();

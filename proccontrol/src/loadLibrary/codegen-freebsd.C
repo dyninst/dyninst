@@ -6,7 +6,7 @@
 #include <iostream>
 #include "PCProcess.h"
 #include "int_process.h"
-#include "common/src/pathName.h"
+#include "common/src/dyninst_filesystem.h"
 #include <sys/mman.h>
 
 using namespace Dyninst;
@@ -27,7 +27,7 @@ bool Codegen::generateInt() {
     if (!objSymReader) {
       return false;
     }
-    std::string interp = Dyninst::resolve_file_path(objSymReader->getInterpreterName());
+    std::string interp = Dyninst::filesystem::canonicalize(objSymReader->getInterpreterName());
 
     objSymReader = proc_->llproc()->getSymReader()->openSymbolReader(interp);
     if (!objSymReader) {
@@ -43,7 +43,7 @@ bool Codegen::generateInt() {
     // But we still need the load addr...
     bool found = false;
     for (auto li = proc_->libraries().begin(); li != proc_->libraries().end(); ++li) {
-      std::string canonical = Dyninst::resolve_file_path((*li)->getName());
+      std::string canonical = Dyninst::filesystem::canonicalize((*li)->getName());
       if (canonical == interp) {
 	found = true;
 	dlopenAddr += (*li)->getLoadAddress();

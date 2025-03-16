@@ -41,7 +41,7 @@
 #include "Function.h"
 #include "debug.h"
 #include "dwarfExprParser.h"
-#include "pathName.h"
+#include "dyninst_filesystem.h"
 #include "debug_common.h"
 #include "Type-mem.h"
 #include <elfutils/libdw.h>

@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "common/src/MappedFile.h"
-#include "common/src/pathName.h"
+#include "common/src/dyninst_filesystem.h"
 #include <iostream>
 using namespace std;
 
