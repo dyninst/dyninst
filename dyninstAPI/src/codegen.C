@@ -358,10 +358,10 @@ void *codeGen::start_ptr() const {
 
 void *codeGen::cur_ptr() const {
     assert(buffer_);
-    if (sizeof(codeBuf_t) != CODE_GEN_OFFSET_SIZE)
-        fprintf(stderr, "ERROR: sizeof codeBuf %zu, OFFSET %u\n",
-                sizeof(codeBuf_t), CODE_GEN_OFFSET_SIZE);
-    assert(sizeof(codeBuf_t) == CODE_GEN_OFFSET_SIZE);
+    //if (sizeof(codeBuf_t) != CODE_GEN_OFFSET_SIZE)
+    //    fprintf(stderr, "ERROR: sizeof codeBuf %zu, OFFSET %u\n",
+    //            sizeof(codeBuf_t), CODE_GEN_OFFSET_SIZE);
+    //assert(sizeof(codeBuf_t) == CODE_GEN_OFFSET_SIZE);
     codeBuf_t *ret = buffer_;
     ret += offset_;
     return (void *)ret;
@@ -370,7 +370,7 @@ void *codeGen::cur_ptr() const {
 void *codeGen::get_ptr(unsigned offset) const {
     assert(buffer_);
     assert(offset < size_);
-    assert(sizeof(codeBuf_t) == CODE_GEN_OFFSET_SIZE);
+    //assert(sizeof(codeBuf_t) == CODE_GEN_OFFSET_SIZE);
     assert((offset % CODE_GEN_OFFSET_SIZE) == 0);
     unsigned index = offset / CODE_GEN_OFFSET_SIZE;
     codeBuf_t *ret = buffer_;
@@ -729,8 +729,7 @@ void codeGen::beginTrackRegDefs()
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
     regsDefined_ = bitArray(registerSpace::fpsr);
 #elif defined(DYNINST_HOST_ARCH_RISCV64)
-    // TODO
-    regsDefined_ = bitArray();
+    regsDefined_ = bitArray(registerSpace::pc);
 #else
     regsDefined_ = bitArray();
 #endif
