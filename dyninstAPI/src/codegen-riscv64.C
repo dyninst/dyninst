@@ -609,6 +609,10 @@ void insnCodeGen::generateLoadUpperImm(codeGen &gen, Dyninst::Register rd, Dynin
     generateUTypeInsn(gen, rd, imm, LUIOp);
 }
 
+void insnCodeGen::generateAuipc(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue offset) {
+    generateUTypeInsn(gen, rd, offset, AUIPCOp);
+}
+
 void insnCodeGen::generateAdd(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
     // If rd == rs, use c.add
     if (rs1 == rs2) {
@@ -617,6 +621,7 @@ void insnCodeGen::generateAdd(codeGen &gen, Dyninst::Register rd, Dyninst::Regis
     }
     generateRTypeInsn(gen, rd, rs1, rs2, ADDFunct7, ADDFunct3, REGOp);
 }
+
 void insnCodeGen::generateSub(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
     generateRTypeInsn(gen, rd, rs1, rs2, SUBFunct7, SUBFunct3, REGOp);
 }

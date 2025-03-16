@@ -167,6 +167,7 @@ public:
     static void generateXorImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::RegValue imm);
     static void generateLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
     static void generateLoadUpperImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm);
+    static void generateAuipc(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue offset);
 
     static void generateNOOP(codeGen &gen, unsigned size);
 
