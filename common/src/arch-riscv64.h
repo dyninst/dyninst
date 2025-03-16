@@ -59,6 +59,8 @@ namespace NS_riscv64 {
 #define BREAK_POINT_INSN 0xd4200000
 
 #define LUIOp         0x37
+#define AUIPCOp       0x17
+
 #define IMMOp         0x13
 #define REGOp         0x33
 #define JALOp         0x6f
