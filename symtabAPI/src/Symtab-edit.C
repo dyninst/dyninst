@@ -35,7 +35,7 @@
 #include <algorithm>
 
 #include "common/src/Timer.h"
-#include "common/src/pathName.h"
+#include "common/src/dyninst_filesystem.h"
 
 #include "Symtab.h"
 #include "Symbol.h"

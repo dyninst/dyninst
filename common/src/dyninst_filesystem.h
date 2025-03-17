@@ -35,12 +35,12 @@
 
 #include <string>
 
-namespace Dyninst {
+namespace Dyninst { namespace filesystem {
 
-  DYNINST_EXPORT std::string extract_pathname_tail(const std::string& path);
+  DYNINST_EXPORT std::string extract_filename(const std::string& path);
 
-  DYNINST_EXPORT std::string resolve_file_path(std::string);
+  DYNINST_EXPORT std::string canonicalize(std::string);
 
-}
+}}
 
 #endif

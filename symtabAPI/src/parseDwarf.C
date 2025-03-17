@@ -42,7 +42,7 @@
 #include "Module.h"
 #include "Object-elf.h"
 #include "Collections.h"
-#include "pathName.h"
+#include "dyninst_filesystem.h"
 #include "Variable.h"
 #include "Type-mem.h"
 #include <stdarg.h>

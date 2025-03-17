@@ -47,7 +47,7 @@
 #include "dyninstAPI/src/os.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/debug.h"
-#include "common/src/pathName.h"
+#include "common/src/dyninst_filesystem.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "registers/x86_regs.h"

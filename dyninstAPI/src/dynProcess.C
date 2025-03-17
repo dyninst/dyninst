@@ -43,7 +43,7 @@
 #include "mapped_object.h"
 #include "image.h"
 #include "common/src/headers.h"
-#include "common/src/pathName.h"
+#include "common/src/dyninst_filesystem.h"
 
 #include "PCErrors.h"
 #include <boost/tuple/tuple.hpp>

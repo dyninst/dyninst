@@ -40,7 +40,7 @@
 #include <algorithm>
 
 #include "common/src/Timer.h"
-#include "common/src/pathName.h"
+#include "common/src/dyninst_filesystem.h"
 
 #include "debug.h"
 #include "Symtab.h"

@@ -1,4 +1,4 @@
-#include "common/src/pathName.h"
+#include "common/src/dyninst_filesystem.h"
 
 #include <array>
 #include <boost/algorithm/string/replace.hpp>
@@ -89,7 +89,7 @@ int main() {
   auto test_id = 1;
 
   for(auto t : tests) {
-    auto fp = Dyninst::resolve_file_path(t.input);
+    auto fp = Dyninst::filesystem::canonicalize(t.input);
     if(simplify(fp) != simplify(t.expected)) {
       std::cerr << "Test " << test_id << " '" << t.input << "' failed: expected '"
                 << t.expected << "', got '" << fp << "'\n";

@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "pathName.h"
+#include "dyninst_filesystem.h"
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -53,7 +53,7 @@ namespace Dyninst {
 #include <unistd.h>
 #include <vector>
 
-namespace Dyninst {
+namespace Dyninst { namespace filesystem {
 
   static std::string get_home_dir(const std::string& username = {}) {
 
@@ -132,12 +132,12 @@ namespace Dyninst {
 
 #endif
 
-std::string extract_pathname_tail(const std::string& path) {
+std::string extract_filename(const std::string& path) {
   boost::filesystem::path p(path);
   return p.filename().string();
 }
 
-std::string resolve_file_path(std::string path) {
+std::string canonicalize(std::string path) {
   namespace ba = boost::algorithm;
   namespace bf = boost::filesystem;
 
@@ -174,4 +174,5 @@ std::string resolve_file_path(std::string path) {
 
   return canonical_path.string();
 }
-}
+
+}}

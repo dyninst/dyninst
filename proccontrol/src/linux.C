@@ -51,7 +51,7 @@
 #include "common/src/vm_maps.h"
 #include "compiler_annotations.h"
 
-#include "common/src/pathName.h"
+#include "common/src/dyninst_filesystem.h"
 #include "PCErrors.h"
 #include "Generator.h"
 #include "Event.h"
@@ -1103,7 +1103,7 @@ bool linux_process::plat_execed()
 
    char proc_exec_name[128];
    snprintf(proc_exec_name, 128, "/proc/%d/exe", getPid());
-   executable = Dyninst::resolve_file_path(proc_exec_name);
+   executable = Dyninst::filesystem::canonicalize(proc_exec_name);
    return true;
 }
 

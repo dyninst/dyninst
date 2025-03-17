@@ -75,7 +75,7 @@ set(_private_headers
     src/NodeIterator.h
     src/ntHeaders.h
     src/parseauxv.h
-    src/pathName.h
+    src/dyninst_filesystem.h
     src/sha1.h
     src/stats.h
     src/symbolDemangle.h
@@ -89,7 +89,7 @@ set(_sources
     src/concurrent.C
     src/Timer.C
     src/lprintf.C
-    src/pathName.C
+    src/dyninst_filesystem.C
     src/stats.C
     src/Annotatable.C
     src/MappedFile.C
