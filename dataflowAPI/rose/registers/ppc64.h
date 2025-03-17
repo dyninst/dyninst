@@ -93,7 +93,8 @@ namespace {
         }
         if(baseID >= 621 && baseID <= 628) {
           auto const pos = baseID - 621;
-          return std::make_tuple(powerpc_regclass_cr, 0, pos, num_bits);
+          auto const size = 4;  // cr<0:7> in ROSE are 4 bits
+          return std::make_tuple(powerpc_regclass_cr, 0, pos, size);
         }
         if(baseID == 629) {
           return std::make_tuple(powerpc_regclass_cr, 0, 0, num_bits);
