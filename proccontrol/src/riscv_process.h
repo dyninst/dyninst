@@ -38,6 +38,13 @@
 #include "int_process.h"
 
 
+#if defined(__riscv_compressed)
+typedef unsigned short instruction_t;
+#else
+typedef unsigned int instruction_t;
+#endif
+
+
 class riscv_process : virtual public int_process
 {
  public:
@@ -56,8 +63,9 @@ class riscv_process : virtual public int_process
   virtual void cleanupSSOnContinue(int_thread *thr);
   virtual void registerSSClearCB();
   virtual async_ret_t readPCForSS(int_thread *thr, Address &pc);
-  virtual async_ret_t readInsnForSS(Address pc, int_thread *, unsigned int &rawInsn);
+  virtual async_ret_t readInsnForSS(Address pc, int_thread *, instruction_t &rawInsn);
   virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Address> &addrResult);
+  virtual async_ret_t plat_emulateSingleStep(int_thread *thr, std::vector<Address> &addrResult);
   virtual void plat_getEmulatedSingleStepAsyncs(int_thread *, std::set<response::ptr> resps);
 
  private:

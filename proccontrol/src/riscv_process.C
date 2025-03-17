@@ -30,6 +30,7 @@
 
 #include <string.h>
 #include <iostream>
+#include "instructionAPI/h/InstructionDecoder.h"
 #include "proccontrol/src/riscv_process.h"
 #include "common/src/arch-riscv64.h"
 #include "registers/riscv64_regs.h"
@@ -277,12 +278,12 @@ async_ret_t riscv_process::readPCForSS(int_thread *thr, Address &pc)
    return aret_success;
 }
 
-async_ret_t riscv_process::readInsnForSS(Address pc, int_thread *, unsigned int &rawInsn)
+async_ret_t riscv_process::readInsnForSS(Address pc, int_thread *, instruction_t &rawInsn)
 {
    if (!plat_needsAsyncIO())
    {
       //Fast-track for linux/riscv
-      mem_response::ptr new_resp = mem_response::createMemResponse((char *) &rawInsn, sizeof(unsigned int));
+      mem_response::ptr new_resp = mem_response::createMemResponse((char *) &rawInsn, sizeof(instruction_t));
       bool result = readMem(pc, new_resp);
       if (!result || new_resp->hasError()) {
          pthrd_printf("Error during memory read for pc\n");
@@ -299,7 +300,7 @@ async_ret_t riscv_process::readInsnForSS(Address pc, int_thread *, unsigned int 
     **/
    map<Address, mem_response::ptr>::iterator i;
    for (i = mem_for_ss.begin(); i != mem_for_ss.end(); i++) {
-      if (pc >= i->first && pc+4 <= i->first + i->second->getSize()) {
+      if (pc >= i->first && pc+sizeof(instruction_t) <= i->first + i->second->getSize()) {
          if (!i->second->isReady()) {
             pthrd_printf("Returning async form memory read while doing emulated single step test\n");
             return aret_async;
@@ -309,7 +310,7 @@ async_ret_t riscv_process::readInsnForSS(Address pc, int_thread *, unsigned int 
             return aret_error;
          }
          Offset offset = pc - i->first;
-         memcpy(&rawInsn, i->second->getBuffer() + offset, sizeof(unsigned int));
+         memcpy(&rawInsn, i->second->getBuffer() + offset, sizeof(instruction_t));
          return aret_success;
       }
    }
@@ -323,7 +324,7 @@ async_ret_t riscv_process::readInsnForSS(Address pc, int_thread *, unsigned int 
    if (page_offset + read_size > page_size) {
       read_size = page_size - page_offset;
    }
-   assert(read_size >= sizeof(unsigned int));
+   assert(read_size >= sizeof(instruction_t));
 
    char *buffer = (char *) malloc(read_size);
    mem_response::ptr new_resp = mem_response::createMemResponse(buffer, read_size);
@@ -337,7 +338,7 @@ async_ret_t riscv_process::readInsnForSS(Address pc, int_thread *, unsigned int 
       pthrd_printf("Returning async from memory read during single step test\n");
       return aret_async;
    }
-   memcpy(&rawInsn, new_resp->getBuffer(), sizeof(unsigned int));
+   memcpy(&rawInsn, new_resp->getBuffer(), sizeof(instruction_t));
    return aret_success;
 }
 
@@ -371,7 +372,7 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
     int currentCount = 0;
     do {
         // Read the current instruction
-        unsigned int rawInsn;
+        instruction_t rawInsn;
         aresult = readInsnForSS(pc, thr, rawInsn);
         if (aresult == aret_error || aresult == aret_async)
            return aresult;
@@ -395,7 +396,7 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
         Address cfTarget;
         if( insn.isBranchReg() ){
 //#warning "Test cases don't cover this type of instruction. Potential bugs here.\n"
-            pthrd_printf("ARM-DEBUG: find Branch Reg instruction, going to retrieve the target address.\n");
+            pthrd_printf("DEBUG: find Branch Reg instruction, going to retrieve the target address.\n");
             // get reg value from the target proc
 
             unsigned regNum = insn.getTargetReg();
@@ -419,7 +420,7 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
         }
 
         currentCount++;
-        pc += 4;
+        pc += sizeof(instruction_t);
     }while( !foundEnd && currentCount < maxSequenceCount );
 
     // The breakpoint should be set at the instruction following the sequence
@@ -435,6 +436,39 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
     }
 
     return aret_success;
+}
+
+async_ret_t riscv_process::plat_emulateSingleStep(int_thread *thr, std::vector<Address> &addrResult) {
+   async_ret_t aresult = plat_needsEmulatedSingleStep(thr, addrResult);
+   if (aresult == aret_error || aresult == aret_async)
+      return aresult;
+   if (addrResult.size() == 0) {
+      Address pc;
+      aresult = readPCForSS(thr, pc);
+      if (aresult == aret_error || aresult == aret_async)
+         return aresult;
+      pthrd_printf("Set breakpoint on the next instruction\n");
+
+      unsigned long long readbuf;
+      mem_response::ptr new_resp = mem_response::createMemResponse((char *) &readbuf, sizeof(readbuf));
+      bool result = readMem(pc, new_resp);
+      if (!result || new_resp->hasError()) {
+         pthrd_printf("Error during memory read for pc\n");
+         return aret_error;
+      }
+      bool ready = new_resp->isReady();
+         
+
+      InstructionAPI::InstructionDecoder decoder(&readbuf,
+                                              sizeof(readbuf),
+                                              getTargetArch());
+
+      InstructionAPI::Instruction cur = decoder.decode();
+      
+      pthrd_printf("Current instruction size is %d str %s\n", cur.size(), cur.format().c_str());
+      addrResult.push_back(pc+cur.size());
+   }
+   return aret_success;
 }
 
 void riscv_process::plat_getEmulatedSingleStepAsyncs(int_thread *, std::set<response::ptr> resps)

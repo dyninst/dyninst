@@ -606,8 +606,10 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                   lib_event->setProcess(proc->proc());
                   lib_event->setSyncType(Event::sync_thread);
                   event->addSubservientEvent(lib_event);
+                  //#endif
                   break;
                }
+
                for (;;) {
                   async_ret_t r = lproc->decodeTdbBreakpoint(event_bp);
                   if (r == aret_error) {
@@ -1488,8 +1490,53 @@ bool linux_thread::plat_cont()
    }
    else if (singleStep())
    {
+      #if defined(DYNINST_HOST_ARCH_RISCV64)
+
+      linux_process *lproc = dynamic_cast<linux_process *>(proc_);
+
+      // RISC-V does not support PTRACE_SINGLESTEP
+      pthrd_printf("Emulate PTRACE_SINGLESTEP on %d with signal %d\n", lwp, tmpSignal);
+      int_thread *thr = thread()->llthrd();
+
+      reg_response::ptr pcResponse = reg_response::createRegResponse();
+      bool result = thr->getRegister(MachRegister::getPC(lproc->getTargetArch()), pcResponse);
+      if (!result || pcResponse->hasError()) {
+         pthrd_printf("Error reading PC address to check for emulated single step condition\n");
+         return aret_error;
+      }
+      bool ready = pcResponse->isReady();
+      assert(ready);
+      if(!ready) return aret_error;
+      Address pc = (Address) pcResponse->getResult();
+      pthrd_printf("SSPC is %lx\n", pc);
+      pthrd_printf("SSPC should %lx\n", lproc->getLibBreakpointAddr());
+      if (pc == lproc->getLibBreakpointAddr()) {
+         pthrd_printf("Emulated single step condition met, clearing it\n");
+         sw_breakpoint *swb = lproc->getBreakpoint(pc);
+         set<response::ptr> all_responses;
+         swb->uninstall(proc_, all_responses);
+      }
+
+      pthrd_printf("Emulating single step on thread %d %d\n", lwp, thr->getLWP());
+      vector<Address> addrs;
+      async_ret_t aresult = llproc()->plat_emulateSingleStep(thr, addrs);
+
+      emulated_singlestep *new_es = thr->getEmulatedSingleStep();
+      if (!new_es)
+         new_es = new emulated_singlestep(thr);
+      
+      for (vector<Address>::iterator j = addrs.begin(); j != addrs.end(); j++) {
+         Address addr = *j;
+         pthrd_printf("Emulating single step on %d at %lx\n", lwp, addr);
+         new_es->add(addr);
+      }
+      result = do_ptrace((pt_req) PTRACE_CONT, lwp, NULL, data);
+      //waitpid(lwp, NULL, 0);
+      //plat_cont();
+      #else
       pthrd_printf("Calling PTRACE_SINGLESTEP on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_SINGLESTEP, lwp, NULL, data);
+      #endif
    }
    else if (syscallMode())
    {
@@ -3016,7 +3063,12 @@ bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
             return false;
          }
          addr = (Dyninst::Address) (reg-val);
-#elif defined(DYNINST_HOST_ARCH_RISCV64)
+#else
+         assert(0);
+#endif
+         break;
+      }
+      case Arch_riscv64:{
          elf_gregset_t regs;
          struct iovec iovec;
          iovec.iov_base = &regs;
@@ -3035,9 +3087,6 @@ bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
 
          uint64_t reg = regs[4]; // tp register where TLS is stored
          addr = (Dyninst::Address) (reg-val);
-#else
-         assert(0);
-#endif
          break;
       }
       default:
