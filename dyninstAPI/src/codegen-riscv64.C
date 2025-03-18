@@ -45,27 +45,11 @@ codeBuf_t *insnCodeGen::insnPtr(codeGen &gen) {
 }
 
 void insnCodeGen::generate(codeGen &gen, instruction &insn) {
-    unsigned raw, size;
-    if (insn.isCompressed()) {
-        raw = insn.asShort();
-        size = 2;
-    } else {
-        raw = insn.asInt();
-        size = 4;
-    }
-    gen.copy(&raw, size);
+    gen.copy(insn.ptr(), insn.size());
 }
 
 void insnCodeGen::generate(codeGen &gen, instruction &insn, unsigned position) {
-    unsigned raw, size;
-    if (insn.isCompressed()) {
-        raw = insn.asShort();
-        size = 2;
-    } else {
-        raw = insn.asInt();
-        size = 4;
-    }
-    gen.insert(&raw, size, position);
+    gen.insert(insn.ptr(), insn.size(), position);
 }
 
 void insnCodeGen::generateIllegal(codeGen &gen) { // instP.h
