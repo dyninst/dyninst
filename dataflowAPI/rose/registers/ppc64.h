@@ -61,7 +61,7 @@ namespace {
         if(baseID >= 1 && baseID <= 282) {
           // xer (1) to dec (22) map directly to the PowerpcSpecialPurposeRegister values
           // sdr1 (25) to ear (282) don't have ROSE representations
-          return std::make_tuple(powerpc_regclass_spr, baseID, 0, 0);
+          return std::make_tuple(powerpc_regclass_spr, baseID, 0, num_bits);
         }
         if(reg == Dyninst::ppc64::tbl_wo || reg == Dyninst::ppc64::tbl_ro) {
           return std::make_tuple(powerpc_regclass_tbr, powerpc_tbr_tbl, 0, num_bits);
