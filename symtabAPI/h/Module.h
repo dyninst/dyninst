@@ -90,18 +90,18 @@ namespace Dyninst { namespace SymtabAPI {
                              bool checkCase = true);
 
     // Type output methods
-    virtual bool findType(boost::shared_ptr<Type> &type, std::string name);
+    virtual bool findType(boost::shared_ptr<Type> &type, std::string const& name);
 
-    bool findType(Type *&t, std::string n) {
+    bool findType(Type *&t, std::string const& n) {
       boost::shared_ptr<Type> tp;
       auto r = findType(tp, n);
       t = tp.get();
       return r;
     }
 
-    virtual bool findVariableType(boost::shared_ptr<Type> &type, std::string name);
+    virtual bool findVariableType(boost::shared_ptr<Type> &type, std::string const& name);
 
-    bool findVariableType(Type *&t, std::string n) {
+    bool findVariableType(Type *&t, std::string const& n) {
       boost::shared_ptr<Type> tp;
       auto r = findVariableType(tp, n);
       t = tp.get();
@@ -133,10 +133,10 @@ namespace Dyninst { namespace SymtabAPI {
     typeCollection *getModuleTypes();
 
     /***** Local Variable Information *****/
-    bool findLocalVariable(std::vector<localVar *> &vars, std::string name);
+    bool findLocalVariable(std::vector<localVar *> &vars, std::string const& name);
 
     /***** Line Number Information *****/
-    bool getAddressRanges(std::vector<AddressRange> &ranges, std::string lineSource,
+    bool getAddressRanges(std::vector<AddressRange> &ranges, std::string const& lineSource,
                           unsigned int LineNo);
     bool getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressInRange);
     bool getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange);
