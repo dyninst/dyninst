@@ -339,7 +339,7 @@ boost::shared_ptr<Type> typeCollection::findType(const int ID, Type::do_share_t)
  *
  * name		The name of the type to look up.
  */
-boost::shared_ptr<Type> typeCollection::findVariableType(std::string &name, Type::do_share_t)
+boost::shared_ptr<Type> typeCollection::findVariableType(std::string const& name, Type::do_share_t)
 {
     dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
     if (globalVarsByName.find(a, name))
