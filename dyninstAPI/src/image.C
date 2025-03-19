@@ -1005,13 +1005,12 @@ pdmodule *image::findModule(const string &name, bool wildcard)
       //
       dyn_hash_map <string, pdmodule *>::iterator mi;
       string str; pdmodule *mod;
-      std::string pds = name.c_str();
 
       for(mi = modsByFileName.begin(); mi != modsByFileName.end() ; mi++)
       {
          str = mi->first;
          mod = mi->second;
-         if (wildcardEquiv(pds, mod->fileName())) {
+         if (wildcardEquiv(name, mod->fileName())) {
             found = mod; 
             break;
          }
@@ -1077,7 +1076,7 @@ void image::findModByAddr (const Symbol *lookUp, vector<Symbol *> &mods,
     if ((index == last) ||
 	((mods[index]->getOffset() <= symAddr) && 
 	 (mods[index+1]->getOffset() > symAddr))) {
-      modName = mods[index]->getMangledName().c_str();
+      modName = mods[index]->getMangledName();
       modAddr = mods[index]->getOffset();      
       found = true;
     } else if (symAddr < mods[index]->getOffset()) {
@@ -1360,7 +1359,7 @@ image::image(fileDescriptor &desc,
    arch(Dyninst::Arch_none)
 {
 #if defined(os_linux) || defined(os_freebsd)
-   string file = desc_.file().c_str();
+   string const& file = desc_.file();
    if( desc_.member().empty() ) {
        startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
        if( !SymtabAPI::Symtab::openFile(linkedFile, file, (BPatch_defensiveMode == mode ? Symtab::Defensive : Symtab::NotDefensive)) ) {
@@ -1372,7 +1371,7 @@ image::image(fileDescriptor &desc,
                desc_.member().c_str());
 
        if( SymtabAPI::Archive::openArchive(archive, file) ) {
-           if( !archive->getMember(linkedFile, const_cast<std::string&>(desc_.member())) ) {
+           if( !archive->getMember(linkedFile, desc_.member())) {
                err = true;
                return;
            }
@@ -1402,9 +1401,9 @@ image::image(fileDescriptor &desc,
 
    err = false;
 
-   name_ = Dyninst::filesystem::extract_filename(string(desc.file().c_str()));
+   name_ = Dyninst::filesystem::extract_filename(desc.file());
 
-   pathname_ = desc.file().c_str();
+   pathname_ = desc.file();
 
    // initialize (data members) codeOffset_, dataOffset_,
    //  codeLen_, dataLen_.
@@ -1563,7 +1562,7 @@ bool pdmodule::findFunctionByMangled( const std::string &name,
     // the problem is that BPatch goes by module and internal goes by image. 
     unsigned orig_size = found.size();
     
-    const std::vector<parse_func *> *obj_funcs = imExec()->findFuncVectorByMangled(name.c_str());
+    const std::vector<parse_func *> *obj_funcs = imExec()->findFuncVectorByMangled(name);
     if (!obj_funcs) {
         return false;
     }
@@ -1603,7 +1602,7 @@ bool pdmodule::findFunctionByPretty( const std::string &name,
     return false;
 }
 
-void pdmodule::dumpMangled(std::string &prefix) const
+void pdmodule::dumpMangled(std::string const& prefix) const
 {
   cerr << fileName() << "::dumpMangled("<< prefix << "): " << endl;
 
@@ -1613,7 +1612,7 @@ void pdmodule::dumpMangled(std::string &prefix) const
       parse_func * pdf = (parse_func*)*fit;
       if (pdf->pdmod() != this) continue;
 
-      if( ! strncmp( pdf->symTabName().c_str(), prefix.c_str(), strlen( prefix.c_str() ) ) ) {
+      if(pdf->symTabName() != prefix) {
           cerr << pdf->symTabName() << " ";
       }
   }
@@ -1795,7 +1794,7 @@ const std::vector<parse_func *> *image::findFuncVectorByPretty(const std::string
     //Have to change here
     std::vector<parse_func *>* res = new std::vector<parse_func *>;
     vector<SymtabAPI::Function *> funcs;
-    linkedFile->findFunctionsByName(funcs, name.c_str(), SymtabAPI::prettyName);
+    linkedFile->findFunctionsByName(funcs, name, SymtabAPI::prettyName);
 
     for(unsigned index=0; index < funcs.size(); index++)
     {
@@ -1821,7 +1820,7 @@ const std::vector <parse_func *> *image::findFuncVectorByMangled(const std::stri
     std::vector<parse_func *>* res = new std::vector<parse_func *>;
 
     vector<SymtabAPI::Function *> funcs;
-    linkedFile->findFunctionsByName(funcs, name.c_str(), SymtabAPI::mangledName);
+    linkedFile->findFunctionsByName(funcs, name, SymtabAPI::mangledName);
 
     for(unsigned index=0; index < funcs.size(); index++) {
         SymtabAPI::Function *symFunc = funcs[index];
@@ -1853,7 +1852,7 @@ const std::vector <image_variable *> *image::findVarVectorByPretty(const std::st
     std::vector<image_variable *>* res = new std::vector<image_variable *>;
 
     vector<Variable *> vars;
-    linkedFile->findVariablesByName(vars, name.c_str(), SymtabAPI::prettyName);
+    linkedFile->findVariablesByName(vars, name, SymtabAPI::prettyName);
     
     for (unsigned index=0; index < vars.size(); index++) {
         Variable *symVar = vars[index];
@@ -1882,7 +1881,7 @@ const std::vector <image_variable *> *image::findVarVectorByMangled(const std::s
     std::vector<image_variable *>* res = new std::vector<image_variable *>;
 
     vector<Variable *> vars;
-    linkedFile->findVariablesByName(vars, name.c_str(), SymtabAPI::mangledName);
+    linkedFile->findVariablesByName(vars, name, SymtabAPI::mangledName);
     
     for (unsigned index=0; index < vars.size(); index++) {
         Variable *symVar = vars[index];
@@ -1974,7 +1973,7 @@ bool image::getExecCodeRanges(std::vector<std::pair<Address, Address> > &ranges)
 
 Symbol *image::symbol_info(const std::string& symbol_name) {
    vector< Symbol *> symbols;
-   if(!(linkedFile->findSymbol(symbols,symbol_name.c_str(),Symbol::ST_UNKNOWN, SymtabAPI::anyName))) 
+   if(!(linkedFile->findSymbol(symbols,symbol_name,Symbol::ST_UNKNOWN, SymtabAPI::anyName)))
        return NULL;
 
    return symbols[0];
@@ -1984,7 +1983,7 @@ bool image::findSymByPrefix(const std::string &prefix, std::vector<Symbol *> &re
     unsigned start;
     vector <Symbol *>found;	
     std::string reg = prefix+std::string("*");
-    if(!linkedFile->findSymbol(found, reg.c_str(), Symbol::ST_UNKNOWN, SymtabAPI::anyName, true))
+    if(!linkedFile->findSymbol(found, reg, Symbol::ST_UNKNOWN, SymtabAPI::anyName, true))
     	return false;
     for(start=0;start< found.size();start++)
 		ret.push_back(found[start]);
@@ -2006,7 +2005,7 @@ std::unordered_map<Address, std::string> *image::getPltFuncs()
    pltFuncs = new std::unordered_map<Address, std::string>;
    assert(pltFuncs);
    for(unsigned k = 0; k < fbt.size(); k++) {
-      (*pltFuncs)[fbt[k].target_addr()] = fbt[k].name().c_str();
+      (*pltFuncs)[fbt[k].target_addr()] = fbt[k].name();
    }
    return pltFuncs;
 }
