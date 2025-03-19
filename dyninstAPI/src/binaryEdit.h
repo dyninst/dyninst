@@ -195,10 +195,6 @@ class BinaryEdit : public AddressSpace {
     Address lowWaterMark_;
     bool isDirty_;
 
-    static bool getStatFileDescriptor(const std::string &file,
-                                      fileDescriptor &desc);
-
-
     bool inferiorMallocStatic(unsigned size);
 
     Address maxAllocedAddr();
