@@ -315,10 +315,6 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file,
     }
 
     BinaryEdit *newBinaryEdit = new BinaryEdit();
-    if (!newBinaryEdit) {
-        startup_printf("%s[%d]: failed to create binary representation for %s!\n",
-                       FILE__, __LINE__, file.c_str());
-    }
 
     newBinaryEdit->mobj = mapped_object::createMappedObject(desc, newBinaryEdit);
     if (!newBinaryEdit->mobj) {
