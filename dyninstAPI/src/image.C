@@ -1145,6 +1145,9 @@ image *image::parseImage(fileDescriptor &desc,
 
   startup_printf("%s[%d]:  about to create image\n", FILE__, __LINE__);
   image *ret = new image(desc, err, mode, parseGaps); 
+  if(err) {
+    return nullptr;
+  }
   startup_printf("%s[%d]:  created image\n", FILE__, __LINE__);
 
   if (ret->isSharedLibrary()) 
