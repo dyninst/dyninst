@@ -1612,7 +1612,8 @@ void pdmodule::dumpMangled(std::string const& prefix) const
       parse_func * pdf = (parse_func*)*fit;
       if (pdf->pdmod() != this) continue;
 
-      if(pdf->symTabName() != prefix) {
+      if(pdf->symTabName().find(prefix) != 0UL) {
+          // the name starts with the prefix
           cerr << pdf->symTabName() << " ";
       }
   }
