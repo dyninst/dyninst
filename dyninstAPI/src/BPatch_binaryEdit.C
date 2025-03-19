@@ -80,11 +80,6 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
 {
   pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
 
-  std::vector<std::string> argv_vec;
-  std::vector<std::string> envp_vec;
-
-  std::string directoryName = "";
-
   startup_printf("[%s:%d] - Opening original file %s\n",
                  FILE__, __LINE__, path);
   origBinEdit = BinaryEdit::openFile(std::string(path));
