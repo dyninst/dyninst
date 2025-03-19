@@ -39,11 +39,11 @@ class MappedFile {
      static dyn_hash_map<std::string, MappedFile *> mapped_files;
 
    public:
-      DYNINST_EXPORT static MappedFile *createMappedFile(std::string fullpath_);
+      DYNINST_EXPORT static MappedFile *createMappedFile(std::string const& fullpath_);
       DYNINST_EXPORT static MappedFile *createMappedFile(void *map_loc, unsigned long size_, const std::string &name);
       DYNINST_EXPORT static void closeMappedFile(MappedFile *&mf);
 
-      DYNINST_EXPORT std::string filename();
+      DYNINST_EXPORT std::string const& filename() const;
       DYNINST_EXPORT void *base_addr() {return map_addr;}
 #if defined(os_windows)
       DYNINST_EXPORT HANDLE getFileHandle() {return hFile;}
@@ -59,11 +59,11 @@ class MappedFile {
    private:
 
       MappedFile(std::string fullpath_, bool &ok);
-      MappedFile(void *loc, unsigned long size_, const std::string & name, bool &ok);
+      MappedFile(void *loc, unsigned long size_, std::string name, bool &ok);
       ~MappedFile();
       bool clean_up();
 
-      bool check_path(std::string &);
+      bool check_path(std::string const& );
       bool open_file();
       bool open_file(void *, unsigned long size_ = 0);
       bool map_file();
