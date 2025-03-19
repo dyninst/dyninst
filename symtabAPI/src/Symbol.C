@@ -173,7 +173,7 @@ DYNINST_EXPORT bool Symbol::setSymbolType(SymbolType sType)
     return true;
 }
 
-DYNINST_EXPORT bool Symbol::setVersionFileName(std::string &fileName)
+DYNINST_EXPORT bool Symbol::setVersionFileName(std::string fileName)
 {
    std::string *fn_p = NULL;
    if (getAnnotation(fn_p, SymbolFileNameAnno)) 
@@ -183,7 +183,7 @@ DYNINST_EXPORT bool Symbol::setVersionFileName(std::string &fileName)
    else
    {
       //  not sure if we need to copy here or not, so let's do it...
-      std::string *fn = new std::string(fileName);
+      std::string *fn = new std::string(std::move(fileName));
       if (!addAnnotation(fn, SymbolFileNameAnno)) 
       {
          return false;
@@ -242,7 +242,7 @@ DYNINST_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers) const
 
 DYNINST_EXPORT bool Symbol::setMangledName(std::string name)
 {
-   mangledName_ = name;
+   mangledName_ = std::move(name);
    setStrIndex(-1);
    return true;
 }

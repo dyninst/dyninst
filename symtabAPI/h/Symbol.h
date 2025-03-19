@@ -231,7 +231,7 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
    bool  setDebug(bool dbg) { isDebug_ = dbg; return true; }
    bool  setCommonStorage(bool cs) { isCommonStorage_ = cs; return true; }
 
-   bool  setVersionFileName(std::string &fileName);
+   bool  setVersionFileName(std::string fileName);
    bool  setVersions(std::vector<std::string> &vers);
    bool  setVersionNum(unsigned verNum);
    void setVersionHidden() { versionHidden_ = true; }
@@ -293,15 +293,15 @@ class DYNINST_EXPORT LookupInterface
                                             bool isRegex = false,
                                             bool checkCase = false,
                                             bool includeUndefined = false) = 0;
-      virtual bool findType(boost::shared_ptr<Type>& type, std::string name) = 0;
-      bool findType(Type*& t, std::string n) {
+      virtual bool findType(boost::shared_ptr<Type>& type, std::string const& name) = 0;
+      bool findType(Type*& t, std::string const& n) {
         boost::shared_ptr<Type> tp;
         auto r = findType(tp, n);
         t = tp.get();
         return r;
       }
-      virtual bool findVariableType(boost::shared_ptr<Type>& type, std::string name)= 0;
-      bool findVariableType(Type*& t, std::string n) {
+      virtual bool findVariableType(boost::shared_ptr<Type>& type, std::string const& name)= 0;
+      bool findVariableType(Type*& t, std::string const& n) {
         boost::shared_ptr<Type> tp;
         auto r = findVariableType(tp, n);
         t = tp.get();
