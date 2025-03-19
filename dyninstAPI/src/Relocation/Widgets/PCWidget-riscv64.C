@@ -47,18 +47,57 @@ using namespace Relocation;
 using namespace InstructionAPI;
 
 bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuffer &buffer) {
-  // TODO
-  return true;
+    if (templ.addrSpace()->proc()) {
+        std::vector<unsigned char> newInsn;
+        codeGen gen(16);
+        gen.applyTemplate(templ);
+        Address origRet = addr() + insn_.size();
+        insnCodeGen::loadImmIntoReg(gen, 1 /* x1(ra) */, origRet);
+        buffer.addPIC(gen, tracker(t));
+    }
+    else {
+        IPPatch *newPatch = new IPPatch(IPPatch::Push, addr_, insn_, t->block(), t->func());
+        buffer.addPatch(newPatch, tracker(t));
+    }
+    return true;
 }
 
 bool PCWidget::PCtoReg(const codeGen &templ, const RelocBlock *t, CodeBuffer &buffer) {
-  // TODO
-  return true;
+    Register reg = convertRegID(a_.reg());
+    if(templ.addrSpace()->proc()) {
+        codeGen gen(16);
+        insnCodeGen::loadImmIntoReg(gen, reg, addr_);
+        buffer.addPIC(gen, tracker(t));
+    }
+    else {
+        IPPatch *newPatch = new IPPatch(IPPatch::Reg, addr_, reg, thunkAddr_, insn_, t->block(), t->func());
+        buffer.addPatch(newPatch, tracker(t));
+    }
+    return true;
 }
 
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/emit-riscv64.h"
 bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
-  // TODO
-  return true;
+    instPoint *point = gen.point();
+    // If we do not have a point then we have to invent one
+    if (!point || (point->type() != instPoint::PreInsn && point->insnAddr() != addr)) {
+        point = instPoint::preInsn(func, block, addr, insn, true);
+    }
+    assert(point);
+
+    registerSpace *rs = registerSpace::actualRegSpace(point);
+    gen.setRegisterSpace(rs);
+
+    // Calculate the offset between current PC and original RA
+    EmitterRISCV64* emitter = static_cast<EmitterRISCV64*>(gen.emitter());
+    Address RAOffset = addr - emitter->emitMovePCToReg(1 /* x1(ra) */, gen) + 4;
+    // Load the offset into a scratch register
+    std::vector<Register> exclude;
+    exclude.push_back(1 /* x1(ra) */);
+    Register scratchReg = insnCodeGen::moveValueToReg(gen, RAOffset, &exclude);
+    // Put the original RA into LR
+    insnCodeGen::generateAdd(gen, 1 /* x1(ra) */, scratchReg, 1 /* x1(ra) */);
+    // Do a jump to the actual target (so do not overwrite LR)
+    insnCodeGen::generateBranch(gen, gen.currAddr(), addr, false);
 }
