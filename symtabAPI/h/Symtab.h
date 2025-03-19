@@ -117,11 +117,11 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
       NotDefensive,
       Defensive} def_t; 
 
-   static bool openFile(Symtab *&obj, std::string filename, 
+   static bool openFile(Symtab *&obj, std::string const& filename,
                                       def_t defensive_binary = NotDefensive);
    static bool openFile(Symtab *&obj, void *mem_image, size_t size, 
-                                      std::string name, def_t defensive_binary = NotDefensive);
-   static Symtab *findOpenSymtab(std::string filename);
+                                      std::string const& name, def_t defensive_binary = NotDefensive);
+   static Symtab *findOpenSymtab(std::string const& filename);
    static bool closeSymtab(Symtab *);
 
    bool getRegValueAtFrame(Address pc, 
@@ -160,7 +160,7 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    // Function
 
    bool findFuncByEntryOffset(Function *&ret, const Offset offset);
-   bool findFunctionsByName(std::vector<Function *> &ret, const std::string name,
+   bool findFunctionsByName(std::vector<Function *> &ret, std::string const& name,
                                           NameType nameType = anyName, 
                                           bool isRegex = false,
                                           bool checkCase = true);
@@ -174,7 +174,7 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
 
    // Variable
    bool findVariablesByOffset(std::vector<Variable *> &ret, const Offset offset);
-   bool findVariablesByName(std::vector<Variable *> &ret, const std::string name,
+   bool findVariablesByName(std::vector<Variable *> &ret, std::string const& name,
                                           NameType nameType = anyName, 
                                           bool isRegex = false, 
                                           bool checkCase = true);
@@ -196,7 +196,7 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    bool getAllRegions(std::vector<Region *>&ret);
    bool getAllNewRegions(std::vector<Region *>&ret);
    //  change me to use a hash
-   bool findRegion(Region *&ret, std::string regname);
+   bool findRegion(Region *&ret, std::string const& regname);
    bool findRegion(Region *&ret, const Offset addr, const unsigned long size);
    bool findRegionByEntry(Region *&ret, const Offset offset);
    Region *findEnclosingRegion(const Offset offset);
@@ -218,8 +218,8 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
 
    bool addSymbol(Symbol *newsym);
    bool addSymbol(Symbol *newSym, Symbol *referringSymbol);
-   Function *createFunction(std::string name, Offset offset, size_t size, Module *mod = NULL);
-   Variable *createVariable(std::string name, Offset offset, size_t size, Module *mod = NULL);
+   Function *createFunction(std::string const& name, Offset offset, size_t size, Module *mod = NULL);
+   Variable *createVariable(std::string const& name, Offset offset, size_t size, Module *mod = NULL);
 
    bool deleteFunction(Function *func);
    bool deleteVariable(Variable *var);
@@ -242,7 +242,7 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
 
    /***** Line Number Information *****/
    bool getAddressRanges(std::vector<AddressRange> &ranges,
-                         std::string lineSource, unsigned int LineNo);
+                         std::string const& lineSource, unsigned int LineNo);
    bool getSourceLines(std::vector<Statement::Ptr> &lines,
                        Offset addressInRange);
    bool getSourceLines(std::vector<LineNoTuple> &lines,
@@ -251,8 +251,8 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    bool getTruncateLinePaths();
    
    /***** Type Information *****/
-   virtual bool findType(boost::shared_ptr<Type>& type, std::string name);
-   bool findType(Type*& t, std::string n) {
+   virtual bool findType(boost::shared_ptr<Type>& type, std::string const& name);
+   bool findType(Type*& t, std::string const& n) {
      boost::shared_ptr<Type> tp;
      auto r = findType(tp, n);
      t = tp.get();
@@ -260,8 +260,8 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    }
    virtual boost::shared_ptr<Type> findType(unsigned type_id, Type::do_share_t);
    Type* findType(unsigned i) { return findType(i, Type::share).get(); }
-   virtual bool findVariableType(boost::shared_ptr<Type>& type, std::string name);
-   bool findVariableType(Type*& t, std::string n) {
+   virtual bool findVariableType(boost::shared_ptr<Type>& type, std::string const& name);
+   bool findVariableType(Type*& t, std::string const& n) {
      boost::shared_ptr<Type> tp;
      auto r = findVariableType(tp, n);
      t = tp.get();
@@ -293,7 +293,7 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    void parseTypesNow();
 
    /***** Local Variable Information *****/
-   bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
+   bool findLocalVariable(std::vector<localVar *>&vars, std::string const& name);
 
    /***** Relocation Sections *****/
    bool hasRel() const;
@@ -306,15 +306,15 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    bool isStaticBinary() const;
 
    /***** Write Back binary functions *****/
-   bool emitSymbols(Object *linkedFile, std::string filename, unsigned flag = 0);
+   bool emitSymbols(Object *linkedFile, std::string const& filename, unsigned flag = 0);
    bool addRegion(Offset vaddr, void *data, unsigned int dataSize, 
-         std::string name, Region::RegionType rType_, bool loadable = false,
+         std::string const& name, Region::RegionType rType_, bool loadable = false,
          unsigned long memAlign = sizeof(unsigned), bool tls = false);
    bool addRegion(Region *newreg);
-   bool emit(std::string filename, unsigned flag = 0);
+   bool emit(std::string const& filename, unsigned flag = 0);
 
-   void addDynLibSubstitution(std::string oldName, std::string newName);
-   std::string getDynLibSubstitution(std::string name);
+   void addDynLibSubstitution(std::string const& oldName, std::string const& newName);
+   std::string getDynLibSubstitution(std::string const& name);
 
    bool getSegments(std::vector<Segment> &segs) const;
    
@@ -328,7 +328,7 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    bool updateData(void *buffer, unsigned size);
    Offset getFreeOffset(unsigned size);
 
-   bool addLibraryPrereq(std::string libname);
+   bool addLibraryPrereq(std::string const& libname);
    bool addSysVDynamic(long name, long value);
 
    bool addLinkingResource(Archive *library);
@@ -340,9 +340,9 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    bool updateRelocations(Address start, Address end, Symbol *oldsym, Symbol *newsym);
 
    /***** Data Member Access *****/
-   std::string file() const;
+   std::string const& file() const;
    std::string name() const;
-   std::string memberName() const;
+   std::string const& memberName() const;
 
    char *mem_image() const;
 
@@ -373,13 +373,13 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    Offset fileToMemOffset(Dyninst::Offset) const;
 
 
-   std::string getDefaultNamespacePrefix() const;
+   std::string const& getDefaultNamespacePrefix() const;
 
    unsigned getNumberOfRegions() const;
    unsigned getNumberOfSymbols() const;
 
    std::vector<std::string> &getDependencies();
-   bool removeLibraryDependency(std::string lib);
+   bool removeLibraryDependency(std::string const& lib);
 
    Archive *getParentArchive() const;
 
@@ -394,7 +394,7 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    /***** Private Member Functions *****/
    private:
 
-   Symtab(std::string filename, bool defensive_bin, bool &err);
+   Symtab(std::string const& filename, bool defensive_bin, bool &err);
 
    bool extractInfo(Object *linkedFile);
 
@@ -455,7 +455,7 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    void parseLineInformation();
    
    void parseTypes();
-   bool setDefaultNamespacePrefix(std::string &str);
+   bool setDefaultNamespacePrefix(std::string str);
 
    bool addUserRegion(Region *newreg);
    bool addUserType(Type *newtypeg);
