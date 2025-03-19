@@ -86,11 +86,11 @@ std::string Archive::printError(SymtabError err)
    }
 }
 
-std::string Archive::name() {
+std::string const& Archive::name() {
     return mf->filename();
 }
 
-bool Archive::openArchive(Archive * &img, std::string filename)
+bool Archive::openArchive(Archive * &img, std::string const& filename)
 {
     bool err = false;
 
@@ -145,7 +145,7 @@ bool Archive::openArchive(Archive * &img, char *mem_image, size_t size)
     return err;
 }
 
-bool Archive::getMember(Symtab *&img, string& member_name) 
+bool Archive::getMember(Symtab *&img, string const& member_name)
 {
     dyn_hash_map<string, ArchiveMember *>::iterator mem_it;
     mem_it = membersByName.find(member_name);
@@ -185,7 +185,7 @@ bool Archive::getMemberByOffset(Symtab *&img, Offset memberOffset)
     return true;
 }
 
-bool Archive::getMemberByGlobalSymbol(Symtab *&img, string& symbol_name) 
+bool Archive::getMemberByGlobalSymbol(Symtab *&img, string const& symbol_name)
 {
     if( !symbolTableParsed ) {
        if( !parseSymbolTable() ) {
@@ -223,7 +223,7 @@ bool Archive::getMemberByGlobalSymbol(Symtab *&img, string& symbol_name)
     return true;
 }
 
-bool Archive::getMembersBySymbol(std::string name,
+bool Archive::getMembersBySymbol(std::string const& name,
                                  std::vector<Symtab *> &matches) {
    if (!symbolTableParsed && !parseSymbolTable())
       return false;
@@ -260,7 +260,7 @@ bool Archive::getAllMembers(vector<Symtab *> &members)
     return true;
 }
 
-bool Archive::isMemberInArchive(std::string& member_name) 
+bool Archive::isMemberInArchive(std::string const& member_name)
 {
     if (membersByName.count(member_name)) return true;
     return false;
@@ -278,7 +278,7 @@ bool Archive::isMemberInArchive(std::string& member_name)
  * for every member in an Archive and then searching each of these Symtab objects
  * for the symbol.
  */
-bool Archive::findMemberWithDefinition(Symtab * &obj, std::string& name)
+bool Archive::findMemberWithDefinition(Symtab * &obj, std::string const& name)
 {
     std::vector<Symtab *> members;
     if( !getAllMembers(members) ) {

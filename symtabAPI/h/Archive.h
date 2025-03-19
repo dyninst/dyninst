@@ -50,10 +50,10 @@ class Symtab;
  */
 class DYNINST_EXPORT ArchiveMember {
     public:
-        ArchiveMember() : name_(""), offset_(0), member_(NULL) {}
-        ArchiveMember(const std::string name, const Offset offset,
+        ArchiveMember() = default;
+        ArchiveMember(std::string name, const Offset offset,
                 Symtab * img = NULL) :
-            name_(name), 
+            name_(std::move(name)),
             offset_(offset), 
             member_(img) 
         {}
@@ -66,31 +66,31 @@ class DYNINST_EXPORT ArchiveMember {
         void setSymtab(Symtab *img) { member_ = img; }
 
     private:
-        const std::string name_;
-        Offset offset_;
-        Symtab *member_;
+        const std::string name_{};
+        Offset offset_{};
+        Symtab *member_{};
 };
 
 class DYNINST_EXPORT Archive : public AnnotatableSparse {
    public:
-      static bool openArchive(Archive *&img, std::string filename);
+      static bool openArchive(Archive *&img, std::string const& filename);
       static bool openArchive(Archive *&img, char *mem_image, size_t image_size);
       static SymtabError getLastError();
       static std::string printError(SymtabError err);
 
       ~Archive();
-      bool getMember(Symtab *&img, std::string& member_name);
+      bool getMember(Symtab *&img, std::string const& member_name);
       bool getMemberByOffset(Symtab *&img, Offset memberOffset);
-      bool getMemberByGlobalSymbol(Symtab *&img, std::string& symbol_name);
+      bool getMemberByGlobalSymbol(Symtab *&img, std::string const& symbol_name);
       bool getAllMembers(std::vector<Symtab *> &members);
-      bool isMemberInArchive(std::string& member_name);
-      bool findMemberWithDefinition(Symtab *&obj, std::string& name);
-      std::string name();
+      bool isMemberInArchive(std::string const& member_name);
+      bool findMemberWithDefinition(Symtab *&obj, std::string const& name);
+      std::string const& name();
 
-      bool getMembersBySymbol(std::string name, std::vector<Symtab *> &matches);
+      bool getMembersBySymbol(std::string const& name, std::vector<Symtab *> &matches);
 
    private:
-      Archive(std::string &filename, bool &err);
+      Archive(std::string const& filename, bool &err);
       Archive(char *mem_image, size_t image_size, bool &err);
 
       /**
