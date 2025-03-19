@@ -545,7 +545,7 @@ class pdmodule {
                                std::vector<parse_func *> &found);
    bool findFunctionByPretty (const std::string &name,
                               std::vector<parse_func *> &found);
-   void dumpMangled(std::string &prefix) const;
+   void dumpMangled(std::string const& prefix) const;
    const string &fileName() const;
    SymtabAPI::supportedLanguages language() const;
    Address addr() const;

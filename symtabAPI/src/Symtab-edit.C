@@ -253,7 +253,7 @@ bool Symtab::addSymbol(Symbol *newSym)
 }
 
 
-Function *Symtab::createFunction(std::string name, 
+Function *Symtab::createFunction(std::string const& name,
                                  Offset offset, 
                                  size_t sz,
                                  Module *mod)
@@ -313,7 +313,7 @@ Function *Symtab::createFunction(std::string name,
 
 
 
-Variable *Symtab::createVariable(std::string name, 
+Variable *Symtab::createVariable(std::string const& name,
                                  Offset offset, 
                                  size_t sz,
                                  Module *mod)

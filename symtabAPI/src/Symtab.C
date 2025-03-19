@@ -427,7 +427,7 @@ void Symtab::setTOCOffset(Offset off) {
   return;
 }
 
-DYNINST_EXPORT string Symtab::getDefaultNamespacePrefix() const
+DYNINST_EXPORT string const& Symtab::getDefaultNamespacePrefix() const
 {
     return defaultNamespacePrefix;
 }
@@ -746,7 +746,7 @@ void Symtab::setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *m
          continue;  // need to find some way to get shared object languages?
       }
 
-      const std::string fn = currmod->fileName();
+      std::string const& fn = currmod->fileName();
       if (mod_langs->find(currmod->fileName()) != mod_langs->end())
       {
          currLang = (*mod_langs)[fn];
@@ -807,7 +807,7 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
     return mod;
 }
 
-Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) : Symtab()
+Symtab::Symtab(std::string const& filename, bool defensive_bin, bool &err) : Symtab()
 {
    isDefensiveBinary_ = defensive_bin;
 
@@ -1285,7 +1285,7 @@ Symtab::~Symtab()
 }	
 
 bool Symtab::openFile(Symtab *&obj, void *mem_image, size_t size, 
-                      std::string name, def_t def_bin)
+                      std::string const& name, def_t def_bin)
 {
    bool err = false;
 #if defined(TIMED_PARSE)
@@ -1341,7 +1341,7 @@ bool Symtab::closeSymtab(Symtab *st)
 	return found;
 }
 
-Symtab *Symtab::findOpenSymtab(std::string filename)
+Symtab *Symtab::findOpenSymtab(std::string const& filename)
 {
    unsigned numSymtabs = allSymtabs.size();
 	for (unsigned u=0; u<numSymtabs; u++) 
@@ -1358,7 +1358,7 @@ Symtab *Symtab::findOpenSymtab(std::string filename)
 	return NULL;
 }
 
-bool Symtab::openFile(Symtab *&obj, std::string filename, def_t def_binary)
+bool Symtab::openFile(Symtab *&obj, std::string const& filename, def_t def_binary)
 {
    bool err = false;
 #if defined(TIMED_PARSE)
@@ -1404,7 +1404,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename, def_t def_binary)
    return !err;
 }
 
-bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::string name, 
+bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::string const& name,
         Region::RegionType rType_, bool loadable, unsigned long memAlign, bool tls)
 {
    Region *sec;
@@ -1518,7 +1518,7 @@ void Symtab::parseLineInformation()
 }
 
 DYNINST_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
-                                            std::string lineSource, unsigned int lineNo)
+                                            std::string const& lineSource, unsigned int lineNo)
 {
    unsigned int originalSize = ranges.size();
    parseLineInformation();
@@ -1626,7 +1626,7 @@ DYNINST_EXPORT void Symtab::getAllbuiltInTypes(vector<boost::shared_ptr<Type>>& 
    return builtInTypes()->getAllBuiltInTypes(v);
 }
 
-DYNINST_EXPORT bool Symtab::findType(boost::shared_ptr<Type> &type, std::string name)
+DYNINST_EXPORT bool Symtab::findType(boost::shared_ptr<Type> &type, std::string const& name)
 {
    parseTypesNow();
 
@@ -1685,7 +1685,7 @@ DYNINST_EXPORT boost::shared_ptr<Type> Symtab::findType(unsigned type_id, Type::
    return t;	
 }
 
-DYNINST_EXPORT bool Symtab::findVariableType(boost::shared_ptr<Type>& type, std::string name)
+DYNINST_EXPORT bool Symtab::findVariableType(boost::shared_ptr<Type>& type, std::string const& name)
 {
    parseTypesNow();
     type = NULL;
@@ -1703,7 +1703,7 @@ DYNINST_EXPORT bool Symtab::findVariableType(boost::shared_ptr<Type>& type, std:
    return true;	
 }
 
-DYNINST_EXPORT bool Symtab::findLocalVariable(std::vector<localVar *>&vars, std::string name)
+DYNINST_EXPORT bool Symtab::findLocalVariable(std::vector<localVar *>&vars, std::string const& name)
 {
    parseTypesNow();
    unsigned origSize = vars.size();
@@ -1754,13 +1754,13 @@ DYNINST_EXPORT bool Symtab::isStaticBinary() const
    return isStaticBinary_;
 }
 
-bool Symtab::setDefaultNamespacePrefix(string &str)
+bool Symtab::setDefaultNamespacePrefix(string str)
 {
-   defaultNamespacePrefix = str;
+   defaultNamespacePrefix = std::move(str);
    return true;
 }
 
-DYNINST_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsigned flag)
+DYNINST_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string const& filename, unsigned flag)
 {
     // Start with all the defined symbols
     std::set<Symbol* > allSyms;
@@ -1774,7 +1774,7 @@ DYNINST_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename,
     return linkedFile->emitDriver(filename, allSyms, flag);
 }
 
-DYNINST_EXPORT bool Symtab::emit(std::string filename, unsigned flag)
+DYNINST_EXPORT bool Symtab::emit(std::string const& filename, unsigned flag)
 {
 	Object *obj = getObject();
 	if (!obj)
@@ -1785,12 +1785,12 @@ DYNINST_EXPORT bool Symtab::emit(std::string filename, unsigned flag)
    return emitSymbols(obj, filename, flag);
 }
 
-DYNINST_EXPORT void Symtab::addDynLibSubstitution(std::string oldName, std::string newName)
+DYNINST_EXPORT void Symtab::addDynLibSubstitution(std::string const& oldName, std::string const& newName)
 {
    dynLibSubs[oldName] = newName;
 }
 
-DYNINST_EXPORT std::string Symtab::getDynLibSubstitution(std::string name)
+DYNINST_EXPORT std::string Symtab::getDynLibSubstitution(std::string const& name)
 {
    map<std::string, std::string>::iterator loc = dynLibSubs.find(name);
 
@@ -1984,7 +1984,7 @@ DYNINST_EXPORT char *Symtab::mem_image() const
    return (char *)impl->mf->base_addr();
 }
 
-DYNINST_EXPORT std::string Symtab::file() const 
+DYNINST_EXPORT std::string const& Symtab::file() const
 {
    assert(impl->mf);
    return impl->mf->filename();
@@ -1995,7 +1995,7 @@ DYNINST_EXPORT std::string Symtab::name() const
   return Dyninst::filesystem::extract_filename(impl->mf->filename());
 }
 
-DYNINST_EXPORT std::string Symtab::memberName() const 
+DYNINST_EXPORT std::string const& Symtab::memberName() const
 {
     return member_name_;
 }
@@ -2072,7 +2072,7 @@ DYNINST_EXPORT Offset Symtab::getElfDynamicOffset()
 #endif
 }
 
-DYNINST_EXPORT bool Symtab::removeLibraryDependency(std::string lib)
+DYNINST_EXPORT bool Symtab::removeLibraryDependency(std::string const& lib)
 {
 #if defined(os_windows)
    return false;
@@ -2085,7 +2085,7 @@ DYNINST_EXPORT bool Symtab::removeLibraryDependency(std::string lib)
 #endif
 }
    
-DYNINST_EXPORT bool Symtab::addLibraryPrereq(std::string name)
+DYNINST_EXPORT bool Symtab::addLibraryPrereq(std::string const& name)
 {
    Object *obj = getObject();
 	if (!obj)

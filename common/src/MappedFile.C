@@ -34,7 +34,7 @@ using namespace std;
 
 dyn_hash_map<std::string, MappedFile *> MappedFile::mapped_files;
 
-MappedFile *MappedFile::createMappedFile(std::string fullpath_)
+MappedFile *MappedFile::createMappedFile(std::string const& fullpath_)
 {
    //fprintf(stderr, "%s[%d]:  createMappedFile %s\n", FILE__, __LINE__, fullpath_.c_str());
    if (mapped_files.find(fullpath_) != mapped_files.end()) {
@@ -92,7 +92,7 @@ MappedFile *MappedFile::createMappedFile(std::string fullpath_)
 }
 
 MappedFile::MappedFile(std::string fullpath_, bool &ok) :
-   fullpath(fullpath_),
+   fullpath(std::move(fullpath_)),
 	   map_addr(NULL),
 #if defined(os_windows)
 	   hMap(NULL),
@@ -131,8 +131,8 @@ MappedFile *MappedFile::createMappedFile(void *loc, unsigned long size_, const s
   return mf;
 }
 
-MappedFile::MappedFile(void *loc, unsigned long size_, const std::string &name, bool &ok) :
-   fullpath(name),
+MappedFile::MappedFile(void *loc, unsigned long size_, std::string name, bool &ok) :
+   fullpath(std::move(name)),
 	map_addr(NULL),
 #if defined(os_windows)
 	hMap(NULL),
@@ -211,7 +211,7 @@ MappedFile::~MappedFile()
       close_file();
 }
 
-bool MappedFile::check_path(std::string &filename)
+bool MappedFile::check_path(std::string const& filename)
 {
    struct stat statbuf;
    if (0 != stat(filename.c_str(), &statbuf)) {
@@ -414,7 +414,7 @@ bool MappedFile::close_file()
    return true;
 }
 
-std::string MappedFile::filename()
+std::string const& MappedFile::filename() const
 {
 	return fullpath;
 }

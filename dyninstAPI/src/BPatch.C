@@ -1837,7 +1837,10 @@ void BPatch::getBPatchVersion(int &major, int &minor, int &subminor)
 }
 
 BPatch_binaryEdit *BPatch::openBinary(const char *path, bool openDependencies /* = false */) {
-   BPatch_binaryEdit *editor = new BPatch_binaryEdit(path, openDependencies);
+  if(!path) {
+    return nullptr;
+  }
+  BPatch_binaryEdit *editor = new BPatch_binaryEdit(path, openDependencies);
    if (!editor)
       return NULL;
    if (editor->creation_error) {

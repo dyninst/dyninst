@@ -148,8 +148,8 @@ public:
       return &dynamic_cast<T&>(*addOrUpdateType(boost::dynamic_pointer_cast<T>(t->reshare())));
     }
 
-    boost::shared_ptr<Type> findVariableType(std::string &name, Type::do_share_t);
-    Type* findVariableType(std::string& n) { return findVariableType(n, Type::share).get(); }
+    boost::shared_ptr<Type> findVariableType(std::string const& name, Type::do_share_t);
+    Type* findVariableType(std::string const& n) { return findVariableType(n, Type::share).get(); }
 
     void getAllTypes(std::vector<boost::shared_ptr<Type>>&);
     std::vector<Type*>* getAllTypes() {

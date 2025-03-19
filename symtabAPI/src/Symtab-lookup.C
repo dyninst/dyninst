@@ -256,7 +256,7 @@ bool sort_by_func_ptr(const Function *a, const Function *b) {
     return a < b;
 }
 
-bool Symtab::findFunctionsByName(std::vector<Function *> &ret, const std::string name,
+bool Symtab::findFunctionsByName(std::vector<Function *> &ret, std::string const& name,
                                  NameType nameType, bool isRegex, bool checkCase) {
     std::vector<Symbol *> funcSyms;
     if (!findSymbol(funcSyms, name, Symbol::ST_FUNCTION, nameType, isRegex, checkCase)) {
@@ -316,7 +316,7 @@ static bool sort_by_var_ptr(const Variable * a, const Variable *b) {
     return a < b;
 }
 
-bool Symtab::findVariablesByName(std::vector<Variable *> &ret, const std::string name,
+bool Symtab::findVariablesByName(std::vector<Variable *> &ret, std::string const& name,
                                  NameType nameType, bool isRegex, bool checkCase) {
     std::vector<Symbol *> varSyms;
     if (!findSymbol(varSyms, name, Symbol::ST_OBJECT, nameType, isRegex, checkCase))
@@ -527,7 +527,7 @@ Region *Symtab::findEnclosingRegion(const Offset where)
     return NULL;
 }
 
-bool Symtab::findRegion(Region *&ret, const std::string secName)
+bool Symtab::findRegion(Region *&ret, std::string const& secName)
 {
     for(unsigned index=0;index<regions_.size();index++)
     {

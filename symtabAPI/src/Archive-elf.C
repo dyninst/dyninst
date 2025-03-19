@@ -39,7 +39,7 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-Archive::Archive(std::string& filename, bool& err)
+Archive::Archive(std::string const& filename, bool& err)
     : basePtr(NULL), symbolTableParsed(false)
 {
     mf = MappedFile::createMappedFile(filename);

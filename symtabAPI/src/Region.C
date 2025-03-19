@@ -43,7 +43,7 @@ Region *Region::createRegion( Offset diskOff, perm_t perms, RegionType regType,
                               char *rawDataPtr, bool isLoadable, bool isTLS,
                               unsigned long memAlign)
 {
-   Region *newreg = new Region(0, name, diskOff, 
+   Region *newreg = new Region(0, std::move(name), diskOff,
                                diskSize, memOff, memSize, 
                                rawDataPtr, perms, regType, isLoadable, isTLS,
                                memAlign);
@@ -61,7 +61,7 @@ Region::Region(unsigned regnum, std::string name, Offset diskOff,
                     unsigned long diskSize, Offset memOff, unsigned long memSize,
                     char *rawDataPtr, perm_t perms, RegionType regType, bool isLoadable,
                     bool isThreadLocal, unsigned long memAlignment) :
-    regNum_(regnum), name_(name), diskOff_(diskOff), diskSize_(diskSize), memOff_(memOff),
+    regNum_(regnum), name_(std::move(name)), diskOff_(diskOff), diskSize_(diskSize), memOff_(memOff),
     memSize_(memSize), fileOff_(0), rawDataPtr_(rawDataPtr), permissions_(perms), rType_(regType),
     isDirty_(false), buffer_(NULL), isLoadable_(isLoadable), isTLS_(isThreadLocal),
     memAlign_(memAlignment), symtab_(NULL)
