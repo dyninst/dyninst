@@ -82,8 +82,8 @@ else()
         PREFIX ${PROJECT_BINARY_DIR}/binutils
         URL
           ${DYNINST_BINUTILS_DOWNLOAD_URL}
-          http://ftpmirror.gnu.org/gnu/binutils/binutils-2.40.tar.gz
-          http://mirrors.kernel.org/sourceware/binutils/releases/binutils-2.40.tar.gz
+          http://ftpmirror.gnu.org/gnu/binutils/binutils-2.42.tar.gz
+          http://mirrors.kernel.org/sourceware/binutils/releases/binutils-2.42.tar.gz
         BUILD_IN_SOURCE 1
         CONFIGURE_COMMAND
             ${CMAKE_COMMAND} -E env CC=${CMAKE_C_COMPILER} CFLAGS=-fPIC\ -O3
