@@ -8,5 +8,5 @@ find_package(Threads ${_required})
 
 if(NOT Threads_FOUND)
   # make a dummy
-  add_library(Threads::Threads INTERFACE)
+  add_library(Threads::Threads INTERFACE IMPORTED)
 endif()

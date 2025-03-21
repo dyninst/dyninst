@@ -13,7 +13,7 @@ include_guard(GLOBAL)
 # thread_db is only available on Unixes; provide a dummy target on other platforms
 if(NOT UNIX)
   if(NOT TARGET Dyninst::Thread_DB)
-    add_library(Dyninst::Thread_DB INTERFACE)
+    add_library(Dyninst::Thread_DB INTERFACE IMPORTED)
   endif()
   return()
 endif()

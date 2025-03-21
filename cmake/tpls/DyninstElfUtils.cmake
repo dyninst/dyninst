@@ -20,7 +20,7 @@ include_guard(GLOBAL)
 # elfutils is only available on Unixes; provide a dummy target on other platforms
 if(NOT UNIX)
   if(NOT TARGET Dyninst::ElfUtils)
-    add_library(Dyninst::ElfUtils INTERFACE)
+    add_library(Dyninst::ElfUtils INTERFACE IMPORTED)
   endif()
   return()
 endif()
