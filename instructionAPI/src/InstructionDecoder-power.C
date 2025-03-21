@@ -302,11 +302,29 @@ which are both 0).
        *  The conventional return sequence is to use `bclr` (Branch
        *  Conditional to Link Register) with BH=0b00.
        *********************************************************************/
-      auto target = makeRegisterExpression(ppc32::lr);
-      insn_in_progress->addSuccessor(std::move(target), false, true, bcIsConditional, false);
+      bool const is_subroutine_return = [this]() {
+        auto const bh_field = field<19,20>(insn);
+        return bh_field == 0;
+      }();
 
-      if(bcIsConditional) {
-        insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
+      bool const is_conditional = !is_subroutine_return;
+
+      {
+        auto target = makeRegisterExpression(ppc32::lr);
+        constexpr bool is_call = false;
+        constexpr bool is_indirect = true;
+        constexpr bool is_fallthrough = false;
+        insn_in_progress->addSuccessor(std::move(target), is_call, is_indirect, is_conditional,
+                                       is_fallthrough);
+      }
+
+      if(is_conditional) {
+        auto target = makeFallThroughExpr();
+        constexpr bool is_call = false;
+        constexpr bool is_indirect = false;
+        constexpr bool is_fallthrough = true;
+        insn_in_progress->addSuccessor(std::move(target), is_call, is_indirect, is_conditional,
+                                       is_fallthrough);
       }
     }
     if(current->op == power_op_bcctr) {
