@@ -20,7 +20,10 @@ include_guard(GLOBAL)
 
 cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
-if(NOT UNIX)
+if(NOT DYNINST_ENABLE_FILEFORMAT_PE)
+  if(NOT TARGET Dyninst::PeParse)
+    add_library(Dyninst::PeParse INTERFACE)
+  endif()
   return()
 endif()
 
@@ -30,18 +33,12 @@ if(PeParse_ROOT_DIR)
   set(_find_path_args NO_CMAKE_SYSTEM_PATH NO_SYSTEM_ENVIRONMENT_PATH)
 endif()
 
-if(DYNINST_ENABLE_FILEFORMAT_PE)
-  find_package(pe-parse REQUIRED ${_find_path_args})
-else()
-  set(pe-parse_FOUND FALSE)
-endif()
+find_package(pe-parse REQUIRED ${_find_path_args})
 
 if(NOT TARGET Dyninst::PeParse)
   add_library(Dyninst::PeParse INTERFACE IMPORTED)
-  if(pe-parse_FOUND)
-    target_include_directories(
-      Dyninst::PeParse SYSTEM
-      INTERFACE $<TARGET_PROPERTY:pe-parse::pe-parse,INTERFACE_INCLUDE_DIRECTORIES>)
-    target_link_libraries(Dyninst::PeParse INTERFACE pe-parse::pe-parse)
-  endif()
+  target_include_directories(
+    Dyninst::PeParse SYSTEM
+    INTERFACE $<TARGET_PROPERTY:pe-parse::pe-parse,INTERFACE_INCLUDE_DIRECTORIES>)
+  target_link_libraries(Dyninst::PeParse INTERFACE pe-parse::pe-parse)
 endif()
