@@ -43,11 +43,15 @@ RUN apt-get -qq update && \
       libtbb-dev
       
 
-COPY docker/dependencies.versions /
+COPY docker/dependencies.versions docker/build_peparse.sh /
 
 RUN <<EOD bash
   set -ex
   
+  # Build pe-parse
+  bash build_peparse.sh
+  
+  # Build elfutils
   if test "${build_elfutils}" = "no"; then
 
     # Use the distro-provided one
