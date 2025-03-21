@@ -22,7 +22,7 @@ cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
 if(NOT DYNINST_ENABLE_FILEFORMAT_PE)
   if(NOT TARGET Dyninst::PeParse)
-    add_library(Dyninst::PeParse INTERFACE)
+    add_library(Dyninst::PeParse INTERFACE IMPORTED)
   endif()
   return()
 endif()
