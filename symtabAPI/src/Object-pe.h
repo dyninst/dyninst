@@ -74,6 +74,8 @@ public:
       return rgn != regions_.end() ? *rgn : NULL;
     }
 
+    void rebase(Offset new_base) override;
+
 private:
     ObjectPE(const ObjectPE &);
     const ObjectPE& operator=(const ObjectPE &);

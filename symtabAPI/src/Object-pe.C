@@ -29,9 +29,13 @@
  */
 #include "symtabAPI/src/Object-pe.h"
 #include <pe-parse/parse.h>
+#include "debug.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
+
+static Offset readRelocTarget(const void *ptr, peparse::reloc_type type);
+static void writeRelocTarget(void *ptr, peparse::reloc_type type, Offset val);
 
 Region::perm_t ObjectPE::getRegionPerms(std::uint32_t flags)
 {
@@ -255,6 +259,19 @@ void ObjectPE::parse_object()
         };
     peparse::IterExpVA(parsed_pe_, export_iterator, this);
 
+    /* Iterate over relocations */
+    peparse::iterReloc relocation_iterator =
+        [](void *N, const peparse::VA &ra, const peparse::reloc_type &rel_type) -> int {
+            ObjectPE *obj = static_cast<ObjectPE*>(N);
+            Region *sec = obj->findEnclosingRegion((Offset)ra);
+            if (!sec) return 0; // TODO
+            const uint8_t *ptr = (const uint8_t *)sec->getPtrToRawData() + ((Offset)ra - (Offset)sec->getMemOffset());
+            Offset ta = readRelocTarget(ptr, rel_type);
+            sec->addRelocationEntry(relocationEntry(ta, ra, 0, "", NULL, (unsigned long)rel_type, Region::RT_REL));
+            return 0;
+        };
+    peparse::IterRelocs(parsed_pe_, relocation_iterator, this);
+
     no_of_symbols_ = nsymbols();
 }
 
@@ -365,4 +382,83 @@ int ObjectPE::getArchWidth() const
         default:
             return -1;
     }
+}
+
+static Offset readRelocTarget(const void *ptr, peparse::reloc_type type)
+{
+    switch (type) {
+        case peparse::RELOC_ABSOLUTE:
+            return 0;
+        case peparse::RELOC_HIGH:
+            return (uint32_t)(*(const uint16_t *)ptr) << 16;
+        case peparse::RELOC_LOW:
+            return *(const uint16_t *)ptr;
+        case peparse::RELOC_HIGHLOW:
+            return *(const uint32_t *)ptr;
+        case peparse::RELOC_HIGHADJ:
+            return readRelocTarget(ptr, peparse::RELOC_HIGH) | readRelocTarget((const uint8_t *)ptr + 2, peparse::RELOC_LOW);
+        case peparse::RELOC_DIR64:
+            return *(const uint64_t *)ptr;
+        case peparse::RELOC_MIPS_JMPADDR:
+        case peparse::RELOC_MIPS_JMPADDR16:
+        default:
+            create_printf("Unsupported relocation type '%d' in PE file\n", static_cast<int>(type));
+            return 0;
+    }
+}
+
+static void writeRelocTarget(void *ptr, peparse::reloc_type type, Offset val)
+{
+    switch (type) {
+        case peparse::RELOC_ABSOLUTE:
+            break;
+        case peparse::RELOC_HIGH:
+            *(uint16_t *)ptr = (val >> 16) & 0xffff;
+            break;
+        case peparse::RELOC_LOW:
+            *(uint16_t *)ptr = (uint16_t)val;
+            break;
+        case peparse::RELOC_HIGHLOW:
+            *(uint32_t *)ptr = (uint32_t)val;
+            break;
+        case peparse::RELOC_HIGHADJ:
+            writeRelocTarget(ptr, peparse::RELOC_HIGH, val);
+            writeRelocTarget((uint8_t *)ptr + 2, peparse::RELOC_LOW, val);
+            break;
+        case peparse::RELOC_DIR64:
+            *(uint64_t *)ptr = (uint64_t)val;
+            break;
+        case peparse::RELOC_MIPS_JMPADDR:
+        case peparse::RELOC_MIPS_JMPADDR16:
+        default:
+            create_printf("Unsupported relocation type '%d' in PE file\n", static_cast<int>(type));
+            break;
+    }
+}
+
+void ObjectPE::rebase(Offset new_base)
+{
+    Offset delta = new_base - loadAddress_;
+    for (Region *r : regions_) {
+        for (relocationEntry &rel : r->getRelocations()) {
+            if ((peparse::reloc_type)rel.getRelType() == peparse::RELOC_ABSOLUTE) {
+                continue;
+            }
+            uint8_t *ptr = (uint8_t *)r->getPtrToRawData() + ((Offset)rel.rel_addr() - (Offset)r->getMemOffset());
+            Offset val = readRelocTarget(ptr, (peparse::reloc_type)rel.getRelType());
+            assert(rel.target_addr() == val);
+            writeRelocTarget(ptr, (peparse::reloc_type)rel.getRelType(), val + delta);
+            assert(val + delta == readRelocTarget(ptr, (peparse::reloc_type)rel.getRelType()));
+            rel.setTargetAddr(val + delta);
+            rel.setRelAddr(rel.rel_addr() + delta);
+        }
+        r->setMemOffset(r->getMemOffset() + delta);
+    }
+    for (std::pair<const std::string, std::vector<Symbol*>> &p : symbols_) {
+        for (Symbol *s : p.second) {
+            s->setOffset(s->getOffset() + delta);
+        }
+    }
+    entryAddress_ += delta;
+    loadAddress_ = new_base;
 }
