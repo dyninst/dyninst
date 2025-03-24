@@ -20,7 +20,7 @@ include_guard(GLOBAL)
 # libiberty is only available on Unixes; provide a dummy target on other platforms
 if(NOT UNIX)
   if(NOT TARGET Dyninst::LibIberty)
-    add_library(Dyninst::LibIberty INTERFACE)
+    add_library(Dyninst::LibIberty INTERFACE IMPORTED)
   endif()
   return()
 endif()
