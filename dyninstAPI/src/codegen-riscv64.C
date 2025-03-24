@@ -52,339 +52,15 @@ void insnCodeGen::generate(codeGen &gen, instruction &insn, unsigned position) {
     gen.insert(insn.ptr(), insn.size(), position);
 }
 
-void insnCodeGen::generateIllegal(codeGen &gen) { // instP.h
-    instruction insn;
-    generate(gen,insn);
-}
-
-void insnCodeGen::generateTrap(codeGen &gen) {
-    instruction insn(BREAK_POINT_INSN);
-    generate(gen,insn);
-}
-
-void insnCodeGen::generateJump(codeGen &gen, Dyninst::RegValue offset) {
-    assert((offset & 1) == 0);
-    assert(offset >= -0x100000 && offset < 0x100000);
-
-    if (offset >= -4096 && offset < 4096) {
-        // use c.j
-        generateCJump(gen, offset);
-        return;
-    }
-    generateJumpAndLink(gen, 0, offset);
-}
-
-void insnCodeGen::generateJumpAndLink(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue offset) {
-    assert((offset & 1) == 0);
-    assert(offset >= -0x100000 && offset < 0x100000);
-
-    if (rd == 1 /* the default link register is ra (x1) */ && offset >= -4096 && offset < 4096) {
-        // use c.jal
-        generateCJumpAndLink(gen, offset);
-        return;
-    }
-
-    generateJTypeInsn(gen, rd, offset, JALOp);
-}
-
-void insnCodeGen::generateJumpRegister(codeGen &gen, Dyninst::Register rs, Dyninst::RegValue offset) {
-    assert(offset >= -0x800 && offset < 0x800);
-
-    if (offset == 0) {
-        // use c.j
-        generateCJumpRegister(gen, rs);
-        return;
-    }
-    generateJumpAndLinkRegister(gen, 0, rs, offset);
-}
-
-void insnCodeGen::generateJumpAndLinkRegister(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue offset) {
-    assert(offset >= -0x800 && offset < 0x800);
-
-    if (offset == 0 && rd == 1) {
-        // use c.jal
-        generateCJumpAndLinkRegister(gen, rs);
-        return;
-    }
-
-    // JALR is an I-Type instruction
-    generateITypeInsn(gen, rd, rs, offset, JALRFunct3, JALROp);
-}
-
-void insnCodeGen::generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Address to) {
-    generateBranch(gen, from, to, true);
-}
-
-void insnCodeGen::generateLongBranch(codeGen &gen,
-                                     Dyninst::Address from,
-                                     Dyninst::Address to,
-                                     bool isCall) 
-{
-    Dyninst::Register scratch = Null_Register;
-
-    if (isCall) {
-        // use the link register ra (x1) as scratch since it will be overwritten at return
-        scratch = GPR_RA;
-        // load disp to ra
-        loadImmIntoReg(gen, scratch, to);
-        // generate jalr
-        generateJumpAndLinkRegister(gen, scratch, scratch, 0);
-        return;
-    }
-
-    instPoint *point = gen.point();
-    if (point) {
-        registerSpace *rs = registerSpace::actualRegSpace(point);
-        gen.setRegisterSpace(rs);
-
-        scratch = rs->getScratchRegister(gen, true);
-    }
-
-    if (scratch == Null_Register) {
-        //fprintf(stderr, " %s[%d] No registers. Calling generateBranchViaTrap...\n", FILE__, __LINE__);
-        generateBranchViaTrap(gen, from, to, isCall);
-        return;
-    }
-
-    loadImmIntoReg(gen, scratch, to);
-    generateJumpRegister(gen, scratch, 0);
-}
-
-void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link) {
-    if (link) {
-        if (labs(disp) > MAX_BRANCH_LINK_OFFSET) {
-            fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
-                    (unsigned long)labs(disp), (unsigned long) MAX_BRANCH_OFFSET);
-            bperr( "Error: attempted a branch and link of 0x%lx\n", (unsigned long)disp);
-            logLine("a branch and link too far\n");
-            showErrorCallback(52, "Internal error: branch and link too far");
-            bperr( "Attempted to make a branch and link of offset 0x%lx\n", (unsigned long)disp);
-            assert(0);
-        }
-        generateJumpAndLink(gen, GPR_RA, disp);
-    }
-    else {
-        if (labs(disp) > MAX_BRANCH_OFFSET) {
-            fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
-                    (unsigned long)labs(disp), (unsigned long) MAX_BRANCH_OFFSET);
-            bperr( "Error: attempted a branch of 0x%lx\n", (unsigned long)disp);
-            logLine("a branch too far\n");
-            showErrorCallback(52, "Internal error: branch too far");
-            bperr( "Attempted to make a branch of offset 0x%lx\n", (unsigned long)disp);
-            assert(0);
-        }
-        generateJump(gen, disp);
-    }
-}
-
-void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool link) {
-    long disp = (to - from);
-    if (labs(disp) > MAX_BRANCH_OFFSET) {
-        generateLongBranch(gen, from, to, link);
-    }
-    else {
-        generateBranch(gen, disp, link);
-    }
-}
-
-void insnCodeGen::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool isCall) {
-    // TODO
-}
-
-
-void insnCodeGen::generateBranchEqual(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm)
-{
-    generateBTypeInsn(gen, rs1, rs2, imm, BEQFunct3, BRANCHOp);
-}
-
-void insnCodeGen::generateBranchNotEqual(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm)
-{
-    generateBTypeInsn(gen, rs1, rs2, imm, BNEFunct3, BRANCHOp);
-}
-
-void insnCodeGen::generateBranchLessThan(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm)
-{
-    generateBTypeInsn(gen, rs1, rs2, imm, BLTFunct3, BRANCHOp);
-}
-
-void insnCodeGen::generateBranchGreaterThanEqual(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm)
-{
-    generateBTypeInsn(gen, rs1, rs2, imm, BGEFunct3, BRANCHOp);
-}
-
-void insnCodeGen::generateBranchLessThanUnsigned(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm)
-{
-    generateBTypeInsn(gen, rs1, rs2, imm, BLTUFunct3, BRANCHOp);
-}
-
-void insnCodeGen::generateBranchGreaterThanEqualUnsigned(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm)
-{
-    generateBTypeInsn(gen, rs1, rs2, imm, BGEUFunct3, BRANCHOp);
-}
-
-Dyninst::Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, std::vector<Dyninst::Register> *exclude) {
-    Dyninst::Register scratchReg;
-    if (exclude) {
-	    scratchReg = gen.rs()->getScratchRegister(gen, *exclude, true);
-    }
-    else {
-	    scratchReg = gen.rs()->getScratchRegister(gen, true);
-    }
-
-    if (scratchReg == Null_Register) {
-        fprintf(stderr, " %s[%d] No scratch register available to generate add instruction!", FILE__, __LINE__);
-        assert(0);
-    }
-
-    loadImmIntoReg(gen, scratchReg, static_cast<Dyninst::RegValue>(val));
-
-    return scratchReg;
-}
-
-
-void insnCodeGen::loadImmIntoReg(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue value) {
-    generateLoadImm(gen, rd, value);
-}
-
-// Generate memory access through Load or Store
-// Instructions generated:
-//     LDR/STR (immediate) for 32-bit or 64-bit
-//     LDRB/STRB (immediate) for 8-bit
-//     LDRH/STRH  (immediate) for 16-bit
-//
-// Encoding classes allowed: Post-index, Pre-index and Unsigned Offset
-void insnCodeGen::generateMemLoad(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue offset, Dyninst::RegValue size, bool isUnsigned)
-{
-    assert(size == 1 || size == 2 || size == 4 || size == 8);
-    // no "ldu" instruction, but treat "ldu" as ld
-    //assert(!(size == 8 && isUnsigned));
-    assert(offset >= -0x800 && offset < 0x800);
-
-    Dyninst::RegValue funct3{};
-    switch (size) {
-        case 1: funct3 = 0x0; break; // lb = 000
-        case 2: funct3 = 0x1; break; // lh = 001
-        case 4: funct3 = 0x2; break; // lw = 010
-        case 8: funct3 = 0x4; break; // ld = 011
-        default: break;              // not gonna happen
-    }
-    if (isUnsigned) {
-        funct3 |= 0x4; // lbu = 100, lhu = 101, lwu = 110
-    }
-
-    // Load instructions are I-Type
-    generateITypeInsn(gen, rd, rs, offset, funct3, LOADOp);
-}
-
-void insnCodeGen::generateMemStore(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue offset, Dyninst::RegValue size)
-{
-    assert(size == 1 || size == 2 || size == 4 || size == 8);
-    assert(offset >= -0x800 && offset < 0x800);
-
-    Dyninst::RegValue funct3{};
-    switch (size) {
-        case 1: funct3 = 0x0; break; // lb = 000
-        case 2: funct3 = 0x1; break; // lh = 001
-        case 4: funct3 = 0x2; break; // lw = 010
-        case 8: funct3 = 0x4; break; // ld = 011
-        default: break;              // not gonna happen
-    }
-
-    // Store instructions are S-Type
-    generateSTypeInsn(gen, rs1, rs2, offset, funct3, STOREOp);
-}
-
-void insnCodeGen::generateMemLoadFp(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue offset, Dyninst::RegValue size)
-{
-    // TODO Load instructions for FPRs
-}
-
-void insnCodeGen::generateMemStoreFp(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue offset, Dyninst::RegValue size)
-{
-    // TODO Store instructions for FPRs
-}
-
-//
-// generate an instruction that does nothing and has to side affect except to
-//   advance the program counter.
-//
-
-
-void insnCodeGen::saveRegister(codeGen &gen, Dyninst::Register r, int sp_offset)
-{
-    generateMemStore(gen, REG_SP, r, sp_offset, 8);
-}
-
-
-void insnCodeGen::restoreRegister(codeGen &gen, Dyninst::Register r, int sp_offset)
-{
-    generateMemLoad(gen, r, REG_SP, sp_offset, 8, true);
-}
-
-
-// Helper method.  Fills register with partial value to be completed
-// by an operation with a 16-bit signed immediate.  Such as loads and
-// stores.
-void insnCodeGen::loadPartialImmIntoReg(codeGen &, Dyninst::Register, long)
-{
-    // TODO
-}
-
-int insnCodeGen::createStackFrame(codeGen &, int, std::vector<Dyninst::Register>& freeReg, std::vector<Dyninst::Register>&){
-    // Not used
-    assert(0);
-    return 0;
-}
-
-void insnCodeGen::removeStackFrame(codeGen &) {
-    // Not used
-    assert(0);
-}
-
-bool insnCodeGen::modifyJump(Dyninst::Address target,
-                             NS_riscv64::instruction &insn,
-                             codeGen &gen) {
-    // TODO
-    return true;
-}
-
-/* TODO and/or FIXME
- * The logic used by this function is common across architectures but is replicated 
- * in architecture-specific manner in all codegen-* files.
- * This means that the logic itself needs to be refactored into the (platform 
- * independent) codegen.C file. Appropriate architecture-specific,
- * bit-twiddling functions can then be defined if necessary in the codegen-* files 
- * and called as necessary by the common, refactored logic.
-*/
-bool insnCodeGen::modifyJcc(Dyninst::Address target,
-			    NS_riscv64::instruction &insn,
-			    codeGen &gen) {
-    // TODO
-    return true;
-}
-
-bool insnCodeGen::modifyCall(Dyninst::Address target,
-                             NS_riscv64::instruction &insn,
-                             codeGen &gen) {
-    if (insn.isUncondBranch())
-        return modifyJump(target, insn, gen);
-    else
-        return modifyJcc(target, insn, gen);
-}
-
-bool insnCodeGen::modifyData(Dyninst::Address target,
-        NS_riscv64::instruction &insn,
-        codeGen &gen) 
-{
-    // TODO
-    return true;
-}
-
 // Basic RISC-V instruction type generation
 
 // U-type
 
-void insnCodeGen::generateUTypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm, unsigned opcode) {
+void insnCodeGen::generateUTypeInsn(codeGen &gen,
+                                    Dyninst::Register rd,
+                                    Dyninst::RegValue imm,
+                                    unsigned opcode)
+{
     assert(imm >= -0x80000 && imm < 0x80000);
 
     instruction insn{};
@@ -398,7 +74,13 @@ void insnCodeGen::generateUTypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst:
 
 // I-type
 
-void insnCodeGen::generateITypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm, unsigned funct3, unsigned opcode) {
+void insnCodeGen::generateITypeInsn(codeGen &gen,
+                                    Dyninst::Register rd,
+                                    Dyninst::Register rs,
+                                    Dyninst::RegValue imm,
+                                    unsigned funct3,
+                                    unsigned opcode)
+{
     assert(imm >= -0x800 && imm < 0x800);
 
     instruction insn{};
@@ -414,7 +96,14 @@ void insnCodeGen::generateITypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst:
 
 // R-type
 
-void insnCodeGen::generateRTypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2, unsigned funct7, unsigned funct3, unsigned opcode) {
+void insnCodeGen::generateRTypeInsn(codeGen &gen,
+                                    Dyninst::Register rd,
+                                    Dyninst::Register rs1,
+                                    Dyninst::Register rs2,
+                                    unsigned funct7,
+                                    unsigned funct3,
+                                    unsigned opcode)
+{
     instruction insn{};
 
     INSN_SET(insn, 25, 31, funct7); // funct7
@@ -429,7 +118,13 @@ void insnCodeGen::generateRTypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst:
 
 // B-type
 
-void insnCodeGen::generateBTypeInsn(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm, unsigned funct3, unsigned opcode) {
+void insnCodeGen::generateBTypeInsn(codeGen &gen,
+                                    Dyninst::Register rs1,
+                                    Dyninst::Register rs2,
+                                    Dyninst::RegValue imm,
+                                    unsigned funct3,
+                                    unsigned opcode)
+{
     assert(imm >= -4096 && imm < 4096);        // 13-bit signed immediate
 
     instruction insn{};
@@ -447,7 +142,11 @@ void insnCodeGen::generateBTypeInsn(codeGen &gen, Dyninst::Register rs1, Dyninst
 
 // J-Type
 
-void insnCodeGen::generateJTypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm, unsigned opcode) {
+void insnCodeGen::generateJTypeInsn(codeGen &gen,
+                                    Dyninst::Register rd,
+                                    Dyninst::RegValue imm,
+                                    unsigned opcode)
+{
     assert(imm >= -0x100000 && imm < 0x100000); // 21-bit signed immediate
 
     instruction insn{};
@@ -462,9 +161,15 @@ void insnCodeGen::generateJTypeInsn(codeGen &gen, Dyninst::Register rd, Dyninst:
     insnCodeGen::generate(gen, insn);
 }
 
-// S-Type Instruction
+// S-Type
 
-void insnCodeGen::generateSTypeInsn(codeGen &gen, Dyninst::Register rs1, Dyninst::Register rs2, Dyninst::RegValue imm, unsigned funct3, unsigned opcode) {
+void insnCodeGen::generateSTypeInsn(codeGen &gen,
+                                    Dyninst::Register rs1,
+                                    Dyninst::Register rs2,
+                                    Dyninst::RegValue imm,
+                                    unsigned funct3,
+                                    unsigned opcode)
+{
     assert(imm >= -800 && imm < 0x800);         // 12-bit signed immediate
 
     instruction insn{};
@@ -478,204 +183,724 @@ void insnCodeGen::generateSTypeInsn(codeGen &gen, Dyninst::Register rs1, Dyninst
     insnCodeGen::generate(gen, insn);
 }
 
+void insnCodeGen::generateIllegal(codeGen &gen) { // instP.h
+    instruction insn;
+    generate(gen,insn);
+}
+
+void insnCodeGen::generateTrap(codeGen &gen,
+                               bool use_compressed) {
+    instruction insn(BREAK_POINT_INSN);
+    generate(gen,insn);
+}
+
+void insnCodeGen::generateJump(codeGen &gen,
+                               Dyninst::RegValue offset,
+                               bool use_compressed)
+{
+    assert((offset & 1) == 0);
+    assert(offset >= -0x100000 && offset < 0x100000);
+
+    if (use_compressed) {
+        if (offset >= -4096 && offset < 4096) {
+            // use c.j
+            generateCJump(gen, offset);
+            return;
+        }
+    }
+    generateJumpAndLink(gen, 0, offset);
+}
+
+void insnCodeGen::generateJumpAndLink(codeGen &gen,
+                                      Dyninst::Register rd,
+                                      Dyninst::RegValue offset,
+                                      bool use_compressed)
+{
+    assert((offset & 1) == 0);
+    assert(offset >= -0x100000 && offset < 0x100000);
+
+    if (use_compressed) {
+        if (rd == 1 /* the default link register is ra (x1) */ && offset >= -4096 && offset < 4096) {
+            // use c.jal
+            generateCJumpAndLink(gen, offset);
+            return;
+        }
+    }
+
+    generateJTypeInsn(gen, rd, offset, JALOp);
+}
+
+void insnCodeGen::generateJumpRegister(codeGen &gen,
+                                       Dyninst::Register rs,
+                                       Dyninst::RegValue offset,
+                                       bool use_compressed)
+{
+    assert(offset >= -0x800 && offset < 0x800);
+
+    if (use_compressed) {
+        if (offset == 0) {
+            // use c.j
+            generateCJumpRegister(gen, rs);
+            return;
+        }
+    }
+    generateJumpAndLinkRegister(gen, 0, rs, offset);
+}
+
+void insnCodeGen::generateJumpAndLinkRegister(codeGen &gen,
+                                              Dyninst::Register rd,
+                                              Dyninst::Register rs,
+                                              Dyninst::RegValue offset,
+                                              bool use_compressed)
+{
+    assert(offset >= -0x800 && offset < 0x800);
+
+    if (use_compressed) {
+        if (offset == 0 && rd == 1) {
+            // use c.jal
+            generateCJumpAndLinkRegister(gen, rs);
+            return;
+        }
+    }
+
+    // JALR is an I-Type instruction
+    generateITypeInsn(gen, rd, rs, offset, JALRFunct3, JALROp);
+}
+
+void insnCodeGen::generateCall(codeGen &gen,
+                               Dyninst::Address from,
+                               Dyninst::Address to,
+                               bool use_compressed)
+{
+    generateBranch(gen, from, to, true, use_compressed);
+}
+
+void insnCodeGen::generateLongBranch(codeGen &gen,
+                                     Dyninst::Address from,
+                                     Dyninst::Address to,
+                                     bool isCall,
+                                     bool use_compressed) 
+{
+    Dyninst::Register scratch = Null_Register;
+
+    if (isCall) {
+        // use the link register ra (x1) as scratch since it will be overwritten at return
+        scratch = GPR_RA;
+        // load disp to ra
+        loadImmIntoReg(gen, scratch, to, use_compressed);
+        // generate jalr
+        generateJumpAndLinkRegister(gen, scratch, scratch, 0, use_compressed);
+        return;
+    }
+
+    instPoint *point = gen.point();
+    if (point) {
+        registerSpace *rs = registerSpace::actualRegSpace(point);
+        gen.setRegisterSpace(rs);
+
+        scratch = rs->getScratchRegister(gen, true);
+    }
+
+    if (scratch == Null_Register) {
+        //fprintf(stderr, " %s[%d] No registers. Calling generateBranchViaTrap...\n", FILE__, __LINE__);
+        generateBranchViaTrap(gen, from, to, isCall, use_compressed);
+        return;
+    }
+
+    loadImmIntoReg(gen, scratch, to, use_compressed);
+    generateJumpRegister(gen, scratch, 0, use_compressed);
+}
+
+void insnCodeGen::generateBranch(codeGen &gen,
+                                 long disp,
+                                 bool link,
+                                 bool use_compressed)
+{
+    if (link) {
+        if (labs(disp) > MAX_BRANCH_LINK_OFFSET) {
+            fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
+                    (unsigned long)labs(disp), (unsigned long) MAX_BRANCH_OFFSET);
+            bperr( "Error: attempted a branch and link of 0x%lx\n", (unsigned long)disp);
+            logLine("a branch and link too far\n");
+            showErrorCallback(52, "Internal error: branch and link too far");
+            bperr( "Attempted to make a branch and link of offset 0x%lx\n", (unsigned long)disp);
+            assert(0);
+        }
+        generateJumpAndLink(gen, GPR_RA, disp, use_compressed);
+    }
+    else {
+        if (labs(disp) > MAX_BRANCH_OFFSET) {
+            fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
+                    (unsigned long)labs(disp), (unsigned long) MAX_BRANCH_OFFSET);
+            bperr( "Error: attempted a branch of 0x%lx\n", (unsigned long)disp);
+            logLine("a branch too far\n");
+            showErrorCallback(52, "Internal error: branch too far");
+            bperr( "Attempted to make a branch of offset 0x%lx\n", (unsigned long)disp);
+            assert(0);
+        }
+        generateJump(gen, disp, use_compressed);
+    }
+}
+
+void insnCodeGen::generateBranch(codeGen &gen,
+                                 Dyninst::Address from,
+                                 Dyninst::Address to,
+                                 bool link,
+                                 bool use_compressed)
+{
+    long disp = (to - from);
+    if (labs(disp) > MAX_BRANCH_OFFSET) {
+        generateLongBranch(gen, from, to, link, use_compressed);
+    }
+    else {
+        generateBranch(gen, disp, link, use_compressed);
+    }
+}
+
+void insnCodeGen::generateBranchViaTrap(codeGen &gen,
+                                        Dyninst::Address from,
+                                        Dyninst::Address to,
+                                        bool isCall,
+                                        bool use_compressed)
+{
+    // TODO
+}
+
+
+void insnCodeGen::generateBranchEqual(codeGen &gen,
+                                      Dyninst::Register rs1,
+                                      Dyninst::Register rs2,
+                                      Dyninst::RegValue imm,
+                                      bool use_compressed)
+{
+    if (use_compressed) {
+        // TODO
+    }
+    generateBTypeInsn(gen, rs1, rs2, imm, BEQFunct3, BRANCHOp);
+}
+
+void insnCodeGen::generateBranchNotEqual(codeGen &gen,
+                                         Dyninst::Register rs1,
+                                         Dyninst::Register rs2,
+                                         Dyninst::RegValue imm,
+                                         bool use_compressed)
+{
+    if (use_compressed) {
+        // TODO
+    }
+    generateBTypeInsn(gen, rs1, rs2, imm, BNEFunct3, BRANCHOp);
+}
+
+void insnCodeGen::generateBranchLessThan(codeGen &gen,
+                                         Dyninst::Register rs1,
+                                         Dyninst::Register rs2,
+                                         Dyninst::RegValue imm,
+                                         bool use_compressed)
+{
+    if (use_compressed) {
+        // TODO
+    }
+    generateBTypeInsn(gen, rs1, rs2, imm, BLTFunct3, BRANCHOp);
+}
+
+void insnCodeGen::generateBranchGreaterThanEqual(codeGen &gen,
+                                                 Dyninst::Register rs1,
+                                                 Dyninst::Register rs2,
+                                                 Dyninst::RegValue imm,
+                                                 bool use_compressed)
+{
+    if (use_compressed) {
+        // TODO
+    }
+    generateBTypeInsn(gen, rs1, rs2, imm, BGEFunct3, BRANCHOp);
+}
+
+void insnCodeGen::generateBranchLessThanUnsigned(codeGen &gen,
+                                                 Dyninst::Register rs1,
+                                                 Dyninst::Register rs2,
+                                                 Dyninst::RegValue imm,
+                                                 bool use_compressed)
+{
+    if (use_compressed) {
+        // TODO
+    }
+    generateBTypeInsn(gen, rs1, rs2, imm, BLTUFunct3, BRANCHOp);
+}
+
+void insnCodeGen::generateBranchGreaterThanEqualUnsigned(codeGen &gen,
+                                                         Dyninst::Register rs1,
+                                                         Dyninst::Register rs2,
+                                                         Dyninst::RegValue imm,
+                                                         bool use_compressed)
+{
+    if (use_compressed) {
+        // TODO
+    }
+    generateBTypeInsn(gen, rs1, rs2, imm, BGEUFunct3, BRANCHOp);
+}
+
+Dyninst::Register insnCodeGen::moveValueToReg(codeGen &gen,
+                                              long int val,
+                                              std::vector<Dyninst::Register> *exclude,
+                                              bool use_compressed)
+{
+    Dyninst::Register scratchReg;
+    if (exclude) {
+	    scratchReg = gen.rs()->getScratchRegister(gen, *exclude, true);
+    }
+    else {
+	    scratchReg = gen.rs()->getScratchRegister(gen, true);
+    }
+
+    if (scratchReg == Null_Register) {
+        fprintf(stderr, " %s[%d] No scratch register available to generate add instruction!", FILE__, __LINE__);
+        assert(0);
+    }
+
+    loadImmIntoReg(gen, scratchReg, static_cast<Dyninst::RegValue>(val), use_compressed);
+
+    return scratchReg;
+}
+
+
+void insnCodeGen::loadImmIntoReg(codeGen &gen,
+                                 Dyninst::Register rd,
+                                 Dyninst::RegValue value,
+                                 bool use_compressed)
+{
+    generateLoadImm(gen, rd, value, use_compressed);
+}
+
+// Generate memory access through Load or Store
+void insnCodeGen::generateMemLoad(codeGen &gen,
+                                  Dyninst::Register rd,
+                                  Dyninst::Register rs,
+                                  Dyninst::RegValue offset,
+                                  Dyninst::RegValue size,
+                                  bool isUnsigned,
+                                  bool use_compressed)
+{
+    assert(size == 1 || size == 2 || size == 4 || size == 8);
+    // no "ldu" instruction, but treat "ldu" as ld
+    //assert(!(size == 8 && isUnsigned));
+    assert(offset >= -0x800 && offset < 0x800);
+
+    if (is_compressed) {
+        // TODO
+    }
+
+    Dyninst::RegValue funct3{};
+    switch (size) {
+        case 1: funct3 = 0x0; break; // lb = 000
+        case 2: funct3 = 0x1; break; // lh = 001
+        case 4: funct3 = 0x2; break; // lw = 010
+        case 8: funct3 = 0x4; break; // ld = 011
+        default: break;              // not gonna happen
+    }
+    if (isUnsigned) {
+        funct3 |= 0x4; // lbu = 100, lhu = 101, lwu = 110
+    }
+
+    // Load instructions are I-Type
+    generateITypeInsn(gen, rd, rs, offset, funct3, LOADOp);
+}
+
+void insnCodeGen::generateMemStore(codeGen &gen,
+                                   Dyninst::Register rs1,
+                                   Dyninst::Register rs2,
+                                   Dyninst::RegValue offset,
+                                   Dyninst::RegValue size,
+                                   bool use_compressed)
+{
+    assert(size == 1 || size == 2 || size == 4 || size == 8);
+    assert(offset >= -0x800 && offset < 0x800);
+
+    if (use_compressed) {
+        // TODO
+    }
+
+    Dyninst::RegValue funct3{};
+    switch (size) {
+        case 1: funct3 = 0x0; break; // lb = 000
+        case 2: funct3 = 0x1; break; // lh = 001
+        case 4: funct3 = 0x2; break; // lw = 010
+        case 8: funct3 = 0x4; break; // ld = 011
+        default: break;              // not gonna happen
+    }
+
+    // Store instructions are S-Type
+    generateSTypeInsn(gen, rs1, rs2, offset, funct3, STOREOp);
+}
+
+void insnCodeGen::generateMemLoadFp(codeGen &gen,
+                                    Dyninst::Register rd,
+                                    Dyninst::Register rs,
+                                    Dyninst::RegValue offset,
+                                    Dyninst::RegValue size,
+                                    bool use_compressed)
+{
+    // TODO Load instructions for FPRs
+}
+
+void insnCodeGen::generateMemStoreFp(codeGen &gen,
+                                     Dyninst::Register rs1,
+                                     Dyninst::Register rs2,
+                                     Dyninst::RegValue offset,
+                                     Dyninst::RegValue size,
+                                     bool use_compressed)
+{
+    // TODO Store instructions for FPRs
+}
+
+//
+// generate an instruction that does nothing and has to side affect except to
+//   advance the program counter.
+//
+
+
+void insnCodeGen::saveRegister(codeGen &gen,
+                               Dyninst::Register r,
+                               int sp_offset,
+                               bool use_compressed)
+{
+    generateMemStore(gen, REG_SP, r, sp_offset, 8, use_compressed);
+}
+
+
+void insnCodeGen::restoreRegister(codeGen &gen,
+                                  Dyninst::Register r,
+                                  int sp_offset)
+{
+    generateMemLoad(gen, r, REG_SP, sp_offset, 8, true, use_compressed);
+}
+
+
 // RISC-V I-Type Instructions
 
-void insnCodeGen::generateAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm) {
+void insnCodeGen::generateAddImm(codeGen &gen,
+                                 Dyninst::Register rd,
+                                 Dyninst::Register rs,
+                                 Dyninst::RegValue imm,
+                                 bool use_compressed)
+{
     assert(imm < 0x800 && imm >= -0x800);
 
-    // If rd == rs == zero && imm == 0, the instruction is essentially NOP (c.nop)
-    if (rd == 0 && rs == 0 && imm == 0) {
-        generateCNop(gen);
-        return;
-    }
+    if (use_compressed) {
+        // If rd == rs == zero && imm == 0, the instruction is essentially NOP (c.nop)
+        if (rd == 0 && rs == 0 && imm == 0) {
+            generateCNop(gen);
+            return;
+        }
 
-    // If imm is 6 bits wide (-32 <= imm < 32) and rs == zero
-    // we use the c.li instruction
-    if (imm >= -0x20 && imm < 0x20 && rs == 0) {
-        generateCLoadImm(gen, rd, imm);
-        return;
-    }
+        // If imm is 6 bits wide (-32 <= imm < 32) and rs == zero
+        // we use the c.li instruction
+        if (imm >= -0x20 && imm < 0x20 && rs == 0) {
+            generateCLoadImm(gen, rd, imm);
+            return;
+        }
 
-    // If imm == 0, we use the c.mv instruction
-    if (imm == 0) {
-        generateCMove(gen, rd, rs);
-        return;
-    }
+        // If imm == 0, we use the c.mv instruction
+        if (imm == 0) {
+            generateCMove(gen, rd, rs);
+            return;
+        }
 
-    // If rs == sp && x8 <= rd < x16 && 0 <= imm < 0x400 && imm % 4 == 0
-    // we use c.addi4spn
-    if (rs == GPR_SP && rd >= 8 && rd < 16 && imm >= 0 && imm < 0x400 && imm % 4 == 0) {
-        generateCAddImmScale4SPn(gen, rd, imm >> 2);
-        return;
-    }
+        // If rs == sp && x8 <= rd < x16 && 0 <= imm < 0x400 && imm % 4 == 0
+        // we use c.addi4spn
+        if (rs == GPR_SP && rd >= 8 && rd < 16 && imm >= 0 && imm < 0x400 && imm % 4 == 0) {
+            generateCAddImmScale4SPn(gen, rd, imm >> 2);
+            return;
+        }
 
-    // If rd == rs == sp && -0x200 <= imm < 0x200 && imm % 16 == 0
-    // we use c.addi16sp
-    if (rd == rs && rs == GPR_SP && imm >= -0x200 && imm < 0x200 && imm % 16 == 0) {
-        generateCAddImmScale16SP(gen, imm >> 4);
-        return;
-    }
+        // If rd == rs == sp && -0x200 <= imm < 0x200 && imm % 16 == 0
+        // we use c.addi16sp
+        if (rd == rs && rs == GPR_SP && imm >= -0x200 && imm < 0x200 && imm % 16 == 0) {
+            generateCAddImmScale16SP(gen, imm >> 4);
+            return;
+        }
 
-    // If imm is 6 bits wide (-32 <= imm < 32) and imm != 0 and rd != zero
-    // we use the c.addi instruction
-    if (imm >= -0x20 && imm < 0x20) {
-        generateCAddImm(gen, rd, imm);
-        return;
+        // If imm is 6 bits wide (-32 <= imm < 32) and imm != 0 and rd != zero
+        // we use the c.addi instruction
+        if (imm >= -0x20 && imm < 0x20) {
+            generateCAddImm(gen, rd, imm);
+            return;
+        }
     }
-
     // Otherwise, generate addi
     generateITypeInsn(gen, rd, rs, imm, ADDFunct3, IMMOp);
 }
 
-void insnCodeGen::generateSubImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm) {
-    generateAddImm(gen, rd, rs, -imm);
+void insnCodeGen::generateSubImm(codeGen &gen,
+                                 Dyninst::Register rd,
+                                 Dyninst::Register rs,
+                                 Dyninst::RegValue imm,
+                                 bool use_compressed)
+{
+    generateAddImm(gen, rd, rs, -imm, use_compressed);
 }
 
-void insnCodeGen::generateShiftLeftImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm) {
+void insnCodeGen::generateShiftLeftImm(codeGen &gen,
+                                       Dyninst::Register rd,
+                                       Dyninst::Register rs,
+                                       Dyninst::RegValue imm,
+                                       bool use_compressed)
+{
     assert(imm >= 0 && imm < 64);
 
-    // If rd == rs, use c.slli
-    if (rd == rs) {
-        generateCShiftLeftImm(gen, rd, imm);
-        return;
+    if (use_compressed) {
+        // If rd == rs, use c.slli
+        if (rd == rs) {
+            generateCShiftLeftImm(gen, rd, imm);
+            return;
+        }
     }
     generateITypeInsn(gen, rd, rs, imm, SLLFunct3, IMMOp);
 }
 
-void insnCodeGen::generateShiftRightLogicallyImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm) {
+void insnCodeGen::generateShiftRightLogicallyImm(codeGen &gen,
+                                                 Dyninst::Register rd,
+                                                 Dyninst::Register rs,
+                                                 Dyninst::RegValue imm,
+                                                 bool use_compressed) {
     assert(imm >= 0 && imm < 64);
 
-    // If rd == rs, use c.srli
-    if (rd == rs && rd >= 8 && rd < 16) {
-        generateCShiftRightLogicallyImm(gen, rd, imm);
-        return;
+    if (use_compressed) {
+        // If rd == rs, use c.srli
+        if (rd == rs && rd >= 8 && rd < 16) {
+            generateCShiftRightLogicallyImm(gen, rd, imm);
+            return;
+        }
     }
     generateITypeInsn(gen, rd, rs, imm, SRLFunct3, IMMOp);
 }
 
-void insnCodeGen::generateShiftRightArithmeticImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm) {
-    // If rd == rs, use c.srai
-    if (rd == rs && rd >= 8 && rd < 16) {
-        generateCShiftRightArithmeticImm(gen, rd, imm);
-        return;
+void insnCodeGen::generateShiftRightArithmeticImm(codeGen &gen,
+                                                  Dyninst::Register rd,
+                                                  Dyninst::Register rs,
+                                                  Dyninst::RegValue imm,
+                                                  bool use_compressed)
+{
+    if (use_compressed) {
+        // If rd == rs, use c.srai
+        if (rd == rs && rd >= 8 && rd < 16) {
+            generateCShiftRightArithmeticImm(gen, rd, imm);
+            return;
+        }
     }
+    // srai is essentially srli with bit 30 set to 1
     imm |= 0x400;
+
     generateITypeInsn(gen, rd, rs, imm, SRAFunct3, IMMOp);
 }
-void insnCodeGen::generateAndImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm) {
+void insnCodeGen::generateAndImm(codeGen &gen,
+                                 Dyninst::Register rd,
+                                 Dyninst::Register rs,
+                                 Dyninst::RegValue imm,
+                                 bool use_compressed)
+{
     assert(imm >= -0x800 && imm < 0x800);
-    // If rd == rs, use c.andi
-    if (rd == rs && rd >= 8 && rd < 16) {
-        generateCAndImm(gen, rd, imm);
-        return;
+
+    if (use_compressed) {
+        // If rd == rs, use c.andi
+        if (rd == rs && rd >= 8 && rd < 16) {
+            generateCAndImm(gen, rd, imm);
+            return;
+        }
     }
     generateITypeInsn(gen, rd, rs, imm, ANDFunct3, IMMOp);
 }
 
-void insnCodeGen::generateOrImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm) {
+void insnCodeGen::generateOrImm(codeGen &gen,
+                                Dyninst::Register rd,
+                                Dyninst::Register rs,
+                                Dyninst::RegValue imm,
+                                bool /*use_compressed*/)
+{
     assert(imm >= -0x800 && imm < 0x800);
     generateITypeInsn(gen, rd, rs, imm, ORFunct3, IMMOp);
 }
 
-void insnCodeGen::generateXorImm(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs, Dyninst::RegValue imm) {
+void insnCodeGen::generateXorImm(codeGen &gen,
+                                 Dyninst::Register rd,
+                                 Dyninst::Register rs,
+                                 Dyninst::RegValue imm,
+                                 bool /*use_compressed*/)
+{
     assert(imm >= -0x800 && imm < 0x800);
     generateITypeInsn(gen, rd, rs, imm, XORFunct3, IMMOp);
 }
 
-void insnCodeGen::generateLoadUpperImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
-    // If imm is 6 bits wide (-32 <= imm < 32), we use the c.lui instruction
-    if (imm >= -0x20 && imm < 0x20) {
-        generateCLoadUpperImm(gen, rd, imm);
-        return;
+void insnCodeGen::generateLoadUpperImm(codeGen &gen,
+                                       Dyninst::Register rd,
+                                       Dyninst::RegValue imm,
+                                       bool use_compressed)
+{
+    if (use_compressed) {
+        // If imm is 6 bits wide (-32 <= imm < 32), we use the c.lui instruction
+        if (imm >= -0x20 && imm < 0x20) {
+            generateCLoadUpperImm(gen, rd, imm);
+            return;
+        }
     }
-
-    // Otherwise, generate lui
     generateUTypeInsn(gen, rd, imm, LUIOp);
 }
 
-void insnCodeGen::generateAuipc(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue offset) {
+void insnCodeGen::generateAuipc(codeGen &gen,
+                                Dyninst::Register rd,
+                                Dyninst::RegValue offset,
+                                bool /*use_compressed*/)
+{
     generateUTypeInsn(gen, rd, offset, AUIPCOp);
 }
 
-void insnCodeGen::generateAdd(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
-    // If rd == rs, use c.add
-    if (rs1 == rs2) {
-        generateCAdd(gen, rd, rs1);
-        return;
+void insnCodeGen::generateAdd(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::Register rs1,
+                              Dyninst::Register rs2,
+                              bool use_compressed)
+{
+    if (use_compressed) {
+        // If rd == rs, use c.add
+        if (rs1 == rs2) {
+            generateCAdd(gen, rd, rs1);
+            return;
+        }
     }
     generateRTypeInsn(gen, rd, rs1, rs2, ADDFunct7, ADDFunct3, REGOp);
 }
 
-void insnCodeGen::generateSub(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
+void insnCodeGen::generateSub(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::Register rs1,
+                              Dyninst::Register rs2,
+                              bool /*use_compressed*/)
+{
     generateRTypeInsn(gen, rd, rs1, rs2, SUBFunct7, SUBFunct3, REGOp);
 }
-void insnCodeGen::generateShiftLeft(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
+
+void insnCodeGen::generateShiftLeft(codeGen &gen,
+                                    Dyninst::Register rd,
+                                    Dyninst::Register rs1,
+                                    Dyninst::Register rs2,
+                                    bool /*use_compressed*/)
+{
     generateRTypeInsn(gen, rd, rs1, rs2, SLLFunct7, SLLFunct3, REGOp);
 }
-void insnCodeGen::generateShiftRightLogically(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
+
+void insnCodeGen::generateShiftRightLogically(codeGen &gen,
+                                              Dyninst::Register rd,
+                                              Dyninst::Register rs1,
+                                              Dyninst::Register rs2,
+                                              bool /*use_compressed*/)
+{
     generateRTypeInsn(gen, rd, rs1, rs2, SRLFunct7, SRLFunct3, REGOp);
 }
-void insnCodeGen::generateShiftRightArithmetic(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
+
+void insnCodeGen::generateShiftRightArithmetic(codeGen &gen,
+                                               Dyninst::Register rd,
+                                               Dyninst::Register rs1,
+                                               Dyninst::Register rs2,
+                                               bool /*use_compressed*/)
+{
     generateRTypeInsn(gen, rd, rs1, rs2, SRAFunct7, SRAFunct3, REGOp);
 }
-void insnCodeGen::generateAnd(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
-    // If rd == rs, use c.and
-    if (rs1 == rs2) {
-        generateCAnd(gen, rd, rs1);
-        return;
+
+void insnCodeGen::generateAnd(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::Register rs1,
+                              Dyninst::Register rs2,
+                              bool use_compressed)
+{
+    if (use_compressed) {
+        // If rd == rs, use c.and
+        if (rs1 == rs2) {
+            generateCAnd(gen, rd, rs1);
+            return;
+        }
     }
     generateRTypeInsn(gen, rd, rs1, rs2, ANDFunct7, ANDFunct3, REGOp);
 }
-void insnCodeGen::generateOr(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
-    // If rd == rs, use c.or
-    if (rs1 == rs2) {
-        generateCOr(gen, rd, rs1);
-        return;
+
+void insnCodeGen::generateOr(codeGen &gen,
+                             Dyninst::Register rd,
+                             Dyninst::Register rs1,
+                             Dyninst::Register rs2,
+                             bool use_compressed)
+{
+    if (use_compressed) {
+        // If rd == rs, use c.or
+        if (rs1 == rs2) {
+            generateCOr(gen, rd, rs1);
+            return;
+        }
     }
     generateRTypeInsn(gen, rd, rs1, rs2, ORFunct7, ORFunct3, REGOp);
 }
-void insnCodeGen::generateXor(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
-    // If rd == rs, use c.xor
-    if (rs1 == rs2) {
-        generateCXor(gen, rd, rs1);
-        return;
+void insnCodeGen::generateXor(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::Register rs1,
+                              Dyninst::Register rs2,
+                              bool use_compressed)
+{
+    if (use_compressed) {
+        // If rd == rs, use c.xor
+        if (rs1 == rs2) {
+            generateCXor(gen, rd, rs1);
+            return;
+        }
     }
     generateRTypeInsn(gen, rd, rs1, rs2, XORFunct7, XORFunct3, REGOp);
 }
 
-void insnCodeGen::generateMul(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
+void insnCodeGen::generateMul(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::Register rs1,
+                              Dyninst::Register rs2,
+                              bool /*use_compressed*/)
+{
     generateRTypeInsn(gen, rd, rs1, rs2, MULFunct7, MULFunct3, REGOp);
 }
 
-void insnCodeGen::generateDiv(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs1, Dyninst::Register rs2) {
+void insnCodeGen::generateDiv(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::Register rs1,
+                              Dyninst::Register rs2,
+                              bool /*use_compressed*/)
+{
     generateRTypeInsn(gen, rd, rs1, rs2, DIVFunct7, DIVFunct3, REGOp);
 }
 
-void insnCodeGen::generateLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
-    // If imm is 6 bits wide (-32 <= imm < 32), we use the c.li instruction
-    if (imm >= -0x20 && imm < 0x20) {
-        generateCLoadImm(gen, rd, imm);
-        return;
-    }
-
-    // If imm is 12 bits wide (-0x800 <= imm < 0x800), we use the addi instruction
-    if (imm >= -0x800 && imm < 0x800) {
-        generateAddImm(gen, rd, 0, imm);
-        return;
-    }
-
-    // If imm is larger than 12 bits but less than 32 bits,
-    // imm must be loaded in two steps using lui and addi
-    if (imm >= -0x80000000LL && imm < 0x80000000LL) {
-        Dyninst::RegValue lui_imm = (imm >> 12) & 0xfffff;
-        Dyninst::RegValue addi_imm = imm & 0xfff;
-        // If the most significant bit of addi_imm is 1 (addi_imm is negative), we should add 1 to lui_imm
-        if (addi_imm & 0x800) {
-            lui_imm = (lui_imm + 1) & 0xfffff;
+void insnCodeGen::generateLoadImm(codeGen &gen,
+                                  Dyninst::Register rd,
+                                  Dyninst::RegValue imm,
+                                  bool use_compressed)
+{
+    if (use_compressed) {
+        // If imm is 6 bits wide (-32 <= imm < 32), we use the c.li instruction
+        if (imm >= -0x20 && imm < 0x20) {
+            generateCLoadImm(gen, rd, imm);
+            return;
         }
-        generateLoadUpperImm(gen, rd, lui_imm);
-        generateAddImm(gen, rd, rd, addi_imm);
-        return;
+
+        // If imm is 12 bits wide (-0x800 <= imm < 0x800), we use the addi instruction
+        if (imm >= -0x800 && imm < 0x800) {
+            generateAddImm(gen, rd, 0, imm);
+            return;
+        }
+
+        // If imm is larger than 12 bits but less than 32 bits,
+        // imm must be loaded in two steps using lui and addi
+        if (imm >= -0x80000000LL && imm < 0x80000000LL) {
+            Dyninst::RegValue lui_imm = (imm >> 12) & 0xfffff;
+            Dyninst::RegValue addi_imm = imm & 0xfff;
+            // If the most significant bit of addi_imm is 1 (addi_imm is negative), we should add 1 to lui_imm
+            if (addi_imm & 0x800) {
+                lui_imm = (lui_imm + 1) & 0xfffff;
+            }
+            generateLoadUpperImm(gen, rd, lui_imm);
+            generateAddImm(gen, rd, rd, addi_imm);
+            return;
+        }
     }
 
     // If imm is a 64 bit long, the sequence of instructions is more complicated
@@ -778,11 +1003,22 @@ void insnCodeGen::generateLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::R
 }
 
 
-void insnCodeGen::generateMove(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs) {
-    generateCMove(gen, rd, rs);
+void insnCodeGen::generateMove(codeGen &gen,
+                               Dyninst::Register rd,
+                               Dyninst::Register rs,
+                               bool use_compressed)
+{
+    if (use_compressed) {
+        generateCMove(gen, rd, rs);
+        return;
+    }
+    generateAdd(gen, rd, rs, 0, use_compressed);
 }
 
-void insnCodeGen::generateCAdd(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs) {
+void insnCodeGen::generateCAdd(codeGen &gen,
+                               Dyninst::Register rd,
+                               Dyninst::Register rs)
+{
     instruction insn(true);
     INSN_SET(insn, 13, 15, 0x4); // func3 = 100
     INSN_SET(insn, 12, 12, 0x1); // imm[5] != 0
@@ -792,7 +1028,10 @@ void insnCodeGen::generateCAdd(codeGen &gen, Dyninst::Register rd, Dyninst::Regi
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
+void insnCodeGen::generateCAddImm(codeGen &gen,
+                                  Dyninst::Register rd,
+                                  Dyninst::RegValue imm)
+{
     instruction insn(true);
     INSN_SET(insn, 13, 15, 0x0);            // func3 = 000
     INSN_SET(insn, 12, 12, (imm >> 5) & 1); // imm[5] != 0
@@ -802,7 +1041,10 @@ void insnCodeGen::generateCAddImm(codeGen &gen, Dyninst::Register rd, Dyninst::R
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCAddImmScale4SPn(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
+void insnCodeGen::generateCAddImmScale4SPn(codeGen &gen,
+                                           Dyninst::Register rd,
+                                           Dyninst::RegValue imm)
+{
     instruction insn(true);
     INSN_SET(insn, 13, 15, 0x0);              // func3 = 000
     INSN_SET(insn, 11, 12, (imm >> 2) & 0x3); // imm[3:2]
@@ -814,7 +1056,9 @@ void insnCodeGen::generateCAddImmScale4SPn(codeGen &gen, Dyninst::Register rd, D
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCAddImmScale16SP(codeGen &gen, Dyninst::RegValue imm) {
+void insnCodeGen::generateCAddImmScale16SP(codeGen &gen,
+                                           Dyninst::RegValue imm)
+{
     instruction insn(true);
 
     INSN_SET(insn, 13, 15, 0x3);              // func3 = 011
@@ -829,7 +1073,10 @@ void insnCodeGen::generateCAddImmScale16SP(codeGen &gen, Dyninst::RegValue imm) 
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCAnd(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs) {
+void insnCodeGen::generateCAnd(codeGen &gen,
+                               Dyninst::Register rd,
+                               Dyninst::Register rs)
+{
     instruction insn(true);
 
     INSN_SET(insn, 10, 15, 0x23); // 100011
@@ -841,7 +1088,10 @@ void insnCodeGen::generateCAnd(codeGen &gen, Dyninst::Register rd, Dyninst::Regi
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCAndImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
+void insnCodeGen::generateCAndImm(codeGen &gen,
+                                  Dyninst::Register rd,
+                                  Dyninst::RegValue imm)
+{
     assert(rd >= 8 && rd < 16 && imm >= -32 && imm < 32);
 
     instruction insn(true);
@@ -856,7 +1106,10 @@ void insnCodeGen::generateCAndImm(codeGen &gen, Dyninst::Register rd, Dyninst::R
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
+void insnCodeGen::generateCLoadImm(codeGen &gen,
+                                   Dyninst::Register rd,
+                                   Dyninst::RegValue imm)
+{
     instruction insn(true);
     INSN_SET(insn, 13, 15, 0x2);            // func3 = 010
     INSN_SET(insn, 12, 12, (imm >> 5) & 1); // imm[5]
@@ -866,7 +1119,10 @@ void insnCodeGen::generateCLoadImm(codeGen &gen, Dyninst::Register rd, Dyninst::
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCLoadUpperImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue imm) {
+void insnCodeGen::generateCLoadUpperImm(codeGen &gen,
+                                        Dyninst::Register rd,
+                                        Dyninst::RegValue imm)
+{
     instruction insn(true);
 
     INSN_SET(insn, 13, 15, 0x3);            // func3 = 011
@@ -878,7 +1134,10 @@ void insnCodeGen::generateCLoadUpperImm(codeGen &gen, Dyninst::Register rd, Dyni
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCShiftLeftImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue uimm) {
+void insnCodeGen::generateCShiftLeftImm(codeGen &gen, 
+                                        Dyninst::Register rd,
+                                        Dyninst::RegValue uimm)
+{
     assert(uimm >= 0 && uimm < 64);
 
     instruction insn(true);
@@ -892,7 +1151,10 @@ void insnCodeGen::generateCShiftLeftImm(codeGen &gen, Dyninst::Register rd, Dyni
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCShiftRightLogicallyImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue uimm) {
+void insnCodeGen::generateCShiftRightLogicallyImm(codeGen &gen,
+                                                  Dyninst::Register rd,
+                                                  Dyninst::RegValue uimm)
+{
     assert(rd >= 8 && rd < 16 && uimm >= 0 && uimm < 64);
 
     instruction insn(true);
@@ -907,7 +1169,10 @@ void insnCodeGen::generateCShiftRightLogicallyImm(codeGen &gen, Dyninst::Registe
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCShiftRightArithmeticImm(codeGen &gen, Dyninst::Register rd, Dyninst::RegValue uimm) {
+void insnCodeGen::generateCShiftRightArithmeticImm(codeGen &gen,
+                                                   Dyninst::Register rd,
+                                                   Dyninst::RegValue uimm)
+{
     assert(rd >= 8 && rd < 16 && uimm >= 0 && uimm < 64);
 
     instruction insn(true);
@@ -922,7 +1187,10 @@ void insnCodeGen::generateCShiftRightArithmeticImm(codeGen &gen, Dyninst::Regist
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCMove(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs) {
+void insnCodeGen::generateCMove(codeGen &gen,
+                                Dyninst::Register rd,
+                                Dyninst::Register rs)
+{
     instruction insn(true);
 
     INSN_SET(insn, 13, 15, 0x4); // func3 = 100
@@ -934,7 +1202,10 @@ void insnCodeGen::generateCMove(codeGen &gen, Dyninst::Register rd, Dyninst::Reg
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCOr(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs) {
+void insnCodeGen::generateCOr(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::Register rs)
+{
     instruction insn(true);
 
     INSN_SET(insn, 10, 15, 0x23); // 100011
@@ -946,7 +1217,9 @@ void insnCodeGen::generateCOr(codeGen &gen, Dyninst::Register rd, Dyninst::Regis
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCJump(codeGen &gen, Dyninst::RegValue offset) {
+void insnCodeGen::generateCJump(codeGen &gen,
+                                Dyninst::RegValue offset)
+{
     assert((offset & 1) == 0 && offset >= -4096 && offset < 4096);
 
     instruction insn(true);
@@ -965,7 +1238,9 @@ void insnCodeGen::generateCJump(codeGen &gen, Dyninst::RegValue offset) {
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCJumpAndLink(codeGen &gen, Dyninst::RegValue offset) {
+void insnCodeGen::generateCJumpAndLink(codeGen &gen,
+                                       Dyninst::RegValue offset)
+{
     assert((offset & 1) == 0 && offset >= -4096 && offset < 4096);
 
     instruction insn(true);
@@ -983,7 +1258,9 @@ void insnCodeGen::generateCJumpAndLink(codeGen &gen, Dyninst::RegValue offset) {
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCJumpRegister(codeGen &gen, Dyninst::Register rs) {
+void insnCodeGen::generateCJumpRegister(codeGen &gen,
+                                        Dyninst::Register rs)
+{
     instruction insn(true);
 
     INSN_SET(insn, 13, 15, 0x4); // func3 = 100
@@ -994,7 +1271,9 @@ void insnCodeGen::generateCJumpRegister(codeGen &gen, Dyninst::Register rs) {
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateCJumpAndLinkRegister(codeGen &gen, Dyninst::Register rs) {
+void insnCodeGen::generateCJumpAndLinkRegister(codeGen &gen,
+                                               Dyninst::Register rs)
+{
     instruction insn(true);
 
     INSN_SET(insn, 13, 15, 0x4); // func3 = 100
@@ -1013,7 +1292,9 @@ void insnCodeGen::generateCNop(codeGen &gen) {
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
+void insnCodeGen::generateNOOP(codeGen &gen,
+                               unsigned size)
+{
     assert((size % 2) == 0);
     while (size) {
         generateCNop(gen);
@@ -1021,7 +1302,10 @@ void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
     }
 }
 
-void insnCodeGen::generateCXor(codeGen &gen, Dyninst::Register rd, Dyninst::Register rs) {
+void insnCodeGen::generateCXor(codeGen &gen,
+                               Dyninst::Register rd,
+                               Dyninst::Register rs)
+{
     instruction insn(true);
 
     INSN_SET(insn, 10, 15, 0x23); // 100011
