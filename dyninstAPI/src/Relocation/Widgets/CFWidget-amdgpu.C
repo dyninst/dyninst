@@ -67,7 +67,65 @@ bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
 }
 
 bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
-    return true;
+   int targetLabel = target->label(buf);
+
+   relocation_cerr << "\t\t CFPatch::apply, type " << type << ", origAddr " << hex << origAddr_
+                   << ", and label " << dec << targetLabel << endl;
+   if (orig_insn.isValid()) {
+      relocation_cerr << "\t\t\t Currently at " << hex << gen.currAddr() << " and targeting predicted " << buf->predictedAddr(targetLabel) << dec << endl;
+      switch(type) {
+         case CFPatch::Jump: {
+            relocation_cerr << "\t\t\t Generating CFPatch::Jump from "
+                            << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;
+            if (!insnCodeGen::modifyJump(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
+               cerr << "Failed to modify jump" << endl;
+               return false;
+            }
+            return true;
+         }
+         case CFPatch::JCC: {
+            relocation_cerr << "\t\t\t Generating CFPatch::JCC from "
+                            << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;
+            if (!insnCodeGen::modifyJcc(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
+               cerr << "Failed to modify conditional jump" << endl;
+               return false;
+            }
+            return true;
+         }
+         case CFPatch::Call: {
+            assert(false && "CFPatch::apply for CFPatch::Call isn't implemented yet");
+        }
+         case CFPatch::Data: {
+            assert(false && "CFPatch::apply for CFPatch::Data isn't implemented yet");
+         }
+      }
+   }
+   else {
+      switch(type) {
+         case CFPatch::Jump:
+            insnCodeGen::generateBranch(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
+            break;
+         default:
+            assert(0);
+      }
+   }
+   return true;
+   // std::cerr << "in CFPatch::apply\n";
+   // switch(type) {
+   //   case CFPatch::Jump:
+   //    std::cerr << "jump patch\n";
+   //    break;
+   //   case CFPatch::JCC:
+   //    std::cerr << "jcc patch\n";
+   //    break;
+   //   case CFPatch::Call:
+   //    std::cerr << "call patch\n";
+   //    break;
+   //   case CFPatch::Data:
+   //    std::cerr << "data patch\n";
+   //    break;
+   // }
+   //  return true;
 }
 
 bool CFPatch::isPLT(codeGen &gen) {
