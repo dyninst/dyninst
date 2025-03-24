@@ -37,16 +37,16 @@ static void printBinary(unsigned int number) {
 
 static void printBytes(unsigned int number) {
   uint8_t *n = (uint8_t *)&number;
-  printf("%u ", n[0]);
-  printf("%u ", n[1]);
-  printf("%u ", n[2]);
-  printf("%u \n", n[3]);
+  // printf("%u ", n[0]);
+  // printf("%u ", n[1]);
+  // printf("%u ", n[2]);
+  // printf("%u \n", n[3]);
 }
 
 static void printBytes(uint64_t number) {
   uint8_t *n = (uint8_t *)&number;
   for (int i = 0; i < 8; ++i) {
-    printf("%u ", n[i]);
+    // printf("%u ", n[i]);
   }
 }
 
@@ -104,8 +104,8 @@ void emitSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral,
   setDstSop1(dest, newRawInst);
   setSrc0Sop1(src0, newRawInst);
 
-  printf("%#x ", newRawInst);
-  printf("%u\n", newRawInst);
+  // printf("%#x ", newRawInst);
+  // printf("%u\n", newRawInst);
   printBytes(newRawInst);
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
@@ -115,8 +115,8 @@ void emitSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral,
     *rawInstBuffer = literal;
     ++rawInstBuffer;
 
-    printf("literal : %#x ", literal);
-    printf("%u\n", literal);
+    // printf("literal : %#x ", literal);
+    // printf("%u\n", literal);
     printBytes(literal);
   }
 
@@ -174,8 +174,8 @@ void emitSop2(unsigned opcode, Register dest, Register src0, Register src1,
   setSrc1Sop2(src1, newRawInst);
   setSrc0Sop2(src0, newRawInst);
 
-  printf("%#x ", newRawInst);
-  printf("%u\n", newRawInst);
+  // printf("%#x ", newRawInst);
+  // printf("%u\n", newRawInst);
   printBytes(newRawInst);
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
@@ -235,8 +235,8 @@ void emitSopC(unsigned opcode, Register src0, Register src1, codeGen &gen) {
   setSrc1SopC(src1, newRawInst);
   setSrc0SopC(src0, newRawInst);
 
-  printf("%#x ", newRawInst);
-  printf("%u\n", newRawInst);
+  // printf("%#x ", newRawInst);
+  // printf("%u\n", newRawInst);
   printBytes(newRawInst);
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
@@ -296,8 +296,8 @@ void emitSopK(unsigned opcode, Register dest, int16_t simm16, codeGen &gen) {
   setDstSopK(dest, newRawInst);
   setSImm16SopK(simm16, newRawInst);
 
-  printf("%#x ", newRawInst);
-  printf("%u\n", newRawInst);
+  // printf("%#x ", newRawInst);
+  // printf("%u\n", newRawInst);
   printBytes(newRawInst);
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
@@ -353,8 +353,8 @@ void emitSopP(unsigned opcode, bool hasImm, int16_t simm16, codeGen &gen) {
   else
     setSImm16SopP(0, newRawInst);
 
-  printf("%#x ", newRawInst);
-  printf("%u\n", newRawInst);
+  // printf("%#x ", newRawInst);
+  // printf("%u\n", newRawInst);
   printBytes(newRawInst);
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
@@ -473,8 +473,8 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset,
   setR4Smem(newRawInst);
   setOffsetSmem(offset, newRawInst);
 
-  printf("%#lx ", newRawInst);
-  printf("%lu\n", newRawInst);
+  // printf("%#lx ", newRawInst);
+  // printf("%lu\n", newRawInst);
   printBytes(newRawInst);
 
   uint64_t *rawInstBuffer = (uint64_t *)gen.cur_ptr();
