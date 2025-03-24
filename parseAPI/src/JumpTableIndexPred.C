@@ -27,7 +27,7 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 			  GraphPtr newG,
 			  set<ParseAPI::Block*> &visit,
 			  EdgeTypeEnum t,
-			  set<ParseAPI::Edge*> allowedEdges) {			 
+			  const set<ParseAPI::Edge*> &allowedEdges) {
     if (targetMap.find(curBlock) != targetMap.end()) {
         // This block contains at least one silce node 
 	// that is reachable from the source DFS node
