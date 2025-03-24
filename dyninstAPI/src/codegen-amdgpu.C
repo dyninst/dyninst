@@ -680,26 +680,17 @@ assert(0);
 //#warning "This function is not implemented yet!"
 }
 
+// There's nothing to modify here. Generate an emit a jump to target.
 bool insnCodeGen::modifyJump(Dyninst::Address target,
                              NS_amdgpu::instruction &insn,
                              codeGen &gen) {
     long disp = target - gen.currAddr();
+    Emitter *emitter = gen.emitter();
+    int16_t wordOffset = disp/4;
 
-    if(INSN_GET_ISCALL(insn))
-    {
-        generateBranch(gen, gen.currAddr(), target, INSN_GET_ISCALL(insn));
-        return true;
-    }
+    assert(wordOffset > MIN_IMM16 && wordOffset < MAX_IMM16 && "wordOffset must fit in a 16-bit signed value");
+    emitter->emitShortJump(wordOffset, gen);
 
-    if (labs(disp) > MAX_BRANCH_OFFSET) {
-        generateBranchViaTrap(gen, gen.currAddr(), target, INSN_GET_ISCALL(insn));
-        return true;
-    }
-
-    generateBranch(gen,
-                   gen.currAddr(),
-                   target,
-                   INSN_GET_ISCALL(insn));
     return true;
 }
 
@@ -711,71 +702,45 @@ bool insnCodeGen::modifyJump(Dyninst::Address target,
  * bit-twiddling functions can then be defined if necessary in the codegen-* files 
  * and called as necessary by the common, refactored logic.
 */
+
+/*
+ * <Addr X> conditionalJump A
+ * <Addr C> nextInstruction  // C = X+4
+ *
+ * The above is transformed to:
+ *
+ * <Addr X>   conditionalJump <B>
+ * <Addr X+4> jump C
+ * <Addr B>   jump A           // B = X+8
+ * <Addr C>   nextInstruction  // C = X+12
+ *
+ */
 bool insnCodeGen::modifyJcc(Dyninst::Address target,
 			    NS_amdgpu::instruction &insn,
 			    codeGen &gen) {
-    long disp = target - gen.currAddr();
-    auto isTB = insn.isInsnType(COND_BR_t::TB_MASK, COND_BR_t::TB);
-    
-    if(labs(disp) > MAX_CBRANCH_OFFSET ||
-            (isTB && labs(disp) > MAX_TBRANCH_OFFSET))
-    {
-        Dyninst::Address origFrom = gen.currAddr();
+    // We start by modifying the current conditional jump instruction in-place:
+    //  <Addr X> conditionalJump A  ---> <Addr X> conditionalJump B
+    assert(insn.size() == 4 && "Conditional branch on AMDGPU must be 4 bytes long");
+    uint32_t rawInst = insn.asInt();
 
-        /*
-         * A conditional branch of the form:
-         *    b.cond A
-         * C: ...next insn...:
-         * [Note that b.cond could also be cbz, cbnz, tbz or tbnz -- all valid conditional branch instructions]
-         *
-         * Gets converted to:
-         *    b.cond B
-         *    b      C
-         * B: b      A
-         * C: ...next insn...
-         */
+    // This is a SOPP instruction, so simply set the the SIMM16 field appropriately.
+    Vega::setSImm16SopP(1, rawInst); // CPU does (1)*4 + 4 and computes the target = X+8 i.e B
 
-        // Store start index of code buffer to later calculate how much the original instruction's will have moved
-        codeBufIndex_t startIdx = gen.getIndex();
+    // Now copy this at the end of the codegen buffer
+    gen.copy((void *)&rawInst, sizeof rawInst);
 
-        /* Generate the --b.cond B-- instruction. Directly modifying the offset 
-         * bits of the instruction passed since other bits are to remain the same anyway.
-           B will be 4 bytes from the next instruction. (it will get multiplied by 4 by the CPU) */
-        instruction newInsn(insn);
-        if(insn.isInsnType(COND_BR_t::TB_MASK, COND_BR_t::TB))
-            INSN_SET(newInsn, 5, 18, 0x1);
-        else
-            INSN_SET(newInsn, 5, 23, 0x1);
-        generate(gen, newInsn);
+    // We are at offset X+4, we want to jump to X+12, i.e C
+    // Now emit jump C
+    Emitter *emitter = gen.emitter();
+    emitter->emitShortJump(1, gen); // CPU does (1)*4 + 4 and computes the target = <X+4> + 8 = X+12 i.e C
 
-        /* Generate the --b C-- instruction. C will be 4 bytes from the next 
-         * instruction, hence offset for this instruction is set to 1.
-          (it will get multiplied by 4 by the CPU) */
-        newInsn.clear();
-        INSN_SET(newInsn, 0, 25, 0x1);
-        INSN_SET(newInsn, 26, 31, 0x05);
-        generate(gen, newInsn);
+    // Now emit jump A, the original target
+	  long from = gen.currAddr();
+    long disp = target - from;
+    int16_t wordOffset = disp/4;
 
-        /* Generate the final --b A-- instruction.
-         * The 'from' address to be passed in to generateBranch is now several
-         * bytes (8 actually, but I'm not hardcoding this) ahead of the original 'from' address.
-         * So adjust it accordingly.*/
-        codeBufIndex_t curIdx = gen.getIndex();
-        Dyninst::Address newFrom = origFrom + (unsigned)(curIdx - startIdx);
-        insnCodeGen::generateBranch(gen, newFrom, target);
-    } 
-    else
-    {
-        instruction condBranchInsn(insn);
-
-        // Set the displacement immediate
-        if(isTB)
-            INSN_SET(condBranchInsn, 5, 18, disp >> 2);
-        else
-            INSN_SET(condBranchInsn, 5, 23, disp >> 2);
-
-        generate(gen, condBranchInsn);
-    }
+    assert(wordOffset > MIN_IMM16 && wordOffset < MAX_IMM16 && "wordOffset must fit in a 16-bit signed value");
+    emitter->emitShortJump(wordOffset, gen);
 
     return true;
 }
