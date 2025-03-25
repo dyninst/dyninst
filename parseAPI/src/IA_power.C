@@ -315,13 +315,18 @@ bool IA_power::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI
   if(curInsn().isReturn()) {
     return true;
   }
-  
+
   Function *func = context;
-  parsing_printf
-    ("isblrReturn at 0x%lx Addr 0x%lx 0x%lx Function addr 0x%lx leaf %d \n",
-     current, getAddr (), currBlk->start (), context->addr (),
-     func->_is_leaf_function);
-  if (!func->_is_leaf_function)
+
+  parsing_printf("Checking return idioms for %s@0x%lx in block=0x%lx, context=0x%lx\n",
+                 context->name().c_str(), getAddr(), currBlk->start(), context->addr());
+
+  if(func->_is_leaf_function) {
+    parsing_printf("leaf node detected; assuming it returns\n");
+    return true;
+  }
+
+  if (!context->_is_leaf_function)
     {
       parsing_printf ("\t LR saved for %s \n", func->name().c_str());
       // Check for lwz from Stack - mtlr - blr 
