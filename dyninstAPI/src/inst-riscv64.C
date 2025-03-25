@@ -126,7 +126,7 @@ void registerSpace::initialize() {
 
 /********************************* Private methods *********************************************/
 
-void EmitterRISCV64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset)
+void EmitterRISCV64SaveRegs::saveSPR(codeGen &/*gen*/, Register /*scratchReg*/, int /*sprnum*/, int /*stkOffset*/)
 {
     // TODO RISC-V speical purpose register currently not supported
 }
@@ -135,7 +135,7 @@ void EmitterRISCV64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprn
 void EmitterRISCV64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save_off) {
     // TODO
     //     //Always performing save of the full FP register
-    insnCodeGen::generateMemStoreFp(gen, REG_SP, reg, save_off, 8);
+    insnCodeGen::generateMemStoreFp(gen, REG_SP, reg, save_off, 8, gen.getUseRVC());
 }
 
 /********************************* Public methods *********************************************/
@@ -151,7 +151,7 @@ unsigned EmitterRISCV64SaveRegs::saveGPRegisters(
         // We always save FP and LR for stack walking out of instrumentation
         if (reg->liveState == registerSlot::live || reg->number == REG_FP || reg->number == REG_RA) {
             int offset_from_sp = offset + (reg->encoding() * gen.width());
-            insnCodeGen::saveRegister(gen, reg->number, offset_from_sp);
+            insnCodeGen::saveRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
             theRegSpace->markSavedRegister(reg->number, offset_from_sp);
             ret++;
         }
@@ -179,7 +179,7 @@ unsigned EmitterRISCV64SaveRegs::saveFPRegisters(
 }
 
 unsigned EmitterRISCV64SaveRegs::saveSPRegisters(
-        codeGen &gen, registerSpace *theRegSpace, int offset, bool force_save)
+        codeGen &/*gen*/, registerSpace * /*theRegSpace*/, int /*offset*/, bool /*force_save*/)
 {
     // TODO RISC-V speical purpose register currently not supported
     return 0;
@@ -190,15 +190,15 @@ void EmitterRISCV64SaveRegs::createFrame(codeGen &gen) {
 
     // Save link register
     Register linkRegister = gen.rs()->getRegByName("r1");
-    insnCodeGen::saveRegister(gen, linkRegister, -2 * GPRSIZE_64);
+    insnCodeGen::saveRegister(gen, linkRegister, -2 * GPRSIZE_64, gen.getUseRVC());
 
     // Save frame pointer
     Register framePointer = gen.rs()->getRegByName("r8");
-    insnCodeGen::saveRegister(gen, framePointer, -2 * GPRSIZE_64);
+    insnCodeGen::saveRegister(gen, framePointer, -2 * GPRSIZE_64, gen.getUseRVC());
 
     // Move stack pointer to frame pointer
     Register stackPointer = gen.rs()->getRegByName("r2");
-    insnCodeGen::generateMove(gen, framePointer, stackPointer);
+    insnCodeGen::generateMove(gen, framePointer, stackPointer, gen.getUseRVC());
 }
 
 /***********************************************************************************************/
@@ -218,7 +218,7 @@ unsigned EmitterRISCV64RestoreRegs::restoreGPRegisters(
 
         if (reg->liveState == registerSlot::spilled) {
             int offset_from_sp = offset + (reg->encoding() * GPRSIZE_64);
-            insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp);
+            insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
             ret++;
         }
     }
@@ -244,7 +244,7 @@ unsigned EmitterRISCV64RestoreRegs::restoreFPRegisters(
 }
 
 unsigned EmitterRISCV64RestoreRegs::restoreSPRegisters(
-        codeGen &gen, registerSpace *theRegSpace, int, int force_save)
+        codeGen &/*gen*/, registerSpace * /*theRegSpace*/, int /*offset*/, int /*force_save*/)
 {
     int ret = 0;
     // TODO RISC-V speical purpose register currently not supported
@@ -254,23 +254,23 @@ unsigned EmitterRISCV64RestoreRegs::restoreSPRegisters(
 void EmitterRISCV64RestoreRegs::tearFrame(codeGen &gen) {
     // Restore frame pointer
     Register framePointer = gen.rs()->getRegByName("r8");
-    insnCodeGen::restoreRegister(gen, framePointer, 2 * GPRSIZE_64);
+    insnCodeGen::restoreRegister(gen, framePointer, 2 * GPRSIZE_64, gen.getUseRVC());
 
     // Restore link register
     Register linkRegister = gen.rs()->getRegByName("r1");
-    insnCodeGen::restoreRegister(gen, linkRegister, 2 * GPRSIZE_64);
+    insnCodeGen::restoreRegister(gen, linkRegister, 2 * GPRSIZE_64, gen.getUseRVC());
 }
 
 
 /********************************* Private methods *********************************************/
 
-void EmitterRISCV64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset)
+void EmitterRISCV64RestoreRegs::restoreSPR(codeGen &/*gen*/, Register /*scratchReg*/, int /*sprnum*/, int /*stkOffset*/)
 {
     // TODO RISC-V speical purpose register currently not supported
 }
 
 void EmitterRISCV64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, int save_off) {
-    insnCodeGen::generateMemLoadFp(gen, reg, REG_SP, save_off, 8);
+    insnCodeGen::generateMemLoadFp(gen, reg, REG_SP, save_off, 8, gen.getUseRVC());
     assert(0);
 }
 
@@ -283,7 +283,7 @@ void EmitterRISCV64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, in
 void pushStack(codeGen &gen)
 {
     if (gen.width() == 8)
-        insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, TRAMP_FPR_OFFSET_64);
+        insnCodeGen::generateAddi(gen, REG_SP, REG_SP, TRAMP_FPR_OFFSET_64, gen.getUseRVC());
     else
         assert(0);  // 32 bit not implemented
 }
@@ -291,7 +291,7 @@ void pushStack(codeGen &gen)
 void popStack(codeGen &gen)
 {
     if (gen.width() == 8)
-        insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, TRAMP_FRAME_SIZE_64);
+        insnCodeGen::generateAddi(gen, REG_SP, REG_SP, TRAMP_FRAME_SIZE_64, gen.getUseRVC());
     else
         assert(0);  // 32 bit not implemented
 }
@@ -319,7 +319,7 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
     // Note: If the implementation of the instrumentation frame layout
     // needs to be changed, DyninstDynamicStepperImpl::getCallerFrameArch
     // in stackwalk/src/riscv64-swk.C also likely needs to be changed accordingly
-    insnCodeGen::generateMove(gen, REG_FP, REG_SP);
+    insnCodeGen::generateMove(gen, REG_FP, REG_SP, gen.getUseRVC());
     gen.markRegDefined(REG_FP);
 
     bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
@@ -363,35 +363,35 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, codeGen 
 {
     switch (op) {
         case plusOp: {
-            insnCodeGen::generateAddImm(gen, dest, src1, src2imm);
+            insnCodeGen::generateAddi(gen, dest, src1, src2imm, gen.getUseRVC());
             break;
         }
         case minusOp: {
-            insnCodeGen::generateSubImm(gen, dest, src1, src2imm);
+            insnCodeGen::generateAddi(gen, dest, src1, -src2imm, gen.getUseRVC());
             break;
         }
         case timesOp: {
             // No multiply immediate in RISC-V
             Register scratch = insnCodeGen::moveValueToReg(gen, src2imm);
-            insnCodeGen::generateMul(gen, dest, src1, scratch);
+            insnCodeGen::generateMul(gen, dest, src1, scratch, gen.getUseRVC());
             break;
         }
         case divOp: {
             // No multiply immediate in RISC-V
             Register scratch = insnCodeGen::moveValueToReg(gen, src2imm);
-            insnCodeGen::generateDiv(gen, dest, src1, scratch);
+            insnCodeGen::generateDiv(gen, dest, src1, scratch, gen.getUseRVC());
             break;
         }
         case xorOp: {
-            insnCodeGen::generateXorImm(gen, dest, src1, src2imm);
+            insnCodeGen::generateXori(gen, dest, src1, src2imm, gen.getUseRVC());
             break;
         }
         case orOp: {
-            insnCodeGen::generateOrImm(gen, dest, src1, src2imm);
+            insnCodeGen::generateOri(gen, dest, src1, src2imm, gen.getUseRVC());
             break;
         }
         case andOp: {
-            insnCodeGen::generateAndImm(gen, dest, src1, src2imm);
+            insnCodeGen::generateAndi(gen, dest, src1, src2imm, gen.getUseRVC());
             break;
         }
         case eqOp:
@@ -476,11 +476,11 @@ Register EmitterRISCV64::emitCallReplacement(opCode,
 // Instrumentation vs function call replacement
 // Static vs. dynamic
 
-Register EmitterRISCV64::emitCall(opCode op,
-                                  codeGen &gen,
-                                  const std::vector<AstNodePtr> &operands,
+Register EmitterRISCV64::emitCall(opCode /*op*/,
+                                  codeGen &/*gen*/,
+                                  const std::vector<AstNodePtr> &/*operands*/,
                                   bool,
-                                  func_instance *callee) 
+                                  func_instance * /*callee*/) 
 {
     // Not used currently
     assert(0);
@@ -504,7 +504,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register, long dest,
             }
         case branchOp:
             {
-                insnCodeGen::generateBranch(gen, dest);
+                insnCodeGen::generateBranch(gen, dest, gen.getUseRVC());
                 retval = gen.getIndex();
                 break;
             }
@@ -539,8 +539,8 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
                 // TODO: PARAM_OFFSET(addrWidth) is currently not used
                 // should delete that macro if it's useless
 
-                if (src2 != Null_Register) insnCodeGen::saveRegister(gen, src2, stkOffset);
-                insnCodeGen::restoreRegister(gen, dest, stkOffset);
+                if (src2 != Null_Register) insnCodeGen::saveRegister(gen, src2, stkOffset, gen.getUseRVC());
+                insnCodeGen::restoreRegister(gen, dest, stkOffset, gen.getUseRVC());
 
                 return dest;
             }
@@ -558,7 +558,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
                 int offset = TRAMP_GPR_OFFSET(addrWidth);
                 // its on the stack so load it.
                 //if (src2 != Null_Register) saveRegister(gen, src2, reg, offset);
-                insnCodeGen::restoreRegister(gen, dest, offset + (reg * gen.width()));
+                insnCodeGen::restoreRegister(gen, dest, offset + (reg * gen.width()), gen.getUseRVC());
                 return(dest);
             }
         case registerSlot::live:
@@ -595,10 +595,10 @@ static inline void restoreGPRtoGPR(codeGen &gen,
 
     //Stack Point Register
     if (reg == 31) {
-        insnCodeGen::generateAddImm(gen, frame_size, REG_SP, dest);
+        insnCodeGen::generateAddi(gen, frame_size, REG_SP, dest, gen.getUseRVC());
     }
     else {
-        insnCodeGen::restoreRegister(gen, dest, gpr_off + reg * gpr_size);
+        insnCodeGen::restoreRegister(gen, dest, gpr_off + reg * gpr_size, gen.getUseRVC());
     }
 
     return;
@@ -625,7 +625,7 @@ static inline void emitAddOriginal(Register src, Register acc,
 
 
 //Not correctly implemented
-void MovePCToReg(Register dest, codeGen &gen) {
+void MovePCToReg(Register /*dest*/, codeGen &/*gen*/) {
     // Not used currently
     assert(0);
     return;
@@ -633,8 +633,8 @@ void MovePCToReg(Register dest, codeGen &gen) {
 
 // Yuhan(02/04/19): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
-void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
-                codeGen &gen,
+void emitASload(const BPatch_addrSpec_NP * /*as*/, Register /*dest*/, int /*stackShift*/,
+                codeGen &/*gen*/,
                 bool) {
     // Not used currently
     assert(0);
@@ -719,7 +719,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
             gen.codeEmitter()->emitOp(op, dest, src1, src2, gen);
             break;
         case divOp:
-            insnCodeGen::generateDiv(gen, src2, src1, dest);
+            insnCodeGen::generateDiv(gen, src2, src1, dest, gen.getUseRVC());
             break;
         case lessOp:
         case leOp:
@@ -911,9 +911,9 @@ void emitStorePreviousStackFrameRegister(Address,
 // First AST node: target of the call
 // Second AST node: source of the call
 // This can handle indirect control transfers as well
-bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
-                      Address addr,
-                      std::vector<AstNodePtr> &args)
+bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction /*i*/,
+                      Address /*addr*/,
+                      std::vector<AstNodePtr> &/*args*/)
 {
     // Not used currently
     assert(0);
@@ -966,14 +966,14 @@ bool EmitterRISCV64::emitLoadRelative(Register dest, Address offset, Register ba
     signed long long sOffset = (signed long long) offset;
     // If the offset is small enough (-0x800 <= offset < 0x800), use lb/lw/ld,... directly
     if (sOffset >= -0x800 && sOffset < 0x800) {
-        insnCodeGen::generateMemLoad(gen, dest, baseReg, offset, size, true);
+        insnCodeGen::generateMemLoad(gen, dest, baseReg, offset, size, true, gen.getUseRVC());
     }
     else {
         std::vector<Register> exclude;
         exclude.push_back(baseReg);
         auto addReg = insnCodeGen::moveValueToReg(gen, offset, &exclude);
-        insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg);
-        insnCodeGen::generateMemLoad(gen, dest, baseReg, 0, size, true);
+        insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg, gen.getUseRVC());
+        insnCodeGen::generateMemLoad(gen, dest, baseReg, 0, size, true, gen.getUseRVC());
     }
     gen.markRegDefined(dest);
     return true;
@@ -984,14 +984,14 @@ void EmitterRISCV64::emitStoreRelative(Register source, Address offset, Register
     signed long long sOffset = (signed long long) offset;
     // If the offset is small enough (-0x800 <= offset < 0x800), use lb/lw/ld,... directly
     if (sOffset >= -0x800 && sOffset < 0x800) {
-        insnCodeGen::generateMemStore(gen, source, baseReg, offset, size);
+        insnCodeGen::generateMemStore(gen, source, baseReg, offset, size, gen.getUseRVC());
     }
     else {
         std::vector<Register> exclude;
         exclude.push_back(baseReg);
         auto addReg = insnCodeGen::moveValueToReg(gen, offset, &exclude);
-        insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg);
-        insnCodeGen::generateMemStore(gen, source, baseReg, 0, size);
+        insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg, gen.getUseRVC());
+        insnCodeGen::generateMemStore(gen, source, baseReg, 0, size, gen.getUseRVC());
     }
 }
 
@@ -1163,39 +1163,35 @@ bool EmitterRISCV64Dyn::emitTOCCommon(block_instance *, bool, codeGen &) {
     return true;
 }
 
-bool EmitterRISCV64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
+bool EmitterRISCV64Stat::emitPLTCall(func_instance * /*callee*/, codeGen &/*gen*/) {
     // Not used currently
     assert(0);
     return true;
 }
 
-bool EmitterRISCV64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
+bool EmitterRISCV64Stat::emitPLTJump(func_instance * /*callee*/, codeGen & /*gen*/) {
     // Not used currently
     assert(0);
     return true;
 }
 
-bool EmitterRISCV64Stat::emitTOCCall(block_instance *block, codeGen &gen) {
+bool EmitterRISCV64Stat::emitTOCCall(block_instance * /*block*/, codeGen & /*gen*/) {
     // Not used currently
     assert(0);
-    return emitTOCCommon(block, true, gen);
 }
 
-bool EmitterRISCV64Stat::emitTOCJump(block_instance *block, codeGen &gen) {
+bool EmitterRISCV64Stat::emitTOCJump(block_instance * /*block*/, codeGen & /*gen*/) {
     // Not used currently
     assert(0);
-    return emitTOCCommon(block, false, gen);
 }
 
-bool EmitterRISCV64Stat::emitTOCCommon(block_instance *, bool, codeGen &) {
+bool EmitterRISCV64Stat::emitTOCCommon(block_instance * /*block*/, bool, codeGen & /*gen*/) {
     // Not used currently
     assert(0);
     return false;
 }
 
-bool EmitterRISCV64Stat::emitCallInstruction(codeGen &,
-                                             func_instance *,
-                                             bool, Address) {
+bool EmitterRISCV64Stat::emitCallInstruction(codeGen &, func_instance *, bool, Address) {
     // Not used currently
     assert(0);
     return true;
@@ -1243,7 +1239,7 @@ void EmitterRISCV64::emitLoadShared(opCode op, Register dest, const image_variab
             // Deference the pointer to get the variable
             // emitLoadRelative(dest, 0, dest, size, gen);
             // Offset mode to load back to itself
-            insnCodeGen::generateMemLoad(gen, dest, dest, 0, 8, true);
+            insnCodeGen::generateMemLoad(gen, dest, dest, 0, 8, true, gen.getUseRVC());
         } else {
             emitLoadRelative(dest, varOffset, baseReg, size, gen);
         }
@@ -1254,8 +1250,8 @@ void EmitterRISCV64::emitLoadShared(opCode op, Register dest, const image_variab
             std::vector<Register> exclude;
             exclude.push_back(baseReg);
             auto addReg = insnCodeGen::moveValueToReg(gen, varOffset, &exclude);
-            insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg);
-            insnCodeGen::generateMove(gen, dest, baseReg);
+            insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg, gen.getUseRVC());
+            insnCodeGen::generateMove(gen, dest, baseReg, gen.getUseRVC());
         }
     }
 
@@ -1296,8 +1292,8 @@ void EmitterRISCV64::emitStoreShared(Register source, const image_variable *var,
         // mov offset to a reg
         auto addReg = insnCodeGen::moveValueToReg(gen, varOffset, &exclude);
         // add/sub offset to baseReg
-        insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg);
-        insnCodeGen::generateMemStore(gen, source, baseReg, 0, size);
+        insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg, gen.getUseRVC());
+        insnCodeGen::generateMemStore(gen, source, baseReg, 0, size, gen.getUseRVC());
     }
 
     assert(stackSize <= 0 && "stack not empty at the end");
@@ -1362,7 +1358,7 @@ Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen &gen) 
 
 Address EmitterRISCV64::emitMovePCToReg(Register dest, codeGen &gen) {
     // auipc rd, 0
-    insnCodeGen::generateAuipc(gen, dest, 0);
+    insnCodeGen::generateAuipc(gen, dest, 0, gen.getUseRVC());
     Address ret = gen.currAddr();
     return ret;
 }
