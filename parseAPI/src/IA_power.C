@@ -311,11 +311,11 @@ bool IA_power::isReturnAddrSave(Address& retAddr) const
 
 bool IA_power::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const
 {
-  /* Check for leaf node or lw - mflr - blr pattern */
-  if (curInsn().isReturn()) {
-	parsing_printf(" Not BLR - returning false \n");
-	return false;
-   }
+
+  if(curInsn().isReturn()) {
+    return true;
+  }
+  
   Function *func = context;
   parsing_printf
     ("isblrReturn at 0x%lx Addr 0x%lx 0x%lx Function addr 0x%lx leaf %d \n",
