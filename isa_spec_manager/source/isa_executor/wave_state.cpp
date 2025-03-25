@@ -109,7 +109,13 @@ namespace amdisa
         // Program Counter.
         uint64_t pc = 0;
     };
-
+    void WaveState::SetPC(const uint64_t addr)
+    {
+        if(pimpl_)
+        {
+            pimpl_->pc = addr;
+        }
+    }
     void WaveState::Init(uint32_t wave_length)
     {
         if (pimpl_ == nullptr)

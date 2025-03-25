@@ -25,7 +25,7 @@ namespace amdisa
         void GetVectorRegisterValue(const std::string& operand_name, const uint32_t lane_id, std::vector<uint32_t>& value) const;
         void SetVectorRegisterValue(const std::string& operand_name, const uint32_t lane_id, const std::vector<uint32_t>& value);
         uint32_t GetWaveLength() const;
-
+        void SetPC(const uint64_t addr);
         // State registers which can be accessed directly.
         bool& SCC() const;
         uint64_t& PC() const;

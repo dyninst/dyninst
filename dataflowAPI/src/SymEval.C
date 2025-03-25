@@ -70,6 +70,28 @@ using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace DataflowAPI;
 using namespace rose::BinaryAnalysis::InstructionSemantics2;
+amdisa::WaveState SymEval::wave_state;
+static void PrintStateDelta(const amdisa::StateDelta delta)
+{
+
+	for (const auto& reg_delta : delta.deltas)
+	{
+		std::cout << "Register changed: " << reg_delta.first << std::endl;
+		std::cout << "  Old val: ";
+		for (uint32_t chunk : reg_delta.second.old_value)
+		{
+			std::cout << chunk << " ";
+		}
+		std::cout << std::endl;
+
+		std::cout << "  New val: ";
+		for (uint32_t chunk : reg_delta.second.new_value)
+		{
+			std::cout << chunk << " ";
+		}
+		std::cout << std::endl;
+	}
+}
 
 
 std::pair<AST::Ptr, bool> SymEval::expand(const Assignment::Ptr &assignment, bool applyVisitors) {
@@ -543,35 +565,81 @@ bool SymEval::expandInsn(const Instruction &insn,
         break;
     }
     case Arch_amdgpu_gfx90a: {
-        amdisa::WaveState wave_state;
-        amdisa::IsaDecoder decoder;
-        amdisa::IsaExecutor executor;
-        const int kWaveLength = 64; 
-        amdisa::InstructionInfoBundle inst_info_bundle;
+
         std::string execute_err_message, decode_err_message;
+
+        const int kWaveLength = 64; 
+        wave_state.Init(kWaveLength);
+        wave_state.SetPC(addr);
+        amdisa::IsaDecoder decoder;
+        [&](){
+          bool is_success = decoder.Initialize("/home/wuxx1279/semantic/MR-ISA-240924/mi200.xml",decode_err_message); 
+          if(!is_success) {
+            cerr << "Failed to Initialize Decoder " << decode_err_message << endl;
+            assert(0);
+          }
+        }();
+
+
+        amdisa::IsaExecutor executor;
+        [&](){
+          bool is_success = executor.Init(wave_state,execute_err_message,true);
+          if(!is_success) {
+            cerr << "Failed to Initialize Executor " << execute_err_message << endl;
+            assert(0);
+          }
+        }();
+
+        amdisa::InstructionInfoBundle inst_info_bundle;
+    
         uint64_t inst_value = 0;
         if (insn.size() <= 4)
           inst_value = *(const uint32_t*) insn.ptr();
         else
           inst_value = *(const uint64_t*) insn.ptr();
-
-        bool is_decoded = decoder.DecodeInstruction(inst_value, inst_info_bundle, decode_err_message);
-        if(is_decoded)
-        {
-          for (const auto& inst_info : inst_info_bundle.bundle)
-          {
-            bool is_executed = executor.Execute(inst_info, execute_err_message);
-            if (is_executed) {
-              amdisa::StateDelta delta;
-              bool is_retreived = executor.GetLastDelta(delta, execute_err_message);
-              if (is_retreived)
-              {
-              
-              }
-            }
+        
+        cerr << std::hex <<"0x" <<addr << " Insn size = " << insn.size() << " insn_value = " << std::hex << inst_value << endl;
+        [&](){
+          bool is_decoded = decoder.DecodeInstruction(inst_value, inst_info_bundle, decode_err_message);
+          if(!is_decoded) {
+            cerr << "Failed to decode Instruction " << decode_err_message << endl;
+            assert(0);
           }
+        }();
 
+        for (const auto& inst : inst_info_bundle.bundle)
+        {
+          std::cout << "Parsing Instruction Name: " << inst.instruction_name << " Bundle Size = "<< inst_info_bundle.bundle.size() << std::endl;
+          
+          /*std::cout << "Instruction Description: " << inst.instruction_description << std::endl;
+          std::cout << "Encoding Name: " << inst.encoding_name << std::endl;
+          std::cout << "Encoding Description: " << inst.encoding_description << std::endl;
+          std::cout << "Functional Group: " << amdisa::kFunctionalGroupName[static_cast<int>(inst.functional_group_subgroup_info.IsaFunctionalGroup)]
+          << std::endl;
+          std::cout << "Functional Subgroup: "
+          << amdisa::kFunctionalSubgroupName[static_cast<int>(inst.functional_group_subgroup_info.IsaFunctionalSubgroup)] << std::endl;
+          std::cout << "Functional Group Description: " << inst.functional_group_subgroup_info.description << std::endl;*/
+          // Similarly, the following information about the instruction can be
+          for ( auto & operand : inst.instruction_operands )
+          {
+            std::cout << "Operand Name = " << operand.operand_name << std::endl;
+          }
+          bool is_executed = executor.Execute(inst, execute_err_message);
+          if(!is_executed) {
+            cerr << "Failed to execute Instruction " << execute_err_message << endl;
+            return false;
+          }
+          amdisa::StateDelta delta;
+          bool is_retreived = executor.GetLastDelta(delta, execute_err_message);
+          if (!is_retreived)
+          {
+            cerr << "Failed to retrieve Delta  " << execute_err_message << endl;
+            assert(0);
+          }
+          PrintStateDelta(delta);
+          std::cout << "End Parsing Instruction Name: " << inst.instruction_name << std::endl << std::endl;
         }
+
 
         RoseInsnAMDGPUFactory fac(Arch_amdgpu_gfx90a);
         auto roseInsn = std::unique_ptr<SgAsmInstruction>(fac.convert(insn, addr));

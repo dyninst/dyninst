@@ -49,6 +49,7 @@
 #include "dyninst_visibility.h"
 #include "Node.h"
 #include "Edge.h"
+#include "wave_state.h"
 
 class SgAsmx86Instruction;
 class SgAsmExpression;
@@ -364,7 +365,7 @@ public:
   DYNINST_EXPORT static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res);
   
  private:
-
+ static amdisa::WaveState wave_state;
   // Symbolically evaluate an instruction and assign 
   // an AST representation to every written absloc
  static bool expandInsn(const InstructionAPI::Instruction &insn,
