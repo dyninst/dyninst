@@ -74,6 +74,9 @@ codeGen::codeGen() :
     f_(NULL),
     bt_(NULL),
     isPadded_(true),
+#if defined(DYNINST_HOST_ARCH_RISCV64)
+    useRVC(true),
+#endif
     trackRegDefs_(false),
     inInstrumentation_(false), // save default
     insertNaked_(false),
@@ -98,6 +101,9 @@ codeGen::codeGen(unsigned size) :
     f_(NULL),
     bt_(NULL),
     isPadded_(true),
+#if defined(DYNINST_HOST_ARCH_RISCV64)
+    useRVC(true),
+#endif
     trackRegDefs_(false),
     inInstrumentation_(false),
     insertNaked_(false),
@@ -129,6 +135,9 @@ codeGen::codeGen(codeBuf_t *buffer, int size) :
     f_(NULL),
     bt_(NULL),
     isPadded_(true),
+#if defined(DYNINST_HOST_ARCH_RISCV64)
+    useRVC(true),
+#endif
     trackRegDefs_(false),
     inInstrumentation_(false),
     insertNaked_(false),
@@ -163,6 +172,9 @@ codeGen::codeGen(const codeGen &g) :
     f_(g.f_),
     bt_(g.bt_),
     isPadded_(g.isPadded_),
+#if defined(DYNINST_HOST_ARCH_RISCV64)
+    useRVC(true),
+#endif
     trackRegDefs_(g.trackRegDefs_),
     inInstrumentation_(g.inInstrumentation_),
     insertNaked_(g.insertNaked_),
@@ -194,6 +206,9 @@ codeGen &codeGen::operator=(const codeGen &g) {
     allocated_ = g.allocated_;
     thr_ = g.thr_;
     isPadded_ = g.isPadded_;
+#if defined(DYNINST_HOST_ARCH_RISCV64)
+    useRVC = g.useRVC;
+#endif
     int bufferSize = size_ + (isPadded_ ? codeGenPadding : 0);
     inInstrumentation_ = g.inInstrumentation_;
     insertNaked_ = g.insertNaked_;
