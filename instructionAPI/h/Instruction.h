@@ -168,7 +168,7 @@ namespace Dyninst { namespace InstructionAPI {
     typedef boost::shared_ptr<Instruction> Ptr;
 
   private:
-    void updateSize(const unsigned int new_size) { m_size = new_size; }
+    void updateSize(const unsigned int new_size, const unsigned char * raw);
 
     void decodeOperands() const;
     void addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough,

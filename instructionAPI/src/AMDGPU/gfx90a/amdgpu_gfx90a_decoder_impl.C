@@ -609,7 +609,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_SOP1_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SOP1Operands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -625,7 +625,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_SOPC_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SOPCOperands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -640,7 +640,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_SOPP_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SOPPOperands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -656,7 +656,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_SOPK_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SOPKOperands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -673,7 +673,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_SOP2_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SOP2Operands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -695,7 +695,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_SMEM_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SMEMOperands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -711,7 +711,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_VOP1_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOP1Operands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -727,7 +727,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_VOPC_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOPCOperands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -744,7 +744,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_VOP2_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOP2Operands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -768,7 +768,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_VOP3P_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOP3POperands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -791,7 +791,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_VOP3_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOP3Operands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -813,7 +813,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_DS_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_DSOperands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -839,7 +839,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_MUBUF_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_MUBUFOperands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -866,7 +866,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_MTBUF_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_MTBUFOperands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -895,7 +895,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_MIMG_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_MIMGOperands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -920,7 +920,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_FLAT_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_FLATOperands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -945,7 +945,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_FLAT_GLBL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_FLAT_GLBLOperands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -970,7 +970,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_FLAT_SCRATCH_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_FLAT_SCRATCHOperands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -987,7 +987,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = SOPK_INST_LITERAL__insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeSOPK_INST_LITERAL_Operands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -1005,7 +1005,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_VOP2_LITERAL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOP2_LITERALOperands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -1027,7 +1027,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_VOP3B_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOP3BOperands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
@@ -1050,7 +1050,7 @@ namespace InstructionAPI {
         const amdgpu_gfx90a_insn_entry &insn_entry = ENC_VOP3P_MFMA_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOP3P_MFMAOperands();
-        this->insn_in_progress->updateSize(insn_size + immLen);
+        this->insn_in_progress->updateSize(insn_size +immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 

@@ -123,7 +123,15 @@ namespace Dyninst { namespace InstructionAPI {
       m_RawInsn.small_insn = 0;
     }
   }
-
+  void Instruction::updateSize(const unsigned int new_size, const unsigned char * raw) {
+    if(m_size > 0){
+      if(m_size > sizeof(m_RawInsn.small_insn)) {
+        delete[] m_RawInsn.large_insn; 
+      }
+    }
+    m_size = 0;
+    copyRaw(new_size, raw);
+  }
   void Instruction::decodeOperands() const {
     if(!m_Valid)
       return;
