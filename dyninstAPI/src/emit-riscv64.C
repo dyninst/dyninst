@@ -57,124 +57,157 @@
 #include "dyninstAPI/src/inst-riscv64.h"
 #include "dyninstAPI/src/emit-riscv64.h"
 #include "dyninstAPI/src/registerSpace.h"
+#include "common/src/arch-riscv64.h"
 
-codeBufIndex_t EmitterRISCV64::emitIf(
-        Register expr_reg, Register target, RegControl /*rc*/, codeGen &gen)
+codeBufIndex_t EmitterRISCV64::emitIf(Register expr_reg,
+                                      Register target,
+                                      RegControl /*rc*/,
+                                      codeGen &gen)
 {
     // beq expr_reg, zero, 4
     // jalr zero, target, 0
 
-    insnCodeGen::generateBranchEqual(gen, expr_reg, 0, 0);
-    insnCodeGen::generateJumpRegister(gen, target, 0);
+    insnCodeGen::generateBeq(gen, expr_reg, GPR_ZERO, 4, false);
+    insnCodeGen::generateJr(gen, target, 0, gen.getUseRVC());
 
     // Retval: where the jump is in this sequence
     codeBufIndex_t retval = gen.getIndex();
     return retval;
 }
 
-void EmitterRISCV64::emitLoadConst(Register dest, Address imm, codeGen &gen)
+void EmitterRISCV64::emitLoadConst(Register dest,
+                                   Address imm,
+                                   codeGen &gen)
 {
-    insnCodeGen::loadImmIntoReg(gen, dest, imm);
+    insnCodeGen::loadImmIntoReg(gen, dest, imm, gen.getUseRVC());
 }
 
 
-void EmitterRISCV64::emitLoad(Register dest, Address addr, int size, codeGen &gen)
+void EmitterRISCV64::emitLoad(Register dest,
+                              Address addr,
+                              int size,
+                              codeGen &gen)
 {
     Register scratch = gen.rs()->getScratchRegister(gen);
 
-    insnCodeGen::loadImmIntoReg(gen, scratch, addr);
+    insnCodeGen::loadImmIntoReg(gen, scratch, addr, gen.getUseRVC());
     // As we want to zero extend the dest register, we should set isUnsigned to true
-    insnCodeGen::generateMemLoad(gen, dest, scratch, 0, size, true);
+    insnCodeGen::generateMemLoad(gen, dest, scratch, 0, size, true, gen.getUseRVC());
 
     gen.rs()->freeRegister(scratch);
     gen.markRegDefined(dest);
 }
 
 
-void EmitterRISCV64::emitStore(Address addr, Register src, int size, codeGen &gen)
+void EmitterRISCV64::emitStore(Address addr,
+                               Register src,
+                               int size,
+                               codeGen &gen)
 {
     Register scratch = gen.rs()->getScratchRegister(gen);
 
-    insnCodeGen::loadImmIntoReg(gen, scratch, addr);
-    insnCodeGen::generateMemStore(gen, scratch, src, 0, size);
+    insnCodeGen::loadImmIntoReg(gen, scratch, addr, gen.getUseRVC());
+    insnCodeGen::generateMemStore(gen, scratch, src, 0, size, gen.getUseRVC());
 
     gen.rs()->freeRegister(scratch);
     gen.markRegDefined(src);
 }
 
 
-void EmitterRISCV64::emitOp(
-        unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen)
+void EmitterRISCV64::emitOp(unsigned opcode,
+                            Register dest,
+                            Register src1,
+                            Register src2,
+                            codeGen &gen)
 {
     // dest = src1 + src2
     if (opcode == plusOp) {
-        insnCodeGen::generateAdd(gen, src1, src2, dest);
+        insnCodeGen::generateAdd(gen, src1, src2, dest, gen.getUseRVC());
     }
 
     // dest = src1 - src2
     else if(opcode == minusOp) {
-        insnCodeGen::generateSub(gen, src1, src2, dest);
+        insnCodeGen::generateSub(gen, src1, src2, dest, gen.getUseRVC());
     }
     
     // dest = src1 * src2
     else if (opcode == timesOp) {
-        insnCodeGen::generateMul(gen, src1, src2, dest);
+        insnCodeGen::generateMul(gen, src1, src2, dest, gen.getUseRVC());
     }
 
     // dest = src1 & src2
     else if (opcode == andOp) {
-        insnCodeGen::generateAnd(gen, src1, src2, dest);
+        insnCodeGen::generateAnd(gen, src1, src2, dest, gen.getUseRVC());
     }
 
     // dest = src1 | src2
     else if (opcode == orOp) {
-        insnCodeGen::generateOr(gen, src1, src2, dest);
+        insnCodeGen::generateOr(gen, src1, src2, dest, gen.getUseRVC());
     }
 
     // dest = src1 ^ src2
     else if (opcode == xorOp) {
-        insnCodeGen::generateXor(gen, src1, src2, dest);
+        insnCodeGen::generateXor(gen, src1, src2, dest, gen.getUseRVC());
     }
     else assert(0);
 }
 
 
-void EmitterRISCV64::emitRelOp(
-        unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen, bool s)
+void EmitterRISCV64::emitRelOp(unsigned opcode,
+                               Register dest,
+                               Register src1,
+                               Register src2,
+                               codeGen &gen,
+                               bool s)
 {
-    // We use the compressed instruction `c.li dest, 0` instead of loadImmIntoReg
-    // so that the offset of the conditional jump instruction is fixed to 2 bytes
-    // I know that loadImmIntoReg will generate compressed instructions according to my implementation
-    // But this is just to prevent future errors in case the implementation of loadImmIntoReg is somehow changed
-
     // make dest = 1, meaning true
-    insnCodeGen::loadImmIntoReg(gen, dest, 0x1);
+    insnCodeGen::loadImmIntoReg(gen, dest, 0x1, gen.getUseRVC());
 
     // Insert conditional jump to skip dest = 0 in case the comparison resulted true
     // Therefore keeping dest = 1
     switch (opcode) {
         case lessOp: {
-	    insnCodeGen::generateBranchLessThan(gen, src1, src2, 2);
+            if (s) {
+                insnCodeGen::generateBlt(gen, src1, src2, RV_INSN_SIZE * 2, false);
+            }
+            else {
+                insnCodeGen::generateBltu(gen, src1, src2, RV_INSN_SIZE * 2, false);
+            }
             break;
         }
         case leOp: {
-	    insnCodeGen::generateBranchGreaterThanEqual(gen, src2, src1, 2);
+            if (s) {
+                insnCodeGen::generateBge(gen, src2, src1, RV_INSN_SIZE * 2, false);
+            }
+            else {
+                insnCodeGen::generateBgeu(gen, src2, src1, RV_INSN_SIZE * 2, false);
+            }
             break;
         }
         case greaterOp: {
-	    insnCodeGen::generateBranchLessThan(gen, src2, src1, 2);
+            if (s) {
+                insnCodeGen::generateBlt(gen, src2, src1, RV_INSN_SIZE * 2, false);
+            }
+            else {
+                insnCodeGen::generateBltu(gen, src2, src1, RV_INSN_SIZE * 2, false);
+            }
             break;
         }
         case geOp: {
-            insnCodeGen::generateBranchGreaterThanEqual(gen, src1, src2, 2);
+            if (s) {
+                insnCodeGen::generateBge(gen, src1, src2, RV_INSN_SIZE * 2, false);
+            }
+            else {
+                insnCodeGen::generateBgeu(gen, src1, src2, RV_INSN_SIZE * 2, false);
+            }
             break;
         }
         case eqOp: {
-            insnCodeGen::generateBranchEqual(gen, src1, src2, 2);
+            insnCodeGen::generateBeq(gen, src1, src2, RV_INSN_SIZE * 2, false);
             break;
         }
         case neOp: {
-            insnCodeGen::generateBranchNotEqual(gen, src1, src2, 2);
+            insnCodeGen::generateBne(gen, src1, src2, RV_INSN_SIZE * 2, false);
             break;
         }
         default: {
@@ -182,62 +215,69 @@ void EmitterRISCV64::emitRelOp(
             break;
         }
     }
-    insnCodeGen::generateBranchEqual(gen, src1, src2, 2);
 
     // Make dest = 0, in case it fails the branch
-    insnCodeGen::generateCLoadImm(gen, dest, 0x0);
+    insnCodeGen::loadImmIntoReg(gen, dest, 0x0, false);
 }
 
-
-//#sasha Fix parameters number
-void EmitterRISCV64::emitGetParam(
-        Register, Register param_num,
-        instPoint::Type, opCode op,
-        bool, codeGen &gen)
-{
-    // TODO
-}
-
-
-void EmitterRISCV64::emitRelOpImm(
-        unsigned opcode, Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s)
+void EmitterRISCV64::emitRelOpImm(unsigned opcode,
+                                  Register dest,
+                                  Register src1,
+                                  RegValue src2imm,
+                                  codeGen &gen,
+                                  bool s)
 {
     Register src2 = gen.rs()->getScratchRegister(gen);
-    insnCodeGen::loadImmIntoReg(gen, src2, src2imm);
-
-    // We use the compressed instruction `c.li dest, 0` instead of loadImmIntoReg
-    // so that the offset of the conditional jump instruction is fixed to 2 bytes
-    // I know that loadImmIntoReg will generate compressed instructions according to my implementation
-    // But this is just to prevent future errors in case the implementation of loadImmIntoReg is somehow changed
+    insnCodeGen::loadImmIntoReg(gen, src2, src2imm, gen.getUseRVC());
 
     // make dest = 1, meaning true
-    insnCodeGen::loadImmIntoReg(gen, dest, 0x1);
+    insnCodeGen::loadImmIntoReg(gen, dest, 0x1, gen.getUseRVC());
 
     // Insert conditional jump to skip dest = 0 in case the comparison resulted true
     // Therefore keeping dest = 1
     switch (opcode) {
         case lessOp: {
-            insnCodeGen::generateBranchLessThan(gen, src1, src2, 2);
+            if (s) {
+                insnCodeGen::generateBlt(gen, src1, src2, RV_INSN_SIZE * 2, false);
+            }
+            else {
+                insnCodeGen::generateBltu(gen, src1, src2, RV_INSN_SIZE * 2, false);
+            }
             break;
         }
         case leOp: {
-            insnCodeGen::generateBranchGreaterThanEqual(gen, src2, src1, 2);
+            if (s) {
+                insnCodeGen::generateBge(gen, src2, src1, RV_INSN_SIZE * 2, false);
+            }
+            else {
+                insnCodeGen::generateBgeu(gen, src2, src1, RV_INSN_SIZE * 2, false);
+            }
             break;
         }
         case greaterOp: {
-            insnCodeGen::generateBranchLessThan(gen, src2, src1, 2);
+            if (s) {
+                insnCodeGen::generateBlt(gen, src2, src1, RV_INSN_SIZE * 2, false);
+            }
+            else {
+                insnCodeGen::generateBltu(gen, src2, src1, RV_INSN_SIZE * 2, false);
+            }
             break;
         }
         case geOp: {
-            insnCodeGen::generateBranchGreaterThanEqual(gen, src1, src2, 2);
+            if (s) {
+                insnCodeGen::generateBge(gen, src1, src2, RV_INSN_SIZE * 2, false);
+            }
+            else {
+                insnCodeGen::generateBgeu(gen, src1, src2, RV_INSN_SIZE * 2, false);
+            }
             break;
         }
         case eqOp: {
-            insnCodeGen::generateBranchEqual(gen, src1, src2, 2);
+            insnCodeGen::generateBeq(gen, src1, src2, RV_INSN_SIZE * 2, false);
             break;
         }
         case neOp: {
-            insnCodeGen::generateBranchNotEqual(gen, src1, src2, 2);
+            insnCodeGen::generateBne(gen, src1, src2, RV_INSN_SIZE * 2, false);
             break;
         }
         default: {
@@ -245,29 +285,37 @@ void EmitterRISCV64::emitRelOpImm(
             break;
         }
     }
-    insnCodeGen::generateBranchEqual(gen, src1, src2, 2);
 
     // Make dest = 0, in case it fails the branch
-    insnCodeGen::generateCLoadImm(gen, dest, 0x0);
+    insnCodeGen::loadImmIntoReg(gen, dest, 0x0, false);
 
     gen.rs()->freeRegister(src2);
     gen.markRegDefined(dest);
 }
 
 
-void EmitterRISCV64::emitLoadIndir(Register dest, Register addr_src, int size, codeGen &gen)
+void EmitterRISCV64::emitLoadIndir(Register dest,
+                                   Register addr_src,
+                                   int size,
+                                   codeGen &gen)
 {
-    insnCodeGen::generateMemLoad(gen, dest, addr_src, 0, size, true);
+    insnCodeGen::generateMemLoad(gen, dest, addr_src, 0, size, true, gen.getUseRVC());
     gen.markRegDefined(dest);
 }
-void EmitterRISCV64::emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen)
+void EmitterRISCV64::emitStoreIndir(Register addr_reg,
+                                    Register src,
+                                    int size,
+                                    codeGen &gen)
 {
-    insnCodeGen::generateMemStore(gen, addr_reg, src, 0, size);
+    insnCodeGen::generateMemStore(gen, addr_reg, src, 0, size, gen.getUseRVC());
     gen.markRegDefined(addr_reg);
 }
 
-void EmitterRISCV64::emitLoadOrigRegRelative(
-        Register dest, Address offset, Register base, codeGen &gen, bool deref)
+void EmitterRISCV64::emitLoadOrigRegRelative(Register dest,
+                                             Address offset,
+                                             Register base,
+                                             codeGen &gen,
+                                             bool deref)
 {
     gen.markRegDefined(dest);
     Register scratch = gen.rs()->getScratchRegister(gen);
@@ -279,18 +327,20 @@ void EmitterRISCV64::emitLoadOrigRegRelative(
         // Load the stored register 'base' into scratch
         emitLoadOrigRegister(base, scratch, gen);
         // move offset(%scratch), %dest
-        insnCodeGen::generateMemLoad(gen, dest, scratch, offset, 8, true);
+        insnCodeGen::generateMemLoad(gen, dest, scratch, offset, 8, true, gen.getUseRVC());
     }
     else {
         // load the stored register 'base' into dest
         emitLoadOrigRegister(base, scratch, gen);
-        insnCodeGen::loadImmIntoReg(gen, dest, offset);
-        insnCodeGen::generateAdd(gen, dest, scratch, dest);
+        insnCodeGen::loadImmIntoReg(gen, dest, offset, gen.getUseRVC());
+        insnCodeGen::generateAdd(gen, dest, scratch, dest, gen.getUseRVC());
     }
 }
 
 
-void EmitterRISCV64::emitLoadOrigRegister(Address register_num, Register destination, codeGen &gen)
+void EmitterRISCV64::emitLoadOrigRegister(Address register_num,
+                                          Register destination,
+                                          codeGen &gen)
 {
     registerSlot *src = (*gen.rs())[register_num];
     assert(src);
@@ -298,19 +348,17 @@ void EmitterRISCV64::emitLoadOrigRegister(Address register_num, Register destina
     assert(dest);
 
     if (src->name == "sp") {
-        insnCodeGen::generateAddImm(gen, TRAMP_FRAME_SIZE_64, REG_SP, destination);
+        insnCodeGen::generateAddi(gen, TRAMP_FRAME_SIZE_64, REG_SP, destination, gen.getUseRVC());
         return;
     }
 
     if (src->spilledState == registerSlot::unspilled) {
         // Not on the stack. Directly move the value
-        insnCodeGen::generateMove(gen, destination, (Register)register_num);
+        insnCodeGen::generateMove(gen, destination, (Register)register_num, gen.getUseRVC());
         return;
     }
 
     int offset = TRAMP_GPR_OFFSET(gen.width());
     // Its on the stack so load it.
-    insnCodeGen::restoreRegister(gen, destination, offset + (register_num * gen.width()));
+    insnCodeGen::restoreRegister(gen, destination, offset + (register_num * gen.width()), gen.getUseRVC());
 }
-
-
