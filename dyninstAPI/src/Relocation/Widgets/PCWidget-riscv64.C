@@ -52,7 +52,7 @@ bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuf
         codeGen gen(16);
         gen.applyTemplate(templ);
         Address origRet = addr() + insn_.size();
-        insnCodeGen::loadImmIntoReg(gen, 1 /* x1(ra) */, origRet);
+        insnCodeGen::loadImmIntoReg(gen, 1 /* x1(ra) */, origRet, gen.getUseRVC());
         buffer.addPIC(gen, tracker(t));
     }
     else {
@@ -66,7 +66,7 @@ bool PCWidget::PCtoReg(const codeGen &templ, const RelocBlock *t, CodeBuffer &bu
     Register reg = convertRegID(a_.reg());
     if(templ.addrSpace()->proc()) {
         codeGen gen(16);
-        insnCodeGen::loadImmIntoReg(gen, reg, addr_);
+        insnCodeGen::loadImmIntoReg(gen, reg, addr_, gen.getUseRVC());
         buffer.addPIC(gen, tracker(t));
     }
     else {
@@ -91,13 +91,14 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
 
     // Calculate the offset between current PC and original RA
     EmitterRISCV64* emitter = static_cast<EmitterRISCV64*>(gen.emitter());
-    Address RAOffset = addr - emitter->emitMovePCToReg(1 /* x1(ra) */, gen) + 4;
+    Address RAOffset = addr - emitter->emitMovePCToReg(GPR_RA, gen) + RV_INSN_SIZE;
     // Load the offset into a scratch register
     std::vector<Register> exclude;
-    exclude.push_back(1 /* x1(ra) */);
+    exclude.push_back(GPR_RA);
     Register scratchReg = insnCodeGen::moveValueToReg(gen, RAOffset, &exclude);
     // Put the original RA into LR
-    insnCodeGen::generateAdd(gen, 1 /* x1(ra) */, scratchReg, 1 /* x1(ra) */);
+    insnCodeGen::generateAdd(gen, GPR_RA, scratchReg, GPR_RA, false);
     // Do a jump to the actual target (so do not overwrite LR)
     insnCodeGen::generateBranch(gen, gen.currAddr(), addr, false);
+    return true;
 }

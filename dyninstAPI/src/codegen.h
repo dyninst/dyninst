@@ -250,6 +250,12 @@ class codeGen {
     void setPCRelUseCount(int c) { pc_rel_use_count = c; }
     int getPCRelUseCount() const { return pc_rel_use_count; }
 
+#if defined(DYNINST_HOST_ARCH_RISCV64)
+    bool getUseRVC() { return useRVC; }
+    void setUseRVC(bool useRVC_) { useRVC = useRVC_; }
+#endif
+
+
     // SD-DYNINST
     // 
     typedef std::pair<Dyninst::Address, unsigned> Extent;
@@ -285,6 +291,10 @@ class codeGen {
     baseTramp *bt_;
     bool isPadded_;
 
+#if defined(DYNINST_HOST_ARCH_RISCV64)
+    bool useRVC;
+#endif
+
     bitArray regsDefined_;
     bool trackRegDefs_;
 
@@ -299,6 +309,7 @@ class codeGen {
     std::map<block_instance *, Extent> defensivePads_;
     std::map<baseTramp *, Dyninst::Address> instrumentation_;
     std::map<baseTramp *, Dyninst::Address> removedInstrumentation_;
+
 };
 
 #endif
