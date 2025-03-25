@@ -48,126 +48,130 @@ public:
     //static instructUnion *ptrAndInc(codeGen &gen);
 
     // Basic RISC-V instruction type generation
-    static void generateUTypeInsn(codeGen &gen,
-                                  Dyninst::Register rd,
-                                  Dyninst::RegValue imm,
-                                  unsigned immop);
+    static void makeUTypeInsn(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::RegValue imm,
+                              unsigned immop);
 
-    static void generateITypeInsn(codeGen &gen,
-                                  Dyninst::Register rd,
-                                  Dyninst::Register rs,
-                                  Dyninst::RegValue imm,
-                                  unsigned funct3,
-                                  unsigned opcode);
+    static void makeITypeInsn(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::Register rs,
+                              Dyninst::RegValue imm,
+                              unsigned funct3,
+                              unsigned opcode);
 
-    static void generateRTypeInsn(codeGen &gen,
-                                  Dyninst::Register rd,
-                                  Dyninst::Register rs1,
-                                  Dyninst::Register rs2,
-                                  unsigned funct7,
-                                  unsigned funct3,
-                                  unsigned opcode);
+    static void makeRTypeInsn(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::Register rs1,
+                              Dyninst::Register rs2,
+                              unsigned funct7,
+                              unsigned funct3,
+                              unsigned opcode);
 
-    static void generateBTypeInsn(codeGen &gen,
-                                  Dyninst::Register rs1,
-                                  Dyninst::Register rs2,
-                                  Dyninst::RegValue imm,
-                                  unsigned funct3,
-                                  unsigned opcode);
+    static void makeBTypeInsn(codeGen &gen,
+                              Dyninst::Register rs1,
+                              Dyninst::Register rs2,
+                              Dyninst::RegValue imm,
+                              unsigned funct3,
+                              unsigned opcode);
 
-    static void generateJTypeInsn(codeGen &gen,
-                                  Dyninst::Register rd,
-                                  Dyninst::RegValue imm,
-                                  unsigned opcode);
+    static void makeJTypeInsn(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::RegValue imm,
+                              unsigned opcode);
 
-    static void generateSTypeInsn(codeGen &gen,
-                                  Dyninst::Register rs1,
-                                  Dyninst::Register rs2,
-                                  Dyninst::RegValue imm,
-                                  unsigned funct3, unsigned opcode);
+    static void makeSTypeInsn(codeGen &gen,
+                              Dyninst::Register rs1,
+                              Dyninst::Register rs2,
+                              Dyninst::RegValue imm,
+                              unsigned funct3, unsigned opcode);
 
     // All of these write into a buffer
-    static void generateTrap(codeGen &gen, bool use_compressed);
+    static void generateTrap(codeGen &gen);
 
-    static void generateIllegal(codeGen &gen, bool use_compressed);
+    static void generateIllegal(codeGen &gen);
+
+    static void generateNOOP(codeGen &gen,
+                             unsigned size);
 
     static void generateCall(codeGen &gen,
                              Dyninst::Address from,
-                             Dyninst::Address to,
-                             bool use_compressed);
+                             Dyninst::Address to);
 
     static void generateBranch(codeGen &gen,
                                long jump_off,
-                               bool link = false,
-                               bool use_compressed);
+                               bool link = false);
 
     static void generateBranch(codeGen &gen,
                                Dyninst::Address from,
                                Dyninst::Address to,
-                               bool link = false,
-                               bool use_compressed);
+                               bool link = false);
 
     static void generateLongBranch(codeGen &gen,
                                    Dyninst::Address from,
                                    Dyninst::Address to,
-                                   bool isCall,
-                                   bool use_compressed);
+                                   bool isCall);
 
     // Using the process trap mapping for a branch
     static void generateBranchViaTrap(codeGen &gen,
                                       Dyninst::Address from,
                                       Dyninst::Address to,
-                                      bool isCall,
-                                      bool use_compressed);
+                                      bool isCall);
     // LDR/STR (immediate)
-    static void generateMemLoad(codeGen &gen,
+    static bool generateMemLoad(codeGen &gen,
                                 Dyninst::Register rd,
                                 Dyninst::Register rs,
                                 Dyninst::RegValue offset,
                                 Dyninst::RegValue size,
                                 bool isUnsigned,
-                                bool use_compressed);
+                                bool useRVC);
 
-    static void generateMemStore(codeGen &gen,
+    static bool generateMemStore(codeGen &gen,
                                  Dyninst::Register rs1,
                                  Dyninst::Register rs2,
                                  Dyninst::RegValue offset,
                                  Dyninst::RegValue size,
-                                 bool use_compressed);
+                                 bool useRVC);
 
-    static void generateMemLoadFp(codeGen &gen,
+    static bool generateMemLoadFp(codeGen &gen,
                                   Dyninst::Register rd,
                                   Dyninst::Register rs,
                                   Dyninst::RegValue offset,
                                   Dyninst::RegValue size,
-                                  bool use_compressed);
+                                  bool useRVC);
 
-    static void generateMemStoreFp(codeGen &gen,
+    static bool generateMemStoreFp(codeGen &gen,
                                    Dyninst::Register rs1,
                                    Dyninst::Register rs2,
                                    Dyninst::RegValue offset,
                                    Dyninst::RegValue size,
-                                   bool use_compressed);
+                                   bool useRVC);
 
-    static void saveRegister(codeGen &gen,
+    static bool saveRegister(codeGen &gen,
                              Dyninst::Register r,
                              int sp_offset,
-                             bool use_compressed);
+                             bool useRVC);
 
-    static void restoreRegister(codeGen &gen,
+    static bool restoreRegister(codeGen &gen,
                                 Dyninst::Register r,
                                 int sp_offset,
-                                bool use_compressed);
+                                bool useRVC);
+
+    static bool modifyData(Dyninst::Address target,
+			               NS_riscv64::instruction &insn,
+			               codeGen &gen);
 
     static Dyninst::Register moveValueToReg(codeGen &gen,
                                             long int val,
-                                            std::vector<Dyninst::Register> *exclude = NULL,
-                                            bool use_compressed);
+                                            std::vector<Dyninst::Register> *exclude = NULL);
 
-    static void loadImmIntoReg(codeGen &gen,
+    static bool generateNop(codeGen &gen,
+                            bool useRVC);
+
+    static bool loadImmIntoReg(codeGen &gen,
                                Dyninst::Register rd,
                                Dyninst::RegValue value,
-                               bool use_compressed);
+                               bool useRVC);
 
     static void generate(codeGen &gen, instruction &insn);
 
@@ -186,219 +190,209 @@ public:
 
     // RISC-V Instruction Generation
 
-    static void generateAddImm(codeGen &gen,
-                               Dyninst::Register rd,
-                               Dyninst::Register rs1,
-                               Dyninst::RegValue imm,
-                               bool use_compressed);
+    static bool generateAddi(codeGen &gen,
+                             Dyninst::Register rd,
+                             Dyninst::Register rs1,
+                             Dyninst::RegValue imm,
+                             bool useRVC);
 
-    static void generateSubImm(codeGen &gen,
-                               Dyninst::Register rd,
-                               Dyninst::Register rs1,
-                               Dyninst::RegValue imm,
-                               bool use_compressed);
+    static bool generateSlli(codeGen &gen,
+                             Dyninst::Register rd,
+                             Dyninst::Register rs1,
+                             Dyninst::RegValue imm,
+                             bool useRVC);
 
-    static void generateShiftLeftImm(codeGen &gen,
-                                     Dyninst::Register rd,
-                                     Dyninst::Register rs1,
-                                     Dyninst::RegValue imm,
-                                     bool use_compressed);
+    static bool generateSrli(codeGen &gen,
+                             Dyninst::Register rd,
+                             Dyninst::Register rs1,
+                             Dyninst::RegValue imm,
+                             bool useRVC);
 
-    static void generateShiftRightLogicallyImm(codeGen &gen,
-                                               Dyninst::Register rd,
-                                               Dyninst::Register rs1,
-                                               Dyninst::RegValue imm,
-                                               bool use_compressed);
+    static bool generateSrai(codeGen &gen,
+                             Dyninst::Register rd,
+                             Dyninst::Register rs1,
+                             Dyninst::RegValue imm,
+                             bool useRVC);
 
-    static void generateShiftRightArithmeticImm(codeGen &gen,
-                                                Dyninst::Register rd,
-                                                Dyninst::Register rs1,
-                                                Dyninst::RegValue imm,
-                                                bool use_compressed);
+    static bool generateAndi(codeGen &gen,
+                             Dyninst::Register rd,
+                             Dyninst::Register rs1,
+                             Dyninst::RegValue imm,
+                             bool useRVC);
 
-    static void generateAndImm(codeGen &gen,
-                               Dyninst::Register rd,
-                               Dyninst::Register rs1,
-                               Dyninst::RegValue imm,
-                               bool use_compressed);
+    static bool generateOri(codeGen &gen,
+                            Dyninst::Register rd,
+                            Dyninst::Register rs1,
+                            Dyninst::RegValue imm,
+                            bool useRVC);
 
-    static void generateOrImm(codeGen &gen,
-                              Dyninst::Register rd,
-                              Dyninst::Register rs1,
-                              Dyninst::RegValue imm,
-                              bool use_compressed);
+    static bool generateXori(codeGen &gen,
+                             Dyninst::Register rd,
+                             Dyninst::Register rs1,
+                             Dyninst::RegValue imm,
+                             bool useRVC);
 
-    static void generateXorImm(codeGen &gen,
-                               Dyninst::Register rd,
-                               Dyninst::Register rs1,
-                               Dyninst::RegValue imm,
-                               bool use_compressed);
+    static bool generateLi(codeGen &gen,
+                           Dyninst::Register rd,
+                           Dyninst::RegValue imm,
+                           bool useRVC);
 
-    static void generateLoadImm(codeGen &gen,
-                                Dyninst::Register rd,
-                                Dyninst::RegValue imm,
-                                bool use_compressed);
+    static bool generateLui(codeGen &gen,
+                            Dyninst::Register rd,
+                            Dyninst::RegValue imm,
+                            bool useRVC);
 
-    static void generateLoadUpperImm(codeGen &gen,
-                                     Dyninst::Register rd,
-                                     Dyninst::RegValue imm,
-                                     bool use_compressed);
-
-    static void generateAuipc(codeGen &gen,
+    static bool generateAuipc(codeGen &gen,
                               Dyninst::Register rd,
                               Dyninst::RegValue offset,
-                              bool use_compressed);
+                              bool useRVC);
 
-    static void generateNOOP(codeGen &gen,
-                             unsigned size,
-                             bool use_compressed);
-
-    static void generateAdd(codeGen &gen,
+    static bool generateAdd(codeGen &gen,
                             Dyninst::Register rd,
                             Dyninst::Register rs1,
                             Dyninst::Register rs2,
-                            bool use_compressed);
+                            bool useRVC);
 
-    static void generateSub(codeGen &gen,
+    static bool generateSub(codeGen &gen,
                             Dyninst::Register rd,
                             Dyninst::Register rs1,
                             Dyninst::Register rs2,
-                            bool use_compressed);
+                            bool useRVC);
 
-    static void generateShiftLeft(codeGen &gen,
-                                  Dyninst::Register rd,
-                                  Dyninst::Register rs1,
-                                  Dyninst::Register rs2,
-                                  bool use_compressed);
-
-    static void generateShiftRightLogically(codeGen &gen,
-                                            Dyninst::Register rd,
-                                            Dyninst::Register rs1,
-                                            Dyninst::Register rs2,
-                                            bool use_compressed);
-
-    static void generateShiftRightArithmetic(codeGen &gen,
-                                             Dyninst::Register rd,
-                                             Dyninst::Register rs1,
-                                             Dyninst::Register rs2,
-                                             bool use_compressed);
-
-    static void generateAnd(codeGen &gen,
+    static bool generateSll(codeGen &gen,
                             Dyninst::Register rd,
                             Dyninst::Register rs1,
                             Dyninst::Register rs2,
-                            bool use_compressed);
+                            bool useRVC);
 
-    static void generateOr(codeGen &gen,
+    static bool generateSrl(codeGen &gen,
+                            Dyninst::Register rd,
+                            Dyninst::Register rs1,
+                            Dyninst::Register rs2,
+                            bool useRVC);
+
+    static bool generateSra(codeGen &gen,
+                            Dyninst::Register rd,
+                            Dyninst::Register rs1,
+                            Dyninst::Register rs2,
+                            bool useRVC);
+
+    static bool generateAnd(codeGen &gen,
+                            Dyninst::Register rd,
+                            Dyninst::Register rs1,
+                            Dyninst::Register rs2,
+                            bool useRVC);
+
+    static bool generateOr(codeGen &gen,
                            Dyninst::Register rd,
                            Dyninst::Register rs1,
                            Dyninst::Register rs2,
-                           bool use_compressed);
+                           bool useRVC);
 
-    static void generateXor(codeGen &gen,
+    static bool generateXor(codeGen &gen,
                             Dyninst::Register rd,
                             Dyninst::Register rs1,
                             Dyninst::Register rs2,
-                            bool use_compressed);
+                            bool useRVC);
 
-    static void generateMul(codeGen &gen,
+    static bool generateMul(codeGen &gen,
                             Dyninst::Register rd,
                             Dyninst::Register rm,
                             Dyninst::Register rn,
-                            bool use_compressed);
+                            bool useRVC);
 
-    static void generateDiv(codeGen &gen,
+    static bool generateDiv(codeGen &gen,
                             Dyninst::Register rd,
                             Dyninst::Register rm,
                             Dyninst::Register rn,
-                            bool use_compressed);
+                            bool useRVC);
 
-    static void generateMove(codeGen &gen,
+    static bool generateMove(codeGen &gen,
                              Dyninst::Register rd,
                              Dyninst::Register rs,
-                             bool use_compressed);
+                             bool useRVC);
 
 
     // Generate conditional branch
-    static void generateBranchEqual(codeGen &gen,
-                                    Dyninst::Register rs1,
-                                    Dyninst::Register rs2,
-                                    Dyninst::RegValue imm,
-                                    bool use_compressed);
+    static bool generateBeq(codeGen &gen,
+                            Dyninst::Register rs1,
+                            Dyninst::Register rs2,
+                            Dyninst::RegValue imm,
+                            bool useRVC);
 
-    static void generateBranchNotEqual(codeGen &gen,
-                                       Dyninst::Register rs1,
-                                       Dyninst::Register rs2,
-                                       Dyninst::RegValue imm,
-                                       bool use_compressed);
+    static bool generateBne(codeGen &gen,
+                            Dyninst::Register rs1,
+                            Dyninst::Register rs2,
+                            Dyninst::RegValue imm,
+                            bool useRVC);
 
-    static void generateBranchLessThan(codeGen &gen,
-                                       Dyninst::Register rs1,
-                                       Dyninst::Register rs2,
-                                       Dyninst::RegValue imm,
-                                       bool use_compressed);
+    static bool generateBlt(codeGen &gen,
+                            Dyninst::Register rs1,
+                            Dyninst::Register rs2,
+                            Dyninst::RegValue imm,
+                            bool useRVC);
 
-    static void generateBranchGreaterThanEqual(codeGen &gen,
-                                               Dyninst::Register rs1,
-                                               Dyninst::Register rs2,
-                                               Dyninst::RegValue imm,
-                                               bool use_compressed);
+    static bool generateBge(codeGen &gen,
+                            Dyninst::Register rs1,
+                            Dyninst::Register rs2,
+                            Dyninst::RegValue imm,
+                            bool useRVC);
 
-    static void generateBranchLessThanUnsigned(codeGen &gen,
-                                               Dyninst::Register rs1,
-                                               Dyninst::Register rs2,
-                                               Dyninst::RegValue imm,
-                                               bool use_compressed);
+    static bool generateBltu(codeGen &gen,
+                             Dyninst::Register rs1,
+                             Dyninst::Register rs2,
+                             Dyninst::RegValue imm,
+                             bool useRVC);
 
-    static void generateBranchGreaterThanEqualUnsigned(codeGen &gen,
-                                                       Dyninst::Register rs1,
-                                                       Dyninst::Register rs2,
-                                                       Dyninst::RegValue imm,
-                                                       bool use_compressed);
+    static bool generateBgeu(codeGen &gen,
+                             Dyninst::Register rs1,
+                             Dyninst::Register rs2,
+                             Dyninst::RegValue imm,
+                             bool useRVC);
 
-    static void generateJump(codeGen &gen,
+    static bool generateJ(codeGen &gen,
+                          Dyninst::RegValue offset,
+                          bool useRVC);
+
+    static bool generateJal(codeGen &gen,
+                            Dyninst::Register rd,
+                            Dyninst::RegValue offset,
+                            bool useRVC);
+
+    static bool generateJr(codeGen &gen,
+                           Dyninst::Register rs,
+                           Dyninst::RegValue offset,
+                           bool useRVC);
+
+    static bool generateJalr(codeGen &gen,
+                             Dyninst::Register rd,
+                             Dyninst::Register rs,
                              Dyninst::RegValue offset,
-                             bool use_compressed);
-
-    static void generateJumpAndLink(codeGen &gen,
-                                    Dyninst::Register rd,
-                                    Dyninst::RegValue offset,
-                                    bool use_compressed);
-
-    static void generateJumpRegister(codeGen &gen,
-                                     Dyninst::Register rs,
-                                     Dyninst::RegValue offset,
-                                     bool use_compressed);
-
-    static void generateJumpAndLinkRegister(codeGen &gen,
-                                            Dyninst::Register rd,
-                                            Dyninst::Register rs,
-                                            Dyninst::RegValue offset,
-                                            bool use_compressed);
+                             bool useRVC);
 
     // Compressed Instructions
     static void generateCAdd(codeGen &gen,
                              Dyninst::Register rd,
                              Dyninst::Register rs);
 
-    static void generateCAddImm(codeGen &gen,
-                                Dyninst::Register rd,
-                                Dyninst::RegValue imm);
+    static void generateCAddi(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::RegValue imm);
 
-    static void generateCAddImmScale4SPn(codeGen &gen,
-                                         Dyninst::Register rd,
-                                         Dyninst::RegValue imm);
+    static void generateCAddi4spn(codeGen &gen,
+                                  Dyninst::Register rd,
+                                  Dyninst::RegValue imm);
 
-    static void generateCAddImmScale16SP(codeGen &gen,
-                                         Dyninst::RegValue imm);
+    static void generateCAddi16sp(codeGen &gen,
+                                  Dyninst::RegValue imm);
 
     static void generateCAnd(codeGen &gen,
                             Dyninst::Register rd,
                             Dyninst::Register rs);
 
-    static void generateCAndImm(codeGen &gen,
-                                Dyninst::Register rd,
-                                Dyninst::RegValue imm);
+    static void generateCAndi(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::RegValue imm);
 
     static void generateCLoadImm(codeGen &gen,
                                  Dyninst::Register rd,
@@ -408,37 +402,37 @@ public:
                                       Dyninst::Register rd,
                                       Dyninst::RegValue imm);
 
-    static void generateCShiftLeftImm(codeGen &gen,
-                                      Dyninst::Register rd,
-                                      Dyninst::RegValue uimm);
-
-    static void generateCShiftRightLogicallyImm(codeGen &gen,
-                                                Dyninst::Register rd,
-                                                Dyninst::RegValue uimm);
-
-    static void generateCShiftRightArithmeticImm(codeGen &gen,
-                                                 Dyninst::Register rd,
-                                                 Dyninst::RegValue uimm);
-
-    static void generateCMove(codeGen &gen,
+    static void generateCSlli(codeGen &gen,
                               Dyninst::Register rd,
-                              Dyninst::Register rs);
+                              Dyninst::RegValue uimm);
+
+    static void generateCSrli(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::RegValue uimm);
+
+    static void generateCSrai(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::RegValue uimm);
+
+    static void generateCMv(codeGen &gen,
+                            Dyninst::Register rd,
+                            Dyninst::Register rs);
 
     static void generateCOr(codeGen &gen,
                             Dyninst::Register rd,
                             Dyninst::Register rs);
 
-    static void generateCJump(codeGen &gen,
-                              Dyninst::RegValue offset);
+    static void generateCJ(codeGen &gen,
+                           Dyninst::RegValue offset);
 
-    static void generateCJumpAndLink(codeGen &gen,
-                                     Dyninst::RegValue offset);
+    static void generateCJal(codeGen &gen,
+                             Dyninst::RegValue offset);
 
-    static void generateCJumpRegister(codeGen &gen,
-                                      Dyninst::Register rs);
+    static void generateCJr(codeGen &gen,
+                            Dyninst::Register rs);
 
-    static void generateCJumpAndLinkRegister(codeGen &gen,
-                                             Dyninst::Register rs);
+    static void generateCJalr(codeGen &gen,
+                              Dyninst::Register rs);
 
     static void generateCNop(codeGen &gen);
 
