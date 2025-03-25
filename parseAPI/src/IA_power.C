@@ -309,91 +309,9 @@ bool IA_power::isReturnAddrSave(Address& retAddr) const
   return ret;
 }
 
-bool IA_power::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const
+bool IA_power::isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block*) const
 {
-  /* Check for leaf node or lw - mflr - blr pattern */
-  if (curInsn().isReturn()) {
-	parsing_printf(" Not BLR - returning false \n");
-	return false;
-   }
-  Function *func = context;
-  parsing_printf
-    ("isblrReturn at 0x%lx Addr 0x%lx 0x%lx Function addr 0x%lx leaf %d \n",
-     current, getAddr (), currBlk->start (), context->addr (),
-     func->_is_leaf_function);
-  if (!func->_is_leaf_function)
-    {
-      parsing_printf ("\t LR saved for %s \n", func->name().c_str());
-      // Check for lwz from Stack - mtlr - blr 
-      RegisterAST::Ptr regLR, regSP, reg11;
-		regLR = ppc32_LR; regSP = ppc32_SP; reg11 = ppc32_R11;
-
-      std::set < RegisterAST::Ptr > regs;
-      RegisterAST::Ptr sourceLRReg;
-
-      Instruction ci = curInsn ();
-      bool foundMTLR = false;
-      allInsns_t::reverse_iterator iter;
-      Address blockStart = currBlk->start ();
-      const unsigned char *b =
-	(const unsigned char *) (this->_isrc->
-				 getPtrToInstruction (blockStart));
-      InstructionDecoder decCopy (b, currBlk->size (),
-				  this->_isrc->getArch ());
-      IA_power copy (decCopy, blockStart, _obj, _cr, _isrc, _curBlk);
-      while (!copy.hasCFT ())
-	{
-	  copy.advance ();
-	}
-      for(iter = copy.allInsns.rbegin(); iter != copy.allInsns.rend(); iter++)
-	{
-	  parsing_printf ("\t\tchecking insn 0x%lx: %s \n", iter->first,
-		  iter->second.format ().c_str ());
-	  if (iter->second.getOperation().getID () == power_op_mtspr &&
-	      iter->second.isWritten (regLR))
-	    {
-	      iter->second.getReadSet (regs);
-	      if (regs.size () != 1)
-		{
-		  parsing_printf
-		    ("expected mtspr to read 1 register, insn is %s\n",
-		     ci.format ().c_str ());
-		  return false;
-		}
-	      sourceLRReg = *(regs.begin ());
-	      parsing_printf ("\t\t\t **** Found MTLR saved from %s \n",
-		      sourceLRReg->format ().c_str ());
-	      foundMTLR = true;
-	    }
-	  else if (foundMTLR &&
-		   iter->second.readsMemory () &&
-		   (iter->second.isRead (regSP) ||
-		    (iter->second.isRead (reg11))) &&
-		   iter->second.isWritten (sourceLRReg))
-	    {
-	      parsing_printf ("\t\t\t **** Found lwz - RETURNING TRUE\n");
-	      return true;
-	    }
-	}
-
-      parsing_printf (" Slicing for Addr 0x%lx startAddr 0x%lx ret addr 0x%lx func %s\n",
-	      getAddr (), currBlk->start (), func->_ret_addr, func->name().c_str());
-      bool ret = sliceReturn(currBlk, func->_ret_addr, func);
-
-      func->invalidateCache();
-      if (ret) {
-	parsing_printf ("\t\t\t **** Slicing - is a return instruction\n");
-	return true;
-      } else {
-	parsing_printf ("\t\t\t **** Slicing - is not a return instruction\n");
-	return false;	
-      }
-    }
-  else
-    {
-      parsing_printf ("\t leaf node  RETURNING TRUE \n");
-      return true;
-    }
+  return curInsn().isReturn();
 }
 
 bool IA_power::isFakeCall() const
