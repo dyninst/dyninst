@@ -484,9 +484,12 @@ namespace Dyninst { namespace InstructionAPI {
           return c_CallInsn;
         }
       }
-      if(m_InsnOp.getID() == power_op_bclr) {
-        return c_ReturnInsn;
+    }
+    if(m_InsnOp.getID() == power_op_bclr) {
+      if(this->allowsFallThrough()) {
+        return c_BranchInsn;
       }
+      return c_ReturnInsn;
     }
     if(isSoftwareInterrupt(*this)) {
       return c_InterruptInsn;
