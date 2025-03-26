@@ -39,299 +39,214 @@
 #include "registers/riscv64_regs.h"
 #include <assert.h>
 #include <vector>
+#include <bitset>
 class AddressSpace;
 
 namespace NS_riscv64 {
+
 /*
- * Define arch64 instruction information.
+ * Define riscv64 instruction information.
  *
  */
 
-//#define ATOMIC_MASK    (0x3f400000)
-//#define ATOMIC_LD (0x08400000)
-//#define ATOMIC_ST (0x08000000)
-//
-//#define UNCOND_BR_IMM_MASK  (0x7c000000)
-//#define UNCOND_BR_IMM       (0x14000000)
-//#define UNCOND_BR_REG_MASK  (0xfe000000)
-//#define UNCOND_BR_REG       (0xd6000000)
+// In RISC-V, instruction length can be a multiple of 2 bytes
 
-#define BREAK_POINT_INSN 0xd4200000
-
-#define LUIOp         0x37
-#define AUIPCOp       0x17
-
-#define IMMOp         0x13
-#define REGOp         0x33
-#define JALOp         0x6f
-#define JALROp        0x67
-#define LOADOp        0x3
-#define STOREOp       0x23
-#define BRANCHOp      0x63
-
-#define ADDFunct7     0x0
-#define SUBFunct7     0x20
-#define SLLFunct7     0x0
-#define XORFunct7     0x0
-#define SRLFunct7     0x0
-#define SRAFunct7     0x20
-#define ORFunct7      0x0
-#define ANDFunct7     0x0
-#define MULFunct7     0x1
-#define DIVFunct7     0x1
-
-#define ADDFunct3    0x0
-#define SUBFunct3    0x0
-#define SLLFunct3    0x1
-#define XORFunct3    0x4
-#define SRLFunct3    0x5
-#define SRAFunct3    0x5
-#define ORFunct3     0x6
-#define ANDFunct3    0x7
-#define JALRFunct3   0x0
-#define MULFunct3    0x0
-#define DIVFunct3    0x4
-
-#define BEQFunct3    0x0
-#define BNEFunct3    0x1
-#define BLTFunct3    0x4
-#define BGEFunct3    0x5
-#define BLTUFunct3   0x6
-#define BGEUFunct3   0x7
-
-#define GPR_ZERO        0
-#define GPR_RA          1
-#define GPR_SP          2
-#define GPR_FP          8
-
-#define INSN_SET(I, s, e, v)    ((I).setBits(s, e - s + 1, (v)))
-
-#define INSN_GET_ISCALL(I)          ((unsigned int) ((I).asInt() & 0x80000000))
-#define INSN_GET_CBRANCH_OFFSET(I)  ((unsigned int) (((I).asInt() >> 5) & 0x7ffff))
-
-#define MAX_BRANCH_OFFSET       0xfffff // 20 bits
-#define MAX_BRANCH_LINK_OFFSET  0xfff // 12 bits
-
-#define CHECK_INST(isInst) \
-    !((insn_.raw&isInst##_MASK)^isInst)
-
-#define GET_OFFSET32(thisInst) \
-    (((insn_.raw&thisInst##_OFFSET_MASK)>>thisInst##_OFFSHIFT)<<2)
-
-typedef const unsigned int insn_mask;
-typedef const unsigned short cinsn_mask;
-class ATOMIC_t {
-public:
-    static insn_mask LDST_INSN_MASK = 0x0000007f;
-    static insn_mask LD_INSN        = 0x00000003;
-    static insn_mask ST_INSN        = 0x00000023;
-
-    static cinsn_mask CLDST_INSN_MASK = 0xe003;
-    static cinsn_mask CLW_INSN        = 0x4000;
-    static cinsn_mask CLD_INSN        = 0x6000;
-    static cinsn_mask CSW_INSN        = 0xc000;
-    static cinsn_mask CSD_INSN        = 0xe000;
-    static cinsn_mask CLWSP_INSN      = 0x4002;
-    static cinsn_mask CLDSP_INSN      = 0x6002;
-    static cinsn_mask CSWSP_INSN      = 0xc002;
-    static cinsn_mask CSDSP_INSN      = 0xe002;
-};
-
-class UNCOND_BR_t {
-public:
-    static insn_mask J_INSN_MASK = 0x0000007f;
-    static insn_mask JAL_INSN    = 0x0000006f;
-    static insn_mask JALR_INSN   = 0x00000067;
-
-    static insn_mask JALR_REG_MASK  = 0x000f8000;
-    static insn_mask JALR_REG_SHIFT = 15;
-    static insn_mask JALR_IMM_MASK  = 0xfff00000;
-    static insn_mask JALR_IMM_SHIFT = 20;
-
-    static insn_mask JAL_IMM_MASK  = 0xfffff000;
-    static insn_mask JAL_IMM_SHIFT = 12;
-
-    static cinsn_mask CJ_INSN_MASK = 0xe003;
-    static cinsn_mask CJ_INSN      = 0xa001;
-    static cinsn_mask CJAL_INSN    = 0x2001;
-
-    static cinsn_mask CJ_IMM_MASK  = 0x1ffc;
-    static cinsn_mask CJ_IMM_SHIFT = 2;
-
-    static cinsn_mask CJR_INSN_MASK = 0xf003;
-    static cinsn_mask CJR_INSN      = 0x8002;
-    static cinsn_mask CJALR_INSN    = 0x9002;
-
-    static cinsn_mask CJR_REG_MASK  = 0x0f80;
-    static cinsn_mask CJR_REG_SHIFT = 7;
-};
+// Standard RISC-V instructions (RVI, RVA, RVM, RVF, RVD, ...) are 4 bytes
+constexpr int RV_INSN_SIZE = 4;     // Standard instructions
+// Compressed instructions (RVC) are 2 bytes
+constexpr int RVC_INSN_SIZE = 2;    // Compressed instructions
+// The instruction buffer length should be the maximum instruction length currently supported.
+// Change this value if we want to support longer instructions like LLI extension
+constexpr int INSN_BUFF_SIZE = (8 * RV_INSN_SIZE);
+typedef std::bitset<INSN_BUFF_SIZE> insnBuf_t;
 
 
-class COND_BR_t {
-public:
-    static insn_mask BRANCH_MASK  = 0x0000007f;
-    static insn_mask BRANCH_INSNS = 0x00000063;
+typedef unsigned short rvInsnMin_t;
 
-    static insn_mask BRANCH_IMM_MASK = 0xfe000f00;
 
-    static cinsn_mask CBRANCH_MASK = 0xe003;
-    static cinsn_mask CBEQZ_INSN   = 0xc001;
-    static cinsn_mask CBNEZ_INSN   = 0xe001;
+constexpr int BREAK_POINT_INSN = 0x00100073; // ebreak
 
-    static cinsn_mask CBRANCH_IMM_MASK = 0x1c7c;
-};
+constexpr int LUIOp      = 0x37;
+constexpr int AUIPCOp    = 0x17;
+
+constexpr int IMMOp      = 0x13;
+constexpr int REGOp      = 0x33;
+constexpr int JALOp      = 0x6f;
+constexpr int JALROp     = 0x67;
+constexpr int LOADOp     = 0x03;
+constexpr int STOREOp    = 0x23;
+constexpr int BRANCHOp   = 0x63;
+
+constexpr int ADDFunct7  = 0x00;
+constexpr int SUBFunct7  = 0x20;
+constexpr int SLLFunct7  = 0x00;
+constexpr int XORFunct7  = 0x00;
+constexpr int SRLFunct7  = 0x00;
+constexpr int SRAFunct7  = 0x20;
+constexpr int ORFunct7   = 0x00;
+constexpr int ANDFunct7  = 0x00;
+constexpr int MULFunct7  = 0x01;
+constexpr int DIVFunct7  = 0x01;
+
+constexpr int ADDFunct3  = 0x0;
+constexpr int SUBFunct3  = 0x0;
+constexpr int SLLFunct3  = 0x1;
+constexpr int XORFunct3  = 0x4;
+constexpr int SRLFunct3  = 0x5;
+constexpr int SRAFunct3  = 0x5;
+constexpr int ORFunct3   = 0x6;
+constexpr int ANDFunct3  = 0x7;
+constexpr int JALRFunct3 = 0x0;
+constexpr int MULFunct3  = 0x0;
+constexpr int DIVFunct3  = 0x4;
+
+constexpr int BEQFunct3  = 0x0;
+constexpr int BNEFunct3  = 0x1;
+constexpr int BLTFunct3  = 0x4;
+constexpr int BGEFunct3  = 0x5;
+constexpr int BLTUFunct3 = 0x6;
+constexpr int BGEUFunct3 = 0x7;
+
+constexpr int GPR_ZERO   = 0;
+constexpr int GPR_RA     = 1;
+constexpr int GPR_SP     = 2;
+constexpr int GPR_FP     = 8;
+
+constexpr int MAX_BRANCH_OFFSET      = 0xfffff; // 20 bits
+constexpr int MAX_BRANCH_LINK_OFFSET = 0xfff;   // 12 bits
+
+constexpr insnBuf_t J_INSN_MASK    = insnBuf_t(0x0000007f);
+constexpr insnBuf_t B_INSN_MASK    = insnBuf_t(0x0000007f);
+constexpr insnBuf_t CJ_INSN_MASK   = insnBuf_t(0xe003);
+constexpr insnBuf_t CJR_INSN_MASK  = insnBuf_t(0xf003);
+constexpr insnBuf_t CB_INSN_MASK   = insnBuf_t(0xe003);
+
+constexpr insnBuf_t B_INSNS        = insnBuf_t(0x00000063);
+constexpr insnBuf_t JALR_INSN      = insnBuf_t(0x00000067);
+constexpr insnBuf_t JAL_INSN       = insnBuf_t(0x0000006f);
+constexpr insnBuf_t CBEQZ_INSN     = insnBuf_t(0xc001);
+constexpr insnBuf_t CBNEZ_INSN     = insnBuf_t(0xe001);
+constexpr insnBuf_t CJALR_INSN     = insnBuf_t(0x9002);
+constexpr insnBuf_t CJAL_INSN      = insnBuf_t(0x2001);
+constexpr insnBuf_t CJR_INSN       = insnBuf_t(0x8002);
+constexpr insnBuf_t CJ_INSN        = insnBuf_t(0xa001);
+
+// RISC-V immediates in jump/branch instructions are scrambled:
+// > the instruction format was chosen to keep all register specifiers at the same position in all formats
+// The following arrays store the corresponding indexes to reorder the immediates back
+
+const std::vector<int> JAL_REORDER  = {12, 13, 14, 15, 16, 17, 18, 19, 11,1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20};
+const std::vector<int> JALR_REORDER = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+const std::vector<int> B_REORDER1   = {11, 1, 2, 3, 4};
+const std::vector<int> B_REORDER2   = {5, 6, 7, 8, 9, 10, 12};
+const std::vector<int> CJ_REORDER   = {5, 1, 2, 3, 7, 6, 10, 8, 9, 4, 11};
+const std::vector<int> CB_REORDER1  = {5, 1, 2, 6, 7};
+const std::vector<int> CB_REORDER2  = {3, 4, 8};
+
+// The following are the indices of the immediates' offset
+
+const int JAL_IMM_OFF  = 12;
+const int JALR_IMM_OFF = 20;
+const int CJ_IMM_OFF   = 2; 
+
+const int B_IMM_OFF1   = 7;
+const int B_IMM_OFF2   = 25;
+const int CB_IMM_OFF1  = 2;
+const int CB_IMM_OFF2  = 10;
+
+constexpr insnBuf_t JALR_REG_MASK = insnBuf_t(0x000f8000);
+constexpr insnBuf_t CJR_REG_MASK  = insnBuf_t(0x0f80);
+constexpr int JALR_REG_SHIFT    = 15;
+constexpr int CJR_REG_SHIFT     = 7;
+
+// Atomic Instructions
+constexpr insnBuf_t A_INSN_MASK = insnBuf_t(0x0000007f);
+constexpr insnBuf_t A_INSNS     = insnBuf_t(0x0000002f);
+constexpr insnBuf_t A_OP_MASK   = insnBuf_t(0xf8000000);
+constexpr insnBuf_t A_OP_LR     = insnBuf_t(0x10000000);
+constexpr insnBuf_t A_OP_SC     = insnBuf_t(0x18000000);
+
+#define INSN_BUFF_SET(I, s, e, v)    ((I).setInsnBuf((s), (e - s + 1), (v)))
 
 typedef union {
-    unsigned char byte[4];
-    unsigned int  raw;
-    unsigned char cbyte[2]; // Compressed Instructions
-    unsigned short craw;    // Compressed Instructions
+    unsigned char byte[sizeof(rvInsnMin_t)];
+    rvInsnMin_t raw;
 } instructUnion;
 
 typedef instructUnion codeBuf_t;
 typedef unsigned codeBufIndex_t;
 
-#define maxGPR 32           /* More space than is needed */
-#define maxFPR 32           /* Save FPRs 0-13 */
-
-// Helps to mitigate host/target endian mismatches
-unsigned int swapBytesIfNeeded(unsigned int i);
+#define maxGPR 32
+#define maxFPR 32
 
 class DYNINST_EXPORT instruction {
-	private:
-    instructUnion insn_;
-    bool is_compressed;
+private:
+    // Due to the way codegen.C works, codeBuf_t should be a fixed size.
+    // Therefore, we write opcodes to our own instruction buffer `insn_buff` instead.
+    // Then, whever we generate the instruction, we call `flushInsnBuffer` to flush the
+    // instruction buffer into the 2-byte code buffer `code_buff` 2-bytes by 2-bytes.
 
-	public:
-    instruction(): insn_(), is_compressed(false) {}
-    instruction(unsigned int raw) {
-        // Don't flip bits here
-        insn_.raw = raw;
-        is_compressed = false;
+    codeBuf_t code_buff;
+    insnBuf_t insn_buff;
+    bool isRVC;
+
+public:
+    instruction(): code_buff(), isRVC(false) { insn_buff.set(); }
+    instruction(rvInsnMin_t raw): isRVC(false) {
+        code_buff.raw = raw;
+        insn_buff.set();
     }
-    instruction(unsigned short craw) {
-        // Don't flip bits here
-        insn_.craw = craw;
-        is_compressed = true;
-    }
-    instruction(bool compressed): insn_(), is_compressed(compressed) {}
-    // Pointer creation method
-    instruction(const void *ptr, const bool compressed) {
-      insn_ = *((const instructUnion *)ptr);
-      is_compressed = compressed;
+    instruction(const void *ptr, bool) {
+        code_buff = *((const codeBuf_t *)ptr);
     }
 
-    instruction(const instruction &insn) : insn_(insn.insn_), is_compressed(insn.is_compressed) {}
-    instruction(instructUnion &insn) :
-        insn_(insn) {}
+    instruction(const instruction &insn) : code_buff(insn.code_buff), isRVC(insn.isRVC) {}
+    instruction(codeBuf_t &insn) : code_buff(insn) {}
 
-    instruction *copy() const;
-
-    void clear() { insn_ = instructUnion(); }
-    void setInstruction(codeBuf_t *ptr, Dyninst::Address = 0);
-    void setBits(unsigned int pos, unsigned int len, unsigned int value) {
-        unsigned int mask;
-
-        mask = ~((unsigned int)(~0) << len);
-        value = value & mask;
-
-        mask = ~(mask << pos);
-        value = value << pos;
-
-        insn_.raw = insn_.raw & mask;
-        insn_.raw = insn_.raw | value;
+    void clear() { 
+        code_buff = instructUnion();
+        insn_buff.reset();
     }
-    void setCBits(unsigned int pos, unsigned int len, unsigned short value) {
-        unsigned short mask;
-
-        mask = ~((unsigned short)(~0) << len);
-        value = value & mask;
-
-        mask = ~(mask << pos);
-        value = value << pos;
-
-        insn_.craw = insn_.craw & mask;
-        insn_.craw = insn_.craw | value;
+    void setInsnBuf(unsigned int pos, unsigned int len, unsigned int value) {
+        std::bitset<INSN_BUFF_SIZE> bits(value);
+        for (unsigned i = 0; i < len; i++) {
+            insn_buff.set(pos + i, bits[i]);
+        }
     }
 
-    bool isCompressed() const { return is_compressed; }
-    unsigned int asInt() const { return insn_.raw; }
-    unsigned int asShort() const { return insn_.craw; }
-    void setInstruction(unsigned char *ptr, Dyninst::Address = 0);
+    void flushInsnBuff(int begin) {
+        std::bitset<INSN_BUFF_SIZE> mask;
+        for (unsigned i = 0; i < 8 * sizeof(rvInsnMin_t); i++) {
+            mask.set(begin + i);
+        }
+        code_buff.raw = static_cast<rvInsnMin_t>(((insn_buff & mask) >> begin).to_ulong());
+    }
 
+    bool getIsRVC() const { return isRVC; }
+    void setIsRVC(bool isRVC_) { isRVC = isRVC_; }
 
-    // To solve host/target endian mismatches
-    static int signExtend(unsigned int i, unsigned int pos);
-    static instructUnion &swapBytes(instructUnion &i);
-
-    unsigned size() { return is_compressed ? 2 : 4; }
-
-    Dyninst::Address getBranchOffset() const;
-    Dyninst::Address getBranchTargetAddress() const;
-    void setBranchOffset(Dyninst::Address newOffset);
-
-    // And tell us how much space we'll need...
-    // Returns -1 if we can't do a branch due to architecture limitations
-    unsigned jumpSize(Dyninst::Address from, Dyninst::Address to, unsigned addr_width);
-    unsigned jumpSize(Dyninst::Address disp, unsigned addr_width);
-    unsigned maxJumpSize(unsigned addr_width);
-
-    unsigned maxInterFunctionJumpSize(unsigned addr_width);
-
-    // return the type of the instruction
-    unsigned type() const;
+    unsigned size() { return isRVC ? RVC_INSN_SIZE : RV_INSN_SIZE; }
 
     // return a pointer to the instruction
-    const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
-
-    // For external modification
-    // Don't allow external modification anymore.  Host byte order may differ
-    // from target byte order.
-    //instructUnion &operator* () { return insn_; }
-    //const instructUnion &operator* () const { return insn_; }
-    //const unsigned int &raw() const { return insn_.raw; }
-
-    unsigned opcode() const;
-
-    // Local version
-    bool isInsnType(const unsigned mask, const unsigned match) const {
-        return ((insn_.raw & mask) == match);
-    }
-    bool isInsnType(const unsigned short mask, const unsigned short match) const {
-        return ((insn_.craw & mask) == match);
-    }
-
-    Dyninst::Address getTarget(Dyninst::Address insnAddr) const;
-
-    unsigned spaceToRelocate();
-    bool getUsedRegs(std::vector<int> &regs);
-
-    bool valid() const {
-			assert(0);
-			return false;
-		}
-
-    bool isCall() const;
+    const unsigned char *ptr() const { return (const unsigned char *)&code_buff; }
 
     static bool isAligned(Dyninst::Address addr) {
         return !(addr & 0x1);
     }
 
+    unsigned getTargetReg() const;
+    Dyninst::Address getTarget(Dyninst::Address addr) const;
+
     bool isBranchReg() const;
     bool isBranchOffset() const;
-    bool isCondBranch() const;
     bool isUncondBranch() const;
-    bool isThunk() const;
-
-
-  	bool isCleaningRet() const {return false; }
-
-    bool isAtomicLoad( ) const;
-    bool isAtomicStore( ) const;
-
-    // inferface for being called outside this class
-    unsigned getTargetReg()const ;
+    bool isCondBranch() const;
     unsigned getBranchTargetReg() const;
+    Dyninst::Address getBranchOffset() const;
+    bool isAtomic() const;
+    bool isAtomicMemOp() const;
+    bool isAtomicLoad() const;
+    bool isAtomicStore() const;
 };
 
 }
