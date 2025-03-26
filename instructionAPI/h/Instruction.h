@@ -168,7 +168,7 @@ namespace Dyninst { namespace InstructionAPI {
     typedef boost::shared_ptr<Instruction> Ptr;
 
   private:
-    void updateSize(const unsigned int new_size) { m_size = new_size; }
+    void updateSize(const unsigned int new_size, const unsigned char * raw);
 
     void decodeOperands() const;
     void addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough,
@@ -181,7 +181,7 @@ namespace Dyninst { namespace InstructionAPI {
     mutable Operation m_InsnOp;
     bool m_Valid;
     raw_insn_T m_RawInsn;
-    unsigned int m_size;
+    unsigned int m_size{};
     Architecture arch_decoded_from;
     mutable std::list<CFT> m_Successors;
     // formatter is a non-owning pointer to a singleton object

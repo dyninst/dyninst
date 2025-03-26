@@ -109,19 +109,24 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   void Instruction::copyRaw(size_t size, const unsigned char* raw) {
+    if(m_size > sizeof(m_RawInsn.small_insn)) {
+        delete[] m_RawInsn.large_insn; 
+    }
+    m_size = 0;
+    m_RawInsn.small_insn = 0;
     if(raw) {
       m_size = size;
-      m_RawInsn.small_insn = 0;
       if(size <= sizeof(m_RawInsn.small_insn)) {
         memcpy(&m_RawInsn.small_insn, raw, size);
       } else {
         m_RawInsn.large_insn = new unsigned char[size];
         memcpy(m_RawInsn.large_insn, raw, size);
       }
-    } else {
-      m_size = 0;
-      m_RawInsn.small_insn = 0;
     }
+  }
+
+  void Instruction::updateSize(const unsigned int new_size, const unsigned char * raw) {
+    copyRaw(new_size, raw);
   }
 
   void Instruction::decodeOperands() const {
