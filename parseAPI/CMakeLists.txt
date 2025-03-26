@@ -91,12 +91,16 @@ endif()
 dyninst_library(
   parseAPI
   PRIVATE_HEADER_FILES ${_parseapi_private_headers} ${_dataflow_private_headers} ${_isa_spec_private_headers}
-  PUBLIC_HEADER_FILES ${_parseapi_public_headers} ${_dataflow_public_headers} 
+  PUBLIC_HEADER_FILES ${_parseapi_public_headers} ${_dataflow_public_headers}
   SOURCE_FILES ${_parseapi_sources} ${_dataflow_sources} ${_isa_spec_sources}
   DYNINST_DEPS common instructionAPI ${SYMREADER}
   PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS OpenMP::OpenMP_CXX
 )
+# This is requried because dyninst_library expect PUBLIC_HEADER_FILES to be under h/
+foreach(h ${_isa_spec_public_headers})
+  install(FILES ${_isa_spec_public_headers} DESTINATION "${DYNINST_INSTALL_INCLUDEDIR}/")
+endforeach()
 # cmake-format: on
 
 #find_package(IsaExplorer REQUIRED COMPONENTS headers CONFIG PATHS "${PROJECT_SOURCE_DIR}/isa_spec_manager/build/linux/output/libisa_explorer_dynamic.so")
