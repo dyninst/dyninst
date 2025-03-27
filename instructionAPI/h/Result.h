@@ -395,9 +395,10 @@ namespace Dyninst
 
                 bool operator<(const Result& o) const
                 {
-                    if(type < o.type) return true;
                     if(!defined) return false;
                     if(!o.defined) return true;
+                    if(type < o.type) return true;
+                    if(type > o.type) return false;
 
                     switch(type)
                     {
