@@ -33,6 +33,11 @@
 #include "Immediate.h"
 #include "dyn_regs.h"
 
+#include <array>
+#include <iostream>
+#include <stdint.h>
+#include <string>
+
 namespace Dyninst
 {
 namespace InstructionAPI
