@@ -370,12 +370,82 @@ which are both 0).
     }
 
     if(current->op == power_op_bcctr) {
-      insn_in_progress->addSuccessor(makeRegisterExpression(ppc32::ctr), field<31, 31>(insn) == 1,
-                                     true, bcIsConditional, false);
-      if(bcIsConditional) {
-        insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
+      /*********************************************************************
+       *  Power ISA Version 3.1C, Book I. May 2024
+       *  2.4 Branch Instructions
+       *
+       *    bcctr   BO,BI,BH (LK=0)
+       *    bcctrl  BO,BI,BH (LK=1)
+       *
+       *    Extended form examples:
+       *      blctr
+       *      bnectr cr0
+       *
+       *  Programming Note (pg 38)
+       *  ------------------------
+       *
+       *  1. Computed goto’s, case statements, etc.
+       *
+       *     Put the branch address in CTR and set LK=0 (BH=0b11, if appropriate)
+       *
+       *  2. Indirect subroutine linkage
+       *
+       *     Place the final target address in CTR and use bcctr (LK=0).
+       *
+       *     NOTE: This form is not meant to fall through (e.g., it's used in PLT
+       *     thunks), so usually also has BH=0b1z1zz as per Figure 2.5 to indicate
+       *     "branch always".
+       *
+       *  3. Function call
+       *
+       *     For direct calls, put the target address in CTR and use bcctrl (LK=1).
+       ****************************************************************************/
+      bool const LK = field<31, 31>(insn);
+
+      auto add_lr_operand = [this, LK](bool const is_read) {
+        auto link_register = makeRegisterExpression(ppc32::lr);
+        constexpr bool is_implicit = true;
+        bool const is_written = (LK == 1);
+        insn_in_progress->appendOperand(link_register, is_read, is_written, is_implicit);
+      };
+
+      if(LK == 1) {
+        // Case 3 - Function call
+        auto ctr = makeRegisterExpression(ppc32::ctr);
+        constexpr bool is_indirect = true;
+        constexpr bool is_call = true;
+        bool const is_fallthrough = false;
+        constexpr bool is_conditional = false;
+        insn_in_progress->addSuccessor(std::move(ctr), is_call, is_indirect, is_conditional, is_fallthrough);
+        add_lr_operand(true);
+      } else {
+        bool const always_branch = [this]() {
+          auto const bo_field = field<6,10>(insn);
+          auto const mask = 0x14;  // bits 0,1,3 are ignored (0b10100)
+          return (bo_field & mask) == mask;
+        }();
+
+        if(always_branch) {
+          // Case 2 - Indirect subroutine linkage
+          auto ctr = makeRegisterExpression(ppc32::ctr);
+          constexpr bool is_indirect = true;
+          constexpr bool is_call = false;
+          bool const is_fallthrough = false;
+          constexpr bool is_conditional = false;
+          insn_in_progress->addSuccessor(std::move(ctr), is_call, is_indirect, is_conditional, is_fallthrough);
+          add_lr_operand(false);
+        } else {
+          // Case 1 - Computed goto’s, case statements, etc.
+          auto ctr = makeRegisterExpression(ppc32::ctr);
+          constexpr bool is_indirect = true;
+          constexpr bool is_call = false;
+          bool const is_fallthrough = true;
+          constexpr bool is_conditional = true;
+          insn_in_progress->addSuccessor(std::move(ctr), is_call, is_indirect, is_conditional, is_fallthrough);
+        }
       }
     }
+
     if(current->op == power_op_addic || current->op == power_op_andi_rc ||
        current->op == power_op_andis_rc || current->op == power_op_stwcx_rc ||
        current->op == power_op_stdcx_rc) {
