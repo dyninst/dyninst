@@ -48,7 +48,7 @@ void insnCodeGen::generate(codeGen &gen, instruction &insn) {
     // Call `flushInsnBuffer` to flush the instruction buffer into the
     // 2-byte code buffer `code_buff` short-by-short.
     for (unsigned i = 0; i < insn.size() / sizeof(rvInsnMin_t); i++) {
-        insn.flushInsnBuff(i * sizeof(rvInsnMin_t));
+        insn.flushInsnBuff(i * sizeof(rvInsnMin_t) * 8);
         gen.copy(insn.ptr(), sizeof(rvInsnMin_t));
     }
 }
@@ -57,7 +57,7 @@ void insnCodeGen::generate(codeGen &gen, instruction &insn, unsigned position) {
     // Call `flushInsnBuffer` to flush the instruction buffer into the
     // 2-byte code buffer `code_buff` short-by-short
     for (unsigned i = 0; i < insn.size() / sizeof(rvInsnMin_t); i++) {
-        insn.flushInsnBuff(i * sizeof(rvInsnMin_t));
+        insn.flushInsnBuff(i * sizeof(rvInsnMin_t) * 8);
         gen.insert(insn.ptr(), sizeof(rvInsnMin_t), position);
     }
 }
