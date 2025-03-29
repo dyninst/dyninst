@@ -1315,17 +1315,42 @@ which are both 0).
      *  1z1zz | Branch always
      */
     auto const bo_field = field<6,10>(insn);
+
     bcIsConditional = true;
     invertBranchCondition = false;
-    if(!field<8, 8>(insn)) {
-      Expression::Ptr ctr = makeRegisterExpression(makePowerRegID(ppc32::ctr, 0));
+
+    bool const writes_ctr = [this, bo_field](){
+      // ctr is not written for bcctr, even when the BO table indicates it does
+      auto const id = field<0,5>(insn);
+      auto const xo = field<21,30>(insn);
+      if(id == 19 && xo == 528) return false;
+
+      // Otherwise, check BO_2
+      return field<2, 2>(bo_field) == 0;
+    }();
+
+    if(writes_ctr) {
       if(field<9, 9>(insn)) {
         insn_in_progress->getOperation().mnemonic = "bdz";
       } else {
         insn_in_progress->getOperation().mnemonic = "bdn";
       }
-      insn_in_progress->appendOperand(ctr, true, true);
     }
+
+    // The count register (ctr) is conditionally read and written
+    {
+      auto ctr = makeRegisterExpression(makePowerRegID(ppc32::ctr, 0));
+      bool const is_read = [this](){
+        // I-form doesn't read it
+        auto const id = field<0,5>(insn);
+        bool const is_b_form = (id == 16);
+        bool const is_xl_form = (id == 19);
+        return is_b_form || is_xl_form;
+      }();
+
+      insn_in_progress->appendOperand(std::move(ctr), is_read, writes_ctr);
+    }
+
     if(!(field<6, 6>(insn))) {
       invertBranchCondition = !field<7, 7>(insn);
       if(insn_in_progress->getOperation().mnemonic == "bc") {
@@ -1333,7 +1358,7 @@ which are both 0).
       }
       insn_in_progress->appendOperand(makeBIExpr(), true, false);
     }
-    if(field<8, 8>(insn) && field<6, 6>(insn)) {
+    if(!writes_ctr && field<6, 6>(insn)) {
       size_t found = insn_in_progress->getOperation().mnemonic.rfind("c");
       if(found != std::string::npos) {
         insn_in_progress->getOperation().mnemonic.erase(found, 1);
