@@ -294,21 +294,81 @@ which are both 0).
       std::mem_fn (*curFn)(this);
     }
 
-    // bclr is either a conventional branch or used as a return from a procedure
     if(current->op == power_op_bclr) {
       /*********************************************************************
-       *  Power ISA Version 3.1, Book I. May 2020. 2.4 Branch Instructions
+       *  Power ISA Version 3.1C, Book I. May 2024
+       *  2.4 Branch Instructions
        *
-       *  The conventional return sequence is to use `bclr` (Branch
-       *  Conditional to Link Register) with BH=0b00.
+       *  bclr   BO,BI,BH (LK=0)
+       *  bclrl  BO,BI,BH (LK=1)
+       *
+       *  Extended form examples:
+       *    bclr  4,6
+       *    bltlr
+       *    bnelr cr2
+       *    bdnzlr
+       *
+       *
+       *  Programming Note (pg 38)
+       *  ------------------------
+       *
+       *  1. Do not use bclrl as a subroutine call
+       *
+       *  2. The conventional return idiom is to use `bclr` with BH=0b00
+       *
        *********************************************************************/
-      auto target = makeRegisterExpression(ppc32::lr);
-      insn_in_progress->addSuccessor(std::move(target), false, true, bcIsConditional, false);
+      bool const LK = field<31, 31>(insn);
+
+      // link register is _always_ read, but conditionally written
+      {
+        auto link_register = makeRegisterExpression(ppc32::lr);
+        constexpr bool is_read = true;
+        constexpr bool is_implicit = true;
+        bool const is_written = (LK == 1);
+        insn_in_progress->appendOperand(std::move(link_register), is_read, is_written, is_implicit);
+      }
+
+      if(LK == 1) {
+        // 1. Do not use bclrl as a subroutine call
+        constexpr bool is_call = false;
+
+        auto lr = makeRegisterExpression(ppc32::lr);
+        constexpr bool is_indirect = true;
+        constexpr bool is_conditional = true;
+        constexpr bool is_fallthrough = false;
+        insn_in_progress->addSuccessor(std::move(lr), is_call, is_indirect, is_conditional, is_fallthrough);
+      }
+      else {
+        // 2. The conventional return sequence is to use `bclr` with BH=0b00
+        bool const is_subroutine_return = [this]() {
+          auto const bh_field = field<19,20>(insn);
+          return bh_field == 0;
+        }();
+
+        if(is_subroutine_return) {
+          // This is _not_ a fallthrough conditional
+          this->bcIsConditional = false;
+
+          // Indirectly branch through the link register
+          auto lr = makeRegisterExpression(ppc32::lr);
+          constexpr bool is_call = false;
+          constexpr bool is_indirect = true;
+          constexpr bool is_conditional = false;
+          constexpr bool is_fallthrough = false;
+          insn_in_progress->addSuccessor(lr, is_call, is_indirect, is_conditional, is_fallthrough);
+        }
+      }
 
       if(bcIsConditional) {
-        insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
+        auto target = makeFallThroughExpr();
+        constexpr bool is_call = false;
+        constexpr bool is_indirect = false;
+        constexpr bool is_conditional = false;
+        constexpr bool is_fallthrough = true;
+        insn_in_progress->addSuccessor(std::move(target), is_call, is_indirect, is_conditional, is_fallthrough);
       }
     }
+
     if(current->op == power_op_bcctr) {
       insn_in_progress->addSuccessor(makeRegisterExpression(ppc32::ctr), field<31, 31>(insn) == 1,
                                      true, bcIsConditional, false);
