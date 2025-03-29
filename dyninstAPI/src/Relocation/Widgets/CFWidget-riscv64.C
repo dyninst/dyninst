@@ -50,19 +50,19 @@ using namespace InstructionAPI;
 using namespace NS_riscv64;
 
 bool CFWidget::generateIndirect(CodeBuffer &,
-                                Register,
-                                const RelocBlock *,
-                                Instruction)
+        Register,
+        const RelocBlock *,
+        Instruction)
 {
     return true;
 }
 
 
 bool CFWidget::generateIndirectCall(CodeBuffer & /*gens*/,
-							        Register /*reg*/,
-							        InstructionAPI::Instruction /*insn*/,
-							        const RelocBlock * /*trace*/,
-							        Address /*origAddr*/)
+        Register /*reg*/,
+        InstructionAPI::Instruction /*insn*/,
+        const RelocBlock * /*trace*/,
+        Address /*origAddr*/)
 {
     return true;
 }
@@ -72,83 +72,86 @@ bool CFPatch::apply(codeGen &, CodeBuffer *) {
 }
 
 bool CFPatch::isPLT(codeGen &gen) {
-   if (!gen.addrSpace()->edit()) return false;
+    if (!gen.addrSpace()->edit()) return false;
 
-   // We need to PLT if we're in two different 
-   // AddressSpaces - the current codegen and
-   // the target.
+    // We need to PLT if we're in two different 
+    // AddressSpaces - the current codegen and
+    // the target.
 
-   // First check the target type.
-   if (target->type() != TargetInt::BlockTarget) {
-      // Either a RelocBlock (which _must_ be local)
-      // or an Address (which has to be local to be
-      // meaningful); neither reqs PLT
-      return false;
-   }
+    // First check the target type.
+    if (target->type() != TargetInt::BlockTarget) {
+        // Either a RelocBlock (which _must_ be local)
+        // or an Address (which has to be local to be
+        // meaningful); neither reqs PLT
+        return false;
+    }
 
-   Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
-   block_instance *tb = t->t();
-   if (tb->proc() != gen.addrSpace())
-      return true;
-   else
-      return false;
+    Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
+    block_instance *tb = t->t();
+    if (tb->proc() != gen.addrSpace()) {
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
-   // We should try and keep any prefixes that were on the instruction. 
-   // However... yeah, right. I'm not that good with x86. So instead
-   // I'm copying the code from emitCallInstruction...
-      
-   if (target->type() != TargetInt::BlockTarget) {
-      return false;
-   }
-   // And can only handle calls right now. That's a TODO...
-   if (type != Call &&
-       type != Jump) {
-      return false;
-   }
+    // We should try and keep any prefixes that were on the instruction. 
+    // However... yeah, right. I'm not that good with x86. So instead
+    // I'm copying the code from emitCallInstruction...
 
-   relocation_cerr << "\t\t\t ApplyPLT..." << endl;
+    if (target->type() != TargetInt::BlockTarget) {
+        return false;
+    }
+    // And can only handle calls right now. That's a TODO...
+    if (type != Call && type != Jump) {
+        return false;
+    }
 
-   Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
-   block_instance *tb = t->t();
+    relocation_cerr << "\t\t\t ApplyPLT..." << endl;
 
-   // Set caller in codegen structure
-   gen.setFunction(const_cast<func_instance *>(func));
+    Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
+    block_instance *tb = t->t();
 
-   // We can (for now) only jump to functions
-   func_instance *callee = tb->entryOfFunc();
-   if (!callee) {
-      return false;
-   }
+    // Set caller in codegen structure
+    gen.setFunction(const_cast<func_instance *>(func));
 
-   // We need a RegisterSpace for this. Amusingly,
-   // we want to use the RegisterSpace corresponding to the
-   // entry of the callee, as it doesn't matter what's live
-   // here. 
-   instPoint *calleeEntry = instPoint::funcEntry(callee);
-   gen.setRegisterSpace(registerSpace::actualRegSpace(calleeEntry));
+    // We can (for now) only jump to functions
+    func_instance *callee = tb->entryOfFunc();
+    if (!callee) {
+        return false;
+    }
 
-   if (type == Call) 
-      gen.codeEmitter()->emitPLTCall(callee, gen);
-   else if (type == Jump)
-      gen.codeEmitter()->emitPLTJump(callee, gen);
-   else
-      assert(0);
+    // We need a RegisterSpace for this. Amusingly,
+    // we want to use the RegisterSpace corresponding to the
+    // entry of the callee, as it doesn't matter what's live
+    // here. 
+    instPoint *calleeEntry = instPoint::funcEntry(callee);
+    gen.setRegisterSpace(registerSpace::actualRegSpace(calleeEntry));
 
-   return true;
+    if (type == Call) {
+        gen.codeEmitter()->emitPLTCall(callee, gen);
+    }
+    else if (type == Jump) {
+        gen.codeEmitter()->emitPLTJump(callee, gen);
+    }
+    else {
+        assert(0);
+    }
+
     return true;
 }
 
 /*
-bool CFPatch::needsTOCUpdate() {
-	assert(0);
-  return true;
-}
+   bool CFPatch::needsTOCUpdate() {
+   assert(0);
+   return true;
+   }
 
-bool CFPatch::handleTOCUpdate(codeGen &gen) {
-	assert(0);
-	return false;
-}
-*/
+   bool CFPatch::handleTOCUpdate(codeGen &gen) {
+   assert(0);
+   return false;
+   }
+   */
 
