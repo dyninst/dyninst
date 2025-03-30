@@ -1511,8 +1511,8 @@ bool linux_thread::plat_cont()
          llproc()->addBreakpoint(addr, bp);
       }
 
-      result = do_ptrace((pt_req) PTRACE_CONT, lwp, NULL, data);
       pthrd_printf("Calling PTRACE_CONT to emulate PTRACE_SINGLESTEP on %d with signal %d\n", lwp, tmpSignal);
+      result = do_ptrace((pt_req) PTRACE_CONT, lwp, NULL, data);
       #else
       pthrd_printf("Calling PTRACE_SINGLESTEP on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_SINGLESTEP, lwp, NULL, data);
