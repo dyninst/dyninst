@@ -501,7 +501,6 @@ class int_process
 
    virtual bool plat_needsPCSaveBeforeSingleStep();
    virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &result);
-   virtual async_ret_t plat_emulateSingleStep(int_thread *, std::vector<Address> &);
    virtual bool plat_convertToBreakpointAddress(Address &, int_thread *) { return true; }
    virtual void plat_getEmulatedSingleStepAsyncs(int_thread *thr, std::set<response::ptr> resps);
    virtual bool plat_needsThreadForMemOps() const { return true; }

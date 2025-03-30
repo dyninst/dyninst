@@ -1497,50 +1497,22 @@ bool linux_thread::plat_cont()
    {
       #if defined(DYNINST_HOST_ARCH_RISCV64)
       int_thread *thr = thread()->llthrd();
-      linux_process *lproc = dynamic_cast<linux_process *>(proc_);
-
-      {
-         reg_response::ptr pcResponse = reg_response::createRegResponse();
-         bool result = thr->getRegister(MachRegister::getPC(lproc->getTargetArch()), pcResponse);
-         if (!result || pcResponse->hasError()) {
-            pthrd_printf("Error reading PC address to check for emulated single step condition\n");
-            return aret_error;
-         }
-         bool ready = pcResponse->isReady();
-         assert(ready);
-         if(!ready) return aret_error;
-         Address pc = (Address) pcResponse->getResult();
-         pthrd_printf("SS PC is %lx\n", pc);
-         }
-         pthrd_printf("SS PC should %lx\n", lproc->getLibBreakpointAddr());
 
       vector<Address> addrs;
       async_ret_t aresult = llproc()->plat_needsEmulatedSingleStep(thr, addrs);
-      vector<pair<Address,int_breakpoint*>> bps;
 
       for (vector<Address>::iterator j = addrs.begin(); j != addrs.end(); j++) {
          Address addr = *j;
          pthrd_printf("Installing emulated non-user single-step breakpoint for %d/%d at %lx\n",
                       llproc()->getPid(), thr->getLWP(), addr);
-         //create a new sw_breakpoint
          int_breakpoint* bp = new int_breakpoint(Breakpoint::ptr());
          bp->setThreadSpecific(thr->thread());
          bp->setOneTimeBreakpoint(true);
-         pthrd_printf("Adding breakpoint at %lx\n", addr);
          llproc()->addBreakpoint(addr, bp);
-         bps.push_back(make_pair(addr, bp));
       }
 
       result = do_ptrace((pt_req) PTRACE_CONT, lwp, NULL, data);
-      pthrd_printf("SS cont %d\n", lwp);
-
-      for (auto& bp : bps) {
-         std::set<response::ptr> b_resps;
-         pthrd_printf("Removing emulated non-user single-step breakpoint for %d/%d at %lx\n",
-                      llproc()->getPid(), thr->getLWP(), bp.first);
-
-         bp.second->markOneTimeHit();
-      }
+      pthrd_printf("Calling PTRACE_CONT to emulate PTRACE_SINGLESTEP on %d with signal %d\n", lwp, tmpSignal);
       #else
       pthrd_printf("Calling PTRACE_SINGLESTEP on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_SINGLESTEP, lwp, NULL, data);

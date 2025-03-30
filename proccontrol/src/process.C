@@ -2395,10 +2395,6 @@ async_ret_t int_process::plat_needsEmulatedSingleStep(int_thread *, std::vector<
    return aret_success;
 }
 
-async_ret_t int_process::plat_emulateSingleStep(int_thread *, std::vector<Address> &) {
-   return aret_success;
-}
-
 void int_process::plat_getEmulatedSingleStepAsyncs(int_thread *, std::set<response::ptr>) {
    assert(0);
 }

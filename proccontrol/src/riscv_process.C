@@ -175,11 +175,11 @@ bool riscv_process::plat_convertToBreakpointAddress(Address &, int_thread *) {
 
 // The following a few of functions are used for emulated
 // singlestep. The scenario is quite similiar to what happens
-// on PPC.
+// on RISC-V.
 // ----
-// ldaxr
+// LD
 // ...
-// stxr
+// ST
 // ----
 //
 
@@ -348,7 +348,9 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
    pthrd_printf("Checking for atomic instruction sequence before single step\n");
 
    /*
-    * We need an emulated single step to single step an atomic
+    * On RISC-V we need to emulate single step in every case because ptrace SINGLESTEP
+    * it's still not implemented in the kernel.
+    * We also need an emulated single step to single step an atomic
     * instruction sequence. The sequence looks something like this:
     *
     * lwarx
@@ -378,32 +380,8 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
            return aresult;
 
         bool isCompressed = (rawInsn & 0b11) != 0b11;
-        pthrd_printf("isCompressed %d\n", isCompressed);
-
-        InstructionAPI::InstructionDecoder decoder(&rawInsn,
-         sizeof(rawInsn),
-         getTargetArch());
-
-         InstructionAPI::Instruction cur = decoder.decode();   
-
-        pthrd_printf("Current instruction size is %d str %s\n", cur.size(), cur.format().c_str());
-        pthrd_printf("Current instruction is 0x%lx\n", rawInsn);
 
         instruction insn(&rawInsn, isCompressed);
-   
-        pthrd_printf("created instr\n");
-
-        if (insn.isCompressed()) {
-         pthrd_printf("Compressed instruction %d\n", insn.asShort());
-     } else {
-         pthrd_printf("Uncompressed instruction %d\n", insn.asInt());
-     }
-
-        pthrd_printf("CRASHING \n");
-        pthrd_printf("branch %d\n", insn.isBranchReg());
-
-
-
         
         if( atomicLoad(insn) ) {
             sequenceStarted = true;
@@ -466,41 +444,6 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
     }
 
     return aret_success;
-}
-
-async_ret_t riscv_process::plat_emulateSingleStep(int_thread *thr, std::vector<Address> &addrResult) {
-   async_ret_t aresult = plat_needsEmulatedSingleStep(thr, addrResult);
-   if (aresult == aret_error || aresult == aret_async)
-      return aresult;
-   if (addrResult.size() == 0) {
-      Address pc;
-      aresult = readPCForSS(thr, pc);
-      if (aresult == aret_error || aresult == aret_async)
-         return aresult;
-      pthrd_printf("Set breakpoint on the next instruction\n");
-
-      max_instruction_t readbuf;
-      mem_response::ptr new_resp = mem_response::createMemResponse((char *) &readbuf, sizeof(max_instruction_t));
-      bool result = readMem(pc, new_resp);
-      if (!result || new_resp->hasError()) {
-         pthrd_printf("Error during memory read for pc\n");
-         return aret_error;
-      }
-      bool ready = new_resp->isReady();
-         
-      bool isCompressed = (readbuf & 0b11) == 0b11;
-      pthrd_printf("isCompressed %d\n", isCompressed);
-
-      InstructionAPI::InstructionDecoder decoder(&readbuf,
-                                              sizeof(readbuf),
-                                              getTargetArch());
-
-      InstructionAPI::Instruction cur = decoder.decode();
-      
-      pthrd_printf("Current instruction size is %d str %s\n", cur.size(), cur.format().c_str());
-      addrResult.push_back(pc+cur.size());
-   }
-   return aret_success;
 }
 
 void riscv_process::plat_getEmulatedSingleStepAsyncs(int_thread *, std::set<response::ptr> resps)
