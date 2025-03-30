@@ -282,18 +282,12 @@ void EmitterRISCV64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, in
  */
 void pushStack(codeGen &gen)
 {
-    if (gen.width() == 8)
-        insnCodeGen::generateAddi(gen, REG_SP, REG_SP, TRAMP_FPR_OFFSET_64, gen.getUseRVC());
-    else
-        assert(0);  // 32 bit not implemented
+    insnCodeGen::generateAddi(gen, REG_SP, REG_SP, -TRAMP_FPR_OFFSET_64, gen.getUseRVC());
 }
 
 void popStack(codeGen &gen)
 {
-    if (gen.width() == 8)
-        insnCodeGen::generateAddi(gen, REG_SP, REG_SP, TRAMP_FRAME_SIZE_64, gen.getUseRVC());
-    else
-        assert(0);  // 32 bit not implemented
+    insnCodeGen::generateAddi(gen, REG_SP, REG_SP, TRAMP_FRAME_SIZE_64, gen.getUseRVC());
 }
 
 /*********************************** Base Tramp ***********************************************/
@@ -301,7 +295,6 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
 {
     regalloc_printf("========== baseTramp::generateSaves\n");
 
-    // Make a stack frame.
     pushStack(gen);
 
     EmitterRISCV64SaveRegs saveRegs;
@@ -329,9 +322,6 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
 
     if (saveFPRs) saveRegs.saveFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
     this->savedFPRs = saveFPRs;
-
-    // TODO RISC-V speical purpose register currently not supported
-    //saveRegs.saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
 
     return true;
 }
