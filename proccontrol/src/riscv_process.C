@@ -278,12 +278,12 @@ async_ret_t riscv_process::readPCForSS(int_thread *thr, Address &pc)
    return aret_success;
 }
 
-async_ret_t riscv_process::readInsnForSS(Address pc, int_thread *, instruction_t &rawInsn)
+async_ret_t riscv_process::readInsnForSS(Address pc, int_thread *, max_instruction_t &rawInsn)
 {
    if (!plat_needsAsyncIO())
    {
       //Fast-track for linux/riscv
-      mem_response::ptr new_resp = mem_response::createMemResponse((char *) &rawInsn, sizeof(instruction_t));
+      mem_response::ptr new_resp = mem_response::createMemResponse((char *) &rawInsn, sizeof(max_instruction_t));
       bool result = readMem(pc, new_resp);
       if (!result || new_resp->hasError()) {
          pthrd_printf("Error during memory read for pc\n");
@@ -300,7 +300,7 @@ async_ret_t riscv_process::readInsnForSS(Address pc, int_thread *, instruction_t
     **/
    map<Address, mem_response::ptr>::iterator i;
    for (i = mem_for_ss.begin(); i != mem_for_ss.end(); i++) {
-      if (pc >= i->first && pc+sizeof(instruction_t) <= i->first + i->second->getSize()) {
+      if (pc >= i->first && pc+sizeof(max_instruction_t) <= i->first + i->second->getSize()) {
          if (!i->second->isReady()) {
             pthrd_printf("Returning async form memory read while doing emulated single step test\n");
             return aret_async;
@@ -310,7 +310,7 @@ async_ret_t riscv_process::readInsnForSS(Address pc, int_thread *, instruction_t
             return aret_error;
          }
          Offset offset = pc - i->first;
-         memcpy(&rawInsn, i->second->getBuffer() + offset, sizeof(instruction_t));
+         memcpy(&rawInsn, i->second->getBuffer() + offset, sizeof(max_instruction_t));
          return aret_success;
       }
    }
@@ -324,7 +324,7 @@ async_ret_t riscv_process::readInsnForSS(Address pc, int_thread *, instruction_t
    if (page_offset + read_size > page_size) {
       read_size = page_size - page_offset;
    }
-   assert(read_size >= sizeof(instruction_t));
+   assert(read_size >= sizeof(max_instruction_t));
 
    char *buffer = (char *) malloc(read_size);
    mem_response::ptr new_resp = mem_response::createMemResponse(buffer, read_size);
@@ -338,7 +338,7 @@ async_ret_t riscv_process::readInsnForSS(Address pc, int_thread *, instruction_t
       pthrd_printf("Returning async from memory read during single step test\n");
       return aret_async;
    }
-   memcpy(&rawInsn, new_resp->getBuffer(), sizeof(instruction_t));
+   memcpy(&rawInsn, new_resp->getBuffer(), sizeof(max_instruction_t));
    return aret_success;
 }
 
@@ -372,18 +372,42 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
     int currentCount = 0;
     do {
         // Read the current instruction
-        instruction_t rawInsn;
+        max_instruction_t rawInsn;
         aresult = readInsnForSS(pc, thr, rawInsn);
         if (aresult == aret_error || aresult == aret_async)
            return aresult;
 
-        // Decode the current instruction
-        instruction insn(rawInsn);
+        bool isCompressed = (rawInsn & 0b11) != 0b11;
+        pthrd_printf("isCompressed %d\n", isCompressed);
+
+        InstructionAPI::InstructionDecoder decoder(&rawInsn,
+         sizeof(rawInsn),
+         getTargetArch());
+
+         InstructionAPI::Instruction cur = decoder.decode();   
+
+        pthrd_printf("Current instruction size is %d str %s\n", cur.size(), cur.format().c_str());
+        pthrd_printf("Current instruction is 0x%lx\n", rawInsn);
+
+        instruction insn(&rawInsn, isCompressed);
+   
+        pthrd_printf("created instr\n");
+
+        if (insn.isCompressed()) {
+         pthrd_printf("Compressed instruction %d\n", insn.asShort());
+     } else {
+         pthrd_printf("Uncompressed instruction %d\n", insn.asInt());
+     }
+
+        pthrd_printf("CRASHING \n");
+        pthrd_printf("branch %d\n", insn.isBranchReg());
+
+
+
+        
         if( atomicLoad(insn) ) {
             sequenceStarted = true;
             pthrd_printf("Found the start of an atomic instruction sequence at 0x%lx\n", pc);
-        }else{
-            if( !sequenceStarted ) break;
         }
 
         if( atomicStore(insn) && sequenceStarted ) {
@@ -393,41 +417,47 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
         // For control flow instructions, assume target is outside atomic instruction sequence
         // and place breakpoint there as well
         // First check if is branch reg instruction.
-        Address cfTarget;
-        if( insn.isBranchReg() ){
-//#warning "Test cases don't cover this type of instruction. Potential bugs here.\n"
-            pthrd_printf("DEBUG: find Branch Reg instruction, going to retrieve the target address.\n");
-            // get reg value from the target proc
 
-            unsigned regNum = insn.getTargetReg();
+        if (!sequenceStarted) {
+         Address cfTarget;
+         if( insn.isBranchReg() ){
+             pthrd_printf("DEBUG: find Branch Reg instruction, going to retrieve the target address.\n");
+             // get reg value from the target proc
+ 
+             unsigned regNum = insn.getTargetReg();
 
-            reg_response::ptr Response = reg_response::createRegResponse();
-            bool result = thr->getRegister(as_system_register(regNum), Response);
-            if (!result || Response->hasError()) {
-               pthrd_printf("Error reading PC address to check for emulated single step condition\n");
-               return aret_error;
-            }
-            bool ready = Response->isReady();
-            assert(ready);
-            if(!ready) return aret_error;
+             pthrd_printf("DEBUG: find Branch Reg instruction, target reg is %d\n", regNum);
+ 
+             reg_response::ptr Response = reg_response::createRegResponse();
+             bool result = thr->getRegister(MachRegister::getArchReg(regNum, Arch_riscv64), Response);
+             if (!result || Response->hasError()) {
+                pthrd_printf("Error reading PC address to check for emulated single step condition\n");
+                return aret_error;
+             }
+             bool ready = Response->isReady();
+             assert(ready);
+             if(!ready) return aret_error;
+ 
+             cfTarget = (Address) Response->getResult();
 
-            cfTarget = (Address) Response->getResult();
-        }else{ // return target address by calculating the offset and pc
-            cfTarget = insn.getTarget(pc);
-        }
-        if( cfTarget != 0 && sequenceStarted && !foundEnd ) {
-            addrResult.push_back(cfTarget);
+             pthrd_printf("DEBUG: find Branch Reg instruction, target address is 0x%lx\n", cfTarget);
+         }else{ // return target address by calculating the offset and pc
+             cfTarget = insn.getTarget(pc);
+             pthrd_printf("DEBUG: find Branch Reg instruction, getTarget is 0x%lx\n", cfTarget);
+         }
+         if (cfTarget == 0) {
+            cfTarget = pc + insn.size();
+         }
+         addrResult.push_back(cfTarget);
+         break;
         }
 
         currentCount++;
-        pc += sizeof(instruction_t);
+        pc += insn.size();
     }while( !foundEnd && currentCount < maxSequenceCount );
 
     // The breakpoint should be set at the instruction following the sequence
-    if( foundEnd ) {
-        addrResult.push_back(pc);
-        pthrd_printf("Atomic instruction sequence ends at 0x%lx\n", pc);
-    }else if( sequenceStarted || addrResult.size() ) {
+    if( sequenceStarted && !foundEnd ) {
         addrResult.clear();
         pthrd_printf("Failed to find end of atomic instruction sequence\n");
         return aret_error;
@@ -449,8 +479,8 @@ async_ret_t riscv_process::plat_emulateSingleStep(int_thread *thr, std::vector<A
          return aresult;
       pthrd_printf("Set breakpoint on the next instruction\n");
 
-      unsigned long long readbuf;
-      mem_response::ptr new_resp = mem_response::createMemResponse((char *) &readbuf, sizeof(readbuf));
+      max_instruction_t readbuf;
+      mem_response::ptr new_resp = mem_response::createMemResponse((char *) &readbuf, sizeof(max_instruction_t));
       bool result = readMem(pc, new_resp);
       if (!result || new_resp->hasError()) {
          pthrd_printf("Error during memory read for pc\n");
@@ -458,6 +488,8 @@ async_ret_t riscv_process::plat_emulateSingleStep(int_thread *thr, std::vector<A
       }
       bool ready = new_resp->isReady();
          
+      bool isCompressed = (readbuf & 0b11) == 0b11;
+      pthrd_printf("isCompressed %d\n", isCompressed);
 
       InstructionAPI::InstructionDecoder decoder(&readbuf,
                                               sizeof(readbuf),

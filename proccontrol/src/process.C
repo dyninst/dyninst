@@ -3027,6 +3027,8 @@ async_ret_t int_thread::handleSingleStepContinue()
    async_ret_t ret;
    set<int_thread *> thrds;
 
+   pthrd_printf("Handling single-step continue for %d/%d\n", llproc()->getPid(), getLWP());
+
    if (llproc()->plat_processGroupContinues()) {
       pthrd_printf("plat_processGroupContinues\n");
       int_threadPool *pool = llproc()->threadPool();
@@ -5108,6 +5110,10 @@ bool sw_breakpoint::restoreBreakpointData(int_process *proc, result_response::pt
    assert(buffer_size != 0);
 
    pthrd_printf("Restoring original code over breakpoint at %lx\n", addr);
+   pthrd_printf("Buffer contents from restore breakpoint:\n");
+   for (int i = 0; i < buffer_size; ++i) {
+      pthrd_printf("\t %02x\n", (unsigned char)buffer[i]);
+   }
    return proc->writeMem(buffer, addr, buffer_size, res_resp, NULL, int_process::bp_clear);
 }
 
