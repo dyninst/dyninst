@@ -49,21 +49,29 @@ using namespace InstructionAPI;
 
 using namespace NS_riscv64;
 
-bool CFWidget::generateIndirect(CodeBuffer &,
-        Register,
-        const RelocBlock *,
-        Instruction)
+bool CFWidget::generateIndirect(CodeBuffer &buffer,
+        Register reg,
+        const RelocBlock *trace,
+        Instruction insn)
 {
+    NS_riscv64::instruction mod_insn(insn.ptr());
+    codeGen gen(insn.size());
+    insnCodeGen::generate(gen, mod_insn);
+    buffer.addPIC(gen, tracker(trace));
     return true;
 }
 
 
-bool CFWidget::generateIndirectCall(CodeBuffer & /*gens*/,
-        Register /*reg*/,
-        InstructionAPI::Instruction /*insn*/,
-        const RelocBlock * /*trace*/,
-        Address /*origAddr*/)
+bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
+        Register reg,
+        InstructionAPI::Instruction insn,
+        const RelocBlock *trace,
+        Address origAddr)
 {
+    NS_riscv64::instruction mod_insn(insn.ptr());
+    codeGen gen(insn.size());
+    insnCodeGen::generate(gen, mod_insn);
+    buffer.addPIC(gen, tracker(trace));
     return true;
 }
 
