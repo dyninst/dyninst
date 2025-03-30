@@ -418,7 +418,7 @@ bool insnCodeGen::generateMemStore(codeGen &gen,
         case 1: funct3 = 0x0; break; // lb = 000
         case 2: funct3 = 0x1; break; // lh = 001
         case 4: funct3 = 0x2; break; // lw = 010
-        case 8: funct3 = 0x4; break; // ld = 011
+        case 8: funct3 = 0x3; break; // ld = 011
         default: break;              // not gonna happen
     }
 
