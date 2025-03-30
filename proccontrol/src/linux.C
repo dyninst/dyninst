@@ -75,12 +75,8 @@
 #include "common/src/parseauxv.h"
 
 #include "boost/shared_ptr.hpp"
-#include "boost/stacktrace.hpp"
 
 #include "unaligned_memory_access.h"
-
-#include "instructionAPI/h/InstructionDecoder.h"
-
 
 //needed by GETREGSET/SETREGSET
 #if defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_RISCV64)
@@ -610,10 +606,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                   lib_event->setProcess(proc->proc());
                   lib_event->setSyncType(Event::sync_thread);
                   event->addSubservientEvent(lib_event);
-                  //#endif
                   break;
                }
-
                for (;;) {
                   async_ret_t r = lproc->decodeTdbBreakpoint(event_bp);
                   if (r == aret_error) {
@@ -1439,7 +1433,6 @@ ArchEventLinux *linux_thread::getPostponedSyscallEvent()
    return ret;
 }
 
-static Address addr_lib = 0;
 
 bool linux_thread::plat_cont()
 {
@@ -1500,6 +1493,13 @@ bool linux_thread::plat_cont()
 
       vector<Address> addrs;
       async_ret_t aresult = llproc()->plat_needsEmulatedSingleStep(thr, addrs);
+
+      if (aresult == aret_error || addrs.empty()) {
+         pthrd_printf("Error in plat_needsEmultatedSingleStep on %d/%d\n",
+                      llproc()->getPid(), thr->getLWP());
+         setLastError(err_internal, "Error while checking for emulated single step");
+         return false;
+      }
 
       for (vector<Address>::iterator j = addrs.begin(); j != addrs.end(); j++) {
          Address addr = *j;

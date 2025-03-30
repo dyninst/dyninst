@@ -112,7 +112,7 @@ dyninst_library(
   PUBLIC_HEADER_FILES ${_public_headers}
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
-  DYNINST_DEPS common instructionAPI ${SYMREADER}
+  DYNINST_DEPS common ${SYMREADER}
   PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS ${CMAKE_DL_LIBS} Dyninst::Thread_DB Threads::Threads
 )

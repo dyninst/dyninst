@@ -3023,27 +3023,21 @@ async_ret_t int_thread::handleSingleStepContinue()
    async_ret_t ret;
    set<int_thread *> thrds;
 
-   pthrd_printf("Handling single-step continue for %d/%d\n", llproc()->getPid(), getLWP());
-
    if (llproc()->plat_processGroupContinues()) {
-      pthrd_printf("plat_processGroupContinues\n");
       int_threadPool *pool = llproc()->threadPool();
       for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
          if (!(*i)->isSuspended() && (*i)->singleStepUserMode()) {
-            pthrd_printf("!(*i)->isSuspended() && (*i)->singleStepUserMode()\n");
             thrds.insert(*i);
          }
       }
 
    }
    else if (singleStepUserMode()) {
-      pthrd_printf("singleStepUserMode\n");
       thrds.insert(this);
    }
 
    if (thrds.empty()) {
       //No threads are single-steping.
-      pthrd_printf("No threads are single-stepping\n");
       return aret_success;
    }
    pthrd_printf("Found %d threads doing single step under continue.  Handling\n", (int) thrds.size());
@@ -3057,14 +3051,12 @@ async_ret_t int_thread::handleSingleStepContinue()
        * HandlerPool to create the nop event lazily only if anyone asks for it.
        **/
       llproc()->handlerPool()->setNopAsCurEvent();
-      pthrd_printf("plat_needsAsyncIO\n");
    }
 
    for (set<int_thread *>::iterator i = thrds.begin(); i != thrds.end(); i++) {
       int_thread *thr = *i;
       vector<Address> addrs;
       async_ret_t aresult = llproc()->plat_needsEmulatedSingleStep(thr, addrs);
-      pthrd_printf("plat_needsEmulatedSingleStep %d\n", aresult);
       if (aresult == aret_async) {
          pthrd_printf("Async return from plat_needsEmulatedSingleStep on %d/%d\n",
                       llproc()->getPid(), thr->getLWP());
@@ -5106,10 +5098,6 @@ bool sw_breakpoint::restoreBreakpointData(int_process *proc, result_response::pt
    assert(buffer_size != 0);
 
    pthrd_printf("Restoring original code over breakpoint at %lx\n", addr);
-   pthrd_printf("Buffer contents from restore breakpoint:\n");
-   for (int i = 0; i < buffer_size; ++i) {
-      pthrd_printf("\t %02x\n", (unsigned char)buffer[i]);
-   }
    return proc->writeMem(buffer, addr, buffer_size, res_resp, NULL, int_process::bp_clear);
 }
 
