@@ -1293,6 +1293,28 @@ which are both 0).
   }
 
   void InstructionDecoder_power::BO() {
+    /*********************************************************************
+     *  Power ISA Version 3.1C, Book I. May 2024
+     *  2.4 Branch Instructions
+     *
+     *  Figure 2.5: BO field encodings
+     *
+     *  "z" denotes a bit that is ignored.
+     *  The "a" and "t" bits are ignored by us.
+     *
+     *  BO    | Description
+     *  ------------------------
+     *  0000z | Decrement CTR; branch if CTR != 0 and CR_{BI} == 0
+     *  0001z | Decrement CTR; branch if CTR == 0 and CR_{BI} == 0
+     *  001at | Branch if CR_{BI} == 0
+     *  0100z | Decrement CTR; branch if CTR != 0 and CR_{BI} == 1
+     *  0101z | Decrement CTR; branch if CTR == 0 and CR_{BI} == 1
+     *  011at | Branch if CR_{BI} == 1
+     *  1a00t | Decrement CTR; branch if CTR != 0
+     *  1a01t | Decrement CTR; branch if CTR == 0
+     *  1z1zz | Branch always
+     */
+    auto const bo_field = field<6,10>(insn);
     bcIsConditional = true;
     invertBranchCondition = false;
     if(!field<8, 8>(insn)) {
