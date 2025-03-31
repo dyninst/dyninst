@@ -1329,6 +1329,13 @@ which are both 0).
     bool const branch_always = (!writes_ctr && field<0,0>(bo_field) == 1);
     bcIsConditional = !branch_always;
 
+    invertBranchCondition = [bo_field](){
+      if((bo_field & 0x1E) == 0x00) return true;  // 0000z
+      if((bo_field & 0x1E) == 0x08) return true;  // 0100z
+      if((bo_field & 0x10) == 0x10) return true;  // 1a00t
+      return false;
+    }();
+
     if(writes_ctr) {
       if(field<9, 9>(insn)) {
         insn_in_progress->getOperation().mnemonic = "bdz";
@@ -1352,7 +1359,6 @@ which are both 0).
     }
 
     if(!(field<6, 6>(insn))) {
-      invertBranchCondition = !field<7, 7>(insn);
       if(insn_in_progress->getOperation().mnemonic == "bc") {
         insn_in_progress->getOperation().mnemonic = "b";
       }
