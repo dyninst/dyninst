@@ -1316,9 +1316,6 @@ which are both 0).
      */
     auto const bo_field = field<6,10>(insn);
 
-    bcIsConditional = true;
-    invertBranchCondition = false;
-
     bool const writes_ctr = [this, bo_field](){
       // ctr is not written for bcctr, even when the BO table indicates it does
       auto const id = field<0,5>(insn);
@@ -1328,6 +1325,9 @@ which are both 0).
       // Otherwise, check BO_2
       return field<2, 2>(bo_field) == 0;
     }();
+
+    bool const branch_always = (!writes_ctr && field<0,0>(bo_field) == 1);
+    bcIsConditional = !branch_always;
 
     if(writes_ctr) {
       if(field<9, 9>(insn)) {
@@ -1358,12 +1358,11 @@ which are both 0).
       }
       insn_in_progress->appendOperand(makeBIExpr(), true, false);
     }
-    if(!writes_ctr && field<6, 6>(insn)) {
+    if(!bcIsConditional) {
       size_t found = insn_in_progress->getOperation().mnemonic.rfind("c");
       if(found != std::string::npos) {
         insn_in_progress->getOperation().mnemonic.erase(found, 1);
       }
-      bcIsConditional = false;
     }
     return;
   }
