@@ -1358,7 +1358,8 @@ which are both 0).
       insn_in_progress->appendOperand(std::move(ctr), is_read, writes_ctr);
     }
 
-    if(!(field<6, 6>(insn))) {
+    bool const reads_crbi = (field<0,0>(bo_field) == 0);
+    if(reads_crbi) {
       if(insn_in_progress->getOperation().mnemonic == "bc") {
         insn_in_progress->getOperation().mnemonic = "b";
       }
