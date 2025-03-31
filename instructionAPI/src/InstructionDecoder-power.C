@@ -1336,14 +1336,6 @@ which are both 0).
       return false;
     }();
 
-    if(writes_ctr) {
-      if(field<9, 9>(insn)) {
-        insn_in_progress->getOperation().mnemonic = "bdz";
-      } else {
-        insn_in_progress->getOperation().mnemonic = "bdn";
-      }
-    }
-
     // The count register (ctr) is conditionally read and written
     {
       auto ctr = makeRegisterExpression(makePowerRegID(ppc32::ctr, 0));
@@ -1358,17 +1350,27 @@ which are both 0).
       insn_in_progress->appendOperand(std::move(ctr), is_read, writes_ctr);
     }
 
+    auto &mnemonic = insn_in_progress->getOperation().mnemonic;
+    if(writes_ctr) {
+      if(field<4, 4>(bo_field) != 0) {
+        mnemonic = "bdz";
+      } else {
+        mnemonic = "bdn";
+      }
+    }
+
     bool const reads_crbi = (field<0,0>(bo_field) == 0);
     if(reads_crbi) {
-      if(insn_in_progress->getOperation().mnemonic == "bc") {
-        insn_in_progress->getOperation().mnemonic = "b";
+      if(mnemonic == "bc") {
+        mnemonic = "b";
       }
       insn_in_progress->appendOperand(makeBIExpr(), true, false);
     }
+
     if(!bcIsConditional) {
-      size_t found = insn_in_progress->getOperation().mnemonic.rfind("c");
+      size_t found = mnemonic.rfind("c");
       if(found != std::string::npos) {
-        insn_in_progress->getOperation().mnemonic.erase(found, 1);
+        mnemonic.erase(found, 1);
       }
     }
     return;
