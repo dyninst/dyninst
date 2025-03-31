@@ -1373,7 +1373,6 @@ which are both 0).
         mnemonic.erase(found, 1);
       }
     }
-    return;
   }
 
   void InstructionDecoder_power::syscall() {
