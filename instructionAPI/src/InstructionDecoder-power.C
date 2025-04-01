@@ -317,6 +317,11 @@ which are both 0).
        *  2. The conventional return idiom is to use `bclr` with BH=0b00
        *
        *********************************************************************/
+      constexpr bool is_call = true;
+      constexpr bool is_indirect = true;
+      constexpr bool is_conditional = true;
+      constexpr bool is_fallthrough = true;
+
       bool const LK = field<31, 31>(insn);
 
       // link register is _always_ read, but conditionally written
@@ -330,13 +335,8 @@ which are both 0).
 
       if(LK == 1) {
         // 1. Do not use bclrl as a subroutine call
-        constexpr bool is_call = false;
-
         auto lr = makeRegisterExpression(ppc32::lr);
-        constexpr bool is_indirect = true;
-        constexpr bool is_conditional = true;
-        constexpr bool is_fallthrough = false;
-        insn_in_progress->addSuccessor(std::move(lr), is_call, is_indirect, is_conditional, is_fallthrough);
+        insn_in_progress->addSuccessor(std::move(lr), !is_call, is_indirect, is_conditional, !is_fallthrough);
       }
       else {
         // 2. The conventional return sequence is to use `bclr` with BH=0b00
@@ -351,21 +351,13 @@ which are both 0).
 
           // Indirectly branch through the link register
           auto lr = makeRegisterExpression(ppc32::lr);
-          constexpr bool is_call = false;
-          constexpr bool is_indirect = true;
-          constexpr bool is_conditional = false;
-          constexpr bool is_fallthrough = false;
-          insn_in_progress->addSuccessor(lr, is_call, is_indirect, is_conditional, is_fallthrough);
+          insn_in_progress->addSuccessor(lr, !is_call, is_indirect, !is_conditional, !is_fallthrough);
         }
       }
 
       if(bcIsConditional) {
         auto target = makeFallThroughExpr();
-        constexpr bool is_call = false;
-        constexpr bool is_indirect = false;
-        constexpr bool is_conditional = false;
-        constexpr bool is_fallthrough = true;
-        insn_in_progress->addSuccessor(std::move(target), is_call, is_indirect, is_conditional, is_fallthrough);
+        insn_in_progress->addSuccessor(std::move(target), !is_call, !is_indirect, !is_conditional, is_fallthrough);
       }
     }
 
@@ -400,6 +392,11 @@ which are both 0).
        *
        *     For direct calls, put the target address in CTR and use bcctrl (LK=1).
        ****************************************************************************/
+      constexpr bool is_call = true;
+      constexpr bool is_indirect = true;
+      constexpr bool is_conditional = true;
+      constexpr bool is_fallthrough = true;
+
       bool const LK = field<31, 31>(insn);
 
       auto add_lr_operand = [this, LK](bool const is_read) {
@@ -412,11 +409,7 @@ which are both 0).
       if(LK == 1) {
         // Case 3 - Function call
         auto ctr = makeRegisterExpression(ppc32::ctr);
-        constexpr bool is_indirect = true;
-        constexpr bool is_call = true;
-        bool const is_fallthrough = false;
-        constexpr bool is_conditional = false;
-        insn_in_progress->addSuccessor(std::move(ctr), is_call, is_indirect, is_conditional, is_fallthrough);
+        insn_in_progress->addSuccessor(std::move(ctr), is_call, is_indirect, !is_conditional, !is_fallthrough);
         add_lr_operand(true);
       } else {
         bool const always_branch = [this]() {
@@ -428,20 +421,12 @@ which are both 0).
         if(always_branch) {
           // Case 2 - Indirect subroutine linkage
           auto ctr = makeRegisterExpression(ppc32::ctr);
-          constexpr bool is_indirect = true;
-          constexpr bool is_call = false;
-          bool const is_fallthrough = false;
-          constexpr bool is_conditional = false;
-          insn_in_progress->addSuccessor(std::move(ctr), is_call, is_indirect, is_conditional, is_fallthrough);
+          insn_in_progress->addSuccessor(std::move(ctr), !is_call, is_indirect, !is_conditional, !is_fallthrough);
           add_lr_operand(false);
         } else {
           // Case 1 - Computed goto’s, case statements, etc.
           auto ctr = makeRegisterExpression(ppc32::ctr);
-          constexpr bool is_indirect = true;
-          constexpr bool is_call = false;
-          bool const is_fallthrough = true;
-          constexpr bool is_conditional = true;
-          insn_in_progress->addSuccessor(std::move(ctr), is_call, is_indirect, is_conditional, is_fallthrough);
+          insn_in_progress->addSuccessor(std::move(ctr), !is_call, is_indirect, is_conditional, is_fallthrough);
         }
       }
     }
