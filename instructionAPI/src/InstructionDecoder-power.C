@@ -294,28 +294,143 @@ which are both 0).
       std::mem_fn (*curFn)(this);
     }
 
-    // bclr is either a conventional branch or used as a return from a procedure
     if(current->op == power_op_bclr) {
       /*********************************************************************
-       *  Power ISA Version 3.1, Book I. May 2020. 2.4 Branch Instructions
+       *  Power ISA Version 3.1C, Book I. May 2024
+       *  2.4 Branch Instructions
        *
-       *  The conventional return sequence is to use `bclr` (Branch
-       *  Conditional to Link Register) with BH=0b00.
+       *  bclr   BO,BI,BH (LK=0)
+       *  bclrl  BO,BI,BH (LK=1)
+       *
+       *  Extended form examples:
+       *    bclr  4,6
+       *    bltlr
+       *    bnelr cr2
+       *    bdnzlr
+       *
+       *
+       *  Programming Note (pg 38)
+       *  ------------------------
+       *
+       *  1. Do not use bclrl as a subroutine call
+       *
+       *  2. The conventional return idiom is to use `bclr` with BH=0b00
+       *
        *********************************************************************/
-      auto target = makeRegisterExpression(ppc32::lr);
-      insn_in_progress->addSuccessor(std::move(target), false, true, bcIsConditional, false);
+      constexpr bool is_call = true;
+      constexpr bool is_indirect = true;
+      constexpr bool is_conditional = true;
+      constexpr bool is_fallthrough = true;
+
+      bool const LK = field<31, 31>(insn);
+
+      // link register is _always_ read, but conditionally written
+      {
+        auto link_register = makeRegisterExpression(ppc32::lr);
+        constexpr bool is_read = true;
+        constexpr bool is_implicit = true;
+        bool const is_written = (LK == 1);
+        insn_in_progress->appendOperand(std::move(link_register), is_read, is_written, is_implicit);
+      }
+
+      if(LK == 1) {
+        // 1. Do not use bclrl as a subroutine call
+        auto lr = makeRegisterExpression(ppc32::lr);
+        insn_in_progress->addSuccessor(std::move(lr), !is_call, is_indirect, is_conditional, !is_fallthrough);
+      }
+      else {
+        // 2. The conventional return sequence is to use `bclr` with BH=0b00
+        bool const is_subroutine_return = [this]() {
+          auto const bh_field = field<19,20>(insn);
+          return bh_field == 0;
+        }();
+
+        if(is_subroutine_return) {
+          // This is _not_ a fallthrough conditional
+          this->bcIsConditional = false;
+
+          // Indirectly branch through the link register
+          auto lr = makeRegisterExpression(ppc32::lr);
+          insn_in_progress->addSuccessor(lr, !is_call, is_indirect, !is_conditional, !is_fallthrough);
+        }
+      }
 
       if(bcIsConditional) {
-        insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
+        auto target = makeFallThroughExpr();
+        insn_in_progress->addSuccessor(std::move(target), !is_call, !is_indirect, !is_conditional, is_fallthrough);
       }
     }
+
     if(current->op == power_op_bcctr) {
-      insn_in_progress->addSuccessor(makeRegisterExpression(ppc32::ctr), field<31, 31>(insn) == 1,
-                                     true, bcIsConditional, false);
-      if(bcIsConditional) {
-        insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
+      /*********************************************************************
+       *  Power ISA Version 3.1C, Book I. May 2024
+       *  2.4 Branch Instructions
+       *
+       *    bcctr   BO,BI,BH (LK=0)
+       *    bcctrl  BO,BI,BH (LK=1)
+       *
+       *    Extended form examples:
+       *      blctr
+       *      bnectr cr0
+       *
+       *  Programming Note (pg 38)
+       *  ------------------------
+       *
+       *  1. Computed goto’s, case statements, etc.
+       *
+       *     Put the branch address in CTR and set LK=0 (BH=0b11, if appropriate)
+       *
+       *  2. Indirect subroutine linkage
+       *
+       *     Place the final target address in CTR and use bcctr (LK=0).
+       *
+       *     NOTE: This form is not meant to fall through (e.g., it's used in PLT
+       *     thunks), so usually also has BH=0b1z1zz as per Figure 2.5 to indicate
+       *     "branch always".
+       *
+       *  3. Function call
+       *
+       *     For direct calls, put the target address in CTR and use bcctrl (LK=1).
+       ****************************************************************************/
+      constexpr bool is_call = true;
+      constexpr bool is_indirect = true;
+      constexpr bool is_conditional = true;
+      constexpr bool is_fallthrough = true;
+
+      bool const LK = field<31, 31>(insn);
+
+      auto add_lr_operand = [this, LK](bool const is_read) {
+        auto link_register = makeRegisterExpression(ppc32::lr);
+        constexpr bool is_implicit = true;
+        bool const is_written = (LK == 1);
+        insn_in_progress->appendOperand(link_register, is_read, is_written, is_implicit);
+      };
+
+      if(LK == 1) {
+        // Case 3 - Function call
+        auto ctr = makeRegisterExpression(ppc32::ctr);
+        insn_in_progress->addSuccessor(std::move(ctr), is_call, is_indirect, !is_conditional, !is_fallthrough);
+        add_lr_operand(true);
+      } else {
+        bool const always_branch = [this]() {
+          auto const bo_field = field<6,10>(insn);
+          auto const mask = 0x14;  // bits 0,1,3 are ignored (0b10100)
+          return (bo_field & mask) == mask;
+        }();
+
+        if(always_branch) {
+          // Case 2 - Indirect subroutine linkage
+          auto ctr = makeRegisterExpression(ppc32::ctr);
+          insn_in_progress->addSuccessor(std::move(ctr), !is_call, is_indirect, !is_conditional, !is_fallthrough);
+          add_lr_operand(false);
+        } else {
+          // Case 1 - Computed goto’s, case statements, etc.
+          auto ctr = makeRegisterExpression(ppc32::ctr);
+          insn_in_progress->addSuccessor(std::move(ctr), !is_call, is_indirect, is_conditional, is_fallthrough);
+        }
       }
     }
+
     if(current->op == power_op_addic || current->op == power_op_andi_rc ||
        current->op == power_op_andis_rc || current->op == power_op_stwcx_rc ||
        current->op == power_op_stdcx_rc) {
@@ -1163,36 +1278,86 @@ which are both 0).
   }
 
   void InstructionDecoder_power::BO() {
-    bcIsConditional = true;
-    invertBranchCondition = false;
-    if(!field<8, 8>(insn)) {
-      Expression::Ptr ctr = makeRegisterExpression(makePowerRegID(ppc32::ctr, 0));
-      if(field<9, 9>(insn)) {
-        insn_in_progress->getOperation().mnemonic = "bdz";
-      } else {
-        insn_in_progress->getOperation().mnemonic = "bdn";
-      }
-      insn_in_progress->appendOperand(ctr, true, true);
+    /*********************************************************************
+     *  Power ISA Version 3.1C, Book I. May 2024
+     *  2.4 Branch Instructions
+     *
+     *  Figure 2.5: BO field encodings
+     *
+     *  "z" denotes a bit that is ignored.
+     *  The "a" and "t" bits are ignored by us.
+     *
+     *  BO    | Description
+     *  ------------------------
+     *  0000z | Decrement CTR; branch if CTR != 0 and CR_{BI} == 0
+     *  0001z | Decrement CTR; branch if CTR == 0 and CR_{BI} == 0
+     *  001at | Branch if CR_{BI} == 0
+     *  0100z | Decrement CTR; branch if CTR != 0 and CR_{BI} == 1
+     *  0101z | Decrement CTR; branch if CTR == 0 and CR_{BI} == 1
+     *  011at | Branch if CR_{BI} == 1
+     *  1a00t | Decrement CTR; branch if CTR != 0
+     *  1a01t | Decrement CTR; branch if CTR == 0
+     *  1z1zz | Branch always
+     */
+    auto const bo_field = field<6,10>(insn);
+
+    bool const writes_ctr = [this, bo_field](){
+      // ctr is not written for bcctr, even when the BO table indicates it does
+      auto const id = field<0,5>(insn);
+      auto const xo = field<21,30>(insn);
+      if(id == 19 && xo == 528) return false;
+
+      // Otherwise, check BO_2
+      return field<2, 2>(bo_field) == 0;
+    }();
+
+    bool const branch_always = (!writes_ctr && field<0,0>(bo_field) == 1);
+    bcIsConditional = !branch_always;
+
+    invertBranchCondition = [bo_field](){
+      if((bo_field & 0x1E) == 0x00) return true;  // 0000z
+      if((bo_field & 0x1E) == 0x08) return true;  // 0100z
+      if((bo_field & 0x10) == 0x10) return true;  // 1a00t
+      return false;
+    }();
+
+    // The count register (ctr) is conditionally read and written
+    {
+      auto ctr = makeRegisterExpression(makePowerRegID(ppc32::ctr, 0));
+      bool const is_read = [this](){
+        // I-form doesn't read it
+        auto const id = field<0,5>(insn);
+        bool const is_b_form = (id == 16);
+        bool const is_xl_form = (id == 19);
+        return is_b_form || is_xl_form;
+      }();
+
+      insn_in_progress->appendOperand(std::move(ctr), is_read, writes_ctr);
     }
-    if(!(field<6, 6>(insn))) {
-      invertBranchCondition = !field<7, 7>(insn);
-      if(insn_in_progress->getOperation().mnemonic == "bc") {
-        insn_in_progress->getOperation().mnemonic = "b";
+
+    auto &mnemonic = insn_in_progress->getOperation().mnemonic;
+    if(writes_ctr) {
+      if(field<4, 4>(bo_field) != 0) {
+        mnemonic = "bdz";
+      } else {
+        mnemonic = "bdn";
+      }
+    }
+
+    bool const reads_crbi = (field<0,0>(bo_field) == 0);
+    if(reads_crbi) {
+      if(mnemonic == "bc") {
+        mnemonic = "b";
       }
       insn_in_progress->appendOperand(makeBIExpr(), true, false);
     }
-    if(field<8, 8>(insn) && field<6, 6>(insn)) {
-      size_t found = insn_in_progress->getOperation().mnemonic.rfind("c");
+
+    if(!bcIsConditional) {
+      size_t found = mnemonic.rfind("c");
       if(found != std::string::npos) {
-        insn_in_progress->getOperation().mnemonic.erase(found, 1);
+        mnemonic.erase(found, 1);
       }
-      bcIsConditional = false;
-    } else {
-      bool taken = (field<6, 6>(insn) && field<8, 8>(insn)) || field<16, 16>(insn);
-      taken ^= field<10, 10>(insn) ? true : false;
-      insn_in_progress->getOperation().mnemonic += (taken ? "+" : "-");
     }
-    return;
   }
 
   void InstructionDecoder_power::syscall() {
