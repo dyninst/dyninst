@@ -418,6 +418,10 @@ class DYNINST_EXPORT BPatch_addressSpace {
   BPatchSnippetHandle *
   insertPrologue(Dyninst::PatchAPI::SnippetPtr prologueSnippet,
                  BPatch_point *point);
+
+  BPatchSnippetHandle *
+  insertEpilogue(Dyninst::PatchAPI::SnippetPtr epilogueSnippet,
+                 BPatch_point *point);
 };
 
 
