@@ -223,7 +223,8 @@ if(DYNINST_ARCH_amdgpu)
     src/Relocation/Widgets/CFWidget-amdgpu.C
     src/Relocation/Widgets/PCWidget-amdgpu.C
     src/amdgpu-vega-details.cpp
-    src/amdgpu-prologue.cpp)
+    src/amdgpu-prologue.cpp
+    src/amdgpu-epilogue.cpp)
 else if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
   list(
     APPEND

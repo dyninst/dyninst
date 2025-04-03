@@ -552,4 +552,7 @@ void EmitterAmdgpuVega::emitLongJump(Register reg, uint64_t toAddress,
   emitSop1(S_SETPC_B64, /* dest = */ 0, reg, /* hasLiteral = */ false, 0, gen);
 }
 
+void EmitterAmdgpuVega::emitScalarDataCacheWriteback(codeGen &gen) {
+  emitSmem(S_DCACHE_WB, 0, 0, 0, gen);
+}
 // ===== EmitterAmdgpuVega implementation end =====
