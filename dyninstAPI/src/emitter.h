@@ -128,7 +128,7 @@ class Emitter {
     virtual void emitConditionalBranch(bool onConditionTrue, int16_t wordOffset,
                                      codeGen &gen) {}
     virtual void emitShortJump(int16_t wordOffset, codeGen &gen) {}
-    virtual void emitLongJump(Register reg, uint64_t toAddress, codeGen &gen) {}
+    virtual void emitLongJump(Register reg, uint64_t fromAddress, uint64_t toAddress, codeGen &gen) {}
 };
 
 #endif
