@@ -72,14 +72,9 @@
 
 #define ALIGN_QUADWORD(x)  ( ((x) + 0xf) & ~0xf )  //x is positive or unsigned
 
-//TODO Fix for ARM
 #define GPRSAVE_64  (32*GPRSIZE_64)
 #define FPRSAVE_64  (32*FPRSIZE_64)
 #define SPRSAVE_64  (0)
-// #sasha Are these necessary?
-#define FUNCSAVE_64 (32*8)
-#define FUNCARGS_64 (16*8)
-#define LINKAREA_64 (6*8)
 
 // #sasha Why is PowerPC stuff here?
 #if defined(os_linux)
@@ -113,16 +108,9 @@
 
 //#define PDYN_RESERVED_64 (LINKAREA_64 + FUNCARGS_64 + FUNCSAVE_64)
 
-//#define TRAMP_SPR_OFFSET_64 (PDYN_RESERVED_64)
 #define TRAMP_SPR_OFFSET_64 (0)
-#define STK_LR       (              0)
-#define STK_NZCV     (STK_SP_EL0  + 8)
-#define STK_FPCR     (STK_NZCV    + 4)
-#define STK_FPSR     (STK_FPCR    + 4)
-
-#define TRAMP_FPR_OFFSET_64 (TRAMP_SPR_OFFSET_64 + SPRSAVE_64)
-#define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + FPRSAVE_64)
-#define FUNC_CALL_SAVE_64   (LINKAREA_64 + FUNCARGS_64)
+#define TRAMP_FPR_OFFSET_64 (TRAMP_SPR_OFFSET_64 + FPRSAVE_64)
+#define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + GPRSAVE_64)
 
 inline int TRAMP_GPR_OFFSET(int x) {
   if(x == 8) {
