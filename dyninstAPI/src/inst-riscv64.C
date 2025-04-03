@@ -93,22 +93,28 @@ void registerSpace::initialize64() {
     for (unsigned idx = r0; idx <= r31; idx++) {
         char name[32];
         sprintf(name, "r%u", idx - r0);
-        registers.push_back(new registerSlot(idx,
-                                             name,
-                                             false,
-                                             registerSlot::liveAlways,
-                                             registerSlot::GPR));
+        // Off limit registers
+        if (idx == GPR_ZERO) {
+            registers.push_back(new registerSlot(idx, name, true,
+                        registerSlot::deadABI, registerSlot::GPR));
+        }
+        else if (idx == GPR_RA || idx == GPR_SP || idx == GPR_GP
+                || idx == GPR_TP || idx == GPR_FP) {
+            registers.push_back(new registerSlot(idx, name, true,
+                        registerSlot::liveAlways, registerSlot::GPR));
+        }
+        else {
+            registers.push_back(new registerSlot(idx, name, false,
+                        registerSlot::liveAlways, registerSlot::GPR));
+        }
     }
 
     // RISC-V FPRs
     for (unsigned idx = fpr0; idx <= fpr31; idx++) {
         char name[32];
         sprintf(name, "fpr%u", idx - fpr0);
-        registers.push_back(new registerSlot(idx,
-                                             name,
-                                             false,
-                                             registerSlot::liveAlways,
-                                             registerSlot::FPR));
+        registers.push_back(new registerSlot(idx, name, false,
+                    registerSlot::liveAlways, registerSlot::FPR));
     }
 
     registerSpace::createRegisterSpace64(registers);
@@ -148,6 +154,11 @@ unsigned EmitterRISCV64SaveRegs::saveGPRegisters(
 
     for (int idx = 0; idx < numReqGPRs; idx++) {
         registerSlot *reg = theRegSpace->GPRs()[idx];
+        // Do not save zero (x0), ra (x1), sp (x2), gp (x3), tp (x4), and fp (x8)
+        if (reg->number == GPR_ZERO || reg->number == GPR_RA || reg->number == GPR_SP
+                || reg->number == GPR_GP || reg->number == GPR_TP || reg->number == GPR_FP) {
+            continue;
+        }
         // We always save FP and LR for stack walking out of instrumentation
         if (reg->liveState == registerSlot::live || reg->number == REG_FP || reg->number == REG_RA) {
             int offset_from_sp = offset + (reg->encoding() * gen.width());
@@ -214,7 +225,12 @@ unsigned EmitterRISCV64RestoreRegs::restoreGPRegisters(
     unsigned ret = 0;
 
     for (int idx = theRegSpace->numGPRs() - 1; idx >= 0; idx--) {
+        // Do not restore zero (x0), ra (x1), sp (x2), gp (x3), tp (x4), and fp (x8)
         registerSlot *reg = theRegSpace->GPRs()[idx];
+        if (reg->number == GPR_ZERO || reg->number == GPR_RA || reg->number == GPR_SP
+                || reg->number == GPR_GP || reg->number == GPR_TP || reg->number == GPR_FP) {
+            continue;
+        }
 
         if (reg->liveState == registerSlot::spilled) {
             int offset_from_sp = offset + (reg->encoding() * GPRSIZE_64);
