@@ -389,6 +389,8 @@ enum SMEM_Opcode {
   S_STORE_DWORD = 16,
   S_STORE_DWORDX2 = 17,
   S_STORE_DWORDX4 = 18,
+
+  S_DCACHE_WB = 33
 };
 
 uint64_t getMaskSmem(ContentKind k);
