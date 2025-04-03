@@ -61,6 +61,7 @@
 
 #if defined(arch_amdgpu)
 #include "amdgpu-prologue.h"
+#include "amdgpu-epilogue.h"
 #include <fstream>
 #endif
 
@@ -277,6 +278,33 @@ static void insertPrologueInInstrumentedFunctions(
     }
   }
 }
+
+static void insertEpilogueInInstrumentedFunctions(
+    std::vector<AmdgpuKernelInfo> &kernelInfos) {
+  // Go through information for instrumented kernels (functions) and insert a s_dcache_wb instruction at the exit point.
+  for (const auto &function : BPatch_addressSpace::instrumentedFunctions) {
+    std::vector<BPatch_point *> exitPoints;
+    function->getExitPoints(exitPoints);
+
+    for (int i = 0; i < exitPoints.size(); ++i) {
+      BPatch_point *exitPoint = exitPoints[i];
+
+      for (auto &kernelInfo : kernelInfos) {
+        if (kernelInfo.getKernelName() == function->getMangledName()) {
+          auto epiloguePtr = boost::make_shared<AmdgpuEpilogueSnippet>();
+          auto epilogueNodePtr =
+              boost::make_shared<AmdgpuEpilogueSnippetNode>(epiloguePtr);
+
+          auto addressSpace = exitPoint->getAddressSpace();
+          BPatchSnippetHandle *handle =
+              addressSpace->insertEpilogue(epilogueNodePtr, exitPoint);
+          assert(handle);
+        }
+      }
+    }
+  }
+}
+
 #endif
 
 bool BPatch_binaryEdit::writeFile(const char * outFile)
@@ -297,6 +325,7 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
 
       readKernelInfos(inputFileName + ".info", kernelInfos);
       insertPrologueInInstrumentedFunctions(kernelInfos);
+      insertEpilogueInInstrumentedFunctions(kernelInfos);
 #endif
       ret = AddressSpace::patch(as[0]);
     }
