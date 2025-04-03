@@ -225,5 +225,7 @@ public:
   void emitShortJump(int16_t wordOffset, codeGen &gen);
 
   void emitLongJump(Register reg, uint64_t toAddress, codeGen &gen);
+
+  void emitScalarDataCacheWriteback(codeGen &gen);
 };
 #endif
