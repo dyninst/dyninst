@@ -434,6 +434,14 @@ public:
     static void generateCJalr(codeGen &gen,
                               Dyninst::Register rs);
 
+    static void generateCBeqz(codeGen &gen,
+                              Dyninst::Register rs,
+                              Dyninst::RegValue offset);
+
+    static void generateCBnez(codeGen &gen,
+                              Dyninst::Register rs,
+                              Dyninst::RegValue offset);
+
     static void generateCNop(codeGen &gen);
 
     static void generateCXor(codeGen &gen,

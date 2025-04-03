@@ -47,18 +47,18 @@ codeBuf_t *insnCodeGen::insnPtr(codeGen &gen) {
 void insnCodeGen::generate(codeGen &gen, instruction &insn) {
     // Call `flushInsnBuffer` to flush the instruction buffer into the
     // 2-byte code buffer `code_buff` short-by-short.
-    for (unsigned i = 0; i < insn.size() / sizeof(rvInsnMin_t); i++) {
-        insn.flushInsnBuff(i * sizeof(rvInsnMin_t) * 8);
-        gen.copy(insn.ptr(), sizeof(rvInsnMin_t));
+    for (unsigned i = 0; i < insn.size() / RV_MIN_INSN_SIZE; i++) {
+        insn.flushInsnBuff(i * RV_MIN_INSN_SIZE * 8);
+        gen.copy(insn.ptr(), RV_MIN_INSN_SIZE);
     }
 }
 
 void insnCodeGen::generate(codeGen &gen, instruction &insn, unsigned position) {
     // Call `flushInsnBuffer` to flush the instruction buffer into the
     // 2-byte code buffer `code_buff` short-by-short
-    for (unsigned i = 0; i < insn.size() / sizeof(rvInsnMin_t); i++) {
-        insn.flushInsnBuff(i * sizeof(rvInsnMin_t) * 8);
-        gen.insert(insn.ptr(), sizeof(rvInsnMin_t), position);
+    for (unsigned i = 0; i < insn.size() / RV_MIN_INSN_SIZE; i++) {
+        insn.flushInsnBuff(i * RV_MIN_INSN_SIZE * 8);
+        gen.insert(insn.ptr(), RV_MIN_INSN_SIZE, position);
     }
 }
 
@@ -387,10 +387,10 @@ bool insnCodeGen::generateMemLoad(codeGen &gen,
         case 1: funct3 = 0x0; break; // lb = 000
         case 2: funct3 = 0x1; break; // lh = 001
         case 4: funct3 = 0x2; break; // lw = 010
-        case 8: funct3 = 0x4; break; // ld = 011
+        case 8: funct3 = 0x3; break; // ld = 011
         default: break;              // not gonna happen
     }
-    if (isUnsigned) {
+    if (isUnsigned && size != 8) {
         funct3 |= 0x4; // lbu = 100, lhu = 101, lwu = 110
     }
 
@@ -617,6 +617,8 @@ bool insnCodeGen::generateOri(codeGen &gen,
                               bool /*useRVC*/)
 {
     assert(imm >= -0x800 && imm < 0x800);
+
+    // No available RVC optimization
     makeITypeInsn(gen, rd, rs, imm, ORFunct3, IMMOp);
     return false;
 }
@@ -628,6 +630,8 @@ bool insnCodeGen::generateXori(codeGen &gen,
                                bool /*useRVC*/)
 {
     assert(imm >= -0x800 && imm < 0x800);
+
+    // No available RVC optimization
     makeITypeInsn(gen, rd, rs, imm, XORFunct3, IMMOp);
     return false;
 }
@@ -653,6 +657,8 @@ bool insnCodeGen::generateAuipc(codeGen &gen,
                                 Dyninst::RegValue offset,
                                 bool /*useRVC*/)
 {
+    // No available RVC optimization
+
     makeUTypeInsn(gen, rd, offset, AUIPCOp);
     return false;
 }
@@ -680,6 +686,8 @@ bool insnCodeGen::generateSub(codeGen &gen,
                               Dyninst::Register rs2,
                               bool /*useRVC*/)
 {
+    // No available RVC optimization
+
     makeRTypeInsn(gen, rd, rs1, rs2, SUBFunct7, SUBFunct3, REGOp);
     return false;
 }
@@ -690,6 +698,8 @@ bool insnCodeGen::generateSll(codeGen &gen,
                               Dyninst::Register rs2,
                               bool /*useRVC*/)
 {
+    // No available RVC optimization
+
     makeRTypeInsn(gen, rd, rs1, rs2, SLLFunct7, SLLFunct3, REGOp);
     return false;
 }
@@ -700,6 +710,8 @@ bool insnCodeGen::generateSrl(codeGen &gen,
                               Dyninst::Register rs2,
                               bool /*useRVC*/)
 {
+    // No available RVC optimization
+
     makeRTypeInsn(gen, rd, rs1, rs2, SRLFunct7, SRLFunct3, REGOp);
     return false;
 }
@@ -710,6 +722,8 @@ bool insnCodeGen::generateSra(codeGen &gen,
                               Dyninst::Register rs2,
                               bool /*useRVC*/)
 {
+    // No available RVC optimization
+
     makeRTypeInsn(gen, rd, rs1, rs2, SRAFunct7, SRAFunct3, REGOp);
     return false;
 }
@@ -770,6 +784,8 @@ bool insnCodeGen::generateMul(codeGen &gen,
                               Dyninst::Register rs2,
                               bool /*useRVC*/)
 {
+    // No available RVC optimization
+
     makeRTypeInsn(gen, rd, rs1, rs2, MULFunct7, MULFunct3, REGOp);
     return false;
 }
@@ -780,6 +796,8 @@ bool insnCodeGen::generateDiv(codeGen &gen,
                               Dyninst::Register rs2,
                               bool /*useRVC*/)
 {
+    // No available RVC optimization
+
     makeRTypeInsn(gen, rd, rs1, rs2, DIVFunct7, DIVFunct3, REGOp);
     return false;
 }
@@ -937,8 +955,19 @@ bool insnCodeGen::generateBeq(codeGen &gen,
                               Dyninst::RegValue imm,
                               bool useRVC)
 {
+    assert(imm % 2 == 0);
+
     if (useRVC) {
-        // TODO
+        if ((rs1 == GPR_ZERO || rs2 == GPR_ZERO) && imm >= -0x100 && imm < 0x100) {
+            if (rs1 != GPR_ZERO && rs2 == GPR_ZERO) {
+                generateCBeqz(gen, rs1, imm);
+                return true;
+            }
+            if (rs1 == GPR_ZERO && rs2 != GPR_ZERO) {
+                generateCBeqz(gen, rs2, imm);
+                return true;
+            }
+        }
     }
     makeBTypeInsn(gen, rs1, rs2, imm, BEQFunct3, BRANCHOp);
     return false;
@@ -950,8 +979,19 @@ bool insnCodeGen::generateBne(codeGen &gen,
                               Dyninst::RegValue imm,
                               bool useRVC)
 {
+    assert(imm % 2 == 0);
+
     if (useRVC) {
-        // TODO
+        if ((rs1 == GPR_ZERO || rs2 == GPR_ZERO) && imm >= -0x100 && imm < 0x100) {
+            if (rs1 != GPR_ZERO && rs2 == GPR_ZERO) {
+                generateCBnez(gen, rs1, imm);
+                return true;
+            }
+            if (rs1 == GPR_ZERO && rs2 != GPR_ZERO) {
+                generateCBnez(gen, rs2, imm);
+                return true;
+            }
+        }
     }
     makeBTypeInsn(gen, rs1, rs2, imm, BNEFunct3, BRANCHOp);
     return false;
@@ -961,11 +1001,11 @@ bool insnCodeGen::generateBlt(codeGen &gen,
                                          Dyninst::Register rs1,
                                          Dyninst::Register rs2,
                                          Dyninst::RegValue imm,
-                                         bool useRVC)
+                                         bool /*useRVC*/)
 {
-    if (useRVC) {
-        // TODO
-    }
+    assert(imm % 2 == 0);
+
+    // No available RVC optimization
     makeBTypeInsn(gen, rs1, rs2, imm, BLTFunct3, BRANCHOp);
     return false;
 }
@@ -974,11 +1014,11 @@ bool insnCodeGen::generateBge(codeGen &gen,
                               Dyninst::Register rs1,
                               Dyninst::Register rs2,
                               Dyninst::RegValue imm,
-                              bool useRVC)
+                              bool /*useRVC*/)
 {
-    if (useRVC) {
-        // TODO
-    }
+    assert(imm % 2 == 0);
+
+    // No available RVC optimization
     makeBTypeInsn(gen, rs1, rs2, imm, BGEFunct3, BRANCHOp);
     return false;
 }
@@ -987,11 +1027,11 @@ bool insnCodeGen::generateBltu(codeGen &gen,
                                Dyninst::Register rs1,
                                Dyninst::Register rs2,
                                Dyninst::RegValue imm,
-                               bool useRVC)
+                               bool /*useRVC*/)
 {
-    if (useRVC) {
-        // TODO
-    }
+    assert(imm % 2 == 0);
+
+    // No available RVC optimization
     makeBTypeInsn(gen, rs1, rs2, imm, BLTUFunct3, BRANCHOp);
     return false;
 }
@@ -1000,11 +1040,11 @@ bool insnCodeGen::generateBgeu(codeGen &gen,
                                Dyninst::Register rs1,
                                Dyninst::Register rs2,
                                Dyninst::RegValue imm,
-                               bool useRVC)
+                               bool /*useRVC*/)
 {
-    if (useRVC) {
-        // TODO
-    }
+    assert(imm % 2 == 0);
+
+    // No available RVC optimization
     makeBTypeInsn(gen, rs1, rs2, imm, BGEUFunct3, BRANCHOp);
     return false;
 }
@@ -1370,6 +1410,42 @@ void insnCodeGen::generateCJalr(codeGen &gen,
     INSN_BUFF_SET(insn, 12, 12, 0x1); // 1
     INSN_BUFF_SET(insn, 7, 11, rs);   // rs
     INSN_BUFF_SET(insn, 0, 6, 0x2);   // 0000010
+
+    insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateCBeqz(codeGen &gen,
+                                Dyninst::Register rs,
+                                Dyninst::RegValue offset) {
+    instruction insn;
+    insn.setIsRVC(true);
+
+    INSN_BUFF_SET(insn, 13, 15, 0x6);                 // func3 = 110
+    INSN_BUFF_SET(insn, 12, 12, (offset >> 8) & 0x1); // offset[8]
+    INSN_BUFF_SET(insn, 10, 11, (offset >> 3) & 0x3); // offset[4:3]
+    INSN_BUFF_SET(insn, 7, 9, rs);                    // rs
+    INSN_BUFF_SET(insn, 5, 6, (offset >> 6) & 0x3);   // offset[7:6]
+    INSN_BUFF_SET(insn, 3, 4, (offset >> 1) & 0x3);   // offset[2:1]
+    INSN_BUFF_SET(insn, 2, 2, (offset >> 5) & 0x1);   // offset[5]
+    INSN_BUFF_SET(insn, 0, 1, 0x1);                   // 01
+
+    insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateCBnez(codeGen &gen,
+                                Dyninst::Register rs,
+                                Dyninst::RegValue offset) {
+    instruction insn;
+    insn.setIsRVC(true);
+
+    INSN_BUFF_SET(insn, 13, 15, 0x7);                 // func3 = 111
+    INSN_BUFF_SET(insn, 12, 12, (offset >> 8) & 0x1); // offset[8]
+    INSN_BUFF_SET(insn, 10, 11, (offset >> 3) & 0x3); // offset[4:3]
+    INSN_BUFF_SET(insn, 7, 9, rs);                    // rs
+    INSN_BUFF_SET(insn, 5, 6, (offset >> 6) & 0x3);   // offset[7:6]
+    INSN_BUFF_SET(insn, 3, 4, (offset >> 1) & 0x3);   // offset[2:1]
+    INSN_BUFF_SET(insn, 2, 2, (offset >> 5) & 0x1);   // offset[5]
+    INSN_BUFF_SET(insn, 0, 1, 0x1);                   // 01
 
     insnCodeGen::generate(gen, insn);
 }
