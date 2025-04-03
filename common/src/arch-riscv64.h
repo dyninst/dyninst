@@ -52,17 +52,22 @@ namespace NS_riscv64 {
 // In RISC-V, instruction length can be a multiple of 2 bytes
 
 // Standard RISC-V instructions (RVI, RVA, RVM, RVF, RVD, ...) are 4 bytes
-constexpr int RV_INSN_SIZE = 4;     // Standard instructions
+typedef uint32_t rvInsn_t;
+constexpr int RV_INSN_SIZE = sizeof(rvInsn_t);
+
 // Compressed instructions (RVC) are 2 bytes
-constexpr int RVC_INSN_SIZE = 2;    // Compressed instructions
+typedef uint16_t rvcInsn_t;
+constexpr int RVC_INSN_SIZE = sizeof(rvcInsn_t);
+
+// The minimum instruction size is 2 bytes
+typedef rvcInsn_t rvMinInsn_t;
+constexpr int RV_MIN_INSN_SIZE = sizeof(rvMinInsn_t);
+
 // The instruction buffer length should be the maximum instruction length currently supported.
 // Change this value if we want to support longer instructions like LLI extension
 constexpr int INSN_BUFF_SIZE = (8 * RV_INSN_SIZE);
+
 typedef std::bitset<INSN_BUFF_SIZE> insnBuf_t;
-
-
-typedef unsigned short rvInsnMin_t;
-
 
 constexpr int BREAK_POINT_INSN = 0x00100073; // ebreak
 
@@ -110,11 +115,14 @@ constexpr int BGEUFunct3 = 0x7;
 constexpr int GPR_ZERO   = 0;
 constexpr int GPR_RA     = 1;
 constexpr int GPR_SP     = 2;
+constexpr int GPR_GP     = 2;
+constexpr int GPR_TP     = 4;
 constexpr int GPR_FP     = 8;
 
 constexpr int MAX_BRANCH_OFFSET      = 0xfffff; // 20 bits
 constexpr int MAX_BRANCH_LINK_OFFSET = 0xfff;   // 12 bits
 
+// Jump/Branch instructions
 constexpr insnBuf_t J_INSN_MASK    = insnBuf_t(0x0000007f);
 constexpr insnBuf_t B_INSN_MASK    = insnBuf_t(0x0000007f);
 constexpr insnBuf_t CJ_INSN_MASK   = insnBuf_t(0xe003);
@@ -132,9 +140,7 @@ constexpr insnBuf_t CJR_INSN       = insnBuf_t(0x8002);
 constexpr insnBuf_t CJ_INSN        = insnBuf_t(0xa001);
 
 // RISC-V immediates in jump/branch instructions are scrambled:
-// > the instruction format was chosen to keep all register specifiers at the same position in all formats
-// The following arrays store the corresponding indexes to reorder the immediates back
-
+// The following arrays store the corresponding indices to reorder the immediates back
 const std::vector<int> JAL_REORDER  = {12, 13, 14, 15, 16, 17, 18, 19, 11,1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20};
 const std::vector<int> JALR_REORDER = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
 const std::vector<int> B_REORDER1   = {11, 1, 2, 3, 4};
@@ -144,7 +150,6 @@ const std::vector<int> CB_REORDER1  = {5, 1, 2, 6, 7};
 const std::vector<int> CB_REORDER2  = {3, 4, 8};
 
 // The following are the indices of the immediates' offset
-
 const int JAL_IMM_OFF  = 12;
 const int JALR_IMM_OFF = 20;
 const int CJ_IMM_OFF   = 2; 
@@ -154,10 +159,11 @@ const int B_IMM_OFF2   = 25;
 const int CB_IMM_OFF1  = 2;
 const int CB_IMM_OFF2  = 10;
 
+// Register masks and shifts for jump/branch instructions
 constexpr insnBuf_t JALR_REG_MASK = insnBuf_t(0x000f8000);
 constexpr insnBuf_t CJR_REG_MASK  = insnBuf_t(0x0f80);
-constexpr int JALR_REG_SHIFT    = 15;
-constexpr int CJR_REG_SHIFT     = 7;
+constexpr int JALR_REG_SHIFT      = 15;
+constexpr int CJR_REG_SHIFT       = 7;
 
 // Atomic Instructions
 constexpr insnBuf_t A_INSN_MASK = insnBuf_t(0x0000007f);
@@ -169,8 +175,8 @@ constexpr insnBuf_t A_OP_SC     = insnBuf_t(0x18000000);
 #define INSN_BUFF_SET(I, s, e, v)    ((I).setInsnBuf((s), (e - s + 1), (v)))
 
 typedef union {
-    unsigned char byte[sizeof(rvInsnMin_t)];
-    rvInsnMin_t raw;
+    unsigned char byte[RV_MIN_INSN_SIZE];
+    rvMinInsn_t raw;
 } instructUnion;
 
 typedef instructUnion codeBuf_t;
@@ -184,7 +190,7 @@ private:
     // Due to the way codegen.C works, codeBuf_t should be a fixed size.
     // Therefore, we write opcodes to our own instruction buffer `insn_buff` instead.
     // Then, whever we generate the instruction, we call `flushInsnBuffer` to flush the
-    // instruction buffer into the 2-byte code buffer `code_buff` 2-bytes by 2-bytes.
+    // instruction buffer into the 2-byte code buffer `code_buff` short-by-short.
 
     codeBuf_t code_buff;
     insnBuf_t insn_buff;
@@ -192,13 +198,24 @@ private:
 
 public:
     instruction(): code_buff(), isRVC(false) { insn_buff.set(); }
-    instruction(rvInsnMin_t raw): isRVC(false) {
+    instruction(rvMinInsn_t raw): isRVC(false) {
         code_buff.raw = raw;
         insn_buff.set();
     }
-    instruction(const void *ptr, bool) {
-        code_buff = *((const codeBuf_t *)ptr);
+    instruction(const void *ptr) {
+        // If the lower 2 bits of the instruction encoding is
+        // 0x10 -> Compressed instructions
+        // 0x11 -> Standard instructions
+        void *p = const_cast<void *>(ptr);
+        isRVC = ((*reinterpret_cast<rvMinInsn_t *>(p)) & 0x3) != 0x11;
+        if (isRVC) {
+            insn_buff = std::bitset<INSN_BUFF_SIZE>(*reinterpret_cast<rvcInsn_t *>(p));
+        }
+        else {
+            insn_buff = std::bitset<INSN_BUFF_SIZE>(*reinterpret_cast<rvInsn_t *>(p));
+       }
     }
+    instruction(const void *ptr, bool): instruction(ptr) {}
 
     instruction(const instruction &insn) : code_buff(insn.code_buff), isRVC(insn.isRVC) {}
     instruction(codeBuf_t &insn) : code_buff(insn) {}
@@ -216,10 +233,10 @@ public:
 
     void flushInsnBuff(int begin) {
         std::bitset<INSN_BUFF_SIZE> mask;
-        for (unsigned i = 0; i < 8 * sizeof(rvInsnMin_t); i++) {
+        for (unsigned i = 0; i < 8 * RV_MIN_INSN_SIZE; i++) {
             mask.set(begin + i);
         }
-        code_buff.raw = static_cast<rvInsnMin_t>(((insn_buff & mask) >> begin).to_ulong());
+        code_buff.raw = static_cast<rvMinInsn_t>(((insn_buff & mask) >> begin).to_ulong());
     }
 
     bool getIsRVC() const { return isRVC; }
