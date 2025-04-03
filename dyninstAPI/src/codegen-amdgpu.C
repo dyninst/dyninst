@@ -122,8 +122,8 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
     if (wordOffset >= INT16_MIN && wordOffset <= INT16_MAX) {
       emitter->emitShortJump(wordOffset, gen);
     } else {
-      // TODO: Right now hardcoding s90. But this needs to use a pair of dead registers.
-      emitter->emitLongJump(90, to, gen);
+      // TODO: Right now hardcoding s90. But this needs to use 2 pairs of dead registers.
+      emitter->emitLongJump(90, from, to, gen);
     }
 }
 
