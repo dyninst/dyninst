@@ -544,12 +544,40 @@ void EmitterAmdgpuVega::emitShortJump(int16_t wordOffset, codeGen &gen) {
   emitSopP(S_BRANCH, /* hasImm = */ true, wordOffset, gen);
 }
 
-void EmitterAmdgpuVega::emitLongJump(Register reg, uint64_t toAddress,
+// For this we need reg, reg+1, reg+2, reg+3. In future, we would like to use liveness analysis to pick 2 pairs of dead registers
+// assume reg = s90
+// diff = toAddress - fromAddress
+// s_getpc_b64 s[90:91]
+// s_mov_b32 s92, diff<31:0>
+// s_mov_b32 s93, diff<63:32>
+// s_add_u32 s90, s92
+// s_add_u32 s91, s93
+// s_setpc_b64 s[90:91]
+void EmitterAmdgpuVega::emitLongJump(Register reg, uint64_t fromAddress, uint64_t toAddress,
                                  codeGen &gen) {
-  emitLoadConst(reg, toAddress, gen);
+  assert(reg >= SGPR_0 && reg <= SGPR_101 && "reg must be an SGPR");
+  assert(reg % 2 == 0 &&
+         "reg must be even as we will use reg, reg+1 in pair");
+
+  int64_t signedFromAddress = (int64_t) fromAddress;
+  int64_t signedToAddress = (int64_t) toAddress;
+
+  assert(signedFromAddress > 0 && signedToAddress > 0 && "Both addresses must be positive");
+  int64_t diff = signedToAddress - signedFromAddress;
+
+  emitSop1(S_GETPC_B64, /* dest = */ reg, /* src0 =*/ 0, /* hasLiteral = */ false, /* literal=*/0, gen);
+  this->emitLoadConst(reg+2, (uint64_t)diff, gen);
+  // Now we have:
+  // reg+2 = lower bits of diff
+  // reg+3 = upper bits of diff
+
+  // reg = reg + <reg+2>, SCC = carry
+  emitSop2(S_ADD_U32, reg, reg, reg+2, gen);
+  // <reg+1> = <reg+1> + <reg+3> + carry
+  emitSop2(S_ADDC_U32, reg+1, reg+1, reg+3, gen);
 
   // S_SETPC_B64 writes to the PC, so dest = 0 just like the assembler does.
-  emitSop1(S_SETPC_B64, /* dest = */ 0, reg, /* hasLiteral = */ false, 0, gen);
+  emitSop1(S_SETPC_B64, /* dest = */ 0, reg, /* hasLiteral = */ false, /* literal=*/0, gen);
 }
 
 void EmitterAmdgpuVega::emitScalarDataCacheWriteback(codeGen &gen) {
