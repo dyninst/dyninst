@@ -35,8 +35,6 @@
 #include "dyntypes.h"
 #include "common/src/dyn_register.h"
 
-// TODO implement RISC-V codegen
-
 class AddressSpace;
 
 class codeGen;
@@ -117,6 +115,14 @@ public:
                                       Dyninst::Address from,
                                       Dyninst::Address to,
                                       bool isCall);
+
+    static void generateCondBranch(codeGen &gen,
+                                   int bCondOp,
+                                   Dyninst::Register rs1,
+                                   Dyninst::Register rs2,
+                                   Dyninst::Address from,
+                                   Dyninst::Address to);
+
     // LDR/STR (immediate)
     static bool generateMemLoad(codeGen &gen,
                                 Dyninst::Register rd,
@@ -161,6 +167,13 @@ public:
 			               NS_riscv64::instruction &insn,
 			               codeGen &gen);
 
+    static bool generateCalcImm(codeGen &gen,
+                                Dyninst::Register rd,
+                                Dyninst::RegValue imm,
+                                bool isRel,
+                                bool optimize,
+                                bool useRVC);
+
     static Dyninst::Register moveValueToReg(codeGen &gen,
                                             long int val,
                                             std::vector<Dyninst::Register> *exclude = NULL);
@@ -168,10 +181,29 @@ public:
     static bool generateNop(codeGen &gen,
                             bool useRVC);
 
+    static void generateCmpBranch(codeGen &gen,
+                                  int bCond,
+                                  Dyninst::Register rs1,
+                                  Dyninst::Register rs2,
+                                  Dyninst::RegValue imm,
+                                  bool useRVC);
+
     static bool loadImmIntoReg(codeGen &gen,
                                Dyninst::Register rd,
                                Dyninst::RegValue value,
                                bool useRVC);
+                               
+    static bool modifyCall(Dyninst::Address target,
+                           NS_riscv64::instruction &insn,
+                           codeGen &gen);
+
+    static bool modifyJump(Dyninst::Address target,
+                           NS_riscv64::instruction &insn,
+                           codeGen &gen);
+
+    static bool modifyJcc(Dyninst::Address target,
+			              NS_riscv64::instruction &insn,
+			              codeGen &gen);
 
     static void generate(codeGen &gen, instruction &insn);
 
@@ -235,6 +267,7 @@ public:
     static bool generateLi(codeGen &gen,
                            Dyninst::Register rd,
                            Dyninst::RegValue imm,
+                           bool optimize,
                            bool useRVC);
 
     static bool generateLui(codeGen &gen,
