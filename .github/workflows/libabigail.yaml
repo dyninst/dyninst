@@ -1,3 +1,9 @@
+# Check for ABI changes relative to the most-recent development build.
+#
+# NOTE: The diff is not done relative to the most-recent release build
+#       so we do get ABI breakage errors that aren't caused by the
+#       current PR.
+
 name: Libabigail ABI Checks
 
 on: 
@@ -25,26 +31,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: check-if-needed
     outputs:
-      all: ${{ steps.all.outputs.latest }}
+      latest: ${{ steps.all.outputs.latest }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - id: all
         uses: ./.github/actions/os-versions
-
-  get-latest-release-version:
-    runs-on: ubuntu-latest
-    needs: check-if-needed
-    outputs:
-      value: ${{ steps.version.outputs.release }}
-    steps:
-      - id: version
-        uses: pozetroninc/github-action-get-latest-release@master
-        with:
-          repository: "dyninst/dyninst"
-          excludes: "prerelease, draft"
-          token: ${{ secrets.github_token }}
 
   get-compilers:
     runs-on: ubuntu-latest
@@ -65,47 +58,42 @@ jobs:
 
   libabigail:
     runs-on: ubuntu-latest
-    needs: [get-oses, get-latest-release-version, get-compilers]
+    needs: [get-oses, get-compilers]
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJson(needs.get-oses.outputs.all) }}
+        os: ${{ fromJson(needs.get-oses.outputs.latest) }}
         compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
     permissions:
       packages: read
     container:
-      image: ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
     name: libabigail (${{ matrix.os }}, ${{ matrix.compiler }})
     steps:
-      - name: Checkout current Dyninst
+      - name: Checkout Dyninst
         uses: actions/checkout@v4
         with:
-          path: "cur/src"  # relative to ${GITHUB_WORKSPACE}
+          path: "src"  # relative to ${GITHUB_WORKSPACE}
 
-      - name: Build current Dyninst
-        uses: ./cur/src/.github/actions/build
+      - name: Build Current Dyninst
+        uses: ./src/.github/actions/build
         with:
           os: ${{ matrix.os }}
           compiler: ${{ matrix.compiler }}
-          src-dir: "${GITHUB_WORKSPACE}/cur/src"
-          install-dir: "${GITHUB_WORKSPACE}/cur/install"
+          src-dir: "${GITHUB_WORKSPACE}/src"
+          install-dir: "${GITHUB_WORKSPACE}/install"
 
-      - name: Checkout previous Dyninst
-        uses: actions/checkout@v4
-        with:
-          path: "prev/src"  # relative to ${GITHUB_WORKSPACE}
-          ref: ${{ needs.get-latest-release-version.outputs.value }}
-
-      - name: Build previous Dyninst
-        uses: ./cur/src/.github/actions/build  # ./cur is fine here
+      - name: Build Previous Dyninst
+        if: ${{ matrix.compiler != 'gcc' }}
+        uses: ./src/.github/actions/build
         with:
           os: ${{ matrix.os }}
           compiler: ${{ matrix.compiler }}
-          src-dir: "${GITHUB_WORKSPACE}/cur/src"  ## FIXME: s/cur/prev/
-          install-dir: "${GITHUB_WORKSPACE}/prev/install"
+          src-dir: "/dyninst/src"
+          install-dir: "/dyninst/install"
 
       - name: Install dependencies (Ubuntu)
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
@@ -152,14 +140,22 @@ jobs:
           params+="--no-added-syms "            # ignore added symbols
           params+="--no-unreferenced-symbols "  # ignore changes about symbols not referenced by debug info
           
-          cp ${GITHUB_WORKSPACE}/prev/install/lib*/*.so prev/
-          cp ${GITHUB_WORKSPACE}/cur/install/lib*/*.so cur/
+          # library directory suffix
+          lib_dir_suffix=""
+          if grep -qi "fedora" /etc/os-release; then
+            lib_dir_suffix="64"
+          fi
           
+          prev=/dyninst/install/lib${lib_dir_suffix}
+          cur=${GITHUB_WORKSPACE}/install/lib${lib_dir_suffix}
+          
+          export PATH=/libabigail/install/bin:$PATH
+
           status=0
           for l in "${libs[@]}"; do
             echo "Diffing $l"
             cur_status=0
-            output=`/libabigail/install/bin/abidiff ${params} prev/$l cur/$l 2>&1` || cur_status=1
+            output=`abidiff ${params} ${prev}/$l ${cur}/$l 2>&1` || cur_status=1
             if test "${cur_status}" = "1"; then
               printf '=%.0s' {1..100}; echo
               printf "Found an ABI breakage\n\n"
