@@ -112,6 +112,14 @@ constexpr int BGEFunct3  = 0x5;
 constexpr int BLTUFunct3 = 0x6;
 constexpr int BGEUFunct3 = 0x7;
 
+constexpr int B_COND_EQ  = BEQFunct3;
+constexpr int B_COND_NE  = BNEFunct3;
+constexpr int B_COND_LT = BLTFunct3;
+constexpr int B_COND_GE  = BGEFunct3;
+constexpr int B_COND_LTU = BLTUFunct3;
+constexpr int B_COND_GEU = BGEUFunct3;
+
+/* Conventional registers */
 constexpr int GPR_ZERO   = 0;
 constexpr int GPR_RA     = 1;
 constexpr int GPR_SP     = 2;
@@ -119,35 +127,39 @@ constexpr int GPR_GP     = 2;
 constexpr int GPR_TP     = 4;
 constexpr int GPR_FP     = 8;
 
-constexpr int MAX_BRANCH_OFFSET      = 0xfffff; // 20 bits
-constexpr int MAX_BRANCH_LINK_OFFSET = 0xfff;   // 12 bits
+constexpr int64_t MAX_BRANCH_OFFSET      = 0x7ffff;     // 20 bits signed
+constexpr int64_t MIN_BRANCH_OFFSET      = -0x800000;   // 20 bits signed
+constexpr int64_t MAX_BRANCH_LINK_OFFSET = 0x7ff;       // 12 bits signed
+constexpr int64_t MIN_BRANCH_LINK_OFFSET = -0x800;      // 12 bits signed
+constexpr int64_t MAX_AUIPC_OFFSET       = 0x7fffffff;  // 32 bits signed (not 20 because imm is shifted 12 bits left)
+constexpr int64_t MIN_AUIPC_OFFSET       = -0x80000000; // 32 bits signed (not 20 because imm is shifted 12 bits left)
 
 // Jump/Branch instructions
-constexpr insnBuf_t J_INSN_MASK    = insnBuf_t(0x0000007f);
-constexpr insnBuf_t B_INSN_MASK    = insnBuf_t(0x0000007f);
-constexpr insnBuf_t CJ_INSN_MASK   = insnBuf_t(0xe003);
-constexpr insnBuf_t CJR_INSN_MASK  = insnBuf_t(0xf003);
-constexpr insnBuf_t CB_INSN_MASK   = insnBuf_t(0xe003);
+constexpr insnBuf_t J_INSN_MASK      = insnBuf_t(0x0000007f);
+constexpr insnBuf_t B_INSN_MASK      = insnBuf_t(0x0000007f);
+constexpr insnBuf_t CJ_INSN_MASK     = insnBuf_t(0xe003);
+constexpr insnBuf_t CJR_INSN_MASK    = insnBuf_t(0xf003);
+constexpr insnBuf_t CB_INSN_MASK     = insnBuf_t(0xe003);
 
-constexpr insnBuf_t B_INSNS        = insnBuf_t(0x00000063);
-constexpr insnBuf_t JALR_INSN      = insnBuf_t(0x00000067);
-constexpr insnBuf_t JAL_INSN       = insnBuf_t(0x0000006f);
-constexpr insnBuf_t CBEQZ_INSN     = insnBuf_t(0xc001);
-constexpr insnBuf_t CBNEZ_INSN     = insnBuf_t(0xe001);
-constexpr insnBuf_t CJALR_INSN     = insnBuf_t(0x9002);
-constexpr insnBuf_t CJAL_INSN      = insnBuf_t(0x2001);
-constexpr insnBuf_t CJR_INSN       = insnBuf_t(0x8002);
-constexpr insnBuf_t CJ_INSN        = insnBuf_t(0xa001);
+constexpr insnBuf_t B_INSNS          = insnBuf_t(0x00000063);
+constexpr insnBuf_t JALR_INSN        = insnBuf_t(0x00000067);
+constexpr insnBuf_t JAL_INSN         = insnBuf_t(0x0000006f);
+constexpr insnBuf_t CBEQZ_INSN       = insnBuf_t(0xc001);
+constexpr insnBuf_t CBNEZ_INSN       = insnBuf_t(0xe001);
+constexpr insnBuf_t CJALR_INSN       = insnBuf_t(0x9002);
+constexpr insnBuf_t CJAL_INSN        = insnBuf_t(0x2001);
+constexpr insnBuf_t CJR_INSN         = insnBuf_t(0x8002);
+constexpr insnBuf_t CJ_INSN          = insnBuf_t(0xa001);
 
 // RISC-V immediates in jump/branch instructions are scrambled:
 // The following arrays store the corresponding indices to reorder the immediates back
-const std::vector<int> JAL_REORDER  = {12, 13, 14, 15, 16, 17, 18, 19, 11,1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20};
-const std::vector<int> JALR_REORDER = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-const std::vector<int> B_REORDER1   = {11, 1, 2, 3, 4};
-const std::vector<int> B_REORDER2   = {5, 6, 7, 8, 9, 10, 12};
-const std::vector<int> CJ_REORDER   = {5, 1, 2, 3, 7, 6, 10, 8, 9, 4, 11};
-const std::vector<int> CB_REORDER1  = {5, 1, 2, 6, 7};
-const std::vector<int> CB_REORDER2  = {3, 4, 8};
+const std::vector<int> JAL_REORDER   = {12, 13, 14, 15, 16, 17, 18, 19, 11,1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20};
+const std::vector<int> JALR_REORDER  = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+const std::vector<int> B_REORDER1    = {11, 1, 2, 3, 4};
+const std::vector<int> B_REORDER2    = {5, 6, 7, 8, 9, 10, 12};
+const std::vector<int> CJ_REORDER    = {5, 1, 2, 3, 7, 6, 10, 8, 9, 4, 11};
+const std::vector<int> CB_REORDER1   = {5, 1, 2, 6, 7};
+const std::vector<int> CB_REORDER2   = {3, 4, 8};
 
 // The following are the indices of the immediates' offset
 const int JAL_IMM_OFF  = 12;
@@ -160,9 +172,20 @@ const int CB_IMM_OFF1  = 2;
 const int CB_IMM_OFF2  = 10;
 
 // Register masks and shifts for jump/branch instructions
+constexpr insnBuf_t B_COND_MASK   = insnBuf_t(0x00007000);
+constexpr insnBuf_t B_REG1_MASK   = insnBuf_t(0x000f8000);
+constexpr insnBuf_t B_REG2_MASK   = insnBuf_t(0x01f00000);
+constexpr insnBuf_t CB_REG1_MASK  = insnBuf_t(0x0380);
 constexpr insnBuf_t JALR_REG_MASK = insnBuf_t(0x000f8000);
+constexpr insnBuf_t J_LNK_MASK    = insnBuf_t(0x00000f80);
 constexpr insnBuf_t CJR_REG_MASK  = insnBuf_t(0x0f80);
+constexpr int B_COND_SHIFT        = 12;
+constexpr int B_REG1_SHIFT        = 15;
+constexpr int B_REG2_SHIFT        = 20;
+constexpr int CB_REG1_SHIFT       = 7;
+constexpr int CB_REG1_ADD         = 8;
 constexpr int JALR_REG_SHIFT      = 15;
+constexpr int J_LNK_SHIFT         = 7;
 constexpr int CJR_REG_SHIFT       = 7;
 
 // Atomic Instructions
@@ -194,11 +217,10 @@ private:
 
     codeBuf_t code_buff;
     insnBuf_t insn_buff;
-    bool isRVC;
 
 public:
-    instruction(): code_buff(), isRVC(false) { insn_buff.set(); }
-    instruction(rvMinInsn_t raw): isRVC(false) {
+    instruction(): code_buff() { insn_buff.set(); }
+    instruction(rvMinInsn_t raw) {
         code_buff.raw = raw;
         insn_buff.set();
     }
@@ -207,7 +229,7 @@ public:
         // 0x10 -> Compressed instructions
         // 0x11 -> Standard instructions
         void *p = const_cast<void *>(ptr);
-        isRVC = ((*reinterpret_cast<rvMinInsn_t *>(p)) & 0x3) != 0x11;
+        bool isRVC = ((*reinterpret_cast<rvMinInsn_t *>(p)) & 0x3) != 0x11;
         if (isRVC) {
             insn_buff = std::bitset<INSN_BUFF_SIZE>(*reinterpret_cast<rvcInsn_t *>(p));
         }
@@ -217,7 +239,7 @@ public:
     }
     instruction(const void *ptr, bool): instruction(ptr) {}
 
-    instruction(const instruction &insn) : code_buff(insn.code_buff), isRVC(insn.isRVC) {}
+    instruction(const instruction &insn) : code_buff(insn.code_buff) {}
     instruction(codeBuf_t &insn) : code_buff(insn) {}
 
     void clear() { 
@@ -239,10 +261,11 @@ public:
         code_buff.raw = static_cast<rvMinInsn_t>(((insn_buff & mask) >> begin).to_ulong());
     }
 
-    bool getIsRVC() const { return isRVC; }
-    void setIsRVC(bool isRVC_) { isRVC = isRVC_; }
+    bool isRVC() const {
+        return !(insn_buff.test(0) && insn_buff.test(1));
+    }
 
-    unsigned size() { return isRVC ? RVC_INSN_SIZE : RV_INSN_SIZE; }
+    unsigned size() { return isRVC() ? RVC_INSN_SIZE : RV_INSN_SIZE; }
 
     // return a pointer to the instruction
     const unsigned char *ptr() const { return (const unsigned char *)&code_buff; }
@@ -258,8 +281,13 @@ public:
     bool isBranchOffset() const;
     bool isUncondBranch() const;
     bool isCondBranch() const;
+    bool isCall() const;
+    unsigned getLinkReg() const;
     unsigned getBranchTargetReg() const;
     Dyninst::Address getBranchOffset() const;
+    unsigned getCondBranchOp() const;
+    unsigned getCondBranchReg1() const;
+    unsigned getCondBranchReg2() const;
     bool isAtomic() const;
     bool isAtomicMemOp() const;
     bool isAtomicLoad() const;
