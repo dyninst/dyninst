@@ -48,7 +48,7 @@ Dyninst::Address instruction::getTarget(Dyninst::Address addr) const {
 }
 
 bool instruction::isBranchReg() const {
-    if (isRVC) {
+    if (isRVC()) {
         insnBuf_t result = insn_buff & CJR_INSN_MASK;
         return result == CJR_INSN || result == CJALR_INSN;
     } else {
@@ -61,7 +61,7 @@ bool instruction::isBranchOffset() const {
     if (isCondBranch()) {
         return true;
     }
-    else if (isRVC) {
+    else if (isRVC()) {
         insnBuf_t result = insn_buff & CJR_INSN_MASK;
         return result == CJ_INSN || result == CJAL_INSN;
     } else {
@@ -71,7 +71,7 @@ bool instruction::isBranchOffset() const {
 }
 
 bool instruction::isUncondBranch() const {
-    if (isRVC) {
+    if (isRVC()) {
         insnBuf_t result = insn_buff & CJ_INSN_MASK;
         return result == CJ_INSN || result == CJAL_INSN
                 || result == CJR_INSN || result == CJALR_INSN;
@@ -82,7 +82,7 @@ bool instruction::isUncondBranch() const {
 }
 
 bool instruction::isCondBranch() const {
-    if (isRVC) {
+    if (isRVC()) {
         insnBuf_t result = insn_buff & CB_INSN_MASK;
         return result == CBEQZ_INSN || result == CBNEZ_INSN;
     } else {
@@ -91,10 +91,41 @@ bool instruction::isCondBranch() const {
     }
 }
 
+bool instruction::isCall() const {
+    assert(isUncondBranch());
+    if (isRVC()) {
+        insnBuf_t result = insn_buff & CJ_INSN_MASK;
+        if (result == CJAL_INSN) {
+            return true;
+        }
+        result = insn_buff & CJR_INSN;
+        if (result == CJALR_INSN) {
+            return true;
+        }
+        return false;
+    } else {
+        return getLinkReg() == GPR_RA;
+    }
+}
+
+unsigned instruction::getLinkReg() const {
+    assert(isUncondBranch());
+    if (isRVC()) {
+        insnBuf_t result = insn_buff & CJ_INSN_MASK;
+        if (result == CJ_INSN || result == CJR_INSN) {
+            return GPR_ZERO;
+        } else {
+            return GPR_RA;
+        }
+    } else {
+        return ((insn_buff & J_LNK_MASK) >> J_LNK_SHIFT).to_ullong();
+    }
+}
+
 unsigned instruction::getBranchTargetReg() const {
     // keep sure this instruction is uncond b reg.
     assert(isBranchReg());
-    if (isRVC) {
+    if (isRVC()) {
         return ((insn_buff & CJR_REG_MASK) >> CJR_REG_SHIFT).to_ullong();
     } else {
         return ((insn_buff & JALR_REG_MASK) >> JALR_REG_SHIFT).to_ullong();
@@ -108,7 +139,7 @@ Dyninst::Address instruction::getBranchOffset() const {
 
     if (isUncondBranch()) {
         // c.j, c.jal
-        if (isRVC) {
+        if (isRVC()) {
             for (unsigned i = 0; i < CJ_REORDER.size(); i++) {
                 offset.set(CJ_REORDER[i], insn_buff[CJ_IMM_OFF + i]);
             }
@@ -126,9 +157,9 @@ Dyninst::Address instruction::getBranchOffset() const {
             }
         }
     }
-    else if (isUncondBranch()) {
+    else if (isCondBranch()) {
         // c.beqz, c.bnez
-        if (isRVC) {
+        if (isRVC()) {
             for (unsigned i = 0; i < CB_REORDER1.size(); i++) {
                 offset.set(CB_REORDER1[i], insn_buff[CB_IMM_OFF1 + i]);
             }
@@ -147,6 +178,38 @@ Dyninst::Address instruction::getBranchOffset() const {
         }
     }
     return offset.to_ullong();
+}
+
+unsigned instruction::getCondBranchOp() const {
+    assert (isCondBranch());
+    if (isRVC()) {
+        insnBuf_t result = insn_buff & CB_INSN_MASK;
+        if (result == CBEQZ_INSN) {
+            return B_COND_EQ;
+        } else {
+            return B_COND_NE;
+        }
+    } else {
+        return ((insn_buff & B_COND_MASK) >> B_COND_SHIFT).to_ullong();
+    }
+}
+
+unsigned instruction::getCondBranchReg1() const {
+    assert (isCondBranch());
+    if (isRVC()) {
+        return CB_REG1_ADD + ((insn_buff & CB_REG1_MASK) >> CB_REG1_SHIFT).to_ullong();
+    } else {
+        return ((insn_buff & B_REG1_MASK) >> B_REG1_SHIFT).to_ullong();
+    }
+}
+
+unsigned instruction::getCondBranchReg2() const {
+    assert (isCondBranch());
+    if (isRVC()) {
+        return GPR_ZERO;
+    } else {
+        return ((insn_buff & B_REG2_MASK) >> B_REG2_SHIFT).to_ullong();
+    }
 }
 
 bool instruction::isAtomic() const {
