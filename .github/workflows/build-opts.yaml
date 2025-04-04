@@ -43,7 +43,8 @@ jobs:
           opts+=("'DYNINST_ENABLE_LTO',")
           opts+=("'ENABLE_STATIC_LIBS',")
           opts+=("'SW_ANALYSIS_STEPPER',")
-          opts+=("'USE_OpenMP'")
+          opts+=("'USE_OpenMP',")
+          opts+=("'DYNINST_ENABLE_FILEFORMAT_PE'")
 
           echo "all=[ ${opts[*]} ]" >> $GITHUB_OUTPUT
 

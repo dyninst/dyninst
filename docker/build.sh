@@ -41,7 +41,10 @@ if test "${run_tests}" = "Y"; then
   cmake_args="-DDYNINST_ENABLE_TESTS=ALL ${cmake_args}"
 fi
 
-cmake -S ${src_dir} -B ${build_dir} -DCMAKE_INSTALL_PREFIX=${dest_dir} -DDYNINST_WARNINGS_AS_ERRORS=ON ${cmake_args}
+cmake_args+="-DDYNINST_WARNINGS_AS_ERRORS=ON "
+cmake_args+="-DDYNINST_ENABLE_FILEFORMAT_PE=ON "
+
+cmake -S ${src_dir} -B ${build_dir} -DCMAKE_INSTALL_PREFIX=${dest_dir} ${cmake_args}
 
 cmake --build ${build_dir} --parallel ${num_jobs} ${verbose}
 

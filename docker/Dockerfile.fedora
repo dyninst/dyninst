@@ -28,3 +28,8 @@ RUN yum install -y     \
       libomp           \
       libstdc++-static \
       tbb-devel
+
+COPY docker/build_peparse.sh /
+
+RUN bash build_peparse.sh
+

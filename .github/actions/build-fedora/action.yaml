@@ -53,6 +53,7 @@ runs:
         cmake_args="-DCMAKE_C_COMPILER=${{ fromJson(steps.compiler-name.outputs.value).c }} "
         cmake_args+="-DCMAKE_CXX_COMPILER=${{ fromJson(steps.compiler-name.outputs.value).cxx }} "
         cmake_args+="-DCMAKE_BUILD_TYPE=${{ inputs.build-type }} "
+        cmake_args+="-DDYNINST_FORCE_RUNPATH=ON "
         cmake_args+="${{ inputs.extra-cmake-flags }} "
 
         src="${{ inputs.src-dir }}"
