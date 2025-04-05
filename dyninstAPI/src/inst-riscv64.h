@@ -72,8 +72,8 @@
 
 #define ALIGN_QUADWORD(x)  ( ((x) + 0xf) & ~0xf )  //x is positive or unsigned
 
-#define GPRSAVE_64  (32*GPRSIZE_64)
-#define FPRSAVE_64  (32*FPRSIZE_64)
+#define GPRSAVE_64  (32 * GPRSIZE_64)
+#define FPRSAVE_64  (32 * FPRSIZE_64)
 #define SPRSAVE_64  (0)
 
 // #sasha Why is PowerPC stuff here?
@@ -109,8 +109,8 @@
 //#define PDYN_RESERVED_64 (LINKAREA_64 + FUNCARGS_64 + FUNCSAVE_64)
 
 #define TRAMP_SPR_OFFSET_64 (0)
-#define TRAMP_FPR_OFFSET_64 (TRAMP_SPR_OFFSET_64 + FPRSAVE_64)
-#define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + GPRSAVE_64)
+#define TRAMP_FPR_OFFSET_64 (TRAMP_SPR_OFFSET_64 + SPRSAVE_64)
+#define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + FPRSAVE_64)
 
 inline int TRAMP_GPR_OFFSET(int x) {
   if(x == 8) {
