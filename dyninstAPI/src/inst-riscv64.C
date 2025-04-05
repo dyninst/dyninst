@@ -154,14 +154,13 @@ unsigned EmitterRISCV64SaveRegs::saveGPRegisters(
 
     for (int idx = 0; idx < numReqGPRs; idx++) {
         registerSlot *reg = theRegSpace->GPRs()[idx];
-        // Do not save zero (x0), ra (x1), sp (x2), gp (x3), tp (x4), and fp (x8)
-        if (reg->number == GPR_ZERO || reg->number == GPR_RA || reg->number == GPR_SP
-                || reg->number == GPR_GP || reg->number == GPR_TP || reg->number == GPR_FP) {
+        // Do not save zero (x0), sp (x2)
+        if (reg->number == GPR_ZERO || reg->number == GPR_SP) {
             continue;
         }
         // We always save FP and LR for stack walking out of instrumentation
         if (reg->liveState == registerSlot::live || reg->number == REG_FP || reg->number == REG_RA) {
-            int offset_from_sp = offset + (reg->encoding() * gen.width());
+            int offset_from_sp = offset + (reg->number * gen.width());
             insnCodeGen::saveRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
             theRegSpace->markSavedRegister(reg->number, offset_from_sp);
             ret++;
@@ -225,15 +224,14 @@ unsigned EmitterRISCV64RestoreRegs::restoreGPRegisters(
     unsigned ret = 0;
 
     for (int idx = theRegSpace->numGPRs() - 1; idx >= 0; idx--) {
-        // Do not restore zero (x0), ra (x1), sp (x2), gp (x3), tp (x4), and fp (x8)
+        // Do not restore zero (x0), sp (x2)
         registerSlot *reg = theRegSpace->GPRs()[idx];
-        if (reg->number == GPR_ZERO || reg->number == GPR_RA || reg->number == GPR_SP
-                || reg->number == GPR_GP || reg->number == GPR_TP || reg->number == GPR_FP) {
+        if (reg->number == GPR_ZERO || reg->number == GPR_SP) {
             continue;
         }
 
         if (reg->liveState == registerSlot::spilled) {
-            int offset_from_sp = offset + (reg->encoding() * GPRSIZE_64);
+            int offset_from_sp = offset + (reg->number * GPRSIZE_64);
             insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
             ret++;
         }
@@ -298,7 +296,7 @@ void EmitterRISCV64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, in
  */
 void pushStack(codeGen &gen)
 {
-    insnCodeGen::generateAddi(gen, REG_SP, REG_SP, -TRAMP_FPR_OFFSET_64, gen.getUseRVC());
+    insnCodeGen::generateAddi(gen, REG_SP, REG_SP, -TRAMP_FRAME_SIZE_64, gen.getUseRVC());
 }
 
 void popStack(codeGen &gen)
