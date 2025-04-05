@@ -241,5 +241,18 @@ bool instruction::isAtomicStore() const {
     return result == A_OP_SC;
 }
 
+bool instruction::isAuipc() const {
+    return (insn_buff & AUIPC_INSN_MASK) == AUIPC_INSN;
+}
+
+Dyninst::Address instruction::getAuipcOffset() const {
+    assert(isAuipc());
+    return (insn_buff & AUIPC_IMM_MASK).to_ullong();
+}
+
+unsigned instruction::getAuipcReg() const {
+    assert(isAuipc());
+    return ((insn_buff & AUIPC_REG_MASK) >> AUIPC_REG_SHIFT).to_ullong();
+}
 
 } // namespace NS_riscv64
