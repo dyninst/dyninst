@@ -114,27 +114,34 @@ constexpr int BGEUFunct3 = 0x7;
 
 constexpr int B_COND_EQ  = BEQFunct3;
 constexpr int B_COND_NE  = BNEFunct3;
-constexpr int B_COND_LT = BLTFunct3;
+constexpr int B_COND_LT  = BLTFunct3;
 constexpr int B_COND_GE  = BGEFunct3;
 constexpr int B_COND_LTU = BLTUFunct3;
 constexpr int B_COND_GEU = BGEUFunct3;
 
-/* Conventional registers */
+// Conventional registers
 constexpr int GPR_ZERO   = 0;
 constexpr int GPR_RA     = 1;
 constexpr int GPR_SP     = 2;
-constexpr int GPR_GP     = 2;
+constexpr int GPR_GP     = 3;
 constexpr int GPR_TP     = 4;
 constexpr int GPR_FP     = 8;
 
-constexpr int64_t MAX_BRANCH_OFFSET      = 0x7ffff;     // 20 bits signed
-constexpr int64_t MIN_BRANCH_OFFSET      = -0x800000;   // 20 bits signed
-constexpr int64_t MAX_BRANCH_LINK_OFFSET = 0x7ff;       // 12 bits signed
-constexpr int64_t MIN_BRANCH_LINK_OFFSET = -0x800;      // 12 bits signed
-constexpr int64_t MAX_AUIPC_OFFSET       = 0x7fffffff;  // 32 bits signed (not 20 because imm is shifted 12 bits left)
-constexpr int64_t MIN_AUIPC_OFFSET       = -0x80000000; // 32 bits signed (not 20 because imm is shifted 12 bits left)
+// auipc Instruction
+constexpr insnBuf_t AUIPC_INSN_MASK      = insnBuf_t(0x0000007f);
+constexpr insnBuf_t AUIPC_INSN           = insnBuf_t(0x00000017);
+constexpr insnBuf_t AUIPC_IMM_MASK       = insnBuf_t(0xfffff000);
+constexpr insnBuf_t AUIPC_REG_MASK       = insnBuf_t(0x00000f80);
+
+constexpr int AUIPC_REG_SHIFT            = 7;
 
 // Jump/Branch instructions
+
+constexpr int64_t MAX_BRANCH_OFFSET      = 0xfffffLL;     // 21 bits signed (not 20 because imm is shifted 1 bits left)
+constexpr int64_t MIN_BRANCH_OFFSET      = -0x1000000LL;  // 21 bits signed (not 20 because imm is shifted 1 bits left)
+constexpr int64_t MAX_AUIPC_OFFSET       = 0x7fffffffLL;  // 32 bits signed (not 20 because imm is shifted 12 bits left)
+constexpr int64_t MIN_AUIPC_OFFSET       = -0x80000000LL; // 32 bits signed (not 20 because imm is shifted 12 bits left)
+
 constexpr insnBuf_t J_INSN_MASK      = insnBuf_t(0x0000007f);
 constexpr insnBuf_t B_INSN_MASK      = insnBuf_t(0x0000007f);
 constexpr insnBuf_t CJ_INSN_MASK     = insnBuf_t(0xe003);
@@ -292,6 +299,9 @@ public:
     bool isAtomicMemOp() const;
     bool isAtomicLoad() const;
     bool isAtomicStore() const;
+    bool isAuipc() const;
+    Dyninst::Address getAuipcOffset() const;
+    unsigned getAuipcReg() const;
 };
 
 }
