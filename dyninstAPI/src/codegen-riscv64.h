@@ -167,6 +167,13 @@ public:
 			               NS_riscv64::instruction &insn,
 			               codeGen &gen);
 
+    static bool generateLoadImm(codeGen &gen,
+                                Dyninst::Register rd,
+                                Dyninst::RegValue imm,
+                                bool isRel,
+                                bool optimize,
+                                bool useRVC);
+
     static bool generateCalcImm(codeGen &gen,
                                 Dyninst::Register rd,
                                 Dyninst::RegValue imm,
@@ -272,7 +279,7 @@ public:
 
     static bool generateLui(codeGen &gen,
                             Dyninst::Register rd,
-                            Dyninst::RegValue imm,
+                            Dyninst::RegValue offset,
                             bool useRVC);
 
     static bool generateAuipc(codeGen &gen,
@@ -427,13 +434,13 @@ public:
                               Dyninst::Register rd,
                               Dyninst::RegValue imm);
 
-    static void generateCLoadImm(codeGen &gen,
-                                 Dyninst::Register rd,
-                                 Dyninst::RegValue imm);
+    static void generateCLi(codeGen &gen,
+                            Dyninst::Register rd,
+                            Dyninst::RegValue imm);
 
-    static void generateCLoadUpperImm(codeGen &gen,
-                                      Dyninst::Register rd,
-                                      Dyninst::RegValue imm);
+    static void generateCLui(codeGen &gen,
+                             Dyninst::Register rd,
+                             Dyninst::RegValue imm);
 
     static void generateCSlli(codeGen &gen,
                               Dyninst::Register rd,
