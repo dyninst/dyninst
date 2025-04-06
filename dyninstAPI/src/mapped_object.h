@@ -167,9 +167,6 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     // any that were relocated (we can always follow the "I was relocated" pointer).
     ~mapped_object();
 
-    bool analyze();
-    bool isAnalyzed() { return analyzed_; }
-
     const fileDescriptor &getFileDesc() const { return desc_; }
     // Full name, including path
     const string &fullName() const { return fullName_; }
@@ -380,8 +377,6 @@ public:
     image  *image_; // pointer to image if processed is true
     bool dlopenUsed; //mark this shared object as opened by dlopen
     AddressSpace *proc_; // Parent process
-
-    bool analyzed_; // Prevent multiple adds
 
     // exploratory and defensive mode variables
     typedef enum  {
