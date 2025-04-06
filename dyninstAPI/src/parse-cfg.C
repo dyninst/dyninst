@@ -152,13 +152,6 @@ bool parse_func::addTypedName(std::string name, bool isPrimary) {
     return false;
 }
 
-void parse_func::changeModule(pdmodule *mod) {
-  // Called from buildFunctionLists, so we aren't entered in any 
-  // module-level data structures. If this changes, UPDATE THE
-  // FUNCTION.
-  mod_ = mod;
-}
-
 bool parse_func::isInstrumentableByFunctionName()
 {
     // XXXXX kludge: these functions are called by DYNINSTgetCPUtime, 
