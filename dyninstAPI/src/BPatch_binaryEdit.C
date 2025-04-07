@@ -240,12 +240,17 @@ static void readKernelInfos(const std::string &filePath,
   infoFile.close();
 }
 
-static void writeInstrumentedFunctionNames(const std::string &filePath) {
+static void writeInstrumentedFunctionNames(const std::string &filePath, std::vector<AmdgpuKernelInfo> &kernelInfos) {
   std::ofstream namesFile(filePath);
   assert(namesFile.is_open());
 
   for (const auto& function : BPatch_addressSpace::instrumentedFunctions) {
-    namesFile << function->getMangledName() << std::endl;
+    std::string functionName = function->getMangledName();
+    for (const auto &kernelInfo : kernelInfos) {
+      if (functionName == kernelInfo.getKernelName()) {
+        namesFile << function->getMangledName() << ' ' << kernelInfo.kernargBufferSize << std::endl;
+      }
+    }
   }
 
   namesFile.close();
@@ -319,12 +324,14 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
     getAS(as);
     bool ret = true;
 
+#if defined(arch_amdgpu)
+    std::vector<AmdgpuKernelInfo> kernelInfos;
+    std::string inputFileName = this->getImage()->getProgramFileName();
+#endif
+
     /* PatchAPI stuffs */
     if (as.size() > 0) {
 #if defined(arch_amdgpu)
-      std::vector<AmdgpuKernelInfo> kernelInfos;
-      std::string inputFileName = this->getImage()->getProgramFileName();
-
       readKernelInfos(inputFileName + ".info", kernelInfos);
       insertPrologueInInstrumentedFunctions(kernelInfos);
       insertEpilogueInInstrumentedFunctions(kernelInfos);
@@ -347,8 +354,7 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
 
    if( !origBinEdit->writeFile(outFile) ) return false;
 #if defined(arch_amdgpu)
-   std::string inputFileName = this->getImage()->getProgramFileName();
-   writeInstrumentedFunctionNames(inputFileName + ".instrumentedKernelNames");
+   writeInstrumentedFunctionNames(inputFileName + ".instrumentedKernelNames", kernelInfos);
 #endif
 
    std::map<std::string, BinaryEdit *>::iterator curBinEdit;
