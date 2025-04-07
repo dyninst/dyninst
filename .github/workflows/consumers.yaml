@@ -356,7 +356,7 @@ jobs:
 
         # extrae does not build with gcc-14 (the default compiler on the latest fedora)
       - name: Build extrae
-        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') && matrix.os != 'ubuntu-24.10'}}
         shell: bash
         run: |
           set -ex
