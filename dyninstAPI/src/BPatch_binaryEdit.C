@@ -193,15 +193,14 @@ BPatch_binaryEdit::~BPatch_binaryEdit()
 
 #if defined(arch_amdgpu)
 
-constexpr int kernelInfoSize = 4;
+constexpr int kernelInfoSize = 3;
 
 struct AmdgpuKernelInfo {
   AmdgpuKernelInfo(std::vector<std::string> &words) {
     assert(words.size() == kernelInfoSize);
     kdName = words[0];
-    newArgOffset = std::stoul(words[1]);
-    kernargBufferSize = std::stoul(words[2]);
-    kernargPtrRegister = std::stoul(words[3]);
+    kernargBufferSize = std::stoul(words[1]);
+    kernargPtrRegister = std::stoul(words[2]);
   }
 
   std::string getKernelName() const {
@@ -210,7 +209,6 @@ struct AmdgpuKernelInfo {
   }
 
   std::string kdName;
-  unsigned newArgOffset;
   unsigned kernargBufferSize;
   unsigned kernargPtrRegister;
 };
@@ -270,7 +268,7 @@ static void insertPrologueInInstrumentedFunctions(
     for (auto &kernelInfo : kernelInfos) {
       if (kernelInfo.getKernelName() == function->getMangledName()) {
         auto prologuePtr = boost::make_shared<AmdgpuPrologueSnippet>(
-            94, kernelInfo.kernargPtrRegister, kernelInfo.newArgOffset);
+            94, kernelInfo.kernargPtrRegister, kernelInfo.kernargBufferSize);
         auto prologueNodePtr =
             boost::make_shared<AmdgpuPrologueSnippetNode>(prologuePtr);
 
