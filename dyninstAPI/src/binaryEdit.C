@@ -476,7 +476,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          }
       }
 
-   delayRelocation_ = false;
       relocate();
       
       vector<Region*> oldSegs;

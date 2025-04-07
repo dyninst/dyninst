@@ -484,7 +484,6 @@ class AddressSpace : public InstructionSource {
     void addModifiedFunction(func_instance *func);
     void addModifiedBlock(block_instance *block);
 
-    bool delayRelocation() const;
  protected:
 
     // inferior malloc support functions
@@ -545,8 +544,6 @@ class AddressSpace : public InstructionSource {
     // CallModMap callModifications_;
     // FuncModMap functionReplacements_;
     // FuncModMap functionWraps_;
-
-    bool delayRelocation_;
 
     std::map<func_instance *, Dyninst::SymtabAPI::Symbol *> wrappedFunctionWorklist_;
 
