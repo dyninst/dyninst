@@ -43,8 +43,6 @@
 
 namespace Dyninst { namespace InstructionAPI {
 
-  class InstructionAST;
-
   using std::set;
   using std::vector;
 
