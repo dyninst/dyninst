@@ -33,6 +33,16 @@
 
 namespace NS_riscv64 {
 
+signed long instruction::signExtend(unsigned long i, unsigned int pos) {
+    signed long ret;
+    if (((i >> (pos - 1)) & 0x1) == 0x1) {
+        ret = i | (~0UL << (pos - 1));
+    } else {
+        ret = i & ~(~0UL << (pos - 1));
+    }
+    return ret;
+}
+
 unsigned instruction::getTargetReg() const {
     if (isBranchReg()){
         return getBranchTargetReg();
@@ -62,7 +72,7 @@ bool instruction::isBranchOffset() const {
         return true;
     }
     else if (isRVC()) {
-        insnBuf_t result = insn_buff & CJR_INSN_MASK;
+        insnBuf_t result = insn_buff & CJ_INSN_MASK;
         return result == CJ_INSN || result == CJAL_INSN;
     } else {
         insnBuf_t result = insn_buff & J_INSN_MASK;
@@ -72,9 +82,10 @@ bool instruction::isBranchOffset() const {
 
 bool instruction::isUncondBranch() const {
     if (isRVC()) {
-        insnBuf_t result = insn_buff & CJ_INSN_MASK;
-        return result == CJ_INSN || result == CJAL_INSN
-                || result == CJR_INSN || result == CJALR_INSN;
+        insnBuf_t resultCJ = insn_buff & CJ_INSN_MASK;
+        insnBuf_t resultCJR = insn_buff & CJR_INSN_MASK;
+        return resultCJ == CJ_INSN || resultCJ == CJAL_INSN
+                || resultCJR == CJR_INSN || resultCJR == CJALR_INSN;
     } else {
         insnBuf_t result = insn_buff & J_INSN_MASK;
         return result == JAL_INSN || result == JALR_INSN;
@@ -89,6 +100,29 @@ bool instruction::isCondBranch() const {
         insnBuf_t result = insn_buff & B_INSN_MASK;
         return result == B_INSNS;
     }
+}
+
+bool instruction::getUsedRegs(std::vector<int> &regs) {
+    if (isCondBranch()) {
+        if (isRVC()) {
+            unsigned int rs2 = CB_REG1_ADD + ((insn_buff & CB_REG1_MASK) >> CB_REG1_SHIFT).to_ullong();
+            regs.push_back(rs2);
+        } else {
+            unsigned int rs1 = ((insn_buff & B_REG1_MASK) >> B_REG1_SHIFT).to_ullong();
+            unsigned int rs2 = ((insn_buff & B_REG2_MASK) >> B_REG2_SHIFT).to_ullong();
+            regs.push_back(rs1);
+            regs.push_back(rs2);
+        }
+        return true;
+    } else if (isBranchReg()) {
+        regs.push_back(getBranchTargetReg());
+        return true;
+    } else if (isUncondBranch()) {
+        return true;
+    }
+   
+    assert(0);
+    return 0;
 }
 
 bool instruction::isCall() const {
