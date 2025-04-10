@@ -35,8 +35,6 @@
 
 namespace Dyninst { namespace InstructionAPI {
 
-  InstructionAST::InstructionAST() {}
-
   InstructionAST::~InstructionAST() {}
 
   bool InstructionAST::operator==(const InstructionAST& rhs) const {

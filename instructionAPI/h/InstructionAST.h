@@ -49,7 +49,7 @@ namespace Dyninst { namespace InstructionAPI {
   public:
     typedef boost::shared_ptr<InstructionAST> Ptr;
 
-    InstructionAST();
+    InstructionAST() = default;
     InstructionAST(const InstructionAST&) = default;
     virtual ~InstructionAST();
 
