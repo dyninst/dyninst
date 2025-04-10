@@ -69,7 +69,6 @@ if(DYNINST_OS_UNIX)
     src/Object-elf.C
     src/Archive.C
     src/Archive-elf.C
-    src/parseDwarf.C
     src/LinkMap.C
     src/emitElf.C
     src/emitElfStatic.C
