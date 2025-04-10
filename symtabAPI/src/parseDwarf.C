@@ -54,15 +54,6 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
 
-std::string convertCharToString(char *ptr)
-{
-  std::string str;
-  if (ptr)
-    str = ptr;
-  else
-    str = "";
-  return str;	
-}
 
 bool ObjectELF::hasFrameDebugInfo()
 {
