@@ -31,12 +31,12 @@
 #if !defined(INSTRUCTIONAST_H)
 #define INSTRUCTIONAST_H
 
-#include "ArchSpecificFormatters.h"
-#include "Result.h"
-#include "boost/enable_shared_from_this.hpp"
+#include "Architecture.h"
 #include "dyninst_visibility.h"
+#include "registers/MachRegister.h"
+#include "Result.h"
 
-#include <iostream>
+#include <boost/enable_shared_from_this.hpp>
 #include <set>
 #include <string>
 #include <vector>
@@ -66,7 +66,7 @@ namespace Dyninst { namespace InstructionAPI {
     virtual void getUses(std::set<InstructionAST::Ptr>& uses) = 0;
     virtual bool isUsed(InstructionAST::Ptr findMe) const = 0;
 
-    virtual std::string format(Architecture arch, formatStyle how = defaultStyle) const = 0;
+    virtual std::string format(Dyninst::Architecture arch, formatStyle how = defaultStyle) const = 0;
     virtual std::string format(formatStyle how = defaultStyle) const = 0;
 
   protected:
@@ -74,7 +74,7 @@ namespace Dyninst { namespace InstructionAPI {
     friend class RegisterAST;
     friend class Immediate;
     virtual bool isStrictEqual(const InstructionAST& rhs) const = 0;
-    virtual bool checkRegID(MachRegister, unsigned int = 0, unsigned int = 0) const { return false; }
+    virtual bool checkRegID(Dyninst::MachRegister, unsigned int = 0, unsigned int = 0) const { return false; }
     virtual const Result& eval() const = 0;
   };
 }}
