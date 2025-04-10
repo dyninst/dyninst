@@ -211,21 +211,21 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual const Result& eval() const;
 
-    virtual void getChildren(vector<InstructionAST::Ptr>& children) const {
+    virtual void getChildren(std::vector<InstructionAST::Ptr>& children) const {
       children.push_back(m_arg1);
       children.push_back(m_arg2);
 
       return;
     }
 
-    virtual void getChildren(vector<Expression::Ptr>& children) const {
+    virtual void getChildren(std::vector<Expression::Ptr>& children) const {
       children.push_back(m_arg1);
       children.push_back(m_arg2);
 
       return;
     }
 
-    virtual void getUses(set<InstructionAST::Ptr>& uses) {
+    virtual void getUses(std::set<InstructionAST::Ptr>& uses) {
       m_arg1->getUses(uses);
       m_arg2->getUses(uses);
 

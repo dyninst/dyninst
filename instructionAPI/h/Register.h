@@ -58,10 +58,10 @@ namespace Dyninst { namespace InstructionAPI {
     virtual ~RegisterAST();
     RegisterAST(const RegisterAST&) = default;
 
-    virtual void getChildren(vector<InstructionAST::Ptr>& children) const;
-    virtual void getChildren(vector<Expression::Ptr>& children) const;
+    virtual void getChildren(std::vector<InstructionAST::Ptr>& children) const;
+    virtual void getChildren(std::vector<Expression::Ptr>& children) const;
 
-    virtual void getUses(set<InstructionAST::Ptr>& uses);
+    virtual void getUses(std::set<InstructionAST::Ptr>& uses);
 
     virtual bool isUsed(InstructionAST::Ptr findMe) const;
 

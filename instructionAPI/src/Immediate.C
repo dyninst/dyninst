@@ -47,9 +47,9 @@ namespace Dyninst { namespace InstructionAPI {
 
   Immediate::~Immediate() {}
 
-  void Immediate::getChildren(vector<InstructionAST::Ptr>&) const { return; }
+  void Immediate::getChildren(std::vector<InstructionAST::Ptr>&) const { return; }
 
-  void Immediate::getChildren(vector<Expression::Ptr>&) const { return; }
+  void Immediate::getChildren(std::vector<Expression::Ptr>&) const { return; }
 
   bool Immediate::isUsed(InstructionAST::Ptr findMe) const { return *findMe == *this; }
 

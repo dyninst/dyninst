@@ -53,17 +53,17 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual ~Dereference() {}
 
-    virtual void getChildren(vector<InstructionAST::Ptr>& children) const {
+    virtual void getChildren(std::vector<InstructionAST::Ptr>& children) const {
       children.push_back(addressToDereference);
       return;
     }
 
-    virtual void getChildren(vector<Expression::Ptr>& children) const {
+    virtual void getChildren(std::vector<Expression::Ptr>& children) const {
       children.push_back(addressToDereference);
       return;
     }
 
-    virtual void getUses(set<InstructionAST::Ptr>& uses) {
+    virtual void getUses(std::set<InstructionAST::Ptr>& uses) {
       addressToDereference->getUses(uses);
       return;
     }

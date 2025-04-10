@@ -44,10 +44,10 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual ~Immediate();
 
-    virtual void getChildren(vector<InstructionAST::Ptr>&) const;
-    virtual void getChildren(vector<Expression::Ptr>&) const;
+    virtual void getChildren(std::vector<InstructionAST::Ptr>&) const;
+    virtual void getChildren(std::vector<Expression::Ptr>&) const;
 
-    virtual void getUses(set<InstructionAST::Ptr>&);
+    virtual void getUses(std::set<InstructionAST::Ptr>&);
     virtual bool isUsed(InstructionAST::Ptr findMe) const;
 
     virtual std::string format(Architecture, formatStyle) const;

@@ -43,9 +43,6 @@
 
 namespace Dyninst { namespace InstructionAPI {
 
-  using std::set;
-  using std::vector;
-
   enum formatStyle { defaultStyle, memoryAccessStyle };
 
   class DYNINST_EXPORT InstructionAST : public boost::enable_shared_from_this<InstructionAST> {
@@ -58,9 +55,9 @@ namespace Dyninst { namespace InstructionAPI {
 
     bool operator==(const InstructionAST& rhs) const;
 
-    virtual void getChildren(vector<InstructionAST::Ptr>& children) const = 0;
+    virtual void getChildren(std::vector<InstructionAST::Ptr>& children) const = 0;
 
-    virtual void getUses(set<InstructionAST::Ptr>& uses) = 0;
+    virtual void getUses(std::set<InstructionAST::Ptr>& uses) = 0;
     virtual bool isUsed(InstructionAST::Ptr findMe) const = 0;
 
     virtual std::string format(Architecture arch, formatStyle how = defaultStyle) const = 0;
