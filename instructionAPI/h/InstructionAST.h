@@ -51,7 +51,7 @@ namespace Dyninst { namespace InstructionAPI {
 
     InstructionAST() = default;
     InstructionAST(const InstructionAST&) = default;
-    virtual ~InstructionAST();
+    virtual ~InstructionAST() = default;
 
     bool operator==(const InstructionAST& rhs) const;
 

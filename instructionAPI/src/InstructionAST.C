@@ -35,8 +35,6 @@
 
 namespace Dyninst { namespace InstructionAPI {
 
-  InstructionAST::~InstructionAST() {}
-
   bool InstructionAST::operator==(const InstructionAST& rhs) const {
     // isStrictEqual assumes rhs and this to be of the same derived type
     return ((typeid(*this) == typeid(rhs)) && isStrictEqual(rhs));
