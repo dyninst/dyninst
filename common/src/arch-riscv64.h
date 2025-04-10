@@ -282,12 +282,14 @@ public:
     }
 
     unsigned getTargetReg() const;
+    signed long signExtend(unsigned long i, unsigned int pos);
     Dyninst::Address getTarget(Dyninst::Address addr) const;
 
     bool isBranchReg() const;
     bool isBranchOffset() const;
     bool isUncondBranch() const;
     bool isCondBranch() const;
+    bool getUsedRegs(std::vector<int> &regs);
     bool isCall() const;
     unsigned getLinkReg() const;
     unsigned getBranchTargetReg() const;
