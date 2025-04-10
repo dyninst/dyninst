@@ -40,6 +40,4 @@ namespace Dyninst { namespace InstructionAPI {
     return ((typeid(*this) == typeid(rhs)) && isStrictEqual(rhs));
   }
 
-  bool InstructionAST::checkRegID(MachRegister, unsigned int, unsigned int) const { return false; }
-
 }}

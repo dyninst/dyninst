@@ -71,7 +71,7 @@ namespace Dyninst { namespace InstructionAPI {
     friend class RegisterAST;
     friend class Immediate;
     virtual bool isStrictEqual(const InstructionAST& rhs) const = 0;
-    virtual bool checkRegID(MachRegister, unsigned int = 0, unsigned int = 0) const;
+    virtual bool checkRegID(MachRegister, unsigned int = 0, unsigned int = 0) const { return false; }
     virtual const Result& eval() const = 0;
   };
 }}
