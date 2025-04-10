@@ -1206,6 +1206,42 @@ namespace Dyninst {
           case 103: return Dyninst::aarch64::xzr;
           default: return InvalidReg;
         }
+      case Arch_riscv64:
+        switch(regNum) {
+          case 0: return Dyninst::riscv64::x0;
+          case 1: return Dyninst::riscv64::x1;
+          case 2: return Dyninst::riscv64::x2;
+          case 3: return Dyninst::riscv64::x3;
+          case 4: return Dyninst::riscv64::x4;
+          case 5: return Dyninst::riscv64::x5;
+          case 6: return Dyninst::riscv64::x6;
+          case 7: return Dyninst::riscv64::x7;
+          case 8: return Dyninst::riscv64::x8;
+          case 9: return Dyninst::riscv64::x9;
+          case 10: return Dyninst::riscv64::x10;
+          case 11: return Dyninst::riscv64::x11;
+          case 12: return Dyninst::riscv64::x12;
+          case 13: return Dyninst::riscv64::x13;
+          case 14: return Dyninst::riscv64::x14;
+          case 15: return Dyninst::riscv64::x15;
+          case 16: return Dyninst::riscv64::x16;
+          case 17: return Dyninst::riscv64::x17;
+          case 18: return Dyninst::riscv64::x18;
+          case 19: return Dyninst::riscv64::x19;
+          case 20: return Dyninst::riscv64::x20;
+          case 21: return Dyninst::riscv64::x21;
+          case 22: return Dyninst::riscv64::x22;
+          case 23: return Dyninst::riscv64::x23;
+          case 24: return Dyninst::riscv64::x24;
+          case 25: return Dyninst::riscv64::x25;
+          case 26: return Dyninst::riscv64::x26;
+          case 27: return Dyninst::riscv64::x27;
+          case 28: return Dyninst::riscv64::x28;
+          case 29: return Dyninst::riscv64::x29;
+          case 30: return Dyninst::riscv64::x30;
+          case 31: return Dyninst::riscv64::x31;
+          default: return InvalidReg;
+        }
       default: return InvalidReg;
     }
     return InvalidReg;
