@@ -56,7 +56,10 @@ namespace Dyninst { namespace InstructionAPI {
     InstructionAST& operator=(InstructionAST&&) = default;
     virtual ~InstructionAST() = default;
 
-    bool operator==(const InstructionAST& rhs) const;
+    bool operator==(const InstructionAST& rhs) const {
+      // isStrictEqual assumes rhs and this to be of the same derived type
+      return ((typeid(*this) == typeid(rhs)) && isStrictEqual(rhs));
+    }
 
     virtual void getChildren(std::vector<InstructionAST::Ptr>& children) const = 0;
 
