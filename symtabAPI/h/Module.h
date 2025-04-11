@@ -35,6 +35,7 @@
 #include "RangeLookup.h"
 #include "Statement.h"
 #include "Symbol.h"
+#include "LineInformation.h"
 
 #include <set>
 #include <stddef.h>
@@ -45,7 +46,6 @@
 namespace Dyninst { namespace SymtabAPI {
 
   class typeCollection;
-  class LineInformation;
   class localVar;
   class Symtab;
 
@@ -55,10 +55,7 @@ namespace Dyninst { namespace SymtabAPI {
     friend class Symtab;
 
   public:
-    Module();
     Module(supportedLanguages lang, Offset adr, std::string fullNm, Symtab *img);
-    Module(const Module &mod);
-    bool operator==(const Module &mod) const;
 
     const std::string &fileName() const;
     const std::string &fullName() const;
@@ -142,6 +139,7 @@ namespace Dyninst { namespace SymtabAPI {
     bool getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange);
     bool getStatements(std::vector<Statement::Ptr> &statements);
     LineInformation *getLineInformation();
+    LineInformation *getModuleLineInformation() {return &moduleLineInfo;}
     LineInformation *parseLineInformation();
 
     bool setDefaultNamespacePrefix(std::string str);
@@ -151,16 +149,15 @@ namespace Dyninst { namespace SymtabAPI {
 
     void setModuleTypes(typeCollection *tc) { typeInfo_ = tc; }
 
-    bool setLineInfo(Dyninst::SymtabAPI::LineInformation *lineInfo);
     void addRange(Dyninst::Address low, Dyninst::Address high);
 
     bool hasRanges() const { return !ranges.empty(); }
 
     StringTablePtr getStrings();
+    StringTablePtr getModuleStrings() {return moduleLineInfo.getStrings();}
 
   private:
-    bool objectLevelLineInfo;
-    Dyninst::SymtabAPI::LineInformation *lineInfo_;
+    Dyninst::SymtabAPI::LineInformation moduleLineInfo;
     typeCollection *typeInfo_;
 
     std::string fileName_; // full path to file

@@ -37,6 +37,7 @@
 #include <boost/make_shared.hpp>
 #include <mutex>
 #include <condition_variable>
+#include <boost/make_shared.hpp>
 #include "symutil.h"
 #include "RangeLookup.h"
 #include "Annotatable.h"

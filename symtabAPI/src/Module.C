@@ -171,21 +171,10 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 }
 
 LineInformation *Module::parseLineInformation() {
-    if(lineInfo_) return lineInfo_;
-
-    const bool is_cuda = exec()->getArchitecture() == Arch_cuda;
-    const bool debug_info = exec()->getObject()->hasDebugInfo();
-
-    if (!debug_info || is_cuda) {
-	objectLevelLineInfo = true;
-	lineInfo_ = exec()->getObject()->parseLineInfoForObject();
-	return lineInfo_;
-    }
-
-    lineInfo_ = new LineInformation;
-
-    exec()->getObject()->parseLineInfoForCU(addr(), lineInfo_);
-    return lineInfo_;
+    // GetReaderLockGuard has side effect of parsing
+    auto lineInfo{getLineInformation()};
+    lineInfo->GetReaderLockGuard();
+    return lineInfo;
 }
 
 bool Module::getStatements(std::vector<LineInformation::Statement_t> &statements)
@@ -248,18 +237,20 @@ bool Module::findVariableType(boost::shared_ptr<Type> &type, std::string const& 
    return true;
 }
 
-
-bool Module::setLineInfo(LineInformation *lineInfo)
-{
-    assert(!lineInfo_);
-    //delete lineInfo_;
-    lineInfo_ = lineInfo;
-    return true;
-}
-
 LineInformation *Module::getLineInformation()
 {
-  return lineInfo_;
+    // return the Object's LineInformation if there is an exec, and the exec
+    // is not debug or is cuda
+    auto thisExec = exec();
+    if (thisExec)  {
+        const bool is_cuda = thisExec->getArchitecture() == Arch_cuda;
+        const bool debug_info = thisExec->getObject()->hasDebugInfo();
+        if (!debug_info || is_cuda) {
+            return thisExec->getObject()->parseLineInfoForObject();
+        }
+    }
+
+    return &moduleLineInfo;
 }
 
 bool Module::findLocalVariable(std::vector<localVar *>&vars, std::string const& name)
@@ -285,46 +276,20 @@ bool Module::findLocalVariable(std::vector<localVar *>&vars, std::string const& 
 }
 
 Module::Module(supportedLanguages lang, Offset adr,
-      std::string fullNm, Symtab *img) :
-   objectLevelLineInfo(false),
-   lineInfo_(NULL),
-   typeInfo_(NULL),
-   fileName_(std::move(fullNm)),
-   compDir_(""),
-   language_(lang),
-   addr_(adr),
-   exec_(img)
-{}
-
-Module::Module() :
-   objectLevelLineInfo(false),
-   lineInfo_(NULL),
-   typeInfo_(NULL),
-   fileName_(""),
-   language_(lang_Unknown),
-   addr_(0),
-   exec_(NULL)
-{
-}
-
-Module::Module(const Module &mod) :
-   LookupInterface(),
-   objectLevelLineInfo(mod.objectLevelLineInfo),
-   lineInfo_(mod.lineInfo_),
-   typeInfo_(mod.typeInfo_),
-   fileName_(mod.fileName_),
-   language_(mod.language_),
-   addr_(mod.addr_),
-   exec_(mod.exec_)
+                std::string fullNm, Symtab *img) :
+    moduleLineInfo(this),
+    typeInfo_(NULL),
+    fileName_(fullNm),
+    compDir_(""),
+    language_(lang),
+    addr_(adr),
+    exec_(img)
 {
 }
 
 Module::~Module()
 {
-  if (!objectLevelLineInfo)
-    delete lineInfo_;
   delete typeInfo_;
-  
 }
 
 bool Module::isShared() const
@@ -365,24 +330,6 @@ std::vector<Function*> Module::getAllFunctions() const
         }
     );
     return funcs;
-}
-
-bool Module::operator==(const Module &mod) const
-{
-   if (exec_ && !mod.exec_) return false;
-   if (!exec_ && mod.exec_) return false;
-   if (exec_)
-   {
-	   if (exec_->file() != mod.exec_->file()) return false;
-	   if (exec_->name() != mod.exec_->name()) return false;
-   }
-
-   return (
-         (language_==mod.language_)
-         && (addr_==mod.addr_)
-         && (fileName_==mod.fileName_)
-	 && (lineInfo_ == mod.lineInfo_)
-         );
 }
 
 void Module::setLanguage(supportedLanguages lang)
@@ -487,6 +434,5 @@ std::vector<ModRange*> Module::finalizeRanges()
 }
 
 StringTablePtr Module::getStrings() {
-    return lineInfo_->getStrings();
+    return getLineInformation()->getStrings();
 }
-

@@ -53,6 +53,7 @@
 #include "headers.h"
 #include "MappedFile.h"
 #include "IntervalTree.h"
+#include "LineInformation.h"
 #include "Module.h"
 #include <elf.h>
 #include <libelf.h>
@@ -157,7 +158,6 @@ class open_statement {
 
 class ObjectELF final : public Object
 {
-  friend class Module;
   friend class LineInformation;
 
   // declared but not implemented; no copying allowed
@@ -449,7 +449,7 @@ private:
 
     void lookupInlinedContext( std::vector<open_statement> &, open_statement &);
     
-    LineInformation* li_for_object;
+    LineInformation  objectLineInfo;
     LineInformation* parseLineInfoForObject() override;
 
   void load_object(bool);

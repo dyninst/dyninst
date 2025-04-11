@@ -2197,7 +2197,7 @@ bool ObjectELF::fix_global_symbol_modules_static_dwarf() {
                 }
             }
         }
-        DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
+        DwarfWalker::buildSrcFiles(dbg, cu_die, m->getModuleStrings());
         // dies_seen.insert(cu_die_off);
 
         // 'addModule' finalizes the Module's ranges, so do not add until after they are computed
@@ -2295,7 +2295,6 @@ ObjectELF::ObjectELF(MappedFile *mf_, bool, void (*err_func)(const char *),
         soname_(NULL),
         containingFunc(nullptr)
 {
-    li_for_object = NULL; 
     file_format_ = FileFormat::ELF;
 #if defined(TIMED_PARSE)
     struct timeval starttime;
@@ -2354,10 +2353,6 @@ ObjectELF::~ObjectELF() {
     versionMapping.clear();
     versionFileNameMapping.clear();
     deps_.clear();
-    if (li_for_object) {
-        delete li_for_object;
-        li_for_object = NULL;
-    }
 }
 
 void ObjectELF::log_elferror(void (*err_func)(const char *), const char *msg) {
@@ -3313,7 +3308,7 @@ ObjectELF::recordLine
 {
   lineinfo_printf("ObjectELF::recordLine for [%lx, %lx)\n", saved_statement.start_addr, saved_statement.end_addr);
   // record line map entry
-  li_for_object->addLine((unsigned int)(saved_statement.string_table_index),
+  objectLineInfo.addLine((unsigned int)(saved_statement.string_table_index),
 			 (unsigned int)(saved_statement.line_number),
 			 (unsigned int)(saved_statement.column_number),
 			 saved_statement.start_addr, saved_statement.end_addr);    
@@ -3336,7 +3331,7 @@ ObjectELF::recordLine
     }
     
     FunctionBase* cur = static_cast<FunctionBase*>(containingFunc);
-    StringTablePtr strings(li_for_object->getStrings());
+    StringTablePtr strings(objectLineInfo.getStrings());
 
     // Record all inline call sites
     for (unsigned int i = 0; i < inline_context.size() - 1; ++i) {          
@@ -3413,17 +3408,14 @@ LineInformation* ObjectELF::parseLineInfoForObject()
     std::string debug_str_secname = ".debug_str";
     associated_symtab->findRegion(debug_str, debug_str_secname);
 
-    boost::lock_guard<Object> guard(*this);
-
-    if (li_for_object) {
+    if (objectLineInfo.IsInitialized())  {
         // The line information for this object has been parsed.
-        return li_for_object;
+        return &objectLineInfo;
     }
-    li_for_object = new LineInformation();
-    StringTablePtr strings = li_for_object->getStrings();
+    StringTablePtr strings{objectLineInfo.getStrings()};
     /* Initialize libdwarf. */
     Dwarf **dbg_ptr = dwarf->type_dbg();
-    if (!dbg_ptr) return li_for_object;
+    if (!dbg_ptr) return &objectLineInfo;
     Dwarf *dbg = *dbg_ptr;
 
     Dwarf_Off off, next_off = 0;
@@ -3600,7 +3592,7 @@ LineInformation* ObjectELF::parseLineInfoForObject()
         }
     }
     }
-    return li_for_object;
+    return &objectLineInfo;
 }
 
 void ObjectELF::parseLineInfoForAddr(Offset addr_to_find) {
