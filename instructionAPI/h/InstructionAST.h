@@ -50,20 +50,20 @@ namespace Dyninst { namespace InstructionAPI {
     using Ptr = boost::shared_ptr<InstructionAST>;
 
     InstructionAST() = default;
-    InstructionAST(const InstructionAST&) = default;
-    InstructionAST(InstructionAST&&) = default;
-    InstructionAST& operator=(InstructionAST const&) = default;
-    InstructionAST& operator=(InstructionAST&&) = default;
+    InstructionAST(const InstructionAST &) = default;
+    InstructionAST(InstructionAST &&) = default;
+    InstructionAST &operator=(InstructionAST const &) = default;
+    InstructionAST &operator=(InstructionAST &&) = default;
     virtual ~InstructionAST() = default;
 
-    bool operator==(const InstructionAST& rhs) const {
+    bool operator==(const InstructionAST &rhs) const {
       // isStrictEqual assumes rhs and this to be of the same derived type
       return ((typeid(*this) == typeid(rhs)) && isStrictEqual(rhs));
     }
 
-    virtual void getChildren(std::vector<InstructionAST::Ptr>& children) const = 0;
+    virtual void getChildren(std::vector<InstructionAST::Ptr> &children) const = 0;
 
-    virtual void getUses(std::set<InstructionAST::Ptr>& uses) = 0;
+    virtual void getUses(std::set<InstructionAST::Ptr> &uses) = 0;
     virtual bool isUsed(InstructionAST::Ptr findMe) const = 0;
 
     virtual std::string format(Dyninst::Architecture arch, formatStyle how = defaultStyle) const = 0;
@@ -73,9 +73,14 @@ namespace Dyninst { namespace InstructionAPI {
     friend class MultiRegisterAST;
     friend class RegisterAST;
     friend class Immediate;
-    virtual bool isStrictEqual(const InstructionAST& rhs) const = 0;
-    virtual bool checkRegID(Dyninst::MachRegister, unsigned int = 0, unsigned int = 0) const { return false; }
-    virtual const Result& eval() const = 0;
+
+    virtual bool isStrictEqual(const InstructionAST &rhs) const = 0;
+
+    virtual bool checkRegID(Dyninst::MachRegister, unsigned int = 0, unsigned int = 0) const {
+      return false;
+    }
+
+    virtual const Result &eval() const = 0;
   };
 }}
 
