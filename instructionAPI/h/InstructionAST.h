@@ -47,7 +47,7 @@ namespace Dyninst { namespace InstructionAPI {
 
   class DYNINST_EXPORT InstructionAST : public boost::enable_shared_from_this<InstructionAST> {
   public:
-    typedef boost::shared_ptr<InstructionAST> Ptr;
+    using Ptr = boost::shared_ptr<InstructionAST>;
 
     InstructionAST() = default;
     InstructionAST(const InstructionAST&) = default;
