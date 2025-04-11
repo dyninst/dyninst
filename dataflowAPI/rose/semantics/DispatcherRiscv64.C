@@ -22,8 +22,6 @@ namespace rose {
 
 #define EXTR(lo, hi)    IntegerOps::extract2<B>(lo, hi, raw)
 
-#define PC ops->number_(64, insn->get_address())
-
 /*******************************************************************************************************************************
  *                                      Support functions
  *******************************************************************************************************************************/
@@ -129,7 +127,7 @@ namespace rose {
                                 ret = off;
                                 break;
                             case rose_riscv64_op_auipc:
-                                ret = ops->add(ops->number_(64, insn->get_address()), off);
+                                ret = ops->add(d->readRegister(d->REG_PC), off);
                                 break;
                             default:
                                 assert(0 && "Invalid RISC-V instruction kind");
@@ -143,9 +141,9 @@ namespace rose {
                         SgAsmExpression *imm = args[1];
                         SgAsmExpression *rd = args[0];
                         enum Riscv64InstructionKind op = insn->get_kind();
-                        BaseSemantics::SValuePtr t = ops->add(PC, d->SignExtend(d->read(imm, 64, 0), 64));
+                        BaseSemantics::SValuePtr t = ops->add(d->readRegister(d->REG_PC), d->SignExtend(d->read(imm, 64, 0), 64));
                         BaseSemantics::SValuePtr target = t;
-                        d->write(rd, (ops->number_(64, insn->get_address() + insn->get_size())));
+                        d->write(rd, ops->add(d->readRegister(d->REG_PC), ops->number_(64, insn->get_size())));
                         d->BranchTo(target);
                     }
                 };
@@ -193,8 +191,8 @@ namespace rose {
                             default:
                                 assert(0 && "Invalid RISC-V instruction kind");
                         };
-                        BaseSemantics::SValuePtr t = ops->add(PC, d->SignExtend(d->read(imm, 64, 0), 64));
-                        BaseSemantics::SValuePtr target = ops->ite(taken, t, PC);
+                        BaseSemantics::SValuePtr t = ops->add(d->readRegister(d->REG_PC), d->SignExtend(d->read(imm, 64, 0), 64));
+                        BaseSemantics::SValuePtr target = ops->ite(taken, t, d->readRegister(d->REG_PC));
                         d->BranchTo(target);
                     }
                 };

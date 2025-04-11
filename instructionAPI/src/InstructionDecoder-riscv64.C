@@ -413,59 +413,23 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
     
     for (uint8_t i = 0; i < detail->op_count; ++i) {
         cs_riscv_op* operand = &(detail->operands[i]);
-        // jal & jalr: Determine whether the link register is ra (x1)
-        //if ((eid == riscv64_op_jal || eid == riscv64_op_jalr) && i == linkRegIndex) {
-        //assert(operand->type == RISCV_OP_REG);
-        //isCall = (operand->reg == 1);
-        //}
         if (operand->type == RISCV_OP_REG) {
             Expression::Ptr regAST = makeRegisterExpression((this->*regTrans)(operand->reg));
-            //if (isCFT && isJumpReg && jumpOpIndex == i) {
-            //// Special case: jalr rd, rs, offset.
-            //if (isJumpOffset) {
-            //// It jumps to [rs] + offset, so we need to know the offset in advance
-            //// to construct the jump target
-            //cs_riscv_op* nextOperand = &(detail->operands[i + 1]);
-            //assert(nextOperand->type == RISCV_OP_IMM);
-            //Expression::Ptr immAST = Immediate::makeImmediate(Result(u32, nextOperand->imm));
-            //Expression::Ptr target(makeAddExpression(regAST, immAST, s32));
-            //insn_to_complete->addSuccessor(target, isCall, isIndirect, false, false);
-            //// The next operand is already handled. skip it
-            //++i;
-            //}
-            //// c.j
-            //else {
-            //// If a call or a jump has a register as an operand,
-            //// It should not be a conditional jump
-            //insn_to_complete->addSuccessor(regAST, isCall, isIndirect, false, false);
-            //}
-            //} else {
             bool isRead = ((operand->access & CS_AC_READ) != 0);
             bool isWritten = ((operand->access & CS_AC_WRITE) != 0);
             if (!isRead && !isWritten) {
                 isRead = isWritten = true;
             }
             insn_to_complete->appendOperand(regAST, isRead, isWritten, false);
-            //}
         } else if (operand->type == RISCV_OP_IMM) {
             Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, operand->imm));
-            //if (isCFT && isJumpOffset && jumpOpIndex == i) {
-            //Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
-            //Expression::Ptr target(makeAddExpression(IP, immAST, s32));
-            //insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
-            //if (isConditional) {
-            //insn_to_complete->addSuccessor(IP, isCall, isIndirect, true, true);
-            //}
-            //} else {
             insn_to_complete->appendOperand(immAST, false, false, false);
-            //}
         } else if (operand->type == RISCV_OP_MEM) {
             riscv_op_mem* mem = &(operand->mem);
             Expression::Ptr effectiveAddr = makeRegisterExpression((this->*regTrans)(mem->base));
             Result_Type type = invalid_type;
             bool isLoad = false, isStore = false;
             // Memory access type depends on the instruction
-            // TODO Add RISC-V access size support directly to Capstone
             switch (eid) {
                 case riscv64_op_lb:
                 case riscv64_op_lbu:
@@ -632,7 +596,7 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
     }
 
     // Capstone does not handle implicit registers
-    // Handle the program counter explicitly
+    // Handle the program counter for auipc explicitly
 
     if (eid == riscv64_op_auipc) {
         int isPcRead = eid != riscv64_op_c_jr;
