@@ -209,35 +209,35 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual ~BinaryFunction() {}
 
-    virtual const Result& eval() const;
+    virtual const Result& eval() const override;
 
-    virtual void getChildren(std::vector<InstructionAST::Ptr>& children) const {
+    virtual void getChildren(std::vector<InstructionAST::Ptr>& children) const override {
       children.push_back(m_arg1);
       children.push_back(m_arg2);
 
       return;
     }
 
-    virtual void getChildren(std::vector<Expression::Ptr>& children) const {
+    virtual void getChildren(std::vector<Expression::Ptr>& children) const override {
       children.push_back(m_arg1);
       children.push_back(m_arg2);
 
       return;
     }
 
-    virtual void getUses(std::set<InstructionAST::Ptr>& uses) {
+    virtual void getUses(std::set<InstructionAST::Ptr>& uses) override {
       m_arg1->getUses(uses);
       m_arg2->getUses(uses);
 
       return;
     }
 
-    virtual bool isUsed(InstructionAST::Ptr findMe) const {
+    virtual bool isUsed(InstructionAST::Ptr findMe) const override {
       return m_arg1->isUsed(findMe) || m_arg2->isUsed(findMe) || (*m_arg1 == *findMe) ||
              (*m_arg2 == *findMe) || (*findMe == *this);
     }
 
-    virtual std::string format(formatStyle how) const {
+    virtual std::string format(formatStyle how) const override {
       std::string retVal;
       if(how == memoryAccessStyle) {
         retVal = m_arg2->format() + "(" + m_arg1->format() + ")";
@@ -248,7 +248,7 @@ namespace Dyninst { namespace InstructionAPI {
       return retVal;
     }
 
-    virtual std::string format(Architecture arch, formatStyle how) const {
+    virtual std::string format(Architecture arch, formatStyle how) const override {
       std::string retVal;
       if(how == memoryAccessStyle) {
         retVal = m_arg2->format(arch) + "(" + m_arg1->format(arch) + ")";
@@ -260,8 +260,8 @@ namespace Dyninst { namespace InstructionAPI {
       return retVal;
     }
 
-    virtual bool bind(Expression* expr, const Result& value);
-    virtual void apply(Visitor* v);
+    virtual bool bind(Expression* expr, const Result& value) override;
+    virtual void apply(Visitor* v) override;
 
     bool isAdd() const;
     bool isMultiply() const;
@@ -273,7 +273,7 @@ namespace Dyninst { namespace InstructionAPI {
     bool isRightRotate() const;
 
   protected:
-    virtual bool isStrictEqual(const InstructionAST& rhs) const {
+    virtual bool isStrictEqual(const InstructionAST& rhs) const override {
       const BinaryFunction& other(dynamic_cast<const BinaryFunction&>(rhs));
       if(*(other.m_arg1) == *m_arg1 && (*other.m_arg2) == *m_arg2)
         return true;

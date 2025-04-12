@@ -44,20 +44,20 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual ~Immediate();
 
-    virtual void getChildren(std::vector<InstructionAST::Ptr>&) const;
-    virtual void getChildren(std::vector<Expression::Ptr>&) const;
+    virtual void getChildren(std::vector<InstructionAST::Ptr>&) const override;
+    virtual void getChildren(std::vector<Expression::Ptr>&) const override;
 
-    virtual void getUses(std::set<InstructionAST::Ptr>&);
-    virtual bool isUsed(InstructionAST::Ptr findMe) const;
+    virtual void getUses(std::set<InstructionAST::Ptr>&) override;
+    virtual bool isUsed(InstructionAST::Ptr findMe) const override;
 
-    virtual std::string format(Architecture, formatStyle) const;
-    virtual std::string format(formatStyle) const;
+    virtual std::string format(Architecture, formatStyle) const override;
+    virtual std::string format(formatStyle) const override;
 
     static Immediate::Ptr makeImmediate(const Result& val);
-    virtual void apply(Visitor* v);
+    virtual void apply(Visitor* v) override;
 
   protected:
-    virtual bool isStrictEqual(const InstructionAST& rhs) const;
+    virtual bool isStrictEqual(const InstructionAST& rhs) const override;
   };
 
   class DYNINST_EXPORT NamedImmediate : public Immediate {
@@ -65,8 +65,8 @@ namespace Dyninst { namespace InstructionAPI {
     NamedImmediate(std::string name, const Result& val);
 
     static NamedImmediate::Ptr makeNamedImmediate(std::string name, const Result& val);
-    virtual std::string format(Architecture, formatStyle) const;
-    virtual std::string format(formatStyle) const;
+    virtual std::string format(Architecture, formatStyle) const override;
+    virtual std::string format(formatStyle) const override;
 
   private:
     std::string name_;
@@ -77,8 +77,8 @@ namespace Dyninst { namespace InstructionAPI {
     ArmConditionImmediate(const Result& val);
 
     static ArmConditionImmediate::Ptr makeArmConditionImmediate(const Result& val);
-    virtual std::string format(Architecture, formatStyle) const;
-    virtual std::string format(formatStyle) const;
+    virtual std::string format(Architecture, formatStyle) const override;
+    virtual std::string format(formatStyle) const override;
 
   private:
     std::map<unsigned int, std::string> m_condLookupMap;
@@ -89,8 +89,8 @@ namespace Dyninst { namespace InstructionAPI {
     ArmPrfmTypeImmediate(const Result& val);
 
     static Immediate::Ptr makeArmPrfmTypeImmediate(const Result& val);
-    virtual std::string format(Architecture, formatStyle) const;
-    virtual std::string format(formatStyle) const;
+    virtual std::string format(Architecture, formatStyle) const override;
+    virtual std::string format(formatStyle) const override;
 
   private:
     std::map<unsigned int, std::string> m_prfmTypeLookupMap;
