@@ -39,7 +39,7 @@ to be dereferenced and a type indicating how the memory at the address in questi
 }
 
 \begin{apient}
-virtual void getChildren (vector< InstructionAST::Ptr > & children) const
+virtual void getChildren (vector< Expression::Ptr > & children) const
 \end{apient}
 \apidesc{
 A \code{Dereference} has one child, which represents the address being dereferenced.
@@ -47,7 +47,7 @@ Appends the child of this \code{Dereference} to \code{children}.
 }
 
 \begin{apient}
-virtual void getUses (set< InstructionAST::Ptr > & uses)
+virtual void getUses (set< Expression::Ptr > & uses)
 \end{apient}
 \apidesc{
 The use set of a \code{Dereference} is the same as the use set of its children.
@@ -55,9 +55,9 @@ The use set of this \code{Dereference} is inserted into \code{uses}.
 }
 
 \begin{apient}
-virtual bool isUsed (InstructionAST::Ptr findMe) const
+virtual bool isUsed (Expression::Ptr findMe) const
 \end{apient}
 \apidesc{
-An \code{InstructionAST} is used by a \code{Dereference} if it is equivalent to the \code{Dereference} or it is used by
+An \code{Expression} is used by a \code{Dereference} if it is equivalent to the \code{Dereference} or it is used by
 the lone child of the \code{Dereference}
 }

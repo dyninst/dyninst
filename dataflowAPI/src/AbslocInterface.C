@@ -72,9 +72,9 @@ void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
   
   // Otherwise just convert registers
   
-  std::set<InstructionAST::Ptr> used;
+  std::set<Expression::Ptr> used;
   expr->getUses(used);
-  for (std::set<InstructionAST::Ptr>::const_iterator j = used.begin();
+  for (std::set<Expression::Ptr>::const_iterator j = used.begin();
        j != used.end(); ++j) {
     regions.push_back(convert(boost::dynamic_pointer_cast<RegisterAST>(*j)));
   }

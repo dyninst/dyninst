@@ -44,10 +44,10 @@ using namespace std;
 namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT void Operand::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const {
-    std::set<InstructionAST::Ptr> useSet;
+    std::set<Expression::Ptr> useSet;
     // This thing returns something only for RegisterAST Expression
     op_value->getUses(useSet);
-    std::set<InstructionAST::Ptr>::const_iterator curUse;
+    std::set<Expression::Ptr>::const_iterator curUse;
     for(curUse = useSet.begin(); curUse != useSet.end(); ++curUse) {
       RegisterAST::Ptr tmp = boost::dynamic_pointer_cast<RegisterAST>(*curUse);
       if(tmp) {
