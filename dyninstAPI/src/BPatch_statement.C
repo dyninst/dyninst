@@ -33,7 +33,7 @@
 #include "Statement.h"
 #include "mapped_object.h"
 #include "mapped_module.h"
-BPatch_statement::BPatch_statement(BPatch_module *mod, Dyninst::SymtabAPI::Statement::ConstPtr s) :
+BPatch_statement::BPatch_statement(BPatch_module *mod, const Dyninst::SymtabAPI::Statement &s) :
         module_(mod),
         statement(s)
 {
@@ -46,36 +46,31 @@ BPatch_module *BPatch_statement::module()
 
 int BPatch_statement::lineNumber()
 {
-	assert(statement);
-  return statement->getLine();
+  return statement.getLine();
 }
 
 int BPatch_statement::lineOffset()
 {
-	assert(statement);
-  return statement->getColumn();
+  return statement.getColumn();
 }
 
 const char *BPatch_statement::fileName()
 {
-	assert(statement);
-	return statement->getFile().c_str();
+	return statement.getFile().c_str();
 }
 
 void *BPatch_statement::startAddr()
 {
-	assert(statement);
 	assert(module_);
 	mapped_object *mmod = module_->mod->obj();
 	assert(mmod);
-	return (void *)(mmod->codeBase() + statement->startAddr());
+	return (void *)(mmod->codeBase() + statement.startAddr());
 }
 
 void *BPatch_statement::endAddr()
 {
 	assert(module_);
-	assert(statement);
 	mapped_object *mmod = module_->mod->obj();
 	assert(mmod);
-	return (void *)(mmod->codeBase() + statement->endAddr());
+	return (void *)(mmod->codeBase() + statement.endAddr());
 }

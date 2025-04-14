@@ -1544,32 +1544,27 @@ DYNINST_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
    return false;
 }
 
-DYNINST_EXPORT bool Symtab::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressInRange)
-{
-   unsigned int originalSize = lines.size();
-    Module* m = getContainingModule(addressInRange);
-
-    if(!m) return false;
-
-    m->getSourceLines(lines, addressInRange);
-
-   if ( lines.size() != originalSize )
-      return true;
-
-   return false;
-
-}
-
 DYNINST_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
 {
-    std::vector<Statement::Ptr> tmp;
-    getSourceLines(tmp, addressInRange);
-    if(tmp.empty()) return false;
-    for(auto i = tmp.begin(); i != tmp.end(); ++i)
-    {
-        lines.push_back(**i);
+    auto originalSize = lines.size();
+    auto m = getContainingModule(addressInRange);
+    if (!m)  {
+        return false;
+    }  else  {
+        m->getSourceLines(lines, addressInRange);
+
+        return (lines.size() != originalSize);
     }
-    return true;
+}
+
+std::vector<LineNoTuple> Symtab::getSourceLines(Offset addressInRange)
+{
+    auto m = getContainingModule(addressInRange);
+    if (!m) {
+        return {};
+    }  else  {
+        return m->getSourceLines(addressInRange);
+    }
 }
 
 void Symtab::parseTypes()

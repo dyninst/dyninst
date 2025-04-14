@@ -668,8 +668,7 @@ bool BPatch_module::getSourceLines(unsigned long addr,
       return false;
    }
 
-   unsigned int originalSize = lines.size();
-   std::vector<Statement::Ptr> lines_ll;
+   std::vector<Statement> lines_ll;
 
    Module *stmod = mod->pmod()->mod();
    assert(stmod);
@@ -679,13 +678,11 @@ bool BPatch_module::getSourceLines(unsigned long addr,
       return false;
    }
 
-   for (unsigned int j = 0; j < lines_ll.size(); ++j)
-   {
-      Statement::ConstPtr t = lines_ll[j];
-	   lines.push_back(BPatch_statement(this, t));
+   for (const auto &line : lines_ll)  {
+      lines.push_back(BPatch_statement(this, line));
    }
 
-   return (lines.size() != originalSize);
+   return (!lines_ll.empty());
 } /* end getSourceLines() */
 
 bool BPatch_module::getStatements(BPatch_Vector<BPatch_statement> &statements)
@@ -700,18 +697,10 @@ bool BPatch_module::getStatements(BPatch_Vector<BPatch_statement> &statements)
 		return false;
 	}
 
-	for (unsigned int i = 0; i < statements_ll.size(); ++i)
-	{
-		// Form a BPatch_statement object for this entry
-		// Note:  Line information stores offsets, so we need to adjust to
-		//  addresses
-		SymtabAPI::Statement::ConstPtr stm = statements_ll[i];
-		BPatch_statement statement(this, stm);
-
-		// Add this statement
-		statements.push_back(statement);
-
-	}
+        for (const auto &s: statements_ll)  {
+            BPatch_statement statement(this, *s);
+            statements.push_back(statement);
+        }
 	return true;
 
 }

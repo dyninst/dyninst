@@ -243,10 +243,9 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    /***** Line Number Information *****/
    bool getAddressRanges(std::vector<AddressRange> &ranges,
                          std::string const& lineSource, unsigned int LineNo);
-   bool getSourceLines(std::vector<Statement::Ptr> &lines,
-                       Offset addressInRange);
    bool getSourceLines(std::vector<LineNoTuple> &lines,
                                      Offset addressInRange);
+   std::vector<LineNoTuple> getSourceLines(Offset addressInRange);
    
    /***** Type Information *****/
    virtual bool findType(boost::shared_ptr<Type>& type, std::string const& name);

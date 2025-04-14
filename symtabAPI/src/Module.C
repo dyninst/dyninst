@@ -140,20 +140,6 @@ bool Module::getAddressRanges(std::vector<AddressRange >&ranges_,
    return false;
 }
 
-bool Module::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressInRange)
-{
-   unsigned int originalSize = lines.size();
-
-   LineInformation *lineInformation = parseLineInformation();
-   if (lineInformation)
-      lineInformation->getSourceLines( addressInRange, lines );
-
-   if ( lines.size() != originalSize )
-      return true;
-
-   return false;
-}
-
 bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
@@ -168,6 +154,13 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
       return true;
    
    return false;
+}
+
+
+std::vector<LineNoTuple> Module::getSourceLines(Offset addressInRange)
+{
+    auto lineInformation = parseLineInformation();
+    return lineInformation->getSourceLines(addressInRange);
 }
 
 LineInformation *Module::parseLineInformation() {

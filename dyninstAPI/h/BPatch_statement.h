@@ -71,10 +71,10 @@ class DYNINST_EXPORT BPatch_statement
   private:
 
     //  Full parameter ctor -- can only built by friend classes
-    BPatch_statement(BPatch_module *mod,  Dyninst::SymtabAPI::Statement::ConstPtr s);
+    BPatch_statement(BPatch_module *mod,  const Dyninst::SymtabAPI::Statement &s);
 
     BPatch_module *module_;
-	Dyninst::SymtabAPI::Statement::ConstPtr statement;
+    Dyninst::SymtabAPI::Statement statement;
 };
 
 #endif 

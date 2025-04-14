@@ -67,6 +67,7 @@ bool LineInformation::addLine( unsigned int lineSource,
 #pragma omp critical (addLine)
 {
    result = insert( insert_me).second;
+   statementIntervalMap.AddElement(*insert_me);
 }
    return result;
 }
@@ -105,34 +106,21 @@ std::string print(const Dyninst::SymtabAPI::Statement& stmt)
 }
 
 
-bool LineInformation::getSourceLines(Offset addressInRange,
-                                     vector<Statement_t> &lines)
-{
-    const_iterator start_addr_valid = project<Statement::addr_range>(get<Statement::upper_bound>().lower_bound(addressInRange ));
-    const_iterator end_addr_valid = impl_t::upper_bound(addressInRange );
-    while(start_addr_valid != end_addr_valid && start_addr_valid != end())
-    {
-        if(*(*start_addr_valid) == addressInRange)
-        {
-            lines.push_back(*start_addr_valid);
-        }
-        ++start_addr_valid;
-    }
-    return true;
-}
-
 bool LineInformation::getSourceLines( Offset addressInRange,
                                       vector<LineNoTuple> &lines)
 {
-    vector<Statement_t> tmp;
-    if(!getSourceLines(addressInRange, tmp)) return false;
-    for(auto i = tmp.begin(); i != tmp.end(); ++i)
-    {
-        lines.push_back(**i);
+    auto statements = statementIntervalMap.Lookup(addressInRange);
+    for (const auto &s : statements)  {
+        lines.push_back(s);
     }
-    return true;
+    return (statements.size() > 0);
 }
 
+
+std::vector<LineNoTuple> LineInformation::getSourceLines(Offset addressInRange)
+{
+    return statementIntervalMap.Lookup(addressInRange);
+}
 
 
 bool LineInformation::getAddressRanges( const char * lineSource, 

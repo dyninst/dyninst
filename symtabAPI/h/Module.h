@@ -135,8 +135,8 @@ namespace Dyninst { namespace SymtabAPI {
     /***** Line Number Information *****/
     bool getAddressRanges(std::vector<AddressRange> &ranges, std::string const& lineSource,
                           unsigned int LineNo);
-    bool getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressInRange);
     bool getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange);
+    std::vector<LineNoTuple> getSourceLines(Offset addressInRange);
     bool getStatements(std::vector<Statement::Ptr> &statements);
     LineInformation *getLineInformation();
     LineInformation *getModuleLineInformation() {return &moduleLineInfo;}

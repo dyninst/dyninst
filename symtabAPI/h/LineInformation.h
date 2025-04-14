@@ -43,8 +43,9 @@
 #include "Annotatable.h"
 #include "Statement.h"
 #include "StringTable.h"
+#include "DynIntervalMap.h"
 
-#define NEW_GETSOURCELINES_INTERFACE
+#define NEW_GETSOURCELINES_INTERFACE 2
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -52,15 +53,24 @@ namespace SymtabAPI{
 class Object;
 class Module;
 
+struct StatementRangeExtractor
+{
+    std::pair<Offset, Offset> operator()(const Statement &s)
+    {
+        return std::make_pair(s.startAddr(), s.endAddr());
+    }
+};
+
 class DYNINST_EXPORT LineInformation final :
                         private RangeLookupTypes< Statement >::type
 {
 public:
-    typedef RangeLookupTypes< Statement> traits;
-    typedef RangeLookupTypes< Statement >::type impl_t;
-    typedef impl_t::index<Statement::addr_range>::type::const_iterator const_iterator;
-    typedef impl_t::index<Statement::line_info>::type::const_iterator const_line_info_iterator;
-    typedef traits::value_type Statement_t;
+    using traits = RangeLookupTypes< Statement>;
+    using impl_t = RangeLookupTypes< Statement >::type;
+    using const_iterator = impl_t::index<Statement::addr_range>::type::const_iterator;
+    using const_line_info_iterator = impl_t::index<Statement::line_info>::type::const_iterator;
+    using Statement_t = traits::value_type;
+    using StatementIntervalMap = IntervalMap<Offset, Statement, StatementRangeExtractor>;
     LineInformation(Object *o = nullptr, Module *m = nullptr): obj(o), mod(m) {}
     LineInformation(Module *m): LineInformation(nullptr, m) {}
 
@@ -81,8 +91,8 @@ public:
           unsigned int lineNo, 
           unsigned int lineOffset = 0 );
 
-    bool getSourceLines(Offset addressInRange, std::vector<Statement_t> &lines);
     bool getSourceLines(Offset addressInRange, std::vector<Statement> &lines);
+    std::vector<LineNoTuple> getSourceLines(Offset addressInRange);
 
     bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
     const_line_info_iterator begin_by_source() const;
@@ -173,6 +183,7 @@ public:
     }
 
 private:
+    StatementIntervalMap statementIntervalMap;
     StringTablePtr stringTable{boost::make_shared<StringTable>()};
 
     Object *obj{};              // Object associated with LinoInformation
