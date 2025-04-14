@@ -46,8 +46,6 @@ namespace Dyninst { namespace InstructionAPI {
 
   TernaryAST::~TernaryAST() {}
 
-  void TernaryAST::getChildren(vector<Expression::Ptr>& /*children*/) const { return; }
-
   void TernaryAST::getUses(set<Expression::Ptr>& uses) {
     uses.insert(shared_from_this());
     return;

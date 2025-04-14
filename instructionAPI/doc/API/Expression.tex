@@ -191,10 +191,8 @@ virtual void apply(Visitor *)
 }
 
 \begin{apient}
-virtual void getChildren(std::vector<Expression::Ptr> & children) const
+std::vector<Expression::Ptr> getSubexpressions() const
 \end{apient}
 \apidesc{
-    \code{getChildren} may be called on an \code{Expression} taking a vector of
-    \code{ExpressionPtr}s, rather than \code{Expression}Ptrs. All children
-    which are \code{Expression}s will be appended to \code{children}.
+Returns all subexpressions used by the current expression.
 }

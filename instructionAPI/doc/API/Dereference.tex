@@ -39,11 +39,10 @@ to be dereferenced and a type indicating how the memory at the address in questi
 }
 
 \begin{apient}
-virtual void getChildren (vector< Expression::Ptr > & children) const
+std::vector<Expression::Ptr> getSubexpressions() const
 \end{apient}
 \apidesc{
-A \code{Dereference} has one child, which represents the address being dereferenced.
-Appends the child of this \code{Dereference} to \code{children}.
+Returns the expression for the address being dereferenced.
 }
 
 \begin{apient}

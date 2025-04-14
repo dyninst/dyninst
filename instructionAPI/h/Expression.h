@@ -31,6 +31,7 @@
 #if !defined(VALUECOMPUTATION_H)
 #define VALUECOMPUTATION_H
 
+#include "compiler_annotations.h"
 #include "dyninst_visibility.h"
 #include "registers/MachRegister.h"
 #include "Result.h"
@@ -86,7 +87,13 @@ namespace Dyninst { namespace InstructionAPI {
     virtual bool bind(Expression* expr, const Result& value);
     virtual void apply(Visitor*) {}
 
-    virtual void getChildren(std::vector<Expression::Ptr>& children) const = 0;
+    DYNINST_DEPRECATED("Use getSubexpressions()")
+    void getChildren(std::vector<Expression::Ptr> &children) const {
+      auto se = getSubexpressions();
+      children.insert(children.end(), se.begin(), se.end());
+    }
+
+    virtual std::vector<Expression::Ptr> getSubexpressions() const { return {}; }
 
   protected:
     friend class MultiRegisterAST;

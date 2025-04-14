@@ -26,16 +26,6 @@ should not be constructed manually.
 MultiRegisterAST(std::vector<RegisterAST::Ptr> _in);
 \end{apient}
 
-
-\begin{apient}
-void getChildren (vector< Expression::Ptr > & children) const
-\end{apient}
-\apidesc{
-By definition, a \code{MultiRegister} object has no children.
-Since a \code{MultiRegister} has no children, the \code{children} parameter is unchanged by this
-method.
-}
-
 \begin{apient}
 void getUses (set< Expression::Ptr > & uses)
 \end{apient}

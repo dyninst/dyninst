@@ -47,11 +47,10 @@ evaluable.
 }
 
 \begin{apient}
-void getChildren (vector< Expression::Ptr > & children) const
+std::vector<Expression::Ptr> getSubexpressions() const
 \end{apient}
 \apidesc{
-The children of a \code{BinaryFunction} are its two arguments.
-Appends the children of this BinaryFunction to \code{children}.
+Returns the left and right subexpressions.
 }
 
 \begin{apient}

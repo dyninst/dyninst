@@ -53,9 +53,8 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual ~Dereference() {}
 
-    virtual void getChildren(std::vector<Expression::Ptr>& children) const override {
-      children.push_back(addressToDereference);
-      return;
+    std::vector<Expression::Ptr> getSubexpressions() const override {
+      return {addressToDereference};
     }
 
     virtual void getUses(std::set<Expression::Ptr>& uses) override {

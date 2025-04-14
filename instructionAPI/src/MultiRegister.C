@@ -58,8 +58,6 @@ namespace Dyninst { namespace InstructionAPI {
       : Expression(inputRegASTs[0]->getID(), inputRegASTs.size()), m_Regs{std::move(inputRegASTs)} {
   }
 
-  void MultiRegisterAST::getChildren(vector<Expression::Ptr>& /*children*/) const { return; }
-
   void MultiRegisterAST::getUses(set<Expression::Ptr>& uses) {
     for(const auto& m_Reg : m_Regs) {
       m_Reg->getUses(uses);
