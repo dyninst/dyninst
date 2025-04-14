@@ -13,6 +13,7 @@ set(_public_headers
     h/compiler_diagnostics.h
     h/concurrent.h
     h/DynAST.h
+    h/DynIntervalMap.h
     h/dyn_regs.h
     h/dyn_syscalls.h
     h/dyntypes.h
