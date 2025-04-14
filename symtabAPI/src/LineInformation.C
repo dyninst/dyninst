@@ -109,6 +109,7 @@ std::string print(const Dyninst::SymtabAPI::Statement& stmt)
 bool LineInformation::getSourceLines( Offset addressInRange,
                                       vector<LineNoTuple> &lines)
 {
+    auto guard{GetReaderLockGuard()};
     auto statements = statementIntervalMap.Lookup(addressInRange);
     for (const auto &s : statements)  {
         lines.push_back(s);
@@ -119,6 +120,7 @@ bool LineInformation::getSourceLines( Offset addressInRange,
 
 std::vector<LineNoTuple> LineInformation::getSourceLines(Offset addressInRange)
 {
+    auto guard{GetReaderLockGuard()};
     return statementIntervalMap.Lookup(addressInRange);
 }
 
@@ -126,6 +128,7 @@ std::vector<LineNoTuple> LineInformation::getSourceLines(Offset addressInRange)
 bool LineInformation::getAddressRanges( const char * lineSource, 
       unsigned int lineNo, vector< AddressRange > & ranges )
 {
+    auto guard{GetReaderLockGuard()};
     auto found_statements = range(lineSource, lineNo);
     for(auto i = found_statements.first;
             i != found_statements.second;
@@ -225,6 +228,7 @@ LineInformation::const_iterator LineInformation::find(Offset addressInRange, con
 
 void LineInformation::dump()
 {
+  auto guard{GetReaderLockGuard()};
   for (auto i = begin(); i != end(); i++) {
     const Statement *stmt = *i;
     std::cerr <<
