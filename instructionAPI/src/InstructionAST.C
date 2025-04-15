@@ -34,7 +34,6 @@
 #include <string>
 
 namespace Dyninst { namespace InstructionAPI {
-  static DummyExpr dummyExpr;
 
   InstructionAST::InstructionAST() {}
 
@@ -42,10 +41,6 @@ namespace Dyninst { namespace InstructionAPI {
 
   bool InstructionAST::operator==(const InstructionAST& rhs) const {
     // isStrictEqual assumes rhs and this to be of the same derived type
-    // so isSameType enforces this restriction
-    if((typeid(*this) == typeid(dummyExpr)) || (typeid(rhs) == typeid(dummyExpr))) {
-      return true;
-    }
     return ((typeid(*this) == typeid(rhs)) && isStrictEqual(rhs));
   }
 

@@ -98,8 +98,4 @@ namespace Dyninst { namespace InstructionAPI {
 
   bool Expression::isFlag() const { return false; }
 
-  bool DummyExpr::isStrictEqual(const InstructionAST&) const { return true; }
-
-  bool DummyExpr::checkRegID(MachRegister, unsigned int, unsigned int) const { return true; }
-
 }}
