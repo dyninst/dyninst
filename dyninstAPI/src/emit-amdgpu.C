@@ -561,7 +561,9 @@ void EmitterAmdgpuVega::emitLongJump(Register reg, uint64_t fromAddress, uint64_
   assert(reg % 2 == 0 &&
          "reg must be even as we will use reg, reg+1 in pair");
 
-  int64_t signedFromAddress = (int64_t) fromAddress;
+  // s_getpc_b64 will give us beginning of next instruction.
+  // So our fromAddress must be incremented by 4 to accomodate for this.
+  int64_t signedFromAddress = (int64_t) fromAddress + 4;
   int64_t signedToAddress = (int64_t) toAddress;
 
   assert(signedFromAddress > 0 && signedToAddress > 0 && "Both addresses must be positive");
