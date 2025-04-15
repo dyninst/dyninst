@@ -37,6 +37,8 @@ my $riscv_subsets = Set::Scalar->new(
     "LOADRES",
     "STORECON",
     "AMO",
+    "MUL",
+    "DIV",
     "C_NOP",
     "C_ADDI4SPN",
     "C_LW",
@@ -138,11 +140,21 @@ my %sail_rose_args_map = (
         "rs2" => 1,
         "rs1" => 2,
     },
+    "MUL" => {
+        "rd" => 0,
+        "rs1" => 1,
+        "rs2" => 2,
+    },
+    "DIV" => {
+        "rd" => 0,
+        "rs1" => 1,
+        "rs2" => 2,
+    },
 );
 
 #
 # Capstone cext index <-> Sail cext index
-# -n (n \in [0, 31]) means that it will use hardcoded register X_{n-1}
+# -n (n \in [1, 32]) means that it will use hardcoded register X_{n-1}
 # -32 means PC
 #
 my %c_insn_new_arg = (
@@ -153,7 +165,7 @@ my %c_insn_new_arg = (
     "C_SW" => [0, 1],
     "C_SD" => [0, 1],
     "C_ADDI" => [0, 0, 1],
-    "C_JAL" => [-2, 0],
+    "C_JAL" => [0, 1], # not [-2, 0] because I've appended the link register explicitly in instructionAPI!
     "C_ADDIW" => [0, 0, 1],
     "C_LI" => [0, -1, 1],
     "C_ADDI16SP" => [-3, -3, 1],
@@ -167,7 +179,7 @@ my %c_insn_new_arg = (
     "C_AND" => [0, 0, 1],
     "C_SUBW" => [0, 0, 1],
     "C_ADDW" => [0, 0, 1],
-    "C_J" => [-1, 0],
+    "C_J" => [0, 1], # not [-1, 0] because I've appended the link register explicitly in instructionAPI!
     "C_BEQZ" => [0, -1, 1],
     "C_BNEZ" => [0, -1, 1],
     "C_SLLI" => [0, 0, 1],
@@ -175,10 +187,8 @@ my %c_insn_new_arg = (
     "C_LDSP" => [0, 1],
     "C_SWSP" => [0, 1],
     "C_SDSP" => [0, 1],
-    # technically, the third argument should be scalar zero.
-    # However, it does not matter here because d->read accepts both scalars and registers
-    "C_JR" => [-1, 0, -1],
-    "C_JALR" => [-2, 0, -1],
+    "C_JR" => [0, 1, 2], # not [-1, 0, -1] because registers are massaged!
+    "C_JALR" => [0, 1, 2], # not [-2, 0, -1] because registers are massaged!
     "C_MV" => [0, -1, 1],
     "C_ADD" => [0, 0, 1],
 );
@@ -406,7 +416,7 @@ sub do_pexp {
 sub do_letbind {
     my ($ast) = @_;
     my ($pat_ast, $exp_ast) = @{$ast->{"LB_val"}};
-    my $id = do_pat($pat_ast);
+    my $id = rose_tr(do_pat($pat_ast));
     my $exp = do_exp($exp_ast);
 
     # Ignore certain redundant assignments
@@ -601,18 +611,12 @@ sub do_exp {
                 my $exp2 = rose_tr(do_exp($exp2_ast));
                 return "($exp1 - $exp2)";
             }
-            elsif ($function_name eq "mult_atom") {
-                my ($exp1_ast, $exp2_ast) = @{$exps_ast};
-                my $exp1 = rose_tr(do_exp($exp1_ast));
-                my $exp2 = rose_tr(do_exp($exp2_ast));
-                return "($exp1 * $exp2)";
-            }
             # Program counter related functions
             elsif ($function_name eq "get_arch_pc") {
-                return "ops->number_(64, insn->get_address())";
+                return "d->readRegister(d->REG_PC)";
             }
             elsif ($function_name eq "get_next_pc") {
-                return "(ops->number_(64, insn->get_address() + insn->get_size()))";
+                return "ops->add(d->readRegister(d->REG_PC), ops->number_(64, insn->get_size()))"
             }
             elsif ($function_name eq "set_next_pc") {
                 my ($id_ast) = @{$exps_ast};
@@ -623,7 +627,7 @@ sub do_exp {
             elsif ($function_name eq "rX_bits") {
                 my ($id_ast) = @{$exps_ast};
                 my $id = do_exp($id_ast);
-                return "d->read($id, 64)";
+                return "d->read($id, 64, 0)";
             }
             elsif ($function_name eq "wX_bits") {
                 my ($id_ast, $exp_ast) = @{$exps_ast};
@@ -633,6 +637,12 @@ sub do_exp {
                 my $rose_id = rose_tr($id);
                 my $rose_exp = rose_tr($exp);
                 return "d->write($rose_id, $rose_exp);";
+            }
+            # Ignore to_bits
+            elsif ($function_name eq "to_bits") {
+                my ($id_ast, $exp_ast) = @{$exps_ast};
+                my $exp = do_exp($exp_ast);
+                return $exp;
             }
             # The remaining functions cannot be mapped to ROSE directly.
             # They should be handled by their parent node
@@ -673,6 +683,49 @@ sub do_exp {
                 my ($e_ast) = @{$exps_ast};
                 my $e_id = do_exp($e_ast);
                 return "%MemException%($e_id);";
+            }
+            elsif ($function_name eq "mult_atom") {
+                my ($exp1_ast, $exp2_ast) = @{$exps_ast};
+                my $exp1 = rose_tr(do_exp($exp1_ast));
+                my $exp2 = rose_tr(do_exp($exp2_ast));
+                $exp1 =~ s/_int$/_val/;
+                $exp2 =~ s/_int$/_val/;
+                return <<EOF
+switch (insn->get_kind()) {
+    case rose_riscv64_op_mul:
+        result_wide = ops->signedMultiply($exp1, $exp2);
+        break;
+    case rose_riscv64_op_mulh:
+        result_wide = ops->signedMultiply($exp1, $exp2);
+        break;
+    case rose_riscv64_op_mulhsu:
+        result_wide = ops->signedUnsignedMultiply($exp1, $exp2);
+        break;
+    case rose_riscv64_op_mulhu:
+        result_wide = ops->unsignedMultiply($exp1, $exp2);
+        break;
+    default:
+        assert(0 && "Invalid RISC-V instruction kind");
+}
+EOF
+;
+            }
+            elsif ($function_name eq "quot_round_zero") {
+                my ($exp1_ast, $exp2_ast) = @{$exps_ast};
+                my $exp1 = rose_tr(do_exp($exp1_ast));
+                my $exp2 = rose_tr(do_exp($exp2_ast));
+                return <<EOF
+switch (insn->get_kind()) {
+    case rose_riscv64_op_div:
+        q = ops->signedDivide($exp1, $exp2);
+        break;
+    case rose_riscv64_op_divu:
+        q = ops->unsignedDivide($exp1, $exp2);
+        break;
+    default:
+        assert(0 && "Invalid RISC-V instruction kind");
+}
+EOF
             }
             elsif ($function_name =~ /mem_(read|write_ea|write_value)/) {
                 return "%$function_name%";
@@ -852,6 +905,8 @@ sub do_exp {
                 }
             }
         }
+        # The way sail handles multiplication/division is extremely difficult to parse
+        # So we rewrite multiplication all at once instead
         elsif ($id =~ /^%ext_data_get_addr%\((.*)\)$/) {
             my $rose_case_code = "";
             foreach my $match_ast (@$match_list_ast) {
@@ -918,11 +973,32 @@ sub do_exp {
             # I just parse the string result of $if and $then to meet the format
             # I don't know if there is a better way of doing it
             my (undef, $if) = ($if_code =~ /^(.*);\n(.*)$/m);
-            return "BaseSemantics::SValuePtr target = ops->ite(taken, t, PC);\n$if";
+            return "BaseSemantics::SValuePtr target = ops->ite(taken, t, d->readRegister(d->REG_PC));\n$if";
         }
         # Branch instructions uses the variable "loaded"
         elsif ($if_code =~ /^loaded$/ || $then_code =~ /^loaded$/) {
             return "ops->ite($cond_code, $if_code, $then_code)";
+        }
+        elsif ($cond_code eq "%mulExtract%") {
+            return <<EOF
+switch (insn->get_kind()) {
+    case rose_riscv64_op_mul:
+        result = ops->extract(result_wide, 0, 31);
+        break;
+    case rose_riscv64_op_mulh:
+        result = ops->extract(result_wide, 32, 63);
+        break;
+    case rose_riscv64_op_mulhsu:
+        result = ops->extract(result_wide, 32, 63);
+        break;
+    case rose_riscv64_op_mulhu:
+        result = ops->extract(result_wide, 32, 63);
+        break;
+    default:
+        assert(0 && "Invalid RISC-V instruction kind");
+}
+EOF
+;
         }
         else {
             return $then_code;
@@ -941,14 +1017,28 @@ sub do_exp {
             return "0x" . $lit_ast->{"L_hex"};
         }
     }
+    elsif (exists $ast->{"E_field"}) {
+        my ($id_ast, $field_ast) = @{$ast->{"E_field"}};
+
+        my $id = do_exp($id_ast);
+        my $field = $field_ast->{"Id"};
+        # Mul instruction extraction
+        # The way sail handles multiplication/division is extremely difficult to parse
+        # So we rewrite multiplication all at once instead
+        if ($id eq "mul_op" && $field eq "high") {
+            return "%mulExtract%";
+        }
+    }
 }
 
 # Translate immediate and registers to d->read(...)
 
 sub rose_tr {
     my ($id) = @_;
+    # Remove invalid identifiers that are valid in SAIL
+    $id =~ s/'/_/g;
     if ($id =~ /^(imm|rs\d*|shamt)$/) {
-        return "d->read($id, 64)";
+        return "d->read($id, 64, 0)";
     }
     return $id;
 }
