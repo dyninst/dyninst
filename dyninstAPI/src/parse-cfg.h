@@ -272,7 +272,6 @@ class parse_func : public ParseAPI::Function
    /*** misc. accessors ***/
    pdmodule *pdmod() const { return mod_;}
    image *img() const { return image_; }
-   void changeModule(pdmodule *mod);
 
    ////////////////////////////////////////////////
    // CFG and other function body methods
