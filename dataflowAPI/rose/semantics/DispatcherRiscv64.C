@@ -474,30 +474,46 @@ namespace rose {
 
                 struct IP_MUL : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmExpression *rd = args[0];
-                        SgAsmExpression *rs1 = args[1];
                         SgAsmExpression *rs2 = args[2];
-
+                        SgAsmExpression *rs1 = args[1];
+                        SgAsmExpression *rd = args[0];
+                        enum Riscv64InstructionKind op = insn->get_kind();
                         BaseSemantics::SValuePtr rs1_val = d->read(rs1, 64, 0);
                         BaseSemantics::SValuePtr rs2_val = d->read(rs2, 64, 0);
-
-                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr result_wide;
                         switch (insn->get_kind()) {
                             case rose_riscv64_op_mul:
-                                result = ops->extract(ops->signedMultiply(rs1_val, rs2_val), 0, 31);
+                                result_wide = ops->signedMultiply(rs1_val, rs2_val);
                                 break;
                             case rose_riscv64_op_mulh:
-                                result = ops->extract(ops->signedMultiply(rs1_val, rs2_val), 32, 63);
+                                result_wide = ops->signedMultiply(rs1_val, rs2_val);
                                 break;
                             case rose_riscv64_op_mulhsu:
-                                result = ops->extract(ops->signedUnsignedMultiply(rs1_val, rs2_val), 32, 63);
+                                result_wide = ops->signedUnsignedMultiply(rs1_val, rs2_val);
                                 break;
                             case rose_riscv64_op_mulhu:
-                                result = ops->extract(ops->unsignedMultiply(rs1_val, rs2_val), 32, 63);
+                                result_wide = ops->unsignedMultiply(rs1_val, rs2_val);
                                 break;
                             default:
                                 assert(0 && "Invalid RISC-V instruction kind");
-                        }
+                        };
+                        BaseSemantics::SValuePtr result;
+                        switch (insn->get_kind()) {
+                            case rose_riscv64_op_mul:
+                                result = ops->extract(result_wide, 0, 31);
+                                break;
+                            case rose_riscv64_op_mulh:
+                                result = ops->extract(result_wide, 32, 63);
+                                break;
+                            case rose_riscv64_op_mulhsu:
+                                result = ops->extract(result_wide, 32, 63);
+                                break;
+                            case rose_riscv64_op_mulhu:
+                                result = ops->extract(result_wide, 32, 63);
+                                break;
+                            default:
+                                assert(0 && "Invalid RISC-V instruction kind");
+                        };
                         d->write(rd, result);
                     }
                 };
@@ -511,18 +527,19 @@ namespace rose {
                         BaseSemantics::SValuePtr rs1_val = d->read(rs1, 64, 0);
                         BaseSemantics::SValuePtr rs2_val = d->read(rs2, 64, 0);
 
-                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr q;
                         switch (insn->get_kind()) {
                             case rose_riscv64_op_div:
-                                result = ops->signedDivide(rs1_val, rs2_val);
+                                q = ops->signedDivide(rs1_val, rs2_val);
                                 break;
                             case rose_riscv64_op_divu:
-                                result = ops->unsignedDivide(rs1_val, rs2_val);
+                                q = ops->unsignedDivide(rs1_val, rs2_val);
                                 break;
                             default:
                                 assert(0 && "Invalid RISC-V instruction kind");
                         }
-                        d->write(rd, result);
+                        BaseSemantics::SValuePtr q_ = q;
+                        d->write(rd, q_);
                     }
                 };
 
