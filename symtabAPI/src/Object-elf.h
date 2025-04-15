@@ -500,7 +500,7 @@ private:
   void parse_dynamicSymbols( Elf_X_Shdr *& dyn_scnp, Elf_X_Data &symdata,
                              Elf_X_Data &strdata, bool shared_library);
 
-  bool parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp);
+  bool parse_riscv_attributes(Elf_X_Shdr *);
 
   void find_code_and_data(Elf_X &elf,
        Offset txtaddr, Offset dataddr);
