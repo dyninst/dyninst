@@ -83,7 +83,6 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
   image_(img),
   dlopenUsed(false),
   proc_(proc),
-  analyzed_(false),
   analysisMode_(mode),
   pagesUpdated_(true),
   codeByteUpdates_(0),
@@ -202,7 +201,6 @@ mapped_object::mapped_object(const mapped_object *s, AddressSpace *child) :
    image_(s->image_),
    dlopenUsed(s->dlopenUsed),
    proc_(child),
-   analyzed_(s->analyzed_),
    analysisMode_(s->analysisMode_),
    pagesUpdated_(true),
    codeByteUpdates_(0),
@@ -304,43 +302,6 @@ bool mapped_object::isData(Address addr) const {
    offset = addr - codeBase();
 
    return parse_img()->getObject()->isData(offset);
-}
-
-bool mapped_object::analyze()
-{
-    if (analyzed_) return true;
-  // Create a process-specific version of the image; all functions and
-  // variables at an absolute address (and modifiable).
-
-  // At some point, we should do better handling of base
-  // addresses. Right now we assume we have one per mapped object
-
-  if (!image_) return false;
-
-  image_->analyzeIfNeeded();
-
-  analyzed_ = true;
-
-  // TODO: CLEANUP, shouldn't need this for loop, calling findFunction forces 
-  // PatchAPI to create function objects, destroying lazy function creation
-  // We already have exported ones. Force analysis (if needed) and get
-  // the functions we created via analysis.
-  const CodeObject::funclist & allFuncs = parse_img()->getAllFunctions();
-  CodeObject::funclist::const_iterator fit = allFuncs.begin();
-  for( ; fit != allFuncs.end(); ++fit) {
-      parse_func * f = (parse_func*)*fit;
-  // For each function, we want to add our base address
-      if((*fit)->src() != HINT)
-        findFunction(f);
-      
-  }
-
-  // Remember: variables don't.
-  std::vector<image_variable *> unmappedVars = image_->getCreatedVariables();
-  for (unsigned vi = 0; vi < unmappedVars.size(); vi++) {
-      findVariable(unmappedVars[vi]);
-  }
-  return true;
 }
 
 mapped_module *mapped_object::findModule(string const& m_name, bool wildcard)
