@@ -57,7 +57,6 @@
 #include "dyninstAPI/src/inst-riscv64.h"
 #include "dyninstAPI/src/emit-riscv64.h"
 #include "dyninstAPI/src/registerSpace.h"
-#include "common/src/arch-riscv64.h"
 
 codeBufIndex_t EmitterRISCV64::emitIf(Register expr_reg,
                                       Register target,
