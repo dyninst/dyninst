@@ -40,6 +40,8 @@
 # include "common/src/arch-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 # include "common/src/arch-aarch64.h"
+#elif defined(DYNINST_HOST_ARCH_RISCV64)
+# include "common/src/arch-riscv64.h"
 #endif
 
 using namespace Dyninst;

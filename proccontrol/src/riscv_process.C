@@ -32,6 +32,8 @@
 #include <iostream>
 #include "proccontrol/src/riscv_process.h"
 #include "common/src/arch-riscv64.h"
+#include "registers/riscv64_regs.h"
+#include "registers/abstract_regs.h"
 
 using namespace NS_riscv64;
 using namespace std;
