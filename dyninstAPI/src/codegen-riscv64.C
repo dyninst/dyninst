@@ -38,12 +38,6 @@
 #include "dyninstAPI/src/emit-riscv64.h"
 #include "dyninstAPI/src/function.h"
 
-// "Casting" methods. We use a "base + offset" model, but often need to
-// turn that into "current instruction pointer".
-codeBuf_t *insnCodeGen::insnPtr(codeGen &gen) {
-    return (instructUnion *)gen.cur_ptr();
-}
-
 void insnCodeGen::generate(codeGen &gen, instruction &insn) {
     // Call `flushInsnBuffer` to flush the instruction buffer into the
     // 2-byte code buffer `code_buff` short-by-short.
