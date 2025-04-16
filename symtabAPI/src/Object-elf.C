@@ -48,6 +48,7 @@
 #include "emitElf.h"
 
 #include "dwarfWalker.h"
+#include "dwarfFrameParser.h"
 
 #include "Object-elf.h"
 
@@ -4161,3 +4162,25 @@ bool ObjectELF::isPositionIndependent() const {
   return isSharedLibrary() || hasPieFlag() || isUnlinkedObjectFile();
 }
 
+bool ObjectELF::hasFrameDebugInfo()
+{
+   dwarf->frame_dbg();
+   if(!dwarf->frameParser()) {
+     return false;
+   }
+   return dwarf->frameParser()->hasFrameDebugInfo();
+}
+
+bool ObjectELF::getRegValueAtFrame(Dyninst::Address pc, Dyninst::MachRegister reg,
+                                   Dyninst::MachRegisterVal &reg_result,
+                                   MemRegReader *reader)
+{
+   DwarfDyninst::FrameErrors_t frame_error = DwarfDyninst::FE_No_Error;
+
+   dwarf->frame_dbg();
+   if(!dwarf->frameParser()) {
+     return false;
+   }
+   return dwarf->frameParser()->getRegValueAtFrame(pc, reg, reg_result, reader, frame_error);
+
+}
