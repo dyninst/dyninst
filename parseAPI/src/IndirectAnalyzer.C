@@ -154,6 +154,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
         }
     }
 
+    bool is_unbounded = false;
     StridedInterval b;
     if (!variableArguFormat) {
         Slicer indexSlicer(jtfp.indexLoc, jtfp.indexLoc->block(), func, false, false);
@@ -179,6 +180,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
         } else {
             parsing_printf(" Cannot find bound, assume there are at most 256 entries and scan the table for indirect jump at %lx\n", block->last());
 	        b = StridedInterval(1, 0, 255);
+            is_unbounded = true;
         }
     } else {
         b = StridedInterval(1, 0, 8);
@@ -192,18 +194,19 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     inst.tableStart = inst.tableEnd = 0;
     inst.indexStride = 0;
     inst.block = block;
-    ReadTable(jtfp.jumpTargetExpr,
-              jtfp.index,
-              b,
-              inst.memoryReadSize,
-              inst.isZeroExtend,
-              jtfp.constAddr,
-              jumpTableOutEdges,
-              inst.tableStart,
-              inst.tableEnd,
-              inst.indexStride,
-              inst.tableEntryMap);
+    bool are_bounds_unreliable = ReadTable(jtfp.jumpTargetExpr,
+                                           jtfp.index,
+                                           b,
+                                           inst.memoryReadSize,
+                                           inst.isZeroExtend,
+                                           jtfp.constAddr,
+                                           jumpTableOutEdges,
+                                           inst.tableStart,
+                                           inst.tableEnd,
+                                           inst.indexStride,
+                                           inst.tableEntryMap);
 
+    inst.areBoundsUnreliable = is_unbounded || are_bounds_unreliable;
     inst.tableEnd += inst.indexStride;
     if (jumpTableOutEdges.size() > 0 && inst.indexStride > 0)
         func->getJumpTables()[block->last()] = inst;
@@ -309,7 +312,8 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
     }
 }
 
-void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
+/* Returns whether we (could have) failed to determine bounds reliably */
+bool IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
                                             AbsRegion index,
                                             StridedInterval &indexBound,
                                             int memoryReadSize,
@@ -320,17 +324,23 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
                                             Address &maxReadAddress,
                                             int &indexStride,
                                             std::map<Address, Address>& entries) {
+    bool are_bounds_unreliable = false;
     CodeSource *cs = block->obj()->cs();
     set<Address> jumpTargets;
     int start = 0;
     Address prevReadAddress = 0;
-    if (indexBound.low > 0) start = indexBound.low = start;
+    if (indexBound.low >= 0) {
+        start = indexBound.low = start;
+    } else {
+        are_bounds_unreliable = true;
+    }
     for (int v = start; v <= indexBound.high; v += indexBound.stride) {
         JumpTableReadVisitor jtrv(index, v, cs, block->region(), isZeroExtend, memoryReadSize);
         jumpTargetExpr->accept(&jtrv);
        if (jtrv.valid && cs->isCode(jtrv.targetAddress)) {
             if (cs->getArch() == Arch_x86_64 && FindJunkInstruction(jtrv.targetAddress)) {
                 parsing_printf("WARNING: resolving jump tables leads to junk instruction from %lx\n", jtrv.targetAddress);
+                are_bounds_unreliable = true;
                 break;
             }
             if (jtrv.readAddress < minReadAddress || minReadAddress == 0) minReadAddress = jtrv.readAddress;
@@ -344,6 +354,7 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
             // We have a bad entry. We stop here, as we have wrong information
             // In this case, we keep the good entries
             parsing_printf("WARNING: resolving jump tables leads to a bad address %lx\n", jtrv.targetAddress);
+            are_bounds_unreliable = true;
             break;
         }
         if (indexBound.stride == 0) break;
@@ -356,6 +367,7 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
     for (auto tit = jumpTargets.begin(); tit != jumpTargets.end(); ++tit) {
         targetEdges.push_back(make_pair(*tit, INDIRECT));
     }
+    return are_bounds_unreliable;
 }
 
 int IndirectControlFlowAnalyzer::GetMemoryReadSize(Assignment::Ptr memLoc) {
