@@ -205,11 +205,10 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
     unsigned addressWidth = obj->getAddressWidth();
     if( addressWidth == 8 ) {
         switch (rel.getRelType()) {
-            case R_RISCV_RELATIVE:
-            case R_RISCV_IRELATIVE:
+            case relocationEntry::relative:
                 rel.setAddend(rel.addend() + library_adjust);
                 break;
-            case R_RISCV_JUMP_SLOT:
+            case relocationEntry::jump_slot:
                 if (!adjustValInRegion(targetRegion,
                            rel.rel_addr() - targetRegion->getDiskOffset(),
                            addressWidth, library_adjust))
