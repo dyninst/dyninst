@@ -41,6 +41,7 @@
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/function.h"
+#include "common/src/linuxHeaders.h"
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 

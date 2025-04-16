@@ -33,9 +33,8 @@
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/inst-riscv64.h"
-#include "common/src/arch.h"
+#include "common/src/arch-riscv64.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
@@ -50,7 +49,7 @@
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/mapped_object.h"
-
+#include "RegisterConversion.h"
 #include "parseAPI/h/CFG.h"
 
 #include "emitter.h"
