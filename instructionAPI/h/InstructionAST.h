@@ -31,50 +31,56 @@
 #if !defined(INSTRUCTIONAST_H)
 #define INSTRUCTIONAST_H
 
-#include "ArchSpecificFormatters.h"
-#include "Result.h"
-#include "boost/enable_shared_from_this.hpp"
+#include "Architecture.h"
 #include "dyninst_visibility.h"
+#include "registers/MachRegister.h"
+#include "Result.h"
 
-#include <iostream>
+#include <boost/enable_shared_from_this.hpp>
 #include <set>
 #include <string>
 #include <vector>
 
 namespace Dyninst { namespace InstructionAPI {
 
-  class InstructionAST;
-
-  using std::set;
-  using std::vector;
-
   enum formatStyle { defaultStyle, memoryAccessStyle };
 
   class DYNINST_EXPORT InstructionAST : public boost::enable_shared_from_this<InstructionAST> {
   public:
-    typedef boost::shared_ptr<InstructionAST> Ptr;
+    using Ptr = boost::shared_ptr<InstructionAST>;
 
-    InstructionAST();
-    InstructionAST(const InstructionAST&) = default;
-    virtual ~InstructionAST();
+    InstructionAST() = default;
+    InstructionAST(const InstructionAST &) = default;
+    InstructionAST(InstructionAST &&) = default;
+    InstructionAST &operator=(InstructionAST const &) = default;
+    InstructionAST &operator=(InstructionAST &&) = default;
+    virtual ~InstructionAST() = default;
 
-    bool operator==(const InstructionAST& rhs) const;
+    bool operator==(const InstructionAST &rhs) const {
+      // isStrictEqual assumes rhs and this to be of the same derived type
+      return ((typeid(*this) == typeid(rhs)) && isStrictEqual(rhs));
+    }
 
-    virtual void getChildren(vector<InstructionAST::Ptr>& children) const = 0;
+    virtual void getChildren(std::vector<InstructionAST::Ptr> &children) const = 0;
 
-    virtual void getUses(set<InstructionAST::Ptr>& uses) = 0;
+    virtual void getUses(std::set<InstructionAST::Ptr> &uses) = 0;
     virtual bool isUsed(InstructionAST::Ptr findMe) const = 0;
 
-    virtual std::string format(Architecture arch, formatStyle how = defaultStyle) const = 0;
+    virtual std::string format(Dyninst::Architecture arch, formatStyle how = defaultStyle) const = 0;
     virtual std::string format(formatStyle how = defaultStyle) const = 0;
 
   protected:
     friend class MultiRegisterAST;
     friend class RegisterAST;
     friend class Immediate;
-    virtual bool isStrictEqual(const InstructionAST& rhs) const = 0;
-    virtual bool checkRegID(MachRegister, unsigned int = 0, unsigned int = 0) const;
-    virtual const Result& eval() const = 0;
+
+    virtual bool isStrictEqual(const InstructionAST &rhs) const = 0;
+
+    virtual bool checkRegID(Dyninst::MachRegister, unsigned int = 0, unsigned int = 0) const {
+      return false;
+    }
+
+    virtual const Result &eval() const = 0;
   };
 }}
 

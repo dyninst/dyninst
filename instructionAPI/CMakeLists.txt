@@ -5,7 +5,6 @@ include(DyninstLibrary)
 set(_sources
     src/debug.C
     src/Instruction.C
-    src/InstructionAST.C
     src/Operation.C
     src/Operand.C
     src/Register.C
