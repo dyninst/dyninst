@@ -58,15 +58,15 @@ namespace Dyninst { namespace InstructionAPI {
     virtual ~RegisterAST();
     RegisterAST(const RegisterAST&) = default;
 
-    virtual void getChildren(std::vector<InstructionAST::Ptr>& children) const;
-    virtual void getChildren(std::vector<Expression::Ptr>& children) const;
+    virtual void getChildren(std::vector<InstructionAST::Ptr>& children) const override;
+    virtual void getChildren(std::vector<Expression::Ptr>& children) const override;
 
-    virtual void getUses(std::set<InstructionAST::Ptr>& uses);
+    virtual void getUses(std::set<InstructionAST::Ptr>& uses) override;
 
-    virtual bool isUsed(InstructionAST::Ptr findMe) const;
+    virtual bool isUsed(InstructionAST::Ptr findMe) const override;
 
-    virtual std::string format(Architecture, formatStyle how = defaultStyle) const;
-    virtual std::string format(formatStyle how = defaultStyle) const;
+    virtual std::string format(Architecture, formatStyle how = defaultStyle) const override;
+    virtual std::string format(formatStyle how = defaultStyle) const override;
 
     static RegisterAST makePC(Dyninst::Architecture arch);
 
@@ -81,14 +81,14 @@ namespace Dyninst { namespace InstructionAPI {
     static RegisterAST::Ptr promote(const InstructionAST::Ptr reg);
     static RegisterAST::Ptr promote(const RegisterAST* reg);
 
-    virtual void apply(Visitor* v);
-    virtual bool bind(Expression* e, const Result& val);
+    virtual void apply(Visitor* v) override;
+    virtual bool bind(Expression* e, const Result& val) override;
 
-    virtual bool isStrictEqual(const InstructionAST& rhs) const;
+    virtual bool isStrictEqual(const InstructionAST& rhs) const override;
 
   protected:
-    virtual bool isFlag() const;
-    virtual bool checkRegID(MachRegister id, unsigned int low, unsigned int high) const;
+    virtual bool isFlag() const override;
+    virtual bool checkRegID(MachRegister id, unsigned int low, unsigned int high) const override;
     MachRegister getPromotedReg() const;
 
     MachRegister m_Reg;
@@ -107,9 +107,9 @@ namespace Dyninst { namespace InstructionAPI {
     MaskRegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, Result_Type regType)
         : RegisterAST(r, lowbit, highbit, regType) {}
 
-    virtual std::string format(Architecture, formatStyle how = defaultStyle) const;
+    virtual std::string format(Architecture, formatStyle how = defaultStyle) const override;
 
-    virtual std::string format(formatStyle how = defaultStyle) const;
+    virtual std::string format(formatStyle how = defaultStyle) const override;
   };
 }}
 
