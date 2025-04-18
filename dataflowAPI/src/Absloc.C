@@ -32,7 +32,6 @@
 #include <assert.h>
 
 #include "instructionAPI/h/Register.h"
-#include "instructionAPI/h/InstructionAST.h"
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/Expression.h"
 

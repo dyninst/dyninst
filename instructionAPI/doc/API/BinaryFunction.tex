@@ -47,7 +47,7 @@ evaluable.
 }
 
 \begin{apient}
-void getChildren (vector< InstructionAST::Ptr > & children) const
+void getChildren (vector< Expression::Ptr > & children) const
 \end{apient}
 \apidesc{
 The children of a \code{BinaryFunction} are its two arguments.
@@ -55,7 +55,7 @@ Appends the children of this BinaryFunction to \code{children}.
 }
 
 \begin{apient}
-void getUses (set< InstructionAST::Ptr > & uses) 
+void getUses (set< Expression::Ptr > & uses) 
 \end{apient}
 \apidesc{
 The use set of a \code{BinaryFunction} is the union of the use sets of its children.
@@ -63,7 +63,7 @@ Appends the use set of this \code{BinaryFunction} to \code{uses}.
 }
 
 \begin{apient}
-bool isUsed (InstructionAST::Ptr findMe) const 
+bool isUsed (Expression::Ptr findMe) const 
 \end{apient}
 \apidesc{
 \code{isUsed} returns \code{true} if \code{findMe} is an argument of this \code{BinaryFunction}, or if it is in the use set of either argument.

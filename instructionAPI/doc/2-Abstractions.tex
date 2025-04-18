@@ -77,7 +77,7 @@ Instructions from Operations and Operands to an entirely platform-\/independent
 algorithm. Likewise, much of the construction of the ASTs representing each
 operand can be performed in a platform-\/independent manner. 
 
-\subsection{InstructionAST Hierarchy}
+\subsection{Expression Hierarchy}
 \label{subsec:hierarchy}
 
 The AST representation of an operand encapsulates the operations performed on
@@ -89,7 +89,7 @@ Figure~\ref{fig:inheritance}.
 \begin{figure}
     \centering
 \includegraphics{fig/full_inheritance_graph}
-\caption{The InstructionAST inheritance hierarchy}
+\caption{The Expression inheritance hierarchy}
 \label{fig:inheritance}
 \end{figure}
 
@@ -104,7 +104,7 @@ instruction is represented using these objects.
 \begin{figure}
     \centering
 \includegraphics{fig/ast_ownership}
-\caption{InstructionAST intermediate node types and the objects they own}
+\caption{Expression intermediate node types and the objects they own}
 \label{fig:ownership}
 \end{figure}
  

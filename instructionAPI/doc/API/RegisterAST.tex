@@ -17,19 +17,19 @@ are known.
 is Dyninst's register representation and should not be constructed manually. }
 
 \begin{apient}
-  void getChildren (vector< InstructionAST::Ptr > & children) const
+  void getChildren (vector< Expression::Ptr > & children) const
 \end{apient}
 \apidesc{ By definition, a \code{RegisterAST} object has no children. Since a \code{RegisterAST} has no children, 
 the \code{children} parameter is unchanged by this method. }
 
 \begin{apient}
-  void getUses (set< InstructionAST::Ptr > & uses)
+  void getUses (set< Expression::Ptr > & uses)
 \end{apient}
 \apidesc{ By definition, the use set of a \code{RegisterAST} object is itself. This \code{RegisterAST} will be 
 inserted into \code{uses}. }
 
 \begin{apient}
-  bool isUsed (InstructionAST::Ptr findMe) const
+  bool isUsed (Expression::Ptr findMe) const
 \end{apient}
 \apidesc{ \code{isUsed} returns \code{true} if \code{findMe} is a \code{RegisterAST} that represents the same 
 register as this \code{RegisterAST}, and \code{false} otherwise. }
@@ -57,7 +57,7 @@ sets or other sorted containers. }
 \apidesc{ The \code{getID} function returns underlying register represented by this AST. }
 
 \begin{apient}
-  RegisterAST::Ptr promote (const InstructionAST::Ptr reg) [static]
+  RegisterAST::Ptr promote (const Expression::Ptr reg) [static]
 \end{apient}
 \apidesc{ Utility function to hide aliasing complexity on platforms (IA-32) that allow addressing part 
 or all of a register }

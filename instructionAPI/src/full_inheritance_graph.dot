@@ -2,15 +2,13 @@ digraph G
 {
   edge [fontname="Helvetica",fontsize=10,labelfontname="Helvetica",labelfontsize=10,dir=back,color="midnightblue",style="solid",arrowhead="open"];
   node [fontname="Helvetica",fontsize=10,shape=record,height=0.2,width=0.4,color="black"];
-  Node1 [label="InstructionAST",color="white", fillcolor="black", style="filled" fontcolor="white"];
+  Node1 [label="Expression",color="white", fillcolor="black", style="filled" fontcolor="white"];
   Node1 -> Node2;
-  Node2 [label="Expression"];
+  Node2 [label="BinaryFunction"];
   Node2 -> Node3;
-  Node3 [label="BinaryFunction"];
+  Node3 [label="Dereference"];
   Node2 -> Node4;
-  Node4 [label="Dereference"];
+  Node4 [label="Immediate"];
   Node2 -> Node5;
-  Node5 [label="Immediate"];
-  Node2 -> Node6;
-  Node6 [label="RegisterAST"];
+  Node5 [label="RegisterAST"];
 }

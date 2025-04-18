@@ -211,13 +211,6 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual const Result& eval() const override;
 
-    virtual void getChildren(std::vector<InstructionAST::Ptr>& children) const override {
-      children.push_back(m_arg1);
-      children.push_back(m_arg2);
-
-      return;
-    }
-
     virtual void getChildren(std::vector<Expression::Ptr>& children) const override {
       children.push_back(m_arg1);
       children.push_back(m_arg2);
@@ -225,14 +218,14 @@ namespace Dyninst { namespace InstructionAPI {
       return;
     }
 
-    virtual void getUses(std::set<InstructionAST::Ptr>& uses) override {
+    virtual void getUses(std::set<Expression::Ptr>& uses) override {
       m_arg1->getUses(uses);
       m_arg2->getUses(uses);
 
       return;
     }
 
-    virtual bool isUsed(InstructionAST::Ptr findMe) const override {
+    virtual bool isUsed(Expression::Ptr findMe) const override {
       return m_arg1->isUsed(findMe) || m_arg2->isUsed(findMe) || (*m_arg1 == *findMe) ||
              (*m_arg2 == *findMe) || (*findMe == *this);
     }
@@ -273,7 +266,7 @@ namespace Dyninst { namespace InstructionAPI {
     bool isRightRotate() const;
 
   protected:
-    virtual bool isStrictEqual(const InstructionAST& rhs) const override {
+    virtual bool isStrictEqual(const Expression& rhs) const override {
       const BinaryFunction& other(dynamic_cast<const BinaryFunction&>(rhs));
       if(*(other.m_arg1) == *m_arg1 && (*other.m_arg2) == *m_arg2)
         return true;

@@ -53,22 +53,17 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual ~Dereference() {}
 
-    virtual void getChildren(std::vector<InstructionAST::Ptr>& children) const override {
-      children.push_back(addressToDereference);
-      return;
-    }
-
     virtual void getChildren(std::vector<Expression::Ptr>& children) const override {
       children.push_back(addressToDereference);
       return;
     }
 
-    virtual void getUses(std::set<InstructionAST::Ptr>& uses) override {
+    virtual void getUses(std::set<Expression::Ptr>& uses) override {
       addressToDereference->getUses(uses);
       return;
     }
 
-    virtual bool isUsed(InstructionAST::Ptr findMe) const override {
+    virtual bool isUsed(Expression::Ptr findMe) const override {
       return addressToDereference->isUsed(findMe) || *findMe == *this;
     }
 
@@ -96,11 +91,11 @@ namespace Dyninst { namespace InstructionAPI {
     }
 
   protected:
-    virtual bool isSameType(const InstructionAST& rhs) const {
+    virtual bool isSameType(const Expression& rhs) const {
       return dynamic_cast<const Dereference*>(&rhs) != NULL;
     }
 
-    virtual bool isStrictEqual(const InstructionAST& rhs) const override {
+    virtual bool isStrictEqual(const Expression& rhs) const override {
       const Dereference& other(dynamic_cast<const Dereference&>(rhs));
       return *(other.addressToDereference) == *addressToDereference;
     }

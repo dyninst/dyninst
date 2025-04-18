@@ -44,11 +44,10 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual ~Immediate();
 
-    virtual void getChildren(std::vector<InstructionAST::Ptr>&) const override;
     virtual void getChildren(std::vector<Expression::Ptr>&) const override;
 
-    virtual void getUses(std::set<InstructionAST::Ptr>&) override;
-    virtual bool isUsed(InstructionAST::Ptr findMe) const override;
+    virtual void getUses(std::set<Expression::Ptr>&) override;
+    virtual bool isUsed(Expression::Ptr findMe) const override;
 
     virtual std::string format(Architecture, formatStyle) const override;
     virtual std::string format(formatStyle) const override;
@@ -57,7 +56,7 @@ namespace Dyninst { namespace InstructionAPI {
     virtual void apply(Visitor* v) override;
 
   protected:
-    virtual bool isStrictEqual(const InstructionAST& rhs) const override;
+    virtual bool isStrictEqual(const Expression& rhs) const override;
   };
 
   class DYNINST_EXPORT NamedImmediate : public Immediate {

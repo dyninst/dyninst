@@ -58,12 +58,11 @@ namespace Dyninst { namespace InstructionAPI {
     virtual ~RegisterAST();
     RegisterAST(const RegisterAST&) = default;
 
-    virtual void getChildren(std::vector<InstructionAST::Ptr>& children) const override;
     virtual void getChildren(std::vector<Expression::Ptr>& children) const override;
 
-    virtual void getUses(std::set<InstructionAST::Ptr>& uses) override;
+    virtual void getUses(std::set<Expression::Ptr>& uses) override;
 
-    virtual bool isUsed(InstructionAST::Ptr findMe) const override;
+    virtual bool isUsed(Expression::Ptr findMe) const override;
 
     virtual std::string format(Architecture, formatStyle how = defaultStyle) const override;
     virtual std::string format(formatStyle how = defaultStyle) const override;
@@ -78,13 +77,13 @@ namespace Dyninst { namespace InstructionAPI {
 
     unsigned int highBit() const { return m_High; }
 
-    static RegisterAST::Ptr promote(const InstructionAST::Ptr reg);
+    static RegisterAST::Ptr promote(const Expression::Ptr reg);
     static RegisterAST::Ptr promote(const RegisterAST* reg);
 
     virtual void apply(Visitor* v) override;
     virtual bool bind(Expression* e, const Result& val) override;
 
-    virtual bool isStrictEqual(const InstructionAST& rhs) const override;
+    virtual bool isStrictEqual(const Expression& rhs) const override;
 
   protected:
     virtual bool isFlag() const override;

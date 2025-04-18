@@ -235,11 +235,11 @@ PatchBlock::containsDynamicCall() {
              if (insn.readsMemory()) { // memory indirect
                  return true;
              } else { // check for register indirect
-                 set<InstructionAST::Ptr> regs;
+                 set<Expression::Ptr> regs;
                  Expression::Ptr tExpr = insn.getControlFlowTarget();
                  if (tExpr)
                      tExpr->getUses(regs);
-                 for (set<InstructionAST::Ptr>::iterator rit = regs.begin(); 
+                 for (set<Expression::Ptr>::iterator rit = regs.begin();
                       rit != regs.end(); rit++)
                  {
                      if (RegisterAST::makePC(obj()->co()->cs()->getArch()).getID() != 
