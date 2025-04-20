@@ -47,6 +47,7 @@
 #include "Object.h"
 #include "Region.h"
 #include "debug.h"
+#include "elf.h"
 
 // TODO
 
@@ -205,10 +206,11 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
     unsigned addressWidth = obj->getAddressWidth();
     if( addressWidth == 8 ) {
         switch (rel.getRelType()) {
-            case relocationEntry::relative:
+            case R_RISCV_RELATIVE:
+            case R_RISCV_IRELATIVE:
                 rel.setAddend(rel.addend() + library_adjust);
                 break;
-            case relocationEntry::jump_slot:
+            case R_RISCV_JUMP_SLOT:
                 if (!adjustValInRegion(targetRegion,
                            rel.rel_addr() - targetRegion->getDiskOffset(),
                            addressWidth, library_adjust))
