@@ -46,16 +46,14 @@ namespace Dyninst { namespace InstructionAPI {
 
   TernaryAST::~TernaryAST() {}
 
-  void TernaryAST::getChildren(vector<InstructionAST::Ptr>& /*children*/) const { return; }
-
   void TernaryAST::getChildren(vector<Expression::Ptr>& /*children*/) const { return; }
 
-  void TernaryAST::getUses(set<InstructionAST::Ptr>& uses) {
+  void TernaryAST::getUses(set<Expression::Ptr>& uses) {
     uses.insert(shared_from_this());
     return;
   }
 
-  bool TernaryAST::isUsed(InstructionAST::Ptr) const {
+  bool TernaryAST::isUsed(Expression::Ptr) const {
     return false; // TODO
   }
 
@@ -72,7 +70,7 @@ namespace Dyninst { namespace InstructionAPI {
 
   bool TernaryAST::operator<(const TernaryAST&) const { return false; }
 
-  bool TernaryAST::isStrictEqual(const InstructionAST&) const { return false; }
+  bool TernaryAST::isStrictEqual(const Expression&) const { return false; }
 
   void TernaryAST::apply(Visitor*) {}
 

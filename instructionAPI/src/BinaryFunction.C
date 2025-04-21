@@ -315,12 +315,9 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   const Result& BinaryFunction::eval() const {
-    Expression::Ptr arg1 = boost::dynamic_pointer_cast<Expression>(m_arg1);
-    Expression::Ptr arg2 = boost::dynamic_pointer_cast<Expression>(m_arg2);
-
-    if(arg1 && arg2) {
-      Result x = arg1->eval();
-      Result y = arg2->eval();
+    if(m_arg1 && m_arg2) {
+      Result x = m_arg1->eval();
+      Result y = m_arg2->eval();
       Result oracularResult = Expression::eval();
 
       if(x.defined && y.defined && !oracularResult.defined) {

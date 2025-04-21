@@ -31,10 +31,15 @@
 #if !defined(VALUECOMPUTATION_H)
 #define VALUECOMPUTATION_H
 
-#include "InstructionAST.h"
+#include "dyninst_visibility.h"
+#include "registers/MachRegister.h"
 #include "Result.h"
+#include "Visitor.h"
 
+#include <boost/shared_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
 #include <sstream>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -43,7 +48,9 @@ namespace Dyninst { namespace InstructionAPI {
   class Expression;
   class Visitor;
 
-  class DYNINST_EXPORT Expression : public InstructionAST {
+  enum formatStyle { defaultStyle, memoryAccessStyle };
+
+  class DYNINST_EXPORT Expression : public boost::enable_shared_from_this<Expression> {
   public:
     typedef boost::shared_ptr<Expression> Ptr;
 
@@ -58,7 +65,18 @@ namespace Dyninst { namespace InstructionAPI {
     virtual ~Expression();
     Expression(const Expression&) = default;
 
+    bool operator==(const Expression &rhs) const {
+      // isStrictEqual assumes rhs and this to be of the same derived type
+      return ((typeid(*this) == typeid(rhs)) && isStrictEqual(rhs));
+    }
+
     virtual const Result& eval() const;
+
+    virtual void getUses(std::set<Expression::Ptr> &uses) = 0;
+    virtual bool isUsed(Expression::Ptr findMe) const = 0;
+
+    virtual std::string format(Dyninst::Architecture, formatStyle = defaultStyle) const = 0;
+    virtual std::string format(formatStyle = defaultStyle) const = 0;
 
     void setValue(const Result& knownValue);
     void clearValue();
@@ -69,12 +87,24 @@ namespace Dyninst { namespace InstructionAPI {
     virtual void apply(Visitor*) {}
 
     virtual void getChildren(std::vector<Expression::Ptr>& children) const = 0;
-    using InstructionAST::getChildren;
 
   protected:
+    friend class MultiRegisterAST;
+    friend class RegisterAST;
+    friend class Immediate;
+
     virtual bool isFlag() const;
+
+    virtual bool isStrictEqual(const Expression &rhs) const = 0;
+
+    virtual bool checkRegID(Dyninst::MachRegister, unsigned int = 0, unsigned int = 0) const {
+      return false;
+    }
+
     Result userSetValue;
   };
+
+  using InstructionAST = Expression;
 
 }}
 

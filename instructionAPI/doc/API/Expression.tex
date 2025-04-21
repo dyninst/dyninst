@@ -1,15 +1,22 @@
 \subsection{Expression Class}
 \label{sec:expression}
 
-An \code{Expression} is an AST representation of how the value of an operand is
-computed.
+An \code{Expression} is an AST representation of how the value of an \code{Operand} is
+computed/evaluated.
 
-The \code{Expression} class extends the \code{InstructionAST} class by adding the concept of
-evaluation to the nodes of an \code{InstructionAST}. Evaluation attempts to determine
-the \code{Result} of the
+Evaluation attempts to determine the \code{Result} of the
 computation that the AST being evaluated represents. It will fill in results of
 as many of the nodes in the tree as possible, and if full evaluation is
 possible, it will return the result of the computation performed by the tree.
+
+Equality of two expressions, \code{E_1} and \code{E_2}, is defined by
+\begin{itemize}
+\item \code{E_1} and \code{E_2} are the same type
+\item If leaf nodes, they represent the same immediate value or the same register
+\item If non-\/leaf nodes, they represent the same operation and their corresponding children are equal 
+\end{itemize}
+
+\begin{apient}
 
 Permissible leaf nodes of an \code{Expression} tree are RegisterAST and Immediate
 objects. Permissible internal nodes are \code{BinaryFunction} and Dereference objects.
@@ -78,6 +85,53 @@ typedef boost::shared_ptr<Expression> Ptr
 }
 
 \begin{apient}
+bool operator==(const Expression &rhs) const  
+\end{apient}
+\apidesc{
+Compare two AST nodes for equality.
+
+Non-leaf nodes are equal if they are of the same type and their children are
+equal. \code{RegisterAST}s are equal if they represent the same register.
+\code{Immediate}s are equal if they represent the same value.
+}
+
+\begin{apient}
+virtual void getUses(set<Expression::Ptr> & uses)
+\end{apient}
+\apidesc{
+    The use set of an \code{Expression} is defined as follows:
+    \begin{itemize}
+    \item A \code{RegisterAST} uses itself
+    \item A \code{BinaryFunction} uses the use sets of its children
+    \item A \code{Immediate} uses nothing
+    \item A \code{Dereference uses the use set of its child}
+    \end{itemize}
+
+    The use set of this node is appended to the set \code{uses}.
+}
+
+\begin{apient}
+virtual bool isUsed(Expression::Ptr findMe) const
+\end{apient}
+\apidesc{
+    Unlike \code{getUses}, \code{isUsed} looks for \code{findMe} as a subtree of
+    the current tree. \code{getUses} is designed to return a minimal set of
+    registers used in this tree, whereas \code{isUsed} is designed to allow
+    searches for arbitrary subexpressions. \code{findMe} is the AST node to find
+    in the use set of this node. 
+
+    Returns \code{true} if \code{findMe} is used by this AST node.
+}
+
+\begin{apient}
+virtual std::string format(formatStyle how == defaultStyle) const
+\end{apient}
+\apidesc{
+    The \code{format} interface returns the contents of an \code{Expression}
+    object as a string. By default, \code{format} produces assembly language.
+}
+
+\begin{apient}
 const Result & eval() const
 \end{apient}
 \apidesc{
@@ -141,6 +195,6 @@ virtual void getChildren(std::vector<Expression::Ptr> & children) const
 \end{apient}
 \apidesc{
     \code{getChildren} may be called on an \code{Expression} taking a vector of
-    \code{ExpressionPtr}s, rather than \code{InstructionAST}Ptrs. All children
+    \code{ExpressionPtr}s, rather than \code{Expression}Ptrs. All children
     which are \code{Expression}s will be appended to \code{children}.
 }
