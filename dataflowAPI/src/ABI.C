@@ -102,7 +102,6 @@ ABI* ABI::getABI(Architecture arch){
                 break;
             default:
                 assert(0 && "getABI(arch) currently only support AMDGPU!");
-#endif
                 break;
         }
         initialize64(arch);
