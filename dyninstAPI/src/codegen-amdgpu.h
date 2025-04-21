@@ -34,6 +34,7 @@
 #include <vector>
 #include "dyntypes.h"
 #include "common/src/dyn_register.h"
+#include "common/src/arch-amdgpu.h"
 
 class AddressSpace;
 
@@ -70,7 +71,7 @@ public:
         Offset
     };
 
-    static instructUnion *insnPtr(codeGen &gen);
+    static NS_amdgpu::instructUnion *insnPtr(codeGen &gen);
     //static instructUnion *ptrAndInc(codeGen &gen);
 
     // All of these write into a buffer
@@ -167,7 +168,7 @@ public:
     static void generateMoveToCR(codeGen &gen, Dyninst::Register rs);
 
     static bool generateMem(codeGen &gen,
-                            instruction &insn,
+                            NS_amdgpu::instruction &insn,
                             Dyninst::Address origAddr,
                             Dyninst::Address newAddr,
                             Dyninst::Register newLoadReg,
@@ -198,15 +199,15 @@ public:
 
     static Dyninst::Register moveValueToReg(codeGen &gen, long int val, std::vector<Dyninst::Register> *exclude = NULL);
 
-    static void generate(codeGen &gen, instruction &insn);
+    static void generate(codeGen &gen, NS_amdgpu::instruction &insn);
 
     // Copy instruction at position in codeGen buffer
-    static void generate(codeGen &gen, instruction &insn, unsigned position);
+    static void generate(codeGen &gen, NS_amdgpu::instruction &insn, unsigned position);
 
-    static void write(codeGen &gen, instruction &insn) { generate(gen, insn); }
+    static void write(codeGen &gen, NS_amdgpu::instruction &insn) { generate(gen, insn); }
 
     static bool generate(codeGen &gen,
-                         instruction &insn,
+                         NS_amdgpu::instruction &insn,
                          AddressSpace *proc,
                          Dyninst::Address origAddr,
                          Dyninst::Address newAddr,

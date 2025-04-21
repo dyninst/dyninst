@@ -32,7 +32,7 @@
 #include "Dereference.h"
 #include "Immediate.h"
 #include "BinaryFunction.h"
-
+#include "common/src/arch-aarch64.h"
 #include "parseAPI/src/debug_parse.h"
 
 #include <deque>

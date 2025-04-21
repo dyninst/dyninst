@@ -47,7 +47,7 @@
 #include <set>
 #include <algorithm>
 
-#include "common/src/arch.h"
+#include "common/src/arch-amdgpu.h"
 
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
