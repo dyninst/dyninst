@@ -102,6 +102,7 @@ ABI* ABI::getABI(Architecture arch){
                 break;
             default:
                 assert(0 && "getABI(arch) currently only support AMDGPU!");
+#endif
                 break;
         }
         initialize64(arch);
@@ -117,6 +118,13 @@ ABI* ABI::getABI(int addr_width){
         globalABI_ = new ABI();
 	globalABI_->addr_width = 4;
 	globalABI64_ = new ABI();
+
+#if defined(arch_amdgpu)
+	globalABI64_->addr_width = 8;
+	globalABI64_->index = &machRegIndex_amdgpu_gfx908(); // FIXME AMDGPU : This shouldn't be hardcoded.
+  initialize64(Arch_amdgpu_gfx908);
+  return globalABI64_;
+#endif
 
 #if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 	globalABI64_->addr_width = 8;
@@ -148,10 +156,10 @@ ABI* ABI::getABI(int addr_width){
 	globalABI64_->index = &machRegIndex_amdgpu_gfx908(); // TODO : This shouldn't be hardcoded.
   initialize64(Arch_amdgpu_gfx908);
   return globalABI64_;
-#else
+#endif
+
 #if defined(DYNINST_CODEGEN_ARCH_64BIT)
 	initialize64();
-#endif
 #endif
     }
     return (addr_width == 4) ? globalABI_ : globalABI64_;

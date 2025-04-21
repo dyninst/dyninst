@@ -2376,7 +2376,7 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
 
 #if defined(arch_amdgpu)
 	/* nothing here, but .... palceholder! */
-#if defined(DYNINST_HOST_ARCH_AARCH64)
+#elif defined(DYNINST_HOST_ARCH_AARCH64)
         elf_gregset_t regs;
         struct iovec iovec;
         iovec.iov_base = &regs;
