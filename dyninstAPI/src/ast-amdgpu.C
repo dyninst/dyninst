@@ -2950,10 +2950,6 @@ void regTracker_t::decreaseAndClean(codeGen &) {
     condLevel--;
 }
 
-unsigned regTracker_t::astHash(AstNode* const &ast) {
-	return addrHash4((Address) ast);
-}
-
 void regTracker_t::debugPrint() {
     if (!dyn_debug_ast) return;
 
