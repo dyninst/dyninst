@@ -1,41 +1,33 @@
-\subsection{Immediate Class}
-\label{sec:immediate}
+.. _sec:immediate:
+
+Immediate Class
+---------------
 
 The Immediate class represents an immediate value in an operand.
 
-Since an Immediate represents a constant value, the \code{setValue} and
-\code{clearValue} interface are disabled on Immediate objects. If an immediate
-value is being modified, a new Immediate object should be created to represent
-the new value. 
+Since an Immediate represents a constant value, the and interface are
+disabled on Immediate objects. If an immediate value is being modified,
+a new Immediate object should be created to represent the new value.
 
-\begin{apient}
-virtual bool isUsed(Expression::Ptr findMe) const
-\end{apient}
+.. code::
+  virtual bool isUsed(Expression::Ptr findMe) const
 
-\begin{apient}
-void getChildren(vector<Expression::Ptr> &) const
-\end{apient}
-\apidesc{
-By definition, an \code{Immediate} has no children.
-}
+.. code::
+  void getChildren(vector<Expression::Ptr> &) const
 
-\begin{apient}
-void getUses(set<Expression::Ptr> &)
-\end{apient}
-\apidesc{
-By definition, an \code{Immediate} uses no registers.
-}
+By definition, an ``Immediate`` has no children.
 
-\begin{apient}
-bool isUsed(InstructionAPI::Ptr findMe) const
-\end{apient}
-\apidesc{
-\code{isUsed}, when called on an Immediate, will return true if \code{findMe}
+.. code::
+  void getUses(set<Expression::Ptr> &)
+
+By definition, an ``Immediate`` uses no registers.
+
+.. code::
+  bool isUsed(Expression::Ptr findMe) const
+
+``isUsed``, when called on an Immediate, will return true if \code{findMe}
 represents an Immediate with the same value. While this convention may seem
-arbitrary, it allows \code{isUsed} to follow a natural rule: an
-\code{Expression}
-is used by another \code{Expression} if and only if the first
-\code{Expression} is a
-subtree of the second one. 
-}
+arbitrary, it allows ``isUsed`` to follow a natural rule: an ``Expression``
+is used by another ``Expression`` if and only if the first
+``Expression`` is a subtree of the second one.
 

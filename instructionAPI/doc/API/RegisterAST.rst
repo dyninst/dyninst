@@ -1,71 +1,56 @@
-\subsection{RegisterAST Class}
-\label{sec:registerAST}
+.. _sec:registerAST:
 
-A \code{RegisterAST} object represents a register contained in an operand. As a \code{RegisterAST}
-is an \code{Expression}, it may contain the physical register's contents if they
-are known.
+RegisterAST Class
+-----------------
 
-\begin{apient}
-  typedef dyn\_detail::boost::shared\_ptr<RegisterAST> Ptr
-\end{apient}
-\apidesc{ A type definition for a reference-counted pointer to a \code{RegisterAST}. }
+A object represents a register contained in an operand. As a is an , it
+may contain the physical register’s contents if they are known.
 
-\begin{apient}
+typedef dyn_detail::boost::shared_ptr<RegisterAST> Ptr
+
+.. code::
   RegisterAST (MachRegister r)
-\end{apient}
-\apidesc{ Construct a register using the provided register object \code{r}. The \code{MachRegister} datatype
-is Dyninst's register representation and should not be constructed manually. }
 
-\begin{apient}
+Constructor
+
+.. code::
   void getChildren (vector< Expression::Ptr > & children) const
-\end{apient}
-\apidesc{ By definition, a \code{RegisterAST} object has no children. Since a \code{RegisterAST} has no children, 
-the \code{children} parameter is unchanged by this method. }
 
-\begin{apient}
+By definition, a ``RegisterAST`` object has no children. Since a ``RegisterAST`` has no children,
+the ``children`` parameter is unchanged by this method.
+
+.. code::
   void getUses (set< Expression::Ptr > & uses)
-\end{apient}
-\apidesc{ By definition, the use set of a \code{RegisterAST} object is itself. This \code{RegisterAST} will be 
-inserted into \code{uses}. }
 
-\begin{apient}
+By definition, the use set of a ``RegisterAST`` object is itself. This ``RegisterAST`` will be
+inserted into ``uses``.
+
+.. code::
   bool isUsed (Expression::Ptr findMe) const
-\end{apient}
-\apidesc{ \code{isUsed} returns \code{true} if \code{findMe} is a \code{RegisterAST} that represents the same 
-register as this \code{RegisterAST}, and \code{false} otherwise. }
 
-\begin{apient}
+``isUsed`` returns ``true`` if ``findMe`` is a ``RegisterAST`` that represents the same
+register as this ``RegisterAST``, and ``false`` otherwise.
+
+.. code::
   std::string format (formatStyle how = defaultStyle) const
-\end{apient}
-\apidesc{ The format method on a \code{RegisterAST} object returns the name associated with its ID. }
 
-\begin{apient}
+.. code::
   RegisterAST makePC (Dyninst::Architecture arch) [static]
-\end{apient}
-\apidesc{ Utility function to get a \code{Register} object that represents the program counter. \code{makePC} 
-is provided to support platform-independent control flow analysis. }
 
-\begin{apient}
+.. code::
   bool operator< (const RegisterAST & rhs) const
-\end{apient}
-\apidesc{ We define a partial ordering on registers by their register number so that they may be placed into 
-sets or other sorted containers. }
 
-\begin{apient}
-  MachRegister getID () const
-\end{apient}
-\apidesc{ The \code{getID} function returns underlying register represented by this AST. }
-
-\begin{apient}
+.. code::
   RegisterAST::Ptr promote (const Expression::Ptr reg) [static]
-\end{apient}
-\apidesc{ Utility function to hide aliasing complexity on platforms (IA-32) that allow addressing part 
-or all of a register }
 
+Utility function to hide aliasing complexity on platforms (IA-32) that allow addressing part
+or all of a register
 
-\subsection{MaskRegisterAST Class}
-\label{sec:MaskRegisterAST}
+.. _sec:MaskRegisterAST:
 
-Class for mask register operands. This class is the same as the RegisterAST
-class except it handles the syntactial differences between register operands
-and mask register operands.
+MaskRegisterAST Class
+---------------------
+
+Class for mask register operands. This class is the same as the
+RegisterAST class except it handles the syntactial differences between
+register operands and mask register operands.
