@@ -479,14 +479,76 @@ Register EmitterRISCV64::emitCallReplacement(opCode,
 // Instrumentation vs function call replacement
 // Static vs. dynamic
 
-Register EmitterRISCV64::emitCall(opCode /*op*/,
-                                  codeGen &/*gen*/,
-                                  const std::vector<AstNodePtr> &/*operands*/,
+Register EmitterRISCV64::emitCall(opCode op,
+                                  codeGen &gen,
+                                  const std::vector<AstNodePtr> &operands,
                                   bool,
-                                  func_instance * /*callee*/) 
+                                  func_instance * callee) 
 {
-    // Not used currently
-    assert(0);
+    if (op != callOp) {
+        cerr << "ERROR: emitCall with op == " << op << endl;
+    }
+    assert(op == callOp);
+
+    std::vector<Register> srcs;
+    std::vector<Register> saves;
+
+    //  Sanity check for NULL address arg
+    if (!callee) 
+    {
+        char msg[256];
+        sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
+                "callee argument", __FILE__, __LINE__);
+        showErrorCallback(80, msg);
+        assert(0);
+    }
+
+    // TODO Optimization: we don't need to store all registers
+
+    vector<int> savedRegs;
+    // Save registers
+    for (int id = 0; id < gen.rs()->numGPRs(); id++) {
+        registerSlot *reg = gen.rs()->GPRs()[id];
+
+        // We must save if:
+        // refCount > 0 (and not a source register)
+        // keptValue == true (keep over the call)
+        // liveState == live (technically, only if not saved by the callee)
+
+        if ((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live)) {
+            insnCodeGen::saveRegister(gen, registerSpace::r0 + id, -2 * GPRSIZE_64, gen.getUseRVC());
+            savedRegs.push_back(reg->number);
+        }
+    }
+
+    // Passing operands to registers
+    for (size_t id = 0; id < operands.size(); id++) {
+        Register reg = Null_Register;
+        if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r0 + id, true)) {
+            reg = registerSpace::r0 + id;
+        }
+
+        Address unnecessary = ADDR_NULL;
+        if (!operands[id]->generateCode_phase2(gen, false, unnecessary, reg)) {
+            assert(0);
+        }
+        assert(reg != Null_Register);
+    }
+
+    // Address of function to call in scratch register
+    Register scratch = gen.rs()->getScratchRegister(gen);
+    assert(scratch != Null_Register && "cannot get a scratch register");
+    gen.markRegDefined(scratch);
+
+    // Generate the call instruction
+    Address dest = getInterModuleFuncAddr(callee, gen);
+    insnCodeGen::generateCall(gen, gen.currAddr(), dest);
+
+    // Restore saved registers
+    for (signed int ui = savedRegs.size() - 1; ui >= 0; ui--) {
+        insnCodeGen::restoreRegister(gen, registerSpace::r0 + savedRegs[ui],
+                2 * GPRSIZE_64, gen.getUseRVC());
+    }
     return 0;
 }
 
