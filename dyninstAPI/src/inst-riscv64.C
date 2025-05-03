@@ -295,12 +295,12 @@ void EmitterRISCV64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, in
  */
 void pushStack(codeGen &gen)
 {
-    insnCodeGen::generateAddi(gen, REG_SP, REG_SP, -TRAMP_FRAME_SIZE_64, gen.getUseRVC());
+    insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, -TRAMP_FRAME_SIZE_64, gen.getUseRVC());
 }
 
 void popStack(codeGen &gen)
 {
-    insnCodeGen::generateAddi(gen, REG_SP, REG_SP, TRAMP_FRAME_SIZE_64, gen.getUseRVC());
+    insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, TRAMP_FRAME_SIZE_64, gen.getUseRVC());
 }
 
 /*********************************** Base Tramp ***********************************************/
@@ -366,11 +366,23 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, codeGen 
 {
     switch (op) {
         case plusOp: {
-            insnCodeGen::generateAddi(gen, dest, src1, src2imm, gen.getUseRVC());
+            if (-src2imm >= -0x800 && -src2imm < 0x800) {
+                insnCodeGen::generateAddi(gen, dest, src1, src2imm & 0xfff, gen.getUseRVC());
+            }
+            else {
+                Register scratch = insnCodeGen::moveValueToReg(gen, src2imm);
+                insnCodeGen::generateAdd(gen, dest, src1, scratch, gen.getUseRVC());
+            }
             break;
         }
         case minusOp: {
-            insnCodeGen::generateAddi(gen, dest, src1, -src2imm, gen.getUseRVC());
+            if (-src2imm >= -0x800 && -src2imm < 0x800) {
+                insnCodeGen::generateAddi(gen, dest, src1, (-src2imm) & 0xfff, gen.getUseRVC());
+            }
+            else {
+                Register scratch = insnCodeGen::moveValueToReg(gen, -src2imm);
+                insnCodeGen::generateAnd(gen, dest, src1, scratch, gen.getUseRVC());
+            }
             break;
         }
         case timesOp: {
@@ -386,15 +398,33 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, codeGen 
             break;
         }
         case xorOp: {
-            insnCodeGen::generateXori(gen, dest, src1, src2imm, gen.getUseRVC());
+            if (-src2imm >= -0x800 && -src2imm < 0x800) {
+                insnCodeGen::generateXori(gen, dest, src1, src2imm & 0xfff, gen.getUseRVC());
+            }
+            else {
+                Register scratch = insnCodeGen::moveValueToReg(gen, src2imm);
+                insnCodeGen::generateXor(gen, dest, src1, scratch, gen.getUseRVC());
+            }
             break;
         }
         case orOp: {
-            insnCodeGen::generateOri(gen, dest, src1, src2imm, gen.getUseRVC());
+            if (-src2imm >= -0x800 && -src2imm < 0x800) {
+                insnCodeGen::generateOri(gen, dest, src1, src2imm & 0xfff, gen.getUseRVC());
+            }
+            else {
+                Register scratch = insnCodeGen::moveValueToReg(gen, src2imm);
+                insnCodeGen::generateOr(gen, dest, src1, scratch, gen.getUseRVC());
+            }
             break;
         }
         case andOp: {
-            insnCodeGen::generateAndi(gen, dest, src1, src2imm, gen.getUseRVC());
+            if (-src2imm >= -0x800 && -src2imm < 0x800) {
+                insnCodeGen::generateAndi(gen, dest, src1, src2imm & 0xfff, gen.getUseRVC());
+            }
+            else {
+                Register scratch = insnCodeGen::moveValueToReg(gen, src2imm);
+                insnCodeGen::generateAnd(gen, dest, src1, scratch, gen.getUseRVC());
+            }
             break;
         }
         case eqOp:
@@ -659,8 +689,8 @@ static inline void restoreGPRtoGPR(codeGen &gen,
     gpr_off    = TRAMP_GPR_OFFSET_64;   
 
     //Stack Point Register
-    if (reg == 31) {
-        insnCodeGen::generateAddi(gen, frame_size, REG_SP, dest, gen.getUseRVC());
+    if (reg == GPR_SP) {
+        insnCodeGen::generateAddImm(gen, dest, REG_SP, frame_size, gen.getUseRVC());
     }
     else {
         insnCodeGen::restoreRegister(gen, dest, gpr_off + reg * gpr_size, gen.getUseRVC());
@@ -698,12 +728,29 @@ void MovePCToReg(Register /*dest*/, codeGen &/*gen*/) {
 
 // Yuhan(02/04/19): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
-void emitASload(const BPatch_addrSpec_NP * /*as*/, Register /*dest*/, int /*stackShift*/,
-                codeGen &/*gen*/,
-                bool) {
-    // Not used currently
-    assert(0);
-    return;
+void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
+                codeGen &gen,
+                bool noCost) {
+    assert(stackShift == 0);
+    int imm = as->getImm();
+    int ra  = as->getReg(0);
+    int rb  = as->getReg(1);
+
+    // emit code to load the immediate (constant offset) into dest; this
+    // writes at gen+base and updates base, we must update insn...
+    emitVload(loadConstOp, (Address)imm, dest, dest, gen, noCost);
+
+    // If ra is used in the address spec, allocate a temp register and
+    // get the value of ra from stack into it
+    if (ra > -1) {
+        emitAddOriginal(ra, dest, gen, noCost);
+    }
+
+    // If rb is used in the address spec, allocate a temp register and
+    // get the value of ra from stack into it
+    if (rb > -1) {
+        emitAddOriginal(rb, dest, gen, noCost);
+    }
 }
 
 void emitCSload(const BPatch_addrSpec_NP *, Register, codeGen &,
