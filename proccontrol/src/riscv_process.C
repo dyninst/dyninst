@@ -32,9 +32,84 @@
 #include <iostream>
 #include "proccontrol/src/riscv_process.h"
 #include "common/src/arch-riscv64.h"
+#include "registers/riscv64_regs.h"
+#include "registers/abstract_regs.h"
 
 using namespace NS_riscv64;
 using namespace std;
+
+namespace {
+  MachRegister as_system_register(unsigned int regNum) {
+    switch(regNum) {
+      case 0: return Dyninst::riscv64::x0;
+      case 1: return Dyninst::riscv64::x1;
+      case 2: return Dyninst::riscv64::x2;
+      case 3: return Dyninst::riscv64::x3;
+      case 4: return Dyninst::riscv64::x4;
+      case 5: return Dyninst::riscv64::x5;
+      case 6: return Dyninst::riscv64::x6;
+      case 7: return Dyninst::riscv64::x7;
+      case 8: return Dyninst::riscv64::x8;
+      case 9: return Dyninst::riscv64::x9;
+      case 10: return Dyninst::riscv64::x10;
+      case 11: return Dyninst::riscv64::x11;
+      case 12: return Dyninst::riscv64::x12;
+      case 13: return Dyninst::riscv64::x13;
+      case 14: return Dyninst::riscv64::x14;
+      case 15: return Dyninst::riscv64::x15;
+      case 16: return Dyninst::riscv64::x16;
+      case 17: return Dyninst::riscv64::x17;
+      case 18: return Dyninst::riscv64::x18;
+      case 19: return Dyninst::riscv64::x19;
+      case 20: return Dyninst::riscv64::x20;
+      case 21: return Dyninst::riscv64::x21;
+      case 22: return Dyninst::riscv64::x22;
+      case 23: return Dyninst::riscv64::x23;
+      case 24: return Dyninst::riscv64::x24;
+      case 25: return Dyninst::riscv64::x25;
+      case 26: return Dyninst::riscv64::x26;
+      case 27: return Dyninst::riscv64::x27;
+      case 28: return Dyninst::riscv64::x28;
+      case 29: return Dyninst::riscv64::x29;
+      case 30: return Dyninst::riscv64::x30;
+      case 31: return Dyninst::riscv64::x31;
+      case 32: return Dyninst::riscv64::f0;
+      case 33: return Dyninst::riscv64::f1;
+      case 34: return Dyninst::riscv64::f2;
+      case 35: return Dyninst::riscv64::f3;
+      case 36: return Dyninst::riscv64::f4;
+      case 37: return Dyninst::riscv64::f5;
+      case 38: return Dyninst::riscv64::f6;
+      case 39: return Dyninst::riscv64::f7;
+      case 40: return Dyninst::riscv64::f8;
+      case 41: return Dyninst::riscv64::f9;
+      case 42: return Dyninst::riscv64::f10;
+      case 43: return Dyninst::riscv64::f11;
+      case 44: return Dyninst::riscv64::f12;
+      case 45: return Dyninst::riscv64::f13;
+      case 46: return Dyninst::riscv64::f14;
+      case 47: return Dyninst::riscv64::f15;
+      case 48: return Dyninst::riscv64::f16;
+      case 49: return Dyninst::riscv64::f17;
+      case 50: return Dyninst::riscv64::f18;
+      case 51: return Dyninst::riscv64::f19;
+      case 52: return Dyninst::riscv64::f20;
+      case 53: return Dyninst::riscv64::f21;
+      case 54: return Dyninst::riscv64::f22;
+      case 55: return Dyninst::riscv64::f23;
+      case 56: return Dyninst::riscv64::f24;
+      case 57: return Dyninst::riscv64::f25;
+      case 58: return Dyninst::riscv64::f26;
+      case 59: return Dyninst::riscv64::f27;
+      case 60: return Dyninst::riscv64::f28;
+      case 61: return Dyninst::riscv64::f29;
+      case 62: return Dyninst::riscv64::f30;
+      case 63: return Dyninst::riscv64::f31;
+      case 64: return Dyninst::riscv64::pc;
+    }
+    return Dyninst::InvalidReg;
+  }
+}
 
 //constructors, blank functions
 riscv_process::riscv_process(Dyninst::PID p, std::string e, std::vector<std::string> a,
@@ -318,7 +393,7 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
             unsigned regNum = insn.getTargetReg();
 
             reg_response::ptr Response = reg_response::createRegResponse();
-            bool result = thr->getRegister(MachRegister::getArchReg(regNum, Arch_riscv64), Response);
+            bool result = thr->getRegister(as_system_register(regNum), Response);
             if (!result || Response->hasError()) {
                pthrd_printf("Error reading PC address to check for emulated single step condition\n");
                return aret_error;

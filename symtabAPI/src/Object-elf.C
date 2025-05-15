@@ -4205,7 +4205,7 @@ bool ObjectELF::getRegValueAtFrame(Dyninst::Address pc, Dyninst::MachRegister re
 
 }
 
-bool Object::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
+bool ObjectELF::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
     // .riscv.attributes
 
     // From https://github.com/riscv-non-isa/riscv-elf-psabi-doc/blob/master/riscv-elf.adoc#attributes:
