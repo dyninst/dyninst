@@ -29,7 +29,11 @@
  */
 
 #include "IA_riscv64.h"
-#include "instructionAPI/h/syscalls.h"
+#include "Register.h"
+#include "Dereference.h"
+#include "Immediate.h"
+#include "BinaryFunction.h"
+
 #include "common/src/arch-riscv64.h"
 #include "registers/riscv64_regs.h"
 #include "parseAPI/src/debug_parse.h"
