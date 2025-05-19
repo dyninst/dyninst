@@ -609,6 +609,17 @@ SymtabCodeSource::init_linkage()
         //fprintf( stderr, "%lx %s\n", (*fbtit).target_addr(), (*fbtit).name().c_str());
         _linkage[(*fbtit).target_addr()] = (*fbtit).name(); 
     }
+    // RISC-V: Other relocation entries
+    if (getArch() == Arch_riscv64) {
+        SymtabAPI::Region * relaDyn = NULL;
+        if (_symtab->findRegion(relaDyn, ".rela.dyn")) {
+            std::vector<SymtabAPI::relocationEntry> &relocs = relaDyn->getRelocations();
+            for (auto re_it = relocs.begin(); re_it != relocs.end(); ++re_it) {
+                SymtabAPI::relocationEntry &r = *re_it;
+                _other_linkage[r.rel_addr()] = std::make_pair(r.name(), r.target_addr());
+            }
+        }
+    }
     if (getArch() != Arch_x86_64) return;
     SymtabAPI::Region * plt_sec = NULL;
     if (_symtab->findRegion(plt_sec, ".plt.sec")) {

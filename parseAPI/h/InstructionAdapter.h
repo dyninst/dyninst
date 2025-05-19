@@ -89,6 +89,7 @@ class InstructionAdapter
             ParseAPI::Block* currBlk,
             unsigned int num_insns,
             dyn_hash_map<Address, std::string> *pltFuncs,
+            dyn_hash_map<Address, std::pair<std::string, Address>> *reladynFuncs,
 	    const std::set<Address> &) const =
 0;
     virtual bool isDynamicCall() const = 0;
