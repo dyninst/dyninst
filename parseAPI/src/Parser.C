@@ -88,6 +88,14 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
         plt_entries[lit->first] = lit->second;
     }
 
+    // cache other relocation entries (RELA)
+    const map<Address, std::pair<string, Address>> & olm = obj.cs()->other_linkage();
+    map<Address, std::pair<string, Address>>::const_iterator olit = olm.begin();
+    for( ; olit != olm.end(); ++olit) {
+        parsing_printf("Cached RELA entry %s @ %lx (%lx)\n", olit->second.first.c_str(), olit->second.second, olit->first);
+        reladyn_entries[olit->first] = olit->second;
+    }
+
     if(obj.cs()->regions().empty()) {
         parsing_printf("[%s:%d] CodeSource provides no CodeRegions"
                 " -- unparesable\n",
