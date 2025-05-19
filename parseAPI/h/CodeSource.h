@@ -129,6 +129,11 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     mutable std::map<Address, std::string> _linkage;
 
     /*
+     * Other named external linkage table (e.g. .rela.dyn). Optional.
+     */
+    mutable std::map<Address, std::pair<std::string, Address> > _other_linkage;
+
+    /*
      * Table of Contents for position independent references. Optional.
      */
     Address _table_of_contents;
@@ -183,6 +188,7 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     virtual Address loadAddress() const { return 0; }
 
     std::map< Address, std::string > & linkage() const { return _linkage; }
+    std::map< Address, std::pair<std::string, Address> > & other_linkage() const { return _other_linkage; }
 //    std::vector< Hint > const& hints() const { return _hints; } 
     dyn_c_vector<Hint> const& hints() const { return _hints; }
     std::vector<CodeRegion *> const& regions() const { return _regions; }

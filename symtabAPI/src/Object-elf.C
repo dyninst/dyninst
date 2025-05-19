@@ -3900,9 +3900,11 @@ bool ObjectELF::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
 
             // Determine which symbol table to use
             Symbol *sym = NULL;
+            Offset target = 0;
             // Use dynstr to ensure we've initialized dynsym...
             if (dynstr && curSymHdr && curSymHdr->sh_offset() == dynsym_offset) {
                 name = string(&dynstr[dynsym.st_name(symbol_index)]);
+                target = dynsym.st_value(symbol_index);
                 dyn_hash_map<int, Symbol *>::iterator sym_it;
                 sym_it = dynsymByIndex.find(symbol_index);
                 if (sym_it != dynsymByIndex.end()) {
@@ -3931,7 +3933,7 @@ bool ObjectELF::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
             }
 
             if (region != NULL) {
-                relocationEntry newrel(0, relOff, addend, name, sym, relType, regType);
+                relocationEntry newrel(target, relOff, addend, name, sym, relType, regType);
                 region->addRelocationEntry(newrel);
                 // relocations are also stored with their targets
                 // Need to find target region
