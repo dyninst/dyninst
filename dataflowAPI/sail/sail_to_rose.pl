@@ -334,7 +334,7 @@ EOF
                 foreach my $arg_idx (@{$c_insn_new_arg{$curr_set}}) {
                     if ($arg_idx < 0 && !$implicit_regs->has($arg_idx)) {
                         my $reg_idx = -$arg_idx - 1;
-                        print "SgAsmDirectRegisterExpression dre$reg_idx\{d->findRegister(\"x$reg_idx\", 64)\};\n";
+                        print "SgAsmDirectRegisterExpression dre$reg_idx\{d->findRegister(\"x$reg_idx\", XLENBITS)\};\n";
                         $implicit_regs->insert($arg_idx);
                     }
                 }
@@ -514,7 +514,7 @@ sub do_exp {
                 my ($is_unsigned_ast, $result) = @{$exps_ast};
                 my $is_unsigned = do_exp($is_unsigned_ast);
                 my $res = do_exp($result);
-                return "($is_unsigned ? d->SignExtend($res, 64) : d->ZeroExtend($res, 64))";
+                return "($is_unsigned ? d->SignExtend($res, XLENBITS) : d->ZeroExtend($res, XLENBITS))";
             }
             elsif ($function_name eq "subrange_bits") {
                 my ($exp1_ast, $exp2_ast, $exp3_ast) = @{$exps_ast};
@@ -616,7 +616,7 @@ sub do_exp {
                 return "d->readRegister(d->REG_PC)";
             }
             elsif ($function_name eq "get_next_pc") {
-                return "ops->add(d->readRegister(d->REG_PC), ops->number_(64, insn->get_size()))"
+                return "ops->add(d->readRegister(d->REG_PC), ops->number_(XLENBITS, insn->get_size()))"
             }
             elsif ($function_name eq "set_next_pc") {
                 my ($id_ast) = @{$exps_ast};
@@ -627,7 +627,7 @@ sub do_exp {
             elsif ($function_name eq "rX_bits") {
                 my ($id_ast) = @{$exps_ast};
                 my $id = do_exp($id_ast);
-                return "d->read($id, 64, 0)";
+                return "d->read($id, XLENBITS, 0)";
             }
             elsif ($function_name eq "wX_bits") {
                 my ($id_ast, $exp_ast) = @{$exps_ast};
@@ -1038,7 +1038,7 @@ sub rose_tr {
     # Remove invalid identifiers that are valid in SAIL
     $id =~ s/'/_/g;
     if ($id =~ /^(imm|rs\d*|shamt)$/) {
-        return "d->read($id, 64, 0)";
+        return "d->read($id, XLENBITS, 0)";
     }
     return $id;
 }
@@ -1047,5 +1047,5 @@ sub rose_tr {
 
 sub rose_number {
     my ($id) = @_;
-    return "ops->number_(64, $id)";
+    return "ops->number_(XLENBITS, $id)";
 }
