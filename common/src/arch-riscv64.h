@@ -137,10 +137,12 @@ constexpr int AUIPC_REG_SHIFT            = 7;
 
 // Jump/Branch instructions
 
-constexpr int64_t MAX_BRANCH_OFFSET      = 0xfffffLL;     // 21 bits signed (not 20 because imm is shifted 1 bits left)
-constexpr int64_t MIN_BRANCH_OFFSET      = -0x1000000LL;  // 21 bits signed (not 20 because imm is shifted 1 bits left)
-constexpr int64_t MAX_AUIPC_OFFSET       = 0x7fffffffLL;  // 32 bits signed (not 20 because imm is shifted 12 bits left)
-constexpr int64_t MIN_AUIPC_OFFSET       = -0x80000000LL; // 32 bits signed (not 20 because imm is shifted 12 bits left)
+constexpr int64_t MAX_BRANCH_OFFSET      = 0x100000LL;    // 21 bits signed (not 20 because imm is shifted 1 bits left)
+constexpr int64_t MIN_BRANCH_OFFSET      = -0x100000LL;   // 21 bits signed (not 20 because imm is shifted 1 bits left)
+constexpr int64_t MAX_BRANCH_LINK_OFFSET = 0x800LL;       // 12 bits signed
+constexpr int64_t MIN_BRANCH_LINK_OFFSET = -0x800LL;      // 12 bits signed
+constexpr int64_t MAX_AUIPC_OFFSET       = 0x80000000LL;  // 32 bits signed
+constexpr int64_t MIN_AUIPC_OFFSET       = -0x80000000LL; // 32 bits signed
 
 constexpr insnBuf_t J_INSN_MASK      = insnBuf_t(0x0000007f);
 constexpr insnBuf_t B_INSN_MASK      = insnBuf_t(0x0000007f);
