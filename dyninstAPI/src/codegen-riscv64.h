@@ -139,6 +139,21 @@ public:
                                  Dyninst::RegValue size,
                                  bool useRVC);
 
+    static bool generateLd(codeGen &gen,
+                           Dyninst::Register rd,
+                           Dyninst::Register rs,
+                           Dyninst::RegValue offset,
+                           Dyninst::RegValue size,
+                           bool isUnsigned,
+                           bool useRVC);
+
+    static bool generateSt(codeGen &gen,
+                           Dyninst::Register rs1,
+                           Dyninst::Register rs2,
+                           Dyninst::RegValue offset,
+                           Dyninst::RegValue size,
+                           bool useRVC);
+
     static bool generateMemLoadFp(codeGen &gen,
                                   Dyninst::Register rd,
                                   Dyninst::Register rs,
@@ -167,16 +182,22 @@ public:
 			               NS_riscv64::instruction &insn,
 			               codeGen &gen);
 
+    static bool generateAddImm(codeGen &gen,
+                               Dyninst::Register rd,
+                               Dyninst::Register rs,
+                               Dyninst::RegValue sImm,
+                               bool useRVC);
+
     static bool generateLoadImm(codeGen &gen,
                                 Dyninst::Register rd,
-                                Dyninst::RegValue imm,
+                                Dyninst::RegValue sImm,
                                 bool isRel,
                                 bool optimize,
                                 bool useRVC);
 
     static bool generateCalcImm(codeGen &gen,
                                 Dyninst::Register rd,
-                                Dyninst::RegValue imm,
+                                Dyninst::RegValue sImm,
                                 bool isRel,
                                 bool optimize,
                                 bool useRVC);
