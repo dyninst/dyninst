@@ -295,12 +295,12 @@ void EmitterRISCV64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, in
  */
 void pushStack(codeGen &gen)
 {
-    insnCodeGen::generateAddi(gen, REG_SP, REG_SP, -TRAMP_FRAME_SIZE_64, gen.getUseRVC());
+    insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, -TRAMP_FRAME_SIZE_64, gen.getUseRVC());
 }
 
 void popStack(codeGen &gen)
 {
-    insnCodeGen::generateAddi(gen, REG_SP, REG_SP, TRAMP_FRAME_SIZE_64, gen.getUseRVC());
+    insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, TRAMP_FRAME_SIZE_64, gen.getUseRVC());
 }
 
 /*********************************** Base Tramp ***********************************************/
@@ -366,11 +366,23 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, codeGen 
 {
     switch (op) {
         case plusOp: {
-            insnCodeGen::generateAddi(gen, dest, src1, src2imm, gen.getUseRVC());
+            if (-src2imm >= -0x800 && -src2imm < 0x800) {
+                insnCodeGen::generateAddImm(gen, dest, src1, src2imm & 0xfff, gen.getUseRVC());
+            }
+            else {
+                Register scratch = insnCodeGen::moveValueToReg(gen, src2imm);
+                insnCodeGen::generateAdd(gen, dest, src1, scratch, gen.getUseRVC());
+            }
             break;
         }
         case minusOp: {
-            insnCodeGen::generateAddi(gen, dest, src1, -src2imm, gen.getUseRVC());
+            if (-src2imm >= -0x800 && -src2imm < 0x800) {
+                insnCodeGen::generateAddImm(gen, dest, src1, (-src2imm) & 0xfff, gen.getUseRVC());
+            }
+            else {
+                Register scratch = insnCodeGen::moveValueToReg(gen, -src2imm);
+                insnCodeGen::generateAnd(gen, dest, src1, scratch, gen.getUseRVC());
+            }
             break;
         }
         case timesOp: {
@@ -386,15 +398,33 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, codeGen 
             break;
         }
         case xorOp: {
-            insnCodeGen::generateXori(gen, dest, src1, src2imm, gen.getUseRVC());
+            if (-src2imm >= -0x800 && -src2imm < 0x800) {
+                insnCodeGen::generateXori(gen, dest, src1, src2imm & 0xfff, gen.getUseRVC());
+            }
+            else {
+                Register scratch = insnCodeGen::moveValueToReg(gen, src2imm);
+                insnCodeGen::generateXor(gen, dest, src1, scratch, gen.getUseRVC());
+            }
             break;
         }
         case orOp: {
-            insnCodeGen::generateOri(gen, dest, src1, src2imm, gen.getUseRVC());
+            if (-src2imm >= -0x800 && -src2imm < 0x800) {
+                insnCodeGen::generateOri(gen, dest, src1, src2imm & 0xfff, gen.getUseRVC());
+            }
+            else {
+                Register scratch = insnCodeGen::moveValueToReg(gen, src2imm);
+                insnCodeGen::generateOr(gen, dest, src1, scratch, gen.getUseRVC());
+            }
             break;
         }
         case andOp: {
-            insnCodeGen::generateAndi(gen, dest, src1, src2imm, gen.getUseRVC());
+            if (-src2imm >= -0x800 && -src2imm < 0x800) {
+                insnCodeGen::generateAndi(gen, dest, src1, src2imm & 0xfff, gen.getUseRVC());
+            }
+            else {
+                Register scratch = insnCodeGen::moveValueToReg(gen, src2imm);
+                insnCodeGen::generateAnd(gen, dest, src1, scratch, gen.getUseRVC());
+            }
             break;
         }
         case eqOp:
@@ -479,14 +509,70 @@ Register EmitterRISCV64::emitCallReplacement(opCode,
 // Instrumentation vs function call replacement
 // Static vs. dynamic
 
-Register EmitterRISCV64::emitCall(opCode /*op*/,
-                                  codeGen &/*gen*/,
-                                  const std::vector<AstNodePtr> &/*operands*/,
+Register EmitterRISCV64::emitCall(opCode op,
+                                  codeGen &gen,
+                                  const std::vector<AstNodePtr> &operands,
                                   bool,
-                                  func_instance * /*callee*/) 
+                                  func_instance * callee) 
 {
-    // Not used currently
-    assert(0);
+    if (op != callOp) {
+        cerr << "ERROR: emitCall with op == " << op << endl;
+    }
+    assert(op == callOp);
+
+    std::vector<Register> srcs;
+    std::vector<Register> saves;
+
+    //  Sanity check for NULL address arg
+    if (!callee) 
+    {
+        char msg[256];
+        sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
+                "callee argument", __FILE__, __LINE__);
+        showErrorCallback(80, msg);
+        assert(0);
+    }
+
+    // We first save all necessary registers
+    vector<int> savedRegs;
+    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
+        registerSlot *reg = gen.rs()->GPRs()[i];
+        if ((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live)) {
+            insnCodeGen::saveRegister(gen, registerSpace::r0 + i,
+                                      -2 * GPRSIZE_64, gen.getUseRVC());
+            savedRegs.push_back(reg->number);
+        }
+    }
+
+    // Generate code that handles operand registers
+    for (size_t id = 0; id < operands.size(); id++) {
+        Register reg = Null_Register;
+        if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r0 + id, true)) {
+            reg = registerSpace::r0 + id;
+        }
+
+        Address unnecessary = ADDR_NULL;
+        if (!operands[id]->generateCode_phase2(gen, false, unnecessary, reg)) {
+            assert(0);
+        }
+        assert(reg != Null_Register);
+    }
+
+    // Move the function call address into a scratch register
+    Register dest = gen.rs()->getScratchRegister(gen);
+    assert(dest != Null_Register && "cannot get a dest register");
+    gen.markRegDefined(dest);
+    insnCodeGen::loadImmIntoReg(gen, dest, callee->addr(), gen.getUseRVC());
+
+
+    // Generate jr
+    insnCodeGen::generateJr(gen, dest, 0, gen.getUseRVC());
+
+    // Finally, we restore all necessary registers
+    for (signed int i = savedRegs.size() - 1; i >= 0; i--) {
+        insnCodeGen::restoreRegister(gen, registerSpace::r0 + savedRegs[i],
+                                     2 * GPRSIZE_64, gen.getUseRVC());
+    }
     return 0;
 }
 
@@ -597,8 +683,8 @@ static inline void restoreGPRtoGPR(codeGen &gen,
     gpr_off    = TRAMP_GPR_OFFSET_64;   
 
     //Stack Point Register
-    if (reg == 31) {
-        insnCodeGen::generateAddi(gen, frame_size, REG_SP, dest, gen.getUseRVC());
+    if (reg == GPR_SP) {
+        insnCodeGen::generateAddImm(gen, frame_size, REG_SP, dest, gen.getUseRVC());
     }
     else {
         insnCodeGen::restoreRegister(gen, dest, gpr_off + reg * gpr_size, gen.getUseRVC());
@@ -636,11 +722,40 @@ void MovePCToReg(Register /*dest*/, codeGen &/*gen*/) {
 
 // Yuhan(02/04/19): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
-void emitASload(const BPatch_addrSpec_NP * /*as*/, Register /*dest*/, int /*stackShift*/,
-                codeGen &/*gen*/,
+void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
+                codeGen &gen,
                 bool) {
-    // Not used currently
-    assert(0);
+    assert(stackShift == 0);
+    long int imm = as->getImm();
+    int ra  = as->getReg(0);
+    int rb  = as->getReg(1);
+    int sc  = as->getScale();
+    gen.markRegDefined(dest);
+    if (ra > -1) {
+        if (ra == 64) {
+            insnCodeGen::loadImmIntoReg(gen, dest, imm, gen.getUseRVC());
+            return;
+        } else {
+            restoreGPRtoGPR(gen, ra, dest);
+        }
+    } else {
+        insnCodeGen::loadImmIntoReg(gen, dest, 0, gen.getUseRVC());
+    }
+    if(rb > -1) {
+        std::vector<Register> exclude;
+        exclude.push_back(dest);
+        Register scratch = gen.rs()->getScratchRegister(gen, exclude);
+        assert(scratch != Null_Register && "cannot get a scratch register");
+        gen.markRegDefined(scratch);
+        restoreGPRtoGPR(gen, rb, scratch);
+        if (sc > 0) {
+            insnCodeGen::generateSlli(gen, dest, scratch, sc, gen.getUseRVC());
+        }
+        insnCodeGen::generateAddImm(gen, dest, scratch, dest, gen.getUseRVC());
+    }
+    if (imm) {
+        insnCodeGen::generateAddImm(gen, dest, imm, dest, gen.getUseRVC());	
+    }
     return;
 }
 
