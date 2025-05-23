@@ -127,8 +127,6 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         isIndirect = true;
         isConditional = false;
 
-        // TODO move this to massageOperator
-
         unsigned int link_reg = (eid == riscv64_op_c_jr) ? RISCV_REG_X0 : RISCV_REG_X1;
         Expression::Ptr implicitAST = makeRegisterExpression((this->*regTrans)(link_reg));
         insn_to_complete->appendOperand(implicitAST, false, true, false);
