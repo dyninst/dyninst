@@ -54,8 +54,8 @@ namespace rose {
                     p(dispatcher.get(), operators.get(), insn, operands, raw);
                     
                     // Hardwire x0 to 0
-                    SgAsmDirectRegisterExpression dre0{dispatcher->findRegister("x0", 64)};
-                    dispatcher->writeRegister(dre0.get_descriptor(), operators->number_(64, 0));
+                    SgAsmDirectRegisterExpression dre0{dispatcher->findRegister("x0", XLENBITS)};
+                    dispatcher->writeRegister(dre0.get_descriptor(), operators->number_(XLENBITS, 0));
                 }
 
                 void
@@ -120,7 +120,7 @@ namespace rose {
                         SgAsmExpression *imm = args[1];
                         SgAsmExpression *rd = args[0];
                         enum Riscv64InstructionKind op = insn->get_kind();
-                        BaseSemantics::SValuePtr off = d->SignExtend(ops->shiftLeft(d->read(imm, 64, 0), ops->number_(64, 12)), 64);
+                        BaseSemantics::SValuePtr off = d->SignExtend(ops->shiftLeft(d->read(imm, XLENBITS, 0), ops->number_(XLENBITS, 12)), XLENBITS);
                         BaseSemantics::SValuePtr ret;
                         switch (op) {
                             case rose_riscv64_op_lui:
@@ -141,9 +141,9 @@ namespace rose {
                         SgAsmExpression *imm = args[1];
                         SgAsmExpression *rd = args[0];
                         enum Riscv64InstructionKind op = insn->get_kind();
-                        BaseSemantics::SValuePtr t = ops->add(d->readRegister(d->REG_PC), d->SignExtend(d->read(imm, 64, 0), 64));
+                        BaseSemantics::SValuePtr t = ops->add(d->readRegister(d->REG_PC), d->SignExtend(d->read(imm, XLENBITS, 0), XLENBITS));
                         BaseSemantics::SValuePtr target = t;
-                        d->write(rd, ops->add(d->readRegister(d->REG_PC), ops->number_(64, insn->get_size())));
+                        d->write(rd, ops->add(d->readRegister(d->REG_PC), ops->number_(XLENBITS, insn->get_size())));
                         d->BranchTo(target);
                     }
                 };
@@ -155,7 +155,7 @@ namespace rose {
                         SgAsmExpression *rs1 = args[1];
                         SgAsmExpression *imm = args[2];
 
-                        BaseSemantics::SValuePtr t = ops->add(d->read(rs1, 64, 0), d->SignExtend(d->read(imm, 64, 0), 64));
+                        BaseSemantics::SValuePtr t = ops->add(d->read(rs1, XLENBITS, 0), d->SignExtend(d->read(imm, XLENBITS, 0), XLENBITS));
                         d->write(rd, ops->number_(XLENBITS, get_next_pc(insn)));
                         d->BranchTo(t);
                     }
@@ -166,8 +166,8 @@ namespace rose {
                         SgAsmExpression *rs2 = args[1];
                         SgAsmExpression *rs1 = args[0];
                         enum Riscv64InstructionKind op = insn->get_kind();
-                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, 64, 0);
-                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, 64, 0);
+                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, XLENBITS, 0);
+                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, XLENBITS, 0);
                         BaseSemantics::SValuePtr taken;
                         switch (op) {
                             case rose_riscv64_op_beq:
@@ -191,7 +191,7 @@ namespace rose {
                             default:
                                 assert(0 && "Invalid RISC-V instruction kind");
                         };
-                        BaseSemantics::SValuePtr t = ops->add(d->readRegister(d->REG_PC), d->SignExtend(d->read(imm, 64, 0), 64));
+                        BaseSemantics::SValuePtr t = ops->add(d->readRegister(d->REG_PC), d->SignExtend(d->read(imm, XLENBITS, 0), XLENBITS));
                         BaseSemantics::SValuePtr target = ops->ite(taken, t, d->readRegister(d->REG_PC));
                         d->BranchTo(target);
                     }
@@ -203,18 +203,18 @@ namespace rose {
                         SgAsmExpression *rs1 = args[1];
                         SgAsmExpression *rd = args[0];
                         enum Riscv64InstructionKind op = insn->get_kind();
-                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, 64, 0);
-                        BaseSemantics::SValuePtr immext = d->SignExtend(d->read(imm, 64, 0), 64);
+                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, XLENBITS, 0);
+                        BaseSemantics::SValuePtr immext = d->SignExtend(d->read(imm, XLENBITS, 0), XLENBITS);
                         BaseSemantics::SValuePtr result;
                         switch (op) {
                             case rose_riscv64_op_addi:
                                 result = ops->add(rs1_val, immext);
                                 break;
                             case rose_riscv64_op_slti:
-                                result = d->ZeroExtend(ops->isSignedLessThan(rs1_val, immext), 64);
+                                result = d->ZeroExtend(ops->isSignedLessThan(rs1_val, immext), XLENBITS);
                                 break;
                             case rose_riscv64_op_sltiu:
-                                result = d->ZeroExtend(ops->isUnsignedLessThan(rs1_val, immext), 64);
+                                result = d->ZeroExtend(ops->isUnsignedLessThan(rs1_val, immext), XLENBITS);
                                 break;
                             case rose_riscv64_op_andi:
                                 result = ops->and_(rs1_val, immext);
@@ -238,17 +238,17 @@ namespace rose {
                         SgAsmExpression *rs1 = args[1];
                         SgAsmExpression *rd = args[0];
                         enum Riscv64InstructionKind op = insn->get_kind();
-                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, 64, 0);
+                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, XLENBITS, 0);
                         BaseSemantics::SValuePtr result;
                         switch (op) {
                             case rose_riscv64_op_slli:
-                                result = ops->shiftLeft(rs1_val, d->read(shamt, 64, 0));
+                                result = ops->shiftLeft(rs1_val, d->read(shamt, XLENBITS, 0));
                                 break;
                             case rose_riscv64_op_srli:
-                                result = ops->shiftRight(rs1_val, d->read(shamt, 64, 0));
+                                result = ops->shiftRight(rs1_val, d->read(shamt, XLENBITS, 0));
                                 break;
                             case rose_riscv64_op_srai:
-                                result = ops->shiftRightArithmetic(rs1_val, d->read(shamt, 64, 0));
+                                result = ops->shiftRightArithmetic(rs1_val, d->read(shamt, XLENBITS, 0));
                                 break;
                             default:
                                 assert(0 && "Invalid RISC-V instruction kind");
@@ -263,18 +263,18 @@ namespace rose {
                         SgAsmExpression *rs1 = args[1];
                         SgAsmExpression *rd = args[0];
                         enum Riscv64InstructionKind op = insn->get_kind();
-                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, 64, 0);
-                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, 64, 0);
+                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, XLENBITS, 0);
+                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, XLENBITS, 0);
                         BaseSemantics::SValuePtr result;
                         switch (op) {
                             case rose_riscv64_op_add:
                                 result = ops->add(rs1_val, rs2_val);
                                 break;
                             case rose_riscv64_op_slt:
-                                result = d->ZeroExtend(ops->isSignedLessThan(rs1_val, rs2_val), 64);
+                                result = d->ZeroExtend(ops->isSignedLessThan(rs1_val, rs2_val), XLENBITS);
                                 break;
                             case rose_riscv64_op_sltu:
-                                result = d->ZeroExtend(ops->isUnsignedLessThan(rs1_val, rs2_val), 64);
+                                result = d->ZeroExtend(ops->isUnsignedLessThan(rs1_val, rs2_val), XLENBITS);
                                 break;
                             case rose_riscv64_op_and:
                                 result = ops->and_(rs1_val, rs2_val);
@@ -347,7 +347,7 @@ namespace rose {
                         BaseSemantics::SValuePtr read_data = d->readMemory(read_addr, width_bytes);
 
                         BaseSemantics::SValuePtr result = read_data;
-                        d->write(rd, (is_unsigned ? d->SignExtend(result, 64) : d->ZeroExtend(result, 64)));
+                        d->write(rd, (is_unsigned ? d->SignExtend(result, XLENBITS) : d->ZeroExtend(result, XLENBITS)));
                     }
                 };
 
@@ -374,7 +374,7 @@ namespace rose {
                                 assert(0 && "Invalid RISC-V instruction kind");
                         }
 
-                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, 64, 0);
+                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, XLENBITS, 0);
                         d->writeMemory(write_addr, width_bytes, rs2_val);
                     }
                 };
@@ -385,8 +385,8 @@ namespace rose {
                         SgAsmExpression *rs1 = args[1];
                         SgAsmExpression *rd = args[0];
                         enum Riscv64InstructionKind op = insn->get_kind();
-                        BaseSemantics::SValuePtr result = ops->add(d->SignExtend(d->read(imm, 64, 0), 64), d->read(rs1, 64, 0));
-                        d->write(rd, d->SignExtend(ops->extract(result, 0, 31), 64));
+                        BaseSemantics::SValuePtr result = ops->add(d->SignExtend(d->read(imm, XLENBITS, 0), XLENBITS), d->read(rs1, XLENBITS, 0));
+                        d->write(rd, d->SignExtend(ops->extract(result, 0, 31), XLENBITS));
                     }
                 };
 
@@ -396,17 +396,17 @@ namespace rose {
                         SgAsmExpression *rs1 = args[1];
                         SgAsmExpression *rs2 = args[2];
 
-                        BaseSemantics::SValuePtr rs1_val = ops->extract(d->read(rs1, 64, 0), 0, 31);
+                        BaseSemantics::SValuePtr rs1_val = ops->extract(d->read(rs1, XLENBITS, 0), 0, 31);
                         BaseSemantics::SValuePtr result;
                         switch (insn->get_kind()) {
                             case rose_riscv64_op_sllw:
-                                result = ops->shiftLeft(rs1_val, d->read(rs2, 64, 0));
+                                result = ops->shiftLeft(rs1_val, d->read(rs2, XLENBITS, 0));
                                 break;
                             case rose_riscv64_op_srlw:
-                                result = ops->shiftRight(rs1_val, d->read(rs2, 64, 0));
+                                result = ops->shiftRight(rs1_val, d->read(rs2, XLENBITS, 0));
                                 break;
                             case rose_riscv64_op_sraw:
-                                result = ops->shiftRightArithmetic(rs1_val, d->read(rs2, 64, 0));
+                                result = ops->shiftRightArithmetic(rs1_val, d->read(rs2, XLENBITS, 0));
                                 break;
                             default:
                                 assert(0 && "Invalid RISC-V instruction kind");
@@ -421,8 +421,8 @@ namespace rose {
                         SgAsmExpression *rs1 = args[1];
                         SgAsmExpression *rd = args[0];
                         enum Riscv64InstructionKind op = insn->get_kind();
-                        BaseSemantics::SValuePtr rs1_val = ops->extract(d->read(rs1, 64, 0), 0, 31);
-                        BaseSemantics::SValuePtr rs2_val = ops->extract(d->read(rs2, 64, 0), 0, 31);
+                        BaseSemantics::SValuePtr rs1_val = ops->extract(d->read(rs1, XLENBITS, 0), 0, 31);
+                        BaseSemantics::SValuePtr rs2_val = ops->extract(d->read(rs2, XLENBITS, 0), 0, 31);
                         BaseSemantics::SValuePtr result;
                         switch (op) {
                             case rose_riscv64_op_addw:
@@ -443,7 +443,7 @@ namespace rose {
                             default:
                                 assert(0 && "Invalid RISC-V instruction kind");
                         };
-                        d->write(rd, d->SignExtend(result, 64));
+                        d->write(rd, d->SignExtend(result, XLENBITS));
                     }
                 };
 
@@ -453,22 +453,22 @@ namespace rose {
                         SgAsmExpression *rs1 = args[1];
                         SgAsmExpression *rd = args[0];
                         enum Riscv64InstructionKind op = insn->get_kind();
-                        BaseSemantics::SValuePtr rs1_val = ops->extract(d->read(rs1, 64, 0), 0, 31);
+                        BaseSemantics::SValuePtr rs1_val = ops->extract(d->read(rs1, XLENBITS, 0), 0, 31);
                         BaseSemantics::SValuePtr result;
                         switch (op) {
                             case rose_riscv64_op_slliw:
-                                result = ops->shiftLeft(rs1_val, d->read(shamt, 64, 0));
+                                result = ops->shiftLeft(rs1_val, d->read(shamt, XLENBITS, 0));
                                 break;
                             case rose_riscv64_op_srliw:
-                                result = ops->shiftRight(rs1_val, d->read(shamt, 64, 0));
+                                result = ops->shiftRight(rs1_val, d->read(shamt, XLENBITS, 0));
                                 break;
                             case rose_riscv64_op_sraiw:
-                                result = ops->shiftRightArithmetic(rs1_val, d->read(shamt, 64, 0));
+                                result = ops->shiftRightArithmetic(rs1_val, d->read(shamt, XLENBITS, 0));
                                 break;
                             default:
                                 assert(0 && "Invalid RISC-V instruction kind");
                         };
-                        d->write(rd, d->SignExtend(result, 64));
+                        d->write(rd, d->SignExtend(result, XLENBITS));
                     }
                 };
 
@@ -478,8 +478,8 @@ namespace rose {
                         SgAsmExpression *rs1 = args[1];
                         SgAsmExpression *rd = args[0];
                         enum Riscv64InstructionKind op = insn->get_kind();
-                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, 64, 0);
-                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, 64, 0);
+                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, XLENBITS, 0);
+                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, XLENBITS, 0);
                         BaseSemantics::SValuePtr result_wide;
                         switch (insn->get_kind()) {
                             case rose_riscv64_op_mul:
@@ -524,8 +524,8 @@ namespace rose {
                         SgAsmExpression *rs1 = args[1];
                         SgAsmExpression *rs2 = args[2];
 
-                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, 64, 0);
-                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, 64, 0);
+                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, XLENBITS, 0);
+                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, XLENBITS, 0);
 
                         BaseSemantics::SValuePtr q;
                         switch (insn->get_kind()) {
@@ -549,8 +549,8 @@ namespace rose {
                         SgAsmExpression *rs1 = args[1];
                         SgAsmExpression *rs2 = args[2];
 
-                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, 64, 0);
-                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, 64, 0);
+                        BaseSemantics::SValuePtr rs1_val = d->read(rs1, XLENBITS, 0);
+                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, XLENBITS, 0);
 
                         BaseSemantics::SValuePtr result;
                         switch (insn->get_kind()) {
@@ -639,7 +639,7 @@ namespace rose {
 
                         BaseSemantics::SValuePtr result = read_data;
 
-                        d->write(rd, d->SignExtend(result, 64));
+                        d->write(rd, d->SignExtend(result, XLENBITS));
                     }
                 };
 
@@ -652,7 +652,7 @@ namespace rose {
                         BaseSemantics::SValuePtr write_addr = d->effectiveAddress(rs1);
                         enum Riscv64InstructionKind op = insn->get_kind();
 
-                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, 64, 0);
+                        BaseSemantics::SValuePtr rs2_val = d->read(rs2, XLENBITS, 0);
                         d->writeMemory(write_addr, width_bytes, rs2_val);
                     }
                 };
@@ -669,7 +669,7 @@ namespace rose {
                         BaseSemantics::SValuePtr write_addr = addr;
                         enum Riscv64InstructionKind op = insn->get_kind();
 
-                        BaseSemantics::SValuePtr rs2_val = ops->extract(d->read(rs2, 64, 0), 0, ((width_bytes * 8) - 1));
+                        BaseSemantics::SValuePtr rs2_val = ops->extract(d->read(rs2, XLENBITS, 0), 0, ((width_bytes * 8) - 1));
                         BaseSemantics::SValuePtr read_data = d->readMemory(read_addr, width_bytes);
 
                         BaseSemantics::SValuePtr loaded = read_data;
@@ -851,7 +851,7 @@ namespace rose {
 
                 struct IP_C_LI : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
+                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", XLENBITS)};
                         SgAsmExpressionPtrList new_args{args[0], &dre0, args[1]};
                         SgAsmRiscv64Instruction new_insn{0, "addi", rose_riscv64_op_addi};
                         auto conv = Riscv64::IP_ITYPE{};
@@ -861,7 +861,7 @@ namespace rose {
 
                 struct IP_C_ADDI16SP : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmDirectRegisterExpression dre2{d->findRegister("x2", 64)};
+                        SgAsmDirectRegisterExpression dre2{d->findRegister("x2", XLENBITS)};
                         SgAsmExpressionPtrList new_args{&dre2, &dre2, args[1]};
                         SgAsmRiscv64Instruction new_insn{0, "addi", rose_riscv64_op_addi};
                         auto conv = Riscv64::IP_ITYPE{};
@@ -970,7 +970,7 @@ namespace rose {
 
                 struct IP_C_BEQZ : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
+                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", XLENBITS)};
                         SgAsmExpressionPtrList new_args{args[0], &dre0, args[1]};
 
                         SgAsmRiscv64Instruction new_insn{0, "beq", rose_riscv64_op_beq};
@@ -981,7 +981,7 @@ namespace rose {
 
                 struct IP_C_BNEZ : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
+                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", XLENBITS)};
                         SgAsmExpressionPtrList new_args{args[0], &dre0, args[1]};
 
                         SgAsmRiscv64Instruction new_insn{0, "bne", rose_riscv64_op_bne};
@@ -1055,7 +1055,7 @@ namespace rose {
 
                 struct IP_C_MV : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", 64)};
+                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", XLENBITS)};
                         SgAsmExpressionPtrList new_args{args[0], &dre0, args[1]};
                         SgAsmRiscv64Instruction new_insn{0, "add", rose_riscv64_op_add};
                         auto conv = Riscv64::IP_RTYPE{};
