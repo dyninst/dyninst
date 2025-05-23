@@ -256,8 +256,19 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
     }
 	return NULL;
 #elif defined(DYNINST_HOST_ARCH_RISCV64)
-    // TODO
-    assert(!"Unimplemented architecture");
+    using namespace NS_riscv64;
+
+    auto operands = insn.getAllOperands();
+    for (std::vector<Operand>::iterator op = operands.begin(); op != operands.end(); ++op) {
+        bool isLoad = op->readsMemory();
+        bool isStore = op->writesMemory();
+        if (isLoad || isStore) {
+			op->getValue()->apply(this);
+			return new BPatch_memoryAccess(current, isLoad, isStore,
+                                       bytes, imm, ra, rb, sc);
+        }
+    }
+	return NULL;
 #else 
     assert(!"Unimplemented architecture");
 #endif
