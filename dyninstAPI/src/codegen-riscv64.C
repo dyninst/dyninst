@@ -966,8 +966,8 @@ bool insnCodeGen::generateLui(codeGen &gen,
 {
     Dyninst::RegValue imm = offset >> 12;
     if (useRVC) {
-        // If imm is 6 bits wide (-32 <= imm < 32), we use the c.lui instruction
-        if (imm >= -0x20 && imm < 0x20) {
+        // If imm is in [0xfffe0, 0x100000) or [1, 32), we use the c.lui instruction
+        if ((imm >= 1 && imm < 0x20) || (imm >= 0xfffe0 && imm < 0x100000)) {
             generateCLui(gen, rd, imm);
             return true;
         }
