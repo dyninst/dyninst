@@ -454,6 +454,9 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
                 case riscv64_op_flw:
                 case riscv64_op_lw:
                 case riscv64_op_lr_w:
+                case riscv64_op_lr_w_aq:
+                case riscv64_op_lr_w_aq_rl:
+                case riscv64_op_lr_w_rl:
                 case riscv64_op_lwu:
                     isLoad = true;
                     type = u32;
@@ -472,6 +475,7 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
                     type = u32;
                     break;
                 case riscv64_op_c_fldsp:
+                case riscv64_op_c_fld:
                 case riscv64_op_c_ldsp:
                 case riscv64_op_c_ld:
                 case riscv64_op_fld:
@@ -481,6 +485,7 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
                     type = u64;
                     break;
                 case riscv64_op_c_fsdsp:
+                case riscv64_op_c_fsd:
                 case riscv64_op_c_sd:
                 case riscv64_op_c_sdsp:
                 case riscv64_op_fsd:
