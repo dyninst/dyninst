@@ -538,10 +538,12 @@ Register EmitterRISCV64::emitCall(opCode op,
     for (int i = 0; i < gen.rs()->numGPRs(); i++) {
         registerSlot *reg = gen.rs()->GPRs()[i];
         if ((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live)) {
-            insnCodeGen::saveRegister(gen, registerSpace::r0 + i,
-                                      -2 * GPRSIZE_64, gen.getUseRVC());
             savedRegs.push_back(reg->number);
         }
+    }
+    insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, -savedRegs.size() * GPRSIZE_64, gen.getUseRVC());
+    for (size_t id = 0; id < savedRegs.size(); id++) {
+        insnCodeGen::saveRegister(gen, savedRegs[id], id * GPRSIZE_64, gen.getUseRVC());
     }
 
     // Generate code that handles operand registers
@@ -562,17 +564,17 @@ Register EmitterRISCV64::emitCall(opCode op,
     Register dest = gen.rs()->getScratchRegister(gen);
     assert(dest != Null_Register && "cannot get a dest register");
     gen.markRegDefined(dest);
-    insnCodeGen::loadImmIntoReg(gen, dest, callee->addr(), gen.getUseRVC());
+    insnCodeGen::generateLoadImm(gen, dest, callee->addr(), true, true, gen.getUseRVC());
 
 
     // Generate jr
     insnCodeGen::generateJr(gen, dest, 0, gen.getUseRVC());
 
     // Finally, we restore all necessary registers
-    for (signed int i = savedRegs.size() - 1; i >= 0; i--) {
-        insnCodeGen::restoreRegister(gen, registerSpace::r0 + savedRegs[i],
-                                     2 * GPRSIZE_64, gen.getUseRVC());
+    for (size_t id = 0; id < savedRegs.size(); id++) {
+        insnCodeGen::restoreRegister(gen, savedRegs[id], id * GPRSIZE_64, gen.getUseRVC());
     }
+    insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, savedRegs.size() * GPRSIZE_64, gen.getUseRVC());
     return 0;
 }
 
