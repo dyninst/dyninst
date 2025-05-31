@@ -564,8 +564,14 @@ Register EmitterRISCV64::emitCall(opCode op,
     Register dest = gen.rs()->getScratchRegister(gen);
     assert(dest != Null_Register && "cannot get a dest register");
     gen.markRegDefined(dest);
-    insnCodeGen::generateLoadImm(gen, dest, callee->addr(), true, true, gen.getUseRVC());
 
+    if (gen.addrSpace()->edit() != NULL && (gen.func()->obj() != callee->obj() || gen.addrSpace()->needsPIC())) {
+        long disp = getInterModuleFuncAddr(callee, gen) - gen.currAddr();
+        insnCodeGen::generateLoadImm(gen, dest, disp, true, true, gen.getUseRVC());
+        insnCodeGen::generateMemStore(gen, dest, dest, 0, GPRSIZE_64, gen.getUseRVC());
+    } else {
+        insnCodeGen::loadImmIntoReg(gen, dest, callee->addr(), gen.getUseRVC());
+    }
 
     // Generate jr
     insnCodeGen::generateJr(gen, dest, 0, gen.getUseRVC());
