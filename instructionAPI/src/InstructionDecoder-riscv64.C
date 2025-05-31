@@ -481,6 +481,9 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
                 case riscv64_op_fld:
                 case riscv64_op_ld:
                 case riscv64_op_lr_d:
+                case riscv64_op_lr_d_aq:
+                case riscv64_op_lr_d_aq_rl:
+                case riscv64_op_lr_d_rl:
                     isLoad = true;
                     type = u64;
                     break;
