@@ -261,8 +261,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
         }
 
         if (scratch == Null_Register) {
-            //fprintf(stderr, " %s[%d] No registers. Calling generateBranchViaTrap...\n", FILE__, __LINE__);
-            generateBranchViaTrap(gen, from, to, false);
+            assert(0);
             return;
         }
 
@@ -311,12 +310,22 @@ void insnCodeGen::generateBranch(codeGen &gen,
     }
 }
 
-void insnCodeGen::generateBranchViaTrap(codeGen &/*gen*/,
-                                        Dyninst::Address /*from*/,
-                                        Dyninst::Address /*to*/,
-                                        bool /*isCall*/)
+void insnCodeGen::generateBranchViaTrap(codeGen &gen,
+                                        Dyninst::Address from,
+                                        Dyninst::Address to,
+                                        bool isCall)
 {
-    std::cout << "generate branch via trap called" << std::endl;
+    long disp = to - from;
+    assert(!isCall);
+
+    if (gen.addrSpace()) {
+        gen.addrSpace()->trapMapping.addTrapMapping(from, to, true);
+        insnCodeGen::generateTrap(gen);
+    }
+    else {
+        assert(0);
+    }
+
 }
 
 void insnCodeGen::generateCondBranch(codeGen &gen,
