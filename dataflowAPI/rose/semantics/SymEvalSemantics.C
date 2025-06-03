@@ -197,7 +197,7 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateAST_amdgpu_gfx940::convert(const 
         break;
     }
     case amdgpu_regclass_misc : {
-        Dyninst::MachRegister base = Dyninst::amdgpu_gfx90a::src_scc;
+        Dyninst::MachRegister base = Dyninst::amdgpu_gfx940::src_scc;
         mreg  = Dyninst::MachRegister(base.val() + minor) ;
         found = true;
         break;
