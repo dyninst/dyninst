@@ -12,8 +12,7 @@ namespace InstructionAPI {
             case 10:  case 11:  case 18:  case 19:  case 21:   // DS_OR_B32,DS_XOR_B32,DS_MIN_F32,DS_MAX_F32,DS_ADD_F32,
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false);
-                appendOPR_DSMEM(0,false,true,1,true);
-                appendOPR_DSMEM(0,true,false,1,true);
+                appendOPR_DSMEM(0,true,true,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
@@ -22,8 +21,7 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA1,true,false);
-                appendOPR_DSMEM(0,false,true,1,true);
-                appendOPR_DSMEM(0,true,false,1,true);
+                appendOPR_DSMEM(0,true,true,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
@@ -69,8 +67,7 @@ namespace InstructionAPI {
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true);
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false);
-                appendOPR_DSMEM(0,false,true,1,true);
-                appendOPR_DSMEM(0,true,false,1,true);
+                appendOPR_DSMEM(0,true,true,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
@@ -80,8 +77,7 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA1,true,false);
-                appendOPR_DSMEM(0,false,true,1,true);
-                appendOPR_DSMEM(0,true,false,1,true);
+                appendOPR_DSMEM(0,true,true,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
@@ -91,8 +87,7 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA1,true,false);
-                appendOPR_DSMEM(0,false,true,1,true);
-                appendOPR_DSMEM(0,true,false,1,true);
+                appendOPR_DSMEM(0,true,true,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
@@ -138,8 +133,7 @@ namespace InstructionAPI {
             case 74:  case 75:  case 82:  case 83:  case 92:   // DS_OR_B64,DS_XOR_B64,DS_MIN_F64,DS_MAX_F64,DS_ADD_F64,
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false,2);
-                appendOPR_DSMEM(0,false,true,1,true);
-                appendOPR_DSMEM(0,true,false,1,true);
+                appendOPR_DSMEM(0,true,true,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
@@ -148,8 +142,7 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false,2);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA1,true,false,2);
-                appendOPR_DSMEM(0,false,true,1,true);
-                appendOPR_DSMEM(0,true,false,1,true);
+                appendOPR_DSMEM(0,true,true,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
@@ -182,8 +175,7 @@ namespace InstructionAPI {
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,2);
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false,2);
-                appendOPR_DSMEM(0,false,true,1,true);
-                appendOPR_DSMEM(0,true,false,1,true);
+                appendOPR_DSMEM(0,true,true,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
@@ -193,8 +185,7 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false,2);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA1,true,false,2);
-                appendOPR_DSMEM(0,false,true,1,true);
-                appendOPR_DSMEM(0,true,false,1,true);
+                appendOPR_DSMEM(0,true,true,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
@@ -204,8 +195,7 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false,2);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA1,true,false,2);
-                appendOPR_DSMEM(0,false,true,1,true);
-                appendOPR_DSMEM(0,true,false,1,true);
+                appendOPR_DSMEM(0,true,true,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
@@ -245,8 +235,7 @@ namespace InstructionAPI {
                 break;
             case 189:  case 190:   // DS_CONSUME,DS_APPEND,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true);
-                appendOPR_DSMEM(0,false,true,1,true);
-                appendOPR_DSMEM(0,true,false,1,true);
+                appendOPR_DSMEM(0,true,true,1,true);
                 if (layout.OFFSET0 || layout.OFFSET1)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,(layout.OFFSET1 << 8) + layout.OFFSET0)),true,false,false);
                 }
@@ -1349,8 +1338,7 @@ namespace InstructionAPI {
                 setModifyPC();
                 appendOPR_SDST(layout.SDST,false,true,2);
                 appendOPR_SREG(layout.SSRC0,true,false,2);
-                appendOPR_PC(0,false,true,1,true);
-                appendOPR_PC(0,true,false,1,true);
+                appendOPR_PC(0,true,true,1,true);
                 break;
             case 31:   // S_RFE_B64,
                 appendOPR_SREG(layout.SSRC0,true,false,2);
@@ -1362,9 +1350,8 @@ namespace InstructionAPI {
             case 53:  case 54:   // S_ANDN1_WREXEC_B64,S_ANDN2_WREXEC_B64,
                 appendOPR_SREG(layout.SDST,false,true,2);
                 appendOPR_SSRC(layout.SSRC0,true,false,2);
-                appendOPR_SDST_EXEC(126,false,true,1,true);
+                appendOPR_SDST_EXEC(126,true,true,1,true);
                 appendOPR_SSRC_SPECIAL_SCC(253,false,true,1,true);
-                appendOPR_SDST_EXEC(126,true,false,1,true);
                 break;
             case 42:   // S_MOVRELS_B32,
                 appendOPR_SDST(layout.SDST,false,true);
@@ -1393,8 +1380,7 @@ namespace InstructionAPI {
                 break;
             case 50:   // S_SET_GPR_IDX_IDX,
                 appendOPR_SSRC(layout.SSRC0,true,false);
-                appendOPR_SDST_M0(124,false,true,1,true);
-                appendOPR_SDST_M0(124,true,false,1,true);
+                appendOPR_SDST_M0(124,true,true,1,true);
                 break;
             case 55:   // S_BITREPLICATE_B64_B32,
                 appendOPR_SDST(layout.SDST,false,true,2);
@@ -1422,8 +1408,7 @@ namespace InstructionAPI {
                 appendOPR_SDST(layout.SDST,false,true);
                 appendOPR_SSRC(layout.SSRC0,true,false);
                 appendOPR_SSRC(layout.SSRC1,true,false);
-                appendOPR_SSRC_SPECIAL_SCC(253,false,true,1,true);
-                appendOPR_SSRC_SPECIAL_SCC(253,true,false,1,true);
+                appendOPR_SSRC_SPECIAL_SCC(253,true,true,1,true);
                 break;
             case 10:   // S_CSELECT_B32,
                 appendOPR_SDST(layout.SDST,false,true);
@@ -1497,8 +1482,7 @@ namespace InstructionAPI {
             case 17:   // S_SET_GPR_IDX_ON,
                 appendOPR_SSRC(layout.SSRC0,true,false);
                 appendOPR_SIMM4(layout.SSRC1,true,false);
-                appendOPR_SDST_M0(124,false,true,1,true);
-                appendOPR_SDST_M0(124,true,false,1,true);
+                appendOPR_SDST_M0(124,true,true,1,true);
                 break;
             case 18:  case 19:   // S_CMP_EQ_U64,S_CMP_LG_U64,
                 appendOPR_SSRC(layout.SSRC0,true,false,2);
@@ -1552,8 +1536,7 @@ namespace InstructionAPI {
             case 21:   // S_CALL_B64,
                 appendOPR_SDST(layout.SDST,false,true,2);
                 insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
-                appendOPR_PC(0,false,true,1,true);
-                appendOPR_PC(0,true,false,1,true);
+                appendOPR_PC(0,true,true,1,true);
                 break;
         }
     }
@@ -1626,8 +1609,7 @@ namespace InstructionAPI {
                 break;
             case 29:   // S_SET_GPR_IDX_MODE,
                 appendOPR_SIMM16(layout.SIMM16,true,false);
-                appendOPR_SDST_M0(124,false,true,1,true);
-                appendOPR_SDST_M0(124,true,false,1,true);
+                appendOPR_SDST_M0(124,true,true,1,true);
                 break;
         }
     }
@@ -1678,6 +1660,76 @@ namespace InstructionAPI {
             case 82:   // V_ACCVGPR_MOV_B32,
                 appendOPR_ACCVGPR(layout.VDST,false,true);
                 appendOPR_SRC_ACCVGPR(layout.SRC0,true,false);
+                break;
+        }
+    }
+
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOP1_VOP_DPPOperands()
+    {
+        layout_VOP1_VOP_DPP & layout = insn_layout.VOP1_VOP_DPP;
+        switch (layout.OP)  {
+            case 0:   // V_NOP,
+                break;
+            case 1:  case 5:  case 6:  case 7:  case 8:   // V_MOV_B32,V_CVT_F32_I32,V_CVT_F32_U32,V_CVT_U32_F32,V_CVT_I32_F32,
+            case 10:  case 11:  case 12:  case 13:   // V_CVT_F16_F32,V_CVT_F32_F16,V_CVT_RPI_I32_F32,V_CVT_FLR_I32_F32,
+            case 14:  case 17:  case 18:  case 19:   // V_CVT_OFF_F32_I4,V_CVT_F32_UBYTE0,V_CVT_F32_UBYTE1,V_CVT_F32_UBYTE2,
+            case 20:  case 27:  case 28:  case 29:  case 30:   // V_CVT_F32_UBYTE3,V_FRACT_F32,V_TRUNC_F32,V_CEIL_F32,V_RNDNE_F32,
+            case 31:  case 32:  case 33:  case 34:  case 35:   // V_FLOOR_F32,V_EXP_F32,V_LOG_F32,V_RCP_F32,V_RCP_IFLAG_F32,
+            case 36:  case 39:  case 41:  case 42:  case 43:   // V_RSQ_F32,V_SQRT_F32,V_SIN_F32,V_COS_F32,V_NOT_B32,
+            case 44:  case 45:  case 46:  case 47:  case 51:   // V_BFREV_B32,V_FFBH_U32,V_FFBL_B32,V_FFBH_I32,V_FREXP_EXP_I32_F32,
+            case 52:  case 55:  case 57:  case 58:   // V_FREXP_MANT_F32,V_SCREEN_PARTITION_4SE_B32,V_CVT_F16_U16,V_CVT_F16_I16,
+            case 59:  case 60:  case 61:  case 62:  case 63:   // V_CVT_U16_F16,V_CVT_I16_F16,V_RCP_F16,V_SQRT_F16,V_RSQ_F16,
+            case 64:  case 65:  case 66:  case 67:   // V_LOG_F16,V_EXP_F16,V_FREXP_MANT_F16,V_FREXP_EXP_I16_F16,
+            case 68:  case 69:  case 70:  case 71:  case 72:   // V_FLOOR_F16,V_CEIL_F16,V_TRUNC_F16,V_RNDNE_F16,V_FRACT_F16,
+            case 73:  case 74:  case 77:  case 78:   // V_SIN_F16,V_COS_F16,V_CVT_NORM_I16_F16,V_CVT_NORM_U16_F16,
+            case 79:   // V_SAT_PK_U8_I16,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_SRC(layout.VSRC0,true,false);
+                break;
+            case 3:  case 15:  case 21:  case 48:   // V_CVT_I32_F64,V_CVT_F32_F64,V_CVT_U32_F64,V_FREXP_EXP_I32_F64,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_SRC(layout.VSRC0,true,false,2);
+                break;
+            case 4:  case 22:   // V_CVT_F64_I32,V_CVT_F64_U32,
+                appendOPR_VGPR(layout.VDST,false,true,2);
+                appendOPR_SRC(layout.VSRC0,true,false);
+                break;
+            case 23:  case 24:  case 26:  case 49:  case 50:   // V_TRUNC_F64,V_CEIL_F64,V_FLOOR_F64,V_FREXP_MANT_F64,V_FRACT_F64,
+                appendOPR_VGPR(layout.VDST,false,true,2);
+                appendOPR_SRC(layout.VSRC0,true,false,2);
+                break;
+            case 82:   // V_ACCVGPR_MOV_B32,
+                appendOPR_ACCVGPR(layout.VDST,false,true);
+                appendOPR_SRC_ACCVGPR(layout.VSRC0,true,false);
+                break;
+        }
+    }
+
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOP1_VOP_SDWAOperands()
+    {
+        layout_VOP1_VOP_SDWA & layout = insn_layout.VOP1_VOP_SDWA;
+        switch (layout.OP)  {
+            case 0:   // V_NOP,
+                break;
+            case 1:  case 5:  case 6:  case 7:  case 8:   // V_MOV_B32,V_CVT_F32_I32,V_CVT_F32_U32,V_CVT_U32_F32,V_CVT_I32_F32,
+            case 10:  case 11:  case 12:  case 13:   // V_CVT_F16_F32,V_CVT_F32_F16,V_CVT_RPI_I32_F32,V_CVT_FLR_I32_F32,
+            case 14:  case 17:  case 18:  case 19:   // V_CVT_OFF_F32_I4,V_CVT_F32_UBYTE0,V_CVT_F32_UBYTE1,V_CVT_F32_UBYTE2,
+            case 20:  case 27:  case 28:  case 29:  case 30:   // V_CVT_F32_UBYTE3,V_FRACT_F32,V_TRUNC_F32,V_CEIL_F32,V_RNDNE_F32,
+            case 31:  case 32:  case 33:  case 34:  case 35:   // V_FLOOR_F32,V_EXP_F32,V_LOG_F32,V_RCP_F32,V_RCP_IFLAG_F32,
+            case 36:  case 39:  case 41:  case 42:  case 43:   // V_RSQ_F32,V_SQRT_F32,V_SIN_F32,V_COS_F32,V_NOT_B32,
+            case 44:  case 45:  case 46:  case 47:  case 51:   // V_BFREV_B32,V_FFBH_U32,V_FFBL_B32,V_FFBH_I32,V_FREXP_EXP_I32_F32,
+            case 52:  case 55:  case 57:  case 58:   // V_FREXP_MANT_F32,V_SCREEN_PARTITION_4SE_B32,V_CVT_F16_U16,V_CVT_F16_I16,
+            case 59:  case 60:  case 61:  case 62:  case 63:   // V_CVT_U16_F16,V_CVT_I16_F16,V_RCP_F16,V_SQRT_F16,V_RSQ_F16,
+            case 64:  case 65:  case 66:  case 67:   // V_LOG_F16,V_EXP_F16,V_FREXP_MANT_F16,V_FREXP_EXP_I16_F16,
+            case 68:  case 69:  case 70:  case 71:  case 72:   // V_FLOOR_F16,V_CEIL_F16,V_TRUNC_F16,V_RNDNE_F16,V_FRACT_F16,
+            case 73:  case 74:  case 77:  case 78:   // V_SIN_F16,V_COS_F16,V_CVT_NORM_I16_F16,V_CVT_NORM_U16_F16,
+            case 79:   // V_SAT_PK_U8_I16,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_SRC(layout.VSRC0,true,false);
+                break;
+            case 82:   // V_ACCVGPR_MOV_B32,
+                appendOPR_ACCVGPR(layout.VDST,false,true);
+                appendOPR_SRC_ACCVGPR(layout.VSRC0,true,false);
                 break;
         }
     }
@@ -1977,43 +2029,150 @@ namespace InstructionAPI {
                 break;
             case 28:  case 29:   // V_ADDC_CO_U32,V_SUBB_CO_U32,
                 appendOPR_VGPR(layout.VDST,false,true);
-                appendOPR_VCC(0,false,true,2);
+                appendOPR_VCC(0,true,true,2);
                 appendOPR_SRC(layout.SRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                break;
+            case 30:   // V_SUBBREV_CO_U32,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_VCC(0,true,true,2);
+                appendOPR_SRC_NOLDS(layout.SRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                break;
+        }
+    }
+
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOP2_VOP_DPPOperands()
+    {
+        layout_VOP2_VOP_DPP & layout = insn_layout.VOP2_VOP_DPP;
+        switch (layout.OP)  {
+            case 0:   // V_CNDMASK_B32,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_SRC(layout.VSRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                appendOPR_VCC(0,true,false,2);
+                break;
+            case 1:  case 2:  case 3:  case 5:  case 6:   // V_ADD_F32,V_SUB_F32,V_SUBREV_F32,V_MUL_F32,V_MUL_I32_I24,
+            case 7:  case 8:  case 9:  case 10:  case 11:   // V_MUL_HI_I32_I24,V_MUL_U32_U24,V_MUL_HI_U32_U24,V_MIN_F32,V_MAX_F32,
+            case 12:  case 13:  case 14:  case 15:  case 19:   // V_MIN_I32,V_MAX_I32,V_MIN_U32,V_MAX_U32,V_AND_B32,
+            case 20:  case 21:  case 31:  case 32:  case 34:   // V_OR_B32,V_XOR_B32,V_ADD_F16,V_SUB_F16,V_MUL_F16,
+            case 38:  case 39:  case 41:  case 45:  case 46:   // V_ADD_U16,V_SUB_U16,V_MUL_LO_U16,V_MAX_F16,V_MIN_F16,
+            case 47:  case 48:  case 49:  case 50:  case 51:   // V_MAX_U16,V_MAX_I16,V_MIN_U16,V_MIN_I16,V_LDEXP_F16,
+            case 52:  case 53:  case 61:   // V_ADD_U32,V_SUB_U32,V_XNOR_B32,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_SRC(layout.VSRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                break;
+            case 4:   // V_FMAC_F64,
+                appendOPR_VGPR(layout.VDST,true,true,2);
+                appendOPR_SRC(layout.VSRC0,true,false,2);
+                appendOPR_VGPR(layout.VSRC1,true,false,2);
+                break;
+            case 16:  case 17:  case 18:  case 33:  case 40:   // V_LSHRREV_B32,V_ASHRREV_I32,V_LSHLREV_B32,V_SUBREV_F16,V_SUBREV_U16,
+            case 42:  case 43:  case 44:  case 54:   // V_LSHLREV_B16,V_LSHRREV_B16,V_ASHRREV_I16,V_SUBREV_U32,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_SRC_NOLDS(layout.VSRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                break;
+            case 22:  case 35:  case 55:  case 56:  case 57:   // V_MAC_F32,V_MAC_F16,V_DOT2C_F32_F16,V_DOT2C_I32_I16,V_DOT4C_I32_I8,
+            case 58:  case 59:  case 60:   // V_DOT8C_I32_I4,V_FMAC_F32,V_PK_FMAC_F16,
+                appendOPR_VGPR(layout.VDST,true,true);
+                appendOPR_SRC(layout.VSRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                break;
+            case 25:  case 26:   // V_ADD_CO_U32,V_SUB_CO_U32,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_VCC(0,false,true,2);
+                appendOPR_SRC(layout.VSRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                break;
+            case 27:   // V_SUBREV_CO_U32,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_VCC(0,false,true,2);
+                appendOPR_SRC_NOLDS(layout.VSRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                break;
+            case 28:  case 29:   // V_ADDC_CO_U32,V_SUBB_CO_U32,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_VCC(0,true,true,2);
+                appendOPR_SRC(layout.VSRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                break;
+            case 30:   // V_SUBBREV_CO_U32,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_VCC(0,true,true,2);
+                appendOPR_SRC_NOLDS(layout.VSRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                break;
+        }
+    }
+
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOP2_VOP_SDWAOperands()
+    {
+        layout_VOP2_VOP_SDWA & layout = insn_layout.VOP2_VOP_SDWA;
+        switch (layout.OP)  {
+            case 0:   // V_CNDMASK_B32,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_SRC(layout.VSRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                appendOPR_VCC(0,true,false,2);
+                break;
+            case 1:  case 2:  case 3:  case 5:  case 6:   // V_ADD_F32,V_SUB_F32,V_SUBREV_F32,V_MUL_F32,V_MUL_I32_I24,
+            case 7:  case 8:  case 9:  case 10:  case 11:   // V_MUL_HI_I32_I24,V_MUL_U32_U24,V_MUL_HI_U32_U24,V_MIN_F32,V_MAX_F32,
+            case 12:  case 13:  case 14:  case 15:  case 19:   // V_MIN_I32,V_MAX_I32,V_MIN_U32,V_MAX_U32,V_AND_B32,
+            case 20:  case 21:  case 31:  case 32:  case 34:   // V_OR_B32,V_XOR_B32,V_ADD_F16,V_SUB_F16,V_MUL_F16,
+            case 38:  case 39:  case 41:  case 45:  case 46:   // V_ADD_U16,V_SUB_U16,V_MUL_LO_U16,V_MAX_F16,V_MIN_F16,
+            case 47:  case 48:  case 49:  case 50:  case 51:   // V_MAX_U16,V_MAX_I16,V_MIN_U16,V_MIN_I16,V_LDEXP_F16,
+            case 52:  case 53:  case 61:   // V_ADD_U32,V_SUB_U32,V_XNOR_B32,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_SRC(layout.VSRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                break;
+            case 16:  case 17:  case 18:  case 33:  case 40:   // V_LSHRREV_B32,V_ASHRREV_I32,V_LSHLREV_B32,V_SUBREV_F16,V_SUBREV_U16,
+            case 42:  case 43:  case 44:  case 54:   // V_LSHLREV_B16,V_LSHRREV_B16,V_ASHRREV_I16,V_SUBREV_U32,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_SRC_NOLDS(layout.VSRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                break;
+        }
+    }
+
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOP2_VOP_SDWA_SDST_ENCOperands()
+    {
+        layout_VOP2_VOP_SDWA_SDST_ENC & layout = insn_layout.VOP2_VOP_SDWA_SDST_ENC;
+        switch (layout.OP)  {
+            case 25:  case 26:   // V_ADD_CO_U32,V_SUB_CO_U32,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_SREG(layout.SDST,false,true,2);
+                appendOPR_SRC(layout.VSRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                break;
+            case 27:   // V_SUBREV_CO_U32,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_SREG(layout.SDST,false,true,2);
+                appendOPR_SRC_NOLDS(layout.VSRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                break;
+            case 28:  case 29:   // V_ADDC_CO_U32,V_SUBB_CO_U32,
+                appendOPR_VGPR(layout.VDST,false,true);
+                appendOPR_SREG(layout.SDST,false,true,2);
+                appendOPR_SRC(layout.VSRC0,true,false);
                 appendOPR_VGPR(layout.VSRC1,true,false);
                 appendOPR_VCC(0,true,false,2);
                 break;
             case 30:   // V_SUBBREV_CO_U32,
                 appendOPR_VGPR(layout.VDST,false,true);
-                appendOPR_VCC(0,false,true,2);
-                appendOPR_SRC_NOLDS(layout.SRC0,true,false);
+                appendOPR_SREG(layout.SDST,false,true,2);
+                appendOPR_SRC_NOLDS(layout.VSRC0,true,false);
                 appendOPR_VGPR(layout.VSRC1,true,false);
                 appendOPR_VCC(0,true,false,2);
                 break;
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VOP2_LITERALOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOP3_SDST_ENCOperands()
     {
-        layout_ENC_VOP2_LITERAL & layout = insn_layout.ENC_VOP2_LITERAL;
-        switch (layout.OP)  {
-            case 23:  case 36:   // V_MADMK_F32,V_MADMK_F16,
-                appendOPR_VGPR(layout.VDST,false,true);
-                appendOPR_SRC(layout.SRC0,true,false);
-                appendOPR_SIMM32(layout.SIMM32,true,false);
-                appendOPR_VGPR(layout.VSRC1,true,false);
-                break;
-            case 24:  case 37:   // V_MADAK_F32,V_MADAK_F16,
-                appendOPR_VGPR(layout.VDST,false,true);
-                appendOPR_SRC(layout.SRC0,true,false);
-                appendOPR_VGPR(layout.VSRC1,true,false);
-                appendOPR_SIMM32(layout.SIMM32,true,false);
-                break;
-        }
-    }
-
-    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VOP3BOperands()
-    {
-        layout_ENC_VOP3B & layout = insn_layout.ENC_VOP3B;
+        layout_VOP3_SDST_ENC & layout = insn_layout.VOP3_SDST_ENC;
         switch (layout.OP)  {
             case 281:  case 282:   // V_ADD_CO_U32,V_SUB_CO_U32,
                 appendOPR_VGPR(layout.VDST,false,true);
@@ -2072,7 +2231,6 @@ namespace InstructionAPI {
             case 0:  case 9:  case 14:  case 32:  case 33:   // V_PK_MAD_I16,V_PK_MAD_U16,V_PK_FMA_F16,V_MAD_MIX_F32,V_MAD_MIXLO_F16,
             case 34:  case 35:  case 38:  case 39:   // V_MAD_MIXHI_F16,V_DOT2_F32_F16,V_DOT2_I32_I16,V_DOT2_U32_U16,
             case 40:  case 41:  case 42:  case 43:   // V_DOT4_I32_I8,V_DOT4_U32_U8,V_DOT8_I32_I4,V_DOT8_U32_U4,
-            case 48:   // V_PK_FMA_F32,
                 appendOPR_VGPR(layout.VDST,false,true);
                 appendOPR_SRC_NOLIT(layout.SRC0,true,false);
                 appendOPR_SRC_SIMPLE(layout.SRC1,true,false);
@@ -2080,7 +2238,7 @@ namespace InstructionAPI {
                 break;
             case 1:  case 2:  case 3:  case 7:  case 8:   // V_PK_MUL_LO_U16,V_PK_ADD_I16,V_PK_SUB_I16,V_PK_MAX_I16,V_PK_MIN_I16,
             case 10:  case 11:  case 12:  case 13:  case 15:   // V_PK_ADD_U16,V_PK_SUB_U16,V_PK_MAX_U16,V_PK_MIN_U16,V_PK_ADD_F16,
-            case 16:  case 17:  case 18:  case 49:  case 50:   // V_PK_MUL_F16,V_PK_MIN_F16,V_PK_MAX_F16,V_PK_MUL_F32,V_PK_ADD_F32,
+            case 16:  case 17:  case 18:   // V_PK_MUL_F16,V_PK_MIN_F16,V_PK_MAX_F16,
                 appendOPR_VGPR(layout.VDST,false,true);
                 appendOPR_SRC_NOLIT(layout.SRC0,true,false);
                 appendOPR_SRC_SIMPLE(layout.SRC1,true,false);
@@ -2090,7 +2248,13 @@ namespace InstructionAPI {
                 appendOPR_SRC_SIMPLE(layout.SRC0,true,false);
                 appendOPR_SRC_SIMPLE(layout.SRC1,true,false);
                 break;
-            case 51:   // V_PK_MOV_B32,
+            case 48:   // V_PK_FMA_F32,
+                appendOPR_VGPR(layout.VDST,false,true,2);
+                appendOPR_SRC_NOLIT(layout.SRC0,true,false,2);
+                appendOPR_SRC_SIMPLE(layout.SRC1,true,false,2);
+                appendOPR_SRC_SIMPLE(layout.SRC2,true,false,2);
+                break;
+            case 49:  case 50:  case 51:   // V_PK_MUL_F32,V_PK_ADD_F32,V_PK_MOV_B32,
                 appendOPR_VGPR(layout.VDST,false,true,2);
                 appendOPR_SRC_NOLIT(layout.SRC0,true,false,2);
                 appendOPR_SRC_SIMPLE(layout.SRC1,true,false,2);
@@ -2106,9 +2270,9 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VOP3P_MFMAOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOP3P_MFMAOperands()
     {
-        layout_ENC_VOP3P_MFMA & layout = insn_layout.ENC_VOP3P_MFMA;
+        layout_VOP3P_MFMA & layout = insn_layout.VOP3P_MFMA;
         switch (layout.OP)  {
             case 64:  case 80:  case 104:   // V_MFMA_F32_32X32X1F32,V_MFMA_I32_32X32X4I8,V_MFMA_F32_32X32X2BF16,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,32);
@@ -2249,8 +2413,53 @@ namespace InstructionAPI {
         }
     }
 
-void InstructionDecoder_amdgpu_gfx90a::finalizeSOPK_INST_LITERAL_Operands()  {
-}
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOPC_VOP_SDWA_SDST_ENCOperands()
+    {
+        layout_VOPC_VOP_SDWA_SDST_ENC & layout = insn_layout.VOPC_VOP_SDWA_SDST_ENC;
+        switch (layout.OP)  {
+            case 16:  case 20:  case 32:  case 33:   // V_CMP_CLASS_F32,V_CMP_CLASS_F16,V_CMP_F_F16,V_CMP_LT_F16,
+            case 34:  case 35:  case 36:  case 37:  case 38:   // V_CMP_EQ_F16,V_CMP_LE_F16,V_CMP_GT_F16,V_CMP_LG_F16,V_CMP_GE_F16,
+            case 39:  case 40:  case 41:  case 42:  case 43:   // V_CMP_O_F16,V_CMP_U_F16,V_CMP_NGE_F16,V_CMP_NLG_F16,V_CMP_NGT_F16,
+            case 44:  case 45:  case 46:  case 47:  case 64:   // V_CMP_NLE_F16,V_CMP_NEQ_F16,V_CMP_NLT_F16,V_CMP_TRU_F16,V_CMP_F_F32,
+            case 65:  case 66:  case 67:  case 68:  case 69:   // V_CMP_LT_F32,V_CMP_EQ_F32,V_CMP_LE_F32,V_CMP_GT_F32,V_CMP_LG_F32,
+            case 70:  case 71:  case 72:  case 73:  case 74:   // V_CMP_GE_F32,V_CMP_O_F32,V_CMP_U_F32,V_CMP_NGE_F32,V_CMP_NLG_F32,
+            case 75:  case 76:  case 77:  case 78:   // V_CMP_NGT_F32,V_CMP_NLE_F32,V_CMP_NEQ_F32,V_CMP_NLT_F32,
+            case 79:  case 160:  case 161:  case 162:   // V_CMP_TRU_F32,V_CMP_F_I16,V_CMP_LT_I16,V_CMP_EQ_I16,
+            case 163:  case 164:  case 165:  case 166:   // V_CMP_LE_I16,V_CMP_GT_I16,V_CMP_NE_I16,V_CMP_GE_I16,
+            case 167:  case 168:  case 169:  case 170:  case 171:   // V_CMP_T_I16,V_CMP_F_U16,V_CMP_LT_U16,V_CMP_EQ_U16,V_CMP_LE_U16,
+            case 172:  case 173:  case 174:  case 175:  case 192:   // V_CMP_GT_U16,V_CMP_NE_U16,V_CMP_GE_U16,V_CMP_T_U16,V_CMP_F_I32,
+            case 193:  case 194:  case 195:  case 196:   // V_CMP_LT_I32,V_CMP_EQ_I32,V_CMP_LE_I32,V_CMP_GT_I32,
+            case 197:  case 198:  case 199:  case 200:  case 201:   // V_CMP_NE_I32,V_CMP_GE_I32,V_CMP_T_I32,V_CMP_F_U32,V_CMP_LT_U32,
+            case 202:  case 203:  case 204:  case 205:   // V_CMP_EQ_U32,V_CMP_LE_U32,V_CMP_GT_U32,V_CMP_NE_U32,
+            case 206:  case 207:   // V_CMP_GE_U32,V_CMP_T_U32,
+                appendOPR_SREG(layout.SDST,false,true,2);
+                appendOPR_SRC(layout.VSRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                break;
+            case 17:  case 21:  case 48:  case 49:   // V_CMPX_CLASS_F32,V_CMPX_CLASS_F16,V_CMPX_F_F16,V_CMPX_LT_F16,
+            case 50:  case 51:  case 52:  case 53:   // V_CMPX_EQ_F16,V_CMPX_LE_F16,V_CMPX_GT_F16,V_CMPX_LG_F16,
+            case 54:  case 55:  case 56:  case 57:   // V_CMPX_GE_F16,V_CMPX_O_F16,V_CMPX_U_F16,V_CMPX_NGE_F16,
+            case 58:  case 59:  case 60:  case 61:   // V_CMPX_NLG_F16,V_CMPX_NGT_F16,V_CMPX_NLE_F16,V_CMPX_NEQ_F16,
+            case 62:  case 63:  case 80:  case 81:   // V_CMPX_NLT_F16,V_CMPX_TRU_F16,V_CMPX_F_F32,V_CMPX_LT_F32,
+            case 82:  case 83:  case 84:  case 85:   // V_CMPX_EQ_F32,V_CMPX_LE_F32,V_CMPX_GT_F32,V_CMPX_LG_F32,
+            case 86:  case 87:  case 88:  case 89:   // V_CMPX_GE_F32,V_CMPX_O_F32,V_CMPX_U_F32,V_CMPX_NGE_F32,
+            case 90:  case 91:  case 92:  case 93:   // V_CMPX_NLG_F32,V_CMPX_NGT_F32,V_CMPX_NLE_F32,V_CMPX_NEQ_F32,
+            case 94:  case 95:  case 176:  case 177:   // V_CMPX_NLT_F32,V_CMPX_TRU_F32,V_CMPX_F_I16,V_CMPX_LT_I16,
+            case 178:  case 179:  case 180:  case 181:   // V_CMPX_EQ_I16,V_CMPX_LE_I16,V_CMPX_GT_I16,V_CMPX_NE_I16,
+            case 182:  case 183:  case 184:  case 185:   // V_CMPX_GE_I16,V_CMPX_T_I16,V_CMPX_F_U16,V_CMPX_LT_U16,
+            case 186:  case 187:  case 188:  case 189:   // V_CMPX_EQ_U16,V_CMPX_LE_U16,V_CMPX_GT_U16,V_CMPX_NE_U16,
+            case 190:  case 191:  case 208:  case 209:   // V_CMPX_GE_U16,V_CMPX_T_U16,V_CMPX_F_I32,V_CMPX_LT_I32,
+            case 210:  case 211:  case 212:  case 213:   // V_CMPX_EQ_I32,V_CMPX_LE_I32,V_CMPX_GT_I32,V_CMPX_NE_I32,
+            case 214:  case 215:  case 216:  case 217:   // V_CMPX_GE_I32,V_CMPX_T_I32,V_CMPX_F_U32,V_CMPX_LT_U32,
+            case 218:  case 219:  case 220:  case 221:   // V_CMPX_EQ_U32,V_CMPX_LE_U32,V_CMPX_GT_U32,V_CMPX_NE_U32,
+            case 222:  case 223:   // V_CMPX_GE_U32,V_CMPX_T_U32,
+                appendOPR_SREG(layout.SDST,false,true,2);
+                appendOPR_SRC(layout.VSRC0,true,false);
+                appendOPR_VGPR(layout.VSRC1,true,false);
+                appendOPR_SDST_EXEC(126,false,true,1,true);
+                break;
+        }
+    }
 
 }
 }
