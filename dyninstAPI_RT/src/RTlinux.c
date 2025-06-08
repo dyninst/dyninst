@@ -421,7 +421,7 @@ void r_debugCheck(void) { assert(_r_debug.r_map); }
 #define NUM_LIBRARIES_BITMASK_SIZE (1 + NUM_LIBRARIES / WORD_SIZE)
 struct trap_mapping_header *all_headers[NUM_LIBRARIES];
 
-#if !defined(DYNINST_HOST_ARCH_X86_64) || defined(MUTATEE_32)
+#if (!defined(DYNINST_HOST_ARCH_X86_64) && !defined(DYNINST_HOST_ARCH_RISCV64)) || defined(MUTATEE_32)
 typedef Elf32_Dyn ElfX_Dyn;
 #else
 typedef Elf64_Dyn ElfX_Dyn;
