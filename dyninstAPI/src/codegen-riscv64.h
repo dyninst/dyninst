@@ -113,8 +113,7 @@ public:
     // Using the process trap mapping for a branch
     static void generateBranchViaTrap(codeGen &gen,
                                       Dyninst::Address from,
-                                      Dyninst::Address to,
-                                      bool isCall);
+                                      Dyninst::Address to);
 
     static void generateCondBranch(codeGen &gen,
                                    int bCondOp,
