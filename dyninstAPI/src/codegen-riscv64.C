@@ -253,15 +253,22 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
         Dyninst::Register scratch = Null_Register;
 
         instPoint *point = gen.point();
+        AddressSpace *as = gen.addrSpace();
         if (point) {
             registerSpace *rs = registerSpace::actualRegSpace(point);
             gen.setRegisterSpace(rs);
-
             scratch = rs->getScratchRegister(gen, true);
         }
 
+        if (as) {
+            registerSpace *rs = registerSpace::getRegisterSpace(as);
+            gen.setRegisterSpace(rs);
+            scratch = rs->getScratchRegister(gen, true);
+        }
+
+
         if (scratch == Null_Register) {
-            assert(0);
+            generateBranchViaTrap(gen, from, to);
             return;
         }
 
@@ -312,11 +319,9 @@ void insnCodeGen::generateBranch(codeGen &gen,
 
 void insnCodeGen::generateBranchViaTrap(codeGen &gen,
                                         Dyninst::Address from,
-                                        Dyninst::Address to,
-                                        bool isCall)
+                                        Dyninst::Address to)
 {
     long disp = to - from;
-    assert(!isCall);
 
     if (gen.addrSpace()) {
         gen.addrSpace()->trapMapping.addTrapMapping(from, to, true);
