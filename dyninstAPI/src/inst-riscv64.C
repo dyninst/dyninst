@@ -549,8 +549,8 @@ Register EmitterRISCV64::emitCall(opCode op,
     // Generate code that handles operand registers
     for (size_t id = 0; id < operands.size(); id++) {
         Register reg = Null_Register;
-        if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r0 + id, true)) {
-            reg = registerSpace::r0 + id;
+        if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r10 + id, true)) {
+            reg = registerSpace::r10 + id;
         }
 
         Address unnecessary = ADDR_NULL;
@@ -568,20 +568,20 @@ Register EmitterRISCV64::emitCall(opCode op,
     if (gen.addrSpace()->edit() != NULL && (gen.func()->obj() != callee->obj() || gen.addrSpace()->needsPIC())) {
         long disp = getInterModuleFuncAddr(callee, gen) - gen.currAddr();
         insnCodeGen::generateLoadImm(gen, dest, disp, true, true, gen.getUseRVC());
-        insnCodeGen::generateMemStore(gen, dest, dest, 0, GPRSIZE_64, gen.getUseRVC());
+        insnCodeGen::generateMemLoad(gen, dest, dest, 0, GPRSIZE_64, true, gen.getUseRVC());
     } else {
         insnCodeGen::loadImmIntoReg(gen, dest, callee->addr(), gen.getUseRVC());
     }
 
-    // Generate jr
-    insnCodeGen::generateJr(gen, dest, 0, gen.getUseRVC());
+    // Generate jalr
+    insnCodeGen::generateJalr(gen, GPR_RA, dest, 0, gen.getUseRVC());
 
     // Finally, we restore all necessary registers
     for (size_t id = 0; id < savedRegs.size(); id++) {
         insnCodeGen::restoreRegister(gen, savedRegs[id], id * GPRSIZE_64, gen.getUseRVC());
     }
     insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, savedRegs.size() * GPRSIZE_64, gen.getUseRVC());
-    return 0;
+    return riscv64::a0;
 }
 
 
