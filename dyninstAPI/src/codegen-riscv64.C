@@ -693,6 +693,10 @@ bool insnCodeGen::generateLoadImm(codeGen &gen,
                 if (addi_imm & 0x800) {
                     lui_imm = (lui_imm + 1) & 0xfffff;
                 }
+		// 12-bit sign extend
+                if (lui_imm & 0x80000) {
+                    lui_imm ^= 0xfffffffffff00000;
+                }
                 generateLui(gen, rd, lui_imm, useRVC);
                 generateAddi(gen, rd, rd, addi_imm, useRVC);
                 return true;
@@ -766,6 +770,10 @@ bool insnCodeGen::generateCalcImm(codeGen &gen,
     // because the register will handle it for you naturally
     if (addi_imm0 & 0x800) {
         lui_imm = (lui_imm + carry + 1) & 0xfff;
+    }
+    // 12-bit sign extend
+    if (lui_imm & 0x80000) {
+        lui_imm ^= 0xfffffffffff00000;
     }
 
     addi_imm1 = 32;
