@@ -59,10 +59,12 @@ Dyninst::Address instruction::getTarget(Dyninst::Address addr) const {
 
 bool instruction::isBranchReg() const {
     if (isRVC()) {
-        insnBuf_t result = insn_buff & CJR_INSN_MASK;
+        const rvcInsn_t *p = reinterpret_cast<const rvcInsn_t *>(insn_buff);
+        rvcInsn_t result = (*p) & CJR_INSN_MASK;
         return result == CJR_INSN || result == CJALR_INSN;
     } else {
-        insnBuf_t result = insn_buff & J_INSN_MASK;
+        const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+        rvInsn_t result = (*p) & J_INSN_MASK;
         return result == JALR_INSN;
     }
 }
@@ -72,32 +74,40 @@ bool instruction::isBranchOffset() const {
         return true;
     }
     else if (isRVC()) {
-        insnBuf_t result = insn_buff & CJ_INSN_MASK;
+        const rvcInsn_t *p = reinterpret_cast<const rvcInsn_t *>(insn_buff);
+        rvcInsn_t result = (*p) & CJ_INSN_MASK;
         return result == CJ_INSN || result == CJAL_INSN;
     } else {
-        insnBuf_t result = insn_buff & J_INSN_MASK;
+        const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+        rvInsn_t result = (*p) & J_INSN_MASK;
         return result == JAL_INSN || result == JALR_INSN;
     }
 }
 
 bool instruction::isUncondBranch() const {
     if (isRVC()) {
-        insnBuf_t resultCJ = insn_buff & CJ_INSN_MASK;
-        insnBuf_t resultCJR = insn_buff & CJR_INSN_MASK;
+        const rvcInsn_t *p = reinterpret_cast<const rvcInsn_t *>(insn_buff);
+        rvcInsn_t resultCJ = (*p) & CJ_INSN_MASK;
+        rvcInsn_t resultCJR = (*p) & CJR_INSN_MASK;
         return resultCJ == CJ_INSN || resultCJ == CJAL_INSN
                 || resultCJR == CJR_INSN || resultCJR == CJALR_INSN;
     } else {
-        insnBuf_t result = insn_buff & J_INSN_MASK;
+        const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+        rvInsn_t result = (*p) & J_INSN_MASK;
         return result == JAL_INSN || result == JALR_INSN;
     }
 }
 
 bool instruction::isCondBranch() const {
     if (isRVC()) {
-        insnBuf_t result = insn_buff & CB_INSN_MASK;
+        const rvcInsn_t *p = reinterpret_cast<const rvcInsn_t *>(insn_buff);
+        printf("%lx\n", *p);
+        rvcInsn_t result = (*p) & CB_INSN_MASK;
         return result == CBEQZ_INSN || result == CBNEZ_INSN;
     } else {
-        insnBuf_t result = insn_buff & B_INSN_MASK;
+        const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+        printf("%lx\n", *p);
+        rvInsn_t result = (*p) & B_INSN_MASK;
         return result == B_INSNS;
     }
 }
@@ -105,11 +115,13 @@ bool instruction::isCondBranch() const {
 bool instruction::getUsedRegs(std::vector<int> &regs) {
     if (isCondBranch()) {
         if (isRVC()) {
-            unsigned int rs2 = CB_REG1_ADD + ((insn_buff & CB_REG1_MASK) >> CB_REG1_SHIFT).to_ullong();
+            const rvcInsn_t *p = reinterpret_cast<const rvcInsn_t *>(insn_buff);
+            unsigned int rs2 = CB_REG1_ADD + (((*p) & CB_REG1_MASK) >> CB_REG1_SHIFT);
             regs.push_back(rs2);
         } else {
-            unsigned int rs1 = ((insn_buff & B_REG1_MASK) >> B_REG1_SHIFT).to_ullong();
-            unsigned int rs2 = ((insn_buff & B_REG2_MASK) >> B_REG2_SHIFT).to_ullong();
+            const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+            unsigned int rs1 = ((*p) & B_REG1_MASK) >> B_REG1_SHIFT;
+            unsigned int rs2 = ((*p) & B_REG2_MASK) >> B_REG2_SHIFT;
             regs.push_back(rs1);
             regs.push_back(rs2);
         }
@@ -128,11 +140,12 @@ bool instruction::getUsedRegs(std::vector<int> &regs) {
 bool instruction::isCall() const {
     assert(isUncondBranch());
     if (isRVC()) {
-        insnBuf_t result = insn_buff & CJ_INSN_MASK;
+        const rvcInsn_t *p = reinterpret_cast<const rvcInsn_t *>(insn_buff);
+        rvcInsn_t result = (*p) & CJ_INSN_MASK;
         if (result == CJAL_INSN) {
             return true;
         }
-        result = insn_buff & CJR_INSN;
+        result = (*p) & CJR_INSN;
         if (result == CJALR_INSN) {
             return true;
         }
@@ -145,14 +158,16 @@ bool instruction::isCall() const {
 unsigned instruction::getLinkReg() const {
     assert(isUncondBranch());
     if (isRVC()) {
-        insnBuf_t result = insn_buff & CJ_INSN_MASK;
+        const rvcInsn_t *p = reinterpret_cast<const rvcInsn_t *>(insn_buff);
+        rvcInsn_t result = (*p) & CJ_INSN_MASK;
         if (result == CJ_INSN || result == CJR_INSN) {
             return GPR_ZERO;
         } else {
             return GPR_RA;
         }
     } else {
-        return ((insn_buff & J_LNK_MASK) >> J_LNK_SHIFT).to_ullong();
+        const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+        return (((*p) & J_LNK_MASK) >> J_LNK_SHIFT);
     }
 }
 
@@ -160,34 +175,59 @@ unsigned instruction::getBranchTargetReg() const {
     // keep sure this instruction is uncond b reg.
     assert(isBranchReg());
     if (isRVC()) {
-        return ((insn_buff & CJR_REG_MASK) >> CJR_REG_SHIFT).to_ullong();
+        const rvcInsn_t *p = reinterpret_cast<const rvcInsn_t *>(insn_buff);
+        return (((*p) & CJR_REG_MASK) >> CJR_REG_SHIFT);
     } else {
-        return ((insn_buff & JALR_REG_MASK) >> JALR_REG_SHIFT).to_ullong();
+        const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+        return (((*p) & JALR_REG_MASK) >> JALR_REG_SHIFT);
     }
 }
 
 Dyninst::Address instruction::getBranchOffset() const {
     assert(isBranchOffset());
 
-    std::bitset<RVC_INSN_SIZE> offset;
+    int offset = 0;
 
     if (isUncondBranch()) {
         // c.j, c.jal
         if (isRVC()) {
             for (unsigned i = 0; i < CJ_REORDER.size(); i++) {
-                offset.set(CJ_REORDER[i], insn_buff[CJ_IMM_OFF + i]);
+                size_t src_bit = CJ_IMM_OFF + i;
+                size_t src_byte_idx = src_bit / 8;
+                size_t src_bit_idx = src_bit % 8;
+
+                unsigned src_val = (insn_buff[src_byte_idx] >> src_bit_idx) & 1;
+                if (src_val) {
+                    offset |= (1 << CJ_REORDER[i]);
+                }
             }
         }
         // jalr
         else if (isBranchReg()) {
             for (unsigned i = 0; i < JALR_REORDER.size(); i++) {
-                offset.set(JALR_REORDER[i], insn_buff[JALR_IMM_OFF + i]);
+                //offset.set(JALR_REORDER[i], insn_buff[JALR_IMM_OFF + i]);
+                size_t src_bit = JALR_IMM_OFF + i;
+                size_t src_byte_idx = src_bit / 8;
+                size_t src_bit_idx = src_bit % 8;
+
+                unsigned src_val = (insn_buff[src_byte_idx] >> src_bit_idx) & 1;
+                if (src_val) {
+                    offset |= (1 << JALR_REORDER[i]);
+                }
             }
         }
         // jal
         else {
             for (unsigned i = 0; i < JAL_REORDER.size(); i++) {
-                offset.set(JAL_REORDER[i], insn_buff[JAL_IMM_OFF + i]);
+                //offset.set(JAL_REORDER[i], insn_buff[JAL_IMM_OFF + i]);
+                size_t src_bit = JAL_IMM_OFF + i;
+                size_t src_byte_idx = src_bit / 8;
+                size_t src_bit_idx = src_bit % 8;
+
+                unsigned src_val = (insn_buff[src_byte_idx] >> src_bit_idx) & 1;
+                if (src_val) {
+                    offset |= (1 << JAL_REORDER[i]);
+                }
             }
         }
     }
@@ -195,45 +235,77 @@ Dyninst::Address instruction::getBranchOffset() const {
         // c.beqz, c.bnez
         if (isRVC()) {
             for (unsigned i = 0; i < CB_REORDER1.size(); i++) {
-                offset.set(CB_REORDER1[i], insn_buff[CB_IMM_OFF1 + i]);
+                size_t src_bit = CB_IMM_OFF1 + i;
+                size_t src_byte_idx = src_bit / 8;
+                size_t src_bit_idx = src_bit % 8;
+
+                unsigned src_val = (insn_buff[src_byte_idx] >> src_bit_idx) & 1;
+                if (src_val) {
+                    offset |= (1 << CB_REORDER1[i]);
+                }
             }
             for (unsigned i = 0; i < CB_REORDER2.size(); i++) {
-                offset.set(CB_REORDER2[i], insn_buff[CB_IMM_OFF2 + i]);
+                size_t src_bit = CB_IMM_OFF2 + i;
+                size_t src_byte_idx = src_bit / 8;
+                size_t src_bit_idx = src_bit % 8;
+
+                unsigned src_val = (insn_buff[src_byte_idx] >> src_bit_idx) & 1;
+                if (src_val) {
+                    offset |= (1 << CB_REORDER2[i]);
+                }
             }
         }
         // beq, bne, blt, bge, bltu, bgeu
         else {
             for (unsigned i = 0; i < B_REORDER1.size(); i++) {
-                offset.set(B_REORDER1[i], insn_buff[B_IMM_OFF1 + i]);
+                size_t src_bit = B_IMM_OFF1 + i;
+                size_t src_byte_idx = src_bit / 8;
+                size_t src_bit_idx = src_bit % 8;
+
+                unsigned src_val = (insn_buff[src_byte_idx] >> src_bit_idx) & 1;
+                if (src_val) {
+                    offset |= (1 << B_REORDER1[i]);
+                }
             }
             for (unsigned i = 0; i < B_REORDER2.size(); i++) {
-                offset.set(B_REORDER2[i], insn_buff[B_IMM_OFF2 + i]);
+                size_t src_bit = B_IMM_OFF2 + i;
+                size_t src_byte_idx = src_bit / 8;
+                size_t src_bit_idx = src_bit % 8;
+
+                unsigned src_val = (insn_buff[src_byte_idx] >> src_bit_idx) & 1;
+                if (src_val) {
+                    offset |= (1 << B_REORDER2[i]);
+                }
             }
         }
     }
-    return offset.to_ullong();
+    return offset;
 }
 
 unsigned instruction::getCondBranchOp() const {
     assert (isCondBranch());
     if (isRVC()) {
-        insnBuf_t result = insn_buff & CB_INSN_MASK;
+        const rvcInsn_t *p = reinterpret_cast<const rvcInsn_t *>(insn_buff);
+        rvcInsn_t result = (*p) & CB_INSN_MASK;
         if (result == CBEQZ_INSN) {
             return B_COND_EQ;
         } else {
             return B_COND_NE;
         }
     } else {
-        return ((insn_buff & B_COND_MASK) >> B_COND_SHIFT).to_ullong();
+        const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+        return (((*p) & B_COND_MASK) >> B_COND_SHIFT);
     }
 }
 
 unsigned instruction::getCondBranchReg1() const {
     assert (isCondBranch());
     if (isRVC()) {
-        return CB_REG1_ADD + ((insn_buff & CB_REG1_MASK) >> CB_REG1_SHIFT).to_ullong();
+        const rvcInsn_t *p = reinterpret_cast<const rvcInsn_t *>(insn_buff);
+        return CB_REG1_ADD + (((*p) & CB_REG1_MASK) >> CB_REG1_SHIFT);
     } else {
-        return ((insn_buff & B_REG1_MASK) >> B_REG1_SHIFT).to_ullong();
+        const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+        return (((*p) & B_REG1_MASK) >> B_REG1_SHIFT);
     }
 }
 
@@ -242,12 +314,14 @@ unsigned instruction::getCondBranchReg2() const {
     if (isRVC()) {
         return GPR_ZERO;
     } else {
-        return ((insn_buff & B_REG2_MASK) >> B_REG2_SHIFT).to_ullong();
+        const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+        return ((*p) & B_REG2_MASK) >> B_REG2_SHIFT;
     }
 }
 
 bool instruction::isAtomic() const {
-    insnBuf_t result = insn_buff & A_INSN_MASK;
+    const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+    rvInsn_t result = (*p) & A_INSN_MASK;
     return result == A_INSNS;
 }
 
@@ -255,7 +329,8 @@ bool instruction::isAtomicMemOp() const {
     if (!isAtomic()) {
         return false;
     }
-    insnBuf_t result = insn_buff & A_OP_MASK;
+    const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+    rvInsn_t result = (*p) & A_OP_MASK;
     return result != A_OP_LR && result != A_OP_SC;
 }
 
@@ -263,7 +338,8 @@ bool instruction::isAtomicLoad() const {
     if (isAtomicMemOp()) {
         return true;
     }
-    insnBuf_t result = insn_buff & A_OP_MASK;
+    const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+    rvInsn_t result = (*p) & A_OP_MASK;
     return result == A_OP_LR;
 }
 
@@ -271,22 +347,26 @@ bool instruction::isAtomicStore() const {
     if (isAtomicMemOp()) {
         return true;
     }
-    insnBuf_t result = insn_buff & A_OP_MASK;
+    const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+    rvInsn_t result = (*p) & A_OP_MASK;
     return result == A_OP_SC;
 }
 
 bool instruction::isAuipc() const {
-    return (insn_buff & AUIPC_INSN_MASK) == AUIPC_INSN;
+    const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+    return ((*p) & AUIPC_INSN_MASK) == AUIPC_INSN;
 }
 
 Dyninst::Address instruction::getAuipcOffset() const {
     assert(isAuipc());
-    return (insn_buff & AUIPC_IMM_MASK).to_ullong();
+    const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+    return (*p) & AUIPC_IMM_MASK;
 }
 
 unsigned instruction::getAuipcReg() const {
     assert(isAuipc());
-    return ((insn_buff & AUIPC_REG_MASK) >> AUIPC_REG_SHIFT).to_ullong();
+    const rvInsn_t *p = reinterpret_cast<const rvInsn_t *>(insn_buff);
+    return ((*p) & AUIPC_REG_MASK) >> AUIPC_REG_SHIFT;
 }
 
 } // namespace NS_riscv64
