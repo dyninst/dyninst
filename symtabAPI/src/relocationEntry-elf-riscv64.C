@@ -133,9 +133,9 @@ relocationEntry::getCategory( unsigned /*addressWidth*/ )
     switch (getRelType()) {
         case R_RISCV_RELATIVE:
         case R_RISCV_IRELATIVE:
-            return category::relative; 
+            return category::relative;
         case R_RISCV_JUMP_SLOT:
-            return category::jump_slot; 
+            return category::jump_slot;
         default:
             return category::absolute;
     }
