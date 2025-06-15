@@ -49,8 +49,6 @@
 #include "debug.h"
 #include "elf.h"
 
-// TODO
-
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
@@ -71,10 +69,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *, relocatio
     return false;
 }
 
-//steve: TODO not sure
 bool emitElfStatic::checkSpecialCaseSymbols(Symtab *, Symbol *) {
-    //assert(!EMIT_STATIC_ASSERT);
-    //return false;
     return true;
 }
 
@@ -111,7 +106,6 @@ Offset emitElfStatic::getGOTSize(LinkMap &) {
 }
 #endif
 
-//steve: TODO
 Offset emitElfStatic::getGOTSize(Symtab *, LinkMap &, Offset &) {
     assert(!EMIT_STATIC_ASSERT);
     return 0;
@@ -128,7 +122,6 @@ void emitElfStatic::buildGOT(LinkMap &) {
 }
 #endif
 
-//steve: TODO
 void emitElfStatic::buildGOT(Symtab *, LinkMap &) {
     assert(!EMIT_STATIC_ASSERT);
 }
@@ -172,19 +165,15 @@ void emitElfStatic::getExcludedSymbolNames(set<string> &) {
     assert(!EMIT_STATIC_ASSERT);
 }
 
-//************
-//steve: added
 Offset emitElfStatic::allocStubRegions(LinkMap &, Offset){
-  assert(!EMIT_STATIC_ASSERT);
-	return 0;
+    assert(!EMIT_STATIC_ASSERT);
+    return 0;
 }
 
 bool emitElfStatic::updateTOC(Symtab *, LinkMap &, Offset){
-  assert(!EMIT_STATIC_ASSERT);
-	return false;
+    assert(!EMIT_STATIC_ASSERT);
+    return false;
 }
-//***********
-
 
 inline
 static bool adjustValInRegion(Region *reg, Offset offInReg, Offset addressWidth, int adjust) {
@@ -199,30 +188,25 @@ static bool adjustValInRegion(Region *reg, Offset offInReg, Offset addressWidth,
 
 bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int library_adjust) {
     Region *targetRegion = obj->findEnclosingRegion(rel.rel_addr());
-    if (NULL == targetRegion) {
+    if (targetRegion == NULL) {
         rewrite_printf("Failed to find enclosing Region for relocation");
         return false;
     }
-    unsigned addressWidth = obj->getAddressWidth();
-    if( addressWidth == 8 ) {
-        switch (rel.getRelType()) {
-            case R_RISCV_RELATIVE:
-            case R_RISCV_IRELATIVE:
-                rel.setAddend(rel.addend() + library_adjust);
-                break;
-            case R_RISCV_JUMP_SLOT:
-                if (!adjustValInRegion(targetRegion,
-                           rel.rel_addr() - targetRegion->getDiskOffset(),
-                           addressWidth, library_adjust))
-                {
-                    rewrite_printf("Failed to update relocation\n");
-                    return false;
-                }
-                break;
-            default:
-                break;
-        }
+    switch (rel.getRelType()) {
+        case R_RISCV_RELATIVE:
+        case R_RISCV_IRELATIVE:
+            rel.setAddend(rel.addend() + library_adjust);
+            break;
+        case R_RISCV_JUMP_SLOT:
+            if (!adjustValInRegion(targetRegion, rel.rel_addr() - targetRegion->getDiskOffset(),
+                        addressWidth, library_adjust))
+            {
+                rewrite_printf("Failed to update relocation\n");
+                return false;
+            }
+            break;
+        default:
+            break;
     }
-
     return true;
 }
