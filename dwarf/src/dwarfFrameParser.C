@@ -357,6 +357,7 @@ bool DwarfFrameParser::getRegAtFrame(
                   reg = convert_abstract(reg);
                   dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
                 }
+
                 if (reg != Dyninst::ReturnAddr) {
                     cons.readReg(reg);
                     return true;
