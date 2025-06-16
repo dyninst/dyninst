@@ -39,21 +39,13 @@
 #include "dyninstAPI/src/function.h"
 
 void insnCodeGen::generate(codeGen &gen, instruction &insn) {
-    // Call `flushInsnBuffer` to flush the instruction buffer into the
-    // 2-byte code buffer `code_buff` short-by-short.
-    for (unsigned i = 0; i < insn.size() / RV_MIN_INSN_SIZE; i++) {
-        insn.flushInsnBuff(i * RV_MIN_INSN_SIZE * 8);
-        gen.copy(insn.ptr(), RV_MIN_INSN_SIZE);
-    }
+    insn.flushInsnBuff();
+    gen.copy(insn.ptr(), insn.size());
 }
 
 void insnCodeGen::generate(codeGen &gen, instruction &insn, unsigned position) {
-    // Call `flushInsnBuffer` to flush the instruction buffer into the
-    // 2-byte code buffer `code_buff` short-by-short
-    for (unsigned i = 0; i < insn.size() / RV_MIN_INSN_SIZE; i++) {
-        insn.flushInsnBuff(i * RV_MIN_INSN_SIZE * 8);
-        gen.insert(insn.ptr(), RV_MIN_INSN_SIZE, position);
-    }
+    insn.flushInsnBuff();
+    gen.insert(insn.ptr(), insn.size(), position);
 }
 
 // Basic RISC-V instruction type generation
