@@ -192,6 +192,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
         rewrite_printf("Failed to find enclosing Region for relocation");
         return false;
     }
+    unsigned addressWidth = obj->getAddressWidth();
     switch (rel.getRelType()) {
         case R_RISCV_RELATIVE:
         case R_RISCV_IRELATIVE:
