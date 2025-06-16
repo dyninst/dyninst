@@ -377,8 +377,12 @@ void *codeGen::cur_ptr() const {
     //    fprintf(stderr, "ERROR: sizeof codeBuf %zu, OFFSET %u\n",
     //            sizeof(codeBuf_t), CODE_GEN_OFFSET_SIZE);
     //assert(sizeof(codeBuf_t) == CODE_GEN_OFFSET_SIZE);
-    codeBuf_t *ret = buffer_;
-    ret += offset_;
+    //codeBuf_t *ret = buffer_;
+    // On RISC-V, sizeof(codeBuf_t) is 4, but CODE_GEN_OFFSET_SIZE is 2
+
+    char *ret = (char *)buffer_;
+    // Therefore, we add offset_
+    ret += offset_ * CODE_GEN_OFFSET_SIZE;
     return (void *)ret;
 }
 
@@ -388,8 +392,9 @@ void *codeGen::get_ptr(unsigned offset) const {
     //assert(sizeof(codeBuf_t) == CODE_GEN_OFFSET_SIZE);
     assert((offset % CODE_GEN_OFFSET_SIZE) == 0);
     unsigned index = offset / CODE_GEN_OFFSET_SIZE;
-    codeBuf_t *ret = buffer_;
-    ret += index;
+    //codeBuf_t *ret = buffer_;
+    char *ret = (char *)buffer_;
+    ret += index * CODE_GEN_OFFSET_SIZE;
     return (void *)ret;
 }
 
