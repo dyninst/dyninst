@@ -537,7 +537,9 @@ Register EmitterRISCV64::emitCall(opCode op,
     vector<int> savedRegs;
     for (int i = 0; i < gen.rs()->numGPRs(); i++) {
         registerSlot *reg = gen.rs()->GPRs()[i];
-        if ((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live)) {
+        // Ignore zero register
+        if ((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live) &&
+            (reg->number != GPR_ZERO)) {
             savedRegs.push_back(reg->number);
         }
     }
@@ -762,7 +764,7 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
         insnCodeGen::generateAddImm(gen, dest, scratch, dest, gen.getUseRVC());
     }
     if (imm) {
-        insnCodeGen::generateAddImm(gen, dest, imm, dest, gen.getUseRVC());	
+        insnCodeGen::generateAddImm(gen, dest, imm, dest, gen.getUseRVC());
     }
     return;
 }
@@ -1356,11 +1358,11 @@ void EmitterRISCV64::emitLoadShared(opCode op, Register dest, const image_variab
     Register baseReg = gen.rs()->getScratchRegister(gen, true);
     assert(baseReg != Null_Register && "cannot get a scratch register");
 
-    emitMovePCToReg(baseReg, gen);
     Address varOffset = addr - gen.currAddr() + 4; // Don't use compressed instructions
 
     if (op == loadOp) {
         if (!is_local && (var != NULL)){
+            emitMovePCToReg(baseReg, gen);
             emitLoadRelative(dest, varOffset, baseReg, gen.width(), gen);
             // Deference the pointer to get the variable
             // emitLoadRelative(dest, 0, dest, size, gen);
@@ -1371,13 +1373,16 @@ void EmitterRISCV64::emitLoadShared(opCode op, Register dest, const image_variab
         }
     } else {
         if (!is_local && (var != NULL)){
+            emitMovePCToReg(baseReg, gen);
             emitLoadRelative(dest, varOffset, baseReg, gen.width(), gen);
         } else {
-            std::vector<Register> exclude;
-            exclude.push_back(baseReg);
-            auto addReg = insnCodeGen::moveValueToReg(gen, varOffset, &exclude);
-            insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg, gen.getUseRVC());
-            insnCodeGen::generateMove(gen, dest, baseReg, gen.getUseRVC());
+            //std::vector<Register> exclude;
+            //exclude.push_back(baseReg);
+            //auto addReg = insnCodeGen::moveValueToReg(gen, varOffset, &exclude);
+            //insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg, gen.getUseRVC());
+            //insnCodeGen::generateMove(gen, dest, baseReg, gen.getUseRVC());
+
+            insnCodeGen::generateLoadImm(gen, dest, addr - gen.currAddr(), true, true, gen.getUseRVC());
         }
     }
 
