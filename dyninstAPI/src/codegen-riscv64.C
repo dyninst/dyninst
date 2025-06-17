@@ -625,8 +625,10 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
 {
     assert(insn.isAuipc());
     
-    long disp = (target - gen.currAddr() - RV_INSN_SIZE);
+    long auipcOff = insn.getAuipcOffset();
     Register rd = insn.getAuipcReg();
+
+    long disp = (target - gen.currAddr() - RV_INSN_SIZE) + auipcOff;
     generateLoadImm(gen, rd, disp, true, true, gen.getUseRVC());
     return true;
 }
