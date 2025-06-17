@@ -140,6 +140,3 @@ relocationEntry::getCategory( unsigned /*addressWidth*/ )
             return category::absolute;
     }
 }
-
-
-
