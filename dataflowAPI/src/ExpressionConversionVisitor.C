@@ -163,7 +163,6 @@ void ExpressionConversionVisitor::visit(RegisterAST *regast) {
 
 void ExpressionConversionVisitor::visit(MultiRegisterAST * ) {
     roseExpression = NULL;
-    assert(0);
 }
 
 void ExpressionConversionVisitor::visit(Dereference *deref) {
