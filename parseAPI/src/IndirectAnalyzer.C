@@ -112,6 +112,8 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 
         auto old_ast = symRet[assignments[0]];
 
+	if (!old_ast) return false;
+
         auto new_ast = se.SimplifyAnAST(old_ast,0,false);
 
         /*do {
