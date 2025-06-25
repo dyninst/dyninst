@@ -1000,6 +1000,33 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 
 }
 
+BPatch_variableExpr::BPatch_variableExpr(const std::string& varName, BPatch_addressSpace *in_addSpace,
+                                         AddressSpace *ll_addSpace,
+                                         BPatch_type *type_)
+  : name(varName),
+    appAddSpace(in_addSpace),
+    lladdrSpace(ll_addSpace),
+    address(NULL),
+    scope(NULL),
+    isLocal(false),
+    type(type_),
+    intvar(NULL)
+{
+  AstOperandNode::addToTable(name, size);
+  int offset = AstOperandNode::getOffset(name);
+
+  // An AstOperandNode containing another AstOperandNode that is a constant.
+  // The constant represents offset in the GPU memory buffer.
+  ast_wrapper = AstNodePtr(
+                  AstNode::operandNode(AstNode::operandType::AddressAsPlaceholderRegAndOffset,
+                    AstNode::operandNode(AstNode::operandType::Constant, (void *) offset)
+                  )
+                );
+
+  ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+  ast_wrapper->setType(type_);
+
+}
 
 BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* in_addSpace,
                                                  int_variable* v,
