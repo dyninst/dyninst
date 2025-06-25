@@ -392,7 +392,12 @@ class DYNINST_EXPORT BPatch_variableExpr : public BPatch_snippet
 						 std::string name,
 						 void* offset,
 						 BPatch_type* type);
-    
+
+   // Wrapper around the constructor for AMDGPU
+   static BPatch_variableExpr* makeVariableExpr(const std::string& name,
+                                                BPatch_addressSpace *in_addSpace,
+                                                AddressSpace *ll_addSpace,
+                                                BPatch_type *type_);
     
 
   public:
