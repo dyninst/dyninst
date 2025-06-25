@@ -603,8 +603,7 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
    BPatch_type *type = BPatch::bpatch->createScalar(name.c_str(), n);
 
 #if defined(arch_amdgpu)
-   return BPatch_variableExpr::makeVariableExpr(this, as[0], name, NULL,
-                                                type);
+   return BPatch_variableExpr::makeVariableExpr(name, this, as[0], type);
 #else
    return BPatch_variableExpr::makeVariableExpr(this, as[0], name, ptr,
                                                 type);
