@@ -369,7 +369,7 @@ class DYNINST_EXPORT BPatch_variableExpr : public BPatch_snippet
                         AddressSpace *as,
                         BPatch_localVar *lv, BPatch_type *type,
                         BPatch_point *scp);
-    
+
     //    BPatch_variableExpr(const char *name, BPatch_addressSpace *in_addSpace,
     //                    AddressSpace *ll_addSpace, void *in_address, 
     //                    BPatch_type *type);
@@ -377,6 +377,12 @@ class DYNINST_EXPORT BPatch_variableExpr : public BPatch_snippet
     BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 			AddressSpace *ll_addSpace, int_variable *iv,
 			BPatch_type *type);
+
+    // Used for AMDGPU
+    BPatch_variableExpr(const std::string& varName,
+                        BPatch_addressSpace *in_addSpace,
+                        AddressSpace *ll_addSpace,
+                        BPatch_type *type_);
  public:
     static BPatch_variableExpr* makeVariableExpr(BPatch_addressSpace* in_addSpace,
 						 int_variable* v,
