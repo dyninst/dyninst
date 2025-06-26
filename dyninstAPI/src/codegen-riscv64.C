@@ -313,8 +313,6 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen,
                                         Dyninst::Address from,
                                         Dyninst::Address to)
 {
-    long disp = to - from;
-
     if (gen.addrSpace()) {
         gen.addrSpace()->trapMapping.addTrapMapping(from, to, true);
         insnCodeGen::generateTrap(gen);
