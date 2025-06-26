@@ -16,13 +16,17 @@ foreach(_flag ${_possible_static_flags})
   check_c_compiler_flag("${_flag}" DYNINST_C_HAVE_STATIC_LINK_FLAG)
 
   if(DYNINST_C_HAVE_STATIC_LINK_FLAG AND NOT DYNINST_C_STATIC_LINK_FLAG)
-    set(DYNINST_C_STATIC_LINK_FLAG "${_flag}" CACHE STRING "C static link flag" FORCE)
+    set(DYNINST_C_STATIC_LINK_FLAG
+        "${_flag}"
+        CACHE STRING "C static link flag" FORCE)
   endif()
 
   check_cxx_compiler_flag("${_flag}" DYNINST_CXX_HAVE_STATIC_LINK_FLAG)
 
   if(DYNINST_CXX_HAVE_STATIC_LINK_FLAG AND NOT DYNINST_CXX_STATIC_LINK_FLAG)
-    set(DYNINST_CXX_STATIC_LINK_FLAG "${_flag}" CACHE STRING "C++ static link flag" FORCE)
+    set(DYNINST_CXX_STATIC_LINK_FLAG
+        "${_flag}"
+        CACHE STRING "C++ static link flag" FORCE)
   endif()
 
   set(CMAKE_REQUIRED_LINK_OPTIONS "${_saved_link_opts}")
