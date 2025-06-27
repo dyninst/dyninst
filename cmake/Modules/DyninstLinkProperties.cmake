@@ -4,6 +4,13 @@ include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 
 # Check if the CMAKE_<LANG>_COMPILER supports static linking
+#
+# NOTE: This is only needed when creating executables because
+#
+#         add_executable(foo STATIC foo.cpp)
+#
+#       doesn't (currently) work. Libraries should use the STATIC
+#       keyword as usual.
 
 # gcc and clang both use '-static', but allow for other compilers
 set(_possible_static_flags "-static")
