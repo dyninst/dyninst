@@ -3,13 +3,8 @@ include_guard(GLOBAL)
 include(DyninstCheckStaticExeSupported)
 dyninst_check_static_exe_supported(LANGUAGES CXX)
 
-# Use PIE when POSITION_INDEPENDENT_CODE is used for executables
-if(POLICY CMP0083)
-  cmake_policy(SET CMP0083 NEW)
-endif()
-
-include(CheckPIESupported)
-check_pie_supported()
+include(DyninstCheckPIESupported)
+dyninst_check_pie_supported(LANGUAGES CXX)
 
 set(_all_tests "")
 
@@ -54,8 +49,9 @@ foreach(main_t "hasmain" "none")
 endforeach()
 
 # Test static libraries
+make_lib_test(STATIC "staticlib")
+
 if(DYNINST_CXX_STATIC_EXE_SUPPORTED)
-  make_lib_test(STATIC "staticlib")
   set(_static_link "staticlink")
 endif()
 
@@ -64,29 +60,27 @@ foreach(strip_t "stripped" "none")
   foreach(pic_t "pic" "none")
     foreach(link_t ${_static_link} "dynlink")
 
-      # static+pic isn't PIE
-      if(link_t STREQUAL "${_static_link}" AND pic_t STREQUAL "pic")
-        continue()
-      endif()
-
       set(_targ "exectest_${strip_t}_${pic_t}_${link_t}")
       make_exec_test(${_targ})
 
-      if(pic_t STREQUAL "pic")
-        set_property(TARGET ${_targ} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
+      if(link_t STREQUAL "${_static_link}")
+        if(pic_t STREQUAL "pic" AND DYNINST_CXX_STATIC_PIE_SUPPORTED)
+          # use static-pie
+          target_link_options(${_targ} PRIVATE ${DYNINST_CXX_STATIC_PIE_FLAG})
+        else()
+          target_link_options(${_targ} PRIVATE ${DYNINST_CXX_STATIC_EXE_LINK_FLAG})
+        endif()
       else()
-        # some compilers use PIE by default
-        target_compile_options(${_targ} PRIVATE "-no-pie")
-        target_link_options(${_targ} PRIVATE "-no-pie")
+        set(_use_pic FALSE)
+        if(pic_t STREQUAL "pic")
+          set(_use_pic TRUE)
+        endif()
+        set_property(TARGET ${_targ} PROPERTY POSITION_INDEPENDENT_CODE ${_use_pic})
       endif()
 
       if(strip_t STREQUAL "stripped")
         # '-s' works for gcc and clang
         target_link_libraries(${_targ} "-s")
-      endif()
-
-      if(link_t STREQUAL "${_static_link}" AND DYNINST_CXX_STATIC_EXE_SUPPORTED)
-        target_link_options(${_targ} PRIVATE ${DYNINST_CXX_STATIC_EXE_LINK_FLAG})
       endif()
 
     endforeach()
