@@ -1,5 +1,7 @@
 include_guard(GLOBAL)
 
+list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/tests/cmake")
+
 string(TOUPPER ${DYNINST_ENABLE_TESTS} _test_flag)
 
 if(_test_flag STREQUAL "REGRESSION" OR _test_flag STREQUAL "ALL")
