@@ -35,7 +35,7 @@
 #include "BinaryFunction.h"
 #include "Immediate.h"
 #include "Dereference.h"
-#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "RegisterConversion.h"
 #endif
 
@@ -82,7 +82,7 @@ void ASTFactory::visit(Immediate* i)
 
 void ASTFactory::visit(RegisterAST* r)
 {
-#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)  
+#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)  
     m_stack.push_back(AstNode::operandNode(AstNode::operandType::origRegister,
                       (void*)(intptr_t)(convertRegID(r))));
 #else

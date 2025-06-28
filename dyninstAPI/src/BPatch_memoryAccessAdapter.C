@@ -36,9 +36,9 @@
 #include "MultiRegister.h"
 #include "Dereference.h"
 
-#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 # include "common/src/arch-x86.h"
-#elif defined(DYNINST_HOST_ARCH_AARCH64)
+#elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 # include "common/src/arch-aarch64.h"
 #endif
 
@@ -49,7 +49,7 @@ using namespace InstructionAPI;
 BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
 							 Dyninst::Address current, bool is64)
 {
-#if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
     static unsigned int log2[] = { 0, 0, 1, 1, 2, 2, 2, 2, 3 };
     
   // TODO 16-bit registers
@@ -184,6 +184,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
   }
   assert(nac < 3);
   return bmap;
+#elif defined(DYNINST_CODEGEN_ARCH_POWER)
     auto operands = insn.getAllOperands();
     for(std::vector<Operand>::iterator op = operands.begin();
         op != operands.end();
@@ -224,7 +225,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
     }
     return NULL;
 
-#elif defined(DYNINST_HOST_ARCH_AARCH64)
+#elif defined(DYNINST_CODEGEN_ARCH_AARCH64) 
     using namespace NS_aarch64;
 
     auto operands = insn.getAllOperands();
@@ -273,7 +274,7 @@ void BPatch_memoryAccessAdapter::visit(RegisterAST* r)
     //fprintf(stderr, "base: %d\n", base.val());
 	    
 	unsigned int converted = base.val() & 0xFFFF;
-	#if defined(DYNINST_HOST_ARCH_POWER)
+	#if defined(DYNINST_CODEGEN_ARCH_POWER)
     if((ra == -1) && !setImm) {
         ra = converted;
         return;

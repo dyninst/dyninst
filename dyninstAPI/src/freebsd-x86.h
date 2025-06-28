@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(DYNINST_HOST_ARCH_X86) && !defined(DYNINST_HOST_ARCH_X86_64)
+#if !defined(DYNINST_CODEGEN_ARCH_X86) && !defined(DYNINST_CODEGEN_ARCH_X86_64)
 #error "invalid architecture-os inclusion"
 #endif
 

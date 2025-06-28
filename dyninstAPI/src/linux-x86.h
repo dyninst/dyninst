@@ -30,7 +30,8 @@
 
 // $Id: linux-x86.h,v 1.7 2007/12/14 04:16:48 jaw Exp $
 
-#if !defined(i386_unknown_linux2_0) \
+#if !defined(os_linux) \
+ && !defined(i386_unknown_linux2_0) \
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ 
 #error "invalid architecture-os inclusion"
 #endif

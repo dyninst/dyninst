@@ -225,6 +225,10 @@ namespace hd {
   #else
         ret = gap_heuristic_GCC(co,cr,addr);
   #endif
+#else
+        (void ) co;
+        (void ) cr;
+        (void ) addr;
 #endif  
         return ret;
     }

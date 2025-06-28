@@ -48,5 +48,9 @@ option(DYNINST_FORCE_RUNPATH "Require the use of RUNPATH instead of compiler's d
        OFF)
 
 option(DYNINST_ENABLE_TESTS "Build tests" OFF)
-
 option(DYNINST_ENABLE_FILEFORMAT_PE "Enable PE (Windows .exe/.dll) parsing" OFF)
+set(DYNINST_CODEGEN_ARCH
+    ""
+    CACHE STRING
+          "Override default host architecture detection for cross-architecture support")
+mark_as_advanced(DYNINST_CODEGEN_ARCH)
