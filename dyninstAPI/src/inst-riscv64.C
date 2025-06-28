@@ -1093,16 +1093,18 @@ bool EmitterRISCV64::emitCallRelative(Register, Address, Register, codeGen &) {
 bool EmitterRISCV64::emitLoadRelative(Register dest, Address offset, Register baseReg, int size, codeGen &gen) {
     signed long long sOffset = (signed long long) offset;
     // If the offset is small enough (-0x800 <= offset < 0x800), use lb/lw/ld,... directly
-    if (sOffset >= -0x800 && sOffset < 0x800) {
-        insnCodeGen::generateMemLoad(gen, dest, baseReg, offset, size, true, gen.getUseRVC());
-    }
-    else {
+    //if (sOffset >= -0x800 && sOffset < 0x800) {
+    //    insnCodeGen::generateMemLoad(gen, dest, baseReg, offset, size, true, gen.getUseRVC());
+    //}
+    //else {
         std::vector<Register> exclude;
         exclude.push_back(baseReg);
-        auto addReg = insnCodeGen::moveValueToReg(gen, offset, &exclude);
+        Register addReg = gen.rs()->getScratchRegister(gen, exclude, true);
+        assert(addReg != Null_Register && "cannot get a scratch register");
+        insnCodeGen::generateLoadImm(gen, addReg, sOffset, false, false, false);
         insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg, gen.getUseRVC());
         insnCodeGen::generateMemLoad(gen, dest, baseReg, 0, size, true, gen.getUseRVC());
-    }
+    //}
     gen.markRegDefined(dest);
     return true;
 }
@@ -1111,16 +1113,16 @@ bool EmitterRISCV64::emitLoadRelative(Register dest, Address offset, Register ba
 void EmitterRISCV64::emitStoreRelative(Register source, Address offset, Register baseReg, int size, codeGen &gen) {
     signed long long sOffset = (signed long long) offset;
     // If the offset is small enough (-0x800 <= offset < 0x800), use lb/lw/ld,... directly
-    if (sOffset >= -0x800 && sOffset < 0x800) {
-        insnCodeGen::generateMemStore(gen, source, baseReg, offset, size, gen.getUseRVC());
-    }
-    else {
+    //if (sOffset >= -0x800 && sOffset < 0x800) {
+    //    insnCodeGen::generateMemStore(gen, source, baseReg, offset, size, gen.getUseRVC());
+    //}
+    //else {
         std::vector<Register> exclude;
         exclude.push_back(baseReg);
         auto addReg = insnCodeGen::moveValueToReg(gen, offset, &exclude);
         insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg, gen.getUseRVC());
         insnCodeGen::generateMemStore(gen, source, baseReg, 0, size, gen.getUseRVC());
-    }
+    //}
 }
 
 bool EmitterRISCV64::emitMoveRegToReg(registerSlot *,
@@ -1358,34 +1360,43 @@ void EmitterRISCV64::emitLoadShared(opCode op, Register dest, const image_variab
     Register baseReg = gen.rs()->getScratchRegister(gen, true);
     assert(baseReg != Null_Register && "cannot get a scratch register");
 
-    Address varOffset = addr - gen.currAddr() + 4; // Don't use compressed instructions
+    Address varOffset = addr - gen.currAddr(); // Don't use compressed instructions
 
     if (op == loadOp) {
         if (!is_local && (var != NULL)){
             emitMovePCToReg(baseReg, gen);
             emitLoadRelative(dest, varOffset, baseReg, gen.width(), gen);
             // Deference the pointer to get the variable
-            // emitLoadRelative(dest, 0, dest, size, gen);
-            // Offset mode to load back to itself
             insnCodeGen::generateMemLoad(gen, dest, dest, 0, 8, true, gen.getUseRVC());
-        } else {
+        }
+        else {
+            emitMovePCToReg(baseReg, gen);
             emitLoadRelative(dest, varOffset, baseReg, size, gen);
         }
-    } else {
+        
+    }
+    else if (op == loadConstOp) {
         if (!is_local && (var != NULL)){
             emitMovePCToReg(baseReg, gen);
             emitLoadRelative(dest, varOffset, baseReg, gen.width(), gen);
-        } else {
+        }
+        else {
             //std::vector<Register> exclude;
             //exclude.push_back(baseReg);
             //auto addReg = insnCodeGen::moveValueToReg(gen, varOffset, &exclude);
             //insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg, gen.getUseRVC());
             //insnCodeGen::generateMove(gen, dest, baseReg, gen.getUseRVC());
 
-            insnCodeGen::generateLoadImm(gen, dest, addr - gen.currAddr(), true, true, gen.getUseRVC());
+            // Move address of the variable into the register - load effective address
+            // insnCodeGen::generateLoadImm(gen, dest, addr - gen.currAddr(), true, true, gen.getUseRVC());
+            insnCodeGen::generateLoadImm(gen, dest, varOffset, true, true, gen.getUseRVC());
         }
     }
+    else {
+        assert("Invalid op in emitLoadShared");
+    }
 
+    insnCodeGen::generateMove(gen, baseReg, dest, gen.getUseRVC());
     assert(stackSize <= 0 && "stack not empty at the end");
     return;
 }
@@ -1407,24 +1418,29 @@ void EmitterRISCV64::emitStoreShared(Register source, const image_variable *var,
     Register baseReg = gen.rs()->getScratchRegister(gen, true);
     assert(baseReg != Null_Register && "cannot get a scratch register");
 
-    emitMovePCToReg(baseReg, gen);
-    Address varOffset = addr - gen.currAddr() + 4; // Don't use compressed instructions
+    Address varOffset = addr - gen.currAddr(); // Don't use compressed instructions
 
     if (!is_local) {
         std::vector<Register> exclude;
         exclude.push_back(baseReg);
         Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
         assert(scratchReg1 != Null_Register && "cannot get a scratch register");
+
+        emitMovePCToReg(baseReg, gen);
         emitLoadRelative(scratchReg1, varOffset, baseReg, gen.width(), gen);
         emitStoreRelative(source, 0, scratchReg1, size, gen);
     } else {
         std::vector<Register> exclude;
         exclude.push_back(baseReg);
         // mov offset to a reg
-        auto addReg = insnCodeGen::moveValueToReg(gen, varOffset, &exclude);
+        Register addReg = gen.rs()->getScratchRegister(gen, exclude, true);
+        assert(addReg != Null_Register && "cannot get a scratch register");
+
+        emitMovePCToReg(baseReg, gen);
+        insnCodeGen::generateLoadImm(gen, addReg, varOffset, false, false, false);
         // add/sub offset to baseReg
         insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg, gen.getUseRVC());
-        insnCodeGen::generateMemStore(gen, source, baseReg, 0, size, gen.getUseRVC());
+        insnCodeGen::generateMemStore(gen, baseReg, source, 0, size, gen.getUseRVC());
     }
 
     assert(stackSize <= 0 && "stack not empty at the end");
