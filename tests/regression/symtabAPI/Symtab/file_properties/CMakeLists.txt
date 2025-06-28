@@ -53,7 +53,7 @@ foreach(main_t "hasmain" "none")
 endforeach()
 
 # Test static libraries
-if(DYNINST_CXX_STATIC_LINK)
+if(DYNINST_CXX_HAVE_STATIC_LINK_FLAG)
   make_lib_test(STATIC "staticlib")
 endif()
 
@@ -62,7 +62,7 @@ foreach(strip_t "stripped" "none")
   foreach(pic_t "pic" "none")
     foreach(link_t "staticlink" "dynlink")
 
-      if(link_t STREQUAL "staticlink" AND NOT DYNINST_CXX_STATIC_LINK)
+      if(link_t STREQUAL "staticlink" AND NOT DYNINST_CXX_HAVE_STATIC_LINK_FLAG)
         continue()
       endif()
 
