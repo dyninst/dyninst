@@ -739,55 +739,33 @@ bool insnCodeGen::generateCalcImm(codeGen &gen,
     Dyninst::RegValue lui_imm = (sImm >> 44) & 0xfffff; // sImm[63:44]
     Dyninst::RegValue addi_imm0 = (sImm >> 32) & 0xfff; // sImm[43:32]
     // Lower 32 bits
-    Dyninst::RegValue slli_imm1 = 12;
-    Dyninst::RegValue addi_imm1 = (sImm >> 20) & 0xfff; // sImm[31:20]
-    Dyninst::RegValue slli_imm2 = 12;
-    Dyninst::RegValue addi_imm2 = (sImm >> 8) & 0xfff;  // sImm[19:8]
-    Dyninst::RegValue slli_imm3 = 8;
-    Dyninst::RegValue addi_imm3 = sImm & 0xff;          // sImm[7:0]
+    Dyninst::RegValue slli_imm1 = 11;
+    Dyninst::RegValue addi_imm1 = (sImm >> 21) & 0x7ff; // sImm[31:21]
+    Dyninst::RegValue slli_imm2 = 11;
+    Dyninst::RegValue addi_imm2 = (sImm >> 10) & 0x7ff;  // sImm[20:10]
+    Dyninst::RegValue slli_imm3 = 10;
+    Dyninst::RegValue addi_imm3 = sImm & 0x3ff;         // sImm[9:0]
 
-    // For lui and addi, the immediates are signed extended, so we need to adjust the decomposed immediates
-    // according to their corresponding signedness.
-    int carry = 0;
-
-    // addi_imm2 does not need adjustment as addi_imm3 is 8 bits wide, meaning that it is 100% a positive value
-
-    // addi_imm1 requires adjustment if the most significant bit of addi_imm2 is 1
-    if (addi_imm2 & 0x800) {
-        addi_imm1 = (addi_imm1 + carry + 1) & 0xfff;
-        carry = (addi_imm1 == 0) ? 1 : 0;
-    }
-
-    // addi_imm0 requires adjustment if the most significant bit of addi_imm1 is 1
-    if (addi_imm1 & 0x800) {
-        addi_imm0 = (addi_imm0 + carry + 1) & 0xfff;
-        carry = (addi_imm0 == 0) ? 1 : 0;
-    }
-
-    // lui_imm requires adjustment if the most significant bit of addi_imm0 is 1
-    // Here, we don't need to worry about the carry and overflow
-    // because the register will handle it for you naturally
+    // If the most significant bit of addi_imm is 1 (addi_imm is negative), we should add 1 to lui_imm
     if (addi_imm0 & 0x800) {
-        lui_imm = (lui_imm + carry + 1) & 0xfff;
+        lui_imm = (lui_imm + 1) & 0xfffff;
     }
     // 12-bit sign extend
     if (lui_imm & 0x80000) {
         lui_imm ^= 0xfffffffffff00000;
     }
 
-    addi_imm1 = 32;
-    addi_imm2 = 0;
-    addi_imm3 = 0;
-
     // Optimization: if any of the addi sImmediates are zero, we can omit them
     // We should also adjust the number of bits to shift accordingly
-    if (addi_imm2 == 0) {
-        slli_imm2 += slli_imm3;
-        slli_imm3 = 0;
-    }
-    if (addi_imm1 == 0) {
-        slli_imm1 += slli_imm2;
-        slli_imm2 = 0;
+    if (optimize) {
+        if (addi_imm2 == 0) {
+            slli_imm2 += slli_imm3;
+            slli_imm3 = 0;
+        }
+        if (addi_imm1 == 0) {
+            slli_imm1 += slli_imm2;
+            slli_imm2 = 0;
+        }
     }
 
     // lui/auipc must be generated
