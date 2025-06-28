@@ -332,19 +332,26 @@ void insnCodeGen::generateCondBranch(codeGen &gen,
 {
     long disp = (to - from);
     if (disp < MIN_BRANCH_OFFSET || disp >= MAX_BRANCH_OFFSET) {
-	    Dyninst::Register scratch = Null_Register;
+        Dyninst::Register scratch = Null_Register;
         instPoint *point = gen.point();
+        AddressSpace *as = gen.addrSpace();
         if (point) {
             registerSpace *rs = registerSpace::actualRegSpace(point);
             gen.setRegisterSpace(rs);
-
             scratch = rs->getScratchRegister(gen, true);
         }
 
-        // TODO no more scratch register
+        if (as) {
+            registerSpace *rs = registerSpace::getRegisterSpace(as);
+            gen.setRegisterSpace(rs);
+            scratch = rs->getScratchRegister(gen, true);
+        }
+
+        // If no scratch register is available, use generate branch via trap
         if (scratch == Null_Register) {
-            fprintf(stderr, " %s[%d] No scratch register available to generate add instruction!", FILE__, __LINE__);
-            assert(0);
+            generateCmpBranch(gen, bCondOp, rs1, rs2, RV_INSN_SIZE, false);
+            generateBranchViaTrap(gen, from, to);
+            return;
         }
         if (disp >= MIN_AUIPC_OFFSET && disp < MAX_AUIPC_OFFSET) {
             Dyninst::RegValue top = (disp >> 12) & 0xfffff;
@@ -355,16 +362,16 @@ void insnCodeGen::generateCondBranch(codeGen &gen,
             generateCmpBranch(gen, bCondOp, rs1, rs2, 3 * RV_INSN_SIZE, false);
             generateAuipc(gen, scratch, top, false);
             generateAddi(gen, scratch, GPR_RA, offset, false);
+            generateJr(gen, scratch, 0, false);
+            return;
         }
-        else {
-            // The li instruction will be expanded into 8 4-bytes instructions without any optimization
-            // So we should generate
-            //    bxx rs1, rs2, (8 (for li) + 1 (for jalr)) * 4 = 36
-            //    li scratch, disp
-            //    jalr x0, scratch, 0
-            generateCmpBranch(gen, bCondOp, rs1, rs2, 9 * RV_INSN_SIZE, false);
-            generateCalcImm(gen, scratch, disp, true, false, gen.getUseRVC());
-        }
+        // The li instruction will be expanded into 8 4-bytes instructions without any optimization
+        // So we should generate
+        //    bxx rs1, rs2, (8 (for li) + 1 (for jalr)) * 4 = 36
+        //    li scratch, disp
+        //    jalr x0, scratch, 0
+        generateCmpBranch(gen, bCondOp, rs1, rs2, 9 * RV_INSN_SIZE, false);
+        generateCalcImm(gen, scratch, disp, true, false, gen.getUseRVC());
         generateJr(gen, scratch, 0, false);
     }
     else {
@@ -378,10 +385,10 @@ Dyninst::Register insnCodeGen::moveValueToReg(codeGen &gen,
 {
     Dyninst::Register scratch;
     if (exclude) {
-	    scratch = gen.rs()->getScratchRegister(gen, *exclude, true);
+        scratch = gen.rs()->getScratchRegister(gen, *exclude, true);
     }
     else {
-	    scratch = gen.rs()->getScratchRegister(gen, true);
+        scratch = gen.rs()->getScratchRegister(gen, true);
     }
 
     if (scratch == Null_Register) {
@@ -423,8 +430,8 @@ bool insnCodeGen::modifyJump(Dyninst::Address target,
 }
 
 bool insnCodeGen::modifyJcc(Dyninst::Address target,
-			                NS_riscv64::instruction &insn,
-			                codeGen &gen)
+                            NS_riscv64::instruction &insn,
+                            codeGen &gen)
 {
     Dyninst::Register rs1 = insn.getCondBranchReg1();
     Dyninst::Register rs2 = insn.getCondBranchReg2();
@@ -618,8 +625,8 @@ bool insnCodeGen::restoreRegister(codeGen &gen,
 }
 
 bool insnCodeGen::modifyData(Dyninst::Address target,
-			                 NS_riscv64::instruction &insn,
-			                 codeGen &gen)
+                             NS_riscv64::instruction &insn,
+                             codeGen &gen)
 {
     assert(insn.isAuipc());
     
@@ -685,7 +692,7 @@ bool insnCodeGen::generateLoadImm(codeGen &gen,
                 if (addi_imm & 0x800) {
                     lui_imm = (lui_imm + 1) & 0xfffff;
                 }
-		// 12-bit sign extend
+        // 12-bit sign extend
                 if (lui_imm & 0x80000) {
                     lui_imm ^= 0xfffffffffff00000;
                 }
@@ -1290,7 +1297,7 @@ bool insnCodeGen::generateJal(codeGen &gen,
     assert(offset >= 0 && offset < 0x100000);
 
     if (useRVC) {
-        if (rd == GPR_RA && offset >= 0 && offset <= 0x1000) {
+        if (rd == GPR_RA && offset >= 0 && offset < 0x1000) {
             // use c.jal
             generateCJal(gen, offset & 0xfff);
             return true;
@@ -1568,7 +1575,7 @@ void insnCodeGen::generateCJ(codeGen &gen,
 void insnCodeGen::generateCJal(codeGen &gen,
                                Dyninst::RegValue offset)
 {
-    assert((offset & 1) == 0 && offset >= 0 && offset < 0x1000);
+    assert(offset >= 0 && offset < 0x1000);
 
     instruction insn;
 
