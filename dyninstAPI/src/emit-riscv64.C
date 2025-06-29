@@ -66,7 +66,7 @@ codeBufIndex_t EmitterRISCV64::emitIf(Register expr_reg,
     // beq expr_reg, zero, 8
     // jalr zero, target, 0
 
-    insnCodeGen::generateBne(gen, expr_reg, GPR_ZERO, 8, false);
+    insnCodeGen::generateBne(gen, expr_reg, GPR_ZERO, 8 >> 1, false);
     insnCodeGen::generateJ(gen, (target + 4) >> 1, false);
 
     // Retval: where the jump is in this sequence
@@ -167,46 +167,46 @@ void EmitterRISCV64::emitRelOp(unsigned opcode,
     switch (opcode) {
         case lessOp: {
             if (s) {
-                insnCodeGen::generateBlt(gen, src1, src2, RV_INSN_SIZE * 2, false);
+                insnCodeGen::generateBlt(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
             }
             else {
-                insnCodeGen::generateBltu(gen, src1, src2, RV_INSN_SIZE * 2, false);
+                insnCodeGen::generateBltu(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
             }
             break;
         }
         case leOp: {
             if (s) {
-                insnCodeGen::generateBge(gen, src2, src1, RV_INSN_SIZE * 2, false);
+                insnCodeGen::generateBge(gen, src2, src1, (RV_INSN_SIZE * 2) >> 1, false);
             }
             else {
-                insnCodeGen::generateBgeu(gen, src2, src1, RV_INSN_SIZE * 2, false);
+                insnCodeGen::generateBgeu(gen, src2, src1, (RV_INSN_SIZE * 2) >> 1, false);
             }
             break;
         }
         case greaterOp: {
             if (s) {
-                insnCodeGen::generateBlt(gen, src2, src1, RV_INSN_SIZE * 2, false);
+                insnCodeGen::generateBlt(gen, src2, src1, (RV_INSN_SIZE * 2) >> 1, false);
             }
             else {
-                insnCodeGen::generateBltu(gen, src2, src1, RV_INSN_SIZE * 2, false);
+                insnCodeGen::generateBltu(gen, src2, src1, (RV_INSN_SIZE * 2) >> 1, false);
             }
             break;
         }
         case geOp: {
             if (s) {
-                insnCodeGen::generateBge(gen, src1, src2, RV_INSN_SIZE * 2, false);
+                insnCodeGen::generateBge(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
             }
             else {
-                insnCodeGen::generateBgeu(gen, src1, src2, RV_INSN_SIZE * 2, false);
+                insnCodeGen::generateBgeu(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
             }
             break;
         }
         case eqOp: {
-            insnCodeGen::generateBeq(gen, src1, src2, RV_INSN_SIZE * 2, false);
+            insnCodeGen::generateBeq(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
             break;
         }
         case neOp: {
-            insnCodeGen::generateBne(gen, src1, src2, RV_INSN_SIZE * 2, false);
+            insnCodeGen::generateBne(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
             break;
         }
         default: {
@@ -237,46 +237,46 @@ void EmitterRISCV64::emitRelOpImm(unsigned opcode,
     switch (opcode) {
         case lessOp: {
             if (s) {
-                insnCodeGen::generateBlt(gen, src1, src2, RV_INSN_SIZE * 2, false);
+                insnCodeGen::generateBlt(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
             }
             else {
-                insnCodeGen::generateBltu(gen, src1, src2, RV_INSN_SIZE * 2, false);
+                insnCodeGen::generateBltu(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
             }
             break;
         }
         case leOp: {
             if (s) {
-                insnCodeGen::generateBge(gen, src2, src1, RV_INSN_SIZE * 2, false);
+                insnCodeGen::generateBge(gen, src2, src1, (RV_INSN_SIZE * 2) >> 1, false);
             }
             else {
-                insnCodeGen::generateBgeu(gen, src2, src1, RV_INSN_SIZE * 2, false);
+                insnCodeGen::generateBgeu(gen, src2, src1, (RV_INSN_SIZE * 2) >> 1, false);
             }
             break;
         }
         case greaterOp: {
             if (s) {
-                insnCodeGen::generateBlt(gen, src2, src1, RV_INSN_SIZE * 2, false);
+                insnCodeGen::generateBlt(gen, src2, src1, (RV_INSN_SIZE * 2) >> 1, false);
             }
             else {
-                insnCodeGen::generateBltu(gen, src2, src1, RV_INSN_SIZE * 2, false);
+                insnCodeGen::generateBltu(gen, src2, src1, (RV_INSN_SIZE * 2) >> 1, false);
             }
             break;
         }
         case geOp: {
             if (s) {
-                insnCodeGen::generateBge(gen, src1, src2, RV_INSN_SIZE * 2, false);
+                insnCodeGen::generateBge(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
             }
             else {
-                insnCodeGen::generateBgeu(gen, src1, src2, RV_INSN_SIZE * 2, false);
+                insnCodeGen::generateBgeu(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
             }
             break;
         }
         case eqOp: {
-            insnCodeGen::generateBeq(gen, src1, src2, RV_INSN_SIZE * 2, false);
+            insnCodeGen::generateBeq(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
             break;
         }
         case neOp: {
-            insnCodeGen::generateBne(gen, src1, src2, RV_INSN_SIZE * 2, false);
+            insnCodeGen::generateBne(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
             break;
         }
         default: {
