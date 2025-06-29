@@ -286,10 +286,10 @@ void insnCodeGen::generateBranch(codeGen &gen,
                                  bool link)
 {
     if (link) {
-        generateJal(gen, GPR_RA, (disp >> 1) & 0xfffff, gen.getUseRVC());
+        generateJal(gen, GPR_RA, disp, gen.getUseRVC());
     }
     else {
-        generateJ(gen, (disp >> 1) & 0xfffff, gen.getUseRVC());
+        generateJ(gen, disp, gen.getUseRVC());
     }
 }
 
@@ -1243,12 +1243,12 @@ bool insnCodeGen::generateJ(codeGen &gen,
                             Dyninst::RegValue offset,
                             bool useRVC)
 {
-    assert(offset >= 0 && offset < 0x100000);
+    assert(offset >= -0x100000 && offset < 0x100000);
 
     if (useRVC) {
-        if (offset >= 0 && offset < 0x1000) {
+        if (offset >= -0x1000 && offset < 0x1000) {
             // use c.j
-            generateCJ(gen, offset & 0xfff);
+            generateCJ(gen, (offset >> 1) & 0xfff);
             return true;
         }
     }
@@ -1261,17 +1261,10 @@ bool insnCodeGen::generateJal(codeGen &gen,
                               Dyninst::RegValue offset,
                               bool useRVC)
 {
-    assert(offset >= 0 && offset < 0x100000);
+    assert(offset >= -0x100000 && offset < 0x100000);
 
-    if (useRVC) {
-        if (rd == GPR_RA && offset >= 0 && offset < 0x1000) {
-            // use c.jal
-            generateCJal(gen, offset & 0xfff);
-            return true;
-        }
-    }
-
-    makeJTypeInsn(gen, rd, offset, JALOp);
+    // No optimization for RV64 (c.jal is RV32)
+    makeJTypeInsn(gen, rd, (offset >> 1) & 0xfffff, JALOp);
     return false;
 }
 
@@ -1280,7 +1273,7 @@ bool insnCodeGen::generateJr(codeGen &gen,
                              Dyninst::RegValue offset,
                              bool useRVC)
 {
-    assert(offset >= 0 && offset < 0x1000);
+    assert(offset >= -0x800 && offset < 0x800);
 
     if (useRVC) {
         if (offset == 0) {
@@ -1299,7 +1292,7 @@ bool insnCodeGen::generateJalr(codeGen &gen,
                                Dyninst::RegValue offset,
                                bool useRVC)
 {
-    assert(offset >= 0 && offset < 0x1000);
+    assert(offset >= -0x800 && offset < 0x800);
 
     if (useRVC) {
         if (offset == 0 && rd == GPR_RA) {
@@ -1310,7 +1303,7 @@ bool insnCodeGen::generateJalr(codeGen &gen,
     }
 
     // JALR is an I-Type instruction
-    makeITypeInsn(gen, rd, rs, offset, JALRFunct3, JALROp);
+    makeITypeInsn(gen, rd, rs, offset & 0xfff, JALRFunct3, JALROp);
     return false;
 }
 
