@@ -120,13 +120,13 @@ void insnCodeGen::makeBTypeInsn(codeGen &gen,
 
     instruction insn;
 
-    INSN_BUFF_SET(insn, 31, 31, (imm >> 12) & 0x1); // imm[12]
-    INSN_BUFF_SET(insn, 25, 30, (imm >> 5) & 0x3f); // imm[10:5]
+    INSN_BUFF_SET(insn, 31, 31, (imm >> 11) & 0x1); // imm[11]
+    INSN_BUFF_SET(insn, 25, 30, (imm >> 4) & 0x3f); // imm[9:4]
     INSN_BUFF_SET(insn, 20, 24, rs2);               // rs2
     INSN_BUFF_SET(insn, 15, 19, rs1);               // rs1
     INSN_BUFF_SET(insn, 12, 14, funct3);            // funct3
-    INSN_BUFF_SET(insn, 8, 11, (imm >> 1) & 0xf);   // imm[4:1]
-    INSN_BUFF_SET(insn, 7, 7, (imm >> 11) & 0x1);   // imm[11]
+    INSN_BUFF_SET(insn, 8, 11, imm & 0xf);          // imm[3:0]
+    INSN_BUFF_SET(insn, 7, 7, (imm >> 10) & 0x1);   // imm[10]
     INSN_BUFF_SET(insn, 0, 6, opcode);              // opcode
 
     insnCodeGen::generate(gen, insn);
@@ -465,29 +465,30 @@ void insnCodeGen::generateCmpBranch(codeGen &gen,
                                     Dyninst::RegValue imm,
                                     bool useRVC)
 {
+    assert(imm % 2 == 0);
     switch (bCond) {
         case B_COND_EQ: {
-            generateBeq(gen, rs1, rs2, imm, useRVC);
+            generateBeq(gen, rs1, rs2, imm >> 1, useRVC);
             break;
         }
         case B_COND_NE: {
-            generateBne(gen, rs1, rs2, imm, useRVC);
+            generateBne(gen, rs1, rs2, imm >> 1, useRVC);
             break;
         }
         case B_COND_LT: {
-            generateBlt(gen, rs1, rs2, imm, useRVC);
+            generateBlt(gen, rs1, rs2, imm >> 1, useRVC);
             break;
         }
         case B_COND_GE: {
-            generateBge(gen, rs1, rs2, imm, useRVC);
+            generateBge(gen, rs1, rs2, imm >> 1, useRVC);
             break;
         }
         case B_COND_LTU: {
-            generateBltu(gen, rs1, rs2, imm, useRVC);
+            generateBltu(gen, rs1, rs2, imm >> 1, useRVC);
             break;
         }
         case B_COND_GEU: {
-            generateBgeu(gen, rs1, rs2, imm, useRVC);
+            generateBgeu(gen, rs1, rs2, imm >> 1, useRVC);
             break;
         }
         default: {
@@ -1156,16 +1157,14 @@ bool insnCodeGen::generateBeq(codeGen &gen,
                               Dyninst::RegValue imm,
                               bool useRVC)
 {
-    assert(imm % 2 == 0);
-
     if (useRVC) {
-        if ((rs1 == GPR_ZERO || rs2 == GPR_ZERO) && imm >= -0x100 && imm < 0x100) {
+        if ((rs1 == GPR_ZERO || rs2 == GPR_ZERO) && imm >= -0x80 && imm < 0x80) {
             if (rs1 != GPR_ZERO && rs2 == GPR_ZERO) {
-                generateCBeqz(gen, rs1, imm);
+                generateCBeqz(gen, rs1, imm & 0xff);
                 return true;
             }
             if (rs1 == GPR_ZERO && rs2 != GPR_ZERO) {
-                generateCBeqz(gen, rs2, imm);
+                generateCBeqz(gen, rs2, imm & 0xff);
                 return true;
             }
         }
@@ -1180,16 +1179,14 @@ bool insnCodeGen::generateBne(codeGen &gen,
                               Dyninst::RegValue imm,
                               bool useRVC)
 {
-    assert(imm % 2 == 0);
-
     if (useRVC) {
-        if ((rs1 == GPR_ZERO || rs2 == GPR_ZERO) && imm >= -0x100 && imm < 0x100) {
+        if ((rs1 == GPR_ZERO || rs2 == GPR_ZERO) && imm >= -0x80 && imm < 0x80) {
             if (rs1 != GPR_ZERO && rs2 == GPR_ZERO) {
-                generateCBnez(gen, rs1, imm);
+                generateCBnez(gen, rs1, imm & 0xff);
                 return true;
             }
             if (rs1 == GPR_ZERO && rs2 != GPR_ZERO) {
-                generateCBnez(gen, rs2, imm);
+                generateCBnez(gen, rs2, imm & 0xff);
                 return true;
             }
         }
@@ -1204,8 +1201,6 @@ bool insnCodeGen::generateBlt(codeGen &gen,
                                          Dyninst::RegValue imm,
                                          bool /*useRVC*/)
 {
-    assert(imm % 2 == 0);
-
     // No available RVC optimization
     makeBTypeInsn(gen, rs1, rs2, imm & 0xfff, BLTFunct3, BRANCHOp);
     return false;
@@ -1217,8 +1212,6 @@ bool insnCodeGen::generateBge(codeGen &gen,
                               Dyninst::RegValue imm,
                               bool /*useRVC*/)
 {
-    assert(imm % 2 == 0);
-
     // No available RVC optimization
     makeBTypeInsn(gen, rs1, rs2, imm & 0xfff, BGEFunct3, BRANCHOp);
     return false;
@@ -1230,8 +1223,6 @@ bool insnCodeGen::generateBltu(codeGen &gen,
                                Dyninst::RegValue imm,
                                bool /*useRVC*/)
 {
-    assert(imm % 2 == 0);
-
     // No available RVC optimization
     makeBTypeInsn(gen, rs1, rs2, imm & 0xfff, BLTUFunct3, BRANCHOp);
     return false;
@@ -1243,8 +1234,6 @@ bool insnCodeGen::generateBgeu(codeGen &gen,
                                Dyninst::RegValue imm,
                                bool /*useRVC*/)
 {
-    assert(imm % 2 == 0);
-
     // No available RVC optimization
     makeBTypeInsn(gen, rs1, rs2, imm & 0xfff, BGEUFunct3, BRANCHOp);
     return false;
@@ -1602,12 +1591,12 @@ void insnCodeGen::generateCBeqz(codeGen &gen,
     instruction insn;
 
     INSN_BUFF_SET(insn, 13, 15, 0x6);                 // func3 = 110
-    INSN_BUFF_SET(insn, 12, 12, (offset >> 8) & 0x1); // offset[8]
-    INSN_BUFF_SET(insn, 10, 11, (offset >> 3) & 0x3); // offset[4:3]
+    INSN_BUFF_SET(insn, 12, 12, (offset >> 7) & 0x1); // offset[7]
+    INSN_BUFF_SET(insn, 10, 11, (offset >> 2) & 0x3); // offset[3:2]
     INSN_BUFF_SET(insn, 7, 9, rs);                    // rs
-    INSN_BUFF_SET(insn, 5, 6, (offset >> 6) & 0x3);   // offset[7:6]
-    INSN_BUFF_SET(insn, 3, 4, (offset >> 1) & 0x3);   // offset[2:1]
-    INSN_BUFF_SET(insn, 2, 2, (offset >> 5) & 0x1);   // offset[5]
+    INSN_BUFF_SET(insn, 5, 6, (offset >> 5) & 0x3);   // offset[6:5]
+    INSN_BUFF_SET(insn, 3, 4, offset & 0x3);          // offset[1:0]
+    INSN_BUFF_SET(insn, 2, 2, (offset >> 4) & 0x1);   // offset[4]
     INSN_BUFF_SET(insn, 0, 1, 0x1);                   // 01
 
     insnCodeGen::generate(gen, insn);
@@ -1619,12 +1608,12 @@ void insnCodeGen::generateCBnez(codeGen &gen,
     instruction insn;
 
     INSN_BUFF_SET(insn, 13, 15, 0x7);                 // func3 = 111
-    INSN_BUFF_SET(insn, 12, 12, (offset >> 8) & 0x1); // offset[8]
-    INSN_BUFF_SET(insn, 10, 11, (offset >> 3) & 0x3); // offset[4:3]
+    INSN_BUFF_SET(insn, 12, 12, (offset >> 7) & 0x1); // offset[7]
+    INSN_BUFF_SET(insn, 10, 11, (offset >> 2) & 0x3); // offset[3:2]
     INSN_BUFF_SET(insn, 7, 9, rs);                    // rs
-    INSN_BUFF_SET(insn, 5, 6, (offset >> 6) & 0x3);   // offset[7:6]
-    INSN_BUFF_SET(insn, 3, 4, (offset >> 1) & 0x3);   // offset[2:1]
-    INSN_BUFF_SET(insn, 2, 2, (offset >> 5) & 0x1);   // offset[5]
+    INSN_BUFF_SET(insn, 5, 6, (offset >> 5) & 0x3);   // offset[6:5]
+    INSN_BUFF_SET(insn, 3, 4, offset & 0x3);          // offset[1:0]
+    INSN_BUFF_SET(insn, 2, 2, (offset >> 4) & 0x1);   // offset[4]
     INSN_BUFF_SET(insn, 0, 1, 0x1);                   // 01
 
     insnCodeGen::generate(gen, insn);
