@@ -157,13 +157,10 @@ unsigned EmitterRISCV64SaveRegs::saveGPRegisters(
         if (reg->number == GPR_ZERO || reg->number == GPR_SP) {
             continue;
         }
-        // We always save FP and LR for stack walking out of instrumentation
-        if (reg->liveState == registerSlot::live || reg->number == REG_FP || reg->number == REG_RA) {
-            int offset_from_sp = offset + (reg->number * gen.width());
-            insnCodeGen::saveRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
-            theRegSpace->markSavedRegister(reg->number, offset_from_sp);
-            ret++;
-        }
+        int offset_from_sp = offset + (reg->number * gen.width());
+        insnCodeGen::saveRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
+        theRegSpace->markSavedRegister(reg->number, offset_from_sp);
+        ret++;
     }
 
     return ret;
@@ -229,11 +226,9 @@ unsigned EmitterRISCV64RestoreRegs::restoreGPRegisters(
             continue;
         }
 
-        if (reg->liveState == registerSlot::spilled) {
-            int offset_from_sp = offset + (reg->number * GPRSIZE_64);
-            insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
-            ret++;
-        }
+        int offset_from_sp = offset + (reg->number * GPRSIZE_64);
+        insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
+        ret++;
     }
 
     return ret;
@@ -325,8 +320,8 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
     // Note: If the implementation of the instrumentation frame layout
     // needs to be changed, DyninstDynamicStepperImpl::getCallerFrameArch
     // in stackwalk/src/riscv64-swk.C also likely needs to be changed accordingly
-    insnCodeGen::generateMove(gen, REG_FP, REG_SP, gen.getUseRVC());
-    gen.markRegDefined(REG_FP);
+    //insnCodeGen::generateMove(gen, REG_FP, REG_SP, gen.getUseRVC());
+    //gen.markRegDefined(REG_FP);
 
     bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
                     (BPatch::bpatch->isSaveFPROn() &&
