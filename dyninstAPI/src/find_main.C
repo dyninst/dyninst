@@ -108,12 +108,6 @@ Dyninst::Address find_main(st::Symtab* linkedFile) {
 
   startup_printf("find_main: found '%s' at entry 0x%lx\n", entry_point->name().c_str(), entry_address);
 
-  const auto& edges = entry_point->callEdges();
-  if(edges.empty()) {
-    startup_printf("find_main: no call edges\n");
-    return Dyninst::ADDR_NULL;
-  }
-
   // Try architecture-specific searches
   auto main_addr = [&]() {
     auto file_arch = linkedFile->getArchitecture();
@@ -122,7 +116,11 @@ Dyninst::Address find_main(st::Symtab* linkedFile) {
       return DyninstAPI::ppc::find_main(linkedFile, entry_point);
     }
 
-    if(file_arch == Dyninst::Arch_x86 || file_arch == Dyninst::Arch_x86_64) {
+    if(file_arch == Dyninst::Arch_x86_64) {
+      return DyninstAPI::x86_64::find_main(entry_point);
+    }
+
+    if(file_arch == Dyninst::Arch_x86) {
       return DyninstAPI::x86::find_main(entry_point);
     }
 
@@ -130,7 +128,7 @@ Dyninst::Address find_main(st::Symtab* linkedFile) {
   }();
 
   if(main_addr == Dyninst::ADDR_NULL || !scs.isValidAddress(main_addr)) {
-    startup_printf("find_main: unable to find valid entry for 'main'\n");
+    startup_printf("find_main: unable to find valid entry for 'main'; bad address 0x%lx\n", main_addr);
     return Dyninst::ADDR_NULL;
   }
 

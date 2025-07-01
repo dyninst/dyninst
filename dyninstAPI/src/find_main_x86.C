@@ -1,118 +1,162 @@
-#include "CFG.h"
-#include "dataflowAPI/h/AbslocInterface.h"
-#include "dataflowAPI/h/SymEval.h"
-#include "debug.h"
-#include "DynAST.h"
-#include "dyntypes.h"
-#include "find_main.h"
-#include "Function.h"
-#include "SymEval.h"
-#include "Symtab.h"
-#include "util.h"
+#include "find_main_common.h"
+#include "registers/x86_regs.h"
 
 namespace Dyninst { namespace DyninstAPI { namespace x86 {
 
-  namespace st = Dyninst::SymtabAPI;
   namespace pa = Dyninst::ParseAPI;
-  namespace df = Dyninst::DataflowAPI;
+  namespace di = Dyninst::InstructionAPI;
 
-  class FindMainVisitor final : public Dyninst::ASTVisitor {
-    using ASTVisitor::visit;
+  Dyninst::Address find_main(pa::Function *entry_point) {
 
-  public:
-    bool resolved{false};
-    bool hardFault{false};
-    Dyninst::Address target{};
+    // There is at least one call (e.g., __libc_start_main)
+    const auto &call_edges = entry_point->callEdges();
+    if(call_edges.empty()) {
+      FIND_MAIN_FAIL("find_main: no call edges\n");
+    }
 
-    Dyninst::AST::Ptr visit(df::RoseAST* r) override {
-      Dyninst::AST::Children newKids;
-      for(unsigned i = 0; i < r->numChildren(); i++) {
-        newKids.push_back(r->child(i)->accept(this));
-      }
-
-      if(r->val().op == df::ROSEOperation::addOp) {
-        auto const_ast = Dyninst::AST::V_ConstantAST;
-        assert(newKids.size() == 2);
-        if(newKids[0]->getID() == const_ast && newKids[1]->getID() == const_ast) {
-          auto c1 = df::ConstantAST::convert(newKids[0]);
-          auto c2 = df::ConstantAST::convert(newKids[1]);
-          if(!hardFault) {
-            target = c1->val().val + c2->val().val;
-            resolved = true;
-          }
-          return df::ConstantAST::create(df::Constant(c1->val().val + c2->val().val));
+    // __ASSUME__ it's the last call (and so in the last block of the function)
+    pa::Edge *call_edge = [&call_edges]() {
+      // clang-format off
+      auto itr = std::max_element(call_edges.begin(), call_edges.end(),
+        [](pa::Edge *e1, pa::Edge *e2){
+          return e1->src()->start() > e2->src()->start();
         }
-      } else {
-        startup_printf("%s[%d] unhandled FindMainVisitor operation %d\n", FILE__, __LINE__, r->val().op);
+      );
+      // clang-format on
+      return *itr;
+    }();
+
+    // Get all the instructions in the block
+    pa::Block::Insns instructions{};
+    call_edge->src()->getInsns(instructions);
+    if(instructions.size() < 2UL) {
+      auto *src = call_edge->src();
+      FIND_MAIN_FAIL("find_main: too few instructions in block [0x%lx, 0x%lx]\n", src->start(), src->end());
+    }
+
+    // Get the last call instruction in the block
+    auto callsite_itr = [&instructions]() {
+      // clang-format off
+      return std::find_if(instructions.rbegin(), instructions.rend(),
+        [](pa::Block::Insns::value_type const &val) {
+          auto insn = val.second;
+          return insn.isCall();
+        }
+      );
+      // clang-format on
+    }();
+    if(callsite_itr == instructions.rend()) {
+      FIND_MAIN_FAIL("find_main: no call instruction found\n");
+    }
+
+    std::cerr << std::hex << "Found callsite [0x" << callsite_itr->first << "] " << callsite_itr->second.format()
+              << "\n";
+
+    // 32-bit __libc_start_main expects the address of `main` to be on the stack
+    rev_itr stack_param_itr = [&callsite_itr, &instructions]() {
+      auto sp = MachRegister::getStackPointer(Dyninst::Arch_x86);
+
+      // The stack pointer is written at the callsite, so start checking from the previous instruction
+      auto start = std::prev(callsite_itr);
+
+      return find_mrw_to(start, instructions.rend(), sp);
+    }();
+    if(stack_param_itr == instructions.rend()) {
+      FIND_MAIN_FAIL("find_main: no stack parameter found\n");
+    }
+
+    std::cerr << std::hex << "find_main_indirect: Found stack param [0x" << stack_param_itr->first << "] "
+              << stack_param_itr->second.format() << "\n";
+
+    // Get the source pushed onto the stack
+    find_src_visitor stack_param{};
+    auto stack_insn = stack_param_itr->second;
+    {
+      auto operands = stack_insn.getExplicitOperands();
+      operands[0].getValue()->apply(&stack_param);
+    }
+
+    /*  case 1: address is an immediate
+     *
+     *    push ADDRESS
+     *    call __libc_start_main
+     *
+     */
+    if(!stack_param.reg.isValid()) {
+      if(stack_param.deref) {
+        // Assume there isn't something weird like `push [ADDRESS]`
+        FIND_MAIN_FAIL("find_main: unexpected stack passing: '%s'\n", stack_insn.format().c_str());
       }
-
-      return df::RoseAST::create(r->val(), newKids);
-    }
-
-    ASTPtr visit(df::ConstantAST* c) override {
-      /* We can only handle constant values */
-      if(!target && !hardFault) {
-        resolved = true;
-        target = c->val().val;
+      if(!stack_param.imm) {
+        FIND_MAIN_FAIL("find_main: failed to determine stack passing: '%s'\n", stack_insn.format().c_str());
       }
-
-      return c->ptr();
+      return stack_param.imm->eval().convert<Dyninst::Address>();
     }
 
-    ASTPtr visit(df::VariableAST* v) override {
-      /* If we visit a variable node, we can't do any analysis */
-      hardFault = true;
-      resolved = false;
-      target = 0;
-      return v->ptr();
-    }
-  };
+    std::cerr << "find_main_indirect: Found stack reg " << stack_param.reg.name() << "\n";
 
-  Dyninst::Address find_main(pa::Function* entry_point) {
-    const auto& edges = entry_point->callEdges();
-    if(edges.empty()) {
-      startup_printf("find_main: no call edges\n");
-      return Dyninst::ADDR_NULL;
+    // Find the most-recent write to the stack parameter register
+    rev_itr mwr_to_source_itr = find_mrw_to(stack_param_itr, instructions.rend(), stack_param.reg);
+    if(mwr_to_source_itr == instructions.rend()) {
+      FIND_MAIN_FAIL("find_main: unable to find write to parameter register '%s'\n", stack_param.reg.name().c_str());
     }
 
-    // In libc, the entry point is _start which only calls __libc_start_main, so
-    // assume the first call is the one we want.
-    pa::Block* b = (*edges.begin())->src();
+    find_src_visitor stack_param_src{};
+    auto stack_param_insn = mwr_to_source_itr->second;
+    {
+      auto operands = stack_param_insn.getExplicitOperands();
 
-    pa::Block::Insns insns;
-    b->getInsns(insns);
-
-    if(insns.size() < 2UL) {
-      startup_printf("findMain: not enough instructions in block 0x%lx\n", b->start());
-      return Dyninst::ADDR_NULL;
+      // The first operand is the register pushed to the stack
+      operands[1].getValue()->apply(&stack_param_src);
     }
 
-    // To get the second-to-last instruction, which loads the address of main
-    auto iit = insns.end();
-    --iit;
-    --iit;
+    std::cerr << "Found mwr to stack source param: " << stack_param_insn.format() << "\n";
 
-    std::vector<Assignment::Ptr> assignments;
-    Dyninst::AssignmentConverter assign_convert(true, false);
-    assign_convert.convert(iit->second, iit->first, entry_point, b, assignments);
-
-    if(assignments.empty()) {
-      return Dyninst::ADDR_NULL;
+    /*  case 2: address is stored into a register
+     *
+     *    mov  eax, ADDRESS
+     *    push eax
+     *    call __libc_start_main
+     */
+    if(!stack_param_src.bf && !stack_param_src.deref) {
+      if(!stack_param_src.imm) {
+        FIND_MAIN_FAIL("find_main: failed to determine stack passing: '%s'\n", stack_param_insn.format().c_str());
+      }
+      return stack_param_src.imm->eval().convert<Dyninst::Address>();
     }
 
-    Assignment::Ptr assignment = assignments[0];
-    std::pair<AST::Ptr, bool> res = DataflowAPI::SymEval::expand(assignment, false);
-    AST::Ptr ast = res.first;
-    if(!ast) {
-      startup_printf("findMain: cannot expand %s from instruction %s\n", assignment->format().c_str(),
-                     assignment->insn().format().c_str());
-      return Dyninst::ADDR_NULL;
-    }
-
-    FindMainVisitor fmv;
-    ast->accept(&fmv);
-    if(fmv.resolved) {
-      return fmv.target;
+    /*
+     *  case 3: address is computed
+     *
+     *        call   36cd
+     *        add    ebx,0xa8898
+     *    ...
+     *        <ADDRESS STORE>
+     *        call   __libc_start_main
+     *        hlt
+     *  36cd: mov    ebx,DWORD PTR [esp]
+     *        ret
+     *
+     *    (a) stored directly on the stack
+     *
+     *      push DWORD PTR [ebx+0x20]
+     *      call __libc_start_main
+     *
+     *    (b) stored in a register
+     *
+     *      lea  eax,[ebx-OFFSET]
+     *      push eax
+     *      call __libc_start_main
+     */
+    auto stack_param_src_reg = boost::make_shared<di::RegisterAST>(stack_param_src.reg);
+    if(stack_param_insn.isWritten(stack_param_src_reg)) {
+      if(!stack_param_src.bf) {
+        // There's no base+offset calculation, assume it's just an immediate
+        if(!stack_param_src.imm) {
+          FIND_MAIN_FAIL("find_main: bad stack source; no immediate\n");
+        }
+        return stack_param_src.imm->eval().convert<Dyninst::Address>();
+      }
     }
 
     return Dyninst::ADDR_NULL;

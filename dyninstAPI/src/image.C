@@ -53,7 +53,6 @@
 #include "common/src/MappedFile.h"
 #include "common/h/util.h"
 #include "dyninstAPI/h/BPatch_flowGraph.h"
-#include "find_main.h"
 
 #include "symtabAPI/h/Function.h"
 

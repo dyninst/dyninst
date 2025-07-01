@@ -3,11 +3,7 @@
 
 #include "Symtab.h"
 #include "SymEval.h"
-#include "CFG.h"
-#include "dyntypes.h"
 #include "Symbol.h"
-
-#include <vector>
 
 namespace Dyninst { namespace DyninstAPI {
 
@@ -20,6 +16,10 @@ namespace Dyninst { namespace DyninstAPI {
 
   namespace ppc {
     Dyninst::Address find_main(st::Symtab*, pa::Function*);
+  }
+
+  namespace x86_64 {
+    Dyninst::Address find_main(pa::Function*);
   }
 
   namespace x86 {
