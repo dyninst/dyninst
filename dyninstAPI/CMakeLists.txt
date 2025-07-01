@@ -118,6 +118,7 @@ set(_sources
     src/find_main.C
     src/find_main_ppc.C
     src/find_main_x86.C
+    src/find_main_x86_64.C
     src/frame.C
     src/frameChecker.C
     src/function.C

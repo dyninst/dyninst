@@ -3,13 +3,13 @@
 #include "find_main.h"
 #include "Function.h"
 #include "Register.h"
-#include "registers/x86_regs.h"
+#include "registers/x86_64_regs.h"
 #include "util.h"
 
 #include <algorithm>
 #include <boost/shared_ptr.hpp>
 
-namespace Dyninst { namespace DyninstAPI { namespace x86 {
+namespace Dyninst { namespace DyninstAPI { namespace x86_64 {
 
   namespace pa = Dyninst::ParseAPI;
   namespace di = Dyninst::InstructionAPI;
@@ -34,9 +34,6 @@ namespace Dyninst { namespace DyninstAPI { namespace x86 {
       // clang-format on
       return *itr;
     }();
-
-    std::cerr << "Using block [0x" << std::hex << call_edge->src()->start()
-              << ", 0x" << call_edge->src()->end() << "]\n";
 
     // Get all the instructions in the block
     pa::Block::Insns instructions{};
@@ -67,11 +64,11 @@ namespace Dyninst { namespace DyninstAPI { namespace x86 {
     };
     instruction_t callsite{callsite_itr->first, callsite_itr->second};
 
-    std::cerr << std::hex << "Found callsite [0x" << callsite.address << "] " << callsite.insn.format() << "\n";
+//    std::cerr << std::hex << "Found callsite [0x" << callsite.address << "] " << callsite.insn.format() << "\n";
 
-    // Address of `main` is passed in eax to __libc_start_main
+    // The first parameter for __libc_start_main is the address of `main`.
     auto parameter_register = [](){
-      return boost::make_shared<di::RegisterAST>(Dyninst::x86::eax);
+      return boost::make_shared<di::RegisterAST>(Dyninst::x86_64::rdi);
     }();
 
     // Search backward from the call callsite to find the first instruction
@@ -114,9 +111,9 @@ namespace Dyninst { namespace DyninstAPI { namespace x86 {
      *
      * Can be direct or indirect addressing:
      *
-     *    lea eax,[eip+OFFSET]
+     *    lea rdi,[rip+OFFSET]
      *  or
-     *    mov eax,MAIN
+     *    mov rdi,MAIN
      */
     struct find_address_visitor final : di::Visitor {
       Dyninst::Address imm{Dyninst::ADDR_NULL};

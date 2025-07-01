@@ -122,7 +122,11 @@ Dyninst::Address find_main(st::Symtab* linkedFile) {
       return DyninstAPI::ppc::find_main(linkedFile, entry_point);
     }
 
-    if(file_arch == Dyninst::Arch_x86 || file_arch == Dyninst::Arch_x86_64) {
+    if(file_arch == Dyninst::Arch_x86_64) {
+      return DyninstAPI::x86_64::find_main(entry_point);
+    }
+
+    if(file_arch == Dyninst::Arch_x86) {
       return DyninstAPI::x86::find_main(entry_point);
     }
 
