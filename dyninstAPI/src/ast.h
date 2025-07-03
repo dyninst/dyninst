@@ -618,11 +618,13 @@ class AstOperandNode : public AstNode {
     // maps variable name to an offset in our GPU memory buffer
     static std::map<std::string, int> allocTable;
 
-    static void addToTable(const std::string &variableName, unsigned size) {
+    static void addToTable(const std::string &variableName, int size) {
       // We shouldn't allocate more than once.
       assert(allocTable.find(variableName) == allocTable.end() && "Can't allocate variable twice");
+      assert(size > 0);
 
       allocTable[variableName] = lastOffset;
+      std::cerr << "inserted " << variableName << " of " << size << " bytes at " << lastOffset << '\n';
       lastOffset += size;
     }
 

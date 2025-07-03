@@ -998,8 +998,13 @@ BPatch_variableExpr::BPatch_variableExpr(const std::string& varName, BPatch_addr
     type(type_),
     intvar(NULL)
 {
-  AstOperandNode::addToTable(name, size);
+
+  assert(type->getSize() > 0 && type->getSize() % 4 == 0);
+  this->size = (int)type->getSize();
+
+  AstOperandNode::addToTable(name, (int)size);
   int offset = AstOperandNode::getOffset(name);
+  assert(AstOperandNode::lastOffset > -1);
 
   // An AstOperandNode containing another AstOperandNode that is a constant.
   // The constant represents offset in the GPU memory buffer.
@@ -1008,7 +1013,7 @@ BPatch_variableExpr::BPatch_variableExpr(const std::string& varName, BPatch_addr
                     AstNode::operandNode(AstNode::operandType::Constant, (void *) offset)
                   )
                 );
-
+  
   ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
   ast_wrapper->setType(type_);
 
