@@ -595,6 +595,10 @@ void EmitterAmdgpuVega::emitAddConstantToRegPair(Register reg, int constant, cod
   emitSop2WithSrc1Literal(S_ADDC_U32, reg+1, reg+1, 0, gen);
 }
 
+void EmitterAmdgpuVega::emitAtomicAdd(Register baseAddrReg, Register src0, codeGen &gen) {
+  emitSmem(S_ATOMIC_ADD, src0, baseAddrReg, /* offset = */0, gen);
+}
+
 void EmitterAmdgpuVega::emitScalarDataCacheWriteback(codeGen &gen) {
   emitSmem(S_DCACHE_WB, 0, 0, 0, gen);
 }

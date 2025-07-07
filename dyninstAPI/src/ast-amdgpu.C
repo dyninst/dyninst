@@ -1322,8 +1322,8 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                break;
             }
             case operandType::AddressAsPlaceholderRegAndOffset: {
-              if (!loperand->generateCode_phase2(gen, noCost, addr, tmp)) ERROR_RETURN;
-              REGISTER_CHECK(tmp);
+              // if (!loperand->generateCode_phase2(gen, noCost, addr, tmp)) ERROR_RETURN;
+              // REGISTER_CHECK(tmp);
 
               assert(loperand.get()->operand());
 
@@ -1331,8 +1331,14 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
               assert(offset);
               assert(offset->getoType() == operandType::Constant);
 
-              Emitter *emitter = gen.emitter();
-              emitter->emitStoreRelative(src1, (Address)offset->getOValue(), 94, /*size =*/1, gen);
+              EmitterAmdgpuVega *emitter = dynamic_cast<EmitterAmdgpuVega *>(gen.emitter());
+              assert(emitter);
+              // emitter->emitStoreRelative(src1, (Address)offset->getOValue(), 94, [>size =<]1, gen);
+              emitter->emitMoveRegToReg(94, 88, gen);
+              emitter->emitMoveRegToReg(95, 89, gen);
+              emitter->emitAddConstantToRegPair(88, (Address)offset->getOValue(), gen);
+              emitter->emitMovLiteral(87, /* literal */1, gen);
+              emitter->emitAtomicAdd(88, 87, gen);
               break;
             }
             case operandType::ReturnVal:
