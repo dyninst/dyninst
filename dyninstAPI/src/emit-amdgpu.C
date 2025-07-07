@@ -587,6 +587,14 @@ void EmitterAmdgpuVega::emitLongJump(Register reg, uint64_t fromAddress, uint64_
   emitSop1(S_SETPC_B64, /* dest = */ 0, reg, /* hasLiteral = */ false, /* literal=*/0, gen);
 }
 
+void EmitterAmdgpuVega::emitAddConstantToRegPair(Register reg, int constant, codeGen &gen) {
+  // reg has lower bits
+  emitSop2WithSrc1Literal(S_ADD_U32, reg, reg, constant, gen);
+
+  // reg+1 has upper bits. Add 0 with carry.
+  emitSop2WithSrc1Literal(S_ADDC_U32, reg+1, reg+1, 0, gen);
+}
+
 void EmitterAmdgpuVega::emitScalarDataCacheWriteback(codeGen &gen) {
   emitSmem(S_DCACHE_WB, 0, 0, 0, gen);
 }
