@@ -211,6 +211,9 @@ public:
   // Emit numNops nops (numNops >= 1 & numNops <=16)
   void emitNops(unsigned numNops, codeGen &gen);
 
+  // s[reg:reg+1] += constant
+  void emitAddConstantToRegPair(Register reg, int constant, codeGen &gen);
+
   void emitEndProgram(codeGen &gen);
 
   // Set 32-bit reg = 32-bit literal
