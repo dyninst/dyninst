@@ -167,6 +167,12 @@ void setSrc0Sop2(uint32_t value, uint32_t &rawInst) {
 
 void emitSop2(unsigned opcode, Register dest, Register src0, Register src1,
               codeGen &gen) {
+
+  // Source operand being 255 means the instruction is followed by a literal.
+  // Vega supports only one literal operand in SOP2.
+  // Thus src0 and src1 can't be 255 at the same time.
+  assert(!(src0 == 255 && src1 == 255));
+
   uint32_t newRawInst = 0xFFFFFFFF;
   setEncodingSop2(newRawInst);
   setOpcodeSop2(opcode, newRawInst);
@@ -181,6 +187,15 @@ void emitSop2(unsigned opcode, Register dest, Register src0, Register src1,
   *rawInstBuffer = newRawInst;
   ++rawInstBuffer;
 
+  gen.update((codeBuf_t *)rawInstBuffer);
+}
+
+void emitSop2WithSrc1Literal(unsigned opcode, Register dest, Register src0,
+                             uint32_t src1Literal, codeGen &gen) {
+  emitSop2(opcode, dest, src0, /* src1 = */255, gen);
+  uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
+  *rawInstBuffer = src1Literal;
+  ++rawInstBuffer;
   gen.update((codeBuf_t *)rawInstBuffer);
 }
 // === SOP2 END ===
