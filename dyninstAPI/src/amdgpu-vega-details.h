@@ -254,6 +254,9 @@ void setSrc0Sop2(uint32_t value, uint32_t &rawInst);
 void emitSop2(unsigned opcode, Register dest, Register src1, Register src0,
               codeGen &gen);
 
+void emitSop2WithSrc1Literal(unsigned opcode, Register dest, Register src0,
+                             uint32_t src1Literal, codeGen &gen);
+
 // === SOP2 END ===
 
 // === SOPC BEGIN ===
