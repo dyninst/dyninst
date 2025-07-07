@@ -67,7 +67,7 @@ codeBufIndex_t EmitterRISCV64::emitIf(Register expr_reg,
     // jalr zero, target, 0
 
     insnCodeGen::generateBne(gen, expr_reg, GPR_ZERO, 8 >> 1, false);
-    insnCodeGen::generateJ(gen, (target + 4) >> 1, false);
+    insnCodeGen::generateJ(gen, target + 4, false);
 
     // Retval: where the jump is in this sequence
     codeBufIndex_t retval = gen.getIndex();
