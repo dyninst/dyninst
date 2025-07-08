@@ -1428,7 +1428,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          }
 
          Emitter *emitter = gen.emitter();
-         emitter->emitOp(op, retReg, src1, right_dest, gen);
+         // emitter->emitOp(op, retReg, src1, right_dest, gen);
 
          if (src1 != Dyninst::Null_Register && loperand->decRefCount()) {
             // Don't free inputs until afterwards; we have _no_ idea
@@ -1468,7 +1468,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
      // Move constant into retReg
      Emitter *emitter = gen.emitter();
      const uint32_t immediateValue = (uint32_t)((uint64_t)this->getOValue());
-     emitter->emitMovLiteral(retReg, immediateValue, gen);
+     // emitter->emitMovLiteral(retReg, immediateValue, gen);
      break;
    }
    case operandType::DataIndir:
@@ -1517,7 +1517,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
 
      // Right now hardcoding s94 to be holding the base address.
      Emitter *emitter = gen.emitter();
-     emitter->emitLoadRelative(retReg, (Address)offset->getOValue(), 94, /*size =*/1, gen);
+     // emitter->emitLoadRelative(retReg, (Address)offset->getOValue(), 94, [>size =<]1, gen);
      break;
      // TODO:
      // We might slide the base address across registers.

@@ -600,10 +600,10 @@ void EmitterAmdgpuVega::emitAddConstantToRegPair(Register reg, int constant, cod
 }
 
 void EmitterAmdgpuVega::emitAtomicAdd(Register baseAddrReg, Register src0, codeGen &gen) {
-  emitSmem(S_ATOMIC_ADD, src0, baseAddrReg, /* offset = */0, gen);
+  emitSmem(S_ATOMIC_ADD, src0, baseAddrReg >> 1, /* offset = */0, gen);
 }
 
 void EmitterAmdgpuVega::emitScalarDataCacheWriteback(codeGen &gen) {
-  emitSmem(S_DCACHE_WB, 0, 0, 0, gen);
+  // emitSmem(S_DCACHE_WB, 0, 0, 0, gen);
 }
 // ===== EmitterAmdgpuVega implementation end =====
