@@ -1767,6 +1767,9 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
         if (nextBlockIter != frame.leadersToBlock.end()) {
             nextBlockAddr = nextBlockIter->first;
         }
+        auto nextTargetIter = frame.knownTargets.upper_bound(frame.curAddr);
+        if (*nextTargetIter < nextBlockAddr)
+          nextBlockAddr = *nextTargetIter;
         bool isNopBlock = ah->isNop();
 
         while(true) {
