@@ -53,13 +53,13 @@ using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InsnAdapter;
 
 IA_riscv64::IA_riscv64(Dyninst::InstructionAPI::InstructionDecoder dec_,
-               Address start_,
-	       Dyninst::ParseAPI::CodeObject* o,
-	       Dyninst::ParseAPI::CodeRegion* r,
-	       Dyninst::InstructionSource *isrc,
-	       Dyninst::ParseAPI::Block * curBlk_):
-	           IA_IAPI(dec_, start_, o, r, isrc, curBlk_) {
-}
+        Address start_,
+        Dyninst::ParseAPI::CodeObject* o,
+        Dyninst::ParseAPI::CodeRegion* r,
+        Dyninst::InstructionSource *isrc,
+        Dyninst::ParseAPI::Block * curBlk_):
+    IA_IAPI(dec_, start_, o, r, isrc, curBlk_) {
+    }
 IA_riscv64::IA_riscv64(const IA_riscv64& rhs): IA_IAPI(rhs) {}
 
 IA_riscv64* IA_riscv64::clone() const {
@@ -127,7 +127,76 @@ bool IA_riscv64::isThunk() const
 bool IA_riscv64::isTailCall(const Function* context, EdgeTypeEnum type, unsigned int,
         const std::set<Address>& knownTargets ) const
 {
-    // TODO tail call in RISC-V
+    switch(type) {
+        case COND_TAKEN:
+        case DIRECT:
+        case INDIRECT:
+            type = DIRECT;
+            break;
+        case CALL:
+        case RET:
+        case COND_NOT_TAKEN:
+        case FALLTHROUGH:
+        case CALL_FT:
+        default:
+            return false;
+    }
+    parsing_printf("Checking for Tail Call from ARM\n");
+    context->obj()->cs()->incrementCounter(PARSE_TAILCALL_COUNT); 
+
+    if (tailCalls.find(type) != tailCalls.end()) {
+        parsing_printf("\tReturning cached tail call check result: %d\n", tailCalls[type]);
+        if (tailCalls[type]) {
+            context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
+            return true;
+        }
+        return false;
+    }
+
+    bool valid; Address addr;
+    boost::tie(valid, addr) = getCFT();
+
+    Function *callee = _obj->findFuncByEntry(_cr, addr);
+    Block *target = _obj->findBlockByEntry(_cr, addr);
+
+    if(curInsn().isBranch() &&
+            valid &&
+            callee && 
+            callee != context &&
+            // We can only trust entry points from hints
+            callee->src() == HINT &&
+            /* the target can either be not parsed or not within the current context */
+            ((target == NULL) || (target && !context->contains(target)))
+      )
+    {
+        parsing_printf("\tjump to 0x%lx, TAIL CALL\n", addr);
+        tailCalls[type] = true;
+        return true;
+    }
+
+    if (valid && addr > 0 && !context->region()->contains(addr)) {
+        parsing_printf("\tjump to 0x%lx in other regions, TAIL CALL\n", addr);
+        tailCalls[type] = true;
+        return true;
+    }    
+
+    if (curInsn().isBranch() &&
+            valid &&
+            !callee) {
+        if (knownTargets.find(addr) != knownTargets.end()) {
+            parsing_printf("\tjump to 0x%lx is known target in this function, NOT TAIL CALL\n", addr);
+            tailCalls[type] = false;
+            return false;
+        }
+    }
+    if(allInsns.size() < 2) {
+        parsing_printf("\ttoo few insns to detect tail call\n");
+        context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
+        tailCalls[type] = false;
+        return false;
+    }
+    tailCalls[type] = false;
+    context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
     return false;
 }
 #pragma GCC diagnostic pop
@@ -232,7 +301,7 @@ bool IA_riscv64::sliceReturn(ParseAPI::Block*, Address, ParseAPI::Function *) co
 
 bool IA_riscv64::isReturnAddrSave(Address&) const
 {
-  return false;
+    return false;
 }
 
 bool IA_riscv64::isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block*) const
@@ -275,18 +344,10 @@ bool IA_riscv64::isIATcall(std::string &) const
 
 bool IA_riscv64::isLinkerStub() const
 {
-  // Disabling this code because it ends with an
+    // Disabling this code because it ends with an
     // incorrect CFG.
     return false;
 }
-
-#if 0
-ParseAPI::StackTamper
-IA_riscv64::tampersStack(ParseAPI::Function *, Address &) const
-{
-    return TAMPER_NONE;
-}
-#endif
 
 bool IA_riscv64::isNopJump() const
 {
