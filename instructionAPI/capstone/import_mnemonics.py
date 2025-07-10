@@ -2,6 +2,7 @@ import argparse
 import x86.mnemonics
 import aarch64.mnemonics
 import ppc.mnemonics
+import riscv64.mnemonics
 
 parser = argparse.ArgumentParser(
   description="Translate Capstone's instructions into Dyninst instructions",
@@ -23,7 +24,7 @@ parser.add_argument(
   help="Dyninst source directory (e.g., /dyninst/src/)"
 )
 
-parser.add_argument("--arch", type=str, choices=["x86","aarch64","ppc"], default="x86")
+parser.add_argument("--arch", type=str, choices=["x86","aarch64","ppc","riscv64"], default="x86")
 args = parser.parse_args()
 
 print("Processing mnemonics for {0:s}".format(args.arch))
@@ -34,6 +35,8 @@ elif args.arch == "aarch64":
   mnemonics = aarch64.mnemonics.mnemonics(args.capstone_dir, args.dyninst_dir)
 elif args.arch == "ppc":
   mnemonics = ppc.mnemonics.mnemonics(args.capstone_dir, args.dyninst_dir)
+elif args.arch == "riscv64":
+  mnemonics = riscv64.mnemonics.mnemonics(args.capstone_dir, args.dyninst_dir)
 
 with open("mnemonics.{0:s}".format(args.arch), "w") as f:
   if mnemonics.pseudo is not None:

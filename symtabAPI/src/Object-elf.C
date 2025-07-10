@@ -278,6 +278,7 @@ static Region::RegionType getRelTypeByElfMachine(Elf_X *localHdr) {
         case EM_IA_64:
         case EM_AARCH64:
         case EM_AMDGPU:
+        case EM_RISCV:
             ret = Region::RT_RELA;
             break;
         default:
@@ -791,6 +792,9 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
                         // New style secure PLT
                         plt_entry_size_ = 16;
                     }
+                }
+                else if (getArch() == Dyninst::Arch_riscv64) {
+                    plt_entry_size_ = 16;
                 }
             }
         } else if (strcmp(name, COMMENT_NAME) == 0) {
@@ -1319,6 +1323,8 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                 next_plt_entry_addr += plt_entry_size_;
 
             } else if (getArch() == Dyninst::Arch_aarch64) {
+                next_plt_entry_addr += 2 * plt_entry_size_;
+            } else if (getArch() == Dyninst::Arch_riscv64) {
                 next_plt_entry_addr += 2 * plt_entry_size_;
             } else {
                 next_plt_entry_addr += 4 * (plt_entry_size_); //1st 4 entries are special
