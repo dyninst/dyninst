@@ -229,8 +229,8 @@ namespace Dyninst { namespace riscv64 {
   DEF_REGISTER(       s11,  27 | GPR | Arch_riscv64, "riscv64");
   DEF_REGISTER(        t3,  28 | GPR | Arch_riscv64, "riscv64");
   DEF_REGISTER(        t4,  29 | GPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(        t5,  31 | GPR | Arch_riscv64, "riscv64");
-  DEF_REGISTER(        t6,  30 | GPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(        t5,  30 | GPR | Arch_riscv64, "riscv64");
+  DEF_REGISTER(        t6,  31 | GPR | Arch_riscv64, "riscv64");
 
   // special purpose register
   DEF_REGISTER(        pc,   0 | SPR | Arch_riscv64, "riscv64");
