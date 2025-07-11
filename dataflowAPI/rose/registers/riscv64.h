@@ -74,6 +74,7 @@ namespace {
         case 28: return riscv64_gpr_x28;
         case 29: return riscv64_gpr_x29;
         case 30: return riscv64_gpr_x30;
+        case 31: return riscv64_gpr_x31;
       }
       convert_printf("Unknown riscv64 GPR '%d'\n", baseID);
       return static_cast<Riscv64GeneralPurposeRegister>(-1);
