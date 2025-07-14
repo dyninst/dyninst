@@ -81,6 +81,7 @@ set(
   src/binaryEdit.C
   src/codeRange.C
   src/debug.C
+  src/find_main.C
   src/find_main_ppc.C
   src/find_main_x86.C
   src/hybridCallbacks.C
