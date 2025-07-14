@@ -519,14 +519,16 @@ class FindMainVisitor : public ASTVisitor
  */
 int image::findMain()
 {
+  // Only look for 'main' in executables, including PIE and executable DSOs.
+  // see ObjectELF::isOnlyExecutable()
+  if(!linkedFile->isExec()) {
+    startup_printf("findMain: not an executable\n");
+    return -1;
+  }
+
 #if defined(ppc64_linux) && defined(DYNINST_CODEGEN_ARCH_POWER)
     using namespace Dyninst::InstructionAPI;
 
-    // Only look for main in executables, but do allow position-independent
-    // executables (PIE) which look like shared objects with an INTERP.
-    // (Some strange DSOs also have INTERP, but this is rare.)
-    if (linkedFile->isExec())
-    {
         bool foundMain = false;
         // check if 'main' is in allsymbols
         vector <SymtabAPI::Function *> funcs;
@@ -612,17 +614,12 @@ int image::findMain()
                     0 );
             linkedFile->addSymbol(newSym);		
         }
-    }
 
 #elif defined(i386_unknown_linux2_0) \
     || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
     || (defined(os_freebsd) \
             && (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)))
-    // Only look for main in executables, but do allow position-independent
-    // executables (PIE) which look like shared objects with an INTERP.
-    // (Some strange DSOs also have INTERP, but this is rare.)
-    if(linkedFile->isExec())
-    {
+
         bool foundMain = false;
         bool foundStart = false;
         bool foundFini = false;
@@ -893,7 +890,6 @@ int image::findMain()
                 linkedFile->addSymbol(finiSym);	
             }	
         }
-    }
 
     Region *dynamicsec;
     vector < Symbol *>syms;
@@ -918,7 +914,6 @@ int image::findMain()
 
 #elif defined(i386_unknown_nt4_0)
 
-    if(linkedFile->isExec()) {
         vector <Symbol *>syms;
         vector<SymtabAPI::Function *> funcs;
         Address eAddr = linkedFile->getEntryOffset();
@@ -959,7 +954,6 @@ int image::findMain()
                         linkedFile->getDefaultModule(),
                         eReg));
         }
-    }
 #endif
 
     return 0; /* Success */
