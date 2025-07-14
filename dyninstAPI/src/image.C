@@ -146,83 +146,6 @@ void* fileDescriptor::rawPtr()
 extern unsigned enable_pd_sharedobj_debug;
 
 int codeBytesSeen = 0;
-
-#include <Graph.h>
-#include <Node.h>
-#include <DynAST.h>
-#include <dyntypes.h>
-#include <SymEval.h>
-#include <slicing.h>
-
-class FindMainVisitor : public ASTVisitor
-{
-    using ASTVisitor::visit;
-
-    public:
-    bool resolved;
-    bool hardFault;
-    Address target;
-    FindMainVisitor() : resolved(false), hardFault(false), target(0) {}
-
-    virtual AST::Ptr visit(DataflowAPI::RoseAST * r) 
-    {
-        using namespace DataflowAPI;
-
-        AST::Children newKids;
-        for(unsigned i = 0; i < r->numChildren(); i++) 
-            newKids.push_back(r->child(i)->accept(this));
-
-        switch(r->val().op) 
-        {
-            case ROSEOperation::addOp:
-
-                assert(newKids.size() == 2);
-                if(newKids[0]->getID() == AST::V_ConstantAST &&
-                        newKids[1]->getID() == AST::V_ConstantAST)
-                {
-                    ConstantAST::Ptr c1 = ConstantAST::convert(newKids[0]);
-                    ConstantAST::Ptr c2 = ConstantAST::convert(newKids[1]);
-                    if(!hardFault)
-                    {
-                        target = c1->val().val + c2->val().val;
-                        resolved = true;
-                    }
-                    return ConstantAST::create(
-                            Constant(c1->val().val + c2->val().val));
-                }
-                break;
-            default:
-                startup_printf("%s[%d] unhandled FindMainVisitor operation\n",
-                        FILE__,__LINE__);
-        }
-
-        return RoseAST::create(r->val(), newKids);
-    }
-
-    virtual ASTPtr visit(DataflowAPI::ConstantAST * c)
-    {
-        /* We can only handle constant values */
-        if(!target && !hardFault) 
-        {
-            resolved = true;
-            target = c->val().val;
-        }
-
-        return c->ptr();
-    }
-
-    virtual ASTPtr visit(DataflowAPI::VariableAST* v)
-    {
-        
-        /* If we visit a variable node, we can't do any analysis */
-        hardFault = true;
-        resolved = false;
-        target = 0;
-
-        return v->ptr();
-    }
-};
-
 /**
  * Search for the Main Symbols in the list of symbols, Only in case
  * if the file is a shared object. If not present add them to the
@@ -230,130 +153,17 @@ class FindMainVisitor : public ASTVisitor
  */
 int image::findMain()
 {
-  namespace st = Dyninst::SymtabAPI;
-  namespace pa = Dyninst::ParseAPI;
+  auto const mainAddress = Dyninst::DyninstAPI::find_main(this->linkedFile);
 
-  startup_printf("findMain: looking for 'main' in %s\n", linkedFile->name().c_str());
-
-  // Only look for 'main' in executables, including PIE, but not
-  // other binaries that could be executable (for an example,
-  // see ObjectELF::isOnlyExecutable()).
-  if(!linkedFile->isExec()) {
-    startup_printf("findMain: not an executable\n");
+  if(mainAddress == Dyninst::ADDR_NULL) {
     return -1;
   }
 
-  // It must have at least one code region
-  {
-    std::vector<st::Region*> regions;
-    linkedFile->getCodeRegions(regions);
-    if(regions.size() == 0UL) {
-      startup_printf("findMain: No main found; no code regions\n");
-      return -1;
-    }
-  }
-
-  // Check for a known symbol name
-  for(char const* name : main_function_names()) {
-    std::vector<st::Function*> funcs;
-    if(linkedFile->findFunctionsByName(funcs, name)) {
-      if(dyn_debug_startup) {
-       startup_printf("findMain: found ");
-       for(auto *f : funcs) {
-         startup_printf("{ %s@0x%lx}, ", f->getName().c_str(), f->getOffset());
-       }
-       startup_printf("\n");
-      }
-      this->address_of_main = funcs[0]->getFirstSymbol()->getOffset();
-      return 0;
-    }
-  }
-
-  // Report a non-stripped binary, but don't fail.
-  // This indicates we need to expand our list of possible symbols for 'main'
-  if(!linkedFile->isStripped()) {
-    startup_printf("findMain: no symbol found, but binary isn't stripped\n");
-  }
-
-  // We need to do actual binary analysis from here
-  startup_printf("findMain: no symbol found; attempting manual search\n");
-
-  auto const entry_address = static_cast<Dyninst::Address>(linkedFile->getEntryOffset());
-  st::Region* entry_region = linkedFile->findEnclosingRegion(entry_address);
-
-  if(!entry_region) {
-    startup_printf("findMain: no region found at entry 0x%lx\n", entry_address);
-    return -1;
-  }
-
-  bool const parseInAllLoadableRegions = (BPatch_normalMode != this->mode_);
-  pa::SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
-
-  std::set<pa::CodeRegion*> regions;
-  scs.findRegions(entry_address,regions);
-
-  if(regions.empty()) {
-    startup_printf("findMain: no region contains 0x%lx\n", entry_address);
-    return -1;
-  }
-
-  // We should only get one region
-  if(regions.size() > 1UL) {
-    startup_printf("findMain: found %lu possibly-overlapping regions for 0x%lx\n", regions.size(), entry_address);
-    return -1;
-  }
-
-  pa::CodeObject co = [&scs]() {
-    // To save time, delay the parsing
-    pa::CFGFactory *f{nullptr};
-    pa::ParseCallback *cb{nullptr};
-    constexpr bool defensive_mode = false;
-    constexpr bool delay_parse = true;
-    return pa::CodeObject(&scs, f, cb, defensive_mode, delay_parse);
-  }();
-
-  pa::Function *entry_point = [&regions, entry_address, &co](){
-    pa::CodeRegion* region = *(regions.begin());
-    constexpr bool recursive = true;
-    co.parse(region, entry_address, recursive);
-    return co.findFuncByEntry(region, entry_address);
-  }();
-
-  if(!entry_point) {
-    startup_printf("findMain: couldn't find function at entry 0x%lx\n", entry_address);
-    return -1;
-  }
-
-  startup_printf("findMain: found '%s' at entry 0x%lx\n", entry_point->name().c_str(),
-                 entry_address);
-
-  // Try architecture-specific searches
-  auto main_addr = [this, &entry_point]() {
-    auto file_arch = linkedFile->getArchitecture();
-
-    if(file_arch == Dyninst::Arch_ppc32 || file_arch == Dyninst::Arch_ppc64) {
-      return DyninstAPI::ppc::find_main(linkedFile, entry_point);
-    }
-
-    if(file_arch == Dyninst::Arch_x86 || file_arch == Dyninst::Arch_x86_64) {
-      return DyninstAPI::x86::find_main(entry_point);
-    }
-
-    return Dyninst::ADDR_NULL;
-  }();
-
-  if(main_addr == Dyninst::ADDR_NULL || !scs.isValidAddress(main_addr)) {
-    startup_printf("findMain: unable to find valid entry for 'main'\n");
-    return -1;
-  }
+  this->address_of_main = mainAddress;
 
 #if defined(ppc64_linux) && defined(DYNINST_CODEGEN_ARCH_POWER)
     using namespace Dyninst::InstructionAPI;
 
-        bool foundMain = false;
-
-        if(!foundMain)
-        {
             Symbol *newSym= new Symbol( "main", 
                     Symbol::ST_FUNCTION,
                     Symbol::SL_LOCAL,
@@ -363,15 +173,13 @@ int image::findMain()
                     entry_region,
                     0 );
             linkedFile->addSymbol(newSym);
-            this->address_of_main = mainAddress;
-        }
+
 
 #elif defined(i386_unknown_linux2_0) \
     || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
     || (defined(os_freebsd) \
             && (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)))
 
-        bool foundMain = false;
         bool foundStart = false;
         bool foundFini = false;
 
@@ -386,8 +194,6 @@ int image::findMain()
             foundFini = true;
         }
 
-        if(!foundMain)
-        {
             /* Note: creating a symbol for main at the invalid address 
                anyway, because there is guard code for this later in the
                process and otherwise we end up in a weird "this is not an
@@ -397,8 +203,6 @@ int image::findMain()
                a way of gracefully indicating that it has failed. It should
                not return void. NR
                */
-
-            Address mainAddress = 0;
 
             Region *pltsec;
             if((linkedFile->findRegion(pltsec, ".plt")) && pltsec->isOffsetInRegion(mainAddress))
@@ -427,7 +231,7 @@ int image::findMain()
                 linkedFile->addSymbol(newSym);		
                 this->address_of_main = mainAddress;
             }
-        }
+
         if( !foundStart )
         {
             Symbol *startSym = new Symbol( "_start",
