@@ -35,6 +35,7 @@
 #include <string>
 #include <fstream>
 #include <sys/stat.h>
+#include <memory>
 
 #include "image.h"
 #include "debug.h"
@@ -523,6 +524,7 @@ class FindMainVisitor : public ASTVisitor
 int image::findMain()
 {
   namespace st = Dyninst::SymtabAPI;
+  namespace pa = Dyninst::ParseAPI;
 
   startup_printf("findMain: looking for 'main' in %s\n", linkedFile->name().c_str());
 
@@ -566,6 +568,69 @@ int image::findMain()
     startup_printf("findMain: no symbol found, but binary isn't stripped\n");
   }
 
+  // We need to do actual binary analysis from here
+  startup_printf("findMain: no symbol found; attempting manual search\n");
+
+  auto const entry_address = static_cast<Dyninst::Address>(linkedFile->getEntryOffset());
+  st::Region* entry_region = linkedFile->findEnclosingRegion(entry_address);
+
+  if(!entry_region) {
+    startup_printf("findMain: no region found at entry 0x%lx\n", entry_address);
+    return -1;
+  }
+
+  bool const parseInAllLoadableRegions = (BPatch_normalMode != this->mode_);
+  pa::SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
+
+  std::set<pa::CodeRegion*> regions;
+  scs.findRegions(entry_address,regions);
+
+  if(regions.empty()) {
+    startup_printf("findMain: no region contains 0x%lx\n", entry_address);
+    return -1;
+  }
+
+  // We should only get one region
+  if(regions.size() > 1UL) {
+    startup_printf("findMain: found %lu possibly-overlapping regions for 0x%lx\n", regions.size(), entry_address);
+    return -1;
+  }
+
+  auto co = [&scs]() -> std::unique_ptr<pa::CodeObject> {
+    // To save time, delay the parsing
+    pa::CFGFactory *f{};
+    pa::ParseCallback *cb{};
+    constexpr bool defensive_mode = false;
+    constexpr bool delay_parse = true;
+    return std::unique_ptr<pa::CodeObject>(new pa::CodeObject(&scs, f, cb, defensive_mode, delay_parse));
+  }();
+
+  pa::Function* entry_point = [&]() {
+    pa::CodeRegion* region = *(regions.begin());
+    constexpr bool recursive = true;
+    co->parse(region, entry_address, recursive);
+    return co->findFuncByEntry(region, entry_address);
+  }();
+
+  if(!entry_point) {
+    startup_printf("findMain: couldn't find function at entry 0x%lx\n", entry_address);
+    return -1;
+  }
+
+  startup_printf("findMain: found '%s' at entry 0x%lx\n", entry_point->name().c_str(),
+                 entry_address);
+
+  auto const& edges = entry_point->callEdges();
+  if(edges.empty()) {
+    startup_printf("findMain: no call edges\n");
+    return -1;
+  }
+
+  // In libc, the entry point is _start which only calls __libc_start_main, so
+  // assume the first call is the one we want.
+  pa::Block *b = (*edges.begin())->src();
+
+
 #if defined(ppc64_linux) && defined(DYNINST_CODEGEN_ARCH_POWER)
     using namespace Dyninst::InstructionAPI;
 
@@ -573,31 +638,6 @@ int image::findMain()
 
         if(!foundMain)
         {
-            logLine("No main symbol found: attempting to create symbol for main\n");
-
-            Address eAddr = linkedFile->getEntryOffset();
-            eAddr = deref_opd(linkedFile, eAddr);
-
-            bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
-            SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
-            CodeObject tco(&scs,NULL,NULL,false);
-
-            tco.parse(eAddr,false);
-            set<CodeRegion *> regions;
-            scs.findRegions(eAddr,regions);
-            if(regions.empty()) {
-                // express puzzlement
-                return -1;
-            }
-            SymtabCodeRegion * reg = 
-                static_cast<SymtabCodeRegion*>(*regions.begin());
-            Function * func = 
-                tco.findFuncByEntry(reg,eAddr);
-            if(!func) {
-                // again, puzzlement
-                return -1;
-            }
-
             // Candidate blocks for the __libc_start_main call setup:
             // glibc's dynamic _start makes the call from its entry block,
             // but a tail-branching _start (static link) parses into one
@@ -605,21 +645,19 @@ int image::findMain()
             // evaluate_main_address() is fail-to-zero per block, so rather
             // than guessing the one right block, try the entry block and
             // then each call-edge source until one yields a valid address.
-            std::vector<Block *> candidates;
-            Block * entryBlock = tco.findBlockByEntry(reg,eAddr);
+            std::vector<pa::Block *> candidates;
+            pa::Block * entryBlock = co->findBlockByEntry(*regions.begin(), entry_address);
             if (entryBlock)
                 candidates.push_back(entryBlock);
-            const Function::edgelist & calls = func->callEdges();
-            for (Function::edgelist::const_iterator cit = calls.begin();
-                 cit != calls.end(); ++cit) {
-                if ((*cit)->src() && (*cit)->src() != entryBlock)
-                    candidates.push_back((*cit)->src());
+            for (auto const* e : edges) {
+                if (e->src() && e->src() != entryBlock)
+                    candidates.push_back(e->src());
             }
 
             Address mainAddress = 0;
-            for (std::vector<Block *>::const_iterator bit = candidates.begin();
+            for (std::vector<pa::Block *>::const_iterator bit = candidates.begin();
                  bit != candidates.end() && mainAddress == 0; ++bit) {
-                Address cand = evaluate_main_address(linkedFile,func,*bit);
+                Address cand = evaluate_main_address(linkedFile,entry_point,*bit);
                 cand = deref_opd(linkedFile, cand);
                 if (cand != 0 && scs.isValidAddress(cand))
                     mainAddress = cand;
@@ -638,7 +676,7 @@ int image::findMain()
                     Symbol::SV_INTERNAL,
                     mainAddress,
                     linkedFile->getDefaultModule(),
-                    eReg, 
+                    entry_region,
                     0 );
             linkedFile->addSymbol(newSym);
             this->address_of_main = mainAddress;
@@ -664,108 +702,17 @@ int image::findMain()
             foundFini = true;
         }
 
-        Address eAddr = linkedFile->getEntryOffset();
-        Region *eReg = linkedFile->findEnclosingRegion(eAddr);
-
-        if (!eReg)
-            return -1;
-         
-        // Address eStart = eReg->getMemOffset();
-
         if(!foundMain)
         {
-            logLine( "No main symbol found: creating symbol for main\n" );
-
-            //find and add main to allsymbols
-            // const unsigned char* p;
-
-            // p = (( const unsigned char * ) eReg->getPtrToRawData());
-
-            // if (eAddr > eStart) {
-                // p += (eAddr - eStart);
-            // }
-
-//            switch(linkedFile->getAddressWidth()) {
-//                case 4:
-//                    // 32-bit...
-//                    startup_printf("%s[%u]:  setting 32-bit mode\n",
-//                            FILE__,__LINE__);
-//                    ia32_set_mode_64(false);
-//                    break;
-//                case 8:
-//                    startup_printf("%s[%u]:  setting 64-bit mode\n",
-//                            FILE__,__LINE__);
-//                    ia32_set_mode_64(true);
-//                    break;
-//                default:
-//                    assert(0 && "Illegal address width");
-//                    break;
-//            }
-
-            Address mainAddress = 0;
-
-            // Create a temporary SymtabCodeSource that we can use for parsing. 
-            // We're going to throw it away when we're done so that we can re-sync
-            // with the new symbols we're going to add shortly. 
-            bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
-            SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
-            CodeObject co(&scs);
-
 #if !defined(os_freebsd)
-            /* Find the entry point, where we start our analysis */
-            Address entry_point = (Address)linkedFile->getEntryOffset();
-
-            /* Get the code regions we are looking at */
-            std::set<CodeRegion*> regions;
-            scs.findRegions(entry_point, regions);
-
-            /* We should only get one region */
-            if(regions.size() != 1)
-            {
-                startup_printf("%s[%d]: Overlapping or non existant regions!\n",
-                        FILE__, __LINE__);
-                return -1;
-            }
-
-            CodeRegion* region = *regions.begin();
-            assert(region);
-
-            /* Parse the function we're looking at */
-            co.parse(region, entry_point, true);
-
-            /* Get the parsed Function */
-            Function* func = co.findFuncByEntry(region, entry_point);
-
-            if(!func)
-            {
-                startup_printf("%s[%d]: No functions found in our region.\n",
-                        FILE__, __LINE__);
-                return -1;
-            }
-
-            /* Get the call edges for this function */
-            Function::edgelist list = func->callEdges();
-            
-            /* There should be at least one edge */
-            ParseAPI::Edge* e = *list.begin();
-
-            if(!e)
-            {
-                startup_printf("%s[%d]: Error: no call edges found for this function.\n",
-                        FILE__, __LINE__);
-                return -1;
-            }
-
-            /* get the block for this call edge (source) */
-            Block* b = e->src();
-            assert(b);
-
 	    Block::Insns insns;
 	    b->getInsns(insns);
 	    if (insns.size() < 2) {
 	        startup_printf("%s[%d]: should have at least two instructions\n", FILE__, __LINE__);   
 		return -1;
 	    }
+
+	    Address mainAddress = 0;
 
 	    // To get the secont to last instruction, which loads the address of main
 	    auto iit = insns.end();
@@ -775,7 +722,7 @@ int image::findMain()
             /* Let's get the assignment for this instruction. */
             std::vector<Assignment::Ptr> assignments;
             Dyninst::AssignmentConverter assign_convert(true, false);
-            assign_convert.convert(iit->second, iit->first, func, b, assignments);
+            assign_convert.convert(iit->second, iit->first, entry_point, b, assignments);
             if(assignments.size() >= 1)
             {
 	        
@@ -807,11 +754,11 @@ int image::findMain()
             using namespace Dyninst::InstructionAPI;
 
             unsigned bytesSeen = 0, numCalls = 0;
-            InstructionDecoder decoder(p, eReg->getMemSize(), scs.getArch());
+            InstructionDecoder decoder(p, entry_region->getMemSize(), scs.getArch());
 
             Instruction::Ptr curInsn = decoder.decode();
             while( numCalls < 4 && curInsn && curInsn->isValid() &&
-                    bytesSeen < eReg->getMemSize())
+                    bytesSeen < entry_region->getMemSize())
             {
                 if( curInsn->isCall() ) {
                     numCalls++;
@@ -826,7 +773,7 @@ int image::findMain()
             if( numCalls != 4 ) {
                 logLine("heuristic for finding global constructor function failed\n");
             }else{
-                Address callAddress = eReg->getMemOffset() + bytesSeen;
+                Address callAddress = entry_region->getMemOffset() + bytesSeen;
                 RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(scs.getArch()));
 
                 Expression::Ptr callTarget = curInsn->getControlFlowTarget();
@@ -869,7 +816,7 @@ int image::findMain()
                         Symbol::SV_INTERNAL,
                         mainAddress,
                         linkedFile->getDefaultModule(),
-                        eReg, 
+                        entry_region,
                         0 );
                 linkedFile->addSymbol( newSym );
             }
@@ -881,7 +828,7 @@ int image::findMain()
                         Symbol::SV_INTERNAL,
                         mainAddress,
                         linkedFile->getDefaultModule(),
-                        eReg, 
+                        entry_region,
                         0 );
                 linkedFile->addSymbol(newSym);		
                 this->address_of_main = mainAddress;
@@ -893,9 +840,9 @@ int image::findMain()
                     Symbol::ST_FUNCTION,
                     Symbol::SL_LOCAL,
                     Symbol::SV_INTERNAL,
-                    eReg->getMemOffset(),
+                    entry_region->getMemOffset(),
                     linkedFile->getDefaultModule(),
-                    eReg,
+                    entry_region,
                     0 );
             //cout << "sim for start!" << endl;
 
@@ -942,8 +889,6 @@ int image::findMain()
 
         vector <Symbol *>syms;
         vector<SymtabAPI::Function *> funcs;
-        Address eAddr = linkedFile->getEntryOffset();
-        Region *eReg = linkedFile->findEnclosingRegion(eAddr);
 
         bool found_main = false;
         if (found_main) {
@@ -955,7 +900,7 @@ int image::findMain()
                         Symbol::SV_DEFAULT, 
                         eAddr ,
                         linkedFile->getDefaultModule(),
-                        eReg,
+                        entry_region,
                         UINT_MAX );
                 linkedFile->addSymbol(startSym);
                 this->address_of_main = eAddr;
@@ -973,7 +918,7 @@ int image::findMain()
                         Symbol::SV_DEFAULT,
                         eAddr,
                         linkedFile->getDefaultModule(),
-                        eReg));
+                        entry_region));
             this->address_of_main = eAddr;
         }
 #endif
