@@ -877,7 +877,7 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
                 0xc0, 0x03, 0x5f, 0xd6};
             emptyFunction = empty;
             emptyFuncSize = 16;
-#elif defined(DYNINST_HOST_ARCH_RISCV64)
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
             // TODO
             static unsigned char empty[] = {
 	        0x93, 0x00, 0x00, 0x00

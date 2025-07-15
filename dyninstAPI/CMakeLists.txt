@@ -245,7 +245,7 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/RegisterConversion-aarch64.C
     src/Relocation/Widgets/CFWidget-aarch64.C
     src/Relocation/Widgets/PCWidget-aarch64.C)
-elseif(DYNINST_HOST_ARCH_RISCV64)
+elseif(DYNINST_CODEGEN_ARCH_RISCV64)
   list(
     APPEND
     _sources
@@ -283,7 +283,7 @@ elseif(DYNINST_OS_Linux)
     list(APPEND _sources src/linux-power.C)
   elseif(DYNINST_HOST_ARCH_AARCH64)
     list(APPEND _sources src/linux-aarch64.C)
-  elseif(DYNINST_HOST_ARCH_RISCV64)
+  elseif(DYNINST_CODEGEN_ARCH_RISCV64)
     list(APPEND _sources src/linux-riscv64.C)
   endif()
 elseif(DYNINST_OS_Windows)
