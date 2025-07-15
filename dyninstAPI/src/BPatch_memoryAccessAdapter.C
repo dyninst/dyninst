@@ -40,7 +40,7 @@
 # include "common/src/arch-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 # include "common/src/arch-aarch64.h"
-#elif defined(DYNINST_HOST_ARCH_RISCV64)
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
 # include "common/src/arch-riscv64.h"
 #endif
 
@@ -255,7 +255,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
         }
     }
 	return NULL;
-#elif defined(DYNINST_HOST_ARCH_RISCV64)
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
     using namespace NS_riscv64;
 
     auto operands = insn.getAllOperands();
