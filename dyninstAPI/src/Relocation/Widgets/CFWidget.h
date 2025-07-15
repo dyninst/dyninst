@@ -61,7 +61,7 @@ typedef NS_x86::instruction arch_insn;
 typedef NS_power::instruction arch_insn;
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 typedef NS_aarch64::instruction arch_insn;
-#elif defined (DYNINST_HOST_ARCH_RISCV64)
+#elif defined (DYNINST_CODEGEN_ARCH_RISCV64)
 typedef NS_riscv64::instruction arch_insn;
 #else
 #error "Unknown architecture"
