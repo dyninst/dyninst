@@ -49,7 +49,7 @@
 
 #if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #define CODE_GEN_OFFSET_SIZE 1U
-#elif defined(DYNINST_HOST_ARCH_RISCV64)
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
 #define CODE_GEN_OFFSET_SIZE 2U
 #else
 #define CODE_GEN_OFFSET_SIZE (instruction::size())
@@ -75,7 +75,7 @@ codeGen::codeGen() :
     f_(NULL),
     bt_(NULL),
     isPadded_(true),
-#if defined(DYNINST_HOST_ARCH_RISCV64)
+#if defined(DYNINST_HOST_ARCH_RISCV64) || defined(DYNINST_CODEGEN_ARCH_RISCV64)
     useRVC(true),
 #endif
     trackRegDefs_(false),
@@ -102,7 +102,7 @@ codeGen::codeGen(unsigned size) :
     f_(NULL),
     bt_(NULL),
     isPadded_(true),
-#if defined(DYNINST_HOST_ARCH_RISCV64)
+#if defined(DYNINST_HOST_ARCH_RISCV64) || defined(DYNINST_CODEGEN_ARCH_RISCV64)
     useRVC(true),
 #endif
     trackRegDefs_(false),
@@ -136,7 +136,7 @@ codeGen::codeGen(codeBuf_t *buffer, int size) :
     f_(NULL),
     bt_(NULL),
     isPadded_(true),
-#if defined(DYNINST_HOST_ARCH_RISCV64)
+#if defined(DYNINST_HOST_ARCH_RISCV64) || defined(DYNINST_CODEGEN_ARCH_RISCV64)
     useRVC(true),
 #endif
     trackRegDefs_(false),
@@ -173,7 +173,7 @@ codeGen::codeGen(const codeGen &g) :
     f_(g.f_),
     bt_(g.bt_),
     isPadded_(g.isPadded_),
-#if defined(DYNINST_HOST_ARCH_RISCV64)
+#if defined(DYNINST_HOST_ARCH_RISCV64) || defined(DYNINST_CODEGEN_ARCH_RISCV64)
     useRVC(true),
 #endif
     trackRegDefs_(g.trackRegDefs_),
@@ -207,7 +207,7 @@ codeGen &codeGen::operator=(const codeGen &g) {
     allocated_ = g.allocated_;
     thr_ = g.thr_;
     isPadded_ = g.isPadded_;
-#if defined(DYNINST_HOST_ARCH_RISCV64)
+#if defined(DYNINST_HOST_ARCH_RISCV64) || defined(DYNINST_CODEGEN_ARCH_RISCV64)
     useRVC = g.useRVC;
 #endif
     int bufferSize = size_ + (isPadded_ ? codeGenPadding : 0);
@@ -748,7 +748,7 @@ void codeGen::beginTrackRegDefs()
     regsDefined_ = bitArray(registerSpace::lastReg);
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
     regsDefined_ = bitArray(registerSpace::fpsr);
-#elif defined(DYNINST_HOST_ARCH_RISCV64)
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
     regsDefined_ = bitArray(registerSpace::pc);
 #else
     regsDefined_ = bitArray();

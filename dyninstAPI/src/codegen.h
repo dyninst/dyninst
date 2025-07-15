@@ -49,7 +49,7 @@ using namespace NS_x86;
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "codegen-aarch64.h"
 using namespace NS_aarch64;
-#elif defined(DYNINST_HOST_ARCH_RISCV64)
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
 #include "codegen-riscv64.h"
 using namespace NS_riscv64;
 #else
@@ -252,7 +252,7 @@ class codeGen {
     void setPCRelUseCount(int c) { pc_rel_use_count = c; }
     int getPCRelUseCount() const { return pc_rel_use_count; }
 
-#if defined(DYNINST_HOST_ARCH_RISCV64)
+#if defined(DYNINST_HOST_ARCH_RISCV64) || defined(DYNINST_CODEGEN_ARCH_RISCV64)
     bool getUseRVC() { return useRVC; }
     void setUseRVC(bool useRVC_) { useRVC = useRVC_; }
 #endif
@@ -293,7 +293,7 @@ class codeGen {
     baseTramp *bt_;
     bool isPadded_;
 
-#if defined(DYNINST_HOST_ARCH_RISCV64)
+#if defined(DYNINST_HOST_ARCH_RISCV64) || defined(DYNINST_CODEGEN_ARCH_RISCV64)
     bool useRVC;
 #endif
 
