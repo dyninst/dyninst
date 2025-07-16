@@ -145,7 +145,7 @@ DECLARE_PRINTF_FUNC(crash_printf_int);
 DECLARE_PRINTF_FUNC(stackmods_printf_int);
 
 
-#define debug_sys_printf(debug_sys, ...) do { if (dyn_debug_##debug_sys) debug_sys##_printf_int(__VA_ARGS__); } while(0)
+#define debug_sys_printf(debug_sys, ...) do { init_debug(); if (dyn_debug_##debug_sys) debug_sys##_printf_int(__VA_ARGS__); } while(0)
 
 #define startup_printf(...)     debug_sys_printf(startup, __VA_ARGS__)
 #define parsing_printf(...)     debug_sys_printf(parsing, __VA_ARGS__)
