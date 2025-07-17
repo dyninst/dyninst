@@ -153,16 +153,16 @@ void EmitterAARCH64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprn
     INSN_SET(insn, 0, 4, scratchReg & 0x1F);
     //Set bits representing source system register
     INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenAarch64::generate(gen, insn);
 
-    insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, scratchReg,
-            REG_SP, stkOffset, 4, insnCodeGen::Pre);
+    insnCodeGenAarch64::generateMemAccess(gen, insnCodeGenAarch64::Store, scratchReg,
+            REG_SP, stkOffset, 4, insnCodeGenAarch64::Pre);
 }
 
 
 void EmitterAARCH64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save_off) {
     //Always performing save of the full FP register
-    insnCodeGen::generateMemAccessFP(gen, insnCodeGen::Store, reg, REG_SP, save_off, 0, true);
+    insnCodeGenAarch64::generateMemAccessFP(gen, insnCodeGenAarch64::Store, reg, REG_SP, save_off, 0, true);
 
 }
 
@@ -179,7 +179,7 @@ unsigned EmitterAARCH64SaveRegs::saveGPRegisters(
 	// We always save FP and LR for stack walking out of instrumentation
         if (reg->liveState == registerSlot::live || reg->number == REG_FP || reg->number == REG_LR) {
             int offset_from_sp = offset + (reg->encoding() * gen.width());
-            insnCodeGen::saveRegister(gen, reg->number, offset_from_sp);
+            insnCodeGenAarch64::saveRegister(gen, reg->number, offset_from_sp);
             theRegSpace->markSavedRegister(reg->number, offset_from_sp);
             ret++;
         }
@@ -249,15 +249,15 @@ unsigned EmitterAARCH64SaveRegs::saveSPRegisters(
 void EmitterAARCH64SaveRegs::createFrame(codeGen &gen) {
     //Save link register
     Register linkRegister = gen.rs()->getRegByName("r30");
-    insnCodeGen::saveRegister(gen, linkRegister, -2*GPRSIZE_64);
+    insnCodeGenAarch64::saveRegister(gen, linkRegister, -2*GPRSIZE_64);
 
     //Save frame pointer
     Register framePointer = gen.rs()->getRegByName("r29");
-    insnCodeGen::saveRegister(gen, framePointer, -2*GPRSIZE_64);
+    insnCodeGenAarch64::saveRegister(gen, framePointer, -2*GPRSIZE_64);
 
     //Move stack pointer to frame pointer
     Register stackPointer = gen.rs()->getRegByName("sp");
-    insnCodeGen::generateMoveSP(gen, stackPointer, framePointer, true);
+    insnCodeGenAarch64::generateMoveSP(gen, stackPointer, framePointer, true);
 }
 
 /***********************************************************************************************/
@@ -278,7 +278,7 @@ unsigned EmitterAARCH64RestoreRegs::restoreGPRegisters(
         if(reg->liveState == registerSlot::spilled) {
             //#sasha this should be GPRSIZE_64 and not gen.width
             int offset_from_sp = offset + (reg->encoding() * gen.width());
-            insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp);
+            insnCodeGenAarch64::restoreRegister(gen, reg->number, offset_from_sp);
             ret++;
         }
     }
@@ -343,11 +343,11 @@ unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(
 void EmitterAARCH64RestoreRegs::tearFrame(codeGen &gen) {
     //Restore frame pointer
     Register framePointer = gen.rs()->getRegByName("r29");
-    insnCodeGen::restoreRegister(gen, framePointer, 2*GPRSIZE_64);
+    insnCodeGenAarch64::restoreRegister(gen, framePointer, 2*GPRSIZE_64);
 
     //Restore link register
     Register linkRegister = gen.rs()->getRegByName("r30");
-    insnCodeGen::restoreRegister(gen, linkRegister, 2*GPRSIZE_64);
+    insnCodeGenAarch64::restoreRegister(gen, linkRegister, 2*GPRSIZE_64);
 }
 
 
@@ -355,7 +355,7 @@ void EmitterAARCH64RestoreRegs::tearFrame(codeGen &gen) {
 
 void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset)
 {
-    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratchReg, REG_SP, stkOffset, 4);
+    insnCodeGenAarch64::generateMemAccess(gen, insnCodeGenAarch64::Load, scratchReg, REG_SP, stkOffset, 4);
 
     //TODO move map to common location
     map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
@@ -371,11 +371,11 @@ void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, in
     INSN_SET(insn, 0, 4, scratchReg & 0x1F);
     //Set bits representing destination system register
     INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenAarch64::generate(gen, insn);
 }
 
 void EmitterAARCH64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, int save_off) {
-    insnCodeGen::generateMemAccessFP(gen, insnCodeGen::Load, reg, REG_SP, save_off, 0, true);
+    insnCodeGenAarch64::generateMemAccessFP(gen, insnCodeGenAarch64::Load, reg, REG_SP, save_off, 0, true);
 }
 
 /***********************************************************************************************/
@@ -387,7 +387,7 @@ void EmitterAARCH64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, in
 void pushStack(codeGen &gen)
 {
     if (gen.width() == 8)
-        insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Sub, 0,
+        insnCodeGenAarch64::generateAddSubImmediate(gen, insnCodeGenAarch64::Sub, 0,
                 TRAMP_FRAME_SIZE_64, REG_SP, REG_SP, true);
     else
         assert(0); // 32 bit not implemented
@@ -396,7 +396,7 @@ void pushStack(codeGen &gen)
 void popStack(codeGen &gen)
 {
     if (gen.width() == 8)
-        insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0,
+        insnCodeGenAarch64::generateAddSubImmediate(gen, insnCodeGenAarch64::Add, 0,
                 TRAMP_FRAME_SIZE_64, REG_SP, REG_SP, true);
     else
         assert(0); // 32 bit not implemented
@@ -425,7 +425,7 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
     // Note: If the implementation of the instrumentation frame layout
     // needs to be changed, DyninstDynamicStepperImpl::getCallerFrameArch
     // in stackwalk/src/aarch64-swk.C also likely needs to be changed accordingly
-    insnCodeGen::generateMoveSP(gen, REG_SP, REG_FP, true);
+    insnCodeGenAarch64::generateMoveSP(gen, REG_SP, REG_FP, true);
     gen.markRegDefined(REG_FP);
 
     bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
@@ -471,40 +471,40 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         case plusOp:
         case minusOp:
             {
-                Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-                insnCodeGen::generateAddSubShifted(gen,
-                        op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub,
+                Register rm = insnCodeGenAarch64::moveValueToReg(gen, src2imm);
+                insnCodeGenAarch64::generateAddSubShifted(gen,
+                        op == plusOp ? insnCodeGenAarch64::Add : insnCodeGenAarch64::Sub,
                         0, 0, rm, src1, dest, true);
             }
             break;
         case timesOp:
             {
-                Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-                insnCodeGen::generateMul(gen, rm, src1, dest, true);
+                Register rm = insnCodeGenAarch64::moveValueToReg(gen, src2imm);
+                insnCodeGenAarch64::generateMul(gen, rm, src1, dest, true);
             }
             break;
         case divOp:
             {
-                Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-                insnCodeGen::generateDiv(gen, rm, src1, dest, true, s);
+                Register rm = insnCodeGenAarch64::moveValueToReg(gen, src2imm);
+                insnCodeGenAarch64::generateDiv(gen, rm, src1, dest, true, s);
             }
             break;
         case xorOp:
             {
-                Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-                insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Eor, 0, rm, 0, src1, dest, true);
+                Register rm = insnCodeGenAarch64::moveValueToReg(gen, src2imm);
+                insnCodeGenAarch64::generateBitwiseOpShifted(gen, insnCodeGenAarch64::Eor, 0, rm, 0, src1, dest, true);
             }
             break;
         case orOp:
             {
-                Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-                insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Or, 0, rm, 0, src1, dest, true);
+                Register rm = insnCodeGenAarch64::moveValueToReg(gen, src2imm);
+                insnCodeGenAarch64::generateBitwiseOpShifted(gen, insnCodeGenAarch64::Or, 0, rm, 0, src1, dest, true);
             }
             break;
         case andOp:
             {
-                Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-                insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::And, 0, rm, 0, src1, dest, true);
+                Register rm = insnCodeGenAarch64::moveValueToReg(gen, src2imm);
+                insnCodeGenAarch64::generateBitwiseOpShifted(gen, insnCodeGenAarch64::And, 0, rm, 0, src1, dest, true);
             }
             break;
         case eqOp:
@@ -631,8 +631,8 @@ Register EmitterAARCH64::emitCall(opCode op,
 
         if ((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live))
         {
-            insnCodeGen::saveRegister(gen, registerSpace::r0 + id,
-                    -2*GPRSIZE_64, insnCodeGen::Post);
+            insnCodeGenAarch64::saveRegister(gen, registerSpace::r0 + id,
+                    -2*GPRSIZE_64, insnCodeGenAarch64::Post);
             savedRegs.push_back(reg->number);
         }
     }
@@ -672,11 +672,11 @@ Register EmitterAARCH64::emitCall(opCode op,
         INSN_SET(insn, 28, 28, 1);
         INSN_SET(insn, 5, 23, disp >> 2);
         INSN_SET(insn, 0, 4, scratch);
-        insnCodeGen::generate(gen, insn);
+        insnCodeGenAarch64::generate(gen, insn);
 
-        insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratch, scratch, 0, 8, insnCodeGen::Offset);
+        insnCodeGenAarch64::generateMemAccess(gen, insnCodeGenAarch64::Load, scratch, scratch, 0, 8, insnCodeGenAarch64::Offset);
     } else {
-        insnCodeGen::loadImmIntoReg(gen, scratch, callee->addr());
+        insnCodeGenAarch64::loadImmIntoReg(gen, scratch, callee->addr());
     }
 
     instruction branchInsn;
@@ -693,7 +693,7 @@ Register EmitterAARCH64::emitCall(opCode op,
     //The only difference between BR and BLR is that bit 21 is 1 for BLR.
     INSN_SET(branchInsn, 16, 31, BRegOp);
     INSN_SET(branchInsn, 21, 21, 1);
-    insnCodeGen::generate(gen, branchInsn);
+    insnCodeGenAarch64::generate(gen, branchInsn);
 
     /*
      * Restoring registers
@@ -701,8 +701,8 @@ Register EmitterAARCH64::emitCall(opCode op,
 
     // r7-r0
     for (signed int ui = savedRegs.size()-1; ui >= 0; ui--) {
-        insnCodeGen::restoreRegister(gen, registerSpace::r0 + savedRegs[ui],
-                2*GPRSIZE_64, insnCodeGen::Post);
+        insnCodeGenAarch64::restoreRegister(gen, registerSpace::r0 + savedRegs[ui],
+                2*GPRSIZE_64, insnCodeGenAarch64::Post);
     }
 
     return 0;
@@ -725,7 +725,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register, long dest,
             }
         case branchOp:
             {
-                insnCodeGen::generateBranch(gen, dest);
+                insnCodeGenAarch64::generateBranch(gen, dest);
                 retval = gen.getIndex();
                 break;
             }
@@ -765,8 +765,8 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
                 // TODO: PARAM_OFFSET(addrWidth) is currently not used
                 // should delete that macro if it's useless
 
-                if (src2 != Null_Register) insnCodeGen::saveRegister(gen, src2, stkOffset);
-                insnCodeGen::restoreRegister(gen, dest, stkOffset);
+                if (src2 != Null_Register) insnCodeGenAarch64::saveRegister(gen, src2, stkOffset);
+                insnCodeGenAarch64::restoreRegister(gen, dest, stkOffset);
 
                 return dest;
             }
@@ -784,7 +784,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
                 int offset = TRAMP_GPR_OFFSET(addrWidth);
                 // its on the stack so load it.
                 //if (src2 != Null_Register) saveRegister(gen, src2, reg, offset);
-                insnCodeGen::restoreRegister(gen, dest, offset + (reg * gen.width()));
+                insnCodeGenAarch64::restoreRegister(gen, dest, offset + (reg * gen.width()));
                 return(dest);
             }
         case registerSlot::live:
@@ -821,10 +821,10 @@ static inline void restoreGPRtoGPR(codeGen &gen,
 	
 	//Stack Point Register
 	if(reg == 31) {
-	    insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, frame_size, REG_SP, dest, true);	
+	    insnCodeGenAarch64::generateAddSubImmediate(gen, insnCodeGenAarch64::Add, 0, frame_size, REG_SP, dest, true);	
 	}
 	else {
-		insnCodeGen::restoreRegister(gen, dest, gpr_off + reg*gpr_size);
+		insnCodeGenAarch64::restoreRegister(gen, dest, gpr_off + reg*gpr_size);
 	}
 	
 	return;
@@ -858,7 +858,7 @@ void MovePCToReg(Register dest, codeGen &gen) {
     INSN_SET(insn, 28, 28, 1);
     INSN_SET(insn, 0, 4, dest);
 
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenAarch64::generate(gen, insn);
     return;
 }
 
@@ -879,14 +879,14 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
         if(ra == 32) {
 	    // Special case where the actual address is store in imm.
 	    // Need to change this for rewriting PIE or shared libraries
-	    insnCodeGen::loadImmIntoReg(gen, dest, static_cast<Address>(imm));
+	    insnCodeGenAarch64::loadImmIntoReg(gen, dest, static_cast<Address>(imm));
 	    return;
 	}
 	else {
 	    restoreGPRtoGPR(gen, ra, dest);
 	}
     } else {
-        insnCodeGen::loadImmIntoReg(gen, dest, static_cast<Address>(0));
+        insnCodeGenAarch64::loadImmIntoReg(gen, dest, static_cast<Address>(0));
     }
     if(rb > -1) {
         std::vector<Register> exclude;
@@ -896,13 +896,13 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
         gen.markRegDefined(scratch);
         restoreGPRtoGPR(gen, rb, scratch);
     	// call adds, save 2^scale * rb to dest
-	insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, sc, scratch, dest, dest, true);
+	insnCodeGenAarch64::generateAddSubShifted(gen, insnCodeGenAarch64::Add, 0, sc, scratch, dest, dest, true);
     }
 	
     // emit code to load the immediate (constant offset) into dest; this
     // writes at gen+base and updates base, we must update insn..
     if (imm) 
-        insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, imm, dest, dest, true);	
+        insnCodeGenAarch64::generateAddSubImmediate(gen, insnCodeGenAarch64::Add, 0, imm, dest, dest, true);	
 }
 
 void emitCSload(const BPatch_addrSpec_NP *, Register, codeGen &,
@@ -981,7 +981,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
             gen.codeEmitter()->emitOp(op, dest, src1, src2, gen);
             break;
         case divOp:
-	    insnCodeGen::generateDiv(gen, src2, src1, dest, true, s);
+	    insnCodeGenAarch64::generateDiv(gen, src2, src1, dest, true, s);
 	    break;
         case lessOp:
         case leOp:
@@ -1141,19 +1141,19 @@ bool EmitterAARCH64::emitCallRelative(Register, Address, Register, codeGen &) {
 bool EmitterAARCH64::emitLoadRelative(Register dest, Address offset, Register baseReg, int size, codeGen &gen) {
     signed long long sOffset = (signed long long) offset;
     if(sOffset >=-256 && sOffset <=255)
-        insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
-                baseReg, sOffset, size, insnCodeGen::Pre);
+        insnCodeGenAarch64::generateMemAccess(gen, insnCodeGenAarch64::Load, dest,
+                baseReg, sOffset, size, insnCodeGenAarch64::Pre);
     else{
         std::vector<Register> exclude;
         exclude.push_back(baseReg);
         // mov sOffset to a reg
-        auto addReg = insnCodeGen::moveValueToReg(gen, labs(offset), &exclude);
+        auto addReg = insnCodeGenAarch64::moveValueToReg(gen, labs(offset), &exclude);
         // add/sub sOffset to baseReg
-        insnCodeGen::generateAddSubShifted(gen,
-                sOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+        insnCodeGenAarch64::generateAddSubShifted(gen,
+                sOffset>0?insnCodeGenAarch64::Add:insnCodeGenAarch64::Sub,
                 0, 0, addReg, baseReg, baseReg, true);
-        insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
-                baseReg, 0, size, insnCodeGen::Pre);
+        insnCodeGenAarch64::generateMemAccess(gen, insnCodeGenAarch64::Load, dest,
+                baseReg, 0, size, insnCodeGenAarch64::Pre);
     }
 
     gen.markRegDefined(dest);
@@ -1163,8 +1163,8 @@ bool EmitterAARCH64::emitLoadRelative(Register dest, Address offset, Register ba
 
 void EmitterAARCH64::emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen) {
     if((signed long long)offset <=255 && (signed long long)offset >=-256)
-        insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
-                base, offset, size, insnCodeGen::Pre);
+        insnCodeGenAarch64::generateMemAccess(gen, insnCodeGenAarch64::Store, source,
+                base, offset, size, insnCodeGenAarch64::Pre);
     else{
         assert(0 && "offset in emitStoreRelative not in (-256,255)");
     }
@@ -1198,13 +1198,13 @@ bool EmitterAARCH64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
     std::vector<Register> exclude;
     exclude.push_back(baseReg);
     // mov offset to a reg
-    auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
+    auto addReg = insnCodeGenAarch64::moveValueToReg(gen, labs(varOffset), &exclude);
     // add/sub offset to baseReg
-    insnCodeGen::generateAddSubShifted(gen,
-            (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+    insnCodeGenAarch64::generateAddSubShifted(gen,
+            (signed long long) varOffset>0?insnCodeGenAarch64::Add:insnCodeGenAarch64::Sub,
             0, 0, addReg, baseReg, baseReg, true);
-    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, baseReg,
-            baseReg, 0, 8, insnCodeGen::Offset);
+    insnCodeGenAarch64::generateMemAccess(gen, insnCodeGenAarch64::Load, baseReg,
+            baseReg, 0, 8, insnCodeGenAarch64::Offset);
 
     // call instruction
     instruction branchInsn;
@@ -1218,7 +1218,7 @@ bool EmitterAARCH64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
     //The only difference between BR and BLR is that bit 21 is 1 for BLR.
     INSN_SET(branchInsn, 16, 31, BRegOp);
     INSN_SET(branchInsn, 21, 21, 1);
-    insnCodeGen::generate(gen, branchInsn);
+    insnCodeGenAarch64::generate(gen, branchInsn);
 
     return true;
 }
@@ -1234,13 +1234,13 @@ bool EmitterAARCH64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
     std::vector<Register> exclude;
     exclude.push_back(baseReg);
     // mov offset to a reg
-    auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
+    auto addReg = insnCodeGenAarch64::moveValueToReg(gen, labs(varOffset), &exclude);
     // add/sub offset to baseReg
-    insnCodeGen::generateAddSubShifted(gen,
-            (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+    insnCodeGenAarch64::generateAddSubShifted(gen,
+            (signed long long) varOffset>0?insnCodeGenAarch64::Add:insnCodeGenAarch64::Sub,
             0, 0, addReg, baseReg, baseReg, true);
-    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, baseReg,
-            baseReg, 0, 8, insnCodeGen::Offset);
+    insnCodeGenAarch64::generateMemAccess(gen, insnCodeGenAarch64::Load, baseReg,
+            baseReg, 0, 8, insnCodeGenAarch64::Offset);
 
     // jump instruction
     instruction branchInsn;
@@ -1253,7 +1253,7 @@ bool EmitterAARCH64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
     //Set other bits. Basically, these are the opcode bits.
     //The only difference between BR and BLR is that bit 21 is 1 for BLR.
     INSN_SET(branchInsn, 16, 31, BRegOp);
-    insnCodeGen::generate(gen, branchInsn);
+    insnCodeGenAarch64::generate(gen, branchInsn);
 
     return true;
 }
@@ -1320,8 +1320,8 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
             // Deference the pointer to get the variable
             // emitLoadRelative(dest, 0, dest, size, gen);
             // Offset mode to load back to itself
-            insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest, dest, 0, 8,
-                    insnCodeGen::Offset);
+            insnCodeGenAarch64::generateMemAccess(gen, insnCodeGenAarch64::Load, dest, dest, 0, 8,
+                    insnCodeGenAarch64::Offset);
         } else {
             emitLoadRelative(dest, varOffset, baseReg, size, gen);
         }
@@ -1331,11 +1331,11 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
         } else {
             std::vector<Register> exclude;
             exclude.push_back(baseReg);
-            auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
-            insnCodeGen::generateAddSubShifted(gen,
-                    (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+            auto addReg = insnCodeGenAarch64::moveValueToReg(gen, labs(varOffset), &exclude);
+            insnCodeGenAarch64::generateAddSubShifted(gen,
+                    (signed long long) varOffset>0?insnCodeGenAarch64::Add:insnCodeGenAarch64::Sub,
                     0, 0, addReg, baseReg, baseReg, true);
-            insnCodeGen::generateMove(gen, dest, baseReg, true);
+            insnCodeGenAarch64::generateMove(gen, dest, baseReg, true);
         }
     }
 
@@ -1373,13 +1373,13 @@ void EmitterAARCH64::emitStoreShared(Register source, const image_variable *var,
         std::vector<Register> exclude;
         exclude.push_back(baseReg);
         // mov offset to a reg
-        auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
+        auto addReg = insnCodeGenAarch64::moveValueToReg(gen, labs(varOffset), &exclude);
         // add/sub offset to baseReg
-        insnCodeGen::generateAddSubShifted(gen,
-                (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+        insnCodeGenAarch64::generateAddSubShifted(gen,
+                (signed long long) varOffset>0?insnCodeGenAarch64::Add:insnCodeGenAarch64::Sub,
                 0, 0, addReg, baseReg, baseReg, true);
-        insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
-                baseReg, 0, size, insnCodeGen::Pre);
+        insnCodeGenAarch64::generateMemAccess(gen, insnCodeGenAarch64::Store, source,
+                baseReg, 0, size, insnCodeGenAarch64::Pre);
     }
 
     assert(stackSize <= 0 && "stack not empty at the end");
@@ -1449,7 +1449,7 @@ Address EmitterAARCH64::emitMovePCToReg(Register dest, codeGen &gen) {
     INSN_SET(insn, 28, 28, 1);
     INSN_SET(insn, 0, 4, dest);
 
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenAarch64::generate(gen, insn);
     Address ret = gen.currAddr();
     return ret;
 }

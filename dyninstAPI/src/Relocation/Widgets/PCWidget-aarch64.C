@@ -54,7 +54,7 @@ bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuf
     codeGen gen(16);
     gen.applyTemplate(templ);
     Address origRet = addr() + insn_.size();
-    insnCodeGen::loadImmIntoReg(gen, 30 /* LR */, origRet);
+    insnCodeGenAarch64::loadImmIntoReg(gen, 30 /* LR */, origRet);
     buffer.addPIC(gen, tracker(t));
   }
   else {
@@ -71,7 +71,7 @@ bool PCWidget::PCtoReg(const codeGen &templ, const RelocBlock *t, CodeBuffer &bu
   if(templ.addrSpace()->proc()) {
     // Move immediate to register?
     codeGen gen(16);
-    insnCodeGen::loadImmIntoReg(gen, reg, addr_);
+    insnCodeGenAarch64::loadImmIntoReg(gen, reg, addr_);
     buffer.addPIC(gen, tracker(t));
   }
   else {
@@ -106,11 +106,11 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
   // Load the offset into a scratch register
   std::vector<Register> exclude;
   exclude.push_back(30 /* LR */);
-  Register scratchReg = insnCodeGen::moveValueToReg(gen, labs(RAOffset), &exclude);
+  Register scratchReg = insnCodeGenAarch64::moveValueToReg(gen, labs(RAOffset), &exclude);
   // Put the original RA into LR
-  insnCodeGen::generateAddSubShifted(gen, RAOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+  insnCodeGenAarch64::generateAddSubShifted(gen, RAOffset>0?insnCodeGenAarch64::Add:insnCodeGenAarch64::Sub,
           0, 0, scratchReg, 30, 30, true);
   // Do a jump to the actual target (so do not overwrite LR)
-  insnCodeGen::generateBranch(gen, gen.currAddr(), addr, false);
+  insnCodeGenAarch64::generateBranch(gen, gen.currAddr(), addr, false);
   return true;
 }

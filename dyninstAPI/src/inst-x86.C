@@ -47,6 +47,7 @@
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/codegen.h"
+#include "dyninstAPI/src/codegen-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/emit-x86.h"
@@ -1384,7 +1385,7 @@ codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register /*src2
          // this will need to work for both 32-bits and 64-bits
          // (since there is no JMP rel64)
          retval = gen.getIndex();
-         insnCodeGen::generateBranch(gen, dest);
+         insnCodeGenX86::generateBranch(gen, dest);
          break;
       }
       case trampPreamble: {

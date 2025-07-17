@@ -38,27 +38,27 @@
 #include "dyninstAPI/src/emit-aarch64.h"
 #include "dyninstAPI/src/function.h"
 
-void insnCodeGen::generate(codeGen &gen, instruction &insn) {
+void insnCodeGenAarch64::generate(codeGen &gen, instruction &insn) {
   unsigned raw = insn.asInt();
   gen.copy(&raw, sizeof(unsigned));
 }
 
-void insnCodeGen::generate(codeGen &gen, instruction &insn, unsigned position) {
+void insnCodeGenAarch64::generate(codeGen &gen, instruction &insn, unsigned position) {
     unsigned raw = insn.asInt();
     gen.insert(&raw, sizeof(unsigned), position);
 }
 
-void insnCodeGen::generateIllegal(codeGen &gen) {
+void insnCodeGenAarch64::generateIllegal(codeGen &gen) {
     instruction insn;
     generate(gen,insn);
 }
 
-void insnCodeGen::generateTrap(codeGen &gen) {
+void insnCodeGenAarch64::generateTrap(codeGen &gen) {
     instruction insn(BREAK_POINT_INSN);
     generate(gen,insn);
 }
 
-void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link) {
+void insnCodeGenAarch64::generateBranch(codeGen &gen, long disp, bool link) {
     if (labs(disp) > MAX_BRANCH_OFFSET) {
         fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
                 (unsigned long)labs(disp), (unsigned long) MAX_BRANCH_OFFSET);
@@ -80,10 +80,10 @@ void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link) {
     else
         INSN_SET(insn, 31, 31, 0);
 
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenAarch64::generate(gen, insn);
 }
 
-void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool link) {
+void insnCodeGenAarch64::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool link) {
     long disp = (to - from);
 
     if (labs(disp) > MAX_BRANCH_OFFSET) {
@@ -92,11 +92,11 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
         generateBranch(gen, disp, link);
 }
 
-void insnCodeGen::generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Address to) {
+void insnCodeGenAarch64::generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Address to) {
     generateBranch(gen, from, to, true);
 }
 
-void insnCodeGen::generateLongBranch(codeGen &gen,
+void insnCodeGenAarch64::generateLongBranch(codeGen &gen,
                                      Dyninst::Address from,
                                      Dyninst::Address to,
                                      bool isCall) 
@@ -119,7 +119,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
         if(isCall)
             INSN_SET(branchInsn, 21, 21, 1);
 
-        insnCodeGen::generate(gen, branchInsn);
+        insnCodeGenAarch64::generate(gen, branchInsn);
     };
 
     Dyninst::Register scratch = Null_Register;
@@ -155,7 +155,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     generateBReg(scratch);
 }
 
-void insnCodeGen::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool isCall) {
+void insnCodeGenAarch64::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool isCall) {
     long disp = to - from;
     if (labs(disp) <= MAX_BRANCH_OFFSET) {
         // We shouldn't be here, since this is an internal-called-only func.
@@ -167,7 +167,7 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyn
     if (gen.addrSpace()) {
         // Too far to branch.  Use trap-based instrumentation.
         gen.addrSpace()->trapMapping.addTrapMapping(from, to, true);
-        insnCodeGen::generateTrap(gen);
+        insnCodeGenAarch64::generateTrap(gen);
     } else {
         // Too far to branch and no proc to register trap.
         fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
@@ -180,7 +180,7 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyn
     }
 }
 
-void insnCodeGen::generateConditionalBranch(codeGen& gen, Dyninst::Address to, unsigned opcode, bool s)
+void insnCodeGenAarch64::generateConditionalBranch(codeGen& gen, Dyninst::Address to, unsigned opcode, bool s)
 {
     instruction insn;
     insn.clear();
@@ -213,12 +213,12 @@ void insnCodeGen::generateConditionalBranch(codeGen& gen, Dyninst::Address to, u
     //Set condition 
     INSN_SET(insn, 0, 3, getConditionCode());
 
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenAarch64::generate(gen, insn);
 }
 
 
-void insnCodeGen::generateAddSubShifted(
-        codeGen &gen, insnCodeGen::ArithOp op, int shift, int imm6, Dyninst::Register rm,
+void insnCodeGenAarch64::generateAddSubShifted(
+        codeGen &gen, insnCodeGenAarch64::ArithOp op, int shift, int imm6, Dyninst::Register rm,
         Dyninst::Register rn, Dyninst::Register rd, bool is64bit)
 {
     instruction insn;
@@ -243,11 +243,11 @@ void insnCodeGen::generateAddSubShifted(
     INSN_SET(insn, 5, 9, rn);
     INSN_SET(insn, 16, 20, rm);
 
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenAarch64::generate(gen, insn);
 }
 
-void insnCodeGen::generateAddSubImmediate(
-        codeGen &gen, insnCodeGen::ArithOp op, int shift, int imm12, Dyninst::Register rn, Dyninst::Register rd, bool is64bit)
+void insnCodeGenAarch64::generateAddSubImmediate(
+        codeGen &gen, insnCodeGenAarch64::ArithOp op, int shift, int imm12, Dyninst::Register rn, Dyninst::Register rd, bool is64bit)
 {
     instruction insn;
     insn.clear();
@@ -269,10 +269,10 @@ void insnCodeGen::generateAddSubImmediate(
     INSN_SET(insn, 5, 9, rn);
     INSN_SET(insn, 0, 4, rd);
 
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenAarch64::generate(gen, insn);
 }
 
-void insnCodeGen::generateMul(codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd, bool is64bit) {
+void insnCodeGenAarch64::generateMul(codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd, bool is64bit) {
     instruction insn;
     insn.clear();
 
@@ -290,11 +290,11 @@ void insnCodeGen::generateMul(codeGen &gen, Dyninst::Register rm, Dyninst::Regis
     INSN_SET(insn, 5, 9, rn);
     INSN_SET(insn, 0, 4, rd);
 
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenAarch64::generate(gen, insn);
 }
 
 //#sasha is rm or rn the denominator?
-void insnCodeGen::generateDiv(
+void insnCodeGenAarch64::generateDiv(
         codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd, bool is64bit, bool s)
 {
     instruction insn;
@@ -319,12 +319,12 @@ void insnCodeGen::generateDiv(
     INSN_SET(insn, 5, 9, rn);
     INSN_SET(insn, 0, 4, rd);
 
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenAarch64::generate(gen, insn);
 
 }
 
-void insnCodeGen::generateBitwiseOpShifted(
-        codeGen &gen, insnCodeGen::BitwiseOp op, int shift, Dyninst::Register rm, int imm6,
+void insnCodeGenAarch64::generateBitwiseOpShifted(
+        codeGen &gen, insnCodeGenAarch64::BitwiseOp op, int shift, Dyninst::Register rm, int imm6,
         Dyninst::Register rn, Dyninst::Register rd, bool is64bit)
 {
     instruction insn;
@@ -337,14 +337,14 @@ void insnCodeGen::generateBitwiseOpShifted(
     //Set opcode
     int opcode;
     switch(op) {
-        case insnCodeGen::And: opcode = ANDShiftOp;
+        case insnCodeGenAarch64::And: opcode = ANDShiftOp;
             break;
-        case insnCodeGen::Or: opcode = ORRShiftOp;
+        case insnCodeGenAarch64::Or: opcode = ORRShiftOp;
             break;
-        case insnCodeGen::Eor: opcode = EORShiftOp;
+        case insnCodeGenAarch64::Eor: opcode = EORShiftOp;
             break;
         default:
-            assert(!"insnCodeGen::generateBitwiseOpShifted op is not And, Or or Eor");
+            assert(!"insnCodeGenAarch64::generateBitwiseOpShifted op is not And, Or or Eor");
     }
     INSN_SET(insn, 24, 30, opcode);
 
@@ -361,38 +361,38 @@ void insnCodeGen::generateBitwiseOpShifted(
     INSN_SET(insn, 5, 9, rn);
     INSN_SET(insn, 0, 4, rd);
 
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenAarch64::generate(gen, insn);
 }
 
-void insnCodeGen::generateLoadReg(codeGen &, Dyninst::Register,
+void insnCodeGenAarch64::generateLoadReg(codeGen &, Dyninst::Register,
                                   Dyninst::Register, Dyninst::Register)
 {
     assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-void insnCodeGen::generateStoreReg(codeGen &, Dyninst::Register,
+void insnCodeGenAarch64::generateStoreReg(codeGen &, Dyninst::Register,
                                    Dyninst::Register, Dyninst::Register)
 {
     assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-void insnCodeGen::generateLoadReg64(codeGen &, Dyninst::Register,
+void insnCodeGenAarch64::generateLoadReg64(codeGen &, Dyninst::Register,
                                     Dyninst::Register, Dyninst::Register)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-void insnCodeGen::generateStoreReg64(codeGen &, Dyninst::Register,
+void insnCodeGenAarch64::generateStoreReg64(codeGen &, Dyninst::Register,
                                      Dyninst::Register, Dyninst::Register)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-void insnCodeGen::generateMove(codeGen &gen, int imm16, int shift, Dyninst::Register rd, MoveOp movOp)
+void insnCodeGenAarch64::generateMove(codeGen &gen, int imm16, int shift, Dyninst::Register rd, MoveOp movOp)
 {
     instruction insn;
     insn.clear();
@@ -412,16 +412,16 @@ void insnCodeGen::generateMove(codeGen &gen, int imm16, int shift, Dyninst::Regi
     //Set shift amount for immediate
     INSN_SET(insn, 21, 22, (shift & 0x3));
 
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenAarch64::generate(gen, insn);
 }
 
-void insnCodeGen::generateMove(
+void insnCodeGenAarch64::generateMove(
         codeGen &gen, Dyninst::Register rd, Dyninst::Register rm, bool is64bit)
 {
-    insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Or, 0, rm, 0, 0x1f, rd, is64bit);  
+    insnCodeGenAarch64::generateBitwiseOpShifted(gen, insnCodeGenAarch64::Or, 0, rm, 0, 0x1f, rd, is64bit);  
 }
 
-void insnCodeGen::generateMoveSP(codeGen &gen, Dyninst::Register rn, Dyninst::Register rd, bool is64bit) {
+void insnCodeGenAarch64::generateMoveSP(codeGen &gen, Dyninst::Register rn, Dyninst::Register rd, bool is64bit) {
     instruction insn;
     insn.clear();
 
@@ -435,11 +435,11 @@ void insnCodeGen::generateMoveSP(codeGen &gen, Dyninst::Register rn, Dyninst::Re
     //Set if using 64-bit registers
     INSN_SET(insn, 31, 31, is64bit);
 
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenAarch64::generate(gen, insn);
 }
 
 
-Dyninst::Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, std::vector<Dyninst::Register> *exclude) {
+Dyninst::Register insnCodeGenAarch64::moveValueToReg(codeGen &gen, long int val, std::vector<Dyninst::Register> *exclude) {
     Dyninst::Register scratchReg;
     if(exclude)
 	    scratchReg = gen.rs()->getScratchRegister(gen, *exclude, true);
@@ -463,7 +463,7 @@ Dyninst::Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, std::v
 //     LDRH/STRH  (immediate) for 16-bit
 //
 // Encoding classes allowed: Post-index, Pre-index and Unsigned Offset
-void insnCodeGen::generateMemAccess(codeGen &gen, LoadStore accType,
+void insnCodeGenAarch64::generateMemAccess(codeGen &gen, LoadStore accType,
         Dyninst::Register r1, Dyninst::Register r2, int immd, unsigned size, IndexMode im)
 {
     instruction insn;
@@ -493,11 +493,11 @@ void insnCodeGen::generateMemAccess(codeGen &gen, LoadStore accType,
     INSN_SET(insn, 0, 4, r1 & 0x1F);
     INSN_SET(insn, 5, 9, r2 & 0x1F);
 
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenAarch64::generate(gen, insn);
 }
 
 // This is for generating STR/LDR (SIMD&FP) (immediate) for indexing modes of Post, Pre and Offset
-void insnCodeGen::generateMemAccessFP(codeGen &gen, LoadStore accType,
+void insnCodeGenAarch64::generateMemAccessFP(codeGen &gen, LoadStore accType,
         Dyninst::Register rt, Dyninst::Register rn, int immd, int size, bool is128bit, IndexMode im)
 {
     instruction insn;
@@ -535,32 +535,32 @@ void insnCodeGen::generateMemAccessFP(codeGen &gen, LoadStore accType,
     INSN_SET(insn, 0, 4, rt);
     INSN_SET(insn, 5, 9, rn);
 
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenAarch64::generate(gen, insn);
 }
 
 // rlwinm ra,rs,n,0,31-n
-void insnCodeGen::generateLShift(codeGen &, Dyninst::Register, int, Dyninst::Register)
+void insnCodeGenAarch64::generateLShift(codeGen &, Dyninst::Register, int, Dyninst::Register)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
 // rlwinm ra,rs,32-n,n,31
-void insnCodeGen::generateRShift(codeGen &, Dyninst::Register, int, Dyninst::Register)
+void insnCodeGenAarch64::generateRShift(codeGen &, Dyninst::Register, int, Dyninst::Register)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
 // sld ra, rs, rb
-void insnCodeGen::generateLShift64(codeGen &, Dyninst::Register, int, Dyninst::Register)
+void insnCodeGenAarch64::generateLShift64(codeGen &, Dyninst::Register, int, Dyninst::Register)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
 // srd ra, rs, rb
-void insnCodeGen::generateRShift64(codeGen &, Dyninst::Register, int, Dyninst::Register)
+void insnCodeGenAarch64::generateRShift64(codeGen &, Dyninst::Register, int, Dyninst::Register)
 {
 assert(0);
 //not implemented
@@ -570,16 +570,16 @@ assert(0);
 // generate an instruction that does nothing and has to side affect except to
 //   advance the program counter.
 //
-void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
+void insnCodeGenAarch64::generateNOOP(codeGen &gen, unsigned size) {
     assert((size % instruction::size()) == 0);
     while (size) {
         instruction insn(NOOP);
-        insnCodeGen::generate(gen, insn);
+        insnCodeGenAarch64::generate(gen, insn);
         size -= instruction::size();
     }
 }
 
-void insnCodeGen::generateRelOp(codeGen &, int, int, Dyninst::Register,
+void insnCodeGenAarch64::generateRelOp(codeGen &, int, int, Dyninst::Register,
                                 Dyninst::Register, Dyninst::Register)
 {
 assert(0);
@@ -587,13 +587,13 @@ assert(0);
 }
 
 
-void insnCodeGen::saveRegister(codeGen &gen, Dyninst::Register r, int sp_offset, IndexMode im)
+void insnCodeGenAarch64::saveRegister(codeGen &gen, Dyninst::Register r, int sp_offset, IndexMode im)
 {
     generateMemAccess(gen, Store, r, REG_SP, sp_offset, 8, im);
 }
 
 
-void insnCodeGen::restoreRegister(codeGen &gen, Dyninst::Register r, int sp_offset, IndexMode im)
+void insnCodeGenAarch64::restoreRegister(codeGen &gen, Dyninst::Register r, int sp_offset, IndexMode im)
 {
     generateMemAccess(gen, Load, r, REG_SP, sp_offset, 8, im);
 }
@@ -602,24 +602,24 @@ void insnCodeGen::restoreRegister(codeGen &gen, Dyninst::Register r, int sp_offs
 // Helper method.  Fills register with partial value to be completed
 // by an operation with a 16-bit signed immediate.  Such as loads and
 // stores.
-void insnCodeGen::loadPartialImmIntoReg(codeGen &, Dyninst::Register, long)
+void insnCodeGenAarch64::loadPartialImmIntoReg(codeGen &, Dyninst::Register, long)
 {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-int insnCodeGen::createStackFrame(codeGen &, int, std::vector<Dyninst::Register>& freeReg, std::vector<Dyninst::Register>&){
+int insnCodeGenAarch64::createStackFrame(codeGen &, int, std::vector<Dyninst::Register>& freeReg, std::vector<Dyninst::Register>&){
 assert(0);
 //#warning "This function is not implemented yet!"
 		return freeReg.size();
 }
 
-void insnCodeGen::removeStackFrame(codeGen &) {
+void insnCodeGenAarch64::removeStackFrame(codeGen &) {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-bool insnCodeGen::generateMem(codeGen &,
+bool insnCodeGenAarch64::generateMem(codeGen &,
                               instruction&,
                               Dyninst::Address,
                               Dyninst::Address,
@@ -629,21 +629,21 @@ assert(0);
 //#warning "This function is not implemented yet!"
 return false; }
 
-void insnCodeGen::generateMoveFromLR(codeGen &, Dyninst::Register) {
+void insnCodeGenAarch64::generateMoveFromLR(codeGen &, Dyninst::Register) {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-void insnCodeGen::generateMoveToLR(codeGen &, Dyninst::Register) {
+void insnCodeGenAarch64::generateMoveToLR(codeGen &, Dyninst::Register) {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
-void insnCodeGen::generateMoveToCR(codeGen &, Dyninst::Register) {
+void insnCodeGenAarch64::generateMoveToCR(codeGen &, Dyninst::Register) {
 assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-bool insnCodeGen::modifyJump(Dyninst::Address target,
+bool insnCodeGenAarch64::modifyJump(Dyninst::Address target,
                              NS_aarch64::instruction &insn,
                              codeGen &gen) {
     long disp = target - gen.currAddr();
@@ -674,7 +674,7 @@ bool insnCodeGen::modifyJump(Dyninst::Address target,
  * bit-twiddling functions can then be defined if necessary in the codegen-* files 
  * and called as necessary by the common, refactored logic.
 */
-bool insnCodeGen::modifyJcc(Dyninst::Address target,
+bool insnCodeGenAarch64::modifyJcc(Dyninst::Address target,
 			    NS_aarch64::instruction &insn,
 			    codeGen &gen) {
     long disp = target - gen.currAddr();
@@ -725,7 +725,7 @@ bool insnCodeGen::modifyJcc(Dyninst::Address target,
          * So adjust it accordingly.*/
         codeBufIndex_t curIdx = gen.getIndex();
         Dyninst::Address newFrom = origFrom + (unsigned)(curIdx - startIdx);
-        insnCodeGen::generateBranch(gen, newFrom, target);
+        insnCodeGenAarch64::generateBranch(gen, newFrom, target);
     } 
     else
     {
@@ -743,7 +743,7 @@ bool insnCodeGen::modifyJcc(Dyninst::Address target,
     return true;
 }
 
-bool insnCodeGen::modifyCall(Dyninst::Address target,
+bool insnCodeGenAarch64::modifyCall(Dyninst::Address target,
                              NS_aarch64::instruction &insn,
                              codeGen &gen) {
     if (insn.isUncondBranch())
@@ -752,7 +752,7 @@ bool insnCodeGen::modifyCall(Dyninst::Address target,
         return modifyJcc(target, insn, gen);
 }
 
-bool insnCodeGen::modifyData(Dyninst::Address target,
+bool insnCodeGenAarch64::modifyData(Dyninst::Address target,
         NS_aarch64::instruction &insn,
         codeGen &gen) 
 {
