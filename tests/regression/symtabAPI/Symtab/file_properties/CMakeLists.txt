@@ -1,6 +1,7 @@
 include_guard(GLOBAL)
 
-include(DyninstLinkProperties)
+include(DyninstCheckStaticExeSupported)
+dyninst_check_static_exe_supported(LANGUAGES CXX)
 
 # Use PIE when POSITION_INDEPENDENT_CODE is used for executables
 if(POLICY CMP0083)
@@ -53,21 +54,18 @@ foreach(main_t "hasmain" "none")
 endforeach()
 
 # Test static libraries
-if(DYNINST_CXX_STATIC_LINK)
+if(DYNINST_CXX_STATIC_EXE_SUPPORTED)
   make_lib_test(STATIC "staticlib")
+  set(_static_link "staticlink")
 endif()
 
 # Test executables
 foreach(strip_t "stripped" "none")
   foreach(pic_t "pic" "none")
-    foreach(link_t "staticlink" "dynlink")
-
-      if(link_t STREQUAL "staticlink" AND NOT DYNINST_CXX_STATIC_LINK)
-        continue()
-      endif()
+    foreach(link_t ${_static_link} "dynlink")
 
       # static+pic isn't PIE
-      if(link_t STREQUAL "staticlink" AND pic_t STREQUAL "pic")
+      if(link_t STREQUAL "${_static_link}" AND pic_t STREQUAL "pic")
         continue()
       endif()
 
@@ -87,8 +85,8 @@ foreach(strip_t "stripped" "none")
         target_link_libraries(${_targ} "-s")
       endif()
 
-      if(link_t STREQUAL "staticlink")
-        target_link_options(${_targ} PRIVATE "-static")
+      if(link_t STREQUAL "${_static_link}" AND DYNINST_CXX_STATIC_EXE_SUPPORTED)
+        target_link_options(${_targ} PRIVATE ${DYNINST_CXX_STATIC_EXE_LINK_FLAG})
       endif()
 
     endforeach()
