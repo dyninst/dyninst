@@ -457,6 +457,7 @@ int image::findMain()
         vector <SymtabAPI::Function *> funcs;
         if (linkedFile->findFunctionsByName(funcs, "main") ||
                 linkedFile->findFunctionsByName(funcs, "_main"))  {
+            this->address_of_main = funcs[0]->getFirstSymbol()->getOffset();
             foundMain = true;
         }
 
@@ -527,7 +528,8 @@ int image::findMain()
                     linkedFile->getDefaultModule(),
                     eReg, 
                     0 );
-            linkedFile->addSymbol(newSym);		
+            linkedFile->addSymbol(newSym);
+            this->address_of_main = mainAddress;
         }
     }
 
@@ -548,6 +550,7 @@ int image::findMain()
         vector <SymtabAPI::Function *> funcs;
         if (linkedFile->findFunctionsByName(funcs, "main") ||
                 linkedFile->findFunctionsByName(funcs, "_main")) {
+            this->address_of_main = funcs[0]->getFirstSymbol()->getOffset();
             foundMain = true;
         }
 
@@ -779,6 +782,7 @@ int image::findMain()
                         eReg, 
                         0 );
                 linkedFile->addSymbol(newSym);		
+                this->address_of_main = mainAddress;
             }
         }
         if( !foundStart )
@@ -845,6 +849,7 @@ int image::findMain()
         for(char const* name : main_function_names()) {
             if(linkedFile->findFunctionsByName(funcs, name)) {
                 found_main = true;
+                this->address_of_main = funcs[0]->getFirstSymbol()->getOffset();
                 break;
             }
         }
@@ -860,6 +865,7 @@ int image::findMain()
                         eReg,
                         UINT_MAX );
                 linkedFile->addSymbol(startSym);
+                this->address_of_main = eAddr;
             }
             syms.clear();
         } 
@@ -875,6 +881,7 @@ int image::findMain()
                         eAddr,
                         linkedFile->getDefaultModule(),
                         eReg));
+            this->address_of_main = eAddr;
         }
     }
 #endif
