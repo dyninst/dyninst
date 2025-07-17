@@ -398,6 +398,8 @@ class image : public codeRange {
 
     int getNextBlockID() { return nextBlockID_++; }
 
+   Address getAddressOfMain() const { return address_of_main; }
+
    std::unordered_map<Address, std::string> *getPltFuncs();
    void getPltFuncs(std::map<Address, std::string> &out);
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
@@ -462,6 +464,7 @@ class image : public codeRange {
    //Address dataValidEnd_;
 
    bool is_libdyninstRT;
+   Address address_of_main{Dyninst::ADDR_NULL};
 
    // data from the symbol table 
    SymtabAPI::Symtab *linkedFile;
