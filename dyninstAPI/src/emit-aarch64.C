@@ -71,7 +71,7 @@ codeBufIndex_t EmitterAARCH64::emitIf(
     INSN_SET(insn, 25, 30, 0x1a); // CBZ
     INSN_SET(insn, 31, 31, 1);
 
-    insnCodeGen::generate(gen,insn);
+    insnCodeGenAarch64::generate(gen,insn);
 
     // Retval: where the jump is in this sequence
     codeBufIndex_t retval = gen.getIndex();
@@ -80,7 +80,7 @@ codeBufIndex_t EmitterAARCH64::emitIf(
 
 void EmitterAARCH64::emitLoadConst(Register dest, Address imm, codeGen &gen)
 {
-    insnCodeGen::loadImmIntoReg(gen, dest, imm);
+    insnCodeGenAarch64::loadImmIntoReg(gen, dest, imm);
 }
 
 
@@ -88,9 +88,9 @@ void EmitterAARCH64::emitLoad(Register dest, Address addr, int size, codeGen &ge
 {
     Register scratch = gen.rs()->getScratchRegister(gen);
 
-    insnCodeGen::loadImmIntoReg(gen, scratch, addr);
-    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
-            scratch, 0, size, insnCodeGen::Post);
+    insnCodeGenAarch64::loadImmIntoReg(gen, scratch, addr);
+    insnCodeGenAarch64::generateMemAccess(gen, insnCodeGenAarch64::Load, dest,
+            scratch, 0, size, insnCodeGenAarch64::Post);
 
     gen.rs()->freeRegister(scratch);
     gen.markRegDefined(dest);
@@ -101,9 +101,9 @@ void EmitterAARCH64::emitStore(Address addr, Register src, int size, codeGen &ge
 {
     Register scratch = gen.rs()->getScratchRegister(gen);
 
-    insnCodeGen::loadImmIntoReg(gen, scratch, addr);
-    insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, src,
-            scratch, 0, size, insnCodeGen::Pre);
+    insnCodeGenAarch64::loadImmIntoReg(gen, scratch, addr);
+    insnCodeGenAarch64::generateMemAccess(gen, insnCodeGenAarch64::Store, src,
+            scratch, 0, size, insnCodeGenAarch64::Pre);
 
     gen.rs()->freeRegister(scratch);
     gen.markRegDefined(src);
@@ -115,27 +115,27 @@ void EmitterAARCH64::emitOp(
 {
     // dest = src1 + src2
     if( opcode == plusOp )
-        insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, 0, src1, src2, dest, true);
+        insnCodeGenAarch64::generateAddSubShifted(gen, insnCodeGenAarch64::Add, 0, 0, src1, src2, dest, true);
 
     // dest = src1 - src2
     else if( opcode == minusOp )
-        insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Sub, 0, 0, src2, src1, dest, true);
+        insnCodeGenAarch64::generateAddSubShifted(gen, insnCodeGenAarch64::Sub, 0, 0, src2, src1, dest, true);
     
     // dest = src1 * src2
     else if( opcode == timesOp )
-        insnCodeGen::generateMul(gen, src1, src2, dest, true);
+        insnCodeGenAarch64::generateMul(gen, src1, src2, dest, true);
 
     // dest = src1 & src2
     else if( opcode == andOp )
-        insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::And, 0, src1, 0, src2, dest, true);  
+        insnCodeGenAarch64::generateBitwiseOpShifted(gen, insnCodeGenAarch64::And, 0, src1, 0, src2, dest, true);  
 
     // dest = src1 | src2
     else if( opcode == orOp )
-        insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Or, 0, src1, 0, src2, dest, true);  
+        insnCodeGenAarch64::generateBitwiseOpShifted(gen, insnCodeGenAarch64::Or, 0, src1, 0, src2, dest, true);  
 
     // dest = src1 ^ src2
     else if( opcode == xorOp )
-        insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Eor, 0, src1, 0, src2, dest, true);
+        insnCodeGenAarch64::generateBitwiseOpShifted(gen, insnCodeGenAarch64::Eor, 0, src1, 0, src2, dest, true);
 
     else assert(0);
 }
@@ -149,17 +149,17 @@ void EmitterAARCH64::emitRelOp(
     // used for the comparison, not the subtration value.
     // Besides that dest must contain 1 for true or 0 for false, and the content
     // of dest is gonna be changed as follow.
-    insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Sub, 0, 0, src2, src1, dest, true);
+    insnCodeGenAarch64::generateAddSubShifted(gen, insnCodeGenAarch64::Sub, 0, 0, src2, src1, dest, true);
 
     // make dest = 1, meaning true
-    insnCodeGen::loadImmIntoReg(gen, dest, 0x1);
+    insnCodeGenAarch64::loadImmIntoReg(gen, dest, 0x1);
 
     // insert conditional jump to skip dest=0 in case the comparison resulted true
     // therefore keeping dest=1
-    insnCodeGen::generateConditionalBranch(gen, 8, opcode, s);
+    insnCodeGenAarch64::generateConditionalBranch(gen, 8, opcode, s);
 
     // make dest = 0, in case it fails the branch
-    insnCodeGen::loadImmIntoReg(gen, dest, 0x0);
+    insnCodeGenAarch64::loadImmIntoReg(gen, dest, 0x0);
 }
 
 
@@ -205,17 +205,17 @@ void EmitterAARCH64::emitRelOpImm(
     // used for the comparison, not the subtration value.
     // Besides that dest must contain 1 for true or 0 for false, and the content
     // of dest is gonna be changed as follow.
-    insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Sub, 0, 0, src2, src1, dest, true);
+    insnCodeGenAarch64::generateAddSubShifted(gen, insnCodeGenAarch64::Sub, 0, 0, src2, src1, dest, true);
 
     // make dest = 1, meaning true
-    insnCodeGen::loadImmIntoReg(gen, dest, 0x1);
+    insnCodeGenAarch64::loadImmIntoReg(gen, dest, 0x1);
 
     // insert conditional jump to skip dest=0 in case the comparison resulted true
     // therefore keeping dest=1
-    insnCodeGen::generateConditionalBranch(gen, 8, opcode, s);
+    insnCodeGenAarch64::generateConditionalBranch(gen, 8, opcode, s);
 
     // make dest = 0, in case it fails the branch
-    insnCodeGen::loadImmIntoReg(gen, dest, 0x0);
+    insnCodeGenAarch64::loadImmIntoReg(gen, dest, 0x0);
 
     gen.rs()->freeRegister(src2);
     gen.markRegDefined(dest);
@@ -224,15 +224,15 @@ void EmitterAARCH64::emitRelOpImm(
 
 void EmitterAARCH64::emitLoadIndir(Register dest, Register addr_src, int size, codeGen &gen)
 {
-    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
-            addr_src, 0, size, insnCodeGen::Post);
+    insnCodeGenAarch64::generateMemAccess(gen, insnCodeGenAarch64::Load, dest,
+            addr_src, 0, size, insnCodeGenAarch64::Post);
 
     gen.markRegDefined(dest);
 }
 void EmitterAARCH64::emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen)
 {
-    insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, src,
-            addr_reg, 0, size, insnCodeGen::Pre);
+    insnCodeGenAarch64::generateMemAccess(gen, insnCodeGenAarch64::Store, src,
+            addr_reg, 0, size, insnCodeGenAarch64::Pre);
 
     gen.markRegDefined(addr_reg);
 }
@@ -252,15 +252,15 @@ void EmitterAARCH64::emitLoadOrigRegRelative(
         // load the stored register 'base' into scratch
         emitLoadOrigRegister(base, scratch, gen);
         // move offset(%scratch), %dest
-        insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
-            scratch, offset, /*size==8?true:false*/4, insnCodeGen::Offset);
+        insnCodeGenAarch64::generateMemAccess(gen, insnCodeGenAarch64::Load, dest,
+            scratch, offset, /*size==8?true:false*/4, insnCodeGenAarch64::Offset);
     }
     else
     {
         // load the stored register 'base' into dest
 	emitLoadOrigRegister(base, scratch, gen);
-	insnCodeGen::loadImmIntoReg(gen, dest, offset);
-	insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, 0, dest, scratch, dest, true);
+	insnCodeGenAarch64::loadImmIntoReg(gen, dest, offset);
+	insnCodeGenAarch64::generateAddSubShifted(gen, insnCodeGenAarch64::Add, 0, 0, dest, scratch, dest, true);
     }
 }
 
@@ -274,7 +274,7 @@ void EmitterAARCH64::emitLoadOrigRegister(Address register_num, Register destina
    assert(dest);
 
    if (src->name == "sp") {
-      insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0,
+      insnCodeGenAarch64::generateAddSubImmediate(gen, insnCodeGenAarch64::Add, 0,
              TRAMP_FRAME_SIZE_64, REG_SP, destination, true);
 
       return;
@@ -283,15 +283,15 @@ void EmitterAARCH64::emitLoadOrigRegister(Address register_num, Register destina
    if (src->spilledState == registerSlot::unspilled)
    {
       // not on the stack. Directly move the value
-      insnCodeGen::generateMove(gen, destination, (Register) register_num, true);
+      insnCodeGenAarch64::generateMove(gen, destination, (Register) register_num, true);
       return;
    }
 
 
     int offset = TRAMP_GPR_OFFSET(gen.width());
     // its on the stack so load it.
-    insnCodeGen::restoreRegister(gen, destination, offset + (register_num * gen.width()),
-            insnCodeGen::Offset);
+    insnCodeGenAarch64::restoreRegister(gen, destination, offset + (register_num * gen.width()),
+            insnCodeGenAarch64::Offset);
 }
 
 

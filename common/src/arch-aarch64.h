@@ -56,7 +56,7 @@ namespace NS_aarch64 {
 //#define UNCOND_BR_REG_MASK  (0xfe000000)
 //#define UNCOND_BR_REG       (0xd6000000)
 
-#define BREAK_POINT_INSN 0xd4200000
+const uint64_t BREAK_POINT_INSN=0xd4200000;
 
 #define BOp             0x05
 #define BCondOp         0x2A
@@ -95,17 +95,17 @@ namespace NS_aarch64 {
 
 #define MIN_IMM8    (-128)
 #define MAX_IMM8    (127)
-#define MIN_IMM16   (-32768)
-#define MAX_IMM16   (32767)
-#define MIN_IMM32   (-2147483647 - 1)
-#define MAX_IMM32   (2147483647)
+const uint64_t MIN_IMM16   =(-32768);
+const uint64_t MAX_IMM16   = (32767);
+const uint64_t MIN_IMM32   = (-2147483647 - 1);
+const uint64_t MAX_IMM32   (2147483647);
 #define MAX_IMM48   ((long)(-1 >> 17))
 #define MIN_IMM48   ((long)(~MAX_IMM48))
 #define MAX_IMM52   ((long)(1 << 52))
 #define MIN_IMM52   ((long)(~MAX_IMM52))
 
 //Would probably want to use the register category as well (FPR/SPR/GPR), but for the uses of these macros, this should suffice
-#define SPR_LR      (((Dyninst::aarch64::x29).val()) & 0x1F)
+const uint64_t SPR_LR   =   (((Dyninst::aarch64::x29).val()) & 0x1F);
 #define SPR_NZCV    (((Dyninst::aarch64::nzcv).val()) & 0x1F)
 #define SPR_FPCR    (((Dyninst::aarch64::fpcr).val()) & 0x1F)
 #define SPR_FPSR    (((Dyninst::aarch64::fpsr).val()) & 0x1F)
@@ -173,9 +173,6 @@ typedef union {
 
 typedef instructUnion codeBuf_t;
 typedef unsigned codeBufIndex_t;
-
-#define maxGPR 31           /* More space than is needed */
-#define maxFPR 32           /* Save FPRs 0-13 */
 
 // Helps to mitigate host/target endian mismatches
 unsigned int swapBytesIfNeeded(unsigned int i);

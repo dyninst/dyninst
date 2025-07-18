@@ -176,7 +176,7 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
          case CFPatch::Jump: {
             relocation_cerr << "\t\t\t Generating CFPatch::Jump from "
                             << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;
-            if (!insnCodeGen::modifyJump(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
+            if (!insnCodeGenX86::modifyJump(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                cerr << "Failed to modify jump" << endl;
                return false;
             }
@@ -185,21 +185,21 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
          case CFPatch::JCC: {
             relocation_cerr << "\t\t\t Generating CFPatch::JCC from "
                             << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;            
-            if (!insnCodeGen::modifyJcc(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
+            if (!insnCodeGenX86::modifyJcc(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                cerr << "Failed to modify conditional jump" << endl;
                return false;
             }
             return true;            
          }
          case CFPatch::Call: {
-            if (!insnCodeGen::modifyCall(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
+            if (!insnCodeGenX86::modifyCall(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                cerr << "Failed to modify call" << endl;
                return false;
             }
             return true;
          }
          case CFPatch::Data: {
-            if (!insnCodeGen::modifyData(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
+            if (!insnCodeGenX86::modifyData(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                cerr << "Failed to modify data" << endl;
                return false;
             }
@@ -210,10 +210,10 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
    else {
       switch(type) {
          case CFPatch::Jump:
-            insnCodeGen::generateBranch(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
+            insnCodeGenX86::generateBranch(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
             break;
          case CFPatch::Call:
-            insnCodeGen::generateCall(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
+            insnCodeGenX86::generateCall(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
             break;
          default:
             assert(0);

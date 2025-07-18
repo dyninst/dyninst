@@ -59,7 +59,7 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
     mod_insn.setBits(21, 1, 0);
 
     codeGen gen(4);
-    insnCodeGen::generate(gen, mod_insn);
+    insnCodeGenAarch64::generate(gen, mod_insn);
     buffer.addPIC(gen, tracker(trace));
 
     return true;
@@ -76,7 +76,7 @@ bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
     mod_insn.setBits(21, 1, 1);
 
     codeGen gen(4);
-    insnCodeGen::generate(gen, mod_insn);
+    insnCodeGenAarch64::generate(gen, mod_insn);
     buffer.addPIC(gen, tracker(trace));
     return true;
 }
@@ -103,7 +103,7 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
             case CFPatch::Jump: {
                 relocation_cerr << "\t\t\t Generating CFPatch::Jump from "
                                 << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;
-                if (!insnCodeGen::modifyJump(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
+                if (!insnCodeGenAarch64::modifyJump(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                     relocation_cerr << "modifyJump failed, ret false" << endl;
                     return false;
                 }
@@ -112,14 +112,14 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
             case CFPatch::JCC: {
                 relocation_cerr << "\t\t\t Generating CFPatch::JCC from "
                                 << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;
-                if (!insnCodeGen::modifyJcc(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
+                if (!insnCodeGenAarch64::modifyJcc(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                     relocation_cerr << "modifyJcc failed, ret false" << endl;
                     return false;
                 }
                 return true;
             }
             case CFPatch::Call: {
-                if (!insnCodeGen::modifyCall(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
+                if (!insnCodeGenAarch64::modifyCall(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                     relocation_cerr << "modifyCall failed, ret false" << endl;
                     return false;
                 }
@@ -134,10 +134,10 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
     } else {
         switch (type) {
             case CFPatch::Jump:
-                insnCodeGen::generateBranch(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
+                insnCodeGenAarch64::generateBranch(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
                 break;
             case CFPatch::Call:
-                insnCodeGen::generateCall(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
+                insnCodeGenAarch64::generateCall(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
                 break;
             default:
                 assert(0);

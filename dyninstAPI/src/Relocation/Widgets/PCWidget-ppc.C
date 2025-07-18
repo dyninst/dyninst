@@ -72,15 +72,15 @@ bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuf
     Register scratch = gen.rs()->getScratchRegister(gen, true);
     bool createFrame = false;
     if (scratch == Null_Register) {
-      stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
+      stackSize = insnCodeGenPower::createStackFrame(gen, 1, freeReg, excludeReg);
       assert(stackSize == 1);
       scratch = freeReg[0];
       createFrame = true;
     }
-    insnCodeGen::loadImmIntoReg(gen, scratch, origRet);
-    insnCodeGen::generateMoveToLR(gen, scratch);
+    insnCodeGenPower::loadImmIntoReg(gen, scratch, origRet);
+    insnCodeGenPower::generateMoveToLR(gen, scratch);
     if (createFrame) {
-      insnCodeGen::removeStackFrame(gen);
+      insnCodeGenPower::removeStackFrame(gen);
     }
     buffer.addPIC(gen, tracker(t));
   }
@@ -97,7 +97,7 @@ bool PCWidget::PCtoReg(const codeGen &templ, const RelocBlock *t, CodeBuffer &bu
   if(templ.addrSpace()->proc()) {
     // Move immediate to register?
     codeGen gen(16);
-    insnCodeGen::loadImmIntoReg(gen, reg, addr_);
+    insnCodeGenPower::loadImmIntoReg(gen, reg, addr_);
     buffer.addPIC(gen, tracker(t));
   }
   else {
@@ -139,13 +139,13 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
     
   if ((scratchPCReg == Null_Register) && (scratchReg == Null_Register)) {
     excludeReg.clear();
-    stackSize = insnCodeGen::createStackFrame(gen, 2, freeReg, excludeReg);
+    stackSize = insnCodeGenPower::createStackFrame(gen, 2, freeReg, excludeReg);
     assert(stackSize == 2);
     scratchPCReg = freeReg[0];
     scratchReg = freeReg[1];
       
   } else if (scratchReg == Null_Register && scratchPCReg != Null_Register) {
-    stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
+    stackSize = insnCodeGenPower::createStackFrame(gen, 1, freeReg, excludeReg);
     assert(stackSize == 1);
     scratchReg = freeReg[0];
   } 
@@ -156,15 +156,15 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
   // relocaAddr may have moved if we added instructions to setup a new stack frame
   Address newRelocAddr = gen.currAddr();
     
-  insnCodeGen::generateBranch(gen, gen.currAddr(),  gen.currAddr()+4, true); // blrl
-  insnCodeGen::generateMoveFromLR(gen, scratchPCReg); // mflr
+  insnCodeGenPower::generateBranch(gen, gen.currAddr(),  gen.currAddr()+4, true); // blrl
+  insnCodeGenPower::generateMoveFromLR(gen, scratchPCReg); // mflr
     
   Address varOffset = addr - newRelocAddr;
   gen.emitter()->emitCallRelative(scratchReg, varOffset, scratchPCReg, gen);
-  insnCodeGen::generateMoveToLR(gen, scratchReg);
+  insnCodeGenPower::generateMoveToLR(gen, scratchReg);
 
   if( stackSize > 0) {
-    insnCodeGen::removeStackFrame(gen); 
+    insnCodeGenPower::removeStackFrame(gen); 
   }
   return true;
 }
