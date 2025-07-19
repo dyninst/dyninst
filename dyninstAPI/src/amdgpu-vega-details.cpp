@@ -28,27 +28,27 @@
 
 #include "amdgpu-vega-details.h"
 
-static void printBinary(unsigned int number) {
-  if (number >> 1) {
-    printBinary(number >> 1);
-  }
-  putc((number & 1) ? '1' : '0', stdout);
-}
+// static void printBinary(unsigned int number) {
+//   if (number >> 1) {
+//     printBinary(number >> 1);
+//   }
+//   putc((number & 1) ? '1' : '0', stdout);
+// }
 
-static void printBytes(unsigned int number) {
-  uint8_t *n = (uint8_t *)&number;
-  // printf("%u ", n[0]);
-  // printf("%u ", n[1]);
-  // printf("%u ", n[2]);
-  // printf("%u \n", n[3]);
-}
+// static void printBytes(unsigned int number) {
+//   uint8_t *n = (uint8_t *)&number;
+//   // printf("%u ", n[0]);
+//   // printf("%u ", n[1]);
+//   // printf("%u ", n[2]);
+//   // printf("%u \n", n[3]);
+// }
 
-static void printBytes(uint64_t number) {
-  uint8_t *n = (uint8_t *)&number;
-  for (int i = 0; i < 8; ++i) {
-    // printf("%u ", n[i]);
-  }
-}
+// static void printBytes(uint64_t number) {
+//   uint8_t *n = (uint8_t *)&number;
+//   for (int i = 0; i < 8; ++i) {
+//     printf("%u ", n[i]);
+//   }
+// }
 
 namespace Vega {
 
@@ -77,7 +77,8 @@ void setEncodingSop1(uint32_t &rawInst) {
 
 void setFixedBitsSop1(uint32_t &rawInst) {
   uint32_t mask = getMaskSop1(CK_Sop1_FixedBits);
-  rawInst = (rawInst & ~mask) | ((0b1111101 << 23));
+  //                            ((0b1111101 << 23));
+  rawInst = (rawInst & ~mask) | ((0x0000007D << 23));
 }
 
 void setDstSop1(uint32_t value, uint32_t &rawInst) {
@@ -106,7 +107,7 @@ void emitSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral,
 
   // printf("%#x ", newRawInst);
   // printf("%u\n", newRawInst);
-  printBytes(newRawInst);
+  // printBytes(newRawInst);
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
   ++rawInstBuffer;
@@ -117,7 +118,7 @@ void emitSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral,
 
     // printf("literal : %#x ", literal);
     // printf("%u\n", literal);
-    printBytes(literal);
+    // printBytes(literal);
   }
 
   gen.update((codeBuf_t *)rawInstBuffer);
@@ -182,7 +183,7 @@ void emitSop2(unsigned opcode, Register dest, Register src0, Register src1,
 
   // printf("%#x ", newRawInst);
   // printf("%u\n", newRawInst);
-  printBytes(newRawInst);
+  // printBytes(newRawInst);
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
   ++rawInstBuffer;
@@ -225,7 +226,8 @@ void setEncodingSopC(uint32_t &rawInst) {
 
 void setFixedBitsSopC(uint32_t &rawInst) {
   uint32_t mask = getMaskSopC(CK_SopC_FixedBits);
-  rawInst = (rawInst & ~mask) | ((0b1111110 << 23));
+  //                            ((0b1111110 << 23));
+  rawInst = (rawInst & ~mask) | ((0x7E << 23));
 }
 
 void setOpcodeSopC(uint32_t value, uint32_t &rawInst) {
@@ -252,7 +254,7 @@ void emitSopC(unsigned opcode, Register src0, Register src1, codeGen &gen) {
 
   // printf("%#x ", newRawInst);
   // printf("%u\n", newRawInst);
-  printBytes(newRawInst);
+  // printBytes(newRawInst);
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
   ++rawInstBuffer;
@@ -285,7 +287,8 @@ void setEncodingSopK(uint32_t &rawInst) {
 
 void setFixedBitsSopK(uint32_t &rawInst) {
   uint32_t mask = getMaskSopK(CK_SopK_FixedBits);
-  rawInst = (rawInst & ~mask) | ((0b11 << 28));
+  //                            ((0b11 << 28));
+  rawInst = (rawInst & ~mask) | ((0x00000003 << 28));
 }
 
 void setOpcodeSopK(uint32_t value, uint32_t &rawInst) {
@@ -313,7 +316,7 @@ void emitSopK(unsigned opcode, Register dest, int16_t simm16, codeGen &gen) {
 
   // printf("%#x ", newRawInst);
   // printf("%u\n", newRawInst);
-  printBytes(newRawInst);
+  // printBytes(newRawInst);
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
   ++rawInstBuffer;
@@ -339,12 +342,13 @@ uint32_t getMaskSopP(ContentKind k) {
 
 void setEncodingSopP(uint32_t &rawInst) {
   uint32_t mask = getMaskSopP(CK_SopP_Encoding);
-  rawInst = (rawInst & ~mask) | ((1 << 31));
+  rawInst = (rawInst & ~mask) | ((0x00000001 << 31));
 }
 
 void setFixedBitsSopP(uint32_t &rawInst) {
   uint32_t mask = getMaskSopP(CK_SopP_FixedBits);
-  rawInst = (rawInst & ~mask) | ((0b1111111 << 23));
+  //                            ((0b1111111 << 23));
+  rawInst = (rawInst & ~mask) | ((0x7F << 23));
 }
 
 void setOpcodeSopP(uint32_t value, uint32_t &rawInst) {
@@ -370,7 +374,7 @@ void emitSopP(unsigned opcode, bool hasImm, int16_t simm16, codeGen &gen) {
 
   // printf("%#x ", newRawInst);
   // printf("%u\n", newRawInst);
-  printBytes(newRawInst);
+  // printBytes(newRawInst);
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
   ++rawInstBuffer;
@@ -412,7 +416,8 @@ uint64_t getMaskSmem(ContentKind k) {
 
 void setEncodingSmem(uint64_t &rawInst) {
   uint64_t mask = getMaskSmem(CK_Smem_Encoding);
-  rawInst = (rawInst & ~mask) | (((uint64_t)(0b110000) << 26) & mask);
+  //                            (((uint64_t)(0b110000) << 26) & mask);
+  rawInst = (rawInst & ~mask) | (((uint64_t)(0x0000000000000030) << 26) & mask);
 }
 
 void setOpcodeSmem(uint64_t value, uint64_t &rawInst) {
@@ -490,7 +495,7 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset,
 
   // printf("%#lx ", newRawInst);
   // printf("%lu\n", newRawInst);
-  printBytes(newRawInst);
+  // printBytes(newRawInst);
 
   uint64_t *rawInstBuffer = (uint64_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
