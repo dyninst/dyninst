@@ -54,8 +54,6 @@ using namespace Dyninst::SymtabAPI;
 // This needs to be a #define so the assert actually shows the message
 #define EMIT_STATIC_ASSERT "This function is currently unimplemented on this architecture."
 
-static const unsigned AARCH64_WIDTH = 8;
-
 /* NOTE:
  * As most of these functions are defined per architecture, the description of
  * each of these functions is in the emitElfStatic header. Comments describing
@@ -182,19 +180,7 @@ bool emitElfStatic::updateTOC(Symtab *, LinkMap &, Offset){
 }
 //***********
 
-
-inline
-static bool adjustValInRegion(Region *reg, Offset offInReg, Offset addressWidth, int adjust) {
-    Offset newValue;
-    unsigned char *oldValues;
-
-    oldValues = reinterpret_cast<unsigned char *>(reg->getPtrToRawData());
-    memcpy(&newValue, &oldValues[offInReg], addressWidth);
-    newValue += adjust;
-    return reg->patchData(offInReg, &newValue, addressWidth);
-}
-
-bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int library_adjust) {
+bool emitElfUtils::updateRelocation(Symtab * /* obj */, relocationEntry & /* rel */, int /* library_adjust */) {
     assert(!EMIT_STATIC_ASSERT);
     return false;
 }
