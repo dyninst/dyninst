@@ -113,7 +113,7 @@ void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link) {
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool link) {
+void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool /* link */) {
     long disp = (to - from);
     long wordOffset = disp/4;
 
@@ -682,7 +682,7 @@ assert(0);
 
 // There's nothing to modify here. Generate an emit a jump to target.
 bool insnCodeGen::modifyJump(Dyninst::Address target,
-                             NS_amdgpu::instruction &insn,
+                             NS_amdgpu::instruction & /* insn */,
                              codeGen &gen) {
     long disp = target - gen.currAddr();
     Emitter *emitter = gen.emitter();
