@@ -77,6 +77,11 @@ function(dyninst_check_pie_supported)
     foreach(_flag ${_possible_staticpie_flags})
       dyninst_check_compiler_flag(${_lang} "${_flag}" "${_sps}")
 
+      if(NOT ${_sps})
+        # Not supported- ensure flag is stored as an empty string
+        set(_flag "")
+      endif()
+
       set(${_spf}
           "${_flag}"
           CACHE INTERNAL "${_lang} static PIE flag")
