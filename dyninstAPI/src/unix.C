@@ -775,9 +775,14 @@ func_instance *block_instance::callee() {
 
 void BinaryEdit::makeInitAndFiniIfNeeded()
 {
+#if defined(DYNINST_CODEGEN_ARCH_RISCV64)
+    // RISC-V does not support _init and _fini
+    return;
+#endif
     using namespace Dyninst::SymtabAPI;
 
     Symtab* linkedFile = getAOut()->parse_img()->getObject();
+
 
     // Disable this for .o's and static binaries
     if( linkedFile->isStaticBinary() || 
@@ -877,13 +882,6 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
                 0xc0, 0x03, 0x5f, 0xd6};
             emptyFunction = empty;
             emptyFuncSize = 16;
-#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
-            // TODO
-            static unsigned char empty[] = {
-	        0x93, 0x00, 0x00, 0x00
-	    };
-            emptyFunction = empty;
-            emptyFuncSize = 0;
 #endif //defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 
             linkedFile->addRegion(highWaterMark_, (void*)(emptyFunction), emptyFuncSize, ".fini.dyninst",
