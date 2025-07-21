@@ -36,7 +36,7 @@
 using namespace Vega;
 
 // Similar approach to prologue
-bool AmdgpuEpilogueSnippet::generate(Dyninst::PatchAPI::Point *point,
+bool AmdgpuEpilogueSnippet::generate(Dyninst::PatchAPI::Point * /* point */,
                                      Dyninst::Buffer &buffer) {
   codeGen gen(20);
   EmitterAmdgpuVega emitter;

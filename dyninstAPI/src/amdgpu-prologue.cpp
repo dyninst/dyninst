@@ -35,7 +35,7 @@
 
 using namespace Vega;
 
-bool AmdgpuPrologueSnippet::generate(Dyninst::PatchAPI::Point *point,
+bool AmdgpuPrologueSnippet::generate(Dyninst::PatchAPI::Point * /* point */,
                                      Dyninst::Buffer &buffer) {
   // To avoid any code duplication or refactoring right now, we use a 'codeGen'
   // object to generate the code and copy what we get there into the
