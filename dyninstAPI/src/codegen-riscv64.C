@@ -185,6 +185,12 @@ void insnCodeGen::generateIllegal(codeGen &gen)
 
 void insnCodeGen::generateTrap(codeGen &gen)
 {
+    if (gen.getUseRVC()) {
+        instruction insn;
+        INSN_BUFF_SET(insn, 0, 15, CBREAK_POINT_INSN);
+        generate(gen, insn);
+        return;
+    }
     instruction insn;
     INSN_BUFF_SET(insn, 0, 31, BREAK_POINT_INSN);
     generate(gen, insn);
