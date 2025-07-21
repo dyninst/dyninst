@@ -74,6 +74,7 @@ constexpr int INSN_BUFF_SIZE = (8 * RV_MAX_INSN_SIZE);
 typedef std::bitset<INSN_BUFF_SIZE> insnBuf_t;
 
 constexpr int BREAK_POINT_INSN = 0x00100073; // ebreak
+constexpr int CBREAK_POINT_INSN = 0x9002; // c.ebreak
 
 constexpr int LUIOp      = 0x37;
 constexpr int AUIPCOp    = 0x17;
