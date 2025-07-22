@@ -61,6 +61,8 @@ function(dyninst_check_pie_supported)
   # gcc and clang both use '-static-pie', but allow for other compilers
   set(_possible_staticpie_flags "-static-pie")
 
+  set(_saved_link_opts ${CMAKE_REQUIRED_LINK_OPTIONS})
+
   foreach(_lang ${_languages})
     if(NOT DYNINST_${_lang}_STATIC_EXE_SUPPORTED)
       continue()
@@ -75,6 +77,8 @@ function(dyninst_check_pie_supported)
 
     set(_sps DYNINST_${_lang}_STATIC_PIE_SUPPORTED)
     foreach(_flag ${_possible_staticpie_flags})
+      set(CMAKE_REQUIRED_LINK_OPTIONS "${_flag}")
+
       dyninst_check_compiler_flag(${_lang} "${_flag}" "${_sps}")
 
       if(NOT ${_sps})
@@ -88,5 +92,7 @@ function(dyninst_check_pie_supported)
 
     endforeach()
   endforeach()
+
+  set(CMAKE_REQUIRED_LINK_OPTIONS "${_saved_link_opts}")
 
 endfunction()
