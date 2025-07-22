@@ -870,7 +870,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
 {
 
 #if defined (arch_amdgpu)
-  for (auto i = 0; i < points.size(); ++i) {
+  for (size_t i = 0; i < points.size(); ++i) {
     BPatch_function *f = points[i]->getFunction();
     instrumentedFunctions.insert(f);
   }
