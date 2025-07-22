@@ -1010,7 +1010,7 @@ BPatch_variableExpr::BPatch_variableExpr(const std::string& varName, BPatch_addr
   // The constant represents offset in the GPU memory buffer.
   ast_wrapper = AstNodePtr(
                   AstNode::operandNode(AstNode::operandType::AddressAsPlaceholderRegAndOffset,
-                    AstNode::operandNode(AstNode::operandType::Constant, (void *) offset)
+                    AstNode::operandNode(AstNode::operandType::Constant, reinterpret_cast<void*>(static_cast<uintptr_t>(offset)))
                   )
                 );
   
