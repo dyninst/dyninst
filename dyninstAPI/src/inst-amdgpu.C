@@ -85,9 +85,9 @@ void registerSpace::initialize32() {
     // TODO: This initialization doesn't consider all registers. Right now only the regs we typically use for instrumentation are considered. This might need work later on.
 
     //SGPRs
-    for (unsigned idx = s0; idx <= s101; idx++) {
+    for (unsigned idx = sgpr0; idx <= sgpr101; idx++) {
         char name[32];
-        sprintf(name, "sgpr%u", idx - s0);
+        sprintf(name, "sgpr%u", idx - sgpr0);
         registers.push_back(new registerSlot(idx,
                                              name,
                                              /*offLimits =*/false,

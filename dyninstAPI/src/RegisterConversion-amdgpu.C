@@ -51,108 +51,108 @@ using namespace boost::assign;
 multimap<Register, MachRegister> regToMachReg64 = map_list_of (0, 0);
 
 multimap<Register, MachRegister> regToMachReg32 = map_list_of
-  (registerSpace::s0,  amdgpu_gfx908::s0)
-  (registerSpace::s1,  amdgpu_gfx908::s1)
-  (registerSpace::s2,  amdgpu_gfx908::s2)
-  (registerSpace::s3,  amdgpu_gfx908::s3)
-  (registerSpace::s4,  amdgpu_gfx908::s4)
-  (registerSpace::s5,  amdgpu_gfx908::s5)
-  (registerSpace::s6,  amdgpu_gfx908::s6)
-  (registerSpace::s7,  amdgpu_gfx908::s7)
-  (registerSpace::s8,  amdgpu_gfx908::s8)
-  (registerSpace::s9,  amdgpu_gfx908::s9)
-  (registerSpace::s10, amdgpu_gfx908::s10)
-  (registerSpace::s11, amdgpu_gfx908::s11)
-  (registerSpace::s12, amdgpu_gfx908::s12)
-  (registerSpace::s13, amdgpu_gfx908::s13)
-  (registerSpace::s14, amdgpu_gfx908::s14)
-  (registerSpace::s15, amdgpu_gfx908::s15)
-  (registerSpace::s16, amdgpu_gfx908::s16)
-  (registerSpace::s17, amdgpu_gfx908::s17)
-  (registerSpace::s18, amdgpu_gfx908::s18)
-  (registerSpace::s19, amdgpu_gfx908::s19)
-  (registerSpace::s20, amdgpu_gfx908::s20)
-  (registerSpace::s21, amdgpu_gfx908::s21)
-  (registerSpace::s22, amdgpu_gfx908::s22)
-  (registerSpace::s23, amdgpu_gfx908::s23)
-  (registerSpace::s24, amdgpu_gfx908::s24)
-  (registerSpace::s25, amdgpu_gfx908::s25)
-  (registerSpace::s26, amdgpu_gfx908::s26)
-  (registerSpace::s27, amdgpu_gfx908::s27)
-  (registerSpace::s28, amdgpu_gfx908::s28)
-  (registerSpace::s29, amdgpu_gfx908::s29)
-  (registerSpace::s30, amdgpu_gfx908::s30)
-  (registerSpace::s31, amdgpu_gfx908::s31)
-  (registerSpace::s32, amdgpu_gfx908::s32)
-  (registerSpace::s33, amdgpu_gfx908::s33)
-  (registerSpace::s34, amdgpu_gfx908::s34)
-  (registerSpace::s35, amdgpu_gfx908::s35)
-  (registerSpace::s36, amdgpu_gfx908::s36)
-  (registerSpace::s37, amdgpu_gfx908::s37)
-  (registerSpace::s38, amdgpu_gfx908::s38)
-  (registerSpace::s39, amdgpu_gfx908::s39)
-  (registerSpace::s40, amdgpu_gfx908::s40)
-  (registerSpace::s41, amdgpu_gfx908::s41)
-  (registerSpace::s42, amdgpu_gfx908::s42)
-  (registerSpace::s43, amdgpu_gfx908::s43)
-  (registerSpace::s44, amdgpu_gfx908::s44)
-  (registerSpace::s45, amdgpu_gfx908::s45)
-  (registerSpace::s46, amdgpu_gfx908::s46)
-  (registerSpace::s47, amdgpu_gfx908::s47)
-  (registerSpace::s48, amdgpu_gfx908::s48)
-  (registerSpace::s49, amdgpu_gfx908::s49)
-  (registerSpace::s50, amdgpu_gfx908::s50)
-  (registerSpace::s51, amdgpu_gfx908::s51)
-  (registerSpace::s52, amdgpu_gfx908::s52)
-  (registerSpace::s53, amdgpu_gfx908::s53)
-  (registerSpace::s54, amdgpu_gfx908::s54)
-  (registerSpace::s55, amdgpu_gfx908::s55)
-  (registerSpace::s56, amdgpu_gfx908::s56)
-  (registerSpace::s57, amdgpu_gfx908::s57)
-  (registerSpace::s58, amdgpu_gfx908::s58)
-  (registerSpace::s59, amdgpu_gfx908::s59)
-  (registerSpace::s60, amdgpu_gfx908::s60)
-  (registerSpace::s61, amdgpu_gfx908::s61)
-  (registerSpace::s62, amdgpu_gfx908::s62)
-  (registerSpace::s63, amdgpu_gfx908::s63)
-  (registerSpace::s64, amdgpu_gfx908::s64)
-  (registerSpace::s65, amdgpu_gfx908::s65)
-  (registerSpace::s66, amdgpu_gfx908::s66)
-  (registerSpace::s67, amdgpu_gfx908::s67)
-  (registerSpace::s68, amdgpu_gfx908::s68)
-  (registerSpace::s69, amdgpu_gfx908::s69)
-  (registerSpace::s70, amdgpu_gfx908::s70)
-  (registerSpace::s71, amdgpu_gfx908::s71)
-  (registerSpace::s72, amdgpu_gfx908::s72)
-  (registerSpace::s73, amdgpu_gfx908::s73)
-  (registerSpace::s74, amdgpu_gfx908::s74)
-  (registerSpace::s75, amdgpu_gfx908::s75)
-  (registerSpace::s76, amdgpu_gfx908::s76)
-  (registerSpace::s77, amdgpu_gfx908::s77)
-  (registerSpace::s78, amdgpu_gfx908::s78)
-  (registerSpace::s79, amdgpu_gfx908::s79)
-  (registerSpace::s80, amdgpu_gfx908::s80)
-  (registerSpace::s81, amdgpu_gfx908::s81)
-  (registerSpace::s82, amdgpu_gfx908::s82)
-  (registerSpace::s83, amdgpu_gfx908::s83)
-  (registerSpace::s84, amdgpu_gfx908::s84)
-  (registerSpace::s85, amdgpu_gfx908::s85)
-  (registerSpace::s86, amdgpu_gfx908::s86)
-  (registerSpace::s87, amdgpu_gfx908::s87)
-  (registerSpace::s88, amdgpu_gfx908::s88)
-  (registerSpace::s89, amdgpu_gfx908::s89)
-  (registerSpace::s90, amdgpu_gfx908::s90)
-  (registerSpace::s91, amdgpu_gfx908::s91)
-  (registerSpace::s92, amdgpu_gfx908::s92)
-  (registerSpace::s93, amdgpu_gfx908::s93)
-  (registerSpace::s94, amdgpu_gfx908::s94)
-  (registerSpace::s95, amdgpu_gfx908::s95)
-  (registerSpace::s96, amdgpu_gfx908::s96)
-  (registerSpace::s97, amdgpu_gfx908::s97)
-  (registerSpace::s98, amdgpu_gfx908::s98)
-  (registerSpace::s99, amdgpu_gfx908::s99)
-  (registerSpace::s100, amdgpu_gfx908::s100)
-  (registerSpace::s101, amdgpu_gfx908::s101)
+  (registerSpace::sgpr0,  amdgpu_gfx908::s0)
+  (registerSpace::sgpr1,  amdgpu_gfx908::s1)
+  (registerSpace::sgpr2,  amdgpu_gfx908::s2)
+  (registerSpace::sgpr3,  amdgpu_gfx908::s3)
+  (registerSpace::sgpr4,  amdgpu_gfx908::s4)
+  (registerSpace::sgpr5,  amdgpu_gfx908::s5)
+  (registerSpace::sgpr6,  amdgpu_gfx908::s6)
+  (registerSpace::sgpr7,  amdgpu_gfx908::s7)
+  (registerSpace::sgpr8,  amdgpu_gfx908::s8)
+  (registerSpace::sgpr9,  amdgpu_gfx908::s9)
+  (registerSpace::sgpr10, amdgpu_gfx908::s10)
+  (registerSpace::sgpr11, amdgpu_gfx908::s11)
+  (registerSpace::sgpr12, amdgpu_gfx908::s12)
+  (registerSpace::sgpr13, amdgpu_gfx908::s13)
+  (registerSpace::sgpr14, amdgpu_gfx908::s14)
+  (registerSpace::sgpr15, amdgpu_gfx908::s15)
+  (registerSpace::sgpr16, amdgpu_gfx908::s16)
+  (registerSpace::sgpr17, amdgpu_gfx908::s17)
+  (registerSpace::sgpr18, amdgpu_gfx908::s18)
+  (registerSpace::sgpr19, amdgpu_gfx908::s19)
+  (registerSpace::sgpr20, amdgpu_gfx908::s20)
+  (registerSpace::sgpr21, amdgpu_gfx908::s21)
+  (registerSpace::sgpr22, amdgpu_gfx908::s22)
+  (registerSpace::sgpr23, amdgpu_gfx908::s23)
+  (registerSpace::sgpr24, amdgpu_gfx908::s24)
+  (registerSpace::sgpr25, amdgpu_gfx908::s25)
+  (registerSpace::sgpr26, amdgpu_gfx908::s26)
+  (registerSpace::sgpr27, amdgpu_gfx908::s27)
+  (registerSpace::sgpr28, amdgpu_gfx908::s28)
+  (registerSpace::sgpr29, amdgpu_gfx908::s29)
+  (registerSpace::sgpr30, amdgpu_gfx908::s30)
+  (registerSpace::sgpr31, amdgpu_gfx908::s31)
+  (registerSpace::sgpr32, amdgpu_gfx908::s32)
+  (registerSpace::sgpr33, amdgpu_gfx908::s33)
+  (registerSpace::sgpr34, amdgpu_gfx908::s34)
+  (registerSpace::sgpr35, amdgpu_gfx908::s35)
+  (registerSpace::sgpr36, amdgpu_gfx908::s36)
+  (registerSpace::sgpr37, amdgpu_gfx908::s37)
+  (registerSpace::sgpr38, amdgpu_gfx908::s38)
+  (registerSpace::sgpr39, amdgpu_gfx908::s39)
+  (registerSpace::sgpr40, amdgpu_gfx908::s40)
+  (registerSpace::sgpr41, amdgpu_gfx908::s41)
+  (registerSpace::sgpr42, amdgpu_gfx908::s42)
+  (registerSpace::sgpr43, amdgpu_gfx908::s43)
+  (registerSpace::sgpr44, amdgpu_gfx908::s44)
+  (registerSpace::sgpr45, amdgpu_gfx908::s45)
+  (registerSpace::sgpr46, amdgpu_gfx908::s46)
+  (registerSpace::sgpr47, amdgpu_gfx908::s47)
+  (registerSpace::sgpr48, amdgpu_gfx908::s48)
+  (registerSpace::sgpr49, amdgpu_gfx908::s49)
+  (registerSpace::sgpr50, amdgpu_gfx908::s50)
+  (registerSpace::sgpr51, amdgpu_gfx908::s51)
+  (registerSpace::sgpr52, amdgpu_gfx908::s52)
+  (registerSpace::sgpr53, amdgpu_gfx908::s53)
+  (registerSpace::sgpr54, amdgpu_gfx908::s54)
+  (registerSpace::sgpr55, amdgpu_gfx908::s55)
+  (registerSpace::sgpr56, amdgpu_gfx908::s56)
+  (registerSpace::sgpr57, amdgpu_gfx908::s57)
+  (registerSpace::sgpr58, amdgpu_gfx908::s58)
+  (registerSpace::sgpr59, amdgpu_gfx908::s59)
+  (registerSpace::sgpr60, amdgpu_gfx908::s60)
+  (registerSpace::sgpr61, amdgpu_gfx908::s61)
+  (registerSpace::sgpr62, amdgpu_gfx908::s62)
+  (registerSpace::sgpr63, amdgpu_gfx908::s63)
+  (registerSpace::sgpr64, amdgpu_gfx908::s64)
+  (registerSpace::sgpr65, amdgpu_gfx908::s65)
+  (registerSpace::sgpr66, amdgpu_gfx908::s66)
+  (registerSpace::sgpr67, amdgpu_gfx908::s67)
+  (registerSpace::sgpr68, amdgpu_gfx908::s68)
+  (registerSpace::sgpr69, amdgpu_gfx908::s69)
+  (registerSpace::sgpr70, amdgpu_gfx908::s70)
+  (registerSpace::sgpr71, amdgpu_gfx908::s71)
+  (registerSpace::sgpr72, amdgpu_gfx908::s72)
+  (registerSpace::sgpr73, amdgpu_gfx908::s73)
+  (registerSpace::sgpr74, amdgpu_gfx908::s74)
+  (registerSpace::sgpr75, amdgpu_gfx908::s75)
+  (registerSpace::sgpr76, amdgpu_gfx908::s76)
+  (registerSpace::sgpr77, amdgpu_gfx908::s77)
+  (registerSpace::sgpr78, amdgpu_gfx908::s78)
+  (registerSpace::sgpr79, amdgpu_gfx908::s79)
+  (registerSpace::sgpr80, amdgpu_gfx908::s80)
+  (registerSpace::sgpr81, amdgpu_gfx908::s81)
+  (registerSpace::sgpr82, amdgpu_gfx908::s82)
+  (registerSpace::sgpr83, amdgpu_gfx908::s83)
+  (registerSpace::sgpr84, amdgpu_gfx908::s84)
+  (registerSpace::sgpr85, amdgpu_gfx908::s85)
+  (registerSpace::sgpr86, amdgpu_gfx908::s86)
+  (registerSpace::sgpr87, amdgpu_gfx908::s87)
+  (registerSpace::sgpr88, amdgpu_gfx908::s88)
+  (registerSpace::sgpr89, amdgpu_gfx908::s89)
+  (registerSpace::sgpr90, amdgpu_gfx908::s90)
+  (registerSpace::sgpr91, amdgpu_gfx908::s91)
+  (registerSpace::sgpr92, amdgpu_gfx908::s92)
+  (registerSpace::sgpr93, amdgpu_gfx908::s93)
+  (registerSpace::sgpr94, amdgpu_gfx908::s94)
+  (registerSpace::sgpr95, amdgpu_gfx908::s95)
+  (registerSpace::sgpr96, amdgpu_gfx908::s96)
+  (registerSpace::sgpr97, amdgpu_gfx908::s97)
+  (registerSpace::sgpr98, amdgpu_gfx908::s98)
+  (registerSpace::sgpr99, amdgpu_gfx908::s99)
+  (registerSpace::sgpr100, amdgpu_gfx908::s100)
+  (registerSpace::sgpr101, amdgpu_gfx908::s101)
   (registerSpace::flat_scratch_lo, amdgpu_gfx908::flat_scratch_lo)
   (registerSpace::flat_scratch_hi, amdgpu_gfx908::flat_scratch_hi)
   (registerSpace::xnack_mask_lo, amdgpu_gfx908::xnack_mask_lo)
@@ -440,108 +440,108 @@ multimap<Register, MachRegister> regToMachReg32 = map_list_of
 
 
 map<MachRegister, Register> reverseRegisterMap = map_list_of
-  (amdgpu_gfx908::s0,  registerSpace::s0)
-  (amdgpu_gfx908::s1,  registerSpace::s1)
-  (amdgpu_gfx908::s2,  registerSpace::s2)
-  (amdgpu_gfx908::s3,  registerSpace::s3)
-  (amdgpu_gfx908::s4,  registerSpace::s4)
-  (amdgpu_gfx908::s5,  registerSpace::s5)
-  (amdgpu_gfx908::s6,  registerSpace::s6)
-  (amdgpu_gfx908::s7,  registerSpace::s7)
-  (amdgpu_gfx908::s8,  registerSpace::s8)
-  (amdgpu_gfx908::s9,  registerSpace::s9)
-  (amdgpu_gfx908::s10, registerSpace::s10)
-  (amdgpu_gfx908::s11, registerSpace::s11)
-  (amdgpu_gfx908::s12, registerSpace::s12)
-  (amdgpu_gfx908::s13, registerSpace::s13)
-  (amdgpu_gfx908::s14, registerSpace::s14)
-  (amdgpu_gfx908::s15, registerSpace::s15)
-  (amdgpu_gfx908::s16, registerSpace::s16)
-  (amdgpu_gfx908::s17, registerSpace::s17)
-  (amdgpu_gfx908::s18, registerSpace::s18)
-  (amdgpu_gfx908::s19, registerSpace::s19)
-  (amdgpu_gfx908::s20, registerSpace::s20)
-  (amdgpu_gfx908::s21, registerSpace::s21)
-  (amdgpu_gfx908::s22, registerSpace::s22)
-  (amdgpu_gfx908::s23, registerSpace::s23)
-  (amdgpu_gfx908::s24, registerSpace::s24)
-  (amdgpu_gfx908::s25, registerSpace::s25)
-  (amdgpu_gfx908::s26, registerSpace::s26)
-  (amdgpu_gfx908::s27, registerSpace::s27)
-  (amdgpu_gfx908::s28, registerSpace::s28)
-  (amdgpu_gfx908::s29, registerSpace::s29)
-  (amdgpu_gfx908::s30, registerSpace::s30)
-  (amdgpu_gfx908::s31, registerSpace::s31)
-  (amdgpu_gfx908::s32, registerSpace::s32)
-  (amdgpu_gfx908::s33, registerSpace::s33)
-  (amdgpu_gfx908::s34, registerSpace::s34)
-  (amdgpu_gfx908::s35, registerSpace::s35)
-  (amdgpu_gfx908::s36, registerSpace::s36)
-  (amdgpu_gfx908::s37, registerSpace::s37)
-  (amdgpu_gfx908::s38, registerSpace::s38)
-  (amdgpu_gfx908::s39, registerSpace::s39)
-  (amdgpu_gfx908::s40, registerSpace::s40)
-  (amdgpu_gfx908::s41, registerSpace::s41)
-  (amdgpu_gfx908::s42, registerSpace::s42)
-  (amdgpu_gfx908::s43, registerSpace::s43)
-  (amdgpu_gfx908::s44, registerSpace::s44)
-  (amdgpu_gfx908::s45, registerSpace::s45)
-  (amdgpu_gfx908::s46, registerSpace::s46)
-  (amdgpu_gfx908::s47, registerSpace::s47)
-  (amdgpu_gfx908::s48, registerSpace::s48)
-  (amdgpu_gfx908::s49, registerSpace::s49)
-  (amdgpu_gfx908::s50, registerSpace::s50)
-  (amdgpu_gfx908::s51, registerSpace::s51)
-  (amdgpu_gfx908::s52, registerSpace::s52)
-  (amdgpu_gfx908::s53, registerSpace::s53)
-  (amdgpu_gfx908::s54, registerSpace::s54)
-  (amdgpu_gfx908::s55, registerSpace::s55)
-  (amdgpu_gfx908::s56, registerSpace::s56)
-  (amdgpu_gfx908::s57, registerSpace::s57)
-  (amdgpu_gfx908::s58, registerSpace::s58)
-  (amdgpu_gfx908::s59, registerSpace::s59)
-  (amdgpu_gfx908::s60, registerSpace::s60)
-  (amdgpu_gfx908::s61, registerSpace::s61)
-  (amdgpu_gfx908::s62, registerSpace::s62)
-  (amdgpu_gfx908::s63, registerSpace::s63)
-  (amdgpu_gfx908::s64, registerSpace::s64)
-  (amdgpu_gfx908::s65, registerSpace::s65)
-  (amdgpu_gfx908::s66, registerSpace::s66)
-  (amdgpu_gfx908::s67, registerSpace::s67)
-  (amdgpu_gfx908::s68, registerSpace::s68)
-  (amdgpu_gfx908::s69, registerSpace::s69)
-  (amdgpu_gfx908::s70, registerSpace::s70)
-  (amdgpu_gfx908::s71, registerSpace::s71)
-  (amdgpu_gfx908::s72, registerSpace::s72)
-  (amdgpu_gfx908::s73, registerSpace::s73)
-  (amdgpu_gfx908::s74, registerSpace::s74)
-  (amdgpu_gfx908::s75, registerSpace::s75)
-  (amdgpu_gfx908::s76, registerSpace::s76)
-  (amdgpu_gfx908::s77, registerSpace::s77)
-  (amdgpu_gfx908::s78, registerSpace::s78)
-  (amdgpu_gfx908::s79, registerSpace::s79)
-  (amdgpu_gfx908::s80, registerSpace::s80)
-  (amdgpu_gfx908::s81, registerSpace::s81)
-  (amdgpu_gfx908::s82, registerSpace::s82)
-  (amdgpu_gfx908::s83, registerSpace::s83)
-  (amdgpu_gfx908::s84, registerSpace::s84)
-  (amdgpu_gfx908::s85, registerSpace::s85)
-  (amdgpu_gfx908::s86, registerSpace::s86)
-  (amdgpu_gfx908::s87, registerSpace::s87)
-  (amdgpu_gfx908::s88, registerSpace::s88)
-  (amdgpu_gfx908::s89, registerSpace::s89)
-  (amdgpu_gfx908::s90, registerSpace::s90)
-  (amdgpu_gfx908::s91, registerSpace::s91)
-  (amdgpu_gfx908::s92, registerSpace::s92)
-  (amdgpu_gfx908::s93, registerSpace::s93)
-  (amdgpu_gfx908::s94, registerSpace::s94)
-  (amdgpu_gfx908::s95, registerSpace::s95)
-  (amdgpu_gfx908::s96, registerSpace::s96)
-  (amdgpu_gfx908::s97, registerSpace::s97)
-  (amdgpu_gfx908::s98, registerSpace::s98)
-  (amdgpu_gfx908::s99, registerSpace::s99)
-  (amdgpu_gfx908::s100, registerSpace::s100)
-  (amdgpu_gfx908::s101, registerSpace::s101)
+  (amdgpu_gfx908::s0,  registerSpace::sgpr0)
+  (amdgpu_gfx908::s1,  registerSpace::sgpr1)
+  (amdgpu_gfx908::s2,  registerSpace::sgpr2)
+  (amdgpu_gfx908::s3,  registerSpace::sgpr3)
+  (amdgpu_gfx908::s4,  registerSpace::sgpr4)
+  (amdgpu_gfx908::s5,  registerSpace::sgpr5)
+  (amdgpu_gfx908::s6,  registerSpace::sgpr6)
+  (amdgpu_gfx908::s7,  registerSpace::sgpr7)
+  (amdgpu_gfx908::s8,  registerSpace::sgpr8)
+  (amdgpu_gfx908::s9,  registerSpace::sgpr9)
+  (amdgpu_gfx908::s10, registerSpace::sgpr10)
+  (amdgpu_gfx908::s11, registerSpace::sgpr11)
+  (amdgpu_gfx908::s12, registerSpace::sgpr12)
+  (amdgpu_gfx908::s13, registerSpace::sgpr13)
+  (amdgpu_gfx908::s14, registerSpace::sgpr14)
+  (amdgpu_gfx908::s15, registerSpace::sgpr15)
+  (amdgpu_gfx908::s16, registerSpace::sgpr16)
+  (amdgpu_gfx908::s17, registerSpace::sgpr17)
+  (amdgpu_gfx908::s18, registerSpace::sgpr18)
+  (amdgpu_gfx908::s19, registerSpace::sgpr19)
+  (amdgpu_gfx908::s20, registerSpace::sgpr20)
+  (amdgpu_gfx908::s21, registerSpace::sgpr21)
+  (amdgpu_gfx908::s22, registerSpace::sgpr22)
+  (amdgpu_gfx908::s23, registerSpace::sgpr23)
+  (amdgpu_gfx908::s24, registerSpace::sgpr24)
+  (amdgpu_gfx908::s25, registerSpace::sgpr25)
+  (amdgpu_gfx908::s26, registerSpace::sgpr26)
+  (amdgpu_gfx908::s27, registerSpace::sgpr27)
+  (amdgpu_gfx908::s28, registerSpace::sgpr28)
+  (amdgpu_gfx908::s29, registerSpace::sgpr29)
+  (amdgpu_gfx908::s30, registerSpace::sgpr30)
+  (amdgpu_gfx908::s31, registerSpace::sgpr31)
+  (amdgpu_gfx908::s32, registerSpace::sgpr32)
+  (amdgpu_gfx908::s33, registerSpace::sgpr33)
+  (amdgpu_gfx908::s34, registerSpace::sgpr34)
+  (amdgpu_gfx908::s35, registerSpace::sgpr35)
+  (amdgpu_gfx908::s36, registerSpace::sgpr36)
+  (amdgpu_gfx908::s37, registerSpace::sgpr37)
+  (amdgpu_gfx908::s38, registerSpace::sgpr38)
+  (amdgpu_gfx908::s39, registerSpace::sgpr39)
+  (amdgpu_gfx908::s40, registerSpace::sgpr40)
+  (amdgpu_gfx908::s41, registerSpace::sgpr41)
+  (amdgpu_gfx908::s42, registerSpace::sgpr42)
+  (amdgpu_gfx908::s43, registerSpace::sgpr43)
+  (amdgpu_gfx908::s44, registerSpace::sgpr44)
+  (amdgpu_gfx908::s45, registerSpace::sgpr45)
+  (amdgpu_gfx908::s46, registerSpace::sgpr46)
+  (amdgpu_gfx908::s47, registerSpace::sgpr47)
+  (amdgpu_gfx908::s48, registerSpace::sgpr48)
+  (amdgpu_gfx908::s49, registerSpace::sgpr49)
+  (amdgpu_gfx908::s50, registerSpace::sgpr50)
+  (amdgpu_gfx908::s51, registerSpace::sgpr51)
+  (amdgpu_gfx908::s52, registerSpace::sgpr52)
+  (amdgpu_gfx908::s53, registerSpace::sgpr53)
+  (amdgpu_gfx908::s54, registerSpace::sgpr54)
+  (amdgpu_gfx908::s55, registerSpace::sgpr55)
+  (amdgpu_gfx908::s56, registerSpace::sgpr56)
+  (amdgpu_gfx908::s57, registerSpace::sgpr57)
+  (amdgpu_gfx908::s58, registerSpace::sgpr58)
+  (amdgpu_gfx908::s59, registerSpace::sgpr59)
+  (amdgpu_gfx908::s60, registerSpace::sgpr60)
+  (amdgpu_gfx908::s61, registerSpace::sgpr61)
+  (amdgpu_gfx908::s62, registerSpace::sgpr62)
+  (amdgpu_gfx908::s63, registerSpace::sgpr63)
+  (amdgpu_gfx908::s64, registerSpace::sgpr64)
+  (amdgpu_gfx908::s65, registerSpace::sgpr65)
+  (amdgpu_gfx908::s66, registerSpace::sgpr66)
+  (amdgpu_gfx908::s67, registerSpace::sgpr67)
+  (amdgpu_gfx908::s68, registerSpace::sgpr68)
+  (amdgpu_gfx908::s69, registerSpace::sgpr69)
+  (amdgpu_gfx908::s70, registerSpace::sgpr70)
+  (amdgpu_gfx908::s71, registerSpace::sgpr71)
+  (amdgpu_gfx908::s72, registerSpace::sgpr72)
+  (amdgpu_gfx908::s73, registerSpace::sgpr73)
+  (amdgpu_gfx908::s74, registerSpace::sgpr74)
+  (amdgpu_gfx908::s75, registerSpace::sgpr75)
+  (amdgpu_gfx908::s76, registerSpace::sgpr76)
+  (amdgpu_gfx908::s77, registerSpace::sgpr77)
+  (amdgpu_gfx908::s78, registerSpace::sgpr78)
+  (amdgpu_gfx908::s79, registerSpace::sgpr79)
+  (amdgpu_gfx908::s80, registerSpace::sgpr80)
+  (amdgpu_gfx908::s81, registerSpace::sgpr81)
+  (amdgpu_gfx908::s82, registerSpace::sgpr82)
+  (amdgpu_gfx908::s83, registerSpace::sgpr83)
+  (amdgpu_gfx908::s84, registerSpace::sgpr84)
+  (amdgpu_gfx908::s85, registerSpace::sgpr85)
+  (amdgpu_gfx908::s86, registerSpace::sgpr86)
+  (amdgpu_gfx908::s87, registerSpace::sgpr87)
+  (amdgpu_gfx908::s88, registerSpace::sgpr88)
+  (amdgpu_gfx908::s89, registerSpace::sgpr89)
+  (amdgpu_gfx908::s90, registerSpace::sgpr90)
+  (amdgpu_gfx908::s91, registerSpace::sgpr91)
+  (amdgpu_gfx908::s92, registerSpace::sgpr92)
+  (amdgpu_gfx908::s93, registerSpace::sgpr93)
+  (amdgpu_gfx908::s94, registerSpace::sgpr94)
+  (amdgpu_gfx908::s95, registerSpace::sgpr95)
+  (amdgpu_gfx908::s96, registerSpace::sgpr96)
+  (amdgpu_gfx908::s97, registerSpace::sgpr97)
+  (amdgpu_gfx908::s98, registerSpace::sgpr98)
+  (amdgpu_gfx908::s99, registerSpace::sgpr99)
+  (amdgpu_gfx908::s100, registerSpace::sgpr100)
+  (amdgpu_gfx908::s101, registerSpace::sgpr101)
   (amdgpu_gfx908::flat_scratch_lo, registerSpace::flat_scratch_lo)
   (amdgpu_gfx908::flat_scratch_hi, registerSpace::flat_scratch_hi)
   (amdgpu_gfx908::xnack_mask_lo, registerSpace::xnack_mask_lo)
@@ -861,108 +861,108 @@ Register convertRegID(RegisterAST* toBeConverted)
 MachRegister convertRegID(Register r, Dyninst::Architecture arch) {
     if( arch == Arch_amdgpu_gfx908) {
         switch(r) {
-            case registerSpace::s0: return amdgpu_gfx908::s0;
-            case registerSpace::s1: return amdgpu_gfx908::s1;
-            case registerSpace::s2: return amdgpu_gfx908::s2;
-            case registerSpace::s3: return amdgpu_gfx908::s3;
-            case registerSpace::s4: return amdgpu_gfx908::s4;
-            case registerSpace::s5: return amdgpu_gfx908::s5;
-            case registerSpace::s6: return amdgpu_gfx908::s6;
-            case registerSpace::s7: return amdgpu_gfx908::s7;
-            case registerSpace::s8: return amdgpu_gfx908::s8;
-            case registerSpace::s9: return amdgpu_gfx908::s9;
-            case registerSpace::s10: return amdgpu_gfx908::s10;
-            case registerSpace::s11: return amdgpu_gfx908::s11;
-            case registerSpace::s12: return amdgpu_gfx908::s12;
-            case registerSpace::s13: return amdgpu_gfx908::s13;
-            case registerSpace::s14: return amdgpu_gfx908::s14;
-            case registerSpace::s15: return amdgpu_gfx908::s15;
-            case registerSpace::s16: return amdgpu_gfx908::s16;
-            case registerSpace::s17: return amdgpu_gfx908::s17;
-            case registerSpace::s18: return amdgpu_gfx908::s18;
-            case registerSpace::s19: return amdgpu_gfx908::s19;
-            case registerSpace::s20: return amdgpu_gfx908::s20;
-            case registerSpace::s21: return amdgpu_gfx908::s21;
-            case registerSpace::s22: return amdgpu_gfx908::s22;
-            case registerSpace::s23: return amdgpu_gfx908::s23;
-            case registerSpace::s24: return amdgpu_gfx908::s24;
-            case registerSpace::s25: return amdgpu_gfx908::s25;
-            case registerSpace::s26: return amdgpu_gfx908::s26;
-            case registerSpace::s27: return amdgpu_gfx908::s27;
-            case registerSpace::s28: return amdgpu_gfx908::s28;
-            case registerSpace::s29: return amdgpu_gfx908::s29;
-            case registerSpace::s30: return amdgpu_gfx908::s30;
-            case registerSpace::s31: return amdgpu_gfx908::s31;
-            case registerSpace::s32: return amdgpu_gfx908::s32;
-            case registerSpace::s33: return amdgpu_gfx908::s33;
-            case registerSpace::s34: return amdgpu_gfx908::s34;
-            case registerSpace::s35: return amdgpu_gfx908::s35;
-            case registerSpace::s36: return amdgpu_gfx908::s36;
-            case registerSpace::s37: return amdgpu_gfx908::s37;
-            case registerSpace::s38: return amdgpu_gfx908::s38;
-            case registerSpace::s39: return amdgpu_gfx908::s39;
-            case registerSpace::s40: return amdgpu_gfx908::s40;
-            case registerSpace::s41: return amdgpu_gfx908::s41;
-            case registerSpace::s42: return amdgpu_gfx908::s42;
-            case registerSpace::s43: return amdgpu_gfx908::s43;
-            case registerSpace::s44: return amdgpu_gfx908::s44;
-            case registerSpace::s45: return amdgpu_gfx908::s45;
-            case registerSpace::s46: return amdgpu_gfx908::s46;
-            case registerSpace::s47: return amdgpu_gfx908::s47;
-            case registerSpace::s48: return amdgpu_gfx908::s48;
-            case registerSpace::s49: return amdgpu_gfx908::s49;
-            case registerSpace::s50: return amdgpu_gfx908::s50;
-            case registerSpace::s51: return amdgpu_gfx908::s51;
-            case registerSpace::s52: return amdgpu_gfx908::s52;
-            case registerSpace::s53: return amdgpu_gfx908::s53;
-            case registerSpace::s54: return amdgpu_gfx908::s54;
-            case registerSpace::s55: return amdgpu_gfx908::s55;
-            case registerSpace::s56: return amdgpu_gfx908::s56;
-            case registerSpace::s57: return amdgpu_gfx908::s57;
-            case registerSpace::s58: return amdgpu_gfx908::s58;
-            case registerSpace::s59: return amdgpu_gfx908::s59;
-            case registerSpace::s60: return amdgpu_gfx908::s60;
-            case registerSpace::s61: return amdgpu_gfx908::s61;
-            case registerSpace::s62: return amdgpu_gfx908::s62;
-            case registerSpace::s63: return amdgpu_gfx908::s63;
-            case registerSpace::s64: return amdgpu_gfx908::s64;
-            case registerSpace::s65: return amdgpu_gfx908::s65;
-            case registerSpace::s66: return amdgpu_gfx908::s66;
-            case registerSpace::s67: return amdgpu_gfx908::s67;
-            case registerSpace::s68: return amdgpu_gfx908::s68;
-            case registerSpace::s69: return amdgpu_gfx908::s69;
-            case registerSpace::s70: return amdgpu_gfx908::s70;
-            case registerSpace::s71: return amdgpu_gfx908::s71;
-            case registerSpace::s72: return amdgpu_gfx908::s72;
-            case registerSpace::s73: return amdgpu_gfx908::s73;
-            case registerSpace::s74: return amdgpu_gfx908::s74;
-            case registerSpace::s75: return amdgpu_gfx908::s75;
-            case registerSpace::s76: return amdgpu_gfx908::s76;
-            case registerSpace::s77: return amdgpu_gfx908::s77;
-            case registerSpace::s78: return amdgpu_gfx908::s78;
-            case registerSpace::s79: return amdgpu_gfx908::s79;
-            case registerSpace::s80: return amdgpu_gfx908::s80;
-            case registerSpace::s81: return amdgpu_gfx908::s81;
-            case registerSpace::s82: return amdgpu_gfx908::s82;
-            case registerSpace::s83: return amdgpu_gfx908::s83;
-            case registerSpace::s84: return amdgpu_gfx908::s84;
-            case registerSpace::s85: return amdgpu_gfx908::s85;
-            case registerSpace::s86: return amdgpu_gfx908::s86;
-            case registerSpace::s87: return amdgpu_gfx908::s87;
-            case registerSpace::s88: return amdgpu_gfx908::s88;
-            case registerSpace::s89: return amdgpu_gfx908::s89;
-            case registerSpace::s90: return amdgpu_gfx908::s90;
-            case registerSpace::s91: return amdgpu_gfx908::s91;
-            case registerSpace::s92: return amdgpu_gfx908::s92;
-            case registerSpace::s93: return amdgpu_gfx908::s93;
-            case registerSpace::s94: return amdgpu_gfx908::s94;
-            case registerSpace::s95: return amdgpu_gfx908::s95;
-            case registerSpace::s96: return amdgpu_gfx908::s96;
-            case registerSpace::s97: return amdgpu_gfx908::s97;
-            case registerSpace::s98: return amdgpu_gfx908::s98;
-            case registerSpace::s99: return amdgpu_gfx908::s99;
-            case registerSpace::s100: return amdgpu_gfx908::s100;
-            case registerSpace::s101: return amdgpu_gfx908::s101;
+            case registerSpace::sgpr0: return amdgpu_gfx908::s0;
+            case registerSpace::sgpr1: return amdgpu_gfx908::s1;
+            case registerSpace::sgpr2: return amdgpu_gfx908::s2;
+            case registerSpace::sgpr3: return amdgpu_gfx908::s3;
+            case registerSpace::sgpr4: return amdgpu_gfx908::s4;
+            case registerSpace::sgpr5: return amdgpu_gfx908::s5;
+            case registerSpace::sgpr6: return amdgpu_gfx908::s6;
+            case registerSpace::sgpr7: return amdgpu_gfx908::s7;
+            case registerSpace::sgpr8: return amdgpu_gfx908::s8;
+            case registerSpace::sgpr9: return amdgpu_gfx908::s9;
+            case registerSpace::sgpr10: return amdgpu_gfx908::s10;
+            case registerSpace::sgpr11: return amdgpu_gfx908::s11;
+            case registerSpace::sgpr12: return amdgpu_gfx908::s12;
+            case registerSpace::sgpr13: return amdgpu_gfx908::s13;
+            case registerSpace::sgpr14: return amdgpu_gfx908::s14;
+            case registerSpace::sgpr15: return amdgpu_gfx908::s15;
+            case registerSpace::sgpr16: return amdgpu_gfx908::s16;
+            case registerSpace::sgpr17: return amdgpu_gfx908::s17;
+            case registerSpace::sgpr18: return amdgpu_gfx908::s18;
+            case registerSpace::sgpr19: return amdgpu_gfx908::s19;
+            case registerSpace::sgpr20: return amdgpu_gfx908::s20;
+            case registerSpace::sgpr21: return amdgpu_gfx908::s21;
+            case registerSpace::sgpr22: return amdgpu_gfx908::s22;
+            case registerSpace::sgpr23: return amdgpu_gfx908::s23;
+            case registerSpace::sgpr24: return amdgpu_gfx908::s24;
+            case registerSpace::sgpr25: return amdgpu_gfx908::s25;
+            case registerSpace::sgpr26: return amdgpu_gfx908::s26;
+            case registerSpace::sgpr27: return amdgpu_gfx908::s27;
+            case registerSpace::sgpr28: return amdgpu_gfx908::s28;
+            case registerSpace::sgpr29: return amdgpu_gfx908::s29;
+            case registerSpace::sgpr30: return amdgpu_gfx908::s30;
+            case registerSpace::sgpr31: return amdgpu_gfx908::s31;
+            case registerSpace::sgpr32: return amdgpu_gfx908::s32;
+            case registerSpace::sgpr33: return amdgpu_gfx908::s33;
+            case registerSpace::sgpr34: return amdgpu_gfx908::s34;
+            case registerSpace::sgpr35: return amdgpu_gfx908::s35;
+            case registerSpace::sgpr36: return amdgpu_gfx908::s36;
+            case registerSpace::sgpr37: return amdgpu_gfx908::s37;
+            case registerSpace::sgpr38: return amdgpu_gfx908::s38;
+            case registerSpace::sgpr39: return amdgpu_gfx908::s39;
+            case registerSpace::sgpr40: return amdgpu_gfx908::s40;
+            case registerSpace::sgpr41: return amdgpu_gfx908::s41;
+            case registerSpace::sgpr42: return amdgpu_gfx908::s42;
+            case registerSpace::sgpr43: return amdgpu_gfx908::s43;
+            case registerSpace::sgpr44: return amdgpu_gfx908::s44;
+            case registerSpace::sgpr45: return amdgpu_gfx908::s45;
+            case registerSpace::sgpr46: return amdgpu_gfx908::s46;
+            case registerSpace::sgpr47: return amdgpu_gfx908::s47;
+            case registerSpace::sgpr48: return amdgpu_gfx908::s48;
+            case registerSpace::sgpr49: return amdgpu_gfx908::s49;
+            case registerSpace::sgpr50: return amdgpu_gfx908::s50;
+            case registerSpace::sgpr51: return amdgpu_gfx908::s51;
+            case registerSpace::sgpr52: return amdgpu_gfx908::s52;
+            case registerSpace::sgpr53: return amdgpu_gfx908::s53;
+            case registerSpace::sgpr54: return amdgpu_gfx908::s54;
+            case registerSpace::sgpr55: return amdgpu_gfx908::s55;
+            case registerSpace::sgpr56: return amdgpu_gfx908::s56;
+            case registerSpace::sgpr57: return amdgpu_gfx908::s57;
+            case registerSpace::sgpr58: return amdgpu_gfx908::s58;
+            case registerSpace::sgpr59: return amdgpu_gfx908::s59;
+            case registerSpace::sgpr60: return amdgpu_gfx908::s60;
+            case registerSpace::sgpr61: return amdgpu_gfx908::s61;
+            case registerSpace::sgpr62: return amdgpu_gfx908::s62;
+            case registerSpace::sgpr63: return amdgpu_gfx908::s63;
+            case registerSpace::sgpr64: return amdgpu_gfx908::s64;
+            case registerSpace::sgpr65: return amdgpu_gfx908::s65;
+            case registerSpace::sgpr66: return amdgpu_gfx908::s66;
+            case registerSpace::sgpr67: return amdgpu_gfx908::s67;
+            case registerSpace::sgpr68: return amdgpu_gfx908::s68;
+            case registerSpace::sgpr69: return amdgpu_gfx908::s69;
+            case registerSpace::sgpr70: return amdgpu_gfx908::s70;
+            case registerSpace::sgpr71: return amdgpu_gfx908::s71;
+            case registerSpace::sgpr72: return amdgpu_gfx908::s72;
+            case registerSpace::sgpr73: return amdgpu_gfx908::s73;
+            case registerSpace::sgpr74: return amdgpu_gfx908::s74;
+            case registerSpace::sgpr75: return amdgpu_gfx908::s75;
+            case registerSpace::sgpr76: return amdgpu_gfx908::s76;
+            case registerSpace::sgpr77: return amdgpu_gfx908::s77;
+            case registerSpace::sgpr78: return amdgpu_gfx908::s78;
+            case registerSpace::sgpr79: return amdgpu_gfx908::s79;
+            case registerSpace::sgpr80: return amdgpu_gfx908::s80;
+            case registerSpace::sgpr81: return amdgpu_gfx908::s81;
+            case registerSpace::sgpr82: return amdgpu_gfx908::s82;
+            case registerSpace::sgpr83: return amdgpu_gfx908::s83;
+            case registerSpace::sgpr84: return amdgpu_gfx908::s84;
+            case registerSpace::sgpr85: return amdgpu_gfx908::s85;
+            case registerSpace::sgpr86: return amdgpu_gfx908::s86;
+            case registerSpace::sgpr87: return amdgpu_gfx908::s87;
+            case registerSpace::sgpr88: return amdgpu_gfx908::s88;
+            case registerSpace::sgpr89: return amdgpu_gfx908::s89;
+            case registerSpace::sgpr90: return amdgpu_gfx908::s90;
+            case registerSpace::sgpr91: return amdgpu_gfx908::s91;
+            case registerSpace::sgpr92: return amdgpu_gfx908::s92;
+            case registerSpace::sgpr93: return amdgpu_gfx908::s93;
+            case registerSpace::sgpr94: return amdgpu_gfx908::s94;
+            case registerSpace::sgpr95: return amdgpu_gfx908::s95;
+            case registerSpace::sgpr96: return amdgpu_gfx908::s96;
+            case registerSpace::sgpr97: return amdgpu_gfx908::s97;
+            case registerSpace::sgpr98: return amdgpu_gfx908::s98;
+            case registerSpace::sgpr99: return amdgpu_gfx908::s99;
+            case registerSpace::sgpr100: return amdgpu_gfx908::s100;
+            case registerSpace::sgpr101: return amdgpu_gfx908::s101;
             case registerSpace::flat_scratch_lo: return amdgpu_gfx908::flat_scratch_lo;
             case registerSpace::flat_scratch_hi: return amdgpu_gfx908::flat_scratch_hi;
             case registerSpace::xnack_mask_lo: return amdgpu_gfx908::xnack_mask_lo;
