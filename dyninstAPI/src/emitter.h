@@ -129,6 +129,9 @@ class Emitter {
                                      codeGen & /* gen */) {}
     virtual void emitShortJump(int16_t /* wordOffset */, codeGen & /* gen */) {}
     virtual void emitLongJump(Register /* reg */, uint64_t /* fromAddress */, uint64_t /* toAddress */, codeGen & /* gen */) {}
+
+    // TODO : Make all targets use this instead of having this functionality floating around in the codebase.
+    virtual void emitMovePCtoReg(Register /* reg */, codeGen & /* gen */) {  }
 };
 
 #endif
