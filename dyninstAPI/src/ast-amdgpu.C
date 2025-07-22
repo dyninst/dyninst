@@ -83,12 +83,12 @@ using PatchAPI::Point;
 
 extern bool doNotOverflow(int64_t value);
 
-static bool IsSignedOperation(BPatch_type *l, BPatch_type *r) {
-    if (l == NULL || r == NULL) return true;
-    if (strstr(l->getName(), "unsigned") == NULL) return true;
-    if (strstr(r->getName(), "unsigned") == NULL) return true;
-    return false;
-}
+// static bool IsSignedOperation(BPatch_type *l, BPatch_type *r) {
+//     if (l == NULL || r == NULL) return true;
+//     if (strstr(l->getName(), "unsigned") == NULL) return true;
+//     if (strstr(r->getName(), "unsigned") == NULL) return true;
+//     return false;
+// }
 
 AstNodePtr AstNode::originalAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::actualAddrNode_ = AstNodePtr();
@@ -842,7 +842,11 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen&, bool,
         Address &,
         Dyninst::Register &)
 {
-    return false;
+  func_ = nullptr;
+  canaryAfterPrologue_ = false;
+  canaryHeight_ = 0;
+  // The code above is only to suppress warnings.
+  return false;
 }
 
 bool AstStackGenericNode::generateCode_phase2(codeGen&, bool, Address&, Dyninst::Register&)
@@ -1403,7 +1407,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       default:
       {
          if(!roperand) { return false; }
-         bool signedOp = IsSignedOperation(loperand->getType(), roperand->getType());
+         // bool signedOp = IsSignedOperation(loperand->getType(), roperand->getType());
          src1 = Dyninst::Null_Register;
          right_dest = Dyninst::Null_Register;
 
