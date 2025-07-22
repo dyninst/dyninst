@@ -293,7 +293,7 @@ static void insertEpilogueInInstrumentedFunctions(
     std::vector<BPatch_point *> exitPoints;
     function->getExitPoints(exitPoints);
 
-    for (int i = 0; i < exitPoints.size(); ++i) {
+    for (size_t i = 0; i < exitPoints.size(); ++i) {
       BPatch_point *exitPoint = exitPoints[i];
 
       for (auto &kernelInfo : kernelInfos) {
