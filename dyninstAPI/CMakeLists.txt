@@ -57,7 +57,6 @@ set(_private_headers
     src/debug.h
     src/dynProcess.h
     src/dynThread.h
-    src/ELF_Section.h
     src/emit-aarch64.h
     src/emit-power.h
     src/emitter.h
