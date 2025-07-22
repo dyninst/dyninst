@@ -122,13 +122,16 @@ class Emitter {
     virtual bool emitTOCJump(block_instance *, codeGen &) { assert(0); return false; }
     virtual bool emitTOCCall(block_instance *, codeGen &) { assert(0); return false; }
 
-    virtual void emitNops(unsigned numNops, codeGen &gen) {}
-    virtual void emitEndProgram(codeGen &gen) {}
-    virtual void emitMovLiteral(Register reg, uint32_t value, codeGen &gen) {}
-    virtual void emitConditionalBranch(bool onConditionTrue, int16_t wordOffset,
-                                     codeGen &gen) {}
-    virtual void emitShortJump(int16_t wordOffset, codeGen &gen) {}
-    virtual void emitLongJump(Register reg, uint64_t toAddress, codeGen &gen) {}
+    virtual void emitNops(unsigned /* numNops */, codeGen & /* gen */) {}
+    virtual void emitEndProgram(codeGen & /* gen */) {}
+    virtual void emitMovLiteral(Register /* reg */, uint32_t /* value */, codeGen & /* gen */) {}
+    virtual void emitConditionalBranch(bool /* onConditionTrue */, int16_t /* wordOffset */,
+                                     codeGen & /* gen */) {}
+    virtual void emitShortJump(int16_t /* wordOffset */, codeGen & /* gen */) {}
+    virtual void emitLongJump(Register /* reg */, uint64_t /* fromAddress */, uint64_t /* toAddress */, codeGen & /* gen */) {}
+
+    // TODO : Make all targets use this instead of having this functionality floating around in the codebase.
+    virtual void emitMovePCtoReg(Register /* reg */, codeGen & /* gen */) {}
 };
 
 #endif
