@@ -47,10 +47,10 @@
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
-const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
-const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
-const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
-const char DL_OPEN_LIBC_FUNC_EXPORTED[] = "__libc_dlopen_mode";
+// const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
+// const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
+// const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
+// const char DL_OPEN_LIBC_FUNC_EXPORTED[] = "__libc_dlopen_mode";
 
 Dyninst::Address PCProcess::getLibcStartMainParam(PCThread *) {
     assert(!"This function is unimplemented");
