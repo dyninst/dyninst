@@ -1341,7 +1341,6 @@ image::image(fileDescriptor &desc,
    dataOffset_(0),
    dataLen_(0),
    is_libdyninstRT(false),
-   main_call_addr_(0),
    linkedFile(NULL),
 #if defined(os_linux) || defined(os_freebsd)
    archive(NULL),
