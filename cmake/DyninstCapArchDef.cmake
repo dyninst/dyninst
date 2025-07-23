@@ -84,7 +84,7 @@ else()
   elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
     set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_64bit)
   endif()
-## amdgpu special
+  ## amdgpu special
 endif()
 
 ## OK, so this is a brute force copy again.
@@ -144,7 +144,7 @@ endif()
 
 string(REGEX REPLACE "-D" "-DDYNINST_HOST_" _LOWER_ARCH_DEFINES
                      "${ARCH_DEFINES_TESTSUITE}")
-if (NOT DYNINST_ARCH_amdgpu)
+if(NOT DYNINST_ARCH_amdgpu)
   string(TOUPPER "${_LOWER_ARCH_DEFINES}" ARCH_DEFINES)
 endif()
 
