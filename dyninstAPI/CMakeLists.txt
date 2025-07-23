@@ -70,6 +70,7 @@ set(_private_headers
     src/IAPI_to_AST.h
     src/image.h
     src/infHeap.h
+    src/insn-codegen.h
     src/inst-aarch64.h
     src/inst.h
     src/instPoint.h
@@ -119,6 +120,7 @@ set(_sources
     src/hybridCallbacks.C
     src/hybridInstrumentation.C
     src/hybridOverwrites.C
+    src/insn-codegen.C
     src/image.C
     src/infHeap.C
     src/inst.C

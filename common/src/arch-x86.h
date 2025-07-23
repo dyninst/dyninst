@@ -219,12 +219,6 @@ enum AMD64_REG_NUMBERS {
 }
 ;
 
-#if defined(DYNINST_CODEGEN_ARCH_X86_64)
-#define maxGPR 16
-#else
-#define maxGPR 8
-#endif 
-
 #define READ_OP 0
 #define WRITE_OP 1
 
@@ -446,10 +440,10 @@ enum AMD64_REG_NUMBERS {
 const unsigned char SYSCALL[] = {0x0F, 0x05};
 
 /* limits */
-#define MIN_IMM8 (-128)
-#define MAX_IMM8 (127)
-#define MIN_IMM16 (-32768)
-#define MAX_IMM16 (32767)
+const uint64_t MIN_IMM8 = (-128);
+const uint64_t MAX_IMM8 = (127);
+const uint64_t MIN_IMM16 = (-32768);
+const uint64_t MAX_IMM16 = (32767);
 
 // Size of floating point information saved by FSAVE
 #define FSAVE_STATE_SIZE 108

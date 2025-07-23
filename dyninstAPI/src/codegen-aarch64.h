@@ -40,7 +40,7 @@ class AddressSpace;
 
 class codeGen;
 
-class insnCodeGen {
+class insnCodeGenAarch64 {
 public:
 
     enum MoveOp {
@@ -113,13 +113,13 @@ public:
 
     static inline void loadImmIntoReg(codeGen &gen, Dyninst::Register rt, Dyninst::Address value)
     {
-        insnCodeGen::generateMove(gen, (value & 0xFFFF), 0, rt, MovOp_MOVZ);
+        insnCodeGenAarch64::generateMove(gen, (value & 0xFFFF), 0, rt, MovOp_MOVZ);
         if(value > 0xFFFF)
-            insnCodeGen::generateMove(gen, ((value >> 16) & 0xFFFF), 0x1, rt, MovOp_MOVK);
+            insnCodeGenAarch64::generateMove(gen, ((value >> 16) & 0xFFFF), 0x1, rt, MovOp_MOVK);
         if(value > 0xFFFFFFFF)
-            insnCodeGen::generateMove(gen, ((value >> 32) & 0xFFFF), 0x2, rt, MovOp_MOVK);
+            insnCodeGenAarch64::generateMove(gen, ((value >> 32) & 0xFFFF), 0x2, rt, MovOp_MOVK);
         if(value > 0xFFFFFFFFFFFF)
-            insnCodeGen::generateMove(gen, ((value >> 48) & 0xFFFF), 0x3, rt, MovOp_MOVK);
+            insnCodeGenAarch64::generateMove(gen, ((value >> 48) & 0xFFFF), 0x3, rt, MovOp_MOVK);
     }
 
     static void saveRegister(codeGen &gen, Dyninst::Register r, int sp_offset, IndexMode im=Offset);

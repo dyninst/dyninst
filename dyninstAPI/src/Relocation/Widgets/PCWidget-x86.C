@@ -56,7 +56,7 @@ bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuf
     if (templ.getArch() == Arch_x86_64) {
         codeGen gen(16);
         Address RIP = addr_ + insn_.size();
-        insnCodeGen::generatePush64(gen, RIP);
+        insnCodeGenX86::generatePush64(gen, RIP);
         buffer.addPIC(gen, tracker(t));
     } else if (templ.getArch() == Arch_x86) {
         newInsn.push_back(0x68); // push

@@ -38,6 +38,7 @@
 #include "dyn_register.h"
 #include "dyninstAPI/src/patch.h"
 
+#include "insn-codegen.h"
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
 #include "codegen-power.h"
 using namespace NS_power;

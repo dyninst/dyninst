@@ -370,7 +370,7 @@ typedef instructUnion codeBuf_t;
 typedef unsigned codeBufIndex_t;
 
 #define SPR_XER	1
-#define SPR_LR	8
+const unsigned SPR_LR=8;
 #define SPR_CTR	9
 #define SPR_TAR 815
 #define SPR_MQ 0
@@ -378,10 +378,7 @@ typedef unsigned codeBufIndex_t;
 /*
  * Register saving constants
  */
-#define maxFPR 32           /* Save FPRs 0-13 */
-#define maxGPR 32           /* More space than is needed */
 #define FPRspaceUsed (8*16) /* Aligned space for FPRs */
-#define GPRoffset(reg) (-1* (FPRspaceUsed + 4*(maxGPR-reg)))
 #define GPRspaceUsed (20*4) /* Aligned space for GPRs */
 
 #define stackFrameSize (FPRspaceUsed+GPRspaceUsed+128)
@@ -745,7 +742,7 @@ typedef unsigned codeBufIndex_t;
 
 
 
-#define BREAK_POINT_INSN 0x7d821008  /* trap */
+const uint64_t BREAK_POINT_INSN=0x7d821008;  /* trap */
 
 /* high and low half words.  Useful to load addresses as two parts */
 #define LOW(x)  ((x) & 0xffff)
@@ -763,10 +760,10 @@ typedef unsigned codeBufIndex_t;
 
 #define ABS(x)		((x) > 0 ? x : -x)
 //#define MAX_BRANCH	0x1<<23
-#define MAX_BRANCH      0x01fffffc
+const int64_t MAX_BRANCH    =  0x01fffffc;
 #define MAX_CBRANCH	0x1<<13
 
-#define MAX_IMM		0x1<<15		/* 15 plus sign == 16 bits */
+const int64_t MAX_IMM=		(0x1<<15);		/* 15 plus sign == 16 bits */
 
 // Delcared some other functions in inst-power.C
 // bool isCallInsn(const instruction);
@@ -774,11 +771,11 @@ typedef unsigned codeBufIndex_t;
 
 // Define bounds for immediate offsets.
 // Use strange definitions to avoid compiler warnings.
-#define MAX_IMM16      32767
-#define MIN_IMM16      -32768
+const int64_t MAX_IMM16=    32767;
+const int64_t MIN_IMM16=   -32768;
 
-#define MAX_IMM32      2147483647
-#define MIN_IMM32      (-2147483647 - 1)    // In C90, there are no negative
+const int64_t MAX_IMM32=     2147483647;
+const int64_t MIN_IMM32=      (-2147483647 - 1);    // In C90, there are no negative
                                             // constants. Only negated positive
                                             // constants. Hopefully, compiler
                                             // will optimize this away.

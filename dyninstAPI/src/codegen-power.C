@@ -75,7 +75,7 @@ std::shared_ptr<TrackStacktraces> _global_stack_track;
 
 
 
-void insnCodeGen::generate(codeGen &gen, instruction&insn) {
+void insnCodeGenPower::generate(codeGen &gen, instruction&insn) {
   // void *buffer[50];
   // char **strings;
   // int nptrs;
@@ -127,17 +127,17 @@ void insnCodeGen::generate(codeGen &gen, instruction&insn) {
   gen.copy(&raw, sizeof(unsigned));
 }
 
-void insnCodeGen::generateIllegal(codeGen &gen) {
+void insnCodeGenPower::generateIllegal(codeGen &gen) {
     instruction insn;
     generate(gen,insn);
 }
 
-void insnCodeGen::generateTrap(codeGen &gen) {
-    instruction insn(BREAK_POINT_INSN);
+void insnCodeGenPower::generateTrap(codeGen &gen) {
+    instruction insn(NS_power::BREAK_POINT_INSN);
     generate(gen,insn);
 }
 
-void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link)
+void insnCodeGenPower::generateBranch(codeGen &gen, long disp, bool link)
 {
   //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
     if (ABS(disp) > MAX_BRANCH) {
@@ -161,13 +161,13 @@ void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link)
     else
         IFORM_LK_SET(insn, 0);
 
-    insnCodeGen::generate(gen,insn);
+    insnCodeGenPower::generate(gen,insn);
 }
 
-void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool link) {
+void insnCodeGenPower::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool link) {
 
     long disp = (to - from);
-//    fprintf(stderr, "[insnCodeGen::generateBranch] Generating branch from %p to %p\n", from, to);
+//    fprintf(stderr, "[insnCodeGenPower::generateBranch] Generating branch from %p to %p\n", from, to);
     // if (from == 0x10000750 || from == 0x10000758) {
     //   fprintf(stderr, "Stop here\n");
     // }
@@ -180,7 +180,7 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
    
 }
 
-void insnCodeGen::generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Address to) {
+void insnCodeGenPower::generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Address to) {
     //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
     generateBranch(gen, from, to, true);
 }
@@ -237,10 +237,10 @@ void GenerateRestoresBaseTrampStyle(codeGen &gen) {
     popStack(gen);
 }
 
-void insnCodeGen::generateMoveToSPR(codeGen &gen, Dyninst::Register toSPR,
+void insnCodeGenPower::generateMoveToSPR(codeGen &gen, Dyninst::Register toSPR,
                                     unsigned sprReg) {
   // Check that this SPR exists
-  if (sprReg != SPR_TAR && sprReg != SPR_LR && sprReg != SPR_CTR)
+  if (sprReg != SPR_TAR && sprReg != NS_power::SPR_LR && sprReg != SPR_CTR)
     assert("SPR Dyninst::Register is not valid" == 0);
 
   // Move the register to the spr 
@@ -251,13 +251,13 @@ void insnCodeGen::generateMoveToSPR(codeGen &gen, Dyninst::Register toSPR,
   XFORM_RA_SET(moveToBr, sprReg & 0x1f);
   XFORM_RB_SET(moveToBr, (sprReg >> 5) & 0x1f);
   XFXFORM_XO_SET(moveToBr, MTSPRxop); // From assembly manual
-  insnCodeGen::generate(gen,moveToBr); 
+  insnCodeGenPower::generate(gen,moveToBr); 
 }
 
-void insnCodeGen::generateMoveFromSPR(codeGen &gen,  Dyninst::Register toSPR,
+void insnCodeGenPower::generateMoveFromSPR(codeGen &gen,  Dyninst::Register toSPR,
                                     unsigned sprReg) {
   // Check that this SPR exists
-  if (sprReg != SPR_TAR && sprReg != SPR_LR && sprReg != SPR_CTR)
+  if (sprReg != SPR_TAR && sprReg != NS_power::SPR_LR && sprReg != SPR_CTR)
     assert("SPR Dyninst::Register is not valid" == 0);
 
   // Move the register to the spr 
@@ -268,11 +268,11 @@ void insnCodeGen::generateMoveFromSPR(codeGen &gen,  Dyninst::Register toSPR,
   XFORM_RA_SET(moveToBr, sprReg & 0x1f);
   XFORM_RB_SET(moveToBr, (sprReg >> 5) & 0x1f);
   XFXFORM_XO_SET(moveToBr, MFSPRxop); // From assembly manual
-  insnCodeGen::generate(gen,moveToBr); 
+  insnCodeGenPower::generate(gen,moveToBr); 
 }
 
-void insnCodeGen::generateVectorLoad(codeGen &gen, unsigned vectorReg, Dyninst::Register RegAddress) {
-  //insnCodeGen::generateImm(gen, CALop,  rt, 0,  BOT_LO(value)); 
+void insnCodeGenPower::generateVectorLoad(codeGen &gen, unsigned vectorReg, Dyninst::Register RegAddress) {
+  //insnCodeGenPower::generateImm(gen, CALop,  rt, 0,  BOT_LO(value)); 
   instruction loadInstruction;
   XLFORM_OP_SET(loadInstruction, LXVD2Xop);
   XLFORM_BT_SET(loadInstruction, vectorReg); // From architecture manual
@@ -280,10 +280,10 @@ void insnCodeGen::generateVectorLoad(codeGen &gen, unsigned vectorReg, Dyninst::
   XLFORM_BB_SET(loadInstruction, RegAddress); // Unused
   XLFORM_XO_SET(loadInstruction, LXVD2Xxo);
   XLFORM_LK_SET(loadInstruction, 0); // Unused? 
-  insnCodeGen::generate(gen,loadInstruction);
+  insnCodeGenPower::generate(gen,loadInstruction);
 }
 
-void insnCodeGen::generateVectorStore(codeGen & gen, unsigned vectorReg, Dyninst::Register RegAddress) {
+void insnCodeGenPower::generateVectorStore(codeGen & gen, unsigned vectorReg, Dyninst::Register RegAddress) {
   instruction storeInstruction;
   XLFORM_OP_SET(storeInstruction, STXVD2Xop);
   XLFORM_BT_SET(storeInstruction, vectorReg); // From architecture manual
@@ -291,23 +291,23 @@ void insnCodeGen::generateVectorStore(codeGen & gen, unsigned vectorReg, Dyninst
   XLFORM_BB_SET(storeInstruction, RegAddress); // Unused
   XLFORM_XO_SET(storeInstruction, STXVD2Xxo);
   XLFORM_LK_SET(storeInstruction, 0); // Unused? 
-  insnCodeGen::generate(gen,storeInstruction);  
+  insnCodeGenPower::generate(gen,storeInstruction);  
 }
 
-void insnCodeGen::saveVectors(codeGen & gen, int startStackOffset) {
+void insnCodeGenPower::saveVectors(codeGen & gen, int startStackOffset) {
   for (int i = 0; i < 32; i++) {
-    insnCodeGen::generateImm(gen, CALop, registerSpace::r10 , registerSpace::r1,  BOT_LO(startStackOffset + (16*(i+1))));
-    insnCodeGen::generateVectorStore(gen, i, registerSpace::r10);
+    insnCodeGenPower::generateImm(gen, CALop, registerSpace::r10 , registerSpace::r1,  BOT_LO(startStackOffset + (16*(i+1))));
+    insnCodeGenPower::generateVectorStore(gen, i, registerSpace::r10);
   }
 }
-void insnCodeGen::restoreVectors(codeGen & gen, int startStackOffset) {
+void insnCodeGenPower::restoreVectors(codeGen & gen, int startStackOffset) {
   for (int i = 0; i < 32; i++) {
-    insnCodeGen::generateImm(gen, CALop, registerSpace::r10 , registerSpace::r1,  BOT_LO(startStackOffset + (16*(i+1))));
-    insnCodeGen::generateVectorLoad(gen, i, registerSpace::r10);
+    insnCodeGenPower::generateImm(gen, CALop, registerSpace::r10 , registerSpace::r1,  BOT_LO(startStackOffset + (16*(i+1))));
+    insnCodeGenPower::generateVectorLoad(gen, i, registerSpace::r10);
   }
 }
 
-bool insnCodeGen::generateBranchTar(codeGen &gen, Dyninst::Register scratch,
+bool insnCodeGenPower::generateBranchTar(codeGen &gen, Dyninst::Register scratch,
                                     Dyninst::Address dest,
                                     bool isCall) {
   // Generates a branch using TAR to the address specified in dest. 
@@ -317,10 +317,10 @@ bool insnCodeGen::generateBranchTar(codeGen &gen, Dyninst::Register scratch,
 
   // Move the address to the scratch register
   // Done because TAR can only be set called using a register value
-  insnCodeGen::loadImmIntoReg(gen, scratch, dest);
+  insnCodeGenPower::loadImmIntoReg(gen, scratch, dest);
 
   // Generate the instruction to move the reg -> tar
-  insnCodeGen::generateMoveToSPR(gen, scratch, SPR_TAR);
+  insnCodeGenPower::generateMoveToSPR(gen, scratch, SPR_TAR);
 
   // Aaaand now branch, linking if appropriate
   instruction branchToBr;
@@ -331,11 +331,11 @@ bool insnCodeGen::generateBranchTar(codeGen &gen, Dyninst::Register scratch,
   XLFORM_BB_SET(branchToBr, 0); // Unused
   XLFORM_XO_SET(branchToBr, BCTARxop);
   XLFORM_LK_SET(branchToBr, (isCall ? 1 : 0));
-  insnCodeGen::generate(gen,branchToBr);
+  insnCodeGenPower::generate(gen,branchToBr);
   return true;
 }
 
-bool insnCodeGen::generateBranchLR(codeGen &gen, Dyninst::Register scratch,
+bool insnCodeGenPower::generateBranchLR(codeGen &gen, Dyninst::Register scratch,
                                     Dyninst::Address dest,
                                     bool isCall) {
   // Generates a branch using LR to the address specified in dest. 
@@ -345,10 +345,10 @@ bool insnCodeGen::generateBranchLR(codeGen &gen, Dyninst::Register scratch,
 
   // Move the address to the scratch register
   // Done because TAR can only be set called using a register value
-  insnCodeGen::loadImmIntoReg(gen, scratch, dest);
+  insnCodeGenPower::loadImmIntoReg(gen, scratch, dest);
 
   // Generate the instruction to move the reg -> tar
-  insnCodeGen::generateMoveToSPR(gen, scratch, SPR_LR);
+  insnCodeGenPower::generateMoveToSPR(gen, scratch, NS_power::SPR_LR);
 
   // Aaaand now branch, linking if appropriate
   instruction branchToBr;
@@ -359,12 +359,12 @@ bool insnCodeGen::generateBranchLR(codeGen &gen, Dyninst::Register scratch,
   XLFORM_BB_SET(branchToBr, 0); // Unused
   XLFORM_XO_SET(branchToBr, BCLRxop);
   XLFORM_LK_SET(branchToBr, (isCall ? 1 : 0));
-  insnCodeGen::generate(gen,branchToBr);
+  insnCodeGenPower::generate(gen,branchToBr);
   return true;
 }
 
 
-bool insnCodeGen::generateBranchCTR(codeGen &gen, 
+bool insnCodeGenPower::generateBranchCTR(codeGen &gen, 
                                     Dyninst::Register scratch,
                                     Dyninst::Address dest,
                                     bool isCall) {
@@ -375,10 +375,10 @@ bool insnCodeGen::generateBranchCTR(codeGen &gen,
 
   // Move the address to the scratch register
   // Done because TAR can only be set called using a register value
-  insnCodeGen::loadImmIntoReg(gen, scratch, dest);
+  insnCodeGenPower::loadImmIntoReg(gen, scratch, dest);
 
   // Generate the instruction to move the reg -> tar
-  insnCodeGen::generateMoveToSPR(gen, scratch, SPR_LR);
+  insnCodeGenPower::generateMoveToSPR(gen, scratch, NS_power::SPR_LR);
 
   // Aaaand now branch, linking if appropriate
   instruction branchToBr;
@@ -389,7 +389,7 @@ bool insnCodeGen::generateBranchCTR(codeGen &gen,
   XLFORM_BB_SET(branchToBr, 0); // Unused
   XLFORM_XO_SET(branchToBr, BCCTRxop);
   XLFORM_LK_SET(branchToBr, (isCall ? 1 : 0));
-  insnCodeGen::generate(gen,branchToBr);
+  insnCodeGenPower::generate(gen,branchToBr);
   return true;
 }
 
@@ -424,7 +424,7 @@ instPoint * GetInstPointPower(codeGen & gen, Dyninst::Address from) {
     }
     return NULL;
 }
-void insnCodeGen::generateLongBranch(codeGen &gen, 
+void insnCodeGenPower::generateLongBranch(codeGen &gen, 
                                      Dyninst::Address from,
                                      Dyninst::Address to,
                                      bool isCall) {
@@ -437,14 +437,14 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     //fprintf(stderr, "%s\n", "generating call long branch using LR");
       // This is making the assumption R2/R12 has already been setup correctly, 
       // First generate a scratch register by moving something, i choose R11 to send to TAR
-      insnCodeGen::generateMoveToSPR(gen,registerSpace::r10, SPR_TAR);
+      insnCodeGenPower::generateMoveToSPR(gen,registerSpace::r10, SPR_TAR);
       
       // r10 is now free to setup the branch instruction
-      insnCodeGen::loadImmIntoReg(gen, registerSpace::r10, to);
-      insnCodeGen::generateMoveToSPR(gen,registerSpace::r10, SPR_LR);
+      insnCodeGenPower::loadImmIntoReg(gen, registerSpace::r10, to);
+      insnCodeGenPower::generateMoveToSPR(gen,registerSpace::r10, NS_power::SPR_LR);
 
       // Return r10 to its original state
-      insnCodeGen::generateMoveFromSPR(gen, registerSpace::r10, SPR_TAR);
+      insnCodeGenPower::generateMoveFromSPR(gen, registerSpace::r10, SPR_TAR);
 
       // Emit the branch instruction
       instruction branchToBr;
@@ -455,7 +455,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
       XLFORM_BB_SET(branchToBr, 0); // Unused
       XLFORM_XO_SET(branchToBr, BCLRxop);
       XLFORM_LK_SET(branchToBr, (isCall ? 1 : 0));
-      insnCodeGen::generate(gen,branchToBr);
+      insnCodeGenPower::generate(gen,branchToBr);
   } else {
     //fprintf(stderr, "%s\n", "generating non-call long branch using TAR");
     // What this does is the following:
@@ -495,7 +495,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
           if (liveRegs[registerSpace::lr] == false && isCall) {
               usingLR = true;
               // Dyninst::Register 11 is the chosen one for using temporarily.
-              generateMoveToSPR(gen, registerSpace::r10, SPR_LR);
+              generateMoveToSPR(gen, registerSpace::r10, NS_power::SPR_LR);
           } else if (liveRegs[registerSpace::ctr] == false) {
               usingCTR = true;
               generateMoveToSPR(gen, registerSpace::r10, SPR_CTR);
@@ -507,24 +507,24 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
         }
     } else if (scratch != Null_Register) {
         //fprintf(stderr, "%s\n", "Generating branch with TAR.....");
-        insnCodeGen::generateBranchTar(gen, scratch, to, isCall);
+        insnCodeGenPower::generateBranchTar(gen, scratch, to, isCall);
         return;
     }
 
     if (scratch == Null_Register) {
       // Now the fun stuff....
       // Loed destination value into r11, copy it to SPR_TAR, restore the original R11 value.
-      insnCodeGen::loadImmIntoReg(gen, registerSpace::r10, to);
-      insnCodeGen::generateMoveToSPR(gen, registerSpace::r10, SPR_TAR);
+      insnCodeGenPower::loadImmIntoReg(gen, registerSpace::r10, to);
+      insnCodeGenPower::generateMoveToSPR(gen, registerSpace::r10, SPR_TAR);
       if (usingCTR)
-        insnCodeGen::generateMoveFromSPR(gen, registerSpace::r10, SPR_CTR);
+        insnCodeGenPower::generateMoveFromSPR(gen, registerSpace::r10, SPR_CTR);
       else if (usingLR)
-        insnCodeGen::generateMoveFromSPR(gen, registerSpace::r10, SPR_LR);
+        insnCodeGenPower::generateMoveFromSPR(gen, registerSpace::r10, NS_power::SPR_LR);
       else 
         assert("SHOULD NEVER BE HERE" == 0);
     } else {
-      insnCodeGen::loadImmIntoReg(gen, scratch, to);
-      insnCodeGen::generateMoveToSPR(gen, scratch, SPR_TAR);      
+      insnCodeGenPower::loadImmIntoReg(gen, scratch, to);
+      insnCodeGenPower::generateMoveToSPR(gen, scratch, SPR_TAR);      
     }
     // Emit the call instruction.
     instruction branchToBr;
@@ -535,12 +535,12 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     XLFORM_BB_SET(branchToBr, 0); // Unused
     XLFORM_XO_SET(branchToBr, BCTARxop);
     XLFORM_LK_SET(branchToBr, (isCall ? 1 : 0));
-    insnCodeGen::generate(gen, branchToBr);    
+    insnCodeGenPower::generate(gen, branchToBr);    
   }
   return;
 
   // bool everythingSaved = false;
-  // //fprintf(stderr, "[insnCodeGen::generateLongBranch] Generating long branch from %p to %p\n", from, to);
+  // //fprintf(stderr, "[insnCodeGenPower::generateLongBranch] Generating long branch from %p to %p\n", from, to);
   //   // First, see if we can cheap out
   //   long disp = (to - from);
   //   if (ABS(disp) <= MAX_BRANCH) {
@@ -555,7 +555,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
   //   if (!point) {
   //       // fprintf(stderr, " %s[%d] No point generateBranchViaTrap \n", FILE__, __LINE__);
   //       fprintf(stderr, "This is an instruction which we would trap on\n");
-  //       fprintf(stderr, "[insnCodeGen::generateLongBranch] Building long branch from %llx to %llx at position %llx and this branch call status is %d\n", from, to, gen.currAddr(), isCall);
+  //       fprintf(stderr, "[insnCodeGenPower::generateLongBranch] Building long branch from %llx to %llx at position %llx and this branch call status is %d\n", from, to, gen.currAddr(), isCall);
   //       // Generate branch via traps is broken, never call it. 
   //       // assert(1 == 0);
   //       // return generateBranchViaTrap(gen, from, to, isCall);
@@ -587,7 +587,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
   //   }
     
   //   // Load the destination into our scratch register
-  //   insnCodeGen::loadImmIntoReg(gen, scratch, to);
+  //   insnCodeGenPower::loadImmIntoReg(gen, scratch, to);
   //   unsigned branchRegister = registerSpace::lr;
   //   // Find out whether the LR or CTR is "dead"...
   //   //bitArray liveRegs = point->liveRegisters();
@@ -615,8 +615,8 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
   //   XFXFORM_OP_SET(moveToBr, MTSPRop);
   //   XFXFORM_RT_SET(moveToBr, scratch);
   //   if (branchRegister == registerSpace::lr) {
-  //       XFORM_RA_SET(moveToBr, SPR_LR & 0x1f);
-  //       XFORM_RB_SET(moveToBr, (SPR_LR >> 5) & 0x1f);
+  //       XFORM_RA_SET(moveToBr, NS_power::SPR_LR & 0x1f);
+  //       XFORM_RB_SET(moveToBr, (NS_power::SPR_LR >> 5) & 0x1f);
   //       // The two halves (top 5 bits/bottom 5 bits) are _reversed_ in this encoding. 
   //   }
   //   else {
@@ -624,7 +624,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
   //       XFORM_RB_SET(moveToBr, (SPR_CTR >> 5) & 0x1f);
   //   }
   //   XFXFORM_XO_SET(moveToBr, MTSPRxop); // From assembly manual
-  //   insnCodeGen::generate(gen,moveToBr);
+  //   insnCodeGenPower::generate(gen,moveToBr);
   //   // Aaaand now branch, linking if appropriate
   //   instruction branchToBr;
   //   branchToBr.clear();
@@ -639,16 +639,16 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
   //       XLFORM_XO_SET(branchToBr, BCCTRxop);
   //   }
   //   XLFORM_LK_SET(branchToBr, (isCall ? 1 : 0));
-  //   insnCodeGen::generate(gen,branchToBr);
+  //   insnCodeGenPower::generate(gen,branchToBr);
 
   //   // restore the world
   //   if(everythingSaved)
   //     GenerateRestoresBaseTrampStyle(gen);
 }
 
-void insnCodeGen::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool isCall) {
+void insnCodeGenPower::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool isCall) {
 
-  //fprintf(stderr, "[insnCodeGen::generateBranchViaTrap] Generating branch via trap from %p to %p\n", from, to);
+  //fprintf(stderr, "[insnCodeGenPower::generateBranchViaTrap] Generating branch via trap from %p to %p\n", from, to);
     long disp = to - from;
     if (ABS(disp) <= MAX_BRANCH) {
         // We shouldn't be here, since this is an internal-called-only func.
@@ -678,17 +678,17 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyn
 
 
         //instruction insn(NOOPraw);
-        //insnCodeGen::generate(gen,insn);
-        //insnCodeGen::generate(gen,insn);
-        //insnCodeGen::generate(gen,insn);
-        //insnCodeGen::generate(gen,insn);
-        //insnCodeGen::generate(gen,insn);
-        //insnCodeGen::generate(gen,insn);
-        //insnCodeGen::generate(gen,insn);
-        //insnCodeGen::generate(gen,insn);
-        //insnCodeGen::generate(gen,insn);
+        //insnCodeGenPower::generate(gen,insn);
+        //insnCodeGenPower::generate(gen,insn);
+        //insnCodeGenPower::generate(gen,insn);
+        //insnCodeGenPower::generate(gen,insn);
+        //insnCodeGenPower::generate(gen,insn);
+        //insnCodeGenPower::generate(gen,insn);
+        //insnCodeGenPower::generate(gen,insn);
+        //insnCodeGenPower::generate(gen,insn);
+        //insnCodeGenPower::generate(gen,insn);
         gen.addrSpace()->trapMapping.addTrapMapping(from, to, true);
-        insnCodeGen::generateTrap(gen);        
+        insnCodeGenPower::generateTrap(gen);        
       } else {
           // Too far to branch and no proc to register trap.
           fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
@@ -702,7 +702,7 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyn
     }
 }
 
-void insnCodeGen::generateAddReg (codeGen & gen, int op, Dyninst::Register rt,
+void insnCodeGenPower::generateAddReg (codeGen & gen, int op, Dyninst::Register rt,
 				   Dyninst::Register ra, Dyninst::Register rb)
 {
 
@@ -716,10 +716,10 @@ void insnCodeGen::generateAddReg (codeGen & gen, int op, Dyninst::Register rt,
   XOFORM_XO_SET(insn, 266);
   XOFORM_RC_SET(insn, 0);
 
-  insnCodeGen::generate (gen,insn);
+  insnCodeGenPower::generate (gen,insn);
 }
 
-void insnCodeGen::generateLoadReg(codeGen &gen, Dyninst::Register rt,
+void insnCodeGenPower::generateLoadReg(codeGen &gen, Dyninst::Register rt,
                                   Dyninst::Register ra, Dyninst::Register rb)
 {
     instruction insn;
@@ -731,10 +731,10 @@ void insnCodeGen::generateLoadReg(codeGen &gen, Dyninst::Register rt,
     XFORM_XO_SET(insn, LXxop);
     XFORM_RC_SET(insn, 0);
 
-    insnCodeGen::generate (gen,insn);
+    insnCodeGenPower::generate (gen,insn);
 }
 
-void insnCodeGen::generateStoreReg(codeGen &gen, Dyninst::Register rt,
+void insnCodeGenPower::generateStoreReg(codeGen &gen, Dyninst::Register rt,
                                    Dyninst::Register ra, Dyninst::Register rb)
 {
     instruction insn;
@@ -746,10 +746,10 @@ void insnCodeGen::generateStoreReg(codeGen &gen, Dyninst::Register rt,
     XFORM_XO_SET(insn, STXxop);
     XFORM_RC_SET(insn, 0);
 
-    insnCodeGen::generate (gen,insn);
+    insnCodeGenPower::generate (gen,insn);
 }
 
-void insnCodeGen::generateLoadReg64(codeGen &gen, Dyninst::Register rt,
+void insnCodeGenPower::generateLoadReg64(codeGen &gen, Dyninst::Register rt,
                                     Dyninst::Register ra, Dyninst::Register rb)
 {
     instruction insn;
@@ -761,10 +761,10 @@ void insnCodeGen::generateLoadReg64(codeGen &gen, Dyninst::Register rt,
     XFORM_XO_SET(insn, LDXxop);
     XFORM_RC_SET(insn, 0);
 
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenPower::generate(gen, insn);
 }
 
-void insnCodeGen::generateStoreReg64(codeGen &gen, Dyninst::Register rs,
+void insnCodeGenPower::generateStoreReg64(codeGen &gen, Dyninst::Register rs,
                                      Dyninst::Register ra, Dyninst::Register rb)
 {
     instruction insn;
@@ -776,10 +776,10 @@ void insnCodeGen::generateStoreReg64(codeGen &gen, Dyninst::Register rs,
     XFORM_XO_SET(insn, STXxop);
     XFORM_RC_SET(insn, 0);
 
-    insnCodeGen::generate(gen, insn);
+    insnCodeGenPower::generate(gen, insn);
 }
 
-void insnCodeGen::generateImm(codeGen &gen, int op, Dyninst::Register rt, Dyninst::Register ra, int immd)
+void insnCodeGenPower::generateImm(codeGen &gen, int op, Dyninst::Register rt, Dyninst::Register ra, int immd)
  {
   // something should be here to make sure immd is within bounds
   // bound check really depends on op since we have both signed and unsigned
@@ -802,10 +802,10 @@ void insnCodeGen::generateImm(codeGen &gen, int op, Dyninst::Register rt, Dynins
   if (op==SIop) immd = -immd;
   DFORM_SI_SET(insn, immd);
 
-  insnCodeGen::generate(gen,insn);
+  insnCodeGenPower::generate(gen,insn);
 }
 
-void insnCodeGen::generateMemAccess64(codeGen &gen, int op, int xop, Dyninst::Register r1, Dyninst::Register r2, int immd)
+void insnCodeGenPower::generateMemAccess64(codeGen &gen, int op, int xop, Dyninst::Register r1, Dyninst::Register r2, int immd)
 {
     assert(MIN_IMM16 <= immd && immd <= MAX_IMM16);
     assert((immd & 0x3) == 0);
@@ -819,11 +819,11 @@ void insnCodeGen::generateMemAccess64(codeGen &gen, int op, int xop, Dyninst::Re
     DSFORM_DS_SET(insn, immd >> 2);
     DSFORM_XO_SET(insn, xop);
 
-    insnCodeGen::generate(gen,insn);
+    insnCodeGenPower::generate(gen,insn);
 }
 
 // rlwinm ra,rs,n,0,31-n
-void insnCodeGen::generateLShift(codeGen &gen, Dyninst::Register rs, int shift, Dyninst::Register ra)
+void insnCodeGenPower::generateLShift(codeGen &gen, Dyninst::Register rs, int shift, Dyninst::Register ra)
 {
     instruction insn;
 
@@ -837,15 +837,15 @@ void insnCodeGen::generateLShift(codeGen &gen, Dyninst::Register rs, int shift, 
 	MFORM_MB_SET(insn, 0);
 	MFORM_ME_SET(insn, 31-shift);
 	MFORM_RC_SET(insn, 0);
-	insnCodeGen::generate(gen,insn);
+	insnCodeGenPower::generate(gen,insn);
 
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
-	insnCodeGen::generateLShift64(gen, rs, shift, ra);
+	insnCodeGenPower::generateLShift64(gen, rs, shift, ra);
     }
 }
 
 // rlwinm ra,rs,32-n,n,31
-void insnCodeGen::generateRShift(codeGen &gen, Dyninst::Register rs, int shift, Dyninst::Register ra, bool s)
+void insnCodeGenPower::generateRShift(codeGen &gen, Dyninst::Register rs, int shift, Dyninst::Register ra, bool s)
 {
     instruction insn;
 
@@ -859,15 +859,15 @@ void insnCodeGen::generateRShift(codeGen &gen, Dyninst::Register rs, int shift, 
 	MFORM_MB_SET(insn, shift);
 	MFORM_ME_SET(insn, 31);
 	MFORM_RC_SET(insn, 0);
-	insnCodeGen::generate(gen,insn);
+	insnCodeGenPower::generate(gen,insn);
 
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
-	insnCodeGen::generateRShift64(gen, rs, shift, ra, s);
+	insnCodeGenPower::generateRShift64(gen, rs, shift, ra, s);
     }
 }
 
 // sld ra, rs, rb
-void insnCodeGen::generateLShift64(codeGen &gen, Dyninst::Register rs, int shift, Dyninst::Register ra)
+void insnCodeGenPower::generateLShift64(codeGen &gen, Dyninst::Register rs, int shift, Dyninst::Register ra)
 {
     instruction insn;
 
@@ -883,11 +883,11 @@ void insnCodeGen::generateLShift64(codeGen &gen, Dyninst::Register rs, int shift
     MDFORM_SH2_SET(insn, shift / 32);
     MDFORM_RC_SET( insn, 0);
 
-    insnCodeGen::generate(gen,insn);
+    insnCodeGenPower::generate(gen,insn);
 }
 
 // srd ra, rs, rb
-void insnCodeGen::generateRShift64(codeGen &gen, Dyninst::Register rs, int shift, Dyninst::Register ra, bool)
+void insnCodeGenPower::generateRShift64(codeGen &gen, Dyninst::Register rs, int shift, Dyninst::Register ra, bool)
 {
     // This function uses rotate-left to implement right shift.
     // Rotate left 64-n bits is rotating right n bits.
@@ -907,24 +907,24 @@ void insnCodeGen::generateRShift64(codeGen &gen, Dyninst::Register rs, int shift
     MDFORM_SH2_SET(insn, (64 - shift) / 32);
     MDFORM_RC_SET( insn, 0);
 
-    insnCodeGen::generate(gen,insn);
+    insnCodeGenPower::generate(gen,insn);
 }
 
 //
 // generate an instruction that does nothing and has to side affect except to
 //   advance the program counter.
 //
-void insnCodeGen::generateNOOP(codeGen &gen, unsigned size)
+void insnCodeGenPower::generateNOOP(codeGen &gen, unsigned size)
 {
     assert ((size % instruction::size()) == 0);
     while (size) {
         instruction insn(NOOPraw);
-        insnCodeGen::generate(gen,insn);
+        insnCodeGenPower::generate(gen,insn);
         size -= instruction::size();
     }
 }
 
-void insnCodeGen::generateRelOp(codeGen &gen, int cond, int mode, Dyninst::Register rs1,
+void insnCodeGenPower::generateRelOp(codeGen &gen, int cond, int mode, Dyninst::Register rs1,
                                 Dyninst::Register rs2, Dyninst::Register rd, bool s)
 {
     instruction insn;
@@ -939,10 +939,10 @@ void insnCodeGen::generateRelOp(codeGen &gen, int cond, int mode, Dyninst::Regis
         XFORM_XO_SET(insn, CMPxop);
     else
         XFORM_XO_SET(insn, CMPLxop);
-    insnCodeGen::generate(gen,insn);
+    insnCodeGenPower::generate(gen,insn);
 
     // li rd, 1
-    insnCodeGen::generateImm(gen, CALop, rd, 0, 1);
+    insnCodeGenPower::generateImm(gen, CALop, rd, 0, 1);
 
     // b??,a +2
     insn.clear();
@@ -952,42 +952,42 @@ void insnCodeGen::generateRelOp(codeGen &gen, int cond, int mode, Dyninst::Regis
     BFORM_BD_SET(insn, 2);		// + two instructions */
     BFORM_AA_SET(insn, 0);
     BFORM_LK_SET(insn, 0);
-    insnCodeGen::generate(gen,insn);
+    insnCodeGenPower::generate(gen,insn);
 
     // clr rd
-    insnCodeGen::generateImm(gen, CALop, rd, 0, 0);
+    insnCodeGenPower::generateImm(gen, CALop, rd, 0, 0);
 }
 
 // Given a value, load it into a register.
-void insnCodeGen::loadImmIntoReg(codeGen &gen, Dyninst::Register rt, long value)
+void insnCodeGenPower::loadImmIntoReg(codeGen &gen, Dyninst::Register rt, long value)
 {
    // Writing a full 64 bits takes 5 instructions in the worst case.
    // Let's see if we use sign-extention to cheat.
    if (MIN_IMM16 <= value && value <= MAX_IMM16) {
-      insnCodeGen::generateImm(gen, CALop,  rt, 0,  BOT_LO(value));      
+      insnCodeGenPower::generateImm(gen, CALop,  rt, 0,  BOT_LO(value));      
    } else if (MIN_IMM32 <= value && value <= MAX_IMM32) {
-      insnCodeGen::generateImm(gen, CAUop,  rt, 0,  BOT_HI(value));
-      insnCodeGen::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
+      insnCodeGenPower::generateImm(gen, CAUop,  rt, 0,  BOT_HI(value));
+      insnCodeGenPower::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
    } 
 #if defined(DYNINST_CODEGEN_ARCH_64BIT)
    else if (MIN_IMM48 <= value && value <= MAX_IMM48) {
-      insnCodeGen::generateImm(gen, CALop,  rt, 0,  TOP_LO(value));
-      insnCodeGen::generateLShift64(gen, rt, 32, rt);
+      insnCodeGenPower::generateImm(gen, CALop,  rt, 0,  TOP_LO(value));
+      insnCodeGenPower::generateLShift64(gen, rt, 32, rt);
       if (BOT_HI(value))
-         insnCodeGen::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
+         insnCodeGenPower::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
       if (BOT_LO(value))
-         insnCodeGen::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
+         insnCodeGenPower::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
       
    } else {
 
-      insnCodeGen::generateImm(gen, CAUop,  rt,  0, TOP_HI(value));
+      insnCodeGenPower::generateImm(gen, CAUop,  rt,  0, TOP_HI(value));
       if (TOP_LO(value))
-         insnCodeGen::generateImm(gen, ORILop, rt, rt, TOP_LO(value));
-      insnCodeGen::generateLShift64(gen, rt, 32, rt);
+         insnCodeGenPower::generateImm(gen, ORILop, rt, rt, TOP_LO(value));
+      insnCodeGenPower::generateLShift64(gen, rt, 32, rt);
       if (BOT_HI(value))
-         insnCodeGen::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
+         insnCodeGenPower::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
       if (BOT_LO(value))
-         insnCodeGen::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
+         insnCodeGenPower::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
    }
 #endif
 }
@@ -995,7 +995,7 @@ void insnCodeGen::loadImmIntoReg(codeGen &gen, Dyninst::Register rt, long value)
 // Helper method.  Fills register with partial value to be completed
 // by an operation with a 16-bit signed immediate.  Such as loads and
 // stores.
-void insnCodeGen::loadPartialImmIntoReg(codeGen &gen, Dyninst::Register rt, long value)
+void insnCodeGenPower::loadPartialImmIntoReg(codeGen &gen, Dyninst::Register rt, long value)
 {
    if (MIN_IMM16 <= value && value <= MAX_IMM16) return;
    
@@ -1008,27 +1008,27 @@ void insnCodeGen::loadPartialImmIntoReg(codeGen &gen, Dyninst::Register rt, long
    }
    
    if (MIN_IMM32 <= value && value <= MAX_IMM32) {
-      insnCodeGen::generateImm(gen, CAUop,  rt, 0,  BOT_HI(value));       
+      insnCodeGenPower::generateImm(gen, CAUop,  rt, 0,  BOT_HI(value));       
    } 
 #if defined(DYNINST_CODEGEN_ARCH_64BIT)
    else if (MIN_IMM48 <= value && value <= MAX_IMM48) {
-      insnCodeGen::generateImm(gen, CALop,  rt, 0,  TOP_LO(value));
-      insnCodeGen::generateLShift64(gen, rt, 32, rt);
+      insnCodeGenPower::generateImm(gen, CALop,  rt, 0,  TOP_LO(value));
+      insnCodeGenPower::generateLShift64(gen, rt, 32, rt);
       if (BOT_HI(value))
-         insnCodeGen::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
+         insnCodeGenPower::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
       
    } else {
-      insnCodeGen::generateImm(gen, CAUop,  rt,  0, TOP_HI(value));
+      insnCodeGenPower::generateImm(gen, CAUop,  rt,  0, TOP_HI(value));
       if (TOP_LO(value))
-         insnCodeGen::generateImm(gen, ORILop, rt, rt, TOP_LO(value));
-      insnCodeGen::generateLShift64(gen, rt, 32, rt);
+         insnCodeGenPower::generateImm(gen, ORILop, rt, rt, TOP_LO(value));
+      insnCodeGenPower::generateLShift64(gen, rt, 32, rt);
       if (BOT_HI(value))
-         insnCodeGen::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
+         insnCodeGenPower::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
    }
 #endif
 }
 
-int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, std::vector<Dyninst::Register>& freeReg, std::vector<Dyninst::Register>& excludeReg){
+int insnCodeGenPower::createStackFrame(codeGen &gen, int numRegs, std::vector<Dyninst::Register>& freeReg, std::vector<Dyninst::Register>& excludeReg){
               int gpr_off, stack_size;
                 //create new stack frame
                 gpr_off = TRAMP_GPR_OFFSET_32;
@@ -1045,7 +1045,7 @@ int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, std::vector<Dyninst
 		return freeReg.size();
 }
 
-void insnCodeGen::removeStackFrame(codeGen &gen) {
+void insnCodeGenPower::removeStackFrame(codeGen &gen) {
                 int gpr_off = TRAMP_GPR_OFFSET_32;
                 restoreGPRegisters(gen, gen.rs(), gpr_off);
                 popStack(gen);
@@ -1053,35 +1053,35 @@ void insnCodeGen::removeStackFrame(codeGen &gen) {
 
                 // {insn_ = {byte = {0xa6, 0x3, 0x8, 0x7c}, raw = 0x7c0803a6}}    
                 // {insn_ = {byte = {0xa6, 0x3, 0x8, 0x7c}, raw = 0x7c0803a6}}       
-bool insnCodeGen::generateMem(codeGen &,
+bool insnCodeGenPower::generateMem(codeGen &,
                               instruction&,
                               Dyninst::Address,
                               Dyninst::Address,
                               Dyninst::Register,
                   Dyninst::Register) {return false; }
 
-void insnCodeGen::generateMoveFromLR(codeGen &gen, Dyninst::Register rt) {
+void insnCodeGenPower::generateMoveFromLR(codeGen &gen, Dyninst::Register rt) {
     instruction insn;
     insn.clear();
     XFORM_OP_SET(insn, MFSPRop);
     XFORM_RT_SET(insn, rt);
-    XFORM_RA_SET(insn, SPR_LR & 0x1f);
-    XFORM_RB_SET(insn, (SPR_LR >> 5) & 0x1f);
+    XFORM_RA_SET(insn, NS_power::SPR_LR & 0x1f);
+    XFORM_RB_SET(insn, (NS_power::SPR_LR >> 5) & 0x1f);
     XFORM_XO_SET(insn, MFSPRxop);
     generate(gen,insn);
 }
 
-void insnCodeGen::generateMoveToLR(codeGen &gen, Dyninst::Register rs) {
+void insnCodeGenPower::generateMoveToLR(codeGen &gen, Dyninst::Register rs) {
     instruction insn;
     insn.clear();
     XFORM_OP_SET(insn, MTSPRop);
     XFORM_RT_SET(insn, rs);
-    XFORM_RA_SET(insn, SPR_LR & 0x1f);
-    XFORM_RB_SET(insn, (SPR_LR >> 5) & 0x1f);
+    XFORM_RA_SET(insn, NS_power::SPR_LR & 0x1f);
+    XFORM_RB_SET(insn, (NS_power::SPR_LR >> 5) & 0x1f);
     XFORM_XO_SET(insn, MTSPRxop);
     generate(gen,insn);
 }
-void insnCodeGen::generateMoveToCR(codeGen &gen, Dyninst::Register rs) {
+void insnCodeGenPower::generateMoveToCR(codeGen &gen, Dyninst::Register rs) {
     instruction insn;
     insn.clear();
     XFORM_OP_SET(insn, MTSPRop);
@@ -1092,7 +1092,7 @@ void insnCodeGen::generateMoveToCR(codeGen &gen, Dyninst::Register rs) {
     generate(gen,insn);
 }    
 
-bool insnCodeGen::modifyJump(Dyninst::Address target,
+bool insnCodeGenPower::modifyJump(Dyninst::Address target,
 			     NS_power::instruction &,
 			     codeGen &gen) {
   failedLongBranchLocal = false;
@@ -1111,7 +1111,7 @@ bool insnCodeGen::modifyJump(Dyninst::Address target,
   return true;
 }
 
-bool insnCodeGen::modifyJumpCall(Dyninst::Address target,
+bool insnCodeGenPower::modifyJumpCall(Dyninst::Address target,
            NS_power::instruction &,
            codeGen &gen) {
   failedLongBranchLocal = false;
@@ -1131,7 +1131,7 @@ bool insnCodeGen::modifyJumpCall(Dyninst::Address target,
 }
 
 
-bool insnCodeGen::modifyJcc(Dyninst::Address target,
+bool insnCodeGenPower::modifyJcc(Dyninst::Address target,
 			    NS_power::instruction &insn,
 			    codeGen &gen) {
   // We can be handed a conditional call or return instruction here. In these cases,
@@ -1145,7 +1145,7 @@ bool insnCodeGen::modifyJcc(Dyninst::Address target,
       // Make sure to use the (to, from) version of generateBranch()
       // in case the branch is too far, and trap-based instrumentation
       // is needed.
-	    insnCodeGen::generateBranch(gen, gen.currAddr(), target, BFORM_LK(insn));
+	    insnCodeGenPower::generateBranch(gen, gen.currAddr(), target, BFORM_LK(insn));
         return true;
     } else {
       // Figure out if the original branch was predicted as taken or not
@@ -1197,14 +1197,14 @@ bool insnCodeGen::modifyJcc(Dyninst::Address target,
       // but I don't have the POWER manual with me.
       // -- bernat, 15JUN05
       
-      insnCodeGen::generateBranch(gen,
+      insnCodeGenPower::generateBranch(gen,
 				  2*instruction::size());
       
       bool link = (BFORM_LK(insn) == 1);
       // Make sure to use the (to, from) version of generateBranch()
       // in case the branch is too far, and trap-based instrumentation
       // is needed.
-      insnCodeGen::generateBranch(gen,
+      insnCodeGenPower::generateBranch(gen,
 				  gen.currAddr(),
 				  target,
 				  link);
@@ -1225,7 +1225,7 @@ bool insnCodeGen::modifyJcc(Dyninst::Address target,
   return false;
 }
 
-bool insnCodeGen::modifyCall(Dyninst::Address target,
+bool insnCodeGenPower::modifyCall(Dyninst::Address target,
 			     NS_power::instruction &insn,
 			     codeGen &gen) {
   // This is actually a mashup of conditional/unconditional handling
@@ -1237,7 +1237,7 @@ bool insnCodeGen::modifyCall(Dyninst::Address target,
 
 //FIXME
 //This function is used for PC-relative and hence may not be required for PPC. Consider for update/removal.
-bool insnCodeGen::modifyData(Dyninst::Address /*target*/,
+bool insnCodeGenPower::modifyData(Dyninst::Address /*target*/,
 			     NS_power::instruction &insn,
 			     codeGen &gen) {
   // Only know how to "modify" syscall...
