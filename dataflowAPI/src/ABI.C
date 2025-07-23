@@ -46,6 +46,13 @@
 #  include "registers/aarch64_regs.h"
 #endif
 
+#if defined(arch_amdgpu)
+#  include "registers/AMDGPU/amdgpu_gfx908_regs.h"
+#  include "registers/AMDGPU/amdgpu_gfx90a_regs.h"
+#  include "registers/AMDGPU/amdgpu_gfx940_regs.h"
+#endif
+
+
 using namespace Dyninst;
 using namespace DataflowAPI;
 
@@ -111,6 +118,13 @@ ABI* ABI::getABI(int addr_width){
 	globalABI_->addr_width = 4;
 	globalABI64_ = new ABI();
 
+#if defined(arch_amdgpu)
+	globalABI64_->addr_width = 8;
+	globalABI64_->index = &machRegIndex_amdgpu_gfx908(); // FIXME AMDGPU : This shouldn't be hardcoded.
+  initialize64(Arch_amdgpu_gfx908);
+  return globalABI64_;
+#endif
+
 #if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 	globalABI64_->addr_width = 8;
 	globalABI_->index = &machRegIndex_x86();
@@ -134,6 +148,13 @@ ABI* ABI::getABI(int addr_width){
 // We _only_ support instrumenting 32-bit binaries on 64-bit systems
 #if !defined(DYNINST_CODEGEN_ARCH_64BIT) || defined(cap_32_64)
 	initialize32();
+#endif
+
+#if defined(arch_amdgpu)
+	globalABI64_->addr_width = 8;
+	globalABI64_->index = &machRegIndex_amdgpu_gfx908(); // TODO : This shouldn't be hardcoded.
+  initialize64(Arch_amdgpu_gfx908);
+  return globalABI64_;
 #endif
 
 #if defined(DYNINST_CODEGEN_ARCH_64BIT)
@@ -230,6 +251,7 @@ const bitArray &ABI::getAllRegs() const
       return *allRegs_;
    }
 }
+
 
 bitArray ABI::getBitArray()  {
   return bitArray(index->size());

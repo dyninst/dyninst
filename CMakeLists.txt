@@ -57,7 +57,14 @@ add_subdirectory(instructionAPI)
 add_subdirectory(symtabAPI)
 add_subdirectory(parseAPI)
 add_subdirectory(proccontrol)
-add_subdirectory(stackwalk)
+
+# We want to avoid warnings.
+# Don't build stackwalkerAPI for AMDGPU.
+# Those AMDGPU-related files were added as placeholder at some point.
+if(NOT DYNINST_ARCH_amdgpu)
+  add_subdirectory(stackwalk)
+endif()
+
 add_subdirectory(patchAPI)
 add_subdirectory(dyninstAPI)
 add_subdirectory(dynC_API)

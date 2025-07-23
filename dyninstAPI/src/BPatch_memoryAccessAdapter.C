@@ -36,7 +36,9 @@
 #include "MultiRegister.h"
 #include "Dereference.h"
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(arch_amdgpu)
+#include "common/src/arch-amdgpu.h"
+#elif defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 # include "common/src/arch-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 # include "common/src/arch-aarch64.h"
