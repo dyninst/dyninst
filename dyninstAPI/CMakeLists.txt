@@ -224,7 +224,7 @@ if(DYNINST_ARCH_amdgpu)
     src/amdgpu-vega-details.cpp
     src/amdgpu-prologue.cpp
     src/amdgpu-epilogue.cpp)
-else if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
+elseif(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
   list(
     APPEND
     _sources
@@ -264,18 +264,6 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/stackwalk-aarch64.C
     src/Relocation/Widgets/CFWidget-aarch64.C
     src/Relocation/Widgets/PCWidget-aarch64.C)
-elseif(DYNINST_ARCH_amdgpu)
-  list(
-    APPEND
-    _sources
-    src/inst-amdgpu.C
-    src/emit-amdgpu.C
-    src/codegen-amdgpu.C
-    src/parse-amdgpu.C
-    src/RegisterConversion-amdgpu.C
-    src/stackwalk-amdgpu.C
-    src/Relocation/Widgets/CFWidget-amdgpu.C
-    src/Relocation/Widgets/PCWidget-amdgpu.C)
 endif()
 
 if(DYNINST_OS_FreeBSD)
