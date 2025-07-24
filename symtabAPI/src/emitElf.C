@@ -2417,7 +2417,6 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
             case DT_GNU_CONFLICT:
             case DT_JMPREL:
             case DT_PLTGOT:
-            case DT_PREINIT_ARRAY:
             case DT_INIT_ARRAY:
             case DT_FINI_ARRAY:
 #if defined(DYNINST_CODEGEN_ARCH_POWER) && defined(DYNINST_CODEGEN_ARCH_64BIT)
