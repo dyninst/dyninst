@@ -4,6 +4,7 @@
 #include "dataflowAPI/rose/registers/amdgpu.h"
 #include "dataflowAPI/rose/registers/ppc32.h"
 #include "dataflowAPI/rose/registers/ppc64.h"
+#include "dataflowAPI/rose/registers/riscv64.h"
 #include "dataflowAPI/rose/registers/x86.h"
 #include "dataflowAPI/rose/registers/x86_64.h"
 
@@ -110,6 +111,12 @@ namespace Dyninst { namespace DataflowAPI {
           return aarch64Rose(category, id, lengthID, num_bits);
         }
         return aarch64Rose(category, baseID, lengthID, num_bits);
+      }
+      case Arch_riscv64: {
+        if(reg.isPC()) {
+          return std::make_tuple(riscv64_regclass_pc, 0, 0, num_bits);
+        }
+        return riscv64Rose(category, baseID, num_bits);
       }
       case Arch_aarch32:
       case Arch_cuda:
