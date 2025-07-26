@@ -160,79 +160,49 @@ void emitImm(opCode /* op */, Register /* src1 */, RegValue /* src2imm */, Regis
   assert(0);
 }
 
-void cleanUpAndExit(int status);
+// void cleanUpAndExit(int status);
 
 Register emitFuncCall(opCode, codeGen &, std::vector <AstNodePtr> &, bool, Address) {
-    assert(0);
-    return 0;
+  assert(false && "Not implemented for AMDGPU");
+  return 0;
 }
 
-Register emitFuncCall(opCode op,
-                      codeGen &gen,
-                      std::vector <AstNodePtr> &operands, bool noCost,
-                      func_instance *callee) {
+Register emitFuncCall(opCode op, codeGen &gen, std::vector <AstNodePtr> &operands, bool noCost, func_instance *callee) {
     return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
 }
 
-codeBufIndex_t emitA(opCode /* op */, Register /* src1 */, Register, long /* dest */,
-        codeGen & /* gen */, RegControl /* rc */, bool)
-{
-    return 0;
+codeBufIndex_t emitA(opCode /* op */, Register /* src1 */, Register, long /* dest */, codeGen & /* gen */, RegControl /* rc */, bool) {
+  assert(false && "Not implemented for AMDGPU");
+  return 0;
 }
 
-Register emitR(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */,
-               codeGen & /* gen */, bool /*noCost*/,
-               const instPoint *, bool /*for_MT*/)
-{
-    registerSlot *regSlot = NULL;
-    assert(regSlot);
-    Register reg = regSlot->number;
-    return reg;
+Register emitR(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */, codeGen & /* gen */, bool /*noCost*/, const instPoint *, bool /*for_MT*/) {
+  assert(false && "Not implemented for AMDGPU");
+  return 0;
 }
 
 void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &) {
-    assert(0); //Not implemented
-    // Not needed for memory instrumentation, otherwise TBD
+  assert(false && "Not implemented for AMDGPU");
 }
 
-
-// Yuhan(02/04/19): Load in destination the effective address given
-// by the address descriptor. Used for memory access stuff.
-void emitASload(const BPatch_addrSpec_NP * /* as */, Register /* dest */, int /* stackShift */,
-                codeGen & /* gen */,
-                bool) {
-    assert(0); // Not implemented
+void emitASload(const BPatch_addrSpec_NP * /* as */, Register /* dest */, int /* stackShift */, codeGen & /* gen */, bool) {
+  assert(false && "Not imeplemented for AMDGPU");
 }
 
-void emitCSload(const BPatch_addrSpec_NP *, Register, codeGen &,
-                bool) {
-    assert(0); // Not implemented
+void emitCSload(const BPatch_addrSpec_NP *, Register, codeGen &, bool) {
+  assert(false && "Not imeplemented for AMDGPU");
 }
 
-void emitVload(opCode /* op */, Address /* src1 */, Register /* src2 */, Register /* dest */,
-               codeGen & /* gen */, bool /*noCost*/,
-               registerSpace * /*rs*/, int /* size */,
-               const instPoint * /* location */, AddressSpace *)
-{
-
-    assert(0); // Not implemented
+void emitVload(opCode /* op */, Address /* src1 */, Register /* src2 */, Register /* dest */, codeGen & /* gen */, bool /*noCost*/, registerSpace * /*rs*/, int /* size */, const instPoint * /* location */, AddressSpace *) {
+  assert(false && "Not imeplemented for AMDGPU");
 }
 
-void emitVstore(opCode /* op */, Register /* src1 */, Register /*src2*/, Address /* dest */,
-        codeGen & /* gen */, bool,
-        registerSpace * /* rs */, int /* size */,
-        const instPoint * /* location */, AddressSpace *)
-{
-    assert(0); // Not implemented
+void emitVstore(opCode /* op */, Register /* src1 */, Register /*src2*/, Address /* dest */, codeGen & /* gen */, bool, registerSpace * /* rs */, int /* size */, const instPoint * /* location */, AddressSpace *) {
+  assert(false && "Not imeplemented for AMDGPU");
 }
 
-void emitV(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */,
-        codeGen & /* gen */, bool /*noCost*/,
-           registerSpace * /*rs*/, int /* size */,
-           const instPoint * /* location */, AddressSpace * /* proc */, bool /* s */)
-{
-
-    assert(0); // Not implemented
+void emitV(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */, codeGen & /* gen */, bool /*noCost*/, registerSpace * /*rs*/, int /* size */, const instPoint * /* location */, AddressSpace * /* proc */, bool /* s */) {
+  assert(false && "Not imeplemented for AMDGPU");
 }
 
 //
@@ -313,7 +283,6 @@ void emitLoadPreviousStackFrameRegister(Address /* register_num */,
                                         int /* size */,
                                         bool)
 {
-  assert(0); // Not imeplemented
 }
 
 void emitStorePreviousStackFrameRegister(Address,
@@ -321,7 +290,6 @@ void emitStorePreviousStackFrameRegister(Address,
                                          codeGen &,
                                          int,
                                          bool) {
-    assert(0);
 }
 
 // First AST node: target of the call
@@ -331,7 +299,7 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction /* i */,
 					  Address /* addr */,
 					  std::vector<AstNodePtr> & /* args */)
 {
-    return true;
+    return false;
 }
 
 bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f) {
@@ -364,117 +332,10 @@ bool image::updatePltFunc(parse_func *caller_func, Address stub_addr)
 }
 */
 
-Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen &gen) {
-    AddressSpace *addrSpace = gen.addrSpace();
-    if (!addrSpace)
-        assert(0 && "No AddressSpace associated with codeGen object");
-
-    BinaryEdit *binEdit = addrSpace->edit();
-    Address relocation_address;
-
-    unsigned int jump_slot_size;
-    switch (addrSpace->getAddressWidth()) {
-        case 4: jump_slot_size = 4; break;
-        case 8: jump_slot_size = 8; break;
-        default: assert(0 && "Encountered unknown address width");
-    }
-
-    if (!binEdit || !var) {
-        assert(!"Invalid variable load (variable info is missing)");
-    }
-
-    // find the Symbol corresponding to the int_variable
-    std::vector<SymtabAPI::Symbol *> syms;
-    var->svar()->getSymbols(syms);
-
-    if (syms.size() == 0) {
-        char msg[256];
-        snprintf(msg, sizeof(msg), "%s[%d]:  internal error:  cannot find symbol %s"
-                , __FILE__, __LINE__, var->symTabName().c_str());
-        showErrorCallback(80, msg);
-        assert(0);
-    }
-
-    // try to find a dynamic symbol
-    // (take first static symbol if none are found)
-    SymtabAPI::Symbol *referring = syms[0];
-    for (unsigned k=0; k<syms.size(); k++) {
-        if (syms[k]->isInDynSymtab()) {
-            referring = syms[k];
-            break;
-        }
-    }
-
-    // have we added this relocation already?
-    relocation_address = binEdit->getDependentRelocationAddr(referring);
-
-    if (!relocation_address) {
-        // inferiorMalloc addr location and initialize to zero
-        relocation_address = binEdit->inferiorMalloc(jump_slot_size);
-        unsigned char dat[8] = {0};
-        binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, dat);
-
-        // add write new relocation symbol/entry
-        binEdit->addDependentRelocation(relocation_address, referring);
-    }
-
-    return relocation_address;
+Address Emitter::getInterModuleVarAddr(const image_variable * /* var */, codeGen & /* gen */) {
+  return 0;
 }
 
-Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
-    // from POWER64 getInterModuleFuncAddr
-
-    AddressSpace *addrSpace = gen.addrSpace();
-    if (!addrSpace)
-        assert(0 && "No AddressSpace associated with codeGen object");
-
-    BinaryEdit *binEdit = addrSpace->edit();
-    Address relocation_address;
-    
-    unsigned int jump_slot_size;
-    switch (addrSpace->getAddressWidth()) {
-    case 4: jump_slot_size =  4; break; // l: not needed
-    case 8: 
-      jump_slot_size = 24;
-      break;
-    default: assert(0 && "Encountered unknown address width");
-    }
-
-    if (!binEdit || !func) {
-        assert(!"Invalid function call (function info is missing)");
-    }
-
-    // find the Symbol corresponding to the func_instance
-    std::vector<SymtabAPI::Symbol *> syms;
-    func->ifunc()->func()->getSymbols(syms);
-
-    if (syms.size() == 0) {
-        char msg[256];
-        snprintf(msg, sizeof(msg), "%s[%d]:  internal error:  cannot find symbol %s"
-                , __FILE__, __LINE__, func->symTabName().c_str());
-        showErrorCallback(80, msg);
-        assert(0);
-    }
-
-    // try to find a dynamic symbol
-    // (take first static symbol if none are found)
-    SymtabAPI::Symbol *referring = syms[0];
-    for (unsigned k=0; k<syms.size(); k++) {
-        if (syms[k]->isInDynSymtab()) {
-            referring = syms[k];
-            break;
-        }
-    }
-    // have we added this relocation already?
-    relocation_address = binEdit->getDependentRelocationAddr(referring);
-
-    if (!relocation_address) {
-        // inferiorMalloc addr location and initialize to zero
-        relocation_address = binEdit->inferiorMalloc(jump_slot_size);
-        unsigned char dat[24] = {0};
-        binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, dat);
-        // add write new relocation symbol/entry
-        binEdit->addDependentRelocation(relocation_address, referring);
-    }
-    return relocation_address;
+Address Emitter::getInterModuleFuncAddr(func_instance * /* func */, codeGen & /* gen */) {
+  return 0;
 }
