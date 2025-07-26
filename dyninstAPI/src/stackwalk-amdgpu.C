@@ -35,152 +35,40 @@
 #include "frameChecker.h"
 #include "inst-amdgpu.h"
 
-//#warning "This file is not implemented yet!"
 using namespace Dyninst;
 
 bool PCProcess::createStackwalkerSteppers()
 {
-    using namespace Stackwalker;
+  assert(false && "Not implemented for AMDGPU");
+  return false;}
 
-    FrameStepper *stepper = NULL;
-    StackwalkInstrumentationHelper *swInstrHelper = NULL;
-
-    // Create steppers, adding to walker
-
-    swInstrHelper = new StackwalkInstrumentationHelper(this);
-    stepper = new DyninstDynamicStepper(stackwalker_, swInstrHelper);
-    if (!stackwalker_->addStepper(stepper))
-    {
-        startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
-        return false;
-    }
-    startup_printf("Stackwalker stepper %p is a DyninstDynamicStepper\n", (void*)stepper);
-
-    stepper = new FrameFuncStepper(stackwalker_);
-    if (!stackwalker_->addStepper(stepper))
-    {
-        startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
-        return false;
-    }
-    startup_printf("Stackwalker stepper %p is a FrameFuncStepper\n", (void*)stepper);
-
-  stepper = new DebugStepper(stackwalker_);
-  if (!stackwalker_->addStepper(stepper))
-  {
-    startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
-    return false;
-  }
-  startup_printf("Stackwalker stepper %p is a DebugStepper\n", (void*)stepper);
-
-  stepper = new SigHandlerStepper(stackwalker_);
-  if (!stackwalker_->addStepper(stepper))
-  {
-    startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
-    return false;
-  }
-  startup_printf("Stackwalker stepper %p is a SigHandlerStepper\n", (void*)stepper);
-
-  stepper = new BottomOfStackStepper(stackwalker_);
-  if (!stackwalker_->addStepper(stepper))
-  {
-    startup_printf("Error adding Stackwalker stepper %p\n", (void*)stepper);
-    return false;
-  }
-  startup_printf("Stackwalker stepper %p is a BottomOfStackStepper\n", (void*)stepper);
-
-    return true;
-}
-
-bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
-                                                       Dyninst::Address * /*orig_ra*/,
-                                                       unsigned * stack_height,
-                                                       bool * /* deref */,
-                                                       bool * /*entryExit*/)
-{
-    AddressSpace::RelocInfo ri;
-    baseTramp *base = NULL;
-
-    if (!proc_->getRelocInfo(ra, ri))
-    {
-        return false;
-    }
-
-    base = ri.bt;
-    if (base)
-    {
-        // By default, we are dealing with 64-bit code
-        int w = 8;
-	if (base->proc()) w = base->proc()->getAddressWidth();
-        // set offset from the SP to the saved FP and RA pair
-	// according to the instrumentation frame layout
-	//
-	// Note that amdgpu codegen aligns memory address,
-	// so here we divide by w and multiply by w
-        *stack_height = (TRAMP_GPR_OFFSET(w) + REG_FP * w) / w * w;
-
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address /* ra */, Dyninst::Address * /*orig_ra*/, unsigned * /* stack_height */, bool * /* deref */, bool * /*entryExit*/) {
+  assert(false && "Not implemented for AMDGPU");
+  return false;
 }
 
 using namespace Stackwalker;
 
-FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr)
-{
-    FrameFuncHelper::alloc_frame_t result;
-    func_instance *func = proc_->findOneFuncByAddr(addr);
-
-    result.first = FrameFuncHelper::unknown_t; // frame type
-    result.second = FrameFuncHelper::unknown_s; // frame state
-
-    // This helper will only be used on the topmost frame
-
-    if (func)
-    {
-        if (!func->savesReturnAddr())
-        {
-            // Leaf function
-            result.second = FrameFuncHelper::unset_frame;
-        }
-        else
-        {
-            result.second = FrameFuncHelper::set_frame;
-        }
-
-        if (func->hasNoStackFrame())
-        {
-            result.first = FrameFuncHelper::no_frame;
-        }
-        else
-        {
-            result.first = FrameFuncHelper::standard_frame;
-        }
-    }
-
-    return result;
+FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address /* addr */) {
+  assert(false && "Not implemented for AMDGPU");
+  return std::make_pair<frame_type, frame_state>(FrameFuncHelper::unknown_t, FrameFuncHelper::unknown_s);
 }
 
 bool DynWandererHelper::isPrevInstrACall(Address /*addr*/, Address &/*target*/)
 {
-  // NOT IMPLEMENTED
-  assert(0);
+  assert(false && "Not implemented for AMDGPU");
   return false;
 }
 
 WandererHelper::pc_state DynWandererHelper::isPCInFunc(Address /*func_entry*/, Address /*pc*/)
 {
-  // NOT IMPLEMENTED
-  assert(0);
+  assert(false && "Not implemented for AMDGPU");
   return WandererHelper::unknown_s;
 }
 
 bool DynWandererHelper::requireExactMatch()
 {
-  // NOT IMPLEMENTED
-  assert(0);
+  assert(false && "Not implemented for AMDGPU");
   return false;
 }
 
