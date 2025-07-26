@@ -32,29 +32,6 @@
  * emit-amdgpu.C - AMD GPU mi{25,50,100,200,300}  code generators (emitters)
  */
 
-/*
-#include <assert.h>
-#include <stdio.h>
-#include "dyninstAPI/src/codegen.h"
-#include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/inst-x86.h"
-#include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/h/BPatch.h"
-#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-
-#include "dyninstAPI/src/dynProcess.h"
-
-#include "dyninstAPI/src/binaryEdit.h"
-#include "dyninstAPI/src/image.h"
-// get_index...
-#include "dyninstAPI/src/dynThread.h"
-#include "ABI.h"
-#include "liveness.h"
-#include "RegisterConversion.h"
-*/
-
-#include "dyninstAPI/src/inst-amdgpu.h"
 #include "dyninstAPI/src/emit-amdgpu.h"
 #include "dyninstAPI/src/registerSpace.h"
 
@@ -541,7 +518,7 @@ void EmitterAmdgpuVega::emitMovLiteral(Register reg, uint32_t literal,
 }
 
 void EmitterAmdgpuVega::emitConditionalBranch(bool onConditionTrue,
-                                          int16_t wordOffset, codeGen &gen) {
+                                              int16_t wordOffset, codeGen &gen) {
   unsigned opcode = onConditionTrue ? S_CBRANCH_SCC0 : S_CBRANCH_SCC1;
   emitSopP(opcode, /* hasImm = */ true, wordOffset, gen);
 }
@@ -560,7 +537,7 @@ void EmitterAmdgpuVega::emitShortJump(int16_t wordOffset, codeGen &gen) {
 // s_add_u32 s91, s93
 // s_setpc_b64 s[90:91]
 void EmitterAmdgpuVega::emitLongJump(Register reg, uint64_t fromAddress, uint64_t toAddress,
-                                 codeGen &gen) {
+                                     codeGen &gen) {
   assert(reg >= SGPR_0 && reg <= SGPR_101 && "reg must be an SGPR");
   assert(reg % 2 == 0 &&
          "reg must be even as we will use reg, reg+1 in pair");
