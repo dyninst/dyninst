@@ -56,19 +56,8 @@ using namespace Dyninst::InstructionAPI;
 #include "addressSpace.h"
 #include "binaryEdit.h"
 
-#if defined(arch_power)
-#include "inst-power.h"
-#elif defined(arch_x86) || defined (arch_x86_64)
-#include "inst-x86.h"
-#include "emit-x86.h"
-#elif defined(arch_aarch64)
-#include "inst-aarch64.h"
-#elif defined(arch_amdgpu)
 #include "inst-amdgpu.h"
 #include "emit-amdgpu.h"
-#else
-#error "Unknown architecture in ast.h"
-#endif
 
 #include "emitter.h"
 
