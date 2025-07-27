@@ -493,12 +493,16 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     std::unordered_map<unsigned, string> oldIndexNameMapping;
 
     std::unordered_set<string> updateLinkInfoSecs = {
-        ".dynsym", /*".dynstr",*/ ".rela.dyn", ".rela.plt", ".dynamic", ".symtab"};
+        ".dynsym", /*".dynstr",*/ ".rela.dyn", ".rela.plt", ".dynamic", ".symtab", ".init_array"};
     std::unordered_map<string, pair<unsigned, unsigned>> dataLinkInfo;
 
     bool createdLoadableSections = false;
     unsigned scncount;
     unsigned sectionNumber = 0;
+
+    // Get new .init_array functions
+    std::vector<void *> newInitArrayFuncs;
+    obj->getNewInitArrayFuncs(newInitArrayFuncs);
 
     for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
         //copy sections from oldElf to newElf
@@ -580,6 +584,12 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         for (unsigned i = 0; i != moveSecAddrRange.size(); i++) {
             if ((moveSecAddrRange[i][0] == shdr->sh_addr) ||
                 (shdr->sh_addr >= moveSecAddrRange[i][0] && shdr->sh_addr < moveSecAddrRange[i][1])) {
+
+                // If there exists no new .init_array functions, don't rewrite .init_array
+                if ((strcmp(name, ".init_array") == 0) && newInitArrayFuncs.size() == 0) {
+                    continue;
+                }
+                std::cout << "HERE 1: " << name << std::endl;
                 newshdr->sh_type = SHT_PROGBITS;
                 changeMapping[sectionNumber] = 1;
                 string newName = ".o";
@@ -612,6 +622,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
         if (object->getDynamicAddr() != 0 &&
             object->getDynamicAddr() == shdr->sh_addr) {
+            std::cout << "HERE 2" << name << std::endl;
             dynData = newdata;
             dynSegOff = newshdr->sh_offset;
             dynSegAddr = newshdr->sh_addr;
@@ -629,6 +640,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             // Clear TLS flag
             newshdr->sh_flags &= ~SHF_TLS;
 
+            std::cout << "HERE 3" << std::endl;
             string newName = ".o";
             newName.append(name, 2, strlen(name));
             renameSection((string) name, newName, false);
@@ -647,8 +659,10 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             // Clear the PLT type; use PROGBITS
             newshdr->sh_type = SHT_PROGBITS;
         }
+
         if (library_adjust > 0 &&
                 (strcmp(name, ".init_array") == 0 || strcmp(name, ".fini_array") == 0 ||
+                 strcmp(name, ".dyninstInitArray") == 0 ||
                  strcmp(name, "__libc_subfreeres") == 0 || strcmp(name, "__libc_atexit") == 0 ||
                  strcmp(name, "__libc_thread_subfreeres") == 0 || strcmp(name, "__libc_IO_vtables") == 0)) {
             for(std::size_t off = 0; off < newdata->d_size; off += sizeof(void*)) {
@@ -1164,8 +1178,6 @@ template<class ElfTypes>
 bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraAlignSize,
                                                  std::unordered_map<std::string, unsigned> &newNameIndexMapping,
                                                  unsigned &sectionNumber) {
-    rewrite_printf("createLoadableSections():\n");
-
     Elf_Scn *newscn;
     Elf_Data *newdata = NULL;
 
@@ -1368,6 +1380,20 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
             newshdr->sh_info = verdefnum;
             updateDynamic(DT_VERDEF, newshdr->sh_addr);
         }
+        else if (newSecs[i]->getRegionType() == Region::RT_INIT_ARRAY) {
+            newshdr->sh_type = SHT_INIT_ARRAY;
+            newshdr->sh_entsize = sizeof(Elf_Addr);
+            newdata->d_type = ELF_T_ADDR;
+            newdata->d_align = 8;
+            newshdr->sh_flags = SHF_ALLOC | SHF_WRITE;
+            newshdr->sh_info = 0;
+
+            // Adjust library
+            unsigned long long *initArrayRaw = (unsigned long long *)newSecs[i]->getPtrToRawData();
+            for (unsigned j = 0; j < newSecs[i]->getMemSize() / 8; j++) {
+                initArrayRaw[j] += library_adjust;
+            }
+        }
 
         // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
         if (!firstNewLoadSec) {
@@ -1487,6 +1513,7 @@ bool emitElf<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
     Elf_Shdr *prevshdr = shdr;
     //All of them that are left are non-loadable. stack'em up at the end.
     for (unsigned i = 0; i < nonLoadableSecs.size(); i++) {
+        std::cout << "DEBUG: " << nonLoadableSecs[i]->getRegionName() << std::endl;
         secNames.push_back(nonLoadableSecs[i]->getRegionName());
         // Add a new non-loadable section
         if ((newscn = elf_newscn(newElf)) == NULL) {
@@ -1914,6 +1941,44 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
         //add .dynamic section
         if (dynsecSize)
             obj->addRegion(0, dynsecData, dynsecSize * sizeof(Elf_Dyn), ".dynamic", Region::RT_DYNAMIC, true);
+        
+        std::vector<void *> newInitArrayFuncs;
+        obj->getNewInitArrayFuncs(newInitArrayFuncs);
+        if (newInitArrayFuncs.size() > 0) {
+            // MEOW
+            Region *initArray = NULL;
+            std::vector<Region *> regions;
+            obj->getAllRegions(regions);
+            for (Region *region : regions) {
+                std::string regionName = region->getRegionName();
+                if (regionName == ".init_array") {
+                    initArray = region;
+                    break;
+                }
+            }
+            assert(initArray);
+            unsigned long initArraySize = initArray->getMemSize();
+            void *initArrayRaw = initArray->getPtrToRawData();
+
+#if defined(DYNINST_HOST_ARCH_X86)
+            unsigned prependSize = newInitArrayFuncs.size();
+            unsigned newInitArrySize = initArraySize + prependSize * 8;
+            unsigned *newInitArrayRaw = (unsigned *)malloc(newInitArrySize);
+            memcpy(newInitArrayRaw + prependSize, initArrayRaw, initArraySize);
+            for (int i = 0; i < prependSize; i++) {
+                newInitArrayRaw[i] = (unsigned)newInitArrayFuncs[i];
+            }
+#else
+            unsigned prependSize = newInitArrayFuncs.size();
+            unsigned newInitArraySize = initArraySize + prependSize * 8;
+            unsigned long long *newInitArrayRaw = (unsigned long long *)malloc(newInitArraySize);
+            memcpy(newInitArrayRaw + prependSize, initArrayRaw, initArraySize);
+            for (unsigned j = 0; j < prependSize; j++) {
+                newInitArrayRaw[j] = (unsigned long long)newInitArrayFuncs[j];
+            }
+#endif
+            obj->addRegion(0, newInitArrayRaw, newInitArraySize, ".init_array", Region::RT_INIT_ARRAY, true, 8);
+        }
     }
 
     if (!obj->getAllNewRegions(newSecs))
@@ -2337,6 +2402,8 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
             case DT_INIT:
             case DT_FINI:
             case DT_DYNINST:
+            case DT_DYNINST_INIT:
+            case DT_DYNINST_FINI:
                 adjust = library_adjust;
                 break;
             default:

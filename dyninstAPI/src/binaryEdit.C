@@ -349,9 +349,11 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file,
     newBinaryEdit->highWaterMark_ = base;
     newBinaryEdit->lowWaterMark_ = newBinaryEdit->highWaterMark_;
 
-    // Testing
-
+#if !defined(DYNINST_CODEGEN_ARCH_RISCV64)
     newBinaryEdit->makeInitAndFiniIfNeeded();
+#endif
+
+    newBinaryEdit->makeDyninstInit();
 
     newBinaryEdit->createMemoryBackingStore(newBinaryEdit->getAOut());
     newBinaryEdit->initialize();
