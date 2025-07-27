@@ -29,7 +29,7 @@
  */
 
 
-#if !defined(os_linux) || !defined(arch_amdgpu)
+#if !defined(os_linux) || !defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 #error "invalid architecture-os inclusion"
 #endif
 

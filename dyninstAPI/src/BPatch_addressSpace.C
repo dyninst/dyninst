@@ -585,7 +585,7 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
    getAS(as);
    assert(as.size());
 
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
    if(name.empty()){
       std::stringstream namestr;
       namestr << "dyn_malloc_0x" << std::hex << "_" << &n << "_" << n << "_bytes";
@@ -602,7 +602,7 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
 #endif
    BPatch_type *type = BPatch::bpatch->createScalar(name.c_str(), n);
 
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
    return BPatch_variableExpr::makeVariableExpr(name, this, as[0], type);
 #else
    return BPatch_variableExpr::makeVariableExpr(this, as[0], name, ptr,
@@ -869,7 +869,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
                                                                     BPatch_snippetOrder order)
 {
 
-#if defined (arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   for (size_t i = 0; i < points.size(); ++i) {
     BPatch_function *f = points[i]->getFunction();
     instrumentedFunctions.insert(f);

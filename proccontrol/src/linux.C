@@ -756,7 +756,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 #elif defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_AARCH32)
 #define DEFAULT_PROCESS_TYPE linux_arm_process
 #define DEFAULT_THREAD_TYPE linux_arm_thread
-#elif defined(arch_amdgpu)
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 /* nothing yet, a placeholder for the future */
 /* XXX and, really seperate because once we have
    AMDGPU on a host, we could either have a UNIX
@@ -772,7 +772,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 
 int_process *int_process::createProcess(Dyninst::PID p, std::string e)
 {
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
    DYNINST_SUPPRESS_UNUSED_VARIABLE(p);
    DYNINST_SUPPRESS_UNUSED_VARIABLE(e);
    perr_printf("no process creation on AMDGPU, crashing\n"); 
@@ -791,7 +791,7 @@ int_process *int_process::createProcess(Dyninst::PID p, std::string e)
 int_process *int_process::createProcess(std::string e, std::vector<std::string> a, std::vector<std::string> envp,
         std::map<int,int> f)
 {
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
    DYNINST_SUPPRESS_UNUSED_VARIABLE(e);
    DYNINST_SUPPRESS_UNUSED_VARIABLE(a);
    DYNINST_SUPPRESS_UNUSED_VARIABLE(envp);
@@ -808,7 +808,7 @@ int_process *int_process::createProcess(std::string e, std::vector<std::string> 
 
 int_process *int_process::createProcess(Dyninst::PID pid_, int_process *p)
 {
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
    DYNINST_SUPPRESS_UNUSED_VARIABLE(pid_);
    DYNINST_SUPPRESS_UNUSED_VARIABLE(p);
    perr_printf("no process creation on AMDGPU, crashing\n"); 
@@ -822,7 +822,7 @@ int_process *int_process::createProcess(Dyninst::PID pid_, int_process *p)
 
 int linux_process::computeAddrWidth()
 {
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
    /* This will be a point of contention, but amdgpu is really a 
       64 bit arch -- with half-width registers , and some full
       width registers. */
@@ -1595,7 +1595,7 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
                                          Dyninst::LWP lwp_id,
                                          bool initial_thrd)
 {
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
    DYNINST_SUPPRESS_UNUSED_VARIABLE(proc);
    DYNINST_SUPPRESS_UNUSED_VARIABLE(thr_id);
    DYNINST_SUPPRESS_UNUSED_VARIABLE(lwp_id);
@@ -2278,7 +2278,7 @@ static void init_dynreg_to_user()
    dynreg_to_user[aarch64::pc]         = make_pair(cur+=step, 8);
    dynreg_to_user[aarch64::nzcv]     = make_pair(cur+=step, 8);
 
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
    /* XXX if we are ever able to talk to GPU process to pull
       instrumenation data from it while it is paused,
       or to control it ... this is where we should
@@ -2374,7 +2374,7 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
    if (!have_getregs)
    {
 
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 	/* nothing here, but .... palceholder! */
 #elif defined(DYNINST_HOST_ARCH_AARCH64)
         elf_gregset_t regs;
@@ -2455,7 +2455,7 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
         regpool.regs[reg] = val;
     }
     return true;
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 	DYNINST_SUPPRESS_UNUSED_VARIABLE(regpool);
 	assert(0 && "linux_thread::plat_getAllRegisters(int_registerPool &regpool) NOT IMPLEMENTED");
 #endif
@@ -2591,7 +2591,7 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
    }
    if (!have_setregs)
    {
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 	DYNINST_SUPPRESS_UNUSED_VARIABLE(regpool);
 	assert(0 && "amdgpu linux_thread::plat_setAllRegisters(int_registerPool &regpool) NOT IMPLEMENTED");
 #elif defined(DYNINST_HOST_ARCH_AARCH64)

@@ -206,25 +206,7 @@ if(cap_stack_mods_found GREATER -1)
     src/StackMod/TMap.C)
 endif()
 
-# FIXME AMDGPU:
-# USE TARGET_ARCH
-if(DYNINST_ARCH_amdgpu)
-  list(
-    APPEND
-    _sources
-    src/ast-amdgpu.C
-    src/inst-amdgpu.C
-    src/emit-amdgpu.C
-    src/codegen-amdgpu.C
-    src/parse-amdgpu.C
-    src/RegisterConversion-amdgpu.C
-    src/stackwalk-amdgpu.C
-    src/Relocation/Widgets/CFWidget-amdgpu.C
-    src/Relocation/Widgets/PCWidget-amdgpu.C
-    src/amdgpu-vega-details.cpp
-    src/amdgpu-prologue.cpp
-    src/amdgpu-epilogue.cpp)
-elseif(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
+if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
   list(
     APPEND
     _sources
@@ -264,6 +246,22 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/stackwalk-aarch64.C
     src/Relocation/Widgets/CFWidget-aarch64.C
     src/Relocation/Widgets/PCWidget-aarch64.C)
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  list(
+    APPEND
+    _sources
+    src/ast-amdgpu.C
+    src/inst-amdgpu.C
+    src/emit-amdgpu.C
+    src/codegen-amdgpu.C
+    src/parse-amdgpu.C
+    src/RegisterConversion-amdgpu.C
+    src/stackwalk-amdgpu.C
+    src/Relocation/Widgets/CFWidget-amdgpu.C
+    src/Relocation/Widgets/PCWidget-amdgpu.C
+    src/amdgpu-vega-details.cpp
+    src/amdgpu-prologue.cpp
+    src/amdgpu-epilogue.cpp)
 endif()
 
 if(DYNINST_OS_FreeBSD)
@@ -290,7 +288,7 @@ elseif(DYNINST_OS_Linux)
     list(APPEND _sources src/linux-power.C)
   elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     list(APPEND _sources src/linux-aarch64.C)
-  elseif(DYNINST_ARCH_amdgpu)
+  elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     list(APPEND _sources src/linux-amdgpu.C)
   endif()
 elseif(DYNINST_OS_Windows)
