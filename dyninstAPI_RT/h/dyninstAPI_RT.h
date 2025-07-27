@@ -166,6 +166,8 @@ typedef struct {
 
 #define TRAP_HEADER_SIG 0x759191D6
 #define DT_DYNINST 0x6D191957
+#define DT_DYNINST_INIT 0x6D191958
+#define DT_DYNINST_FINI 0x6D191959
 
 // Suppress warning about flexible array members not valid in C++
 // FIXME: invalid flexible array member, traps[], in structure below

@@ -2274,3 +2274,11 @@ void Symtab::dumpModRanges() {
 void Symtab::dumpFuncRanges() {
     impl->func_lookup.PrintPreorder();
 }
+
+void Symtab::prependInitArrayFunc(void *funcAddr) {
+    newInitArrayFuncs_.push_back(funcAddr);
+}
+
+void Symtab::getNewInitArrayFuncs(std::vector<void*>& newInitArrayFuncs) {
+   newInitArrayFuncs = newInitArrayFuncs_;
+}

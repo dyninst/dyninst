@@ -189,6 +189,9 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     int findRegions(Address addr, std::set<CodeRegion *> & ret) const;
     bool regionsOverlap() const { return _regions_overlap; }
 
+    void addRegion(CodeRegion *);
+    void removeRegion(CodeRegion *);
+
     Address getTOC() const { return _table_of_contents; }
     /* If the binary file type supplies per-function
      * TOC's (e.g. ppc64 Linux), override.
@@ -211,9 +214,6 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
  protected:
     CodeSource() : _regions_overlap(false),
                    _table_of_contents(0) {}
-
-    void addRegion(CodeRegion *);
-    void removeRegion(CodeRegion *);
    
  private: 
     // statistics
@@ -294,6 +294,8 @@ class DYNINST_EXPORT SymtabCodeSource : public CodeSource, public boost::lockabl
     bool nonReturning(Address func_entry);
     bool nonReturningSyscall(int num);
 
+    void addRegion(CodeRegion *);
+    void removeRegion(CodeRegion *);
     bool resizeRegion(SymtabAPI::Region *, Address newDiskSize);
 
     Address baseAddress() const;
@@ -336,7 +338,6 @@ class DYNINST_EXPORT SymtabCodeSource : public CodeSource, public boost::lockabl
     void init_try_blocks();
 
     CodeRegion * lookup_region(const Address addr) const;
-    void removeRegion(CodeRegion *); // removes from region tree
 
     void overlapping_warn(const char * file, unsigned line) const;
     
