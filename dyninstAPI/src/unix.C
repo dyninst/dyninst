@@ -38,6 +38,7 @@
 #include "dynThread.h"
 #include "function.h"
 #include "binaryEdit.h"
+#include "CFGModifier.h"
 #include "common/src/dyninst_filesystem.h"
 #include <sys/stat.h>
 
@@ -851,8 +852,8 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
             unsigned char* emptyFunction = NULL;
             int emptyFuncSize = 0;
 #if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
-            static unsigned char empty_32[] = { 0x55, 0x89, 0xe5, 0xc9, 0xc3 };
-            static unsigned char empty_64[] = { 0x55, 0x48, 0x89, 0xe5, 0xc9, 0xc3 };
+            static unsigned char empty_32[] = { 0x55, 0x89, 0xe5, 0xc9, 0xc3, 0x00, 0x00, 0x00 };
+            static unsigned char empty_64[] = { 0x55, 0x48, 0x89, 0xe5, 0xc9, 0xc3, 0x00, 0x00 };
             if(linkedFile->getAddressWidth() == 8)
             {
                 emptyFunction = empty_64;
@@ -901,6 +902,142 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
                                       UINT_MAX );
         linkedFile->addSymbol(finiSym);
     }
+}
+
+void BinaryEdit::makeDyninstInit()
+{
+    SymtabAPI::Symtab* linkedFile = getAOut()->parse_img()->getObject();
+
+    // Don't create .dyninstInit for .o's and static binaries
+    if( linkedFile->isStaticBinary() || linkedFile->isUnlinkedObjectFile() ) {
+        return;
+    }
+
+    // Adding the .init.dyninst section
+    // This section will be used to hold the _dyninst_init function
+    // _dyninst_init acts similar to the deprecated_init function, but for instrumented code aim to run before main.
+    // The address of _init_dyninst function will be inserted at the beginning of .init_array
+
+    // Create an empty function for _dyninst_init
+    unsigned char *emptyFunction = NULL; int emptyFuncSize = 0;
+#if defined(DYNINST_CODEGEN_ARCH_X86)
+    static unsigned char empty[] = {0x55, 0x89, 0xe5, 0xc9, 0xc3, 0x00, 0x00, 0x00};
+#elif defined(DYNINST_CODEGEN_ARCH_X86_64)
+    static unsigned char empty[] = {0x55, 0x48, 0x89, 0xe5, 0xc9, 0xc3, 0x00, 0x00};
+#elif defined(DYNINST_CODEGEN_ARCH_POWER)
+    static unsigned empty[] = {0x4e800020};
+#elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
+    static unsigned empty[] = {0xd65f03c0};
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
+    static unsigned empty[] = {0x00008067};
+#endif
+    emptyFunction = (unsigned char *)empty;
+    emptyFuncSize = sizeof(empty);
+
+    linkedFile->addRegion(highWaterMark_,
+                         (void *)(emptyFunction),
+                         emptyFuncSize,
+                         ".dyninstInit",
+                         SymtabAPI::Region::RT_TEXT, true);
+    highWaterMark_ += emptyFuncSize;
+    lowWaterMark_ += emptyFuncSize;
+
+    SymtabAPI::Region *dyninstInitSec = NULL;
+    linkedFile->findRegion(dyninstInitSec, ".dyninstInit");
+    assert(dyninstInitSec);
+    Address dyninstInitEntryAddr = dyninstInitSec->getMemOffset();
+    startup_printf("%s[%d]: creating .dyninstInit region, region addr 0x%lx\n",
+                   FILE__, __LINE__, dyninstInitSec->getMemOffset());
+    linkedFile->addSysVDynamic(DT_DYNINST_INIT, dyninstInitSec->getMemOffset());
+
+    startup_printf("%s[%d]: ADDING .dyninstInit at 0x%lx\n", FILE__, __LINE__, dyninstInitSec->getMemOffset());
+    SymtabAPI::Symbol *dyninstInitSym = new SymtabAPI::Symbol(
+                                                "_dyninst_init",
+                                                SymtabAPI::Symbol::ST_FUNCTION,
+                                                SymtabAPI::Symbol::SL_GLOBAL,
+                                                SymtabAPI::Symbol::SV_DEFAULT,
+                                                dyninstInitEntryAddr,
+                                                linkedFile->getDefaultModule(),
+                                                dyninstInitSec,
+                                                emptyFuncSize);
+    linkedFile->addSymbol(dyninstInitSym);
+
+    // Parse _dyninst_inst
+    ParseAPI::CodeObject *co = getAOut()->co();
+    ParseAPI::CodeSource *cs = co->cs();
+
+    // parseAPI/src/SymtabCodeSource.C
+    std::vector<SymtabAPI::Symbol *> symbols;
+    linkedFile->getAllSymbols(symbols);
+    ParseAPI::CodeRegion *dyninstInitRegion = new ParseAPI::SymtabCodeRegion(linkedFile, dyninstInitSec, symbols);
+    cs->addRegion(dyninstInitRegion);
+    // dyninstAPI/src/image.C
+    set<ParseAPI::CodeRegion *> regions;
+    cs->findRegions(dyninstInitEntryAddr, regions);
+
+    co->parse(dyninstInitEntryAddr, false);
+
+    ParseAPI::Function *dyninstInitFunc = co->findFuncByEntry(dyninstInitRegion, dyninstInitEntryAddr);
+    assert(dyninstInitFunc);
+    parse_func *dyninstInitParseFunc = static_cast<parse_func*>(dyninstInitFunc);
+    assert(dyninstInitParseFunc);
+
+    SymtabAPI::Function *dyninstInitSymtabFunc = dyninstInitParseFunc->getSymtabFunction();
+    dyninstInitSymtabFunc->setData(static_cast<void *>(dyninstInitParseFunc));
+    dyninstInitParseFunc->addSymTabName("_dyninst_init"); 
+    dyninstInitParseFunc->addPrettyName("_dyninst_init");
+
+//     // Search for .init_array
+//     std::vector<SymtabAPI::Region *> allRegions;
+//     linkedFile->getAllRegions(allRegions);
+
+//     SymtabAPI::Region *initArray = NULL;
+//     for (SymtabAPI::Region *region : allRegions) {
+//         std::string regionName = region->getRegionName();
+//         if (regionName == ".init_array") {
+//             initArray = region;
+//             break;
+//         }
+//     }
+//     if (initArray == NULL) {
+//         startup_printf("[%s]%d: failed to find .init_array section\n", FILE__, __LINE__);
+//         return;
+//     }
+//     unsigned long initArraySize = initArray->getMemSize();
+//     void *initArrayRaw = initArray->getPtrToRawData();
+// #if defined(DYNINST_HOST_ARCH_X86)
+//     Make it 4 bytes biger so that there's room for _dyninst_inst
+//     unsigned long newInitArrySize = initArraySize + 4;
+//     void *newInitArrayRaw = malloc(newInitArrySize);
+//     memcpy((unsigned *)newInitArrayRaw + 1, initArrayRaw, initArraySize);
+//     *(unsigned *)newInitArrayRaw = (unsigned)dyninstInitAddr;
+// #else
+//     // Make it 8 bytes biger so that there's room for _dyninst_inst
+//     unsigned long newInitArraySize = initArraySize + 8;
+//     void *newInitArrayRaw = malloc(newInitArraySize);
+//     memcpy((unsigned long long *)newInitArrayRaw + 1, initArrayRaw, initArraySize);
+//     *(unsigned long long*)newInitArrayRaw = (unsigned long long)dyninstInitAddr;
+// #endif
+//     // Create the new .init_array and copy the old .init_array to the new one
+
+//     linkedFile->addRegion(highWaterMark_,
+//                          (void *)(initArrayRaw),
+//                          newInitArraySize,
+//                          ".init_array",
+//                          SymtabAPI::Region::RT_DATA, true);
+//     highWaterMark_ += newInitArraySize;
+//     lowWaterMark_ += newInitArraySize;
+
+//     SymtabAPI::Region *newInitArraySec = NULL;
+//     linkedFile->findRegion(newInitArraySec, ".init_array");
+//     assert(newInitArraySec);
+//     Address newInitArrayEntryAddr = newInitArraySec->getMemOffset();
+//     startup_printf("%s[%d]: creating new .init_array region, region addr 0x%lx\n",
+//                    FILE__, __LINE__, newInitArrayEntryAddr);
+//     linkedFile->addSysVDynamic(DT_INIT_ARRAY, newInitArraySec->getMemOffset());
+
+//     // Rename .init_array to .onit_array
+//     initarray->setregionname(".onit_array");
 }
 
 #endif
