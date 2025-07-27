@@ -209,6 +209,9 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     bool getUseRVC() const { return useRVC; }
     void setUseRVC(bool useRVC_) { useRVC = useRVC_; }
 
+    void addRegion(CodeRegion *);
+    void removeRegion(CodeRegion *);
+
     Address getTOC() const { return _table_of_contents; }
     /* If the binary file type supplies per-function
      * TOC's (e.g. ppc64 Linux), override.
@@ -315,6 +318,8 @@ class DYNINST_EXPORT SymtabCodeSource : public CodeSource, public boost::lockabl
     bool nonReturning(Address func_entry);
     bool nonReturningSyscall(int num);
 
+    void addRegion(CodeRegion *);
+    void removeRegion(CodeRegion *);
     bool resizeRegion(SymtabAPI::Region *, Address newDiskSize);
 
     Address baseAddress() const;
@@ -358,7 +363,6 @@ class DYNINST_EXPORT SymtabCodeSource : public CodeSource, public boost::lockabl
     void init_riscv_extensions();
 
     CodeRegion * lookup_region(const Address addr) const;
-    void removeRegion(CodeRegion *); // removes from region tree
 
     void overlapping_warn(const char * file, unsigned line) const;
     

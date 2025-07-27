@@ -922,6 +922,12 @@ SymtabCodeSource::removeRegion(CodeRegion *cr)
 	CodeSource::removeRegion(cr);
 }
 
+void 
+SymtabCodeSource::addRegion(CodeRegion *cr)
+{
+	CodeSource::addRegion(cr);
+}
+
 // fails and returns false if it can't find a CodeRegion
 // to match the SymtabAPI::region
 // has to remove the region before modifying the region's size, 

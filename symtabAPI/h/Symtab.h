@@ -558,6 +558,14 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
 
  private:
     unsigned _ref_cnt{1};
+
+ public:
+   void getNewInitArrayFuncs(std::vector<void*>&);
+   void prependInitArrayFunc(void*);
+
+ private:
+   // New functions to be added to .init_array
+   std::vector<void*> newInitArrayFuncs_;
 };
 
 }//namespace SymtabAPI
