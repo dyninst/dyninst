@@ -7,11 +7,11 @@
 include_guard(GLOBAL)
 
 ## amdgpu special
-if(DYNINST_ARCH_amdgpu)
+if(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 
   ## Only x86_64 for now, straight copy
 
-  set(ARCH_DEFINES -Darch_amdgpu -Darch_64bit)
+  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx908 -Darch_64bit)
   set(CAP_DEFINES
       ${CAP_DEFINES} -Dcap_fixpoint_gen -Dcap_noaddr_gen -Dcap_registers
       -Dcap_tramp_liveness
@@ -90,7 +90,7 @@ endif()
 ## OK, so this is a brute force copy again.
 
 ## amdgpu special
-if(DYNINST_ARCH_amdgpu)
+if(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   ## need to control options more carefully
   ## Need to differentiate OS of target vs OS of host.
   ## Leave os_linux for now for host part of dyninst
@@ -144,9 +144,8 @@ endif()
 
 string(REGEX REPLACE "-D" "-DDYNINST_HOST_" _LOWER_ARCH_DEFINES
                      "${ARCH_DEFINES_TESTSUITE}")
-if(NOT DYNINST_ARCH_amdgpu)
-  string(TOUPPER "${_LOWER_ARCH_DEFINES}" ARCH_DEFINES)
-endif()
+
+string(TOUPPER "${_LOWER_ARCH_DEFINES}" ARCH_DEFINES)
 
 string(REGEX REPLACE "-D" "-DDYNINST_CODEGEN_" ARCH_DEFINES_CODEGEN
                      "${ARCH_DEFINES_CODEGEN}")

@@ -55,7 +55,7 @@ namespace NS_amdgpu {
   class instruction;
 }
 
-#if defined (arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 typedef NS_amdgpu::instruction arch_insn;
 #elif defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 typedef NS_x86::instruction arch_insn;

@@ -59,9 +59,9 @@ add_subdirectory(parseAPI)
 add_subdirectory(proccontrol)
 
 # We want to avoid warnings.
-# Don't build stackwalkerAPI for AMDGPU.
+# Don't build stackwalkerAPI for AMDGPU 908.
 # Those AMDGPU-related files were added as placeholder at some point.
-if(NOT DYNINST_ARCH_amdgpu)
+if(NOT DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   add_subdirectory(stackwalk)
 endif()
 

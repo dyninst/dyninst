@@ -46,7 +46,7 @@
 #  include "registers/aarch64_regs.h"
 #endif
 
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 #  include "registers/AMDGPU/amdgpu_gfx908_regs.h"
 #  include "registers/AMDGPU/amdgpu_gfx90a_regs.h"
 #  include "registers/AMDGPU/amdgpu_gfx940_regs.h"
@@ -118,7 +118,7 @@ ABI* ABI::getABI(int addr_width){
 	globalABI_->addr_width = 4;
 	globalABI64_ = new ABI();
 
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 	globalABI64_->addr_width = 8;
 	globalABI64_->index = &machRegIndex_amdgpu_gfx908(); // FIXME AMDGPU : This shouldn't be hardcoded.
   initialize64(Arch_amdgpu_gfx908);
@@ -150,7 +150,7 @@ ABI* ABI::getABI(int addr_width){
 	initialize32();
 #endif
 
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 	globalABI64_->addr_width = 8;
 	globalABI64_->index = &machRegIndex_amdgpu_gfx908(); // TODO : This shouldn't be hardcoded.
   initialize64(Arch_amdgpu_gfx908);

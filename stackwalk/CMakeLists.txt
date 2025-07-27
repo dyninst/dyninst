@@ -57,7 +57,7 @@ if(DYNINST_OS_UNIX)
   elseif(DYNINST_HOST_ARCH_AARCH64)
     list(APPEND _sources src/linux-aarch64-swk.C src/aarch64-swk.C src/dbginfo-stepper.C)
 
-  elseif(DYNINST_ARCH_amdgpu)
+  elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     list(APPEND _sources src/linux-amdgpu-swk.C src/amdgpu-swk.C src/dbginfo-stepper.C)
 
   elseif(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)

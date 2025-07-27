@@ -59,7 +59,7 @@
 #include "mapped_object.h"
 #include "Relocation/DynAddrSpace.h"
 
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 #include "amdgpu-prologue.h"
 #include "amdgpu-epilogue.h"
 #include <fstream>
@@ -191,7 +191,7 @@ BPatch_binaryEdit::~BPatch_binaryEdit()
   assert(BPatch::bpatch != NULL);
 }
 
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 
 constexpr int kernelInfoSize = 3;
 
@@ -324,14 +324,14 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
     getAS(as);
     bool ret = true;
 
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     std::vector<AmdgpuKernelInfo> kernelInfos;
     std::string inputFileName = this->getImage()->getProgramFileName();
 #endif
 
     /* PatchAPI stuffs */
     if (as.size() > 0) {
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
       readKernelInfos(inputFileName + ".info", kernelInfos);
       insertPrologueInInstrumentedFunctions(kernelInfos);
       insertEpilogueInInstrumentedFunctions(kernelInfos);
@@ -353,7 +353,7 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
 
 
    if( !origBinEdit->writeFile(outFile) ) return false;
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
    writeInstrumentedFunctionNames(inputFileName + ".instrumentedKernelNames", kernelInfos);
 #endif
 
