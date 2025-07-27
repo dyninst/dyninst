@@ -58,7 +58,7 @@ class PCProcess;
 #include "linux-power.h"
 #elif defined(os_linux) && defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "linux-aarch64.h"
-#elif defined(os_linux) && defined(arch_amdgpu)
+#elif defined(os_linux) && defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 #include "linux-amdgpu.h"
 #else
 #error Invalid or unknown architecture-os inclusion

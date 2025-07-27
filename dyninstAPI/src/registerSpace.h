@@ -497,7 +497,7 @@ class registerSpace {
     static unsigned FPR(Dyninst::Register x) { return x - fpr0; }
     int framePointer() { return r29; }
 #endif
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     // AMDGPU Vega register enumeration. Note that THIS enumeration is for Dyninst's abstraction, and the enumerations are NOT meant to map to the architectural register number here.
     // We map these registers to MachRegisters in RegisterConversion-amdgpu-vega.C
     // For information on architectural registers see MachRegister in dyn_regs.h

@@ -319,7 +319,7 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
 
 #if defined(cap_mutatee_traps)
 
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 /* The saved state of a stopped GPU process
 
    At the moment, this is just a placeholder
@@ -354,7 +354,7 @@ typedef ucontext_t dyn_ucontext_t;
 
 // Register numbers experimentally verified
 
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 	/* XXX OK, I need to make my own context, which
 	reflects the saved CPU state of stopped GPU. */
 

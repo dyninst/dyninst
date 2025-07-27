@@ -39,7 +39,7 @@
 #include "dyninstAPI/src/patch.h"
 
 /* Moving amdgpu first to fix x86 platform issues */
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 #include "codegen-amdgpu.h"
 using namespace NS_amdgpu;
 #elif defined(DYNINST_CODEGEN_ARCH_POWER)

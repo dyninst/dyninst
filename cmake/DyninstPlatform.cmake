@@ -51,7 +51,7 @@ endif()
 
 # FIXME AMDGPU :
 # CHANGE THIS TO USE TARGET_ARCH
-if(NOT DYNINST_ARCH_amdgpu)
+if(NOT DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   if(${_host_arch} IN_LIST _64bit_x86_arches)
     set(DYNINST_HOST_ARCH_X86_64 TRUE)
   elseif(${_host_arch} STREQUAL "aarch64")

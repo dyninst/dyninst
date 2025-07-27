@@ -261,7 +261,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
 
 
-#if defined(DYNINST_CODEGEN_ARCH_POWER) || defined(DYNINST_CODEGEN_ARCH_AARCH64) || defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_POWER) || defined(DYNINST_CODEGEN_ARCH_AARCH64) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   bool savesReturnAddr() const { return ifunc()->savesReturnAddr(); }
 #endif
 

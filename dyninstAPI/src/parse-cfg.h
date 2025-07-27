@@ -329,7 +329,7 @@ class parse_func : public ParseAPI::Function
 
 // FIXME AMDGPU :
 // USE TARGET_ARCH
-#if defined(DYNINST_CODEGEN_ARCH_POWER) || defined(DYNINST_CODEGEN_ARCH_AARCH64) || defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_POWER) || defined(DYNINST_CODEGEN_ARCH_AARCH64) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
    bool savesReturnAddr() const { return saves_return_addr_; }
 #endif
 

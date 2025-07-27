@@ -62,7 +62,7 @@
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "dyninstAPI/src/emit-aarch64.h"
-#elif defined (arch_amdgpu)
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 #include "dyninstAPI/src/inst-amdgpu.h"
 #include "dyninstAPI/src/emit-amdgpu.h"
 
@@ -121,7 +121,7 @@ unsigned registerSlot::encoding() const {
             return Null_Register;
             break;
     }
-#elif defined(arch_amdgpu)
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     switch (type) {
       case SGPR:
             return registerSpace::SGPR(number);
@@ -1523,7 +1523,7 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 #endif
 	}
 	else {
-#if defined(arch_amdgpu)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     assert(addr_width == 8 && "AMDGPU has 64-bit (8-byte) address space, but has 32 bit registers");
 	  range = regToMachReg32.equal_range(reg);
 		live = &live2;
