@@ -262,6 +262,8 @@ Region::RegionType getRegionType(unsigned long type, unsigned long flags, const 
             return Region::RT_SYMVERDEF;
         case SHT_GNU_verneed:
             return Region::RT_SYMVERNEEDED;
+        case SHT_INIT_ARRAY:
+            return Region::RT_INIT_ARRAY;
         default:
             return Region::RT_OTHER;
     }
@@ -484,6 +486,7 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
                     case DT_VERSYM:
                     case DT_VERNEED:
                     case DT_VERDEF:
+                    case DT_INIT_ARRAY:
                         secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
                         break;
                     case DT_HASH:
@@ -538,6 +541,7 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
                 case DT_VERNEED:
                 case DT_VERDEF:
                 case DT_HASH:
+                case DT_INIT_ARRAY:
                 case 0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
 
                     if (secTagSizeMapping.find(tag) != secTagSizeMapping.end()) {

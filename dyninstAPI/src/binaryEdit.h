@@ -205,6 +205,8 @@ class BinaryEdit : public AddressSpace {
 
     void makeInitAndFiniIfNeeded();
 
+    void makeDyninstInit();
+
     bool archSpecificMultithreadCapable();
 
    /* Function specific to rewritting static binaries */

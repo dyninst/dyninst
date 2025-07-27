@@ -199,6 +199,32 @@ Dyninst::SymtabAPI::Symtab *Dyninst::SymtabAPI::convert(const BPatch_object *o) 
 
 BPatchSnippetHandle* BPatch_object::insertInitCallback(BPatch_snippet& callback)
 {
+    BPatch_Vector<BPatch_function*> dyninstInitFuncs;
+    findFunction("_dyninst_init", dyninstInitFuncs);
+    if (dyninstInitFuncs.empty()) {
+        startup_printf("[%s]%d failed to find function _dyninst_init", FILE__, __LINE__);
+        return NULL;
+    }
+
+    void *dyninstInitAddr = dyninstInitFuncs[0]->getBaseAddr();
+
+    SymtabAPI::Symtab *symtab = SymtabAPI::convert(this);
+    symtab->prependInitArrayFunc(dyninstInitAddr);
+//     unsigned long initArraySize = initArray->getMemSize();
+//     void *initArrayRaw = initArray->getPtrToRawData();
+// #if defined(DYNINST_HOST_ARCH_X86)
+//     unsigned long newInitArrySize = initArraySize + 4;
+//     void *newInitArrayRaw = malloc(newInitArrySize);
+//     memcpy((unsigned *)newInitArrayRaw + 1, initArrayRaw, initArraySize);
+//     *(unsigned *)newInitArrayRaw = (unsigned)dyninstInitAddr;
+// #else
+//     unsigned long newInitArrySize = initArraySize + 8;
+//     void *newInitArrayRaw = malloc(newInitArrySize);
+//     memcpy((unsigned long long *)newInitArrayRaw + 1, initArrayRaw, initArraySize);
+//     *(unsigned long long*)newInitArrayRaw = (unsigned long long)dyninstInitAddr;
+// #endif
+//     initArray->setPtrToRawData(newInitArrayRaw, newInitArrySize);
+
     BPatch_Vector<BPatch_function*> init_funcs;
     findFunction("_init", init_funcs);    
     if(!init_funcs.empty())
