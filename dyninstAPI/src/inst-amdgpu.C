@@ -72,7 +72,8 @@ void registerSpace::initialize32() {
                                              registerSlot::VGPR));
     }
 
-    //SPRs
+    // clang-format off
+    // SPRs
     registers.push_back(new registerSlot(flat_scratch_lo, "flat_scratch_lo", true, registerSlot::liveAlways, registerSlot::SPR));
     registers.push_back(new registerSlot(flat_scratch_lo, "flat_scratch_hi", true, registerSlot::liveAlways, registerSlot::SPR));
     registers.push_back(new registerSlot(xnack_mask_lo, "xnack_mask_lo", true, registerSlot::liveAlways, registerSlot::SPR));
@@ -81,6 +82,7 @@ void registerSpace::initialize32() {
     registers.push_back(new registerSlot(vcc_lo, "vcc_hi", true, registerSlot::liveAlways, registerSlot::SPR));
     registers.push_back(new registerSlot(exec_lo, "exec_lo", true, registerSlot::liveAlways, registerSlot::SPR));
     registers.push_back(new registerSlot(exec_lo, "exec_hi", true, registerSlot::liveAlways, registerSlot::SPR));
+    // clang-format on
 
     registerSpace::createRegisterSpace64(registers);
     done = true;
