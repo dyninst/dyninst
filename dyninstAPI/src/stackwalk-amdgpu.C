@@ -31,10 +31,7 @@
 #include "debug.h"
 #include "dynProcess.h"
 #include "baseTramp.h"
-#include "function.h"
 #include "frameChecker.h"
-#include "inst-amdgpu.h"
-
 using namespace Dyninst;
 
 bool PCProcess::createStackwalkerSteppers()

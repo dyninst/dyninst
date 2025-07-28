@@ -27,22 +27,13 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-// ppc-specific methods for generating control flow
+
+// Control flow patching for AMDGPU
 
 #include "CFWidget.h"
-#include "Widget.h"
 #include "../CFG/RelocTarget.h"
-
-#include "instructionAPI/h/Instruction.h"
-
 #include "dyninstAPI/src/debug.h"
-
-#include "../CodeTracker.h"
 #include "../CodeBuffer.h"
-#include "dyninstAPI/src/addressSpace.h"
-#include "dyninstAPI/src/emit-amdgpu.h"
-#include "dyninstAPI/src/registerSpace.h"
-
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -54,6 +45,7 @@ bool CFWidget::generateIndirect(CodeBuffer & /* buffer */,
                                 Register,
                                 const RelocBlock * /* trace */,
                                 Instruction /* insn */) {
+  // Called by CFWidget::generate
         return true;
 }
 
@@ -63,6 +55,7 @@ bool CFWidget::generateIndirectCall(CodeBuffer &/* buffer */,
                                     Instruction /* insn */,
                                     const RelocBlock * /* trace */,
                                     Address /*origAddr*/) {
+  // Called by CFWidget::generate
     return true;
 }
 
@@ -110,93 +103,14 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
       }
    }
    return true;
-   // std::cerr << "in CFPatch::apply\n";
-   // switch(type) {
-   //   case CFPatch::Jump:
-   //    std::cerr << "jump patch\n";
-   //    break;
-   //   case CFPatch::JCC:
-   //    std::cerr << "jcc patch\n";
-   //    break;
-   //   case CFPatch::Call:
-   //    std::cerr << "call patch\n";
-   //    break;
-   //   case CFPatch::Data:
-   //    std::cerr << "data patch\n";
-   //    break;
-   // }
-   //  return true;
 }
 
-bool CFPatch::isPLT(codeGen &gen) {
-    if (!gen.addrSpace()->edit()) return false;
-
-    // We need to PLT if we're in two different
-    // AddressSpaces - the current codegen and
-    // the target.
-
-    // First check the target type.
-    if (target->type() != TargetInt::BlockTarget) {
-        // Either a RelocBlock (which _must_ be local)
-        // or an Address (which has to be local to be
-        // meaningful); neither reqs PLT
-        return false;
-    }
-
-    Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
-    block_instance *tb = t->t();
-    if (tb->proc() != gen.addrSpace())
-        return true;
-    else
-        return false;
+bool CFPatch::isPLT(codeGen & /* gen */) {
+  assert(false && "Not implemented for AMDGPU");
+  return false;
 }
 
-bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
-    if (target->type() != TargetInt::BlockTarget) {
-        return false;
-    }
-    // And can only handle calls right now. That's a TODO...
-    if (type != Call &&
-        type != Jump) {
-        return false;
-    }
-
-    relocation_cerr << "\t\t\t ApplyPLT..." << endl;
-
-    Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
-    block_instance *tb = t->t();
-
-    // Set caller in codegen structure
-    gen.setFunction(const_cast<func_instance *>(func));
-
-    // We can (for now) only jump to functions
-    func_instance *callee = tb->entryOfFunc();
-    if (!callee) {
-        return false;
-    }
-
-    instPoint *calleeEntry = instPoint::funcEntry(callee);
-    gen.setRegisterSpace(registerSpace::actualRegSpace(calleeEntry));
-
-    if (type == Call)
-        gen.codeEmitter()->emitPLTCall(callee, gen);
-    else if (type == Jump)
-        gen.codeEmitter()->emitPLTJump(callee, gen);
-    else
-        assert(0);
-
-    return true;
+bool CFPatch::applyPLT(codeGen & /* gen */, CodeBuffer *) {
+  assert(false && "Not implemented for AMDGPU");
+  return false;
 }
-
-/*
-bool CFPatch::needsTOCUpdate() {
-	assert(0);
-  return true;
-}
-
-bool CFPatch::handleTOCUpdate(codeGen &gen) {
-	assert(0);
-	return false;
-}
-*/
-
