@@ -36,6 +36,8 @@ namespace Vega {
 
 using Register = Dyninst::Register;
 
+// clang-format off
+
 // TODO : Map scalar regs to abstract registers?
 enum ScalarRegs {
   SGPR_0 = 0,
