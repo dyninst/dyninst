@@ -33,13 +33,13 @@
 #include <cstring>
 #include <iostream>
 
-using namespace Vega;
+using namespace AmdgpuGfx908;
 
 // Similar approach to prologue
 bool AmdgpuEpilogueSnippet::generate(Dyninst::PatchAPI::Point * /* point */,
                                      Dyninst::Buffer &buffer) {
   codeGen gen(20);
-  EmitterAmdgpuVega emitter;
+  EmitterAmdgpuGfx908 emitter;
 
   emitter.emitScalarDataCacheWriteback(gen);
 
