@@ -40,8 +40,7 @@
 //
 class AmdgpuPrologueSnippet : public Dyninst::PatchAPI::Snippet {
 public:
-  AmdgpuPrologueSnippet(Dyninst::Register dest, Dyninst::Register base,
-                        unsigned offset)
+  AmdgpuPrologueSnippet(Dyninst::Register dest, Dyninst::Register base, unsigned offset)
       : dest_(dest), base_(base), offset_(offset) {}
 
   bool generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer);
@@ -57,6 +56,5 @@ private:
 // the register tracking mechanism.
 class AmdgpuPrologueSnippetNode : public AstSnippetNode {
 public:
-  AmdgpuPrologueSnippetNode(Dyninst::PatchAPI::SnippetPtr p)
-      : AstSnippetNode(p) {}
+  AmdgpuPrologueSnippetNode(Dyninst::PatchAPI::SnippetPtr p) : AstSnippetNode(p) {}
 };

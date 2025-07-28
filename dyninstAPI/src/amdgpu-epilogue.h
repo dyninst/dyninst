@@ -48,6 +48,5 @@ public:
 // The AST-based inteface that uses the above snippet.
 class AmdgpuEpilogueSnippetNode : public AstSnippetNode {
 public:
-  AmdgpuEpilogueSnippetNode(Dyninst::PatchAPI::SnippetPtr p)
-      : AstSnippetNode(p) {}
+  AmdgpuEpilogueSnippetNode(Dyninst::PatchAPI::SnippetPtr p) : AstSnippetNode(p) {}
 };
