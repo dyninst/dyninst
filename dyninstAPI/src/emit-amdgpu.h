@@ -38,7 +38,7 @@
 #include <assert.h>
 #include <vector>
 
-#include "dyninstAPI/src/amdgpu-vega-details.h"
+#include "dyninstAPI/src/amdgpu-gfx908-details.h"
 #include "dyninstAPI/src/emitter.h"
 
 class codeGen;

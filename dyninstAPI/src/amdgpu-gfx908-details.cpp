@@ -26,7 +26,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "amdgpu-vega-details.h"
+#include "amdgpu-gfx908-details.h"
 
 // static void printBinary(unsigned int number) {
 //   if (number >> 1) {

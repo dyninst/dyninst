@@ -26,8 +26,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AMDGPU_VEGA_DETAILS_H
-#define AMDGPU_VEGA_DETAILS_H
+#ifndef AMDGPU_GFX908_DETAILS_H
+#define AMDGPU_GFX908_DETAILS_H
 
 #include "codegen.h"
 #include <stdint.h>
