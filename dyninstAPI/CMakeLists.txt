@@ -104,7 +104,7 @@ set(_private_headers
     src/trapMappings.h
     src/unix.h
     src/util.h
-    src/amdgpu-vega-details.h)
+    src/amdgpu-gfx908-details.h)
 
 set(_sources
     src/addressSpace.C
@@ -259,7 +259,7 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/stackwalk-amdgpu.C
     src/Relocation/Widgets/CFWidget-amdgpu.C
     src/Relocation/Widgets/PCWidget-amdgpu.C
-    src/amdgpu-vega-details.cpp
+    src/amdgpu-gfx908-details.cpp
     src/amdgpu-prologue.cpp
     src/amdgpu-epilogue.cpp)
 endif()
