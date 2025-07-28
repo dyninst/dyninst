@@ -124,13 +124,10 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *ob
 
 
     library_adjust = 0;
-#if defined(arch_amdgpu)
-#else
     if (cannotRelocatePhdrs() && !movePHdrsFirst) {
         movePHdrsFirst = true;
         library_adjust = getpagesize();
     }
-#endif
 
     assert(obj && object && object == dynamic_cast<ObjectELF*>(obj->getObject()));
 }
