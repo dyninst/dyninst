@@ -47,7 +47,7 @@ class registerSpace;
 
 class baseTramp;
 
-class EmitterAmdgpuVega : public Emitter {
+class EmitterAmdgpuGfx908 : public Emitter {
 public:
   // emitIf semantics:
   // if (expr_reg == 0)

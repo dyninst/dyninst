@@ -50,7 +50,7 @@
 //   }
 // }
 
-namespace Vega {
+namespace AmdgpuGfx908 {
 
 // === SOP1 BEGIN ===
 uint32_t getMaskSop1(ContentKind k) {
@@ -169,7 +169,7 @@ void setSrc0Sop2(uint32_t value, uint32_t &rawInst) {
 void emitSop2(unsigned opcode, Register dest, Register src0, Register src1, codeGen &gen) {
 
   // Source operand being 255 means the instruction is followed by a literal.
-  // Vega supports only one literal operand in SOP2.
+  // AmdgpuGfx908 supports only one literal operand in SOP2.
   // Thus src0 and src1 can't be 255 at the same time.
   assert(!(src0 == 255 && src1 == 255));
 
@@ -503,4 +503,4 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset, 
 
 // === SMEM END ===
 
-} // namespace Vega
+} // namespace AmdgpuGfx908

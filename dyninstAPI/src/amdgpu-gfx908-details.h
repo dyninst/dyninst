@@ -32,7 +32,7 @@
 #include "codegen.h"
 #include <stdint.h>
 
-namespace Vega {
+namespace AmdgpuGfx908 {
 
 using Register = Dyninst::Register;
 
@@ -428,6 +428,6 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset,
 
 // === SMEM END ===
 
-} // namespace Vega
+} // namespace AmdgpuGfx908
 
 #endif

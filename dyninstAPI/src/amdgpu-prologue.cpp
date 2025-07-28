@@ -33,7 +33,7 @@
 #include <cstring>
 #include <iostream>
 
-using namespace Vega;
+using namespace AmdgpuGfx908;
 
 bool AmdgpuPrologueSnippet::generate(Dyninst::PatchAPI::Point * /* point */,
                                      Dyninst::Buffer &buffer) {
@@ -42,7 +42,7 @@ bool AmdgpuPrologueSnippet::generate(Dyninst::PatchAPI::Point * /* point */,
   // 'Dyninst::Buffer' object passed here.
 
   codeGen gen(20);
-  EmitterAmdgpuVega emitter;
+  EmitterAmdgpuGfx908 emitter;
 
   emitter.emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);
 
