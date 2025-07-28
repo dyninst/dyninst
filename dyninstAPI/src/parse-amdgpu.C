@@ -28,54 +28,45 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "parse-cfg.h"
-#include "mapped_object.h"
 #include "binaryEdit.h"
+#include "mapped_object.h"
+#include "parse-cfg.h"
 
-
-bool parse_func::parseOMPParent(image_parRegion * /*iPar*/, int /*desiredNum*/, int & /*currentSectionNum*/ )
-{
-	assert(false && "Not implemented for AMDGPU");
-	return false;
+bool parse_func::parseOMPParent(image_parRegion * /*iPar*/, int /*desiredNum*/,
+                                int & /*currentSectionNum*/) {
+  assert(false && "Not implemented for AMDGPU");
+  return false;
 }
-
 
 std::string parse_func::calcParentFunc(const parse_func *,
-                                    std::vector<image_parRegion *> &/*pR*/)
-{
-	assert(false && "Not implemented for AMDGPU");
-	return {};
+                                       std::vector<image_parRegion *> & /*pR*/) {
+  assert(false && "Not implemented for AMDGPU");
+  return {};
 }
 
-
-void parse_func::parseOMP(image_parRegion *, parse_func *, int &)
-{
-	assert(false && "Not implemented for AMDGPU");
+void parse_func::parseOMP(image_parRegion *, parse_func *, int &) {
+  assert(false && "Not implemented for AMDGPU");
 }
 
-void parse_func::parseOMPFunc(bool /*hasLoop*/)
-{
-	assert(false && "Not implemented for AMDGPU");
-}
+void parse_func::parseOMPFunc(bool /*hasLoop*/) { assert(false && "Not implemented for AMDGPU"); }
 
-void parse_func::calcUsedRegs()
-{
+void parse_func::calcUsedRegs() {
 
-	assert(false && "Not implemented for AMDGPU");
-    return;
+  assert(false && "Not implemented for AMDGPU");
+  return;
 }
 
 bool BinaryEdit::doStaticBinarySpecialCases() {
-	assert(false && "Not implemented for AMDGPU");
+  assert(false && "Not implemented for AMDGPU");
   return false;
 }
 
 func_instance *mapped_object::findGlobalConstructorFunc(const std::string & /* ctorHandler */) {
-	assert(false && "Not implemented for AMDGPU");
-    return nullptr;
+  assert(false && "Not implemented for AMDGPU");
+  return nullptr;
 }
 
 func_instance *mapped_object::findGlobalDestructorFunc(const std::string & /* dtorHandler */) {
-	assert(false && "Not implemented for AMDGPU");
-    return nullptr;
+  assert(false && "Not implemented for AMDGPU");
+  return nullptr;
 }

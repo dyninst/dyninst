@@ -29,10 +29,11 @@
  */
 
 /* Functions of the relocationEntry class specific to AMDGPU ELF */
-#include <elf.h>
-#include <cassert>
+
 #include "Symtab.h"
 #include "annotations.h"
+#include <cassert>
+#include <elf.h>
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -42,7 +43,8 @@ const char *relocationEntry::relType2Str(unsigned long /* r */, unsigned /* addr
   return nullptr;
 }
 
-DYNINST_EXPORT unsigned long relocationEntry::getGlobalRelType(unsigned /* addressWidth */, Symbol * /* sym */) {
+DYNINST_EXPORT unsigned long relocationEntry::getGlobalRelType(unsigned /* addressWidth */,
+                                                               Symbol * /* sym */) {
   assert(false && "Not implemented for AMDGPU");
   return 0;
 }

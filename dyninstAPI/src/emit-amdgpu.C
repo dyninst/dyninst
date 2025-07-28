@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -42,28 +42,26 @@ using namespace Vega;
 
 // ===== EmitterAmdgpuVega implementation begin =====
 
-unsigned EmitterAmdgpuVega::emitIf(Register expr_reg, Register target,
-                               RegControl /* rc */, codeGen &gen) {
+unsigned EmitterAmdgpuVega::emitIf(Register expr_reg, Register target, RegControl /* rc */,
+                                   codeGen &gen) {
   // Caller must ensure that target is even; and target, target+1 hold the
   // target address.
 
   assert(target >= SGPR_0 && target <= SGPR_101 && "target must be an SGPR");
-  assert(target % 2 == 0 &&
-         "target must be even as we will use target, target+1 in pair");
+  assert(target % 2 == 0 && "target must be even as we will use target, target+1 in pair");
 
   emitSopK(S_CMPK_EQ_U32, expr_reg, 0, gen);
   emitConditionalBranch(/* onConditionTrue = */ false, 0, gen);
 
   size_t setPcInstOffset = gen.getIndex();
-  emitSop1(S_SETPC_B64, /* dest = */ 0, target, /* hasLiteral = */ false, 0,
-           gen);
+  emitSop1(S_SETPC_B64, /* dest = */ 0, target, /* hasLiteral = */ false, 0, gen);
 
   return setPcInstOffset;
 }
 
 // EmitterAmdgpuVega implementation
-void EmitterAmdgpuVega::emitOp(unsigned opcode, Register dest, Register src1,
-                           Register src2, codeGen &gen) {
+void EmitterAmdgpuVega::emitOp(unsigned opcode, Register dest, Register src1, Register src2,
+                               codeGen &gen) {
   uint32_t opcodeSop2 = 0;
   switch (opcode) {
   case plusOp:
@@ -100,18 +98,19 @@ void EmitterAmdgpuVega::emitOp(unsigned opcode, Register dest, Register src1,
   emitSop2(opcodeSop2, dest, src1, src2, gen);
 }
 
-void EmitterAmdgpuVega::emitOpImmSimple(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen) {
+void EmitterAmdgpuVega::emitOpImmSimple(unsigned op, Register dest, Register src1, RegValue src2imm,
+                                        codeGen &gen) {
 
   assert(dest == src1 && "dest and src1 must be the same for SOPK");
 
   uint32_t opcodeSopK = 0;
   switch (op) {
-    case plusOp:
-      opcodeSopK = S_ADDK_I32;
-      break;
-    case timesOp:
-      opcodeSopK = S_MULK_I32;
-      break;
+  case plusOp:
+    opcodeSopK = S_ADDK_I32;
+    break;
+  case timesOp:
+    opcodeSopK = S_MULK_I32;
+    break;
   case lessOp:
     opcodeSopK = S_CMPK_LT_I32;
     break;
@@ -131,19 +130,18 @@ void EmitterAmdgpuVega::emitOpImmSimple(unsigned op, Register dest, Register src
     opcodeSopK = S_CMPK_LG_I32;
     break;
   default:
-    assert(false &&
-           "opcode must correspond to a supported SOPK operation");
+    assert(false && "opcode must correspond to a supported SOPK operation");
   }
   emitSopK(opcodeSopK, src1, src2imm, gen);
-
 }
-void EmitterAmdgpuVega::emitOpImm(unsigned /* opcode1 */, unsigned /* opcode2 */, Register /* dest */,
-                              Register /* src1 */, RegValue /* src2imm */, codeGen & /* gen */) {
+void EmitterAmdgpuVega::emitOpImm(unsigned /* opcode1 */, unsigned /* opcode2 */,
+                                  Register /* dest */, Register /* src1 */, RegValue /* src2imm */,
+                                  codeGen & /* gen */) {
   printf("not implemented yet\n");
 }
 
 void EmitterAmdgpuVega::emitRelOp(unsigned opcode, Register /* dest */, Register src1,
-                              Register src2, codeGen &gen, bool /* s */) {
+                                  Register src2, codeGen &gen, bool /* s */) {
   uint32_t opcodeSopC = 0;
   switch (opcode) {
   case lessOp:
@@ -176,8 +174,8 @@ void EmitterAmdgpuVega::emitRelOp(unsigned opcode, Register /* dest */, Register
   emitSopC(opcodeSopC, src1, src2, gen);
 }
 
-void EmitterAmdgpuVega::emitRelOpImm(unsigned op, Register dest, Register src1,
-                                 RegValue src2imm, codeGen &gen, bool /* s */) {
+void EmitterAmdgpuVega::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm,
+                                     codeGen &gen, bool /* s */) {
   switch (op) {
   case lessOp:
   case leOp:
@@ -188,29 +186,27 @@ void EmitterAmdgpuVega::emitRelOpImm(unsigned op, Register dest, Register src1,
     emitOpImmSimple(op, dest, src1, src2imm, gen);
     break;
   default:
-    assert(false &&
-           "opcode must correspond to a supported SOPK relational operation");
+    assert(false && "opcode must correspond to a supported SOPK relational operation");
   }
 }
 
 void EmitterAmdgpuVega::emitDiv(Register /* dest */, Register /* src1 */, Register /* src2 */,
-                            codeGen & /* gen */, bool /* s */) {
+                                codeGen & /* gen */, bool /* s */) {
   printf("emitDiv not implemented yet\n");
 }
 
-void EmitterAmdgpuVega::emitTimesImm(Register dest, Register src1, RegValue src2imm,
-                                 codeGen &gen) {
+void EmitterAmdgpuVega::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen) {
   assert(dest == src1 && "SOPK instructions require dest = src1");
   Vega::emitSopK(Vega::S_MULK_I32, dest, src2imm, gen);
 }
 
 void EmitterAmdgpuVega::emitDivImm(Register /* dest */, Register /* src1 */, RegValue /* src2imm */,
-                               codeGen & /* gen */, bool /* s */) {
+                                   codeGen & /* gen */, bool /* s */) {
   printf("emitDivImm not implemented yet\n");
 }
 
 void EmitterAmdgpuVega::emitLoad(Register /* dest */, Address /* addr */, int /* size */,
-                             codeGen & /* gen */) {
+                                 codeGen & /* gen */) {
   printf("emitLoad not implemented yet\n");
 }
 
@@ -222,8 +218,7 @@ void EmitterAmdgpuVega::emitLoadConst(Register dest, Address imm, codeGen &gen) 
   Register reg1 = dest + 1;
 
   assert(dest >= SGPR_0 && dest <= SGPR_101 && "reg0 must be an SGPR");
-  assert(reg0 % 2 == 0 &&
-         "reg0 must be even as we will use reg0, reg1 in pair");
+  assert(reg0 % 2 == 0 && "reg0 must be even as we will use reg0, reg1 in pair");
 
   uint32_t lowerAddress = imm;
   uint32_t upperAddress = (imm >> 32);
@@ -232,8 +227,7 @@ void EmitterAmdgpuVega::emitLoadConst(Register dest, Address imm, codeGen &gen) 
   emitMovLiteral(reg1, upperAddress, gen);
 }
 
-void EmitterAmdgpuVega::emitLoadIndir(Register dest, Register addr_reg, int size,
-                                  codeGen &gen) {
+void EmitterAmdgpuVega::emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen) {
   emitLoadRelative(dest, /* offset =*/0, addr_reg, size, gen);
 }
 
@@ -242,8 +236,8 @@ bool EmitterAmdgpuVega::emitCallRelative(Register, Address, Register, codeGen &)
   return 0;
 }
 
-bool EmitterAmdgpuVega::emitLoadRelative(Register dest, Address offset,
-                                     Register base, int size, codeGen &gen) {
+bool EmitterAmdgpuVega::emitLoadRelative(Register dest, Address offset, Register base, int size,
+                                         codeGen &gen) {
   // Caller must ensure the following:
   //
   // 1. base is even aligned and base, base + 1 contain the address.
@@ -261,8 +255,7 @@ bool EmitterAmdgpuVega::emitLoadRelative(Register dest, Address offset,
   int alignment = size >= 4 ? 4 : size;
   assert(dest % alignment == 0 && "destination register must be aligned");
 
-  assert(dest + size - 1 <= SGPR_101 &&
-         "must have consecutive registers to load <size> words");
+  assert(dest + size - 1 <= SGPR_101 && "must have consecutive registers to load <size> words");
 
   unsigned loadOpcode = 0;
   switch (size) {
@@ -300,57 +293,57 @@ bool EmitterAmdgpuVega::emitLoadRelative(Register dest, Address offset,
 }
 
 void EmitterAmdgpuVega::emitLoadShared(opCode /* op */, Register /* dest */,
-                                       const image_variable * /* var */, bool
-                                       /* is_local */, int /* size */, codeGen & /* gen */,
-                                       Address /* offset */) {
+                                       const image_variable * /* var */,
+                                       bool
+                                       /* is_local */,
+                                       int /* size */, codeGen & /* gen */, Address /* offset */) {
   printf("emitLoadShared not implemented yet\n");
 }
 
 void EmitterAmdgpuVega::emitLoadFrameAddr(Register /* dest */, Address /* offset */,
-                                      codeGen & /* gen */) {
+                                          codeGen & /* gen */) {
   printf("emitLoadFrameAddr not implemented yet\n");
 }
 
 // These implicitly use the stored original/non-inst value
 void EmitterAmdgpuVega::emitLoadOrigFrameRelative(Register /* dest */, Address /* offset */,
-                                              codeGen & /* gen */) {
+                                                  codeGen & /* gen */) {
   printf("emitLoadOrigFrameRelative not implemented yet\n");
 }
 
 void EmitterAmdgpuVega::emitLoadOrigRegRelative(Register /* dest */, Address /* offset */,
-                                            Register /* base */, codeGen & /* gen */,
-                                            bool /* store */) {
+                                                Register /* base */, codeGen & /* gen */,
+                                                bool /* store */) {
   printf("emitLoadOrigRegRelative not implemented yet\n");
 }
 
 void EmitterAmdgpuVega::emitLoadOrigRegister(Address /* register_num */, Register /* dest */,
-                                         codeGen & /* gen */) {
+                                             codeGen & /* gen */) {
   printf("emitLoadOrigRegister not implemented yet\n");
 }
 
 void EmitterAmdgpuVega::emitStoreOrigRegister(Address /* register_num */, Register /* dest */,
-                                          codeGen & /* gen */) {
+                                              codeGen & /* gen */) {
   printf("emitStoreOrigRegister not implemented yet\n");
 }
 
 void EmitterAmdgpuVega::emitStore(Address /* addr */, Register /* src */, int /* size */,
-                              codeGen & /* gen */) {
+                                  codeGen & /* gen */) {
   printf("emitStore not implemented yet\n");
 }
 
-void EmitterAmdgpuVega::emitStoreIndir(Register addr_reg, Register src, int size,
-                                   codeGen &gen) {
+void EmitterAmdgpuVega::emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen) {
   emitStoreRelative(src, /*offset =*/0, addr_reg, size, gen);
 }
 
 void EmitterAmdgpuVega::emitStoreFrameRelative(Address /* offset */, Register /* src */,
-                                           Register /* scratch */, int /* size */,
-                                           codeGen & /* gen */) {
+                                               Register /* scratch */, int /* size */,
+                                               codeGen & /* gen */) {
   printf("emitStoreFrameRelative not implemented yet\n");
 }
 
-void EmitterAmdgpuVega::emitStoreRelative(Register source, Address offset,
-                                      Register base, int size, codeGen &gen) {
+void EmitterAmdgpuVega::emitStoreRelative(Register source, Address offset, Register base, int size,
+                                          codeGen &gen) {
   // Caller must ensure the following:
   //
   // 1. base is even aligned and base, base + 1 contain the address.
@@ -388,15 +381,12 @@ void EmitterAmdgpuVega::emitStoreRelative(Register source, Address offset,
   emitSmem(storeOpcode, source, (base >> 1), (uint64_t)offset, gen);
 }
 
-void EmitterAmdgpuVega::emitStoreShared(Register /* source */,
-                                        const image_variable * /* var */,
-                                        bool /* is_local */, int /* size */, codeGen
-                                        & /* gen */) {
+void EmitterAmdgpuVega::emitStoreShared(Register /* source */, const image_variable * /* var */,
+                                        bool /* is_local */, int /* size */, codeGen & /* gen */) {
   printf("emitStoreShared not implemented yet\n");
 }
 
-bool EmitterAmdgpuVega::emitMoveRegToReg(Register src, Register dest,
-                                     codeGen &gen) {
+bool EmitterAmdgpuVega::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
 
   emitSop1(S_MOV_B32, dest, src, /*hasLiteral =*/false, /*literal =*/0, gen);
   return 0;
@@ -415,7 +405,8 @@ Register EmitterAmdgpuVega::emitCall(opCode /* op */, codeGen & /* gen */,
   return 0;
 }
 
-void EmitterAmdgpuVega::emitGetRetVal(Register /* dest */, bool /* addr_of */, codeGen & /* gen */) {
+void EmitterAmdgpuVega::emitGetRetVal(Register /* dest */, bool /* addr_of */,
+                                      codeGen & /* gen */) {
   printf("emitGetRetVal not implemented yet\n");
 }
 
@@ -429,13 +420,13 @@ void EmitterAmdgpuVega::emitGetParam(Register /* dest */, Register /* param_num 
   printf("emitGetParam not implemented yet\n");
 }
 
-void EmitterAmdgpuVega::emitASload(int /* ra */, int /* rb */, int /* sc */, long /* imm */, Register /* dest */,
-                               int /* stackShift */, codeGen & /* gen */) {
+void EmitterAmdgpuVega::emitASload(int /* ra */, int /* rb */, int /* sc */, long /* imm */,
+                                   Register /* dest */, int /* stackShift */, codeGen & /* gen */) {
   printf("emitASload not implemented yet\n");
 }
 
-void EmitterAmdgpuVega::emitCSload(int /* ra */, int /* rb */, int /* sc */, long /* imm */, Register /* dest */,
-                               codeGen & /* gen */) {
+void EmitterAmdgpuVega::emitCSload(int /* ra */, int /* rb */, int /* sc */, long /* imm */,
+                                   Register /* dest */, codeGen & /* gen */) {
   printf("emitCSload not implemented yet\n");
 }
 
@@ -463,12 +454,12 @@ bool EmitterAmdgpuVega::emitBTRestores(baseTramp * /* bt */, codeGen & /* gen */
 }
 
 void EmitterAmdgpuVega::emitStoreImm(Address /* addr */, int /* imm */, codeGen & /* gen */,
-                                 bool /* noCost */) {
+                                     bool /* noCost */) {
   printf("emitStoreImm not implemented yet\n");
 }
 
 void EmitterAmdgpuVega::emitAddSignedImm(Address /* addr */, int /* imm */, codeGen & /* gen */,
-                                     bool /* noCost */) {
+                                         bool /* noCost */) {
   printf("emitAddSignedImm not implemented yet\n");
 }
 
@@ -487,8 +478,7 @@ bool EmitterAmdgpuVega::emitAdjustStackPointer(int /* index */, codeGen & /* gen
   return 0;
 }
 
-bool EmitterAmdgpuVega::clobberAllFuncCall(registerSpace * /* rs */,
-                                           func_instance * /* callee */) {
+bool EmitterAmdgpuVega::clobberAllFuncCall(registerSpace * /* rs */, func_instance * /* callee */) {
   printf("clobberAllFuncCall not implemented yet\n");
   return false;
 }
@@ -508,8 +498,7 @@ void EmitterAmdgpuVega::emitEndProgram(codeGen &gen) {
   emitSopP(S_ENDPGM, /* hasImm = */ false, 0, gen);
 }
 
-void EmitterAmdgpuVega::emitMovLiteral(Register reg, uint32_t literal,
-                                   codeGen &gen) {
+void EmitterAmdgpuVega::emitMovLiteral(Register reg, uint32_t literal, codeGen &gen) {
   // s_mov_b32 reg, < 32-bit constant literal >
   // The literal follows the instruction, so set src0 = 0xFF just like the
   // assembler does.
@@ -517,8 +506,8 @@ void EmitterAmdgpuVega::emitMovLiteral(Register reg, uint32_t literal,
            /* hasLiteral = */ true, literal, gen);
 }
 
-void EmitterAmdgpuVega::emitConditionalBranch(bool onConditionTrue,
-                                              int16_t wordOffset, codeGen &gen) {
+void EmitterAmdgpuVega::emitConditionalBranch(bool onConditionTrue, int16_t wordOffset,
+                                              codeGen &gen) {
   unsigned opcode = onConditionTrue ? S_CBRANCH_SCC0 : S_CBRANCH_SCC1;
   emitSopP(opcode, /* hasImm = */ true, wordOffset, gen);
 }
@@ -527,42 +516,39 @@ void EmitterAmdgpuVega::emitShortJump(int16_t wordOffset, codeGen &gen) {
   emitSopP(S_BRANCH, /* hasImm = */ true, wordOffset, gen);
 }
 
-// For this we need reg, reg+1, reg+2, reg+3. In future, we would like to use liveness analysis to pick 2 pairs of dead registers
-// assume reg = s90
-// diff = toAddress - fromAddress
-// s_getpc_b64 s[90:91]
-// s_mov_b32 s92, diff<31:0>
-// s_mov_b32 s93, diff<63:32>
-// s_add_u32 s90, s92
-// s_add_u32 s91, s93
-// s_setpc_b64 s[90:91]
+// For this we need reg, reg+1, reg+2, reg+3. In future, we would like to use liveness analysis to
+// pick 2 pairs of dead registers assume reg = s90 diff = toAddress - fromAddress s_getpc_b64
+// s[90:91] s_mov_b32 s92, diff<31:0> s_mov_b32 s93, diff<63:32> s_add_u32 s90, s92 s_add_u32 s91,
+// s93 s_setpc_b64 s[90:91]
 void EmitterAmdgpuVega::emitLongJump(Register reg, uint64_t fromAddress, uint64_t toAddress,
                                      codeGen &gen) {
   assert(reg >= SGPR_0 && reg <= SGPR_101 && "reg must be an SGPR");
-  assert(reg % 2 == 0 &&
-         "reg must be even as we will use reg, reg+1 in pair");
+  assert(reg % 2 == 0 && "reg must be even as we will use reg, reg+1 in pair");
 
   // s_getpc_b64 will give us beginning of next instruction.
   // So our fromAddress must be incremented by 4 to accomodate for this.
-  int64_t signedFromAddress = (int64_t) fromAddress + 4;
-  int64_t signedToAddress = (int64_t) toAddress;
+  int64_t signedFromAddress = (int64_t)fromAddress + 4;
+  int64_t signedToAddress = (int64_t)toAddress;
 
   assert(signedFromAddress > 0 && signedToAddress > 0 && "Both addresses must be positive");
   int64_t diff = signedToAddress - signedFromAddress;
 
-  std::cerr << "Long jump from " << std::dec << fromAddress << " (" << std::hex << fromAddress << std::dec << ") to " << toAddress << std::hex << " (" << toAddress << ") " << std::dec;
+  std::cerr << "Long jump from " << std::dec << fromAddress << " (" << std::hex << fromAddress
+            << std::dec << ") to " << toAddress << std::hex << " (" << toAddress << ") "
+            << std::dec;
   std::cerr << "diff = " << diff << " (" << std::hex << diff << ")" << std::dec << std::endl;
 
-  emitSop1(S_GETPC_B64, /* dest = */ reg, /* src0 =*/ 0, /* hasLiteral = */ false, /* literal=*/0, gen);
-  this->emitLoadConst(reg+2, (uint64_t)diff, gen);
+  emitSop1(S_GETPC_B64, /* dest = */ reg, /* src0 =*/0, /* hasLiteral = */ false, /* literal=*/0,
+           gen);
+  this->emitLoadConst(reg + 2, (uint64_t)diff, gen);
   // Now we have:
   // reg+2 = lower bits of diff
   // reg+3 = upper bits of diff
 
   // reg = reg + <reg+2>, SCC = carry
-  emitSop2(S_ADD_U32, reg, reg, reg+2, gen);
+  emitSop2(S_ADD_U32, reg, reg, reg + 2, gen);
   // <reg+1> = <reg+1> + <reg+3> + carry
-  emitSop2(S_ADDC_U32, reg+1, reg+1, reg+3, gen);
+  emitSop2(S_ADDC_U32, reg + 1, reg + 1, reg + 3, gen);
 
   // S_SETPC_B64 writes to the PC, so dest = 0 just like the assembler does.
   emitSop1(S_SETPC_B64, /* dest = */ 0, reg, /* hasLiteral = */ false, /* literal=*/0, gen);
@@ -573,7 +559,7 @@ void EmitterAmdgpuVega::emitAddConstantToRegPair(Register reg, int constant, cod
   emitSop2WithSrc1Literal(S_ADD_U32, reg, reg, constant, gen);
 
   // reg+1 has upper bits. Add 0 with carry.
-  emitSop2WithSrc1Literal(S_ADDC_U32, reg+1, reg+1, 0, gen);
+  emitSop2WithSrc1Literal(S_ADDC_U32, reg + 1, reg + 1, 0, gen);
 }
 
 void EmitterAmdgpuVega::emitScalarDataCacheWriteback(codeGen &gen) {

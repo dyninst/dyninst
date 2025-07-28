@@ -28,51 +28,45 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/registerSpace.h"
-#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
 #include "emit-amdgpu.h"
 
-
-void initDefaultPointFrequencyTable() {
-    assert(false && "Not implemented for AMDGPU");
-}
+void initDefaultPointFrequencyTable() { assert(false && "Not implemented for AMDGPU"); }
 
 /************************************* Register Space **************************************/
 
 void registerSpace::initialize32() {
-      static bool done = false;
-    if (done)
-        return;
+  static bool done = false;
+  if (done)
+    return;
 
-    std::vector < registerSlot * > registers;
+  std::vector<registerSlot *> registers;
 
-    // TODO: This initialization doesn't consider all registers. Right now only the regs we typically use for instrumentation are considered. This might need work later on.
+  // TODO: This initialization doesn't consider all registers. Right now only the regs we typically
+  // use for instrumentation are considered. This might need work later on.
 
-    //SGPRs
-    for (unsigned idx = sgpr0; idx <= sgpr101; idx++) {
-        char name[32];
-        sprintf(name, "sgpr%u", idx - sgpr0);
-        registers.push_back(new registerSlot(idx,
-                                             name,
-                                             /*offLimits =*/false,
-                                             registerSlot::liveAlways,
-                                             registerSlot::SGPR));
-    }
+  // SGPRs
+  for (unsigned idx = sgpr0; idx <= sgpr101; idx++) {
+    char name[32];
+    sprintf(name, "sgpr%u", idx - sgpr0);
+    registers.push_back(new registerSlot(idx, name,
+                                         /*offLimits =*/false, registerSlot::liveAlways,
+                                         registerSlot::SGPR));
+  }
 
-    //VGPRs
-    for (unsigned idx = v0; idx <= v255; idx++) {
-        char name[32];
-        sprintf(name, "vgpr%u", idx - v0);
-        registers.push_back(new registerSlot(idx,
-                                             name,
-                                             /*offLimits =*/false,
-                                             registerSlot::liveAlways,
-                                             registerSlot::VGPR));
-    }
+  // VGPRs
+  for (unsigned idx = v0; idx <= v255; idx++) {
+    char name[32];
+    sprintf(name, "vgpr%u", idx - v0);
+    registers.push_back(new registerSlot(idx, name,
+                                         /*offLimits =*/false, registerSlot::liveAlways,
+                                         registerSlot::VGPR));
+  }
 
-    // clang-format off
+  // clang-format off
     // SPRs
     registers.push_back(new registerSlot(flat_scratch_lo, "flat_scratch_lo", true, registerSlot::liveAlways, registerSlot::SPR));
     registers.push_back(new registerSlot(flat_scratch_lo, "flat_scratch_hi", true, registerSlot::liveAlways, registerSlot::SPR));
@@ -82,70 +76,59 @@ void registerSpace::initialize32() {
     registers.push_back(new registerSlot(vcc_lo, "vcc_hi", true, registerSlot::liveAlways, registerSlot::SPR));
     registers.push_back(new registerSlot(exec_lo, "exec_lo", true, registerSlot::liveAlways, registerSlot::SPR));
     registers.push_back(new registerSlot(exec_lo, "exec_hi", true, registerSlot::liveAlways, registerSlot::SPR));
-    // clang-format on
+  // clang-format on
 
-    registerSpace::createRegisterSpace64(registers);
-    done = true;
+  registerSpace::createRegisterSpace64(registers);
+  done = true;
 }
 
-void registerSpace::initialize64() {
-  assert(false && "No 64-bit registers for AMDGPU");
-}
+void registerSpace::initialize64() { assert(false && "No 64-bit registers for AMDGPU"); }
 
-void registerSpace::initialize() {
-    initialize32();
-}
+void registerSpace::initialize() { initialize32(); }
 
 /*
  * Emit code to push down the stack
  */
-void pushStack(codeGen & /*gen */)
-{
-}
+void pushStack(codeGen & /*gen */) {}
 
-void popStack(codeGen & /*gen*/)
-{
-}
+void popStack(codeGen & /*gen*/) {}
 
 /*********************************** Base Tramp ***********************************************/
-bool baseTramp::generateSaves(codeGen & /* gen */, registerSpace *)
-{
-    return true;
-}
+bool baseTramp::generateSaves(codeGen & /* gen */, registerSpace *) { return true; }
 
-bool baseTramp::generateRestores(codeGen & /* gen */, registerSpace *)
-{
-    return true;
-}
+bool baseTramp::generateRestores(codeGen & /* gen */, registerSpace *) { return true; }
 
 /***********************************************************************************************/
 /***********************************************************************************************/
 
-//TODO: ALL THESE MUST GO AWAY ENTIRELY AS CODEGEN MATURES
+// TODO: ALL THESE MUST GO AWAY ENTIRELY AS CODEGEN MATURES
 void emitImm(opCode /* op */, Register /* src1 */, RegValue /* src2imm */, Register /* dest */,
-        codeGen & /* gen */, bool /*noCost*/, registerSpace * /* rs */, bool /* s */)
-{
+             codeGen & /* gen */, bool /*noCost*/, registerSpace * /* rs */, bool /* s */) {
   assert(false && "Not implemented for AMDGPU");
 }
 
 // void cleanUpAndExit(int status);
 
-Register emitFuncCall(opCode, codeGen &, std::vector <AstNodePtr> &, bool, Address) {
+Register emitFuncCall(opCode, codeGen &, std::vector<AstNodePtr> &, bool, Address) {
   assert(false && "Not implemented for AMDGPU");
   return 0;
 }
 
-Register emitFuncCall(opCode /* op */, codeGen & /* gen */, std::vector <AstNodePtr> & /* operands */, bool /* noCost */, func_instance * /* callee */) {
+Register emitFuncCall(opCode /* op */, codeGen & /* gen */,
+                      std::vector<AstNodePtr> & /* operands */, bool /* noCost */,
+                      func_instance * /* callee */) {
   assert(false && "Not implemented for AMDGPU");
   return 0;
 }
 
-codeBufIndex_t emitA(opCode /* op */, Register /* src1 */, Register, long /* dest */, codeGen & /* gen */, RegControl /* rc */, bool) {
+codeBufIndex_t emitA(opCode /* op */, Register /* src1 */, Register, long /* dest */,
+                     codeGen & /* gen */, RegControl /* rc */, bool) {
   assert(false && "Not implemented for AMDGPU");
   return 0;
 }
 
-Register emitR(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */, codeGen & /* gen */, bool /*noCost*/, const instPoint *, bool /*for_MT*/) {
+Register emitR(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */,
+               codeGen & /* gen */, bool /*noCost*/, const instPoint *, bool /*for_MT*/) {
   assert(false && "Not implemented for AMDGPU");
   return 0;
 }
@@ -154,7 +137,8 @@ void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &) {
   assert(false && "Not implemented for AMDGPU");
 }
 
-void emitASload(const BPatch_addrSpec_NP * /* as */, Register /* dest */, int /* stackShift */, codeGen & /* gen */, bool) {
+void emitASload(const BPatch_addrSpec_NP * /* as */, Register /* dest */, int /* stackShift */,
+                codeGen & /* gen */, bool) {
   assert(false && "Not imeplemented for AMDGPU");
 }
 
@@ -162,66 +146,56 @@ void emitCSload(const BPatch_addrSpec_NP *, Register, codeGen &, bool) {
   assert(false && "Not imeplemented for AMDGPU");
 }
 
-void emitVload(opCode /* op */, Address /* src1 */, Register /* src2 */, Register /* dest */, codeGen & /* gen */, bool /*noCost*/, registerSpace * /*rs*/, int /* size */, const instPoint * /* location */, AddressSpace *) {
+void emitVload(opCode /* op */, Address /* src1 */, Register /* src2 */, Register /* dest */,
+               codeGen & /* gen */, bool /*noCost*/, registerSpace * /*rs*/, int /* size */,
+               const instPoint * /* location */, AddressSpace *) {
   assert(false && "Not imeplemented for AMDGPU");
 }
 
-void emitVstore(opCode /* op */, Register /* src1 */, Register /*src2*/, Address /* dest */, codeGen & /* gen */, bool, registerSpace * /* rs */, int /* size */, const instPoint * /* location */, AddressSpace *) {
+void emitVstore(opCode /* op */, Register /* src1 */, Register /*src2*/, Address /* dest */,
+                codeGen & /* gen */, bool, registerSpace * /* rs */, int /* size */,
+                const instPoint * /* location */, AddressSpace *) {
   assert(false && "Not imeplemented for AMDGPU");
 }
 
-void emitV(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */, codeGen & /* gen */, bool /*noCost*/, registerSpace * /*rs*/, int /* size */, const instPoint * /* location */, AddressSpace * /* proc */, bool /* s */) {
+void emitV(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */,
+           codeGen & /* gen */, bool /*noCost*/, registerSpace * /*rs*/, int /* size */,
+           const instPoint * /* location */, AddressSpace * /* proc */, bool /* s */) {
   assert(false && "Not imeplemented for AMDGPU");
 }
 
 int getInsnCost(opCode) {
-    assert(false && "Not implemented for AMDGPU");
-    return 0;
-}
-
-
-bool doNotOverflow(int64_t /* value */)
-{
   assert(false && "Not implemented for AMDGPU");
-	return false;
+  return 0;
 }
 
+bool doNotOverflow(int64_t /* value */) {
+  assert(false && "Not implemented for AMDGPU");
+  return false;
+}
 
 bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry & /* entry */,
-                             func_instance *& /* target_pdf */, Address /* base_addr */)
-{
+                             func_instance *& /* target_pdf */, Address /* base_addr */) {
   assert(false && "Not implemented for AMDGPU");
-	return false;
+  return false;
 }
 
-bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &, Address,
-                             func_instance *, Address) {
-    assert(false && "Not implemented for AMDGPU");
-    return false;
+bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &, Address, func_instance *,
+                             Address) {
+  assert(false && "Not implemented for AMDGPU");
+  return false;
 }
 
-void emitLoadPreviousStackFrameRegister(Address /* register_num */,
-                                        Register /* dest */,
-                                        codeGen & /* gen */,
-                                        int /* size */,
-                                        bool)
-{
-}
+void emitLoadPreviousStackFrameRegister(Address /* register_num */, Register /* dest */,
+                                        codeGen & /* gen */, int /* size */, bool) {}
 
-void emitStorePreviousStackFrameRegister(Address,
-                                         Register,
-                                         codeGen &,
-                                         int,
-                                         bool) {
-}
+void emitStorePreviousStackFrameRegister(Address, Register, codeGen &, int, bool) {}
 
 // First AST node: target of the call
 // Second AST node: source of the call
 // This can handle indirect control transfers as well
-bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction /* i */,
-					  Address /* addr */,
-					  std::vector<AstNodePtr> & /* args */)
-{
+bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction /* i */, Address /* addr */,
+                                          std::vector<AstNodePtr> & /* args */) {
   assert(false && "Not implemented for AMDGPU");
   return false;
 }
@@ -232,8 +206,8 @@ bool writeFunctionPtr(AddressSpace * /* p */, Address /* addr */, func_instance 
 }
 
 Emitter *AddressSpace::getEmitter() {
-    static EmitterAmdgpuVega vegaEmitter;
-    return &vegaEmitter;
+  static EmitterAmdgpuVega vegaEmitter;
+  return &vegaEmitter;
 }
 
 Address Emitter::getInterModuleVarAddr(const image_variable * /* var */, codeGen & /* gen */) {

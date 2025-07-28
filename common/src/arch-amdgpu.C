@@ -33,7 +33,7 @@
 namespace NS_amdgpu {
 
 unsigned int swapBytesIfNeeded(unsigned int /* i */) {
-	assert(false && "Not implemented for AMDGPU");
+  assert(false && "Not implemented for AMDGPU");
   return 0;
 }
 
@@ -44,20 +44,19 @@ int instruction::signExtend(unsigned int /* i */, unsigned int /* pos */) {
   return 0;
 }
 
-instructUnion &instruction::swapBytes(instructUnion &i)
-{
-	assert(false && "Not implemented for AMDGPU");
+instructUnion &instruction::swapBytes(instructUnion &i) {
+  assert(false && "Not implemented for AMDGPU");
   return i;
 }
 
 instruction *instruction::copy() const {
-	assert(false && "Not implemented for AMDGPU");
-	return nullptr;
+  assert(false && "Not implemented for AMDGPU");
+  return nullptr;
 }
 
 unsigned instruction::getTargetReg() const {
-    assert(false && "Not implemented for AMDGPU");
-    return 0;
+  assert(false && "Not implemented for AMDGPU");
+  return 0;
 }
 
 Dyninst::Address instruction::getTarget(Dyninst::Address /* addr */) const {
@@ -66,23 +65,23 @@ Dyninst::Address instruction::getTarget(Dyninst::Address /* addr */) const {
 }
 
 void instruction::setBranchOffset(Dyninst::Address /*newOffset*/) {
-		assert(false && "Not implemented for AMDGPU");
+  assert(false && "Not implemented for AMDGPU");
 }
 
 bool instruction::isCall() const {
-		assert(false && "Not implemented for AMDGPU");
-    return false;
+  assert(false && "Not implemented for AMDGPU");
+  return false;
 }
 
 void instruction::setInstruction(codeBuf_t * /*ptr*/, Dyninst::Address) {
-		assert(false && "Not implemented for AMDGPU");
+  assert(false && "Not implemented for AMDGPU");
 }
 
 void instruction::setInstruction(unsigned char * /* ptr */, Dyninst::Address) {
-		assert(false && "Not implemented for AMDGPU");
+  assert(false && "Not implemented for AMDGPU");
 }
 
-bool instruction::isBranchReg() const{
+bool instruction::isBranchReg() const {
   assert(false && "Not implmented for AMDGPU");
   return false;
 }
@@ -97,7 +96,8 @@ bool instruction::isCondBranch() const {
   return false;
 }
 
-unsigned instruction::jumpSize(Dyninst::Address /*from*/, Dyninst::Address /*to*/, unsigned /*addr_width*/) {
+unsigned instruction::jumpSize(Dyninst::Address /*from*/, Dyninst::Address /*to*/,
+                               unsigned /*addr_width*/) {
   assert(false && "Not implmented for AMDGPU");
   return 0;
 }
@@ -132,7 +132,7 @@ bool instruction::isThunk() const {
   return false;
 }
 
-unsigned instruction::getBranchTargetReg() const{
+unsigned instruction::getBranchTargetReg() const {
   assert(false && "Not implmented for AMDGPU");
   return 0;
 }
