@@ -1412,7 +1412,9 @@ RegisterMap &machRegIndex_amdgpu_gfx908() {
      {amdgpu_gfx908::acc252,616},
      {amdgpu_gfx908::acc253,617},
      {amdgpu_gfx908::acc254,618},
-     {amdgpu_gfx908::acc255,619}};
+     {amdgpu_gfx908::acc255,619},
+     {amdgpu_gfx908::exec_lo, 620},
+     {amdgpu_gfx908::exec_hi, 621}};
     }
     return *mrmap;
 }
@@ -2042,7 +2044,9 @@ RegisterMap &machRegIndex_amdgpu_gfx90a() {
      {amdgpu_gfx90a::acc252,616},
      {amdgpu_gfx90a::acc253,617},
      {amdgpu_gfx90a::acc254,618},
-     {amdgpu_gfx90a::acc255,619}};
+     {amdgpu_gfx90a::acc255,619},
+     {amdgpu_gfx908::exec_lo, 620},
+     {amdgpu_gfx908::exec_hi, 621}};
     }
     return *mrmap;
 }
@@ -2072,6 +2076,7 @@ RegisterMap &machRegIndex_amdgpu_gfx940() {
      {amdgpu_gfx940::s17,17},
      {amdgpu_gfx940::s18,18},
      {amdgpu_gfx940::s19,19},
+
      {amdgpu_gfx940::s20,20},
      {amdgpu_gfx940::s21,21},
      {amdgpu_gfx940::s22,22},
@@ -2671,7 +2676,9 @@ RegisterMap &machRegIndex_amdgpu_gfx940() {
      {amdgpu_gfx940::acc252,616},
      {amdgpu_gfx940::acc253,617},
      {amdgpu_gfx940::acc254,618},
-     {amdgpu_gfx940::acc255,619}};
+     {amdgpu_gfx940::acc255,619},
+     {amdgpu_gfx908::exec_lo, 620},
+     {amdgpu_gfx908::exec_hi, 621}};
     }
     return *mrmap;
 }

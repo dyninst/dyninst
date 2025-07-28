@@ -50,6 +50,7 @@ set(_private_headers
     src/BPatch_memoryAccessAdapter.h
     src/BPatch_private.h
     src/codegen-aarch64.h
+    src/codegen-amdgpu.h
     src/codegen.h
     src/codegen-power.h
     src/codegen-x86.h
@@ -58,6 +59,7 @@ set(_private_headers
     src/dynProcess.h
     src/dynThread.h
     src/emit-aarch64.h
+    src/emit-amdgpu.h
     src/emit-power.h
     src/emitter.h
     src/emit-x86.h
@@ -71,12 +73,14 @@ set(_private_headers
     src/image.h
     src/infHeap.h
     src/inst-aarch64.h
+    src/inst-amdgpu.h
     src/inst.h
     src/instPoint.h
     src/inst-power.h
     src/inst-x86.h
     src/LinearVariable.h
     src/linux-aarch64.h
+    src/linux-amdgpu.h
     src/linux.h
     src/linux-power.h
     src/linux-x86.h
@@ -99,11 +103,12 @@ set(_private_headers
     src/syscallNotification.h
     src/trapMappings.h
     src/unix.h
-    src/util.h)
+    src/util.h
+    src/amdgpu-gfx908-details.h)
 
 set(_sources
     src/addressSpace.C
-    src/ast.C
+    # src/ast.C
     src/baseTramp.C
     src/binaryEdit.C
     src/block.C
@@ -205,6 +210,7 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
   list(
     APPEND
     _sources
+    src/ast.C
     src/RegisterConversion-x86.C
     src/Relocation/Widgets/CFWidget-x86.C
     src/Relocation/Widgets/PCWidget-x86.C
@@ -219,6 +225,7 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(
     APPEND
     _sources
+    src/ast.C
     src/inst-power.C
     src/codegen-power.C
     src/parse-power.C
@@ -230,6 +237,7 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(
     APPEND
     _sources
+    src/ast.C
     src/inst-aarch64.C
     src/emit-aarch64.C
     src/codegen-aarch64.C
@@ -238,6 +246,22 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/stackwalk-aarch64.C
     src/Relocation/Widgets/CFWidget-aarch64.C
     src/Relocation/Widgets/PCWidget-aarch64.C)
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  list(
+    APPEND
+    _sources
+    src/ast-amdgpu.C
+    src/inst-amdgpu.C
+    src/emit-amdgpu.C
+    src/codegen-amdgpu.C
+    src/parse-amdgpu.C
+    src/RegisterConversion-amdgpu.C
+    src/stackwalk-amdgpu.C
+    src/Relocation/Widgets/CFWidget-amdgpu.C
+    src/Relocation/Widgets/PCWidget-amdgpu.C
+    src/amdgpu-gfx908-details.cpp
+    src/amdgpu-prologue.cpp
+    src/amdgpu-epilogue.cpp)
 endif()
 
 if(DYNINST_OS_FreeBSD)
@@ -264,6 +288,8 @@ elseif(DYNINST_OS_Linux)
     list(APPEND _sources src/linux-power.C)
   elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     list(APPEND _sources src/linux-aarch64.C)
+  elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    list(APPEND _sources src/linux-amdgpu.C)
   endif()
 elseif(DYNINST_OS_Windows)
   list(
