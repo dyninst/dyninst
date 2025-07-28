@@ -36,22 +36,26 @@
 #ifndef LINUX_AMDGPU_HDR
 #define LINUX_AMDGPU_HDR
 
+
+// All these are just to get Dyninst to build for AMDGPU.
+// None of these are needed for binary rewriting.
+
 #include "dyntypes.h"
 
 // floor of inferior malloc address range within a single branch of x
-// for 32-bit ELF PowerPC mutatees
+// for 32-bit ELF mutatees
 extern Dyninst::Address region_lo(const Dyninst::Address x);
 
 // floor of inferior malloc address range within a single branch of x
-// for 64-bit ELF PowerPC mutatees
+// for 64-bit ELF mutatees
 extern Dyninst::Address region_lo_64(const Dyninst::Address x);
 
 // ceiling of inferior malloc address range within a single branch of x
-// for 32-bit ELF PowerPC mutatees
+// for 32-bit ELF mutatees
 extern Dyninst::Address region_hi(const Dyninst::Address x);
 
 // ceiling of inferior malloc address range within a single branch of x
-// for 64-bit ELF PowerPC mutatees
+// for 64-bit ELF mutatees
 extern Dyninst::Address region_hi_64(const Dyninst::Address x);
 
 #endif

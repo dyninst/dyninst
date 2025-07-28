@@ -51,9 +51,6 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-// This needs to be a #define so the assert actually shows the message
-#define EMIT_STATIC_ASSERT "This function is currently unimplemented on this architecture."
-
 /* NOTE:
  * As most of these functions are defined per architecture, the description of
  * each of these functions is in the emitElfStatic header. Comments describing
@@ -62,125 +59,117 @@ using namespace Dyninst::SymtabAPI;
 
 bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *, relocationEntry &,
         Offset, Offset, Offset, LinkMap &, string &) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU");
     return false;
 }
 
-//steve: TODO not sure
 bool emitElfStatic::checkSpecialCaseSymbols(Symtab *, Symbol *) {
-    //assert(!EMIT_STATIC_ASSERT);
-    //return false;
-    return true;
+    assert(false && "Not implemented for AMDGPU");
+    return false;
 }
 
 Offset emitElfStatic::layoutTLSImage(Offset, Region *, Region *, LinkMap &) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU");
     return 0;
 }
 
 Offset emitElfStatic::adjustTLSOffset(Offset, Offset) {
-    assert(!EMIT_STATIC_ASSERT);
     return 0;
 }
 
 char emitElfStatic::getPaddingValue(Region::RegionType) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
     return 0;
 }
 
 void emitElfStatic::cleanupTLSRegionOffsets(map<Region *, LinkMap::AllocPair> &,
         Region *, Region *)
 {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
 }
 
 bool emitElfStatic::isGOTRelocation(unsigned long) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
     return false;
 }
 
 #ifdef OLD_VERSION
 Offset emitElfStatic::getGOTSize(LinkMap &) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
     return 0;
 }
 #endif
 
-//steve: TODO
 Offset emitElfStatic::getGOTSize(Symtab *, LinkMap &, Offset &) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
     return 0;
 }
 
 Offset emitElfStatic::getGOTAlign(LinkMap &) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
     return 0;
 }
 
 #ifdef OLD_VERSION
 void emitElfStatic::buildGOT(LinkMap &) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
 }
 #endif
 
-//steve: TODO
 void emitElfStatic::buildGOT(Symtab *, LinkMap &) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
 }
 
 bool emitElfStatic::isConstructorRegion(Region *) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
     return false;
 }
 
 Offset emitElfStatic::layoutNewCtorRegion(LinkMap &) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
     return 0;
 }
 
 bool emitElfStatic::createNewCtorRegion(LinkMap &) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
     return false;
 }
 
 bool emitElfStatic::isDestructorRegion(Region *) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
     return false;
 }
 
 bool emitElfStatic::isGOTRegion(Region *) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
     return false;
 }
 
 Offset emitElfStatic::layoutNewDtorRegion(LinkMap &) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
     return 0;
 }
 
 bool emitElfStatic::createNewDtorRegion(LinkMap &) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
     return false;
 }
 
 void emitElfStatic::getExcludedSymbolNames(set<string> &) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
 }
 
-//************
-//steve: added
 Offset emitElfStatic::allocStubRegions(LinkMap &, Offset){
-  assert(!EMIT_STATIC_ASSERT);
+  assert(false && "Not implemented for AMDGPU);
 	return 0;
 }
 
 bool emitElfStatic::updateTOC(Symtab *, LinkMap &, Offset){
-  assert(!EMIT_STATIC_ASSERT);
+  assert(false && "Not implemented for AMDGPU);
 	return false;
 }
-//***********
 
 bool emitElfUtils::updateRelocation(Symtab * /* obj */, relocationEntry & /* rel */, int /* library_adjust */) {
-    assert(!EMIT_STATIC_ASSERT);
+    assert(false && "Not implemented for AMDGPU);
     return false;
 }

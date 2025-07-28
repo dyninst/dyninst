@@ -28,49 +28,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/src/headers.h"
-#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-#include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/dynProcess.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/inst-amdgpu.h"
-#include "common/src/arch-amdgpu.h"
-#include "dyninstAPI/src/codegen.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "common/src/stats.h"
-#include "dyninstAPI/src/os.h"
-#include "dyninstAPI/src/instPoint.h" // class instPoint
-#include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/baseTramp.h"
-#include "dyninstAPI/h/BPatch.h"
-#include "dyninstAPI/src/BPatch_collections.h"
 #include "dyninstAPI/src/registerSpace.h"
-#include "dyninstAPI/src/binaryEdit.h"
-#include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/mapped_object.h"
+#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
-#include "parseAPI/h/CFG.h"
-
-#include "emitter.h"
 #include "emit-amdgpu.h"
 
-#include <boost/assign/list_of.hpp>
-using namespace boost::assign;
-#include <sstream>
-
-#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-
-extern bool isPowerOf2(int value, int &result);
-
-Address getMaxBranch() {
-    return MAX_BRANCH_OFFSET;
-}
-
-std::unordered_map<std::string, unsigned> funcFrequencyTable;
 
 void initDefaultPointFrequencyTable() {
-    assert(0); //Not implemented
+    assert(false && "Not implemented for AMDGPU");
 }
 
 /************************************* Register Space **************************************/
@@ -121,7 +87,7 @@ void registerSpace::initialize32() {
 }
 
 void registerSpace::initialize64() {
-  assert(!"No 64-bit implementation for AMDGPU architecture!");
+  assert(false && "No 64-bit registers for AMDGPU");
 }
 
 void registerSpace::initialize() {
@@ -157,7 +123,7 @@ bool baseTramp::generateRestores(codeGen & /* gen */, registerSpace *)
 void emitImm(opCode /* op */, Register /* src1 */, RegValue /* src2imm */, Register /* dest */,
         codeGen & /* gen */, bool /*noCost*/, registerSpace * /* rs */, bool /* s */)
 {
-  assert(0);
+  assert(false && "Not implemented for AMDGPU");
 }
 
 // void cleanUpAndExit(int status);
@@ -167,8 +133,9 @@ Register emitFuncCall(opCode, codeGen &, std::vector <AstNodePtr> &, bool, Addre
   return 0;
 }
 
-Register emitFuncCall(opCode op, codeGen &gen, std::vector <AstNodePtr> &operands, bool noCost, func_instance *callee) {
-    return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
+Register emitFuncCall(opCode /* op */, codeGen & /* gen */, std::vector <AstNodePtr> & /* operands */, bool /* noCost */, func_instance * /* callee */) {
+  assert(false && "Not implemented for AMDGPU");
+  return 0;
 }
 
 codeBufIndex_t emitA(opCode /* op */, Register /* src1 */, Register, long /* dest */, codeGen & /* gen */, RegControl /* rc */, bool) {
@@ -205,75 +172,29 @@ void emitV(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /
   assert(false && "Not imeplemented for AMDGPU");
 }
 
-//
-// I don't know how to compute cycles for AMDGPU instructions due to
-//   multiple functional units.  However, we can compute the number of
-//   instructions and hope that is fairly close. - jkh 1/30/96
-//
 int getInsnCost(opCode) {
-    assert(0); //Not implemented
+    assert(false && "Not implemented for AMDGPU");
     return 0;
 }
 
 
-// This is used for checking wether immediate value should be encoded
-// into a instruction. In fact, only being used for loading constant
-// value into a register, and in ARMv8 there are 16 bits for immediate
-// values in the instruction MOV.
-// value here is never a negative value since constant values are saved
-// as void* in the AST operand.
-bool doNotOverflow(int64_t value)
+bool doNotOverflow(int64_t /* value */)
 {
-    if ((value >= 0) && (value <= 0xFFFF)) return true;
-    else return false;
+  assert(false && "Not implemented for AMDGPU");
+	return false;
 }
 
 
-// hasBeenBound: returns true if the runtime linker has bound the
-// function symbol corresponding to the relocation entry in at the address
-// specified by entry and base_addr.  If it has been bound, then the callee
-// function is returned in "target_pdf", else it returns false.
-bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
-                             func_instance *&target_pdf, Address base_addr)
+bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry & /* entry */,
+                             func_instance *& /* target_pdf */, Address /* base_addr */)
 {
-	if (isTerminated()) return false;
-
-	// if the relocationEntry has not been bound yet, then the value
-	// at rel_addr is the address of the instruction immediately following
-	// the first instruction in the PLT entry (which is at the target_addr)
-	// The PLT entries are never modified, instead they use an indirrect
-	// jump to an address stored in the _GLOBAL_OFFSET_TABLE_.  When the
-	// function symbol is bound by the runtime linker, it changes the address
-	// in the _GLOBAL_OFFSET_TABLE_ corresponding to the PLT entry
-
-	Address got_entry = entry.rel_addr() + base_addr;
-	Address bound_addr = 0;
-	if (!readDataSpace((const void*)got_entry, sizeof(Address),
-				&bound_addr, true)){
-		sprintf(errorLine, "read error in PCProcess::hasBeenBound addr 0x%x, pid=%d\n (readDataSpace returns 0)",(unsigned)got_entry,getPid());
-		logLine(errorLine);
-		//print_read_error_info(entry, target_pdf, base_addr);
-		fprintf(stderr, "%s[%d]: %s\n", FILE__, __LINE__, errorLine);
-		return false;
-	}
-
-   //fprintf(stderr, "%s[%d]:  hasBeenBound:  %p ?= %p ?\n", FILE__, __LINE__, bound_addr, entry.target_addr() + 6 + base_addr);
-	if ( !( bound_addr == (entry.target_addr()+6+base_addr)) ) {
-	  // the callee function has been bound by the runtime linker
-	  // find the function and return it
-	  target_pdf = findFuncByEntry(bound_addr);
-	  if(!target_pdf){
-	    return false;
-	  }
-	  return true;
-	}
+  assert(false && "Not implemented for AMDGPU");
 	return false;
 }
 
 bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &, Address,
                              func_instance *, Address) {
-    assert(0); //Not implemented
-    assert(0 && "TODO!");
+    assert(false && "Not implemented for AMDGPU");
     return false;
 }
 
@@ -299,13 +220,13 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction /* i */,
 					  Address /* addr */,
 					  std::vector<AstNodePtr> & /* args */)
 {
-    return false;
+  assert(false && "Not implemented for AMDGPU");
+  return false;
 }
 
-bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f) {
-    Address val_to_write = f->addr();
-    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);
-    return false;
+bool writeFunctionPtr(AddressSpace * /* p */, Address /* addr */, func_instance * /* f */) {
+  assert(false && "Not implemented for AMDGPU");
+  return false;
 }
 
 Emitter *AddressSpace::getEmitter() {
@@ -313,29 +234,12 @@ Emitter *AddressSpace::getEmitter() {
     return &vegaEmitter;
 }
 
-/*
- * If the target stub_addr is a glink stub, try to determine the actual
- * function called (through the GOT) and fill in that information.
- *
- * The function at stub_addr may not have been created when this method
- * is called.
- *
- * XXX Is this a candidate to move into general parsing code, or is
- *     this properly a Dyninst-only technique?
- */
-
-/*
-bool image::updatePltFunc(parse_func *caller_func, Address stub_addr)
-{
-	assert(0); //Not implemented
-    return true;
-}
-*/
-
 Address Emitter::getInterModuleVarAddr(const image_variable * /* var */, codeGen & /* gen */) {
+  assert(false && "Not implemented for AMDGPU");
   return 0;
 }
 
 Address Emitter::getInterModuleFuncAddr(func_instance * /* func */, codeGen & /* gen */) {
+  assert(false && "Not implemented for AMDGPU");
   return 0;
 }
