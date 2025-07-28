@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <stdint.h>
 #include <cassert>
+#include <stdint.h>
 
 #ifndef INST_AMDGPU_H
 #define INST_AMDGPU_H

@@ -31,13 +31,13 @@
 #include "RegisterConversion.h"
 #include "registerSpace.h"
 
-#include <map>
 #include <boost/assign/list_of.hpp>
+#include <map>
 
 #include "Register.h"
+#include "registerSpace.h"
 #include "registers/MachRegister.h"
 #include "registers/abstract_regs.h"
-#include "registerSpace.h"
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
@@ -48,8 +48,7 @@ using namespace boost::assign;
 // regToMachReg64 is here only to prevent linker error because parts of the x86
 // code generator refer to it. This is a temporary hack until the conditional
 // compilation and legacy cruft goes away.
-multimap<Register, MachRegister> regToMachReg64 = map_list_of (0, 0);
-
+multimap<Register, MachRegister> regToMachReg64 = map_list_of(0, 0);
 
 // clang-format off
 multimap<Register, MachRegister> regToMachReg32 = map_list_of
@@ -830,31 +829,24 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
 // clang-format on
 
 Register convertRegID(MachRegister reg) {
-    MachRegister baseReg = MachRegister((reg.getBaseRegister().val() & ~reg.getArchitecture()) | Arch_amdgpu_gfx908);
-    map<MachRegister, Register>::const_iterator found =
-      reverseRegisterMap.find(baseReg);
-    if(found == reverseRegisterMap.end()) {
-      return registerSpace::ignored;
-    }
+  MachRegister baseReg =
+      MachRegister((reg.getBaseRegister().val() & ~reg.getArchitecture()) | Arch_amdgpu_gfx908);
+  map<MachRegister, Register>::const_iterator found = reverseRegisterMap.find(baseReg);
+  if (found == reverseRegisterMap.end()) {
+    return registerSpace::ignored;
+  }
 
-    return found->second;
+  return found->second;
 }
 
+Register convertRegID(RegisterAST::Ptr toBeConverted) { return convertRegID(toBeConverted.get()); }
 
-Register convertRegID(RegisterAST::Ptr toBeConverted)
-{
-    return convertRegID(toBeConverted.get());
+Register convertRegID(RegisterAST *toBeConverted) {
+  if (!toBeConverted) {
+    return registerSpace::ignored;
+  }
+  return convertRegID(toBeConverted->getID());
 }
-
-Register convertRegID(RegisterAST* toBeConverted)
-{
-     if(!toBeConverted) {
-      return registerSpace::ignored;
-    }
-    return convertRegID(toBeConverted->getID());
-}
-
-
 
 MachRegister convertRegID(Register r, Dyninst::Architecture arch) {
   // clang-format off
@@ -1251,7 +1243,6 @@ MachRegister convertRegID(Register r, Dyninst::Architecture arch) {
       assert(!"Invalid architecture");
     }
   // clang-format on
-    assert(!"Register not handled");
-    return InvalidReg;
+  assert(!"Register not handled");
+  return InvalidReg;
 }
-

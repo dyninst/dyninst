@@ -28,18 +28,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "baseTramp.h"
 #include "debug.h"
 #include "dynProcess.h"
-#include "baseTramp.h"
 #include "frameChecker.h"
 using namespace Dyninst;
 
-bool PCProcess::createStackwalkerSteppers()
-{
+bool PCProcess::createStackwalkerSteppers() {
   assert(false && "Not implemented for AMDGPU");
-  return false;}
+  return false;
+}
 
-bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address /* ra */, Dyninst::Address * /*orig_ra*/, unsigned * /* stack_height */, bool * /* deref */, bool * /*entryExit*/) {
+bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address /* ra */,
+                                                       Dyninst::Address * /*orig_ra*/,
+                                                       unsigned * /* stack_height */,
+                                                       bool * /* deref */, bool * /*entryExit*/) {
   assert(false && "Not implemented for AMDGPU");
   return false;
 }
@@ -48,24 +51,21 @@ using namespace Stackwalker;
 
 FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address /* addr */) {
   assert(false && "Not implemented for AMDGPU");
-  return std::make_pair<frame_type, frame_state>(FrameFuncHelper::unknown_t, FrameFuncHelper::unknown_s);
+  return std::make_pair<frame_type, frame_state>(FrameFuncHelper::unknown_t,
+                                                 FrameFuncHelper::unknown_s);
 }
 
-bool DynWandererHelper::isPrevInstrACall(Address /*addr*/, Address &/*target*/)
-{
+bool DynWandererHelper::isPrevInstrACall(Address /*addr*/, Address & /*target*/) {
   assert(false && "Not implemented for AMDGPU");
   return false;
 }
 
-WandererHelper::pc_state DynWandererHelper::isPCInFunc(Address /*func_entry*/, Address /*pc*/)
-{
+WandererHelper::pc_state DynWandererHelper::isPCInFunc(Address /*func_entry*/, Address /*pc*/) {
   assert(false && "Not implemented for AMDGPU");
   return WandererHelper::unknown_s;
 }
 
-bool DynWandererHelper::requireExactMatch()
-{
+bool DynWandererHelper::requireExactMatch() {
   assert(false && "Not implemented for AMDGPU");
   return false;
 }
-

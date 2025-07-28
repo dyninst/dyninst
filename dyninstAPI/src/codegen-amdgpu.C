@@ -28,73 +28,76 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <stdlib.h>
-#include <cstdint>
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/emit-amdgpu.h"
-
+#include <cstdint>
+#include <stdlib.h>
 
 void insnCodeGen::generateTrap(codeGen & /* gen */) {
   // BinaryEdit::addTrap calls this.
-  // We currently only do static binary rewriting for AMDGPU and don't need to generate trap instructions.
+  // We currently only do static binary rewriting for AMDGPU and don't need to generate trap
+  // instructions.
 }
 
 void insnCodeGen::generateIllegal(codeGen & /* gen */) {
-    assert(false && "Not implemented for AMDGPU");
+  assert(false && "Not implemented for AMDGPU");
 }
 
-void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool /* link */) {
-    long disp = (to - from);
-    long wordOffset = disp/4;
+void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to,
+                                 bool /* link */) {
+  long disp = (to - from);
+  long wordOffset = disp / 4;
 
-    Emitter *emitter = gen.emitter();
+  Emitter *emitter = gen.emitter();
 
-    if (wordOffset >= INT16_MIN && wordOffset <= INT16_MAX) {
-      emitter->emitShortJump(wordOffset, gen);
-    } else {
-      // TODO: Right now hardcoding s90. But this needs to use 2 pairs of dead registers.
-      emitter->emitLongJump(90, from, to, gen);
-    }
+  if (wordOffset >= INT16_MIN && wordOffset <= INT16_MAX) {
+    emitter->emitShortJump(wordOffset, gen);
+  } else {
+    // TODO: Right now hardcoding s90. But this needs to use 2 pairs of dead registers.
+    emitter->emitLongJump(90, from, to, gen);
+  }
 }
 
 void insnCodeGen::generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Address to) {
-    generateBranch(gen, from, to, true);
+  generateBranch(gen, from, to, true);
 }
 
 // generate an instruction that does nothing and has to side affect except to
 //   advance the program counter.
 //
 void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
-    assert((size % instruction::size()) == 0);
+  assert((size % instruction::size()) == 0);
 
-    Emitter *emitter = gen.emitter();
+  Emitter *emitter = gen.emitter();
 
-    while (size) {
-        emitter->emitNops(1, gen);
-        size -= instruction::size();
-    }
+  while (size) {
+    emitter->emitNops(1, gen);
+    size -= instruction::size();
+  }
 }
 
 // There's nothing to modify here. Generate an emit a jump to target.
-bool insnCodeGen::modifyJump(Dyninst::Address target, NS_amdgpu::instruction & /* insn */, codeGen &gen) {
-    long disp = target - gen.currAddr();
-    Emitter *emitter = gen.emitter();
-    int16_t wordOffset = disp/4;
+bool insnCodeGen::modifyJump(Dyninst::Address target, NS_amdgpu::instruction & /* insn */,
+                             codeGen &gen) {
+  long disp = target - gen.currAddr();
+  Emitter *emitter = gen.emitter();
+  int16_t wordOffset = disp / 4;
 
-    assert(wordOffset > INT16_MIN && wordOffset < INT16_MAX && "wordOffset must fit in a 16-bit signed value");
-    emitter->emitShortJump(wordOffset, gen);
+  assert(wordOffset > INT16_MIN && wordOffset < INT16_MAX &&
+         "wordOffset must fit in a 16-bit signed value");
+  emitter->emitShortJump(wordOffset, gen);
 
-    return true;
+  return true;
 }
 
 /* TODO and/or FIXME
- * The logic used by this function is common across architectures but is replicated 
+ * The logic used by this function is common across architectures but is replicated
  * in architecture-specific manner in all codegen-* files.
- * This means that the logic itself needs to be refactored into the (platform 
+ * This means that the logic itself needs to be refactored into the (platform
  * independent) codegen.C file. Appropriate architecture-specific,
- * bit-twiddling functions can then be defined if necessary in the codegen-* files 
+ * bit-twiddling functions can then be defined if necessary in the codegen-* files
  * and called as necessary by the common, refactored logic.
-*/
+ */
 
 /*
  * <Addr X> conditionalJump A
@@ -109,41 +112,44 @@ bool insnCodeGen::modifyJump(Dyninst::Address target, NS_amdgpu::instruction & /
  *
  */
 bool insnCodeGen::modifyJcc(Dyninst::Address target, NS_amdgpu::instruction &insn, codeGen &gen) {
-    // We start by modifying the current conditional jump instruction in-place:
-    //  <Addr X> conditionalJump A  ---> <Addr X> conditionalJump B
-    assert(insn.size() == 4 && "Conditional branch on AMDGPU must be 4 bytes long");
-    uint32_t rawInst = insn.asInt();
+  // We start by modifying the current conditional jump instruction in-place:
+  //  <Addr X> conditionalJump A  ---> <Addr X> conditionalJump B
+  assert(insn.size() == 4 && "Conditional branch on AMDGPU must be 4 bytes long");
+  uint32_t rawInst = insn.asInt();
 
-    // This is a SOPP instruction, so simply set the the SIMM16 field appropriately.
-    Vega::setSImm16SopP(1, rawInst); // CPU does (1)*4 + 4 and computes the target = X+8 i.e B
+  // This is a SOPP instruction, so simply set the the SIMM16 field appropriately.
+  Vega::setSImm16SopP(1, rawInst); // CPU does (1)*4 + 4 and computes the target = X+8 i.e B
 
-    // Now copy this at the end of the codegen buffer
-    gen.copy((void *)&rawInst, sizeof rawInst);
+  // Now copy this at the end of the codegen buffer
+  gen.copy((void *)&rawInst, sizeof rawInst);
 
-    // We are at offset X+4, we want to jump to X+12, i.e C
-    // Now emit jump C
-    Emitter *emitter = gen.emitter();
-    emitter->emitShortJump(1, gen); // CPU does (1)*4 + 4 and computes the target = <X+4> + 8 = X+12 i.e C
+  // We are at offset X+4, we want to jump to X+12, i.e C
+  // Now emit jump C
+  Emitter *emitter = gen.emitter();
+  emitter->emitShortJump(
+      1, gen); // CPU does (1)*4 + 4 and computes the target = <X+4> + 8 = X+12 i.e C
 
-    // Now emit jump A, the original target
-	  long from = gen.currAddr();
-    long disp = target - from;
-    int16_t wordOffset = disp/4;
+  // Now emit jump A, the original target
+  long from = gen.currAddr();
+  long disp = target - from;
+  int16_t wordOffset = disp / 4;
 
-    assert(wordOffset > INT16_MIN && wordOffset < INT16_MAX && "wordOffset must fit in a 16-bit signed value");
-    emitter->emitShortJump(wordOffset, gen);
+  assert(wordOffset > INT16_MIN && wordOffset < INT16_MAX &&
+         "wordOffset must fit in a 16-bit signed value");
+  emitter->emitShortJump(wordOffset, gen);
 
-    return true;
+  return true;
 }
 
 bool insnCodeGen::modifyCall(Dyninst::Address target, NS_amdgpu::instruction &insn, codeGen &gen) {
-    if (insn.isUncondBranch())
-        return modifyJump(target, insn, gen);
-    else
-        return modifyJcc(target, insn, gen);
+  if (insn.isUncondBranch())
+    return modifyJump(target, insn, gen);
+  else
+    return modifyJcc(target, insn, gen);
 }
 
-bool insnCodeGen::modifyData(Dyninst::Address /* target */, NS_amdgpu::instruction & /* insn */, codeGen & /* gen */) {
-    assert(false && "Not implemented for AMDGPU");
-    return false;
+bool insnCodeGen::modifyData(Dyninst::Address /* target */, NS_amdgpu::instruction & /* insn */,
+                             codeGen & /* gen */) {
+  assert(false && "Not implemented for AMDGPU");
+  return false;
 }

@@ -32,7 +32,7 @@
 #define _ARCH_AMDGPU_H
 
 // We primarily use the emitter for AMDGPU.
-// This is there to make codegen work for the port.
+// This is there to make the port build.
 
 #include "dyntypes.h"
 #include "registers/AMDGPU/amdgpu_gfx908_regs.h"
@@ -47,8 +47,8 @@ namespace NS_amdgpu {
 typedef const unsigned int insn_mask;
 
 typedef union {
-    unsigned char byte[4];
-    unsigned int  raw;
+  unsigned char byte[4];
+  unsigned int raw;
 } instructUnion;
 
 typedef instructUnion codeBuf_t;
@@ -58,120 +58,111 @@ typedef unsigned codeBufIndex_t;
 unsigned int swapBytesIfNeeded(unsigned int i);
 
 class DYNINST_EXPORT instruction {
-	private:
-    instructUnion insn_;
+private:
+  instructUnion insn_;
 
-	public:
-    instruction() { insn_.raw = 0; }
-    instruction(unsigned int raw) {
-        // Don't flip bits here.  Input is already in host byte order.
-        insn_.raw = raw;
-    }
-    // Pointer creation method
-    instruction(const void *ptr) {
-      insn_ = *((const instructUnion *)ptr);
-    }
-    instruction(const void *ptr, bool) {
-      insn_ = *((const instructUnion *)ptr);
-    }
+public:
+  instruction() { insn_.raw = 0; }
+  instruction(unsigned int raw) {
+    // Don't flip bits here.  Input is already in host byte order.
+    insn_.raw = raw;
+  }
+  // Pointer creation method
+  instruction(const void *ptr) { insn_ = *((const instructUnion *)ptr); }
+  instruction(const void *ptr, bool) { insn_ = *((const instructUnion *)ptr); }
 
-    instruction(const instruction &insn) :        insn_(insn.insn_) {}
-    instruction(instructUnion &insn) :
-        insn_(insn) {}
+  instruction(const instruction &insn) : insn_(insn.insn_) {}
+  instruction(instructUnion &insn) : insn_(insn) {}
 
-    instruction *copy() const;
+  instruction *copy() const;
 
-    void clear() { insn_.raw = 0; }
-    void setInstruction(codeBuf_t *ptr, Dyninst::Address = 0);
-    void setBits(unsigned int pos, unsigned int len, unsigned int value) {
-        unsigned int mask;
+  void clear() { insn_.raw = 0; }
+  void setInstruction(codeBuf_t *ptr, Dyninst::Address = 0);
+  void setBits(unsigned int pos, unsigned int len, unsigned int value) {
+    unsigned int mask;
 
-        mask = ~((unsigned int)(~0) << len);
-        value = value & mask;
+    mask = ~((unsigned int)(~0) << len);
+    value = value & mask;
 
-        mask = ~(mask << pos);
-        value = value << pos;
+    mask = ~(mask << pos);
+    value = value << pos;
 
-        insn_.raw = insn_.raw & mask;
-        insn_.raw = insn_.raw | value;
-    }
+    insn_.raw = insn_.raw & mask;
+    insn_.raw = insn_.raw | value;
+  }
 
-    unsigned int asInt() const { return insn_.raw; }
-    void setInstruction(unsigned char *ptr, Dyninst::Address = 0);
+  unsigned int asInt() const { return insn_.raw; }
+  void setInstruction(unsigned char *ptr, Dyninst::Address = 0);
 
+  // To solve host/target endian mismatches
+  static int signExtend(unsigned int i, unsigned int pos);
+  static instructUnion &swapBytes(instructUnion &i);
 
-    // To solve host/target endian mismatches
-    static int signExtend(unsigned int i, unsigned int pos);
-    static instructUnion &swapBytes(instructUnion &i);
+  // We need instruction::size() all _over_ the place.
+  static unsigned size() { return sizeof(instructUnion); }
 
-    // We need instruction::size() all _over_ the place.
-    static unsigned size() { return sizeof(instructUnion); }
+  Dyninst::Address getBranchOffset() const;
+  Dyninst::Address getBranchTargetAddress() const;
+  void setBranchOffset(Dyninst::Address newOffset);
 
-    Dyninst::Address getBranchOffset() const;
-    Dyninst::Address getBranchTargetAddress() const;
-    void setBranchOffset(Dyninst::Address newOffset);
+  // And tell us how much space we'll need...
+  // Returns -1 if we can't do a branch due to architecture limitations
+  static unsigned jumpSize(Dyninst::Address from, Dyninst::Address to, unsigned addr_width);
+  static unsigned jumpSize(Dyninst::Address disp, unsigned addr_width);
+  static unsigned maxJumpSize(unsigned addr_width);
 
-    // And tell us how much space we'll need...
-    // Returns -1 if we can't do a branch due to architecture limitations
-    static unsigned jumpSize(Dyninst::Address from, Dyninst::Address to, unsigned addr_width);
-    static unsigned jumpSize(Dyninst::Address disp, unsigned addr_width);
-    static unsigned maxJumpSize(unsigned addr_width);
+  static unsigned maxInterFunctionJumpSize(unsigned addr_width);
 
-    static unsigned maxInterFunctionJumpSize(unsigned addr_width);
+  // return the type of the instruction
+  unsigned type() const;
 
-    // return the type of the instruction
-    unsigned type() const;
+  // return a pointer to the instruction
+  const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
 
-    // return a pointer to the instruction
-    const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
+  // For external modification
+  // Don't allow external modification anymore.  Host byte order may differ
+  // from target byte order.
+  // instructUnion &operator* () { return insn_; }
+  // const instructUnion &operator* () const { return insn_; }
+  // const unsigned int &raw() const { return insn_.raw; }
 
-    // For external modification
-    // Don't allow external modification anymore.  Host byte order may differ
-    // from target byte order.
-    //instructUnion &operator* () { return insn_; }
-    //const instructUnion &operator* () const { return insn_; }
-    //const unsigned int &raw() const { return insn_.raw; }
+  unsigned opcode() const;
 
-    unsigned opcode() const;
+  // Local version
+  bool isInsnType(const unsigned mask, const unsigned match) const {
+    return ((insn_.raw & mask) == match);
+  }
 
-    // Local version
-    bool isInsnType(const unsigned mask, const unsigned match) const {
-        return ((insn_.raw & mask) == match);
-    }
+  Dyninst::Address getTarget(Dyninst::Address insnAddr) const;
 
-    Dyninst::Address getTarget(Dyninst::Address insnAddr) const;
+  unsigned spaceToRelocate() const;
+  bool getUsedRegs(std::vector<int> &regs);
 
-    unsigned spaceToRelocate() const;
-    bool getUsedRegs(std::vector<int> &regs);
+  bool valid() const {
+    assert(0);
+    return false;
+  }
 
-    bool valid() const {
-			assert(0);
-			return false;
-		}
+  bool isCall() const;
 
-    bool isCall() const;
+  static bool isAligned(Dyninst::Address addr) { return !(addr & 0x3); }
 
-    static bool isAligned(Dyninst::Address addr) {
-        return !(addr & 0x3);
-    }
+  bool isBranchReg() const;
+  bool isCondBranch() const;
+  bool isUncondBranch() const;
+  bool isThunk() const;
 
-    bool isBranchReg() const;
-    bool isCondBranch() const;
-    bool isUncondBranch() const;
-    bool isThunk() const;
+  bool isCleaningRet() const { return false; }
 
+  bool isAtomicLoad() const;
+  bool isAtomicStore() const;
 
-  	bool isCleaningRet() const {return false; }
-
-    bool isAtomicLoad( ) const;
-    bool isAtomicStore( ) const;
-
-    // inferface for being called outside this class
-    unsigned getTargetReg()const ;
-    unsigned getBranchTargetReg() const;
+  // inferface for being called outside this class
+  unsigned getTargetReg() const;
+  unsigned getBranchTargetReg() const;
 };
 
-}
-//end of NS_amdgpu
+} // namespace NS_amdgpu
+// end of NS_amdgpu
 
 #endif

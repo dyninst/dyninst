@@ -96,8 +96,8 @@ void setSrc0Sop1(uint32_t value, uint32_t &rawInst) {
   rawInst = (rawInst & ~mask) | (value & mask);
 }
 
-void emitSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral,
-              uint32_t literal, codeGen &gen) {
+void emitSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral, uint32_t literal,
+              codeGen &gen) {
   uint32_t newRawInst = 0xFFFFFFFF;
   setEncodingSop1(newRawInst);
   setFixedBitsSop1(newRawInst);
@@ -166,8 +166,7 @@ void setSrc0Sop2(uint32_t value, uint32_t &rawInst) {
   rawInst = (rawInst & ~mask) | (value & mask);
 }
 
-void emitSop2(unsigned opcode, Register dest, Register src0, Register src1,
-              codeGen &gen) {
+void emitSop2(unsigned opcode, Register dest, Register src0, Register src1, codeGen &gen) {
 
   // Source operand being 255 means the instruction is followed by a literal.
   // Vega supports only one literal operand in SOP2.
@@ -191,9 +190,9 @@ void emitSop2(unsigned opcode, Register dest, Register src0, Register src1,
   gen.update((codeBuf_t *)rawInstBuffer);
 }
 
-void emitSop2WithSrc1Literal(unsigned opcode, Register dest, Register src0,
-                             uint32_t src1Literal, codeGen &gen) {
-  emitSop2(opcode, dest, src0, /* src1 = */255, gen);
+void emitSop2WithSrc1Literal(unsigned opcode, Register dest, Register src0, uint32_t src1Literal,
+                             codeGen &gen) {
+  emitSop2(opcode, dest, src0, /* src1 = */ 255, gen);
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = src1Literal;
   ++rawInstBuffer;
@@ -475,8 +474,7 @@ void setOffsetSmem(uint64_t value, uint64_t &rawInst) {
   rawInst = (rawInst & ~mask) | ((value << 32) & mask);
 }
 
-void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset,
-              codeGen &gen) {
+void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset, codeGen &gen) {
   uint64_t newRawInst = 0xFFFFFFFFFFFFFFFF;
 
   setEncodingSmem(newRawInst);

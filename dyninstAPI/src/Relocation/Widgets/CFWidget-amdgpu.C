@@ -30,10 +30,10 @@
 
 // Control flow patching for AMDGPU
 
-#include "CFWidget.h"
 #include "../CFG/RelocTarget.h"
-#include "dyninstAPI/src/debug.h"
 #include "../CodeBuffer.h"
+#include "CFWidget.h"
+#include "dyninstAPI/src/debug.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -41,68 +41,64 @@ using namespace InstructionAPI;
 
 using namespace NS_amdgpu;
 
-bool CFWidget::generateIndirect(CodeBuffer & /* buffer */,
-                                Register,
-                                const RelocBlock * /* trace */,
+bool CFWidget::generateIndirect(CodeBuffer & /* buffer */, Register, const RelocBlock * /* trace */,
                                 Instruction /* insn */) {
   // Called by CFWidget::generate
-        return true;
+  return true;
 }
 
-
-bool CFWidget::generateIndirectCall(CodeBuffer &/* buffer */,
-                                    Register /*reg*/,
-                                    Instruction /* insn */,
-                                    const RelocBlock * /* trace */,
+bool CFWidget::generateIndirectCall(CodeBuffer & /* buffer */, Register /*reg*/,
+                                    Instruction /* insn */, const RelocBlock * /* trace */,
                                     Address /*origAddr*/) {
   // Called by CFWidget::generate
-    return true;
+  return true;
 }
 
 bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
-   int targetLabel = target->label(buf);
+  int targetLabel = target->label(buf);
 
-   relocation_cerr << "\t\t CFPatch::apply, type " << type << ", origAddr " << hex << origAddr_
-                   << ", and label " << dec << targetLabel << endl;
-   if (orig_insn.isValid()) {
-      relocation_cerr << "\t\t\t Currently at " << hex << gen.currAddr() << " and targeting predicted " << buf->predictedAddr(targetLabel) << dec << endl;
-      switch(type) {
-         case CFPatch::Jump: {
-            relocation_cerr << "\t\t\t Generating CFPatch::Jump from "
-                            << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;
-            if (!insnCodeGen::modifyJump(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
-               cerr << "Failed to modify jump" << endl;
-               return false;
-            }
-            return true;
-         }
-         case CFPatch::JCC: {
-            relocation_cerr << "\t\t\t Generating CFPatch::JCC from "
-                            << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;
-            if (!insnCodeGen::modifyJcc(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
-               cerr << "Failed to modify conditional jump" << endl;
-               return false;
-            }
-            return true;
-         }
-         case CFPatch::Call: {
-            assert(false && "CFPatch::apply for CFPatch::Call isn't implemented yet");
-        }
-         case CFPatch::Data: {
-            assert(false && "CFPatch::apply for CFPatch::Data isn't implemented yet");
-         }
+  relocation_cerr << "\t\t CFPatch::apply, type " << type << ", origAddr " << hex << origAddr_
+                  << ", and label " << dec << targetLabel << endl;
+  if (orig_insn.isValid()) {
+    relocation_cerr << "\t\t\t Currently at " << hex << gen.currAddr()
+                    << " and targeting predicted " << buf->predictedAddr(targetLabel) << dec
+                    << endl;
+    switch (type) {
+    case CFPatch::Jump: {
+      relocation_cerr << "\t\t\t Generating CFPatch::Jump from " << hex << gen.currAddr() << " to "
+                      << buf->predictedAddr(targetLabel) << dec << endl;
+      if (!insnCodeGen::modifyJump(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
+        cerr << "Failed to modify jump" << endl;
+        return false;
       }
-   }
-   else {
-      switch(type) {
-         case CFPatch::Jump:
-            insnCodeGen::generateBranch(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
-            break;
-         default:
-            assert(0);
+      return true;
+    }
+    case CFPatch::JCC: {
+      relocation_cerr << "\t\t\t Generating CFPatch::JCC from " << hex << gen.currAddr() << " to "
+                      << buf->predictedAddr(targetLabel) << dec << endl;
+      if (!insnCodeGen::modifyJcc(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
+        cerr << "Failed to modify conditional jump" << endl;
+        return false;
       }
-   }
-   return true;
+      return true;
+    }
+    case CFPatch::Call: {
+      assert(false && "CFPatch::apply for CFPatch::Call isn't implemented yet");
+    }
+    case CFPatch::Data: {
+      assert(false && "CFPatch::apply for CFPatch::Data isn't implemented yet");
+    }
+    }
+  } else {
+    switch (type) {
+    case CFPatch::Jump:
+      insnCodeGen::generateBranch(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
+      break;
+    default:
+      assert(0);
+    }
+  }
+  return true;
 }
 
 bool CFPatch::isPLT(codeGen & /* gen */) {
