@@ -28,96 +28,41 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-//#warning "This file is not implemented yet!"
-
 #include <string>
-#include <dlfcn.h>
 
 #include "dyninstAPI/src/linux-amdgpu.h"
-#include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/dynProcess.h"
-#include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/mapped_object.h"
-#include "dyninstAPI/src/inst-amdgpu.h"
-#include "dyninstAPI/src/baseTramp.h"
-#include "dyninstAPI/src/registerSpace.h"
-#include "dyninstAPI/src/function.h"
 #include "common/src/linuxHeaders.h"
 
-#define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
-
-// const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
-// const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
-// const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
-// const char DL_OPEN_LIBC_FUNC_EXPORTED[] = "__libc_dlopen_mode";
-
 Dyninst::Address PCProcess::getLibcStartMainParam(PCThread *) {
-    assert(!"This function is unimplemented");
+    assert(false && "Not implemented for AMDGPU");
     return 0;
 }
 
-Dyninst::Address PCProcess::getTOCoffsetInfo(Dyninst::Address dest) {
-    if ( getAddressWidth() == 4 ) return 0;
-
-    // We have an address, and want to find the module the addr is
-    // contained in. Given the probabilities, we (probably) want
-    // the module dyninst_rt is contained in.
-    // I think this is the right func to use
-
-    // Find out which object we're in (by addr).
-    mapped_object *mobj = findObject(dest);
-
-    // Very odd case if this is not defined.
-    assert(mobj);
-    Dyninst::Address TOCOffset = mobj->parse_img()->getObject()->getTOCoffset();
-
-    if (!TOCOffset)
-       return 0;
-    return TOCOffset + mobj->dataBase();
+Dyninst::Address PCProcess::getTOCoffsetInfo(Dyninst::Address /* dest */) {
+    assert(false && "Not implemented for AMDGPU");
+    return 0;
 }
 
-Dyninst::Address PCProcess::getTOCoffsetInfo(func_instance *func) {
-    if ( getAddressWidth() == 4 ) return 0;
-
-    mapped_object *mobj = func->obj();
-
-    return mobj->parse_img()->getObject()->getTOCoffset() + mobj->dataBase();
+Dyninst::Address PCProcess::getTOCoffsetInfo(func_instance * /* func */) {
+    assert(false && "Not implemented for AMDGPU");
+    return 0;
 }
 
 bool PCProcess::getOPDFunctionAddr(Dyninst::Address &) {
-    return true;
+    assert(false && "Not implemented for AMDGPU");
+    return false;
 }
 
 AstNodePtr PCProcess::createUnprotectStackAST() {
-    // This is not necessary on power
+    assert(false && "Not implemented for AMDGPU");
     return AstNode::nullNode();
 }
 
-bool Frame::setPC(Dyninst::Address newpc) {
-   Dyninst::Address pcAddr = getPClocation();
-   if (!pcAddr)
-   {
-       //fprintf(stderr, "[%s:%u] - Frame::setPC aborted", __FILE__, __LINE__);
-      return false;
-   }
-
-   //fprintf(stderr, "[%s:%u] - Frame::setPC setting %x to %x",
-   //__FILE__, __LINE__, pcAddr_, newpc);
-   if (getProc()->getAddressWidth() == sizeof(uint64_t)) {
-      uint64_t newpc64 = newpc;
-      if (!getProc()->writeDataSpace((void*)pcAddr, sizeof(newpc64), &newpc64))
-         return false;
-      sw_frame_.setRA(newpc64);
-   }
-   else {
-      uint32_t newpc32 = newpc;
-      if (!getProc()->writeDataSpace((void*)pcAddr, sizeof(newpc32), &newpc32))
-         return false;
-      sw_frame_.setRA(newpc32);
-   }
-
-   return true;
+bool Frame::setPC(Dyninst::Address /* newpc */) {
+    assert(false && "Not implemented for AMDGPU");
+    return false;
 }
 
 bool AddressSpace::getDyninstRTLibName() {
@@ -188,57 +133,25 @@ bool AddressSpace::getDyninstRTLibName() {
     return true;
 }
 
-// floor of inferior malloc address range within a single branch of x
-// for 32-bit ELF PowerPC mutatees
-Dyninst::Address region_lo(const Dyninst::Address x) {
-   const Dyninst::Address floor = getpagesize();
-
-   assert(x >= floor);
-
-   if ((x > floor) && (x - floor > getMaxBranch()))
-      return x - getMaxBranch();
-
-   return floor;
+Dyninst::Address region_lo(const Dyninst::Address /* x */) {
+  assert(false && "Not implemented for AMDGPU");
+  return 0;
 }
 
 
-// floor of inferior malloc address range within a single branch of x
-// for 64-bit ELF PowerPC mutatees
-Dyninst::Address region_lo_64(const Dyninst::Address x) {
-   const Dyninst::Address floor = getpagesize();
-
-   assert(x >= floor);
-
-   if ((x > floor) && (x - floor > getMaxBranch()))
-      return x - getMaxBranch();
-
-   return floor;
+Dyninst::Address region_lo_64(const Dyninst::Address /* x */) {
+  assert(false && "Not implemented for AMDGPU");
+  return 0;
 }
 
 
-// ceiling of inferior malloc address range within a single branch of x
-// for 32-bit ELF PowerPC mutatees
-Dyninst::Address region_hi(const Dyninst::Address x) {
-   const Dyninst::Address ceiling = ~(Dyninst::Address)0 & 0xffffffff;
-
-   assert(x < ceiling);
-
-   if ((x < ceiling) && (ceiling - x > getMaxBranch()))
-      return x + getMaxBranch();
-
-   return ceiling;
+Dyninst::Address region_hi(const Dyninst::Address /* x */) {
+  assert(false && "Not implemented for AMDGPU");
+  return 0;
 }
 
 
-// ceiling of inferior malloc address range within a single branch of x
-// for 64-bit ELF PowerPC mutatees
-Dyninst::Address region_hi_64(const Dyninst::Address x) {
-   const Dyninst::Address ceiling = ~(Dyninst::Address)0;
-
-   assert(x < ceiling);
-
-   if ((x < ceiling) && (ceiling - x > getMaxBranch()))
-      return x + getMaxBranch();
-
-   return ceiling;
+Dyninst::Address region_hi_64(const Dyninst::Address /* x */) {
+  assert(false && "Not implemented for AMDGPU");
+  return 0;
 }

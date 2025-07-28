@@ -29,53 +29,17 @@
  */
 
 #include <stdlib.h>
+#include <cstdint>
 #include "dyninstAPI/src/codegen.h"
-#include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/registerSpace.h"
-#include "dyninstAPI/src/addressSpace.h"
-#include "dyninstAPI/src/inst-amdgpu.h"
 #include "dyninstAPI/src/emit-amdgpu.h"
-#include "dyninstAPI/src/function.h"
 
-// "Casting" methods. We use a "base + offset" model, but often need to
-// turn that into "current instruction pointer".
-codeBuf_t *insnCodeGen::insnPtr(codeGen &gen) {
-    return (instructUnion *)gen.cur_ptr();
-}
-
-void insnCodeGen::generate(codeGen &gen, instruction &insn) {
-#if defined(endian_mismatch)
-  // Writing an instruction.  Convert byte order if necessary.
-  unsigned raw = swapBytesIfNeeded(insn.asInt());
-#else
-  unsigned raw = insn.asInt();
-#endif
-
-  gen.copy(&raw, sizeof(unsigned));
-}
-
-void insnCodeGen::generate(codeGen &gen, instruction &insn, unsigned position) {
-#if defined(endian_mismatch)
-    // Writing an instruction.  Convert byte order if necessary.
-    unsigned raw = swapBytesIfNeeded(insn.asInt());
-#else
-    unsigned raw = insn.asInt();
-#endif
-
-    gen.insert(&raw, sizeof(unsigned), position);
-}
-
-void insnCodeGen::generateIllegal(codeGen & /* gen */) {
-    assert(false && "Not implemented for AMDGPU");
-}
 
 void insnCodeGen::generateTrap(codeGen & /* gen */) {
   // BinaryEdit::addTrap calls this.
   // We currently only do static binary rewriting for AMDGPU and don't need to generate trap instructions.
 }
 
-void insnCodeGen::generateBranch(codeGen & /* gen */, long /* disp */, bool /* link */) {
+void insnCodeGen::generateIllegal(codeGen & /* gen */) {
     assert(false && "Not implemented for AMDGPU");
 }
 
@@ -97,102 +61,6 @@ void insnCodeGen::generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Add
     generateBranch(gen, from, to, true);
 }
 
-void insnCodeGen::generateLongBranch(codeGen & /* gen */, Dyninst::Address /* from */, Dyninst::Address /* to */, bool /* isCall */){
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateBranchViaTrap(codeGen &/* gen */, Dyninst::Address /* from */, Dyninst::Address /* to */, bool /* isCall */) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateConditionalBranch(codeGen& /* gen */, Dyninst::Address /* to */, unsigned /* opcode */, bool /* s */){
-    assert(false && "Not implemented for AMDGPU");
-}
-
-
-void insnCodeGen::generateAddSubShifted(codeGen & /* gen */, insnCodeGen::ArithOp /* op */, int /* shift */, int /* imm6 */, Dyninst::Register /* rm */, Dyninst::Register /* rn */, Dyninst::Register /* rd */, bool /* is64bit */){
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateAddSubImmediate(codeGen & /* gen */, insnCodeGen::ArithOp /* op */, int /* shift */, int /* imm12 */, Dyninst::Register /* rn */, Dyninst::Register /* rd */, bool /* is64bit */)
-{
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateMul(codeGen & /* gen */, Dyninst::Register /* rm */, Dyninst::Register /* rn */, Dyninst::Register /* rd */, bool /* is64bit */) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateDiv(codeGen & /* gen */, Dyninst::Register /* rm */, Dyninst::Register /* rn */, Dyninst::Register /* rd */, bool /* is64bit */ , bool /* s */) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateBitwiseOpShifted(codeGen & /* gen */, insnCodeGen::BitwiseOp /* op */, int /* shift */, Dyninst::Register /* rm */, int /* imm6 */, Dyninst::Register /* rn */, Dyninst::Register /* rd */, bool /* is64bit */) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateLoadReg(codeGen &, Dyninst::Register, Dyninst::Register, Dyninst::Register) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateStoreReg(codeGen &, Dyninst::Register, Dyninst::Register, Dyninst::Register) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateLoadReg64(codeGen &, Dyninst::Register, Dyninst::Register, Dyninst::Register) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateStoreReg64(codeGen &, Dyninst::Register, Dyninst::Register, Dyninst::Register) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateMove(codeGen & /* gen */, int /* imm16 */, int /* shift */, Dyninst::Register /* rd */, MoveOp /* movOp */) {
-
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateMove(codeGen & /* gen */, Dyninst::Register /* rd */, Dyninst::Register /* rm */, bool /* is64bit */) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateMoveSP(codeGen & /* gen */, Dyninst::Register /* rn */, Dyninst::Register /* rd */, bool /* is64bit */) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-
-Dyninst::Register insnCodeGen::moveValueToReg(codeGen & /* gen */, long int /* val */, std::vector<Dyninst::Register> * /* exclude */) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateMemAccess(codeGen & /* gen */, LoadStore /* accType */, Dyninst::Register /* r1 */, Dyninst::Register /* r2 */, int /* immd */, unsigned /* size */, IndexMode /* im */) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-// This is for generating STR/LDR (SIMD&FP) (immediate) for indexing modes of Post, Pre and Offset
-void insnCodeGen::generateMemAccessFP(codeGen &/* gen */, LoadStore /* accType */, Dyninst::Register /* rt */, Dyninst::Register /* rn */, int /* immd */, int /* size */, bool /* is128bit */, IndexMode /* im */){
-    assert(false && "Not implemented for AMDGPU");
-}
-
-// rlwinm ra,rs,n,0,31-n
-void insnCodeGen::generateLShift(codeGen &, Dyninst::Register, int, Dyninst::Register) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateRShift(codeGen &, Dyninst::Register, int, Dyninst::Register) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-// sld ra, rs, rb
-void insnCodeGen::generateLShift64(codeGen &, Dyninst::Register, int, Dyninst::Register) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-// srd ra, rs, rb
-void insnCodeGen::generateRShift64(codeGen &, Dyninst::Register, int, Dyninst::Register) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
 // generate an instruction that does nothing and has to side affect except to
 //   advance the program counter.
 //
@@ -207,59 +75,13 @@ void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
     }
 }
 
-void insnCodeGen::generateRelOp(codeGen &, int, int, Dyninst::Register, Dyninst::Register, Dyninst::Register) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-
-void insnCodeGen::saveRegister(codeGen & /* gen */, Dyninst::Register /* r */, int /* sp_offset */, IndexMode /* im */) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-
-void insnCodeGen::restoreRegister(codeGen & /* gen */, Dyninst::Register /* r */, int /* sp_offset */, IndexMode /* im */) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-
-// Helper method.  Fills register with partial value to be completed
-// by an operation with a 16-bit signed immediate.  Such as loads and
-// stores.
-void insnCodeGen::loadPartialImmIntoReg(codeGen &, Dyninst::Register, long) {
-}
-
-int insnCodeGen::createStackFrame(codeGen &, int, std::vector<Dyninst::Register>& , std::vector<Dyninst::Register>&) {
-    assert(false && "Not implemented for AMDGPU");
-  return 0;
-}
-
-void insnCodeGen::removeStackFrame(codeGen &) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-bool insnCodeGen::generateMem(codeGen &, instruction&, Dyninst::Address, Dyninst::Address, Dyninst::Register, Dyninst::Register) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateMoveFromLR(codeGen &, Dyninst::Register) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateMoveToLR(codeGen &, Dyninst::Register) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
-void insnCodeGen::generateMoveToCR(codeGen &, Dyninst::Register) {
-    assert(false && "Not implemented for AMDGPU");
-}
-
 // There's nothing to modify here. Generate an emit a jump to target.
 bool insnCodeGen::modifyJump(Dyninst::Address target, NS_amdgpu::instruction & /* insn */, codeGen &gen) {
     long disp = target - gen.currAddr();
     Emitter *emitter = gen.emitter();
     int16_t wordOffset = disp/4;
 
-    assert(wordOffset > MIN_IMM16 && wordOffset < MAX_IMM16 && "wordOffset must fit in a 16-bit signed value");
+    assert(wordOffset > INT16_MIN && wordOffset < INT16_MAX && "wordOffset must fit in a 16-bit signed value");
     emitter->emitShortJump(wordOffset, gen);
 
     return true;
@@ -308,7 +130,7 @@ bool insnCodeGen::modifyJcc(Dyninst::Address target, NS_amdgpu::instruction &ins
     long disp = target - from;
     int16_t wordOffset = disp/4;
 
-    assert(wordOffset > MIN_IMM16 && wordOffset < MAX_IMM16 && "wordOffset must fit in a 16-bit signed value");
+    assert(wordOffset > INT16_MIN && wordOffset < INT16_MAX && "wordOffset must fit in a 16-bit signed value");
     emitter->emitShortJump(wordOffset, gen);
 
     return true;
