@@ -6,33 +6,20 @@
 
 include_guard(GLOBAL)
 
-## amdgpu special
 if(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-
-  ## Only x86_64 for now, straight copy
-
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx908 -Darch_64bit)
-  set(CAP_DEFINES
-      ${CAP_DEFINES} -Dcap_fixpoint_gen -Dcap_noaddr_gen -Dcap_registers
-      -Dcap_tramp_liveness
-      #-Dcap_stack_mods
-      )
+  set(CAP_DEFINES ${CAP_DEFINES} -Dcap_fixpoint_gen -Dcap_noaddr_gen -Dcap_registers
+                  -Dcap_tramp_liveness)
 
-  ## amdgpu is 64 bit,no 32 bit arch
-  #      -Dcap_32_64
-  #      -Dcap_stripped_binaries
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A)
+  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx90a -Darch_64bit)
 
-  #endif()
-  ## Ignore the RT lib for now, chat with bart
-  #  ## no dynamic lib on amdgpu
-  #  set(CAP_DEFINES
-  #      ${CAP_DEFINES}
-  #	-DDYNINST_RT_STATIC_LIB
-  #      )
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
+  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_64bit)
 
-  ## amdgpu special
 else()
-
+  # It is unclear whether these definitions are required for host or codegen.
+  # But they are common definitions. But we don't want these for AMDGPU.
   set(CAP_DEFINES -Dcap_dynamic_heap -Dcap_liveness -Dcap_threads)
 
   if(DYNINST_HOST_ARCH_I386)
@@ -77,42 +64,20 @@ else()
   elseif(DYNINST_CODEGEN_ARCH_RISCV64)
     set(ARCH_DEFINES_CODEGEN -Darch_riscv64 -Darch_64bit)
     set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
-  elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-    set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx908 -Darch_64bit)
-  elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A)
-    set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx90a -Darch_64bit)
-  elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
-    set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_64bit)
   endif()
-  ## amdgpu special
 endif()
 
-## OK, so this is a brute force copy again.
-
-## amdgpu special
-if(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  ## need to control options more carefully
-  ## Need to differentiate OS of target vs OS of host.
-  ## Leave os_linux for now for host part of dyninst
-  set(OS_DEFINES -Dos_linux)
-  set(CAP_DEFINES ${CAP_DEFINES} -Dcap_async_events -Dcap_binary_rewriter -Dcap_dwarf
-                  -Dcap_ptrace -Dcap_mutatee_traps)
-  #	-Dcap_mutatee_traps
-  set(BUG_DEFINES -Dbug_syscall_changepc_rewind -Dbug_force_terminate_failure)
-  ## might need to suck in -Dwhatever defines here
-  ## I was trying to cooperate, but too much stuff
-
-  ## I"m doing to leave out the -D<arch>[_unknown]_linux[0-9_]+  for
-  ## now to see what else breaks
-
-  ## amdgpu special (was if)
-elseif(DYNINST_OS_Linux)
+if(DYNINST_OS_Linux)
   set(OS_DEFINES -Dos_linux)
   set(CAP_DEFINES ${CAP_DEFINES} -Dcap_async_events -Dcap_binary_rewriter -Dcap_dwarf
                   -Dcap_mutatee_traps -Dcap_ptrace)
   set(BUG_DEFINES -Dbug_syscall_changepc_rewind -Dbug_force_terminate_failure)
 
-  if(DYNINST_HOST_ARCH_I386)
+  if(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908
+     OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A
+     OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
+    # No additional linux definitions for AMDGPU.
+  elseif(DYNINST_HOST_ARCH_I386)
     set(OLD_DEFINES -Di386_unknown_linux2_0)
   elseif(DYNINST_HOST_ARCH_X86_64)
     set(OLD_DEFINES -Dx86_64_unknown_linux2_4)
@@ -149,6 +114,7 @@ string(TOUPPER "${_LOWER_ARCH_DEFINES}" ARCH_DEFINES)
 
 string(REGEX REPLACE "-D" "-DDYNINST_CODEGEN_" ARCH_DEFINES_CODEGEN
                      "${ARCH_DEFINES_CODEGEN}")
+
 string(TOUPPER "${ARCH_DEFINES_CODEGEN}" ARCH_DEFINES_CODEGEN)
 
 set(DYNINST_PLATFORM_CAPABILITIES ${CAP_DEFINES} ${BUG_DEFINES} ${ARCH_DEFINES}
