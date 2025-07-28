@@ -206,8 +206,8 @@ bool writeFunctionPtr(AddressSpace * /* p */, Address /* addr */, func_instance 
 }
 
 Emitter *AddressSpace::getEmitter() {
-  static EmitterAmdgpuVega vegaEmitter;
-  return &vegaEmitter;
+  static EmitterAmdgpuGfx908 gfx908Emitter;
+  return &gfx908Emitter;
 }
 
 Address Emitter::getInterModuleVarAddr(const image_variable * /* var */, codeGen & /* gen */) {
