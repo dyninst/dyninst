@@ -58,8 +58,6 @@ namespace Dyninst {
 
             virtual ~InstructionDecoder_amdgpu_gfx908() = default;
 
-            virtual void decodeOpcode(InstructionDecoder::buffer &b);
-
             // decode one instruction starting from b.start
             // will advance b.start whenver a instruction is successfully decoded
             virtual Instruction decode(InstructionDecoder::buffer &b);

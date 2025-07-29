@@ -100,8 +100,6 @@ namespace Dyninst { namespace InstructionAPI {
 
   InstructionDecoder_power::~InstructionDecoder_power() {}
 
-  void InstructionDecoder_power::decodeOpcode(InstructionDecoder::buffer& b) { b.start += 4; }
-
   void InstructionDecoder_power::FRTP() {
     FRT();
     FRTS();

@@ -247,8 +247,6 @@ namespace Dyninst { namespace InstructionAPI {
 
   InstructionDecoder_aarch64::~InstructionDecoder_aarch64() {}
 
-  void InstructionDecoder_aarch64::decodeOpcode(InstructionDecoder::buffer& b) { b.start += 4; }
-
   using namespace std;
 
   Instruction InstructionDecoder_aarch64::decode(InstructionDecoder::buffer& b) {

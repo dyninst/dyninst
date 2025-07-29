@@ -51,7 +51,6 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual ~InstructionDecoder_aarch64();
 
-    virtual void decodeOpcode(InstructionDecoder::buffer& b);
     virtual Instruction decode(InstructionDecoder::buffer& b);
 
     virtual void setMode(bool) {}
