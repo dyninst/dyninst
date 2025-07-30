@@ -64,6 +64,13 @@ target_link_libraries(sysctl_tests PRIVATE instructionAPI cft_tests memory_tests
 add_test(NAME instructionAPI_sysctl_tests COMMAND sysctl_tests)
 set_tests_properties(instructionAPI_sysctl_tests PROPERTIES LABELS "integration")
 
+add_executable(x87_tests x87.cpp)
+target_compile_options(x87_tests PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(x87_tests PRIVATE instructionAPI cft_tests memory_tests opcode_tests
+                                        register_tests)
+add_test(NAME instructionAPI_x87_tests COMMAND x87_tests)
+set_tests_properties(instructionAPI_x87_tests PROPERTIES LABELS "integration")
+
 add_executable(x86_bind_eval_tests bind_eval.cpp)
 target_compile_options(x86_bind_eval_tests PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
 target_link_libraries(x86_bind_eval_tests PRIVATE instructionAPI)
