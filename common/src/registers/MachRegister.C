@@ -588,7 +588,12 @@ namespace Dyninst {
       case Arch_ppc64: return ppc64::r0;
       case Arch_aarch64: return aarch64::x8;
       case Arch_aarch32:
-      case Arch_riscv64: return riscv64::a7;
+      case Arch_riscv64:
+#if defined(os_linux)
+        return riscv64::a7;
+#elif defined(os_freebsd)
+        return riscv64::t0;
+#endif
       case Arch_cuda:
       case Arch_intelGen9:
       case Arch_amdgpu_gfx908:
