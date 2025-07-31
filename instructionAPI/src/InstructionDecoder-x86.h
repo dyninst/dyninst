@@ -64,7 +64,6 @@ namespace Dyninst { namespace InstructionAPI {
     bool decodeOneOperand(const InstructionDecoder::buffer& b, const NS_x86::ia32_operand& operand,
                           int& imm_index, const Instruction* insn_to_complete, bool isRead,
                           bool isWritten, bool isImplicit);
-    virtual void decodeOpcode(InstructionDecoder::buffer& b);
 
     Expression::Ptr makeSIBExpression(const InstructionDecoder::buffer& b);
     Expression::Ptr makeModRMExpression(const InstructionDecoder::buffer& b, unsigned int opType);
@@ -78,6 +77,7 @@ namespace Dyninst { namespace InstructionAPI {
   private:
     void doIA32Decode(InstructionDecoder::buffer& b);
     bool isDefault64Insn();
+    void decodeOpcode(InstructionDecoder::buffer&);
 
     ia32_locations* locs;
     NS_x86::ia32_instruction* decodedInstruction;

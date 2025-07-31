@@ -211,11 +211,6 @@ namespace Dyninst {
 
             insn_long = ( ((uint64_t) insn_high) << 32) | insn;
         }
-        void InstructionDecoder_amdgpu_gfx90a::decodeOpcode(InstructionDecoder::buffer &b) {
-            setupInsnWord(b);
-            mainDecode();
-            b.start += insn_in_progress->size();
-        }
 
         void InstructionDecoder_amdgpu_gfx90a::debug_instr(){
             //	cout << "decoded instruction " <<  insn_in_progress->getOperation().mnemonic << " " << std::hex << insn_long << " insn_family = " << instr_family << "  length = " <<  insn_in_progress->size()<< endl << endl;

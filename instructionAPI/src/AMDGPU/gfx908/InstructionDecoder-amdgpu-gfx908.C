@@ -213,11 +213,6 @@ namespace Dyninst {
 
 
 		}
-		void InstructionDecoder_amdgpu_gfx908::decodeOpcode(InstructionDecoder::buffer &b) {
-			setupInsnWord(b);
-			mainDecode();
-			b.start += insn_in_progress->size();
-		}
 		
 		void InstructionDecoder_amdgpu_gfx908::debug_instr(){
 			cout << "decoded instruction " <<  insn_in_progress->getOperation().mnemonic << " " << std::hex << insn_long << " insn_family = " << instr_family 
