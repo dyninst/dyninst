@@ -58,5 +58,5 @@ jobs:
             echo "Capstone mismatch: Found $current, expected $expected" >/dev/stderr
             res=1
           fi
-                    
+
           exit $res
