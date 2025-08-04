@@ -305,8 +305,10 @@ DYNINST_EXPORT Object::Object(MappedFile *mf_, void (*err_func)(const char *), S
    is_aout_(false), is_dynamic_(false),
    has_error(false), is_static_binary_(false),
    no_of_sections_(0), no_of_symbols_(0),
-  deferredParse(false), parsedAllLineInfo(false), err_func_(err_func), addressWidth_nbytes(4),
-  associated_symtab(st), file_format_(FileFormat::Unknown)
+   deferredParse(false), parsedAllLineInfo(false),
+   useRVM(false), useRVA(false), useRVF(false), useRVD(false), useRVC(false),
+   err_func_(err_func), addressWidth_nbytes(4),
+   associated_symtab(st), file_format_(FileFormat::Unknown)
 {
 }
 
