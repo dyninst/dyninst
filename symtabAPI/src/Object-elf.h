@@ -501,6 +501,7 @@ private:
                              Elf_X_Data &strdata, bool shared_library);
 
   bool parse_riscv_attributes(Elf_X_Shdr *);
+  void get_riscv_extensions();
 
   void find_code_and_data(Elf_X &elf,
        Offset txtaddr, Offset dataddr);

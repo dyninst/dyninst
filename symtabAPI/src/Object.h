@@ -178,6 +178,12 @@ public:
     virtual Offset getTOCoffset(Offset) const { return 0; }
     virtual void setTOCoffset(Offset) { }
 
+    virtual bool getUseRVM() const { return useRVM; }
+    virtual bool getUseRVA() const { return useRVA; }
+    virtual bool getUseRVF() const { return useRVF; }
+    virtual bool getUseRVD() const { return useRVD; }
+    virtual bool getUseRVC() const { return useRVC; }
+
     virtual bool emitDriver(std::string fName, std::set<Symbol *> &allSymbols, unsigned flag) = 0;
     virtual void parseFileLineInfo() { }
     virtual void parseTypeInfo() { }
@@ -238,6 +244,13 @@ friend class Module;
 
     bool deferredParse;
     bool parsedAllLineInfo;
+
+    // RISC-V extensions
+    bool useRVM; // M (Integer Multiplication Extension)
+    bool useRVA; // A (Atomic Extension)
+    bool useRVF; // F (Single-Precision Floating Point Extension)
+    bool useRVD; // D (Double-Precision Floating Point Extension)
+    bool useRVC; // C (Compressed Extension)
     
     void (*err_func_)(const char*);
     int addressWidth_nbytes;

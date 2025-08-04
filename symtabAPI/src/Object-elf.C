@@ -33,6 +33,8 @@
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
+#include <regex>
+
 #include "common/src/vgannotations.h"
 #include "unaligned_memory_access.h"
 #include <dwarf_cu_info.h>
@@ -1582,6 +1584,7 @@ void ObjectELF::load_object(bool alloc_syms) {
             if (!result) {
                 create_printf("%s[%d]: riscv attributes missing\n", FILE__, __LINE__);
             }
+            get_riscv_extensions();
         }
 
 
@@ -4334,4 +4337,52 @@ bool ObjectELF::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
         }
     }
     return true;
+}
+
+void ObjectELF::get_riscv_extensions() {
+
+    // Obtain information from .riscv.attributes
+    if (!riscv_attrs.empty()) {
+        std::string arch_string = riscv_attrs[Tag_RISCV_arch].sval;
+
+        std::regex ext_regex(R"(([a-z0-9]+)(\d+)p(\d+))");
+        std::sregex_iterator it(arch_string.begin(), arch_string.end(), ext_regex);
+        std::sregex_iterator end;
+
+        while (it != end) {
+            std::string ext = (*it)[1];
+            if (ext == "m") {
+                useRVM = true;
+            }
+            else if (ext == "a") {
+                useRVA = true;
+            }
+            else if (ext == "f") {
+                useRVF = true;
+            }
+            else if (ext == "d") {
+                useRVD = true;
+            }
+            else if (ext == "c") {
+                useRVC = true;
+            }
+            it++;
+        }
+    }
+
+    // Obtain information from e_flags
+    unsigned long e_flags = elfHdr->e_flags();
+    if (e_flags & EF_RISCV_RVC) {
+        useRVC = true;
+    }
+    switch (e_flags & EF_RISCV_FLOAT_ABI) {
+        case EF_RISCV_FLOAT_ABI_SINGLE:
+            useRVF = true;
+            break;
+        case EF_RISCV_FLOAT_ABI_DOUBLE:
+            useRVD = true;
+            break;
+        default:  // EF_RISCV_FLOAT_ABI_SOFT
+            break;
+    }
 }
