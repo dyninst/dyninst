@@ -141,7 +141,7 @@ bool IA_riscv64::isTailCall(const Function* context, EdgeTypeEnum type, unsigned
         default:
             return false;
     }
-    parsing_printf("Checking for Tail Call from ARM\n");
+    parsing_printf("Checking for Tail Call from RISCV\n");
     context->obj()->cs()->incrementCounter(PARSE_TAILCALL_COUNT); 
 
     if (tailCalls.find(type) != tailCalls.end()) {
