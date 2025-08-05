@@ -521,6 +521,80 @@ void AssignmentConverter::convert(const Instruction &I,
 
   // Non-PC handling section
   switch(I.getOperation().getID()) {
+    case riscv64_op_c_jr: {
+        auto operands = I.getAllOperands();
+        assert(operands.size() == 2);
+
+        AbsRegion rs = AbsRegion(boost::dynamic_pointer_cast<RegisterAST>(operands[1].getValue())->getID());
+        AbsRegion pc(Absloc::makePC(func->isrc()->getArch()));
+
+        // Write pc with rs
+        Assignment::Ptr pcA = Assignment::makeAssignment(I,
+                addr,
+                func,
+                block,
+                pc);
+        pcA->addInput(rs);
+
+        assignments.push_back(pcA);
+        break;
+    }
+    case riscv64_op_c_jalr: {
+        auto operands = I.getAllOperands();
+        assert(operands.size() == 2);
+
+        AbsRegion rd = AbsRegion(boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue())->getID());
+        AbsRegion rs = AbsRegion(boost::dynamic_pointer_cast<RegisterAST>(operands[1].getValue())->getID());
+        AbsRegion pc(Absloc::makePC(func->isrc()->getArch()));
+
+        // Write pc with rs
+        Assignment::Ptr pcA = Assignment::makeAssignment(I,
+                addr,
+                func,
+                block,
+                pc);
+        pcA->addInput(rs);
+        Assignment::Ptr rdA = Assignment::makeAssignment(I,
+                addr,
+                func,
+                block,
+                rd);
+        rdA->addInput(pc);
+
+        assignments.push_back(pcA);
+        assignments.push_back(rdA);
+        break;
+    }
+    case riscv64_op_jalr: {
+        auto operands = I.getAllOperands();
+        assert(operands.size() == 2);
+
+        vector<InstructionAST::Ptr> children;
+        boost::dynamic_pointer_cast<BinaryFunction>(operands[1].getValue())->getChildren(children);
+        assert(children.size() == 2);
+
+        AbsRegion rd = AbsRegion((boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue()))->getID());
+        AbsRegion rs = AbsRegion((boost::dynamic_pointer_cast<RegisterAST>(children[0]))->getID());
+        AbsRegion pc(Absloc::makePC(func->isrc()->getArch()));
+
+        // Write pc with rs
+        Assignment::Ptr pcA = Assignment::makeAssignment(I,
+                addr,
+                func,
+                block,
+                pc);
+        pcA->addInput(rs);
+        Assignment::Ptr rdA = Assignment::makeAssignment(I,
+                addr,
+                func,
+                block,
+                rd);
+        rdA->addInput(pc);
+
+        assignments.push_back(pcA);
+        assignments.push_back(rdA);
+        break;
+    }
     case amdgpu_gfx908_op_S_GETPC_B64:
     case amdgpu_gfx90a_op_S_GETPC_B64: 
     case amdgpu_gfx940_op_S_GETPC_B64: {
