@@ -3339,6 +3339,7 @@ bool AstNode::generate(Point *point, Buffer &buffer) {
    codeGen gen(1024);
    instPoint *ip = IPCONV(point);
 
+   gen.setUseRVC(point->obj()->co()->cs()->getUseRVC());
    gen.setPoint(ip);
    gen.setRegisterSpace(registerSpace::actualRegSpace(ip));
    gen.setAddrSpace(ip->proc());
