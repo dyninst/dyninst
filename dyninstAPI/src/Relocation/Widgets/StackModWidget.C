@@ -84,6 +84,9 @@ bool StackModPatch::apply(codeGen &gen, CodeBuffer *) {
         // Preserve the original instruction
         GET_PTR(newInsn, gen);
         const unsigned char* origInsn = ugly_insn.ptr();
+        for (unsigned iter = 0; iter < ugly_insn.size(); iter++) {
+          *newInsn++ = *origInsn++;
+        }
         SET_PTR(newInsn, gen);
     }
     return true;
