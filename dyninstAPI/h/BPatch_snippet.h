@@ -379,10 +379,15 @@ class DYNINST_EXPORT BPatch_variableExpr : public BPatch_snippet
 			BPatch_type *type);
 
     // Used for AMDGPU
+    // The body of this function contains references to conditionally compiled code.
+    // Hence keeping it under an ifdef
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     BPatch_variableExpr(const std::string& varName,
                         BPatch_addressSpace *in_addSpace,
                         AddressSpace *ll_addSpace,
                         BPatch_type *type_);
+#endif
+
  public:
     static BPatch_variableExpr* makeVariableExpr(BPatch_addressSpace* in_addSpace,
 						 int_variable* v,
@@ -394,11 +399,14 @@ class DYNINST_EXPORT BPatch_variableExpr : public BPatch_snippet
 						 BPatch_type* type);
 
    // Wrapper around the constructor for AMDGPU
+   // The body of this function eventually calls conditionally compiled code.
+   // Hence keeping it under an ifdef
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
    static BPatch_variableExpr* makeVariableExpr(const std::string& name,
                                                 BPatch_addressSpace *in_addSpace,
                                                 AddressSpace *ll_addSpace,
                                                 BPatch_type *type_);
-    
+#endif
 
   public:
 

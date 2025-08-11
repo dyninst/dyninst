@@ -986,6 +986,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 
 }
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 BPatch_variableExpr::BPatch_variableExpr(const std::string& varName, BPatch_addressSpace *in_addSpace,
                                          AddressSpace *ll_addSpace,
                                          BPatch_type *type_)
@@ -1013,11 +1014,12 @@ BPatch_variableExpr::BPatch_variableExpr(const std::string& varName, BPatch_addr
                     AstNode::operandNode(AstNode::operandType::Constant, reinterpret_cast<void*>(static_cast<uintptr_t>(offset)))
                   )
                 );
-  
+
   ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
   ast_wrapper->setType(type_);
 
 }
+#endif
 
 BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* in_addSpace,
                                                  int_variable* v,
@@ -1039,12 +1041,14 @@ BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* 
     return new BPatch_variableExpr(in_addSpace, in_llAddSpace, v, type);
 }
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 BPatch_variableExpr*  BPatch_variableExpr::makeVariableExpr(const std::string& name,
                                                 BPatch_addressSpace *in_addSpace,
                                                 AddressSpace *ll_addSpace,
                                                 BPatch_type *type) {
   return new BPatch_variableExpr(name, in_addSpace, ll_addSpace, type);
 }
+#endif
 
 unsigned int BPatch_variableExpr::getSize() const
 {
