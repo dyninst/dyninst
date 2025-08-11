@@ -238,7 +238,9 @@ SpringboardBuilder::generateResult_t
 SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 					const SpringboardReq &r) {
    codeGen gen;
+   gen.setUseRVC(addrSpace_->getAOut()->co()->cs()->getUseRVC());
    codeGen tmpGen;
+   tmpGen.setUseRVC(addrSpace_->getAOut()->co()->cs()->getUseRVC());
 
    // Arbitrarily select the first function containing this springboard, since only one can win. 
    generateBranch(r.from, r.destinations.begin()->second, tmpGen);
