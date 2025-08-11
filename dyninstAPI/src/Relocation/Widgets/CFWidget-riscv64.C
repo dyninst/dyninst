@@ -56,6 +56,7 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
 {
     NS_riscv64::instruction mod_insn(insn.ptr());
     codeGen gen(insn.size());
+    gen.setUseRVC(buffer.gen().getUseRVC());
     insnCodeGen::generate(gen, mod_insn);
     buffer.addPIC(gen, tracker(trace));
     return true;
@@ -70,6 +71,7 @@ bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
 {
     NS_riscv64::instruction mod_insn(insn.ptr());
     codeGen gen(insn.size());
+    gen.setUseRVC(buffer.gen().getUseRVC());
     insnCodeGen::generate(gen, mod_insn);
     buffer.addPIC(gen, tracker(trace));
     return true;

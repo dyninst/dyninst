@@ -246,10 +246,8 @@ class codeGen {
     void setPCRelUseCount(int c) { pc_rel_use_count = c; }
     int getPCRelUseCount() const { return pc_rel_use_count; }
 
-#if defined(DYNINST_HOST_ARCH_RISCV64) || defined(DYNINST_CODEGEN_ARCH_RISCV64)
     bool getUseRVC() { return useRVC; }
     void setUseRVC(bool useRVC_) { useRVC = useRVC_; }
-#endif
 
 
     // SD-DYNINST
@@ -287,9 +285,7 @@ class codeGen {
     baseTramp *bt_;
     bool isPadded_;
 
-#if defined(DYNINST_HOST_ARCH_RISCV64) || defined(DYNINST_CODEGEN_ARCH_RISCV64)
     bool useRVC;
-#endif
 
     bitArray regsDefined_;
     bool trackRegDefs_;

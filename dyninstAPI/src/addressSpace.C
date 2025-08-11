@@ -1817,6 +1817,7 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
   Address baseAddr = 0;
 
   codeGen genTemplate;
+  genTemplate.setUseRVC(getAOut()->co()->cs()->getUseRVC());
   genTemplate.setAddrSpace(this);
   // Set the code emitter?
   
