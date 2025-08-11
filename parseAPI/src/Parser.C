@@ -88,12 +88,20 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
         plt_entries[lit->first] = lit->second;
     }
 
-    // cache other relocation entries (RELA)
-    const map<Address, std::pair<string, Address>> & olm = obj.cs()->other_linkage();
-    map<Address, std::pair<string, Address>>::const_iterator olit = olm.begin();
-    for( ; olit != olm.end(); ++olit) {
-        parsing_printf("Cached RELA entry %s @ %lx (%lx)\n", olit->second.first.c_str(), olit->second.second, olit->first);
-        reladyn_entries[olit->first] = olit->second;
+    // cache other relocation entries in .rela.dyn
+    const map<Address, std::pair<string, Address>> & rlm = obj.cs()->reladyn_linkage();
+    map<Address, std::pair<string, Address>>::const_iterator rlit = rlm.begin();
+    for( ; rlit != rlm.end(); ++rlit) {
+        parsing_printf("Cached .rela entry %s @ %lx (%lx)\n", rlit->second.first.c_str(), rlit->second.second, rlit->first);
+        reladyn_entries[rlit->first] = rlit->second;
+    }
+
+    // cache other relocation entries in .symtab
+    const map<Address, std::pair<string, Address>> & slm = obj.cs()->symtab_linkage();
+    map<Address, std::pair<string, Address>>::const_iterator slit = slm.begin();
+    for( ; slit != slm.end(); ++slit) {
+        parsing_printf("Cached .symtab entry %s @ %lx (%lx)\n", slit->second.first.c_str(), slit->second.second, slit->first);
+        symtab_entries[slit->first] = slit->second;
     }
 
     if(obj.cs()->regions().empty()) {

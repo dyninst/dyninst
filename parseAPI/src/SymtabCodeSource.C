@@ -47,6 +47,8 @@
 #include "InstructionDecoder.h"
 #include "Instruction.h"
 
+#include "Object.h"
+
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -406,6 +408,9 @@ SymtabCodeSource::init(hint_filt * filt , bool allLoadedRegions)
 
     // table of contents (only exists for some binary types)
     _table_of_contents = _symtab->getTOCoffset();
+
+    // RISC-V extensions
+    init_riscv_extensions();
 }
 
 void 
@@ -616,7 +621,15 @@ SymtabCodeSource::init_linkage()
             std::vector<SymtabAPI::relocationEntry> &relocs = relaDyn->getRelocations();
             for (auto re_it = relocs.begin(); re_it != relocs.end(); ++re_it) {
                 SymtabAPI::relocationEntry &r = *re_it;
-                _other_linkage[r.rel_addr()] = std::make_pair(r.name(), r.target_addr());
+                _reladyn_linkage[r.rel_addr()] = std::make_pair(r.name(), r.target_addr());
+            }
+        }
+        std::vector<SymtabAPI::Symbol *> symbols;
+        _symtab->getAllSymbols(symbols);
+        for (auto sit = symbols.begin(); sit != symbols.end(); ++sit) {
+            if ((*sit)->getType() == SymtabAPI::Symbol::ST_FUNCTION)
+            {
+                _symtab_linkage[(*sit)->getOffset()] = std::make_pair((*sit)->getMangledName(), (*sit)->getSize());
             }
         }
     }
@@ -707,6 +720,12 @@ SymtabCodeSource::init_try_blocks()
 	    assert(!"WARNING: overlapping try blocks\n");
 	}
     }
+}
+
+void
+SymtabCodeSource::init_riscv_extensions()
+{
+    useRVC = _symtab->getObject()->getUseRVC();
 }
 
 bool

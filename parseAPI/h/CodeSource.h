@@ -129,9 +129,14 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     mutable std::map<Address, std::string> _linkage;
 
     /*
-     * Other named external linkage table (e.g. .rela.dyn). Optional.
+     * .rela.dyn external linkage table. Optional.
      */
-    mutable std::map<Address, std::pair<std::string, Address> > _other_linkage;
+    mutable std::map<Address, std::pair<std::string, Address> > _reladyn_linkage;
+
+    /*
+     * .symtab external linkage table. Optional.
+     */
+    mutable std::map<Address, std::pair<std::string, Address> > _symtab_linkage;
 
     /*
      * Table of Contents for position independent references. Optional.
@@ -168,6 +173,11 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     static dyn_hash_map<int, bool> non_returning_syscalls_x86;
     static dyn_hash_map<int, bool> non_returning_syscalls_x86_64;
 
+    /*
+     * Supported RISC-V extensions
+     */
+    bool useRVC;
+
  public:
     typedef dyn_c_hash_map<void *, CodeRegion*> RegionMap;
 
@@ -188,12 +198,16 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     virtual Address loadAddress() const { return 0; }
 
     std::map< Address, std::string > & linkage() const { return _linkage; }
-    std::map< Address, std::pair<std::string, Address> > & other_linkage() const { return _other_linkage; }
+    std::map< Address, std::pair<std::string, Address> > & reladyn_linkage() const { return _reladyn_linkage; }
+    std::map< Address, std::pair<std::string, Address> > & symtab_linkage() const { return _symtab_linkage; }
 //    std::vector< Hint > const& hints() const { return _hints; } 
     dyn_c_vector<Hint> const& hints() const { return _hints; }
     std::vector<CodeRegion *> const& regions() const { return _regions; }
     int findRegions(Address addr, std::set<CodeRegion *> & ret) const;
     bool regionsOverlap() const { return _regions_overlap; }
+
+    bool getUseRVC() const { return useRVC; }
+    void setUseRVC(bool useRVC_) { useRVC = useRVC_; }
 
     Address getTOC() const { return _table_of_contents; }
     /* If the binary file type supplies per-function
@@ -216,7 +230,8 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     virtual ~CodeSource();
  protected:
     CodeSource() : _regions_overlap(false),
-                   _table_of_contents(0) {}
+                   _table_of_contents(0),
+                   useRVC(false) {}
 
     void addRegion(CodeRegion *);
     void removeRegion(CodeRegion *);
@@ -340,6 +355,7 @@ class DYNINST_EXPORT SymtabCodeSource : public CodeSource, public boost::lockabl
     void init_hints(RegionMap &, hint_filt*);
     void init_linkage();
     void init_try_blocks();
+    void init_riscv_extensions();
 
     CodeRegion * lookup_region(const Address addr) const;
     void removeRegion(CodeRegion *); // removes from region tree
