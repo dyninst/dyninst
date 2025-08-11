@@ -339,6 +339,8 @@ bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileNa
     const unsigned int ERROR_CODE = 101;
     bool use_abi_rt = false;
 
+    (void)fileName;
+
 #if defined(DYNINST_HOST_ARCH_64BIT)
     SymtabAPI::Symtab *symt_obj;
     bool result = SymtabAPI::Symtab::openFile(symt_obj, fileName);

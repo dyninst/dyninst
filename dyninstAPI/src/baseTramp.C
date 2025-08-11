@@ -127,9 +127,13 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
 #endif
 
    int saved_unneeded = 0;
+
    unsigned actually_saved = 0;
+   (void)actually_saved;
+
    int needed_saved = 0;
-   
+   (void)needed_saved;
+
    regalloc_printf("BT: checking for unneeded saved registers (in %p)\n", (void*)this);
 
    if (spilledRegisters && !createdLocalSpace)
