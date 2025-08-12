@@ -501,7 +501,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     unsigned sectionNumber = 0;
 
     // Get new .init_array functions
-    std::vector<void *> newInitArrayFuncs;
+    std::vector<Offset> newInitArrayFuncs;
     obj->getNewInitArrayFuncs(newInitArrayFuncs);
 
     for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
@@ -589,7 +589,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                 if ((strcmp(name, ".init_array") == 0) && newInitArrayFuncs.size() == 0) {
                     continue;
                 }
-                std::cout << "HERE 1: " << name << std::endl;
                 newshdr->sh_type = SHT_PROGBITS;
                 changeMapping[sectionNumber] = 1;
                 string newName = ".o";
@@ -622,7 +621,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
         if (object->getDynamicAddr() != 0 &&
             object->getDynamicAddr() == shdr->sh_addr) {
-            std::cout << "HERE 2" << name << std::endl;
             dynData = newdata;
             dynSegOff = newshdr->sh_offset;
             dynSegAddr = newshdr->sh_addr;
@@ -640,7 +638,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             // Clear TLS flag
             newshdr->sh_flags &= ~SHF_TLS;
 
-            std::cout << "HERE 3" << std::endl;
             string newName = ".o";
             newName.append(name, 2, strlen(name));
             renameSection((string) name, newName, false);
@@ -662,7 +659,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
         if (library_adjust > 0 &&
                 (strcmp(name, ".init_array") == 0 || strcmp(name, ".fini_array") == 0 ||
-                 strcmp(name, ".dyninstInitArray") == 0 ||
                  strcmp(name, "__libc_subfreeres") == 0 || strcmp(name, "__libc_atexit") == 0 ||
                  strcmp(name, "__libc_thread_subfreeres") == 0 || strcmp(name, "__libc_IO_vtables") == 0)) {
             for(std::size_t off = 0; off < newdata->d_size; off += sizeof(void*)) {
@@ -1118,6 +1114,7 @@ void emitElf<ElfTypes>::updateDynamic(unsigned tag, Elf_Addr val) {
         case DT_RELACOUNT:
         case DT_RELENT:
         case DT_RELAENT:
+        case DT_INIT_ARRAYSZ:
             dynamicSecData[tag][0]->d_un.d_val = val;
             break;
         case DT_HASH:
@@ -1128,6 +1125,7 @@ void emitElf<ElfTypes>::updateDynamic(unsigned tag, Elf_Addr val) {
         case DT_RELA:
         case DT_VERSYM:
         case DT_JMPREL:
+        case DT_INIT_ARRAY:
             dynamicSecData[tag][0]->d_un.d_ptr = val;
             break;
         case DT_VERNEED:
@@ -1387,11 +1385,59 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
             newdata->d_align = 8;
             newshdr->sh_flags = SHF_ALLOC | SHF_WRITE;
             newshdr->sh_info = 0;
+            newshdr->sh_link = 0;
 
             // Adjust library
             unsigned long long *initArrayRaw = (unsigned long long *)newSecs[i]->getPtrToRawData();
-            for (unsigned j = 0; j < newSecs[i]->getMemSize() / 8; j++) {
+            int initArraySize = newSecs[i]->getMemSize() / newshdr->sh_entsize;
+            for (auto j = 0; j < initArraySize; j++) {
                 initArrayRaw[j] += library_adjust;
+            }
+            updateDynamic(DT_INIT_ARRAY, newshdr->sh_addr);
+            updateDynamic(DT_INIT_ARRAYSZ, newSecs[i]->getMemSize());
+
+            // Update relocation table
+            // We have allocated spaces at the end of the .rela.dyn section in createRelocationSections
+            for (auto relaDyn : newSecs) {
+                if (relaDyn->getRegionName() == ".rela.dyn") {
+                    unsigned long relType = 0;
+                    switch (obj->getArchitecture()) {
+                        case Arch_x86:
+                            relType = R_386_RELATIVE;
+                            break;
+                        case Arch_x86_64:
+                            relType = R_X86_64_RELATIVE;
+                            break;
+                        case Arch_ppc32:
+                            relType = R_PPC_RELATIVE;
+                            break;
+                        case Arch_ppc64:
+                            relType = R_PPC64_RELATIVE;
+                            break;
+                        case Arch_aarch32:
+                            relType = R_ARM_RELATIVE;
+                            break;
+                        case Arch_aarch64:
+                            relType = R_AARCH64_RELATIVE;
+                            break;
+                        case Arch_cuda:
+                        case Arch_amdgpu_gfx908:
+                        case Arch_amdgpu_gfx90a:
+                        case Arch_amdgpu_gfx940:
+                        case Arch_intelGen9:
+                            relType = R_X86_64_RELATIVE64;
+                            break;
+                        case Arch_none:
+                            break;
+                    }
+                    int relaDynSize = relaDyn->getMemSize() / sizeof(Elf64_Rela);
+                    Elf64_Rela *rela = (Elf64_Rela *)relaDyn->getPtrToRawData();
+                    for (auto j = 0; j < initArraySize; j++) {
+                        rela[relaDynSize - initArraySize + j].r_offset = newshdr->sh_addr + j * newshdr->sh_entsize;
+                        rela[relaDynSize - initArraySize + j].r_info = relType;
+                        rela[relaDynSize - initArraySize + j].r_addend = initArrayRaw[j];
+                    }
+                }
             }
         }
 
@@ -1513,7 +1559,6 @@ bool emitElf<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
     Elf_Shdr *prevshdr = shdr;
     //All of them that are left are non-loadable. stack'em up at the end.
     for (unsigned i = 0; i < nonLoadableSecs.size(); i++) {
-        std::cout << "DEBUG: " << nonLoadableSecs[i]->getRegionName() << std::endl;
         secNames.push_back(nonLoadableSecs[i]->getRegionName());
         // Add a new non-loadable section
         if ((newscn = elf_newscn(newElf)) == NULL) {
@@ -1918,67 +1963,65 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
             obj->addRegion(0, verdefSecData, verdefSecSize, ".gnu.version_d", Region::RT_SYMVERDEF, true);
         }
 
+        // New .init_array
+        std::vector<Offset> newInitArrayFuncs;
+        obj->getNewInitArrayFuncs(newInitArrayFuncs);
+        Region *initArray = NULL;
+        std::vector<Region *> regions;
+        obj->getAllRegions(regions);
+        for (Region *region : regions) {
+            std::string regionName = region->getRegionName();
+            if (regionName == ".init_array") {
+                initArray = region;
+                break;
+            }
+        }
+        assert(initArray);
+        unsigned long initArraySize = initArray->getMemSize();
+        void *initArrayRaw = initArray->getPtrToRawData();
+
+#if defined(DYNINST_HOST_ARCH_X86)
+        unsigned prependSize = newInitArrayFuncs.size();
+        unsigned newInitArrySize = initArraySize + prependSize * 8;
+        unsigned *newInitArrayRaw = (unsigned *)malloc(newInitArrySize);
+        memcpy(newInitArrayRaw + prependSize, initArrayRaw, initArraySize);
+        for (int i = 0; i < prependSize; i++) {
+            newInitArrayRaw[i] = (unsigned)newInitArrayFuncs[i];
+        }
+#else
+        unsigned prependSize = newInitArrayFuncs.size();
+        unsigned newInitArraySize = initArraySize + prependSize * 8;
+        unsigned long long *newInitArrayRaw = (unsigned long long *)malloc(newInitArraySize);
+        memcpy(newInitArrayRaw + prependSize, initArrayRaw, initArraySize);
+        for (unsigned j = 0; j < prependSize; j++) {
+            newInitArrayRaw[j] = (unsigned long long)newInitArrayFuncs[j];
+        }
+#endif
+        obj->addRegion(0, newInitArrayRaw, newInitArraySize, ".init_array", Region::RT_INIT_ARRAY, true, 8);
+
         //Always create a dyn section, it may get our new relocations.
         //If both exist, then just try to maintain order.
         bool has_plt = object->hasRelaplt() || object->hasRelplt();
         bool has_dyn = object->hasReladyn() || object->hasReldyn();
         if (!has_plt) {
-            createRelocationSections(object->getDynRelocs(), true, dynSymNameMapping);
+            createRelocationSections(object->getDynRelocs(), true, dynSymNameMapping, newInitArraySize);
         }
         else if (!has_dyn) {
-            createRelocationSections(object->getPLTRelocs(), false, dynSymNameMapping);
-            createRelocationSections(object->getDynRelocs(), true, dynSymNameMapping);
+            createRelocationSections(object->getPLTRelocs(), false, dynSymNameMapping, newInitArraySize);
+            createRelocationSections(object->getDynRelocs(), true, dynSymNameMapping, newInitArraySize);
         }
         else if (object->getRelPLTAddr() < object->getRelDynAddr()) {
-            createRelocationSections(object->getPLTRelocs(), false, dynSymNameMapping);
-            createRelocationSections(object->getDynRelocs(), true, dynSymNameMapping);
+            createRelocationSections(object->getPLTRelocs(), false, dynSymNameMapping, newInitArraySize);
+            createRelocationSections(object->getDynRelocs(), true, dynSymNameMapping, newInitArraySize);
         }
         else {
-            createRelocationSections(object->getDynRelocs(), true, dynSymNameMapping);
-            createRelocationSections(object->getPLTRelocs(), false, dynSymNameMapping);
+            createRelocationSections(object->getDynRelocs(), true, dynSymNameMapping, newInitArraySize);
+            createRelocationSections(object->getPLTRelocs(), false, dynSymNameMapping, newInitArraySize);
         }
-
+        
         //add .dynamic section
         if (dynsecSize)
             obj->addRegion(0, dynsecData, dynsecSize * sizeof(Elf_Dyn), ".dynamic", Region::RT_DYNAMIC, true);
-        
-        std::vector<void *> newInitArrayFuncs;
-        obj->getNewInitArrayFuncs(newInitArrayFuncs);
-        if (newInitArrayFuncs.size() > 0) {
-            // MEOW
-            Region *initArray = NULL;
-            std::vector<Region *> regions;
-            obj->getAllRegions(regions);
-            for (Region *region : regions) {
-                std::string regionName = region->getRegionName();
-                if (regionName == ".init_array") {
-                    initArray = region;
-                    break;
-                }
-            }
-            assert(initArray);
-            unsigned long initArraySize = initArray->getMemSize();
-            void *initArrayRaw = initArray->getPtrToRawData();
-
-#if defined(DYNINST_HOST_ARCH_X86)
-            unsigned prependSize = newInitArrayFuncs.size();
-            unsigned newInitArrySize = initArraySize + prependSize * 8;
-            unsigned *newInitArrayRaw = (unsigned *)malloc(newInitArrySize);
-            memcpy(newInitArrayRaw + prependSize, initArrayRaw, initArraySize);
-            for (int i = 0; i < prependSize; i++) {
-                newInitArrayRaw[i] = (unsigned)newInitArrayFuncs[i];
-            }
-#else
-            unsigned prependSize = newInitArrayFuncs.size();
-            unsigned newInitArraySize = initArraySize + prependSize * 8;
-            unsigned long long *newInitArrayRaw = (unsigned long long *)malloc(newInitArraySize);
-            memcpy(newInitArrayRaw + prependSize, initArrayRaw, initArraySize);
-            for (unsigned j = 0; j < prependSize; j++) {
-                newInitArrayRaw[j] = (unsigned long long)newInitArrayFuncs[j];
-            }
-#endif
-            obj->addRegion(0, newInitArrayRaw, newInitArraySize, ".init_array", Region::RT_INIT_ARRAY, true, 8);
-        }
     }
 
     if (!obj->getAllNewRegions(newSecs))
@@ -2015,7 +2058,8 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
 
 template<class ElfTypes>
 void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &relocation_table, bool isDynRelocs,
-                                                   std::unordered_map<std::string, unsigned long> &dynSymNameMapping) {
+                                                   std::unordered_map<std::string, unsigned long> &dynSymNameMapping,
+                                                   int newInitArraySize) {
     vector<relocationEntry> newRels;
     if (isDynRelocs && newSecs.size()) {
         std::vector<Region *>::iterator i;
@@ -2023,6 +2067,16 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
             std::copy((*i)->getRelocations().begin(),
                       (*i)->getRelocations().end(),
                       std::back_inserter(newRels));
+        }
+    }
+
+    // Create new relocation entries for the new .init_array section
+    // The address of the new init array is not yet available
+    // Therefore, add a placeholder (-1)
+    
+    if (isDynRelocs && object->getRelType() == Region::RT_RELA) {
+        for (auto i = 0; i < newInitArraySize / 8; i++) {
+            newRels.push_back(relocationEntry(0, 0, 0, "", NULL, 0, Region::RT_RELA));
         }
     }
 
