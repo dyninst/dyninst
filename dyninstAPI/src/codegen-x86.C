@@ -190,14 +190,14 @@ bool convert_to_rel32(const unsigned char*&origInsn, unsigned char *&newInsn) {
 }
 
 
-void insnCodeGen::generateIllegal(codeGen &gen) {
+void insnCodeGenX86::generateIllegal(codeGen &gen) {
     GET_PTR(insn, gen);
     append_memory_as_byte(insn, 0x0f);
     append_memory_as_byte(insn, 0x0b);
     SET_PTR(insn, gen);
 }
 
-void insnCodeGen::generateTrap(codeGen &gen) {
+void insnCodeGenX86::generateTrap(codeGen &gen) {
     GET_PTR(insn, gen);
     append_memory_as_byte(insn, 0xCC);
     SET_PTR(insn, gen);
@@ -208,7 +208,7 @@ void insnCodeGen::generateTrap(codeGen &gen) {
  *   Used to add multiple tramps to a point.
  */
 
-void insnCodeGen::generateBranch(codeGen &gen,
+void insnCodeGenX86::generateBranch(codeGen &gen,
                                  Dyninst::Address fromAddr, Dyninst::Address toAddr)
 {
   GET_PTR(insn, gen);
@@ -240,7 +240,7 @@ void insnCodeGen::generateBranch(codeGen &gen,
   return;
 }
 
-void insnCodeGen::generateBranch(codeGen &gen,
+void insnCodeGenX86::generateBranch(codeGen &gen,
                                  int disp32)
 {
    // Branches have sizes...
@@ -261,7 +261,7 @@ void insnCodeGen::generateBranch(codeGen &gen,
 
 
 // Unified the 64-bit push between branch and call
-void insnCodeGen::generatePush64(codeGen &gen, Dyninst::Address val)
+void insnCodeGenX86::generatePush64(codeGen &gen, Dyninst::Address val)
 {
   GET_PTR(insn, gen);
   // NOTE: The size of this generated instruction(+1 for the ret) is stored in CALL_ABS64_SZ
@@ -282,7 +282,7 @@ void insnCodeGen::generatePush64(codeGen &gen, Dyninst::Address val)
   SET_PTR(insn, gen);
 }
 
-void insnCodeGen::generateBranch64(codeGen &gen, Dyninst::Address to)
+void insnCodeGenX86::generateBranch64(codeGen &gen, Dyninst::Address to)
 {
     // "long jump" - generates sequence to jump to any 64-bit address
     // pushes the value on the stack (using 4 16-bit pushes) the uses a 'RET'
@@ -295,7 +295,7 @@ void insnCodeGen::generateBranch64(codeGen &gen, Dyninst::Address to)
 
 }
 
-void insnCodeGen::generateBranch32(codeGen &gen, Dyninst::Address to)
+void insnCodeGenX86::generateBranch32(codeGen &gen, Dyninst::Address to)
 {
    // "long jump" - generates sequence to jump to any 32-bit address
    emitPushImm(to, gen);
@@ -305,7 +305,7 @@ void insnCodeGen::generateBranch32(codeGen &gen, Dyninst::Address to)
    SET_PTR(insn, gen);
 }
 
-void insnCodeGen::generateCall(codeGen &gen,
+void insnCodeGenX86::generateCall(codeGen &gen,
                                Dyninst::Address from,
                                Dyninst::Address target)
 {
@@ -349,7 +349,7 @@ void insnCodeGen::generateCall(codeGen &gen,
   }
 }
 
-void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
+void insnCodeGenX86::generateNOOP(codeGen &gen, unsigned size) {
     // Be more efficient here...
     while (size) {
         GET_PTR(insn, gen);
@@ -359,7 +359,7 @@ void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
     }
 }
 
-void insnCodeGen::generate(codeGen &gen,instruction & insn) {
+void insnCodeGenX86::generate(codeGen &gen,instruction & insn) {
     assert(insn.ptr());
     assert(insn.size());
     memcpy(gen.cur_ptr(), insn.ptr(), insn.size());
@@ -408,7 +408,7 @@ unsigned pcRelJump::apply(Dyninst::Address addr)
    }
    SET_PTR(newInsn, *gen);
     
-   insnCodeGen::generateBranch(*gen, addr, get_target());
+   insnCodeGenX86::generateBranch(*gen, addr, get_target());
    REGET_PTR(newInsn, *gen);
    return (unsigned) (newInsn - orig_loc);
 }
@@ -515,7 +515,7 @@ unsigned pcRelJCC::apply(Dyninst::Address addr)
    // Original address is a little skewed... 
    // We've moved past the original address (to the tune of nPrefixes + 2 (JCC) + 2 (J))
    Dyninst::Address currAddr = addr + (unsigned) gen->getIndex() - start;
-   insnCodeGen::generateBranch(*gen, currAddr, target);
+   insnCodeGenX86::generateBranch(*gen, currAddr, target);
    codeBufIndex_t done = gen->getIndex();
 
    // Go back and generate the branch _around_ the offset we just calculated
@@ -581,7 +581,7 @@ unsigned pcRelCall::apply(Dyninst::Address addr)
 
    addr += copy_prefixes_nosize(origInsn, newInsn, insnType);
    SET_PTR(newInsn, *gen);
-   insnCodeGen::generateCall(*gen, addr, get_target());
+   insnCodeGenX86::generateCall(*gen, addr, get_target());
    REGET_PTR(newInsn, *gen);
    return (unsigned) (newInsn - orig_loc);
 }
@@ -753,7 +753,7 @@ bool pcRelData::canPreApply()
  * Note that we strip off any displacements, indexs, etc...  The register is assumed
  * to contain the final address that will be loaded/stored.
  **/
-bool insnCodeGen::generateMem(codeGen &gen,
+bool insnCodeGenX86::generateMem(codeGen &gen,
                               instruction & insn,
                               Dyninst::Address /*origAddr*/,
                               Dyninst::Address /*newAddr*/,
@@ -933,7 +933,7 @@ bool insnCodeGen::generateMem(codeGen &gen,
 }
 
 
-bool insnCodeGen::modifyJump(Dyninst::Address targetAddr, NS_x86::instruction &insn, codeGen &gen) {
+bool insnCodeGenX86::modifyJump(Dyninst::Address targetAddr, NS_x86::instruction &insn, codeGen &gen) {
    Dyninst::Address from = gen.currAddr();
 
    const unsigned char *origInsn = insn.ptr();
@@ -947,11 +947,11 @@ bool insnCodeGen::modifyJump(Dyninst::Address targetAddr, NS_x86::instruction &i
 
    SET_PTR(newInsn, gen);
     
-   insnCodeGen::generateBranch(gen, from, targetAddr);
+   insnCodeGenX86::generateBranch(gen, from, targetAddr);
    return true;
 }
 
-bool insnCodeGen::modifyJcc(Dyninst::Address targetAddr, NS_x86::instruction &insn, codeGen &gen) {
+bool insnCodeGenX86::modifyJcc(Dyninst::Address targetAddr, NS_x86::instruction &insn, codeGen &gen) {
    const unsigned char *origInsn = insn.ptr();
    unsigned insnType = insn.type();
    Dyninst::Address from = gen.currAddr();
@@ -1012,7 +1012,7 @@ bool insnCodeGen::modifyJcc(Dyninst::Address targetAddr, NS_x86::instruction &in
    // Original address is a little skewed... 
    // We've moved past the original address (to the tune of nPrefixes + 2 (JCC) + 2 (J))
    Dyninst::Address currAddr = from + (unsigned) gen.getIndex() - start;
-   insnCodeGen::generateBranch(gen, currAddr, targetAddr);
+   insnCodeGenX86::generateBranch(gen, currAddr, targetAddr);
    codeBufIndex_t done = gen.getIndex();
 
    // Go back and generate the branch _around_ the offset we just calculated
@@ -1027,7 +1027,7 @@ bool insnCodeGen::modifyJcc(Dyninst::Address targetAddr, NS_x86::instruction &in
    return true;
 }
 
-bool insnCodeGen::modifyCall(Dyninst::Address targetAddr, NS_x86::instruction &insn, codeGen &gen) {
+bool insnCodeGenX86::modifyCall(Dyninst::Address targetAddr, NS_x86::instruction &insn, codeGen &gen) {
    // If we're within a 32-bit displacement, we reuse the original call. 
    // Otherwise we say "welp, sucks to be us", strip any prefixes, 
    // and do a 64-bit long thang
@@ -1046,18 +1046,18 @@ bool insnCodeGen::modifyCall(Dyninst::Address targetAddr, NS_x86::instruction &i
    // 64-bit
    long disp = (targetAddr - (gen.currAddr() + CALL_REL32_SZ));
    if (is_disp32(disp)) {
-      insnCodeGen::generateCall(gen, gen.currAddr(), targetAddr);
+      insnCodeGenX86::generateCall(gen, gen.currAddr(), targetAddr);
       return true;
    }
 
    // Otherwise suck monkey
    gen.setIndex(cur);
-   insnCodeGen::generateCall(gen, gen.currAddr(), targetAddr);
+   insnCodeGenX86::generateCall(gen, gen.currAddr(), targetAddr);
    
    return true;
 }
 
-bool insnCodeGen::modifyData(Dyninst::Address targetAddr, instruction &insn, codeGen &gen)
+bool insnCodeGenX86::modifyData(Dyninst::Address targetAddr, instruction &insn, codeGen &gen)
 {
     // We may need to change these from 32-bit relative
     // to 64-bit absolute. This happens with the jumps and calls
@@ -1176,7 +1176,7 @@ bool insnCodeGen::modifyData(Dyninst::Address targetAddr, instruction &insn, cod
     return true;
 }
 
-bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &gen, Dyninst::Architecture arch, Dyninst::Address addr) {
+bool insnCodeGenX86::modifyDisp(signed long newDisp, instruction &insn, codeGen &gen, Dyninst::Architecture arch, Dyninst::Address addr) {
 
     relocation_cerr << "\t\tmodifyDisp "
         << std::hex << addr
