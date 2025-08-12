@@ -2275,10 +2275,10 @@ void Symtab::dumpFuncRanges() {
     impl->func_lookup.PrintPreorder();
 }
 
-void Symtab::prependInitArrayFunc(void *funcAddr) {
+void Symtab::prependInitArrayFunc(Offset funcAddr) {
     newInitArrayFuncs_.push_back(funcAddr);
 }
 
-void Symtab::getNewInitArrayFuncs(std::vector<void*>& newInitArrayFuncs) {
+void Symtab::getNewInitArrayFuncs(std::vector<Offset>& newInitArrayFuncs) {
    newInitArrayFuncs = newInitArrayFuncs_;
 }

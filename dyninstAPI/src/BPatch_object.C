@@ -209,7 +209,7 @@ BPatchSnippetHandle* BPatch_object::insertInitCallback(BPatch_snippet& callback)
     void *dyninstInitAddr = dyninstInitFuncs[0]->getBaseAddr();
 
     SymtabAPI::Symtab *symtab = SymtabAPI::convert(this);
-    symtab->prependInitArrayFunc(dyninstInitAddr);
+    symtab->prependInitArrayFunc((Offset)dyninstInitAddr);
 //     unsigned long initArraySize = initArray->getMemSize();
 //     void *initArrayRaw = initArray->getPtrToRawData();
 // #if defined(DYNINST_HOST_ARCH_X86)
