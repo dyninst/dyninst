@@ -134,6 +134,16 @@ namespace Dyninst { namespace InstructionAPI {
       s.replace(0, 2, "0x0("); // fix-up ##X to indirection syntax 0x0(X)
       s += ')';
     }
+    if(this->isRead() || this->isWritten()) {
+      s += "[";
+      if(this->isRead()) {
+        s += "r,";
+      }
+      if(this->isWritten()) {
+        s += "w";
+      }
+      s += "]";
+    }
     return s;
   }
 
