@@ -206,6 +206,7 @@ class BinaryEdit : public AddressSpace {
     void makeInitAndFiniIfNeeded();
 
     void makeDyninstInit();
+    void makeDyninstFini();
 
     bool archSpecificMultithreadCapable();
 

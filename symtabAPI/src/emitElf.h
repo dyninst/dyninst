@@ -262,7 +262,7 @@ namespace Dyninst {
 
             void createRelocationSections(std::vector<relocationEntry> &relocation_table, bool isDynRelocs,
                                           std::unordered_map<std::string, unsigned long> &dynSymNameMapping,
-                                          int newInitArraySize);
+                                          int newInitFiniArraySize);
 
             void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
 

@@ -197,12 +197,12 @@ Dyninst::SymtabAPI::Symtab *Dyninst::SymtabAPI::convert(const BPatch_object *o) 
    return o->obj->parse_img()->getObject();
 }
 
-BPatchSnippetHandle* BPatch_object::insertInitCallback(BPatch_snippet& callback)
+BPatchSnippetHandle* BPatch_object::insertInitArrayCallback(BPatch_snippet& callback)
 {
     BPatch_Vector<BPatch_function*> dyninstInitFuncs;
-    findFunction("_dyninst_init", dyninstInitFuncs);
+    findFunction("_dyninstInit", dyninstInitFuncs);
     if (dyninstInitFuncs.empty()) {
-        startup_printf("[%s]%d failed to find function _dyninst_init", FILE__, __LINE__);
+        startup_printf("[%s]%d failed to find function _dyninstInit", FILE__, __LINE__);
         return NULL;
     }
 
@@ -210,51 +210,36 @@ BPatchSnippetHandle* BPatch_object::insertInitCallback(BPatch_snippet& callback)
 
     SymtabAPI::Symtab *symtab = SymtabAPI::convert(this);
     symtab->prependInitArrayFunc((Offset)dyninstInitAddr);
-//     unsigned long initArraySize = initArray->getMemSize();
-//     void *initArrayRaw = initArray->getPtrToRawData();
-// #if defined(DYNINST_HOST_ARCH_X86)
-//     unsigned long newInitArrySize = initArraySize + 4;
-//     void *newInitArrayRaw = malloc(newInitArrySize);
-//     memcpy((unsigned *)newInitArrayRaw + 1, initArrayRaw, initArraySize);
-//     *(unsigned *)newInitArrayRaw = (unsigned)dyninstInitAddr;
-// #else
-//     unsigned long newInitArrySize = initArraySize + 8;
-//     void *newInitArrayRaw = malloc(newInitArrySize);
-//     memcpy((unsigned long long *)newInitArrayRaw + 1, initArrayRaw, initArraySize);
-//     *(unsigned long long*)newInitArrayRaw = (unsigned long long)dyninstInitAddr;
-// #endif
-//     initArray->setPtrToRawData(newInitArrayRaw, newInitArrySize);
 
-    BPatch_Vector<BPatch_function*> init_funcs;
-    findFunction("_init", init_funcs);    
-    if(!init_funcs.empty())
-    {
-        assert(init_funcs[0]);
-        BPatch_Vector<BPatch_point*>* init_entry = init_funcs[0]->findPoint(BPatch_entry);
-        if(init_entry && !init_entry->empty() && (*init_entry)[0])
-        {
-            startup_printf("\tinserting init snippet at 0x%p\n", (*init_entry)[0]->getAddress());
-            return as()->insertSnippet(callback, *((*init_entry)[0]));
-        }
+    BPatch_Vector<BPatch_point*>* dyninstInitEntry = dyninstInitFuncs[0]->findPoint(BPatch_entry);
+    if (dyninstInitEntry && !dyninstInitEntry->empty() && (*dyninstInitEntry)[0]) {
+        startup_printf("\tinserting init snippet at 0x%p\n", (*dyninstInitEntry)[0]->getAddress());
+        return as()->insertSnippet(callback, *((*dyninstInitEntry)[0]));
     }
     
     return NULL;
 }
 
-BPatchSnippetHandle* BPatch_object::insertFiniCallback(BPatch_snippet& callback)
+BPatchSnippetHandle* BPatch_object::insertFiniArrayCallback(BPatch_snippet& callback)
 {
-    BPatch_Vector<BPatch_function*> fini_funcs;
-    findFunction("_fini", fini_funcs);
-    if(!fini_funcs.empty())
-    {
-        assert(fini_funcs[0]);
-        BPatch_Vector<BPatch_point*>* fini_exit = fini_funcs[0]->findPoint(BPatch_exit);
-        if(fini_exit && !fini_exit->empty() && (*fini_exit)[0])
-        {
-            startup_printf("\tinserting fini snippet at 0x%p\n", (*fini_exit)[0]->getAddress());
-            return as()->insertSnippet(callback, *((*fini_exit)[0]));
-        }
+    BPatch_Vector<BPatch_function*> dyninstFiniFuncs;
+    findFunction("_dyninstFini", dyninstFiniFuncs);
+    if (dyninstFiniFuncs.empty()) {
+        startup_printf("[%s]%d failed to find function _dyninstFini", FILE__, __LINE__);
+        return NULL;
     }
+
+    void *dyninstFiniAddr = dyninstFiniFuncs[0]->getBaseAddr();
+
+    SymtabAPI::Symtab *symtab = SymtabAPI::convert(this);
+    symtab->prependFiniArrayFunc((Offset)dyninstFiniAddr);
+
+    BPatch_Vector<BPatch_point*>* dyninstFiniEntry = dyninstFiniFuncs[0]->findPoint(BPatch_entry);
+    if (dyninstFiniEntry && !dyninstFiniEntry->empty() && (*dyninstFiniEntry)[0]) {
+        startup_printf("\tinserting init snippet at 0x%p\n", (*dyninstFiniEntry)[0]->getAddress());
+        return as()->insertSnippet(callback, *((*dyninstFiniEntry)[0]));
+    }
+
     return NULL;
 }
 
