@@ -170,9 +170,9 @@ class DYNINST_EXPORT BPatch_object {
         std::vector<std::pair<BPatch_function *, bool> > &modResults,
         unsigned depthLimit = 0);
 
-    BPatchSnippetHandle*  insertInitCallback(BPatch_snippet& callback);
+    BPatchSnippetHandle*  insertInitArrayCallback(BPatch_snippet& callback);
 
-    BPatchSnippetHandle*  insertFiniCallback(BPatch_snippet& callback);
+    BPatchSnippetHandle*  insertFiniArrayCallback(BPatch_snippet& callback);
 
 };
 
