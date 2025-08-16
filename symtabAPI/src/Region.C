@@ -184,6 +184,7 @@ const char *Region::regionType2Str(RegionType rt)
       CASE_RETURN_STR(RT_INVALID);
       CASE_RETURN_STR(RT_DYNSYM);
       CASE_RETURN_STR(RT_INIT_ARRAY);
+      CASE_RETURN_STR(RT_FINI_ARRAY);
    };
    return "bad_RegionTypeype";
 }
@@ -202,11 +203,6 @@ bool Region::setRegionNumber(unsigned regnumber)
 std::string Region::getRegionName() const
 {
     return name_;
-}
-
-void Region::setRegionName(std::string name)
-{
-    name_ = name;
 }
 
 Offset Region::getDiskOffset() const
