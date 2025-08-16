@@ -84,6 +84,7 @@ class DYNINST_EXPORT Region : public AnnotatableSparse {
       RT_GNU_HASH,
       RT_DYNSYM,
       RT_INIT_ARRAY,
+      RT_FINI_ARRAY,
       RT_OTHER,
       RT_INVALID = -1
    };
@@ -105,7 +106,6 @@ class DYNINST_EXPORT Region : public AnnotatableSparse {
    unsigned getRegionNumber() const;
    bool setRegionNumber(unsigned regnumber);
    std::string getRegionName() const;
-   void setRegionName(std::string);
 
    Offset getDiskOffset() const;
    unsigned long getDiskSize() const;
