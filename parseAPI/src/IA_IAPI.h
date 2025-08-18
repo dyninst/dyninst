@@ -121,6 +121,7 @@ class IA_IAPI : public InstructionAdapter {
         virtual bool isCall() const;
         virtual bool isReturnAddrSave(Address &ret_addr) const = 0;
         virtual bool isNopJump() const = 0;
+        virtual bool isMultiInsnJump(Address &, Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block *) const = 0;
         virtual bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const = 0;
         virtual bool isIATcall(std::string &calleeName) const = 0;
         virtual bool isThunk() const = 0;

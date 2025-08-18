@@ -64,6 +64,8 @@ namespace Dyninst { namespace InstructionAPI {
     }
     segPrefix = 0;
     isVectorInsn = false;
+    isMultiInsnCall = false;
+    isMultiInsnBranch = false;
     mnemonic = m;
   }
 
@@ -98,6 +100,8 @@ namespace Dyninst { namespace InstructionAPI {
       : archDecodedFrom(arch), prefixID(prefix_none) {
     segPrefix = 0;
     isVectorInsn = getVectorizationInfo(e);
+    isMultiInsnCall = false;
+    isMultiInsnBranch = false;
     operationID = e->getID(l);
     // Defaults for no size prefix
     switch(archDecodedFrom) {
@@ -124,6 +128,8 @@ namespace Dyninst { namespace InstructionAPI {
     addrWidth = o.addrWidth;
     segPrefix = o.segPrefix;
     isVectorInsn = o.isVectorInsn;
+    isMultiInsnCall = o.isMultiInsnCall;
+    isMultiInsnBranch = o.isMultiInsnBranch;
     mnemonic = o.mnemonic;
   }
 
@@ -134,6 +140,8 @@ namespace Dyninst { namespace InstructionAPI {
     addrWidth = o.addrWidth;
     segPrefix = o.segPrefix;
     isVectorInsn = o.isVectorInsn;
+    isMultiInsnCall = o.isMultiInsnCall;
+    isMultiInsnBranch = o.isMultiInsnBranch;
     mnemonic = o.mnemonic;
     return *this;
   }
@@ -145,6 +153,8 @@ namespace Dyninst { namespace InstructionAPI {
     addrWidth = u64;
     segPrefix = 0;
     isVectorInsn = false;
+    isMultiInsnCall = false;
+    isMultiInsnBranch = false;
   }
 
   const Operation::registerSet& Operation::implicitReads() {

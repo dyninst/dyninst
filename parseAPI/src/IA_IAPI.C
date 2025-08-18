@@ -428,7 +428,7 @@ bool IA_IAPI::isFrameSetupInsn() const
 bool IA_IAPI::isDynamicCall() const
 {
     Instruction ci = curInsn();
-    if(ci.isValid() && ci.isCall())
+    if(ci.isValid() && ci.isCall() && !ci.getOperation().isMultiInsnCall)
     {
         Address addr;
         bool success;
@@ -571,93 +571,17 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             }
         }
 
-        // In RISC-V where sometimes the offset is too large to fit into the instruction's immediate field of jal,
-        // RISC-V compilers will generate the following instruction sequence
-        //   auipc	ra,0xffe00
-        //   jalr	-42(ra)
-        // The following code performs instruction pattern matching on such code snippet
-        if(ci.getArch() == Arch_riscv64 && (ci.getOperation().getID() == riscv64_op_c_jalr ||
-                    (ci.getOperation().getID() == riscv64_op_jalr))) {
-            bool validJr = false;
-            int32_t targetAddr = current - 4; // minus the length of the auipc instruction
-            int32_t offset = 0;
-            // If we saw c.jalr, grab the second operand and offset (not the first because the first one is the implicit link register)
-            
-            if(ci.getOperation().getID() == riscv64_op_c_jalr) {
-                MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(ci.getOperand(1).getValue()))->getID();
-                if (rd == riscv64::ra) {
-                    validJr = true;
-                }
-            }
-            // If we saw jalr, unwrap the second operand.
-            // The first child operand will be the target register
-            // The second child operand will be the immediate.
-            else {
-                MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(ci.getOperand(0).getValue()))->getID();
-                vector<InstructionAST::Ptr> children;
-                boost::dynamic_pointer_cast<BinaryFunction>(ci.getOperand(1).getValue())->getChildren(children);
-                MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(children[0]))->getID();
-                offset = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
-                if (rd == riscv64::ra && rs == riscv64::ra) {
-                    validJr = true;
-                }
-            }
-            if(validJr) {
-                IA_IAPI* cloned = this->clone();
-                cloned->retreat();
-                Instruction pi = cloned->curInsn();
-
-                // If the previous instruction is indeed `auipc`, unwrap all operands and calculate the target address
-                if(pi.getOperation().getID() == riscv64_op_auipc) {
-                    MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(pi.getOperand(0).getValue()))->getID();
-                    int32_t imm = (boost::dynamic_pointer_cast<Immediate>(pi.getOperand(1).getValue()))->eval().val.s32val;
-
-                    if(rd == riscv64::ra) {
-                        // The offset of auipc is (imm << 12), so we add (imm << 12) to the target address
-                        targetAddr += (imm << 12);
-
-                        // Add the offset to relAddr
-                        targetAddr += offset;
-
-                        // Finally, check whether the target address is in Symtab or PLT
-                        if(symtab_entries->find(targetAddr) != symtab_entries->end() ||
-                                plt_entries->find(targetAddr) != plt_entries->end()) {
-                            outEdges.push_back(std::make_pair(targetAddr, INDIRECT));
-                            // Add fallthrough edge
-                            outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
-                            return;
-                        }
-                    }
-                }
-            }
-            AssignmentConverter ac(true, false);
-            vector<Assignment::Ptr> assignments;
-            ac.convert(ci, currBlk->last(), context, currBlk, assignments);
-            Slicer formatSlicer(assignments[0], currBlk, context, false, false);
-
-            SymbolicExpression se;
-            se.cs = currBlk->obj()->cs();
-            se.cr = currBlk->region();
-
-            Slicer::Predicates preds;
-            Graph::Ptr slice = formatSlicer.backwardSlice(preds);
-            Result_t symRet;
-            SymEval::expand(slice, symRet);
-
-            auto origAST = symRet[assignments[0]];
-            if (origAST != NULL) {
-                auto simplifiedAST = se.SimplifyAnAST(origAST, 0, false);
-                ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(simplifiedAST);
-                uint32_t addr = constAST->val().val;
-                if (symtab_entries->find(targetAddr) != symtab_entries->end() ||
-                        plt_entries->find(targetAddr) != plt_entries->end()) {
-                    outEdges.push_back(std::make_pair(targetAddr, INDIRECT));
-                    // Add fallthrough edge
-                    outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
-                    return;
-                }
+        // RISC-V multi instruction jump and call
+        if (ci.getArch() == Arch_riscv64 && isMultiInsnJump(target, context, currBlk)) {
+            if (symtab_entries->find(target) != symtab_entries->end() ||
+                    plt_entries->find(target) != plt_entries->end()) {
+                outEdges.push_back(std::make_pair(target, CALL));
+                outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
+                curInsnIter->second.getOperation().setMultiInsnCall(true);
+                return;
             }
         }
+
         if (callEdge) {
             if (success) {                
                 outEdges.push_back(std::make_pair(target, CALL));
@@ -720,7 +644,22 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             }
             return;
         }
-        else
+        else if (ci.getArch() == Arch_riscv64 && isMultiInsnJump(target, context, currBlk))
+        {
+            // If the target address lies within the current context
+            // It is an unconditional jump
+            if (target >= context->entry()->start() &&
+                    target < context->entry()->end()) {
+                outEdges.push_back(std::make_pair(target, DIRECT));
+            }
+            // Otherwise, it is a tail call
+            else {
+                outEdges.push_back(std::make_pair(target, DIRECT));
+            }
+            curInsnIter->second.getOperation().setMultiInsnBranch(true);
+            return;
+        }
+        else //
         {
             parsing_printf("... indirect jump at 0x%lx\n", current);
             if( num_insns == 2 ) {

@@ -46,6 +46,8 @@
 #include <set>
 #include "Register.h"
 #include "Dereference.h"
+#include "SymbolicExpression.h"
+#include "SymEval.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -351,5 +353,101 @@ bool IA_riscv64::isLinkerStub() const
 
 bool IA_riscv64::isNopJump() const
 {
+    return false;
+}
+
+bool IA_riscv64::isMultiInsnJump(Address &targetAddr, Function *context, Block *currBlk) const {
+    Instruction insn = curInsn();
+
+    // Basic Instruction Matching
+    // This is used to prevent calling slicing all the time
+    // As slicing is not as efficient as instruction pattern matching
+    entryID curInsnID = insn.getOperation().getID();
+
+    if (curInsnID == riscv64_op_c_jalr || curInsnID == riscv64_op_c_jr || curInsnID == riscv64_op_jalr) {
+        Address addr = current;
+
+        // In RISC-V where sometimes the offset is too large to fit into the instruction's immediate field of jal,
+        // Compilers will typically generate the following instruction sequence
+        //   auipc	ra,0xffe00
+        //   jalr	-42(ra)
+        // The following code performs instruction pattern matching on such code snippet
+
+        // If we saw c.jalr, grab the second operand and offset
+        // (not the first because the first one is the implicit link register)
+
+        bool validJr = false;
+        Address offset = 0;
+        if (curInsnID == riscv64_op_c_jalr || curInsnID == riscv64_op_c_jr) {
+            MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue()))->getID();
+            if (rd == riscv64::ra) {
+                validJr = true;
+            }
+        }
+        // If we saw jalr, unwrap the second operand.
+        // The first child operand will be the target register
+        // The second child operand will be the immediate.
+        else {
+            vector<InstructionAST::Ptr> children;
+            boost::dynamic_pointer_cast<BinaryFunction>(insn.getOperand(1).getValue())->getChildren(children);
+            MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(children[0]))->getID();
+            offset = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
+            if (rs == riscv64::ra) {
+                validJr = true;
+            }
+        }
+        if (validJr) {
+            IA_riscv64* cloned = this->clone();
+            cloned->retreat();
+            Instruction pi = cloned->curInsn();
+
+            // If the previous instruction is indeed `auipc`, unwrap all operands and calculate the target address
+            if (pi.getOperation().getID() == riscv64_op_auipc) {
+                MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(pi.getOperand(0).getValue()))->getID();
+                int32_t imm = (boost::dynamic_pointer_cast<Immediate>(pi.getOperand(1).getValue()))->eval().val.s32val;
+
+                if (rd == riscv64::ra) {
+                    // The offset of auipc is (imm << 12), so we add (imm << 12) to the target address
+                    addr += (imm << 12);
+
+                    // Add the offset to relAddr
+                    addr += offset;
+                    addr -= 4; // minus the length of the auipc instruction
+
+                    targetAddr = addr;
+                    return true;
+                }
+            }
+        }
+
+        // Add more instruction pattern here
+
+        // Unknown instruction pattern
+        // Perform backward slicing as the last resort
+        AssignmentConverter ac(true, false);
+        vector<Assignment::Ptr> assignments;
+        ac.convert(insn, currBlk->last(), context, currBlk, assignments);
+        Slicer formatSlicer(assignments[0], currBlk, context, false, false);
+
+        SymbolicExpression se;
+        se.cs = currBlk->obj()->cs();
+        se.cr = currBlk->region();
+
+        Slicer::Predicates preds;
+        Graph::Ptr slice = formatSlicer.backwardSlice(preds);
+        DataflowAPI::Result_t symRet;
+        DataflowAPI::SymEval::expand(slice, symRet);
+
+        auto origAST = symRet[assignments[0]];
+        if (origAST != NULL) {
+            auto simplifiedAST = se.SimplifyAnAST(origAST, 0, false);
+            if (simplifiedAST->getID() == AST::V_ConstantAST) {
+                DataflowAPI::ConstantAST::Ptr constAST = boost::static_pointer_cast<DataflowAPI::ConstantAST>(simplifiedAST);
+                uint32_t evalAddr = constAST->val().val;
+                targetAddr = evalAddr;
+                return true;
+            }
+        }
+    }
     return false;
 }

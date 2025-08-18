@@ -8,8 +8,6 @@ namespace InstructionAPI {
 
 void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn_to_complete, cs_detail* d) {
     bool isCFT = false;         // branch instructions
-    //bool isJumpReg = false;     // jump to an address in a register
-    //bool isJumpOffset = false;  // relative jump from program counter
     bool isCall = false;        // call instructions
     bool isIndirect = false;    // indirect jump
     bool isConditional = false; // conditional / unconditional branch
@@ -33,14 +31,13 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         // The j pseudo instruction
         if ((((*insn_raw_ptr) >> 7) & 0x1f) == 0) {
             rd = RISCV_REG_X0;
-            isCall = false; // jal is a call instruction only if rd == x1 (for now)
+            isCall = false;
             assert(detail->operands[0].type == RISCV_OP_IMM);
             imm = detail->operands[0].imm;
         // The jr pseudo instruction
         } else if ((((*insn_raw_ptr) >> 7) & 0x1f) == 1) {
             rd = RISCV_REG_X1;
-            isCall = true; // jal is a call instruction only if rd == x1 (for now)
-                           // TODO: The alternative link register
+            isCall = true;
             assert(detail->operands[0].type == RISCV_OP_IMM);
             imm = detail->operands[0].imm;
         } else {
@@ -97,8 +94,10 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
 
         
         isCFT = true;
-        isCall = (rd == RISCV_REG_X1); // jal is a call instruction only if rd == x1 (for now)
-                                       // TODO: The obnoxious alternative link register
+        isCall = (rd == RISCV_REG_X1); // treat jal as a call instruction only if rd == x1
+                                       // Other possible link registers will be handled in ParseAPI
+                                       // it might also be a part of direct jump (auipc + jalr)
+                                       // but we'll also handle that in ParseAPI
         isIndirect = true;
         isConditional = false;
 

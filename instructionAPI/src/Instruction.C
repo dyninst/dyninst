@@ -487,6 +487,10 @@ namespace Dyninst { namespace InstructionAPI {
   DYNINST_EXPORT InsnCategory Instruction::getCategory() const {
     if(m_InsnOp.isVectorInsn)
       return c_VectorInsn;
+    if(m_InsnOp.isMultiInsnCall)
+      return c_CallInsn;
+    if(m_InsnOp.isMultiInsnBranch)
+      return c_BranchInsn;
     InsnCategory c = entryToCategory(m_InsnOp.getID());
     if(c == c_BranchInsn && (arch_decoded_from == Arch_ppc32 || arch_decoded_from == Arch_ppc64)) {
       DECODE_OPERANDS();
@@ -528,9 +532,6 @@ namespace Dyninst { namespace InstructionAPI {
         if (rd == riscv64::x1 && rs == riscv64::x0 && imm == 0) {
           return c_ReturnInsn;
         }
-
-        //MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(cft->target))->getID();
-        //auto imm = cft->target->eval().val.s32val;
       }
     }
     if(isSoftwareInterrupt(*this)) {
