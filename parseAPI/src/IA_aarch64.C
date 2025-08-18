@@ -255,3 +255,8 @@ bool IA_aarch64::isNopJump() const
 {
     return false;
 }
+
+bool IA_aarch64::isMultiInsnJump(Address &, Function *, Block *) const
+{
+    return false;
+}
