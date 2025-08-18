@@ -825,3 +825,8 @@ bool IA_x86::isLinkerStub() const
     // No need for linker stubs on x86 platforms.
     return false;
 }
+
+bool IA_x86::isMultiInsnJump(Address &, Function *, Block *) const
+{
+    return false;
+}
