@@ -321,7 +321,7 @@ bool IA_IAPI::isAbort() const
     entryID e = curInsn().getOperation().getID();
     return e == e_int3 ||
         e == e_hlt ||
-        e == e_ud2;
+        e == e_ud2 || curInsn().isGPUKernelExit();
 }
 
 bool IA_IAPI::isInvalidInsn() const
