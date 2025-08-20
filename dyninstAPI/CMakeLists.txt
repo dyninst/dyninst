@@ -202,25 +202,11 @@ if(cap_stack_mods_found GREATER -1)
 endif()
 
 if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
-  list(
-    APPEND
-    _sources
-    src/stackwalk-x86.C
-    src/dynProcess-x86.C)
+  list(APPEND _sources src/stackwalk-x86.C src/dynProcess-x86.C)
 elseif(DYNINST_HOST_ARCH_PPC64LE)
-  list(
-    APPEND
-    _sources
-    src/stackwalk-ppc.C
-    src/dynProcess-power.C
-    )
+  list(APPEND _sources src/stackwalk-ppc.C src/dynProcess-power.C)
 elseif(DYNINST_HOST_ARCH_AARCH64)
-  list(
-    APPEND
-    _sources
-    src/stackwalk-aarch64.C
-    src/dynProcess-aarch64.C
-    )
+  list(APPEND _sources src/stackwalk-aarch64.C src/dynProcess-aarch64.C)
 endif()
 
 if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
