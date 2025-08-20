@@ -29,7 +29,7 @@
  */
 
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-#include "dyninstAPI/src/dynProcess.h"
+// #include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/registerSpace.h"
 
 #include "emit-amdgpu.h"
@@ -174,17 +174,17 @@ bool doNotOverflow(int64_t /* value */) {
   return false;
 }
 
-bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry & /* entry */,
-                             func_instance *& /* target_pdf */, Address /* base_addr */) {
-  assert(false && "Not implemented for AMDGPU");
-  return false;
-}
-
-bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &, Address, func_instance *,
-                             Address) {
-  assert(false && "Not implemented for AMDGPU");
-  return false;
-}
+// bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry & [> entry <],
+//                              func_instance *& [> target_pdf */, Address /* base_addr <]) {
+//   assert(false && "Not implemented for AMDGPU");
+//   return false;
+// }
+//
+// bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &, Address, func_instance *,
+//                              Address) {
+//   assert(false && "Not implemented for AMDGPU");
+//   return false;
+// }
 
 void emitLoadPreviousStackFrameRegister(Address /* register_num */, Register /* dest */,
                                         codeGen & /* gen */, int /* size */, bool) {}

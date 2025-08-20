@@ -1181,16 +1181,16 @@ DYNINST_EXPORT const unsigned char* skip_headers(const unsigned char*,
 /* Address bounds of new dynamic heap segments.  On x86 we don't try
 to allocate new segments near base tramps, so heap segments can be
 allocated anywhere (the tramp address "x" is ignored). */
-inline Dyninst::Address region_lo(const Dyninst::Address /*x*/) { return 0x00000000; }
-inline Dyninst::Address region_hi(const Dyninst::Address /*x*/) { return 0xf0000000; }
-
-#if defined(DYNINST_HOST_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_X86_64)
-// range functions for AMD64
-
-inline Dyninst::Address region_lo_64(const Dyninst::Address x) { return x & 0xffffffff80000000; }
-inline Dyninst::Address region_hi_64(const Dyninst::Address x) { return x | 0x000000007fffffff; }
-
-#endif
+// inline Dyninst::Address region_lo(const Dyninst::Address [>x<]) { return 0x00000000; }
+// inline Dyninst::Address region_hi(const Dyninst::Address [>x<]) { return 0xf0000000; }
+//
+// #if defined(DYNINST_HOST_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+// // range functions for AMD64
+//
+// inline Dyninst::Address region_lo_64(const Dyninst::Address x) { return x & 0xffffffff80000000; }
+// inline Dyninst::Address region_hi_64(const Dyninst::Address x) { return x | 0x000000007fffffff; }
+//
+// #endif
 
 DYNINST_EXPORT bool insn_hasSIB(unsigned,unsigned&,unsigned&,unsigned&);
 DYNINST_EXPORT bool insn_hasDisp8(unsigned ModRM);

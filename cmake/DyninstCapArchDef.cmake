@@ -6,65 +6,63 @@
 
 include_guard(GLOBAL)
 
-if(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+if(NOT (DYNINST_CODEGEN_ARCH_AMDGPU_GFX908 OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX940))
+  # It is unclear whether these definitions are required for host or codegen.
+  # But they are common definitions. We don't want these for AMDGPU.
+  set(CAP_DEFINES -Dcap_dynamic_heap -Dcap_liveness -Dcap_threads)
+endif()
+
+if(DYNINST_HOST_ARCH_I386)
+  set(ARCH_DEFINES_TESTSUITE -Darch_x86)
+elseif(DYNINST_HOST_ARCH_X86_64)
+  set(ARCH_DEFINES_TESTSUITE -Darch_x86_64 -Darch_64bit)
+elseif(DYNINST_HOST_ARCH_PPC64LE)
+  set(ARCH_DEFINES_TESTSUITE -Darch_power -Darch_64bit)
+elseif(DYNINST_HOST_ARCH_AARCH64)
+  set(ARCH_DEFINES_TESTSUITE -Darch_aarch64 -Darch_64bit)
+endif()
+
+if(DYNINST_CODEGEN_ARCH_I386)
+  set(ARCH_DEFINES_CODEGEN -Darch_x86)
+  set(CAP_DEFINES
+      ${CAP_DEFINES}
+      -Dcap_fixpoint_gen
+      -Dcap_noaddr_gen
+      -Dcap_stripped_binaries
+      -Dcap_tramp_liveness
+      -Dcap_virtual_registers
+      -Dcap_stack_mods)
+
+elseif(DYNINST_CODEGEN_ARCH_X86_64)
+  set(ARCH_DEFINES_CODEGEN -Darch_x86_64 -Darch_64bit)
+  set(CAP_DEFINES
+      ${CAP_DEFINES}
+      -Dcap_32_64
+      -Dcap_fixpoint_gen
+      -Dcap_noaddr_gen
+      -Dcap_registers
+      -Dcap_stripped_binaries
+      -Dcap_tramp_liveness
+      -Dcap_stack_mods)
+
+elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
+  set(ARCH_DEFINES_CODEGEN -Darch_power -Darch_64bit)
+  set(CAP_DEFINES ${CAP_DEFINES} -Dcap_32_64 -Dcap_registers -Dcap_toc_64)
+elseif(DYNINST_CODEGEN_ARCH_AARCH64)
+  set(ARCH_DEFINES_CODEGEN -Darch_aarch64 -Darch_64bit)
+  set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
+elseif(DYNINST_CODEGEN_ARCH_RISCV64)
+  set(ARCH_DEFINES_CODEGEN -Darch_riscv64 -Darch_64bit)
+  set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx908 -Darch_64bit)
   set(CAP_DEFINES ${CAP_DEFINES} -Dcap_fixpoint_gen -Dcap_noaddr_gen -Dcap_registers
                   -Dcap_tramp_liveness)
-
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A)
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx90a -Darch_64bit)
 
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_64bit)
-
-else()
-  # It is unclear whether these definitions are required for host or codegen.
-  # But they are common definitions. But we don't want these for AMDGPU.
-  set(CAP_DEFINES -Dcap_dynamic_heap -Dcap_liveness -Dcap_threads)
-
-  if(DYNINST_HOST_ARCH_I386)
-    set(ARCH_DEFINES_TESTSUITE -Darch_x86)
-  elseif(DYNINST_HOST_ARCH_X86_64)
-    set(ARCH_DEFINES_TESTSUITE -Darch_x86_64 -Darch_64bit)
-  elseif(DYNINST_HOST_ARCH_PPC64LE)
-    set(ARCH_DEFINES_TESTSUITE -Darch_power -Darch_64bit)
-  elseif(DYNINST_HOST_ARCH_AARCH64)
-    set(ARCH_DEFINES_TESTSUITE -Darch_aarch64 -Darch_64bit)
-  endif()
-
-  if(DYNINST_CODEGEN_ARCH_I386)
-    set(ARCH_DEFINES_CODEGEN -Darch_x86)
-    set(CAP_DEFINES
-        ${CAP_DEFINES}
-        -Dcap_fixpoint_gen
-        -Dcap_noaddr_gen
-        -Dcap_stripped_binaries
-        -Dcap_tramp_liveness
-        -Dcap_virtual_registers
-        -Dcap_stack_mods)
-
-  elseif(DYNINST_CODEGEN_ARCH_X86_64)
-    set(ARCH_DEFINES_CODEGEN -Darch_x86_64 -Darch_64bit)
-    set(CAP_DEFINES
-        ${CAP_DEFINES}
-        -Dcap_32_64
-        -Dcap_fixpoint_gen
-        -Dcap_noaddr_gen
-        -Dcap_registers
-        -Dcap_stripped_binaries
-        -Dcap_tramp_liveness
-        -Dcap_stack_mods)
-
-  elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
-    set(ARCH_DEFINES_CODEGEN -Darch_power -Darch_64bit)
-    set(CAP_DEFINES ${CAP_DEFINES} -Dcap_32_64 -Dcap_registers -Dcap_toc_64)
-  elseif(DYNINST_CODEGEN_ARCH_AARCH64)
-    set(ARCH_DEFINES_CODEGEN -Darch_aarch64 -Darch_64bit)
-    set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
-  elseif(DYNINST_CODEGEN_ARCH_RISCV64)
-    set(ARCH_DEFINES_CODEGEN -Darch_riscv64 -Darch_64bit)
-    set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
-  endif()
 endif()
 
 if(DYNINST_OS_Linux)

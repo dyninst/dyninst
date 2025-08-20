@@ -206,6 +206,26 @@ if(cap_stack_mods_found GREATER -1)
     src/StackMod/TMap.C)
 endif()
 
+if (DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
+  list(
+    APPEND
+    _sources
+    src/stackwalk-x86.C
+    src/dynProcess-x86.C)
+elseif(DYNINST_HOST_ARCH_PPC64LE)
+     list(
+    APPEND
+    _sources
+    src/parse-power.C
+    src/stackwalk-ppc.C)
+elseif(DYNINST_CODEGEN_ARCH_AARCH64)
+  list(
+    APPEND
+    _sources
+    src/stackwalk-aarch64.C
+    src/dynProcess-aarch64.C)
+endif()
+
 if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
   list(
     APPEND
@@ -217,8 +237,6 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     src/inst-x86.C
     src/emit-x86.C
     src/codegen-x86.C
-    src/stackwalk-x86.C
-    src/dynProcess-x86.C
     src/parse-x86.C
     src/IAPI_to_AST.C)
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
@@ -230,7 +248,6 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
     src/codegen-power.C
     src/parse-power.C
     src/RegisterConversion-ppc.C
-    src/stackwalk-ppc.C
     src/Relocation/Widgets/CFWidget-ppc.C
     src/Relocation/Widgets/PCWidget-ppc.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
@@ -243,7 +260,6 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/codegen-aarch64.C
     src/parse-aarch64.C
     src/RegisterConversion-aarch64.C
-    src/stackwalk-aarch64.C
     src/Relocation/Widgets/CFWidget-aarch64.C
     src/Relocation/Widgets/PCWidget-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
@@ -256,7 +272,7 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/codegen-amdgpu.C
     src/parse-amdgpu.C
     src/RegisterConversion-amdgpu.C
-    src/stackwalk-amdgpu.C
+    # src/stackwalk-amdgpu.C
     src/Relocation/Widgets/CFWidget-amdgpu.C
     src/Relocation/Widgets/PCWidget-amdgpu.C
     src/amdgpu-gfx908-details.cpp
@@ -282,14 +298,14 @@ elseif(DYNINST_OS_Linux)
     src/unix.C
     src/syscallNotification.C
     src/syscall-linux.C)
-  if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
+  if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
     list(APPEND _sources src/linux-x86.C)
-  elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
+  elseif(DYNINST_HOST_ARCH_PPC64LE)
     list(APPEND _sources src/linux-power.C)
-  elseif(DYNINST_CODEGEN_ARCH_AARCH64)
+  elseif(DYNINST_HOST_ARCH_AARCH64)
     list(APPEND _sources src/linux-aarch64.C)
-  elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-    list(APPEND _sources src/linux-amdgpu.C)
+  # elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    # list(APPEND _sources src/linux-amdgpu.C)
   endif()
 elseif(DYNINST_OS_Windows)
   list(

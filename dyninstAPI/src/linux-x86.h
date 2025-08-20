@@ -42,4 +42,10 @@
 #include "inst-x86.h"
 #include "codegen.h"
 
+inline Dyninst::Address region_lo(const Dyninst::Address /*x*/) { return 0x00000000; }
+inline Dyninst::Address region_hi(const Dyninst::Address /*x*/) { return 0xf0000000; }
+
+inline Dyninst::Address region_lo_64(const Dyninst::Address x) { return x & 0xffffffff80000000; }
+inline Dyninst::Address region_hi_64(const Dyninst::Address x) { return x | 0x000000007fffffff; }
+
 #endif
