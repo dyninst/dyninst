@@ -612,7 +612,8 @@ class AstOperandNode : public AstNode {
 
     virtual bool initRegisters(codeGen &gen);
 
-// AMDGPU-specific start
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
+
     static int lastOffset; // Last offset in our GPU memory buffer.
 
     // maps variable name to an offset in our GPU memory buffer
@@ -632,7 +633,7 @@ class AstOperandNode : public AstNode {
       assert(allocTable.find(variableName) != allocTable.end() && "Variable must be allocated");
       return allocTable[variableName];
     }
-// AMDGPU-specific end
+#endif
 
  private:
     virtual bool generateCode_phase2(codeGen &gen,
