@@ -40,7 +40,7 @@
 class AddressSpace;
 class codeGen;
 
-class insnCodeGen {
+class insnCodeGenPower {
  public:
     // All of these write into a buffer
     static void generateTrap(codeGen &gen);
