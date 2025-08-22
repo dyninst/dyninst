@@ -73,8 +73,6 @@
 #include "linuxHeaders.h"
 #include "common/src/parseauxv.h"
 
-#include "common/h/compiler_diagnostics.h"
-
 #include "boost/shared_ptr.hpp"
 
 #include "unaligned_memory_access.h"

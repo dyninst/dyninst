@@ -2076,7 +2076,6 @@ RegisterMap &machRegIndex_amdgpu_gfx940() {
      {amdgpu_gfx940::s17,17},
      {amdgpu_gfx940::s18,18},
      {amdgpu_gfx940::s19,19},
-
      {amdgpu_gfx940::s20,20},
      {amdgpu_gfx940::s21,21},
      {amdgpu_gfx940::s22,22},

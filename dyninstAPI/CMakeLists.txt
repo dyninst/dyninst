@@ -108,7 +108,6 @@ set(_private_headers
 
 set(_sources
     src/addressSpace.C
-    # src/ast.C
     src/baseTramp.C
     src/binaryEdit.C
     src/block.C
