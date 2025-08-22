@@ -62,6 +62,11 @@ IA_amdgpu* IA_amdgpu::clone() const {
     return new IA_amdgpu(*this);
 }
 
+bool IA_amdgpu::isAbort() const
+{
+    return curInsn().isGPUKernelExit();
+}
+
 bool IA_amdgpu::isFrameSetupInsn(Instruction ) const
 {
     return false;
