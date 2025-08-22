@@ -242,20 +242,20 @@ namespace hd {
         (void ) co;
         (void ) cr;
         (void ) addr;
-#endif
+#endif  
         return ret;
     }
 
     bool IsNop(CodeObject *co, CodeRegion *cr, Address addr) {
         using namespace Dyninst::InstructionAPI;
-
-        const unsigned char* bufferBegin =
+    
+        const unsigned char* bufferBegin = 
             (const unsigned char*)(cr->getPtrToInstruction(addr));
         if(!bufferBegin)
             return false;
-
-        InstructionDecoder dec(bufferBegin,
-            cr->offset() + cr->length() - addr,
+ 
+        InstructionDecoder dec(bufferBegin, 
+            cr->offset() + cr->length() - addr, 
             cr->getArch());
 	Block * blk = NULL;
     	InstructionAdapter_t* ah = InstructionAdapter_t::makePlatformIA_IAPI(co->cs()->getArch(),dec, addr, co, cr, cr, blk);

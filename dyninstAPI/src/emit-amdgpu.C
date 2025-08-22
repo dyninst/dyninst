@@ -47,7 +47,8 @@ unsigned EmitterAmdgpuGfx908::emitIf(Register expr_reg, Register target, RegCont
   // Caller must ensure that target is even; and target, target+1 hold the
   // target address.
 
-  assert(target >= SGPR_0 && target <= SGPR_101 && "target must be an SGPR");
+  assert(/* target >= SGPR_0 because Register is unsigned int */
+         target <= SGPR_101 && "target must be an SGPR");
   assert(target % 2 == 0 && "target must be even as we will use target, target+1 in pair");
 
   emitSopK(S_CMPK_EQ_U32, expr_reg, 0, gen);
@@ -218,7 +219,8 @@ void EmitterAmdgpuGfx908::emitLoadConst(Register dest, Address imm, codeGen &gen
   Register reg0 = dest;
   Register reg1 = dest + 1;
 
-  assert(dest >= SGPR_0 && dest <= SGPR_101 && "reg0 must be an SGPR");
+  assert(/* reg0 >= SGPR_0 because Register is unsigned int */
+         reg0 <= SGPR_101 && "reg0 must be an SGPR");
   assert(reg0 % 2 == 0 && "reg0 must be even as we will use reg0, reg1 in pair");
 
   uint32_t lowerAddress = imm;
@@ -527,7 +529,8 @@ void EmitterAmdgpuGfx908::emitShortJump(int16_t wordOffset, codeGen &gen) {
 // s93 s_setpc_b64 s[90:91]
 void EmitterAmdgpuGfx908::emitLongJump(Register reg, uint64_t fromAddress, uint64_t toAddress,
                                        codeGen &gen) {
-  assert(reg >= SGPR_0 && reg <= SGPR_101 && "reg must be an SGPR");
+  assert(/* reg >= SGPR_0 as Register is unsigned int */
+         reg <= SGPR_101 && "reg must be an SGPR");
   assert(reg % 2 == 0 && "reg must be even as we will use reg, reg+1 in pair");
 
   // s_getpc_b64 will give us beginning of next instruction.

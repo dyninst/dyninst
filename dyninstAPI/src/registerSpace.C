@@ -771,7 +771,7 @@ bool registerSpace::readProgramRegister(codeGen &gen,
         return true;
         break;
 
-#if defined(arch_x86) || defined(arch_x86_64) // framePointer only defined for x86 and x86_64
+#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64) // framePointer only defined for x86 and x86_64
     case registerSlot::framePointer: {
         registerSlot *frame = registers_[framePointer()];
         assert(frame);
