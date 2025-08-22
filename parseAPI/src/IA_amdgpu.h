@@ -49,23 +49,23 @@ class IA_amdgpu : public IA_IAPI {
                Dyninst::InstructionSource *isrc,
 	       Dyninst::ParseAPI::Block * curBlk_);
 	IA_amdgpu(const IA_amdgpu &);
-	IA_amdgpu* clone() const override;
-    bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction) const override;
-	bool isNop() const override;
-	bool isThunk() const override;
-	bool isTailCall(const ParseAPI::Function* context, ParseAPI::EdgeTypeEnum type,
-							unsigned int, const set<Address>& knownTargets) const override;
-	bool savesFP() const override;
-    bool isAbort() const override;
-	bool isStackFramePreamble() const override;
-	bool cleansStack() const override;
-	bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const override;
-	bool isReturnAddrSave(Address& retAddr) const override;
-	bool isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const override;
-	bool isFakeCall() const override;
-	bool isIATcall(std::string &) const override;
-	bool isLinkerStub() const override;
-	bool isNopJump() const override;
+	virtual IA_amdgpu* clone() const;
+    virtual bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction) const;
+	virtual bool isNop() const;
+	virtual bool isThunk() const;
+	virtual bool isTailCall(const ParseAPI::Function* context, ParseAPI::EdgeTypeEnum type,
+							unsigned int, const set<Address>& knownTargets) const;
+	virtual bool savesFP() const;
+    virtual bool isAbort() const;
+	virtual bool isStackFramePreamble() const;
+	virtual bool cleansStack() const;
+	virtual bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const;
+	virtual bool isReturnAddrSave(Address& retAddr) const;
+	virtual bool isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const;
+	virtual bool isFakeCall() const;
+	virtual bool isIATcall(std::string &) const;
+	virtual bool isLinkerStub() const;
+	virtual bool isNopJump() const;
     private:
     using IA_IAPI::isFrameSetupInsn;
 };
