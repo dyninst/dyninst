@@ -236,9 +236,6 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
                    _table_of_contents(0),
                    useRVC(false) {}
 
-    void addRegion(CodeRegion *);
-    void removeRegion(CodeRegion *);
-   
  private: 
     // statistics
     virtual bool init_stats() { return false; }
