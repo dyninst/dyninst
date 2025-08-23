@@ -50,7 +50,7 @@ using namespace InstructionAPI;
 using namespace NS_riscv64;
 
 bool CFWidget::generateIndirect(CodeBuffer &buffer,
-        Register reg,
+        Register /*reg*/,
         const RelocBlock *trace,
         Instruction insn)
 {
@@ -64,10 +64,10 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
 
 
 bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
-        Register reg,
+        Register /*reg*/,
         InstructionAPI::Instruction insn,
         const RelocBlock *trace,
-        Address origAddr)
+        Address /*origAddr*/)
 {
     NS_riscv64::instruction mod_insn(insn.ptr());
     codeGen gen(insn.size());

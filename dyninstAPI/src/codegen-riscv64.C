@@ -1265,7 +1265,7 @@ bool insnCodeGen::generateJ(codeGen &gen,
 bool insnCodeGen::generateJal(codeGen &gen,
                               Dyninst::Register rd,
                               Dyninst::RegValue offset,
-                              bool useRVC)
+                              bool /*useRVC*/)
 {
     assert(offset >= -0x100000 && offset < 0x100000);
 

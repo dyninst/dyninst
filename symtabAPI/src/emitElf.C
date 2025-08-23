@@ -1244,6 +1244,9 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
         case Arch_aarch64:
             relType = R_AARCH64_RELATIVE;
             break;
+        case Arch_riscv64:
+            relType = R_RISCV_RELATIVE;
+            break;
         case Arch_cuda:
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:

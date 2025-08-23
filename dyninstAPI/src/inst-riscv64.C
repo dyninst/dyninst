@@ -533,8 +533,8 @@ Register EmitterRISCV64::emitCall(opCode op,
     for (int i = 0; i < gen.rs()->numGPRs(); i++) {
         registerSlot *reg = gen.rs()->GPRs()[i];
         // Ignore zero register
-        if ((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live) &&
-            (reg->number != GPR_ZERO)) {
+        if (((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live)) &&
+            reg->number != GPR_ZERO) {
             savedRegs.push_back(reg->number);
         }
     }
