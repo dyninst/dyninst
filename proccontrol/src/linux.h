@@ -45,6 +45,7 @@
 #include "x86_process.h"
 #include "ppc_process.h"
 #include "arm_process.h"
+#include "amdgpu_process.h"
 #include "mmapalloc.h"
 #include "processplat.h"
 
@@ -199,6 +200,18 @@ class linux_arm_process : public linux_process, public arm_process
    virtual Dyninst::Architecture getTargetArch();
 };
 
+/* XXXX super hacky work-around, need to turn off more things */
+class linux_amdgpu_process : public linux_process, public amdgpu_process
+{
+  public:
+   linux_amdgpu_process(Dyninst::PID p, std::string e, std::vector<std::string> a,
+           std::vector<std::string> envp, std::map<int,int> f);
+   linux_amdgpu_process(Dyninst::PID pid_, int_process *p);
+   virtual ~linux_amdgpu_process();
+
+   virtual Dyninst::Architecture getTargetArch();
+};
+
 
 class linux_thread : virtual public thread_db_thread
 {
@@ -263,6 +276,14 @@ class linux_arm_thread : virtual public linux_thread, virtual public arm_thread
   public:
    linux_arm_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
    virtual ~linux_arm_thread();
+};
+
+/* XXX again super hacky  workaround.   There has to be a better way */
+class linux_amdgpu_thread : virtual public linux_thread, virtual public amdgpu_thread
+{
+  public:
+   linux_amdgpu_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
+   virtual ~linux_amdgpu_thread();
 };
 
 class LinuxPtrace

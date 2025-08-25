@@ -49,7 +49,6 @@
 #include <errno.h>
 #include <sys/ucontext.h>
 
-
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 

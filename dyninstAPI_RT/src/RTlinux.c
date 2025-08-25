@@ -323,7 +323,7 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
 
 // Register numbers experimentally verified
 
-#if defined(DYNINST_HOST_ARCH_X86)
+if defined(DYNINST_HOST_ARCH_X86)
   #define UC_PC(x) x->uc_mcontext.gregs[14]
 #elif defined(DYNINST_HOST_ARCH_X86_64)
   #if defined(MUTATEE_32)
