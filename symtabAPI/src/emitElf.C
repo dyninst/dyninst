@@ -589,14 +589,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             if ((moveSecAddrRange[i][0] == shdr->sh_addr) ||
                 (shdr->sh_addr >= moveSecAddrRange[i][0] && shdr->sh_addr < moveSecAddrRange[i][1])) {
 
-                // If there exists no new .init_array functions, don't rewrite .init_array
-                // The same goes for .fini_array
-                if ((strcmp(name, ".init_array") == 0) && newInitArrayFuncs.size() == 0) {
-                    continue;
-                }
-                if ((strcmp(name, ".fini_array") == 0) && newFiniArrayFuncs.size() == 0) {
-                    continue;
-                }
                 newshdr->sh_type = SHT_PROGBITS;
                 changeMapping[sectionNumber] = 1;
                 string newName = ".o";
