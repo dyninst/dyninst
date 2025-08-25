@@ -28,31 +28,30 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// $Id: linux-power.h,v 1.4 2007/08/09 18:22:21 ssuen Exp $
+// $Id: arch-x86.h,v 1.67 2008/10/28 18:42:39 bernat Exp $
+// x86 instruction declarations
 
-#if !defined(os_linux) || !defined(DYNINST_HOST_ARCH_POWER)
-#error "invalid architecture-os inclusion"
-#endif
-
-#ifndef LINUX_POWER_HDR
-#define LINUX_POWER_HDR
+#ifndef _ARCH_H
+#define _ARCH_H
 
 #include "dyntypes.h"
+#include <assert.h>
+#include <stdio.h>
+#include <set>
+#include <map>
+#include <vector>
+#include "entryIDs.h"
+#include "registers/MachRegister.h"
+#include "dyn_register.h"
 
-// floor of inferior malloc address range within a single branch of x
-// for 32-bit ELF PowerPC mutatees
-extern Dyninst::Address region_lo(const Dyninst::Address x);
+namespace NS_common {
+#define MAX_IMM16 (32767)
+#define MIN_IMM16 (-32768)
+class instruction {
+  public:
+    instruction() = default;
+};
 
-// floor of inferior malloc address range within a single branch of x
-// for 64-bit ELF PowerPC mutatees
-extern Dyninst::Address region_lo_64(const Dyninst::Address x);
-
-// ceiling of inferior malloc address range within a single branch of x
-// for 32-bit ELF PowerPC mutatees
-extern Dyninst::Address region_hi(const Dyninst::Address x);
-
-// ceiling of inferior malloc address range within a single branch of x
-// for 64-bit ELF PowerPC mutatees
-extern Dyninst::Address region_hi_64(const Dyninst::Address x);
-
+}
 #endif
+
