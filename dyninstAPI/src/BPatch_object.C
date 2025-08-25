@@ -200,7 +200,7 @@ Dyninst::SymtabAPI::Symtab *Dyninst::SymtabAPI::convert(const BPatch_object *o) 
 BPatchSnippetHandle* BPatch_object::insertInitCallback(BPatch_snippet& callback)
 {
     BPatch_Vector<BPatch_function*> init_funcs;
-    findFunction("_init", init_funcs);
+    findFunction("_init", init_funcs, false);
     // If _init exists, instrument _init
     if(!init_funcs.empty())
     {
@@ -214,7 +214,7 @@ BPatchSnippetHandle* BPatch_object::insertInitCallback(BPatch_snippet& callback)
     }
     // Otherwise, instrument _dyninstInit. It will be added to .init_array when rewriting the binary
     BPatch_Vector<BPatch_function*> dyninstInitFuncs;
-    findFunction("_dyninstInit", dyninstInitFuncs);
+    findFunction("_dyninstInit", dyninstInitFuncs, false);
     if (dyninstInitFuncs.empty()) {
         startup_printf("[%s]%d failed to find function _dyninstInit", FILE__, __LINE__);
         return NULL;
@@ -237,7 +237,7 @@ BPatchSnippetHandle* BPatch_object::insertInitCallback(BPatch_snippet& callback)
 BPatchSnippetHandle* BPatch_object::insertFiniCallback(BPatch_snippet& callback)
 {
     BPatch_Vector<BPatch_function*> fini_funcs;
-    findFunction("_fini", fini_funcs);
+    findFunction("_fini", fini_funcs, false);
     // If _fini exists, instrument _fini
     if(!fini_funcs.empty())
     {
@@ -251,7 +251,7 @@ BPatchSnippetHandle* BPatch_object::insertFiniCallback(BPatch_snippet& callback)
     }
     // Otherwise, instrument _dyninstFini. It will be added to .fini_array when rewriting the binary
     BPatch_Vector<BPatch_function*> dyninstFiniFuncs;
-    findFunction("_dyninstFini", dyninstFiniFuncs);
+    findFunction("_dyninstFini", dyninstFiniFuncs, false);
     if (dyninstFiniFuncs.empty()) {
         startup_printf("[%s]%d failed to find function _dyninstFini", FILE__, __LINE__);
         return NULL;
