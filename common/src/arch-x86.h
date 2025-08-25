@@ -44,7 +44,7 @@
 #include "registers/MachRegister.h"
 #include "common/src/ia32_locations.h"
 #include "dyn_register.h"
-
+#include "arch.h"
 
 namespace NS_x86 {
 
@@ -218,12 +218,6 @@ enum AMD64_REG_NUMBERS {
     REGNUM_IGNORED
 }
 ;
-
-#if defined(DYNINST_CODEGEN_ARCH_X86_64)
-#define maxGPR 16
-#else
-#define maxGPR 8
-#endif 
 
 #define READ_OP 0
 #define WRITE_OP 1
@@ -448,8 +442,6 @@ const unsigned char SYSCALL[] = {0x0F, 0x05};
 /* limits */
 #define MIN_IMM8 (-128)
 #define MAX_IMM8 (127)
-#define MIN_IMM16 (-32768)
-#define MAX_IMM16 (32767)
 
 // Size of floating point information saved by FSAVE
 #define FSAVE_STATE_SIZE 108
@@ -1176,21 +1168,6 @@ DYNINST_EXPORT void decode_SIB(unsigned sib, unsigned& scale,
         Dyninst::Register& index_reg, Dyninst::Register& base_reg);
 DYNINST_EXPORT const unsigned char* skip_headers(const unsigned char*, 
         ia32_instruction* = NULL);
-
-/* addresses on x86 don't have to be aligned */
-/* Address bounds of new dynamic heap segments.  On x86 we don't try
-to allocate new segments near base tramps, so heap segments can be
-allocated anywhere (the tramp address "x" is ignored). */
-inline Dyninst::Address region_lo(const Dyninst::Address /*x*/) { return 0x00000000; }
-inline Dyninst::Address region_hi(const Dyninst::Address /*x*/) { return 0xf0000000; }
-
-#if defined(DYNINST_HOST_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_X86_64)
-// range functions for AMD64
-
-inline Dyninst::Address region_lo_64(const Dyninst::Address x) { return x & 0xffffffff80000000; }
-inline Dyninst::Address region_hi_64(const Dyninst::Address x) { return x | 0x000000007fffffff; }
-
-#endif
 
 DYNINST_EXPORT bool insn_hasSIB(unsigned,unsigned&,unsigned&,unsigned&);
 DYNINST_EXPORT bool insn_hasDisp8(unsigned ModRM);

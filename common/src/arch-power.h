@@ -38,7 +38,7 @@
 #include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
 #include "dyntypes.h"
-
+#include "arch.h"
 #include <vector>
 class AddressSpace;
 
@@ -379,7 +379,7 @@ typedef unsigned codeBufIndex_t;
  * Register saving constants
  */
 #define maxFPR 32           /* Save FPRs 0-13 */
-#define maxGPR 32           /* More space than is needed */
+const int maxGPR=32;           /* More space than is needed */
 #define FPRspaceUsed (8*16) /* Aligned space for FPRs */
 #define GPRoffset(reg) (-1* (FPRspaceUsed + 4*(maxGPR-reg)))
 #define GPRspaceUsed (20*4) /* Aligned space for GPRs */
@@ -774,8 +774,6 @@ typedef unsigned codeBufIndex_t;
 
 // Define bounds for immediate offsets.
 // Use strange definitions to avoid compiler warnings.
-#define MAX_IMM16      32767
-#define MIN_IMM16      -32768
 
 #define MAX_IMM32      2147483647
 #define MIN_IMM32      (-2147483647 - 1)    // In C90, there are no negative

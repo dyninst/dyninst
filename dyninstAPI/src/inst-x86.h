@@ -63,15 +63,11 @@
 #define IA32_FPR_VIRTUAL_REGISTER (NUM_VIRTUAL_REGISTERS + 1)
 #define IA32_FLAG_VIRTUAL_REGISTER (IA32_FPR_VIRTUAL_REGISTER + 1)
 
-/* Add one for the REG_MT_POS 'reserved' reg */
 #define TRAMP_FRAME_SIZE ((NUM_VIRTUAL_REGISTERS+1)*4)
 
 // offset from EBP of the saved EAX for a tramp
 #define SAVED_EAX_OFFSET (10*4-4)
 #define SAVED_EFLAGS_OFFSET (SAVED_EAX_OFFSET+4)
-
-// Undefine REG_MT_POS, basically
-#define REG_MT_POS NUM_VIRTUAL_REGISTERS
 
 #define IA32_STACK_ALIGNMENT     16
 #define AMD64_STACK_ALIGNMENT    32  // This is extremely conservative.

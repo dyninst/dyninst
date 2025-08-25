@@ -39,6 +39,7 @@
 #include "registers/aarch64_regs.h"
 #include <assert.h>
 #include <vector>
+#include "arch.h"
 class AddressSpace;
 
 namespace NS_aarch64 {
@@ -95,8 +96,6 @@ namespace NS_aarch64 {
 
 #define MIN_IMM8    (-128)
 #define MAX_IMM8    (127)
-#define MIN_IMM16   (-32768)
-#define MAX_IMM16   (32767)
 #define MIN_IMM32   (-2147483647 - 1)
 #define MAX_IMM32   (2147483647)
 #define MAX_IMM48   ((long)(-1 >> 17))
@@ -174,7 +173,6 @@ typedef union {
 typedef instructUnion codeBuf_t;
 typedef unsigned codeBufIndex_t;
 
-#define maxGPR 31           /* More space than is needed */
 #define maxFPR 32           /* Save FPRs 0-13 */
 
 // Helps to mitigate host/target endian mismatches

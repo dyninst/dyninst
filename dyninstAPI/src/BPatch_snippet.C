@@ -64,8 +64,6 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-// Need REG_MT_POS, defined in inst-<arch>...
-
 #if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "inst-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_POWER)
