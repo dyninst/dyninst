@@ -197,8 +197,22 @@ Dyninst::SymtabAPI::Symtab *Dyninst::SymtabAPI::convert(const BPatch_object *o) 
    return o->obj->parse_img()->getObject();
 }
 
-BPatchSnippetHandle* BPatch_object::insertInitArrayCallback(BPatch_snippet& callback)
+BPatchSnippetHandle* BPatch_object::insertInitCallback(BPatch_snippet& callback)
 {
+    BPatch_Vector<BPatch_function*> init_funcs;
+    findFunction("_init", init_funcs);
+    // If _init exists, instrument _init
+    if(!init_funcs.empty())
+    {
+        assert(init_funcs[0]);
+        BPatch_Vector<BPatch_point*>* init_entry = init_funcs[0]->findPoint(BPatch_entry);
+        if(init_entry && !init_entry->empty() && (*init_entry)[0])
+        {
+            startup_printf("\tinserting init snippet at 0x%p\n", (*init_entry)[0]->getAddress());
+            return as()->insertSnippet(callback, *((*init_entry)[0]));
+        }
+    }
+    // Otherwise, instrument _dyninstInit. It will be added to .init_array when rewriting the binary
     BPatch_Vector<BPatch_function*> dyninstInitFuncs;
     findFunction("_dyninstInit", dyninstInitFuncs);
     if (dyninstInitFuncs.empty()) {
@@ -220,8 +234,22 @@ BPatchSnippetHandle* BPatch_object::insertInitArrayCallback(BPatch_snippet& call
     return NULL;
 }
 
-BPatchSnippetHandle* BPatch_object::insertFiniArrayCallback(BPatch_snippet& callback)
+BPatchSnippetHandle* BPatch_object::insertFiniCallback(BPatch_snippet& callback)
 {
+    BPatch_Vector<BPatch_function*> fini_funcs;
+    findFunction("_fini", fini_funcs);
+    // If _fini exists, instrument _fini
+    if(!fini_funcs.empty())
+    {
+        assert(fini_funcs[0]);
+        BPatch_Vector<BPatch_point*>* fini_exit = fini_funcs[0]->findPoint(BPatch_exit);
+        if(fini_exit && !fini_exit->empty() && (*fini_exit)[0])
+        {
+            startup_printf("\tinserting fini snippet at 0x%p\n", (*fini_exit)[0]->getAddress());
+            return as()->insertSnippet(callback, *((*fini_exit)[0]));
+        }
+    }
+    // Otherwise, instrument _dyninstFini. It will be added to .fini_array when rewriting the binary
     BPatch_Vector<BPatch_function*> dyninstFiniFuncs;
     findFunction("_dyninstFini", dyninstFiniFuncs);
     if (dyninstFiniFuncs.empty()) {
