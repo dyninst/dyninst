@@ -904,168 +904,182 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
     }
 }
 
-void BinaryEdit::makeDyninstInit()
+void BinaryEdit::makeDyninstInitIfNeeded()
 {
     SymtabAPI::Symtab* linkedFile = getAOut()->parse_img()->getObject();
 
-    // Don't create .dyninstInit for .o's and static binaries
-    if( linkedFile->isStaticBinary() || linkedFile->isUnlinkedObjectFile() ) {
-        return;
+    bool foundInit = false;
+    vector <Function *> funcs;
+    if (linkedFile->findFunctionsByName(funcs, "_init")) {
+        foundInit = true;
     }
+    if (!foundInit) {
+        // Don't create .dyninstInit for .o's and static binaries
+        if( linkedFile->isStaticBinary() || linkedFile->isUnlinkedObjectFile() ) {
+            return;
+        }
 
-    // Adding the .dyninstInit section
-    // This section will be used to hold the _dyninstInit function
-    // _dyninstInit acts similar to the deprecated _init function, but for instrumented code aim to run before main.
-    // The address of _dyninstInit function will be inserted at the beginning of .init_array
+        // Adding the .dyninstInit section
+        // This section will be used to hold the _dyninstInit function
+        // _dyninstInit acts similar to the deprecated _init function, but for instrumented code aim to run before main.
+        // The address of _dyninstInit function will be inserted at the beginning of .init_array
 
-    // Create an empty function for _dyninstInit
-    unsigned char *emptyFunction = NULL; int emptyFuncSize = 0;
+        // Create an empty function for _dyninstInit
+        unsigned char *emptyFunction = NULL; int emptyFuncSize = 0;
 #if defined(DYNINST_CODEGEN_ARCH_X86)
-    static unsigned char empty[] = {0x55, 0x89, 0xe5, 0xc9, 0xc3, 0x00, 0x00, 0x00};
+        static unsigned char empty[] = {0x55, 0x89, 0xe5, 0xc9, 0xc3, 0x00, 0x00, 0x00};
 #elif defined(DYNINST_CODEGEN_ARCH_X86_64)
-    static unsigned char empty[] = {0x55, 0x48, 0x89, 0xe5, 0xc9, 0xc3, 0x00, 0x00};
+        static unsigned char empty[] = {0x55, 0x48, 0x89, 0xe5, 0xc9, 0xc3, 0x00, 0x00};
 #elif defined(DYNINST_CODEGEN_ARCH_POWER)
-    static unsigned empty[] = {0x4e800020};
+        static unsigned empty[] = {0x4e800020};
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
-    static unsigned empty[] = {0xd65f03c0};
+        static unsigned empty[] = {0xd65f03c0};
 #elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
-    static unsigned empty[] = {0x00008067};
+        static unsigned empty[] = {0x00008067};
 #endif
-    emptyFunction = (unsigned char *)empty;
-    emptyFuncSize = sizeof(empty);
+        emptyFunction = (unsigned char *)empty;
+        emptyFuncSize = sizeof(empty);
 
-    // Create and add the .dyninstInit section
-    linkedFile->addRegion(highWaterMark_,
-                         (void *)(emptyFunction),
-                         emptyFuncSize,
-                         ".dyninstInit",
-                         SymtabAPI::Region::RT_TEXT, true);
-    highWaterMark_ += emptyFuncSize;
-    lowWaterMark_ += emptyFuncSize;
+        // Create and add the .dyninstInit section
+        linkedFile->addRegion(highWaterMark_,
+                (void *)(emptyFunction),
+                emptyFuncSize,
+                ".dyninstInit",
+                SymtabAPI::Region::RT_TEXT, true);
+        highWaterMark_ += emptyFuncSize;
+        lowWaterMark_ += emptyFuncSize;
 
-    SymtabAPI::Region *dyninstInitSec = NULL;
-    linkedFile->findRegion(dyninstInitSec, ".dyninstInit");
-    assert(dyninstInitSec);
-    Address dyninstInitEntryAddr = dyninstInitSec->getMemOffset();
-    startup_printf("%s[%d]: creating .dyninstInit region, region addr 0x%lx\n",
-                   FILE__, __LINE__, dyninstInitSec->getMemOffset());
-    linkedFile->addSysVDynamic(DT_DYNINST_INIT, dyninstInitSec->getMemOffset());
+        SymtabAPI::Region *dyninstInitSec = NULL;
+        linkedFile->findRegion(dyninstInitSec, ".dyninstInit");
+        assert(dyninstInitSec);
+        Address dyninstInitEntryAddr = dyninstInitSec->getMemOffset();
+        startup_printf("%s[%d]: creating .dyninstInit region, region addr 0x%lx\n",
+                FILE__, __LINE__, dyninstInitSec->getMemOffset());
+        linkedFile->addSysVDynamic(DT_DYNINST_INIT, dyninstInitSec->getMemOffset());
 
-    startup_printf("%s[%d]: ADDING .dyninstInit at 0x%lx\n", FILE__, __LINE__, dyninstInitSec->getMemOffset());
-    SymtabAPI::Symbol *dyninstInitSym = new SymtabAPI::Symbol(
-                                                "_dyninstInit",
-                                                SymtabAPI::Symbol::ST_FUNCTION,
-                                                SymtabAPI::Symbol::SL_GLOBAL,
-                                                SymtabAPI::Symbol::SV_DEFAULT,
-                                                dyninstInitEntryAddr,
-                                                linkedFile->getDefaultModule(),
-                                                dyninstInitSec,
-                                                emptyFuncSize);
-    linkedFile->addSymbol(dyninstInitSym);
+        startup_printf("%s[%d]: ADDING .dyninstInit at 0x%lx\n", FILE__, __LINE__, dyninstInitSec->getMemOffset());
+        SymtabAPI::Symbol *dyninstInitSym = new SymtabAPI::Symbol(
+                "_dyninstInit",
+                SymtabAPI::Symbol::ST_FUNCTION,
+                SymtabAPI::Symbol::SL_GLOBAL,
+                SymtabAPI::Symbol::SV_DEFAULT,
+                dyninstInitEntryAddr,
+                linkedFile->getDefaultModule(),
+                dyninstInitSec,
+                emptyFuncSize);
+        linkedFile->addSymbol(dyninstInitSym);
 
-    // Parse _dyninstInst
-    ParseAPI::CodeObject *co = getAOut()->co();
-    ParseAPI::CodeSource *cs = co->cs();
+        // Parse _dyninstInst
+        ParseAPI::CodeObject *co = getAOut()->co();
+        ParseAPI::CodeSource *cs = co->cs();
 
-    std::vector<SymtabAPI::Symbol *> symbols;
-    linkedFile->getAllSymbols(symbols);
-    ParseAPI::CodeRegion *dyninstInitRegion = new ParseAPI::SymtabCodeRegion(linkedFile, dyninstInitSec, symbols);
-    cs->addRegion(dyninstInitRegion);
-    set<ParseAPI::CodeRegion *> regions;
-    cs->findRegions(dyninstInitEntryAddr, regions);
-    co->parse(dyninstInitEntryAddr, false);
+        std::vector<SymtabAPI::Symbol *> symbols;
+        linkedFile->getAllSymbols(symbols);
+        ParseAPI::CodeRegion *dyninstInitRegion = new ParseAPI::SymtabCodeRegion(linkedFile, dyninstInitSec, symbols);
+        cs->addRegion(dyninstInitRegion);
+        set<ParseAPI::CodeRegion *> regions;
+        cs->findRegions(dyninstInitEntryAddr, regions);
+        co->parse(dyninstInitEntryAddr, false);
 
-    ParseAPI::Function *dyninstInitFunc = co->findFuncByEntry(dyninstInitRegion, dyninstInitEntryAddr);
-    assert(dyninstInitFunc);
-    parse_func *dyninstInitParseFunc = static_cast<parse_func*>(dyninstInitFunc);
-    assert(dyninstInitParseFunc);
+        ParseAPI::Function *dyninstInitFunc = co->findFuncByEntry(dyninstInitRegion, dyninstInitEntryAddr);
+        assert(dyninstInitFunc);
+        parse_func *dyninstInitParseFunc = static_cast<parse_func*>(dyninstInitFunc);
+        assert(dyninstInitParseFunc);
 
-    SymtabAPI::Function *dyninstInitSymtabFunc = dyninstInitParseFunc->getSymtabFunction();
-    dyninstInitSymtabFunc->setData(static_cast<void *>(dyninstInitParseFunc));
-    dyninstInitParseFunc->addSymTabName("_dyninstInit");
-    dyninstInitParseFunc->addPrettyName("_dyninstInit");
+        SymtabAPI::Function *dyninstInitSymtabFunc = dyninstInitParseFunc->getSymtabFunction();
+        dyninstInitSymtabFunc->setData(static_cast<void *>(dyninstInitParseFunc));
+        dyninstInitParseFunc->addSymTabName("_dyninstInit");
+        dyninstInitParseFunc->addPrettyName("_dyninstInit");
+    }
 }
 
-void BinaryEdit::makeDyninstFini()
+void BinaryEdit::makeDyninstFiniIfNeeded()
 {
     SymtabAPI::Symtab* linkedFile = getAOut()->parse_img()->getObject();
 
-    // Don't create .dyninstInit for .o's and static binaries
-    if( linkedFile->isStaticBinary() || linkedFile->isUnlinkedObjectFile() ) {
-        return;
+    bool foundFini = false;
+    vector <Function *> funcs;
+    if (linkedFile->findFunctionsByName(funcs, "_fini")) {
+        foundFini = true;
     }
+    if (!foundFini) {
+        // Don't create .dyninstInit for .o's and static binaries
+        if( linkedFile->isStaticBinary() || linkedFile->isUnlinkedObjectFile() ) {
+            return;
+        }
 
-    // Adding the .dyninstFini section
-    // This section will be used to hold the _dyninstFini function
-    // _dyninstFini acts similar to the deprecated _fini function, but for instrumented code aim to run before main.
-    // The address of _dyninstFini function will be inserted at the beginning of .fini_array
+        // Adding the .dyninstFini section
+        // This section will be used to hold the _dyninstFini function
+        // _dyninstFini acts similar to the deprecated _fini function, but for instrumented code aim to run before main.
+        // The address of _dyninstFini function will be inserted at the beginning of .fini_array
 
-    // Create an empty function for _dyninstFini
-    unsigned char *emptyFunction = NULL; int emptyFuncSize = 0;
+        // Create an empty function for _dyninstFini
+        unsigned char *emptyFunction = NULL; int emptyFuncSize = 0;
 #if defined(DYNINST_CODEGEN_ARCH_X86)
-    static unsigned char empty[] = {0x55, 0x89, 0xe5, 0xc9, 0xc3, 0x00, 0x00, 0x00};
+        static unsigned char empty[] = {0x55, 0x89, 0xe5, 0xc9, 0xc3, 0x00, 0x00, 0x00};
 #elif defined(DYNINST_CODEGEN_ARCH_X86_64)
-    static unsigned char empty[] = {0x55, 0x48, 0x89, 0xe5, 0xc9, 0xc3, 0x00, 0x00};
+        static unsigned char empty[] = {0x55, 0x48, 0x89, 0xe5, 0xc9, 0xc3, 0x00, 0x00};
 #elif defined(DYNINST_CODEGEN_ARCH_POWER)
-    static unsigned empty[] = {0x4e800020};
+        static unsigned empty[] = {0x4e800020};
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
-    static unsigned empty[] = {0xd65f03c0};
+        static unsigned empty[] = {0xd65f03c0};
 #elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
-    static unsigned empty[] = {0x00008067};
+        static unsigned empty[] = {0x00008067};
 #endif
-    emptyFunction = (unsigned char *)empty;
-    emptyFuncSize = sizeof(empty);
+        emptyFunction = (unsigned char *)empty;
+        emptyFuncSize = sizeof(empty);
 
-    // Create and add the .dyninstFini section
-    linkedFile->addRegion(highWaterMark_,
-                         (void *)(emptyFunction),
-                         emptyFuncSize,
-                         ".dyninstFini",
-                         SymtabAPI::Region::RT_TEXT, true);
-    highWaterMark_ += emptyFuncSize;
-    lowWaterMark_ += emptyFuncSize;
+        // Create and add the .dyninstFini section
+        linkedFile->addRegion(highWaterMark_,
+                (void *)(emptyFunction),
+                emptyFuncSize,
+                ".dyninstFini",
+                SymtabAPI::Region::RT_TEXT, true);
+        highWaterMark_ += emptyFuncSize;
+        lowWaterMark_ += emptyFuncSize;
 
-    SymtabAPI::Region *dyninstFiniSec = NULL;
-    linkedFile->findRegion(dyninstFiniSec, ".dyninstFini");
-    assert(dyninstFiniSec);
-    Address dyninstFiniEntryAddr = dyninstFiniSec->getMemOffset();
-    startup_printf("%s[%d]: creating .dyninstFini region, region addr 0x%lx\n",
-                   FILE__, __LINE__, dyninstFiniSec->getMemOffset());
-    linkedFile->addSysVDynamic(DT_DYNINST_FINI, dyninstFiniSec->getMemOffset());
+        SymtabAPI::Region *dyninstFiniSec = NULL;
+        linkedFile->findRegion(dyninstFiniSec, ".dyninstFini");
+        assert(dyninstFiniSec);
+        Address dyninstFiniEntryAddr = dyninstFiniSec->getMemOffset();
+        startup_printf("%s[%d]: creating .dyninstFini region, region addr 0x%lx\n",
+                FILE__, __LINE__, dyninstFiniSec->getMemOffset());
+        linkedFile->addSysVDynamic(DT_DYNINST_FINI, dyninstFiniSec->getMemOffset());
 
-    startup_printf("%s[%d]: ADDING .dyninstFini at 0x%lx\n", FILE__, __LINE__, dyninstFiniSec->getMemOffset());
-    SymtabAPI::Symbol *dyninstFiniSym = new SymtabAPI::Symbol(
-                                                "_dyninstFini",
-                                                SymtabAPI::Symbol::ST_FUNCTION,
-                                                SymtabAPI::Symbol::SL_GLOBAL,
-                                                SymtabAPI::Symbol::SV_DEFAULT,
-                                                dyninstFiniEntryAddr,
-                                                linkedFile->getDefaultModule(),
-                                                dyninstFiniSec,
-                                                emptyFuncSize);
-    linkedFile->addSymbol(dyninstFiniSym);
+        startup_printf("%s[%d]: ADDING .dyninstFini at 0x%lx\n", FILE__, __LINE__, dyninstFiniSec->getMemOffset());
+        SymtabAPI::Symbol *dyninstFiniSym = new SymtabAPI::Symbol(
+                "_dyninstFini",
+                SymtabAPI::Symbol::ST_FUNCTION,
+                SymtabAPI::Symbol::SL_GLOBAL,
+                SymtabAPI::Symbol::SV_DEFAULT,
+                dyninstFiniEntryAddr,
+                linkedFile->getDefaultModule(),
+                dyninstFiniSec,
+                emptyFuncSize);
+        linkedFile->addSymbol(dyninstFiniSym);
 
-    // Parse _dyninstFini
-    ParseAPI::CodeObject *co = getAOut()->co();
-    ParseAPI::CodeSource *cs = co->cs();
+        // Parse _dyninstFini
+        ParseAPI::CodeObject *co = getAOut()->co();
+        ParseAPI::CodeSource *cs = co->cs();
 
-    std::vector<SymtabAPI::Symbol *> symbols;
-    linkedFile->getAllSymbols(symbols);
-    ParseAPI::CodeRegion *dyninstFiniRegion = new ParseAPI::SymtabCodeRegion(linkedFile, dyninstFiniSec, symbols);
-    cs->addRegion(dyninstFiniRegion);
-    set<ParseAPI::CodeRegion *> regions;
-    cs->findRegions(dyninstFiniEntryAddr, regions);
-    co->parse(dyninstFiniEntryAddr, false);
+        std::vector<SymtabAPI::Symbol *> symbols;
+        linkedFile->getAllSymbols(symbols);
+        ParseAPI::CodeRegion *dyninstFiniRegion = new ParseAPI::SymtabCodeRegion(linkedFile, dyninstFiniSec, symbols);
+        cs->addRegion(dyninstFiniRegion);
+        set<ParseAPI::CodeRegion *> regions;
+        cs->findRegions(dyninstFiniEntryAddr, regions);
+        co->parse(dyninstFiniEntryAddr, false);
 
-    ParseAPI::Function *dyninstFiniFunc = co->findFuncByEntry(dyninstFiniRegion, dyninstFiniEntryAddr);
-    assert(dyninstFiniFunc);
-    parse_func *dyninstFiniParseFunc = static_cast<parse_func*>(dyninstFiniFunc);
-    assert(dyninstFiniParseFunc);
+        ParseAPI::Function *dyninstFiniFunc = co->findFuncByEntry(dyninstFiniRegion, dyninstFiniEntryAddr);
+        assert(dyninstFiniFunc);
+        parse_func *dyninstFiniParseFunc = static_cast<parse_func*>(dyninstFiniFunc);
+        assert(dyninstFiniParseFunc);
 
-    SymtabAPI::Function *dyninstFiniSymtabFunc = dyninstFiniParseFunc->getSymtabFunction();
-    dyninstFiniSymtabFunc->setData(static_cast<void *>(dyninstFiniParseFunc));
-    dyninstFiniParseFunc->addSymTabName("_dyninstFini");
-    dyninstFiniParseFunc->addPrettyName("_dyninstFini");
+        SymtabAPI::Function *dyninstFiniSymtabFunc = dyninstFiniParseFunc->getSymtabFunction();
+        dyninstFiniSymtabFunc->setData(static_cast<void *>(dyninstFiniParseFunc));
+        dyninstFiniParseFunc->addSymTabName("_dyninstFini");
+        dyninstFiniParseFunc->addPrettyName("_dyninstFini");
+    }
 }
 
 #endif

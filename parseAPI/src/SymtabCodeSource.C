@@ -886,13 +886,13 @@ SymtabCodeSource::length() const
 }
 
 
-void 
+void
 SymtabCodeSource::removeRegion(CodeRegion *cr)
 {
 	CodeSource::removeRegion(cr);
 }
 
-void 
+void
 SymtabCodeSource::addRegion(CodeRegion *cr)
 {
 	CodeSource::addRegion(cr);
