@@ -178,6 +178,8 @@ public:
     virtual Offset getTOCoffset(Offset) const { return 0; }
     virtual void setTOCoffset(Offset) { }
 
+    virtual std::unordered_set<std::string> getRiscvExtensions() const { return riscv_extensions; }
+
     virtual bool emitDriver(std::string fName, std::set<Symbol *> &allSymbols, unsigned flag) = 0;
     virtual void parseFileLineInfo() { }
     virtual void parseTypeInfo() { }
@@ -238,7 +240,7 @@ friend class Module;
 
     bool deferredParse;
     bool parsedAllLineInfo;
-    
+
     void (*err_func_)(const char*);
     int addressWidth_nbytes;
 
@@ -246,6 +248,8 @@ friend class Module;
     Symtab* associated_symtab;
 
     FileFormat file_format_;
+
+    std::unordered_set<std::string> riscv_extensions;
 private:
     friend class SymbolIter;
     friend class Symtab;
