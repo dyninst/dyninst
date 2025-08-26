@@ -56,6 +56,7 @@ class IA_amdgpu : public IA_IAPI {
 	virtual bool isTailCall(const ParseAPI::Function* context, ParseAPI::EdgeTypeEnum type,
 							unsigned int, const set<Address>& knownTargets) const;
 	virtual bool savesFP() const;
+    virtual bool isAbort() const;
 	virtual bool isStackFramePreamble() const;
 	virtual bool cleansStack() const;
 	virtual bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const;
