@@ -103,8 +103,7 @@ set(_private_headers
     src/trapMappings.h
     src/unix.h
     src/util.h
-    src/amdgpu-gfx908-details.h
-    )
+    src/amdgpu-gfx908-details.h)
 
 set(_sources
     src/addressSpace.C
