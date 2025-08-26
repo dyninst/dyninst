@@ -106,7 +106,11 @@ ABI* ABI::getABI(Architecture arch){
 }
 
 ABI* ABI::getABI(int addr_width){
-    if (globalABI_ == NULL){
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  return getABI(Arch_amdgpu_gfx908);
+#endif
+
+  if (globalABI_ == NULL){
         globalABI_ = new ABI();
 	globalABI_->addr_width = 4;
 	globalABI64_ = new ABI();
@@ -134,10 +138,6 @@ ABI* ABI::getABI(int addr_width){
 // We _only_ support instrumenting 32-bit binaries on 64-bit systems
 #if !defined(DYNINST_CODEGEN_ARCH_64BIT) || defined(cap_32_64)
 	initialize32();
-#endif
-
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-    return getABI(Arch_amdgpu_gfx908);
 #elif defined(DYNINST_CODEGEN_ARCH_64BIT)
 	initialize64();
 #endif
