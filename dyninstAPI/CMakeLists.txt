@@ -49,6 +49,7 @@ set(_private_headers
     src/BPatch_libInfo.h
     src/BPatch_memoryAccessAdapter.h
     src/BPatch_private.h
+    src/codegen-amdgpu.h
     src/codegen-aarch64.h
     src/codegen.h
     src/codegen-power.h
@@ -57,6 +58,7 @@ set(_private_headers
     src/debug.h
     src/dynProcess.h
     src/dynThread.h
+    src/emit-amdgpu.h
     src/emit-aarch64.h
     src/emit-power.h
     src/emitter.h
@@ -70,6 +72,7 @@ set(_private_headers
     src/IAPI_to_AST.h
     src/image.h
     src/infHeap.h
+    src/inst-amdgpu.h
     src/inst-aarch64.h
     src/inst.h
     src/instPoint.h
@@ -98,11 +101,12 @@ set(_private_headers
     src/syscallNotification.h
     src/trapMappings.h
     src/unix.h
-    src/util.h)
+    src/util.h
+    src/amdgpu-gfx908-details.h
+    )
 
 set(_sources
     src/addressSpace.C
-    src/ast.C
     src/baseTramp.C
     src/binaryEdit.C
     src/block.C
@@ -186,6 +190,12 @@ set(_sources
     src/Relocation/Widgets/StackModWidget.C
     src/Relocation/patchapi_debug.C)
 
+if(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  list(APPEND _sources src/ast-amdgpu.C)
+else()
+  list(APPEND _sources src/ast.C)
+endif()
+
 list(FIND DYNINST_PLATFORM_CAPABILITIES "-Dcap_stack_mods" cap_stack_mods_found)
 if(cap_stack_mods_found GREATER -1)
   list(
@@ -241,6 +251,21 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/RegisterConversion-aarch64.C
     src/Relocation/Widgets/CFWidget-aarch64.C
     src/Relocation/Widgets/PCWidget-aarch64.C)
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  list(
+    APPEND
+    _sources
+    src/ast-amdgpu.C
+    src/inst-amdgpu.C
+    src/emit-amdgpu.C
+    src/codegen-amdgpu.C
+    src/parse-amdgpu.C
+    src/RegisterConversion-amdgpu.C
+    src/Relocation/Widgets/CFWidget-amdgpu.C
+    src/Relocation/Widgets/PCWidget-amdgpu.C
+    src/amdgpu-gfx908-details.cpp
+    src/amdgpu-prologue.cpp
+    src/amdgpu-epilogue.cpp)
 endif()
 
 if(DYNINST_OS_FreeBSD)

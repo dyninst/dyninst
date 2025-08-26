@@ -62,6 +62,10 @@
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "dyninstAPI/src/emit-aarch64.h"
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#include "dyninstAPI/src/inst-amdgpu.h"
+#include "dyninstAPI/src/emit-amdgpu.h"
+
 #endif
 
 registerSpace *registerSpace::globalRegSpace_ = NULL;
@@ -113,6 +117,22 @@ unsigned registerSlot::encoding() const {
             return registerSpace::FPR(number);
             break;
         default:
+            assert(0);
+            return Null_Register;
+            break;
+    }
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    switch (type) {
+      case SGPR:
+            return registerSpace::SGPR(number);
+            break;
+      case VGPR:
+            return registerSpace::VGPR(number);
+            break;
+/*      case AGPR:
+            return registerSpace::AGPR(number);
+            break;*/
+      default:
             assert(0);
             return Null_Register;
             break;
@@ -248,7 +268,9 @@ void registerSpace::createRegSpaceInt(std::vector<registerSlot *> &registers,
 
         switch (registers[i]->type) {
         case registerSlot::GPR: {
-	  bool physical = true;
+        case registerSlot::SGPR:
+        case registerSlot::VGPR:
+	        bool physical = true;
 #if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 	  if (rs->addr_width == 4)
 	    physical = false;
@@ -748,6 +770,8 @@ bool registerSpace::readProgramRegister(codeGen &gen,
         gen.codeEmitter()->emitMoveRegToReg(src, dest, gen);
         return true;
         break;
+
+#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64) // framePointer only defined for x86 and x86_64
     case registerSlot::framePointer: {
         registerSlot *frame = registers_[framePointer()];
         assert(frame);
@@ -759,6 +783,7 @@ bool registerSpace::readProgramRegister(codeGen &gen,
         return true;
         break;
     }
+#endif
     default:
         assert(0);
         return false;
@@ -796,6 +821,8 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
             gen.codeEmitter()->emitMoveRegToReg(source, destination, gen);
         return true;
         break;
+
+#if defined(arch_x86) || defined(arch_x86_64) // framePointer only defined for x86 and x86_64
     case registerSlot::framePointer: {
         registerSlot *frame = registers_[framePointer()];
         assert(frame);
@@ -806,6 +833,7 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
         return true;
         break;
     }
+#endif
     default:
         assert(0);
         return false;
@@ -1495,12 +1523,23 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 #endif
 	}
 	else {
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    assert(addr_width == 8 && "AMDGPU has 64-bit (8-byte) address space, but has 32 bit registers");
+	  range = regToMachReg32.equal_range(reg);
+		live = &live2;
+#else
 		range = regToMachReg64.equal_range(reg);
 		live = &live2;
+#endif
+
 	}
 	if (range.first == range.second) assert(0);
-	for (std::multimap<Register, MachRegister>::iterator iter = range.first; iter != range.second; ++iter)
-		if (liveRegs[live->getIndex(iter->second)]) return true;
+	for (std::multimap<Register, MachRegister>::iterator iter = range.first; iter != range.second; ++iter){
+        auto index = live->getIndex(iter->second);
+		if (liveRegs[index]){
+          return true;
+        }
+    }
 
 	return false;
 }

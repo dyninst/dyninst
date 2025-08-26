@@ -59,6 +59,12 @@
 #include "mapped_object.h"
 #include "Relocation/DynAddrSpace.h"
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#include "amdgpu-prologue.h"
+#include "amdgpu-epilogue.h"
+#include <fstream>
+#endif
+
 #include "boost/filesystem.hpp"
 using Dyninst::PatchAPI::DynAddrSpacePtr;
 using Dyninst::PatchAPI::DynAddrSpace;
@@ -185,6 +191,129 @@ BPatch_binaryEdit::~BPatch_binaryEdit()
   assert(BPatch::bpatch != NULL);
 }
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+
+constexpr int kernelInfoSize = 3;
+
+struct AmdgpuKernelInfo {
+  AmdgpuKernelInfo(std::vector<std::string> &words) {
+    assert(words.size() == kernelInfoSize);
+    kdName = words[0];
+    kernargBufferSize = std::stoul(words[1]);
+    kernargPtrRegister = std::stoul(words[2]);
+  }
+
+  std::string getKernelName() const {
+    assert(kdName.length() > 3);
+    return kdName.substr(0, kdName.length() - 3);
+  }
+
+  std::string kdName;
+  unsigned kernargBufferSize;
+  unsigned kernargPtrRegister;
+};
+
+static void getWords(const std::string &str, std::vector<std::string> &words) {
+  std::stringstream ss(str);
+  std::string word;
+  while (ss >> word) {
+    words.push_back(word);
+  }
+}
+
+static void readKernelInfos(const std::string &filePath,
+                            std::vector<AmdgpuKernelInfo> &kernelInfos) {
+  std::ifstream infoFile(filePath);
+  std::string line;
+
+  assert(infoFile.is_open());
+
+  std::vector<std::string> words;
+
+  while (std::getline(infoFile, line)) {
+    getWords(line, words);
+    assert(words.size() == kernelInfoSize);
+
+    AmdgpuKernelInfo info(words);
+    kernelInfos.push_back(info);
+  }
+  infoFile.close();
+}
+
+static void writeInstrumentedFunctionNames(const std::string &filePath, std::vector<AmdgpuKernelInfo> &kernelInfos) {
+  std::ofstream namesFile(filePath);
+  assert(namesFile.is_open());
+
+  for (const auto& function : BPatch_addressSpace::instrumentedFunctions) {
+    std::string functionName = function->getMangledName();
+    for (const auto &kernelInfo : kernelInfos) {
+      if (functionName == kernelInfo.getKernelName()) {
+        namesFile << function->getMangledName() << ' ' << kernelInfo.kernargBufferSize << std::endl;
+      }
+    }
+  }
+
+  namesFile.close();
+}
+
+static void insertPrologueInInstrumentedFunctions(
+    std::vector<AmdgpuKernelInfo> &kernelInfos) {
+  // Go through information for instrumented kernels (functions) and set base
+  // register to kernargPtrRegister and offset to kernargBufferSize. The
+  // additional additional argument will be at the end of the kernarg buffer. We
+  // set up the prologue to load s[94:95] with address of our additional memory
+  // buffer that holds additional variables inserted during instrumentation.
+  for (const auto &function : BPatch_addressSpace::instrumentedFunctions) {
+    std::vector<BPatch_point *> entryPoints;
+    function->getEntryPoints(entryPoints);
+
+    assert(entryPoints.size() == 1);
+    BPatch_point *entryPoint = entryPoints[0];
+
+    for (auto &kernelInfo : kernelInfos) {
+      if (kernelInfo.getKernelName() == function->getMangledName()) {
+        auto prologuePtr = boost::make_shared<AmdgpuPrologueSnippet>(
+            94, kernelInfo.kernargPtrRegister, kernelInfo.kernargBufferSize);
+        auto prologueNodePtr =
+            boost::make_shared<AmdgpuPrologueSnippetNode>(prologuePtr);
+
+        auto addressSpace = entryPoint->getAddressSpace();
+        BPatchSnippetHandle *handle =
+            addressSpace->insertPrologue(prologueNodePtr, entryPoint);
+        assert(handle);
+      }
+    }
+  }
+}
+
+static void insertEpilogueInInstrumentedFunctions(
+    std::vector<AmdgpuKernelInfo> &kernelInfos) {
+  // Go through information for instrumented kernels (functions) and insert a s_dcache_wb instruction at the exit point.
+  for (const auto &function : BPatch_addressSpace::instrumentedFunctions) {
+    std::vector<BPatch_point *> exitPoints;
+    function->getExitPoints(exitPoints);
+
+    for (size_t i = 0; i < exitPoints.size(); ++i) {
+      BPatch_point *exitPoint = exitPoints[i];
+
+      for (auto &kernelInfo : kernelInfos) {
+        if (kernelInfo.getKernelName() == function->getMangledName()) {
+          auto epiloguePtr = boost::make_shared<AmdgpuEpilogueSnippet>();
+          auto epilogueNodePtr =
+              boost::make_shared<AmdgpuEpilogueSnippetNode>(epiloguePtr);
+
+          auto addressSpace = exitPoint->getAddressSpace();
+          BPatchSnippetHandle *handle =
+              addressSpace->insertEpilogue(epilogueNodePtr, exitPoint);
+          assert(handle);
+        }
+      }
+    }
+  }
+}
+
+#endif
+
 bool BPatch_binaryEdit::writeFile(const char * outFile)
 {
     assert(pendingInsertions);
@@ -195,9 +324,19 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
     getAS(as);
     bool ret = true;
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    std::vector<AmdgpuKernelInfo> kernelInfos;
+    std::string inputFileName = this->getImage()->getProgramFileName();
+#endif
+
     /* PatchAPI stuffs */
     if (as.size() > 0) {
-          ret = AddressSpace::patch(as[0]);
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+      readKernelInfos(inputFileName + ".info", kernelInfos);
+      insertPrologueInInstrumentedFunctions(kernelInfos);
+      insertEpilogueInInstrumentedFunctions(kernelInfos);
+#endif
+      ret = AddressSpace::patch(as[0]);
     }
     /* end of PatchAPI stuffs */
 
@@ -214,6 +353,9 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
 
 
    if( !origBinEdit->writeFile(outFile) ) return false;
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+   writeInstrumentedFunctionNames(inputFileName + ".instrumentedKernelNames", kernelInfos);
+#endif
 
    std::map<std::string, BinaryEdit *>::iterator curBinEdit;
    for (curBinEdit = llBinEdits.begin(); curBinEdit != llBinEdits.end(); curBinEdit++) {
