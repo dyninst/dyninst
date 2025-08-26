@@ -402,6 +402,7 @@ bool BinaryEdit::getResolvedLibraryPath(const std::string &, std::vector<std::st
 #if !(defined(cap_binary_rewriter) && (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)\
 		|| defined(DYNINST_HOST_ARCH_POWER)   \
 		|| defined(DYNINST_HOST_ARCH_AARCH64) \
+		|| defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) \
 		)) 
 bool BinaryEdit::doStaticBinarySpecialCases() {
     return true;

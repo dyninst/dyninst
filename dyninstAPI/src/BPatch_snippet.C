@@ -64,12 +64,16 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
+// Need REG_MT_POS, defined in inst-<arch>...
+
 #if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "inst-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_POWER)
 #include "inst-power.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "inst-aarch64.h"
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#include "inst-amdgpu.h"
 #else
 #error "Unknown architecture, expected x86, x86_64, power or aarch64"
 #endif
@@ -977,12 +981,45 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
     ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::operandType::DataAddr, (void*)(NULL)));
   }
 
-
   ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
   ast_wrapper->setType(type_);
 
 }
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+BPatch_variableExpr::BPatch_variableExpr(const std::string& varName, BPatch_addressSpace *in_addSpace,
+                                         AddressSpace *ll_addSpace,
+                                         BPatch_type *type_)
+  : name(varName),
+    appAddSpace(in_addSpace),
+    lladdrSpace(ll_addSpace),
+    address(NULL),
+    scope(NULL),
+    isLocal(false),
+    type(type_),
+    intvar(NULL)
+{
+
+  assert(type->getSize() > 0 && type->getSize() % 4 == 0);
+  this->size = (int)type->getSize();
+
+  AstOperandNode::addToTable(name, (int)size);
+  int offset = AstOperandNode::getOffset(name);
+  assert(AstOperandNode::lastOffset > -1);
+
+  // An AstOperandNode containing another AstOperandNode that is a constant.
+  // The constant represents offset in the GPU memory buffer.
+  ast_wrapper = AstNodePtr(
+                  AstNode::operandNode(AstNode::operandType::AddressAsPlaceholderRegAndOffset,
+                    AstNode::operandNode(AstNode::operandType::Constant, reinterpret_cast<void*>(static_cast<uintptr_t>(offset)))
+                  )
+                );
+
+  ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+  ast_wrapper->setType(type_);
+
+}
+#endif
 
 BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* in_addSpace,
                                                  int_variable* v,
@@ -998,13 +1035,20 @@ BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* 
                                                            void* offset,
                                                            BPatch_type* type)
 {
-
     int_variable* v = in_llAddSpace->getAOut()->getDefaultModule()->createVariable(name,
                                                                                    reinterpret_cast<Address>(offset),
                                                                                    type->getSize());
     return new BPatch_variableExpr(in_addSpace, in_llAddSpace, v, type);
 }
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+BPatch_variableExpr*  BPatch_variableExpr::makeVariableExpr(const std::string& name,
+                                                BPatch_addressSpace *in_addSpace,
+                                                AddressSpace *ll_addSpace,
+                                                BPatch_type *type) {
+  return new BPatch_variableExpr(name, in_addSpace, ll_addSpace, type);
+}
+#endif
 
 unsigned int BPatch_variableExpr::getSize() const
 {
