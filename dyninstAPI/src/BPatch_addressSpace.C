@@ -595,6 +595,14 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
    assert(BPatch::bpatch != NULL);
    getAS(as);
    assert(as.size());
+
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+   if(name.empty()){
+      std::stringstream namestr;
+      namestr << "dyn_malloc_0x" << std::hex << "_" << &n << "_" << n << "_bytes";
+      name = namestr.str();
+   }
+#else
    void *ptr = (void *) as[0]->inferiorMalloc(n, dataHeap);
    if (!ptr) return NULL;
    if(name.empty()){
@@ -602,10 +610,15 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
       namestr << "dyn_malloc_0x" << std::hex << ptr << "_" << n << "_bytes";
       name = namestr.str();
    }
+#endif
    BPatch_type *type = BPatch::bpatch->createScalar(name.c_str(), n);
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+   return BPatch_variableExpr::makeVariableExpr(name, this, as[0], type);
+#else
    return BPatch_variableExpr::makeVariableExpr(this, as[0], name, ptr,
                                                 type);
+#endif
 }
 
 
@@ -1147,3 +1160,100 @@ Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_addressSp
    }
 }
 
+BPatchSnippetHandle *BPatch_addressSpace::insertPrologue(
+    Dyninst::PatchAPI::SnippetPtr prologueSnippet, BPatch_point *point) {
+  BPatchSnippetHandle *retHandle = new BPatchSnippetHandle(this);
+  BPatch_callWhen when = BPatch_callBefore;
+  BPatch_snippetOrder order = BPatch_firstSnippet;
+
+  if (dyn_debug_inst) {
+    BPatch_function *f = point->getFunction();
+    const string sname = f->func->prettyName();
+    inst_printf("[%s:%d]. Insert AMDGPU Prologue at function %s, address %p\n",
+                FILE__, __LINE__, sname.c_str(), point->getAddress());
+  }
+
+  if (point->addSpace == NULL) {
+    fprintf(stderr, "Error: attempt to use point with no process info\n");
+    return NULL;
+  }
+
+  if (dynamic_cast<BPatch_addressSpace *>(point->addSpace) != this) {
+    fprintf(stderr,
+            "Error: attempt to use point specific to a different process\n");
+    return NULL;
+  }
+
+  /* PatchAPI stuffs */
+  instPoint *ipoint = static_cast<instPoint *>(point->getPoint(when));
+  Dyninst::PatchAPI::InstancePtr instance = ipoint->pushFront(prologueSnippet);
+  /* End of PatchAPI stuffs */
+  if (instance) {
+    if (BPatch::bpatch->isTrampRecursive()) {
+      instance->disableRecursiveGuard();
+    }
+    retHandle->addInstance(instance);
+    point->recordSnippet(when, order, retHandle);
+  }
+  if (pendingInsertions == NULL) {
+    // There's no insertion set, instrument now
+    bool tmp;
+    if (!finalizeInsertionSet(false, &tmp)) {
+      return NULL;
+    }
+  }
+  // If we inserted nothing successfully, NULL
+  if (retHandle->isEmpty())
+    return NULL;
+  return retHandle;
+}
+
+BPatchSnippetHandle *BPatch_addressSpace::insertEpilogue(
+    Dyninst::PatchAPI::SnippetPtr epilogueSnippet, BPatch_point *point) {
+  BPatchSnippetHandle *retHandle = new BPatchSnippetHandle(this);
+  BPatch_callWhen when = BPatch_callBefore;
+  BPatch_snippetOrder order = BPatch_firstSnippet;
+
+  if (dyn_debug_inst) {
+    BPatch_function *f = point->getFunction();
+    const string sname = f->func->prettyName();
+    inst_printf("[%s:%d]. Insert AMDGPU Epilogue at function %s, address %p\n",
+                FILE__, __LINE__, sname.c_str(), point->getAddress());
+  }
+
+  if (point->addSpace == NULL) {
+    fprintf(stderr, "Error: attempt to use point with no process info\n");
+    return NULL;
+  }
+
+  if (dynamic_cast<BPatch_addressSpace *>(point->addSpace) != this) {
+    fprintf(stderr,
+            "Error: attempt to use point specific to a different process\n");
+    return NULL;
+  }
+
+  /* PatchAPI stuffs */
+  instPoint *ipoint = static_cast<instPoint *>(point->getPoint(when));
+  Dyninst::PatchAPI::InstancePtr instance = ipoint->pushFront(epilogueSnippet);
+  /* End of PatchAPI stuffs */
+  if (instance) {
+    if (BPatch::bpatch->isTrampRecursive()) {
+      instance->disableRecursiveGuard();
+    }
+    retHandle->addInstance(instance);
+    point->recordSnippet(when, order, retHandle);
+  }
+  if (pendingInsertions == NULL) {
+    // There's no insertion set, instrument now
+    bool tmp;
+    if (!finalizeInsertionSet(false, &tmp)) {
+      return NULL;
+    }
+  }
+  // If we inserted nothing successfully, NULL
+  if (retHandle->isEmpty())
+    return NULL;
+  return retHandle;
+}
+
+std::set<BPatch_function *> BPatch_addressSpace::instrumentedFunctions = {};

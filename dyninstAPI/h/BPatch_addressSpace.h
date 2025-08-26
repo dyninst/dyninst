@@ -412,6 +412,20 @@ class DYNINST_EXPORT BPatch_addressSpace {
   // Returns true if the underlying image represents a 
   // statically-linked executable, false otherwise
   bool  isStaticExecutable();
+
+  // THIS IS SPECIFIC TO AMDGPU
+  static std::set<BPatch_function *> instrumentedFunctions;
+
+  // Functionally the same as insertSnippet for multiple points, but we keep
+  // this for a single point because the prologue snippet will be slightly
+  // different for each kernel.
+  BPatchSnippetHandle *
+  insertPrologue(Dyninst::PatchAPI::SnippetPtr prologueSnippet,
+                 BPatch_point *point);
+
+  BPatchSnippetHandle *
+  insertEpilogue(Dyninst::PatchAPI::SnippetPtr epilogueSnippet,
+                 BPatch_point *point);
 };
 
 

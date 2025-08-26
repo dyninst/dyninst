@@ -139,7 +139,9 @@ ABI* ABI::getABI(int addr_width){
 	initialize32();
 #endif
 
-#if defined(DYNINST_CODEGEN_ARCH_64BIT)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    return getABI(Arch_amdgpu_gfx908);
+#elif defined(DYNINST_CODEGEN_ARCH_64BIT)
 	initialize64();
 #endif
     }
