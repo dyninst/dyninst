@@ -2676,8 +2676,8 @@ RegisterMap &machRegIndex_amdgpu_gfx940() {
      {amdgpu_gfx940::acc253,617},
      {amdgpu_gfx940::acc254,618},
      {amdgpu_gfx940::acc255,619},
-     {amdgpu_gfx940::acc254,620},
-     {amdgpu_gfx940::acc255,621}};
+     {amdgpu_gfx940::exec_lo,620},
+     {amdgpu_gfx940::exec_hi,621}};
     }
     return *mrmap;
 }
