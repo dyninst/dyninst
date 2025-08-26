@@ -210,6 +210,8 @@ elseif(DYNINST_HOST_ARCH_PPC64LE)
   list(APPEND _sources src/stackwalk-ppc.C src/dynProcess-power.C)
 elseif(DYNINST_HOST_ARCH_AARCH64)
   list(APPEND _sources src/stackwalk-aarch64.C src/dynProcess-aarch64.C)
+elseif(DYNINST_HOST_ARCH_RISCV64)
+  list(APPEND _sources src/stackwalk-riscv64.C src/dynProcess-riscv64.C)
 endif()
 
 if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
@@ -254,7 +256,6 @@ elseif(DYNINST_CODEGEN_ARCH_RISCV64)
     src/codegen-riscv64.C
     src/parse-riscv64.C
     src/RegisterConversion-riscv64.C
-    src/stackwalk-riscv64.C
     src/Relocation/Widgets/CFWidget-riscv64.C
     src/Relocation/Widgets/PCWidget-riscv64.C)
 endif()
@@ -283,7 +284,7 @@ elseif(DYNINST_OS_Linux)
     list(APPEND _sources src/linux-power.C)
   elseif(DYNINST_HOST_ARCH_AARCH64)
     list(APPEND _sources src/linux-aarch64.C)
-  elseif(DYNINST_CODEGEN_ARCH_RISCV64)
+  elseif(DYNINST_HOST_ARCH_RISCV64)
     list(APPEND _sources src/linux-riscv64.C)
   endif()
 elseif(DYNINST_OS_Windows)
