@@ -182,7 +182,6 @@ namespace aarch64 {
 namespace riscv64 {
   bool isSystemCall(di::Instruction const& ins) {
     auto const id = ins.getOperation().getID();
-
     return id == riscv64_op_ecall;
   }
 }
