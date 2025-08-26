@@ -255,7 +255,6 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(
     APPEND
     _sources
-    src/ast-amdgpu.C
     src/inst-amdgpu.C
     src/emit-amdgpu.C
     src/codegen-amdgpu.C
