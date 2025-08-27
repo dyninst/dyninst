@@ -21,7 +21,7 @@ set(_private_headers
     src/registers/x86_64.h
     src/registers/ppc32.h
     src/registers/ppc64.h
-    src/registers/aarch64.h,
+    src/registers/aarch64.h
     src/registers/riscv64.h)
 
 # cmake-format: off
