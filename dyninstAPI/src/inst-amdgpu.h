@@ -34,24 +34,4 @@
 #ifndef INST_AMDGPU_H
 #define INST_AMDGPU_H
 
-inline int TRAMP_GPR_OFFSET(int /* x */) {
-  assert(false && "Not implemented for AMDGPU");
-  return 0;
-}
-
-inline int TRAMP_FPR_OFFSET(int /* x */) {
-  assert(false && "Not implemented for AMDGPU");
-  return 0;
-}
-
-inline int TRAMP_SPR_OFFSET(int /* x */) {
-  assert(false && "Not implemented for AMDGPU");
-  return 0;
-}
-
-class codeGen;
-
-void pushStack(codeGen &gen);
-void popStack(codeGen &gen);
-
 #endif
