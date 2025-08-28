@@ -323,7 +323,7 @@ class parse_func : public ParseAPI::Function
         }
     };
 
-#if defined(DYNINST_HOST_ARCH_POWER) || defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_HOST_ARCH_POWER) || defined(DYNINST_HOST_ARCH_AARCH64)
    bool savesReturnAddr() const { return saves_return_addr_; }
 #endif
 
