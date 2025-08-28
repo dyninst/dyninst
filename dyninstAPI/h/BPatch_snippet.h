@@ -369,6 +369,7 @@ class DYNINST_EXPORT BPatch_variableExpr : public BPatch_snippet
                         AddressSpace *as,
                         BPatch_localVar *lv, BPatch_type *type,
                         BPatch_point *scp);
+    
     //    BPatch_variableExpr(const char *name, BPatch_addressSpace *in_addSpace,
     //                    AddressSpace *ll_addSpace, void *in_address, 
     //                    BPatch_type *type);

@@ -64,8 +64,6 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-// Need REG_MT_POS, defined in inst-<arch>...
-
 #if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "inst-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_POWER)
@@ -981,10 +979,12 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
     ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::operandType::DataAddr, (void*)(NULL)));
   }
 
+
   ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
   ast_wrapper->setType(type_);
 
 }
+
 
 BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* in_addSpace,
                                                  int_variable* v,
@@ -1000,6 +1000,7 @@ BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* 
                                                            void* offset,
                                                            BPatch_type* type)
 {
+
     int_variable* v = in_llAddSpace->getAOut()->getDefaultModule()->createVariable(name,
                                                                                    reinterpret_cast<Address>(offset),
                                                                                    type->getSize());
