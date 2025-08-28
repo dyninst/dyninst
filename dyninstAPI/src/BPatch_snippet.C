@@ -71,7 +71,7 @@ using namespace Dyninst::SymtabAPI;
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "inst-aarch64.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-#include "inst-amdgpu.h"
+// No inst-amdgpu.h
 #else
 #error "Unknown architecture, expected x86, x86_64, power or aarch64"
 #endif
