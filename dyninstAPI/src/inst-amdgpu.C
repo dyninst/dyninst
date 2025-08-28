@@ -86,13 +86,6 @@ void registerSpace::initialize64() { assert(false && "No 64-bit registers for AM
 
 void registerSpace::initialize() { initialize32(); }
 
-/*
- * Emit code to push down the stack
- */
-void pushStack(codeGen & /*gen */) {}
-
-void popStack(codeGen & /*gen*/) {}
-
 /*********************************** Base Tramp ***********************************************/
 bool baseTramp::generateSaves(codeGen & /* gen */, registerSpace *) { return true; }
 
