@@ -72,7 +72,6 @@ set(_private_headers
     src/IAPI_to_AST.h
     src/image.h
     src/infHeap.h
-    src/inst-amdgpu.h
     src/inst-aarch64.h
     src/inst.h
     src/instPoint.h
