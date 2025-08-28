@@ -56,7 +56,6 @@ using namespace Dyninst::InstructionAPI;
 #include "binaryEdit.h"
 
 #include "emit-amdgpu.h"
-#include "inst-amdgpu.h"
 
 #include "emitter.h"
 
