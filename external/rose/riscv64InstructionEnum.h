@@ -1,7 +1,3 @@
-//
-// Created by angus on 07/25/24.
-//
-
 #ifndef ROSE_RISCV64INSTRUCTIONENUM_H
 #define ROSE_RISCV64INSTRUCTIONENUM_H
 
