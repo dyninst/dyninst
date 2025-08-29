@@ -588,10 +588,8 @@ namespace Dyninst {
       case Arch_ppc32: return ppc32::r0;
       case Arch_ppc64: return ppc64::r0;
       case Arch_aarch64: return aarch64::x8;
-      // Note that a7 isn't uniform across all OSes
-      // The syscall calling convention for RISC-V is not defined in the ISA manual
-      // For Linux, the syscall NR is defined in the source code, which is a7:
-      // https://elixir.bootlin.com/linux/v6.15.7/source/arch/riscv/include/asm/syscall.h#L27-L31
+      // The syscall register for all platforms can be found in the 
+      // linux syscall(2) man page.
       case Arch_riscv64: return riscv64::a7;
       case Arch_aarch32:
       case Arch_cuda:
