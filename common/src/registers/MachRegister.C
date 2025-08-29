@@ -874,7 +874,7 @@ namespace Dyninst {
       case Arch_riscv64: {
         auto const is_vec = isVector();
         auto const is_fpr = (category == riscv64::FPR);
-        auto const is_fcsr = (*this == riscv64::fcsr);
+        auto const is_fcsr = (*this == riscv64::fflags) || (*this == riscv64::frm) || (*this == riscv64::fcsr);
         return is_vec || is_fpr || is_fcsr;
       }
 
