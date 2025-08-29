@@ -723,7 +723,7 @@ namespace Dyninst {
         return regC == aarch64::FLAG ||
                regC == aarch64::PSTATE;
       }
-      case Arch_riscv64: return regC == riscv64::fflags || regC == riscv64::fcsr;
+      case Arch_riscv64: return regC == riscv64::CSR;
       case Arch_ppc32:
       case Arch_ppc64: {
         // For power, we have a different register representation.
