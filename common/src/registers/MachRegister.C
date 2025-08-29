@@ -165,8 +165,12 @@ namespace Dyninst {
 
         return *this;
       }
-      case Arch_riscv64:
+      case Arch_riscv64: {
+        if(*this == riscv64::fflags || *this == riscv64::frm) {
+          return riscv64::fcsr;
+        }
         return *this;
+      }
 
       case Arch_amdgpu_gfx908: {
         if(category == amdgpu_gfx908::MISC) {
