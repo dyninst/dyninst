@@ -28,19 +28,24 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#ifndef AMDGPU_PROLOGUE_H
+#define AMDGPU_PROLOGUE_H
+
+#include "BPatch_snippet.h"
 #include "ast.h"
 #include "common/src/dyn_register.h"
 #include "patchAPI/h/Snippet.h"
 
-// Low-level patchAPI snippet. Inserts the following sequence of instructions
-// when dest = 94, base = 4, offset = 0xabc :
+// PatchAPI snippet used to insert the following prologue.
+//
+// Example when dest = 94, base = 4, offset = 0xabc :
 //
 // s_load_dwordx2 s[94:95], s[4:5], 0xabc
 // s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
 //
-class AmdgpuPrologueSnippet : public Dyninst::PatchAPI::Snippet {
+class AmdgpuPrologue : public Dyninst::PatchAPI::Snippet {
 public:
-  AmdgpuPrologueSnippet(Dyninst::Register dest, Dyninst::Register base, unsigned offset)
+  AmdgpuPrologue(Dyninst::Register dest, Dyninst::Register base, unsigned offset)
       : dest_(dest), base_(base), offset_(offset) {}
 
   bool generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer);
@@ -51,10 +56,16 @@ private:
   unsigned offset_;
 };
 
-// The AST-based inteface that uses the above snippet.
-// TODO : If possible, designate fixed registers for prologue to fit this with
-// the register tracking mechanism.
-class AmdgpuPrologueSnippetNode : public AstSnippetNode {
+// The AST node for the above PatchAPI snippet.
+class AmdgpuPrologueNode : public AstSnippetNode {
 public:
-  AmdgpuPrologueSnippetNode(Dyninst::PatchAPI::SnippetPtr p) : AstSnippetNode(p) {}
+  AmdgpuPrologueNode(Dyninst::PatchAPI::SnippetPtr p) : AstSnippetNode(p) {}
 };
+
+// BPatch_snippet that uses the above AST node.
+class AmdgpuPrologueSnippet : public BPatch_snippet {
+public:
+  AmdgpuPrologueSnippet(const AstNodePtr &p) : BPatch_snippet(p) {}
+};
+
+#endif
