@@ -35,8 +35,7 @@
 
 using namespace AmdgpuGfx908;
 
-bool AmdgpuPrologueSnippet::generate(Dyninst::PatchAPI::Point * /* point */,
-                                     Dyninst::Buffer &buffer) {
+bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::Buffer &buffer) {
   // To avoid any code duplication or refactoring right now, we use a 'codeGen'
   // object to generate the code and copy what we get there into the
   // 'Dyninst::Buffer' object passed here.
