@@ -261,8 +261,8 @@ static void insertPrologueInInstrumentedFunctions(
   // Go through information for instrumented kernels (functions) and set base
   // register to kernargPtrRegister and offset to kernargBufferSize. The
   // additional additional argument will be at the end of the kernarg buffer. We
-  // set up the prologue to load s[94:95] with address of our additional memory
-  // buffer that holds additional variables inserted during instrumentation.
+  // set up the prologue to load s[94:95] with address of our buffer holding
+  // instrumentation variables.
   for (const auto &function : BPatch_addressSpace::instrumentedFunctions) {
     std::vector<BPatch_point *> entryPoints;
     function->getEntryPoints(entryPoints);
@@ -272,14 +272,19 @@ static void insertPrologueInInstrumentedFunctions(
 
     for (auto &kernelInfo : kernelInfos) {
       if (kernelInfo.getKernelName() == function->getMangledName()) {
-        auto prologuePtr = boost::make_shared<AmdgpuPrologueSnippet>(
+
+        auto prologuePtr = boost::make_shared<AmdgpuPrologue>(
             94, kernelInfo.kernargPtrRegister, kernelInfo.kernargBufferSize);
-        auto prologueNodePtr =
-            boost::make_shared<AmdgpuPrologueSnippetNode>(prologuePtr);
+
+        AstNodePtr prologueNodePtr =
+            boost::make_shared<AmdgpuPrologueNode>(prologuePtr);
+
+        AmdgpuPrologueSnippet prologueSnippet(prologueNodePtr);
 
         auto addressSpace = entryPoint->getAddressSpace();
         BPatchSnippetHandle *handle =
-            addressSpace->insertPrologue(prologueNodePtr, entryPoint);
+            addressSpace->insertSnippet(prologueSnippet, entryPoints,
+                                        BPatch_callBefore, BPatch_firstSnippet);
         assert(handle);
       }
     }
