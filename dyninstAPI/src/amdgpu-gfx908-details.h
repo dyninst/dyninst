@@ -399,6 +399,7 @@ enum SMEM_Opcode {
 };
 
 uint64_t getMaskSmem(ContentKind k);
+unsigned getSmemImmBit(unsigned opcode);
 void setEncodingSmem(uint64_t &rawInst);
 void setOpcodeSmem(uint64_t value, uint64_t &rawInst);
 void setImmSmem(bool value, uint64_t &rawInst);
@@ -415,7 +416,9 @@ void setOffsetSmem(uint64_t value, uint64_t &rawInst);
 // We can load 1, 2, 4, 8 or 16 words at a time and store 1, 2, 4 words at a
 // time.
 //
-// We use glc = 0, imm = 1, soe = 0, nv = 0 (nv stands for non-volatile)
+// For S_DCACHE_WB, imm = 0.
+//
+// In other cases, we use glc = 0, imm = 1, soe = 0, nv = 0 (nv stands for non-volatile)
 // so essentially address = sgpr[base] + signed 21-bit byte offset.
 //
 // ERRORS IN MANUAL:
