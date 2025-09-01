@@ -291,27 +291,28 @@ static void insertPrologueInInstrumentedFunctions(
   }
 }
 
-static void insertEpilogueInInstrumentedFunctions(
-    std::vector<AmdgpuKernelInfo> &kernelInfos) {
-  // Go through information for instrumented kernels (functions) and insert a s_dcache_wb instruction at the exit point.
+static void insertEpilogueInInstrumentedFunctions(std::vector<AmdgpuKernelInfo> &kernelInfos) {
+  // Go through information for instrumented kernels (functions) and insert a s_dcache_wb
+  // instruction at the exit point.
   for (const auto &function : BPatch_addressSpace::instrumentedFunctions) {
     std::vector<BPatch_point *> exitPoints;
     function->getExitPoints(exitPoints);
+    for (auto &kernelInfo : kernelInfos) {
+      if (kernelInfo.getKernelName() == function->getMangledName()) {
 
-    for (size_t i = 0; i < exitPoints.size(); ++i) {
-      BPatch_point *exitPoint = exitPoints[i];
+        auto epiloguePtr = boost::make_shared<AmdgpuEpilogue>();
 
-      for (auto &kernelInfo : kernelInfos) {
-        if (kernelInfo.getKernelName() == function->getMangledName()) {
-          auto epiloguePtr = boost::make_shared<AmdgpuEpilogueSnippet>();
-          auto epilogueNodePtr =
-              boost::make_shared<AmdgpuEpilogueSnippetNode>(epiloguePtr);
+        AstNodePtr epilogueNodePtr = boost::make_shared<AmdgpuEpilogueNode>(epiloguePtr);
 
-          auto addressSpace = exitPoint->getAddressSpace();
-          BPatchSnippetHandle *handle =
-              addressSpace->insertEpilogue(epilogueNodePtr, exitPoint);
-          assert(handle);
-        }
+        AmdgpuEpilogueSnippet epilogueSnippet(epilogueNodePtr);
+
+        auto addressSpace = function->getAddSpace();
+
+        // FIXME: BPatch_callBefore + exit doesn't work yet.
+        // See BPatchToInternalArgs in BPatch_point.C
+        BPatchSnippetHandle *handle = addressSpace->insertSnippet(
+            epilogueSnippet, exitPoints, BPatch_callAfter, BPatch_firstSnippet);
+        assert(handle);
       }
     }
   }
