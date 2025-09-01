@@ -413,6 +413,15 @@ uint64_t getMaskSmem(ContentKind k) {
   }
 }
 
+unsigned getSmemImmBit(unsigned opcode) {
+  switch (opcode) {
+  case S_DCACHE_WB:
+    return 0;
+  default:
+    return 1;
+  }
+}
+
 void setEncodingSmem(uint64_t &rawInst) {
   uint64_t mask = getMaskSmem(CK_Smem_Encoding);
   //                            (((uint64_t)(0b110000) << 26) & mask);
@@ -479,8 +488,7 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset, 
 
   setEncodingSmem(newRawInst);
   setOpcodeSmem(opcode, newRawInst);
-
-  setImmSmem(1, newRawInst);
+  setImmSmem(getSmemImmBit(opcode), newRawInst);
   setGlcSmem(0, newRawInst);
   setNvSmem(0, newRawInst);
   setSoeSmem(0, newRawInst);
