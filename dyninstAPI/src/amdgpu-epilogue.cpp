@@ -36,8 +36,7 @@
 using namespace AmdgpuGfx908;
 
 // Similar approach to prologue
-bool AmdgpuEpilogueSnippet::generate(Dyninst::PatchAPI::Point * /* point */,
-                                     Dyninst::Buffer &buffer) {
+bool AmdgpuEpilogue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::Buffer &buffer) {
   codeGen gen(20);
   EmitterAmdgpuGfx908 emitter;
 

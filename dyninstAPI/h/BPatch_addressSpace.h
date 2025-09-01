@@ -415,11 +415,6 @@ class DYNINST_EXPORT BPatch_addressSpace {
 
   // THIS IS SPECIFIC TO AMDGPU
   static std::set<BPatch_function *> instrumentedFunctions;
-
-  BPatchSnippetHandle *
-  insertEpilogue(Dyninst::PatchAPI::SnippetPtr epilogueSnippet,
-                 BPatch_point *point);
 };
-
 
 #endif 
