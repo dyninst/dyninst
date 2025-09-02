@@ -100,8 +100,6 @@ void emitImm(opCode /* op */, Register /* src1 */, RegValue /* src2imm */, Regis
   assert(false && "Not implemented for AMDGPU");
 }
 
-// void cleanUpAndExit(int status);
-
 Register emitFuncCall(opCode, codeGen &, std::vector<AstNodePtr> &, bool, Address) {
   assert(false && "Not implemented for AMDGPU");
   return 0;
