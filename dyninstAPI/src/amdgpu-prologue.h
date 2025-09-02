@@ -36,9 +36,12 @@
 #include "common/src/dyn_register.h"
 #include "patchAPI/h/Snippet.h"
 
-// PatchAPI snippet used to insert the following prologue.
+// The prologue loads a register pair with address of the buffer containing instrumentation
+// variables.
+// PatchAPI snippet is used to insert the following prologue:
 //
-// Example when dest = 94, base = 4, offset = 0xabc :
+// Example when dest = 94, base = 4, offset = 0xabc; address_of_buffer is at s[4:5] + 0xabc.
+// Load it into s[94:95].
 //
 // s_load_dwordx2 s[94:95], s[4:5], 0xabc
 // s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
