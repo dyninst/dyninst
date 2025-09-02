@@ -614,7 +614,27 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
    BPatch_type *type = BPatch::bpatch->createScalar(name.c_str(), n);
 
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-   return BPatch_variableExpr::makeVariableExpr(name, this, as[0], type);
+  // FIXME : Can't outline within this file because the constructor is private.
+  // This needs to be considered when we have wave and thread-level variables.
+  assert(type->getSize() > 0 && type->getSize() % 4 == 0);
+  int size = (int)type->getSize();
+
+  AstOperandNode::addToTable(name, size);
+  int offset = AstOperandNode::getOffset(name);
+  assert(AstOperandNode::lastOffset > -1);
+
+  // An AstOperandNode containing another AstOperandNode that is a constant.
+  // The constant represents offset in the GPU memory buffer.
+  AstNodePtr ast_wrapper(
+                  AstNode::operandNode(AstNode::operandType::AddressAsPlaceholderRegAndOffset,
+                    AstNode::operandNode(AstNode::operandType::Constant, reinterpret_cast<void*>(static_cast<uintptr_t>(offset)))
+                  )
+                );
+
+  ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+  ast_wrapper->setType(type);
+
+  return new BPatch_variableExpr(name.c_str(), this, as[0], ast_wrapper, type, /* in_address =*/NULL);
 #else
    return BPatch_variableExpr::makeVariableExpr(this, as[0], name, ptr,
                                                 type);

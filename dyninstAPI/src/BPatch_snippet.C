@@ -985,7 +985,6 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 
 }
 
-
 BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* in_addSpace,
                                                  int_variable* v,
                                                  BPatch_type* type)
@@ -1006,33 +1005,6 @@ BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* 
                                                                                    type->getSize());
     return new BPatch_variableExpr(in_addSpace, in_llAddSpace, v, type);
 }
-
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-BPatch_variableExpr*  BPatch_variableExpr::makeVariableExpr(const std::string& name,
-                                                BPatch_addressSpace *in_addSpace,
-                                                AddressSpace *ll_addSpace,
-                                                BPatch_type *type) {
-  assert(type->getSize() > 0 && type->getSize() % 4 == 0);
-  int size = (int)type->getSize();
-
-  AstOperandNode::addToTable(name, size);
-  int offset = AstOperandNode::getOffset(name);
-  assert(AstOperandNode::lastOffset > -1);
-
-  // An AstOperandNode containing another AstOperandNode that is a constant.
-  // The constant represents offset in the GPU memory buffer.
-  AstNodePtr ast_wrapper(
-                  AstNode::operandNode(AstNode::operandType::AddressAsPlaceholderRegAndOffset,
-                    AstNode::operandNode(AstNode::operandType::Constant, reinterpret_cast<void*>(static_cast<uintptr_t>(offset)))
-                  )
-                );
-
-  ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
-  ast_wrapper->setType(type);
-
-  return new BPatch_variableExpr(name.c_str(), in_addSpace, ll_addSpace, ast_wrapper, type, /* in_address =*/NULL);
-}
-#endif
 
 unsigned int BPatch_variableExpr::getSize() const
 {
