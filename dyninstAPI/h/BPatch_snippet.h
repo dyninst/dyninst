@@ -387,13 +387,6 @@ class DYNINST_EXPORT BPatch_variableExpr : public BPatch_snippet
 						 void* offset,
 						 BPatch_type* type);
 
-    // This refers to conditionally compiled code, hence is under an ifdef.
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-   static BPatch_variableExpr* makeVariableExpr(const std::string& name,
-                                                BPatch_addressSpace *in_addSpace,
-                                                AddressSpace *ll_addSpace,
-                                                BPatch_type *type_);
-#endif
 
   public:
 
