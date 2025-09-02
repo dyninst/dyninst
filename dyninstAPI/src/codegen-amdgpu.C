@@ -90,15 +90,6 @@ bool insnCodeGen::modifyJump(Dyninst::Address target, NS_amdgpu::instruction & /
   return true;
 }
 
-/* TODO and/or FIXME
- * The logic used by this function is common across architectures but is replicated
- * in architecture-specific manner in all codegen-* files.
- * This means that the logic itself needs to be refactored into the (platform
- * independent) codegen.C file. Appropriate architecture-specific,
- * bit-twiddling functions can then be defined if necessary in the codegen-* files
- * and called as necessary by the common, refactored logic.
- */
-
 /*
  * <Addr X> conditionalJump A
  * <Addr C> nextInstruction  // C = X+4
@@ -118,7 +109,7 @@ bool insnCodeGen::modifyJcc(Dyninst::Address target, NS_amdgpu::instruction &ins
   uint32_t rawInst = insn.asInt();
 
   // This is a SOPP instruction, so simply set the the SIMM16 field appropriately.
-  AmdgpuGfx908::setSImm16SopP(1, rawInst); // CPU does (1)*4 + 4 and computes the target = X+8 i.e B
+  AmdgpuGfx908::setSImm16SopP(1, rawInst); // GPU does (1)*4 + 4 and computes target = X+8 i.e B
 
   // Now copy this at the end of the codegen buffer
   gen.copy((void *)&rawInst, sizeof rawInst);
@@ -126,8 +117,7 @@ bool insnCodeGen::modifyJcc(Dyninst::Address target, NS_amdgpu::instruction &ins
   // We are at offset X+4, we want to jump to X+12, i.e C
   // Now emit jump C
   Emitter *emitter = gen.emitter();
-  emitter->emitShortJump(
-      1, gen); // CPU does (1)*4 + 4 and computes the target = <X+4> + 8 = X+12 i.e C
+  emitter->emitShortJump(1, gen); // GPU does (1)*4 + 4 and computes target = <X+4> + 8 = X+12 i.e C
 
   // Now emit jump A, the original target
   long from = gen.currAddr();
