@@ -266,6 +266,39 @@ namespace Dyninst { namespace riscv64 {
   DEF_REGISTER_ALIAS(    t5, x30, "riscv64");
   DEF_REGISTER_ALIAS(    t6, x31, "riscv64");
 
+  // Floating point register aliases
+  DEF_REGISTER_ALIAS(   ft0,  f0, "riscv64");
+  DEF_REGISTER_ALIAS(   ft1,  f1, "riscv64");
+  DEF_REGISTER_ALIAS(   ft2,  f2, "riscv64");
+  DEF_REGISTER_ALIAS(   ft3,  f3, "riscv64");
+  DEF_REGISTER_ALIAS(   ft4,  f4, "riscv64");
+  DEF_REGISTER_ALIAS(   ft5,  f5, "riscv64");
+  DEF_REGISTER_ALIAS(   ft6,  f6, "riscv64");
+  DEF_REGISTER_ALIAS(   ft7,  f7, "riscv64");
+  DEF_REGISTER_ALIAS(   fs0,  f8, "riscv64");
+  DEF_REGISTER_ALIAS(   fs1,  f9, "riscv64");
+  DEF_REGISTER_ALIAS(   fa0, f10, "riscv64");
+  DEF_REGISTER_ALIAS(   fa1, f11, "riscv64");
+  DEF_REGISTER_ALIAS(   fa2, f12, "riscv64");
+  DEF_REGISTER_ALIAS(   fa3, f13, "riscv64");
+  DEF_REGISTER_ALIAS(   fa4, f14, "riscv64");
+  DEF_REGISTER_ALIAS(   fa5, f15, "riscv64");
+  DEF_REGISTER_ALIAS(   fa6, f16, "riscv64");
+  DEF_REGISTER_ALIAS(   fa7, f17, "riscv64");
+  DEF_REGISTER_ALIAS(   fs2, f18, "riscv64");
+  DEF_REGISTER_ALIAS(   fs3, f19, "riscv64");
+  DEF_REGISTER_ALIAS(   fs4, f20, "riscv64");
+  DEF_REGISTER_ALIAS(   fs5, f21, "riscv64");
+  DEF_REGISTER_ALIAS(   fs6, f22, "riscv64");
+  DEF_REGISTER_ALIAS(   fs7, f23, "riscv64");
+  DEF_REGISTER_ALIAS(   fs8, f24, "riscv64");
+  DEF_REGISTER_ALIAS(   fs9, f25, "riscv64");
+  DEF_REGISTER_ALIAS(  fs10, f26, "riscv64");
+  DEF_REGISTER_ALIAS(  fs11, f27, "riscv64");
+  DEF_REGISTER_ALIAS(   ft8, f28, "riscv64");
+  DEF_REGISTER_ALIAS(   ft9, f29, "riscv64");
+  DEF_REGISTER_ALIAS(  ft10, f30, "riscv64");
+  DEF_REGISTER_ALIAS(  ft11, f31, "riscv64");
   // 32 bit FPRs f<N>_32 (Mainly for Capstone compatibility)
   DEF_REGISTER_ALIAS( f0_32,  f0, "riscv64");
   DEF_REGISTER_ALIAS( f1_32,  f1, "riscv64");
