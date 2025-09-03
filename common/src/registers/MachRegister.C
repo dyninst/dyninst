@@ -966,7 +966,7 @@ namespace Dyninst {
       }
 
       case Arch_riscv64: {
-        return false; // csrs currently not supported
+        return category == riscv64::CSR;
       }
 
       case Arch_ppc32: {
