@@ -144,8 +144,9 @@ namespace Dyninst { namespace riscv64 {
   // special purpose register
   DEF_REGISTER(           pc,   0 | SPR | Arch_riscv64, "riscv64");
 
-  // control status register
-  // From The RISC-V Instruction Set Manual: Volume II Privileged Architecture, Section 2.2
+  // Control Status Registers (CSRs) - the comment after each is its CSR Id
+  // From The RISC-V Instruction Set Manual: Volume II Privileged Architecture,
+  // Version 20250805, Section 2.2
 
   // Unprivileged Floating-Point CSRs
   DEF_REGISTER(       fflags,   0 | CSR | Arch_riscv64, "riscv64"); // 0x001
