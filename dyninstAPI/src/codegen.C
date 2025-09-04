@@ -654,7 +654,7 @@ void codeGen::beginTrackRegDefs()
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
     regsDefined_ = bitArray(registerSpace::fpsr);
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-    regsDefined_ = bitArray(700); // TOOD: use the acutal last register instead of a random constant
+    regsDefined_ = bitArray(700); // TODO: use the actual last register instead of a random constant
 #else
     regsDefined_ = bitArray();
 #endif
