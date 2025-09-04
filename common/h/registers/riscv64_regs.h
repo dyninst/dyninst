@@ -41,8 +41,9 @@ namespace Dyninst { namespace riscv64 {
   /**
    * For interpreting constants:
    *  Lowest 16 bits (0x000000ff) is base register ID
-   *  Next 16 bits (0x0000ff00) are used to distinguish between 32/64 bit floating point registers
-   *  Next 16 bits (0x00ff0000) are the register category, GPR/FPR/MMX/...
+   *  Next 16 bits (0x0000ff00) are used to distinguish between 32/64 bit
+   *                            floating point registers
+   *  Next 16 bits (0x00ff0000) are the register category, GPR/FPR/SPR/CSR
    *  Top 16 bits (0xff000000) are the architecture.
    *
    *  These values/layout are not guaranteed to remain the same as part of the
