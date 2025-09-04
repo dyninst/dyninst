@@ -37,8 +37,6 @@ unsigned int swapBytesIfNeeded(unsigned int /* i */) {
   return 0;
 }
 
-// i = signed int value to be extended
-// pos = the total length of signed value to be extended
 int instruction::signExtend(unsigned int /* i */, unsigned int /* pos */) {
   assert(false && "Not implemented for AMDGPU");
   return 0;
