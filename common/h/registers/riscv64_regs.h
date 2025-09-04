@@ -95,14 +95,15 @@ namespace Dyninst { namespace riscv64 {
   // F extension defines 32 bit floating point registers f0 ~ f31
   // D extension widens f0 ~ f31, to 64 bits
 
-  // In riscv64, 32-bit FPRs are NaN-boxed to 64-bit FPRs.
-  // In other words, in RI64, when accessing 32-bit FPRs, you are actually accessing the entire register.
+  // In riscv64, 32-bit FPRs are NaN-boxed to 64-bit FPRs.  In other words, in
+  // RI64, when accessing 32-bit FPRs, you are actually accessing the entire
+  // register.
 
-  // Capstone distinguishes between 32-bit FPRs and 64-bit FPRs.
-  // So far, other libraries such as Dwarf does not distinguish between the two.
-  // So here f<N>_32 and f<N>_64 are used to handle Capstone registers
-  // On the other hand, f<N> are the "actual" FPRs that include both the NaN-boxed f<N>_32 and f<N>_64.
-  // f<N>_32 and f<N>_64 are both aliases of f<N>
+  // Capstone distinguishes between 32-bit FPRs and 64-bit FPRs.  So far, other
+  // libraries such as Dwarf does not distinguish between the two.  So here
+  // f<N>_32 and f<N>_64 are used to handle Capstone registers On the other
+  // hand, f<N> are the "actual" FPRs that include both the NaN-boxed f<N>_32
+  // and f<N>_64.  f<N>_32 and f<N>_64 are both aliases of f<N>
 
   // Unless you are dealing with Capstone, you should always use f<N>.
 
