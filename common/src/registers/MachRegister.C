@@ -586,14 +586,14 @@ namespace Dyninst {
   }
 
   MachRegister MachRegister::getSyscallNumberReg(Dyninst::Architecture arch) {
+    // The syscall register for all platforms can be found in the 
+    // linux syscall(2) man page.
     switch(arch) {
       case Arch_x86: return x86::eax;
       case Arch_x86_64: return x86_64::rax;
       case Arch_ppc32: return ppc32::r0;
       case Arch_ppc64: return ppc64::r0;
       case Arch_aarch64: return aarch64::x8;
-      // The syscall register for all platforms can be found in the 
-      // linux syscall(2) man page.
       case Arch_riscv64: return riscv64::a7;
       case Arch_aarch32:
       case Arch_cuda:
