@@ -105,7 +105,6 @@ public:
   Dyninst::Address getBranchTargetAddress() const;
   void setBranchOffset(Dyninst::Address newOffset);
 
-  // And tell us how much space we'll need...
   // Returns -1 if we can't do a branch due to architecture limitations
   static unsigned jumpSize(Dyninst::Address from, Dyninst::Address to, unsigned addr_width);
   static unsigned jumpSize(Dyninst::Address disp, unsigned addr_width);
@@ -118,13 +117,6 @@ public:
 
   // return a pointer to the instruction
   const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
-
-  // For external modification
-  // Don't allow external modification anymore.  Host byte order may differ
-  // from target byte order.
-  // instructUnion &operator* () { return insn_; }
-  // const instructUnion &operator* () const { return insn_; }
-  // const unsigned int &raw() const { return insn_.raw; }
 
   unsigned opcode() const;
 
