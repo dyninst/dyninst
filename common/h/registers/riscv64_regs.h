@@ -152,17 +152,22 @@ namespace Dyninst { namespace riscv64 {
   DEF_REGISTER(       fflags,   0 | CSR | Arch_riscv64, "riscv64"); // 0x001
   DEF_REGISTER(          frm,   1 | CSR | Arch_riscv64, "riscv64"); // 0x002
   DEF_REGISTER(         fcsr,   2 | CSR | Arch_riscv64, "riscv64"); // 0x003
+
   // Unprivileged Vector CSRs, read/write
   DEF_REGISTER(       vstart,   3 | CSR | Arch_riscv64, "riscv64"); // 0x008
   DEF_REGISTER(        vxsat,   4 | CSR | Arch_riscv64, "riscv64"); // 0x009
   DEF_REGISTER(         vxrm,   5 | CSR | Arch_riscv64, "riscv64"); // 0x00A
   DEF_REGISTER(         vcsr,   6 | CSR | Arch_riscv64, "riscv64"); // 0x00F
+
   // Unprivileged Zicfiss extension CSR
   DEF_REGISTER(          ssp,   7 | CSR | Arch_riscv64, "riscv64"); // 0x011
+
   // Unprivileged Entropy Source Extension CSR
   DEF_REGISTER(         seed,   8 | CSR | Arch_riscv64, "riscv64"); // 0x015
+
   // Unprivileged Zcmt Extension CSR
   DEF_REGISTER(          jvt,   9 | CSR | Arch_riscv64, "riscv64"); // 0x017
+
   // Unprivileged Counter/Timers
   DEF_REGISTER(        cycle,  10 | CSR | Arch_riscv64, "riscv64"); // 0xC00
   DEF_REGISTER(         time,  11 | CSR | Arch_riscv64, "riscv64"); // 0xC01
@@ -196,10 +201,12 @@ namespace Dyninst { namespace riscv64 {
   DEF_REGISTER( hpmcounter29,  39 | CSR | Arch_riscv64, "riscv64"); // 0xC1D
   DEF_REGISTER( hpmcounter30,  40 | CSR | Arch_riscv64, "riscv64"); // 0xC1E
   DEF_REGISTER( hpmcounter31,  41 | CSR | Arch_riscv64, "riscv64"); // 0xC1F
+
   // Unprivileged Vector CSRs, read-only
   DEF_REGISTER(           vl,  42 | CSR | Arch_riscv64, "riscv64"); // 0xC20
   DEF_REGISTER(        vtype,  43 | CSR | Arch_riscv64, "riscv64"); // 0xC21
   DEF_REGISTER(        vlenb,  44 | CSR | Arch_riscv64, "riscv64"); // 0xC22
+
   // Unprivileged Counter/Timers, RV32 only
   DEF_REGISTER(       cycleh,  45 | CSR | Arch_riscv64, "riscv64"); // 0xC80
   DEF_REGISTER(        timeh,  46 | CSR | Arch_riscv64, "riscv64"); // 0xC81
@@ -302,6 +309,7 @@ namespace Dyninst { namespace riscv64 {
   DEF_REGISTER_ALIAS(   ft9, f29, "riscv64");
   DEF_REGISTER_ALIAS(  ft10, f30, "riscv64");
   DEF_REGISTER_ALIAS(  ft11, f31, "riscv64");
+
   // 32 bit FPRs f<N>_32 (Mainly for Capstone compatibility)
   DEF_REGISTER_ALIAS( f0_32,  f0, "riscv64");
   DEF_REGISTER_ALIAS( f1_32,  f1, "riscv64");
