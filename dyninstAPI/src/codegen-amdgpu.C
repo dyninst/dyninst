@@ -62,9 +62,6 @@ void insnCodeGen::generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Add
   generateBranch(gen, from, to, true);
 }
 
-// generate an instruction that does nothing and has to side affect except to
-//   advance the program counter.
-//
 void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
   assert((size % instruction::size()) == 0);
 

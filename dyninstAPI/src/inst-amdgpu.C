@@ -45,7 +45,7 @@ void registerSpace::initialize32() {
 
   std::vector<registerSlot *> registers;
 
-  // TODO: This initialization doesn't consider all registers. Right now only the regs we typically
+  // TODO: This initialization doesn't consider all registers. Right now only the registers we typically
   // use for instrumentation are considered. This might need work later on.
 
   // SGPRs
@@ -170,9 +170,6 @@ void emitLoadPreviousStackFrameRegister(Address /* register_num */, Register /* 
 
 void emitStorePreviousStackFrameRegister(Address, Register, codeGen &, int, bool) {}
 
-// First AST node: target of the call
-// Second AST node: source of the call
-// This can handle indirect control transfers as well
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction /* i */, Address /* addr */,
                                           std::vector<AstNodePtr> & /* args */) {
   assert(false && "Not implemented for AMDGPU");
