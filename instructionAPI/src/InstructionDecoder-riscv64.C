@@ -60,6 +60,8 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         Expression::Ptr target(makeAddExpression(IP, immAST, s32));
         insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
 
+        Expression::Ptr pcAST = makeRegisterExpression(riscv64::pc);
+        insn_to_complete->appendOperand(pcAST, true, true, true);
         return;
     }
     if (eid == riscv64_op_jalr) {
@@ -110,6 +112,9 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         Expression::Ptr target(makeAddExpression(rsAST, immAST, s32));
         insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
 
+        Expression::Ptr pcAST = makeRegisterExpression(riscv64::pc);
+        insn_to_complete->appendOperand(pcAST, true, true, true);
+
         return;
     }
     if (eid == riscv64_op_c_jr || eid == riscv64_op_c_jalr) {
@@ -132,6 +137,9 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
 
         Expression::Ptr rsAST = makeRegisterExpression((this->*regTrans)(rs));
         insn_to_complete->addSuccessor(rsAST, isCall, isIndirect, isConditional, false);
+
+        Expression::Ptr pcAST = makeRegisterExpression(riscv64::pc);
+        insn_to_complete->appendOperand(pcAST, true, true, true);
 
         return;
     }
@@ -158,6 +166,9 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
         Expression::Ptr target(makeAddExpression(IP, immAST, s32));
         insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
+
+        Expression::Ptr pcAST = makeRegisterExpression(riscv64::pc);
+        insn_to_complete->appendOperand(pcAST, true, true, true);
 
         return;
     }
@@ -215,6 +226,9 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
         insn_to_complete->addSuccessor(IP, isCall, isIndirect, isConditional, true);
 
+        Expression::Ptr pcAST = makeRegisterExpression(riscv64::pc);
+        insn_to_complete->appendOperand(pcAST, true, true, true);
+
         return;
     }
     if (eid == riscv64_op_c_beqz || eid == riscv64_op_c_bnez) {
@@ -243,6 +257,9 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         Expression::Ptr target(makeAddExpression(IP, immAST, s32));
         insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
         insn_to_complete->addSuccessor(IP, isCall, isIndirect, isConditional, true);
+
+        Expression::Ptr pcAST = makeRegisterExpression(riscv64::pc);
+        insn_to_complete->appendOperand(pcAST, true, true, true);
 
         return;
     }
@@ -600,15 +617,9 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         }
     }
 
-    // Capstone does not handle implicit registers
-    // Handle the program counter for auipc explicitly
-
-    if (eid == riscv64_op_auipc) {
-        int isPcRead = eid != riscv64_op_c_jr;
-        int isPcWrite = isCFT;
-        MachRegister reg = riscv64::pc;
-        Expression::Ptr regAST = makeRegisterExpression(reg);
-        insn_to_complete->appendOperand(regAST, isPcRead, isPcWrite, true);
+    if (eid == riscv64_op_auipc || isCFT) {
+        Expression::Ptr pcAST = makeRegisterExpression(riscv64::pc);
+        insn_to_complete->appendOperand(pcAST, true, isCFT, true);
     }
 
     if (err) fprintf(stderr, "\tinstruction %s\n", insn_to_complete->format().c_str());
