@@ -46,6 +46,7 @@
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/CodeObject.h"
 #include "registers/aarch64_regs.h"
+#include "registers/riscv64_regs.h"
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
@@ -525,7 +526,7 @@ void AssignmentConverter::convert(const Instruction &I,
         auto operands = I.getAllOperands();
         assert(operands.size() == 2);
 
-        AbsRegion rs = AbsRegion(boost::dynamic_pointer_cast<RegisterAST>(operands[1].getValue())->getID());
+        AbsRegion rs = AbsRegion(boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue())->getID());
         AbsRegion pc(Absloc::makePC(func->isrc()->getArch()));
 
         // Write pc with rs
@@ -543,8 +544,8 @@ void AssignmentConverter::convert(const Instruction &I,
         auto operands = I.getAllOperands();
         assert(operands.size() == 2);
 
-        AbsRegion rd = AbsRegion(boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue())->getID());
-        AbsRegion rs = AbsRegion(boost::dynamic_pointer_cast<RegisterAST>(operands[1].getValue())->getID());
+        AbsRegion rd = AbsRegion(Dyninst::riscv64::ra);
+        AbsRegion rs = AbsRegion(boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue())->getID());
         AbsRegion pc(Absloc::makePC(func->isrc()->getArch()));
 
         // Write pc with rs
@@ -567,7 +568,7 @@ void AssignmentConverter::convert(const Instruction &I,
     }
     case riscv64_op_jalr: {
         auto operands = I.getAllOperands();
-        assert(operands.size() == 2);
+        assert(operands.size() == 3);
 
         vector<InstructionAST::Ptr> children;
         boost::dynamic_pointer_cast<BinaryFunction>(operands[1].getValue())->getChildren(children);

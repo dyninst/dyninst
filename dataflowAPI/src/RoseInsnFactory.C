@@ -446,6 +446,7 @@ void RoseInsnRiscv64Factory::massageOperands(const Instruction &insn,
           int32_t imm = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
           Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, imm));
 
+	  operands.resize(2);
           operands[1] = Operand(immAST, true, false, false);
           break;
         }
@@ -460,7 +461,7 @@ void RoseInsnRiscv64Factory::massageOperands(const Instruction &insn,
           Expression::Ptr rsAST = boost::make_shared<RegisterAST>(rs, 0, rs.size() * 8, 1);
           Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, imm));
 
-          operands.resize(3);
+	  operands.resize(3);
           operands[1] = Operand(rsAST, true, false, false);
           operands[2] = Operand(immAST, true, false, false);
           break;
@@ -469,12 +470,24 @@ void RoseInsnRiscv64Factory::massageOperands(const Instruction &insn,
         case riscv64_op_c_jalr: {
           Expression::Ptr imm0AST = Immediate::makeImmediate(Result(s32, 0));
 
-          operands.resize(3);
-          operands[2] = Operand(imm0AST, true, false, false);
+	  operands.resize(2);
+          operands[1] = Operand(imm0AST, true, false, false);
           break;
         }
         case riscv64_op_c_j:
-        case riscv64_op_c_jal:
+        case riscv64_op_c_jal: {
+          vector<InstructionAST::Ptr> children;
+          boost::dynamic_pointer_cast<BinaryFunction>(operands[0].getValue())->getChildren(children);
+          assert(children.size() == 2);
+
+          int32_t imm = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
+          Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, imm));
+
+	  operands.resize(2);
+	  operands[1] = Operand(immAST, true, false, false);
+
+          break;
+        }
         case riscv64_op_c_beqz:
         case riscv64_op_c_bnez: {
           vector<InstructionAST::Ptr> children;
@@ -483,6 +496,8 @@ void RoseInsnRiscv64Factory::massageOperands(const Instruction &insn,
 
           int32_t imm = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
           Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, imm));
+
+	  operands.resize(2);
           operands[1] = Operand(immAST, true, false, false);
           break;
         }

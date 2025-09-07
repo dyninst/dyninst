@@ -111,7 +111,7 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         insn_to_complete->addSuccessor(target, isCall, isIndirect, isConditional, false);
 
         Expression::Ptr pcAST = makeRegisterExpression(riscv64::pc);
-        insn_to_complete->appendOperand(pcAST, true, isCFT, true);
+        insn_to_complete->appendOperand(pcAST, true, true, true);
 
         return;
     }

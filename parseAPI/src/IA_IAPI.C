@@ -706,9 +706,9 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                 bool validJr = false, validLd = false;
                 MachRegister targetReg;
                 int32_t relaAddr = current;
-                // If we saw c.jalr, grab the second operand (not the first because the first one is the implicit link register)
+                // If we saw c.jalr, grab the first operand
                 if(ci.getOperation().getID() == riscv64_op_c_jalr) {
-                    targetReg = (boost::dynamic_pointer_cast<RegisterAST>(ci.getOperand(1).getValue()))->getID();
+                    targetReg = (boost::dynamic_pointer_cast<RegisterAST>(ci.getOperand(0).getValue()))->getID();
                     validJr = true;
                 }
                 // If we saw jalr, unwrap the second operand.

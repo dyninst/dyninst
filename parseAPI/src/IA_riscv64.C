@@ -311,10 +311,9 @@ bool IA_riscv64::isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Bloc
     Instruction insn = curInsn();
     entryID eid = insn.getOperation().getID();
     if (eid == riscv64_op_c_jr) {
-        // c.jr x0, x1
-        MachRegister rd = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue())->getID();
-        MachRegister rs = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue())->getID();
-        if (rd == riscv64::x0 && rs == riscv64::x1) {
+        // c.jr x1
+        MachRegister rs = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue())->getID();
+        if (rs == riscv64::x1) {
             return true;
         }
     }
@@ -379,8 +378,8 @@ bool IA_riscv64::isMultiInsnJump(Address &targetAddr, Function *context, Block *
         bool validJr = false;
         Address offset = 0;
         if (curInsnID == riscv64_op_c_jalr || curInsnID == riscv64_op_c_jr) {
-            MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue()))->getID();
-            if (rd == riscv64::ra) {
+            MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue()))->getID();
+            if (rs == riscv64::ra) {
                 validJr = true;
             }
         }

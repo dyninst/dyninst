@@ -961,7 +961,8 @@ namespace rose {
 
                 struct IP_C_J : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmExpressionPtrList new_args{args[0], args[1]};
+                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", XLENBITS)};
+                        SgAsmExpressionPtrList new_args{&dre0, args[0]};
                         SgAsmRiscv64Instruction new_insn{0, "jal", rose_riscv64_op_jal};
                         auto conv = Riscv64::IP_RISCV_JAL{};
                         conv.p(d, ops, &new_insn, new_args, raw);
@@ -1037,7 +1038,8 @@ namespace rose {
 
                 struct IP_C_JR : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmExpressionPtrList new_args{args[0], args[1], args[2]};
+                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", XLENBITS)};
+                        SgAsmExpressionPtrList new_args{&dre0, args[0], args[1]};
                         SgAsmRiscv64Instruction new_insn{0, "jalr", rose_riscv64_op_jalr};
                         auto conv = Riscv64::IP_RISCV_JALR{};
                         conv.p(d, ops, &new_insn, new_args, raw);
@@ -1046,7 +1048,8 @@ namespace rose {
 
                 struct IP_C_JALR : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        SgAsmExpressionPtrList new_args{args[0], args[1], args[2]};
+                        SgAsmDirectRegisterExpression dre0{d->findRegister("x0", XLENBITS)};
+                        SgAsmExpressionPtrList new_args{&dre0, args[0], args[1]};
                         SgAsmRiscv64Instruction new_insn{0, "jalr", rose_riscv64_op_jalr};
                         auto conv = Riscv64::IP_RISCV_JALR{};
                         conv.p(d, ops, &new_insn, new_args, raw);
