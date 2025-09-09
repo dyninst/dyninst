@@ -596,6 +596,48 @@ void AssignmentConverter::convert(const Instruction &I,
         assignments.push_back(rdA);
         break;
     }
+    case riscv64_op_beq:
+    case riscv64_op_bne:
+    case riscv64_op_blt:
+    case riscv64_op_bge:
+    case riscv64_op_bltu:
+    case riscv64_op_bgeu: {
+        auto operands = I.getAllOperands();
+        assert(operands.size() == 3);
+
+        AbsRegion rs1 = AbsRegion((boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue()))->getID());
+        AbsRegion rs2 = AbsRegion((boost::dynamic_pointer_cast<RegisterAST>(operands[1].getValue()))->getID());
+        AbsRegion pc(Absloc::makePC(func->isrc()->getArch()));
+
+        Assignment::Ptr pcA = Assignment::makeAssignment(I,
+                addr,
+                func,
+                block,
+                pc);
+        pcA->addInput(rs1);
+        pcA->addInput(rs2);
+
+        assignments.push_back(pcA);
+        break;
+    }
+    case riscv64_op_c_beqz:
+    case riscv64_op_c_bnez: {
+        auto operands = I.getAllOperands();
+        assert(operands.size() == 2);
+
+        AbsRegion rs = AbsRegion((boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue()))->getID());
+        AbsRegion pc(Absloc::makePC(func->isrc()->getArch()));
+
+        Assignment::Ptr pcA = Assignment::makeAssignment(I,
+                addr,
+                func,
+                block,
+                pc);
+        pcA->addInput(rs);
+
+        assignments.push_back(pcA);
+        break;
+    }
     case amdgpu_gfx908_op_S_GETPC_B64:
     case amdgpu_gfx90a_op_S_GETPC_B64: 
     case amdgpu_gfx940_op_S_GETPC_B64: {
