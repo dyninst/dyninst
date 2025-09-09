@@ -602,7 +602,8 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		break;
 	    }
 	    case e_jae:
-	    case e_jnb_jae_j: {
+	    case e_jnb_jae_j:
+	    case riscv64_op_bgeu: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -621,7 +622,8 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		break;
 	    }
 	    case e_jb: 
-	    case e_jb_jnaej_j: {
+	    case e_jb_jnaej_j:
+	    case riscv64_op_bltu: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -659,7 +661,9 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
-	    case e_je: {
+	    case e_je:
+	    case riscv64_op_beq:
+	    case riscv64_op_c_beqz: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -678,7 +682,9 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
-	    case e_jne: {
+	    case e_jne:
+	    case riscv64_op_bne:
+	    case riscv64_op_c_bnez: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -712,7 +718,8 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
-	    case e_jge: {
+	    case e_jge:
+	    case riscv64_op_bge: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -728,7 +735,8 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
-	    case e_jl: {
+	    case e_jl:
+	    case riscv64_op_blt: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
