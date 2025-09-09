@@ -1,0 +1,160 @@
+\subsection{Class Symbol}
+
+The \code{Symbol} class represents a symbol in the object file. This class holds the symbol information such as the mangled, pretty and typed names, the module in which it is present, type, linkage, offset and size.
+
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+SymbolType & Meaning \\
+\midrule
+ST\_UNKNOWN & Unknown type \\
+ST\_FUNCTION & Function or other executable code sequence \\
+ST\_OBJECT & Variable or other data object \\
+ST\_MODULE & Source file declaration \\
+ST\_SETION & Region declaration \\
+ST\_TLS & Thread-local storage declaration \\
+ST\_DELETED & Deleted symbol \\
+ST\_NOTYPE & Miscellaneous symbol \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+SymbolLinkage & Meaning \\
+\midrule
+SL\_UNKNOWN & Unknown linkage \\
+SL\_GLOBAL & Process-global symbol \\
+SL\_LOCAL & Process-local (e.g., static) symbol \\
+SL\_WEAK & Alternate name for a function or variable \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The following two types are platform-specific:
+
+\begin{apient}
+typedef enum {
+    SV_UNKNOWN,
+    SV_DEFAULT,
+    SV_INTERNAL,
+    SV_HIDDEN,
+    SV_PROTECTED
+} SymbolVisibility;
+\end{apient}
+
+\begin{apient}
+typedef enum {
+    TAG_UNKNOWN,
+    TAG_USER,
+    TAG_LIBRARY,
+    TAG_INTERNAL
+} SymbolTag; 
+\end{apient}
+
+\begin{tabular}{p{1.25in}p{1in}p{3.25in}}
+\toprule
+Method name & Return type & Method description \\
+\midrule
+getMangledName & string & Raw name of the symbol in the symbol table, including name mangling. \\
+getPrettyName & string & Demangled name of the symbol with parameters (for functions) removed. \\
+getTypedName & string & Demangled name of the symbol including full function parameters. \\
+getModule & Module * & The module, if any, that contains the symbol. \\
+getType & SymbolType & The symbol type (as defined above) of the symbol. \\
+getLinkage & SymbolLinkage & The linkage (as defined above) of the symbol. \\
+getVisibility & SymbolVisibility & The visibility (as defined above) of the symbol. \\
+tag & SymbolTag & The tag (as defined above) of the symbol. \\
+getOffset & Offset & The offset of the object the symbols refers to. \\
+getSize & unsigned & The size of the object the symbol refers to. \\
+getRegion & Region * & The region containing the symbol. \\
+getIndex & int & The index of the symbol within the symbol table. \\
+getStrIndex & int & The index of the symbol name in the string table. \\
+isInDynSymtab & bool & If true, the symbol is dynamic and can be used as the target of an intermodule reference. Implies isInSymtab is false.  \\
+isInSymtab & bool & If true, the symbol is static. Implies isInDynSymtab is false. \\
+isAbsolute & bool & If true, the offset encoded in the symbol is an absolute value rather than an offset. \\
+isFunction & bool & If true, the symbol refers to a function. \\
+getFunction & Function * & The Function that contains this symbol if such a Function exists. \\
+isVariable & bool & If true, the symbol refers to a variable. \\
+getVariable & Variable * & The Variable that contains this symbol if such a Variable exists. \\
+getSymtab & Symtab * & The Symtab that contains this symbol.  \\
+getPtrOffset & Offset & For binaries with an OPD section, the offset in the OPD that contains the function pointer data structure for this symbol. \\
+getLocalTOC & Offset & For platforms with a TOC register, the expected TOC for the object referred to by this symbol. \\
+isCommonStorage & bool & True if the symbol represents a common section (Fortran). \\
+\bottomrule
+\end{tabular}
+
+\begin{apient}
+DYNINST_EXPORT Symbol(const std::string& name,
+                     SymbolType type,
+                     SymbolLinkage linkage,
+                     SymbolVisibility visibility,
+                     Offset offset,
+                     Module *module = NULL, 
+                     Region *region = NULL, 
+                     unsigned size = 0,
+                     bool dyamic = false,
+                     bool absolute = false,
+                     int index = -1,
+                     int strindex = -1,
+                     bool commonStorage = false)
+\end{apient}
+\apidesc{
+Symbol creation interface:
+\begin{description}
+\item[name] The mangled name of the symbol. 
+\item[type] The type of the symbol as specified above. 
+\item[linkage] The linkage of the symbol as specified above. 
+\item[visibility] The visibility of the symbol as specified above. 
+\item[offset] The offset within the file that the symbol refers to. 
+\item[module] The source code module the symbol should belong to; default is no module. 
+\item[region] The region the symbol belongs to; if left unset this will be determined if a new binary is generated. 
+\item[size] The size of the object the symbol refers to; defaults to 0. 
+\item[dynamic] If true, the symbol belongs to the dynamic symbol table (ELF) and may be used as the target of inter-module references. 
+\item[absolute] If true, the offset specified is treated as an absolute value rather than an offset. 
+\item[index] The index in the symbol table. If left unset, it will be determined when generating a new binary. 
+\item[strindex] The index in the string table that contains the symbol name. If left unset, it will be determined when generating a new binary. 
+\item[commonStorage] If true, the symbol references common storage (Fortran). 
+\end{description}
+}
+
+\begin{apient}
+bool getVersionFileName(std::string &fileName)
+\end{apient}
+\apidesc{
+This method retrieves the file name in which this symbol is present. Returns \code{false} if this symbol does not have any version information present otherwise returns \code{true}.
+}
+
+\begin{apient}
+bool getVersions(std::vector<std::string> *&vers)
+\end{apient}
+\apidesc{
+This method retrieves all the version names for this symbol. Returns \code{false} if the symbol does not have any version information present.
+}
+
+\subsubsection{Symbol modification}
+
+Most elements of a \code{Symbol} can be modified using the functions below. Each returns \code{true} on success and \code{false} otherwise. 
+
+\begin{apient}
+bool setSize (unsigned size)
+bool setOffset (Offset newOffset)
+bool setMangledName (string name)
+bool setType (SymbolType sType)
+bool setModule (Module *module)
+bool setRegion (Region *region)
+bool setDynamic (bool dyn)
+bool setAbsolute (bool absolute)
+bool setCommonStorage (bool common) 
+bool setFunction (Function *func)
+bool setVariable (Variable *var)
+bool setIndex (int index)
+bool setStrIndex (int index)
+bool setPtrOffset (Offset ptr)
+bool setLocalTOC (Offset toc)
+bool setVersionNum (unsigned num)
+bool setVersionFileName (std::string &fileName)
+bool setVersions (std::vector<std::string> &vers)
+\end{apient}

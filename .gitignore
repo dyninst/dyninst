@@ -125,3 +125,6 @@ cmake-build-*/
 .settings
 .pydevproject
 *__pycache__*
+doc/xml
+doc/html
+doc/build/*

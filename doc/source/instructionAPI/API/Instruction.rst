@@ -1,0 +1,365 @@
+\subsection{Instruction Class}
+\label{sec:instruction}
+The Instruction class is a generic instruction representation that contains
+operands, read/write semantic information about those operands, and information
+about what other registers and memory locations are affected by the operation
+the instruction performs.
+
+The purpose of an Instruction object is to join an Operation with a sequence of
+Operands, and provide an interface for some common summary analyses (namely, the
+read/write sets, memory access information, and control flow information).
+
+The Operation contains knowledge about its mnemonic and sufficient semantic
+details to answer the following questions:
+\begin{itemize}
+\item What Operands are read/written?
+\item What registers are implicitly read/written?
+\item What memory locations are implicitly read/written?
+\item What are the possible control flow successors of this instruction?
+\end{itemize}
+
+Each Operand is an AST built from RegisterAST and Immediate leaves. For each Operand, you may determine:
+\begin{itemize}
+\item Registers read
+\item Registers written
+\item Whether memory is read or written
+\item Which memory addresses are read or written, given the state of all relevant registers
+\end{itemize}
+
+Instructions should be constructed from an \code{unsigned} \code{char$\ast$}
+pointing to machine language, using the InstructionDecoder class.  See
+InstructionDecoder for more details. 
+
+\begin{apient}
+enum InsnCategory {
+  c_CallInsn,          // procedure call (NOT system calls)
+  c_ReturnInsn,        // procedure return
+  c_BranchInsn,        // conditional, direct, and indirect jump/branch
+  c_ConditionalInsn,   // implicitly reads condition/status flags
+  c_CompareInsn,       // comparisons (includes vector comparisons)
+  c_PrefetchInsn,      // cache prefetch
+  c_SysEnterInsn,      // x86 sysenter
+  c_SyscallInsn,       // system call
+  c_InterruptInsn,     // software interrupt
+  c_VectorInsn,        // operates on more than one value simultaneously
+  c_GPUKernelExitInsn, // AMD GPU kernel exit
+  c_TransactionalInsn, // memory transaction (fences, hardware locks, etc.)
+  c_NoCategory
+}
+\end{apient}
+
+
+\begin{apient}
+Instruction (Operation::Ptr what, 
+             size_t size,
+             const unsigned char * raw,
+             Dyninst::Architecture arch)
+\end{apient}
+\apidesc{ \code{what} is the opcode of the instruction, \code{size}
+  contains the number of bytes occupied by the corresponding machine
+  instruction, and \code{raw} contains a pointer to the buffer from which
+  this \code{Instruction} object was decoded. The architecture is
+  specified by \code{arch}, and may be an element from the following
+  set: \code{\{Arch\_x86, Arch\_x86\_64, Arch\_ppc32, Arch\_ppc64\}}
+  (as defined in \code{dyn\_regs.h}).
+
+    Construct an Instruction from an Operation and a collection of Expressions.
+    This method is not intended to be used except by the InstructionDecoder
+    class, which serves as a factory class for producing Instruction objects.
+
+    While an Instruction object may be built ``by hand'' if
+    desired, using the decoding interface ensures that the operation and
+    operands are a sensible combination, and that the size reported is based on
+    the actual size of a legal encoding of the machine instruction represented.
+}
+
+\begin{apient}
+const Operation & getOperation() const
+\end{apient}
+\apidesc{
+    Returns the \code{Operation} used by the \code{Instruction}. See
+    Section~\ref{sec:operation} for details of the \code{Operation} interface.
+}
+
+\begin{apient}
+std::vector<Operand> getAllOperands() const
+\end{apient}
+\apidesc{
+Returns the operands in the order that they were decoded.
+
+For the instruction \code{add rax, rcx}, the operands are \code{rax},
+\code{rcx}, and \code{EFLAGS}. \code{EFLAGS} is included because it
+is implicitly modified to update the overflow and carry flags.   
+}
+
+\begin{apient}
+std::vector<Operand> getImplicitOperands() const
+\end{apient}
+\apidesc{
+Returns the *implicit* operands in the order that they were decoded.
+
+For the instruction \code{add rax, rcx}, the implicit operand is
+\code{EFLAGS} because it is implicitly modified to update the
+overflow and carry flags.
+}
+
+\begin{apient}
+std::vector<Operand> getExplicitOperands() const
+\end{apient}
+\apidesc{
+Returns the *explicit* operands in the order that they were decoded.
+
+For the instruction \code{add rax, rcx}, the explitic operands are \code{rax}
+and \code{rcx}. \code{EFLAGS} is not included because it is *implicitly*
+modified to update the overflow and carry flags.
+}
+
+\begin{apient}
+void getOperands(std::vector<Operand> & operands) const
+\end{apient}
+\apidesc{
+DEPRECATED
+
+Use `getAllOperands()`.
+}
+
+\begin{apient}
+std::vector<Operand> getDisplayOrderedOperands() const
+\end{apient}
+\apidesc{
+  Returns a vector of non-implicit operands in printed order.
+}
+
+
+\begin{apient}
+Operand getOperand(int index) const
+\end{apient}
+\apidesc{
+    The \code{getOperand} method returns the operand at position \code{index},
+    or an empty operand if \code{index} does not correspond to a valid operand
+    in this instruction.
+}
+
+\begin{apient}
+unsigned char rawByte(unsigned int index) const
+\end{apient}
+\apidesc{
+  Returns the index$^{th}$ byte in the instruction. 
+}
+
+\begin{apient}
+size_t size() const
+\end{apient}
+\apidesc{
+Returns the size of the corresponding machine instruction, in bytes.
+}
+
+\begin{apient}
+const void * ptr() const
+\end{apient}
+\apidesc{
+Returns a pointer to the raw byte representation of the corresponding machine
+instruction.
+}
+
+\begin{apient}
+void getWriteSet(std::set<RegisterAST::Ptr> & regsWritten) const
+\end{apient}
+\apidesc{
+Insert the set of registers written by the instruction into
+\code{regsWritten}. The list of registers returned in
+\code{regsWritten} includes registers that are explicitly written as destination
+operands (like the destination of a move). It also includes registers that are
+implicitly written (like the stack pointer in a push or pop instruction). It
+does not include any registers used only in computing the effective address of a
+write. \code{pop} \code{$\ast$eax}, for example, writes to \code{esp}, reads
+\code{esp}, and reads \code{eax}, but despite the fact that \code{$\ast$eax} is
+the destination operand, \code{eax} is not itself written.
+
+For both the write set and the read set (below), it is possible to determine
+whether a register is accessed implicitly or explicitly by examining the
+Operands. An explicitly accessed register appears as an operand that is written
+or read; also, any registers used in any address calculations are explicitly
+read. Any element of the write set or read set that is not explicitly written or
+read is implicitly written or read. 
+}
+
+\begin{apient}
+void getReadSet(std::set<RegisterAST::Ptr> & regsRead) const
+\end{apient}
+\apidesc{
+    Insert the set of registers read by the instruction into \code{regsRead}.
+
+    If an operand is used to compute an effective address, the registers
+    involved are read but not written, regardless of the effect on the operand.
+}
+
+\begin{apient}
+bool isRead(Expression::Ptr candidate) const
+\end{apient}
+\apidesc{
+    \code{candidate} is the subexpression to search for among the values read by
+    this \code{Instruction} object.
+
+    Returns \code{true} if \code{candidate} is read by this \code{Instruction}.
+}
+
+\begin{apient}
+bool isWritten(Expression::Ptr candidate) const
+\end{apient}
+\apidesc{
+    \code{candidate} is the subexpression to search for among the values written by
+    this \code{Instruction} object.
+
+    Returns \code{true} if \code{candidate} is written by this \code{Instruction}.
+}
+
+\begin{apient}
+bool readsMemory() const
+\end{apient}
+\apidesc{
+    Returns \code{true} if the instruction reads from at least one memory address.
+
+    If any operand containing a \code{Dereference} object is read, the
+    instruction reads the memory at that address. Also, on platforms where a
+    stack pop is guaranteed to read memory, \code{readsMemory} will return
+    \code{true} for a pop instruction.
+}
+
+\begin{apient}
+bool writesMemory() const
+\end{apient}
+\apidesc{
+    Returns \code{true} if the instruction writes to at least one memory address.
+
+    If any operand containing a \code{Dereference} object is write, the
+    instruction writes the memory at that address. Also, on platforms where a
+    stack push is guaranteed to write memory, \code{writesMemory} will return
+    \code{true} for a pop instruction.
+}
+
+\begin{apient}
+void getMemoryReadOperands(std::set<Expression::Ptr> & memAccessors) const
+\end{apient}
+\apidesc{
+    Addresses read by this instruction are inserted into \code{memAccessors}.
+
+    The addresses read are in the form of \code{Expression}s, which may be
+    evaluated once all of the registers that they use have had their values set.
+    Note that this method returns ASTs representing address computations, and
+    not address accesses. For instance, an instruction accessing memory through
+    a register dereference would return an \code{Expression} tree containing
+    just the register that determines the address being accessed, not a tree
+    representing a dereference of that register. Also note that the type of this
+    \code{Expression} is the type of an effective address (generally a word or
+    double word), not the type of the memory being accessed. For the memory being
+    accessed, use \code{getOperands} directly.
+}
+
+\begin{apient}
+void getMemoryWriteOperands(std::set<Expression::Ptr> & memAccessors) const
+\end{apient}
+\apidesc{
+    Addresses written by this instruction are inserted into \code{memAccessors}. 
+
+    The addresses written are in the same form as those returned by
+    \code{getMemoryReadOperands} above.
+}
+
+\begin{apient}
+Expression::Ptr getControlFlowTarget() const
+\end{apient}
+\apidesc{
+When called on an explicitly control-\/flow altering instruction, returns the
+non-fallthrough control flow destination. When called on any other instruction,
+returns \code{NULL}.
+
+For direct absolute branch instructions, \code{getControlFlowTarget} will return
+an immediate value. For direct relative branch instructions,
+\code{getControlFlowTarget} will return the expression \code{PC} + offset. In
+the case of indirect branches and calls, it returns a dereference of a register
+(or possibly a dereference of a more complicated expression). In this case, data
+flow analysis will often allow the determination of the possible targets of the
+instruction. We do not do analysis beyond the single-instruction level in the
+Instruction API; if other code performs this type of analysis, it may update the
+information in the Dereference object using the setValue method in the
+Expression interface. More details about this may be found in
+Section~\ref{sec:expression} and Section~\ref{sec:dereference}.
+
+Returns an \code{Expression} evaluating to the non-fallthrough control targets,
+if any, of this instruction.
+}
+
+\begin{apient}
+bool allowsFallThrough() const
+\end{apient}
+\apidesc{
+    Returns \code{false} if control flow will unconditionally go to the result
+    of \code{getControlFlowTarget} after executing this instruction.
+}
+
+\begin{apient}
+std::string format(Address addr = 0)
+\end{apient}
+\apidesc{
+    Returns the instruction as a string of assembly language. If
+    \code{addr} is specified, the value of the program counter as used
+    by the instruction (e.g., a branch) is set to \code{addr}. 
+}
+
+\begin{apient}
+bool isValid() const
+\end{apient}
+\apidesc{
+    Returns \code{true} if this \code{Instruction} object is valid. Invalid
+    instructions indicate than an \code{InstructionDecoder} has reached the end
+    of its assigned range, and that decoding should terminate.
+}
+
+\begin{apient}
+bool isLegalInsn() const
+\end{apient}
+\apidesc{
+    An alias for \code{isValid}.
+}
+
+\begin{apient}
+Architecture getArch() const
+\end{apient}
+\apidesc{Returns the architecture containing the instruction. As
+  above, this will be an element from the set \code{\{Arch\_x86,
+    Arch\_x86\_64, Arch\_ppc32, Arch\_ppc64\}}.}
+
+\begin{apient}
+InsnCategory getCategory() const
+\end{apient}
+\apidesc{
+    Currently, the valid categories are \code{c\_CallInsn},
+    \code{c\_ReturnInsn}, \code{c\_BranchInsn}, \code{c\_CompareInsn},
+    \code{c\_PrefetchInsn}, \code{c\_SysEnterInsn}, \code{c\_SyscallInsn},
+    \code{c\_VectorInsn}, and \code{c\_NoCategory}, as defined in
+    \code{InstructionCategories.h}.
+}
+
+\begin{apient}
+struct CFT {
+  Expression::Ptr target;
+  bool isCall;
+  bool isIndirect;
+  bool isConditional;
+  bool isFallthrough;
+}
+
+typedef ... cftConstIter;
+cftConstIter cft_begin() const;
+cftConstIter cft_end() const;
+\end{apient}
+\apidesc{
+  On certain platforms (e.g., PowerPC with conditional call/return
+  instructions) the \code{getControlFlowTarget} function is
+  insufficient to represent the successors of an instruction. The
+  \code{cft\_begin} and \code{cft\_end} functions return iterators
+  into a list of all control flow target expressions as represented by
+  a list of \code{CFT} structures. In most cases,
+  \code{getControlFlowTarget} suffices. 
+}

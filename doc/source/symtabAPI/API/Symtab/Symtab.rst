@@ -1,0 +1,670 @@
+\subsection{Class Symtab}
+\definedin{Symtab.h}
+
+The \code{Symtab} class represents an object file either on-disk or in-memory. This class is responsible for the parsing of the \code{Object} file information and holding the data that can be accessed through look up functions.
+
+\begin{tabular}{p{1.25in}p{1in}p{3.25in}}
+\toprule
+Method name & Return type & Method description \\
+\midrule
+\code{file} & std::string & Full path to the opened file or provided name for the memory image. \\
+\code{name} & std::string & File name without path. \\
+\code{memberName} & std::string & For archive (.a) files, returns the object file (.o) this Symtab represents. \\
+\code{getNumberOfRegions} & unsigned & Number of regions. \\
+\code{getNumberOfSymbols} & unsigned & Total number of symbols in both the static and dynamic tables. \\
+\code{mem\_image} & char * & Pointer to memory image for the Symtab; not valid for disk files. \\
+\code{imageOffset} & Offset & Offset of the first code segment from the start of the binary. \\
+\code{dataOffset} & Offset & Offset of the first data segment from the start of the binary. \\
+\code{imageLength} & Offset & Size of the primary code-containing region, typically .text. \\
+\code{dataLength} & Offset & Size of the primary data-containing region, typically .data. \\
+\code{isStaticBinary} & bool & True if the binary was compiled statically. \\
+\code{isExecutable} & bool & True if the file is an executable. \\
+\code{isSharedLibrary} & bool & True if the file is a shared library. \\
+\code{isUnlinkedObjectFile} & bool & True if the file is an unlinked object file (e.g., linux ``.o'' or Windows PE ``.obj'') \\
+\code{isExec} & bool & True if the file is can only be an executable, false otherwise including files that are both exeutables and shared libraries.  Typically files that are both executables and shared libraries are primarily used as libraries, if you need to determine specifics use the methods \code{isExecutable} and \code{isSharedLibrary}. \\
+\code{isStripped} & bool & True if the file was stripped of symbol table information. \\
+\code{isPositionIndependent} & bool True if the file contains position-independent code (PIC) \\
+\code{getAddressWidth} & unsigned & Size (in bytes) of a pointer value in the Symtab; 4 for 32-bit binaries and 8 for 64-bit binaries. \\
+\code{getArchitecture} & Architecture & Representation of the system architecture for the binary. \\
+\code{getLoadOffset} & Offset & The suggested load offset of the file; typically 0 for shared libraries. \\
+\code{getEntryOffset} & Offset & The entry point (where execution begins) of the binary. \\
+\code{getBaseOffset} & Offset & (Windows only) the OS-specified base offset of the file.  \\
+\bottomrule
+\end{tabular}
+
+\begin{apient}
+ObjectType getObjectType() const
+\end{apient}
+\apidesc{
+This method queries information on the type of the object file.
+}
+
+\begin{apient}
+bool isExecutable()
+bool isSharedLibrary()
+bool isExec()
+\end{apient}
+\apidesc{
+These methods respectively return true if the Symtab's object is an executable, a shared
+library, and an executable is that is not a shared library.
+An object may be both an executable and a shared library.
+
+An Elf Object that can be loaded into memory to form an executable's image has
+one of two types:  ET\_EXEC and ET\_DYN.
+ET\_EXEC type objects are executables that are loaded at a fixed address
+determined at link time.
+ET\_DYN type objects historically were shared libraries that are loaded at an
+arbitrary location in memory and are position independent code (PIC).
+The ET\_DYN object type was reused for position independent executables (PIE)
+that allows the executable to be loaded at an arbitrary location in memory.
+Although generally not the case an object can be both a PIE executable and a
+shared library.
+Examples of these include libc.so and the dynamic linker library (ld.so).
+These objects are generally used as a shared library so \code{isExec()} will
+classify these based on their typical usage.
+The methods below use heuristics to classify ET\_DYN object types correctly
+based on the properties of the Elf Object, and will correctly classify most
+objects.
+Due to the inherent ambiguity of ET\_DYN object types, the heuristics may fail
+to classify some libraries that are also executables as an executable.
+This can happen in object is a shared library and an executable, and its entry
+point happens to be at the start of the .text section.
+
+\code{isExecutable()} is equivalent to elfutils' \code{elfclassify -{}-program}
+test with the refinement of the soname value and entry point tests.
+Pseudocode for the algorithm is shown below:
+
+\newcommand{\ifthenstmt}[2]{\textbf{if} (#1) \textbf{return} \textit{#2}}
+\newcommand{\otherwisestmt}[1]{\textbf{otherwise return} \textit{#1}}
+
+\begin{itemize}[leftmargin=+7em]
+\item \ifthenstmt{\textbf{not} loadable()}{false}
+\item \ifthenstmt{object type is ET\_EXEC}{true}
+\item \ifthenstmt{has an interpreter (PT\_INTERP segment exists)}{true}
+\item \ifthenstmt{PIE flag is set in FLAGS\_1 of the PT\_DYNAMIC segment}{true}
+\item \ifthenstmt{DT\_DEBUG tag exists in PT\_DYNAMIC segment}{true}
+\item \ifthenstmt{has a soname and its value is ``linux-gate.so.1''}{false}
+\item \ifthenstmt{entry point is in range .text section offset plus 1 to the end of the .text section}{true}
+\item \ifthenstmt{has a soname and its value starts with ``ld-linux''}{true}
+\item \otherwisestmt{false}
+\end{itemize}
+
+\code{isSharedLibrary()} is equivalent to elfutils' \code{elfclassify -{}-library}.
+Pseudocode for the algorithm is shown below:
+
+\begin{itemize}[leftmargin=7em]
+\item \ifthenstmt{\textbf{not} loadable()}{false}
+\item \ifthenstmt{object type is ET\_EXEC}{false}
+\item \ifthenstmt{there is no PT\_DYNAMIC segment}{false}
+\item \ifthenstmt{PIE flag is set in FLAGS\_1 of the PT\_DYNAMIC segment}{false}
+\item \ifthenstmt{DT\_DEBUG tag exists in PT\_DYNAMIC segment}{false}
+\item \otherwisestmt{true}
+\end{itemize}
+
+Elf files can also store data that is neither an executable nor a shared
+library including object files, core files and debug symbol files.
+To distinguish these cases the \code{loadable()} function is defined using the
+pseudocode shown below and returns true is the file can loaded into a process's
+address space:
+
+\begin{itemize}[leftmargin=7em]
+\item \ifthenstmt{object type is neither ET\_EXEC nor ET\_DYN}{false}
+\item \ifthenstmt{there is are no program segments with the PT\_LOAD flag set}{false}
+\item \ifthenstmt{contains no sections}{true}
+\item \ifthenstmt{contains a section with the SHF\_ALLOC flag set and a section type of neither SHT\_NOTE nor SHT\_NOBITS}{true}
+\item \otherwisestmt{false}
+\end{itemize}
+}
+
+\subsubsection{File opening/parsing}
+
+\begin{apient}
+static bool openFile(Symtab *&obj,
+                     string filename)
+\end{apient}
+\apidesc{
+    Creates a new \code{Symtab} object for an object file on disk. This object serves as a handle to the parsed object file. \code{filename} represents the name of the \code{Object} file to be parsed. The \code{Symtab} object is returned in \code{obj} if the parsing succeeds.
+Returns \code{true} if the file is parsed without an error, else returns \code{false}. \code{getLastSymtabError()} and \code{printError()} should be called to get more error details.
+}
+
+\begin{apient}
+static bool openFile(Symtab *&obj,
+                     char *mem_image,
+                     size_t size,
+                     std::string name)
+\end{apient}
+\apidesc{
+    This factory method creates a new \code{Symtab} object for an object file in
+    memory. This object serves as a handle to the parsed object file. \code{mem\_image} represents the pointer to the \code{Object} file in memory to be parsed. \code{size} indicates the size of the image. \code{name} specifies the name we will give to the parsed object. The \code{Symtab} object is returned in \code{obj} if the parsing succeeds.
+Returns \code{true} if the file is parsed without an error, else returns
+\code{false}. \code{getLastSymtabError()} and \code{printError()} should
+be called to get more error details.
+}
+
+\begin{apient}
+static Symtab *findOpenSymtab(string name)
+\end{apient}
+\apidesc{Find a previously opened \code{Symtab} that matches the provided name.}
+
+
+\subsubsection{Module lookup}
+
+\begin{apient}
+Module *getDefaultModule() const
+\end{apient}
+\apidesc{
+Returns the default module, a collection of all functions, variables, and symbols that do not have an explicit module specified. 
+}
+
+\begin{apient}
+std::vector<Module*> findModulesByName(std::string const& name) const
+\end{apient}
+\apidesc{
+Retrieve all modules with name \code{name}.
+}
+
+\begin{apient}
+Module* findModuleByOffset(Offset offset) const
+\end{apient}
+\apidesc{
+Returns the module starting at \code{offset}; \code{nullptr}, if not found.
+}
+
+\begin{apient}
+Module* getContainingModule(Offset offset) const
+\end{apient}
+\apidesc{
+Returns the module with PC ranges that contain \code{offset}; \code{nullptr}, if not found.
+The default module will be returned if and only if it is the only module present. By contrast,
+\code{findModuleByOffset}, finds a module \it{starting} at \code{offset}.
+}
+
+\begin{apient}
+bool getAllModules(vector<module *> &ret)
+\end{apient}
+\apidesc{
+This method returns all modules in the object file. Returns \code{true} on success and
+\code{false} if there are no modules. The error value is set to \code{No\_Such\_Module}.
+}
+
+\subsubsection{Function, Variable, and Symbol lookup}
+
+\begin{apient}
+bool findFuncByEntryOffset(Function *&ret,
+                           const Offset offset)
+\end{apient}
+\apidesc{
+This method returns the \code{Function} object that begins at \code{offset}. Returns \code{true} on
+success and \code{false} if there is no matching function. The error value is set to
+\code{No\_Such\_Function}.
+}
+
+\begin{apient}
+bool findFunctionsByName(std::vector<Function *> &ret,
+                         const std::string name,
+                         NameType nameType = anyName, 
+                         bool isRegex = false,
+                         bool checkCase = true)
+\end{apient}
+\apidesc{
+This method finds and returns a vector of \code{Function}s whose names match the given pattern. The \code{nameType} parameter determines which names are searched: mangled, pretty, typed, or any. If the \code{isRegex} flag is set a regular expression match is performed with the symbol names. \code{checkCase} is applicable only if \code{isRegex} has been set. This indicates if the case be considered while performing regular expression matching. \code{ret} contains the list of matching Functions, if any.
+Returns \code{true} if it finds functions that match the given name, otherwise returns
+\code{false}. The error value is set to \code{No\_Such\_Function}.
+}
+
+\begin{apient}
+bool getContainingFunction(Offset offset,
+                           Function *&ret)
+\end{apient}
+\apidesc{
+This method returns the function, if any, that contains the provided \code{offset}.
+Returns \code{true} on success and \code{false} on failure. The error value is set to
+\code{No\_Such\_Function}. Note that this method does not parse, and therefore relies on the symbol table for information. As a result it may return incorrect information if the symbol table is wrong or if functions are either non-contiguous or overlapping. For more precision, use the ParseAPI library. 
+}
+
+\begin{apient}
+bool getAllFunctions(vector<Function *> &ret)
+\end{apient}
+\apidesc{
+This method returns all functions in the object file. Returns \code{true} on success
+and \code{false} if there are no modules. The error value is set to \code{No\_Such\_Function}.
+}
+
+\begin{apient}
+bool findVariablesByOffset(std::vector<Variable *> &ret,
+                           const Offset offset)
+\end{apient}
+\apidesc{
+This method returns a vector of \code{Variable}s with the specified offset.
+There may be more than one variable at an offset if they have different sizes.
+Returns \code{true} on success and \code{false} if there is no matching variable.
+The error value is set to \code{No\_Such\_Variable}.
+}
+
+\begin{apient}
+bool findVariablesByName(std::vector<Variable *> &ret,
+                         const std::string name,
+                         NameType nameType = anyName, 
+                         bool isRegex = false, 
+                         bool checkCase = true)
+\end{apient}
+\apidesc{
+This method finds and returns a vector of \code{Variable}s whose names match the given pattern. The \code{nameType} parameter determines which names are searched: mangled, pretty, typed, or any (note: a \code{Variable} may not have a typed name). If the \code{isRegex} flag is set a regular expression match is performed with the symbol names. \code{checkCase} is applicable only if \code{isRegex} has been set. This indicates if the case be considered while performing regular expression matching. \code{ret} contains the list of matching \code{Variable}s, if any.
+Returns \code{true} if it finds variables that match the given name, otherwise returns
+\code{false}. The error value is set to \code{No\_Such\_Variable}.
+}
+
+\begin{apient}
+bool getAllVariables(vector<Variable *> &ret)
+\end{apient}
+\apidesc{
+This method returns all variables in the object file. Returns \code{true} on success
+and \code{false} if there are no modules. The error value is set to \code{No\_Such\_Variable}.
+}
+
+\begin{apient}
+bool findSymbol(vector <Symbol *> &ret,
+                const string name,
+                Symbol::SymbolType sType,
+                NameType nameType = anyName,
+                bool isRegex = false,
+                bool checkCase = false)
+\end{apient}
+\apidesc{
+This method finds and returns a vector of symbols with type \code{sType} whose names match the given name. The \code{nameType} parameter determines which names are searched: mangled, pretty, typed, or any. If the \code{isRegex} flag is set a regular expression match is performed with the symbol names. \code{checkCase} is applicable only if \code{isRegex} has been set. This indicates if the case be considered while performing regular expression matching. \code{ret} contains the list of matched symbols if any.
+Returns \code{true} if it finds symbols with the given attributes. or else returns
+\code{false}. The error value is set \code{to No\_Such\_Function} / \code{No\_Such\_Variable}/
+\code{No\_Such\_Module}/ \code{No\_Such\_Symbol} based on the type.
+}
+
+\begin{apient}
+const vector<Symbol *> *findSymbolByOffset(Offset offset)
+\end{apient}
+\apidesc{Return a pointer to a vector of \code{Symbol}s with the specified offset. The pointer belongs to \code{Symtab} and should not be modified or freed.
+}
+
+\begin{apient}
+bool getAllSymbols(vector<Symbol *> &ret)
+\end{apient}
+\apidesc{
+This method returns all symbols.
+Returns \code{true} on success and \code{false} if there are no symbols. The error value is
+set to \code{No\_Such\_Symbol}.
+}
+
+\begin{apient}
+bool getAllSymbolsByType(vector<Symbol *> &ret, 
+                         Symbol::SymbolType sType)
+\end{apient}
+\apidesc{
+This method returns all symbols whose type matches the given type \code{sType}.
+Returns \code{true} on success and \code{false} if there are no symbols with the given type.
+The error value is set to \code{No\_Such\_Symbol}.
+}
+
+\begin{apient}
+bool getAllUndefinedSymbols(std::vector<Symbol *> &ret)
+\end{apient}
+\apidesc{
+This method returns all symbols that reference symbols in other files (e.g., external functions or variables).
+Returns \code{true} if there is at least one such symbol or else returns \code{false} with the
+error set to \code{No\_Such\_Symbol}.}
+
+\subsubsection{Region lookup}
+
+\begin{apient}
+bool getCodeRegions(std::vector<Region *>&ret)
+\end{apient}
+\apidesc{
+This method finds all the code regions in the object file. Returns \code{true} with \code{ret} containing the code regions if there is at least one code region in the object file or else returns \code{false}.
+}
+
+\begin{apient}
+bool getDataRegions(std::vector<Region *>&ret)
+\end{apient}
+\apidesc{
+This method finds all the data regions in the object file. Returns \code{true} with \code{ret} containing the data regions if there is at least one data region in the object file or else returns \code{false}.
+}
+
+\begin{apient}
+bool getMappedRegions(std::vector<Region *>&ret)
+\end{apient}
+\apidesc{
+This method finds all the loadable regions in the object file. Returns \code{true} with \code{ret} containing the loadable regions if there is at least one loadable region in the object file or else returns \code{false}.
+}
+
+\begin{apient}
+bool getAllRegions(std::vector<Region *>&ret)
+\end{apient}
+\apidesc{
+This method retrieves all the regions in the object file. Returns \code{true} with \code{ret} containing the regions.
+}
+
+\begin{apient}
+bool getAllNewRegions(std::vector<Region *>&ret)
+\end{apient}
+\apidesc{
+This method finds all the new regions added to the object file. Returns \code{true} with \code{ret} containing the regions if there is at least one new region that is added to the object file or else returns \code{false}.
+}
+
+\begin{apient}
+bool findRegion(Region *&reg,
+                string sname)
+\end{apient}
+\apidesc{
+Find a region (ELF section) wih name \code{sname} in the binary. Returns \code{true} if found, with \code{reg} set to the region pointer. Otherwise returns \code{false} with \code{reg} set to \code{NULL}.
+}
+
+\begin{apient}
+bool findRegion(Region *&reg,
+                const Offset addr,
+                const unsigned long size)
+\end{apient}
+\apidesc{
+Find a region (ELF section) with a memory offset of \code{addr} and memory size of \code{size}.  Returns \code{true} if found, with \code{reg} set to the region pointer. Otherwise returns \code{false} with \code{reg} set to \code{NULL}.
+}
+
+\begin{apient}
+bool findRegionByEntry(Region *&reg,
+                       const Offset soff)
+\end{apient}
+\apidesc{
+Find a region (ELF section) with a memory offset of \code{addr}.  Returns \code{true} if found, with \code{reg} set to the region pointer. Otherwise returns \code{false} with \code{reg} set to \code{NULL}.
+}
+
+\begin{apient}
+Region *findEnclosingRegion(const Offset offset)
+\end{apient}
+\apidesc{
+Find the region (ELF section) whose virtual address range contains \code{offset}. Returns the region if found; otherwise returns \code{NULL}.
+}
+
+\subsubsection{Insertion and modification}
+
+\begin{apient}
+bool emit(string file)
+\end{apient}
+\apidesc{
+	Creates a new file using the specified name that contains all changes made by the user. 
+}
+
+\begin{apient}
+bool addLibraryPrereq(string lib)
+\end{apient}
+\apidesc{
+Add a library dependence to the file such that when the file is loaded, the library will be loaded as well. Cannot be used for static binaries. 
+}
+
+\begin{apient}
+Function *createFunction(std::string name,
+                         Offset offset,
+                         size_t size,
+                         Module *mod = NULL)
+\end{apient}
+\apidesc{
+This method creates a \code{Function} and updates all necessary data structures (including creating Symbols, if necessary). The function has the provided mangled name, offset, and size, and is added to the Module \code{mod}. Symbols representing the function are added to the static and dynamic symbol tables. Returns the pointer to the new \code{Function} on success or \code{NULL} on failure. 
+}
+
+\begin{apient}
+Variable *createVariable(std::string name,
+                         Offset offset,
+                         size_t size,
+                         Module *mod = NULL)
+\end{apient}
+\apidesc{
+This method creates a \code{Variable} and updates all necessary data structures (including creating Symbols, if necessary). The variable has the provided mangled name, offset, and size, and is added to the Module \code{mod}. Symbols representing the variable are added to the static and dynamic symbol tables. Returns the pointer to the new \code{Variable} on success or \code{NULL} on failure. 
+}
+
+\begin{apient}
+bool addSymbol(Symbol *newsym)
+\end{apient}
+\apidesc{
+This method adds a new symbol \code{newsym} to all of the internal data structures. The primary name of the \code{newsym} must be a mangled name. Returns \code{true} on success and \code{false} on failure. A new copy of \code{newsym} is not made. \code{newsym} must not be deallocated after adding it to symtabAPI.
+We suggest using \code{createFunction} or \code{createVariable} when possible.
+}
+
+\begin{apient}
+bool addSymbol(Symbol *newsym,
+               Symbol *referringSymbol)
+\end{apient}
+\apidesc{
+This method adds a new dynamic symbol \code{newsym} which refers to \code{referringSymbol} to all of the internal data structures. \code{newsym} must represent a dynamic symbol. The primary name of the newsym must be a mangled name. All the required version names are allocated automatically. Also if the \code{referringSymbol} belongs to a shared library which is not currently a dependency, the shared library is added to the list of dependencies implicitly. Returns \code{true} on success and \code{false} on failure. A new copy of \code{newsym} is not made. \code{newsym} must not be deallocated after adding it to symtabAPI.
+}
+
+\begin{apient}
+bool deleteFunction(Function *func)
+\end{apient}
+\apidesc{
+This method deletes the \code{Function} \code{func} from all of symtab's data structures. It will not be available for further queries. Return \code{true} on success and \code{false} if \code{func} is not owned by the \code{Symtab}.
+}
+
+\begin{apient}
+bool deleteVariable(Variable *var)
+\end{apient}
+\apidesc{
+This method deletes the variable \code{var} from all of symtab's data structures. It will not be available for further queries. Return \code{true} on success and \code{false} if \code{var} is not owned by the \code{Symtab}.
+}
+
+\begin{apient}
+bool deleteSymbol(Symbol *sym)
+\end{apient}
+\apidesc{
+This method deletes the symbol \code{sym} from all of symtab's data structures. It
+will not be available for further queries. Return \code{true} on success and \code{false} if
+func is not owned by the \code{Symtab}.}
+
+\begin{apient}
+bool addRegion(Offset vaddr,
+               void *data,
+               unsigned int dataSize,
+               std::string name,
+               Region::RegionType rType_,
+               bool loadable = false,
+               unsigned long memAlign = sizeof(unsigned),
+               bool tls = false)
+\end{apient}
+\apidesc{
+Creates a new region using the specified parameters and adds it to the file. 
+}
+
+\begin{apient}
+Offset getFreeOffset(unsigned size)
+\end{apient}
+\apidesc{
+	Find a contiguous region of unused space within the file (which may be at the end of the file) of the specified size and return an offset to the start of the region. Useful for allocating new regions. 
+}
+
+\begin{apient}
+bool addRegion(Region *newreg);
+\end{apient}
+\apidesc{
+Adds the provided region to the file. 
+}
+
+\subsubsection{Catch and Exception block lookup}
+
+\begin{apient}
+bool getAllExceptions(vector<ExceptionBlock *> &exceptions)
+\end{apient}
+\apidesc{
+This method retrieves all the exception blocks in the \code{Object} file. 
+Returns \code{false} if there are no exception blocks else returns \code{true} with exceptions containing a vector of \code{ExceptionBlock}s.
+}
+
+\begin{apient}
+bool findException(ExceptionBlock &excp,
+                   Offset addr)
+\end{apient}
+\apidesc{
+This method returns the exception block in the binary at the offset \code{addr}. 
+Returns \code{false} if there is no exception block at the given offset else returns \code{true} with \code{excp} containing the exception block.
+}
+
+\begin{apient}
+bool findCatchBlock(ExceptionBlock &excp,
+                    Offset addr,
+                    unsigned size = 0)
+\end{apient}
+\apidesc{
+This method returns \code{true} if the address range \code{[addr, addr+size]} contains a catch
+block, with \code{excp} pointing to the appropriate block, else returns \code{false}.}
+
+\subsubsection{Symtab information}
+
+\begin{apient}
+typedef enum {
+    obj_Unknown,
+    obj_SharedLib,
+    obj_Executable,
+    obj_RelocatableFile,
+} ObjectType;
+\end{apient}
+
+\begin{apient}
+bool isCode(const Offset where) const
+\end{apient}
+\apidesc{
+This method checks if the given offset \code{where} belongs to the text section. Returns \code{true} if that is the case or else returns \code{false}.
+}
+
+\begin{apient}
+bool isData(const Offset where) const
+\end{apient}
+\apidesc{
+This method checks if the given offset \code{where} belongs to the data section. Returns \code{true} if that is the case or else returns \code{false}.
+}
+
+\begin{apient}
+bool isValidOffset(const Offset where) const
+\end{apient}
+\apidesc{
+This method checks if the given offset \code{where} is valid. For an offset to be valid it should be aligned and it should be a valid code offset or a valid data offset.
+Returns \code{true} if it succeeds or else returns \code{false}.
+}
+
+\subsubsection{Line number information}
+
+\begin{apient}
+bool getAddressRanges(vector<pair<Offset, Offset> > & ranges,
+                      string lineSource,
+                      unsigned int LineNo)
+\end{apient}
+\apidesc{
+This method returns the address ranges in \code{ranges} corresponding to the line with line number \code{lineNo} in the source file \code{lineSource}. Searches all modules for the given source.
+Return \code{true} if at least one address range corresponding to the line number was found and returns \code{false} if none found.
+}
+
+\begin{apient}
+bool getSourceLines(vector<LineNoTuple> &lines,
+                    Offset addressInRange)
+\end{apient}
+\apidesc{
+This method returns the source file names and line numbers corresponding to the given address \code{addressInRange}. Searches all modules for the given source. 
+Return \code{true} if at least one tuple corresponding to the offset was found and returns \code{false} if none found.
+}
+
+\subsubsection{Type information}
+
+\begin{apient}
+void parseTypesNow()
+\end{apient}
+\apidesc{
+Forces SymtabAPI to perform type parsing instead of delaying it to when needed.
+}
+
+\begin{apient}
+bool findType(Type *&type,
+              string name)
+\end{apient}
+\apidesc{
+Performs a look up among all the built-in types, standard types and user-defined types and returns a handle to the found type with name \code{name}. 
+Returns \code{true} if a type is found with type containing the handle to the type, else return \code{false}.
+}
+
+\begin{apient}
+bool addType(Type * type)
+\end{apient}
+\apidesc{
+Adds a new type \code{type} to symtabAPI. Return \code{true} on success.
+}
+
+\begin{apient}
+static std::vector<Type *> * getAllstdTypes()
+\end{apient}
+\apidesc{
+Returns all the standard types that normally occur in a program.
+}
+
+\begin{apient}
+static std::vector<Type *> * getAllbuiltInTypes()
+\end{apient}
+\apidesc{
+Returns all the built-in types defined in the binary.
+}
+
+\begin{apient}
+bool findLocalVariable(vector<localVar *> &vars,
+                       string name)
+\end{apient}
+\apidesc{
+The method returns a list of local variables named name within the object file. 
+Returns \code{true} with \code{vars} containing a list of \code{localVar} objects corresponding to the local variables if found or else returns \code{false}.
+}
+
+\begin{apient}
+bool findVariableType(Type *&type,
+                      std::string name)
+\end{apient}
+\apidesc{
+This method looks up a global variable with name \code{name} and returns its type attribute.
+Returns \code{true} if a variable is found or returns \code{false} with type set to \code{NULL}.
+}
+
+\begin{apient}
+typedef enum ... SymtabError
+\end{apient}
+\apidesc{ \code{SymtabError} can take one of the following values.}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+SymtabError enum& Meaning\\
+\midrule
+Obj\_Parsing & An error occurred during object parsing(internal error).\\
+Syms\_To\_Functions & An error occurred in converting symbols to functions(internal error).\\
+Build\_Function\_Lists & An error occurred while building function lists(internal error).\\
+No\_Such\_Function & No matching function exists with the given inputs.\\
+No\_Such\_Variable & No matching variable exists with the given inputs.\\
+No\_Such\_Module & No matching module exists with the given inputs.\\
+No\_Such\_Symbol & No matching symbol exists with the given inputs.\\
+No\_Such\_Region & No matching region exists with the given inputs.\\
+No\_Such\_Member & No matching member exists in the archive with the given inputs.\\
+Not\_A\_File & Binary to be parsed may be an archive and not a file.\\
+Not\_An\_Archive & Binary to be parsed is not an archive.\\
+Duplicate\_Symbol & Duplicate symbol found in symbol table.\\
+Export\_Error & Error occurred during export of modified symbol table. \\
+Emit\_Error & Error occurred during generation of modified binary. \\
+Invalid\_Flags & Flags passed are invalid.\\
+Bad\_Frame\_Data & Stack walking DWARF information has bad frame data.\\
+No\_Frame\_Entry & No stack walking frame data found in debug information for this location.\\
+Frame\_Read\_Error & Failed to read stack frame data.\\
+Multiple\_Region\_Matches & Multiple regions match the provided data. \\ 
+No\_Error & Previous operation did not result in failure.\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{apient}
+static SymtabError getLastSymtabError()
+\end{apient}
+\apidesc{
+This method returns an error value for the previously performed operation that resulted in a failure. 
+SymtabAPI sets a global error value in case of error during any operation. This call returns the last error that occurred while performing any operation.
+}
+
+\begin{apient}
+static string printError(SymtabError serr)
+\end{apient}
+\apidesc{
+This method returns a detailed description of the enum value serr in human
+readable format.}
