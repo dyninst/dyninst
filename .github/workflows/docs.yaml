@@ -1,0 +1,38 @@
+on:
+  pull_request:
+     branches:
+        - master
+     paths:
+       - '**.h'
+       - '**.C'
+       - '**.c'
+  workflow_dispatch:
+
+jobs:
+
+  build-doxygen:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    permissions:
+      packages: read
+    container:
+      image: ghcr.io/dyninst/amd64/fedora-41-base:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: PR tests (${{ matrix.os }}, ${{ matrix.compiler }}, ${{ matrix.install-dir }})
+    steps:
+      - name: Install Doxygen
+        run: |
+          dnf install doxygen
+
+      - name: Checkout Dyninst
+        uses: actions/checkout@v4
+        with:
+          path: "src"  # relative to ${GITHUB_WORKSPACE}
+
+      - name: Build Doxygen
+        run: |
+          doxygen doxgen.conf
+
