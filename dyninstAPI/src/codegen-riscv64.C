@@ -885,7 +885,7 @@ bool insnCodeGen::generateCalcImm(codeGen &gen,
 
     // lui/auipc must be generated
     if (isRel) {
-        generateAuipc(gen, rd, 0, useRVC);
+        generateAuipc(gen, rd, lui_imm, useRVC);
     }
     else {
         generateLui(gen, rd, lui_imm, useRVC);
