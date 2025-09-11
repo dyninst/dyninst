@@ -117,7 +117,8 @@ namespace Dyninst { namespace InstructionAPI {
       case e_syscall:
       case e_int:
         return c_SyscallInsn;
-
+      case e_hlt:
+        return c_AbortInsn;
       default:
       	return c_NoCategory;
     }
