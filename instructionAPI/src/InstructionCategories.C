@@ -118,6 +118,10 @@ namespace Dyninst { namespace InstructionAPI {
       case e_int:
         return c_SyscallInsn;
       case e_hlt:
+      case e_int3:
+      case e_ud2:
+      case aarch64_op_brk:
+      case aarch64_op_hlt:
         return c_AbortInsn;
       default:
       	return c_NoCategory;
