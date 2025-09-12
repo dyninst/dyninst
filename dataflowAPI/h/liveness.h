@@ -82,7 +82,11 @@ public:
 
 	bool query(ParseAPI::Location loc, Type type, const MachRegister &machReg, bool& live);
 	bool query(ParseAPI::Location loc, Type type, bitArray &bitarray);
-
+    // Helper method for reporting the liveness for instructions within the same block
+    // Speed up by avoiding repeated query
+	bool queryBlock(ParseAPI::Location loc, Type type, vector<Address> & addrs,vector<bitArray> & liveRegsPre, bitArray & blockOutLiveRegs, vector<bitArray> &defRegs, vector<bitArray>& useRegs);
+    // deprecated 
+	bool queryBlock(ParseAPI::Location loc, Type type, vector<Address> & addrs,vector<bitArray> & liveRegs , bitArray & blockOutLiveRegs);
 	ErrorType getLastError(){ return errorno; }
 
 	void clean(ParseAPI::Function *func);
