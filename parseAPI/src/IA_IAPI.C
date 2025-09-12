@@ -318,10 +318,7 @@ bool IA_IAPI::hasCFT() const
 
 bool IA_IAPI::isAbort() const
 {
-    entryID e = curInsn().getOperation().getID();
-    return e == e_int3 ||
-        e == e_hlt ||
-        e == e_ud2;
+    return curInsn().isAbort();
 }
 
 bool IA_IAPI::isInvalidInsn() const
