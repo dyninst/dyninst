@@ -36,6 +36,13 @@ add_test(NAME instructionAPI_x86_data_transfer_tests COMMAND x86_data_transfer)
 set_tests_properties(instructionAPI_x86_data_transfer_tests PROPERTIES LABELS
                                                                        "integration")
 
+add_executable(x86_sse sse.cpp)
+target_compile_options(x86_sse PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(x86_sse PRIVATE instructionAPI cft_tests memory_tests opcode_tests
+                                      register_tests)
+add_test(NAME instructionAPI_x86_sse COMMAND x86_sse)
+set_tests_properties(instructionAPI_x86_sse PROPERTIES LABELS "integration")
+
 add_executable(x86_bind_eval_tests bind_eval.cpp)
 target_compile_options(x86_bind_eval_tests PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
 target_link_libraries(x86_bind_eval_tests PRIVATE instructionAPI)
