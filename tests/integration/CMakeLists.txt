@@ -1,3 +1,5 @@
 include_guard(GLOBAL)
 
 message(STATUS "Enabling integration tests")
+
+add_subdirectory(InstructionAPI/decoder)
