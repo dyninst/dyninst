@@ -758,8 +758,8 @@ namespace {
 
       // All others
       case e_leave:
-        ops.emplace_back(sp, is_read, is_written);
-        ops.emplace_back(ebp, is_read, is_written);
+        ops.emplace_back(sp, is_read, !is_written);
+        ops.emplace_back(ebp, is_read, !is_written);
         break;
 
       default:
