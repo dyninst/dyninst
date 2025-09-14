@@ -47,6 +47,11 @@ namespace Dyninst { namespace InstructionAPI {
                 << "'\n";
       failed = true;
     }
+    if(insn.isConditional() != expected.isConditional) {
+      std::cerr << std::boolalpha << "Expected isConditional() = " << expected.isConditional << ", got '"
+                << insn.isConditional() << "'\n";
+      failed = true;
+    }
 
     // Check the CFT-level properties
     for(auto const &actual : all_cfts) {
