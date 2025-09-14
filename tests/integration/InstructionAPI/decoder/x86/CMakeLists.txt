@@ -6,3 +6,10 @@ target_link_libraries(arithmetic_tests PRIVATE instructionAPI cft_tests memory_t
                                                register_tests)
 add_test(NAME instructionAPI_arithmetic_tests COMMAND arithmetic_tests)
 set_tests_properties(instructionAPI_arithmetic_tests PROPERTIES LABELS "integration")
+
+add_executable(branches_tests branches.cpp)
+target_compile_options(branches_tests PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(branches_tests PRIVATE instructionAPI cft_tests memory_tests
+                                             register_tests)
+add_test(NAME instructionAPI_branches_tests COMMAND branches_tests)
+set_tests_properties(instructionAPI_branches_tests PROPERTIES LABELS "integration")
