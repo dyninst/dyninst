@@ -27,3 +27,10 @@ target_link_libraries(data_transfer_tests PRIVATE instructionAPI cft_tests memor
                                                   register_tests)
 add_test(NAME instructionAPI_data_transfer_tests COMMAND data_transfer_tests)
 set_tests_properties(instructionAPI_data_transfer_tests PROPERTIES LABELS "integration")
+
+add_executable(sse_tests sse.cpp)
+target_compile_options(sse_tests PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(sse_tests PRIVATE instructionAPI cft_tests memory_tests
+                                        register_tests)
+add_test(NAME instructionAPI_sse_tests COMMAND sse_tests)
+set_tests_properties(instructionAPI_sse_tests PROPERTIES LABELS "integration")
