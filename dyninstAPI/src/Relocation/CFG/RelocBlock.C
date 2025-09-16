@@ -335,7 +335,7 @@ void RelocBlock::createCFWidget() {
    // the block. 
    // TODO: Maybe this should be done for all endblocks that 
    // doesn't end with CF instruction.
-   if(insn.isAbort())
+   if(insn.isSoftwareException())
       return;
    elements_.push_back(cfWidget_);
 }

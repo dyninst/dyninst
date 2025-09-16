@@ -1864,7 +1864,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 func->_no_stack_frame = false;
             } else if (ah->isLeave()) {
                 func->_no_stack_frame = false;
-            } else if ( ah->isAbort() ) {
+            } else if ( ah->isSoftwareException() ) {
                 // 4. `abort-causing' instructions
                 end_block(cur,ahPtr);
                 set_edge_parsing_status(frame, cur->last(), cur);

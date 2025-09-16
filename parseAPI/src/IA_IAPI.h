@@ -84,7 +84,7 @@ class IA_IAPI : public InstructionAdapter {
         virtual bool hasCFT() const;
         virtual size_t getSize() const;
         virtual bool isFrameSetupInsn() const;
-        virtual bool isAbort() const;
+        virtual bool isSoftwareException() const;
         virtual bool isInvalidInsn() const;
         virtual bool isGarbageInsn() const; //true for insns indicative of bad parse, for defensive mode
         virtual void

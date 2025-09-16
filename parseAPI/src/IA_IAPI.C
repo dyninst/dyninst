@@ -316,9 +316,9 @@ bool IA_IAPI::hasCFT() const
     return hascftstatus.second;
 }
 
-bool IA_IAPI::isAbort() const
+bool IA_IAPI::isSoftwareException() const
 {
-    return curInsn().isAbort();
+    return curInsn().isSoftwareException();
 }
 
 bool IA_IAPI::isInvalidInsn() const

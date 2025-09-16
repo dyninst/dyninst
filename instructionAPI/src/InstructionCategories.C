@@ -122,7 +122,9 @@ namespace Dyninst { namespace InstructionAPI {
       case e_ud2:
       case aarch64_op_brk:
       case aarch64_op_hlt:
-        return c_AbortInsn;
+      case aarch64_op_wfe_hint:
+      case aarch64_op_wfi_hint:
+        return c_SoftwareExceptionInsn;
       default:
       	return c_NoCategory;
     }
