@@ -329,6 +329,14 @@ void RelocBlock::createCFWidget() {
    else {
       cfWidget_ = CFWidget::create(origAddr_);
    }
+   // FuncExit instrumentation will insert instrumentation before
+   // the last instruction of the block, thus we need to prevent a
+   // dummy CFWidget from being added as the last instruction of
+   // the block.
+   // TODO: Maybe this should be done for all endblocks that
+   // doesn't end with CF instruction.
+   if(insn.isSoftwareException())
+      return;
    elements_.push_back(cfWidget_);
 }
 
