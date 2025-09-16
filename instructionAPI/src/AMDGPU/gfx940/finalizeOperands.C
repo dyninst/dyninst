@@ -1339,9 +1339,9 @@ namespace InstructionAPI {
             case 53:  case 54:   // S_ANDN1_WREXEC_B64,S_ANDN2_WREXEC_B64,
                 appendOPR_SREG(layout.SDST,false,true,2);
                 appendOPR_SSRC(layout.SSRC0,true,false,2);
-                appendOPR_SDST_EXEC(126,false,true,1,true);
+                appendOPR_SDST_EXEC(126,false,true,2,true);
                 appendOPR_SSRC_SPECIAL_SCC(253,false,true,1,true);
-                appendOPR_SDST_EXEC(126,true,false,1,true);
+                appendOPR_SDST_EXEC(126,true,false,2,true);
                 break;
             case 42:   // S_MOVRELS_B32,
                 appendOPR_SDST(layout.SDST,false,true);
@@ -1365,7 +1365,7 @@ namespace InstructionAPI {
                 break;
             case 46:   // S_CBRANCH_JOIN,
                 appendOPR_SREG(layout.SSRC0,true,false);
-                appendOPR_SDST_EXEC(126,false,true,1,true);
+                appendOPR_SDST_EXEC(126,false,true,2,true);
                 appendOPR_PC(0,false,true,1,true);
                 break;
             case 50:   // S_SET_GPR_IDX_IDX,
@@ -1566,7 +1566,7 @@ namespace InstructionAPI {
                 setBranch();
                 setConditionalBranch();
                 makeBranchTarget(isCall,isConditional,layout.SIMM16);
-                appendOPR_SDST_EXEC(126,true,false,1,true);
+                appendOPR_SDST_EXEC(126,true,false,2,true);
                 break;
             case 12:   // S_WAITCNT,
                 {
@@ -1864,7 +1864,7 @@ namespace InstructionAPI {
                 appendOPR_SDST(layout.VDST,false,true,2);
                 appendOPR_SRC_NOLIT(layout.SRC0,true,false);
                 appendOPR_SRC_SIMPLE(layout.SRC1,true,false);
-                appendOPR_SDST_EXEC(126,false,true,1,true);
+                appendOPR_SDST_EXEC(126,false,true,2,true);
                 break;
             case 18:   // V_CMP_CLASS_F64,
                 appendOPR_SREG(layout.VDST,false,true,2);
@@ -1875,7 +1875,7 @@ namespace InstructionAPI {
                 appendOPR_SDST(layout.VDST,false,true,2);
                 appendOPR_SRC_NOLIT(layout.SRC0,true,false,2);
                 appendOPR_SRC_SIMPLE(layout.SRC1,true,false);
-                appendOPR_SDST_EXEC(126,false,true,1,true);
+                appendOPR_SDST_EXEC(126,false,true,2,true);
                 break;
             case 96:  case 97:  case 98:  case 99:  case 100:   // V_CMP_F_F64,V_CMP_LT_F64,V_CMP_EQ_F64,V_CMP_LE_F64,V_CMP_GT_F64,
             case 101:  case 102:  case 103:  case 104:   // V_CMP_LG_F64,V_CMP_GE_F64,V_CMP_O_F64,V_CMP_U_F64,
@@ -1900,7 +1900,7 @@ namespace InstructionAPI {
                 appendOPR_SDST(layout.VDST,false,true,2);
                 appendOPR_SRC_NOLIT(layout.SRC0,true,false,2);
                 appendOPR_SRC_SIMPLE(layout.SRC1,true,false,2);
-                appendOPR_SDST_EXEC(126,false,true,1,true);
+                appendOPR_SDST_EXEC(126,false,true,2,true);
                 break;
         }
     }
@@ -2228,7 +2228,7 @@ namespace InstructionAPI {
                 appendOPR_VCC(0,false,true,2);
                 appendOPR_SRC(layout.SRC0,true,false);
                 appendOPR_VGPR(layout.VSRC1,true,false);
-                appendOPR_SDST_EXEC(126,false,true,1,true);
+                appendOPR_SDST_EXEC(126,false,true,2,true);
                 break;
             case 18:   // V_CMP_CLASS_F64,
                 appendOPR_VCC(0,false,true,2);
@@ -2239,7 +2239,7 @@ namespace InstructionAPI {
                 appendOPR_VCC(0,false,true,2);
                 appendOPR_SRC(layout.SRC0,true,false,2);
                 appendOPR_VGPR(layout.VSRC1,true,false);
-                appendOPR_SDST_EXEC(126,false,true,1,true);
+                appendOPR_SDST_EXEC(126,false,true,2,true);
                 break;
             case 96:  case 97:  case 98:  case 99:  case 100:   // V_CMP_F_F64,V_CMP_LT_F64,V_CMP_EQ_F64,V_CMP_LE_F64,V_CMP_GT_F64,
             case 101:  case 102:  case 103:  case 104:   // V_CMP_LG_F64,V_CMP_GE_F64,V_CMP_O_F64,V_CMP_U_F64,
@@ -2264,7 +2264,7 @@ namespace InstructionAPI {
                 appendOPR_VCC(0,false,true,2);
                 appendOPR_SRC(layout.SRC0,true,false,2);
                 appendOPR_VGPR(layout.VSRC1,true,false,2);
-                appendOPR_SDST_EXEC(126,false,true,1,true);
+                appendOPR_SDST_EXEC(126,false,true,2,true);
                 break;
         }
     }
