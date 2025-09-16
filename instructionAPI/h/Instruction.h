@@ -140,6 +140,7 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT bool isInterrupt() const { return getCategory() == c_InterruptInsn; }
     DYNINST_EXPORT bool isVector() const { return getCategory() == c_VectorInsn; }
     DYNINST_EXPORT bool isGPUKernelExit() const { return getCategory() == c_GPUKernelExitInsn; }
+    DYNINST_EXPORT bool isSoftwareException() const { return isGPUKernelExit() || getCategory() == c_SoftwareExceptionInsn; }
 
     typedef std::list<CFT>::const_iterator cftConstIter;
     DYNINST_EXPORT cftConstIter cft_begin() const { return m_Successors.begin(); }

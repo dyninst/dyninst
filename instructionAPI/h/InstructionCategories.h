@@ -49,6 +49,7 @@ namespace Dyninst { namespace InstructionAPI {
     c_VectorInsn,        // operates on more than one value simultaneously
     c_GPUKernelExitInsn, // AMD GPU kernel exit
     c_TransactionalInsn, // memory transaction (fences, hardware locks, etc.)
+    c_SoftwareExceptionInsn,         // Software Exception Insn exit
     c_NoCategory
   };
 

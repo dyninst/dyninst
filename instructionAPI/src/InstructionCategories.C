@@ -117,7 +117,14 @@ namespace Dyninst { namespace InstructionAPI {
       case e_syscall:
       case e_int:
         return c_SyscallInsn;
-
+      case e_hlt:
+      case e_int3:
+      case e_ud2:
+      case aarch64_op_brk:
+      case aarch64_op_hlt:
+      case aarch64_op_wfe_hint:
+      case aarch64_op_wfi_hint:
+        return c_SoftwareExceptionInsn;
       default:
       	return c_NoCategory;
     }

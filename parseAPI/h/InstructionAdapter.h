@@ -80,7 +80,6 @@ class InstructionAdapter
     virtual size_t getSize() const = 0;
     virtual bool isFrameSetupInsn() const = 0;
     virtual bool isInvalidInsn() const = 0;
-    virtual bool isAbort() const = 0;
     virtual bool isGarbageInsn() const = 0; //true for insns indicative of bad parse, for defensive mode
     virtual void
             getNewEdges(std::vector<std::pair<Address,ParseAPI::EdgeTypeEnum> >&
@@ -119,6 +118,8 @@ const;
     virtual bool isReturnAddrSave(Address &ret_addr) const = 0; // ret_addr holds the return address pushed in the stack using mflr at function entry 
     virtual bool isTailCall(const ParseAPI::Function *, ParseAPI::EdgeTypeEnum type, unsigned int num_insns,
                             const std::set<Address> &) const = 0;
+
+    virtual bool isSoftwareException() const = 0;
     protected:
     	// Uses pattern heuristics or backward slicing to determine if a blr instruction is a return or jump table
         virtual bool isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const = 0;
