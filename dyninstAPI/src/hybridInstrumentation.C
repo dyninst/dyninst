@@ -244,7 +244,7 @@ int HybridAnalysis::saveInstrumentationHandle(BPatch_point *point,
     }
 
     mal_printf("FAILED TO INSTRUMENT at point %lx %s[%d]\n", 
-               (unsigned long)point->llpoint()->block()->last(),FILE__,__LINE__);
+               (unsigned long)point->getPoint()->block()->last(),FILE__,__LINE__);
     return 0;
 }
 
@@ -353,10 +353,10 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             BPatch_stopThreadExpr *dynamicTransferSnippet;
             bool useCache = canUseCache(curPoint);
             mal_printf("hybridInstrumentation[%d] monitoring unresolved at 0x%lx: "
-                       "indirect, useCache=%d\n", __LINE__,(unsigned long)curPoint->llpoint()->block()->last(),(int)useCache);
+                       "indirect, useCache=%d\n", __LINE__,(unsigned long)curPoint->getPoint()->block()->last(),(int)useCache);
             if (useCache) {
                 dynamicTransferSnippet = new BPatch_stopThreadExpr(badTransferCB_wrapper, 
-                    dynTarget, *curPoint->llpoint()->func()->obj(), true, BPatch_interpAsTarget);
+                    dynTarget, *curPoint->getPoint()->func()->obj(), true, BPatch_interpAsTarget);
                 cachePoints_.insert(curPoint);
             } else {
                 dynamicTransferSnippet = new BPatch_stopThreadExpr(badTransferCB_wrapper, 
@@ -386,7 +386,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             vector<Address> targets;
             if (!getCFTargets(curPoint, targets)) {
                 mal_printf("ERROR: Could not get target for static point[%u] "
-                       "[%lx] -> [?]\n", pidx, curPoint->llpoint()->block()->last());
+                       "[%lx] -> [?]\n", pidx, curPoint->getPoint()->block()->last());
                 continue;
             }
 
@@ -399,11 +399,11 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             }
             if (curPoint->getPointType() == BPatch_locSubroutine) {
                 mal_printf("hybridInstrumentation[%d] monitoring at 0x%lx: call 0x%lx\n",
-                            __LINE__,curPoint->llpoint()->block()->last(), 
+                            __LINE__,curPoint->getPoint()->block()->last(), 
                             target);
             } else {
                 mal_printf("hybridInstrumentation[%d] monitoring at 0x%lx: jump 0x%lx\n",
-                            __LINE__,curPoint->llpoint()->block()->last(), 
+                            __LINE__,curPoint->getPoint()->block()->last(), 
                             target);
             }
 
@@ -438,7 +438,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
         }
         BPatch_point *curPoint = points[pidx];
         mal_printf("hybridInstrumentation[%d]monitoring at 0x%lx: abruptEnd point\n",
-                    __LINE__,curPoint->llpoint()->block()->last());
+                    __LINE__,curPoint->getPoint()->block()->last());
 
         // set up args and instrument
         if (useInsertionSet && 0 == pointCount) {
@@ -468,9 +468,9 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 			// Workaround for a parsing inconsistency - instrument this with a snippet
 			// if _any_ of the functions that contain a retblock have unknown return status...
 			bool instrument = false;
-         if (BPatch_normalMode != SCAST_MO(curPoint->llpoint()->obj())->hybridMode()) {
+         if (BPatch_normalMode != SCAST_MO(curPoint->getPoint()->obj())->hybridMode()) {
              std::vector<ParseAPI::Function *> funcs;
-             curPoint->llpoint()->block()->llb()->getFuncs(funcs);
+             curPoint->getPoint()->block()->llb()->getFuncs(funcs);
              for (unsigned f_iter = 0; f_iter < funcs.size(); ++f_iter) {
                  if (((parse_func *)funcs[f_iter])->init_retstatus() != ParseAPI::RETURN ||
                      funcs[f_iter]->tampersStack() == ParseAPI::TAMPER_NONZERO) 
@@ -523,7 +523,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                     func->getAddressRange(s, e);
                     mal_printf("monitoring return from func[%lx %lx] at %lx\n", 
                                s, e,
-                               curPoint->llpoint()->block()->last());
+                               curPoint->getPoint()->block()->last());
                 }
                 else if (curPoint->isDynamic()) {
                     // case 2: above check ensures that this is not a return 
@@ -532,7 +532,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                         interp = BPatch_interpAsTarget;
                         calcSnippet = & dynTarget;
                         mal_printf("instrumenting indirect non-return exit "
-                                   "at 0x%lx %s[%d]\n", curPoint->llpoint()->block()->last(), 
+                                   "at 0x%lx %s[%d]\n", curPoint->getPoint()->block()->last(), 
                                    FILE__,__LINE__);
                 }
                 else { // tail call, do nothing?
@@ -540,7 +540,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                     fprintf(stderr,"WARNING: exit point at %lx that isn't "
                             "a return or indirect control transfer, what "
                             "kind of point is this? not instrumenting %s[%d]\n", 
-                            (Address)curPoint->llpoint()->block()->last(), FILE__,__LINE__);
+                            (Address)curPoint->getPoint()->block()->last(), FILE__,__LINE__);
                     continue;
                 }
 
@@ -752,15 +752,15 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
             Address curFallThroughAddr = (*cIter)->getCallFallThroughAddr();
             if ((*cIter)->getInsnAtPoint().isValid() &&
                 !(*cIter)->getInsnAtPoint().isBranch() &&
-                BPatch_defensiveMode == (*cIter)->llpoint()->func()->obj()->hybridMode() &&
+                BPatch_defensiveMode == (*cIter)->getPoint()->func()->obj()->hybridMode() &&
                 ! hasEdge((*cIter)->getFunction(), 
-                          (Address)((*cIter)->llpoint()->block()->start()), 
+                          (Address)((*cIter)->getPoint()->block()->start()), 
                           curFallThroughAddr) &&
                 dupFuncCheck.find((*cIter)->getFunction()) == dupFuncCheck.end())
             {
                 mal_printf("%s[%d] Function call at 0x%lx is returning, adding edge "
                           "after calls to the function at %lx\n", __FILE__,__LINE__,
-                          callPoint->llpoint()->block()->last(), (*cIter)->llpoint()->block()->last());
+                          callPoint->getPoint()->block()->last(), (*cIter)->getPoint()->block()->last());
 
                 parseNewEdgeInFunction( *cIter , curFallThroughAddr , false );
 
@@ -790,12 +790,12 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
 
     if (! parsedAfterCallPoint && 
         ! hasEdge(callPoint->getFunction(), 
-                  (Address)callPoint->llpoint()->block()->start(), 
+                  (Address)callPoint->getPoint()->block()->start(), 
                   fallThroughAddr)) 
     {
         mal_printf("Function call at 0x%lx is returning, "
                     "adding edge to fallthrough at %lx %s[%d]\n", 
-                    callPoint->llpoint()->block()->last(), fallThroughAddr, 
+                    callPoint->getPoint()->block()->last(), fallThroughAddr, 
                     FILE__, __LINE__);
 
         parseNewEdgeInFunction( callPoint , fallThroughAddr , false );
@@ -835,10 +835,10 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
             if (callPoint->isDynamic()) {
                 mal_printf("replacing instrumentation at indirect call point "
                             "%lx with instrumentation that uses the cache "
-                            "%s[%d]\n", callPoint->llpoint()->block()->last(),FILE__,__LINE__);
+                            "%s[%d]\n", callPoint->getPoint()->block()->last(),FILE__,__LINE__);
                 BPatch_stopThreadExpr newSnippet (badTransferCB_wrapper, 
                         BPatch_dynamicTargetExpr(), 
-                        *callPoint->llpoint()->func()->obj(), 
+                        *callPoint->getPoint()->func()->obj(), 
                         true, BPatch_interpAsTarget);
                 cachePoints_.insert(callPoint);
                 BPatchSnippetHandle *handle = proc()->insertSnippet
@@ -852,7 +852,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
     bool success = false;
     if (didSomeParsing) { // called parseNewEdge
         vector<ParseAPI::Function*> imgFuncs;
-        callPoint->llpoint()->block()->llb()->getFuncs(imgFuncs);
+        callPoint->getPoint()->block()->llb()->getFuncs(imgFuncs);
         for (unsigned fidx=0; fidx < imgFuncs.size(); fidx++) 
         {
             BPatch_function *func = proc()->findOrCreateBPFunc(
@@ -862,12 +862,12 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
             func->getCFG()->invalidate();
 
             if (func != callPoint->getFunction() &&
-                !hasEdge(func,(Address)callPoint->llpoint()->block()->start(),fallThroughAddr))
+                !hasEdge(func,(Address)callPoint->getPoint()->block()->start(),fallThroughAddr))
             {
                 BPatch_point *sharedCallPoint = NULL;
                 std::vector<BPatch_point *> *points = func->findPoint(BPatch_subroutine);
                 for (unsigned i = 0; i < points->size(); ++i) {
-                    if ((*points)[i]->llpoint()->block() == callPoint->llpoint()->block()) {
+                    if ((*points)[i]->getPoint()->block() == callPoint->getPoint()->block()) {
                         sharedCallPoint = (*points)[i];
                         break;
                     }
@@ -897,7 +897,7 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
 {
     // see if the edge already exists
     using namespace ParseAPI;
-    const Block::edgelist &edges = sourcePt->llpoint()->block()->llb()->targets();
+    const Block::edgelist &edges = sourcePt->getPoint()->block()->llb()->targets();
     Block::edgelist::const_iterator eit = edges.begin();
     mapped_object *targObj = proc()->lowlevel_process()->findObject(target);
     if (targObj) {
@@ -909,7 +909,7 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
     if (targObj && eit == edges.end()) {
 
         mal_printf("Adding indirect edge %lx->%lx", 
-                   (Address)sourcePt->llpoint()->block()->last(), target);
+                   (Address)sourcePt->getPoint()->block()->last(), target);
 
         // edge does not exist, determine desired edge type
         EdgeTypeEnum etype;
@@ -921,7 +921,7 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
             mal_printf(" of type RET\n");
         } else {
             func_instance *tFunc = targObj->findFuncByEntry(target);
-            Block *srcBlk = sourcePt->llpoint()->block()->llb();
+            Block *srcBlk = sourcePt->getPoint()->block()->llb();
             if (tFunc && !tFunc->ifunc()->contains(srcBlk)) {
                 etype = CALL; // this edge is an indirect tail call
                 mal_printf(" as indirect tail-call of type CALL\n");
@@ -950,7 +950,7 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
         // the function looks good, add the edge
 		vector<CodeObject::NewEdgeToParse> worklist;
 		worklist.push_back(
-            CodeObject::NewEdgeToParse(sourcePt->llpoint()->block()->llb(), 
+            CodeObject::NewEdgeToParse(sourcePt->getPoint()->block()->llb(), 
                                        target - targObj->codeBase(), etype));
         targObj->parse_img()->codeObject()->parseNewEdges(worklist);
         return true;
@@ -1059,7 +1059,7 @@ void HybridAnalysis::parseNewEdgeInFunction(BPatch_point *sourcePoint,
 {
     // 0. first see if the edge needs to be parsed
     if (hasEdge(sourcePoint->getFunction(),
-                (Address)sourcePoint->llpoint()->block()->start(),
+                (Address)sourcePoint->getPoint()->block()->start(),
                 target)) 
     {
         return;
@@ -1103,7 +1103,7 @@ void HybridAnalysis::parseNewEdgeInFunction(BPatch_point *sourcePoint,
     }
 
     // 2. parse the new edge
-    if ( ! sourceFunc->parseNewEdge( (Address)sourcePoint->llpoint()->block()->start() , 
+    if ( ! sourceFunc->parseNewEdge( (Address)sourcePoint->getPoint()->block()->start() , 
                                      target ) ) 
     {
         assert(0);//this case should be ruled out by the call to sameRegion
@@ -1154,11 +1154,11 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
     if (targFunc) {
         targFunc->getName(funcName,32);
         mal_printf("%lx => %lx, in module %s to known func %s\n",
-                    point->llpoint()->block()->last(),target,modName,funcName);
+                    point->getPoint()->block()->last(),target,modName,funcName);
     } else {
         funcName[0]= '\0';
         mal_printf("%lx => %lx, in module %s \n",
-                    point->llpoint()->block()->last(),target,modName);
+                    point->getPoint()->block()->last(),target,modName);
     }
 
     // 1.1 if targMod is a system library don't parse at target.  However, if the 
@@ -1170,14 +1170,14 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
         if (point->getPointType() == BPatch_subroutine) {
             mal_printf("stopThread instrumentation found call %lx=>%lx, "
                 "target is in module %s, parsing at fallthrough %s[%d]\n",
-                point->llpoint()->block()->last(), target, modName,FILE__,__LINE__);
+                point->getPoint()->block()->last(), target, modName,FILE__,__LINE__);
             parseAfterCallAndInstrument(point, targFunc, false);
             doMoreProcessing = false;
         } else if (point->getPointType() == BPatch_exit) {
             mal_printf("WARNING: stopThread instrumentation found return %lx=>%lx, "
                 "into module %s, this indicates obfuscation or that there was a "
                 "call from that module into our code %s[%d]\n",
-                point->llpoint()->block()->last(), target, modName,FILE__,__LINE__);
+                point->getPoint()->block()->last(), target, modName,FILE__,__LINE__);
             instReturns = true;
         } else {
             // jump into system library
@@ -1188,7 +1188,7 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
             // jump ptr
             mal_printf("WARNING: transfer into non-instrumented system module "
                 "%s at: %lx=>%lx %s[%d]\n", modName, 
-                point->llpoint()->block()->last(), target,FILE__,__LINE__);
+                point->getPoint()->block()->last(), target,FILE__,__LINE__);
             instReturns = true;
         }
 
@@ -1211,13 +1211,13 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
     else if ( targMod->isExploratoryModeOn() ) { 
         mal_printf("WARNING: Transfer into instrumented module %s "
                 "func %s at: %lx=>%lx %s[%d]\n", modName, funcName, 
-                point->llpoint()->block()->last(), target, FILE__,__LINE__);
+                point->getPoint()->block()->last(), target, FILE__,__LINE__);
     } else { // jumped or called into module that's not recognized as a 
              // system library and is not instrumented
         mal_printf("WARNING: Transfer into non-instrumented module "
                 "%s func %s that is not recognized as a system lib: "
                 "%lx=>%lx %s[%d]\n", modName, funcName, 
-                point->llpoint()->block()->last(), target, FILE__,__LINE__);
+                point->getPoint()->block()->last(), target, FILE__,__LINE__);
     }
     return doMoreProcessing;
 }
@@ -1377,7 +1377,7 @@ bool HybridAnalysis::getCallAndBranchTargets(block_instance *block,
 bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
 {
     bool ret = true;
-    instPoint *ipoint = point->llpoint();
+    instPoint *ipoint = point->getPoint();
     if (point->isDynamic()) {
         if (getCallAndBranchTargets(ipoint->block(), targets)) {
             return true;

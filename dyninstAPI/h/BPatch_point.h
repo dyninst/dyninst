@@ -135,9 +135,6 @@ private:
     //  maybe we want BPatchSnippetHandle here
     Dyninst::PatchAPI::InstancePtr dynamic_point_monitor_func;
 
-    instPoint *getPoint() const {return point;}
-    instPoint *getPoint(BPatch_callWhen when) const;
-
     // If we're edge inst
     BPatch_edge *edge_;
 
@@ -162,7 +159,11 @@ public:
     BPatch_edge *edge() const { return edge_; }
     bool isReturnInstruction();
     static BPatch_procedureLocation convertInstPointType_t(int intType);
-    instPoint *llpoint() { return point; } 
+    instPoint *getPoint() {return point;}
+
+    instPoint *getPoint() const {return point;}
+    instPoint *getPoint(BPatch_callWhen when) const;
+
     Dyninst::Address getCallFallThroughAddr();
     bool patchPostCallArea();
     // End internal functions
