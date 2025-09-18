@@ -1107,8 +1107,6 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
 {
   if (!callee) return true;
 
-  stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
-    
   /* usedRegs does calculations if not done before and returns
      whether or not the callee is a leaf function.
      if it is, we use the register info we gathered,
@@ -1135,7 +1133,6 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
           rs->FPRs()[i]->beenUsed = true;
       }
   }
-  stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
   return false;
 }
 
