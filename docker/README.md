@@ -63,17 +63,18 @@ $ cd /code
 
 ### Adding a new OS image
 
-1. Add the relevant information to 'build_base_images.sh'. For example, `make_image ubuntu 24.10`.
+1. Add the new OS and version as well as all new gcc and clang compiler versions to `configs` in `.github/scripts/compiler_configs.py`. 
 
-2. Run `build_base_images.sh --push` to build and push  _all_  container images.
+2. Update the list of OSes and versions in the `all` step in `.github/actions/os-versions/action.yaml`.
 
-3. Running the script above will print a complete list of supported OSes. These need to be added to the
-   GitHub "os:" fields in the workflow files dev-containers.yaml and pr-tests.yaml.
-   Make a PR to add these updated files.
+3. Update the latest version in the `latest` step in `.github/actions/os-versions/action.yaml`.
 
-4. After committing the PR above, the 'Build and Deploy Development Containers' workflow will update/generate
-   the associated development containers automatically on the next committed PR. It can be run manually via
-   the Github interface, if preferred.
+4. Add any special handling (e.g., building dependencies from source) needed in **both** `docker/Dockerfile.<OS>` and the `build-base` job in `.github/workflows/refresh-containers.yaml`.
+
+5. Make a new PR with these changes.
+
+6. Manually run the `refresh-containers` workflow from the GitHub web interface using your branch as the target branch.
+
 
 ### Adding a dependency
 
