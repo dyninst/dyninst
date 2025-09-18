@@ -1721,7 +1721,6 @@ bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
       False - No FP Writes
    */
 
-   stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);  
    if (callee->ifunc()->writesFPRs()) {
       for (unsigned i = 0; i < rs->FPRs().size(); i++) {
          // We might want this to be another flag, actually
@@ -1734,8 +1733,6 @@ bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
    for (int i = 0; i < rs->numGPRs(); i++) {
       rs->GPRs()[i]->beenUsed = true;
    }
-   
-   stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
    return true;
 }
 

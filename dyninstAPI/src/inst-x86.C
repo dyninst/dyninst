@@ -1295,13 +1295,11 @@ bool EmitterIA32::clobberAllFuncCall( registerSpace *rs,
      False - No FP Writes
   */
 
-  stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);  
   if (callee->ifunc()->writesFPRs()) {
       for (unsigned i = 0; i < rs->FPRs().size(); i++) {
           rs->FPRs()[i]->beenUsed = true;
       }
   }
-  stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
   return true;
 }
 
