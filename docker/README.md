@@ -61,21 +61,6 @@ $ cd /code
 
 ## Maintainers
 
-### Adding a new OS image
-
-1. Add the new OS and version as well as all new gcc and clang compiler versions to `configs` in `.github/scripts/compiler_configs.py`. 
-
-2. Update the list of OSes and versions in the `all` step in `.github/actions/os-versions/action.yaml`.
-
-3. Update the latest version in the `latest` step in `.github/actions/os-versions/action.yaml`.
-
-4. Add any special handling (e.g., building dependencies from source) needed in **both** `docker/Dockerfile.<OS>` and the `build-base` job in `.github/workflows/refresh-containers.yaml`.
-
-5. Make a new PR with these changes.
-
-6. Manually run the `refresh-containers` workflow from the GitHub web interface using your branch as the target branch.
-
-
 ### Adding a dependency
 
 Assuming all of the requisite CMake files are in place, a new dependency can be added to the container images. If
