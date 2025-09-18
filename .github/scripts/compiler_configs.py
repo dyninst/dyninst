@@ -88,6 +88,26 @@ configs = {
       'versions': [14]
     }
   ],
+  'fedora-42': [          # same compilers as 41, but has glibc-2.41
+    {
+      'compiler': 'clang',
+      'versions': [19]
+    },
+    {
+      'compiler': 'gcc',
+      'versions': [14]
+    }
+  ],
+    'fedora-43': [        # same compilers as 42, but has glibc-2.42
+    {
+      'compiler': 'clang',
+      'versions': [19]
+    },
+    {
+      'compiler': 'gcc',
+      'versions': [14]
+    }
+  ],
 }
 
 parser = argparse.ArgumentParser(
