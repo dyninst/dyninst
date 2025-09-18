@@ -419,7 +419,7 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop(Address writeInsn)
             long st = 0;
             vector<Address> targs;
             if (hybridow_->hybrid_->getCallAndBranchTargets
-                ((*uIter)->llpoint()->block(), targs)) 
+                ((*uIter)->getPoint()->block(), targs)) 
             {
                 st = * targs.begin();
             }
@@ -761,7 +761,7 @@ BPatch_basicBlockLoop* HybridAnalysisOW::getWriteLoop
                 {
                     if ((*pIter)->isDynamic()) {
                         vector<Address> targs;
-                        if (!hybrid_->getCallAndBranchTargets((*pIter)->llpoint()->block(),targs)) {
+                        if (!hybrid_->getCallAndBranchTargets((*pIter)->getPoint()->block(),targs)) {
                             mal_printf("loop has an unresolved indirect transfer at %p\n", 
                                     (*pIter)->getAddress());
                             hasUnresolved = true;
@@ -887,7 +887,7 @@ bool HybridAnalysisOW::addFuncBlocks(owLoop *loop,
              pIter++) 
         {
             vector<Address> targs;
-            hybrid_->getCallAndBranchTargets((*pIter)->llpoint()->block(), targs);
+            hybrid_->getCallAndBranchTargets((*pIter)->getPoint()->block(), targs);
             if (1 != targs.size()) {
                 loop->unresExits_.insert(*pIter);
                 hasUnresolved = true;
@@ -974,7 +974,7 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
                 // We've already checked that the transfer is uniquely 
                 // resolved, add the target.
                 vector<Address> targs;
-                hybrid_->getCallAndBranchTargets((*pIter)->llpoint()->block(), targs);
+                hybrid_->getCallAndBranchTargets((*pIter)->getPoint()->block(), targs);
                 assert(targs.size() == 1); 
                 mal_printf("loop %d has a resolved indirect transfer at %p with "
                           "target %lx\n", loop->getID(), (*pIter)->getAddress(), 

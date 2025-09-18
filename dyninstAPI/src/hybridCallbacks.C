@@ -425,11 +425,11 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     // not just a big chunk of zeroes, in which case the first
     // 00 00 instruction will probably raise an exception
     using namespace ParseAPI;
-    func_instance *pfunc = point->llpoint()->func();
+    func_instance *pfunc = point->getPoint()->func();
     CodeRegion *reg = pfunc->ifunc()->region();
     unsigned char * regptr = (unsigned char *) reg->getPtrToInstruction(reg->offset());
     Address regSize = reg->high() - reg->offset();
-    unsigned firstNonzero = point->llpoint()->block()->end() 
+    unsigned firstNonzero = point->getPoint()->block()->end() 
         - reg->offset() 
         - pfunc->obj()->codeBase();
     for (; firstNonzero < regSize; firstNonzero++) {
@@ -448,10 +448,10 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     // parse, immediately after the current block
     vector<Address> *targets = new vector<Address>;
     Address nextInsn =0;
-    point->llpoint()->block()->setNotAbruptEnd();
+    point->getPoint()->block()->setNotAbruptEnd();
     getCFTargets(point,*targets);
     if (targets->empty()) {
-       nextInsn = point->llpoint()->block()->end();
+       nextInsn = point->getPoint()->block()->end();
     } else {
        nextInsn = (*targets)[0];
     }
@@ -754,8 +754,8 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         // we're returning from 
         pair<Block*, Address> returningCallB((Block*)NULL,0); 
         set<Block*> callBlocks;
-        getCallBlocks(returnAddr, point->llpoint()->func(), 
-                      point->llpoint()->block(), returningCallB, callBlocks);
+        getCallBlocks(returnAddr, point->getPoint()->func(), 
+                      point->getPoint()->block(), returningCallB, callBlocks);
 
         // 3.2.1 parse at returnAddr as the fallthrough of the preceding
         // call block, if there is one 
@@ -808,7 +808,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                           "instruction at %p %s[%d]\n", point->getAddress(), 
                           target,callPoints[0]->getAddress(),FILE__,__LINE__);
 
-                if (point->llpoint()->block()->llb()->isShared()) {
+                if (point->getPoint()->block()->llb()->isShared()) {
                     // because of pc emulation, if the return point is shared, 
                     // we may have flipped between functions that share the 
                     // return point, so use the call target function
