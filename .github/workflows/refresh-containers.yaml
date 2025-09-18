@@ -41,6 +41,7 @@ jobs:
 
       - name: Base containers
         uses: actions/delete-package-versions@v5
+        continue-on-error: true
         with:
           package-name: amd64/${{ matrix.os }}-base
           package-type: "container"
