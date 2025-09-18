@@ -475,7 +475,6 @@ void instPoint::markModified() {
 }
          
 bitArray instPoint::liveRegisters(){
-	stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
 	static LivenessAnalyzer live1(4);
 	static LivenessAnalyzer live2(8);
 	LivenessAnalyzer *live;
@@ -514,7 +513,6 @@ bitArray instPoint::liveRegisters(){
 		default:
 			assert(0);  
 	}
-	stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
 	return liveRegs_;
 
 }
