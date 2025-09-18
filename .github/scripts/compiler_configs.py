@@ -22,14 +22,18 @@ configs = {
       'versions': [13, 14, 15]
     }      
   ],
-  'ubuntu-24.10': [
+  
+  # Ubuntu 23 and 24 no longer have DockerHub images, so we can't use them
+  # for testing.
+  
+  'ubuntu-25.04': [
     {
       'compiler': 'gcc',
-      'versions': [13, 14]
+      'versions': [13, 14, 15]
     },
     {
       'compiler': 'clang',
-      'versions': [16, 17, 18, 19]
+      'versions': [17, 18, 19, 20]    # clang-16 is not available in Ubuntu 25
     }
   ],
 
