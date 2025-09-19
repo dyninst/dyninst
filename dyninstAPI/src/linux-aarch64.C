@@ -45,6 +45,21 @@
 #include "dyninstAPI/src/function.h"
 #include "common/src/linuxHeaders.h"
 
+
+// FIXME: HOST+CODEGEN
+// This is a temporary fix as getMaxBranch is used for both host and codegen
+// This file is compiled when host architecture is AArch64. If codegen isn't for AArch64, we define the following:
+#if !defined(DYNINST_CODEGEN_ARCH_AARCH64)
+
+#define MAX_BRANCH_OFFSET      0x07ffffff  // 128MB  Used for B
+
+Address getMaxBranch() {
+    return MAX_BRANCH_OFFSET;
+}
+
+#endif
+
+
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
 const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";

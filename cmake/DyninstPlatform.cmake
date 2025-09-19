@@ -13,7 +13,7 @@ cmake_host_system_information(RESULT _host_arch QUERY OS_PLATFORM)
 
 set(_32bit_x86_arches "i386" "i686")
 set(_64bit_x86_arches "x86_64" "amd64")
-set(_amdgpu_arches "amdgpu_gx908" "amdgpu_gfx90a" "amdgpu_gfx940")
+set(_amdgpu_arches "amdgpu_gfx908" "amdgpu_gfx90a" "amdgpu_gfx940")
 set(_known_arches "ppc64le" "aarch64" "riscv64" ${_32bit_x86_arches} ${_64bit_x86_arches}
                   ${_amdgpu_arches})
 
