@@ -91,7 +91,7 @@
  #if __GNUC__ >= 7 && __GNUC__ < 9
   #define DYNINST_SUPPRESS_CODE_DUPLICATED_BRANCHES        "-Wduplicated-branches"
  #endif
- #if __GNUC__ >= 12 && __GNUC__ < 15
+ #if __GNUC__ >= 12 && __GNUC__ < 16
   #define DYNINST_SUPPRESS_CODE_MAYBE_UNINITIALIZED        "-Wmaybe-uninitialized"
  #endif
 #elif defined(__clang__)

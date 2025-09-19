@@ -96,40 +96,40 @@ jobs:
           build-type: ${{ matrix.build-type }}
           src-dir: "${GITHUB_WORKSPACE}/src"
 
-#######################################################################################
+######################################################################################
 #
 #  Build with C++11 to C++23 using the latest distributions
 #
 #  This doesn't test every possible os/compiler/std, but it makes sure Dyninst builds
 #  on -some- compiler for each standard version.
-#
-#  cxx-standards:
-#    runs-on: ubuntu-latest
-#    needs: [get-oses, get-compilers]
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        os: ${{ fromJson(needs.get-oses.outputs.latest) }}
-#        compiler: ${{ fromJson(needs.get-compilers.outputs.all)}}
-#        std: [11, 14, 17, 20, 23]
-#    permissions:
-#      packages: read
-#    container:
-#      image: ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
-#      credentials:
-#        username: ${{ github.actor }}
-#        password: ${{ secrets.github_token }}
-#    name: ${{ matrix.os }}, ${{ matrix.compiler }}, std=${{ matrix.std }}
-#    steps:
-#      - name: Checkout Dyninst
-#        uses: actions/checkout@v4
-#        with:
-#          path: "src"    # Relative to $GITHUB_WORKSPACE
-#
-#      - name: Build
-#        uses: ./src/.github/actions/build
-#        with:
-#          os: ${{ matrix.os }}
-#          compiler: ${{ matrix.compiler }}
-#          src-dir: "${GITHUB_WORKSPACE}/src"
-#          extra-cmake-flags: "-DDYNINST_CXX_LANGUAGE_STANDARD=${{ matrix.std }}"
+
+  cxx-standards:
+    runs-on: ubuntu-latest
+    needs: [get-oses, get-compilers]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.get-oses.outputs.latest) }}
+        compiler: ${{ fromJson(needs.get-compilers.outputs.all)}}
+        std: [11, 14, 17, 20, 23, 26]
+    permissions:
+      packages: read
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: ${{ matrix.os }}, ${{ matrix.compiler }}, std=${{ matrix.std }}
+    steps:
+      - name: Checkout Dyninst
+        uses: actions/checkout@v4
+        with:
+          path: "src"    # Relative to $GITHUB_WORKSPACE
+
+      - name: Build
+        uses: ./src/.github/actions/build
+        with:
+          os: ${{ matrix.os }}
+          compiler: ${{ matrix.compiler }}
+          src-dir: "${GITHUB_WORKSPACE}/src"
+          extra-cmake-flags: "-DDYNINST_CXX_LANGUAGE_STANDARD=${{ matrix.std }}"
