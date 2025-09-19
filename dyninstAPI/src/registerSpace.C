@@ -768,8 +768,6 @@ bool registerSpace::readProgramRegister(codeGen &gen,
         gen.codeEmitter()->emitMoveRegToReg(src, dest, gen);
         return true;
         break;
-
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64) // framePointer only defined for x86 and x86_64
     case registerSlot::framePointer: {
         registerSlot *frame = registers_[framePointer()];
         assert(frame);
@@ -781,7 +779,6 @@ bool registerSpace::readProgramRegister(codeGen &gen,
         return true;
         break;
     }
-#endif
     default:
         assert(0);
         return false;
@@ -819,8 +816,6 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
             gen.codeEmitter()->emitMoveRegToReg(source, destination, gen);
         return true;
         break;
-
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64) // framePointer only defined for x86 and x86_64
     case registerSlot::framePointer: {
         registerSlot *frame = registers_[framePointer()];
         assert(frame);
@@ -831,7 +826,6 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
         return true;
         break;
     }
-#endif
     default:
         assert(0);
         return false;
