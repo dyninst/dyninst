@@ -261,13 +261,15 @@ Currently, this is only set up to be run manually. In the future, it can be run 
 
 2. Add another entry to the `configs` dictionary in the config [script](scripts/compiler_configs.py) following the existing naming convention. There are several workflows that check for names of the format `<OS>-<version>`.
 
-4. Add any special handling (e.g., building dependencies from source) needed in **both** `docker/Dockerfile.<OS>` and the `build-base` job in `.github/workflows/refresh-containers.yaml`.
+3. Add any special handling (e.g., building dependencies from source) needed in **both** `docker/Dockerfile.<OS>` and the `build-base` job in `.github/workflows/refresh-containers.yaml`.
 
-5. Make a new PR with these changes.
+4. Make a new PR with these changes.
 
-6. Manually run the `refresh-containers` workflow from the GitHub web interface using your branch as the target branch.
+5. Manually run the `refresh-containers` workflow from the GitHub web interface using your branch as the target branch.
 
-7. Follow the GitHub [instructions](https://docs.github.com/en/packages/learn-github-packages/connecting-a-repository-to-a-package#connecting-a-repository-to-an-organization-scoped-package-on-github) to add each container image to the Dyninst repository. The Dyninst user will need admin privileges to update and deploy containers from GitHub actions.
+6. Follow the GitHub [instructions](https://docs.github.com/en/packages/learn-github-packages/connecting-a-repository-to-a-package#connecting-a-repository-to-an-organization-scoped-package-on-github) to add each container image to the Dyninst repository. The Dyninst user will need admin privileges to update and deploy containers from GitHub actions.
+
+7. Manually run the `compiler-multibuild`, `build-opts`, `spack-build`, and `system-libs` workflows against the PR's branch to check for any breakages.
 
 ## Adding a new compiler version
 
