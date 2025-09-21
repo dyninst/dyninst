@@ -93,12 +93,8 @@ void registerSpace::initialize64() {
         char name[32];
         sprintf(name, "r%u", idx - r0);
         // Off limit registers
-        if (idx == GPR_ZERO) {
-            registers.push_back(new registerSlot(idx, name, true,
-                        registerSlot::deadABI, registerSlot::GPR));
-        }
-        else if (idx == GPR_RA || idx == GPR_SP || idx == GPR_GP
-                || idx == GPR_TP || idx == GPR_FP) {
+        if (idx == GPR_ZERO || idx == GPR_GP || idx == GPR_TP ||
+			idx == GPR_RA || idx == GPR_SP || idx == GPR_FP) {
             registers.push_back(new registerSlot(idx, name, true,
                         registerSlot::liveAlways, registerSlot::GPR));
         }
@@ -146,21 +142,19 @@ void EmitterRISCV64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save
 /********************************* Public methods *********************************************/
 
 unsigned EmitterRISCV64SaveRegs::saveGPRegisters(
-        codeGen &gen, registerSpace *theRegSpace, int offset, int numReqGPRs)
+        codeGen &gen, registerSpace *theRegSpace, baseTramp *bt, int offset, int numReqGPRs)
 {
     int ret = 0;
     if (numReqGPRs == -1) numReqGPRs = theRegSpace->numGPRs();
 
     for (int idx = 0; idx < numReqGPRs; idx++) {
         registerSlot *reg = theRegSpace->GPRs()[idx];
-        // Do not save zero (x0), sp (x2)
-        if (reg->number == GPR_ZERO || reg->number == GPR_SP) {
-            continue;
+        if (bt->definedRegs.size() == 0 || (reg->liveState == registerSlot::live && bt->definedRegs[reg->encoding()])) {
+            int offset_from_sp = offset + (reg->number * gen.width());
+            insnCodeGen::saveRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
+            theRegSpace->markSavedRegister(reg->number, offset_from_sp);
+            ret++;
         }
-        int offset_from_sp = offset + (reg->number * gen.width());
-        insnCodeGen::saveRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
-        theRegSpace->markSavedRegister(reg->number, offset_from_sp);
-        ret++;
     }
 
     return ret;
@@ -226,9 +220,11 @@ unsigned EmitterRISCV64RestoreRegs::restoreGPRegisters(
             continue;
         }
 
-        int offset_from_sp = offset + (reg->number * GPRSIZE_64);
-        insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
-        ret++;
+        if (reg->liveState == registerSlot::spilled) {
+            int offset_from_sp = offset + (reg->number * GPRSIZE_64);
+            insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
+            ret++;
+        }
     }
 
     return ret;
@@ -308,7 +304,7 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
     EmitterRISCV64SaveRegs saveRegs;
     unsigned int width = gen.width();
 
-    saveRegs.saveGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
+    saveRegs.saveGPRegisters(gen, gen.rs(), this, TRAMP_GPR_OFFSET(width));
     // After saving GPR, we move SP to FP to create the instrumentation frame.
     // Note that Dyninst instrumentation frame has a different structure
     // compared to stack frame created by the compiler.
@@ -1514,6 +1510,34 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
     return relocation_address;
 }
 
+regState_t::regState_t() : 
+    pc_rel_offset(-1), 
+    timeline(0), 
+    stack_height(0) 
+{
+    for (unsigned i=0; i<8; i++) {
+        RealRegsState r;
+        r.is_allocatable = (i != GPR_ZERO && i != GPR_RA && i != GPR_SP &&
+                i != GPR_GP && i != GPR_TP);
+        r.been_used = false;
+        r.last_used = 0;
+        r.contains = NULL;
+        registerStates.push_back(r);
+    }
+}
 
+void registerSpace::initRealRegSpace()
+{
+    for (unsigned i=0; i<regStateStack.size(); i++) {
+        if (regStateStack[i])
+            delete regStateStack[i];
+    }
+    regStateStack.clear();
 
+    regState_t *new_regState = new regState_t();
+    regStateStack.push_back(new_regState);
+    regs_been_spilled.clear();
 
+    pc_rel_reg = Null_Register;
+    pc_rel_use_count = 0;
+}
