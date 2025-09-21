@@ -226,7 +226,7 @@ class EmitterRISCV64SaveRegs {
 public:
     virtual ~EmitterRISCV64SaveRegs() {}
 
-    unsigned saveGPRegisters(codeGen &gen, registerSpace *theRegSpace,
+    unsigned saveGPRegisters(codeGen &gen, registerSpace *theRegSpace, baseTramp *bt,
             int offset, int numReqGPRs = -1);
 
     unsigned saveFPRegisters(codeGen &gen, registerSpace *theRegSpace, int offset);

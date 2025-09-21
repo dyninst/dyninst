@@ -1409,11 +1409,19 @@ int registerSpace::getInstFrameSize() {
 
 #endif
 
-#if !defined(DYNINST_CODEGEN_ARCH_X86) && !defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if !defined(DYNINST_CODEGEN_ARCH_X86) && !defined(DYNINST_CODEGEN_ARCH_X86_64) && !defined(DYNINST_CODEGEN_ARCH_RISCV64)
 void registerSpace::initRealRegSpace()
 {
+   assert(0);
 }
 
+regState_t::regState_t()
+{
+   assert(0);
+}
+#endif
+
+#if !defined(DYNINST_CODEGEN_ARCH_X86) && !defined(DYNINST_CODEGEN_ARCH_X86_64)
 void registerSpace::spillToVReg(RealRegister /*reg*/, registerSlot * /*v_reg*/,
                                 codeGen & /*gen*/)
 {
@@ -1427,11 +1435,6 @@ void registerSpace::movVRegToReal(registerSlot * /*v_reg*/, RealRegister /*r*/,
 }
 
 void registerSpace::movRegToReg(RealRegister /*dest*/, RealRegister /*src*/, codeGen & /*gen*/)
-{
-   assert(0);
-}
-
-regState_t::regState_t()
 {
    assert(0);
 }
