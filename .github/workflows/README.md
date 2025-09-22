@@ -261,27 +261,15 @@ Currently, this is only set up to be run manually. In the future, it can be run 
 
 2. Add another entry to the `configs` dictionary in the config [script](scripts/compiler_configs.py) following the existing naming convention. There are several workflows that check for names of the format `<OS>-<version>`.
 
-3. Create a new base and dev container. For example to add ubuntu-X,
+3. Add any special handling (e.g., building dependencies from source) needed in **both** `docker/Dockerfile.<OS>` and the `build-base` job in `.github/workflows/refresh-containers.yaml`.
 
-```
-docker build -f docker/Dockerfile.ubuntu
-             -t ghcr.io/dyninst/amd64/ubuntu-X-base:latest
-             --build-arg build_jobs=2
-             --build-arg version=X
-             $PWD
+4. Make a new PR with these changes.
 
-docker push ghcr.io/dyninst/amd64/ubuntu-X-base:latest
+5. Manually run the `refresh-containers` workflow from the GitHub web interface using your branch as the target branch.
 
-docker build -f docker/Dockerfile
-             -t ghcr.io/dyninst/amd64/ubuntu-X:latest
-             --build-arg base=ghcr.io/dyninst/amd64/ubuntu-X-base:latest
-             --build-arg build_jobs=2
-             $PWD
+6. Follow the GitHub [instructions](https://docs.github.com/en/packages/learn-github-packages/connecting-a-repository-to-a-package#connecting-a-repository-to-an-organization-scoped-package-on-github) to add each container image to the Dyninst repository. The Dyninst user will need admin privileges to update and deploy containers from GitHub actions.
 
-docker push ghcr.io/dyninst/amd64/ubuntu-X:latest
-```
-
-5. Follow the GitHub [instructions](https://docs.github.com/en/packages/learn-github-packages/connecting-a-repository-to-a-package#connecting-a-repository-to-an-organization-scoped-package-on-github) to add each container image to the Dyninst repository. The Dyninst user will need admin privileges to update and deploy containers from GitHub actions.
+7. Manually run the `compiler-multibuild`, `build-opts`, `spack-build`, and `system-libs` workflows against the PR's branch to check for any breakages.
 
 ## Adding a new compiler version
 

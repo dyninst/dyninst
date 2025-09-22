@@ -22,14 +22,18 @@ configs = {
       'versions': [13, 14, 15]
     }      
   ],
-  'ubuntu-24.10': [
+  
+  # Ubuntu 23 and 24 no longer have DockerHub images, so we can't use them
+  # for testing.
+  
+  'ubuntu-25.04': [
     {
       'compiler': 'gcc',
-      'versions': [13, 14]
+      'versions': [13, 14, 15]
     },
     {
       'compiler': 'clang',
-      'versions': [16, 17, 18, 19]
+      'versions': [17, 18, 19, 20]    # clang-16 is not available in Ubuntu 25
     }
   ],
 
@@ -75,6 +79,26 @@ configs = {
     }
   ],
   'fedora-41': [
+    {
+      'compiler': 'clang',
+      'versions': [19]
+    },
+    {
+      'compiler': 'gcc',
+      'versions': [14]
+    }
+  ],
+  'fedora-42': [          # same compilers as 41, but has glibc-2.41
+    {
+      'compiler': 'clang',
+      'versions': [19]
+    },
+    {
+      'compiler': 'gcc',
+      'versions': [14]
+    }
+  ],
+    'fedora-43': [        # same compilers as 42, but has glibc-2.42
     {
       'compiler': 'clang',
       'versions': [19]
