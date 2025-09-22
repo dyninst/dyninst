@@ -543,8 +543,6 @@ bool EmitterAARCH64::clobberAllFuncCall(registerSpace *rs,
     if(!callee)
         return true;
 
-    stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
-
     if(callee->ifunc()->isLeafFunc()) {
         std::set<Register> *gpRegs = callee->ifunc()->usedGPRs();
         for(std::set<Register>::iterator itr = gpRegs->begin(); itr != gpRegs->end(); itr++)
@@ -560,8 +558,6 @@ bool EmitterAARCH64::clobberAllFuncCall(registerSpace *rs,
         for(int idx = 0; idx < rs->numFPRs(); idx++)
             rs->FPRs()[idx]->beenUsed = true;
     }
-
-    stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
 
     return false;
 }
