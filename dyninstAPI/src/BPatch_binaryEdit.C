@@ -193,27 +193,8 @@ BPatch_binaryEdit::~BPatch_binaryEdit()
 
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 
-constexpr int kernelInfoSize = 3;
 
-struct AmdgpuKernelInfo {
-  AmdgpuKernelInfo(std::vector<std::string> &words) {
-    assert(words.size() == kernelInfoSize);
-    kdName = words[0];
-    kernargBufferSize = std::stoul(words[1]);
-    kernargPtrRegister = std::stoul(words[2]);
-  }
-
-  std::string getKernelName() const {
-    assert(kdName.length() > 3);
-    return kdName.substr(0, kdName.length() - 3);
-  }
-
-  std::string kdName;
-  unsigned kernargBufferSize;
-  unsigned kernargPtrRegister;
-};
-
-static void getWords(const std::string &str, std::vector<std::string> &words) {
+void BPatch_binaryEdit::getWords(const std::string &str, std::vector<std::string> &words) {
   std::stringstream ss(str);
   std::string word;
   while (ss >> word) {
@@ -221,7 +202,7 @@ static void getWords(const std::string &str, std::vector<std::string> &words) {
   }
 }
 
-static void readKernelInfos(const std::string &filePath,
+void BPatch_binaryEdit::readKernelInfos(const std::string &filePath,
                             std::vector<AmdgpuKernelInfo> &kernelInfos) {
   std::ifstream infoFile(filePath);
   std::string line;
@@ -232,7 +213,7 @@ static void readKernelInfos(const std::string &filePath,
 
   while (std::getline(infoFile, line)) {
     getWords(line, words);
-    assert(words.size() == kernelInfoSize);
+    assert(words.size() == AmdgpuKernelInfo::kernelInfoSize);
 
     AmdgpuKernelInfo info(words);
     kernelInfos.push_back(info);
@@ -240,7 +221,7 @@ static void readKernelInfos(const std::string &filePath,
   infoFile.close();
 }
 
-static void writeInstrumentedFunctionNames(const std::string &filePath, std::vector<AmdgpuKernelInfo> &kernelInfos) {
+void BPatch_binaryEdit::writeInstrumentedFunctionNames(const std::string &filePath, std::vector<AmdgpuKernelInfo> &kernelInfos) {
   std::ofstream namesFile(filePath);
   assert(namesFile.is_open());
 
@@ -256,14 +237,14 @@ static void writeInstrumentedFunctionNames(const std::string &filePath, std::vec
   namesFile.close();
 }
 
-static void insertPrologueAtPoints(AmdgpuPrologueSnippet& snippet, std::vector<BPatch_point *>& points) {
+void BPatch_binaryEdit::insertPrologueAtPoints(AmdgpuPrologueSnippet& snippet, std::vector<BPatch_point *>& points) {
   for (size_t i = 0; i < points.size(); ++i) {
     instPoint *iPoint = static_cast<instPoint *>(points[i]->getPoint(BPatch_callBefore));
     iPoint->pushFront(snippet.ast_wrapper);
   }
 }
 
-static void insertPrologueInInstrumentedFunctions(
+void BPatch_binaryEdit::insertPrologueInInstrumentedFunctions(
     std::vector<AmdgpuKernelInfo> &kernelInfos) {
   // Go through information for instrumented kernels (functions) and insert a prologue
   // that loads s[94:95] with address of memory for instrumentation variables. This address
@@ -288,14 +269,14 @@ static void insertPrologueInInstrumentedFunctions(
   }
 }
 
-static void insertEpilogueAtPoints(AmdgpuEpilogueSnippet& snippet, std::vector<BPatch_point *>& points) {
+void BPatch_binaryEdit::insertEpilogueAtPoints(AmdgpuEpilogueSnippet& snippet, std::vector<BPatch_point *>& points) {
   for (size_t i = 0; i < points.size(); ++i) {
     instPoint *iPoint = static_cast<instPoint *>(points[i]->getPoint(BPatch_callAfter));
     iPoint->pushBack(snippet.ast_wrapper);
   }
 }
 
-static void insertEpilogueInInstrumentedFunctions(std::vector<AmdgpuKernelInfo> &kernelInfos) {
+void BPatch_binaryEdit::insertEpilogueInInstrumentedFunctions(std::vector<AmdgpuKernelInfo> &kernelInfos) {
   // Go through information for instrumented kernels (functions) and insert a s_dcache_wb
   // instruction at exit points.
   for (const auto &function : BPatch_addressSpace::instrumentedFunctions) {

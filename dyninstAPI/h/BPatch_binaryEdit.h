@@ -45,6 +45,11 @@
 
 #include <stdio.h>
 #include <signal.h>
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#include "amdgpu-prologue.h"
+#include "amdgpu-epilogue.h"
+#include <fstream>
+#endif
 
 class BinaryEdit;
 class AddressSpace;
@@ -86,7 +91,39 @@ class DYNINST_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     bool creation_error;
 
     bool replaceTrapHandler();
-    
+
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    struct AmdgpuKernelInfo {
+      static constexpr int kernelInfoSize = 3;
+      AmdgpuKernelInfo(std::vector<std::string> &words) {
+      assert(words.size() == kernelInfoSize);
+      kdName = words[0];
+      kernargBufferSize = std::stoul(words[1]);
+      kernargPtrRegister = std::stoul(words[2]);
+    }
+
+    std::string getKernelName() const {
+    assert(kdName.length() > 3);
+    return kdName.substr(0, kdName.length() - 3);
+    }
+
+    std::string kdName;
+    unsigned kernargBufferSize;
+    unsigned kernargPtrRegister;
+    };
+
+ void getWords(const std::string &str, std::vector<std::string> &words); 
+  void readKernelInfos(const std::string &filePath,
+                            std::vector<AmdgpuKernelInfo> &kernelInfos);
+ void writeInstrumentedFunctionNames(const std::string &filePath, std::vector<AmdgpuKernelInfo> &kernelInfos);
+
+ void insertPrologueAtPoints(AmdgpuPrologueSnippet& snippet, std::vector<BPatch_point *>& points);
+  
+void insertPrologueInInstrumentedFunctions(std::vector<AmdgpuKernelInfo> &kernelInfos);
+void insertEpilogueAtPoints(AmdgpuEpilogueSnippet& snippet, std::vector<BPatch_point *>& points);
+
+void insertEpilogueInInstrumentedFunctions(std::vector<AmdgpuKernelInfo> &kernelInfos);
+#endif 
 
     //        protected:
  public:
@@ -104,7 +141,6 @@ class DYNINST_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     // BPatch_binaryEdit::writeFile
     bool writeFile(const char * outFile);
 
-  
     //  BPatch_binaryEdit::~BPatch_binaryEdit
     //
     //  Destructor
