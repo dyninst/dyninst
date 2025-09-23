@@ -45,14 +45,14 @@ jobs:
         run: |
           set -ex
           apt update -qq
-          apt install -y -qq gfortran m4 autoconf python3 python3-venv meson ninja-build pkgconf curl libgtest-dev libgmock-dev
+          apt install -y -qq gfortran m4 autoconf python3 python3-venv ninja-build pkgconf curl libgtest-dev libgmock-dev
 
       - name: Install dependencies (Fedora)
         if: ${{ startsWith(matrix.os, 'fedora') }}
         shell: bash
         run: |
           set -ex
-          yum install -y gcc-gfortran m4 autoconf python3 python3-devel meson ninja-build pkgconf curl gtest-devel gmock-devel patch which
+          yum install -y gcc-gfortran m4 autoconf python3 python3-devel ninja-build pkgconf curl gtest-devel gmock-devel patch which
 
       - name: Install spack
         shell: bash
@@ -65,7 +65,7 @@ jobs:
         shell: bash
         run: |
           set -ex
-          spack/bin/spack external find --not-buildable cmake git m4 gmake meson ninja pkgconf curl python curl cmake
+          spack/bin/spack external find --not-buildable cmake git m4 gmake ninja pkgconf curl python curl cmake
 
       - name: Build
         shell: bash
