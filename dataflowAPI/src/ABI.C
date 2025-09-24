@@ -106,6 +106,9 @@ ABI* ABI::getABI(Architecture arch){
 }
 
 ABI* ABI::getABI(int addr_width){
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    return getABI(Arch_amdgpu_gfx908);
+#endif
     if (globalABI_ == NULL){
         globalABI_ = new ABI();
 	globalABI_->addr_width = 4;
