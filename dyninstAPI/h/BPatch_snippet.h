@@ -387,7 +387,6 @@ class DYNINST_EXPORT BPatch_variableExpr : public BPatch_snippet
 						 void* offset,
 						 BPatch_type* type);
 
-
   public:
 
     // Public functions for use by users of the library:
