@@ -593,8 +593,6 @@ bool AstNode::generateCode(codeGen &gen, bool noCost, Address &retAddr, Dyninst:
   } else {
     entered = true;
     top_level = true;
-    stats_codegen.startTimer(CODEGEN_AST_TIMER);
-    stats_codegen.incrementCounter(CODEGEN_AST_COUNTER);
   }
 
   entered = true;
@@ -627,7 +625,6 @@ bool AstNode::generateCode(codeGen &gen, bool noCost, Address &retAddr, Dyninst:
 
   if (top_level) {
     entered = false;
-    stats_codegen.stopTimer(CODEGEN_AST_TIMER);
   }
   return ret;
 }
