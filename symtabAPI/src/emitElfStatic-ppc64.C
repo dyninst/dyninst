@@ -337,8 +337,15 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	  fprintf(stderr, "Unhandled relocation type %lu\n",rel.getRelType());
 	  assert(0);
 	}
-        rewrite_printf("\tbefore: relocation = 0x%lx @ 0x%lx target data %lx %lx %lx %lx %lx %lx \n", 
-	(unsigned long)relocation, relOffset,targetData[dest-2],  targetData[dest-1], targetData[dest], targetData[dest+1],  targetData[dest+2],  targetData[dest+3]);
+        rewrite_printf("\tbefore: relocation = 0x%lx @ 0x%lx target data 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx \n",
+                       static_cast<unsigned long>(relocation),
+                       static_cast<unsigned long>(relOffset),
+                       static_cast<unsigned long>(targetData[dest-2]),
+                       static_cast<unsigned long>(targetData[dest-1]),
+                       static_cast<unsigned long>(targetData[dest]),
+                       static_cast<unsigned long>(targetData[dest+1]),
+                       static_cast<unsigned long>(targetData[dest+2]),
+                       static_cast<unsigned long>(targetData[dest+3]));
 
 	if (relocation_length == 64) {
 		char *td = (targetData + dest - (dest%8));
@@ -351,7 +358,15 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
         	memcpy(td, &target, sizeof(Elf64_Word));
 	}
 
-        rewrite_printf("\tafter: relocation = 0x%lx @ 0x%lx target data %lx %lx %lx %lx %lx %lx \n", (unsigned long)relocation, relOffset,targetData[dest-2],  targetData[dest-1], targetData[dest], targetData[dest+1],  targetData[dest+2],  targetData[dest+3]);
+        rewrite_printf("\tafter: relocation = 0x%lx @ 0x%lx target data 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx \n",
+                       static_cast<unsigned long>(relocation),
+                       static_cast<unsigned long>(relOffset),
+                       static_cast<unsigned long>(targetData[dest-2]),
+                       static_cast<unsigned long>(targetData[dest-1]),
+                       static_cast<unsigned long>(targetData[dest]),
+                       static_cast<unsigned long>(targetData[dest+1]),
+                       static_cast<unsigned long>(targetData[dest+2]),
+                       static_cast<unsigned long>(targetData[dest+3]));
     } else if (PPC32_WIDTH == addressWidth_ ){
 	int relocation_length = sizeof(Elf32_Word)*8; // in bits
 	int relocation_pos = 0; // in bits
@@ -646,8 +661,15 @@ default:
      return false;
         }
 
-        rewrite_printf(" relocation = 0x%lx @ 0x%lx target data 0x%lx %lx %lx %lx \n", relocation, relOffset, targetData[dest], targetData[dest+1],  targetData[dest+2],  targetData[dest+3]);
-	if (rel.getRelType() == R_PPC_REL24) {
+        rewrite_printf(" relocation = 0x%lx @ 0x%lx target data 0x%lx 0x%lx 0x%lx 0x%lx \n",
+                       static_cast<unsigned long>(relocation),
+                       static_cast<unsigned long>(relOffset),
+                       static_cast<unsigned long>(targetData[dest]),
+                       static_cast<unsigned long>(targetData[dest+1]),
+                       static_cast<unsigned long>(targetData[dest+2]),
+                       static_cast<unsigned long>(targetData[dest+3]));
+
+  if (rel.getRelType() == R_PPC_REL24) {
 	unsigned int *td = (unsigned int *) targetData;
 	unsigned int target;
 	target = td[dest/4];
@@ -659,7 +681,14 @@ default:
 	target = td[dest/4];
 	target = setBits(target, relocation_pos, relocation_length, relocation);
         memcpy(&td[dest/4], &target, sizeof(Elf32_Word));
-        rewrite_printf(" relocation = 0x%lx @ 0x%lx target data 0x%lx %lx %lx %lx \n", relocation, relOffset, targetData[dest], targetData[dest+1],  targetData[dest+2],  targetData[dest+3]);
+
+        rewrite_printf(" relocation = 0x%lx @ 0x%lx target data 0x%lx 0x%lx 0x%lx 0x%lx \n",
+                       static_cast<unsigned long>(relocation),
+                       static_cast<unsigned long>(relOffset),
+                       static_cast<unsigned long>(targetData[dest]),
+                       static_cast<unsigned long>(targetData[dest+1]),
+                       static_cast<unsigned long>(targetData[dest+2]),
+                       static_cast<unsigned long>(targetData[dest+3]));
 	}
     if (branch_pred >= 0) {
 	unsigned int *td = (unsigned int *) targetData;
