@@ -6,13 +6,13 @@ on:
      types: [opened, synchronize, reopened, ready_for_review]
      branches:
         - master
-     paths:
-       - '**.h'
-       - '**.C'
-       - '**.c'
-       - '**.cmake'
-       - '**CMakeLists.txt'
-       - 'tests/*'
+     #paths:
+       #- '**.h'
+       #- '**.C'
+       #- '**.c'
+       #- '**.cmake'
+       #- '**CMakeLists.txt'
+       #- 'tests/*'
   workflow_dispatch:
 
 jobs:
