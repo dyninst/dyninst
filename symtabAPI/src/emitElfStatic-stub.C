@@ -90,7 +90,7 @@ bool emitElfStatic::isGOTRelocation(unsigned long) {
     return false;
 }
 
-Offset emitElfStatic::getGOTSize(LinkMap &) {
+Offset emitElfStatic::getGOTSize(Symtab *, LinkMap &, Offset &) {
     assert(!EMIT_STATIC_ASSERT);
     return 0;
 }
@@ -100,7 +100,7 @@ Offset emitElfStatic::getGOTAlign(LinkMap &) {
     return 0;
 }
 
-void emitElfStatic::buildGOT(LinkMap &) {
+void emitElfStatic::buildGOT(Symtab *, LinkMap &) {
     assert(!EMIT_STATIC_ASSERT);
 }
 
@@ -142,3 +142,20 @@ bool emitElfStatic::createNewDtorRegion(LinkMap &) {
 void emitElfStatic::getExcludedSymbolNames(set<string> &) {
     assert(!EMIT_STATIC_ASSERT);
 }
+
+
+Offset emitElfStatic::allocStubRegions(LinkMap &, Offset ) {
+    assert(!EMIT_STATIC_ASSERT);
+    return 0;
+}
+
+bool emitElfStatic::updateTOC(Symtab *, LinkMap &, Offset ) {
+    assert(!EMIT_STATIC_ASSERT);
+    return false;
+}
+bool emitElfUtils::updateRelocation(Symtab *, relocationEntry &, int) {
+    assert(!EMIT_STATIC_ASSERT);
+    return false;
+}
+
+
