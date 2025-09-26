@@ -163,6 +163,11 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     static dyn_hash_map<int, bool> non_returning_syscalls_x86;
     static dyn_hash_map<int, bool> non_returning_syscalls_x86_64;
 
+    /*
+     * Supported RISC-V extensions
+     */
+    std::unordered_set<std::string> riscv_extensions;
+
  public:
     typedef dyn_c_hash_map<void *, CodeRegion*> RegionMap;
 
@@ -189,6 +194,9 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     int findRegions(Address addr, std::set<CodeRegion *> & ret) const;
     bool regionsOverlap() const { return _regions_overlap; }
 
+    std::unordered_set<std::string> const& getRiscvExtensions() const { return riscv_extensions; }
+    void setUseRiscvExtension(std::string &ext) { riscv_extensions.insert(ext); }
+
     Address getTOC() const { return _table_of_contents; }
     /* If the binary file type supplies per-function
      * TOC's (e.g. ppc64 Linux), override.
@@ -210,7 +218,8 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     virtual ~CodeSource();
  protected:
     CodeSource() : _regions_overlap(false),
-                   _table_of_contents(0) {}
+                   _table_of_contents(0),
+                   riscv_extensions() {}
 
     void addRegion(CodeRegion *);
     void removeRegion(CodeRegion *);
@@ -339,6 +348,8 @@ class DYNINST_EXPORT SymtabCodeSource : public CodeSource, public boost::lockabl
     void removeRegion(CodeRegion *); // removes from region tree
 
     void overlapping_warn(const char * file, unsigned line) const;
+
+    void init_riscv_extensions();
     
     // statistics
     bool init_stats();
