@@ -50,6 +50,7 @@
 #include "debug.h"
 #include "common/src/arch-power.h"
 #include "elf.h"
+#include "unaligned_memory_access.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -349,13 +350,13 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 
 	if (relocation_length == 64) {
 		char *td = (targetData + dest - (dest%8));
-		uint64_t target = relocation;
-        	memcpy(td, &target, 2*sizeof(Elf64_Word));
+		auto const target = static_cast<uint64_t>(relocation);
+		memcpy(td, &target, sizeof(target));
 	} else {
 		char *td = (targetData + dest - (dest%4));
-	        unsigned int target = *((unsigned int *) td);
-	        target = setBits(target, relocation_pos, relocation_length, relocation);
-        	memcpy(td, &target, sizeof(Elf64_Word));
+		auto const target = Dyninst::read_memory_as<Elf64_Word>(td);
+		auto const new_target = setBits(target, relocation_pos, relocation_length, relocation);
+		memcpy(td, &new_target, sizeof(new_target));
 	}
 
         rewrite_printf("\tafter: relocation = 0x%lx @ 0x%lx target data 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx \n",
@@ -670,17 +671,14 @@ default:
                        static_cast<unsigned long>(targetData[dest+3]));
 
   if (rel.getRelType() == R_PPC_REL24) {
-	unsigned int *td = (unsigned int *) targetData;
-	unsigned int target;
-	target = td[dest/4];
+	auto target = Dyninst::read_memory_as<Elf32_Word>(&targetData[dest/4]);
 	target = setBits(target, relocation_pos, relocation_length, relocation);
-        memcpy(&targetData[dest], &target, sizeof(Elf32_Word));
+	memcpy(&targetData[dest], &target, sizeof(target));
 	} else {
-	unsigned int *td = (unsigned int *) targetData;
-	unsigned int target;
-	target = td[dest/4];
+	auto *td = &targetData[dest/4];
+	auto target = Dyninst::read_memory_as<Elf32_Word>(td);
 	target = setBits(target, relocation_pos, relocation_length, relocation);
-        memcpy(&td[dest/4], &target, sizeof(Elf32_Word));
+	memcpy(&td, &target, sizeof(target));
 
         rewrite_printf(" relocation = 0x%lx @ 0x%lx target data 0x%lx 0x%lx 0x%lx 0x%lx \n",
                        static_cast<unsigned long>(relocation),
@@ -690,13 +688,12 @@ default:
                        static_cast<unsigned long>(targetData[dest+2]),
                        static_cast<unsigned long>(targetData[dest+3]));
 	}
-    if (branch_pred >= 0) {
-	unsigned int *td = (unsigned int *) targetData;
-	unsigned int target;
-	target = td[dest/4];
-	target = setBits(target, 10, 1, branch_pred);
-        memcpy(&td[dest/4], &target, sizeof(Elf32_Word));
-    } 
+  if (branch_pred >= 0) {
+    auto *td = &targetData[dest/4];
+    auto target = Dyninst::read_memory_as<Elf32_Word>(td);
+    target = setBits(target, 10, 1, branch_pred);
+    memcpy(td, &target, sizeof(target));
+  }
 
     } else{
         assert(!UNKNOWN_ADDRESS_WIDTH_ASSERT);
@@ -1091,7 +1088,7 @@ bool emitElfStatic::handleInterModuleSpecialCase(Symtab * /*target*/,
   // or create it. 
   //
 
-  unsigned int *td = (unsigned int *)(data + dest - (dest % 4));
+  auto *td = reinterpret_cast<unsigned int *>(data + dest - (dest % 4));
   unsigned int &call = td[0];
   unsigned int &post = td[1];
 
