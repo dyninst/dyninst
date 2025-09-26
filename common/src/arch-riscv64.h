@@ -73,6 +73,8 @@ constexpr int INSN_BUFF_SIZE = (8 * RV_MAX_INSN_SIZE);
 
 typedef std::bitset<INSN_BUFF_SIZE> insnBuf_t;
 
+// The following constants are for codegen
+
 constexpr int BREAK_POINT_INSN = 0x00100073; // ebreak
 constexpr int CBREAK_POINT_INSN = 0x9002; // c.ebreak
 
@@ -86,6 +88,9 @@ constexpr int JALROp     = 0x67;
 constexpr int LOADOp     = 0x03;
 constexpr int STOREOp    = 0x23;
 constexpr int BRANCHOp   = 0x63;
+
+constexpr int FLDOp      = 0x07;
+constexpr int FSDOp      = 0x27;
 
 constexpr int ADDFunct7  = 0x00;
 constexpr int SUBFunct7  = 0x20;
@@ -117,6 +122,9 @@ constexpr int BGEFunct3  = 0x5;
 constexpr int BLTUFunct3 = 0x6;
 constexpr int BGEUFunct3 = 0x7;
 
+constexpr int FLDFunct3  = 0x3;
+constexpr int FSDFunct3  = 0x3;
+
 constexpr int B_COND_EQ  = BEQFunct3;
 constexpr int B_COND_NE  = BNEFunct3;
 constexpr int B_COND_LT  = BLTFunct3;
@@ -130,9 +138,133 @@ constexpr int GPR_RA     = 1;
 constexpr int GPR_SP     = 2;
 constexpr int GPR_GP     = 3;
 constexpr int GPR_TP     = 4;
+constexpr int GPR_T0     = 5;
+constexpr int GPR_T1     = 6;
+constexpr int GPR_T2     = 7;
+constexpr int GPR_S0     = 8;
 constexpr int GPR_FP     = 8;
+constexpr int GPR_S1     = 9;
+constexpr int GPR_A0     = 10;
+constexpr int GPR_A1     = 11;
+constexpr int GPR_A2     = 12;
+constexpr int GPR_A3     = 13;
+constexpr int GPR_A4     = 14;
+constexpr int GPR_A5     = 15;
+constexpr int GPR_A6     = 16;
+constexpr int GPR_A7     = 17;
+constexpr int GPR_S2     = 18;
+constexpr int GPR_S3     = 19;
+constexpr int GPR_S4     = 20;
+constexpr int GPR_S5     = 21;
+constexpr int GPR_S6     = 22;
+constexpr int GPR_S7     = 23;
+constexpr int GPR_S8     = 24;
+constexpr int GPR_S9     = 25;
+constexpr int GPR_S10    = 26;
+constexpr int GPR_S11    = 27;
+constexpr int GPR_T3     = 28;
+constexpr int GPR_T4     = 29;
+constexpr int GPR_T5     = 30;
+constexpr int GPR_T6     = 31;
 
-// auipc Instruction
+constexpr int UTYPE_INSN_MAX = 0x100000;
+constexpr int ITYPE_INSN_MAX = 0x1000;
+constexpr int BTYPE_INSN_MAX = 0x1000;
+constexpr int JTYPE_INSN_MAX = 0x100000;
+constexpr int STYPE_INSN_MAX = 0x1000;
+
+constexpr int BTYPE_SHIFT = 1;
+
+constexpr int64_t MAX_BRANCH_OFFSET      = 0x100000LL;    // 21 bits signed (not 20 because imm is shifted 1 bits left)
+constexpr int64_t MIN_BRANCH_OFFSET      = -0x100000LL;   // 21 bits signed (not 20 because imm is shifted 1 bits left)
+constexpr int64_t MAX_BRANCH_LINK_OFFSET = 0x800LL;       // 12 bits signed
+constexpr int64_t MIN_BRANCH_LINK_OFFSET = -0x800LL;      // 12 bits signed
+constexpr int64_t MAX_AUIPC_OFFSET       = 0x80000000LL;  // 32 bits signed
+constexpr int64_t MIN_AUIPC_OFFSET       = -0x80000000LL; // 32 bits signed
+
+constexpr int MIN_CLW_OFFSET   = 0x0;
+constexpr int MAX_CLW_OFFSET   = 0x80;
+constexpr int CLW_SHIFT        = 2;
+constexpr int CLW_MASK         = 0x1f;
+
+constexpr int MIN_CLWSP_OFFSET = 0x0;
+constexpr int MAX_CLWSP_OFFSET = 0x100;
+constexpr int CLWSP_SHIFT      = 2;
+constexpr int CLWSP_MASK       = 0x3f;
+
+constexpr int MIN_CLD_OFFSET   = 0x0;
+constexpr int MAX_CLD_OFFSET   = 0x100;
+constexpr int CLD_SHIFT        = 3;
+constexpr int CLD_MASK         = 0x1f;
+
+constexpr int MIN_CLDSP_OFFSET = 0x0;
+constexpr int MAX_CLDSP_OFFSET = 0x200;
+constexpr int CLDSP_SHIFT      = 3;
+constexpr int CLDSP_MASK       = 0x3f;
+
+constexpr int MIN_CSW_OFFSET   = 0x0;
+constexpr int MAX_CSW_OFFSET   = 0x80;
+constexpr int CSW_SHIFT        = 2;
+constexpr int CSW_MASK         = 0x1f;
+
+constexpr int MIN_CSWSP_OFFSET = 0x0;
+constexpr int MAX_CSWSP_OFFSET = 0x100;
+constexpr int CSWSP_SHIFT      = 2;
+constexpr int CSWSP_MASK       = 0x3f;
+
+constexpr int MIN_CSD_OFFSET   = 0x0;
+constexpr int MAX_CSD_OFFSET   = 0x100;
+constexpr int CSD_SHIFT        = 3;
+constexpr int CSD_MASK         = 0x1f;
+
+constexpr int MIN_CSDSP_OFFSET = 0x0;
+constexpr int MAX_CSDSP_OFFSET = 0x200;
+constexpr int CSDSP_SHIFT      = 3;
+constexpr int CSDSP_MASK       = 0x3f;
+
+constexpr int MIN_CFLW_OFFSET   = 0x0;
+constexpr int MAX_CFLW_OFFSET   = 0x80;
+constexpr int CFLW_SHIFT        = 2;
+constexpr int CFLW_MASK         = 0x1f;
+
+constexpr int MIN_CFLWSP_OFFSET = 0x0;
+constexpr int MAX_CFLWSP_OFFSET = 0x100;
+constexpr int CFLWSP_SHIFT      = 2;
+constexpr int CFLWSP_MASK       = 0x3f;
+
+constexpr int MIN_CFLD_OFFSET   = 0x0;
+constexpr int MAX_CFLD_OFFSET   = 0x100;
+constexpr int CFLD_SHIFT        = 3;
+constexpr int CFLD_MASK         = 0x1f;
+
+constexpr int MIN_CFLDSP_OFFSET = 0x0;
+constexpr int MAX_CFLDSP_OFFSET = 0x200;
+constexpr int CFLDSP_SHIFT      = 3;
+constexpr int CFLDSP_MASK       = 0x3f;
+
+constexpr int MIN_CFSW_OFFSET   = 0x0;
+constexpr int MAX_CFSW_OFFSET   = 0x80;
+constexpr int CFSW_SHIFT        = 2;
+constexpr int CFSW_MASK         = 0x1f;
+
+constexpr int MIN_CFSWSP_OFFSET = 0x0;
+constexpr int MAX_CFSWSP_OFFSET = 0x100;
+constexpr int CFSWSP_SHIFT      = 2;
+constexpr int CFSWSP_MASK       = 0x3f;
+
+constexpr int MIN_CFSD_OFFSET   = 0x0;
+constexpr int MAX_CFSD_OFFSET   = 0x100;
+constexpr int CFSD_SHIFT        = 3;
+constexpr int CFSD_MASK         = 0x1f;
+
+constexpr int MIN_CFSDSP_OFFSET = 0x0;
+constexpr int MAX_CFSDSP_OFFSET = 0x200;
+constexpr int CFSDSP_SHIFT      = 3;
+constexpr int CFSDSP_MASK       = 0x3f;
+
+// The following constants are for instruction parsing (not codegen!)
+// Auipc Instruction
+
 constexpr insnBuf_t AUIPC_INSN_MASK      = insnBuf_t(0x0000007f);
 constexpr insnBuf_t AUIPC_INSN           = insnBuf_t(0x00000017);
 constexpr insnBuf_t AUIPC_IMM_MASK       = insnBuf_t(0xfffff000);
@@ -141,13 +273,6 @@ constexpr insnBuf_t AUIPC_REG_MASK       = insnBuf_t(0x00000f80);
 constexpr int AUIPC_REG_SHIFT            = 7;
 
 // Jump/Branch instructions
-
-constexpr int64_t MAX_BRANCH_OFFSET      = 0x100000LL;    // 21 bits signed (not 20 because imm is shifted 1 bits left)
-constexpr int64_t MIN_BRANCH_OFFSET      = -0x100000LL;   // 21 bits signed (not 20 because imm is shifted 1 bits left)
-constexpr int64_t MAX_BRANCH_LINK_OFFSET = 0x800LL;       // 12 bits signed
-constexpr int64_t MIN_BRANCH_LINK_OFFSET = -0x800LL;      // 12 bits signed
-constexpr int64_t MAX_AUIPC_OFFSET       = 0x80000000LL;  // 32 bits signed
-constexpr int64_t MIN_AUIPC_OFFSET       = -0x80000000LL; // 32 bits signed
 
 constexpr insnBuf_t J_INSN_MASK      = insnBuf_t(0x0000007f);
 constexpr insnBuf_t B_INSN_MASK      = insnBuf_t(0x0000007f);
