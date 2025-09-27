@@ -1087,6 +1087,9 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen&, bool,
         Address &,
         Dyninst::Register &)
 {
+    (void)func_;
+    (void)canaryAfterPrologue_;
+    (void)canaryHeight_;
     return false;
 }
 
