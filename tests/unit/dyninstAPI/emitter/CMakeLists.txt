@@ -1,0 +1,10 @@
+include_guard(GLOBAL)
+
+if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
+  add_executable(x86 x86.cpp)
+  target_compile_options(x86 PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+  target_compile_definitions(x86 PRIVATE ${DYNINST_PLATFORM_CAPABILITIES})
+  target_include_directories(x86 PRIVATE ${UNIT_TESTS_INCLUDES})
+  target_link_libraries(x86 PRIVATE dyninstAPI)
+  add_test(NAME dyninstAPI_emit_x86 COMMAND x86)
+endif()
