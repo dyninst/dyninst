@@ -982,25 +982,6 @@ void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen)
 // We can only safely map the general purpose registers (0-7 on ia-32,
 // 0-15 on amd-64)
 #define IA32_MAX_MAP 7
-#define AMD64_MAX_MAP 15
-static int const amd64_register_map[] =
-{ 
-    0,  // RAX
-    2,  // RDX
-    1,  // RCX
-    3,  // RBX
-    6,  // RSI
-    7,  // RDI
-    5,  // RBP
-    4,  // RSP
-    8, 9, 10, 11, 12, 13, 14, 15    // gp 8 - 15
-    
-    /* This is incomplete. The x86_64 ABI specifies a mapping from
-       dwarf numbers (0-66) to ("architecture number"). Without a
-       corresponding mapping for the SVR4 dwarf-machine encoding for
-       IA-32, however, it is not meaningful to provide this mapping. */
-};
-
 int Register_DWARFtoMachineEnc32(int n)
 {
     if(n > IA32_MAX_MAP) {
@@ -2784,7 +2765,24 @@ void EmitterAMD64::emitAddSignedImm(Address addr, int imm, codeGen &gen,bool noC
    }
 }
 
-      
+#define AMD64_MAX_MAP 15
+static int const amd64_register_map[] =
+{
+    0,  // RAX
+    2,  // RDX
+    1,  // RCX
+    3,  // RBX
+    6,  // RSI
+    7,  // RDI
+    5,  // RBP
+    4,  // RSP
+    8, 9, 10, 11, 12, 13, 14, 15    // gp 8 - 15
+
+    /* This is incomplete. The x86_64 ABI specifies a mapping from
+       dwarf numbers (0-66) to ("architecture number"). Without a
+       corresponding mapping for the SVR4 dwarf-machine encoding for
+       IA-32, however, it is not meaningful to provide this mapping. */
+};
 int Register_DWARFtoMachineEnc64(int n)
 {
     if(n <= AMD64_MAX_MAP)
