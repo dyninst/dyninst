@@ -588,7 +588,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                       if(!relExist) {
                          // else create a new symbol
                          // Offset and name is all we care - offset should be value of the symbol
-                         Offset soffset = *((unsigned long *) (rawRegionData + entry*8));
+                         auto const soffset = Dyninst::read_memory_as<Offset>(rawRegionData + entry*8);
                          Symbol *newsym = new Symbol("dyntoc_entry",
                                                      Symbol::ST_UNKNOWN,
                                                      Symbol::SL_UNKNOWN,
