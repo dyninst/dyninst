@@ -122,6 +122,19 @@ constexpr int BGEFunct3  = 0x5;
 constexpr int BLTUFunct3 = 0x6;
 constexpr int BGEUFunct3 = 0x7;
 
+constexpr int LBFunct3   = 0x0;
+constexpr int LHFunct3   = 0x1;
+constexpr int LWFunct3   = 0x2;
+constexpr int LDFunct3   = 0x3;
+constexpr int LBUFunct3  = 0x4;
+constexpr int LHUFunct3  = 0x5;
+constexpr int LWUFunct3  = 0x6;
+
+constexpr int SBFunct3   = 0x0;
+constexpr int SHFunct3   = 0x1;
+constexpr int SWFunct3   = 0x2;
+constexpr int SDFunct3   = 0x3;
+
 constexpr int FLDFunct3  = 0x3;
 constexpr int FSDFunct3  = 0x3;
 
@@ -133,6 +146,39 @@ constexpr int B_COND_LTU = BLTUFunct3;
 constexpr int B_COND_GEU = BGEUFunct3;
 
 // Conventional registers
+constexpr int GPR_X0     = 0;
+constexpr int GPR_X1     = 1;
+constexpr int GPR_X2     = 2;
+constexpr int GPR_X3     = 3;
+constexpr int GPR_X4     = 4;
+constexpr int GPR_X5     = 5;
+constexpr int GPR_X6     = 6;
+constexpr int GPR_X7     = 7;
+constexpr int GPR_X8     = 8;
+constexpr int GPR_X9     = 9;
+constexpr int GPR_X10    = 10;
+constexpr int GPR_X11    = 11;
+constexpr int GPR_X12    = 12;
+constexpr int GPR_X13    = 13;
+constexpr int GPR_X14    = 14;
+constexpr int GPR_X15    = 15;
+constexpr int GPR_X16    = 16;
+constexpr int GPR_X17    = 17;
+constexpr int GPR_X18    = 18;
+constexpr int GPR_X19    = 19;
+constexpr int GPR_X20    = 20;
+constexpr int GPR_X21    = 21;
+constexpr int GPR_X22    = 22;
+constexpr int GPR_X23    = 23;
+constexpr int GPR_X24    = 24;
+constexpr int GPR_X25    = 25;
+constexpr int GPR_X26    = 26;
+constexpr int GPR_X27    = 27;
+constexpr int GPR_X28    = 28;
+constexpr int GPR_X29    = 29;
+constexpr int GPR_X30    = 30;
+constexpr int GPR_X31    = 31;
+
 constexpr int GPR_ZERO   = 0;
 constexpr int GPR_RA     = 1;
 constexpr int GPR_SP     = 2;
@@ -167,101 +213,155 @@ constexpr int GPR_T4     = 29;
 constexpr int GPR_T5     = 30;
 constexpr int GPR_T6     = 31;
 
-constexpr int UTYPE_INSN_MAX = 0x100000;
-constexpr int ITYPE_INSN_MAX = 0x1000;
-constexpr int BTYPE_INSN_MAX = 0x1000;
-constexpr int JTYPE_INSN_MAX = 0x100000;
-constexpr int STYPE_INSN_MAX = 0x1000;
+constexpr int64_t UTYPE_IMM_MAX       = 0x80000000LL;  // 32 bits signed
+constexpr int64_t UTYPE_IMM_MIN       = -0x80000000LL; // 32 bits signed
+constexpr int64_t UTYPE_IMM_SHIFT     = 12;
+constexpr int64_t UTYPE_IMM_MASK      = 0xfffff;
+constexpr int ITYPE_IMM_MASK = 0xfff;
+constexpr int ITYPE_IMM_MIN  = -0x800;
+constexpr int ITYPE_IMM_MAX  = 0x800;
+constexpr int BTYPE_IMM_SHIFT = 1;
+constexpr int BTYPE_IMM_MASK  = 0xfff;
+constexpr int BTYPE_IMM_MIN   = -0x1000;
+constexpr int BTYPE_IMM_MAX   = 0x1000;
+constexpr int STYPE_IMM_MASK = 0xfff;
+constexpr int JTYPE_IMM_MASK = 0xfffff;
+constexpr int JTYPE_IMM_SHIFT = 1;
 
-constexpr int BTYPE_SHIFT = 1;
+constexpr int JAL_IMM_MIN    = -0x100000;  // 21 bits signed (not 20 because imm is shifted 1 bits left)
+constexpr int JAL_IMM_MAX    = 0x100000;   // 21 bits signed (not 20 because imm is shifted 1 bits left)
 
-constexpr int64_t MAX_BRANCH_OFFSET      = 0x100000LL;    // 21 bits signed (not 20 because imm is shifted 1 bits left)
-constexpr int64_t MIN_BRANCH_OFFSET      = -0x100000LL;   // 21 bits signed (not 20 because imm is shifted 1 bits left)
-constexpr int64_t MAX_BRANCH_LINK_OFFSET = 0x800LL;       // 12 bits signed
-constexpr int64_t MIN_BRANCH_LINK_OFFSET = -0x800LL;      // 12 bits signed
-constexpr int64_t MAX_AUIPC_OFFSET       = 0x80000000LL;  // 32 bits signed
-constexpr int64_t MIN_AUIPC_OFFSET       = -0x80000000LL; // 32 bits signed
+constexpr int CLI_IMM_MIN                = -0x20;
+constexpr int CLI_IMM_MAX                = 0x20;
+constexpr int CLI_IMM_MASK               = 0x3f;
 
-constexpr int MIN_CLW_OFFSET   = 0x0;
-constexpr int MAX_CLW_OFFSET   = 0x80;
-constexpr int CLW_SHIFT        = 2;
-constexpr int CLW_MASK         = 0x1f;
+constexpr int CADDI4SPN_IMM_MIN          = 0;
+constexpr int CADDI4SPN_IMM_MAX          = 0x400;
+constexpr int CADDI4SPN_IMM_SHIFT        = 2;
+constexpr int CADDI4SPN_IMM_MASK         = 0xff;
 
-constexpr int MIN_CLWSP_OFFSET = 0x0;
-constexpr int MAX_CLWSP_OFFSET = 0x100;
-constexpr int CLWSP_SHIFT      = 2;
-constexpr int CLWSP_MASK       = 0x3f;
+constexpr int CADDI16SP_IMM_MIN          = -0x200;
+constexpr int CADDI16SP_IMM_MAX          = 0x200;
+constexpr int CADDI16SP_IMM_SHIFT        = 4;
+constexpr int CADDI16SP_IMM_MASK         = 0x3f;
 
-constexpr int MIN_CLD_OFFSET   = 0x0;
-constexpr int MAX_CLD_OFFSET   = 0x100;
-constexpr int CLD_SHIFT        = 3;
-constexpr int CLD_MASK         = 0x1f;
+constexpr int CADDI_IMM_MIN              = -0x20;
+constexpr int CADDI_IMM_MAX              = 0x20;
+constexpr int CADDI_IMM_MASK             = 0x3f;
 
-constexpr int MIN_CLDSP_OFFSET = 0x0;
-constexpr int MAX_CLDSP_OFFSET = 0x200;
-constexpr int CLDSP_SHIFT      = 3;
-constexpr int CLDSP_MASK       = 0x3f;
+constexpr int CANDI_IMM_MIN              = -0x20;
+constexpr int CANDI_IMM_MAX              = 0x20;
+constexpr int CANDI_IMM_MASK             = 0x3f;
 
-constexpr int MIN_CSW_OFFSET   = 0x0;
-constexpr int MAX_CSW_OFFSET   = 0x80;
-constexpr int CSW_SHIFT        = 2;
-constexpr int CSW_MASK         = 0x1f;
+constexpr int CSLLI_IMM_MIN              = 0x1;
+constexpr int CSLLI_IMM_MAX              = 0x40;
+constexpr int CSLLI_IMM_MASK             = 0x3f;
+constexpr int CSRLI_IMM_MIN              = 0x1;
+constexpr int CSRLI_IMM_MAX              = 0x40;
+constexpr int CSRLI_IMM_MASK             = 0x3f;
+constexpr int CSRAI_IMM_MIN              = 0x1;
+constexpr int CSRAI_IMM_MAX              = 0x40;
+constexpr int CSRAI_IMM_MASK             = 0x3f;
 
-constexpr int MIN_CSWSP_OFFSET = 0x0;
-constexpr int MAX_CSWSP_OFFSET = 0x100;
-constexpr int CSWSP_SHIFT      = 2;
-constexpr int CSWSP_MASK       = 0x3f;
+constexpr int CLW_IMM_MIN                = 0x0;
+constexpr int CLW_IMM_MAX                = 0x80;
+constexpr int CLW_SHIFT                  = 2;
+constexpr int CLW_MASK                   = 0x1f;
 
-constexpr int MIN_CSD_OFFSET   = 0x0;
-constexpr int MAX_CSD_OFFSET   = 0x100;
-constexpr int CSD_SHIFT        = 3;
-constexpr int CSD_MASK         = 0x1f;
+constexpr int CLWSP_IMM_MIN              = 0x0;
+constexpr int CLWSP_IMM_MAX              = 0x100;
+constexpr int CLWSP_SHIFT                = 2;
+constexpr int CLWSP_MASK                 = 0x3f;
 
-constexpr int MIN_CSDSP_OFFSET = 0x0;
-constexpr int MAX_CSDSP_OFFSET = 0x200;
-constexpr int CSDSP_SHIFT      = 3;
-constexpr int CSDSP_MASK       = 0x3f;
+constexpr int CLD_IMM_MIN                = 0x0;
+constexpr int CLD_IMM_MAX                = 0x100;
+constexpr int CLD_SHIFT                  = 3;
+constexpr int CLD_MASK                   = 0x1f;
 
-constexpr int MIN_CFLW_OFFSET   = 0x0;
-constexpr int MAX_CFLW_OFFSET   = 0x80;
-constexpr int CFLW_SHIFT        = 2;
-constexpr int CFLW_MASK         = 0x1f;
+constexpr int CLDSP_IMM_MIN              = 0x0;
+constexpr int CLDSP_IMM_MAX              = 0x200;
+constexpr int CLDSP_SHIFT                = 3;
+constexpr int CLDSP_MASK                 = 0x3f;
 
-constexpr int MIN_CFLWSP_OFFSET = 0x0;
-constexpr int MAX_CFLWSP_OFFSET = 0x100;
-constexpr int CFLWSP_SHIFT      = 2;
-constexpr int CFLWSP_MASK       = 0x3f;
+constexpr int CSW_IMM_MIN                = 0x0;
+constexpr int CSW_IMM_MAX                = 0x80;
+constexpr int CSW_SHIFT                  = 2;
+constexpr int CSW_MASK                   = 0x1f;
 
-constexpr int MIN_CFLD_OFFSET   = 0x0;
-constexpr int MAX_CFLD_OFFSET   = 0x100;
-constexpr int CFLD_SHIFT        = 3;
-constexpr int CFLD_MASK         = 0x1f;
+constexpr int CSWSP_IMM_MIN              = 0x0;
+constexpr int CSWSP_IMM_MAX              = 0x100;
+constexpr int CSWSP_SHIFT                = 2;
+constexpr int CSWSP_MASK                 = 0x3f;
 
-constexpr int MIN_CFLDSP_OFFSET = 0x0;
-constexpr int MAX_CFLDSP_OFFSET = 0x200;
-constexpr int CFLDSP_SHIFT      = 3;
-constexpr int CFLDSP_MASK       = 0x3f;
+constexpr int CSD_IMM_MIN                = 0x0;
+constexpr int CSD_IMM_MAX                = 0x100;
+constexpr int CSD_SHIFT                  = 3;
+constexpr int CSD_MASK                   = 0x1f;
 
-constexpr int MIN_CFSW_OFFSET   = 0x0;
-constexpr int MAX_CFSW_OFFSET   = 0x80;
-constexpr int CFSW_SHIFT        = 2;
-constexpr int CFSW_MASK         = 0x1f;
+constexpr int CSDSP_IMM_MIN              = 0x0;
+constexpr int CSDSP_IMM_MAX              = 0x200;
+constexpr int CSDSP_SHIFT                = 3;
+constexpr int CSDSP_MASK                 = 0x3f;
 
-constexpr int MIN_CFSWSP_OFFSET = 0x0;
-constexpr int MAX_CFSWSP_OFFSET = 0x100;
-constexpr int CFSWSP_SHIFT      = 2;
-constexpr int CFSWSP_MASK       = 0x3f;
+constexpr int CFLW_IMM_MIN               = 0x0;
+constexpr int CFLW_IMM_MAX               = 0x80;
+constexpr int CFLW_SHIFT                 = 2;
+constexpr int CFLW_MASK                  = 0x1f;
 
-constexpr int MIN_CFSD_OFFSET   = 0x0;
-constexpr int MAX_CFSD_OFFSET   = 0x100;
-constexpr int CFSD_SHIFT        = 3;
-constexpr int CFSD_MASK         = 0x1f;
+constexpr int CFLWSP_IMM_MIN             = 0x0;
+constexpr int CFLWSP_IMM_MAX             = 0x100;
+constexpr int CFLWSP_SHIFT               = 2;
+constexpr int CFLWSP_MASK                = 0x3f;
 
-constexpr int MIN_CFSDSP_OFFSET = 0x0;
-constexpr int MAX_CFSDSP_OFFSET = 0x200;
-constexpr int CFSDSP_SHIFT      = 3;
-constexpr int CFSDSP_MASK       = 0x3f;
+constexpr int CFLD_IMM_MIN               = 0x0;
+constexpr int CFLD_IMM_MAX               = 0x100;
+constexpr int CFLD_SHIFT                 = 3;
+constexpr int CFLD_MASK                  = 0x1f;
 
+constexpr int CFLDSP_IMM_MIN             = 0x0;
+constexpr int CFLDSP_IMM_MAX             = 0x200;
+constexpr int CFLDSP_SHIFT               = 3;
+constexpr int CFLDSP_MASK                = 0x3f;
+
+constexpr int CFSW_IMM_MIN               = 0x0;
+constexpr int CFSW_IMM_MAX               = 0x80;
+constexpr int CFSW_SHIFT                 = 2;
+constexpr int CFSW_MASK                  = 0x1f;
+
+constexpr int CFSWSP_IMM_MIN             = 0x0;
+constexpr int CFSWSP_IMM_MAX             = 0x100;
+constexpr int CFSWSP_SHIFT               = 2;
+constexpr int CFSWSP_MASK                = 0x3f;
+
+constexpr int CFSD_IMM_MIN               = 0x0;
+constexpr int CFSD_IMM_MAX               = 0x100;
+constexpr int CFSD_SHIFT                 = 3;
+constexpr int CFSD_MASK                  = 0x1f;
+
+constexpr int CFSDSP_IMM_MIN             = 0x0;
+constexpr int CFSDSP_IMM_MAX             = 0x200;
+constexpr int CFSDSP_SHIFT               = 3;
+constexpr int CFSDSP_MASK                = 0x3f;
+
+constexpr int CLUI_IMM_MIN1              = 0x1;
+constexpr int CLUI_IMM_MAX1              = 0x20;
+constexpr int CLUI_IMM_MIN2              = 0xfffe0;
+constexpr int CLUI_IMM_MAX2              = 0x100000;
+
+constexpr int CBEQZ_IMM_MIN              = -0x100;
+constexpr int CBEQZ_IMM_MAX              = 0x100;
+constexpr int CBEQZ_IMM_MASK             = 0xff;
+constexpr int CBEQZ_IMM_SHIFT            = 1;
+
+constexpr int CBNEZ_IMM_MIN              = -0x100;
+constexpr int CBNEZ_IMM_MAX              = 0x100;
+constexpr int CBNEZ_IMM_MASK             = 0xff;
+constexpr int CBNEZ_IMM_SHIFT            = 1;
+
+constexpr int CJ_IMM_MIN                 = -0x800;
+constexpr int CJ_IMM_MAX                 = 0x800;
+constexpr int CJ_IMM_SHIFT               = 1;
+constexpr int CJ_IMM_MASK                = 0x7ff;
 // The following constants are for instruction parsing (not codegen!)
 // Auipc Instruction
 

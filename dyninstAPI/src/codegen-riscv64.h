@@ -255,6 +255,42 @@ public:
                              Dyninst::RegValue imm,
                              bool useRVC);
 
+    static void generateCSw(codeGen &gen,
+                            Dyninst::Register rd,
+                            Dyninst::Register rs1,
+                            Dyninst::RegValue imm);
+
+    static void generateCSwsp(codeGen &gen,
+                              Dyninst::Register rs2,
+                              Dyninst::RegValue imm);
+
+    static void generateCSd(codeGen &gen,
+                            Dyninst::Register rd,
+                            Dyninst::Register rs1,
+                            Dyninst::RegValue imm);
+
+    static void generateCSdsp(codeGen &gen,
+                              Dyninst::Register rs2,
+                              Dyninst::RegValue imm);
+
+    static void generateCFsw(codeGen &gen,
+                             Dyninst::Register rd,
+                             Dyninst::Register rs1,
+                             Dyninst::RegValue imm);
+
+    static void generateCFswsp(codeGen &gen,
+                               Dyninst::Register rs2,
+                               Dyninst::RegValue imm);
+
+    static void generateCFsd(codeGen &gen,
+                             Dyninst::Register rd,
+                             Dyninst::Register rs1,
+                             Dyninst::RegValue imm);
+
+    static void generateCFsdsp(codeGen &gen,
+                               Dyninst::Register rs2,
+                               Dyninst::RegValue imm);
+
     static bool generateSlli(codeGen &gen,
                              Dyninst::Register rd,
                              Dyninst::Register rs1,
@@ -453,6 +489,42 @@ public:
     static void generateCAndi(codeGen &gen,
                               Dyninst::Register rd,
                               Dyninst::RegValue imm);
+
+    static void generateCLw(codeGen &gen,
+                            Dyninst::Register rd,
+                            Dyninst::Register rs1,
+                            Dyninst::RegValue imm);
+
+    static void generateCLwsp(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::RegValue imm);
+
+    static void generateCLd(codeGen &gen,
+                            Dyninst::Register rd,
+                            Dyninst::Register rs1,
+                            Dyninst::RegValue imm);
+
+    static void generateCLdsp(codeGen &gen,
+                              Dyninst::Register rd,
+                              Dyninst::RegValue imm);
+
+    static void generateCFlw(codeGen &gen,
+                             Dyninst::Register rd,
+                             Dyninst::Register rs1,
+                             Dyninst::RegValue imm);
+
+    static void generateCFlwsp(codeGen &gen,
+                               Dyninst::Register rd,
+                               Dyninst::RegValue imm);
+
+    static void generateCFld(codeGen &gen,
+                             Dyninst::Register rd,
+                             Dyninst::Register rs1,
+                             Dyninst::RegValue imm);
+
+    static void generateCFldsp(codeGen &gen,
+                               Dyninst::Register rd,
+                               Dyninst::RegValue imm);
 
     static void generateCLi(codeGen &gen,
                             Dyninst::Register rd,
