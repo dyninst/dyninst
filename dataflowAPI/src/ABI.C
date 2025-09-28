@@ -735,6 +735,8 @@ void ABI::initialize64(){
     (*returnRead64_)[riscv64Map[riscv64::s10]] = true;
     (*returnRead64_)[riscv64Map[riscv64::s11]] = true;
     (*returnRead64_)[riscv64Map[riscv64::sp]] = true;
+    (*returnRead64_)[riscv64Map[riscv64::gp]] = true;
+    (*returnRead64_)[riscv64Map[riscv64::tp]] = true;
 
     callParam64_ = getBitArray(sz);
     (*callParam64_)[riscv64Map[riscv64::a0]] = true;
