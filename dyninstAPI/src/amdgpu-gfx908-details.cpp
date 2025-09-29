@@ -44,7 +44,7 @@ uint32_t getMaskSop1(ContentKind k) {
   case CK_Sop1_Src0:
     return 0x000000FF; // 0b00000000000000000000000011111111;
   default:
-    assert(false && "not valid Sop1 content kind");
+    assert(!"not valid Sop1 content kind");
   }
 }
 
@@ -110,7 +110,7 @@ uint32_t getMaskSop2(ContentKind k) {
   case CK_Sop2_Src0:
     return 0x000000FF; // 0b00000000000000000000000011111111;
   default:
-    assert(false && "not valid SOP2 content kind");
+    assert(!"not valid SOP2 content kind");
   }
 }
 
@@ -182,7 +182,7 @@ uint32_t getMaskSopC(ContentKind k) {
   case CK_SopC_Src0:
     return 0x000000FF; // 0b00000000000000000000000011111111;
   default:
-    assert(false && "not valid SOPC content kind");
+    assert(!"not valid SOPC content kind");
   }
 }
 
@@ -240,7 +240,7 @@ uint32_t getMaskSopK(ContentKind k) {
   case CK_SopK_SImm16:
     return 0x0000FFFF; // 0b00000000000000001111111111111111;
   default:
-    assert(false && "not valid SopK content kind");
+    assert(!"not valid SopK content kind");
   }
 }
 
@@ -297,7 +297,7 @@ uint32_t getMaskSopP(ContentKind k) {
   case CK_SopP_SImm16:
     return 0x0000FFFF; // 0b00000000000000001111111111111111;
   default:
-    assert(false && "not valid SopP content kind");
+    assert(!"not valid SopP content kind");
   }
 }
 
@@ -368,7 +368,7 @@ uint64_t getMaskSmem(ContentKind k) {
   case CK_Smem_Offset:
     return 0x001FFFFF00000000; // 0b0000000000011111111111111111111100000000000000000000000000000000;
   default:
-    assert(false && "not valid SMEM content kind");
+    assert(!"not valid SMEM content kind");
   }
 }
 
