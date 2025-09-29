@@ -137,7 +137,7 @@ void EmitterAmdgpuGfx908::emitOpImmSimple(unsigned op, Register dest, Register s
 void EmitterAmdgpuGfx908::emitOpImm(unsigned /* opcode1 */, unsigned /* opcode2 */,
                                     Register /* dest */, Register /* src1 */,
                                     RegValue /* src2imm */, codeGen & /* gen */) {
-  printf("not implemented yet\n");
+  assert(!"not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitRelOp(unsigned opcode, Register /* dest */, Register src1,
@@ -192,7 +192,7 @@ void EmitterAmdgpuGfx908::emitRelOpImm(unsigned op, Register dest, Register src1
 
 void EmitterAmdgpuGfx908::emitDiv(Register /* dest */, Register /* src1 */, Register /* src2 */,
                                   codeGen & /* gen */, bool /* s */) {
-  printf("emitDiv not implemented yet\n");
+  assert(!"emitDiv not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitTimesImm(Register dest, Register src1, RegValue src2imm,
@@ -203,12 +203,12 @@ void EmitterAmdgpuGfx908::emitTimesImm(Register dest, Register src1, RegValue sr
 
 void EmitterAmdgpuGfx908::emitDivImm(Register /* dest */, Register /* src1 */,
                                      RegValue /* src2imm */, codeGen & /* gen */, bool /* s */) {
-  printf("emitDivImm not implemented yet\n");
+  assert(!"emitDivImm not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitLoad(Register /* dest */, Address /* addr */, int /* size */,
                                    codeGen & /* gen */) {
-  printf("emitLoad not implemented yet\n");
+  assert(!"emitLoad not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitLoadConst(Register dest, Address imm, codeGen &gen) {
@@ -233,8 +233,8 @@ void EmitterAmdgpuGfx908::emitLoadIndir(Register dest, Register addr_reg, int si
 }
 
 bool EmitterAmdgpuGfx908::emitCallRelative(Register, Address, Register, codeGen &) {
-  printf("emitCallRelative not implemented yet\n");
-  return 0;
+  assert(!"emitCallRelative not implemented yet");
+  return false;
 }
 
 bool EmitterAmdgpuGfx908::emitLoadRelative(Register dest, Address offset, Register base, int size,
@@ -290,7 +290,7 @@ bool EmitterAmdgpuGfx908::emitLoadRelative(Register dest, Address offset, Regist
   // 2. Optimize placement of waitcnt.
   emitSopP(S_WAITCNT, /* hasImm = */ true, 0, gen);
 
-  return 0;
+  return false;
 }
 
 void EmitterAmdgpuGfx908::emitLoadShared(opCode /* op */, Register /* dest */,
@@ -299,39 +299,39 @@ void EmitterAmdgpuGfx908::emitLoadShared(opCode /* op */, Register /* dest */,
                                          /* is_local */,
                                          int /* size */, codeGen & /* gen */,
                                          Address /* offset */) {
-  printf("emitLoadShared not implemented yet\n");
+  assert(!"emitLoadShared not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitLoadFrameAddr(Register /* dest */, Address /* offset */,
                                             codeGen & /* gen */) {
-  printf("emitLoadFrameAddr not implemented yet\n");
+  assert(!"emitLoadFrameAddr not implemented yet");
 }
 
 // These implicitly use the stored original/non-inst value
 void EmitterAmdgpuGfx908::emitLoadOrigFrameRelative(Register /* dest */, Address /* offset */,
                                                     codeGen & /* gen */) {
-  printf("emitLoadOrigFrameRelative not implemented yet\n");
+  assert(!"emitLoadOrigFrameRelative not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitLoadOrigRegRelative(Register /* dest */, Address /* offset */,
                                                   Register /* base */, codeGen & /* gen */,
                                                   bool /* store */) {
-  printf("emitLoadOrigRegRelative not implemented yet\n");
+  assert(!"emitLoadOrigRegRelative not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitLoadOrigRegister(Address /* register_num */, Register /* dest */,
                                                codeGen & /* gen */) {
-  printf("emitLoadOrigRegister not implemented yet\n");
+  assert(!"emitLoadOrigRegister not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitStoreOrigRegister(Address /* register_num */, Register /* dest */,
                                                 codeGen & /* gen */) {
-  printf("emitStoreOrigRegister not implemented yet\n");
+  assert(!"emitStoreOrigRegister not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitStore(Address /* addr */, Register /* src */, int /* size */,
                                     codeGen & /* gen */) {
-  printf("emitStore not implemented yet\n");
+  assert(!"emitStore not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen) {
@@ -341,7 +341,7 @@ void EmitterAmdgpuGfx908::emitStoreIndir(Register addr_reg, Register src, int si
 void EmitterAmdgpuGfx908::emitStoreFrameRelative(Address /* offset */, Register /* src */,
                                                  Register /* scratch */, int /* size */,
                                                  codeGen & /* gen */) {
-  printf("emitStoreFrameRelative not implemented yet\n");
+  assert(!"emitStoreFrameRelative not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitStoreRelative(Register source, Address offset, Register base,
@@ -386,105 +386,105 @@ void EmitterAmdgpuGfx908::emitStoreRelative(Register source, Address offset, Reg
 void EmitterAmdgpuGfx908::emitStoreShared(Register /* source */, const image_variable * /* var */,
                                           bool /* is_local */, int /* size */,
                                           codeGen & /* gen */) {
-  printf("emitStoreShared not implemented yet\n");
+  assert(!"emitStoreShared not implemented yet");
 }
 
 bool EmitterAmdgpuGfx908::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
 
   emitSop1(S_MOV_B32, dest, src, /*hasLiteral =*/false, /*literal =*/0, gen);
-  return 0;
+  return false;
 }
 
 bool EmitterAmdgpuGfx908::emitMoveRegToReg(registerSlot * /* src */, registerSlot * /* dest */,
                                            codeGen & /* gen */) {
-  printf("emitMoveRegToReg -- slot not implemented yet\n");
+  assert(!"emitMoveRegToReg -- slot not implemented yet");
   return false;
 }
 
 Register EmitterAmdgpuGfx908::emitCall(opCode /* op */, codeGen & /* gen */,
                                        const std::vector<AstNodePtr> & /* operands */,
                                        bool /* noCost */, func_instance * /* callee */) {
-  printf("emitCall not implemented yet\n");
+  assert(!"emitCall not implemented yet");
   return 0;
 }
 
 void EmitterAmdgpuGfx908::emitGetRetVal(Register /* dest */, bool /* addr_of */,
                                         codeGen & /* gen */) {
-  printf("emitGetRetVal not implemented yet\n");
+  assert(!"emitGetRetVal not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitGetRetAddr(Register /* dest */, codeGen & /* gen */) {
-  printf("emitGetRetAddr not implemented yet\n");
+  assert(!"emitGetRetAddr not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitGetParam(Register /* dest */, Register /* param_num */,
                                        instPoint::Type /* pt_type */, opCode /* op */,
                                        bool /* addr_of */, codeGen & /* gen */) {
-  printf("emitGetParam not implemented yet\n");
+  assert(!"emitGetParam not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitASload(int /* ra */, int /* rb */, int /* sc */, long /* imm */,
                                      Register /* dest */, int /* stackShift */,
                                      codeGen & /* gen */) {
-  printf("emitASload not implemented yet\n");
+  assert(!"emitASload not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitCSload(int /* ra */, int /* rb */, int /* sc */, long /* imm */,
                                      Register /* dest */, codeGen & /* gen */) {
-  printf("emitCSload not implemented yet\n");
+  assert(!"emitCSload not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitPushFlags(codeGen & /* gen */) {
-  printf("emitPushFlags not implemented yet\n");
+  assert(!"emitPushFlags not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitRestoreFlags(codeGen & /* gen */, unsigned /* offset */) {
-  printf("emitRestoreFlags not implemented yet\n");
+  assert(!"emitRestoreFlags not implemented yet");
 }
 
 // Built-in offset...
 void EmitterAmdgpuGfx908::emitRestoreFlagsFromStackSlot(codeGen & /* gen */) {
-  printf("emitRestoreFlagsFromStackSlot not implemented yet\n");
+  assert(!"emitRestoreFlagsFromStackSlot not implemented yet");
 }
 
 bool EmitterAmdgpuGfx908::emitBTSaves(baseTramp * /* bt */, codeGen & /* gen */) {
-  printf("emitBTSaves not implemented yet\n");
+  assert(!"emitBTSaves not implemented yet");
   return false;
 }
 
 bool EmitterAmdgpuGfx908::emitBTRestores(baseTramp * /* bt */, codeGen & /* gen */) {
-  printf("emitBTRestores not implemented yet\n");
+  assert(!"emitBTRestores not implemented yet");
   return false;
 }
 
 void EmitterAmdgpuGfx908::emitStoreImm(Address /* addr */, int /* imm */, codeGen & /* gen */,
                                        bool /* noCost */) {
-  printf("emitStoreImm not implemented yet\n");
+  assert(!"emitStoreImm not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitAddSignedImm(Address /* addr */, int /* imm */, codeGen & /* gen */,
                                            bool /* noCost */) {
-  printf("emitAddSignedImm not implemented yet\n");
+  assert(!"emitAddSignedImm not implemented yet");
 }
 
 bool EmitterAmdgpuGfx908::emitPush(codeGen &, Register) {
-  printf("emitPush not implemented yet\n");
-  return 0;
+  assert(!"emitPush not implemented yet");
+  return false;
 }
 
 bool EmitterAmdgpuGfx908::emitPop(codeGen &, Register) {
-  printf("emitPop not implemented yet\n");
-  return 0;
+  assert(!"emitPop not implemented yet");
+  return false;
 }
 
 bool EmitterAmdgpuGfx908::emitAdjustStackPointer(int /* index */, codeGen & /* gen */) {
-  printf("emitAdjustStackPointer not implemented yet\n");
-  return 0;
+  assert(!"emitAdjustStackPointer not implemented yet");
+  return false;
 }
 
 bool EmitterAmdgpuGfx908::clobberAllFuncCall(registerSpace * /* rs */,
                                              func_instance * /* callee */) {
-  printf("clobberAllFuncCall not implemented yet\n");
+  assert(!"clobberAllFuncCall not implemented yet");
   return false;
 }
 
