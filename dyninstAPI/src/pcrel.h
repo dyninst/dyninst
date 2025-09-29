@@ -93,14 +93,4 @@ public:
    ~pcRelCall();
 };
 
-class pcRelData : public pcRelRegion {
-private:
-   Dyninst::Address data_addr;
-public:
-   pcRelData(Dyninst::Address a, const instruction &i);
-   virtual unsigned apply(Dyninst::Address addr);
-   virtual unsigned maxSize();        
-   virtual bool canPreApply();
-};
-
 #endif
