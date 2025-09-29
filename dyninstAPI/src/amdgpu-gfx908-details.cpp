@@ -28,28 +28,6 @@
 
 #include "amdgpu-gfx908-details.h"
 
-// static void printBinary(unsigned int number) {
-//   if (number >> 1) {
-//     printBinary(number >> 1);
-//   }
-//   putc((number & 1) ? '1' : '0', stdout);
-// }
-
-// static void printBytes(unsigned int number) {
-//   uint8_t *n = (uint8_t *)&number;
-//   // printf("%u ", n[0]);
-//   // printf("%u ", n[1]);
-//   // printf("%u ", n[2]);
-//   // printf("%u \n", n[3]);
-// }
-
-// static void printBytes(uint64_t number) {
-//   uint8_t *n = (uint8_t *)&number;
-//   for (int i = 0; i < 8; ++i) {
-//     printf("%u ", n[i]);
-//   }
-// }
-
 namespace AmdgpuGfx908 {
 
 // === SOP1 BEGIN ===
@@ -105,9 +83,6 @@ void emitSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral, ui
   setDstSop1(dest, newRawInst);
   setSrc0Sop1(src0, newRawInst);
 
-  // printf("%#x ", newRawInst);
-  // printf("%u\n", newRawInst);
-  // printBytes(newRawInst);
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
   ++rawInstBuffer;
@@ -115,10 +90,6 @@ void emitSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral, ui
   if (hasLiteral) {
     *rawInstBuffer = literal;
     ++rawInstBuffer;
-
-    // printf("literal : %#x ", literal);
-    // printf("%u\n", literal);
-    // printBytes(literal);
   }
 
   gen.update((codeBuf_t *)rawInstBuffer);
@@ -180,9 +151,6 @@ void emitSop2(unsigned opcode, Register dest, Register src0, Register src1, code
   setSrc1Sop2(src1, newRawInst);
   setSrc0Sop2(src0, newRawInst);
 
-  // printf("%#x ", newRawInst);
-  // printf("%u\n", newRawInst);
-  // printBytes(newRawInst);
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
   ++rawInstBuffer;
@@ -251,9 +219,6 @@ void emitSopC(unsigned opcode, Register src0, Register src1, codeGen &gen) {
   setSrc1SopC(src1, newRawInst);
   setSrc0SopC(src0, newRawInst);
 
-  // printf("%#x ", newRawInst);
-  // printf("%u\n", newRawInst);
-  // printBytes(newRawInst);
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
   ++rawInstBuffer;
@@ -313,9 +278,6 @@ void emitSopK(unsigned opcode, Register dest, int16_t simm16, codeGen &gen) {
   setDstSopK(dest, newRawInst);
   setSImm16SopK(simm16, newRawInst);
 
-  // printf("%#x ", newRawInst);
-  // printf("%u\n", newRawInst);
-  // printBytes(newRawInst);
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
   ++rawInstBuffer;
@@ -371,9 +333,6 @@ void emitSopP(unsigned opcode, bool hasImm, int16_t simm16, codeGen &gen) {
   else
     setSImm16SopP(0, newRawInst);
 
-  // printf("%#x ", newRawInst);
-  // printf("%u\n", newRawInst);
-  // printBytes(newRawInst);
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
   ++rawInstBuffer;
@@ -498,10 +457,6 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset, 
   setSoffsetSmem(0, newRawInst);
   setR4Smem(newRawInst);
   setOffsetSmem(offset, newRawInst);
-
-  // printf("%#lx ", newRawInst);
-  // printf("%lu\n", newRawInst);
-  // printBytes(newRawInst);
 
   uint64_t *rawInstBuffer = (uint64_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
