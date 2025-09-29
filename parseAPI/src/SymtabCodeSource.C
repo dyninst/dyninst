@@ -700,10 +700,10 @@ SymtabCodeSource::init_try_blocks()
     }
 }
 
-void
-SymtabCodeSource::init_riscv_extensions()
+bool
+SymtabCodeSource::getUseRVC() const
 {
-    riscv_extensions = _symtab->getObject()->getRiscvExtensions();
+    return _symtab->getObject()->getUseRVC();
 }
 
 bool
