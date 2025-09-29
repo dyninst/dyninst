@@ -134,7 +134,6 @@ public:
     DYNINST_EXPORT virtual bool isBigEndianDataEncoding() const { return false; }
     DYNINST_EXPORT virtual bool getABIVersion(int & /*major*/, int & /*minor*/) const { return false; }
 
-
     virtual void setTruncateLinePaths(bool value);
     virtual bool getTruncateLinePaths();
     virtual Region::RegionType getRelType() const { return Region::RT_INVALID; }
@@ -178,7 +177,7 @@ public:
     virtual Offset getTOCoffset(Offset) const { return 0; }
     virtual void setTOCoffset(Offset) { }
 
-    virtual std::unordered_set<std::string> getRiscvExtensions() const { return riscv_extensions; }
+    virtual bool getUseRVC() const { return riscv_extensions.rvc; }
 
     virtual bool emitDriver(std::string fName, std::set<Symbol *> &allSymbols, unsigned flag) = 0;
     virtual void parseFileLineInfo() { }
@@ -195,6 +194,16 @@ protected:
     // explicitly protected
     DYNINST_EXPORT Object(MappedFile *, void (*err_func)(const char *), Symtab*);
 friend class Module;
+
+    // Supported RISC-V extensions
+    struct RiscvExt {
+        bool rvm = false; // Multiplication Extension
+        bool rva = false; // Atomic Extension
+        bool rvf = false; // Single-precision Floating Point Extension
+        bool rvd = false; // Double-precision Floating Point Extension
+        bool rvc = false; // Compressed Extension
+    };
+
     virtual void parseLineInfoForCU(Offset , LineInformation* ) { }
 
     MappedFile *mf;
@@ -249,7 +258,7 @@ friend class Module;
 
     FileFormat file_format_;
 
-    std::unordered_set<std::string> riscv_extensions;
+    RiscvExt riscv_extensions;
 private:
     friend class SymbolIter;
     friend class Symtab;

@@ -502,6 +502,8 @@ private:
 
   bool parse_riscv_attributes(Elf_X_Shdr *);
 
+  bool getUseRVC() const { return riscv_extensions.rvc; } 
+
   void get_riscv_extensions();
 
   void find_code_and_data(Elf_X &elf,
