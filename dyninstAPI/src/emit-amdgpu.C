@@ -77,7 +77,7 @@ void EmitterAmdgpuGfx908::emitOp(unsigned opcode, Register dest, Register src1, 
     break;
 
   case divOp:
-    assert(false && "opcode must correspond to a supported SOP2 operation");
+    assert(!"opcode must correspond to a supported SOP2 operation");
     break;
 
   case andOp:
@@ -93,7 +93,7 @@ void EmitterAmdgpuGfx908::emitOp(unsigned opcode, Register dest, Register src1, 
     break;
 
   default:
-    assert(false && "opcode must correspond to a supported SOP2 operation");
+    assert(!"opcode must correspond to a supported SOP2 operation");
   }
   emitSop2(opcodeSop2, dest, src1, src2, gen);
 }
@@ -130,7 +130,7 @@ void EmitterAmdgpuGfx908::emitOpImmSimple(unsigned op, Register dest, Register s
     opcodeSopK = S_CMPK_LG_I32;
     break;
   default:
-    assert(false && "opcode must correspond to a supported SOPK operation");
+    assert(!"opcode must correspond to a supported SOPK operation");
   }
   emitSopK(opcodeSopK, src1, src2imm, gen);
 }
@@ -169,7 +169,7 @@ void EmitterAmdgpuGfx908::emitRelOp(unsigned opcode, Register /* dest */, Regist
     break;
 
   default:
-    assert(false && "opcode must correspond to a supported SOPC operation");
+    assert(!"opcode must correspond to a supported SOPC operation");
   }
   emitSopC(opcodeSopC, src1, src2, gen);
 }
@@ -186,7 +186,7 @@ void EmitterAmdgpuGfx908::emitRelOpImm(unsigned op, Register dest, Register src1
     emitOpImmSimple(op, dest, src1, src2imm, gen);
     break;
   default:
-    assert(false && "opcode must correspond to a supported SOPK relational operation");
+    assert(!"opcode must correspond to a supported SOPK relational operation");
   }
 }
 
@@ -276,7 +276,7 @@ bool EmitterAmdgpuGfx908::emitLoadRelative(Register dest, Address offset, Regist
     loadOpcode = S_LOAD_DWORDX16;
     break;
   default:
-    assert(false && "size can only be 1, 2, 4, 8 or 16");
+    assert(!"size can only be 1, 2, 4, 8 or 16");
   }
 
   emitSmem(loadOpcode, dest, (base >> 1), (uint64_t)offset, gen);
@@ -377,7 +377,7 @@ void EmitterAmdgpuGfx908::emitStoreRelative(Register source, Address offset, Reg
     storeOpcode = S_STORE_DWORDX4;
     break;
   default:
-    assert(false && "size can only be 1, 2, or 4");
+    assert(!"size can only be 1, 2, or 4");
   }
 
   emitSmem(storeOpcode, source, (base >> 1), (uint64_t)offset, gen);
