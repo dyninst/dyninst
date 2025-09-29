@@ -4338,32 +4338,45 @@ void ObjectELF::get_riscv_extensions() {
     // Obtain information from .riscv.attributes
     if (!riscv_attrs.empty() && riscv_attrs.find(Tag_RISCV_arch) != riscv_attrs.end()) {
         std::string arch_string = riscv_attrs[Tag_RISCV_arch].sval;
-
-        std::regex ext_regex(R"(([a-z0-9]+)(\d+)p(\d+))");
-        std::sregex_iterator it(arch_string.begin(), arch_string.end(), ext_regex);
-        std::sregex_iterator end;
-
-        while (it != end) {
-            std::string ext = (*it)[1];
-            riscv_extensions.insert(ext);
-            it++;
+        for (size_t i = 0; i < arch_string.size(); i++) {
+            if (std::isalnum(arch_string[i])) {
+                int start = i;
+                while (i < arch_string.size() && arch_string[i] != '_') {
+                    i++;
+                }
+                int end = i - 1;
+                while (end >= start && isdigit(arch_string[end])) {
+                    end--;
+                }
+                if (arch_string[end--] == 'p') {
+                    while (end >= start && isdigit(arch_string[end])) {
+                        end--;
+                    }
+                    end++;
+                    std::string ext = arch_string.substr(start, end - start);
+                    if (ext == "m") {
+                        riscv_extensions.rvm = true;
+                    }
+                    else if (ext == "a") {
+                        riscv_extensions.rva = true;
+                    }
+                    else if (ext == "f") {
+                        riscv_extensions.rvf = true;
+                    }
+                    else if (ext == "d") {
+                        riscv_extensions.rvd = true;
+                    }
+                    else if (ext == "c") {
+                        riscv_extensions.rvc = true;
+                    }
+                }
+            }
         }
     }
 
     // Obtain information from e_flags
     unsigned long e_flags = elfHdr->e_flags();
     if (e_flags & EF_RISCV_RVC) {
-        riscv_extensions.insert("c");
-    }
-    switch (e_flags & EF_RISCV_FLOAT_ABI) {
-        case EF_RISCV_FLOAT_ABI_SINGLE:
-            riscv_extensions.insert("f");
-            break;
-        case EF_RISCV_FLOAT_ABI_DOUBLE:
-            riscv_extensions.insert("d");
-            break;
-        default:  // EF_RISCV_FLOAT_ABI_SOFT
-            break;
+        riscv_extensions.rvc = true;
     }
 }
-
