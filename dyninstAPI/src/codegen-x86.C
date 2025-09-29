@@ -366,69 +366,6 @@ void insnCodeGen::generate(codeGen &gen,instruction & insn) {
     gen.moveIndex(insn.size());
 }
 
-pcRelJump::pcRelJump(patchTarget *t, const instruction &i, bool copyPrefixes) :
-   pcRelRegion(i),
-   addr_targ(0x0),
-   targ(t),
-   copy_prefixes_(copyPrefixes)
-{
-}
-
-pcRelJump::pcRelJump(Dyninst::Address target, const instruction &i, bool copyPrefixes) :
-   pcRelRegion(i),
-   addr_targ(target),
-   targ(NULL),
-   copy_prefixes_(copyPrefixes)
-{
-}
-
-Dyninst::Address pcRelJump::get_target()
-{
-   if (targ)
-      return targ->get_address();
-   return addr_targ;
-}
-
-pcRelJump::~pcRelJump()
-{
-}
-
-unsigned pcRelJump::apply(Dyninst::Address addr)
-{
-   const unsigned char *origInsn = orig_instruc.ptr();
-   unsigned insnType = orig_instruc.type();
-   unsigned char *orig_loc;
-  
-   GET_PTR(newInsn, *gen);
-   orig_loc = newInsn;
-   if (copy_prefixes_) {
-       addr += copy_prefixes(origInsn, newInsn, insnType);
-       // Otherwise we will fail to account for them and
-       // generate a branch that is +(# prefix bytes)
-   }
-   SET_PTR(newInsn, *gen);
-    
-   insnCodeGen::generateBranch(*gen, addr, get_target());
-   REGET_PTR(newInsn, *gen);
-   return (unsigned) (newInsn - orig_loc);
-}
-
-unsigned pcRelJump::maxSize()
-{
-   unsigned prefixes = count_prefixes(orig_instruc.type());
-#if defined(DYNINST_CODEGEN_ARCH_X86_64)
-   if (gen->addrSpace()->getAddressWidth() == 8)
-      return prefixes + JUMP_ABS64_SZ;
-#endif
-   return prefixes + JUMP_SZ;
-}
-
-bool pcRelJump::canPreApply()
-{
-   return gen->startAddr() && (!targ || get_target());
-}
-
-
 pcRelJCC::pcRelJCC(patchTarget *t, const instruction &i) :
    pcRelRegion(i),
    addr_targ(0x0),

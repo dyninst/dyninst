@@ -45,23 +45,6 @@ class pcRelRegion {
    virtual ~pcRelRegion();
 }; 
 
-
-class pcRelJump : public pcRelRegion {
-private:
-   Dyninst::Address addr_targ;
-   patchTarget *targ;
-    bool copy_prefixes_;
-
-   Dyninst::Address get_target();
-public:
-   pcRelJump(patchTarget *t, const instruction &i, bool copyPrefixes = true);
-   pcRelJump(Dyninst::Address target, const instruction &i, bool copyPrefixes = true);
-   virtual unsigned apply(Dyninst::Address addr);
-   virtual unsigned maxSize();        
-   virtual bool canPreApply();
-   virtual ~pcRelJump();
-};
-
 class pcRelJCC : public pcRelRegion {
 private:
    Dyninst::Address addr_targ;
