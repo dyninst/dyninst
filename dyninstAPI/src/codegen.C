@@ -42,7 +42,6 @@
 #include "function.h"
 #include "instPoint.h"
 #include "registerSpace.h"
-#include "pcrel.h"
 #include "bitArray.h"
 
 #include "instructionAPI/h/InstructionDecoder.h"
@@ -520,73 +519,6 @@ void codeGen::realloc(unsigned newSize) {
    assert(buffer_);
 }
 
-void codeGen::addPCRelRegion(pcRelRegion *reg) {
-#if !defined(cap_noaddr_gen)
-   assert(0);
-#endif
-   reg->gen = this;
-   reg->cur_offset = used();
-
-   if (startAddr() != (Dyninst::Address) -1 && reg->canPreApply()) {
-     //If we already have addressess for everything (usually when relocating a function)
-     // then don't bother creating the region, just generate the code.
-     reg->apply(startAddr() + reg->cur_offset);
-     delete reg;
-   }
-   else {
-     reg->cur_size = reg->maxSize();
-     fill(reg->cur_size, cgNOP);
-     pcrels_.push_back(reg);
-   }
-}
-
-void codeGen::applyPCRels(Dyninst::Address base)
-{
-   vector<pcRelRegion *>::iterator i;
-
-   codeBufIndex_t orig_position = used();
-   for (i = pcrels_.begin(); i != pcrels_.end(); i++) {
-      pcRelRegion *cur = *i;
-      bool is_last_entry = ((cur->cur_offset + cur->cur_size) >= orig_position);
-
-      //Apply the patch
-      setIndex(cur->cur_offset / CODE_GEN_OFFSET_SIZE);
-      unsigned patch_size = cur->apply(base + cur->cur_offset);
-      assert(patch_size <= cur->cur_size);
-      unsigned size_change = cur->cur_size - patch_size;
-
-      if (size_change) {
-         if (is_last_entry) {
-            //If we resized the last object in the codeGen, then change the
-            // codeGen's end address
-            orig_position = cur->cur_offset + patch_size;
-         }
-         //Fill in any size changes with nops
-         fill(size_change, cgNOP);
-      }
-      delete cur;
-   }
-   setIndex(orig_position / CODE_GEN_OFFSET_SIZE);
-   pcrels_.clear();
-}
-
-bool codeGen::hasPCRels() const {
-   return (pcrels_.size() != 0);
-}
-
-
-pcRelRegion::pcRelRegion(const instruction &i) :
-   gen(NULL),
-   orig_instruc(i),
-   cur_offset(0),
-   cur_size(0)
-{
-}
-
-pcRelRegion::~pcRelRegion()
-{
-}
-
 std::vector<relocPatch>& codeGen::allPatches() {
    return patches_;
 }
@@ -650,11 +582,6 @@ void relocPatch::applyPatch()
 bool relocPatch::isApplied()
 {
    return applied_;
-}
-
-bool pcRelRegion::canPreApply()
-{
-  return false;
 }
 
 std::string patchTarget::get_name() const {
