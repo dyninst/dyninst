@@ -571,13 +571,14 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             }
         }
 
-        // RISC-V multi instruction jump and call
-        if (ci.getArch() == Arch_riscv64 && isMultiInsnJump(target, context, currBlk)) {
+        if (isMultiInsnJump(&target, context, currBlk)) {
             if (symtab_entries->find(target) != symtab_entries->end() ||
                     plt_entries->find(target) != plt_entries->end()) {
+                parsing_printf("%s[%d]: multi instruction jump from %lx to %lx\n", 
+                        FILE__, __LINE__, current, target);
                 outEdges.push_back(std::make_pair(target, CALL));
                 outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
-                curInsnIter->second.getOperation().setMultiInsnCall(true);
+                curInsnIter->second.getOperation().isMultiInsnCall = true;
                 return;
             }
         }
@@ -644,19 +645,23 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             }
             return;
         }
-        else if (ci.getArch() == Arch_riscv64 && isMultiInsnJump(target, context, currBlk))
+        else if (isMultiInsnJump(&target, context, currBlk))
         {
             // If the target address lies within the current context
             // It is an unconditional jump
             if (target >= context->entry()->start() &&
                     target < context->entry()->end()) {
+                parsing_printf("%s[%d]: multi instruction jump from %lx to %lx\n", 
+                        FILE__, __LINE__, current, target);
                 outEdges.push_back(std::make_pair(target, DIRECT));
             }
-            // Otherwise, it is a tail call
+            // Otherwise, treat it as a tail call
             else {
+                parsing_printf("%s[%d]: tail call to %lx\n", 
+                        FILE__, __LINE__, target);
                 outEdges.push_back(std::make_pair(target, DIRECT));
             }
-            curInsnIter->second.getOperation().setMultiInsnBranch(true);
+            curInsnIter->second.getOperation().isMultiInsnBranch = true;
             return;
         }
         else //

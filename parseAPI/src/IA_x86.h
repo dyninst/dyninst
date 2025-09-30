@@ -66,7 +66,7 @@ class IA_x86 : public IA_IAPI {
 	virtual bool isIATcall(std::string &) const;
 	virtual bool isLinkerStub() const;
 	virtual bool isNopJump() const;
-	virtual bool isMultiInsnJump(Address &, Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block *) const;
+	virtual bool isMultiInsnJump(Address *, Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block *) const;
 };
 
 }

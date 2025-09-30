@@ -398,7 +398,7 @@ bool IA_power::isNopJump() const
     return false;
 }
 
-bool IA_power::isMultiInsnJump(Address &, Function *, Block *) const
+bool IA_power::isMultiInsnJump(Address *, Function *, Block *) const
 {
     return false;
 }

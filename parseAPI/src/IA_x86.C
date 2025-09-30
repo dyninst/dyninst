@@ -826,7 +826,7 @@ bool IA_x86::isLinkerStub() const
     return false;
 }
 
-bool IA_x86::isMultiInsnJump(Address &, Function *, Block *) const
+bool IA_x86::isMultiInsnJump(Address *, Function *, Block *) const
 {
     return false;
 }

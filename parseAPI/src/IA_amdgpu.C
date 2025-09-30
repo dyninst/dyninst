@@ -141,7 +141,7 @@ bool IA_amdgpu::isNopJump() const
     return false;
 }
 
-bool IA_amdgpu::isMultiInsnJump(Address &, Function *, Block *) const
+bool IA_amdgpu::isMultiInsnJump(Address *, Function *, Block *) const
 {
     return false;
 }

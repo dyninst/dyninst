@@ -355,12 +355,12 @@ bool IA_riscv64::isNopJump() const
     return false;
 }
 
-bool IA_riscv64::isMultiInsnJump(Address &targetAddr, Function *context, Block *currBlk) const {
+bool IA_riscv64::isMultiInsnJump(Address *target, Function *context, Block *currBlk) const {
     Instruction insn = curInsn();
 
     // Basic Instruction Matching
     // This is used to prevent calling slicing all the time
-    // As slicing is not as efficient as instruction pattern matching
+    // Slicing is not as efficient as instruction pattern matching
     entryID curInsnID = insn.getOperation().getID();
 
     if (curInsnID == riscv64_op_c_jalr || curInsnID == riscv64_op_c_jr || curInsnID == riscv64_op_jalr) {
@@ -411,9 +411,9 @@ bool IA_riscv64::isMultiInsnJump(Address &targetAddr, Function *context, Block *
 
                     // Add the offset to relAddr
                     addr += offset;
-                    addr -= 4; // minus the length of the auipc instruction
+                    addr -= pi.size(); // minus the length of the auipc instruction
 
-                    targetAddr = addr;
+                    *target = addr;
                     return true;
                 }
             }
@@ -443,7 +443,7 @@ bool IA_riscv64::isMultiInsnJump(Address &targetAddr, Function *context, Block *
             if (simplifiedAST->getID() == AST::V_ConstantAST) {
                 DataflowAPI::ConstantAST::Ptr constAST = boost::static_pointer_cast<DataflowAPI::ConstantAST>(simplifiedAST);
                 uint32_t evalAddr = constAST->val().val;
-                targetAddr = evalAddr;
+                *target = evalAddr;
                 return true;
             }
         }

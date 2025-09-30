@@ -87,10 +87,6 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT bool isWritten(Expression::Ptr candidate);
 
     void updateMnemonic(std::string new_mnemonic) { mnemonic = std::move(new_mnemonic); }
-
-    void setMultiInsnBranch(bool isMultiInsnBranch_) { isMultiInsnBranch = isMultiInsnBranch_; }
-    void setMultiInsnCall(bool isMultiInsnCall_) { isMultiInsnCall = isMultiInsnCall_; }
-
     bool isVectorInsn;
     bool isMultiInsnCall;
     bool isMultiInsnBranch;
