@@ -92,7 +92,6 @@ set(_private_headers
     src/Patching.h
     src/pcEventHandler.h
     src/pcEventMuxer.h
-    src/pcrel.h
     src/pdwinnt.h
     src/RegisterConversion.h
     src/registerSpace.h

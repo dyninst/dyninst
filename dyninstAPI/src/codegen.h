@@ -54,7 +54,6 @@ using namespace NS_aarch64;
 #endif
 
 #include "bitArray.h"
-#include "pcrel.h"
 
 // For platforms that require bit-twiddling. These should go away in the future.
 #define GET_PTR(insn, gen) codeBuf_t *insn = (codeBuf_t *)(gen).cur_ptr()
@@ -72,7 +71,6 @@ class registerSpace;
 class regTracker_t;
 class AstNode;
 class Emitter;
-class pcRelRegion;
 class func_instance;
 class PCThread;
 class baseTramp;
@@ -183,10 +181,6 @@ class codeGen {
 
     std::string format() const;
 
-    //Add a new PCRelative region that should be generated after 
-    // addresses are fixed
-    void addPCRelRegion(pcRelRegion *reg);
-
     //Have each region generate code with this codeGen object being
     // placed at addr
     void applyPCRels(Dyninst::Address addr);
@@ -293,7 +287,6 @@ class codeGen {
     bool modifiedStackFrame_;
 
     std::vector<relocPatch> patches_;
-    std::vector<pcRelRegion *> pcrels_;
 
     std::map<block_instance *, Extent> defensivePads_;
     std::map<baseTramp *, Dyninst::Address> instrumentation_;
