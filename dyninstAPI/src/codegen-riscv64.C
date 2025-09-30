@@ -727,7 +727,7 @@ bool insnCodeGen::saveRegister(codeGen &gen,
                                int sp_offset,
                                bool useRVC)
 {
-    return generateMemStore(gen, REG_SP, r, sp_offset, 8, useRVC);
+    return generateMemStore(gen, REG_SP, r, sp_offset, gen.width(), useRVC);
 }
 
 
@@ -736,7 +736,7 @@ bool insnCodeGen::restoreRegister(codeGen &gen,
                                   int sp_offset,
                                   bool useRVC)
 {
-    return generateMemLoad(gen, r, REG_SP, sp_offset, 8, true, useRVC);
+    return generateMemLoad(gen, r, REG_SP, sp_offset, gen.width(), true, useRVC);
 }
 
 bool insnCodeGen::modifyData(Dyninst::Address target,

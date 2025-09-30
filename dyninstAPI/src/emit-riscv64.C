@@ -357,7 +357,8 @@ void EmitterRISCV64::emitLoadOrigRegister(Address register_num,
         return;
     }
 
-    int offset = TRAMP_GPR_OFFSET(gen.width());
+    EmitterRISCV64SaveRestoreRegs saveRestoreRegs;
+    int idx = saveRestoreRegs.getHeightOf(gen, gen.rs(), register_num);
     // Its on the stack so load it.
-    insnCodeGen::restoreRegister(gen, destination, offset + (register_num * gen.width()), gen.getUseRVC());
+    insnCodeGen::restoreRegister(gen, destination, idx * gen.width(), gen.getUseRVC());
 }

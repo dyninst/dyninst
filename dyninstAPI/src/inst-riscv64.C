@@ -153,13 +153,13 @@ void registerSpace::initialize() {
 
 /********************************* Private methods *********************************************/
 
-void EmitterRISCV64SaveRegs::saveSPR(codeGen &/*gen*/, Register /*scratchReg*/, int /*sprnum*/, int /*stkOffset*/)
+void EmitterRISCV64SaveRestoreRegs::saveSPR(codeGen &/*gen*/, Register /*scratchReg*/, int /*sprnum*/, int /*stkOffset*/)
 {
     // TODO RISC-V speical purpose register currently not supported
 }
 
 
-void EmitterRISCV64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save_off) {
+void EmitterRISCV64SaveRestoreRegs::saveFPRegister(codeGen &gen, Register reg, int save_off) {
     // TODO
     //     //Always performing save of the full FP register
     insnCodeGen::generateMemStoreFp(gen, REG_SP, reg, save_off, 8, gen.getUseRVC());
@@ -167,16 +167,47 @@ void EmitterRISCV64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save
 
 /********************************* Public methods *********************************************/
 
-unsigned EmitterRISCV64SaveRegs::saveGPRegisters(
-        codeGen &gen, registerSpace *theRegSpace, baseTramp *bt, int offset, int numReqGPRs)
-{
-    if (numReqGPRs == -1) numReqGPRs = theRegSpace->numGPRs();
-    std::vector<registerSlot *> regs;
+unsigned EmitterRISCV64SaveRestoreRegs::getStackHeight(codeGen &/*gen*/, registerSpace *theRegSpace) {
+    unsigned height = 0;
+    for (int idx = 0; idx < theRegSpace->numGPRs(); idx++) {
+        registerSlot *regSlot = theRegSpace->GPRs()[idx];
+        // Prevent storing: zero, sp, gp, and tp
+        if (regSlot->number == GPR_ZERO || regSlot->number == GPR_SP ||
+                regSlot->number == GPR_GP || regSlot->number == GPR_TP) {
+            continue;
+        }
+        if (regSlot->liveState == registerSlot::spilled) {
+            height++;
+        }
+    }
+    return height;
+}
 
-    for (int idx = 0; idx < numReqGPRs; idx++) {
+int EmitterRISCV64SaveRestoreRegs::getHeightOf(codeGen &/*gen*/, registerSpace *theRegSpace, Register regNum) {
+    if (theRegSpace->GPRs()[regNum]->liveState != registerSlot::spilled || 
+            regNum == GPR_ZERO || regNum == GPR_SP ||
+            regNum == GPR_GP || regNum == GPR_TP) {
+        return -1;
+    }
+    int idx = 0;
+    for (Register i = 0; i <= regNum; i++) {
+        registerSlot *regSlot = theRegSpace->GPRs()[i];
+        if (regSlot->liveState == registerSlot::spilled) {
+            idx++;
+        }
+    }
+    return idx;
+}
+
+unsigned EmitterRISCV64SaveRestoreRegs::saveGPRegisters(
+        codeGen &gen, registerSpace *theRegSpace, baseTramp *bt, int offset)
+{
+    std::vector<registerSlot *> regs;
+    for (int idx = 0; idx < theRegSpace->numGPRs(); idx++) {
         registerSlot *reg = theRegSpace->GPRs()[idx];
         // Prevent storing: zero, sp, gp, and tp
-        if (reg->number == GPR_ZERO || reg->number == GPR_SP || reg->number == GPR_GP || reg->number == GPR_TP) {
+        if (reg->number == GPR_ZERO || reg->number == GPR_SP ||
+                reg->number == GPR_GP || reg->number == GPR_TP) {
             continue;
         }
         if (bt->definedRegs.size() == 0 || (reg->liveState == registerSlot::live && bt->definedRegs[reg->encoding()])) {
@@ -186,7 +217,7 @@ unsigned EmitterRISCV64SaveRegs::saveGPRegisters(
 
     pushStack(gen, regs.size() * gen.width());
 
-    for (int idx = 0; idx < regs.size(); idx++) {
+    for (unsigned idx = 0; idx < regs.size(); idx++) {
         registerSlot *reg = regs[idx];
         int offset_from_sp = offset + idx * gen.width();
         insnCodeGen::saveRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
@@ -196,7 +227,7 @@ unsigned EmitterRISCV64SaveRegs::saveGPRegisters(
     return regs.size();
 }
 
-unsigned EmitterRISCV64SaveRegs::saveFPRegisters(
+unsigned EmitterRISCV64SaveRestoreRegs::saveFPRegisters(
         codeGen &gen, registerSpace *theRegSpace, int offset)
 {
     unsigned ret = 0;
@@ -214,14 +245,14 @@ unsigned EmitterRISCV64SaveRegs::saveFPRegisters(
     return ret;
 }
 
-unsigned EmitterRISCV64SaveRegs::saveSPRegisters(
+unsigned EmitterRISCV64SaveRestoreRegs::saveSPRegisters(
         codeGen &/*gen*/, registerSpace * /*theRegSpace*/, int /*offset*/, bool /*force_save*/)
 {
     // TODO RISC-V speical purpose register currently not supported
     return 0;
 }
 
-void EmitterRISCV64SaveRegs::createFrame(codeGen &gen) {
+void EmitterRISCV64SaveRestoreRegs::createFrame(codeGen &gen) {
     // Dyninst-style stack frame
 
     // Save link register
@@ -240,11 +271,11 @@ void EmitterRISCV64SaveRegs::createFrame(codeGen &gen) {
 /***********************************************************************************************/
 /***********************************************************************************************/
 
-/********************************* EmitterRISCV64RestoreRegs ************************************/
+/********************************* EmitterRISCV64SaveRestoreRegs ************************************/
 
 /********************************* Public methods *********************************************/
 
-unsigned EmitterRISCV64RestoreRegs::restoreGPRegisters(
+unsigned EmitterRISCV64SaveRestoreRegs::restoreGPRegisters(
         codeGen &gen, registerSpace *theRegSpace, int offset)
 {
     std::vector<registerSlot *> regs;
@@ -270,7 +301,7 @@ unsigned EmitterRISCV64RestoreRegs::restoreGPRegisters(
     return regs.size();
 }
 
-unsigned EmitterRISCV64RestoreRegs::restoreFPRegisters(
+unsigned EmitterRISCV64SaveRestoreRegs::restoreFPRegisters(
         codeGen &gen, registerSpace *theRegSpace, int offset)
 {
     unsigned ret = 0;
@@ -287,7 +318,7 @@ unsigned EmitterRISCV64RestoreRegs::restoreFPRegisters(
     return ret;
 }
 
-unsigned EmitterRISCV64RestoreRegs::restoreSPRegisters(
+unsigned EmitterRISCV64SaveRestoreRegs::restoreSPRegisters(
         codeGen &/*gen*/, registerSpace * /*theRegSpace*/, int /*offset*/, int /*force_save*/)
 {
     int ret = 0;
@@ -295,7 +326,7 @@ unsigned EmitterRISCV64RestoreRegs::restoreSPRegisters(
     return ret;
 }
 
-void EmitterRISCV64RestoreRegs::tearFrame(codeGen &gen) {
+void EmitterRISCV64SaveRestoreRegs::tearFrame(codeGen &gen) {
     // Restore frame pointer
     Register framePointer = gen.rs()->getRegByName("r8");
     insnCodeGen::restoreRegister(gen, framePointer, 2 * GPRSIZE_64, gen.getUseRVC());
@@ -308,12 +339,12 @@ void EmitterRISCV64RestoreRegs::tearFrame(codeGen &gen) {
 
 /********************************* Private methods *********************************************/
 
-void EmitterRISCV64RestoreRegs::restoreSPR(codeGen &/*gen*/, Register /*scratchReg*/, int /*sprnum*/, int /*stkOffset*/)
+void EmitterRISCV64SaveRestoreRegs::restoreSPR(codeGen &/*gen*/, Register /*scratchReg*/, int /*sprnum*/, int /*stkOffset*/)
 {
     // TODO RISC-V speical purpose register currently not supported
 }
 
-void EmitterRISCV64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, int save_off) {
+void EmitterRISCV64SaveRestoreRegs::restoreFPRegister(codeGen &gen, Register reg, int save_off) {
     insnCodeGen::generateMemLoadFp(gen, reg, REG_SP, save_off, 8, gen.getUseRVC());
     assert(0);
 }
@@ -339,10 +370,10 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
 {
     regalloc_printf("========== baseTramp::generateSaves\n");
 
-    EmitterRISCV64SaveRegs saveRegs;
+    EmitterRISCV64SaveRestoreRegs saveRestoreRegs;
     unsigned int width = gen.width();
 
-    saveRegs.saveGPRegisters(gen, gen.rs(), this, TRAMP_GPR_OFFSET(width));
+    saveRestoreRegs.saveGPRegisters(gen, gen.rs(), this, 0);
     // After saving GPR, we move SP to FP to create the instrumentation frame.
     // Note that Dyninst instrumentation frame has a different structure
     // compared to stack frame created by the compiler.
@@ -362,7 +393,7 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
                      gen.rs()->anyLiveFPRsAtEntry() &&
                      this->saveFPRs());
 
-    if (saveFPRs) saveRegs.saveFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
+    if (saveFPRs) saveRestoreRegs.saveFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
     this->savedFPRs = saveFPRs;
 
     return true;
@@ -370,13 +401,13 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
 
 bool baseTramp::generateRestores(codeGen &gen, registerSpace *)
 {
-    EmitterRISCV64RestoreRegs restoreRegs;
+    EmitterRISCV64SaveRestoreRegs restoreRegs;
     unsigned int width = gen.width();
 
     if (this->savedFPRs) {
         restoreRegs.restoreFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
     }
-    restoreRegs.restoreGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
+    restoreRegs.restoreGPRegisters(gen, gen.rs(), 0);
 
     return true;
 }
@@ -569,7 +600,6 @@ Register EmitterRISCV64::emitCall(opCode op,
 
     // Generate code that handles operand registers
     for (size_t id = 0; id < operands.size(); id++) {
-        Register reg = Null_Register;
         Register reg = registerSpace::r10 + id;
         gen.markRegDefined(reg);
 
@@ -639,7 +669,6 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
                const instPoint *, bool /*for_MT*/)
 {
     registerSlot *regSlot = NULL;
-    unsigned addrWidth = gen.width();
 
     switch(op){
         case getRetValOp:
@@ -674,10 +703,9 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
     switch(regSlot->liveState) {
         case registerSlot::spilled:
             {
-                int offset = TRAMP_GPR_OFFSET(addrWidth);
-                // its on the stack so load it.
-                //if (src2 != Null_Register) saveRegister(gen, src2, reg, offset);
-                insnCodeGen::restoreRegister(gen, dest, offset + (reg * gen.width()), gen.getUseRVC());
+                EmitterRISCV64SaveRestoreRegs saveRestoreRegs;
+                int idx = saveRestoreRegs.getHeightOf(gen, gen.rs(), reg);
+                insnCodeGen::restoreRegister(gen, dest, idx * gen.width(), gen.getUseRVC());
                 return(dest);
             }
         case registerSlot::live:

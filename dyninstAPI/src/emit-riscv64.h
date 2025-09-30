@@ -222,28 +222,22 @@ private:
     bool emitTOCCommon(block_instance *dest, bool call, codeGen &gen);
 };
 
-class EmitterRISCV64SaveRegs {
+class EmitterRISCV64SaveRestoreRegs {
 public:
-    virtual ~EmitterRISCV64SaveRegs() {}
+    virtual ~EmitterRISCV64SaveRestoreRegs() {}
 
     unsigned saveGPRegisters(codeGen &gen, registerSpace *theRegSpace, baseTramp *bt,
-            int offset, int numReqGPRs = -1);
+            int offset);
 
     unsigned saveFPRegisters(codeGen &gen, registerSpace *theRegSpace, int offset);
 
     unsigned saveSPRegisters(codeGen &gen, registerSpace *, int offset, bool force_save);
 
+    unsigned getStackHeight(codeGen &gen, registerSpace *);
+
+    int getHeightOf(codeGen &gen, registerSpace *, Register regNum);
+
     void createFrame(codeGen &gen);
-
-private:
-    void saveSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset);
-
-    void saveFPRegister(codeGen &gen, Register reg, int save_off);
-};
-
-class EmitterRISCV64RestoreRegs {
-public:
-    virtual ~EmitterRISCV64RestoreRegs() {}
 
     unsigned restoreGPRegisters(codeGen &gen, registerSpace *theRegSpace, int offset);
 
@@ -256,6 +250,11 @@ public:
     void restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset);
 
     void restoreFPRegister(codeGen &gen, Register reg, int save_off);
+
+private:
+    void saveSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset);
+
+    void saveFPRegister(codeGen &gen, Register reg, int save_off);
 };
 
 #endif
