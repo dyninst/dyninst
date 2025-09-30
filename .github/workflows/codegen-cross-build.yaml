@@ -1,0 +1,87 @@
+# Build with all non-x86_64 codegen architectures
+name: Codegen cross-build
+
+on:
+  pull_request:
+     types: [opened, synchronize, reopened, ready_for_review]
+     branches:
+        - master
+     paths:
+       - '**.h'
+       - '**.C'
+       - '**.c'
+       - '**.cmake'
+       - '**CMakeLists.txt'
+       - 'tests/*'
+  workflow_dispatch:
+
+jobs:
+
+  # Don't run the check if the PR is a draft
+  check-if-needed:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.draft == false }}
+    steps:
+      - shell: bash
+        run: true
+
+  get-oses:
+    runs-on: ubuntu-latest
+    needs: check-if-needed
+    outputs:
+      latest: ${{ steps.all.outputs.latest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: all
+        uses: ./.github/actions/os-versions
+
+  get-compilers:
+    runs-on: ubuntu-latest
+    needs: check-if-needed
+    outputs:
+      all: ${{ steps.compilers.outputs.value }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - id: compilers
+        shell: bash
+        run: |
+          set -ex
+          script="./.github/scripts/compiler_configs.py"
+          names=$(python3 ${script} --print-names)
+          echo "value=${names}" >> $GITHUB_OUTPUT
+
+  cross-build:
+    runs-on: ubuntu-latest
+    needs: [get-oses, get-compilers]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.get-oses.outputs.latest) }}
+        compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
+        codegen_arch: [i386, x86_64, aarch64, ppc64le]
+    permissions:
+      packages: read
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: Codegen arch ${{ matrix.codegen_arch }} (${{ matrix.os }}, ${{ matrix.compiler }})
+    steps:
+      - name: Checkout Dyninst
+        uses: actions/checkout@v4
+        with:
+          path: "src"  # relative to ${GITHUB_WORKSPACE}
+
+      - name: Build Dyninst
+        uses: ./src/.github/actions/build
+        with:
+          os: ${{ matrix.os }}
+          compiler: ${{ matrix.compiler }}
+          src-dir: "${GITHUB_WORKSPACE}/src"
+          extra-cmake-flags: "-DDYNINST_CODEGEN_ARCH=${{ matrix.codegen_arch }}"
+          run-tests: "true"
