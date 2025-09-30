@@ -35,8 +35,6 @@
 #include "dyninstAPI/src/emit-amdgpu.h"
 #include "dyninstAPI/src/registerSpace.h"
 
-#include <iostream>
-
 using namespace Dyninst;
 using namespace AmdgpuGfx908;
 
@@ -537,11 +535,6 @@ void EmitterAmdgpuGfx908::emitLongJump(Register reg, uint64_t fromAddress, uint6
 
   assert(signedFromAddress > 0 && signedToAddress > 0 && "Both addresses must be positive");
   int64_t diff = signedToAddress - signedFromAddress;
-
-  std::cerr << "Long jump from " << std::dec << fromAddress << " (" << std::hex << fromAddress
-            << std::dec << ") to " << toAddress << std::hex << " (" << toAddress << ") "
-            << std::dec;
-  std::cerr << "diff = " << diff << " (" << std::hex << diff << ")" << std::dec << std::endl;
 
   emitSop1(S_GETPC_B64, /* dest = */ reg, /* src0 =*/0, /* hasLiteral = */ false, /* literal=*/0,
            gen);
