@@ -1096,7 +1096,7 @@ bool EmitterAARCH64::emitLoadRelative(Register dest, Address offset, Register ba
         std::vector<Register> exclude;
         exclude.push_back(baseReg);
         // mov sOffset to a reg
-        auto addReg = insnCodeGen::moveValueToReg(gen, labs(offset), &exclude);
+        auto addReg = insnCodeGen::moveValueToReg(gen, labs(sOffset), &exclude);
         // add/sub sOffset to baseReg
         insnCodeGen::generateAddSubShifted(gen,
                 sOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
@@ -1280,7 +1280,7 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
         } else {
             std::vector<Register> exclude;
             exclude.push_back(baseReg);
-            auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
+            auto addReg = insnCodeGen::moveValueToReg(gen, varOffset, &exclude);
             insnCodeGen::generateAddSubShifted(gen,
                     (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
                     0, 0, addReg, baseReg, baseReg, true);
@@ -1322,7 +1322,7 @@ void EmitterAARCH64::emitStoreShared(Register source, const image_variable *var,
         std::vector<Register> exclude;
         exclude.push_back(baseReg);
         // mov offset to a reg
-        auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
+        auto addReg = insnCodeGen::moveValueToReg(gen, varOffset, &exclude);
         // add/sub offset to baseReg
         insnCodeGen::generateAddSubShifted(gen,
                 (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
