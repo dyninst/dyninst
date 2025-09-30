@@ -826,26 +826,6 @@ static inline void restoreGPRtoGPR(codeGen &gen,
 	return;
 }
 
-// VG(03/15/02): Restore mutatee value of XER to dest GPR
-static inline void restoreXERtoGPR(codeGen &, Register) {
-    assert(0); //Not implemented
-}
-
-// VG(03/15/02): Move bits 25:31 of GPR reg to GPR dest
-static inline void moveGPR2531toGPR(codeGen &,
-                                    Register, Register) {
-    assert(0); //Not implemented
-}
-
-// VG(11/16/01): Emit code to add the original value of a register to
-// another. The original value may need to be restored from stack...
-// VG(03/15/02): Made functionality more obvious by adding the above functions
-static inline void emitAddOriginal(Register src, Register acc,
-                                   codeGen &gen, bool noCost) {
-    emitV(plusOp, src, acc, acc, gen, noCost, 0);
-}
-
-
 //Not correctly implemented
 void MovePCToReg(Register dest, codeGen &gen) {
     instruction insn;
