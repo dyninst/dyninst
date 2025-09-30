@@ -45,6 +45,7 @@ enum entryID : unsigned int {
   #include "mnemonics/AMDGPU/gfx940_entryIDs.h"
   #include "mnemonics/NVIDIA/generic_entryIDs.h"
   #include "mnemonics/IntelGPU/generic_entryIDs.h"
+  #include "mnemonics/riscv64_entryIDs.h"
   _entry_ids_max_
 };
 /* clang-format on */

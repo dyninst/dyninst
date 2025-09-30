@@ -179,6 +179,14 @@ namespace aarch64 {
   }
 }
 
+namespace riscv64 {
+  bool isSystemCall(di::Instruction const& ins) {
+    auto const id = ins.getOperation().getID();
+    return id == riscv64_op_ecall;
+  }
+}
+
+
 bool di::isSystemCall(Instruction const& ins) {
   switch(ins.getArch()) {
     case Arch_x86:
@@ -189,6 +197,8 @@ bool di::isSystemCall(Instruction const& ins) {
       return ::ppc::isSystemCall(ins);
     case Arch_aarch64:
       return ::aarch64::isSystemCall(ins);
+    case Arch_riscv64:
+      return ::riscv64::isSystemCall(ins);
     case Arch_none:
     case Arch_aarch32:
     case Arch_cuda:
