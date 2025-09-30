@@ -129,14 +129,14 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     mutable std::map<Address, std::string> _linkage;
 
     /*
-     * .rela.dyn external linkage table. Optional.
+     * .rela.dyn external linkage table. Used in RISC-V
      */
     mutable std::map<Address, std::pair<std::string, Address> > _reladyn_linkage;
 
     /*
-     * .symtab external linkage table. Optional.
+     * .symtab external linkage table. Used in RISC-V
      */
-    mutable std::map<Address, std::pair<std::string, Address> > _symtab_linkage;
+    mutable std::map<Address, std::string> _symtab_linkage;
 
     /*
      * Table of Contents for position independent references. Optional.
@@ -199,7 +199,7 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
 
     std::map< Address, std::string > & linkage() const { return _linkage; }
     std::map< Address, std::pair<std::string, Address> > & reladyn_linkage() const { return _reladyn_linkage; }
-    std::map< Address, std::pair<std::string, Address> > & symtab_linkage() const { return _symtab_linkage; }
+    std::map< Address, std::string> & symtab_linkage() const { return _symtab_linkage; }
 //    std::vector< Hint > const& hints() const { return _hints; } 
     dyn_c_vector<Hint> const& hints() const { return _hints; }
     std::vector<CodeRegion *> const& regions() const { return _regions; }

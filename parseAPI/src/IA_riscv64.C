@@ -244,19 +244,21 @@ bool IA_riscv64::isStackFramePreamble() const
     // addi s0, sp, n   (c.addi4spn s0, sp, n)
 
     Instruction insn = curInsn();
-    if (!savesFP()) { // check c.addi sp, -16
+    // check c.addi sp, -16
+    if (!savesFP()) {
         return false;
     }
-    //entryID eid = insn.getOperation().getID();
     InstructionDecoder tmp(dec);
     for (int i = 0; i < 2; ++i) {
         insn = tmp.decode();
+        // check c.sdsp ra, 0x8(sp) and c.sdsp s0, sp
+        // The order of both stores does not matter
         if (!isFrameSetupInsn(insn)) {
             return false;
         }
     }
 
-    // TODO: no need to check c.addi2spn ?
+    // TODO: no need to check c.addi4spn ?
     return true;
 }
 
@@ -366,63 +368,116 @@ bool IA_riscv64::isMultiInsnJump(Address *target, Function *context, Block *curr
     if (curInsnID == riscv64_op_c_jalr || curInsnID == riscv64_op_c_jr || curInsnID == riscv64_op_jalr) {
         Address addr = current;
 
+        // If we saw c.jalr, grab the second operand and offset
+        // (not the first because the first one is the implicit link register)
+        Address offset = 0;
+        MachRegister linkReg, targetReg;
+
+        // Get the link register
+        if (curInsnID == riscv64_op_c_jalr) {
+            linkReg = riscv64::ra;
+            targetReg = (boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue()))->getID();
+        }
+        else if (curInsnID == riscv64_op_c_jr) {
+            linkReg = riscv64::zero;
+            targetReg = (boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue()))->getID();
+        }
+        else {
+            // If we saw jalr, unwrap the second operand.
+            // The first child operand will be the target register
+            // The second child operand will be the immediate.
+            linkReg = (boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue()))->getID();
+            vector<InstructionAST::Ptr> children;
+            boost::dynamic_pointer_cast<BinaryFunction>(insn.getOperand(1).getValue())->getChildren(children);
+            targetReg = (boost::dynamic_pointer_cast<RegisterAST>(children[0]))->getID();
+            offset = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
+        }
+        IA_riscv64* cloned = this->clone();
+        cloned->retreat();
+        Instruction pi = cloned->curInsn();
+
         // In RISC-V where sometimes the offset is too large to fit into the instruction's immediate field of jal,
         // Compilers will typically generate the following instruction sequence
         //   auipc	ra,0xffe00
         //   jalr	-42(ra)
         // The following code performs instruction pattern matching on such code snippet
 
-        // If we saw c.jalr, grab the second operand and offset
-        // (not the first because the first one is the implicit link register)
+        // If the previous instruction is indeed `auipc`, unwrap all operands and calculate the target address
+        if (pi.getOperation().getID() == riscv64_op_auipc) {
+            MachRegister auipcRd = (boost::dynamic_pointer_cast<RegisterAST>(pi.getOperand(0).getValue()))->getID();
+            int32_t auipcImm = (boost::dynamic_pointer_cast<Immediate>(pi.getOperand(1).getValue()))->eval().val.s32val;
 
-        bool validJr = false;
-        Address offset = 0;
-        if (curInsnID == riscv64_op_c_jalr || curInsnID == riscv64_op_c_jr) {
-            MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue()))->getID();
-            if (rs == riscv64::ra) {
-                validJr = true;
-            }
-        }
-        // If we saw jalr, unwrap the second operand.
-        // The first child operand will be the target register
-        // The second child operand will be the immediate.
-        else {
-            vector<InstructionAST::Ptr> children;
-            boost::dynamic_pointer_cast<BinaryFunction>(insn.getOperand(1).getValue())->getChildren(children);
-            MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(children[0]))->getID();
-            offset = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
-            if (rs == riscv64::ra) {
-                validJr = true;
-            }
-        }
-        if (validJr) {
-            IA_riscv64* cloned = this->clone();
-            cloned->retreat();
-            Instruction pi = cloned->curInsn();
+            if (auipcRd == targetReg) {
+                // The offset of auipc is (imm << 12), so we add (imm << 12) to the target address
+                addr += (auipcImm << 12);
 
-            // If the previous instruction is indeed `auipc`, unwrap all operands and calculate the target address
-            if (pi.getOperation().getID() == riscv64_op_auipc) {
-                MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(pi.getOperand(0).getValue()))->getID();
-                int32_t imm = (boost::dynamic_pointer_cast<Immediate>(pi.getOperand(1).getValue()))->eval().val.s32val;
+                // Add the offset to relAddr
+                addr += offset;
+                // minus the length of the auipc instruction
+                addr -= pi.size();
 
-                if (rd == riscv64::ra) {
-                    // The offset of auipc is (imm << 12), so we add (imm << 12) to the target address
-                    addr += (imm << 12);
-
-                    // Add the offset to relAddr
-                    addr += offset;
-                    addr -= pi.size(); // minus the length of the auipc instruction
-
+                CodeSource *cs = currBlk->obj()->cs();
+                std::map<Dyninst::Address, std::string> symtab_linkage = cs->symtab_linkage();
+                std::map<Dyninst::Address, std::string> plt_linkage = cs->linkage();
+                if (symtab_linkage.find(addr) != symtab_linkage.end() ||
+                        plt_linkage.find(addr) != plt_linkage.end()) {
                     *target = addr;
                     return true;
                 }
             }
         }
 
-        // Add more instruction pattern here
+        // For some RISC-V shared libraries, PLT entries are not generated for exported functions
+        // Instead, it loads the address from .rela.dyn and calls it directly without going through PLT
+        // An example code snippet that loads from .rela.dyn is as follows
+        //   auipc   t1,0xa
+        //   ld      t1,1498(t1)
+        //   jalr    t1
+
+        else if (pi.getOperation().getID() == riscv64_op_ld ||
+                pi.getOperation().getID() == riscv64_op_c_ld) {
+            MachRegister ldRd = (boost::dynamic_pointer_cast<RegisterAST>(pi.getOperand(0).getValue()))->getID();
+            vector<InstructionAST::Ptr> children1;
+            boost::dynamic_pointer_cast<Dereference>(pi.getOperand(1).getValue())->getChildren(children1);
+            vector<InstructionAST::Ptr> children2;
+            boost::dynamic_pointer_cast<BinaryFunction>(children1[0])->getChildren(children2);
+            MachRegister ldRs = (boost::dynamic_pointer_cast<RegisterAST>(children2[0]))->getID();
+            int32_t ldImm = (boost::dynamic_pointer_cast<Immediate>(children2[1]))->eval().val.s32val;
+
+            // The register operands should be the same as the target register
+            if (ldRd == targetReg && ldRs == targetReg) {
+                // Add the offset to the target address
+                addr += ldImm;
+
+                // If the previous second instruction is indeed `auipc`, unwrap all operands and check them
+                cloned->retreat();
+                Instruction pi2 = cloned->curInsn();
+                if (pi2.getOperation().getID() == riscv64_op_auipc) {
+                    MachRegister auipcRd = (boost::dynamic_pointer_cast<RegisterAST>(pi2.getOperand(0).getValue()))->getID();
+                    int32_t auipcImm = (boost::dynamic_pointer_cast<Immediate>(pi2.getOperand(1).getValue()))->eval().val.s32val;
+
+                    if (auipcRd == targetReg) {
+                        // The offset of auipc is (imm << 12), so we add (imm << 12) to the target address
+                        addr += (auipcImm << 12);
+                        // minus the length of the auipc and ld instruction
+                        addr -= pi.size() + pi2.size();
+                        // Dereference addr and check if the address is in .rela.dyn
+                        CodeSource *cs = currBlk->obj()->cs();
+                        std::map< Address, std::pair<std::string, Address>> reladyn_linkage = cs->reladyn_linkage();
+                        if (reladyn_linkage.find(addr) != reladyn_linkage.end()) {
+                            *target = reladyn_linkage[addr].second;
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add more instruction patterns here
 
         // Unknown instruction pattern
         // Perform backward slicing as the last resort
+        // This should not occur frequently. If it does, consider adding the instruction pattern.
         AssignmentConverter ac(true, false);
         vector<Assignment::Ptr> assignments;
         ac.convert(insn, currBlk->last(), context, currBlk, assignments);

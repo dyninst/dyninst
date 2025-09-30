@@ -412,7 +412,7 @@ bool Parser::ProcessCFInsn(
 
     // Instruction adapter provides edge estimates from an instruction
     parsing_printf("Getting edges\n");
-    ah->getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries, &reladyn_entries, &symtab_entries, frame.knownTargets);
+    ah->getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries, frame.knownTargets);
     parsing_printf("Returned %lu edges\n", edges_out.size());
     if (unlikely(_obj.defensiveMode() && !ah->isCall() && edges_out.size())) {
         // only parse branch edges that align with existing blocks

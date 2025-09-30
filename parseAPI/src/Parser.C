@@ -97,10 +97,10 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
     }
 
     // cache other relocation entries in .symtab
-    const map<Address, std::pair<string, Address>> & slm = obj.cs()->symtab_linkage();
-    map<Address, std::pair<string, Address>>::const_iterator slit = slm.begin();
+    const map<Address, string> & slm = obj.cs()->symtab_linkage();
+    map<Address, string>::const_iterator slit = slm.begin();
     for( ; slit != slm.end(); ++slit) {
-        parsing_printf("Cached .symtab entry %s @ %lx (%lx)\n", slit->second.first.c_str(), slit->second.second, slit->first);
+        parsing_printf("Cached .symtab entry %s (%lx)\n", slit->second.c_str(), slit->first);
         symtab_entries[slit->first] = slit->second;
     }
 

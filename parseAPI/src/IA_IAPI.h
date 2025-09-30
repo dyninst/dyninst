@@ -94,8 +94,6 @@ class IA_IAPI : public InstructionAdapter {
                 Dyninst::ParseAPI::Block * currBlk,
                 unsigned int num_insns,
                 dyn_hash_map<Address, std::string> *pltFuncs,
-                dyn_hash_map<Address, std::pair<std::string, Address>> *reladynFuncs,
-                dyn_hash_map<Address, std::pair<std::string, Address>> *symtabFuncs,
 		const set<Address>& knownTargets) const;
         virtual InstrumentableLevel getInstLevel(Dyninst::ParseAPI::Function *, unsigned int num_insns ) const;
         virtual bool isDynamicCall() const;

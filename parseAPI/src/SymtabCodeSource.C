@@ -629,7 +629,7 @@ SymtabCodeSource::init_linkage()
         for (auto sit = symbols.begin(); sit != symbols.end(); ++sit) {
             if ((*sit)->getType() == SymtabAPI::Symbol::ST_FUNCTION)
             {
-                _symtab_linkage[(*sit)->getOffset()] = std::make_pair((*sit)->getMangledName(), (*sit)->getSize());
+                _symtab_linkage[(*sit)->getOffset()] = (*sit)->getMangledName();
             }
         }
     }

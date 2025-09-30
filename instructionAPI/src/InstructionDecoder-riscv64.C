@@ -125,7 +125,7 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
         rs = detail->operands[0].reg;
         
         isCFT = true;
-        isCall = (eid == riscv64_op_jalr);
+        isCall = (eid == riscv64_op_c_jalr);
         isIndirect = true;
         isConditional = false;
 

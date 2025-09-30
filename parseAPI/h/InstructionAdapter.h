@@ -88,10 +88,7 @@ class InstructionAdapter
             ParseAPI::Block* currBlk,
             unsigned int num_insns,
             dyn_hash_map<Address, std::string> *pltFuncs,
-            dyn_hash_map<Address, std::pair<std::string, Address>> *reladynFuncs,
-            dyn_hash_map<Address, std::pair<std::string, Address>> *symtabFuncs,
-	    const std::set<Address> &) const =
-0;
+	    const std::set<Address> &) const = 0;
     virtual bool isDynamicCall() const = 0;
     virtual bool isAbsoluteCall() const = 0;
     virtual InstrumentableLevel getInstLevel(ParseAPI::Function* context, unsigned int num_insns) const;
