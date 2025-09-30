@@ -89,20 +89,46 @@ void registerSpace::initialize64() {
     std::vector < registerSlot * > registers;
 
     // RISC-V GPRs
-    for (unsigned idx = r0; idx <= r31; idx++) {
+    for (unsigned idx = GPR_T0; idx <= GPR_T2; idx++) {
         char name[32];
-        sprintf(name, "r%u", idx - r0);
-        // Off limit registers
-        if (idx == GPR_ZERO || idx == GPR_GP || idx == GPR_TP ||
-			idx == GPR_RA || idx == GPR_SP || idx == GPR_FP) {
-            registers.push_back(new registerSlot(idx, name, true,
-                        registerSlot::liveAlways, registerSlot::GPR));
-        }
-        else {
-            registers.push_back(new registerSlot(idx, name, false,
-                        registerSlot::liveAlways, registerSlot::GPR));
-        }
+        sprintf(name, "r%u", idx);
+        registers.push_back(new registerSlot(idx, name, false,
+                    registerSlot::deadABI, registerSlot::GPR));
     }
+    for (unsigned idx = GPR_T3; idx <= GPR_T6; idx++) {
+        char name[32];
+        sprintf(name, "r%u", idx);
+        registers.push_back(new registerSlot(idx, name, false,
+                    registerSlot::deadABI, registerSlot::GPR));
+    }
+    for (unsigned idx = GPR_A0; idx <= GPR_A7; idx++) {
+        char name[32];
+        sprintf(name, "r%u", idx);
+        registers.push_back(new registerSlot(idx, name, false,
+                    registerSlot::liveAlways, registerSlot::GPR));
+    }
+    for (unsigned idx = GPR_S11; idx >= GPR_S2; idx--) {
+        char name[32];
+        sprintf(name, "r%u", idx);
+        registers.push_back(new registerSlot(idx, name, false,
+                    registerSlot::liveAlways, registerSlot::GPR));
+    }
+    for (unsigned idx = GPR_S1; idx >= GPR_S0; idx--) {
+        char name[32];
+        sprintf(name, "r%u", idx);
+        registers.push_back(new registerSlot(idx, name, false,
+                    registerSlot::liveAlways, registerSlot::GPR));
+    }
+    registers.push_back(new registerSlot(GPR_ZERO, "r0", true,
+                registerSlot::liveAlways, registerSlot::GPR));
+    registers.push_back(new registerSlot(GPR_RA, "r1", true,
+                registerSlot::liveAlways, registerSlot::GPR));
+    registers.push_back(new registerSlot(GPR_SP, "r2", true,
+                registerSlot::liveAlways, registerSlot::GPR));
+    registers.push_back(new registerSlot(GPR_GP, "r3", true,
+                registerSlot::liveAlways, registerSlot::GPR));
+    registers.push_back(new registerSlot(GPR_TP, "r4", true,
+                registerSlot::liveAlways, registerSlot::GPR));
 
     // RISC-V FPRs
     for (unsigned idx = fpr0; idx <= fpr31; idx++) {
@@ -144,20 +170,30 @@ void EmitterRISCV64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save
 unsigned EmitterRISCV64SaveRegs::saveGPRegisters(
         codeGen &gen, registerSpace *theRegSpace, baseTramp *bt, int offset, int numReqGPRs)
 {
-    int ret = 0;
     if (numReqGPRs == -1) numReqGPRs = theRegSpace->numGPRs();
+    std::vector<registerSlot *> regs;
 
     for (int idx = 0; idx < numReqGPRs; idx++) {
         registerSlot *reg = theRegSpace->GPRs()[idx];
+        // Prevent storing: zero, sp, gp, and tp
+        if (reg->number == GPR_ZERO || reg->number == GPR_SP || reg->number == GPR_GP || reg->number == GPR_TP) {
+            continue;
+        }
         if (bt->definedRegs.size() == 0 || (reg->liveState == registerSlot::live && bt->definedRegs[reg->encoding()])) {
-            int offset_from_sp = offset + (reg->number * gen.width());
-            insnCodeGen::saveRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
-            theRegSpace->markSavedRegister(reg->number, offset_from_sp);
-            ret++;
+            regs.push_back(reg);
         }
     }
 
-    return ret;
+    pushStack(gen, regs.size() * gen.width());
+
+    for (int idx = 0; idx < regs.size(); idx++) {
+        registerSlot *reg = regs[idx];
+        int offset_from_sp = offset + idx * gen.width();
+        insnCodeGen::saveRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
+        theRegSpace->markSavedRegister(reg->number, offset_from_sp);
+    }
+
+    return regs.size();
 }
 
 unsigned EmitterRISCV64SaveRegs::saveFPRegisters(
@@ -211,23 +247,27 @@ void EmitterRISCV64SaveRegs::createFrame(codeGen &gen) {
 unsigned EmitterRISCV64RestoreRegs::restoreGPRegisters(
         codeGen &gen, registerSpace *theRegSpace, int offset)
 {
-    unsigned ret = 0;
+    std::vector<registerSlot *> regs;
 
-    for (int idx = theRegSpace->numGPRs() - 1; idx >= 0; idx--) {
+    for (int idx = 0; idx < theRegSpace->numGPRs(); idx++) {
         // Do not restore zero (x0), sp (x2)
         registerSlot *reg = theRegSpace->GPRs()[idx];
         if (reg->number == GPR_ZERO || reg->number == GPR_SP) {
             continue;
         }
-
         if (reg->liveState == registerSlot::spilled) {
-            int offset_from_sp = offset + (reg->number * GPRSIZE_64);
-            insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
-            ret++;
+            regs.push_back(reg);
         }
     }
+    for (int idx = regs.size() - 1; idx >= 0; idx--) {
+        registerSlot *reg = regs[idx];
+        int offset_from_sp = offset + idx * GPRSIZE_64;
+        insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp, gen.getUseRVC());
+    }
+    // Tear down the stack frame.
+    popStack(gen, regs.size() * gen.width());
 
-    return ret;
+    return regs.size();
 }
 
 unsigned EmitterRISCV64RestoreRegs::restoreFPRegisters(
@@ -284,22 +324,20 @@ void EmitterRISCV64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, in
 /*
  * Emit code to push down the stack
  */
-void pushStack(codeGen &gen)
+void pushStack(codeGen &gen, int size)
 {
-    insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, -TRAMP_FRAME_SIZE_64, gen.getUseRVC());
+    insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, -size, gen.getUseRVC());
 }
 
-void popStack(codeGen &gen)
+void popStack(codeGen &gen, int size)
 {
-    insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, TRAMP_FRAME_SIZE_64, gen.getUseRVC());
+    insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, size, gen.getUseRVC());
 }
 
 /*********************************** Base Tramp ***********************************************/
 bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
 {
     regalloc_printf("========== baseTramp::generateSaves\n");
-
-    pushStack(gen);
 
     EmitterRISCV64SaveRegs saveRegs;
     unsigned int width = gen.width();
@@ -335,17 +373,10 @@ bool baseTramp::generateRestores(codeGen &gen, registerSpace *)
     EmitterRISCV64RestoreRegs restoreRegs;
     unsigned int width = gen.width();
 
-    // RISC-V speical purpose register currently not supported
-    //restoreRegs.restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
-
     if (this->savedFPRs) {
         restoreRegs.restoreFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
     }
-
     restoreRegs.restoreGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
-
-    // Tear down the stack frame.
-    popStack(gen);
 
     return true;
 }
@@ -444,8 +475,6 @@ bool EmitterRISCV64::clobberAllFuncCall(registerSpace *rs,
         return true;
     }
 
-    stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
-
     if (callee->ifunc()->isLeafFunc()) {
         std::set<Register> *gpRegs = callee->ifunc()->usedGPRs();
         for (std::set<Register>::iterator itr = gpRegs->begin(); itr != gpRegs->end(); itr++) {
@@ -469,8 +498,6 @@ bool EmitterRISCV64::clobberAllFuncCall(registerSpace *rs,
             rs->FPRs()[idx]->beenUsed = true;
         }
     }
-
-    stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
 
     return false;
 }
@@ -529,8 +556,9 @@ Register EmitterRISCV64::emitCall(opCode op,
     for (int i = 0; i < gen.rs()->numGPRs(); i++) {
         registerSlot *reg = gen.rs()->GPRs()[i];
         // Ignore zero register
-        if (((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live)) &&
-            reg->number != GPR_ZERO) {
+        if (((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live)
+                || (reg->number >= 10 && reg->number <= 10 + operands.size() && reg->number <= 17))
+                && reg->number != GPR_ZERO) {
             savedRegs.push_back(reg->number);
         }
     }
@@ -542,9 +570,8 @@ Register EmitterRISCV64::emitCall(opCode op,
     // Generate code that handles operand registers
     for (size_t id = 0; id < operands.size(); id++) {
         Register reg = Null_Register;
-        if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r10 + id, true)) {
-            reg = registerSpace::r10 + id;
-        }
+        Register reg = registerSpace::r10 + id;
+        gen.markRegDefined(reg);
 
         Address unnecessary = ADDR_NULL;
         if (!operands[id]->generateCode_phase2(gen, false, unnecessary, reg)) {
@@ -569,9 +596,11 @@ Register EmitterRISCV64::emitCall(opCode op,
     // Generate jalr
     insnCodeGen::generateJalr(gen, GPR_RA, dest, 0, gen.getUseRVC());
 
-    // Finally, we restore all necessary registers
+    // Finally, we restore all necessary registers except for the return register
     for (size_t id = 0; id < savedRegs.size(); id++) {
-        insnCodeGen::restoreRegister(gen, savedRegs[id], id * GPRSIZE_64, gen.getUseRVC());
+        if (savedRegs[id] != registerSpace::r10 && savedRegs[id] != registerSpace::r11) {
+            insnCodeGen::restoreRegister(gen, savedRegs[id], id * GPRSIZE_64, gen.getUseRVC());
+        }
     }
     insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, savedRegs.size() * GPRSIZE_64, gen.getUseRVC());
     return riscv64::a0;
@@ -1028,25 +1057,22 @@ bool image::updatePltFunc(parse_func *caller_func, Address stub_addr)
 
 bool EmitterRISCV64::emitCallRelative(Register, Address, Register, codeGen &) {
     // Not used currently
-    assert(0);
     return true;
 }
 
 bool EmitterRISCV64::emitLoadRelative(Register dest, Address offset, Register baseReg, int size, codeGen &gen) {
     signed long long sOffset = (signed long long) offset;
     // If the offset is small enough (-0x800 <= offset < 0x800), use lb/lw/ld,... directly
-    //if (sOffset >= -0x800 && sOffset < 0x800) {
-    //    insnCodeGen::generateMemLoad(gen, dest, baseReg, offset, size, true, gen.getUseRVC());
-    //}
-    //else {
+    if (sOffset >= -0x800 && sOffset < 0x800) {
+        insnCodeGen::generateMemLoad(gen, dest, baseReg, offset, size, true, gen.getUseRVC());
+    }
+    else {
         std::vector<Register> exclude;
         exclude.push_back(baseReg);
-        Register addReg = gen.rs()->getScratchRegister(gen, exclude, true);
-        assert(addReg != Null_Register && "cannot get a scratch register");
-        insnCodeGen::generateLoadImm(gen, addReg, sOffset, false, false, false);
+        auto addReg = insnCodeGen::moveValueToReg(gen, offset, &exclude);
         insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg, gen.getUseRVC());
         insnCodeGen::generateMemLoad(gen, dest, baseReg, 0, size, true, gen.getUseRVC());
-    //}
+    }
     gen.markRegDefined(dest);
     return true;
 }
@@ -1055,16 +1081,16 @@ bool EmitterRISCV64::emitLoadRelative(Register dest, Address offset, Register ba
 void EmitterRISCV64::emitStoreRelative(Register source, Address offset, Register baseReg, int size, codeGen &gen) {
     signed long long sOffset = (signed long long) offset;
     // If the offset is small enough (-0x800 <= offset < 0x800), use lb/lw/ld,... directly
-    //if (sOffset >= -0x800 && sOffset < 0x800) {
-    //    insnCodeGen::generateMemStore(gen, source, baseReg, offset, size, gen.getUseRVC());
-    //}
-    //else {
+    if (sOffset >= -0x800 && sOffset < 0x800) {
+        insnCodeGen::generateMemStore(gen, source, baseReg, offset, size, gen.getUseRVC());
+    }
+    else {
         std::vector<Register> exclude;
         exclude.push_back(baseReg);
         auto addReg = insnCodeGen::moveValueToReg(gen, offset, &exclude);
         insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg, gen.getUseRVC());
         insnCodeGen::generateMemStore(gen, source, baseReg, 0, size, gen.getUseRVC());
-    //}
+    }
 }
 
 bool EmitterRISCV64::emitMoveRegToReg(registerSlot *,
@@ -1287,10 +1313,10 @@ void EmitterRISCV64::emitLoadShared(opCode op, Register dest, const image_variab
     Address addr;
     int stackSize = 0;
 
-    if(var == NULL) {
+    if (var == NULL) {
         addr = offset;
     }
-    else if(!is_local) {
+    else if (!is_local) {
         addr = getInterModuleVarAddr(var, gen);
     }
     else {
@@ -1301,7 +1327,6 @@ void EmitterRISCV64::emitLoadShared(opCode op, Register dest, const image_variab
     // Load register with address from jump slot
     Register baseReg = gen.rs()->getScratchRegister(gen, true);
     assert(baseReg != Null_Register && "cannot get a scratch register");
-
     Address varOffset = addr - gen.currAddr(); // Don't use compressed instructions
 
     if (op == loadOp) {
@@ -1323,14 +1348,7 @@ void EmitterRISCV64::emitLoadShared(opCode op, Register dest, const image_variab
             emitLoadRelative(dest, varOffset, baseReg, gen.width(), gen);
         }
         else {
-            //std::vector<Register> exclude;
-            //exclude.push_back(baseReg);
-            //auto addReg = insnCodeGen::moveValueToReg(gen, varOffset, &exclude);
-            //insnCodeGen::generateAdd(gen, baseReg, addReg, baseReg, gen.getUseRVC());
-            //insnCodeGen::generateMove(gen, dest, baseReg, gen.getUseRVC());
-
-            // Move address of the variable into the register - load effective address
-            // insnCodeGen::generateLoadImm(gen, dest, addr - gen.currAddr(), true, true, gen.getUseRVC());
+            // Load effective address
             insnCodeGen::generateLoadImm(gen, dest, varOffset, true, true, gen.getUseRVC());
         }
     }
@@ -1338,7 +1356,6 @@ void EmitterRISCV64::emitLoadShared(opCode op, Register dest, const image_variab
         assert("Invalid op in emitLoadShared");
     }
 
-    insnCodeGen::generateMove(gen, baseReg, dest, gen.getUseRVC());
     assert(stackSize <= 0 && "stack not empty at the end");
     return;
 }

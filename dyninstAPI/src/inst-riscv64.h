@@ -108,9 +108,9 @@
 
 //#define PDYN_RESERVED_64 (LINKAREA_64 + FUNCARGS_64 + FUNCSAVE_64)
 
-#define TRAMP_SPR_OFFSET_64 (0)
-#define TRAMP_FPR_OFFSET_64 (TRAMP_SPR_OFFSET_64 + SPRSAVE_64)
-#define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + FPRSAVE_64)
+#define TRAMP_GPR_OFFSET_64 (0)
+#define TRAMP_FPR_OFFSET_64 (TRAMP_GPR_OFFSET_64 + GPRSAVE_64)
+#define TRAMP_SPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + FPRSAVE_64)
 
 inline int TRAMP_GPR_OFFSET(int x) {
   if(x == 8) {
@@ -138,7 +138,7 @@ inline int TRAMP_SPR_OFFSET(int x) {
 
 class codeGen;
 
-void pushStack(codeGen &gen);
-void popStack(codeGen &gen);
+void pushStack(codeGen &gen, int size);
+void popStack(codeGen &gen, int size);
 
 #endif
