@@ -416,14 +416,8 @@ bool IA_riscv64::isMultiInsnJump(Address *target, Function *context, Block *curr
                 // minus the length of the auipc instruction
                 addr -= pi.size();
 
-                CodeSource *cs = currBlk->obj()->cs();
-                std::map<Dyninst::Address, std::string> symtab_linkage = cs->symtab_linkage();
-                std::map<Dyninst::Address, std::string> plt_linkage = cs->linkage();
-                if (symtab_linkage.find(addr) != symtab_linkage.end() ||
-                        plt_linkage.find(addr) != plt_linkage.end()) {
-                    *target = addr;
-                    return true;
-                }
+                *target = addr;
+                return true;
             }
         }
 

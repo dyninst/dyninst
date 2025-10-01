@@ -570,12 +570,19 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
         }
 
         if (isMultiInsnJump(&target, context, currBlk)) {
-            parsing_printf("%s[%d]: multi instruction jump from %lx to %lx\n",
-                    FILE__, __LINE__, current, target);
-            outEdges.push_back(std::make_pair(target, CALL));
-            outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
-            curInsnIter->second.getOperation().isMultiInsnCall = true;
-            return;
+            CodeSource *cs = currBlk->obj()->cs();
+            std::map<Dyninst::Address, std::string> symtab_entries = cs->symtab_linkage();
+            // If the target address points to the entry point of a function,
+            // It is identified as a function call.
+            if (symtab_entries.find(target) != symtab_entries.end() ||
+                    plt_entries->find(target) != plt_entries->end()) {
+                parsing_printf("%s[%d]: multi instruction call from %lx to %lx\n",
+                        FILE__, __LINE__, current, target);
+                outEdges.push_back(std::make_pair(target, CALL));
+                outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
+                curInsnIter->second.getOperation().isMultiInsnCall = true;
+                return;
+            }
         }
 
         if (callEdge) {
@@ -692,92 +699,6 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                 return;
             }
 
-            // // Special case: for some RISC-V shared libraries, PLT entries are not generated for exported functions
-            // // Instead, it loads the address from the GOT table and calls it directly without going through PLT
-            // // An example code snippet that loads the GOT entry is as follows
-            // //   auipc   t1,0xa
-            // //   ld      t1,1498(t1)
-            // //   jalr    t1
-            // // The following code performs instruction pattern matching on such code snippet
-
-            // // First, we search for the operator `jalr rd`
-            // if(ci.getArch() == Arch_riscv64 && (ci.getOperation().getID() == riscv64_op_c_jalr ||
-            //             (ci.getOperation().getID() == riscv64_op_jalr))) {
-            //     bool validJr = false, validLd = false;
-            //     MachRegister targetReg;
-            //     int32_t relaAddr = current;
-            //     // If we saw c.jalr, grab the first operand
-            //     if(ci.getOperation().getID() == riscv64_op_c_jalr) {
-            //         targetReg = (boost::dynamic_pointer_cast<RegisterAST>(ci.getOperand(0).getValue()))->getID();
-            //         validJr = true;
-            //     }
-            //     // If we saw jalr, unwrap the second operand.
-            //     // The first child operand will be the target register
-            //     // The second child operand will be the immediate. In our case, The immediate should be 0
-            //     else {
-            //         MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(ci.getOperand(0).getValue()))->getID();
-            //         vector<InstructionAST::Ptr> children;
-            //         boost::dynamic_pointer_cast<BinaryFunction>(ci.getOperand(1).getValue())->getChildren(children);
-            //         MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(children[0]))->getID();
-            //         int32_t imm = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
-            //         if (rd == riscv64::ra && imm == 0) {
-            //             targetReg = rs;
-            //             validJr = true;
-            //         }
-            //     }
-            //     // If the current code is `jalr rd`, we search for `ld rd,imm1(rd)` and `auipc rd,imm2` backwards
-            //     if(validJr) {
-            //         IA_IAPI* cloned = this->clone();
-            //         cloned->retreat();
-            //         Instruction pi1 = cloned->curInsn();
-
-            //         // If the previous instruction is indeed `ld` or `c.ld`, unwrap all operands and check them
-            //         if (pi1.getOperation().getID() == riscv64_op_ld ||
-            //                 pi1.getOperation().getID() == riscv64_op_c_ld) {
-            //             MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(pi1.getOperand(0).getValue()))->getID();
-            //             vector<InstructionAST::Ptr> children1;
-            //             boost::dynamic_pointer_cast<Dereference>(pi1.getOperand(1).getValue())->getChildren(children1);
-            //             vector<InstructionAST::Ptr> children2;
-            //             boost::dynamic_pointer_cast<BinaryFunction>(children1[0])->getChildren(children2);
-            //             MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(children2[0]))->getID();
-
-            //             // The register operands should be the same as the target register
-            //             int32_t imm = (boost::dynamic_pointer_cast<Immediate>(children2[1]))->eval().val.s32val;
-            //             if (rd == targetReg && rs == targetReg) {
-            //                 // Add the offset to the target address
-            //                 relaAddr += imm;
-            //                 validLd = true;
-            //             }
-            //         }
-
-            //         // If the previous code is `jalr rd`, we search for `auipc rd,imm2` backwards
-            //         if(validLd) {
-            //             cloned->retreat();
-            //             Instruction pi2 = cloned->curInsn();
-
-            //             // If the previous second instruction is indeed `auipc`, unwrap all operands and check them
-            //             if(pi2.getOperation().getID() == riscv64_op_auipc) {
-            //                 MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(pi2.getOperand(0).getValue()))->getID();
-            //                 int32_t imm = (boost::dynamic_pointer_cast<Immediate>(pi2.getOperand(1).getValue()))->eval().val.s32val;
-
-            //                 // The register operands should be the same as the target register
-            //                 if(rd == targetReg) {
-            //                     // The offset of auipc is (imm << 12), so we add (imm << 12) to the target address
-            //                     relaAddr += (imm << 12);
-
-            //                     // Finally, check whether the target address is in RELA
-            //                     if (reladyn_entries->find(relaAddr) != reladyn_entries->end()) {
-            //                         Address targetAddr = (*reladyn_entries)[relaAddr].second;
-            //                         outEdges.push_back(std::make_pair(targetAddr, INDIRECT));
-            //                         // Add fallthrough edge
-            //                         outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
-            //                     }
-            //                     return;
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
             parsing_printf("%s[%d]: jump table candidate %s at 0x%lx\n", FILE__, __LINE__,
                     ci.format().c_str(), current);
             parsedJumpTable = true;
