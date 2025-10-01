@@ -52,8 +52,6 @@
 
 #include "Object-elf.h"
 
-#include <regex>
-
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace Dyninst::DwarfDyninst;
