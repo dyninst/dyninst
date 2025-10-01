@@ -47,7 +47,6 @@
 #include <utility>
 #include <string>
 #include <vector>
-#include <unordered_set>
 
 #include "Symbol.h"
 #include "Symtab.h"
