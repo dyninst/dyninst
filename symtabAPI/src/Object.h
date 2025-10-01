@@ -41,11 +41,13 @@
  * header files.
 ************************************************************************/
 
+
 // trace data streams
 #include <iosfwd>
 #include <utility>
 #include <string>
 #include <vector>
+#include <unordered_set>
 
 #include "Symbol.h"
 #include "Symtab.h"
@@ -177,7 +179,7 @@ public:
     virtual Offset getTOCoffset(Offset) const { return 0; }
     virtual void setTOCoffset(Offset) { }
 
-    virtual bool getUseRVC() const { return riscv_extensions.rvc; }
+    virtual bool getUseRVC() { return false; }
 
     virtual bool emitDriver(std::string fName, std::set<Symbol *> &allSymbols, unsigned flag) = 0;
     virtual void parseFileLineInfo() { }
@@ -194,15 +196,6 @@ protected:
     // explicitly protected
     DYNINST_EXPORT Object(MappedFile *, void (*err_func)(const char *), Symtab*);
 friend class Module;
-
-    // Supported RISC-V extensions
-    struct RiscvExt {
-        bool rvm = false; // Multiplication Extension
-        bool rva = false; // Atomic Extension
-        bool rvf = false; // Single-precision Floating Point Extension
-        bool rvd = false; // Double-precision Floating Point Extension
-        bool rvc = false; // Compressed Extension
-    };
 
     virtual void parseLineInfoForCU(Offset , LineInformation* ) { }
 
@@ -258,7 +251,6 @@ friend class Module;
 
     FileFormat file_format_;
 
-    RiscvExt riscv_extensions;
 private:
     friend class SymbolIter;
     friend class Symtab;

@@ -91,6 +91,28 @@ class Object;
 class ObjectELF;
 class InlinedFunction;
 
+// RISC-V attributes
+struct RiscvAttributes {
+    union riscv_attr_t {
+        char *sval;
+        uint32_t ival;
+    };
+    enum riscv_attr_tags {
+        Tag_RISCV_stack_align = 4,
+        Tag_RISCV_arch = 5,
+        Tag_RISCV_unaligned_access = 6,
+        Tag_RISCV_priv_spec = 8,
+        Tag_RISCV_spec_minor = 10,
+        Tag_RISCV_priv_spec_revision = 12,
+        Tag_RISCV_atomic_abi = 14,
+        Tag_RISCV_x3_reg_usage = 16
+    };
+    // RISC-V Attributes
+    std::map<int, riscv_attr_t> raw_attrs;
+    // Supported RISC-V extensions
+    std::unordered_set<std::string> extensions;
+};
+
 class open_statement {
     public:
         open_statement() { reset(); }
@@ -323,22 +345,6 @@ public:
   dyn_hash_map<int, unsigned long> secTagSizeMapping;
   dyn_hash_map<int, Region*> secTagRegionMapping;
 
-  // RISC-V attributes
-  union riscv_attr_t {
-    char *sval;
-    uint32_t ival;
-  };
-  enum riscv_attr_tags {
-    Tag_RISCV_stack_align = 4,
-    Tag_RISCV_arch = 5,
-    Tag_RISCV_unaligned_access = 6,
-    Tag_RISCV_priv_spec = 8,
-    Tag_RISCV_spec_minor = 10,
-    Tag_RISCV_priv_spec_revision = 12,
-    Tag_RISCV_atomic_abi = 14,
-    Tag_RISCV_x3_reg_usage = 16
-  };
-
   bool hasReldyn_;
   bool hasReladyn_;
   bool hasRelplt_;
@@ -502,9 +508,9 @@ private:
 
   bool parse_riscv_attributes(Elf_X_Shdr *);
 
-  bool getUseRVC() const { return riscv_extensions.rvc; } 
-
   void get_riscv_extensions();
+
+  bool getUseRVC() { return riscv_attrs.extensions.find("c") != riscv_attrs.extensions.end(); }
 
   void find_code_and_data(Elf_X &elf,
        Offset txtaddr, Offset dataddr);
@@ -541,9 +547,9 @@ private:
   std::unordered_map<void*, std::vector<open_statement> > contextMap;
 
   // RISC-V Attributes
-  std::map<int, riscv_attr_t> riscv_attrs;
+  RiscvAttributes riscv_attrs;
+};
 
-        };
 
 }//namespace SymtabAPI
 }//namespace Dyninst

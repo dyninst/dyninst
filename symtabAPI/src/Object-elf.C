@@ -1577,7 +1577,7 @@ void ObjectELF::load_object(bool alloc_syms) {
             bool result = parse_riscv_attributes(riscv_attr_scnp);
             // riscv attributes is not mandatory
             if (!result) {
-                create_printf("%s[%d]: riscv attributes missing\n", FILE__, __LINE__);
+                create_printf("%s[%d]: riscv attributes missing or corrupted\n", FILE__, __LINE__);
             }
             get_riscv_extensions();
         }
@@ -4315,7 +4315,7 @@ bool ObjectELF::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
                 if (attr_tag % 2 != 0) {
                     // a string value
                     uint32_t slen = strlen(p) + 1;
-                    riscv_attrs[attr_tag].sval = strdup(p);
+                    riscv_attrs.raw_attrs[attr_tag].sval = strdup(p);
                     p += slen;
                 }
                 else {
@@ -4325,7 +4325,7 @@ bool ObjectELF::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
                     uint32_t ival_bytes_read = 0;
                     uint64_t ival = read_uleb128(static_cast<const unsigned char *>(
                                             reinterpret_cast<const void*>(p)), &ival_bytes_read);
-                    riscv_attrs[attr_tag].ival = ival;
+                    riscv_attrs.raw_attrs[attr_tag].ival = ival;
                     p += ival_bytes_read;
                 }
             }
@@ -4336,8 +4336,9 @@ bool ObjectELF::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
 
 void ObjectELF::get_riscv_extensions() {
     // Obtain information from .riscv.attributes
-    if (!riscv_attrs.empty() && riscv_attrs.find(Tag_RISCV_arch) != riscv_attrs.end()) {
-        std::string arch_string = riscv_attrs[Tag_RISCV_arch].sval;
+    if (!riscv_attrs.raw_attrs.empty() &&
+            riscv_attrs.raw_attrs.find(riscv_attrs.Tag_RISCV_arch) != riscv_attrs.raw_attrs.end()) {
+        std::string arch_string = riscv_attrs.raw_attrs[riscv_attrs.Tag_RISCV_arch].sval;
         for (size_t i = 0; i < arch_string.size(); i++) {
             if (std::isalnum(arch_string[i])) {
                 int start = i;
@@ -4354,21 +4355,7 @@ void ObjectELF::get_riscv_extensions() {
                     }
                     end++;
                     std::string ext = arch_string.substr(start, end - start);
-                    if (ext == "m") {
-                        riscv_extensions.rvm = true;
-                    }
-                    else if (ext == "a") {
-                        riscv_extensions.rva = true;
-                    }
-                    else if (ext == "f") {
-                        riscv_extensions.rvf = true;
-                    }
-                    else if (ext == "d") {
-                        riscv_extensions.rvd = true;
-                    }
-                    else if (ext == "c") {
-                        riscv_extensions.rvc = true;
-                    }
+                    riscv_attrs.extensions.insert(ext);
                 }
             }
         }
@@ -4377,6 +4364,6 @@ void ObjectELF::get_riscv_extensions() {
     // Obtain information from e_flags
     unsigned long e_flags = elfHdr->e_flags();
     if (e_flags & EF_RISCV_RVC) {
-        riscv_extensions.rvc = true;
+        riscv_attrs.extensions.insert("c");
     }
 }
