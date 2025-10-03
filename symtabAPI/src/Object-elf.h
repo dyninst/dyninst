@@ -91,6 +91,28 @@ class Object;
 class ObjectELF;
 class InlinedFunction;
 
+// RISC-V attributes
+struct RiscvAttributes {
+    union riscv_attr_t {
+        char *sval;
+        uint32_t ival;
+    };
+    enum riscv_attr_tags {
+        Tag_RISCV_stack_align = 4,
+        Tag_RISCV_arch = 5,
+        Tag_RISCV_unaligned_access = 6,
+        Tag_RISCV_priv_spec = 8,
+        Tag_RISCV_spec_minor = 10,
+        Tag_RISCV_priv_spec_revision = 12,
+        Tag_RISCV_atomic_abi = 14,
+        Tag_RISCV_x3_reg_usage = 16
+    };
+    // RISC-V Attributes
+    std::map<int, riscv_attr_t> raw_attrs;
+    // Supported RISC-V extensions
+    std::unordered_set<std::string> extensions;
+};
+
 class open_statement {
     public:
         open_statement() { reset(); }
@@ -422,7 +444,8 @@ public:
 		    Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
 		    Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr*& dynamic_scnp, Elf_X_Shdr*& eh_frame,
 		    Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
-		   Elf_X_Shdr *&opd_scnp, Elf_X_Shdr*& symtab_shndx_scnp,
+		    Elf_X_Shdr *&opd_scnp, Elf_X_Shdr*& symtab_shndx_scnp,
+		    Elf_X_Shdr *&riscv_attr_scnp,
           bool a_out=false);
   
   Symbol *handle_opd_symbol(Region *opd, Symbol *sym);
@@ -483,6 +506,12 @@ private:
   void parse_dynamicSymbols( Elf_X_Shdr *& dyn_scnp, Elf_X_Data &symdata,
                              Elf_X_Data &strdata, bool shared_library);
 
+  bool parse_riscv_attributes(Elf_X_Shdr *);
+
+  void get_riscv_extensions();
+
+  bool getUseRVC() override { return riscv_attrs.extensions.find("c") != riscv_attrs.extensions.end(); }
+
   void find_code_and_data(Elf_X &elf,
        Offset txtaddr, Offset dataddr);
 
@@ -517,7 +546,10 @@ private:
   Function* containingFunc;
   std::unordered_map<void*, std::vector<open_statement> > contextMap;
 
-        };
+  // RISC-V Attributes
+  RiscvAttributes riscv_attrs;
+};
+
 
 }//namespace SymtabAPI
 }//namespace Dyninst
