@@ -34,7 +34,6 @@
 #include "../CFG/RelocTarget.h"
 #include "../Widgets/Widget.h"
 #include "../Widgets/CFWidget.h"
-#include "../Widgets/ASTWidget.h"
 #include "../Widgets/InstWidget.h"
 #include "../CFG/RelocGraph.h"
 #include "dyninstAPI/src/instPoint.h"

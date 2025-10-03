@@ -176,7 +176,6 @@ set(_sources
     src/Relocation/Transformers/Movement-adhoc.C
     src/Relocation/Transformers/Movement-analysis.C
     src/Relocation/Transformers/Transformer.C
-    src/Relocation/Widgets/ASTWidget.C
     src/Relocation/Widgets/CFWidget.C
     src/Relocation/Widgets/CallbackWidget.C
     src/Relocation/Widgets/InsnWidget.C

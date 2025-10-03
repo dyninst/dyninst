@@ -29,7 +29,6 @@
  */
 
 #include "Widget.h"
-#include "ASTWidget.h"
 #include "CFWidget.h"
 #include "InsnWidget.h"
 #include "InstWidget.h"
