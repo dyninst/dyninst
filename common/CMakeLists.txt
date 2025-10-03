@@ -57,6 +57,7 @@ set(_public_headers
 set(_private_headers
     src/addrtranslate.h
     src/addrtranslate-sysv.h
+    src/arch-amdgpu.h
     src/arch-aarch64.h
     src/arch-power.h
     src/arch-x86.h
@@ -107,6 +108,7 @@ set(_sources
     src/arch-x86.C
     src/arch-power.C
     src/arch-aarch64.C
+    src/arch-amdgpu.C
     src/debug_common.C
     src/VariableLocation.C
     src/Buffer.C
