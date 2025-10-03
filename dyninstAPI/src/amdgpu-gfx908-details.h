@@ -144,49 +144,51 @@ enum ScalarRegs {
   SGPR_101,
 }; // ScalarRegs
 
-enum ContentKind {
-  CK_Sop1_Encoding,
-  CK_Sop1_FixedBits,
-  CK_Sop1_Opcode,
-  CK_Sop1_Dst,
-  CK_Sop1_Src0,
+enum ContentMask32 : uint32_t {
+  Mask_Sop1_Encoding  = 0xC0000000,    // 0b11000000000000000000000000000000
+  Mask_Sop1_FixedBits = 0x3F800000,    // 0b00111111100000000000000000000000
+  Mask_Sop1_Dst       = 0x007F0000,    // 0b00000000011111110000000000000000
+  Mask_Sop1_Opcode    = 0x0000FF00,    // 0b00000000000000001111111100000000
+  Mask_Sop1_Src0      = 0x000000FF,    // 0b00000000000000000000000011111111
 
-  CK_Sop2_Encoding,
-  CK_Sop2_Opcode,
-  CK_Sop2_Dst,
-  CK_Sop2_Src1,
-  CK_Sop2_Src0,
+  Mask_Sop2_Encoding  = 0xC0000000,    // 0b11000000000000000000000000000000
+  Mask_Sop2_Opcode    = 0x3F800000,    // 0b00111111100000000000000000000000
+  Mask_Sop2_Dst       = 0x007F0000,    // 0b00000000011111110000000000000000
+  Mask_Sop2_Src1      = 0x0000FF00,    // 0b00000000000000001111111100000000
+  Mask_Sop2_Src0      = 0x000000FF,    // 0b00000000000000000000000011111111
 
-  CK_SopC_Encoding,
-  CK_SopC_FixedBits,
-  CK_SopC_Opcode,
-  CK_SopC_Src1,
-  CK_SopC_Src0,
+  Mask_SopC_Encoding  = 0xC0000000,    // 0b11000000000000000000000000000000
+  Mask_SopC_FixedBits = 0x3F800000,    // 0b00111111100000000000000000000000
+  Mask_SopC_Opcode    = 0x007F0000,    // 0b00000000011111110000000000000000
+  Mask_SopC_Src1      = 0x0000FF00,    // 0b00000000000000001111111100000000
+  Mask_SopC_Src0      = 0x000000FF,    // 0b00000000000000000000000011111111
 
-  CK_SopK_Encoding,
-  CK_SopK_FixedBits,
-  CK_SopK_Opcode,
-  CK_SopK_Dst,
-  CK_SopK_SImm16,
+  Mask_SopK_Encoding  = 0xC0000000,    // 0b11000000000000000000000000000000
+  Mask_SopK_FixedBits = 0x30000000,    // 0b00110000000000000000000000000000
+  Mask_SopK_Opcode    = 0x0F800000,    // 0b00001111100000000000000000000000
+  Mask_SopK_Dst       = 0x007F0000,    // 0b00000000011111110000000000000000
+  Mask_SopK_SImm16    = 0x0000FFFF,    // 0b00000000000000001111111111111111
 
-  CK_SopP_Encoding,
-  CK_SopP_FixedBits,
-  CK_SopP_Opcode,
-  CK_SopP_SImm16,
-
-  CK_Smem_Encoding,
-  CK_Smem_Opcode,
-  CK_Smem_Imm,
-  CK_Smem_Glc,
-  CK_Smem_Nv,
-  CK_Smem_Soe,
-  CK_Smem_R1,
-  CK_Smem_Sdata,
-  CK_Smem_Sbase,
-  CK_Smem_Soffset,
-  CK_Smem_R4,
-  CK_Smem_Offset
+  Mask_SopP_Encoding  = 0xC0000000,    // 0b11000000000000000000000000000000
+  Mask_SopP_FixedBits = 0x3F800000,    // 0b00111111100000000000000000000000
+  Mask_SopP_Opcode    = 0x007F0000,    // 0b00000000011111110000000000000000
+  Mask_SopP_SImm16    = 0x0000FFFF     // 0b00000000000000001111111111111111
 };
+
+enum ContentMask64 : uint64_t {
+  Mask_Smem_Encoding = 0x00000000FC000000,  // 0b0000000000000000000000000000000011111100000000000000000000000000
+  Mask_Smem_Opcode   = 0x0000000003FC0000,  // 0b0000000000000000000000000000000000000011111111000000000000000000
+  Mask_Smem_Imm      = 0x0000000000020000,  // 0b0000000000000000000000000000000000000000000000100000000000000000
+  Mask_Smem_Glc      = 0x0000000000010000,  // 0b0000000000000000000000000000000000000000000000010000000000000000
+  Mask_Smem_Nv       = 0x0000000000008000,  // 0b0000000000000000000000000000000000000000000000001000000000000000
+  Mask_Smem_Soe      = 0x0000000000004000,  // 0b0000000000000000000000000000000000000000000000000100000000000000
+  Mask_Smem_R1       = 0x0000000000002000,  // 0b0000000000000000000000000000000000000000000000000010000000000000
+  Mask_Smem_Sdata    = 0x0000000000001FC0,  // 0b0000000000000000000000000000000000000000000000000001111111000000
+  Mask_Smem_Sbase    = 0x000000000000003F,  // 0b0000000000000000000000000000000000000000000000000000000000111111
+  Mask_Smem_Soffset  = 0xFE00000000000000,  // 0b1111111000000000000000000000000000000000000000000000000000000000
+  Mask_Smem_R4       = 0x01E0000000000000,  // 0b0000000111100000000000000000000000000000000000000000000000000000
+  Mask_Smem_Offset   = 0x001FFFFF00000000   // 0b0000000000011111111111111111111100000000000000000000000000000000
+ };
 
 // === SOP1 BEGIN ===
 
@@ -201,7 +203,6 @@ enum SOP1_Opcode {
   S_SWAPPC_B64 = 30
 };
 
-uint32_t getMaskSop1(ContentKind k);
 void setEncodingSop1(uint32_t &rawInst);
 void setFixedBitsSop1(uint32_t &rawInst);
 void setOpcodeSop1(uint32_t value, uint32_t &rawInst);
@@ -246,7 +247,6 @@ enum SOP2_Opcode {
 
 };
 
-uint32_t getMaskSop2(ContentKind k);
 void setEncodingSop2(uint32_t &rawInst);
 void setOpcodeSop2(uint32_t value, uint32_t &rawInst);
 void setDstSop2(uint32_t value, uint32_t &rawInst);
@@ -291,7 +291,6 @@ enum SOPC_Opcode {
   // Leaving out S_BITCMP0/1 instructions
 };
 
-uint32_t getMaskSopC(ContentKind k);
 void setEncodingSopC(uint32_t &rawInst);
 void setFixedBitsSopC(uint32_t &rawInst);
 void setOpcodeSopC(uint32_t value, uint32_t &rawInst);
@@ -331,7 +330,6 @@ enum SOPK_Opcode {
   S_MULK_I32 = 15
 };
 
-uint32_t getMaskSopK(ContentKind k);
 void setEncodingSopK(uint32_t &rawInst);
 void setFixedBitsSopK(uint32_t &rawInst);
 void setOpcodeSopK(uint32_t value, uint32_t &rawInst);
@@ -360,7 +358,6 @@ enum SOPP_Opcode {
   S_WAITCNT = 12
 };
 
-uint32_t getMaskSopP(ContentKind k);
 void setEncodingSopP(uint32_t &rawInst);
 void setFixedBitsSopP(uint32_t &rawInst);
 void setOpcodeSopP(uint32_t value, uint32_t &rawInst);
@@ -398,7 +395,6 @@ enum SMEM_Opcode {
   S_DCACHE_WB = 33
 };
 
-uint64_t getMaskSmem(ContentKind k);
 unsigned getSmemImmBit(unsigned opcode);
 void setEncodingSmem(uint64_t &rawInst);
 void setOpcodeSmem(uint64_t value, uint64_t &rawInst);
