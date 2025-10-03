@@ -286,7 +286,7 @@ bool EmitterAmdgpuGfx908::emitLoadRelative(Register dest, Address offset, Regist
   // TODO:
   // 1. Only set LGKM_CNT (simm16[11:8]) to 0 specifically.
   // 2. Optimize placement of waitcnt.
-  emitSopP(S_WAITCNT, /* hasImm = */ true, 0, gen);
+  emitSopP(S_WAITCNT, /* simm16 = */ 0, gen);
 
   return false;
 }
@@ -491,14 +491,14 @@ bool EmitterAmdgpuGfx908::clobberAllFuncCall(registerSpace * /* rs */,
 void EmitterAmdgpuGfx908::emitNops(unsigned numNops, codeGen &gen) {
   assert(numNops >= 1 && numNops <= 16);
   // 0x0 inserts 1 nop, and 0xFF (15) inserts 16 nops, so subtract 1
-  emitSopP(S_NOP, /* hasImm = */ true, (numNops - 1), gen);
+  emitSopP(S_NOP, /* simm16 = */ (numNops - 1), gen);
 }
 
 void EmitterAmdgpuGfx908::emitEndProgram(codeGen &gen) {
   // Passing 0 as immediate value.
   // Value of immediate passed here doesn't matter as the instruction won't have
   // an immediate.
-  emitSopP(S_ENDPGM, /* hasImm = */ false, 0, gen);
+  emitSopP(S_ENDPGM, /* simm16 = */ 0, gen);
 }
 
 void EmitterAmdgpuGfx908::emitMovLiteral(Register reg, uint32_t literal, codeGen &gen) {
@@ -512,11 +512,11 @@ void EmitterAmdgpuGfx908::emitMovLiteral(Register reg, uint32_t literal, codeGen
 void EmitterAmdgpuGfx908::emitConditionalBranch(bool onConditionTrue, int16_t wordOffset,
                                                 codeGen &gen) {
   unsigned opcode = onConditionTrue ? S_CBRANCH_SCC0 : S_CBRANCH_SCC1;
-  emitSopP(opcode, /* hasImm = */ true, wordOffset, gen);
+  emitSopP(opcode, /* simm16 = */ wordOffset, gen);
 }
 
 void EmitterAmdgpuGfx908::emitShortJump(int16_t wordOffset, codeGen &gen) {
-  emitSopP(S_BRANCH, /* hasImm = */ true, wordOffset, gen);
+  emitSopP(S_BRANCH, /* simm16 = */ wordOffset, gen);
 }
 
 // For this we need reg, reg+1, reg+2, reg+3. In future, we would like to use liveness analysis to
