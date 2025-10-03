@@ -21,7 +21,7 @@ class IndirectControlFlowAnalyzer {
 
     void GetAllReachableBlock();  
     void FindAllThunks();
-    void ReadTable(AST::Ptr,
+    bool ReadTable(AST::Ptr,
                    AbsRegion,
                    StridedInterval &,
                    int ,
