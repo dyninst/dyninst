@@ -366,7 +366,7 @@ void setFixedBitsSopP(uint32_t &rawInst);
 void setOpcodeSopP(uint32_t value, uint32_t &rawInst);
 void setSImm16SopP(int16_t value, uint32_t &rawInst);
 
-void emitSopP(unsigned opcode, bool hasImm, int16_t simm16, codeGen &gen);
+void emitSopP(unsigned opcode, int16_t simm16, codeGen &gen);
 // === SOPP END ===
 
 // === SMEM BEGIN ===

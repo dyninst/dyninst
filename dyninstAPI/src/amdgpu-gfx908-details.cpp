@@ -322,16 +322,12 @@ void setSImm16SopP(int16_t value, uint32_t &rawInst) {
   rawInst = (rawInst & ~mask) | ((uint32_t)(value)&mask);
 }
 
-void emitSopP(unsigned opcode, bool hasImm, int16_t simm16, codeGen &gen) {
+void emitSopP(unsigned opcode, int16_t simm16, codeGen &gen) {
   uint32_t newRawInst = 0xFFFFFFFF;
   setEncodingSopP(newRawInst);
   setFixedBitsSopP(newRawInst);
   setOpcodeSopP(opcode, newRawInst);
-
-  if (hasImm)
-    setSImm16SopP(simm16, newRawInst);
-  else
-    setSImm16SopP(0, newRawInst);
+  setSImm16SopP(simm16, newRawInst);
 
   uint32_t *rawInstBuffer = (uint32_t *)gen.cur_ptr();
   *rawInstBuffer = newRawInst;
