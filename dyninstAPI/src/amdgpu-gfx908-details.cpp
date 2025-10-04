@@ -70,11 +70,11 @@ void emitSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral, ui
   setSrc0Sop1(src0, newRawInst);
 
   void *rawInstBuffer = gen.cur_ptr();
-  append_memory_as<void, uint32_t>(rawInstBuffer, newRawInst);
+  append_memory_as(rawInstBuffer, newRawInst);
   gen.update((codeBuf_t *)rawInstBuffer);
 
   if (hasLiteral) {
-    append_memory_as<void, uint32_t>(rawInstBuffer, literal);
+    append_memory_as(rawInstBuffer, literal);
     gen.update((codeBuf_t *)rawInstBuffer);
   }
 }
@@ -118,7 +118,7 @@ void emitSop2(unsigned opcode, Register dest, Register src0, Register src1, code
   setSrc0Sop2(src0, newRawInst);
 
   void *rawInstBuffer = gen.cur_ptr();
-  append_memory_as<void, uint32_t>(rawInstBuffer, newRawInst);
+  append_memory_as(rawInstBuffer, newRawInst);
   gen.update((codeBuf_t *)rawInstBuffer);
 }
 
@@ -127,7 +127,7 @@ void emitSop2WithSrc1Literal(unsigned opcode, Register dest, Register src0, uint
   emitSop2(opcode, dest, src0, /* src1 = */ 255, gen);
 
   void *rawInstBuffer = gen.cur_ptr();
-  append_memory_as<void, uint32_t>(rawInstBuffer, src1Literal);
+  append_memory_as(rawInstBuffer, src1Literal);
   gen.update((codeBuf_t *)rawInstBuffer);
 }
 // === SOP2 END ===
@@ -167,7 +167,7 @@ void emitSopC(unsigned opcode, Register src0, Register src1, codeGen &gen) {
   setSrc0SopC(src0, newRawInst);
 
   void *rawInstBuffer = gen.cur_ptr();
-  append_memory_as<void, uint32_t>(rawInstBuffer, newRawInst);
+  append_memory_as(rawInstBuffer, newRawInst);
   gen.update((codeBuf_t *)rawInstBuffer);
 }
 // === SOPC END ===
@@ -208,7 +208,7 @@ void emitSopK(unsigned opcode, Register dest, int16_t simm16, codeGen &gen) {
   setSImm16SopK(simm16, newRawInst);
 
   void *rawInstBuffer = gen.cur_ptr();
-  append_memory_as<void, uint32_t>(rawInstBuffer, newRawInst);
+  append_memory_as(rawInstBuffer, newRawInst);
   gen.update((codeBuf_t *)rawInstBuffer);
 }
 // === SOPK END ===
@@ -243,7 +243,7 @@ void emitSopP(unsigned opcode, int16_t simm16, codeGen &gen) {
   setSImm16SopP(simm16, newRawInst);
 
   void *rawInstBuffer = gen.cur_ptr();
-  append_memory_as<void, uint32_t>(rawInstBuffer, newRawInst);
+  append_memory_as(rawInstBuffer, newRawInst);
   gen.update((codeBuf_t *)rawInstBuffer);
 }
 // === SOPP END ===
@@ -336,7 +336,7 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset, 
   setOffsetSmem(offset, newRawInst);
 
   void *rawInstBuffer = gen.cur_ptr();
-  append_memory_as<void, uint64_t>(rawInstBuffer, newRawInst);
+  append_memory_as(rawInstBuffer, newRawInst);
   gen.update((codeBuf_t *)rawInstBuffer);
 }
 // === SMEM END ===
