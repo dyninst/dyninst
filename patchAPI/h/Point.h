@@ -311,8 +311,9 @@ inline const char* type_str(Point::Type type) {
 }
 
 enum SnippetType {
-  SYSTEM,
-  USER
+  REGULAR,
+  PROLOGUE,
+  EPILOGUE
 };
 
 enum SnippetState {
@@ -328,10 +329,10 @@ class DYNINST_EXPORT Instance : public boost::enable_shared_from_this<Instance> 
    typedef boost::shared_ptr<Instance> Ptr;
 
   Instance(Point* point, SnippetPtr snippet)
-     : point_(point), snippet_(snippet), state_(PENDING), type_(SYSTEM), guarded_(true) { }
+     : point_(point), snippet_(snippet), state_(PENDING), type_(REGULAR), guarded_(true) { }
     virtual ~Instance() {}
     static InstancePtr create(Point*, SnippetPtr,
-                        SnippetType type = SYSTEM, SnippetState state = PENDING);
+                        SnippetType type = REGULAR, SnippetState state = PENDING);
 
     // Getters and Setters
     SnippetState state() const { return state_;}
