@@ -227,6 +227,10 @@ class DYNINST_EXPORT Point {
     instance_iter end() { return instanceList_.end();}
     virtual InstancePtr pushBack(SnippetPtr);
     virtual InstancePtr pushFront(SnippetPtr);
+
+    virtual InstancePtr addPrologue(SnippetPtr);
+    virtual InstancePtr addEpilogue(SnippetPtr);
+
     bool remove(InstancePtr);
 
     // Remove all snippets in this point

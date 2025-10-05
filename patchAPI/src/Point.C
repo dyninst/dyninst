@@ -166,6 +166,22 @@ Point::pushFront(SnippetPtr snippet) {
   return instance;
 }
 
+InstancePtr Point::addPrologue(SnippetPtr snippet) {
+  InstancePtr instance = Instance::create(this, snippet, PROLOGUE);
+  if (!instance) return instance;
+  instanceList_.push_back(instance);
+  instance->set_state(INSERTED);
+  return instance;
+}
+
+InstancePtr Point::addEpilogue(SnippetPtr snippet) {
+  InstancePtr instance = Instance::create(this, snippet, EPILOGUE);
+  if (!instance) return instance;
+  instanceList_.push_back(instance);
+  instance->set_state(INSERTED);
+  return instance;
+}
+
 /* Test whether the type contains a specific type. */
 bool
 Point::TestType(Point::Type types, Point::Type trg) {

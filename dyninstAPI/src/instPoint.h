@@ -143,6 +143,9 @@ class instPoint : public Dyninst::PatchAPI::Point {
     virtual Dyninst::PatchAPI::InstancePtr pushBack(Dyninst::PatchAPI::SnippetPtr);
     virtual Dyninst::PatchAPI::InstancePtr pushFront(Dyninst::PatchAPI::SnippetPtr);
 
+    virtual Dyninst::PatchAPI::InstancePtr addPrologue(Dyninst::PatchAPI::SnippetPtr);
+    virtual Dyninst::PatchAPI::InstancePtr addEpilogue(Dyninst::PatchAPI::SnippetPtr);
+
     void markModified();
 
  private:

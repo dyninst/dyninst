@@ -459,6 +459,20 @@ InstancePtr instPoint::pushBack(SnippetPtr snip) {
    return ret;
 }
 
+InstancePtr instPoint::addPrologue(SnippetPtr snip) {
+   InstancePtr ret = Point::addPrologue(snip);
+   if (!ret) return ret;
+   markModified();
+   return ret;
+}
+
+InstancePtr instPoint::addEpilogue(SnippetPtr snip) {
+   InstancePtr ret = Point::addEpilogue(snip);
+   if (!ret) return ret;
+   markModified();
+   return ret;
+}
+
 void instPoint::markModified() {
    if (func()) {
       proc()->addModifiedFunction(func());
