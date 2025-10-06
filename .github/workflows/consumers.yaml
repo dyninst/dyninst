@@ -356,7 +356,7 @@ jobs:
 
         # extrae does not build with gcc-14 (the default compiler on the latest fedora)
       - name: Build extrae
-        if: ${{ startsWith(matrix.os, 'ubuntu') && matrix.os != 'ubuntu-24.10'}}
+        if: ${{ startsWith(matrix.os, 'ubuntu')}}
         shell: bash
         run: |
           set -ex
@@ -364,7 +364,7 @@ jobs:
           git clone --depth=1 https://github.com/bsc-performance-tools/extrae
           cd extrae
           
-          autoreconf -fiv
+          ./bootstrap
           
           lib_dir_suffix=
           if [[ -d /dyninst/install/lib64 ]]; then
