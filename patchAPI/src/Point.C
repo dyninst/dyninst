@@ -151,7 +151,17 @@ InstancePtr
 Point::pushBack(SnippetPtr snippet) {
   InstancePtr instance = Instance::create(this, snippet);
   if (!instance) return instance;
-  instanceList_.push_back(instance);
+
+  // The above creates a REGULAR snippet.
+  // Regular snippets go before epilogues.
+  auto insert_position = std::find_if(
+      instanceList_.begin(),
+      instanceList_.end(),
+      [](InstancePtr i) {
+        return i->type() == EPILOGUE;
+      });
+  instanceList_.insert(insert_position, instance);
+
   instance->set_state(INSERTED);
   return instance;
 }
@@ -161,7 +171,17 @@ InstancePtr
 Point::pushFront(SnippetPtr snippet) {
   InstancePtr instance = Instance::create(this, snippet);
   if (!instance) return instance;
-  instanceList_.push_front(instance);
+
+  // The above creates a REGULAR snippet.
+  // Regular snippets go after prologues.
+  auto insert_position = std::find_if(
+      instanceList_.begin(),
+      instanceList_.end(),
+      [](InstancePtr i) {
+        return i->type() != PROLOGUE;
+      });
+  instanceList_.insert(insert_position, instance);
+
   instance->set_state(INSERTED);
   return instance;
 }
@@ -169,7 +189,7 @@ Point::pushFront(SnippetPtr snippet) {
 InstancePtr Point::addPrologue(SnippetPtr snippet) {
   InstancePtr instance = Instance::create(this, snippet, PROLOGUE);
   if (!instance) return instance;
-  instanceList_.push_back(instance);
+  instanceList_.push_front(instance);
   instance->set_state(INSERTED);
   return instance;
 }
