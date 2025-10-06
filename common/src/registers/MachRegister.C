@@ -172,9 +172,6 @@ namespace Dyninst {
         return *this;
       }
 
-      case Arch_riscv64:
-        return *this;
-
       case Arch_amdgpu_gfx908: {
         if(category == amdgpu_gfx908::MISC) {
           switch(val()) {
