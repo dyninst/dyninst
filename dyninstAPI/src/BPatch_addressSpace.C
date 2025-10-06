@@ -875,7 +875,7 @@ extern int dyn_debug_ast;
 void BPatch_addressSpace::insertPrologueAtPoints(AmdgpuPrologueSnippet& snippet, std::vector<BPatch_point *>& points) {
   for (size_t i = 0; i < points.size(); ++i) {
     instPoint *iPoint = static_cast<instPoint *>(points[i]->getPoint(BPatch_callBefore));
-    iPoint->pushFront(snippet.ast_wrapper);
+    iPoint->addPrologue(snippet.ast_wrapper);
   }
 }
 
@@ -904,7 +904,7 @@ void BPatch_addressSpace::insertPrologueIfKernel(BPatch_function *function) {
 void BPatch_addressSpace::insertEpilogueAtPoints(AmdgpuEpilogueSnippet& snippet, std::vector<BPatch_point *>& points) {
   for (size_t i = 0; i < points.size(); ++i) {
     instPoint *iPoint = static_cast<instPoint *>(points[i]->getPoint(BPatch_callAfter));
-    iPoint->pushBack(snippet.ast_wrapper);
+    iPoint->addEpilogue(snippet.ast_wrapper);
   }
 }
 
