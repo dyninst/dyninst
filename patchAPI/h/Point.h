@@ -222,7 +222,7 @@ class DYNINST_EXPORT Point {
     virtual ~Point();
 
     // Point as a snippet container
-    typedef std::list<InstancePtr>::iterator instance_iter;
+    typedef std::deque<InstancePtr>::iterator instance_iter;
     instance_iter begin() { return instanceList_.begin();}
     instance_iter end() { return instanceList_.end();}
     virtual InstancePtr pushBack(SnippetPtr);

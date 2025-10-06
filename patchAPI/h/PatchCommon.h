@@ -36,6 +36,7 @@
 #include <utility>
 #include <vector>
 #include <list>
+#include <deque>
 #include <set>
 #include <map>
 #include <iterator>
@@ -64,7 +65,7 @@ typedef PointSet::iterator PointIter;
 class Instance;
 typedef boost::shared_ptr<Instance> InstancePtr;
 typedef std::set<InstancePtr> InstanceSet;
-typedef std::list<InstancePtr> InstanceList;
+typedef std::deque<InstancePtr> InstanceList;
 
 class Instrumenter;
 class PatchMgr;
