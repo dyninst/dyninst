@@ -402,9 +402,32 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
             return;
         }
     }
+    if (eid == riscv64_op_fsgnj_s || eid == riscv64_op_fsgnjx_s ||
+        eid == riscv64_op_fsgnjn_s || eid == riscv64_op_fsgnj_d ||
+        eid == riscv64_op_fsgnjx_d || eid == riscv64_op_fsgnjn_d) {
+        // The fmv.s, fabs.s, fneg.s, fmv.d, fabs.d, fneg.d pseudo instructions
+        if (detail->op_count == 2) {
+            unsigned int rd = 0;
+            unsigned int rs1 = 0;
+            unsigned int rs2 = 0;
 
-    // TODO pseudo instructions for floating points
-    
+            assert(detail->operands[0].type == RISCV_OP_REG);
+            assert(detail->operands[1].type == RISCV_OP_REG);
+
+            rd = detail->operands[0].reg;
+            rs1 = detail->operands[1].reg;
+            rs2 = detail->operands[1].reg;
+
+            Expression::Ptr rdAST = makeRegisterExpression((this->*regTrans)(rd));
+            Expression::Ptr rs1AST = makeRegisterExpression((this->*regTrans)(rs1));
+            Expression::Ptr rs2AST = makeRegisterExpression((this->*regTrans)(rs2));
+
+            insn_to_complete->appendOperand(rdAST, false, true, false);
+            insn_to_complete->appendOperand(rs1AST, true, false, false);
+            insn_to_complete->appendOperand(rs2AST, true, false, false);
+            return;
+        }
+    }
     for (uint8_t i = 0; i < detail->op_count; ++i) {
         cs_riscv_op* operand = &(detail->operands[i]);
         if (operand->type == RISCV_OP_REG) {
@@ -424,160 +447,128 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
             Result_Type type = invalid_type;
             bool isLoad = false, isStore = false;
             // Memory access type depends on the instruction
-            switch (eid) {
-                case riscv64_op_lb:
-                case riscv64_op_lbu:
-                    type = u8;
-                    isLoad = true;
-                    break;
-                case riscv64_op_sb:
-                    type = u8;
-                    isStore = true;
-                    break;
-                case riscv64_op_lh:
-                case riscv64_op_lhu:
-                    isLoad = true;
-                    type = u16;
-                    break;
-                case riscv64_op_sh:
-                    isStore = true;
-                    type = u16;
-                    break;
-                case riscv64_op_c_flw:
-                case riscv64_op_c_flwsp:
-                case riscv64_op_c_lw:
-                case riscv64_op_c_lwsp:
-                case riscv64_op_flw:
-                case riscv64_op_lw:
-                case riscv64_op_lr_w:
-                case riscv64_op_lr_w_aq:
-                case riscv64_op_lr_w_aq_rl:
-                case riscv64_op_lr_w_rl:
-                case riscv64_op_lwu:
-                    isLoad = true;
-                    type = u32;
-                    break;
-                case riscv64_op_c_fsw:
-                case riscv64_op_c_fswsp:
-                case riscv64_op_c_sw:
-                case riscv64_op_c_swsp:
-                case riscv64_op_fsw:
-                case riscv64_op_sw:
-                case riscv64_op_sc_w:
-                case riscv64_op_sc_w_aq:
-                case riscv64_op_sc_w_aq_rl:
-                case riscv64_op_sc_w_rl:
-                    isStore = true;
-                    type = u32;
-                    break;
-                case riscv64_op_c_fldsp:
-                case riscv64_op_c_fld:
-                case riscv64_op_c_ldsp:
-                case riscv64_op_c_ld:
-                case riscv64_op_fld:
-                case riscv64_op_ld:
-                case riscv64_op_lr_d:
-                case riscv64_op_lr_d_aq:
-                case riscv64_op_lr_d_aq_rl:
-                case riscv64_op_lr_d_rl:
-                    isLoad = true;
-                    type = u64;
-                    break;
-                case riscv64_op_c_fsdsp:
-                case riscv64_op_c_fsd:
-                case riscv64_op_c_sd:
-                case riscv64_op_c_sdsp:
-                case riscv64_op_fsd:
-                case riscv64_op_sd:
-                case riscv64_op_sc_d:
-                case riscv64_op_sc_d_aq:
-                case riscv64_op_sc_d_aq_rl:
-                case riscv64_op_sc_d_rl:
-                    isStore = true;
-                    type = u64;
-                    break;
-                case riscv64_op_amoswap_w:
-                case riscv64_op_amoswap_w_aq:
-                case riscv64_op_amoswap_w_aq_rl:
-                case riscv64_op_amoswap_w_rl:
-                case riscv64_op_amoadd_w:
-                case riscv64_op_amoadd_w_aq:
-                case riscv64_op_amoadd_w_aq_rl:
-                case riscv64_op_amoadd_w_rl:
-                case riscv64_op_amoxor_w:
-                case riscv64_op_amoxor_w_aq:
-                case riscv64_op_amoxor_w_aq_rl:
-                case riscv64_op_amoxor_w_rl:
-                case riscv64_op_amoand_w:
-                case riscv64_op_amoand_w_aq:
-                case riscv64_op_amoand_w_aq_rl:
-                case riscv64_op_amoand_w_rl:
-                case riscv64_op_amoor_w:
-                case riscv64_op_amoor_w_aq:
-                case riscv64_op_amoor_w_aq_rl:
-                case riscv64_op_amoor_w_rl:
-                case riscv64_op_amomin_w:
-                case riscv64_op_amomin_w_aq:
-                case riscv64_op_amomin_w_aq_rl:
-                case riscv64_op_amomin_w_rl:
-                case riscv64_op_amomax_w:
-                case riscv64_op_amomax_w_aq:
-                case riscv64_op_amomax_w_aq_rl:
-                case riscv64_op_amomax_w_rl:
-                case riscv64_op_amominu_w:
-                case riscv64_op_amominu_w_aq:
-                case riscv64_op_amominu_w_aq_rl:
-                case riscv64_op_amominu_w_rl:
-                case riscv64_op_amomaxu_w:
-                case riscv64_op_amomaxu_w_aq:
-                case riscv64_op_amomaxu_w_aq_rl:
-                case riscv64_op_amomaxu_w_rl:
-                    isLoad = true;
-                    isStore = true;
-                    type = u32;
-                    break;
-                case riscv64_op_amoswap_d:
-                case riscv64_op_amoswap_d_aq:
-                case riscv64_op_amoswap_d_aq_rl:
-                case riscv64_op_amoswap_d_rl:
-                case riscv64_op_amoadd_d:
-                case riscv64_op_amoadd_d_aq:
-                case riscv64_op_amoadd_d_aq_rl:
-                case riscv64_op_amoadd_d_rl:
-                case riscv64_op_amoxor_d:
-                case riscv64_op_amoxor_d_aq:
-                case riscv64_op_amoxor_d_aq_rl:
-                case riscv64_op_amoxor_d_rl:
-                case riscv64_op_amoand_d:
-                case riscv64_op_amoand_d_aq:
-                case riscv64_op_amoand_d_aq_rl:
-                case riscv64_op_amoand_d_rl:
-                case riscv64_op_amoor_d:
-                case riscv64_op_amoor_d_aq:
-                case riscv64_op_amoor_d_aq_rl:
-                case riscv64_op_amoor_d_rl:
-                case riscv64_op_amomin_d:
-                case riscv64_op_amomin_d_aq:
-                case riscv64_op_amomin_d_aq_rl:
-                case riscv64_op_amomin_d_rl:
-                case riscv64_op_amomax_d:
-                case riscv64_op_amomax_d_aq:
-                case riscv64_op_amomax_d_aq_rl:
-                case riscv64_op_amomax_d_rl:
-                case riscv64_op_amominu_d:
-                case riscv64_op_amominu_d_aq:
-                case riscv64_op_amominu_d_aq_rl:
-                case riscv64_op_amominu_d_rl:
-                case riscv64_op_amomaxu_d:
-                case riscv64_op_amomaxu_d_aq:
-                case riscv64_op_amomaxu_d_aq_rl:
-                case riscv64_op_amomaxu_d_rl:
-                    isLoad = true;
-                    isStore = true;
-                    type = u64;
-                    break;
-                default:
-                    break;
+            if (eid == riscv64_op_lb || eid == riscv64_op_lbu) {
+              type = u8;
+              isLoad = true;
+            } else if (eid == riscv64_op_sb) {
+              type = u8;
+              isStore = true;
+            } else if (eid == riscv64_op_lh || eid == riscv64_op_lhu) {
+              isLoad = true;
+              type = u16;
+            } else if (eid == riscv64_op_sh) {
+              isStore = true;
+              type = u16;
+            } else if (eid == riscv64_op_c_flw || eid == riscv64_op_c_flwsp ||
+                       eid == riscv64_op_c_lw || eid == riscv64_op_c_lwsp ||
+                       eid == riscv64_op_flw || eid == riscv64_op_lw ||
+                       eid == riscv64_op_lr_w || eid == riscv64_op_lr_w_aq ||
+                       eid == riscv64_op_lr_w_aq_rl ||
+                       eid == riscv64_op_lr_w_rl || eid == riscv64_op_lwu) {
+              isLoad = true;
+              type = u32;
+            } else if (eid == riscv64_op_c_fsw || eid == riscv64_op_c_fswsp ||
+                       eid == riscv64_op_c_sw || eid == riscv64_op_c_swsp ||
+                       eid == riscv64_op_fsw || eid == riscv64_op_sw ||
+                       eid == riscv64_op_sc_w || eid == riscv64_op_sc_w_aq ||
+                       eid == riscv64_op_sc_w_aq_rl ||
+                       eid == riscv64_op_sc_w_rl) {
+              isStore = true;
+              type = u32;
+            } else if (eid == riscv64_op_c_fld || eid == riscv64_op_c_fldsp ||
+                       eid == riscv64_op_c_ld || eid == riscv64_op_c_ldsp ||
+                       eid == riscv64_op_fld || eid == riscv64_op_ld ||
+                       eid == riscv64_op_lr_d || eid == riscv64_op_lr_d_aq ||
+                       eid == riscv64_op_lr_d_aq_rl ||
+                       eid == riscv64_op_lr_d_rl) {
+              isLoad = true;
+              type = u64;
+            } else if (eid == riscv64_op_c_fsd || eid == riscv64_op_c_fsdsp ||
+                       eid == riscv64_op_c_sd || eid == riscv64_op_c_sdsp ||
+                       eid == riscv64_op_fsd || eid == riscv64_op_sd ||
+                       eid == riscv64_op_sc_d || eid == riscv64_op_sc_d_aq ||
+                       eid == riscv64_op_sc_d_aq_rl ||
+                       eid == riscv64_op_sc_d_rl) {
+              isStore = true;
+              type = u64;
+            } else if (eid == riscv64_op_amoswap_w ||
+                       eid == riscv64_op_amoswap_w_aq ||
+                       eid == riscv64_op_amoswap_w_aq_rl ||
+                       eid == riscv64_op_amoswap_w_rl ||
+                       eid == riscv64_op_amoadd_w ||
+                       eid == riscv64_op_amoadd_w_aq ||
+                       eid == riscv64_op_amoadd_w_aq_rl ||
+                       eid == riscv64_op_amoadd_w_rl ||
+                       eid == riscv64_op_amoxor_w ||
+                       eid == riscv64_op_amoxor_w_aq ||
+                       eid == riscv64_op_amoxor_w_aq_rl ||
+                       eid == riscv64_op_amoxor_w_rl ||
+                       eid == riscv64_op_amoand_w ||
+                       eid == riscv64_op_amoand_w_aq ||
+                       eid == riscv64_op_amoand_w_aq_rl ||
+                       eid == riscv64_op_amoand_w_rl ||
+                       eid == riscv64_op_amoor_w ||
+                       eid == riscv64_op_amoor_w_aq ||
+                       eid == riscv64_op_amoor_w_aq_rl ||
+                       eid == riscv64_op_amoor_w_rl ||
+                       eid == riscv64_op_amomin_w ||
+                       eid == riscv64_op_amomin_w_aq ||
+                       eid == riscv64_op_amomin_w_aq_rl ||
+                       eid == riscv64_op_amomin_w_rl ||
+                       eid == riscv64_op_amomax_w ||
+                       eid == riscv64_op_amomax_w_aq ||
+                       eid == riscv64_op_amomax_w_aq_rl ||
+                       eid == riscv64_op_amomax_w_rl ||
+                       eid == riscv64_op_amominu_w ||
+                       eid == riscv64_op_amominu_w_aq ||
+                       eid == riscv64_op_amominu_w_aq_rl ||
+                       eid == riscv64_op_amominu_w_rl ||
+                       eid == riscv64_op_amomaxu_w ||
+                       eid == riscv64_op_amomaxu_w_aq ||
+                       eid == riscv64_op_amomaxu_w_aq_rl ||
+                       eid == riscv64_op_amomaxu_w_rl) {
+              isLoad = true;
+              isStore = true;
+              type = u32;
+            } else if (eid == riscv64_op_amoswap_d ||
+                       eid == riscv64_op_amoswap_d_aq ||
+                       eid == riscv64_op_amoswap_d_aq_rl ||
+                       eid == riscv64_op_amoswap_d_rl ||
+                       eid == riscv64_op_amoadd_d ||
+                       eid == riscv64_op_amoadd_d_aq ||
+                       eid == riscv64_op_amoadd_d_aq_rl ||
+                       eid == riscv64_op_amoadd_d_rl ||
+                       eid == riscv64_op_amoxor_d ||
+                       eid == riscv64_op_amoxor_d_aq ||
+                       eid == riscv64_op_amoxor_d_aq_rl ||
+                       eid == riscv64_op_amoxor_d_rl ||
+                       eid == riscv64_op_amoand_d ||
+                       eid == riscv64_op_amoand_d_aq ||
+                       eid == riscv64_op_amoand_d_aq_rl ||
+                       eid == riscv64_op_amoand_d_rl ||
+                       eid == riscv64_op_amoor_d ||
+                       eid == riscv64_op_amoor_d_aq ||
+                       eid == riscv64_op_amoor_d_aq_rl ||
+                       eid == riscv64_op_amoor_d_rl ||
+                       eid == riscv64_op_amomin_d ||
+                       eid == riscv64_op_amomin_d_aq ||
+                       eid == riscv64_op_amomin_d_aq_rl ||
+                       eid == riscv64_op_amomin_d_rl ||
+                       eid == riscv64_op_amomax_d ||
+                       eid == riscv64_op_amomax_d_aq ||
+                       eid == riscv64_op_amomax_d_aq_rl ||
+                       eid == riscv64_op_amomax_d_rl ||
+                       eid == riscv64_op_amominu_d ||
+                       eid == riscv64_op_amominu_d_aq ||
+                       eid == riscv64_op_amominu_d_aq_rl ||
+                       eid == riscv64_op_amominu_d_rl ||
+                       eid == riscv64_op_amomaxu_d ||
+                       eid == riscv64_op_amomaxu_d_aq ||
+                       eid == riscv64_op_amomaxu_d_aq_rl ||
+                       eid == riscv64_op_amomaxu_d_rl) {
+              isLoad = true;
+              isStore = true;
+              type = u64;
             }
             // Offsets are 12 bits long signed integers
             Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, mem->disp));
