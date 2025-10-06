@@ -118,7 +118,7 @@ namespace Dyninst {
 
         void InstructionDecoder_Capstone::decodeOpcode(InstructionDecoder::buffer& buf) {
             if (!openCapstoneHandle()) {
-                m_Operation = Operation(e_No_Entry, "INVALID", m_Arch);
+                m_Operation = Operation(getInvalidEntry(), "INVALID", m_Arch);
                 return;
             }
             const unsigned char* code = buf.start;
@@ -143,7 +143,7 @@ namespace Dyninst {
                 //}
                 buf.start += capstone_ins_no_detail->size;
             } else
-                m_Operation = Operation(e_No_Entry, "INVALID", m_Arch);
+                m_Operation = Operation(getInvalidEntry(), "INVALID", m_Arch);
         }
 
         entryID InstructionDecoder_Capstone::opcodeTranslation(unsigned int cap_id) {
@@ -152,7 +152,37 @@ namespace Dyninst {
             }
             else {
                 fprintf(stderr, "Unsupported architecture\n");
-                return e_No_Entry;
+                return getInvalidEntry();
+            }
+        }
+
+        entryID InstructionDecoder_Capstone::getInvalidEntry() {
+            switch(m_Arch) {
+                case Arch_x86:
+                case Arch_x86_64:
+                    return e_No_Entry;
+                case Arch_aarch64:
+                    return aarch64_op_INVALID;
+                case Arch_ppc32:
+                case Arch_ppc64:
+                    return power_op_INVALID;
+                case Arch_cuda:
+                    return cuda_op_INVALID;
+                case Arch_intelGen9:
+                    return intel_gpu_op_INVALID;
+                case Arch_amdgpu_gfx908:
+                    return amdgpu_gfx908_op_INVALID;
+                case Arch_amdgpu_gfx90a:
+                    return amdgpu_gfx90a_op_INVALID;
+                case Arch_amdgpu_gfx940:
+                    return amdgpu_gfx940_op_INVALID;
+                case Arch_riscv64:
+                    return riscv64_op_INVALID;
+                case Arch_none:
+                case Arch_aarch32:
+                    return e_No_Entry;
+                default:
+                    return e_No_Entry;
             }
         }
 

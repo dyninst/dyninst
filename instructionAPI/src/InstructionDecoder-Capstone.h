@@ -89,6 +89,7 @@ class InstructionDecoder_Capstone : public InstructionDecoderImpl
         entryID opcodeTranslation_aarch64(unsigned int);
         entryID opcodeTranslation_riscv32(unsigned int);
         entryID opcodeTranslation_riscv64(unsigned int);
+        entryID getInvalidEntry();
 
         void decodeOperands_x86(const Instruction* insn, cs_detail*);
         void decodeOperands_ppc(const Instruction* insn, cs_detail*);

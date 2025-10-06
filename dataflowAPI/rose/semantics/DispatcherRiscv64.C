@@ -127,7 +127,7 @@ namespace rose {
                                 ret = off;
                                 break;
                             case rose_riscv64_op_auipc:
-                                ret = ops->add(ops->number_(XLENBITS, insn->get_address()), off);
+                                ret = ops->add(d->readRegister(d->REG_PC), off);
                                 break;
                             default:
                                 assert(0 && "Invalid RISC-V instruction kind");
@@ -141,9 +141,9 @@ namespace rose {
                         SgAsmExpression *imm = args[1];
                         SgAsmExpression *rd = args[0];
                         enum Riscv64InstructionKind op = insn->get_kind();
-                        BaseSemantics::SValuePtr t = ops->add(ops->number_(XLENBITS, insn->get_address()), d->SignExtend(d->read(imm, XLENBITS, 0), XLENBITS));
+                        BaseSemantics::SValuePtr t = ops->add(d->readRegister(d->REG_PC), d->SignExtend(d->read(imm, XLENBITS, 0), XLENBITS));
                         BaseSemantics::SValuePtr target = t;
-                        d->write(rd, ops->add(ops->number_(XLENBITS, insn->get_address()), ops->number_(XLENBITS, insn->get_size())));
+                        d->write(rd, ops->add(d->readRegister(d->REG_PC), ops->number_(XLENBITS, insn->get_size())));
                         d->BranchTo(target);
                     }
                 };
@@ -156,7 +156,7 @@ namespace rose {
                         SgAsmExpression *imm = args[2];
 
                         BaseSemantics::SValuePtr t = ops->add(d->read(rs1, XLENBITS, 0), d->SignExtend(d->read(imm, XLENBITS, 0), XLENBITS));
-                        d->write(rd, ops->number_(XLENBITS, get_next_pc(insn)));
+                        d->write(rd, ops->add(d->readRegister(d->REG_PC), ops->number_(XLENBITS, insn->get_size())));
                         d->BranchTo(t);
                     }
                 };
@@ -191,8 +191,8 @@ namespace rose {
                             default:
                                 assert(0 && "Invalid RISC-V instruction kind");
                         };
-                        BaseSemantics::SValuePtr t = ops->add(ops->number_(XLENBITS, insn->get_address()), d->SignExtend(d->read(imm, XLENBITS, 0), XLENBITS));
-                        BaseSemantics::SValuePtr target = ops->ite(taken, t, ops->number_(XLENBITS, insn->get_address()));
+                        BaseSemantics::SValuePtr t = ops->add(d->readRegister(d->REG_PC), d->SignExtend(d->read(imm, XLENBITS, 0), XLENBITS));
+                        BaseSemantics::SValuePtr target = ops->ite(taken, t, d->readRegister(d->REG_PC));
                         d->BranchTo(target);
                     }
                 };

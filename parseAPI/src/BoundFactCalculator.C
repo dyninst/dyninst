@@ -354,6 +354,28 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 	newFact->SetPredicate(node->assign(), se.ExpandAssignment(node->assign()) );
 	return;
     }
+
+    if (node->assign()->block()->obj()->cs()->getArch() == Arch_riscv64 &&
+            node->assign() && 
+            node->assign()->out().absloc().type() == Absloc::Register &&
+            IsConditionalJump(node->assign()->insn())) {
+        parsing_printf("\t\tThe predecessor node is a conditional jump (RISC-V)!\n");
+        // Extract the conditional from the if node
+        parsing_printf("\t\tExctact conditional node from the if node.\n");
+        auto expandRet = se.ExpandAssignment(node->assign());
+        if (expandRet.first->getID() != AST::V_RoseAST) {
+            parsing_printf("\t\tUnexpected error! Expect an RoseAST for the predecessor node.\n");
+            return;
+        }
+        auto roseAST = boost::static_pointer_cast<RoseAST>(expandRet.first);
+        if (roseAST->val().op != ROSEOperation::ifOp) {
+            parsing_printf("\t\tUnexpected error! Expect an if node in the predecessor node.\n");
+            return;
+        }
+        auto ifAST = roseAST->child(0);
+        expandRet.first = ifAST;
+        newFact->SetPredicate(node->assign(), expandRet);
+    }
     entryID id = node->assign()->insn().getOperation().getID();
     // The predecessor is not a conditional jump,
     // then we can determine buond fact based on the src assignment

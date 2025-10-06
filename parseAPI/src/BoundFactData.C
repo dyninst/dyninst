@@ -800,7 +800,8 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		break;
 	    }
 	    case e_jb: 
-	    case e_jb_jnaej_j: {
+	    case e_jb_jnaej_j:
+		case riscv64_op_bltu: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -817,7 +818,8 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		break;
 	    }
 	    case e_jae:
-	    case e_jnb_jae_j: {
+	    case e_jnb_jae_j:
+		case riscv64_op_bgeu: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -857,7 +859,9 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
-	    case e_jne: {
+	    case e_jne:
+		case riscv64_op_bne:
+	    case riscv64_op_c_bnez: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -878,7 +882,9 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
-	    case e_je: {
+	    case e_je:
+		case riscv64_op_beq:
+	    case riscv64_op_c_beqz: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -912,7 +918,8 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
-	    case e_jl: {
+	    case e_jl:
+		case riscv64_op_blt: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -928,7 +935,8 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
-	    case e_jge: {
+	    case e_jge:
+		case riscv64_op_bge: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
 		        parsing_printf("WARNING: both predicate elements are constants!\n");
@@ -1068,10 +1076,230 @@ void BoundFact::SetPredicate(Assignment::Ptr assign,std::pair<AST::Ptr, bool> ex
 	    pred.valid = false;
 	    break;
 	}
+	// RISC-V does not use flag registers for conditional jump.
+	// Every branch instruction explicitly compares two registers, so there is no hidden state
+	// Thus, we handle predicates explicitly for RISC-V
+	case riscv64_op_beq:
+	case riscv64_op_c_beqz: {
+		// EQZERO?(XOR(a,b))
+		RoseAST::Ptr childAST = boost::static_pointer_cast<RoseAST>(simplifiedAST->child(0));
+
+		// Handle e1
+		if (childAST->child(0)->getID() == AST::V_ConstantAST) {
+			// The only possibility is that the register is x0
+			pred.e1 = ConstantAST::create(Constant(0));
+		}
+		else if (childAST->child(0)->getID() == AST::V_VariableAST) {
+			pred.e1 = boost::static_pointer_cast<VariableAST>(childAST->child(0));
+		}
+		else {
+			parsing_printf("\t\t The first operand is neither constant nor a variable, do not handle this case\n");
+			return;
+		}
+
+		// Handle e2
+		if (childAST->child(1)->getID() == AST::V_ConstantAST) {
+			// The only possibility is that the register is x0
+			pred.e2 = ConstantAST::create(Constant(0));
+		}
+		else if (childAST->child(1)->getID() == AST::V_VariableAST) {
+			pred.e2 = boost::static_pointer_cast<VariableAST>(childAST->child(1));
+		}
+		else {
+			parsing_printf("\t\t The second operand is neither constant nor a variable, do not handle this case\n");
+			return;
+		}
+
+		pred.id = id;
+		pred.valid = true;
+		return;
+	}
+	case riscv64_op_bne:
+	case riscv64_op_c_bnez: {
+		// INVERT(EQZERO?(XOR(a,b)))
+		RoseAST::Ptr childAST = boost::static_pointer_cast<RoseAST>(simplifiedAST->child(0)->child(0));
+
+		// Handle e1
+		if (childAST->child(0)->getID() == AST::V_ConstantAST) {
+			// The only possibility is that the register is x0
+			pred.e1 = ConstantAST::create(Constant(0));
+		}
+		else if (childAST->child(0)->getID() == AST::V_VariableAST) {
+			pred.e1 = boost::static_pointer_cast<VariableAST>(childAST->child(0));
+		}
+		else {
+			parsing_printf("\t\t The first operand is neither constant nor a variable, do not handle this case\n");
+			return;
+		}
+
+		// Handle e2
+		if (childAST->child(1)->getID() == AST::V_ConstantAST) {
+			// The only possibility is that the register is x0
+			pred.e2 = ConstantAST::create(Constant(0));
+		}
+		else if (childAST->child(1)->getID() == AST::V_VariableAST) {
+			pred.e2 = boost::static_pointer_cast<VariableAST>(childAST->child(1));
+		}
+		else {
+			parsing_printf("\t\t The second operand is neither constant nor a variable, do not handle this case\n");
+			return;
+		}
+
+		pred.id = id;
+		pred.valid = true;
+		return;
+	}
+	case riscv64_op_blt: {
+		// OR(AND(a,INVERT(b)),AND(INVERT(XOR(a,b)),ADD(a,NEGATE(b))))
+		RoseAST::Ptr childAST = boost::static_pointer_cast<RoseAST>(simplifiedAST->child(1)->child(0)->child(0));
+
+		// Handle e1
+		if (childAST->child(0)->getID() == AST::V_ConstantAST) {
+			// The only possibility is that the register is x0
+			pred.e1 = ConstantAST::create(Constant(0));
+		}
+		else if (childAST->child(0)->getID() == AST::V_VariableAST) {
+			pred.e1 = boost::static_pointer_cast<VariableAST>(childAST->child(0));
+		}
+		else {
+			parsing_printf("\t\t The first operand is neither constant nor a variable, do not handle this case\n");
+			return;
+		}
+
+		// Handle e2
+		if (childAST->child(1)->getID() == AST::V_ConstantAST) {
+			// The only possibility is that the register is x0
+			pred.e2 = ConstantAST::create(Constant(0));
+		}
+		else if (childAST->child(1)->getID() == AST::V_VariableAST) {
+			pred.e2 = boost::static_pointer_cast<VariableAST>(childAST->child(1));
+		}
+		else {
+			parsing_printf("\t\t The second operand is neither constant nor a variable, do not handle this case\n");
+			return;
+		}
+
+		pred.id = id;
+		pred.valid = true;
+		return;
+	}
+	case riscv64_op_bge: {
+		// INVERT(OR(AND(a,INVERT(b)),AND(INVERT(XOR(a,b)),ADD(a,NEGATE(b)))))
+		RoseAST::Ptr childAST = boost::static_pointer_cast<RoseAST>(simplifiedAST->child(0)->child(1)->child(0)->child(0));
+
+		// Handle e1
+		if (childAST->child(0)->getID() == AST::V_ConstantAST) {
+			// The only possibility is that the register is x0
+			pred.e1 = ConstantAST::create(Constant(0));
+		}
+		else if (childAST->child(0)->getID() == AST::V_VariableAST) {
+			pred.e1 = boost::static_pointer_cast<VariableAST>(childAST->child(0));
+		}
+		else {
+			parsing_printf("\t\t The first operand is neither constant nor a variable, do not handle this case\n");
+			return;
+		}
+
+		// Handle e2
+		if (childAST->child(1)->getID() == AST::V_ConstantAST) {
+			// The only possibility is that the register is x0
+			pred.e2 = ConstantAST::create(Constant(0));
+		}
+		else if (childAST->child(1)->getID() == AST::V_VariableAST) {
+			pred.e2 = boost::static_pointer_cast<VariableAST>(childAST->child(1));
+		}
+		else {
+			parsing_printf("\t\t The second operand is neither constant nor a variable, do not handle this case\n");
+			return;
+		}
+
+		pred.id = id;
+		pred.valid = true;
+		return;
+	}
+	case riscv64_op_bltu: {
+		// ADD(a,NEGATE(b))
+		RoseAST::Ptr childAST = boost::static_pointer_cast<RoseAST>(simplifiedAST);
+
+		// Handle e1
+		if (childAST->child(0)->getID() == AST::V_ConstantAST) {
+			// The only possibility is that the register is x0
+			pred.e1 = ConstantAST::create(Constant(0));
+		}
+		else if (childAST->child(0)->getID() == AST::V_VariableAST) {
+			pred.e1 = boost::static_pointer_cast<VariableAST>(childAST->child(0));
+		}
+		else {
+			parsing_printf("\t\t The first operand is neither constant nor a variable, do not handle this case\n");
+			return;
+		}
+
+		// Handle e2
+		if (childAST->child(1)->getID() == AST::V_ConstantAST) {
+			// The only possibility is that the register is x0
+			pred.e2 = ConstantAST::create(Constant(0));
+		}
+		else if (childAST->child(1)->getID() == AST::V_RoseAST) {
+			RoseAST::Ptr negateAST = boost::static_pointer_cast<RoseAST>(childAST->child(1));
+			if (negateAST->child(0)->getID() == AST::V_VariableAST) {
+				pred.e2 = boost::static_pointer_cast<VariableAST>(negateAST->child(0));
+			}
+			else {
+				parsing_printf("\t\t The second operand is neither constant nor a variable, do not handle this case\n");
+				return;
+			}
+		}
+		else {
+			parsing_printf("\t\t The second operand is neither constant nor a variable, do not handle this case\n");
+			return;
+		}
+		pred.id = id;
+		pred.valid = true;
+		return;
+	}
+	case riscv64_op_bgeu: {
+		// INVERT(ADD(a,NEGATE(b)))
+		RoseAST::Ptr childAST = boost::static_pointer_cast<RoseAST>(simplifiedAST->child(0));
+
+		// Handle e1
+		if (childAST->child(0)->getID() == AST::V_ConstantAST) {
+			// The only possibility is that the register is x0
+			pred.e1 = ConstantAST::create(Constant(0));
+		}
+		else if (childAST->child(0)->getID() == AST::V_VariableAST) {
+			pred.e1 = boost::static_pointer_cast<VariableAST>(childAST->child(0));
+		}
+		else {
+			parsing_printf("\t\t The first operand is neither constant nor a variable, do not handle this case\n");
+			return;
+		}
+
+		// Handle e2
+		if (childAST->child(1)->getID() == AST::V_ConstantAST) {
+			// The only possibility is that the register is x0
+			pred.e2 = ConstantAST::create(Constant(0));
+		}
+		else if (childAST->child(1)->getID() == AST::V_RoseAST) {
+			RoseAST::Ptr negateAST = boost::static_pointer_cast<RoseAST>(childAST->child(1));
+			if (negateAST->child(0)->getID() == AST::V_VariableAST) {
+				pred.e2 = boost::static_pointer_cast<VariableAST>(negateAST->child(0));
+			}
+			else {
+				parsing_printf("\t\t The second operand is neither constant nor a variable, do not handle this case\n");
+				return;
+			}
+		}
+		else {
+			parsing_printf("\t\t The second operand is neither constant nor a variable, do not handle this case\n");
+			return;
+		}
+		pred.id = id;
+		pred.valid = true;
+		return;
+	}
 	default:
 	    break;
     }
-
 
     ComparisonVisitor cv;
     expandRet.first->accept(&cv);

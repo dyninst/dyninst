@@ -586,11 +586,6 @@ void InstructionDecoder_Capstone::decodeOperands_riscv64(const Instruction* insn
                 err = true;
             }
             Expression::Ptr memAST = makeDereferenceExpression(effectiveAddr, type);
-            bool isRead = ((operand->access & CS_AC_READ) != 0);
-            bool isWritten = ((operand->access & CS_AC_WRITE) != 0);
-            if (!isRead && !isWritten) {
-                isRead = isWritten = true;
-            }
             insn_to_complete->appendOperand(memAST, isLoad, isStore, false);
         } else {
             fprintf(stderr, "Unhandled capstone operand type %d\n", operand->type);
@@ -1152,7 +1147,7 @@ entryID InstructionDecoder_Capstone::opcodeTranslation_riscv64(unsigned int cap_
         case RISCV_INS_XORI:
             return riscv64_op_xori;
         default:
-            return e_No_Entry;
+            return riscv64_op_INVALID;
     }
 }
 
