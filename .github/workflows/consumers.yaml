@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-         os: ${{ fromJson(needs.get-oses.outputs.latest) }}
+         os: [ 'ubuntu-25.04' ]
     permissions:
       packages: read
     container:
