@@ -230,8 +230,8 @@ class DYNINST_EXPORT Point {
     typedef std::deque<InstancePtr>::iterator instance_iter;
     instance_iter begin() { return instanceList_.begin();}
     instance_iter end() { return instanceList_.end();}
-    virtual InstancePtr pushBack(SnippetPtr);
-    virtual InstancePtr pushFront(SnippetPtr);
+    virtual InstancePtr pushBack(SnippetPtr, SnippetType type = REGULAR);
+    virtual InstancePtr pushFront(SnippetPtr, SnippetType type = REGULAR);
     bool remove(InstancePtr);
 
     // Remove all snippets in this point

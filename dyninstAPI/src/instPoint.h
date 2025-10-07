@@ -140,8 +140,10 @@ class instPoint : public Dyninst::PatchAPI::Point {
 
     std::string format() const;
 
-    virtual Dyninst::PatchAPI::InstancePtr pushBack(Dyninst::PatchAPI::SnippetPtr);
-    virtual Dyninst::PatchAPI::InstancePtr pushFront(Dyninst::PatchAPI::SnippetPtr);
+    virtual Dyninst::PatchAPI::InstancePtr pushBack(Dyninst::PatchAPI::SnippetPtr,
+                                                    Dyninst::PatchAPI::SnippetType type = Dyninst::PatchAPI::REGULAR);
+    virtual Dyninst::PatchAPI::InstancePtr pushFront(Dyninst::PatchAPI::SnippetPtr,
+                                                     Dyninst::PatchAPI::SnippetType type = Dyninst::PatchAPI::REGULAR);
 
     void markModified();
 

@@ -148,8 +148,8 @@ Point::Point(Type type, PatchMgrPtr mgr, PatchFunction* func, PatchBlock *b) :
 
 /* old_instance, old_instance, <---new_instance */
 InstancePtr
-Point::pushBack(SnippetPtr snippet) {
-  InstancePtr instance = Instance::create(this, snippet);
+Point::pushBack(SnippetPtr snippet, SnippetType type) {
+  InstancePtr instance = Instance::create(this, snippet, type);
   if (!instance) return instance;
   instanceList_.push_back(instance);
   instance->set_state(INSERTED);
@@ -158,8 +158,8 @@ Point::pushBack(SnippetPtr snippet) {
 
 /* new_instance--->, old_instance, old_instance */
 InstancePtr
-Point::pushFront(SnippetPtr snippet) {
-  InstancePtr instance = Instance::create(this, snippet);
+Point::pushFront(SnippetPtr snippet, SnippetType type) {
+  InstancePtr instance = Instance::create(this, snippet, type);
   if (!instance) return instance;
   instanceList_.push_front(instance);
   instance->set_state(INSERTED);

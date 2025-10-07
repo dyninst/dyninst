@@ -445,15 +445,15 @@ Dyninst::PatchAPI::InstancePtr getChildInstance(Dyninst::PatchAPI::InstancePtr p
    return Dyninst::PatchAPI::InstancePtr();
 }
 
-InstancePtr instPoint::pushFront(SnippetPtr snip) {
-   InstancePtr ret = Point::pushFront(snip);
+InstancePtr instPoint::pushFront(SnippetPtr snip, SnippetType type) {
+   InstancePtr ret = Point::pushFront(snip, type);
    if (!ret) return ret;
    markModified();
    return ret;
 }
 
-InstancePtr instPoint::pushBack(SnippetPtr snip) {
-   InstancePtr ret = Point::pushBack(snip);
+InstancePtr instPoint::pushBack(SnippetPtr snip, SnippetType type) {
+   InstancePtr ret = Point::pushBack(snip, type);
    if (!ret) return ret;
    markModified();
    return ret;
