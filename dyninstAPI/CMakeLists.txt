@@ -241,7 +241,7 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/Relocation/Widgets/CFWidget-aarch64.C
     src/Relocation/Widgets/PCWidget-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  list(APPEND src/emit-amdgpu.C src/amdgpu-gfx908-details.cpp)
+  list(APPEND src/emit-amdgpu.C src/amdgpu-gfx908-details.C)
 endif()
 
 if(DYNINST_OS_FreeBSD)
