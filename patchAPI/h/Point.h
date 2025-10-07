@@ -157,6 +157,11 @@ Location(PatchFunction *f, PatchBlock *b, Dyninst::Address a, InstructionAPI::In
 // Used in PointType definition
 #define type_val(seq) (0x00000001u << seq)
 
+enum SnippetType {
+  PROLOGUE,
+  REGULAR,
+  EPILOGUE
+};
 
 /* A location on the CFG that acts as a container of inserted instances.  Points
    of different types are distinct even the underlying code relocation and
@@ -309,12 +314,6 @@ inline const char* type_str(Point::Type type) {
 
   return "Unknown";
 }
-
-enum SnippetType {
-  PROLOGUE,
-  REGULAR,
-  EPILOGUE
-};
 
 enum SnippetState {
   FAILED,
