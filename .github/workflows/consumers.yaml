@@ -272,7 +272,7 @@ jobs:
           mkdir build
           cd build
           CC=gcc CXX=g++ ../configure --enable-shared
-          make -j2
+          make # sometimes fails with parallel builds
           make install
 
       - name: Install STAT
