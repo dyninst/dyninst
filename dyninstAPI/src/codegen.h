@@ -156,6 +156,8 @@ class codeGen {
     // based on a new pointer
     void update(codeBuf_t *ptr);
 
+    void update(void *ptr) { update(reinterpret_cast<codeBuf_t*>(ptr)); }
+
     // Set the offset at a particular location.
     void setIndex(codeBufIndex_t offset);
 
