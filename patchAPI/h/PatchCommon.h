@@ -64,7 +64,7 @@ typedef PointSet::iterator PointIter;
 class Instance;
 typedef boost::shared_ptr<Instance> InstancePtr;
 typedef std::set<InstancePtr> InstanceSet;
-typedef std::deque<InstancePtr> InstanceList;
+using InstanceList = std::deque<InstancePtr>;
 
 class Instrumenter;
 class PatchMgr;
