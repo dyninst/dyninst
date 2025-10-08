@@ -386,8 +386,6 @@ class DYNINST_EXPORT BPatch_variableExpr : public BPatch_snippet
 						 std::string name,
 						 void* offset,
 						 BPatch_type* type);
-    
-    
 
   public:
 
