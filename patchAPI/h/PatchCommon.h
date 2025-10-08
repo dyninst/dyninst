@@ -35,7 +35,6 @@
 #include <string.h>
 #include <utility>
 #include <vector>
-#include <list>
 #include <deque>
 #include <set>
 #include <map>
@@ -120,7 +119,6 @@ typedef std::set<ParseAPI::CodeSource*> CodeSourceSet;
 #endif
 
 using std::map;
-using std::list;
 using std::set;
 using std::vector;
 using std::cerr;

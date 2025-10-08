@@ -300,8 +300,6 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
 
    if (point_) {
       // Stable sort snippets so that Prologues < Regular snippets < Epilogues.
-      // Since stable sort requires random access-iterators, we create a vector, sort it,
-      // and then re-assign the list with the vector.
       std::stable_sort(point_->begin(), point_->end(), [](const InstancePtr &a, const InstancePtr &b) {
         return a->type() < b->type();
       });
