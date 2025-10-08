@@ -35,7 +35,7 @@
 #include <string.h>
 #include <utility>
 #include <vector>
-#include <list>
+#include <deque>
 #include <set>
 #include <map>
 #include <iterator>
@@ -64,7 +64,7 @@ typedef PointSet::iterator PointIter;
 class Instance;
 typedef boost::shared_ptr<Instance> InstancePtr;
 typedef std::set<InstancePtr> InstanceSet;
-typedef std::list<InstancePtr> InstanceList;
+using InstanceList = std::deque<InstancePtr>;
 
 class Instrumenter;
 class PatchMgr;
@@ -119,7 +119,6 @@ typedef std::set<ParseAPI::CodeSource*> CodeSourceSet;
 #endif
 
 using std::map;
-using std::list;
 using std::set;
 using std::vector;
 using std::cerr;

@@ -157,6 +157,13 @@ Location(PatchFunction *f, PatchBlock *b, Dyninst::Address a, InstructionAPI::In
 // Used in PointType definition
 #define type_val(seq) (0x00000001u << seq)
 
+enum struct SnippetType {
+// The ordering of these enum values is important as it is used to determine
+// sorting order of snippets based on their type.
+  PROLOGUE,
+  REGULAR,
+  EPILOGUE
+};
 
 /* A location on the CFG that acts as a container of inserted instances.  Points
    of different types are distinct even the underlying code relocation and
@@ -222,11 +229,11 @@ class DYNINST_EXPORT Point {
     virtual ~Point();
 
     // Point as a snippet container
-    typedef std::list<InstancePtr>::iterator instance_iter;
+    typedef std::deque<InstancePtr>::iterator instance_iter;
     instance_iter begin() { return instanceList_.begin();}
     instance_iter end() { return instanceList_.end();}
-    virtual InstancePtr pushBack(SnippetPtr);
-    virtual InstancePtr pushFront(SnippetPtr);
+    virtual InstancePtr pushBack(SnippetPtr, SnippetType type = SnippetType::REGULAR);
+    virtual InstancePtr pushFront(SnippetPtr, SnippetType type = SnippetType::REGULAR);
     bool remove(InstancePtr);
 
     // Remove all snippets in this point
@@ -310,11 +317,6 @@ inline const char* type_str(Point::Type type) {
   return "Unknown";
 }
 
-enum SnippetType {
-  SYSTEM,
-  USER
-};
-
 enum SnippetState {
   FAILED,
   PENDING,
@@ -328,10 +330,10 @@ class DYNINST_EXPORT Instance : public boost::enable_shared_from_this<Instance> 
    typedef boost::shared_ptr<Instance> Ptr;
 
   Instance(Point* point, SnippetPtr snippet)
-     : point_(point), snippet_(snippet), state_(PENDING), type_(SYSTEM), guarded_(true) { }
+     : point_(point), snippet_(snippet), state_(PENDING), type_(SnippetType::REGULAR), guarded_(true) { }
     virtual ~Instance() {}
     static InstancePtr create(Point*, SnippetPtr,
-                        SnippetType type = SYSTEM, SnippetState state = PENDING);
+                        SnippetType type = SnippetType::REGULAR, SnippetState state = PENDING);
 
     // Getters and Setters
     SnippetState state() const { return state_;}
