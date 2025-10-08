@@ -157,7 +157,9 @@ Location(PatchFunction *f, PatchBlock *b, Dyninst::Address a, InstructionAPI::In
 // Used in PointType definition
 #define type_val(seq) (0x00000001u << seq)
 
-enum SnippetType {
+enum struct SnippetType {
+// The ordering of these enum values is important as it is used to determine
+// sorting order of snippets based on their type.
   PROLOGUE,
   REGULAR,
   EPILOGUE
@@ -230,8 +232,8 @@ class DYNINST_EXPORT Point {
     typedef std::deque<InstancePtr>::iterator instance_iter;
     instance_iter begin() { return instanceList_.begin();}
     instance_iter end() { return instanceList_.end();}
-    virtual InstancePtr pushBack(SnippetPtr, SnippetType type = REGULAR);
-    virtual InstancePtr pushFront(SnippetPtr, SnippetType type = REGULAR);
+    virtual InstancePtr pushBack(SnippetPtr, SnippetType type = SnippetType::REGULAR);
+    virtual InstancePtr pushFront(SnippetPtr, SnippetType type = SnippetType::REGULAR);
     bool remove(InstancePtr);
 
     // Remove all snippets in this point
@@ -328,10 +330,10 @@ class DYNINST_EXPORT Instance : public boost::enable_shared_from_this<Instance> 
    typedef boost::shared_ptr<Instance> Ptr;
 
   Instance(Point* point, SnippetPtr snippet)
-     : point_(point), snippet_(snippet), state_(PENDING), type_(REGULAR), guarded_(true) { }
+     : point_(point), snippet_(snippet), state_(PENDING), type_(SnippetType::REGULAR), guarded_(true) { }
     virtual ~Instance() {}
     static InstancePtr create(Point*, SnippetPtr,
-                        SnippetType type = REGULAR, SnippetState state = PENDING);
+                        SnippetType type = SnippetType::REGULAR, SnippetState state = PENDING);
 
     // Getters and Setters
     SnippetState state() const { return state_;}

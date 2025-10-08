@@ -299,7 +299,8 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    std::vector<AstNodePtr> miniTramps;
 
    if (point_) {
-      // Stable sort snippets so that Prologues < Regular snippets < Epilogues.
+      // Sort snippets by type to have prologues before regular snippets and epilogues after regular snippets,
+      // while preserving the order among snippets of the same type.
       std::stable_sort(point_->begin(), point_->end(), [](const InstancePtr &a, const InstancePtr &b) {
         return a->type() < b->type();
       });
