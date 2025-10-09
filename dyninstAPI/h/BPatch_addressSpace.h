@@ -45,6 +45,12 @@
 #include <signal.h>
 #include <boost/iterator/transform_iterator.hpp>
 #include "dyntypes.h"
+
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#include "amdgpu-prologue.h"
+#include "amdgpu-epilogue.h"
+#endif
+
 // PatchAPI stuffs
 //#include "Command.h"
 
@@ -69,6 +75,27 @@ namespace Dyninst {
   }
 }
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+static const int kernelInfoSize = 3;
+
+struct AmdgpuKernelInfo {
+  AmdgpuKernelInfo(std::vector<std::string> &words) {
+    assert(words.size() == kernelInfoSize);
+    kdName = words[0];
+    kernargBufferSize = std::stoul(words[1]);
+    kernargPtrRegister = std::stoul(words[2]);
+  }
+
+  std::string getKernelName() const {
+    assert(kdName.length() > 3);
+    return kdName.substr(0, kdName.length() - 3);
+  }
+
+  std::string kdName;
+  unsigned kernargBufferSize;
+  unsigned kernargPtrRegister;
+};
+#endif
 
 class BPatch_statement;
 class BPatch_snippet;
@@ -385,6 +412,15 @@ class DYNINST_EXPORT BPatch_addressSpace {
   register_iter getRegisters_end();
  private:
   void init_registers();
+
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  void insertPrologueAtPoints(AmdgpuPrologueSnippet& snippet, std::vector<BPatch_point *> &points);
+  void insertEpilogueAtPoints(AmdgpuEpilogueSnippet& snippet, std::vector<BPatch_point *> &points);
+
+  void insertPrologueIfKernel(BPatch_function *function);
+  void insertEpilogueIfKernel(BPatch_function *function);
+#endif
+
  public:
   bool  createRegister_NP(std::string regName, BPatch_register &reg); 
 
@@ -408,6 +444,11 @@ class DYNINST_EXPORT BPatch_addressSpace {
   // Returns true if the underlying image represents a 
   // statically-linked executable, false otherwise
   bool  isStaticExecutable();
+
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  static std::set<BPatch_function *> instrumentedFunctions;
+  static std::vector<AmdgpuKernelInfo> kernelInfos;
+#endif
 };
 
 
