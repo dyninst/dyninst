@@ -838,6 +838,63 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
 
 extern int dyn_debug_ast;
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+void BPatch_addressSpace::insertPrologueAtPoints(AmdgpuPrologueSnippet& snippet, std::vector<BPatch_point *>& points) {
+  for (size_t i = 0; i < points.size(); ++i) {
+    instPoint *iPoint = static_cast<instPoint *>(points[i]->getPoint(BPatch_callBefore));
+    iPoint->pushBack(snippet.ast_wrapper, SnippetType::PROLOGUE);
+  }
+}
+
+void BPatch_addressSpace::insertPrologueIfKernel(BPatch_function *function) {
+  // Go through information for instrumented kernels (functions) and insert a prologue
+  // that loads s[94:95] with address of memory for instrumentation variables. This address
+  // is at address [kernargPtrRegister] + kernargBufferSize.
+  std::vector<BPatch_point *> entryPoints;
+  function->getEntryPoints(entryPoints);
+
+  for (auto &kernelInfo : kernelInfos) {
+    if (kernelInfo.getKernelName() == function->getMangledName()) {
+
+      auto prologuePtr = boost::make_shared<AmdgpuPrologue>(
+          94, kernelInfo.kernargPtrRegister, kernelInfo.kernargBufferSize);
+
+      AstNodePtr prologueNodePtr =
+          boost::make_shared<AmdgpuPrologueNode>(prologuePtr);
+
+      AmdgpuPrologueSnippet prologueSnippet(prologueNodePtr);
+      insertPrologueAtPoints(prologueSnippet, entryPoints);
+    }
+  }
+}
+
+void BPatch_addressSpace::insertEpilogueAtPoints(AmdgpuEpilogueSnippet& snippet, std::vector<BPatch_point *>& points) {
+  for (size_t i = 0; i < points.size(); ++i) {
+    instPoint *iPoint = static_cast<instPoint *>(points[i]->getPoint(BPatch_callAfter));
+    iPoint->pushBack(snippet.ast_wrapper, SnippetType::EPILOGUE);
+  }
+}
+
+void BPatch_addressSpace::insertEpilogueIfKernel(BPatch_function *function) {
+  // Go through information for instrumented kernels (functions) and insert a s_dcache_wb
+  // instruction at exit points.
+  std::vector<BPatch_point *> exitPoints;
+  function->getExitPoints(exitPoints);
+
+  for (auto &kernelInfo : kernelInfos) {
+    if (kernelInfo.getKernelName() == function->getMangledName()) {
+
+      auto epiloguePtr = boost::make_shared<AmdgpuEpilogue>();
+
+      AstNodePtr epilogueNodePtr = boost::make_shared<AmdgpuEpilogueNode>(epiloguePtr);
+
+      AmdgpuEpilogueSnippet epilogueSnippet(epilogueNodePtr);
+      insertEpilogueAtPoints(epilogueSnippet, exitPoints);
+    }
+  }
+}
+#endif
+
 /*
  * BPatch_addressSpace::insertSnippet
  *
@@ -855,6 +912,16 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
                                                                     BPatch_callWhen when,
                                                                     BPatch_snippetOrder order)
 {
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  for (size_t i = 0; i < points.size(); ++i) {
+    BPatch_function *f = points[i]->getFunction();
+    auto result = instrumentedFunctions.insert(f);
+    if (result.second) {
+      insertPrologueIfKernel(f);
+      insertEpilogueIfKernel(f);
+    }
+  }
+#endif
   BPatchSnippetHandle *retHandle = new BPatchSnippetHandle(this);
 
   if (dyn_debug_inst) {
@@ -1134,3 +1201,7 @@ Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_addressSp
    }
 }
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+std::set<BPatch_function *> BPatch_addressSpace::instrumentedFunctions = {};
+std::vector<AmdgpuKernelInfo> BPatch_addressSpace::kernelInfos = {};
+#endif
