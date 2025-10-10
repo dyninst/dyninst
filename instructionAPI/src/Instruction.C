@@ -485,10 +485,12 @@ namespace Dyninst { namespace InstructionAPI {
   DYNINST_EXPORT InsnCategory Instruction::getCategory() const {
     if(m_InsnOp.isVectorInsn)
       return c_VectorInsn;
-    if(m_InsnOp.isMultiInsnCall)
+    if(m_InsnOp.isMultiInsnCall || m_InsnOp.isNonABIRiscvCall)
       return c_CallInsn;
     if(m_InsnOp.isMultiInsnBranch)
       return c_BranchInsn;
+    if(m_InsnOp.isNonABIRiscvReturn)
+      return c_ReturnInsn;
     InsnCategory c = entryToCategory(m_InsnOp.getID());
     if(c == c_BranchInsn && (arch_decoded_from == Arch_ppc32 || arch_decoded_from == Arch_ppc64)) {
       DECODE_OPERANDS();

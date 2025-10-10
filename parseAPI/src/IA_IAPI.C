@@ -578,10 +578,11 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                     plt_entries->find(target) != plt_entries->end()) {
                 parsing_printf("%s[%d]: multi instruction call from %lx to %lx\n",
                         FILE__, __LINE__, current, target);
-                outEdges.push_back(std::make_pair(target, CALL));
-                outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
+                //outEdges.push_back(std::make_pair(target, CALL));
+                //outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
                 curInsnIter->second.getOperation().isMultiInsnCall = true;
-                return;
+                success = true;
+                ftEdge = true;
             }
         }
 
@@ -603,6 +604,14 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
         if (_obj->cs()->findCatchBlockByTryRange(getAddr(), catchStarts)) {
             for (auto ait = catchStarts.begin(); ait != catchStarts.end(); ++ait) {
                 outEdges.push_back(std::make_pair(*ait, CATCH));
+            }
+        }
+
+        // Non-ABI calls
+        if (ci.getOperation().getID() == riscv64_op_jalr || ci.getOperation().getID() == riscv64_op_jal) {
+            MachRegister linkReg = (boost::dynamic_pointer_cast<RegisterAST>(ci.getOperand(0).getValue()))->getID();
+            if (linkReg != riscv64::ra) {
+                curInsnIter->second.getOperation().isNonABIRiscvCall = true;
             }
         }
         return;
@@ -647,18 +656,31 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             }
             return;
         }
+        else if(isReturn(context, currBlk))
+        {
+            parsing_printf("%s[%d]: return candidate %s at 0x%lx\n", FILE__, __LINE__,
+                    ci.format().c_str(), current);
+            if(ci.allowsFallThrough())
+            {
+                outEdges.push_back(std::make_pair(getNextAddr(), FALLTHROUGH));
+            }
+            curInsnIter->second.getOperation().isNonABIRiscvReturn = true;
+            return;
+        }
         else if (isMultiInsnJump(&target, context, currBlk))
         {
             // If the target address lies within the current context
             // It is an unconditional jump
-            if (target >= context->entry()->start() &&
-                    target < context->entry()->end()) {
+            if(target >= context->entry()->start() &&
+                    target < context->entry()->end())
+            {
                 parsing_printf("%s[%d]: multi instruction jump from %lx to %lx\n", 
                         FILE__, __LINE__, current, target);
                 outEdges.push_back(std::make_pair(target, DIRECT));
             }
             // Otherwise, treat it as a tail call
-            else {
+            else
+            {
                 parsing_printf("%s[%d]: tail call to %lx\n", 
                         FILE__, __LINE__, target);
                 outEdges.push_back(std::make_pair(target, DIRECT));
@@ -666,7 +688,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             curInsnIter->second.getOperation().isMultiInsnBranch = true;
             return;
         }
-        else //
+        else
         {
             parsing_printf("... indirect jump at 0x%lx\n", current);
             if( num_insns == 2 ) {

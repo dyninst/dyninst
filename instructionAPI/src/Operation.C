@@ -66,6 +66,8 @@ namespace Dyninst { namespace InstructionAPI {
     isVectorInsn = false;
     isMultiInsnCall = false;
     isMultiInsnBranch = false;
+    isNonABIRiscvCall = false;
+    isNonABIRiscvReturn = false;
     mnemonic = m;
   }
 
@@ -102,6 +104,8 @@ namespace Dyninst { namespace InstructionAPI {
     isVectorInsn = getVectorizationInfo(e);
     isMultiInsnCall = false;
     isMultiInsnBranch = false;
+    isNonABIRiscvCall = false;
+    isNonABIRiscvReturn = false;
     operationID = e->getID(l);
     // Defaults for no size prefix
     switch(archDecodedFrom) {
@@ -130,6 +134,8 @@ namespace Dyninst { namespace InstructionAPI {
     isVectorInsn = o.isVectorInsn;
     isMultiInsnCall = o.isMultiInsnCall;
     isMultiInsnBranch = o.isMultiInsnBranch;
+    isNonABIRiscvCall = o.isNonABIRiscvCall;
+    isNonABIRiscvReturn = o.isNonABIRiscvReturn;
     mnemonic = o.mnemonic;
   }
 
@@ -142,6 +148,8 @@ namespace Dyninst { namespace InstructionAPI {
     isVectorInsn = o.isVectorInsn;
     isMultiInsnCall = o.isMultiInsnCall;
     isMultiInsnBranch = o.isMultiInsnBranch;
+    isNonABIRiscvCall = o.isNonABIRiscvCall;
+    isNonABIRiscvReturn = o.isNonABIRiscvReturn;
     mnemonic = o.mnemonic;
     return *this;
   }
@@ -155,6 +163,8 @@ namespace Dyninst { namespace InstructionAPI {
     isVectorInsn = false;
     isMultiInsnCall = false;
     isMultiInsnBranch = false;
+    isNonABIRiscvCall = false;
+    isNonABIRiscvReturn = false;
   }
 
   const Operation::registerSet& Operation::implicitReads() {
