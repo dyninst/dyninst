@@ -41,6 +41,7 @@ set(_public_headers
 
 set(_private_headers
     src/addressSpace.h
+    src/amdgpu-internal-impl.h
     src/amdgpu-prologue.h
     src/amdgpu-epilogue.h
     src/ast.h
@@ -244,8 +245,14 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/Relocation/Widgets/CFWidget-aarch64.C
     src/Relocation/Widgets/PCWidget-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  list(APPEND _sources src/amdgpu-prologue.C src/amdgpu-epilogue.C src/emit-amdgpu.C
-       src/amdgpu-gfx908-details.C)
+  list(
+    APPEND
+    _sources
+    src/amdgpu-internal-impl.C
+    src/amdgpu-prologue.C
+    src/amdgpu-epilogue.C
+    src/emit-amdgpu.C
+    src/amdgpu-gfx908-details.C)
 endif()
 
 if(DYNINST_OS_FreeBSD)
