@@ -1760,17 +1760,15 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             ahPtr->reset(dec,curAddr,func->obj(),
                     cur->region(), func->isrc(), cur);
 
-        InstructionAdapter_t * ah = ahPtr;
-
         nextBlockAddr = std::numeric_limits<Address>::max();
         auto nextBlockIter = frame.leadersToBlock.upper_bound(frame.curAddr);
         if (nextBlockIter != frame.leadersToBlock.end()) {
             nextBlockAddr = nextBlockIter->first;
         }
-        bool isNopBlock = ah->isNop();
+        bool isNopBlock = ahPtr->isNop();
 
         while(true) {
-            curAddr = ah->getAddr();
+            curAddr = ahPtr->getAddr();
             /** Check for straight-line fallthrough **/
             if (curAddr == nextBlockAddr) {
                 parsing_printf("[%s] straight-line parse into block at %lx\n",
@@ -1778,8 +1776,8 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 if (frame.func->obj()->defensiveMode()) {
                     mal_printf("straight-line parse into block at %lx\n",curAddr);
                 }
-                ah->retreat();
-                curAddr = ah->getAddr();
+                ahPtr->retreat();
+                curAddr = ahPtr->getAddr();
 
                 end_block(cur,ahPtr);
                 if (!set_edge_parsing_status(frame, cur->last(), cur)) break;
@@ -1799,7 +1797,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             }
             // per-instruction callback notification
             ParseCallback::insn_details insn_det;
-            insn_det.insn = ah;
+            insn_det.insn = ahPtr;
 
             parsing_printf("[%s:%d] curAddr 0x%lx: %s \n",
                     FILE__,__LINE__,curAddr, insn_det.insn->getInstruction().format().c_str() );
@@ -1814,8 +1812,8 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
 
             _pcb.instruction_cb(func,cur,curAddr,&insn_det);
 
-            if (isNopBlock && !ah->isNop()) {
-                ah->retreat();
+            if (isNopBlock && !ahPtr->isNop()) {
+                ahPtr->retreat();
 
                 end_block(cur,ahPtr);
                 if (!set_edge_parsing_status(frame,cur->last(), cur)) break; 
@@ -1829,7 +1827,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                         frame.mkWork(
                             NULL,
                             newedge,
-                            ah->getAddr(),
+                            ahPtr->getAddr(),
                             curAddr,
                             true,
                             false)
@@ -1840,8 +1838,8 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             /** Particular instruction handling (calls, branches, etc) **/
             ++num_insns;
 
-            if(ah->hasCFT()) {
-                if (ah->isIndirectJump()) {
+            if(ahPtr->hasCFT()) {
+                if (ahPtr->isIndirectJump()) {
                     // Create a work element to represent that
                     // we will resolve the jump table later
                     end_block(cur,ahPtr);
@@ -1860,24 +1858,24 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 break;
             }else if (func->_saves_fp &&
                     func->_no_stack_frame &&
-                    ah->isFrameSetupInsn()) { // isframeSetup is expensive
+                    ahPtr->isFrameSetupInsn()) { // isframeSetup is expensive
                 func->_no_stack_frame = false;
-            } else if (ah->isLeave()) {
+            } else if (ahPtr->isLeave()) {
                 func->_no_stack_frame = false;
-            } else if ( ah->isSoftwareException() ) {
+            } else if ( ahPtr->isSoftwareException() ) {
                 // 4. `abort-causing' instructions
                 end_block(cur,ahPtr);
                 set_edge_parsing_status(frame, cur->last(), cur);
                 //link(cur, sink_block, DIRECT, true);
                 break;
-            } else if ( ah->isInvalidInsn() ) {
+            } else if ( ahPtr->isInvalidInsn() ) {
                 // 4. Invalid or `abort-causing' instructions
                 end_block(cur,ahPtr);
                 if (!set_edge_parsing_status(frame,cur->last(), cur)) break;
                 link_addr(ahPtr->getAddr(), _sink, DIRECT, true, func);
                 break;
             } else if (unlikely(func->obj()->defensiveMode())) {
-                if (!_pcb.hasWeirdInsns(func) && ah->isGarbageInsn()) {
+                if (!_pcb.hasWeirdInsns(func) && ahPtr->isGarbageInsn()) {
                     // add instrumentation at this addr so we can
                     // extend the function if this really executes
                     ParseCallback::default_details det(
@@ -1891,22 +1889,22 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                     // allow invalid instructions to end up as a sink node.
                     link_addr(ahPtr->getAddr(), _sink, DIRECT, true, func);
                     break;
-                } else if (ah->isNopJump()) {
+                } else if (ahPtr->isNopJump()) {
                     // patch the jump to make it a nop, and re-set the 
                     // instruction adapter so we parse the instruction
                     // as a no-op this time, allowing the subsequent
                     // instruction to be parsed correctly
-                    mal_printf("Nop jump at %lx, changing it to nop\n",ah->getAddr());
-                    _pcb.patch_nop_jump(ah->getAddr());
-                    unsigned bufsize = func->region()->offset() + func->region()->length() - ah->getAddr();
+                    mal_printf("Nop jump at %lx, changing it to nop\n",ahPtr->getAddr());
+                    _pcb.patch_nop_jump(ahPtr->getAddr());
+                    unsigned bufsize = func->region()->offset() + func->region()->length() - ahPtr->getAddr();
                     const unsigned char* bufBegin = (const unsigned char *)
-                        (func->region()->getPtrToInstruction(ah->getAddr()));
+                        (func->region()->getPtrToInstruction(ahPtr->getAddr()));
                     dec = InstructionDecoder
                         (bufBegin, bufsize, frame.codereg->getArch());
-                    ah->reset(dec, curAddr, func->obj(),
+                    ahPtr->reset(dec, curAddr, func->obj(),
                             func->region(), func->isrc(), cur);
                 } else {
-                    entryID id = ah->getInstruction().getOperation().getID();
+                    entryID id = ahPtr->getInstruction().getOperation().getID();
                     switch (id) {
                         case e_rdtsc:
                             fprintf(stderr,"parsed bluepill insn rdtsc at %lx\n",curAddr);
@@ -1923,9 +1921,9 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             }
 
             /** Check for overruns of valid address space **/
-            if (!is_code(func,ah->getNextAddr())) {
+            if (!is_code(func,ahPtr->getNextAddr())) {
                 parsing_printf("[%s] next insn %lx is invalid\n",
-                        FILE__,ah->getNextAddr());
+                        FILE__,ahPtr->getNextAddr());
 
                 end_block(cur,ahPtr);
                 if (!set_edge_parsing_status(frame, cur->last(), cur)) break;
@@ -1933,9 +1931,9 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 link_addr(ahPtr->getAddr(), _sink, DIRECT, true, func);
 
                 break;
-            } else if (!cur->region()->contains(ah->getNextAddr())) {
+            } else if (!cur->region()->contains(ahPtr->getNextAddr())) {
                 parsing_printf("[%s] next address %lx is outside [%lx,%lx)\n",
-                        FILE__,ah->getNextAddr(),
+                        FILE__,ahPtr->getNextAddr(),
                         cur->region()->offset(),
                         cur->region()->offset()+cur->region()->length());
                 end_block(cur,ahPtr);
@@ -1944,7 +1942,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 link_addr(ahPtr->getAddr(), _sink, DIRECT, true, func);
                 break;
             }
-            ah->advance();
+            ahPtr->advance();
         }
     }
     if (ahPtr) delete ahPtr;
