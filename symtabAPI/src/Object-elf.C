@@ -4289,6 +4289,7 @@ bool ObjectELF::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
             }
             if (size < 6) {
                 create_printf("%s[%d]:  Bad subsection length (%u < 6)\n", FILE__, __LINE__, size);
+                return false;
             }
             attr_len -= size;
             const char *end = p + size - 1;
