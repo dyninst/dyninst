@@ -546,7 +546,6 @@ private:
   Function* containingFunc;
   std::unordered_map<void*, std::vector<open_statement> > contextMap;
 
-  // RISC-V Attributes
   RiscvAttributes riscv_attrs;
 };
 
