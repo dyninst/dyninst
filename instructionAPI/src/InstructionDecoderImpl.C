@@ -38,6 +38,7 @@
 #include "MultiRegister.h"
 #include "InstructionDecoder-Capstone.h"
 #include "MultiRegister.h"
+#include "InstructionDecoder-Capstone.h"
 
 #include "BinaryFunction.h"
 #include "Dereference.h"
