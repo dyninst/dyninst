@@ -87,6 +87,10 @@ namespace Dyninst { namespace InstructionAPI {
     void updateMnemonic(std::string new_mnemonic) { mnemonic = std::move(new_mnemonic); }
 
     bool isVectorInsn{};
+    bool isMultiInsnCall{};
+    bool isMultiInsnBranch{};
+    bool isNonABIRiscvCall{};
+    bool isNonABIRiscvReturn{};
 
   private:
     std::once_flag data_initialized;

@@ -38,6 +38,7 @@
 #include "dyninstversion.h"
 #include "interrupts.h"
 #include "entryIDs.h"
+#include "dyn_regs.h"
 
 #include <algorithm>
 #include <boost/iterator/indirect_iterator.hpp>
@@ -447,11 +448,44 @@ namespace Dyninst { namespace InstructionAPI {
   DYNINST_EXPORT InsnCategory Instruction::getCategory() const {
     if(m_InsnOp.isVectorInsn)
       return c_VectorInsn;
+    if(m_InsnOp.isMultiInsnCall || m_InsnOp.isNonABIRiscvCall)
+      return c_CallInsn;
+    if(m_InsnOp.isMultiInsnBranch)
+      return c_BranchInsn;
+    if(m_InsnOp.isNonABIRiscvReturn)
+      return c_ReturnInsn;
     InsnCategory c = entryToCategory(m_InsnOp.getID());
     if(c == c_BranchInsn && (arch_decoded_from == Arch_ppc32 || arch_decoded_from == Arch_ppc64)) {
       for(cftConstIter cft = cft_begin(); cft != cft_end(); ++cft) {
         if(cft->isCall) {
           return c_CallInsn;
+        }
+      }
+    }
+    if(c == c_BranchInsn && arch_decoded_from == Arch_riscv64) {
+      DECODE_OPERANDS();
+      for(cftConstIter cft = cft_begin(); cft != cft_end(); ++cft) {
+        if(cft->isCall) {
+          return c_CallInsn;
+        }
+      }
+      // ret -> c.jr x1
+      if(m_InsnOp.getID() == riscv64_op_c_jr) {
+        MachRegister rs = boost::dynamic_pointer_cast<RegisterAST>(getOperand(0).getValue())->getID();
+        if (rs == riscv64::x1) {
+          return c_ReturnInsn;
+        }
+      }
+      // ret -> jalr x1, x0, 0
+      if(m_InsnOp.getID() == riscv64_op_jalr) {
+        MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(getOperand(0).getValue()))->getID();
+        vector<InstructionAST::Ptr> children;
+        boost::dynamic_pointer_cast<BinaryFunction>(getOperand(1).getValue())->getChildren(children);
+        assert(children.size() == 2);
+        MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(children[0]))->getID();
+        int32_t imm = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
+        if (rd == riscv64::x0 && rs == riscv64::x1 && imm == 0) {
+          return c_ReturnInsn;
         }
       }
     }
