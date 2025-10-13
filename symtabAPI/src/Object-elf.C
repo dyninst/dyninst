@@ -2312,8 +2312,7 @@ ObjectELF::ObjectELF(MappedFile *mf_, bool, void (*err_func)(const char *),
         obj_type_(ObjectType::Unknown),
         DbgSectionMapSorted(false),
         soname_(NULL),
-        containingFunc(nullptr),
-        riscv_attrs()
+        containingFunc(nullptr)
 {
     li_for_object = NULL; 
     file_format_ = FileFormat::ELF;
