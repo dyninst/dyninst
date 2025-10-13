@@ -4359,10 +4359,4 @@ void ObjectELF::get_riscv_extensions() {
             }
         }
     }
-
-    // Obtain information from e_flags
-    unsigned long e_flags = elfHdr->e_flags();
-    if (e_flags & EF_RISCV_RVC) {
-        riscv_attrs.extensions.insert("c");
-    }
 }
