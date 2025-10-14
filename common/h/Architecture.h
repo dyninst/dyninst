@@ -71,6 +71,25 @@ namespace Dyninst {
     return 0;
   }
 
+  inline char const* getArchitectureName(Architecture arch) {
+    switch(arch) {
+      case Arch_none: return "none"; break;
+      case Arch_x86: return "x86"; break;
+      case Arch_x86_64: return "x86_64"; break;
+      case Arch_ppc32: return "ppc32"; break;
+      case Arch_ppc64: return "ppc64"; break;
+      case Arch_aarch32: return "aarch32"; break;
+      case Arch_aarch64: return "aarch64"; break;
+      case Arch_cuda: return "cuda"; break;
+      case Arch_amdgpu_gfx908: return "amdgpu_gfx908"; break;
+      case Arch_amdgpu_gfx90a: return "amdgpu_gfx90a"; break;
+      case Arch_amdgpu_gfx940: return "amdgpu_gfx940"; break;
+      case Arch_riscv64: return "riscv64"; break;
+      case Arch_intelGen9: return "intelGen9"; break;
+    }
+    return "UNKNOWN";
+  }
+
 }
 
 #endif
