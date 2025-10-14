@@ -42,7 +42,6 @@
 #include "Ternary.h"
 #include <boost/make_shared.hpp>
 
-using namespace std;
 namespace Dyninst
 {
     namespace InstructionAPI
