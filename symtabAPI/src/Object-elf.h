@@ -510,7 +510,7 @@ private:
 
   void get_riscv_extensions();
 
-  bool getUseRVC() override { return riscv_attrs.extensions.find("c") != riscv_attrs.extensions.end(); }
+  bool riscvUsesRVC() override { return riscv_attrs.rvc; }
 
   void find_code_and_data(Elf_X &elf,
        Offset txtaddr, Offset dataddr);
