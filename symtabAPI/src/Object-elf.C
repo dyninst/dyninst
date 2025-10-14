@@ -338,7 +338,7 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
                         Elf_X_Shdr *&dynstr_scnp, Elf_X_Shdr *&dynamic_scnp,
                         Elf_X_Shdr *&eh_frame, Elf_X_Shdr *&gcc_except,
                         Elf_X_Shdr *&interp_scnp, Elf_X_Shdr *&opd_scnp,
-                        Elf_X_Shdr *&symtab_shndx_scnp, Elf_X_Shdr *&riscv_attr_scnp,
+                        Elf_X_Shdr *&symtab_shndx_scnp, std::string &riscv_attr_data,
                         bool) {
     std::map<std::string, int> secnNameMap;
     dwarf_err_func = err_func_;
@@ -419,6 +419,10 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
             foundInterp = true;
         } else if (elfPhdr.p_type() == PT_LOAD) {
             hasProgramLoad_ = true;
+        } else if (elfPhdr.p_type() == PT_RISCV_ATTRIBUTES) {
+            size_t len;
+            riscv_attr_data = std::string((const char *)elfHdr->e_rawfile(len) +
+                    elfPhdr.p_offset(), elfPhdr.p_filesz());
         }
     }
 
@@ -838,7 +842,9 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
         } else if (strcmp(name, GNU_LINKONCE_THIS_MODULE_NAME) == 0) {
             hasGnuLinkonceThisModule_ = true;
         } else if (strcmp(name, RISCV_ATTRIBUTES) == 0) {
-            riscv_attr_scnp = scnp;
+            riscv_attr_data = std::string((const char *)scnp->get_data().d_buf(),
+                    scnp->get_data().d_size());
+
         } else if ((int) i == dynamic_section_index) {
             dynamic_scnp = scnp;
             dynamic_addr_ = scn.sh_addr();
@@ -1454,7 +1460,7 @@ void ObjectELF::load_object(bool alloc_syms) {
     Elf_X_Shdr *interp_scnp = 0;
     Elf_X_Shdr *opd_scnp = NULL;
     Elf_X_Shdr *symtab_shndx_scnp = NULL;
-    Elf_X_Shdr *riscv_attr_scnp = NULL;
+    std::string riscv_attr_data;
 
     { // binding contour (for "goto cleanup")
 
@@ -1470,7 +1476,7 @@ void ObjectELF::load_object(bool alloc_syms) {
         if (!loaded_elf(txtaddr, dataddr, bssscnp, symscnp, strscnp,
                         rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp,
                         dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp,
-                        opd_scnp, symtab_shndx_scnp, riscv_attr_scnp, true)) {
+                        opd_scnp, symtab_shndx_scnp, riscv_attr_data, true)) {
             goto cleanup;
         }
 
@@ -1572,7 +1578,7 @@ void ObjectELF::load_object(bool alloc_syms) {
         }
 
         if (elfHdr->e_machine() == EM_RISCV) {
-            bool result = parse_riscv_attributes(riscv_attr_scnp);
+            bool result = parse_riscv_attributes(riscv_attr_data);
             // riscv attributes is not mandatory
             if (!result) {
                 create_printf("%s[%d]: riscv attributes missing or corrupted\n", FILE__, __LINE__);
@@ -4201,7 +4207,7 @@ bool ObjectELF::getRegValueAtFrame(Dyninst::Address pc, Dyninst::MachRegister re
 
 }
 
-bool ObjectELF::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
+bool ObjectELF::parse_riscv_attributes(std::string &riscv_attr_data) {
     // .riscv.attributes
 
     // From https://github.com/riscv-non-isa/riscv-elf-psabi-doc/blob/master/riscv-elf.adoc#attributes:
@@ -4212,18 +4218,7 @@ bool ObjectELF::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
 
     // See https://github.com/bminor/binutils-gdb/blob/master/binutils/readelf.c
 
-    if (riscv_attr_scnp == NULL) {
-        create_printf("Section .riscv.attribute missing\n");
-        return false;
-    }
-
-    Elf_X_Data data = riscv_attr_scnp->get_data();
-    if (!data.isValid()) {
-        create_printf("Section .riscv.attribute is invalid\n");
-        return false;
-    }
-
-    const char *p = static_cast<const char *>(data.d_buf());
+    const char *p = (const char *)riscv_attr_data.c_str();
     // The first character is the version of the attributes
     // Currently only version 1, (aka 'A') is recognised
 
@@ -4232,7 +4227,7 @@ bool ObjectELF::parse_riscv_attributes(Elf_X_Shdr *riscv_attr_scnp) {
         return false;
     }
 
-    uint32_t section_len = data.d_size() - 1; // remove the attribute version ('A')
+    uint32_t section_len = riscv_attr_data.size() - 1; // remove the attribute version ('A')
     p++;
 
     while (section_len > 0) {

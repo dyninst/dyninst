@@ -445,7 +445,7 @@ public:
 		    Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr*& dynamic_scnp, Elf_X_Shdr*& eh_frame,
 		    Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
 		    Elf_X_Shdr *&opd_scnp, Elf_X_Shdr*& symtab_shndx_scnp,
-		    Elf_X_Shdr *&riscv_attr_scnp,
+		    std::string &riscv_attr_data,
           bool a_out=false);
   
   Symbol *handle_opd_symbol(Region *opd, Symbol *sym);
@@ -506,7 +506,7 @@ private:
   void parse_dynamicSymbols( Elf_X_Shdr *& dyn_scnp, Elf_X_Data &symdata,
                              Elf_X_Data &strdata, bool shared_library);
 
-  bool parse_riscv_attributes(Elf_X_Shdr *);
+  bool parse_riscv_attributes(std::string &);
 
   void get_riscv_extensions();
 
