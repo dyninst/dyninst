@@ -76,8 +76,7 @@ class InstructionDecoderImpl
         virtual Expression::Ptr makeTernaryExpression(Expression::Ptr cond, Expression::Ptr first, Expression::Ptr second, Result_Type resultType);
         boost::shared_ptr<Instruction> makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,
                                      const unsigned char* raw);
-      
-    protected:
+
         Operation m_Operation;
         Architecture m_Arch;
 
