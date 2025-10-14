@@ -72,7 +72,7 @@ namespace Dyninst { namespace InstructionAPI {
                                 bool isExtendedReg = false);
     Expression::Ptr decodeImmediate(unsigned int opType, const unsigned char* immStart,
                                     bool isSigned = false);
-    virtual Result_Type makeSizeType(unsigned int opType);
+    Result_Type makeSizeType(unsigned int opType);
 
   private:
     void doIA32Decode(InstructionDecoder::buffer& b);

@@ -56,7 +56,6 @@ namespace Dyninst { namespace InstructionAPI {
     using InstructionDecoderImpl::makeRegisterExpression;
 
   private:
-    virtual Result_Type makeSizeType(unsigned int opType);
     Expression::Ptr makeMemRefIndex(Result_Type size);
     Expression::Ptr makeMemRefNonIndex(Result_Type size);
     Expression::Ptr makeRAExpr();

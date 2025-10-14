@@ -84,7 +84,6 @@ namespace Dyninst {
 
 
             private:
-            virtual Result_Type makeSizeType(unsigned int opType);
 
             bool is64Bit{};
 

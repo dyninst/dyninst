@@ -513,11 +513,6 @@ void InstructionDecoder_aarch64::set32Mode()
     }
   }
 
-  Result_Type InstructionDecoder_aarch64::makeSizeType(unsigned int) {
-    assert(0); // not implemented
-    return u32;
-  }
-
   // ****************
   // decoding opcodes
   // ****************

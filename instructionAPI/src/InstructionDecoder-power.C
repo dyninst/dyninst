@@ -893,11 +893,6 @@ which are both 0).
     return makeRegisterExpression(makePowerRegID(ppc32::cr0, field<11, 15>(insn) >> 2));
   }
 
-  Result_Type InstructionDecoder_power::makeSizeType(unsigned int) {
-    assert(!"not implemented");
-    return u32;
-  }
-
   Expression::Ptr InstructionDecoder_power::makeSHExpr() {
     // For sradi instruction, the SH field is bit30 || bit16-20
     if(field<0, 5>(insn) == 31 && field<21, 29>(insn) == 413) {
