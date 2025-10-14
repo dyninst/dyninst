@@ -34,7 +34,6 @@
 #include <stdint.h>
 #include "Expression.h"
 #include "Architecture.h"
-#include "Operation_impl.h"
 #include "entryIDs.h"
 #include "Instruction.h"
 #include "InstructionDecoder.h"
