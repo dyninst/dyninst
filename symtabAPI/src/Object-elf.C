@@ -4353,6 +4353,7 @@ bool ObjectELF::parse_riscv_attrs(std::string &attr_string, std::string &attr_se
                 return false;
             }
             int attr_end = curr + attr_size - 1;
+            curr += sizeof(int32_t);
 
             // Parse all attribute data in the attribute
             while (curr < attr_end) {
@@ -4370,105 +4371,6 @@ bool ObjectELF::parse_riscv_attrs(std::string &attr_string, std::string &attr_se
         create_printf("%s[%d]:  Bad section\n", FILE__, __LINE__);
     }
 
-    /*
-    uint32_t section_len = riscv_attr_data.size() - 1; // remove the attribute version ('A')
-    p++;
-
-    while (section_len > 0) {
-        if (section_len <= 4) {
-            create_printf("%s[%d]:  Tag section ends prematurely\n", FILE__, __LINE__);
-            return false;
-        }
-
-        // The second word is the size of the attribute
-        uint32_t attr_len = 0;
-        memcpy(&attr_len, p, 4);
-        p += 4;
-
-        if (attr_len > section_len) {
-            create_printf("%s[%d]:  Bad attribute length (%u > %u)\n", FILE__, __LINE__, attr_len, section_len);
-            return false;
-        }
-        else if (attr_len < 5) {
-            create_printf("%s[%d]:  Attribute length of %u is too small\n", FILE__, __LINE__, attr_len);
-            return false;
-                }
-        section_len -= attr_len;
-        attr_len -= 4; // subtract the attribute length itself
-
-        // The next few bytes are the string that represents the current attribute
-        // In our case, the string should be "riscv"
-        unsigned int name_len = strnlen(p, attr_len) + 1;
-        if (name_len == 0 || name_len >= attr_len) {
-            create_printf("%s[%d]:  Corrupt attribute section name\n", FILE__, __LINE__);
-            return false;
-        }
-
-        if (strcmp(p, "riscv")) {
-            create_printf("%s[%d]:  Unexpected attribute section '%s'\n", FILE__, __LINE__, p);
-            return false;
-        }
-
-        p += name_len;
-        attr_len -= name_len;
-
-        while (attr_len > 0) {
-            if (attr_len < 6) {
-                create_printf("%s[%d]:  Unused bytes at end of section\n", FILE__, __LINE__);
-                return false;
-            }
-            uint64_t tag = *p++;
-            uint32_t size;
-            memcpy(&size, p, 4);
-
-            if (size > attr_len) {
-                create_printf("%s[%d]:  Bad subsection length (%u > %u)\n", FILE__, __LINE__, size, attr_len);
-                return false;
-            }
-            if (size < 6) {
-                create_printf("%s[%d]:  Bad subsection length (%u < 6)\n", FILE__, __LINE__, size);
-                return false;
-            }
-            attr_len -= size;
-            const char *end = p + size - 1;
-            p += 4;
-
-            // RISC-V Attributes are File Attributes (1)
-            if (tag != 1) {
-                create_printf("%s[%d]:  Unexpected attribute tag (%lu)", FILE__, __LINE__, tag);
-                return false;
-            }
-
-            while (p < end) {
-                // The tags are ULEB128 encoded
-
-                uint32_t attr_bytes_read = 0;
-                uint64_t attr_tag = read_uleb128(static_cast<const unsigned char *>(
-                                        reinterpret_cast<const void*>(p)), &attr_bytes_read);
-                p += attr_bytes_read;
-
-                // RISC-V attributes have a string value if the tag number is odd
-                // and an integer value if the tag number is even
-                if (attr_tag % 2 != 0) {
-                    // a string value
-                    uint32_t slen = strlen(p) + 1;
-                    riscv_attrs.raw_attrs[attr_tag].sval = strdup(p);
-                    p += slen;
-                }
-                else {
-                    // an integer value
-
-                    // The integer values are supposed to be ULEB128 encoded
-                    uint32_t ival_bytes_read = 0;
-                    uint64_t ival = read_uleb128(static_cast<const unsigned char *>(
-                                            reinterpret_cast<const void*>(p)), &ival_bytes_read);
-                    riscv_attrs.raw_attrs[attr_tag].ival = ival;
-                    p += ival_bytes_read;
-                }
-            }
-        }
-    }
-    */
     return true;
 }
 
@@ -4476,36 +4378,55 @@ void ObjectELF::get_riscv_extensions() {
 
     // Obtain information from .riscv.attributes
 
-    if (riscv_attrs.riscv_attr_string.length() > 0) {
-        std::string arch_string = riscv_attrs.riscv_attr_string;
-        for (size_t i = 0; i < arch_string.size(); i++) {
-            if (std::isalpha(arch_string[i])) {
-                // Get the extension string
-                int ext_i = i;
-                while (!isdigit(arch_string[i])) {
-                    i++;
-                }
-                std::string ext = arch_string.substr(ext_i, i - ext_i);
+    std::string arch_string = riscv_attrs.riscv_attr_string;
+    if (arch_string.length() == 0) {
+        create_printf("%s[%d]:  Tag_RISCV_arch is empty\n", FILE__, __LINE__);
+        return;
+    }
 
-                // Get the major number
-                int major_i = i;
-                while (arch_string[i] != 'p') {
-                    i++;
-                }
-                int major_num = std::stoi(arch_string.substr(major_i, i - major_i));
+    for (size_t i = 0; i < arch_string.length(); i++) {
+        // Get the extension string
 
-                i++; // ignore 'p'
-
-                // Get the minor number
-                int minor_i = i;
-                while (arch_string[i] != '_') {
-                    i++;
-                }
-                int minor_num = std::stoi(arch_string.substr(minor_i, i - minor_i));
-
-                riscv_attrs.riscv_extensions[ext] = std::make_pair(major_num, minor_num);
+        int ext_beg = i;
+        // Special case: base extension
+        if (i == 0) {
+            if ((arch_string.rfind("rv32i", 0) != 0) &&
+                    (arch_string.rfind("rv64i", 0) != 0) &&
+                    (arch_string.rfind("rv128i", 0) != 0) &&
+                    (arch_string.rfind("rv32e", 0) != 0)) {
+                create_printf("%s[%d]:  Corrupted base extension: should be one of rv32i, rv64i, rv128i, rv32e\n", FILE__, __LINE__);
+                return;
+            }
+            while (arch_string[i] != 'i' && arch_string[i] != 'e') {
+                i++;
+            }
+            i++;
+        }
+        else {
+            // Get the extension string
+            while (!isdigit(arch_string[i])) {
+                i++;
             }
         }
+        std::string ext = arch_string.substr(ext_beg, i - ext_beg);
+
+        // Get the major number
+        int major_beg = i;
+        while (arch_string[i] != 'p') {
+            i++;
+        }
+        int major_num = std::stoi(arch_string.substr(major_beg, i - major_beg));
+
+        i++; // ignore 'p'
+
+        // Get the minor number
+        int minor_beg = i;
+        while (arch_string[i] != '_') {
+            i++;
+        }
+        int minor_num = std::stoi(arch_string.substr(minor_beg, i - minor_beg));
+
+        riscv_attrs.riscv_extensions[ext] = std::make_pair(major_num, minor_num);
     }
 
     // Obtain information from e_flags
