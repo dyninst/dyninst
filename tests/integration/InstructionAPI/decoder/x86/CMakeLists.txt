@@ -46,3 +46,10 @@ target_compile_options(strings_tests PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
 target_link_libraries(strings_tests PRIVATE instructionAPI memory_tests register_tests)
 add_test(NAME instructionAPI_strings_tests COMMAND strings_tests)
 set_tests_properties(instructionAPI_strings_tests PROPERTIES LABELS "integration")
+
+add_executable(sysctl_tests sysctl.cpp)
+target_compile_options(sysctl_tests PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(sysctl_tests PRIVATE instructionAPI cft_tests memory_tests
+                                           register_tests)
+add_test(NAME instructionAPI_sysctl_tests COMMAND sysctl_tests)
+set_tests_properties(instructionAPI_sysctl_tests PROPERTIES LABELS "integration")
