@@ -93,6 +93,22 @@ class Object;
 class ObjectELF;
 class InlinedFunction;
 
+#ifndef PT_RISCV_ATTRIBUTES
+#define PT_RISCV_ATTRIBUTES 0x70000003
+#endif
+
+#ifndef SHT_RISCV_ATTRIBUTES
+#define SHT_RISCV_ATTRIBUTES 0x70000003
+#endif
+
+#ifndef EF_RISCV_RVE
+#define EF_RISCV_RVE 0x0008
+#endif
+
+#ifndef EF_RISCV_TSO
+#define EF_RISCV_TSO 0x0010
+#endif
+
 // RISC-V attributes
 enum RiscvAttrTags {
     Tag_RISCV_stack_align = 4,
