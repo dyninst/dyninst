@@ -55,6 +55,10 @@ class BPatch_addressSpace;
 class AddressSpace;
 class BPatch_register;
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+struct AmdgpuInternalImpl;
+#endif
+
 #include "Instruction.h"
 
 namespace Dyninst {
@@ -97,6 +101,9 @@ class DYNINST_EXPORT BPatch_point {
     friend class BPatch_edge;
     friend class BPatch_snippet;
     friend Dyninst::PatchAPI::Point *Dyninst::PatchAPI::convert(const BPatch_point *, BPatch_callWhen);
+#if defined (DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    friend struct AmdgpuInternalImpl;
+#endif
 
 private:
     

@@ -64,6 +64,10 @@
 
 #include "PatchMgr.h"
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#include "amdgpu-internal-impl.h"
+#endif
+
 using Dyninst::PatchAPI::Patcher;
 using Dyninst::PatchAPI::DynInsertSnipCommand;
 using Dyninst::PatchAPI::DynReplaceFuncCommand;
@@ -855,6 +859,16 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
                                                                     BPatch_callWhen when,
                                                                     BPatch_snippetOrder order)
 {
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  for (size_t i = 0; i < points.size(); ++i) {
+    BPatch_function *f = points[i]->getFunction();
+    auto result = amdgpuImpl->instrumentedFunctions.insert(f);
+    if (result.second) {
+      amdgpuImpl->insertPrologueIfKernel(f);
+      amdgpuImpl->insertEpilogueIfKernel(f);
+    }
+  }
+#endif
   BPatchSnippetHandle *retHandle = new BPatchSnippetHandle(this);
 
   if (dyn_debug_inst) {
@@ -1134,3 +1148,7 @@ Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_addressSp
    }
 }
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+std::set<BPatch_function *> BPatch_addressSpace::instrumentedFunctions = {};
+std::vector<AmdgpuKernelInfo> BPatch_addressSpace::kernelInfos = {};
+#endif

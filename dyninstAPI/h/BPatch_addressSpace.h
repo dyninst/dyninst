@@ -84,6 +84,10 @@ struct batchInsertionRecord;
 class instPoint;
 class int_variable;
 
+#if defined (DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+struct AmdgpuInternalImpl;
+#endif
+
 typedef enum{
   TRADITIONAL_PROCESS, STATIC_EDITOR
 } processType;
@@ -385,6 +389,11 @@ class DYNINST_EXPORT BPatch_addressSpace {
   register_iter getRegisters_end();
  private:
   void init_registers();
+
+#if defined (DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  std::unique_ptr<AmdgpuInternalImpl> amdgpuImpl;
+#endif
+
  public:
   bool  createRegister_NP(std::string regName, BPatch_register &reg); 
 
