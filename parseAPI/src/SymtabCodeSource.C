@@ -701,9 +701,9 @@ SymtabCodeSource::init_try_blocks()
 }
 
 bool
-SymtabCodeSource::getUseRVC() const
+SymtabCodeSource::riscvUsesRVC() const
 {
-    return _symtab->getObject()->getUseRVC();
+    return _symtab->getObject()->riscvUsesRVC();
 }
 
 bool

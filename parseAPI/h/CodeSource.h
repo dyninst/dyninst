@@ -340,7 +340,7 @@ class DYNINST_EXPORT SymtabCodeSource : public CodeSource, public boost::lockabl
 
     void overlapping_warn(const char * file, unsigned line) const;
 
-    bool getUseRVC() const;
+    bool riscvUsesRVC() const;
 
     // statistics
     bool init_stats();

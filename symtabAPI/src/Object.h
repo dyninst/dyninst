@@ -178,7 +178,7 @@ public:
     virtual Offset getTOCoffset(Offset) const { return 0; }
     virtual void setTOCoffset(Offset) { }
 
-    virtual bool getUseRVC() { return false; }
+    virtual bool riscvUsesRVC() { return false; }
 
     virtual bool emitDriver(std::string fName, std::set<Symbol *> &allSymbols, unsigned flag) = 0;
     virtual void parseFileLineInfo() { }

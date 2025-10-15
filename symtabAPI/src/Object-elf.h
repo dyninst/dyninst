@@ -57,6 +57,7 @@
 #include <elf.h>
 #include <libelf.h>
 #include <string>
+#include <optional>
 #include "relocationEntry.h"
 #include "Elf_X.h"
 #include "registers/MachRegister.h"
@@ -92,25 +93,31 @@ class ObjectELF;
 class InlinedFunction;
 
 // RISC-V attributes
+enum RiscvAttrTags {
+    Tag_RISCV_stack_align = 4,
+    Tag_RISCV_arch = 5,
+    Tag_RISCV_unaligned_access = 6,
+    Tag_RISCV_priv_spec = 8,
+    Tag_RISCV_priv_spec_minor = 10,
+    Tag_RISCV_priv_spec_revision = 12,
+    Tag_RISCV_atomic_abi = 14,
+    Tag_RISCV_x3_reg_usage = 16
+};
+enum class RiscvFloatAbiEnum { SOFT, SINGLE, DOUBLE, QUAD };
 struct RiscvAttributes {
-    union riscv_attr_t {
-        char *sval;
-        uint32_t ival;
-    };
-    enum riscv_attr_tags {
-        Tag_RISCV_stack_align = 4,
-        Tag_RISCV_arch = 5,
-        Tag_RISCV_unaligned_access = 6,
-        Tag_RISCV_priv_spec = 8,
-        Tag_RISCV_spec_minor = 10,
-        Tag_RISCV_priv_spec_revision = 12,
-        Tag_RISCV_atomic_abi = 14,
-        Tag_RISCV_x3_reg_usage = 16
-    };
-    // RISC-V Attributes
-    std::map<int, riscv_attr_t> raw_attrs;
-    // Supported RISC-V extensions
-    std::unordered_set<std::string> extensions;
+    bool rvc;
+    bool rve;
+    bool tso;
+    RiscvFloatAbiEnum floatABI;
+    std::map<std::string, std::pair<int, int>> riscv_extensions;
+    std::string riscv_attr_string;
+    std::optional<int64_t> stack_align;
+    std::optional<bool> unaligned_access;
+    std::optional<int64_t> priv_spec;          // Deprecated
+    std::optional<int64_t> priv_spec_minor;    // Deprecated
+    std::optional<int64_t> priv_spec_revision; // Deprecated
+    std::optional<int64_t> atomic_abi;
+    std::optional<int64_t> x3_reg_usage;
 };
 
 class open_statement {
@@ -445,7 +452,6 @@ public:
 		    Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr*& dynamic_scnp, Elf_X_Shdr*& eh_frame,
 		    Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
 		    Elf_X_Shdr *&opd_scnp, Elf_X_Shdr*& symtab_shndx_scnp,
-		    std::string &riscv_attr_data,
           bool a_out=false);
   
   Symbol *handle_opd_symbol(Region *opd, Symbol *sym);
@@ -506,7 +512,7 @@ private:
   void parse_dynamicSymbols( Elf_X_Shdr *& dyn_scnp, Elf_X_Data &symdata,
                              Elf_X_Data &strdata, bool shared_library);
 
-  bool parse_riscv_attributes(std::string &);
+  bool parse_riscv_attrs(std::string &, std::string &, std::function<int(std::string &, int)>);
 
   void get_riscv_extensions();
 
