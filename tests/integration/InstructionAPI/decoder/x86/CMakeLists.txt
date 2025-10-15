@@ -42,3 +42,10 @@ target_link_libraries(x86_sse PRIVATE instructionAPI cft_tests memory_tests opco
                                       register_tests)
 add_test(NAME instructionAPI_x86_sse COMMAND x86_sse)
 set_tests_properties(instructionAPI_x86_sse PROPERTIES LABELS "integration")
+
+add_executable(x86_strings strings.cpp)
+target_compile_options(x86_strings PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(x86_strings PRIVATE instructionAPI memory_tests
+                                          opcode_tests register_tests)
+add_test(NAME instructionAPI_x86_strings_test COMMAND x86_strings)
+set_tests_properties(instructionAPI_x86_strings_test PROPERTIES LABELS "integration")
