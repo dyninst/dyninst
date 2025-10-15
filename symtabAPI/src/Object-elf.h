@@ -74,6 +74,8 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+#include <boost/optional.hpp>
+
 
 namespace Dyninst{
 
