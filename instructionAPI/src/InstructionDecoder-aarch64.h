@@ -64,7 +64,6 @@ namespace Dyninst { namespace InstructionAPI {
     static const char* condInsnAliasMap(entryID);
 
   private:
-    virtual Result_Type makeSizeType(unsigned int opType);
 
     bool isPstateRead{}, isPstateWritten{};
     bool isFPInsn{}, isSIMDInsn{};

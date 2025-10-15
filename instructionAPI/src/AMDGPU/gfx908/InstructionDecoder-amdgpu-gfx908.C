@@ -56,11 +56,6 @@ namespace Dyninst {
 
 		using namespace std;
 
-		Result_Type InstructionDecoder_amdgpu_gfx908::makeSizeType(unsigned int) {
-			assert(0); //not implemented
-			return u32;
-		}
-
 		// ****************
 		// decoding opcodes
 		// ****************
