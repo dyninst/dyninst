@@ -314,7 +314,6 @@ const char *EXCEPT_NAME = ".gcc_except_table";
 const char *EXCEPT_NAME_ALT = ".except_table";
 const char *MODINFO_NAME = ".modinfo";
 const char *GNU_LINKONCE_THIS_MODULE_NAME = ".gnu.linkonce.this_module";
-const char *RISCV_ATTRIBUTES = ".riscv.attributes";
 const char DEBUG_PREFIX[] = ".debug_";
 const char ZDEBUG_PREFIX[] = ".zdebug_";
 
@@ -842,7 +841,7 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
             hasModinfo_ = true;
         } else if (strcmp(name, GNU_LINKONCE_THIS_MODULE_NAME) == 0) {
             hasGnuLinkonceThisModule_ = true;
-        } else if (strcmp(name, RISCV_ATTRIBUTES) == 0) {
+        } else if (scn.sh_type() == SHT_RISCV_ATTRIBUTES) {
             riscv_attrs.riscv_attr_string = std::string(
                     (const char *)scnp->get_data().d_buf(),
                     scnp->get_data().d_size());
