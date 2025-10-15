@@ -57,7 +57,6 @@
 #include <elf.h>
 #include <libelf.h>
 #include <string>
-#include <optional>
 #include "relocationEntry.h"
 #include "Elf_X.h"
 #include "registers/MachRegister.h"
@@ -111,13 +110,13 @@ struct RiscvAttributes {
     RiscvFloatAbiEnum floatABI;
     std::map<std::string, std::pair<int, int>> riscv_extensions;
     std::string riscv_attr_string;
-    std::optional<int64_t> stack_align;
-    std::optional<bool> unaligned_access;
-    std::optional<int64_t> priv_spec;          // Deprecated
-    std::optional<int64_t> priv_spec_minor;    // Deprecated
-    std::optional<int64_t> priv_spec_revision; // Deprecated
-    std::optional<int64_t> atomic_abi;
-    std::optional<int64_t> x3_reg_usage;
+    boost::optional<int64_t> stack_align;
+    boost::optional<bool> unaligned_access;
+    boost::optional<int64_t> priv_spec;          // Deprecated
+    boost::optional<int64_t> priv_spec_minor;    // Deprecated
+    boost::optional<int64_t> priv_spec_revision; // Deprecated
+    boost::optional<int64_t> atomic_abi;
+    boost::optional<int64_t> x3_reg_usage;
 };
 
 class open_statement {

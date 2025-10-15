@@ -76,10 +76,10 @@ using namespace std;
 #include <iomanip>
 
 #include <fstream>
-#include <optional>
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/optional.hpp>
 
 #include "SymReader.h"
 #include <endian.h>
@@ -1630,25 +1630,25 @@ void ObjectELF::load_object(bool alloc_syms) {
 
                     switch (attr_tag) {
                         case RiscvAttrTags::Tag_RISCV_unaligned_access:
-                            riscv_attrs.stack_align = std::make_optional<bool>(ival != 0);
+                            riscv_attrs.stack_align = boost::make_optional<bool>(ival != 0);
                             break;
                         case RiscvAttrTags::Tag_RISCV_stack_align:
-                            riscv_attrs.stack_align = std::make_optional<uint64_t>(ival);
+                            riscv_attrs.stack_align = boost::make_optional<uint64_t>(ival);
                             break;
                         case RiscvAttrTags::Tag_RISCV_priv_spec:
-                            riscv_attrs.priv_spec = std::make_optional<uint64_t>(ival);
+                            riscv_attrs.priv_spec = boost::make_optional<uint64_t>(ival);
                             break;
                         case RiscvAttrTags::Tag_RISCV_priv_spec_minor:
-                            riscv_attrs.priv_spec_minor = std::make_optional<uint64_t>(ival);
+                            riscv_attrs.priv_spec_minor = boost::make_optional<uint64_t>(ival);
                             break;
                         case RiscvAttrTags::Tag_RISCV_priv_spec_revision:
-                            riscv_attrs.priv_spec_revision = std::make_optional<uint64_t>(ival);
+                            riscv_attrs.priv_spec_revision = boost::make_optional<uint64_t>(ival);
                             break;
                         case RiscvAttrTags::Tag_RISCV_atomic_abi:
-                            riscv_attrs.atomic_abi = std::make_optional<uint64_t>(ival);
+                            riscv_attrs.atomic_abi = boost::make_optional<uint64_t>(ival);
                             break;
                         case RiscvAttrTags::Tag_RISCV_x3_reg_usage:
-                            riscv_attrs.stack_align = std::make_optional<uint64_t>(ival);
+                            riscv_attrs.stack_align = boost::make_optional<uint64_t>(ival);
                             break;
                         default:
                             break;
