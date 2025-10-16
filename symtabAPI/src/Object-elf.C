@@ -1590,10 +1590,9 @@ void ObjectELF::load_object(bool alloc_syms) {
             // See https://github.com/bminor/binutils-gdb/blob/master/binutils/readelf.c
             const char *attr_string = riscv_attrs.riscv_attr_string.c_str();
             int attr_len = riscv_attrs.riscv_attr_string.length();
-            std::function<int(const char *, int)> handle_riscv_attr_f =
+            std::function<int(const char *)> handle_riscv_attr_f =
                 std::bind(&ObjectELF::handle_riscv_attr, this,
-                        std::placeholders::_1,
-                        std::placeholders::_2);
+                        std::placeholders::_1);
             bool result = parse_attrs(attr_string, attr_len,
                     "riscv", handle_riscv_attr_f);
             if (!result) {
@@ -4226,7 +4225,7 @@ bool ObjectELF::getRegValueAtFrame(Dyninst::Address pc, Dyninst::MachRegister re
 bool ObjectELF::parse_attrs(const char *attr_string,
         int attr_string_size,
         const char *attr_section_name,
-        std::function<int(const char *, int)> parse_attr_data)
+        std::function<int(const char *)> parse_attr_data)
 {
     if (attr_string_size == 0) {
         return false;
@@ -4296,7 +4295,7 @@ bool ObjectELF::parse_attrs(const char *attr_string,
 
             // Parse all attribute data in the attribute
             while (curr < attr_end) {
-                curr = parse_attr_data(&attr_string[curr], curr);
+                curr += parse_attr_data(&attr_string[curr]);
             }
             if (curr != attr_end) {
                 create_printf("%s[%d]:  Bad attribute data\n", FILE__, __LINE__);
@@ -4398,7 +4397,9 @@ void ObjectELF::get_riscv_extensions() {
     }
 }
 
-int ObjectELF::handle_riscv_attr(const char *attr_str, int curr) {
+int ObjectELF::handle_riscv_attr(const char *attr_str) {
+    int curr = 0;
+
     uint32_t attr_bytes_read = 0;
     uint64_t attr_tag = read_uleb128(static_cast<const unsigned char *>(
                 reinterpret_cast<const void*>(&attr_str[curr])), &attr_bytes_read);
@@ -4408,7 +4409,7 @@ int ObjectELF::handle_riscv_attr(const char *attr_str, int curr) {
     // and an integer value if the tag number is even
     if (attr_tag % 2 != 0) {
         // a string value
-        char *cstr = strdup(attr_str + curr);
+        const char *cstr = &attr_str[curr];
         std::string sval = std::string(cstr);
         curr += strlen(cstr) + 1;
 
