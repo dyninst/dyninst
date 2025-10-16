@@ -701,9 +701,9 @@ SymtabCodeSource::init_try_blocks()
 }
 
 bool
-SymtabCodeSource::riscvUsesRVC() const
+SymtabCodeSource::usesCompressedInstructionFormat() const
 {
-    return _symtab->getObject()->riscvUsesRVC();
+    return _symtab->getObject()->usesCompressedInstructionFormat();
 }
 
 bool

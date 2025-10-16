@@ -4432,7 +4432,7 @@ void ObjectELF::get_riscv_extensions() {
 
     unsigned long e_flags = elfHdr->e_flags();
     if (e_flags & EF_RISCV_RVC) {
-        riscv_attrs.rvc = true;
+        riscv_attrs.compressed_extension = true;
     }
     switch (e_flags & EF_RISCV_FLOAT_ABI) {
         case EF_RISCV_FLOAT_ABI_SOFT:
@@ -4451,9 +4451,9 @@ void ObjectELF::get_riscv_extensions() {
             break;
     }
     if (e_flags & EF_RISCV_RVE) {
-        riscv_attrs.rve = true;
+        riscv_attrs.embedded_abi = true;
     }
     if (e_flags & EF_RISCV_TSO) {
-        riscv_attrs.tso = true;
+        riscv_attrs.total_store_ordering = true;
     }
 }

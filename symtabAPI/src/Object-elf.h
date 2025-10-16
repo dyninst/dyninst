@@ -122,9 +122,9 @@ enum RiscvAttrTags {
 };
 enum class RiscvFloatAbiEnum { SOFT, SINGLE, DOUBLE, QUAD };
 struct RiscvAttributes {
-    bool rvc;
-    bool rve;
-    bool tso;
+    bool compressed_extension;
+    bool embedded_abi;
+    bool total_store_ordering;
     RiscvFloatAbiEnum floatABI;
     std::map<std::string, std::pair<int, int>> riscv_extensions;
     std::string riscv_attr_string;
@@ -533,7 +533,7 @@ private:
 
   void get_riscv_extensions();
 
-  bool riscvUsesRVC() override { return riscv_attrs.rvc; }
+  bool usesCompressedInstructionFormat() override { return riscv_attrs.compressed_extension; }
 
   void find_code_and_data(Elf_X &elf,
        Offset txtaddr, Offset dataddr);
