@@ -1656,7 +1656,7 @@ void ObjectELF::load_object(bool alloc_syms) {
                 }
                 return curr;
             };
-            bool result = parse_riscv_attrs(riscv_attrs.riscv_attr_string,
+            bool result = parse_attrs(riscv_attrs.riscv_attr_string,
                     attr_section_name, handle_riscv_attr);
             if (!result) {
                 create_printf("%s[%d]: riscv attributes missing or corrupted\n", FILE__, __LINE__);
@@ -4285,7 +4285,7 @@ bool ObjectELF::getRegValueAtFrame(Dyninst::Address pc, Dyninst::MachRegister re
 
 }
 
-bool ObjectELF::parse_riscv_attrs(std::string &attr_string, std::string &attr_section_name, std::function<int(std::string &, int)> parse_attr_data) {
+bool ObjectELF::parse_attrs(std::string &attr_string, std::string &attr_section_name, std::function<int(std::string &, int)> parse_attr_data) {
 
     if (attr_string.size() == 0) {
         return false;
