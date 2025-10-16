@@ -114,9 +114,6 @@ DYNINST_EXPORT unsigned long relocationEntry::getGlobalRelType(unsigned /*addres
     else {
         return R_RISCV_64;
     }
-
-	//should never return this.
-    return relocationEntry::dynrel;
 }
 
 
