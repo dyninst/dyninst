@@ -110,15 +110,15 @@ class InlinedFunction;
 #endif
 
 // RISC-V attributes
-enum RiscvAttrTags {
-    Tag_RISCV_stack_align = 4,
-    Tag_RISCV_arch = 5,
-    Tag_RISCV_unaligned_access = 6,
-    Tag_RISCV_priv_spec = 8,
-    Tag_RISCV_priv_spec_minor = 10,
-    Tag_RISCV_priv_spec_revision = 12,
-    Tag_RISCV_atomic_abi = 14,
-    Tag_RISCV_x3_reg_usage = 16
+enum RiscvAttrTag {
+    stack_align = 4,
+    arch = 5,
+    unaligned_access = 6,
+    priv_spec = 8,
+    priv_spec_minor = 10,
+    priv_spec_revision = 12,
+    atomic_abi = 14,
+    x3_reg_usage = 16
 };
 enum class RiscvFloatAbiEnum { SOFT, SINGLE, DOUBLE, QUAD };
 struct RiscvAttributes {
@@ -529,7 +529,7 @@ private:
   void parse_dynamicSymbols( Elf_X_Shdr *& dyn_scnp, Elf_X_Data &symdata,
                              Elf_X_Data &strdata, bool shared_library);
 
-  bool parse_attrs(std::string &, std::string &, std::function<int(std::string &, int)>);
+  bool parse_attrs(const char *, int, const char *, std::function<int(const char *, int)>);
 
   void get_riscv_extensions();
 
@@ -545,6 +545,9 @@ private:
   bool find_catch_blocks(Elf_X_Shdr *eh_frame, Elf_X_Shdr *except_scn,
                          Address textaddr, Address dataaddr,
                          std::vector<ExceptionBlock> &catch_addrs);
+
+  int handle_riscv_attr(const char *attr, int curr);
+
   // Line info: CUs to skip
   std::set<std::string> modules_parsed_for_line_info;
 

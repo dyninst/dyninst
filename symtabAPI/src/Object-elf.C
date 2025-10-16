@@ -1588,76 +1588,14 @@ void ObjectELF::load_object(bool alloc_syms) {
             // an integer. Otherwise, it will be a string. 
 
             // See https://github.com/bminor/binutils-gdb/blob/master/binutils/readelf.c
-            std::string attr_section_name = "riscv";
-            auto handle_riscv_attr = [this](std::string &attr, int curr) -> int {
-                unsigned long long attr_tag = 0;
-                unsigned int attr_shift = 0;
-                while (1) {
-                    attr_tag |= (attr[curr] & 0x7f) << attr_shift;
-                    if ((attr[curr++] & 0x80) == 0)
-                        break;
-                    attr_shift += 7;
-                }
-
-                // RISC-V attributes have a string value if the tag number is odd
-                // and an integer value if the tag number is even
-                if (attr_tag % 2 != 0) {
-                    // a string value
-                    unsigned slen = attr.find('\0', curr) - curr;
-                    std::string sval = attr.substr(curr, slen);
-                    curr += slen + 1;
-
-                    switch (attr_tag) {
-                        case RiscvAttrTags::Tag_RISCV_arch:
-                            riscv_attrs.riscv_attr_string = sval;
-                            break;
-                        default:
-                            break;
-                    }
-                }
-                else {
-                    // an integer value
-
-                    // The integer values are supposed to be ULEB128 encoded
-                    unsigned long long ival = 0;
-                    unsigned int ival_shift = 0;
-                    while (1) {
-                        ival |= (attr[curr] & 0x7f) << ival_shift;
-                        if ((attr[curr++] & 0x80) == 0)
-                            break;
-                        ival_shift += 7;
-                    }
-
-                    switch (attr_tag) {
-                        case RiscvAttrTags::Tag_RISCV_unaligned_access:
-                            riscv_attrs.stack_align = boost::make_optional<bool>(ival != 0);
-                            break;
-                        case RiscvAttrTags::Tag_RISCV_stack_align:
-                            riscv_attrs.stack_align = boost::make_optional<uint64_t>(ival);
-                            break;
-                        case RiscvAttrTags::Tag_RISCV_priv_spec:
-                            riscv_attrs.priv_spec = boost::make_optional<uint64_t>(ival);
-                            break;
-                        case RiscvAttrTags::Tag_RISCV_priv_spec_minor:
-                            riscv_attrs.priv_spec_minor = boost::make_optional<uint64_t>(ival);
-                            break;
-                        case RiscvAttrTags::Tag_RISCV_priv_spec_revision:
-                            riscv_attrs.priv_spec_revision = boost::make_optional<uint64_t>(ival);
-                            break;
-                        case RiscvAttrTags::Tag_RISCV_atomic_abi:
-                            riscv_attrs.atomic_abi = boost::make_optional<uint64_t>(ival);
-                            break;
-                        case RiscvAttrTags::Tag_RISCV_x3_reg_usage:
-                            riscv_attrs.stack_align = boost::make_optional<uint64_t>(ival);
-                            break;
-                        default:
-                            break;
-                    }
-                }
-                return curr;
-            };
-            bool result = parse_attrs(riscv_attrs.riscv_attr_string,
-                    attr_section_name, handle_riscv_attr);
+            const char *attr_string = riscv_attrs.riscv_attr_string.c_str();
+            int attr_len = riscv_attrs.riscv_attr_string.length();
+            std::function<int(const char *, int)> handle_riscv_attr_f =
+                std::bind(&ObjectELF::handle_riscv_attr, this,
+                        std::placeholders::_1,
+                        std::placeholders::_2);
+            bool result = parse_attrs(attr_string, attr_len,
+                    "riscv", handle_riscv_attr_f);
             if (!result) {
                 create_printf("%s[%d]: riscv attributes missing or corrupted\n", FILE__, __LINE__);
             }
@@ -4285,9 +4223,12 @@ bool ObjectELF::getRegValueAtFrame(Dyninst::Address pc, Dyninst::MachRegister re
 
 }
 
-bool ObjectELF::parse_attrs(std::string &attr_string, std::string &attr_section_name, std::function<int(std::string &, int)> parse_attr_data) {
-
-    if (attr_string.size() == 0) {
+bool ObjectELF::parse_attrs(const char *attr_string,
+        int attr_string_size,
+        const char *attr_section_name,
+        std::function<int(const char *, int)> parse_attr_data)
+{
+    if (attr_string_size == 0) {
         return false;
     }
 
@@ -4311,28 +4252,27 @@ bool ObjectELF::parse_attrs(std::string &attr_string, std::string &attr_section_
     //         2) A 32-bit integer indicating the size of the attribute
     //         3) A series of "attribute data". The attribute data is platform dependent
 
-    int section_end = attr_string.size();
+    int section_end = attr_string_size;
 
     // Parse all attribute sections
     while (curr < section_end) {
 
         // Get the attribute section size
-        int32_t attr_section_size = read_memory_as<int32_t>(attr_string.c_str() + curr);
+        int attr_section_size = read_memory_as<int>(&attr_string[curr]);
         if (attr_section_size > section_end) {
             create_printf("%s[%d]:  Bad attribute section length (%d > %d)\n",
                     FILE__, __LINE__, attr_section_size, section_end);
             return false;
         }
         int attr_section_end = curr + attr_section_size;
-        curr += sizeof(int32_t);
+        curr += sizeof(int);
         // The next null-terminated string indicates the name of the current attribute
-        int attr_name_size = attr_string.find('\0', curr) - curr;
-        std::string attr_name = attr_string.substr(curr, attr_name_size);
-        if (attr_name != attr_section_name) {
-            create_printf("%s[%d]:  Unexpected attribute section '%s'\n", FILE__, __LINE__, attr_name.c_str());
+        const char *curr_attr_section_name = &attr_string[curr];
+        if (strcmp(curr_attr_section_name, attr_section_name)) {
+            create_printf("%s[%d]:  Unexpected attribute section '%s'\n", FILE__, __LINE__, curr_attr_section_name);
             return false;
         }
-        curr += attr_name.length() + 1;
+        curr += strlen(&attr_string[curr]) + 1;
 
         // Parse all attributes in the attribute section
         while (curr < attr_section_end) {
@@ -4345,18 +4285,18 @@ bool ObjectELF::parse_attrs(std::string &attr_string, std::string &attr_section_
                 return false;
             }
 
-            int32_t attr_size = read_memory_as<int32_t>(attr_string.c_str() + curr);
+            int attr_size = read_memory_as<int>(&attr_string[curr]);
             if (attr_size > attr_section_end) {
                 create_printf("%s[%d]:  Bad attribute length (%d > %d)\n",
                         FILE__, __LINE__, attr_size, attr_section_end);
                 return false;
             }
             int attr_end = curr + attr_size - 1;
-            curr += sizeof(int32_t);
+            curr += sizeof(int);
 
             // Parse all attribute data in the attribute
             while (curr < attr_end) {
-                curr = parse_attr_data(attr_string, curr);
+                curr = parse_attr_data(&attr_string[curr], curr);
             }
             if (curr != attr_end) {
                 create_printf("%s[%d]:  Bad attribute data\n", FILE__, __LINE__);
@@ -4456,4 +4396,64 @@ void ObjectELF::get_riscv_extensions() {
     if (e_flags & EF_RISCV_TSO) {
         riscv_attrs.total_store_ordering = true;
     }
+}
+
+int ObjectELF::handle_riscv_attr(const char *attr_str, int curr) {
+    uint32_t attr_bytes_read = 0;
+    uint64_t attr_tag = read_uleb128(static_cast<const unsigned char *>(
+                reinterpret_cast<const void*>(&attr_str[curr])), &attr_bytes_read);
+    curr += attr_bytes_read;
+
+    // RISC-V attributes have a string value if the tag number is odd
+    // and an integer value if the tag number is even
+    if (attr_tag % 2 != 0) {
+        // a string value
+        char *cstr = strdup(attr_str + curr);
+        std::string sval = std::string(cstr);
+        curr += strlen(cstr) + 1;
+
+        switch (attr_tag) {
+            case RiscvAttrTag::arch:
+                riscv_attrs.riscv_attr_string = sval;
+                break;
+            default:
+                break;
+        }
+    }
+    else {
+        // an integer value
+
+        // The integer values are ULEB128 encoded
+        uint32_t ival_bytes_read = 0;
+        uint64_t ival = read_uleb128(static_cast<const unsigned char *>(
+                    reinterpret_cast<const void*>(&attr_str[curr])), &ival_bytes_read);
+        curr += ival_bytes_read;
+
+        switch (attr_tag) {
+            case RiscvAttrTag::unaligned_access:
+                riscv_attrs.unaligned_access = boost::make_optional(ival != 0);
+                break;
+            case RiscvAttrTag::stack_align:
+                riscv_attrs.stack_align = boost::make_optional(ival);
+                break;
+            case RiscvAttrTag::priv_spec:
+                riscv_attrs.priv_spec = boost::make_optional(ival);
+                break;
+            case RiscvAttrTag::priv_spec_minor:
+                riscv_attrs.priv_spec_minor = boost::make_optional(ival);
+                break;
+            case RiscvAttrTag::priv_spec_revision:
+                riscv_attrs.priv_spec_revision = boost::make_optional(ival);
+                break;
+            case RiscvAttrTag::atomic_abi:
+                riscv_attrs.atomic_abi = boost::make_optional(ival);
+                break;
+            case RiscvAttrTag::x3_reg_usage:
+                riscv_attrs.stack_align = boost::make_optional(ival);
+                break;
+            default:
+                break;
+        }
+    }
+    return curr;
 }
