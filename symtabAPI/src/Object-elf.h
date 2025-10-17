@@ -126,8 +126,6 @@ struct RiscvAttributes {
     bool embedded_abi;
     bool total_store_ordering;
     RiscvFloatAbiEnum floatABI;
-    char *riscv_attr_addr;
-    int riscv_attr_size;
     std::map<std::string, std::pair<int, int>> riscv_extensions;
     std::string riscv_extension_string;
     boost::optional<int64_t> stack_align;
@@ -407,6 +405,8 @@ public:
   unsigned  rel_entry_size_; // DT_REL/DT_RELA in dynamic section
   Offset   opd_addr_;
   unsigned opd_size_;
+  Offset   riscv_attr_addr_;
+  unsigned riscv_attr_size_;
 
   bool      dwarvenDebugInfo;    // is DWARF debug info present?
   Offset   loadAddress_;      // The object may specify a load address

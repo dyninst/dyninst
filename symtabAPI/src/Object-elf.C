@@ -419,12 +419,8 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
         } else if (elfPhdr.p_type() == PT_LOAD) {
             hasProgramLoad_ = true;
         } else if (elfPhdr.p_type() == PT_RISCV_ATTRIBUTES) {
-            size_t len;
-            riscv_attrs.riscv_attr_size = elfPhdr.p_filesz();
-            riscv_attrs.riscv_attr_addr = (char *)malloc(riscv_attrs.riscv_attr_size);
-            memcpy(riscv_attrs.riscv_attr_addr,
-                    (const char *)elfHdr->e_rawfile(len) + elfPhdr.p_offset(),
-                    riscv_attrs.riscv_attr_size);
+            riscv_attr_size_ = elfPhdr.p_filesz();
+            riscv_attr_addr_ = elfPhdr.p_offset();
         }
     }
 
@@ -844,10 +840,8 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
         } else if (strcmp(name, GNU_LINKONCE_THIS_MODULE_NAME) == 0) {
             hasGnuLinkonceThisModule_ = true;
         } else if (scn.sh_type() == SHT_RISCV_ATTRIBUTES) {
-            riscv_attrs.riscv_attr_size = scnp->get_data().d_size();
-            riscv_attrs.riscv_attr_addr = (char *)malloc(riscv_attrs.riscv_attr_size);
-            memcpy(riscv_attrs.riscv_attr_addr, scnp->get_data().d_buf(),
-                    riscv_attrs.riscv_attr_size);
+            riscv_attr_size_ = scnp->get_data().d_size();
+            riscv_attr_addr_ = scnp->sh_addr();
         } else if ((int) i == dynamic_section_index) {
             dynamic_scnp = scnp;
             dynamic_addr_ = scn.sh_addr();
@@ -1591,11 +1585,14 @@ void ObjectELF::load_object(bool alloc_syms) {
             // an integer. Otherwise, it will be a string. 
 
             // See https://github.com/bminor/binutils-gdb/blob/master/binutils/readelf.c
+            size_t elf_len;
+            int riscv_attr_size = riscv_attr_size_;
+            const char *riscv_attr_addr = elfHdr->e_rawfile(elf_len) + riscv_attr_size;
             std::function<int(const char *)> handle_riscv_attr_f =
                 std::bind(&ObjectELF::handle_riscv_attr, this,
                         std::placeholders::_1);
-            bool result = parse_attrs(riscv_attrs.riscv_attr_addr,
-                    riscv_attrs.riscv_attr_size,
+            bool result = parse_attrs(riscv_attr_addr,
+                    riscv_attr_size,
                     "riscv",
                     handle_riscv_attr_f);
             if (!result) {
