@@ -129,7 +129,7 @@ struct RiscvAttributes {
     char *riscv_attr_addr;
     int riscv_attr_size;
     std::map<std::string, std::pair<int, int>> riscv_extensions;
-    std::string riscv_attr_string;
+    std::string riscv_extension_string;
     boost::optional<int64_t> stack_align;
     boost::optional<bool> unaligned_access;
     boost::optional<int64_t> priv_spec;          // Deprecated

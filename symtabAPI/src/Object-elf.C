@@ -4319,7 +4319,7 @@ void ObjectELF::get_riscv_extensions() {
 
     // Obtain information from .riscv.attributes
 
-    std::string arch_string = riscv_attrs.riscv_attr_string;
+    std::string arch_string = riscv_attrs.riscv_extension_string;
     if (arch_string.length() == 0) {
         create_printf("%s[%d]:  Tag_RISCV_arch is empty\n", FILE__, __LINE__);
         return;
@@ -4418,7 +4418,7 @@ int ObjectELF::handle_riscv_attr(const char *attr_str) {
 
         switch (attr_tag) {
             case RiscvAttrTag::arch:
-                riscv_attrs.riscv_attr_string = sval;
+                riscv_attrs.riscv_extension_string = sval;
                 break;
             default:
                 break;
