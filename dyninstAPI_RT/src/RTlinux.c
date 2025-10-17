@@ -517,8 +517,7 @@ static int parse_link_map(struct link_map *l)
       return -1;
 
    assert(sizeof(dynamic_ptr->d_un.d_ptr) == sizeof(void *));
-   for (; dynamic_ptr->d_tag != DT_NULL && dynamic_ptr->d_tag != DT_DYNINST &&
-           dynamic_ptr->d_tag != DT_DYNINST_INIT && dynamic_ptr->d_tag != DT_DYNINST_FINI; dynamic_ptr++);
+   for (; dynamic_ptr->d_tag != DT_NULL && dynamic_ptr->d_tag != DT_DYNINST; dynamic_ptr++);
    if (dynamic_ptr->d_tag == DT_NULL) {
       return NOT_REWRITTEN;
    }
