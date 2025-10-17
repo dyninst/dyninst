@@ -940,7 +940,8 @@ void BinaryEdit::makeDyninstInitIfNeeded()
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
         static unsigned empty[] = {0xd65f03c0};
 #elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
-        static unsigned empty[] = {0x00008067};
+        static unsigned empty[] = {0xff010113, 0x00113423, 0x00813023, 0x01010413, 0x00000013, 0x00000013,
+            0x00813083, 0x00013403, 0x01010113, 0x00008067};
 #endif
         emptyFunction = (unsigned char *)empty;
         emptyFuncSize = sizeof(empty);
@@ -1029,7 +1030,8 @@ void BinaryEdit::makeDyninstFiniIfNeeded()
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
         static unsigned empty[] = {0xd65f03c0};
 #elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
-        static unsigned empty[] = {0x00008067};
+        static unsigned empty[] = {0xff010113, 0x00113423, 0x00813023, 0x01010413, 0x00000013, 0x00000013,
+            0x00813083, 0x00013403, 0x01010113, 0x00008067};
 #endif
         emptyFunction = (unsigned char *)empty;
         emptyFuncSize = sizeof(empty);

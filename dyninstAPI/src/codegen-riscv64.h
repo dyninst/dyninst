@@ -104,11 +104,20 @@ public:
                                Dyninst::Address from,
                                Dyninst::Address to,
                                bool link = false);
+    
+    static void generateShortBranch(codeGen &gen,
+                                    Dyninst::Address from,
+                                    Dyninst::Address to,
+                                    bool isCall);
 
     static void generateLongBranch(codeGen &gen,
                                    Dyninst::Address from,
                                    Dyninst::Address to,
                                    bool isCall);
+
+    static void generateSpringBoardBranch(codeGen &gen,
+                                          Dyninst::Address from,
+                                          Dyninst::Address to);
 
     // Using the process trap mapping for a branch
     static void generateBranchViaTrap(codeGen &gen,
@@ -197,7 +206,6 @@ public:
     static bool generateCalcImm(codeGen &gen,
                                 Dyninst::Register rd,
                                 Dyninst::RegValue sImm,
-                                bool isRel,
                                 bool optimize,
                                 bool useRVC);
 

@@ -206,6 +206,22 @@ void insnCodeGen::generateCall(codeGen &gen,
     generateBranch(gen, from, to);
 }
 
+void insnCodeGen::generateShortBranch(codeGen &gen,
+                                      Dyninst::Address from,
+                                      Dyninst::Address to,
+                                      bool isCall)
+{
+    long disp = to - from;
+    assert(disp >= JAL_IMM_MIN && disp < JAL_IMM_MAX);
+
+    if (isCall) {
+        generateJal(gen, GPR_RA, disp, gen.getUseRVC());
+    }
+    else {
+        generateJ(gen, disp, gen.getUseRVC());
+    }
+}
+
 void insnCodeGen::generateLongBranch(codeGen &gen,
                                      Dyninst::Address from,
                                      Dyninst::Address to,
@@ -227,7 +243,14 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
             generateAddi(gen, GPR_RA, GPR_RA, offset, gen.getUseRVC());
         }
         else {
-            generateCalcImm(gen, GPR_RA, disp, true, true, gen.getUseRVC());
+            Dyninst::Register scratch = gen.rs()->getScratchRegister(gen, true);
+            if (scratch == Null_Register) {
+                generateBranchViaTrap(gen, from, to);
+                return;
+            }
+            generateAuipc(gen, GPR_RA, 0, gen.getUseRVC());
+            generateCalcImm(gen, scratch, disp, true, gen.getUseRVC());
+            generateAdd(gen, GPR_RA, GPR_RA, scratch, gen.getUseRVC());
         }
         // generate jalr
         generateJalr(gen, GPR_RA, GPR_RA, 0, gen.getUseRVC());
@@ -236,19 +259,19 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
         Dyninst::Register scratch = Null_Register;
 
         instPoint *point = gen.point();
-        AddressSpace *as = gen.addrSpace();
+        //AddressSpace *as = gen.addrSpace();
         if (point) {
             registerSpace *rs = registerSpace::actualRegSpace(point);
             gen.setRegisterSpace(rs);
             scratch = rs->getScratchRegister(gen, true);
         }
-
+        /*
         if (as) {
             registerSpace *rs = registerSpace::getRegisterSpace(as);
             gen.setRegisterSpace(rs);
             scratch = rs->getScratchRegister(gen, true);
         }
-
+        */
 
         if (scratch == Null_Register) {
             generateBranchViaTrap(gen, from, to);
@@ -265,11 +288,50 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
             generateAddi(gen, scratch, scratch, offset, gen.getUseRVC());
         }
         else {
-            generateCalcImm(gen, scratch, disp, true, true, gen.getUseRVC());
+            std::vector<Register> exclude;
+            exclude.push_back(scratch);
+
+            Dyninst::Register scratch2 = gen.rs()->getScratchRegister(gen, exclude, true);
+            if (scratch2 == Null_Register) {
+                generateBranchViaTrap(gen, from, to);
+                return;
+            }
+            generateAuipc(gen, GPR_RA, 0, gen.getUseRVC());
+            generateCalcImm(gen, scratch2, disp, true, gen.getUseRVC());
+            generateAdd(gen, scratch, scratch, scratch2, gen.getUseRVC());
         }
 
         generateJr(gen, scratch, 0, gen.getUseRVC());
     }
+}
+
+void insnCodeGen::generateSpringBoardBranch(codeGen &gen,
+                                            Dyninst::Address from,
+                                            Dyninst::Address to)
+{
+    std::cout << "From: " << std::hex << from << std::endl;
+    std::cout << "To: " << std::hex << to << std::endl;
+    std::cout << "Diff: " << std::hex << to - from << std::endl;
+    long disp = to - from;
+    if (disp >= UTYPE_IMM_MIN && disp < UTYPE_IMM_MAX) {
+        Dyninst::RegValue top = (disp >> UTYPE_IMM_SHIFT) & UTYPE_IMM_MASK;
+        Dyninst::RegValue offset = disp & ITYPE_IMM_MASK;
+        std::cout << "Top: " << std::hex << top << std::endl;
+        std::cout << "Offset: " << std::hex << offset << std::endl;
+        std::cout << std::endl;
+        if (offset & 0x800) {
+            top = (top + 1) & UTYPE_IMM_MASK;
+        }
+        generateAuipc(gen, GPR_T0, top, gen.getUseRVC());
+        generateAddi(gen, GPR_T0, GPR_T0, offset, gen.getUseRVC());
+    }
+    else {
+        generateAuipc(gen, GPR_T0, 0, gen.getUseRVC());
+        generateCalcImm(gen, GPR_T1, disp, true, gen.getUseRVC());
+        generateAdd(gen, GPR_T0, GPR_T0, GPR_T1, gen.getUseRVC());
+    }
+
+    generateJr(gen, GPR_T0, 0, gen.getUseRVC());
 }
 
 void insnCodeGen::generateBranch(codeGen &gen,
@@ -292,14 +354,9 @@ void insnCodeGen::generateBranch(codeGen &gen,
     long disp = (to - from);
     // If disp is within the range of 21-bits signed integer, we use jal
     if (disp >= JAL_IMM_MIN && disp < JAL_IMM_MAX) {
-        if (link) {
-            generateJal(gen, GPR_RA, disp, gen.getUseRVC());
-        }
-        else {
-            generateJ(gen, disp, gen.getUseRVC());
-        }
+        generateShortBranch(gen, from, to, link);
     }
-    // Otherwise, we use jalr
+    // Otherwise, we generate long branch
     else {
         generateLongBranch(gen, from, to, link);
     }
@@ -330,18 +387,20 @@ void insnCodeGen::generateCondBranch(codeGen &gen,
     if (disp < BTYPE_IMM_MIN || disp >= BTYPE_IMM_MAX) {
         Dyninst::Register scratch = Null_Register;
         instPoint *point = gen.point();
-        AddressSpace *as = gen.addrSpace();
+        //AddressSpace *as = gen.addrSpace();
         if (point) {
             registerSpace *rs = registerSpace::actualRegSpace(point);
             gen.setRegisterSpace(rs);
             scratch = rs->getScratchRegister(gen, true);
         }
 
+        /*
         if (as) {
             registerSpace *rs = registerSpace::getRegisterSpace(as);
             gen.setRegisterSpace(rs);
             scratch = rs->getScratchRegister(gen, true);
         }
+        */
 
         // If no scratch register is available, use generate branch via trap
         if (scratch == Null_Register) {
@@ -363,11 +422,24 @@ void insnCodeGen::generateCondBranch(codeGen &gen,
         }
         // The li instruction will be expanded into 8 4-bytes instructions without any optimization
         // So we should generate
-        //    bxx rs1, rs2, (8 (for li) + 1 (for jalr)) * 4 = 36
-        //    li scratch, disp
+        //    bxx rs1, rs2, (1 auipc, 8 (for li), 1 for add, 1 (for jalr)) * 4 = 44
+        //    auipc scratch1 
+        //    li scratch2, disp
+        //    add scratch1, scratch2
         //    jalr x0, scratch, 0
-        generateCmpBranch(gen, bCondOp, rs1, rs2, 9 * RV_INSN_SIZE, false);
-        generateCalcImm(gen, scratch, disp, true, false, gen.getUseRVC());
+        generateCmpBranch(gen, bCondOp, rs1, rs2, 11 * RV_INSN_SIZE, false);
+
+        std::vector<Register> exclude;
+        exclude.push_back(scratch);
+        Dyninst::Register scratch2 = gen.rs()->getScratchRegister(gen, true);
+        if (scratch2 == Null_Register) {
+            fprintf(stderr, " %s[%d] No scratch register available to generate add instruction!", FILE__, __LINE__);
+            assert(0);
+        }
+        generateAuipc(gen, scratch, 0, false);
+        generateCalcImm(gen, scratch2, disp, false, false);
+        generateAdd(gen, scratch, scratch, scratch2, false);
+
         generateJr(gen, scratch, 0, false);
     }
     else {
@@ -392,7 +464,41 @@ Dyninst::Register insnCodeGen::moveValueToReg(codeGen &gen,
         assert(0);
     }
 
-    generateLi(gen, scratch, static_cast<Dyninst::RegValue>(val), true, gen.getUseRVC());
+    //generateLi(gen, scratch, static_cast<Dyninst::RegValue>(val), true, gen.getUseRVC());
+    bool useRVC = gen.getUseRVC();
+    if (useRVC) {
+        // c.li
+        if (val >= CLI_IMM_MIN && val < CLI_IMM_MAX) {
+            generateCLi(gen, scratch, val & CLI_IMM_MASK);
+            return true;
+        }
+
+        // addi
+        if (val >= ITYPE_IMM_MIN && val < ITYPE_IMM_MAX) {
+            generateAddi(gen, scratch, 0, val & ITYPE_IMM_MASK, useRVC);
+            return true;
+        }
+
+        // TODO: move this out of if
+        // If val is larger than 12 bits but less than 32 bits,
+        // val must be loaded in two steps using lui and addi
+        if (val >= INT_MIN && val <= INT_MAX) {
+            Dyninst::RegValue lui_imm = (val >> UTYPE_IMM_SHIFT) & UTYPE_IMM_MASK;
+            Dyninst::RegValue addi_imm = val & ITYPE_IMM_MASK;
+            // If the most significant bit of addi_imm is 1 (addi_imm is negative), we should add 1 to lui_imm
+            if (addi_imm & 0x800) {
+                lui_imm = (lui_imm + 1) & UTYPE_IMM_MASK;
+            }
+            // 12-bit sign extend
+            if (lui_imm & 0x80000) {
+                lui_imm |= 0xfffffffffff00000;
+            }
+            generateLui(gen, scratch, lui_imm, useRVC);
+            generateAddi(gen, scratch, scratch, addi_imm, useRVC);
+            return true;
+        }
+    }
+    generateCalcImm(gen, scratch, val, true, useRVC);
 
     return scratch;
 }
@@ -748,6 +854,9 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
     long auipcOff = insn.getAuipcOffset();
     Register rd = insn.getAuipcReg();
 
+    // The displacement is target - currAddr
+    // But we also need to minus the instruction length of auipc
+    // As well as adding the offset of auipc back
     long disp = (target - gen.currAddr() - RV_INSN_SIZE) + auipcOff;
     generateLoadImm(gen, rd, disp, true, true, gen.getUseRVC());
     return true;
@@ -758,10 +867,13 @@ bool insnCodeGen::generateAddImm(codeGen &gen,
                                  Dyninst::Register rs,
                                  Dyninst::RegValue sImm,
                                  bool useRVC) {
-    if (sImm >= -ITYPE_IMM_MIN && sImm < ITYPE_IMM_MAX) {
+    if (sImm >= ITYPE_IMM_MIN && sImm < ITYPE_IMM_MAX) {
         return generateAddi(gen, rd, rs, sImm & ITYPE_IMM_MASK, useRVC);
     }
-    Register scratch = insnCodeGen::moveValueToReg(gen, sImm);
+    std::vector<Register> exclude;
+    exclude.push_back(rd);
+    exclude.push_back(rs);
+    Register scratch = insnCodeGen::moveValueToReg(gen, sImm, &exclude);
     return insnCodeGen::generateAdd(gen, rd, rs, scratch, useRVC);
 }
 
@@ -773,6 +885,7 @@ bool insnCodeGen::generateLoadImm(codeGen &gen,
                                   bool useRVC)
 {
     if (useRVC) {
+        // TODO: move this out of if
         if (isRel) {
             if (sImm >= UTYPE_IMM_MIN && sImm < UTYPE_IMM_MAX) {
                 Dyninst::RegValue top = (sImm >> UTYPE_IMM_SHIFT) & UTYPE_IMM_MASK;
@@ -798,6 +911,7 @@ bool insnCodeGen::generateLoadImm(codeGen &gen,
                 return true;
             }
 
+            // TODO: move this out of if
             // If sImm is larger than 12 bits but less than 32 bits,
             // sImm must be loaded in two steps using lui and addi
             if (sImm >= INT_MIN && sImm <= INT_MAX) {
@@ -818,14 +932,35 @@ bool insnCodeGen::generateLoadImm(codeGen &gen,
         }
     }
 
-    generateCalcImm(gen, rd, sImm, isRel, optimize, useRVC);
+    if (isRel) {
+        std::vector<Register> exclude;
+        exclude.push_back(rd);
+
+        Dyninst::Register scratch = gen.rs()->getScratchRegister(gen, exclude, true);
+        if (scratch == Null_Register) {
+            // Pick an arbitrary register, spill it, load immediate to the register, and restore it
+            generateAuipc(gen, rd, 0, useRVC);
+            Dyninst::Register tmp = (rd == GPR_T0) ? GPR_T1 : GPR_T0;
+            saveRegister(gen, tmp, -8, true);
+            generateCalcImm(gen, tmp, sImm, optimize, useRVC);
+            generateAdd(gen, rd, rd, tmp, useRVC);
+            restoreRegister(gen, tmp, -8, true);
+        }
+        else {
+            generateAuipc(gen, rd, 0, useRVC);
+            generateCalcImm(gen, scratch, sImm, optimize, useRVC);
+            generateAdd(gen, rd, rd, scratch, useRVC);
+        }
+    }
+    else {
+        generateCalcImm(gen, rd, sImm, optimize, useRVC);
+    }
     return false;
 }
 
 bool insnCodeGen::generateCalcImm(codeGen &gen,
                                   Dyninst::Register rd,
                                   Dyninst::RegValue sImm,
-                                  bool isRel,
                                   bool optimize,
                                   bool useRVC)
 {
@@ -883,13 +1018,8 @@ bool insnCodeGen::generateCalcImm(codeGen &gen,
         }
     }
 
-    // lui/auipc must be generated
-    if (isRel) {
-        generateAuipc(gen, rd, lui_imm, useRVC);
-    }
-    else {
-        generateLui(gen, rd, lui_imm, useRVC);
-    }
+    // lui must be generated
+    generateLui(gen, rd, lui_imm, useRVC);
 
     // If any of the following sImmediates are zero, there's no point of generating it
     if (addi_imm0 != 0 || !optimize) {

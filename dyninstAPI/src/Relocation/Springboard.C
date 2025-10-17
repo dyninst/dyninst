@@ -517,7 +517,12 @@ void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) 
   gen.setAddrSpace(addrSpace_);
   gen.setAddr(from);
 
-  insnCodeGen::generateBranch(gen, from, to);
+  if (gen.getArch() == Arch_riscv64) {
+      insnCodeGen::generateSpringBoardBranch(gen, from, to);
+  }
+  else {
+      insnCodeGen::generateBranch(gen, from, to);
+  }
 
   springboard_cerr << "Generated springboard branch " << hex << from << "->" << to << dec << endl;
 }
