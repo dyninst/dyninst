@@ -420,9 +420,11 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
             hasProgramLoad_ = true;
         } else if (elfPhdr.p_type() == PT_RISCV_ATTRIBUTES) {
             size_t len;
-            riscv_attrs.riscv_attr_string = std::string(
+            riscv_attrs.riscv_attr_size = elfPhdr.p_filesz();
+            riscv_attrs.riscv_attr_addr = (char *)malloc(riscv_attrs.riscv_attr_size);
+            memcpy(riscv_attrs.riscv_attr_addr,
                     (const char *)elfHdr->e_rawfile(len) + elfPhdr.p_offset(),
-                    elfPhdr.p_filesz());
+                    riscv_attrs.riscv_attr_size);
         }
     }
 
@@ -842,9 +844,10 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
         } else if (strcmp(name, GNU_LINKONCE_THIS_MODULE_NAME) == 0) {
             hasGnuLinkonceThisModule_ = true;
         } else if (scn.sh_type() == SHT_RISCV_ATTRIBUTES) {
-            riscv_attrs.riscv_attr_string = std::string(
-                    (const char *)scnp->get_data().d_buf(),
-                    scnp->get_data().d_size());
+            riscv_attrs.riscv_attr_size = scnp->get_data().d_size();
+            riscv_attrs.riscv_attr_addr = (char *)malloc(riscv_attrs.riscv_attr_size);
+            memcpy(riscv_attrs.riscv_attr_addr, scnp->get_data().d_buf(),
+                    riscv_attrs.riscv_attr_size);
         } else if ((int) i == dynamic_section_index) {
             dynamic_scnp = scnp;
             dynamic_addr_ = scn.sh_addr();
@@ -1588,13 +1591,13 @@ void ObjectELF::load_object(bool alloc_syms) {
             // an integer. Otherwise, it will be a string. 
 
             // See https://github.com/bminor/binutils-gdb/blob/master/binutils/readelf.c
-            const char *attr_string = riscv_attrs.riscv_attr_string.c_str();
-            int attr_len = riscv_attrs.riscv_attr_string.length();
             std::function<int(const char *)> handle_riscv_attr_f =
                 std::bind(&ObjectELF::handle_riscv_attr, this,
                         std::placeholders::_1);
-            bool result = parse_attrs(attr_string, attr_len,
-                    "riscv", handle_riscv_attr_f);
+            bool result = parse_attrs(riscv_attrs.riscv_attr_addr,
+                    riscv_attrs.riscv_attr_size,
+                    "riscv",
+                    handle_riscv_attr_f);
             if (!result) {
                 create_printf("%s[%d]: riscv attributes missing or corrupted\n", FILE__, __LINE__);
             }
