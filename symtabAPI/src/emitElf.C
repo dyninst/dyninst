@@ -1431,58 +1431,62 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
             updateDynamic(DT_VERDEF, newshdr->sh_addr);
         }
         else if (newSecs[i]->getRegionType() == Region::RT_INIT_ARRAY) {
-            newshdr->sh_type = SHT_INIT_ARRAY;
-            newshdr->sh_entsize = sizeof(Elf_Addr);
-            newdata->d_type = ELF_T_ADDR;
-            newdata->d_align = 8;
-            newshdr->sh_flags = SHF_ALLOC | SHF_WRITE;
-            newshdr->sh_info = 0;
-            newshdr->sh_link = 0;
-
-            // Adjust library
             unsigned long long *initArrayRaw = (unsigned long long *)newSecs[i]->getPtrToRawData();
-            int initArraySize = newSecs[i]->getMemSize() / newshdr->sh_entsize;
-            for (int j = 0; j < initArraySize; j++) {
-                initArrayRaw[j] += library_adjust;
-            }
-            updateDynamic(DT_INIT_ARRAY, newshdr->sh_addr);
-            updateDynamic(DT_INIT_ARRAYSZ, newSecs[i]->getMemSize());
+            if (initArrayRaw) {
+                newshdr->sh_type = SHT_INIT_ARRAY;
+                newshdr->sh_entsize = sizeof(Elf_Addr);
+                newdata->d_type = ELF_T_ADDR;
+                newdata->d_align = 8;
+                newshdr->sh_flags = SHF_ALLOC | SHF_WRITE;
+                newshdr->sh_info = 0;
+                newshdr->sh_link = 0;
 
-            // Update relocation table
-            Elf64_Rela *rela = (Elf64_Rela *)relaDyn->getPtrToRawData();
-            for (int j = 0; j < initArraySize; j++) {
-                rela[relaIndex].r_offset = newshdr->sh_addr + j * newshdr->sh_entsize;
-                rela[relaIndex].r_info = relType;
-                rela[relaIndex].r_addend = initArrayRaw[j];
-                relaIndex--;
+                // Adjust library
+                int initArraySize = newSecs[i]->getMemSize() / newshdr->sh_entsize;
+                for (int j = 0; j < initArraySize; j++) {
+                    initArrayRaw[j] += library_adjust;
+                }
+                updateDynamic(DT_INIT_ARRAY, newshdr->sh_addr);
+                updateDynamic(DT_INIT_ARRAYSZ, newSecs[i]->getMemSize());
+
+                // Update relocation table
+                Elf64_Rela *rela = (Elf64_Rela *)relaDyn->getPtrToRawData();
+                for (int j = 0; j < initArraySize; j++) {
+                    rela[relaIndex].r_offset = newshdr->sh_addr + j * newshdr->sh_entsize;
+                    rela[relaIndex].r_info = relType;
+                    rela[relaIndex].r_addend = initArrayRaw[j];
+                    relaIndex--;
+                }
             }
         }
         else if (newSecs[i]->getRegionType() == Region::RT_FINI_ARRAY) {
-            newshdr->sh_type = SHT_FINI_ARRAY;
-            newshdr->sh_entsize = sizeof(Elf_Addr);
-            newdata->d_type = ELF_T_ADDR;
-            newdata->d_align = 8;
-            newshdr->sh_flags = SHF_ALLOC | SHF_WRITE;
-            newshdr->sh_info = 0;
-            newshdr->sh_link = 0;
-
-            // Adjust library
             unsigned long long *finiArrayRaw = (unsigned long long *)newSecs[i]->getPtrToRawData();
-            int finiArraySize = newSecs[i]->getMemSize() / newshdr->sh_entsize;
-            for (int j = 0; j < finiArraySize; j++) {
-                finiArrayRaw[j] += library_adjust;
-            }
-            updateDynamic(DT_FINI_ARRAY, newshdr->sh_addr);
-            updateDynamic(DT_FINI_ARRAYSZ, newSecs[i]->getMemSize());
+            if (finiArrayRaw) {
+                newshdr->sh_type = SHT_FINI_ARRAY;
+                newshdr->sh_entsize = sizeof(Elf_Addr);
+                newdata->d_type = ELF_T_ADDR;
+                newdata->d_align = 8;
+                newshdr->sh_flags = SHF_ALLOC | SHF_WRITE;
+                newshdr->sh_info = 0;
+                newshdr->sh_link = 0;
 
-            // Update relocation table
-            // We have allocated spaces at the end of the .rela.dyn section in createRelocationSections
-            Elf64_Rela *rela = (Elf64_Rela *)relaDyn->getPtrToRawData();
-            for (int j = 0; j < finiArraySize; j++) {
-                rela[relaIndex].r_offset = newshdr->sh_addr + j * newshdr->sh_entsize;
-                rela[relaIndex].r_info = relType;
-                rela[relaIndex].r_addend = finiArrayRaw[j];
-                relaIndex--;
+                // Adjust library
+                int finiArraySize = newSecs[i]->getMemSize() / newshdr->sh_entsize;
+                for (int j = 0; j < finiArraySize; j++) {
+                    finiArrayRaw[j] += library_adjust;
+                }
+                updateDynamic(DT_FINI_ARRAY, newshdr->sh_addr);
+                updateDynamic(DT_FINI_ARRAYSZ, newSecs[i]->getMemSize());
+
+                // Update relocation table
+                // We have allocated spaces at the end of the .rela.dyn section in createRelocationSections
+                Elf64_Rela *rela = (Elf64_Rela *)relaDyn->getPtrToRawData();
+                for (int j = 0; j < finiArraySize; j++) {
+                    rela[relaIndex].r_offset = newshdr->sh_addr + j * newshdr->sh_entsize;
+                    rela[relaIndex].r_info = relType;
+                    rela[relaIndex].r_addend = finiArrayRaw[j];
+                    relaIndex--;
+                }
             }
         }
 
@@ -2027,26 +2031,50 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
                 break;
             }
         }
-        assert(initArray && finiArray);
 
-        // Create new .init_array and .fini_array
-        unsigned long initArraySize = initArray->getMemSize();
-        void *initArrayRaw = initArray->getPtrToRawData();
-        unsigned long finiArraySize = finiArray->getMemSize();
-        void *finiArrayRaw = finiArray->getPtrToRawData();
+        unsigned long long *newInitArrayRaw = NULL;
+        unsigned long long *newFiniArrayRaw = NULL;
+        int newInitArraySize = 0;
+        int newFiniArraySize = 0;
 
-        unsigned newInitArraySize = initArraySize + newInitArrayFuncs.size() * 8;
-        unsigned long long *newInitArrayRaw = (unsigned long long *)malloc(newInitArraySize);
-        memcpy(newInitArrayRaw + newInitArrayFuncs.size(), initArrayRaw, initArraySize);
-        for (unsigned j = 0; j < newInitArrayFuncs.size(); j++) {
-            newInitArrayRaw[j] = (unsigned long long)newInitArrayFuncs[j];
+        // Create new .init_array
+        if (initArray) {
+            unsigned long long initArraySize = initArray->getMemSize();
+            unsigned long long *initArrayRaw = (unsigned long long *)initArray->getPtrToRawData();
+            int newInitArrayIndex = 0;
+
+            newInitArrayRaw = (unsigned long long *)malloc(
+                    initArraySize + newInitArrayFuncs.size() * sizeof(void *));
+
+            for (unsigned j = 0; j < initArraySize / sizeof(void *); j++) {
+                if (initArrayRaw[j] != 0) {
+                    newInitArrayRaw[newInitArrayIndex++] = (unsigned long long)initArrayRaw[j];
+                }
+            }
+            for (unsigned j = 0; j < newInitArrayFuncs.size(); j++) {
+                newInitArrayRaw[newInitArrayIndex++] = (unsigned long long)newInitArrayFuncs[j];
+            }
+            newInitArraySize = newInitArrayIndex * 8;
         }
 
-        unsigned newFiniArraySize = finiArraySize + newFiniArrayFuncs.size() * 8;
-        unsigned long long *newFiniArrayRaw = (unsigned long long *)malloc(newFiniArraySize);
-        memcpy(newFiniArrayRaw + newFiniArrayFuncs.size(), finiArrayRaw, finiArraySize);
-        for (unsigned j = 0; j < newFiniArrayFuncs.size(); j++) {
-            newFiniArrayRaw[j] = (unsigned long long)newFiniArrayFuncs[j];
+        // Create new .fini_array
+        if (finiArray) {
+            unsigned long long finiArraySize = finiArray->getMemSize();
+            unsigned long long *finiArrayRaw = (unsigned long long *)finiArray->getPtrToRawData();
+            int newFiniArrayIndex = 0;
+
+            newFiniArrayRaw = (unsigned long long *)malloc(
+                    finiArraySize + newFiniArrayFuncs.size() * sizeof(void *));
+
+            for (unsigned j = 0; j < finiArraySize / sizeof(void *); j++) {
+                if (finiArrayRaw[j] != 0) {
+                    newFiniArrayRaw[newFiniArrayIndex++] = (unsigned long long)finiArrayRaw[j];
+                }
+            }
+            for (unsigned j = 0; j < newFiniArrayFuncs.size(); j++) {
+                newFiniArrayRaw[newFiniArrayIndex++] = (unsigned long long)newFiniArrayFuncs[j];
+            }
+            newFiniArraySize = newFiniArrayIndex * 8;
         }
 
         int newInitFiniArraySize = newInitArraySize + newFiniArraySize;
