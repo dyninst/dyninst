@@ -464,6 +464,7 @@ static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
          goto done;
       }
       header = all_headers[i];
+      printf("HERE: %llx %llx %llx\n", header->low_entry, addr, header->high_entry);
       if (addr >= header->low_entry && addr <= header->high_entry) {
          goto done;
       }
