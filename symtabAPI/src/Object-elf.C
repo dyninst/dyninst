@@ -841,7 +841,9 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
             hasGnuLinkonceThisModule_ = true;
         } else if (scn.sh_type() == SHT_RISCV_ATTRIBUTES) {
             riscv_attr_size_ = scnp->get_data().d_size();
-            riscv_attr_addr_ = scnp->sh_addr();
+            riscv_attr_addr_ = scnp->sh_offset();
+            std::cout << std::hex << scnp->sh_offset() << std::endl;
+            std::cout << std::hex << scnp->sh_addr() << std::endl;
         } else if ((int) i == dynamic_section_index) {
             dynamic_scnp = scnp;
             dynamic_addr_ = scn.sh_addr();
@@ -1586,8 +1588,8 @@ void ObjectELF::load_object(bool alloc_syms) {
 
             // See https://github.com/bminor/binutils-gdb/blob/master/binutils/readelf.c
             size_t elf_len;
+            const char *riscv_attr_addr = elfHdr->e_rawfile(elf_len) + riscv_attr_addr_;
             int riscv_attr_size = riscv_attr_size_;
-            const char *riscv_attr_addr = elfHdr->e_rawfile(elf_len) + riscv_attr_size;
             std::function<int(const char *)> handle_riscv_attr_f =
                 std::bind(&ObjectELF::handle_riscv_attr, this,
                         std::placeholders::_1);
