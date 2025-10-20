@@ -32,6 +32,9 @@
 
 #include "BPatch_addressSpace.h"
 #include "BPatch_module.h"
+#include "instPoint.h"
+
+#include <cassert>
 
 namespace Dyninst {
 
@@ -58,29 +61,25 @@ bool AmdgpuGfx908PointHandler::isKernel(BPatch_function *f) {
   return kernelDescriptor;
 }
 
-void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *f) {
-  // Go through information for instrumented kernels (functions) and insert a prologue
+void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function) {
+  // Go through kernel descriptors for instrumented kernels (functions) and insert a prologue
   // that loads s[94:95] with address of memory for instrumentation variables. This address
   // is at address [kernargPtrRegister] + kernargBufferSize.
 
-  isKernel(f);
+  if (!isKernel(function))
+    return;
 
-  // std::vector<BPatch_point *> entryPoints;
-  // function->getEntryPoints(entryPoints);
-  //
-  // for (auto &kernelInfo : kernelInfos) {
-  //   if (kernelInfo.getKernelName() == function->getMangledName()) {
-  //
-  //     auto prologuePtr = boost::make_shared<AmdgpuPrologue>(
-  //         94, kernelInfo.kernargPtrRegister, kernelInfo.kernargBufferSize);
-  //
-  //     AstNodePtr prologueNodePtr =
-  //         boost::make_shared<AmdgpuPrologueNode>(prologuePtr);
-  //
-  //     AmdgpuPrologueSnippet prologueSnippet(prologueNodePtr);
-  //     insertPrologueAtPoints(prologueSnippet, entryPoints);
-  //   }
-  // }
+  std::vector<BPatch_point *> entryPoints;
+  function->getEntryPoints(entryPoints);
+
+  auto prologuePtr = boost::make_shared<AmdgpuPrologue>(
+        94, /* kernargPtrRegister = */4, /* kernargBufferSize = */288);
+
+  AstNodePtr prologueNodePtr =
+        boost::make_shared<AmdgpuPrologueNode>(prologuePtr);
+
+  AmdgpuPrologueSnippet prologueSnippet(prologueNodePtr);
+  insertPrologueAtPoints(prologueSnippet, entryPoints);
 }
 
 void AmdgpuGfx908PointHandler::insertEpilogueIfKernel(BPatch_function *function) {
@@ -88,36 +87,33 @@ void AmdgpuGfx908PointHandler::insertEpilogueIfKernel(BPatch_function *function)
   // instruction at exit points.
   if (!isKernel(function))
     return;
-  //
-  // std::vector<BPatch_point *> exitPoints;
-  // function->getExitPoints(exitPoints);
-  //
-  // for (auto &kernelInfo : kernelInfos) {
-  //   if (kernelInfo.getKernelName() == function->getMangledName()) {
-  //
-  //     auto epiloguePtr = boost::make_shared<AmdgpuEpilogue>();
-  //
-  //     AstNodePtr epilogueNodePtr = boost::make_shared<AmdgpuEpilogueNode>(epiloguePtr);
-  //
-  //     AmdgpuEpilogueSnippet epilogueSnippet(epilogueNodePtr);
-  //     insertEpilogueAtPoints(epilogueSnippet, exitPoints);
-  //   }
-  // }
+
+  std::vector<BPatch_point *> exitPoints;
+  function->getExitPoints(exitPoints);
+
+  auto epiloguePtr = boost::make_shared<AmdgpuEpilogue>();
+
+  AstNodePtr epilogueNodePtr = boost::make_shared<AmdgpuEpilogueNode>(epiloguePtr);
+
+  AmdgpuEpilogueSnippet epilogueSnippet(epilogueNodePtr);
+  insertEpilogueAtPoints(epilogueSnippet, exitPoints);
 }
 
 void AmdgpuGfx908PointHandler::insertPrologueAtPoints(AmdgpuPrologueSnippet &snippet,
                                                       std::vector<BPatch_point *> &points) {
   for (BPatch_point *point : points) {
-    // auto *iPoint = static_cast<instPoint *>(PatchAPI::convert(point, BPatch_callBefore));
-    // iPoint->pushBack(snippet.ast_wrapper);
+    auto *iPoint = dynamic_cast<instPoint *>(PatchAPI::convert(point, BPatch_callBefore));
+    assert(iPoint);
+    iPoint->pushBack(snippet.ast_wrapper);
   }
 }
 
 void AmdgpuGfx908PointHandler::insertEpilogueAtPoints(AmdgpuEpilogueSnippet &snippet,
                                                       std::vector<BPatch_point *> &points) {
   for (BPatch_point *point : points) {
-    // auto *iPoint = static_cast<instPoint *>(PatchAPI::convert(point, BPatch_callAfter));
-    // iPoint->pushBack(snippet.ast_wrapper);
+    auto *iPoint = dynamic_cast<instPoint *>(PatchAPI::convert(point, BPatch_callAfter));
+    assert(iPoint);
+    iPoint->pushBack(snippet.ast_wrapper);
   }
 }
 
