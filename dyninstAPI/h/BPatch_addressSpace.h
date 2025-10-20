@@ -45,6 +45,8 @@
 #include <signal.h>
 #include <boost/iterator/transform_iterator.hpp>
 #include "dyntypes.h"
+#include "PointHandler.h"
+
 // PatchAPI stuffs
 //#include "Command.h"
 
@@ -83,10 +85,6 @@ class func_instance;
 struct batchInsertionRecord;
 class instPoint;
 class int_variable;
-
-#if defined (DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-struct AmdgpuInternalImpl;
-#endif
 
 typedef enum{
   TRADITIONAL_PROCESS, STATIC_EDITOR
@@ -390,9 +388,7 @@ class DYNINST_EXPORT BPatch_addressSpace {
  private:
   void init_registers();
 
-#if defined (DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  std::unique_ptr<AmdgpuInternalImpl> amdgpuImpl;
-#endif
+  std::unique_ptr<Dyninst::PointHandler> pointHandler;
 
  public:
   bool  createRegister_NP(std::string regName, BPatch_register &reg); 
