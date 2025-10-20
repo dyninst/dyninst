@@ -290,9 +290,6 @@ class EmitterAMD64Stat : public EmitterAMD64 {
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
 
-extern EmitterAMD64Dyn emitterAMD64Dyn;
-extern EmitterAMD64Stat emitterAMD64Stat;
-
 /* useful functions for inter-library function/variable references
  * (used in the binary rewriter) */
 //Address getInterModuleFuncAddr(func_instance *func, codeGen& gen);
