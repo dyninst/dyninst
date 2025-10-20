@@ -28,37 +28,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AMDGPU_INTERNAL_IMPL
-#define AMDGPU_INTERNAL_IMPL
+#ifndef POINT_HANDLER_H
+#define POINT_HANDLER_H
 
-#include <string>
-#include <unordered_set>
+#include "BPatch_point.h"
 #include <vector>
 
-#include "BPatch_function.h"
-#include "BPatch_point.h"
+namespace Dyninst {
 
-#include "amdgpu-epilogue.h"
-#include "amdgpu-prologue.h"
+// This struct abstracts architecture-specific handling of points.
+struct PointHandler {
+  virtual void handlePoints(std::vector<BPatch_point *> const & /* points */) {}
 
-struct AmdgpuKernelInfo {
-  AmdgpuKernelInfo(std::vector<std::string> &words);
-  std::string getKernelName() const;
-
-  std::string kdName;
-  unsigned kernargBufferSize;
-  unsigned kernargPtrRegister;
+  virtual ~PointHandler() = default;
 };
 
-struct AmdgpuInternalImpl {
-  void insertPrologueAtPoints(AmdgpuPrologueSnippet &snippet, std::vector<BPatch_point *> &points);
-  void insertEpilogueAtPoints(AmdgpuEpilogueSnippet &snippet, std::vector<BPatch_point *> &points);
-
-  void insertPrologueIfKernel(BPatch_function *function);
-  void insertEpilogueIfKernel(BPatch_function *function);
-
-  static std::unordered_set<BPatch_function *> instrumentedFunctions;
-  static std::vector<AmdgpuKernelInfo> kernelInfos;
-};
-
+} // namespace Dyninst
 #endif

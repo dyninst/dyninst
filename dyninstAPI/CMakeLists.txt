@@ -41,9 +41,9 @@ set(_public_headers
 
 set(_private_headers
     src/addressSpace.h
-    src/amdgpu-internal-impl.h
-    src/amdgpu-prologue.h
-    src/amdgpu-epilogue.h
+    src/AmdgpuPointHandler.h
+    src/AmdgpuPrologue.h
+    src/AmdgpuEpilogue.h
     src/ast.h
     src/baseTramp.h
     src/binaryEdit.h
@@ -97,6 +97,7 @@ set(_private_headers
     src/pcEventHandler.h
     src/pcEventMuxer.h
     src/pdwinnt.h
+    src/PointHandler.h
     src/RegisterConversion.h
     src/registerSpace.h
     src/syscallNotification.h
@@ -248,9 +249,9 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(
     APPEND
     _sources
-    src/amdgpu-internal-impl.C
-    src/amdgpu-prologue.C
-    src/amdgpu-epilogue.C
+    src/AmdgpuPointHandler.C
+    src/AmdgpuPrologue.C
+    src/AmdgpuEpilogue.C
     src/emit-amdgpu.C
     src/amdgpu-gfx908-details.C)
 endif()
