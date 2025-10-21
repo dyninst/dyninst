@@ -30,6 +30,7 @@
 
 #include "external/amdgpu/AMDGPUEFlags.h"
 #include "AmdgpuKernelDescriptor.h"
+#include "unaligned_memory_access.h"
 
 #include <cassert>
 #include <cstring>
@@ -39,18 +40,6 @@ using namespace llvm;
 using namespace amdhsa;
 
 namespace Dyninst {
-
-void AmdgpuKernelDescriptor::readToKd(const uint8_t *rawBytes, size_t rawBytesLength,
-                                      size_t fromIndex, size_t numBytes, uint8_t *data) {
-  assert(rawBytes && "rawBytes must be non-null");
-  assert(data && "data must be non-null");
-  assert(fromIndex + numBytes <= rawBytesLength);
-
-  for (size_t i = 0; i < numBytes; ++i) {
-    size_t idx = fromIndex + i;
-    data[i] = rawBytes[idx];
-  }
-}
 
 bool AmdgpuKernelDescriptor::isGfx6() const {
   return (amdgpuMach >= EF_AMDGPU_MACH_AMDGCN_GFX600 &&
@@ -98,9 +87,9 @@ bool AmdgpuKernelDescriptor::isGfx11() const {
           amdgpuMach >= EF_AMDGPU_MACH_AMDGCN_GFX1102);
 }
 
-AmdgpuKernelDescriptor::KernelDescriptor(uint8_t *kdBytes, size_t kdSize, unsigned amdgpuMachine) {
+AmdgpuKernelDescriptor::AmdgpuKernelDescriptor(uint8_t *kdBytes, size_t kdSize, unsigned amdgpuMachine) {
   assert(kdSize == sizeof(kdRepr));
-  kdRepr = *(reinterpret_cast<kernel_descriptor_t *>(kdBytes));
+  kdRepr = read_memory_as<kernel_descriptor_t>(kdBytes);
   amdgpuMach = amdgpuMachine;
 }
 
@@ -675,7 +664,7 @@ bool AmdgpuKernelDescriptor::getKernelCodeProperty_EnableSgprKernargSegmentPtr()
   return GET_VALUE(KERNEL_CODE_PROPERTY_ENABLE_SGPR_KERNARG_SEGMENT_PTR);
 }
 
-void KernelDescriptor ::setKernelCodeProperty_EnableSgprKernargSegmentPtr(bool value) {
+void AmdgpuKernelDescriptor::setKernelCodeProperty_EnableSgprKernargSegmentPtr(bool value) {
   uint16_t twoByteBuffer = kdRepr.kernel_code_properties;
   twoByteBuffer = CLEAR_BITS(KERNEL_CODE_PROPERTY_ENABLE_SGPR_KERNARG_SEGMENT_PTR);
   kdRepr.kernel_code_properties = SET_VALUE(KERNEL_CODE_PROPERTY_ENABLE_SGPR_KERNARG_SEGMENT_PTR);
@@ -999,7 +988,7 @@ void AmdgpuKernelDescriptor::dumpKernelCodeProperties(std::ostream &os) const {
 }
 
 void AmdgpuKernelDescriptor::writeToMemory(uint8_t *memPtr) const {
-  std::memcpy((char *)memPtr, (char *)&kdRepr, sizeof kdRepr);
+  write_memory_as(memPtr, kdRepr);
 }
 
 } // namespace Dyninst

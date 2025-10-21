@@ -40,7 +40,7 @@ namespace Dyninst {
 
 class AmdgpuKernelDescriptor {
 public:
-  KernelDescriptor(uint8_t *kdBytes, size_t kdSize, unsigned amdgpuMachine);
+  AmdgpuKernelDescriptor(uint8_t *kdBytes, size_t kdSize, unsigned amdgpuMachine);
 
   uint32_t getGroupSegmentFixedSize() const;
   void setGroupSegmentFixedSize(uint32_t value);
