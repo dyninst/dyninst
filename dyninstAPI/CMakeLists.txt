@@ -41,6 +41,7 @@ set(_public_headers
 
 set(_private_headers
     src/addressSpace.h
+    src/AmdgpuKernelDescriptor.h
     src/AmdgpuPointHandler.h
     src/AmdgpuPrologue.h
     src/AmdgpuEpilogue.h
@@ -249,6 +250,7 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(
     APPEND
     _sources
+    src/AmdgpuKernelDescriptor.C
     src/AmdgpuPointHandler.C
     src/AmdgpuPrologue.C
     src/AmdgpuEpilogue.C
