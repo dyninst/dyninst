@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "amdgpu-epilogue.h"
+#include "AmdgpuEpilogue.h"
 #include "emit-amdgpu.h"
 
 // Similar approach to prologue
