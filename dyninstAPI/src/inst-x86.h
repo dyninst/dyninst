@@ -66,7 +66,6 @@
 
 // offset from EBP of the saved EAX for a tramp
 #define SAVED_EAX_OFFSET (10*4-4)
-#define SAVED_EFLAGS_OFFSET (SAVED_EAX_OFFSET+4)
 
 #define IA32_STACK_ALIGNMENT     16
 #define AMD64_STACK_ALIGNMENT    32  // This is extremely conservative.
