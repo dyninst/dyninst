@@ -42,6 +42,7 @@ class AmdgpuKernelDescriptor {
 public:
   AmdgpuKernelDescriptor(uint8_t *kdBytes, size_t kdSize, unsigned amdgpuMachine);
 
+  AmdgpuKernelDescriptor(llvm::amdhsa::kernel_descriptor_t &rawKd, unsigned _amdgpuMach) : kdRepr(rawKd), amdgpuMach(_amdgpuMach) {}
   uint32_t getGroupSegmentFixedSize() const;
   void setGroupSegmentFixedSize(uint32_t value);
 
@@ -268,12 +269,18 @@ public:
   bool getKernelCodeProperty_UsesDynamicStack() const;
   void setKernelCodeProperty_UsesDynamicStack(bool value);
 
+  // ==== END OF ALL FIELDS ===
+
+
+  unsigned getKernargPtrRegister();
+
   void dump(std::ostream &os) const;
   void dumpDetailed(std::ostream &os) const;
 
   void writeToMemory(uint8_t *memPtr) const;
 
   const std::string &getName() const { return name; }
+
 
   // THIS IS ONLY TO HELP PATCHING THE ORIGINAL KD AFTER UPDATING IT.
   // DON'T USE THIS FOR MODIFYING KDs.

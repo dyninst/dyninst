@@ -41,10 +41,6 @@ set(_public_headers
 
 set(_private_headers
     src/addressSpace.h
-    src/AmdgpuKernelDescriptor.h
-    src/AmdgpuPointHandler.h
-    src/AmdgpuPrologue.h
-    src/AmdgpuEpilogue.h
     src/ast.h
     src/baseTramp.h
     src/binaryEdit.h
@@ -256,6 +252,21 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/AmdgpuEpilogue.C
     src/emit-amdgpu.C
     src/amdgpu-gfx908-details.C)
+
+  # These headers are only needed for codegen only. They are for additional AMDGPU-specific instrumentation required to make user instrumentation work.
+  # TODO :
+  # Ideally all codegen files should be separable.
+  # But given the legacy nature of the codebase, we still need to see which other
+  # codegen headers can be separated without breaking host side.
+  list(
+    APPEND
+    _private_headers
+    src/AmdgpuKernelDescriptor.h
+    src/AmdgpuPointHandler.h
+    src/AmdgpuPrologue.h
+    src/AmdgpuEpilogue.h
+    ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDHSAKernelDescriptor.h
+    ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h)
 endif()
 
 if(DYNINST_OS_FreeBSD)

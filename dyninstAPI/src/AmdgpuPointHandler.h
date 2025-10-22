@@ -37,17 +37,21 @@
 #include "AmdgpuEpilogue.h"
 #include "AmdgpuPrologue.h"
 
+#include "external/amdgpu/AMDGPUEFlags.h"
+
 #include <unordered_set>
 
 namespace Dyninst {
 // This implements prologue/epilogue insertion at function entry/exit respectively.
 struct AmdgpuGfx908PointHandler : PointHandler {
 
+  unsigned eflag = EF_AMDGPU_MACH_AMDGCN_GFX908;
+
   std::unordered_set<BPatch_function *> instrumentedFunctions;
 
   void handlePoints(std::vector<BPatch_point *> const &points);
 
-  bool isKernel(BPatch_function *f);
+  BPatch_variableExpr* getKernelDescriptorVariable(BPatch_function *f);
 
   void insertPrologueIfKernel(BPatch_function *function);
   void insertEpilogueIfKernel(BPatch_function *function);
