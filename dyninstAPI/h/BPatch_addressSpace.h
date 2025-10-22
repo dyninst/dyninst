@@ -45,7 +45,6 @@
 #include <signal.h>
 #include <boost/iterator/transform_iterator.hpp>
 #include "dyntypes.h"
-
 // PatchAPI stuffs
 //#include "Command.h"
 
