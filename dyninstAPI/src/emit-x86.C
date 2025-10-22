@@ -57,7 +57,6 @@
 #include "RegisterConversion.h"
 #include "unaligned_memory_access.h"
 
-const int EmitterIA32::mt_offset = -4;
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
 const int EmitterAMD64::mt_offset = -8;
 
