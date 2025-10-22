@@ -114,7 +114,6 @@ class Emitter {
 
     Address getInterModuleFuncAddr(func_instance *func, codeGen& gen);
     Address getInterModuleVarAddr(const image_variable *var, codeGen& gen);
-    //bool emitPIC(codeGen& /*gen*/, Address, Address );
 
     virtual bool emitPLTCall(func_instance *, codeGen &) { assert(0); return false;}
     virtual bool emitPLTJump(func_instance *, codeGen &) { assert(0); return false;}

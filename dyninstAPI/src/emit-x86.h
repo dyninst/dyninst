@@ -108,7 +108,6 @@ public:
     virtual Register emitCall(opCode op, codeGen &gen,
                               const std::vector<AstNodePtr> &operands,
                               bool noCost, func_instance *callee);
-    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
     int emitCallParams(codeGen &gen, 
                        const std::vector<AstNodePtr> &operands,
                        func_instance *target, 
@@ -158,7 +157,6 @@ class EmitterIA32Dyn : public EmitterIA32 {
     
  protected:
     bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
-    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
 
 class EmitterIA32Stat : public EmitterIA32 {
@@ -171,7 +169,6 @@ class EmitterIA32Stat : public EmitterIA32 {
     
  protected:
     bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
-    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
 
 extern EmitterIA32Dyn emitterIA32Dyn;
@@ -233,7 +230,6 @@ public:
     virtual Register emitCall(opCode op, codeGen &gen,
                               const std::vector<AstNodePtr> &operands,
                               bool noCost, func_instance *callee);
-    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
     void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
     void emitGetRetAddr(Register dest, codeGen &gen);
     void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen);
@@ -276,7 +272,6 @@ class EmitterAMD64Dyn : public EmitterAMD64 {
     ~EmitterAMD64Dyn() {}
 
     bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
-    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
 
 class EmitterAMD64Stat : public EmitterAMD64 {
@@ -287,7 +282,6 @@ class EmitterAMD64Stat : public EmitterAMD64 {
     virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
 
     bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
-    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
 
 extern EmitterAMD64Dyn emitterAMD64Dyn;
