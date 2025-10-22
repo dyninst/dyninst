@@ -92,9 +92,6 @@
 
 class codeGen;
 
-// Define access method for saved register (GPR)
-#define GET_GPR(x, insn) emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, SAVED_EAX_OFFSET-(x*4), insn)
-
 void emitAddressingMode(unsigned base, unsigned index,
                         unsigned int scale, Dyninst::RegValue disp,
                         int reg_opcode, codeGen &gen);
