@@ -2765,35 +2765,6 @@ void EmitterAMD64::emitAddSignedImm(Address addr, int imm, codeGen &gen,bool noC
    }
 }
 
-#define AMD64_MAX_MAP 15
-static int const amd64_register_map[] =
-{
-    0,  // RAX
-    2,  // RDX
-    1,  // RCX
-    3,  // RBX
-    6,  // RSI
-    7,  // RDI
-    5,  // RBP
-    4,  // RSP
-    8, 9, 10, 11, 12, 13, 14, 15    // gp 8 - 15
-
-    /* This is incomplete. The x86_64 ABI specifies a mapping from
-       dwarf numbers (0-66) to ("architecture number"). Without a
-       corresponding mapping for the SVR4 dwarf-machine encoding for
-       IA-32, however, it is not meaningful to provide this mapping. */
-};
-int Register_DWARFtoMachineEnc64(int n)
-{
-    if(n <= AMD64_MAX_MAP)
-        return amd64_register_map[n];
-    else {
-		assert(0);
-		return n;
-
-    }
-}
-
 bool EmitterAMD64::emitPush(codeGen &gen, Register reg) {
     emitPushReg64(reg, gen);
     return true;

@@ -47,7 +47,6 @@ namespace DwarfDyninst{
 class DwarfResult;
 
 DYNINST_EXPORT int Register_DWARFtoMachineEnc32(int n);
-DYNINST_EXPORT int Register_DWARFtoMachineEnc64(int n);
 
 DYNINST_EXPORT bool decodeDwarfExpression(Dwarf_Op * expr,
         Dwarf_Sword listlen,
