@@ -95,12 +95,6 @@ class codeGen;
 // Define access method for saved register (GPR)
 #define GET_GPR(x, insn) emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, SAVED_EAX_OFFSET-(x*4), insn)
 
-// Define access method for virtual registers (stack-based)
-#define LOAD_VIRTUAL32(x, insn) emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(x*4), insn)
-#define SAVE_VIRTUAL32(x, insn) emitMovRegToRM(REGNUM_EBP, -1*(x*4), REGNUM_EAX, insn)
-#define LOAD_VIRTUAL64(x, insn) emitMovRMToReg(REGNUM_RAX, REGNUM_RBP, -1*(x*8), insn)
-#define SAVE_VIRTUAL64(x, insn) emitMovRegToRM(REGNUM_RBP, -1*(x*8), REGNUM_RAX, insn)
-
 void emitAddressingMode(unsigned base, unsigned index,
                         unsigned int scale, Dyninst::RegValue disp,
                         int reg_opcode, codeGen &gen);
