@@ -253,9 +253,9 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/emit-amdgpu.C
     src/amdgpu-gfx908-details.C)
 
-  # These headers are only needed for codegen only. They are for additional AMDGPU-specific instrumentation required to make user instrumentation work.
+  # These headers are needed for codegen only. They are for additional AMDGPU-specific instrumentation required to make user instrumentation work.
   # TODO :
-  # Ideally all codegen files should be separable.
+  # Ideally all codegen headers should be separable.
   # But given the legacy nature of the codebase, we still need to see which other
   # codegen headers can be separated without breaking host side.
   list(
