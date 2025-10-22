@@ -73,13 +73,12 @@ BPatch_variableExpr* AmdgpuGfx908PointHandler::getKernelDescriptorVariable(BPatc
 }
 
 void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function) {
-  // Go through kernel descriptors for instrumented kernels (functions) and insert a prologue
-  // that loads s[94:95] with address of memory for instrumentation variables. This address
-  // is at address [kernargPtrRegister] + kernargBufferSize.
+  // If this function is a kernel, insert a prologue that loads s[94:95] with the address of memory
+  // for instrumentation variables. This address is at address [kernargPtrRegister] + kernargBufferSize.
+  // We get this information from the kernel descriptor. Each kernel has a kernel descriptor.
 
   BPatch_variableExpr *kdVariable = getKernelDescriptorVariable(function);
   if (!kdVariable) {
-    std::cout <<"no kd variable for " << function->getMangledName() << '\n';
     return;
   }
 
@@ -103,8 +102,7 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
 }
 
 void AmdgpuGfx908PointHandler::insertEpilogueIfKernel(BPatch_function *function) {
-  // Go through information for instrumented kernels (functions) and insert a s_dcache_wb
-  // instruction at exit points.
+  // If this function is a kernel, insert a s_dcache_wb instruction at its exit points.
   BPatch_variableExpr *kdVariable = getKernelDescriptorVariable(function);
   if (!kdVariable)
     return;
