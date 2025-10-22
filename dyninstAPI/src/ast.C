@@ -2089,10 +2089,6 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
 	tmp = emitFuncCall(funcJumpOp, gen, args_,
                            noCost, use_func);
     }
-    else if (func_addr_) {
-        tmp = emitFuncCall(callOp, gen, args_,
-                           noCost, func_addr_);
-    }
     else {
         char msg[256];
         sprintf(msg, "%s[%d]:  internal error:  unable to find %s",

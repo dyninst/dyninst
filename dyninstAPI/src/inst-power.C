@@ -1158,11 +1158,6 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
 //   based - offset into the code generated.
 //
 
-Register emitFuncCall(opCode, codeGen &, std::vector<AstNodePtr> &, bool, Address) {
-	assert(0);
-        return 0;
-}
-
 Register emitFuncCall(opCode op,
                       codeGen &gen,
                       std::vector<AstNodePtr> &operands, bool noCost,
