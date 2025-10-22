@@ -976,21 +976,6 @@ void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen)
       emitMovImmToReg(RealRegister(tmp_dest), imm, gen);
 }
 
-// on 64-bit x86_64 targets, the DWARF register number does not
-// correspond to the machine encoding. See the AMD-64 ABI.
-
-// We can only safely map the general purpose registers (0-7 on ia-32,
-// 0-15 on amd-64)
-#define IA32_MAX_MAP 7
-int Register_DWARFtoMachineEnc32(int n)
-{
-    if(n > IA32_MAX_MAP) {
-		assert(0);
-	}
-    
-    return n;
-}
-
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
 
 bool isImm64bit(Address imm) {
