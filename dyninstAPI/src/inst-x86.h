@@ -72,11 +72,6 @@
                                      // 16 may be enough.
 #define AMD64_RED_ZONE         0x80
 
-
-//#ifndef DEBUG_FUNC_RELOC
-//#define DEBUG_FUNC_RELOC
-//#endif
-
 class codeGen;
 
 void emitAddressingMode(unsigned base, unsigned index,
