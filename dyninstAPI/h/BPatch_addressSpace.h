@@ -45,7 +45,6 @@
 #include <signal.h>
 #include <boost/iterator/transform_iterator.hpp>
 #include "dyntypes.h"
-#include "PointHandler.h"
 
 // PatchAPI stuffs
 //#include "Command.h"
@@ -69,6 +68,7 @@ namespace Dyninst {
     class Symbol;
     struct AddressRange;
   }
+  class PointHandler;
 }
 
 
