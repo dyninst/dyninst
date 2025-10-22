@@ -67,7 +67,7 @@ namespace Dyninst {
     class Symbol;
     struct AddressRange;
   }
-  class PointHandler;
+  struct PointHandler;
 }
 
 
