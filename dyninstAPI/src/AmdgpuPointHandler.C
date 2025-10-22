@@ -34,6 +34,12 @@
 #include "BPatch_module.h"
 #include "instPoint.h"
 
+// The raw kernel descriptor
+#include "external/amdgpu/AMDHSAKernelDescriptor.h"
+
+// Our wrapper around it
+#include "AmdgpuKernelDescriptor.h"
+
 #include <cassert>
 
 namespace Dyninst {
@@ -49,16 +55,21 @@ void AmdgpuGfx908PointHandler::handlePoints(std::vector<BPatch_point *> const &p
   }
 }
 
-bool AmdgpuGfx908PointHandler::isKernel(BPatch_function *f) {
+BPatch_variableExpr* AmdgpuGfx908PointHandler::getKernelDescriptorVariable(BPatch_function *f) {
   // The kernel descriptor symbols have global visibility. So Dyninst will see them as global
   // variables.
 
-  std::string kdName = f->getMangledName() + ".kd";
+  std::string kdName = f->getMangledName() + std::string(".kd");
 
   BPatch_module *m = f->getModule();
-  BPatch_variableExpr* kernelDescriptor = m->findVariable(kdName.c_str());
+  BPatch_variableExpr* kernelDescriptorVariable = m->findVariable(kdName.c_str());
 
-  return kernelDescriptor;
+  if (kernelDescriptorVariable) {
+      // FIXME : getSize is broken. Returns 4 instead of 64.
+      // && kernelDescriptorVariable->getSize() == sizeof(llvm::amdhsa::kernel_descriptor_t)) {
+    return kernelDescriptorVariable;
+  }
+  return nullptr;
 }
 
 void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function) {
@@ -66,14 +77,23 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
   // that loads s[94:95] with address of memory for instrumentation variables. This address
   // is at address [kernargPtrRegister] + kernargBufferSize.
 
-  if (!isKernel(function))
+  BPatch_variableExpr *kdVariable = getKernelDescriptorVariable(function);
+  if (!kdVariable) {
+    std::cout <<"no kd variable for " << function->getMangledName() << '\n';
     return;
+  }
+
+  llvm::amdhsa::kernel_descriptor_t rawKd;
+  bool success = kdVariable->readValue(&rawKd, sizeof rawKd);
+  assert(success);
+
+  AmdgpuKernelDescriptor kd(rawKd, this->eflag);
 
   std::vector<BPatch_point *> entryPoints;
   function->getEntryPoints(entryPoints);
 
   auto prologuePtr = boost::make_shared<AmdgpuPrologue>(
-        94, /* kernargPtrRegister = */4, /* kernargBufferSize = */288);
+        94, kd.getKernargPtrRegister(), kd.getKernargSize());
 
   AstNodePtr prologueNodePtr =
         boost::make_shared<AmdgpuPrologueNode>(prologuePtr);
@@ -85,7 +105,8 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
 void AmdgpuGfx908PointHandler::insertEpilogueIfKernel(BPatch_function *function) {
   // Go through information for instrumented kernels (functions) and insert a s_dcache_wb
   // instruction at exit points.
-  if (!isKernel(function))
+  BPatch_variableExpr *kdVariable = getKernelDescriptorVariable(function);
+  if (!kdVariable)
     return;
 
   std::vector<BPatch_point *> exitPoints;
