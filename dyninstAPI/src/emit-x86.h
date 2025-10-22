@@ -280,11 +280,6 @@ class EmitterAMD64Stat : public EmitterAMD64 {
     bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
 };
 
-/* useful functions for inter-library function/variable references
- * (used in the binary rewriter) */
-//Address getInterModuleFuncAddr(func_instance *func, codeGen& gen);
-//Address getInterModuleVarAddr(const image_variable *var, codeGen& gen);
-
 #endif
 
 #endif
