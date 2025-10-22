@@ -171,10 +171,6 @@ class EmitterIA32Stat : public EmitterIA32 {
     bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
 };
 
-extern EmitterIA32Dyn emitterIA32Dyn;
-extern EmitterIA32Stat emitterIA32Stat;
-
-
 // some useful 64-bit codegen functions
 void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen);
 void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen);
@@ -283,9 +279,6 @@ class EmitterAMD64Stat : public EmitterAMD64 {
 
     bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
 };
-
-extern EmitterAMD64Dyn emitterAMD64Dyn;
-extern EmitterAMD64Stat emitterAMD64Stat;
 
 /* useful functions for inter-library function/variable references
  * (used in the binary rewriter) */
