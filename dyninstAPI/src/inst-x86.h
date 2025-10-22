@@ -73,17 +73,6 @@
 #define AMD64_RED_ZONE         0x80
 
 
-
-/*
-   Function arguments are in the stack and are addressed with a displacement
-   from EBP. EBP points to the saved EBP, EBP+4 is the saved return address,
-   EBP+8 is the first parameter.
-   TODO: what about far calls?
- */
-#define FUNC_PARAM_OFFSET (8+(10*4)+STACK_PAD_CONSTANT)
-#define CALLSITE_PARAM_OFFSET (4+(10*4)+STACK_PAD_CONSTANT)
-
-
 //#ifndef DEBUG_FUNC_RELOC
 //#define DEBUG_FUNC_RELOC
 //#endif
