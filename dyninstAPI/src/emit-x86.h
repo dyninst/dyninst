@@ -186,7 +186,6 @@ class EmitterAMD64 : public Emitterx86 {
 
 public:
     virtual ~EmitterAMD64() {}
-    static const int mt_offset;
     codeBufIndex_t emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen);
     void emitOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
     void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen, bool s);

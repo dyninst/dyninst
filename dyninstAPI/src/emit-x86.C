@@ -58,8 +58,6 @@
 #include "unaligned_memory_access.h"
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
-const int EmitterAMD64::mt_offset = -8;
-
 
 static void emitXMMRegsSaveRestore(codeGen& gen, bool isRestore)
 {
