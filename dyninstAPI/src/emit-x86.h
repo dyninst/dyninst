@@ -130,7 +130,6 @@ public:
 				  Register dest, codeGen &gen);
     void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
     void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
-    int Register_DWARFtoMachineEnc(int n);
     bool emitPush(codeGen &gen, Register pushee);
     bool emitPop(codeGen &gen, Register popee);
 
@@ -239,11 +238,6 @@ public:
     bool emitBTRestores(baseTramp* bt, codeGen &gen);
     void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
     void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
-    /* The DWARF register numbering does not correspond to the architecture's
-       register encoding for 64-bit target binaries *only*. This method
-       maps the number that DWARF reports for a register to the actual
-       register number. */
-    int Register_DWARFtoMachineEnc(int n);
     bool emitPush(codeGen &gen, Register pushee);
     bool emitPop(codeGen &gen, Register popee);
 

@@ -151,11 +151,6 @@ public:
 
     virtual void emitAddSignedImm(Address, int, codeGen &, bool) { assert(0); }
 
-    virtual int Register_DWARFtoMachineEnc(int) {
-        assert(0);
-        return 0;
-    }
-
     virtual bool emitPush(codeGen &, Register) {
         assert(0);
         return true;

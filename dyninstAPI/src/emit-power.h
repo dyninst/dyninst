@@ -108,7 +108,6 @@ class EmitterPOWER : public Emitter {
     virtual bool emitBTRestores(baseTramp*, codeGen &) { assert(0); return true; }
     virtual void emitStoreImm(Address, int, codeGen &, bool) { assert(0); }
     virtual void emitAddSignedImm(Address, int, codeGen &, bool) { assert(0); }
-    virtual int Register_DWARFtoMachineEnc(int) { assert(0); return 0;}
     virtual bool emitPush(codeGen &, Register) { assert(0); return true;}
     virtual bool emitPop(codeGen &, Register) { assert(0); return true;}
     virtual bool emitAdjustStackPointer(int, codeGen &) { assert(0); return true;}
