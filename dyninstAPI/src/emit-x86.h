@@ -176,7 +176,7 @@ void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen);
 void emitPushReg64(Register src, codeGen &gen);
 void emitPopReg64(Register dest, codeGen &gen);
 void emitMovImmToRM64(Register base, int disp, int imm, bool is_64, codeGen &gen);
-void emitAddRM64(Address addr, int imm, codeGen &gen);
+void emitAddRM64(Register dest, int imm, bool is_64, codeGen &gen);
 void emitOpRegImm64(unsigned opcode, unsigned opcode_ext, Register rm_reg, int imm,
 		    bool is_64, codeGen &gen);
 
