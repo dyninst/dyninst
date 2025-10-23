@@ -56,7 +56,6 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT virtual Instruction decode(InstructionDecoder::buffer& b);
 
     DYNINST_EXPORT virtual void setMode(bool is64);
-    virtual void doDelayedDecode(const Instruction* insn_to_complete);
 
   protected:
     virtual bool decodeOperands(const Instruction* insn_to_complete);

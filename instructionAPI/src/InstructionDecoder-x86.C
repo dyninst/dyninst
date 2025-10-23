@@ -1831,14 +1831,13 @@ namespace Dyninst { namespace InstructionAPI {
     decodeOpcode(b);
     unsigned int decodedSize = b.start - start;
 
-    return Instruction(m_Operation, decodedSize, start, m_Arch);
-  }
+    auto insn = Instruction(m_Operation, decodedSize, start, m_Arch);
 
-  void InstructionDecoder_x86::doDelayedDecode(const Instruction* insn_to_complete) {
-    InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
-    // insn_to_complete->m_Operands.reserve(4);
-    doIA32Decode(b);
-    decodeOperands(insn_to_complete);
+    if(insn.isValid()) {
+      decodeOperands(&insn);
+    }
+
+    return insn;
   }
 
 }}

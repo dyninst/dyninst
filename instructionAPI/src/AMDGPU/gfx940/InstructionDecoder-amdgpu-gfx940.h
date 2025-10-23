@@ -68,8 +68,6 @@ namespace Dyninst {
 
             bool decodeOperands(const amdgpu_gfx940_insn_entry & insn_entry);
 
-            virtual void doDelayedDecode(const Instruction *insn_to_complete);
-
             static const std::array<std::string, 16> condNames;
             static MachRegister sysRegMap(unsigned int);
             static const char* bitfieldInsnAliasMap(entryID);

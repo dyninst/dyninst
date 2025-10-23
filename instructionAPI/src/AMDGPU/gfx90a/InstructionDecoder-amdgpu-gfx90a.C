@@ -219,14 +219,6 @@ namespace Dyninst {
             return *insn_in_progress;
         }
 
-        void InstructionDecoder_amdgpu_gfx90a::doDelayedDecode(const Instruction *insn_to_complete) {
-
-            InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
-            setupInsnWord(b);
-            mainDecode();
-            Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
-            *iptr = *(insn_in_progress.get());
-        }
     }
 }
 

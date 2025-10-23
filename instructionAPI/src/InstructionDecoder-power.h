@@ -50,7 +50,6 @@ namespace Dyninst { namespace InstructionAPI {
     virtual void setMode(bool) {}
 
     virtual bool decodeOperands(const Instruction* insn_to_complete);
-    virtual void doDelayedDecode(const Instruction* insn_to_complete);
     static bool foundDoubleHummerInsn;
     static bool foundQuadInsn;
     using InstructionDecoderImpl::makeRegisterExpression;

@@ -2875,16 +2875,6 @@ insn_in_progress->appendOperand(makeRnExpr(), true, true);
 
 #include "aarch64_opcode_tables.C"
 
-  void InstructionDecoder_aarch64::doDelayedDecode(const Instruction* insn_to_complete) {
-    InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
-    // insn_to_complete->m_Operands.reserve(4);
-    decode(b);
-    decodeOperands(insn_in_progress.get());
-
-    Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
-    *iptr = *(insn_in_progress.get());
-  }
-
   bool InstructionDecoder_aarch64::pre_process_checks(const aarch64_insn_entry& entry) {
     bool ret = false;
     entryID insnID = entry.op;
@@ -3024,9 +3014,7 @@ insn_in_progress->appendOperand(makeRnExpr(), true, true);
 
     modify_mnemonic_simd_upperhalf_insns();
 
-    if(IS_INSN_BRANCHING(insn)) {
-      decodeOperands(insn_in_progress.get());
-    }
+    decodeOperands(insn_in_progress.get());
 
     insn_in_progress->arch_decoded_from = Arch_aarch64;
     if(insn_table_entry.operands[0] != nullptr) {
