@@ -115,21 +115,24 @@ foreach(test_name ${_all_tests})
   endif()
 
   set(_targ "symtab_file_properties_isSharedLibrary_${test_name}")
-  add_test(NAME ${_targ} COMMAND ${CMAKE_COMMAND} -E env $<TARGET_FILE:isSharedLibrary> "${test_file}")
+  add_test(NAME ${_targ} COMMAND ${CMAKE_COMMAND} -E env $<TARGET_FILE:isSharedLibrary>
+                                 "${test_file}")
   if(NOT ${test_name} MATCHES "sharedlib")
     set_tests_properties(${_targ} PROPERTIES WILL_FAIL TRUE)
   endif()
   set_tests_properties(${_targ} PROPERTIES LABELS "regression")
 
   set(_targ "symtab_file_properties_isStripped_${test_name}")
-  add_test(NAME ${_targ} COMMAND ${CMAKE_COMMAND} -E env $<TARGET_FILE:isStripped> "${test_file}")
+  add_test(NAME ${_targ} COMMAND ${CMAKE_COMMAND} -E env $<TARGET_FILE:isStripped>
+                                 "${test_file}")
   if(NOT ${test_name} MATCHES "stripped")
     set_tests_properties(${_targ} PROPERTIES WILL_FAIL TRUE)
   endif()
   set_tests_properties(${_targ} PROPERTIES LABELS "regression")
 
   set(_targ "symtab_file_properties_isPositionIndependent_${test_name}")
-  add_test(NAME ${_targ} COMMAND ${CMAKE_COMMAND} -E env $<TARGET_FILE:isPositionIndependent> "${test_file}")
+  add_test(NAME ${_targ} COMMAND ${CMAKE_COMMAND} -E env
+                                 $<TARGET_FILE:isPositionIndependent> "${test_file}")
   if(NOT ${test_name} MATCHES "pic")
     set_tests_properties(${_targ} PROPERTIES WILL_FAIL TRUE)
   elseif(_static_link AND ${test_name} MATCHES "${_static_link}")
@@ -140,7 +143,8 @@ foreach(test_name ${_all_tests})
   set_tests_properties(${_targ} PROPERTIES LABELS "regression")
 
   set(_targ "symtab_file_properties_isStaticBinary_${test_name}")
-  add_test(NAME ${_targ} COMMAND ${CMAKE_COMMAND} -E env $<TARGET_FILE:isStaticBinary> "${test_file}")
+  add_test(NAME ${_targ} COMMAND ${CMAKE_COMMAND} -E env $<TARGET_FILE:isStaticBinary>
+                                 "${test_file}")
   if(NOT ${test_name} MATCHES "staticlink")
     set_tests_properties(${_targ} PROPERTIES WILL_FAIL TRUE)
   endif()
