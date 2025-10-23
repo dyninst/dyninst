@@ -49,7 +49,6 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual void setMode(bool) {}
 
-    virtual bool decodeOperands(const Instruction* insn_to_complete);
     static bool foundDoubleHummerInsn;
     static bool foundQuadInsn;
     using InstructionDecoderImpl::makeRegisterExpression;
@@ -226,6 +225,8 @@ namespace Dyninst { namespace InstructionAPI {
     const power_entry& extended_op_63_583();
     const power_entry& extended_op_63_804();
     const power_entry& extended_op_63_836();
+
+    bool decodeOperands(const Instruction* insn_to_complete);
 
     template <int start, int end> int field(unsigned int raw) {
       return (raw >> (31 - (end)) & (0xFFFFFFFF >> (31 - (end - start))));

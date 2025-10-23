@@ -171,7 +171,6 @@ namespace Dyninst { namespace InstructionAPI {
   private:
     void updateSize(const unsigned int new_size, const unsigned char * raw);
 
-    void decodeOperands() const;
     void addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough,
                       bool isImplicit = false) const;
     void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit = false,

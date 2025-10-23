@@ -58,8 +58,6 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT virtual void setMode(bool is64);
 
   protected:
-    virtual bool decodeOperands(const Instruction* insn_to_complete);
-
     bool decodeOneOperand(const InstructionDecoder::buffer& b, const NS_x86::ia32_operand& operand,
                           int& imm_index, const Instruction* insn_to_complete, bool isRead,
                           bool isWritten, bool isImplicit);
@@ -77,6 +75,8 @@ namespace Dyninst { namespace InstructionAPI {
     void doIA32Decode(InstructionDecoder::buffer& b);
     bool isDefault64Insn();
     void decodeOpcode(InstructionDecoder::buffer&);
+
+    bool decodeOperands(const Instruction* insn_to_complete);
 
     ia32_locations* locs;
     NS_x86::ia32_instruction* decodedInstruction;

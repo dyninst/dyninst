@@ -55,8 +55,6 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual void setMode(bool) {}
 
-    virtual bool decodeOperands(const Instruction* insn_to_complete);
-
     static const std::array<std::string, 16> condNames;
     static MachRegister sysRegMap(unsigned int);
     static const char* bitfieldInsnAliasMap(entryID);
@@ -73,6 +71,8 @@ namespace Dyninst { namespace InstructionAPI {
     void mainDecode();
 
     int findInsnTableIndex(unsigned int);
+
+    bool decodeOperands(const Instruction* insn_to_complete);
 
     /*members for handling operand re-ordering, will be removed later once a generic operand
      * ordering method is incorporated*/

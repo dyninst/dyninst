@@ -64,8 +64,6 @@ namespace Dyninst {
 
             virtual void setMode(bool)  { }
 
-            virtual bool decodeOperands(const Instruction *insn_to_complete);
-
             bool decodeOperands(const amdgpu_gfx940_insn_entry & insn_entry);
 
             static const std::array<std::string, 16> condNames;

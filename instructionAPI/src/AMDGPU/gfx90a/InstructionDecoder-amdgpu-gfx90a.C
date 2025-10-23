@@ -90,12 +90,6 @@ namespace Dyninst {
             return makeAddExpression(makePCExpr(), Immediate::makeImmediate(Result(u64, unsign_extend64(3, 4))), u64);
         }
 
-
-        bool InstructionDecoder_amdgpu_gfx90a::decodeOperands(const Instruction *) {
-            assert(0 && "decodeOperands deprecated for amdgpu");
-            return true;
-        }
-
         Expression::Ptr InstructionDecoder_amdgpu_gfx90a::decodeSGPRorM0(unsigned int offset){
             if( offset <= 104)
                 return makeRegisterExpression(makeAmdgpuRegID(amdgpu_gfx90a::s0,offset));

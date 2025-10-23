@@ -57,8 +57,6 @@ class InstructionDecoderImpl
 
     protected:
       
-        virtual bool decodeOperands(const Instruction* insn_to_complete) = 0;
-      
         virtual Expression::Ptr makeAddExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
         virtual Expression::Ptr makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
         virtual Expression::Ptr makeLeftShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
