@@ -171,7 +171,7 @@ class EmitterIA32Stat : public EmitterIA32 {
 
 // some useful 64-bit codegen functions
 void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen);
-void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen);
+void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen, bool deref_result);
 void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen);
 void emitPushReg64(Register src, codeGen &gen);
 void emitPopReg64(Register dest, codeGen &gen);
