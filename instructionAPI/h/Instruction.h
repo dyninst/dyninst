@@ -118,8 +118,14 @@ namespace Dyninst { namespace InstructionAPI {
 
     DYNINST_EXPORT size_t size() const;
 
+//    DYNINST_DEPRECATED("Use getWrittenRegisters()")
     DYNINST_EXPORT void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
+
+//    DYNINST_DEPRECATED("Use getReadRegisters()")
     DYNINST_EXPORT void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
+
+    DYNINST_EXPORT std::vector<RegisterAST::Ptr> getWrittenRegisters() const;
+    DYNINST_EXPORT std::vector<RegisterAST::Ptr> getReadRegisters() const;
 
     DYNINST_EXPORT bool isRead(Expression::Ptr candidate) const;
     DYNINST_EXPORT bool isWritten(Expression::Ptr candidate) const;

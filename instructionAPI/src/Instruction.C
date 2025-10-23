@@ -188,6 +188,14 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT size_t Instruction::size() const { return m_size; }
 
+  std::vector<RegisterAST::Ptr> Instruction::getWrittenRegisters() const {
+    return {};
+  }
+
+  std::vector<RegisterAST::Ptr> Instruction::getReadRegisters() const {
+    return {};
+  }
+
   DYNINST_EXPORT void Instruction::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const {
     for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
         curOperand != m_Operands.end(); ++curOperand) {
