@@ -562,11 +562,6 @@ bool EmitterAARCH64::clobberAllFuncCall(registerSpace *rs,
     return false;
 }
 
-Register emitFuncCall(opCode, codeGen &, std::vector <AstNodePtr> &, bool, Address) {
-    assert(0);
-    return 0;
-}
-
 Register emitFuncCall(opCode op,
                       codeGen &gen,
                       std::vector <AstNodePtr> &operands, bool noCost,

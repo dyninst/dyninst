@@ -72,7 +72,6 @@ class EmitterIA32 : public Emitterx86 {
 
 public:
     virtual ~EmitterIA32() {}
-    static const int mt_offset;
     codeBufIndex_t emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen);
     void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
     void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen, bool s);
@@ -108,7 +107,6 @@ public:
     virtual Register emitCall(opCode op, codeGen &gen,
                               const std::vector<AstNodePtr> &operands,
                               bool noCost, func_instance *callee);
-    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
     int emitCallParams(codeGen &gen, 
                        const std::vector<AstNodePtr> &operands,
                        func_instance *target, 
@@ -131,7 +129,6 @@ public:
 				  Register dest, codeGen &gen);
     void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
     void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
-    int Register_DWARFtoMachineEnc(int n);
     bool emitPush(codeGen &gen, Register pushee);
     bool emitPop(codeGen &gen, Register popee);
 
@@ -158,7 +155,6 @@ class EmitterIA32Dyn : public EmitterIA32 {
     
  protected:
     bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
-    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
 
 class EmitterIA32Stat : public EmitterIA32 {
@@ -171,22 +167,16 @@ class EmitterIA32Stat : public EmitterIA32 {
     
  protected:
     bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
-    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
-
-extern EmitterIA32Dyn emitterIA32Dyn;
-extern EmitterIA32Stat emitterIA32Stat;
-
 
 // some useful 64-bit codegen functions
 void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen);
-void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen);
+void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen, bool deref_result);
 void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen);
 void emitPushReg64(Register src, codeGen &gen);
 void emitPopReg64(Register dest, codeGen &gen);
-void emitMovImmToRM64(Register base, int disp, int imm, codeGen &gen);
-void emitAddMem64(Address addr, int imm, codeGen &gen);
-void emitAddRM64(Address addr, int imm, codeGen &gen);
+void emitMovImmToRM64(Register base, int disp, int imm, bool is_64, codeGen &gen);
+void emitAddRM64(Register dest, int imm, bool is_64, codeGen &gen);
 void emitOpRegImm64(unsigned opcode, unsigned opcode_ext, Register rm_reg, int imm,
 		    bool is_64, codeGen &gen);
 
@@ -195,7 +185,6 @@ class EmitterAMD64 : public Emitterx86 {
 
 public:
     virtual ~EmitterAMD64() {}
-    static const int mt_offset;
     codeBufIndex_t emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen);
     void emitOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
     void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen, bool s);
@@ -233,7 +222,6 @@ public:
     virtual Register emitCall(opCode op, codeGen &gen,
                               const std::vector<AstNodePtr> &operands,
                               bool noCost, func_instance *callee);
-    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
     void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
     void emitGetRetAddr(Register dest, codeGen &gen);
     void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen);
@@ -247,11 +235,6 @@ public:
     bool emitBTRestores(baseTramp* bt, codeGen &gen);
     void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
     void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
-    /* The DWARF register numbering does not correspond to the architecture's
-       register encoding for 64-bit target binaries *only*. This method
-       maps the number that DWARF reports for a register to the actual
-       register number. */
-    int Register_DWARFtoMachineEnc(int n);
     bool emitPush(codeGen &gen, Register pushee);
     bool emitPop(codeGen &gen, Register popee);
 
@@ -276,7 +259,6 @@ class EmitterAMD64Dyn : public EmitterAMD64 {
     ~EmitterAMD64Dyn() {}
 
     bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
-    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
 
 class EmitterAMD64Stat : public EmitterAMD64 {
@@ -287,16 +269,7 @@ class EmitterAMD64Stat : public EmitterAMD64 {
     virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
 
     bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
-    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
-
-extern EmitterAMD64Dyn emitterAMD64Dyn;
-extern EmitterAMD64Stat emitterAMD64Stat;
-
-/* useful functions for inter-library function/variable references
- * (used in the binary rewriter) */
-//Address getInterModuleFuncAddr(func_instance *func, codeGen& gen);
-//Address getInterModuleVarAddr(const image_variable *var, codeGen& gen);
 
 #endif
 

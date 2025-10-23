@@ -232,12 +232,6 @@ Dyninst::Register emitFuncCall(opCode op, codeGen &gen,
 					  bool noCost, 
                       func_instance *func);
 
-// Obsolete version that uses an address. DON'T USE THIS or expect it to survive.
-Dyninst::Register emitFuncCall(opCode op, codeGen &gen,
-                      std::vector<AstNodePtr> &operands, 
-		      		  bool noCost, 
-                      Dyninst::Address callee_addr_);
-
 int getInsnCost(opCode t);
 
 /*

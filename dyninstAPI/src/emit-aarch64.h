@@ -119,7 +119,6 @@ public:
     // This one we actually use now.
     virtual Register emitCall(opCode, codeGen &, const std::vector <AstNodePtr> &,
                               bool, func_instance *);
-    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
 
     virtual void emitGetRetVal(Register, bool, codeGen &) { assert(0); }
 
@@ -151,11 +150,6 @@ public:
     virtual void emitStoreImm(Address, int, codeGen &, bool) { assert(0); }
 
     virtual void emitAddSignedImm(Address, int, codeGen &, bool) { assert(0); }
-
-    virtual int Register_DWARFtoMachineEnc(int) {
-        assert(0);
-        return 0;
-    }
 
     virtual bool emitPush(codeGen &, Register) {
         assert(0);

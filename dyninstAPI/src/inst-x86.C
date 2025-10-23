@@ -1255,11 +1255,6 @@ unsigned char jccOpcodeFromRelOp(unsigned op, bool s)
    return 0x0;
 }
 
-Dyninst::Register emitFuncCall(opCode, codeGen &, std::vector<AstNodePtr> &, bool, Address) {
-	assert(0);
-	return 0;
-}
-
 // this function just multiplexes between the 32-bit and 64-bit versions
 Dyninst::Register emitFuncCall(opCode op,
                       codeGen &gen,

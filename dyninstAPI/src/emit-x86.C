@@ -57,10 +57,7 @@
 #include "RegisterConversion.h"
 #include "unaligned_memory_access.h"
 
-const int EmitterIA32::mt_offset = -4;
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
-const int EmitterAMD64::mt_offset = -8;
-
 
 static void emitXMMRegsSaveRestore(codeGen& gen, bool isRestore)
 {
@@ -974,21 +971,6 @@ void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen)
    }
    else
       emitMovImmToReg(RealRegister(tmp_dest), imm, gen);
-}
-
-// on 64-bit x86_64 targets, the DWARF register number does not
-// correspond to the machine encoding. See the AMD-64 ABI.
-
-// We can only safely map the general purpose registers (0-7 on ia-32,
-// 0-15 on amd-64)
-#define IA32_MAX_MAP 7
-int Register_DWARFtoMachineEnc32(int n)
-{
-    if(n > IA32_MAX_MAP) {
-		assert(0);
-	}
-    
-    return n;
 }
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
@@ -2763,35 +2745,6 @@ void EmitterAMD64::emitAddSignedImm(Address addr, int imm, codeGen &gen,bool noC
       emitAddRM64(r, imm, true, gen);
       gen.rs()->freeRegister(r);
    }
-}
-
-#define AMD64_MAX_MAP 15
-static int const amd64_register_map[] =
-{
-    0,  // RAX
-    2,  // RDX
-    1,  // RCX
-    3,  // RBX
-    6,  // RSI
-    7,  // RDI
-    5,  // RBP
-    4,  // RSP
-    8, 9, 10, 11, 12, 13, 14, 15    // gp 8 - 15
-
-    /* This is incomplete. The x86_64 ABI specifies a mapping from
-       dwarf numbers (0-66) to ("architecture number"). Without a
-       corresponding mapping for the SVR4 dwarf-machine encoding for
-       IA-32, however, it is not meaningful to provide this mapping. */
-};
-int Register_DWARFtoMachineEnc64(int n)
-{
-    if(n <= AMD64_MAX_MAP)
-        return amd64_register_map[n];
-    else {
-		assert(0);
-		return n;
-
-    }
 }
 
 bool EmitterAMD64::emitPush(codeGen &gen, Register reg) {

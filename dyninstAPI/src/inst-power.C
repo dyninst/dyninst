@@ -1137,32 +1137,6 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
 }
 
 
-//
-// Author: Jeff Hollingsworth (3/26/96)
-//
-// Emit a function call.
-//   It saves registers as needed.
-//   copy the passed arguments into the canonical argument registers (r3-r10)
-//   64-bit ELF Linux ONLY: 
-//     Locate the TOC entry of the callee module and copy it into R2
-//   generate a branch and link the destination
-//   64-bit ELF Linux ONLY:
-//     Restore the original TOC into R2
-//   restore the saved registers.
-//
-// Parameters:
-//   op - unused parameter (to be compatible with sparc)
-//   srcs - vector of ints indicating the registers that contain the parameters
-//   dest - the destination address (should be Address not reg). 
-//   insn - pointer to the code we are generating
-//   based - offset into the code generated.
-//
-
-Register emitFuncCall(opCode, codeGen &, std::vector<AstNodePtr> &, bool, Address) {
-	assert(0);
-        return 0;
-}
-
 Register emitFuncCall(opCode op,
                       codeGen &gen,
                       std::vector<AstNodePtr> &operands, bool noCost,
