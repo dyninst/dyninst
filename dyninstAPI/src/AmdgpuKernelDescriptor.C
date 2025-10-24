@@ -88,7 +88,7 @@ bool AmdgpuKernelDescriptor::isGfx11() const {
 }
 
 AmdgpuKernelDescriptor::AmdgpuKernelDescriptor(uint8_t *kdBytes, size_t kdSize, unsigned amdgpuMachine) {
-  assert(kdSize == sizeof(kdRepr));
+  assert(kdSize == sizeof(kernel_descriptor_t));
   kdRepr = read_memory_as<kernel_descriptor_t>(kdBytes);
   amdgpuMach = amdgpuMachine;
 }
@@ -310,7 +310,7 @@ void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_FloatDenormMode32(uint32_t val
   uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
   fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_FLOAT_DENORM_MODE_32);
   assert(CHECK_WIDTH(COMPUTE_PGM_RSRC1_FLOAT_DENORM_MODE_32) &&
-         "value contains more bits than specificied");
+         "value contains more bits than specified");
   kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_FLOAT_DENORM_MODE_32);
 }
 
