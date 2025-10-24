@@ -112,24 +112,20 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT void
   Operand::addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const {
-    if(m_isRead && boost::dynamic_pointer_cast<Dereference>(op_value)) {
-      std::vector<Expression::Ptr> tmp;
-      op_value->getChildren(tmp);
-      for(std::vector<Expression::Ptr>::const_iterator curKid = tmp.begin(); curKid != tmp.end();
-          ++curKid) {
-        memAccessors.insert(*curKid);
+    auto deref = boost::dynamic_pointer_cast<Dereference>(op_value);
+    if(deref && m_isRead) {
+      for(auto se : deref->getSubexpressions()) {
+        memAccessors.insert(se);
       }
     }
   }
 
   DYNINST_EXPORT void
   Operand::addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const {
-    if(m_isWritten && boost::dynamic_pointer_cast<Dereference>(op_value)) {
-      std::vector<Expression::Ptr> tmp;
-      op_value->getChildren(tmp);
-      for(std::vector<Expression::Ptr>::const_iterator curKid = tmp.begin(); curKid != tmp.end();
-          ++curKid) {
-        memAccessors.insert(*curKid);
+    auto deref = boost::dynamic_pointer_cast<Dereference>(op_value);
+    if(deref && m_isWritten) {
+      for(auto se : deref->getSubexpressions()) {
+        memAccessors.insert(se);
       }
     }
   }

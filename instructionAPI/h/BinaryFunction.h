@@ -211,11 +211,8 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual const Result& eval() const override;
 
-    virtual void getChildren(std::vector<Expression::Ptr>& children) const override {
-      children.push_back(m_arg1);
-      children.push_back(m_arg2);
-
-      return;
+    std::vector<Expression::Ptr> getSubexpressions() const override {
+      return {m_arg1, m_arg2};
     }
 
     virtual void getUses(std::set<Expression::Ptr>& uses) override {

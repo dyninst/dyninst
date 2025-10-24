@@ -60,13 +60,10 @@ void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
 				    std::vector<AbsRegion> &regions) {
   // If we're a memory dereference, then convert us and all
   // used registers.
-  if (boost::dynamic_pointer_cast<Dereference>(expr)) {
-    std::vector<Expression::Ptr> tmp;
+  if (auto deref = boost::dynamic_pointer_cast<Dereference>(expr)) {
     // Strip dereference...
-    expr->getChildren(tmp);
-    for (std::vector<Expression::Ptr>::const_iterator i = tmp.begin();
-	 i != tmp.end(); ++i) {
-       regions.push_back(convert(*i, addr, func, block));
+    for(auto c : deref->getSubexpressions()) {
+       regions.push_back(convert(c, addr, func, block));
     }
   }
   

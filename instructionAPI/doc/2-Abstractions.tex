@@ -117,7 +117,7 @@ instruction is represented using these objects.
 
 These ASTs may be searched for leaf elements or subtrees (via 
 \code{getUses} and \code{isUsed}) and traversed breadth-\/first or depth-\/first
-(via \code{getChildren}).
+(via \code{getSubexpressions}).
 
 Any node in these ASTs may be evaluated. Evaluation attempts to determine the
 value represented by a node. If successful, it will return that value and cache

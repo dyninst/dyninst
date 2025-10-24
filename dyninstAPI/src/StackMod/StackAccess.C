@@ -689,8 +689,7 @@ bool getMemoryOffset(ParseAPI::Function *func,
 
             // If we have a dereference, extract the child
             if (dynamic_cast<InstructionAPI::Dereference*>(val.get())) {
-                vector<InstructionAPI::Expression::Ptr> children;
-                val->getChildren(children);
+                auto children = val->getSubexpressions();
                 if (children.size() == 1) {
                     val = children.front();
                 }

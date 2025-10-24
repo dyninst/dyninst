@@ -44,8 +44,6 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual ~Immediate();
 
-    virtual void getChildren(std::vector<Expression::Ptr>&) const override;
-
     virtual void getUses(std::set<Expression::Ptr>&) override;
     virtual bool isUsed(Expression::Ptr findMe) const override;
 

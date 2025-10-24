@@ -17,12 +17,6 @@ are known.
 is Dyninst's register representation and should not be constructed manually. }
 
 \begin{apient}
-  void getChildren (vector< Expression::Ptr > & children) const
-\end{apient}
-\apidesc{ By definition, a \code{RegisterAST} object has no children. Since a \code{RegisterAST} has no children, 
-the \code{children} parameter is unchanged by this method. }
-
-\begin{apient}
   void getUses (set< Expression::Ptr > & uses)
 \end{apient}
 \apidesc{ By definition, the use set of a \code{RegisterAST} object is itself. This \code{RegisterAST} will be 
