@@ -41,7 +41,7 @@ bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::B
 
   emitter.emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);
 
-  uint8_t *prologue = (uint8_t *)gen.start_ptr();
+  uint8_t *prologue = reinterpret_cast<uint8_t *>(gen.start_ptr());
   for (unsigned i = 0; i < gen.used(); ++i) {
     buffer.push_back(prologue[i]);
   }

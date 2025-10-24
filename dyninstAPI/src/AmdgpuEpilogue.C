@@ -38,7 +38,7 @@ bool AmdgpuEpilogue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::B
 
   emitter.emitScalarDataCacheWriteback(gen);
 
-  uint8_t *epilogue = (uint8_t *)gen.start_ptr();
+  uint8_t *epilogue = reinterpret_cast<uint8_t *>(gen.start_ptr());
   for (unsigned i = 0; i < gen.used(); ++i) {
     buffer.push_back(epilogue[i]);
   }
