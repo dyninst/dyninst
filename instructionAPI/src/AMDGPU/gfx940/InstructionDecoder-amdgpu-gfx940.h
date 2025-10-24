@@ -64,8 +64,6 @@ namespace Dyninst {
 
             virtual void setMode(bool)  { }
 
-            bool decodeOperands(const amdgpu_gfx940_insn_entry & insn_entry);
-
             static const std::array<std::string, 16> condNames;
             static MachRegister sysRegMap(unsigned int);
             static const char* bitfieldInsnAliasMap(entryID);
