@@ -43,9 +43,6 @@
 //
 class AmdgpuEpilogue : public Dyninst::PatchAPI::Snippet {
 public:
-  AmdgpuEpilogue() = default;
-  ~AmdgpuEpilogue() = default;
-
   bool generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer);
 };
 
