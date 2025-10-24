@@ -32,6 +32,7 @@
 #define BINARYFUNCTION_H
 
 #include "ArchSpecificFormatters.h"
+#include "compiler_annotations.h"
 #include "Expression.h"
 #include "Register.h"
 #include "Result.h"
@@ -215,6 +216,7 @@ namespace Dyninst { namespace InstructionAPI {
       return {m_arg1, m_arg2};
     }
 
+    DYNINST_DEPRECATED("Use InstructionAPI::getUsedRegisters()")
     virtual void getUses(std::set<Expression::Ptr>& uses) override {
       m_arg1->getUses(uses);
       m_arg2->getUses(uses);

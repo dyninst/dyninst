@@ -33,6 +33,7 @@
 
 #include "ArchSpecificFormatters.h"
 #include "BinaryFunction.h"
+#include "compiler_annotations.h"
 #include "Expression.h"
 #include "Immediate.h"
 #include "Operand.h"
@@ -57,6 +58,7 @@ namespace Dyninst { namespace InstructionAPI {
       return {addressToDereference};
     }
 
+    DYNINST_DEPRECATED("Use InstructionAPI::getUsedRegisters()")
     virtual void getUses(std::set<Expression::Ptr>& uses) override {
       addressToDereference->getUses(uses);
       return;

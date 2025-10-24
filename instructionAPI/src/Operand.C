@@ -36,6 +36,7 @@
 #include "../h/Operand.h"
 #include "../h/Register.h"
 #include "../h/Result.h"
+#include "InstructionAST.h"
 
 #include <iostream>
 
@@ -44,24 +45,9 @@ using namespace std;
 namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT void Operand::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const {
-    std::set<Expression::Ptr> useSet;
-    // This thing returns something only for RegisterAST Expression
-    op_value->getUses(useSet);
-    std::set<Expression::Ptr>::const_iterator curUse;
-    for(curUse = useSet.begin(); curUse != useSet.end(); ++curUse) {
-      RegisterAST::Ptr tmp = boost::dynamic_pointer_cast<RegisterAST>(*curUse);
-      if(tmp) {
-        if(m_isRead || !(*tmp == *op_value))
-          regsRead.insert(tmp);
-      } else {
-
-        MultiRegisterAST::Ptr multitmp = boost::dynamic_pointer_cast<MultiRegisterAST>(*curUse);
-        if(multitmp) {
-          for(auto reg : multitmp->getRegs()) {
-            if(m_isRead || !(*reg == *op_value))
-              regsRead.insert(reg);
-          }
-        }
+    for(auto r : getUsedRegisters(op_value)) {
+      if(m_isRead || !(*r == *op_value)) {
+        regsRead.insert(r);
       }
     }
   }

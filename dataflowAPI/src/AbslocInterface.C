@@ -41,6 +41,7 @@
 #include "Dereference.h"
 #include "BinaryFunction.h"
 #include "Immediate.h"
+#include "InstructionAST.h"
 
 #include "dataflowAPI/h/stackanalysis.h"
 #include "parseAPI/h/CFG.h"
@@ -58,22 +59,8 @@ void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
 				    ParseAPI::Function *func,
                                     ParseAPI::Block *block,
 				    std::vector<AbsRegion> &regions) {
-  // If we're a memory dereference, then convert us and all
-  // used registers.
-  if (auto deref = boost::dynamic_pointer_cast<Dereference>(expr)) {
-    // Strip dereference...
-    for(auto c : deref->getSubexpressions()) {
-       regions.push_back(convert(c, addr, func, block));
-    }
-  }
-  
-  // Otherwise just convert registers
-  
-  std::set<Expression::Ptr> used;
-  expr->getUses(used);
-  for (std::set<Expression::Ptr>::const_iterator j = used.begin();
-       j != used.end(); ++j) {
-    regions.push_back(convert(boost::dynamic_pointer_cast<RegisterAST>(*j)));
+  for(auto reg : getUsedRegisters(expr)) {
+    regions.push_back(convert(reg, addr, func, block));
   }
 }
 

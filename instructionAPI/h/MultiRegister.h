@@ -32,6 +32,7 @@
 #define MULTIREGISTER_H
 
 #include "Architecture.h"
+#include "compiler_annotations.h"
 #include "Expression.h"
 #include "Register.h"
 #include "registers/MachRegister.h"
@@ -53,6 +54,7 @@ namespace Dyninst { namespace InstructionAPI {
     virtual ~MultiRegisterAST() = default;
     MultiRegisterAST(const MultiRegisterAST&) = default;
 
+    DYNINST_DEPRECATED("Use InstructionAPI::getUsedRegisters()")
     virtual void getUses(std::set<Expression::Ptr>& uses) override;
 
     virtual bool isUsed(Expression::Ptr findMe) const override;

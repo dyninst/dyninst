@@ -32,6 +32,7 @@
 #define TERNARY_H
 
 #include "Architecture.h"
+#include "compiler_annotations.h"
 #include "Expression.h"
 
 #include <map>
@@ -50,6 +51,7 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual ~TernaryAST();
 
+    DYNINST_DEPRECATED("Use InstructionAPI::getUsedRegisters()")
     virtual void getUses(std::set<Expression::Ptr>& uses);
 
     virtual bool isUsed(Expression::Ptr findMe) const;

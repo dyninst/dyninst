@@ -73,7 +73,7 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual const Result& eval() const;
 
-    virtual void getUses(std::set<Expression::Ptr> &uses) = 0;
+    virtual void getUses(std::set<Expression::Ptr> &) {}
     virtual bool isUsed(Expression::Ptr findMe) const = 0;
 
     virtual std::string format(Dyninst::Architecture, formatStyle = defaultStyle) const = 0;

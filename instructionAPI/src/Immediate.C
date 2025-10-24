@@ -49,8 +49,6 @@ namespace Dyninst { namespace InstructionAPI {
 
   bool Immediate::isUsed(Expression::Ptr findMe) const { return *findMe == *this; }
 
-  void Immediate::getUses(std::set<Expression::Ptr>&) { return; }
-
   std::string Immediate::format(Architecture arch, formatStyle) const {
     return ArchSpecificFormatter::getFormatter(arch).formatImmediate(eval().format());
   }
