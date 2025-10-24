@@ -51,8 +51,6 @@ public:
   AmdgpuPrologue(Dyninst::Register dest, Dyninst::Register base, unsigned offset)
       : dest_(dest), base_(base), offset_(offset) {}
 
-  ~AmdgpuPrologue() = default;
-
   bool generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer);
 
 private:
