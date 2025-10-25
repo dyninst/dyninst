@@ -77,7 +77,6 @@ namespace Dyninst { namespace InstructionAPI {
   private:
     buffer m_buf;
     boost::shared_ptr<InstructionDecoderImpl> m_Impl;
-    void doDelayedDecode(const Instruction* insn_to_complete);
   };
 
 }}

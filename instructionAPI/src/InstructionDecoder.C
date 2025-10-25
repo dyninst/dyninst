@@ -84,10 +84,6 @@ namespace Dyninst { namespace InstructionAPI {
     return m_Impl->decode(tmp);
   }
 
-  DYNINST_EXPORT void InstructionDecoder::doDelayedDecode(const Instruction* i) {
-    m_Impl->doDelayedDecode(i);
-  }
-
   using cbt = InstructionDecoder::unknown_instruction::callback_t;
 
   void InstructionDecoder::unknown_instruction::register_callback(cbt cb) { ::callback = cb; }

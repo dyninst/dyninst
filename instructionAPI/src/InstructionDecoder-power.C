@@ -936,14 +936,6 @@ which are both 0).
 
   void InstructionDecoder_power::setFPMode() { isFPInsn = true; }
 
-  void InstructionDecoder_power::doDelayedDecode(const Instruction* insn_to_complete) {
-
-    insn_in_progress = boost::shared_ptr<Instruction>(new Instruction(*insn_to_complete));
-    decodeOperands(insn_in_progress.get());
-    Instruction* iptr = const_cast<Instruction*>(insn_to_complete);
-    *iptr = *(insn_in_progress.get());
-  }
-
   MachRegister InstructionDecoder_power::makePowerRegID(MachRegister base, unsigned int encoding,
                                                         int field_) {
     if(field_ != -1) {
@@ -1517,11 +1509,9 @@ which are both 0).
     }
     insn_in_progress =
         makeInstruction(current->op, current->mnemonic, 4, reinterpret_cast<unsigned char*>(&insn));
-    if(current->op == power_op_b || current->op == power_op_bc || current->op == power_op_bclr ||
-       current->op == power_op_bcctr) {
-      // decode control-flow operands immediately; we're all but guaranteed to need them
-      decodeOperands(insn_in_progress.get());
-    }
+
+    decodeOperands(insn_in_progress.get());
+
     // FIXME in parsing
     insn_in_progress->arch_decoded_from = m_Arch;
     // insn_in_progress->arch_decoded_from = Arch_ppc32;
