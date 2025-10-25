@@ -64,6 +64,12 @@
 
 #include "PatchMgr.h"
 
+#include "PointHandler.h"
+
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#include "AmdgpuPointHandler.h"
+#endif
+
 using Dyninst::PatchAPI::Patcher;
 using Dyninst::PatchAPI::DynInsertSnipCommand;
 using Dyninst::PatchAPI::DynReplaceFuncCommand;
@@ -73,6 +79,11 @@ using Dyninst::PatchAPI::DynRemoveCallCommand;
 BPatch_addressSpace::BPatch_addressSpace() :
    pendingInsertions(NULL), image(NULL)
 {
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  pointHandler.reset(new Dyninst::AmdgpuGfx908PointHandler());
+#else
+  pointHandler.reset(new Dyninst::PointHandler());
+#endif
 }
 
 BPatch_addressSpace::~BPatch_addressSpace()
@@ -855,6 +866,8 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
                                                                     BPatch_callWhen when,
                                                                     BPatch_snippetOrder order)
 {
+  pointHandler->handlePoints(points);
+
   BPatchSnippetHandle *retHandle = new BPatchSnippetHandle(this);
 
   if (dyn_debug_inst) {
