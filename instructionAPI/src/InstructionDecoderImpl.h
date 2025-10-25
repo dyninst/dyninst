@@ -33,12 +33,10 @@
 
 #include <stdint.h>
 #include "Expression.h"
-#include "MultiRegister.h"
 #include "Architecture.h"
-#include "Operation_impl.h"
 #include "entryIDs.h"
 #include "Instruction.h"
-#include "InstructionDecoder.h" // buffer...anything else?
+#include "InstructionDecoder.h"
 
 namespace Dyninst
 {
@@ -73,13 +71,12 @@ class InstructionDecoderImpl
         virtual Expression::Ptr makeRegisterExpression(MachRegister reg, unsigned int start , unsigned int end);
         virtual Expression::Ptr makeMaskRegisterExpression(MachRegister reg);
         virtual Expression::Ptr makeRegisterExpression(MachRegister reg, Result_Type extendFrom);
+
         // added to support ternary value 
         virtual Expression::Ptr makeTernaryExpression(Expression::Ptr cond, Expression::Ptr first, Expression::Ptr second, Result_Type resultType);
-        //Instruction* makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,const unsigned char* raw);
         boost::shared_ptr<Instruction> makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,
                                      const unsigned char* raw);
-      
-    protected:
+
         Operation m_Operation;
         Architecture m_Arch;
 
@@ -88,4 +85,4 @@ class InstructionDecoderImpl
 }
 }
 
-#endif //!defined(INSTRUCTION_DECODER_IMPL_H)
+#endif
