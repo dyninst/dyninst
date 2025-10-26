@@ -46,7 +46,6 @@ bool check(Dyninst::Architecture arch) {
   auto success = true;
 
   std::unordered_map<unsigned int, std::string> vals;
-  int i = 0;
   for(auto r : regs) {
     auto res = vals.insert({r.val(), r.name()});
     auto itr = res.first;
@@ -55,10 +54,9 @@ bool check(Dyninst::Architecture arch) {
       auto val = itr->first;
       auto name = itr->second;
       std::cerr << "alias: 0x" << std::hex << val
-                << "  " << r.name() << "  " << std::dec << i << "\n";
+                << "  " << r.name() << "\n";
       success = false;
     }
-    i++;
   }
 
   return success;
