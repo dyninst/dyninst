@@ -35,13 +35,13 @@
 #include "AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h"
 #include "AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h"
 #include "AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h"
+#include "MultiRegister.h"
 
 #include "BinaryFunction.h"
 #include "Dereference.h"
 #include "Ternary.h"
 #include <boost/make_shared.hpp>
 
-using namespace std;
 namespace Dyninst
 {
     namespace InstructionAPI

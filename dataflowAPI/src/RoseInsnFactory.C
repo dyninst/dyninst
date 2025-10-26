@@ -33,6 +33,7 @@
 #include "Dereference.h"
 #include "Immediate.h"
 #include "instructionAPI/src/InstructionDecoderImpl.h"
+#include "MultiRegister.h"
 
 #include "../rose/SgAsmInstruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
