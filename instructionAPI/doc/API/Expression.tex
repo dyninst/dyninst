@@ -96,29 +96,11 @@ equal. \code{RegisterAST}s are equal if they represent the same register.
 }
 
 \begin{apient}
-virtual void getUses(set<Expression::Ptr> & uses)
-\end{apient}
-\apidesc{
-    The use set of an \code{Expression} is defined as follows:
-    \begin{itemize}
-    \item A \code{RegisterAST} uses itself
-    \item A \code{BinaryFunction} uses the use sets of its children
-    \item A \code{Immediate} uses nothing
-    \item A \code{Dereference uses the use set of its child}
-    \end{itemize}
-
-    The use set of this node is appended to the set \code{uses}.
-}
-
-\begin{apient}
 virtual bool isUsed(Expression::Ptr findMe) const
 \end{apient}
 \apidesc{
-    Unlike \code{getUses}, \code{isUsed} looks for \code{findMe} as a subtree of
-    the current tree. \code{getUses} is designed to return a minimal set of
-    registers used in this tree, whereas \code{isUsed} is designed to allow
-    searches for arbitrary subexpressions. \code{findMe} is the AST node to find
-    in the use set of this node. 
+    Search for an arbitrary subexpressions, \code{findMe}, as a subtree of
+    the current tree. 
 
     Returns \code{true} if \code{findMe} is used by this AST node.
 }

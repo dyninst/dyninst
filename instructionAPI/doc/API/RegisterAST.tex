@@ -17,12 +17,6 @@ are known.
 is Dyninst's register representation and should not be constructed manually. }
 
 \begin{apient}
-  void getUses (set< Expression::Ptr > & uses)
-\end{apient}
-\apidesc{ By definition, the use set of a \code{RegisterAST} object is itself. This \code{RegisterAST} will be 
-inserted into \code{uses}. }
-
-\begin{apient}
   bool isUsed (Expression::Ptr findMe) const
 \end{apient}
 \apidesc{ \code{isUsed} returns \code{true} if \code{findMe} is a \code{RegisterAST} that represents the same 

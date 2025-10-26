@@ -27,14 +27,6 @@ MultiRegisterAST(std::vector<RegisterAST::Ptr> _in);
 \end{apient}
 
 \begin{apient}
-void getUses (set< Expression::Ptr > & uses)
-\end{apient}
-\apidesc{
-By definition, the use set of a \code{MultiRegister} object is itself.
-This \code{MultiRegister} will be inserted into \code{uses}.
-}
-
-\begin{apient}
 bool isUsed (Expression::Ptr findMe) const
 \end{apient}
 \apidesc{

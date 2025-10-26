@@ -54,14 +54,6 @@ Returns the left and right subexpressions.
 }
 
 \begin{apient}
-void getUses (set< Expression::Ptr > & uses) 
-\end{apient}
-\apidesc{
-The use set of a \code{BinaryFunction} is the union of the use sets of its children.
-Appends the use set of this \code{BinaryFunction} to \code{uses}.
-}
-
-\begin{apient}
 bool isUsed (Expression::Ptr findMe) const 
 \end{apient}
 \apidesc{

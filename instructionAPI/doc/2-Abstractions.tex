@@ -116,7 +116,7 @@ instruction is represented using these objects.
 \end{figure}
 
 These ASTs may be searched for leaf elements or subtrees (via 
-\code{getUses} and \code{isUsed}) and traversed breadth-\/first or depth-\/first
+\code{getUsedRegisters} and \code{isUsed}) and traversed breadth-\/first or depth-\/first
 (via \code{getSubexpressions}).
 
 Any node in these ASTs may be evaluated. Evaluation attempts to determine the
@@ -126,3 +126,10 @@ allows the substitution of known register and memory values into an operand,
 regardless of whether those values are known at the time an instruction is
 decoded. More details on this mechanism may be found in
 Section~\ref{sec:expression}.
+
+\begin{apient}
+std::vector<RegisterAST::Ptr> getUsedRegisters(Expression::Ptr expr)
+\end{apient}
+\apidesc{
+Returns the AST nodes for the registers read or written by \code{expr}.
+}

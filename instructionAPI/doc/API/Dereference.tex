@@ -46,14 +46,6 @@ Returns the expression for the address being dereferenced.
 }
 
 \begin{apient}
-virtual void getUses (set< Expression::Ptr > & uses)
-\end{apient}
-\apidesc{
-The use set of a \code{Dereference} is the same as the use set of its children.
-The use set of this \code{Dereference} is inserted into \code{uses}.
-}
-
-\begin{apient}
 virtual bool isUsed (Expression::Ptr findMe) const
 \end{apient}
 \apidesc{
