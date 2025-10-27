@@ -86,7 +86,7 @@ int main() {
     0x65, 0x49, 0x8b, 0x04, 0x25, 0x78, 0x56, 0x34, 0x12   // mov rax, qword ptr gs:[0x12345678]
   }});
 
-  // Multiply rax by e
+  // Multiply rax by 3
   emitter->emitTimesImm(REGNUM_EAX, REGNUM_EAX, 0x03, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<7>{{
     0x48, 0x69, 0xc0, 0x03, 0x0, 0x0, 0x0   // imul rax, rax, 3
