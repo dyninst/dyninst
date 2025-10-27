@@ -62,11 +62,6 @@ namespace Dyninst { namespace InstructionAPI {
 
   RegisterAST::~RegisterAST() {}
 
-  void RegisterAST::getUses(set<Expression::Ptr>& uses) {
-    uses.insert(shared_from_this());
-    return;
-  }
-
   bool RegisterAST::isUsed(Expression::Ptr findMe) const {
     return findMe->checkRegID(m_Reg, m_Low, m_High);
   }

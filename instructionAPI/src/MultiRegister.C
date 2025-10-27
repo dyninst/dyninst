@@ -58,12 +58,6 @@ namespace Dyninst { namespace InstructionAPI {
       : Expression(inputRegASTs[0]->getID(), inputRegASTs.size()), m_Regs{std::move(inputRegASTs)} {
   }
 
-  void MultiRegisterAST::getUses(set<Expression::Ptr>& uses) {
-    for(const auto& m_Reg : m_Regs) {
-      m_Reg->getUses(uses);
-    }
-  }
-
   bool MultiRegisterAST::isUsed(Expression::Ptr findMe) const { return isStrictEqual(*findMe); }
 
   std::string MultiRegisterAST::format(Architecture arch, formatStyle) const {

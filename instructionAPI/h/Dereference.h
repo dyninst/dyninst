@@ -58,12 +58,6 @@ namespace Dyninst { namespace InstructionAPI {
       return {addressToDereference};
     }
 
-    DYNINST_DEPRECATED("Use InstructionAPI::getUsedRegisters()")
-    virtual void getUses(std::set<Expression::Ptr>& uses) override {
-      addressToDereference->getUses(uses);
-      return;
-    }
-
     virtual bool isUsed(Expression::Ptr findMe) const override {
       return addressToDereference->isUsed(findMe) || *findMe == *this;
     }
