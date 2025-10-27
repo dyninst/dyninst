@@ -44,7 +44,7 @@
 
 namespace Dyninst { namespace InstructionAPI {
 
-  std::vector<RegisterAST::Ptr> getUsedRegisters(Expression::Ptr expr) {
+  inline std::vector<RegisterAST::Ptr> getUsedRegisters(Expression::Ptr expr) {
     if(!expr) {
       return {};
     }
