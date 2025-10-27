@@ -36,6 +36,7 @@ bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::B
   // object to generate the code and copy what we get there into the
   // 'Dyninst::Buffer' object passed here.
 
+  // We need 12 bytes for the prologue (a s_load_dwordx2, followed by a waitcnt)
   codeGen gen(20);
   EmitterAmdgpuGfx908 emitter;
 

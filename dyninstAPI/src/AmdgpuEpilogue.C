@@ -33,6 +33,7 @@
 
 // Similar approach to prologue
 bool AmdgpuEpilogue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::Buffer &buffer) {
+  // We need 8 bytes for the epilogue (a s_dcache_wb instruction).
   codeGen gen(20);
   EmitterAmdgpuGfx908 emitter;
 
