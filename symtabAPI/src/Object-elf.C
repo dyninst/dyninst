@@ -1620,7 +1620,7 @@ void ObjectELF::load_object(bool alloc_syms) {
             auto riscv_parse_attr_string = [this](int tag, std::string value) -> bool {
                 switch (tag) {
                     case RiscvAttrTag::arch:
-                        riscv_attrs.riscv_attr_string = value;
+                        riscv_attrs.riscv_extension_string = value;
                         return false;
                     default:
                         return true;
