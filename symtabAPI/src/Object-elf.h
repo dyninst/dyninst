@@ -531,7 +531,9 @@ private:
   void parse_dynamicSymbols( Elf_X_Shdr *& dyn_scnp, Elf_X_Data &symdata,
                              Elf_X_Data &strdata, bool shared_library);
 
-  bool parse_attrs(const char *, int, const char *, std::function<int(const char *)>);
+  bool parse_attrs(const char *, int, const char *,
+          std::function<bool(int, int)>,
+          std::function<bool(int, std::string)>);
 
   void get_riscv_extensions();
 
@@ -547,8 +549,6 @@ private:
   bool find_catch_blocks(Elf_X_Shdr *eh_frame, Elf_X_Shdr *except_scn,
                          Address textaddr, Address dataaddr,
                          std::vector<ExceptionBlock> &catch_addrs);
-
-  int handle_riscv_attr(const char *attr);
 
   // Line info: CUs to skip
   std::set<std::string> modules_parsed_for_line_info;
