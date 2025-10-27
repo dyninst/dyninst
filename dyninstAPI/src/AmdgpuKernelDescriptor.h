@@ -66,7 +66,7 @@ public:
   //
   // work with individual contents in the COMPUTE_PGM_RSRC3
   //
-  // GFX90A, GFX940 begin
+  // GFX90A, GFX942 begin
   //
   // NOTE : THIS IS A 6 BIT VALUE
   uint32_t getCOMPUTE_PGM_RSRC3_AccumOffset() const;
@@ -78,7 +78,7 @@ public:
   void setCOMPUTE_PGM_RSRC3_TgSplit(bool value);
 
   // 15 reserved bits
-  // GFX90A, GFX940 end
+  // GFX90A, GFX942 end
   //
   // GFX10, GFX11 begin
   //
@@ -288,7 +288,7 @@ public:
 
 private:
   void dumpCOMPUTE_PGM_RSRC3(std::ostream &os) const;
-  void dumpCOMPUTE_PGM_RSRC3_Gfx90aOr940(std::ostream &os) const;
+  void dumpCOMPUTE_PGM_RSRC3_Gfx90aOr942(std::ostream &os) const;
   void dumpCOMPUTE_PGM_RSRC3_Gfx10Plus(std::ostream &os) const;
 
   void dumpCOMPUTE_PGM_RSRC1(std::ostream &os) const;
@@ -301,7 +301,7 @@ private:
   bool isGfx7() const;
   bool isGfx8() const;
   bool isGfx9() const;
-  bool isGfx90aOr940() const;
+  bool isGfx90aOr942() const;
   bool isGfx9Plus() const;
   bool isGfx10() const;
   bool isGfx10Plus() const;

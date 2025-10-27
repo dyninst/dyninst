@@ -60,12 +60,12 @@ bool AmdgpuKernelDescriptor::isGfx8() const {
 }
 
 bool AmdgpuKernelDescriptor::isGfx9() const {
-  return isGfx90aOr940() ||
+  return isGfx90aOr942() ||
          (amdgpuMach >= EF_AMDGPU_MACH_AMDGCN_GFX900 && amdgpuMach <= EF_AMDGPU_MACH_AMDGCN_GFX90C);
 }
 
-bool AmdgpuKernelDescriptor::isGfx90aOr940() const {
-  return amdgpuMach >= EF_AMDGPU_MACH_AMDGCN_GFX90A && amdgpuMach <= EF_AMDGPU_MACH_AMDGCN_GFX940;
+bool AmdgpuKernelDescriptor::isGfx90aOr942() const {
+  return amdgpuMach >= EF_AMDGPU_MACH_AMDGCN_GFX90A && amdgpuMach <= EF_AMDGPU_MACH_AMDGCN_GFX942;
 }
 
 bool AmdgpuKernelDescriptor::isGfx9Plus() const { return isGfx9() || isGfx10Plus(); }
@@ -134,15 +134,15 @@ void AmdgpuKernelDescriptor::setKernelCodeEntryByteOffset(int64_t value) {
 //
 uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3() const { return kdRepr.compute_pgm_rsrc3; }
 
-// GFX90A, GFX940 begin
+// GFX90A, GFX942 begin
 uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_AccumOffset() const {
-  assert(isGfx90aOr940());
+  assert(isGfx90aOr942());
   const uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc3;
   return GET_VALUE(COMPUTE_PGM_RSRC3_GFX90A_ACCUM_OFFSET);
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC3_AccumOffset(uint32_t value) {
-  assert(isGfx90aOr940());
+  assert(isGfx90aOr942());
   uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc3;
   fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC3_GFX90A_ACCUM_OFFSET);
   assert(CHECK_WIDTH(COMPUTE_PGM_RSRC3_GFX90A_ACCUM_OFFSET) &&
@@ -151,19 +151,19 @@ void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC3_AccumOffset(uint32_t value) {
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_TgSplit() const {
-  assert(isGfx90aOr940());
+  assert(isGfx90aOr942());
   const uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc3;
   return GET_VALUE(COMPUTE_PGM_RSRC3_GFX90A_TG_SPLIT);
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC3_TgSplit(bool value) {
-  assert(isGfx90aOr940());
+  assert(isGfx90aOr942());
   uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc3;
   fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC3_GFX90A_TG_SPLIT);
   kdRepr.compute_pgm_rsrc3 = SET_VALUE(COMPUTE_PGM_RSRC3_GFX90A_TG_SPLIT);
 }
 //
-// GFX90A, GFX940 end
+// GFX90A, GFX942 end
 
 // GFX10, GFX11 begin
 uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_SharedVgprCount() const {
@@ -728,7 +728,7 @@ void AmdgpuKernelDescriptor::setKernelCodeProperty_UsesDynamicStack(bool value) 
 
 bool AmdgpuKernelDescriptor::supportsArchitectedFlatScratch() const {
   switch (amdgpuMach) {
-  case EF_AMDGPU_MACH_AMDGCN_GFX940:
+  case EF_AMDGPU_MACH_AMDGCN_GFX942:
   case EF_AMDGPU_MACH_AMDGCN_GFX1100:
   case EF_AMDGPU_MACH_AMDGCN_GFX1101:
   case EF_AMDGPU_MACH_AMDGCN_GFX1102:
@@ -831,8 +831,8 @@ void AmdgpuKernelDescriptor::dumpCOMPUTE_PGM_RSRC3(std::ostream &os) const {
   const char *indent = "    ";
   os << "  -- COMPUTE_PGM_RSRC3 begin\n";
 
-  if (isGfx90aOr940())
-    dumpCOMPUTE_PGM_RSRC3_Gfx90aOr940(os);
+  if (isGfx90aOr942())
+    dumpCOMPUTE_PGM_RSRC3_Gfx90aOr942(os);
 
   else if (isGfx10Plus())
     dumpCOMPUTE_PGM_RSRC3_Gfx10Plus(os);
@@ -843,8 +843,8 @@ void AmdgpuKernelDescriptor::dumpCOMPUTE_PGM_RSRC3(std::ostream &os) const {
   os << "  -- COMPUTE_PGM_RSRC3 end\n";
 }
 
-void AmdgpuKernelDescriptor::dumpCOMPUTE_PGM_RSRC3_Gfx90aOr940(std::ostream &os) const {
-  assert(isGfx90aOr940());
+void AmdgpuKernelDescriptor::dumpCOMPUTE_PGM_RSRC3_Gfx90aOr942(std::ostream &os) const {
+  assert(isGfx90aOr942());
   const char *indent = "    ";
 
   os << indent << "ACCUM_OFFSET : " << getCOMPUTE_PGM_RSRC3_AccumOffset() << '\n';
