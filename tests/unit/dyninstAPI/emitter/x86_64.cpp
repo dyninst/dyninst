@@ -14,7 +14,11 @@ int main() {
 
   BinaryEdit bin_edit{};
 
+  // The largest code sequence I've seen is 23 bytes, but there's no
+  // technical limitation on how much code could be generated for any
+  // operation. 128 bytes should be plenty.
   constexpr auto buffer_size = 128;
+
   codeGen gen(buffer_size);
   gen.setAddrSpace(&bin_edit);
   gen.setRegisterSpace(rs);
