@@ -32,6 +32,7 @@
 #include "PatchCommon.h"
 #include "PatchCFG.h"
 #include "AddrSpace.h"
+#include "InstructionAST.h"
 #include "PatchObject.h"
 #include "PatchMgr.h"
 #include "PatchCallback.h"
@@ -235,18 +236,12 @@ PatchBlock::containsDynamicCall() {
              if (insn.readsMemory()) { // memory indirect
                  return true;
              } else { // check for register indirect
-                 set<Expression::Ptr> regs;
                  Expression::Ptr tExpr = insn.getControlFlowTarget();
-                 if (tExpr)
-                     tExpr->getUses(regs);
-                 for (set<Expression::Ptr>::iterator rit = regs.begin();
-                      rit != regs.end(); rit++)
-                 {
-                     if (RegisterAST::makePC(obj()->co()->cs()->getArch()).getID() != 
-                         boost::dynamic_pointer_cast<RegisterAST>(*rit)->getID()) 
-                     {
-                         return true;
-                     }
+                 auto pc = RegisterAST::makePC(obj()->co()->cs()->getArch()).getID();
+                 for(auto r : getUsedRegisters(tExpr)) {
+                   if(r->getID() != pc) {
+                     return true;
+                   }
                  }
              }
          }

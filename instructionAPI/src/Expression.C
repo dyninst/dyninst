@@ -29,6 +29,7 @@
  */
 
 #include "Expression.h"
+#include "InstructionAST.h"
 
 namespace Dyninst { namespace InstructionAPI {
   Expression::Expression(Result_Type t) : userSetValue(t) {}
@@ -80,6 +81,12 @@ namespace Dyninst { namespace InstructionAPI {
   Expression::~Expression() {}
 
   const Result& Expression::eval() const { return userSetValue; }
+
+  void Expression::getUses(std::set<Expression::Ptr> &uses) {
+    for(auto reg : getUsedRegisters(shared_from_this())) {
+      uses.insert(reg);
+    }
+  }
 
   void Expression::setValue(const Result& knownValue) { userSetValue = knownValue; }
 

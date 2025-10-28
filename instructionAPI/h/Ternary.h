@@ -50,8 +50,6 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual ~TernaryAST();
 
-    virtual void getUses(std::set<Expression::Ptr>& uses);
-
     virtual bool isUsed(Expression::Ptr findMe) const;
 
     virtual std::string format(Architecture, formatStyle how = defaultStyle) const;

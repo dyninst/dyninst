@@ -215,13 +215,6 @@ namespace Dyninst { namespace InstructionAPI {
       return {m_arg1, m_arg2};
     }
 
-    virtual void getUses(std::set<Expression::Ptr>& uses) override {
-      m_arg1->getUses(uses);
-      m_arg2->getUses(uses);
-
-      return;
-    }
-
     virtual bool isUsed(Expression::Ptr findMe) const override {
       return m_arg1->isUsed(findMe) || m_arg2->isUsed(findMe) || (*m_arg1 == *findMe) ||
              (*m_arg2 == *findMe) || (*findMe == *this);

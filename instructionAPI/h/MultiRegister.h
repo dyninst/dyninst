@@ -53,8 +53,6 @@ namespace Dyninst { namespace InstructionAPI {
     virtual ~MultiRegisterAST() = default;
     MultiRegisterAST(const MultiRegisterAST&) = default;
 
-    virtual void getUses(std::set<Expression::Ptr>& uses) override;
-
     virtual bool isUsed(Expression::Ptr findMe) const override;
 
     virtual std::string format(Architecture, formatStyle how = defaultStyle) const override;

@@ -46,11 +46,6 @@ namespace Dyninst { namespace InstructionAPI {
 
   TernaryAST::~TernaryAST() {}
 
-  void TernaryAST::getUses(set<Expression::Ptr>& uses) {
-    uses.insert(shared_from_this());
-    return;
-  }
-
   bool TernaryAST::isUsed(Expression::Ptr) const {
     return false; // TODO
   }
