@@ -32,7 +32,6 @@
 #define MULTIREGISTER_H
 
 #include "Architecture.h"
-#include "compiler_annotations.h"
 #include "Expression.h"
 #include "Register.h"
 #include "registers/MachRegister.h"

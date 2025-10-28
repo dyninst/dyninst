@@ -32,7 +32,6 @@
 #define TERNARY_H
 
 #include "Architecture.h"
-#include "compiler_annotations.h"
 #include "Expression.h"
 
 #include <map>

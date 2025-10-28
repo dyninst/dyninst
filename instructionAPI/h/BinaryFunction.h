@@ -32,7 +32,6 @@
 #define BINARYFUNCTION_H
 
 #include "ArchSpecificFormatters.h"
-#include "compiler_annotations.h"
 #include "Expression.h"
 #include "Register.h"
 #include "Result.h"

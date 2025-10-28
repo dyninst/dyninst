@@ -33,7 +33,6 @@
 
 #include "ArchSpecificFormatters.h"
 #include "BinaryFunction.h"
-#include "compiler_annotations.h"
 #include "Expression.h"
 #include "Immediate.h"
 #include "Operand.h"
