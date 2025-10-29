@@ -1631,6 +1631,7 @@ void ObjectELF::load_object(bool alloc_syms) {
                     riscv_parse_attr_string);
             if (!result) {
                 create_printf("%s[%d]: riscv attributes missing or corrupted\n", FILE__, __LINE__);
+                return;
             }
             get_riscv_extensions();
         }
