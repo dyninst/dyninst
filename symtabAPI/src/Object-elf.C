@@ -4304,7 +4304,7 @@ bool ObjectELF::parse_attrs(const char *attr_string,
         curr += sizeof(attr_section_size);
         // The next null-terminated string indicates the name of the current attribute
         const char *curr_attr_section_name = &attr_string[curr];
-        if (strcmp(curr_attr_section_name, attr_section_name)) {
+        if (strcmp(curr_attr_section_name, attr_section_name) != 0) {
             create_printf("%s[%d]:  Unexpected attribute section '%s'\n", FILE__, __LINE__, curr_attr_section_name);
             return false;
         }
