@@ -4454,6 +4454,7 @@ void ObjectELF::get_riscv_extensions() {
             riscv_attrs.floatABI = RiscvFloatAbiEnum::QUAD;
             break;
         default:
+            create_printf("%s[%d]:  Unsupported RISC-V float ABI (%lu)\n", FILE__, __LINE__, e_flags & EF_RISCV_FLOAT_ABI);
             break;
     }
     if (e_flags & EF_RISCV_RVE) {
