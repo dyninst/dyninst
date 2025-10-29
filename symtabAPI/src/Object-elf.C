@@ -842,8 +842,6 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
         } else if (scn.sh_type() == SHT_RISCV_ATTRIBUTES) {
             riscv_attr_size_ = scnp->get_data().d_size();
             riscv_attr_addr_ = scnp->sh_offset();
-            std::cout << std::hex << scnp->sh_offset() << std::endl;
-            std::cout << std::hex << scnp->sh_addr() << std::endl;
         } else if ((int) i == dynamic_section_index) {
             dynamic_scnp = scnp;
             dynamic_addr_ = scn.sh_addr();
