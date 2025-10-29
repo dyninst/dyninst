@@ -537,7 +537,7 @@ private:
 
   void get_riscv_extensions();
 
-  bool usesCompressedInstructionFormat() override { return riscv_attrs.compressed_extension; }
+  bool usesCompressedInstructionFormat() const override { return riscv_attrs.compressed_extension; }
 
   void find_code_and_data(Elf_X &elf,
        Offset txtaddr, Offset dataddr);
