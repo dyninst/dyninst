@@ -4301,7 +4301,7 @@ bool ObjectELF::parse_attrs(const char *attr_string,
             return false;
         }
         int attr_section_end = curr + attr_section_size;
-        curr += sizeof(int);
+        curr += sizeof(attr_section_size);
         // The next null-terminated string indicates the name of the current attribute
         const char *curr_attr_section_name = &attr_string[curr];
         if (strcmp(curr_attr_section_name, attr_section_name)) {
