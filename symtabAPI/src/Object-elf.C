@@ -4293,7 +4293,7 @@ bool ObjectELF::parse_attrs(const char *attr_string,
     while (curr < section_end) {
 
         // Get the attribute section size
-        int attr_section_size = read_memory_as<int>(&attr_string[curr]);
+        int32_t attr_section_size = read_memory_as<int32_t>(&attr_string[curr]);
         if (attr_section_size > section_end) {
             create_printf("%s[%d]:  Bad attribute section length (%d > %d)\n",
                     FILE__, __LINE__, attr_section_size, section_end);
@@ -4320,7 +4320,7 @@ bool ObjectELF::parse_attrs(const char *attr_string,
                 return false;
             }
 
-            int attr_size = read_memory_as<int>(&attr_string[curr]);
+            int32_t attr_size = read_memory_as<int32_t>(&attr_string[curr]);
             if (attr_size > attr_section_end) {
                 create_printf("%s[%d]:  Bad attribute length (%d > %d)\n",
                         FILE__, __LINE__, attr_size, attr_section_end);
