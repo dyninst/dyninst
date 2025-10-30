@@ -126,23 +126,7 @@ namespace Dyninst { namespace InstructionAPI {
     return sGetImplicitOP(implicit_operands, i) != 0x0;
   }
 
-  DYNINST_EXPORT InstructionDecoder_x86::InstructionDecoder_x86(Architecture a)
-      : InstructionDecoderImpl(a), locs(NULL), decodedInstruction(NULL), sizePrefixPresent(false),
-        addrSizePrefixPresent(false) {
-    if(a == Arch_x86_64)
-      InstructionDecoder_x86::setMode(true);
-  }
-
-  DYNINST_EXPORT InstructionDecoder_x86::~InstructionDecoder_x86() {
-    free(decodedInstruction);
-    free(locs);
-  }
-
   static const unsigned char modrm_use_sib = 4;
-
-  DYNINST_EXPORT void InstructionDecoder_x86::setMode(bool is64) {
-    InstructionDecoder_x86::is64BitMode = is64;
-  }
 
   Expression::Ptr InstructionDecoder_x86::makeSIBExpression(const InstructionDecoder::buffer& b) {
     unsigned scale;
@@ -1741,16 +1725,6 @@ namespace Dyninst { namespace InstructionAPI {
     }
   }
 
-  void InstructionDecoder_x86::decodeOpcode(InstructionDecoder::buffer& b) {
-    doIA32Decode(b);
-
-    // Do not move through the buffer if a bad instruction was encountered
-    if(m_Operation.getID() == e_No_Entry)
-      return;
-
-    b.start += decodedInstruction->getSize();
-  }
-
   bool InstructionDecoder_x86::decodeOperands(const Instruction* insn_to_complete) {
     int imm_index = 0; // handle multiple immediate operands
     if(!decodedInstruction || !decodedInstruction->getEntry())
@@ -1824,20 +1798,6 @@ namespace Dyninst { namespace InstructionAPI {
     }
 
     return true;
-  }
-
-  DYNINST_EXPORT Instruction InstructionDecoder_x86::decode(InstructionDecoder::buffer& b) {
-    const unsigned char* start = b.start;
-    decodeOpcode(b);
-    unsigned int decodedSize = b.start - start;
-
-    auto insn = Instruction(m_Operation, decodedSize, start, m_Arch);
-
-    if(insn.isValid()) {
-      decodeOperands(&insn);
-    }
-
-    return insn;
   }
 
 }}

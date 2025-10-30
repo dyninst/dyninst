@@ -28,53 +28,62 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "InstructionCategories.h"
-#include "entryIDs.h"
+#include "Result.h"
 
 namespace Dyninst { namespace InstructionAPI {
 
-  InsnCategory entryToCategory(entryID e) {
-    switch(e) {
-      case aarch64_op_ret:
-        return c_ReturnInsn;
-
-      case amdgpu_gfx908_op_S_ENDPGM: // special treatment for endpgm
-      case amdgpu_gfx90a_op_S_ENDPGM: // special treatment for endpgm
-      case amdgpu_gfx940_op_S_ENDPGM: // special treatment for endpgm
-        return c_GPUKernelExitInsn;
-
-      case aarch64_op_bl:
-      case aarch64_op_blr:
-        return c_CallInsn;
-
-      case aarch64_op_b_uncond:
-      case aarch64_op_b_cond:
-      case aarch64_op_tbz:
-      case aarch64_op_tbnz:
-      case aarch64_op_cbz:
-      case aarch64_op_cbnz:
-      case aarch64_op_br:
-      case power_op_b:
-      case power_op_bc:
-      case power_op_bcctr:
-      case power_op_bclr:
-#include "amdgpu_branchinsn_table.h"
-        return c_BranchInsn;
-
-      case power_op_cmp:
-      case power_op_cmpi:
-      case power_op_cmpl:
-      case power_op_cmpli:
-        return c_CompareInsn;
-
-      case aarch64_op_brk:
-      case aarch64_op_hlt:
-      case aarch64_op_wfe_hint:
-      case aarch64_op_wfi_hint:
-        return c_SoftwareExceptionInsn;
-      default:
-      	return c_NoCategory;
+  // clang-format off
+  inline Result_Type size_to_type_unsigned(uint8_t cap_size) {
+    switch (cap_size) {
+      case 1:  return u8;
+      case 2:  return u16;
+      case 3:  return u24;
+      case 4:  return u32;
+      case 6:  return u48;
+      case 8:  return u64;
+      default: return invalid_type;
     }
   }
+  inline Result_Type size_to_type_signed(uint8_t cap_size) {
+    switch (cap_size) {
+      case 1:  return s8;
+      case 2:  return s16;
+      case 4:  return s32;
+      case 6:  return s48;
+      case 8:  return s64;
+      default: return invalid_type;
+    }
+  }
+  inline Result_Type size_to_type_float(uint8_t cap_size) {
+    switch (cap_size) {
+      case 4:  return sp_float;
+      case 8:  return dp_float;
+      case 16: return dbl128;
+      default: return invalid_type;
+    }
+  }
+  inline Result_Type size_to_type_memory(uint8_t cap_size) {
+    switch (cap_size) {
+      case 10: return m80;
+      case 12: return m96;
+      case 14: return m14;
+      case 16: return m128;
+      case 20: return m160;
+      case 24: return m192;
+      case 28: return m224;
+      case 32: return m256;
+      case 36: return m288;
+      case 40: return m320;
+      case 44: return m352;
+      case 48: return m384;
+      case 52: return m416;
+      case 56: return m448;
+      case 60: return m480;
+      case 64: return m512;
+      default: return invalid_type;
+    }
+  }
+
+  // clang-format on
 
 }}

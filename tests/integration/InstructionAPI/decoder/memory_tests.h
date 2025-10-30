@@ -28,53 +28,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "InstructionCategories.h"
-#include "entryIDs.h"
+#ifndef DYNINST_TESTS_INSTRUCTIONAPI_MEMORY_TESTS_H
+#define DYNINST_TESTS_INSTRUCTIONAPI_MEMORY_TESTS_H
+
+#include "Instruction.h"
+#include "register_tests.h"
+#include "registers/register_set.h"
 
 namespace Dyninst { namespace InstructionAPI {
 
-  InsnCategory entryToCategory(entryID e) {
-    switch(e) {
-      case aarch64_op_ret:
-        return c_ReturnInsn;
+  struct mem_test {
+    bool readsMemory;
+    bool writesMemory;
+    register_rw_test regs;
+  };
 
-      case amdgpu_gfx908_op_S_ENDPGM: // special treatment for endpgm
-      case amdgpu_gfx90a_op_S_ENDPGM: // special treatment for endpgm
-      case amdgpu_gfx940_op_S_ENDPGM: // special treatment for endpgm
-        return c_GPUKernelExitInsn;
-
-      case aarch64_op_bl:
-      case aarch64_op_blr:
-        return c_CallInsn;
-
-      case aarch64_op_b_uncond:
-      case aarch64_op_b_cond:
-      case aarch64_op_tbz:
-      case aarch64_op_tbnz:
-      case aarch64_op_cbz:
-      case aarch64_op_cbnz:
-      case aarch64_op_br:
-      case power_op_b:
-      case power_op_bc:
-      case power_op_bcctr:
-      case power_op_bclr:
-#include "amdgpu_branchinsn_table.h"
-        return c_BranchInsn;
-
-      case power_op_cmp:
-      case power_op_cmpi:
-      case power_op_cmpl:
-      case power_op_cmpli:
-        return c_CompareInsn;
-
-      case aarch64_op_brk:
-      case aarch64_op_hlt:
-      case aarch64_op_wfe_hint:
-      case aarch64_op_wfi_hint:
-        return c_SoftwareExceptionInsn;
-      default:
-      	return c_NoCategory;
-    }
-  }
+  bool verify(Instruction const &, mem_test const &);
 
 }}
+
+#endif

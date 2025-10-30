@@ -50,7 +50,6 @@ class InstructionDecoderImpl
         InstructionDecoderImpl(Architecture a) : m_Arch(a) {}
         virtual ~InstructionDecoderImpl() {}
         virtual Instruction decode(InstructionDecoder::buffer& b) = 0;
-        virtual void setMode(bool is64) = 0;
         static Ptr makeDecoderImpl(Architecture a);
 
     protected:
@@ -77,7 +76,6 @@ class InstructionDecoderImpl
         boost::shared_ptr<Instruction> makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,
                                      const unsigned char* raw);
 
-        Operation m_Operation;
         Architecture m_Arch;
 
 };

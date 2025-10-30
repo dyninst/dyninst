@@ -28,49 +28,45 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(INSTRUCTION_DECODER_X86_H)
-#define INSTRUCTION_DECODER_X86_H
+#ifndef INSTRUCTIONAPI_X86_DECODER_H
+#define INSTRUCTIONAPI_X86_DECODER_H
 
+#include "capstone/capstone.h"
+#include "capstone/x86.h"
 #include "InstructionDecoderImpl.h"
-#include "common/src/ia32_locations.h"
-
-namespace NS_x86 {
-  struct ia32_operand;
-  class ia32_instruction;
-}
+#include "Result.h"
 
 namespace Dyninst { namespace InstructionAPI {
 
-  class InstructionDecoder_x86 : public InstructionDecoderImpl {
-    friend class Instruction;
-
-  protected:
-    bool decodeOneOperand(const InstructionDecoder::buffer& b, const NS_x86::ia32_operand& operand,
-                          int& imm_index, const Instruction* insn_to_complete, bool isRead,
-                          bool isWritten, bool isImplicit);
-
-    Expression::Ptr makeSIBExpression(const InstructionDecoder::buffer& b);
-    Expression::Ptr makeModRMExpression(const InstructionDecoder::buffer& b, unsigned int opType);
-    Expression::Ptr getModRMDisplacement(const InstructionDecoder::buffer& b);
-    MachRegister makeRegisterID(unsigned int intelReg, unsigned int opType,
-                                bool isExtendedReg = false);
-    Expression::Ptr decodeImmediate(unsigned int opType, const unsigned char* immStart,
-                                    bool isSigned = false);
-    Result_Type makeSizeType(unsigned int opType);
+  class x86_decoder final : public InstructionDecoderImpl {
+  public:
+    struct disassem final {
+      csh handle{};
+      cs_insn *insn{};
+    };
 
   private:
-    void doIA32Decode(InstructionDecoder::buffer& b);
-    bool isDefault64Insn();
-    void decodeOpcode(InstructionDecoder::buffer&);
+    cs_mode mode{};
+    disassem disassembler{};
 
-    bool decodeOperands(const Instruction* insn_to_complete);
+  public:
+    x86_decoder(Dyninst::Architecture a);
+    x86_decoder() = delete;
+    x86_decoder(x86_decoder const &) = delete;
+    x86_decoder &operator=(x86_decoder const &) = delete;
+    x86_decoder(x86_decoder &&) = delete;
+    x86_decoder &operator=(x86_decoder &&) = delete;
+    ~x86_decoder();
 
-    ia32_locations* locs;
-    NS_x86::ia32_instruction* decodedInstruction;
-    bool sizePrefixPresent;
-    bool addrSizePrefixPresent;
-    bool is64BitMode;
+    Instruction decode(InstructionDecoder::buffer &) override;
+
+  private:
+    void decode_operands(Instruction&);
+    void decode_reg(Instruction&, cs_x86_op const &);
+    void decode_imm(Instruction&, cs_x86_op const &);
+    void decode_mem(Instruction&, cs_x86_op const &);
   };
+
 }}
 
 #endif
