@@ -47,6 +47,8 @@
 #include "InstructionDecoder.h"
 #include "Instruction.h"
 
+#include "Object.h"
+
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -696,6 +698,12 @@ SymtabCodeSource::init_try_blocks()
 	    assert(!"WARNING: overlapping try blocks\n");
 	}
     }
+}
+
+bool
+SymtabCodeSource::usesCompressedInstructionFormat() const
+{
+    return _symtab->getObject()->usesCompressedInstructionFormat();
 }
 
 bool

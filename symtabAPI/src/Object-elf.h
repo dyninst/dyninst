@@ -74,6 +74,8 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+#include <boost/optional.hpp>
+
 
 namespace Dyninst{
 
@@ -90,6 +92,50 @@ class Region;
 class Object;
 class ObjectELF;
 class InlinedFunction;
+
+#ifndef PT_RISCV_ATTRIBUTES
+#define PT_RISCV_ATTRIBUTES 0x70000003
+#endif
+
+#ifndef SHT_RISCV_ATTRIBUTES
+#define SHT_RISCV_ATTRIBUTES 0x70000003
+#endif
+
+#ifndef EF_RISCV_RVE
+#define EF_RISCV_RVE 0x0008
+#endif
+
+#ifndef EF_RISCV_TSO
+#define EF_RISCV_TSO 0x0010
+#endif
+
+// RISC-V attributes
+enum RiscvAttrTag {
+    stack_align = 4,
+    arch = 5,
+    unaligned_access = 6,
+    priv_spec = 8,
+    priv_spec_minor = 10,
+    priv_spec_revision = 12,
+    atomic_abi = 14,
+    x3_reg_usage = 16
+};
+enum class RiscvFloatAbiEnum { SOFT, SINGLE, DOUBLE, QUAD };
+struct RiscvAttributes {
+    bool compressed_extension;
+    bool embedded_abi;
+    bool total_store_ordering;
+    RiscvFloatAbiEnum floatABI;
+    std::map<std::string, std::pair<int, int>> riscv_extensions;
+    std::string riscv_extension_string;
+    boost::optional<int64_t> stack_align;
+    boost::optional<bool> unaligned_access;
+    boost::optional<int64_t> priv_spec;          // Deprecated
+    boost::optional<int64_t> priv_spec_minor;    // Deprecated
+    boost::optional<int64_t> priv_spec_revision; // Deprecated
+    boost::optional<int64_t> atomic_abi;
+    boost::optional<int64_t> x3_reg_usage;
+};
 
 class open_statement {
     public:
@@ -359,6 +405,8 @@ public:
   unsigned  rel_entry_size_; // DT_REL/DT_RELA in dynamic section
   Offset   opd_addr_;
   unsigned opd_size_;
+  Offset   riscv_attr_addr_;
+  unsigned riscv_attr_size_;
 
   bool      dwarvenDebugInfo;    // is DWARF debug info present?
   Offset   loadAddress_;      // The object may specify a load address
@@ -422,7 +470,7 @@ public:
 		    Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
 		    Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr*& dynamic_scnp, Elf_X_Shdr*& eh_frame,
 		    Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
-		   Elf_X_Shdr *&opd_scnp, Elf_X_Shdr*& symtab_shndx_scnp,
+		    Elf_X_Shdr *&opd_scnp, Elf_X_Shdr*& symtab_shndx_scnp,
           bool a_out=false);
   
   Symbol *handle_opd_symbol(Region *opd, Symbol *sym);
@@ -483,6 +531,14 @@ private:
   void parse_dynamicSymbols( Elf_X_Shdr *& dyn_scnp, Elf_X_Data &symdata,
                              Elf_X_Data &strdata, bool shared_library);
 
+  bool parse_attrs(const char *, int, const char *,
+          std::function<bool(int, int)>,
+          std::function<bool(int, std::string)>);
+
+  void get_riscv_extensions();
+
+  bool usesCompressedInstructionFormat() const override { return riscv_attrs.compressed_extension; }
+
   void find_code_and_data(Elf_X &elf,
        Offset txtaddr, Offset dataddr);
 
@@ -493,6 +549,7 @@ private:
   bool find_catch_blocks(Elf_X_Shdr *eh_frame, Elf_X_Shdr *except_scn,
                          Address textaddr, Address dataaddr,
                          std::vector<ExceptionBlock> &catch_addrs);
+
   // Line info: CUs to skip
   std::set<std::string> modules_parsed_for_line_info;
 
@@ -517,7 +574,9 @@ private:
   Function* containingFunc;
   std::unordered_map<void*, std::vector<open_statement> > contextMap;
 
-        };
+  RiscvAttributes riscv_attrs;
+};
+
 
 }//namespace SymtabAPI
 }//namespace Dyninst

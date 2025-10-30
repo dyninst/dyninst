@@ -26,6 +26,8 @@ if(NOT UNIX)
 endif()
 
 # We need >=0.186 because of NVIDIA line map extensions
+# Delete the RISCV elf macros if version upgraded >= 0.190
+# The macros are located in symtabAPI/h/relocationEntry.h and symtabAPI/src/Object-elf.h
 set(_min_version 0.186)
 
 if(ENABLE_DEBUGINFOD)

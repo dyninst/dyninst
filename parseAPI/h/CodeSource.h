@@ -339,7 +339,9 @@ class DYNINST_EXPORT SymtabCodeSource : public CodeSource, public boost::lockabl
     void removeRegion(CodeRegion *); // removes from region tree
 
     void overlapping_warn(const char * file, unsigned line) const;
-    
+
+    bool usesCompressedInstructionFormat() const;
+
     // statistics
     bool init_stats();
     std::vector<try_block> try_blocks;

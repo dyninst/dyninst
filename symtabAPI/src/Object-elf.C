@@ -76,10 +76,10 @@ using namespace std;
 #include <iomanip>
 
 #include <fstream>
-
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/optional.hpp>
 
 #include "SymReader.h"
 #include <endian.h>
@@ -278,6 +278,7 @@ static Region::RegionType getRelTypeByElfMachine(Elf_X *localHdr) {
         case EM_IA_64:
         case EM_AARCH64:
         case EM_AMDGPU:
+        case EM_RISCV:
             ret = Region::RT_RELA;
             break;
         default:
@@ -417,6 +418,9 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
             foundInterp = true;
         } else if (elfPhdr.p_type() == PT_LOAD) {
             hasProgramLoad_ = true;
+        } else if (elfPhdr.p_type() == PT_RISCV_ATTRIBUTES) {
+            riscv_attr_size_ = elfPhdr.p_filesz();
+            riscv_attr_addr_ = elfPhdr.p_offset();
         }
     }
 
@@ -838,6 +842,9 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
             hasModinfo_ = true;
         } else if (strcmp(name, GNU_LINKONCE_THIS_MODULE_NAME) == 0) {
             hasGnuLinkonceThisModule_ = true;
+        } else if (scn.sh_type() == SHT_RISCV_ATTRIBUTES) {
+            riscv_attr_size_ = scnp->get_data().d_size();
+            riscv_attr_addr_ = scnp->sh_offset();
         } else if ((int) i == dynamic_section_index) {
             dynamic_scnp = scnp;
             dynamic_addr_ = scn.sh_addr();
@@ -1569,6 +1576,69 @@ void ObjectELF::load_object(bool alloc_syms) {
             parse_opd(opd_scnp);
         } else if (got_scnp) {
             // Add a single global TOC value...
+        }
+
+        if (elfHdr->e_machine() == EM_RISCV) {
+            // From https://github.com/riscv-non-isa/riscv-elf-psabi-doc/blob/master/riscv-elf.adoc#attributes:
+            // Attributes are encoded in a vendor-specific section of type
+            // SHT_RISCV_ATTRIBUTES and name .riscv.attributes.
+
+            // The attribute data contains a series of <tag, value> pair.
+            // The tag is a uleb128 integer indication the attribute tag. The
+            // value is the attribute value corresponding to the tag. The RISC-V
+            // ABI defines that if the tag is odd, the attribute value will be
+            // an integer. Otherwise, it will be a string. 
+
+            // See https://github.com/bminor/binutils-gdb/blob/master/binutils/readelf.c
+            size_t elf_len;
+            const char *riscv_attr_addr = elfHdr->e_rawfile(elf_len) + riscv_attr_addr_;
+            int riscv_attr_size = riscv_attr_size_;
+            auto riscv_parse_attr_int = [this](int tag, int value) -> bool {
+                switch (tag) {
+                    case RiscvAttrTag::unaligned_access:
+                        riscv_attrs.unaligned_access = boost::make_optional(value != 0);
+                        return false;
+                    case RiscvAttrTag::stack_align:
+                        riscv_attrs.stack_align = boost::make_optional(value);
+                        return false;
+                    case RiscvAttrTag::priv_spec:
+                        riscv_attrs.priv_spec = boost::make_optional(value);
+                        return false;
+                    case RiscvAttrTag::priv_spec_minor:
+                        riscv_attrs.priv_spec_minor = boost::make_optional(value);
+                        return false;
+                    case RiscvAttrTag::priv_spec_revision:
+                        riscv_attrs.priv_spec_revision = boost::make_optional(value);
+                        return false;
+                    case RiscvAttrTag::atomic_abi:
+                        riscv_attrs.atomic_abi = boost::make_optional(value);
+                        return false;
+                    case RiscvAttrTag::x3_reg_usage:
+                        riscv_attrs.stack_align = boost::make_optional(value);
+                        return false;
+                    default:
+                        return true;
+                }
+            };
+            auto riscv_parse_attr_string = [this](int tag, std::string value) -> bool {
+                switch (tag) {
+                    case RiscvAttrTag::arch:
+                        riscv_attrs.riscv_extension_string = std::move(value);
+                        return false;
+                    default:
+                        return true;
+                }
+            };
+            bool result = parse_attrs(riscv_attr_addr,
+                    riscv_attr_size,
+                    "riscv",
+                    riscv_parse_attr_int,
+                    riscv_parse_attr_string);
+            if (!result) {
+                create_printf("%s[%d]: riscv attributes missing or corrupted\n", FILE__, __LINE__);
+                return;
+            }
+            get_riscv_extensions();
         }
 
         return;
@@ -3885,9 +3955,11 @@ bool ObjectELF::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
 
             // Determine which symbol table to use
             Symbol *sym = NULL;
+            Offset target = 0;
             // Use dynstr to ensure we've initialized dynsym...
             if (dynstr && curSymHdr && curSymHdr->sh_offset() == dynsym_offset) {
                 name = string(&dynstr[dynsym.st_name(symbol_index)]);
+                target = dynsym.st_value(symbol_index);
                 dyn_hash_map<int, Symbol *>::iterator sym_it;
                 sym_it = dynsymByIndex.find(symbol_index);
                 if (sym_it != dynsymByIndex.end()) {
@@ -3916,7 +3988,7 @@ bool ObjectELF::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
             }
 
             if (region != NULL) {
-                relocationEntry newrel(0, relOff, addend, name, sym, relType, regType);
+                relocationEntry newrel(target, relOff, addend, name, sym, relType, regType);
                 region->addRelocationEntry(newrel);
                 // relocations are also stored with their targets
                 // Need to find target region
@@ -4188,4 +4260,212 @@ bool ObjectELF::getRegValueAtFrame(Dyninst::Address pc, Dyninst::MachRegister re
    }
    return dwarf->frameParser()->getRegValueAtFrame(pc, reg, reg_result, reader, frame_error);
 
+}
+
+bool ObjectELF::parse_attrs(const char *attr_string,
+        int attr_string_size,
+        const char *attr_section_name,
+        std::function<bool(int, int)> parse_attr_int,
+        std::function<bool(int, std::string)> parse_attr_string)
+{
+    if (attr_string_size == 0) {
+        return false;
+    }
+
+    int curr = 0;
+    // The first character is the version of the attributes
+    // Currently only version 1, (aka 'A') is recognised
+    if (attr_string[curr] != 'A') {
+        create_printf("%s[%d]:  Unknown attributes version '%c'(%d) - expecting 'A'\n",
+                FILE__, __LINE__, attr_string[curr], attr_string[curr]);
+        return false;
+    }
+    curr++;
+
+    // Parse all attributes in the section
+    // The section can contain multiple "attribute sections" stacked together
+    // Each "attribute section" contains:
+    //     1. A 32-bit integer indicating the size of the current attribute section
+    //     2. A null terminated string, indicating the name of the current attribute
+    //     3. A series of "attributes". Each "attribute" contains
+    //         1) The tag number (1 => file attribute, 2 => section attribute, 3 => symbol attribute)
+    //         2) A 32-bit integer indicating the size of the attribute
+    //         3) A series of "attribute data". The attribute data is platform dependent
+
+    int section_end = attr_string_size;
+
+    // Parse all attribute sections
+    while (curr < section_end) {
+
+        // Get the attribute section size
+        int32_t attr_section_size = read_memory_as<int32_t>(&attr_string[curr]);
+        if (attr_section_size > section_end) {
+            create_printf("%s[%d]:  Bad attribute section length (%d > %d)\n",
+                    FILE__, __LINE__, attr_section_size, section_end);
+            return false;
+        }
+        int attr_section_end = curr + attr_section_size;
+        curr += sizeof(attr_section_size);
+        // The next null-terminated string indicates the name of the current attribute
+        const char *curr_attr_section_name = &attr_string[curr];
+        if (strcmp(curr_attr_section_name, attr_section_name) != 0) {
+            create_printf("%s[%d]:  Unexpected attribute section '%s'\n", FILE__, __LINE__, curr_attr_section_name);
+            return false;
+        }
+        curr += strlen(&attr_string[curr]) + 1;
+
+        // Parse all attributes in the attribute section
+        while (curr < attr_section_end) {
+            char tag = attr_string[curr];
+            curr++;
+
+            if (tag != 1) { // File attribute
+                create_printf("%s[%d]:  Unexpected tag %d\n",
+                        FILE__, __LINE__, tag);
+                return false;
+            }
+
+            int32_t attr_size = read_memory_as<int32_t>(&attr_string[curr]);
+            if (attr_size > attr_section_end) {
+                create_printf("%s[%d]:  Bad attribute length (%d > %d)\n",
+                        FILE__, __LINE__, attr_size, attr_section_end);
+                return false;
+            }
+            int attr_end = curr + attr_size - 1;
+            curr += sizeof(attr_size);
+
+            // Parse all attribute data in the attribute
+            while (curr < attr_end) {
+                uint32_t attr_bytes_read = 0;
+                uint64_t attr_tag = read_uleb128(static_cast<const unsigned char *>(
+                            reinterpret_cast<const void*>(&attr_string[curr])), &attr_bytes_read);
+                curr += attr_bytes_read;
+
+                // RISC-V attributes have a string value if the tag number is odd
+                // and an integer value if the tag number is even
+                if (attr_tag % 2 != 0) {
+                    // a string value
+                    const char *cstr = &attr_string[curr];
+                    std::string sval = std::string(cstr);
+                    curr += strlen(cstr) + 1;
+
+                    if (parse_attr_string(attr_tag, sval)) {
+                        create_printf("%s[%d]:  unknown attribute (%s)\n",
+                                FILE__, __LINE__, cstr);
+                    }
+                }
+                else {
+                    // an integer value
+
+                    // The integer values are ULEB128 encoded
+                    uint32_t ival_bytes_read = 0;
+                    uint64_t ival = read_uleb128(static_cast<const unsigned char *>(
+                                reinterpret_cast<const void*>(&attr_string[curr])), &ival_bytes_read);
+                    curr += ival_bytes_read;
+
+                    if (parse_attr_int(attr_tag, ival)) {
+                        create_printf("%s[%d]:  Unknown attribute (%lu)\n",
+                                FILE__, __LINE__, ival);
+                    }
+                }
+            }
+            if (curr != attr_end) {
+                create_printf("%s[%d]:  Bad attribute data\n", FILE__, __LINE__);
+            }
+        }
+        if (curr != attr_section_end) {
+            create_printf("%s[%d]:  Bad attribute\n", FILE__, __LINE__);
+        }
+    }
+    if (curr != section_end) {
+        create_printf("%s[%d]:  Bad section\n", FILE__, __LINE__);
+    }
+
+    return true;
+}
+
+void ObjectELF::get_riscv_extensions() {
+
+    // Obtain information from .riscv.attributes
+
+    std::string arch_string = riscv_attrs.riscv_extension_string;
+    if (arch_string.length() == 0) {
+        create_printf("%s[%d]:  Tag_RISCV_arch is empty\n", FILE__, __LINE__);
+        return;
+    }
+
+    for (size_t i = 0; i < arch_string.length(); i++) {
+        // Get the extension string
+
+        int ext_beg = i;
+        // Special case: base extension
+        if (i == 0) {
+            if ((arch_string.rfind("rv32i", 0) != 0) &&
+                    (arch_string.rfind("rv64i", 0) != 0) &&
+                    (arch_string.rfind("rv128i", 0) != 0) &&
+                    (arch_string.rfind("rv32e", 0) != 0)) {
+                create_printf("%s[%d]:  Corrupted base extension: should be one of rv32i, rv64i, rv128i, rv32e\n", FILE__, __LINE__);
+                return;
+            }
+            while (arch_string[i] != 'i' && arch_string[i] != 'e') {
+                i++;
+            }
+            i++;
+        }
+        else {
+            // Get the extension string
+            while (!isdigit(arch_string[i])) {
+                i++;
+            }
+        }
+        std::string ext = arch_string.substr(ext_beg, i - ext_beg);
+
+        // Get the major number
+        int major_beg = i;
+        while (arch_string[i] != 'p') {
+            i++;
+        }
+        int major_num = std::stoi(arch_string.substr(major_beg, i - major_beg));
+
+        i++; // ignore 'p'
+
+        // Get the minor number
+        int minor_beg = i;
+        while (arch_string[i] != '_') {
+            i++;
+        }
+        int minor_num = std::stoi(arch_string.substr(minor_beg, i - minor_beg));
+
+        riscv_attrs.riscv_extensions[ext] = std::make_pair(major_num, minor_num);
+    }
+
+    // Obtain information from e_flags
+
+    unsigned long e_flags = elfHdr->e_flags();
+    if (e_flags & EF_RISCV_RVC) {
+        riscv_attrs.compressed_extension = true;
+    }
+    switch (e_flags & EF_RISCV_FLOAT_ABI) {
+        case EF_RISCV_FLOAT_ABI_SOFT:
+            riscv_attrs.floatABI = RiscvFloatAbiEnum::SOFT;
+            break;
+        case EF_RISCV_FLOAT_ABI_SINGLE:
+            riscv_attrs.floatABI = RiscvFloatAbiEnum::SINGLE;
+            break;
+        case EF_RISCV_FLOAT_ABI_DOUBLE:
+            riscv_attrs.floatABI = RiscvFloatAbiEnum::DOUBLE;
+            break;
+        case EF_RISCV_FLOAT_ABI_QUAD:
+            riscv_attrs.floatABI = RiscvFloatAbiEnum::QUAD;
+            break;
+        default:
+            create_printf("%s[%d]:  Unsupported RISC-V float ABI (%lu)\n", FILE__, __LINE__, e_flags & EF_RISCV_FLOAT_ABI);
+            break;
+    }
+    if (e_flags & EF_RISCV_RVE) {
+        riscv_attrs.embedded_abi = true;
+    }
+    if (e_flags & EF_RISCV_TSO) {
+        riscv_attrs.total_store_ordering = true;
+    }
 }
