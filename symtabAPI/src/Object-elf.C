@@ -4327,7 +4327,7 @@ bool ObjectELF::parse_attrs(const char *attr_string,
                 return false;
             }
             int attr_end = curr + attr_size - 1;
-            curr += sizeof(int);
+            curr += sizeof(attr_size);
 
             // Parse all attribute data in the attribute
             while (curr < attr_end) {
