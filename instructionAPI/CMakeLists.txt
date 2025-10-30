@@ -20,7 +20,6 @@ set(_sources
     src/InstructionDecoder-Capstone.C
     src/InstructionDecoder-power.C
     src/InstructionDecoder-aarch64.C
-    src/InstructionDecoder-riscv64.C
     src/AMDGPU/gfx908/decodeOperands.C
     src/AMDGPU/gfx908/appendOperands.C
     src/AMDGPU/gfx908/finalizeOperands.C
@@ -37,6 +36,9 @@ set(_sources
     src/AMDGPU/gfx940/amdgpu_gfx940_decoder_impl.C
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
     src/InstructionDecoderImpl.C
+    src/riscv/decoder.C
+    src/riscv/opcode_xlat.C
+    src/riscv/register_xlat.C
     src/syscalls.C
     src/interrupts.C)
 
@@ -68,6 +70,11 @@ set(_private_headers
     src/InstructionDecoderImpl.h
     src/InstructionDecoder-power.h
     src/InstructionDecoder-x86.h
+    src/riscv/categories.h
+    src/riscv/decoder.h
+    src/riscv/opcode_xlat.h
+    src/riscv/register_xlat.h
+    src/riscv/type_conversion.h
     src/InstructionDecoder-Capstone.h
     h/syscalls.h
     h/interrupts.h)

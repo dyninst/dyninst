@@ -149,6 +149,7 @@ namespace Dyninst { namespace InstructionAPI {
     }
 
     m_Successors = o.m_Successors;
+    categories = o.categories;
   }
 
   DYNINST_EXPORT const Instruction& Instruction::operator=(const Instruction& rhs) {
@@ -172,6 +173,7 @@ namespace Dyninst { namespace InstructionAPI {
     formatter = rhs.formatter;
     arch_decoded_from = rhs.arch_decoded_from;
     m_Successors = rhs.m_Successors;
+    categories = rhs.categories;
     return *this;
   }
 
@@ -249,6 +251,14 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   DYNINST_EXPORT size_t Instruction::size() const { return m_size; }
+
+  std::vector<RegisterAST::Ptr> Instruction::getWrittenRegisters() const {
+    return {};
+  }
+
+  std::vector<RegisterAST::Ptr> Instruction::getReadRegisters() const {
+    return {};
+  }
 
   DYNINST_EXPORT void Instruction::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const {
     for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
@@ -394,6 +404,10 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   DYNINST_EXPORT bool Instruction::allowsFallThrough() const {
+    if(arch_decoded_from == Arch_x86 || arch_decoded_from == Arch_x86_64) {
+      // Only conditional branches fall through
+      return isBranch() && isConditional();
+    }
     switch(m_InsnOp.getID()) {
       case e_ret_far:
       case e_ret_near:
@@ -446,6 +460,12 @@ namespace Dyninst { namespace InstructionAPI {
   DYNINST_EXPORT Architecture Instruction::getArch() const { return arch_decoded_from; }
 
   DYNINST_EXPORT InsnCategory Instruction::getCategory() const {
+    if(arch_decoded_from == Arch_x86 || arch_decoded_from == Arch_x86_64) {
+      if(categories.categories.size()) {
+        return categories.categories[0];
+      }
+      return c_NoCategory;
+    }
     if(m_InsnOp.isVectorInsn)
       return c_VectorInsn;
     if(m_InsnOp.isMultiInsnCall || m_InsnOp.isNonABIRiscvCall)
