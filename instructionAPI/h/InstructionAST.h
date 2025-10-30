@@ -59,11 +59,7 @@ namespace Dyninst { namespace InstructionAPI {
       void visit(BinaryFunction*) {}
       void visit(Dereference*) {}
       void visit(Immediate*) {}
-      void visit(MultiRegisterAST *mr) {
-        for(auto r : mr->getRegs()) {
-          r->apply(this);
-        }
-      }
+      void visit(MultiRegisterAST*) {}
 
       std::vector<RegisterAST::Ptr> regs;
     };
