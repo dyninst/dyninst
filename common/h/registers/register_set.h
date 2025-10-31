@@ -76,10 +76,11 @@ namespace Dyninst {
     }
 
     // Union (in-place)
-    void operator|=(register_set const& rhs) {
+    register_set& operator|=(register_set const& rhs) {
       for(auto r : rhs) {
         regs.insert(r);
       }
+      return *this;
     }
 
     // Union
@@ -90,7 +91,7 @@ namespace Dyninst {
     }
 
     // Intersection (in-place)
-    void operator&=(register_set const& rhs) {
+    register_set& operator&=(register_set const& rhs) {
       for(auto it = regs.begin(); it != regs.end();) {
         if(!rhs.contains(*it)) {
           it = regs.erase(it);
@@ -98,6 +99,7 @@ namespace Dyninst {
           ++it;
         }
       }
+      return *this;
     }
 
     // Intersection
@@ -108,7 +110,7 @@ namespace Dyninst {
     }
 
     // Difference (in-place)
-    void operator-=(register_set const& rhs) {
+    register_set& operator-=(register_set const& rhs) {
       for(auto it = regs.begin(); it != regs.end();) {
         if(rhs.contains(*it)) {
           it = regs.erase(it);
@@ -116,6 +118,7 @@ namespace Dyninst {
           ++it;
         }
       }
+      return *this;
     }
 
     // Difference
@@ -126,10 +129,11 @@ namespace Dyninst {
     }
 
     // Symmetric difference (in-place)
-    void operator^=(register_set const& rhs) {
+    register_set& operator^=(register_set const& rhs) {
       auto intersection = (*this & rhs);
       *this |= rhs;
       *this -= intersection;
+      return *this;
     }
 
     // Symmetric difference
