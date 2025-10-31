@@ -84,7 +84,7 @@ jobs:
           compiler: ${{ matrix.compiler }}
           src-dir: "${GITHUB_WORKSPACE}/src"
           install-dir: ${{ matrix.install-dir }}
-          run-tests: "true"
+          tests: "REGRESSION"
 
       - name: Checkout Test Suite
         if: ${{ matrix.compiler != 'clang' }}
