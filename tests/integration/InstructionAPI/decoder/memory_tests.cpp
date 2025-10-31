@@ -39,11 +39,6 @@ namespace Dyninst { namespace InstructionAPI {
       auto read_ops = [&insn]() {
         std::set<di::Expression::Ptr> exprs;
         insn.getMemoryReadOperands(exprs);
-        //        std::cerr << "Found memory read operands {";
-        //        for(auto const &e : exprs) {
-        //          std::cerr << e->format() << ", ";
-        //        }
-        //        std::cerr << "}\n";
         return convert(exprs);
       }();
       if(read_ops != expected.regs.read) {
@@ -56,11 +51,6 @@ namespace Dyninst { namespace InstructionAPI {
       auto written_ops = [&insn]() {
         std::set<di::Expression::Ptr> exprs;
         insn.getMemoryWriteOperands(exprs);
-        //        std::cerr << "Found memory write operands {";
-        //        for(auto const &e : exprs) {
-        //          std::cerr << e->format() << ", ";
-        //        }
-        //        std::cerr << "}\n";
         return convert(exprs);
       }();
       if(written_ops != expected.regs.written) {
