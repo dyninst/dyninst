@@ -33,8 +33,13 @@
 #include "categories.h"
 #include "debug.h"
 #include "Operation_impl.h"
+#include "entryIDs.h"
+#include "registers/x86_64_regs.h"
+#include "registers/x86_regs.h"
+#include "type_conversion.h"
 #include "x86/decoder.h"
 #include "x86/opcode_xlat.h"
+
 
 /***************************************************************************
  * The work here is based on
@@ -129,6 +134,7 @@ namespace Dyninst { namespace InstructionAPI {
       cs_x86_op const &operand = d->x86.operands[i];
       switch(operand.type) {
         case X86_OP_REG:
+          decode_reg(insn, operand);
           break;
         case X86_OP_IMM:
           break;
