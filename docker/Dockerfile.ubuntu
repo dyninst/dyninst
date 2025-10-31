@@ -43,10 +43,13 @@ RUN apt-get -qq update && \
       libtbb-dev
       
 
-COPY docker/dependencies.versions docker/build_peparse.sh /
+COPY docker/dependencies.versions docker/build_*.sh /
 
 RUN <<EOD bash
   set -ex
+
+  # Build Capstone
+  bash build_capstone.sh --jobs ${build_jobs}
   
   # Build pe-parse
   bash build_peparse.sh

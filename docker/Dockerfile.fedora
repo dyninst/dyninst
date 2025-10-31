@@ -14,7 +14,10 @@ LABEL maintainer="@hainest"
 
 ENV TZ=America/Chicago
 
-RUN yum install -y     \
+ARG build_jobs=1
+
+RUN yum update -y &&   \
+    yum install -y     \
       binutils-devel   \
       boost-devel      \
       clang            \
@@ -29,7 +32,16 @@ RUN yum install -y     \
       libstdc++-static \
       tbb-devel
 
-COPY docker/build_peparse.sh /
+COPY docker/dependencies.versions docker/build_*.sh /
 
-RUN bash build_peparse.sh
+RUN <<EOD
 
+  set -ex
+
+  # Build Capstone
+  bash build_capstone.sh --jobs ${build_jobs}
+
+  # Build pe-parse
+  bash build_peparse.sh
+
+EOD
