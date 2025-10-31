@@ -67,6 +67,7 @@ namespace Dyninst {
     class Symbol;
     struct AddressRange;
   }
+  struct PointHandler;
 }
 
 
@@ -385,6 +386,9 @@ class DYNINST_EXPORT BPatch_addressSpace {
   register_iter getRegisters_end();
  private:
   void init_registers();
+
+  std::unique_ptr<Dyninst::PointHandler> pointHandler;
+
  public:
   bool  createRegister_NP(std::string regName, BPatch_register &reg); 
 
