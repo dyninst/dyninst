@@ -143,6 +143,41 @@ namespace Dyninst { namespace InstructionAPI {
           break;
       }
     }
+
+    // Capstone doesn't fully track eflags for interrupt instructions
+    if(insn.isInterrupt()) {
+      auto add_reg = [&insn, this](MachRegister reg, bool isread, bool iswritten) {
+        constexpr bool is_implicit = true;
+        auto regAST = makeRegisterExpression(reg);
+        insn.appendOperand(regAST, isread, iswritten, is_implicit);
+      };
+      constexpr bool is_read = true;
+      constexpr bool is_written = true;
+      auto ac = (this->m_Arch == Dyninst::Arch_x86) ? Dyninst::x86::ac : Dyninst::x86_64::ac;
+      auto flagc = (this->m_Arch == Dyninst::Arch_x86) ? Dyninst::x86::flagc : Dyninst::x86_64::flagc;
+      auto flagd = (this->m_Arch == Dyninst::Arch_x86) ? Dyninst::x86::flagd : Dyninst::x86_64::flagd;
+      auto vm = (this->m_Arch == Dyninst::Arch_x86) ? Dyninst::x86::vm : Dyninst::x86_64::vm;
+      auto vif = (this->m_Arch == Dyninst::Arch_x86) ? Dyninst::x86::vif : Dyninst::x86_64::vif;
+      auto of = (this->m_Arch == Dyninst::Arch_x86) ? Dyninst::x86::of : Dyninst::x86_64::of;
+      auto flags = (this->m_Arch == Dyninst::Arch_x86) ? Dyninst::x86::flags : Dyninst::x86_64::flags;
+
+      auto const id = insn.getOperation().getID();
+      if(id == e_int || id == e_int3) {
+        add_reg(ac, !is_read, is_written);
+        add_reg(flagc, is_read, !is_written);
+        add_reg(flagd, is_read, !is_written);
+        add_reg(vm, is_read, is_written);
+        add_reg(vif, !is_read, is_written);
+        add_reg(flags, is_read, is_written);
+      } else if(id == e_into) {
+        add_reg(ac, !is_read, is_written);
+        add_reg(flagc, is_read, !is_written);
+        add_reg(flagd, is_read, !is_written);
+        add_reg(vm, is_read, is_written);
+        add_reg(of, is_read, !is_written);
+        add_reg(flags, is_read, is_written);
+      } // int1 does not use eflags
+    }
   }
 
 }}
