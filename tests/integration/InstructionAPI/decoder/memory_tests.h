@@ -33,7 +33,6 @@
 
 #include "Instruction.h"
 #include "register_tests.h"
-#include "registers/register_set.h"
 
 namespace Dyninst { namespace InstructionAPI {
 
