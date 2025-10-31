@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_COMMON_REGISTERS_register_set_H
-#define DYNINST_COMMON_REGISTERS_register_set_H
+#ifndef DYNINST_COMMON_REGISTERS_REGISTER_SET_H
+#define DYNINST_COMMON_REGISTERS_REGISTER_SET_H
 
 #include "registers/MachRegister.h"
 
