@@ -17,7 +17,6 @@ set(_sources
     src/Immediate.C
     src/InstructionDecoder.C
     src/InstructionDecoder-x86.C
-    src/InstructionDecoder-Capstone.C
     src/InstructionDecoder-power.C
     src/InstructionDecoder-aarch64.C
     src/AMDGPU/gfx908/decodeOperands.C
@@ -75,7 +74,6 @@ set(_private_headers
     src/riscv/opcode_xlat.h
     src/riscv/register_xlat.h
     src/riscv/type_conversion.h
-    src/InstructionDecoder-Capstone.h
     h/syscalls.h
     h/interrupts.h)
 

@@ -483,7 +483,6 @@ namespace Dyninst { namespace InstructionAPI {
       }
     }
     if(c == c_BranchInsn && arch_decoded_from == Arch_riscv64) {
-      DECODE_OPERANDS();
       for(cftConstIter cft = cft_begin(); cft != cft_end(); ++cft) {
         if(cft->isCall) {
           return c_CallInsn;
@@ -499,8 +498,9 @@ namespace Dyninst { namespace InstructionAPI {
       // ret -> jalr x1, x0, 0
       if(m_InsnOp.getID() == riscv64_op_jalr) {
         MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(getOperand(0).getValue()))->getID();
-        vector<InstructionAST::Ptr> children;
-        boost::dynamic_pointer_cast<BinaryFunction>(getOperand(1).getValue())->getChildren(children);
+        //vector<InstructionAST::Ptr> children;
+        //boost::dynamic_pointer_cast<BinaryFunction>(getOperand(1).getValue())->getSubexpressions(children);
+        auto children = getOperand(1).getValue()->getSubexpressions();
         assert(children.size() == 2);
         MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(children[0]))->getID();
         int32_t imm = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
