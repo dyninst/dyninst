@@ -146,7 +146,7 @@ void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC3_AccumOffset(uint32_t value) {
   uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc3;
   fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC3_GFX90A_ACCUM_OFFSET);
   assert(CHECK_WIDTH(COMPUTE_PGM_RSRC3_GFX90A_ACCUM_OFFSET) &&
-         "value contains more bits than specificied");
+         "value contains more bits than specified");
   kdRepr.compute_pgm_rsrc3 = SET_VALUE(COMPUTE_PGM_RSRC3_GFX90A_ACCUM_OFFSET);
 }
 
@@ -177,7 +177,7 @@ void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC3_SharedVgprCount(uint32_t value
   uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc3;
   fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC3_GFX10_PLUS_SHARED_VGPR_COUNT);
   assert(CHECK_WIDTH(COMPUTE_PGM_RSRC3_GFX10_PLUS_SHARED_VGPR_COUNT) &&
-         "value contains more bits than specificied");
+         "value contains more bits than specified");
   kdRepr.compute_pgm_rsrc3 = SET_VALUE(COMPUTE_PGM_RSRC3_GFX10_PLUS_SHARED_VGPR_COUNT);
 }
 
@@ -192,7 +192,7 @@ void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC3_InstPrefSize(uint32_t value) {
   uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc3;
   fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC3_GFX10_PLUS_INST_PREF_SIZE);
   assert(CHECK_WIDTH(COMPUTE_PGM_RSRC3_GFX10_PLUS_INST_PREF_SIZE) &&
-         "value contains more bits than specificied");
+         "value contains more bits than specified");
   kdRepr.compute_pgm_rsrc3 = SET_VALUE(COMPUTE_PGM_RSRC3_GFX10_PLUS_INST_PREF_SIZE);
 }
 
@@ -253,7 +253,7 @@ void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount(ui
   uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
   fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_GRANULATED_WORKITEM_VGPR_COUNT);
   assert(CHECK_WIDTH(COMPUTE_PGM_RSRC1_GRANULATED_WORKITEM_VGPR_COUNT) &&
-         "value contains more bits than specificied");
+         "value contains more bits than specified");
   kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_GRANULATED_WORKITEM_VGPR_COUNT);
 }
 
@@ -266,7 +266,7 @@ void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount(u
   uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
   fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_GRANULATED_WAVEFRONT_SGPR_COUNT);
   assert(CHECK_WIDTH(COMPUTE_PGM_RSRC1_GRANULATED_WAVEFRONT_SGPR_COUNT) &&
-         "value contains more bits than specificied");
+         "value contains more bits than specified");
   kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_GRANULATED_WAVEFRONT_SGPR_COUNT);
 }
 
@@ -284,7 +284,7 @@ void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_FloatRoundMode32(uint32_t valu
   uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
   fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_FLOAT_ROUND_MODE_32);
   assert(CHECK_WIDTH(COMPUTE_PGM_RSRC1_FLOAT_ROUND_MODE_32) &&
-         "value contains more bits than specificied");
+         "value contains more bits than specified");
   kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_FLOAT_ROUND_MODE_32);
 }
 
@@ -297,7 +297,7 @@ void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_FloatRoundMode1664(uint32_t va
   uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
   fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_FLOAT_ROUND_MODE_16_64);
   assert(CHECK_WIDTH(COMPUTE_PGM_RSRC1_FLOAT_ROUND_MODE_16_64) &&
-         "value contains more bits than specificied");
+         "value contains more bits than specified");
   kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_FLOAT_ROUND_MODE_16_64);
 }
 
@@ -323,7 +323,7 @@ void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_FloatDenormMode1664(uint32_t v
   uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
   fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_FLOAT_ROUND_MODE_16_64);
   assert(CHECK_WIDTH(COMPUTE_PGM_RSRC1_FLOAT_DENORM_MODE_16_64) &&
-         "value contains more bits than specificied");
+         "value contains more bits than specified");
   kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_FLOAT_DENORM_MODE_16_64);
 }
 
@@ -444,7 +444,7 @@ void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_UserSgprCount(uint32_t value) 
   uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc2;
   fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC2_USER_SGPR_COUNT);
   assert(CHECK_WIDTH(COMPUTE_PGM_RSRC2_USER_SGPR_COUNT) &&
-         "value contains more bits than specificied");
+         "value contains more bits than specified");
   kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC2_USER_SGPR_COUNT);
 }
 
@@ -506,7 +506,7 @@ void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_EnableVgprWorkitemId(uint32_t 
   uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc2;
   fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC2_ENABLE_VGPR_WORKITEM_ID);
   assert(CHECK_WIDTH(COMPUTE_PGM_RSRC2_ENABLE_VGPR_WORKITEM_ID) &&
-         "value contains more bits than specificied");
+         "value contains more bits than specified");
   kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC2_ENABLE_VGPR_WORKITEM_ID);
 }
 
