@@ -59,12 +59,15 @@ namespace Dyninst { namespace InstructionAPI {
     ~riscv_decoder();
 
     Instruction decode(InstructionDecoder::buffer &) override;
+    // To be deleted once `thaines/capstone_integration` is merged in
+    void setMode(bool) override;
 
   private:
     void decode_operands(Instruction&);
     void decode_reg(Instruction&, cs_riscv_op const &);
     void decode_imm(Instruction&, cs_riscv_op const &);
     void decode_mem(Instruction&, cs_riscv_op const &);
+    std::vector<cs_riscv_op> restore_pseudo_insn_operands(Instruction &, std::vector<cs_riscv_op> const);
   };
 
 }}

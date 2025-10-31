@@ -37,12 +37,12 @@
 #include "decoder.h"
 #include "syscalls.h"
 
-namespace Dyninst { namespace InstructionAPI { namespace riscv64 {
+namespace Dyninst { namespace InstructionAPI { namespace riscv {
 
   namespace di = Dyninst::InstructionAPI;
 
   inline std::vector<di::InsnCategory> decode_categories(di::Instruction &insn,
-                                                         di::riscv64_decoder::disassem const& dis) {
+                                                         di::riscv_decoder::disassem const& dis) {
     auto const num_categories = dis.insn->detail->groups_count;
     auto const groups = dis.insn->detail->groups;
 
@@ -68,8 +68,8 @@ namespace Dyninst { namespace InstructionAPI { namespace riscv64 {
           categories.push_back(di::c_InterruptInsn);
           categories.push_back(di::c_ReturnInsn);
           break;
-        case RISCV_GPR_ISRV32:
-        case RISCV_GPR_ISRV64:
+        case RISCV_GRP_ISRV32:
+        case RISCV_GRP_ISRV64:
           categories.push_back(di::c_VectorInsn);
           break;
       }
