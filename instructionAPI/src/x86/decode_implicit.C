@@ -4,6 +4,8 @@
 #include "entryIDs.h"
 #include "registers/x86_64_regs.h"
 #include "registers/x86_regs.h"
+#include "Result.h"
+#include "type_conversion.h"
 #include "x86/register_xlat.h"
 
 #include <map>
@@ -25,6 +27,15 @@ namespace {
   };
 
   std::vector<eflags_t> expand_flags(cs_insn const *, x86_reg, cs_mode);
+
+  struct mem_op {
+    Dyninst::MachRegister reg;
+    bool read, written;
+
+    mem_op(Dyninst::MachRegister reg_, bool read_, bool written_) : reg{reg_}, read{read_}, written{written_} {}
+  };
+
+  std::vector<mem_op> get_implicit_memory_ops(entryID, Dyninst::Architecture);
 }
 
 namespace Dyninst { namespace InstructionAPI {
@@ -79,6 +90,57 @@ namespace Dyninst { namespace InstructionAPI {
         auto regAST = makeRegisterExpression(mreg);
         implicit_state s = r.second;
         insn.appendOperand(regAST, s.read, s.written, is_implicit);
+      }
+    }
+
+    // Capstone doesn't track implicit memory reads/writes
+    // See https://github.com/capstone-engine/capstone/pull/2578
+    {
+      auto const id = insn.getOperation().getID();
+      constexpr bool is_implicit = true;
+      auto const addr_size = disassembler.insn->detail->x86.addr_size;
+      auto const type = size_to_type_unsigned(addr_size);
+
+      for(auto const &op : get_implicit_memory_ops(id, this->m_Arch)) {
+        auto reg = makeRegisterExpression(op.reg);
+        auto expr = makeDereferenceExpression(std::move(reg), type);
+        insn.appendOperand(std::move(expr), op.read, op.written, is_implicit);
+      }
+
+      // Return instructions (including return-from-interrupt) pop the return
+      // address from the stack. Mark that as their ControlFlow Target.
+      if(insn.isReturn()) {
+        constexpr bool is_call = true;
+        constexpr bool is_indirect = true;
+        constexpr bool is_conditional = true;
+        constexpr bool is_fallthrough = true;
+        auto sp(makeRegisterExpression(MachRegister::getStackPointer(m_Arch)));
+        auto expr = makeDereferenceExpression(std::move(sp), type);
+        insn.addSuccessor(std::move(sp), !is_call, !is_indirect, !is_conditional, !is_fallthrough, is_implicit);
+      }
+    }
+
+    // As a special case, 'push' also writes at the new value of the stack pointer
+    {
+      auto const addr_size = disassembler.insn->detail->x86.addr_size;
+      auto const type = size_to_type_signed(addr_size);
+      constexpr bool is_implicit = true;
+      constexpr bool is_read = true;
+      constexpr bool is_written = true;
+
+      switch(insn.getOperation().getID()) {
+        case e_push:
+        case e_pusha:
+        case e_pushf: {
+          auto res = Result(type, -addr_size);
+          auto sp = MachRegister::getStackPointer(this->m_Arch);
+          auto reg = makeRegisterExpression(sp);
+          auto offset = Immediate::makeImmediate(res);
+          auto expr = makeAddExpression(reg, offset, type);
+          insn.appendOperand(std::move(expr), !is_read, is_written, is_implicit);
+        } break;
+        default:
+          break;
       }
     }
   }
@@ -217,4 +279,61 @@ namespace {
     return expand_fpflags(flags, mode);
   }
 
+  std::vector<mem_op> get_implicit_memory_ops(entryID id, Dyninst::Architecture arch) {
+    bool const is_64 = (arch == Dyninst::Arch_x86_64);
+
+    std::vector<mem_op> ops{};
+
+    constexpr bool is_read = true;
+    constexpr bool is_written = true;
+
+    auto sp = Dyninst::MachRegister::getStackPointer(arch);
+    auto ebp = is_64 ? Dyninst::x86_64::rbp : Dyninst::x86::ebp;
+
+    auto ss = is_64 ? Dyninst::x86_64::ss : Dyninst::x86::ss;
+
+    switch(id) {
+      // Only reads stack
+      case e_pop:
+      case e_popal:
+      case e_popaw:
+      case e_popf:
+      case e_popfd:
+      case e_popfq:
+        ops.emplace_back(sp, is_read, !is_written);
+        break;
+
+      // Only writes stack
+      case e_call:
+      case e_lcall:
+      case e_push:
+      case e_pushal:
+      case e_pushf:
+      case e_int3:
+      case e_int:
+      case e_int1:
+      case e_into:
+      case e_enter:
+        ops.emplace_back(sp, !is_read, is_written);
+        break;
+
+      // All others
+      case e_leave:
+        ops.emplace_back(sp, is_read, !is_written);
+        ops.emplace_back(ebp, is_read, !is_written);
+        break;
+
+      case e_ret:
+      case e_retf:
+      case e_iret:
+        ops.emplace_back(sp, is_read, !is_written);
+        ops.emplace_back(ss, is_read, !is_written);
+        break;
+
+      default:
+        break;
+    }
+
+    return ops;
+  }
 }
