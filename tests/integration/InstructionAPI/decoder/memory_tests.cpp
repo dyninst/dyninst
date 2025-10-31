@@ -17,7 +17,7 @@ static Dyninst::register_set convert(std::set<di::Expression::Ptr> exprs) {
     }
   }
   return regs;
-};
+}
 
 namespace Dyninst { namespace InstructionAPI {
 
