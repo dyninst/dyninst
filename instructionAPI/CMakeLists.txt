@@ -39,6 +39,7 @@ set(_sources
     src/decoder/riscv/opcode_xlat.C
     src/decoder/riscv/register_xlat.C
     src/decoder/x86/decoder.C
+    src/decoder/x86/decode_reg.C
     src/decoder/x86/register_xlat.C
     src/decoder/x86/opcode_xlat.C
     src/InstructionDecoderImpl.C
