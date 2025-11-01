@@ -28,51 +28,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef INSTRUCTIONAPI_RISCV_DECODER_H
-#define INSTRUCTIONAPI_RISCV_DECODER_H
+#ifndef INSTRUCTIONAPI_RISCV_MEM_XLAT_H
+#define INSTRUCTIONAPI_RISCV_MEM_XLAT_H
 
-#include "InstructionDecoderImpl.h"
-#include "capstone/capstone.h"
-#include "capstone/riscv.h"
+#include "entryIDs.h"
 
-namespace Dyninst {
-namespace InstructionAPI {
+namespace Dyninst { namespace InstructionAPI { namespace riscv {
 
-class riscv_decoder final : public InstructionDecoderImpl {
-public:
-  struct disassem final {
-    csh handle{};
-    cs_insn *insn{};
-  };
+  bool is_mem_load(entryID);
+  bool is_mem_store(entryID);
+  int8_t mem_size(entryID);
 
-private:
-  cs_mode mode{};
-  disassem disassembler{};
-
-public:
-  riscv_decoder(Dyninst::Architecture a);
-  riscv_decoder() = delete;
-  riscv_decoder(riscv_decoder const &) = delete;
-  riscv_decoder &operator=(riscv_decoder const &) = delete;
-  riscv_decoder(riscv_decoder &&) = delete;
-  riscv_decoder &operator=(riscv_decoder &&) = delete;
-  ~riscv_decoder();
-
-  Instruction decode(InstructionDecoder::buffer &) override;
-  // To be deleted once `thaines/capstone_integration` is merged in
-  void setMode(bool) override;
-
-private:
-  void decode_operands(Instruction &);
-  void decode_reg(Instruction &, cs_riscv_op const &);
-  void decode_imm(Instruction &, cs_riscv_op const &);
-  void decode_mem(Instruction &, cs_riscv_op const &);
-  void decode_cft_insns(Instruction &, const std::vector<cs_riscv_op> &);
-  std::vector<cs_riscv_op>
-  restore_pseudo_insn_operands(Instruction &, const std::vector<cs_riscv_op> &);
-};
-
-} // namespace InstructionAPI
-} // namespace Dyninst
+}}}
 
 #endif

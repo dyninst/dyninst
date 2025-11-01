@@ -36,6 +36,7 @@ set(_sources
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
     src/InstructionDecoderImpl.C
     src/riscv/decoder.C
+    src/riscv/mem_xlat.C
     src/riscv/opcode_xlat.C
     src/riscv/register_xlat.C
     src/syscalls.C
@@ -71,6 +72,7 @@ set(_private_headers
     src/InstructionDecoder-x86.h
     src/riscv/categories.h
     src/riscv/decoder.h
+    src/riscv/mem_xlat.h
     src/riscv/opcode_xlat.h
     src/riscv/register_xlat.h
     src/riscv/type_conversion.h
