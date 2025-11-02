@@ -65,6 +65,7 @@ namespace Dyninst { namespace InstructionAPI {
     void decode_reg(Instruction&, cs_x86_op const &);
     void decode_imm(Instruction&, cs_x86_op const &);
     void decode_mem(Instruction&, cs_x86_op const &);
+    void decode_implicit(Instruction&);
     bool is_cft(Instruction const&) const;
   };
 
