@@ -31,7 +31,9 @@
 #include "capstone/capstone.h"
 #include "capstone/x86.h"
 #include "debug.h"
+#include "Operation_impl.h"
 #include "x86/decoder.h"
+#include "x86/opcode_xlat.h"
 
 /***************************************************************************
  * The work here is based on
@@ -65,7 +67,47 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   Instruction x86_decoder::decode(InstructionDecoder::buffer &buf) {
-    return {};
+    auto *code = static_cast<uint8_t const*>(buf.start);
+    auto codeSize = static_cast<size_t>(buf.end - buf.start);
+    uint64_t cap_addr = 0;
+
+    // The iterator form of disassembly allows reuse of the instruction object, reducing
+    // the number of memory allocations.
+    if(!cs_disasm_iter(disassembler.handle, &code, &codeSize, &cap_addr, disassembler.insn)) {
+      // Gap parsing can trigger this case. In particular, when it encounters prefixes in an invalid
+      // order. Notably, if a REX prefix (0x40-0x48) appears followed by another prefix (0x66, 0x67,
+      // etc) we'll reject the instruction as invalid and send it back with no entry.  Since this is
+      // a common byte sequence to see in, for example, ASCII strings, we want to simply accept this
+      // and move on.
+      decode_printf("Failed to disassemble instruction at %p: %s\n", code, cs_strerror(cs_errno(disassembler.handle)));
+      return {};
+    }
+
+    // cs_disasm_iter moves 'code' to the position in the buffer following the decoded instruction.
+    // We need the original decoded bytes for 'Instruction', so move it back.
+    code = buf.start;
+    buf.start += disassembler.insn->size;
+
+    auto prefix = [&](){
+      auto const rep_prefix = disassembler.insn->detail->x86.prefix[0];
+      switch(rep_prefix) {
+        case X86_PREFIX_0:
+          return prefixEntryID::prefix_none;
+        case X86_PREFIX_REP: /* aliases X86_PREFIX_REPE */
+          return prefixEntryID::prefix_rep;
+        case X86_PREFIX_REPNE:
+          return prefixEntryID::prefix_repnz;
+      }
+      decode_printf("Unknown Capstone prefix 0x%x\n", rep_prefix);
+      return prefixEntryID::prefix_none;
+    }();
+
+    entryID e = x86::translate_opcode(static_cast<x86_insn>(disassembler.insn->id));
+
+    auto op = Operation(e, prefix, disassembler.insn->mnemonic, this->m_Arch);
+    auto insn = Instruction(std::move(op), disassembler.insn->size, code, this->m_Arch);
+    decode_operands(insn);
+    return insn;
   }
 
   void x86_decoder::decode_operands(Instruction&) {
