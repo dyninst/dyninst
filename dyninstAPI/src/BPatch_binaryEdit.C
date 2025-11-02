@@ -60,6 +60,11 @@
 #include "Relocation/DynAddrSpace.h"
 
 #include "boost/filesystem.hpp"
+
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#include "AmdgpuPointHandler.h"
+#endif
+
 using Dyninst::PatchAPI::DynAddrSpacePtr;
 using Dyninst::PatchAPI::DynAddrSpace;
 
@@ -215,7 +220,10 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
 
    if( !origBinEdit->writeFile(outFile) ) return false;
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-   // Add code to write KernelInfos here.
+   std::string inputFileName = this->getImage()->getProgramFileName();
+   auto *amdgpuPointHandler = dynamic_cast<Dyninst::AmdgpuGfx908PointHandler* >(pointHandler.get());
+   assert(amdgpuPointHandler);
+   amdgpuPointHandler->writeInstrumentedKernelNames(inputFileName + ".instrumentedKernelNames");
 #endif
 
    std::map<std::string, BinaryEdit *>::iterator curBinEdit;

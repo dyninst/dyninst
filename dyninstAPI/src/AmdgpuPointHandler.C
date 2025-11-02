@@ -41,6 +41,7 @@
 #include "AmdgpuKernelDescriptor.h"
 
 #include <cassert>
+#include <fstream>
 
 namespace Dyninst {
 
@@ -134,6 +135,26 @@ void AmdgpuGfx908PointHandler::insertEpilogueAtPoints(AmdgpuEpilogueSnippet &sni
     assert(iPoint);
     iPoint->pushBack(snippet.ast_wrapper);
   }
+}
+
+
+void AmdgpuGfx908PointHandler::writeInstrumentedKernelNames(const std::string &filePath) {
+  std::ofstream outFile(filePath);
+
+  for (auto *function : instrumentedFunctions) {
+    BPatch_variableExpr *kdVar = getKernelDescriptorVariable(function);
+    if(!kdVar)
+      continue;
+
+    llvm::amdhsa::kernel_descriptor_t rawKd;
+    bool success = kdVar->readValue(&rawKd, sizeof rawKd);
+    assert(success);
+
+    AmdgpuKernelDescriptor kd(rawKd, this->eflag);
+    outFile << function->getMangledName() << ' ' << kd.getKernargSize() << '\n';
+  }
+
+  outFile.close();
 }
 
 } // namespace Dyninst
