@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "decoder/x86/decoder.h"
 #include "InstructionDecoder-aarch64.h"
 #include "InstructionDecoder-power.h"
 #include "InstructionDecoderImpl.h"
