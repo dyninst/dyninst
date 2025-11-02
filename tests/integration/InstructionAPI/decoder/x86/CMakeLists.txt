@@ -14,12 +14,12 @@ target_link_libraries(x86_branches PRIVATE instructionAPI cft_tests memory_tests
 add_test(NAME instructionAPI_x86_branches COMMAND x86_branches)
 set_tests_properties(instructionAPI_x86_branches PROPERTIES LABELS "integration")
 
-add_executable(call_tests call.cpp)
-target_compile_options(call_tests PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
-target_link_libraries(call_tests PRIVATE instructionAPI cft_tests memory_tests
-                                         register_tests opcode_tests)
-add_test(NAME instructionAPI_call_tests COMMAND call_tests)
-set_tests_properties(instructionAPI_call_tests PROPERTIES LABELS "integration")
+add_executable(x86_call call.cpp)
+target_compile_options(x86_call PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(x86_call PRIVATE instructionAPI cft_tests memory_tests opcode_tests
+                                       register_tests)
+add_test(NAME instructionAPI_x86_call COMMAND x86_call)
+set_tests_properties(instructionAPI_x86_call PROPERTIES LABELS "integration")
 
 add_executable(ptwrite_tests ptwrite.cpp)
 target_compile_options(ptwrite_tests PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
