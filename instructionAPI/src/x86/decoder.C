@@ -148,6 +148,9 @@ namespace Dyninst { namespace InstructionAPI {
           break;
       }
     }
+
+    // Decode _implicit_ operands
+    decode_implicit(insn);
   }
 
   bool x86_decoder::is_cft(Instruction const &insn) const {
