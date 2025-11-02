@@ -35,6 +35,7 @@ set(_sources
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
     src/InstructionDecoderImpl.C
     src/x86/decoder.C
+    src/x86/decode_mem.C
     src/x86/decode_imm.C
     src/x86/decode_reg.C
     src/x86/opcode_xlat.C
