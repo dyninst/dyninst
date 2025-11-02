@@ -137,6 +137,7 @@ namespace Dyninst { namespace InstructionAPI {
           decode_imm(insn, operand);
           break;
         case X86_OP_MEM:
+          decode_mem(insn, operand);
           break;
         case X86_OP_INVALID:
           decode_printf("[0x%lx %s %s] has an invalid operand.\n", disassembler.insn->address,
@@ -144,6 +145,12 @@ namespace Dyninst { namespace InstructionAPI {
           break;
       }
     }
+  }
+
+  bool x86_decoder::is_cft(Instruction const &insn) const {
+    // This assumes the instruction categories have already been populated
+    return insn.isCall() || insn.isReturn() || insn.isBranch() || insn.isSysEnter() || insn.isSyscall() ||
+           insn.isSoftwareException();
   }
 
 }}
