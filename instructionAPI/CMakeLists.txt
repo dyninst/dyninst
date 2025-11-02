@@ -41,6 +41,7 @@ set(_sources
     src/decoder/x86/decoder.C
     src/decoder/x86/decode_reg.C
     src/decoder/x86/decode_imm.C
+    src/decoder/x86/decode_implicit.C
     src/decoder/x86/decode_mem.C
     src/decoder/x86/register_xlat.C
     src/decoder/x86/opcode_xlat.C
