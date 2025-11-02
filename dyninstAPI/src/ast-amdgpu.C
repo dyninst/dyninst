@@ -1630,68 +1630,69 @@ bool AstCallNode::initRegisters(codeGen &gen) {
   return ret;
 }
 
-bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost, Address &,
-                                      Dyninst::Register &retReg) {
-  // We call this anyway... not that we'll ever be kept.
-  // Well... if we can somehow know a function is entirely
-  // dependent on arguments (a flag?) we can keep it around.
-  RETURN_KEPT_REG(retReg);
-
-  // VG(11/06/01): This platform independent fn calls a platfrom
-  // dependent fn which calls it back for each operand... Have to
-  // fix those as well to pass location...
-
-  func_instance *use_func = func_;
-
-  if (!use_func && !func_addr_) {
-    // We purposefully don't cache the func_instance object; the AST nodes
-    // are process independent, and functions kinda are.
-    use_func = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
-    if (!use_func) {
-      fprintf(stderr, "ERROR: failed to find function %s, unable to create call\n",
-              func_name_.c_str());
-    }
-    assert(use_func); // Otherwise we've got trouble...
-  }
-
-  Dyninst::Register tmp = 0;
-
-  if (use_func && !callReplace_) {
-    tmp = emitFuncCall(callOp, gen, args_, noCost, use_func);
-  } else if (use_func && callReplace_) {
-    tmp = emitFuncCall(funcJumpOp, gen, args_, noCost, use_func);
-  } else if (func_addr_) {
-    tmp = emitFuncCall(callOp, gen, args_, noCost, func_addr_);
-  } else {
-    char msg[256];
-    sprintf(msg, "%s[%d]:  internal error:  unable to find %s", __FILE__, __LINE__,
-            func_name_.c_str());
-    showErrorCallback(100, msg);
-    assert(0); // can probably be more graceful
-  }
-
-  // TODO: put register allocation here and have emitCall just
-  // move the return result.
-  if (tmp == Dyninst::Null_Register) {
-    // Happens in function replacement... didn't allocate
-    // a return register.
-  } else if (retReg == Dyninst::Null_Register) {
-    // emitFuncCall allocated tmp; we can use it, but let's see
-    //  if we should keep it around.
-    retReg = tmp;
-    // from allocateAndKeep:
-    if (useCount > 1) {
-      // If use count is 0 or 1, we don't want to keep
-      // it around. If it's > 1, then we can keep the node
-      // (by construction) and want to since there's another
-      // use later.
-      gen.tracker()->addKeptRegister(gen, this, retReg);
-    }
-  } else if (retReg != tmp) {
-    emitImm(orOp, tmp, 0, retReg, gen, noCost, gen.rs());
-    gen.rs()->freeRegister(tmp);
-  }
-  decUseCount(gen);
+bool AstCallNode::generateCode_phase2(codeGen &/*gen*/, bool /*noCost*/, Address &,
+                                      Dyninst::Register &/*retReg*/) {
+  // // We call this anyway... not that we'll ever be kept.
+  // // Well... if we can somehow know a function is entirely
+  // // dependent on arguments (a flag?) we can keep it around.
+  // RETURN_KEPT_REG(retReg);
+  //
+  // // VG(11/06/01): This platform independent fn calls a platfrom
+  // // dependent fn which calls it back for each operand... Have to
+  // // fix those as well to pass location...
+  //
+  // func_instance *use_func = func_;
+  //
+  // if (!use_func && !func_addr_) {
+  //   // We purposefully don't cache the func_instance object; the AST nodes
+  //   // are process independent, and functions kinda are.
+  //   use_func = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
+  //   if (!use_func) {
+  //     fprintf(stderr, "ERROR: failed to find function %s, unable to create call\n",
+  //             func_name_.c_str());
+  //   }
+  //   assert(use_func); // Otherwise we've got trouble...
+  // }
+  //
+  // Dyninst::Register tmp = 0;
+  //
+  // if (use_func && !callReplace_) {
+  //   tmp = emitFuncCall(callOp, gen, args_, noCost, use_func);
+  // } else if (use_func && callReplace_) {
+  //   tmp = emitFuncCall(funcJumpOp, gen, args_, noCost, use_func);
+  // } else if (func_addr_) {
+  //   tmp = emitFuncCall(callOp, gen, args_, noCost, func_addr_);
+  // } else {
+  //   char msg[256];
+  //   sprintf(msg, "%s[%d]:  internal error:  unable to find %s", __FILE__, __LINE__,
+  //           func_name_.c_str());
+  //   showErrorCallback(100, msg);
+  //   assert(0); // can probably be more graceful
+  // }
+  //
+  // // TODO: put register allocation here and have emitCall just
+  // // move the return result.
+  // if (tmp == Dyninst::Null_Register) {
+  //   // Happens in function replacement... didn't allocate
+  //   // a return register.
+  // } else if (retReg == Dyninst::Null_Register) {
+  //   // emitFuncCall allocated tmp; we can use it, but let's see
+  //   //  if we should keep it around.
+  //   retReg = tmp;
+  //   // from allocateAndKeep:
+  //   if (useCount > 1) {
+  //     // If use count is 0 or 1, we don't want to keep
+  //     // it around. If it's > 1, then we can keep the node
+  //     // (by construction) and want to since there's another
+  //     // use later.
+  //     gen.tracker()->addKeptRegister(gen, this, retReg);
+  //   }
+  // } else if (retReg != tmp) {
+  //   emitImm(orOp, tmp, 0, retReg, gen, noCost, gen.rs());
+  //   gen.rs()->freeRegister(tmp);
+  // }
+  // decUseCount(gen);
+  // return true;
   return true;
 }
 
