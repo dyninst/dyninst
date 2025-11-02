@@ -111,6 +111,30 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   void x86_decoder::decode_operands(Instruction&) {
+    /* Decode _explicit_ operands
+     *
+     * There are three types:
+     *
+     *   add r1, r2       ; r1, r2 are both X86_OP_REG
+     *   jmp -64          ; -64 is X86_OP_IMM
+     *   mov r1, [0x33]   ; r1 is X86_OP_REG, 0x33 is X86_OP_MEM
+     */
+    auto *d = disassembler.insn->detail;
+    for(uint8_t i = 0; i < d->x86.op_count; ++i) {
+      cs_x86_op const &operand = d->x86.operands[i];
+      switch(operand.type) {
+        case X86_OP_REG:
+          break;
+        case X86_OP_IMM:
+          break;
+        case X86_OP_MEM:
+          break;
+        case X86_OP_INVALID:
+          decode_printf("[0x%lx %s %s] has an invalid operand.\n", disassembler.insn->address,
+                        disassembler.insn->mnemonic, disassembler.insn->op_str);
+          break;
+      }
+    }
   }
 
 }}
