@@ -16,7 +16,6 @@ set(_sources
     src/ArchSpecificFormatters.C
     src/Immediate.C
     src/InstructionDecoder.C
-    src/InstructionDecoder-x86.C
     src/InstructionDecoder-power.C
     src/InstructionDecoder-aarch64.C
     src/AMDGPU/gfx908/decodeOperands.C
@@ -65,7 +64,6 @@ set(_private_headers
     src/InstructionDecoder-aarch64.h
     src/InstructionDecoderImpl.h
     src/InstructionDecoder-power.h
-    src/InstructionDecoder-x86.h
     h/syscalls.h
     h/interrupts.h)
 
