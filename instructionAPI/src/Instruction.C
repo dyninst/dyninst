@@ -239,7 +239,7 @@ namespace Dyninst { namespace InstructionAPI {
         return true;
       }
     }
-    return !m_InsnOp.getImplicitMemReads().empty();
+    return false;
   }
 
   bool Instruction::writesMemory() const {
@@ -248,7 +248,7 @@ namespace Dyninst { namespace InstructionAPI {
         return true;
       }
     }
-    return !m_InsnOp.getImplicitMemWrites().empty();
+    return false;
   }
 
   void
@@ -256,8 +256,6 @@ namespace Dyninst { namespace InstructionAPI {
     for(auto& op : m_Operands) {
       op.addEffectiveReadAddresses(memAccessors);
     }
-    std::copy(m_InsnOp.getImplicitMemReads().begin(), m_InsnOp.getImplicitMemReads().end(),
-              std::inserter(memAccessors, memAccessors.begin()));
   }
 
   void
@@ -265,8 +263,6 @@ namespace Dyninst { namespace InstructionAPI {
     for(auto& op : m_Operands) {
       op.addEffectiveWriteAddresses(memAccessors);
     }
-    std::copy(m_InsnOp.getImplicitMemWrites().begin(), m_InsnOp.getImplicitMemWrites().end(),
-              std::inserter(memAccessors, memAccessors.begin()));
   }
 
   Operand Instruction::getPredicateOperand() const {
