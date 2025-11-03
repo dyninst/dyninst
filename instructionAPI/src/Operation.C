@@ -73,42 +73,12 @@ namespace Dyninst { namespace InstructionAPI {
     return otherWritten;
   }
 
-  bool Operation::isRead(Expression::Ptr candidate) {
-
-    for(registerSet::const_iterator r = otherRead.begin(); r != otherRead.end(); ++r) {
-      if(*candidate == *(*r)) {
-        return true;
-      }
-    }
-    for(VCSet::const_iterator e = otherEffAddrsRead.begin(); e != otherEffAddrsRead.end(); ++e) {
-      if(*candidate == *(*e)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   const Operation::VCSet& Operation::getImplicitMemReads() {
     return otherEffAddrsRead;
   }
 
   const Operation::VCSet& Operation::getImplicitMemWrites() {
     return otherEffAddrsWritten;
-  }
-
-  bool Operation::isWritten(Expression::Ptr candidate) {
-    for(registerSet::const_iterator r = otherWritten.begin(); r != otherWritten.end(); ++r) {
-      if(*candidate == *(*r)) {
-        return true;
-      }
-    }
-    for(VCSet::const_iterator e = otherEffAddrsWritten.begin(); e != otherEffAddrsWritten.end();
-        ++e) {
-      if(*candidate == *(*e)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   std::string Operation::format() const {

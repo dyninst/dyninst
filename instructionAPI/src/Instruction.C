@@ -214,8 +214,7 @@ namespace Dyninst { namespace InstructionAPI {
         return true;
       }
     }
-    // Check if the candidate is read as an implicit operand
-    return m_InsnOp.isRead(candidate);
+    return false;
   }
 
   DYNINST_EXPORT bool Instruction::isWritten(Expression::Ptr candidate) const {
@@ -225,7 +224,7 @@ namespace Dyninst { namespace InstructionAPI {
         return true;
       }
     }
-    return m_InsnOp.isWritten(candidate);
+    return false;
   }
 
   DYNINST_EXPORT bool Instruction::readsMemory() const {

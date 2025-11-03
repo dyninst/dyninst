@@ -74,9 +74,6 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT entryID getID() const;
     DYNINST_EXPORT prefixEntryID getPrefixID() const;
 
-    DYNINST_EXPORT bool isRead(Expression::Ptr candidate);
-    DYNINST_EXPORT bool isWritten(Expression::Ptr candidate);
-
     void updateMnemonic(std::string new_mnemonic) { mnemonic = std::move(new_mnemonic); }
 
     bool isVectorInsn{};
