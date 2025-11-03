@@ -60,14 +60,17 @@ namespace Dyninst { namespace InstructionAPI {
       prefixID = pid;
     }
 
-    std::string format() const;
+    std::string format() const { return mnemonic; }
 
-    entryID getID() const;
-    prefixEntryID getPrefixID() const;
+    entryID getID() const { return operationID; }
+    prefixEntryID getPrefixID() const { return prefixID; }
 
     void updateMnemonic(std::string new_mnemonic) { mnemonic = std::move(new_mnemonic); }
 
-    bool operator==(Operation const&) const;
+    bool operator==(Operation const& rhs) const {
+      return operationID == rhs.operationID &&
+             mnemonic == rhs.mnemonic;
+    }
 
     bool isVectorInsn{};
 
