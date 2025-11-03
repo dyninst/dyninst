@@ -32,7 +32,6 @@
 #define DYN_OPERATION_H
 
 #include "Expression.h"
-#include "Register.h"
 #include "Result.h"
 #include "entryIDs.h"
 #include "dyninst_visibility.h"
@@ -45,7 +44,6 @@ namespace Dyninst { namespace InstructionAPI {
 
   class Operation {
   public:
-    typedef std::set<RegisterAST::Ptr> registerSet;
     typedef std::set<Expression::Ptr> VCSet;
     friend class InstructionDecoder_power; // for editing mnemonics after creation
     friend class InstructionDecoder_aarch64;
@@ -63,9 +61,6 @@ namespace Dyninst { namespace InstructionAPI {
 
     DYNINST_EXPORT const Operation& operator=(const Operation& o);
 
-    DYNINST_EXPORT const registerSet& implicitReads();
-    DYNINST_EXPORT const registerSet& implicitWrites();
-
     DYNINST_EXPORT const VCSet& getImplicitMemReads();
     DYNINST_EXPORT const VCSet& getImplicitMemWrites();
 
@@ -79,8 +74,6 @@ namespace Dyninst { namespace InstructionAPI {
     bool isVectorInsn{};
 
   private:
-    mutable registerSet otherRead;
-    mutable registerSet otherWritten;
     mutable VCSet otherEffAddrsRead;
     mutable VCSet otherEffAddrsWritten;
 

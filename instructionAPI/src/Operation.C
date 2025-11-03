@@ -65,14 +65,6 @@ namespace Dyninst { namespace InstructionAPI {
     return *this;
   }
 
-  const Operation::registerSet& Operation::implicitReads() {
-    return otherRead;
-  }
-
-  const Operation::registerSet& Operation::implicitWrites() {
-    return otherWritten;
-  }
-
   const Operation::VCSet& Operation::getImplicitMemReads() {
     return otherEffAddrsRead;
   }
