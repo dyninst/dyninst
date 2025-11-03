@@ -35,6 +35,7 @@ set(_sources
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
     src/InstructionDecoderImpl.C
     src/x86/decoder.C
+    src/x86/decode_imm.C
     src/x86/decode_reg.C
     src/x86/opcode_xlat.C
     src/x86/register_xlat.C
@@ -73,6 +74,7 @@ set(_private_headers
     src/x86/opcode_xlat.h
     src/x86/register_xlat.h
     h/syscalls.h
+    src/x86/type_conversion.h
     h/interrupts.h)
 
 set(instructionDecoderPowerExtraFlags "")
