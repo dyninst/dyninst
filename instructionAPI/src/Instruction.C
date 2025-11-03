@@ -51,7 +51,6 @@
 #include <string>
 
 using namespace std;
-using namespace NS_x86;
 
 #include "ArchSpecificFormatters.h"
 
