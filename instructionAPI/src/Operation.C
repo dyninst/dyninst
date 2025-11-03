@@ -33,12 +33,4 @@
 
 namespace Dyninst { namespace InstructionAPI {
 
-  std::string Operation::format() const {
-    return mnemonic;
-  }
-
-  entryID Operation::getID() const { return operationID; }
-
-  prefixEntryID Operation::getPrefixID() const { return prefixID; }
-
 }}

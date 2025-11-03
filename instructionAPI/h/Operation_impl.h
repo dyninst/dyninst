@@ -56,10 +56,10 @@ namespace Dyninst { namespace InstructionAPI {
       prefixID = pid;
     }
 
-    DYNINST_EXPORT std::string format() const;
+    DYNINST_EXPORT std::string format() const { return mnemonic; }
 
-    DYNINST_EXPORT entryID getID() const;
-    DYNINST_EXPORT prefixEntryID getPrefixID() const;
+    DYNINST_EXPORT entryID getID() const { return operationID; }
+    DYNINST_EXPORT prefixEntryID getPrefixID() const { return prefixID; }
 
     void updateMnemonic(std::string new_mnemonic) { mnemonic = std::move(new_mnemonic); }
 
