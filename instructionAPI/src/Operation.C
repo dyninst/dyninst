@@ -66,22 +66,6 @@ namespace Dyninst { namespace InstructionAPI {
     return otherWritten;
   }
 
-  bool Operation::isRead(Expression::Ptr candidate) {
-    return false;
-  }
-
-  const Operation::VCSet& Operation::getImplicitMemReads() {
-    return otherEffAddrsRead;
-  }
-
-  const Operation::VCSet& Operation::getImplicitMemWrites() {
-    return otherEffAddrsWritten;
-  }
-
-  bool Operation::isWritten(Expression::Ptr candidate) {
-    return false;
-  }
-
   std::string Operation::format() const {
     if(mnemonic != "") {
       return mnemonic;
