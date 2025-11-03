@@ -66,40 +66,12 @@ namespace Dyninst { namespace InstructionAPI {
     return otherWritten;
   }
 
-  bool Operation::isRead(Expression::Ptr candidate) {
-    for(RegisterAST::Ptr const& r : otherRead) {
-      if(*candidate == *r) {
-        return true;
-      }
-    }
-    for(Expression::Ptr const& e : otherEffAddrsRead) {
-      if(*candidate == *e) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   const Operation::VCSet& Operation::getImplicitMemReads() {
     return otherEffAddrsRead;
   }
 
   const Operation::VCSet& Operation::getImplicitMemWrites() {
     return otherEffAddrsWritten;
-  }
-
-  bool Operation::isWritten(Expression::Ptr candidate) {
-    for(RegisterAST::Ptr const& r : otherWritten) {
-      if(*candidate == *r) {
-        return true;
-      }
-    }
-    for(Expression::Ptr const& e : otherEffAddrsWritten) {
-      if(*candidate == *e) {
-        return true;
-      }
-    }
-    return false;
   }
 
   std::string Operation::format() const {
