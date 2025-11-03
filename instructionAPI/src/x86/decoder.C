@@ -137,6 +137,7 @@ namespace Dyninst { namespace InstructionAPI {
           decode_reg(insn, operand);
           break;
         case X86_OP_IMM:
+          decode_imm(insn, operand);
           break;
         case X86_OP_MEM:
           break;
