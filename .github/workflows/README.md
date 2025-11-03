@@ -115,7 +115,7 @@ Clang-specific libraries are installed automatically. For example, `compiler: 'c
 
 ## Workflows
 
-### Regression tests aginst known binaries ([workflows/binary-tests](workflows/binary-tests.yaml))
+### Regression tests against known binaries ([workflows/binary-tests](workflows/binary-tests.yaml))
 
 *Runs all tests, including those that require access to the dyninst/binary_tests repo*
 
