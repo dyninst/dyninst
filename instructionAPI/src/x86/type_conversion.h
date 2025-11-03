@@ -28,43 +28,66 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef INSTRUCTIONAPI_X86_DECODER_H
-#define INSTRUCTIONAPI_X86_DECODER_H
+#ifndef INSTRUCTIONAPI_TYPE_CONVERSION_H
+#define INSTRUCTIONAPI_TYPE_CONVERSION_H
 
-#include "capstone/capstone.h"
-#include "capstone/x86.h"
-#include "InstructionDecoderImpl.h"
 #include "Result.h"
 
 namespace Dyninst { namespace InstructionAPI {
 
-  class x86_decoder final : public InstructionDecoderImpl {
-  public:
-    struct disassem final {
-      csh handle{};
-      cs_insn *insn{};
-    };
+  // clang-format off
+  inline Result_Type size_to_type_unsigned(uint8_t cap_size) {
+    switch (cap_size) {
+      case 1:  return u8;
+      case 2:  return u16;
+      case 3:  return u24;
+      case 4:  return u32;
+      case 6:  return u48;
+      case 8:  return u64;
+      default: return invalid_type;
+    }
+  }
+  inline Result_Type size_to_type_signed(uint8_t cap_size) {
+    switch (cap_size) {
+      case 1:  return s8;
+      case 2:  return s16;
+      case 4:  return s32;
+      case 6:  return s48;
+      case 8:  return s64;
+      default: return invalid_type;
+    }
+  }
+  inline Result_Type size_to_type_float(uint8_t cap_size) {
+    switch (cap_size) {
+      case 4:  return sp_float;
+      case 8:  return dp_float;
+      case 16: return dbl128;
+      default: return invalid_type;
+    }
+  }
+  inline Result_Type size_to_type_memory(uint8_t cap_size) {
+    switch (cap_size) {
+      case 10: return m80;
+      case 12: return m96;
+      case 14: return m14;
+      case 16: return m128;
+      case 20: return m160;
+      case 24: return m192;
+      case 28: return m224;
+      case 32: return m256;
+      case 36: return m288;
+      case 40: return m320;
+      case 44: return m352;
+      case 48: return m384;
+      case 52: return m416;
+      case 56: return m448;
+      case 60: return m480;
+      case 64: return m512;
+      default: return invalid_type;
+    }
+  }
 
-  private:
-    cs_mode mode{};
-    disassem disassembler{};
-
-  public:
-    x86_decoder(Dyninst::Architecture a);
-    x86_decoder() = delete;
-    x86_decoder(x86_decoder const &) = delete;
-    x86_decoder &operator=(x86_decoder const &) = delete;
-    x86_decoder(x86_decoder &&) = delete;
-    x86_decoder &operator=(x86_decoder &&) = delete;
-    ~x86_decoder();
-
-    Instruction decode(InstructionDecoder::buffer&) override;
-
-  private:
-    void decode_operands(Instruction&);
-    void decode_reg(Instruction&, cs_x86_op const &);
-    void decode_imm(Instruction&, cs_x86_op const &);
-  };
+  // clang-format on
 
 }}
 
