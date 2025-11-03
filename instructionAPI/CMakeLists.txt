@@ -67,6 +67,7 @@ set(_private_headers
     src/InstructionDecoder-aarch64.h
     src/InstructionDecoderImpl.h
     src/InstructionDecoder-power.h
+    src/x86/categories.h
     src/x86/decoder.h
     src/x86/opcode_xlat.h
     src/x86/register_xlat.h
