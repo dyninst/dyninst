@@ -255,8 +255,6 @@ namespace Dyninst { namespace InstructionAPI {
         curOperand != m_Operands.end(); ++curOperand) {
       curOperand->getReadSet(regsRead);
     }
-    std::copy(m_InsnOp.implicitReads().begin(), m_InsnOp.implicitReads().end(),
-              std::inserter(regsRead, regsRead.begin()));
   }
 
   DYNINST_EXPORT void Instruction::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const {
@@ -264,8 +262,6 @@ namespace Dyninst { namespace InstructionAPI {
         curOperand != m_Operands.end(); ++curOperand) {
       curOperand->getWriteSet(regsWritten);
     }
-    std::copy(m_InsnOp.implicitWrites().begin(), m_InsnOp.implicitWrites().end(),
-              std::inserter(regsWritten, regsWritten.begin()));
   }
 
   DYNINST_EXPORT bool Instruction::isRead(Expression::Ptr candidate) const {
