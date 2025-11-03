@@ -38,19 +38,12 @@ using namespace NS_x86;
 namespace Dyninst { namespace InstructionAPI {
 
   Operation::Operation(entryID id, std::string m, Architecture arch)
-      : operationID(id), archDecodedFrom(arch), mnemonic{std::move(m)} {
-    switch(archDecodedFrom) {
-      case Arch_x86:
-      case Arch_ppc32: addrWidth = u32; break;
-      default: addrWidth = u64; break;
-    }
-  }
+      : operationID(id), archDecodedFrom(arch), mnemonic{std::move(m)} {}
 
   Operation::Operation(const Operation& o) {
     operationID = o.operationID;
     archDecodedFrom = o.archDecodedFrom;
     prefixID = o.prefixID;
-    addrWidth = o.addrWidth;
     isVectorInsn = o.isVectorInsn;
     mnemonic = o.mnemonic;
   }
@@ -59,7 +52,6 @@ namespace Dyninst { namespace InstructionAPI {
     operationID = o.operationID;
     archDecodedFrom = o.archDecodedFrom;
     prefixID = o.prefixID;
-    addrWidth = o.addrWidth;
     isVectorInsn = o.isVectorInsn;
     mnemonic = o.mnemonic;
     return *this;

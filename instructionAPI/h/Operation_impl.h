@@ -32,7 +32,6 @@
 #define DYN_OPERATION_H
 
 #include "Architecture.h"
-#include "Result.h"
 #include "entryIDs.h"
 #include "dyninst_visibility.h"
 
@@ -72,7 +71,6 @@ namespace Dyninst { namespace InstructionAPI {
     mutable entryID operationID{};
     Architecture archDecodedFrom{};
     prefixEntryID prefixID{};
-    Result_Type addrWidth{};
     mutable std::string mnemonic;
   };
 }}
