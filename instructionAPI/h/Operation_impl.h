@@ -35,7 +35,6 @@
 #include "entryIDs.h"
 #include "dyninst_visibility.h"
 
-#include <stddef.h>
 #include <string>
 
 namespace Dyninst { namespace InstructionAPI {
