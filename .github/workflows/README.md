@@ -115,6 +115,14 @@ Clang-specific libraries are installed automatically. For example, `compiler: 'c
 
 ## Workflows
 
+### Regression tests against known binaries ([workflows/binary-tests](workflows/binary-tests.yaml))
+
+*Runs all tests, including those that require access to the dyninst/binary_tests repo*
+
+This is separate from the 'pr-tests' workflow because it would be inefficient to download the binary_tests repo for every job. The tradeoff is that these tests don't get run for every combination of compiler and OS.
+
+**when**: on pull request to the master branch when source code changes, or manually
+
 ### Build options ([workflows/build-opts](workflows/build-opts.yaml))
 
 *Builds Dyninst with different values for each of its CMake options*
