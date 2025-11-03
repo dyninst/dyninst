@@ -37,9 +37,6 @@ using namespace NS_x86;
 
 namespace Dyninst { namespace InstructionAPI {
 
-  Operation::Operation(entryID id, std::string m, Architecture arch)
-      : operationID(id), archDecodedFrom(arch), mnemonic{std::move(m)} {}
-
   std::string Operation::format() const {
     if(mnemonic != "") {
       return mnemonic;
