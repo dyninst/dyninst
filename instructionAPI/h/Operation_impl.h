@@ -49,14 +49,11 @@ namespace Dyninst { namespace InstructionAPI {
     friend class InstructionDecoder_amdgpu_gfx940;
 
   public:
-    DYNINST_EXPORT Operation(const Operation& o);
     DYNINST_EXPORT Operation() = default;
     DYNINST_EXPORT Operation(entryID id, std::string m, Architecture arch);
     DYNINST_EXPORT Operation(entryID id, prefixEntryID pid, std::string m, Architecture arch) : Operation(id, m, arch) {
       prefixID = pid;
     }
-
-    DYNINST_EXPORT const Operation& operator=(const Operation& o);
 
     DYNINST_EXPORT std::string format() const;
 

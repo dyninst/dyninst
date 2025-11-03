@@ -40,23 +40,6 @@ namespace Dyninst { namespace InstructionAPI {
   Operation::Operation(entryID id, std::string m, Architecture arch)
       : operationID(id), archDecodedFrom(arch), mnemonic{std::move(m)} {}
 
-  Operation::Operation(const Operation& o) {
-    operationID = o.operationID;
-    archDecodedFrom = o.archDecodedFrom;
-    prefixID = o.prefixID;
-    isVectorInsn = o.isVectorInsn;
-    mnemonic = o.mnemonic;
-  }
-
-  const Operation& Operation::operator=(const Operation& o) {
-    operationID = o.operationID;
-    archDecodedFrom = o.archDecodedFrom;
-    prefixID = o.prefixID;
-    isVectorInsn = o.isVectorInsn;
-    mnemonic = o.mnemonic;
-    return *this;
-  }
-
   std::string Operation::format() const {
     if(mnemonic != "") {
       return mnemonic;
