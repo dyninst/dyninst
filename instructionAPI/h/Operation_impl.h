@@ -31,19 +31,17 @@
 #ifndef DYNINST_INSTRUCTIONAPI_OPERATION_IMPL_H
 #define DYNINST_INSTRUCTIONAPI_OPERATION_IMPL_H
 
-#include "Expression.h"
+#include "Architecture.h"
 #include "Result.h"
 #include "entryIDs.h"
 #include "dyninst_visibility.h"
 
-#include <set>
 #include <string>
 
 namespace Dyninst { namespace InstructionAPI {
 
   class DYNINST_EXPORT Operation {
   public:
-    typedef std::set<Expression::Ptr> VCSet;
     friend class InstructionDecoder_power; // for editing mnemonics after creation
     friend class InstructionDecoder_aarch64;
     friend class InstructionDecoder_amdgpu_gfx908;
@@ -72,9 +70,6 @@ namespace Dyninst { namespace InstructionAPI {
     bool isVectorInsn{};
 
   private:
-    mutable VCSet otherEffAddrsRead;
-    mutable VCSet otherEffAddrsWritten;
-
     mutable entryID operationID{};
     Architecture archDecodedFrom{};
     prefixEntryID prefixID{};
