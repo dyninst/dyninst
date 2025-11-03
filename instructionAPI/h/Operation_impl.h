@@ -73,9 +73,6 @@ namespace Dyninst { namespace InstructionAPI {
     entryID getID() const;
     prefixEntryID getPrefixID() const;
 
-    bool isRead(Expression::Ptr candidate);
-    bool isWritten(Expression::Ptr candidate);
-
     void updateMnemonic(std::string new_mnemonic) { mnemonic = std::move(new_mnemonic); }
 
     bool operator==(Operation const&) const;
