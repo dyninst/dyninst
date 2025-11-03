@@ -42,13 +42,6 @@
 #include <stddef.h>
 #include <string>
 
-namespace NS_x86 {
-  struct ia32_entry;
-  class ia32_prefixes;
-}
-class ia32_locations;
-
-
 namespace Dyninst { namespace InstructionAPI {
 
   class Operation {
@@ -62,11 +55,12 @@ namespace Dyninst { namespace InstructionAPI {
     friend class InstructionDecoder_amdgpu_gfx940;
 
   public:
-    DYNINST_EXPORT Operation(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL,
-                             ia32_locations* l = NULL, Architecture arch = Arch_none);
     DYNINST_EXPORT Operation(const Operation& o);
     DYNINST_EXPORT Operation() = default;
     DYNINST_EXPORT Operation(entryID id, std::string m, Architecture arch);
+    DYNINST_EXPORT Operation(entryID id, prefixEntryID pid, std::string m, Architecture arch) : Operation(id, m, arch) {
+      prefixID = pid;
+    }
 
     DYNINST_EXPORT const Operation& operator=(const Operation& o);
 

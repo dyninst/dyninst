@@ -64,56 +64,6 @@ namespace Dyninst { namespace InstructionAPI {
     }
   }
 
-  static bool getVectorizationInfo(ia32_entry* e) {
-    for(int i = 0; i < 3; i++) {
-      switch(e->operands[i].admet) {
-        case am_V:
-        case am_W:
-        case am_P:
-        case am_Q:
-        case am_HK:
-        case am_H:
-        case am_X:
-        case am_XH:
-        case am_XU:
-        case am_XV:
-        case am_XW:
-        case am_Y:
-        case am_YH:
-        case am_YU:
-        case am_YV:
-        case am_YW:
-        case am_VK:
-        case am_WK: return true;
-        default: break;
-      }
-    }
-    return false;
-  }
-
-  Operation::Operation(ia32_entry* e, ia32_prefixes* p, ia32_locations* l, Architecture arch)
-      : archDecodedFrom(arch), prefixID(prefix_none) {
-    segPrefix = 0;
-    isVectorInsn = getVectorizationInfo(e);
-    operationID = e->getID(l);
-    // Defaults for no size prefix
-    switch(archDecodedFrom) {
-      case Arch_x86:
-      case Arch_ppc32: addrWidth = u32; break;
-      default: addrWidth = u64; break;
-    }
-    if(p && p->getCount()) {
-      if(p->getPrefix(0) == PREFIX_REP)
-        prefixID = prefix_rep;
-      if(p->getPrefix(0) == PREFIX_REPNZ)
-        prefixID = prefix_repnz;
-      segPrefix = p->getPrefix(1);
-      if(p->getAddrSzPrefix()) {
-        addrWidth = u16;
-      }
-    }
-  }
-
   Operation::Operation(const Operation& o) {
     operationID = o.operationID;
     archDecodedFrom = o.archDecodedFrom;
