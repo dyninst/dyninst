@@ -30,6 +30,7 @@
 
 #include "capstone/capstone.h"
 #include "capstone/x86.h"
+#include "categories.h"
 #include "debug.h"
 #include "Operation_impl.h"
 #include "x86/decoder.h"
@@ -110,7 +111,11 @@ namespace Dyninst { namespace InstructionAPI {
     return insn;
   }
 
-  void x86_decoder::decode_operands(Instruction&) {
+  void x86_decoder::decode_operands(Instruction& insn) {
+    // Categories must be decoded before anything else since they are used
+    // in the other decoding steps.
+    insn.categories = x86::decode_categories(insn, disassembler);
+
     /* Decode _explicit_ operands
      *
      * There are three types:
