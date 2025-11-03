@@ -75,14 +75,6 @@ namespace Dyninst { namespace InstructionAPI {
     isVectorInsn = false;
   }
 
-  const Operation::VCSet& Operation::getImplicitMemReads() {
-    return otherEffAddrsRead;
-  }
-
-  const Operation::VCSet& Operation::getImplicitMemWrites() {
-    return otherEffAddrsWritten;
-  }
-
   std::string Operation::format() const {
     if(mnemonic != "") {
       return mnemonic;
