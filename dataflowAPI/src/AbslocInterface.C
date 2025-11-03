@@ -64,85 +64,83 @@ void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
   }
 }
 
-void AbsRegionConverter::convertAll(const InstructionAPI::Instruction &insn,
-				    Address addr,
-				    ParseAPI::Function *func,
-                                    ParseAPI::Block *block,
-				    std::vector<AbsRegion> &used,
-				    std::vector<AbsRegion> &defined) {
+void AbsRegionConverter::convertAll(const InstructionAPI::Instruction &insn, Address addr, ParseAPI::Function *func,
+                                    ParseAPI::Block *block, std::vector<AbsRegion> &used,
+                                    std::vector<AbsRegion> &defined) {
 
-      auto _expand_aarch64 = [this](std::vector<AbsRegion> &absregs, MachRegister const& reg) {
-      auto flagRegs = {aarch64::n, aarch64::z, aarch64::c, aarch64::v};
+  auto _expand_aarch64 = [this](std::vector<AbsRegion> &absregs, MachRegister const &reg) {
+    auto flagRegs = {aarch64::n, aarch64::z, aarch64::c, aarch64::v};
 
-      if(reg == aarch64::nzcv) {
-        for(auto &&f: flagRegs) {
-          auto ast = boost::make_shared<RegisterAST>(f);
-          auto region = AbsRegionConverter::convert(ast);
-          absregs.push_back(region);
-        }
-        return;
+    if(reg == aarch64::nzcv) {
+      for(auto &&f : flagRegs) {
+        auto ast = boost::make_shared<RegisterAST>(f);
+        auto region = AbsRegionConverter::convert(ast);
+        absregs.push_back(region);
       }
-      auto ast = boost::make_shared<RegisterAST>(reg);
-      auto region = AbsRegionConverter::convert(ast);
-      absregs.push_back(region);
-    };
-                        if (!usedCache(addr, func, used)) {
+      return;
+    }
+    auto ast = boost::make_shared<RegisterAST>(reg);
+    auto region = AbsRegionConverter::convert(ast);
+    absregs.push_back(region);
+  };
+
+  if(!usedCache(addr, func, used)) {
     std::set<RegisterAST::Ptr> regsRead;
     insn.getReadSet(regsRead);
 
-    for (RegisterAST::Ptr reg : regsRead) {
-        if(insn.getArch() == Arch_aarch64) {
-            _expand_aarch64(used, reg->getID());
-            continue;
-        }
-        used.push_back(AbsRegionConverter::convert(reg));
+    for(RegisterAST::Ptr reg : regsRead) {
+      if(insn.getArch() == Arch_aarch64) {
+        _expand_aarch64(used, reg->getID());
+        continue;
+      }
+      used.push_back(AbsRegionConverter::convert(reg));
     }
-    
-    if (insn.readsMemory()) {
+
+    if(insn.readsMemory()) {
       std::set<Expression::Ptr> memReads;
       insn.getMemoryReadOperands(memReads);
-      for (Expression::Ptr expr : memReads) {
-         used.push_back(AbsRegionConverter::convert(expr, addr, func, block));
+      for(Expression::Ptr expr : memReads) {
+        used.push_back(AbsRegionConverter::convert(expr, addr, func, block));
       }
     }
   }
-  if (!definedCache(addr, func, defined)) {
+
+  if(!definedCache(addr, func, defined)) {
     // Defined time
     std::set<RegisterAST::Ptr> regsWritten;
     insn.getWriteSet(regsWritten);
-    for (RegisterAST::Ptr reg : regsWritten) {
-        if(insn.getArch() == Arch_aarch64) {
-            _expand_aarch64(defined, reg->getID());
-            continue;
-        } else if (insn.getArch() == Arch_cuda && insn.hasPredicateOperand()) {
-            Operand o = insn.getPredicateOperand();
-            defined.push_back(AbsRegionConverter::convertPredicatedRegister(reg, o.getPredicate(), o.isTruePredicate()));
-
-        } else {
-            defined.push_back(AbsRegionConverter::convert(reg));
-        }
+    for(RegisterAST::Ptr reg : regsWritten) {
+      if(insn.getArch() == Arch_aarch64) {
+        _expand_aarch64(defined, reg->getID());
+        continue;
+      } else if(insn.getArch() == Arch_cuda && insn.hasPredicateOperand()) {
+        Operand o = insn.getPredicateOperand();
+        defined.push_back(AbsRegionConverter::convertPredicatedRegister(reg, o.getPredicate(), o.isTruePredicate()));
+      } else {
+        defined.push_back(AbsRegionConverter::convert(reg));
+      }
     }
 
     // special case for repeat-prefixed instructions on x86
     // may disappear if Dyninst's representation of these instructions changes
-    if (insn.getArch() == Arch_x86) {
+    if(insn.getArch() == Arch_x86) {
       prefixEntryID insnPrefix = insn.getOperation().getPrefixID();
-      if ( (prefix_rep == insnPrefix) || (prefix_repnz == insnPrefix) ) {
-        defined.push_back(AbsRegionConverter::convert(RegisterAST::Ptr(
-          new RegisterAST(MachRegister::getPC(Arch_x86)))));
+      if((prefix_rep == insnPrefix) || (prefix_repnz == insnPrefix)) {
+        defined.push_back(
+            AbsRegionConverter::convert(RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_x86)))));
       }
     }
-    
-    if (insn.writesMemory()) {
+
+    if(insn.writesMemory()) {
       std::set<Expression::Ptr> memWrites;
       insn.getMemoryWriteOperands(memWrites);
-      for (Expression::Ptr expr : memWrites) {
-         defined.push_back(AbsRegionConverter::convert(expr, addr, func, block));
+      for(Expression::Ptr expr : memWrites) {
+        defined.push_back(AbsRegionConverter::convert(expr, addr, func, block));
       }
     }
   }
 
-  if (cacheEnabled_) {
+  if(cacheEnabled_) {
     used_cache_[func][addr] = used;
     defined_cache_[func][addr] = defined;
   }
