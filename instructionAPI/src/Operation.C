@@ -35,18 +35,4 @@
 
 namespace Dyninst { namespace InstructionAPI {
 
-  std::string Operation::format() const {
-    return mnemonic;
-  }
-
-  entryID Operation::getID() const { return operationID; }
-
-  prefixEntryID Operation::getPrefixID() const { return prefixID; }
-
-  bool Operation::operator==(Operation const &rhs) const {
-    return operationID == rhs.operationID &&
-           archDecodedFrom == rhs.archDecodedFrom &&
-           mnemonic == rhs.mnemonic;
-  }
-
 }}
