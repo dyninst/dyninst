@@ -58,14 +58,6 @@ namespace Dyninst { namespace InstructionAPI {
     return *this;
   }
 
-  const Operation::registerSet& Operation::implicitReads() {
-    return otherRead;
-  }
-
-  const Operation::registerSet& Operation::implicitWrites() {
-    return otherWritten;
-  }
-
   std::string Operation::format() const {
     if(mnemonic != "") {
       return mnemonic;
