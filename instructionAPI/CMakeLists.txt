@@ -40,6 +40,7 @@ set(_sources
     src/decoder/riscv/register_xlat.C
     src/decoder/x86/decoder.C
     src/decoder/x86/decode_reg.C
+    src/decoder/x86/decode_imm.C
     src/decoder/x86/register_xlat.C
     src/decoder/x86/opcode_xlat.C
     src/InstructionDecoderImpl.C
@@ -80,6 +81,7 @@ set(_private_headers
     src/decoder/x86/decoder.h
     src/decoder/x86/opcode_xlat.h
     src/decoder/x86/register_xlat.h
+    src/decoder/x86/type_conversion.h
     src/InstructionDecoder-aarch64.h
     src/InstructionDecoderImpl.h
     src/InstructionDecoder-power.h

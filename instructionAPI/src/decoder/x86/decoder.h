@@ -63,6 +63,7 @@ namespace Dyninst { namespace InstructionAPI {
   private:
     void decode_operands(Instruction&);
     void decode_reg(Instruction&, cs_x86_op const &);
+    void decode_imm(Instruction&, cs_x86_op const &);
   };
 
 }}
