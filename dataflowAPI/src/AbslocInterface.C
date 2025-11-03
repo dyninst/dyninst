@@ -90,22 +90,19 @@ void AbsRegionConverter::convertAll(const InstructionAPI::Instruction &insn,
     std::set<RegisterAST::Ptr> regsRead;
     insn.getReadSet(regsRead);
 
-    for (std::set<RegisterAST::Ptr>::const_iterator i = regsRead.begin();
-	 i != regsRead.end(); ++i) {
+    for (RegisterAST::Ptr reg : regsRead) {
         if(insn.getArch() == Arch_aarch64) {
-            _expand_aarch64(used, (*i)->getID());
+            _expand_aarch64(used, reg->getID());
             continue;
         }
-        used.push_back(AbsRegionConverter::convert(*i));
+        used.push_back(AbsRegionConverter::convert(reg));
     }
     
     if (insn.readsMemory()) {
       std::set<Expression::Ptr> memReads;
       insn.getMemoryReadOperands(memReads);
-      for (std::set<Expression::Ptr>::const_iterator r = memReads.begin();
-	   r != memReads.end();
-	   ++r) {
-         used.push_back(AbsRegionConverter::convert(*r, addr, func, block));
+      for (Expression::Ptr expr : memReads) {
+         used.push_back(AbsRegionConverter::convert(expr, addr, func, block));
       }
     }
   }
@@ -113,17 +110,16 @@ void AbsRegionConverter::convertAll(const InstructionAPI::Instruction &insn,
     // Defined time
     std::set<RegisterAST::Ptr> regsWritten;
     insn.getWriteSet(regsWritten);
-    for (std::set<RegisterAST::Ptr>::const_iterator i = regsWritten.begin();
-	 i != regsWritten.end(); ++i) {
+    for (RegisterAST::Ptr reg : regsWritten) {
         if(insn.getArch() == Arch_aarch64) {
-            _expand_aarch64(defined, (*i)->getID());
+            _expand_aarch64(defined, reg->getID());
             continue;
         } else if (insn.getArch() == Arch_cuda && insn.hasPredicateOperand()) {
             Operand o = insn.getPredicateOperand();
-            defined.push_back(AbsRegionConverter::convertPredicatedRegister(*i, o.getPredicate(), o.isTruePredicate()));
+            defined.push_back(AbsRegionConverter::convertPredicatedRegister(reg, o.getPredicate(), o.isTruePredicate()));
 
         } else {
-            defined.push_back(AbsRegionConverter::convert(*i));
+            defined.push_back(AbsRegionConverter::convert(reg));
         }
     }
 
@@ -140,10 +136,8 @@ void AbsRegionConverter::convertAll(const InstructionAPI::Instruction &insn,
     if (insn.writesMemory()) {
       std::set<Expression::Ptr> memWrites;
       insn.getMemoryWriteOperands(memWrites);
-      for (std::set<Expression::Ptr>::const_iterator r = memWrites.begin();
-	   r != memWrites.end();
-	   ++r) {
-         defined.push_back(AbsRegionConverter::convert(*r, addr, func, block));
+      for (Expression::Ptr expr : memWrites) {
+         defined.push_back(AbsRegionConverter::convert(expr, addr, func, block));
       }
     }
   }
