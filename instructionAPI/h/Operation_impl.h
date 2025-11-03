@@ -51,8 +51,14 @@ namespace Dyninst { namespace InstructionAPI {
 
   public:
     Operation() = default;
+
     Operation(entryID id, std::string m, Architecture arch)
       : operationID(id), archDecodedFrom(arch), mnemonic{std::move(m)} {}
+
+    Operation(entryID id, prefixEntryID pid, std::string m, Architecture arch)
+      : Operation(id, std::move(m), arch) {
+      prefixID = pid;
+    }
 
     std::string format() const;
 
