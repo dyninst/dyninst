@@ -39,11 +39,6 @@ namespace Dyninst { namespace InstructionAPI {
 
   Operation::Operation(entryID id, std::string m, Architecture arch)
       : operationID(id), archDecodedFrom(arch), prefixID(prefix_none) {
-    switch(archDecodedFrom) {
-      case Arch_x86:
-      case Arch_ppc32: addrWidth = u32; break;
-      default: addrWidth = u64; break;
-    }
     isVectorInsn = false;
     mnemonic = m;
   }
@@ -52,7 +47,6 @@ namespace Dyninst { namespace InstructionAPI {
     operationID = o.operationID;
     archDecodedFrom = o.archDecodedFrom;
     prefixID = o.prefixID;
-    addrWidth = o.addrWidth;
     isVectorInsn = o.isVectorInsn;
     mnemonic = o.mnemonic;
   }
@@ -61,7 +55,6 @@ namespace Dyninst { namespace InstructionAPI {
     operationID = o.operationID;
     archDecodedFrom = o.archDecodedFrom;
     prefixID = o.prefixID;
-    addrWidth = o.addrWidth;
     isVectorInsn = o.isVectorInsn;
     mnemonic = o.mnemonic;
     return *this;
@@ -71,7 +64,6 @@ namespace Dyninst { namespace InstructionAPI {
     operationID = e_No_Entry;
     archDecodedFrom = Arch_none;
     prefixID = prefix_none;
-    addrWidth = u64;
     isVectorInsn = false;
   }
 
