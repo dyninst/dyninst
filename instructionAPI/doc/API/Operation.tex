@@ -49,24 +49,6 @@ Operation + ExpressionPtrs -> Instruction + Operands
 
 
 \begin{apient}
-const Operation::registerSet & implicitReads () const
-\end{apient}
-\apidesc{
-Returns the set of registers implicitly read (i.e. those not included in the
-operands, but read
-anyway).
-}
-
-\begin{apient}
-const Operation::registerSet & implicitWrites () const
-\end{apient}
-\apidesc{
-Returns the set of registers implicitly written (i.e. those not included in the
-operands, but written
-anyway).
-}
-
-\begin{apient}
 std::string format() const
 \end{apient}
 \apidesc{

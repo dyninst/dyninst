@@ -203,16 +203,12 @@ namespace Dyninst { namespace InstructionAPI {
     for(auto const& op : m_Operands) {
       op.getReadSet(regsRead);
     }
-    std::copy(m_InsnOp.implicitReads().begin(), m_InsnOp.implicitReads().end(),
-              std::inserter(regsRead, regsRead.begin()));
   }
 
   void Instruction::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const {
     for(auto const& op : m_Operands) {
       op.getWriteSet(regsWritten);
     }
-    std::copy(m_InsnOp.implicitWrites().begin(), m_InsnOp.implicitWrites().end(),
-              std::inserter(regsWritten, regsWritten.begin()));
   }
 
   bool Instruction::isRead(Expression::Ptr candidate) const {
