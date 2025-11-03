@@ -70,28 +70,33 @@ void AbsRegionConverter::convertAll(const InstructionAPI::Instruction &insn,
                                     ParseAPI::Block *block,
 				    std::vector<AbsRegion> &used,
 				    std::vector<AbsRegion> &defined) {
-                        
+
+      auto _expand_aarch64 = [this](std::vector<AbsRegion> &absregs, MachRegister const& reg) {
+      auto flagRegs = {aarch64::n, aarch64::z, aarch64::c, aarch64::v};
+
+      if(reg == aarch64::nzcv) {
+        for(auto &&f: flagRegs) {
+          auto ast = boost::make_shared<RegisterAST>(f);
+          auto region = AbsRegionConverter::convert(ast);
+          absregs.push_back(region);
+        }
+        return;
+      }
+      auto ast = boost::make_shared<RegisterAST>(reg);
+      auto region = AbsRegionConverter::convert(ast);
+      absregs.push_back(region);
+    };
                         if (!usedCache(addr, func, used)) {
     std::set<RegisterAST::Ptr> regsRead;
     insn.getReadSet(regsRead);
 
-
     for (std::set<RegisterAST::Ptr>::const_iterator i = regsRead.begin();
 	 i != regsRead.end(); ++i) {
         if(insn.getArch() == Arch_aarch64) {
-            MachRegister machReg = (*i)->getID();
-            std::vector<MachRegister> flagRegs = {aarch64::n, aarch64::z, aarch64::c, aarch64::v};
-
-            if(machReg == aarch64::nzcv) {
-                for(std::vector<MachRegister>::iterator itr = flagRegs.begin(); itr != flagRegs.end(); itr++) {
-                    used.push_back(AbsRegionConverter::convert(RegisterAST::Ptr(new RegisterAST(*itr))));
-                }
-            } else {
-                used.push_back(AbsRegionConverter::convert(*i));
-            }
-        } else {
-            used.push_back(AbsRegionConverter::convert(*i));
+            _expand_aarch64(used, (*i)->getID());
+            continue;
         }
+        used.push_back(AbsRegionConverter::convert(*i));
     }
     
     if (insn.readsMemory()) {
@@ -110,17 +115,9 @@ void AbsRegionConverter::convertAll(const InstructionAPI::Instruction &insn,
     insn.getWriteSet(regsWritten);
     for (std::set<RegisterAST::Ptr>::const_iterator i = regsWritten.begin();
 	 i != regsWritten.end(); ++i) {
-      if(insn.getArch() == Arch_aarch64) {
-            MachRegister machReg = (*i)->getID();
-            std::vector<MachRegister> flagRegs = {aarch64::n, aarch64::z, aarch64::c, aarch64::v};
-
-            if(machReg == aarch64::nzcv) {
-                for(std::vector<MachRegister>::iterator itr = flagRegs.begin(); itr != flagRegs.end(); itr++) {
-                    defined.push_back(AbsRegionConverter::convert(RegisterAST::Ptr(new RegisterAST(*itr))));
-                }
-            } else {
-                defined.push_back(AbsRegionConverter::convert(*i));
-            }
+        if(insn.getArch() == Arch_aarch64) {
+            _expand_aarch64(defined, (*i)->getID());
+            continue;
         } else if (insn.getArch() == Arch_cuda && insn.hasPredicateOperand()) {
             Operand o = insn.getPredicateOperand();
             defined.push_back(AbsRegionConverter::convertPredicatedRegister(*i, o.getPredicate(), o.isTruePredicate()));
