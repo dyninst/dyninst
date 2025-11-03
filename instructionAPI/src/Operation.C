@@ -43,13 +43,6 @@ namespace Dyninst { namespace InstructionAPI {
     mnemonic = m;
   }
 
-  Operation::Operation() {
-    operationID = e_No_Entry;
-    archDecodedFrom = Arch_none;
-    prefixID = prefix_none;
-    isVectorInsn = false;
-  }
-
   std::string Operation::format() const {
     if(mnemonic != "") {
       return mnemonic;

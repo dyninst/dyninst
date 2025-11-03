@@ -48,7 +48,7 @@ namespace Dyninst { namespace InstructionAPI {
     friend class InstructionDecoder_amdgpu_gfx940;
 
   public:
-    DYNINST_EXPORT Operation();
+    DYNINST_EXPORT Operation() = default;
     DYNINST_EXPORT Operation(entryID id, std::string m, Architecture arch);
     DYNINST_EXPORT Operation(entryID id, prefixEntryID pid, std::string m, Architecture arch) : Operation(id, m, arch) {
       prefixID = pid;
@@ -61,12 +61,12 @@ namespace Dyninst { namespace InstructionAPI {
 
     void updateMnemonic(std::string new_mnemonic) { mnemonic = std::move(new_mnemonic); }
 
-    bool isVectorInsn;
+    bool isVectorInsn{false};
 
   private:
-    mutable entryID operationID;
-    Architecture archDecodedFrom;
-    prefixEntryID prefixID;
+    mutable entryID operationID{};
+    Architecture archDecodedFrom{};
+    prefixEntryID prefixID{};
     mutable std::string mnemonic;
   };
 }}
