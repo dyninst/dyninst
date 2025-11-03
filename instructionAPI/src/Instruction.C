@@ -332,41 +332,18 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   DYNINST_EXPORT bool Instruction::allowsFallThrough() const {
+    if(arch_decoded_from == Arch_x86 || arch_decoded_from == Arch_x86_64) {
+      // Only conditional branches fall through
+      return isBranch() && isConditional();
+    }
+
     switch(m_InsnOp.getID()) {
-      case e_ret_far:
-      case e_ret_near:
-      case e_iret:
-      case e_jmp:
-      case e_hlt:
-      case e_sysret:
-      case e_sysexit:
-      case e_call:
-      case e_syscall:
       case amdgpu_gfx908_op_S_SETPC_B64:
       case amdgpu_gfx908_op_S_SWAPPC_B64:
       case amdgpu_gfx90a_op_S_SETPC_B64:
       case amdgpu_gfx90a_op_S_SWAPPC_B64:
       case amdgpu_gfx940_op_S_SETPC_B64:
       case amdgpu_gfx940_op_S_SWAPPC_B64: return false;
-      case e_jae:
-      case e_jb:
-      case e_jb_jnaej_j:
-      case e_jbe:
-      case e_jcxz_jec:
-      case e_jl:
-      case e_jle:
-      case e_jnb_jae_j:
-      case e_ja:
-      case e_jge:
-      case e_jg:
-      case e_jno:
-      case e_jnp:
-      case e_jns:
-      case e_jne:
-      case e_jo:
-      case e_jp:
-      case e_js:
-      case e_je: return true;
       default: {
         for(cftConstIter targ = m_Successors.begin(); targ != m_Successors.end(); ++targ) {
           if(targ->isFallthrough)
@@ -384,6 +361,12 @@ namespace Dyninst { namespace InstructionAPI {
   DYNINST_EXPORT Architecture Instruction::getArch() const { return arch_decoded_from; }
 
   DYNINST_EXPORT InsnCategory Instruction::getCategory() const {
+    if(arch_decoded_from == Arch_x86 || arch_decoded_from == Arch_x86_64) {
+      if(categories.categories.size()) {
+        return categories.categories[0];
+      }
+      return c_NoCategory;
+    }
     if(m_InsnOp.isVectorInsn)
       return c_VectorInsn;
     InsnCategory c = entryToCategory(m_InsnOp.getID());
