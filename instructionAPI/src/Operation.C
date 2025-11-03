@@ -29,31 +29,12 @@
  */
 
 #include "Operation_impl.h"
-#include "common/src/vgannotations.h"
-#include "concurrent.h"
 #include "entryIDs.h"
-
-using namespace NS_x86;
 
 namespace Dyninst { namespace InstructionAPI {
 
   std::string Operation::format() const {
-    if(mnemonic != "") {
-      return mnemonic;
-    }
-    dyn_hash_map<prefixEntryID, std::string>::const_iterator foundPrefix =
-        prefixEntryNames_IAPI.find(prefixID);
-    dyn_hash_map<entryID, std::string>::const_iterator found = entryNames_IAPI.find(operationID);
-    std::string result;
-    if(foundPrefix != prefixEntryNames_IAPI.end()) {
-      result += (foundPrefix->second + " ");
-    }
-    if(found != entryNames_IAPI.end()) {
-      result += found->second;
-    } else {
-      result += "[INVALID]";
-    }
-    return result;
+    return mnemonic;
   }
 
   entryID Operation::getID() const { return operationID; }
