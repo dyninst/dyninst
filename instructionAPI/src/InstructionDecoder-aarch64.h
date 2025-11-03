@@ -53,8 +53,6 @@ namespace Dyninst { namespace InstructionAPI {
 
     virtual Instruction decode(InstructionDecoder::buffer& b);
 
-    virtual void setMode(bool) {}
-
     static const std::array<std::string, 16> condNames;
     static MachRegister sysRegMap(unsigned int);
     static const char* bitfieldInsnAliasMap(entryID);
