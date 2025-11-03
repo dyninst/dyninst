@@ -43,7 +43,6 @@ namespace Dyninst { namespace InstructionAPI {
     operationID = o.operationID;
     archDecodedFrom = o.archDecodedFrom;
     prefixID = o.prefixID;
-    addrWidth = o.addrWidth;
     isVectorInsn = o.isVectorInsn;
     mnemonic = o.mnemonic;
   }
@@ -52,7 +51,6 @@ namespace Dyninst { namespace InstructionAPI {
     operationID = o.operationID;
     archDecodedFrom = o.archDecodedFrom;
     prefixID = o.prefixID;
-    addrWidth = o.addrWidth;
     isVectorInsn = o.isVectorInsn;
     mnemonic = o.mnemonic;
     return *this;
