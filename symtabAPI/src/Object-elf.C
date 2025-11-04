@@ -1593,7 +1593,7 @@ void ObjectELF::load_object(bool alloc_syms) {
             size_t elf_len;
             const char *riscv_attr_addr = elfHdr->e_rawfile(elf_len) + riscv_attr_addr_;
             int riscv_attr_size = riscv_attr_size_;
-            auto riscv_parse_attr_int = [this](int tag, int value) -> bool {
+            auto riscv_parse_attr_int = [this](int tag, int value) noexcept -> bool {
                 switch (tag) {
                     case RiscvAttrTag::unaligned_access:
                         riscv_attrs.unaligned_access = boost::make_optional(value != 0);
@@ -1620,7 +1620,7 @@ void ObjectELF::load_object(bool alloc_syms) {
                         return true;
                 }
             };
-            auto riscv_parse_attr_string = [this](int tag, std::string value) -> bool {
+            auto riscv_parse_attr_string = [this](int tag, std::string value) noexcept -> bool {
                 switch (tag) {
                     case RiscvAttrTag::arch:
                         riscv_attrs.riscv_extension_string = std::move(value);
