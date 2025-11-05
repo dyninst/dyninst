@@ -301,7 +301,7 @@ std::vector<pseudo_tests> make_tests64() {
       di::mem_test{}
     },
     { // jalr s10 -> jalr ra, s10, 0
-      {0xe7,0x00,0x0d,0x00}, 
+      {0xe7,0x00,0x0d,0x00},
       di::register_rw_test{ reg_set{s10}, reg_set{ra, pc} },
       di::mem_test{}
     },
