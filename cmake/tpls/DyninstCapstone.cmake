@@ -17,7 +17,7 @@
 
 include_guard(GLOBAL)
 
-set(_min_version 5.0)
+set(_min_version 6.0.0-Alpha1)
 
 if(Capstone_ROOT)
   set(capstone_ROOT ${Capstone_ROOT})
