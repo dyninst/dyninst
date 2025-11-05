@@ -37,9 +37,7 @@
 #include "AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h"
 #include "AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h"
 #include "MultiRegister.h"
-#include "InstructionDecoder-Capstone.h"
 #include "MultiRegister.h"
-#include "InstructionDecoder-Capstone.h"
 
 #include "BinaryFunction.h"
 #include "Dereference.h"
