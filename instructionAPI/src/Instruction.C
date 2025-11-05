@@ -460,7 +460,13 @@ namespace Dyninst { namespace InstructionAPI {
   DYNINST_EXPORT Architecture Instruction::getArch() const { return arch_decoded_from; }
 
   DYNINST_EXPORT InsnCategory Instruction::getCategory() const {
-    if(arch_decoded_from == Arch_x86 || arch_decoded_from == Arch_x86_64) {
+    if(m_InsnOp.isMultiInsnCall || m_InsnOp.isNonABIRiscvCall)
+      return c_CallInsn;
+    if(m_InsnOp.isMultiInsnBranch)
+      return c_BranchInsn;
+    if(m_InsnOp.isNonABIRiscvReturn)
+      return c_ReturnInsn;
+    if(arch_decoded_from == Arch_riscv64) {
       if(categories.categories.size()) {
         return categories.categories[0];
       }
@@ -468,12 +474,6 @@ namespace Dyninst { namespace InstructionAPI {
     }
     if(m_InsnOp.isVectorInsn)
       return c_VectorInsn;
-    if(m_InsnOp.isMultiInsnCall || m_InsnOp.isNonABIRiscvCall)
-      return c_CallInsn;
-    if(m_InsnOp.isMultiInsnBranch)
-      return c_BranchInsn;
-    if(m_InsnOp.isNonABIRiscvReturn)
-      return c_ReturnInsn;
     InsnCategory c = entryToCategory(m_InsnOp.getID());
     if(c == c_BranchInsn && (arch_decoded_from == Arch_ppc32 || arch_decoded_from == Arch_ppc64)) {
       for(cftConstIter cft = cft_begin(); cft != cft_end(); ++cft) {
@@ -522,10 +522,11 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   void Instruction::addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect,
-                                 bool isConditional, bool isFallthrough, bool isImplicit) const {
+                                 bool isConditional, bool isFallthrough, bool isImplicit,
+                                 bool appendOp) const {
     CFT c(e, isCall, isIndirect, isConditional, isFallthrough);
     m_Successors.push_back(c);
-    if(!isFallthrough)
+    if(!isFallthrough && appendOp)
       appendOperand(e, true, false, isImplicit);
   }
 

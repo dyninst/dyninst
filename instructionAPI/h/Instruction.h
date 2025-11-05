@@ -204,13 +204,14 @@ namespace Dyninst { namespace InstructionAPI {
     void updateSize(const unsigned int new_size, const unsigned char * raw);
 
     void addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough,
-                      bool isImplicit = false) const;
+                      bool isImplicit = false, bool appendOp = true) const;
+
     void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit = false,
                        bool trueP = false, bool falseP = false) const;
     void copyRaw(size_t size, const unsigned char* raw);
 
     bool checked_category(InsnCategory c) const {
-      if(arch_decoded_from == Arch_x86_64 || arch_decoded_from == Arch_x86) {
+      if(arch_decoded_from == Arch_riscv64) {
         return categories.satisfies(c);
       }
       return getCategory() == c;
