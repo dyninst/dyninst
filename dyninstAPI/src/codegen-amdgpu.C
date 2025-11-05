@@ -40,7 +40,7 @@ void insnCodeGen::generateTrap(codeGen & /* gen */) {
 }
 
 void insnCodeGen::generateIllegal(codeGen & /* gen */) {
-  assert(false && "Not implemented for AMDGPU");
+  assert(!"Not implemented for AMDGPU");
 }
 
 void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to,
@@ -137,6 +137,6 @@ bool insnCodeGen::modifyCall(Dyninst::Address target, NS_amdgpu::instruction &in
 
 bool insnCodeGen::modifyData(Dyninst::Address /* target */, NS_amdgpu::instruction & /* insn */,
                              codeGen & /* gen */) {
-  assert(false && "Not implemented for AMDGPU");
+  assert(!"Not implemented for AMDGPU");
   return false;
 }

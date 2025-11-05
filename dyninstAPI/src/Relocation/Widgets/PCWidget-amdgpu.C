@@ -37,17 +37,17 @@ using namespace Relocation;
 
 bool PCWidget::PCtoReturnAddr(const codeGen & /* templ */, const RelocBlock * /* t */,
                               CodeBuffer & /* buffer */) {
-  assert(false && "PCWidget::PCtoReturnAddr not implemented for AMDGPU yet");
+  assert(!"PCWidget::PCtoReturnAddr not implemented for AMDGPU yet");
   return true;
 }
 
 bool PCWidget::PCtoReg(const codeGen & /* templ */, const RelocBlock * /* t */,
                        CodeBuffer & /* buffer */) {
-  assert(false && "PCWidget::PCtoReg not implemented for AMDGPU yet");
+  assert(!"PCWidget::PCtoReg not implemented for AMDGPU yet");
   return true;
 }
 
 bool IPPatch::apply(codeGen & /* gen */, CodeBuffer *) {
-  assert(false && "IPPatch::apply not implemented for AMDGPU yet");
+  assert(!"IPPatch::apply not implemented for AMDGPU yet");
   return true;
 }

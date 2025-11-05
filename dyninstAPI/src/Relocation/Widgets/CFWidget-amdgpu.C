@@ -83,10 +83,10 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
       return true;
     }
     case CFPatch::Call: {
-      assert(false && "CFPatch::apply for CFPatch::Call isn't implemented yet");
+      assert(!"CFPatch::apply for CFPatch::Call isn't implemented yet");
     }
     case CFPatch::Data: {
-      assert(false && "CFPatch::apply for CFPatch::Data isn't implemented yet");
+      assert(!"CFPatch::apply for CFPatch::Data isn't implemented yet");
     }
     }
   } else {
@@ -102,11 +102,11 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
 }
 
 bool CFPatch::isPLT(codeGen & /* gen */) {
-  assert(false && "Not implemented for AMDGPU");
+  assert(!"Not implemented for AMDGPU");
   return false;
 }
 
 bool CFPatch::applyPLT(codeGen & /* gen */, CodeBuffer *) {
-  assert(false && "Not implemented for AMDGPU");
+  assert(!"Not implemented for AMDGPU");
   return false;
 }
