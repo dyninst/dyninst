@@ -121,9 +121,6 @@ Instruction riscv_decoder::decode(InstructionDecoder::buffer &buf) {
   return insn;
 }
 
-// To be removed once the branch `thaines/capstone_integration` is merged in
-void riscv_decoder::setMode(bool /*is64*/) { return; }
-
 void riscv_decoder::decode_operands(Instruction &insn) {
   auto *d = disassembler.insn->detail;
 

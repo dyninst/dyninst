@@ -107,6 +107,7 @@ namespace Dyninst { namespace InstructionAPI { namespace riscv {
         default: return InvalidReg;
       }
     }
+    return InvalidReg;
   }
   // clang-format off
 

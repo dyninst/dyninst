@@ -59,8 +59,6 @@ public:
   ~riscv_decoder();
 
   Instruction decode(InstructionDecoder::buffer &) override;
-  // To be deleted once `thaines/capstone_integration` is merged in
-  void setMode(bool) override;
 
 private:
   void decode_operands(Instruction &);
