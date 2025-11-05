@@ -12,7 +12,7 @@
 
 /*
  *  The RISC-V Instruction Set Manual Volume I: Unprivileged Architecture
- *  Chapter 4: RV64I Base Integer Instruction Set, Version 2.1
+ *  Chapter 27: "C" Extension for Compressed Instructions, Version 2.0
  */
 
 namespace di = Dyninst::InstructionAPI;

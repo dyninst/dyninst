@@ -11,8 +11,9 @@
 #include <vector>
 
 /*
- *  The RISC-V Instruction Set Manual Volume I: Unprivileged Architecture
- *  Chapter 4: RV64I Base Integer Instruction Set, Version 2.1
+ *  RISC-V ASM Manual
+ *  A listing of standard RISC-V pseudoinstructions
+ *  https://github.com/riscv-non-isa/riscv-asm-manual/blob/main/src/asm-manual.adoc#a-listing-of-standard-risc-v-pseudoinstructions
  */
 
 namespace di = Dyninst::InstructionAPI;

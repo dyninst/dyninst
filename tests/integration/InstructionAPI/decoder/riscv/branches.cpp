@@ -170,7 +170,7 @@ std::vector<branch_test> make_tests64() {
         has_cft,
         {is_call, !is_conditional, !is_indirect, !is_fallthrough, !is_branch, !is_return}
       }
-    },  
+    },
     { // jalr zero, s11, 64
       {0x67,0x80,0x0d,0x04},
       di::register_rw_test{ reg_set{s11}, reg_set{zero, pc} },

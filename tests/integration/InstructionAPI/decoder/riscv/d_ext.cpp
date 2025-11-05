@@ -12,7 +12,7 @@
 
 /*
  *  The RISC-V Instruction Set Manual Volume I: Unprivileged Architecture
- *  Chapter 4: RV64I Base Integer Instruction Set, Version 2.1
+ *  Chapter 21: "D" Extension for Double-Precision Floating-Point, Version 2.2
  */
 
 namespace di = Dyninst::InstructionAPI;
@@ -61,6 +61,10 @@ bool run(Dyninst::Architecture arch, std::vector<rv64f_tests> const &tests) {
 std::vector<rv64f_tests> make_tests64() {
   auto s0 = Dyninst::riscv64::s0;
   auto s1 = Dyninst::riscv64::s1;
+  auto s2 = Dyninst::riscv64::s2;
+  auto s3 = Dyninst::riscv64::s3;
+  auto s4 = Dyninst::riscv64::s4;
+
   auto a0 = Dyninst::riscv64::a0;
   auto a1 = Dyninst::riscv64::a1;
   auto a2 = Dyninst::riscv64::a2;
@@ -93,10 +97,6 @@ std::vector<rv64f_tests> make_tests64() {
   auto f20 = Dyninst::riscv64::f20;
   auto f21 = Dyninst::riscv64::f21;
   auto f22 = Dyninst::riscv64::f22;
-  auto f28 = Dyninst::riscv64::f28;
-  auto f29 = Dyninst::riscv64::f29;
-  auto f30 = Dyninst::riscv64::f30;
-  auto f31 = Dyninst::riscv64::f31;
 
   using reg_set = Dyninst::register_set;
 
@@ -106,116 +106,148 @@ std::vector<rv64f_tests> make_tests64() {
   // clang-format off
   return {
     // FP Loads / Stores
-    { // flw ft0, 0(s1)
-      {0x07,0xa0,0x04,0x00},
+    { // fld f0, 0(s1)
+      {0x07,0xb0,0x04,0x00},
       di::register_rw_test{ reg_set{s1}, reg_set{f0} },
       di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{s1}, reg_set{} } }
     },
-    { // fsw ft1, 4(s0)
-      {0x27,0x22,0x14,0x00},
-      di::register_rw_test{ reg_set{f1, s0}, reg_set{} },
-      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{s0} } }
+    { // fsd f1, 8(s2)
+      {0x27,0x34,0x19,0x00},
+      di::register_rw_test{ reg_set{f1, s2}, reg_set{} },
+      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{s2} } }
     },
 
     // FP Move to/from Integer Registers
-    { // fmv.x.w a0, f2
-      {0x53,0x05,0x01,0xe0},
+    { // fmv.x.d a0, f2
+      {0x53,0x05,0x01,0xe2},
       di::register_rw_test{ reg_set{f2}, reg_set{a0} },
       di::mem_test{}
     },
-    { // fmv.w.x f3, a1
-      {0xd3,0x81,0x05,0xf0},
+    { // fmv.d.x f3, a1
+      {0xd3,0x81,0x05,0xf2},
       di::register_rw_test{ reg_set{a1}, reg_set{f3} },
       di::mem_test{}
     },
 
     // FP Arithmetic
-    { // fadd.s f4, f5, f6
-      {0x53,0xf2,0x62,0x00},
+    { // fadd.d f4, f5, f6
+      {0x53,0xf2,0x62,0x02},
       di::register_rw_test{ reg_set{f5, f6}, reg_set{f4} },
       di::mem_test{}
     },
-    { // fsub.s f7, f8, f9
-      {0xd3,0x73,0x94,0x08},
+    { // fsub.d f7, f8, f9
+      {0xd3,0x73,0x94,0x0a},
       di::register_rw_test{ reg_set{f8, f9}, reg_set{f7} },
       di::mem_test{}
     },
-    { // fmul.s f28, f18, f19
-      {0x53,0x7e,0x39,0x11},
-      di::register_rw_test{ reg_set{f18, f19}, reg_set{f28} },
+    { // fmul.d f8, f18, f19
+      {0x53,0x74,0x39,0x13},
+      di::register_rw_test{ reg_set{f18, f19}, reg_set{f8} },
       di::mem_test{}
     },
-    { // fdiv.s f29, f20, f21
-      {0xd3,0x7e,0x5a,0x19},
-      di::register_rw_test{ reg_set{f20, f21}, reg_set{f29} },
+    { // fdiv.d f9, f20, f21
+      {0xd3,0x74,0x5a,0x1b},
+      di::register_rw_test{ reg_set{f20, f21}, reg_set{f9} },
       di::mem_test{}
     },
-    { // fsqrt.s f30, f22
-      {0x53,0x7f,0x0b,0x58},
-      di::register_rw_test{ reg_set{f22}, reg_set{f30} },
+    { // fsqrt.d f10, f22
+      {0x53,0x75,0x0b,0x5a},
+      di::register_rw_test{ reg_set{f22}, reg_set{f10} },
       di::mem_test{}
     },
 
     // FP Sign Manipulation
-    { // fsgnj.s f31, f0, f1
-      {0xd3,0x0f,0x10,0x20},
-      di::register_rw_test{ reg_set{f0, f1}, reg_set{f31} },
+    { // fsgnj.d f11, f0, f1
+      {0xd3,0x05,0x10,0x22},
+      di::register_rw_test{ reg_set{f0, f1}, reg_set{f11} },
       di::mem_test{}
     },
-    { // fsgnjn.s f10, f11, f12
-      {0x53,0x95,0xc5,0x20},
+    { // fsgnjn.d f10, f11, f12
+      {0x53,0x95,0xc5,0x22},
       di::register_rw_test{ reg_set{f11, f12}, reg_set{f10} },
       di::mem_test{}
     },
-    { // fsgnjx.s f13, f14, f15
-      {0xd3,0x26,0xf7,0x20},
+    { // fsgnjx.d f13, f14, f15
+      {0xd3,0x26,0xf7,0x22},
       di::register_rw_test{ reg_set{f14, f15}, reg_set{f13} },
       di::mem_test{}
     },
 
     // FP Comparisons
-    { // feq.s a2, f16, f17
-      {0x53,0x26,0x18,0xa1},
+    { // feq.d a2, f16, f17
+      {0x53,0x26,0x18,0xa3},
       di::register_rw_test{ reg_set{f16, f17}, reg_set{a2} },
       di::mem_test{}
     },
-    { // flt.s a3, f0, f1
-      {0xd3,0x16,0x10,0xa0},
+    { // flt.d a3, f0, f1
+      {0xd3,0x16,0x10,0xa2},
       di::register_rw_test{ reg_set{f0, f1}, reg_set{a3} },
       di::mem_test{}
     },
-    { // fle.s a4, f2, f3
-      {0x53,0x07,0x31,0xa0},
+    { // fle.d a4, f2, f3
+      {0x53,0x07,0x31,0xa2},
       di::register_rw_test{ reg_set{f2, f3}, reg_set{a4} },
       di::mem_test{}
     },
 
-    // FP Conversions
-    { // fcvt.s.w f0, a5
-      {0x53,0xf0,0x07,0xd0},
+    // FP Conversions (Word / Long, Signed / Unsigned)
+    { // fcvt.d.w f0, a5
+      {0x53,0x80,0x07,0xd2},
       di::register_rw_test{ reg_set{a5}, reg_set{f0} },
       di::mem_test{}
     },
-    { // fcvt.s.wu f1, a6
-      {0xd3,0x70,0x18,0xd0},
+    { // fcvt.d.wu f1, a6
+      {0xd3,0x00,0x18,0xd2},
       di::register_rw_test{ reg_set{a6}, reg_set{f1} },
       di::mem_test{}
     },
-    { // fcvt.w.s a7, f4
-      {0xd3,0x78,0x02,0xc0},
+    { // fcvt.w.d a7, f4
+      {0xd3,0x78,0x02,0xc2},
       di::register_rw_test{ reg_set{f4}, reg_set{a7} },
       di::mem_test{}
     },
-    { // fcvt.wu.s s0, f5
-      {0x53,0xf4,0x12,0xc0},
+    { // fcvt.wu.d s0, f5
+      {0x53,0xf4,0x12,0xc2},
       di::register_rw_test{ reg_set{f5}, reg_set{s0} },
+      di::mem_test{}
+    },
+    { // fcvt.d.l f6, s1
+      {0x53,0xf3,0x24,0xd2},
+      di::register_rw_test{ reg_set{s1}, reg_set{f6} },
+      di::mem_test{}
+    },
+    { // fcvt.d.lu f7, s2
+      {0xd3,0x73,0x39,0xd2},
+      di::register_rw_test{ reg_set{s2}, reg_set{f7} },
+      di::mem_test{}
+    },
+    { // fcvt.l.d s3, f8
+      {0xd3,0x79,0x24,0xc2},
+      di::register_rw_test{ reg_set{f8}, reg_set{s3} },
+      di::mem_test{}
+    },
+    { // fcvt.lu.d s4, f9
+      {0x53,0xfa,0x34,0xc2},
+      di::register_rw_test{ reg_set{f9}, reg_set{s4} },
+      di::mem_test{}
+    },
+
+    // Cross-Precision Conversion
+    { // fcvt.s.d f10, f11
+      {0x53,0xf5,0x15,0x40},
+      di::register_rw_test{ reg_set{f11}, reg_set{f10} },
+      di::mem_test{}
+    },
+    { // fcvt.d.s f0, f1
+      {0x53,0x80,0x00,0x42},
+      di::register_rw_test{ reg_set{f1}, reg_set{f0} },
       di::mem_test{}
     },
 
     // FP Classify
-    { // fclass.s a0, f6
-      {0x53,0x15,0x03,0xe0},
-      di::register_rw_test{ reg_set{f6}, reg_set{a0} },
+    { // fclass.d a0, f2
+      {0x53,0x15,0x01,0xe2},
+      di::register_rw_test{ reg_set{f2}, reg_set{a0} },
       di::mem_test{}
     },
   };

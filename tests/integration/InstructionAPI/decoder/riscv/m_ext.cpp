@@ -12,30 +12,30 @@
 
 /*
  *  The RISC-V Instruction Set Manual Volume I: Unprivileged Architecture
- *  Chapter 4: RV64I Base Integer Instruction Set, Version 2.1
+ *  Chapter 12: M Extension for Integer Multiplication and Division, Version 2.0
  */
 
 namespace di = Dyninst::InstructionAPI;
 
-struct rv64m_tests {
+struct m_ext_tests {
   std::vector<unsigned char> opcode;
   di::register_rw_test regs;
   di::mem_test mem;
 };
 
-static std::vector<rv64m_tests> make_tests64();
-static bool run(Dyninst::Architecture, std::vector<rv64m_tests> const &);
+static std::vector<m_ext_tests> make_tests64();
+static bool run(Dyninst::Architecture, std::vector<m_ext_tests> const &);
 
 int main() {
   bool ok = run(Dyninst::Arch_riscv64, make_tests64());
   return !ok ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
-bool run(Dyninst::Architecture arch, std::vector<rv64m_tests> const &tests) {
+bool run(Dyninst::Architecture arch, std::vector<m_ext_tests> const &tests) {
   bool failed = false;
   int test_id = 0;
   auto sarch = Dyninst::getArchitectureName(arch);
-  std::clog << "Running tests for 'rv64m' in " << sarch << " mode\n";
+  std::clog << "Running tests for 'm_ext' in " << sarch << " mode\n";
   for (auto const &t : tests) {
     test_id++;
     di::InstructionDecoder d(t.opcode.data(), t.opcode.size(), arch);
@@ -58,7 +58,7 @@ bool run(Dyninst::Architecture arch, std::vector<rv64m_tests> const &tests) {
   return !failed;
 }
 
-std::vector<rv64m_tests> make_tests64() {
+std::vector<m_ext_tests> make_tests64() {
   auto t0 = Dyninst::riscv64::t0;
   auto t1 = Dyninst::riscv64::t1;
   auto t2 = Dyninst::riscv64::t2;
