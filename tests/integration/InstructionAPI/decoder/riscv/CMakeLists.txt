@@ -2,7 +2,49 @@ include_guard(GLOBAL)
 
 add_executable(rv64i rv64i.cpp)
 target_compile_options(rv64i PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
-target_link_libraries(rv64i PRIVATE instructionAPI cft_tests memory_tests
-                                        register_tests)
+target_link_libraries(rv64i PRIVATE instructionAPI cft_tests memory_tests register_tests)
 add_test(NAME instructionAPI_rv64i COMMAND rv64i)
 set_tests_properties(instructionAPI_rv64i PROPERTIES LABELS "integration")
+
+add_executable(rv64m rv64m.cpp)
+target_compile_options(rv64m PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(rv64m PRIVATE instructionAPI cft_tests memory_tests register_tests)
+add_test(NAME instructionAPI_rv64m COMMAND rv64m)
+set_tests_properties(instructionAPI_rv64m PROPERTIES LABELS "integration")
+
+add_executable(rv64a rv64a.cpp)
+target_compile_options(rv64a PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(rv64a PRIVATE instructionAPI cft_tests memory_tests register_tests)
+add_test(NAME instructionAPI_rv64a COMMAND rv64a)
+set_tests_properties(instructionAPI_rv64a PROPERTIES LABELS "integration")
+
+add_executable(rv64f rv64f.cpp)
+target_compile_options(rv64f PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(rv64f PRIVATE instructionAPI cft_tests memory_tests register_tests)
+add_test(NAME instructionAPI_rv64f COMMAND rv64f)
+set_tests_properties(instructionAPI_rv64f PROPERTIES LABELS "integration")
+
+add_executable(rv64d rv64d.cpp)
+target_compile_options(rv64d PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(rv64d PRIVATE instructionAPI cft_tests memory_tests register_tests)
+add_test(NAME instructionAPI_rv64d COMMAND rv64d)
+set_tests_properties(instructionAPI_rv64d PROPERTIES LABELS "integration")
+
+add_executable(rv64c rv64c.cpp)
+target_compile_options(rv64c PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(rv64c PRIVATE instructionAPI cft_tests memory_tests register_tests)
+add_test(NAME instructionAPI_rv64c COMMAND rv64c)
+set_tests_properties(instructionAPI_rv64c PROPERTIES LABELS "integration")
+
+add_executable(branches branches.cpp)
+target_compile_options(branches PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(branches PRIVATE instructionAPI cft_tests memory_tests
+                                       register_tests)
+add_test(NAME instructionAPI_branches COMMAND branches)
+set_tests_properties(instructionAPI_branches PROPERTIES LABELS "integration")
+
+add_executable(pseudo pseudo.cpp)
+target_compile_options(pseudo PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(pseudo PRIVATE instructionAPI cft_tests memory_tests register_tests)
+add_test(NAME instructionAPI_pseudo COMMAND pseudo)
+set_tests_properties(instructionAPI_pseudo PROPERTIES LABELS "integration")
