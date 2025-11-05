@@ -59,14 +59,10 @@ bool run(Dyninst::Architecture arch, std::vector<rv64m_tests> const &tests) {
 }
 
 std::vector<rv64m_tests> make_tests64() {
-  auto zero = Dyninst::riscv64::zero;
-
   auto t0 = Dyninst::riscv64::t0;
   auto t1 = Dyninst::riscv64::t1;
   auto t2 = Dyninst::riscv64::t2;
-
   auto s1 = Dyninst::riscv64::s1;
-
   auto a0 = Dyninst::riscv64::a0;
   auto a1 = Dyninst::riscv64::a1;
   auto a2 = Dyninst::riscv64::a2;
@@ -74,7 +70,7 @@ std::vector<rv64m_tests> make_tests64() {
   auto a4 = Dyninst::riscv64::a4;
   auto a5 = Dyninst::riscv64::a5;
   auto a6 = Dyninst::riscv64::a6;
-
+  auto a7 = Dyninst::riscv64::a7;
   auto s2 = Dyninst::riscv64::s2;
   auto s3 = Dyninst::riscv64::s3;
   auto s4 = Dyninst::riscv64::s4;
@@ -85,7 +81,6 @@ std::vector<rv64m_tests> make_tests64() {
   auto s9 = Dyninst::riscv64::s9;
   auto s10 = Dyninst::riscv64::s10;
   auto s11 = Dyninst::riscv64::s11;
-
   auto t3 = Dyninst::riscv64::t3;
   auto t4 = Dyninst::riscv64::t4;
   auto t5 = Dyninst::riscv64::t5;
@@ -132,6 +127,21 @@ std::vector<rv64m_tests> make_tests64() {
     { // remu a4, a5, a6
       {0x33,0xf7,0x07,0x03},
       di::register_rw_test{ reg_set{a5, a6}, reg_set{a4} },
+      di::mem_test{}
+    },
+    { // mulw t0, t1, t2
+      {0xbb,0x02,0x73,0x02},
+      di::register_rw_test{ reg_set{t1, t2}, reg_set{t0} },
+      di::mem_test{}
+    },
+    { // divw s3, s4, s5
+      {0xbb,0x49,0x5a,0x03},
+      di::register_rw_test{ reg_set{s4, s5}, reg_set{s3} },
+      di::mem_test{}
+    },
+    { // remw a5, a6, a7
+      {0xbb,0x67,0x18,0x03},
+      di::register_rw_test{ reg_set{a6, a7}, reg_set{a5} },
       di::mem_test{}
     },
   };
