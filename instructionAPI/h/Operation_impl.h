@@ -89,8 +89,8 @@ namespace Dyninst { namespace InstructionAPI {
     bool isVectorInsn{};
     bool isMultiInsnCall{};
     bool isMultiInsnBranch{};
-    bool isNonABIRiscvCall{};
-    bool isNonABIRiscvReturn{};
+    bool isNonABICall{};
+    bool isNonABIReturn{};
 
   private:
     std::once_flag data_initialized;

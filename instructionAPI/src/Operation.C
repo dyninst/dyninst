@@ -97,8 +97,8 @@ namespace Dyninst { namespace InstructionAPI {
     isVectorInsn = getVectorizationInfo(e);
     isMultiInsnCall = false;
     isMultiInsnBranch = false;
-    isNonABIRiscvCall = false;
-    isNonABIRiscvReturn = false;
+    isNonABICall = false;
+    isNonABIReturn = false;
     operationID = e->getID(l);
     // Defaults for no size prefix
     switch(archDecodedFrom) {
@@ -127,8 +127,8 @@ namespace Dyninst { namespace InstructionAPI {
     isVectorInsn = o.isVectorInsn;
     isMultiInsnCall = o.isMultiInsnCall;
     isMultiInsnBranch = o.isMultiInsnBranch;
-    isNonABIRiscvCall = o.isNonABIRiscvCall;
-    isNonABIRiscvReturn = o.isNonABIRiscvReturn;
+    isNonABICall = o.isNonABICall;
+    isNonABIReturn = o.isNonABIReturn;
     mnemonic = o.mnemonic;
   }
 
@@ -141,28 +141,12 @@ namespace Dyninst { namespace InstructionAPI {
     isVectorInsn = o.isVectorInsn;
     isMultiInsnCall = o.isMultiInsnCall;
     isMultiInsnBranch = o.isMultiInsnBranch;
-    isNonABIRiscvCall = o.isNonABIRiscvCall;
-    isNonABIRiscvReturn = o.isNonABIRiscvReturn;
+    isNonABICall = o.isNonABICall;
+    isNonABIReturn = o.isNonABIReturn;
     mnemonic = o.mnemonic;
     return *this;
   }
 
-<<<<<<< HEAD
-=======
-  Operation::Operation() {
-    operationID = e_No_Entry;
-    archDecodedFrom = Arch_none;
-    prefixID = prefix_none;
-    addrWidth = u64;
-    segPrefix = 0;
-    isVectorInsn = false;
-    isMultiInsnCall = false;
-    isMultiInsnBranch = false;
-    isNonABIRiscvCall = false;
-    isNonABIRiscvReturn = false;
-  }
-
->>>>>>> a90daa0bb (Add RISC-V Instruction API)
   const Operation::registerSet& Operation::implicitReads() {
     SetUpNonOperandData();
 
