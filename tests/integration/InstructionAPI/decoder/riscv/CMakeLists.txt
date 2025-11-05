@@ -2,7 +2,8 @@ include_guard(GLOBAL)
 
 add_executable(rv64i_base rv64i_base.cpp)
 target_compile_options(rv64i_base PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
-target_link_libraries(rv64i_base PRIVATE instructionAPI cft_tests memory_tests register_tests)
+target_link_libraries(rv64i_base PRIVATE instructionAPI cft_tests memory_tests
+                                         register_tests)
 add_test(NAME instructionAPI_rv64i_base COMMAND rv64i_base)
 set_tests_properties(instructionAPI_rv64i_base PROPERTIES LABELS "integration")
 
