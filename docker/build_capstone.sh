@@ -12,7 +12,7 @@ done
 
 version=$(grep capstone dependencies.versions | awk '{split($0,a,":"); print a[2]}')
 
-git clone https://github.com/capstone-engine/capstone --branch=${version}
+git clone --branch=${version} https://github.com/capstone-engine/capstone
 cd capstone
 mkdir build
 cd build
