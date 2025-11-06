@@ -34,10 +34,14 @@
 #include "capstone/riscv.h"
 #include "entryIDs.h"
 
-namespace Dyninst { namespace InstructionAPI { namespace riscv {
+namespace Dyninst {
+namespace InstructionAPI {
+namespace riscv {
 
-  entryID translate_opcode(riscv_insn);
+entryID translate_opcode(riscv_insn);
 
-}}}
+}
+} // namespace InstructionAPI
+} // namespace Dyninst
 
 #endif

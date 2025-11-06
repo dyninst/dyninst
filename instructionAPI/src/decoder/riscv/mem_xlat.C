@@ -1,8 +1,10 @@
 #include "decoder/riscv/mem_xlat.h"
 
-namespace Dyninst { namespace InstructionAPI { namespace riscv {
+namespace Dyninst {
+namespace InstructionAPI {
+namespace riscv {
 
-  // clang-format off
+// clang-format off
   bool is_mem_load(entryID eid) {
     switch(eid) {
       case riscv64_op_lb:

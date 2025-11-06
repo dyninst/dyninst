@@ -33,12 +33,16 @@
 
 #include "entryIDs.h"
 
-namespace Dyninst { namespace InstructionAPI { namespace riscv {
+namespace Dyninst {
+namespace InstructionAPI {
+namespace riscv {
 
-  bool is_mem_load(entryID);
-  bool is_mem_store(entryID);
-  int8_t mem_size(entryID);
+bool is_mem_load(entryID);
+bool is_mem_store(entryID);
+int8_t mem_size(entryID);
 
-}}}
+} // namespace riscv
+} // namespace InstructionAPI
+} // namespace Dyninst
 
 #endif

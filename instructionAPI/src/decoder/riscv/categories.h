@@ -144,7 +144,8 @@ decode_categories(di::Instruction &insn, di::riscv_decoder::disassem const &dis,
   case riscv64_op_bge:
   case riscv64_op_bltu:
   case riscv64_op_bgeu: {
-    if (operands[0].reg != RISCV_REG_ZERO || operands[1].reg != RISCV_REG_ZERO) {
+    if (operands[0].reg != RISCV_REG_ZERO ||
+        operands[1].reg != RISCV_REG_ZERO) {
       categories.push_back(di::c_ConditionalInsn);
     }
     break;

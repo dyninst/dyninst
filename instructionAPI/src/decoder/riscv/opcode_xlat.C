@@ -2,9 +2,11 @@
 #include "entryIDs.h"
 #include "opcode_xlat.h"
 
-namespace Dyninst { namespace InstructionAPI { namespace riscv {
+namespace Dyninst {
+namespace InstructionAPI {
+namespace riscv {
 
-  // clang-format off
+// clang-format off
 
   // Use the entryID that Capstone has and ignore aliases found in entryIDs.h
   entryID translate_opcode(riscv_insn id) {
@@ -285,6 +287,8 @@ namespace Dyninst { namespace InstructionAPI { namespace riscv {
     }
   }
 
-  // clang-format on
+// clang-format on
 
-}}}
+} // namespace riscv
+} // namespace InstructionAPI
+} // namespace Dyninst

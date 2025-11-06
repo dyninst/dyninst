@@ -1,10 +1,12 @@
+#include "decoder/riscv/register_xlat.h"
 #include "registers/abstract_regs.h"
 #include "registers/riscv64_regs.h"
-#include "decoder/riscv/register_xlat.h"
 
-namespace Dyninst { namespace InstructionAPI { namespace riscv {
+namespace Dyninst {
+namespace InstructionAPI {
+namespace riscv {
 
-  // clang-format off
+// clang-format off
   MachRegister translate_register(riscv_reg cap_reg, cs_mode mode) {
     if(mode & CS_MODE_RISCV64) {
       switch(cap_reg) {

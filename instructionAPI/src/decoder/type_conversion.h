@@ -30,9 +30,10 @@
 
 #include "Result.h"
 
-namespace Dyninst { namespace InstructionAPI {
+namespace Dyninst {
+namespace InstructionAPI {
 
-  // clang-format off
+// clang-format off
   inline Result_Type size_to_type_unsigned(uint8_t cap_size) {
     switch (cap_size) {
       case 1:  return u8;
@@ -84,6 +85,7 @@ namespace Dyninst { namespace InstructionAPI {
     }
   }
 
-  // clang-format on
+// clang-format on
 
-}}
+} // namespace InstructionAPI
+} // namespace Dyninst

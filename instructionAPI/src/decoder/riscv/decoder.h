@@ -65,10 +65,11 @@ private:
   void decode_reg(Instruction &, cs_riscv_op const &);
   void decode_imm(Instruction &, cs_riscv_op const &);
   void decode_mem(Instruction &, cs_riscv_op const &);
-  void add_branch_insn_successors(Instruction &, const std::vector<cs_riscv_op> &);
+  void add_branch_insn_successors(Instruction &,
+                                  const std::vector<cs_riscv_op> &);
   void add_pc_operands(Instruction &);
-  std::vector<cs_riscv_op>
-  restore_pseudo_insn_operands(Instruction &, disassem const &);
+  std::vector<cs_riscv_op> restore_pseudo_insn_operands(Instruction &,
+                                                        disassem const &);
 };
 
 } // namespace InstructionAPI

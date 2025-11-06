@@ -35,10 +35,14 @@
 #include "capstone/riscv.h"
 #include "registers/MachRegister.h"
 
-namespace Dyninst { namespace InstructionAPI { namespace riscv {
+namespace Dyninst {
+namespace InstructionAPI {
+namespace riscv {
 
-  MachRegister translate_register(riscv_reg, cs_mode);
+MachRegister translate_register(riscv_reg, cs_mode);
 
-}}}
+}
+} // namespace InstructionAPI
+} // namespace Dyninst
 
 #endif
