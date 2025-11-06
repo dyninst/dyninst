@@ -145,12 +145,7 @@ namespace Dyninst { namespace InstructionAPI {
     }
 
     DYNINST_EXPORT bool operator==(const Instruction& rhs) const {
-      if(m_size != rhs.m_size)
-        return false;
-      if(m_size <= sizeof(m_RawInsn.small_insn)) {
-        return m_RawInsn.small_insn == rhs.m_RawInsn.small_insn;
-      }
-      return memcmp(m_RawInsn.large_insn, rhs.m_RawInsn.large_insn, m_size) == 0;
+      return this->m_size == rhs.m_size && this->m_RawInsn == rhs.m_RawInsn;
     }
 
     DYNINST_EXPORT void updateMnemonic(std::string new_mnemonic) { m_InsnOp.updateMnemonic(new_mnemonic); }
