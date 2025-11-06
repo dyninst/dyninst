@@ -66,6 +66,8 @@ namespace Dyninst { namespace InstructionAPI {
     friend class InstructionDecoder_amdgpu_gfx90a;
     friend class InstructionDecoder_amdgpu_gfx940;
 
+    static const unsigned int maxInstructionLength = 16;
+
     struct CFT {
       Expression::Ptr target;
       bool isCall;
