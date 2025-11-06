@@ -33,13 +33,13 @@
 #include "capstone/riscv.h"
 #include "categories.h"
 #include "debug.h"
-#include "entryIDs.h"
-#include "registers/riscv64_regs.h"
 #include "decoder/riscv/decoder.h"
 #include "decoder/riscv/mem_xlat.h"
 #include "decoder/riscv/opcode_xlat.h"
 #include "decoder/riscv/register_xlat.h"
 #include "decoder/type_conversion.h"
+#include "entryIDs.h"
+#include "registers/riscv64_regs.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -99,7 +99,8 @@ Instruction riscv_decoder::decode(InstructionDecoder::buffer &buf) {
   // reducing the number of memory allocations.
   if (!cs_disasm_iter(disassembler.handle, &code, &code_size, &cap_addr,
                       disassembler.insn)) {
-    decode_printf("Failed to disassemble instruction at %p: %s\n", (void *)code,
+    decode_printf("Failed to disassemble instruction at %p: %s\n",
+                  (const void *)code,
                   cs_strerror(cs_errno(disassembler.handle)));
     return {};
   }
