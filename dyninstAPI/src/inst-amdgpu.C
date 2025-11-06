@@ -31,7 +31,7 @@
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/registerSpace.h"
-
+#include "arch-amdgpu.h"
 #include "emit-amdgpu.h"
 
 void initDefaultPointFrequencyTable() { assert(!"Not implemented for AMDGPU"); }
@@ -39,6 +39,7 @@ void initDefaultPointFrequencyTable() { assert(!"Not implemented for AMDGPU"); }
 /************************************* Register Space **************************************/
 
 void registerSpace::initialize32() {
+  using namespace NS_amdgpu;
   static bool done = false;
   if (done)
     return;
