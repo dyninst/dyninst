@@ -141,12 +141,7 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT cftConstIter cft_end() const { return m_Successors.end(); }
 
     DYNINST_EXPORT bool operator<(const Instruction& rhs) const {
-      if(m_size < rhs.m_size)
-        return true;
-      if(m_size <= sizeof(m_RawInsn.small_insn)) {
-        return m_RawInsn.small_insn < rhs.m_RawInsn.small_insn;
-      }
-      return memcmp(m_RawInsn.large_insn, rhs.m_RawInsn.large_insn, m_size) < 0;
+      return this->m_RawInsn < rhs.m_RawInsn || (this->m_size < rhs.m_size && this->m_RawInsn == rhs.m_RawInsn);
     }
 
     DYNINST_EXPORT bool operator==(const Instruction& rhs) const {
