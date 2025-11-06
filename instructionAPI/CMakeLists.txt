@@ -39,12 +39,8 @@ set(_sources
     src/interrupts.C)
 
 if(DYNINST_ENABLE_CAPSTONE)
-  list(APPEND _sources
-    src/decoder/riscv/decoder.C
-    src/decoder/riscv/mem_xlat.C
-    src/decoder/riscv/opcode_xlat.C
-    src/decoder/riscv/register_xlat.C
-  )
+  list(APPEND _sources src/decoder/riscv/decoder.C src/decoder/riscv/mem_xlat.C
+       src/decoder/riscv/opcode_xlat.C src/decoder/riscv/register_xlat.C)
 endif()
 
 set(_public_headers
@@ -80,13 +76,14 @@ set(_private_headers
     h/interrupts.h)
 
 if(DYNINST_ENABLE_CAPSTONE)
-  list(APPEND _private_headers
+  list(
+    APPEND
+    _private_headers
     src/decoder/riscv/categories.h
     src/decoder/riscv/decoder.h
     src/decoder/riscv/mem_xlat.h
     src/decoder/riscv/opcode_xlat.h
-    src/decoder/riscv/register_xlat.h
-  )
+    src/decoder/riscv/register_xlat.h)
 endif()
 
 set(instructionDecoderPowerExtraFlags "")
