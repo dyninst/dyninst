@@ -140,30 +140,6 @@ namespace Dyninst { namespace InstructionAPI {
     m_Successors = o.m_Successors;
   }
 
-  DYNINST_EXPORT const Instruction& Instruction::operator=(const Instruction& rhs) {
-    m_Operands = rhs.m_Operands;
-    // m_Operands.reserve(rhs.m_Operands.size());
-    // std::copy(rhs.m_Operands.begin(), rhs.m_Operands.end(), std::back_inserter(m_Operands));
-    if(m_size > sizeof(m_RawInsn.small_insn)) {
-      delete[] m_RawInsn.large_insn;
-    }
-
-    m_size = rhs.m_size;
-    if(rhs.m_size > sizeof(m_RawInsn.small_insn)) {
-      m_RawInsn.large_insn = new unsigned char[rhs.m_size];
-      memcpy(m_RawInsn.large_insn, rhs.m_RawInsn.large_insn, m_size);
-    } else {
-      m_RawInsn.small_insn = rhs.m_RawInsn.small_insn;
-    }
-
-    m_InsnOp = rhs.m_InsnOp;
-    m_Valid = rhs.m_Valid;
-    formatter = rhs.formatter;
-    arch_decoded_from = rhs.arch_decoded_from;
-    m_Successors = rhs.m_Successors;
-    return *this;
-  }
-
   DYNINST_EXPORT bool Instruction::isValid() const { return m_Valid; }
 
   DYNINST_EXPORT Operation& Instruction::getOperation() { return m_InsnOp; }
