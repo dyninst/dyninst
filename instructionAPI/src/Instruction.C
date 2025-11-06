@@ -97,8 +97,8 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT Instruction::Instruction(Operation what, size_t size, const unsigned char* raw,
                                           Dyninst::Architecture arch)
-      : m_InsnOp(what), m_Valid(is_valid_mnemonic(arch, what.getID())), arch_decoded_from(arch),
-        formatter(&ArchSpecificFormatter::getFormatter(arch)) {
+      : m_InsnOp(what), m_Valid(is_valid_mnemonic(arch, what.getID())), m_size{static_cast<decltype(m_size)>(size)},
+        arch_decoded_from(arch), formatter(&ArchSpecificFormatter::getFormatter(arch)) {
     copyRaw(size, raw);
   }
 
