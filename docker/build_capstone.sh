@@ -12,9 +12,8 @@ done
 
 version=$(grep capstone dependencies.versions | awk '{split($0,a,":"); print a[2]}')
 
-git clone https://github.com/capstone-engine/capstone
+git clone https://github.com/capstone-engine/capstone --branch=${version}
 cd capstone
-git checkout ${version}
 mkdir build
 cd build
 cmake .. -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DBUILD_SHARED_LIBS=OFF
