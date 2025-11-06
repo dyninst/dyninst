@@ -69,7 +69,12 @@ namespace Dyninst
                 case Arch_aarch64:
                     return Ptr(new InstructionDecoder_aarch64(a));
                 case Arch_riscv64:
+#if defined(DYNINST_ENABLE_CAPSTONE)
                     return Ptr(new riscv_decoder(a));
+#else
+                    assert(!"Capstone 6.0.0-Alpha or above is required for RISC-V instruction parsing.");
+                    return Ptr();
+#endif
                 case Arch_amdgpu_gfx908:
                     return Ptr(new InstructionDecoder_amdgpu_gfx908(a));
                case Arch_amdgpu_gfx90a:

@@ -35,12 +35,17 @@ set(_sources
     src/AMDGPU/gfx940/amdgpu_gfx940_decoder_impl.C
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
     src/InstructionDecoderImpl.C
+    src/syscalls.C
+    src/interrupts.C)
+
+if(DYNINST_ENABLE_CAPSTONE)
+  list(APPEND _sources
     src/riscv/decoder.C
     src/riscv/mem_xlat.C
     src/riscv/opcode_xlat.C
     src/riscv/register_xlat.C
-    src/syscalls.C
-    src/interrupts.C)
+  )
+endif()
 
 set(_public_headers
     h/ArchSpecificFormatters.h
@@ -70,14 +75,19 @@ set(_private_headers
     src/InstructionDecoderImpl.h
     src/InstructionDecoder-power.h
     src/InstructionDecoder-x86.h
+    h/syscalls.h
+    h/interrupts.h)
+
+if(DYNINST_ENABLE_CAPSTONE)
+  list(APPEND _private_headers
     src/riscv/categories.h
     src/riscv/decoder.h
     src/riscv/mem_xlat.h
     src/riscv/opcode_xlat.h
     src/riscv/register_xlat.h
     src/riscv/type_conversion.h
-    h/syscalls.h
-    h/interrupts.h)
+  )
+endif()
 
 set(instructionDecoderPowerExtraFlags "")
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
@@ -138,6 +148,12 @@ if(NOT finalizeOperandsExtraFlags STREQUAL "")
                               PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
 endif()
 
+if(DYNINST_ENABLE_CAPSTONE)
+  set(_capstone_dep Dyninst::Capstone)
+else()
+  set(_capstone_dep)
+endif()
+
 # cmake-format: off
 dyninst_library(
   instructionAPI
@@ -147,7 +163,7 @@ dyninst_library(
   DEFINES INSTRUCTION_LIB
   DYNINST_DEPS common
   PUBLIC_DEPS Dyninst::Boost_headers
-  PRIVATE_DEPS Dyninst::Capstone
+  PRIVATE_DEPS ${_capstone_dep}
 )
 # cmake-format: on
 
