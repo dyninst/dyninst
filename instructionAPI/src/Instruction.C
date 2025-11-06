@@ -174,11 +174,7 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   DYNINST_EXPORT const void* Instruction::ptr() const {
-    if(m_size > sizeof(m_RawInsn.small_insn)) {
-      return m_RawInsn.large_insn;
-    } else {
-      return reinterpret_cast<const void*>(&m_RawInsn.small_insn);
-    }
+    return m_RawInsn.data();
   }
 
   DYNINST_EXPORT unsigned char Instruction::rawByte(unsigned int index) const {
