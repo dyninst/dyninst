@@ -154,6 +154,11 @@ decode_categories(di::Instruction &insn, di::riscv_decoder::disassem const &dis,
     categories.push_back(di::c_ConditionalInsn);
     break;
   }
+  case riscv64_op_ebreak:
+  case riscv64_op_c_ebreak: {
+    categories.push_back(di::c_InterruptInsn);
+    break;
+  }
   default: {
     break;
   }

@@ -32,7 +32,7 @@
 #include "InstructionDecoder-x86.h"
 #include "InstructionDecoder-power.h"
 #include "InstructionDecoder-aarch64.h"
-#include "riscv/decoder.h"
+#include "decoder/riscv/decoder.h"
 #include "AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h"
 #include "AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h"
 #include "AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h"

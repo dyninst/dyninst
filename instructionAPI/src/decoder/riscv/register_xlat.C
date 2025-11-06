@@ -1,6 +1,6 @@
 #include "registers/abstract_regs.h"
 #include "registers/riscv64_regs.h"
-#include "riscv/register_xlat.h"
+#include "decoder/riscv/register_xlat.h"
 
 namespace Dyninst { namespace InstructionAPI { namespace riscv {
 

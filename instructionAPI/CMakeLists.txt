@@ -40,10 +40,10 @@ set(_sources
 
 if(DYNINST_ENABLE_CAPSTONE)
   list(APPEND _sources
-    src/riscv/decoder.C
-    src/riscv/mem_xlat.C
-    src/riscv/opcode_xlat.C
-    src/riscv/register_xlat.C
+    src/decoder/riscv/decoder.C
+    src/decoder/riscv/mem_xlat.C
+    src/decoder/riscv/opcode_xlat.C
+    src/decoder/riscv/register_xlat.C
   )
 endif()
 
@@ -71,6 +71,7 @@ set(_private_headers
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h
     src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h
     src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h
+    src/decoder/type_conversion.h
     src/InstructionDecoder-aarch64.h
     src/InstructionDecoderImpl.h
     src/InstructionDecoder-power.h
@@ -80,12 +81,11 @@ set(_private_headers
 
 if(DYNINST_ENABLE_CAPSTONE)
   list(APPEND _private_headers
-    src/riscv/categories.h
-    src/riscv/decoder.h
-    src/riscv/mem_xlat.h
-    src/riscv/opcode_xlat.h
-    src/riscv/register_xlat.h
-    src/riscv/type_conversion.h
+    src/decoder/riscv/categories.h
+    src/decoder/riscv/decoder.h
+    src/decoder/riscv/mem_xlat.h
+    src/decoder/riscv/opcode_xlat.h
+    src/decoder/riscv/register_xlat.h
   )
 endif()
 

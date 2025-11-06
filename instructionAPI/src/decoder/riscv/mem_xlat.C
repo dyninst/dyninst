@@ -1,4 +1,4 @@
-#include "riscv/mem_xlat.h"
+#include "decoder/riscv/mem_xlat.h"
 
 namespace Dyninst { namespace InstructionAPI { namespace riscv {
 

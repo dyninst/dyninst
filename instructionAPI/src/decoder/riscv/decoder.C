@@ -35,11 +35,11 @@
 #include "debug.h"
 #include "entryIDs.h"
 #include "registers/riscv64_regs.h"
-#include "riscv/decoder.h"
-#include "riscv/mem_xlat.h"
-#include "riscv/opcode_xlat.h"
-#include "riscv/register_xlat.h"
-#include "type_conversion.h"
+#include "decoder/riscv/decoder.h"
+#include "decoder/riscv/mem_xlat.h"
+#include "decoder/riscv/opcode_xlat.h"
+#include "decoder/riscv/register_xlat.h"
+#include "decoder/type_conversion.h"
 
 #include <algorithm>
 #include <cstdint>
