@@ -39,6 +39,7 @@
 #include "Operation_impl.h"
 #include "dyninst_visibility.h"
 
+#include <array>
 #include <list>
 #include <set>
 #include <stddef.h>
@@ -48,15 +49,6 @@
 
 namespace Dyninst { namespace InstructionAPI {
   class Instruction {
-
-    union raw_insn_T {
-#if defined(__powerpc__) || defined(__powerpc64__)
-      unsigned int small_insn;
-#else
-      uintptr_t small_insn;
-#endif
-      unsigned char* large_insn;
-    };
 
   public:
     friend class InstructionDecoder_x86;
@@ -182,7 +174,7 @@ namespace Dyninst { namespace InstructionAPI {
     mutable std::list<Operand> m_Operands;
     mutable Operation m_InsnOp;
     bool m_Valid;
-    raw_insn_T m_RawInsn;
+    std::array<uint8_t, maxInstructionLength> m_RawInsn;
     unsigned int m_size{};
     Architecture arch_decoded_from;
     mutable std::list<CFT> m_Successors;
