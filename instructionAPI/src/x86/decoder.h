@@ -28,53 +28,47 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "InstructionCategories.h"
-#include "entryIDs.h"
+#ifndef INSTRUCTIONAPI_X86_DECODER_H
+#define INSTRUCTIONAPI_X86_DECODER_H
+
+#include "capstone/capstone.h"
+#include "capstone/x86.h"
+#include "InstructionDecoderImpl.h"
+#include "Result.h"
 
 namespace Dyninst { namespace InstructionAPI {
 
-  InsnCategory entryToCategory(entryID e) {
-    switch(e) {
-      case aarch64_op_ret:
-        return c_ReturnInsn;
+  class x86_decoder final : public InstructionDecoderImpl {
+  public:
+    struct disassem final {
+      csh handle{};
+      cs_insn *insn{};
+    };
 
-      case amdgpu_gfx908_op_S_ENDPGM: // special treatment for endpgm
-      case amdgpu_gfx90a_op_S_ENDPGM: // special treatment for endpgm
-      case amdgpu_gfx940_op_S_ENDPGM: // special treatment for endpgm
-        return c_GPUKernelExitInsn;
+  private:
+    cs_mode mode{};
+    disassem disassembler{};
 
-      case aarch64_op_bl:
-      case aarch64_op_blr:
-        return c_CallInsn;
+  public:
+    x86_decoder(Dyninst::Architecture a);
+    x86_decoder() = delete;
+    x86_decoder(x86_decoder const &) = delete;
+    x86_decoder &operator=(x86_decoder const &) = delete;
+    x86_decoder(x86_decoder &&) = delete;
+    x86_decoder &operator=(x86_decoder &&) = delete;
+    ~x86_decoder();
 
-      case aarch64_op_b_uncond:
-      case aarch64_op_b_cond:
-      case aarch64_op_tbz:
-      case aarch64_op_tbnz:
-      case aarch64_op_cbz:
-      case aarch64_op_cbnz:
-      case aarch64_op_br:
-      case power_op_b:
-      case power_op_bc:
-      case power_op_bcctr:
-      case power_op_bclr:
-#include "amdgpu_branchinsn_table.h"
-        return c_BranchInsn;
+    Instruction decode(InstructionDecoder::buffer&) override;
 
-      case power_op_cmp:
-      case power_op_cmpi:
-      case power_op_cmpl:
-      case power_op_cmpli:
-        return c_CompareInsn;
-
-      case aarch64_op_brk:
-      case aarch64_op_hlt:
-      case aarch64_op_wfe_hint:
-      case aarch64_op_wfi_hint:
-        return c_SoftwareExceptionInsn;
-      default:
-      	return c_NoCategory;
-    }
-  }
+  private:
+    void decode_operands(Instruction&);
+    void decode_reg(Instruction&, cs_x86_op const &);
+    void decode_imm(Instruction&, cs_x86_op const &);
+    void decode_mem(Instruction&, cs_x86_op const &);
+    void decode_implicit(Instruction&);
+    bool is_cft(Instruction const&) const;
+  };
 
 }}
+
+#endif
