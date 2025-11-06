@@ -2,3 +2,4 @@ boost:1.71.0
 tbb:2019.9
 elfutils:0.186
 cmake:3.14.0
+capstone:6.0.0-Alpha1
