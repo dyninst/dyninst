@@ -274,7 +274,7 @@ which are both 0).
     isRAWritten = false;
     isFPInsn = false;
     bcIsConditional = false;
-    insn = insn_to_complete->m_RawInsn.small_insn;
+    insn = Dyninst::read_memory_as<decltype(insn)>(insn_to_complete->ptr());
     const power_entry* current = &power_entry::main_opcode_table[field<0, 5>(insn)];
     while(current->next_table) {
       current = &(std::mem_fn(current->next_table)(this));
