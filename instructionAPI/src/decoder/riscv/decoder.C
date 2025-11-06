@@ -99,7 +99,7 @@ Instruction riscv_decoder::decode(InstructionDecoder::buffer &buf) {
   // reducing the number of memory allocations.
   if (!cs_disasm_iter(disassembler.handle, &code, &code_size, &cap_addr,
                       disassembler.insn)) {
-    decode_printf("Failed to disassemble instruction at %p: %s\n", code,
+    decode_printf("Failed to disassemble instruction at %p: %s\n", (void *)code,
                   cs_strerror(cs_errno(disassembler.handle)));
     return {};
   }
