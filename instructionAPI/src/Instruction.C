@@ -117,13 +117,6 @@ namespace Dyninst { namespace InstructionAPI {
       : m_Valid(false), m_size(0), arch_decoded_from(Arch_none), formatter(nullptr) {
   }
 
-  DYNINST_EXPORT Instruction::~Instruction() {
-
-    if(m_size > sizeof(m_RawInsn.small_insn)) {
-      delete[] m_RawInsn.large_insn;
-    }
-  }
-
   DYNINST_EXPORT bool Instruction::isValid() const { return m_Valid; }
 
   DYNINST_EXPORT Operation& Instruction::getOperation() { return m_InsnOp; }
