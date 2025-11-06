@@ -115,6 +115,7 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT Instruction::Instruction()
       : m_Valid(false), m_size(0), arch_decoded_from(Arch_none), formatter(nullptr) {
+    copyRaw(0, nullptr);
   }
 
   DYNINST_EXPORT bool Instruction::isValid() const { return m_Valid; }
