@@ -95,10 +95,6 @@ namespace Dyninst { namespace InstructionAPI {
       : archDecodedFrom(arch), prefixID(prefix_none) {
     segPrefix = 0;
     isVectorInsn = getVectorizationInfo(e);
-    isMultiInsnCall = false;
-    isMultiInsnBranch = false;
-    isNonABICall = false;
-    isNonABIReturn = false;
     operationID = e->getID(l);
     // Defaults for no size prefix
     switch(archDecodedFrom) {
