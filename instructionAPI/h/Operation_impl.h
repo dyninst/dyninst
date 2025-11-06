@@ -65,7 +65,7 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT Operation(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL,
                              ia32_locations* l = NULL, Architecture arch = Arch_none);
     DYNINST_EXPORT Operation(const Operation& o);
-    DYNINST_EXPORT Operation();
+    DYNINST_EXPORT Operation() = default;
     DYNINST_EXPORT Operation(entryID id, std::string m, Architecture arch);
 
     DYNINST_EXPORT const Operation& operator=(const Operation& o);
@@ -86,7 +86,7 @@ namespace Dyninst { namespace InstructionAPI {
 
     void updateMnemonic(std::string new_mnemonic) { mnemonic = std::move(new_mnemonic); }
 
-    bool isVectorInsn;
+    bool isVectorInsn{};
 
   private:
     std::once_flag data_initialized;
@@ -97,11 +97,11 @@ namespace Dyninst { namespace InstructionAPI {
     mutable VCSet otherEffAddrsRead;
     mutable VCSet otherEffAddrsWritten;
 
-    mutable entryID operationID;
-    Architecture archDecodedFrom;
-    prefixEntryID prefixID;
-    Result_Type addrWidth;
-    int segPrefix;
+    mutable entryID operationID{};
+    Architecture archDecodedFrom{};
+    prefixEntryID prefixID{};
+    Result_Type addrWidth{};
+    int segPrefix{};
     mutable std::string mnemonic;
   };
 }}
