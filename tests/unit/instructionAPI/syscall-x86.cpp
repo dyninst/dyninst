@@ -27,18 +27,22 @@ std::array<const unsigned char, num_bytes> buffer = {{
 
 template <int N>
 bool run(di::InstructionDecoder dec, std::array<bool, N> const& answers) {
+  bool failed = false;
   for(auto i=0; i < N; i++) {
     auto insn = dec.decode();
     if(!insn.isValid()) {
       std::cerr << "Decode failed for test " << (i+1) << "\n";
       return false;
     }
-    if(answers[i] != di::isSystemCall(insn)) {
-      std::cerr << "Test " << (i+1) << " failed\n";
-      return false;
+    auto const expected = answers[i];
+    auto const actual = di::isSystemCall(insn);
+    if(actual != expected) {
+      std::cerr << "Test (" << (i+1) << "), '" << insn.format() << "' failed. Expected '"
+                << std::boolalpha << expected << "', got '" << actual << "'\n";
+      failed = true;
     }
   }
-  return true;
+  return !failed;
 }
 
 bool run_32() {
