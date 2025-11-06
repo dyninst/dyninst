@@ -75,7 +75,6 @@ namespace Dyninst { namespace InstructionAPI {
                                Dyninst::Architecture arch);
     DYNINST_EXPORT Instruction();
     DYNINST_EXPORT virtual ~Instruction();
-    DYNINST_EXPORT Instruction(const Instruction& o);
 
     DYNINST_EXPORT Operation& getOperation();
     DYNINST_EXPORT const Operation& getOperation() const;

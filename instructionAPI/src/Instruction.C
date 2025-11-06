@@ -124,22 +124,6 @@ namespace Dyninst { namespace InstructionAPI {
     }
   }
 
-  DYNINST_EXPORT Instruction::Instruction(const Instruction& o)
-      : m_Operands(o.m_Operands), m_InsnOp(o.m_InsnOp), m_Valid(o.m_Valid),
-        arch_decoded_from(o.arch_decoded_from), formatter(o.formatter)
-
-  {
-    m_size = o.m_size;
-    if(o.m_size > sizeof(m_RawInsn.small_insn)) {
-      m_RawInsn.large_insn = new unsigned char[o.m_size];
-      memcpy(m_RawInsn.large_insn, o.m_RawInsn.large_insn, m_size);
-    } else {
-      m_RawInsn.small_insn = o.m_RawInsn.small_insn;
-    }
-
-    m_Successors = o.m_Successors;
-  }
-
   DYNINST_EXPORT bool Instruction::isValid() const { return m_Valid; }
 
   DYNINST_EXPORT Operation& Instruction::getOperation() { return m_InsnOp; }
