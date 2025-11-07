@@ -110,31 +110,12 @@ bool run_64()  {
   return true;
 }
 
-void usage(char const* prgname) {
-  std::cerr << "Usage: " << prgname << " [32|64]\n";
-}
+int main() {
+  bool ok = run_32();
 
-int main(int argc, char **argv) {
-  // Convention for CTest
-  constexpr int PASS =  0;
-  constexpr int FAIL =  1;
-
-  if(argc != 2) {
-    usage(argv[0]);
-    return FAIL;
+  if(!run_64()) {
+    ok = false;
   }
 
-  std::string type{argv[1]};
-
-  if(type == "32") {
-    std::cout << "Running in 32-bit mode\n";
-    return run_32() ? PASS : FAIL;
-  }
-  if(type == "64") {
-    std::cout << "Running in 64-bit mode\n";
-    return run_64() ? PASS : FAIL;
-  }
-
-  usage(argv[0]);
-  return FAIL;
+  return !ok ? EXIT_FAILURE : EXIT_SUCCESS;
 }
