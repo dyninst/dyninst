@@ -6,6 +6,20 @@
 
 namespace di = Dyninst::InstructionAPI;
 
+static bool run_32();
+static bool run_64();
+
+int main() {
+  bool ok = run_32();
+
+  if(!run_64()) {
+    ok = false;
+  }
+
+  return !ok ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+
+
 constexpr auto num_tests = 14;
 constexpr auto num_bytes = 62UL;
 std::array<const unsigned char, num_bytes> buffer = {{
@@ -109,14 +123,4 @@ bool run_64()  {
 
   di::InstructionDecoder decoder(buffer.data(), buffer.size(), arch);
   return run<num_tests>(decoder, answers);
-}
-
-int main() {
-  bool ok = run_32();
-
-  if(!run_64()) {
-    ok = false;
-  }
-
-  return !ok ? EXIT_FAILURE : EXIT_SUCCESS;
 }
