@@ -26,7 +26,7 @@ std::array<const unsigned char, num_bytes> buffer = {{
 }};
 
 template <int N>
-bool run(di::InstructionDecoder dec, std::array<bool, N> const& answers) {
+static bool run(di::InstructionDecoder dec, std::array<bool, N> const& answers) {
   bool failed = false;
   for(auto i=0; i < N; i++) {
     auto insn = dec.decode();
