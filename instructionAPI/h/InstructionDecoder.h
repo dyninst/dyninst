@@ -42,7 +42,7 @@ namespace Dyninst { namespace InstructionAPI {
     friend class Instruction;
 
   public:
-    static const unsigned int maxInstructionLength = 16;
+    static constexpr auto maxInstructionLength = Instruction::maxInstructionLength;
 
     InstructionDecoder(const unsigned char* buffer, size_t size, Architecture arch);
     InstructionDecoder(const void* buffer, size_t size, Architecture arch);
