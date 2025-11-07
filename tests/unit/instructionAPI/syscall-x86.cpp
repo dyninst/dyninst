@@ -86,6 +86,10 @@ bool run_32() {
 }
 
 bool run_64()  {
+  auto constexpr arch = Dyninst::Arch_x86_64;
+  auto sarch = Dyninst::getArchitectureName(arch);
+  std::clog << "Running tests for 'syscall-x86' in " << sarch << " mode\n";
+
   std::array<bool, num_tests> answers = {{
     false,    // (1)
     false,    // (2)
@@ -103,12 +107,8 @@ bool run_64()  {
     true,     // (14)
   }};
 
-  di::InstructionDecoder decoder(buffer.data(), buffer.size(), Dyninst::Arch_x86_64);
-  if(!run<num_tests>(decoder, answers)) {
-    return false;
-  }
-
-  return true;
+  di::InstructionDecoder decoder(buffer.data(), buffer.size(), arch);
+  return run<num_tests>(decoder, answers);
 }
 
 int main() {
