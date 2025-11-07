@@ -46,42 +46,43 @@ bool run(di::InstructionDecoder dec, std::array<bool, N> const& answers) {
 }
 
 bool run_32() {
-  {
-    std::array<bool, num_tests> answers = {{
-      false,    // (1)
-      false,    // (2)
-      false,    // (3)
-      false,    // (4)
-      false,    // (5)
-      true,     // (6)
-      true,     // (7)
-      false,    // (8)
-      true,     // (9)
-      false,    // (10)
-      false,    // (11)
-      true,     // (12)
-      false,    // (13)
-      true,     // (14)
-    }};
+  auto constexpr arch = Dyninst::Arch_x86;
+  auto sarch = Dyninst::getArchitectureName(arch);
+  std::clog << "Running tests for 'syscall-x86' in " << sarch << " mode\n";
 
-    di::InstructionDecoder decoder(buffer.data(), buffer.size(), Dyninst::Arch_x86);
-    if(!run<num_tests>(decoder, answers)) {
-      return false;
-    }
+  bool failed = false;
+
+  std::array<bool, num_tests> answers = {{
+    false,    // (1)
+    false,    // (2)
+    false,    // (3)
+    false,    // (4)
+    false,    // (5)
+    true,     // (6)
+    true,     // (7)
+    false,    // (8)
+    true,     // (9)
+    false,    // (10)
+    false,    // (11)
+    true,     // (12)
+    false,    // (13)
+    true,     // (14)
+  }};
+
+  di::InstructionDecoder decoder(buffer.data(), buffer.size(), arch);
+  failed = !run<num_tests>(decoder, answers);
+
+  // `into` is only valid in 32-bit mode
+  constexpr auto num_32bit_tests = 1;
+  std::array<const unsigned char, num_32bit_tests> buffer32 = {{ 0xce }};
+  std::array<bool, num_32bit_tests> answers32 = {{ false }};
+  di::InstructionDecoder decoder32(buffer32.data(), buffer32.size(), arch);
+
+  if(!run<num_32bit_tests>(decoder32, answers32)) {
+    failed = true;
   }
 
-  {
-    // `into` is only valid in 32-bit mode
-    constexpr auto num_32bit_tests = 1;
-    std::array<const unsigned char, num_32bit_tests> buffer32 = {{ 0xce }};
-    std::array<bool, num_32bit_tests> answers32 = {{ false }};
-    di::InstructionDecoder decoder32(buffer32.data(), buffer32.size(), Dyninst::Arch_x86);
-
-    if(!run<num_32bit_tests>(decoder32, answers32)) {
-      return false;
-    }
-  }
-  return true;
+  return !failed;
 }
 
 bool run_64()  {
