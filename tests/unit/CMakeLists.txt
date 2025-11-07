@@ -4,7 +4,7 @@ message(STATUS "Enabling unit tests")
 
 add_subdirectory(common)
 add_subdirectory(dataflowAPI)
-add_subdirectory(dyninstAPI/emitter)
+add_subdirectory(dyninstAPI)
 add_subdirectory(instructionAPI)
 add_subdirectory(instructionAPI/AST)
 add_subdirectory(MachRegister)
