@@ -65,8 +65,6 @@ bool run_32() {
   auto sarch = Dyninst::getArchitectureName(arch);
   std::clog << "Running tests for 'syscall-x86' in " << sarch << " mode\n";
 
-  bool failed = false;
-
   std::array<bool, num_tests> answers = {{
     false,    // (1)
     false,    // (2)
@@ -85,7 +83,7 @@ bool run_32() {
   }};
 
   di::InstructionDecoder decoder(buffer.data(), buffer.size(), arch);
-  failed = !run<num_tests>(decoder, answers);
+  bool failed = !run<num_tests>(decoder, answers);
 
   // `into` is only valid in 32-bit mode
   constexpr auto num_32bit_tests = 1;
