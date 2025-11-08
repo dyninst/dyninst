@@ -46,7 +46,8 @@ static bool run(di::InstructionDecoder dec, std::array<bool, N> const& answers) 
     auto insn = dec.decode();
     if(!insn.isValid()) {
       std::cerr << "Decode failed for test " << (i+1) << "\n";
-      return false;
+      failed = true;
+      continue;
     }
     auto const expected = answers[i];
     auto const actual = di::isSystemCall(insn);
