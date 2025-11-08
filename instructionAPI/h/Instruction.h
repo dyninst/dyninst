@@ -175,7 +175,7 @@ namespace Dyninst { namespace InstructionAPI {
     mutable Operation m_InsnOp;
     bool m_Valid;
     std::array<uint8_t, maxInstructionLength> m_RawInsn;
-    unsigned int m_size{};
+    uint8_t m_size{};
     Architecture arch_decoded_from;
     mutable std::list<CFT> m_Successors;
     // formatter is a non-owning pointer to a singleton object
