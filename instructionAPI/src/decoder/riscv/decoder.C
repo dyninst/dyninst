@@ -225,8 +225,6 @@ void riscv_decoder::add_branch_insn_successors(
   constexpr bool is_indirect = true;
   constexpr bool is_conditional = true;
   constexpr bool is_fallthrough = true;
-  constexpr bool is_implicit = true;
-  constexpr bool append_op = true;
 
   auto const pc = makeRegisterExpression(MachRegister::getPC(this->m_Arch));
   auto const reg_type = size_to_type_signed(RISCV_REG_SIZE);
