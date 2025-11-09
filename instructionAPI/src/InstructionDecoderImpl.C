@@ -30,7 +30,6 @@
 
 #include "InstructionDecoder-aarch64.h"
 #include "InstructionDecoder-power.h"
-#include "InstructionDecoder-x86.h"
 #include "InstructionDecoderImpl.h"
 #include "decoder/riscv/decoder.h"
 #include "AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h"
@@ -50,7 +49,7 @@ namespace Dyninst { namespace InstructionAPI {
                                                                          const char *mnem,
                                                                          unsigned int decodedSize,
                                                                          const unsigned char *raw) {
-    Operation tmp(opcode, mnem, m_Arch);
+    Operation tmp(opcode, mnem);
     return boost::make_shared<Instruction>(tmp, decodedSize, raw, m_Arch);
   }
 
