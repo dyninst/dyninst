@@ -49,6 +49,9 @@ option(DYNINST_FORCE_RUNPATH "Require the use of RUNPATH instead of compiler's d
 
 option(DYNINST_ENABLE_TESTS "Build tests" OFF)
 option(DYNINST_ENABLE_FILEFORMAT_PE "Enable PE (Windows .exe/.dll) parsing" OFF)
+
+option(DYNINST_ENABLE_CAPSTONE "Enable Capstone" OFF)
+
 set(DYNINST_CODEGEN_ARCH
     ""
     CACHE STRING

@@ -48,7 +48,12 @@ include(DyninstThread_DB)
 include(DyninstValgrind)
 include(DyninstOpenMP)
 include(DyninstPeParse)
-include(DyninstCapstone)
+
+# Search for DYNINST_ENABLE_CAPSTONE to find all the locations to remove once
+# Capstone got updated to 6.0.0
+if(DYNINST_ENABLE_CAPSTONE)
+  include(DyninstCapstone)
+endif()
 
 add_subdirectory(common)
 add_subdirectory(elf)

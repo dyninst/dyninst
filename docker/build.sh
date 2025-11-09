@@ -44,6 +44,7 @@ fi
 
 cmake_args+="-DDYNINST_WARNINGS_AS_ERRORS=ON "
 cmake_args+="-DDYNINST_ENABLE_FILEFORMAT_PE=ON "
+cmake_args+="-DDYNINST_ENABLE_CAPSTONE=ON "
 
 cmake -S ${src_dir} -B ${build_dir} -DCMAKE_INSTALL_PREFIX=${dest_dir} ${cmake_args}
 

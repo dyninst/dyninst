@@ -83,6 +83,10 @@ if(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
   list(APPEND _dyninst_global_defs DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS)
 endif()
 
+if(DYNINST_ENABLE_CAPSTONE)
+  list(APPEND _dyninst_global_defs DYNINST_ENABLE_CAPSTONE)
+endif()
+
 list(APPEND _dyninst_global_defs ${DYNINST_PLATFORM_CAPABILITIES})
 
 function(dyninst_library _target)
