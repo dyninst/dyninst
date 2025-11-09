@@ -28,6 +28,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#ifndef INSTRUCTIONAPI_TYPE_CONVERSION_H
+#define INSTRUCTIONAPI_TYPE_CONVERSION_H
+
 #include "Result.h"
 
 namespace Dyninst {
@@ -89,3 +92,5 @@ namespace InstructionAPI {
 
 } // namespace InstructionAPI
 } // namespace Dyninst
+
+#endif
