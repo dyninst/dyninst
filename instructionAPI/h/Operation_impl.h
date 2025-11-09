@@ -49,10 +49,10 @@ namespace Dyninst { namespace InstructionAPI {
 
   public:
     DYNINST_EXPORT Operation() = default;
-    DYNINST_EXPORT Operation(entryID id, std::string m, Architecture arch) :
-        operationID(id), archDecodedFrom(arch), mnemonic{std::move(m)} {}
+    DYNINST_EXPORT Operation(entryID id, std::string m, Architecture = {}) :
+        operationID(id), mnemonic{std::move(m)} {}
 
-    DYNINST_EXPORT Operation(entryID id, prefixEntryID pid, std::string m, Architecture arch) : Operation(id, m, arch) {
+    DYNINST_EXPORT Operation(entryID id, prefixEntryID pid, std::string m) : Operation(id, std::move(m)) {
       prefixID = pid;
     }
 
@@ -67,7 +67,6 @@ namespace Dyninst { namespace InstructionAPI {
 
   private:
     mutable entryID operationID{};
-    Architecture archDecodedFrom{};
     prefixEntryID prefixID{};
     mutable std::string mnemonic;
   };
