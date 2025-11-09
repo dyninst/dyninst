@@ -36,28 +36,28 @@
 // In RISC-V, instruction length can be a multiple of 2 bytes
 
 // Standard RISC-V instructions (RVI, RVA, RVM, RVF, RVD, ...) are 4 bytes
-typedef uint32_t rvInsn_t;
+using rvInsn_t = uint32_t;
 constexpr int RISCV_INSN_SIZE = sizeof(rvInsn_t);
 
 // Compressed instructions (RVC) are 2 bytes
-typedef uint16_t rvcInsn_t;
+using rvcInsn_t = uint16_t;
 constexpr int RISCVC_INSN_SIZE = sizeof(rvcInsn_t);
 
 // The minimum instruction size is 2 bytes
-typedef rvcInsn_t rvMinInsn_t;
+using rvMinInsn_t = rvcInsn_t ;
 constexpr int RISCV_MIN_INSN_SIZE = sizeof(rvMinInsn_t);
 
 // The maximum instruction size is 4 bytes
-typedef rvInsn_t rvMaxInsn_t;
+using rvMaxInsn_t = rvInsn_t;
 constexpr int RISCV_MAX_INSN_SIZE = sizeof(rvMaxInsn_t);
 
 // The register size is 4 bytes
-typedef int32_t rvReg_t;
+using rvReg_t = int32_t;
 constexpr int RISCV_REG_SIZE = sizeof(rvReg_t);
 
 // The immeidate size can be 12 or 20 bits
 // They can be fit in a 32 bit integer
-typedef int32_t rvImm_t;
+using rvImm_t = int32_t;
 constexpr int RISCV_IMM_SIZE = sizeof(rvImm_t);
 
 // RISC-V general purpose registers values
