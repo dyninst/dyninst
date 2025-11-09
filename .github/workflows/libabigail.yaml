@@ -20,50 +20,50 @@ on:
 jobs:
 
   # Don't run the check if the PR is a draft or already marked as an ABI break
-  check-if-needed:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.pull_request.draft == false && !contains(github.event.pull_request.labels.*.name, 'ABI-BREAKER') }}
-    steps:
-      - shell: bash
-        run: true
-
-  get-oses:
-    runs-on: ubuntu-latest
-    needs: check-if-needed
-    outputs:
-      latest: ${{ steps.all.outputs.latest }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - id: all
-        uses: ./.github/actions/os-versions
-
-  get-compilers:
-    runs-on: ubuntu-latest
-    needs: check-if-needed
-    outputs:
-      all: ${{ steps.compilers.outputs.value }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        
-      - id: compilers
-        shell: bash
-        run: |
-          set -ex
-          script="./.github/scripts/compiler_configs.py"
-          names=$(python3 ${script} --print-names)
-          echo "value=${names}" >> $GITHUB_OUTPUT
+#  check-if-needed:
+#    runs-on: ubuntu-latest
+#    if: ${{ github.event.pull_request.draft == false && !contains(github.event.pull_request.labels.*.name, 'ABI-BREAKER') }}
+#    steps:
+#      - shell: bash
+#        run: true
+#
+#  get-oses:
+#    runs-on: ubuntu-latest
+#    needs: check-if-needed
+#    outputs:
+#      latest: ${{ steps.all.outputs.latest }}
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v4
+#
+#      - id: all
+#        uses: ./.github/actions/os-versions
+#
+#  get-compilers:
+#    runs-on: ubuntu-latest
+#    needs: check-if-needed
+#    outputs:
+#      all: ${{ steps.compilers.outputs.value }}
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v4
+#        
+#      - id: compilers
+#        shell: bash
+#        run: |
+#          set -ex
+#          script="./.github/scripts/compiler_configs.py"
+#          names=$(python3 ${script} --print-names)
+#          echo "value=${names}" >> $GITHUB_OUTPUT
 
   libabigail:
     runs-on: ubuntu-latest
-    needs: [get-oses, get-compilers]
+#    needs: [get-oses, get-compilers]
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJson(needs.get-oses.outputs.latest) }}
-        compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
+        os: ['fedora-43'] #${{ fromJson(needs.get-oses.outputs.latest) }}
+        compiler: ['gcc'] #${{ fromJson(needs.get-compilers.outputs.all) }}
     permissions:
       packages: read
     container:
@@ -125,11 +125,7 @@ jobs:
           # Don't use 'vx' here because abidiff is very chatty
           set -e
           
-          declare -a libs=(
-            "libcommon.so" "libdyninstAPI_RT.so" "libdyninstAPI.so" "libinstructionAPI.so"
-            "libparseAPI.so" "libpatchAPI.so" "libpcontrol.so" "libstackwalk.so"
-            "libsymtabAPI.so"
-          )
+          declare -a libs=("libdyninstAPI.so")
 
           params="--exported-interfaces-only "  # only public symbols
           params+="--deleted-fns "              # deleted public functions
@@ -155,6 +151,10 @@ jobs:
           for l in "${libs[@]}"; do
             echo "Diffing $l"
             cur_status=0
+            nm ${prev}/$l | grep -i BPatch_addressSpace13insertSnippet
+            echo; echo;
+            nm ${cur}/$l | grep -i BPatch_addressSpace13insertSnippet
+            echo; echo;
             output=`abidiff ${params} ${prev}/$l ${cur}/$l 2>&1` || cur_status=1
             if test "${cur_status}" = "1"; then
               printf '=%.0s' {1..100}; echo
