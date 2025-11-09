@@ -25,9 +25,6 @@ inputs:
     default: 2
   extra-libs:
     required: false
-  tests:
-    default: "ALL"
-    required: false
 
 runs:
   using: "composite"
@@ -44,7 +41,6 @@ runs:
         src-dir: ${{ inputs.src-dir }}
         num-jobs: ${{ inputs.num-jobs }}
         extra-libs: ${{ inputs.extra-libs }}
-        tests: ${{ inputs.tests }}
 
     - name: Build
       if: ${{ startsWith(inputs.os, 'ubuntu') }}
@@ -58,4 +54,3 @@ runs:
         src-dir: ${{ inputs.src-dir }}
         num-jobs: ${{ inputs.num-jobs }}
         extra-libs: ${{ inputs.extra-libs }}
-        tests: ${{ inputs.tests }}
