@@ -52,8 +52,11 @@ namespace Dyninst { namespace InstructionAPI {
   public:
     Operation() = default;
 
-    Operation(entryID id, std::string m, Architecture arch)
-      : operationID(id), archDecodedFrom(arch), mnemonic{std::move(m)} {}
+    Operation(entryID id, std::string m) : operationID(id), mnemonic{std::move(m)} {}
+
+    Operation(entryID id, prefixEntryID pid, std::string m) : Operation(id, std::move(m)) {
+      prefixID = pid;
+    }
 
     std::string format() const { return mnemonic; }
 
@@ -64,16 +67,13 @@ namespace Dyninst { namespace InstructionAPI {
     void updateMnemonic(std::string new_mnemonic) { mnemonic = std::move(new_mnemonic); }
 
     bool operator==(Operation const &rhs) const {
-      return operationID == rhs.operationID &&
-             archDecodedFrom == rhs.archDecodedFrom &&
-             mnemonic == rhs.mnemonic;
+      return operationID == rhs.operationID && mnemonic == rhs.mnemonic;
     }
 
     bool isVectorInsn{};
 
   private:
     mutable entryID operationID{};
-    Architecture archDecodedFrom{};
     prefixEntryID prefixID{};
     mutable std::string mnemonic;
   };
