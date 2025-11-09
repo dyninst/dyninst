@@ -30,7 +30,7 @@ while [[ $# -gt 0 ]]; do
     -t) test_type="$2"; shift 2;;
     -h) show_help; exit;;
     -v) verbose="--verbose"; shift;;
-     *) echo "Unknown arg '$1'"; exit;;
+     *) echo "Unknown arg '$1'"; exit 1;;
   esac
 done
 
