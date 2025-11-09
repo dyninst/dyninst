@@ -110,7 +110,7 @@ namespace Dyninst { namespace InstructionAPI {
 
     entryID e = x86::translate_opcode(static_cast<x86_insn>(disassembler.insn->id));
 
-    auto op = Operation(e, prefix, disassembler.insn->mnemonic, this->m_Arch);
+    auto op = Operation(e, prefix, disassembler.insn->mnemonic);
     auto insn = Instruction(std::move(op), disassembler.insn->size, code, this->m_Arch);
     decode_operands(insn);
     return insn;
