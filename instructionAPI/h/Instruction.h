@@ -197,7 +197,11 @@ namespace Dyninst { namespace InstructionAPI {
     void updateSize(const unsigned int new_size, const unsigned char * raw);
 
     void addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough,
-                      bool isImplicit = false, bool appendOp = true) const;
+                      bool isImplicit = false) const;
+
+    void addSuccessor(CFT cft) {
+        m_Successors.push_back(std::move(cft));
+    }
 
     void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit = false,
                        bool trueP = false, bool falseP = false) const;

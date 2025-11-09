@@ -483,11 +483,10 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   void Instruction::addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect,
-                                 bool isConditional, bool isFallthrough, bool isImplicit,
-                                 bool appendOp) const {
+                                 bool isConditional, bool isFallthrough, bool isImplicit) const {
     CFT c(e, isCall, isIndirect, isConditional, isFallthrough);
     m_Successors.push_back(c);
-    if(!isFallthrough && appendOp)
+    if(!isFallthrough)
       appendOperand(e, true, false, isImplicit);
   }
 

@@ -240,9 +240,8 @@ void riscv_decoder::add_branch_insn_successors(
         Immediate::makeImmediate(Result(imm_type, operands[1].imm));
     auto const target = makeAddExpression(std::move(pc), imm, imm_type);
     const bool is_call_insn = link_reg != riscv64::zero;
-    insn.addSuccessor(std::move(target), is_call_insn, !is_indirect,
-                      !is_conditional, !is_fallthrough, is_implicit,
-                      !append_op);
+    const Instruction::CFT cft(std::move(target), is_call_insn, !is_indirect, !is_conditional, !is_fallthrough);
+    insn.addSuccessor(std::move(cft));
     break;
   }
   case riscv64_op_jalr: {
@@ -257,9 +256,8 @@ void riscv_decoder::add_branch_insn_successors(
     auto const target = makeAddExpression(std::move(rs), std::move(imm),
                                           std::max(reg_type, imm_type));
     const bool is_call_insn = link_reg != riscv64::zero;
-    insn.addSuccessor(std::move(target), is_call_insn, is_indirect,
-                      !is_conditional, !is_fallthrough, !is_implicit,
-                      !append_op);
+    const Instruction::CFT cft(std::move(target), is_call_insn, is_indirect, !is_conditional, !is_fallthrough);
+    insn.addSuccessor(std::move(cft));
     break;
   }
   case riscv64_op_c_j: {
@@ -267,25 +265,24 @@ void riscv_decoder::add_branch_insn_successors(
         Immediate::makeImmediate(Result(imm_type, operands[0].imm));
     auto const target = makeAddExpression(std::move(pc), std::move(imm),
                                           std::max(reg_type, imm_type));
-    insn.addSuccessor(std::move(target), !is_call, !is_indirect,
-                      !is_conditional, !is_fallthrough, is_implicit,
-                      !append_op);
+    const Instruction::CFT cft(std::move(target), !is_call, !is_indirect, !is_conditional, !is_fallthrough);
+    insn.addSuccessor(std::move(cft));
     break;
   }
   case riscv64_op_c_jr: {
     MachRegister target_reg = riscv::translate_register(
         static_cast<riscv_reg>(operands[0].reg), this->mode);
     auto const rs = makeRegisterExpression(target_reg);
-    insn.addSuccessor(std::move(rs), !is_call, is_indirect, !is_conditional,
-                      !is_fallthrough, is_implicit, !append_op);
+    const Instruction::CFT cft(std::move(rs), !is_call, is_indirect, !is_conditional, !is_fallthrough);
+    insn.addSuccessor(std::move(cft));
     break;
   }
   case riscv64_op_c_jalr: {
     MachRegister target_reg = riscv::translate_register(
         static_cast<riscv_reg>(operands[0].reg), this->mode);
     auto const rs = makeRegisterExpression(target_reg);
-    insn.addSuccessor(std::move(rs), is_call, is_indirect, !is_conditional,
-                      !is_fallthrough, is_implicit, !append_op);
+    const Instruction::CFT cft(std::move(rs), is_call, is_indirect, !is_conditional, !is_fallthrough);
+    insn.addSuccessor(std::move(cft));
     break;
   }
   case riscv64_op_beq:
@@ -306,15 +303,13 @@ void riscv_decoder::add_branch_insn_successors(
                                           std::max(reg_type, imm_type));
     if (operands[0].reg == RISCV_REG_ZERO &&
         operands[1].reg == RISCV_REG_ZERO) {
-      insn.addSuccessor(std::move(target), !is_call, !is_indirect,
-                        !is_conditional, !is_fallthrough, is_implicit,
-                        !append_op);
+        const Instruction::CFT cft(std::move(target), !is_call, !is_indirect, !is_conditional, !is_fallthrough);
+        insn.addSuccessor(std::move(cft));
     } else {
-      insn.addSuccessor(std::move(target), !is_call, !is_indirect,
-                        is_conditional, is_fallthrough, is_implicit,
-                        !append_op);
-      insn.addSuccessor(std::move(pc), !is_call, !is_indirect, is_conditional,
-                        is_fallthrough, is_implicit, !append_op);
+        const Instruction::CFT cft1(std::move(target), !is_call, !is_indirect, is_conditional, is_fallthrough);
+        insn.addSuccessor(std::move(cft1));
+        const Instruction::CFT cft2(std::move(pc), !is_call, !is_indirect, is_conditional, is_fallthrough);
+        insn.addSuccessor(std::move(cft2));
     }
     break;
   }
@@ -327,10 +322,10 @@ void riscv_decoder::add_branch_insn_successors(
         Immediate::makeImmediate(Result(imm_type, operands[1].imm));
     auto const target = makeAddExpression(std::move(pc), std::move(imm),
                                           std::max(reg_type, imm_type));
-    insn.addSuccessor(std::move(target), !is_call, !is_indirect, is_conditional,
-                      is_fallthrough, is_implicit, !append_op);
-    insn.addSuccessor(std::move(pc), !is_call, !is_indirect, is_conditional,
-                      is_fallthrough, is_implicit, !append_op);
+    const Instruction::CFT cft1(std::move(target), !is_call, !is_indirect, is_conditional, is_fallthrough);
+    insn.addSuccessor(std::move(cft1));
+    const Instruction::CFT cft2(std::move(pc), !is_call, !is_indirect, is_conditional, is_fallthrough);
+    insn.addSuccessor(std::move(cft2));
     break;
   }
   default: {
