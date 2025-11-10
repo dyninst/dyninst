@@ -214,7 +214,7 @@ bool IA_riscv64::savesFP() const
 
         MachRegister reg0 = op0->getID();
         MachRegister reg1 = op1->getID();
-        int offset2 = op1->eval().val.s32val;
+        int offset2 = op2->eval().val.s32val;
 
         if (reg0 == riscv64::sp && reg1 == riscv64::sp && offset2 < 0) {
             return true;
@@ -300,6 +300,22 @@ bool IA_riscv64::sliceReturn(ParseAPI::Block*, Address, ParseAPI::Function *) co
     return true;
 }
 
+bool IA_riscv64::isIndirectJump() const
+{
+    Instruction ci = curInsn();
+    if (ci.isBranch() || ci.allowsFallThrough() || ci.isReturn()) {
+        return false;
+    }
+    bool valid;
+    Address target;
+    boost::tie(valid, target) = getCFT();
+    if (valid) {
+        return false;
+    }
+    parsing_printf("... indirect jump at 0x%lx, delay parsing it\n", current);
+    return true;
+}
+
 bool IA_riscv64::isReturnAddrSave(Address&) const
 {
     return false;
@@ -325,8 +341,8 @@ bool IA_riscv64::isReturn(Dyninst::ParseAPI::Function *func, Dyninst::ParseAPI::
         assert(children.size() == 2);
         MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(children[0]))->getID();
         int32_t imm = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
-        if (rs == riscv64::x0 && imm == 0) {
-            linkReg = rd;
+        if (rd == riscv64::x0 && imm == 0) {
+            linkReg = rs;
             isJr = true;
         }
     }

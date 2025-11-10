@@ -58,6 +58,7 @@ class IA_riscv64 : public IA_IAPI {
 	virtual bool isStackFramePreamble() const;
 	virtual bool cleansStack() const;
 	virtual bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const;
+    virtual bool isIndirectJump() const;
 	virtual bool isReturnAddrSave(Address& retAddr) const;
 	virtual bool isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const;
 	virtual bool isFakeCall() const;

@@ -296,7 +296,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
                 generateBranchViaTrap(gen, from, to);
                 return;
             }
-            generateAuipc(gen, GPR_RA, 0, gen.getUseRVC());
+            generateAuipc(gen, scratch, 0, gen.getUseRVC());
             generateCalcImm(gen, scratch2, disp, true, gen.getUseRVC());
             generateAdd(gen, scratch, scratch, scratch2, gen.getUseRVC());
         }
@@ -309,16 +309,10 @@ void insnCodeGen::generateSpringBoardBranch(codeGen &gen,
                                             Dyninst::Address from,
                                             Dyninst::Address to)
 {
-    std::cout << "From: " << std::hex << from << std::endl;
-    std::cout << "To: " << std::hex << to << std::endl;
-    std::cout << "Diff: " << std::hex << to - from << std::endl;
     long disp = to - from;
     if (disp >= UTYPE_IMM_MIN && disp < UTYPE_IMM_MAX) {
         Dyninst::RegValue top = (disp >> UTYPE_IMM_SHIFT) & UTYPE_IMM_MASK;
         Dyninst::RegValue offset = disp & ITYPE_IMM_MASK;
-        std::cout << "Top: " << std::hex << top << std::endl;
-        std::cout << "Offset: " << std::hex << offset << std::endl;
-        std::cout << std::endl;
         if (offset & 0x800) {
             top = (top + 1) & UTYPE_IMM_MASK;
         }
@@ -416,7 +410,7 @@ void insnCodeGen::generateCondBranch(codeGen &gen,
             }
             generateCmpBranch(gen, bCondOp, rs1, rs2, 3 * RV_INSN_SIZE, false);
             generateAuipc(gen, scratch, top, false);
-            generateAddi(gen, scratch, GPR_RA, offset, false);
+            generateAddi(gen, scratch, scratch, offset, false);
             generateJr(gen, scratch, 0, false);
             return;
         }

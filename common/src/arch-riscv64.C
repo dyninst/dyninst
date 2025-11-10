@@ -126,7 +126,9 @@ bool instruction::getUsedRegs(std::vector<int> &regs) {
 }
 
 bool instruction::isCall() const {
-    assert(isUncondBranch());
+    if (isCondBranch()) {
+        return false;
+    }
     if (isRVC()) {
         insnBuf_t result = insn_buff & CJ_INSN_MASK;
         if (result == CJAL_INSN) {

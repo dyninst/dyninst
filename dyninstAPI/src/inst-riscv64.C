@@ -207,7 +207,7 @@ unsigned EmitterRISCV64SaveRestoreRegs::saveGPRegisters(
         if (reg->number >= GPR_X0 && reg->number <= GPR_X4) {
             continue;
         }
-        if (bt->definedRegs.size() == 0 || (reg->liveState == registerSlot::live && bt->definedRegs[reg->encoding()])) {
+        if (bt->definedRegs.size() == 0 || bt->definedRegs[reg->encoding()]) {
             regs.push_back(reg);
         }
     }
@@ -344,7 +344,6 @@ void EmitterRISCV64SaveRestoreRegs::restoreSPR(codeGen &/*gen*/, Register /*scra
 
 void EmitterRISCV64SaveRestoreRegs::restoreFPRegister(codeGen &gen, Register reg, int save_off) {
     insnCodeGen::generateMemLoadFp(gen, reg, REG_SP, save_off, 8, gen.getUseRVC());
-    assert(0);
 }
 
 /***********************************************************************************************/
@@ -372,27 +371,6 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
     unsigned int width = gen.width();
 
     saveRestoreRegs.saveGPRegisters(gen, gen.rs(), this, 0);
-    // After saving GPR, we move SP to FP to create the instrumentation frame.
-    // Note that Dyninst instrumentation frame has a different structure
-    // compared to stack frame created by the compiler.
-    //
-    // Dyninst instrumentation frame makes sure that FP and SP are the same.
-    // So, during stack walk, the FP retrived from the previous frame is
-    // the SP of the current instrumentation frame.
-    //
-    // Note: If the implementation of the instrumentation frame layout
-    // needs to be changed, DyninstDynamicStepperImpl::getCallerFrameArch
-    // in stackwalk/src/riscv64-swk.C also likely needs to be changed accordingly
-    //insnCodeGen::generateMove(gen, REG_FP, REG_SP, gen.getUseRVC());
-    //gen.markRegDefined(REG_FP);
-
-    bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
-                    (BPatch::bpatch->isSaveFPROn() &&
-                     gen.rs()->anyLiveFPRsAtEntry() &&
-                     this->saveFPRs());
-
-    if (saveFPRs) saveRestoreRegs.saveFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
-    this->savedFPRs = saveFPRs;
 
     return true;
 }
@@ -402,9 +380,6 @@ bool baseTramp::generateRestores(codeGen &gen, registerSpace *)
     EmitterRISCV64SaveRestoreRegs restoreRegs;
     unsigned int width = gen.width();
 
-    if (this->savedFPRs) {
-        restoreRegs.restoreFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
-    }
     restoreRegs.restoreGPRegisters(gen, gen.rs(), 0);
 
     return true;
