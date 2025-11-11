@@ -111,6 +111,7 @@ namespace Dyninst { namespace InstructionAPI {
 
   void Instruction::updateSize(const unsigned int new_size, const unsigned char * raw) {
     copyRaw(new_size, raw);
+    this->m_size = new_size;
   }
 
   DYNINST_EXPORT Instruction::Instruction()
