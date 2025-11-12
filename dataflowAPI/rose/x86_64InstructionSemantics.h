@@ -709,6 +709,13 @@ struct X86_64InstructionSemantics {
                         break;
                     }
                     case 4: {
+                        SgAsmx86RegisterReferenceExpression* rre0 = isSgAsmx86RegisterReferenceExpression(operands[0]);
+                        X86GeneralPurposeRegister reg0 = (X86GeneralPurposeRegister)(rre0->get_register_number());
+                        SgAsmx86RegisterReferenceExpression* rre1 = isSgAsmx86RegisterReferenceExpression(operands[0]);
+                        X86GeneralPurposeRegister reg1 = (X86GeneralPurposeRegister)(rre1->get_register_number());
+
+                        if(reg0 == x86_gpr_ax && reg1 == x86_gpr_ax)
+                          break;
                         Word(32) temp = read32(operands[1]);
                         write32(operands[1], read32(operands[0]));
                         write32(operands[0], temp);
