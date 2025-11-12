@@ -1090,8 +1090,8 @@ static bool EndsWithConditionalJump(ParseAPI::Block *b) {
     bool cond = false;
     for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
       auto etype = (*eit)->type();
-      // Under current parsing implementation, it could be the case where only
-      // one of the edges are present when parsing the indirect control flow in the fallthrough block.
+      // During CFG construction, it could be the case where only
+      // one of the edges are present.
       if(etype == COND_TAKEN || etype == COND_NOT_TAKEN) cond = true;
     }
     return cond;
