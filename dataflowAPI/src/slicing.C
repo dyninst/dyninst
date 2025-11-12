@@ -1088,8 +1088,10 @@ Slicer::handleReturnDetails(
 
 static bool EndsWithConditionalJump(ParseAPI::Block *b) {
     bool cond = false;
-    for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit)
-        if ((*eit)->type() == COND_TAKEN) cond = true;
+    for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
+      auto etype = (*eit)->type();
+      if(etype == COND_TAKEN || etype == COND_NOT_TAKEN) cond = true;
+    }
     return cond;
 }
 
