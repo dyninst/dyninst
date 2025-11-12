@@ -523,7 +523,9 @@ struct X86_64InstructionSemantics {
                         X86GeneralPurposeRegister reg = (X86GeneralPurposeRegister)(rre->get_register_number());
                         switch (rre->get_position_in_register()) {
                             case x86_regpos_dword:
-			    case x86_regpos_all: updateGPRLowDWord(reg, value); break;
+                            case x86_regpos_all:
+                              policy.writeGPR(reg, policy.concat(value, number<32>(0)));
+                              break;
                             default: ROSE_ASSERT(!"Bad position in register");
                         }
                         break;
