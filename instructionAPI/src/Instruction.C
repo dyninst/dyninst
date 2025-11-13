@@ -103,6 +103,8 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   void Instruction::copyRaw(size_t size, const unsigned char* raw) {
+    assert(size <= m_RawInsn.size() && "Requested size is larger than opcode buffer");
+
     auto last = std::copy_n(raw, size, m_RawInsn.data());
 
     // Zero-fill so 'operator<' and 'operator==' work correctly
