@@ -710,12 +710,19 @@ struct X86_64InstructionSemantics {
                     }
                     case 4: {
                         // xchg eax,eax is always a nop
-                        SgAsmx86RegisterReferenceExpression* rre0 = isSgAsmx86RegisterReferenceExpression(operands[0]);
-                        X86GeneralPurposeRegister reg0 = (X86GeneralPurposeRegister)(rre0->get_register_number());
-                        SgAsmx86RegisterReferenceExpression* rre1 = isSgAsmx86RegisterReferenceExpression(operands[1]);
-                        X86GeneralPurposeRegister reg1 = (X86GeneralPurposeRegister)(rre1->get_register_number());
-                        if(reg0 == x86_gpr_ax && reg1 == x86_gpr_ax)
+                        bool const is_eax_nop = [&operands]() {
+                          SgAsmx86RegisterReferenceExpression* rre0 = isSgAsmx86RegisterReferenceExpression(operands[0]);
+                          if(!rre0) return false;
+                          SgAsmx86RegisterReferenceExpression* rre1 = isSgAsmx86RegisterReferenceExpression(operands[1]);
+                          if(!rre1) return false;
+                          X86GeneralPurposeRegister reg0 = (X86GeneralPurposeRegister)(rre0->get_register_number());
+                          X86GeneralPurposeRegister reg1 = (X86GeneralPurposeRegister)(rre1->get_register_number());
+                          return reg0 == x86_gpr_ax && reg1 == x86_gpr_ax;
+                        }();
+
+                        if(is_eax_nop) {
                           break;
+                        }
 
                         Word(32) temp = read32(operands[1]);
                         write32(operands[1], read32(operands[0]));
