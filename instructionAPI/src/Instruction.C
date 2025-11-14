@@ -38,6 +38,7 @@
 #include "dyninstversion.h"
 #include "interrupts.h"
 #include "entryIDs.h"
+#include "dyn_regs.h"
 
 #include <algorithm>
 #include <boost/iterator/indirect_iterator.hpp>
@@ -148,6 +149,7 @@ namespace Dyninst { namespace InstructionAPI {
     }
 
     m_Successors = o.m_Successors;
+    categories = o.categories;
   }
 
   DYNINST_EXPORT const Instruction& Instruction::operator=(const Instruction& rhs) {
@@ -171,6 +173,7 @@ namespace Dyninst { namespace InstructionAPI {
     formatter = rhs.formatter;
     arch_decoded_from = rhs.arch_decoded_from;
     m_Successors = rhs.m_Successors;
+    categories = rhs.categories;
     return *this;
   }
 
@@ -445,6 +448,18 @@ namespace Dyninst { namespace InstructionAPI {
   DYNINST_EXPORT Architecture Instruction::getArch() const { return arch_decoded_from; }
 
   DYNINST_EXPORT InsnCategory Instruction::getCategory() const {
+    if(m_InsnOp.isMultiInsnCall || m_InsnOp.isNonABICall)
+      return c_CallInsn;
+    if(m_InsnOp.isMultiInsnBranch)
+      return c_BranchInsn;
+    if(m_InsnOp.isNonABIReturn)
+      return c_ReturnInsn;
+    if(arch_decoded_from == Arch_riscv64) {
+      if(categories.categories.size()) {
+        return categories.categories[0];
+      }
+      return c_NoCategory;
+    }
     if(m_InsnOp.isVectorInsn)
       return c_VectorInsn;
     InsnCategory c = entryToCategory(m_InsnOp.getID());

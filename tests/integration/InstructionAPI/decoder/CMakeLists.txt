@@ -16,3 +16,4 @@ target_link_libraries(register_tests PRIVATE instructionAPI)
 target_include_directories(register_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(x86)
+add_subdirectory(riscv)

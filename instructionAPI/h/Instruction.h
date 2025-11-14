@@ -65,6 +65,7 @@ namespace Dyninst { namespace InstructionAPI {
     friend class InstructionDecoder_amdgpu_gfx908;
     friend class InstructionDecoder_amdgpu_gfx90a;
     friend class InstructionDecoder_amdgpu_gfx940;
+    friend class riscv_decoder;
 
     static const unsigned int maxInstructionLength = 16;
 
@@ -77,6 +78,28 @@ namespace Dyninst { namespace InstructionAPI {
 
       CFT(Expression::Ptr t, bool call, bool indir, bool cond, bool ft)
           : target(t), isCall(call), isIndirect(indir), isConditional(cond), isFallthrough(ft) {}
+    };
+
+    class category_t final {
+      friend class Instruction;
+      std::vector<InsnCategory> categories{};
+
+    public:
+      explicit category_t(std::vector<InsnCategory> c) noexcept : categories{std::move(c)} {}
+      category_t() = default;
+      category_t& operator=(std::vector<InsnCategory>&& c) {
+        categories = std::move(c);
+        return *this;
+      }
+
+      bool satisfies(InsnCategory category) const {
+        for(auto c : categories) {
+          if(c == category) {
+            return true;
+          }
+        }
+        return false;
+      }
     };
 
     DYNINST_EXPORT Instruction(Operation what, size_t size, const unsigned char* raw,
@@ -175,9 +198,21 @@ namespace Dyninst { namespace InstructionAPI {
 
     void addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough,
                       bool isImplicit = false) const;
+
+    void addSuccessor(CFT cft) {
+        m_Successors.push_back(std::move(cft));
+    }
+
     void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit = false,
                        bool trueP = false, bool falseP = false) const;
     void copyRaw(size_t size, const unsigned char* raw);
+
+    bool checked_category(InsnCategory c) const {
+      if(arch_decoded_from == Arch_riscv64) {
+        return categories.satisfies(c);
+      }
+      return getCategory() == c;
+    }
 
     mutable std::list<Operand> m_Operands;
     mutable Operation m_InsnOp;
@@ -188,6 +223,7 @@ namespace Dyninst { namespace InstructionAPI {
     mutable std::list<CFT> m_Successors;
     // formatter is a non-owning pointer to a singleton object
     ArchSpecificFormatter* formatter;
+    mutable category_t categories;
   };
 }}
 
