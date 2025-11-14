@@ -67,6 +67,7 @@ namespace Dyninst {
     class Symbol;
     struct AddressRange;
   }
+  struct PointHandler;
 }
 
 
@@ -190,7 +191,9 @@ class DYNINST_EXPORT BPatch_addressSpace {
 
  protected:
   virtual void getAS(std::vector<AddressSpace *> &as) = 0;
-  
+
+  std::unique_ptr<Dyninst::PointHandler> pointHandler;
+
  public:
 
   BPatch_addressSpace();
@@ -408,7 +411,9 @@ class DYNINST_EXPORT BPatch_addressSpace {
   // Returns true if the underlying image represents a 
   // statically-linked executable, false otherwise
   bool  isStaticExecutable();
-};
 
+  // THIS IS SPECIFIC TO AMDGPU
+  static std::set<BPatch_function *> instrumentedFunctions;
+};
 
 #endif 

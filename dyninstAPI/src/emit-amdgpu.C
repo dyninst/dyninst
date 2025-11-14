@@ -379,6 +379,8 @@ void EmitterAmdgpuGfx908::emitStoreRelative(Register source, Address offset, Reg
   }
 
   emitSmem(storeOpcode, source, (base >> 1), (uint64_t)offset, gen);
+
+  emitSopP(S_WAITCNT, /* simm16 = */ 0, gen);
 }
 
 void EmitterAmdgpuGfx908::emitStoreShared(Register /* source */, const image_variable * /* var */,

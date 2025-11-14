@@ -70,6 +70,8 @@ using namespace Dyninst::SymtabAPI;
 #include "inst-power.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "inst-aarch64.h"
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+// No inst-amdgpu.h
 #else
 #error "Unknown architecture, expected x86, x86_64, power or aarch64"
 #endif
@@ -983,7 +985,6 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 
 }
 
-
 BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* in_addSpace,
                                                  int_variable* v,
                                                  BPatch_type* type)
@@ -1004,7 +1005,6 @@ BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* 
                                                                                    type->getSize());
     return new BPatch_variableExpr(in_addSpace, in_llAddSpace, v, type);
 }
-
 
 unsigned int BPatch_variableExpr::getSize() const
 {
