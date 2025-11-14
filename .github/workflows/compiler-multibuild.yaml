@@ -95,6 +95,7 @@ jobs:
           compiler-version: ${{ matrix.compiler-version }}
           build-type: ${{ matrix.build-type }}
           src-dir: "${GITHUB_WORKSPACE}/src"
+          tests: "REGRESSION"
 
 ######################################################################################
 #
@@ -133,3 +134,4 @@ jobs:
           compiler: ${{ matrix.compiler }}
           src-dir: "${GITHUB_WORKSPACE}/src"
           extra-cmake-flags: "-DDYNINST_CXX_LANGUAGE_STANDARD=${{ matrix.std }}"
+          tests: "REGRESSION"

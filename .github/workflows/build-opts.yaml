@@ -154,7 +154,7 @@ jobs:
           extra-cmake-flags: "-D${{ matrix.opt }}=${{ matrix.state }}"
           src-dir: "${GITHUB_WORKSPACE}/src"
           extra-libs: ${{ steps.extra-libs.outputs.value }}
-
+          tests: "REGRESSION"
 
 
 #############################################################################
@@ -231,6 +231,7 @@ jobs:
           extra-cmake-flags: ${{ steps.opts.outputs.opts }}
           src-dir: "${GITHUB_WORKSPACE}/src"
           extra-libs: ${{ steps.extra-libs.outputs.value }}
+          tests: "REGRESSION"
 
 
 #############################################################################
@@ -276,7 +277,7 @@ jobs:
           compiler: ${{ matrix.compiler }}
           extra-cmake-flags: ${{ steps.opts.outputs.opts }}
           src-dir: "${GITHUB_WORKSPACE}/src"
-
+          tests: "REGRESSION"
 
 #############################################################################
 #
@@ -320,6 +321,7 @@ jobs:
           extra-cmake-flags: "-DDYNINST_LINKER=${{ matrix.linker }}"
           extra-libs: ${{ matrix.extra-libs }}
           src-dir: "${GITHUB_WORKSPACE}/src"
+          tests: "REGRESSION"
 
 
 #############################################################################
@@ -373,4 +375,5 @@ jobs:
 #          extra-libs: ${{ steps.extra-libs.outputs.value }}
 #          extra-cmake-flags: "-DDYNINST_CXXSTDLIB=libc++"
 #          src-dir: "${GITHUB_WORKSPACE}/src"
+#          tests: "REGRESSION"
 #

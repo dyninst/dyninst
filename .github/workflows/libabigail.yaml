@@ -85,6 +85,7 @@ jobs:
           compiler: ${{ matrix.compiler }}
           src-dir: "${GITHUB_WORKSPACE}/src"
           install-dir: "${GITHUB_WORKSPACE}/install"
+          tests: "OFF"
 
       - name: Build Previous Dyninst
         if: ${{ matrix.compiler != 'gcc' }}
@@ -94,6 +95,7 @@ jobs:
           compiler: ${{ matrix.compiler }}
           src-dir: "/dyninst/src"
           install-dir: "/dyninst/install"
+          tests: "OFF"
 
       - name: Install dependencies (Ubuntu)
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
