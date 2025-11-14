@@ -17,7 +17,7 @@
 
 include_guard(GLOBAL)
 
-set(_min_version 6.0.0-Alpha1)
+set(_min_version 6.0.0-Alpha5)
 
 if(Capstone_ROOT)
   set(capstone_ROOT ${Capstone_ROOT})
@@ -46,9 +46,10 @@ if(capstone_VERSION VERSION_LESS ${_min_version})
       "Capstone: found version ${capstone_VERSION}, but need at least ${_min_version}")
 endif()
 
-if(TARGET capstone::capstone)
-  set(_cap_target capstone::capstone)
-elseif(TARGET capstone::capstone_shared)
+# We could use capstone::capstone_static, but there's currently no way to
+# detect if it was build with POSITION_INDEPENDENT_CODE=ON which is required
+# for linking into libinstructionAPI
+if(TARGET capstone::capstone_shared)
   set(_cap_target capstone::capstone_shared)
 else()
   message(FATAL_ERROR "A version of Capstone with shared libraries is required.")

@@ -16,7 +16,8 @@ git clone --branch=${version} https://github.com/capstone-engine/capstone
 cd capstone
 mkdir build
 cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DBUILD_SHARED_LIBS=OFF
+
+cmake .. -DCMAKE_INSTALL_PREFIX=/usr -DCAPSTONE_BUILD_SHARED_LIBS=ON
 cmake --build . --parallel ${jobs}
 cmake --install .
 cd /
