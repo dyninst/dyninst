@@ -73,6 +73,12 @@ BPatch_variableExpr* AmdgpuGfx908PointHandler::getKernelDescriptorVariable(BPatc
   return nullptr;
 }
 
+
+bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) const {
+  const uint32_t maxGranulatedWavefrontSgprCount = 12; // This is computed based on LLVM AMDGPU documentation.
+  return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() != maxGranulatedWavefrontSgprCount);
+}
+
 void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function) {
   // If this function is a kernel, insert a prologue that loads s[94:95] with the address of memory
   // for instrumentation variables. This address is at address [kernargPtrRegister] + kernargBufferSize.
@@ -88,6 +94,12 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
   assert(success);
 
   AmdgpuKernelDescriptor kd(rawKd, this->eflag);
+
+  if (!canInstrument(kd)) {
+    // Exit
+    std::cerr << "Can't instrument " << function->getMangledName() << '\n' << "exiting...\n";
+    exit(1);
+  }
 
   std::vector<BPatch_point *> entryPoints;
   function->getEntryPoints(entryPoints);

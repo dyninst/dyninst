@@ -37,6 +37,7 @@
 #include "AmdgpuEpilogue.h"
 #include "AmdgpuPrologue.h"
 
+#include "AmdgpuKernelDescriptor.h"
 #include "external/amdgpu/AMDGPUEFlags.h"
 
 #include <string>
@@ -53,6 +54,8 @@ struct AmdgpuGfx908PointHandler : PointHandler {
   void handlePoints(std::vector<BPatch_point *> const &points);
 
   BPatch_variableExpr* getKernelDescriptorVariable(BPatch_function *f);
+
+  bool canInstrument(const AmdgpuKernelDescriptor &kd) const;
 
   void insertPrologueIfKernel(BPatch_function *function);
   void insertEpilogueIfKernel(BPatch_function *function);
