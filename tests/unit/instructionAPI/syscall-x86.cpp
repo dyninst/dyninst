@@ -6,6 +6,20 @@
 
 namespace di = Dyninst::InstructionAPI;
 
+static bool run_32();
+static bool run_64();
+
+int main() {
+  bool ok = run_32();
+
+  if(!run_64()) {
+    ok = false;
+  }
+
+  return !ok ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+
+
 constexpr auto num_tests = 14;
 constexpr auto num_bytes = 62UL;
 std::array<const unsigned char, num_bytes> buffer = {{
@@ -26,61 +40,69 @@ std::array<const unsigned char, num_bytes> buffer = {{
 }};
 
 template <int N>
-bool run(di::InstructionDecoder dec, std::array<bool, N> const& answers) {
+static bool run(di::InstructionDecoder dec, std::array<bool, N> const& answers) {
+  bool failed = false;
   for(auto i=0; i < N; i++) {
     auto insn = dec.decode();
     if(!insn.isValid()) {
       std::cerr << "Decode failed for test " << (i+1) << "\n";
-      return false;
+      failed = true;
+      continue;
     }
-    if(answers[i] != di::isSystemCall(insn)) {
-      std::cerr << "Test " << (i+1) << " failed\n";
-      return false;
+    auto const expected = answers[i];
+    auto const actual = di::isSystemCall(insn);
+    if(actual != expected) {
+      std::cerr << "Test (" << (i+1) << "), '" << insn.format() << "' failed. Expected '"
+                << std::boolalpha << expected << "', got '" << actual << "'\n";
+      failed = true;
     }
   }
-  return true;
+  return !failed;
 }
 
 bool run_32() {
-  {
-    std::array<bool, num_tests> answers = {{
-      false,    // (1)
-      false,    // (2)
-      false,    // (3)
-      false,    // (4)
-      false,    // (5)
-      true,     // (6)
-      true,     // (7)
-      false,    // (8)
-      true,     // (9)
-      false,    // (10)
-      false,    // (11)
-      true,     // (12)
-      false,    // (13)
-      true,     // (14)
-    }};
+  auto constexpr arch = Dyninst::Arch_x86;
+  auto sarch = Dyninst::getArchitectureName(arch);
+  std::clog << "Running tests for 'syscall-x86' in " << sarch << " mode\n";
 
-    di::InstructionDecoder decoder(buffer.data(), buffer.size(), Dyninst::Arch_x86);
-    if(!run<num_tests>(decoder, answers)) {
-      return false;
-    }
+  std::array<bool, num_tests> answers = {{
+    false,    // (1)
+    false,    // (2)
+    false,    // (3)
+    false,    // (4)
+    false,    // (5)
+    true,     // (6)
+    true,     // (7)
+    false,    // (8)
+    true,     // (9)
+    false,    // (10)
+    false,    // (11)
+    true,     // (12)
+    false,    // (13)
+    true,     // (14)
+  }};
+
+  di::InstructionDecoder decoder(buffer.data(), buffer.size(), arch);
+  bool failed = !run<num_tests>(decoder, answers);
+
+  // `into` is only valid in 32-bit mode
+  constexpr auto num_32bit_tests = 1;
+  std::array<const unsigned char, num_32bit_tests> buffer32 = {{ 0xce }};
+  std::array<bool, num_32bit_tests> answers32 = {{ false }};
+  di::InstructionDecoder decoder32(buffer32.data(), buffer32.size(), arch);
+
+  if(!run<num_32bit_tests>(decoder32, answers32)) {
+    failed = true;
   }
 
-  {
-    // `into` is only valid in 32-bit mode
-    constexpr auto num_32bit_tests = 1;
-    std::array<const unsigned char, num_32bit_tests> buffer32 = {{ 0xce }};
-    std::array<bool, num_32bit_tests> answers32 = {{ false }};
-    di::InstructionDecoder decoder32(buffer32.data(), buffer32.size(), Dyninst::Arch_x86);
-
-    if(!run<num_32bit_tests>(decoder32, answers32)) {
-      return false;
-    }
-  }
-  return true;
+  return !failed;
 }
 
 bool run_64()  {
+  auto constexpr arch = Dyninst::Arch_x86_64;
+  auto sarch = Dyninst::getArchitectureName(arch);
+  std::clog << "Running tests for 'syscall-x86' in " << sarch << " mode\n";
+
   std::array<bool, num_tests> answers = {{
     false,    // (1)
     false,    // (2)
@@ -98,39 +120,6 @@ bool run_64()  {
     true,     // (14)
   }};
 
-  di::InstructionDecoder decoder(buffer.data(), buffer.size(), Dyninst::Arch_x86_64);
-  if(!run<num_tests>(decoder, answers)) {
-    return false;
-  }
-
-  return true;
-}
-
-void usage(char const* prgname) {
-  std::cerr << "Usage: " << prgname << " [32|64]\n";
-}
-
-int main(int argc, char **argv) {
-  // Convention for CTest
-  constexpr int PASS =  0;
-  constexpr int FAIL =  1;
-
-  if(argc != 2) {
-    usage(argv[0]);
-    return FAIL;
-  }
-
-  std::string type{argv[1]};
-
-  if(type == "32") {
-    std::cout << "Running in 32-bit mode\n";
-    return run_32() ? PASS : FAIL;
-  }
-  if(type == "64") {
-    std::cout << "Running in 64-bit mode\n";
-    return run_64() ? PASS : FAIL;
-  }
-
-  usage(argv[0]);
-  return FAIL;
+  di::InstructionDecoder decoder(buffer.data(), buffer.size(), arch);
+  return run<num_tests>(decoder, answers);
 }

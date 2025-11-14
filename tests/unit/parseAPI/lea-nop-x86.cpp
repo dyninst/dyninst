@@ -1,6 +1,7 @@
 #include "InstructionDecoder.h"
 #include "parseAPI/src/IA_x86.h"
 
+#include <cstdlib>
 #include <iostream>
 #include <array>
 
@@ -79,12 +80,15 @@ int main() {
 
   int test_num=0;
 
+  bool failed = false;
   while(!adapter.isInvalidInsn()) {
     if(expected[test_num] != adapter.isNop()) {
       std::cout << "Test " << (test_num+1) << " failed\n";
-      return -1;
+      failed = true;
     }
     adapter.advance();
     test_num++;
   }
+
+  return failed ? EXIT_FAILURE : EXIT_SUCCESS;
 }
