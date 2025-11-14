@@ -47,7 +47,12 @@ mark_as_advanced(DYNINST_CXXSTDLIB)
 option(DYNINST_FORCE_RUNPATH "Require the use of RUNPATH instead of compiler's default"
        OFF)
 
-option(DYNINST_ENABLE_TESTS "Build tests" OFF)
+set(DYNINST_ENABLE_TESTS
+     "NONE"
+     CACHE STRING "Build tests (NONE, ALL, REGESSION, INTEGRATION, UNIT)")
+set_property(CACHE DYNINST_ENABLE_TESTS PROPERTY STRINGS
+       NONE ALL REGESSION INTEGRATION UNIT)
+
 option(DYNINST_ENABLE_FILEFORMAT_PE "Enable PE (Windows .exe/.dll) parsing" OFF)
 
 option(DYNINST_ENABLE_CAPSTONE "Enable Capstone" OFF)
