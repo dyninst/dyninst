@@ -31,7 +31,7 @@
 #include "InstructionDecoder-aarch64.h"
 #include "Register.h"
 #include "registers/aarch64_regs.h"
-
+#include "unaligned_memory_access.h"
 #include <boost/make_shared.hpp>
 
 #if defined(__GNUC__)
@@ -2926,7 +2926,7 @@ insn_in_progress->appendOperand(makeRnExpr(), true, true);
     const auto& insn_table_entry = isValid ? aarch64_insn_entry::main_insn_table[insn_table_index]
                                            : aarch64_insn_entry::main_insn_table[0];
 
-    insn = insn_to_complete->m_RawInsn.small_insn;
+    Dyninst::read_memory_as<decltype(insn)>(insn_to_complete->ptr());
 
     if(IS_INSN_LDST_REG(insn) || IS_INSN_ADDSUB_EXT(insn) || IS_INSN_ADDSUB_SHIFT(insn) ||
        IS_INSN_LOGICAL_SHIFT(insn))

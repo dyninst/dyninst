@@ -39,6 +39,7 @@
 #include "Operation_impl.h"
 #include "dyninst_visibility.h"
 
+#include <array>
 #include <list>
 #include <set>
 #include <stddef.h>
@@ -48,15 +49,6 @@
 
 namespace Dyninst { namespace InstructionAPI {
   class Instruction {
-
-    union raw_insn_T {
-#if defined(__powerpc__) || defined(__powerpc64__)
-      unsigned int small_insn;
-#else
-      uintptr_t small_insn;
-#endif
-      unsigned char* large_insn;
-    };
 
   public:
     friend class InstructionDecoder_x86;
@@ -82,9 +74,6 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT Instruction(Operation what, size_t size, const unsigned char* raw,
                                Dyninst::Architecture arch);
     DYNINST_EXPORT Instruction();
-    DYNINST_EXPORT virtual ~Instruction();
-    DYNINST_EXPORT Instruction(const Instruction& o);
-    DYNINST_EXPORT const Instruction& operator=(const Instruction& rhs);
 
     DYNINST_EXPORT Operation& getOperation();
     DYNINST_EXPORT const Operation& getOperation() const;
@@ -149,21 +138,11 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT cftConstIter cft_end() const { return m_Successors.end(); }
 
     DYNINST_EXPORT bool operator<(const Instruction& rhs) const {
-      if(m_size < rhs.m_size)
-        return true;
-      if(m_size <= sizeof(m_RawInsn.small_insn)) {
-        return m_RawInsn.small_insn < rhs.m_RawInsn.small_insn;
-      }
-      return memcmp(m_RawInsn.large_insn, rhs.m_RawInsn.large_insn, m_size) < 0;
+      return this->m_RawInsn < rhs.m_RawInsn || (this->m_size < rhs.m_size && this->m_RawInsn == rhs.m_RawInsn);
     }
 
     DYNINST_EXPORT bool operator==(const Instruction& rhs) const {
-      if(m_size != rhs.m_size)
-        return false;
-      if(m_size <= sizeof(m_RawInsn.small_insn)) {
-        return m_RawInsn.small_insn == rhs.m_RawInsn.small_insn;
-      }
-      return memcmp(m_RawInsn.large_insn, rhs.m_RawInsn.large_insn, m_size) == 0;
+      return this->m_size == rhs.m_size && this->m_RawInsn == rhs.m_RawInsn;
     }
 
     DYNINST_EXPORT void updateMnemonic(std::string new_mnemonic) { m_InsnOp.updateMnemonic(new_mnemonic); }
@@ -182,8 +161,8 @@ namespace Dyninst { namespace InstructionAPI {
     mutable std::list<Operand> m_Operands;
     mutable Operation m_InsnOp;
     bool m_Valid;
-    raw_insn_T m_RawInsn;
-    unsigned int m_size{};
+    std::array<uint8_t, maxInstructionLength> m_RawInsn;
+    uint8_t m_size{};
     Architecture arch_decoded_from;
     mutable std::list<CFT> m_Successors;
     // formatter is a non-owning pointer to a singleton object
