@@ -38,6 +38,9 @@ build_dir=$(mktemp -d "/tmp/XXXXXX")
 mkdir -p ${dest_dir}
 echo "Building in ${build_dir}"
 
+env | egrep __w || true
+
+
 if ! test -z "${test_type}"; then
   cmake_args="-DDYNINST_ENABLE_TESTS=${test_type} ${cmake_args}"
 fi
