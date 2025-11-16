@@ -51,7 +51,7 @@ set(_dyninst_test_types "ALL REGESSION INTEGRATION UNIT")
 mark_as_advanced(_dyninst_test_types)
 
 set(DYNINST_ENABLE_TESTS
-    "NONE"
+    "OFF"
     CACHE STRING "Build tests (${_dyninst_test_types})")
 set_property(CACHE DYNINST_ENABLE_TESTS PROPERTY STRINGS ${_dyninst_test_types})
 
