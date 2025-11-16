@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-         os: [ ${{ fromJson(needs.get-oses.outputs.latest) }} ]
+         os: ${{ fromJson(needs.get-oses.outputs.latest) }}
     permissions:
       packages: read
     container:
