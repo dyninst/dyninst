@@ -35,7 +35,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 build_dir=$(mktemp -d "/tmp/XXXXXX")
-mkdir -p ${dest_dir}
 echo "Building in ${build_dir}"
 
 if ! test -z "${test_type}"; then
@@ -52,7 +51,7 @@ cmake --build ${build_dir} --parallel ${num_jobs} ${verbose}
 
 if ! test -z "${test_type}"; then
   export LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH
-  ctest --test-dir ${build_dir} --parallel 2 --output-on-failure
+  ctest --test-dir ${build_dir} --no-tests=error --parallel 2 --output-on-failure
 fi
 
 cmake --install ${build_dir}
