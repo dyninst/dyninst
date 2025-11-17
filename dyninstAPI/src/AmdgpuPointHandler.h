@@ -64,6 +64,7 @@ struct AmdgpuGfx908PointHandler : PointHandler {
   void insertEpilogueAtPoints(AmdgpuEpilogueSnippet &snippet, std::vector<BPatch_point *> &points);
 
   void writeInstrumentedKernelNames(const std::string &filePath);
+  void writeInstrumentationVarTable(const std::string &filePath);
 };
 
 } // namespace Dyninst

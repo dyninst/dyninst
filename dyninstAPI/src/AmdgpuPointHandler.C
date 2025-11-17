@@ -40,6 +40,8 @@
 // Our wrapper around it
 #include "AmdgpuKernelDescriptor.h"
 
+#include "ast.h"
+
 #include <cassert>
 #include <fstream>
 
@@ -164,6 +166,27 @@ void AmdgpuGfx908PointHandler::writeInstrumentedKernelNames(const std::string &f
 
     AmdgpuKernelDescriptor kd(rawKd, this->eflag);
     outFile << function->getMangledName() << ' ' << kd.getKernargSize() << '\n';
+  }
+
+  outFile.close();
+}
+
+void AmdgpuGfx908PointHandler::writeInstrumentationVarTable(const std::string &filePath) {
+  std::ofstream outFile(filePath);
+
+  // To get all instrumentation variables sorted by offsets
+  std::map<int, std::string> reverseAllocTable;
+
+  for (auto it : AstOperandNode::allocTable) {
+    auto name = it.first;
+    if (name == "--init--") // ignore this one as it was only used to initialize the table
+      continue;
+
+    reverseAllocTable[it.second] = it.first;
+  }
+
+  for (auto it : reverseAllocTable) {
+    outFile << it.first << ' ' << it.second << '\n';
   }
 
   outFile.close();

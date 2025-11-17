@@ -224,6 +224,7 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
    auto *amdgpuPointHandler = dynamic_cast<Dyninst::AmdgpuGfx908PointHandler* >(pointHandler.get());
    assert(amdgpuPointHandler);
    amdgpuPointHandler->writeInstrumentedKernelNames(inputFileName + ".instrumentedKernelNames");
+   amdgpuPointHandler->writeInstrumentationVarTable(inputFileName + ".instrumentationVarTable");
 #endif
 
    std::map<std::string, BinaryEdit *>::iterator curBinEdit;
