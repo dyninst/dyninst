@@ -32,8 +32,6 @@ set(DYNINST_EXTRA_WARNINGS
 
 option(DYNINST_WARNINGS_AS_ERRORS "Treat compilation warnings as errors" OFF)
 
-option(ENABLE_PARSE_API_GRAPHS "Enable Boost Graph wrappers for parseAPI Functions" OFF)
-
 set(DYNINST_LINKER
     ""
     CACHE STRING "The linker to use")
