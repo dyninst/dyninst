@@ -26,7 +26,7 @@ inputs:
   extra-libs:
     required: false
   tests:
-    default: "ALL"
+    default: ""
     required: false
 
 runs:
