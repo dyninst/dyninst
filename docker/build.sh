@@ -49,8 +49,6 @@ cmake -S ${src_dir} -B ${build_dir} -DCMAKE_INSTALL_PREFIX=${dest_dir} ${cmake_a
 
 cmake --build ${build_dir} --parallel ${num_jobs} ${verbose}
 
-ls ${build_dir}
-
 if ! test "${test_type}" = "OFF"; then
   export LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH
   ctest --test-dir ${build_dir} --no-tests=error --parallel 2 --output-on-failure
