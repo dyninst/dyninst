@@ -64,11 +64,6 @@ std::map<riscv_reg, implicit_state> implicit_registers(cs_detail const *);
 cs_riscv_op make_reg_op(int32_t, uint8_t);
 cs_riscv_op make_imm_op(int64_t);
 
-struct eflags_t final {
-  Dyninst::MachRegister reg;
-  implicit_state state;
-};
-
 } // namespace
 
 namespace Dyninst {
