@@ -689,10 +689,8 @@ void AssignmentConverter::convert(const Instruction &I,
     // SP = SP - 4 
     // *SP = <register>
  
-    auto operands = I.getAllOperands();
-
-    // According to the InstructionAPI, the first operand will be the argument, the second will be ESP.
-    assert(operands.size() == 2);
+    // The source being pushed is the only explicit operand
+    auto operands = I.getExplicitOperands();
 
     // The argument can be any of the following:
     // 1) a register (push eax);
@@ -760,12 +758,8 @@ void AssignmentConverter::convert(const Instruction &I,
     // PC = *SP
     // SP = SP + 4/8
 
-    // As with push, eSP shows up as operand 1. 
-
-    auto operands = I.getAllOperands();
-
-    // According to the InstructionAPI, the first operand will be the explicit register, the second will be ESP.
-    assert(operands.size() == 2);
+    // The destination is the only explicit operand
+    auto operands = I.getExplicitOperands();
 
     std::vector<AbsRegion> oper0;
     aConverter.convertAll(operands[0].getValue(),
