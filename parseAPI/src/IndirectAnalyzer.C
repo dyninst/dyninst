@@ -88,6 +88,11 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     vector<Assignment::Ptr> assignments;
     ac.convert(insn, block->last(), func, block, assignments);
 
+    if(assignments.empty()) {
+      parsing_printf("No assignments found for '%s'\n", insn.format().c_str());
+      return false;
+    }
+
     Slicer formatSlicer(assignments[0], block, func, false, false);
 
     SymbolicExpression se;
