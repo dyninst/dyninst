@@ -36,6 +36,7 @@
 typedef enum { 
    invalidOp,
    plusOp,
+   atomicAddOp,
    minusOp,
    timesOp,
    divOp,

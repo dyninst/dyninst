@@ -227,6 +227,8 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
                                   AstNodePtr r = AstNodePtr(), 
                                   AstNodePtr e = AstNodePtr());
 
+   static AstNodePtr atomicAddStmtNode(AstNodePtr variable, AstNodePtr constant);
+
    static AstNodePtr funcCallNode(const std::string &func, std::vector<AstNodePtr > &args, AddressSpace *addrSpace = NULL);
    static AstNodePtr funcCallNode(func_instance *func, std::vector<AstNodePtr > &args);
    static AstNodePtr funcCallNode(func_instance *func); // Special case for function call replacement.
@@ -906,7 +908,6 @@ class AstScrambleRegistersNode : public AstNode {
                                      Dyninst::Register &retReg);
 };
 
-
 class AstSnippetNode : public AstNode {
    // This is a little odd, since an AstNode _is_
    // a Snippet. It's a compatibility interface to 
@@ -924,6 +925,26 @@ class AstSnippetNode : public AstNode {
                                      Dyninst::Address &retAddr,
                                      Dyninst::Register &retReg);
     Dyninst::PatchAPI::SnippetPtr snip_;
+};
+
+class AstAtomicAddStmtNode : public AstNode {
+    // This corresponds to a single statement, and not an expression that can be nested among other
+    // expressions.
+  public:
+    AstAtomicAddStmtNode(AstNodePtr variableNode, AstNodePtr constantNode);
+
+    virtual std::string format(std::string indent);
+
+    virtual bool canBeKept() const { return true; }
+    virtual bool containsFuncCall() const { return false; }
+    virtual bool usesAppRegister() const { return false; }
+
+  private:
+    virtual bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
+                                     Dyninst::Register &retReg);
+    opCode opcode;
+    AstNodePtr variable;
+    AstNodePtr constant;
 };
 
 void emitLoadPreviousStackFrameRegister(Dyninst::Address register_num,

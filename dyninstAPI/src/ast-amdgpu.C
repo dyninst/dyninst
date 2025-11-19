@@ -249,6 +249,10 @@ AstNodePtr AstNode::snippetNode(Dyninst::PatchAPI::SnippetPtr snip) {
 
 AstNodePtr AstNode::scrambleRegistersNode() { return AstNodePtr(new AstScrambleRegistersNode()); }
 
+AstNodePtr AstNode::atomicAddStmtNode(AstNodePtr variable, AstNodePtr constant) {
+  return AstNodePtr(new AstAtomicAddStmtNode(variable, constant));
+}
+
 bool isPowerOf2(int value, int &result) {
   if (value <= 0)
     return (false);
@@ -706,6 +710,8 @@ bool AstNode::generateCode_phase2(codeGen &, bool, Address &, Dyninst::Register 
     fprintf(stderr, "miniTrampNode\n");
   if (dynamic_cast<AstMemoryNode *>(this))
     fprintf(stderr, "memoryNode\n");
+  if (dynamic_cast<AstAtomicAddStmtNode *>(this))
+    fprintf(stderr, "atomicAddStmtNode");
   assert(0);
   return 0;
 }
@@ -3014,6 +3020,8 @@ std::string AstNode::convert(opCode op) {
     return "invalid";
   case plusOp:
     return "plus";
+  case atomicAddOp:
+    return "atomicAdd";
   case minusOp:
     return "minus";
   case xorOp:
@@ -3123,6 +3131,62 @@ bool AstOperandNode::initRegisters(codeGen &g) {
     registerSlot *r = (*(g.rs()))[origReg];
     r->liveState = registerSlot::live;
   }
+
+  return ret;
+}
+
+AstAtomicAddStmtNode::AstAtomicAddStmtNode(AstNodePtr variableNode, AstNodePtr constantNode)
+    : opcode(atomicAddOp), variable(variableNode), constant(constantNode) {}
+
+std::string AstAtomicAddStmtNode::format(std::string indent) {
+  std::stringstream ret;
+  ret << indent << "Op/" << hex << this << dec << "(" << convert(opcode) << ")" << endl;
+  if (variable)
+    ret << indent << variable->format(indent + "  ");
+  if (constant)
+    ret << indent << constant->format(indent + "  ");
+  return ret.str();
+}
+
+bool AstAtomicAddStmtNode::generateCode_phase2(codeGen &gen, bool noCost, Address &retAddr,
+                                               Dyninst::Register & /* retReg */) {
+  // This has 2 operands - variable and constant.
+  // Codegen for atomic add has the following steps:
+  // 1. Evaluate constant -- load a register with the constant
+  // 2. Evaluate variable -- load a register pair with the address of the variable.
+  // 3. Emit s_atomic_add instruction - atomically add the constant to the variable.
+
+  bool ret = true;
+
+  Register src0 = Dyninst::Null_Register;
+  if (!constant->generateCode_phase2(gen, noCost, retAddr, src0)) {
+    fprintf(stderr, "WARNING: failed in generateCode internals!\n");
+    ret = false;
+  }
+  assert(src0 != Dyninst::Null_Register);
+
+  // Now generate code for the variable here. This is a special case because in per-warp instances,
+  // we simply load, operate, and store. Here, we operate on the variable in memory.
+  AstOperandNode *variableOperand = dynamic_cast<AstOperandNode *>((AstNode *)variable.get());
+  assert(variableOperand);
+  assert(variableOperand->getoType() == operandType::AddressAsPlaceholderRegAndOffset);
+
+  AstOperandNode *offset =
+      dynamic_cast<AstOperandNode *>((AstNode *)variableOperand->operand().get());
+  assert(offset);
+
+  EmitterAmdgpuGfx908 *emitter = dynamic_cast<EmitterAmdgpuGfx908 *>(gen.emitter());
+  assert(emitter);
+
+  std::cerr << "Variable AST Offset = " << (Address)(offset->getOValue()) << '\n';
+
+  // TODO : Remove all hardcoded registers.
+  emitter->emitMoveRegToReg(94, 88, gen);
+  emitter->emitMoveRegToReg(95, 89, gen);
+  emitter->emitAddConstantToRegPair(88, (Address)offset->getOValue(), gen);
+
+  // Now we have s[88:89] with address of the variable. Emit s_atomic_add instruction.
+  emitter->emitAtomicAdd(88, src0, gen);
 
   return ret;
 }

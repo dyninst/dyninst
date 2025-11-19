@@ -1673,6 +1673,12 @@ BPatch_scrambleRegistersExpr::BPatch_scrambleRegistersExpr(){
    
 }
 
+BPatch_atomicAddStmt::BPatch_atomicAddStmt(const BPatch_variableExpr &variable,
+                                           const BPatch_constExpr &constant) {
+    ast_wrapper =
+        AstNodePtr(AstNode::atomicAddStmtNode(variable.ast_wrapper, constant.ast_wrapper));
+}
+
 // Conversions
 Dyninst::PatchAPI::Snippet::Ptr Dyninst::PatchAPI::convert(const BPatch_snippet *snip) {
    // TODO when this class exists

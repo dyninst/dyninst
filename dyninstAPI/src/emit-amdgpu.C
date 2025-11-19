@@ -565,4 +565,8 @@ void EmitterAmdgpuGfx908::emitAddConstantToRegPair(Register reg, int constant, c
 void EmitterAmdgpuGfx908::emitScalarDataCacheWriteback(codeGen &gen) {
   emitSmem(S_DCACHE_WB, 0, 0, 0, gen);
 }
+
+void EmitterAmdgpuGfx908::emitAtomicAdd(Register baseAddrReg, Register src0, codeGen &gen) {
+  emitSmem(S_ATOMIC_ADD, src0, baseAddrReg >> 1, /* offset = */ 0, gen);
+}
 // ===== EmitterAmdgpuGfx908 implementation end =====
