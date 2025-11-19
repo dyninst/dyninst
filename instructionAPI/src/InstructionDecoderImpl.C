@@ -39,7 +39,6 @@
 #include "AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h"
 #include "AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h"
 #include "MultiRegister.h"
-#include "MultiRegister.h"
 
 #include "BinaryFunction.h"
 #include "Dereference.h"
@@ -74,7 +73,7 @@ namespace Dyninst
 #if defined(DYNINST_ENABLE_CAPSTONE)
                     return Ptr(new riscv_decoder(a));
 #else
-                    assert(!"Capstone 6.0.0-Alpha or above is required for RISC-V instruction parsing.");
+                    assert(!"Dyninst must be configured with -DDYNINST_ENABLE_CAPSTONE=ON to parse RISC-V instructions.");
                     return Ptr();
 #endif
                 case Arch_amdgpu_gfx908:

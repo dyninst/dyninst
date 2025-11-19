@@ -153,37 +153,51 @@ std::string RiscvFormatter::formatImmediate(const std::string &evalString) const
 }
 
 std::string RiscvFormatter::formatRegister(const std::string &regName) const  {
+    constexpr bool use_register_aliases = true;
     std::string::size_type substr = regName.rfind(':');
     std::string ret = regName;
 
     if (substr != std::string::npos) {
-        std::string regStr = ret.substr(substr + 1, ret.length());
-        if (regStr[0] == 'x') {
-            int regID = std::stoi(regStr.substr(1));
-            if (regID == 0) {
-                return "zero";
-            } else if (regID == 1) {
-                return "ra";
-            } else if (regID == 2) {
-                return "sp";
-            } else if (regID == 3) {
-                return "gp";
-            } else if (regID == 4) {
-                return "tp";
-            } else if (regID >= 5 && regID <= 7) {
-                return "t" + std::to_string(regID - 5);
-            } else if (regID >= 8 && regID <= 9) {
-                return "s" + std::to_string(regID - 8);
-            } else if (regID >= 10 && regID <= 17) {
-                return "a" + std::to_string(regID - 10);
-            } else if (regID >= 18 && regID <= 27) {
-                return "s" + std::to_string(regID - 16);
-            } else if (regID >= 28 && regID <= 31) {
-                return "t" + std::to_string(regID - 25);
+        ret = ret.substr(substr + 1, ret.length());
+        if (use_register_aliases) {
+            if (ret[0] == 'x') {
+                int regID = std::stoi(ret.substr(1));
+                if (regID == 0) {
+                    return "zero";
+                } else if (regID == 1) {
+                    return "ra";
+                } else if (regID == 2) {
+                    return "sp";
+                } else if (regID == 3) {
+                    return "gp";
+                } else if (regID == 4) {
+                    return "tp";
+                } else if (regID >= 5 && regID <= 7) {
+                    return "t" + std::to_string(regID - 5);
+                } else if (regID >= 8 && regID <= 9) {
+                    return "s" + std::to_string(regID - 8);
+                } else if (regID >= 10 && regID <= 17) {
+                    return "a" + std::to_string(regID - 10);
+                } else if (regID >= 18 && regID <= 27) {
+                    return "s" + std::to_string(regID - 16);
+                } else if (regID >= 28 && regID <= 31) {
+                    return "t" + std::to_string(regID - 25);
+                }
             }
-        }
-        else {
-            ret = ret.substr(substr + 1, ret.length());
+            else if (ret[0] == 'f') {
+                int regID = std::stoi(ret.substr(1));
+                if (regID >= 0 && regID <= 7) {
+                    return "ft" + std::to_string(regID);
+                } else if (regID >= 8 && regID <= 9) {
+                    return "fs" + std::to_string(regID - 8);
+                } else if (regID >= 10 && regID <= 17) {
+                    return "fa" + std::to_string(regID - 10);
+                } else if (regID >= 18 && regID <= 27) {
+                    return "fs" + std::to_string(regID - 16);
+                } else if (regID >= 28 && regID <= 31) {
+                    return "ft" + std::to_string(regID - 20);
+                }
+            }
         }
     }
     return ret;

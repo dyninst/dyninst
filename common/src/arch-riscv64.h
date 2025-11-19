@@ -37,28 +37,29 @@
 
 // Standard RISC-V instructions (RVI, RVA, RVM, RVF, RVD, ...) are 4 bytes
 using rvInsn_t = uint32_t;
-constexpr int RISCV_INSN_SIZE = sizeof(rvInsn_t);
+constexpr int RISCV_INSN_SIZE = 4;
+static_assert(sizeof(rvInsn_t) == RISCV_INSN_SIZE, "rvInst_t size mismatch");
 
 // Compressed instructions (RVC) are 2 bytes
 using rvcInsn_t = uint16_t;
-constexpr int RISCVC_INSN_SIZE = sizeof(rvcInsn_t);
+constexpr int RISCVC_INSN_SIZE = 2;
+static_assert(sizeof(rvcInsn_t) == RISCVC_INSN_SIZE, "rvcInsn_t size mismatch");
 
 // The minimum instruction size is 2 bytes
-using rvMinInsn_t = rvcInsn_t ;
-constexpr int RISCV_MIN_INSN_SIZE = sizeof(rvMinInsn_t);
+using rvMinInsn_t = rvcInsn_t;
+constexpr int RISCV_MIN_INSN_SIZE = RISCVC_INSN_SIZE;
+static_assert(sizeof(rvMinInsn_t) == RISCV_MIN_INSN_SIZE, "rvMinInst_t size mismatch");
 
 // The maximum instruction size is 4 bytes
 using rvMaxInsn_t = rvInsn_t;
-constexpr int RISCV_MAX_INSN_SIZE = sizeof(rvMaxInsn_t);
+constexpr int RISCV_MAX_INSN_SIZE = RISCV_INSN_SIZE;
+static_assert(sizeof(rvMaxInsn_t) == RISCV_MAX_INSN_SIZE, "rvMaxInsn_t size mismatch");
 
-// The register size is 4 bytes
-using rvReg_t = int32_t;
-constexpr int RISCV_REG_SIZE = sizeof(rvReg_t);
-
-// The immeidate size can be 12 or 20 bits
-// They can be fit in a 32 bit integer
-using rvImm_t = int32_t;
-constexpr int RISCV_IMM_SIZE = sizeof(rvImm_t);
+// The bits in the register is 64 bits
+constexpr int RISCV_REG_SIZE = 8;
+// The immediates in instructions varies.
+// The maximum is 21 bits, which can be stored in a 32 bit integer
+constexpr int RISCV_IMM_SIZE = 4;
 
 // RISC-V general purpose registers values
 constexpr int32_t GPR_X0     = 0;

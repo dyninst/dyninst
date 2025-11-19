@@ -61,7 +61,7 @@ struct implicit_state final {
 };
 
 std::map<riscv_reg, implicit_state> implicit_registers(cs_detail const *);
-cs_riscv_op make_reg_op(int32_t, uint8_t);
+cs_riscv_op make_reg_op(int32_t, cs_ac_type);
 cs_riscv_op make_imm_op(int64_t);
 
 } // namespace
@@ -770,7 +770,7 @@ std::map<riscv_reg, implicit_state> implicit_registers(cs_detail const *d) {
   return regs;
 }
 
-cs_riscv_op make_reg_op(int32_t reg, uint8_t access) {
+cs_riscv_op make_reg_op(int32_t reg, cs_ac_type access) {
   cs_riscv_op op{};
   op.type = RISCV_OP_REG;
   op.reg = reg;
