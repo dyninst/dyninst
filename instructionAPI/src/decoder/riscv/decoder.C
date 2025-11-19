@@ -239,7 +239,6 @@ void riscv_decoder::add_branch_insn_successors(
   case riscv64_op_jalr: {
     MachRegister link_reg = riscv::translate_register(
         static_cast<riscv_reg>(operands[0].reg), this->mode);
-    auto rd = makeRegisterExpression(link_reg);
     MachRegister target_reg = riscv::translate_register(
         static_cast<riscv_reg>(operands[1].reg), this->mode);
     auto const rs = makeRegisterExpression(target_reg);
