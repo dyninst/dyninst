@@ -62,6 +62,9 @@ bool run(Dyninst::Architecture arch, std::vector<pseudo_tests> const &tests) {
 std::vector<pseudo_tests> make_tests64() {
   auto zero = Dyninst::riscv64::zero;
   auto ra = Dyninst::riscv64::ra;
+  auto sp = Dyninst::riscv64::sp;
+  auto gp = Dyninst::riscv64::gp;
+  auto tp = Dyninst::riscv64::tp;
   auto t0 = Dyninst::riscv64::t0;
   auto t1 = Dyninst::riscv64::t1;
   auto t2 = Dyninst::riscv64::t2;
@@ -80,13 +83,21 @@ std::vector<pseudo_tests> make_tests64() {
   auto s4 = Dyninst::riscv64::s4;
   auto s5 = Dyninst::riscv64::s5;
   auto s6 = Dyninst::riscv64::s6;
+  auto s7 = Dyninst::riscv64::s7;
+  auto s8 = Dyninst::riscv64::s8;
   auto s9 = Dyninst::riscv64::s9;
   auto s10 = Dyninst::riscv64::s10;
+  auto s11 = Dyninst::riscv64::s11;
   auto t3 = Dyninst::riscv64::t3;
   auto t4 = Dyninst::riscv64::t4;
   auto t5 = Dyninst::riscv64::t5;
+  auto t6 = Dyninst::riscv64::t6;
   auto pc = Dyninst::riscv64::pc;
 
+  auto f0 = Dyninst::riscv64::f0;
+  auto f1 = Dyninst::riscv64::f1;
+  auto f2 = Dyninst::riscv64::f2;
+  auto f3 = Dyninst::riscv64::f3;
   auto f4 = Dyninst::riscv64::f4;
   auto f5 = Dyninst::riscv64::f5;
   auto f6 = Dyninst::riscv64::f6;
@@ -105,6 +116,16 @@ std::vector<pseudo_tests> make_tests64() {
   auto f19 = Dyninst::riscv64::f19;
   auto f20 = Dyninst::riscv64::f20;
   auto f21 = Dyninst::riscv64::f21;
+  auto f22 = Dyninst::riscv64::f22;
+  auto f23 = Dyninst::riscv64::f23;
+  auto f24 = Dyninst::riscv64::f24;
+  auto f25 = Dyninst::riscv64::f25;
+  auto f26 = Dyninst::riscv64::f26;
+  auto f27 = Dyninst::riscv64::f27;
+  auto f28 = Dyninst::riscv64::f28;
+  auto f29 = Dyninst::riscv64::f29;
+  auto f30 = Dyninst::riscv64::f30;
+  auto f31 = Dyninst::riscv64::f31;
 
   using reg_set = Dyninst::register_set;
 
@@ -113,6 +134,11 @@ std::vector<pseudo_tests> make_tests64() {
     { // nop -> addi zero, zero, 0
       {0x13,0x00,0x00,0x00},
       di::register_rw_test{ reg_set{zero}, reg_set{zero} },
+      di::mem_test{}
+    },
+    { // mv s7, t6 -> addi s7, t6, 0
+      {0x93,0x8b,0x0f,0x00},
+      di::register_rw_test{ reg_set{t6}, reg_set{s7} },
       di::mem_test{}
     },
     { // mv a0, a1 -> addi a0, a1, 0
@@ -125,9 +151,19 @@ std::vector<pseudo_tests> make_tests64() {
       di::register_rw_test{ reg_set{t1}, reg_set{t0} },
       di::mem_test{}
     },
+    { // not s8, sp -> xori s8, sp, -1
+      {0x13,0x4c,0xf1,0xff},
+      di::register_rw_test{ reg_set{sp}, reg_set{s8} },
+      di::mem_test{}
+    },
     { // neg s0, s1 -> sub s0, zero, s1
       {0x33,0x04,0x90,0x40},
       di::register_rw_test{ reg_set{s1, zero}, reg_set{s0} },
+      di::mem_test{}
+    },
+    { // neg gp, s11 -> sub gp, zero, s11
+      {0xb3,0x01,0xb0,0x41},
+      di::register_rw_test{ reg_set{s11, zero}, reg_set{gp} },
       di::mem_test{}
     },
     { // negw s0, s1 -> sub s0, zero, s1
@@ -145,9 +181,9 @@ std::vector<pseudo_tests> make_tests64() {
       di::register_rw_test{ reg_set{s5}, reg_set{s4} },
       di::mem_test{}
     },
-    { // seqz a0, a1 -> sltiu a0, a1, 1
-      {0x13,0xb5,0x15,0x00},
-      di::register_rw_test{ reg_set{a1}, reg_set{a0} },
+    { // seqz a0, tp -> sltiu a0, tp, 1
+      {0x13,0x35,0x12,0x00},
+      di::register_rw_test{ reg_set{tp}, reg_set{a0} },
       di::mem_test{}
     },
     { // snez t0, t1 -> sltu t0, zero, t1
@@ -165,14 +201,24 @@ std::vector<pseudo_tests> make_tests64() {
       di::register_rw_test{ reg_set{zero, s1}, reg_set{s0} },
       di::mem_test{}
     },
+    { // fmv.s f31, f1 -> fsgnj.s f31, f1, f1
+      {0xd3,0x8f,0x10,0x20},
+      di::register_rw_test{ reg_set{f1}, reg_set{f31} },
+      di::mem_test{}
+    },
     { // fmv.s f4, f5 -> fsgnj.s f4, f5, f5
       {0x53,0x82,0x52,0x20},
       di::register_rw_test{ reg_set{f5}, reg_set{f4} },
       di::mem_test{}
     },
-    { // fabs.s f6, f7 -> fsgnjx.s f6, f7, f7
-      {0x53,0xa3,0x73,0x20},
-      di::register_rw_test{ reg_set{f7}, reg_set{f6} },
+    { // fabs.s f6, f2 -> fsgnjx.s f6, f2, f2
+      {0x53,0x23,0x21,0x20},
+      di::register_rw_test{ reg_set{f2}, reg_set{f6} },
+      di::mem_test{}
+    },
+    { // fabs.s f13, f7 -> fsgnjx.s f13, f7, f7
+      {0xd3,0xa6,0x73,0x20},
+      di::register_rw_test{ reg_set{f7}, reg_set{f13} },
       di::mem_test{}
     },
     { // fneg.s f8, f9 -> fsgnjn.s f8, f9, f9
@@ -180,29 +226,54 @@ std::vector<pseudo_tests> make_tests64() {
       di::register_rw_test{ reg_set{f9}, reg_set{f8} },
       di::mem_test{}
     },
-    { // feq.d a5, f10, f11 -> feq.d a5, f10, f11
-      {0xd3,0x27,0xb5,0xa2},
-      di::register_rw_test{ reg_set{f10, f11}, reg_set{a5} },
+    { // fneg.s f22, f11 -> fsgnjn.s f22, f11, f11
+      {0x53,0x9b,0xb5,0x20},
+      di::register_rw_test{ reg_set{f11}, reg_set{f22} },
       di::mem_test{}
     },
-    { // flt.d a6, f12, f13 -> flt.d a6, f12, f13
-      {0x53,0x18,0xd6,0xa2},
-      di::register_rw_test{ reg_set{f12, f13}, reg_set{a6} },
+    { // feq.d a5, f10, f28 -> feq.d a5, f10, f28
+      {0xd3,0x27,0xc5,0xa3},
+      di::register_rw_test{ reg_set{f10, f28}, reg_set{a5} },
       di::mem_test{}
     },
-    { // fcvt.s.d f14, f15 -> fcvt.s.d f14, f15
-      {0x53,0xf7,0x17,0x40},
-      di::register_rw_test{ reg_set{f15}, reg_set{f14} },
+    { // feq.d s3, f29, f24 -> feq.d s3, f29, f24
+      {0xd3,0xa9,0x8e,0xa3},
+      di::register_rw_test{ reg_set{f29, f24}, reg_set{s3} },
       di::mem_test{}
     },
-    { // fcvt.d.s f16, f17 -> fcvt.d.s f16, f17
-      {0x53,0x88,0x08,0x42},
-      di::register_rw_test{ reg_set{f17}, reg_set{f16} },
+    { // flt.d a6, f12, f30 -> flt.d a6, f12, f30
+      {0x53,0x18,0xe6,0xa3},
+      di::register_rw_test{ reg_set{f12, f30}, reg_set{a6} },
       di::mem_test{}
     },
-    { // fgt.s a7, f18, f19 -> flt.s a7, f18, f19
-      {0xd3,0x98,0x29,0xa1},
-      di::register_rw_test{ reg_set{f18, f19}, reg_set{a7} },
+    { // flt.d ra, f11, f25 -> flt.d ra, f11, f25
+      {0xd3,0x90,0x95,0xa3},
+      di::register_rw_test{ reg_set{f11, f25}, reg_set{ra} },
+      di::mem_test{}
+    },
+    { // fcvt.s.d f23, f18 -> fcvt.s.d f23, f18
+      {0xd3,0x7b,0x19,0x40},
+      di::register_rw_test{ reg_set{f18}, reg_set{f23} },
+      di::mem_test{}
+    },
+    { // fcvt.s.d f19, f15 -> fcvt.s.d f19, f15
+      {0xd3,0xf9,0x17,0x40},
+      di::register_rw_test{ reg_set{f15}, reg_set{f19} },
+      di::mem_test{}
+    },
+    { // fcvt.d.s f31, f17 -> fcvt.d.s f31, f17
+      {0xd3,0x8f,0x08,0x42},
+      di::register_rw_test{ reg_set{f17}, reg_set{f31} },
+      di::mem_test{}
+    },
+    { // fcvt.d.s f27, f14 -> fcvt.d.s f27, f14
+      {0xd3,0x0d,0x07,0x42},
+      di::register_rw_test{ reg_set{f14}, reg_set{f27} },
+      di::mem_test{}
+    },
+    { // fgt.s a7, f18, f14 -> flt.s a7, f18, f14
+      {0xd3,0x18,0x27,0xa1},
+      di::register_rw_test{ reg_set{f18, f14}, reg_set{a7} },
       di::mem_test{}
     },
     { // fge.s s6, f20, f21 -> fle.s a7, f21, f20
@@ -210,14 +281,14 @@ std::vector<pseudo_tests> make_tests64() {
       di::register_rw_test{ reg_set{f20, f21}, reg_set{s6} },
       di::mem_test{}
     },
-    { // fmv.d f10, f11 -> fsgnj.d f10, f11, f11
-      {0x53,0x85,0xb5,0x22},
-      di::register_rw_test{ reg_set{f11}, reg_set{f10} },
+    { // fmv.d f10, f0 -> fsgnj.d f10, f0, f0
+      {0x53,0x05,0x00,0x22},
+      di::register_rw_test{ reg_set{f0}, reg_set{f10} },
       di::mem_test{}
     },
-    { // fabs.d f12, f13 -> fsgnjx.d f12, f13, f13
-      {0x53,0xa6,0xd6,0x22},
-      di::register_rw_test{ reg_set{f13}, reg_set{f12} },
+    { // fabs.d f12, f2 -> fsgnjx.d f12, f2, f2
+      {0x53,0x26,0x21,0x22},
+      di::register_rw_test{ reg_set{f2}, reg_set{f12} },
       di::mem_test{}
     },
     { // fneg.d f14, f15 -> fsgnjn.d f14, f15, f15
@@ -225,14 +296,14 @@ std::vector<pseudo_tests> make_tests64() {
       di::register_rw_test{ reg_set{f15}, reg_set{f14} },
       di::mem_test{}
     },
-    { // fgt.d a0, f16, f17 -> flt.d a0, f17, f16
-      {0x53,0x95,0x08,0xa3},
-      di::register_rw_test{ reg_set{f16, f17}, reg_set{a0} },
+    { // fgt.d a0, f16, f3 -> flt.d a0, f3, f16
+      {0x53,0x95,0x01,0xa3},
+      di::register_rw_test{ reg_set{f16, f3}, reg_set{a0} },
       di::mem_test{}
     },
-    { // fge.d a1, f18, f19 -> fle.d a1, f19, f18
-      {0xd3,0x85,0x29,0xa3},
-      di::register_rw_test{ reg_set{f18, f19}, reg_set{a1} },
+    { // fge.d a1, f18, f26 -> fle.d a1, f26, f18
+      {0xd3,0x05,0x2d,0xa3},
+      di::register_rw_test{ reg_set{f18, f26}, reg_set{a1} },
       di::mem_test{}
     },
     { // beqz t0, 4 -> beq t0, zero, 4
