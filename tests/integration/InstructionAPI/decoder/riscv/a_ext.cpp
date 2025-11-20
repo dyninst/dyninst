@@ -59,6 +59,7 @@ bool run(Dyninst::Architecture arch, std::vector<rv64a_tests> const &tests) {
 }
 
 std::vector<rv64a_tests> make_tests64() {
+  auto zero = Dyninst::riscv64::zero;
   auto ra = Dyninst::riscv64::ra;
   auto sp = Dyninst::riscv64::sp;
   auto gp = Dyninst::riscv64::gp;
@@ -68,6 +69,7 @@ std::vector<rv64a_tests> make_tests64() {
   auto t1 = Dyninst::riscv64::t1;
   auto t2 = Dyninst::riscv64::t2;
 
+  auto s0 = Dyninst::riscv64::s0; //
   auto s1 = Dyninst::riscv64::s1;
 
   auto a0 = Dyninst::riscv64::a0;
@@ -79,6 +81,7 @@ std::vector<rv64a_tests> make_tests64() {
   auto a6 = Dyninst::riscv64::a6;
   auto a7 = Dyninst::riscv64::a7;
 
+  auto s2 = Dyninst::riscv64::s2; //
   auto s3 = Dyninst::riscv64::s3;
   auto s4 = Dyninst::riscv64::s4;
   auto s5 = Dyninst::riscv64::s5;
@@ -92,6 +95,7 @@ std::vector<rv64a_tests> make_tests64() {
   auto t3 = Dyninst::riscv64::t3;
   auto t4 = Dyninst::riscv64::t4;
   auto t5 = Dyninst::riscv64::t5;
+  auto t6 = Dyninst::riscv64::t6; //
 
   using reg_set = Dyninst::register_set;
 
@@ -111,15 +115,15 @@ std::vector<rv64a_tests> make_tests64() {
       di::register_rw_test{ reg_set{t2, s3}, reg_set{t1} },
       di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{s3} } }
     },
-    { // lr.d t0, (s1)
-      {0xaf,0xb2,0x04,0x10},
-      di::register_rw_test{ reg_set{s1}, reg_set{t0} },
-      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{s1}, reg_set{} } }
+    { // lr.d zero, (t3)
+      {0x2f,0x30,0x0e,0x10},
+      di::register_rw_test{ reg_set{t3}, reg_set{zero} },
+      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{t3}, reg_set{} } }
     },
-    { // sc.d t1, t2, (s3)
-      {0x2f,0xb3,0x79,0x18},
-      di::register_rw_test{ reg_set{t2, s3}, reg_set{t1} },
-      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{s3} } }
+    { // sc.d t6, s0, (s2)
+      {0xaf,0x3f,0x89,0x18},
+      di::register_rw_test{ reg_set{s0, s2}, reg_set{t6} },
+      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{s2} } }
     },
 
     // --- AMOs (32-bit) ---
