@@ -68,6 +68,7 @@ std::vector<rv64f_tests> make_tests64() {
   auto t1 = Dyninst::riscv64::t1;
   auto t2 = Dyninst::riscv64::t2;
   auto s0 = Dyninst::riscv64::s0;
+  auto s1 = Dyninst::riscv64::s1;
   auto a0 = Dyninst::riscv64::a0;
   auto a1 = Dyninst::riscv64::a1;
   auto a2 = Dyninst::riscv64::a2;
@@ -76,7 +77,6 @@ std::vector<rv64f_tests> make_tests64() {
   auto a5 = Dyninst::riscv64::a5;
   auto a6 = Dyninst::riscv64::a6;
   auto a7 = Dyninst::riscv64::a7;
-  auto s1 = Dyninst::riscv64::s1;
   auto s2 = Dyninst::riscv64::s2;
   auto s3 = Dyninst::riscv64::s3;
   auto s4 = Dyninst::riscv64::s4;
