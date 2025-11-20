@@ -1451,7 +1451,25 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
    if (!int_ebp->cb_bps.empty() && !ebp->suppressCB())
    {
       pthrd_printf("BP handler is setting user state to reflect breakpoint\n");
-      switch (ebp->getSyncType()) {
+      Event::SyncType effective_sync_type = ebp->getSyncType();
+      
+      /**
+       * If this is the main breakpoint, force it to use sync_process logic
+       * This avoids failure if multiple threads are created in constructor functions
+       **/
+      static const uintptr_t MAIN_BREAKPOINT_TAG = 0xDEB19001;
+      if (effective_sync_type == Event::sync_thread) {
+         for (std::set<Breakpoint::ptr>::iterator it = int_ebp->cb_bps.begin(); 
+              it != int_ebp->cb_bps.end(); ++it) {
+            if ((uintptr_t)(*it)->getData() == MAIN_BREAKPOINT_TAG) {
+               pthrd_printf("Detected main breakpoint, upgrading to sync_process\n");
+               effective_sync_type = Event::sync_process;
+               break;
+            }
+         }
+      }
+ 
+      switch (effective_sync_type) {
          case Event::sync_process: {
             int_threadPool *pool = proc->threadPool();
             for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++)
