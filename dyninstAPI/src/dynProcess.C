@@ -963,8 +963,10 @@ bool PCProcess::insertBreakpointAtMain() {
     }
     Dyninst::Address addr = main_function_->addr();
 
-    // Create the breakpoint
+    // Create the breakpoint and mark it
     mainBrkPt_ = Breakpoint::newBreakpoint();
+    static const uintptr_t MAIN_BREAKPOINT_TAG = 0xDEB19001;
+    mainBrkPt_->setData((void*)MAIN_BREAKPOINT_TAG);
     if( !pcProc_->addBreakpoint(addr, mainBrkPt_) ) {
         startup_printf("%s[%d]: failed to insert a breakpoint at main entry: 0x%lx\n",
                 FILE__, __LINE__, addr);
