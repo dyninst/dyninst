@@ -59,9 +59,15 @@ bool run(Dyninst::Architecture arch, std::vector<m_ext_tests> const &tests) {
 }
 
 std::vector<m_ext_tests> make_tests64() {
+  auto zero = Dyninst::riscv64::zero;
+  auto ra = Dyninst::riscv64::ra;
+  auto sp = Dyninst::riscv64::sp;
+  auto gp = Dyninst::riscv64::gp;
+  auto tp = Dyninst::riscv64::tp;
   auto t0 = Dyninst::riscv64::t0;
   auto t1 = Dyninst::riscv64::t1;
   auto t2 = Dyninst::riscv64::t2;
+  auto s0 = Dyninst::riscv64::s0;
   auto s1 = Dyninst::riscv64::s1;
   auto a0 = Dyninst::riscv64::a0;
   auto a1 = Dyninst::riscv64::a1;
@@ -84,19 +90,30 @@ std::vector<m_ext_tests> make_tests64() {
   auto t3 = Dyninst::riscv64::t3;
   auto t4 = Dyninst::riscv64::t4;
   auto t5 = Dyninst::riscv64::t5;
+  auto t6 = Dyninst::riscv64::t6;
 
   using reg_set = Dyninst::register_set;
 
   // clang-format off
   return {
-    { // mul t0, t1, t2
-      {0xb3,0x02,0x73,0x02},
-      di::register_rw_test{ reg_set{t1, t2}, reg_set{t0} },
+    { // mul t0, tp, s7
+      {0xb3,0x02,0x72,0x03},
+      di::register_rw_test{ reg_set{tp, s7}, reg_set{t0} },
       di::mem_test{}
     },
-    { // mulh t3, t4, t5
-      {0x33,0x9e,0xee,0x03},
-      di::register_rw_test{ reg_set{t4, t5}, reg_set{t3} },
+    { // mul sp, zero, ra
+      {0x33,0x01,0x10,0x02},
+      di::register_rw_test{ reg_set{zero, ra}, reg_set{sp} },
+      di::mem_test{}
+    },
+    { // mulh t3, t4, a2
+      {0x33,0x8e,0xce,0x02},
+      di::register_rw_test{ reg_set{t4, a2}, reg_set{t3} },
+      di::mem_test{}
+    },
+    { // mulh gp, t6, s11
+      {0xb3,0x81,0xbf,0x03},
+      di::register_rw_test{ reg_set{t6, s11}, reg_set{gp} },
       di::mem_test{}
     },
     { // mulhsu s1, s2, a0
@@ -104,9 +121,9 @@ std::vector<m_ext_tests> make_tests64() {
       di::register_rw_test{ reg_set{s2, a0}, reg_set{s1} },
       di::mem_test{}
     },
-    { // mulhu a1, a2, a3
-      {0xb3,0x35,0xd6,0x02},
-      di::register_rw_test{ reg_set{a2, a3}, reg_set{a1} },
+    { // mulhu s0, a2, s9
+      {0x33,0x34,0x96,0x03},
+      di::register_rw_test{ reg_set{a2, s9}, reg_set{s0} },
       di::mem_test{}
     },
     { // div s3, s4, s5
@@ -114,24 +131,24 @@ std::vector<m_ext_tests> make_tests64() {
       di::register_rw_test{ reg_set{s4, s5}, reg_set{s3} },
       di::mem_test{}
     },
-    { // divu s6, s7, s8
-      {0x33,0xdb,0x8b,0x03},
-      di::register_rw_test{ reg_set{s7, s8}, reg_set{s6} },
+    { // divu s6, t2, s8
+      {0x33,0xdb,0x83,0x03},
+      di::register_rw_test{ reg_set{t2, s8}, reg_set{s6} },
       di::mem_test{}
     },
-    { // rem s9, s10, s11
-      {0xb3,0x6c,0xbd,0x03},
-      di::register_rw_test{ reg_set{s10, s11}, reg_set{s9} },
+    { // rem t1, s10, zero
+      {0x33,0x63,0x0d,0x02},
+      di::register_rw_test{ reg_set{s10, zero}, reg_set{t1} },
       di::mem_test{}
     },
-    { // remu a4, a5, a6
-      {0x33,0xf7,0x07,0x03},
-      di::register_rw_test{ reg_set{a5, a6}, reg_set{a4} },
+    { // remu t1, a4, s3
+      {0x33,0x73,0x37,0x03},
+      di::register_rw_test{ reg_set{a4, s3}, reg_set{t1} },
       di::mem_test{}
     },
-    { // mulw t0, t1, t2
-      {0xbb,0x02,0x73,0x02},
-      di::register_rw_test{ reg_set{t1, t2}, reg_set{t0} },
+    { // mulw a6, t5, a1
+      {0x3b,0x08,0xbf,0x02},
+      di::register_rw_test{ reg_set{t5, a1}, reg_set{a6} },
       di::mem_test{}
     },
     { // divw s3, s4, s5
@@ -139,9 +156,9 @@ std::vector<m_ext_tests> make_tests64() {
       di::register_rw_test{ reg_set{s4, s5}, reg_set{s3} },
       di::mem_test{}
     },
-    { // remw a5, a6, a7
-      {0xbb,0x67,0x18,0x03},
-      di::register_rw_test{ reg_set{a6, a7}, reg_set{a5} },
+    { // remw a5, a3, a7
+      {0xbb,0xe7,0x16,0x03},
+      di::register_rw_test{ reg_set{a3, a7}, reg_set{a5} },
       di::mem_test{}
     },
   };
