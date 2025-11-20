@@ -83,10 +83,6 @@ else()
   list(APPEND _parseapi_sources src/SymtabCodeSource.C)
 endif()
 
-if(ENABLE_PARSE_API_GRAPHS)
-  list(APPEND _parseapi_sources src/GraphAdapter.C)
-endif()
-
 # cmake-format: off
 dyninst_library(
   parseAPI

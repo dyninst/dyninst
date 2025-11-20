@@ -138,4 +138,4 @@ jobs:
           export LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH
           export DYNINSTAPI_RT_LIB=$(find ${{ matrix.install-dir }} -name libdyninstAPI_RT.so)
           cd ${GITHUB_WORKSPACE}/external-tests/build
-          ctest -VV --output-on-failure .
+          ctest --no-tests=error -VV --output-on-failure .

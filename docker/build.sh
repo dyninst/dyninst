@@ -20,7 +20,7 @@ src_dir=$1; shift
 dest_dir=$1; shift
 num_jobs=1
 cmake_args=
-test_type=
+test_type="OFF"
 verbose=
 
 while [[ $# -gt 0 ]]; do
@@ -35,7 +35,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 build_dir=$(mktemp -d "/tmp/XXXXXX")
-mkdir -p ${dest_dir}
 echo "Building in ${build_dir}"
 
 if ! test -z "${test_type}"; then
@@ -50,9 +49,9 @@ cmake -S ${src_dir} -B ${build_dir} -DCMAKE_INSTALL_PREFIX=${dest_dir} ${cmake_a
 
 cmake --build ${build_dir} --parallel ${num_jobs} ${verbose}
 
-if ! test -z "${test_type}"; then
+if ! test "${test_type}" = "OFF"; then
   export LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH
-  ctest --test-dir ${build_dir} --parallel 2 --output-on-failure
+  ctest --test-dir ${build_dir} --no-tests=error --parallel 2 --output-on-failure
 fi
 
 cmake --install ${build_dir}
