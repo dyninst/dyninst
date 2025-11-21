@@ -473,7 +473,7 @@ bool IA_IAPI::isSysEnter() const
 
 bool IA_IAPI::isIndirectJump() const {
     Instruction ci = curInsn();
-    if(ci.isBranch()) return false;
+    if(!ci.isBranch()) return false;
     if(ci.allowsFallThrough()) return false;
     bool valid;
     Address target;
