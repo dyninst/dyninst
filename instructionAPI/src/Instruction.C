@@ -134,19 +134,13 @@ namespace Dyninst { namespace InstructionAPI {
   DYNINST_EXPORT Operation& Instruction::getOperation() { return m_InsnOp; }
 
   Operation& Instruction::getEncodedOperation() {
-    if (m_size == 2) {
-      return m_EncodedInsnOp;
-    }
-    return m_InsnOp;
+    return m_EncodedInsnOp;
   }
 
   DYNINST_EXPORT const Operation& Instruction::getOperation() const { return m_InsnOp; }
 
   DYNINST_EXPORT const Operation& Instruction::getEncodedOperation() const {
-    if (m_size == 2) {
-      return m_EncodedInsnOp;
-    }
-    return m_InsnOp;
+    return m_EncodedInsnOp;
   }
 
   std::vector<Operand> Instruction::getAllOperands() const {
@@ -349,11 +343,11 @@ namespace Dyninst { namespace InstructionAPI {
 
     // remove this once ArchSpecificFormatter is extended for all architectures
 
-    std::string opstr = m_EncodedInsnOp.format();
+    std::string opstr = m_InsnOp.format();
     opstr += " ";
     std::list<Operand>::const_iterator currOperand;
     std::vector<std::string> formattedOperands;
-    for(currOperand = m_EncodedOperands.begin(); currOperand != m_EncodedOperands.end(); ++currOperand) {
+    for(currOperand = m_Operands.begin(); currOperand != m_Operands.end(); ++currOperand) {
       /* If this operand is implicit, don't put it in the list of operands. */
       if(currOperand->isImplicit())
         continue;
