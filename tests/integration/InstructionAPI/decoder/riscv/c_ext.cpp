@@ -17,25 +17,25 @@
 
 namespace di = Dyninst::InstructionAPI;
 
-struct rv64i_tests {
+struct c_ext_tests {
   std::vector<unsigned char> opcode;
   di::register_rw_test regs;
   di::mem_test mem;
 };
 
-static std::vector<rv64i_tests> make_tests64();
-static bool run(Dyninst::Architecture, std::vector<rv64i_tests> const &);
+static std::vector<c_ext_tests> make_tests64();
+static bool run(Dyninst::Architecture, std::vector<c_ext_tests> const &);
 
 int main() {
   bool ok = run(Dyninst::Arch_riscv64, make_tests64());
   return !ok ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
-bool run(Dyninst::Architecture arch, std::vector<rv64i_tests> const &tests) {
+bool run(Dyninst::Architecture arch, std::vector<c_ext_tests> const &tests) {
   bool failed = false;
   int test_id = 0;
   auto sarch = Dyninst::getArchitectureName(arch);
-  std::clog << "Running tests for 'rv64i' in " << sarch << " mode\n";
+  std::clog << "Running tests for 'c_ext' in " << sarch << " mode\n";
   for (auto const &t : tests) {
     test_id++;
     di::InstructionDecoder d(t.opcode.data(), t.opcode.size(), arch);
@@ -58,7 +58,7 @@ bool run(Dyninst::Architecture arch, std::vector<rv64i_tests> const &tests) {
   return !failed;
 }
 
-std::vector<rv64i_tests> make_tests64() {
+std::vector<c_ext_tests> make_tests64() {
   // General purpose registers
   auto zero = Dyninst::riscv64::zero;
   auto ra = Dyninst::riscv64::ra;

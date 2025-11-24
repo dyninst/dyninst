@@ -382,12 +382,18 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_compressed_insn_ope
       break;
     }
     case riscv64_op_c_j: {
+      assert(insn.getOperation().getID() == riscv64_op_jal);
+      assert(operands.size() == 1);
+      assert(operands[0].type == RISCV_OP_IMM);
       const auto zero_reg = make_reg_op(RISCV_REG_ZERO, CS_AC_WRITE);
       const auto imm = make_imm_op(operands[0].imm);
       res = {zero_reg, imm};
       break;
     }
     case riscv64_op_c_jr: {
+      assert(insn.getOperation().getID() == riscv64_op_jalr);
+      assert(operands.size() == 1);
+      assert(operands[0].type == RISCV_OP_REG);
       const auto zero_reg = make_reg_op(RISCV_REG_ZERO, CS_AC_WRITE);
       const auto rs_reg = make_reg_op(operands[0].reg, CS_AC_READ);
       const auto zero_imm = make_imm_op(0);
