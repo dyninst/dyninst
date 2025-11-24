@@ -121,7 +121,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // ret (c.jr ra)
       {0x82,0x80},
-      di::register_rw_test{ reg_set{ra}, reg_set{pc} },
+      di::register_rw_test{ reg_set{ra}, reg_set{zero, pc} },
       di::mem_test{},
       di::cft_test{
         has_cft,
@@ -203,7 +203,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // c.j 2
       {0x09,0xa0},
-      di::register_rw_test{ reg_set{pc}, reg_set{pc} },
+      di::register_rw_test{ reg_set{pc}, reg_set{zero, pc} },
       di::mem_test{},
       di::cft_test{
         has_cft,
@@ -212,7 +212,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // c.jr ra (ret)
       {0x82,0x80},
-      di::register_rw_test{ reg_set{ra}, reg_set{pc} },
+      di::register_rw_test{ reg_set{ra}, reg_set{zero, pc} },
       di::mem_test{},
       di::cft_test{
         has_cft,
@@ -221,7 +221,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // c.jr t1
       {0x02,0x83},
-      di::register_rw_test{ reg_set{t1}, reg_set{pc} },
+      di::register_rw_test{ reg_set{t1}, reg_set{zero, pc} },
       di::mem_test{},
       di::cft_test{
         has_cft,
@@ -230,7 +230,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // c.jr tp
       {0x02,0x82},
-      di::register_rw_test{ reg_set{tp}, reg_set{pc} },
+      di::register_rw_test{ reg_set{tp}, reg_set{zero, pc} },
       di::mem_test{},
       di::cft_test{
         has_cft,
@@ -365,7 +365,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // c.beqz a0, 6
       {0x19,0xc1},
-      di::register_rw_test{ reg_set{a0, pc}, reg_set{pc} },
+      di::register_rw_test{ reg_set{a0, zero, pc}, reg_set{pc} },
       di::mem_test{},
       di::cft_test{
         has_cft,
@@ -374,7 +374,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // c.bnez a1, 44
       {0x95,0xe5},
-      di::register_rw_test{ reg_set{a1, pc}, reg_set{pc} },
+      di::register_rw_test{ reg_set{a1, zero, pc}, reg_set{pc} },
       di::mem_test{},
       di::cft_test{
         has_cft,

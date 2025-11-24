@@ -60,6 +60,7 @@ namespace Dyninst { namespace InstructionAPI {
     friend class InstructionDecoder_amdgpu_gfx908;
     friend class InstructionDecoder_amdgpu_gfx90a;
     friend class InstructionDecoder_amdgpu_gfx940;
+    friend class InstructionDecoder_riscv64;
 
   public:
     DYNINST_EXPORT Operation(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL,

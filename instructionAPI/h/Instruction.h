@@ -57,7 +57,7 @@ namespace Dyninst { namespace InstructionAPI {
     friend class InstructionDecoder_amdgpu_gfx908;
     friend class InstructionDecoder_amdgpu_gfx90a;
     friend class InstructionDecoder_amdgpu_gfx940;
-    friend class riscv_decoder;
+    friend class InstructionDecoder_riscv64;
 
     static const unsigned int maxInstructionLength = 16;
 
@@ -96,10 +96,15 @@ namespace Dyninst { namespace InstructionAPI {
 
     DYNINST_EXPORT Instruction(Operation what, size_t size, const unsigned char* raw,
                                Dyninst::Architecture arch);
+    Instruction(Operation what, Operation encoded_what, size_t size, const unsigned char* raw,
+                Dyninst::Architecture arch);
     DYNINST_EXPORT Instruction();
 
     DYNINST_EXPORT Operation& getOperation();
     DYNINST_EXPORT const Operation& getOperation() const;
+
+    Operation& getEncodedOperation();
+    const Operation& getEncodedOperation() const;
 
     DYNINST_EXPORT std::vector<Operand> getAllOperands() const;
     DYNINST_EXPORT std::vector<Operand> getExplicitOperands() const;
@@ -108,6 +113,7 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_DEPRECATED("Use getallOperands()") DYNINST_EXPORT
     void getOperands(std::vector<Operand>& operands) const;
     DYNINST_EXPORT Operand getOperand(int index) const;
+    Operand getEncodedExplicitOperand(int index) const;
 
     DYNINST_EXPORT std::vector<Operand> getDisplayOrderedOperands() const;
 
@@ -184,6 +190,8 @@ namespace Dyninst { namespace InstructionAPI {
 
     void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit = false,
                        bool trueP = false, bool falseP = false) const;
+    void appendEncodedOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit = false,
+                              bool trueP = false, bool falseP = false) const;
     void copyRaw(size_t size, const unsigned char* raw);
 
     bool checked_category(InsnCategory c) const {
@@ -194,7 +202,11 @@ namespace Dyninst { namespace InstructionAPI {
     }
 
     mutable std::list<Operand> m_Operands;
+    // Encoded instruction operands, for RISC-V compressed instructions
+    mutable std::list<Operand> m_EncodedOperands;
     mutable Operation m_InsnOp;
+    // Encoded instruction opcode, for RISC-V compressed instructions
+    mutable Operation m_EncodedInsnOp;
     bool m_Valid;
     std::array<uint8_t, maxInstructionLength> m_RawInsn;
     uint8_t m_size{};

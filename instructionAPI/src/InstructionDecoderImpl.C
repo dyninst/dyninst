@@ -71,7 +71,7 @@ namespace Dyninst
                     return Ptr(new InstructionDecoder_aarch64(a));
                 case Arch_riscv64:
 #if defined(DYNINST_ENABLE_CAPSTONE)
-                    return Ptr(new riscv_decoder(a));
+                    return Ptr(new InstructionDecoder_riscv64(a));
 #else
                     assert(!"Dyninst must be configured with -DDYNINST_ENABLE_CAPSTONE=ON to parse RISC-V instructions.");
                     return Ptr();

@@ -60,7 +60,7 @@ bool run(Dyninst::Architecture arch, std::vector<rv64i_tests> const &tests) {
 
 std::vector<rv64i_tests> make_tests64() {
   // General purpose registers
-  // The zero (x0) register is unused in compressed instructions
+  auto zero = Dyninst::riscv64::zero;
   auto ra = Dyninst::riscv64::ra;
   auto sp = Dyninst::riscv64::sp;
   auto gp = Dyninst::riscv64::gp;
@@ -125,17 +125,17 @@ std::vector<rv64i_tests> make_tests64() {
     },
     { // c.nop
       {0x01,0x00},
-      di::register_rw_test{ reg_set{}, reg_set{} },
+      di::register_rw_test{ reg_set{zero}, reg_set{zero} },
       di::mem_test{}
     },
     { // c.li t0, 5
       {0x95,0x42},
-      di::register_rw_test{ reg_set{}, reg_set{t0} },
+      di::register_rw_test{ reg_set{zero}, reg_set{t0} },
       di::mem_test{}
     },
     { // c.li s9, 26
       {0xe9,0x4c},
-      di::register_rw_test{ reg_set{}, reg_set{s9} },
+      di::register_rw_test{ reg_set{zero}, reg_set{s9} },
       di::mem_test{}
     },
     { // c.lui s6, 22
@@ -195,27 +195,27 @@ std::vector<rv64i_tests> make_tests64() {
     },
     { // c.mv s2, s10
       {0x6a,0x89},
-      di::register_rw_test{ reg_set{s10}, reg_set{s2} },
+      di::register_rw_test{ reg_set{s10, zero}, reg_set{s2} },
       di::mem_test{}
     },
     { // c.mv s3, t5
       {0xfa,0x89},
-      di::register_rw_test{ reg_set{t5}, reg_set{s3} },
+      di::register_rw_test{ reg_set{t5, zero}, reg_set{s3} },
       di::mem_test{}
     },
     { // c.j 256
       {0x01,0xa2},
-      di::register_rw_test{ reg_set{pc}, reg_set{pc} },
+      di::register_rw_test{ reg_set{pc}, reg_set{pc, zero} },
       di::mem_test{}
     },
     { // c.beqz s0, 16
       {0x01,0xc8},
-      di::register_rw_test{ reg_set{s0, pc}, reg_set{pc} },
+      di::register_rw_test{ reg_set{s0, zero, pc}, reg_set{pc} },
       di::mem_test{}
     },
     { // c.bnez s1, -8
       {0xe5,0xfc},
-      di::register_rw_test{ reg_set{s1, pc}, reg_set{pc} },
+      di::register_rw_test{ reg_set{s1, zero, pc}, reg_set{pc} },
       di::mem_test{}
     },
     { // c.lwsp gp, 8(sp)
@@ -240,7 +240,7 @@ std::vector<rv64i_tests> make_tests64() {
     },
     { // c.mv t2, t3
       {0xf2,0x83},
-      di::register_rw_test{ reg_set{t3}, reg_set{t2} },
+      di::register_rw_test{ reg_set{t3, zero}, reg_set{t2} },
       di::mem_test{}
     },
     { // c.xor s0, a3
@@ -250,12 +250,12 @@ std::vector<rv64i_tests> make_tests64() {
     },
     { // c.jr ra
       {0x82,0x80},
-      di::register_rw_test{ reg_set{ra}, reg_set{pc} },
+      di::register_rw_test{ reg_set{ra}, reg_set{zero, pc} },
       di::mem_test{},
     },
     { // c.jr a6
       {0x02,0x88},
-      di::register_rw_test{ reg_set{a6}, reg_set{pc} },
+      di::register_rw_test{ reg_set{a6}, reg_set{zero, pc} },
       di::mem_test{},
     },
     { // c.jalr a0

@@ -39,6 +39,9 @@ namespace InstructionAPI {
 namespace riscv {
 
 entryID translate_opcode(riscv_insn);
+entryID translate_encoded_opcode(riscv_insn);
+std::string translate_mnemonic(riscv_insn id);
+std::string translate_encoded_mnemonic(riscv_insn id);
 
 }
 } // namespace InstructionAPI

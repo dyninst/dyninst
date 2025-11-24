@@ -98,7 +98,14 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT Instruction::Instruction(Operation what, size_t size, const unsigned char* raw,
                                           Dyninst::Architecture arch)
-      : m_InsnOp(what), m_Valid(is_valid_mnemonic(arch, what.getID())), m_size{static_cast<decltype(m_size)>(size)},
+      : m_InsnOp(what), m_EncodedInsnOp(what), m_Valid(is_valid_mnemonic(arch, what.getID())), m_size{static_cast<decltype(m_size)>(size)},
+        arch_decoded_from(arch), formatter(&ArchSpecificFormatter::getFormatter(arch)) {
+    copyRaw(size, raw);
+  }
+
+  Instruction::Instruction(Operation what, Operation encoded_what, size_t size, const unsigned char* raw,
+                                          Dyninst::Architecture arch)
+      : m_InsnOp(what), m_EncodedInsnOp(encoded_what), m_Valid(is_valid_mnemonic(arch, what.getID())), m_size{static_cast<decltype(m_size)>(size)},
         arch_decoded_from(arch), formatter(&ArchSpecificFormatter::getFormatter(arch)) {
     copyRaw(size, raw);
   }
@@ -126,7 +133,21 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT Operation& Instruction::getOperation() { return m_InsnOp; }
 
+  Operation& Instruction::getEncodedOperation() {
+    if (m_size == 2) {
+      return m_EncodedInsnOp;
+    }
+    return m_InsnOp;
+  }
+
   DYNINST_EXPORT const Operation& Instruction::getOperation() const { return m_InsnOp; }
+
+  DYNINST_EXPORT const Operation& Instruction::getEncodedOperation() const {
+    if (m_size == 2) {
+      return m_EncodedInsnOp;
+    }
+    return m_InsnOp;
+  }
 
   std::vector<Operand> Instruction::getAllOperands() const {
     return std::vector<Operand>(m_Operands.begin(), m_Operands.end());
@@ -169,6 +190,16 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT Operand Instruction::getOperand(int index) const {
     if(index < 0 || index >= (int)(m_Operands.size())) {
+      // Out of range = empty operand
+      return Operand(Expression::Ptr(), false, false);
+    }
+    std::list<Operand>::const_iterator found = m_Operands.begin();
+    std::advance(found, index);
+    return *found;
+  }
+
+  DYNINST_EXPORT Operand Instruction::getEncodedExplicitOperand(int index) const {
+    if(index < 0 || index >= (int)(m_EncodedOperands.size())) {
       // Out of range = empty operand
       return Operand(Expression::Ptr(), false, false);
     }
@@ -318,11 +349,11 @@ namespace Dyninst { namespace InstructionAPI {
 
     // remove this once ArchSpecificFormatter is extended for all architectures
 
-    std::string opstr = m_InsnOp.format();
+    std::string opstr = m_EncodedInsnOp.format();
     opstr += " ";
     std::list<Operand>::const_iterator currOperand;
     std::vector<std::string> formattedOperands;
-    for(currOperand = m_Operands.begin(); currOperand != m_Operands.end(); ++currOperand) {
+    for(currOperand = m_EncodedOperands.begin(); currOperand != m_EncodedOperands.end(); ++currOperand) {
       /* If this operand is implicit, don't put it in the list of operands. */
       if(currOperand->isImplicit())
         continue;
@@ -431,6 +462,11 @@ namespace Dyninst { namespace InstructionAPI {
   void Instruction::appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit,
                                   bool trueP, bool falseP) const {
     m_Operands.push_back(Operand(e, isRead, isWritten, isImplicit, trueP, falseP));
+  }
+
+  void Instruction::appendEncodedOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit,
+                                         bool trueP, bool falseP) const {
+    m_EncodedOperands.push_back(Operand(e, isRead, isWritten, isImplicit, trueP, falseP));
   }
 
 }}

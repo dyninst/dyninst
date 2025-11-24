@@ -61,15 +61,15 @@ struct implicit_state final {
 };
 
 std::map<riscv_reg, implicit_state> implicit_registers(cs_detail const *);
-cs_riscv_op make_reg_op(int32_t, cs_ac_type);
-cs_riscv_op make_imm_op(int64_t);
+cs_riscv_op make_reg_op(int32_t reg, cs_ac_type access);
+cs_riscv_op make_imm_op(int64_t imm);
 
 } // namespace
 
 namespace Dyninst {
 namespace InstructionAPI {
 
-riscv_decoder::riscv_decoder(Dyninst::Architecture a)
+InstructionDecoder_riscv64::InstructionDecoder_riscv64(Dyninst::Architecture a)
     : InstructionDecoderImpl(a) {
 
   // Currently we only support RV64
@@ -80,12 +80,12 @@ riscv_decoder::riscv_decoder(Dyninst::Architecture a)
   disassembler.insn = cs_malloc(disassembler.handle);
 }
 
-riscv_decoder::~riscv_decoder() {
+InstructionDecoder_riscv64::~InstructionDecoder_riscv64() {
   cs_free(disassembler.insn, 1);
   cs_close(&disassembler.handle);
 }
 
-Instruction riscv_decoder::decode(InstructionDecoder::buffer &buf) {
+Instruction InstructionDecoder_riscv64::decode(InstructionDecoder::buffer &buf) {
   auto *code = buf.start;
   size_t code_size = buf.end - buf.start;
   uint64_t cap_addr = 0;
@@ -100,22 +100,30 @@ Instruction riscv_decoder::decode(InstructionDecoder::buffer &buf) {
     return {};
   }
 
-  entryID e =
+  entryID encoded_eid =
+      riscv::translate_encoded_opcode(static_cast<riscv_insn>(disassembler.insn->id));
+  entryID eid =
       riscv::translate_opcode(static_cast<riscv_insn>(disassembler.insn->id));
-  auto op = Operation(e, disassembler.insn->mnemonic, m_Arch);
+  std::string encoded_mnemonic = riscv::translate_encoded_mnemonic(static_cast<riscv_insn>(disassembler.insn->id));
+  std::string mnemonic = riscv::translate_mnemonic(static_cast<riscv_insn>(disassembler.insn->id));
+  auto op = Operation(eid, mnemonic, m_Arch);
+  auto encoded_op = Operation(encoded_eid, encoded_mnemonic, m_Arch);
   auto code_ptr = buf.start;
   buf.start += disassembler.insn->size;
   unsigned int decodedSize = buf.start - code_ptr;
-  Instruction insn(std::move(op), decodedSize, code_ptr, m_Arch);
+  Instruction insn(std::move(op), std::move(encoded_op), decodedSize, code_ptr, m_Arch);
   decode_operands(insn);
   return insn;
 }
 
-void riscv_decoder::decode_operands(Instruction &insn) {
+void InstructionDecoder_riscv64::decode_operands(Instruction &insn) {
   auto *d = disassembler.insn->detail;
+  auto orig_operands = std::vector<cs_riscv_op>{d->riscv.operands, d->riscv.operands + d->riscv.op_count};
 
   // Pseudo instructions
-  auto const operands = restore_pseudo_insn_operands(insn, disassembler);
+  auto encoded_operands = restore_pseudo_insn_operands(insn, orig_operands);
+  // Decode compressed instructions
+  auto operands = restore_compressed_insn_operands(insn, encoded_operands);
   insn.categories = riscv::decode_categories(insn, disassembler, operands);
 
   /* Decode _explicit_ operands
@@ -127,16 +135,36 @@ void riscv_decoder::decode_operands(Instruction &insn) {
    *   ld r1, (0x33)r2   ; r1 is RISCV_OP_REG, (0x33)r2 is RISCV_OP_MEM
    */
 
+  constexpr bool is_encoded = true;
   for (auto &operand : operands) {
     switch (operand.type) {
     case RISCV_OP_REG:
-      decode_reg(insn, operand);
+      decode_reg(insn, operand, !is_encoded);
       break;
     case RISCV_OP_IMM:
-      decode_imm(insn, operand);
+      decode_imm(insn, operand, !is_encoded);
       break;
     case RISCV_OP_MEM:
-      decode_mem(insn, operand);
+      decode_mem(insn, operand, !is_encoded);
+      break;
+    case RISCV_OP_INVALID:
+      decode_printf("[0x%lx %s %s] has an invalid operand.\n",
+                    disassembler.insn->address, disassembler.insn->mnemonic, disassembler.insn->op_str);
+      break;
+    }
+  }
+
+  // Now handle the original encoded operands
+  for (auto &operand : encoded_operands) {
+    switch (operand.type) {
+    case RISCV_OP_REG:
+      decode_reg(insn, operand, is_encoded);
+      break;
+    case RISCV_OP_IMM:
+      decode_imm(insn, operand, is_encoded);
+      break;
+    case RISCV_OP_MEM:
+      decode_mem(insn, operand, is_encoded);
       break;
     case RISCV_OP_INVALID:
       decode_printf("[0x%lx %s %s] has an invalid operand.\n",
@@ -166,7 +194,7 @@ void riscv_decoder::decode_operands(Instruction &insn) {
   }
 }
 
-void riscv_decoder::decode_reg(Instruction &insn, cs_riscv_op const &operand) {
+void InstructionDecoder_riscv64::decode_reg(Instruction &insn, cs_riscv_op const &operand, bool is_encoded) {
   constexpr bool is_implicit = true;
 
   riscv_reg reg = static_cast<riscv_reg>(operand.reg);
@@ -181,10 +209,15 @@ void riscv_decoder::decode_reg(Instruction &insn, cs_riscv_op const &operand) {
     is_read = is_written = true;
   }
 
-  insn.appendOperand(regAST, is_read, is_written, !is_implicit);
+  if (is_encoded) {
+    insn.appendEncodedOperand(regAST, is_read, is_written, !is_implicit);
+  }
+  else {
+    insn.appendOperand(regAST, is_read, is_written, !is_implicit);
+  }
 }
 
-void riscv_decoder::decode_imm(Instruction &insn, cs_riscv_op const &operand) {
+void InstructionDecoder_riscv64::decode_imm(Instruction &insn, cs_riscv_op const &operand, bool is_encoded) {
 
   // Capstone does not track the size of immediate
 
@@ -195,11 +228,16 @@ void riscv_decoder::decode_imm(Instruction &insn, cs_riscv_op const &operand) {
   constexpr bool is_written = true;
   constexpr bool is_implicit = true;
 
-  insn.appendOperand(std::move(imm), !is_read, !is_written, !is_implicit);
+  if (is_encoded) {
+    insn.appendEncodedOperand(std::move(imm), !is_read, !is_written, !is_implicit);
+  }
+  else {
+    insn.appendOperand(std::move(imm), !is_read, !is_written, !is_implicit);
+  }
   return;
 }
 
-void riscv_decoder::decode_mem(Instruction &insn, cs_riscv_op const &operand) {
+void InstructionDecoder_riscv64::decode_mem(Instruction &insn, cs_riscv_op const &operand, bool is_encoded) {
   const entryID eid = insn.getOperation().getID();
   const int8_t size = riscv::mem_size(eid);
   auto const type = size_to_type_signed(size);
@@ -210,11 +248,17 @@ void riscv_decoder::decode_mem(Instruction &insn, cs_riscv_op const &operand) {
       static_cast<riscv_reg>(operand.mem.base), this->mode));
   auto add = makeAddExpression(std::move(base), std::move(disp), type);
   auto deref = makeDereferenceExpression(std::move(add), type);
-  insn.appendOperand(std::move(deref), riscv::is_mem_load(eid),
-                     riscv::is_mem_store(eid), !is_implicit);
+  if (is_encoded) {
+    insn.appendEncodedOperand(std::move(deref), riscv::is_mem_load(eid),
+                              riscv::is_mem_store(eid), !is_implicit);
+  }
+  else {
+    insn.appendOperand(std::move(deref), riscv::is_mem_load(eid),
+                       riscv::is_mem_store(eid), !is_implicit);
+  }
 }
 
-void riscv_decoder::add_branch_insn_successors(
+void InstructionDecoder_riscv64::add_branch_insn_successors(
     Instruction &insn, const std::vector<cs_riscv_op> &operands) {
   constexpr bool is_call = true;
   constexpr bool is_indirect = true;
@@ -251,31 +295,6 @@ void riscv_decoder::add_branch_insn_successors(
     insn.addSuccessor(std::move(cft));
     break;
   }
-  case riscv64_op_c_j: {
-    auto const imm =
-        Immediate::makeImmediate(Result(imm_type, operands[0].imm));
-    auto const target = makeAddExpression(std::move(pc), std::move(imm),
-                                          std::max(reg_type, imm_type));
-    const Instruction::CFT cft(std::move(target), !is_call, !is_indirect, !is_conditional, !is_fallthrough);
-    insn.addSuccessor(std::move(cft));
-    break;
-  }
-  case riscv64_op_c_jr: {
-    MachRegister target_reg = riscv::translate_register(
-        static_cast<riscv_reg>(operands[0].reg), this->mode);
-    auto const rs = makeRegisterExpression(target_reg);
-    const Instruction::CFT cft(std::move(rs), !is_call, is_indirect, !is_conditional, !is_fallthrough);
-    insn.addSuccessor(std::move(cft));
-    break;
-  }
-  case riscv64_op_c_jalr: {
-    MachRegister target_reg = riscv::translate_register(
-        static_cast<riscv_reg>(operands[0].reg), this->mode);
-    auto const rs = makeRegisterExpression(target_reg);
-    const Instruction::CFT cft(std::move(rs), is_call, is_indirect, !is_conditional, !is_fallthrough);
-    insn.addSuccessor(std::move(cft));
-    break;
-  }
   case riscv64_op_beq:
   case riscv64_op_bne:
   case riscv64_op_blt:
@@ -304,44 +323,93 @@ void riscv_decoder::add_branch_insn_successors(
     }
     break;
   }
-  case riscv64_op_c_beqz:
-  case riscv64_op_c_bnez: {
-    MachRegister cmp_reg = riscv::translate_register(
-        static_cast<riscv_reg>(operands[0].reg), this->mode);
-    auto const rs = makeRegisterExpression(cmp_reg);
-    auto const imm =
-        Immediate::makeImmediate(Result(imm_type, operands[1].imm));
-    auto const target = makeAddExpression(std::move(pc), std::move(imm),
-                                          std::max(reg_type, imm_type));
-    const Instruction::CFT cft1(std::move(target), !is_call, !is_indirect, is_conditional, is_fallthrough);
-    insn.addSuccessor(std::move(cft1));
-    const Instruction::CFT cft2(std::move(pc), !is_call, !is_indirect, is_conditional, is_fallthrough);
-    insn.addSuccessor(std::move(cft2));
-    break;
-  }
   default: {
     break;
   }
   }
 }
 
-std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
-    Instruction &insn, di::riscv_decoder::disassem const &dis) {
-  const auto operands = dis.insn->detail->riscv.operands;
-  const auto op_count = dis.insn->detail->riscv.op_count;
-  std::vector<cs_riscv_op> res = {operands, operands + op_count};
-  switch (insn.getOperation().getID()) {
+std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_compressed_insn_operands(
+    Instruction &insn, std::vector<cs_riscv_op> &operands) {
+  std::vector<cs_riscv_op> res = operands;
+  switch (insn.getEncodedOperation().getID()) {
+    case riscv64_op_c_add:
+    case riscv64_op_c_addi:
+    case riscv64_op_c_addi16sp:
+    case riscv64_op_c_addiw:
+    case riscv64_op_c_addw:
+    case riscv64_op_c_and:
+    case riscv64_op_c_andi:
+    case riscv64_op_c_or:
+    case riscv64_op_c_slli:
+    case riscv64_op_c_srai:
+    case riscv64_op_c_srli:
+    case riscv64_op_c_sub:
+    case riscv64_op_c_subw:
+    case riscv64_op_c_xor: {
+      const auto rd_reg_w = make_reg_op(res[0].reg, CS_AC_WRITE);
+      const auto rd_reg_r = make_reg_op(res[0].reg, CS_AC_READ);
+      res = {rd_reg_w, rd_reg_r, operands[1]};
+      break;
+    }
+    case riscv64_op_c_beqz:
+    case riscv64_op_c_bnez:
+    case riscv64_op_c_li:
+    case riscv64_op_c_mv: {
+      const auto zero_reg = make_reg_op(RISCV_REG_ZERO, CS_AC_READ);
+      res = {operands[0], zero_reg, operands[1]};
+      break;
+    }
+    case riscv64_op_c_j: {
+      const auto zero_reg = make_reg_op(RISCV_REG_ZERO, CS_AC_WRITE);
+      res = {zero_reg, operands[0]};
+      break;
+    }
+    case riscv64_op_c_jr: {
+      const auto zero_reg = make_reg_op(RISCV_REG_ZERO, CS_AC_WRITE);
+      const auto zero_imm = make_imm_op(0);
+      res = {zero_reg, operands[0], zero_imm};
+      break;
+    }
+    case riscv64_op_c_jal: {
+      const auto ra_reg = make_reg_op(RISCV_REG_RA, CS_AC_WRITE);
+      res = {ra_reg, operands[0]};
+      break;
+    }
+    case riscv64_op_c_jalr: {
+      const auto ra_reg = make_reg_op(RISCV_REG_RA, CS_AC_WRITE);
+      const auto zero_imm = make_imm_op(0);
+      res = {ra_reg, operands[0], zero_imm};
+      break;
+    }
+    case riscv64_op_c_nop: {
+      const auto zero_reg_w = make_reg_op(RISCV_REG_ZERO, CS_AC_WRITE);
+      const auto zero_reg_r = make_reg_op(RISCV_REG_ZERO, CS_AC_READ);
+      const auto zero_imm = make_imm_op(0);
+      res = {zero_reg_w, zero_reg_r, zero_imm};
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+  return res;
+}
+
+std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_pseudo_insn_operands(
+    Instruction &insn, std::vector<cs_riscv_op> &operands) {
+  const auto op_count = operands.size();
+  std::vector<cs_riscv_op> res = operands;
+  switch (insn.getEncodedOperation().getID()) {
   case riscv64_op_addi: {
     if (op_count == 0) {
       // nop -> addi zero, zero, 0
       res = {make_reg_op(RISCV_REG_ZERO, CS_AC_WRITE),
              make_reg_op(RISCV_REG_ZERO, CS_AC_READ), make_imm_op(0)};
-      insn.getOperation().updateMnemonic("addi");
     }
     if (op_count == 2) {
       // mv rd, rs -> addi rd, rs, 0
       res = {operands[0], operands[1], make_imm_op(0)};
-      insn.getOperation().updateMnemonic("addi");
     }
     break;
   }
@@ -349,7 +417,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
     if (op_count == 2) {
       // sext.w rd, rs -> addiw rd, rs, 0
       res = {operands[0], operands[1], make_imm_op(0)};
-      insn.getOperation().updateMnemonic("addiw");
     }
     break;
   }
@@ -357,7 +424,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
     if (op_count == 2) {
       // zext.b rd, rs -> andi rd, rs, 255
       res = {operands[0], operands[1], make_imm_op(255)};
-      insn.getOperation().updateMnemonic("andi");
     }
     break;
   }
@@ -365,7 +431,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
     if (op_count == 2) {
       // not rd, rs -> xori rd, rs, -1
       res = {operands[0], operands[1], make_imm_op(-1)};
-      insn.getOperation().updateMnemonic("xori");
     }
     break;
   }
@@ -374,7 +439,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
       // neg rd, rs -> sub rd, x0, rs
       // negw rd, rs -> subw rd, x0, rs
       res = {operands[0], make_reg_op(RISCV_REG_ZERO, CS_AC_READ), operands[1]};
-      insn.getOperation().updateMnemonic("sub");
     }
     break;
   }
@@ -383,7 +447,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
       // neg rd, rs -> sub rd, x0, rs
       // negw rd, rs -> subw rd, x0, rs
       res = {operands[0], make_reg_op(RISCV_REG_ZERO, CS_AC_READ), operands[1]};
-      insn.getOperation().updateMnemonic("subw");
     }
     break;
   }
@@ -391,7 +454,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
     if (op_count == 2) {
       // seqz rd, rs -> sltiu rd, rs, 1
       res = {operands[0], operands[1], make_imm_op(1)};
-      insn.getOperation().updateMnemonic("sltiu");
     }
     break;
   }
@@ -399,7 +461,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
     if (op_count == 2) {
       // snez rd, rs -> sltu rd, x0, rs
       res = {operands[0], make_reg_op(RISCV_REG_ZERO, CS_AC_READ), operands[1]};
-      insn.getOperation().updateMnemonic("sltu");
     }
     break;
   }
@@ -435,7 +496,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
         res = {operands[0], make_reg_op(RISCV_REG_ZERO, CS_AC_READ),
                operands[1]};
       }
-      insn.getOperation().updateMnemonic("slt");
     }
     break;
   }
@@ -443,7 +503,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
     if (op_count == 2) {
       // fmv.h frd, frs -> fsgnj.h frd, frs, frs
       res = {operands[0], operands[1], operands[1]};
-      insn.getOperation().updateMnemonic("fsgnj.h");
     }
     break;
   }
@@ -451,7 +510,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
     if (op_count == 2) {
       // fabs.h frd, frs -> fsgnjx.h frd, frs, frs
       res = {operands[0], operands[1], operands[1]};
-      insn.getOperation().updateMnemonic("fsgnjx.h");
     }
     break;
   }
@@ -459,7 +517,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
     if (op_count == 2) {
       // fneg.h frd, frs -> fsgnjn.h frd, frs, frs
       res = {operands[0], operands[1], operands[1]};
-      insn.getOperation().updateMnemonic("fsgnjn.h");
     }
     break;
   }
@@ -467,7 +524,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
     if (op_count == 2) {
       // fmv.s frd, frs -> fsgnj.s frd, frs, frs
       res = {operands[0], operands[1], operands[1]};
-      insn.getOperation().updateMnemonic("fsgnj.s");
     }
     break;
   }
@@ -475,7 +531,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
     if (op_count == 2) {
       // fmv.s frd, frs -> fsgnjx.s frd, frs, frs
       res = {operands[0], operands[1], operands[1]};
-      insn.getOperation().updateMnemonic("fsgnjx.s");
     }
     break;
   }
@@ -483,7 +538,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
     if (op_count == 2) {
       // fneg.s frd, frs -> fsgnjn.s frd, frs, frs
       res = {operands[0], operands[1], operands[1]};
-      insn.getOperation().updateMnemonic("fsgnjn.s");
     }
     break;
   }
@@ -501,7 +555,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
       else if (rd_enc == GPR_RA) {
         res = {make_reg_op(RISCV_REG_RA, CS_AC_WRITE), operands[0]};
       }
-      insn.getOperation().updateMnemonic("jal");
     }
     break;
   }
@@ -527,14 +580,12 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
                make_imm_op(0)};
       }
     }
-    insn.getOperation().updateMnemonic("jalr");
     break;
   }
   case riscv64_op_beq: {
     if (op_count == 2) {
       // beqz rs, offset -> beq rs, x0, offset
       res = {operands[0], make_reg_op(RISCV_REG_ZERO, CS_AC_READ), operands[1]};
-      insn.getOperation().updateMnemonic("beq");
     }
     break;
   }
@@ -542,7 +593,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
     if (op_count == 2) {
       // bnez rs, offset -> bne rs, x0, offset
       res = {operands[0], make_reg_op(RISCV_REG_ZERO, CS_AC_READ), operands[1]};
-      insn.getOperation().updateMnemonic("bne");
     }
     break;
   }
@@ -565,7 +615,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
                operands[1]};
       }
       res = {operands[0], make_reg_op(RISCV_REG_ZERO, CS_AC_READ), operands[1]};
-      insn.getOperation().updateMnemonic("blt");
     }
     if (op_count == 3) {
       // bgt rs, rt, offset -> blt rt, rs, offset
@@ -591,7 +640,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
       if (rs1_enc_raw == rs2_enc_od && rs2_enc_raw == rs1_enc_od) {
         // swap rs1 and rs2
         res = {operands[1], operands[0], operands[2]};
-        insn.getOperation().updateMnemonic("blt");
       }
     }
     break;
@@ -614,7 +662,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
         res = {operands[0], make_reg_op(RISCV_REG_ZERO, CS_AC_READ),
                operands[1]};
       }
-      insn.getOperation().updateMnemonic("bge");
     }
     if (op_count == 3) {
       // ble rs, rt, offset -> bge rt, rs, offset
@@ -640,7 +687,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
       if (rs1_enc_raw == rs2_enc_od && rs2_enc_raw == rs1_enc_od) {
         // swap rs1 and rs2
         res = {operands[1], operands[0], operands[2]};
-        insn.getOperation().updateMnemonic("bge");
       }
     }
     break;
@@ -670,7 +716,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
       if (rs1_enc_raw == rs2_enc_od && rs2_enc_raw == rs1_enc_od) {
         // swap rs1 and rs2
         res = {operands[1], operands[0], operands[2]};
-        insn.getOperation().updateMnemonic("bltu");
       }
     }
     break;
@@ -700,7 +745,6 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
       if (rs1_enc_raw == rs2_enc_od && rs2_enc_raw == rs1_enc_od) {
         // swap rs1 and rs2
         res = {operands[1], operands[0], operands[2]};
-        insn.getOperation().updateMnemonic("bgeu");
       }
     }
     break;
@@ -712,7 +756,7 @@ std::vector<cs_riscv_op> riscv_decoder::restore_pseudo_insn_operands(
   return res;
 }
 
-void riscv_decoder::add_pc_operands(Instruction &insn) {
+void InstructionDecoder_riscv64::add_pc_operands(Instruction &insn) {
   constexpr bool is_read = true;
   constexpr bool is_write = true;
   constexpr bool is_implicit = true;
@@ -724,22 +768,17 @@ void riscv_decoder::add_pc_operands(Instruction &insn) {
     insn.appendOperand(pc, is_read, !is_write, is_implicit);
     break;
   }
-  case riscv64_op_jalr:
-  case riscv64_op_c_jr:
-  case riscv64_op_c_jalr: {
+  case riscv64_op_jalr: {
     insn.appendOperand(pc, !is_read, is_write, is_implicit);
     break;
   }
   case riscv64_op_jal:
-  case riscv64_op_c_j:
   case riscv64_op_beq:
   case riscv64_op_bne:
   case riscv64_op_blt:
   case riscv64_op_bge:
   case riscv64_op_bltu:
-  case riscv64_op_bgeu:
-  case riscv64_op_c_beqz:
-  case riscv64_op_c_bnez: {
+  case riscv64_op_bgeu: {
     insn.appendOperand(pc, is_read, is_write, is_implicit);
     break;
   }

@@ -43,7 +43,7 @@ namespace riscv {
 namespace di = Dyninst::InstructionAPI;
 
 inline std::vector<di::InsnCategory>
-decode_categories(di::Instruction &insn, di::riscv_decoder::disassem const &dis,
+decode_categories(di::Instruction &insn, di::InstructionDecoder_riscv64::disassem const &dis,
                   std::vector<cs_riscv_op> const &operands) {
   auto const num_categories = dis.insn->detail->groups_count;
   auto const groups = dis.insn->detail->groups;
@@ -128,16 +128,6 @@ decode_categories(di::Instruction &insn, di::riscv_decoder::disassem const &dis,
     }
     break;
   }
-  case riscv64_op_c_jr: {
-    // c.jr ra is return
-    if (operands[0].reg == RISCV_REG_RA) {
-      auto itr =
-          std::remove(categories.begin(), categories.end(), di::c_BranchInsn);
-      categories.erase(itr);
-      categories.push_back(di::c_ReturnInsn);
-    }
-    break;
-  }
   case riscv64_op_beq:
   case riscv64_op_bne:
   case riscv64_op_blt:
@@ -150,13 +140,7 @@ decode_categories(di::Instruction &insn, di::riscv_decoder::disassem const &dis,
     }
     break;
   }
-  case riscv64_op_c_beqz:
-  case riscv64_op_c_bnez: {
-    categories.push_back(di::c_ConditionalInsn);
-    break;
-  }
-  case riscv64_op_ebreak:
-  case riscv64_op_c_ebreak: {
+  case riscv64_op_ebreak: {
     categories.push_back(di::c_InterruptInsn);
     break;
   }

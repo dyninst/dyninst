@@ -38,7 +38,7 @@
 namespace Dyninst {
 namespace InstructionAPI {
 
-class riscv_decoder final : public InstructionDecoderImpl {
+class InstructionDecoder_riscv64 final : public InstructionDecoderImpl {
 public:
   struct disassem final {
     csh handle{};
@@ -50,26 +50,28 @@ private:
   disassem disassembler{};
 
 public:
-  riscv_decoder(Dyninst::Architecture a);
-  riscv_decoder() = delete;
-  riscv_decoder(riscv_decoder const &) = delete;
-  riscv_decoder &operator=(riscv_decoder const &) = delete;
-  riscv_decoder(riscv_decoder &&) = delete;
-  riscv_decoder &operator=(riscv_decoder &&) = delete;
-  ~riscv_decoder();
+  InstructionDecoder_riscv64(Dyninst::Architecture a);
+  InstructionDecoder_riscv64() = delete;
+  InstructionDecoder_riscv64(InstructionDecoder_riscv64 const &) = delete;
+  InstructionDecoder_riscv64 &operator=(InstructionDecoder_riscv64 const &) = delete;
+  InstructionDecoder_riscv64(InstructionDecoder_riscv64 &&) = delete;
+  InstructionDecoder_riscv64 &operator=(InstructionDecoder_riscv64 &&) = delete;
+  ~InstructionDecoder_riscv64();
 
   Instruction decode(InstructionDecoder::buffer &) override;
 
 private:
   void decode_operands(Instruction &);
-  void decode_reg(Instruction &, cs_riscv_op const &);
-  void decode_imm(Instruction &, cs_riscv_op const &);
-  void decode_mem(Instruction &, cs_riscv_op const &);
+  void decode_reg(Instruction &insn, cs_riscv_op const &operand, bool is_encoded);
+  void decode_imm(Instruction &insn, cs_riscv_op const &operand, bool is_encoded);
+  void decode_mem(Instruction &insn, cs_riscv_op const &operand, bool is_encoded);
   void add_branch_insn_successors(Instruction &,
                                   const std::vector<cs_riscv_op> &);
   void add_pc_operands(Instruction &);
   std::vector<cs_riscv_op> restore_pseudo_insn_operands(Instruction &,
-                                                        disassem const &);
+                                                        std::vector<cs_riscv_op> &);
+  std::vector<cs_riscv_op> restore_compressed_insn_operands(Instruction &,
+                                                            std::vector<cs_riscv_op> &);
 };
 
 } // namespace InstructionAPI
