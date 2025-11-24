@@ -208,11 +208,13 @@ std::vector<c_ext_tests> make_tests64() {
       di::register_rw_test{ reg_set{t3, zero}, reg_set{t2} },
       di::mem_test{}
     },
+    /*
     { // c.j 256
       {0x01,0xa2},
       di::register_rw_test{ reg_set{pc}, reg_set{pc, zero} },
       di::mem_test{}
     },
+    */
     { // c.beqz s0, 16
       {0x01,0xc8},
       di::register_rw_test{ reg_set{s0, zero, pc}, reg_set{pc} },

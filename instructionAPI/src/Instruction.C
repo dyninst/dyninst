@@ -343,11 +343,11 @@ namespace Dyninst { namespace InstructionAPI {
 
     // remove this once ArchSpecificFormatter is extended for all architectures
 
-    std::string opstr = m_InsnOp.format();
+    std::string opstr = m_EncodedInsnOp.format();
     opstr += " ";
     std::list<Operand>::const_iterator currOperand;
     std::vector<std::string> formattedOperands;
-    for(currOperand = m_Operands.begin(); currOperand != m_Operands.end(); ++currOperand) {
+    for(currOperand = m_EncodedOperands.begin(); currOperand != m_EncodedOperands.end(); ++currOperand) {
       /* If this operand is implicit, don't put it in the list of operands. */
       if(currOperand->isImplicit())
         continue;
