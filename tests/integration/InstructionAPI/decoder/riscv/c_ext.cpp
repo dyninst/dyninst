@@ -203,6 +203,11 @@ std::vector<rv64i_tests> make_tests64() {
       di::register_rw_test{ reg_set{t5, zero}, reg_set{s3} },
       di::mem_test{}
     },
+    { // c.mv t2, t3
+      {0xf2,0x83},
+      di::register_rw_test{ reg_set{t3, zero}, reg_set{t2} },
+      di::mem_test{}
+    },
     { // c.j 256
       {0x01,0xa2},
       di::register_rw_test{ reg_set{pc}, reg_set{pc, zero} },
@@ -237,11 +242,6 @@ std::vector<rv64i_tests> make_tests64() {
       {0x14,0xc5},
       di::register_rw_test{ reg_set{a3, a0}, reg_set{} },
       di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{a0} } }
-    },
-    { // c.mv t2, t3
-      {0xf2,0x83},
-      di::register_rw_test{ reg_set{t3, zero}, reg_set{t2} },
-      di::mem_test{}
     },
     { // c.xor s0, a3
       {0x35,0x8c},
