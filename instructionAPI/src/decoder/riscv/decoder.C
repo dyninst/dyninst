@@ -334,52 +334,77 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_compressed_insn_ope
   std::vector<cs_riscv_op> res = operands;
   switch (insn.getEncodedOperation().getID()) {
     case riscv64_op_c_add:
-    case riscv64_op_c_addi:
-    case riscv64_op_c_addi16sp:
-    case riscv64_op_c_addiw:
     case riscv64_op_c_addw:
     case riscv64_op_c_and:
-    case riscv64_op_c_andi:
     case riscv64_op_c_or:
-    case riscv64_op_c_slli:
-    case riscv64_op_c_srai:
-    case riscv64_op_c_srli:
     case riscv64_op_c_sub:
     case riscv64_op_c_subw:
     case riscv64_op_c_xor: {
-      const auto rd_reg_w = make_reg_op(res[0].reg, CS_AC_WRITE);
-      const auto rd_reg_r = make_reg_op(res[0].reg, CS_AC_READ);
-      res = {rd_reg_w, rd_reg_r, operands[1]};
+      const auto rd_reg_w = make_reg_op(operands[0].reg, CS_AC_WRITE);
+      const auto rd_reg_r = make_reg_op(operands[0].reg, CS_AC_READ);
+      const auto rs_reg_r = make_reg_op(operands[1].reg, CS_AC_READ);
+      res = {rd_reg_w, rd_reg_r, rs_reg_r};
+      break;
+    }
+    case riscv64_op_c_addi:
+    case riscv64_op_c_addi16sp:
+    case riscv64_op_c_addiw:
+    case riscv64_op_c_andi:
+    case riscv64_op_c_slli:
+    case riscv64_op_c_srai:
+    case riscv64_op_c_srli: {
+      const auto rd_reg_w = make_reg_op(operands[0].reg, CS_AC_WRITE);
+      const auto rd_reg_r = make_reg_op(operands[0].reg, CS_AC_READ);
+      const auto imm = make_imm_op(operands[1].imm);
+      res = {rd_reg_w, rd_reg_r, imm};
       break;
     }
     case riscv64_op_c_beqz:
-    case riscv64_op_c_bnez:
-    case riscv64_op_c_li:
-    case riscv64_op_c_mv: {
+    case riscv64_op_c_bnez: {
+      const auto rs1_reg = make_reg_op(operands[0].reg, CS_AC_READ);
       const auto zero_reg = make_reg_op(RISCV_REG_ZERO, CS_AC_READ);
-      res = {operands[0], zero_reg, operands[1]};
+      const auto imm = make_imm_op(operands[1].imm);
+      res = {rs1_reg, zero_reg, imm};
+      break;
+    }
+    case riscv64_op_c_li: {
+      const auto rd_reg = make_reg_op(operands[0].reg, CS_AC_WRITE);
+      const auto zero_reg = make_reg_op(RISCV_REG_ZERO, CS_AC_READ);
+      const auto imm = make_imm_op(operands[1].imm);
+      res = {rd_reg, zero_reg, imm};
+      break;
+    }
+    case riscv64_op_c_mv: {
+      const auto rd_reg = make_reg_op(operands[0].reg, CS_AC_WRITE);
+      const auto zero_reg = make_reg_op(RISCV_REG_ZERO, CS_AC_READ);
+      const auto rs_reg = make_reg_op(operands[1].reg, CS_AC_READ);
+      res = {rd_reg, zero_reg, rs_reg};
       break;
     }
     case riscv64_op_c_j: {
       const auto zero_reg = make_reg_op(RISCV_REG_ZERO, CS_AC_WRITE);
-      res = {zero_reg, operands[0]};
+      const auto imm = make_imm_op(operands[0].imm);
+      res = {zero_reg, imm};
       break;
     }
     case riscv64_op_c_jr: {
       const auto zero_reg = make_reg_op(RISCV_REG_ZERO, CS_AC_WRITE);
+      const auto rs_reg = make_reg_op(operands[0].reg, CS_AC_READ);
       const auto zero_imm = make_imm_op(0);
-      res = {zero_reg, operands[0], zero_imm};
+      res = {zero_reg, rs_reg, zero_imm};
       break;
     }
     case riscv64_op_c_jal: {
       const auto ra_reg = make_reg_op(RISCV_REG_RA, CS_AC_WRITE);
-      res = {ra_reg, operands[0]};
+      const auto imm = make_imm_op(operands[0].imm);
+      res = {ra_reg, imm};
       break;
     }
     case riscv64_op_c_jalr: {
       const auto ra_reg = make_reg_op(RISCV_REG_RA, CS_AC_WRITE);
+      const auto rs_reg = make_reg_op(operands[0].reg, CS_AC_READ);
       const auto zero_imm = make_imm_op(0);
-      res = {ra_reg, operands[0], zero_imm};
+      res = {ra_reg, rs_reg, zero_imm};
       break;
     }
     case riscv64_op_c_nop: {
