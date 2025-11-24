@@ -203,7 +203,7 @@ namespace Dyninst { namespace InstructionAPI {
       // Out of range = empty operand
       return Operand(Expression::Ptr(), false, false);
     }
-    std::list<Operand>::const_iterator found = m_Operands.begin();
+    std::list<Operand>::const_iterator found = m_EncodedOperands.begin();
     std::advance(found, index);
     return *found;
   }

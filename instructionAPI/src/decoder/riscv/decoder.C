@@ -340,6 +340,9 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_compressed_insn_ope
     case riscv64_op_c_sub:
     case riscv64_op_c_subw:
     case riscv64_op_c_xor: {
+      assert(operands.size() == 2);
+      assert(operands[0].type == RISCV_OP_REG);
+      assert(operands[1].type == RISCV_OP_REG);
       const auto rd_reg_w = make_reg_op(operands[0].reg, CS_AC_WRITE);
       const auto rd_reg_r = make_reg_op(operands[0].reg, CS_AC_READ);
       const auto rs_reg_r = make_reg_op(operands[1].reg, CS_AC_READ);
@@ -353,6 +356,9 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_compressed_insn_ope
     case riscv64_op_c_slli:
     case riscv64_op_c_srai:
     case riscv64_op_c_srli: {
+      assert(operands.size() == 2);
+      assert(operands[0].type == RISCV_OP_REG);
+      assert(operands[1].type == RISCV_OP_IMM);
       const auto rd_reg_w = make_reg_op(operands[0].reg, CS_AC_WRITE);
       const auto rd_reg_r = make_reg_op(operands[0].reg, CS_AC_READ);
       const auto imm = make_imm_op(operands[1].imm);
@@ -361,6 +367,9 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_compressed_insn_ope
     }
     case riscv64_op_c_beqz:
     case riscv64_op_c_bnez: {
+      assert(operands.size() == 2);
+      assert(operands[0].type == RISCV_OP_REG);
+      assert(operands[1].type == RISCV_OP_IMM);
       const auto rs1_reg = make_reg_op(operands[0].reg, CS_AC_READ);
       const auto zero_reg = make_reg_op(RISCV_REG_ZERO, CS_AC_READ);
       const auto imm = make_imm_op(operands[1].imm);
@@ -368,6 +377,9 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_compressed_insn_ope
       break;
     }
     case riscv64_op_c_li: {
+      assert(operands.size() == 2);
+      assert(operands[0].type == RISCV_OP_REG);
+      assert(operands[1].type == RISCV_OP_IMM);
       const auto rd_reg = make_reg_op(operands[0].reg, CS_AC_WRITE);
       const auto zero_reg = make_reg_op(RISCV_REG_ZERO, CS_AC_READ);
       const auto imm = make_imm_op(operands[1].imm);
@@ -375,6 +387,9 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_compressed_insn_ope
       break;
     }
     case riscv64_op_c_mv: {
+      assert(operands.size() == 2);
+      assert(operands[0].type == RISCV_OP_REG);
+      assert(operands[1].type == RISCV_OP_REG);
       const auto rd_reg = make_reg_op(operands[0].reg, CS_AC_WRITE);
       const auto zero_reg = make_reg_op(RISCV_REG_ZERO, CS_AC_READ);
       const auto rs_reg = make_reg_op(operands[1].reg, CS_AC_READ);
@@ -382,7 +397,6 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_compressed_insn_ope
       break;
     }
     case riscv64_op_c_j: {
-      assert(insn.getOperation().getID() == riscv64_op_jal);
       assert(operands.size() == 1);
       assert(operands[0].type == RISCV_OP_IMM);
       const auto zero_reg = make_reg_op(RISCV_REG_ZERO, CS_AC_WRITE);
@@ -391,7 +405,6 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_compressed_insn_ope
       break;
     }
     case riscv64_op_c_jr: {
-      assert(insn.getOperation().getID() == riscv64_op_jalr);
       assert(operands.size() == 1);
       assert(operands[0].type == RISCV_OP_REG);
       const auto zero_reg = make_reg_op(RISCV_REG_ZERO, CS_AC_WRITE);
@@ -401,12 +414,16 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_compressed_insn_ope
       break;
     }
     case riscv64_op_c_jal: {
+      assert(operands.size() == 1);
+      assert(operands[0].type == RISCV_OP_IMM);
       const auto ra_reg = make_reg_op(RISCV_REG_RA, CS_AC_WRITE);
       const auto imm = make_imm_op(operands[0].imm);
       res = {ra_reg, imm};
       break;
     }
     case riscv64_op_c_jalr: {
+      assert(operands.size() == 1);
+      assert(operands[0].type == RISCV_OP_REG);
       const auto ra_reg = make_reg_op(RISCV_REG_RA, CS_AC_WRITE);
       const auto rs_reg = make_reg_op(operands[0].reg, CS_AC_READ);
       const auto zero_imm = make_imm_op(0);
@@ -414,6 +431,7 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_compressed_insn_ope
       break;
     }
     case riscv64_op_c_nop: {
+      assert(operands.size() == 0);
       const auto zero_reg_w = make_reg_op(RISCV_REG_ZERO, CS_AC_WRITE);
       const auto zero_reg_r = make_reg_op(RISCV_REG_ZERO, CS_AC_READ);
       const auto zero_imm = make_imm_op(0);
