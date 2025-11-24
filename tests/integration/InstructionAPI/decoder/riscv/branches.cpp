@@ -201,7 +201,6 @@ std::vector<branch_test> make_tests64() {
         {is_call, !is_conditional, is_indirect, !is_fallthrough, !is_branch, !is_return}
       }
     },
-    /*
     { // c.j 2
       {0x09,0xa0},
       di::register_rw_test{ reg_set{pc}, reg_set{zero, pc} },
@@ -211,7 +210,6 @@ std::vector<branch_test> make_tests64() {
         {!is_call, !is_conditional, !is_indirect, !is_fallthrough, is_branch, !is_return}
       }
     },
-    */
     { // c.jr ra (ret)
       {0x82,0x80},
       di::register_rw_test{ reg_set{ra}, reg_set{zero, pc} },

@@ -104,9 +104,7 @@ decode_categories(di::Instruction &insn, di::InstructionDecoder_riscv64::disasse
   case riscv64_op_jal: {
     if (operands[0].reg == RISCV_REG_ZERO) {
       // jal zero, ... is branch
-      auto itr =
-          std::remove(categories.begin(), categories.end(), di::c_CallInsn);
-      categories.erase(itr);
+      categories.erase(std::remove(categories.begin(), categories.end(), di::c_CallInsn), categories.end());
       // ret (jalr zero, ra, 0)
       categories.push_back(di::c_BranchInsn);
     }
@@ -114,9 +112,8 @@ decode_categories(di::Instruction &insn, di::InstructionDecoder_riscv64::disasse
   }
   case riscv64_op_jalr: {
     if (operands[0].reg == RISCV_REG_ZERO) {
-      auto itr =
-          std::remove(categories.begin(), categories.end(), di::c_CallInsn);
-      categories.erase(itr);
+      categories.erase(std::remove(categories.begin(), categories.end(), di::c_CallInsn), categories.end());
+      categories.erase(std::remove(categories.begin(), categories.end(), di::c_BranchInsn), categories.end());
       // ret (jalr zero, ra, 0)
       if (operands[1].reg == RISCV_REG_RA && operands[2].imm == 0) {
         categories.push_back(di::c_ReturnInsn);
