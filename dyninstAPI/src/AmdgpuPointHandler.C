@@ -32,7 +32,9 @@
 
 #include "BPatch_addressSpace.h"
 #include "BPatch_module.h"
+#include "RegisterConversion.h"
 #include "instPoint.h"
+#include "liveness.h"
 
 // The raw kernel descriptor
 #include "external/amdgpu/AMDHSAKernelDescriptor.h"
@@ -81,6 +83,33 @@ bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) c
   return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() != maxGranulatedWavefrontSgprCount);
 }
 
+bool AmdgpuGfx908PointHandler::isRegPairAvailable(Register reg, BPatch_function *function) {
+  assert(reg % 2 == 0 && "reg must be even");
+  assert(reg <= 101 && "reg must be a valid SGPR");
+
+  MachRegister machReg = convertRegID(reg, Arch_amdgpu_gfx908);
+  MachRegister nextMachReg = convertRegID(reg + 1, Arch_amdgpu_gfx908);
+
+  bool isMachRegLive = false, isNextMachRegLive = false;
+
+  ParseAPI::Location location(ParseAPI::convert(function));
+  LivenessAnalyzer livenessAnalyzer(Arch_amdgpu_gfx908, /* width = */ 8);
+
+  bool success =
+      livenessAnalyzer.query(location, LivenessAnalyzer::Before, machReg, isMachRegLive) &&
+      livenessAnalyzer.query(location, LivenessAnalyzer::Before, nextMachReg, isNextMachRegLive);
+
+  if (!success) {
+    std::cerr << "AmdgpuPointHandler : liveness query on " << function->getMangledName()
+              << " failed.\n"
+              << "exiting...\n";
+    exit(1);
+  }
+
+  // The register pair must be dead.
+  return !isMachRegLive && !isNextMachRegLive;
+}
+
 void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function) {
   // If this function is a kernel, insert a prologue that loads s[94:95] with the address of memory
   // for instrumentation variables. This address is at address [kernargPtrRegister] + kernargBufferSize.
@@ -98,16 +127,23 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
   AmdgpuKernelDescriptor kd(rawKd, this->eflag);
 
   if (!canInstrument(kd)) {
-    // Exit
     std::cerr << "Can't instrument " << function->getMangledName() << '\n' << "exiting...\n";
+    exit(1);
+  }
+
+  int reg = 94;
+  if (!isRegPairAvailable(reg, function)) {
+    std::cerr << "Can't instrument " << function->getMangledName()
+              << " as s94 and s95 are not available.\n"
+              << "exiting...\n";
     exit(1);
   }
 
   std::vector<BPatch_point *> entryPoints;
   function->getEntryPoints(entryPoints);
 
-  auto prologuePtr = boost::make_shared<AmdgpuPrologue>(
-        94, kd.getKernargPtrRegister(), kd.getKernargSize());
+  auto prologuePtr =
+      boost::make_shared<AmdgpuPrologue>(reg, kd.getKernargPtrRegister(), kd.getKernargSize());
 
   AstNodePtr prologueNodePtr =
         boost::make_shared<AmdgpuPrologueNode>(prologuePtr);

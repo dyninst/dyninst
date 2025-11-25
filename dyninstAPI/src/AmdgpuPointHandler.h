@@ -30,6 +30,7 @@
 
 #include "BPatch_function.h"
 #include "PointHandler.h"
+#include "common/src/dyn_register.h"
 
 // We use std::shared_ptr for prologue and epilogue asts because AstNodePtr is a boost::shared_ptr
 #include "boost/shared_ptr.hpp"
@@ -56,6 +57,7 @@ struct AmdgpuGfx908PointHandler : PointHandler {
   BPatch_variableExpr* getKernelDescriptorVariable(BPatch_function *f);
 
   bool canInstrument(const AmdgpuKernelDescriptor &kd) const;
+  bool isRegPairAvailable(Register reg, BPatch_function *function);
 
   void insertPrologueIfKernel(BPatch_function *function);
   void insertEpilogueIfKernel(BPatch_function *function);
