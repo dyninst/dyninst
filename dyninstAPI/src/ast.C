@@ -280,8 +280,9 @@ AstNodePtr AstNode::scrambleRegistersNode(){
     return AstNodePtr(new AstScrambleRegistersNode());
 }
 
-AstNodePtr AstNode::atomicAddStmtNode(AstNodePtr variable, AstNodePtr constant) {
-   return AstNodePtr(new AstAtomicAddStmtNode(variable, constant));
+AstNodePtr AstNode::atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable,
+                                            AstNodePtr constant) {
+   return AstNodePtr(new AstAtomicOperationStmtNode(astOpcode, variable, constant));
 }
 
 bool isPowerOf2(int value, int &result)
@@ -3480,8 +3481,6 @@ std::string AstNode::convert(opCode op) {
    switch(op) {
       case invalidOp: return "invalid";
       case plusOp: return "plus";
-      case atomicAddOp:
-      return "atomicAdd";
       case minusOp: return "minus";
       case xorOp: return "xor";
       case timesOp: return "times";
@@ -3550,12 +3549,14 @@ bool AstOperandNode::initRegisters(codeGen &g) {
     return ret;
 }
 
-AstAtomicAddStmtNode::AstAtomicAddStmtNode(AstNodePtr variableNode, AstNodePtr constantNode)
-    : opcode(atomicAddOp), variable(variableNode), constant(constantNode) {}
+AstAtomicOperationStmtNode::AstAtomicOperationStmtNode(opCode astOpcode, AstNodePtr variableNode,
+                                                       AstNodePtr constantNode)
+    : opcode(astOpcode), variable(variableNode), constant(constantNode) {}
 
-std::string AstAtomicAddStmtNode::format(std::string indent) {
+std::string AstAtomicOperationStmtNode::format(std::string indent) {
     std::stringstream ret;
-    ret << indent << "Op/" << hex << this << dec << "(" << convert(opcode) << ")" << endl;
+    ret << indent << "Op/" << hex << this << dec << "("
+        << "atomic " << convert(opcode) << ")" << endl;
     if (variable)
        ret << indent << variable->format(indent + "  ");
     if (constant)
@@ -3563,9 +3564,9 @@ std::string AstAtomicAddStmtNode::format(std::string indent) {
     return ret.str();
 }
 
-bool AstAtomicAddStmtNode::generateCode_phase2(codeGen & /* gen */, bool /* noCost */,
-                                               Address & /* retAddr */,
-                                               Dyninst::Register & /* retReg */) {
-    cerr << "AstAtomicAddStmtNode::generateCode_phase2 not implemented" << endl;
+bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen & /* gen */, bool /* noCost */,
+                                                     Address & /* retAddr */,
+                                                     Dyninst::Register & /* retReg */) {
+    cerr << "AstAtomicOperationStmtNode::generateCode_phase2 not implemented" << endl;
     return false;
 }

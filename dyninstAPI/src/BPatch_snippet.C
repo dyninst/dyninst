@@ -1673,10 +1673,29 @@ BPatch_scrambleRegistersExpr::BPatch_scrambleRegistersExpr(){
    
 }
 
-BPatch_atomicAddStmt::BPatch_atomicAddStmt(const BPatch_variableExpr &variable,
-                                           const BPatch_constExpr &constant) {
-    ast_wrapper =
-        AstNodePtr(AstNode::atomicAddStmtNode(variable.ast_wrapper, constant.ast_wrapper));
+BPatch_atomicOperationStmt::BPatch_atomicOperationStmt(BPatch_binOp operation,
+                                                       const BPatch_variableExpr &variable,
+                                                       const BPatch_constExpr &constant) {
+    opCode astOpcode;
+    switch (operation) {
+    case BPatch_plus:
+        astOpcode = plusOp;
+        break;
+    case BPatch_minus:
+        astOpcode = minusOp;
+        break;
+    case BPatch_divide:
+        astOpcode = divOp;
+        break;
+    case BPatch_times:
+        astOpcode = timesOp;
+        break;
+    default:
+        assert(!"operation not supported yet");
+    }
+
+    ast_wrapper = AstNodePtr(
+        AstNode::atomicOperationStmtNode(astOpcode, variable.ast_wrapper, constant.ast_wrapper));
 }
 
 // Conversions

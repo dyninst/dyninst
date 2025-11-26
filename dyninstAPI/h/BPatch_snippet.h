@@ -127,7 +127,7 @@ class DYNINST_EXPORT BPatch_snippet {
     friend class BPatch_stopThreadExpr;
     friend class BPatch_shadowExpr;
     friend class BPatch_utilExpr;
-    friend class BPatch_atomicAddStmt;
+    friend class BPatch_atomicOperationStmt;
     friend AstNodePtr generateArrayRef(const BPatch_snippet &lOperand, 
                                        const BPatch_snippet &rOperand);
     friend AstNodePtr generateFieldRef(const BPatch_snippet &lOperand, 
@@ -603,9 +603,10 @@ class DYNINST_EXPORT BPatch_scrambleRegistersExpr : public BPatch_snippet
   BPatch_scrambleRegistersExpr();
 };
 
-class DYNINST_EXPORT BPatch_atomicAddStmt : public BPatch_snippet {
+class DYNINST_EXPORT BPatch_atomicOperationStmt : public BPatch_snippet {
 public:
-  BPatch_atomicAddStmt(const BPatch_variableExpr &variable, const BPatch_constExpr &constant);
+  BPatch_atomicOperationStmt(BPatch_binOp operation, const BPatch_variableExpr &variable,
+                             const BPatch_constExpr &constant);
 };
 #endif /* _BPatch_snippet_h_ */
 

@@ -227,7 +227,8 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
                                   AstNodePtr r = AstNodePtr(), 
                                   AstNodePtr e = AstNodePtr());
 
-   static AstNodePtr atomicAddStmtNode(AstNodePtr variable, AstNodePtr constant);
+   static AstNodePtr atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable,
+                                             AstNodePtr constant);
 
    static AstNodePtr funcCallNode(const std::string &func, std::vector<AstNodePtr > &args, AddressSpace *addrSpace = NULL);
    static AstNodePtr funcCallNode(func_instance *func, std::vector<AstNodePtr > &args);
@@ -927,11 +928,11 @@ class AstSnippetNode : public AstNode {
     Dyninst::PatchAPI::SnippetPtr snip_;
 };
 
-class AstAtomicAddStmtNode : public AstNode {
+class AstAtomicOperationStmtNode : public AstNode {
     // This corresponds to a single statement, and not an expression that can be nested among other
     // expressions.
   public:
-    AstAtomicAddStmtNode(AstNodePtr variableNode, AstNodePtr constantNode);
+    AstAtomicOperationStmtNode(opCode astOpcode, AstNodePtr variableNode, AstNodePtr constantNode);
 
     virtual std::string format(std::string indent);
 

@@ -249,8 +249,9 @@ AstNodePtr AstNode::snippetNode(Dyninst::PatchAPI::SnippetPtr snip) {
 
 AstNodePtr AstNode::scrambleRegistersNode() { return AstNodePtr(new AstScrambleRegistersNode()); }
 
-AstNodePtr AstNode::atomicAddStmtNode(AstNodePtr variable, AstNodePtr constant) {
-  return AstNodePtr(new AstAtomicAddStmtNode(variable, constant));
+AstNodePtr AstNode::atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable,
+                                            AstNodePtr constant) {
+  return AstNodePtr(new AstAtomicOperationStmtNode(astOpcode, variable, constant));
 }
 
 bool isPowerOf2(int value, int &result) {
@@ -710,8 +711,8 @@ bool AstNode::generateCode_phase2(codeGen &, bool, Address &, Dyninst::Register 
     fprintf(stderr, "miniTrampNode\n");
   if (dynamic_cast<AstMemoryNode *>(this))
     fprintf(stderr, "memoryNode\n");
-  if (dynamic_cast<AstAtomicAddStmtNode *>(this))
-    fprintf(stderr, "atomicAddStmtNode");
+  if (dynamic_cast<AstAtomicOperationStmtNode *>(this))
+    fprintf(stderr, "atomicOperationStmtNode");
   assert(0);
   return 0;
 }
@@ -3020,8 +3021,6 @@ std::string AstNode::convert(opCode op) {
     return "invalid";
   case plusOp:
     return "plus";
-  case atomicAddOp:
-    return "atomicAdd";
   case minusOp:
     return "minus";
   case xorOp:
@@ -3135,12 +3134,14 @@ bool AstOperandNode::initRegisters(codeGen &g) {
   return ret;
 }
 
-AstAtomicAddStmtNode::AstAtomicAddStmtNode(AstNodePtr variableNode, AstNodePtr constantNode)
-    : opcode(atomicAddOp), variable(variableNode), constant(constantNode) {}
+AstAtomicOperationStmtNode::AstAtomicOperationStmtNode(opCode astOpcode, AstNodePtr variableNode,
+                                                       AstNodePtr constantNode)
+    : opcode(astOpcode), variable(variableNode), constant(constantNode) {}
 
-std::string AstAtomicAddStmtNode::format(std::string indent) {
+std::string AstAtomicOperationStmtNode::format(std::string indent) {
   std::stringstream ret;
-  ret << indent << "Op/" << hex << this << dec << "(" << convert(opcode) << ")" << endl;
+  ret << indent << "Op/" << hex << this << dec << "("
+      << "atomic " << convert(opcode) << ")" << endl;
   if (variable)
     ret << indent << variable->format(indent + "  ");
   if (constant)
@@ -3148,8 +3149,8 @@ std::string AstAtomicAddStmtNode::format(std::string indent) {
   return ret.str();
 }
 
-bool AstAtomicAddStmtNode::generateCode_phase2(codeGen &gen, bool noCost, Address &retAddr,
-                                               Dyninst::Register & /* retReg */) {
+bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen &gen, bool noCost, Address &retAddr,
+                                                     Dyninst::Register & /* retReg */) {
   // This has 2 operands - variable and constant.
   // Codegen for atomic add has the following steps:
   // 1. Evaluate constant -- load a register with the constant
@@ -3165,8 +3166,7 @@ bool AstAtomicAddStmtNode::generateCode_phase2(codeGen &gen, bool noCost, Addres
   }
   assert(src0 != Dyninst::Null_Register);
 
-  // Now generate code for the variable here. This is a special case because in per-warp instances,
-  // we simply load, operate, and store. Here, we operate on the variable in memory.
+  // Now generate code for the variable -- load a register pair with the address of the variable.
   AstOperandNode *variableOperand = dynamic_cast<AstOperandNode *>((AstNode *)variable.get());
   assert(variableOperand);
   assert(variableOperand->getoType() == operandType::AddressAsPlaceholderRegAndOffset);
@@ -3178,15 +3178,19 @@ bool AstAtomicAddStmtNode::generateCode_phase2(codeGen &gen, bool noCost, Addres
   EmitterAmdgpuGfx908 *emitter = dynamic_cast<EmitterAmdgpuGfx908 *>(gen.emitter());
   assert(emitter);
 
-  std::cerr << "Variable AST Offset = " << (Address)(offset->getOValue()) << '\n';
-
   // TODO : Remove all hardcoded registers.
   emitter->emitMoveRegToReg(94, 88, gen);
   emitter->emitMoveRegToReg(95, 89, gen);
   emitter->emitAddConstantToRegPair(88, (Address)offset->getOValue(), gen);
 
-  // Now we have s[88:89] with address of the variable. Emit s_atomic_add instruction.
-  emitter->emitAtomicAdd(88, src0, gen);
+  // Now we have s[88:89] with address of the variable. Emit appropriate atomic instruction.
+  switch (opcode) {
+  case plusOp:
+    emitter->emitAtomicAdd(88, src0, gen);
+    break;
+  default:
+    assert(!"atomic operation for this opcode is not implemented");
+  }
 
   return ret;
 }
