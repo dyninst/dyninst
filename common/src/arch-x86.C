@@ -9822,14 +9822,10 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 /* This is a VEX2 prefixed instruction -- start in the twoByteMap */
                 gotit = &twoByteMap[idx];
                 sseidx = vex3_simdop_convert[0][pref.vex_pp];
-
-
                 break;
 
             case VEX_TYPE_VEX3:
             case VEX_TYPE_EVEX:
-
-
                 /* Make sure we start in the proper table */
                 switch(pref.vex_m_mmmm)
                 {
@@ -11362,8 +11358,6 @@ bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3
 
       switch(addr[0])
       {
-
-
          case PREFIX_REPNZ:
          case PREFIX_REP:
             if(mode_64 && REX_ISREX(addr[1])
