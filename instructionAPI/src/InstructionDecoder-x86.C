@@ -711,6 +711,7 @@ namespace Dyninst { namespace InstructionAPI {
       case op_pi:
       case op_ps:
       case op_pd:
+      case op_o:
         return dbl128;
       case op_s:
         return u48;
