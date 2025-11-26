@@ -393,7 +393,8 @@ enum SMEM_Opcode {
   S_STORE_DWORDX4 = 18,
 
   S_DCACHE_WB = 33,
-  S_ATOMIC_ADD = 130
+  S_ATOMIC_ADD = 130,
+  S_ATOMIC_SUB
 };
 
 unsigned getSmemImmBit(unsigned opcode);

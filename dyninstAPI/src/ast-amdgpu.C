@@ -3188,6 +3188,9 @@ bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen &gen, bool noCost, 
   case plusOp:
     emitter->emitAtomicAdd(88, src0, gen);
     break;
+  case minusOp:
+    emitter->emitAtomicSub(88, src0, gen);
+    break;
   default:
     assert(!"atomic operation for this opcode is not implemented");
   }

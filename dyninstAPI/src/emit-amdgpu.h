@@ -219,5 +219,7 @@ public:
   void emitScalarDataCacheWriteback(codeGen &gen);
 
   void emitAtomicAdd(Register baseAddrReg, Register src0, codeGen &gen);
+
+  void emitAtomicSub(Register baseAddrReg, Register src0, codeGen &gen);
 };
 #endif
