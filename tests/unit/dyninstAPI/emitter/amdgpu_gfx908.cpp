@@ -217,10 +217,21 @@ int main() {
     0xff,0x00,0x80,0xbe,0x34,0x12,0x00,0x00  // s_mov_b32 s0, 0x1234
   }});
 
-
   emitter->emitScalarDataCacheWriteback(gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<8>{{
     0x00,0x00,0x84,0xc0,0x00,0x00,0x00,0x00  // s_dcache_wb
+  }});
+
+  // Atomically add s0 to the 4-byte variable at address held in s[2:3]
+  emitter->emitAtomicAdd(sgpr2, sgpr0, gen);
+  failed |= !verify_emitter(gen, emitter_buffer_t<8>{{
+    0x01,0x00,0x0a,0xc2,0x00,0x00,0x00,0x00  // s_atomic_add s0, s[2:3], 0x0
+  }});
+
+  // Atomically subtract s0 from the 4-byte variable at address held in s[2:3]
+  emitter->emitAtomicSub(sgpr2, sgpr0, gen);
+  failed |= !verify_emitter(gen, emitter_buffer_t<8>{{
+    0x01,0x00,0x0e,0xc2,0x00,0x00,0x00,0x00  // s_atomic_sub s8, s[2:3], 0x0
   }});
 
   return failed ? EXIT_FAILURE : EXIT_SUCCESS;
