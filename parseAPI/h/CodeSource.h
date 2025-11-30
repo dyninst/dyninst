@@ -129,6 +129,16 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     mutable std::map<Address, std::string> _linkage;
 
     /*
+     * .rela.dyn external linkage table. Used in RISC-V
+     */
+    mutable std::map<Address, std::pair<std::string, Address> > _reladyn_linkage;
+
+    /*
+     * .symtab external linkage table. Used in RISC-V
+     */
+    mutable std::map<Address, std::string> _symtab_linkage;
+
+    /*
      * Table of Contents for position independent references. Optional.
      */
     Address _table_of_contents;
@@ -183,11 +193,17 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     virtual Address loadAddress() const { return 0; }
 
     std::map< Address, std::string > & linkage() const { return _linkage; }
+    std::map< Address, std::pair<std::string, Address> > & reladyn_linkage() const { return _reladyn_linkage; }
+    std::map< Address, std::string> & symtab_linkage() const { return _symtab_linkage; }
+
 //    std::vector< Hint > const& hints() const { return _hints; } 
     dyn_c_vector<Hint> const& hints() const { return _hints; }
     std::vector<CodeRegion *> const& regions() const { return _regions; }
     int findRegions(Address addr, std::set<CodeRegion *> & ret) const;
     bool regionsOverlap() const { return _regions_overlap; }
+
+    void addRegion(CodeRegion *);
+    void removeRegion(CodeRegion *);
 
     Address getTOC() const { return _table_of_contents; }
     /* If the binary file type supplies per-function
@@ -211,9 +227,6 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
  protected:
     CodeSource() : _regions_overlap(false),
                    _table_of_contents(0) {}
-
-    void addRegion(CodeRegion *);
-    void removeRegion(CodeRegion *);
    
  private: 
     // statistics
@@ -294,6 +307,8 @@ class DYNINST_EXPORT SymtabCodeSource : public CodeSource, public boost::lockabl
     bool nonReturning(Address func_entry);
     bool nonReturningSyscall(int num);
 
+    void addRegion(CodeRegion *);
+    void removeRegion(CodeRegion *);
     bool resizeRegion(SymtabAPI::Region *, Address newDiskSize);
 
     Address baseAddress() const;
