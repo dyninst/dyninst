@@ -490,6 +490,11 @@ struct Handle {
    }
 
    template<size_t Len1, size_t Len2>
+     Handle<Len1+Len2> signedUnsignedMultiply(Handle<Len1> a, Handle<Len2> b) {
+     return Handle<Len1+Len2>(getBinaryAST(ROSEOperation::sMultOp, a.var(), b.var()));
+   }
+
+   template<size_t Len1, size_t Len2>
      Handle<Len1+Len2> unsignedMultiply(Handle<Len1> a, Handle<Len2> b) {
      return Handle<Len1+Len2>(getBinaryAST(ROSEOperation::uMultOp, a.var(), b.var()));
    }
