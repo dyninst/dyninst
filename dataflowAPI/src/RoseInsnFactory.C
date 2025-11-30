@@ -40,6 +40,7 @@
 #include "../rose/SgAsmAMDGPUInstruction.h"
 
 #include "../rose/SgAsmArmv8Instruction.h"
+#include "../rose/SgAsmRiscv64Instruction.h"
 #include "../rose/SgAsmx86Instruction.h"
 #include "../rose/SgAsmExpression.h"
 
@@ -410,6 +411,28 @@ bool RoseInsnArmv8Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsm
 void RoseInsnArmv8Factory::massageOperands(const Instruction &/*insn*/,
         std::vector<InstructionAPI::Operand> &/*operands*/) {
 
+}
+
+void RoseInsnRiscv64Factory::setSizes(SgAsmInstruction * /*insn*/) {
+
+}
+
+SgAsmInstruction *RoseInsnRiscv64Factory::createInsn() {
+  return new SgAsmRiscv64Instruction;
+}
+
+void RoseInsnRiscv64Factory::setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID, std::string) {
+  SgAsmRiscv64Instruction *tmp = static_cast<SgAsmRiscv64Instruction *>(insn);
+  tmp->set_kind(convertKind(opcode));
+}
+bool RoseInsnRiscv64Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsmOperandList *) {
+  return false;
+}
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+void RoseInsnRiscv64Factory::massageOperands(const Instruction &insn,
+        std::vector<InstructionAPI::Operand> &operands) {
 }
  
 void RoseInsnAMDGPUFactory::setSizes(SgAsmInstruction * /*insn*/) {
