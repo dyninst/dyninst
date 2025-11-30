@@ -18,6 +18,7 @@ set(_parseapi_sources
     src/IA_amdgpu.C
     src/IA_IAPI.C
     src/IA_power.C
+    src/IA_riscv64.C
     src/IA_x86.C
     src/IdiomModelDesc.C
     src/IndirectAnalyzer.C
@@ -61,6 +62,7 @@ set(_parseapi_private_headers
     src/IA_amdgpu.h
     src/IA_IAPI.h
     src/IA_power.h
+    src/IA_riscv64.h
     src/IA_x86.h
     src/IndirectAnalyzer.h
     src/IndirectASTVisitor.h

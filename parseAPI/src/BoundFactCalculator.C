@@ -267,6 +267,9 @@ static bool IsConditionalJump(Instruction insn) {
 	id == e_jge || id == e_jg) return true;
     if (id == aarch64_op_b_cond) return true;
     if (id == power_op_bc || id == power_op_bcctr || id == power_op_bclr) return true;
+    if (id == riscv64_op_beq || id == riscv64_op_bne || id == riscv64_op_blt ||
+        id == riscv64_op_bge || id == riscv64_op_bltu || id == riscv64_op_bgeu ||
+        id == riscv64_op_c_beqz || id == riscv64_op_c_bnez) return true;
     return false;
 }
 
@@ -350,6 +353,28 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
         parsing_printf("\t\tThe predecessor node is zf assignment!\n");
 	newFact->SetPredicate(node->assign(), se.ExpandAssignment(node->assign()) );
 	return;
+    }
+
+    if (node->assign()->block()->obj()->cs()->getArch() == Arch_riscv64 &&
+            node->assign() &&
+            node->assign()->out().absloc().type() == Absloc::Register &&
+            IsConditionalJump(node->assign()->insn())) {
+        parsing_printf("\t\tThe predecessor node is a conditional jump (RISC-V)!\n");
+        // Extract the conditional from the if node
+        parsing_printf("\t\tExctact conditional node from the if node.\n");
+        auto expandRet = se.ExpandAssignment(node->assign());
+        if (expandRet.first->getID() != AST::V_RoseAST) {
+            parsing_printf("\t\tUnexpected error! Expect an RoseAST for the predecessor node.\n");
+            return;
+        }
+        auto roseAST = boost::static_pointer_cast<RoseAST>(expandRet.first);
+        if (roseAST->val().op != ROSEOperation::ifOp) {
+            parsing_printf("\t\tUnexpected error! Expect an if node in the predecessor node.\n");
+            return;
+        }
+        auto ifAST = roseAST->child(0);
+        expandRet.first = ifAST;
+        newFact->SetPredicate(node->assign(), expandRet);
     }
     entryID id = node->assign()->insn().getOperation().getID();
     // The predecessor is not a conditional jump,
