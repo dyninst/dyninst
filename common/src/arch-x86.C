@@ -149,6 +149,7 @@
 #include "compiler_annotations.h"
 #include "unaligned_memory_access.h"
 #include <cstdint>
+#include "debug_common.h"
 
 using namespace std;
 using namespace boost::assign;
@@ -9533,9 +9534,7 @@ ia32_instruction &ia32_decode(unsigned int capa, const unsigned char *addr, ia32
     /* First decode any prefixes for this instruction */
     if (!ia32_decode_prefixes(addr, instruct, mode_64))
     {
-#ifdef VEX_DEBUG
-        fprintf(stderr, "PREFIX DECODE FAILURE\n");
-#endif
+        common_parsing_printf("PREFIX DECODE FAILURE\n");
         instruct.size = 1;
 	    instruct.entry = NULL;
         instruct.legacy_type = ILLEGAL;
@@ -9799,9 +9798,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
     } else if(pref.vex_present)
     /* Is there a VEX prefix for this instruction? */
     {
-#ifdef VEX_PEDANTIC
-        printf("DECODING VEX\n");
-#endif
+        common_parsing_printf("DECODING VEX\n");
         /* Grab the opcode for the index */
         idx = addr[0];
 
@@ -9928,12 +9925,10 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 gotit = &sseMap[idx][sseidx];
                 nxtab = gotit->otable;
 
-#ifdef VEX_DEBUG
-                fprintf(stderr, "SSE MAP   idx: %d 0x%x  sseidx: %d 0x%x\n", idx, idx, sseidx, sseidx);
-                fprintf(stderr, "HAS VEX? %s\n", pref.vex_present ? "YES" : "NO");
-                fprintf(stderr, "NEXT TAB == SSE_MULT? %s\n", nxtab == t_sse_mult ? "YES" : "NO");
-                fprintf(stderr, "NEXT TAB == DONE? %s\n", nxtab == t_done ? "YES" : "NO");
-#endif
+                common_parsing_printf("SSE MAP   idx: %d 0x%x  sseidx: %d 0x%x\n", idx, idx, sseidx, sseidx);
+                common_parsing_printf("HAS VEX? %s\n", pref.vex_present ? "YES" : "NO");
+                common_parsing_printf("NEXT TAB == SSE_MULT? %s\n", nxtab == t_sse_mult ? "YES" : "NO");
+                common_parsing_printf("NEXT TAB == DONE? %s\n", nxtab == t_done ? "YES" : "NO");
 
                 /* If there is no vex prefix, we're done */
                 if(!pref.vex_present)
@@ -9947,11 +9942,9 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 nxtab = gotit->otable;
                 vextab = true;
 
-#ifdef VEX_DEBUG
-                fprintf(stderr, "SSE MULT MAP   idx: %d  sseidx: %d sse_mult: %d\n", idx, sseidx, pref.vex_sse_mult);
-                fprintf(stderr, "NEXT TAB == DONE? %s\n", nxtab == t_done ? "YES" : "NO");
-                fprintf(stderr, "NEXT TAB == VEXW? %s\n", nxtab == t_vexw ? "YES" : "NO");
-#endif
+                common_parsing_printf("SSE MULT MAP   idx: %d  sseidx: %d sse_mult: %d\n", idx, sseidx, pref.vex_sse_mult);
+                common_parsing_printf("NEXT TAB == DONE? %s\n", nxtab == t_done ? "YES" : "NO");
+                common_parsing_printf("NEXT TAB == VEXW? %s\n", nxtab == t_vexw ? "YES" : "NO");
 
                 break;
             case t_sse_bis:
@@ -9976,9 +9969,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 gotit = &sseMapBis[idx][sseidx];
                 nxtab = gotit->otable;
 
-#ifdef VEX_DEBUG
-                fprintf(stderr, "SSEB MAP  idx: %d  sseidx: %d\n", idx, sseidx);
-#endif
+                common_parsing_printf("SSEB MAP  idx: %d  sseidx: %d\n", idx, sseidx);
 
                 /* If there is no vex prefix, we're done */
                 if(!pref.vex_present)
@@ -9992,9 +9983,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 nxtab = gotit->otable;
                 vextab = true;
 
-#ifdef VEX_DEBUG
-                fprintf(stderr, "SSEB MULT idx: %d  sseMul: %d\n", idx, pref.vex_sse_mult);
-#endif
+                common_parsing_printf("SSEB MULT idx: %d  sseMul: %d\n", idx, pref.vex_sse_mult);
                 break;
             case t_sse_ter:
                 /* Decode the sse prefix for this type */
@@ -10015,9 +10004,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 gotit = &sseMapTer[idx][sseidx];
                 nxtab = gotit->otable;
 
-#ifdef VEX_DEBUG
-                fprintf(stderr, "SSET MAP  idx: %d  sseidx: %d\n", idx, sseidx);
-#endif
+                common_parsing_printf("SSET MAP  idx: %d  sseidx: %d\n", idx, sseidx);
 
                 /* If there is no vex prefix, we're done */
                 if(!pref.vex_present)
@@ -10032,9 +10019,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 nxtab = gotit->otable;
                 vextab = true;
 
-#ifdef VEX_DEBUG
-                fprintf(stderr, "SSET MULT idx: %d  sseMul: %d\n", idx, pref.vex_sse_mult);
-#endif
+                common_parsing_printf("SSET MULT idx: %d  sseMul: %d\n", idx, pref.vex_sse_mult);
                 break;
 
             case t_grp:
@@ -10163,11 +10148,9 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                     return -1;
                 }
 
-#ifdef VEX_DEBUG
-                fprintf(stderr, "VEXW ENTRY:      VEXW%x\n", idx);
-                fprintf(stderr, "VEXW MAX ENTRY:  VEXW%lx\n", 
+                common_parsing_printf("VEXW ENTRY:      VEXW%x\n", idx);
+                common_parsing_printf("VEXW MAX ENTRY:  VEXW%lx\n", 
                         (sizeof(vexWMap) / sizeof(vexWMap[0])) - 1);
-#endif
 
                 /* Set the current entry */
                 gotit = &vexWMap[idx][pref.vex_w];
@@ -10191,10 +10174,8 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 /* Get the SSE entry */
                 idx = gotit->tabidx;
 
-#ifdef VEX_DEBUG
-                printf("SSE_VEX_MULT  index: %d\n", idx);
-                printf("SSE_VEX_MULT  has vex? %s\n", pref.vex_present ? "YES" : "NO");
-#endif
+                common_parsing_printf("SSE_VEX_MULT  index: %d\n", idx);
+                common_parsing_printf("SSE_VEX_MULT  has vex? %s\n", pref.vex_present ? "YES" : "NO");
 
                 /* Switch based on whether or not VEX is present */
                 if(pref.vex_present)
@@ -10238,15 +10219,13 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 vextab = true;
                 break;
             case t_ill:
-#ifdef VEX_DEBUG
                 if(pref.vex_present)
                 {
-                    printf("MISSING INSTRUCTION IN TABLE: %s\n",
+                    common_parsing_printf("MISSING INSTRUCTION IN TABLE: %s\n",
                             (pref.vex_m_mmmm == 1 ? "twoByteMap" :
                              (pref.vex_m_mmmm == 2 ? "threeByteMap" : "threeByteMap2")));
-                    printf("                     SSE_IDX: %d, previous idx %x\n", sseidx, idx);
+                    common_parsing_printf("                     SSE_IDX: %d, previous idx %x\n", sseidx, idx);
                 }
-#endif
 
                 /* Illegal or unknown instruction */
                 instruct.legacy_type = ILLEGAL;
@@ -10264,9 +10243,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
 
     if(pref.vex_present && !vextab)
     {
-#ifdef VEX_DEBUG
-        printf("ERROR: This instruction doesn't support VEX prefixes.\n");
-#endif
+        common_parsing_printf("ERROR: This instruction doesn't support VEX prefixes.\n");
         instruct.legacy_type = ILLEGAL;
         instruct.entry = gotit;
         return -1;
@@ -11119,9 +11096,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
                assert(0 && "Wrong table!");
                break;
             default:
-#ifdef VEX_DEBUG
-               printf("mode: %d  %x\n", op.admet, op.admet);
-#endif
+               common_parsing_printf("mode: %d  %x\n", op.admet, op.admet);
                assert(0 && "Bad addressing mode!");
          }
       } else {
@@ -11441,9 +11416,7 @@ bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3
             if(((pref.vex_prefix[0] & (unsigned int)(0x03 << 2)) != 0)
                   || ((pref.vex_prefix[1] & (unsigned int)(1 << 2)) == 0))
             {
-#ifdef VEX_DEBUG
-               printf("EVEX PREFIX INVALID!\n");
-#endif
+               common_parsing_printf("EVEX PREFIX INVALID!\n");
                err = true;
                break;
             }
@@ -11583,44 +11556,42 @@ bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3
 
    /* Print debug information that is super helpful for VEX debugging. */
 
-#ifdef VEX_DEBUG /* Print out prefix information (very verbose) */
-   fprintf(stderr, "Prefix buffer: %x %x %x %x %x\n", pref.prfx[0], pref.prfx[1],
+   common_parsing_printf("Prefix buffer: %x %x %x %x %x\n", pref.prfx[0], pref.prfx[1],
          pref.prfx[2], pref.prfx[3], pref.prfx[4]);
-   fprintf(stderr, "opcode prefix: 0x%x\n", pref.opcode_prefix);
-   fprintf(stderr, "REX  W: %s  R: %s  X: %s  B: %s\n",
+   common_parsing_printf("opcode prefix: 0x%x\n", pref.opcode_prefix);
+   common_parsing_printf("REX  W: %s  R: %s  X: %s  B: %s\n",
          pref.rexW() ? "yes" : "no", pref.rexR() ? "yes" : "no",
          pref.rexX() ? "yes" : "no", pref.rexB() ? "yes" : "no");
 
-   fprintf(stderr, "IS VEX PRESENT?  %s\n", pref.vex_present ? "YES" : "NO");
+   common_parsing_printf("IS VEX PRESENT?  %s\n", pref.vex_present ? "YES" : "NO");
    if(pref.vex_present)
    {
-      fprintf(stderr, "VEX IS PRESENT: %d\n",
+      common_parsing_printf("VEX IS PRESENT: %d\n",
             pref.vex_type);
-      fprintf(stderr, "VEX BYTES:      %x %x %x %x %x\n",
+      common_parsing_printf("VEX BYTES:      %x %x %x %x %x\n",
             pref.vex_prefix[0], pref.vex_prefix[1], pref.vex_prefix[2],
             pref.vex_prefix[3], pref.vex_prefix[4]);
-      fprintf(stderr, "VEX SSE MULT:   %d  0x%x\n",
+      common_parsing_printf("VEX SSE MULT:   %d  0x%x\n",
             pref.vex_sse_mult, pref.vex_sse_mult);
-      fprintf(stderr, "VEX_VVVV:       %d  0x%x\n",
+      common_parsing_printf("VEX_VVVV:       %d  0x%x\n",
             pref.vex_vvvv_reg, pref.vex_vvvv_reg);
-      fprintf(stderr, "VEX_LL:         %d  0x%x\n",
+      common_parsing_printf("VEX_LL:         %d  0x%x\n",
             pref.vex_ll, pref.vex_ll);
-      fprintf(stderr, "VEX_PP:         %d  0x%x\n",
+      common_parsing_printf("VEX_PP:         %d  0x%x\n",
             pref.vex_pp, pref.vex_pp);
-      fprintf(stderr, "VEX_M-MMMM:     %d  0x%x\n",
+      common_parsing_printf("VEX_M-MMMM:     %d  0x%x\n",
             pref.vex_m_mmmm, pref.vex_m_mmmm);
-      fprintf(stderr, "VEX_W:          %d  0x%x\n",
+      common_parsing_printf("VEX_W:          %d  0x%x\n",
             pref.vex_w, pref.vex_w);
-      fprintf(stderr, "VEX_r:          %d  0x%x\n",
+      common_parsing_printf("VEX_r:          %d  0x%x\n",
             pref.vex_r, pref.vex_r);
-      fprintf(stderr, "VEX_R:          %d  0x%x\n",
+      common_parsing_printf("VEX_R:          %d  0x%x\n",
             pref.vex_R, pref.vex_R);
-      fprintf(stderr, "VEX_x:          %d  0x%x\n",
+      common_parsing_printf("VEX_x:          %d  0x%x\n",
             pref.vex_x, pref.vex_x);
-      fprintf(stderr, "VEX_b:          %d  0x%x\n",
+      common_parsing_printf("VEX_b:          %d  0x%x\n",
             pref.vex_b, pref.vex_b);
    }
-#endif
 
    return !err;
 }
@@ -11918,7 +11889,7 @@ bool convert_to_rel8(const unsigned char*&origInsn, unsigned char *&newInsn) {
    }
 
    // Oops...
-   fprintf(stderr, "Unhandled jump conversion case: opcode is 0x%x\n", *origInsn);
+   common_parsing_printf("Unhandled jump conversion case: opcode is 0x%x\n", *origInsn);
    assert(0 && "Unhandled jump conversion case!");
    return false;
 }
@@ -11944,7 +11915,7 @@ bool convert_to_rel32(const unsigned char*&origInsn, unsigned char *&newInsn) {
    }
 
    // Oops...
-   fprintf(stderr, "Unhandled jump conversion case: opcode is 0x%x\n", *origInsn);
+   common_parsing_printf("Unhandled jump conversion case: opcode is 0x%x\n", *origInsn);
    assert(0 && "Unhandled jump conversion case!");
    return false;
 }
