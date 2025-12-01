@@ -63,7 +63,7 @@ namespace aarch64 {
 namespace riscv64 {
   bool isSoftwareInterrupt(di::Instruction const& ins) {
     auto id = ins.getOperation().getID();
-    return id == riscv64_op_ebreak || id == riscv64_op_c_ebreak;
+    return id == riscv64_op_ebreak;
   }
 }
 
