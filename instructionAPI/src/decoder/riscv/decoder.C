@@ -63,6 +63,7 @@ struct implicit_state final {
 std::map<riscv_reg, implicit_state> implicit_registers(cs_detail const *);
 cs_riscv_op make_reg_op(int32_t reg, cs_ac_type access);
 cs_riscv_op make_imm_op(int64_t imm);
+bool is_compressed(di::Instruction &insn);
 
 } // namespace
 
@@ -181,7 +182,12 @@ void InstructionDecoder_riscv64::decode_operands(Instruction &insn) {
     MachRegister mreg = riscv::translate_register(reg, this->mode);
     auto regAST = makeRegisterExpression(mreg);
     implicit_state s = r.second;
-    insn.appendOperand(regAST, s.read, s.written, is_implicit);
+    // For compressed instructions, we already handled non-encoded operands
+    // Thus, for compressed instructions, we only add implicit registers to encoded operands
+    if (!is_compressed(insn)) {
+      insn.appendOperand(regAST, s.read, s.written, is_implicit);
+    }
+    insn.appendEncodedOperand(regAST, s.read, s.written, is_implicit);
   }
 
   // Special case: Capstone does not handle implicit pc registers
@@ -815,10 +821,12 @@ void InstructionDecoder_riscv64::add_pc_operands(Instruction &insn) {
   switch (eid) {
   case riscv64_op_auipc: {
     insn.appendOperand(pc, is_read, !is_write, is_implicit);
+    insn.appendEncodedOperand(pc, is_read, !is_write, is_implicit);
     break;
   }
   case riscv64_op_jalr: {
     insn.appendOperand(pc, !is_read, is_write, is_implicit);
+    insn.appendEncodedOperand(pc, !is_read, is_write, is_implicit);
     break;
   }
   case riscv64_op_jal:
@@ -829,6 +837,7 @@ void InstructionDecoder_riscv64::add_pc_operands(Instruction &insn) {
   case riscv64_op_bltu:
   case riscv64_op_bgeu: {
     insn.appendOperand(pc, is_read, is_write, is_implicit);
+    insn.appendEncodedOperand(pc, is_read, is_write, is_implicit);
     break;
   }
   default: {
@@ -873,4 +882,9 @@ cs_riscv_op make_imm_op(int64_t imm) {
   op.access = CS_AC_READ;
   return op;
 }
+
+bool is_compressed(di::Instruction &insn) {
+  return insn.size() == 2;
+}
+
 } // namespace
