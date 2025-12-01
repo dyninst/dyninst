@@ -9925,7 +9925,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 gotit = &sseMap[idx][sseidx];
                 nxtab = gotit->otable;
 
-                common_parsing_printf("SSE MAP   idx: %d 0x%x  sseidx: %d 0x%x\n", idx, idx, sseidx, sseidx);
+                common_parsing_printf("SSE MAP   idx: %u 0x%x  sseidx: %d 0x%x\n", idx, idx, sseidx, (uint32_t) sseidx);
                 common_parsing_printf("HAS VEX? %s\n", pref.vex_present ? "YES" : "NO");
                 common_parsing_printf("NEXT TAB == SSE_MULT? %s\n", nxtab == t_sse_mult ? "YES" : "NO");
                 common_parsing_printf("NEXT TAB == DONE? %s\n", nxtab == t_done ? "YES" : "NO");
@@ -9942,7 +9942,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 nxtab = gotit->otable;
                 vextab = true;
 
-                common_parsing_printf("SSE MULT MAP   idx: %d  sseidx: %d sse_mult: %d\n", idx, sseidx, pref.vex_sse_mult);
+                common_parsing_printf("SSE MULT MAP   idx: %u  sseidx: %d sse_mult: %d\n", idx, sseidx, pref.vex_sse_mult);
                 common_parsing_printf("NEXT TAB == DONE? %s\n", nxtab == t_done ? "YES" : "NO");
                 common_parsing_printf("NEXT TAB == VEXW? %s\n", nxtab == t_vexw ? "YES" : "NO");
 
@@ -9969,7 +9969,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 gotit = &sseMapBis[idx][sseidx];
                 nxtab = gotit->otable;
 
-                common_parsing_printf("SSEB MAP  idx: %d  sseidx: %d\n", idx, sseidx);
+                common_parsing_printf("SSEB MAP  idx: %u  sseidx: %d\n", idx, sseidx);
 
                 /* If there is no vex prefix, we're done */
                 if(!pref.vex_present)
@@ -9983,7 +9983,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 nxtab = gotit->otable;
                 vextab = true;
 
-                common_parsing_printf("SSEB MULT idx: %d  sseMul: %d\n", idx, pref.vex_sse_mult);
+                common_parsing_printf("SSEB MULT idx: %u  sseMul: %d\n", idx, pref.vex_sse_mult);
                 break;
             case t_sse_ter:
                 /* Decode the sse prefix for this type */
@@ -10004,7 +10004,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 gotit = &sseMapTer[idx][sseidx];
                 nxtab = gotit->otable;
 
-                common_parsing_printf("SSET MAP  idx: %d  sseidx: %d\n", idx, sseidx);
+                common_parsing_printf("SSET MAP  idx: %u  sseidx: %d\n", idx, sseidx);
 
                 /* If there is no vex prefix, we're done */
                 if(!pref.vex_present)
@@ -10019,7 +10019,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 nxtab = gotit->otable;
                 vextab = true;
 
-                common_parsing_printf("SSET MULT idx: %d  sseMul: %d\n", idx, pref.vex_sse_mult);
+                common_parsing_printf("SSET MULT idx: %u  sseMul: %d\n", idx, pref.vex_sse_mult);
                 break;
 
             case t_grp:
@@ -10174,7 +10174,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 /* Get the SSE entry */
                 idx = gotit->tabidx;
 
-                common_parsing_printf("SSE_VEX_MULT  index: %d\n", idx);
+                common_parsing_printf("SSE_VEX_MULT  index: %u\n", idx);
                 common_parsing_printf("SSE_VEX_MULT  has vex? %s\n", pref.vex_present ? "YES" : "NO");
 
                 /* Switch based on whether or not VEX is present */
@@ -11096,7 +11096,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
                assert(0 && "Wrong table!");
                break;
             default:
-               common_parsing_printf("mode: %d  %x\n", op.admet, op.admet);
+               common_parsing_printf("mode: %u  %x\n", op.admet, op.admet);
                assert(0 && "Bad addressing mode!");
          }
       } else {
@@ -11572,25 +11572,25 @@ bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3
             pref.vex_prefix[0], pref.vex_prefix[1], pref.vex_prefix[2],
             pref.vex_prefix[3], pref.vex_prefix[4]);
       common_parsing_printf("VEX SSE MULT:   %d  0x%x\n",
-            pref.vex_sse_mult, pref.vex_sse_mult);
+            pref.vex_sse_mult, (uint32_t) pref.vex_sse_mult);
       common_parsing_printf("VEX_VVVV:       %d  0x%x\n",
-            pref.vex_vvvv_reg, pref.vex_vvvv_reg);
+            pref.vex_vvvv_reg, (uint32_t) pref.vex_vvvv_reg);
       common_parsing_printf("VEX_LL:         %d  0x%x\n",
-            pref.vex_ll, pref.vex_ll);
+            pref.vex_ll, (uint32_t) pref.vex_ll);
       common_parsing_printf("VEX_PP:         %d  0x%x\n",
-            pref.vex_pp, pref.vex_pp);
+            pref.vex_pp, (uint32_t) pref.vex_pp);
       common_parsing_printf("VEX_M-MMMM:     %d  0x%x\n",
-            pref.vex_m_mmmm, pref.vex_m_mmmm);
+            pref.vex_m_mmmm, (uint32_t) pref.vex_m_mmmm);
       common_parsing_printf("VEX_W:          %d  0x%x\n",
-            pref.vex_w, pref.vex_w);
+            pref.vex_w, (uint32_t) pref.vex_w);
       common_parsing_printf("VEX_r:          %d  0x%x\n",
-            pref.vex_r, pref.vex_r);
+            pref.vex_r, (uint32_t) pref.vex_r);
       common_parsing_printf("VEX_R:          %d  0x%x\n",
-            pref.vex_R, pref.vex_R);
+            pref.vex_R, (uint32_t) pref.vex_R);
       common_parsing_printf("VEX_x:          %d  0x%x\n",
-            pref.vex_x, pref.vex_x);
+            pref.vex_x, (uint32_t) pref.vex_x);
       common_parsing_printf("VEX_b:          %d  0x%x\n",
-            pref.vex_b, pref.vex_b);
+            pref.vex_b, (uint32_t) pref.vex_b);
    }
 
    return !err;
