@@ -69,15 +69,13 @@ bool IA_riscv64::isFrameSetupInsn(Instruction i) const
     // sd s0, 0(sp)       (c.sdsp s0, sp)
 
     entryID eid = i.getOperation().getID();
-    if (eid == riscv64_op_c_sdsp || eid == riscv64_op_sd) {
+    if (eid == riscv64_op_sd) {
         RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(i.getOperand(0).getValue());
         Dereference::Ptr op1 = boost::dynamic_pointer_cast<Dereference>(i.getOperand(1).getValue());
 
-        std::vector<Expression::Ptr> derefChildren;
-        op1->getChildren(derefChildren);
+        std::vector<Expression::Ptr> derefChildren = op1->getSubexpressions();
         BinaryFunction::Ptr deref = boost::dynamic_pointer_cast<BinaryFunction>(derefChildren[0]);
-        std::vector<Expression::Ptr> addFunc;
-        deref->getChildren(addFunc);
+        std::vector<Expression::Ptr> addFunc = deref->getSubexpressions();
         RegisterAST::Ptr addFunc0 = boost::dynamic_pointer_cast<RegisterAST>(addFunc[0]);
         Immediate::Ptr addFunc1 = boost::dynamic_pointer_cast<Immediate>(addFunc[1]);
 
@@ -115,14 +113,11 @@ bool IA_riscv64::isNop() const
     Instruction insn = curInsn();
     entryID eid = insn.getOperation().getID();
 
-    if (eid == riscv64_op_c_nop) {
-        return true;
-    }
-    else if (eid == riscv64_op_addi) {
-        RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
-        RegisterAST::Ptr op1 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue());
-        Immediate::Ptr op2 = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(2).getValue());
-        if (op0->getID() == riscv64::zero && op1->getID() == riscv64::zero && op2->eval().val.s32val == 0) {
+    if (eid == riscv64_op_addi) {
+        MachRegister rd = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue())->getID();
+        MachRegister rs = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue())->getID();
+        int32_t imm = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(2).getValue())->eval().val.s32val;
+        if (rd == riscv64::zero && rs == riscv64::zero && imm == 0) {
             return true;
         }
     }
@@ -219,27 +214,11 @@ bool IA_riscv64::savesFP() const
     entryID eid = insn.getOperation().getID();
     if (eid == riscv64_op_addi) {
         // addi sp, sp, -n
-        RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
-        RegisterAST::Ptr op1 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue());
-        Immediate::Ptr op2 = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(2).getValue());
+        MachRegister rd = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue())->getID();
+        MachRegister rs = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue())->getID();
+        int32_t imm = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(2).getValue())->eval().val.s32val;
 
-        MachRegister reg0 = op0->getID();
-        MachRegister reg1 = op1->getID();
-        int offset2 = op2->eval().val.s32val;
-
-        if (reg0 == riscv64::sp && reg1 == riscv64::sp && offset2 < 0) {
-            return true;
-        }
-    }
-    else if (eid == riscv64_op_c_addi || eid == riscv64_op_c_addi16sp) {
-        // c.addi16sp sp, n
-        RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
-        Immediate::Ptr op1 = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(1).getValue());
-
-        MachRegister reg0 = op0->getID();
-        int offset1 = op1->eval().val.s32val;
-
-        if (reg0 == riscv64::sp && offset1 < 0) {
+        if (rd == riscv64::sp && rs == riscv64::sp && imm < 0) {
             return true;
         }
     }
@@ -278,28 +257,11 @@ bool IA_riscv64::cleansStack() const
     // addi sp, sp, n
     if (eid == riscv64_op_addi) {
         // addi sp, sp, n
-        RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
-        RegisterAST::Ptr op1 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue());
-        Immediate::Ptr op2 = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(2).getValue());
+        MachRegister rd = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue())->getID();
+        MachRegister rs = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue())->getID();
+        int32_t imm = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(2).getValue())->eval().val.s32val;
 
-        MachRegister reg0 = op0->getID();
-        MachRegister reg1 = op1->getID();
-        int offset2 = op1->eval().val.s32val;
-
-        if (reg0 == riscv64::sp && reg1 == riscv64::sp && offset2 > 0) {
-            return true;
-        }
-    }
-    if (eid == riscv64_op_c_addi || eid == riscv64_op_c_addi16sp) {
-        // c.addi sp, n
-        // c.addi16sp sp, n
-        RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
-        Immediate::Ptr op1 = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(1).getValue());
-
-        MachRegister reg0 = op0->getID();
-        int offset1 = op1->eval().val.s32val;
-
-        if (reg0 == riscv64::sp && offset1 > 0) {
+        if (rd == riscv64::sp && rs == riscv64::sp && imm > 0) {
             return true;
         }
     }
@@ -320,68 +282,49 @@ bool IA_riscv64::isReturn(Dyninst::ParseAPI::Function *func, Dyninst::ParseAPI::
 {
     Instruction insn = curInsn();
     entryID eid = insn.getOperation().getID();
-    MachRegister linkReg;
-    bool isJr = false;
 
-    if (eid == riscv64_op_c_jr) {
-        // c.jr reg
-        linkReg = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue())->getID();
-        isJr = true;
-    }
     if (eid == riscv64_op_jalr) {
         // jalr zero, reg, 0
-        MachRegister rd = (boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue()))->getID();
-        vector<InstructionAST::Ptr> children;
-        boost::dynamic_pointer_cast<BinaryFunction>(insn.getOperand(1).getValue())->getChildren(children);
-        assert(children.size() == 2);
-        MachRegister rs = (boost::dynamic_pointer_cast<RegisterAST>(children[0]))->getID();
-        int32_t imm = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
+        MachRegister rd = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue())->getID();
+        MachRegister rs = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue())->getID();
+        int32_t imm = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(2).getValue())->eval().val.s32val;
         if (rd == riscv64::x0 && imm == 0) {
-            linkReg = rs;
-            isJr = true;
-        }
-    }
+            MachRegister linkReg = rs;
+            // If reg is ra, it is return
+            if (linkReg == riscv64::ra) {
+                return true;
+            }
 
-    if (isJr) {
-        // If reg is ra, it is return
-        if (linkReg == riscv64::ra) {
-            return true;
-        }
+            // Otherwise, check whether it is non-ABI return
+            std::map<Offset, InstructionAPI::Instruction> insns;
+            func->entry()->getInsns(insns);
 
-        // Otherwise, check whether it is non-ABI return
-        std::map<Offset, InstructionAPI::Instruction> insns;
-        func->entry()->getInsns(insns);
+            // Check whether the jump register matches the stored link register in the function prologue
+            auto iter = insns.begin();
+            for (int i = 0; i < 2 && iter != insns.end(); i++) {
+                Instruction frameInsn = iter->second;
+                eid = frameInsn.getOperation().getID();
+                if (eid == riscv64_op_sd) {
+                    RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(frameInsn.getOperand(0).getValue());
+                    Dereference::Ptr op1 = boost::dynamic_pointer_cast<Dereference>(frameInsn.getOperand(1).getValue());
 
-        // Check whether the jump register matches the stored link register in the function prologue
-        auto iter = insns.begin();
-        for (int i = 0; i < 2 && iter != insns.end(); i++) {
-            Instruction frameInsn = iter->second;
-            eid = frameInsn.getOperation().getID();
-            if (eid == riscv64_op_c_sdsp || eid == riscv64_op_sd) {
-                RegisterAST::Ptr op0 = boost::dynamic_pointer_cast<RegisterAST>(frameInsn.getOperand(0).getValue());
-                Dereference::Ptr op1 = boost::dynamic_pointer_cast<Dereference>(frameInsn.getOperand(1).getValue());
+                    std::vector<Expression::Ptr> derefChildren = op1->getSubexpressions();
+                    BinaryFunction::Ptr deref = boost::dynamic_pointer_cast<BinaryFunction>(derefChildren[0]);
+                    std::vector<Expression::Ptr> addFunc = deref->getSubexpressions();
+                    RegisterAST::Ptr addFunc0 = boost::dynamic_pointer_cast<RegisterAST>(addFunc[0]);
+                    Immediate::Ptr addFunc1 = boost::dynamic_pointer_cast<Immediate>(addFunc[1]);
 
-                std::vector<Expression::Ptr> derefChildren;
-                op1->getChildren(derefChildren);
-                BinaryFunction::Ptr deref = boost::dynamic_pointer_cast<BinaryFunction>(derefChildren[0]);
-                std::vector<Expression::Ptr> addFunc;
-                deref->getChildren(addFunc);
-                RegisterAST::Ptr addFunc0 = boost::dynamic_pointer_cast<RegisterAST>(addFunc[0]);
-                Immediate::Ptr addFunc1 = boost::dynamic_pointer_cast<Immediate>(addFunc[1]);
+                    MachRegister memReg1 = addFunc0->getID();
+                    int memOffset1 = addFunc1->eval().val.s32val;
 
-                MachRegister memReg1 = addFunc0->getID();
-                int memOffset1 = addFunc1->eval().val.s32val;
-
-                if (memReg1 == riscv64::sp && memOffset1 == 0x8) {
-                    if (linkReg == op0->getID()) {
+                    if (memReg1 == riscv64::sp && memOffset1 == 0x8 && linkReg == op0->getID()) {
                         return true;
                     }
                 }
+                iter++;
             }
-            iter++;
         }
     }
-
     return false;
 }
 
@@ -415,33 +358,12 @@ bool IA_riscv64::isMultiInsnJump(Address *target, Function *context, Block *curr
     // Slicing is not as efficient as instruction pattern matching
     entryID curInsnID = insn.getOperation().getID();
 
-    if (curInsnID == riscv64_op_c_jalr || curInsnID == riscv64_op_c_jr || curInsnID == riscv64_op_jalr) {
+    if (curInsnID == riscv64_op_jalr) {
         Address addr = current;
 
-        // If we saw c.jalr, grab the second operand and offset
-        // (not the first because the first one is the implicit link register)
-        Address offset = 0;
-        MachRegister linkReg, targetReg;
+        MachRegister targetReg = boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(1).getValue())->getID();
+        Address offset = boost::dynamic_pointer_cast<Immediate>(insn.getOperand(2).getValue())->eval().val.s32val;
 
-        // Get the link register
-        if (curInsnID == riscv64_op_c_jalr) {
-            linkReg = riscv64::ra;
-            targetReg = (boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue()))->getID();
-        }
-        else if (curInsnID == riscv64_op_c_jr) {
-            linkReg = riscv64::zero;
-            targetReg = (boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue()))->getID();
-        }
-        else {
-            // If we saw jalr, unwrap the second operand.
-            // The first child operand will be the target register
-            // The second child operand will be the immediate.
-            linkReg = (boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue()))->getID();
-            vector<InstructionAST::Ptr> children;
-            boost::dynamic_pointer_cast<BinaryFunction>(insn.getOperand(1).getValue())->getChildren(children);
-            targetReg = (boost::dynamic_pointer_cast<RegisterAST>(children[0]))->getID();
-            offset = (boost::dynamic_pointer_cast<Immediate>(children[1]))->eval().val.s32val;
-        }
         IA_riscv64* cloned = this->clone();
         cloned->retreat();
         Instruction pi = cloned->curInsn();
@@ -454,8 +376,8 @@ bool IA_riscv64::isMultiInsnJump(Address *target, Function *context, Block *curr
 
         // If the previous instruction is indeed `auipc`, unwrap all operands and calculate the target address
         if (pi.getOperation().getID() == riscv64_op_auipc) {
-            MachRegister auipcRd = (boost::dynamic_pointer_cast<RegisterAST>(pi.getOperand(0).getValue()))->getID();
-            int32_t auipcImm = (boost::dynamic_pointer_cast<Immediate>(pi.getOperand(1).getValue()))->eval().val.s32val;
+            MachRegister auipcRd = boost::dynamic_pointer_cast<RegisterAST>(pi.getOperand(0).getValue())->getID();
+            int32_t auipcImm = boost::dynamic_pointer_cast<Immediate>(pi.getOperand(1).getValue())->eval().val.s32val;
 
             if (auipcRd == targetReg) {
                 // The offset of auipc is (imm << 12), so we add (imm << 12) to the target address
@@ -478,15 +400,14 @@ bool IA_riscv64::isMultiInsnJump(Address *target, Function *context, Block *curr
         //   ld      t1,1498(t1)
         //   jalr    t1
 
-        else if (pi.getOperation().getID() == riscv64_op_ld ||
-                pi.getOperation().getID() == riscv64_op_c_ld) {
+        else if (pi.getOperation().getID() == riscv64_op_ld) {
             MachRegister ldRd = (boost::dynamic_pointer_cast<RegisterAST>(pi.getOperand(0).getValue()))->getID();
-            vector<InstructionAST::Ptr> children1;
-            boost::dynamic_pointer_cast<Dereference>(pi.getOperand(1).getValue())->getChildren(children1);
-            vector<InstructionAST::Ptr> children2;
-            boost::dynamic_pointer_cast<BinaryFunction>(children1[0])->getChildren(children2);
-            MachRegister ldRs = (boost::dynamic_pointer_cast<RegisterAST>(children2[0]))->getID();
-            int32_t ldImm = (boost::dynamic_pointer_cast<Immediate>(children2[1]))->eval().val.s32val;
+            vector<InstructionAST::Ptr> children1 =
+                boost::dynamic_pointer_cast<Dereference>(pi.getOperand(1).getValue())->getSubexpressions();
+            vector<InstructionAST::Ptr> children2 = 
+                boost::dynamic_pointer_cast<BinaryFunction>(children1[0])->getSubexpressions();
+            MachRegister ldRs = boost::dynamic_pointer_cast<RegisterAST>(children2[0])->getID();
+            int32_t ldImm = boost::dynamic_pointer_cast<Immediate>(children2[1])->eval().val.s32val;
 
             // The register operands should be the same as the target register
             if (ldRd == targetReg && ldRs == targetReg) {
@@ -497,8 +418,8 @@ bool IA_riscv64::isMultiInsnJump(Address *target, Function *context, Block *curr
                 cloned->retreat();
                 Instruction pi2 = cloned->curInsn();
                 if (pi2.getOperation().getID() == riscv64_op_auipc) {
-                    MachRegister auipcRd = (boost::dynamic_pointer_cast<RegisterAST>(pi2.getOperand(0).getValue()))->getID();
-                    int32_t auipcImm = (boost::dynamic_pointer_cast<Immediate>(pi2.getOperand(1).getValue()))->eval().val.s32val;
+                    MachRegister auipcRd = boost::dynamic_pointer_cast<RegisterAST>(pi2.getOperand(0).getValue())->getID();
+                    int32_t auipcImm = boost::dynamic_pointer_cast<Immediate>(pi2.getOperand(1).getValue())->eval().val.s32val;
 
                     if (auipcRd == targetReg) {
                         // The offset of auipc is (imm << 12), so we add (imm << 12) to the target address
@@ -518,6 +439,9 @@ bool IA_riscv64::isMultiInsnJump(Address *target, Function *context, Block *curr
         }
 
         // Add more instruction patterns here
+        //
+        // ...
+        //
 
         // Unknown instruction pattern
         // Perform backward slicing as the last resort

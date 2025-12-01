@@ -268,8 +268,7 @@ static bool IsConditionalJump(Instruction insn) {
     if (id == aarch64_op_b_cond) return true;
     if (id == power_op_bc || id == power_op_bcctr || id == power_op_bclr) return true;
     if (id == riscv64_op_beq || id == riscv64_op_bne || id == riscv64_op_blt ||
-        id == riscv64_op_bge || id == riscv64_op_bltu || id == riscv64_op_bgeu ||
-        id == riscv64_op_c_beqz || id == riscv64_op_c_bnez) return true;
+        id == riscv64_op_bge || id == riscv64_op_bltu || id == riscv64_op_bgeu) return true;
     return false;
 }
 
