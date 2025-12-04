@@ -38,7 +38,7 @@ namespace Dyninst {
 namespace InstructionAPI {
 namespace riscv {
 
-  riscv_insn get_capstone_uncompress_opcode(riscv_insn id);
+  riscv_insn get_capstone_uncompressed_opcode(riscv_insn id);
   std::string capstone_opcode_to_mnemonic(riscv_insn id);
   entryID translate_opcode(riscv_insn id);
 

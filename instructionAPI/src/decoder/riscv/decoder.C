@@ -106,7 +106,7 @@ Instruction InstructionDecoder_riscv64::decode(InstructionDecoder::buffer &buf) 
   std::string encoded_mnemonic = riscv::capstone_opcode_to_mnemonic(encoded_opcode);
   auto encoded_op = Operation(encoded_eid, encoded_mnemonic, m_Arch);
 
-  riscv_insn opcode = riscv::get_capstone_uncompress_opcode(encoded_opcode);
+  riscv_insn opcode = riscv::get_capstone_uncompressed_opcode(encoded_opcode);
   entryID eid = riscv::translate_opcode(opcode);
   std::string mnemonic = riscv::capstone_opcode_to_mnemonic(opcode);
   auto op = Operation(eid, mnemonic, m_Arch);
