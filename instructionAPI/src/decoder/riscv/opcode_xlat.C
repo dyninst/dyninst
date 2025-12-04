@@ -7,7 +7,7 @@ namespace InstructionAPI {
 namespace riscv {
 
 // clang-format off
-  riscv_insn get_capstone_uncompress_opcode(riscv_insn id) {
+  riscv_insn get_capstone_uncompressed_opcode(riscv_insn id) {
     switch (id) {
       case RISCV_INS_C_ADD: return RISCV_INS_ADD;
       case RISCV_INS_C_ADDI: return RISCV_INS_ADDI;
