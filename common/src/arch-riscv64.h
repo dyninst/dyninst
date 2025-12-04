@@ -61,7 +61,9 @@ constexpr int RISCV_REG_SIZE = 8;
 // The maximum is 21 bits, which can be stored in a 32 bit integer
 constexpr int RISCV_IMM_SIZE = 4;
 
-// RISC-V general purpose registers values
+// Raw register encoding used in RISC-V instruction encoding
+// These values identify registers when decoding instructions
+// They are also used to emit register encoding during codegen
 constexpr int32_t GPR_X0     = 0;
 constexpr int32_t GPR_X1     = 1;
 constexpr int32_t GPR_X2     = 2;
