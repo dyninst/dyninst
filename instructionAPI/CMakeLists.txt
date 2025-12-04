@@ -5,7 +5,6 @@ include(DyninstLibrary)
 set(_sources
     src/debug.C
     src/Instruction.C
-    src/Operation.C
     src/Operand.C
     src/Register.C
     src/MultiRegister.C
@@ -16,7 +15,6 @@ set(_sources
     src/ArchSpecificFormatters.C
     src/Immediate.C
     src/InstructionDecoder.C
-    src/InstructionDecoder-x86.C
     src/InstructionDecoder-power.C
     src/InstructionDecoder-aarch64.C
     src/AMDGPU/gfx908/decodeOperands.C
@@ -35,6 +33,13 @@ set(_sources
     src/AMDGPU/gfx940/amdgpu_gfx940_decoder_impl.C
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
     src/InstructionDecoderImpl.C
+    src/x86/decoder.C
+    src/x86/decode_mem.C
+    src/x86/decode_imm.C
+    src/x86/decode_implicit.C
+    src/x86/decode_reg.C
+    src/x86/opcode_xlat.C
+    src/x86/register_xlat.C
     src/syscalls.C
     src/interrupts.C)
 
@@ -65,8 +70,12 @@ set(_private_headers
     src/InstructionDecoder-aarch64.h
     src/InstructionDecoderImpl.h
     src/InstructionDecoder-power.h
-    src/InstructionDecoder-x86.h
+    src/x86/categories.h
+    src/x86/decoder.h
+    src/x86/opcode_xlat.h
+    src/x86/register_xlat.h
     h/syscalls.h
+    src/x86/type_conversion.h
     h/interrupts.h)
 
 set(instructionDecoderPowerExtraFlags "")
@@ -137,6 +146,7 @@ dyninst_library(
   DEFINES INSTRUCTION_LIB
   DYNINST_DEPS common
   PUBLIC_DEPS Dyninst::Boost_headers
+  PRIVATE_DEPS Dyninst::Capstone
 )
 # cmake-format: on
 

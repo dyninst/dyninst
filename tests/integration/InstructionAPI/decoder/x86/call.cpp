@@ -98,6 +98,10 @@ std::vector<call_test> make_tests(Dyninst::Architecture arch) {
 
   auto eax = is_64 ? Dyninst::x86_64::rax : Dyninst::x86::eax;
   auto ecx = is_64 ? Dyninst::x86_64::rcx : Dyninst::x86::ecx;
+  auto ebp = is_64 ? Dyninst::x86_64::rbp : Dyninst::x86::ebp;
+  auto gs = is_64 ? Dyninst::x86_64::gs : Dyninst::x86::gs;
+  auto ss = is_64 ? Dyninst::x86_64::ss : Dyninst::x86::ss;
+  auto cs = is_64 ? Dyninst::x86_64::cs : Dyninst::x86::cs;
 
   auto sp = Dyninst::MachRegister::getStackPointer(arch);
   auto ip = Dyninst::MachRegister::getPC(arch);
@@ -106,6 +110,24 @@ std::vector<call_test> make_tests(Dyninst::Architecture arch) {
 
   // clang-format off
   return {
+    { // call dword ptr gs:[eax + 0x10]
+      {0x65, 0xff, 0x50, 0x10},
+      di::register_rw_test{
+        reg_set{eax, sp, gs, ip, eax},
+        reg_set{sp, ip}
+      },
+      di::mem_test{
+        reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{eax, gs},
+          reg_set{sp}
+        }
+      },
+      di::cft_test{
+        hasCFT,
+        {isCall, !isConditional, isIndirect, !isFallthrough, !isBranch, !isReturn}
+      }
+    },
     { // call [8*EAX + ECX + 0xDEADBEEF]
       {0xff, 0x94, 0xc1, 0xef, 0xbe, 0xad, 0xde},
       di::register_rw_test{
@@ -160,6 +182,150 @@ std::vector<call_test> make_tests(Dyninst::Architecture arch) {
         {isCall, !isConditional, isIndirect, !isFallthrough, !isBranch, !isReturn}
       }
     },
+    { // call far fword ptr ds:[eax]
+      {0xff, 0x18},
+      di::register_rw_test{
+        reg_set{ip, sp, eax},
+        reg_set{sp, ip}
+      },
+      di::mem_test{
+        reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{eax},   // Missing: ds, ss
+          reg_set{sp}
+        }
+      },
+      di::cft_test{
+        hasCFT,
+        {isCall, !isConditional, isIndirect, !isFallthrough, !isBranch, !isReturn}
+      }
+    },
+    { // call far fword ptr ds:[eax+0x12]
+      {0xff, 0x58, 0x12},
+      di::register_rw_test{
+        reg_set{ip, sp, eax},
+        reg_set{sp, ip}
+      },
+      di::mem_test{
+        reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{eax},
+          reg_set{sp}
+        }
+      },
+      di::cft_test{
+        hasCFT,
+        {isCall, !isConditional, isIndirect, !isFallthrough, !isBranch, !isReturn}
+      }
+    },
+    { // leave
+      {0xc9},
+      di::register_rw_test {
+        reg_set{sp, ebp},
+        reg_set{sp, ebp}
+      },
+      di::mem_test{
+        reads_memory, !writes_memory,
+        di::register_rw_test{
+          reg_set{sp, ebp},
+          reg_set{}
+        }
+      },
+      di::cft_test{
+        !hasCFT,
+        {}
+      }
+    },
+    { // enter 0x1234, 0x5 (Create a stack frame of size 0x1234 with a nesting level of 0x5)
+      {0xc8, 0x34, 0x12, 0x05},
+      di::register_rw_test {
+        reg_set{sp, ebp},
+        reg_set{sp, ebp}
+      },
+      di::mem_test{
+        !reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{},
+          reg_set{sp}
+        }
+      },
+      di::cft_test{
+        !hasCFT,
+        {}
+      }
+    },
+    { // ret
+      {0xc3},
+      di::register_rw_test {
+        reg_set{sp, ss},
+        reg_set{sp, ip}
+      },
+      di::mem_test{
+        reads_memory, !writes_memory,
+        di::register_rw_test{
+          reg_set{sp, ss},
+          reg_set{}
+        }
+      },
+      di::cft_test{
+        hasCFT,
+        {!isCall, !isConditional, !isIndirect, !isFallthrough, !isBranch, isReturn}
+      }
+    },
+    { // ret 0x1234
+      {0xc2, 0x34, 0x12},
+      di::register_rw_test {
+        reg_set{sp, ss},
+        reg_set{sp, ip}
+      },
+      di::mem_test{
+        reads_memory, !writes_memory,
+        di::register_rw_test{
+          reg_set{sp, ss},
+          reg_set{}
+        }
+      },
+      di::cft_test{
+        hasCFT,
+        {!isCall, !isConditional, !isIndirect, !isFallthrough, !isBranch, isReturn}
+      }
+    },
+    { // retf
+      {0xcb},
+      di::register_rw_test {
+        reg_set{sp, ss},
+        reg_set{sp, ip, cs}
+      },
+      di::mem_test{
+        reads_memory, !writes_memory,
+        di::register_rw_test{
+          reg_set{sp, ss},
+          reg_set{}
+        }
+      },
+      di::cft_test{
+        hasCFT,
+        {!isCall, !isConditional, !isIndirect, !isFallthrough, !isBranch, isReturn}
+      }
+    },
+    { // retf 0x1234
+      {0xca, 0x34, 0x12},
+      di::register_rw_test {
+        reg_set{sp, ss},
+        reg_set{sp, ip, cs}
+      },
+      di::mem_test{
+        reads_memory, !writes_memory,
+        di::register_rw_test{
+          reg_set{sp, ss},
+          reg_set{}
+        }
+      },
+      di::cft_test{
+        hasCFT,
+        {!isCall, !isConditional, !isIndirect, !isFallthrough, !isBranch, isReturn}
+      }
+    },
   };
   // clang-format on
 }
@@ -205,8 +371,8 @@ std::vector<call_test> make_tests64() {
 
   // clang-format off
   return {
-    { // call qword ptr [rcx+rax*8-0x12345678]
-      {0xff, 0x94, 0xc1, 0x78, 0x56, 0x34, 0x12},
+    { // call qword ptr [rcx+rax*8-0x21524111]
+      {0xff, 0x94, 0xc1, 0xef, 0xbe, 0xad, 0xde},
       di::register_rw_test{
         reg_set{sp, ip, rcx, rax},
         reg_set{sp, ip}

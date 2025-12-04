@@ -51,7 +51,7 @@ namespace Dyninst { namespace InstructionAPI {
   class Instruction {
 
   public:
-    friend class InstructionDecoder_x86;
+    friend class x86_decoder;
     friend class InstructionDecoder_power;
     friend class InstructionDecoder_aarch64;
     friend class InstructionDecoder_amdgpu_gfx908;
@@ -69,6 +69,28 @@ namespace Dyninst { namespace InstructionAPI {
 
       CFT(Expression::Ptr t, bool call, bool indir, bool cond, bool ft)
           : target(t), isCall(call), isIndirect(indir), isConditional(cond), isFallthrough(ft) {}
+    };
+
+    class category_t final {
+      friend class Instruction;
+      std::vector<InsnCategory> categories{};
+
+    public:
+      explicit category_t(std::vector<InsnCategory> c) noexcept : categories{std::move(c)} {}
+      category_t() = default;
+      category_t& operator=(std::vector<InsnCategory>&& c) {
+        categories = std::move(c);
+        return *this;
+      }
+
+      bool satisfies(InsnCategory category) const {
+        for(auto c : categories) {
+          if(c == category) {
+            return true;
+          }
+        }
+        return false;
+      }
     };
 
     DYNINST_EXPORT Instruction(Operation what, size_t size, const unsigned char* raw,
@@ -96,8 +118,14 @@ namespace Dyninst { namespace InstructionAPI {
 
     DYNINST_EXPORT size_t size() const;
 
+//    DYNINST_DEPRECATED("Use getWrittenRegisters()")
     DYNINST_EXPORT void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
+
+//    DYNINST_DEPRECATED("Use getReadRegisters()")
     DYNINST_EXPORT void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
+
+    DYNINST_EXPORT std::vector<RegisterAST::Ptr> getWrittenRegisters() const;
+    DYNINST_EXPORT std::vector<RegisterAST::Ptr> getReadRegisters() const;
 
     DYNINST_EXPORT bool isRead(Expression::Ptr candidate) const;
     DYNINST_EXPORT bool isWritten(Expression::Ptr candidate) const;
@@ -121,17 +149,19 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT Architecture getArch() const;
 
     DYNINST_EXPORT InsnCategory getCategory() const;
-    DYNINST_EXPORT bool isCall() const { return getCategory() == c_CallInsn; }
-    DYNINST_EXPORT bool isReturn() const { return getCategory() == c_ReturnInsn; }
-    DYNINST_EXPORT bool isBranch() const { return getCategory() == c_BranchInsn; }
-    DYNINST_EXPORT bool isCompare() const { return getCategory() == c_CompareInsn; }
-    DYNINST_EXPORT bool isPrefetch() const { return getCategory() == c_PrefetchInsn; }
-    DYNINST_EXPORT bool isSysEnter() const { return getCategory() == c_SysEnterInsn; }
-    DYNINST_EXPORT bool isSyscall() const { return getCategory() == c_SyscallInsn; }
-    DYNINST_EXPORT bool isInterrupt() const { return getCategory() == c_InterruptInsn; }
-    DYNINST_EXPORT bool isVector() const { return getCategory() == c_VectorInsn; }
-    DYNINST_EXPORT bool isGPUKernelExit() const { return getCategory() == c_GPUKernelExitInsn; }
-    DYNINST_EXPORT bool isSoftwareException() const { return isGPUKernelExit() || getCategory() == c_SoftwareExceptionInsn; }
+    DYNINST_EXPORT bool isCall() const { return checked_category(c_CallInsn); }
+    DYNINST_EXPORT bool isReturn() const { return checked_category(c_ReturnInsn); }
+    DYNINST_EXPORT bool isBranch() const { return checked_category(c_BranchInsn); }
+    DYNINST_EXPORT bool isConditional() const { return checked_category(c_ConditionalInsn); }
+    DYNINST_EXPORT bool isCompare() const { return checked_category(c_CompareInsn); }
+    DYNINST_EXPORT bool isPrefetch() const { return checked_category(c_PrefetchInsn); }
+    DYNINST_EXPORT bool isSysEnter() const { return checked_category(c_SysEnterInsn); }
+    DYNINST_EXPORT bool isSyscall() const { return checked_category(c_SyscallInsn); }
+    DYNINST_EXPORT bool isInterrupt() const { return checked_category(c_InterruptInsn); }
+    DYNINST_EXPORT bool isVector() const { return checked_category(c_VectorInsn); }
+    DYNINST_EXPORT bool isGPUKernelExit() const { return checked_category(c_GPUKernelExitInsn); }
+    DYNINST_EXPORT bool isTransactional() const { return checked_category(c_TransactionalInsn); }
+    DYNINST_EXPORT bool isSoftwareException() const { return isGPUKernelExit() || checked_category(c_SoftwareExceptionInsn); }
 
     typedef std::list<CFT>::const_iterator cftConstIter;
     DYNINST_EXPORT cftConstIter cft_begin() const { return m_Successors.begin(); }
@@ -158,6 +188,13 @@ namespace Dyninst { namespace InstructionAPI {
                        bool trueP = false, bool falseP = false) const;
     void copyRaw(size_t size, const unsigned char* raw);
 
+    bool checked_category(InsnCategory c) const {
+      if(arch_decoded_from == Arch_x86_64 || arch_decoded_from == Arch_x86) {
+        return categories.satisfies(c);
+      }
+      return getCategory() == c;
+    }
+
     mutable std::list<Operand> m_Operands;
     mutable Operation m_InsnOp;
     bool m_Valid;
@@ -167,6 +204,7 @@ namespace Dyninst { namespace InstructionAPI {
     mutable std::list<CFT> m_Successors;
     // formatter is a non-owning pointer to a singleton object
     ArchSpecificFormatter* formatter;
+    mutable category_t categories;
   };
 }}
 

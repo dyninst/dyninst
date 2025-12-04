@@ -51,7 +51,6 @@
 #include <string>
 
 using namespace std;
-using namespace NS_x86;
 
 #include "ArchSpecificFormatters.h"
 
@@ -189,13 +188,19 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT size_t Instruction::size() const { return m_size; }
 
+  std::vector<RegisterAST::Ptr> Instruction::getWrittenRegisters() const {
+    return {};
+  }
+
+  std::vector<RegisterAST::Ptr> Instruction::getReadRegisters() const {
+    return {};
+  }
+
   DYNINST_EXPORT void Instruction::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const {
     for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
         curOperand != m_Operands.end(); ++curOperand) {
       curOperand->getReadSet(regsRead);
     }
-    std::copy(m_InsnOp.implicitReads().begin(), m_InsnOp.implicitReads().end(),
-              std::inserter(regsRead, regsRead.begin()));
   }
 
   DYNINST_EXPORT void Instruction::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const {
@@ -203,8 +208,6 @@ namespace Dyninst { namespace InstructionAPI {
         curOperand != m_Operands.end(); ++curOperand) {
       curOperand->getWriteSet(regsWritten);
     }
-    std::copy(m_InsnOp.implicitWrites().begin(), m_InsnOp.implicitWrites().end(),
-              std::inserter(regsWritten, regsWritten.begin()));
   }
 
   DYNINST_EXPORT bool Instruction::isRead(Expression::Ptr candidate) const {
@@ -215,8 +218,7 @@ namespace Dyninst { namespace InstructionAPI {
         return true;
       }
     }
-    // Check if the candidate is read as an implicit operand
-    return m_InsnOp.isRead(candidate);
+    return false;
   }
 
   DYNINST_EXPORT bool Instruction::isWritten(Expression::Ptr candidate) const {
@@ -226,7 +228,7 @@ namespace Dyninst { namespace InstructionAPI {
         return true;
       }
     }
-    return m_InsnOp.isWritten(candidate);
+    return false;
   }
 
   DYNINST_EXPORT bool Instruction::readsMemory() const {
@@ -239,7 +241,7 @@ namespace Dyninst { namespace InstructionAPI {
         return true;
       }
     }
-    return !m_InsnOp.getImplicitMemReads().empty();
+    return false;
   }
 
   DYNINST_EXPORT bool Instruction::writesMemory() const {
@@ -249,7 +251,7 @@ namespace Dyninst { namespace InstructionAPI {
         return true;
       }
     }
-    return !m_InsnOp.getImplicitMemWrites().empty();
+    return false;
   }
 
   DYNINST_EXPORT void
@@ -258,8 +260,6 @@ namespace Dyninst { namespace InstructionAPI {
         curOperand != m_Operands.end(); ++curOperand) {
       curOperand->addEffectiveReadAddresses(memAccessors);
     }
-    std::copy(m_InsnOp.getImplicitMemReads().begin(), m_InsnOp.getImplicitMemReads().end(),
-              std::inserter(memAccessors, memAccessors.begin()));
   }
 
   DYNINST_EXPORT void
@@ -268,8 +268,6 @@ namespace Dyninst { namespace InstructionAPI {
         curOperand != m_Operands.end(); ++curOperand) {
       curOperand->addEffectiveWriteAddresses(memAccessors);
     }
-    std::copy(m_InsnOp.getImplicitMemWrites().begin(), m_InsnOp.getImplicitMemWrites().end(),
-              std::inserter(memAccessors, memAccessors.begin()));
   }
 
   DYNINST_EXPORT Operand Instruction::getPredicateOperand() const {
@@ -333,41 +331,18 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   DYNINST_EXPORT bool Instruction::allowsFallThrough() const {
+    if(arch_decoded_from == Arch_x86 || arch_decoded_from == Arch_x86_64) {
+      // Only conditional branches fall through
+      return isBranch() && isConditional();
+    }
+
     switch(m_InsnOp.getID()) {
-      case e_ret_far:
-      case e_ret_near:
-      case e_iret:
-      case e_jmp:
-      case e_hlt:
-      case e_sysret:
-      case e_sysexit:
-      case e_call:
-      case e_syscall:
       case amdgpu_gfx908_op_S_SETPC_B64:
       case amdgpu_gfx908_op_S_SWAPPC_B64:
       case amdgpu_gfx90a_op_S_SETPC_B64:
       case amdgpu_gfx90a_op_S_SWAPPC_B64:
       case amdgpu_gfx940_op_S_SETPC_B64:
       case amdgpu_gfx940_op_S_SWAPPC_B64: return false;
-      case e_jae:
-      case e_jb:
-      case e_jb_jnaej_j:
-      case e_jbe:
-      case e_jcxz_jec:
-      case e_jl:
-      case e_jle:
-      case e_jnb_jae_j:
-      case e_ja:
-      case e_jge:
-      case e_jg:
-      case e_jno:
-      case e_jnp:
-      case e_jns:
-      case e_jne:
-      case e_jo:
-      case e_jp:
-      case e_js:
-      case e_je: return true;
       default: {
         for(cftConstIter targ = m_Successors.begin(); targ != m_Successors.end(); ++targ) {
           if(targ->isFallthrough)
@@ -385,6 +360,12 @@ namespace Dyninst { namespace InstructionAPI {
   DYNINST_EXPORT Architecture Instruction::getArch() const { return arch_decoded_from; }
 
   DYNINST_EXPORT InsnCategory Instruction::getCategory() const {
+    if(arch_decoded_from == Arch_x86 || arch_decoded_from == Arch_x86_64) {
+      if(categories.categories.size()) {
+        return categories.categories[0];
+      }
+      return c_NoCategory;
+    }
     if(m_InsnOp.isVectorInsn)
       return c_VectorInsn;
     InsnCategory c = entryToCategory(m_InsnOp.getID());

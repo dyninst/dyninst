@@ -31,30 +31,16 @@
 #if !defined(DYN_OPERATION_H)
 #define DYN_OPERATION_H
 
-#include "Expression.h"
-#include "Register.h"
-#include "Result.h"
+#include "Architecture.h"
 #include "entryIDs.h"
 #include "dyninst_visibility.h"
 
-#include <mutex>
-#include <set>
-#include <stddef.h>
 #include <string>
-
-namespace NS_x86 {
-  struct ia32_entry;
-  class ia32_prefixes;
-}
-class ia32_locations;
-
 
 namespace Dyninst { namespace InstructionAPI {
 
   class Operation {
   public:
-    typedef std::set<RegisterAST::Ptr> registerSet;
-    typedef std::set<Expression::Ptr> VCSet;
     friend class InstructionDecoder_power; // for editing mnemonics after creation
     friend class InstructionDecoder_aarch64;
     friend class InstructionDecoder_amdgpu_gfx908;
@@ -62,46 +48,26 @@ namespace Dyninst { namespace InstructionAPI {
     friend class InstructionDecoder_amdgpu_gfx940;
 
   public:
-    DYNINST_EXPORT Operation(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL,
-                             ia32_locations* l = NULL, Architecture arch = Arch_none);
-    DYNINST_EXPORT Operation(const Operation& o);
     DYNINST_EXPORT Operation() = default;
-    DYNINST_EXPORT Operation(entryID id, std::string m, Architecture arch);
+    DYNINST_EXPORT Operation(entryID id, std::string m, Architecture = {}) :
+        operationID(id), mnemonic{std::move(m)} {}
 
-    DYNINST_EXPORT const Operation& operator=(const Operation& o);
+    DYNINST_EXPORT Operation(entryID id, prefixEntryID pid, std::string m) : Operation(id, std::move(m)) {
+      prefixID = pid;
+    }
 
-    DYNINST_EXPORT const registerSet& implicitReads();
-    DYNINST_EXPORT const registerSet& implicitWrites();
+    DYNINST_EXPORT std::string format() const { return mnemonic; }
 
-    DYNINST_EXPORT const VCSet& getImplicitMemReads();
-    DYNINST_EXPORT const VCSet& getImplicitMemWrites();
-
-    DYNINST_EXPORT std::string format() const;
-
-    DYNINST_EXPORT entryID getID() const;
-    DYNINST_EXPORT prefixEntryID getPrefixID() const;
-
-    DYNINST_EXPORT bool isRead(Expression::Ptr candidate);
-    DYNINST_EXPORT bool isWritten(Expression::Ptr candidate);
+    DYNINST_EXPORT entryID getID() const { return operationID; }
+    DYNINST_EXPORT prefixEntryID getPrefixID() const { return prefixID; }
 
     void updateMnemonic(std::string new_mnemonic) { mnemonic = std::move(new_mnemonic); }
 
     bool isVectorInsn{};
 
   private:
-    std::once_flag data_initialized;
-    void SetUpNonOperandData();
-
-    mutable registerSet otherRead;
-    mutable registerSet otherWritten;
-    mutable VCSet otherEffAddrsRead;
-    mutable VCSet otherEffAddrsWritten;
-
     mutable entryID operationID{};
-    Architecture archDecodedFrom{};
     prefixEntryID prefixID{};
-    Result_Type addrWidth{};
-    int segPrefix{};
     mutable std::string mnemonic;
   };
 }}
