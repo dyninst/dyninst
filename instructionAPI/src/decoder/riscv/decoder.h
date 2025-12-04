@@ -51,7 +51,6 @@ private:
 
 public:
   InstructionDecoder_riscv64(Dyninst::Architecture a);
-  InstructionDecoder_riscv64() = delete;
   InstructionDecoder_riscv64(InstructionDecoder_riscv64 const &) = delete;
   InstructionDecoder_riscv64 &operator=(InstructionDecoder_riscv64 const &) = delete;
   InstructionDecoder_riscv64(InstructionDecoder_riscv64 &&) = delete;
