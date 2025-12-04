@@ -151,11 +151,6 @@ decode_categories(di::Instruction &insn, di::InstructionDecoder_riscv64::disasse
   categories.erase(std::unique(categories.begin(), categories.end()),
                    categories.end());
 
-  // None were found
-  if (!categories.size()) {
-    categories.push_back(di::c_NoCategory);
-  }
-
   return categories;
 }
 
