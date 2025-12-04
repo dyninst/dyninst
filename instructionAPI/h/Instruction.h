@@ -96,7 +96,7 @@ namespace Dyninst { namespace InstructionAPI {
 
     DYNINST_EXPORT Instruction(Operation what, size_t size, const unsigned char* raw,
                                Dyninst::Architecture arch);
-    Instruction(Operation what, Operation encoded_what, size_t size, const unsigned char* raw,
+    DYNINST_EXPORT Instruction(Operation what, Operation encoded_what, size_t size, const unsigned char* raw,
                 Dyninst::Architecture arch);
     DYNINST_EXPORT Instruction();
 
