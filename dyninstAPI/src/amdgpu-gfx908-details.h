@@ -394,7 +394,7 @@ enum SMEM_Opcode {
 
   S_DCACHE_WB = 33,
   S_ATOMIC_ADD = 130,
-  S_ATOMIC_SUB
+  S_ATOMIC_SUB = 131
 };
 
 unsigned getSmemImmBit(unsigned opcode);
