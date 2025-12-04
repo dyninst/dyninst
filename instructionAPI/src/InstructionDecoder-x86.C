@@ -128,10 +128,7 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT InstructionDecoder_x86::InstructionDecoder_x86(Architecture a)
       : InstructionDecoderImpl(a), locs(NULL), decodedInstruction(NULL), sizePrefixPresent(false),
-        addrSizePrefixPresent(false) {
-    if(a == Arch_x86_64)
-      InstructionDecoder_x86::setMode(true);
-  }
+        addrSizePrefixPresent(false), is64BitMode{a == Arch_x86_64} {}
 
   DYNINST_EXPORT InstructionDecoder_x86::~InstructionDecoder_x86() {
     free(decodedInstruction);
@@ -139,10 +136,6 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   static const unsigned char modrm_use_sib = 4;
-
-  DYNINST_EXPORT void InstructionDecoder_x86::setMode(bool is64) {
-    InstructionDecoder_x86::is64BitMode = is64;
-  }
 
   Expression::Ptr InstructionDecoder_x86::makeSIBExpression(const InstructionDecoder::buffer& b) {
     unsigned scale;

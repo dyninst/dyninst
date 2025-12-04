@@ -56,15 +56,12 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   Operation::Operation(entryID id, std::string m, Architecture arch)
-      : operationID(id), archDecodedFrom(arch), prefixID(prefix_none) {
+      : operationID(id), archDecodedFrom(arch), mnemonic{std::move(m)} {
     switch(archDecodedFrom) {
       case Arch_x86:
       case Arch_ppc32: addrWidth = u32; break;
       default: addrWidth = u64; break;
     }
-    segPrefix = 0;
-    isVectorInsn = false;
-    mnemonic = m;
   }
 
   static bool getVectorizationInfo(ia32_entry* e) {
@@ -136,15 +133,6 @@ namespace Dyninst { namespace InstructionAPI {
     isVectorInsn = o.isVectorInsn;
     mnemonic = o.mnemonic;
     return *this;
-  }
-
-  Operation::Operation() {
-    operationID = e_No_Entry;
-    archDecodedFrom = Arch_none;
-    prefixID = prefix_none;
-    addrWidth = u64;
-    segPrefix = 0;
-    isVectorInsn = false;
   }
 
   const Operation::registerSet& Operation::implicitReads() {

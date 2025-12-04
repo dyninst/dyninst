@@ -84,4 +84,4 @@ jobs:
           compiler: ${{ matrix.compiler }}
           src-dir: "${GITHUB_WORKSPACE}/src"
           extra-cmake-flags: "-DDYNINST_CODEGEN_ARCH=${{ matrix.codegen_arch }}"
-          run-tests: "true"
+          tests: "REGRESSION"

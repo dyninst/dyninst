@@ -47,8 +47,6 @@ namespace Dyninst { namespace InstructionAPI {
     virtual ~InstructionDecoder_power();
     virtual Instruction decode(InstructionDecoder::buffer& b);
 
-    virtual void setMode(bool) {}
-
     static bool foundDoubleHummerInsn;
     static bool foundQuadInsn;
     using InstructionDecoderImpl::makeRegisterExpression;

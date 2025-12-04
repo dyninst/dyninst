@@ -809,7 +809,7 @@ bool IA_x86::isIATcall(std::string &calleeName) const
 
 bool IA_x86::isNopJump() const
 {
-    if (curInsn().isBranch()) {
+    if (!curInsn().isBranch()) {
         return false;
     }
     bool valid; Address addr;

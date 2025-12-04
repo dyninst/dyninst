@@ -523,7 +523,9 @@ struct X86_64InstructionSemantics {
                         X86GeneralPurposeRegister reg = (X86GeneralPurposeRegister)(rre->get_register_number());
                         switch (rre->get_position_in_register()) {
                             case x86_regpos_dword:
-			    case x86_regpos_all: updateGPRLowDWord(reg, value); break;
+                            case x86_regpos_all:
+                              policy.writeGPR(reg, policy.concat(value, number<32>(0)));
+                              break;
                             default: ROSE_ASSERT(!"Bad position in register");
                         }
                         break;
@@ -707,6 +709,21 @@ struct X86_64InstructionSemantics {
                         break;
                     }
                     case 4: {
+                        // xchg eax,eax is always a nop
+                        bool const is_eax_nop = [&operands]() {
+                          SgAsmx86RegisterReferenceExpression* rre0 = isSgAsmx86RegisterReferenceExpression(operands[0]);
+                          if(!rre0) return false;
+                          SgAsmx86RegisterReferenceExpression* rre1 = isSgAsmx86RegisterReferenceExpression(operands[1]);
+                          if(!rre1) return false;
+                          X86GeneralPurposeRegister reg0 = (X86GeneralPurposeRegister)(rre0->get_register_number());
+                          X86GeneralPurposeRegister reg1 = (X86GeneralPurposeRegister)(rre1->get_register_number());
+                          return reg0 == x86_gpr_ax && reg1 == x86_gpr_ax;
+                        }();
+
+                        if(is_eax_nop) {
+                          break;
+                        }
+
                         Word(32) temp = read32(operands[1]);
                         write32(operands[1], read32(operands[0]));
                         write32(operands[0], temp);

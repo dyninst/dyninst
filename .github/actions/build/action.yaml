@@ -25,8 +25,8 @@ inputs:
     default: 2
   extra-libs:
     required: false
-  run-tests:
-    default: "false"
+  tests:
+    default: ""
     required: false
 
 runs:
@@ -44,7 +44,7 @@ runs:
         src-dir: ${{ inputs.src-dir }}
         num-jobs: ${{ inputs.num-jobs }}
         extra-libs: ${{ inputs.extra-libs }}
-        run-tests: ${{ inputs.run-tests }}
+        tests: ${{ inputs.tests }}
 
     - name: Build
       if: ${{ startsWith(inputs.os, 'ubuntu') }}
@@ -58,4 +58,4 @@ runs:
         src-dir: ${{ inputs.src-dir }}
         num-jobs: ${{ inputs.num-jobs }}
         extra-libs: ${{ inputs.extra-libs }}
-        run-tests: ${{ inputs.run-tests }}
+        tests: ${{ inputs.tests }}

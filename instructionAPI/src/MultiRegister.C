@@ -108,7 +108,12 @@ namespace Dyninst { namespace InstructionAPI {
     return false;
   }
 
-  void MultiRegisterAST::apply(Visitor* v) { v->visit(this); }
+  void MultiRegisterAST::apply(Visitor* v) {
+    for(auto &&r : getRegs()) {
+      v->visit(r.get());
+    }
+    v->visit(this);
+  }
 
   static Result sizeToMask(uint32_t size) {
     switch(size) {

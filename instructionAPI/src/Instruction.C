@@ -97,81 +97,28 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT Instruction::Instruction(Operation what, size_t size, const unsigned char* raw,
                                           Dyninst::Architecture arch)
-      : m_InsnOp(what), m_Valid(is_valid_mnemonic(arch, what.getID())), arch_decoded_from(arch),
-        formatter(&ArchSpecificFormatter::getFormatter(arch)) {
+      : m_InsnOp(what), m_Valid(is_valid_mnemonic(arch, what.getID())), m_size{static_cast<decltype(m_size)>(size)},
+        arch_decoded_from(arch), formatter(&ArchSpecificFormatter::getFormatter(arch)) {
     copyRaw(size, raw);
   }
 
   void Instruction::copyRaw(size_t size, const unsigned char* raw) {
-    if(m_size > sizeof(m_RawInsn.small_insn)) {
-        delete[] m_RawInsn.large_insn; 
-    }
-    m_size = 0;
-    m_RawInsn.small_insn = 0;
-    if(raw) {
-      m_size = size;
-      if(size <= sizeof(m_RawInsn.small_insn)) {
-        memcpy(&m_RawInsn.small_insn, raw, size);
-      } else {
-        m_RawInsn.large_insn = new unsigned char[size];
-        memcpy(m_RawInsn.large_insn, raw, size);
-      }
-    }
+    assert(size <= m_RawInsn.size() && "Requested size is larger than opcode buffer");
+
+    auto last = std::copy_n(raw, size, m_RawInsn.data());
+
+    // Zero-fill so 'operator<' and 'operator==' work correctly
+    std::fill(last, m_RawInsn.end(), 0);
   }
 
   void Instruction::updateSize(const unsigned int new_size, const unsigned char * raw) {
     copyRaw(new_size, raw);
+    this->m_size = new_size;
   }
 
   DYNINST_EXPORT Instruction::Instruction()
       : m_Valid(false), m_size(0), arch_decoded_from(Arch_none), formatter(nullptr) {
-  }
-
-  DYNINST_EXPORT Instruction::~Instruction() {
-
-    if(m_size > sizeof(m_RawInsn.small_insn)) {
-      delete[] m_RawInsn.large_insn;
-    }
-  }
-
-  DYNINST_EXPORT Instruction::Instruction(const Instruction& o)
-      : m_Operands(o.m_Operands), m_InsnOp(o.m_InsnOp), m_Valid(o.m_Valid),
-        arch_decoded_from(o.arch_decoded_from), formatter(o.formatter)
-
-  {
-    m_size = o.m_size;
-    if(o.m_size > sizeof(m_RawInsn.small_insn)) {
-      m_RawInsn.large_insn = new unsigned char[o.m_size];
-      memcpy(m_RawInsn.large_insn, o.m_RawInsn.large_insn, m_size);
-    } else {
-      m_RawInsn.small_insn = o.m_RawInsn.small_insn;
-    }
-
-    m_Successors = o.m_Successors;
-  }
-
-  DYNINST_EXPORT const Instruction& Instruction::operator=(const Instruction& rhs) {
-    m_Operands = rhs.m_Operands;
-    // m_Operands.reserve(rhs.m_Operands.size());
-    // std::copy(rhs.m_Operands.begin(), rhs.m_Operands.end(), std::back_inserter(m_Operands));
-    if(m_size > sizeof(m_RawInsn.small_insn)) {
-      delete[] m_RawInsn.large_insn;
-    }
-
-    m_size = rhs.m_size;
-    if(rhs.m_size > sizeof(m_RawInsn.small_insn)) {
-      m_RawInsn.large_insn = new unsigned char[rhs.m_size];
-      memcpy(m_RawInsn.large_insn, rhs.m_RawInsn.large_insn, m_size);
-    } else {
-      m_RawInsn.small_insn = rhs.m_RawInsn.small_insn;
-    }
-
-    m_InsnOp = rhs.m_InsnOp;
-    m_Valid = rhs.m_Valid;
-    formatter = rhs.formatter;
-    arch_decoded_from = rhs.arch_decoded_from;
-    m_Successors = rhs.m_Successors;
-    return *this;
+    copyRaw(0, nullptr);
   }
 
   DYNINST_EXPORT bool Instruction::isValid() const { return m_Valid; }
@@ -230,21 +177,14 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   DYNINST_EXPORT const void* Instruction::ptr() const {
-    if(m_size > sizeof(m_RawInsn.small_insn)) {
-      return m_RawInsn.large_insn;
-    } else {
-      return reinterpret_cast<const void*>(&m_RawInsn.small_insn);
-    }
+    return m_RawInsn.data();
   }
 
   DYNINST_EXPORT unsigned char Instruction::rawByte(unsigned int index) const {
-    if(index >= m_size)
+    if(index >= m_size) {
       return 0;
-    if(m_size > sizeof(m_RawInsn.small_insn)) {
-      return m_RawInsn.large_insn[index];
-    } else {
-      return reinterpret_cast<const unsigned char*>(&m_RawInsn.small_insn)[index];
     }
+    return m_RawInsn[index];
   }
 
   DYNINST_EXPORT size_t Instruction::size() const { return m_size; }
