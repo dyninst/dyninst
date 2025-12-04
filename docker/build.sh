@@ -51,9 +51,11 @@ cmake --build ${build_dir} --parallel ${num_jobs} ${verbose}
 
 if ! test "${test_type}" = "OFF"; then
   export LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH
-  ctest --test-dir ${build_dir} --no-tests=error --parallel 2 --output-on-failure
+  cd ${build_dir}
+  ctest --no-tests=error --parallel 2 --output-on-failure
 fi
 
 cmake --install ${build_dir}
 
+cd /
 rm -rf $build_dir
