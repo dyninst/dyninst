@@ -105,6 +105,7 @@ namespace Dyninst { namespace InstructionAPI {
 
     DYNINST_EXPORT Operation& getEncodedOperation();
     DYNINST_EXPORT const Operation& getEncodedOperation() const;
+    DYNINST_EXPORT std::vector<Operand> getExplicitEncodedOperands() const;
 
     DYNINST_EXPORT std::vector<Operand> getAllOperands() const;
     DYNINST_EXPORT std::vector<Operand> getExplicitOperands() const;
