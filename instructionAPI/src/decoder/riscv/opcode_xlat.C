@@ -334,7 +334,7 @@ namespace riscv {
   }
 
   // Use the entryID that Capstone has and ignore aliases found in entryIDs.h
-  entryID translate_opcode(riscv_insn id) {
+  entryID capstone_opcode_to_entryid(riscv_insn id) {
     switch(id) {
       case RISCV_INS_ADD: return riscv64_op_add;
       case RISCV_INS_ADDI: return riscv64_op_addi;

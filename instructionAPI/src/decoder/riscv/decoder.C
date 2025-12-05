@@ -102,12 +102,12 @@ Instruction InstructionDecoder_riscv64::decode(InstructionDecoder::buffer &buf) 
   }
 
   riscv_insn encoded_opcode = static_cast<riscv_insn>(disassembler.insn->id);
-  entryID encoded_eid = riscv::translate_opcode(encoded_opcode);
+  entryID encoded_eid = riscv::capstone_opcode_to_entryid(encoded_opcode);
   std::string encoded_mnemonic = riscv::capstone_opcode_to_mnemonic(encoded_opcode);
   auto encoded_op = Operation(encoded_eid, encoded_mnemonic, m_Arch);
 
   riscv_insn opcode = riscv::get_capstone_uncompressed_opcode(encoded_opcode);
-  entryID eid = riscv::translate_opcode(opcode);
+  entryID eid = riscv::capstone_opcode_to_entryid(opcode);
   std::string mnemonic = riscv::capstone_opcode_to_mnemonic(opcode);
   auto op = Operation(eid, mnemonic, m_Arch);
 
