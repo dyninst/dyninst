@@ -33,15 +33,19 @@
 
 #include "Instruction.h"
 
-namespace Dyninst { namespace InstructionAPI {
+namespace Dyninst {
+namespace InstructionAPI {
 
-  struct opcode_test {
-    Operation &opcode;
-    Operation &encoded_opcode;
-  };
+struct opcode_test {
+  entryID opcode;
+  entryID encoded_opcode;
+  std::string opcode_mnemonic;
+  std::string encoded_opcode_mnemonic;
+};
 
-  bool verify(Instruction const &, opcode_test const &);
+bool verify(Instruction const &, opcode_test const &);
 
-}}
+} // namespace InstructionAPI
+} // namespace Dyninst
 
 #endif

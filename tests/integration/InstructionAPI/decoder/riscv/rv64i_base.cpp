@@ -2,6 +2,7 @@
 #include "InstructionDecoder.h"
 #include "memory_tests.h"
 #include "register_tests.h"
+#include "opcode_tests.h"
 #include "registers/MachRegister.h"
 #include "registers/register_set.h"
 #include "registers/riscv64_regs.h"
@@ -18,7 +19,8 @@
 namespace di = Dyninst::InstructionAPI;
 
 struct rv64i_tests {
-  std::vector<unsigned char> opcode;
+  std::vector<unsigned char> rawBytes;
+  di::opcode_test opcodes;
   di::register_rw_test regs;
   di::mem_test mem;
 };
@@ -38,7 +40,7 @@ bool run(Dyninst::Architecture arch, std::vector<rv64i_tests> const &tests) {
   std::clog << "Running tests for 'rv64i' in " << sarch << " mode\n";
   for (auto const &t : tests) {
     test_id++;
-    di::InstructionDecoder d(t.opcode.data(), t.opcode.size(), arch);
+    di::InstructionDecoder d(t.rawBytes.data(), t.rawBytes.size(), arch);
     auto insn = d.decode();
     if (!insn.isValid()) {
       std::cerr << "Failed to decode " << sarch << " test " << test_id << '\n';
@@ -49,6 +51,9 @@ bool run(Dyninst::Architecture arch, std::vector<rv64i_tests> const &tests) {
     std::clog << "Verifying '" << insn.format() << "'\n";
 
     if (!di::verify(insn, t.regs)) {
+      failed = true;
+    }
+    if (!di::verify(insn, t.opcodes)) {
       failed = true;
     }
     if (!di::verify(insn, t.mem)) {
@@ -103,11 +108,13 @@ std::vector<rv64i_tests> make_tests64() {
     // --- U-type ---
     { // lui gp,0x12345
       {0xb7,0x51,0x34,0x12},
+      di::opcode_test{riscv64_op_lui, riscv64_op_lui, "lui", "lui"},
       di::register_rw_test{ reg_set{}, reg_set{gp} },
       di::mem_test{}
     },
     { // auipc tp,0x12345
       {0x17,0x52,0x34,0x12},
+      di::opcode_test{riscv64_op_auipc, riscv64_op_auipc, "auipc", "auipc"},
       di::register_rw_test{ reg_set{pc}, reg_set{tp} },
       di::mem_test{}
     },
@@ -115,11 +122,13 @@ std::vector<rv64i_tests> make_tests64() {
     // --- J-type ---
     { // jal ra, 16
       {0xef,0x00,0x00,0x01},
+      di::opcode_test{riscv64_op_jal, riscv64_op_jal, "jal", "jal"},
       di::register_rw_test{ reg_set{pc}, reg_set{ra, pc} },
       di::mem_test{}
     },
     { // jal s0, 24
       {0x6f,0x04,0x80,0x01},
+      di::opcode_test{riscv64_op_jal, riscv64_op_jal, "jal", "jal"},
       di::register_rw_test{ reg_set{pc}, reg_set{s0, pc} },
       di::mem_test{}
     },
@@ -127,31 +136,37 @@ std::vector<rv64i_tests> make_tests64() {
     // --- B-type branches ---
     { // beq t1, zero, 12
       {0x63,0x06,0x03,0x00},
+      di::opcode_test{riscv64_op_beq, riscv64_op_beq, "beq", "beq"},
       di::register_rw_test{ reg_set{t1, zero, pc}, reg_set{pc} },
       di::mem_test{}
     },
     { // bne s1, s2, 12
       {0x63,0x96,0x24,0x01},
+      di::opcode_test{riscv64_op_bne, riscv64_op_bne, "bne", "bne"},
       di::register_rw_test{ reg_set{s1, s2, pc}, reg_set{pc} },
       di::mem_test{}
     },
     { // blt a0, a1, 8
       {0x63,0x44,0xb5,0x00},
+      di::opcode_test{riscv64_op_blt, riscv64_op_blt, "blt", "blt"},
       di::register_rw_test{ reg_set{a0, a1, pc}, reg_set{pc} },
       di::mem_test{}
     },
     { // bge a2, a3, -66
       {0xe3,0x5f,0xd6,0xfa},
+      di::opcode_test{riscv64_op_bge, riscv64_op_bge, "bge", "bge"},
       di::register_rw_test{ reg_set{a2, a3, pc}, reg_set{pc} },
       di::mem_test{}
     },
     { // bltu t3, t4, -1024
       {0xe3,0x60,0xde,0xc1},
+      di::opcode_test{riscv64_op_bltu, riscv64_op_bltu, "bltu", "bltu"},
       di::register_rw_test{ reg_set{t3, t4, pc}, reg_set{pc} },
       di::mem_test{}
     },
     { // bgeu t5, t6, 0
-      {0x63,0x60,0xff,0x01},
+      {0x63,0x70,0xff,0x01},
+      di::opcode_test{riscv64_op_bgeu, riscv64_op_bgeu, "bgeu", "bgeu"},
       di::register_rw_test{ reg_set{t5, t6, pc}, reg_set{pc} },
       di::mem_test{}
     },
@@ -159,47 +174,56 @@ std::vector<rv64i_tests> make_tests64() {
     // --- Jalr (I-type) ---
     { // jalr s11, t6, 0x10
       {0xe7,0x8d,0x0f,0x01},
+      di::opcode_test{riscv64_op_jalr, riscv64_op_jalr, "jalr", "jalr"},
       di::register_rw_test{ reg_set{t6}, reg_set{s11, pc} },
       di::mem_test{}
     },
     { // jalr t0, t1, 0
       {0xe7,0x02,0x03,0x00},
+      di::opcode_test{riscv64_op_jalr, riscv64_op_jalr, "jalr", "jalr"},
       di::register_rw_test{ reg_set{t1}, reg_set{t0, pc} },
       di::mem_test{}
     },
     // --- Loads (I-type) ---
     { // lb s1, 0(sp)
       {0x83,0x04,0x01,0x00},
+      di::opcode_test{riscv64_op_lb, riscv64_op_lb, "lb", "lb"},
       di::register_rw_test{ reg_set{sp}, reg_set{s1} },
       di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{sp}, reg_set{} } }
     },
     { // lh s2, 0(sp)
       {0x03,0x19,0x01,0x00},
+      di::opcode_test{riscv64_op_lh, riscv64_op_lh, "lh", "lh"},
       di::register_rw_test{ reg_set{sp}, reg_set{s2} },
       di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{sp}, reg_set{} } }
     },
     { // lw a0, 4(s1)
       {0x03,0xa5,0x44,0x00},
+      di::opcode_test{riscv64_op_lw, riscv64_op_lw, "lw", "lw"},
       di::register_rw_test{ reg_set{s1}, reg_set{a0} },
       di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{s1}, reg_set{} } }
     },
     { // lbu a1, 8(s1)
       {0x83,0x45,0x89,0x00},
+      di::opcode_test{riscv64_op_lbu, riscv64_op_lbu, "lbu", "lbu"},
       di::register_rw_test{ reg_set{s2}, reg_set{a1} },
       di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{s2}, reg_set{} } }
     },
     { // lhu a2, 12(s3)
       {0x03,0xd6,0xc9,0x00},
+      di::opcode_test{riscv64_op_lhu, riscv64_op_lhu, "lhu", "lhu"},
       di::register_rw_test{ reg_set{s3}, reg_set{a2} },
       di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{s3}, reg_set{} } }
     },
     { // lwu a3, 16(s4)
       {0x83,0x66,0x0a,0x01},
+      di::opcode_test{riscv64_op_lwu, riscv64_op_lwu, "lwu", "lwu"},
       di::register_rw_test{ reg_set{s4}, reg_set{a3} },
       di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{s4}, reg_set{} } }
     },
     { // ld s3, 0(s2)
       {0x83,0x39,0x09,0x00},
+      di::opcode_test{riscv64_op_ld, riscv64_op_ld, "ld", "ld"},
       di::register_rw_test{ reg_set{s2}, reg_set{s3} },
       di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{s2}, reg_set{} } }
     },
@@ -207,21 +231,25 @@ std::vector<rv64i_tests> make_tests64() {
     // --- Stores (S-type) ---
     { // sb a4, 0(s2)
       {0x23,0x00,0xe9,0x00},
+      di::opcode_test{riscv64_op_sb, riscv64_op_sb, "sb", "sb"},
       di::register_rw_test{ reg_set{a4, s2}, reg_set{} },
       di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{s2} } }
     },
     { // sh a5, 2(s3)
       {0x23,0x91,0xf9,0x00},
+      di::opcode_test{riscv64_op_sh, riscv64_op_sh, "sh", "sh"},
       di::register_rw_test{ reg_set{a5, s3}, reg_set{} },
       di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{s3} } }
     },
     { // sw s4, 4(t5)
       {0x23,0x22,0x4f,0x01},
+      di::opcode_test{riscv64_op_sw, riscv64_op_sw, "sw", "sw"},
       di::register_rw_test{ reg_set{s4, t5}, reg_set{} },
       di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{t5} } }
     },
     { // sd s5, 8(t6)
       {0x23,0xb4,0x5f,0x01},
+      di::opcode_test{riscv64_op_sd, riscv64_op_sd, "sd", "sd"},
       di::register_rw_test{ reg_set{s5, t6}, reg_set{} },
       di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{t6} } }
     },
@@ -229,31 +257,37 @@ std::vector<rv64i_tests> make_tests64() {
     // --- Immediate arithmetic/logical (I-type) ---
     { // addi t0, t1, 5
       {0x93,0x02,0x53,0x00},
+      di::opcode_test{riscv64_op_addi, riscv64_op_addi, "addi", "addi"},
       di::register_rw_test{ reg_set{t1}, reg_set{t0} },
       di::mem_test{}
     },
     { // slti t2, t3, -1
       {0x93,0x23,0xfe,0xff},
+      di::opcode_test{riscv64_op_slti, riscv64_op_slti, "slti", "slti"},
       di::register_rw_test{ reg_set{t3}, reg_set{t2} },
       di::mem_test{}
     },
     { // sltiu t4, t5, 10
       {0x93,0x3e,0xaf,0x00},
+      di::opcode_test{riscv64_op_sltiu, riscv64_op_sltiu, "sltiu", "sltiu"},
       di::register_rw_test{ reg_set{t5}, reg_set{t4} },
       di::mem_test{}
     },
     { // xori t6, s6, 0xff
       {0x93,0x4f,0xfb,0x0f},
+      di::opcode_test{riscv64_op_xori, riscv64_op_xori, "xori", "xori"},
       di::register_rw_test{ reg_set{s6}, reg_set{t6} },
       di::mem_test{}
     },
     { // ori s7, s0, 0x1
       {0x93,0x6b,0x14,0x00},
+      di::opcode_test{riscv64_op_ori, riscv64_op_ori, "ori", "ori"},
       di::register_rw_test{ reg_set{s0}, reg_set{s7} },
       di::mem_test{}
     },
     { // andi s8, s1, 0xff
       {0x13,0xfc,0xf4,0x0f},
+      di::opcode_test{riscv64_op_andi, riscv64_op_andi, "andi", "andi"},
       di::register_rw_test{ reg_set{s1}, reg_set{s8} },
       di::mem_test{}
     },
@@ -261,16 +295,19 @@ std::vector<rv64i_tests> make_tests64() {
     // --- Shift-immediate (I-type with shamt) ---
     { // slli a4, a5, 4
       {0x13,0x97,0x47,0x00},
+      di::opcode_test{riscv64_op_slli, riscv64_op_slli, "slli", "slli"},
       di::register_rw_test{ reg_set{a5}, reg_set{a4} },
       di::mem_test{}
     },
     { // srli a6, a7, 8
       {0x13,0xd8,0x88,0x00},
+      di::opcode_test{riscv64_op_srli, riscv64_op_srli, "srli", "srli"},
       di::register_rw_test{ reg_set{a7}, reg_set{a6} },
       di::mem_test{}
     },
     { // srai s9, s10, 16
       {0x93,0x5c,0x0d,0x41},
+      di::opcode_test{riscv64_op_srai, riscv64_op_srai, "srai", "srai"},
       di::register_rw_test{ reg_set{s10}, reg_set{s9} },
       di::mem_test{}
     },
@@ -278,51 +315,61 @@ std::vector<rv64i_tests> make_tests64() {
     // --- R-type ---
     { // add s10, s11, a0
       {0x33,0x8d,0xad,0x00},
+      di::opcode_test{riscv64_op_add, riscv64_op_add, "add", "add"},
       di::register_rw_test{ reg_set{s11, a0}, reg_set{s10} },
       di::mem_test{}
     },
     { // sub a1, a2, a3
       {0xb3,0x05,0xd6,0x40},
+      di::opcode_test{riscv64_op_sub, riscv64_op_sub, "sub", "sub"},
       di::register_rw_test{ reg_set{a2, a3}, reg_set{a1} },
       di::mem_test{}
     },
     { // sll a4, a5, a6
       {0x33,0x97,0x07,0x01},
+      di::opcode_test{riscv64_op_sll, riscv64_op_sll, "sll", "sll"},
       di::register_rw_test{ reg_set{a5, a6}, reg_set{a4} },
       di::mem_test{}
     },
     { // slt a7, t0, t1
       {0xb3,0xa8,0x62,0x00},
+      di::opcode_test{riscv64_op_slt, riscv64_op_slt, "slt", "slt"},
       di::register_rw_test{ reg_set{t0, t1}, reg_set{a7} },
       di::mem_test{}
     },
     { // sltu t2, t3, t4
       {0xb3,0x33,0xde,0x01},
+      di::opcode_test{riscv64_op_sltu, riscv64_op_sltu, "sltu", "sltu"},
       di::register_rw_test{ reg_set{t3, t4}, reg_set{t2} },
       di::mem_test{}
     },
     { // xor t5, t6, s0
       {0x33,0xcf,0x8f,0x00},
+      di::opcode_test{riscv64_op_xor, riscv64_op_xor, "xor", "xor"},
       di::register_rw_test{ reg_set{t6, s0}, reg_set{t5} },
       di::mem_test{}
     },
     { // srl s1, s2, s3
       {0xb3,0x54,0x39,0x01},
+      di::opcode_test{riscv64_op_srl, riscv64_op_srl, "srl", "srl"},
       di::register_rw_test{ reg_set{s2, s3}, reg_set{s1} },
       di::mem_test{}
     },
     { // sra s4, s5, s6
       {0x33,0xda,0x6a,0x41},
+      di::opcode_test{riscv64_op_sra, riscv64_op_sra, "sra", "sra"},
       di::register_rw_test{ reg_set{s5, s6}, reg_set{s4} },
       di::mem_test{}
     },
     { // or s7, s8, s9
       {0xb3,0x6b,0x9c,0x01},
+      di::opcode_test{riscv64_op_or, riscv64_op_or, "or", "or"},
       di::register_rw_test{ reg_set{s8, s9}, reg_set{s7} },
       di::mem_test{}
     },
     { // and s10, s11, ra
       {0x33,0xfd,0x1d,0x00},
+      di::opcode_test{riscv64_op_and, riscv64_op_and, "and", "and"},
       di::register_rw_test{ reg_set{s11, ra}, reg_set{s10} },
       di::mem_test{}
     },
@@ -330,11 +377,13 @@ std::vector<rv64i_tests> make_tests64() {
     // --- Fence / memory ordering ---
     { // fence
       {0x0f,0x00,0xf0,0x0f},
+      di::opcode_test{riscv64_op_fence, riscv64_op_fence, "fence", "fence"},
       di::register_rw_test{ reg_set{}, reg_set{} },
       di::mem_test{}
     },
     { // fence.i
       {0x0f,0x10,0x00,0x00},
+      di::opcode_test{riscv64_op_fence_i, riscv64_op_fence_i, "fence.i", "fence.i"},
       di::register_rw_test{ reg_set{}, reg_set{} },
       di::mem_test{}
     },
@@ -342,31 +391,37 @@ std::vector<rv64i_tests> make_tests64() {
     // --- CSRs ---
     { // csrrw a0, mstatus, a1
       {0x73,0x95,0x05,0x30},
+      di::opcode_test{riscv64_op_csrrw, riscv64_op_csrrw, "csrrw", "csrrw"},
       di::register_rw_test{ reg_set{a1}, reg_set{a0} },
       di::mem_test{}
     },
     { // csrrs a2, mie, a3
       {0x73,0xa6,0x46,0x30},
+      di::opcode_test{riscv64_op_csrrs, riscv64_op_csrrs, "csrrs", "csrrs"},
       di::register_rw_test{ reg_set{a3}, reg_set{a2} },
       di::mem_test{}
     },
     { // csrrc a4, medeleg, a5
       {0x73,0xb7,0x27,0x30},
+      di::opcode_test{riscv64_op_csrrc, riscv64_op_csrrc, "csrrc", "csrrc"},
       di::register_rw_test{ reg_set{a5}, reg_set{a4} },
       di::mem_test{}
     },
     { // csrrwi a6, mtvec, 1
       {0x73,0xd8,0x50,0x30},
+      di::opcode_test{riscv64_op_csrrwi, riscv64_op_csrrwi, "csrrwi", "csrrwi"},
       di::register_rw_test{ reg_set{}, reg_set{a6} },
       di::mem_test{}
     },
     { // csrrsi a7, mcounteren, 3
       {0xf3,0xe8,0x61,0x30},
+      di::opcode_test{riscv64_op_csrrsi, riscv64_op_csrrsi, "csrrsi", "csrrsi"},
       di::register_rw_test{ reg_set{}, reg_set{a7} },
       di::mem_test{}
     },
     { // csrrci s0, mstatus, 2
       {0x73,0x74,0x01,0x30},
+      di::opcode_test{riscv64_op_csrrci, riscv64_op_csrrci, "csrrci", "csrrci"},
       di::register_rw_test{ reg_set{}, reg_set{s0} },
       di::mem_test{}
     },
@@ -374,11 +429,13 @@ std::vector<rv64i_tests> make_tests64() {
     // --- Environment Calls and Breakpoints ---
     { // ecall
       {0x73,0x00,0x00,0x00},
+      di::opcode_test{riscv64_op_ecall, riscv64_op_ecall, "ecall", "ecall"},
       di::register_rw_test{ reg_set{}, reg_set{} },
       di::mem_test{}
     },
     { // ebreak
       {0x73,0x00,0x10,0x00},
+      di::opcode_test{riscv64_op_ebreak, riscv64_op_ebreak, "ebreak", "ebreak"},
       di::register_rw_test{ reg_set{}, reg_set{} },
       di::mem_test{}
     },
