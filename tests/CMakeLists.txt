@@ -58,3 +58,8 @@ add_library(register_tests OBJECT register_tests.cpp register_tests.h)
 target_compile_options(register_tests PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
 target_link_libraries(register_tests PRIVATE instructionAPI)
 target_include_directories(register_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_library(opcode_tests OBJECT opcode_tests.cpp opcode_tests.h)
+target_compile_options(opcode_tests PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(opcode_tests PRIVATE instructionAPI)
+target_include_directories(opcode_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
