@@ -25,14 +25,11 @@ struct c_ext_tests {
   di::mem_test mem;
 };
 
-static std::vector<c_ext_tests> make_tests_rv32c_rv64c();
-static std::vector<c_ext_tests> make_tests_rv64c_only();
+static std::vector<c_ext_tests> make_tests64();
 static bool run(Dyninst::Architecture, std::vector<c_ext_tests> const &);
 
 int main() {
-  bool ok = run(Dyninst::Arch_riscv64, make_tests_rv32c_rv64c());
-  if (!ok) return EXIT_FAILURE;
-  ok = run(Dyninst::Arch_riscv64, make_tests_rv64c_only());
+  bool ok = run(Dyninst::Arch_riscv64, make_tests64());
   return !ok ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
@@ -66,133 +63,7 @@ bool run(Dyninst::Architecture arch, std::vector<c_ext_tests> const &tests) {
   return !failed;
 }
 
-std::vector<c_ext_tests> make_tests_rv64c_only() {
-  auto ra = Dyninst::riscv64::ra;
-  auto sp = Dyninst::riscv64::sp;
-
-  // General purpose registers
-  // Only x8 ~ x15 are used
-  auto s1 = Dyninst::riscv64::s1;
-  auto a0 = Dyninst::riscv64::a0;
-  auto a1 = Dyninst::riscv64::a1;
-  auto a2 = Dyninst::riscv64::a2;
-  auto a3 = Dyninst::riscv64::a3;
-  auto a4 = Dyninst::riscv64::a4;
-  auto a5 = Dyninst::riscv64::a5;
-  auto a6 = Dyninst::riscv64::a6;
-
-  // Floating point registers
-  // Only f8 ~ f15 are used
-  auto f8 = Dyninst::riscv64::f8;
-  auto f9 = Dyninst::riscv64::f9;
-  auto f10 = Dyninst::riscv64::f10;
-  auto f11 = Dyninst::riscv64::f11;
-  auto f12 = Dyninst::riscv64::f12;
-  auto f13 = Dyninst::riscv64::f13;
-  auto f14 = Dyninst::riscv64::f14;
-  auto f15 = Dyninst::riscv64::f15;
-
-  using reg_set = Dyninst::register_set;
-
-  constexpr bool reads_memory = true;
-  constexpr bool writes_memory = true;
-
-  return {
-    // The following are RV64C only instructions
-    { // c.addiw ra, 0xc
-      {0xb1,0x20},
-      di::opcode_test{riscv64_op_addiw, riscv64_op_c_addiw, "addiw", "c.addiw"},
-      di::register_rw_test{ reg_set{ra}, reg_set{ra} },
-      di::mem_test{}
-    },
-    { // c.addw a3, s1
-      {0xa5,0x9e},
-      di::opcode_test{riscv64_op_addw, riscv64_op_c_addw, "addw", "c.addw"},
-      di::register_rw_test{ reg_set{a3, s1}, reg_set{a3} },
-      di::mem_test{}
-    },
-    { // c.subw a4, a2
-      {0x11,0x9f},
-      di::opcode_test{riscv64_op_subw, riscv64_op_c_subw, "subw", "c.subw"},
-      di::register_rw_test{ reg_set{a4, a2}, reg_set{a4} },
-      di::mem_test{}
-    },
-    { // c.ldsp a0, 24(sp)
-      {0x62,0x65},
-      di::opcode_test{riscv64_op_ld, riscv64_op_c_ldsp, "ld", "c.ldsp"},
-      di::register_rw_test{ reg_set{sp}, reg_set{a0} },
-      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{sp}, reg_set{} } }
-    },
-    { // c.sdsp a6, 12(sp)
-      {0x42,0xec},
-      di::opcode_test{riscv64_op_sd, riscv64_op_c_sdsp, "sd", "c.sdsp"},
-      di::register_rw_test{ reg_set{a6, sp}, reg_set{} },
-      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{sp} } }
-    },
-    { // c.fldsp f8, 16(sp)
-      {0x42,0x24},
-      di::opcode_test{riscv64_op_fld, riscv64_op_c_fldsp, "fld", "c.fldsp"},
-      di::register_rw_test{ reg_set{sp}, reg_set{f8} },
-      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{sp}, reg_set{} } }
-    },
-    { // c.fldsp f9, 304(sp)
-      {0xd2,0x34},
-      di::opcode_test{riscv64_op_fld, riscv64_op_c_fldsp, "fld", "c.fldsp"},
-      di::register_rw_test{ reg_set{sp}, reg_set{f9} },
-      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{sp}, reg_set{} } }
-    },
-    { // c.fsdsp f10, 192(sp)
-      {0xaa,0xa1},
-      di::opcode_test{riscv64_op_fsd, riscv64_op_c_fsdsp, "fsd", "c.fsdsp"},
-      di::register_rw_test{ reg_set{f10, sp}, reg_set{} },
-      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{sp} } }
-    },
-    { // c.fsdsp f11, 88(sp)
-      {0xae,0xac},
-      di::opcode_test{riscv64_op_fsd, riscv64_op_c_fsdsp, "fsd", "c.fsdsp"},
-      di::register_rw_test{ reg_set{f11, sp}, reg_set{} },
-      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{sp} } }
-    },
-    { // c.ld a4, 0(a2)
-      {0x18,0x62},
-      di::opcode_test{riscv64_op_ld, riscv64_op_c_ld, "ld", "c.ld"},
-      di::register_rw_test{ reg_set{a2}, reg_set{a4} },
-      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{a2}, reg_set{} } }
-    },
-    { // c.sd a5, 8(a4)
-      {0x1c,0xe7},
-      di::opcode_test{riscv64_op_sd, riscv64_op_c_sd, "sd", "c.sd"},
-      di::register_rw_test{ reg_set{a5, a4}, reg_set{} },
-      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{a4} } }
-    },
-    { // c.fld f12, 56(a1)
-      {0x90,0x3d},
-      di::opcode_test{riscv64_op_fld, riscv64_op_c_fld, "fld", "c.fld"},
-      di::register_rw_test{ reg_set{a1}, reg_set{f12} },
-      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{a1}, reg_set{} } }
-    },
-    { // c.fld f13, 184(a3)
-      {0xd4,0x3e},
-      di::opcode_test{riscv64_op_fld, riscv64_op_c_fld, "fld", "c.fld"},
-      di::register_rw_test{ reg_set{a3}, reg_set{f13} },
-      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{a3}, reg_set{} } }
-    },
-    { // c.fsd f14, 200(s1)
-      {0xf8,0xa4},
-      di::opcode_test{riscv64_op_fsd, riscv64_op_c_fsd, "fsd", "c.fsd"},
-      di::register_rw_test{ reg_set{s1, f14}, reg_set{} },
-      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{s1} } }
-    },
-    { // c.fsd f15, 56(a4)
-      {0x1c,0xbf},
-      di::opcode_test{riscv64_op_fsd, riscv64_op_c_fsd, "fsd", "c.fsd"},
-      di::register_rw_test{ reg_set{a4, f15}, reg_set{} },
-      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{a4} } }
-    },
-  };
-}
-
-std::vector<c_ext_tests> make_tests_rv32c_rv64c() {
+std::vector<c_ext_tests> make_tests64() {
   // General purpose registers
   auto zero = Dyninst::riscv64::zero;
   auto ra = Dyninst::riscv64::ra;
@@ -226,6 +97,17 @@ std::vector<c_ext_tests> make_tests_rv32c_rv64c() {
   auto t4 = Dyninst::riscv64::t4;
   auto t5 = Dyninst::riscv64::t5;
   auto t6 = Dyninst::riscv64::t6;
+
+  // Floating point registers
+  // Only f8 ~ f15 is used in compressed instructions
+  auto f8 = Dyninst::riscv64::f8;
+  auto f9 = Dyninst::riscv64::f9;
+  auto f10 = Dyninst::riscv64::f10;
+  auto f11 = Dyninst::riscv64::f11;
+  auto f12 = Dyninst::riscv64::f12;
+  auto f13 = Dyninst::riscv64::f13;
+  auto f14 = Dyninst::riscv64::f14;
+  auto f15 = Dyninst::riscv64::f15;
 
   auto pc = Dyninst::riscv64::pc;
 
@@ -463,6 +345,97 @@ std::vector<c_ext_tests> make_tests_rv32c_rv64c() {
       di::opcode_test{riscv64_op_slli, riscv64_op_c_slli, "slli", "c.slli"},
       di::register_rw_test{ reg_set{a2}, reg_set{a2} },
       di::mem_test{}
+    },
+    // The following are RV64C only instructions
+    { // c.addiw ra, 0xc
+      {0xb1,0x20},
+      di::opcode_test{riscv64_op_addiw, riscv64_op_c_addiw, "addiw", "c.addiw"},
+      di::register_rw_test{ reg_set{ra}, reg_set{ra} },
+      di::mem_test{}
+    },
+    { // c.addw a3, s1
+      {0xa5,0x9e},
+      di::opcode_test{riscv64_op_addw, riscv64_op_c_addw, "addw", "c.addw"},
+      di::register_rw_test{ reg_set{a3, s1}, reg_set{a3} },
+      di::mem_test{}
+    },
+    { // c.subw a4, a2
+      {0x11,0x9f},
+      di::opcode_test{riscv64_op_subw, riscv64_op_c_subw, "subw", "c.subw"},
+      di::register_rw_test{ reg_set{a4, a2}, reg_set{a4} },
+      di::mem_test{}
+    },
+    { // c.ldsp a0, 24(sp)
+      {0x62,0x65},
+      di::opcode_test{riscv64_op_ld, riscv64_op_c_ldsp, "ld", "c.ldsp"},
+      di::register_rw_test{ reg_set{sp}, reg_set{a0} },
+      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{sp}, reg_set{} } }
+    },
+    { // c.sdsp a6, 12(sp)
+      {0x42,0xec},
+      di::opcode_test{riscv64_op_sd, riscv64_op_c_sdsp, "sd", "c.sdsp"},
+      di::register_rw_test{ reg_set{a6, sp}, reg_set{} },
+      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{sp} } }
+    },
+    { // c.fldsp f8, 16(sp)
+      {0x42,0x24},
+      di::opcode_test{riscv64_op_fld, riscv64_op_c_fldsp, "fld", "c.fldsp"},
+      di::register_rw_test{ reg_set{sp}, reg_set{f8} },
+      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{sp}, reg_set{} } }
+    },
+    { // c.fldsp f9, 304(sp)
+      {0xd2,0x34},
+      di::opcode_test{riscv64_op_fld, riscv64_op_c_fldsp, "fld", "c.fldsp"},
+      di::register_rw_test{ reg_set{sp}, reg_set{f9} },
+      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{sp}, reg_set{} } }
+    },
+    { // c.fsdsp f10, 192(sp)
+      {0xaa,0xa1},
+      di::opcode_test{riscv64_op_fsd, riscv64_op_c_fsdsp, "fsd", "c.fsdsp"},
+      di::register_rw_test{ reg_set{f10, sp}, reg_set{} },
+      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{sp} } }
+    },
+    { // c.fsdsp f11, 88(sp)
+      {0xae,0xac},
+      di::opcode_test{riscv64_op_fsd, riscv64_op_c_fsdsp, "fsd", "c.fsdsp"},
+      di::register_rw_test{ reg_set{f11, sp}, reg_set{} },
+      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{sp} } }
+    },
+    { // c.ld a4, 0(a2)
+      {0x18,0x62},
+      di::opcode_test{riscv64_op_ld, riscv64_op_c_ld, "ld", "c.ld"},
+      di::register_rw_test{ reg_set{a2}, reg_set{a4} },
+      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{a2}, reg_set{} } }
+    },
+    { // c.sd a5, 8(a4)
+      {0x1c,0xe7},
+      di::opcode_test{riscv64_op_sd, riscv64_op_c_sd, "sd", "c.sd"},
+      di::register_rw_test{ reg_set{a5, a4}, reg_set{} },
+      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{a4} } }
+    },
+    { // c.fld f12, 56(a1)
+      {0x90,0x3d},
+      di::opcode_test{riscv64_op_fld, riscv64_op_c_fld, "fld", "c.fld"},
+      di::register_rw_test{ reg_set{a1}, reg_set{f12} },
+      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{a1}, reg_set{} } }
+    },
+    { // c.fld f13, 184(a3)
+      {0xd4,0x3e},
+      di::opcode_test{riscv64_op_fld, riscv64_op_c_fld, "fld", "c.fld"},
+      di::register_rw_test{ reg_set{a3}, reg_set{f13} },
+      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{a3}, reg_set{} } }
+    },
+    { // c.fsd f14, 200(s1)
+      {0xf8,0xa4},
+      di::opcode_test{riscv64_op_fsd, riscv64_op_c_fsd, "fsd", "c.fsd"},
+      di::register_rw_test{ reg_set{s1, f14}, reg_set{} },
+      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{s1} } }
+    },
+    { // c.fsd f15, 56(a4)
+      {0x1c,0xbf},
+      di::opcode_test{riscv64_op_fsd, riscv64_op_c_fsd, "fsd", "c.fsd"},
+      di::register_rw_test{ reg_set{a4, f15}, reg_set{} },
+      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{a4} } }
     },
   };
 }
