@@ -41,6 +41,14 @@ struct opcode_test {
   entryID encoded_opcode;
   std::string opcode_mnemonic;
   std::string encoded_opcode_mnemonic;
+  opcode_test(entryID op, entryID enc_op, const std::string &op_mnem,
+              const std::string &enc_op_mnem)
+      : opcode(op), encoded_opcode(enc_op), opcode_mnemonic(op_mnem),
+        encoded_opcode_mnemonic(enc_op_mnem) {}
+  // Constructor for the case where the opcode is the same as the encoded opcode
+  opcode_test(entryID op, const std::string &op_mnem)
+      : opcode(op), encoded_opcode(op), opcode_mnemonic(op_mnem),
+        encoded_opcode_mnemonic(op_mnem) {}
 };
 
 bool verify(Instruction const &, opcode_test const &);
