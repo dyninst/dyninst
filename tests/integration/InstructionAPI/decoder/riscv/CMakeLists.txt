@@ -10,7 +10,7 @@ set_tests_properties(instructionAPI_rv64i_base PROPERTIES LABELS "integration")
 add_executable(zicsr_ext zicsr_ext.cpp)
 target_compile_options(zicsr_ext PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
 target_link_libraries(zicsr_ext PRIVATE instructionAPI cft_tests memory_tests
-                                         register_tests opcode_tests)
+                                        register_tests opcode_tests)
 add_test(NAME instructionAPI_zicsr_ext COMMAND zicsr_ext)
 set_tests_properties(instructionAPI_zicsr_ext PROPERTIES LABELS "integration")
 
