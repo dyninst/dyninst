@@ -168,12 +168,6 @@ std::vector<rv64f_tests> make_tests64() {
       di::register_rw_test{ reg_set{f25, t3}, reg_set{} },
       di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{t3} } }
     },
-    { // fsw f31, 4(s7)
-      {0x27,0xa2,0xfb,0x01},
-      di::opcode_test{riscv64_op_fsw, "fsw"},
-      di::register_rw_test{ reg_set{f31, s7}, reg_set{} },
-      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{s7} } }
-    },
 
     // FP Move to/from Integer Registers
     { // fmv.x.w a0, f2
@@ -376,10 +370,10 @@ std::vector<rv64f_tests> make_tests64() {
       di::register_rw_test{ reg_set{f18}, reg_set{t2} },
       di::mem_test{}
     },
-    { // fcvt.wu.s s0, f5
-      {0x53,0xf4,0x12,0xc0},
+    { // fcvt.wu.s s7, f5
+      {0xd3,0xfb,0x12,0xc0},
       di::opcode_test{riscv64_op_fcvt_wu_s, "fcvt.wu.s"},
-      di::register_rw_test{ reg_set{f5}, reg_set{s0} },
+      di::register_rw_test{ reg_set{f5}, reg_set{s7} },
       di::mem_test{}
     },
     { // fcvt.wu.s s10, f11

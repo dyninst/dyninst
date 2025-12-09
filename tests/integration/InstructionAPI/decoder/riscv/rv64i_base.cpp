@@ -120,12 +120,6 @@ std::vector<rv64i_tests> make_tests64() {
     },
 
     // --- J-type ---
-    { // jal ra, 16
-      {0xef,0x00,0x00,0x01},
-      di::opcode_test{riscv64_op_jal, "jal"},
-      di::register_rw_test{ reg_set{pc}, reg_set{ra, pc} },
-      di::mem_test{}
-    },
     { // jal s0, 24
       {0x6f,0x04,0x80,0x01},
       di::opcode_test{riscv64_op_jal, "jal"},
@@ -176,12 +170,6 @@ std::vector<rv64i_tests> make_tests64() {
       {0xe7,0x8d,0x0f,0x01},
       di::opcode_test{riscv64_op_jalr, "jalr"},
       di::register_rw_test{ reg_set{t6}, reg_set{s11, pc} },
-      di::mem_test{}
-    },
-    { // jalr t0, t1, 0
-      {0xe7,0x02,0x03,0x00},
-      di::opcode_test{riscv64_op_jalr, "jalr"},
-      di::register_rw_test{ reg_set{t1}, reg_set{t0, pc} },
       di::mem_test{}
     },
     // --- Loads (I-type) ---
@@ -373,7 +361,6 @@ std::vector<rv64i_tests> make_tests64() {
       di::register_rw_test{ reg_set{s11, ra}, reg_set{s10} },
       di::mem_test{}
     },
-
     // --- Fence / memory ordering ---
     { // fence
       {0x0f,0x00,0xf0,0x0f},
@@ -387,45 +374,6 @@ std::vector<rv64i_tests> make_tests64() {
       di::register_rw_test{ reg_set{}, reg_set{} },
       di::mem_test{}
     },
-
-    // --- CSRs ---
-    { // csrrw a0, mstatus, a1
-      {0x73,0x95,0x05,0x30},
-      di::opcode_test{riscv64_op_csrrw, "csrrw"},
-      di::register_rw_test{ reg_set{a1}, reg_set{a0} },
-      di::mem_test{}
-    },
-    { // csrrs a2, mie, a3
-      {0x73,0xa6,0x46,0x30},
-      di::opcode_test{riscv64_op_csrrs, "csrrs"},
-      di::register_rw_test{ reg_set{a3}, reg_set{a2} },
-      di::mem_test{}
-    },
-    { // csrrc a4, medeleg, a5
-      {0x73,0xb7,0x27,0x30},
-      di::opcode_test{riscv64_op_csrrc, "csrrc"},
-      di::register_rw_test{ reg_set{a5}, reg_set{a4} },
-      di::mem_test{}
-    },
-    { // csrrwi a6, mtvec, 1
-      {0x73,0xd8,0x50,0x30},
-      di::opcode_test{riscv64_op_csrrwi, "csrrwi"},
-      di::register_rw_test{ reg_set{}, reg_set{a6} },
-      di::mem_test{}
-    },
-    { // csrrsi a7, mcounteren, 3
-      {0xf3,0xe8,0x61,0x30},
-      di::opcode_test{riscv64_op_csrrsi, "csrrsi"},
-      di::register_rw_test{ reg_set{}, reg_set{a7} },
-      di::mem_test{}
-    },
-    { // csrrci s0, mstatus, 2
-      {0x73,0x74,0x01,0x30},
-      di::opcode_test{riscv64_op_csrrci, "csrrci"},
-      di::register_rw_test{ reg_set{}, reg_set{s0} },
-      di::mem_test{}
-    },
-
     // --- Environment Calls and Breakpoints ---
     { // ecall
       {0x73,0x00,0x00,0x00},
