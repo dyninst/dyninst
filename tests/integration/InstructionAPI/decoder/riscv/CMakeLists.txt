@@ -7,7 +7,7 @@ include_guard(GLOBAL)
 set(RISCV_INST_TESTS_CXX_WARNING_FLAGS ${SUPPORTED_CXX_WARNING_FLAGS})
 if(maxFrameSizeOverrideRiscvInstructionApiTests)
   list(APPEND RISCV_INST_TESTS_CXX_WARNING_FLAGS
-       "-Wframe-larger-than=${allMaxFrameSizeOverrideRiscvInstructionApiTests}")
+       "-Wframe-larger-than=${maxFrameSizeOverrideRiscvInstructionApiTests}")
 endif()
 
 add_executable(rv64i_base rv64i_base.cpp)
