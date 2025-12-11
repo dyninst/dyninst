@@ -143,6 +143,100 @@ std::string ArmFormatter::formatBinaryFunc(const std::string &left, const std::s
         return left + " " + func + " " + right;
 }
 
+///////// Formatter for RISC-V
+
+RiscvFormatter::RiscvFormatter() {
+}
+
+std::string RiscvFormatter::formatImmediate(const std::string &evalString) const  {
+    return "0x" + evalString;
+}
+
+std::string RiscvFormatter::formatRegister(const std::string &regName) const  {
+    constexpr bool use_register_aliases = true;
+    std::string::size_type substr = regName.rfind(':');
+    std::string ret = regName;
+
+    if (substr != std::string::npos) {
+        ret = ret.substr(substr + 1, ret.length());
+        if (use_register_aliases) {
+            if (ret[0] == 'x') {
+                int regID = std::stoi(ret.substr(1));
+                if (regID == 0) {
+                    return "zero";
+                } else if (regID == 1) {
+                    return "ra";
+                } else if (regID == 2) {
+                    return "sp";
+                } else if (regID == 3) {
+                    return "gp";
+                } else if (regID == 4) {
+                    return "tp";
+                } else if (regID >= 5 && regID <= 7) {
+                    return "t" + std::to_string(regID - 5);
+                } else if (regID >= 8 && regID <= 9) {
+                    return "s" + std::to_string(regID - 8);
+                } else if (regID >= 10 && regID <= 17) {
+                    return "a" + std::to_string(regID - 10);
+                } else if (regID >= 18 && regID <= 27) {
+                    return "s" + std::to_string(regID - 16);
+                } else if (regID >= 28 && regID <= 31) {
+                    return "t" + std::to_string(regID - 25);
+                }
+            }
+            else if (ret[0] == 'f') {
+                int regID = std::stoi(ret.substr(1));
+                if (regID >= 0 && regID <= 7) {
+                    return "ft" + std::to_string(regID);
+                } else if (regID >= 8 && regID <= 9) {
+                    return "fs" + std::to_string(regID - 8);
+                } else if (regID >= 10 && regID <= 17) {
+                    return "fa" + std::to_string(regID - 10);
+                } else if (regID >= 18 && regID <= 27) {
+                    return "fs" + std::to_string(regID - 16);
+                } else if (regID >= 28 && regID <= 31) {
+                    return "ft" + std::to_string(regID - 20);
+                }
+            }
+        }
+    }
+    return ret;
+}
+
+std::string RiscvFormatter::formatDeref(const std::string &addrString) const  {
+    std::string out;
+    size_t pluspos = addrString.find("+");
+
+    if(pluspos != std::string::npos) {
+        out += addrString.substr(pluspos + 2) + "(" + addrString.substr(0, pluspos - 1) + ")";
+    } else {
+        out += addrString;
+    }
+
+    return out;
+}
+
+std::string RiscvFormatter::formatBinaryFunc(const std::string &left, const std::string &func, const std::string &right) const  {
+    if (left.find("pc") != std::string::npos) {
+        return right;
+    }
+    return left + " " + func + " " + right;
+}
+
+std::string RiscvFormatter::getInstructionString(const std::vector<std::string> &operands) const
+{
+    std::string out;
+
+    for(auto itr = operands.cbegin(); itr != operands.cend(); itr++) {
+        out += *itr;
+        if(itr != operands.cend() - 1)
+            out += ", ";
+    }
+
+    return out;
+}
+
+
 ///////// Formatter for AMDGPU
 
 AmdgpuFormatter::AmdgpuFormatter() {
@@ -446,6 +540,9 @@ ArchSpecificFormatter& ArchSpecificFormatter::getFormatter(Architecture a)
     auto found = theFormatters.find(a);
     if(found != theFormatters.end()) return *found->second;
     switch(a) {
+        case Arch_riscv64:
+            theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new RiscvFormatter());
+            break;
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
         case Arch_amdgpu_gfx940:

@@ -60,6 +60,7 @@ namespace Dyninst { namespace InstructionAPI {
     friend class InstructionDecoder_amdgpu_gfx908;
     friend class InstructionDecoder_amdgpu_gfx90a;
     friend class InstructionDecoder_amdgpu_gfx940;
+    friend class InstructionDecoder_riscv64;
 
   public:
     DYNINST_EXPORT Operation(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL,
@@ -87,6 +88,10 @@ namespace Dyninst { namespace InstructionAPI {
     void updateMnemonic(std::string new_mnemonic) { mnemonic = std::move(new_mnemonic); }
 
     bool isVectorInsn{};
+    bool isMultiInsnCall{};
+    bool isMultiInsnBranch{};
+    bool isNonABICall{};
+    bool isNonABIReturn{};
 
   private:
     std::once_flag data_initialized;

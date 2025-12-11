@@ -38,6 +38,7 @@
 #include "dyninstversion.h"
 #include "interrupts.h"
 #include "entryIDs.h"
+#include "dyn_regs.h"
 
 #include <algorithm>
 #include <boost/iterator/indirect_iterator.hpp>
@@ -97,7 +98,16 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT Instruction::Instruction(Operation what, size_t size, const unsigned char* raw,
                                           Dyninst::Architecture arch)
-      : m_InsnOp(what), m_Valid(is_valid_mnemonic(arch, what.getID())), m_size{static_cast<decltype(m_size)>(size)},
+      : m_InsnOp(what), m_EncodedInsnOp(what), m_Valid(is_valid_mnemonic(arch, what.getID())),
+        m_size{static_cast<decltype(m_size)>(size)},
+        arch_decoded_from(arch), formatter(&ArchSpecificFormatter::getFormatter(arch)) {
+    copyRaw(size, raw);
+  }
+
+  Instruction::Instruction(Operation what, Operation encoded_what, size_t size, const unsigned char* raw,
+                                          Dyninst::Architecture arch)
+      : m_InsnOp(what), m_EncodedInsnOp(encoded_what), m_Valid(is_valid_mnemonic(arch, what.getID())),
+        m_size{static_cast<decltype(m_size)>(size)},
         arch_decoded_from(arch), formatter(&ArchSpecificFormatter::getFormatter(arch)) {
     copyRaw(size, raw);
   }
@@ -125,7 +135,18 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT Operation& Instruction::getOperation() { return m_InsnOp; }
 
+  Operation& Instruction::getEncodedOperation() {
+    return m_EncodedInsnOp;
+  }
+  DYNINST_EXPORT std::vector<Operand> Instruction::getExplicitEncodedOperands() const {
+    return std::vector<Operand>(m_EncodedOperands.begin(), m_EncodedOperands.end());
+  }
+
   DYNINST_EXPORT const Operation& Instruction::getOperation() const { return m_InsnOp; }
+
+  DYNINST_EXPORT const Operation& Instruction::getEncodedOperation() const {
+    return m_EncodedInsnOp;
+  }
 
   std::vector<Operand> Instruction::getAllOperands() const {
     return std::vector<Operand>(m_Operands.begin(), m_Operands.end());
@@ -172,6 +193,16 @@ namespace Dyninst { namespace InstructionAPI {
       return Operand(Expression::Ptr(), false, false);
     }
     std::list<Operand>::const_iterator found = m_Operands.begin();
+    std::advance(found, index);
+    return *found;
+  }
+
+  DYNINST_EXPORT Operand Instruction::getEncodedExplicitOperand(int index) const {
+    if(index < 0 || index >= (int)(m_EncodedOperands.size())) {
+      // Out of range = empty operand
+      return Operand(Expression::Ptr(), false, false);
+    }
+    std::list<Operand>::const_iterator found = m_EncodedOperands.begin();
     std::advance(found, index);
     return *found;
   }
@@ -317,11 +348,11 @@ namespace Dyninst { namespace InstructionAPI {
 
     // remove this once ArchSpecificFormatter is extended for all architectures
 
-    std::string opstr = m_InsnOp.format();
+    std::string opstr = m_EncodedInsnOp.format();
     opstr += " ";
     std::list<Operand>::const_iterator currOperand;
     std::vector<std::string> formattedOperands;
-    for(currOperand = m_Operands.begin(); currOperand != m_Operands.end(); ++currOperand) {
+    for(currOperand = m_EncodedOperands.begin(); currOperand != m_EncodedOperands.end(); ++currOperand) {
       /* If this operand is implicit, don't put it in the list of operands. */
       if(currOperand->isImplicit())
         continue;
@@ -385,6 +416,18 @@ namespace Dyninst { namespace InstructionAPI {
   DYNINST_EXPORT Architecture Instruction::getArch() const { return arch_decoded_from; }
 
   DYNINST_EXPORT InsnCategory Instruction::getCategory() const {
+    if(m_InsnOp.isMultiInsnCall || m_InsnOp.isNonABICall)
+      return c_CallInsn;
+    if(m_InsnOp.isMultiInsnBranch)
+      return c_BranchInsn;
+    if(m_InsnOp.isNonABIReturn)
+      return c_ReturnInsn;
+    if(arch_decoded_from == Arch_riscv64) {
+      if(categories.categories.size()) {
+        return categories.categories[0];
+      }
+      return c_NoCategory;
+    }
     if(m_InsnOp.isVectorInsn)
       return c_VectorInsn;
     InsnCategory c = entryToCategory(m_InsnOp.getID());
@@ -418,6 +461,11 @@ namespace Dyninst { namespace InstructionAPI {
   void Instruction::appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit,
                                   bool trueP, bool falseP) const {
     m_Operands.push_back(Operand(e, isRead, isWritten, isImplicit, trueP, falseP));
+  }
+
+  void Instruction::appendEncodedOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit,
+                                         bool trueP, bool falseP) const {
+    m_EncodedOperands.push_back(Operand(e, isRead, isWritten, isImplicit, trueP, falseP));
   }
 
 }}
