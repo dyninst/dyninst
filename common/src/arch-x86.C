@@ -4464,8 +4464,8 @@ static ia32_entry sseMap[][4] = {
   },
   { /* SSE6E */
     { e_movd, t_done, 0, true, { Pd, Ev, Zz }, 0, s1W2R, 0 },
-    { e_vmovd, t_sse_mult, SSE6E_66, false, { Vo, Ey }, 0, s1W2R, 0 },
-    { e_vmovd, t_sse_mult, SSE6E_66, false, { Vo, Ey }, 0, s1W2R, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_movd, t_sse_mult, SSE6E_66, true, { Vdq, Ev, Zz }, 0, s1W2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSE6F */
