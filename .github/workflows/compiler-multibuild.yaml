@@ -13,7 +13,7 @@ jobs:
       all:  ${{ steps.build-type.outputs.all }}
     steps:
       - name: Checkout Dyninst
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - id: build-type
         uses: ./.github/actions/build-types
@@ -25,7 +25,7 @@ jobs:
       latest: ${{ steps.all.outputs.latest }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - id: all
         uses: ./.github/actions/os-versions
@@ -37,7 +37,7 @@ jobs:
       matrix: ${{ steps.configs.outputs.matrix }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         
       - id: configs
         shell: bash
@@ -52,7 +52,7 @@ jobs:
       all: ${{ steps.compilers.outputs.value }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         
       - id: compilers
         shell: bash
@@ -83,7 +83,7 @@ jobs:
     name: ${{ matrix.os }}, ${{ matrix.compiler }}-${{ matrix.compiler-version }}, ${{ matrix.build-type }}
     steps:
       - name: Checkout Dyninst
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           path: "src"  # relative to $GITHUB_WORKSPACE
 
@@ -123,7 +123,7 @@ jobs:
     name: ${{ matrix.os }}, ${{ matrix.compiler }}, std=${{ matrix.std }}
     steps:
       - name: Checkout Dyninst
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           path: "src"    # Relative to $GITHUB_WORKSPACE
 

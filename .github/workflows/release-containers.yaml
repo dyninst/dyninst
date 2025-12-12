@@ -11,7 +11,7 @@ jobs:
       all: ${{ steps.all.outputs.all }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - id: all
         uses: ./.github/actions/os-versions
@@ -22,7 +22,7 @@ jobs:
       value: ${{ steps.version.outputs.release }}
     steps:
       - id: version
-        uses: pozetroninc/github-action-get-latest-release@master
+        uses: pozetroninc/github-action-get-latest-release@53d33d213ee71c72360e3c829caf7cee94ec21e2 # master
         with:
           repository: "dyninst/dyninst"
           excludes: "prerelease, draft"
@@ -39,13 +39,13 @@ jobs:
       packages: write
     name: ${{ matrix.os }}, ${{ needs.get-latest-release-version.outputs.value }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: "dyninst/dyninst"
           ref: ${{ needs.get-latest-release-version.outputs.value }}
 
       - name: GHCR Login
-        uses: docker/login-action@v3.1.0
+        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

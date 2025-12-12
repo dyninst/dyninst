@@ -31,7 +31,7 @@ jobs:
       all: ${{ steps.all.outputs.all }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - id: all
         uses: ./.github/actions/os-versions
@@ -43,7 +43,7 @@ jobs:
       all: ${{ steps.compilers.outputs.value }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         
       - id: compilers
         shell: bash
@@ -73,7 +73,7 @@ jobs:
     name: PR tests (${{ matrix.os }}, ${{ matrix.compiler }}, ${{ matrix.install-dir }})
     steps:
       - name: Checkout Dyninst
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           path: "src"  # relative to ${GITHUB_WORKSPACE}
 
@@ -88,7 +88,7 @@ jobs:
 
       - name: Checkout Test Suite
         if: ${{ matrix.compiler != 'clang' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: dyninst/testsuite
           path: "testsuite"  # relative to ${GITHUB_WORKSPACE}
@@ -103,7 +103,7 @@ jobs:
           cmake --build . --parallel 2
 
       - name: Checkout Examples
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: dyninst/examples
           path: "examples"  # relative to ${GITHUB_WORKSPACE}
@@ -117,7 +117,7 @@ jobs:
           cmake --build . --parallel 2
 
       - name: Checkout External Tests
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: dyninst/external-tests
           path: "external-tests"  # relative to ${GITHUB_WORKSPACE}
