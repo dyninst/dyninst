@@ -280,6 +280,11 @@ AstNodePtr AstNode::scrambleRegistersNode(){
     return AstNodePtr(new AstScrambleRegistersNode());
 }
 
+AstNodePtr AstNode::atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable,
+                                            AstNodePtr constant) {
+   return AstNodePtr(new AstAtomicOperationStmtNode(astOpcode, variable, constant));
+}
+
 bool isPowerOf2(int value, int &result)
 {
   if (value<=0) return(false);
@@ -3542,4 +3547,26 @@ bool AstOperandNode::initRegisters(codeGen &g) {
     }
 
     return ret;
+}
+
+AstAtomicOperationStmtNode::AstAtomicOperationStmtNode(opCode astOpcode, AstNodePtr variableNode,
+                                                       AstNodePtr constantNode)
+    : opcode(astOpcode), variable(variableNode), constant(constantNode) {}
+
+std::string AstAtomicOperationStmtNode::format(std::string indent) {
+    std::stringstream ret;
+    ret << indent << "Op/" << hex << this << dec << "("
+        << "atomic " << convert(opcode) << ")" << endl;
+    if (variable)
+       ret << indent << variable->format(indent + "  ");
+    if (constant)
+       ret << indent << constant->format(indent + "  ");
+    return ret.str();
+}
+
+bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen & /* gen */, bool /* noCost */,
+                                                     Address & /* retAddr */,
+                                                     Dyninst::Register & /* retReg */) {
+    cerr << "AstAtomicOperationStmtNode::generateCode_phase2 not implemented" << endl;
+    return false;
 }
