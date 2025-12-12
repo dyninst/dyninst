@@ -13,7 +13,7 @@ jobs:
       latest: ${{ steps.all.outputs.latest }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - id: all
         uses: ./.github/actions/os-versions
@@ -24,7 +24,7 @@ jobs:
       all: ${{ steps.compilers.outputs.value }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         
       - id: compilers
         shell: bash
