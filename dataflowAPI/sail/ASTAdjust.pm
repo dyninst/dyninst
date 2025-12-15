@@ -104,7 +104,7 @@ sub try_const_fold {
             },
             ASTType::ROSE_OP_SIGNED_LEQ => sub {
                 my ( $x, $y ) = @_;
-                return $x >= $y;
+                return $x <= $y;
             },
             ASTType::ROSE_OP_SIGNED_GEQ => sub {
                 my ( $x, $y ) = @_;
