@@ -711,7 +711,7 @@ our @FN_DISPATCH = (
             my ($exp) = @$exps_ast;
 
             my $conv_type      = $exp->{E_app}[0]{Id};
-            my $new_insn_index = $ParserConfig::c_insn_new_insn{$curr_set};
+            my $new_insn_index = $ParserConfig::C_INSN_NEW_INSN{$curr_set};
 
             my $tuple_elems = $exp->{E_app}[1][0]{E_tuple};
 

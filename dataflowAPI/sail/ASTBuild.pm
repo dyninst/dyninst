@@ -286,18 +286,18 @@ sub do_exp {
 
         return ASTNode->new_func_node( ROSE_OP_READ_IMM,
             [ ASTNode->new_var_node($id) ] )
-          if ( exists $ParserConfig::args_per_subset{$curr_set}
-            && exists $ParserConfig::args_per_subset{$curr_set}{$id}
-            && $ParserConfig::args_per_subset{$curr_set}{$id}{need_read} );
+          if ( exists $ParserConfig::ARGS_PER_SUBSET{$curr_set}
+            && exists $ParserConfig::ARGS_PER_SUBSET{$curr_set}{$id}
+            && $ParserConfig::ARGS_PER_SUBSET{$curr_set}{$id}{need_read} );
 
         return ASTNode->new_func_node( ROSE_OP_READ_IMM,
             [ ASTNode->new_var_node($id) ] )
-          if ( exists $ParserConfig::args_per_subset{$curr_set}
-            && exists $ParserConfig::args_per_subset{$curr_set}{$id}
-            && $ParserConfig::args_per_subset{$curr_set}{$id}{need_read} );
+          if ( exists $ParserConfig::ARGS_PER_SUBSET{$curr_set}
+            && exists $ParserConfig::ARGS_PER_SUBSET{$curr_set}{$id}
+            && $ParserConfig::ARGS_PER_SUBSET{$curr_set}{$id}{need_read} );
 
-        if ( exists $ParserConfig::global_vars{$id} ) {
-            my $value = $ParserConfig::global_vars{$id}{value};
+        if ( exists $ParserConfig::GLOBAL_VARS{$id} ) {
+            my $value = $ParserConfig::GLOBAL_VARS{$id}{value};
             return ASTNode->new_num_node($value);
         }
 

@@ -21,10 +21,9 @@ use PrintROSE qw(
 our @EXPORT_OK = qw(
   $supported_riscv_subsets
   $supported_riscv_exts
-  %args_per_subset
-  %global_vars
-  %c_insn_new_arg
-  %c_insn_new_insn
+  %ARGS_PER_SUBSET
+  %GLOBAL_VARS
+  %C_INSN_NEW_INSN
 );
 
 # Instruction subsets supported currently
@@ -58,7 +57,7 @@ sub ordered_hash {
     return \%h;
 }
 
-our %args_per_subset = %{
+our %ARGS_PER_SUBSET = %{
     ordered_hash(
 
         UTYPE => ordered_hash(
@@ -586,7 +585,7 @@ our %args_per_subset = %{
     )
 };
 
-our %global_vars = (
+our %GLOBAL_VARS = (
     xlen => {
         value => 64
     },
@@ -604,162 +603,9 @@ use constant {
     REG_SP        => 2,
 };
 
-our %c_insn_new_arg = (
-    C_NOP      => [],
-    C_ADDI4SPN => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 },
-        { kind => CS_SAIL_IDX, index => 2 }
-    ],
-    C_LW => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_LD => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_SW => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_SD => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_ADDI => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_JAL => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_ADDIW => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_LI => [
-        { kind => CS_SAIL_IDX,   index => 0 },
-        { kind => CS_SAIL_FIXED, reg   => REG_ZERO },
-        { kind => CS_SAIL_IDX,   index => 1 }
-    ],
-    C_ADDI16SP => [
-        { kind => CS_SAIL_FIXED, reg   => REG_SP },
-        { kind => CS_SAIL_FIXED, reg   => REG_SP },
-        { kind => CS_SAIL_IDX,   index => 1 }
-    ],
-    C_LUI => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_SRLI => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_SRAI => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_ANDI => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_SUB => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_XOR => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_OR => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_AND => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_SUBW => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_ADDW => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_J => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_BEQZ => [
-        { kind => CS_SAIL_IDX,   index => 0 },
-        { kind => CS_SAIL_FIXED, reg   => REG_ZERO },
-        { kind => CS_SAIL_IDX,   index => 1 }
-    ],
-    C_BNEZ => [
-        { kind => CS_SAIL_IDX,   index => 0 },
-        { kind => CS_SAIL_FIXED, reg   => REG_ZERO },
-        { kind => CS_SAIL_IDX,   index => 1 }
-    ],
-    C_SLLI => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_LWSP => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_LDSP => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_SWSP => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_SDSP => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-    C_JR => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 },
-        { kind => CS_SAIL_IDX, index => 2 }
-    ],    # not [-1, 0, -1] because registers are massaged!
-    C_JALR => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 },
-        { kind => CS_SAIL_IDX, index => 2 }
-    ],    # not [-2, 0, -1] because registers are massaged!
-    C_MV => [
-        { kind => CS_SAIL_IDX,   index => 0 },
-        { kind => CS_SAIL_FIXED, reg   => REG_ZERO },
-        { kind => CS_SAIL_IDX,   index => 1 }
-    ],
-    C_ADD => [
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 0 },
-        { kind => CS_SAIL_IDX, index => 1 }
-    ],
-);
-
 # Compressed instruction index to base instruction index
 # -1 means that the instruction is mapped to a single instruction group
-our %c_insn_new_insn = (
+our %C_INSN_NEW_INSN = (
     C_NOP      => -1,
     C_ADDI4SPN =>  3,
     C_LW       => -1,

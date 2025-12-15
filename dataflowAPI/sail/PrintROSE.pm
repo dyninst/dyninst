@@ -39,7 +39,7 @@ sub print_rose_code {
     print_indent( "struct IP_$curr_set : P {\n",                     0 );
     print_indent( "void p(D d, Ops ops, I insn, A args, B raw) {\n", 1 );
 
-    if ( my $vars = $ParserConfig::args_per_subset{$curr_set} ) {
+    if ( my $vars = $ParserConfig::ARGS_PER_SUBSET{$curr_set} ) {
         for my $var ( keys %$vars ) {
             $vars->{$var}{init_code}();
         }
@@ -273,8 +273,8 @@ sub print_ast {
         # For plain C++ variables, we need to wrap it in ops->number_() to change it into SValuePtr
         if (
             (
-                exists $ParserConfig::args_per_subset{$curr_set}->{$value}
-                && $ParserConfig::args_per_subset{$curr_set}
+                exists $ParserConfig::ARGS_PER_SUBSET{$curr_set}->{$value}
+                && $ParserConfig::ARGS_PER_SUBSET{$curr_set}
                 ->{$value}{need_number}
             )
             || (   exists $lookup->{$value}
