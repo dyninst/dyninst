@@ -10,6 +10,10 @@ use ParserCommon qw(
   WIDTH_BYTES_VAR
 );
 
+# Attempt to constant-fold an AST
+# Returns:
+#   { ok => 1, value => <constant> } if fully foldable
+#   { ok => 0 } otherwise
 sub try_const_fold {
     my ($curr_node) = @_;
     if ( $curr_node->is_num_node() ) {
@@ -128,6 +132,7 @@ sub try_const_fold {
             },
         );
 
+        # Foldable if operand is constant for unary ops
         if ( $curr_node->has_attribute("unary_op") ) {
             my $exp_result = try_const_fold( $func_args->[0] );
             return { ok => 0 } unless $exp_result->{ok};
@@ -137,6 +142,7 @@ sub try_const_fold {
                   ( $exp_result->{value} )
             };
         }
+        # Foldable if both operands are constant for binary ops
         elsif ( $curr_node->has_attribute("binary_op") ) {
             my $lhs_result = try_const_fold( $func_args->[0] );
             my $rhs_result = try_const_fold( $func_args->[1] );
@@ -152,20 +158,11 @@ sub try_const_fold {
     return { ok => 0 };
 }
 
-sub adjust_known_var_val {
-    my ( $node, $curr_set ) = @_;
-    for my $child ( @{ $node->get_children() } ) {
-        adjust_known_var_val( $child, $curr_set );
-    }
-
-    # Add known variable here
-
-    # Finally, handle all sibling nodes
-    for my $sibling ( @{ $node->get_siblings() } ) {
-        adjust_known_var_val( $sibling, $curr_set );
-    }
-}
-
+# Rewrite assignments involving match(...) into EXP_MATCH form.
+# This normalizes:
+#   X(rd) = match(...)
+#   let foo = match(...)
+# into a single match expression whose arms contain assignments.
 sub adjust_match {
     my ( $node, $curr_set ) = @_;
     for my $child ( @{ $node->get_children() } ) {
@@ -212,6 +209,11 @@ sub adjust_match {
     }
 }
 
+# Normalize function operands by inserting implicit arguments
+
+# Also rewrite constant operands as LIT_ID type (literals) where required.
+# e.g. d->SignExtend(data, ops->number_(64, 64)) in not valid
+# It should be d->SignExtend(data, 64)
 sub adjust_func_operands {
     my ( $node, $curr_set ) = @_;
     for my $child ( @{ $node->get_children() } ) {
@@ -282,6 +284,7 @@ sub adjust_func_operands {
     }
 }
 
+# Replace constant-foldable expressions with numbers.
 sub adjust_const_fold {
     my ( $node, $curr_set ) = @_;
     for my $child ( @{ $node->get_children() } ) {
