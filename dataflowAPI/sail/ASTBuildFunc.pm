@@ -775,6 +775,15 @@ our @ERR_DISPATCH = (
 
     # Floating Points
     [
+        qr/^(r|w)F(_or_X)?(_(D|H|S)|_bits|_BF16)?$/,
+        sub {
+            my ($fn_id) = @_;
+            die
+            "Error: Floating points register read/write function $fn_id not supported in ROSE C++";
+        }
+    ],
+
+    [
         qr/^riscv_f(16|32|64).*$/,
         sub {
             my ($fn_id) = @_;
@@ -870,14 +879,6 @@ our @ERR_DISPATCH = (
         },
     ],
     [
-        qr/^(r|w)F(_or_X)?(_(D|H|S)|_bits|_BF16)?$/,
-        sub {
-            my ($fn_id) = @_;
-            die
-            "Error: Floating points register read/write function $fn_id not supported in ROSE C++";
-        }
-    ],
-    [
         qr/^nan_box|canonical_NaN_(D|H|S)$/,
         sub {
             my ($fn_id) = @_;
@@ -887,6 +888,14 @@ our @ERR_DISPATCH = (
     ],
 
     # Vectors
+    [
+        qr/^((read|write)_vreg(_seg)?)|((r|w)V(_bits)?)$/,
+        sub {
+            my ($fn_id) = @_;
+            die "Error: Vector registers read/write function $fn_id not supported in ROSE C++";
+        }
+    ],
+
     [
         qr/^plain_vector_(access|update)$/,
         sub {
@@ -1078,13 +1087,6 @@ our @ERR_DISPATCH = (
             die "Error: Vector operations $fn_id not supported in ROSE C++";
         },
     ],
-    [
-        qr/^((read|write)_vreg(_seg)?)|((r|w)V(_bits)?)$/,
-        sub {
-            my ($fn_id) = @_;
-            die "Error: Vector registers read/write not supported in ROSE C++";
-        }
-    ],
 
     [
         qr/^fixed_rounding_incr$/,
@@ -1119,6 +1121,7 @@ our @ERR_DISPATCH = (
             die "Error: Ecall functions $fn_id not supported in ROSE C++";
         }
     ],
+
     [
         qr/^Trap$/,
         sub {
@@ -1126,6 +1129,7 @@ our @ERR_DISPATCH = (
             die "Error: Trap functions $fn_id not supported in ROSE C++";
         }
     ],
+
     [
         qr/^_get_Mstatus_(TSR|TVM|TW)|(read|do)CSR|_get_Fcsr_FRM$/,
         sub {
@@ -1133,6 +1137,7 @@ our @ERR_DISPATCH = (
             die "Error: Control status functions $fn_id not supported in ROSE C++";
         }
     ],
+
     [
         qr/^effective_fence_set|is_fiom_activ|sail_barrier$/,
         sub {
@@ -1140,6 +1145,7 @@ our @ERR_DISPATCH = (
             die "Error: Fence function $fn_id not supported in ROSE C++";
         }
     ],
+
     [
         qr/^Enter_Wait$/,
         sub {
@@ -1147,6 +1153,7 @@ our @ERR_DISPATCH = (
             die "Error: Wait for interruption functions $fn_id not supported in ROSE C++";
         }
     ],
+
     [
         qr/^CLT_(M|S)RET|Ext_XRET_Priv_Failure|ext_check_xret_priv$/,
         sub {
@@ -1154,6 +1161,7 @@ our @ERR_DISPATCH = (
             die "Error: Return from trap functions $fn_id not supported in ROSE C++";
         }
     ],
+
     [
         qr/^make_landing_pad_exception$/,
         sub {
@@ -1161,6 +1169,7 @@ our @ERR_DISPATCH = (
             die "Error: Landing pad functions $fn_id not supported in ROSE C++";
         }
     ],
+
     [
         qr/^(add_to|flush|lookup|match|reset)_TLB(_Entry)?|translate_TLB_(hit|miss)$/,
         sub {
@@ -1168,6 +1177,7 @@ our @ERR_DISPATCH = (
             die "Error: TLB functions $fn_id not supported in ROSE C++";
         }
     ],
+
     [
         qr/^(trap)(_callback|Cause_bits_forwards|Cause_is_interrupt|Cause_to_str|_handler|VectorMode_of_bits)|Trap$/,
         sub {
@@ -1175,6 +1185,7 @@ our @ERR_DISPATCH = (
             die "Error: Trap functions $fn_id not supported in ROSE C++";
         }
     ],
+
     [
         qr/^exception_handler$/,
         sub {
@@ -1183,6 +1194,7 @@ our @ERR_DISPATCH = (
             "Error: Exception handler functions $fn_id not supported in ROSE C++";
         }
     ],
+
     [
         qr/^E_breakpoint$/,
         sub {
@@ -1190,6 +1202,7 @@ our @ERR_DISPATCH = (
             die "Error: Breakpoint functions $fn_id not supported in ROSE C++";
         }
     ],
+
     [
         qr/^cbo_clean_flush_enabled|cbop_priv_check|cbo_zero_enabled|process_clean_inval$/,
         sub {
