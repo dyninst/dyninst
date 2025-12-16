@@ -1179,5 +1179,3 @@ Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_addressSp
       return proc->lowlevel_process()->mgr();
    }
 }
-
-std::set<BPatch_function *> BPatch_addressSpace::instrumentedFunctions = {};
