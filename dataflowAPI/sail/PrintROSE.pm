@@ -105,6 +105,10 @@ sub print_assign {
         print("$var = ");
         print_ast( $value_node, $curr_set, $lookup, $indent_lvl );
         $lookup->{$var} = { "var" => $var_node, "ref" => $value_node };
+        if ($i != $#lhs_nodes) {
+            print(";\n");
+            print_indent("", $indent_lvl);
+        }
     }
 }
 
