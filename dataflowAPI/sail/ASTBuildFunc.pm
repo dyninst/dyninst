@@ -968,7 +968,7 @@ our @ERR_DISPATCH = (
     ],
 
     [
-        qr/^get_(sew|sew_power|sew_bytes|lmul_pow|num_elem)$/,
+        qr/^get_(sew|sew_pow|sew_bytes|lmul_pow|num_elem)$/,
         sub {
             my ($fn_id) = @_;
             die "Error: Vector operations $fn_id not supported in ROSE C++";
