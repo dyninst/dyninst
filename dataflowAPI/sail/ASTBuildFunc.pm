@@ -799,7 +799,7 @@ our @ERR_DISPATCH = (
     ],
 
     [
-        qr/^f_is_((Q|S)?NAN|(pos|neg)_(inf|norm|subnorm|zero))_(D|H|S)|$/,
+        qr/^f_is_((Q|S)?NAN|(pos|neg)_(inf|norm|subnorm|zero))_(D|H|S)$/,
         sub {
             my ($fn_id) = @_;
             die "Error: Floating points operation $fn_id not supported in ROSE C++";
