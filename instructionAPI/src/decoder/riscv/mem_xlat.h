@@ -28,65 +28,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "debug.h"
-#include "interrupts.h"
+#ifndef INSTRUCTIONAPI_RISCV_MEM_XLAT_H
+#define INSTRUCTIONAPI_RISCV_MEM_XLAT_H
 
-namespace di = Dyninst::InstructionAPI;
+#include "entryIDs.h"
 
-namespace x86 {
-  bool isSoftwareInterrupt(di::Instruction const& ins) {
-    auto id = ins.getOperation().getID();
-    switch(id) {
-      case e_int:
-      case e_int1:
-      case e_into:
-      case e_int3:
-        return true;
-      default:
-        return false;
-    }
-  }
-}
+namespace Dyninst {
+namespace InstructionAPI {
+namespace riscv {
 
-namespace ppc {
-  bool isSoftwareInterrupt(di::Instruction const&) {
-    return false;
-  }
-}
+bool is_mem_load(entryID);
+bool is_mem_store(entryID);
+int8_t mem_size(entryID);
 
-namespace aarch64 {
-  bool isSoftwareInterrupt(di::Instruction const&) {
-    return false;
-  }
-}
+} // namespace riscv
+} // namespace InstructionAPI
+} // namespace Dyninst
 
-namespace riscv64 {
-  bool isSoftwareInterrupt(di::Instruction const& ins) {
-    auto id = ins.getOperation().getID();
-    return id == riscv64_op_ebreak;
-  }
-}
-
-bool di::isSoftwareInterrupt(Instruction const& ins) {
-  switch(ins.getArch()) {
-    case Arch_x86:
-    case Arch_x86_64:
-      return ::x86::isSoftwareInterrupt(ins);
-    case Arch_ppc32:
-    case Arch_ppc64:
-      return ::ppc::isSoftwareInterrupt(ins);
-    case Arch_aarch64:
-      return ::aarch64::isSoftwareInterrupt(ins);
-    case Arch_riscv64:
-      return ::riscv64::isSoftwareInterrupt(ins);
-    case Arch_none:
-    case Arch_aarch32:
-    case Arch_cuda:
-    case Arch_amdgpu_gfx908:
-    case Arch_amdgpu_gfx90a:
-    case Arch_amdgpu_gfx940:
-    case Arch_intelGen9:
-      return false;
-  }
-  return false;
-}
+#endif

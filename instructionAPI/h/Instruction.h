@@ -57,6 +57,7 @@ namespace Dyninst { namespace InstructionAPI {
     friend class InstructionDecoder_amdgpu_gfx908;
     friend class InstructionDecoder_amdgpu_gfx90a;
     friend class InstructionDecoder_amdgpu_gfx940;
+    friend class InstructionDecoder_riscv64;
 
     static const unsigned int maxInstructionLength = 16;
 
@@ -71,12 +72,40 @@ namespace Dyninst { namespace InstructionAPI {
           : target(t), isCall(call), isIndirect(indir), isConditional(cond), isFallthrough(ft) {}
     };
 
+    class category_t final {
+      friend class Instruction;
+      std::vector<InsnCategory> categories{};
+
+    public:
+      explicit category_t(std::vector<InsnCategory> c) noexcept : categories{std::move(c)} {}
+      category_t() = default;
+      category_t& operator=(std::vector<InsnCategory>&& c) {
+        categories = std::move(c);
+        return *this;
+      }
+
+      bool satisfies(InsnCategory category) const {
+        for(auto c : categories) {
+          if(c == category) {
+            return true;
+          }
+        }
+        return false;
+      }
+    };
+
     DYNINST_EXPORT Instruction(Operation what, size_t size, const unsigned char* raw,
                                Dyninst::Architecture arch);
+    DYNINST_EXPORT Instruction(Operation what, Operation encoded_what, size_t size, const unsigned char* raw,
+                Dyninst::Architecture arch);
     DYNINST_EXPORT Instruction();
 
     DYNINST_EXPORT Operation& getOperation();
     DYNINST_EXPORT const Operation& getOperation() const;
+
+    DYNINST_EXPORT Operation& getEncodedOperation();
+    DYNINST_EXPORT const Operation& getEncodedOperation() const;
+    DYNINST_EXPORT std::vector<Operand> getExplicitEncodedOperands() const;
 
     DYNINST_EXPORT std::vector<Operand> getAllOperands() const;
     DYNINST_EXPORT std::vector<Operand> getExplicitOperands() const;
@@ -85,6 +114,7 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_DEPRECATED("Use getallOperands()") DYNINST_EXPORT
     void getOperands(std::vector<Operand>& operands) const;
     DYNINST_EXPORT Operand getOperand(int index) const;
+    DYNINST_EXPORT Operand getEncodedExplicitOperand(int index) const;
 
     DYNINST_EXPORT std::vector<Operand> getDisplayOrderedOperands() const;
 
@@ -133,6 +163,11 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT bool isGPUKernelExit() const { return getCategory() == c_GPUKernelExitInsn; }
     DYNINST_EXPORT bool isSoftwareException() const { return isGPUKernelExit() || getCategory() == c_SoftwareExceptionInsn; }
 
+    DYNINST_EXPORT bool isMultiInsnCall() const { return isCall() && getOperation().isMultiInsnCall; }
+    DYNINST_EXPORT bool isMultiInsnBranch() const { return isBranch() && getOperation().isMultiInsnBranch; }
+    DYNINST_EXPORT bool isNonABICall() const { return isCall() && getOperation().isNonABICall; }
+    DYNINST_EXPORT bool isNonABIReturn() const { return isReturn() && getOperation().isNonABIReturn; }
+
     typedef std::list<CFT>::const_iterator cftConstIter;
     DYNINST_EXPORT cftConstIter cft_begin() const { return m_Successors.begin(); }
     DYNINST_EXPORT cftConstIter cft_end() const { return m_Successors.end(); }
@@ -154,12 +189,30 @@ namespace Dyninst { namespace InstructionAPI {
 
     void addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough,
                       bool isImplicit = false) const;
+
+    void addSuccessor(CFT cft) {
+        m_Successors.push_back(std::move(cft));
+    }
+
     void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit = false,
                        bool trueP = false, bool falseP = false) const;
+    void appendEncodedOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit = false,
+                              bool trueP = false, bool falseP = false) const;
     void copyRaw(size_t size, const unsigned char* raw);
 
+    bool checked_category(InsnCategory c) const {
+      if(arch_decoded_from == Arch_riscv64) {
+        return categories.satisfies(c);
+      }
+      return getCategory() == c;
+    }
+
     mutable std::list<Operand> m_Operands;
+    // Encoded instruction operands, for RISC-V compressed instructions
+    mutable std::list<Operand> m_EncodedOperands;
     mutable Operation m_InsnOp;
+    // Encoded instruction opcode, for RISC-V compressed instructions
+    mutable Operation m_EncodedInsnOp;
     bool m_Valid;
     std::array<uint8_t, maxInstructionLength> m_RawInsn;
     uint8_t m_size{};
@@ -167,6 +220,7 @@ namespace Dyninst { namespace InstructionAPI {
     mutable std::list<CFT> m_Successors;
     // formatter is a non-owning pointer to a singleton object
     ArchSpecificFormatter* formatter;
+    mutable category_t categories;
   };
 }}
 

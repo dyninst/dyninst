@@ -28,65 +28,31 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "debug.h"
-#include "interrupts.h"
+#ifndef DYNINST_TESTS_INSTRUCTIONAPI_OPCODE_TESTS_H
+#define DYNINST_TESTS_INSTRUCTIONAPI_OPCODE_TESTS_H
 
-namespace di = Dyninst::InstructionAPI;
+#include "Instruction.h"
 
-namespace x86 {
-  bool isSoftwareInterrupt(di::Instruction const& ins) {
-    auto id = ins.getOperation().getID();
-    switch(id) {
-      case e_int:
-      case e_int1:
-      case e_into:
-      case e_int3:
-        return true;
-      default:
-        return false;
-    }
-  }
-}
+namespace Dyninst {
+namespace InstructionAPI {
 
-namespace ppc {
-  bool isSoftwareInterrupt(di::Instruction const&) {
-    return false;
-  }
-}
+struct opcode_test {
+  entryID opcode;
+  entryID encoded_opcode;
+  std::string opcode_mnemonic;
+  std::string encoded_opcode_mnemonic;
+  opcode_test(entryID op, entryID enc_op, const std::string &op_mnem,
+              const std::string &enc_op_mnem)
+      : opcode(op), encoded_opcode(enc_op), opcode_mnemonic(op_mnem),
+        encoded_opcode_mnemonic(enc_op_mnem) {}
+  // Constructor for the case where the opcode is the same as the encoded opcode
+  opcode_test(entryID op, const std::string &op_mnem)
+      : opcode_test(op, op, op_mnem, op_mnem) {}
+};
 
-namespace aarch64 {
-  bool isSoftwareInterrupt(di::Instruction const&) {
-    return false;
-  }
-}
+bool verify(Instruction const &, opcode_test const &);
 
-namespace riscv64 {
-  bool isSoftwareInterrupt(di::Instruction const& ins) {
-    auto id = ins.getOperation().getID();
-    return id == riscv64_op_ebreak;
-  }
-}
+} // namespace InstructionAPI
+} // namespace Dyninst
 
-bool di::isSoftwareInterrupt(Instruction const& ins) {
-  switch(ins.getArch()) {
-    case Arch_x86:
-    case Arch_x86_64:
-      return ::x86::isSoftwareInterrupt(ins);
-    case Arch_ppc32:
-    case Arch_ppc64:
-      return ::ppc::isSoftwareInterrupt(ins);
-    case Arch_aarch64:
-      return ::aarch64::isSoftwareInterrupt(ins);
-    case Arch_riscv64:
-      return ::riscv64::isSoftwareInterrupt(ins);
-    case Arch_none:
-    case Arch_aarch32:
-    case Arch_cuda:
-    case Arch_amdgpu_gfx908:
-    case Arch_amdgpu_gfx90a:
-    case Arch_amdgpu_gfx940:
-    case Arch_intelGen9:
-      return false;
-  }
-  return false;
-}
+#endif

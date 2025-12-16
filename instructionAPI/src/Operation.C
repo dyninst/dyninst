@@ -121,6 +121,10 @@ namespace Dyninst { namespace InstructionAPI {
     addrWidth = o.addrWidth;
     segPrefix = o.segPrefix;
     isVectorInsn = o.isVectorInsn;
+    isMultiInsnCall = o.isMultiInsnCall;
+    isMultiInsnBranch = o.isMultiInsnBranch;
+    isNonABICall = o.isNonABICall;
+    isNonABIReturn = o.isNonABIReturn;
     mnemonic = o.mnemonic;
   }
 
@@ -131,6 +135,10 @@ namespace Dyninst { namespace InstructionAPI {
     addrWidth = o.addrWidth;
     segPrefix = o.segPrefix;
     isVectorInsn = o.isVectorInsn;
+    isMultiInsnCall = o.isMultiInsnCall;
+    isMultiInsnBranch = o.isMultiInsnBranch;
+    isNonABICall = o.isNonABICall;
+    isNonABIReturn = o.isNonABIReturn;
     mnemonic = o.mnemonic;
     return *this;
   }

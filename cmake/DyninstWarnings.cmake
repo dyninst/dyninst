@@ -172,6 +172,7 @@ if(HAS_CPP_FLAG_Wframe_larger_than AND NOT DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIO
     set(debugMaxFrameSizeOverrideFinalizeOperands 29000)
     set(nonDebugMaxFrameSizeOverrideFinalizeOperands 29000)
   endif()
+  set(maxFrameSizeOverrideRiscvInstructionApiTests 49152)
 endif()
 
 # clang >17.0 doesn't detect /usr/include/boost as a system directory
