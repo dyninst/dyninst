@@ -13,7 +13,7 @@ jobs:
       all: ${{ steps.all.outputs.all }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - id: all
         uses: ./.github/actions/os-versions
@@ -30,7 +30,7 @@ jobs:
     name: Purge ${{ matrix.os }}
     steps:
       - name: Development containers
-        uses: actions/delete-package-versions@v5
+        uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5
         continue-on-error: true
         with:
           package-name: amd64/${{ matrix.os }}
@@ -40,7 +40,7 @@ jobs:
           delete-only-untagged-versions: "true"
 
       - name: Base containers
-        uses: actions/delete-package-versions@v5
+        uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5
         continue-on-error: true
         with:
           package-name: amd64/${{ matrix.os }}-base
@@ -60,10 +60,10 @@ jobs:
       packages: write
     name: Update base containers
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: GHCR Login
-        uses: docker/login-action@v3.1.0
+        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

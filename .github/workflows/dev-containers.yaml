@@ -15,7 +15,7 @@ jobs:
       all: ${{ steps.all.outputs.all }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - id: all
         uses: ./.github/actions/os-versions
@@ -32,10 +32,10 @@ jobs:
     name: Update dev containers
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: GHCR Login
-        uses: docker/login-action@v3.1.0
+        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

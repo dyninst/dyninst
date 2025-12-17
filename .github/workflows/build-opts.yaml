@@ -22,7 +22,7 @@ jobs:
       latest: ${{ steps.all.outputs.latest }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - id: all
         uses: ./.github/actions/os-versions
@@ -56,7 +56,7 @@ jobs:
       all: ${{ steps.compilers.outputs.value }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         
       - id: compilers
         shell: bash
@@ -128,7 +128,7 @@ jobs:
           fi
 
       - name: Checkout Dyninst
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           path: "src"  # relative to ${GITHUB_WORKSPACE}
 
@@ -219,7 +219,7 @@ jobs:
           echo "value=${libs}" >> $GITHUB_OUTPUT
 
       - name: Checkout Dyninst
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           path: "src"  # relative to ${GITHUB_WORKSPACE}
 
@@ -266,7 +266,7 @@ jobs:
           echo "opts=${opts[*]}" >> $GITHUB_OUTPUT
 
       - name: Checkout Dyninst
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           path: "src"  # relative to ${GITHUB_WORKSPACE}
 
@@ -309,7 +309,7 @@ jobs:
     name: linkers (${{ matrix.os }}, ${{ matrix.compiler }}, ${{ matrix.linker }})
     steps:
       - name: Checkout Dyninst
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           path: "src"  # relative to ${GITHUB_WORKSPACE}
 
