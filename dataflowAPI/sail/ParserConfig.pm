@@ -3,7 +3,6 @@ package ParserConfig;
 use strict;
 use warnings;
 
-use Set::Scalar;
 use Tie::IxHash;
 
 use Exporter 'import';
@@ -27,7 +26,7 @@ our @EXPORT_OK = qw(
 );
 
 # Instruction subsets supported currently
-our $supported_riscv_subsets = Set::Scalar->new(
+our %supported_riscv_subsets = (
     "UTYPE",   "BTYPE",    "ITYPE",      "JAL",
     "JALR",    "SHIFTIOP", "RTYPE",      "LOAD",
     "STORE",   "ADDIW",    "RTYPEW",     "SHIFTIWOP",
@@ -45,9 +44,10 @@ our $supported_riscv_subsets = Set::Scalar->new(
 );
 
 # Extensions supported currently
-our $supported_riscv_exts =
-  Set::Scalar->new( "Ext_M", "Ext_A", "Ext_F", "Ext_D", "Ext_Zca", "Ext_Zcf",
-    "Ext_Zcd", );
+our %supported_riscv_exts = (
+    "Ext_M", "Ext_A", "Ext_F", "Ext_D", "Ext_Zca", "Ext_Zcf",
+    "Ext_Zcd",
+);
 
 sub ordered_hash {
     my @kv = @_;

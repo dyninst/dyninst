@@ -433,7 +433,7 @@ sub do_exp {
             }
 
             # This is for instruction conversion
-            if ( $ParserConfig::supported_riscv_subsets->has($fn_id) ) {
+            if ( grep( /^$fn_id$/, @ParserConfig::supported_riscv_subsets) ) {
                 return $fn_id;
             }
 

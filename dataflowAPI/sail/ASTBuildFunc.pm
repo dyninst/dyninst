@@ -735,10 +735,10 @@ our @FN_DISPATCH = (
             my ($id_ast) = @$exps_ast;
             my $id_node = $self->do_exp( $id_ast, $curr_set );
 
-            return $ParserConfig::supported_riscv_exts->has(
-                $id_node->get_value() )
-              ? ASTNode->new_bool_node(1)
-              : ASTNode->new_bool_node(0);
+            if ( grep( /^$id$/, @ParserConfig::supported_riscv_exts ) ) {
+                return ASTNode->new_bool_node(1);
+            }
+            return ASTNode->new_bool_node(0);
         }
     ],
 
