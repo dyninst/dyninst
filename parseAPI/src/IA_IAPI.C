@@ -610,7 +610,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
         if (ci.getOperation().getID() == riscv64_op_jalr || ci.getOperation().getID() == riscv64_op_jal) {
             MachRegister linkReg = (boost::dynamic_pointer_cast<RegisterAST>(ci.getOperand(0).getValue()))->getID();
             if (linkReg != riscv64::ra) {
-                curInsnIter->second.getOperation().isNonABIRiscvCall = true;
+                curInsnIter->second.getOperation().isNonABICall = true;
             }
         }
 
@@ -664,7 +664,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             {
                 outEdges.push_back(std::make_pair(getNextAddr(), FALLTHROUGH));
             }
-            curInsnIter->second.getOperation().isNonABIRiscvReturn = true;
+            curInsnIter->second.getOperation().isNonABIReturn = true;
             return;
         }
         else if (isMultiInsnJump(&target, context, currBlk))
