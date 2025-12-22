@@ -351,7 +351,6 @@ class DYNINST_EXPORT SymtabCodeSource : public CodeSource, public boost::lockabl
     void init_try_blocks();
 
     CodeRegion * lookup_region(const Address addr) const;
-    void removeRegion(CodeRegion *); // removes from region tree
 
     void overlapping_warn(const char * file, unsigned line) const;
 
