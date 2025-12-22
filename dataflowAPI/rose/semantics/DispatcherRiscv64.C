@@ -54,7 +54,7 @@ namespace rose {
                         raw |= (rawBytes[idx] << (8 * idx));
                     }
                     p(dispatcher.get(), operators.get(), insn, operands, raw);
-                    
+
                     // Hardwire x0 to 0
                     SgAsmDirectRegisterExpression dre0{dispatcher->findRegister("x0", XLENBITS)};
                     dispatcher->writeRegister(dre0.get_descriptor(), operators->number_(XLENBITS, 0));

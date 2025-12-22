@@ -100,7 +100,7 @@ bool IA_riscv64::isIndirectJump() const
     }
     bool valid;
     Address target;
-    boost::tie(valid, target) = getCFT(); 
+    boost::tie(valid, target) = getCFT();
     if (valid) {
         return false;
     }
@@ -149,7 +149,7 @@ bool IA_riscv64::isTailCall(const Function* context, EdgeTypeEnum type, unsigned
             return false;
     }
     parsing_printf("Checking for Tail Call from RISCV\n");
-    context->obj()->cs()->incrementCounter(PARSE_TAILCALL_COUNT); 
+    context->obj()->cs()->incrementCounter(PARSE_TAILCALL_COUNT);
 
     if (tailCalls.find(type) != tailCalls.end()) {
         parsing_printf("\tReturning cached tail call check result: %d\n", tailCalls[type]);
@@ -185,7 +185,7 @@ bool IA_riscv64::isTailCall(const Function* context, EdgeTypeEnum type, unsigned
         parsing_printf("\tjump to 0x%lx in other regions, TAIL CALL\n", addr);
         tailCalls[type] = true;
         return true;
-    }    
+    }
 
     if (curInsn().isBranch() &&
             valid &&
@@ -404,7 +404,7 @@ bool IA_riscv64::isMultiInsnJump(Address *target, Function *context, Block *curr
             MachRegister ldRd = (boost::dynamic_pointer_cast<RegisterAST>(pi.getOperand(0).getValue()))->getID();
             vector<InstructionAST::Ptr> children1 =
                 boost::dynamic_pointer_cast<Dereference>(pi.getOperand(1).getValue())->getSubexpressions();
-            vector<InstructionAST::Ptr> children2 = 
+            vector<InstructionAST::Ptr> children2 =
                 boost::dynamic_pointer_cast<BinaryFunction>(children1[0])->getSubexpressions();
             MachRegister ldRs = boost::dynamic_pointer_cast<RegisterAST>(children2[0])->getID();
             int32_t ldImm = boost::dynamic_pointer_cast<Immediate>(children2[1])->eval().val.s32val;
