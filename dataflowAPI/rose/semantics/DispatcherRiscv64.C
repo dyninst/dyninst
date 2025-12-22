@@ -1676,6 +1676,8 @@ namespace rose {
                     retval = operators->number_(ival->get_significantBits(), ival->get_value());
                 } else if (SgAsmDoubleWordValueExpression *ival = isSgAsmDoubleWordValueExpression(addressExpression)) {
                     retval = operators->number_(ival->get_bit_size(), ival->get_value());
+                } else if (SgAsmQuadWordValueExpression *ival = isSgAsmQuadWordValueExpression(addressExpression)) {
+                    retval = operators->number_(ival->get_bit_size(), ival->get_value());
                 }
 
                 ASSERT_not_null(retval);
