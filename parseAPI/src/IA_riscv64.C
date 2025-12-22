@@ -278,7 +278,7 @@ bool IA_riscv64::isReturnAddrSave(Address&) const
     return false;
 }
 
-bool IA_riscv64::isReturn(Dyninst::ParseAPI::Function *func, Dyninst::ParseAPI::Block* currBlk) const
+bool IA_riscv64::isReturn(Dyninst::ParseAPI::Function *func, Dyninst::ParseAPI::Block* /*currBlk*/) const
 {
     Instruction insn = curInsn();
     entryID eid = insn.getOperation().getID();
