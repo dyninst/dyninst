@@ -16,6 +16,7 @@ ST\_SECTION & Region declaration \\
 ST\_TLS & Thread-local storage declaration \\
 ST\_DELETED & Deleted symbol \\
 ST\_NOTYPE & Miscellaneous symbol \\
+ST\_CODE & Part of a function but not an entry point \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -73,6 +74,9 @@ getSymtab & Symtab * & The Symtab that contains this symbol.  \\
 getPtrOffset & Offset & For binaries with an OPD section, the offset in the OPD that contains the function pointer data structure for this symbol. \\
 getLocalTOC & Offset & For platforms with a TOC register, the expected TOC for the object referred to by this symbol. \\
 isCommonStorage & bool & True if the symbol represents a common section (Fortran). \\
+getVersionSuffix & string & The dynamic version suffix including the initial `@'. Returns an empty string if not present. \\
+getCloneSuffix & string & The clone suffix including the initial `.'. Returns an empty string if not present. \\
+isColdClone & bool & True if the symbol's name has a clone that contains a `.cold' (code that belongs to the function name without the `.cold'). \\
 \bottomrule
 \end{tabular}
 
