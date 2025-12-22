@@ -26,7 +26,7 @@ our @EXPORT_OK = qw(
 );
 
 # Instruction subsets supported currently
-our %supported_riscv_subsets = (
+our @supported_riscv_subsets = (
     "UTYPE",   "BTYPE",    "ITYPE",      "JAL",
     "JALR",    "SHIFTIOP", "RTYPE",      "LOAD",
     "STORE",   "ADDIW",    "RTYPEW",     "SHIFTIWOP",
@@ -44,7 +44,7 @@ our %supported_riscv_subsets = (
 );
 
 # Extensions supported currently
-our %supported_riscv_exts = (
+our @supported_riscv_exts = (
     "Ext_M", "Ext_A", "Ext_F", "Ext_D", "Ext_Zca", "Ext_Zcf",
     "Ext_Zcd",
 );
