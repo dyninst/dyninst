@@ -555,6 +555,9 @@ namespace rose {
                     virtual BaseSemantics::SValuePtr invert(const BaseSemantics::SValuePtr &a_);
                     virtual BaseSemantics::SValuePtr extract(const BaseSemantics::SValuePtr &a_,
                                                              uint64_t begin, uint64_t end);
+                    virtual BaseSemantics::SValuePtr extract(const BaseSemantics::SValuePtr &a_,
+                                                             const BaseSemantics::SValuePtr &begin_,
+                                                             const BaseSemantics::SValuePtr &end_);
                     virtual BaseSemantics::SValuePtr ite(const BaseSemantics::SValuePtr &sel_,
                                                          const BaseSemantics::SValuePtr &a_,
                                                          const BaseSemantics::SValuePtr &b_);

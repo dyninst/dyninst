@@ -138,31 +138,9 @@ namespace rose {
                  *  a 32-bit GPR such as "eax" on x86-64 will write zeros to the upper half of "rax". */
                 virtual void writeRegister(const RegisterDescriptor &, const BaseSemantics::SValuePtr &result);
 
-                /** Set parity, sign, and zero flags appropriate for result value. */
-                virtual void setFlagsForResult(const BaseSemantics::SValuePtr &result,
-                                               const BaseSemantics::SValuePtr &carries,
-                                               bool invertCarries, size_t nbits,
-                                               BaseSemantics::SValuePtr &n,
-                                               BaseSemantics::SValuePtr &z,
-                                               BaseSemantics::SValuePtr &c,
-                                               BaseSemantics::SValuePtr &v);
-
-                /** Returns true if byte @p v has an even number of bits set; false for an odd number */
-                virtual BaseSemantics::SValuePtr parity(const BaseSemantics::SValuePtr &v);
-
-                /** Conditionally invert the bits of @p value.  The bits are inverted if @p maybe is true, otherwise @p value is returned. */
-                virtual BaseSemantics::SValuePtr invertMaybe(const BaseSemantics::SValuePtr &value, bool maybe);
-
                 /** Adds two values and adjusts flags.  This method can be used for subtraction if @p b is two's complement and @p
                  *  invertCarries is set.  If @p cond is supplied, then the addition and flag adjustments are conditional.
                  * @{ */
-                virtual BaseSemantics::SValuePtr doAddOperation(BaseSemantics::SValuePtr a, BaseSemantics::SValuePtr b,
-                                                                bool invertCarries,
-                                                                const BaseSemantics::SValuePtr &carryIn,
-                                                                BaseSemantics::SValuePtr &n,
-                                                                BaseSemantics::SValuePtr &z,
-                                                                BaseSemantics::SValuePtr &c,
-                                                                BaseSemantics::SValuePtr &v);
 
                 //FIXME
                 /** Implements the RCL, RCR, ROL, and ROR instructions for various operand sizes.  The rotate amount is always 8 bits wide
@@ -191,17 +169,8 @@ namespace rose {
                 /** Checks if the supplied value is or isn't equal to zero */
                 virtual BaseSemantics::SValuePtr isZero(const BaseSemantics::SValuePtr &value);
 
-                virtual BaseSemantics::SValuePtr ConditionHolds(const BaseSemantics::SValuePtr &cond);
-
-                /** Inverts the passed in expression and returns the result */
-                virtual BaseSemantics::SValuePtr NOT(const BaseSemantics::SValuePtr &expr);
-
                 /** Execute a branch -- equivalent to writing the target address value to the PC */
                 virtual void BranchTo(const BaseSemantics::SValuePtr &target);
-
-                /** Returns a value that equals 0. nbits specifies what should be the bit-length of the value,
-                 * but is irrelevant in practice as a 64-bit zero is returned anyway. */
-                virtual BaseSemantics::SValuePtr Zeros(const unsigned int nbits);
 
                 /** Returns the input value sign extended to the provided length. */
                 virtual BaseSemantics::SValuePtr SignExtend(const BaseSemantics::SValuePtr &expr, size_t newsize);
@@ -209,35 +178,8 @@ namespace rose {
                 /** Returns the input value zero extended to the provided length. */
                 virtual BaseSemantics::SValuePtr ZeroExtend(const BaseSemantics::SValuePtr &expr, size_t newsize);
 
-                /** Returns the input value right rotated by the provided amount. */
-                virtual BaseSemantics::SValuePtr ROR(const BaseSemantics::SValuePtr &expr, const BaseSemantics::SValuePtr &amt);
-
                 /** Replicates the value contained in expr to fill the full 64-bit width. */
                 virtual BaseSemantics::SValuePtr Replicate(const BaseSemantics::SValuePtr &expr);
-
-                BaseSemantics::SValuePtr getBitfieldMask(int immr, int imms, int N, bool iswmask, int datasize);
-
-                size_t getRegSize(uint32_t raw);
-
-                size_t ldStrLiteralAccessSize(uint32_t raw);
-
-                bool inzero(uint32_t raw);
-
-                bool extend(uint32_t raw);
-
-                int op(uint32_t raw);
-
-                bool setflags(uint32_t raw);
-
-                int getDatasize(uint32_t raw);
-
-                int getShiftType(uint32_t raw);
-
-                int getConditionVal(uint32_t raw);
-
-                int opcode(uint32_t raw);
-
-                bool subop(uint32_t raw);
 
                 /** Reads memory of size readSize bits from address addr. */
                 BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &addr, size_t readSize);
@@ -248,9 +190,6 @@ namespace rose {
                 /** Returns the register expression containing the target address for a write-back in case of memory-access instructions. */
                 SgAsmExpression *getWriteBackTarget(SgAsmExpression *expr);
 
-                /** Returns an expression that is an unsigned representation of expr. */
-                BaseSemantics::SValuePtr UInt(const BaseSemantics::SValuePtr &expr);
-
                 /** Applies a shift operation of type shiftType (defined in enum ShiftType) and shift length of amount to src. */
                 BaseSemantics::SValuePtr ShiftReg(const BaseSemantics::SValuePtr &src, int shiftType, const BaseSemantics::SValuePtr &amount);
 
@@ -259,9 +198,6 @@ namespace rose {
 
                 /** Returns an expression representing the number of leading contiguous bits that match the sign bit in expr. */
                 BaseSemantics::SValuePtr CountLeadingSignBits(const BaseSemantics::SValuePtr &expr);
-
-                /** Returns an expression that is a signed representation of expr if unSigned is false and calls UInt if unSigned is true. */
-                BaseSemantics::SValuePtr Int(const BaseSemantics::SValuePtr &expr, bool isUnsigned);
 
                 /** Rounds a number to zero (upwards if it is negative, downwards if it is positive. */
                 BaseSemantics::SValuePtr RoundTowardsZero(const BaseSemantics::SValuePtr &expr);

@@ -596,6 +596,12 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::extract(const BaseS
     return createTernaryAST(Dyninst::DataflowAPI::ROSEOperation::extractOp, a_, begin_, end_, end - begin);
 }
 
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::extract(const BaseSemantics::SValuePtr &a_,
+                                                                  const BaseSemantics::SValuePtr &begin_,
+                                                                  const BaseSemantics::SValuePtr &end_) {
+    return createTernaryAST(Dyninst::DataflowAPI::ROSEOperation::extractOp, a_, begin_, end_);
+}
+
 BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::ite(const BaseSemantics::SValuePtr &sel_,
                                                               const BaseSemantics::SValuePtr &a_,
                                                               const BaseSemantics::SValuePtr &b_) {

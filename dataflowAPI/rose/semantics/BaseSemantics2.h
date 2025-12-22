@@ -1712,6 +1712,11 @@ namespace rose {
                      *  number zero. The begin_bit and end_bit values must be valid for the width of @p a. */
                     virtual SValuePtr extract(const SValuePtr &a, uint64_t begin_bit, uint64_t end_bit) = 0;
 
+                    /** Extracts bits from a value.  The specified bits from begin (inclusive) through end (exclusive) are copied into
+                     *  the low-order bits of the return value (other bits in the return value are cleared). The least significant bit is
+                     *  number zero. The begin and end values must be valid for the width of @p a. */
+                    virtual SValuePtr extract(const SValuePtr &a, const SValuePtr &begin, const SValuePtr &end) = 0;
+
                     /** Concatenates the bits of two values.  The bits of @p a and @p b are concatenated so that the result has @p
                      *  b in the high-order bits and @p a in the low order bits. The width of the return value is the sum of the widths of @p
                      *  a and @p b. */
