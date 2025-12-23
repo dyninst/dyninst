@@ -32,127 +32,127 @@
 
 namespace NS_amdgpu {
 
-unsigned int swapBytesIfNeeded(unsigned int /* i */) {
-  assert(!"Not implemented for AMDGPU");
-  return 0;
-}
-
-int instruction::signExtend(unsigned int /* i */, unsigned int /* pos */) {
-  assert(!"Not implemented for AMDGPU");
-  return 0;
-}
-
-instructUnion &instruction::swapBytes(instructUnion &i) {
-  assert(!"Not implemented for AMDGPU");
-  return i;
-}
-
-instruction *instruction::copy() const {
-  assert(!"Not implemented for AMDGPU");
-  return nullptr;
-}
-
-unsigned instruction::getTargetReg() const {
-  assert(!"Not implemented for AMDGPU");
-  return 0;
-}
-
-Dyninst::Address instruction::getTarget(Dyninst::Address /* addr */) const {
-  assert(!"Not implemented for AMDGPU");
-  return 0;
-}
-
-void instruction::setBranchOffset(Dyninst::Address /*newOffset*/) {
-  assert(!"Not implemented for AMDGPU");
-}
-
-bool instruction::isCall() const {
-  assert(!"Not implemented for AMDGPU");
-  return false;
-}
-
-void instruction::setInstruction(codeBuf_t * /*ptr*/, Dyninst::Address) {
-  assert(!"Not implemented for AMDGPU");
-}
-
-void instruction::setInstruction(unsigned char * /* ptr */, Dyninst::Address) {
-  assert(!"Not implemented for AMDGPU");
-}
-
-bool instruction::isBranchReg() const {
-  assert(!"Not implmented for AMDGPU");
-  return false;
-}
-
-bool instruction::isUncondBranch() const {
-  assert(!"Not implmented for AMDGPU");
-  return false;
-}
-
-bool instruction::isCondBranch() const {
-  assert(!"Not implmented for AMDGPU");
-  return false;
-}
-
-unsigned instruction::jumpSize(Dyninst::Address /*from*/, Dyninst::Address /*to*/,
-                               unsigned /*addr_width*/) {
-  assert(!"Not implmented for AMDGPU");
-  return 0;
-}
-
-unsigned instruction::jumpSize(Dyninst::Address /*disp*/, unsigned /*addr_width*/) {
-  assert(!"Not implmented for AMDGPU");
-  return 0;
-}
-
-unsigned instruction::maxJumpSize(unsigned /* addr_width */) {
-  assert(!"Not implmented for AMDGPU");
-  return 0;
-}
-
-unsigned instruction::maxInterFunctionJumpSize(unsigned /* addr_width */) {
-  assert(!"Not implmented for AMDGPU");
-  return 0;
-}
-
-unsigned instruction::spaceToRelocate() const {
-  assert(!"Not implmented for AMDGPU");
-  return 0;
-}
-
-bool instruction::getUsedRegs(std::vector<int> &) {
-  assert(!"Not implmented for AMDGPU");
-  return false;
-}
-
-bool instruction::isThunk() const {
-  assert(!"Not implmented for AMDGPU");
-  return false;
-}
-
-unsigned instruction::getBranchTargetReg() const {
-  assert(!"Not implmented for AMDGPU");
-  return 0;
-}
-
-Dyninst::Address instruction::getBranchOffset() const {
-  assert(!"Not implmented for AMDGPU");
-  return 0;
-}
-
-unsigned instruction::opcode() const {
-  assert(!"Not implmented for AMDGPU");
-  return false;
-}
-
-bool instruction::isAtomicLoad() const {
-  assert(!"Not implmented for AMDGPU");
-  return false;
-}
-
-bool instruction::isAtomicStore() const {
-  assert(!"Not implmented for AMDGPU");
-  return false;
-}
+// unsigned int swapBytesIfNeeded(unsigned int [> i <]) {
+//   assert(!"Not implemented for AMDGPU");
+//   return 0;
+// }
+//
+// int instruction::signExtend(unsigned int [> i */, unsigned int /* pos <]) {
+//   assert(!"Not implemented for AMDGPU");
+//   return 0;
+// }
+//
+// instructUnion &instruction::swapBytes(instructUnion &i) {
+//   assert(!"Not implemented for AMDGPU");
+//   return i;
+// }
+//
+// instruction *instruction::copy() const {
+//   assert(!"Not implemented for AMDGPU");
+//   return nullptr;
+// }
+//
+// unsigned instruction::getTargetReg() const {
+//   assert(!"Not implemented for AMDGPU");
+//   return 0;
+// }
+//
+// Dyninst::Address instruction::getTarget(Dyninst::Address [> addr <]) const {
+//   assert(!"Not implemented for AMDGPU");
+//   return 0;
+// }
+//
+// void instruction::setBranchOffset(Dyninst::Address [>newOffset<]) {
+//   assert(!"Not implemented for AMDGPU");
+// }
+//
+// bool instruction::isCall() const {
+//   assert(!"Not implemented for AMDGPU");
+//   return false;
+// }
+//
+// void instruction::setInstruction(codeBuf_t * [>ptr<], Dyninst::Address) {
+//   assert(!"Not implemented for AMDGPU");
+// }
+//
+// void instruction::setInstruction(unsigned char * [> ptr <], Dyninst::Address) {
+//   assert(!"Not implemented for AMDGPU");
+// }
+//
+// bool instruction::isBranchReg() const {
+//   assert(!"Not implmented for AMDGPU");
+//   return false;
+// }
+//
+// bool instruction::isUncondBranch() const {
+//   assert(!"Not implmented for AMDGPU");
+//   return false;
+// }
+//
+// bool instruction::isCondBranch() const {
+//   assert(!"Not implmented for AMDGPU");
+//   return false;
+// }
+//
+// unsigned instruction::jumpSize(Dyninst::Address [>from*/, Dyninst::Address /*to<],
+//                                unsigned [>addr_width<]) {
+//   assert(!"Not implmented for AMDGPU");
+//   return 0;
+// }
+//
+// unsigned instruction::jumpSize(Dyninst::Address [>disp*/, unsigned /*addr_width<]) {
+//   assert(!"Not implmented for AMDGPU");
+//   return 0;
+// }
+//
+// unsigned instruction::maxJumpSize(unsigned [> addr_width <]) {
+//   assert(!"Not implmented for AMDGPU");
+//   return 0;
+// }
+//
+// unsigned instruction::maxInterFunctionJumpSize(unsigned [> addr_width <]) {
+//   assert(!"Not implmented for AMDGPU");
+//   return 0;
+// }
+//
+// unsigned instruction::spaceToRelocate() const {
+//   assert(!"Not implmented for AMDGPU");
+//   return 0;
+// }
+//
+// bool instruction::getUsedRegs(std::vector<int> &) {
+//   assert(!"Not implmented for AMDGPU");
+//   return false;
+// }
+//
+// bool instruction::isThunk() const {
+//   assert(!"Not implmented for AMDGPU");
+//   return false;
+// }
+//
+// unsigned instruction::getBranchTargetReg() const {
+//   assert(!"Not implmented for AMDGPU");
+//   return 0;
+// }
+//
+// Dyninst::Address instruction::getBranchOffset() const {
+//   assert(!"Not implmented for AMDGPU");
+//   return 0;
+// }
+//
+// unsigned instruction::opcode() const {
+//   assert(!"Not implmented for AMDGPU");
+//   return false;
+// }
+//
+// bool instruction::isAtomicLoad() const {
+//   assert(!"Not implmented for AMDGPU");
+//   return false;
+// }
+//
+// bool instruction::isAtomicStore() const {
+//   assert(!"Not implmented for AMDGPU");
+//   return false;
+// }
 
 } // namespace NS_amdgpu

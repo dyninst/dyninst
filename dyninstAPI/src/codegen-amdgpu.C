@@ -128,11 +128,13 @@ bool insnCodeGen::modifyJcc(Dyninst::Address target, NS_amdgpu::instruction &ins
   return true;
 }
 
-bool insnCodeGen::modifyCall(Dyninst::Address target, NS_amdgpu::instruction &insn, codeGen &gen) {
-  if (insn.isUncondBranch())
-    return modifyJump(target, insn, gen);
-  else
-    return modifyJcc(target, insn, gen);
+bool insnCodeGen::modifyCall(Dyninst::Address /* target */, NS_amdgpu::instruction & /* insn */, codeGen & /* gen */) {
+  // if (insn.isUncondBranch())
+  //   return modifyJump(target, insn, gen);
+  // else
+  //   return modifyJcc(target, insn, gen);
+  assert(!"Not implemented for AMDGPU");
+  return false;
 }
 
 bool insnCodeGen::modifyData(Dyninst::Address /* target */, NS_amdgpu::instruction & /* insn */,
