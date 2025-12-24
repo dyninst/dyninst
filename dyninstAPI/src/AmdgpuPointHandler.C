@@ -154,6 +154,8 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
 
 void AmdgpuGfx908PointHandler::insertEpilogueIfKernel(BPatch_function *function) {
   // If this function is a kernel, insert a s_dcache_wb instruction at its exit points.
+  // TODO : A s_dcache_wb must be inserted before every s_endpgm instruction on an instrumented path
+  // from a kernel.
   BPatch_variableExpr *kdVariable = getKernelDescriptorVariable(function);
   if (!kdVariable)
     return;
