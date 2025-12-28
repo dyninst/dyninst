@@ -363,7 +363,15 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file,
 
     // Testing
 
-    newBinaryEdit->makeInitAndFiniIfNeeded();
+    if (linkedFile->getArchitecture() == Arch_riscv64) {
+        // RISC-V ELF does not use _init and _fini
+        // Instead, we create custom init and fini functions and add it to .init_array and .fini_array
+        newBinaryEdit->makeDyninstInitIfNeeded();
+        newBinaryEdit->makeDyninstFiniIfNeeded();
+    }
+    else {
+        newBinaryEdit->makeInitAndFiniIfNeeded();
+    }
 
     newBinaryEdit->createMemoryBackingStore(newBinaryEdit->getAOut());
     newBinaryEdit->initialize();

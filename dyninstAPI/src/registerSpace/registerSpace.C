@@ -61,6 +61,9 @@
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "dyninstAPI/src/emit-aarch64.h"
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
+#include "dyninstAPI/src/inst-riscv64.h"
+#include "dyninstAPI/src/emit-riscv64.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 #include "arch-amdgpu.h"
 #include "dyninstAPI/src/emit-amdgpu.h"
@@ -68,6 +71,85 @@
 
 registerSpace *registerSpace::globalRegSpace_ = NULL;
 registerSpace *registerSpace::globalRegSpace64_ = NULL;
+
+void registerSlot::cleanSlot() {
+    // number does not change
+    refCount = 0;
+    //liveState = live;
+    //liveState does not change
+    keptValue = false;
+    beenUsed = false;
+    // initialState doesn't change
+    // offLimits doesn't change
+    spilledState = unspilled;
+    saveOffset = 0;
+    // type doesn't change
+}
+
+unsigned registerSlot::encoding() const {
+    // Should write this for all platforms when the encoding is done.
+#if defined(DYNINST_CODEGEN_ARCH_POWER)
+    switch (type) {
+    case GPR:
+        return registerSpace::GPR(number);
+        break;
+    case FPR:
+        return registerSpace::FPR(number);
+        break;
+    case SPR:
+        return registerSpace::SPR(number);
+        break;
+    default:
+        assert(0);
+        return Null_Register;
+        break;
+    }
+#elif defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+    // Should do a mapping here from entire register space to "expected" encodings.
+    return number;
+#elif defined(DYNINST_CODEGEN_ARCH_AARCH64) 
+    switch (type) {
+        case GPR:
+            return registerSpace::GPR(number);
+            break;
+        case FPR:
+            return registerSpace::FPR(number);
+            break;
+        default:
+            assert(0);
+            return Null_Register;
+            break;
+    }
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64) 
+    switch (type) {
+        case GPR:
+            return registerSpace::GPR(number);
+            break;
+        case FPR:
+            return registerSpace::FPR(number);
+            break;
+        default:
+            assert(0);
+            return Null_Register;
+            break;
+    }
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    switch (type) {
+      case SGPR:
+            return registerSpace::SGPR(number);
+            break;
+      case VGPR:
+            return registerSpace::VGPR(number);
+            break;
+/*      case AGPR:
+            return registerSpace::AGPR(number);
+            break;*/
+      default:
+#else
+    assert(0);
+    return 0;
+#endif
+}
 
 registerSpace *registerSpace::getRegisterSpace(unsigned width) {
     if (globalRegSpace_ == NULL) initialize();
@@ -1306,6 +1388,9 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 #if defined(DYNINST_CODEGEN_ARCH_AARCH64)
 	assert(0);
 	//#error "aarch64 should not be 32bit long"
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
+	assert(0);
+	//#error "riscv64 should not be 32bit long"
 #else
 		range = regToMachReg32.equal_range(reg);
 		live = &live1;

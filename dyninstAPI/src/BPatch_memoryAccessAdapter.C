@@ -40,6 +40,8 @@
 # include "common/src/arch-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 # include "common/src/arch-aarch64.h"
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
+# include "common/src/arch-riscv64.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 # include "common/src/arch-amdgpu.h"
 #endif
@@ -255,6 +257,19 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
         }
     }
 	return NULL;
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
+    using namespace NS_riscv64;
+
+    auto operands = insn.getAllOperands();
+    for (std::vector<Operand>::iterator op = operands.begin(); op != operands.end(); ++op) {
+        bool isLoad = op->readsMemory();
+        bool isStore = op->writesMemory();
+        if (isLoad || isStore) {
+            op->getValue()->apply(this);
+            return new BPatch_memoryAccess(current, isLoad, isStore, bytes, imm, ra, rb, sc);
+        }
+    }
+    return NULL;
 #else 
     assert(!"Unimplemented architecture");
 #endif

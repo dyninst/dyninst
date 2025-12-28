@@ -52,6 +52,10 @@ namespace NS_aarch64 {
   class instruction;
 }
 
+namespace NS_riscv64 {
+  class instruction;
+}
+
 namespace NS_amdgpu {
   class instruction;
 }
@@ -62,6 +66,8 @@ typedef NS_x86::instruction arch_insn;
 typedef NS_power::instruction arch_insn;
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 typedef NS_aarch64::instruction arch_insn;
+#elif defined (DYNINST_CODEGEN_ARCH_RISCV64)
+typedef NS_riscv64::instruction arch_insn;
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 typedef NS_amdgpu::instruction arch_insn;
 #else
