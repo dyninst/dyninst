@@ -49,6 +49,9 @@ using namespace NS_x86;
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "codegen-aarch64.h"
 using namespace NS_aarch64;
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
+#include "codegen-riscv64.h"
+using namespace NS_riscv64;
 #else
 #error "unknown architecture"
 #endif
@@ -244,6 +247,8 @@ class codeGen {
 
     void setPCRelUseCount(int c) { pc_rel_use_count = c; }
     int getPCRelUseCount() const { return pc_rel_use_count; }
+
+    bool usesCompressedInstructionFormat() const;
 
     // SD-DYNINST
     // 
