@@ -1,0 +1,364 @@
+/*
+ * See the dyninst/COPYRIGHT file for copyright information.
+ * 
+ * We provide the Paradyn Tools (below described as "Paradyn")
+ * on an AS IS basis, and do not warrant its validity or performance.
+ * We reserve the right to update, modify, or discontinue this
+ * software at any time.  We shall have no obligation to supply such
+ * updates or modifications or any other form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
+/*
+ * emit-aarch64.C - ARMv8 code generators (emitters)
+ */
+
+/*
+#include <assert.h>
+#include <stdio.h>
+#include "dyninstAPI/src/codegen.h"
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/inst-x86.h"
+#include "dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/h/BPatch.h"
+#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
+
+#include "dyninstAPI/src/dynProcess.h"
+
+#include "dyninstAPI/src/binaryEdit.h"
+#include "dyninstAPI/src/image.h"
+// get_index...
+#include "dyninstAPI/src/dynThread.h"
+#include "ABI.h"
+#include "liveness.h"
+#include "RegisterConversion.h"
+*/
+
+#include "dyninstAPI/src/inst-riscv64.h"
+#include "dyninstAPI/src/emit-riscv64.h"
+#include "dyninstAPI/src/registerSpace.h"
+
+codeBufIndex_t EmitterRISCV64::emitIf(Register expr_reg,
+                                      Register target,
+                                      RegControl /*rc*/,
+                                      codeGen &gen)
+{
+    // beq expr_reg, zero, 8
+    // jalr zero, target, 0
+
+    insnCodeGen::generateBne(gen, expr_reg, GPR_ZERO, 8 >> 1, false);
+    insnCodeGen::generateJ(gen, target + 4, false);
+
+    // Retval: where the jump is in this sequence
+    codeBufIndex_t retval = gen.getIndex();
+    return retval;
+}
+
+void EmitterRISCV64::emitLoadConst(Register dest,
+                                   Address imm,
+                                   codeGen &gen)
+{
+    insnCodeGen::loadImmIntoReg(gen, dest, imm, gen.usesCompressedInstructionFormat());
+}
+
+
+void EmitterRISCV64::emitLoad(Register dest,
+                              Address addr,
+                              int size,
+                              codeGen &gen)
+{
+    Register scratch = gen.rs()->getScratchRegister(gen);
+
+    insnCodeGen::loadImmIntoReg(gen, scratch, addr, gen.usesCompressedInstructionFormat());
+    // As we want to zero extend the dest register, we should set isUnsigned to true
+    insnCodeGen::generateMemLoad(gen, dest, scratch, 0, size, true, gen.usesCompressedInstructionFormat());
+
+    gen.rs()->freeRegister(scratch);
+    gen.markRegDefined(dest);
+}
+
+
+void EmitterRISCV64::emitStore(Address addr,
+                               Register src,
+                               int size,
+                               codeGen &gen)
+{
+    Register scratch = gen.rs()->getScratchRegister(gen);
+
+    insnCodeGen::loadImmIntoReg(gen, scratch, addr, gen.usesCompressedInstructionFormat());
+    insnCodeGen::generateMemStore(gen, scratch, src, 0, size, gen.usesCompressedInstructionFormat());
+
+    gen.rs()->freeRegister(scratch);
+    gen.markRegDefined(src);
+}
+
+
+void EmitterRISCV64::emitOp(unsigned opcode,
+                            Register dest,
+                            Register src1,
+                            Register src2,
+                            codeGen &gen)
+{
+    // dest = src1 + src2
+    if (opcode == plusOp) {
+        insnCodeGen::generateAdd(gen, src1, src2, dest, gen.usesCompressedInstructionFormat());
+    }
+
+    // dest = src1 - src2
+    else if(opcode == minusOp) {
+        insnCodeGen::generateSub(gen, src1, src2, dest, gen.usesCompressedInstructionFormat());
+    }
+    
+    // dest = src1 * src2
+    else if (opcode == timesOp) {
+        insnCodeGen::generateMul(gen, src1, src2, dest, gen.usesCompressedInstructionFormat());
+    }
+
+    // dest = src1 & src2
+    else if (opcode == andOp) {
+        insnCodeGen::generateAnd(gen, src1, src2, dest, gen.usesCompressedInstructionFormat());
+    }
+
+    // dest = src1 | src2
+    else if (opcode == orOp) {
+        insnCodeGen::generateOr(gen, src1, src2, dest, gen.usesCompressedInstructionFormat());
+    }
+
+    // dest = src1 ^ src2
+    else if (opcode == xorOp) {
+        insnCodeGen::generateXor(gen, src1, src2, dest, gen.usesCompressedInstructionFormat());
+    }
+    else assert(0);
+}
+
+
+void EmitterRISCV64::emitRelOp(unsigned opcode,
+                               Register dest,
+                               Register src1,
+                               Register src2,
+                               codeGen &gen,
+                               bool s)
+{
+    // make dest = 1, meaning true
+    insnCodeGen::loadImmIntoReg(gen, dest, 0x1, gen.usesCompressedInstructionFormat());
+
+    // Insert conditional jump to skip dest = 0 in case the comparison resulted true
+    // Therefore keeping dest = 1
+    switch (opcode) {
+        case lessOp: {
+            if (s) {
+                insnCodeGen::generateBlt(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
+            }
+            else {
+                insnCodeGen::generateBltu(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
+            }
+            break;
+        }
+        case leOp: {
+            if (s) {
+                insnCodeGen::generateBge(gen, src2, src1, (RV_INSN_SIZE * 2) >> 1, false);
+            }
+            else {
+                insnCodeGen::generateBgeu(gen, src2, src1, (RV_INSN_SIZE * 2) >> 1, false);
+            }
+            break;
+        }
+        case greaterOp: {
+            if (s) {
+                insnCodeGen::generateBlt(gen, src2, src1, (RV_INSN_SIZE * 2) >> 1, false);
+            }
+            else {
+                insnCodeGen::generateBltu(gen, src2, src1, (RV_INSN_SIZE * 2) >> 1, false);
+            }
+            break;
+        }
+        case geOp: {
+            if (s) {
+                insnCodeGen::generateBge(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
+            }
+            else {
+                insnCodeGen::generateBgeu(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
+            }
+            break;
+        }
+        case eqOp: {
+            insnCodeGen::generateBeq(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
+            break;
+        }
+        case neOp: {
+            insnCodeGen::generateBne(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
+            break;
+        }
+        default: {
+            assert(0); // wrong condition passed
+            break;
+        }
+    }
+
+    // Make dest = 0, in case it fails the branch
+    insnCodeGen::loadImmIntoReg(gen, dest, 0x0, false);
+}
+
+void EmitterRISCV64::emitRelOpImm(unsigned opcode,
+                                  Register dest,
+                                  Register src1,
+                                  RegValue src2imm,
+                                  codeGen &gen,
+                                  bool s)
+{
+    Register src2 = gen.rs()->getScratchRegister(gen);
+    insnCodeGen::loadImmIntoReg(gen, src2, src2imm, gen.usesCompressedInstructionFormat());
+
+    // make dest = 1, meaning true
+    insnCodeGen::loadImmIntoReg(gen, dest, 0x1, gen.usesCompressedInstructionFormat());
+
+    // Insert conditional jump to skip dest = 0 in case the comparison resulted true
+    // Therefore keeping dest = 1
+    switch (opcode) {
+        case lessOp: {
+            if (s) {
+                insnCodeGen::generateBlt(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
+            }
+            else {
+                insnCodeGen::generateBltu(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
+            }
+            break;
+        }
+        case leOp: {
+            if (s) {
+                insnCodeGen::generateBge(gen, src2, src1, (RV_INSN_SIZE * 2) >> 1, false);
+            }
+            else {
+                insnCodeGen::generateBgeu(gen, src2, src1, (RV_INSN_SIZE * 2) >> 1, false);
+            }
+            break;
+        }
+        case greaterOp: {
+            if (s) {
+                insnCodeGen::generateBlt(gen, src2, src1, (RV_INSN_SIZE * 2) >> 1, false);
+            }
+            else {
+                insnCodeGen::generateBltu(gen, src2, src1, (RV_INSN_SIZE * 2) >> 1, false);
+            }
+            break;
+        }
+        case geOp: {
+            if (s) {
+                insnCodeGen::generateBge(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
+            }
+            else {
+                insnCodeGen::generateBgeu(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
+            }
+            break;
+        }
+        case eqOp: {
+            insnCodeGen::generateBeq(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
+            break;
+        }
+        case neOp: {
+            insnCodeGen::generateBne(gen, src1, src2, (RV_INSN_SIZE * 2) >> 1, false);
+            break;
+        }
+        default: {
+            assert(0); // wrong condition passed
+            break;
+        }
+    }
+
+    // Make dest = 0, in case it fails the branch
+    insnCodeGen::loadImmIntoReg(gen, dest, 0x0, false);
+
+    gen.rs()->freeRegister(src2);
+    gen.markRegDefined(dest);
+}
+
+
+void EmitterRISCV64::emitLoadIndir(Register dest,
+                                   Register addr_src,
+                                   int size,
+                                   codeGen &gen)
+{
+    insnCodeGen::generateMemLoad(gen, dest, addr_src, 0, size, true, gen.usesCompressedInstructionFormat());
+    gen.markRegDefined(dest);
+}
+void EmitterRISCV64::emitStoreIndir(Register addr_reg,
+                                    Register src,
+                                    int size,
+                                    codeGen &gen)
+{
+    insnCodeGen::generateMemStore(gen, addr_reg, src, 0, size, gen.usesCompressedInstructionFormat());
+    gen.markRegDefined(addr_reg);
+}
+
+void EmitterRISCV64::emitLoadOrigRegRelative(Register dest,
+                                             Address offset,
+                                             Register base,
+                                             codeGen &gen,
+                                             bool deref)
+{
+    gen.markRegDefined(dest);
+    Register scratch = gen.rs()->getScratchRegister(gen);
+    assert(scratch);
+    gen.markRegDefined(scratch);
+
+    // Either load the address or the contents at that address
+    if (deref) {
+        // Load the stored register 'base' into scratch
+        emitLoadOrigRegister(base, scratch, gen);
+        // move offset(%scratch), %dest
+        insnCodeGen::generateMemLoad(gen, dest, scratch, offset, 8, true, gen.usesCompressedInstructionFormat());
+    }
+    else {
+        // load the stored register 'base' into dest
+        emitLoadOrigRegister(base, scratch, gen);
+        insnCodeGen::loadImmIntoReg(gen, dest, offset, gen.usesCompressedInstructionFormat());
+        insnCodeGen::generateAdd(gen, dest, scratch, dest, gen.usesCompressedInstructionFormat());
+    }
+}
+
+
+void EmitterRISCV64::emitLoadOrigRegister(Address register_num,
+                                          Register destination,
+                                          codeGen &gen)
+{
+    registerSlot *src = (*gen.rs())[register_num];
+    assert(src);
+    registerSlot *dest = (*gen.rs())[destination];
+    assert(dest);
+
+    if (src->name == "sp") {
+        insnCodeGen::generateAddi(gen, TRAMP_FRAME_SIZE_64, REG_SP, destination, gen.usesCompressedInstructionFormat());
+        return;
+    }
+
+    if (src->spilledState == registerSlot::unspilled) {
+        // Not on the stack. Directly move the value
+        insnCodeGen::generateMove(gen, destination, (Register)register_num, gen.usesCompressedInstructionFormat());
+        return;
+    }
+
+    EmitterRISCV64SaveRestoreRegs saveRestoreRegs;
+    int idx = saveRestoreRegs.getHeightOf(gen, gen.rs(), register_num);
+    // Its on the stack so load it.
+    insnCodeGen::restoreRegister(gen, destination, idx * gen.width(), gen.usesCompressedInstructionFormat());
+}

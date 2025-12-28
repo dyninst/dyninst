@@ -31,16 +31,19 @@
 #ifndef _ARCH_RISCV64_H
 #define _ARCH_RISCV64_H
 
-#include "dyntypes.h"
-#include "registers/riscv64_regs.h"
 #include <stdint.h>
 #include <assert.h>
 #include <vector>
 #include <bitset>
-
 class AddressSpace;
 
 namespace NS_riscv64 {
+
+/*
+ * Define riscv64 instruction information.
+ *
+ */
+
 
 // In RISC-V, instruction length can be a multiple of 2 bytes
 
@@ -155,6 +158,9 @@ constexpr int32_t REG_RD_ENC_OFFSET = 7;
 constexpr int32_t REG_RS1_ENC_OFFSET = 15;
 constexpr int32_t REG_RS2_ENC_OFFSET = 20;
 constexpr int32_t REG_ENC_MASK = 0x1f;
+
+constexpr int32_t INSN_BUFF_SIZE = (8 * RISCV_MAX_INSN_SIZE);
+typedef std::bitset<INSN_BUFF_SIZE> insnBuf_t;
 
 // Instruction encoding
 constexpr int32_t AUIPCOp    = 0x17;
@@ -361,6 +367,70 @@ const std::vector<int> CJ_REORDER    = {5, 1, 2, 3, 7, 6, 10, 8, 9, 4, 11};
 const std::vector<int> CB_REORDER1   = {5, 1, 2, 6, 7};
 const std::vector<int> CB_REORDER2   = {3, 4, 8};
 
+
+// The following constants are for instruction parsing (not codegen!)
+// Auipc Instruction
+
+constexpr insnBuf_t AUIPC_INSN_MASK      = insnBuf_t(0x0000007f);
+constexpr insnBuf_t AUIPC_INSN           = insnBuf_t(0x00000017);
+constexpr insnBuf_t AUIPC_IMM_MASK       = insnBuf_t(0xfffff000);
+constexpr insnBuf_t AUIPC_REG_MASK       = insnBuf_t(0x00000f80);
+
+constexpr int AUIPC_REG_SHIFT            = 7;
+
+// Jump/Branch instructions
+
+constexpr insnBuf_t J_INSN_MASK      = insnBuf_t(0x0000007f);
+constexpr insnBuf_t B_INSN_MASK      = insnBuf_t(0x0000007f);
+constexpr insnBuf_t CJ_INSN_MASK     = insnBuf_t(0xe003);
+constexpr insnBuf_t CJR_INSN_MASK    = insnBuf_t(0xf003);
+constexpr insnBuf_t CB_INSN_MASK     = insnBuf_t(0xe003);
+
+constexpr insnBuf_t B_INSNS          = insnBuf_t(0x00000063);
+constexpr insnBuf_t JALR_INSN        = insnBuf_t(0x00000067);
+constexpr insnBuf_t JAL_INSN         = insnBuf_t(0x0000006f);
+constexpr insnBuf_t CBEQZ_INSN       = insnBuf_t(0xc001);
+constexpr insnBuf_t CBNEZ_INSN       = insnBuf_t(0xe001);
+constexpr insnBuf_t CJALR_INSN       = insnBuf_t(0x9002);
+constexpr insnBuf_t CJAL_INSN        = insnBuf_t(0x2001);
+constexpr insnBuf_t CJR_INSN         = insnBuf_t(0x8002);
+constexpr insnBuf_t CJ_INSN          = insnBuf_t(0xa001);
+
+// The following are the indices of the immediates' offset
+const int JAL_IMM_OFF  = 12;
+const int JALR_IMM_OFF = 20;
+const int CJ_IMM_OFF   = 2; 
+
+const int B_IMM_OFF1   = 7;
+const int B_IMM_OFF2   = 25;
+const int CB_IMM_OFF1  = 2;
+const int CB_IMM_OFF2  = 10;
+
+// Register masks and shifts for jump/branch instructions
+constexpr insnBuf_t B_COND_MASK   = insnBuf_t(0x00007000);
+constexpr insnBuf_t B_REG1_MASK   = insnBuf_t(0x000f8000);
+constexpr insnBuf_t B_REG2_MASK   = insnBuf_t(0x01f00000);
+constexpr insnBuf_t CB_REG1_MASK  = insnBuf_t(0x0380);
+constexpr insnBuf_t JALR_REG_MASK = insnBuf_t(0x000f8000);
+constexpr insnBuf_t J_LNK_MASK    = insnBuf_t(0x00000f80);
+constexpr insnBuf_t CJR_REG_MASK  = insnBuf_t(0x0f80);
+constexpr int B_COND_SHIFT        = 12;
+constexpr int B_REG1_SHIFT        = 15;
+constexpr int B_REG2_SHIFT        = 20;
+constexpr int CB_REG1_SHIFT       = 7;
+constexpr int CB_REG1_ADD         = 8;
+constexpr int JALR_REG_SHIFT      = 15;
+constexpr int J_LNK_SHIFT         = 7;
+constexpr int CJR_REG_SHIFT       = 7;
+
+// Atomic Instructions
+constexpr insnBuf_t A_INSN_MASK = insnBuf_t(0x0000007f);
+
+constexpr insnBuf_t A_INSNS     = insnBuf_t(0x0000002f);
+constexpr insnBuf_t A_OP_MASK   = insnBuf_t(0xf8000000);
+constexpr insnBuf_t A_OP_LR     = insnBuf_t(0x10000000);
+constexpr insnBuf_t A_OP_SC     = insnBuf_t(0x18000000);
+
 #define INSN_BUFF_SET(I, s, e, v)    ((I).setInsnBuf((s), (e - s + 1), (v)))
 
 typedef union {
@@ -368,17 +438,19 @@ typedef union {
     rvMaxInsn_t raw;
 } instructUnion;
 
+typedef instructUnion codeBuf_t;
+
 #define maxGPR 32
 #define maxFPR 32
 
 class DYNINST_EXPORT instruction {
-    private:
+private:
     // Due to the way codegen.C works, codeBuf_t should be a fixed size.
     // Therefore, we write opcodes to our own instruction buffer `insn_buff` instead.
     // Then, whever we generate the instruction, we call `flushInsnBuffer` to flush the
     // instruction buffer into the 2-byte code buffer `code_buff` short-by-short.
 
-    instructUnion insn_;
+    codeBuf_t insn_;
 
 public:
     instruction(): insn_() {}
@@ -391,31 +463,28 @@ public:
     instruction(const void *ptr, bool): instruction(ptr) {}
 
     instruction(const instruction &insn) : insn_(insn.insn_) {}
-    instruction(instructUnion &insn) : insn_(insn) {}
+    instruction(codeBuf_t &insn) : insn_(insn) {}
 
     void clear() { 
-        insn_.raw = 0;
+        insn_ = instructUnion();
+        insn_buff.reset();
+    }
+    void setInsnBuf(unsigned int pos, unsigned int len, unsigned int value) {
+        std::bitset<INSN_BUFF_SIZE> bits(value);
+        for (size_t i = 0; i < len; i++) {
+            insn_buff.set(pos + i, bits[i]);
+        }
     }
 
-    void setBits(unsigned int pos, unsigned int len, unsigned int value) {
-        assert(!(isCompressed() && pos + len > 16));
-        unsigned int mask;
-
-        mask = ~((unsigned int)(~0) << len);
-        value = value & mask;
-
-        mask = ~(mask << pos);
-        value = value << pos;
-
-        insn_.raw = insn_.raw & mask;
-        insn_.raw = insn_.raw | value;
+    void flushInsnBuff() {
+        insn_.raw = static_cast<rvMaxInsn_t>(insn_buff.to_ulong());
     }
 
-    bool isCompressed() const {
-        return (insn_.raw & 0x3) != 0x3;
+    bool isRVC() const {
+        return !(insn_buff.test(0) && insn_buff.test(1));
     }
 
-    unsigned size() { return isCompressed() ? RISCVC_INSN_SIZE : RISCV_INSN_SIZE; }
+    unsigned size() { return isRVC() ? RVC_INSN_SIZE : RV_INSN_SIZE; }
 
     // return a pointer to the instruction
     const unsigned char *ptr() const { return (const unsigned char *)&insn_; }

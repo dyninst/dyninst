@@ -242,6 +242,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 
    // Arbitrarily select the first function containing this springboard, since only one can win. 
    generateBranch(r.from, r.destinations.begin()->second, tmpGen);
+
    unsigned size = tmpGen.used();
 
    // Check if the size of the branch will fit   

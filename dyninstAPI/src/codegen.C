@@ -48,6 +48,8 @@
 
 #if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #define CODE_GEN_OFFSET_SIZE 1U
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
+#define CODE_GEN_OFFSET_SIZE 2U
 #else
 #define CODE_GEN_OFFSET_SIZE (instruction::size())
 #endif
@@ -653,6 +655,8 @@ void codeGen::beginTrackRegDefs()
     regsDefined_ = bitArray(registerSpace::lastReg);
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
     regsDefined_ = bitArray(registerSpace::fpsr);
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
+    regsDefined_ = bitArray(registerSpace::pc);
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     regsDefined_ = bitArray(700); // TODO: use the actual last register instead of a random constant
 #else
@@ -680,6 +684,12 @@ void codeGen::markRegDefined(Dyninst::Register r) {
 bool codeGen::isRegDefined(Dyninst::Register r) {
    assert(trackRegDefs_);
    return regsDefined_[r];
+}
+
+bool codeGen::usesCompressedInstructionFormat() const {
+    ParseAPI::CodeObject *co = aSpace_->getAOut()->co();
+    ParseAPI::SymtabCodeSource *cs = static_cast<ParseAPI::SymtabCodeSource *>(co->cs());
+    return cs->usesCompressedInstructionFormat();
 }
 
 Dyninst::Architecture codeGen::getArch() const {
