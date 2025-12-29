@@ -1444,7 +1444,9 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
                 // Adjust library
                 int initArraySize = newSecs[i]->getMemSize() / newshdr->sh_entsize;
                 for (int j = 0; j < initArraySize; j++) {
-                    initArrayRaw[j] += library_adjust;
+                    if (initArrayRaw[j] != 0) {
+                        initArrayRaw[j] += library_adjust;
+                    }
                 }
                 updateDynamic(DT_INIT_ARRAY, newshdr->sh_addr);
                 updateDynamic(DT_INIT_ARRAYSZ, newSecs[i]->getMemSize());
@@ -1473,7 +1475,9 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
                 // Adjust library
                 int finiArraySize = newSecs[i]->getMemSize() / newshdr->sh_entsize;
                 for (int j = 0; j < finiArraySize; j++) {
-                    finiArrayRaw[j] += library_adjust;
+                    if (finiArrayRaw[j] != 0) {
+                        finiArrayRaw[j] += library_adjust;
+                    }
                 }
                 updateDynamic(DT_FINI_ARRAY, newshdr->sh_addr);
                 updateDynamic(DT_FINI_ARRAYSZ, newSecs[i]->getMemSize());
