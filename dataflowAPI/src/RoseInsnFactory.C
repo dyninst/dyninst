@@ -429,10 +429,9 @@ bool RoseInsnRiscv64Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgA
   return false;
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-void RoseInsnRiscv64Factory::massageOperands(const Instruction &insn,
-        std::vector<InstructionAPI::Operand> &operands) {
+void RoseInsnRiscv64Factory::massageOperands(const Instruction &/*insn*/,
+        std::vector<InstructionAPI::Operand> &/*operands*/) {
+
 }
  
 void RoseInsnAMDGPUFactory::setSizes(SgAsmInstruction * /*insn*/) {
