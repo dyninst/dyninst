@@ -1275,15 +1275,28 @@ bool EmitterRISCV64Dyn::emitTOCCommon(block_instance *, bool, codeGen &) {
     return true;
 }
 
-bool EmitterRISCV64Stat::emitPLTCall(func_instance * /*callee*/, codeGen &/*gen*/) {
-    // Not used currently
-    assert(0);
+bool EmitterRISCV64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
+    // Move the function call address into a scratch register
+    Address disp = getInterModuleFuncAddr(callee, gen) - gen.currAddr();
+    Register dest = gen.rs()->getScratchRegister(gen);
+    assert(dest != Null_Register && "cannot get a dest register");
+    gen.markRegDefined(dest);
+    insnCodeGen::generateLoadImm(gen, dest, disp, true, true, gen.getUseRVC());
+    insnCodeGen::generateMemLoad(gen, dest, dest, 0, GPRSIZE_64, true, gen.getUseRVC());
+    insnCodeGen::generateJalr(gen, GPR_RA, dest, 0, gen.getUseRVC());
+
     return true;
 }
 
-bool EmitterRISCV64Stat::emitPLTJump(func_instance * /*callee*/, codeGen & /*gen*/) {
-    // Not used currently
-    assert(0);
+bool EmitterRISCV64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
+    // Move the function call address into a scratch register
+    Address disp = getInterModuleFuncAddr(callee, gen) - gen.currAddr();
+    Register dest = gen.rs()->getScratchRegister(gen);
+    assert(dest != Null_Register && "cannot get a dest register");
+    gen.markRegDefined(dest);
+    insnCodeGen::generateLoadImm(gen, dest, disp, true, true, gen.getUseRVC());
+    insnCodeGen::generateMemLoad(gen, dest, dest, 0, GPRSIZE_64, true, gen.getUseRVC());
+    insnCodeGen::generateJr(gen, dest, 0, gen.getUseRVC());
     return true;
 }
 

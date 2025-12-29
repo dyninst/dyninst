@@ -200,7 +200,7 @@ Dyninst::SymtabAPI::Symtab *Dyninst::SymtabAPI::convert(const BPatch_object *o) 
 BPatchSnippetHandle* BPatch_object::insertInitCallback(BPatch_snippet& callback)
 {
     BPatch_Vector<BPatch_function*> init_funcs;
-    findFunction("_init", init_funcs);
+    findFunction("_init", init_funcs, false);
     // If _init exists, instrument _init
     if(!init_funcs.empty())
     {
@@ -237,7 +237,7 @@ BPatchSnippetHandle* BPatch_object::insertInitCallback(BPatch_snippet& callback)
 BPatchSnippetHandle* BPatch_object::insertFiniCallback(BPatch_snippet& callback)
 {
     BPatch_Vector<BPatch_function*> fini_funcs;
-    findFunction("_fini", fini_funcs);
+    findFunction("_fini", fini_funcs, false);
     // If _fini exists, instrument _fini
     if(!fini_funcs.empty())
     {
