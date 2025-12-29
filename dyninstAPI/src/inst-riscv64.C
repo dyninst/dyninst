@@ -1037,8 +1037,13 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f) {
 }
 
 Emitter *AddressSpace::getEmitter() {
-    static EmitterRISCV64 emitter64;
-    return &emitter64;
+    static EmitterRISCV64Stat emitter64Stat;
+    static EmitterRISCV64Dyn emitter64Dyn;
+
+    if (proc())
+        return &emitter64Dyn;
+
+    return &emitter64Stat;
 }
 
 #define GET_IP      0x429f0005
