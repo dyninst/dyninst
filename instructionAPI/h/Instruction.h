@@ -154,7 +154,6 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT bool isCall() const { return getCategory() == c_CallInsn; }
     DYNINST_EXPORT bool isReturn() const { return getCategory() == c_ReturnInsn; }
     DYNINST_EXPORT bool isBranch() const { return getCategory() == c_BranchInsn; }
-    DYNINST_EXPORT bool isConditional() const { return getCategory() == c_ConditionalInsn; }
     DYNINST_EXPORT bool isCompare() const { return getCategory() == c_CompareInsn; }
     DYNINST_EXPORT bool isPrefetch() const { return getCategory() == c_PrefetchInsn; }
     DYNINST_EXPORT bool isSysEnter() const { return getCategory() == c_SysEnterInsn; }
@@ -163,6 +162,7 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT bool isVector() const { return getCategory() == c_VectorInsn; }
     DYNINST_EXPORT bool isGPUKernelExit() const { return getCategory() == c_GPUKernelExitInsn; }
     DYNINST_EXPORT bool isSoftwareException() const { return isGPUKernelExit() || getCategory() == c_SoftwareExceptionInsn; }
+    DYNINST_EXPORT bool isConditionalBranch() const { return isBranch() && checked_category(c_ConditionalInsn); }
 
     DYNINST_EXPORT bool isMultiInsnCall() const { return isCall() && getOperation().isMultiInsnCall; }
     DYNINST_EXPORT bool isMultiInsnBranch() const { return isBranch() && getOperation().isMultiInsnBranch; }
