@@ -154,6 +154,7 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT bool isCall() const { return getCategory() == c_CallInsn; }
     DYNINST_EXPORT bool isReturn() const { return getCategory() == c_ReturnInsn; }
     DYNINST_EXPORT bool isBranch() const { return getCategory() == c_BranchInsn; }
+    DYNINST_EXPORT bool isConditional() const { return getCategory() == c_ConditionalInsn; }
     DYNINST_EXPORT bool isCompare() const { return getCategory() == c_CompareInsn; }
     DYNINST_EXPORT bool isPrefetch() const { return getCategory() == c_PrefetchInsn; }
     DYNINST_EXPORT bool isSysEnter() const { return getCategory() == c_SysEnterInsn; }

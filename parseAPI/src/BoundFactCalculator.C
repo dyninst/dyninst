@@ -267,8 +267,9 @@ static bool IsConditionalJump(Instruction insn) {
 	id == e_jge || id == e_jg) return true;
     if (id == aarch64_op_b_cond) return true;
     if (id == power_op_bc || id == power_op_bcctr || id == power_op_bclr) return true;
-    if (id == riscv64_op_beq || id == riscv64_op_bne || id == riscv64_op_blt ||
-        id == riscv64_op_bge || id == riscv64_op_bltu || id == riscv64_op_bgeu) return true;
+    if (insn.getArch() == Arch_riscv64) {
+        return insn.isBranch() && insn.isConditional();
+    }
     return false;
 }
 
