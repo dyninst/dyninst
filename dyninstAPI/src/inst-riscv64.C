@@ -1281,14 +1281,10 @@ bool EmitterRISCV64Dyn::emitTOCCommon(block_instance *, bool, codeGen &) {
 }
 
 bool EmitterRISCV64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
-    // Move the function call address into a scratch register
     Address disp = getInterModuleFuncAddr(callee, gen) - gen.currAddr();
-    Register dest = gen.rs()->getScratchRegister(gen);
-    assert(dest != Null_Register && "cannot get a dest register");
-    gen.markRegDefined(dest);
-    insnCodeGen::generateLoadImm(gen, dest, disp, true, true, gen.getUseRVC());
-    insnCodeGen::generateMemLoad(gen, dest, dest, 0, GPRSIZE_64, true, gen.getUseRVC());
-    insnCodeGen::generateJalr(gen, GPR_RA, dest, 0, gen.getUseRVC());
+    insnCodeGen::generateLoadImm(gen, GPR_RA, disp, true, true, gen.getUseRVC());
+    insnCodeGen::generateMemLoad(gen, GPR_RA, GPR_RA, 0, GPRSIZE_64, true, gen.getUseRVC());
+    insnCodeGen::generateJalr(gen, GPR_RA, GPR_RA, 0, gen.getUseRVC());
 
     return true;
 }
@@ -1297,11 +1293,26 @@ bool EmitterRISCV64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
     // Move the function call address into a scratch register
     Address disp = getInterModuleFuncAddr(callee, gen) - gen.currAddr();
     Register dest = gen.rs()->getScratchRegister(gen);
-    assert(dest != Null_Register && "cannot get a dest register");
-    gen.markRegDefined(dest);
-    insnCodeGen::generateLoadImm(gen, dest, disp, true, true, gen.getUseRVC());
-    insnCodeGen::generateMemLoad(gen, dest, dest, 0, GPRSIZE_64, true, gen.getUseRVC());
-    insnCodeGen::generateJr(gen, dest, 0, gen.getUseRVC());
+    if (dest == Null_Register) {
+        // Spill ra, generate call, restore ra, return back
+        bool useRVC;
+        useRVC = insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, -GPRSIZE_64, gen.getUseRVC());
+        disp -= useRVC ? RVC_INSN_SIZE : RV_INSN_SIZE;
+        useRVC = insnCodeGen::saveRegister(gen, GPR_RA, 0, true);
+        disp -= useRVC ? RVC_INSN_SIZE : RV_INSN_SIZE;
+        insnCodeGen::generateLoadImm(gen, GPR_RA, disp, true, true, gen.getUseRVC());
+        insnCodeGen::generateMemLoad(gen, GPR_RA, GPR_RA, 0, GPRSIZE_64, true, gen.getUseRVC());
+        insnCodeGen::generateJalr(gen, GPR_RA, GPR_RA, 0, gen.getUseRVC());
+        insnCodeGen::restoreRegister(gen, GPR_RA, 0, true);
+        insnCodeGen::generateAddImm(gen, REG_SP, REG_SP, GPRSIZE_64, gen.getUseRVC());
+        insnCodeGen::generateJr(gen, GPR_RA, 0, gen.getUseRVC());
+    }
+    else {
+        gen.markRegDefined(dest);
+        insnCodeGen::generateLoadImm(gen, dest, disp, true, true, gen.getUseRVC());
+        insnCodeGen::generateMemLoad(gen, dest, dest, 0, GPRSIZE_64, true, gen.getUseRVC());
+        insnCodeGen::generateJr(gen, dest, 0, gen.getUseRVC());
+    }
     return true;
 }
 
