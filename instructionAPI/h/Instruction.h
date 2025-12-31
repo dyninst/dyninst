@@ -162,7 +162,7 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT bool isVector() const { return getCategory() == c_VectorInsn; }
     DYNINST_EXPORT bool isGPUKernelExit() const { return getCategory() == c_GPUKernelExitInsn; }
     DYNINST_EXPORT bool isSoftwareException() const { return isGPUKernelExit() || getCategory() == c_SoftwareExceptionInsn; }
-    DYNINST_EXPORT bool isConditionalBranch() const { return isBranch() && checked_category(c_ConditionalInsn); }
+    DYNINST_EXPORT bool isConditional() const { return checked_category(c_ConditionalInsn); }
 
     DYNINST_EXPORT bool isMultiInsnCall() const { return isCall() && getOperation().isMultiInsnCall; }
     DYNINST_EXPORT bool isMultiInsnBranch() const { return isBranch() && getOperation().isMultiInsnBranch; }
