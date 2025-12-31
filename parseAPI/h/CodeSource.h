@@ -193,7 +193,7 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     virtual Address loadAddress() const { return 0; }
 
     std::map< Address, std::string > & linkage() const { return _linkage; }
-    std::map< Address, std::pair<std::string, Address> > & reladyn_linkage() const { return _reladyn_linkage; }
+    const std::map< Address, std::pair<std::string, Address> > & reladyn_linkage() const { return _reladyn_linkage; }
     std::map< Address, std::string> & symtab_linkage() const { return _symtab_linkage; }
 
 //    std::vector< Hint > const& hints() const { return _hints; } 
