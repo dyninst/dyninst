@@ -613,7 +613,7 @@ namespace rose {
                         rs2_bits = d->read(rs2, 64, 0);
                         rs1_int = ops->ite(ops->number_(64, mul_op_signed_rs1), rs1_bits, rs1_bits);
                         rs2_int = ops->ite(ops->number_(64, mul_op_signed_rs2), rs2_bits, rs2_bits);
-                        result_wide = ops->extract(ops->ite(ops->and_(ops->boolean_(ops->number_(64, mul_op_signed_rs1)), ops->boolean_(ops->number_(64, mul_op_signed_rs2))), ops->signedMultiply(rs1_int, rs2_int), ops->ite(ops->and_(ops->boolean_(ops->number_(64, mul_op_signed_rs1)), ops->boolean_(ops->invert(ops->number_(64, mul_op_signed_rs2)))), ops->unsignedMultiply(rs1_int, rs2_int), ops->ite(ops->and_(ops->boolean_(ops->number_(64, mul_op_signed_rs1)), ops->boolean_(ops->invert(ops->number_(64, mul_op_signed_rs2)))), ops->unsignedMultiply(rs2_int, rs1_int), ops->unsignedMultiply(rs1_int, rs2_int)))), 0, 128);
+                        result_wide = ops->extract(ops->ite(ops->and_(ops->boolean_(ops->number_(64, mul_op_signed_rs1)), ops->boolean_(ops->number_(64, mul_op_signed_rs2))), ops->signedMultiply(rs1_int, rs2_int), ops->ite(ops->and_(ops->boolean_(ops->number_(64, mul_op_signed_rs1)), ops->boolean_(ops->invert(ops->number_(64, mul_op_signed_rs2)))), d->signedUnsignedMultiply(rs1_int, rs2_int), ops->ite(ops->and_(ops->boolean_(ops->number_(64, mul_op_signed_rs1)), ops->boolean_(ops->invert(ops->number_(64, mul_op_signed_rs2)))), d->signedUnsignedMultiply(rs2_int, rs1_int), ops->unsignedMultiply(rs1_int, rs2_int)))), 0, 128);
                         d->write(rd, ops->ite(ops->number_(64, mul_op_high), ops->extract(result_wide, 64, 127), ops->extract(result_wide, 0, 63)));
                         return;
                     }
@@ -1378,7 +1378,7 @@ namespace rose {
                 return expr;
             }
 
--           BaseSemantics::SValuePtr
+            BaseSemantics::SValuePtr
             DispatcherRiscv64::CountTrailingSignBits(const BaseSemantics::SValuePtr &expr) {
                 size_t len = expr->get_width();
 
@@ -1511,6 +1511,20 @@ namespace rose {
                 return result;
             }
 
+            BaseSemantics::SValuePtr
+            DispatcherRiscv64::signedUnsignedMultiply(const BaseSemantics::SValuePtr &a, const BaseSemantics::SValuePtr &b) {
+                // Symbolically, the result of signed(a) * unsigned(b) is
+                //   unsigned_multiply(|a|, b) with proper signednes added
+                // Thus, the following sequence is equivalent to signed(a) * unsigned(b):
+                //   sign = a >> (XLEN-1)
+                //   |a| = (a ^ sign) - sign
+                //   result = (mul(|a|, b) ^ sign) - sign
+
+                BaseSemantics::SValuePtr sign = operators->shiftRightArithmetic(a, operators->number_(XLENBITS, XLENBITS - 1));
+                BaseSemantics::SValuePtr absA = operators->subtract(operators->xor_(a, sign), sign);
+                BaseSemantics::SValuePtr result = operators->subtract(operators->xor_(operators->unsignedMultiply(absA, b), sign), sign);
+                return result;
+            }
         } // namespace
     } // namespace
 } // namespace

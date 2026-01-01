@@ -222,6 +222,9 @@ namespace rose {
 
                 /** Returns the value of log2(expr) */
                 BaseSemantics::SValuePtr Log2(const BaseSemantics::SValuePtr &expr);
+
+                /** Returns signed unsigned multiplication of a and b */
+                BaseSemantics::SValuePtr signedUnsignedMultiply(const BaseSemantics::SValuePtr &a, const BaseSemantics::SValuePtr &b);
             };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
