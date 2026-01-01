@@ -201,6 +201,27 @@ namespace rose {
 
                 /** Rounds a number to zero (upwards if it is negative, downwards if it is positive. */
                 BaseSemantics::SValuePtr RoundTowardsZero(const BaseSemantics::SValuePtr &expr);
+
+                /** Returns an expression representing the number of trailing 0s in expr. */
+                BaseSemantics::SValuePtr CountTrailingSignBits(const BaseSemantics::SValuePtr &expr);
+
+                /** Returns carryless multiplication (multiplication in GF2) */
+                BaseSemantics::SValuePtr CarrylessMultiply(const BaseSemantics::SValuePtr &a, const BaseSemantics::SValuePtr &b);
+
+                /** Returns carryless multiplication reverse (find the polynomial reciprocal,gR in GF2) */
+                BaseSemantics::SValuePtr CarrylessMultiplyReverse(const BaseSemantics::SValuePtr &a, const BaseSemantics::SValuePtr &b);
+
+                /** Count the number of 1s in expr */
+                BaseSemantics::SValuePtr PopCount(const BaseSemantics::SValuePtr &expr);
+
+                /** Reverses the order of bits within each individual byte, but maintains the order of the bytes themselves. */
+                BaseSemantics::SValuePtr Brev8(const BaseSemantics::SValuePtr &expr);
+
+                /** Reverses the order of the bytes in expr */
+                BaseSemantics::SValuePtr Rev8(const BaseSemantics::SValuePtr &expr);
+
+                /** Returns the value of log2(expr) */
+                BaseSemantics::SValuePtr Log2(const BaseSemantics::SValuePtr &expr);
             };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

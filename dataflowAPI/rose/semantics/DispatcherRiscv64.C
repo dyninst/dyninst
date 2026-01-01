@@ -1377,6 +1377,140 @@ namespace rose {
             DispatcherRiscv64::RoundTowardsZero(const BaseSemantics::SValuePtr &expr) {
                 return expr;
             }
+
+-           BaseSemantics::SValuePtr
+            DispatcherRiscv64::CountTrailingSignBits(const BaseSemantics::SValuePtr &expr) {
+                size_t len = expr->get_width();
+
+                for(int idx = 0; idx < len; idx++)
+                    if(operators->isEqual(operators->extract(expr, len, len + 1), operators->number_(1, 1)))
+                        return operators->number_(expr->get_width(), len - 1 - idx);
+
+                return operators->number_(expr->get_width(), len);
+            }
+
+            BaseSemantics::SValuePtr
+            DispatcherRiscv64::CarrylessMultiply(const BaseSemantics::SValuePtr &a,
+                                                 const BaseSemantics::SValuePtr &b) {
+                size_t len = a->get_width();
+                BaseSemantics::SValuePtr result = operators->number_(0, len);
+
+                for (size_t i = 0; i < len; i++) {
+                    // extract bit i from b
+                    BaseSemantics::SValuePtr b_bit = operators->extract(b, i, i + 1);
+
+                    // if b_bit == 1, XOR (a << i) into result; else XOR 0
+                    BaseSemantics::SValuePtr term = operators->ite(
+                        b_bit,
+                        operators->shiftLeft(a, operators->number_(len, i)),
+                        operators->number_(0, len)
+                    );
+                    result = operators->xor_(result, term);
+                }
+
+                return result;
+            }
+
+            BaseSemantics::SValuePtr
+            DispatcherRiscv64::CarrylessMultiplyReverse(const BaseSemantics::SValuePtr &a,
+                                                        const BaseSemantics::SValuePtr &b) {
+                size_t len = a->get_width();
+                BaseSemantics::SValuePtr result = operators->number_(0, len);
+
+                // iterate from most significant bit down to least
+                for (int i = len - 1; i >= 0; i--) {
+                    BaseSemantics::SValuePtr b_bit = operators->extract(b, i, i + 1);
+                    BaseSemantics::SValuePtr term = operators->ite(
+                        b_bit,
+                        operators->shiftLeft(a, operators->number_(len, i)),
+                        operators->number_(0, len)
+                    );
+                    result = operators->xor_(result, term);
+                }
+
+                return result;
+            }
+
+            BaseSemantics::SValuePtr
+            DispatcherRiscv64::PopCount(const BaseSemantics::SValuePtr &expr) {
+                size_t len = expr->get_width();
+                BaseSemantics::SValuePtr count = operators->number_(len, 0);
+
+                for (size_t i = 0; i < len; i++) {
+                    BaseSemantics::SValuePtr bit = operators->extract(expr, i, i + 1);
+                    count = operators->add(count, bit);
+                }
+
+                return count;
+            }
+
+            BaseSemantics::SValuePtr
+            DispatcherRiscv64::Brev8(const BaseSemantics::SValuePtr &expr) {
+                size_t len = expr->get_width();
+                BaseSemantics::SValuePtr result = operators->number_(0, len);
+
+                // iterate over bytes
+                for (size_t byte = 0; byte < len; byte += 8) {
+                    BaseSemantics::SValuePtr byte_val = operators->extract(expr, byte, byte + 8);
+                    BaseSemantics::SValuePtr reversed = operators->number_(8, 0);
+
+                    // reverse bits inside the byte
+                    for (size_t i = 0; i < 8; i++) {
+                        BaseSemantics::SValuePtr bit = operators->extract(byte_val, i, i + 1);
+                        reversed = operators->or_(
+                            reversed,
+                            operators->shiftLeft(bit, operators->number_(8, 7 - i))
+                        );
+                    }
+
+                    // insert reversed byte back into result
+                    result = operators->or_(
+                        result,
+                        operators->shiftLeft(reversed, operators->number_(len, byte))
+                    );
+                }
+
+                return result;
+            }
+
+            BaseSemantics::SValuePtr
+            DispatcherRiscv64::Rev8(const BaseSemantics::SValuePtr &expr) {
+                size_t len = expr->get_width();
+                size_t num_bytes = len / 8;
+                BaseSemantics::SValuePtr result = operators->number_(0, len);
+
+                for (size_t i = 0; i < num_bytes; i++) {
+                    BaseSemantics::SValuePtr byte = operators->extract(expr, i * 8, (i + 1) * 8);
+                    result = operators->or_(
+                        result,
+                        operators->shiftLeft(byte, operators->number_(len, (num_bytes - 1 - i) * 8))
+                    );
+                }
+
+                return result;
+            }
+
+            BaseSemantics::SValuePtr
+            DispatcherRiscv64::Log2(const BaseSemantics::SValuePtr &expr) {
+                size_t len = expr->get_width();
+                BaseSemantics::SValuePtr result = operators->number_(len, 0);
+
+                // Scan from MSB to LSB
+                for (int i = len - 1; i >= 0; i--) {
+                    BaseSemantics::SValuePtr bit = operators->extract(expr, i, i + 1);
+
+                    // If bit is 1 and result is still 0, set result = i
+                    result = operators->ite(
+                        operators->and_(bit,
+                            operators->isEqual(result, operators->number_(len, 0))),
+                        operators->number_(len, i),
+                        result
+                    );
+                }
+
+                return result;
+            }
+
         } // namespace
     } // namespace
 } // namespace
