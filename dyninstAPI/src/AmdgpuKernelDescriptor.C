@@ -122,12 +122,17 @@ void AmdgpuKernelDescriptor::setKernelCodeEntryByteOffset(int64_t value) {
 }
 
 #define GET_VALUE(MASK) ((fourByteBuffer & MASK) >> (MASK##_SHIFT))
-#define SET_VALUE(MASK) (fourByteBuffer | ((value) << (MASK##_SHIFT)))
-#define CLEAR_BITS(MASK) (fourByteBuffer & (~(MASK)))
-#define CHECK_WIDTH(MASK) ((value) >> (MASK##_WIDTH) == 0)
-
 #define GET_ITH_BIT_AFTER(MASK, i)                                                                 \
   (((fourByteBuffer & (1 << (MASK##_WIDTH) + i - 1)) << (MASK##_SHIFT)) != 0)
+
+static inline uint32_t insertField32(uint32_t op, uint32_t value, uint32_t mask, uint32_t shift) {
+  assert(value >> shift && "value contains more bits than specified");
+  op &= ~mask;
+  op |= value << shift;
+  return op;
+}
+
+#define INSERT_FIELD_32(op, value, mask) insertField32(op, value, mask, mask##_SHIFT)
 
 // ----- COMPUTE_PGM_RSRC3 begin -----
 //
@@ -143,11 +148,7 @@ uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_AccumOffset() const {
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC3_AccumOffset(uint32_t value) {
   assert(isGfx90aOr942());
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc3;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC3_GFX90A_ACCUM_OFFSET);
-  assert(CHECK_WIDTH(COMPUTE_PGM_RSRC3_GFX90A_ACCUM_OFFSET) &&
-         "value contains more bits than specified");
-  kdRepr.compute_pgm_rsrc3 = SET_VALUE(COMPUTE_PGM_RSRC3_GFX90A_ACCUM_OFFSET);
+  kdRepr.compute_pgm_rsrc3 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc3, value, COMPUTE_PGM_RSRC3_GFX90A_ACCUM_OFFSET);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_TgSplit() const {
@@ -158,9 +159,7 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_TgSplit() const {
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC3_TgSplit(bool value) {
   assert(isGfx90aOr942());
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc3;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC3_GFX90A_TG_SPLIT);
-  kdRepr.compute_pgm_rsrc3 = SET_VALUE(COMPUTE_PGM_RSRC3_GFX90A_TG_SPLIT);
+  kdRepr.compute_pgm_rsrc3 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc3, value, COMPUTE_PGM_RSRC3_GFX90A_TG_SPLIT);
 }
 //
 // GFX90A, GFX942 end
@@ -174,11 +173,8 @@ uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_SharedVgprCount() const {
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC3_SharedVgprCount(uint32_t value) {
   assert(isGfx10Plus());
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc3;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC3_GFX10_PLUS_SHARED_VGPR_COUNT);
-  assert(CHECK_WIDTH(COMPUTE_PGM_RSRC3_GFX10_PLUS_SHARED_VGPR_COUNT) &&
-         "value contains more bits than specified");
-  kdRepr.compute_pgm_rsrc3 = SET_VALUE(COMPUTE_PGM_RSRC3_GFX10_PLUS_SHARED_VGPR_COUNT);
+  kdRepr.compute_pgm_rsrc3 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc3, value, COMPUTE_PGM_RSRC3_GFX10_PLUS_SHARED_VGPR_COUNT);
 }
 
 uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_InstPrefSize() const {
@@ -189,11 +185,8 @@ uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_InstPrefSize() const {
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC3_InstPrefSize(uint32_t value) {
   assert(isGfx11());
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc3;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC3_GFX10_PLUS_INST_PREF_SIZE);
-  assert(CHECK_WIDTH(COMPUTE_PGM_RSRC3_GFX10_PLUS_INST_PREF_SIZE) &&
-         "value contains more bits than specified");
-  kdRepr.compute_pgm_rsrc3 = SET_VALUE(COMPUTE_PGM_RSRC3_GFX10_PLUS_INST_PREF_SIZE);
+  kdRepr.compute_pgm_rsrc3 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc3, value, COMPUTE_PGM_RSRC3_GFX10_PLUS_INST_PREF_SIZE);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_TrapOnStart() const {
@@ -204,9 +197,8 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_TrapOnStart() const {
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC3_TrapOnStart(bool value) {
   assert(isGfx11());
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc3;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC3_GFX10_PLUS_TRAP_ON_START);
-  kdRepr.compute_pgm_rsrc3 = SET_VALUE(COMPUTE_PGM_RSRC3_GFX10_PLUS_TRAP_ON_START);
+  kdRepr.compute_pgm_rsrc3 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc3, value, COMPUTE_PGM_RSRC3_GFX10_PLUS_TRAP_ON_START);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_TrapOnEnd() const {
@@ -217,9 +209,7 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_TrapOnEnd() const {
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC3_TrapOnEnd(bool value) {
   assert(isGfx11());
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc3;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC3_GFX10_PLUS_TRAP_ON_END);
-  kdRepr.compute_pgm_rsrc3 = SET_VALUE(COMPUTE_PGM_RSRC3_GFX10_PLUS_TRAP_ON_END);
+  kdRepr.compute_pgm_rsrc3 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc3, value, COMPUTE_PGM_RSRC3_GFX10_PLUS_TRAP_ON_END);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_ImageOp() const {
@@ -230,9 +220,7 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_ImageOp() const {
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC3_ImageOp(bool value) {
   assert(isGfx11());
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc3;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC3_GFX10_PLUS_IMAGE_OP);
-  kdRepr.compute_pgm_rsrc3 = SET_VALUE(COMPUTE_PGM_RSRC3_GFX10_PLUS_IMAGE_OP);
+  kdRepr.compute_pgm_rsrc3 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc3, value, COMPUTE_PGM_RSRC3_GFX10_PLUS_IMAGE_OP);
 }
 //
 // GFX10, GFX11 end
@@ -250,11 +238,8 @@ uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCoun
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount(uint32_t value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_GRANULATED_WORKITEM_VGPR_COUNT);
-  assert(CHECK_WIDTH(COMPUTE_PGM_RSRC1_GRANULATED_WORKITEM_VGPR_COUNT) &&
-         "value contains more bits than specified");
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_GRANULATED_WORKITEM_VGPR_COUNT);
+  kdRepr.compute_pgm_rsrc1 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc1, value, COMPUTE_PGM_RSRC1_GRANULATED_WORKITEM_VGPR_COUNT);
 }
 
 uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() const {
@@ -263,11 +248,8 @@ uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCou
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount(uint32_t value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_GRANULATED_WAVEFRONT_SGPR_COUNT);
-  assert(CHECK_WIDTH(COMPUTE_PGM_RSRC1_GRANULATED_WAVEFRONT_SGPR_COUNT) &&
-         "value contains more bits than specified");
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_GRANULATED_WAVEFRONT_SGPR_COUNT);
+  kdRepr.compute_pgm_rsrc1 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc1, value, COMPUTE_PGM_RSRC1_GRANULATED_WAVEFRONT_SGPR_COUNT);
 }
 
 uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_Priority() const {
@@ -281,11 +263,7 @@ uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_FloatRoundMode32() const {
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_FloatRoundMode32(uint32_t value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_FLOAT_ROUND_MODE_32);
-  assert(CHECK_WIDTH(COMPUTE_PGM_RSRC1_FLOAT_ROUND_MODE_32) &&
-         "value contains more bits than specified");
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_FLOAT_ROUND_MODE_32);
+  kdRepr.compute_pgm_rsrc1 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc1, value, COMPUTE_PGM_RSRC1_FLOAT_ROUND_MODE_32);
 }
 
 uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_FloatRoundMode1664() const {
@@ -294,11 +272,7 @@ uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_FloatRoundMode1664() const
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_FloatRoundMode1664(uint32_t value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_FLOAT_ROUND_MODE_16_64);
-  assert(CHECK_WIDTH(COMPUTE_PGM_RSRC1_FLOAT_ROUND_MODE_16_64) &&
-         "value contains more bits than specified");
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_FLOAT_ROUND_MODE_16_64);
+  kdRepr.compute_pgm_rsrc1 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc1, value, COMPUTE_PGM_RSRC1_FLOAT_ROUND_MODE_16_64);
 }
 
 uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_FloatDenormMode32() const {
@@ -307,11 +281,7 @@ uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_FloatDenormMode32() const 
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_FloatDenormMode32(uint32_t value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_FLOAT_DENORM_MODE_32);
-  assert(CHECK_WIDTH(COMPUTE_PGM_RSRC1_FLOAT_DENORM_MODE_32) &&
-         "value contains more bits than specified");
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_FLOAT_DENORM_MODE_32);
+  kdRepr.compute_pgm_rsrc1 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc1, value, COMPUTE_PGM_RSRC1_FLOAT_DENORM_MODE_32);
 }
 
 uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_FloatDenormMode1664() const {
@@ -320,11 +290,8 @@ uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_FloatDenormMode1664() cons
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_FloatDenormMode1664(uint32_t value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_FLOAT_ROUND_MODE_16_64);
-  assert(CHECK_WIDTH(COMPUTE_PGM_RSRC1_FLOAT_DENORM_MODE_16_64) &&
-         "value contains more bits than specified");
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_FLOAT_DENORM_MODE_16_64);
+  kdRepr.compute_pgm_rsrc1 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc1, value, COMPUTE_PGM_RSRC1_FLOAT_DENORM_MODE_16_64);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_Priv() const {
@@ -338,9 +305,7 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_EnableDx10Clamp() const {
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_EnableDx10Clamp(bool value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_ENABLE_DX10_CLAMP);
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_ENABLE_DX10_CLAMP);
+  kdRepr.compute_pgm_rsrc1 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc1, value, COMPUTE_PGM_RSRC1_ENABLE_DX10_CLAMP);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_DebugMode() const {
@@ -354,9 +319,7 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_EnableIeeeMode() const {
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_EnableIeeeMode(bool value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_ENABLE_IEEE_MODE);
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_ENABLE_IEEE_MODE);
+  kdRepr.compute_pgm_rsrc1 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc1, value, COMPUTE_PGM_RSRC1_ENABLE_IEEE_MODE);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_Bulky() const {
@@ -376,9 +339,7 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_Fp16Ovfl() const {
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_Fp16Ovfl(bool value) {
   assert(isGfx9Plus());
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_FP16_OVFL);
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_FP16_OVFL);
+  kdRepr.compute_pgm_rsrc1 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc1, value, COMPUTE_PGM_RSRC1_FP16_OVFL);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_WgpMode() const {
@@ -388,9 +349,7 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_WgpMode() const {
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_WgpMode(bool value) {
   assert(isGfx10Plus());
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_WGP_MODE);
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_WGP_MODE);
+  kdRepr.compute_pgm_rsrc1 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc1, value, COMPUTE_PGM_RSRC1_WGP_MODE);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_MemOrdered() const {
@@ -400,9 +359,7 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_MemOrdered() const {
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_MemOrdered(bool value) {
   assert(isGfx10Plus());
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_MEM_ORDERED);
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_MEM_ORDERED);
+  kdRepr.compute_pgm_rsrc1 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc1, value, COMPUTE_PGM_RSRC1_MEM_ORDERED);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_FwdProgress() const {
@@ -412,9 +369,7 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC1_FwdProgress() const {
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC1_FwdProgress(bool value) {
   assert(isGfx10Plus());
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc1;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC1_FWD_PROGRESS);
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC1_FWD_PROGRESS);
+  kdRepr.compute_pgm_rsrc1 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc1, value, COMPUTE_PGM_RSRC1_FWD_PROGRESS);
 }
 
 //
@@ -430,9 +385,7 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnablePrivateSegment() const {
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_EnablePrivateSegment(bool value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc2;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC2_ENABLE_PRIVATE_SEGMENT);
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC2_ENABLE_PRIVATE_SEGMENT);
+  kdRepr.compute_pgm_rsrc2 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc2, value, COMPUTE_PGM_RSRC2_ENABLE_PRIVATE_SEGMENT);
 }
 
 uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_UserSgprCount() const {
@@ -441,11 +394,7 @@ uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_UserSgprCount() const {
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_UserSgprCount(uint32_t value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc2;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC2_USER_SGPR_COUNT);
-  assert(CHECK_WIDTH(COMPUTE_PGM_RSRC2_USER_SGPR_COUNT) &&
-         "value contains more bits than specified");
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC2_USER_SGPR_COUNT);
+  kdRepr.compute_pgm_rsrc2 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc2, value, COMPUTE_PGM_RSRC2_USER_SGPR_COUNT);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableTrapHandler() const {
@@ -459,9 +408,8 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableSgprWorkgroupIdX() const
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_EnableSgprWorkgroupIdX(bool value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc2;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC2_ENABLE_SGPR_WORKGROUP_ID_X);
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC2_ENABLE_SGPR_WORKGROUP_ID_X);
+  kdRepr.compute_pgm_rsrc2 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc2, value, COMPUTE_PGM_RSRC2_ENABLE_SGPR_WORKGROUP_ID_X);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableSgprWorkgroupIdY() const {
@@ -470,9 +418,8 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableSgprWorkgroupIdY() const
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_EnableSgprWorkgroupIdY(bool value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc2;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC2_ENABLE_SGPR_WORKGROUP_ID_Y);
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC2_ENABLE_SGPR_WORKGROUP_ID_Y);
+  kdRepr.compute_pgm_rsrc2 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc2, value, COMPUTE_PGM_RSRC2_ENABLE_SGPR_WORKGROUP_ID_Y);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableSgprWorkgroupIdZ() const {
@@ -481,9 +428,8 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableSgprWorkgroupIdZ() const
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_EnableSgprWorkgroupIdZ(bool value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc2;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC2_ENABLE_SGPR_WORKGROUP_ID_Z);
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC2_ENABLE_SGPR_WORKGROUP_ID_Z);
+  kdRepr.compute_pgm_rsrc2 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc2, value, COMPUTE_PGM_RSRC2_ENABLE_SGPR_WORKGROUP_ID_Z);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableSgprWorkgroupInfo() const {
@@ -492,9 +438,8 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableSgprWorkgroupInfo() cons
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_EnableSgprWorkgroupInfo(bool value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc2;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC2_ENABLE_SGPR_WORKGROUP_INFO);
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC2_ENABLE_SGPR_WORKGROUP_INFO);
+  kdRepr.compute_pgm_rsrc2 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc2, value, COMPUTE_PGM_RSRC2_ENABLE_SGPR_WORKGROUP_INFO);
 }
 
 uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableVgprWorkitemId() const {
@@ -503,11 +448,8 @@ uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableVgprWorkitemId() con
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_EnableVgprWorkitemId(uint32_t value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc2;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC2_ENABLE_VGPR_WORKITEM_ID);
-  assert(CHECK_WIDTH(COMPUTE_PGM_RSRC2_ENABLE_VGPR_WORKITEM_ID) &&
-         "value contains more bits than specified");
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC2_ENABLE_VGPR_WORKITEM_ID);
+  kdRepr.compute_pgm_rsrc2 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc2, value, COMPUTE_PGM_RSRC2_ENABLE_VGPR_WORKITEM_ID);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableExceptionAddressWatch() const {
@@ -532,10 +474,8 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableExceptionIeee754FpInvali
 
 void AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableExceptionIeee754FpInvalidOperation(
     bool value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc2;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_IEEE_754_FP_INVALID_OPERATION);
-  kdRepr.compute_pgm_rsrc1 =
-      SET_VALUE(COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_IEEE_754_FP_INVALID_OPERATION);
+  kdRepr.compute_pgm_rsrc2 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc2, value,
+                                             COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_IEEE_754_FP_INVALID_OPERATION);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableExceptionFpDenormalSource() const {
@@ -544,9 +484,8 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableExceptionFpDenormalSourc
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_EnableExceptionFpDenormalSource(bool value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc2;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_FP_DENORMAL_SOURCE);
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_FP_DENORMAL_SOURCE);
+  kdRepr.compute_pgm_rsrc2 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc2, value, COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_FP_DENORMAL_SOURCE);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableExceptionIeee754FpDivisionByZero() const {
@@ -556,10 +495,8 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableExceptionIeee754FpDivisi
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_EnableExceptionIeee754FpDivisionByZero(
     bool value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc2;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_IEEE_754_FP_DIVISION_BY_ZERO);
-  kdRepr.compute_pgm_rsrc1 =
-      SET_VALUE(COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_IEEE_754_FP_DIVISION_BY_ZERO);
+  kdRepr.compute_pgm_rsrc2 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc2, value, COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_IEEE_754_FP_DIVISION_BY_ZERO);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableExceptionIeee754FpOverflow() const {
@@ -568,9 +505,8 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableExceptionIeee754FpOverfl
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_EnableExceptionIeee754FpOverflow(bool value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc2;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_IEEE_754_FP_OVERFLOW);
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_IEEE_754_FP_OVERFLOW);
+  kdRepr.compute_pgm_rsrc2 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc2, value, COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_IEEE_754_FP_OVERFLOW);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableExceptionIeee754FpUnderflow() const {
@@ -579,9 +515,8 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableExceptionIeee754FpUnderf
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_EnableExceptionIeee754FpUnderflow(bool value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc2;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_IEEE_754_FP_UNDERFLOW);
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_IEEE_754_FP_UNDERFLOW);
+  kdRepr.compute_pgm_rsrc2 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc2, value, COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_IEEE_754_FP_UNDERFLOW);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableExceptionIeee754FpInexact() const {
@@ -590,9 +525,8 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableExceptionIeee754FpInexac
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_EnableExceptionIeee754FpInexact(bool value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc2;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_IEEE_754_FP_INEXACT);
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_IEEE_754_FP_INEXACT);
+  kdRepr.compute_pgm_rsrc2 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc2, value, COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_IEEE_754_FP_INEXACT);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableExceptionIntDivideByZero() const {
@@ -601,24 +535,26 @@ bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC2_EnableExceptionIntDivideByZero
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_EnableExceptionIntDivideByZero(bool value) {
-  uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc2;
-  fourByteBuffer = CLEAR_BITS(COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_INT_DIVIDE_BY_ZERO);
-  kdRepr.compute_pgm_rsrc1 = SET_VALUE(COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_INT_DIVIDE_BY_ZERO);
+  kdRepr.compute_pgm_rsrc2 =
+      INSERT_FIELD_32(kdRepr.compute_pgm_rsrc2, value, COMPUTE_PGM_RSRC2_ENABLE_EXCEPTION_INT_DIVIDE_BY_ZERO);
 }
 //
 // ----- COMPUTE_PGM_RSRC2 end -----
 //
 
 #undef GET_VALUE
-#undef SET_VALUE
-#undef CLEAR_BITS
-#undef CHECK_WIDTH
 #undef GET_ITH_BIT_AFTER
 
 #define GET_VALUE(MASK) ((twoByteBuffer & (MASK)) >> (MASK##_SHIFT))
-#define SET_VALUE(MASK) (twoByteBuffer | ((value) << (MASK##_SHIFT)))
-#define CLEAR_BITS(MASK) (twoByteBuffer & (~(MASK)))
-#define CHECK_WIDTH(MASK) ((value) >> (MASK##_WIDTH) == 0)
+
+static inline uint16_t insertField16(uint16_t op, uint16_t value, uint16_t mask, uint16_t shift) {
+  assert(value >> shift && "value contains more bits than specified");
+  op &= ~mask;
+  op |= value << shift;
+  return op;
+}
+
+#define INSERT_FIELD_16(op, value, mask) insertField16(op, value, mask, mask##_SHIFT)
 
 #define GET_ITH_BIT_AFTER(MASK, i)                                                                 \
   (((twoByteBuffer & (1 << (MASK##_WIDTH) + i - 1)) << (MASK##_SHIFT)) != 0)
@@ -631,10 +567,8 @@ bool AmdgpuKernelDescriptor::getKernelCodeProperty_EnableSgprPrivateSegmentBuffe
 }
 
 void AmdgpuKernelDescriptor::setKernelCodeProperty_EnableSgprPrivateSegmentBuffer(bool value) {
-  uint16_t twoByteBuffer = kdRepr.kernel_code_properties;
-  twoByteBuffer = CLEAR_BITS(KERNEL_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_BUFFER);
   kdRepr.kernel_code_properties =
-      SET_VALUE(KERNEL_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_BUFFER);
+      INSERT_FIELD_16(kdRepr.kernel_code_properties, value, KERNEL_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_BUFFER);
 }
 
 bool AmdgpuKernelDescriptor::getKernelCodeProperty_EnableSgprDispatchPtr() const {
@@ -643,9 +577,8 @@ bool AmdgpuKernelDescriptor::getKernelCodeProperty_EnableSgprDispatchPtr() const
 }
 
 void AmdgpuKernelDescriptor::setKernelCodeProperty_EnableSgprDispatchPtr(bool value) {
-  uint16_t twoByteBuffer = kdRepr.kernel_code_properties;
-  twoByteBuffer = CLEAR_BITS(KERNEL_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_PTR);
-  kdRepr.kernel_code_properties = SET_VALUE(KERNEL_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_PTR);
+  kdRepr.kernel_code_properties =
+      INSERT_FIELD_16(kdRepr.kernel_code_properties, value, KERNEL_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_PTR);
 }
 
 bool AmdgpuKernelDescriptor::getKernelCodeProperty_EnableSgprQueuePtr() const {
@@ -654,9 +587,8 @@ bool AmdgpuKernelDescriptor::getKernelCodeProperty_EnableSgprQueuePtr() const {
 }
 
 void AmdgpuKernelDescriptor::setKernelCodeProperty_EnableSgprQueuePtr(bool value) {
-  uint16_t twoByteBuffer = kdRepr.kernel_code_properties;
-  twoByteBuffer = CLEAR_BITS(KERNEL_CODE_PROPERTY_ENABLE_SGPR_QUEUE_PTR);
-  kdRepr.kernel_code_properties = SET_VALUE(KERNEL_CODE_PROPERTY_ENABLE_SGPR_QUEUE_PTR);
+  kdRepr.kernel_code_properties =
+      INSERT_FIELD_16(kdRepr.kernel_code_properties, value, KERNEL_CODE_PROPERTY_ENABLE_SGPR_QUEUE_PTR);
 }
 
 bool AmdgpuKernelDescriptor::getKernelCodeProperty_EnableSgprKernargSegmentPtr() const {
@@ -665,9 +597,8 @@ bool AmdgpuKernelDescriptor::getKernelCodeProperty_EnableSgprKernargSegmentPtr()
 }
 
 void AmdgpuKernelDescriptor::setKernelCodeProperty_EnableSgprKernargSegmentPtr(bool value) {
-  uint16_t twoByteBuffer = kdRepr.kernel_code_properties;
-  twoByteBuffer = CLEAR_BITS(KERNEL_CODE_PROPERTY_ENABLE_SGPR_KERNARG_SEGMENT_PTR);
-  kdRepr.kernel_code_properties = SET_VALUE(KERNEL_CODE_PROPERTY_ENABLE_SGPR_KERNARG_SEGMENT_PTR);
+  kdRepr.kernel_code_properties =
+      INSERT_FIELD_16(kdRepr.kernel_code_properties, value, KERNEL_CODE_PROPERTY_ENABLE_SGPR_KERNARG_SEGMENT_PTR);
 }
 
 bool AmdgpuKernelDescriptor::getKernelCodeProperty_EnableSgprDispatchId() const {
@@ -676,9 +607,8 @@ bool AmdgpuKernelDescriptor::getKernelCodeProperty_EnableSgprDispatchId() const 
 }
 
 void AmdgpuKernelDescriptor::setKernelCodeProperty_EnableSgprDispatchId(bool value) {
-  uint16_t twoByteBuffer = kdRepr.kernel_code_properties;
-  twoByteBuffer = CLEAR_BITS(KERNEL_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_ID);
-  kdRepr.kernel_code_properties = SET_VALUE(KERNEL_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_ID);
+  kdRepr.kernel_code_properties =
+      INSERT_FIELD_16(kdRepr.kernel_code_properties, value, KERNEL_CODE_PROPERTY_ENABLE_SGPR_DISPATCH_ID);
 }
 
 bool AmdgpuKernelDescriptor::getKernelCodeProperty_EnableSgprFlatScratchInit() const {
@@ -687,9 +617,8 @@ bool AmdgpuKernelDescriptor::getKernelCodeProperty_EnableSgprFlatScratchInit() c
 }
 
 void AmdgpuKernelDescriptor::setKernelCodeProperty_EnableSgprFlatScratchInit(bool value) {
-  uint16_t twoByteBuffer = kdRepr.kernel_code_properties;
-  twoByteBuffer = CLEAR_BITS(KERNEL_CODE_PROPERTY_ENABLE_SGPR_FLAT_SCRATCH_INIT);
-  kdRepr.kernel_code_properties = SET_VALUE(KERNEL_CODE_PROPERTY_ENABLE_SGPR_FLAT_SCRATCH_INIT);
+  kdRepr.kernel_code_properties =
+      INSERT_FIELD_16(kdRepr.kernel_code_properties, value, KERNEL_CODE_PROPERTY_ENABLE_SGPR_FLAT_SCRATCH_INIT);
 }
 
 bool AmdgpuKernelDescriptor::getKernelCodeProperty_EnablePrivateSegmentSize() const {
@@ -698,9 +627,8 @@ bool AmdgpuKernelDescriptor::getKernelCodeProperty_EnablePrivateSegmentSize() co
 }
 
 void AmdgpuKernelDescriptor::setKernelCodeProperty_EnablePrivateSegmentSize(bool value) {
-  uint16_t twoByteBuffer = kdRepr.kernel_code_properties;
-  twoByteBuffer = CLEAR_BITS(KERNEL_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_SIZE);
-  kdRepr.kernel_code_properties = SET_VALUE(KERNEL_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_SIZE);
+  kdRepr.kernel_code_properties =
+      INSERT_FIELD_16(kdRepr.kernel_code_properties, value, KERNEL_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_SIZE);
 }
 
 bool AmdgpuKernelDescriptor::getKernelCodeProperty_EnableWavefrontSize32() const {
@@ -710,9 +638,8 @@ bool AmdgpuKernelDescriptor::getKernelCodeProperty_EnableWavefrontSize32() const
 
 void AmdgpuKernelDescriptor::setKernelCodeProperty_EnableWavefrontSize32(bool value) {
   assert(isGfx10Plus());
-  uint16_t twoByteBuffer = kdRepr.kernel_code_properties;
-  twoByteBuffer = CLEAR_BITS(KERNEL_CODE_PROPERTY_ENABLE_WAVEFRONT_SIZE32);
-  kdRepr.kernel_code_properties = SET_VALUE(KERNEL_CODE_PROPERTY_ENABLE_WAVEFRONT_SIZE32);
+  kdRepr.kernel_code_properties =
+      INSERT_FIELD_16(kdRepr.kernel_code_properties, value, KERNEL_CODE_PROPERTY_ENABLE_WAVEFRONT_SIZE32);
 }
 
 bool AmdgpuKernelDescriptor::getKernelCodeProperty_UsesDynamicStack() const {
@@ -721,9 +648,8 @@ bool AmdgpuKernelDescriptor::getKernelCodeProperty_UsesDynamicStack() const {
 }
 
 void AmdgpuKernelDescriptor::setKernelCodeProperty_UsesDynamicStack(bool value) {
-  uint16_t twoByteBuffer = kdRepr.kernel_code_properties;
-  twoByteBuffer = CLEAR_BITS(KERNEL_CODE_PROPERTY_USES_DYNAMIC_STACK);
-  kdRepr.kernel_code_properties = SET_VALUE(KERNEL_CODE_PROPERTY_USES_DYNAMIC_STACK);
+  kdRepr.kernel_code_properties =
+      INSERT_FIELD_16(kdRepr.kernel_code_properties, value, KERNEL_CODE_PROPERTY_USES_DYNAMIC_STACK);
 }
 
 bool AmdgpuKernelDescriptor::supportsArchitectedFlatScratch() const {
@@ -744,9 +670,6 @@ bool AmdgpuKernelDescriptor::supportsArchitectedFlatScratch() const {
 //
 
 #undef GET_VALUE
-#undef SET_VALUE
-#undef CLEAR_BITS
-#undef CHECK_WIDTH
 #undef GET_ITH_BIT_AFTER
 
 unsigned AmdgpuKernelDescriptor::getKernargPtrRegister() {
