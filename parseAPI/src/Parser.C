@@ -1155,7 +1155,7 @@ Parser::finalize_jump_tables()
                 if (validTargets.find(jti->tableEntryMap[addr]) != validTargets.end()) continue;
                 if (edgeMap.find(jti->tableEntryMap[addr]) == edgeMap.end()) continue;
                 Edge * e = edgeMap[jti->tableEntryMap[addr]];
-                delete_bogus_blocks(e);
+                delete_bogus_edges(e);
             }
 
             // Adjust jump table end
@@ -1168,7 +1168,7 @@ Parser::finalize_jump_tables()
  * blocks and edges that should be removed
  */
     void
-Parser::delete_bogus_blocks(Edge* e)
+Parser::delete_bogus_edges(Edge* e)
 {
     Block* cur = e->trg();
 
