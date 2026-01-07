@@ -251,7 +251,7 @@ class codeGen {
     void setPCRelUseCount(int c) { pc_rel_use_count = c; }
     int getPCRelUseCount() const { return pc_rel_use_count; }
 
-    bool usesCompressedInstructionFormat() const;
+    bool useCompressed() const;
 
     // SD-DYNINST
     // 
