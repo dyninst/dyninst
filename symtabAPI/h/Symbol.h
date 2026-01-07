@@ -80,34 +80,6 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
    friend class relocationEntry;
 
    public:
-   struct Ptr
-   {
-   Ptr(Symbol* s) : m_this(s)
-     {
-     }
-     ~Ptr() 
-     {
-     }
-     Symbol* get() const
-     {
-       return m_this;
-     }
-     operator Symbol*() const
-     {
-       return m_this;
-     }
-     Symbol* operator->() const
-     {
-       return m_this;
-       
-     }
-     
-     Symbol* m_this;
-     
-   };
-   
-   
-   
 
    enum SymbolType {
       ST_UNKNOWN,
@@ -132,15 +104,6 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
    };
 
    static const char *symbolLinkage2Str(SymbolLinkage t);
-
-   enum SymbolTag {
-      TAG_UNKNOWN,
-      TAG_USER,
-      TAG_LIBRARY,
-      TAG_INTERNAL
-   };
-
-   static const char *symbolTag2Str(SymbolTag t);
 
    enum SymbolVisibility {
        SV_UNKNOWN,
@@ -176,8 +139,8 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
    /***********************************************************
      Name Output Functions
     ***********************************************************/		
-   std::string      getMangledName () const;
-   std::string	 getPrettyName() const;
+   std::string      getMangledName () const { return mangledName_; }
+   std::string      getPrettyName() const;
    std::string      getTypedName() const;
 
    Module *getModule() const { return module_; } 
@@ -225,7 +188,6 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
 
    bool setSymbolType(SymbolType sType);
 
-   SymbolTag            tag ()               const;
    bool  setDynamic(bool d) { isDynamic_ = d; return true;}
    bool  setAbsolute(bool a) { isAbsolute_ = a; return true; }
    bool  setDebug(bool dbg) { isDebug_ = dbg; return true; }
@@ -269,7 +231,6 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
 
    std::string mangledName_;
 
-   SymbolTag     tag_;
    int index_;
    int strindex_;
 

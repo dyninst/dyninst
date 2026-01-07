@@ -61,11 +61,6 @@ Symbol *Symbol::magicEmitElfSymbol() {
                       false);
 }
     
-DYNINST_EXPORT string Symbol::getMangledName() const 
-{
-    return mangledName_;
-}
-
 DYNINST_EXPORT string Symbol::getPrettyName() const 
 {
   return P_cplus_demangle(mangledName_, false);
@@ -146,12 +141,6 @@ DYNINST_EXPORT bool Symbol::setRegion(Region *r)
 	region_ = r;
 	return true;
 }
-
-DYNINST_EXPORT Symbol::SymbolTag Symbol::tag() const 
-{
-    return tag_;
-}
-
 
 DYNINST_EXPORT bool Symbol::setSymbolType(SymbolType sType)
 {
@@ -261,8 +250,6 @@ std::ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s)
                   << " size=0x" << hex << s.size_ << dec
                   << " ptr_offset=0x"    << hex << s.ptr_offset_ << dec
                   << " localTOC=0x"    << hex << s.localTOC_ << dec
-        //<< " tag="     << (unsigned) s.tag_
-                  << " tag="     << s.symbolTag2Str(s.tag_)
                   << " isAbs="   << s.isAbsolute_
                   << " isDbg="   << s.isDebug_
                   << " isCommon=" << s.isCommonStorage_
@@ -290,8 +277,6 @@ ostream & Dyninst::SymtabAPI::operator<< (ostream &s, const ExceptionBlock &eb)
 
 bool Symbol::operator==(const Symbol& s) const
 {
-	// explicitly ignore tags when comparing symbols
-
 	//  compare sections by offset, not pointer
 	if (!region_ && s.region_) return false;
 	if (region_ && !s.region_) return false;
@@ -344,7 +329,6 @@ Symbol::Symbol () :
   isAbsolute_(false),
   isDebug_(false),
   aggregate_(NULL),
-  tag_(TAG_UNKNOWN) ,
   index_(-1),
   strindex_(-1),
   isCommonStorage_(false),
@@ -381,7 +365,6 @@ Symbol::Symbol(const std::string& name,
   isDebug_(false),
   aggregate_(NULL),
   mangledName_(name),
-  tag_(TAG_UNKNOWN),
   index_(index),
   strindex_(strindex),
   isCommonStorage_(cs),
@@ -440,19 +423,6 @@ const char *Symbol::symbolLinkage2Str(SymbolLinkage t)
    };
 
    return "invalid symbol linkage";
-}
-
-const char *Symbol::symbolTag2Str(SymbolTag t)
-{
-   switch (t)
-   {
-      CASE_RETURN_STR(TAG_UNKNOWN);
-      CASE_RETURN_STR(TAG_USER);
-      CASE_RETURN_STR(TAG_LIBRARY);
-      CASE_RETURN_STR(TAG_INTERNAL);
-   };
-
-   return "invalid symbol tag";
 }
 
 const char *Symbol::symbolVisibility2Str(SymbolVisibility t)

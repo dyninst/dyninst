@@ -12,7 +12,7 @@ ST\_UNKNOWN & Unknown type \\
 ST\_FUNCTION & Function or other executable code sequence \\
 ST\_OBJECT & Variable or other data object \\
 ST\_MODULE & Source file declaration \\
-ST\_SETION & Region declaration \\
+ST\_SECTION & Region declaration \\
 ST\_TLS & Thread-local storage declaration \\
 ST\_DELETED & Deleted symbol \\
 ST\_NOTYPE & Miscellaneous symbol \\
@@ -46,15 +46,6 @@ typedef enum {
 } SymbolVisibility;
 \end{apient}
 
-\begin{apient}
-typedef enum {
-    TAG_UNKNOWN,
-    TAG_USER,
-    TAG_LIBRARY,
-    TAG_INTERNAL
-} SymbolTag; 
-\end{apient}
-
 \begin{tabular}{p{1.25in}p{1in}p{3.25in}}
 \toprule
 Method name & Return type & Method description \\
@@ -66,7 +57,6 @@ getModule & Module * & The module, if any, that contains the symbol. \\
 getType & SymbolType & The symbol type (as defined above) of the symbol. \\
 getLinkage & SymbolLinkage & The linkage (as defined above) of the symbol. \\
 getVisibility & SymbolVisibility & The visibility (as defined above) of the symbol. \\
-tag & SymbolTag & The tag (as defined above) of the symbol. \\
 getOffset & Offset & The offset of the object the symbols refers to. \\
 getSize & unsigned & The size of the object the symbol refers to. \\
 getRegion & Region * & The region containing the symbol. \\
