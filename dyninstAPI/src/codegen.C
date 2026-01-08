@@ -686,7 +686,7 @@ bool codeGen::isRegDefined(Dyninst::Register r) {
    return regsDefined_[r];
 }
 
-bool codeGen::usesCompressedInstructionFormat() const {
+bool codeGen::useCompressed() const {
     ParseAPI::CodeObject *co = aSpace_->getAOut()->co();
     ParseAPI::SymtabCodeSource *cs = static_cast<ParseAPI::SymtabCodeSource *>(co->cs());
     return cs->usesCompressedInstructionFormat();
