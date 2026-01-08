@@ -31,20 +31,20 @@
 #include "RegisterConversion.h"
 #include "registerSpace.h"
 
-#include <map>
 #include <boost/assign/list_of.hpp>
+#include <map>
 
 #include "Register.h"
+#include "registerSpace.h"
 #include "registers/MachRegister.h"
 #include "registers/abstract_regs.h"
-#include "registerSpace.h"
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace std;
 using namespace boost::assign;
 
-//#warning "This file is not verified yet!"
+// clang-format off
 multimap<Register, MachRegister> regToMachReg64 = map_list_of
   (registerSpace::r0,  		riscv64::x0)
   (registerSpace::r1,  		riscv64::x1)
@@ -179,113 +179,174 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
   (riscv64::f31,     registerSpace::fpr31)
   (riscv64::pc,      registerSpace::pc)
   ;
+// clang-format on
 
 Register convertRegID(MachRegister reg) {
 
-    MachRegister baseReg = MachRegister((reg.getBaseRegister().val() & ~reg.getArchitecture()) | Arch_riscv64);
-//    RegisterAST::Ptr debug(new RegisterAST(baseReg));
-//    fprintf(stderr, "DEBUG: converting %s", toBeConverted->format().c_str());
-//    fprintf(stderr, " to %s\n", debug->format().c_str());
-    map<MachRegister, Register>::const_iterator found =
+  MachRegister baseReg = MachRegister(
+      (reg.getBaseRegister().val() & ~reg.getArchitecture()) | Arch_riscv64);
+  map<MachRegister, Register>::const_iterator found =
       reverseRegisterMap.find(baseReg);
-    if(found == reverseRegisterMap.end()) {
-      // Yeah, this happens when we analyze trash code. Oops...
-      return registerSpace::ignored;
-    }
+  if (found == reverseRegisterMap.end()) {
+    // This happens when we analyze trash code.
+    return registerSpace::ignored;
+  }
 
-    return found->second;
+  return found->second;
 }
 
-
-Register convertRegID(RegisterAST::Ptr toBeConverted)
-{
-    return convertRegID(toBeConverted.get());
+Register convertRegID(RegisterAST::Ptr toBeConverted) {
+  return convertRegID(toBeConverted.get());
 }
 
-Register convertRegID(RegisterAST* toBeConverted)
-{
-    if(!toBeConverted) {
-        //assert(0);
-      return registerSpace::ignored;
-    }
-    return convertRegID(toBeConverted->getID());
+Register convertRegID(RegisterAST *toBeConverted) {
+  if (!toBeConverted) {
+    // assert(0);
+    return registerSpace::ignored;
+  }
+  return convertRegID(toBeConverted->getID());
 }
 
 MachRegister convertRegID(Register r, Dyninst::Architecture arch) {
-    if( arch == Arch_riscv64 ) {
-        switch(r) {
-            case registerSpace::r0:    return riscv64::x0;
-            case registerSpace::r1:    return riscv64::x1;
-            case registerSpace::r2:    return riscv64::x2;
-            case registerSpace::r3:    return riscv64::x3;
-            case registerSpace::r4:    return riscv64::x4;
-            case registerSpace::r5:    return riscv64::x5;
-            case registerSpace::r6:    return riscv64::x6;
-            case registerSpace::r7:    return riscv64::x7;
-            case registerSpace::r8:    return riscv64::x8;
-            case registerSpace::r9:    return riscv64::x9;
-            case registerSpace::r10:   return riscv64::x10;
-            case registerSpace::r11:   return riscv64::x11;
-            case registerSpace::r12:   return riscv64::x12;
-            case registerSpace::r13:   return riscv64::x13;
-            case registerSpace::r14:   return riscv64::x14;
-            case registerSpace::r15:   return riscv64::x15;
-            case registerSpace::r16:   return riscv64::x16;
-            case registerSpace::r17:   return riscv64::x17;
-            case registerSpace::r18:   return riscv64::x18;
-            case registerSpace::r19:   return riscv64::x19;
-            case registerSpace::r20:   return riscv64::x20;
-            case registerSpace::r21:   return riscv64::x21;
-            case registerSpace::r22:   return riscv64::x22;
-            case registerSpace::r23:   return riscv64::x23;
-            case registerSpace::r24:   return riscv64::x24;
-            case registerSpace::r25:   return riscv64::x25;
-            case registerSpace::r26:   return riscv64::x26;
-            case registerSpace::r27:   return riscv64::x27;
-            case registerSpace::r28:   return riscv64::x28;
-            case registerSpace::r29:   return riscv64::x29;
-            case registerSpace::r30:   return riscv64::x30;
-            case registerSpace::r31:   return riscv64::x31;
-            case registerSpace::fpr0:  return riscv64::f0;
-            case registerSpace::fpr1:  return riscv64::f1;
-            case registerSpace::fpr2:  return riscv64::f2;
-            case registerSpace::fpr3:  return riscv64::f3;
-            case registerSpace::fpr4:  return riscv64::f4;
-            case registerSpace::fpr5:  return riscv64::f5;
-            case registerSpace::fpr6:  return riscv64::f6;
-            case registerSpace::fpr7:  return riscv64::f7;
-            case registerSpace::fpr8:  return riscv64::f8;
-            case registerSpace::fpr9:  return riscv64::f9;
-            case registerSpace::fpr10: return riscv64::f10;
-            case registerSpace::fpr11: return riscv64::f11;
-            case registerSpace::fpr12: return riscv64::f12;
-            case registerSpace::fpr13: return riscv64::f13;
-            case registerSpace::fpr14: return riscv64::f14;
-            case registerSpace::fpr15: return riscv64::f15;
-            case registerSpace::fpr16: return riscv64::f16;
-            case registerSpace::fpr17: return riscv64::f17;
-            case registerSpace::fpr18: return riscv64::f18;
-            case registerSpace::fpr19: return riscv64::f19;
-            case registerSpace::fpr20: return riscv64::f20;
-            case registerSpace::fpr21: return riscv64::f21;
-            case registerSpace::fpr22: return riscv64::f22;
-            case registerSpace::fpr23: return riscv64::f23;
-            case registerSpace::fpr24: return riscv64::f24;
-            case registerSpace::fpr25: return riscv64::f25;
-            case registerSpace::fpr26: return riscv64::f26;
-            case registerSpace::fpr27: return riscv64::f27;
-            case registerSpace::fpr28: return riscv64::f28;
-            case registerSpace::fpr29: return riscv64::f29;
-            case registerSpace::fpr30: return riscv64::f30;
-            case registerSpace::fpr31: return riscv64::f31;
-            case registerSpace::pc:    return riscv64::pc;
-            default:
-                break;
-        }
-    }else{
-        assert(!"Invalid architecture");
+  if (arch == Arch_riscv64) {
+    switch (r) {
+    case registerSpace::r0:
+      return riscv64::x0;
+    case registerSpace::r1:
+      return riscv64::x1;
+    case registerSpace::r2:
+      return riscv64::x2;
+    case registerSpace::r3:
+      return riscv64::x3;
+    case registerSpace::r4:
+      return riscv64::x4;
+    case registerSpace::r5:
+      return riscv64::x5;
+    case registerSpace::r6:
+      return riscv64::x6;
+    case registerSpace::r7:
+      return riscv64::x7;
+    case registerSpace::r8:
+      return riscv64::x8;
+    case registerSpace::r9:
+      return riscv64::x9;
+    case registerSpace::r10:
+      return riscv64::x10;
+    case registerSpace::r11:
+      return riscv64::x11;
+    case registerSpace::r12:
+      return riscv64::x12;
+    case registerSpace::r13:
+      return riscv64::x13;
+    case registerSpace::r14:
+      return riscv64::x14;
+    case registerSpace::r15:
+      return riscv64::x15;
+    case registerSpace::r16:
+      return riscv64::x16;
+    case registerSpace::r17:
+      return riscv64::x17;
+    case registerSpace::r18:
+      return riscv64::x18;
+    case registerSpace::r19:
+      return riscv64::x19;
+    case registerSpace::r20:
+      return riscv64::x20;
+    case registerSpace::r21:
+      return riscv64::x21;
+    case registerSpace::r22:
+      return riscv64::x22;
+    case registerSpace::r23:
+      return riscv64::x23;
+    case registerSpace::r24:
+      return riscv64::x24;
+    case registerSpace::r25:
+      return riscv64::x25;
+    case registerSpace::r26:
+      return riscv64::x26;
+    case registerSpace::r27:
+      return riscv64::x27;
+    case registerSpace::r28:
+      return riscv64::x28;
+    case registerSpace::r29:
+      return riscv64::x29;
+    case registerSpace::r30:
+      return riscv64::x30;
+    case registerSpace::r31:
+      return riscv64::x31;
+    case registerSpace::fpr0:
+      return riscv64::f0;
+    case registerSpace::fpr1:
+      return riscv64::f1;
+    case registerSpace::fpr2:
+      return riscv64::f2;
+    case registerSpace::fpr3:
+      return riscv64::f3;
+    case registerSpace::fpr4:
+      return riscv64::f4;
+    case registerSpace::fpr5:
+      return riscv64::f5;
+    case registerSpace::fpr6:
+      return riscv64::f6;
+    case registerSpace::fpr7:
+      return riscv64::f7;
+    case registerSpace::fpr8:
+      return riscv64::f8;
+    case registerSpace::fpr9:
+      return riscv64::f9;
+    case registerSpace::fpr10:
+      return riscv64::f10;
+    case registerSpace::fpr11:
+      return riscv64::f11;
+    case registerSpace::fpr12:
+      return riscv64::f12;
+    case registerSpace::fpr13:
+      return riscv64::f13;
+    case registerSpace::fpr14:
+      return riscv64::f14;
+    case registerSpace::fpr15:
+      return riscv64::f15;
+    case registerSpace::fpr16:
+      return riscv64::f16;
+    case registerSpace::fpr17:
+      return riscv64::f17;
+    case registerSpace::fpr18:
+      return riscv64::f18;
+    case registerSpace::fpr19:
+      return riscv64::f19;
+    case registerSpace::fpr20:
+      return riscv64::f20;
+    case registerSpace::fpr21:
+      return riscv64::f21;
+    case registerSpace::fpr22:
+      return riscv64::f22;
+    case registerSpace::fpr23:
+      return riscv64::f23;
+    case registerSpace::fpr24:
+      return riscv64::f24;
+    case registerSpace::fpr25:
+      return riscv64::f25;
+    case registerSpace::fpr26:
+      return riscv64::f26;
+    case registerSpace::fpr27:
+      return riscv64::f27;
+    case registerSpace::fpr28:
+      return riscv64::f28;
+    case registerSpace::fpr29:
+      return riscv64::f29;
+    case registerSpace::fpr30:
+      return riscv64::f30;
+    case registerSpace::fpr31:
+      return riscv64::f31;
+    case registerSpace::pc:
+      return riscv64::pc;
+    default:
+      break;
     }
+  } else {
+    assert(!"Invalid architecture");
+  }
 
-    assert(!"Register not handled");
-    return InvalidReg;
+  assert(!"Register not handled");
+  return InvalidReg;
 }
