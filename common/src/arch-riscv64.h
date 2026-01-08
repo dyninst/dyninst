@@ -33,10 +33,10 @@
 
 #include "dyntypes.h"
 #include "registers/riscv64_regs.h"
-#include <stdint.h>
 #include <assert.h>
-#include <vector>
 #include <bitset>
+#include <stdint.h>
+#include <vector>
 
 class AddressSpace;
 
@@ -69,6 +69,10 @@ constexpr int RISCV_REG_SIZE = 8;
 // The immediates in instructions varies.
 // The maximum is 21 bits, which can be stored in a 32 bit integer
 constexpr int RISCV_IMM_SIZE = 4;
+
+// In RISC-V, the maximum number of integer argument registers used for passing arguments in a function call is eight.
+// The rest is spilled onto the stack
+constexpr int RISCV_MAX_ARG_REGS = 8;
 
 // Raw register encoding used in RISC-V instruction encoding
 // These values identify registers when decoding instructions
@@ -141,7 +145,7 @@ constexpr int32_t GPR_T5     = 30;
 constexpr int32_t GPR_T6     = 31;
 
 // Encoding for common instructions
-constexpr int32_t EBREAK_INSN_ENC = 0x00100073; 
+constexpr int32_t EBREAK_INSN_ENC = 0x00100073;
 constexpr int32_t ECALL_INSN_ENC = 0x00000073;
 constexpr int32_t SRET_INSN_ENC = 0x10200073;
 constexpr int32_t MRET_INSN_ENC = 0x30200073;
@@ -157,64 +161,64 @@ constexpr int32_t REG_RS2_ENC_OFFSET = 20;
 constexpr int32_t REG_ENC_MASK = 0x1f;
 
 // Instruction encoding
-constexpr int32_t AUIPCOp    = 0x17;
-constexpr int32_t BRANCHOp   = 0x63;
-constexpr int32_t FLDOp      = 0x07;
-constexpr int32_t FSDOp      = 0x27;
-constexpr int32_t IMMOp      = 0x13;
-constexpr int32_t JALOp      = 0x6f;
-constexpr int32_t JALROp     = 0x67;
-constexpr int32_t LOADOp     = 0x03;
-constexpr int32_t LUIOp      = 0x37;
-constexpr int32_t REGOp      = 0x33;
-constexpr int32_t STOREOp    = 0x23;
+constexpr int32_t AUIPCOp = 0x17;
+constexpr int32_t BRANCHOp = 0x63;
+constexpr int32_t FLDOp = 0x07;
+constexpr int32_t FSDOp = 0x27;
+constexpr int32_t IMMOp = 0x13;
+constexpr int32_t JALOp = 0x6f;
+constexpr int32_t JALROp = 0x67;
+constexpr int32_t LOADOp = 0x03;
+constexpr int32_t LUIOp = 0x37;
+constexpr int32_t REGOp = 0x33;
+constexpr int32_t STOREOp = 0x23;
 
-constexpr int32_t ADDFunct7  = 0x00;
-constexpr int32_t ANDFunct7  = 0x00;
-constexpr int32_t DIVFunct7  = 0x01;
-constexpr int32_t MULFunct7  = 0x01;
-constexpr int32_t ORFunct7   = 0x00;
-constexpr int32_t SLLFunct7  = 0x00;
-constexpr int32_t SRAFunct7  = 0x20;
-constexpr int32_t SRLFunct7  = 0x00;
-constexpr int32_t SUBFunct7  = 0x20;
-constexpr int32_t XORFunct7  = 0x00;
+constexpr int32_t ADDFunct7 = 0x00;
+constexpr int32_t ANDFunct7 = 0x00;
+constexpr int32_t DIVFunct7 = 0x01;
+constexpr int32_t MULFunct7 = 0x01;
+constexpr int32_t ORFunct7 = 0x00;
+constexpr int32_t SLLFunct7 = 0x00;
+constexpr int32_t SRAFunct7 = 0x20;
+constexpr int32_t SRLFunct7 = 0x00;
+constexpr int32_t SUBFunct7 = 0x20;
+constexpr int32_t XORFunct7 = 0x00;
 
-constexpr int32_t ADDFunct3  = 0x0;
-constexpr int32_t ANDFunct3  = 0x7;
-constexpr int32_t BEQFunct3  = 0x0;
-constexpr int32_t BGEFunct3  = 0x5;
+constexpr int32_t ADDFunct3 = 0x0;
+constexpr int32_t ANDFunct3 = 0x7;
+constexpr int32_t BEQFunct3 = 0x0;
+constexpr int32_t BGEFunct3 = 0x5;
 constexpr int32_t BGEUFunct3 = 0x7;
-constexpr int32_t BLTFunct3  = 0x4;
+constexpr int32_t BLTFunct3 = 0x4;
 constexpr int32_t BLTUFunct3 = 0x6;
-constexpr int32_t BNEFunct3  = 0x1;
-constexpr int32_t DIVFunct3  = 0x4;
-constexpr int32_t FLDFunct3  = 0x3;
-constexpr int32_t FSDFunct3  = 0x3;
+constexpr int32_t BNEFunct3 = 0x1;
+constexpr int32_t DIVFunct3 = 0x4;
+constexpr int32_t FLDFunct3 = 0x3;
+constexpr int32_t FSDFunct3 = 0x3;
 constexpr int32_t JALRFunct3 = 0x0;
-constexpr int32_t LBFunct3   = 0x0;
-constexpr int32_t LBUFunct3  = 0x4;
-constexpr int32_t LDFunct3   = 0x3;
-constexpr int32_t LHFunct3   = 0x1;
-constexpr int32_t LHUFunct3  = 0x5;
-constexpr int32_t LWFunct3   = 0x2;
-constexpr int32_t LWUFunct3  = 0x6;
-constexpr int32_t MULFunct3  = 0x0;
-constexpr int32_t ORFunct3   = 0x6;
-constexpr int32_t SBFunct3   = 0x0;
-constexpr int32_t SDFunct3   = 0x3;
-constexpr int32_t SHFunct3   = 0x1;
-constexpr int32_t SLLFunct3  = 0x1;
-constexpr int32_t SRAFunct3  = 0x5;
-constexpr int32_t SRLFunct3  = 0x5;
-constexpr int32_t SUBFunct3  = 0x0;
-constexpr int32_t SWFunct3   = 0x2;
-constexpr int32_t XORFunct3  = 0x4;
+constexpr int32_t LBFunct3 = 0x0;
+constexpr int32_t LBUFunct3 = 0x4;
+constexpr int32_t LDFunct3 = 0x3;
+constexpr int32_t LHFunct3 = 0x1;
+constexpr int32_t LHUFunct3 = 0x5;
+constexpr int32_t LWFunct3 = 0x2;
+constexpr int32_t LWUFunct3 = 0x6;
+constexpr int32_t MULFunct3 = 0x0;
+constexpr int32_t ORFunct3 = 0x6;
+constexpr int32_t SBFunct3 = 0x0;
+constexpr int32_t SDFunct3 = 0x3;
+constexpr int32_t SHFunct3 = 0x1;
+constexpr int32_t SLLFunct3 = 0x1;
+constexpr int32_t SRAFunct3 = 0x5;
+constexpr int32_t SRLFunct3 = 0x5;
+constexpr int32_t SUBFunct3 = 0x0;
+constexpr int32_t SWFunct3 = 0x2;
+constexpr int32_t XORFunct3 = 0x4;
 
-constexpr int32_t B_COND_EQ  = BEQFunct3;
-constexpr int32_t B_COND_NE  = BNEFunct3;
-constexpr int32_t B_COND_LT  = BLTFunct3;
-constexpr int32_t B_COND_GE  = BGEFunct3;
+constexpr int32_t B_COND_EQ = BEQFunct3;
+constexpr int32_t B_COND_NE = BNEFunct3;
+constexpr int32_t B_COND_LT = BLTFunct3;
+constexpr int32_t B_COND_GE = BGEFunct3;
 constexpr int32_t B_COND_LTU = BLTUFunct3;
 constexpr int32_t B_COND_GEU = BGEUFunct3;
 
@@ -223,233 +227,235 @@ constexpr int32_t B_COND_GEU = BGEUFunct3;
 constexpr int32_t BTYPE_IMM_SHIFT = 1;
 constexpr int32_t CADDI16SP_IMM_SHIFT = 4;
 constexpr int32_t CADDI4SPN_IMM_SHIFT = 2;
-constexpr int32_t CBEQZ_IMM_SHIFT            = 1;
-constexpr int32_t CBNEZ_IMM_SHIFT            = 1;
-constexpr int32_t CFLD_SHIFT                 = 3;
-constexpr int32_t CFLDSP_SHIFT               = 3;
-constexpr int32_t CFLW_SHIFT                 = 2;
-constexpr int32_t CFLWSP_SHIFT               = 2;
-constexpr int32_t CFSD_SHIFT                 = 3;
-constexpr int32_t CFSDSP_SHIFT               = 3;
-constexpr int32_t CFSW_SHIFT                 = 2;
-constexpr int32_t CFSWSP_SHIFT               = 2;
-constexpr int32_t CJ_IMM_SHIFT               = 1;
-constexpr int32_t CLD_SHIFT                  = 3;
-constexpr int32_t CLDSP_SHIFT                = 3;
-constexpr int32_t CLW_SHIFT                  = 2;
-constexpr int32_t CLWSP_SHIFT                = 2;
-constexpr int32_t CSD_SHIFT                  = 3;
-constexpr int32_t CSDSP_SHIFT                = 3;
-constexpr int32_t CSW_SHIFT                  = 2;
-constexpr int32_t CSWSP_SHIFT                = 2;
+constexpr int32_t CBEQZ_IMM_SHIFT = 1;
+constexpr int32_t CBNEZ_IMM_SHIFT = 1;
+constexpr int32_t CFLD_SHIFT = 3;
+constexpr int32_t CFLDSP_SHIFT = 3;
+constexpr int32_t CFLW_SHIFT = 2;
+constexpr int32_t CFLWSP_SHIFT = 2;
+constexpr int32_t CFSD_SHIFT = 3;
+constexpr int32_t CFSDSP_SHIFT = 3;
+constexpr int32_t CFSW_SHIFT = 2;
+constexpr int32_t CFSWSP_SHIFT = 2;
+constexpr int32_t CJ_IMM_SHIFT = 1;
+constexpr int32_t CLD_SHIFT = 3;
+constexpr int32_t CLDSP_SHIFT = 3;
+constexpr int32_t CLW_SHIFT = 2;
+constexpr int32_t CLWSP_SHIFT = 2;
+constexpr int32_t CSD_SHIFT = 3;
+constexpr int32_t CSDSP_SHIFT = 3;
+constexpr int32_t CSW_SHIFT = 2;
+constexpr int32_t CSWSP_SHIFT = 2;
 constexpr int32_t JTYPE_IMM_SHIFT = 1;
 constexpr int32_t UTYPE_IMM_SHIFT = 12;
 
 // Mask value of immediates
 constexpr int32_t BTYPE_IMM_MASK = 0xfff;
-constexpr int32_t CADDI16SP_IMM_MASK         = 0x3f;
-constexpr int32_t CADDI4SPN_IMM_MASK         = 0xff;
-constexpr int32_t CADDI_IMM_MASK             = 0x3f;
-constexpr int32_t CANDI_IMM_MASK             = 0x3f;
-constexpr int32_t CBEQZ_IMM_MASK             = 0xff;
-constexpr int32_t CBNEZ_IMM_MASK             = 0xff;
-constexpr int32_t CFLD_MASK                  = 0x1f;
-constexpr int32_t CFLDSP_MASK                = 0x3f;
-constexpr int32_t CFLW_MASK                  = 0x1f;
-constexpr int32_t CFLWSP_MASK                = 0x3f;
-constexpr int32_t CFSD_MASK                  = 0x1f;
-constexpr int32_t CFSDSP_MASK                = 0x3f;
-constexpr int32_t CFSW_MASK                  = 0x1f;
-constexpr int32_t CFSWSP_MASK                = 0x3f;
-constexpr int32_t CJ_IMM_MASK                = 0x7ff;
-constexpr int32_t CLD_MASK                   = 0x1f;
-constexpr int32_t CLDSP_MASK                 = 0x3f;
-constexpr int32_t CLI_IMM_MASK               = 0x3f;
-constexpr int32_t CLW_MASK                   = 0x1f;
-constexpr int32_t CLWSP_MASK                 = 0x3f;
-constexpr int32_t CSD_MASK                   = 0x1f;
-constexpr int32_t CSDSP_MASK                 = 0x3f;
-constexpr int32_t CSLLI_IMM_MASK             = 0x3f;
-constexpr int32_t CSRAI_IMM_MASK             = 0x3f;
-constexpr int32_t CSRLI_IMM_MASK             = 0x3f;
-constexpr int32_t CSW_MASK                   = 0x1f;
-constexpr int32_t CSWSP_MASK                 = 0x3f;
+constexpr int32_t CADDI16SP_IMM_MASK = 0x3f;
+constexpr int32_t CADDI4SPN_IMM_MASK = 0xff;
+constexpr int32_t CADDI_IMM_MASK = 0x3f;
+constexpr int32_t CANDI_IMM_MASK = 0x3f;
+constexpr int32_t CBEQZ_IMM_MASK = 0xff;
+constexpr int32_t CBNEZ_IMM_MASK = 0xff;
+constexpr int32_t CFLD_MASK = 0x1f;
+constexpr int32_t CFLDSP_MASK = 0x3f;
+constexpr int32_t CFLW_MASK = 0x1f;
+constexpr int32_t CFLWSP_MASK = 0x3f;
+constexpr int32_t CFSD_MASK = 0x1f;
+constexpr int32_t CFSDSP_MASK = 0x3f;
+constexpr int32_t CFSW_MASK = 0x1f;
+constexpr int32_t CFSWSP_MASK = 0x3f;
+constexpr int32_t CJ_IMM_MASK = 0x7ff;
+constexpr int32_t CLD_MASK = 0x1f;
+constexpr int32_t CLDSP_MASK = 0x3f;
+constexpr int32_t CLI_IMM_MASK = 0x3f;
+constexpr int32_t CLW_MASK = 0x1f;
+constexpr int32_t CLWSP_MASK = 0x3f;
+constexpr int32_t CSD_MASK = 0x1f;
+constexpr int32_t CSDSP_MASK = 0x3f;
+constexpr int32_t CSLLI_IMM_MASK = 0x3f;
+constexpr int32_t CSRAI_IMM_MASK = 0x3f;
+constexpr int32_t CSRLI_IMM_MASK = 0x3f;
+constexpr int32_t CSW_MASK = 0x1f;
+constexpr int32_t CSWSP_MASK = 0x3f;
 constexpr int32_t ITYPE_IMM_MASK = 0xfff;
 constexpr int32_t JTYPE_IMM_MASK = 0xfffff;
 constexpr int32_t STYPE_IMM_MASK = 0xfff;
 constexpr int32_t UTYPE_IMM_MASK = 0xfffff;
 
 // Maximum and minimum of immediates
-// Note that the min/max values defined here are *implicitly shifted values*, not the encoded value.
+// Note that the min/max values defined here are *implicitly shifted values*,
+// not the encoded value.
 
-constexpr int32_t CADDI16SP_IMM_MAX          = 0x200;
-constexpr int32_t CADDI16SP_IMM_MIN          = -0x200;
-constexpr int32_t CADDI4SPN_IMM_MAX          = 0x400;
-constexpr int32_t CADDI4SPN_IMM_MIN          = 0;
-constexpr int32_t CADDI_IMM_MAX              = 0x20;
-constexpr int32_t CADDI_IMM_MIN              = -0x20;
-constexpr int32_t CANDI_IMM_MAX              = 0x20;
-constexpr int32_t CANDI_IMM_MIN              = -0x20;
-constexpr int32_t CBEQZ_IMM_MAX              = 0x100;
-constexpr int32_t CBEQZ_IMM_MIN              = -0x100;
-constexpr int32_t CBNEZ_IMM_MAX              = 0x100;
-constexpr int32_t CBNEZ_IMM_MIN              = -0x100;
-constexpr int32_t CFLD_IMM_MAX               = 0x100;
-constexpr int32_t CFLD_IMM_MIN               = 0x0;
-constexpr int32_t CFLDSP_IMM_MAX             = 0x200;
-constexpr int32_t CFLDSP_IMM_MIN             = 0x0;
-constexpr int32_t CFLW_IMM_MAX               = 0x80;
-constexpr int32_t CFLW_IMM_MIN               = 0x0;
-constexpr int32_t CFLWSP_IMM_MAX             = 0x100;
-constexpr int32_t CFLWSP_IMM_MIN             = 0x0;
-constexpr int32_t CFSD_IMM_MAX               = 0x100;
-constexpr int32_t CFSD_IMM_MIN               = 0x0;
-constexpr int32_t CFSDSP_IMM_MAX             = 0x200;
-constexpr int32_t CFSDSP_IMM_MIN             = 0x0;
-constexpr int32_t CFSW_IMM_MAX               = 0x80;
-constexpr int32_t CFSW_IMM_MIN               = 0x0;
-constexpr int32_t CFSWSP_IMM_MAX             = 0x100;
-constexpr int32_t CFSWSP_IMM_MIN             = 0x0;
-constexpr int32_t CJ_IMM_MAX                 = 0x800;
-constexpr int32_t CJ_IMM_MIN                 = -0x800;
-constexpr int32_t CLD_IMM_MAX                = 0x100;
-constexpr int32_t CLD_IMM_MIN                = 0x0;
-constexpr int32_t CLDSP_IMM_MAX              = 0x200;
-constexpr int32_t CLDSP_IMM_MIN              = 0x0;
-constexpr int32_t CLI_IMM_MAX                = 0x20;
-constexpr int32_t CLI_IMM_MIN                = -0x20;
-constexpr int32_t CLUI_IMM_MAX1              = 0x20;
-constexpr int32_t CLUI_IMM_MAX2              = 0x100000;
-constexpr int32_t CLUI_IMM_MIN1              = 0x1;
-constexpr int32_t CLUI_IMM_MIN2              = 0xfffe0;
-constexpr int32_t CLW_IMM_MAX                = 0x80;
-constexpr int32_t CLW_IMM_MIN                = 0x0;
-constexpr int32_t CLWSP_IMM_MAX              = 0x100;
-constexpr int32_t CLWSP_IMM_MIN              = 0x0;
-constexpr int32_t CSD_IMM_MAX                = 0x100;
-constexpr int32_t CSD_IMM_MIN                = 0x0;
-constexpr int32_t CSDSP_IMM_MAX              = 0x200;
-constexpr int32_t CSDSP_IMM_MIN              = 0x0;
-constexpr int32_t CSLLI_IMM_MAX              = 0x40;
-constexpr int32_t CSLLI_IMM_MIN              = 0x1;
-constexpr int32_t CSRAI_IMM_MAX              = 0x40;
-constexpr int32_t CSRAI_IMM_MIN              = 0x1;
-constexpr int32_t CSRLI_IMM_MAX              = 0x40;
-constexpr int32_t CSRLI_IMM_MIN              = 0x1;
-constexpr int32_t CSW_IMM_MAX                = 0x80;
-constexpr int32_t CSW_IMM_MIN                = 0x0;
-constexpr int32_t CSWSP_IMM_MAX              = 0x100;
-constexpr int32_t CSWSP_IMM_MIN              = 0x0;
-constexpr int64_t BTYPE_IMM_MAX  = 0x1000;
-constexpr int64_t BTYPE_IMM_MIN  = -0x1000;
-constexpr int64_t ITYPE_IMM_MAX  = 0x800;
-constexpr int64_t ITYPE_IMM_MIN  = -0x800;
-constexpr int64_t JTYPE_IMM_MAX = 0x1000000; // 21 bits signed (not 20 because imm is shifted 1 bits left)
-constexpr int64_t JTYPE_IMM_MIN = -0x1000000; // 21 bits signed (not 20 because imm is shifted 1 bits left)
-constexpr int64_t STYPE_IMM_MAX  = 0xfff;
-constexpr int64_t STYPE_IMM_MIN  = 0xfff;
-constexpr int64_t UTYPE_IMM_MAX  = 0x80000000LL;  // 32 bits signed
-constexpr int64_t UTYPE_IMM_MIN  = -0x80000000LL; // 32 bits signed
+constexpr int32_t CADDI16SP_IMM_MAX = 0x200;
+constexpr int32_t CADDI16SP_IMM_MIN = -0x200;
+constexpr int32_t CADDI4SPN_IMM_MAX = 0x400;
+constexpr int32_t CADDI4SPN_IMM_MIN = 0;
+constexpr int32_t CADDI_IMM_MAX = 0x20;
+constexpr int32_t CADDI_IMM_MIN = -0x20;
+constexpr int32_t CANDI_IMM_MAX = 0x20;
+constexpr int32_t CANDI_IMM_MIN = -0x20;
+constexpr int32_t CBEQZ_IMM_MAX = 0x100;
+constexpr int32_t CBEQZ_IMM_MIN = -0x100;
+constexpr int32_t CBNEZ_IMM_MAX = 0x100;
+constexpr int32_t CBNEZ_IMM_MIN = -0x100;
+constexpr int32_t CFLD_IMM_MAX = 0x100;
+constexpr int32_t CFLD_IMM_MIN = 0x0;
+constexpr int32_t CFLDSP_IMM_MAX = 0x200;
+constexpr int32_t CFLDSP_IMM_MIN = 0x0;
+constexpr int32_t CFLW_IMM_MAX = 0x80;
+constexpr int32_t CFLW_IMM_MIN = 0x0;
+constexpr int32_t CFLWSP_IMM_MAX = 0x100;
+constexpr int32_t CFLWSP_IMM_MIN = 0x0;
+constexpr int32_t CFSD_IMM_MAX = 0x100;
+constexpr int32_t CFSD_IMM_MIN = 0x0;
+constexpr int32_t CFSDSP_IMM_MAX = 0x200;
+constexpr int32_t CFSDSP_IMM_MIN = 0x0;
+constexpr int32_t CFSW_IMM_MAX = 0x80;
+constexpr int32_t CFSW_IMM_MIN = 0x0;
+constexpr int32_t CFSWSP_IMM_MAX = 0x100;
+constexpr int32_t CFSWSP_IMM_MIN = 0x0;
+constexpr int32_t CJ_IMM_MAX = 0x800;
+constexpr int32_t CJ_IMM_MIN = -0x800;
+constexpr int32_t CLD_IMM_MAX = 0x100;
+constexpr int32_t CLD_IMM_MIN = 0x0;
+constexpr int32_t CLDSP_IMM_MAX = 0x200;
+constexpr int32_t CLDSP_IMM_MIN = 0x0;
+constexpr int32_t CLI_IMM_MAX = 0x20;
+constexpr int32_t CLI_IMM_MIN = -0x20;
+constexpr int32_t CLUI_IMM_MAX1 = 0x20;
+constexpr int32_t CLUI_IMM_MAX2 = 0x100000;
+constexpr int32_t CLUI_IMM_MIN1 = 0x1;
+constexpr int32_t CLUI_IMM_MIN2 = 0xfffe0;
+constexpr int32_t CLW_IMM_MAX = 0x80;
+constexpr int32_t CLW_IMM_MIN = 0x0;
+constexpr int32_t CLWSP_IMM_MAX = 0x100;
+constexpr int32_t CLWSP_IMM_MIN = 0x0;
+constexpr int32_t CSD_IMM_MAX = 0x100;
+constexpr int32_t CSD_IMM_MIN = 0x0;
+constexpr int32_t CSDSP_IMM_MAX = 0x200;
+constexpr int32_t CSDSP_IMM_MIN = 0x0;
+constexpr int32_t CSLLI_IMM_MAX = 0x40;
+constexpr int32_t CSLLI_IMM_MIN = 0x1;
+constexpr int32_t CSRAI_IMM_MAX = 0x40;
+constexpr int32_t CSRAI_IMM_MIN = 0x1;
+constexpr int32_t CSRLI_IMM_MAX = 0x40;
+constexpr int32_t CSRLI_IMM_MIN = 0x1;
+constexpr int32_t CSW_IMM_MAX = 0x80;
+constexpr int32_t CSW_IMM_MIN = 0x0;
+constexpr int32_t CSWSP_IMM_MAX = 0x100;
+constexpr int32_t CSWSP_IMM_MIN = 0x0;
+constexpr int64_t BTYPE_IMM_MAX = 0x1000;
+constexpr int64_t BTYPE_IMM_MIN = -0x1000;
+constexpr int64_t ITYPE_IMM_MAX = 0x800;
+constexpr int64_t ITYPE_IMM_MIN = -0x800;
+constexpr int64_t JTYPE_IMM_MAX =
+    0x1000000; // 21 bits signed (not 20 because imm is shifted 1 bits left)
+constexpr int64_t JTYPE_IMM_MIN =
+    -0x1000000; // 21 bits signed (not 20 because imm is shifted 1 bits left)
+constexpr int64_t STYPE_IMM_MAX = 0xfff;
+constexpr int64_t STYPE_IMM_MIN = 0xfff;
+constexpr int64_t UTYPE_IMM_MAX = 0x80000000LL;  // 32 bits signed
+constexpr int64_t UTYPE_IMM_MIN = -0x80000000LL; // 32 bits signed
 
 // RISC-V immediates in jump/branch instructions are scrambled:
 // The following arrays store the corresponding indices to reorder the immediates back
-const std::vector<int> JAL_REORDER   = {12, 13, 14, 15, 16, 17, 18, 19, 11, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20};
-const std::vector<int> JALR_REORDER  = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-const std::vector<int> B_REORDER1    = {11, 1, 2, 3, 4};
-const std::vector<int> B_REORDER2    = {5, 6, 7, 8, 9, 10, 12};
-const std::vector<int> CJ_REORDER    = {5, 1, 2, 3, 7, 6, 10, 8, 9, 4, 11};
-const std::vector<int> CB_REORDER1   = {5, 1, 2, 6, 7};
-const std::vector<int> CB_REORDER2   = {3, 4, 8};
+const std::vector<int> JAL_REORDER = {12, 13, 14, 15, 16, 17, 18, 19, 11, 1,
+                                      2,  3,  4,  5,  6,  7,  8,  9,  10, 20};
+const std::vector<int> JALR_REORDER = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+const std::vector<int> B_REORDER1 = {11, 1, 2, 3, 4};
+const std::vector<int> B_REORDER2 = {5, 6, 7, 8, 9, 10, 12};
+const std::vector<int> CJ_REORDER = {5, 1, 2, 3, 7, 6, 10, 8, 9, 4, 11};
+const std::vector<int> CB_REORDER1 = {5, 1, 2, 6, 7};
+const std::vector<int> CB_REORDER2 = {3, 4, 8};
 
-#define INSN_BUFF_SET(I, s, e, v)    ((I).setInsnBuf((s), (e - s + 1), (v)))
+constexpr int32_t SCRATCH_REG = GPR_S11;
+
+#define INSN_SET(I, s, e, v)    ((I).setBits(s, e - s + 1, (v)))
 
 typedef union {
-    unsigned char byte[RISCV_MAX_INSN_SIZE];
-    rvMaxInsn_t raw;
+  unsigned char byte[RISCV_MAX_INSN_SIZE];
+  rvMaxInsn_t raw;
 } instructUnion;
+
+typedef instructUnion codeBuf_t;
+typedef unsigned codeBufIndex_t;
 
 #define maxGPR 32
 #define maxFPR 32
 
 class DYNINST_EXPORT instruction {
-    private:
-    // Due to the way codegen.C works, codeBuf_t should be a fixed size.
-    // Therefore, we write opcodes to our own instruction buffer `insn_buff` instead.
-    // Then, whever we generate the instruction, we call `flushInsnBuffer` to flush the
-    // instruction buffer into the 2-byte code buffer `code_buff` short-by-short.
+private:
+  // Due to the way codegen.C works, codeBuf_t should be a fixed size.
+  // Therefore, we write opcodes to our own instruction buffer `insn_buff`
+  // instead. Then, whever we generate the instruction, we call
+  // `flushInsnBuffer` to flush the instruction buffer into the 2-byte code
+  // buffer `code_buff` short-by-short.
 
-    instructUnion insn_;
+  instructUnion insn_;
 
 public:
-    instruction(): insn_() {}
-    instruction(rvMaxInsn_t raw) {
-        insn_.raw = raw;
-    }
-    instruction(const void *ptr) {
-        insn_ = *((const instructUnion *)ptr);
-    }
-    instruction(const void *ptr, bool): instruction(ptr) {}
+  instruction() : insn_() {}
+  instruction(rvMaxInsn_t raw) { insn_.raw = raw; }
+  instruction(const void *ptr) { insn_ = *((const instructUnion *)ptr); }
+  instruction(const void *ptr, bool) : instruction(ptr) {}
 
-    instruction(const instruction &insn) : insn_(insn.insn_) {}
-    instruction(instructUnion &insn) : insn_(insn) {}
+  instruction(const instruction &insn) : insn_(insn.insn_) {}
+  instruction(instructUnion &insn) : insn_(insn) {}
 
-    void clear() { 
-        insn_.raw = 0;
-    }
+  void clear() { insn_.raw = 0; }
 
-    void setBits(unsigned int pos, unsigned int len, unsigned int value) {
-        assert(!(isCompressed() && pos + len > 16));
-        unsigned int mask;
+  void setBits(unsigned int pos, unsigned int len, unsigned int value) {
+    assert(!(isCompressed() && pos + len > 16));
+    unsigned int mask;
 
-        mask = ~((unsigned int)(~0) << len);
-        value = value & mask;
+    mask = ~((unsigned int)(~0) << len);
+    value = value & mask;
 
-        mask = ~(mask << pos);
-        value = value << pos;
+    mask = ~(mask << pos);
+    value = value << pos;
 
-        insn_.raw = insn_.raw & mask;
-        insn_.raw = insn_.raw | value;
-    }
+    insn_.raw = insn_.raw & mask;
+    insn_.raw = insn_.raw | value;
+  }
 
-    bool isCompressed() const {
-        return (insn_.raw & 0x3) != 0x3;
-    }
+  bool isCompressed() const { return (insn_.raw & 0x3) != 0x3; }
 
-    unsigned size() { return isCompressed() ? RISCVC_INSN_SIZE : RISCV_INSN_SIZE; }
+  unsigned size() {
+    return isCompressed() ? RISCVC_INSN_SIZE : RISCV_INSN_SIZE;
+  }
 
-    // return a pointer to the instruction
-    const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
+  // return a pointer to the instruction
+  const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
 
-    static bool isAligned(Dyninst::Address addr) {
-        return !(addr & 0x1);
-    }
+  static bool isAligned(Dyninst::Address addr) { return !(addr & 0x1); }
 
-    unsigned getTargetReg() const;
-    signed long signExtend(unsigned long i, unsigned int pos);
-    Dyninst::Address getTarget(Dyninst::Address addr) const;
+  unsigned getTargetReg() const;
+  signed long signExtend(unsigned long i, unsigned int pos);
+  Dyninst::Address getTarget(Dyninst::Address addr) const;
 
-    bool isBranchReg() const;
-    bool isBranchOffset() const;
-    bool isUncondBranch() const;
-    bool isCondBranch() const;
-    bool getUsedRegs(std::vector<int> &regs);
-    bool isCall() const;
-    unsigned getLinkReg() const;
-    unsigned getBranchTargetReg() const;
-    Dyninst::Address getBranchOffset() const;
-    unsigned getCondBranchOp() const;
-    unsigned getCondBranchReg1() const;
-    unsigned getCondBranchReg2() const;
-    bool isAtomic() const;
-    bool isAtomicMemOp() const;
-    bool isAtomicLoad() const;
-    bool isAtomicStore() const;
-    bool isAuipc() const;
-    Dyninst::Address getAuipcOffset() const;
-    unsigned getAuipcReg() const;
+  bool isBranchReg() const;
+  bool isBranchOffset() const;
+  bool isUncondBranch() const;
+  bool isCondBranch() const;
+  bool getUsedRegs(std::vector<int> &regs);
+  bool isCall() const;
+  unsigned getLinkReg() const;
+  unsigned getBranchTargetReg() const;
+  Dyninst::Address getBranchOffset() const;
+  unsigned getCondBranchOp() const;
+  unsigned getCondBranchReg1() const;
+  unsigned getCondBranchReg2() const;
+  bool isAtomic() const;
+  bool isAtomicMemOp() const;
+  bool isAtomicLoad() const;
+  bool isAtomicStore() const;
+  bool isAuipc() const;
+  Dyninst::Address getAuipcOffset() const;
+  unsigned getAuipcReg() const;
 };
 
-}
-//end of NS_riscv64
+} // namespace NS_riscv64
+// end of NS_riscv64
 
 #endif
