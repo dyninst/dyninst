@@ -63,6 +63,8 @@ using namespace Dyninst::InstructionAPI;
 #include "emit-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "inst-aarch64.h"
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#include "emit-amdgpu.h"
 #else
 #error "Unknown architecture in ast.h"
 #endif
@@ -1815,11 +1817,22 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    int len;
    BPatch_type *Type;
    switch (oType) {
+#if defined (DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+   case operandType::Constant: {
+     assert(oVar == NULL);
+     // Move constant into retReg
+     Emitter *emitter = gen.emitter();
+     const uint32_t immediateValue = (uint32_t)((uint64_t)this->getOValue());
+     emitter->emitMovLiteral(retReg, immediateValue, gen);
+     break;
+   }
+#else
    case operandType::Constant:
      assert(oVar == NULL);
      emitVload(loadConstOp, (Address)oValue, retReg, retReg, gen,
 		 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
      break;
+#endif
    case operandType::DataIndir:
       if (!operand_->generateCode_phase2(gen, noCost, addr, src)) ERROR_RETURN;
       REGISTER_CHECK(src);
@@ -3473,6 +3486,7 @@ std::string AstNode::convert(operandType type) {
       case operandType::origRegister: return "OrigRegister";
       case operandType::variableAddr: return "variableAddr";
       case operandType::variableValue: return "variableValue";
+      case operandType::AddressAsPlaceholderRegAndOffset: return "AddressAsPlaceholderRegAndOffset";
       default: return "UnknownOperand";
    }
 }
@@ -3564,9 +3578,65 @@ std::string AstAtomicOperationStmtNode::format(std::string indent) {
     return ret.str();
 }
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen &gen, bool noCost, Address &retAddr,
+                                                     Dyninst::Register & /* retReg */) {
+  // This has 2 operands - variable and constant.
+  // Codegen for atomic add has the following steps:
+  // 1. Evaluate constant -- load a register with the constant
+  // 2. Evaluate variable -- load a register pair with the address of the variable.
+  // 3. Emit s_atomic_add instruction - atomically add the constant to the variable.
+
+  bool ret = true;
+
+  Register src0 = Dyninst::Null_Register;
+  if (!constant->generateCode_phase2(gen, noCost, retAddr, src0)) {
+    fprintf(stderr, "WARNING: failed in generateCode internals!\n");
+    ret = false;
+  }
+  assert(src0 != Dyninst::Null_Register);
+
+  // Now generate code for the variable -- load a register pair with the address of the variable.
+  AstOperandNode *variableOperand = dynamic_cast<AstOperandNode *>((AstNode *)variable.get());
+  assert(variableOperand);
+  assert(variableOperand->getoType() == operandType::AddressAsPlaceholderRegAndOffset);
+
+  AstOperandNode *offset =
+      dynamic_cast<AstOperandNode *>((AstNode *)variableOperand->operand().get());
+  assert(offset);
+
+  EmitterAmdgpuGfx908 *emitter = dynamic_cast<EmitterAmdgpuGfx908 *>(gen.emitter());
+  assert(emitter);
+
+  // TODO : Remove all hardcoded registers.
+  emitter->emitMoveRegToReg(94, 88, gen);
+  emitter->emitMoveRegToReg(95, 89, gen);
+  emitter->emitAddConstantToRegPair(88, (Address)offset->getOValue(), gen);
+
+  // Now we have s[88:89] with address of the variable. Emit appropriate atomic instruction.
+  switch (opcode) {
+  case plusOp:
+    emitter->emitAtomicAdd(88, src0, gen);
+    break;
+  case minusOp:
+    emitter->emitAtomicSub(88, src0, gen);
+    break;
+  default:
+    assert(!"atomic operation for this opcode is not implemented");
+  }
+
+  return ret;
+}
+#else
 bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen & /* gen */, bool /* noCost */,
                                                      Address & /* retAddr */,
                                                      Dyninst::Register & /* retReg */) {
     cerr << "AstAtomicOperationStmtNode::generateCode_phase2 not implemented" << endl;
     return false;
 }
+#endif
+
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+int AstOperandNode::lastOffset = 0;
+std::map<std::string, int> AstOperandNode::allocTable = {{"--init--", -1}};
+#endif

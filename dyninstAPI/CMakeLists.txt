@@ -113,6 +113,7 @@ set(_private_headers
 
 set(_sources
     src/addressSpace.C
+    src/ast.C
     src/baseTramp.C
     src/binaryEdit.C
     src/block.C
@@ -194,12 +195,6 @@ set(_sources
     src/Relocation/Widgets/RelDataWidget.C
     src/Relocation/Widgets/StackModWidget.C
     src/Relocation/patchapi_debug.C)
-
-if(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  list(APPEND _sources src/ast-amdgpu.C)
-else()
-  list(APPEND _sources src/ast.C)
-endif()
 
 list(FIND DYNINST_PLATFORM_CAPABILITIES "-Dcap_stack_mods" cap_stack_mods_found)
 if(cap_stack_mods_found GREATER -1)

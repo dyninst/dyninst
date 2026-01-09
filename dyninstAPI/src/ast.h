@@ -613,7 +613,7 @@ class AstOperandNode : public AstNode {
 			  int size, const instPoint* point, AddressSpace* as);
 
     virtual bool initRegisters(codeGen &gen);
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
    static int lastOffset; // Last ofsfet in our GPU memory buffer.
    static std::map<std::string, int> allocTable;
    static void addToTable(const std::string &variableName, int size) {
