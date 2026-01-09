@@ -1,7 +1,0 @@
-##lslv_execute
-bits(datasize) result;
-bits(datasize) operand2 = X[m];
-
-result = ShiftReg(n, shift_type, UInt(operand2) MOD datasize);
-X[d] = result;
-@@

@@ -1,5 +1,0 @@
-##fmov_float_imm_execute
-CheckFPAdvSIMDEnabled64();
-
-V[d] = imm;
-@@

@@ -1,5 +1,0 @@
-##b_cond_execute
-if ConditionHolds(condition) then
-    BranchTo(PC[] + offset, BranchType_JMP);
-end
-@@
