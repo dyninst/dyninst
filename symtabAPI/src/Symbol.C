@@ -313,28 +313,7 @@ Symtab *Symbol::getSymtab() const {
   return module_ ? module_->exec() : NULL; 
 }
 
-Symbol::Symbol () :
-  module_(NULL),
-  type_(ST_NOTYPE),
-  internal_type_(0),
-  linkage_(SL_UNKNOWN),
-  visibility_(SV_UNKNOWN),
-  offset_(0),
-  ptr_offset_(0),
-  localTOC_(0),
-  region_(NULL),
-  referring_(NULL),
-  size_(0),
-  isDynamic_(false),
-  isAbsolute_(false),
-  isDebug_(false),
-  aggregate_(NULL),
-  index_(-1),
-  strindex_(-1),
-  isCommonStorage_(false),
-  versionHidden_(false)
-{
-}
+Symbol::Symbol() = default;
 
 Symbol::Symbol(const std::string& name,
 	       SymbolType t,
@@ -351,24 +330,17 @@ Symbol::Symbol(const std::string& name,
                bool cs):
   module_(module),
   type_(t),
-  internal_type_(0),
   linkage_(l),
   visibility_(v),
   offset_(o),
-  ptr_offset_(0),
-  localTOC_(0),
   region_(r),
-  referring_(NULL),
   size_(s),
   isDynamic_(d),
   isAbsolute_(a),
-  isDebug_(false),
-  aggregate_(NULL),
   mangledName_(name),
   index_(index),
   strindex_(strindex),
-  isCommonStorage_(cs),
-  versionHidden_(false)
+  isCommonStorage_(cs)
 {
 }
 
