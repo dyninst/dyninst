@@ -71,6 +71,51 @@ DYNINST_EXPORT string Symbol::getTypedName() const
   return P_cplus_demangle(mangledName_, true);
 }
 
+// Return a pair containing the clone suffix and the version suffix of s.
+// If either suffix is not present it is indicated by an empty string.
+// The clone suffix starts with the first '.' before the version suffix, and
+// ends with at the version suffix or the end of the s.
+// The version suffix starts with the first '@' and ends with the end of s.
+static std::pair<std::string, std::string> GetCloneAndVersionSuffix(const std::string& s)
+{
+    auto nameEnd = s.find_first_of(".@");           // find version or clone start
+    if (nameEnd == std::string::npos)  {
+	nameEnd = s.size();
+    }
+    auto cloneEnd = s.find_first_of("@", nameEnd);  // find version start
+    if (cloneEnd == std::string::npos)  {
+	cloneEnd = s.size();
+    }
+    return {s.substr(nameEnd, cloneEnd - nameEnd), s.substr(cloneEnd)};
+}
+
+std::string Symbol::getCloneSuffix(const std::string& s)
+{
+    auto cloneAndVersionSuffix = GetCloneAndVersionSuffix(s);
+    return cloneAndVersionSuffix.first;
+}
+
+std::string Symbol::getVersionSuffix(const std::string& s)
+{
+    auto cloneAndVersionSuffix = GetCloneAndVersionSuffix(s);
+    return cloneAndVersionSuffix.second;
+}
+
+bool Symbol::isColdClone(const std::string& s)
+{
+    std::string coldSuffix{".cold"};
+    auto cloneSuffix = getCloneSuffix(s);
+    auto coldOffset = cloneSuffix.find(coldSuffix);
+    if (coldOffset == std::string::npos)  {
+        return false;                       // not found
+    }
+    auto coldEnd = coldOffset + coldSuffix.size();
+    if (coldEnd >= cloneSuffix.size())  {
+        return true;                        // found at end of suffix
+    }
+    return cloneSuffix[coldEnd] == '.';     // found iff another clone begins
+}
+
 bool Symbol::setOffset(Offset newOffset)
 {
     offset_ = newOffset;
@@ -378,6 +423,7 @@ const char *Symbol::symbolType2Str(SymbolType t)
       CASE_RETURN_STR(ST_DELETED);
       CASE_RETURN_STR(ST_NOTYPE);
       CASE_RETURN_STR(ST_INDIRECT);
+      CASE_RETURN_STR(ST_CODE);
    };
 
    return "invalid symbol type";
