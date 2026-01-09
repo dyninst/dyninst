@@ -717,7 +717,12 @@ std::string codeGen::format() const {
    Instruction insn = deco.decode();
    ret << hex;
    while(insn.isValid()) {
-       ret << "\t" << base << ": " << insn.format(base) << " / " << *((const unsigned *)insn.ptr()) << endl;
+       ret << "\t" << base << ": " << insn.format(base) << " / 0x";
+       for(auto i=0UL; i<insn.size(); i++) {
+         auto *ptr = static_cast<unsigned char const*>(insn.ptr());
+         ret << std::hex << static_cast<unsigned int>(ptr[i]);
+       }
+       ret << '\n';
        base += insn.size();
        insn = deco.decode();
    }
