@@ -80,34 +80,6 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
    friend class relocationEntry;
 
    public:
-   struct Ptr
-   {
-   Ptr(Symbol* s) : m_this(s)
-     {
-     }
-     ~Ptr() 
-     {
-     }
-     Symbol* get() const
-     {
-       return m_this;
-     }
-     operator Symbol*() const
-     {
-       return m_this;
-     }
-     Symbol* operator->() const
-     {
-       return m_this;
-       
-     }
-     
-     Symbol* m_this;
-     
-   };
-   
-   
-   
 
    enum SymbolType {
       ST_UNKNOWN,
@@ -132,15 +104,6 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
    };
 
    static const char *symbolLinkage2Str(SymbolLinkage t);
-
-   enum SymbolTag {
-      TAG_UNKNOWN,
-      TAG_USER,
-      TAG_LIBRARY,
-      TAG_INTERNAL
-   };
-
-   static const char *symbolTag2Str(SymbolTag t);
 
    enum SymbolVisibility {
        SV_UNKNOWN,
@@ -176,8 +139,8 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
    /***********************************************************
      Name Output Functions
     ***********************************************************/		
-   std::string      getMangledName () const;
-   std::string	 getPrettyName() const;
+   std::string      getMangledName () const { return mangledName_; }
+   std::string      getPrettyName() const;
    std::string      getTypedName() const;
 
    Module *getModule() const { return module_; } 
@@ -225,7 +188,6 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
 
    bool setSymbolType(SymbolType sType);
 
-   SymbolTag            tag ()               const;
    bool  setDynamic(bool d) { isDynamic_ = d; return true;}
    bool  setAbsolute(bool a) { isAbsolute_ = a; return true; }
    bool  setDebug(bool dbg) { isDebug_ = dbg; return true; }
@@ -249,35 +211,34 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
 
    private:
 
-   Module*       module_;
-   SymbolType    type_;
-   int           internal_type_;
-   SymbolLinkage linkage_;
-   SymbolVisibility visibility_;
-   Offset        offset_;
-   Offset        ptr_offset_;  // Function descriptor offset.  Not available on all platforms.
-   Offset        localTOC_;
-   Region*       region_;
-   Symbol* 	 referring_;
-   unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
+   Module*       module_{nullptr};
+   SymbolType    type_{ST_NOTYPE};
+   int           internal_type_{0};
+   SymbolLinkage linkage_{SL_UNKNOWN};
+   SymbolVisibility visibility_{SV_UNKNOWN};
+   Offset        offset_{0};
+   Offset        ptr_offset_{0};  // Function descriptor offset.  Not available on all platforms.
+   Offset        localTOC_{0};
+   Region*       region_{nullptr};
+   Symbol* 	 referring_{nullptr};
+   unsigned      size_{0};  // size of this symbol. This is NOT available on all platforms.
 
-   bool          isDynamic_;
-   bool          isAbsolute_;
-   bool          isDebug_;
+   bool          isDynamic_{false};
+   bool          isAbsolute_{false};
+   bool          isDebug_{false};
 
-   Aggregate *   aggregate_; // Pointer to Function or Variable container, if appropriate.
+   Aggregate *   aggregate_{nullptr}; // Pointer to Function or Variable container, if appropriate.
 
    std::string mangledName_;
 
-   SymbolTag     tag_;
-   int index_;
-   int strindex_;
+   int index_{-1};
+   int strindex_{-1};
 
-   bool          isCommonStorage_;
+   bool          isCommonStorage_{false};
 
    std::vector<std::string> verNames_;
 
-   bool versionHidden_;
+   bool versionHidden_{false};
 };
 
 class DYNINST_EXPORT LookupInterface 

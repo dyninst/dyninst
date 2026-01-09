@@ -3884,9 +3884,6 @@ bool ObjectELF::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
             if ((*sym_it)->getIndex() == STN_UNDEF) {
                 continue;
             }
-            if ((*sym_it)->tag() == Symbol::TAG_INTERNAL) {
-                continue;
-            }
             if ((*sym_it)->isDebug()) {
                 continue;
             }
