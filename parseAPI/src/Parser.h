@@ -99,6 +99,8 @@ namespace Dyninst {
 
             // PLT, IAT entries
             dyn_hash_map<Address, string> plt_entries;
+            dyn_hash_map<Address, std::pair<string, Address>> reladyn_entries;
+            dyn_hash_map<Address, string> symtab_entries;
 
     // a sink block for unbound edges
     boost::atomic<Block *> _sink;
