@@ -55,10 +55,10 @@
 */
 
 #include "dyninstAPI/src/emit-riscv64.h"
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/inst-riscv64.h"
 #include "dyninstAPI/src/registerSpace.h"
-#include "dyninstAPI/src/image.h"
-#include "dyninstAPI/src/function.h"
 
 class image_variable;
 
@@ -71,10 +71,12 @@ codeBufIndex_t EmitterRISCV64::emitIf(Register expr_reg, Register target,
                                       RegControl /*rc*/, codeGen &gen) {
   // beq expr_reg, zero, 8
   // jalr zero, target, 0
-  
-  // Here, we don't use compressed instructions because we need to fix the offset to 8
 
-  insnCodeGen::generateBne(gen, expr_reg, GPR_ZERO, (2 * RISCV_INSN_SIZE) >> 1, !useCompressed);
+  // Here, we don't use compressed instructions because we need to fix the
+  // offset to 8
+
+  insnCodeGen::generateBne(gen, expr_reg, GPR_ZERO, (2 * RISCV_INSN_SIZE) >> 1,
+                           !useCompressed);
   insnCodeGen::generateJ(gen, target + 4, !useCompressed);
 
   // Retval: where the jump is in this sequence
@@ -83,72 +85,67 @@ codeBufIndex_t EmitterRISCV64::emitIf(Register expr_reg, Register target,
 
 void EmitterRISCV64::emitOp(unsigned opcode, Register dest, Register src1,
                             Register src2, codeGen &gen) {
-    switch (opcode) {
+  switch (opcode) {
 
-        case plusOp: {
-                         insnCodeGen::generateAdd(gen, src1, src2, dest,
-                                 gen.useCompressed());
+  case plusOp: {
+    insnCodeGen::generateAdd(gen, src1, src2, dest, gen.useCompressed());
 
-                         break;
-                     }
-        case minusOp: {
-                          insnCodeGen::generateSub(gen, src1, src2, dest,
-                                  gen.useCompressed());
+    break;
+  }
+  case minusOp: {
+    insnCodeGen::generateSub(gen, src1, src2, dest, gen.useCompressed());
 
-                          break;
-                      }
-        case timesOp: {
-                          insnCodeGen::generateMul(gen, src1, src2, dest,
-                                  gen.useCompressed());
+    break;
+  }
+  case timesOp: {
+    insnCodeGen::generateMul(gen, src1, src2, dest, gen.useCompressed());
 
-                          break;
-                      }
-        case andOp: {
-                        insnCodeGen::generateAnd(gen, src1, src2, dest,
-                                gen.useCompressed());
+    break;
+  }
+  case andOp: {
+    insnCodeGen::generateAnd(gen, src1, src2, dest, gen.useCompressed());
 
-                        break;
-                    }
-        case orOp: {
-                       insnCodeGen::generateOr(gen, src1, src2, dest,
-                               gen.useCompressed());
+    break;
+  }
+  case orOp: {
+    insnCodeGen::generateOr(gen, src1, src2, dest, gen.useCompressed());
 
-                       break;
-                   }
-        case xorOp: {
-                        insnCodeGen::generateXor(gen, src1, src2, dest,
-                                gen.useCompressed());
+    break;
+  }
+  case xorOp: {
+    insnCodeGen::generateXor(gen, src1, src2, dest, gen.useCompressed());
 
-                        break;
-                    }
-        default: {
-                     std::cerr << "Invalid op " << opcode << " in emitOp" << std::endl;
-                     assert(0);
-
-                 }
-    }
+    break;
+  }
+  default: {
+    std::cerr << "Invalid op " << opcode << " in emitOp" << std::endl;
+    assert(0);
+  }
+  }
 }
 
-void EmitterRISCV64::emitOpImm(unsigned /*opcode*/, unsigned /*opcode2*/, Register /*dest*/, Register /*src1*/, RegValue /*src2imm*/, codeGen &/*gen*/) {
-    // Not used by the RISC-V code generator.
-    // Provided as a dummy implementation to satisfy pure virtual function.
+void EmitterRISCV64::emitOpImm(unsigned /*opcode*/, unsigned /*opcode2*/,
+                               Register /*dest*/, Register /*src1*/,
+                               RegValue /*src2imm*/, codeGen & /*gen*/) {
+  // Not used by the RISC-V code generator.
+  // Provided as a dummy implementation to satisfy pure virtual function.
 
-    // PLEASE USE emitImm IN inst-riscv64.C INSTEAD
-    assert(0);
+  // PLEASE USE emitImm IN inst-riscv64.C INSTEAD
+  assert(0);
 }
 
 void EmitterRISCV64::emitRelOp(unsigned opcode, Register dest, Register src1,
                                Register src2, codeGen &gen, bool is_signed) {
   // make dest = 1, meaning true
-  insnCodeGen::loadImmIntoReg(gen, dest, 0x1,
-                              gen.useCompressed());
+  insnCodeGen::loadImmIntoReg(gen, dest, 0x1, gen.useCompressed());
 
   // Insert conditional jump to skip dest = 0 in case the comparison resulted
   // true Therefore keeping dest = 1
   switch (opcode) {
   case lessOp: {
     if (is_signed) {
-      insnCodeGen::generateBlt(gen, src1, src2, (RISCV_INSN_SIZE * 2) >> 1, false);
+      insnCodeGen::generateBlt(gen, src1, src2, (RISCV_INSN_SIZE * 2) >> 1,
+                               false);
     } else {
       insnCodeGen::generateBltu(gen, src1, src2, (RISCV_INSN_SIZE * 2) >> 1,
                                 false);
@@ -157,7 +154,8 @@ void EmitterRISCV64::emitRelOp(unsigned opcode, Register dest, Register src1,
   }
   case leOp: {
     if (is_signed) {
-      insnCodeGen::generateBge(gen, src2, src1, (RISCV_INSN_SIZE * 2) >> 1, false);
+      insnCodeGen::generateBge(gen, src2, src1, (RISCV_INSN_SIZE * 2) >> 1,
+                               false);
     } else {
       insnCodeGen::generateBgeu(gen, src2, src1, (RISCV_INSN_SIZE * 2) >> 1,
                                 false);
@@ -166,7 +164,8 @@ void EmitterRISCV64::emitRelOp(unsigned opcode, Register dest, Register src1,
   }
   case greaterOp: {
     if (is_signed) {
-      insnCodeGen::generateBlt(gen, src2, src1, (RISCV_INSN_SIZE * 2) >> 1, false);
+      insnCodeGen::generateBlt(gen, src2, src1, (RISCV_INSN_SIZE * 2) >> 1,
+                               false);
     } else {
       insnCodeGen::generateBltu(gen, src2, src1, (RISCV_INSN_SIZE * 2) >> 1,
                                 false);
@@ -175,7 +174,8 @@ void EmitterRISCV64::emitRelOp(unsigned opcode, Register dest, Register src1,
   }
   case geOp: {
     if (is_signed) {
-      insnCodeGen::generateBge(gen, src1, src2, (RISCV_INSN_SIZE * 2) >> 1, false);
+      insnCodeGen::generateBge(gen, src1, src2, (RISCV_INSN_SIZE * 2) >> 1,
+                               false);
     } else {
       insnCodeGen::generateBgeu(gen, src1, src2, (RISCV_INSN_SIZE * 2) >> 1,
                                 false);
@@ -183,11 +183,13 @@ void EmitterRISCV64::emitRelOp(unsigned opcode, Register dest, Register src1,
     break;
   }
   case eqOp: {
-    insnCodeGen::generateBeq(gen, src1, src2, (RISCV_INSN_SIZE * 2) >> 1, false);
+    insnCodeGen::generateBeq(gen, src1, src2, (RISCV_INSN_SIZE * 2) >> 1,
+                             false);
     break;
   }
   case neOp: {
-    insnCodeGen::generateBne(gen, src1, src2, (RISCV_INSN_SIZE * 2) >> 1, false);
+    insnCodeGen::generateBne(gen, src1, src2, (RISCV_INSN_SIZE * 2) >> 1,
+                             false);
     break;
   }
   default: {
@@ -201,7 +203,8 @@ void EmitterRISCV64::emitRelOp(unsigned opcode, Register dest, Register src1,
 }
 
 void EmitterRISCV64::emitRelOpImm(unsigned opcode, Register dest, Register src1,
-                                  RegValue src2imm, codeGen &gen, bool is_signed) {
+                                  RegValue src2imm, codeGen &gen,
+                                  bool is_signed) {
   insnCodeGen::loadImmIntoReg(gen, dest, src2imm, gen.useCompressed());
 
   // Insert conditional jump to skip dest = 0 in case the comparison resulted
@@ -209,7 +212,8 @@ void EmitterRISCV64::emitRelOpImm(unsigned opcode, Register dest, Register src1,
   switch (opcode) {
   case lessOp: {
     if (is_signed) {
-      insnCodeGen::generateBlt(gen, src1, dest, (RISCV_INSN_SIZE * 3) >> 1, !useCompressed);
+      insnCodeGen::generateBlt(gen, src1, dest, (RISCV_INSN_SIZE * 3) >> 1,
+                               !useCompressed);
     } else {
       insnCodeGen::generateBltu(gen, src1, dest, (RISCV_INSN_SIZE * 3) >> 1,
                                 false);
@@ -218,7 +222,8 @@ void EmitterRISCV64::emitRelOpImm(unsigned opcode, Register dest, Register src1,
   }
   case leOp: {
     if (is_signed) {
-      insnCodeGen::generateBge(gen, dest, src1, (RISCV_INSN_SIZE * 3) >> 1, !useCompressed);
+      insnCodeGen::generateBge(gen, dest, src1, (RISCV_INSN_SIZE * 3) >> 1,
+                               !useCompressed);
     } else {
       insnCodeGen::generateBgeu(gen, dest, src1, (RISCV_INSN_SIZE * 3) >> 1,
                                 !useCompressed);
@@ -227,7 +232,8 @@ void EmitterRISCV64::emitRelOpImm(unsigned opcode, Register dest, Register src1,
   }
   case greaterOp: {
     if (is_signed) {
-      insnCodeGen::generateBlt(gen, dest, src1, (RISCV_INSN_SIZE * 3) >> 1, !useCompressed);
+      insnCodeGen::generateBlt(gen, dest, src1, (RISCV_INSN_SIZE * 3) >> 1,
+                               !useCompressed);
     } else {
       insnCodeGen::generateBltu(gen, dest, src1, (RISCV_INSN_SIZE * 3) >> 1,
                                 !useCompressed);
@@ -236,7 +242,8 @@ void EmitterRISCV64::emitRelOpImm(unsigned opcode, Register dest, Register src1,
   }
   case geOp: {
     if (is_signed) {
-      insnCodeGen::generateBge(gen, src1, dest, (RISCV_INSN_SIZE * 3) >> 1, !useCompressed);
+      insnCodeGen::generateBge(gen, src1, dest, (RISCV_INSN_SIZE * 3) >> 1,
+                               !useCompressed);
     } else {
       insnCodeGen::generateBgeu(gen, src1, dest, (RISCV_INSN_SIZE * 3) >> 1,
                                 !useCompressed);
@@ -244,11 +251,13 @@ void EmitterRISCV64::emitRelOpImm(unsigned opcode, Register dest, Register src1,
     break;
   }
   case eqOp: {
-    insnCodeGen::generateBeq(gen, src1, dest, (RISCV_INSN_SIZE * 3) >> 1, !useCompressed);
+    insnCodeGen::generateBeq(gen, src1, dest, (RISCV_INSN_SIZE * 3) >> 1,
+                             !useCompressed);
     break;
   }
   case neOp: {
-    insnCodeGen::generateBne(gen, src1, dest, (RISCV_INSN_SIZE * 3) >> 1, !useCompressed);
+    insnCodeGen::generateBne(gen, src1, dest, (RISCV_INSN_SIZE * 3) >> 1,
+                             !useCompressed);
     break;
   }
   default: {
@@ -259,51 +268,48 @@ void EmitterRISCV64::emitRelOpImm(unsigned opcode, Register dest, Register src1,
   }
 
   // Make dest = 0, in case it fails the branch
-  insnCodeGen::generateLoadImm(gen, dest, 0x1, !isRel, !optimize, !useCompressed);
+  insnCodeGen::generateLoadImm(gen, dest, 0x1, !isRel, !optimize,
+                               !useCompressed);
   insnCodeGen::generateJ(gen, 2 * RISCV_INSN_SIZE, !useCompressed);
-  insnCodeGen::generateLoadImm(gen, dest, 0x0, !isRel, !optimize, !useCompressed);
+  insnCodeGen::generateLoadImm(gen, dest, 0x0, !isRel, !optimize,
+                               !useCompressed);
 }
 
-void EmitterRISCV64::emitDiv(Register dest, Register src1, Register src2, codeGen &gen, bool is_signed)
-{
-    if (is_signed) {
-      insnCodeGen::generateDiv(gen, dest, src1, src2, gen.useCompressed());
-    }
-    else {
-      insnCodeGen::generateDivu(gen, dest, src1, src2, gen.useCompressed());
-    }
+void EmitterRISCV64::emitDiv(Register dest, Register src1, Register src2,
+                             codeGen &gen, bool is_signed) {
+  if (is_signed) {
+    insnCodeGen::generateDiv(gen, dest, src1, src2, gen.useCompressed());
+  } else {
+    insnCodeGen::generateDivu(gen, dest, src1, src2, gen.useCompressed());
+  }
 }
 
-void EmitterRISCV64::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
-{
-    insnCodeGen::loadImmIntoReg(gen, dest, src2imm, gen.useCompressed());
-    insnCodeGen::generateMul(gen, dest, src1, dest, gen.useCompressed());
+void EmitterRISCV64::emitTimesImm(Register dest, Register src1,
+                                  RegValue src2imm, codeGen &gen) {
+  insnCodeGen::loadImmIntoReg(gen, dest, src2imm, gen.useCompressed());
+  insnCodeGen::generateMul(gen, dest, src1, dest, gen.useCompressed());
 }
 
-
-void EmitterRISCV64::emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool is_signed)
-{
-    insnCodeGen::loadImmIntoReg(gen, dest, src2imm, gen.useCompressed());
-    if (is_signed) {
-      insnCodeGen::generateDiv(gen, dest, src1, dest, gen.useCompressed());
-    }
-    else {
-      insnCodeGen::generateDivu(gen, dest, src1, dest, gen.useCompressed());
-    }
+void EmitterRISCV64::emitDivImm(Register dest, Register src1, RegValue src2imm,
+                                codeGen &gen, bool is_signed) {
+  insnCodeGen::loadImmIntoReg(gen, dest, src2imm, gen.useCompressed());
+  if (is_signed) {
+    insnCodeGen::generateDiv(gen, dest, src1, dest, gen.useCompressed());
+  } else {
+    insnCodeGen::generateDivu(gen, dest, src1, dest, gen.useCompressed());
+  }
 }
 
 void EmitterRISCV64::emitLoad(Register dest, Address addr, int size,
                               codeGen &gen) {
-  insnCodeGen::loadImmIntoReg(gen, dest, addr,
-                              gen.useCompressed());
+  insnCodeGen::loadImmIntoReg(gen, dest, addr, gen.useCompressed());
   // Zero extend the dest register, so set isUnsigned to true
   insnCodeGen::generateMemLoad(gen, dest, dest, 0, size, isUnsigned,
                                gen.useCompressed());
 }
 
 void EmitterRISCV64::emitLoadConst(Register dest, Address imm, codeGen &gen) {
-  insnCodeGen::loadImmIntoReg(gen, dest, imm,
-                              gen.useCompressed());
+  insnCodeGen::loadImmIntoReg(gen, dest, imm, gen.useCompressed());
 }
 
 void EmitterRISCV64::emitLoadIndir(Register dest, Register addr_src, int size,
@@ -313,7 +319,8 @@ void EmitterRISCV64::emitLoadIndir(Register dest, Register addr_src, int size,
   gen.markRegDefined(dest);
 }
 
-bool EmitterRISCV64::emitCallRelative(Register dest, Address offset, Register base, codeGen &gen) {
+bool EmitterRISCV64::emitCallRelative(Register dest, Address offset,
+                                      Register base, codeGen &gen) {
   insnCodeGen::generateJalr(gen, dest, base, offset, gen.useCompressed());
   return true;
 }
@@ -321,8 +328,9 @@ bool EmitterRISCV64::emitCallRelative(Register dest, Address offset, Register ba
 bool EmitterRISCV64::emitLoadRelative(Register dest, Address offset,
                                       Register baseReg, int size,
                                       codeGen &gen) {
-    insnCodeGen::generateMemLoad(gen, dest, baseReg, offset, size, isUnsigned, gen.useCompressed());
-    return true;
+  insnCodeGen::generateMemLoad(gen, dest, baseReg, offset, size, isUnsigned,
+                               gen.useCompressed());
+  return true;
 }
 
 void EmitterRISCV64::emitLoadShared(opCode op, Register dest,
@@ -343,19 +351,24 @@ void EmitterRISCV64::emitLoadShared(opCode op, Register dest,
 
   if (op == loadOp) {
     if (!is_local && (var != NULL)) {
-      insnCodeGen::generateMemLoadRelAddr(gen, dest, varOffset, gen.width(), isUnsigned, gen.useCompressed());
+      insnCodeGen::generateMemLoadRelAddr(gen, dest, varOffset, gen.width(),
+                                          isUnsigned, gen.useCompressed());
       // Deference the pointer to get the variable
-      insnCodeGen::generateMemLoad(gen, dest, dest, 0, size, true, gen.useCompressed());
+      insnCodeGen::generateMemLoad(gen, dest, dest, 0, size, true,
+                                   gen.useCompressed());
     } else {
-      insnCodeGen::generateMemLoadRelAddr(gen, dest, varOffset, size, isUnsigned, gen.useCompressed());
+      insnCodeGen::generateMemLoadRelAddr(gen, dest, varOffset, size,
+                                          isUnsigned, gen.useCompressed());
     }
 
   } else if (op == loadConstOp) {
     if (!is_local && (var != NULL)) {
-      insnCodeGen::generateMemLoadRelAddr(gen, dest, varOffset, gen.width(), isUnsigned, gen.useCompressed());
+      insnCodeGen::generateMemLoadRelAddr(gen, dest, varOffset, gen.width(),
+                                          isUnsigned, gen.useCompressed());
     } else {
       // Load effective address
-      insnCodeGen::generateLoadRelAddr(gen, dest, varOffset, gen.useCompressed());
+      insnCodeGen::generateLoadRelAddr(gen, dest, varOffset,
+                                       gen.useCompressed());
     }
   } else {
     std::cerr << "Invalid op " << op << " in emitVstore" << std::endl;
@@ -365,16 +378,19 @@ void EmitterRISCV64::emitLoadShared(opCode op, Register dest,
   return;
 }
 
-void EmitterRISCV64::emitLoadFrameAddr(Register /*dest*/, Address /*offset*/, codeGen &/*gen*/) {
-    // Not used by the RISC-V code generator.
-    // Provided as a dummy implementation to satisfy pure virtual function.
-    assert(0);
+void EmitterRISCV64::emitLoadFrameAddr(Register /*dest*/, Address /*offset*/,
+                                       codeGen & /*gen*/) {
+  // Not used by the RISC-V code generator.
+  // Provided as a dummy implementation to satisfy pure virtual function.
+  assert(0);
 }
 
-void EmitterRISCV64::emitLoadOrigFrameRelative(Register /*dest*/, Address /*offset*/, codeGen &/*gen*/) {
-    // Not used by the RISC-V code generator.
-    // Provided as a dummy implementation to satisfy pure virtual function.
-    assert(0);
+void EmitterRISCV64::emitLoadOrigFrameRelative(Register /*dest*/,
+                                               Address /*offset*/,
+                                               codeGen & /*gen*/) {
+  // Not used by the RISC-V code generator.
+  // Provided as a dummy implementation to satisfy pure virtual function.
+  assert(0);
 }
 
 void EmitterRISCV64::emitLoadOrigRegRelative(Register dest, Address offset,
@@ -395,10 +411,8 @@ void EmitterRISCV64::emitLoadOrigRegRelative(Register dest, Address offset,
   } else {
     // load the stored register 'base' into dest
     emitLoadOrigRegister(base, scratch, gen);
-    insnCodeGen::loadImmIntoReg(gen, dest, offset,
-                                gen.useCompressed());
-    insnCodeGen::generateAdd(gen, dest, scratch, dest,
-                             gen.useCompressed());
+    insnCodeGen::loadImmIntoReg(gen, dest, offset, gen.useCompressed());
+    insnCodeGen::generateAdd(gen, dest, scratch, dest, gen.useCompressed());
   }
 }
 
@@ -424,20 +438,21 @@ void EmitterRISCV64::emitLoadOrigRegister(Address register_num,
 
   EmitterRISCV64SaveRestoreRegs saveRestoreRegs;
   // Its on the stack so load it.
-  insnCodeGen::restoreRegister(gen, destination, src->saveOffset, gen.useCompressed());
+  insnCodeGen::restoreRegister(gen, destination, src->saveOffset,
+                               gen.useCompressed());
 }
-
 
 void EmitterRISCV64::emitStore(Address addr, Register src, int size,
                                codeGen &gen) {
   Register scratch = gen.rs()->getScratchRegister(gen);
 
   if (scratch == Null_Register) {
-        std::cerr << "Unexpected error: Not enough scratch registers to generate emitStore" << std::endl;
-        assert(0);
+    std::cerr << "Unexpected error: Not enough scratch registers to generate "
+                 "emitStore"
+              << std::endl;
+    assert(0);
   }
-  insnCodeGen::loadImmIntoReg(gen, scratch, addr,
-                              gen.useCompressed());
+  insnCodeGen::loadImmIntoReg(gen, scratch, addr, gen.useCompressed());
   insnCodeGen::generateMemStore(gen, scratch, src, 0, size,
                                 gen.useCompressed());
 
@@ -447,11 +462,13 @@ void EmitterRISCV64::emitStore(Address addr, Register src, int size,
 
 void EmitterRISCV64::emitStoreIndir(Register addr_reg, Register src, int size,
                                     codeGen &gen) {
-  insnCodeGen::generateMemStore(gen, addr_reg, src, 0, size, gen.useCompressed());
+  insnCodeGen::generateMemStore(gen, addr_reg, src, 0, size,
+                                gen.useCompressed());
 }
 
-void EmitterRISCV64::emitStoreFrameRelative(Address /*dest*/, Register /*src1*/, Register /*src2*/, int /*size*/,
-                                      codeGen &/*gen*/) {
+void EmitterRISCV64::emitStoreFrameRelative(Address /*dest*/, Register /*src1*/,
+                                            Register /*src2*/, int /*size*/,
+                                            codeGen & /*gen*/) {
   // Not used by the RISC-V code generator.
   // Provided as a dummy implementation to satisfy pure virtual function.
   assert(0);
@@ -460,12 +477,14 @@ void EmitterRISCV64::emitStoreFrameRelative(Address /*dest*/, Register /*src1*/,
 void EmitterRISCV64::emitStoreRelative(Register source, Address offset,
                                        Register baseReg, int size,
                                        codeGen &gen) {
-  insnCodeGen::generateMemStore(gen, source, baseReg, offset, size, gen.useCompressed());
+  insnCodeGen::generateMemStore(gen, source, baseReg, offset, size,
+                                gen.useCompressed());
 }
 
 bool EmitterRISCV64::emitMoveRegToReg(registerSlot *dest, registerSlot *src,
                                       codeGen &gen) {
-  insnCodeGen::generateMove(gen, dest->number, src->number, gen.useCompressed());
+  insnCodeGen::generateMove(gen, dest->number, src->number,
+                            gen.useCompressed());
   return true;
 }
 
@@ -476,7 +495,7 @@ bool EmitterRISCV64::emitMoveRegToReg(Register dest, Register src,
 }
 
 void EmitterRISCV64::emitStoreOrigRegister(Address register_num,
-                                          Register destination, codeGen &gen) {
+                                           Register destination, codeGen &gen) {
   registerSlot *src = (*gen.rs())[register_num];
   assert(src);
   registerSlot *dest = (*gen.rs())[destination];
@@ -489,7 +508,8 @@ void EmitterRISCV64::emitStoreOrigRegister(Address register_num,
   }
 
   EmitterRISCV64SaveRestoreRegs saveRestoreRegs;
-  insnCodeGen::saveRegister(gen, destination, src->saveOffset, gen.useCompressed());
+  insnCodeGen::saveRegister(gen, destination, src->saveOffset,
+                            gen.useCompressed());
 }
 
 Address EmitterRISCV64::emitMovePCToReg(Register dest, codeGen &gen) {
@@ -499,15 +519,18 @@ Address EmitterRISCV64::emitMovePCToReg(Register dest, codeGen &gen) {
   return ret;
 }
 
-Register EmitterRISCV64::emitCall(opCode op, codeGen &gen, const std::vector<AstNodePtr> &operands, bool,
+Register EmitterRISCV64::emitCall(opCode op, codeGen &gen,
+                                  const std::vector<AstNodePtr> &operands, bool,
                                   func_instance *callee) {
   assert(op == callOp);
   assert(callee);
 
   Register scratch = gen.rs()->getScratchRegister(gen);
   if (scratch == Null_Register) {
-      std::cerr << "Unexpected error: Not enough scratch registers to generate emitCall" << std::endl;
-      assert(0);
+    std::cerr
+        << "Unexpected error: Not enough scratch registers to generate emitCall"
+        << std::endl;
+    assert(0);
   }
 
   // We first save all necessary registers
@@ -529,9 +552,8 @@ Register EmitterRISCV64::emitCall(opCode op, codeGen &gen, const std::vector<Ast
       savedRegs.push_back(reg->number);
     }
   }
-  insnCodeGen::generateAddImm(gen, GPR_SP, GPR_SP,
-                              -savedRegs.size() * GPRSIZE_64,
-                              gen.useCompressed());
+  insnCodeGen::generateAddImm(
+      gen, GPR_SP, GPR_SP, -savedRegs.size() * GPRSIZE_64, gen.useCompressed());
   for (unsigned i = 0; i < savedRegs.size(); i++) {
     insnCodeGen::saveRegister(gen, savedRegs[i], i * GPRSIZE_64,
                               gen.useCompressed());
@@ -552,12 +574,14 @@ Register EmitterRISCV64::emitCall(opCode op, codeGen &gen, const std::vector<Ast
   // The rest of them are put on the stack
   if (operands.size() > 8) {
     unsigned remain_op_size = operands.size() - 8;
-    insnCodeGen::generateAddImm(gen, GPR_SP, GPR_SP, -remain_op_size * GPRSIZE_64, gen.useCompressed());
+    insnCodeGen::generateAddImm(
+        gen, GPR_SP, GPR_SP, -remain_op_size * GPRSIZE_64, gen.useCompressed());
     for (unsigned id = 0; id < remain_op_size; id++) {
-        Address unnecessary = ADDR_NULL;
-        operands[id]->generateCode_phase2(gen, false, unnecessary, scratch);
-        int offset_from_sp = (remain_op_size - id - 1) * GPRSIZE_64;
-        insnCodeGen::saveRegister(gen, scratch, offset_from_sp, gen.useCompressed());
+      Address unnecessary = ADDR_NULL;
+      operands[id]->generateCode_phase2(gen, false, unnecessary, scratch);
+      int offset_from_sp = (remain_op_size - id - 1) * GPRSIZE_64;
+      insnCodeGen::saveRegister(gen, scratch, offset_from_sp,
+                                gen.useCompressed());
     }
   }
 
@@ -574,111 +598,119 @@ Register EmitterRISCV64::emitCall(opCode op, codeGen &gen, const std::vector<Ast
   }
 
   // Generate jalr
-  insnCodeGen::generateJalr(gen, GPR_RA, GPR_RA, 0,
-                            gen.useCompressed());
+  insnCodeGen::generateJalr(gen, GPR_RA, GPR_RA, 0, gen.useCompressed());
 
   // Move the return value to the scratch register
   insnCodeGen::generateMove(gen, scratch, GPR_A0, gen.useCompressed());
 
-
   // Finally, we restore all necessary registers
   if (operands.size() > RISCV_MAX_ARG_REGS) {
     unsigned remain_op_size = operands.size() - RISCV_MAX_ARG_REGS;
-    insnCodeGen::generateAddImm(gen, GPR_SP, GPR_SP, remain_op_size * GPRSIZE_64, gen.useCompressed());
+    insnCodeGen::generateAddImm(
+        gen, GPR_SP, GPR_SP, remain_op_size * GPRSIZE_64, gen.useCompressed());
   }
   for (size_t id = 0; id < savedRegs.size(); id++) {
     // No need to restore the return register!
-    if (savedRegs[id] == scratch) continue;
+    if (savedRegs[id] == scratch)
+      continue;
     insnCodeGen::restoreRegister(gen, savedRegs[id], id * GPRSIZE_64,
                                  gen.useCompressed());
   }
-  insnCodeGen::generateAddImm(gen, GPR_SP, GPR_SP,
-                              savedRegs.size() * GPRSIZE_64,
-                              gen.useCompressed());
+  insnCodeGen::generateAddImm(
+      gen, GPR_SP, GPR_SP, savedRegs.size() * GPRSIZE_64, gen.useCompressed());
   return scratch;
 }
 
-void EmitterRISCV64::emitGetRetVal(Register /*dest*/, bool /*addr_of*/, codeGen &/*gen*/) {
-    // Not used by the RISC-V code generator.
-    // Provided as a dummy implementation to satisfy pure virtual function.
-    assert(0);
+void EmitterRISCV64::emitGetRetVal(Register /*dest*/, bool /*addr_of*/,
+                                   codeGen & /*gen*/) {
+  // Not used by the RISC-V code generator.
+  // Provided as a dummy implementation to satisfy pure virtual function.
+  assert(0);
 }
 
-void EmitterRISCV64::emitGetRetAddr(Register /*dest*/, codeGen &/*gen*/) {
-    // Not used by the RISC-V code generator.
-    // Provided as a dummy implementation to satisfy pure virtual function.
-    assert(0);
+void EmitterRISCV64::emitGetRetAddr(Register /*dest*/, codeGen & /*gen*/) {
+  // Not used by the RISC-V code generator.
+  // Provided as a dummy implementation to satisfy pure virtual function.
+  assert(0);
 }
 
-void EmitterRISCV64::emitGetParam(Register /*dest*/, Register /*param_num*/, instPoint::Type /*pt_type*/, opCode /*op*/, bool /*addr_of*/,
-        codeGen &/*gen*/) {
-    // Not used by the RISC-V code generator.
-    // Provided as a dummy implementation to satisfy pure virtual function.
-    assert(0);
+void EmitterRISCV64::emitGetParam(Register /*dest*/, Register /*param_num*/,
+                                  instPoint::Type /*pt_type*/, opCode /*op*/,
+                                  bool /*addr_of*/, codeGen & /*gen*/) {
+  // Not used by the RISC-V code generator.
+  // Provided as a dummy implementation to satisfy pure virtual function.
+  assert(0);
 }
 
-void EmitterRISCV64::emitASload(int /*ra*/, int /*rb*/, int /*sc*/, long /*imm*/, Register /*dest*/, int /*stackShift*/, codeGen &/*gen*/) {
-    // Not used by the RISC-V code generator.
-    // Provided as a dummy implementation to satisfy pure virtual function.
+void EmitterRISCV64::emitASload(int /*ra*/, int /*rb*/, int /*sc*/,
+                                long /*imm*/, Register /*dest*/,
+                                int /*stackShift*/, codeGen & /*gen*/) {
+  // Not used by the RISC-V code generator.
+  // Provided as a dummy implementation to satisfy pure virtual function.
 
-    // Please use the overloaded version of emitASload in inst-riscv64.C instead
-    assert(0);
+  // Please use the overloaded version of emitASload in inst-riscv64.C instead
+  assert(0);
 }
 
-void EmitterRISCV64::emitCSload(int /*ra*/, int /*rb*/, int /*sc*/, long /*imm*/, Register /*dest*/, codeGen &/*gen*/) {
-    // Not used by the RISC-V code generator.
-    // Provided as a dummy implementation to satisfy pure virtual function.
+void EmitterRISCV64::emitCSload(int /*ra*/, int /*rb*/, int /*sc*/,
+                                long /*imm*/, Register /*dest*/,
+                                codeGen & /*gen*/) {
+  // Not used by the RISC-V code generator.
+  // Provided as a dummy implementation to satisfy pure virtual function.
 
-    // Please use the overloaded version of emitCSload in inst-riscv64.C instead
-    assert(0);
+  // Please use the overloaded version of emitCSload in inst-riscv64.C instead
+  assert(0);
 }
 
-void EmitterRISCV64::emitPushFlags(codeGen &/*gen*/) {
-    // Not used by the RISC-V code generator.
-    // Provided as a dummy implementation to satisfy pure virtual function.
-    assert(0);
+void EmitterRISCV64::emitPushFlags(codeGen & /*gen*/) {
+  // Not used by the RISC-V code generator.
+  // Provided as a dummy implementation to satisfy pure virtual function.
+  assert(0);
 }
 
-void EmitterRISCV64::emitRestoreFlags(codeGen &/*gen*/, unsigned /*offset*/) {
-    // Not used by the RISC-V code generator.
-    // Provided as a dummy implementation to satisfy pure virtual function.
-    assert(0);
+void EmitterRISCV64::emitRestoreFlags(codeGen & /*gen*/, unsigned /*offset*/) {
+  // Not used by the RISC-V code generator.
+  // Provided as a dummy implementation to satisfy pure virtual function.
+  assert(0);
 }
 
-void EmitterRISCV64::emitRestoreFlagsFromStackSlot(codeGen &/*gen*/) {
-    // Not used by the RISC-V code generator.
-    // Provided as a dummy implementation to satisfy pure virtual function.
-    assert(0);
+void EmitterRISCV64::emitRestoreFlagsFromStackSlot(codeGen & /*gen*/) {
+  // Not used by the RISC-V code generator.
+  // Provided as a dummy implementation to satisfy pure virtual function.
+  assert(0);
 }
 
-bool EmitterRISCV64::emitBTSaves(baseTramp * /*bt*/, codeGen &/*gen*/) {
-    // Not used by the RISC-V code generator.
-    // Provided as a dummy implementation to satisfy pure virtual function.
-    assert(0);
+bool EmitterRISCV64::emitBTSaves(baseTramp * /*bt*/, codeGen & /*gen*/) {
+  // Not used by the RISC-V code generator.
+  // Provided as a dummy implementation to satisfy pure virtual function.
+  assert(0);
 }
 
-bool EmitterRISCV64::emitBTRestores(baseTramp * /*bt*/, codeGen &/*gen*/) {
-    // Not used by the RISC-V code generator.
-    // Provided as a dummy implementation to satisfy pure virtual function.
-    assert(0);
+bool EmitterRISCV64::emitBTRestores(baseTramp * /*bt*/, codeGen & /*gen*/) {
+  // Not used by the RISC-V code generator.
+  // Provided as a dummy implementation to satisfy pure virtual function.
+  assert(0);
 }
 
-void EmitterRISCV64::emitStoreImm(Address addr, int imm, codeGen &gen, bool /*noCost*/) {
+void EmitterRISCV64::emitStoreImm(Address addr, int imm, codeGen &gen,
+                                  bool /*noCost*/) {
   Register scratch = gen.rs()->getScratchRegister(gen);
 
   if (scratch == Null_Register) {
-        std::cerr << "Unexpected error: Not enough scratch registers to generate emitStore" << std::endl;
-        assert(0);
+    std::cerr << "Unexpected error: Not enough scratch registers to generate "
+                 "emitStore"
+              << std::endl;
+    assert(0);
   }
-  insnCodeGen::loadImmIntoReg(gen, scratch, addr,
-                              gen.useCompressed());
+  insnCodeGen::loadImmIntoReg(gen, scratch, addr, gen.useCompressed());
   Register scratch2 = gen.rs()->getScratchRegister(gen);
   if (scratch2 == Null_Register) {
-        std::cerr << "Unexpected error: Not enough scratch registers to generate emitStore" << std::endl;
-        assert(0);
+    std::cerr << "Unexpected error: Not enough scratch registers to generate "
+                 "emitStore"
+              << std::endl;
+    assert(0);
   }
-  insnCodeGen::loadImmIntoReg(gen, scratch2, imm,
-                              gen.useCompressed());
+  insnCodeGen::loadImmIntoReg(gen, scratch2, imm, gen.useCompressed());
   insnCodeGen::generateMemStore(gen, scratch, scratch2, 0, GPRSIZE_64,
                                 gen.useCompressed());
 
@@ -688,28 +720,65 @@ void EmitterRISCV64::emitStoreImm(Address addr, int imm, codeGen &gen, bool /*no
   gen.markRegDefined(scratch2);
 }
 
-void EmitterRISCV64::emitAddSignedImm(Address /*addr*/, int /*imm*/, codeGen &/*gen*/, bool /*noCost*/) {
-    // Not used by the RISC-V code generator.
-    // Provided as a dummy implementation to satisfy pure virtual function.
-    assert(0);
+void EmitterRISCV64::emitAddSignedImm(Address /*addr*/, int /*imm*/,
+                                      codeGen & /*gen*/, bool /*noCost*/) {
+  // Not used by the RISC-V code generator.
+  // Provided as a dummy implementation to satisfy pure virtual function.
+  assert(0);
 }
 
 bool EmitterRISCV64::emitPush(codeGen &gen, Register pushee) {
-    insnCodeGen::generateAddImm(gen, GPR_SP, GPR_SP, -GPRSIZE_64, gen.useCompressed());
-    insnCodeGen::generateMemLoad(gen, GPR_SP, pushee, 0, GPRSIZE_64, isUnsigned, gen.useCompressed());
-    return true;
+  insnCodeGen::generateAddImm(gen, GPR_SP, GPR_SP, -GPRSIZE_64,
+                              gen.useCompressed());
+  insnCodeGen::generateMemLoad(gen, GPR_SP, pushee, 0, GPRSIZE_64, isUnsigned,
+                               gen.useCompressed());
+  return true;
 }
 
 bool EmitterRISCV64::emitPop(codeGen &gen, Register popee) {
-    insnCodeGen::generateMemStore(gen, popee, GPR_SP, 0, GPRSIZE_64, gen.useCompressed());
-    insnCodeGen::generateAddImm(gen, GPR_SP, GPR_SP, GPRSIZE_64, gen.useCompressed());
-    return true;
+  insnCodeGen::generateMemStore(gen, popee, GPR_SP, 0, GPRSIZE_64,
+                                gen.useCompressed());
+  insnCodeGen::generateAddImm(gen, GPR_SP, GPR_SP, GPRSIZE_64,
+                              gen.useCompressed());
+  return true;
 }
 
 bool EmitterRISCV64::emitAdjustStackPointer(int index, codeGen &gen) {
   int popVal = index * gen.addrSpace()->getAddressWidth();
-  insnCodeGen::generateAddImm(gen, GPR_SP, GPR_SP,
-                              popVal,
-                              gen.useCompressed());
+  insnCodeGen::generateAddImm(gen, GPR_SP, GPR_SP, popVal, gen.useCompressed());
   return true;
+}
+
+bool EmitterRISCV64::clobberAllFuncCall(registerSpace *rs,
+                                        func_instance *callee) {
+  if (!callee) {
+    return true;
+  }
+
+  if (callee->ifunc()->isLeafFunc()) {
+    std::set<Register> *gpRegs = callee->ifunc()->usedGPRs();
+    for (std::set<Register>::iterator itr = gpRegs->begin();
+         itr != gpRegs->end(); itr++) {
+      rs->GPRs()[*itr]->beenUsed = true;
+    }
+
+    std::set<Register> *fpRegs = callee->ifunc()->usedFPRs();
+    for (std::set<Register>::iterator itr = fpRegs->begin();
+         itr != fpRegs->end(); itr++) {
+      if (*itr <= rs->FPRs().size()) {
+        rs->FPRs()[*itr]->beenUsed = true;
+      } else {
+        rs->FPRs()[*itr & 0xff]->beenUsed = true;
+      }
+    }
+  } else {
+    for (int idx = 0; idx < rs->numGPRs(); idx++) {
+      rs->GPRs()[idx]->beenUsed = true;
+    }
+    for (int idx = 0; idx < rs->numFPRs(); idx++) {
+      rs->FPRs()[idx]->beenUsed = true;
+    }
+  }
+
+  return false;
 }
