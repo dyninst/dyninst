@@ -53,149 +53,103 @@ class EmitterRISCV64 : public Emitter {
 public:
   virtual ~EmitterRISCV64() {}
 
-  virtual codeBufIndex_t emitIf(Register, Register, RegControl, codeGen &);
+  virtual codeBufIndex_t emitIf(Register expr_reg, Register target,
+                                      RegControl rc, codeGen &gen);
 
-  virtual void emitOp(unsigned, Register, Register, Register, codeGen &);
+  virtual void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
 
-  virtual void emitOpImm(unsigned, unsigned, Register, Register, RegValue,
-                         codeGen &) {
-    assert(0);
-  }
+  virtual void emitOpImm(unsigned opcode, unsigned opcode2, Register src1, Register src2, RegValue src2imm, codeGen &gen);
 
-  virtual void emitRelOp(unsigned, Register, Register, Register, codeGen &,
-                         bool);
+  virtual void emitRelOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen, bool is_signed);
 
-  virtual void emitRelOpImm(unsigned, Register, Register, RegValue, codeGen &,
-                            bool);
+  virtual void emitRelOpImm(unsigned opcode, Register dest, Register src1, RegValue src2, codeGen &gen, bool is_signed);
 
-  virtual void emitDiv(Register, Register, Register, codeGen &, bool) {
-    assert(0);
-  }
+  virtual void emitDiv(Register dest, Register src1, Register src2, codeGen &gen, bool is_signed);
 
-  virtual void emitTimesImm(Register, Register, RegValue, codeGen &) {
-    assert(0);
-  }
+  virtual void emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen);
 
-  virtual void emitDivImm(Register, Register, RegValue, codeGen &, bool) {
-    assert(0);
-  }
+  virtual void emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool is_signed);
 
-  virtual void emitLoad(Register, Address, int, codeGen &);
+  virtual void emitLoad(Register dest, Address addr, int size, codeGen &gen);
 
-  virtual void emitLoadConst(Register, Address, codeGen &);
+  virtual void emitLoadConst(Register dest, Address imm, codeGen &gen);
 
-  virtual void emitLoadIndir(Register, Register, int, codeGen &);
+  virtual void emitLoadIndir(Register dest, Register addr_src, int size, codeGen &gen);
 
-  virtual bool emitCallRelative(Register, Address, Register, codeGen &);
+  virtual bool emitCallRelative(Register dest, Address offset, Register baseReg, codeGen &gen);
 
-  virtual bool emitLoadRelative(Register, Address, Register, int, codeGen &);
+  virtual bool emitLoadRelative(Register dest, Address offset, Register baseReg, int size, codeGen &gen);
 
   virtual void emitLoadShared(opCode op, Register dest,
                               const image_variable *var, bool is_local,
                               int size, codeGen &gen, Address offset);
 
-  virtual void emitLoadFrameAddr(Register, Address, codeGen &) { assert(0); }
+  virtual void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
 
   // These implicitly use the stored original/non-inst value
-  virtual void emitLoadOrigFrameRelative(Register, Address, codeGen &) {
-    assert(0);
-  }
+  virtual void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
 
-  virtual void emitLoadOrigRegRelative(Register, Address, Register, codeGen &,
-                                       bool);
+  virtual void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool deref);
 
-  virtual void emitLoadOrigRegister(Address, Register, codeGen &);
+  virtual void emitLoadOrigRegister(Address register_num, Register destination, codeGen &gen);
 
-  virtual void emitStore(Address, Register, int, codeGen &);
+  virtual void emitStore(Address addr, Register src, int size, codeGen &gen);
 
-  virtual void emitStoreIndir(Register, Register, int, codeGen &);
+  virtual void emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen);
 
-  virtual void emitStoreFrameRelative(Address, Register, Register, int,
-                                      codeGen &) {
-    assert(0);
-  }
+  virtual void emitStoreFrameRelative(Address dest, Register src1, Register src2, int size,
+                                      codeGen &gen);
 
-  virtual void emitStoreRelative(Register, Address, Register, int, codeGen &);
+  virtual void emitStoreRelative(Register source, Address offset, Register baseReg, int size, codeGen &gen);
 
   virtual void emitStoreShared(Register source, const image_variable *var,
                                bool is_local, int size, codeGen &gen);
 
-  virtual void emitStoreOrigRegister(Address, Register, codeGen &) {
-    assert(0);
-  }
+  virtual void emitStoreOrigRegister(Address register_num, Register destination, codeGen &gen);
 
-  virtual bool emitMoveRegToReg(Register, Register, codeGen &) {
-    assert(0);
-    return 0;
-  }
+  virtual bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
 
   virtual bool emitMoveRegToReg(registerSlot *src, registerSlot *dest,
                                 codeGen &gen);
 
-  virtual Address emitMovePCToReg(Register, codeGen &gen);
+  virtual Address emitMovePCToReg(Register dest, codeGen &gen);
 
   // This one we actually use now.
-  virtual Register emitCall(opCode, codeGen &, const std::vector<AstNodePtr> &,
-                            bool, func_instance *);
+  virtual Register emitCall(opCode op, codeGen &gen, const std::vector<AstNodePtr> &operands,
+                            bool noCost, func_instance *callee);
   // virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
 
-  virtual void emitGetRetVal(Register, bool, codeGen &) { assert(0); }
+  virtual void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
 
-  virtual void emitGetRetAddr(Register, codeGen &) { assert(0); }
+  virtual void emitGetRetAddr(Register dest, codeGen &gen);
 
-  virtual void emitGetParam(Register, Register, instPoint::Type, opCode, bool,
-                            codeGen &) {
-    assert(0);
-  }
+  virtual void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of,
+                            codeGen &gen);
 
-  virtual void emitASload(int, int, int, long, Register, int, codeGen &) {
-    assert(0);
-  }
+  virtual void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen);
 
-  virtual void emitCSload(int, int, int, long, Register, codeGen &) {
-    assert(0);
-  }
+  virtual void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
 
-  virtual void emitPushFlags(codeGen &) { assert(0); }
+  virtual void emitPushFlags(codeGen &gen);
 
-  virtual void emitRestoreFlags(codeGen &, unsigned) { assert(0); }
+  virtual void emitRestoreFlags(codeGen &gen, unsigned offset);
 
   // Built-in offset...
-  virtual void emitRestoreFlagsFromStackSlot(codeGen &) { assert(0); }
+  virtual void emitRestoreFlagsFromStackSlot(codeGen &gen);
 
-  virtual bool emitBTSaves(baseTramp *, codeGen &) {
-    assert(0);
-    return true;
-  }
+  virtual bool emitBTSaves(baseTramp *bt, codeGen &gen);
 
-  virtual bool emitBTRestores(baseTramp *, codeGen &) {
-    assert(0);
-    return true;
-  }
+  virtual bool emitBTRestores(baseTramp *bt, codeGen &gen);
 
-  virtual void emitStoreImm(Address, int, codeGen &, bool) { assert(0); }
+  virtual void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
 
-  virtual void emitAddSignedImm(Address, int, codeGen &, bool) { assert(0); }
+  virtual void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
 
-  virtual int Register_DWARFtoMachineEnc(int) {
-    assert(0);
-    return 0;
-  }
+  virtual bool emitPush(codeGen &gen, Register pushee);
 
-  virtual bool emitPush(codeGen &, Register) {
-    assert(0);
-    return true;
-  }
+  virtual bool emitPop(codeGen &gen, Register popee);
 
-  virtual bool emitPop(codeGen &, Register) {
-    assert(0);
-    return true;
-  }
-
-  virtual bool emitAdjustStackPointer(int, codeGen &) {
-    assert(0);
-    return true;
-  }
+  virtual bool emitAdjustStackPointer(int index, codeGen &gen);
 
   virtual bool clobberAllFuncCall(registerSpace *rs, func_instance *callee);
 
@@ -208,18 +162,7 @@ protected:
 
 class EmitterRISCV64Dyn : public EmitterRISCV64 {
 public:
-  virtual bool emitTOCCall(block_instance *dest, codeGen &gen) {
-    return emitTOCCommon(dest, true, gen);
-  }
-
-  virtual bool emitTOCJump(block_instance *dest, codeGen &gen) {
-    return emitTOCCommon(dest, false, gen);
-  }
-
   virtual ~EmitterRISCV64Dyn() {}
-
-private:
-  bool emitTOCCommon(block_instance *dest, bool call, codeGen &gen);
 };
 
 class EmitterRISCV64Stat : public EmitterRISCV64 {
@@ -229,23 +172,6 @@ public:
   virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
 
   virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
-
-  virtual bool emitTOCCall(block_instance *dest, codeGen &gen);
-
-  virtual bool emitTOCJump(block_instance *dest, codeGen &gen);
-
-protected:
-  virtual bool emitCallInstruction(codeGen &, func_instance *, bool, Address);
-
-  virtual Register emitCallReplacement(opCode, codeGen &, bool,
-                                       func_instance *) {
-    assert(0 && "emitCallReplacement not implemented for binary rewriter");
-  }
-
-private:
-  bool emitPLTCommon(func_instance *dest, bool call, codeGen &gen);
-
-  bool emitTOCCommon(block_instance *dest, bool call, codeGen &gen);
 };
 
 class EmitterRISCV64SaveRestoreRegs {
@@ -260,10 +186,6 @@ public:
 
   unsigned saveSPRegisters(codeGen &gen, registerSpace *, int offset,
                            bool force_save);
-
-  unsigned getStackHeight(codeGen &gen, registerSpace *);
-
-  int getStackSpillIndex(codeGen &gen, registerSpace *, Register regNum);
 
   void createFrame(codeGen &gen);
 
