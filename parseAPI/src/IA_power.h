@@ -59,8 +59,6 @@ class PPC_BLR_Visitor: public ASTVisitor
      virtual AST::Ptr visit(DataflowAPI::VariableAST *);
      virtual AST::Ptr visit(DataflowAPI::RoseAST *);
      //virtual AST::Ptr visit(StackAST *);
-     virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();}
-
   
    virtual ~PPC_BLR_Visitor() {}
 

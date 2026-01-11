@@ -240,7 +240,6 @@ class StackTamperVisitor : public ASTVisitor {
   virtual AST::Ptr visit(DataflowAPI::VariableAST *);
   virtual AST::Ptr visit(DataflowAPI::RoseAST *);
   virtual AST::Ptr visit(StackAST *);
-  virtual ASTVisitor::ASTPtr visit(SemanticsAST *x) { return ASTVisitor::visit(x); }
   virtual ~StackTamperVisitor() {}
   
   ParseAPI::StackTamper tampersStack(AST::Ptr a, Address &modAddr);
