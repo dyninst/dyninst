@@ -80,7 +80,6 @@ class ASTVisitor;
  // Codegen...
 
  // Concolic execution...
- class StpAST;
  class YicesAST;
  class SemanticsAST;
 
@@ -178,7 +177,6 @@ class DYNINST_EXPORT AST : public boost::enable_shared_from_this<AST> {
     // Stack analysis
     V_StackAST,
     // Concolic execution
-    V_StpAST,
     V_YicesAST,
     V_SemanticsAST } ID;
 
@@ -240,7 +238,6 @@ class DYNINST_EXPORT AST : public boost::enable_shared_from_this<AST> {
    virtual ASTPtr visit(DataflowAPI::VariableAST *) {return AST::Ptr();}
    virtual ASTPtr visit(DataflowAPI::RoseAST *) {return AST::Ptr();}
    virtual ASTPtr visit(StackAST *) {return AST::Ptr();}
-   virtual ASTPtr visit(StpAST *) {return AST::Ptr();}
    virtual ASTPtr visit(YicesAST *) {return AST::Ptr();}
    virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();}
 
