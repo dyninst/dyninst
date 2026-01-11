@@ -80,7 +80,6 @@ class ASTVisitor;
  // Codegen...
 
  // Concolic execution...
- class YicesAST;
  class SemanticsAST;
 
 #define DEF_AST_LEAF_TYPE(name, type)					\
@@ -177,7 +176,6 @@ class DYNINST_EXPORT AST : public boost::enable_shared_from_this<AST> {
     // Stack analysis
     V_StackAST,
     // Concolic execution
-    V_YicesAST,
     V_SemanticsAST } ID;
 
   typedef boost::shared_ptr<AST> Ptr;
@@ -238,7 +236,6 @@ class DYNINST_EXPORT AST : public boost::enable_shared_from_this<AST> {
    virtual ASTPtr visit(DataflowAPI::VariableAST *) {return AST::Ptr();}
    virtual ASTPtr visit(DataflowAPI::RoseAST *) {return AST::Ptr();}
    virtual ASTPtr visit(StackAST *) {return AST::Ptr();}
-   virtual ASTPtr visit(YicesAST *) {return AST::Ptr();}
    virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();}
 
    virtual ~ASTVisitor() {}
