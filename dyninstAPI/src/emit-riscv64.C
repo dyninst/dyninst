@@ -28,32 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/*
- * emit-aarch64.C - ARMv8 code generators (emitters)
- */
-
-/*
 #include <assert.h>
-#include <stdio.h>
-#include "dyninstAPI/src/codegen.h"
-#include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/inst-x86.h"
-#include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/h/BPatch.h"
-#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-
-#include "dyninstAPI/src/dynProcess.h"
-
-#include "dyninstAPI/src/binaryEdit.h"
-#include "dyninstAPI/src/image.h"
-// get_index...
-#include "dyninstAPI/src/dynThread.h"
-#include "ABI.h"
-#include "liveness.h"
-#include "RegisterConversion.h"
-*/
-
 #include "dyninstAPI/src/emit-riscv64.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/image.h"
