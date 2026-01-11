@@ -201,6 +201,7 @@ BPatchSnippetHandle* BPatch_object::insertInitCallback(BPatch_snippet& callback)
 {
     BPatch_Vector<BPatch_function*> init_funcs;
     findFunction("_init", init_funcs);    
+    // If _init exists, instrument _init
     if(!init_funcs.empty())
     {
         assert(init_funcs[0]);
@@ -211,7 +212,25 @@ BPatchSnippetHandle* BPatch_object::insertInitCallback(BPatch_snippet& callback)
             return as()->insertSnippet(callback, *((*init_entry)[0]));
         }
     }
-    
+    // Otherwise, instrument _dyninstInit. It will be added to .init_array when rewriting the binary
+    BPatch_Vector<BPatch_function*> dyninstInitFuncs;
+    findFunction("_dyninstInit", dyninstInitFuncs);
+    if (dyninstInitFuncs.empty()) {
+        startup_printf("[%s]%d failed to find function _dyninstInit", FILE__, __LINE__);
+        return NULL;
+    }
+
+    void *dyninstInitAddr = dyninstInitFuncs[0]->getBaseAddr();
+
+    SymtabAPI::Symtab *symtab = SymtabAPI::convert(this);
+    symtab->prependInitArrayFunc((Offset)dyninstInitAddr);
+
+    BPatch_Vector<BPatch_point*>* dyninstInitEntry = dyninstInitFuncs[0]->findPoint(BPatch_entry);
+    if (dyninstInitEntry && !dyninstInitEntry->empty() && (*dyninstInitEntry)[0]) {
+        startup_printf("\tinserting init snippet at 0x%p\n", (*dyninstInitEntry)[0]->getAddress());
+        return as()->insertSnippet(callback, *((*dyninstInitEntry)[0]));
+    }
+     
     return NULL;
 }
 
@@ -219,6 +238,7 @@ BPatchSnippetHandle* BPatch_object::insertFiniCallback(BPatch_snippet& callback)
 {
     BPatch_Vector<BPatch_function*> fini_funcs;
     findFunction("_fini", fini_funcs);
+    // If _fini exists, instrument _fini
     if(!fini_funcs.empty())
     {
         assert(fini_funcs[0]);
@@ -229,6 +249,25 @@ BPatchSnippetHandle* BPatch_object::insertFiniCallback(BPatch_snippet& callback)
             return as()->insertSnippet(callback, *((*fini_exit)[0]));
         }
     }
+    // Otherwise, instrument _dyninstFini. It will be added to .fini_array when rewriting the binary
+    BPatch_Vector<BPatch_function*> dyninstFiniFuncs;
+    findFunction("_dyninstFini", dyninstFiniFuncs);
+    if (dyninstFiniFuncs.empty()) {
+        startup_printf("[%s]%d failed to find function _dyninstFini", FILE__, __LINE__);
+        return NULL;
+    }
+
+    void *dyninstFiniAddr = dyninstFiniFuncs[0]->getBaseAddr();
+
+    SymtabAPI::Symtab *symtab = SymtabAPI::convert(this);
+    symtab->prependFiniArrayFunc((Offset)dyninstFiniAddr);
+
+    BPatch_Vector<BPatch_point*>* dyninstFiniEntry = dyninstFiniFuncs[0]->findPoint(BPatch_entry);
+    if (dyninstFiniEntry && !dyninstFiniEntry->empty() && (*dyninstFiniEntry)[0]) {
+        startup_printf("\tinserting init snippet at 0x%p\n", (*dyninstFiniEntry)[0]->getAddress());
+        return as()->insertSnippet(callback, *((*dyninstFiniEntry)[0]));
+    }
+
     return NULL;
 }
 
