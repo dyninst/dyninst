@@ -57,7 +57,6 @@ class StackVisitor : public ASTVisitor {
     DYNINST_EXPORT virtual AST::Ptr visit(VariableAST *);
     DYNINST_EXPORT virtual AST::Ptr visit(RoseAST *);
     DYNINST_EXPORT virtual AST::Ptr visit(StackAST *);
-    DYNINST_EXPORT virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();}
     DYNINST_EXPORT virtual ASTPtr visit(StpAST *) {return AST::Ptr();}
     DYNINST_EXPORT virtual ASTPtr visit(YicesAST *) {return AST::Ptr();}
     DYNINST_EXPORT virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();}
@@ -82,7 +81,6 @@ class BooleanVisitor : public ASTVisitor {
     DYNINST_EXPORT virtual AST::Ptr visit(VariableAST *);
     DYNINST_EXPORT virtual AST::Ptr visit(RoseAST *);
     DYNINST_EXPORT virtual AST::Ptr visit(StackAST *);
-    DYNINST_EXPORT virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();}
     DYNINST_EXPORT virtual ASTPtr visit(StpAST *) {return AST::Ptr();}
     DYNINST_EXPORT virtual ASTPtr visit(YicesAST *) {return AST::Ptr();}
     DYNINST_EXPORT virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();}
