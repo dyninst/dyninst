@@ -48,24 +48,24 @@ class IA_riscv64 : public IA_IAPI {
                Dyninst::InstructionSource *isrc,
 	       Dyninst::ParseAPI::Block * curBlk_);
 	IA_riscv64(const IA_riscv64 &);
-	virtual IA_riscv64* clone() const;
-    virtual bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction) const;
-    virtual bool isIndirectJump() const;
-	virtual bool isNop() const;
-	virtual bool isThunk() const;
-	virtual bool isTailCall(const ParseAPI::Function* context, ParseAPI::EdgeTypeEnum type,
-							unsigned int, const set<Address>& knownTargets) const;
-	virtual bool savesFP() const;
-	virtual bool isStackFramePreamble() const;
-	virtual bool cleansStack() const;
-	virtual bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const;
-	virtual bool isReturnAddrSave(Address& retAddr) const;
-	virtual bool isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const;
-	virtual bool isFakeCall() const;
-	virtual bool isIATcall(std::string &) const;
-	virtual bool isLinkerStub() const;
-	virtual bool isNopJump() const;
-    virtual bool isMultiInsnJump(Address *, Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block *) const;
+	IA_riscv64* clone() const override;
+    bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction) const override;
+    bool isIndirectJump() const override;
+	bool isNop() const override;
+	bool isThunk() const override;
+	bool isTailCall(const ParseAPI::Function* context, ParseAPI::EdgeTypeEnum type,
+					unsigned int, const set<Address>& knownTargets) const override;
+	bool savesFP() const override;
+	bool isStackFramePreamble() const override;
+	bool cleansStack() const override;
+	bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const override;
+	bool isReturnAddrSave(Address& retAddr) const override;
+	bool isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const override;
+	bool isFakeCall() const override;
+	bool isIATcall(std::string &) const override;
+	bool isLinkerStub() const override;
+	bool isNopJump() const override;
+    bool isMultiInsnJump(Address *, Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block *) const override;
     private:
     using IA_IAPI::isFrameSetupInsn;
 };

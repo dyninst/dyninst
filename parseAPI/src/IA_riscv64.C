@@ -204,7 +204,6 @@ bool IA_riscv64::isTailCall(const Function* context, EdgeTypeEnum type, unsigned
     context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
     return false;
 }
-#pragma GCC diagnostic pop
 
 bool IA_riscv64::savesFP() const
 {
