@@ -136,7 +136,7 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     /*
      * .symtab external linkage table. Used in RISC-V
      */
-    mutable std::map<Address, std::string> _symtab_linkage;
+    std::map<Address, std::string> _symtab_linkage;
 
     /*
      * Table of Contents for position independent references. Optional.
