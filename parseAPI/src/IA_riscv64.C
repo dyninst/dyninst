@@ -129,8 +129,6 @@ bool IA_riscv64::isThunk() const
     return false;
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 bool IA_riscv64::isTailCall(const Function* context, EdgeTypeEnum type, unsigned int,
         const std::set<Address>& knownTargets ) const
 {
