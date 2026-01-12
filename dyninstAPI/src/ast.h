@@ -154,7 +154,12 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
                       origRegister,
                       variableAddr,
                       variableValue,
-                      undefOperandType };
+                      undefOperandType,
+                      // Specific to AMDGPU. This represents an address in the form of (PlaceholderReg + offset).
+                      // Codegen may assing the same or a different register in different contexts.
+                      // Offset must be a constant.
+                      AddressAsPlaceholderRegAndOffset
+                      };
 
 
 
@@ -222,6 +227,9 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
                                   AstNodePtr r = AstNodePtr(), 
                                   AstNodePtr e = AstNodePtr());
 
+   static AstNodePtr atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable,
+                                             AstNodePtr constant);
+
    static AstNodePtr funcCallNode(const std::string &func, std::vector<AstNodePtr > &args, AddressSpace *addrSpace = NULL);
    static AstNodePtr funcCallNode(func_instance *func, std::vector<AstNodePtr > &args);
    static AstNodePtr funcCallNode(func_instance *func); // Special case for function call replacement.
@@ -274,7 +282,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
    // Perform whatever pre-processing steps are necessary.
    virtual bool initRegisters(codeGen &gen);
-        
    // Select the appropriate Variable AST as part of pre-processing
    // steps before code generation.
    virtual void setVariableAST(codeGen &) {}
@@ -606,7 +613,24 @@ class AstOperandNode : public AstNode {
 			  int size, const instPoint* point, AddressSpace* as);
 
     virtual bool initRegisters(codeGen &gen);
-        
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+   static int lastOffset; // Last ofsfet in our GPU memory buffer.
+   static std::map<std::string, int> allocTable;
+   static void addToTable(const std::string &variableName, int size) {
+      // We shouldn't allocate more than once
+      assert(allocTable.find(variableName) == allocTable.end() && "Can't allocate variable twice");
+      assert(size >0);
+      allocTable[variableName] = lastOffset;
+      std::cerr << "inserted " << variableName << " of " << size << " bytes at " << lastOffset << "\n";
+      lastOffset += size;
+   }
+
+   static int getOffset(const std::string &variableName) {
+      assert(allocTable.find(variableName) != allocTable.end() && "Variable must be allocated");
+      return allocTable[variableName];
+   }
+#endif
+   
  private:
     virtual bool generateCode_phase2(codeGen &gen,
                                      bool noCost,
@@ -885,7 +909,6 @@ class AstScrambleRegistersNode : public AstNode {
                                      Dyninst::Register &retReg);
 };
 
-
 class AstSnippetNode : public AstNode {
    // This is a little odd, since an AstNode _is_
    // a Snippet. It's a compatibility interface to 
@@ -903,6 +926,26 @@ class AstSnippetNode : public AstNode {
                                      Dyninst::Address &retAddr,
                                      Dyninst::Register &retReg);
     Dyninst::PatchAPI::SnippetPtr snip_;
+};
+
+class AstAtomicOperationStmtNode : public AstNode {
+    // This corresponds to a single statement, and not an expression that can be nested among other
+    // expressions.
+  public:
+    AstAtomicOperationStmtNode(opCode astOpcode, AstNodePtr variableNode, AstNodePtr constantNode);
+
+    virtual std::string format(std::string indent);
+
+    virtual bool canBeKept() const { return true; }
+    virtual bool containsFuncCall() const { return false; }
+    virtual bool usesAppRegister() const { return false; }
+
+  private:
+    virtual bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
+                                     Dyninst::Register &retReg);
+    opCode opcode;
+    AstNodePtr variable;
+    AstNodePtr constant;
 };
 
 void emitLoadPreviousStackFrameRegister(Dyninst::Address register_num,

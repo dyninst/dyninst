@@ -1890,7 +1890,7 @@ void mapped_object::setCodeBytesUpdated(bool newval)
 
 #if !( (defined(os_linux) || defined(os_freebsd)) && \
        (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64) || defined(DYNINST_HOST_ARCH_POWER)\
-        ||defined(DYNINST_HOST_ARCH_AARCH64)\
+        ||defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)\
        ) )
 func_instance *mapped_object::findGlobalConstructorFunc(const std::string &) {
     assert(!"Not implemented");

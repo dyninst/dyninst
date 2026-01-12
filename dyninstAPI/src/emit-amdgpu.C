@@ -379,6 +379,8 @@ void EmitterAmdgpuGfx908::emitStoreRelative(Register source, Address offset, Reg
   }
 
   emitSmem(storeOpcode, source, (base >> 1), (uint64_t)offset, gen);
+
+  emitSopP(S_WAITCNT, /* simm16 = */ 0, gen);
 }
 
 void EmitterAmdgpuGfx908::emitStoreShared(Register /* source */, const image_variable * /* var */,
@@ -562,5 +564,13 @@ void EmitterAmdgpuGfx908::emitAddConstantToRegPair(Register reg, int constant, c
 
 void EmitterAmdgpuGfx908::emitScalarDataCacheWriteback(codeGen &gen) {
   emitSmem(S_DCACHE_WB, 0, 0, 0, gen);
+}
+
+void EmitterAmdgpuGfx908::emitAtomicAdd(Register baseAddrReg, Register src0, codeGen &gen) {
+  emitSmem(S_ATOMIC_ADD, src0, baseAddrReg >> 1, /* offset = */ 0, gen);
+}
+
+void EmitterAmdgpuGfx908::emitAtomicSub(Register baseAddrReg, Register src0, codeGen &gen) {
+  emitSmem(S_ATOMIC_SUB, src0, baseAddrReg >> 1, /* offset = */ 0, gen);
 }
 // ===== EmitterAmdgpuGfx908 implementation end =====

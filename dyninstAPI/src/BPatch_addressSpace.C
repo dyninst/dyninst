@@ -64,6 +64,12 @@
 
 #include "PatchMgr.h"
 
+#include "PointHandler.h"
+
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#include "AmdgpuPointHandler.h"
+#endif
+
 using Dyninst::PatchAPI::Patcher;
 using Dyninst::PatchAPI::DynInsertSnipCommand;
 using Dyninst::PatchAPI::DynReplaceFuncCommand;
@@ -73,6 +79,11 @@ using Dyninst::PatchAPI::DynRemoveCallCommand;
 BPatch_addressSpace::BPatch_addressSpace() :
    pendingInsertions(NULL), image(NULL)
 {
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  pointHandler.reset(new Dyninst::AmdgpuGfx908PointHandler());
+#else
+  pointHandler.reset(new Dyninst::PointHandler());
+#endif
 }
 
 BPatch_addressSpace::~BPatch_addressSpace()
@@ -584,6 +595,14 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
    assert(BPatch::bpatch != NULL);
    getAS(as);
    assert(as.size());
+
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+   if(name.empty()){
+      std::stringstream namestr;
+      namestr << "dyn_malloc_0x" << std::hex << "_" << &n << "_" << n << "_bytes";
+      name = namestr.str();
+   }
+#else
    void *ptr = (void *) as[0]->inferiorMalloc(n, dataHeap);
    if (!ptr) return NULL;
    if(name.empty()){
@@ -591,10 +610,35 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
       namestr << "dyn_malloc_0x" << std::hex << ptr << "_" << n << "_bytes";
       name = namestr.str();
    }
+#endif
    BPatch_type *type = BPatch::bpatch->createScalar(name.c_str(), n);
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  // FIXME : Can't outline within this file because the constructor is private.
+  // This needs to be considered when we have wave and thread-level variables.
+  assert(type->getSize() > 0 && type->getSize() % 4 == 0);
+  int size = (int)type->getSize();
+
+  AstOperandNode::addToTable(name, size);
+  int offset = AstOperandNode::getOffset(name);
+  assert(AstOperandNode::lastOffset > -1);
+
+  // An AstOperandNode containing another AstOperandNode that is a constant.
+  // The constant represents offset in the GPU memory buffer.
+  AstNodePtr ast_wrapper(
+                  AstNode::operandNode(AstNode::operandType::AddressAsPlaceholderRegAndOffset,
+                    AstNode::operandNode(AstNode::operandType::Constant, reinterpret_cast<void*>(static_cast<uintptr_t>(offset)))
+                  )
+                );
+
+  ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+  ast_wrapper->setType(type);
+
+  return new BPatch_variableExpr(name.c_str(), this, as[0], ast_wrapper, type, /* in_address =*/NULL);
+#else
    return BPatch_variableExpr::makeVariableExpr(this, as[0], name, ptr,
                                                 type);
+#endif
 }
 
 
@@ -855,6 +899,8 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
                                                                     BPatch_callWhen when,
                                                                     BPatch_snippetOrder order)
 {
+  pointHandler->handlePoints(points);
+
   BPatchSnippetHandle *retHandle = new BPatchSnippetHandle(this);
 
   if (dyn_debug_inst) {
@@ -1133,4 +1179,3 @@ Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_addressSp
       return proc->lowlevel_process()->mgr();
    }
 }
-
