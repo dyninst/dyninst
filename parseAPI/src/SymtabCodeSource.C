@@ -618,7 +618,7 @@ SymtabCodeSource::init_linkage()
             std::vector<SymtabAPI::relocationEntry> &relocs = relaDyn->getRelocations();
             for (auto re_it = relocs.begin(); re_it != relocs.end(); ++re_it) {
                 SymtabAPI::relocationEntry &r = *re_it;
-                _reladyn_linkage[r.rel_addr()] = std::make_pair(r.name(), r.target_addr());
+                _reladyn_linkage[r.rel_addr()] = std::make_pair(r.addend(), r.target_addr());
             }
         }
         std::vector<SymtabAPI::Symbol *> symbols;
