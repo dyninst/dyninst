@@ -12,7 +12,6 @@ set(_public_headers
     h/compiler_annotations.h
     h/compiler_diagnostics.h
     h/concurrent.h
-    h/DynAST.h
     h/dyn_regs.h
     h/dyn_syscalls.h
     h/dyntypes.h
@@ -104,7 +103,6 @@ set(_sources
     src/Edge.C
     src/DOT.C
     src/dyn_regs.C
-    src/AST.C
     src/addrtranslate.C
     src/arch-x86.C
     src/arch-power.C

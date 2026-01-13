@@ -32,7 +32,7 @@
 #define _SYM_EVAL_VISITORS_H_
 
 #include "../h/stackanalysis.h"
-#include "common/h/DynAST.h"
+#include "DynAST.h"
 #include "dataflowAPI/h/Absloc.h"
 #include "SymEvalPolicy.h"
 #include <string>
