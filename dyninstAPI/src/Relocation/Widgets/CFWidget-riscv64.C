@@ -79,7 +79,7 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
     if (isPLT(gen)) {
         relocation_cerr << "\t\t\t isPLT..." << endl;
         if (!applyPLT(gen, buf)) {
-            relocation_cerr << "PLT special case handling in PPC64" << endl;
+            relocation_cerr << "PLT special case handling in RISCV64" << endl;
             return false;
         }
         return true;
