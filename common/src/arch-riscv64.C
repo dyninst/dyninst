@@ -41,12 +41,8 @@ constexpr int32_t AUIPC_REG_SHIFT = 7;
 
 // Jump/Branch instructions
 
-constexpr int32_t BRANCH_COND_EQ = BEQFunct3;
-constexpr int32_t BRANCH_COND_GE = BGEFunct3;
-constexpr int32_t BRANCH_COND_GEU = BGEUFunct3;
-constexpr int32_t BRANCH_COND_LT = BLTFunct3;
-constexpr int32_t BRANCH_COND_LTU = BLTUFunct3;
-constexpr int32_t BRANCH_COND_NE = BNEFunct3;
+constexpr int32_t BRANCH_COND_EQ = NS_riscv64::BEQFunct3;
+constexpr int32_t BRANCH_COND_NE = NS_riscv64::BNEFunct3;
 
 constexpr int32_t BRANCH_INSN_MASK = 0x0000007f;
 constexpr int32_t BRANCH_INSNS = 0x00000063;
@@ -192,7 +188,9 @@ bool instruction::getUsedRegs(std::vector<int> &regs) {
 }
 
 bool instruction::isCall() const {
-  assert(isUncondBranch());
+  if (!isUncondBranch()) {
+    return false;
+  }
   if (isCompressed()) {
     int32_t result = insn_.raw & CJUMP_INSN_MASK;
     if (result == CJAL_INSN) {
@@ -209,7 +207,9 @@ bool instruction::isCall() const {
 }
 
 unsigned instruction::getLinkReg() const {
-  assert(isUncondBranch());
+  if (!isUncondBranch()) {
+    return false;
+  }
   if (isCompressed()) {
     int32_t result = insn_.raw & CJUMP_INSN_MASK;
     if (result == CJUMP_INSN || result == CJR_INSN) {
@@ -224,7 +224,9 @@ unsigned instruction::getLinkReg() const {
 
 unsigned instruction::getBranchTargetReg() const {
   // keep sure this instruction is uncond b reg.
-  assert(isBranchReg());
+  if (!isBranchReg()) {
+    return false;
+  }
   if (isCompressed()) {
     return ((insn_.raw & CJR_REG_MASK) >> CJR_REG_SHIFT);
   } else {
@@ -233,7 +235,9 @@ unsigned instruction::getBranchTargetReg() const {
 }
 
 Dyninst::Address instruction::getBranchOffset() const {
-  assert(isBranchOffset());
+  if (!isBranchOffset()) {
+    return -1;
+  }
 
   uint32_t offset = 0;
 
@@ -272,7 +276,7 @@ Dyninst::Address instruction::getBranchOffset() const {
     else {
       for (unsigned i = 0; i < BRANCH_REORDER1.size(); i++) {
         offset |= ((insn_.raw >> (BRANCH_IMM_OFF1 + i)) & 1)
-                  << BRANCH_REORDER1[i]
+                  << BRANCH_REORDER1[i];
       }
       for (unsigned i = 0; i < BRANCH_REORDER2.size(); i++) {
         offset |= ((insn_.raw >> (BRANCH_IMM_OFF2 + i)) & 1)
@@ -284,7 +288,9 @@ Dyninst::Address instruction::getBranchOffset() const {
 }
 
 unsigned instruction::getCondBranchOp() const {
-  assert(isCondBranch());
+  if (!isCondBranch()) {
+    return false;
+  }
   if (isCompressed()) {
     int32_t result = insn_.raw & CBRANCH_INSN_MASK;
     if (result == CBEQZ_INSN) {
@@ -298,7 +304,9 @@ unsigned instruction::getCondBranchOp() const {
 }
 
 unsigned instruction::getCondBranchReg1() const {
-  assert(isCondBranch());
+  if (isCondBranch()) {
+    return false;
+  }
   if (isCompressed()) {
     return CBRANCH_REG1_ADD +
            ((insn_.raw & CBRANCH_REG1_MASK) >> CBRANCH_REG1_SHIFT);
@@ -308,7 +316,9 @@ unsigned instruction::getCondBranchReg1() const {
 }
 
 unsigned instruction::getCondBranchReg2() const {
-  assert(isCondBranch());
+  if (isCondBranch()) {
+    return false;
+  }
   if (isCompressed()) {
     return GPR_ZERO;
   } else {
@@ -350,12 +360,16 @@ bool instruction::isAuipc() const {
 }
 
 Dyninst::Address instruction::getAuipcOffset() const {
-  assert(isAuipc());
+  if (isAuipc()) {
+    return -1;
+  }
   return static_cast<Dyninst::Address>(insn_.raw & AUIPC_IMM_MASK);
 }
 
 unsigned instruction::getAuipcReg() const {
-  assert(isAuipc());
+  if (isAuipc()) {
+    return -1;
+  }
   return ((insn_.raw & AUIPC_REG_MASK) >> AUIPC_REG_SHIFT);
 }
 
