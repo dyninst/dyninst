@@ -72,12 +72,6 @@ class ExtPCSensVisitor : public ASTVisitor {
   virtual AST::Ptr visit(DataflowAPI::VariableAST *);
   virtual AST::Ptr visit(DataflowAPI::RoseAST *);
   virtual AST::Ptr visit(StackAST *);
-  virtual ASTVisitor::ASTPtr visit(InputVariableAST *x) { return ASTVisitor::visit(x); }
-  virtual ASTVisitor::ASTPtr visit(ReferenceAST *x) { return ASTVisitor::visit(x); }
-  virtual ASTVisitor::ASTPtr visit(StpAST *x) { return ASTVisitor::visit(x); }
-  virtual ASTVisitor::ASTPtr visit(YicesAST *x) { return ASTVisitor::visit(x); }
-  virtual ASTVisitor::ASTPtr visit(SemanticsAST *x) { return ASTVisitor::visit(x); }
-
 
   virtual ~ExtPCSensVisitor() {}
   
