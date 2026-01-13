@@ -33,6 +33,7 @@
 #include <iostream>
 #include <boost/assign/list_of.hpp>
 
+#include "Architecture.h"
 #include "dyntypes.h"
 
 #include "CodeSource.h"
@@ -251,15 +252,5 @@ CodeSource::nonReturning(string name)
 bool
 InstructionSource::isAligned(const Address addr) const
 {
-    switch (getArch()) {
-        case Arch_aarch64:
-	case Arch_ppc32:
-	case Arch_ppc64:
-	    return !(addr & 0x3);
-	case Arch_x86:
-	case Arch_x86_64:
-	    return true;
-	default:
-	    assert(!"unimplemented architecture");
-    }
+  return Dyninst::isAligned(this->getArch(), addr);
 }
