@@ -128,4 +128,5 @@ set(_dataflow_public_headers
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/liveness.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/slicing.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/stackanalysis.h
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/SymEval.h)
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/SymEval.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/VariableAST.h)

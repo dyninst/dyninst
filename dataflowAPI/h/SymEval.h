@@ -49,6 +49,7 @@
 #include "dyninst_visibility.h"
 #include "Node.h"
 #include "Edge.h"
+#include "VariableAST.h"
 
 class SgAsmx86Instruction;
 class SgAsmExpression;
@@ -78,38 +79,6 @@ namespace DataflowAPI {
 // all available memory and crash. No idea why. 
 
 // Define the operations used by ROSE
-
-struct Variable {
-  DYNINST_EXPORT Variable() : reg(), addr(0) {}
-  DYNINST_EXPORT Variable(AbsRegion r) : reg(r), addr(0) {}
-  DYNINST_EXPORT Variable(AbsRegion r, Address a) : reg(r), addr(a) {}
-
-  DYNINST_EXPORT bool operator==(const Variable &rhs) const { 
-    return ((rhs.addr == addr) && (rhs.reg == reg));
-  }
-
-  DYNINST_EXPORT bool operator<(const Variable &rhs) const { 
-    if (addr < rhs.addr) return true;
-    if (reg < rhs.reg) return true;
-    return false;
-  }
-
-  DYNINST_EXPORT const std::string format() const {
-    std::stringstream ret;
-    ret << "V(" << reg;
-    if (addr) ret << ":" << std::hex << addr << std::dec;
-    ret << ")";
-    return ret.str();
-  }
-    friend std::ostream& operator<<(std::ostream& stream, const Variable& c)
-    {
-        stream << c.format();
-        return stream;
-    }
-
-   AbsRegion reg;
-   Address addr;
-};
 
 struct Constant {
   DYNINST_EXPORT Constant() : val(0), size(0) {}
@@ -325,7 +294,6 @@ typedef std::map<Assignment::Ptr, AST::Ptr, AssignmentPtrValueComp> Result_t;
     
 DEF_AST_LEAF_TYPE(BottomAST, bool);
 DEF_AST_LEAF_TYPE(ConstantAST, Constant);
-DEF_AST_LEAF_TYPE(VariableAST, Variable);
 DEF_AST_INTERNAL_TYPE(RoseAST, ROSEOperation);
 
 class SymEvalPolicy;
