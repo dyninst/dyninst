@@ -49,7 +49,7 @@ namespace DataflowAPI {
 // compare assignment shared pointers by value.
 typedef std::map<Assignment::Ptr, AST::Ptr, AssignmentPtrValueComp> Result_t;
 
-class  SymEval {
+class DYNINST_EXPORT SymEval {
 public:
     typedef boost::shared_ptr<SliceNode> SliceNodePtr;
 public:
@@ -66,20 +66,20 @@ public:
   // static const AST::Ptr Placeholder;
   //
   // Single version: hand in an Assignment, get an AST
-    DYNINST_EXPORT static std::pair<AST::Ptr, bool> expand(const Assignment::Ptr &assignment, bool applyVisitors = true);
+    static std::pair<AST::Ptr, bool> expand(const Assignment::Ptr &assignment, bool applyVisitors = true);
 
   // Hand in a set of Assignments
   // get back a map of Assignments->ASTs
   // We assume the assignments are prepped in the input; whatever
   // they point to is discarded.
-  DYNINST_EXPORT static bool expand(Result_t &res, 
+  static bool expand(Result_t &res, 
                                      std::set<InstructionAPI::Instruction> &failedInsns,
                                      bool applyVisitors = true);
 
   // Hand in a Graph (of SliceNodes, natch) and get back a Result;
   // prior results from the Graph
   // are substituted into anything that uses them.
-  DYNINST_EXPORT static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res);
+  static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res);
 };
 
 }
