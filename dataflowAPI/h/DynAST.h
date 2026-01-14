@@ -41,6 +41,7 @@
 
 #include "AST.h"
 #include "ASTVisitor.h"
+#include "ConstantAST.h"
 #include "VariableAST.h"
 
 namespace Dyninst {

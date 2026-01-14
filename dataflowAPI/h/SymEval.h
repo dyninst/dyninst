@@ -50,6 +50,7 @@
 #include "Node.h"
 #include "Edge.h"
 #include "VariableAST.h"
+#include "ConstantAST.h"
 
 class SgAsmx86Instruction;
 class SgAsmExpression;
@@ -80,38 +81,6 @@ namespace DataflowAPI {
 
 // Define the operations used by ROSE
 
-struct Constant {
-  DYNINST_EXPORT Constant() : val(0), size(0) {}
-  DYNINST_EXPORT Constant(uint64_t v) : val(v), size(0) {}
-  DYNINST_EXPORT Constant(uint64_t v, size_t s) : val(v), size(s) {}
-
- DYNINST_EXPORT  bool operator==(const Constant &rhs) const {
-    return ((rhs.val == val) && (rhs.size == size));
-  }
-
-  DYNINST_EXPORT bool operator<(const Constant &rhs) const {
-    if (val < rhs.val) return true;
-    if (size < rhs.size) return true;
-    return false;
-  }
-
-  DYNINST_EXPORT const std::string format() const {
-    std::stringstream ret;
-    ret << val;
-    if (size) {
-    ret << ":" << size;
-    }
-    return ret.str();
-  }
-friend std::ostream& operator<<(std::ostream& stream, const Constant& c)
-{
-    stream << c.format();
-    return stream;
-}
-  
-   uint64_t val;
-   size_t size;
-};
 
 // Define the operations used by ROSE
 
@@ -293,7 +262,6 @@ namespace DataflowAPI {
 typedef std::map<Assignment::Ptr, AST::Ptr, AssignmentPtrValueComp> Result_t;
     
 DEF_AST_LEAF_TYPE(BottomAST, bool);
-DEF_AST_LEAF_TYPE(ConstantAST, Constant);
 DEF_AST_INTERNAL_TYPE(RoseAST, ROSEOperation);
 
 class SymEvalPolicy;
