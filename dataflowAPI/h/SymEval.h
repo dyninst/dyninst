@@ -41,11 +41,9 @@
 #include "Graph.h"
 #include "Instruction.h"
 #include "dyninst_visibility.h"
+#include "slicing.h"
 
 namespace Dyninst {
-
-class SliceNode;
-
 namespace DataflowAPI {
 
 // compare assignment shared pointers by value.
