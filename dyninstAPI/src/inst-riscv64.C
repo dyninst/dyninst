@@ -644,6 +644,10 @@ bool EmitterRISCV64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
   RegValue disp = getInterModuleFuncAddr(callee, gen) - gen.currAddr();
   Register dest = gen.rs()->getScratchRegister(gen);
   if (dest == Null_Register) {
+    // Not possible using generateBranchViaTrap because the target address is stored in memory
+    // Still possible using other hacky code sequence, though.
+    // We can utilize the fact that ra will be overwritten after a function call
+    // and obtain the 
     disp -= insnCodeGen::generateAddImm(gen, GPR_SP, GPR_SP, -GPRSIZE_64,
                                          gen.useCompressed());
     disp -= insnCodeGen::saveRegister(gen, GPR_RA, 0, true);

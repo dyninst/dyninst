@@ -52,7 +52,7 @@ bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuf
         codeGen gen(16);
         gen.applyTemplate(templ);
         Address origRet = addr() + insn_.size();
-        insnCodeGen::loadImmIntoReg(gen, 1 /* x1(ra) */, origRet, gen.usesCompressedInstructionFormat());
+        insnCodeGen::loadImmIntoReg(gen, 1 /* x1(ra) */, origRet, gen.useCompressed());
         buffer.addPIC(gen, tracker(t));
     }
     else {
@@ -66,7 +66,7 @@ bool PCWidget::PCtoReg(const codeGen &templ, const RelocBlock *t, CodeBuffer &bu
     Register reg = convertRegID(a_.reg());
     if(templ.addrSpace()->proc()) {
         codeGen gen(16);
-        insnCodeGen::loadImmIntoReg(gen, reg, addr_, gen.usesCompressedInstructionFormat());
+        insnCodeGen::loadImmIntoReg(gen, reg, addr_, gen.useCompressed());
         buffer.addPIC(gen, tracker(t));
     }
     else {
