@@ -31,14 +31,6 @@
 #if !defined(AST_H)
 #define AST_H
 
-#include <assert.h>
-#include <vector>
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <map>
-#include "dyninst_visibility.h"
-
 #include "AST.h"
 #include "ASTVisitor.h"
 #include "BottomAST.h"
@@ -46,44 +38,5 @@
 #include "RoseAST.h"
 #include "VariableAST.h"
 
-namespace Dyninst {
-
-// We fully template the three types of nodes we have so that
-// users can specify their own. This basically makes the AST
-// a fully generic class. 
-//
-// TODO: do we want Variable and Constant to be different classes?
-// I'm using the Absloc case as the basis here; EAX and '5' are
-// very different things...
-//
-// Possible fourth template type: Type
-// though I'm currently arguing that Type is an artifact of the
-// Eval method you apply here. 
-// ... and are Eval methods independent of Operation/Variable/Constant?
-// I think they are...x
-
-class ASTVisitor;  
-
- // For this to work, the ASTVisitor has to have a virtual
- // visit() method for every instantiation of an AST-typed
- // class. Yes, this means that if you add an AST class
- // somewhere else you have to come back and put it in here. 
- // Well, if you want to run a visitor over it, that is.
-
- // SymEval...
- namespace DataflowAPI {
- class BottomAST;
- class ConstantAST;
- class VariableAST;
- class RoseAST;
- }
- // Stack analysis...
- class StackAST;
-
- // InsnAPI...
-
- // Codegen...
-
-}
-#endif // AST_H
+#endif
 
