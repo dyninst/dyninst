@@ -44,15 +44,6 @@
 
 namespace Dyninst {
 
-   namespace ParseAPI {
-      class Function;
-      class Block;
-   }
-}
-
-
-namespace Dyninst {
-
 class SliceNode;
 
 namespace DataflowAPI {
@@ -93,18 +84,6 @@ public:
   // prior results from the Graph
   // are substituted into anything that uses them.
   DYNINST_EXPORT static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res);
-  
- private:
-
-  // Symbolically evaluate an instruction and assign 
-  // an AST representation to every written absloc
- static bool expandInsn(const InstructionAPI::Instruction &insn,
-                        const uint64_t addr,
-                        Result_t &res);
-
- static Retval_t process(SliceNodePtr ptr, Result_t &dbase, std::set<Edge::Ptr> &skipEdges);
-  
- static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func, ParseAPI::Block *block);
 };
 
 }

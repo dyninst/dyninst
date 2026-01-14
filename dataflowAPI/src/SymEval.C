@@ -66,6 +66,10 @@ using namespace InstructionAPI;
 using namespace DataflowAPI;
 using namespace rose::BinaryAnalysis::InstructionSemantics2;
 
+static bool expandInsn(const Instruction &, const uint64_t, Result_t &);
+static SymEval::Retval_t process(SliceNode::Ptr, Result_t &, std::set<Edge::Ptr> &);
+static AST::Ptr simplifyStack(AST::Ptr, Address, ParseAPI::Function *, ParseAPI::Block *);
+
 
 std::pair<AST::Ptr, bool> SymEval::expand(const Assignment::Ptr &assignment, bool applyVisitors) {
     // This is a shortcut version for when we only want a
@@ -427,7 +431,7 @@ SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result
     else return SUCCESS;
 }
 
-bool SymEval::expandInsn(const Instruction &insn,
+static bool expandInsn(const Instruction &insn,
         const uint64_t addr,
         Result_t &res) {
 
@@ -589,7 +593,7 @@ bool SymEval::expandInsn(const Instruction &insn,
 }
 
 
-SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
+SymEval::Retval_t process(SliceNode::Ptr ptr,
         Result_t &dbase,
         std::set<Edge::Ptr> &skipEdges) {
     bool failedTranslation;
@@ -602,7 +606,7 @@ SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
     expand_cerr << "Calling process on " << ptr->format() << endl;
 
     // Don't try an expansion of a widen node...
-    if (!ptr->assign()) return WIDEN_NODE;
+    if (!ptr->assign()) return SymEval::WIDEN_NODE;
 
     EdgeIterator begin, end;
     ptr->ins(begin, end);
@@ -689,13 +693,13 @@ SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
         << (ast ? ast->format() : "<NULL AST>") << endl;
 
     dbase[ptr->assign()] = ast;
-    if (failedTranslation) return FAILED_TRANSLATION;
-    else if (skippedEdge || skippedInput) return SKIPPED_INPUT;
-    else if (success) return SUCCESS;
-    else return FAILED;
+    if (failedTranslation) return SymEval::FAILED_TRANSLATION;
+    else if (skippedEdge || skippedInput) return SymEval::SKIPPED_INPUT;
+    else if (success) return SymEval::SUCCESS;
+    else return SymEval::FAILED;
 }
 
-AST::Ptr SymEval::simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func, ParseAPI::Block *block) {
+static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func, ParseAPI::Block *block) {
     if (!ast) return ast;
     auto arch = func->isrc()->getArch();
     // This is a hack to prevent parsing of AMGPU binaries from segfaulting
