@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(AST_H)
-#define AST_H
+#ifndef DYNINST_DATAFLOWAPI_DYNAST_H
+#define DYNINST_DATAFLOWAPI_DYNAST_H
 
 #include "AST.h"
 #include "ASTVisitor.h"
@@ -39,4 +39,3 @@
 #include "VariableAST.h"
 
 #endif
-
