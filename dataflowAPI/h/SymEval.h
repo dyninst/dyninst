@@ -50,13 +50,6 @@
 #include "Node.h"
 #include "Edge.h"
 
-class SgAsmx86Instruction;
-class SgAsmExpression;
-class SgAsmPowerpcInstruction;
-class SgAsmOperandList;
-class SgAsmx86RegisterReferenceExpression;
-class SgAsmPowerpcRegisterReferenceExpression;
-
 namespace Dyninst {
 
    namespace ParseAPI {
