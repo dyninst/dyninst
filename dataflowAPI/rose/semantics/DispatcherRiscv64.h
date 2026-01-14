@@ -99,7 +99,7 @@ public:
   create(const BaseSemantics::RiscOperatorsPtr &ops, size_t addrWidth = 0,
          const RegisterDictionary *regs = NULL) const {
     if (0 == addrWidth) {
-      addrWidth = 64;
+      addrWidth = Dyninst::getArchAddressWidth(Dyninst::Arch_riscv64);
     }
     return instance(ops, addrWidth, regs);
   }
