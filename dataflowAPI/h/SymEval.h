@@ -34,21 +34,13 @@
 #define SymEval_h
 
 #include <map>
-#include <ostream>
-#include <sstream>
 #include <set>
-#include <stddef.h>
-#include <stdint.h>
-#include <string>
-#include <utility>
 
 #include "Absloc.h"
 #include "DynAST.h"
-
 #include "Graph.h"
+#include "Instruction.h"
 #include "dyninst_visibility.h"
-#include "Node.h"
-#include "Edge.h"
 
 namespace Dyninst {
 
@@ -60,10 +52,6 @@ namespace Dyninst {
 
 
 namespace Dyninst {
-
-namespace InstructionAPI {
-  class Instruction;
-}
 
 class SliceNode;
 
