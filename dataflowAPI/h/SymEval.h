@@ -49,8 +49,6 @@ namespace DataflowAPI {
 // compare assignment shared pointers by value.
 typedef std::map<Assignment::Ptr, AST::Ptr, AssignmentPtrValueComp> Result_t;
 
-class SymEvalPolicy;
-
 class  SymEval {
 public:
     typedef boost::shared_ptr<SliceNode> SliceNodePtr;
