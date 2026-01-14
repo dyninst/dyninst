@@ -40,6 +40,7 @@
 #include "dyninst_visibility.h"
 
 #include "AST.h"
+#include "ASTVisitor.h"
 
 namespace Dyninst {
 
@@ -156,19 +157,6 @@ class name : public AST {						\
   Children kids_;							\
  }									\
 
- class DYNINST_EXPORT ASTVisitor {
- public:
-   typedef boost::shared_ptr<AST> ASTPtr;
-
-   virtual ASTPtr visit(AST *) {return AST::Ptr();}
-   virtual ASTPtr visit(DataflowAPI::BottomAST *) {return AST::Ptr();}
-   virtual ASTPtr visit(DataflowAPI::ConstantAST *) {return AST::Ptr();}
-   virtual ASTPtr visit(DataflowAPI::VariableAST *) {return AST::Ptr();}
-   virtual ASTPtr visit(DataflowAPI::RoseAST *) {return AST::Ptr();}
-   virtual ASTPtr visit(StackAST *) {return AST::Ptr();}
-
-   virtual ~ASTVisitor() {}
- };
 
 }
 #endif // AST_H
