@@ -52,6 +52,7 @@
 #include "VariableAST.h"
 #include "ConstantAST.h"
 #include "RoseAST.h"
+#include "BottomAST.h"
 
 class SgAsmx86Instruction;
 class SgAsmExpression;
@@ -102,8 +103,6 @@ namespace DataflowAPI {
 
 // compare assignment shared pointers by value.
 typedef std::map<Assignment::Ptr, AST::Ptr, AssignmentPtrValueComp> Result_t;
-
-DEF_AST_LEAF_TYPE(BottomAST, bool);
 
 class SymEvalPolicy;
 

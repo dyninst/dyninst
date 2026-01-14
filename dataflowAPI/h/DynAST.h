@@ -41,6 +41,7 @@
 
 #include "AST.h"
 #include "ASTVisitor.h"
+#include "BottomAST.h"
 #include "ConstantAST.h"
 #include "RoseAST.h"
 #include "VariableAST.h"
