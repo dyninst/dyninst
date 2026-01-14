@@ -49,10 +49,6 @@
 #include "dyninst_visibility.h"
 #include "Node.h"
 #include "Edge.h"
-#include "VariableAST.h"
-#include "ConstantAST.h"
-#include "RoseAST.h"
-#include "BottomAST.h"
 
 class SgAsmx86Instruction;
 class SgAsmExpression;
