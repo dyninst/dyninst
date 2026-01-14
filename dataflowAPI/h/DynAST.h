@@ -38,7 +38,8 @@
 #include <iostream>
 #include <map>
 #include "dyninst_visibility.h"
-#include "boost/enable_shared_from_this.hpp"
+
+#include "AST.h"
 
 namespace Dyninst {
 
@@ -63,7 +64,6 @@ class ASTVisitor;
  // class. Yes, this means that if you add an AST class
  // somewhere else you have to come back and put it in here. 
  // Well, if you want to run a visitor over it, that is.
- class AST;
 
  // SymEval...
  namespace DataflowAPI {
@@ -155,69 +155,6 @@ class name : public AST {						\
   const type t_;							\
   Children kids_;							\
  }									\
-
-class DYNINST_EXPORT AST : public boost::enable_shared_from_this<AST> {
- public:
-
-  // This is a global list of all AST types, including those that are not
-  // yet implemented. The format is a "V_" string prepending the class name.
-  // If you add an AST type you should update this list.
-
-  typedef enum {
-    V_AST,
-    // SymEval
-    V_BottomAST,
-    V_ConstantAST,
-    V_VariableAST,
-    V_RoseAST,
-    // Stack analysis
-    V_StackAST
-  } ID;
-
-  typedef boost::shared_ptr<AST> Ptr;
-  typedef std::vector<AST::Ptr> Children;      
-
-  AST() {}
-  virtual ~AST() {}
-  
-  bool operator==(const AST &rhs) const {
-    // make sure rhs and this have the same type
-    return((typeid(*this) == typeid(rhs)) && isStrictEqual(rhs));
-  }
-
-  virtual unsigned numChildren() const { return 0; }		       
-
-  virtual AST::Ptr child(unsigned) const {				
-    assert(0);								
-    return Ptr();							
-  }								       
-
-  bool equals(AST::Ptr rhs) {
-    if (!rhs) return false;
-    return *this == (*rhs);
-  }
-
-  virtual const std::string format() const = 0;
-
-  // Substitutes every occurrence of a with b in
-  // AST in. Returns a new AST. 
-
-  static AST::Ptr substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b); 
-  
-  virtual ID getID() const { return V_AST; }
-
-  // VISITOR wooo....
-  virtual Ptr accept(ASTVisitor *);
-
-  Ptr ptr() { return shared_from_this(); }
-
-  virtual void setChild(int, AST::Ptr) {
-    assert(0);
-  }
-
- protected:
-  virtual bool isStrictEqual(const AST &rhs) const = 0;
-};
 
  class DYNINST_EXPORT ASTVisitor {
  public:

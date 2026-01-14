@@ -55,7 +55,7 @@
 #include <string>
 #include <vector>
 #include "Instruction.h"
-#include "DynAST.h"
+#include "AST.h"
 
 namespace Dyninst {
 
