@@ -127,6 +127,7 @@ set(_dataflow_public_headers
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/DynAST.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/InstructionCache.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/liveness.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/RoseAST.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/slicing.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/stackanalysis.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/SymEval.h

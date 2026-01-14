@@ -51,6 +51,7 @@
 #include "Edge.h"
 #include "VariableAST.h"
 #include "ConstantAST.h"
+#include "RoseAST.h"
 
 class SgAsmx86Instruction;
 class SgAsmExpression;
@@ -84,165 +85,6 @@ namespace DataflowAPI {
 
 // Define the operations used by ROSE
 
-struct ROSEOperation {
-typedef enum {
-    nullOp,
-    extractOp,
-    invertOp,
-    negateOp,
-    signExtendOp,
-    equalToZeroOp,
-    generateMaskOp,
-    LSBSetOp,
-    MSBSetOp,
-    concatOp,
-    andOp,
-    orOp,
-    xorOp,
-    addOp,
-    rotateLOp,
-    rotateROp,
-    shiftLOp,
-    shiftROp,
-    shiftRArithOp,
-    derefOp,
-    writeRepOp,
-    writeOp,
-    ifOp,
-    sMultOp,
-    uMultOp,
-    sDivOp,
-    sModOp,
-    uDivOp,
-    uModOp,
-    extendOp,
-    extendMSBOp
-} Op;
-
-DYNINST_EXPORT ROSEOperation(Op o) : op(o), size(0) {}
-DYNINST_EXPORT ROSEOperation(Op o, size_t s) : op(o), size(s) {}
-
-DYNINST_EXPORT bool operator==(const ROSEOperation &rhs) const {
-    return ((rhs.op == op) && (rhs.size == size));
-}
-
-DYNINST_EXPORT const std::string format() const {
-    std::stringstream ret;
-    ret << "<";
-    switch(op) {
-    case nullOp:
-    ret << "null";
-    break;
-    case extractOp:
-    ret << "extract";
-    break;
-    case invertOp:
-    ret << "invert";
-    break;
-    case negateOp:
-    ret << "negate";
-    break;
-    case signExtendOp:
-    ret << "signExtend";
-    break;
-    case equalToZeroOp:
-    ret << "eqZero?";
-    break;
-    case generateMaskOp:
-    ret << "genMask";
-    break;
-    case LSBSetOp:
-    ret << "LSB?";
-    break;
-    case MSBSetOp:
-    ret << "MSB?";
-    break;
-    case concatOp:
-    ret << "concat";
-    break;
-    case andOp:
-    ret << "and";
-    break;
-    case orOp:
-    ret << "or";
-    break;
-    case xorOp:
-    ret << "xor";
-    break;
-    case addOp:
-    ret << "add";
-    break;
-    case rotateLOp:
-    ret << "rotL";
-    break;
-    case rotateROp:
-    ret << "rotR";
-    break;
-    case shiftLOp:
-    ret << "shl";
-    break;
-    case shiftROp:
-    ret << "shr";
-    break;
-    case shiftRArithOp:
-    ret << "shrA";
-    break;
-    case derefOp:
-    ret << "deref";
-    break;
-    case writeRepOp:
-    ret << "writeRep";
-    break;
-    case writeOp:
-    ret << "write";
-    break;
-    case ifOp:
-    ret << "if";
-    break;
-    case sMultOp:
-    ret << "sMult";
-    break;
-    case uMultOp:
-    ret << "uMult";
-    break;
-    case sDivOp:
-    ret << "sDiv";
-    break;
-    case sModOp:
-    ret << "sMod";
-    break;
-    case uDivOp:
-    ret << "uDiv";
-    break;
-    case uModOp:
-    ret << "uMod";
-    break;
-    case extendOp:
-    ret << "ext";
-    break;
-    case extendMSBOp:
-    ret << "extMSB";
-    break;
-    default:
-    ret << " ??? ";
-    break;
-    };
-    if (size) {
-    ret << ":" << size;
-    }
-    ret << ">";
-    return ret.str();
-}
-    friend std::ostream& operator<<(std::ostream& stream, const ROSEOperation& c)
-    {
-        stream << c.format();
-        return stream;
-    }
-
-Op op;
-size_t size;
-};
-
 }
 
 }
@@ -260,9 +102,8 @@ namespace DataflowAPI {
 
 // compare assignment shared pointers by value.
 typedef std::map<Assignment::Ptr, AST::Ptr, AssignmentPtrValueComp> Result_t;
-    
+
 DEF_AST_LEAF_TYPE(BottomAST, bool);
-DEF_AST_INTERNAL_TYPE(RoseAST, ROSEOperation);
 
 class SymEvalPolicy;
 
