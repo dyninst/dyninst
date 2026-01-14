@@ -56,27 +56,6 @@ namespace Dyninst {
       class Function;
       class Block;
    }
-
-namespace DataflowAPI {
-
-// The ROSE symbolic evaluation engine wants a data type that
-// is template parametrized on the number of bits in the data
-// type. However, our ASTs don't have this, and a shared_ptr
-// to an AST _definitely_ doesn't have it. Instead, we use
-// a wrapper class (Handle) that is parametrized appropriately
-// and contains a shared pointer. 
-
-// This uses a pointer to a shared pointer. This is ordinarily a really
-// bad idea, but stripping the pointer part makes the compiler allocate
-// all available memory and crash. No idea why. 
-
-// Define the operations used by ROSE
-
-
-// Define the operations used by ROSE
-
-}
-
 }
 
 
