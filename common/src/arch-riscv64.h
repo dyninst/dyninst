@@ -77,6 +77,8 @@ constexpr int RISCV_MAX_ARG_REGS = 8;
 // Raw register encoding used in RISC-V instruction encoding
 // These values identify registers when decoding instructions
 // They are also used to emit register encoding during codegen
+
+// clang-format off 
 constexpr int32_t GPR_X0     = 0;
 constexpr int32_t GPR_X1     = 1;
 constexpr int32_t GPR_X2     = 2;
@@ -143,6 +145,7 @@ constexpr int32_t GPR_T3     = 28;
 constexpr int32_t GPR_T4     = 29;
 constexpr int32_t GPR_T5     = 30;
 constexpr int32_t GPR_T6     = 31;
+// clang-format on
 
 // Encoding for common instructions
 constexpr int32_t EBREAK_INSN_ENC = 0x00100073;
@@ -151,8 +154,8 @@ constexpr int32_t SRET_INSN_ENC = 0x10200073;
 constexpr int32_t MRET_INSN_ENC = 0x30200073;
 constexpr int32_t WFI_INSN_ENC = 0x10500073;
 
-constexpr int32_t C_NOP = 0x0001;
-constexpr int32_t C_EBREAK_INSN = 0x9002;
+constexpr int32_t C_NOP_INSN_ENC = 0x0001;
+constexpr int32_t C_EBREAK_INSN_ENC = 0x9002;
 
 // Register encoding
 constexpr int32_t REG_RD_ENC_OFFSET = 7;
@@ -176,6 +179,7 @@ constexpr int32_t STOREOp = 0x23;
 constexpr int32_t ADDFunct7 = 0x00;
 constexpr int32_t ANDFunct7 = 0x00;
 constexpr int32_t DIVFunct7 = 0x01;
+constexpr int32_t DIVUFunct7 = 0x01;
 constexpr int32_t MULFunct7 = 0x01;
 constexpr int32_t ORFunct7 = 0x00;
 constexpr int32_t SLLFunct7 = 0x00;
@@ -193,6 +197,7 @@ constexpr int32_t BLTFunct3 = 0x4;
 constexpr int32_t BLTUFunct3 = 0x6;
 constexpr int32_t BNEFunct3 = 0x1;
 constexpr int32_t DIVFunct3 = 0x4;
+constexpr int32_t DIVUFunct3 = 0x5;
 constexpr int32_t FLDFunct3 = 0x3;
 constexpr int32_t FSDFunct3 = 0x3;
 constexpr int32_t JALRFunct3 = 0x0;
@@ -363,13 +368,11 @@ constexpr int64_t UTYPE_IMM_MIN = -0x80000000LL; // 32 bits signed
 const std::vector<int> JAL_REORDER = {12, 13, 14, 15, 16, 17, 18, 19, 11, 1,
                                       2,  3,  4,  5,  6,  7,  8,  9,  10, 20};
 const std::vector<int> JALR_REORDER = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-const std::vector<int> B_REORDER1 = {11, 1, 2, 3, 4};
-const std::vector<int> B_REORDER2 = {5, 6, 7, 8, 9, 10, 12};
-const std::vector<int> CJ_REORDER = {5, 1, 2, 3, 7, 6, 10, 8, 9, 4, 11};
-const std::vector<int> CB_REORDER1 = {5, 1, 2, 6, 7};
-const std::vector<int> CB_REORDER2 = {3, 4, 8};
-
-constexpr int32_t SCRATCH_REG = GPR_S11;
+const std::vector<int> BRANCH_REORDER1 = {11, 1, 2, 3, 4};
+const std::vector<int> BRANCH_REORDER2 = {5, 6, 7, 8, 9, 10, 12};
+const std::vector<int> CJUMP_REORDER = {5, 1, 2, 3, 7, 6, 10, 8, 9, 4, 11};
+const std::vector<int> CBRANCH_REORDER1 = {5, 1, 2, 6, 7};
+const std::vector<int> CBRANCH_REORDER2 = {3, 4, 8};
 
 #define INSN_SET(I, s, e, v)    ((I).setBits(s, e - s + 1, (v)))
 
