@@ -147,6 +147,7 @@ static int elfSymType(Symbol *sym)
      case Symbol::ST_TLS: return STT_TLS;
      case Symbol::ST_NOTYPE : return STT_NOTYPE;
      case Symbol::ST_UNKNOWN: return sym->getInternalType();
+     case Symbol::ST_CODE: return STT_FUNC;	// in ELF, ST_CODE maps to STT_FUNC
 #if defined(STT_GNU_IFUNC)
      case Symbol::ST_INDIRECT: return STT_GNU_IFUNC;
 #endif
