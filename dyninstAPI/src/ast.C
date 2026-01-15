@@ -2608,24 +2608,6 @@ void AstOperatorNode::setChildren(std::vector<AstNodePtr > &children){
    }
 }
 
-AstNodePtr AstOperatorNode::deepCopy(){
-   AstNodePtr copy = operatorNode(op, (loperand ? loperand->deepCopy() : loperand),
-                                  (roperand ? roperand->deepCopy() : roperand),
-                                  (eoperand ? eoperand->deepCopy() : eoperand));
-   copy->setType(bptype);
-   copy->setTypeChecking(doTypeCheck);
-
-   copy->setLineNum(getLineNum());
-   copy->setColumnNum(getColumnNum());
-   copy->setSnippetName(snippetName);
-
-/* TODO: Impliment this copy.
-   copy->columnInfoSet = columnInfoSet
-   copy->lineInfoSet = lineInfoSet;
-*/
-   return copy;
-}
-
 void AstOperandNode::getChildren(std::vector<AstNodePtr > &children) {
     if (operand_) children.push_back(operand_);
 }
@@ -2637,24 +2619,6 @@ void AstOperandNode::setChildren(std::vector<AstNodePtr > &children){
    }else{
       fprintf(stderr, "OPERAND setChildren given bad arguments. Wanted:%d , given:%d\n", 1,  (int)children.size());
    }
-}
-
-AstNodePtr AstOperandNode::deepCopy(){
-   AstOperandNode * copy = new AstOperandNode();
-   copy->oType = oType;
-   copy->oValue = oValue; //this might need to be copied deeper
-   copy->oVar = oVar;
-   if(operand_) copy->operand_ = operand_->deepCopy();
-
-   copy->setType(bptype);
-   copy->setTypeChecking(doTypeCheck);
-
-   copy->setLineNum(getLineNum());
-   copy->lineInfoSet = lineInfoSet;
-   copy->setColumnNum(getColumnNum());
-   copy->columnInfoSet = columnInfoSet;
-   copy->setSnippetName(getSnippetName());
-   return AstNodePtr(copy);
 }
 
 void AstCallNode::getChildren(std::vector<AstNodePtr > &children) {
@@ -2675,39 +2639,6 @@ void AstCallNode::setChildren(std::vector<AstNodePtr > &children){
    }
 }
 
-AstNodePtr AstCallNode::deepCopy(){
-   std::vector<AstNodePtr> empty_args;
-
-   AstCallNode * copy;
-
-   if(func_name_.empty()){
-      copy = new AstCallNode();
-   }else{
-      copy = new AstCallNode(func_name_, empty_args);
-   }
-   copy->func_addr_ = func_addr_;
-   copy->func_ = func_;
-
-   for(unsigned int i = 0; i < args_.size(); ++i){
-      copy->args_.push_back(args_[i]->deepCopy());
-   }
-
-   copy->callReplace_ = callReplace_;
-   copy->constFunc_ = constFunc_;
-
-   copy->setType(bptype);
-   copy->setTypeChecking(doTypeCheck);
-
-   copy->setLineNum(getLineNum());
-   copy->lineInfoSet = lineInfoSet;
-   copy->setColumnNum(getColumnNum());
-   copy->columnInfoSet = columnInfoSet;
-   copy->setSnippetName(getSnippetName());
-   copy->snippetNameSet = snippetNameSet;
-
-   return AstNodePtr(copy);
-}
-
 void AstSequenceNode::getChildren(std::vector<AstNodePtr > &children) {
     for (unsigned i = 0; i < sequence_.size(); i++)
         children.push_back(sequence_[i]);
@@ -2726,52 +2657,12 @@ void AstSequenceNode::setChildren(std::vector<AstNodePtr > &children){
    }
 }
 
-AstNodePtr AstSequenceNode::deepCopy(){
-   AstSequenceNode * copy = new AstSequenceNode();
-   for(unsigned int i = 0; i < sequence_.size(); ++i){
-      copy->sequence_.push_back(sequence_[i]->deepCopy());
-   }
-
-   copy->setType(bptype);
-   copy->setTypeChecking(doTypeCheck);
-
-   copy->setLineNum(getLineNum());
-   copy->lineInfoSet = lineInfoSet;
-   copy->setColumnNum(getColumnNum());
-   copy->columnInfoSet = columnInfoSet;
-   copy->setSnippetName(getSnippetName());
-   copy->snippetNameSet = snippetNameSet;
-
-   return AstNodePtr(copy);
-}
-
 void AstVariableNode::getChildren(std::vector<AstNodePtr > &children) {
     ast_wrappers_[index]->getChildren(children);
 }
 
 void AstVariableNode::setChildren(std::vector<AstNodePtr > &children){
    ast_wrappers_[index]->setChildren(children);
-}
-
-AstNodePtr AstVariableNode::deepCopy(){
-   AstVariableNode * copy = new AstVariableNode();
-   copy->index = index;
-   copy->ranges_ = ranges_; //i'm not sure about this one. (it's a vector)
-   for(unsigned int i = 0; i < ast_wrappers_.size(); ++i){
-      copy->ast_wrappers_.push_back(ast_wrappers_[i]->deepCopy());
-   }
-
-   copy->setType(bptype);
-   copy->setTypeChecking(doTypeCheck);
-
-   copy->setLineNum(getLineNum());
-   copy->lineInfoSet = lineInfoSet;
-   copy->setColumnNum(getColumnNum());
-   copy->columnInfoSet = columnInfoSet;
-   copy->setSnippetName(getSnippetName());
-   copy->snippetNameSet = snippetNameSet;
-
-   return AstNodePtr(copy);
 }
 
 void AstOperatorNode::setVariableAST(codeGen &g) {
