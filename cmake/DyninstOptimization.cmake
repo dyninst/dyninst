@@ -109,10 +109,12 @@ set(DYNINST_C_FLAGS_${_build_type} ${DYNINST_FLAGS_${_build_type}} ${_c_flags})
 set(DYNINST_CXX_FLAGS_${_build_type} ${DYNINST_FLAGS_${_build_type}} ${DYNINST_CXX_FLAGS}
                                      ${_cxx_flags})
 
-unset(_build_type)
-
 # Merge the link flags for C++
 list(APPEND DYNINST_CXX_LINK_FLAGS ${DYNINST_LINK_FLAGS})
 
+message(STATUS "DYNINST_LINK_FLAGS: ${DYNINST_LINK_FLAGS}")
 message(STATUS "DYNINST_CXX_LINK_FLAGS: ${DYNINST_CXX_LINK_FLAGS}")
-message(STATUS "DYNINST_CXX_FLAGS: ${DYNINST_CXX_FLAGS}")
+message(STATUS "DYNINST_C_FLAGS_${_build_type}: ${DYNINST_C_FLAGS_${_build_type}}")
+message(STATUS "DYNINST_CXX_FLAGS_${_build_type}: ${DYNINST_CXX_FLAGS_${_build_type}}")
+
+unset(_build_type)
