@@ -170,32 +170,10 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
        CANARY_AST
    };
 
-   //Error reporting for dynC_API
-  protected:
-   int lineNum;
-   int columnNum;
-   char *snippetName;
-
-   bool lineInfoSet;
-   bool columnInfoSet;
-   bool snippetNameSet;
-
   public:
    virtual std::string format(std::string indent);
    std::string convert(operandType type);
    std::string convert(opCode op);
-
-   int getLineNum();
-   int getColumnNum();
-   char *getSnippetName();
-
-   void setLineNum(int ln);
-   void setColumnNum(int cn);
-   void setSnippetName(char *n);
-
-   bool hasLineInfo();
-   bool hasColumnInfo();
-   bool hasNameInfo();
    
    AstNode(); // mdl.C
 
