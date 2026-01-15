@@ -133,7 +133,6 @@ public:
 class dataReqNode;
 class AstNode : public Dyninst::PatchAPI::Snippet {
  public:
-   enum nodeType { sequenceNode_t, opCodeNode_t, operandNode_t, callNode_t, scrambleRegisters_t};
    enum class operandType { Constant, 
                       ConstantString,
                       DataReg,
