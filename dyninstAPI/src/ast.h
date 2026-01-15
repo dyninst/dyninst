@@ -265,10 +265,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
    bool previousComputationValid(Dyninst::Register &reg,
                                  codeGen &gen);
-   // Remove any kept register at a greater level than
-   // that provided (AKA that had been calculated within
-   // a conditional statement)
-   void cleanRegTracker(regTracker_t *tracker, int level);
 
    virtual AstNodePtr operand() const { return AstNodePtr(); }
 
