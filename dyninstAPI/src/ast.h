@@ -311,9 +311,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    virtual const std::vector<AstNodePtr> getArgs() { return std::vector<AstNodePtr>(); } // to quiet compiler
 
 
-   virtual void setChildren(std::vector<AstNodePtr > &children);
-   virtual AstNodePtr deepCopy() { return AstNodePtr(this);}
-   
+   virtual void setChildren(std::vector<AstNodePtr > &children);   
 
 	// Occasionally, we do not call .generateCode_phase2 for the
 	// referenced node, but generate code by hand. This routine decrements
@@ -498,7 +496,6 @@ class AstOperatorNode : public AstNode {
     virtual void getChildren(std::vector<AstNodePtr> &children);
     
     virtual void setChildren(std::vector<AstNodePtr> &children);
-    virtual AstNodePtr deepCopy();
 
     virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;
@@ -566,7 +563,6 @@ class AstOperandNode : public AstNode {
     virtual void getChildren(std::vector<AstNodePtr> &children);
     
     virtual void setChildren(std::vector<AstNodePtr> &children);
-    virtual AstNodePtr deepCopy();
 
     virtual void setVariableAST(codeGen &gen);
 
@@ -635,7 +631,6 @@ class AstCallNode : public AstNode {
     virtual void getChildren(std::vector<AstNodePtr> &children);
     
     virtual void setChildren(std::vector<AstNodePtr> &children);
-    virtual AstNodePtr deepCopy();
 
     virtual void setVariableAST(codeGen &gen);
     virtual bool containsFuncCall() const; 
@@ -682,7 +677,6 @@ class AstSequenceNode : public AstNode {
     virtual void getChildren(std::vector<AstNodePtr> &children);
     
     virtual void setChildren(std::vector<AstNodePtr> &children);
-    virtual AstNodePtr deepCopy();
 
     virtual void setVariableAST(codeGen &gen);
     virtual bool containsFuncCall() const;
@@ -719,7 +713,6 @@ class AstVariableNode : public AstNode {
     virtual void getChildren(std::vector<AstNodePtr> &children);
     
     virtual void setChildren(std::vector<AstNodePtr> &children);
-    virtual AstNodePtr deepCopy();
 
     virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;
