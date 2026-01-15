@@ -101,61 +101,6 @@ AstNode::AstNode() {
    size = 4;
    bptype = NULL;
    doTypeCheck = true;
-   lineNum = 0;
-   columnNum = 0;
-   snippetName = NULL;
-   lineInfoSet = false;
-   columnInfoSet = false;
-   snippetNameSet = false;
-}
-
-//The following methods are for error reporting in dynC_API
-
-// Returns the line number at which the ast was declared
-int AstNode::getLineNum(){
-   return lineNum;
-}
-
-// Sets the line number at which the ast was declared
-void AstNode::setLineNum(int ln){
-   lineInfoSet = true;
-   lineNum = ln;
-}
-
-// Returns the column number at which the ast was declared
-int AstNode::getColumnNum(){
-   return columnNum;
-}
-
-// Sets the column number at which the ast was declared
-void AstNode::setColumnNum(int cn){
-   columnInfoSet = true;
-   columnNum = cn;
-}
-
-char * AstNode::getSnippetName(){
-   return snippetName;
-}
-
-void AstNode::setSnippetName(char *n){
-   if(n != NULL){
-//      printf(":::%s\n", n);
-      snippetName = n;
-      snippetNameSet = true;
-   }
-}
-
-bool AstNode::hasLineInfo(){
-   return lineInfoSet;
-}
-
-
-bool AstNode::hasColumnInfo(){
-   return columnInfoSet;
-}
-
-bool AstNode::hasNameInfo(){
-   return snippetNameSet;
 }
 
 //////////////////////////////////////////////////////
