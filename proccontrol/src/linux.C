@@ -751,7 +751,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 #elif defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
 #define DEFAULT_PROCESS_TYPE linux_x86_process
 #define DEFAULT_THREAD_TYPE linux_x86_thread
-#elif defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_AARCH32)
+#elif defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_AARCH32) || defined(DYNINST_HOST_ARCH_RISCV64)
 #define DEFAULT_PROCESS_TYPE linux_arm_process
 #define DEFAULT_THREAD_TYPE linux_arm_thread
 #endif
