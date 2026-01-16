@@ -110,11 +110,8 @@ set(_sources
     src/arch-x86.C
     src/arch-power.C
     src/arch-aarch64.C
-<<<<<<< HEAD
-    src/arch-amdgpu.C
-=======
     src/arch-riscv64.C
->>>>>>> c828ceeac (Add missing files and remove duplicated implementation)
+    src/arch-amdgpu.C
     src/debug_common.C
     src/VariableLocation.C
     src/Buffer.C
