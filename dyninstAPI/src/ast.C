@@ -537,40 +537,6 @@ AstNode::~AstNode() {
     //printf("at ~AstNode()  count=%d\n", referenceCount);
 }
 
-Address AstMiniTrampNode::generateTramp(codeGen &gen,
-                                        int &trampCost,
-                                        bool noCost) {
-    static AstNodePtr costAst;
-    static AstNodePtr preamble;
-
-    if (costAst == AstNodePtr())
-        costAst = AstNode::operandNode(AstNode::operandType::Constant, (void *)0);
-
-    if (preamble == AstNodePtr())
-        preamble = AstNode::operatorNode(trampPreamble, costAst);
-
-    // private constructor; assumes NULL for right child
-
-    // we only want to use the cost of the minimum statements that will
-    // be executed.  Statements, such as the body of an if statement,
-    // will have their costs added to the observed cost global variable
-    // only if they are indeed called.  The code to do this in the minitramp
-    // right after the body of the if.
-    trampCost = preamble->maxCost() + minCost();
-
-    costAst->setOValue((void *) (long) trampCost);
-
-    if (!preamble->generateCode(gen, noCost)) {
-        fprintf(stderr, "[%s:%d] WARNING: failure to generate miniTramp preamble\n", __FILE__, __LINE__);
-    }
-
-    if (!ast_->generateCode(gen, noCost)) {
-        fprintf(stderr, "[%s:%d] WARNING: failure to generate miniTramp body\n", __FILE__, __LINE__);
-    }
-
-    return 0;
-}
-
 // This name is a bit of a misnomer. It's not the strict use count; it's the
 // use count modified by whether a node can be kept or not. We can treat
 // un-keepable nodes (AKA those that don't strictly depend on their AST inputs)

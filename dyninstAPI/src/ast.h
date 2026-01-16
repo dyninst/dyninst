@@ -783,11 +783,6 @@ class AstMiniTrampNode : public AstNode {
           ast->referenceCount++;
        ast_ = ast;
     }
-
-
-    Dyninst::Address generateTramp(codeGen &gen,
-                          int &trampCost, 
-                          bool noCost);
             
     virtual ~AstMiniTrampNode() {}    
 
