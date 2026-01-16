@@ -2498,23 +2498,6 @@ bool AstCallNode::canBeKept() const {
 
 }
 
-bool AstSequenceNode::canBeKept() const {
-	// Theoretically we could keep the entire thing, but... not sure
-	// that's a terrific idea. For now, don't keep a sequence node around.
-    return false;
-}
-
-bool AstVariableNode::canBeKept() const {
-    return ast_wrappers_[index]->canBeKept();
-}
-
-bool AstMemoryNode::canBeKept() const {
-	// Despite our memory loads, we can be kept;
-	// we're loading off process state, which is defined
-	// to be invariant during the instrumentation phase.
-	return true;
-}
-
 // Occasionally, we do not call .generateCode_phase2 for the referenced node,
 // but generate code by hand. This routine decrements its use count properly
 void AstNode::decUseCount(codeGen &gen)
