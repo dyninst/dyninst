@@ -252,7 +252,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
 	// Check if the node can be kept at all. Some nodes (e.g., storeOp)
 	// can not be cached
-	virtual bool canBeKept() const = 0;
+	virtual bool canBeKept() const { return false; }
 
 	// Allocate a register and make it available for sharing if our
    // node is shared
@@ -594,7 +594,12 @@ class AstSequenceNode : public AstNode {
 
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
     virtual bool accessesParam();
-    virtual bool canBeKept() const;
+
+    virtual bool canBeKept() const {
+      // Theoretically we could keep the entire thing, but... not sure
+      // that's a terrific idea. For now, don't keep a sequence node around.
+        return false;
+    }
 
     virtual void getChildren(std::vector<AstNodePtr> &children);
     
@@ -623,7 +628,11 @@ class AstVariableNode : public AstNode {
 
     virtual BPatch_type	  *checkType(BPatch_function* = NULL) { return getType(); }
     virtual bool accessesParam();
-    virtual bool canBeKept() const;
+
+    virtual bool canBeKept() const {
+      return ast_wrappers_[index]->canBeKept();
+    }
+
     virtual operandType getoType() const { return ast_wrappers_[index]->getoType(); }
     virtual AstNodePtr operand() const { return ast_wrappers_[index]->operand(); }
     virtual const void *getOValue() const { return ast_wrappers_[index]->getOValue(); }
@@ -652,7 +661,12 @@ class AstVariableNode : public AstNode {
 class AstMemoryNode : public AstNode {
  public:
     AstMemoryNode(memoryType mem, unsigned which, int size);
-	bool canBeKept() const;
+    bool canBeKept() const {
+      // Despite our memory loads, we can be kept;
+      // we're loading off process state, which is defined
+      // to be invariant during the instrumentation phase.
+      return true;
+    }
 
    virtual std::string format(std::string indent);
    virtual bool containsFuncCall() const;
@@ -698,7 +712,6 @@ class AstActualAddrNode : public AstNode {
 
 
     virtual BPatch_type *checkType(BPatch_function*  = NULL) { return getType(); }
-    virtual bool canBeKept() const { return false; }
     virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;
  
@@ -717,7 +730,6 @@ class AstDynamicTargetNode : public AstNode {
 
 
     virtual BPatch_type *checkType(BPatch_function*  = NULL) { return getType(); }
-    virtual bool canBeKept() const { return false; }
     virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;
  
@@ -733,7 +745,6 @@ class AstScrambleRegistersNode : public AstNode {
 
     virtual ~AstScrambleRegistersNode() {}
 
-    virtual bool canBeKept() const { return false; }
     virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;
  
@@ -751,7 +762,6 @@ class AstSnippetNode : public AstNode {
    // in our world. 
   public:
   AstSnippetNode(Dyninst::PatchAPI::SnippetPtr snip) : snip_(snip) {}
-   bool canBeKept() const { return false; }
    bool containsFuncCall() const { return false; }
    bool usesAppRegister() const { return false; }
    
