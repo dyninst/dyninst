@@ -228,7 +228,15 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
 
 
-   virtual bool containsFuncCall() const = 0;
+   virtual bool containsFuncCall() const {
+     for(auto &&c : children) {
+       if(c->containsFuncCall()) {
+         return true;
+       }
+     }
+     return false;
+   }
+   
    virtual bool usesAppRegister() const = 0;
 
    int referenceCount;     // Reference count for freeing memory
@@ -314,7 +322,6 @@ class AstNullNode : public AstNode {
     AstNullNode() : AstNode() {}
 
    virtual std::string format(std::string indent);
-    virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;
     
     bool canBeKept() const { return true; }
@@ -333,7 +340,6 @@ class AstStackInsertNode : public AstNode {
         type(t) {}
 
         virtual std::string format(std::string indent);
-        virtual bool containsFuncCall() const;
         virtual bool usesAppRegister() const;
 
         bool canBeKept() const { return true; }
@@ -364,7 +370,6 @@ class AstStackRemoveNode : public AstNode {
     {}
 
         virtual std::string format(std::string indent);
-        virtual bool containsFuncCall() const;
         virtual bool usesAppRegister() const;
 
         bool canBeKept() const { return true; }
@@ -386,7 +391,6 @@ class AstStackRemoveNode : public AstNode {
 class AstStackGenericNode : public AstNode {
     public: AstStackGenericNode() : AstNode() {}
             virtual std::string format(std::string indent);
-            virtual bool containsFuncCall() const;
             virtual bool usesAppRegister() const;
 
             bool canBeKept() const { return true; }
@@ -407,8 +411,6 @@ class AstOperatorNode : public AstNode {
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
 
     virtual bool canBeKept() const;
-    
-    virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;
  
 
@@ -472,8 +474,6 @@ class AstOperandNode : public AstNode {
     
     virtual void setVariableAST(codeGen &gen);
 
-    virtual bool containsFuncCall() const;
-
     virtual bool usesAppRegister() const;
  
     virtual void emitVariableStore(opCode op, Dyninst::Register src1, Dyninst::Register src2, codeGen& gen,
@@ -534,7 +534,7 @@ class AstCallNode : public AstNode {
     virtual bool canBeKept() const;
     
     virtual void setVariableAST(codeGen &gen);
-    virtual bool containsFuncCall() const; 
+    virtual bool containsFuncCall() const { return true; }
     virtual bool usesAppRegister() const;
  
     void setConstFunc(bool val) { constFunc_ = val; }
@@ -579,7 +579,6 @@ class AstSequenceNode : public AstNode {
     }
     
     virtual void setVariableAST(codeGen &gen);
-    virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;
  
 
@@ -612,7 +611,9 @@ class AstVariableNode : public AstNode {
 
     virtual void setVariableAST(codeGen &gen);
     
-    virtual bool containsFuncCall() const;
+    virtual bool containsFuncCall() const {
+      return children[index]->containsFuncCall();
+    }
     virtual bool usesAppRegister() const;
  
 
@@ -639,7 +640,6 @@ class AstMemoryNode : public AstNode {
     }
 
    virtual std::string format(std::string indent);
-   virtual bool containsFuncCall() const;
    virtual bool usesAppRegister() const;
  
 
@@ -663,7 +663,6 @@ class AstOriginalAddrNode : public AstNode {
 
     virtual BPatch_type *checkType(BPatch_function*  = NULL) { return getType(); }
     virtual bool canBeKept() const { return true; }
-    virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;
  
 
@@ -682,7 +681,6 @@ class AstActualAddrNode : public AstNode {
 
 
     virtual BPatch_type *checkType(BPatch_function*  = NULL) { return getType(); }
-    virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;
  
  private:
@@ -700,7 +698,6 @@ class AstDynamicTargetNode : public AstNode {
 
 
     virtual BPatch_type *checkType(BPatch_function*  = NULL) { return getType(); }
-    virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;
  
  private:
@@ -715,7 +712,6 @@ class AstScrambleRegistersNode : public AstNode {
 
     virtual ~AstScrambleRegistersNode() {}
 
-    virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;
  
  private:
@@ -732,7 +728,6 @@ class AstSnippetNode : public AstNode {
    // in our world. 
   public:
   AstSnippetNode(Dyninst::PatchAPI::SnippetPtr snip) : snip_(snip) {}
-   bool containsFuncCall() const { return false; }
    bool usesAppRegister() const { return false; }
    
   private:
@@ -752,7 +747,6 @@ class AstAtomicOperationStmtNode : public AstNode {
     virtual std::string format(std::string indent);
 
     virtual bool canBeKept() const { return true; }
-    virtual bool containsFuncCall() const { return false; }
     virtual bool usesAppRegister() const { return false; }
 
   private:
