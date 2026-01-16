@@ -300,14 +300,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    virtual bool containsFuncCall() const = 0;
    virtual bool usesAppRegister() const = 0;
 
-   enum CostStyleType { Min, Avg, Max };
-   int minCost() const {  return costHelper(Min);  }
-   int avgCost() const {  return costHelper(Avg);  }
-   int maxCost() const {  return costHelper(Max);  }
-
-	// return the # of instruction times in the ast.
-	virtual int costHelper(enum CostStyleType) const { return 0; }	
-
    int referenceCount;     // Reference count for freeing memory
    int useCount;           // Reference count for generating code
    void setUseCount(); // Set values for useCount
@@ -497,7 +489,6 @@ class AstOperatorNode : public AstNode {
     AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r = AstNodePtr(), AstNodePtr e = AstNodePtr());
 
    virtual std::string format(std::string indent);
-    virtual int costHelper(enum CostStyleType costStyle) const;	
 
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
     virtual bool accessesParam(void);         // Does this AST access "Param"
@@ -567,8 +558,6 @@ class AstOperandNode : public AstNode {
 
     virtual AstNodePtr operand() const { return operand_; }
 
-    virtual int costHelper(enum CostStyleType costStyle) const;	
-        
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
 
     virtual bool accessesParam(void) { return (oType == operandType::Param || oType == operandType::ParamAtEntry || oType == operandType::ParamAtCall); }
@@ -638,8 +627,6 @@ class AstCallNode : public AstNode {
     ~AstCallNode() {}
 
    virtual std::string format(std::string indent);
-
-    virtual int costHelper(enum CostStyleType costStyle) const;	
         
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
     virtual bool accessesParam(); 
@@ -688,8 +675,6 @@ class AstSequenceNode : public AstNode {
 
    virtual std::string format(std::string indent);
 
-    virtual int costHelper(enum CostStyleType costStyle) const;	
-
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
     virtual bool accessesParam();
     virtual bool canBeKept() const;
@@ -721,8 +706,6 @@ class AstVariableNode : public AstNode {
     ~AstVariableNode() {}
 
     virtual std::string format(std::string indent);
-
-    virtual int costHelper(enum CostStyleType costStyle) const;	
 
     virtual BPatch_type	  *checkType(BPatch_function* = NULL) { return getType(); }
     virtual bool accessesParam();

@@ -230,8 +230,6 @@ Dyninst::Register emitFuncCall(opCode op, codeGen &gen,
 					  bool noCost, 
                       func_instance *func);
 
-int getInsnCost(opCode t);
-
 extern Dyninst::Address getMaxBranch();
 
 // find these internal functions before finding any other functions

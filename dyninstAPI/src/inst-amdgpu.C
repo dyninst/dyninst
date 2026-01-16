@@ -154,11 +154,6 @@ void emitV(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /
   assert(!"Not imeplemented for AMDGPU");
 }
 
-int getInsnCost(opCode) {
-  assert(!"Not implemented for AMDGPU");
-  return 0;
-}
-
 bool doNotOverflow(int64_t /* value */) {
   assert(!"Not implemented for AMDGPU");
   return false;
