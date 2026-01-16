@@ -523,7 +523,7 @@ void AstNode::setUseCount()
     }
 }
 
-void AstNode::cleanUseCount(void)
+void AstNode::cleanUseCount()
 {
     useCount = 0;
 
