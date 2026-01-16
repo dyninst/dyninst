@@ -38,7 +38,7 @@
 #include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/AbslocInterface.h" // And more of the same
 #include "dataflowAPI/h/SymEval.h" // Variable class
-#include "common/h/DynAST.h"
+#include "DynAST.h"
 #include "parseAPI/h/CFG.h"
 
 

@@ -28,6 +28,7 @@ set(_dataflow_sources
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ABI.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Absloc.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/AbslocInterface.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/AST.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/convertOpcodes.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/debug_dataflow.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ExpressionConversionVisitor.C
@@ -120,6 +121,7 @@ set(_dataflow_public_headers
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/Absloc.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/AbslocInterface.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/bitArray.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/DynAST.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/InstructionCache.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/liveness.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/slicing.h
