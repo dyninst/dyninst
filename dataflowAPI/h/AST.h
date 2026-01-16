@@ -66,7 +66,7 @@ namespace Dyninst {
 
     bool operator==(const AST &rhs) const {
       // make sure rhs and this have the same type
-      return ((typeid(*this) == typeid(rhs)) && isStrictEqual(rhs));
+      return (this->getID() == rhs.getID()) && isStrictEqual(rhs);
     }
 
     virtual unsigned numChildren() const {
