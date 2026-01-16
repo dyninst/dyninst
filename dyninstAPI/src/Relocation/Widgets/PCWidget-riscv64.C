@@ -91,13 +91,20 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
 
     // Calculate the offset between current PC and original RA
     EmitterRISCV64* emitter = static_cast<EmitterRISCV64*>(gen.emitter());
-    Address RAOffset = addr - emitter->emitMovePCToReg(GPR_RA, gen) + RV_INSN_SIZE;
+    Address RAOffset = addr - emitter->emitMovePCToReg(GPR_RA, gen) + RISCV_INSN_SIZE;
     // Load the offset into a scratch register
     std::vector<Register> exclude;
     exclude.push_back(GPR_RA);
-    Register scratchReg = insnCodeGen::moveValueToReg(gen, RAOffset, &exclude);
+    Register scratch = gen.rs()->getScratchRegister(gen, true);
+    if (scratch == Null_Register) {
+      std::cerr << "Unexpected error: Not enough scratch registers to generate "
+                   "IPPatch::apply"
+                << std::endl;
+      assert(0);
+    }
+    insnCodeGen::loadImmIntoReg(gen, scratch, RAOffset, gen.useCompressed());
     // Put the original RA into LR
-    insnCodeGen::generateAdd(gen, GPR_RA, scratchReg, GPR_RA, false);
+    insnCodeGen::generateAdd(gen, GPR_RA, scratch, GPR_RA, false);
     // Do a jump to the actual target (so do not overwrite LR)
     insnCodeGen::generateBranch(gen, gen.currAddr(), addr, false);
     return true;
