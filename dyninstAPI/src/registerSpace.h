@@ -478,7 +478,7 @@ class registerSpace {
     static unsigned SPR(Dyninst::Register x);
     int framePointer() { return r1; }
 #endif
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
     int framePointer();
 #endif
 #if defined(DYNINST_CODEGEN_ARCH_AARCH64)

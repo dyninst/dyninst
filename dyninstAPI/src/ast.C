@@ -58,7 +58,7 @@ using namespace Dyninst::InstructionAPI;
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
 #include "inst-power.h"
-#elif defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#elif defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "inst-x86.h"
 #include "emit-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
@@ -1130,7 +1130,7 @@ bool AstOperatorNode::initRegisters(codeGen &g) {
             ret = false;
     }
 
-#if !defined(DYNINST_CODEGEN_ARCH_X86)
+#if !defined(DYNINST_CODEGEN_ARCH_I386)
     // Override: if we're trying to save to an original
     // register, make sure it's saved on the stack.
     if(loperand) {
@@ -1147,7 +1147,7 @@ bool AstOperatorNode::initRegisters(codeGen &g) {
     return ret;
 }
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool noCost)
 {
    (void) size_;
@@ -2229,7 +2229,7 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
       }
       if (retReg == Dyninst::Null_Register) return false;
 
-#if defined(DYNINST_CODEGEN_ARCH_X86)
+#if defined(DYNINST_CODEGEN_ARCH_I386)
         emitVload(loadRegRelativeOp,
                   (Address)0,
                   REGNUM_ESP,

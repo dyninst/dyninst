@@ -568,7 +568,7 @@ int cpuidCall() {
 
 #if defined(x86_64_unknown_linux2_4)              \
  || defined(os_freebsd) || defined(DYNINST_HOST_ARCH_X86_64) \
- || !defined(DYNINST_HOST_ARCH_X86) || !defined(DYNINST_CODEGEN_ARCH_X86)
+ || !defined(DYNINST_HOST_ARCH_X86) || !defined(DYNINST_CODEGEN_ARCH_I386)
 bool xmmCapable()
 {
   return true;
@@ -2326,7 +2326,7 @@ int registerSpace::framePointer() {
 
    DYNINST_DIAGNOSTIC_END_SUPPRESS_DUPLICATED_BRANCHES
 }
-#elif defined(DYNINST_CODEGEN_ARCH_X86)
+#elif defined(DYNINST_CODEGEN_ARCH_I386)
 int registerSpace::framePointer() { 
    return REGNUM_EBP; 
 }
