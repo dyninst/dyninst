@@ -91,13 +91,6 @@ class image_variable;
 class AstNode;
 typedef boost::shared_ptr<AstNode> AstNodePtr;
 
-typedef enum {
-   cfj_unset = 0,
-   cfj_none = 1,
-   cfj_jump = 2,
-   cfj_call = 3
-} cfjRet_t;
-
 class registerSpace;
 
 class regTracker_t {
