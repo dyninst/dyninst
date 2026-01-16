@@ -760,12 +760,6 @@ Address Emitter::getInterModuleVarAddr(const image_variable *var,
   return relocation_address;
 }
 
-Address EmitterRISCV64::emitMovePCToReg(Register dest, codeGen &gen) {
-  // auipc rd, 0
-  insnCodeGen::generateAuipc(gen, dest, 0, gen.useCompressed());
-  return gen.currAddr();
-}
-
 Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
   // from POWER64 getInterModuleFuncAddr
 
@@ -820,33 +814,6 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
     binEdit->addDependentRelocation(relocation_address, referring);
   }
   return relocation_address;
-}
-
-regState_t::regState_t() : pc_rel_offset(-1), timeline(0), stack_height(0) {
-  for (unsigned i = GPR_X0; i <= GPR_X31; i++) {
-    RealRegsState r;
-    r.is_allocatable = (i != GPR_ZERO && i != GPR_RA && i != GPR_SP &&
-                        i != GPR_GP && i != GPR_TP);
-    r.been_used = false;
-    r.last_used = 0;
-    r.contains = NULL;
-    registerStates.push_back(r);
-  }
-}
-
-void registerSpace::initRealRegSpace() {
-  for (unsigned i = 0; i < regStateStack.size(); i++) {
-    if (regStateStack[i])
-      delete regStateStack[i];
-  }
-  regStateStack.clear();
-
-  regState_t *new_regState = new regState_t();
-  regStateStack.push_back(new_regState);
-  regs_been_spilled.clear();
-
-  pc_rel_reg = Null_Register;
-  pc_rel_use_count = 0;
 }
 
 Address getMaxBranch() { return JTYPE_IMM_MAX; }
