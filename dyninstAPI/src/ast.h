@@ -90,8 +90,6 @@ class image_variable;
 
 class AstNode;
 typedef boost::shared_ptr<AstNode> AstNodePtr;
-class AstMiniTrampNode;
-typedef boost::shared_ptr<AstMiniTrampNode> AstMiniTrampNodePtr;
 
 typedef enum {
    cfj_unset = 0,
@@ -243,8 +241,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    
    // TODO...
    // Needs some way of marking what to save and restore... should be a registerSpace, really
-
-   static AstNodePtr miniTrampNode(AstNodePtr tramp);
 
    static AstNodePtr originalAddrNode();
    static AstNodePtr actualAddrNode();
@@ -773,45 +769,6 @@ class AstVariableNode : public AstNode {
     std::vector<std::pair<Dyninst::Offset, Dyninst::Offset> > *ranges_;
     unsigned index;
 
-};
-
-
-class AstMiniTrampNode : public AstNode {
- public:
-    AstMiniTrampNode(AstNodePtr ast): inline_(false) {
-       if (ast != AstNodePtr())
-          ast->referenceCount++;
-       ast_ = ast;
-    }
-
-
-    Dyninst::Address generateTramp(codeGen &gen,
-                          int &trampCost, 
-                          bool noCost);
-            
-    virtual ~AstMiniTrampNode() {}    
-
-    virtual bool accessesParam(void) { return ast_->accessesParam(); } 
-
-    virtual void getChildren(std::vector<AstNodePtr> &children);
-    
-    virtual void setChildren(std::vector<AstNodePtr> &children);
-    virtual AstNodePtr deepCopy();
-
-    virtual void setVariableAST(codeGen &gen);
-
-    virtual bool containsFuncCall() const;
-    virtual bool usesAppRegister() const;
- 
-
-    bool canBeKept() const;
-
-    AstNodePtr getAST() { return ast_; }
- private:
-    AstMiniTrampNode(): inline_(false) {}
-
-    bool inline_;
-    AstNodePtr ast_;
 };
 
 class AstMemoryNode : public AstNode {
