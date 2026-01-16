@@ -240,7 +240,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    void setUseCount(); // Set values for useCount
    int getSize() { return size; }
    void cleanUseCount();
-   void printUseCount(void);
 
    virtual const std::vector<AstNodePtr> getArgs() { return std::vector<AstNodePtr>(); } // to quiet compiler
 
