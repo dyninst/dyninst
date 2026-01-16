@@ -123,7 +123,6 @@ public:
 
 };
 
-class dataReqNode;
 class AstNode : public Dyninst::PatchAPI::Snippet {
  public:
    enum class operandType { Constant, 
