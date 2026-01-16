@@ -301,6 +301,10 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNode
        r->referenceCount++;
     if (e != AstNodePtr())
        e->referenceCount++;
+
+    if (loperand) children.push_back(loperand);
+    if (roperand) children.push_back(roperand);
+    if (eoperand) children.push_back(eoperand);
 }
 
     // Direct operand
@@ -315,6 +319,8 @@ AstOperandNode::AstOperandNode(operandType ot, void *arg) :
         oValue = (void *)P_strdup((char *)arg);
     else
         oValue = (void *) arg;
+
+    if (operand_) children.push_back(operand_);
 }
 
 // And an indirect (say, a load)
@@ -326,6 +332,7 @@ AstOperandNode::AstOperandNode(operandType ot, AstNodePtr l) :
     operand_(l)
 {
    l->referenceCount++;
+   if (operand_) children.push_back(operand_);
 }
 
 AstOperandNode::AstOperandNode(operandType ot, const image_variable* iv) :
@@ -336,6 +343,7 @@ AstOperandNode::AstOperandNode(operandType ot, const image_variable* iv) :
   operand_()
 {
   assert(oVar);
+  if (operand_) children.push_back(operand_);
 }
 
 
@@ -349,7 +357,7 @@ AstCallNode::AstCallNode(func_instance *func,
 {
     for (unsigned i = 0; i < args.size(); i++) {
         args[i]->referenceCount++;
-        args_.push_back(args[i]);
+        children.push_back(args[i]);
     }
 }
 
@@ -373,7 +381,7 @@ AstCallNode::AstCallNode(const std::string &func,
 {
     for (unsigned i = 0; i < args.size(); i++) {
         args[i]->referenceCount++;
-        args_.push_back(args[i]);
+        children.push_back(args[i]);
     }
 }
 
@@ -387,7 +395,7 @@ AstCallNode::AstCallNode(Address addr,
 {
     for (unsigned i = 0; i < args.size(); i++) {
         args[i]->referenceCount++;
-        args_.push_back(args[i]);
+        children.push_back(args[i]);
     }
 }
 
@@ -396,15 +404,16 @@ AstSequenceNode::AstSequenceNode(std::vector<AstNodePtr > &sequence) :
 {
     for (unsigned i = 0; i < sequence.size(); i++) {
         sequence[i]->referenceCount++;
-        sequence_.push_back(sequence[i]);
+        children.push_back(sequence[i]);
     }
 }
 
 AstVariableNode::AstVariableNode(vector<AstNodePtr>&ast_wrappers, vector<pair<Dyninst::Offset, Dyninst::Offset> > *ranges) :
-    ast_wrappers_(ast_wrappers), ranges_(ranges), index(0)
+    ranges_(ranges), index(0)
 {
+   children = ast_wrappers;
    vector<AstNodePtr>::iterator i;
-   assert(!ast_wrappers_.empty());
+   assert(!children.empty());
 
    for (i = ast_wrappers.begin(); i != ast_wrappers.end(); i++) {
       (*i)->referenceCount++;
@@ -516,8 +525,6 @@ void AstNode::setUseCount()
 		// calculating this guy)
 	}
 	// We can't be kept, but maybe our children can.
-	std::vector<AstNodePtr> children;
-	getChildren(children);
 	for (unsigned i=0; i<children.size(); i++) {
 	    children[i]->setUseCount();
     }
@@ -527,8 +534,6 @@ void AstNode::cleanUseCount()
 {
     useCount = 0;
 
-    std::vector<AstNodePtr> children;
-    getChildren(children);
     for (unsigned i=0; i<children.size(); i++) {
 		children[i]->cleanUseCount();
     }
@@ -660,10 +665,8 @@ bool AstNode::previousComputationValid(Dyninst::Register &reg,
 
 bool AstNode::initRegisters(codeGen &g) {
     bool ret = true;
-    std::vector<AstNodePtr> kids;
-    getChildren(kids);
-    for (unsigned i = 0; i < kids.size(); i++) {
-        if (!kids[i]->initRegisters(g))
+    for (unsigned i = 0; i < children.size(); i++) {
+        if (!children[i]->initRegisters(g))
             ret = false;
     }
     return ret;
@@ -1010,10 +1013,8 @@ bool AstStackGenericNode::generateCode_phase2(codeGen&, bool, Address&, Dyninst:
 
 bool AstOperatorNode::initRegisters(codeGen &g) {
     bool ret = true;
-    std::vector<AstNodePtr> kids;
-    getChildren(kids);
-    for (unsigned i = 0; i < kids.size(); i++) {
-        if (!kids[i]->initRegisters(g))
+    for (unsigned i = 0; i < children.size(); i++) {
+        if (!children[i]->initRegisters(g))
             ret = false;
     }
 
@@ -1930,11 +1931,9 @@ bool AstCallNode::initRegisters(codeGen &gen) {
 
     bool ret = true;
 
-    // First, check kids
-    std::vector<AstNodePtr > kids;
-    getChildren(kids);
-    for (unsigned i = 0; i < kids.size(); i++) {
-        if (!kids[i]->initRegisters(gen))
+    // First, check children
+    for (unsigned i = 0; i < children.size(); i++) {
+        if (!children[i]->initRegisters(gen))
             ret = false;
     }
 
@@ -1987,11 +1986,11 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
     Dyninst::Register tmp = 0;
 
     if (use_func && !callReplace_) {
-        tmp = emitFuncCall(callOp, gen, args_,
+        tmp = emitFuncCall(callOp, gen, children,
                            noCost, use_func);
     }
     else if (use_func && callReplace_) {
-	tmp = emitFuncCall(funcJumpOp, gen, args_,
+	tmp = emitFuncCall(funcJumpOp, gen, children,
                            noCost, use_func);
     }
     else {
@@ -2036,23 +2035,23 @@ bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost,
     Dyninst::Register tmp = Dyninst::Null_Register;
     Address unused = ADDR_NULL;
 
-    if (sequence_.size() == 0) {
+    if (children.size() == 0) {
       // Howzat???
       return true;
     }
 
-    for (unsigned i = 0; i < sequence_.size() - 1; i++) {
-      if (!sequence_[i]->generateCode_phase2(gen,
+    for (unsigned i = 0; i < children.size() - 1; i++) {
+      if (!children[i]->generateCode_phase2(gen,
                                                noCost,
                                                unused,
                                                tmp)) ERROR_RETURN;
-        if (sequence_[i]->decRefCount())
+        if (children[i]->decRefCount())
            gen.rs()->freeRegister(tmp);
         tmp = Dyninst::Null_Register;
     }
 
     // We keep the last one
-    if (!sequence_.back()->generateCode_phase2(gen, noCost, unused, retReg)) ERROR_RETURN;
+    if (!children.back()->generateCode_phase2(gen, noCost, unused, retReg)) ERROR_RETURN;
 
 	decUseCount(gen);
 
@@ -2062,7 +2061,7 @@ bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost,
 bool AstVariableNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           Address &addr,
                                           Dyninst::Register &retReg) {
-    return ast_wrappers_[index]->generateCode_phase2(gen, noCost, addr, retReg);
+    return children[index]->generateCode_phase2(gen, noCost, addr, retReg);
 }
 
 bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
@@ -2329,8 +2328,8 @@ BPatch_type *AstCallNode::checkType(BPatch_function* func) {
     assert(BPatch::bpatch != NULL);	/* We'll use this later. */
 
     unsigned i;
-    for (i = 0; i < args_.size(); i++) {
-        BPatch_type *opType = args_[i]->checkType(func);
+    for (i = 0; i < children.size(); i++) {
+        BPatch_type *opType = children[i]->checkType(func);
         /* XXX Check operands for compatibility */
         if (opType == BPatch::bpatch->type_Error) {
             errorFlag = true;
@@ -2367,8 +2366,8 @@ BPatch_type *AstSequenceNode::checkType(BPatch_function* func) {
 	return ret;
     }
 
-    for (unsigned i = 0; i < sequence_.size(); i++) {
-        sType = sequence_[i]->checkType(func);
+    for (unsigned i = 0; i < children.size(); i++) {
+        sType = children[i]->checkType(func);
         if (sType == BPatch::bpatch->type_Error)
             errorFlag = true;
     }
@@ -2409,31 +2408,29 @@ bool AstOperatorNode::accessesParam()
 
 
 bool AstCallNode::accessesParam() {
-    for (unsigned i = 0; i < args_.size(); i++) {
-        if (args_[i]->accessesParam())
+    for (unsigned i = 0; i < children.size(); i++) {
+        if (children[i]->accessesParam())
             return true;
     }
     return false;
 }
 
 bool AstSequenceNode::accessesParam() {
-    for (unsigned i = 0; i < sequence_.size(); i++) {
-        if (sequence_[i]->accessesParam())
+    for (unsigned i = 0; i < children.size(); i++) {
+        if (children[i]->accessesParam())
             return true;
     }
     return false;
 }
 
 bool AstVariableNode::accessesParam() {
-    return ast_wrappers_[index]->accessesParam();
+    return children[index]->accessesParam();
 }
 
 // Our children may have incorrect useCounts (most likely they
 // assume that we will not bother them again, which is wrong)
 void AstNode::fixChildrenCounts()
 {
-    std::vector<AstNodePtr> children;
-    getChildren(children);
     for (unsigned i=0; i<children.size(); i++) {
 		children[i]->setUseCount();
     }
@@ -2485,8 +2482,8 @@ bool AstOperandNode::canBeKept() const {
 
 bool AstCallNode::canBeKept() const {
     if (constFunc_) {
-        for (unsigned i = 0; i < args_.size(); i++) {
-            if (!args_[i]->canBeKept()) {
+        for (unsigned i = 0; i < children.size(); i++) {
+            if (!children[i]->canBeKept()) {
                 fprintf(stderr, "AST %p: labelled const func but argument %u cannot be kept!\n",
                         (const void*)this, i);
                 return false;
@@ -2511,35 +2508,6 @@ void AstNode::decUseCount(codeGen &gen)
     }
 }
 
-// Return all children of this node ([lre]operand, ..., operands[])
-
-void AstNode::getChildren(std::vector<AstNodePtr > &) {
-}
-
-void AstOperatorNode::getChildren(std::vector<AstNodePtr > &children) {
-    if (loperand) children.push_back(loperand);
-    if (roperand) children.push_back(roperand);
-    if (eoperand) children.push_back(eoperand);
-}
-
-void AstOperandNode::getChildren(std::vector<AstNodePtr > &children) {
-    if (operand_) children.push_back(operand_);
-}
-
-void AstCallNode::getChildren(std::vector<AstNodePtr > &children) {
-    for (unsigned i = 0; i < args_.size(); i++)
-        children.push_back(args_[i]);
-}
-
-void AstSequenceNode::getChildren(std::vector<AstNodePtr > &children) {
-    for (unsigned i = 0; i < sequence_.size(); i++)
-        children.push_back(sequence_[i]);
-}
-
-void AstVariableNode::getChildren(std::vector<AstNodePtr > &children) {
-    ast_wrappers_[index]->getChildren(children);
-}
-
 void AstOperatorNode::setVariableAST(codeGen &g) {
     if(loperand) loperand->setVariableAST(g);
     if(roperand) roperand->setVariableAST(g);
@@ -2551,13 +2519,13 @@ void AstOperandNode::setVariableAST(codeGen &g){
 }
 
 void AstCallNode::setVariableAST(codeGen &g){
-    for (unsigned i = 0; i < args_.size(); i++)
-        args_[i]->setVariableAST(g);
+    for (unsigned i = 0; i < children.size(); i++)
+        children[i]->setVariableAST(g);
 }
 
 void AstSequenceNode::setVariableAST(codeGen &g) {
-    for (unsigned i = 0; i < sequence_.size(); i++)
-        sequence_[i]->setVariableAST(g);
+    for (unsigned i = 0; i < children.size(); i++)
+        children[i]->setVariableAST(g);
 }
 
 void AstVariableNode::setVariableAST(codeGen &gen){
@@ -2606,15 +2574,15 @@ bool AstOperandNode::containsFuncCall() const {
 }
 
 bool AstSequenceNode::containsFuncCall() const {
-	for (unsigned i = 0; i < sequence_.size(); i++) {
-		if (sequence_[i]->containsFuncCall()) return true;
+	for (unsigned i = 0; i < children.size(); i++) {
+		if (children[i]->containsFuncCall()) return true;
 	}
 	return false;
 }
 
 bool AstVariableNode::containsFuncCall() const
 {
-    return ast_wrappers_[index]->containsFuncCall();
+    return children[index]->containsFuncCall();
 }
 
 bool AstNullNode::containsFuncCall() const
@@ -2662,8 +2630,8 @@ bool AstScrambleRegistersNode::containsFuncCall() const
 }
 
 bool AstCallNode::usesAppRegister() const {
-   for (unsigned i=0; i<args_.size(); i++) {
-      if (args_[i] && args_[i]->usesAppRegister()) return true;
+   for (unsigned i=0; i<children.size(); i++) {
+      if (children[i] && children[i]->usesAppRegister()) return true;
    }
    return false;
 }
@@ -2692,15 +2660,15 @@ bool AstOperandNode::usesAppRegister() const {
 }
 
 bool AstSequenceNode::usesAppRegister() const {
-	for (unsigned i = 0; i < sequence_.size(); i++) {
-		if (sequence_[i]->usesAppRegister()) return true;
+	for (unsigned i = 0; i < children.size(); i++) {
+		if (children[i]->usesAppRegister()) return true;
 	}
 	return false;
 }
 
 bool AstVariableNode::usesAppRegister() const
 {
-    return ast_wrappers_[index]->usesAppRegister();
+    return children[index]->usesAppRegister();
 }
 
 bool AstNullNode::usesAppRegister() const
@@ -2749,9 +2717,6 @@ bool AstScrambleRegistersNode::usesAppRegister() const
 }
 
 unsigned AstNode::getTreeSize() {
-	std::vector<AstNodePtr > children;
-	getChildren(children);
-
 	unsigned size_ = 1; // Us
 	for (unsigned i = 0; i < children.size(); i++)
 		size_ += children[i]->getTreeSize();
@@ -2896,8 +2861,8 @@ std::string AstCallNode::format(std::string indent) {
    else ret << "(" << func_name_ << ")";
    ret << endl;
    indent += "  ";
-   for (unsigned i = 0; i < args_.size(); ++i) {
-      ret << indent << args_[i]->format(indent + "  ");
+   for (unsigned i = 0; i < children.size(); ++i) {
+      ret << indent << children[i]->format(indent + "  ");
    }
 
    return ret.str();
@@ -2906,8 +2871,8 @@ std::string AstCallNode::format(std::string indent) {
 std::string AstSequenceNode::format(std::string indent) {
    std::stringstream ret;
    ret << indent << "Seq/" << hex << this << dec << "()" << endl;
-   for (unsigned i = 0; i < sequence_.size(); ++i) {
-      ret << indent << sequence_[i]->format(indent + "  ");
+   for (unsigned i = 0; i < children.size(); ++i) {
+      ret << indent << children[i]->format(indent + "  ");
    }
    return ret.str();
 }
@@ -2915,9 +2880,9 @@ std::string AstSequenceNode::format(std::string indent) {
 
 std::string AstVariableNode::format(std::string indent) {
    std::stringstream ret;
-   ret << indent << "Var/" << hex << this << dec << "(" << ast_wrappers_.size() << ")" << endl;
-   for (unsigned i = 0; i < ast_wrappers_.size(); ++i) {
-      ret << indent << ast_wrappers_[i]->format(indent + "  ");
+   ret << indent << "Var/" << hex << this << dec << "(" << children.size() << ")" << endl;
+   for (unsigned i = 0; i < children.size(); ++i) {
+      ret << indent << children[i]->format(indent + "  ");
    }
 
    return ret.str();
@@ -3008,10 +2973,8 @@ std::string AstNode::convert(opCode op) {
 
 bool AstOperandNode::initRegisters(codeGen &g) {
     bool ret = true;
-    std::vector<AstNodePtr> kids;
-    getChildren(kids);
-    for (unsigned i = 0; i < kids.size(); i++) {
-        if (!kids[i]->initRegisters(g))
+    for (unsigned i = 0; i < children.size(); i++) {
+        if (!children[i]->initRegisters(g))
             ret = false;
     }
 
