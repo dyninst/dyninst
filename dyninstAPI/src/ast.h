@@ -259,7 +259,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 	Dyninst::Register allocateAndKeep(codeGen &gen, bool noCost);
 
 	// Return all children of this node ([lre]operand, ..., operands[])
-	virtual void getChildren(std::vector<AstNodePtr> &); 
+	std::vector<AstNodePtr> const& getChildren() const { return children; }
 
 	virtual bool accessesParam(void);
 
@@ -291,6 +291,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 	BPatch_type *bptype;  // type of corresponding BPatch_snippet
 	bool doTypeCheck;	    // should operands be type checked
 	int size;		    // size of the operations (in bytes)
+	std::vector<AstNodePtr> children;
 
 
  public:
@@ -413,8 +414,6 @@ class AstOperatorNode : public AstNode {
     virtual bool accessesParam(void);         // Does this AST access "Param"
 
     virtual bool canBeKept() const;
-
-    virtual void getChildren(std::vector<AstNodePtr> &children);
     
     virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;
@@ -478,8 +477,6 @@ class AstOperandNode : public AstNode {
 
     virtual bool accessesParam(void) { return (oType == operandType::Param || oType == operandType::ParamAtEntry || oType == operandType::ParamAtCall); }
     virtual bool canBeKept() const;
-        
-    virtual void getChildren(std::vector<AstNodePtr> &children);
     
     virtual void setVariableAST(codeGen &gen);
 
@@ -544,8 +541,6 @@ class AstCallNode : public AstNode {
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
     virtual bool accessesParam(); 
     virtual bool canBeKept() const;
-
-    virtual void getChildren(std::vector<AstNodePtr> &children);
     
     virtual void setVariableAST(codeGen &gen);
     virtual bool containsFuncCall() const; 
@@ -567,7 +562,6 @@ class AstCallNode : public AstNode {
     Dyninst::Address func_addr_;
     
     func_instance *func_;
-    std::vector<AstNodePtr> args_;
 
     bool callReplace_; // Node is intended for function call replacement
     bool constFunc_;  // True if the output depends solely on 
@@ -593,8 +587,6 @@ class AstSequenceNode : public AstNode {
       // that's a terrific idea. For now, don't keep a sequence node around.
         return false;
     }
-
-    virtual void getChildren(std::vector<AstNodePtr> &children);
     
     virtual void setVariableAST(codeGen &gen);
     virtual bool containsFuncCall() const;
@@ -608,7 +600,6 @@ class AstSequenceNode : public AstNode {
                                      Dyninst::Register &retReg);
 
     AstSequenceNode() {}
-    std::vector<AstNodePtr> sequence_;
 };
 
 class AstVariableNode : public AstNode {
@@ -623,16 +614,14 @@ class AstVariableNode : public AstNode {
     virtual bool accessesParam();
 
     virtual bool canBeKept() const {
-      return ast_wrappers_[index]->canBeKept();
+      return children[index]->canBeKept();
     }
 
-    virtual operandType getoType() const { return ast_wrappers_[index]->getoType(); }
-    virtual AstNodePtr operand() const { return ast_wrappers_[index]->operand(); }
-    virtual const void *getOValue() const { return ast_wrappers_[index]->getOValue(); }
+    virtual operandType getoType() const { return children[index]->getoType(); }
+    virtual AstNodePtr operand() const { return children[index]->operand(); }
+    virtual const void *getOValue() const { return children[index]->getOValue(); }
 
     virtual void setVariableAST(codeGen &gen);
-
-    virtual void getChildren(std::vector<AstNodePtr> &children);
     
     virtual bool containsFuncCall() const;
     virtual bool usesAppRegister() const;
@@ -645,7 +634,6 @@ class AstVariableNode : public AstNode {
                                      Dyninst::Register &retReg);
 
     AstVariableNode(): ranges_(NULL), index(0) {}
-    std::vector<AstNodePtr>ast_wrappers_;
     std::vector<std::pair<Dyninst::Offset, Dyninst::Offset> > *ranges_;
     unsigned index;
 
