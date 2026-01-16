@@ -93,36 +93,6 @@ typedef boost::shared_ptr<AstNode> AstNodePtr;
 
 class registerSpace;
 
-class regTracker_t {
-public:
-	class commonExpressionTracker {
-	public:
-		Dyninst::Register keptRegister;
-		int keptLevel;
-		commonExpressionTracker() : keptRegister(Dyninst::Null_Register), keptLevel(-1) {}
-	};
-
-	int condLevel;
-
-  regTracker_t() : condLevel(0) {}
-
-	std::unordered_map<AstNode *, commonExpressionTracker> tracker;
-
-	void addKeptRegister(codeGen &gen, AstNode *n, Dyninst::Register reg);
-	void removeKeptRegister(codeGen &gen, AstNode *n);
-	Dyninst::Register hasKeptRegister(AstNode *n);
-	bool stealKeptRegister(Dyninst::Register reg);
-
-	void reset();
-
-	void increaseConditionalLevel();
-	void decreaseAndClean(codeGen &gen);
-	void cleanKeptRegisters(int level);
-	void debugPrint();
-	
-
-};
-
 class AstNode : public Dyninst::PatchAPI::Snippet {
  public:
    enum class operandType { Constant, 

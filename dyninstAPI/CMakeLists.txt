@@ -104,6 +104,7 @@ set(_private_headers
     src/PointHandler.h
     src/RegisterConversion.h
     src/registerSpace.h
+    src/regTracker.h
     src/syscallNotification.h
     src/trapMappings.h
     src/unix.h
@@ -139,6 +140,7 @@ set(_sources
     src/pcEventHandler.C
     src/pcEventMuxer.C
     src/registerSpace.C
+    src/regTracker.C
     src/variable.C
     src/BPatch.C
     src/BPatch_addressSpace.C
