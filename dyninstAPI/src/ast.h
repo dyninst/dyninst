@@ -258,10 +258,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    // node is shared
 	Dyninst::Register allocateAndKeep(codeGen &gen, bool noCost);
 
-	// Check to see if path1 is a subpath of path2
-	bool subpath(const std::vector<AstNode*> &path1, 
-                const std::vector<AstNode*> &path2) const;
-
 	// Return all children of this node ([lre]operand, ..., operands[])
 	virtual void getChildren(std::vector<AstNodePtr> &); 
 
