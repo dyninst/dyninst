@@ -186,8 +186,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    static AstNodePtr dynamicTargetNode();
 
    static AstNodePtr snippetNode(Dyninst::PatchAPI::SnippetPtr snip);
-
-   AstNode(AstNodePtr src);
         
    virtual ~AstNode();
         
