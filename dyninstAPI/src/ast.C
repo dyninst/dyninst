@@ -2716,14 +2716,6 @@ bool AstScrambleRegistersNode::usesAppRegister() const
    return true;
 }
 
-unsigned AstNode::getTreeSize() {
-	unsigned size_ = 1; // Us
-	for (unsigned i = 0; i < children.size(); i++)
-		size_ += children[i]->getTreeSize();
-	return size_;
-
-}
-
 int_variable* AstOperandNode::lookUpVar(AddressSpace* as)
 {
   mapped_module *mod = as->findModule(oVar->pdmod()->fileName());

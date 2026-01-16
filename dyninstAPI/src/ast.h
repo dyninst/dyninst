@@ -219,8 +219,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    // steps before code generation.
    virtual void setVariableAST(codeGen &) {}
 
-   unsigned getTreeSize();
-
    bool decRefCount();
 
    bool previousComputationValid(Dyninst::Register &reg,
