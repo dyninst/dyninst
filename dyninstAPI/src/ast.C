@@ -2533,38 +2533,14 @@ void AstNode::decUseCount(codeGen &gen)
 void AstNode::getChildren(std::vector<AstNodePtr > &) {
 }
 
-void AstNode::setChildren(std::vector<AstNodePtr > &) {
-}
-
 void AstOperatorNode::getChildren(std::vector<AstNodePtr > &children) {
     if (loperand) children.push_back(loperand);
     if (roperand) children.push_back(roperand);
     if (eoperand) children.push_back(eoperand);
 }
 
-void AstOperatorNode::setChildren(std::vector<AstNodePtr > &children){
-   int count = (loperand ? 1 : 0) + (roperand ? 1 : 0) + (eoperand ? 1 : 0);
-   if ((int)children.size() == count){
-      //memory management?
-      if (loperand) loperand = children[0];
-      if (roperand) roperand = children[1];
-      if (eoperand) eoperand = children[2];
-   }else{
-      fprintf(stderr, "OPERATOR setChildren given bad arguments. Wanted:%d , given:%d\n", count, (int)children.size());
-   }
-}
-
 void AstOperandNode::getChildren(std::vector<AstNodePtr > &children) {
     if (operand_) children.push_back(operand_);
-}
-
-void AstOperandNode::setChildren(std::vector<AstNodePtr > &children){
-   if (children.size() == 1){
-      //memory management?
-      operand_ = children[0];
-   }else{
-      fprintf(stderr, "OPERAND setChildren given bad arguments. Wanted:%d , given:%d\n", 1,  (int)children.size());
-   }
 }
 
 void AstCallNode::getChildren(std::vector<AstNodePtr > &children) {
@@ -2572,43 +2548,13 @@ void AstCallNode::getChildren(std::vector<AstNodePtr > &children) {
         children.push_back(args_[i]);
 }
 
-void AstCallNode::setChildren(std::vector<AstNodePtr > &children){
-   if (children.size() == args_.size()){
-      //memory management?
-      for (unsigned i = 0; i < args_.size(); i++){
-         AstNodePtr * newNode = new AstNodePtr(children[i]);
-         args_.push_back(*newNode);
-         args_.erase(args_.begin() + i + 1);
-      }
-   }else{
-      fprintf(stderr, "CALL setChildren given bad arguments. Wanted:%d , given:%d\n",  (int)args_.size(),  (int)children.size());
-   }
-}
-
 void AstSequenceNode::getChildren(std::vector<AstNodePtr > &children) {
     for (unsigned i = 0; i < sequence_.size(); i++)
         children.push_back(sequence_[i]);
 }
 
-void AstSequenceNode::setChildren(std::vector<AstNodePtr > &children){
-   if (children.size() == sequence_.size()){
-      //memory management?
-      for (unsigned i = 0; i < sequence_.size(); i++){
-         AstNodePtr * newNode = new AstNodePtr(children[i]);
-         sequence_.push_back(*newNode);
-         sequence_.erase(sequence_.begin() + i + 1);
-      }
-   }else{
-      fprintf(stderr, "SEQ setChildren given bad arguments. Wanted:%d , given:%d\n", (int)sequence_.size(),  (int)children.size());
-   }
-}
-
 void AstVariableNode::getChildren(std::vector<AstNodePtr > &children) {
     ast_wrappers_[index]->getChildren(children);
-}
-
-void AstVariableNode::setChildren(std::vector<AstNodePtr > &children){
-   ast_wrappers_[index]->setChildren(children);
 }
 
 void AstOperatorNode::setVariableAST(codeGen &g) {
