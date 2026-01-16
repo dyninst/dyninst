@@ -2388,45 +2388,6 @@ BPatch_type *AstSequenceNode::checkType(BPatch_function* func) {
     return ret;
 }
 
-bool AstNode::accessesParam() {
-    return false;
-}
-
-
-// This is not the most efficient way to traverse a DAG
-bool AstOperatorNode::accessesParam()
-{
-    bool ret = false;
-    if (loperand)
-        ret |= loperand->accessesParam();
-    if (roperand)
-        ret |= roperand->accessesParam();
-    if (eoperand)
-        ret |= eoperand->accessesParam();
-    return ret;
-}
-
-
-bool AstCallNode::accessesParam() {
-    for (unsigned i = 0; i < children.size(); i++) {
-        if (children[i]->accessesParam())
-            return true;
-    }
-    return false;
-}
-
-bool AstSequenceNode::accessesParam() {
-    for (unsigned i = 0; i < children.size(); i++) {
-        if (children[i]->accessesParam())
-            return true;
-    }
-    return false;
-}
-
-bool AstVariableNode::accessesParam() {
-    return children[index]->accessesParam();
-}
-
 // Our children may have incorrect useCounts (most likely they
 // assume that we will not bother them again, which is wrong)
 void AstNode::fixChildrenCounts()
