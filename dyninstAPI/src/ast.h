@@ -239,7 +239,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    int useCount;           // Reference count for generating code
    void setUseCount(); // Set values for useCount
    int getSize() { return size; }
-   void cleanUseCount(void);
+   void cleanUseCount();
    bool checkUseCount(registerSpace*, bool&);
    void printUseCount(void);
 
