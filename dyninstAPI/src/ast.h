@@ -257,8 +257,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 	// Return all children of this node ([lre]operand, ..., operands[])
 	std::vector<AstNodePtr> const& getChildren() const { return children; }
 
-	virtual bool accessesParam(void);
-
 	virtual void setOValue(void *) { assert(0); }
 	virtual const void *getOValue() const { assert(0); return NULL; }
 	virtual const image_variable* getOVar() const {
@@ -407,7 +405,6 @@ class AstOperatorNode : public AstNode {
    virtual std::string format(std::string indent);
 
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
-    virtual bool accessesParam(void);         // Does this AST access "Param"
 
     virtual bool canBeKept() const;
     
@@ -471,7 +468,6 @@ class AstOperandNode : public AstNode {
 
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
 
-    virtual bool accessesParam(void) { return (oType == operandType::Param || oType == operandType::ParamAtEntry || oType == operandType::ParamAtCall); }
     virtual bool canBeKept() const;
     
     virtual void setVariableAST(codeGen &gen);
@@ -535,7 +531,6 @@ class AstCallNode : public AstNode {
    virtual std::string format(std::string indent);
         
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
-    virtual bool accessesParam(); 
     virtual bool canBeKept() const;
     
     virtual void setVariableAST(codeGen &gen);
@@ -576,7 +571,6 @@ class AstSequenceNode : public AstNode {
    virtual std::string format(std::string indent);
 
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
-    virtual bool accessesParam();
 
     virtual bool canBeKept() const {
       // Theoretically we could keep the entire thing, but... not sure
@@ -607,7 +601,6 @@ class AstVariableNode : public AstNode {
     virtual std::string format(std::string indent);
 
     virtual BPatch_type	  *checkType(BPatch_function* = NULL) { return getType(); }
-    virtual bool accessesParam();
 
     virtual bool canBeKept() const {
       return children[index]->canBeKept();
