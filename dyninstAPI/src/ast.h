@@ -258,9 +258,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    // node is shared
 	Dyninst::Register allocateAndKeep(codeGen &gen, bool noCost);
 
-   // If someone needs to take this guy away.
-   bool stealRegister(Dyninst::Register reg);
-
 	// Check to see if path1 is a subpath of path2
 	bool subpath(const std::vector<AstNode*> &path1, 
                 const std::vector<AstNode*> &path2) const;
