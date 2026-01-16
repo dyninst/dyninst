@@ -241,9 +241,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    int getSize() { return size; }
    void cleanUseCount();
 
-   virtual const std::vector<AstNodePtr> getArgs() { return std::vector<AstNodePtr>(); } // to quiet compiler
-
-
    virtual void setChildren(std::vector<AstNodePtr > &children);   
 
 	// Occasionally, we do not call .generateCode_phase2 for the
