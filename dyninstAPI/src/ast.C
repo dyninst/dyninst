@@ -180,10 +180,6 @@ AstNodePtr AstNode::stackGenericNode() {
     return AstNodePtr(new AstStackGenericNode());
 }
 
-AstNodePtr AstNode::labelNode(std::string &label) {
-    return AstNodePtr (new AstLabelNode(label));
-}
-
 AstNodePtr AstNode::operandNode(operandType ot, void *arg) {
     return AstNodePtr(new AstOperandNode(ot, arg));
 }
@@ -1065,21 +1061,6 @@ bool AstStackGenericNode::generateCode_phase2(codeGen&, bool, Address&, Dyninst:
     return false;
 }
 #endif
-
-bool AstLabelNode::generateCode_phase2(codeGen &gen, bool,
-                                       Address &retAddr,
-                                       Dyninst::Register &retReg) {
-	assert(generatedAddr_ == 0);
-    // Pick up the address we were added at
-    generatedAddr_ = gen.currAddr();
-
-    retAddr = ADDR_NULL;
-    retReg = Dyninst::Null_Register;
-
-	decUseCount(gen);
-
-    return true;
-}
 
 bool AstOperatorNode::initRegisters(codeGen &g) {
     bool ret = true;
@@ -2984,11 +2965,6 @@ bool AstStackGenericNode::containsFuncCall() const
     return false;
 }
 
-bool AstLabelNode::containsFuncCall() const
-{
-   return false;
-}
-
 bool AstMemoryNode::containsFuncCall() const
 {
    return false;
@@ -3073,11 +3049,6 @@ bool AstStackRemoveNode::usesAppRegister() const
 bool AstStackGenericNode::usesAppRegister() const
 {
     return false;
-}
-
-bool AstLabelNode::usesAppRegister() const
-{
-   return false;
 }
 
 bool AstDynamicTargetNode::usesAppRegister() const

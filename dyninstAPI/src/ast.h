@@ -491,22 +491,6 @@ class AstStackGenericNode : public AstNode {
                     Dyninst::Register &retReg);
 };
 
-class AstLabelNode : public AstNode {
- public:
-    AstLabelNode(std::string &label) : AstNode(), label_(label), generatedAddr_(0) {}
-    virtual bool containsFuncCall() const;
-    virtual bool usesAppRegister() const;
-
-	bool canBeKept() const { return true; }
- private:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Dyninst::Address &retAddr,
-                                     Dyninst::Register &retReg);
-    std::string label_;
-    Dyninst::Address generatedAddr_;
-};
-
 class AstOperatorNode : public AstNode {
  public:
 
