@@ -56,6 +56,7 @@ void AmdgpuGfx908PointHandler::handlePoints(std::vector<BPatch_point *> const &p
     if (result.second) {
       insertPrologueIfKernel(f);
       insertEpilogueIfKernel(f);
+      maximizeSgprAllocationIfKernel(f);
     }
   }
 }
@@ -76,7 +77,6 @@ BPatch_variableExpr* AmdgpuGfx908PointHandler::getKernelDescriptorVariable(BPatc
   }
   return nullptr;
 }
-
 
 bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) const {
   const uint32_t maxGranulatedWavefrontSgprCount = 12; // This is computed based on LLVM AMDGPU documentation.
@@ -171,6 +171,29 @@ void AmdgpuGfx908PointHandler::insertEpilogueIfKernel(BPatch_function *function)
   insertEpilogueAtPoints(epilogueSnippet, exitPoints);
 }
 
+void AmdgpuGfx908PointHandler::maximizeSgprAllocationIfKernel(BPatch_function *function) {
+  BPatch_variableExpr *kdVariable = getKernelDescriptorVariable(function);
+  assert(kdVariable);
+
+  llvm::amdhsa::kernel_descriptor_t rawKd;
+  bool success = kdVariable->readValue(&rawKd, sizeof rawKd);
+  assert(success);
+
+  AmdgpuKernelDescriptor kd(rawKd, this->eflag);
+
+  // This math comes from LLVM AMDGPUUsage documentation
+  uint32_t newValue = 2 * ((112 / 16) - 1); // Set SGPRs to 112 (max value).
+  kd.setCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount(newValue);
+  uint32_t kernargSize = kd.getKernargSize();
+  while (kernargSize % 8) {
+    ++kernargSize;
+  }
+  kd.setKernargSize(kernargSize + 8);
+
+  // We have modified the kernel descriptor. Now overwrite the original one with it.
+  kdVariable->writeValue(kd.getRawPtr(), sizeof(rawKd), true);
+}
+
 void AmdgpuGfx908PointHandler::insertPrologueAtPoints(AmdgpuPrologueSnippet &snippet,
                                                       std::vector<BPatch_point *> &points) {
   for (BPatch_point *point : points) {
@@ -188,7 +211,6 @@ void AmdgpuGfx908PointHandler::insertEpilogueAtPoints(AmdgpuEpilogueSnippet &sni
     iPoint->pushBack(snippet.ast_wrapper);
   }
 }
-
 
 void AmdgpuGfx908PointHandler::writeInstrumentedKernelNames(const std::string &filePath) {
   std::ofstream outFile(filePath);
