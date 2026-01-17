@@ -140,11 +140,6 @@ public:
   std::vector<Dyninst::PatchAPI::InstancePtr> instances;
 };
 
-//
-// Return the expected runtime of the passed function in instruction times.
-//
-unsigned getPrimitiveCost(const std::string &name);
-
 /*
  * Generate an instruction.
  * Previously this was handled by the polymorphic "emit" function, which
@@ -228,7 +223,6 @@ extern Dyninst::Address getMaxBranch();
 
 // find these internal functions before finding any other functions
 // extern std::unordered_map<std::string, unsigned> tagDict;
-extern std::map<std::string, unsigned> primitiveCosts; 
 
 bool writeFunctionPtr(AddressSpace *p, Dyninst::Address addr, func_instance *f);
 

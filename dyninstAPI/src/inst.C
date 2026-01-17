@@ -48,19 +48,6 @@
 using namespace Dyninst;
 using namespace PatchAPI;
 
-/*
- * return the time required to execute the passed primitive.
- *
- */
-std::map<std::string, unsigned> primitiveCosts;
-
-unsigned getPrimitiveCost(const std::string &name)
-{
-   std::map<string, unsigned>::iterator iter = primitiveCosts.find(name);
-   if (iter != primitiveCosts.end()) return iter->second;
-   return 1;
-}
-
 instMapping::instMapping(const instMapping *parIM,
                          AddressSpace *child) :
     func(parIM->func),
