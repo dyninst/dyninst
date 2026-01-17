@@ -234,8 +234,6 @@ Dyninst::Register emitFuncCall(opCode op, codeGen &gen,
 
 int getInsnCost(opCode t);
 
-extern std::string getProcessStatus(const AddressSpace *p);
-
 // TODO - what about mangled names ?
 // expects the symbol name advanced past the underscore
 extern unsigned findTags(const std::string funcName);
