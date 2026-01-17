@@ -248,11 +248,6 @@ AstNodePtr AstNode::memoryNode(memoryType ma, int which, int size) {
     return AstNodePtr(new AstMemoryNode(ma, which, size));
 }
 
-AstNodePtr AstNode::miniTrampNode(AstNodePtr tramp) {
-    if (tramp == NULL) return AstNodePtr();
-    return AstNodePtr(new AstMiniTrampNode(tramp));
-}
-
 AstNodePtr AstNode::originalAddrNode() {
     if (originalAddrNode_ == NULL) {
         originalAddrNode_ = AstNodePtr(new AstOriginalAddrNode());
@@ -537,40 +532,6 @@ AstNode::~AstNode() {
     //printf("at ~AstNode()  count=%d\n", referenceCount);
 }
 
-Address AstMiniTrampNode::generateTramp(codeGen &gen,
-                                        int &trampCost,
-                                        bool noCost) {
-    static AstNodePtr costAst;
-    static AstNodePtr preamble;
-
-    if (costAst == AstNodePtr())
-        costAst = AstNode::operandNode(AstNode::operandType::Constant, (void *)0);
-
-    if (preamble == AstNodePtr())
-        preamble = AstNode::operatorNode(trampPreamble, costAst);
-
-    // private constructor; assumes NULL for right child
-
-    // we only want to use the cost of the minimum statements that will
-    // be executed.  Statements, such as the body of an if statement,
-    // will have their costs added to the observed cost global variable
-    // only if they are indeed called.  The code to do this in the minitramp
-    // right after the body of the if.
-    trampCost = preamble->maxCost() + minCost();
-
-    costAst->setOValue((void *) (long) trampCost);
-
-    if (!preamble->generateCode(gen, noCost)) {
-        fprintf(stderr, "[%s:%d] WARNING: failure to generate miniTramp preamble\n", __FILE__, __LINE__);
-    }
-
-    if (!ast_->generateCode(gen, noCost)) {
-        fprintf(stderr, "[%s:%d] WARNING: failure to generate miniTramp body\n", __FILE__, __LINE__);
-    }
-
-    return 0;
-}
-
 // This name is a bit of a misnomer. It's not the strict use count; it's the
 // use count modified by whether a node can be kept or not. We can treat
 // un-keepable nodes (AKA those that don't strictly depend on their AST inputs)
@@ -781,7 +742,6 @@ bool AstNode::generateCode_phase2(codeGen &, bool,
     if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
     if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
     if (dynamic_cast<AstVariableNode *>(this)) fprintf(stderr, "varNode\n");
-    if (dynamic_cast<AstMiniTrampNode *>(this)) fprintf(stderr, "miniTrampNode\n");
     if (dynamic_cast<AstMemoryNode *>(this)) fprintf(stderr, "memoryNode\n");
     assert(0);
 	return 0;
@@ -2715,13 +2675,6 @@ bool AstVariableNode::canBeKept() const {
     return ast_wrappers_[index]->canBeKept();
 }
 
-bool AstMiniTrampNode::canBeKept() const {
-	// Well... depends on the actual AST, doesn't it.
-	assert(ast_);
-
-	return ast_->canBeKept();
-}
-
 bool AstMemoryNode::canBeKept() const {
 	// Despite our memory loads, we can be kept;
 	// we're loading off process state, which is defined
@@ -2934,38 +2887,6 @@ AstNodePtr AstVariableNode::deepCopy(){
    return AstNodePtr(copy);
 }
 
-void AstMiniTrampNode::getChildren(std::vector<AstNodePtr > &children) {
-    children.push_back(ast_);
-}
-
-void AstMiniTrampNode::setChildren(std::vector<AstNodePtr > &children){
-   if (children.size() == 1){
-      //memory management?
-      ast_ = children[0];
-   }else{
- fprintf(stderr, "MINITRAMP setChildren given bad arguments. Wanted:%d , given:%d\n", 1,  (int)children.size());
-   }
-}
-
-AstNodePtr AstMiniTrampNode::deepCopy(){
-   AstMiniTrampNode * copy = new AstMiniTrampNode();
-   copy->inline_ = inline_;
-   copy->ast_ = ast_->deepCopy();
-
-   copy->setType(bptype);
-   copy->setTypeChecking(doTypeCheck);
-
-   copy->setLineNum(getLineNum());
-   copy->lineInfoSet = lineInfoSet;
-   copy->setColumnNum(getColumnNum());
-   copy->columnInfoSet = columnInfoSet;
-   copy->setSnippetName(getSnippetName());
-   copy->snippetNameSet = snippetNameSet;
-
-   return AstNodePtr(copy);
-}
-
-
 void AstOperatorNode::setVariableAST(codeGen &g) {
     if(loperand) loperand->setVariableAST(g);
     if(roperand) roperand->setVariableAST(g);
@@ -3013,10 +2934,6 @@ void AstVariableNode::setVariableAST(codeGen &gen){
     assert(found);
 }
 
-void AstMiniTrampNode::setVariableAST(codeGen &g){
-    if(ast_) ast_->setVariableAST(g);
-}
-
 bool AstCallNode::containsFuncCall() const {
    return true;
 }
@@ -3032,11 +2949,6 @@ bool AstOperatorNode::containsFuncCall() const {
 
 bool AstOperandNode::containsFuncCall() const {
 	if (operand_ && operand_->containsFuncCall()) return true;
-	return false;
-}
-
-bool AstMiniTrampNode::containsFuncCall() const {
-	if (ast_ && ast_->containsFuncCall()) return true;
 	return false;
 }
 
@@ -3129,11 +3041,6 @@ bool AstOperandNode::usesAppRegister() const {
 
    if (operand_ && operand_->usesAppRegister()) return true;
    return false;
-}
-
-bool AstMiniTrampNode::usesAppRegister() const {
-	if (ast_ && ast_->usesAppRegister()) return true;
-	return false;
 }
 
 bool AstSequenceNode::usesAppRegister() const {
