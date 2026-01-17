@@ -220,7 +220,7 @@ namespace {
                         ConstantAST::Ptr c2 = ConstantAST::convert(newKids[1]);
                         unsigned long result = c1->val().val;
                         result |= (c2->val().val << c2->val().size);
-                        return ConstantAST::create(result);
+                        return ConstantAST::create(Constant{result});
                     }
                     break;
                 default:
