@@ -61,6 +61,7 @@ struct AmdgpuGfx908PointHandler : PointHandler {
 
   void insertPrologueIfKernel(BPatch_function *function);
   void insertEpilogueIfKernel(BPatch_function *function);
+  void maximizeSgprAllocationIfKernel(BPatch_function *function);
 
   void insertPrologueAtPoints(AmdgpuPrologueSnippet &snippet, std::vector<BPatch_point *> &points);
   void insertEpilogueAtPoints(AmdgpuEpilogueSnippet &snippet, std::vector<BPatch_point *> &points);
