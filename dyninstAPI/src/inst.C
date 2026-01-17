@@ -61,18 +61,6 @@ unsigned getPrimitiveCost(const std::string &name)
    return 1;
 }
 
-
-// find any tags to associate semantic meaning to function
-unsigned findTags(const std::string ) {
-  return 0;
-#ifdef notdef
-  if (tagDict.defines(funcName))
-    return (tagDict[funcName]);
-  else
-    return 0;
-#endif
-}
-
 instMapping::instMapping(const instMapping *parIM,
                          AddressSpace *child) :
     func(parIM->func),

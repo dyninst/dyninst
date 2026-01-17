@@ -232,10 +232,6 @@ Dyninst::Register emitFuncCall(opCode op, codeGen &gen,
 
 int getInsnCost(opCode t);
 
-// TODO - what about mangled names ?
-// expects the symbol name advanced past the underscore
-extern unsigned findTags(const std::string funcName);
-
 extern Dyninst::Address getMaxBranch();
 
 // find these internal functions before finding any other functions
