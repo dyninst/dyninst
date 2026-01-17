@@ -234,12 +234,6 @@ Dyninst::Register emitFuncCall(opCode op, codeGen &gen,
 
 int getInsnCost(opCode t);
 
-/*
- * get the requested parameter into a register.
- *
- */
-Dyninst::Register getParameter(Dyninst::Register dest, int param);
-
 extern std::string getProcessStatus(const AddressSpace *p);
 
 // TODO - what about mangled names ?
