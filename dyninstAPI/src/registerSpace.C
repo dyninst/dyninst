@@ -56,7 +56,7 @@
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
 #include "dyninstAPI/src/inst-power.h"
 #include "dyninstAPI/src/emit-power.h"
-#elif defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#elif defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/emit-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
@@ -103,7 +103,7 @@ unsigned registerSlot::encoding() const {
         return Null_Register;
         break;
     }
-#elif defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#elif defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
     // Should do a mapping here from entire register space to "expected" encodings.
     return number;
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64) 
@@ -269,7 +269,7 @@ void registerSpace::createRegSpaceInt(std::vector<registerSlot *> &registers,
         case registerSlot::SGPR:
         case registerSlot::VGPR:
 	        bool physical = true;
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 	  if (rs->addr_width == 4)
 	    physical = false;
 #endif
@@ -508,7 +508,7 @@ bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
 // "Save special purpose registers". We may want to define a "volatile"
 // later - something like "can be unintentionally nuked". For example,
 // x86 flags register.
-#if defined(DYNINST_CODEGEN_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_X86)
+#if defined(DYNINST_CODEGEN_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_I386)
 bool registerSpace::checkVolatileRegisters(codeGen & /*gen*/,
                                            registerSlot::livenessState_t state)
 {
@@ -536,7 +536,7 @@ bool registerSpace::checkVolatileRegisters(codeGen &,
 }
 #endif
 
-#if defined(DYNINST_CODEGEN_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_X86)
+#if defined(DYNINST_CODEGEN_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_I386)
 bool registerSpace::saveVolatileRegisters(codeGen &gen)
 {
     savedFlagSize = 0;
@@ -595,7 +595,7 @@ bool registerSpace::saveVolatileRegisters(codeGen &) {
 }
 #endif
 
-#if defined(DYNINST_CODEGEN_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_X86)
+#if defined(DYNINST_CODEGEN_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_I386)
 bool registerSpace::restoreVolatileRegisters(codeGen &gen)
 {
     if (!checkVolatileRegisters(gen, registerSlot::spilled))
@@ -647,7 +647,7 @@ void registerSpace::freeRegister(Register num)
         reg->refCount = 0;
     }
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
     if (addr_width == 4) {
       if (reg->refCount == 0 && !registers_[num]->keptValue) {
 	markVirtualDead(num);
@@ -998,7 +998,7 @@ bool registerSpace::anyLiveSPRsAtEntry() const {
 
 std::vector<registerSlot *>& registerSpace::trampRegs()
 {
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
    if (addr_width == 4)
       return realRegs();
 #endif
@@ -1346,7 +1346,7 @@ void registerSpace::pushNewRegState()
    regStateStack.push_back(new_top);
 }
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 int& registerSpace::pc_rel_offset()
 {
    if (!regStateStack.size())
@@ -1399,7 +1399,7 @@ int registerSpace::getInstFrameSize() {
 
 #endif
 
-#if !defined(DYNINST_CODEGEN_ARCH_X86) && !defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if !defined(DYNINST_CODEGEN_ARCH_I386) && !defined(DYNINST_CODEGEN_ARCH_X86_64)
 void registerSpace::initRealRegSpace()
 {
 }
@@ -1460,7 +1460,7 @@ int registerSpace::getStackHeight()
 void registerSpace::specializeSpace(const bitArray &liveRegs) {
     // Liveness info is stored as a single bitarray for all registers.
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
     // We use "virtual" registers on the IA-32 platform (or AMD-64 in
     // 32-bit mode), and thus the registerSlot objects have _no_ relation
     // to the liveRegs input set. We handle this as a special case, and

@@ -2798,7 +2798,7 @@ void StackAnalysis::createEntryInput(AbslocState &input) {
    // POWER - the in height is 0
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
    input[Absloc(sp())].addInitSet(Height(0));
-#elif (defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64))
+#elif (defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_HOST_ARCH_X86_64))
    input[Absloc(sp())].addInitSet(Height(-word_size));
    if (sp() == x86_64::rsp) {
       input[Absloc(x86_64::esp)].addInitSet(Height(-word_size));

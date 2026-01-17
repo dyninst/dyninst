@@ -64,7 +64,7 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "inst-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_POWER)
 #include "inst-power.h"

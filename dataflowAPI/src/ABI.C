@@ -32,7 +32,7 @@
 #include "dataflowAPI/src/RegisterMap.h"
 #include <stdio.h>
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #  include "registers/x86_regs.h"
 #  include "registers/x86_64_regs.h"
 #endif
@@ -114,7 +114,7 @@ ABI* ABI::getABI(int addr_width){
 	globalABI_->addr_width = 4;
 	globalABI64_ = new ABI();
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 	globalABI64_->addr_width = 8;
 	globalABI_->index = &machRegIndex_x86();
 	globalABI64_->index = &machRegIndex_x86_64();
@@ -237,7 +237,7 @@ const bitArray &ABI::getAllRegs() const
 bitArray ABI::getBitArray()  {
   return bitArray(index->size());
 }
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 void ABI::initialize32(){
 
    returnRegs_ = new bitArray(machRegIndex_x86().size());

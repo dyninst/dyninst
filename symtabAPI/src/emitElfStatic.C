@@ -780,7 +780,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
             lmap.originalDtorRegion = *reg_it;
         }
     }
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_POWER)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_POWER)
     // Allocate the new TLS region, if necessary
     if( lmap.tlsRegions.size() > 0 ) {
         lmap.tlsRegionOffset = currentOffset;
@@ -1042,7 +1042,7 @@ Offset emitElfStatic::layoutRegions(deque<Region *> &regions,
 bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &lmap) {
     char *newTargetData = lmap.allocatedData;
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64) || \
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64) || \
     defined(DYNINST_CODEGEN_ARCH_AARCH64) || (defined(DYNINST_CODEGEN_ARCH_POWER) && defined(DYNINST_CODEGEN_ARCH_64BIT)) || \
     defined(DYNINST_CODEGEN_ARCH_RISCV64)
     if( lmap.gotSize > 0 ) {
@@ -1102,7 +1102,7 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
                 DATA_NAME, Region::RT_DATA, true, lmap.dataRegionAlign);
     }
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)  || defined(DYNINST_CODEGEN_ARCH_POWER)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)  || defined(DYNINST_CODEGEN_ARCH_POWER)
     if( lmap.tlsSize > 0 ) {
         target->addRegion(globalOffset + lmap.tlsRegionOffset,
                 reinterpret_cast<void *>(&newTargetData[lmap.tlsRegionOffset]),
@@ -1651,7 +1651,7 @@ Offset emitElfStatic::allocatePLTEntries(std::map<Symbol *, std::pair<Offset, Of
   //   For each indirect symbol
   //     Allocate a PLT entry for it
   //     Add it to entries
-#if defined(DYNINST_CODEGEN_ARCH_X86)
+#if defined(DYNINST_CODEGEN_ARCH_I386)
   unsigned entry_size = 16;
 #elif defined(DYNINST_CODEGEN_ARCH_X86_64)
   unsigned entry_size = 16;
@@ -1724,7 +1724,7 @@ Offset emitElfStatic::allocateRelocationSection(std::map<Symbol *, std::pair<Off
     relocSize = sizeof(Elf64_Rela);
   else
     relocSize = sizeof(Elf32_Rel);
-#elif defined(DYNINST_CODEGEN_ARCH_X86)
+#elif defined(DYNINST_CODEGEN_ARCH_I386)
   // 32-bit only uses REL types
   unsigned relocSize = sizeof(Elf32_Rel);
 #else
