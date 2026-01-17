@@ -279,13 +279,8 @@ if(DYNINST_OS_FreeBSD)
     src/syscallNotification.C
     src/syscall-freebsd.C)
 elseif(DYNINST_OS_Linux)
-  list(
-    APPEND
-    _sources
-    src/linux.C
-    src/unix.C
-    src/syscallNotification.C
-    src/syscall-linux.C)
+  list(APPEND _sources src/linux.C src/unix.C src/syscallNotification.C
+       src/syscall-linux.C)
   if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
     list(APPEND _sources src/linux-x86.C)
   elseif(DYNINST_HOST_ARCH_PPC64LE)
