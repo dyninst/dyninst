@@ -69,12 +69,6 @@ Address getMaxBranch() {
     return MAX_BRANCH_OFFSET;
 }
 
-std::unordered_map<std::string, unsigned> funcFrequencyTable;
-
-void initDefaultPointFrequencyTable() {
-    assert(0); //Not implemented
-}
-
 /************************************* Register Space **************************************/
 
 void registerSpace::initialize32() {

@@ -34,8 +34,6 @@
 #include "arch-amdgpu.h"
 #include "emit-amdgpu.h"
 
-void initDefaultPointFrequencyTable() { assert(!"Not implemented for AMDGPU"); }
-
 /************************************* Register Space **************************************/
 
 void registerSpace::initialize32() {
