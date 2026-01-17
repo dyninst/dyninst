@@ -283,7 +283,6 @@ elseif(DYNINST_OS_Linux)
     APPEND
     _sources
     src/linux.C
-    src/inst-linux.C
     src/unix.C
     src/syscallNotification.C
     src/syscall-linux.C)

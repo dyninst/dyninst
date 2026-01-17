@@ -140,12 +140,6 @@ public:
   std::vector<Dyninst::PatchAPI::InstancePtr> instances;
 };
 
-/*
- * get information about the cost of primitives.
- *
- */
-void initPrimitiveCost();
-
 //
 // Return the expected runtime of the passed function in instruction times.
 //

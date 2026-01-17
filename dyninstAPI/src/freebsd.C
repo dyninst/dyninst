@@ -337,10 +337,6 @@ bool PCProcess::getOPDFunctionAddr(Address &) {
 
 #define FREEBSD_NOT_IMPLEMENTED "This function is not implemented on FreeBSD"
 
-void initPrimitiveCost() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-}
-
 // Temporary remote debugger interface.
 // I assume these will be removed when procControlAPI is complete.
 bool OS_isConnected(void)
