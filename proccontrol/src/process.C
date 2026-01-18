@@ -3519,23 +3519,6 @@ int_thread *int_thread::createThread(int_process *proc,
    return newthr;
 }
 
-void int_thread::changeLWP(Dyninst::LWP new_lwp)
-{
-  pthrd_printf("Changing LWP of %d/%d to %d\n", llproc()->getPid(), lwp, new_lwp);
-
-  int_threadPool *tpool = llproc()->threadPool();
-  map<Dyninst::LWP, int_thread *>::iterator i = tpool->thrds_by_lwp.find(lwp);
-  assert(i != tpool->thrds_by_lwp.end());
-  tpool->thrds_by_lwp.erase(i);
-  tpool->thrds_by_lwp.insert(make_pair(new_lwp, this));
-
-  ProcPool()->condvar()->lock();
-  ProcPool()->rmThread(this);
-  lwp = new_lwp;
-  ProcPool()->addThread(llproc(), this);
-  ProcPool()->condvar()->unlock();
-}
-
 void int_thread::throwEventsBeforeContinue()
 {
   pthrd_printf("Checking thread %d/%d for events thrown before continue\n",
