@@ -260,17 +260,6 @@ AstMemoryNode::AstMemoryNode(memoryType mem,
     doTypeCheck = BPatch::bpatch->isTypeChecked();
 }
 
-bool AstNullNode::generateCode_phase2(codeGen &gen, bool,
-                                      Address &retAddr,
-                                      Dyninst::Register &retReg) {
-    retAddr = ADDR_NULL;
-    retReg = Dyninst::Null_Register;
-
-    decUseCount(gen);
-
-    return true;
-}
-
 #if defined(cap_stack_mods)
 bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost,
         Address &,
@@ -2038,12 +2027,6 @@ bool AstSnippetNode::generateCode_phase2(codeGen &gen,
    if (!snip_->generate(gen.point(), buf)) return false;
    gen.copy(buf.start_ptr(), buf.size());
    return true;
-}
-
-std::string AstNullNode::format(std::string indent) {
-   std::stringstream ret;
-   ret << indent << "Null/" << hex << this << dec << "()" << endl;
-   return ret.str();
 }
 
 std::string AstStackInsertNode::format(std::string indent) {

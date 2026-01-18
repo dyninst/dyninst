@@ -32,6 +32,7 @@
 #define DYNINST_DYNINSTAPI_AST_H
 
 #include "AstNode.h"
+#include "AstNullNode.h"
 #include "dyn_register.h"
 #include "opcode.h"
 #include "OperandType.h"
@@ -51,21 +52,6 @@ class instPoint;
 class func_instance;
 class image_variable;
 class int_variable;
-
-class AstNullNode : public AstNode {
- public:
-
-    AstNullNode() : AstNode() {}
-
-   virtual std::string format(std::string indent);
-
-    bool canBeKept() const { return true; }
- private:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Dyninst::Address &retAddr,
-                                     Dyninst::Register &retReg);
-};
 
 /* Stack Frame Modification */
 class AstStackInsertNode : public AstNode {

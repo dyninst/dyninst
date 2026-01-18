@@ -117,7 +117,7 @@ bool PCProcess::getOPDFunctionAddr(Dyninst::Address &addr) {
 
 AstNodePtr PCProcess::createUnprotectStackAST() {
     // This is not necessary on power
-    return AstNode::nullNode();
+    return NullNode::create();
 }
 
 bool Frame::setPC(Dyninst::Address newpc) {
