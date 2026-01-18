@@ -1726,12 +1726,12 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<AstNo
          if (!callerSave) {
             // We don't care!
             regalloc_printf("%s[%d]: pre-call, skipping callee-saved register %u\n", FILE__, __LINE__,
-                     reg->number);
+                     (reg->number).raw);
             continue;
          }
 
          regalloc_printf("%s[%d]: pre-call, register %u has refcount %d, keptValue %d, liveState %s\n",
-                         FILE__, __LINE__, reg->number,
+                         FILE__, __LINE__, (reg->number).raw,
                          reg->refCount,
                          reg->keptValue,
                          (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::spilled) ? "spilled" : "dead"));
@@ -1793,7 +1793,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<AstNo
    int frame_size = 0;
    for (int u = operands.size() - 1; u >= 0; u--) {
       Address unused = ADDR_NULL;
-      unsigned reg = Null_Register;
+      Register reg = Null_Register;
       if(u >= (int)AMD64_ARG_REGS)
       {
          if (!operands[u]->generateCode_phase2(gen,
@@ -2272,7 +2272,7 @@ bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
       regalloc_printf("\t shouldSaveReg for iRPC\n");
    }
    if (reg->liveState != registerSlot::live) {
-      regalloc_printf("\t Reg %u not live, concluding don't save\n", reg->number);
+      regalloc_printf("\t Reg %u not live, concluding don't save\n", (reg->number).raw);
       return false;
    }
    if (saveFlags) {
@@ -2285,7 +2285,7 @@ bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
    }
    if (inst && inst->validOptimizationInfo() && !inst->definedRegs[reg->encoding()]) {
       regalloc_printf("\t Base tramp instance doesn't have reg %u (num %u) defined; concluding don't save\n",
-                      reg->encoding(), reg->number);
+                      reg->encoding(), (reg->number).raw);
       return false;
    }
    return true;
