@@ -90,6 +90,7 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
       ST_TLS,
       ST_DELETED,
       ST_INDIRECT,
+      ST_CODE,
       ST_NOTYPE
    };
 
@@ -142,6 +143,13 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
    std::string      getMangledName () const { return mangledName_; }
    std::string      getPrettyName() const;
    std::string      getTypedName() const;
+
+   std::string      getCloneSuffix() const  {return getCloneSuffix(getMangledName());}
+   std::string      getVersionSuffix() const  {return getVersionSuffix(getMangledName());}
+   bool             isColdClone() const  {return isColdClone(getMangledName());}
+   static std::string   getCloneSuffix(const std::string& s);
+   static std::string   getVersionSuffix(const std::string& s);
+   static bool          isColdClone(const std::string& s);
 
    Module *getModule() const { return module_; } 
    Symtab *getSymtab() const;
