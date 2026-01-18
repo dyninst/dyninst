@@ -130,8 +130,6 @@ AstNodePtr AstNode::atomicOperationStmtNode(opCode astOpcode, AstNodePtr variabl
    return AstNodePtr(new AstAtomicOperationStmtNode(astOpcode, variable, constant));
 }
 
-BPatch_type *AstNode::getType() { return bptype; }
-
 void AstNode::setType(BPatch_type *t) {
     bptype = t;
     if (t != NULL) {
