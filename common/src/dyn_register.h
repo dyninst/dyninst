@@ -34,12 +34,14 @@
 #include <functional>
 
 namespace Dyninst {
-/* This needs to be an int since it is sometimes used to pass offsets
-   to the code generator (i.e. if-statement) - jkh 5/24/99 */
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) || defined(DYNINST_CODEGEN_ARCH_I386) ||           \
-    defined(DYNINST_HOST_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_AARCH64) ||                  \
-    defined(DYNINST_CODEGEN_ARCH_POWER)
+/* Dyninst has been using the following typedef for representing a register number, e.g., [0..31]
+typedef unsigned int Register;
+*/
+
+// Without making intrusive changes to existing CPU architectures, we want to introduce a richer
+// Register type to model different kinds of registers.
+
 enum RegKind : uint32_t { SCALAR = 0, VECTOR = 1, MATRIX = 2, PREDICATE = 3, UNDEFINED_KIND = 4 };
 
 enum RegUsage : uint16_t {
@@ -86,7 +88,7 @@ union Register {
 
   constexpr operator uint32_t() const { return raw; }
 
-  // Required for hash map lookup
+  // Required for hashmap lookup
   constexpr bool operator==(const Register &other) const { return raw == other.raw; }
 
   constexpr bool operator!=(const Register &other) const { return !(*this == other); }
@@ -102,10 +104,9 @@ union Register {
 
   constexpr bool operator!=(const unsigned &value) const { return !(*this == value); }
 };
-#else
-/* a register number, e.g., [0..31]  */
-typedef unsigned int Register;
-#endif
+
+// Along with the older Register type, which was just an unsigned int, use of RegValue and
+// Null_Register are also scattered around the codebase.
 
 /* register content 64-bit */
 typedef long long int RegValue;
@@ -113,11 +114,9 @@ typedef long long int RegValue;
 /* '255' */
 constexpr Register Null_Register{static_cast<unsigned int>(-1)};
 
-}
+} // namespace Dyninst
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) || defined(DYNINST_CODEGEN_ARCH_I386) ||           \
-    defined(DYNINST_HOST_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_AARCH64) ||                  \
-    defined(DYNINST_CODEGEN_ARCH_POWER)
+// Adding a hash function for the new Register type
 namespace std {
 template <> struct hash<Dyninst::Register> {
   size_t operator()(const Dyninst::Register &reg) const noexcept {
@@ -125,5 +124,5 @@ template <> struct hash<Dyninst::Register> {
   }
 };
 } // namespace std
-#endif
+
 #endif
