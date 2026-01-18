@@ -215,9 +215,14 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
    // Perform whatever pre-processing steps are necessary.
    virtual bool initRegisters(codeGen &gen);
+
    // Select the appropriate Variable AST as part of pre-processing
    // steps before code generation.
-   virtual void setVariableAST(codeGen &) {}
+   virtual void setVariableAST(codeGen &g) {
+     for(auto &&c : children) {
+       c->setVariableAST(g);
+     }
+   }
 
    bool decRefCount();
 
@@ -416,8 +421,6 @@ class AstOperatorNode : public AstNode {
 
     // We override initRegisters in the case of writing to an original register.
     virtual bool initRegisters(codeGen &gen);
-    
-    virtual void setVariableAST(codeGen &gen);
 
  private:
 
@@ -471,8 +474,6 @@ class AstOperandNode : public AstNode {
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
 
     virtual bool canBeKept() const;
-    
-    virtual void setVariableAST(codeGen &gen);
 
     virtual bool usesAppRegister() const;
  
@@ -532,8 +533,6 @@ class AstCallNode : public AstNode {
         
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
     virtual bool canBeKept() const;
-    
-    virtual void setVariableAST(codeGen &gen);
     virtual bool containsFuncCall() const { return true; }
     virtual bool usesAppRegister() const;
  
@@ -578,7 +577,6 @@ class AstSequenceNode : public AstNode {
         return false;
     }
     
-    virtual void setVariableAST(codeGen &gen);
     virtual bool usesAppRegister() const;
  
 
