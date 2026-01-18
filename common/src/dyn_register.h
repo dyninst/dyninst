@@ -38,7 +38,8 @@ namespace Dyninst {
    to the code generator (i.e. if-statement) - jkh 5/24/99 */
 
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) || defined(DYNINST_CODEGEN_ARCH_I386) ||           \
-    defined(DYNINST_HOST_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_AARCH64)
+    defined(DYNINST_HOST_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_AARCH64) ||                  \
+    defined(DYNINST_CODEGEN_ARCH_POWER)
 enum RegKind : uint32_t { SCALAR = 0, VECTOR = 1, MATRIX = 2, PREDICATE = 3, UNDEFINED_KIND = 4 };
 
 enum RegUsage : uint16_t {
@@ -115,7 +116,8 @@ constexpr Register Null_Register{static_cast<unsigned int>(-1)};
 }
 
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) || defined(DYNINST_CODEGEN_ARCH_I386) ||           \
-    defined(DYNINST_HOST_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_AARCH64)
+    defined(DYNINST_HOST_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_AARCH64) ||                  \
+    defined(DYNINST_CODEGEN_ARCH_POWER)
 namespace std {
 template <> struct hash<Dyninst::Register> {
   size_t operator()(const Dyninst::Register &reg) const noexcept {
