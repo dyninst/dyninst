@@ -73,7 +73,6 @@ set(_private_headers
     src/frameChecker.h
     src/frame.h
     src/freebsd.h
-    src/freebsd-x86.h
     src/function.h
     src/hybridAnalysis.h
     src/IAPI_to_AST.h
@@ -270,14 +269,8 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 endif()
 
 if(DYNINST_OS_FreeBSD)
-  list(
-    APPEND
-    _sources
-    src/freebsd.C
-    src/unix.C
-    src/freebsd-x86.C
-    src/syscallNotification.C
-    src/syscall-freebsd.C)
+  list(APPEND _sources src/freebsd.C src/unix.C src/syscallNotification.C
+       src/syscall-freebsd.C)
 elseif(DYNINST_OS_Linux)
   list(
     APPEND
