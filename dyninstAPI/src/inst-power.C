@@ -366,7 +366,7 @@ void registerSpace::initialize() {
 
 unsigned registerSpace::SPR(Register x) {
     // Encodings from architecture manual
-    switch ((powerRegisters_t) x) {
+    switch ((powerRegisters_t) x.raw) {
     case xer:
         return SPR_XER;
         break;
@@ -1630,7 +1630,7 @@ static inline void restoreGPRtoGPR(codeGen &gen,
 //        insnCodeGen::generateImm(gen, Lop, dest, REG_SP,
 //                                 gpr_off + reg*gpr_size);
     else {
-        bperr( "GPR %u should not be restored...", reg);
+        bperr( "GPR %u should not be restored...", reg.raw);
         assert(0);
     }
 }
@@ -1930,7 +1930,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
                 instXop = CAXxop;
                 break;
 
-            case minusOp:
+            case minusOp: {
                 Register temp;
                 // need to flip operands since this computes ra-rb not rb-ra
                 temp = src1;
@@ -1939,6 +1939,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
                 instOp = SFop;
                 instXop = SFxop;
                 break;
+            }
 
             case timesOp:
                 instOp = MULSop;
