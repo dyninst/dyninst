@@ -63,6 +63,8 @@ using namespace Dyninst::InstructionAPI;
 #include "emit-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "inst-aarch64.h"
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
+#include "inst-riscv64.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 #include "emit-amdgpu.h"
 #else

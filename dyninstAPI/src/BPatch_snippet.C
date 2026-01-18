@@ -70,6 +70,8 @@ using namespace Dyninst::SymtabAPI;
 #include "inst-power.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "inst-aarch64.h"
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
+#include "inst-riscv64.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 // No inst-amdgpu.h
 #else
