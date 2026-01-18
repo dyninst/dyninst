@@ -13,7 +13,8 @@
 #include "external/rose/armv8InstructionEnum.h"
 #include "external/rose/amdgpuInstructionEnum.h"
 #include "BaseSemantics2.h"
-#include "../../h/SymEval.h"
+#include "SymEval.h"
+#include "DynAST.h"
 #include "dyntypes.h"
 
 namespace rose {
