@@ -90,6 +90,7 @@ set(_private_headers
     src/linux-x86.h
     src/mapped_module.h
     src/mapped_object.h
+    src/AstNode.h
     src/nt_signal_emul.h
     src/opcode.h
     src/os.h
@@ -135,6 +136,7 @@ set(_sources
     src/instPoint.C
     src/mapped_module.C
     src/mapped_object.C
+    src/AstNode.C
     src/parRegion.C
     src/parse-cfg.C
     src/pcEventHandler.C
