@@ -491,11 +491,11 @@ Dyninst::Register AstNode::allocateAndKeep(codeGen &gen, bool noCost)
     // Allocate a register
     Dyninst::Register dest = gen.rs()->allocateRegister(gen, noCost);
 
-    ast_printf("Allocator returned %u\n", dest);
+    ast_printf("Allocator returned %u\n", dest.raw);
     assert(dest != Dyninst::Null_Register);
 
     if (useCount > 1) {
-        ast_printf("Adding kept register %u for node %p: useCount %d\n", dest, (void*)this, useCount);
+        ast_printf("Adding kept register %u for node %p: useCount %d\n", dest.raw, (void*)this, useCount);
         // If use count is 0 or 1, we don't want to keep
         // it around. If it's > 1, then we can keep the node
         // (by construction) and want to since there's another
@@ -595,7 +595,7 @@ bool AstNode::previousComputationValid(Dyninst::Register &reg,
 	Dyninst::Register keptReg = gen.tracker()->hasKeptRegister(this);
 	if (keptReg != Dyninst::Null_Register) {
 		reg = keptReg;
-		ast_printf("Returning previously used register %u for node %p\n", reg, (void*)this);
+		ast_printf("Returning previously used register %u for node %p\n", reg.raw, (void*)this);
 		return true;
 	}
    return false;
@@ -1552,10 +1552,10 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
              doNotOverflow((int64_t)roperand->getOValue())) {
             if (retReg == Dyninst::Null_Register) {
                retReg = allocateAndKeep(gen, noCost);
-               ast_printf("Operator node, const RHS, allocated register %u\n", retReg);
+               ast_printf("Operator node, const RHS, allocated register %u\n", retReg.raw);
             }
             else
-               ast_printf("Operator node, const RHS, keeping register %u\n", retReg);
+               ast_printf("Operator node, const RHS, keeping register %u\n", retReg.raw);
 
             emitImm(op, src1, (RegValue) roperand->getOValue(), retReg, gen, noCost, gen.rs(), signedOp);
 
