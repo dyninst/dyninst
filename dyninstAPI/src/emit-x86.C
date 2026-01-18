@@ -860,22 +860,22 @@ static void emitRex(bool is_64, Register* r, Register* x, Register* b, codeGen &
     // returning since we account for it in the rex prefix
     
     // "R" register - extension to ModRM reg field
-    if (r && *r & 0x08) {
+    if (r && (*r).raw & 0x08) {
        rex |= 0x04;
-       *r &= 0x07;
+       (*r).raw &= 0x07;
     }
     
     // "X" register - extension to SIB index field
-    if (x && *x & 0x08) {
+    if (x && (*x).raw & 0x08) {
        rex |= 0x02;
-       *x &= 0x07;
+       (*x).raw &= 0x07;
     }
 
     // "B" register - extension to ModRM r/m field, SIB base field,
     // or opcode reg field
-    if (b && *b & 0x08) {
+    if (b && (*b).raw & 0x08) {
        rex |= 0x01;
-       *b &= 0x07;
+       (*b).raw &= 0x07;
     }
     
     // emit the rex, if needed

@@ -37,7 +37,7 @@ namespace Dyninst {
 /* This needs to be an int since it is sometimes used to pass offsets
    to the code generator (i.e. if-statement) - jkh 5/24/99 */
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) || defined(DYNINST_CODEGEN_ARCH_I386)
 enum RegKind : uint32_t { SCALAR = 0, VECTOR = 1, MATRIX = 2, PREDICATE = 3, UNDEFINED_KIND = 4 };
 
 enum RegUsage : uint16_t {
@@ -93,6 +93,12 @@ union Register {
   constexpr bool operator==(const int &value) const { return raw == static_cast<uint32_t>(value); }
 
   constexpr bool operator!=(const int &value) const { return !(*this == value); }
+
+  constexpr bool operator==(const unsigned &value) const {
+    return raw == static_cast<uint32_t>(value);
+  }
+
+  constexpr bool operator!=(const unsigned &value) const { return !(*this == value); }
 };
 #else
 /* a register number, e.g., [0..31]  */
@@ -107,7 +113,7 @@ constexpr Register Null_Register{static_cast<unsigned int>(-1)};
 
 }
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) || defined(DYNINST_CODEGEN_ARCH_I386)
 namespace std {
 template <> struct hash<Dyninst::Register> {
   size_t operator()(const Dyninst::Register &reg) const noexcept {
