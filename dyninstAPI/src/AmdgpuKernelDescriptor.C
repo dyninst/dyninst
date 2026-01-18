@@ -545,7 +545,7 @@ void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_EnableExceptionIntDivideByZero
 #define GET_VALUE(MASK) ((twoByteBuffer & (MASK)) >> (MASK##_SHIFT))
 
 static inline uint16_t insertField16(uint16_t op, uint16_t value, uint16_t mask, uint16_t width, uint16_t shift) {
-  assert(value >> width && "value contains more bits than specified");
+  assert(value >> width == 0 && "value contains more bits than specified");
   op &= ~mask;
   op |= value << shift;
   return op;
