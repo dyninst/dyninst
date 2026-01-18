@@ -54,166 +54,158 @@ typedef boost::shared_ptr<AstNode> AstNodePtr;
 class registerSpace;
 
 class AstNode : public Dyninst::PatchAPI::Snippet {
- public:
-   enum class operandType { Constant,
-                      ConstantString,
-                      DataReg,
-                      DataIndir,
-                      Param,
-                      ParamAtCall,
-                      ParamAtEntry,
-                      ReturnVal,
-                      ReturnAddr, // address of a return instruction
-                      DataAddr,  // Used to represent a variable in memory
-                      FrameAddr, // Calculate FP
-                      RegOffset, // Calculate *reg + offset; oValue is reg, loperand->oValue is offset.
-                      //PreviousStackFrameDataReg,
-                      //RegValue, // A possibly spilled, possibly saved register.
-                      // Both the above are now: origRegister
-                      origRegister,
-                      variableAddr,
-                      variableValue,
-                      undefOperandType,
-                      // Specific to AMDGPU. This represents an address in the form of (PlaceholderReg + offset).
-                      // Codegen may assing the same or a different register in different contexts.
-                      // Offset must be a constant.
-                      AddressAsPlaceholderRegAndOffset
-                      };
+public:
+  enum class operandType {
+    Constant,
+    ConstantString,
+    DataReg,
+    DataIndir,
+    Param,
+    ParamAtCall,
+    ParamAtEntry,
+    ReturnVal,
+    ReturnAddr, // address of a return instruction
+    DataAddr,   // Used to represent a variable in memory
+    FrameAddr,  // Calculate FP
+    RegOffset,  // Calculate *reg + offset; oValue is reg, loperand->oValue is offset.
+    // PreviousStackFrameDataReg,
+    // RegValue, // A possibly spilled, possibly saved register.
+    //  Both the above are now: origRegister
+    origRegister,
+    variableAddr,
+    variableValue,
+    undefOperandType,
+    // Specific to AMDGPU. This represents an address in the form of (PlaceholderReg + offset).
+    // Codegen may assing the same or a different register in different contexts.
+    // Offset must be a constant.
+    AddressAsPlaceholderRegAndOffset
+  };
 
+  enum memoryType {
+    EffectiveAddr,
+    BytesAccessed
+  };
 
+  enum MSpecialType {
+    GENERIC_AST,
+    CANARY_AST
+  };
 
-   enum memoryType {
-      EffectiveAddr,
-      BytesAccessed };
+public:
+  virtual std::string format(std::string indent);
+  std::string convert(operandType type);
+  std::string convert(opCode op);
 
-   enum MSpecialType{
-       GENERIC_AST,
-       CANARY_AST
-   };
+  AstNode() = default;
 
-  public:
-   virtual std::string format(std::string indent);
-   std::string convert(operandType type);
-   std::string convert(opCode op);
+  virtual ~AstNode() = default;
 
-   AstNode() = default;
+  // Factory methods....
+  static AstNodePtr nullNode();
 
-   virtual ~AstNode() = default;
+  static AstNodePtr stackInsertNode(int size, MSpecialType type = GENERIC_AST);
+  static AstNodePtr stackRemoveNode(int size, MSpecialType type);
+  static AstNodePtr stackRemoveNode(int size, MSpecialType type, func_instance *func, bool canaryAfterPrologue,
+                                    long canaryHeight);
+  static AstNodePtr stackGenericNode();
+  bool allocateCanaryRegister(codeGen &gen, bool noCost, Dyninst::Register &reg, bool &needSaveAndRestore);
 
-   // Factory methods....
-   static AstNodePtr nullNode();
+  static AstNodePtr operandNode(operandType ot, void *arg);
+  static AstNodePtr operandNode(operandType ot, AstNodePtr ast);
+  static AstNodePtr operandNode(operandType ot, const image_variable *iv);
 
-   static AstNodePtr stackInsertNode(int size, MSpecialType type = GENERIC_AST);
-   static AstNodePtr stackRemoveNode(int size, MSpecialType type);
-   static AstNodePtr stackRemoveNode(int size, MSpecialType type, func_instance* func, bool canaryAfterPrologue, long canaryHeight);
-   static AstNodePtr stackGenericNode();
-   bool allocateCanaryRegister(codeGen& gen, bool noCost, Dyninst::Register& reg, bool& needSaveAndRestore);
+  static AstNodePtr memoryNode(memoryType ot, int which, int size = 8);
 
-   static AstNodePtr operandNode(operandType ot, void *arg);
-   static AstNodePtr operandNode(operandType ot, AstNodePtr ast);
-   static AstNodePtr operandNode(operandType ot, const image_variable* iv);
+  static AstNodePtr sequenceNode(std::vector<AstNodePtr> &sequence);
 
-   static AstNodePtr memoryNode(memoryType ot, int which, int size = 8);
+  static AstNodePtr variableNode(std::vector<AstNodePtr> &ast_wrappers_,
+                                 std::vector<std::pair<Dyninst::Offset, Dyninst::Offset>> *ranges = NULL);
 
-   static AstNodePtr sequenceNode(std::vector<AstNodePtr > &sequence);
+  static AstNodePtr operatorNode(opCode ot, AstNodePtr l = AstNodePtr(), AstNodePtr r = AstNodePtr(),
+                                 AstNodePtr e = AstNodePtr());
 
-   static AstNodePtr variableNode(std::vector<AstNodePtr>&ast_wrappers_, std::vector<std::pair<Dyninst::Offset, Dyninst::Offset> > *ranges = NULL);
+  static AstNodePtr atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable, AstNodePtr constant);
 
-   static AstNodePtr operatorNode(opCode ot,
-                                  AstNodePtr l = AstNodePtr(),
-                                  AstNodePtr r = AstNodePtr(),
-                                  AstNodePtr e = AstNodePtr());
+  static AstNodePtr funcCallNode(const std::string &func, std::vector<AstNodePtr> &args,
+                                 AddressSpace *addrSpace = NULL);
+  static AstNodePtr funcCallNode(func_instance *func, std::vector<AstNodePtr> &args);
+  static AstNodePtr funcCallNode(func_instance *func); // Special case for function call replacement.
+  static AstNodePtr funcCallNode(Dyninst::Address addr, std::vector<AstNodePtr> &args); // For when you absolutely need
+  // to jump somewhere.
 
-   static AstNodePtr atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable,
-                                             AstNodePtr constant);
+  // Acquire the thread index value - a 0...n labelling of threads.
+  static AstNodePtr threadIndexNode();
 
-   static AstNodePtr funcCallNode(const std::string &func, std::vector<AstNodePtr > &args, AddressSpace *addrSpace = NULL);
-   static AstNodePtr funcCallNode(func_instance *func, std::vector<AstNodePtr > &args);
-   static AstNodePtr funcCallNode(func_instance *func); // Special case for function call replacement.
-   static AstNodePtr funcCallNode(Dyninst::Address addr, std::vector<AstNodePtr > &args); // For when you absolutely need
-   // to jump somewhere.
+  static AstNodePtr scrambleRegistersNode();
 
-    // Acquire the thread index value - a 0...n labelling of threads.
-   static AstNodePtr threadIndexNode();
+  // TODO...
+  // Needs some way of marking what to save and restore... should be a registerSpace, really
 
-   static AstNodePtr scrambleRegistersNode();
+  static AstNodePtr originalAddrNode();
+  static AstNodePtr actualAddrNode();
+  static AstNodePtr dynamicTargetNode();
 
-   // TODO...
-   // Needs some way of marking what to save and restore... should be a registerSpace, really
+  static AstNodePtr snippetNode(Dyninst::PatchAPI::SnippetPtr snip);
 
-   static AstNodePtr originalAddrNode();
-   static AstNodePtr actualAddrNode();
-   static AstNodePtr dynamicTargetNode();
+  virtual bool generateCode(codeGen &gen, bool noCost, Dyninst::Address &retAddr, Dyninst::Register &retReg);
 
-   static AstNodePtr snippetNode(Dyninst::PatchAPI::SnippetPtr snip);
+  virtual bool generateCode(codeGen &gen, bool noCost);
 
-   virtual bool generateCode(codeGen &gen,
-                             bool noCost,
-                             Dyninst::Address &retAddr,
-                             Dyninst::Register &retReg);
+  virtual bool generateCode(codeGen &gen, bool noCost, Dyninst::Register &retReg) {
+    Dyninst::Address unused = Dyninst::ADDR_NULL;
+    return generateCode(gen, noCost, unused, retReg);
+  }
 
-   // Can't use default references....
-   virtual bool generateCode(codeGen &gen,
-                             bool noCost);
+  // I don't know if there is an overload between address and register...
+  // so we'll toss in two different return types.
+  virtual bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &retAddr, Dyninst::Register &retReg) = 0;
 
-   // Can't use default references....
-   virtual bool generateCode(codeGen &gen,
-                             bool noCost,
-                             Dyninst::Register &retReg) {
-      Dyninst::Address unused = Dyninst::ADDR_NULL;
-      return generateCode(gen, noCost,  unused, retReg);
-   }
+  // Perform whatever pre-processing steps are necessary.
+  virtual bool initRegisters(codeGen &gen);
 
-   // I don't know if there is an overload between address and register...
-   // so we'll toss in two different return types.
-   virtual bool generateCode_phase2(codeGen &gen,
-                                    bool noCost,
-                                    Dyninst::Address &retAddr,
-                                    Dyninst::Register &retReg) = 0;
+  // Select the appropriate Variable AST as part of pre-processing
+  // steps before code generation.
+  virtual void setVariableAST(codeGen &g) {
+    for(auto &&c : children) {
+      c->setVariableAST(g);
+    }
+  }
 
-   // Perform whatever pre-processing steps are necessary.
-   virtual bool initRegisters(codeGen &gen);
+  bool decRefCount();
 
-   // Select the appropriate Variable AST as part of pre-processing
-   // steps before code generation.
-   virtual void setVariableAST(codeGen &g) {
-     for(auto &&c : children) {
-       c->setVariableAST(g);
-     }
-   }
+  bool previousComputationValid(Dyninst::Register &reg, codeGen &gen);
 
-   bool decRefCount();
+  virtual AstNodePtr operand() const {
+    return AstNodePtr();
+  }
 
-   bool previousComputationValid(Dyninst::Register &reg,
-                                 codeGen &gen);
+  virtual bool containsFuncCall() const {
+    for(auto &&c : children) {
+      if(c->containsFuncCall()) {
+        return true;
+      }
+    }
+    return false;
+  }
 
-   virtual AstNodePtr operand() const { return AstNodePtr(); }
+  virtual bool usesAppRegister() const {
+    for(auto &&c : children) {
+      if(c->usesAppRegister()) {
+        return true;
+      }
+    }
+    return false;
+  }
 
+  int referenceCount{}; // Reference count for freeing memory
+  int useCount{};       // Reference count for generating code
+  void setUseCount();   // Set values for useCount
 
+  int getSize() {
+    return size;
+  }
 
-   virtual bool containsFuncCall() const {
-     for(auto &&c : children) {
-       if(c->containsFuncCall()) {
-         return true;
-       }
-     }
-     return false;
-   }
-
-   virtual bool usesAppRegister() const {
-     for(auto &&c : children) {
-       if(c->usesAppRegister()) {
-         return true;
-       }
-     }
-     return false;
-   }
-
-   int referenceCount{};     // Reference count for freeing memory
-   int useCount{};           // Reference count for generating code
-   void setUseCount(); // Set values for useCount
-   int getSize() { return size; }
-   void cleanUseCount();
+  void cleanUseCount();
 
   // Occasionally, we do not call .generateCode_phase2 for the
   // referenced node, but generate code by hand. This routine decrements
@@ -226,69 +218,76 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
   // Check if the node can be kept at all. Some nodes (e.g., storeOp)
   // can not be cached
-  virtual bool canBeKept() const { return false; }
+  virtual bool canBeKept() const {
+    return false;
+  }
 
   // Allocate a register and make it available for sharing if our
-   // node is shared
+  // node is shared
   Dyninst::Register allocateAndKeep(codeGen &gen, bool noCost);
 
   // Return all children of this node ([lre]operand, ..., operands[])
-  std::vector<AstNodePtr> const& getChildren() const { return children; }
-
-  virtual void setOValue(void *) { assert(0); }
-  virtual const void *getOValue() const { assert(0); return NULL; }
-  virtual const image_variable* getOVar() const {
-      return NULL;
+  std::vector<AstNodePtr> const &getChildren() const {
+    return children;
   }
 
-  virtual void emitVariableStore(opCode, Dyninst::Register, Dyninst::Register, codeGen&,
-                                  bool, registerSpace*,
-                                  int, const instPoint*, AddressSpace*)
-  {
-      assert(!"Never call this on anything but an operand");
-  }
-  virtual void emitVariableLoad(opCode, Dyninst::Register, Dyninst::Register, codeGen&,
-                                 bool, registerSpace*,
-                                 int, const instPoint*, AddressSpace*)
-  {
-      assert(!"Never call this on anything but an operand");
+  virtual void setOValue(void *) {
+    assert(0);
   }
 
-  // DEBUG
-   virtual operandType getoType() const { return operandType::undefOperandType; }
+  virtual const void *getOValue() const {
+    assert(0);
+    return NULL;
+  }
 
-   virtual void setConstFunc(bool) {}
+  virtual const image_variable *getOVar() const {
+    return NULL;
+  }
 
- protected:
+  virtual void emitVariableStore(opCode, Dyninst::Register, Dyninst::Register, codeGen &, bool, registerSpace *, int,
+                                 const instPoint *, AddressSpace *) {
+    assert(!"Never call this on anything but an operand");
+  }
+
+  virtual void emitVariableLoad(opCode, Dyninst::Register, Dyninst::Register, codeGen &, bool, registerSpace *, int,
+                                const instPoint *, AddressSpace *) {
+    assert(!"Never call this on anything but an operand");
+  }
+
+  virtual operandType getoType() const {
+    return operandType::undefOperandType;
+  }
+
+  virtual void setConstFunc(bool) {}
+
+protected:
   BPatch_type *bptype{};  // type of corresponding BPatch_snippet
-  bool doTypeCheck{true};     // should operands be type checked
-  int size{};       // size of the operations (in bytes)
+  bool doTypeCheck{true}; // should operands be type checked
+  int size{};             // size of the operations (in bytes)
   std::vector<AstNodePtr> children;
 
-
- public:
+public:
   // Functions for getting and setting type decoration used by the
   // dyninst API library
-  BPatch_type *getType() { return bptype; }
-  void      setType(BPatch_type *t);
-  void      setTypeChecking(bool x) { doTypeCheck = x; }
-  virtual BPatch_type   *checkType(BPatch_function* func = NULL);
+  BPatch_type *getType() {
+    return bptype;
+  }
 
+  void setType(BPatch_type *t);
 
-        // PatchAPI compatibility
-        virtual bool generate(Dyninst::PatchAPI::Point *,
-                              Dyninst::Buffer &);
+  void setTypeChecking(bool x) {
+    doTypeCheck = x;
+  }
 
- private:
-   static AstNodePtr originalAddrNode_;
-   static AstNodePtr actualAddrNode_;
-   static AstNodePtr dynamicTargetNode_;
+  virtual BPatch_type *checkType(BPatch_function *func = NULL);
+
+  // PatchAPI compatibility
+  virtual bool generate(Dyninst::PatchAPI::Point *, Dyninst::Buffer &);
+
+private:
+  static AstNodePtr originalAddrNode_;
+  static AstNodePtr actualAddrNode_;
+  static AstNodePtr dynamicTargetNode_;
 };
-
-
-
-
-
-
 
 #endif

@@ -5,7 +5,6 @@
 
 #include <utility>
 
-
 AstNodePtr AstNode::originalAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::actualAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
@@ -13,149 +12,150 @@ AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
 //////////////////////////////////////////////////////
 
 AstNodePtr AstNode::nullNode() {
-    return AstNodePtr(new AstNullNode());
+  return AstNodePtr(new AstNullNode());
 }
 
 AstNodePtr AstNode::stackInsertNode(int size, MSpecialType type) {
-    return AstNodePtr(new AstStackInsertNode(size, type));
+  return AstNodePtr(new AstStackInsertNode(size, type));
 }
 
 AstNodePtr AstNode::stackRemoveNode(int size, MSpecialType type) {
-    return AstNodePtr(new AstStackRemoveNode(size, type));
+  return AstNodePtr(new AstStackRemoveNode(size, type));
 }
 
-AstNodePtr AstNode::stackRemoveNode(int size, MSpecialType type, func_instance* func, bool canaryAfterPrologue, long canaryHeight) {
-    return AstNodePtr(new AstStackRemoveNode(size, type, func, canaryAfterPrologue, canaryHeight));
+AstNodePtr AstNode::stackRemoveNode(int size, MSpecialType type, func_instance *func, bool canaryAfterPrologue,
+                                    long canaryHeight) {
+  return AstNodePtr(new AstStackRemoveNode(size, type, func, canaryAfterPrologue, canaryHeight));
 }
 
 AstNodePtr AstNode::stackGenericNode() {
-    return AstNodePtr(new AstStackGenericNode());
+  return AstNodePtr(new AstStackGenericNode());
 }
 
 AstNodePtr AstNode::operandNode(operandType ot, void *arg) {
-    return AstNodePtr(new AstOperandNode(ot, arg));
+  return AstNodePtr(new AstOperandNode(ot, arg));
 }
 
 // TODO: this is an indirect load; should be an operator.
 AstNodePtr AstNode::operandNode(operandType ot, AstNodePtr ast) {
-    return AstNodePtr(new AstOperandNode(ot, ast));
+  return AstNodePtr(new AstOperandNode(ot, ast));
 }
 
-AstNodePtr AstNode::operandNode(operandType ot, const image_variable* iv) {
-    return AstNodePtr(new AstOperandNode(ot, iv));
+AstNodePtr AstNode::operandNode(operandType ot, const image_variable *iv) {
+  return AstNodePtr(new AstOperandNode(ot, iv));
 }
 
-AstNodePtr AstNode::sequenceNode(std::vector<AstNodePtr > &sequence) {
-//    assert(sequence.size());
-    return AstNodePtr(new AstSequenceNode(sequence));
+AstNodePtr AstNode::sequenceNode(std::vector<AstNodePtr> &sequence) {
+  return AstNodePtr(new AstSequenceNode(sequence));
 }
 
 AstNodePtr AstNode::variableNode(std::vector<AstNodePtr> &ast_wrappers,
-                                 std::vector<std::pair<Dyninst::Offset, Dyninst::Offset> >*ranges) {
-    return AstNodePtr(new AstVariableNode(ast_wrappers, ranges));
+                                 std::vector<std::pair<Dyninst::Offset, Dyninst::Offset>> *ranges) {
+  return AstNodePtr(new AstVariableNode(ast_wrappers, ranges));
 }
 
 AstNodePtr AstNode::operatorNode(opCode ot, AstNodePtr l, AstNodePtr r, AstNodePtr e) {
-    return AstNodePtr(new AstOperatorNode(ot, l, r, e));
+  return AstNodePtr(new AstOperatorNode(ot, l, r, e));
 }
 
-AstNodePtr AstNode::funcCallNode(const std::string &func, std::vector<AstNodePtr > &args,
-      AddressSpace *addrSpace)
-{
-   if (addrSpace)
-   {
-      func_instance *ifunc = addrSpace->findOnlyOneFunction(func.c_str());
+AstNodePtr AstNode::funcCallNode(const std::string &func, std::vector<AstNodePtr> &args, AddressSpace *addrSpace) {
+  if(addrSpace) {
+    func_instance *ifunc = addrSpace->findOnlyOneFunction(func.c_str());
 
-      if (ifunc == NULL)
-      {
-         fprintf(stderr, "%s[%d]: Can't find function %s\n", FILE__, __LINE__, func.c_str());
-         return AstNodePtr();
-      }
+    if(ifunc == NULL) {
+      fprintf(stderr, "%s[%d]: Can't find function %s\n", FILE__, __LINE__, func.c_str());
+      return AstNodePtr();
+    }
 
-      return AstNodePtr(new AstCallNode(ifunc, args));
-   }
-   else
-      return AstNodePtr(new AstCallNode(func, args));
-}
-
-AstNodePtr AstNode::funcCallNode(func_instance *func, std::vector<AstNodePtr > &args) {
-    if (func == NULL) return AstNodePtr();
+    return AstNodePtr(new AstCallNode(ifunc, args));
+  } else {
     return AstNodePtr(new AstCallNode(func, args));
+  }
+}
+
+AstNodePtr AstNode::funcCallNode(func_instance *func, std::vector<AstNodePtr> &args) {
+  if(func == NULL) {
+    return AstNodePtr();
+  }
+  return AstNodePtr(new AstCallNode(func, args));
 }
 
 AstNodePtr AstNode::funcCallNode(func_instance *func) {
-    if (func == NULL) return AstNodePtr();
-    return AstNodePtr(new AstCallNode(func));
+  if(func == NULL) {
+    return AstNodePtr();
+  }
+  return AstNodePtr(new AstCallNode(func));
 }
 
-AstNodePtr AstNode::funcCallNode(Address addr, std::vector<AstNodePtr > &args) {
-    return AstNodePtr(new AstCallNode(addr, args));
+AstNodePtr AstNode::funcCallNode(Address addr, std::vector<AstNodePtr> &args) {
+  return AstNodePtr(new AstCallNode(addr, args));
 }
 
 AstNodePtr AstNode::memoryNode(memoryType ma, int which, int size) {
-    return AstNodePtr(new AstMemoryNode(ma, which, size));
+  return AstNodePtr(new AstMemoryNode(ma, which, size));
 }
 
 AstNodePtr AstNode::originalAddrNode() {
-    if (originalAddrNode_ == NULL) {
-        originalAddrNode_ = AstNodePtr(new AstOriginalAddrNode());
-    }
-    return originalAddrNode_;
+  if(originalAddrNode_ == NULL) {
+    originalAddrNode_ = AstNodePtr(new AstOriginalAddrNode());
+  }
+  return originalAddrNode_;
 }
 
 AstNodePtr AstNode::actualAddrNode() {
-    if (actualAddrNode_ == NULL) {
-        actualAddrNode_ = AstNodePtr(new AstActualAddrNode());
-    }
-    return actualAddrNode_;
+  if(actualAddrNode_ == NULL) {
+    actualAddrNode_ = AstNodePtr(new AstActualAddrNode());
+  }
+  return actualAddrNode_;
 }
 
 AstNodePtr AstNode::dynamicTargetNode() {
-    if (dynamicTargetNode_ == NULL) {
-        dynamicTargetNode_ = AstNodePtr(new AstDynamicTargetNode());
-    }
-    return dynamicTargetNode_;
+  if(dynamicTargetNode_ == NULL) {
+    dynamicTargetNode_ = AstNodePtr(new AstDynamicTargetNode());
+  }
+  return dynamicTargetNode_;
 }
 
 AstNodePtr AstNode::snippetNode(Dyninst::PatchAPI::SnippetPtr snip) {
-   return AstNodePtr(new AstSnippetNode(snip));
+  return AstNodePtr(new AstSnippetNode(snip));
 }
 
-AstNodePtr AstNode::scrambleRegistersNode(){
-    return AstNodePtr(new AstScrambleRegistersNode());
+AstNodePtr AstNode::scrambleRegistersNode() {
+  return AstNodePtr(new AstScrambleRegistersNode());
 }
 
-AstNodePtr AstNode::atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable,
-                                            AstNodePtr constant) {
-   return AstNodePtr(new AstAtomicOperationStmtNode(astOpcode, variable, constant));
+AstNodePtr AstNode::atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable, AstNodePtr constant) {
+  return AstNodePtr(new AstAtomicOperationStmtNode(astOpcode, variable, constant));
 }
 
 void AstNode::setType(BPatch_type *t) {
-    bptype = t;
-    if (t != NULL) {
-        size = t->getSize();
-    }
+  bptype = t;
+  if(t != NULL) {
+    size = t->getSize();
+  }
 }
 
 AstNodePtr AstNode::threadIndexNode() {
-    // We use one of these across all platforms, since it
-    // devolves into a process-specific function node.
-    // However, this lets us delay that until code generation
-    // when we have the process pointer.
-    static AstNodePtr indexNode_;
+  // We use one of these across all platforms, since it
+  // devolves into a process-specific function node.
+  // However, this lets us delay that until code generation
+  // when we have the process pointer.
+  static AstNodePtr indexNode_;
 
-    // Since we only ever have one, keep a static copy around. If
-    // we get multiples, we'll screw up our pointer-based common subexpression
-    // elimination.
+  // Since we only ever have one, keep a static copy around. If
+  // we get multiples, we'll screw up our pointer-based common subexpression
+  // elimination.
 
-    if (indexNode_ != AstNodePtr()) return indexNode_;
-    std::vector<AstNodePtr > args;
-    // By not including a process we'll specialize at code generation.
-    indexNode_ = AstNode::funcCallNode("DYNINSTthreadIndex", args);
-    assert(indexNode_);
-    indexNode_->setConstFunc(true);
-
+  if(indexNode_ != AstNodePtr()) {
     return indexNode_;
+  }
+  std::vector<AstNodePtr> args;
+  // By not including a process we'll specialize at code generation.
+  indexNode_ = AstNode::funcCallNode("DYNINSTthreadIndex", args);
+  assert(indexNode_);
+  indexNode_->setConstFunc(true);
+
+  return indexNode_;
 }
 
 // This name is a bit of a misnomer. It's not the strict use count; it's the
@@ -166,11 +166,11 @@ AstNodePtr AstNode::threadIndexNode() {
 //
 // In any case, we use the following algorithm to set use counts:
 //
-//DFS through the AST graph.
-//If an AST can be kept:
+// DFS through the AST graph.
+// If an AST can be kept:
 //  Increase its use count;
 //  Return.
-//If an AST cannot be kept:
+// If an AST cannot be kept:
 //  Recurse to each child;
 //  Return
 //
@@ -179,9 +179,8 @@ AstNodePtr AstNode::threadIndexNode() {
 // 1: Node can be kept, but doesn't matter as it's only used once.
 // >1: keep result in a register.
 
-void AstNode::setUseCount()
-{
-  if (useCount) {
+void AstNode::setUseCount() {
+  if(useCount) {
     // If the useCount is 1, then it means this node can
     // be shared, and there is a copy. In that case, we assume
     // that when this particular incarnation is generated, the
@@ -191,7 +190,7 @@ void AstNode::setUseCount()
     useCount++;
     return;
   }
-  if (canBeKept()) {
+  if(canBeKept()) {
     useCount++;
     // We purposefully fall through... if our use count
     // is 1, we'll have to calculate this node instead of
@@ -200,40 +199,38 @@ void AstNode::setUseCount()
     // calculating this guy)
   }
   // We can't be kept, but maybe our children can.
-  for (unsigned i=0; i<children.size(); i++) {
-      children[i]->setUseCount();
-    }
+  for(unsigned i = 0; i < children.size(); i++) {
+    children[i]->setUseCount();
+  }
 }
 
-void AstNode::cleanUseCount()
-{
-    useCount = 0;
+void AstNode::cleanUseCount() {
+  useCount = 0;
 
-    for (unsigned i=0; i<children.size(); i++) {
+  for(unsigned i = 0; i < children.size(); i++) {
     children[i]->cleanUseCount();
-    }
+  }
 }
 
 // Allocate a register and make it available for sharing if our
 // node is shared
-Dyninst::Register AstNode::allocateAndKeep(codeGen &gen, bool noCost)
-{
-    ast_printf("Allocating register for node %p, useCount %d\n", (void*)this, useCount);
-    // Allocate a register
-    Dyninst::Register dest = gen.rs()->allocateRegister(gen, noCost);
+Dyninst::Register AstNode::allocateAndKeep(codeGen &gen, bool noCost) {
+  ast_printf("Allocating register for node %p, useCount %d\n", (void *)this, useCount);
+  // Allocate a register
+  Dyninst::Register dest = gen.rs()->allocateRegister(gen, noCost);
 
-    ast_printf("Allocator returned %u\n", dest);
-    assert(dest != Dyninst::Null_Register);
+  ast_printf("Allocator returned %u\n", dest);
+  assert(dest != Dyninst::Null_Register);
 
-    if (useCount > 1) {
-        ast_printf("Adding kept register %u for node %p: useCount %d\n", dest, (void*)this, useCount);
-        // If use count is 0 or 1, we don't want to keep
-        // it around. If it's > 1, then we can keep the node
-        // (by construction) and want to since there's another
-        // use later.
-        gen.tracker()->addKeptRegister(gen, this, dest);
-    }
-    return dest;
+  if(useCount > 1) {
+    ast_printf("Adding kept register %u for node %p: useCount %d\n", dest, (void *)this, useCount);
+    // If use count is 0 or 1, we don't want to keep
+    // it around. If it's > 1, then we can keep the node
+    // (by construction) and want to since there's another
+    // use later.
+    gen.tracker()->addKeptRegister(gen, this, dest);
+  }
+  return dest;
 }
 
 //
@@ -259,84 +256,78 @@ Dyninst::Register AstNode::allocateAndKeep(codeGen &gen, bool noCost)
 // currently available. In order to fix this problem, we will need to
 // implement a "virtual" register allocator - naim 11/06/96
 //
-bool AstNode::generateCode(codeGen &gen,
-                           bool noCost,
-                           Address &retAddr,
-                           Dyninst::Register &retReg) {
-    static bool entered = false;
+bool AstNode::generateCode(codeGen &gen, bool noCost, Address &retAddr, Dyninst::Register &retReg) {
+  static bool entered = false;
 
+  bool ret = true;
 
-    bool ret = true;
-
-    bool top_level;
-    if (entered) {
-        top_level = false;
-    }
-    else {
-        entered = true;
-        top_level = true;
-    }
-
+  bool top_level;
+  if(entered) {
+    top_level = false;
+  } else {
     entered = true;
+    top_level = true;
+  }
 
-    cleanUseCount();
-    setUseCount();
-    setVariableAST(gen);
-    ast_printf("====== Code Generation Start ===== \n");
-    ast_cerr << format("");
-    ast_printf("\n\n");
+  entered = true;
 
-    // We can enter this guy recursively... inst-ia64 goes through
-    // emitV and calls generateCode on the frame pointer AST. Now, it
-    // really shouldn't, but them's the breaks. So we only want
-    // to build a regTracker if there isn't one already...
-    if (top_level) {
-        gen.setRegTracker(new regTracker_t);
-    }
+  cleanUseCount();
+  setUseCount();
+  setVariableAST(gen);
+  ast_printf("====== Code Generation Start ===== \n");
+  ast_cerr << format("");
+  ast_printf("\n\n");
 
-    // note: this could return the value "(Address)(-1)" -- csserra
-    if (!generateCode_phase2(gen, noCost, retAddr, retReg)) {
-        fprintf(stderr, "WARNING: failed in generateCode internals!\n");
-        ret = false;
-    }
+  // We can enter this guy recursively... inst-ia64 goes through
+  // emitV and calls generateCode on the frame pointer AST. Now, it
+  // really shouldn't, but them's the breaks. So we only want
+  // to build a regTracker if there isn't one already...
+  if(top_level) {
+    gen.setRegTracker(new regTracker_t);
+  }
 
-    if (top_level) {
-      delete gen.tracker();
-      gen.setRegTracker(NULL);
-    }
+  // note: this could return the value "(Address)(-1)" -- csserra
+  if(!generateCode_phase2(gen, noCost, retAddr, retReg)) {
+    fprintf(stderr, "WARNING: failed in generateCode internals!\n");
+    ret = false;
+  }
 
-    if (top_level) {
-        entered = false;
-    }
-    return ret;
+  if(top_level) {
+    delete gen.tracker();
+    gen.setRegTracker(NULL);
+  }
+
+  if(top_level) {
+    entered = false;
+  }
+  return ret;
 }
 
-bool AstNode::generateCode(codeGen &gen,
-                           bool noCost) {
-    Address unused = ADDR_NULL;
-    Dyninst::Register unusedReg = Dyninst::Null_Register;
-    bool ret = generateCode(gen, noCost, unused, unusedReg);
-    gen.rs()->freeRegister(unusedReg);
+bool AstNode::generateCode(codeGen &gen, bool noCost) {
+  Address unused = ADDR_NULL;
+  Dyninst::Register unusedReg = Dyninst::Null_Register;
+  bool ret = generateCode(gen, noCost, unused, unusedReg);
+  gen.rs()->freeRegister(unusedReg);
 
-    return ret;
+  return ret;
 }
 
-bool AstNode::previousComputationValid(Dyninst::Register &reg,
-                                       codeGen &gen) {
+bool AstNode::previousComputationValid(Dyninst::Register &reg, codeGen &gen) {
   Dyninst::Register keptReg = gen.tracker()->hasKeptRegister(this);
-  if (keptReg != Dyninst::Null_Register) {
+  if(keptReg != Dyninst::Null_Register) {
     reg = keptReg;
-    ast_printf("Returning previously used register %u for node %p\n", reg, (void*)this);
+    ast_printf("Returning previously used register %u for node %p\n", reg, (void *)this);
     return true;
   }
-   return false;
+  return false;
 }
 
 bool AstNode::initRegisters(codeGen &g) {
-    bool ret = true;
-    for (unsigned i = 0; i < children.size(); i++) {
-        if (!children[i]->initRegisters(g))
-            ret = false;
+  bool ret = true;
+  for(unsigned i = 0; i < children.size(); i++) {
+    if(!children[i]->initRegisters(g)) {
+      ret = false;
     }
-    return ret;
+  }
+  return ret;
 }
