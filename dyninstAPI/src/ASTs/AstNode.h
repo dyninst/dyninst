@@ -94,7 +94,6 @@ public:
   AstNode() = default;
 
   // Factory methods....
-  static AstNodePtr nullNode();
 
   static AstNodePtr stackInsertNode(int size, MSpecialType type = GENERIC_AST);
   static AstNodePtr stackRemoveNode(int size, MSpecialType type);

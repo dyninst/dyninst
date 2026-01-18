@@ -50,6 +50,7 @@ set(_private_headers
     src/ast.h
     src/ASTs/ast_helpers.h
     src/ASTs/AstNode.h
+    src/ASTs/AstNullNode.h
     src/ASTs/OperandType.h
     src/trampolines/baseTramp.h
     src/trampolines/baseTramp-aarch64.h
@@ -123,6 +124,7 @@ set(_sources
     src/addressSpace.C
     src/ast.C
     src/ASTs/AstNode.C
+    src/ASTs/AstNullNode.C
     src/binaryEdit.C
     src/block.C
     src/codeRange.C

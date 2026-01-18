@@ -86,7 +86,7 @@ using namespace Dyninst::SymtabAPI;
  * tries to generate code)
  */
 BPatch_snippet::BPatch_snippet() {
-    ast_wrapper = AstNodePtr(AstNode::nullNode());
+    ast_wrapper = NullNode::create();
 }
 
 /*
@@ -784,7 +784,7 @@ BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
  */
 BPatch_nullExpr::BPatch_nullExpr()
 {
-    ast_wrapper = AstNodePtr(AstNode::nullNode());
+    ast_wrapper = NullNode::create();
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
