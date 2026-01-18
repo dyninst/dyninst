@@ -38,6 +38,8 @@
 #include "Snippet.h"
 
 #include <boost/shared_ptr.hpp>
+#include <string>
+#include <vector>
 
 class AddressSpace;
 class instPoint;
@@ -96,6 +98,8 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
    AstNode() = default;
 
+   virtual ~AstNode() = default;
+
    // Factory methods....
    static AstNodePtr nullNode();
 
@@ -142,8 +146,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    static AstNodePtr dynamicTargetNode();
 
    static AstNodePtr snippetNode(Dyninst::PatchAPI::SnippetPtr snip);
-
-   virtual ~AstNode();
 
    virtual bool generateCode(codeGen &gen,
                              bool noCost,
