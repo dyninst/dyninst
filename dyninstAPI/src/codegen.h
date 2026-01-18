@@ -37,6 +37,7 @@
 #include "dyntypes.h"
 #include "dyn_register.h"
 #include "dyninstAPI/src/patch.h"
+#include "regTracker.h"
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
 #include "codegen-power.h"
@@ -71,13 +72,13 @@ using namespace NS_amdgpu;
 class AddressSpace;
 class instPoint;
 class registerSpace;
-class regTracker_t;
 class AstNode;
 class Emitter;
 class func_instance;
 class PCThread;
 class baseTramp;
 class block_instance;
+
 
 // Code generation
 // This class wraps the actual code generation mechanism: we keep a buffer

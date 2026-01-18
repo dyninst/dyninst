@@ -87,6 +87,13 @@ class baseTramp {
     // The second records (during code gen) what has been done so we
     // can undo it later. 
     
+    typedef enum {
+       cfj_unset = 0,
+       cfj_none = 1,
+       cfj_jump = 2,
+       cfj_call = 3
+    } cfjRet_t;
+    
     cfjRet_t funcJumpState_;
     bool needsStackFrame_;
     bool threaded_;
