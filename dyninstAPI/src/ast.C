@@ -2469,26 +2469,6 @@ void AstNode::decUseCount(codeGen &gen)
     }
 }
 
-void AstOperatorNode::setVariableAST(codeGen &g) {
-    if(loperand) loperand->setVariableAST(g);
-    if(roperand) roperand->setVariableAST(g);
-    if(eoperand) eoperand->setVariableAST(g);
-}
-
-void AstOperandNode::setVariableAST(codeGen &g){
-    if(operand_) operand_->setVariableAST(g);
-}
-
-void AstCallNode::setVariableAST(codeGen &g){
-    for (unsigned i = 0; i < children.size(); i++)
-        children[i]->setVariableAST(g);
-}
-
-void AstSequenceNode::setVariableAST(codeGen &g) {
-    for (unsigned i = 0; i < children.size(); i++)
-        children[i]->setVariableAST(g);
-}
-
 void AstVariableNode::setVariableAST(codeGen &gen){
     if(!ranges_)
         return;
