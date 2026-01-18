@@ -211,7 +211,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    virtual bool generateCode_phase2(codeGen &gen,
                                     bool noCost,
                                     Dyninst::Address &retAddr,
-                                    Dyninst::Register &retReg);
+                                    Dyninst::Register &retReg) = 0;
 
    // Perform whatever pre-processing steps are necessary.
    virtual bool initRegisters(codeGen &gen);

@@ -672,27 +672,6 @@ bool AstNode::initRegisters(codeGen &g) {
     return ret;
 }
 
-
-bool AstNode::generateCode_phase2(codeGen &, bool,
-                                  Address &,
-                                  Dyninst::Register &) {
-    fprintf(stderr, "ERROR: call to AstNode generateCode_phase2; should be handled by subclass\n");
-    fprintf(stderr, "Undefined phase2 for:\n");
-    if (dynamic_cast<AstNullNode *>(this)) fprintf(stderr, "nullNode\n");
-    if (dynamic_cast<AstStackInsertNode *>(this)) fprintf(stderr, "stackInsertNode\n");
-    if (dynamic_cast<AstStackRemoveNode *>(this)) fprintf(stderr, "stackRemoveNode\n");
-    if (dynamic_cast<AstStackGenericNode *>(this)) fprintf(stderr, "stackMoveNode\n");
-    if (dynamic_cast<AstOperatorNode *>(this)) fprintf(stderr, "operatorNode\n");
-    if (dynamic_cast<AstOperandNode *>(this)) fprintf(stderr, "operandNode\n");
-    if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
-    if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
-    if (dynamic_cast<AstVariableNode *>(this)) fprintf(stderr, "varNode\n");
-    if (dynamic_cast<AstMemoryNode *>(this)) fprintf(stderr, "memoryNode\n");
-    assert(0);
-	return 0;
-}
-
-
 bool AstNullNode::generateCode_phase2(codeGen &gen, bool,
                                       Address &retAddr,
                                       Dyninst::Register &retReg) {
