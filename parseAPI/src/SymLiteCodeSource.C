@@ -33,6 +33,7 @@
 
 #include <boost/assign/list_of.hpp>
 
+#include "Architecture.h"
 #include "common/src/stats.h"
 #include "dyntypes.h"
 
@@ -102,7 +103,7 @@ SymReaderCodeRegion::isValidAddress(const Address addr) const
 {
     if(!contains(addr)) return false;
 
-    return isAligned(addr) && (isCode(addr) || isData(addr));
+    return Dyninst::isAligned(this->getArch(), addr) && (isCode(addr) || isData(addr));
 }
 
 void *
