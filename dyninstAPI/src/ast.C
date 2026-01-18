@@ -2496,20 +2496,6 @@ void AstVariableNode::setVariableAST(codeGen &gen){
     assert(found);
 }
 
-bool AstCallNode::usesAppRegister() const {
-   for (unsigned i=0; i<children.size(); i++) {
-      if (children[i] && children[i]->usesAppRegister()) return true;
-   }
-   return false;
-}
-
-bool AstOperatorNode::usesAppRegister() const {
-	if (loperand && loperand->usesAppRegister()) return true;
-	if (roperand && roperand->usesAppRegister()) return true;
-	if (eoperand && eoperand->usesAppRegister()) return true;
-	return false;
-}
-
 bool AstOperandNode::usesAppRegister() const {
    if (oType == AstNode::operandType::FrameAddr ||
        oType == AstNode::operandType::RegOffset ||
@@ -2524,63 +2510,6 @@ bool AstOperandNode::usesAppRegister() const {
 
    if (operand_ && operand_->usesAppRegister()) return true;
    return false;
-}
-
-bool AstSequenceNode::usesAppRegister() const {
-	for (unsigned i = 0; i < children.size(); i++) {
-		if (children[i]->usesAppRegister()) return true;
-	}
-	return false;
-}
-
-bool AstVariableNode::usesAppRegister() const
-{
-    return children[index]->usesAppRegister();
-}
-
-bool AstNullNode::usesAppRegister() const
-{
-   return false;
-}
-
-bool AstStackInsertNode::usesAppRegister() const
-{
-    return false;
-}
-
-bool AstStackRemoveNode::usesAppRegister() const
-{
-    return false;
-}
-
-bool AstStackGenericNode::usesAppRegister() const
-{
-    return false;
-}
-
-bool AstDynamicTargetNode::usesAppRegister() const
-{
-   return false;
-}
-
-bool AstActualAddrNode::usesAppRegister() const
-{
-   return false;
-}
-
-bool AstOriginalAddrNode::usesAppRegister() const
-{
-   return false;
-}
-
-bool AstMemoryNode::usesAppRegister() const
-{
-   return true;
-}
-
-bool AstScrambleRegistersNode::usesAppRegister() const
-{
-   return true;
 }
 
 int_variable* AstOperandNode::lookUpVar(AddressSpace* as)
