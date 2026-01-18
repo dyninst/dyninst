@@ -141,17 +141,6 @@ public:
 };
 
 /*
- * get information about the cost of primitives.
- *
- */
-void initPrimitiveCost();
-
-//
-// Return the expected runtime of the passed function in instruction times.
-//
-unsigned getPrimitiveCost(const std::string &name);
-
-/*
  * Generate an instruction.
  * Previously this was handled by the polymorphic "emit" function, which
  * took a variety of argument types and variously returned either an
@@ -230,13 +219,10 @@ Dyninst::Register emitFuncCall(opCode op, codeGen &gen,
 					  bool noCost, 
                       func_instance *func);
 
-int getInsnCost(opCode t);
-
 extern Dyninst::Address getMaxBranch();
 
 // find these internal functions before finding any other functions
 // extern std::unordered_map<std::string, unsigned> tagDict;
-extern std::map<std::string, unsigned> primitiveCosts; 
 
 bool writeFunctionPtr(AddressSpace *p, Dyninst::Address addr, func_instance *f);
 

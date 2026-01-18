@@ -973,16 +973,6 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
     return;
 }
 
-//
-// I don't know how to compute cycles for AARCH64 instructions due to
-//   multiple functional units.  However, we can compute the number of
-//   instructions and hope that is fairly close. - jkh 1/30/96
-//
-int getInsnCost(opCode) {
-    assert(0); //Not implemented
-    return 0;
-}
-
 // This is used for checking wether immediate value should be encoded
 // into a instruction. In fact, only being used for loading constant
 // value into a register, and in ARMv8 there are 16 bits for immediate

@@ -48,57 +48,6 @@
 using namespace Dyninst::InstructionAPI;
 
 
-//
-// All costs are based on Measurements on a SPARC station 10/40.
-//
-void initPrimitiveCost()
-{
-    /* Need to add code here to collect values for other machines */
-
-    // this doesn't really take any time
-    primitiveCosts["DYNINSTbreakPoint"] = 1;
-
-    // this happens before we start keeping time.
-    primitiveCosts["DYNINSTinit"] = 1;
-
-    primitiveCosts["DYNINSTprintCost"] = 1;
-
-    //
-    // I can't find DYNINSTincrementCounter or DYNINSTdecrementCounter
-    // I think they are not being used anywhere - naim
-    //
-    // isthmus acutal numbers from 7/3/94 -- jkh
-    // 240 ns
-    primitiveCosts["DYNINSTincrementCounter"] = 16;
-    // 240 ns
-    primitiveCosts["DYNINSTdecrementCounter"] = 16;
-
-    // Updated calculation of the cost for the following procedures.
-    // cost in cycles
-    // Values (in cycles) benchmarked on a Pentium II 450MHz
-    // Level 1 - Hardware Level
-    primitiveCosts["DYNINSTstartWallTimer"] = 151;
-    primitiveCosts["DYNINSTstopWallTimer"] = 165;
-
-    // Implementation still needs to be added to handle start/stop
-    // timer costs for multiple levels
-    /* Level 2 - Software Level
-    primitiveCosts["DYNINSTstartWallTimer"] = 797;
-    primitiveCosts["DYNINSTstopWallTimer"] = 807;
-    */
-    primitiveCosts["DYNINSTstartProcessTimer"] = 990;
-    primitiveCosts["DYNINSTstopProcessTimer"] = 1017;
-
-    // These happen async of the rest of the system.
-    primitiveCosts["DYNINSTalarmExpire"] = 3724;
-    primitiveCosts["DYNINSTsampleValues"] = 13;
-    primitiveCosts["DYNINSTreportTimer"] = 1380;
-    primitiveCosts["DYNINSTreportCounter"] = 1270;
-    primitiveCosts["DYNINSTreportCost"] = 1350;
-    primitiveCosts["DYNINSTreportNewTags"] = 837;
-}
-
-
 // hasBeenBound: returns false
 // dynamic linking not implemented on this platform
 bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &,func_instance *&, Address ) {
