@@ -33,6 +33,7 @@
 
 #include "AstNode.h"
 #include "AstNullNode.h"
+#include "AstOperandNode.h"
 #include "AstStackNode.h"
 #include "AstStackGenericNode.h"
 #include "AstStackInsertNode.h"
@@ -88,88 +89,6 @@ class AstOperatorNode : public AstNode {
     AstNodePtr roperand;
     AstNodePtr eoperand;
 };
-
-
-class AstOperandNode : public AstNode {
-    friend class AstOperatorNode;
- public:
-
-    // Direct operand
-    AstOperandNode(operandType ot, void *arg);
-
-    // And an indirect (say, a load)
-    AstOperandNode(operandType ot, AstNodePtr l);
-
-    AstOperandNode(operandType ot, const image_variable* iv);
-    
-    ~AstOperandNode() {
-        if (oType == operandType::ConstantString) free((char *)oValue);
-    }
-        
-    // Arguably, the previous should be an operation...
-    // however, they're kinda endemic.
-
-   virtual std::string format(std::string indent);
-
-    virtual operandType getoType() const { return oType; }
-
-    virtual void setOValue(void *o) { oValue = o; }
-    virtual const void *getOValue() const { return oValue; }
-    virtual const image_variable* getOVar() const 
-    {
-      return oVar;
-    }
-    
-
-    virtual AstNodePtr operand() const { return operand_; }
-
-    virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
-
-    virtual bool canBeKept() const;
-
-    virtual bool usesAppRegister() const;
- 
-    virtual void emitVariableStore(opCode op, Dyninst::Register src1, Dyninst::Register src2, codeGen& gen,
-			   bool noCost, registerSpace* rs, 
-			   int size, const instPoint* point, AddressSpace* as);
-    virtual void emitVariableLoad(opCode op, Dyninst::Register src2, Dyninst::Register dest, codeGen& gen,
-			  bool noCost, registerSpace* rs, 
-			  int size, const instPoint* point, AddressSpace* as);
-
-    virtual bool initRegisters(codeGen &gen);
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-   static int lastOffset; // Last ofsfet in our GPU memory buffer.
-   static std::map<std::string, int> allocTable;
-   static void addToTable(const std::string &variableName, int size) {
-      // We shouldn't allocate more than once
-      assert(allocTable.find(variableName) == allocTable.end() && "Can't allocate variable twice");
-      assert(size >0);
-      allocTable[variableName] = lastOffset;
-      std::cerr << "inserted " << variableName << " of " << size << " bytes at " << lastOffset << "\n";
-      lastOffset += size;
-   }
-
-   static int getOffset(const std::string &variableName) {
-      assert(allocTable.find(variableName) != allocTable.end() && "Variable must be allocated");
-      return allocTable[variableName];
-   }
-#endif
-   
- private:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Dyninst::Address &retAddr,
-                                     Dyninst::Register &retReg);
-    int_variable* lookUpVar(AddressSpace* as);
-    
-    AstOperandNode(): oType(operandType::undefOperandType), oValue(NULL), oVar(NULL) {}
-
-    operandType oType;
-    void *oValue;
-    const image_variable* oVar;
-    AstNodePtr operand_;
-};
-
 
 class AstCallNode : public AstNode {
  public:
