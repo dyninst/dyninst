@@ -32,6 +32,7 @@
 #define DYNINST_DYNINSTAPI_AST_H
 
 #include "AstAddrNode.h"
+#include "AstAtomicOperationStmtNode.h"
 #include "AstCallNode.h"
 #include "AstDynamicTargetNode.h"
 #include "AstMemoryNode.h"
@@ -68,29 +69,5 @@ class image_variable;
 class int_variable;
 
 /* Stack Frame Modification */
-
-
-
-
-class AstAtomicOperationStmtNode : public AstNode {
-    // This corresponds to a single statement, and not an expression that can be nested among other
-    // expressions.
-  public:
-    AstAtomicOperationStmtNode(opCode astOpcode, AstNodePtr variableNode, AstNodePtr constantNode);
-
-    virtual std::string format(std::string indent);
-
-    virtual bool canBeKept() const { return true; }
-
-  private:
-    virtual bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
-                                     Dyninst::Register &retReg);
-    opCode opcode;
-    AstNodePtr variable;
-    AstNodePtr constant;
-};
-
-
-
 
 #endif /* AST_HDR */

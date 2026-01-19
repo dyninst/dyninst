@@ -28,37 +28,51 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// $Id: ast.C,v 1.209 2008/09/15 18:37:49 jaw Exp $
+#ifndef DYNINST_DYNINSTAPI_ASTATOMICOPERATIONSTMTNODE_H
+#define DYNINST_DYNINSTAPI_ASTATOMICOPERATIONSTMTNODE_H
 
-#include "addressSpace.h"
-#include "ast.h"
-#include "binaryEdit.h"
-#include "BPatch.h"
-#include "BPatch_collections.h"
-#include "BPatch_function.h"
-#include "BPatch_libInfo.h" // For instPoint->BPatch_point mapping
-#include "BPatch_memoryAccess_NP.h"
-#include "BPatch_point.h"
-#include "BPatch_snippet.h"
-#include "BPatch_type.h"
-#include "Buffer.h"
-#include "debug.h"
-#include "dyninst_visibility.h"
-#include "emitter.h"
-#include "function.h"
-#include "image.h"
-#include "inst.h"
-#include "instPoint.h"
-#include "Instruction.h"
-#include "mapped_module.h"
-#include "mapped_object.h"
-#include "RegisterConversion.h"
-#include "registerSpace.h"
-#include "regTracker.h"
-#include "ast_helpers.h"
+#include "AstNode.h"
+#include "dyn_register.h"
+#include "opcode.h"
 
+#include <boost/make_shared.hpp>
+#include <string>
 
-using namespace Dyninst;
-using namespace Dyninst::InstructionAPI;
-using PatchAPI::Point;
+class codeGen;
 
+// This corresponds to a single statement, and not an expression that can be nested among other
+// expressions.
+class AstAtomicOperationStmtNode : public AstNode {
+public:
+  AstAtomicOperationStmtNode(opCode op, AstNodePtr var, AstNodePtr constant_)
+      : opcode{op}, variable{std::move(var)}, constant{std::move(constant_)} {}
+
+  std::string format(std::string indent) override;
+
+  bool canBeKept() const override {
+    return true;
+  }
+
+private:
+  bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
+                           Dyninst::Register &) override;
+  opCode opcode{};
+  AstNodePtr variable{};
+  AstNodePtr constant{};
+};
+
+namespace AtomicOperation {
+
+  inline AstNodePtr plus(AstNodePtr var, AstNodePtr constant) {
+    return boost::make_shared<AstAtomicOperationStmtNode>(plusOp, std::move(var),
+                                                          std::move(constant));
+  }
+
+  inline AstNodePtr minus(AstNodePtr var, AstNodePtr constant) {
+    return boost::make_shared<AstAtomicOperationStmtNode>(minusOp, std::move(var),
+                                                          std::move(constant));
+  }
+
+}
+
+#endif

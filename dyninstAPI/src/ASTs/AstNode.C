@@ -8,13 +8,6 @@
 #include "Point.h"
 #include "registerSpace.h"
 
-//////////////////////////////////////////////////////
-
-AstNodePtr AstNode::atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable,
-                                            AstNodePtr constant) {
-  return AstNodePtr(new AstAtomicOperationStmtNode(astOpcode, variable, constant));
-}
-
 void AstNode::setType(BPatch_type *t) {
   bptype = t;
   if(t != NULL) {
