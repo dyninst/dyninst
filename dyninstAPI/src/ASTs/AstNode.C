@@ -23,40 +23,6 @@ AstNodePtr AstNode::variableNode(std::vector<AstNodePtr> &ast_wrappers,
   return AstNodePtr(new AstVariableNode(ast_wrappers, ranges));
 }
 
-AstNodePtr AstNode::funcCallNode(const std::string &func, std::vector<AstNodePtr> &args,
-                                 AddressSpace *addrSpace) {
-  if(addrSpace) {
-    func_instance *ifunc = addrSpace->findOnlyOneFunction(func.c_str());
-
-    if(ifunc == NULL) {
-      fprintf(stderr, "%s[%d]: Can't find function %s\n", FILE__, __LINE__, func.c_str());
-      return AstNodePtr();
-    }
-
-    return AstNodePtr(new AstCallNode(ifunc, args));
-  } else {
-    return AstNodePtr(new AstCallNode(func, args));
-  }
-}
-
-AstNodePtr AstNode::funcCallNode(func_instance *func, std::vector<AstNodePtr> &args) {
-  if(func == NULL) {
-    return AstNodePtr();
-  }
-  return AstNodePtr(new AstCallNode(func, args));
-}
-
-AstNodePtr AstNode::funcCallNode(func_instance *func) {
-  if(func == NULL) {
-    return AstNodePtr();
-  }
-  return AstNodePtr(new AstCallNode(func));
-}
-
-AstNodePtr AstNode::funcCallNode(Address addr, std::vector<AstNodePtr> &args) {
-  return AstNodePtr(new AstCallNode(addr, args));
-}
-
 AstNodePtr AstNode::memoryNode(memoryType ma, int which, int size) {
   return AstNodePtr(new AstMemoryNode(ma, which, size));
 }
@@ -118,7 +84,7 @@ AstNodePtr AstNode::threadIndexNode() {
   }
   std::vector<AstNodePtr> args;
   // By not including a process we'll specialize at code generation.
-  indexNode_ = AstNode::funcCallNode("DYNINSTthreadIndex", args);
+  indexNode_ = CallNode::namedCall("DYNINSTthreadIndex", args);
   assert(indexNode_);
   indexNode_->setConstFunc(true);
 
