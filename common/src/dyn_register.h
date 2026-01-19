@@ -31,6 +31,7 @@
 #ifndef DYNINST_REGISTER
 #define DYNINST_REGISTER
 
+#include <stdint.h>
 #include <functional>
 
 namespace Dyninst {
@@ -112,7 +113,7 @@ union Register {
 typedef long long int RegValue;
 
 /* '255' */
-constexpr Register Null_Register{static_cast<unsigned int>(-1)};
+constexpr Register Null_Register(static_cast<unsigned int>(-1));
 
 } // namespace Dyninst
 
