@@ -42,7 +42,8 @@ void AstVariableNode::setVariableAST(codeGen &gen) {
 
 std::string AstVariableNode::format(std::string indent) {
   std::stringstream ret;
-  ret << indent << "Var/" << std::hex << this << std::dec << "(" << children.size() << ")" << std::endl;
+  ret << indent << "Var/" << std::hex << this << std::dec << "(" << children.size() << ")"
+      << std::endl;
 
   for(auto &c : children) {
     ret << indent << c->format(indent + "  ");

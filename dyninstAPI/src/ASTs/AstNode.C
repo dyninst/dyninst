@@ -8,25 +8,9 @@
 #include "Point.h"
 #include "registerSpace.h"
 
-AstNodePtr AstNode::originalAddrNode_ = AstNodePtr();
-AstNodePtr AstNode::actualAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
 
 //////////////////////////////////////////////////////
-
-AstNodePtr AstNode::originalAddrNode() {
-  if(originalAddrNode_ == NULL) {
-    originalAddrNode_ = AstNodePtr(new AstOriginalAddrNode());
-  }
-  return originalAddrNode_;
-}
-
-AstNodePtr AstNode::actualAddrNode() {
-  if(actualAddrNode_ == NULL) {
-    actualAddrNode_ = AstNodePtr(new AstActualAddrNode());
-  }
-  return actualAddrNode_;
-}
 
 AstNodePtr AstNode::dynamicTargetNode() {
   if(dynamicTargetNode_ == NULL) {

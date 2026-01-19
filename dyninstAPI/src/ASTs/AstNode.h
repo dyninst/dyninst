@@ -99,8 +99,6 @@ public:
   // TODO...
   // Needs some way of marking what to save and restore... should be a registerSpace, really
 
-  static AstNodePtr originalAddrNode();
-  static AstNodePtr actualAddrNode();
   static AstNodePtr dynamicTargetNode();
 
   static AstNodePtr snippetNode(Dyninst::PatchAPI::SnippetPtr snip);
@@ -244,8 +242,6 @@ public:
   virtual bool generate(Dyninst::PatchAPI::Point *, Dyninst::Buffer &);
 
 private:
-  static AstNodePtr originalAddrNode_;
-  static AstNodePtr actualAddrNode_;
   static AstNodePtr dynamicTargetNode_;
 };
 

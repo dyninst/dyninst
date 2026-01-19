@@ -1526,7 +1526,7 @@ BPatch_stopThreadExpr::BPatch_stopThreadExpr
 
     // set up funcCall args
     std::vector<AstNodePtr> ast_args;
-    ast_args.push_back(AstNode::actualAddrNode());
+    ast_args.push_back(AddressNode::actual());
     ast_args.push_back(idNode);
     ast_args.push_back(icNode);
     ast_args.push_back(calculation.ast_wrapper);
@@ -1561,7 +1561,7 @@ BPatch_stopThreadExpr::BPatch_stopThreadExpr(
 
     // set up funcCall args
     std::vector<AstNodePtr> ast_args;
-    ast_args.push_back(AstNode::actualAddrNode());
+    ast_args.push_back(AddressNode::actual());
     ast_args.push_back(idNode);
     ast_args.push_back(icNode);
     ast_args.push_back(calculation.ast_wrapper);
@@ -1596,7 +1596,7 @@ BPatch_shadowExpr::BPatch_shadowExpr
     }
     ast_args.back()->setType(BPatch::bpatch->type_Untyped);
 
-    ast_args.push_back(AstNode::actualAddrNode());
+    ast_args.push_back(AddressNode::actual());
     ast_args.push_back(idNode);
     ast_args.push_back(icNode);
     ast_args.push_back(calculation.ast_wrapper);
@@ -1608,7 +1608,7 @@ BPatch_shadowExpr::BPatch_shadowExpr
 }
 
 BPatch_originalAddressExpr::BPatch_originalAddressExpr() {
-    ast_wrapper = AstNodePtr(AstNode::originalAddrNode());
+    ast_wrapper = AstNodePtr(AddressNode::original());
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -1618,7 +1618,7 @@ BPatch_originalAddressExpr::BPatch_originalAddressExpr() {
 }
 
 BPatch_actualAddressExpr::BPatch_actualAddressExpr() {
-    ast_wrapper = AstNodePtr(AstNode::actualAddrNode());
+    ast_wrapper = AstNodePtr(AddressNode::actual());
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());

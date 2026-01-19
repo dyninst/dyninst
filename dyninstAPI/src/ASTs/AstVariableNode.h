@@ -47,7 +47,8 @@ class AstVariableNode : public AstNode {
 public:
   using range_t = std::pair<Dyninst::Offset, Dyninst::Offset>;
 
-  AstVariableNode(std::vector<AstNodePtr> &ast_wrappers, std::vector<range_t> *ranges) : ranges_{ranges} {
+  AstVariableNode(std::vector<AstNodePtr> &ast_wrappers, std::vector<range_t> *ranges)
+      : ranges_{ranges} {
     children = ast_wrappers;
     assert(!children.empty());
   }
@@ -85,7 +86,8 @@ public:
   }
 
 private:
-  bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &addr, Dyninst::Register &retReg) override {
+  bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &addr,
+                           Dyninst::Register &retReg) override {
     return children[index]->generateCode_phase2(gen, noCost, addr, retReg);
   }
 
@@ -99,7 +101,8 @@ namespace VariableNode {
     return boost::make_shared<AstVariableNode>(asts, nullptr);
   }
 
-  inline AstNodePtr variableWithRanges(std::vector<AstNodePtr> &asts, std::vector<AstVariableNode::range_t> *ranges) {
+  inline AstNodePtr variableWithRanges(std::vector<AstNodePtr> &asts,
+                                       std::vector<AstVariableNode::range_t> *ranges) {
     return boost::make_shared<AstVariableNode>(asts, ranges);
   }
 

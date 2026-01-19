@@ -31,6 +31,7 @@
 #ifndef DYNINST_DYNINSTAPI_AST_H
 #define DYNINST_DYNINSTAPI_AST_H
 
+#include "AstAddrNode.h"
 #include "AstCallNode.h"
 #include "AstMemoryNode.h"
 #include "AstNode.h"
@@ -64,40 +65,6 @@ class image_variable;
 class int_variable;
 
 /* Stack Frame Modification */
-
-class AstOriginalAddrNode : public AstNode {
- public:
-    AstOriginalAddrNode() {}
-
-    virtual ~AstOriginalAddrNode() {}
-
-
-    virtual BPatch_type *checkType(BPatch_function*  = NULL) { return getType(); }
-    virtual bool canBeKept() const { return true; }
- 
-
- private:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Dyninst::Address &retAddr,
-                                     Dyninst::Register &retReg);
-};
-
-class AstActualAddrNode : public AstNode {
- public:
-    AstActualAddrNode() {}
-
-    virtual ~AstActualAddrNode() {}
-
-
-    virtual BPatch_type *checkType(BPatch_function*  = NULL) { return getType(); }
- 
- private:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Dyninst::Address &retAddr,
-                                     Dyninst::Register &retReg);
-};
 
 class AstDynamicTargetNode : public AstNode {
  public:
