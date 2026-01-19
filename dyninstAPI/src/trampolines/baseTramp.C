@@ -338,7 +338,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
          if (ast) 
             miniTramps.push_back(ast);
          else
-            miniTramps.push_back(AstNode::snippetNode((*iter)->snippet()));
+            miniTramps.push_back(SnippetNode::snippet((*iter)->snippet()));
       }
    }
    else {
