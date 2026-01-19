@@ -94,11 +94,6 @@ public:
   // Acquire the thread index value - a 0...n labelling of threads.
   static AstNodePtr threadIndexNode();
 
-  // TODO...
-  // Needs some way of marking what to save and restore... should be a registerSpace, really
-
-  static AstNodePtr snippetNode(Dyninst::PatchAPI::SnippetPtr snip);
-
   virtual ~AstNode() = default;
 
   virtual bool generateCode(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
