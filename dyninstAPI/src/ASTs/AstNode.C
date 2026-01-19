@@ -14,10 +14,6 @@ AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
 
 //////////////////////////////////////////////////////
 
-AstNodePtr AstNode::stackInsertNode(int size, MSpecialType type) {
-  return AstNodePtr(new AstStackInsertNode(size, type));
-}
-
 AstNodePtr AstNode::stackRemoveNode(int size, MSpecialType type) {
   return AstNodePtr(new AstStackRemoveNode(size, type));
 }
