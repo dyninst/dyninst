@@ -14,10 +14,6 @@ AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
 
 //////////////////////////////////////////////////////
 
-AstNodePtr AstNode::memoryNode(memoryType ma, int which, int size) {
-  return AstNodePtr(new AstMemoryNode(ma, which, size));
-}
-
 AstNodePtr AstNode::originalAddrNode() {
   if(originalAddrNode_ == NULL) {
     originalAddrNode_ = AstNodePtr(new AstOriginalAddrNode());

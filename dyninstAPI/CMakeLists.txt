@@ -50,6 +50,7 @@ set(_private_headers
     src/ast.h
     src/ASTs/ast_helpers.h
     src/ASTs/AstCallNode.h
+    src/ASTs/AstMemoryNode.h
     src/ASTs/AstNode.h
     src/ASTs/AstNullNode.h
     src/ASTs/AstStackNode.h
@@ -133,6 +134,7 @@ set(_sources
     src/addressSpace.C
     src/ast.C
     src/ASTs/AstCallNode.C
+    src/ASTs/AstMemoryNode.C
     src/ASTs/AstNode.C
     src/ASTs/AstNullNode.C
     src/ASTs/AstOperandNode.C
