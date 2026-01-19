@@ -58,6 +58,7 @@ set(_private_headers
     src/ASTs/AstStackNode.h
     src/ASTs/AstOperandNode.h
     src/ASTs/AstOperatorNode.h
+    src/ASTs/AstScrambleRegistersNode.h
     src/ASTs/AstSequenceNode.h
     src/ASTs/AstStackInsertNode.h
     src/ASTs/AstStackGenericNode.h
@@ -144,6 +145,7 @@ set(_sources
     src/ASTs/AstOperandNode.C
     src/ASTs/AstOperatorNode.C
     src/ASTs/AstOriginalAddrNode.C
+    src/ASTs/AstScrambleRegistersNode.C
     src/ASTs/AstSequenceNode.C
     src/ASTs/AstStackNode.C
     src/ASTs/AstStackInsertNode.C

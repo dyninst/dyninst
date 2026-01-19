@@ -94,8 +94,6 @@ public:
   // Acquire the thread index value - a 0...n labelling of threads.
   static AstNodePtr threadIndexNode();
 
-  static AstNodePtr scrambleRegistersNode();
-
   // TODO...
   // Needs some way of marking what to save and restore... should be a registerSpace, really
 
