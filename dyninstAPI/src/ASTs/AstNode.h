@@ -94,8 +94,6 @@ public:
   AstNode() = default;
 
   // Factory methods....
-  static AstNodePtr stackGenericNode();
-
   static AstNodePtr operandNode(operandType ot, void *arg);
   static AstNodePtr operandNode(operandType ot, AstNodePtr ast);
   static AstNodePtr operandNode(operandType ot, const image_variable *iv);

@@ -14,10 +14,6 @@ AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
 
 //////////////////////////////////////////////////////
 
-AstNodePtr AstNode::stackGenericNode() {
-  return AstNodePtr(new AstStackGenericNode());
-}
-
 AstNodePtr AstNode::operandNode(operandType ot, void *arg) {
   return AstNodePtr(new AstOperandNode(ot, arg));
 }

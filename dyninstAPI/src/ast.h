@@ -34,6 +34,7 @@
 #include "AstNode.h"
 #include "AstNullNode.h"
 #include "AstStackNode.h"
+#include "AstStackGenericNode.h"
 #include "AstStackInsertNode.h"
 #include "AstStackRemoveNode.h"
 #include "dyn_register.h"
@@ -57,18 +58,6 @@ class image_variable;
 class int_variable;
 
 /* Stack Frame Modification */
-
-class AstStackGenericNode : public AstNode {
-    public: AstStackGenericNode() : AstNode() {}
-            virtual std::string format(std::string indent);
-
-            bool canBeKept() const { return true; }
-    private:
-            virtual bool generateCode_phase2(codeGen &gen,
-                    bool noCost,
-                    Dyninst::Address &retAddr,
-                    Dyninst::Register &retReg);
-};
 
 class AstOperatorNode : public AstNode {
  public:

@@ -260,25 +260,6 @@ AstMemoryNode::AstMemoryNode(memoryType mem,
     doTypeCheck = BPatch::bpatch->isTypeChecked();
 }
 
-#if defined(cap_stack_mods)
-
-bool AstStackGenericNode::generateCode_phase2(codeGen& gen, bool, Address&, Dyninst::Register&)
-{
-    gen.setInsertNaked(true);
-    gen.setModifiedStackFrame(true);
-
-    // No code generation necessary
-
-    return true;
-}
-#else
-
-bool AstStackGenericNode::generateCode_phase2(codeGen&, bool, Address&, Dyninst::Register&)
-{
-    return false;
-}
-#endif
-
 bool AstOperatorNode::initRegisters(codeGen &g) {
     bool ret = true;
     for (unsigned i = 0; i < children.size(); i++) {
@@ -1774,13 +1755,6 @@ bool AstSnippetNode::generateCode_phase2(codeGen &gen,
    if (!snip_->generate(gen.point(), buf)) return false;
    gen.copy(buf.start_ptr(), buf.size());
    return true;
-}
-
-std::string AstStackGenericNode::format(std::string indent) {
-    std::stringstream ret;
-    ret << indent << "StackGeneric/" << hex << this;
-    ret << endl;
-    return ret.str();
 }
 
 std::string AstOperatorNode::format(std::string indent) {
