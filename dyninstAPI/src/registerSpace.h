@@ -502,7 +502,7 @@ class registerSpace {
     static unsigned VGPR(Dyninst::Register x) { return x; }
     static unsigned AGPR(Dyninst::Register x) { return x; }
 
-    int framePointer() { return sgpr33; }
+    int framePointer() { return Register(33, SCALAR, GENERAL_PURPOSE, 1); }
 #endif
 
     // Create a map of register names to register numbers
