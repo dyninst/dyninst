@@ -31,6 +31,7 @@
 #ifndef DYNINST_DYNINSTAPI_AST_H
 #define DYNINST_DYNINSTAPI_AST_H
 
+#include "AstCallNode.h"
 #include "AstNode.h"
 #include "AstNullNode.h"
 #include "AstOperandNode.h"
@@ -60,47 +61,6 @@ class image_variable;
 class int_variable;
 
 /* Stack Frame Modification */
-
-class AstCallNode : public AstNode {
- public:
-
-    AstCallNode(func_instance *func, std::vector<AstNodePtr>&args);
-    AstCallNode(const std::string &str, std::vector<AstNodePtr>&args);
-    AstCallNode(Dyninst::Address addr, std::vector<AstNodePtr> &args);
-    AstCallNode(func_instance *func);
-    
-    ~AstCallNode() {}
-
-   virtual std::string format(std::string indent);
-        
-    virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
-    virtual bool canBeKept() const;
-    virtual bool containsFuncCall() const { return true; }
- 
-    void setConstFunc(bool val) { constFunc_ = val; }
-
-    virtual bool initRegisters(codeGen &gen);
-
- private:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Dyninst::Address &retAddr,
-                                     Dyninst::Register &retReg);
-
-    AstCallNode(): func_addr_(0), func_(NULL), callReplace_(false), constFunc_(false) {}
-
-    const std::string func_name_;
-    Dyninst::Address func_addr_;
-    
-    func_instance *func_;
-
-    bool callReplace_; // Node is intended for function call replacement
-    bool constFunc_;  // True if the output depends solely on 
-    // input parameters, or can otherwise be guaranteed to not change
-    // if executed multiple times in the same sequence - AKA 
-    // "can be kept".
-};
-
 
 class AstSequenceNode : public AstNode {
  public:
