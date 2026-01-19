@@ -62,39 +62,6 @@ using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using PatchAPI::Point;
 
-bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
-                                              bool noCost,
-                                              Address &,
-                                              Dyninst::Register &retReg) {
-    RETURN_KEPT_REG(retReg);
-    if (retReg == Dyninst::Null_Register) {
-        retReg = allocateAndKeep(gen, noCost);
-    }
-    if (retReg == Dyninst::Null_Register) return false;
-
-    emitVload(loadConstOp,
-              (Address) gen.point()->addr_compat(),
-              retReg, retReg, gen, noCost);
-    return true;
-}
-
-bool AstActualAddrNode::generateCode_phase2(codeGen &gen,
-                                            bool noCost,
-                                            Address &,
-                                            Dyninst::Register &retReg) {
-    if (retReg == Dyninst::Null_Register) {
-        retReg = allocateAndKeep(gen, noCost);
-    }
-    if (retReg == Dyninst::Null_Register) return false;
-
-    emitVload(loadConstOp,
-              (Address) gen.currAddr(),
-              retReg, retReg,
-              gen, noCost);
-
-    return true;
-}
-
 bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
                                             bool noCost,
                                             Address & retAddr,
