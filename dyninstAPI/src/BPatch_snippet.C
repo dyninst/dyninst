@@ -443,7 +443,7 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
                                 sequence.push_back(lOperand.ast_wrapper);
                                 sequence.push_back(rOperand.ast_wrapper);
 
-                                ast_wrapper = AstNode::sequenceNode(sequence);
+                                ast_wrapper = SequenceNode::sequence(sequence);
                                 ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
                                 return;
                         }
@@ -885,7 +885,7 @@ BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
         assert(items[i]->ast_wrapper);
         sequence.push_back(items[i]->ast_wrapper);
     }
-    ast_wrapper = AstNodePtr(AstNode::sequenceNode(sequence));
+    ast_wrapper = SequenceNode::sequence(sequence);
 
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }

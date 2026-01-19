@@ -95,8 +95,6 @@ public:
   // Factory methods....
   static AstNodePtr memoryNode(memoryType ot, int which, int size = 8);
 
-  static AstNodePtr sequenceNode(std::vector<AstNodePtr> &sequence);
-
   static AstNodePtr
   variableNode(std::vector<AstNodePtr> &ast_wrappers_,
                std::vector<std::pair<Dyninst::Offset, Dyninst::Offset>> *ranges = NULL);
