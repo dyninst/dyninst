@@ -71,26 +71,23 @@ void ASTFactory::visit(Dereference* )
 {
     AstNodePtr effaddr = m_stack.back();
     m_stack.pop_back();
-	m_stack.push_back(AstNode::operandNode(operandType::DataIndir, effaddr));
+	m_stack.push_back(OperandNode::DataIndir(effaddr));
 }
 
 void ASTFactory::visit(Immediate* i)
 {
-    m_stack.push_back(AstNode::operandNode(operandType::Constant,
-                    (void*)(i->eval().convert<long>())));
+    m_stack.push_back(OperandNode::Constant((void*)(i->eval().convert<long>())));
 }
 
 void ASTFactory::visit(RegisterAST* r)
 {
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)  
-    m_stack.push_back(AstNode::operandNode(operandType::origRegister,
-                      (void*)(intptr_t)(convertRegID(r))));
+    m_stack.push_back(OperandNode::origRegister((void*)(intptr_t)(convertRegID(r))));
 #else
     MachRegister reg = r->getID();
     reg = reg.getBaseRegister();
     Register astreg = reg.val() & ~reg.getArchitecture();
-    m_stack.push_back(AstNode::operandNode(AstNode::origRegister,
-                      (void*)(astreg)));
+    m_stack.push_back(OperandNode::origRegister((void*)(astreg)));
 #endif
 }
 void ASTFactory::visit(MultiRegisterAST* )
