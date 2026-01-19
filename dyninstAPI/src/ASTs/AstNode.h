@@ -87,10 +87,6 @@ public:
 
   AstNode() = default;
 
-  // Factory methods....
-  static AstNodePtr atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable,
-                                            AstNodePtr constant);
-
   // Acquire the thread index value - a 0...n labelling of threads.
   static AstNodePtr threadIndexNode();
 
