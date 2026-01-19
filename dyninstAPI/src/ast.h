@@ -36,6 +36,7 @@
 #include "AstNullNode.h"
 #include "AstOperandNode.h"
 #include "AstOperatorNode.h"
+#include "AstSequenceNode.h"
 #include "AstStackNode.h"
 #include "AstStackGenericNode.h"
 #include "AstStackInsertNode.h"
@@ -61,33 +62,6 @@ class image_variable;
 class int_variable;
 
 /* Stack Frame Modification */
-
-class AstSequenceNode : public AstNode {
- public:
-    AstSequenceNode(std::vector<AstNodePtr> &sequence);
-
-    ~AstSequenceNode() {}
-
-   virtual std::string format(std::string indent);
-
-    virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
-
-    virtual bool canBeKept() const {
-      // Theoretically we could keep the entire thing, but... not sure
-      // that's a terrific idea. For now, don't keep a sequence node around.
-        return false;
-    }
-    
- 
-
- private:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Dyninst::Address &retAddr,
-                                     Dyninst::Register &retReg);
-
-    AstSequenceNode() {}
-};
 
 class AstVariableNode : public AstNode {
   public:

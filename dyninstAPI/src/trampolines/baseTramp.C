@@ -345,7 +345,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
       miniTramps.push_back(ast_);
    }
 
-   AstNodePtr minis = AstNode::sequenceNode(miniTramps);
+   AstNodePtr minis = SequenceNode::sequence(miniTramps);
 
    AstNodePtr baseTrampSequence;
    std::vector<AstNodePtr > baseTrampElements;
@@ -360,7 +360,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
      baseTrampElements.push_back(CallNode::namedCall("DYNINST_unlock_tramp_guard", empty_args));
    }
 
-   baseTrampSequence = AstNode::sequenceNode(baseTrampElements);
+   baseTrampSequence = SequenceNode::sequence(baseTrampElements);
 
    AstNodePtr baseTrampAST;
 

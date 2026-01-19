@@ -62,14 +62,6 @@ using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using PatchAPI::Point;
 
-AstSequenceNode::AstSequenceNode(std::vector<AstNodePtr > &sequence) :
-    AstNode()
-{
-    for (unsigned i = 0; i < sequence.size(); i++) {
-        children.push_back(sequence[i]);
-    }
-}
-
 AstVariableNode::AstVariableNode(vector<AstNodePtr>&ast_wrappers, vector<pair<Dyninst::Offset, Dyninst::Offset> > *ranges) :
     ranges_(ranges), index(0)
 {
@@ -185,35 +177,6 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
     return true;
 }
 
-bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost,
-                                          Address &,
-                                          Dyninst::Register &retReg) {
-    RETURN_KEPT_REG(retReg);
-    Dyninst::Register tmp = Dyninst::Null_Register;
-    Address unused = ADDR_NULL;
-
-    if (children.size() == 0) {
-      // Howzat???
-      return true;
-    }
-
-    for (unsigned i = 0; i < children.size() - 1; i++) {
-      if (!children[i]->generateCode_phase2(gen,
-                                               noCost,
-                                               unused,
-                                               tmp)) ERROR_RETURN;
-        gen.rs()->freeRegister(tmp);
-        tmp = Dyninst::Null_Register;
-    }
-
-    // We keep the last one
-    if (!children.back()->generateCode_phase2(gen, noCost, unused, retReg)) ERROR_RETURN;
-
-	decUseCount(gen);
-
-    return true;
-}
-
 bool AstVariableNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           Address &addr,
                                           Dyninst::Register &retReg) {
@@ -326,42 +289,6 @@ bool AstScrambleRegistersNode::generateCode_phase2(codeGen &gen,
    return true;
 }
 
-BPatch_type *AstSequenceNode::checkType(BPatch_function* func) {
-    BPatch_type *ret = NULL;
-    BPatch_type *sType = NULL;
-    bool errorFlag = false;
-
-    assert(BPatch::bpatch != NULL);	/* We'll use this later. */
-
-    if (getType()) {
-	// something has already set the type for us.
-	// this is likely an expression for array access
-	ret = const_cast<BPatch_type *>(getType());
-	return ret;
-    }
-
-    for (unsigned i = 0; i < children.size(); i++) {
-        sType = children[i]->checkType(func);
-        if (sType == BPatch::bpatch->type_Error)
-            errorFlag = true;
-    }
-
-    ret = sType;
-
-    assert(ret != NULL);
-
-    if (errorFlag && doTypeCheck) {
-	ret = BPatch::bpatch->type_Error;
-    } else if (errorFlag) {
-	ret = BPatch::bpatch->type_Untyped;
-    }
-
-    // remember what type we are
-    setType(ret);
-
-    return ret;
-}
-
 void AstVariableNode::setVariableAST(codeGen &gen){
     if(!ranges_)
         return;
@@ -398,16 +325,6 @@ bool AstSnippetNode::generateCode_phase2(codeGen &gen,
    gen.copy(buf.start_ptr(), buf.size());
    return true;
 }
-
-std::string AstSequenceNode::format(std::string indent) {
-   std::stringstream ret;
-   ret << indent << "Seq/" << hex << this << dec << "()" << endl;
-   for (unsigned i = 0; i < children.size(); ++i) {
-      ret << indent << children[i]->format(indent + "  ");
-   }
-   return ret.str();
-}
-
 
 std::string AstVariableNode::format(std::string indent) {
    std::stringstream ret;

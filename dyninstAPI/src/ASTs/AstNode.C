@@ -14,10 +14,6 @@ AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
 
 //////////////////////////////////////////////////////
 
-AstNodePtr AstNode::sequenceNode(std::vector<AstNodePtr> &sequence) {
-  return AstNodePtr(new AstSequenceNode(sequence));
-}
-
 AstNodePtr AstNode::variableNode(std::vector<AstNodePtr> &ast_wrappers,
                                  std::vector<std::pair<Dyninst::Offset, Dyninst::Offset>> *ranges) {
   return AstNodePtr(new AstVariableNode(ast_wrappers, ranges));
