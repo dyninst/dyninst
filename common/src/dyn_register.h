@@ -45,7 +45,7 @@ typedef unsigned int Register;
 
 enum RegKind : uint32_t { SCALAR = 0, VECTOR = 1, MATRIX = 2, PREDICATE = 3, UNDEFINED_KIND = 4 };
 
-enum RegUsage : uint16_t {
+enum RegUsage : uint32_t {
   GENERAL_PURPOSE = 0,
   SPECIAL_PURPOSE = 1,
   TEMPORARY = 2,
