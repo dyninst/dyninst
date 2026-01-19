@@ -32,6 +32,7 @@
 #define DYNINST_DYNINSTAPI_AST_H
 
 #include "AstCallNode.h"
+#include "AstMemoryNode.h"
 #include "AstNode.h"
 #include "AstNullNode.h"
 #include "AstOperandNode.h"
@@ -63,33 +64,6 @@ class image_variable;
 class int_variable;
 
 /* Stack Frame Modification */
-
-
-
-class AstMemoryNode : public AstNode {
- public:
-    AstMemoryNode(memoryType mem, unsigned which, int size);
-    bool canBeKept() const {
-      // Despite our memory loads, we can be kept;
-      // we're loading off process state, which is defined
-      // to be invariant during the instrumentation phase.
-      return true;
-    }
-
-   virtual std::string format(std::string indent);
-   virtual bool usesAppRegister() const { return true; }
- 
-
- private:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Dyninst::Address &retAddr,
-                                     Dyninst::Register &retReg);
-    
-    AstMemoryNode() {}
-    memoryType mem_{};
-    unsigned which_{};
-};
 
 class AstOriginalAddrNode : public AstNode {
  public:
