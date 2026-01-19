@@ -78,11 +78,6 @@ typedef boost::shared_ptr<AstNode> AstNodePtr;
 
 class AstNode : public Dyninst::PatchAPI::Snippet {
 public:
-  enum memoryType {
-    EffectiveAddr,
-    BytesAccessed
-  };
-
   enum MSpecialType {
     GENERIC_AST,
     CANARY_AST
@@ -93,8 +88,6 @@ public:
   AstNode() = default;
 
   // Factory methods....
-  static AstNodePtr memoryNode(memoryType ot, int which, int size = 8);
-
   static AstNodePtr atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable,
                                             AstNodePtr constant);
 

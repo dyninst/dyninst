@@ -1399,7 +1399,7 @@ BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which, int size)
 #else
   assert(_which >= 0 && _which <= (int) BPatch_instruction::nmaxacc_NP);
 #endif
-  ast_wrapper = AstNodePtr(AstNode::memoryNode(AstNode::EffectiveAddr, _which, size));
+  ast_wrapper = MemoryNode::effectiveAddress(_which, size);
 }
 
 
@@ -1415,7 +1415,7 @@ BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr(int _which)
 #else
   assert(_which >= 0 && _which <= (int)BPatch_instruction::nmaxacc_NP);
 #endif
-  ast_wrapper = AstNodePtr(AstNode::memoryNode(AstNode::BytesAccessed, _which));
+  ast_wrapper = MemoryNode::bytesAccessed(_which);
 }
 
 
