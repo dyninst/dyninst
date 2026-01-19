@@ -33,6 +33,7 @@
 
 #include "AstAddrNode.h"
 #include "AstCallNode.h"
+#include "AstDynamicTargetNode.h"
 #include "AstMemoryNode.h"
 #include "AstNode.h"
 #include "AstNullNode.h"
@@ -66,21 +67,7 @@ class int_variable;
 
 /* Stack Frame Modification */
 
-class AstDynamicTargetNode : public AstNode {
- public:
-    AstDynamicTargetNode() {}
 
-    virtual ~AstDynamicTargetNode() {}
-
-
-    virtual BPatch_type *checkType(BPatch_function*  = NULL) { return getType(); }
- 
- private:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Dyninst::Address &retAddr,
-                                     Dyninst::Register &retReg);
-};
 class AstScrambleRegistersNode : public AstNode {
  public:
     AstScrambleRegistersNode() {}
