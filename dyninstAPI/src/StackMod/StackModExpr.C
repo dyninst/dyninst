@@ -44,7 +44,7 @@ BPatch_stackInsertExpr::BPatch_stackInsertExpr(int size)
 
 BPatch_stackRemoveExpr::BPatch_stackRemoveExpr(int size)
 {
-    ast_wrapper = AstNodePtr(AstNode::stackRemoveNode(size, AstNode::GENERIC_AST));
+    ast_wrapper = StackRemoveNode::generic(size);
     assert(BPatch::bpatch != NULL);
 }
 
@@ -63,7 +63,7 @@ BPatch_canaryExpr::BPatch_canaryExpr()
 
 BPatch_canaryCheckExpr::BPatch_canaryCheckExpr(BPatch_function* failureFunc, bool canaryAfterPrologue, long canaryHeight)
 {
-    ast_wrapper = AstNodePtr(AstNode::stackRemoveNode(0, AstNode::CANARY_AST, failureFunc->lowlevel_func(), canaryAfterPrologue, canaryHeight));
+    ast_wrapper = StackRemoveNode::canary(0, failureFunc->lowlevel_func(), canaryAfterPrologue, canaryHeight);
 
     assert(BPatch::bpatch != NULL);
 }
