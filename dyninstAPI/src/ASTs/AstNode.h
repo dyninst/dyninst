@@ -95,10 +95,6 @@ public:
   // Factory methods....
   static AstNodePtr memoryNode(memoryType ot, int which, int size = 8);
 
-  static AstNodePtr
-  variableNode(std::vector<AstNodePtr> &ast_wrappers_,
-               std::vector<std::pair<Dyninst::Offset, Dyninst::Offset>> *ranges = NULL);
-
   static AstNodePtr atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable,
                                             AstNodePtr constant);
 
