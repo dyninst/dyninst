@@ -62,16 +62,6 @@ using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using PatchAPI::Point;
 
-bool AstSnippetNode::generateCode_phase2(codeGen &gen,
-                                         bool,
-                                         Address &,
-                                         Dyninst::Register &) {
-   Buffer buf(gen.currAddr(), 1024);
-   if (!snip_->generate(gen.point(), buf)) return false;
-   gen.copy(buf.start_ptr(), buf.size());
-   return true;
-}
-
 AstAtomicOperationStmtNode::AstAtomicOperationStmtNode(opCode astOpcode, AstNodePtr variableNode,
                                                        AstNodePtr constantNode)
     : opcode(astOpcode), variable(variableNode), constant(constantNode) {}
