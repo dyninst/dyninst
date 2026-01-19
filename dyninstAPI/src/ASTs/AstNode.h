@@ -94,9 +94,6 @@ public:
   AstNode() = default;
 
   // Factory methods....
-  static AstNodePtr stackRemoveNode(int size, MSpecialType type);
-  static AstNodePtr stackRemoveNode(int size, MSpecialType type, func_instance *func,
-                                    bool canaryAfterPrologue, long canaryHeight);
   static AstNodePtr stackGenericNode();
 
   static AstNodePtr operandNode(operandType ot, void *arg);

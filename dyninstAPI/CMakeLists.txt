@@ -53,6 +53,7 @@ set(_private_headers
     src/ASTs/AstNullNode.h
     src/ASTs/AstStackNode.h
     src/ASTs/AstStackInsertNode.h
+    src/ASTs/AstStackRemoveNode.h
     src/ASTs/OperandType.h
     src/trampolines/baseTramp.h
     src/trampolines/baseTramp-aarch64.h
@@ -129,6 +130,7 @@ set(_sources
     src/ASTs/AstNullNode.C
     src/ASTs/AstStackNode.C
     src/ASTs/AstStackInsertNode.C
+    src/ASTs/AstStackRemoveNode.C
     src/binaryEdit.C
     src/block.C
     src/codeRange.C

@@ -14,15 +14,6 @@ AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
 
 //////////////////////////////////////////////////////
 
-AstNodePtr AstNode::stackRemoveNode(int size, MSpecialType type) {
-  return AstNodePtr(new AstStackRemoveNode(size, type));
-}
-
-AstNodePtr AstNode::stackRemoveNode(int size, MSpecialType type, func_instance *func,
-                                    bool canaryAfterPrologue, long canaryHeight) {
-  return AstNodePtr(new AstStackRemoveNode(size, type, func, canaryAfterPrologue, canaryHeight));
-}
-
 AstNodePtr AstNode::stackGenericNode() {
   return AstNodePtr(new AstStackGenericNode());
 }
