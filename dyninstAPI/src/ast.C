@@ -62,22 +62,6 @@ using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using PatchAPI::Point;
 
-bool AstScrambleRegistersNode::generateCode_phase2(codeGen &gen,
- 						  bool ,
-						  Address&,
-						  Dyninst::Register& )
-{
-   (void)gen; // unused
-#if defined(DYNINST_CODEGEN_ARCH_X86_64)
-   for (int i = 0; i < gen.rs()->numGPRs(); i++) {
-      registerSlot *reg = gen.rs()->GPRs()[i];
-      if (reg->encoding() != REGNUM_RBP && reg->encoding() != REGNUM_RSP)
-          gen.codeEmitter()->emitLoadConst(reg->encoding() , -1, gen);
-   }
-#endif
-   return true;
-}
-
 bool AstSnippetNode::generateCode_phase2(codeGen &gen,
                                          bool,
                                          Address &,
