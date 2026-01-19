@@ -8,16 +8,7 @@
 #include "Point.h"
 #include "registerSpace.h"
 
-AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
-
 //////////////////////////////////////////////////////
-
-AstNodePtr AstNode::dynamicTargetNode() {
-  if(dynamicTargetNode_ == NULL) {
-    dynamicTargetNode_ = AstNodePtr(new AstDynamicTargetNode());
-  }
-  return dynamicTargetNode_;
-}
 
 AstNodePtr AstNode::snippetNode(Dyninst::PatchAPI::SnippetPtr snip) {
   return AstNodePtr(new AstSnippetNode(snip));
