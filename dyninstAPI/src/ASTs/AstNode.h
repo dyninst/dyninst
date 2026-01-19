@@ -104,15 +104,6 @@ public:
   static AstNodePtr atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable,
                                             AstNodePtr constant);
 
-  static AstNodePtr funcCallNode(const std::string &func, std::vector<AstNodePtr> &args,
-                                 AddressSpace *addrSpace = NULL);
-  static AstNodePtr funcCallNode(func_instance *func, std::vector<AstNodePtr> &args);
-  static AstNodePtr
-  funcCallNode(func_instance *func); // Special case for function call replacement.
-  static AstNodePtr funcCallNode(Dyninst::Address addr,
-                                 std::vector<AstNodePtr> &args); // For when you absolutely need
-  // to jump somewhere.
-
   // Acquire the thread index value - a 0...n labelling of threads.
   static AstNodePtr threadIndexNode();
 

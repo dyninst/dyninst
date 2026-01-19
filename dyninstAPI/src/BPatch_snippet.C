@@ -716,7 +716,7 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
     //  to generate function calls can lead to non uniqueness probs
     //  in the case of overloaded callee functions.
 
-    ast_wrapper = AstNodePtr(AstNode::funcCallNode(func.lowlevel_func(), ast_args));
+    ast_wrapper = CallNode::call(func.lowlevel_func(), ast_args);
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -1378,7 +1378,7 @@ BPatch_breakPointExpr::BPatch_breakPointExpr()
 {
     std::vector<AstNodePtr > null_args;
 
-    ast_wrapper = AstNodePtr(AstNode::funcCallNode("DYNINST_snippetBreakpoint", null_args));
+    ast_wrapper = CallNode::namedCall("DYNINST_snippetBreakpoint", null_args);
 
     assert(BPatch::bpatch != NULL);
 
@@ -1451,7 +1451,7 @@ BPatch_tidExpr::BPatch_tidExpr(BPatch_process *proc)
   BPatch_function *thread_func = thread_funcs[0];
 
   std::vector<AstNodePtr> args;
-  ast_wrapper = AstNodePtr(AstNode::funcCallNode(thread_func->lowlevel_func(), args));
+  ast_wrapper = CallNode::call(thread_func->lowlevel_func(), args);
 
   assert(BPatch::bpatch != NULL);
   ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -1532,7 +1532,7 @@ BPatch_stopThreadExpr::BPatch_stopThreadExpr
     ast_args.push_back(calculation.ast_wrapper);
 
     // create func call & set type
-    ast_wrapper = AstNodePtr(AstNode::funcCallNode("DYNINST_stopThread", ast_args));
+    ast_wrapper = CallNode::namedCall("DYNINST_stopThread", ast_args);
     ast_wrapper->setType(BPatch::bpatch->type_Untyped);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
@@ -1569,7 +1569,7 @@ BPatch_stopThreadExpr::BPatch_stopThreadExpr(
     ast_args.push_back(objEndNode);
 
     // create func call & set type
-    ast_wrapper = AstNodePtr(AstNode::funcCallNode("DYNINST_stopInterProc", ast_args));
+    ast_wrapper = CallNode::namedCall("DYNINST_stopInterProc", ast_args);
     ast_wrapper->setType(BPatch::bpatch->type_Untyped);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
@@ -1602,7 +1602,7 @@ BPatch_shadowExpr::BPatch_shadowExpr
     ast_args.push_back(calculation.ast_wrapper);
 
     // create func call & set type
-    ast_wrapper = AstNodePtr(AstNode::funcCallNode("RThandleShadow", ast_args));
+    ast_wrapper = CallNode::namedCall("RThandleShadow", ast_args);
     ast_wrapper->setType(BPatch::bpatch->type_Untyped);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }

@@ -152,7 +152,7 @@ static void add_handler(instPoint* pt, func_instance* add_me)
 {
   vector<AstNodePtr> args;
   // no args, just add
-  AstNodePtr snip = AstNode::funcCallNode(add_me, args);
+  AstNodePtr snip = CallNode::call(add_me, args);
   auto instrumentation = pt->pushFront(snip);
   instrumentation->disableRecursiveGuard();
 }

@@ -357,7 +357,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
     
    if (guarded() &&
        minis->containsFuncCall()) {
-     baseTrampElements.push_back(AstNode::funcCallNode("DYNINST_unlock_tramp_guard", empty_args));
+     baseTrampElements.push_back(CallNode::namedCall("DYNINST_unlock_tramp_guard", empty_args));
    }
 
    baseTrampSequence = AstNode::sequenceNode(baseTrampElements);
@@ -369,7 +369,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    if (guarded() &&
        minis->containsFuncCall()) {
       baseTrampAST = OperatorNode::If(
-          AstNode::funcCallNode("DYNINST_lock_tramp_guard", empty_args),
+          CallNode::namedCall("DYNINST_lock_tramp_guard", empty_args),
           baseTrampSequence);
    }
    else {
