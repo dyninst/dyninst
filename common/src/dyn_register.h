@@ -31,8 +31,9 @@
 #ifndef DYNINST_REGISTER
 #define DYNINST_REGISTER
 
-#include <stdint.h>
+#include <assert.h>
 #include <functional>
+#include <stdint.h>
 
 namespace Dyninst {
 
@@ -78,6 +79,15 @@ union Register {
   constexpr Register(uint32_t val) : raw(val) {}
 
   constexpr Register() : raw(static_cast<uint32_t>(-1)) {}
+
+  Register(uint32_t id, RegKind kind, RegUsage usage, uint32_t count) {
+    assert(id >> REG_ID_WIDTH == 0 && "id is wider than than specified");
+    assert(count >> REG_COUNT_WIDTH == 0 && "count is wider than specified");
+    details.id = id;
+    details.kind = kind;
+    details.usage = usage;
+    details.count = count;
+  }
 
   // A register block represents consecutive reqisters starting from id. Not all architectures
   // support this.
