@@ -519,4 +519,7 @@ class registerSpace {
 
 };
 
+void emitLoadPreviousStackFrameRegister(Dyninst::Address register_num, Dyninst::Register dest,
+                                        codeGen &gen, int size, bool noCost);
+
 #endif
