@@ -51,6 +51,7 @@ set(_private_headers
     src/ASTs/ast_helpers.h
     src/ASTs/AstAddrNode.h
     src/ASTs/AstCallNode.h
+    src/ASTs/AstDynamicTargetNode.h
     src/ASTs/AstMemoryNode.h
     src/ASTs/AstNode.h
     src/ASTs/AstNullNode.h
@@ -136,6 +137,7 @@ set(_sources
     src/ast.C
     src/ASTs/AstActualAddrNode.C
     src/ASTs/AstCallNode.C
+    src/ASTs/AstDynamicTargetNode.C
     src/ASTs/AstMemoryNode.C
     src/ASTs/AstNode.C
     src/ASTs/AstNullNode.C

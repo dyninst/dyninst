@@ -1628,7 +1628,7 @@ BPatch_actualAddressExpr::BPatch_actualAddressExpr() {
 }
 
 BPatch_dynamicTargetExpr::BPatch_dynamicTargetExpr() {
-    ast_wrapper = AstNodePtr(AstNode::dynamicTargetNode());
+    ast_wrapper = TargetNode::dynamic();
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
