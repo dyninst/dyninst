@@ -49,6 +49,7 @@ set(_private_headers
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h
     src/ast.h
     src/ASTs/ast_helpers.h
+    src/ASTs/AstAddrNode.h
     src/ASTs/AstCallNode.h
     src/ASTs/AstMemoryNode.h
     src/ASTs/AstNode.h
@@ -133,12 +134,14 @@ set(_private_headers
 set(_sources
     src/addressSpace.C
     src/ast.C
+    src/ASTs/AstActualAddrNode.C
     src/ASTs/AstCallNode.C
     src/ASTs/AstMemoryNode.C
     src/ASTs/AstNode.C
     src/ASTs/AstNullNode.C
     src/ASTs/AstOperandNode.C
     src/ASTs/AstOperatorNode.C
+    src/ASTs/AstOriginalAddrNode.C
     src/ASTs/AstSequenceNode.C
     src/ASTs/AstStackNode.C
     src/ASTs/AstStackInsertNode.C
