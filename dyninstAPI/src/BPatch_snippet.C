@@ -1640,7 +1640,7 @@ BPatch_dynamicTargetExpr::BPatch_dynamicTargetExpr() {
 BPatch_scrambleRegistersExpr::BPatch_scrambleRegistersExpr(){
 
 
-    ast_wrapper = AstNodePtr(AstNode::scrambleRegistersNode());
+    ast_wrapper = RegisterNode::scramble();
     ast_wrapper->setType(BPatch::bpatch->type_Untyped);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
    

@@ -39,6 +39,7 @@
 #include "AstNullNode.h"
 #include "AstOperandNode.h"
 #include "AstOperatorNode.h"
+#include "AstScrambleRegistersNode.h"
 #include "AstSequenceNode.h"
 #include "AstStackNode.h"
 #include "AstStackGenericNode.h"
@@ -67,21 +68,6 @@ class int_variable;
 
 /* Stack Frame Modification */
 
-
-class AstScrambleRegistersNode : public AstNode {
- public:
-    AstScrambleRegistersNode() {}
-
-    virtual ~AstScrambleRegistersNode() {}
-
-    virtual bool usesAppRegister() const { return true; }
- 
- private:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Dyninst::Address &retAddr,
-                                     Dyninst::Register &retReg);
-};
 
 class AstSnippetNode : public AstNode {
    // This is a little odd, since an AstNode _is_

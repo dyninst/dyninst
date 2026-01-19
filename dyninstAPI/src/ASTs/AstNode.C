@@ -14,10 +14,6 @@ AstNodePtr AstNode::snippetNode(Dyninst::PatchAPI::SnippetPtr snip) {
   return AstNodePtr(new AstSnippetNode(snip));
 }
 
-AstNodePtr AstNode::scrambleRegistersNode() {
-  return AstNodePtr(new AstScrambleRegistersNode());
-}
-
 AstNodePtr AstNode::atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable,
                                             AstNodePtr constant) {
   return AstNodePtr(new AstAtomicOperationStmtNode(astOpcode, variable, constant));
