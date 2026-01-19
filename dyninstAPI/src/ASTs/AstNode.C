@@ -14,19 +14,6 @@ AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
 
 //////////////////////////////////////////////////////
 
-AstNodePtr AstNode::operandNode(operandType ot, void *arg) {
-  return AstNodePtr(new AstOperandNode(ot, arg));
-}
-
-// TODO: this is an indirect load; should be an operator.
-AstNodePtr AstNode::operandNode(operandType ot, AstNodePtr ast) {
-  return AstNodePtr(new AstOperandNode(ot, ast));
-}
-
-AstNodePtr AstNode::operandNode(operandType ot, const image_variable *iv) {
-  return AstNodePtr(new AstOperandNode(ot, iv));
-}
-
 AstNodePtr AstNode::sequenceNode(std::vector<AstNodePtr> &sequence) {
   return AstNodePtr(new AstSequenceNode(sequence));
 }

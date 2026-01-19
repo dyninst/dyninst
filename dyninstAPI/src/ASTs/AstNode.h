@@ -94,10 +94,6 @@ public:
   AstNode() = default;
 
   // Factory methods....
-  static AstNodePtr operandNode(operandType ot, void *arg);
-  static AstNodePtr operandNode(operandType ot, AstNodePtr ast);
-  static AstNodePtr operandNode(operandType ot, const image_variable *iv);
-
   static AstNodePtr memoryNode(memoryType ot, int which, int size = 8);
 
   static AstNodePtr sequenceNode(std::vector<AstNodePtr> &sequence);

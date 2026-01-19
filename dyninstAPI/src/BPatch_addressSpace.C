@@ -625,11 +625,8 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
 
   // An AstOperandNode containing another AstOperandNode that is a constant.
   // The constant represents offset in the GPU memory buffer.
-  AstNodePtr ast_wrapper(
-                  AstNode::operandNode(operandType::AddressAsPlaceholderRegAndOffset,
-                    AstNode::operandNode(operandType::Constant, reinterpret_cast<void*>(static_cast<uintptr_t>(offset)))
-                  )
-                );
+  auto val = OperandNode::Constant(reinterpret_cast<void*>(static_cast<uintptr_t>(offset)));
+  auto ast_wrapper = OperandNode::AddressAsPlaceholderRegAndOffset(std::move(val));
 
   ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
   ast_wrapper->setType(type);
