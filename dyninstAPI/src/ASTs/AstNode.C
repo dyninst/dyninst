@@ -14,11 +14,6 @@ AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
 
 //////////////////////////////////////////////////////
 
-AstNodePtr AstNode::variableNode(std::vector<AstNodePtr> &ast_wrappers,
-                                 std::vector<std::pair<Dyninst::Offset, Dyninst::Offset>> *ranges) {
-  return AstNodePtr(new AstVariableNode(ast_wrappers, ranges));
-}
-
 AstNodePtr AstNode::memoryNode(memoryType ma, int which, int size) {
   return AstNodePtr(new AstMemoryNode(ma, which, size));
 }

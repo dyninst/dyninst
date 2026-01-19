@@ -62,13 +62,6 @@ using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using PatchAPI::Point;
 
-AstVariableNode::AstVariableNode(vector<AstNodePtr>&ast_wrappers, vector<pair<Dyninst::Offset, Dyninst::Offset> > *ranges) :
-    ranges_(ranges), index(0)
-{
-   children = ast_wrappers;
-   assert(!children.empty());
-}
-
 AstMemoryNode::AstMemoryNode(memoryType mem,
                              unsigned which,
                              int size_) :
@@ -177,12 +170,6 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
     return true;
 }
 
-bool AstVariableNode::generateCode_phase2(codeGen &gen, bool noCost,
-                                          Address &addr,
-                                          Dyninst::Register &retReg) {
-    return children[index]->generateCode_phase2(gen, noCost, addr, retReg);
-}
-
 bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
                                               bool noCost,
                                               Address &,
@@ -289,33 +276,6 @@ bool AstScrambleRegistersNode::generateCode_phase2(codeGen &gen,
    return true;
 }
 
-void AstVariableNode::setVariableAST(codeGen &gen){
-    if(!ranges_)
-        return;
-    if(!gen.point())    //oneTimeCode. Set the AST at the beginning of the function??
-    {
-        index = 0;
-        return;
-    }
-    Address addr = gen.point()->addr_compat();     //Dyninst::Offset of inst point from function base address
-    bool found = false;
-    for(unsigned i=0; i< ranges_->size();i++){
-       if((*ranges_)[i].first<=addr && addr<=(*ranges_)[i].second) {
-          index = i;
-          found = true;
-       }
-    }
-    if (!found) {
-       cerr << "Error: unable to find AST representing variable at " << hex << addr << dec << endl;
-       cerr << "Pointer " << hex << this << dec << endl;
-       cerr << "Options are: " << endl;
-       for(unsigned i=0; i< ranges_->size();i++){
-          cerr << "\t" << hex << (*ranges_)[i].first << "-" << (*ranges_)[i].second << dec << endl;
-       }
-    }
-    assert(found);
-}
-
 bool AstSnippetNode::generateCode_phase2(codeGen &gen,
                                          bool,
                                          Address &,
@@ -324,16 +284,6 @@ bool AstSnippetNode::generateCode_phase2(codeGen &gen,
    if (!snip_->generate(gen.point(), buf)) return false;
    gen.copy(buf.start_ptr(), buf.size());
    return true;
-}
-
-std::string AstVariableNode::format(std::string indent) {
-   std::stringstream ret;
-   ret << indent << "Var/" << hex << this << dec << "(" << children.size() << ")" << endl;
-   for (unsigned i = 0; i < children.size(); ++i) {
-      ret << indent << children[i]->format(indent + "  ");
-   }
-
-   return ret.str();
 }
 
 std::string AstMemoryNode::format(std::string indent) {

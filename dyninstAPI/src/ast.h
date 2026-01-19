@@ -41,6 +41,7 @@
 #include "AstStackGenericNode.h"
 #include "AstStackInsertNode.h"
 #include "AstStackRemoveNode.h"
+#include "AstVariableNode.h"
 #include "dyn_register.h"
 #include "opcode.h"
 #include "OperandType.h"
@@ -63,45 +64,7 @@ class int_variable;
 
 /* Stack Frame Modification */
 
-class AstVariableNode : public AstNode {
-  public:
-    AstVariableNode(std::vector<AstNodePtr>&ast_wrappers, std::vector<std::pair<Dyninst::Offset, Dyninst::Offset> >*ranges);
 
-    ~AstVariableNode() {}
-
-    virtual std::string format(std::string indent);
-
-    virtual BPatch_type	  *checkType(BPatch_function* = NULL) { return getType(); }
-
-    virtual bool canBeKept() const {
-      return children[index]->canBeKept();
-    }
-
-    virtual operandType getoType() const { return children[index]->getoType(); }
-    virtual AstNodePtr operand() const { return children[index]->operand(); }
-    virtual const void *getOValue() const { return children[index]->getOValue(); }
-
-    virtual void setVariableAST(codeGen &gen);
-    
-    virtual bool containsFuncCall() const {
-      return children[index]->containsFuncCall();
-    }
-    virtual bool usesAppRegister() const {
-      return children[index]->usesAppRegister();
-    }
- 
-
- private:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Dyninst::Address &retAddr,
-                                     Dyninst::Register &retReg);
-
-    AstVariableNode(): ranges_(NULL), index(0) {}
-    std::vector<std::pair<Dyninst::Offset, Dyninst::Offset> > *ranges_;
-    unsigned index;
-
-};
 
 class AstMemoryNode : public AstNode {
  public:

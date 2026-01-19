@@ -1092,7 +1092,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
    variableAst->setTypeChecking(BPatch::bpatch->isTypeChecked());
    variableAst->setType(type);
    variableASTs.push_back(variableAst);
-   ast_wrapper = AstNode::variableNode(variableASTs);
+   ast_wrapper = VariableNode::variable(variableASTs);
    assert(BPatch::bpatch != NULL);
    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
@@ -1181,7 +1181,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 
                 ranges->push_back(pair<Address, Address>(low, hi));
         }
-        ast_wrapper = AstNodePtr(AstNode::variableNode(variableASTs, ranges));
+        ast_wrapper = VariableNode::variableWithRanges(variableASTs, ranges);
         assert(BPatch::bpatch != NULL);
         ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
