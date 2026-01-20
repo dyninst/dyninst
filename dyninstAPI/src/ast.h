@@ -33,6 +33,7 @@
 
 #include "AstNode.h"
 #include "AstNullNode.h"
+#include "AstStackNode.h"
 #include "AstStackInsertNode.h"
 #include "dyn_register.h"
 #include "opcode.h"
@@ -57,14 +58,13 @@ class int_variable;
 /* Stack Frame Modification */
 
 
-class AstStackRemoveNode : public AstNode {
+class AstStackRemoveNode : public AstStackNode {
     public:
-        AstStackRemoveNode(int s, MSpecialType t = GENERIC_AST) : AstNode(),
+        AstStackRemoveNode(int s, MSpecialType t = GENERIC_AST) :
         size(s),
         type(t) {}
 
         AstStackRemoveNode(int s, MSpecialType t, func_instance* func, bool canaryAfterPrologue, long canaryHeight) :
-            AstNode(),
             size(s),
             type(t),
             func_(func),
