@@ -33,6 +33,8 @@
 #ifndef OPCODE_H
 #define OPCODE_H
 
+#include <string>
+
 typedef enum { 
    invalidOp,
    plusOp,
@@ -85,6 +87,56 @@ typedef enum {
    undefOp
 } opCode;
 
-
+inline std::string format_opcode(opCode op) {
+   switch(op) {
+      case invalidOp: return "invalid";
+      case plusOp: return "plus";
+      case minusOp: return "minus";
+      case xorOp: return "xor";
+      case timesOp: return "times";
+      case divOp: return "div";
+      case lessOp: return "less";
+      case leOp: return "le";
+      case greaterOp: return "greater";
+      case geOp: return "ge";
+      case eqOp: return "equal";
+      case neOp: return "ne";
+      case loadOp: return "loadOp";
+      case loadConstOp: return "loadConstOp";
+      case loadFrameRelativeOp: return "loadFrameRelativeOp";
+      case loadFrameAddr: return "loadFrameAddr";
+      case loadRegRelativeOp: return "loadRegRelativeOp";
+      case loadRegRelativeAddr: return "loadRegRelativeAddr";
+      case storeOp: return "storeOp";
+      case storeFrameRelativeOp: return "storeFrameRelativeOp";
+      case ifOp: return "if";
+      case whileOp: return "while";
+      case doOp: return "do";
+      case callOp: return "call";
+      case noOp: return "no";
+      case orOp: return "or";
+      case andOp: return "and";
+      case getRetValOp: return "getRetValOp";
+      case getRetAddrOp: return "getRetAddrOp";
+      case getSysRetValOp: return "getSysRetValOp";
+      case getParamOp: return "getParamOp";
+      case getParamAtCallOp: return "getParamAtCallOp";
+      case getParamAtEntryOp: return "getParamAtEntryOp";
+      case getSysParamOp: return "getSysParamOp";
+      case getAddrOp: return "getAddrOp";
+      case loadIndirOp: return "loadIndirOp";
+      case storeIndirOp: return "storeIndirOp";
+      case saveRegOp: return "saveRegOp";
+      case loadRegOp: return "loadRegOp";
+      case saveStateOp: return "saveStateOp";
+      case loadStateOp: return "loadStateOp";
+      case funcJumpOp: return "funcJump";
+      case funcCallOp: return "funcCall";
+      case branchOp: return "branch";
+      case ifMCOp: return "ifMC";
+      case breakOp: return "break";
+      default: return "UnknownOp";
+   }
+}
 
 #endif

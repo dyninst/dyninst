@@ -107,7 +107,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
   public:
    virtual std::string format(std::string indent);
-   std::string convert(opCode op);
    
    AstNode() = default;
 
