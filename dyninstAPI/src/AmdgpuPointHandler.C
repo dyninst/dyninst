@@ -86,8 +86,7 @@ uint32_t AmdgpuGfx908PointHandler::getMaxGranulatedWavefrontSgprCount() const {
 }
 
 bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) const {
-  const uint32_t maxGranulatedWavefrontSgprCount = 12; // This is computed based on LLVM AMDGPU documentation.
-  return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() != maxGranulatedWavefrontSgprCount);
+  return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() != getMaxGranulatedWavefrontSgprCount());
 }
 
 bool AmdgpuGfx908PointHandler::isRegPairAvailable(Register reg, BPatch_function *function) {
@@ -177,7 +176,6 @@ void AmdgpuGfx908PointHandler::insertEpilogueIfKernel(BPatch_function *function)
   AmdgpuEpilogueSnippet epilogueSnippet(epilogueNodePtr);
   insertEpilogueAtPoints(epilogueSnippet, exitPoints);
 }
-
 
 static constexpr uint32_t roundUpTo8(uint32_t x) {
   return ((x + 7) >> 3) << 3;
