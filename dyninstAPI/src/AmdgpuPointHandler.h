@@ -55,6 +55,7 @@ struct AmdgpuGfx908PointHandler : PointHandler {
   void handlePoints(std::vector<BPatch_point *> const &points);
 
   BPatch_variableExpr* getKernelDescriptorVariable(BPatch_function *f);
+  uint32_t getMaxGranulatedWavefrontSgprCount() const;
 
   bool canInstrument(const AmdgpuKernelDescriptor &kd) const;
   bool isRegPairAvailable(Register reg, BPatch_function *function);

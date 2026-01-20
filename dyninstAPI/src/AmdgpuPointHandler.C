@@ -43,6 +43,7 @@
 #include "AmdgpuKernelDescriptor.h"
 
 #include "ast.h"
+#include "debug.h"
 
 #include <cassert>
 #include <fstream>
@@ -76,6 +77,12 @@ BPatch_variableExpr* AmdgpuGfx908PointHandler::getKernelDescriptorVariable(BPatc
     return kernelDescriptorVariable;
   }
   return nullptr;
+}
+
+uint32_t AmdgpuGfx908PointHandler::getMaxGranulatedWavefrontSgprCount() const {
+  // This math comes from LLVM AMDGPUUsage documentation
+  const uint32_t maxSgprCount = 112; // Set SGPRs to 112 (max value)
+  return 2 * ((maxSgprCount / 16) - 1);
 }
 
 bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) const {
@@ -171,24 +178,30 @@ void AmdgpuGfx908PointHandler::insertEpilogueIfKernel(BPatch_function *function)
   insertEpilogueAtPoints(epilogueSnippet, exitPoints);
 }
 
+
+static constexpr uint32_t roundUpTo8(uint32_t x) {
+  return ((x + 7) >> 3) << 3;
+}
+
 void AmdgpuGfx908PointHandler::maximizeSgprAllocationIfKernel(BPatch_function *function) {
   BPatch_variableExpr *kdVariable = getKernelDescriptorVariable(function);
   assert(kdVariable);
 
   llvm::amdhsa::kernel_descriptor_t rawKd;
   bool success = kdVariable->readValue(&rawKd, sizeof rawKd);
-  assert(success);
+  if(!success) {
+    inst_printf("Unable to read kernel descriptor for %s\n", kdVariable->getName());
+    assert(0);
+  }
 
   AmdgpuKernelDescriptor kd(rawKd, this->eflag);
 
-  // This math comes from LLVM AMDGPUUsage documentation
-  uint32_t newValue = 2 * ((112 / 16) - 1); // Set SGPRs to 112 (max value).
+  uint32_t newValue = this->getMaxGranulatedWavefrontSgprCount();
   kd.setCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount(newValue);
+
   uint32_t kernargSize = kd.getKernargSize();
-  while (kernargSize % 8) {
-    ++kernargSize;
-  }
-  kd.setKernargSize(kernargSize + 8);
+  uint32_t newKernargSize = roundUpTo8(kernargSize) + 8;
+  kd.setKernargSize(newKernargSize);
 
   // We have modified the kernel descriptor. Now overwrite the original one with it.
   kdVariable->writeValue(kd.getRawPtr(), sizeof(rawKd), true);
