@@ -98,8 +98,6 @@ public:
   static AstNodePtr stackRemoveNode(int size, MSpecialType type, func_instance *func,
                                     bool canaryAfterPrologue, long canaryHeight);
   static AstNodePtr stackGenericNode();
-  bool allocateCanaryRegister(codeGen &gen, bool noCost, Dyninst::Register &reg,
-                              bool &needSaveAndRestore);
 
   static AstNodePtr operandNode(operandType ot, void *arg);
   static AstNodePtr operandNode(operandType ot, AstNodePtr ast);

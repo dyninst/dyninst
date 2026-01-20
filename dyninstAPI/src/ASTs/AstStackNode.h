@@ -28,45 +28,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_DYNINSTAPI_ASTSTACKINSERTNODE_H
-#define DYNINST_DYNINSTAPI_ASTSTACKINSERTNODE_H
+#ifndef DYNINST_DYNINSTAPI_STACKAST_H
+#define DYNINST_DYNINSTAPI_STACKAST_H
 
-#include "AstStackNode.h"
+#include "AstNode.h"
 #include "dyn_register.h"
-
-#include <boost/make_shared.hpp>
-#include <string>
 
 class codeGen;
 
-class AstStackInsertNode : public AstStackNode {
-public:
-  AstStackInsertNode(int s, MSpecialType t) : size(s), type(t) {}
-
-  std::string format(std::string indent) override;
-
-  bool canBeKept() const override {
-    return true;
-  }
-
-private:
-  bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
-                           Dyninst::Register &) override;
-
-  int size{};
-  MSpecialType type{};
+class AstStackNode : public AstNode {
+protected:
+  bool allocateCanaryRegister(codeGen &gen, bool noCost, Dyninst::Register &reg,
+                              bool &needSaveAndRestore);
 };
-
-namespace StackInsertNode {
-
-  inline AstNodePtr generic(int s) {
-    return boost::make_shared<AstStackInsertNode>(s, AstNode::GENERIC_AST);
-  }
-
-  inline AstNodePtr canary(int s) {
-    return boost::make_shared<AstStackInsertNode>(s, AstNode::CANARY_AST);
-  }
-
-}
 
 #endif
