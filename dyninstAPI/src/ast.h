@@ -187,7 +187,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
    static AstNodePtr snippetNode(Dyninst::PatchAPI::SnippetPtr snip);
         
-   virtual ~AstNode();
+   virtual ~AstNode() = default;
         
    virtual bool generateCode(codeGen &gen, 
                              bool noCost, 

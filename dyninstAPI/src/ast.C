@@ -469,10 +469,6 @@ AstNodePtr AstNode::threadIndexNode() {
     return indexNode_;
 }
 
-AstNode::~AstNode() {
-    //printf("at ~AstNode()  count=%d\n", referenceCount);
-}
-
 // This name is a bit of a misnomer. It's not the strict use count; it's the
 // use count modified by whether a node can be kept or not. We can treat
 // un-keepable nodes (AKA those that don't strictly depend on their AST inputs)
