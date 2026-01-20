@@ -147,6 +147,10 @@ unsigned registerSlot::encoding() const {
             return registerSpace::AGPR(number);
             break;*/
       default:
+            assert(0);
+            return Null_Register;
+            break;
+    }
 #else
     assert(0);
     return 0;
