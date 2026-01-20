@@ -34,6 +34,7 @@
 #include <assert.h>
 #include <functional>
 #include <stdint.h>
+#include <vector>
 
 namespace Dyninst {
 
@@ -87,17 +88,27 @@ union Register {
     details.kind = kind;
     details.usage = usage;
     details.count = count;
+    details.reserved = 0;
   }
 
   // A register block represents consecutive reqisters starting from id. Not all architectures
-  // support this.
+  // need or support this.
   //
-  // For backward compatibility in codegen across architectures, we need to keep this 0 when we
-  // want to have a single register.
-  // So count = 0 and count = 1 will have the same effect.
+  // So count = 0 is an individual register.
+  // count >= 1 means "register block" with 1 or more registers.
   constexpr bool isRegisterBlock() const { return details.count != 0; }
 
   constexpr operator uint32_t() const { return raw; }
+
+  // If this is a register block, return individual registers in that block.
+  void getIndividualRegisters(std::vector<Register> &individualRegisters) const {
+    assert(this->isRegisterBlock() && "This must be a register block");
+    for (uint32_t i = 0; i < details.count; ++i) {
+      RegKind kind = static_cast<RegKind>(details.kind);
+      RegUsage usage = static_cast<RegUsage>(details.usage);
+      individualRegisters.push_back(Register(details.id + i, kind, usage, 0));
+    }
+  }
 
   // Required for hashmap lookup
   constexpr bool operator==(const Register &other) const { return raw == other.raw; }
