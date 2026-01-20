@@ -45,12 +45,12 @@ typedef unsigned int Register;
 // Without making intrusive changes to existing CPU architectures, we want to introduce a richer
 // Register type to model different kinds of registers.
 
-enum RegKind : uint32_t { SCALAR = 0, VECTOR = 1, MATRIX = 2, PREDICATE = 3, UNDEFINED_KIND = 4 };
+enum RegKind : uint32_t { SCALAR = 0, VECTOR = 1, MATRIX = 2, UNDEFINED_KIND = 3 };
 
 enum RegUsage : uint32_t {
   GENERAL_PURPOSE = 0,
   SPECIAL_PURPOSE = 1,
-  TEMPORARY = 2,
+  PREDICATE = 2,
   UNDEFINED_USAGE = 3
 };
 
