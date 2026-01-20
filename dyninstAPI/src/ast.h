@@ -136,7 +136,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    std::string convert(operandType type);
    std::string convert(opCode op);
    
-   AstNode(); // mdl.C
+   AstNode() = default;
 
    // Factory methods....
    static AstNodePtr nullNode();
@@ -251,8 +251,8 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
      return false;
    }
 
-   int referenceCount;     // Reference count for freeing memory
-   int useCount;           // Reference count for generating code
+   int referenceCount{};     // Reference count for freeing memory
+   int useCount{};           // Reference count for generating code
    void setUseCount(); // Set values for useCount
    int getSize() { return size; }
    void cleanUseCount();
@@ -302,10 +302,10 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    virtual void setConstFunc(bool) {}
 
  protected:
-	BPatch_type *bptype;  // type of corresponding BPatch_snippet
-	bool doTypeCheck;	    // should operands be type checked
-	int size;		    // size of the operations (in bytes)
-	std::vector<AstNodePtr> children;
+	BPatch_type *bptype{};  // type of corresponding BPatch_snippet
+	bool doTypeCheck{true};	    // should operands be type checked
+	int size{4};		    // size of the operations (in bytes)
+	std::vector<AstNodePtr> children{};
 
 
  public:

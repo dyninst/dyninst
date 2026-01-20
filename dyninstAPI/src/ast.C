@@ -94,16 +94,6 @@ AstNodePtr AstNode::originalAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::actualAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
 
-AstNode::AstNode() {
-//   dyn_debug_ast = 0;
-   referenceCount = 0;
-   useCount = 0;
-   // "operands" is left as an empty vector
-   size = 4;
-   bptype = NULL;
-   doTypeCheck = true;
-}
-
 //////////////////////////////////////////////////////
 
 AstNodePtr AstNode::nullNode() {
