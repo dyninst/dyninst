@@ -311,7 +311,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
  public:
 	// Functions for getting and setting type decoration used by the
 	// dyninst API library
-	BPatch_type *getType();
+	BPatch_type *getType() { return bptype; }
 	void		  setType(BPatch_type *t);
 	void		  setTypeChecking(bool x) { doTypeCheck = x; }
 	virtual BPatch_type	  *checkType(BPatch_function* func = NULL);

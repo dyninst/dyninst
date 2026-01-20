@@ -229,8 +229,6 @@ bool isPowerOf2(int value, int &result)
   else return(false);
 }
 
-BPatch_type *AstNode::getType() { return bptype; }
-
 void AstNode::setType(BPatch_type *t) {
     bptype = t;
     if (t != NULL) {
