@@ -147,7 +147,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    static AstNodePtr stackGenericNode();
    bool allocateCanaryRegister(codeGen& gen, bool noCost, Dyninst::Register& reg, bool& needSaveAndRestore);
 
-   static AstNodePtr labelNode(std::string &label);
 
    static AstNodePtr operandNode(operandType ot, void *arg);
    static AstNodePtr operandNode(operandType ot, AstNodePtr ast);
