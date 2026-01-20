@@ -48,6 +48,7 @@ set(_private_headers
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDHSAKernelDescriptor.h
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h
     src/ast.h
+    src/ASTs/OperandType.h
     src/trampolines/baseTramp.h
     src/trampolines/baseTramp-aarch64.h
     src/trampolines/baseTramp-amdgpu.h
@@ -97,7 +98,6 @@ set(_private_headers
     src/mapped_object.h
     src/nt_signal_emul.h
     src/opcode.h
-    src/OperandType.h
     src/os.h
     src/parRegion.h
     src/parse-cfg.h
@@ -334,6 +334,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   endif()
 endif()
 
+list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/ASTs")
+list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/registerSpace")
+list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/trampolines")
+
 foreach(t ${dyninstAPI_TARGETS})
   if(DYNINST_OS_Windows)
     target_link_libraries(${t} PRIVATE dbghelp WS2_32 imagehlp)
@@ -345,9 +349,7 @@ foreach(t ${dyninstAPI_TARGETS})
       ${t} PRIVATE "DYNINST_COMPILER_SEARCH_DIRS=${DYNINST_COMPILER_SEARCH_DIRS}")
   endif()
 
-  target_include_directories(
-    ${t}
-    PUBLIC
-      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/trampolines;${CMAKE_CURRENT_SOURCE_DIR}/src/registerSpace>"
-    )
+  target_include_directories(${t} PUBLIC "$<BUILD_INTERFACE:${_inc_dirs}>")
 endforeach()
+
+unset(_inc_dirs)
