@@ -273,7 +273,7 @@ public:
   // ==== END OF ALL FIELDS ===
 
 
-  Register getKernargPtrRegisterBlock();
+  Register getKernargPtrRegisterPair();
 
   void dump(std::ostream &os) const;
   void dumpDetailed(std::ostream &os) const;

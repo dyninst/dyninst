@@ -155,7 +155,7 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
   function->getEntryPoints(entryPoints);
 
   auto prologuePtr =
-      boost::make_shared<AmdgpuPrologue>(regPair, kd.getKernargPtrRegisterBlock(), kd.getKernargSize());
+      boost::make_shared<AmdgpuPrologue>(regPair, kd.getKernargPtrRegisterPair(), kd.getKernargSize());
 
   AstNodePtr prologueNodePtr =
         boost::make_shared<AmdgpuPrologueNode>(prologuePtr);

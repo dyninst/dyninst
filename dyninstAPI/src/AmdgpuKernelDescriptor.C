@@ -665,7 +665,7 @@ bool AmdgpuKernelDescriptor::supportsArchitectedFlatScratch() const {
 
 #undef GET_VALUE
 
-Register AmdgpuKernelDescriptor::getKernargPtrRegisterBlock() {
+Register AmdgpuKernelDescriptor::getKernargPtrRegisterPair() {
   unsigned kernargPtrRegId = 0;
   if (this->getKernelCodeProperty_EnableSgprPrivateSegmentBuffer()) {
     kernargPtrRegId += 4;
