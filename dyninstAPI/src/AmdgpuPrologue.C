@@ -40,15 +40,7 @@ bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::B
   codeGen gen(20);
   EmitterAmdgpuGfx908 emitter;
 
-  std::vector<Register> destRegs;
-  dest_.getIndividualRegisters(destRegs);
-  assert(destRegs.size() == 2);
-
-  std::vector<Register> baseRegs;
-  base_.getIndividualRegisters(baseRegs);
-  assert(baseRegs.size() == 2);
-
-  emitter.emitLoadRelative(destRegs[0], offset_, baseRegs[0], /* size= */ 2, gen);
+  emitter.emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);
 
   buffer.copy(gen.start_ptr(), gen.used());
 

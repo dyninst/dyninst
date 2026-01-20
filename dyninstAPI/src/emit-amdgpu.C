@@ -40,10 +40,56 @@ using namespace AmdgpuGfx908;
 
 // ===== EmitterAmdgpuGfx908 implementation begin =====
 
+// ==== Helper functions begin
+bool EmitterAmdgpuGfx908::isValidSgpr(Register reg) const {
+  auto regKind = reg.details.kind;
+  auto numRegs = reg.details.count;
+  auto baseRegId = reg.details.id;
+  auto regUsage = reg.details.usage;
+  return
+  regKind == SCALAR &&
+  numRegs < 2 &&
+  baseRegId >= MIN_SGPR_ID && baseRegId <= MAX_SGPR_ID &&
+  regUsage == GENERAL_PURPOSE;
+}
+
+bool EmitterAmdgpuGfx908::isValidSgprBlock(Register regBlock) const {
+  auto regKind = regBlock.details.kind;
+  auto numRegs = regBlock.details.count;
+  auto baseRegId = regBlock.details.id;
+  auto regUsage = regBlock.details.usage;
+  return
+  regKind == SCALAR &&
+  numRegs > 0 &&
+  baseRegId >= MIN_SGPR_ID && baseRegId + numRegs - 1 <= MAX_SGPR_ID &&
+  (baseRegId % 2 == 0 || baseRegId == 1) &&
+  regUsage == GENERAL_PURPOSE;
+}
+
+bool EmitterAmdgpuGfx908::isValidSgprPair(Register regBlock) const {
+  auto numRegs = regBlock.details.count;
+  return isValidSgprBlock(regBlock) && numRegs == 2;
+}
+
+void EmitterAmdgpuGfx908::splitRegisterPair(Register regPair, std::vector<Register> &pieces) const {
+  // TODO : This should also work for vectors later
+  assert(isValidSgprPair(regPair) && "regPair must be a valid SGPR pair");
+  uint32_t regId = regPair.details.id;
+  uint32_t kind = regPair.details.kind;
+  uint32_t usage = regPair.details.usage;
+
+  Register r0(regId, static_cast<RegKind>(kind), static_cast<RegUsage>(usage), 0);
+  Register r1(regId + 1, static_cast<RegKind>(kind), static_cast<RegUsage>(usage), 0);
+
+  pieces.push_back(r0);
+  pieces.push_back(r1);
+}
+// ==== Helper functions end
+
 unsigned EmitterAmdgpuGfx908::emitIf(Register expr_reg, Register target, RegControl /* rc */,
                                      codeGen &gen) {
-  // Caller must ensure that target is even; and target, target+1 hold the
-  // target address.
+  assert(isValidSgprPair(target) && "target must be a valid SGPR pair");
+  assert(isValidSgpr(expr_reg) && "expr_reg must be a valid single register");
 
   assert(target.getId() >= SGPR_0 && target.getId() <= SGPR_101 && "target must be an SGPR");
   assert(target.getId() % 2 == 0 && "target must be even as we will use target, target+1 in pair");
@@ -60,6 +106,9 @@ unsigned EmitterAmdgpuGfx908::emitIf(Register expr_reg, Register target, RegCont
 // EmitterAmdgpuGfx908 implementation
 void EmitterAmdgpuGfx908::emitOp(unsigned opcode, Register dest, Register src1, Register src2,
                                  codeGen &gen) {
+  // TODO: We eventually want to get rid of this assert and generate code based on operand kind.
+  assert(isValidSgpr(dest) && isValidSgpr(src1) && isValidSgpr(src2) && "each operand must be a valid SGPR");
+
   uint32_t opcodeSop2 = 0;
   switch (opcode) {
   case plusOp:
@@ -93,12 +142,17 @@ void EmitterAmdgpuGfx908::emitOp(unsigned opcode, Register dest, Register src1, 
   default:
     assert(!"opcode must correspond to a supported SOP2 operation");
   }
-  emitSop2(opcodeSop2, dest, src1, src2, gen);
+
+  const uint32_t destId = dest.details.id;
+  const uint32_t src1Id = src1.details.id;
+  const uint32_t src2Id = src2.details.id;
+  emitSop2(opcodeSop2, destId, src1Id, src2Id, gen);
 }
 
 void EmitterAmdgpuGfx908::emitOpImmSimple(unsigned op, Register dest, Register src1,
                                           RegValue src2imm, codeGen &gen) {
 
+  assert(isValidSgpr(dest) && isValidSgpr(src1) && "dest and src1 must be valid SGPRs");
   assert(dest == src1 && "dest and src1 must be the same for SOPK");
 
   uint32_t opcodeSopK = 0;
@@ -130,8 +184,11 @@ void EmitterAmdgpuGfx908::emitOpImmSimple(unsigned op, Register dest, Register s
   default:
     assert(!"opcode must correspond to a supported SOPK operation");
   }
-  emitSopK(opcodeSopK, src1, src2imm, gen);
+
+  uint32_t src1Id = src1.details.id;
+  emitSopK(opcodeSopK, src1Id, src2imm, gen);
 }
+
 void EmitterAmdgpuGfx908::emitOpImm(unsigned /* opcode1 */, unsigned /* opcode2 */,
                                     Register /* dest */, Register /* src1 */,
                                     RegValue /* src2imm */, codeGen & /* gen */) {
@@ -140,6 +197,8 @@ void EmitterAmdgpuGfx908::emitOpImm(unsigned /* opcode1 */, unsigned /* opcode2 
 
 void EmitterAmdgpuGfx908::emitRelOp(unsigned opcode, Register /* dest */, Register src1,
                                     Register src2, codeGen &gen, bool /* s */) {
+  assert(isValidSgpr(src1) && isValidSgpr(src1) && "src1 and src2 must be valid SGPRs");
+
   uint32_t opcodeSopC = 0;
   switch (opcode) {
   case lessOp:
@@ -169,7 +228,10 @@ void EmitterAmdgpuGfx908::emitRelOp(unsigned opcode, Register /* dest */, Regist
   default:
     assert(!"opcode must correspond to a supported SOPC operation");
   }
-  emitSopC(opcodeSopC, src1, src2, gen);
+
+  uint32_t src1Id = src1.details.id;
+  uint32_t src2Id = src2.details.id;
+  emitSopC(opcodeSopC, src1Id, src2Id, gen);
 }
 
 void EmitterAmdgpuGfx908::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm,
@@ -195,8 +257,11 @@ void EmitterAmdgpuGfx908::emitDiv(Register /* dest */, Register /* src1 */, Regi
 
 void EmitterAmdgpuGfx908::emitTimesImm(Register dest, Register src1, RegValue src2imm,
                                        codeGen &gen) {
+  assert(isValidSgpr(dest) && "dest must be a valid SGPR");
   assert(dest == src1 && "SOPK instructions require dest = src1");
-  AmdgpuGfx908::emitSopK(AmdgpuGfx908::S_MULK_I32, dest, src2imm, gen);
+
+  uint32_t destId = dest.details.id;
+  AmdgpuGfx908::emitSopK(AmdgpuGfx908::S_MULK_I32, destId, src2imm, gen);
 }
 
 void EmitterAmdgpuGfx908::emitDivImm(Register /* dest */, Register /* src1 */,
@@ -210,8 +275,8 @@ void EmitterAmdgpuGfx908::emitLoad(Register /* dest */, Address /* addr */, int 
 }
 
 void EmitterAmdgpuGfx908::emitLoadConst(Register dest, Address imm, codeGen &gen) {
-  // Caller must ensure that dest is even; and dest, dest+1 are available.
-
+  // Caller must ensure that dest is a SGPR pair beginning at an even reg id.
+  assert(isValidSgprPair(dest) && "dest must be a valid SGPR pair");
   assert(sizeof(Address) == 8); // must be a 64-bit address
   Register reg0 = dest;
   Register reg1 = dest + 1;
@@ -222,8 +287,11 @@ void EmitterAmdgpuGfx908::emitLoadConst(Register dest, Address imm, codeGen &gen
   uint32_t lowerAddress = imm;
   uint32_t upperAddress = (imm >> 32);
 
-  emitMovLiteral(reg0, lowerAddress, gen);
-  emitMovLiteral(reg1, upperAddress, gen);
+  std::vector<Register> regs;
+  splitRegisterPair(dest, regs);
+
+  emitMovLiteral(regs[0], lowerAddress, gen);
+  emitMovLiteral(regs[1], upperAddress, gen);
 }
 
 void EmitterAmdgpuGfx908::emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen) {
@@ -250,11 +318,17 @@ bool EmitterAmdgpuGfx908::emitLoadRelative(Register dest, Address offset, Regist
   // size = 1, 2, 4, 8, 16
 
   assert(size == 1 || size == 2 || size == 4 || size == 8 || size == 16);
+  assert(dest.details.count == size && "dest must be a register block of size 'size'");
 
-  int alignment = size >= 4 ? 4 : size;
-  assert(dest % alignment == 0 && "destination register must be aligned");
+  uint32_t alignment = size >= 4 ? 4 : size;
+  uint32_t destId = dest.details.id;
 
-  assert(dest + size - 1 <= SGPR_101 && "must have consecutive registers to load <size> words");
+  assert(dest.details.kind == SCALAR && "dest must be scalar");
+  assert(destId % alignment == 0 && "destination register must be aligned");
+
+  assert(destId + size - 1 <= MAX_SGPR_ID && "must have consecutive registers to load <size> words");
+
+  assert(isValidSgprPair(base) && "base must be a valid SGPR pair");
 
   unsigned loadOpcode = 0;
   switch (size) {
@@ -277,7 +351,8 @@ bool EmitterAmdgpuGfx908::emitLoadRelative(Register dest, Address offset, Regist
     assert(!"size can only be 1, 2, 4, 8 or 16");
   }
 
-  emitSmem(loadOpcode, dest, (base >> 1), (uint64_t)offset, gen);
+  uint32_t baseId = base.details.id;
+  emitSmem(loadOpcode, destId, (baseId >> 1), (uint64_t)offset, gen);
 
   // As per page 32 in the manual, 0 is the only legitimate value for scalar
   // memory reads. However, placement of waitcnt can be optimized later. Right
@@ -355,13 +430,14 @@ void EmitterAmdgpuGfx908::emitStoreRelative(Register source, Address offset, Reg
   //     size = 1, 2, 4
 
   assert(size == 1 || size == 2 || size == 4);
+  assert(isValidSgprBlock(source) && "source must be a valid SGPR block");
+  assert(isValidSgprPair(base) && "base must be a valid SGPR pair");
 
-  int alignment = size;
-  assert(source % alignment == 0 && "source register must be aligned");
+  uint32_t baseId = base.details.id;
+  uint32_t sourceId = source.details.id;
+  uint32_t alignment = static_cast<uint32_t>(size);
 
-  assert(source + size - 1 <= SGPR_101 &&
-         "must have <size> consecutive registers from source to store <size> "
-         "words from");
+  assert(sourceId % alignment == 0 && "source register block must be properly aligned");
 
   unsigned storeOpcode = 0;
   switch (size) {
@@ -378,7 +454,7 @@ void EmitterAmdgpuGfx908::emitStoreRelative(Register source, Address offset, Reg
     assert(!"size can only be 1, 2, or 4");
   }
 
-  emitSmem(storeOpcode, source, (base >> 1), (uint64_t)offset, gen);
+  emitSmem(storeOpcode, sourceId, (baseId >> 1), (uint64_t)offset, gen);
 
   emitSopP(S_WAITCNT, /* simm16 = */ 0, gen);
 }
@@ -390,8 +466,13 @@ void EmitterAmdgpuGfx908::emitStoreShared(Register /* source */, const image_var
 }
 
 bool EmitterAmdgpuGfx908::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
-
-  emitSop1(S_MOV_B32, dest, src, /*hasLiteral =*/false, /*literal =*/0, gen);
+  // TODO:
+  // 1. Allow this to move entire register blocks at the same time (using mulple instructions)
+  // 2. Make this work with VGPR-VGPR movs
+  assert(isValidSgpr(src) && isValidSgpr(dest) && "src and dest must be valid SGPRs");
+  uint32_t destId = dest.details.id;
+  uint32_t srcId = src.details.id;
+  emitSop1(S_MOV_B32, destId, srcId, /*hasLiteral =*/false, /*literal =*/0, gen);
   return false;
 }
 
@@ -504,10 +585,12 @@ void EmitterAmdgpuGfx908::emitEndProgram(codeGen &gen) {
 }
 
 void EmitterAmdgpuGfx908::emitMovLiteral(Register reg, uint32_t literal, codeGen &gen) {
+  assert(isValidSgpr(reg) && "reg must be a valid SGPR");
   // s_mov_b32 reg, < 32-bit constant literal >
   // The literal follows the instruction, so set src0 = 0xFF just like the
   // assembler does.
-  emitSop1(S_MOV_B32, /* dest = */ reg, /* src0 = */ 0xFF,
+  uint32_t regId = reg.details.id;
+  emitSop1(S_MOV_B32, /* dest = */ regId, /* src0 = */ 0xFF,
            /* hasLiteral = */ true, literal, gen);
 }
 
@@ -521,10 +604,7 @@ void EmitterAmdgpuGfx908::emitShortJump(int16_t wordOffset, codeGen &gen) {
   emitSopP(S_BRANCH, /* simm16 = */ wordOffset, gen);
 }
 
-// For this we need reg, reg+1, reg+2, reg+3. In future, we would like to use liveness analysis to
-// pick 2 pairs of dead registers assume reg = s90 diff = toAddress - fromAddress s_getpc_b64
-// s[90:91] s_mov_b32 s92, diff<31:0> s_mov_b32 s93, diff<63:32> s_add_u32 s90, s92 s_add_u32 s91,
-// s93 s_setpc_b64 s[90:91]
+// For this we need reg, reg+1, reg+2, reg+3.
 void EmitterAmdgpuGfx908::emitLongJump(Register reg, uint64_t fromAddress, uint64_t toAddress,
                                        codeGen &gen) {
   assert(reg.getId() >= SGPR_0 && reg.getId() <= SGPR_101 && "reg must be an SGPR");
@@ -538,28 +618,32 @@ void EmitterAmdgpuGfx908::emitLongJump(Register reg, uint64_t fromAddress, uint6
   assert(signedFromAddress > 0 && signedToAddress > 0 && "Both addresses must be positive");
   int64_t diff = signedToAddress - signedFromAddress;
 
-  emitSop1(S_GETPC_B64, /* dest = */ reg, /* src0 =*/0, /* hasLiteral = */ false, /* literal=*/0,
+  emitSop1(S_GETPC_B64, /* dest = */ regId, /* src0 =*/0, /* hasLiteral = */ false, /* literal=*/0,
            gen);
-  this->emitLoadConst(reg + 2, (uint64_t)diff, gen);
+
+  Register diffReg(regId + 2, SCALAR, GENERAL_PURPOSE, 2);
+  this->emitLoadConst(diffReg, (uint64_t)diff, gen);
   // Now we have:
   // reg+2 = lower bits of diff
   // reg+3 = upper bits of diff
 
   // reg = reg + <reg+2>, SCC = carry
-  emitSop2(S_ADD_U32, reg, reg, reg + 2, gen);
+  emitSop2(S_ADD_U32, regId, regId, regId + 2, gen);
   // <reg+1> = <reg+1> + <reg+3> + carry
-  emitSop2(S_ADDC_U32, reg + 1, reg + 1, reg + 3, gen);
+  emitSop2(S_ADDC_U32, regId + 1, regId + 1, regId + 3, gen);
 
   // S_SETPC_B64 writes to the PC, so dest = 0 just like the assembler does.
-  emitSop1(S_SETPC_B64, /* dest = */ 0, reg, /* hasLiteral = */ false, /* literal=*/0, gen);
+  emitSop1(S_SETPC_B64, /* dest = */ 0, regId, /* hasLiteral = */ false, /* literal=*/0, gen);
 }
 
 void EmitterAmdgpuGfx908::emitAddConstantToRegPair(Register reg, int constant, codeGen &gen) {
+  assert(isValidSgprPair(reg) && "reg must be a valid SGPR pair");
+  uint32_t regId = reg.details.id;
   // reg has lower bits
-  emitSop2WithSrc1Literal(S_ADD_U32, reg, reg, constant, gen);
+  emitSop2WithSrc1Literal(S_ADD_U32, regId, regId, constant, gen);
 
   // reg+1 has upper bits. Add 0 with carry.
-  emitSop2WithSrc1Literal(S_ADDC_U32, reg + 1, reg + 1, 0, gen);
+  emitSop2WithSrc1Literal(S_ADDC_U32, regId + 1, regId + 1, 0, gen);
 }
 
 void EmitterAmdgpuGfx908::emitScalarDataCacheWriteback(codeGen &gen) {
@@ -567,10 +651,20 @@ void EmitterAmdgpuGfx908::emitScalarDataCacheWriteback(codeGen &gen) {
 }
 
 void EmitterAmdgpuGfx908::emitAtomicAdd(Register baseAddrReg, Register src0, codeGen &gen) {
-  emitSmem(S_ATOMIC_ADD, src0, baseAddrReg >> 1, /* offset = */ 0, gen);
+  assert(isValidSgprPair(baseAddrReg) && "baseAddrReg must be a valid SGPR pair");
+  assert(isValidSgpr(src0) && "src0 must be a valid SGPR");
+
+  uint32_t baseAddrRegId = baseAddrReg.details.id;
+  uint32_t src0Id = src0.details.id;
+  emitSmem(S_ATOMIC_ADD, src0Id, baseAddrRegId >> 1, /* offset = */ 0, gen);
 }
 
 void EmitterAmdgpuGfx908::emitAtomicSub(Register baseAddrReg, Register src0, codeGen &gen) {
-  emitSmem(S_ATOMIC_SUB, src0, baseAddrReg >> 1, /* offset = */ 0, gen);
+  assert(isValidSgprPair(baseAddrReg) && "baseAddrReg must be a valid SGPR pair");
+  assert(isValidSgpr(src0) && "src0 must be a valid SGPR");
+
+  uint32_t baseAddrRegId = baseAddrReg.details.id;
+  uint32_t src0Id = src0.details.id;
+  emitSmem(S_ATOMIC_SUB, src0Id, baseAddrRegId >> 1, /* offset = */ 0, gen);
 }
 // ===== EmitterAmdgpuGfx908 implementation end =====
