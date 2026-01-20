@@ -92,6 +92,7 @@ set(_private_headers
     src/mapped_object.h
     src/nt_signal_emul.h
     src/opcode.h
+    src/OperandType.h
     src/os.h
     src/parRegion.h
     src/parse-cfg.h

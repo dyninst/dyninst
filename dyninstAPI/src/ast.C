@@ -2460,13 +2460,13 @@ void AstVariableNode::setVariableAST(codeGen &gen){
 }
 
 bool AstOperandNode::usesAppRegister() const {
-   if (oType == AstNode::operandType::FrameAddr ||
-       oType == AstNode::operandType::RegOffset ||
-       oType == AstNode::operandType::origRegister ||
-       oType == AstNode::operandType::Param ||
-       oType == AstNode::operandType::ParamAtEntry ||
-       oType == AstNode::operandType::ParamAtCall ||
-       oType == AstNode::operandType::ReturnVal)
+   if (oType == operandType::FrameAddr ||
+       oType == operandType::RegOffset ||
+       oType == operandType::origRegister ||
+       oType == operandType::Param ||
+       oType == operandType::ParamAtEntry ||
+       oType == operandType::ParamAtCall ||
+       oType == operandType::ReturnVal)
    {
       return true;
    }
@@ -2598,7 +2598,7 @@ std::string AstOperatorNode::format(std::string indent) {
 
 std::string AstOperandNode::format(std::string indent) {
    std::stringstream ret;
-   ret << indent << "Oper/" << hex << this << dec << "(" << convert(oType) << "/" << oValue << ")" << endl;
+   ret << indent << "Oper/" << hex << this << dec << "(" << format_operand(oType) << "/" << oValue << ")" << endl;
    if (operand_) ret << indent << operand_->format(indent + "  ");
 
    return ret.str();
@@ -2646,28 +2646,6 @@ std::string AstMemoryNode::format(std::string indent) {
        << ")" << endl;
 
    return ret.str();
-}
-
-std::string AstNode::convert(operandType type) {
-   switch(type) {
-      case operandType::Constant: return "Constant";
-      case operandType::ConstantString: return "ConstantString";
-      case operandType::DataReg: return "DataReg";
-      case operandType::DataIndir: return "DataIndir";
-      case operandType::Param: return "Param";
-      case operandType::ParamAtCall: return "ParamAtCall";
-      case operandType::ParamAtEntry: return "ParamAtEntry";
-      case operandType::ReturnVal: return "ReturnVal";
-      case operandType::ReturnAddr: return "ReturnAddr";
-      case operandType::DataAddr: return "DataAddr";
-      case operandType::FrameAddr: return "FrameAddr";
-      case operandType::RegOffset: return "RegOffset";
-      case operandType::origRegister: return "OrigRegister";
-      case operandType::variableAddr: return "variableAddr";
-      case operandType::variableValue: return "variableValue";
-      case operandType::AddressAsPlaceholderRegAndOffset: return "AddressAsPlaceholderRegAndOffset";
-      default: return "UnknownOperand";
-   }
 }
 
 std::string AstNode::convert(opCode op) {

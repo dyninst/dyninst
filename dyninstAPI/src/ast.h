@@ -37,6 +37,7 @@
 // Define a AST class for use in generating primitive and pred calls
 //
 
+#include "OperandType.h"
 
 #include <assert.h>
 #include <utility>
@@ -95,33 +96,6 @@ class registerSpace;
 
 class AstNode : public Dyninst::PatchAPI::Snippet {
  public:
-   enum class operandType { Constant, 
-                      ConstantString,
-                      DataReg,
-                      DataIndir,
-                      Param,
-                      ParamAtCall,
-                      ParamAtEntry,
-                      ReturnVal, 
-                      ReturnAddr, // address of a return instruction
-                      DataAddr,  // Used to represent a variable in memory
-                      FrameAddr, // Calculate FP 
-                      RegOffset, // Calculate *reg + offset; oValue is reg, loperand->oValue is offset. 
-                      //PreviousStackFrameDataReg,
-                      //RegValue, // A possibly spilled, possibly saved register.
-                      // Both the above are now: origRegister 
-                      origRegister,
-                      variableAddr,
-                      variableValue,
-                      undefOperandType,
-                      // Specific to AMDGPU. This represents an address in the form of (PlaceholderReg + offset).
-                      // Codegen may assing the same or a different register in different contexts.
-                      // Offset must be a constant.
-                      AddressAsPlaceholderRegAndOffset
-                      };
-
-
-
    enum memoryType {
       EffectiveAddr,
       BytesAccessed };
@@ -133,7 +107,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
   public:
    virtual std::string format(std::string indent);
-   std::string convert(operandType type);
    std::string convert(opCode op);
    
    AstNode() = default;
