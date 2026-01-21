@@ -38,8 +38,8 @@ using Register = Dyninst::Register;
 
 // clang-format off
 
-constexpr int MIN_SGPR_ID = 0;
-constexpr int MAX_SGPR_ID = 101;
+constexpr uint32_t MIN_SGPR_ID = 0;
+constexpr uint32_t MAX_SGPR_ID = 101;
 
 enum ContentMask32 : uint32_t {
   Mask_Sop1_Encoding  = 0xC0000000,    // 0b11000000000000000000000000000000
