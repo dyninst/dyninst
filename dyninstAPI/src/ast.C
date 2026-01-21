@@ -222,21 +222,6 @@ AstNodePtr AstNode::atomicOperationStmtNode(opCode astOpcode, AstNodePtr variabl
    return AstNodePtr(new AstAtomicOperationStmtNode(astOpcode, variable, constant));
 }
 
-bool isPowerOf2(int value, int &result)
-{
-  if (value<=0) return(false);
-  if (value==1) {
-    result=0;
-    return(true);
-  }
-  if ((value%2)!=0) return(false);
-  if (isPowerOf2(value/2,result)) {
-    result++;
-    return(true);
-  }
-  else return(false);
-}
-
 void AstNode::setType(BPatch_type *t) {
     bptype = t;
     if (t != NULL) {

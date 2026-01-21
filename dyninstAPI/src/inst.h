@@ -237,4 +237,23 @@ bool emitAddSignedImm(Dyninst::Address addr, long int imm, codeGen &gen, bool no
 //Subtract constant from memory at address
 bool emitSubSignedImm(Dyninst::Address addr, long int imm, codeGen &gen, bool noCost);
 
+inline bool isPowerOf2(int value, int &result) {
+  if(value <= 0) {
+    return (false);
+  }
+  if(value == 1) {
+    result = 0;
+    return (true);
+  }
+  if((value % 2) != 0) {
+    return (false);
+  }
+  if(isPowerOf2(value / 2, result)) {
+    result++;
+    return (true);
+  } else {
+    return (false);
+  }
+}
+
 #endif
