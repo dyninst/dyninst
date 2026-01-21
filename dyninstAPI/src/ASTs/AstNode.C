@@ -23,10 +23,6 @@ AstNodePtr AstNode::variableNode(std::vector<AstNodePtr> &ast_wrappers,
   return AstNodePtr(new AstVariableNode(ast_wrappers, ranges));
 }
 
-AstNodePtr AstNode::operatorNode(opCode ot, AstNodePtr l, AstNodePtr r, AstNodePtr e) {
-  return AstNodePtr(new AstOperatorNode(ot, l, r, e));
-}
-
 AstNodePtr AstNode::funcCallNode(const std::string &func, std::vector<AstNodePtr> &args,
                                  AddressSpace *addrSpace) {
   if(addrSpace) {

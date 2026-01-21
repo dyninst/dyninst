@@ -53,6 +53,7 @@ set(_private_headers
     src/ASTs/AstNullNode.h
     src/ASTs/AstStackNode.h
     src/ASTs/AstOperandNode.h
+    src/ASTs/AstOperatorNode.h
     src/ASTs/AstStackInsertNode.h
     src/ASTs/AstStackGenericNode.h
     src/ASTs/AstStackRemoveNode.h
@@ -131,6 +132,7 @@ set(_sources
     src/ASTs/AstNode.C
     src/ASTs/AstNullNode.C
     src/ASTs/AstOperandNode.C
+    src/ASTs/AstOperatorNode.C
     src/ASTs/AstStackNode.C
     src/ASTs/AstStackInsertNode.C
     src/ASTs/AstStackGenericNode.C
