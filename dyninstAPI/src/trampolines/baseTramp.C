@@ -368,10 +368,9 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    // we just run the minitramps.
    if (guarded() &&
        minis->containsFuncCall()) {
-      baseTrampAST = AstNode::operatorNode(ifOp,
-                                           // trampGuardAddr,
-					   AstNode::funcCallNode("DYNINST_lock_tramp_guard", empty_args),
-                                           baseTrampSequence);
+      baseTrampAST = OperatorNode::If(
+          AstNode::funcCallNode("DYNINST_lock_tramp_guard", empty_args),
+          baseTrampSequence);
    }
    else {
       baseTrampAST = baseTrampSequence;

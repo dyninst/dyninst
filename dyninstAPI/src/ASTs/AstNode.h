@@ -49,7 +49,6 @@ class codeGen;
 class instPoint;
 class func_instance;
 class image_variable;
-class int_variable;
 class registerSpace;
 
 // Dyninst::Register retention mechanism...
@@ -101,9 +100,6 @@ public:
   static AstNodePtr
   variableNode(std::vector<AstNodePtr> &ast_wrappers_,
                std::vector<std::pair<Dyninst::Offset, Dyninst::Offset>> *ranges = NULL);
-
-  static AstNodePtr operatorNode(opCode ot, AstNodePtr l = AstNodePtr(),
-                                 AstNodePtr r = AstNodePtr(), AstNodePtr e = AstNodePtr());
 
   static AstNodePtr atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable,
                                             AstNodePtr constant);
