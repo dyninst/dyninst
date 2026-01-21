@@ -57,8 +57,8 @@ enum RegUsage : uint32_t {
 constexpr uint32_t REG_ID_WIDTH = 12;
 constexpr uint32_t REG_KIND_WIDTH = 4;
 constexpr uint32_t REG_USAGE_WIDTH = 4;
-constexpr uint32_t REG_COUNT_WIDTH = 4;
-constexpr uint32_t REG_RESERVED_WIDTH = 8;
+constexpr uint32_t REG_COUNT_WIDTH = 5;
+constexpr uint32_t REG_RESERVED_WIDTH = 7;
 // total = 32
 
 struct __attribute__((packed)) RegisterFields {
