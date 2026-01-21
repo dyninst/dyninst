@@ -91,6 +91,14 @@ union Register {
     details.reserved = 0;
   }
 
+  constexpr uint32_t getId() const { return details.id; }
+
+  constexpr RegKind getKind() const { return static_cast<RegKind>(details.kind); }
+
+  constexpr RegUsage getUsage() const { return static_cast<RegUsage>(details.usage); }
+
+  constexpr uint32_t getCount() const { return details.count; }
+
   // A register block represents consecutive reqisters starting from id. Not all architectures
   // need or support this.
   //
