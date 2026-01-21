@@ -120,10 +120,17 @@ set(_dataflow_public_headers
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/ABI.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/Absloc.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/AbslocInterface.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/AST.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/ASTVisitor.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/bitArray.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/BottomAST.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/ConstantAST.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/DynAST.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/InstructionCache.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/liveness.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/RoseAST.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/slicing.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/stackanalysis.h
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/SymEval.h)
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/StackAST.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/SymEval.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/h/VariableAST.h)

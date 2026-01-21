@@ -28,55 +28,69 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(SymEval_h)
-#define SymEval_h
+#ifndef DYNINST_DATAFLOWAPI_STACKAST_H
+#define DYNINST_DATAFLOWAPI_STACKAST_H
 
-#include "Absloc.h"
-#include "DynAST.h"
+#include "AST.h"
+#include "ASTVisitor.h"
 #include "dyninst_visibility.h"
-#include "Graph.h"
-#include "Instruction.h"
-#include "slicing.h"
+#include "stackanalysis.h"
 
-#include <map>
-#include <set>
+#include <boost/make_shared.hpp>
+#include <iomanip>
+#include <ostream>
+#include <sstream>
+#include <string>
 
 namespace Dyninst { namespace DataflowAPI {
 
-  // compare assignment shared pointers by value.
-  typedef std::map<Assignment::Ptr, AST::Ptr, AssignmentPtrValueComp> Result_t;
-
-  class DYNINST_EXPORT SymEval {
+  class StackAST : public AST {
   public:
-    typedef boost::shared_ptr<SliceNode> SliceNodePtr;
+    using Ptr = boost::shared_ptr<StackAST>;
 
-  public:
-    typedef enum {
-      FAILED,
-      WIDEN_NODE,
-      FAILED_TRANSLATION,
-      SKIPPED_INPUT,
-      SUCCESS
-    } Retval_t;
+    StackAST() = default;
 
-    // Return type: mapping AbsRegions to ASTs
-    // We then can map Assignment::AbsRegions to
-    // SymEval::AbsRegions and come up with the answer
-    // static const AST::Ptr Placeholder;
-    //
-    // Single version: hand in an Assignment, get an AST
-    static std::pair<AST::Ptr, bool> expand(const Assignment::Ptr &assignment, bool applyVisitors = true);
+    explicit StackAST(StackAnalysis::Height t) : t_{std::move(t)} {}
 
-    // Hand in a set of Assignments
-    // get back a map of Assignments->ASTs
-    // We assume the assignments are prepped in the input; whatever
-    // they point to is discarded.
-    static bool expand(Result_t &res, std::set<InstructionAPI::Instruction> &failedInsns, bool applyVisitors = true);
+    static Ptr create(StackAnalysis::Height t) {
+      return boost::make_shared<StackAST>(std::move(t));
+    }
 
-    // Hand in a Graph (of SliceNodes, natch) and get back a Result;
-    // prior results from the Graph
-    // are substituted into anything that uses them.
-    static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res);
+    std::string format() const override {
+      std::stringstream ret;
+      ret << "<" << t_ << ">";
+      return ret.str();
+    }
+
+    AST::Ptr accept(ASTVisitor *v) override {
+      return v->visit(this);
+    }
+
+    AST::ID getID() const override {
+      return V_StackAST;
+    }
+
+    static Ptr convert(AST::Ptr a) {
+      if(a->getID() == V_StackAST) {
+        return boost::static_pointer_cast<StackAST>(a);
+      }
+      return Ptr{};
+    }
+
+    const StackAnalysis::Height &val() const {
+      return t_;
+    }
+
+  private:
+    bool isStrictEqual(AST const &rhs) const override {
+      auto const *ptr = dynamic_cast<StackAST const *>(&rhs);
+      if(!ptr) {
+        return false;
+      }
+      return t_ == ptr->val();
+    }
+
+    StackAnalysis::Height t_;
   };
 
 }}

@@ -44,9 +44,6 @@
 #include <set>
 #include <string>
 
-// To define StackAST
-#include "DynAST.h"
-
 #include "Absloc.h"
 #include "dyntypes.h"
 #include "dyninst_visibility.h"
@@ -643,8 +640,7 @@ private:
 
 } // namespace Dyninst
 
+// For backward compatibility
+#include "StackAST.h"
 
-namespace Dyninst {
-   DEF_AST_LEAF_TYPE(StackAST, Dyninst::StackAnalysis::Height);
-}
 #endif
