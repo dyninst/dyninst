@@ -34,6 +34,7 @@
 #include "AstNode.h"
 #include "AstNullNode.h"
 #include "AstOperandNode.h"
+#include "AstOperatorNode.h"
 #include "AstStackNode.h"
 #include "AstStackGenericNode.h"
 #include "AstStackInsertNode.h"
@@ -59,36 +60,6 @@ class image_variable;
 class int_variable;
 
 /* Stack Frame Modification */
-
-class AstOperatorNode : public AstNode {
- public:
-
-    AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r = AstNodePtr(), AstNodePtr e = AstNodePtr());
-
-   virtual std::string format(std::string indent);
-
-    virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
-
-    virtual bool canBeKept() const;
- 
-
-    // We override initRegisters in the case of writing to an original register.
-    virtual bool initRegisters(codeGen &gen);
-
- private:
-
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Dyninst::Address &retAddr,
-                                     Dyninst::Register &retReg);
-
-    bool generateOptimizedAssignment(codeGen &gen, int size, bool noCost);
-
-    opCode op{};
-    AstNodePtr loperand;
-    AstNodePtr roperand;
-    AstNodePtr eoperand;
-};
 
 class AstCallNode : public AstNode {
  public:

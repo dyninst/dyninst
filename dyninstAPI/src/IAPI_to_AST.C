@@ -49,17 +49,11 @@ void ASTFactory::visit(BinaryFunction* b)
     m_stack.pop_back();
     if(b->isAdd())
     {
-        m_stack.push_back(AstNode::operatorNode(
-                plusOp,
-                lhs,
-                rhs));
+        m_stack.push_back(OperatorNode::plus(lhs,rhs));
     }
     else if(b->isMultiply())
     {
-        m_stack.push_back(AstNode::operatorNode(
-                timesOp,
-        lhs,
-        rhs));
+        m_stack.push_back(OperatorNode::times(lhs, rhs));
     }
     else
     {
