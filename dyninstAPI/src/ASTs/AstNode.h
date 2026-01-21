@@ -82,9 +82,6 @@ public:
 
   AstNode() = default;
 
-  // Acquire the thread index value - a 0...n labelling of threads.
-  static AstNodePtr threadIndexNode();
-
   virtual ~AstNode() = default;
 
   virtual bool generateCode(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
@@ -196,8 +193,6 @@ public:
   virtual operandType getoType() const {
     return operandType::undefOperandType;
   }
-
-  virtual void setConstFunc(bool) {}
 
 protected:
   BPatch_type *bptype{};  // type of corresponding BPatch_snippet

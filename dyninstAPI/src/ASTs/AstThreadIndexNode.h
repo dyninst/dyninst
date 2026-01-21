@@ -28,26 +28,38 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_DYNINSTAPI_AST_H
-#define DYNINST_DYNINSTAPI_AST_H
+#ifndef DYNINST_DYNINSTAPI_ASTTHREADINDEXNODE_H
+#define DYNINST_DYNINSTAPI_ASTTHREADINDEXNODE_H
 
-#include "AstAddrNode.h"
-#include "AstAtomicOperationStmtNode.h"
 #include "AstCallNode.h"
-#include "AstDynamicTargetNode.h"
-#include "AstMemoryNode.h"
-#include "AstNode.h"
-#include "AstNullNode.h"
-#include "AstOperandNode.h"
-#include "AstOperatorNode.h"
-#include "AstScrambleRegistersNode.h"
-#include "AstSequenceNode.h"
-#include "AstSnippetNode.h"
-#include "AstStackGenericNode.h"
-#include "AstStackInsertNode.h"
-#include "AstStackNode.h"
-#include "AstStackRemoveNode.h"
-#include "AstThreadIndexNode.h"
-#include "AstVariableNode.h"
+#include "dyn_register.h"
+
+#include <boost/make_shared.hpp>
+
+class codeGen;
+
+// Acquire the thread index value - a 0...n labeling of threads.
+class AstThreadIndexNode : public AstCallNode {
+public:
+  AstThreadIndexNode() : AstCallNode("DYNINSTthreadIndex") {}
+
+  bool canBeKept() const override;
+
+private:
+  bool generateCode_phase2(codeGen &, bool, Dyninst::Address &, Dyninst::Register &) override {
+    // No codegen needed
+    return true;
+  }
+
+  static AstThreadIndexNode node;
+};
+
+namespace ThreadNode {
+
+  inline AstNodePtr index() {
+    return boost::make_shared<AstThreadIndexNode>();
+  }
+
+}
 
 #endif

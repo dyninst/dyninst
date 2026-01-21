@@ -141,20 +141,6 @@ BPatch_type *AstCallNode::checkType(BPatch_function *func) {
   return ret;
 }
 
-bool AstCallNode::canBeKept() const {
-  if(constFunc_) {
-    for(unsigned i = 0; i < children.size(); i++) {
-      if(!children[i]->canBeKept()) {
-        fprintf(stderr, "AST %p: labelled const func but argument %u cannot be kept!\n",
-                (const void *)this, i);
-        return false;
-      }
-    }
-    return true;
-  }
-  return false;
-}
-
 std::string AstCallNode::format(std::string indent) {
   std::stringstream ret;
   ret << indent << "Call/" << hex << this << dec;
