@@ -93,7 +93,7 @@ namespace Dyninst { namespace DataflowAPI {
       return boost::make_shared<ConstantAST>(std::move(t));
     }
 
-    const std::string format() const override {
+    std::string format() const override {
       std::stringstream ret;
       ret << "<" << t_ << ">";
       return ret.str();

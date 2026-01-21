@@ -243,7 +243,7 @@ namespace Dyninst { namespace DataflowAPI {
       return boost::make_shared<RoseAST>(std::move(t), std::move(c));
     }
 
-    const std::string format() const override {
+    std::string format() const override {
       std::stringstream ret;
       ret << t_ << "(";
       for(Children::const_iterator i = kids_.begin(); i != kids_.end(); ++i) {

@@ -85,7 +85,7 @@ namespace Dyninst {
       return *this == (*rhs);
     }
 
-    virtual const std::string format() const = 0;
+    virtual std::string format() const = 0;
 
     // Substitute every occurrence of `a` with `b` in AST `in`.
     // Returns a new AST.

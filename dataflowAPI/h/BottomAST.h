@@ -55,7 +55,7 @@ namespace Dyninst { namespace DataflowAPI {
       return boost::make_shared<BottomAST>(t);
     }
 
-    const std::string format() const override {
+    std::string format() const override {
       std::stringstream ret;
       ret << "<" << std::boolalpha << t_ << ">";
       return ret.str();
