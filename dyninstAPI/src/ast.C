@@ -55,20 +55,8 @@
 #include "RegisterConversion.h"
 #include "registerSpace.h"
 #include "regTracker.h"
+#include "ast_helpers.h"
 
-
-#if defined(DYNINST_CODEGEN_ARCH_POWER)
-#include "inst-power.h"
-#elif defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
-#include "inst-x86.h"
-#include "emit-x86.h"
-#elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
-#include "inst-aarch64.h"
-#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-#include "emit-amdgpu.h"
-#else
-#error "Unknown architecture in ast.h"
-#endif
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
@@ -81,8 +69,6 @@ static bool isPowerOf2(Dyninst::Address addr) {
   }
   return (addr & (addr - 1UL)) == 0UL;
 }
-
-extern bool doNotOverflow(int64_t value);
 
 static bool IsSignedOperation(BPatch_type *l, BPatch_type *r) {
     if (l == NULL || r == NULL) return true;
@@ -600,12 +586,6 @@ bool AstNode::previousComputationValid(Dyninst::Register &reg,
 	}
    return false;
 }
-
-// We're going to use this fragment over and over and over...
-#define RETURN_KEPT_REG(r) do { if (previousComputationValid(r, gen)) { decUseCount(gen); gen.rs()->incRefCount(r); return true;} } while (0)
-#define ERROR_RETURN do { fprintf(stderr, "[%s:%d] ERROR: failure to generate operand\n", __FILE__, __LINE__); return false; } while (0)
-#define REGISTER_CHECK(r) do { if ((r) == Dyninst::Null_Register) { fprintf(stderr, "[%s: %d] ERROR: returned register invalid\n", __FILE__, __LINE__); return false; } } while (0)
-
 
 bool AstNode::initRegisters(codeGen &g) {
     bool ret = true;
