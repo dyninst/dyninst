@@ -37,6 +37,12 @@
 class codeGen;
 
 class AstStackNode : public AstNode {
+public:
+  enum MSpecialType {
+    GENERIC_AST,
+    CANARY_AST
+  };
+
 protected:
   bool allocateCanaryRegister(codeGen &gen, bool noCost, Dyninst::Register &reg,
                               bool &needSaveAndRestore);

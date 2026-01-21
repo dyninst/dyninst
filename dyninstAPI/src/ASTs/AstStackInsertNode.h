@@ -60,11 +60,11 @@ private:
 namespace StackInsertNode {
 
   inline AstNodePtr generic(int s) {
-    return boost::make_shared<AstStackInsertNode>(s, AstNode::GENERIC_AST);
+    return boost::make_shared<AstStackInsertNode>(s, AstStackNode::GENERIC_AST);
   }
 
   inline AstNodePtr canary(int s) {
-    return boost::make_shared<AstStackInsertNode>(s, AstNode::CANARY_AST);
+    return boost::make_shared<AstStackInsertNode>(s, AstStackNode::CANARY_AST);
   }
 
 }

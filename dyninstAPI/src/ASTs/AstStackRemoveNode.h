@@ -71,12 +71,12 @@ private:
 namespace StackRemoveNode {
 
   inline AstNodePtr generic(int size) {
-    return boost::make_shared<AstStackRemoveNode>(size, AstNode::GENERIC_AST);
+    return boost::make_shared<AstStackRemoveNode>(size, AstStackNode::GENERIC_AST);
   }
 
   inline AstNodePtr canary(int size, func_instance *func, bool canaryAfterPrologue,
                            long canaryHeight) {
-    return boost::make_shared<AstStackRemoveNode>(size, AstNode::CANARY_AST, func,
+    return boost::make_shared<AstStackRemoveNode>(size, AstStackNode::CANARY_AST, func,
                                                   canaryAfterPrologue, canaryHeight);
   }
 }

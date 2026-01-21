@@ -8,7 +8,7 @@ std::string AstStackRemoveNode::format(std::string indent) {
   std::stringstream ret;
   ret << indent << "StackRemove/" << std::hex << this;
   ret << "(size " << size << ")";
-  if(type == CANARY_AST) {
+  if(type == AstStackNode::CANARY_AST) {
     ret << "(is canary)";
   }
   ret << std::endl;
@@ -42,7 +42,7 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost, Address 
   Emitterx86 *emitter = dynamic_cast<Emitterx86 *>(gen.codeEmitter());
   assert(emitter);
 
-  if(type == GENERIC_AST) {
+  if(type == AstStackNode::GENERIC_AST) {
     /* Adjust stack pointer by size */
     int disp = size;
     if(gen.getArch() == Arch_x86) {
@@ -50,7 +50,7 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost, Address 
     } else if(gen.getArch() == Arch_x86_64) {
       emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, disp, reg_sp, gen);
     }
-  } else if(type == CANARY_AST) {
+  } else if(type == AstStackNode::CANARY_AST) {
     //        gen.setCanary(true);
 
     // Find a register to use

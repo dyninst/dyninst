@@ -78,11 +78,6 @@ typedef boost::shared_ptr<AstNode> AstNodePtr;
 
 class AstNode : public Dyninst::PatchAPI::Snippet {
 public:
-  enum MSpecialType {
-    GENERIC_AST,
-    CANARY_AST
-  };
-
   virtual std::string format(std::string indent);
 
   AstNode() = default;
