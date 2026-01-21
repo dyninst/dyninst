@@ -228,6 +228,7 @@ namespace SymbolicEvaluation {
  class ConstantAST;
  class AbsRegionAST;
  class RoseAST;
+ class StackAST;
  }
 
 class StackTamperVisitor : public ASTVisitor {
@@ -239,7 +240,7 @@ class StackTamperVisitor : public ASTVisitor {
   virtual AST::Ptr visit(DataflowAPI::ConstantAST *);
   virtual AST::Ptr visit(DataflowAPI::VariableAST *);
   virtual AST::Ptr visit(DataflowAPI::RoseAST *);
-  virtual AST::Ptr visit(StackAST *);
+  virtual AST::Ptr visit(DataflowAPI::StackAST *);
   virtual ~StackTamperVisitor() {}
   
   ParseAPI::StackTamper tampersStack(AST::Ptr a, Address &modAddr);

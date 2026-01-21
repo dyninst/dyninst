@@ -56,9 +56,8 @@ namespace Dyninst {
  class ConstantAST;
  class AbsRegionAST;
  class RoseAST;
- }
-
  class StackAST;
+ }
 
 namespace Relocation {
 
@@ -71,7 +70,7 @@ class ExtPCSensVisitor : public ASTVisitor {
   virtual AST::Ptr visit(DataflowAPI::ConstantAST *);
   virtual AST::Ptr visit(DataflowAPI::VariableAST *);
   virtual AST::Ptr visit(DataflowAPI::RoseAST *);
-  virtual AST::Ptr visit(StackAST *);
+  virtual AST::Ptr visit(DataflowAPI::StackAST *);
 
   virtual ~ExtPCSensVisitor() {}
   

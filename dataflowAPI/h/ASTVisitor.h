@@ -41,8 +41,8 @@ namespace Dyninst {
     class ConstantAST;
     class VariableAST;
     class RoseAST;
+    class StackAST;
   }
-  class StackAST;
 
   class DYNINST_EXPORT ASTVisitor {
   public:
@@ -68,7 +68,7 @@ namespace Dyninst {
       return AST::Ptr();
     }
 
-    virtual ASTPtr visit(StackAST *) {
+    virtual ASTPtr visit(DataflowAPI::StackAST *) {
       return AST::Ptr();
     }
 

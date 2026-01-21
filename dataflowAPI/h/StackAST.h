@@ -42,7 +42,7 @@
 #include <sstream>
 #include <string>
 
-namespace Dyninst {
+namespace Dyninst { namespace DataflowAPI {
 
   class StackAST : public AST {
   public:
@@ -93,6 +93,6 @@ namespace Dyninst {
     StackAnalysis::Height t_;
   };
 
-}
+}}
 
 #endif
