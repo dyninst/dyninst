@@ -90,11 +90,6 @@ bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) c
 }
 
 bool AmdgpuGfx908PointHandler::isRegPairAvailable(Register regPair, BPatch_function *function) {
-  assert(regPair.details.count == 2 && "regPair must be a pair of registers");
-  assert(regPair.details.kind == SCALAR && "regPair must be a pair of scalars");
-  assert(regPair.details.id % 2 == 0 && "regPair must begin with an even register");
-  assert(regPair.details.id < 101 && "regPair must be valid SGPR");
-
   vector<Register> individualRegs;
   regPair.getIndividualRegisters(individualRegs);
   assert(individualRegs.size() == 2);
