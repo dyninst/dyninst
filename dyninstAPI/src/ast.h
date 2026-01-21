@@ -48,26 +48,5 @@
 #include "AstStackInsertNode.h"
 #include "AstStackRemoveNode.h"
 #include "AstVariableNode.h"
-#include "dyn_register.h"
-#include "opcode.h"
-#include "OperandType.h"
-#include "Point.h"
 
-#include <cassert>
-#include <utility>
-#include <vector>
-#include <string>
-
-class AddressSpace;
-class BPatch_function;
-class BPatch_snippet;
-class BPatch_type;
-class codeGen;
-class instPoint;
-class func_instance;
-class image_variable;
-class int_variable;
-
-/* Stack Frame Modification */
-
-#endif /* AST_HDR */
+#endif
