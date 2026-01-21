@@ -1429,7 +1429,7 @@ BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExpr(const BPatch_snippe
 
 BPatch_threadIndexExpr::BPatch_threadIndexExpr()
 {
-    ast_wrapper = AstNodePtr(AstNode::threadIndexNode());
+    ast_wrapper = ThreadNode::index();
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());

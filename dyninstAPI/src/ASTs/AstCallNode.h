@@ -45,6 +45,8 @@ class func_instance;
 
 class AstCallNode : public AstNode {
 public:
+  AstCallNode(std::string name) : func_name_{std::move(name)} {}
+
   AstCallNode(func_instance *func, std::vector<AstNodePtr> &args) : func_{func} {
     set_args(args);
   }
@@ -59,18 +61,14 @@ public:
 
   AstCallNode(func_instance *func) : func_{func}, callReplace_{true} {}
 
+  virtual ~AstCallNode() = default;
+
   std::string format(std::string indent) override;
 
   BPatch_type *checkType(BPatch_function *func = NULL) override;
 
-  bool canBeKept() const override;
-
   bool containsFuncCall() const override {
     return true;
-  }
-
-  void setConstFunc(bool val) override {
-    constFunc_ = val;
   }
 
   bool initRegisters(codeGen &gen) override;
@@ -88,10 +86,6 @@ private:
   func_instance *func_{};
 
   bool callReplace_{false}; // Node is intended for function call replacement
-  bool constFunc_{false};   // True if the output depends solely on
-                            // input parameters, or can otherwise be guaranteed to not change
-                            // if executed multiple times in the same sequence - AKA
-                            // "can be kept".
 };
 
 namespace CallNode {
