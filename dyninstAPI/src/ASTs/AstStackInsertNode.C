@@ -38,7 +38,7 @@ bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst:
   Emitterx86 *emitter = dynamic_cast<Emitterx86 *>(gen.codeEmitter());
   assert(emitter);
 
-  if(type == GENERIC_AST) {
+  if(type == AstStackNode::GENERIC_AST) {
     /* We're going to use a MOV to insert the new value, and a LEA to update the SP
      * This is instead of using a push, which requires a free register */
 
@@ -49,7 +49,7 @@ bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst:
       emitter->emitLEA(reg_sp, Dyninst::Null_Register, 0, -size, reg_sp, gen);
     }
 
-  } else if(type == CANARY_AST) {
+  } else if(type == AstStackNode::CANARY_AST) {
 
     // Find a register to use
     Dyninst::Register canaryReg = Dyninst::Null_Register;
