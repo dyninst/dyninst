@@ -81,6 +81,14 @@ using namespace Dyninst::InstructionAPI;
 using namespace Dyninst;
 using PatchAPI::Point;
 
+static bool isPowerOf2(Dyninst::Address addr) {
+  // Hacker's Delight, chapter 1
+  if(addr == 0UL) {
+    return false;
+  }
+  return (addr & (addr - 1UL)) == 0UL;
+}
+
 extern bool doNotOverflow(int64_t value);
 
 static bool IsSignedOperation(BPatch_type *l, BPatch_type *r) {
@@ -264,9 +272,8 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNode
               loperand = temp;
           }
           else {
-              int result;
-              if (!isPowerOf2((Address)roperand->getOValue(),result) &&
-                  isPowerOf2((Address)loperand->getOValue(),result)) {
+              if (!isPowerOf2((Address)roperand->getOValue()) &&
+                  isPowerOf2((Address)loperand->getOValue())) {
                   AstNodePtr temp = roperand;
                   roperand = loperand;
                   loperand = temp;
