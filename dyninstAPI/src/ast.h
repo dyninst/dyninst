@@ -723,7 +723,7 @@ class AstAtomicOperationStmtNode : public AstNode {
     AstNodePtr constant;
 };
 
-#define DCAST_AST(ast) boost::dynamic_pointer_cast<AstNode>(ast)
+
 
 
 #endif /* AST_HDR */

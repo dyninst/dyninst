@@ -45,6 +45,8 @@
 using namespace Dyninst;
 using namespace PatchAPI;
 
+#define DCAST_AST(ast) boost::dynamic_pointer_cast<AstNode>(ast)
+
 // Normal constructor
 baseTramp::baseTramp() :
    point_(NULL),
