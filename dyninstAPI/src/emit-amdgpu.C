@@ -58,12 +58,10 @@ bool EmitterAmdgpuGfx908::isValidSgprBlock(Register regBlock) const {
   auto numRegs = regBlock.details.count;
   auto baseRegId = regBlock.details.id;
   auto regUsage = regBlock.details.usage;
-  return
-  regKind == SCALAR &&
-  numRegs > 0 &&
-  baseRegId >= MIN_SGPR_ID && baseRegId + numRegs - 1 <= MAX_SGPR_ID &&
-  (baseRegId % 2 == 0 || baseRegId == 1) &&
-  regUsage == GENERAL_PURPOSE;
+  auto lastReg = baseRegId + numRegs - 1;
+
+  return regKind == SCALAR && numRegs > 0 && baseRegId >= MIN_SGPR_ID && lastReg <= MAX_SGPR_ID &&
+         regUsage == GENERAL_PURPOSE;
 }
 
 bool EmitterAmdgpuGfx908::isValidSgprPair(Register regBlock) const {
@@ -312,15 +310,18 @@ bool EmitterAmdgpuGfx908::emitLoadRelative(Register dest, Address offset, Regist
   // size = 1, 2, 4, 8, 16
 
   assert(size == 1 || size == 2 || size == 4 || size == 8 || size == 16);
-  assert(dest.details.count == size && "dest must be a register block of size 'size'");
+
+  if (size == 1)
+    assert(isValidSgpr(dest) && "dest must be a valid SGPR");
+  else
+    assert(isValidSgprBlock(dest) && dest.details.count == size &&
+           "dest must be a register block of size 'size'");
 
   uint32_t alignment = size >= 4 ? 4 : size;
   uint32_t destId = dest.details.id;
 
   assert(dest.details.kind == SCALAR && "dest must be scalar");
   assert(destId % alignment == 0 && "destination register must be aligned");
-
-  assert(destId + size - 1 <= MAX_SGPR_ID && "must have consecutive registers to load <size> words");
 
   assert(isValidSgprPair(base) && "base must be a valid SGPR pair");
 
@@ -424,7 +425,13 @@ void EmitterAmdgpuGfx908::emitStoreRelative(Register source, Address offset, Reg
   //     size = 1, 2, 4
 
   assert(size == 1 || size == 2 || size == 4);
-  assert(isValidSgprBlock(source) && "source must be a valid SGPR block");
+
+  if (size == 1)
+    assert(isValidSgpr(source) && "source must be a valid SGPR");
+  else
+    assert(isValidSgprBlock(source) && source.details.count == size &&
+           "source must be a register block of size 'size'");
+
   assert(isValidSgprPair(base) && "base must be a valid SGPR pair");
 
   uint32_t baseId = base.details.id;
