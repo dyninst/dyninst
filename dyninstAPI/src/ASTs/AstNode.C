@@ -15,29 +15,6 @@ void AstNode::setType(BPatch_type *t) {
   }
 }
 
-AstNodePtr AstNode::threadIndexNode() {
-  // We use one of these across all platforms, since it
-  // devolves into a process-specific function node.
-  // However, this lets us delay that until code generation
-  // when we have the process pointer.
-  static AstNodePtr indexNode_;
-
-  // Since we only ever have one, keep a static copy around. If
-  // we get multiples, we'll screw up our pointer-based common subexpression
-  // elimination.
-
-  if(indexNode_ != AstNodePtr()) {
-    return indexNode_;
-  }
-  std::vector<AstNodePtr> args;
-  // By not including a process we'll specialize at code generation.
-  indexNode_ = CallNode::namedCall("DYNINSTthreadIndex", args);
-  assert(indexNode_);
-  indexNode_->setConstFunc(true);
-
-  return indexNode_;
-}
-
 // This name is a bit of a misnomer. It's not the strict use count; it's the
 // use count modified by whether a node can be kept or not. We can treat
 // un-keepable nodes (AKA those that don't strictly depend on their AST inputs)
