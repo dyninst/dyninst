@@ -89,7 +89,7 @@ namespace Dyninst { namespace DataflowAPI {
       return t_ == ptr->val();
     }
 
-    bool t_;
+    bool t_{};
   };
 
 }}
