@@ -32,8 +32,8 @@
 #define _EMIT_AMDGPU_H
 
 #include "common/src/headers.h"
-#include "dyninstAPI/src/ast.h"
 #include "baseTramp.h"
+#include "AstNode.h"
 #include "dyninstAPI/src/instPoint.h"
 #include <assert.h>
 #include <vector>

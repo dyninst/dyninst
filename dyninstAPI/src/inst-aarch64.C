@@ -36,7 +36,6 @@
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "common/src/arch-aarch64.h"
 #include "dyninstAPI/src/codegen.h"
-#include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/os.h"

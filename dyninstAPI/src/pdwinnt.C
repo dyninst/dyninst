@@ -46,8 +46,6 @@
 #include "image.h"
 #include <boost/tuple/tuple.hpp>
 
-#include "dyninstAPI/src/ast.h"
-
 #include "dyninstAPI/src/function.h"
 #include "dynProcess.h"
 
