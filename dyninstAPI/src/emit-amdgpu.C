@@ -64,9 +64,11 @@ bool EmitterAmdgpuGfx908::isValidSgprBlock(Register regBlock) const {
          regUsage == GENERAL_PURPOSE;
 }
 
+// Register pairs must be even aligned
 bool EmitterAmdgpuGfx908::isValidSgprPair(Register regBlock) const {
   auto numRegs = regBlock.details.count;
-  return isValidSgprBlock(regBlock) && numRegs == 2;
+  auto regId = regBlock.details.id;
+  return isValidSgprBlock(regBlock) && numRegs == 2 && regId % 2 == 0;
 }
 
 void EmitterAmdgpuGfx908::splitRegisterPair(Register regPair, std::vector<Register> &pieces) const {
