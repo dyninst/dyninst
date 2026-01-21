@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AST_HDR
-#define AST_HDR
+#ifndef DYNINST_DYNINSTAPI_AST_H
+#define DYNINST_DYNINSTAPI_AST_H
 
 #include "dyn_register.h"
 #include "opcode.h"
