@@ -60,7 +60,6 @@
 
 #include <sstream>
 
-#include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/dynThread.h"
 #include "dyninstAPI/src/dynProcess.h"

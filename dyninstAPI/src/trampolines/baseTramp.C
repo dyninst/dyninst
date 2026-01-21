@@ -40,7 +40,7 @@
 #include "dyninstAPI/src/dynThread.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/registerSpace.h"
-#include "dyninstAPI/src/ast.h"
+#include "ast.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "debug.h"
 #include "mapped_object.h"
