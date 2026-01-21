@@ -723,7 +723,6 @@ class AstAtomicOperationStmtNode : public AstNode {
     AstNodePtr constant;
 };
 
-#define SCAST_AST(ast) boost::static_pointer_cast<AstNode>(ast)
 #define DCAST_AST(ast) boost::dynamic_pointer_cast<AstNode>(ast)
 
 
