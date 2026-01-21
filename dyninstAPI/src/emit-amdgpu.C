@@ -70,20 +70,6 @@ bool EmitterAmdgpuGfx908::isValidSgprPair(Register regBlock) const {
   auto regId = regBlock.details.id;
   return isValidSgprBlock(regBlock) && numRegs == 2 && regId % 2 == 0;
 }
-
-void EmitterAmdgpuGfx908::splitRegisterPair(Register regPair, std::vector<Register> &pieces) const {
-  // TODO : This should also work for vectors later
-  assert(isValidSgprPair(regPair) && "regPair must be a valid SGPR pair");
-  uint32_t regId = regPair.details.id;
-  uint32_t kind = regPair.details.kind;
-  uint32_t usage = regPair.details.usage;
-
-  Register r0(regId, static_cast<RegKind>(kind), static_cast<RegUsage>(usage), 0);
-  Register r1(regId + 1, static_cast<RegKind>(kind), static_cast<RegUsage>(usage), 0);
-
-  pieces.push_back(r0);
-  pieces.push_back(r1);
-}
 // ==== Helper functions end
 
 unsigned EmitterAmdgpuGfx908::emitIf(Register expr_reg, Register target, RegControl /* rc */,
@@ -288,7 +274,7 @@ void EmitterAmdgpuGfx908::emitLoadConst(Register dest, Address imm, codeGen &gen
   uint32_t upperAddress = (imm >> 32);
 
   std::vector<Register> regs;
-  splitRegisterPair(dest, regs);
+  dest.getIndividualRegisters(regs);
 
   emitMovLiteral(regs[0], lowerAddress, gen);
   emitMovLiteral(regs[1], upperAddress, gen);

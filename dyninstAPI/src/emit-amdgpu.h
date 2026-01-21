@@ -226,6 +226,5 @@ private:
   bool isValidSgpr(Register reg) const;
   bool isValidSgprBlock(Register regBlock) const;
   bool isValidSgprPair(Register regBlock) const;
-  void splitRegisterPair(Register regPair, std::vector<Register> &pieces) const;
 };
 #endif
