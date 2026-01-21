@@ -41,7 +41,7 @@
 #include "common/src/headers.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "baseTramp.h"
-#include "dyninstAPI/src/ast.h"
+#include "AstNode.h"
 
 class codeGen;
 class registerSpace;

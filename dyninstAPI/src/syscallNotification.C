@@ -34,7 +34,6 @@
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/syscallNotification.h"
 #include "dyninstAPI/src/dynProcess.h"
-#include "dyninstAPI/src/ast.h"
 
 #include "EventType.h"
 #include "dyninstAPI/src/pcEventMuxer.h"
