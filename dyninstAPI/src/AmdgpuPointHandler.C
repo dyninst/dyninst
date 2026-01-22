@@ -202,7 +202,16 @@ void AmdgpuGfx908PointHandler::maximizeSgprAllocationIfKernel(BPatch_function *f
   kd.setKernargSize(newKernargSize);
 
   // We have modified the kernel descriptor. Now overwrite the original one with it.
-  kdVariable->writeValue(kd.getRawPtr(), sizeof(rawKd), true);
+  success = kdVariable->writeValue(kd.getRawPtr(), sizeof(rawKd), false);
+  // false is passed explicitly only so the compiler can do overload resolution between:
+  // writeValue(const void *src, bool saveWorld=false)
+  //      and
+  // writeValue(const void *src, int len,bool saveWorld=false)
+
+  if(!success) {
+    inst_printf("Unable to write kernel descriptor for %s\n", kdVariable->getName());
+    assert(0);
+  }
 }
 
 void AmdgpuGfx908PointHandler::insertPrologueAtPoints(AmdgpuPrologueSnippet &snippet,
