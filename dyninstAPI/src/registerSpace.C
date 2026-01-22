@@ -1593,7 +1593,6 @@ Dyninst::Register registerSpace::allocateGprBlock(RegKind regKind, uint32_t numR
         Register reg(currentId, regKind, RegUsage::GENERAL_PURPOSE, 0);
         auto *regSlot = this->registers_[reg];
         regSlot->markUsed(true);
-        regSlot->refCount = 1;
 
         const char *regIdPrefix = regKind == RegKind::SCALAR ? "s" : "v";
         regalloc_printf("Allocated register %s%u\n", regIdPrefix, currentId);
