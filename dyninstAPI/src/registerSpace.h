@@ -503,6 +503,14 @@ class registerSpace {
     static unsigned AGPR(Dyninst::Register x) { return x; }
 
     int framePointer() { return RegisterConstants::s33; }
+
+    bool canAllocate(Register singleReg) const;
+
+  public:
+    Dyninst::Register allocateGprBlock(RegKind regKind, uint32_t numRegs, uint32_t alignment);
+    void freeGprBlock(Register regBlock);
+
+  private:
 #endif
 
     // Create a map of register names to register numbers

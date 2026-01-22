@@ -1601,4 +1601,18 @@ Dyninst::Register registerSpace::allocateGprBlock(RegKind regKind, uint32_t numR
   }
   return Null_Register;
 }
+
+
+void registerSpace::freeGprBlock(Register regBlock) {
+  assert(regBlock.getUsage() == RegUsage::GENERAL_PURPOSE && "block must be a GPR block");
+  uint32_t startId = regBlock.getId();
+  uint32_t numRegs = regBlock.getCount();
+  uint32_t endId = startId + numRegs - 1;
+
+  for (uint32_t id = startId; id <= endId; ++id) {
+    Register reg(id, regBlock.getKind(), regBlock.getUsage(), 0);
+    this->freeRegister(reg);
+  }
+}
+
 #endif
