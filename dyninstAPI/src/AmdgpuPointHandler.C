@@ -83,12 +83,13 @@ bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) c
   return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() != maxGranulatedWavefrontSgprCount);
 }
 
-bool AmdgpuGfx908PointHandler::isRegPairAvailable(Register reg, BPatch_function *function) {
-  assert(reg % 2 == 0 && "reg must be even");
-  assert(reg <= 101 && "reg must be a valid SGPR");
+bool AmdgpuGfx908PointHandler::isRegPairAvailable(Register regPair, BPatch_function *function) {
+  vector<Register> individualRegs;
+  regPair.getIndividualRegisters(individualRegs);
+  assert(individualRegs.size() == 2);
 
-  MachRegister machReg = convertRegID(reg, Arch_amdgpu_gfx908);
-  MachRegister nextMachReg = convertRegID(reg + 1, Arch_amdgpu_gfx908);
+  MachRegister machReg = convertRegID(individualRegs[0], Arch_amdgpu_gfx908);
+  MachRegister nextMachReg = convertRegID(individualRegs[1], Arch_amdgpu_gfx908);
 
   bool isMachRegLive = false, isNextMachRegLive = false;
 
@@ -131,8 +132,8 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
     exit(1);
   }
 
-  int reg = 94;
-  if (!isRegPairAvailable(reg, function)) {
+  Register regPair(94, SCALAR, GENERAL_PURPOSE, 2);
+  if (!isRegPairAvailable(regPair, function)) {
     std::cerr << "Can't instrument " << function->getMangledName()
               << " as s94 and s95 are not available.\n"
               << "exiting...\n";
@@ -143,7 +144,7 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
   function->getEntryPoints(entryPoints);
 
   auto prologuePtr =
-      boost::make_shared<AmdgpuPrologue>(reg, kd.getKernargPtrRegister(), kd.getKernargSize());
+      boost::make_shared<AmdgpuPrologue>(regPair, kd.getKernargPtrRegisterPair(), kd.getKernargSize());
 
   AstNodePtr prologueNodePtr =
         boost::make_shared<AmdgpuPrologueNode>(prologuePtr);

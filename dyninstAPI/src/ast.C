@@ -1764,6 +1764,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
      // Move constant into retReg
      Emitter *emitter = gen.emitter();
      const uint32_t immediateValue = (uint32_t)((uint64_t)this->getOValue());
+     // TODO: Change this to allocate SGPR explicitly instead of the current mechanism.
      emitter->emitMovLiteral(retReg, immediateValue, gen);
      break;
    }
@@ -3373,6 +3374,7 @@ bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen &gen, bool noCost, 
 
   bool ret = true;
 
+  // TODO : Introduce register blocks and specifically allocate src0 as a SGPR block of size 1.
   Register src0 = Dyninst::Null_Register;
   if (!constant->generateCode_phase2(gen, noCost, retAddr, src0)) {
     fprintf(stderr, "WARNING: failed in generateCode internals!\n");
@@ -3392,18 +3394,29 @@ bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen &gen, bool noCost, 
   EmitterAmdgpuGfx908 *emitter = dynamic_cast<EmitterAmdgpuGfx908 *>(gen.emitter());
   assert(emitter);
 
-  // TODO : Remove all hardcoded registers.
-  emitter->emitMoveRegToReg(94, 88, gen);
-  emitter->emitMoveRegToReg(95, 89, gen);
-  emitter->emitAddConstantToRegPair(88, (Address)offset->getOValue(), gen);
+  // TODO : allocate addrRegPair as a SGPR block of size 2.
+  // TODO : baseRegPair should be the cached value for a particular kernel.
+  Register addrRegPair(88, SCALAR, GENERAL_PURPOSE, 2);
+  Register baseRegPair(94, SCALAR, GENERAL_PURPOSE, 2);
+
+  std::vector<Register> addrRegs;
+  std::vector<Register> baseRegs;
+
+  addrRegPair.getIndividualRegisters(addrRegs);
+  baseRegPair.getIndividualRegisters(baseRegs);
+
+  emitter->emitMoveRegToReg(baseRegs[0], addrRegs[0], gen);
+  emitter->emitMoveRegToReg(baseRegs[1], addrRegs[1], gen);
+
+  emitter->emitAddConstantToRegPair(addrRegPair, (Address)offset->getOValue(), gen);
 
   // Now we have s[88:89] with address of the variable. Emit appropriate atomic instruction.
   switch (opcode) {
   case plusOp:
-    emitter->emitAtomicAdd(88, src0, gen);
+    emitter->emitAtomicAdd(addrRegPair, src0, gen);
     break;
   case minusOp:
-    emitter->emitAtomicSub(88, src0, gen);
+    emitter->emitAtomicSub(addrRegPair, src0, gen);
     break;
   default:
     assert(!"atomic operation for this opcode is not implemented");

@@ -54,7 +54,8 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
     emitter->emitShortJump(wordOffset, gen);
   } else {
     // TODO: Right now hardcoding s90. But this needs to use 2 pairs of dead registers.
-    emitter->emitLongJump(90, from, to, gen);
+    Register regBlock(80, SCALAR, GENERAL_PURPOSE, 4);
+    emitter->emitLongJump(regBlock, from, to, gen);
   }
 }
 
