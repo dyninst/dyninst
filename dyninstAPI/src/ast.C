@@ -3394,14 +3394,25 @@ bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen &gen, bool noCost, 
   EmitterAmdgpuGfx908 *emitter = dynamic_cast<EmitterAmdgpuGfx908 *>(gen.emitter());
   assert(emitter);
 
-  // TODO : allocate addrRegPair as a SGPR block of size 2.
-  // TODO : baseRegPair should be the cached value for a particular kernel.
-  Register addrRegPair(88, SCALAR, GENERAL_PURPOSE, 2);
+  registerSpace *regSpace = gen.rs();
+
+  Register addrRegPair =
+      regSpace->allocateGprBlock(RegKind::SCALAR, /* numRegs =*/2, /* alignment =*/2);
+
+  assert(addrRegPair != Null_Register &&
+         "AtomicOperationStmtNode : Failed to allocate register pair");
+
+  const uint32_t addrRegId = addrRegPair.getId();
+  ast_printf("AtomicOperationStmtNode allocated scalar register block s[%u:%u]\n", addrRegId,
+             addrRegId + 1);
+
+  // TODO this needs to pick up the register from placeholderReg
   Register baseRegPair(94, SCALAR, GENERAL_PURPOSE, 2);
 
   std::vector<Register> addrRegs;
   std::vector<Register> baseRegs;
 
+  // TODO: make movs work with blocks.
   addrRegPair.getIndividualRegisters(addrRegs);
   baseRegPair.getIndividualRegisters(baseRegs);
 
