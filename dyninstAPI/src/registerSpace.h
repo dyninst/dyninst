@@ -511,6 +511,7 @@ class registerSpace {
 
   public:
     Dyninst::Register allocateGprBlock(RegKind regKind, uint32_t numRegs, uint32_t alignment);
+    void freeGprBlock(Register regBlock);
 
   private:
 #endif
