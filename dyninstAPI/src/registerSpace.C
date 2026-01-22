@@ -1535,3 +1535,72 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 
 	return false;
 }
+
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+
+bool registerSpace::canAllocate(Register singleReg) const {
+  assert(!singleReg.isRegisterBlock() && "singleReg must not be a register block");
+
+  auto iter = registers_.find(singleReg);
+  if (iter == registers_.end()) {
+    return false;
+  }
+
+  registerSlot *reg = iter->second;
+
+  if (reg->offLimits)
+    return false;
+  else if (reg->refCount > 0)
+    return false;
+  else if (reg->liveState == registerSlot::live)
+    return false;
+  else if (reg->keptValue)
+    return false;
+
+  return true;
+}
+
+Dyninst::Register registerSpace::allocateGprBlock(RegKind regKind, uint32_t numRegs,
+                                                  uint32_t alignment) {
+  uint32_t minGprId = 0;
+  uint32_t maxGprId = 0;
+
+  if (regKind == RegKind::SCALAR) {
+    minGprId = AmdgpuGfx908::MIN_SGPR_ID;
+    maxGprId = AmdgpuGfx908::MAX_SGPR_ID;
+  } else if (regKind == RegKind::VECTOR) {
+    minGprId = AmdgpuGfx908::MIN_VGPR_ID;
+    maxGprId = AmdgpuGfx908::MAX_VGPR_ID;
+  } else {
+    regalloc_printf("regKind can't be allocated\n");
+    assert(0);
+    return Null_Register;
+  }
+
+  assert(minGprId % alignment == 0);
+
+  for (uint32_t id = minGprId; id + numRegs - 1 <= maxGprId; id += alignment) {
+    // Check whether the single individual consecutive registers can be allocated
+    bool canAllocateBlock = true;
+    for (uint32_t currentId = id; currentId < id + numRegs; ++currentId) {
+      Register singleReg(currentId, regKind, RegUsage::GENERAL_PURPOSE, 0);
+      canAllocateBlock &= canAllocate(singleReg);
+    }
+
+    if (canAllocateBlock) {
+      // Allocate those individual registers
+      for (uint32_t currentId = id; currentId < id + numRegs; ++currentId) {
+        Register reg(currentId, regKind, RegUsage::GENERAL_PURPOSE, 0);
+        auto *regSlot = this->registers_[reg];
+        regSlot->markUsed(true);
+        regSlot->refCount = 1;
+
+        const char *regIdPrefix = regKind == RegKind::SCALAR ? "s" : "v";
+        regalloc_printf("Allocated register %s%u\n", regIdPrefix, currentId);
+      }
+      return Register(id, regKind, RegUsage::GENERAL_PURPOSE, numRegs);
+    }
+  }
+  return Null_Register;
+}
+#endif
