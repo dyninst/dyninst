@@ -94,8 +94,6 @@ public:
     return generateCode(gen, noCost, unused, retReg);
   }
 
-  // I don't know if there is an overload between address and register...
-  // so we'll toss in two different return types.
   virtual bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
                                    Dyninst::Register &retReg) = 0;
 
