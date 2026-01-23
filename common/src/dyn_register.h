@@ -21,7 +21,7 @@
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * Lesser General Public License for more info.
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
@@ -38,98 +38,75 @@
 
 namespace Dyninst {
 
-/* Dyninst has been using the following typedef for representing a register number, e.g., [0..31]
-typedef unsigned int Register;
-*/
-
 // Without making intrusive changes to existing CPU architectures, we want to introduce a richer
 // Register type to model different kinds of registers.
+enum RegKind : uint32_t { SCALAR, VECTOR, SCALAR_PREDICATE, UNDEFINED_KIND };
 
-enum RegKind : uint32_t { SCALAR = 0, VECTOR = 1, MATRIX = 2, UNDEFINED_KIND = 3 };
-
-enum RegUsage : uint32_t {
-  GENERAL_PURPOSE = 0,
-  SPECIAL_PURPOSE = 1,
-  PREDICATE = 2,
-  UNDEFINED_USAGE = 3
-};
-
-constexpr uint32_t REG_ID_WIDTH = 12;
-constexpr uint32_t REG_KIND_WIDTH = 4;
-constexpr uint32_t REG_USAGE_WIDTH = 4;
-constexpr uint32_t REG_COUNT_WIDTH = 5;
-constexpr uint32_t REG_RESERVED_WIDTH = 7;
+constexpr uint32_t REG_ID_WIDTH = 16;
+constexpr uint32_t REG_KIND_WIDTH = 2;
+constexpr uint32_t REG_COUNT_WIDTH = 14;
 // total = 32
 
-struct __attribute__((packed)) RegisterFields {
+struct __attribute__((packed)) RegisterInfo {
   uint32_t id : REG_ID_WIDTH;
-
   uint32_t kind : REG_KIND_WIDTH;
-
-  uint32_t usage : REG_USAGE_WIDTH;
-
   uint32_t count : REG_COUNT_WIDTH;
 
-  uint32_t reserved : REG_RESERVED_WIDTH;
+  constexpr RegisterInfo(uint32_t regId, uint32_t regKind, uint32_t numRegs)
+      : id(regId), kind(regKind), count(numRegs) {}
 };
 
-union Register {
-  RegisterFields details;
-  uint32_t raw;
+class Register {
+  union {
+    RegisterInfo info;
+    uint32_t value;
+  };
 
-  constexpr Register(uint32_t val) : raw(val) {}
+public:
+  constexpr Register(uint32_t val = -1) : value(val) {}
 
-  constexpr Register() : raw(static_cast<uint32_t>(-1)) {}
-
-  Register(uint32_t id, RegKind kind, RegUsage usage, uint32_t count) {
+  Register(uint32_t id, RegKind kind, uint32_t count) {
     assert(id >> REG_ID_WIDTH == 0 && "id is wider than than specified");
     assert(count >> REG_COUNT_WIDTH == 0 && "count is wider than specified");
-    details.id = id;
-    details.kind = kind;
-    details.usage = usage;
-    details.count = count;
-    details.reserved = 0;
+    assert(count != 0 && "count must be non-zero");
+    info = RegisterInfo(id, static_cast<uint32_t>(kind), count);
   }
 
-  constexpr uint32_t getId() const { return details.id; }
+  constexpr uint32_t getId() const { return info.id; }
 
-  constexpr RegKind getKind() const { return static_cast<RegKind>(details.kind); }
+  constexpr RegKind getKind() const { return static_cast<RegKind>(info.kind); }
 
-  constexpr RegUsage getUsage() const { return static_cast<RegUsage>(details.usage); }
+  constexpr uint32_t getCount() const { return info.count; }
 
-  constexpr uint32_t getCount() const { return details.count; }
+  constexpr operator uint32_t() const { return value; }
 
-  // A register block represents consecutive reqisters starting from id. Not all architectures
-  // need or support this.
-  //
-  // So count = 0 is an individual register.
-  // count >= 1 means "register block" with 1 or more registers.
-  constexpr bool isRegisterBlock() const { return details.count != 0; }
-
-  constexpr operator uint32_t() const { return raw; }
-
-  // If this is a register block, return individual registers in that block.
+  // If this is a contiguous register block, return individual registers in that block.
   void getIndividualRegisters(std::vector<Register> &individualRegisters) const {
-    assert(this->isRegisterBlock() && "This must be a register block");
-    for (uint32_t i = 0; i < details.count; ++i) {
-      RegKind kind = static_cast<RegKind>(details.kind);
-      RegUsage usage = static_cast<RegUsage>(details.usage);
-      individualRegisters.push_back(Register(details.id + i, kind, usage, 0));
+    uint32_t baseId = this->getId();
+    uint32_t numRegs = this->getCount();
+    uint32_t lastId = baseId + numRegs - 1;
+    RegKind kind = this->getKind();
+
+    assert(numRegs > 1 && "This must be a register block");
+    for (uint32_t id = baseId; id <= lastId; ++id) {
+      individualRegisters.push_back(Register(id, kind, 1));
     }
   }
 
   // Required for hashmap lookup
-  constexpr bool operator==(const Register &other) const { return raw == other.raw; }
+  constexpr bool operator==(const Register &other) const { return value == uint32_t(other); }
 
   constexpr bool operator!=(const Register &other) const { return !(*this == other); }
 
   // Required for compatibility with integers
-  constexpr bool operator==(const int &value) const { return raw == static_cast<uint32_t>(value); }
+  constexpr bool operator==(const int &other) const {
+    return value == static_cast<uint32_t>(other);
+  }
 
-  constexpr bool operator!=(const int &value) const { return !(*this == value); }
+  constexpr bool operator!=(const int &other) const { return !(*this == other); }
 
-  constexpr bool operator==(const unsigned &value) const {
-    return raw == static_cast<uint32_t>(value);
+  constexpr bool operator==(const unsigned &other) const {
+    return value == static_cast<uint32_t>(other);
   }
 
   constexpr bool operator!=(const unsigned &value) const { return !(*this == value); }
@@ -150,7 +127,7 @@ constexpr Register Null_Register(static_cast<unsigned int>(-1));
 namespace std {
 template <> struct hash<Dyninst::Register> {
   size_t operator()(const Dyninst::Register &reg) const noexcept {
-    return std::hash<uint32_t>{}(reg.raw);
+    return std::hash<uint32_t>{}(uint32_t(reg));
   }
 };
 } // namespace std
