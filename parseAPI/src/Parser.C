@@ -1191,7 +1191,7 @@ Parser::delete_bogus_edges(Edge* e)
     Block::edgelist sources;
     cur->copy_sources(sources);
     for (auto eit = sources.begin(); eit != sources.end(); ++eit)
-        if ((*eit)->type() != INDIRECT && (*eit)->src() != e->src()) 
+        if ((*eit)->src() != e->src()) 
             return;
 
     // If an indirect edge points a function entry,
@@ -1206,7 +1206,7 @@ Parser::delete_bogus_edges(Edge* e)
     Block::edgelist targets;
     cur->copy_targets(targets);
     for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
-        delete_bogus_blocks(*eit);
+        delete_bogus_edges(*eit);
     }
 }
 
