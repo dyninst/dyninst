@@ -82,6 +82,8 @@ public:
 
   constexpr uint32_t getCount() const { return info.count; }
 
+  constexpr uint32_t getValue() const { return value; }
+
   constexpr operator uint32_t() const { return value; }
 
   // If this is a contiguous register block, return individual registers in that block.
@@ -98,7 +100,7 @@ public:
   }
 
   // Required for hashmap lookup
-  constexpr bool operator==(const Register &other) const { return value == uint32_t(other); }
+  constexpr bool operator==(const Register &other) const { return value == other.getValue(); }
 
   constexpr bool operator!=(const Register &other) const { return !(*this == other); }
 
