@@ -305,6 +305,8 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
         return a->type() < b->type();
       });
 
+      // Somehow do pointHandler->handlePatchPoint(point_);
+
       for (instPoint::instance_iter iter = point_->begin(); 
            iter != point_->end(); ++iter) {
          AstNodePtr ast = DCAST_AST((*iter)->snippet());

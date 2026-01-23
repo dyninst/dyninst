@@ -43,6 +43,7 @@
 
 #include <string>
 #include <unordered_set>
+#include <unordered_map>
 
 namespace Dyninst {
 // This implements prologue/epilogue insertion at function entry/exit respectively.
@@ -51,8 +52,10 @@ struct AmdgpuGfx908PointHandler : PointHandler {
   unsigned eflag = EF_AMDGPU_MACH_AMDGCN_GFX908;
 
   std::unordered_set<BPatch_function *> instrumentedFunctions;
+  std::unordered_map<PatchAPI::PatchFunction *, Register> prologueRegisterMap;
 
   void handlePoints(std::vector<BPatch_point *> const &points);
+  void handlePatchPoint(PatchAPI::Point *point);
 
   BPatch_variableExpr* getKernelDescriptorVariable(BPatch_function *f);
 
@@ -64,6 +67,8 @@ struct AmdgpuGfx908PointHandler : PointHandler {
 
   void insertPrologueAtPoints(AmdgpuPrologueSnippet &snippet, std::vector<BPatch_point *> &points);
   void insertEpilogueAtPoints(AmdgpuEpilogueSnippet &snippet, std::vector<BPatch_point *> &points);
+
+  Register getPrologueRegisterPair(PatchAPI::Point *point) const;
 
   void writeInstrumentedKernelNames(const std::string &filePath);
   void writeInstrumentationVarTable(const std::string &filePath);
