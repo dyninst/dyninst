@@ -1710,12 +1710,12 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<AstNo
          if (!callerSave) {
             // We don't care!
             regalloc_printf("%s[%d]: pre-call, skipping callee-saved register %u\n", FILE__, __LINE__,
-                     (reg->number).raw);
+                     uint32_t(reg->number));
             continue;
          }
 
          regalloc_printf("%s[%d]: pre-call, register %u has refcount %d, keptValue %d, liveState %s\n",
-                         FILE__, __LINE__, (reg->number).raw,
+                         FILE__, __LINE__, uint32_t(reg->number),
                          reg->refCount,
                          reg->keptValue,
                          (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::spilled) ? "spilled" : "dead"));
@@ -2255,7 +2255,7 @@ bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
       regalloc_printf("\t shouldSaveReg for iRPC\n");
    }
    if (reg->liveState != registerSlot::live) {
-      regalloc_printf("\t Reg %u not live, concluding don't save\n", (reg->number).raw);
+      regalloc_printf("\t Reg %u not live, concluding don't save\n", uint32_t(reg->number));
       return false;
    }
    if (saveFlags) {
@@ -2268,7 +2268,7 @@ bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
    }
    if (inst && inst->validOptimizationInfo() && !inst->definedRegs[reg->encoding()]) {
       regalloc_printf("\t Base tramp instance doesn't have reg %u (num %u) defined; concluding don't save\n",
-                      reg->encoding(), (reg->number).raw);
+                      reg->encoding(), uint32_t(reg->number));
       return false;
    }
    return true;
