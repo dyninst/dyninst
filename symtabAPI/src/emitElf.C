@@ -672,33 +672,29 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                 sectionNumber, secLinkMapping[sectionNumber], secInfoMapping[sectionNumber],
                 changeMapping[sectionNumber]);
 
-        //Insert new loadable sections at the end of data segment
-        if (shdr->sh_addr + shdr->sh_size == dataSegEnd && !createdLoadableSections) {
-            createdLoadableSections = true;
-            insertPoint = scncount;
-            if (SHT_NOBITS == shdr->sh_type) {
-                insertPointOffset = shdr->sh_offset;
-            } else {
-                insertPointOffset = shdr->sh_offset + shdr->sh_size;
-            }
-
-            if (!createLoadableSections(newshdr, extraAlignSize, newNameIndexMapping,
-                       sectionNumber))
-                return false;
-            if (!movePHdrsFirst) {
-                sectionNumber++;
-                createNewPhdrRegion(newNameIndexMapping);
-            }
-
-            // Update the heap symbols, now that loadSecTotalSize is set
-            updateSymbols(dynsymData, dynStrData, loadSecTotalSize);
-
-        }
 
         if (0 > elf_update(newElf, ELF_C_NULL)) {
             return false;
         }
     } // end of for each elf section
+
+    //Insert new loadable sections at the end
+    if (!createdLoadableSections) {
+        createdLoadableSections = true;
+        insertPoint = scncount;
+        if (!createLoadableSections(newshdr, extraAlignSize, newNameIndexMapping,sectionNumber))
+            return false;
+        if (createNewPhdr && !movePHdrsFirst) {
+            sectionNumber++;
+            createNewPhdrRegion(newNameIndexMapping);
+        }
+
+        // Update the heap symbols, now that loadSecTotalSize is set
+        updateSymbols(dynsymData, dynStrData, loadSecTotalSize);
+        if (0 > elf_update(newElf, ELF_C_NULL)) {
+            return false;
+        }
+    }
 
     // Add non-loadable sections at the end of object file
     if (!createNonLoadableSections(newshdr))
