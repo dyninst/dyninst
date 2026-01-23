@@ -1,5 +1,0 @@
-##bl_execute
-if branch_type == BranchType_CALL then X[30] = PC[] + 4;
-
-BranchTo(PC[] + offset, branch_type);
-@@

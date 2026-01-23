@@ -62,7 +62,7 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.get-oses.outputs.latest) }}
         compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
-        codegen_arch: [i386, x86_64, aarch64, ppc64le]
+        codegen_arch: [i386, x86_64, aarch64, ppc64le, amdgpu_gfx908]
     permissions:
       packages: read
     container:

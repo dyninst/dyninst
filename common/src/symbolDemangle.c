@@ -37,17 +37,19 @@
 
 // Returns a malloc'd string that is the demangled symbol name.  THe caller is
 // responsible for the freeing this memory.  Returns NULL on malloc failure.
-// The symbol name symName is demangled using the cplus_demangle function after
-// first removing any versioning suffixes (first '@')
-// to create the mangled name.  If cplus_demangle fails, the mangled name
-// is returned unmodified.  If cplus_demangle succeeds and includeParams is
-// false, then any clone suffixes (the first '.' to the end of the mangled
-// name) are appended to the value from cplus_demangle.
+// First any dynamic linker version suffix (first '@' to the end of the string)
+// present is removed and the versionless name is formed.  Next the versionless
+// name is passed to libiberty's cplus_demangle function with appropriate
+// flags.  On failure the versionless name is returned unchanged.  Otherwise if
+// includeParams is false, then any clone suffixes (the first '.' to the end of
+// name) present are appended to the demangled name returned by cplus_demangle;
+// if includeParams is true, cplus_demangle includes clone information and the
+// demangled name is returned unmodified.
 //
-// Other than the removal of versioning suffixes, and appending any
-// clone suffixes if includeParams is false to the result, the result should be
-// equivalent to using c++filt.  Below are the c++filt and cplus_demangle
-// options
+// Other than the removal of the version suffix, and appending any clone
+// suffixes to the result if includeParams is false to the result, the result
+// should be equivalent to using c++filt.  Here are the c++filt and
+// cplus_demangle options used:
 //
 // includeParams	c++ filt opts	cplus_demangle opts
 // -------------	-------------	-------------------
@@ -57,7 +59,7 @@
 char *symbol_demangle(const char *symName, int includeParams)
 {
     int cloneOffset = -1;		// offset to clone suffix
-    int versionOffset = -1;	// offset to version suffix
+    int versionOffset = -1;		// offset to version suffix
     int lastOffset;			// offset to version suffix
 					//   if present, else null of symName
 

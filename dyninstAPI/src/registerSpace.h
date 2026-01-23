@@ -97,7 +97,7 @@ class registerSlot {
     // Are we off limits for allocation in this particular instance?
     bool offLimits;
 
-    typedef enum { invalid, GPR, FPR, SPR, realReg} regType_t;
+    typedef enum { invalid, GPR, FPR, SPR, SGPR, VGPR, realReg} regType_t;
     const regType_t type;
 
     ////////// Code generation
@@ -478,7 +478,7 @@ class registerSpace {
     static unsigned SPR(Dyninst::Register x);
     int framePointer() { return r1; }
 #endif
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
     int framePointer();
 #endif
 #if defined(DYNINST_CODEGEN_ARCH_AARCH64)
@@ -497,6 +497,17 @@ class registerSpace {
     static unsigned FPR(Dyninst::Register x) { return x - fpr0; }
     int framePointer() { return r29; }
 #endif
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    static unsigned GPR(Dyninst::Register x) { return x; }
+    static unsigned FPR(Dyninst::Register x) { return x; }
+    static unsigned SPR(Dyninst::Register x) { return x; }
+    static unsigned SGPR(Dyninst::Register x) { return x; }
+    static unsigned VGPR(Dyninst::Register x) { return x; }
+    static unsigned AGPR(Dyninst::Register x) { return x; }
+
+    int framePointer() { return sgpr33; }
+#endif
+
     // Create a map of register names to register numbers
     std::map<std::string, Dyninst::Register> registersByName;
     // The reverse map can be handled by doing a rs[x]->name

@@ -58,11 +58,13 @@ using namespace Dyninst::InstructionAPI;
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
 #include "inst-power.h"
-#elif defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#elif defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "inst-x86.h"
 #include "emit-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "inst-aarch64.h"
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#include "emit-amdgpu.h"
 #else
 #error "Unknown architecture in ast.h"
 #endif
@@ -178,10 +180,6 @@ AstNodePtr AstNode::stackGenericNode() {
     return AstNodePtr(new AstStackGenericNode());
 }
 
-AstNodePtr AstNode::labelNode(std::string &label) {
-    return AstNodePtr (new AstLabelNode(label));
-}
-
 AstNodePtr AstNode::operandNode(operandType ot, void *arg) {
     return AstNodePtr(new AstOperandNode(ot, arg));
 }
@@ -246,11 +244,6 @@ AstNodePtr AstNode::memoryNode(memoryType ma, int which, int size) {
     return AstNodePtr(new AstMemoryNode(ma, which, size));
 }
 
-AstNodePtr AstNode::miniTrampNode(AstNodePtr tramp) {
-    if (tramp == NULL) return AstNodePtr();
-    return AstNodePtr(new AstMiniTrampNode(tramp));
-}
-
 AstNodePtr AstNode::originalAddrNode() {
     if (originalAddrNode_ == NULL) {
         originalAddrNode_ = AstNodePtr(new AstOriginalAddrNode());
@@ -278,6 +271,11 @@ AstNodePtr AstNode::snippetNode(Dyninst::PatchAPI::SnippetPtr snip) {
 
 AstNodePtr AstNode::scrambleRegistersNode(){
     return AstNodePtr(new AstScrambleRegistersNode());
+}
+
+AstNodePtr AstNode::atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable,
+                                            AstNodePtr constant) {
+   return AstNodePtr(new AstAtomicOperationStmtNode(astOpcode, variable, constant));
 }
 
 bool isPowerOf2(int value, int &result)
@@ -530,40 +528,6 @@ AstNode::~AstNode() {
     //printf("at ~AstNode()  count=%d\n", referenceCount);
 }
 
-Address AstMiniTrampNode::generateTramp(codeGen &gen,
-                                        int &trampCost,
-                                        bool noCost) {
-    static AstNodePtr costAst;
-    static AstNodePtr preamble;
-
-    if (costAst == AstNodePtr())
-        costAst = AstNode::operandNode(AstNode::operandType::Constant, (void *)0);
-
-    if (preamble == AstNodePtr())
-        preamble = AstNode::operatorNode(trampPreamble, costAst);
-
-    // private constructor; assumes NULL for right child
-
-    // we only want to use the cost of the minimum statements that will
-    // be executed.  Statements, such as the body of an if statement,
-    // will have their costs added to the observed cost global variable
-    // only if they are indeed called.  The code to do this in the minitramp
-    // right after the body of the if.
-    trampCost = preamble->maxCost() + minCost();
-
-    costAst->setOValue((void *) (long) trampCost);
-
-    if (!preamble->generateCode(gen, noCost)) {
-        fprintf(stderr, "[%s:%d] WARNING: failure to generate miniTramp preamble\n", __FILE__, __LINE__);
-    }
-
-    if (!ast_->generateCode(gen, noCost)) {
-        fprintf(stderr, "[%s:%d] WARNING: failure to generate miniTramp body\n", __FILE__, __LINE__);
-    }
-
-    return 0;
-}
-
 // This name is a bit of a misnomer. It's not the strict use count; it's the
 // use count modified by whether a node can be kept or not. We can treat
 // un-keepable nodes (AKA those that don't strictly depend on their AST inputs)
@@ -774,7 +738,6 @@ bool AstNode::generateCode_phase2(codeGen &, bool,
     if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
     if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
     if (dynamic_cast<AstVariableNode *>(this)) fprintf(stderr, "varNode\n");
-    if (dynamic_cast<AstMiniTrampNode *>(this)) fprintf(stderr, "miniTrampNode\n");
     if (dynamic_cast<AstMemoryNode *>(this)) fprintf(stderr, "memoryNode\n");
     assert(0);
 	return 0;
@@ -1099,21 +1062,6 @@ bool AstStackGenericNode::generateCode_phase2(codeGen&, bool, Address&, Dyninst:
 }
 #endif
 
-bool AstLabelNode::generateCode_phase2(codeGen &gen, bool,
-                                       Address &retAddr,
-                                       Dyninst::Register &retReg) {
-	assert(generatedAddr_ == 0);
-    // Pick up the address we were added at
-    generatedAddr_ = gen.currAddr();
-
-    retAddr = ADDR_NULL;
-    retReg = Dyninst::Null_Register;
-
-	decUseCount(gen);
-
-    return true;
-}
-
 bool AstOperatorNode::initRegisters(codeGen &g) {
     bool ret = true;
     std::vector<AstNodePtr> kids;
@@ -1123,7 +1071,7 @@ bool AstOperatorNode::initRegisters(codeGen &g) {
             ret = false;
     }
 
-#if !defined(DYNINST_CODEGEN_ARCH_X86)
+#if !defined(DYNINST_CODEGEN_ARCH_I386)
     // Override: if we're trying to save to an original
     // register, make sure it's saved on the stack.
     if(loperand) {
@@ -1140,7 +1088,7 @@ bool AstOperatorNode::initRegisters(codeGen &g) {
     return ret;
 }
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool noCost)
 {
    (void) size_;
@@ -1810,11 +1758,22 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    int len;
    BPatch_type *Type;
    switch (oType) {
+#if defined (DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+   case operandType::Constant: {
+     assert(oVar == NULL);
+     // Move constant into retReg
+     Emitter *emitter = gen.emitter();
+     const uint32_t immediateValue = (uint32_t)((uint64_t)this->getOValue());
+     emitter->emitMovLiteral(retReg, immediateValue, gen);
+     break;
+   }
+#else
    case operandType::Constant:
      assert(oVar == NULL);
      emitVload(loadConstOp, (Address)oValue, retReg, retReg, gen,
 		 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
      break;
+#endif
    case operandType::DataIndir:
       if (!operand_->generateCode_phase2(gen, noCost, addr, src)) ERROR_RETURN;
       REGISTER_CHECK(src);
@@ -2211,7 +2170,7 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
       }
       if (retReg == Dyninst::Null_Register) return false;
 
-#if defined(DYNINST_CODEGEN_ARCH_X86)
+#if defined(DYNINST_CODEGEN_ARCH_I386)
         emitVload(loadRegRelativeOp,
                   (Address)0,
                   REGNUM_ESP,
@@ -2264,100 +2223,6 @@ bool AstScrambleRegistersNode::generateCode_phase2(codeGen &gen,
    }
 #endif
    return true;
-}
-
-#undef MIN
-#define MIN(x,y) ((x)>(y) ? (y) : (x))
-#undef MAX
-#define MAX(x,y) ((x)>(y) ? (x) : (y))
-#undef AVG
-#define AVG(x,y) (((x)+(y))/2)
-
-int AstOperatorNode::costHelper(enum CostStyleType costStyle) const {
-    int total = 0;
-    int getInsnCost(opCode t);
-
-    if (op == ifOp) {
-        // loperand is the conditional expression
-        if (loperand) total += loperand->costHelper(costStyle);
-        total += getInsnCost(op);
-        int rcost = 0, ecost = 0;
-        if (roperand) {
-            rcost = roperand->costHelper(costStyle);
-            if (eoperand)
-                rcost += getInsnCost(branchOp);
-        }
-        if (eoperand)
-            ecost = eoperand->costHelper(costStyle);
-        if(ecost == 0) { // ie. there's only the if body
-            if(costStyle      == Min)  total += 0;
-            //guess half time body not executed
-            else if(costStyle == Avg)  total += rcost / 2;
-            else if(costStyle == Max)  total += rcost;
-        } else {  // ie. there's an else block also, for the statements
-            if(costStyle      == Min)  total += MIN(rcost, ecost);
-            else if(costStyle == Avg)  total += AVG(rcost, ecost);
-            else if(costStyle == Max)  total += MAX(rcost, ecost);
-        }
-    } else if (op == storeOp) {
-        if (roperand) total += roperand->costHelper(costStyle);
-        total += getInsnCost(op);
-    } else if (op == storeIndirOp) {
-        if (loperand) total += loperand->costHelper(costStyle);
-        if (roperand) total += roperand->costHelper(costStyle);
-        total += getInsnCost(op);
-    } else if (op == trampPreamble) {
-        total = getInsnCost(op);
-    } else {
-        if (loperand)
-            total += loperand->costHelper(costStyle);
-        if (roperand)
-            total += roperand->costHelper(costStyle);
-        total += getInsnCost(op);
-    }
-    return total;
-}
-
-int AstOperandNode::costHelper(enum CostStyleType costStyle) const {
-    int total = 0;
-    if (oType == operandType::Constant) {
-        total = getInsnCost(loadConstOp);
-    } else if (oType == operandType::DataIndir) {
-        total = getInsnCost(loadIndirOp);
-        total += operand()->costHelper(costStyle);
-    } else if (oType == operandType::DataAddr) {
-        total = getInsnCost(loadOp);
-    } else if (oType == operandType::DataReg) {
-        total = getInsnCost(loadIndirOp);
-    } else if (oType == operandType::Param || oType == operandType::ParamAtCall || oType == operandType::ParamAtEntry) {
-        total = getInsnCost(getParamOp);
-    }
-    return total;
-}
-
-int AstCallNode::costHelper(enum CostStyleType costStyle) const {
-    int total = 0;
-    if (func_) total += getPrimitiveCost(func_->prettyName().c_str());
-    else total += getPrimitiveCost(func_name_);
-
-    for (unsigned u = 0; u < args_.size(); u++)
-        if (args_[u]) total += args_[u]->costHelper(costStyle);
-    return total;
-}
-
-
-int AstSequenceNode::costHelper(enum CostStyleType costStyle) const {
-    int total = 0;
-    for (unsigned i = 0; i < sequence_.size(); i++) {
-        total += sequence_[i]->costHelper(costStyle);
-    }
-
-    return total;
-}
-
-int AstVariableNode::costHelper(enum CostStyleType /*costStyle*/) const{
-    int total = 0;
-    return total;
 }
 
 BPatch_type *AstNode::checkType(BPatch_function*) {
@@ -2697,13 +2562,6 @@ bool AstVariableNode::canBeKept() const {
     return ast_wrappers_[index]->canBeKept();
 }
 
-bool AstMiniTrampNode::canBeKept() const {
-	// Well... depends on the actual AST, doesn't it.
-	assert(ast_);
-
-	return ast_->canBeKept();
-}
-
 bool AstMemoryNode::canBeKept() const {
 	// Despite our memory loads, we can be kept;
 	// we're loading off process state, which is defined
@@ -2916,38 +2774,6 @@ AstNodePtr AstVariableNode::deepCopy(){
    return AstNodePtr(copy);
 }
 
-void AstMiniTrampNode::getChildren(std::vector<AstNodePtr > &children) {
-    children.push_back(ast_);
-}
-
-void AstMiniTrampNode::setChildren(std::vector<AstNodePtr > &children){
-   if (children.size() == 1){
-      //memory management?
-      ast_ = children[0];
-   }else{
- fprintf(stderr, "MINITRAMP setChildren given bad arguments. Wanted:%d , given:%d\n", 1,  (int)children.size());
-   }
-}
-
-AstNodePtr AstMiniTrampNode::deepCopy(){
-   AstMiniTrampNode * copy = new AstMiniTrampNode();
-   copy->inline_ = inline_;
-   copy->ast_ = ast_->deepCopy();
-
-   copy->setType(bptype);
-   copy->setTypeChecking(doTypeCheck);
-
-   copy->setLineNum(getLineNum());
-   copy->lineInfoSet = lineInfoSet;
-   copy->setColumnNum(getColumnNum());
-   copy->columnInfoSet = columnInfoSet;
-   copy->setSnippetName(getSnippetName());
-   copy->snippetNameSet = snippetNameSet;
-
-   return AstNodePtr(copy);
-}
-
-
 void AstOperatorNode::setVariableAST(codeGen &g) {
     if(loperand) loperand->setVariableAST(g);
     if(roperand) roperand->setVariableAST(g);
@@ -2995,10 +2821,6 @@ void AstVariableNode::setVariableAST(codeGen &gen){
     assert(found);
 }
 
-void AstMiniTrampNode::setVariableAST(codeGen &g){
-    if(ast_) ast_->setVariableAST(g);
-}
-
 bool AstCallNode::containsFuncCall() const {
    return true;
 }
@@ -3014,11 +2836,6 @@ bool AstOperatorNode::containsFuncCall() const {
 
 bool AstOperandNode::containsFuncCall() const {
 	if (operand_ && operand_->containsFuncCall()) return true;
-	return false;
-}
-
-bool AstMiniTrampNode::containsFuncCall() const {
-	if (ast_ && ast_->containsFuncCall()) return true;
 	return false;
 }
 
@@ -3052,11 +2869,6 @@ bool AstStackRemoveNode::containsFuncCall() const
 bool AstStackGenericNode::containsFuncCall() const
 {
     return false;
-}
-
-bool AstLabelNode::containsFuncCall() const
-{
-   return false;
 }
 
 bool AstMemoryNode::containsFuncCall() const
@@ -3113,11 +2925,6 @@ bool AstOperandNode::usesAppRegister() const {
    return false;
 }
 
-bool AstMiniTrampNode::usesAppRegister() const {
-	if (ast_ && ast_->usesAppRegister()) return true;
-	return false;
-}
-
 bool AstSequenceNode::usesAppRegister() const {
 	for (unsigned i = 0; i < sequence_.size(); i++) {
 		if (sequence_[i]->usesAppRegister()) return true;
@@ -3148,11 +2955,6 @@ bool AstStackRemoveNode::usesAppRegister() const
 bool AstStackGenericNode::usesAppRegister() const
 {
     return false;
-}
-
-bool AstLabelNode::usesAppRegister() const
-{
-   return false;
 }
 
 bool AstDynamicTargetNode::usesAppRegister() const
@@ -3468,6 +3270,7 @@ std::string AstNode::convert(operandType type) {
       case operandType::origRegister: return "OrigRegister";
       case operandType::variableAddr: return "variableAddr";
       case operandType::variableValue: return "variableValue";
+      case operandType::AddressAsPlaceholderRegAndOffset: return "AddressAsPlaceholderRegAndOffset";
       default: return "UnknownOperand";
    }
 }
@@ -3543,3 +3346,81 @@ bool AstOperandNode::initRegisters(codeGen &g) {
 
     return ret;
 }
+
+AstAtomicOperationStmtNode::AstAtomicOperationStmtNode(opCode astOpcode, AstNodePtr variableNode,
+                                                       AstNodePtr constantNode)
+    : opcode(astOpcode), variable(variableNode), constant(constantNode) {}
+
+std::string AstAtomicOperationStmtNode::format(std::string indent) {
+    std::stringstream ret;
+    ret << indent << "Op/" << hex << this << dec << "("
+        << "atomic " << convert(opcode) << ")" << endl;
+    if (variable)
+       ret << indent << variable->format(indent + "  ");
+    if (constant)
+       ret << indent << constant->format(indent + "  ");
+    return ret.str();
+}
+
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen &gen, bool noCost, Address &retAddr,
+                                                     Dyninst::Register & /* retReg */) {
+  // This has 2 operands - variable and constant.
+  // Codegen for atomic add has the following steps:
+  // 1. Evaluate constant -- load a register with the constant
+  // 2. Evaluate variable -- load a register pair with the address of the variable.
+  // 3. Emit s_atomic_add instruction - atomically add the constant to the variable.
+
+  bool ret = true;
+
+  Register src0 = Dyninst::Null_Register;
+  if (!constant->generateCode_phase2(gen, noCost, retAddr, src0)) {
+    fprintf(stderr, "WARNING: failed in generateCode internals!\n");
+    ret = false;
+  }
+  assert(src0 != Dyninst::Null_Register);
+
+  // Now generate code for the variable -- load a register pair with the address of the variable.
+  AstOperandNode *variableOperand = dynamic_cast<AstOperandNode *>((AstNode *)variable.get());
+  assert(variableOperand);
+  assert(variableOperand->getoType() == operandType::AddressAsPlaceholderRegAndOffset);
+
+  AstOperandNode *offset =
+      dynamic_cast<AstOperandNode *>((AstNode *)variableOperand->operand().get());
+  assert(offset);
+
+  EmitterAmdgpuGfx908 *emitter = dynamic_cast<EmitterAmdgpuGfx908 *>(gen.emitter());
+  assert(emitter);
+
+  // TODO : Remove all hardcoded registers.
+  emitter->emitMoveRegToReg(94, 88, gen);
+  emitter->emitMoveRegToReg(95, 89, gen);
+  emitter->emitAddConstantToRegPair(88, (Address)offset->getOValue(), gen);
+
+  // Now we have s[88:89] with address of the variable. Emit appropriate atomic instruction.
+  switch (opcode) {
+  case plusOp:
+    emitter->emitAtomicAdd(88, src0, gen);
+    break;
+  case minusOp:
+    emitter->emitAtomicSub(88, src0, gen);
+    break;
+  default:
+    assert(!"atomic operation for this opcode is not implemented");
+  }
+
+  return ret;
+}
+#else
+bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen & /* gen */, bool /* noCost */,
+                                                     Address & /* retAddr */,
+                                                     Dyninst::Register & /* retReg */) {
+    cerr << "AstAtomicOperationStmtNode::generateCode_phase2 not implemented" << endl;
+    return false;
+}
+#endif
+
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+int AstOperandNode::lastOffset = 0;
+std::map<std::string, int> AstOperandNode::allocTable = {{"--init--", -1}};
+#endif

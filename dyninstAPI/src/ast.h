@@ -90,8 +90,6 @@ class image_variable;
 
 class AstNode;
 typedef boost::shared_ptr<AstNode> AstNodePtr;
-class AstMiniTrampNode;
-typedef boost::shared_ptr<AstMiniTrampNode> AstMiniTrampNodePtr;
 
 typedef enum {
    cfj_unset = 0,
@@ -154,7 +152,12 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
                       origRegister,
                       variableAddr,
                       variableValue,
-                      undefOperandType };
+                      undefOperandType,
+                      // Specific to AMDGPU. This represents an address in the form of (PlaceholderReg + offset).
+                      // Codegen may assing the same or a different register in different contexts.
+                      // Offset must be a constant.
+                      AddressAsPlaceholderRegAndOffset
+                      };
 
 
 
@@ -222,6 +225,9 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
                                   AstNodePtr r = AstNodePtr(), 
                                   AstNodePtr e = AstNodePtr());
 
+   static AstNodePtr atomicOperationStmtNode(opCode astOpcode, AstNodePtr variable,
+                                             AstNodePtr constant);
+
    static AstNodePtr funcCallNode(const std::string &func, std::vector<AstNodePtr > &args, AddressSpace *addrSpace = NULL);
    static AstNodePtr funcCallNode(func_instance *func, std::vector<AstNodePtr > &args);
    static AstNodePtr funcCallNode(func_instance *func); // Special case for function call replacement.
@@ -235,8 +241,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    
    // TODO...
    // Needs some way of marking what to save and restore... should be a registerSpace, really
-
-   static AstNodePtr miniTrampNode(AstNodePtr tramp);
 
    static AstNodePtr originalAddrNode();
    static AstNodePtr actualAddrNode();
@@ -274,7 +278,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
    // Perform whatever pre-processing steps are necessary.
    virtual bool initRegisters(codeGen &gen);
-        
    // Select the appropriate Variable AST as part of pre-processing
    // steps before code generation.
    virtual void setVariableAST(codeGen &) {}
@@ -296,14 +299,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
    virtual bool containsFuncCall() const = 0;
    virtual bool usesAppRegister() const = 0;
-
-   enum CostStyleType { Min, Avg, Max };
-   int minCost() const {  return costHelper(Min);  }
-   int avgCost() const {  return costHelper(Avg);  }
-   int maxCost() const {  return costHelper(Max);  }
-
-	// return the # of instruction times in the ast.
-	virtual int costHelper(enum CostStyleType) const { return 0; }	
 
    int referenceCount;     // Reference count for freeing memory
    int useCount;           // Reference count for generating code
@@ -488,29 +483,12 @@ class AstStackGenericNode : public AstNode {
                     Dyninst::Register &retReg);
 };
 
-class AstLabelNode : public AstNode {
- public:
-    AstLabelNode(std::string &label) : AstNode(), label_(label), generatedAddr_(0) {}
-    virtual bool containsFuncCall() const;
-    virtual bool usesAppRegister() const;
-
-	bool canBeKept() const { return true; }
- private:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Dyninst::Address &retAddr,
-                                     Dyninst::Register &retReg);
-    std::string label_;
-    Dyninst::Address generatedAddr_;
-};
-
 class AstOperatorNode : public AstNode {
  public:
 
     AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r = AstNodePtr(), AstNodePtr e = AstNodePtr());
 
    virtual std::string format(std::string indent);
-    virtual int costHelper(enum CostStyleType costStyle) const;	
 
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
     virtual bool accessesParam(void);         // Does this AST access "Param"
@@ -580,8 +558,6 @@ class AstOperandNode : public AstNode {
 
     virtual AstNodePtr operand() const { return operand_; }
 
-    virtual int costHelper(enum CostStyleType costStyle) const;	
-        
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
 
     virtual bool accessesParam(void) { return (oType == operandType::Param || oType == operandType::ParamAtEntry || oType == operandType::ParamAtCall); }
@@ -606,7 +582,24 @@ class AstOperandNode : public AstNode {
 			  int size, const instPoint* point, AddressSpace* as);
 
     virtual bool initRegisters(codeGen &gen);
-        
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+   static int lastOffset; // Last ofsfet in our GPU memory buffer.
+   static std::map<std::string, int> allocTable;
+   static void addToTable(const std::string &variableName, int size) {
+      // We shouldn't allocate more than once
+      assert(allocTable.find(variableName) == allocTable.end() && "Can't allocate variable twice");
+      assert(size >0);
+      allocTable[variableName] = lastOffset;
+      std::cerr << "inserted " << variableName << " of " << size << " bytes at " << lastOffset << "\n";
+      lastOffset += size;
+   }
+
+   static int getOffset(const std::string &variableName) {
+      assert(allocTable.find(variableName) != allocTable.end() && "Variable must be allocated");
+      return allocTable[variableName];
+   }
+#endif
+   
  private:
     virtual bool generateCode_phase2(codeGen &gen,
                                      bool noCost,
@@ -634,8 +627,6 @@ class AstCallNode : public AstNode {
     ~AstCallNode() {}
 
    virtual std::string format(std::string indent);
-
-    virtual int costHelper(enum CostStyleType costStyle) const;	
         
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
     virtual bool accessesParam(); 
@@ -684,8 +675,6 @@ class AstSequenceNode : public AstNode {
 
    virtual std::string format(std::string indent);
 
-    virtual int costHelper(enum CostStyleType costStyle) const;	
-
     virtual BPatch_type	  *checkType(BPatch_function* func = NULL);
     virtual bool accessesParam();
     virtual bool canBeKept() const;
@@ -718,8 +707,6 @@ class AstVariableNode : public AstNode {
 
     virtual std::string format(std::string indent);
 
-    virtual int costHelper(enum CostStyleType costStyle) const;	
-
     virtual BPatch_type	  *checkType(BPatch_function* = NULL) { return getType(); }
     virtual bool accessesParam();
     virtual bool canBeKept() const;
@@ -749,45 +736,6 @@ class AstVariableNode : public AstNode {
     std::vector<std::pair<Dyninst::Offset, Dyninst::Offset> > *ranges_;
     unsigned index;
 
-};
-
-
-class AstMiniTrampNode : public AstNode {
- public:
-    AstMiniTrampNode(AstNodePtr ast): inline_(false) {
-       if (ast != AstNodePtr())
-          ast->referenceCount++;
-       ast_ = ast;
-    }
-
-
-    Dyninst::Address generateTramp(codeGen &gen,
-                          int &trampCost, 
-                          bool noCost);
-            
-    virtual ~AstMiniTrampNode() {}    
-
-    virtual bool accessesParam(void) { return ast_->accessesParam(); } 
-
-    virtual void getChildren(std::vector<AstNodePtr> &children);
-    
-    virtual void setChildren(std::vector<AstNodePtr> &children);
-    virtual AstNodePtr deepCopy();
-
-    virtual void setVariableAST(codeGen &gen);
-
-    virtual bool containsFuncCall() const;
-    virtual bool usesAppRegister() const;
- 
-
-    bool canBeKept() const;
-
-    AstNodePtr getAST() { return ast_; }
- private:
-    AstMiniTrampNode(): inline_(false) {}
-
-    bool inline_;
-    AstNodePtr ast_;
 };
 
 class AstMemoryNode : public AstNode {
@@ -885,7 +833,6 @@ class AstScrambleRegistersNode : public AstNode {
                                      Dyninst::Register &retReg);
 };
 
-
 class AstSnippetNode : public AstNode {
    // This is a little odd, since an AstNode _is_
    // a Snippet. It's a compatibility interface to 
@@ -903,6 +850,26 @@ class AstSnippetNode : public AstNode {
                                      Dyninst::Address &retAddr,
                                      Dyninst::Register &retReg);
     Dyninst::PatchAPI::SnippetPtr snip_;
+};
+
+class AstAtomicOperationStmtNode : public AstNode {
+    // This corresponds to a single statement, and not an expression that can be nested among other
+    // expressions.
+  public:
+    AstAtomicOperationStmtNode(opCode astOpcode, AstNodePtr variableNode, AstNodePtr constantNode);
+
+    virtual std::string format(std::string indent);
+
+    virtual bool canBeKept() const { return true; }
+    virtual bool containsFuncCall() const { return false; }
+    virtual bool usesAppRegister() const { return false; }
+
+  private:
+    virtual bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
+                                     Dyninst::Register &retReg);
+    opCode opcode;
+    AstNodePtr variable;
+    AstNodePtr constant;
 };
 
 void emitLoadPreviousStackFrameRegister(Dyninst::Address register_num,

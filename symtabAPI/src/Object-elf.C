@@ -1653,7 +1653,7 @@ void ObjectELF::load_object(bool alloc_syms) {
     }
 }
 
-static Symbol::SymbolType pdelf_type(int elf_type) {
+static Symbol::SymbolType pdelf_type(int elf_type, const string &name) {
     switch (elf_type) {
         case STT_FILE:
             return Symbol::ST_MODULE;
@@ -1664,7 +1664,10 @@ static Symbol::SymbolType pdelf_type(int elf_type) {
         case STT_TLS:
             return Symbol::ST_TLS;
         case STT_FUNC:
-            return Symbol::ST_FUNCTION;
+            if (Symbol::isColdClone(name))
+                return Symbol::ST_CODE;
+            else
+                return Symbol::ST_FUNCTION;
         case STT_NOTYPE:
             return Symbol::ST_NOTYPE;
 #if defined(STT_GNU_IFUNC)
@@ -1893,7 +1896,7 @@ bool ObjectELF::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 
             // resolve symbol elements
             string sname = &strs[syms.st_name(i)];
-            Symbol::SymbolType stype = pdelf_type(etype);
+            Symbol::SymbolType stype = pdelf_type(etype, sname);
             Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
             Symbol::SymbolVisibility svisibility = pdelf_visibility(evisibility);
             unsigned ssize = syms.st_size(i);
@@ -2096,7 +2099,7 @@ dyn_scnp, Elf_X_Data &symdata,
 
             // resolve symbol elements
             string sname = &strs[syms.st_name(i)];
-            Symbol::SymbolType stype = pdelf_type(etype);
+            Symbol::SymbolType stype = pdelf_type(etype, sname);
             Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
             Symbol::SymbolVisibility svisibility = pdelf_visibility(evisibility);
             unsigned ssize = syms.st_size(i);
@@ -3882,9 +3885,6 @@ bool ObjectELF::parse_all_relocations(Elf_X_Shdr *dynsym_scnp,
         for (sym_it = symVec_it->second.begin(); sym_it != symVec_it->second.end(); ++sym_it) {
             // Skip any symbols pointing to the undefined symbol entry
             if ((*sym_it)->getIndex() == STN_UNDEF) {
-                continue;
-            }
-            if ((*sym_it)->tag() == Symbol::TAG_INTERNAL) {
                 continue;
             }
             if ((*sym_it)->isDebug()) {

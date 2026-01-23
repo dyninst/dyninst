@@ -392,18 +392,9 @@ void EmitterIA32::emitLoadOrigRegister(Address register_num, Register dest, code
 
 }
 
-void EmitterIA32::emitStoreOrigRegister(Address register_num, Register src, codeGen &gen) {
+void EmitterIA32::emitStoreOrigRegister(Address, Register, codeGen &) {
 
-   assert(0); //MATT TODO
-   //Previous stack frame register is stored on the stack,
-    //it was stored there at the begining of the base tramp.
-    
-    //Calculate the register's offset from the frame pointer in REGNUM_EBP
-    unsigned offset = SAVED_EAX_OFFSET - (register_num * 4);
-
-    emitMovRMToReg(RealRegister(REGNUM_EAX), RealRegister(REGNUM_EBP), -1*(src*4), gen);
-    gen.markRegDefined(REGNUM_EAX);
-    emitMovRegToRM(RealRegister(REGNUM_EBP), offset, RealRegister(REGNUM_EAX), gen);
+   assert(0);
 }
 
 void EmitterIA32::emitStore(Address addr, Register src, int size, codeGen &gen)

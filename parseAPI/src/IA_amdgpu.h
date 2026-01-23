@@ -30,7 +30,7 @@
 #if !defined(IA_AMDGPU__H)
 #define IA_AMDGPU__H
 #include <string>
-#include "common/h/DynAST.h"
+#include "DynAST.h"
 #include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/SymEval.h"
 #include "dataflowAPI/h/slicing.h"

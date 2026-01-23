@@ -1,9 +1,0 @@
-##dup_advsimd_gen_execute
-CheckFPAdvSIMDEnabled64();
-bits(esize) element = X[n];
-bits(datasize) result;
-
-for e = 0 to elements-1
-    Elem[result, e, esize] = element;
-V[d] = result;
-@@

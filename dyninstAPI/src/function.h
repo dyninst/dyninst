@@ -206,7 +206,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   unsigned footprint(); // not const, calls ifunc()->extents()
   std::string get_name() const;
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
   //Replaces the function with a 'return val' statement.
   // currently needed only on Linux/x86
   // Defined in inst-x86.C

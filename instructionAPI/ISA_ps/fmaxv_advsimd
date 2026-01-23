@@ -1,5 +1,0 @@
-##fmaxv_advsimd_execute
-CheckFPAdvSIMDEnabled64();
-bits(datasize) operand = V[n];
-V[d] = Reduce(op, operand, esize);
-@@

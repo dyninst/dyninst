@@ -75,7 +75,7 @@ AST::Ptr StackTamperVisitor::visit(VariableAST *v) {
   return v->ptr();
 }
 
-AST::Ptr StackTamperVisitor::visit(StackAST *s) {
+AST::Ptr StackTamperVisitor::visit(DataflowAPI::StackAST *s) {
   // This is a special case of the above; a StackAST is esp with
   // a known (analyzed) value. 
   if (s->val().isBottom()) {

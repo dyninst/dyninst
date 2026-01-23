@@ -1,8 +1,0 @@
-##fcsel_float_execute
-CheckFPAdvSIMDEnabled64();
-bits(datasize) result;
-
-result = if ConditionHolds(condition) then V[n] else V[m];
-
-V[d] = result;
-@@

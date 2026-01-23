@@ -48,31 +48,6 @@
 using namespace Dyninst;
 using namespace PatchAPI;
 
-/*
- * return the time required to execute the passed primitive.
- *
- */
-std::map<std::string, unsigned> primitiveCosts;
-
-unsigned getPrimitiveCost(const std::string &name)
-{
-   std::map<string, unsigned>::iterator iter = primitiveCosts.find(name);
-   if (iter != primitiveCosts.end()) return iter->second;
-   return 1;
-}
-
-
-// find any tags to associate semantic meaning to function
-unsigned findTags(const std::string ) {
-  return 0;
-#ifdef notdef
-  if (tagDict.defines(funcName))
-    return (tagDict[funcName]);
-  else
-    return 0;
-#endif
-}
-
 instMapping::instMapping(const instMapping *parIM,
                          AddressSpace *child) :
     func(parIM->func),

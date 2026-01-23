@@ -1,9 +1,0 @@
-##fcvt_float_execute
-CheckFPAdvSIMDEnabled64();
-
-bits(dstsize) result;
-bits(srcsize) operand = V[n];
-
-result = FPConvert(operand, FPCR);
-V[d] = result;
-@@

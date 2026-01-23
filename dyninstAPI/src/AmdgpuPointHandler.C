@@ -1,0 +1,233 @@
+/*
+ * See the dyninst/COPYRIGHT file for copyright information.
+ *
+ * We provide the Paradyn Tools (below described as "Paradyn")
+ * on an AS IS basis, and do not warrant its validity or performance.
+ * We reserve the right to update, modify, or discontinue this
+ * software at any time.  We shall have no obligation to supply such
+ * updates or modifications or any other form of support to you.
+ *
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
+#include "AmdgpuPointHandler.h"
+
+#include "BPatch_addressSpace.h"
+#include "BPatch_module.h"
+#include "RegisterConversion.h"
+#include "instPoint.h"
+#include "liveness.h"
+
+// The raw kernel descriptor
+#include "external/amdgpu/AMDHSAKernelDescriptor.h"
+
+// Our wrapper around it
+#include "AmdgpuKernelDescriptor.h"
+
+#include "ast.h"
+
+#include <cassert>
+#include <fstream>
+
+namespace Dyninst {
+
+void AmdgpuGfx908PointHandler::handlePoints(std::vector<BPatch_point *> const &points) {
+  for (BPatch_point *point : points) {
+    BPatch_function *f = point->getFunction();
+    auto result = instrumentedFunctions.insert(f);
+    if (result.second) {
+      insertPrologueIfKernel(f);
+      insertEpilogueIfKernel(f);
+    }
+  }
+}
+
+BPatch_variableExpr* AmdgpuGfx908PointHandler::getKernelDescriptorVariable(BPatch_function *f) {
+  // The kernel descriptor symbols have global visibility. So Dyninst will see them as global
+  // variables.
+
+  std::string kdName = f->getMangledName() + std::string(".kd");
+
+  BPatch_module *m = f->getModule();
+  BPatch_variableExpr* kernelDescriptorVariable = m->findVariable(kdName.c_str());
+
+  if (kernelDescriptorVariable) {
+      // FIXME : getSize is broken. Returns 4 instead of 64.
+      // && kernelDescriptorVariable->getSize() == sizeof(llvm::amdhsa::kernel_descriptor_t)) {
+    return kernelDescriptorVariable;
+  }
+  return nullptr;
+}
+
+
+bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) const {
+  const uint32_t maxGranulatedWavefrontSgprCount = 12; // This is computed based on LLVM AMDGPU documentation.
+  return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() != maxGranulatedWavefrontSgprCount);
+}
+
+bool AmdgpuGfx908PointHandler::isRegPairAvailable(Register reg, BPatch_function *function) {
+  assert(reg % 2 == 0 && "reg must be even");
+  assert(reg <= 101 && "reg must be a valid SGPR");
+
+  MachRegister machReg = convertRegID(reg, Arch_amdgpu_gfx908);
+  MachRegister nextMachReg = convertRegID(reg + 1, Arch_amdgpu_gfx908);
+
+  bool isMachRegLive = false, isNextMachRegLive = false;
+
+  ParseAPI::Location location(ParseAPI::convert(function));
+  LivenessAnalyzer livenessAnalyzer(Arch_amdgpu_gfx908, /* width = */ 8);
+
+  bool success =
+      livenessAnalyzer.query(location, LivenessAnalyzer::Before, machReg, isMachRegLive) &&
+      livenessAnalyzer.query(location, LivenessAnalyzer::Before, nextMachReg, isNextMachRegLive);
+
+  if (!success) {
+    std::cerr << "AmdgpuPointHandler : liveness query on " << function->getMangledName()
+              << " failed.\n"
+              << "exiting...\n";
+    exit(1);
+  }
+
+  // The register pair must be dead.
+  return !isMachRegLive && !isNextMachRegLive;
+}
+
+void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function) {
+  // If this function is a kernel, insert a prologue that loads s[94:95] with the address of memory
+  // for instrumentation variables. This address is at address [kernargPtrRegister] + kernargBufferSize.
+  // We get this information from the kernel descriptor. Each kernel has a kernel descriptor.
+
+  BPatch_variableExpr *kdVariable = getKernelDescriptorVariable(function);
+  if (!kdVariable) {
+    return;
+  }
+
+  llvm::amdhsa::kernel_descriptor_t rawKd;
+  bool success = kdVariable->readValue(&rawKd, sizeof rawKd);
+  assert(success);
+
+  AmdgpuKernelDescriptor kd(rawKd, this->eflag);
+
+  if (!canInstrument(kd)) {
+    std::cerr << "Can't instrument " << function->getMangledName() << '\n' << "exiting...\n";
+    exit(1);
+  }
+
+  int reg = 94;
+  if (!isRegPairAvailable(reg, function)) {
+    std::cerr << "Can't instrument " << function->getMangledName()
+              << " as s94 and s95 are not available.\n"
+              << "exiting...\n";
+    exit(1);
+  }
+
+  std::vector<BPatch_point *> entryPoints;
+  function->getEntryPoints(entryPoints);
+
+  auto prologuePtr =
+      boost::make_shared<AmdgpuPrologue>(reg, kd.getKernargPtrRegister(), kd.getKernargSize());
+
+  AstNodePtr prologueNodePtr =
+        boost::make_shared<AmdgpuPrologueNode>(prologuePtr);
+
+  AmdgpuPrologueSnippet prologueSnippet(prologueNodePtr);
+  insertPrologueAtPoints(prologueSnippet, entryPoints);
+}
+
+void AmdgpuGfx908PointHandler::insertEpilogueIfKernel(BPatch_function *function) {
+  // If this function is a kernel, insert a s_dcache_wb instruction at its exit points.
+  // TODO : A s_dcache_wb must be inserted before every s_endpgm instruction on an instrumented path
+  // from a kernel.
+  BPatch_variableExpr *kdVariable = getKernelDescriptorVariable(function);
+  if (!kdVariable)
+    return;
+
+  std::vector<BPatch_point *> exitPoints;
+  function->getExitPoints(exitPoints);
+
+  auto epiloguePtr = boost::make_shared<AmdgpuEpilogue>();
+
+  AstNodePtr epilogueNodePtr = boost::make_shared<AmdgpuEpilogueNode>(epiloguePtr);
+
+  AmdgpuEpilogueSnippet epilogueSnippet(epilogueNodePtr);
+  insertEpilogueAtPoints(epilogueSnippet, exitPoints);
+}
+
+void AmdgpuGfx908PointHandler::insertPrologueAtPoints(AmdgpuPrologueSnippet &snippet,
+                                                      std::vector<BPatch_point *> &points) {
+  for (BPatch_point *point : points) {
+    auto *iPoint = dynamic_cast<instPoint *>(PatchAPI::convert(point, BPatch_callBefore));
+    assert(iPoint);
+    iPoint->pushBack(snippet.ast_wrapper);
+  }
+}
+
+void AmdgpuGfx908PointHandler::insertEpilogueAtPoints(AmdgpuEpilogueSnippet &snippet,
+                                                      std::vector<BPatch_point *> &points) {
+  for (BPatch_point *point : points) {
+    auto *iPoint = dynamic_cast<instPoint *>(PatchAPI::convert(point, BPatch_callAfter));
+    assert(iPoint);
+    iPoint->pushBack(snippet.ast_wrapper);
+  }
+}
+
+
+void AmdgpuGfx908PointHandler::writeInstrumentedKernelNames(const std::string &filePath) {
+  std::ofstream outFile(filePath);
+
+  for (auto *function : instrumentedFunctions) {
+    BPatch_variableExpr *kdVar = getKernelDescriptorVariable(function);
+    if(!kdVar)
+      continue;
+
+    llvm::amdhsa::kernel_descriptor_t rawKd;
+    bool success = kdVar->readValue(&rawKd, sizeof rawKd);
+    assert(success);
+
+    AmdgpuKernelDescriptor kd(rawKd, this->eflag);
+    outFile << function->getMangledName() << ' ' << kd.getKernargSize() << '\n';
+  }
+
+  outFile.close();
+}
+
+void AmdgpuGfx908PointHandler::writeInstrumentationVarTable(const std::string &filePath) {
+  std::ofstream outFile(filePath);
+
+  // To get all instrumentation variables sorted by offsets
+  std::map<int, std::string> reverseAllocTable;
+
+  for (auto it : AstOperandNode::allocTable) {
+    auto name = it.first;
+    if (name == "--init--") // ignore this one as it was only used to initialize the table
+      continue;
+
+    reverseAllocTable[it.second] = it.first;
+  }
+
+  for (auto it : reverseAllocTable) {
+    outFile << it.first << ' ' << it.second << '\n';
+  }
+
+  outFile.close();
+}
+
+} // namespace Dyninst

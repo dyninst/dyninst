@@ -39,7 +39,7 @@
 #include "BPatch_point.h"
 #include "function.h"
 #include "debug.h"
-#include "common/h/DynAST.h"
+#include "DynAST.h"
 #include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/AbslocInterface.h"
 #include "instructionAPI/h/InstructionDecoder.h"

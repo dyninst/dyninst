@@ -56,12 +56,14 @@
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
 #include "dyninstAPI/src/inst-power.h"
 #include "dyninstAPI/src/emit-power.h"
-#elif defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#elif defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/emit-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "dyninstAPI/src/emit-aarch64.h"
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#include "dyninstAPI/src/emit-amdgpu.h"
 #endif
 
 registerSpace *registerSpace::globalRegSpace_ = NULL;
@@ -101,7 +103,7 @@ unsigned registerSlot::encoding() const {
         return Null_Register;
         break;
     }
-#elif defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#elif defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
     // Should do a mapping here from entire register space to "expected" encodings.
     return number;
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64) 
@@ -113,6 +115,22 @@ unsigned registerSlot::encoding() const {
             return registerSpace::FPR(number);
             break;
         default:
+            assert(0);
+            return Null_Register;
+            break;
+    }
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    switch (type) {
+      case SGPR:
+            return registerSpace::SGPR(number);
+            break;
+      case VGPR:
+            return registerSpace::VGPR(number);
+            break;
+/*      case AGPR:
+            return registerSpace::AGPR(number);
+            break;*/
+      default:
             assert(0);
             return Null_Register;
             break;
@@ -248,8 +266,10 @@ void registerSpace::createRegSpaceInt(std::vector<registerSlot *> &registers,
 
         switch (registers[i]->type) {
         case registerSlot::GPR: {
-	  bool physical = true;
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+        case registerSlot::SGPR:
+        case registerSlot::VGPR:
+	        bool physical = true;
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 	  if (rs->addr_width == 4)
 	    physical = false;
 #endif
@@ -488,7 +508,7 @@ bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
 // "Save special purpose registers". We may want to define a "volatile"
 // later - something like "can be unintentionally nuked". For example,
 // x86 flags register.
-#if defined(DYNINST_CODEGEN_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_X86)
+#if defined(DYNINST_CODEGEN_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_I386)
 bool registerSpace::checkVolatileRegisters(codeGen & /*gen*/,
                                            registerSlot::livenessState_t state)
 {
@@ -516,7 +536,7 @@ bool registerSpace::checkVolatileRegisters(codeGen &,
 }
 #endif
 
-#if defined(DYNINST_CODEGEN_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_X86)
+#if defined(DYNINST_CODEGEN_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_I386)
 bool registerSpace::saveVolatileRegisters(codeGen &gen)
 {
     savedFlagSize = 0;
@@ -575,7 +595,7 @@ bool registerSpace::saveVolatileRegisters(codeGen &) {
 }
 #endif
 
-#if defined(DYNINST_CODEGEN_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_X86)
+#if defined(DYNINST_CODEGEN_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_I386)
 bool registerSpace::restoreVolatileRegisters(codeGen &gen)
 {
     if (!checkVolatileRegisters(gen, registerSlot::spilled))
@@ -627,7 +647,7 @@ void registerSpace::freeRegister(Register num)
         reg->refCount = 0;
     }
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
     if (addr_width == 4) {
       if (reg->refCount == 0 && !registers_[num]->keptValue) {
 	markVirtualDead(num);
@@ -978,7 +998,7 @@ bool registerSpace::anyLiveSPRsAtEntry() const {
 
 std::vector<registerSlot *>& registerSpace::trampRegs()
 {
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
    if (addr_width == 4)
       return realRegs();
 #endif
@@ -1326,7 +1346,7 @@ void registerSpace::pushNewRegState()
    regStateStack.push_back(new_top);
 }
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 int& registerSpace::pc_rel_offset()
 {
    if (!regStateStack.size())
@@ -1379,7 +1399,7 @@ int registerSpace::getInstFrameSize() {
 
 #endif
 
-#if !defined(DYNINST_CODEGEN_ARCH_X86) && !defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if !defined(DYNINST_CODEGEN_ARCH_I386) && !defined(DYNINST_CODEGEN_ARCH_X86_64)
 void registerSpace::initRealRegSpace()
 {
 }
@@ -1440,7 +1460,7 @@ int registerSpace::getStackHeight()
 void registerSpace::specializeSpace(const bitArray &liveRegs) {
     // Liveness info is stored as a single bitarray for all registers.
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
     // We use "virtual" registers on the IA-32 platform (or AMD-64 in
     // 32-bit mode), and thus the registerSlot objects have _no_ relation
     // to the liveRegs input set. We handle this as a special case, and
@@ -1495,12 +1515,23 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 #endif
 	}
 	else {
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    assert(addr_width == 8 && "AMDGPU has 64-bit (8-byte) address space, but has 32 bit registers");
+	  range = regToMachReg32.equal_range(reg);
+		live = &live2;
+#else
 		range = regToMachReg64.equal_range(reg);
 		live = &live2;
+#endif
+
 	}
 	if (range.first == range.second) assert(0);
-	for (std::multimap<Register, MachRegister>::iterator iter = range.first; iter != range.second; ++iter)
-		if (liveRegs[live->getIndex(iter->second)]) return true;
+	for (std::multimap<Register, MachRegister>::iterator iter = range.first; iter != range.second; ++iter){
+        auto index = live->getIndex(iter->second);
+		if (liveRegs[index]){
+          return true;
+        }
+    }
 
 	return false;
 }

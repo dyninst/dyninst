@@ -1,7 +1,0 @@
-##mrs_execute
-if read then
-    X[t] = System_Get(sys_op0, sys_op1, sys_crn, sys_crm, sys_op2);
-else
-    System_Put(sys_op0, sys_op1, sys_crn, sys_crm, sys_op2, X[t]);
-end
-@@

@@ -56,10 +56,10 @@ if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
   set(DYNINST_FORCE_FRAME_POINTER -fno-omit-frame-pointer)
 
   # Dyninst relies on `assert` for correctness. Never let CMake disable it
-  set(_DEBUG -Og -g3 ${DYNINST_FORCE_FRAME_POINTER} -UNDEBUG)
-  set(_RELEASE -O3 -UNDEBUG)
-  set(_RELWITHDEBINFO ${_RELEASE} -g3)
-  set(_MINSIZEREL -Os -UNDEBUG)
+  set(DYNINST_FLAGS_DEBUG -Og -g3 ${DYNINST_FORCE_FRAME_POINTER} -UNDEBUG)
+  set(DYNINST_FLAGS_RELEASE -O3 -UNDEBUG)
+  set(DYNINST_FLAGS_RELWITHDEBINFO ${DYNINST_FLAGS_RELEASE} -g3)
+  set(DYNINST_FLAGS_MINSIZEREL -Os -UNDEBUG)
 
   # Ensure each library is fully linked
   list(APPEND DYNINST_LINK_FLAGS -Wl,--no-undefined)
@@ -81,10 +81,10 @@ if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
 elseif(MSVC)
   set(DYNINST_FORCE_FRAME_POINTER /Oy-)
 
-  set(_DEBUG /MP /Od /Zi /MDd /D_DEBUG ${DYNINST_FORCE_FRAME_POINTER})
-  set(_RELEASE /MP /O3 /MD /D_DEBUG)
-  set(_RELWITHDEBINFO ${_RELEASE} /Zi)
-  set(_MINSIZEREL /MP /O1 /MD /D_DEBUG)
+  set(DYNINST_FLAGS_DEBUG /MP /Od /Zi /MDd /D_DEBUG ${DYNINST_FORCE_FRAME_POINTER})
+  set(DYNINST_FLAGS_RELEASE /MP /O3 /MD /D_DEBUG)
+  set(DYNINST_FLAGS_RELWITHDEBINFO ${DYNINST_FLAGS_RELEASE} /Zi)
+  set(DYNINST_FLAGS_MINSIZEREL /MP /O1 /MD /D_DEBUG)
 else()
   message(FATAL_ERROR "Unknown compiler '${CMAKE_CXX_COMPILER_ID}'")
 endif()
@@ -101,13 +101,19 @@ endif()
 #   ${CMAKE_<LANG>_FLAGS} ${CMAKE_<LANG>_FLAGS_<BUILD>} <options> ${CMAKE_<LANG>_FLAGS}
 #
 string(TOUPPER ${CMAKE_BUILD_TYPE} _build_type)
-set(DYNINST_C_FLAGS_${_build_type} ${_${_build_type}} ${CMAKE_C_FLAGS})
-set(DYNINST_CXX_FLAGS_${_build_type} ${_${_build_type}} ${DYNINST_CXX_FLAGS}
-                                     ${CMAKE_CXX_FLAGS})
-unset(_build_type)
+string(REPLACE " " ";" _c_flags "${CMAKE_C_FLAGS}")
+string(REPLACE " " ";" _cxx_flags "${CMAKE_CXX_FLAGS}")
+
+set(DYNINST_C_FLAGS_${_build_type} ${DYNINST_FLAGS_${_build_type}} ${_c_flags})
+set(DYNINST_CXX_FLAGS_${_build_type} ${DYNINST_FLAGS_${_build_type}} ${DYNINST_CXX_FLAGS}
+                                     ${_cxx_flags})
 
 # Merge the link flags for C++
 list(APPEND DYNINST_CXX_LINK_FLAGS ${DYNINST_LINK_FLAGS})
 
+message(STATUS "DYNINST_LINK_FLAGS: ${DYNINST_LINK_FLAGS}")
 message(STATUS "DYNINST_CXX_LINK_FLAGS: ${DYNINST_CXX_LINK_FLAGS}")
-message(STATUS "DYNINST_CXX_FLAGS: ${DYNINST_CXX_FLAGS}")
+message(STATUS "DYNINST_C_FLAGS_${_build_type}: ${DYNINST_C_FLAGS_${_build_type}}")
+message(STATUS "DYNINST_CXX_FLAGS_${_build_type}: ${DYNINST_CXX_FLAGS_${_build_type}}")
+
+unset(_build_type)

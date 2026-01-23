@@ -568,7 +568,7 @@ int cpuidCall() {
 
 #if defined(x86_64_unknown_linux2_4)              \
  || defined(os_freebsd) || defined(DYNINST_HOST_ARCH_X86_64) \
- || !defined(DYNINST_HOST_ARCH_X86) || !defined(DYNINST_CODEGEN_ARCH_X86)
+ || !defined(DYNINST_HOST_ARCH_X86) || !defined(DYNINST_CODEGEN_ARCH_I386)
 bool xmmCapable()
 {
   return true;
@@ -2098,77 +2098,6 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
 }
 
 
-// TODO: mux this between x86 and AMD64
-int getInsnCost(opCode op)
-{
-   if (op == loadConstOp) {
-      return(1);
-   } else if (op ==  loadOp) {
-      return(1+1);
-   } else if (op ==  loadIndirOp) {
-      return(3);
-   } else if (op ==  storeOp) {
-      return(1+1); 
-   } else if (op ==  storeIndirOp) {
-      return(3);
-   } else if (op ==  ifOp) {
-      return(1+2+1);
-   } else if (op ==  ifMCOp) { // VG(8/15/02): No clue if this is right or not
-      return(1+2+1);
-   } else if (op ==  whileOp) {
-      return(1+2+1+1); /* Need to find out about this */
-   } else if (op == branchOp) {
-      return(1);	/* XXX Need to find out what value this should be. */
-   } else if (op ==  callOp) {
-      // cost of call only
-      return(1+2+1+1);
-   } else if (op == funcJumpOp) {
-      // copy callOp
-      return(1+2+1+1);
-   } else if (op == updateCostOp) {
-      return(3);
-   } else if (op ==  trampPreamble) {
-      return(0);
-   } else if (op == noOp) {
-      return(1);
-   } else if (op == getRetValOp) {
-      return (1+1);
-   } else if (op == getRetAddrOp) { 
-      return (1); 
-   } else if (op == getParamOp) {
-      return(1+1);
-   } else {
-      switch (op) {
-         // rel ops
-        case eqOp:
-        case neOp:
-        case lessOp:
-        case leOp:
-        case greaterOp:
-        case geOp:
-	        return(1+1+2+1+1+1);
-	        break;
-        case divOp:
-           return(1+2+46+1);
-        case timesOp:
-           return(1+10+1);
-        case plusOp:
-        case minusOp:
-        case xorOp:
-        case orOp:
-        case andOp:
-           return(1+2+1);
-        case getAddrOp:
-           return(0);	// doesn't add anything to operand
-        default:
-           assert(0);
-           return 0;
-           break;
-      }
-   }
-   return 0;
-}
-
 bool EmitterIA32::emitPush(codeGen &gen, Dyninst::Register reg) {
     RealRegister real_reg = gen.rs()->loadVirtual(reg, gen);
     return ::emitPush(real_reg, gen);
@@ -2326,7 +2255,7 @@ int registerSpace::framePointer() {
 
    DYNINST_DIAGNOSTIC_END_SUPPRESS_DUPLICATED_BRANCHES
 }
-#elif defined(DYNINST_CODEGEN_ARCH_X86)
+#elif defined(DYNINST_CODEGEN_ARCH_I386)
 int registerSpace::framePointer() { 
    return REGNUM_EBP; 
 }

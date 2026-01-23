@@ -756,7 +756,6 @@ public:
    int_process *llproc() const;
 
    Dyninst::LWP getLWP() const;
-   void changeLWP(Dyninst::LWP new_lwp);
 
 #define RUNNING_STATE(S) (S == int_thread::running || S == int_thread::neonatal_intermediate)
    typedef enum {

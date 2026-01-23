@@ -14,7 +14,7 @@ using namespace hd;
 using namespace Dyninst;
 
 IdiomModel::IdiomModel(string model_spec) {
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64) || defined(i386_unknown_nt4_0)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_HOST_ARCH_X86_64) || defined(i386_unknown_nt4_0)
   #if defined(os_windows)
     if (!strcmp(model_spec.c_str(), "32-bit")) {
         bias = -10.374549;

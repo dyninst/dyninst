@@ -46,7 +46,7 @@
 
 #include "instructionAPI/h/InstructionDecoder.h"
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #define CODE_GEN_OFFSET_SIZE 1U
 #else
 #define CODE_GEN_OFFSET_SIZE (instruction::size())
@@ -647,12 +647,14 @@ Emitter *codeGen::codeEmitter() const {
 void codeGen::beginTrackRegDefs()
 {
    trackRegDefs_ = true;
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
     regsDefined_ = bitArray(REGNUM_IGNORED+1);
 #elif defined(DYNINST_CODEGEN_ARCH_POWER)
     regsDefined_ = bitArray(registerSpace::lastReg);
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
     regsDefined_ = bitArray(registerSpace::fpsr);
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    regsDefined_ = bitArray(700); // TODO: use the actual last register instead of a random constant
 #else
     regsDefined_ = bitArray();
 #endif
@@ -717,7 +719,12 @@ std::string codeGen::format() const {
    Instruction insn = deco.decode();
    ret << hex;
    while(insn.isValid()) {
-       ret << "\t" << base << ": " << insn.format(base) << " / " << *((const unsigned *)insn.ptr()) << endl;
+       ret << "\t" << base << ": " << insn.format(base) << " / 0x";
+       for(auto i=0UL; i<insn.size(); i++) {
+         auto *ptr = static_cast<unsigned char const*>(insn.ptr());
+         ret << std::hex << static_cast<unsigned int>(ptr[i]);
+       }
+       ret << '\n';
        base += insn.size();
        insn = deco.decode();
    }

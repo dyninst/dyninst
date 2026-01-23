@@ -36,10 +36,12 @@
 #include "MultiRegister.h"
 #include "Dereference.h"
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 # include "common/src/arch-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 # include "common/src/arch-aarch64.h"
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+# include "common/src/arch-amdgpu.h"
 #endif
 
 using namespace Dyninst;
@@ -49,7 +51,7 @@ using namespace InstructionAPI;
 BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
 							 Dyninst::Address current, bool is64)
 {
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
     static unsigned int log2[] = { 0, 0, 1, 1, 2, 2, 2, 2, 3 };
     
   // TODO 16-bit registers

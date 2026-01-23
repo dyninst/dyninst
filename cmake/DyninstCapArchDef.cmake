@@ -19,7 +19,7 @@ elseif(DYNINST_HOST_ARCH_AARCH64)
 endif()
 
 if(DYNINST_CODEGEN_ARCH_I386)
-  set(ARCH_DEFINES_CODEGEN -Darch_x86)
+  set(ARCH_DEFINES_CODEGEN -Darch_i386)
   set(CAP_DEFINES
       ${CAP_DEFINES}
       -Dcap_fixpoint_gen
@@ -52,10 +52,16 @@ elseif(DYNINST_CODEGEN_ARCH_RISCV64)
   set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx908 -Darch_64bit)
+  set(CAP_DEFINES -Dcap_fixpoint_gen -Dcap_noaddr_gen -Dcap_registers
+                  -Dcap_tramp_liveness)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A)
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx90a -Darch_64bit)
+  set(CAP_DEFINES -Dcap_fixpoint_gen -Dcap_noaddr_gen -Dcap_registers
+                  -Dcap_tramp_liveness)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_64bit)
+  set(CAP_DEFINES -Dcap_fixpoint_gen -Dcap_noaddr_gen -Dcap_registers
+                  -Dcap_tramp_liveness)
 endif()
 
 if(DYNINST_OS_Linux)

@@ -64,12 +64,14 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "inst-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_POWER)
 #include "inst-power.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "inst-aarch64.h"
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+// No inst-amdgpu.h
 #else
 #error "Unknown architecture, expected x86, x86_64, power or aarch64"
 #endif
@@ -983,7 +985,6 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 
 }
 
-
 BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* in_addSpace,
                                                  int_variable* v,
                                                  BPatch_type* type)
@@ -1004,7 +1005,6 @@ BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* 
                                                                                    type->getSize());
     return new BPatch_variableExpr(in_addSpace, in_llAddSpace, v, type);
 }
-
 
 unsigned int BPatch_variableExpr::getSize() const
 {
@@ -1671,6 +1671,31 @@ BPatch_scrambleRegistersExpr::BPatch_scrambleRegistersExpr(){
     ast_wrapper->setType(BPatch::bpatch->type_Untyped);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
    
+}
+
+BPatch_atomicOperationStmt::BPatch_atomicOperationStmt(BPatch_binOp operation,
+                                                       const BPatch_variableExpr &variable,
+                                                       const BPatch_constExpr &constant) {
+    opCode astOpcode;
+    switch (operation) {
+    case BPatch_plus:
+        astOpcode = plusOp;
+        break;
+    case BPatch_minus:
+        astOpcode = minusOp;
+        break;
+    case BPatch_divide:
+        astOpcode = divOp;
+        break;
+    case BPatch_times:
+        astOpcode = timesOp;
+        break;
+    default:
+        assert(!"operation not supported yet");
+    }
+
+    ast_wrapper = AstNodePtr(
+        AstNode::atomicOperationStmtNode(astOpcode, variable.ast_wrapper, constant.ast_wrapper));
 }
 
 // Conversions

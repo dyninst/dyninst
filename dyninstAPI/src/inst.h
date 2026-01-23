@@ -140,19 +140,6 @@ public:
   std::vector<Dyninst::PatchAPI::InstancePtr> instances;
 };
 
-
-/*
- * get information about the cost of primitives.
- *
- */
-void initPrimitiveCost();
-void initDefaultPointFrequencyTable();
-
-//
-// Return the expected runtime of the passed function in instruction times.
-//
-unsigned getPrimitiveCost(const std::string &name);
-
 /*
  * Generate an instruction.
  * Previously this was handled by the polymorphic "emit" function, which
@@ -232,25 +219,10 @@ Dyninst::Register emitFuncCall(opCode op, codeGen &gen,
 					  bool noCost, 
                       func_instance *func);
 
-int getInsnCost(opCode t);
-
-/*
- * get the requested parameter into a register.
- *
- */
-Dyninst::Register getParameter(Dyninst::Register dest, int param);
-
-extern std::string getProcessStatus(const AddressSpace *p);
-
-// TODO - what about mangled names ?
-// expects the symbol name advanced past the underscore
-extern unsigned findTags(const std::string funcName);
-
 extern Dyninst::Address getMaxBranch();
 
 // find these internal functions before finding any other functions
 // extern std::unordered_map<std::string, unsigned> tagDict;
-extern std::map<std::string, unsigned> primitiveCosts; 
 
 bool writeFunctionPtr(AddressSpace *p, Dyninst::Address addr, func_instance *f);
 

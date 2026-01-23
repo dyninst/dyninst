@@ -61,11 +61,6 @@ Symbol *Symbol::magicEmitElfSymbol() {
                       false);
 }
     
-DYNINST_EXPORT string Symbol::getMangledName() const 
-{
-    return mangledName_;
-}
-
 DYNINST_EXPORT string Symbol::getPrettyName() const 
 {
   return P_cplus_demangle(mangledName_, false);
@@ -74,6 +69,51 @@ DYNINST_EXPORT string Symbol::getPrettyName() const
 DYNINST_EXPORT string Symbol::getTypedName() const 
 {
   return P_cplus_demangle(mangledName_, true);
+}
+
+// Return a pair containing the clone suffix and the version suffix of s.
+// If either suffix is not present it is indicated by an empty string.
+// The clone suffix starts with the first '.' before the version suffix, and
+// ends with at the version suffix or the end of the s.
+// The version suffix starts with the first '@' and ends with the end of s.
+static std::pair<std::string, std::string> GetCloneAndVersionSuffix(const std::string& s)
+{
+    auto nameEnd = s.find_first_of(".@");           // find version or clone start
+    if (nameEnd == std::string::npos)  {
+	nameEnd = s.size();
+    }
+    auto cloneEnd = s.find_first_of("@", nameEnd);  // find version start
+    if (cloneEnd == std::string::npos)  {
+	cloneEnd = s.size();
+    }
+    return {s.substr(nameEnd, cloneEnd - nameEnd), s.substr(cloneEnd)};
+}
+
+std::string Symbol::getCloneSuffix(const std::string& s)
+{
+    auto cloneAndVersionSuffix = GetCloneAndVersionSuffix(s);
+    return cloneAndVersionSuffix.first;
+}
+
+std::string Symbol::getVersionSuffix(const std::string& s)
+{
+    auto cloneAndVersionSuffix = GetCloneAndVersionSuffix(s);
+    return cloneAndVersionSuffix.second;
+}
+
+bool Symbol::isColdClone(const std::string& s)
+{
+    std::string coldSuffix{".cold"};
+    auto cloneSuffix = getCloneSuffix(s);
+    auto coldOffset = cloneSuffix.find(coldSuffix);
+    if (coldOffset == std::string::npos)  {
+        return false;                       // not found
+    }
+    auto coldEnd = coldOffset + coldSuffix.size();
+    if (coldEnd >= cloneSuffix.size())  {
+        return true;                        // found at end of suffix
+    }
+    return cloneSuffix[coldEnd] == '.';     // found iff another clone begins
 }
 
 bool Symbol::setOffset(Offset newOffset)
@@ -146,12 +186,6 @@ DYNINST_EXPORT bool Symbol::setRegion(Region *r)
 	region_ = r;
 	return true;
 }
-
-DYNINST_EXPORT Symbol::SymbolTag Symbol::tag() const 
-{
-    return tag_;
-}
-
 
 DYNINST_EXPORT bool Symbol::setSymbolType(SymbolType sType)
 {
@@ -261,8 +295,6 @@ std::ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s)
                   << " size=0x" << hex << s.size_ << dec
                   << " ptr_offset=0x"    << hex << s.ptr_offset_ << dec
                   << " localTOC=0x"    << hex << s.localTOC_ << dec
-        //<< " tag="     << (unsigned) s.tag_
-                  << " tag="     << s.symbolTag2Str(s.tag_)
                   << " isAbs="   << s.isAbsolute_
                   << " isDbg="   << s.isDebug_
                   << " isCommon=" << s.isCommonStorage_
@@ -290,8 +322,6 @@ ostream & Dyninst::SymtabAPI::operator<< (ostream &s, const ExceptionBlock &eb)
 
 bool Symbol::operator==(const Symbol& s) const
 {
-	// explicitly ignore tags when comparing symbols
-
 	//  compare sections by offset, not pointer
 	if (!region_ && s.region_) return false;
 	if (region_ && !s.region_) return false;
@@ -328,29 +358,7 @@ Symtab *Symbol::getSymtab() const {
   return module_ ? module_->exec() : NULL; 
 }
 
-Symbol::Symbol () :
-  module_(NULL),
-  type_(ST_NOTYPE),
-  internal_type_(0),
-  linkage_(SL_UNKNOWN),
-  visibility_(SV_UNKNOWN),
-  offset_(0),
-  ptr_offset_(0),
-  localTOC_(0),
-  region_(NULL),
-  referring_(NULL),
-  size_(0),
-  isDynamic_(false),
-  isAbsolute_(false),
-  isDebug_(false),
-  aggregate_(NULL),
-  tag_(TAG_UNKNOWN) ,
-  index_(-1),
-  strindex_(-1),
-  isCommonStorage_(false),
-  versionHidden_(false)
-{
-}
+Symbol::Symbol() = default;
 
 Symbol::Symbol(const std::string& name,
 	       SymbolType t,
@@ -367,25 +375,17 @@ Symbol::Symbol(const std::string& name,
                bool cs):
   module_(module),
   type_(t),
-  internal_type_(0),
   linkage_(l),
   visibility_(v),
   offset_(o),
-  ptr_offset_(0),
-  localTOC_(0),
   region_(r),
-  referring_(NULL),
   size_(s),
   isDynamic_(d),
   isAbsolute_(a),
-  isDebug_(false),
-  aggregate_(NULL),
   mangledName_(name),
-  tag_(TAG_UNKNOWN),
   index_(index),
   strindex_(strindex),
-  isCommonStorage_(cs),
-  versionHidden_(false)
+  isCommonStorage_(cs)
 {
 }
 
@@ -423,6 +423,7 @@ const char *Symbol::symbolType2Str(SymbolType t)
       CASE_RETURN_STR(ST_DELETED);
       CASE_RETURN_STR(ST_NOTYPE);
       CASE_RETURN_STR(ST_INDIRECT);
+      CASE_RETURN_STR(ST_CODE);
    };
 
    return "invalid symbol type";
@@ -440,19 +441,6 @@ const char *Symbol::symbolLinkage2Str(SymbolLinkage t)
    };
 
    return "invalid symbol linkage";
-}
-
-const char *Symbol::symbolTag2Str(SymbolTag t)
-{
-   switch (t)
-   {
-      CASE_RETURN_STR(TAG_UNKNOWN);
-      CASE_RETURN_STR(TAG_USER);
-      CASE_RETURN_STR(TAG_LIBRARY);
-      CASE_RETURN_STR(TAG_INTERNAL);
-   };
-
-   return "invalid symbol tag";
 }
 
 const char *Symbol::symbolVisibility2Str(SymbolVisibility t)

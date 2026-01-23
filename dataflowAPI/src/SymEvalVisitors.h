@@ -32,7 +32,7 @@
 #define _SYM_EVAL_VISITORS_H_
 
 #include "../h/stackanalysis.h"
-#include "common/h/DynAST.h"
+#include "DynAST.h"
 #include "dataflowAPI/h/Absloc.h"
 #include "SymEvalPolicy.h"
 #include <string>
@@ -57,11 +57,6 @@ class StackVisitor : public ASTVisitor {
     DYNINST_EXPORT virtual AST::Ptr visit(VariableAST *);
     DYNINST_EXPORT virtual AST::Ptr visit(RoseAST *);
     DYNINST_EXPORT virtual AST::Ptr visit(StackAST *);
-    DYNINST_EXPORT virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();}
-    DYNINST_EXPORT virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();}
-    DYNINST_EXPORT virtual ASTPtr visit(StpAST *) {return AST::Ptr();}
-    DYNINST_EXPORT virtual ASTPtr visit(YicesAST *) {return AST::Ptr();}
-    DYNINST_EXPORT virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();}
 
     DYNINST_EXPORT virtual ~StackVisitor() {}
 
@@ -83,12 +78,6 @@ class BooleanVisitor : public ASTVisitor {
     DYNINST_EXPORT virtual AST::Ptr visit(VariableAST *);
     DYNINST_EXPORT virtual AST::Ptr visit(RoseAST *);
     DYNINST_EXPORT virtual AST::Ptr visit(StackAST *);
-    DYNINST_EXPORT virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();}
-    DYNINST_EXPORT virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();}
-    DYNINST_EXPORT virtual ASTPtr visit(StpAST *) {return AST::Ptr();}
-    DYNINST_EXPORT virtual ASTPtr visit(YicesAST *) {return AST::Ptr();}
-    DYNINST_EXPORT virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();}
-
   
     DYNINST_EXPORT virtual ~BooleanVisitor() {}
     

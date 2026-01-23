@@ -803,7 +803,7 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
         {
             unsigned char* emptyFunction = NULL;
             int emptyFuncSize = 0;
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
             static unsigned char empty_32[] = { 0x55, 0x89, 0xe5, 0xc9, 0xc3 };
             static unsigned char empty_64[] = { 0x55, 0x48, 0x89, 0xe5, 0xc9, 0xc3 };
             if(linkedFile->getAddressWidth() == 8)
@@ -820,7 +820,7 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
             static unsigned empty[] = {0x4e800020};
             emptyFunction = (unsigned char*) empty;
             emptyFuncSize = 4;
-#endif //defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#endif //defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
             linkedFile->addRegion(highWaterMark_, (void*)(emptyFunction), emptyFuncSize, ".init.dyninst",
                                   Dyninst::SymtabAPI::Region::RT_TEXT, true);
             highWaterMark_ += emptyFuncSize;
@@ -850,7 +850,7 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
         {
             unsigned char* emptyFunction = NULL;
             int emptyFuncSize = 0;
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
             static unsigned char empty_32[] = { 0x55, 0x89, 0xe5, 0xc9, 0xc3 };
             static unsigned char empty_64[] = { 0x55, 0x48, 0x89, 0xe5, 0xc9, 0xc3 };
             if(linkedFile->getAddressWidth() == 8)
@@ -877,7 +877,7 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
                 0xc0, 0x03, 0x5f, 0xd6};
             emptyFunction = empty;
             emptyFuncSize = 16;
-#endif //defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#endif //defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 
             linkedFile->addRegion(highWaterMark_, (void*)(emptyFunction), emptyFuncSize, ".fini.dyninst",
                                   Dyninst::SymtabAPI::Region::RT_TEXT, true);
