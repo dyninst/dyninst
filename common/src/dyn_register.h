@@ -115,7 +115,7 @@ public:
     return value == static_cast<uint32_t>(other);
   }
 
-  constexpr bool operator!=(const unsigned &value) const { return !(*this == value); }
+  constexpr bool operator!=(const unsigned &other) const { return !(*this == other); }
 };
 
 // Along with the older Register type, which was just an unsigned int, use of RegValue and
