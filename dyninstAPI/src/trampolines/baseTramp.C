@@ -166,16 +166,16 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
    for (unsigned i = 0; i < regs.size(); i++) {
       registerSlot *reg = regs[i];
       regalloc_printf("[%s:%d] - checking reg (index %u, number %u, encoding %u)\n", __FILE__, 
-		      __LINE__, i, (reg->number).raw, reg->encoding());
+		      __LINE__, i, uint32_t(reg->number), reg->encoding());
 
       if (reg->spilledState != registerSlot::unspilled) {
          regalloc_printf("[%s:%d] - reg %u saved\n", __FILE__, 
-                         __LINE__, (reg->number).raw);
+                         __LINE__, uint32_t(reg->number));
          actually_saved++;
       }
       if (definedRegs[reg->encoding()]) {
          regalloc_printf("[%s:%d] - reg %u used\n", __FILE__, 
-                         __LINE__, (reg->number).raw);
+                         __LINE__, uint32_t(reg->number));
          needed_saved++;
       }
 
@@ -185,7 +185,7 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
       {
          saved_unneeded++;
          regalloc_printf("[%s:%d] - baseTramp saved unneeded register %u, "
-                         "suggesting regen (%d, %d, %d)\n", __FILE__, __LINE__, (reg->number).raw,
+                         "suggesting regen (%d, %d, %d)\n", __FILE__, __LINE__, uint32_t(reg->number),
                          reg->spilledState,
                          (definedRegs[reg->encoding()] ? 1 : 0),
                          reg->offLimits);
@@ -194,7 +194,7 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
           definedRegs[reg->encoding()])
       {
          regalloc_printf("[%s:%d] - Decided not to save a defined register %u. "
-                         "App liveness?\n",  __FILE__, __LINE__, (reg->number).raw);         
+                         "App liveness?\n",  __FILE__, __LINE__, uint32_t(reg->number));         
       }
    }
    regalloc_printf("[%s:%d] - Should regen found %d unneeded saves\n",
