@@ -844,22 +844,22 @@ static void emitRex(bool is_64, Register* r, Register* x, Register* b, codeGen &
     // returning since we account for it in the rex prefix
     
     // "R" register - extension to ModRM reg field
-    if (r && (*r).raw & 0x08) {
+    if (r && uint32_t(*r) & 0x08) {
        rex |= 0x04;
-       (*r).raw &= 0x07;
+       *r = uint32_t(*r) & 0x07;
     }
     
     // "X" register - extension to SIB index field
-    if (x && (*x).raw & 0x08) {
+    if (x && uint32_t(*x) & 0x08) {
        rex |= 0x02;
-       (*x).raw &= 0x07;
+       *x = uint32_t(*x) & 0x07;
     }
 
     // "B" register - extension to ModRM r/m field, SIB base field,
     // or opcode reg field
-    if (b && (*b).raw & 0x08) {
+    if (b && uint32_t(*b) & 0x08) {
        rex |= 0x01;
-       (*b).raw &= 0x07;
+       *b = uint32_t(*b) & 0x07;
     }
     
     // emit the rex, if needed
