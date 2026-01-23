@@ -69,7 +69,11 @@ public:
     assert(id >> REG_ID_WIDTH == 0 && "id is wider than than specified");
     assert(count >> REG_COUNT_WIDTH == 0 && "count is wider than specified");
     assert(count != 0 && "count must be non-zero");
-    info = RegisterInfo(id, static_cast<uint32_t>(kind), count);
+
+    uint32_t kindNum = static_cast<uint32_t>(kind);
+    assert(kindNum >> REG_KIND_WIDTH == 0 && "kind is out of range");
+
+    info = RegisterInfo(id, kindNum, count);
   }
 
   constexpr uint32_t getId() const { return info.id; }
@@ -127,7 +131,7 @@ constexpr Register Null_Register(static_cast<unsigned int>(-1));
 namespace std {
 template <> struct hash<Dyninst::Register> {
   size_t operator()(const Dyninst::Register &reg) const noexcept {
-    return std::hash<uint32_t>{}(uint32_t(reg));
+    return std::hash<uint32_t>{}(reg);
   }
 };
 } // namespace std
