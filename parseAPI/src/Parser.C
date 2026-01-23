@@ -1194,6 +1194,20 @@ Parser::delete_bogus_edges(Edge* e)
         if ((*eit)->type() != INDIRECT && (*eit)->src() != e->src()) 
             return;
 
+    // If an indirect edge points a function entry,
+    // and the entry block does not have other incoming edges,
+    // then this function must be from the symbol talbe.
+    // No need to perform cascading deletion.
+    Function* func = findFuncByEntry(cur->region(), cur->start());
+    if (func != NULL) return;
+
+    // The target block is created by the bogus indirect edge,
+    // we need to continue deleting edges
+    Block::edgelist targets;
+    cur->copy_targets(targets);
+    for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
+        delete_bogus_blocks(*eit);
+    }
 }
 
     void
