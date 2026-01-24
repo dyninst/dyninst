@@ -2403,8 +2403,7 @@ int EmitterIA32::emitCallParams(codeGen &gen,
        RealRegister r = gen.rs()->loadVirtual(srcs[i], gen);
        ::emitPush(r, gen);
        frame_size += 4;
-       if (operands[i]->decRefCount())
-          gen.rs()->freeRegister(srcs[i]);
+       gen.rs()->freeRegister(srcs[i]);
     }
     return frame_size;
 }

@@ -259,21 +259,6 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNode
           }
       }
     }
-    if (l != AstNodePtr())
-    {
-       //Unfortunate hack.  storeOp with a loperand of DataIndir
-       // don't actually reference their loperand--they reference
-       // the child of the loperand.  Handle that here to keep
-       // reference counts sane.
-       if (op == storeOp && loperand->getoType() == operandType::DataIndir)
-          l->operand()->referenceCount++;
-       else
-          l->referenceCount++;
-    }
-    if (r != AstNodePtr())
-       r->referenceCount++;
-    if (e != AstNodePtr())
-       e->referenceCount++;
 
     if (loperand) children.push_back(loperand);
     if (roperand) children.push_back(roperand);
@@ -304,7 +289,6 @@ AstOperandNode::AstOperandNode(operandType ot, AstNodePtr l) :
     oVar(NULL),
     operand_(l)
 {
-   l->referenceCount++;
    if (operand_) children.push_back(operand_);
 }
 
@@ -329,7 +313,6 @@ AstCallNode::AstCallNode(func_instance *func,
     constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
-        args[i]->referenceCount++;
         children.push_back(args[i]);
     }
 }
@@ -353,7 +336,6 @@ AstCallNode::AstCallNode(const std::string &func,
     constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
-        args[i]->referenceCount++;
         children.push_back(args[i]);
     }
 }
@@ -367,7 +349,6 @@ AstCallNode::AstCallNode(Address addr,
     constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
-        args[i]->referenceCount++;
         children.push_back(args[i]);
     }
 }
@@ -376,7 +357,6 @@ AstSequenceNode::AstSequenceNode(std::vector<AstNodePtr > &sequence) :
     AstNode()
 {
     for (unsigned i = 0; i < sequence.size(); i++) {
-        sequence[i]->referenceCount++;
         children.push_back(sequence[i]);
     }
 }
@@ -387,10 +367,6 @@ AstVariableNode::AstVariableNode(vector<AstNodePtr>&ast_wrappers, vector<pair<Dy
    children = ast_wrappers;
    vector<AstNodePtr>::iterator i;
    assert(!children.empty());
-
-   for (i = ast_wrappers.begin(); i != ast_wrappers.end(); i++) {
-      (*i)->referenceCount++;
-   }
 }
 
 AstMemoryNode::AstMemoryNode(memoryType mem,
@@ -1153,15 +1129,13 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 	 // We can reuse src1 for the body of the conditional; however, keep the value here
 	 // so that we can use it for the branch fix below.
          Dyninst::Register src1_copy = src1;
-         if (loperand->decRefCount())
-            gen.rs()->freeRegister(src1);
+         gen.rs()->freeRegister(src1);
 
          // The flow of control forks. We need to add the forked node to
          // the path
          gen.tracker()->increaseConditionalLevel();
          if (!roperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
-         if (roperand->decRefCount())
-            gen.rs()->freeRegister(src2);
+         gen.rs()->freeRegister(src2);
          gen.tracker()->decreaseAndClean(gen);
          gen.rs()->unifyTopRegStates(gen); //Join the registerState for the if
 
@@ -1213,8 +1187,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                                noCost,
                                                addr,
                                                src2)) ERROR_RETURN;
-            if (eoperand->decRefCount())
-               gen.rs()->freeRegister(src2);
+            gen.rs()->freeRegister(src2);
             gen.tracker()->decreaseAndClean(gen);
             gen.rs()->unifyTopRegStates(gen); //Join the registerState for the else
 
@@ -1269,8 +1242,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                                noCost,
                                                addr,
                                                src1)) ERROR_RETURN;
-            if (loperand->decRefCount())
-               gen.rs()->freeRegister(src1);
+            gen.rs()->freeRegister(src1);
             gen.tracker()->decreaseAndClean(gen);
             codeBufIndex_t endIndex = gen.getIndex();
             // call emit again now with correct offset.
@@ -1283,8 +1255,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                                noCost,
                                                addr,
                                                src1)) ERROR_RETURN;
-            if (loperand->decRefCount())
-               gen.rs()->freeRegister(src1);
+            gen.rs()->freeRegister(src1);
          }
 
          break;
@@ -1306,15 +1277,13 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 	 // We can reuse src1 for the body of the conditional; however, keep the value here
 	 // so that we can use it for the branch fix below.
          Dyninst::Register src1_copy = src1;
-         if (loperand->decRefCount())
-            gen.rs()->freeRegister(src1);
+         gen.rs()->freeRegister(src1);
 
          // The flow of control forks. We need to add the forked node to
          // the path
          gen.tracker()->increaseConditionalLevel();
          if (!roperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
-         if (roperand->decRefCount())
-            gen.rs()->freeRegister(src2);
+         gen.rs()->freeRegister(src2);
          gen.tracker()->decreaseAndClean(gen);
          gen.rs()->unifyTopRegStates(gen); //Join the registerState for the if
          
@@ -1502,8 +1471,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
                // tmp now contains address to store into
                emitV(storeIndirOp, src1, 0, tmp, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-               if (loperand->operand()->decRefCount())
-                  gen.rs()->freeRegister(tmp);
+               gen.rs()->freeRegister(tmp);
                loperand->decUseCount(gen);
                break;
             }
@@ -1541,13 +1509,11 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                REGISTER_CHECK(tmp);
 
                emitV(storeIndirOp, src1, 0, tmp, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-               if (loperand->decRefCount())
-                  gen.rs()->freeRegister(tmp);
+               gen.rs()->freeRegister(tmp);
                break;
             }
          }
-         if (roperand->decRefCount())
-            gen.rs()->freeRegister(src1);
+         gen.rs()->freeRegister(src1);
          gen.rs()->freeRegister(src2);
          retReg = Dyninst::Null_Register;
          break;
@@ -1559,10 +1525,8 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          REGISTER_CHECK(src1);
          REGISTER_CHECK(src2);
          emitV(op, src1, 0, src2, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-         if (roperand->decRefCount())
-            gen.rs()->freeRegister(src1);
-         if (loperand->decRefCount())
-            gen.rs()->freeRegister(src2);
+         gen.rs()->freeRegister(src1);
+         gen.rs()->freeRegister(src2);
          retReg = Dyninst::Null_Register;
          break;
       }
@@ -1605,7 +1569,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
             emitImm(op, src1, (RegValue) roperand->getOValue(), retReg, gen, noCost, gen.rs(), signedOp);
 
-            if (src1 != Dyninst::Null_Register && loperand->decRefCount())
+            if (src1 != Dyninst::Null_Register)
                gen.rs()->freeRegister(src1);
 
             // We do not .generateCode for roperand, so need to update its
@@ -1619,12 +1583,12 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                retReg = allocateAndKeep(gen, noCost);
             }
             emitV(op, src1, right_dest, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace(), signedOp);
-            if (src1 != Dyninst::Null_Register && loperand->decRefCount()) {
+            if (src1 != Dyninst::Null_Register) {
                // Don't free inputs until afterwards; we have _no_ idea
                gen.rs()->freeRegister(src1);
             }
             // what the underlying code might do with a temporary register.
-            if (right_dest != Dyninst::Null_Register && roperand->decRefCount())
+            if (right_dest != Dyninst::Null_Register)
                gen.rs()->freeRegister(right_dest);
          }
       }
@@ -1678,8 +1642,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
       else
          tSize = sizeof(long);
       emitV(loadIndirOp, src, 0, retReg, gen, noCost, gen.rs(), tSize, gen.point(), gen.addrSpace());
-      if (operand_->decRefCount())
-         gen.rs()->freeRegister(src);
+      gen.rs()->freeRegister(src);
       break;
    case operandType::origRegister:
       gen.rs()->readProgramRegister(gen, (Dyninst::Register)(long)oValue, retReg, size);
@@ -1989,8 +1952,7 @@ bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost,
                                                noCost,
                                                unused,
                                                tmp)) ERROR_RETURN;
-        if (children[i]->decRefCount())
-           gen.rs()->freeRegister(tmp);
+        gen.rs()->freeRegister(tmp);
         tmp = Dyninst::Null_Register;
     }
 
@@ -2494,12 +2456,6 @@ void AstOperandNode::emitVariableStore(opCode op, Dyninst::Register src1, Dynins
   {
     gen.codeEmitter()->emitStoreShared(src1, oVar, (var!=NULL), size_, gen);
   }
-}
-
-bool AstNode::decRefCount()
-{
-   referenceCount--;
-   return true;
 }
 
 bool AstNode::generate(Point *point, Buffer &buffer) {

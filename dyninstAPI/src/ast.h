@@ -178,8 +178,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
      }
    }
 
-   bool decRefCount();
-
    bool previousComputationValid(Dyninst::Register &reg,
                                  codeGen &gen);
 
@@ -205,7 +203,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
      return false;
    }
 
-   int referenceCount{};     // Reference count for freeing memory
    int useCount{};           // Reference count for generating code
    void setUseCount(); // Set values for useCount
    int getSize() { return size; }

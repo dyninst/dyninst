@@ -1838,8 +1838,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<AstNo
    for (unsigned i = 0; i < operands.size(); i++) {
       if (i == AMD64_ARG_REGS) break;
 
-      if (operands[i]->decRefCount())
-         gen.rs()->freeRegister(amd64_arg_regs[i]);
+      gen.rs()->freeRegister(amd64_arg_regs[i]);
    }
    if(frame_size)
    {
