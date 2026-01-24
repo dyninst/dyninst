@@ -28,14 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// $Id: ast.h,v 1.107 2008/05/12 22:12:47 giri Exp $
-
 #ifndef AST_HDR
 #define AST_HDR
-
-//
-// Define a AST class for use in generating primitive and pred calls
-//
 
 #include "OperandType.h"
 
@@ -51,7 +45,6 @@
 
 #include "BPatch_snippet.h"
 
-// The great experiment: boost shared_ptr libraries
 #include "BPatch_type.h"
 
 class AddressSpace;
@@ -165,11 +158,9 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
                              Dyninst::Address &retAddr,
                              Dyninst::Register &retReg);
 
-   // Can't use default references....
    virtual bool generateCode(codeGen &gen, 
                              bool noCost);
 
-   // Can't use default references....
    virtual bool generateCode(codeGen &gen, 
                              bool noCost, 
                              Dyninst::Register &retReg) {
@@ -267,7 +258,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
       assert(!"Never call this on anything but an operand");
 	}
 
-	// DEBUG
    virtual operandType getoType() const { return operandType::undefOperandType; }
 
    virtual void setConstFunc(bool) {}
@@ -412,7 +402,7 @@ class AstOperatorNode : public AstNode {
 
 
 class AstOperandNode : public AstNode {
-    friend class AstOperatorNode; // ARGH
+    friend class AstOperatorNode;
  public:
 
     // Direct operand
@@ -519,7 +509,7 @@ class AstCallNode : public AstNode {
                                      Dyninst::Register &retReg);
 
     AstCallNode(): func_addr_(0), func_(NULL), callReplace_(false), constFunc_(false) {}
-    // Sometimes we just don't have enough information...
+
     const std::string func_name_;
     Dyninst::Address func_addr_;
     
