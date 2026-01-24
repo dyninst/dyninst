@@ -37,7 +37,6 @@
 #include <map>
 #include <vector>
 #include <unordered_map>
-#include "opcode.h" // enum opCode now defined here.
 #include "dyn_register.h"
 #include "codegen.h" // codeBufIndex_t 
 #include "dyninstAPI/src/ast.h" // astNodePtr
