@@ -36,7 +36,6 @@
 enum class operandType {
   Constant,
   ConstantString,
-  DataReg,
   DataIndir,
   Param,
   ParamAtCall,
@@ -64,7 +63,6 @@ inline std::string format_operand(operandType type) {
   switch(type) {
     case operandType::Constant: return "Constant";
     case operandType::ConstantString: return "ConstantString";
-    case operandType::DataReg: return "DataReg";
     case operandType::DataIndir: return "DataIndir";
     case operandType::Param: return "Param";
     case operandType::ParamAtCall: return "ParamAtCall";

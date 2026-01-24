@@ -1658,11 +1658,10 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
     Dyninst::Register src = Dyninst::Null_Register;
 
    // Allocate a register to return
-   if (oType != operandType::DataReg) {
-       if (retReg == Dyninst::Null_Register) {
-           retReg = allocateAndKeep(gen, noCost);
-       }
+   if (retReg == Dyninst::Null_Register) {
+       retReg = allocateAndKeep(gen, noCost);
    }
+
    Dyninst::Register temp;
    int tSize;
    int len;
@@ -1697,9 +1696,6 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
       if (operand_->decRefCount())
          gen.rs()->freeRegister(src);
       break;
-   case operandType::DataReg:
-       retReg = (Dyninst::Register) (long) oValue;
-       break;
    case operandType::origRegister:
       gen.rs()->readProgramRegister(gen, (Dyninst::Register)(long)oValue, retReg, size);
        //emitLoadPreviousStackFrameRegister((Address) oValue, retReg, gen,
@@ -2390,7 +2386,6 @@ bool AstOperatorNode::canBeKept() const {
 bool AstOperandNode::canBeKept() const {
 
     switch (oType) {
-    case operandType::DataReg:
     case operandType::DataIndir:
     case operandType::RegOffset:
     case operandType::origRegister:
