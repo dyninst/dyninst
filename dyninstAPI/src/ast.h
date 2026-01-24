@@ -31,34 +31,26 @@
 #ifndef AST_HDR
 #define AST_HDR
 
-#include "OperandType.h"
-
-#include <assert.h>
-#include <utility>
-#include <vector>
-#include <stdio.h>
-#include <string>
-#include <unordered_map>
-
 #include "dyn_register.h"
+#include "opcode.h"
+#include "OperandType.h"
 #include "Point.h"
 
-#include "BPatch_snippet.h"
-
-#include "BPatch_type.h"
+#include <cassert>
+#include <utility>
+#include <vector>
+#include <string>
 
 class AddressSpace;
+class BPatch_function;
+class BPatch_snippet;
+class BPatch_type;
+class codeGen;
 class instPoint;
 class func_instance;
-class int_variable;
-class codeGen;
 class image_variable;
+class int_variable;
 
-
-
-
-
-#include "opcode.h"
 
 // Dyninst::Register retention mechanism...
 // If we've already calculated a result, then we want to reuse it if it's

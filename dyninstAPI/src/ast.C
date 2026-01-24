@@ -30,32 +30,32 @@
 
 // $Id: ast.C,v 1.209 2008/09/15 18:37:49 jaw Exp $
 
-#include "dyninstAPI/src/image.h"
+#include "addressSpace.h"
+#include "ast.h"
+#include "binaryEdit.h"
+#include "BPatch.h"
+#include "BPatch_collections.h"
+#include "BPatch_function.h"
+#include "BPatch_libInfo.h" // For instPoint->BPatch_point mapping
+#include "BPatch_memoryAccess_NP.h"
+#include "BPatch_point.h"
+#include "BPatch_snippet.h"
+#include "BPatch_type.h"
+#include "Buffer.h"
+#include "debug.h"
+#include "dyninst_visibility.h"
+#include "emitter.h"
 #include "function.h"
+#include "image.h"
 #include "inst.h"
 #include "instPoint.h"
-#include "ast.h"
-#include "dyninst_visibility.h"
-#include "debug.h"
+#include "Instruction.h"
+#include "mapped_module.h"
+#include "mapped_object.h"
+#include "RegisterConversion.h"
+#include "registerSpace.h"
 #include "regTracker.h"
 
-extern int dyn_debug_ast;
-
-#include "Instruction.h"
-using namespace Dyninst::InstructionAPI;
-
-#include "dyninstAPI/h/BPatch.h"
-#include "BPatch_collections.h"
-#include "dyninstAPI/h/BPatch_type.h"
-#include "BPatch_libInfo.h" // For instPoint->BPatch_point mapping
-#include "BPatch_function.h"
-#include "dyninstAPI/h/BPatch_point.h"
-#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-#include "dyninstAPI/h/BPatch_type.h"
-#include "dyninstAPI/src/RegisterConversion.h"
-
-#include "addressSpace.h"
-#include "binaryEdit.h"
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
 #include "inst-power.h"
@@ -70,15 +70,8 @@ using namespace Dyninst::InstructionAPI;
 #error "Unknown architecture in ast.h"
 #endif
 
-#include "emitter.h"
-
-#include "registerSpace.h"
-#include "mapped_module.h"
-
-#include "mapped_object.h"
-#include "Buffer.h"
-
 using namespace Dyninst;
+using namespace Dyninst::InstructionAPI;
 using PatchAPI::Point;
 
 static bool isPowerOf2(Dyninst::Address addr) {
