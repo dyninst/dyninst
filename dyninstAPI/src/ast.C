@@ -1526,11 +1526,6 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          retReg = Dyninst::Null_Register;
          break;
       }
-      case trampPreamble: {
-         // This ast cannot be shared because it doesn't return a register
-         retReg = Dyninst::Null_Register;
-         break;
-      }
       case plusOp:
       case minusOp:
       case xorOp:

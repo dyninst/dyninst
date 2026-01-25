@@ -58,7 +58,6 @@ typedef enum {
    ifOp,
    whileOp,  // Simple control structures will be useful
    callOp,
-   trampPreamble,
    noOp,
    orOp,
    andOp,

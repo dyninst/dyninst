@@ -1380,9 +1380,6 @@ codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register /*src2
          insnCodeGen::generateBranch(gen, dest);
          break;
       }
-      case trampPreamble: {
-         break;
-      }
       default:
          abort();        // unexpected op for this emit!
    }
@@ -1947,8 +1944,7 @@ void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::R
            registerSpace * /*rs*/, int size,
            const instPoint * /* location */, AddressSpace * /* proc */, bool s)
 {
-    assert ((op!=branchOp) && (op!=ifOp) &&
-            (op!=trampPreamble));         // !emitA
+    assert ((op!=branchOp) && (op!=ifOp));         // !emitA
     assert ((op!=getRetValOp) && (op!=getRetAddrOp) && 
             (op!=getParamOp));                                  // !emitR
     assert ((op!=loadOp) && (op!=loadConstOp));                 // !emitVload

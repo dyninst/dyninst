@@ -1488,10 +1488,6 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, long dest,
         insnCodeGen::generateBranch(gen, dest);
         break;
     }
-    case trampPreamble: {
-        // nothing to do in this platform
-        return(0);              // let's hope this is expected!
-    }        
     default:
         assert(0);        // unexpected op for this emit!
     }
@@ -1873,8 +1869,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
            const instPoint * /* location */, AddressSpace *proc, bool s)
 {
 
-    assert ((op!=branchOp) && (op!=ifOp) && 
-            (op!=trampPreamble));         // !emitA
+    assert ((op!=branchOp) && (op!=ifOp));         // !emitA
     assert ((op!=getRetValOp) && (op!=getParamOp));             // !emitR
     assert ((op!=loadOp) && (op!=loadConstOp));                 // !emitVload
     assert ((op!=storeOp));                                     // !emitVstore
