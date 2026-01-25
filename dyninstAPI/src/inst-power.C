@@ -1873,7 +1873,6 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
     assert ((op!=getRetValOp) && (op!=getParamOp));             // !emitR
     assert ((op!=loadOp) && (op!=loadConstOp));                 // !emitVload
     assert ((op!=storeOp));                                     // !emitVstore
-    assert ((op!=updateCostOp));                                // !emitVupdate
 
     instruction insn;
 

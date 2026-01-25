@@ -71,7 +71,6 @@ typedef enum {
    storeIndirOp,
    saveRegOp,
    loadRegOp,
-   updateCostOp,
    funcJumpOp,        // Jump to function without linkage
    branchOp,
    ifMCOp,

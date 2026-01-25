@@ -1949,7 +1949,6 @@ void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::R
             (op!=getParamOp));                                  // !emitR
     assert ((op!=loadOp) && (op!=loadConstOp));                 // !emitVload
     assert ((op!=storeOp));                                     // !emitVstore
-    assert ((op!=updateCostOp));                                // !emitVupdate
     
     if (op ==  loadIndirOp) {
         // same as loadOp, but the value to load is already in a register
