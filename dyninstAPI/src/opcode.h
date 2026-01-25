@@ -78,7 +78,6 @@ typedef enum {
    loadStateOp,  // And the corresponding load
    updateCostOp,
    funcJumpOp,        // Jump to function without linkage
-   funcCallOp,        // Call to function with linkage
    branchOp,
    ifMCOp,
    xorOp,
@@ -128,7 +127,6 @@ inline std::string format_opcode(opCode op) {
       case saveStateOp: return "saveStateOp";
       case loadStateOp: return "loadStateOp";
       case funcJumpOp: return "funcJump";
-      case funcCallOp: return "funcCall";
       case branchOp: return "branch";
       case ifMCOp: return "ifMC";
       default: return "UnknownOp";
