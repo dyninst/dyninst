@@ -21,7 +21,7 @@
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more info.
+ * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
@@ -38,8 +38,6 @@
 
 namespace Dyninst {
 
-// Without making intrusive changes to existing CPU architectures, we want to introduce a richer
-// Register type to model different kinds of registers.
 enum RegKind : uint32_t { SCALAR, VECTOR, SCALAR_PREDICATE, UNDEFINED_KIND };
 
 constexpr uint32_t REG_ID_WIDTH = 16;
@@ -117,9 +115,6 @@ public:
 
   constexpr bool operator!=(const unsigned &other) const { return !(*this == other); }
 };
-
-// Along with the older Register type, which was just an unsigned int, use of RegValue and
-// Null_Register are also scattered around the codebase.
 
 /* register content 64-bit */
 typedef long long int RegValue;
