@@ -82,7 +82,6 @@ typedef enum {
    funcCallOp,        // Call to function with linkage
    branchOp,
    ifMCOp,
-   breakOp,
    xorOp,
    undefOp
 } opCode;
@@ -134,7 +133,6 @@ inline std::string format_opcode(opCode op) {
       case funcCallOp: return "funcCall";
       case branchOp: return "branch";
       case ifMCOp: return "ifMC";
-      case breakOp: return "break";
       default: return "UnknownOp";
    }
 }
