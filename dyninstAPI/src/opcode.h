@@ -68,7 +68,6 @@ typedef enum {
    getParamOp,
    getParamAtCallOp,
    getParamAtEntryOp,
-   getSysParamOp,	   
    getAddrOp,	// return the address of the operand
    loadIndirOp,
    storeIndirOp,
@@ -118,7 +117,6 @@ inline std::string format_opcode(opCode op) {
       case getParamOp: return "getParamOp";
       case getParamAtCallOp: return "getParamAtCallOp";
       case getParamAtEntryOp: return "getParamAtEntryOp";
-      case getSysParamOp: return "getSysParamOp";
       case getAddrOp: return "getAddrOp";
       case loadIndirOp: return "loadIndirOp";
       case storeIndirOp: return "storeIndirOp";
