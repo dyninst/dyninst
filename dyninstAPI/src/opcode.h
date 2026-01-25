@@ -72,8 +72,6 @@ typedef enum {
    storeIndirOp,
    saveRegOp,
    loadRegOp,
-   saveStateOp,  // For saving of non-register state (flags reg, condition reg)
-   loadStateOp,  // And the corresponding load
    updateCostOp,
    funcJumpOp,        // Jump to function without linkage
    branchOp,
@@ -120,8 +118,6 @@ inline std::string format_opcode(opCode op) {
       case storeIndirOp: return "storeIndirOp";
       case saveRegOp: return "saveRegOp";
       case loadRegOp: return "loadRegOp";
-      case saveStateOp: return "saveStateOp";
-      case loadStateOp: return "loadStateOp";
       case funcJumpOp: return "funcJump";
       case branchOp: return "branch";
       case ifMCOp: return "ifMC";
