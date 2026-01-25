@@ -64,7 +64,6 @@ typedef enum {
    andOp,
    getRetValOp,
    getRetAddrOp,
-   getSysRetValOp,
    getParamOp,
    getParamAtCallOp,
    getParamAtEntryOp,
@@ -113,7 +112,6 @@ inline std::string format_opcode(opCode op) {
       case andOp: return "and";
       case getRetValOp: return "getRetValOp";
       case getRetAddrOp: return "getRetAddrOp";
-      case getSysRetValOp: return "getSysRetValOp";
       case getParamOp: return "getParamOp";
       case getParamAtCallOp: return "getParamAtCallOp";
       case getParamAtEntryOp: return "getParamAtEntryOp";
