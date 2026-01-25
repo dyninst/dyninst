@@ -1326,10 +1326,6 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          retReg = Dyninst::Null_Register;
          break;
       }
-      case doOp: {
-         fprintf(stderr, "[%s:%d] WARNING: do AST node unimplemented!\n", __FILE__, __LINE__);
-         return false;
-      }
       case getAddrOp: {
          switch(loperand->getoType()) {
             case operandType::variableAddr:

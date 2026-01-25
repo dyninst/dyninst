@@ -57,7 +57,6 @@ typedef enum {
    storeFrameRelativeOp,
    ifOp,
    whileOp,  // Simple control structures will be useful
-   doOp,     // Zhichen
    callOp,
    trampPreamble,
    noOp,
@@ -110,7 +109,6 @@ inline std::string format_opcode(opCode op) {
       case storeFrameRelativeOp: return "storeFrameRelativeOp";
       case ifOp: return "if";
       case whileOp: return "while";
-      case doOp: return "do";
       case callOp: return "call";
       case noOp: return "no";
       case orOp: return "or";
