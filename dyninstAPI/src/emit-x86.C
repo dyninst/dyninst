@@ -844,22 +844,22 @@ static void emitRex(bool is_64, Register* r, Register* x, Register* b, codeGen &
     // returning since we account for it in the rex prefix
     
     // "R" register - extension to ModRM reg field
-    if (r && uint32_t(*r) & 0x08) {
+    if (r && r->getValue() & 0x08) {
        rex |= 0x04;
-       *r = uint32_t(*r) & 0x07;
+       *r = r->getValue() & 0x07;
     }
     
     // "X" register - extension to SIB index field
-    if (x && uint32_t(*x) & 0x08) {
+    if (x && x->getValue() & 0x08) {
        rex |= 0x02;
-       *x = uint32_t(*x) & 0x07;
+       *x = x->getValue() & 0x07;
     }
 
     // "B" register - extension to ModRM r/m field, SIB base field,
     // or opcode reg field
-    if (b && uint32_t(*b) & 0x08) {
+    if (b && b->getValue() & 0x08) {
        rex |= 0x01;
-       *b = uint32_t(*b) & 0x07;
+       *b = b->getValue() & 0x07;
     }
     
     // emit the rex, if needed
@@ -1710,12 +1710,12 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<AstNo
          if (!callerSave) {
             // We don't care!
             regalloc_printf("%s[%d]: pre-call, skipping callee-saved register %u\n", FILE__, __LINE__,
-                     uint32_t(reg->number));
+                     reg->number.getValue());
             continue;
          }
 
          regalloc_printf("%s[%d]: pre-call, register %u has refcount %d, keptValue %d, liveState %s\n",
-                         FILE__, __LINE__, uint32_t(reg->number),
+                         FILE__, __LINE__, reg->number.getValue(),
                          reg->refCount,
                          reg->keptValue,
                          (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::spilled) ? "spilled" : "dead"));
@@ -2255,7 +2255,7 @@ bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
       regalloc_printf("\t shouldSaveReg for iRPC\n");
    }
    if (reg->liveState != registerSlot::live) {
-      regalloc_printf("\t Reg %u not live, concluding don't save\n", uint32_t(reg->number));
+      regalloc_printf("\t Reg %u not live, concluding don't save\n", reg->number.getValue());
       return false;
    }
    if (saveFlags) {
@@ -2268,7 +2268,7 @@ bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
    }
    if (inst && inst->validOptimizationInfo() && !inst->definedRegs[reg->encoding()]) {
       regalloc_printf("\t Base tramp instance doesn't have reg %u (num %u) defined; concluding don't save\n",
-                      reg->encoding(), uint32_t(reg->number));
+                      reg->encoding(), reg->number.getValue());
       return false;
    }
    return true;
