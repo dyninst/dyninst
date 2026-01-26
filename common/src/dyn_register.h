@@ -45,7 +45,7 @@ constexpr uint32_t REG_KIND_WIDTH = 2;
 constexpr uint32_t REG_COUNT_WIDTH = 14;
 // total = 32
 
-struct __attribute__((packed)) RegisterInfo {
+struct RegisterInfo {
   uint32_t id : REG_ID_WIDTH;
   uint32_t kind : REG_KIND_WIDTH;
   uint32_t count : REG_COUNT_WIDTH;
