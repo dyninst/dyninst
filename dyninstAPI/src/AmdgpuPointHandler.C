@@ -178,7 +178,7 @@ void AmdgpuGfx908PointHandler::insertEpilogueIfKernel(BPatch_function *function)
 }
 
 static constexpr uint32_t roundUpTo8(uint32_t x) {
-  return ((x + 7) >> 3) << 3;
+  return ((x + 7) / 8) * 8;
 }
 
 void AmdgpuGfx908PointHandler::maximizeSgprAllocationIfKernel(BPatch_function *function) {
