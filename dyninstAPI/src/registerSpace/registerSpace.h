@@ -218,8 +218,6 @@ class registerSpace {
     static registerSpace *irpcRegSpace(AddressSpace *proc);
     // Aaand instPoint-specific
     static registerSpace *actualRegSpace(instPoint *iP);
-    // DO NOT DELETE THESE.
-    static registerSpace *savedRegSpace(AddressSpace *proc);
 
     static registerSpace *getRegisterSpace(AddressSpace *proc);
     static registerSpace *getRegisterSpace(unsigned addr_width);

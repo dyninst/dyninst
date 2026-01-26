@@ -166,16 +166,10 @@ registerSpace *registerSpace::optimisticRegSpace(AddressSpace *proc) {
 }
 
 registerSpace *registerSpace::irpcRegSpace(AddressSpace *proc) {
-   registerSpace *rspace = savedRegSpace(proc);
+   registerSpace *rspace = getRegisterSpace(proc);
+   rspace->specializeSpace(allSaved);
    rspace->initRealRegSpace();
    return rspace;
-}
-
-registerSpace *registerSpace::savedRegSpace(AddressSpace *proc) {
-    registerSpace *ret = getRegisterSpace(proc);
-    ret->specializeSpace(allSaved);
-    ret->initRealRegSpace();
-    return ret;
 }
 
 registerSpace *registerSpace::actualRegSpace(instPoint *iP)
