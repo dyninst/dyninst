@@ -212,8 +212,6 @@ class registerSpace {
 
  public:
     // Pre-set unknown register state:
-    // Everything is live...
-    static registerSpace *conservativeRegSpace(AddressSpace *proc);
     // Everything is dead...
     static registerSpace *optimisticRegSpace(AddressSpace *proc);
     // IRPC-specific - everything live for now
@@ -458,6 +456,9 @@ class registerSpace {
     bool checkLive(Dyninst::Register reg, const bitArray &liveRegs);
 
     unsigned addr_width{};
+
+    // Everything is live...
+    static registerSpace *conservativeRegSpace(AddressSpace *proc);
 
  public:
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
