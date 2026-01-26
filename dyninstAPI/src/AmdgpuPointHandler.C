@@ -43,6 +43,7 @@
 #include "AmdgpuKernelDescriptor.h"
 
 #include "ast.h"
+#include "debug.h"
 
 #include <cassert>
 #include <fstream>
@@ -56,6 +57,7 @@ void AmdgpuGfx908PointHandler::handlePoints(std::vector<BPatch_point *> const &p
     if (result.second) {
       insertPrologueIfKernel(f);
       insertEpilogueIfKernel(f);
+      maximizeSgprAllocationIfKernel(f);
     }
   }
 }
@@ -77,10 +79,14 @@ BPatch_variableExpr* AmdgpuGfx908PointHandler::getKernelDescriptorVariable(BPatc
   return nullptr;
 }
 
+uint32_t AmdgpuGfx908PointHandler::getMaxGranulatedWavefrontSgprCount() const {
+  // This math comes from LLVM AMDGPUUsage documentation
+  const uint32_t maxSgprCount = 112; // Set SGPRs to 112 (max value)
+  return 2 * ((maxSgprCount / 16) - 1);
+}
 
 bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) const {
-  const uint32_t maxGranulatedWavefrontSgprCount = 12; // This is computed based on LLVM AMDGPU documentation.
-  return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() != maxGranulatedWavefrontSgprCount);
+  return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() != getMaxGranulatedWavefrontSgprCount());
 }
 
 bool AmdgpuGfx908PointHandler::isRegPairAvailable(Register reg, BPatch_function *function) {
@@ -171,6 +177,43 @@ void AmdgpuGfx908PointHandler::insertEpilogueIfKernel(BPatch_function *function)
   insertEpilogueAtPoints(epilogueSnippet, exitPoints);
 }
 
+static constexpr uint32_t roundUpTo8(uint32_t x) {
+  return ((x + 7) / 8) * 8;
+}
+
+void AmdgpuGfx908PointHandler::maximizeSgprAllocationIfKernel(BPatch_function *function) {
+  BPatch_variableExpr *kdVariable = getKernelDescriptorVariable(function);
+  assert(kdVariable);
+
+  llvm::amdhsa::kernel_descriptor_t rawKd;
+  bool success = kdVariable->readValue(&rawKd, sizeof rawKd);
+  if(!success) {
+    inst_printf("Unable to read kernel descriptor for %s\n", kdVariable->getName());
+    assert(0);
+  }
+
+  AmdgpuKernelDescriptor kd(rawKd, this->eflag);
+
+  uint32_t newValue = this->getMaxGranulatedWavefrontSgprCount();
+  kd.setCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount(newValue);
+
+  uint32_t kernargSize = kd.getKernargSize();
+  uint32_t newKernargSize = roundUpTo8(kernargSize) + 8;
+  kd.setKernargSize(newKernargSize);
+
+  // We have modified the kernel descriptor. Now overwrite the original one with it.
+  success = kdVariable->writeValue(kd.getRawPtr(), sizeof(rawKd), false);
+  // false is passed explicitly only so the compiler can do overload resolution between:
+  // writeValue(const void *src, bool saveWorld=false)
+  //      and
+  // writeValue(const void *src, int len,bool saveWorld=false)
+
+  if(!success) {
+    inst_printf("Unable to write kernel descriptor for %s\n", kdVariable->getName());
+    assert(0);
+  }
+}
+
 void AmdgpuGfx908PointHandler::insertPrologueAtPoints(AmdgpuPrologueSnippet &snippet,
                                                       std::vector<BPatch_point *> &points) {
   for (BPatch_point *point : points) {
@@ -188,7 +231,6 @@ void AmdgpuGfx908PointHandler::insertEpilogueAtPoints(AmdgpuEpilogueSnippet &sni
     iPoint->pushBack(snippet.ast_wrapper);
   }
 }
-
 
 void AmdgpuGfx908PointHandler::writeInstrumentedKernelNames(const std::string &filePath) {
   std::ofstream outFile(filePath);

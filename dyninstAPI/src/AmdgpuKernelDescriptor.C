@@ -122,17 +122,15 @@ void AmdgpuKernelDescriptor::setKernelCodeEntryByteOffset(int64_t value) {
 }
 
 #define GET_VALUE(MASK) ((fourByteBuffer & MASK) >> (MASK##_SHIFT))
-#define GET_ITH_BIT_AFTER(MASK, i)                                                                 \
-  (((fourByteBuffer & (1 << (MASK##_WIDTH) + i - 1)) << (MASK##_SHIFT)) != 0)
 
-static inline uint32_t insertField32(uint32_t op, uint32_t value, uint32_t mask, uint32_t shift) {
-  assert(value >> shift && "value contains more bits than specified");
+static inline uint32_t insertField32(uint32_t op, uint32_t value, uint32_t mask, uint32_t width, uint32_t shift) {
+  assert(((value >> width) == 0) && "value contains more bits than specified");
   op &= ~mask;
   op |= value << shift;
   return op;
 }
 
-#define INSERT_FIELD_32(op, value, mask) insertField32(op, value, mask, mask##_SHIFT)
+#define INSERT_FIELD_32(op, value, mask) insertField32(op, value, mask, mask##_WIDTH, mask##_SHIFT)
 
 // ----- COMPUTE_PGM_RSRC3 begin -----
 //
@@ -543,21 +541,17 @@ void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC2_EnableExceptionIntDivideByZero
 //
 
 #undef GET_VALUE
-#undef GET_ITH_BIT_AFTER
 
 #define GET_VALUE(MASK) ((twoByteBuffer & (MASK)) >> (MASK##_SHIFT))
 
-static inline uint16_t insertField16(uint16_t op, uint16_t value, uint16_t mask, uint16_t shift) {
-  assert(value >> shift && "value contains more bits than specified");
+static inline uint16_t insertField16(uint16_t op, uint16_t value, uint16_t mask, uint16_t width, uint16_t shift) {
+  assert(((value >> width) == 0) && "value contains more bits than specified");
   op &= ~mask;
   op |= value << shift;
   return op;
 }
 
-#define INSERT_FIELD_16(op, value, mask) insertField16(op, value, mask, mask##_SHIFT)
-
-#define GET_ITH_BIT_AFTER(MASK, i)                                                                 \
-  (((twoByteBuffer & (1 << (MASK##_WIDTH) + i - 1)) << (MASK##_SHIFT)) != 0)
+#define INSERT_FIELD_16(op, value, mask) insertField16(op, value, mask, mask##_WIDTH, mask##_SHIFT)
 
 // ----- KERNEL_CODE_PROPERTIES begin -----
 //
@@ -670,7 +664,6 @@ bool AmdgpuKernelDescriptor::supportsArchitectedFlatScratch() const {
 //
 
 #undef GET_VALUE
-#undef GET_ITH_BIT_AFTER
 
 unsigned AmdgpuKernelDescriptor::getKernargPtrRegister() {
   unsigned kernargPtrReg = 0;
