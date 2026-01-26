@@ -226,7 +226,7 @@ class registerSpace {
     static registerSpace *getRegisterSpace(AddressSpace *proc);
     static registerSpace *getRegisterSpace(unsigned addr_width);
 
-    registerSpace();
+    registerSpace() = default;
 
     static void createRegisterSpace(std::vector<registerSlot *> &registers);
     static void createRegisterSpace64(std::vector<registerSlot *> &registers);
@@ -369,8 +369,8 @@ class registerSpace {
     void markVirtualDead(Dyninst::Register num);
     bool spilledAnything();
 
-    Dyninst::Register pc_rel_reg;
-    int pc_rel_use_count;
+    Dyninst::Register pc_rel_reg{Dyninst::Null_Register};
+    int pc_rel_use_count{};
     int& pc_rel_offset();
     void incStack(int val);
     int getInstFrameSize();
@@ -383,7 +383,7 @@ class registerSpace {
     void pushNewRegState();
 
  private:
-    int instFrameSize_;  // How much stack space we allocate for
+    int instFrameSize_{};// How much stack space we allocate for
                          // instrumentation before a frame is set up.
 
     std::vector<regState_t *> regStateStack;
@@ -406,7 +406,7 @@ class registerSpace {
     void movVRegToReal(registerSlot *v_reg, RealRegister r, codeGen &gen);
     void movRegToReg(RealRegister dest, RealRegister src, codeGen &gen);
 
-    unsigned savedFlagSize;
+    unsigned savedFlagSize{};
 
  private:
 
@@ -425,7 +425,7 @@ class registerSpace {
 
     bool markSavedRegister(registerSlot *num, int offsetFromFP);
 
-    int currStackPointer;
+    int currStackPointer{};
 
     // This structure is permanently tainted by its association with
     // virtual registers...
@@ -457,7 +457,7 @@ class registerSpace {
     void specializeSpace(const bitArray &);
     bool checkLive(Dyninst::Register reg, const bitArray &liveRegs);
 
-    unsigned addr_width;
+    unsigned addr_width{};
 
  public:
 #if defined(DYNINST_CODEGEN_ARCH_POWER)

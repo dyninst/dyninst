@@ -207,17 +207,6 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP)
     return conservativeRegSpace(iP->proc());
 }
 
-
-registerSpace::registerSpace() :
-    pc_rel_reg(0),
-    pc_rel_use_count(0),
-    instFrameSize_(0),
-    savedFlagSize(0),
-    currStackPointer(0),
-    addr_width(0)
-{
-}
-
 registerSpace::~registerSpace()
 {
     for (auto i = registers_.begin(); i != registers_.end(); i++) {
