@@ -365,7 +365,6 @@ AstVariableNode::AstVariableNode(vector<AstNodePtr>&ast_wrappers, vector<pair<Dy
     ranges_(ranges), index(0)
 {
    children = ast_wrappers;
-   vector<AstNodePtr>::iterator i;
    assert(!children.empty());
 }
 
