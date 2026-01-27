@@ -1303,6 +1303,10 @@ class int_breakpoint
    bool procstopper;
    bool suppress_callbacks;
    bool offset_transfer;
+
+   // all threads in process need to be synchronized at this breakpoint
+   bool is_proc_synchronous{false};
+
    std::set<Thread::const_ptr> thread_specific;
  public:
    int_breakpoint(Breakpoint::ptr up);
@@ -1329,6 +1333,9 @@ class int_breakpoint
 
    void setSuppressCallbacks(bool);
    bool suppressCallbacks(void) const;
+   
+   void makeSynchronous() { is_proc_synchronous = true; }
+   bool isSynchronous() const { return is_proc_synchronous; }
 
    bool isHW() const;
    unsigned getHWSize() const;
