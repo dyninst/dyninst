@@ -89,6 +89,8 @@ public:
 
   constexpr bool isScalarPredicate() const { return kind == RegKind::SCALAR_PREDICATE; }
 
+  constexpr bool isUnkownKind() const { return kind == RegKind::UNKOWN_KIND; }
+
   constexpr uint32_t getCount() const { return count.getCount(); }
 
   constexpr operator uint32_t() const { return this->getId(); }
@@ -110,7 +112,13 @@ public:
   }
 
   // Required for hashmap lookup
-  constexpr bool operator==(const Register &other) const { return id.getId() == other.getId(); }
+  constexpr bool operator==(const Register &other) const {
+    return id.getId() == other.getId() && count.getCount() == other.getCount() &&
+           ((this->isScalar() && other.isScalar()) ||
+            (this->isVector() && other.isVector()) ||
+            (this->isScalarPredicate() && other.isScalarPredicate()) ||
+            (this->isUnkownKind() && other.isUnkownKind()));
+  }
 
   constexpr bool operator!=(const Register &other) const { return !(*this == other); }
 
