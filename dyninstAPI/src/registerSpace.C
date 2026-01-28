@@ -69,8 +69,6 @@
 registerSpace *registerSpace::globalRegSpace_ = NULL;
 registerSpace *registerSpace::globalRegSpace64_ = NULL;
 
-bool registerSpace::hasXMM = false;
-
 void registerSlot::cleanSlot() {
     // number does not change
     refCount = 0;

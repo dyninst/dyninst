@@ -530,61 +530,12 @@ void registerSpace::initialize()
     
     if (inited) return;
     inited = true;
-    if(xmmCapable())
-    {
-      hasXMM = true;
-    }
-    
 
     initialize32();
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
     initialize64();
 #endif
 }
-
-/* This makes a call to the cpuid instruction, which returns an int where each bit is 
-   a feature.  Bit 24 contains whether fxsave is possible, meaning that xmm registers
-   are saved. */
-#if defined(os_windows)
-int cpuidCall() {
-#ifdef _WIN64
-    int result[4];
-    __cpuid(result, 1);
-    return result[4]; // edx
-#else
-    DWORD result = 0;
-    // Note: mov <target> <source>, so backwards from what gnu uses
-    _asm {
-        push ebx
-        mov eax, 1
-        cpuid
-        pop ebx
-        mov result, edx
-    }
-    return result;
-#endif
-}
-#endif
-
-#if defined(x86_64_unknown_linux2_4)              \
- || defined(os_freebsd) || defined(DYNINST_HOST_ARCH_X86_64) \
- || !defined(DYNINST_HOST_ARCH_X86) || !defined(DYNINST_CODEGEN_ARCH_I386)
-bool xmmCapable()
-{
-  return true;
-}
-#else
-bool xmmCapable()
-{
-  int features = cpuidCall();
-  char * ptr = (char *)&features;
-  ptr += 3;
-  if (0x1 & (*ptr))
-    return true;
-  else
-    return false;
-}
-#endif
 
 bool baseTramp::generateSaves(codeGen& gen, registerSpace*) {
    return gen.codeEmitter()->emitBTSaves(this, gen);
