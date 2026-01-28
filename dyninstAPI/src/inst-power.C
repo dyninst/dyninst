@@ -1488,10 +1488,6 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, long dest,
         insnCodeGen::generateBranch(gen, dest);
         break;
     }
-    case trampPreamble: {
-        // nothing to do in this platform
-        return(0);              // let's hope this is expected!
-    }        
     default:
         assert(0);        // unexpected op for this emit!
     }
@@ -1873,12 +1869,10 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
            const instPoint * /* location */, AddressSpace *proc, bool s)
 {
 
-    assert ((op!=branchOp) && (op!=ifOp) && 
-            (op!=trampPreamble));         // !emitA
+    assert ((op!=branchOp) && (op!=ifOp));         // !emitA
     assert ((op!=getRetValOp) && (op!=getParamOp));             // !emitR
     assert ((op!=loadOp) && (op!=loadConstOp));                 // !emitVload
     assert ((op!=storeOp));                                     // !emitVstore
-    assert ((op!=updateCostOp));                                // !emitVupdate
 
     instruction insn;
 
@@ -2145,11 +2139,11 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
     if(branch_target != registerSpace::ignored)
     {
         // Where we're jumping to (link register, count register)
-        args.push_back( AstNode::operandNode(AstNode::operandType::origRegister,
+        args.push_back( AstNode::operandNode(operandType::origRegister,
                         (void *)(long)branch_target));
 
         // Where we are now
-        args.push_back( AstNode::operandNode(AstNode::operandType::Constant,
+        args.push_back( AstNode::operandNode(operandType::Constant,
                         (void *) addr));
 
         return true;

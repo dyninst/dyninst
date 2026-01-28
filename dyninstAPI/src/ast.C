@@ -30,31 +30,32 @@
 
 // $Id: ast.C,v 1.209 2008/09/15 18:37:49 jaw Exp $
 
-#include "dyninstAPI/src/image.h"
+#include "addressSpace.h"
+#include "ast.h"
+#include "binaryEdit.h"
+#include "BPatch.h"
+#include "BPatch_collections.h"
+#include "BPatch_function.h"
+#include "BPatch_libInfo.h" // For instPoint->BPatch_point mapping
+#include "BPatch_memoryAccess_NP.h"
+#include "BPatch_point.h"
+#include "BPatch_snippet.h"
+#include "BPatch_type.h"
+#include "Buffer.h"
+#include "debug.h"
+#include "dyninst_visibility.h"
+#include "emitter.h"
 #include "function.h"
+#include "image.h"
 #include "inst.h"
 #include "instPoint.h"
-#include "ast.h"
-#include "dyninst_visibility.h"
-#include "debug.h"
-
-extern int dyn_debug_ast;
-
 #include "Instruction.h"
-using namespace Dyninst::InstructionAPI;
+#include "mapped_module.h"
+#include "mapped_object.h"
+#include "RegisterConversion.h"
+#include "registerSpace.h"
+#include "regTracker.h"
 
-#include "dyninstAPI/h/BPatch.h"
-#include "BPatch_collections.h"
-#include "dyninstAPI/h/BPatch_type.h"
-#include "BPatch_libInfo.h" // For instPoint->BPatch_point mapping
-#include "BPatch_function.h"
-#include "dyninstAPI/h/BPatch_point.h"
-#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-#include "dyninstAPI/h/BPatch_type.h"
-#include "dyninstAPI/src/RegisterConversion.h"
-
-#include "addressSpace.h"
-#include "binaryEdit.h"
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
 #include "inst-power.h"
@@ -69,16 +70,17 @@ using namespace Dyninst::InstructionAPI;
 #error "Unknown architecture in ast.h"
 #endif
 
-#include "emitter.h"
-
-#include "registerSpace.h"
-#include "mapped_module.h"
-
-#include "mapped_object.h"
-#include "Buffer.h"
-
 using namespace Dyninst;
+using namespace Dyninst::InstructionAPI;
 using PatchAPI::Point;
+
+static bool isPowerOf2(Dyninst::Address addr) {
+  // Hacker's Delight, chapter 1
+  if(addr == 0UL) {
+    return false;
+  }
+  return (addr & (addr - 1UL)) == 0UL;
+}
 
 extern bool doNotOverflow(int64_t value);
 
@@ -92,71 +94,6 @@ static bool IsSignedOperation(BPatch_type *l, BPatch_type *r) {
 AstNodePtr AstNode::originalAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::actualAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
-
-AstNode::AstNode() {
-//   dyn_debug_ast = 0;
-   referenceCount = 0;
-   useCount = 0;
-   // "operands" is left as an empty vector
-   size = 4;
-   bptype = NULL;
-   doTypeCheck = true;
-   lineNum = 0;
-   columnNum = 0;
-   snippetName = NULL;
-   lineInfoSet = false;
-   columnInfoSet = false;
-   snippetNameSet = false;
-}
-
-//The following methods are for error reporting in dynC_API
-
-// Returns the line number at which the ast was declared
-int AstNode::getLineNum(){
-   return lineNum;
-}
-
-// Sets the line number at which the ast was declared
-void AstNode::setLineNum(int ln){
-   lineInfoSet = true;
-   lineNum = ln;
-}
-
-// Returns the column number at which the ast was declared
-int AstNode::getColumnNum(){
-   return columnNum;
-}
-
-// Sets the column number at which the ast was declared
-void AstNode::setColumnNum(int cn){
-   columnInfoSet = true;
-   columnNum = cn;
-}
-
-char * AstNode::getSnippetName(){
-   return snippetName;
-}
-
-void AstNode::setSnippetName(char *n){
-   if(n != NULL){
-//      printf(":::%s\n", n);
-      snippetName = n;
-      snippetNameSet = true;
-   }
-}
-
-bool AstNode::hasLineInfo(){
-   return lineInfoSet;
-}
-
-
-bool AstNode::hasColumnInfo(){
-   return columnInfoSet;
-}
-
-bool AstNode::hasNameInfo(){
-   return snippetNameSet;
-}
 
 //////////////////////////////////////////////////////
 
@@ -278,23 +215,6 @@ AstNodePtr AstNode::atomicOperationStmtNode(opCode astOpcode, AstNodePtr variabl
    return AstNodePtr(new AstAtomicOperationStmtNode(astOpcode, variable, constant));
 }
 
-bool isPowerOf2(int value, int &result)
-{
-  if (value<=0) return(false);
-  if (value==1) {
-    result=0;
-    return(true);
-  }
-  if ((value%2)!=0) return(false);
-  if (isPowerOf2(value/2,result)) {
-    result++;
-    return(true);
-  }
-  else return(false);
-}
-
-BPatch_type *AstNode::getType() { return bptype; }
-
 void AstNode::setType(BPatch_type *t) {
     bptype = t;
     if (t != NULL) {
@@ -330,9 +250,8 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNode
               loperand = temp;
           }
           else {
-              int result;
-              if (!isPowerOf2((Address)roperand->getOValue(),result) &&
-                  isPowerOf2((Address)loperand->getOValue(),result)) {
+              if (!isPowerOf2((Address)roperand->getOValue()) &&
+                  isPowerOf2((Address)loperand->getOValue())) {
                   AstNodePtr temp = roperand;
                   roperand = loperand;
                   loperand = temp;
@@ -340,21 +259,10 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNode
           }
       }
     }
-    if (l != AstNodePtr())
-    {
-       //Unfortunate hack.  storeOp with a loperand of DataIndir
-       // don't actually reference their loperand--they reference
-       // the child of the loperand.  Handle that here to keep
-       // reference counts sane.
-       if (op == storeOp && loperand->getoType() == operandType::DataIndir)
-          l->operand()->referenceCount++;
-       else
-          l->referenceCount++;
-    }
-    if (r != AstNodePtr())
-       r->referenceCount++;
-    if (e != AstNodePtr())
-       e->referenceCount++;
+
+    if (loperand) children.push_back(loperand);
+    if (roperand) children.push_back(roperand);
+    if (eoperand) children.push_back(eoperand);
 }
 
     // Direct operand
@@ -369,6 +277,8 @@ AstOperandNode::AstOperandNode(operandType ot, void *arg) :
         oValue = (void *)P_strdup((char *)arg);
     else
         oValue = (void *) arg;
+
+    if (operand_) children.push_back(operand_);
 }
 
 // And an indirect (say, a load)
@@ -379,7 +289,7 @@ AstOperandNode::AstOperandNode(operandType ot, AstNodePtr l) :
     oVar(NULL),
     operand_(l)
 {
-   l->referenceCount++;
+   if (operand_) children.push_back(operand_);
 }
 
 AstOperandNode::AstOperandNode(operandType ot, const image_variable* iv) :
@@ -390,6 +300,7 @@ AstOperandNode::AstOperandNode(operandType ot, const image_variable* iv) :
   operand_()
 {
   assert(oVar);
+  if (operand_) children.push_back(operand_);
 }
 
 
@@ -402,8 +313,7 @@ AstCallNode::AstCallNode(func_instance *func,
     constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
-        args[i]->referenceCount++;
-        args_.push_back(args[i]);
+        children.push_back(args[i]);
     }
 }
 
@@ -426,8 +336,7 @@ AstCallNode::AstCallNode(const std::string &func,
     constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
-        args[i]->referenceCount++;
-        args_.push_back(args[i]);
+        children.push_back(args[i]);
     }
 }
 
@@ -440,8 +349,7 @@ AstCallNode::AstCallNode(Address addr,
     constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
-        args[i]->referenceCount++;
-        args_.push_back(args[i]);
+        children.push_back(args[i]);
     }
 }
 
@@ -449,20 +357,15 @@ AstSequenceNode::AstSequenceNode(std::vector<AstNodePtr > &sequence) :
     AstNode()
 {
     for (unsigned i = 0; i < sequence.size(); i++) {
-        sequence[i]->referenceCount++;
-        sequence_.push_back(sequence[i]);
+        children.push_back(sequence[i]);
     }
 }
 
 AstVariableNode::AstVariableNode(vector<AstNodePtr>&ast_wrappers, vector<pair<Dyninst::Offset, Dyninst::Offset> > *ranges) :
-    ast_wrappers_(ast_wrappers), ranges_(ranges), index(0)
+    ranges_(ranges), index(0)
 {
-   vector<AstNodePtr>::iterator i;
-   assert(!ast_wrappers_.empty());
-
-   for (i = ast_wrappers.begin(); i != ast_wrappers.end(); i++) {
-      (*i)->referenceCount++;
-   }
+   children = ast_wrappers;
+   assert(!children.empty());
 }
 
 AstMemoryNode::AstMemoryNode(memoryType mem,
@@ -524,10 +427,6 @@ AstNodePtr AstNode::threadIndexNode() {
     return indexNode_;
 }
 
-AstNode::~AstNode() {
-    //printf("at ~AstNode()  count=%d\n", referenceCount);
-}
-
 // This name is a bit of a misnomer. It's not the strict use count; it's the
 // use count modified by whether a node can be kept or not. We can treat
 // un-keepable nodes (AKA those that don't strictly depend on their AST inputs)
@@ -570,19 +469,15 @@ void AstNode::setUseCount()
 		// calculating this guy)
 	}
 	// We can't be kept, but maybe our children can.
-	std::vector<AstNodePtr> children;
-	getChildren(children);
 	for (unsigned i=0; i<children.size(); i++) {
 	    children[i]->setUseCount();
     }
 }
 
-void AstNode::cleanUseCount(void)
+void AstNode::cleanUseCount()
 {
     useCount = 0;
 
-    std::vector<AstNodePtr> children;
-    getChildren(children);
     for (unsigned i=0; i<children.size(); i++) {
 		children[i]->cleanUseCount();
     }
@@ -714,35 +609,12 @@ bool AstNode::previousComputationValid(Dyninst::Register &reg,
 
 bool AstNode::initRegisters(codeGen &g) {
     bool ret = true;
-    std::vector<AstNodePtr> kids;
-    getChildren(kids);
-    for (unsigned i = 0; i < kids.size(); i++) {
-        if (!kids[i]->initRegisters(g))
+    for (unsigned i = 0; i < children.size(); i++) {
+        if (!children[i]->initRegisters(g))
             ret = false;
     }
     return ret;
 }
-
-
-bool AstNode::generateCode_phase2(codeGen &, bool,
-                                  Address &,
-                                  Dyninst::Register &) {
-    fprintf(stderr, "ERROR: call to AstNode generateCode_phase2; should be handled by subclass\n");
-    fprintf(stderr, "Undefined phase2 for:\n");
-    if (dynamic_cast<AstNullNode *>(this)) fprintf(stderr, "nullNode\n");
-    if (dynamic_cast<AstStackInsertNode *>(this)) fprintf(stderr, "stackInsertNode\n");
-    if (dynamic_cast<AstStackRemoveNode *>(this)) fprintf(stderr, "stackRemoveNode\n");
-    if (dynamic_cast<AstStackGenericNode *>(this)) fprintf(stderr, "stackMoveNode\n");
-    if (dynamic_cast<AstOperatorNode *>(this)) fprintf(stderr, "operatorNode\n");
-    if (dynamic_cast<AstOperandNode *>(this)) fprintf(stderr, "operandNode\n");
-    if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
-    if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
-    if (dynamic_cast<AstVariableNode *>(this)) fprintf(stderr, "varNode\n");
-    if (dynamic_cast<AstMemoryNode *>(this)) fprintf(stderr, "memoryNode\n");
-    assert(0);
-	return 0;
-}
-
 
 bool AstNullNode::generateCode_phase2(codeGen &gen, bool,
                                       Address &retAddr,
@@ -1064,10 +936,8 @@ bool AstStackGenericNode::generateCode_phase2(codeGen&, bool, Address&, Dyninst:
 
 bool AstOperatorNode::initRegisters(codeGen &g) {
     bool ret = true;
-    std::vector<AstNodePtr> kids;
-    getChildren(kids);
-    for (unsigned i = 0; i < kids.size(); i++) {
-        if (!kids[i]->initRegisters(g))
+    for (unsigned i = 0; i < children.size(); i++) {
+        if (!children[i]->initRegisters(g))
             ret = false;
     }
 
@@ -1258,15 +1128,13 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 	 // We can reuse src1 for the body of the conditional; however, keep the value here
 	 // so that we can use it for the branch fix below.
          Dyninst::Register src1_copy = src1;
-         if (loperand->decRefCount())
-            gen.rs()->freeRegister(src1);
+         gen.rs()->freeRegister(src1);
 
          // The flow of control forks. We need to add the forked node to
          // the path
          gen.tracker()->increaseConditionalLevel();
          if (!roperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
-         if (roperand->decRefCount())
-            gen.rs()->freeRegister(src2);
+         gen.rs()->freeRegister(src2);
          gen.tracker()->decreaseAndClean(gen);
          gen.rs()->unifyTopRegStates(gen); //Join the registerState for the if
 
@@ -1318,8 +1186,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                                noCost,
                                                addr,
                                                src2)) ERROR_RETURN;
-            if (eoperand->decRefCount())
-               gen.rs()->freeRegister(src2);
+            gen.rs()->freeRegister(src2);
             gen.tracker()->decreaseAndClean(gen);
             gen.rs()->unifyTopRegStates(gen); //Join the registerState for the else
 
@@ -1374,8 +1241,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                                noCost,
                                                addr,
                                                src1)) ERROR_RETURN;
-            if (loperand->decRefCount())
-               gen.rs()->freeRegister(src1);
+            gen.rs()->freeRegister(src1);
             gen.tracker()->decreaseAndClean(gen);
             codeBufIndex_t endIndex = gen.getIndex();
             // call emit again now with correct offset.
@@ -1388,8 +1254,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                                noCost,
                                                addr,
                                                src1)) ERROR_RETURN;
-            if (loperand->decRefCount())
-               gen.rs()->freeRegister(src1);
+            gen.rs()->freeRegister(src1);
          }
 
          break;
@@ -1411,15 +1276,13 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 	 // We can reuse src1 for the body of the conditional; however, keep the value here
 	 // so that we can use it for the branch fix below.
          Dyninst::Register src1_copy = src1;
-         if (loperand->decRefCount())
-            gen.rs()->freeRegister(src1);
+         gen.rs()->freeRegister(src1);
 
          // The flow of control forks. We need to add the forked node to
          // the path
          gen.tracker()->increaseConditionalLevel();
          if (!roperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
-         if (roperand->decRefCount())
-            gen.rs()->freeRegister(src2);
+         gen.rs()->freeRegister(src2);
          gen.tracker()->decreaseAndClean(gen);
          gen.rs()->unifyTopRegStates(gen); //Join the registerState for the if
          
@@ -1461,10 +1324,6 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          // END from ifOp
          retReg = Dyninst::Null_Register;
          break;
-      }
-      case doOp: {
-         fprintf(stderr, "[%s:%d] WARNING: do AST node unimplemented!\n", __FILE__, __LINE__);
-         return false;
       }
       case getAddrOp: {
          switch(loperand->getoType()) {
@@ -1607,8 +1466,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
                // tmp now contains address to store into
                emitV(storeIndirOp, src1, 0, tmp, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-               if (loperand->operand()->decRefCount())
-                  gen.rs()->freeRegister(tmp);
+               gen.rs()->freeRegister(tmp);
                loperand->decUseCount(gen);
                break;
             }
@@ -1646,13 +1504,11 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                REGISTER_CHECK(tmp);
 
                emitV(storeIndirOp, src1, 0, tmp, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-               if (loperand->decRefCount())
-                  gen.rs()->freeRegister(tmp);
+               gen.rs()->freeRegister(tmp);
                break;
             }
          }
-         if (roperand->decRefCount())
-            gen.rs()->freeRegister(src1);
+         gen.rs()->freeRegister(src1);
          gen.rs()->freeRegister(src2);
          retReg = Dyninst::Null_Register;
          break;
@@ -1664,15 +1520,8 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          REGISTER_CHECK(src1);
          REGISTER_CHECK(src2);
          emitV(op, src1, 0, src2, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-         if (roperand->decRefCount())
-            gen.rs()->freeRegister(src1);
-         if (loperand->decRefCount())
-            gen.rs()->freeRegister(src2);
-         retReg = Dyninst::Null_Register;
-         break;
-      }
-      case trampPreamble: {
-         // This ast cannot be shared because it doesn't return a register
+         gen.rs()->freeRegister(src1);
+         gen.rs()->freeRegister(src2);
          retReg = Dyninst::Null_Register;
          break;
       }
@@ -1710,7 +1559,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
             emitImm(op, src1, (RegValue) roperand->getOValue(), retReg, gen, noCost, gen.rs(), signedOp);
 
-            if (src1 != Dyninst::Null_Register && loperand->decRefCount())
+            if (src1 != Dyninst::Null_Register)
                gen.rs()->freeRegister(src1);
 
             // We do not .generateCode for roperand, so need to update its
@@ -1724,12 +1573,12 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                retReg = allocateAndKeep(gen, noCost);
             }
             emitV(op, src1, right_dest, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace(), signedOp);
-            if (src1 != Dyninst::Null_Register && loperand->decRefCount()) {
+            if (src1 != Dyninst::Null_Register) {
                // Don't free inputs until afterwards; we have _no_ idea
                gen.rs()->freeRegister(src1);
             }
             // what the underlying code might do with a temporary register.
-            if (right_dest != Dyninst::Null_Register && roperand->decRefCount())
+            if (right_dest != Dyninst::Null_Register)
                gen.rs()->freeRegister(right_dest);
          }
       }
@@ -1748,11 +1597,10 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
     Dyninst::Register src = Dyninst::Null_Register;
 
    // Allocate a register to return
-   if (oType != operandType::DataReg) {
-       if (retReg == Dyninst::Null_Register) {
-           retReg = allocateAndKeep(gen, noCost);
-       }
+   if (retReg == Dyninst::Null_Register) {
+       retReg = allocateAndKeep(gen, noCost);
    }
+
    Dyninst::Register temp;
    int tSize;
    int len;
@@ -1784,12 +1632,8 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
       else
          tSize = sizeof(long);
       emitV(loadIndirOp, src, 0, retReg, gen, noCost, gen.rs(), tSize, gen.point(), gen.addrSpace());
-      if (operand_->decRefCount())
-         gen.rs()->freeRegister(src);
+      gen.rs()->freeRegister(src);
       break;
-   case operandType::DataReg:
-       retReg = (Dyninst::Register) (long) oValue;
-       break;
    case operandType::origRegister:
       gen.rs()->readProgramRegister(gen, (Dyninst::Register)(long)oValue, retReg, size);
        //emitLoadPreviousStackFrameRegister((Address) oValue, retReg, gen,
@@ -1984,11 +1828,9 @@ bool AstCallNode::initRegisters(codeGen &gen) {
 
     bool ret = true;
 
-    // First, check kids
-    std::vector<AstNodePtr > kids;
-    getChildren(kids);
-    for (unsigned i = 0; i < kids.size(); i++) {
-        if (!kids[i]->initRegisters(gen))
+    // First, check children
+    for (unsigned i = 0; i < children.size(); i++) {
+        if (!children[i]->initRegisters(gen))
             ret = false;
     }
 
@@ -2041,11 +1883,11 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
     Dyninst::Register tmp = 0;
 
     if (use_func && !callReplace_) {
-        tmp = emitFuncCall(callOp, gen, args_,
+        tmp = emitFuncCall(callOp, gen, children,
                            noCost, use_func);
     }
     else if (use_func && callReplace_) {
-	tmp = emitFuncCall(funcJumpOp, gen, args_,
+	tmp = emitFuncCall(funcJumpOp, gen, children,
                            noCost, use_func);
     }
     else {
@@ -2090,23 +1932,22 @@ bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost,
     Dyninst::Register tmp = Dyninst::Null_Register;
     Address unused = ADDR_NULL;
 
-    if (sequence_.size() == 0) {
+    if (children.size() == 0) {
       // Howzat???
       return true;
     }
 
-    for (unsigned i = 0; i < sequence_.size() - 1; i++) {
-      if (!sequence_[i]->generateCode_phase2(gen,
+    for (unsigned i = 0; i < children.size() - 1; i++) {
+      if (!children[i]->generateCode_phase2(gen,
                                                noCost,
                                                unused,
                                                tmp)) ERROR_RETURN;
-        if (sequence_[i]->decRefCount())
-           gen.rs()->freeRegister(tmp);
+        gen.rs()->freeRegister(tmp);
         tmp = Dyninst::Null_Register;
     }
 
     // We keep the last one
-    if (!sequence_.back()->generateCode_phase2(gen, noCost, unused, retReg)) ERROR_RETURN;
+    if (!children.back()->generateCode_phase2(gen, noCost, unused, retReg)) ERROR_RETURN;
 
 	decUseCount(gen);
 
@@ -2116,7 +1957,7 @@ bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost,
 bool AstVariableNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           Address &addr,
                                           Dyninst::Register &retReg) {
-    return ast_wrappers_[index]->generateCode_phase2(gen, noCost, addr, retReg);
+    return children[index]->generateCode_phase2(gen, noCost, addr, retReg);
 }
 
 bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
@@ -2383,8 +2224,8 @@ BPatch_type *AstCallNode::checkType(BPatch_function* func) {
     assert(BPatch::bpatch != NULL);	/* We'll use this later. */
 
     unsigned i;
-    for (i = 0; i < args_.size(); i++) {
-        BPatch_type *opType = args_[i]->checkType(func);
+    for (i = 0; i < children.size(); i++) {
+        BPatch_type *opType = children[i]->checkType(func);
         /* XXX Check operands for compatibility */
         if (opType == BPatch::bpatch->type_Error) {
             errorFlag = true;
@@ -2421,8 +2262,8 @@ BPatch_type *AstSequenceNode::checkType(BPatch_function* func) {
 	return ret;
     }
 
-    for (unsigned i = 0; i < sequence_.size(); i++) {
-        sType = sequence_[i]->checkType(func);
+    for (unsigned i = 0; i < children.size(); i++) {
+        sType = children[i]->checkType(func);
         if (sType == BPatch::bpatch->type_Error)
             errorFlag = true;
     }
@@ -2443,51 +2284,10 @@ BPatch_type *AstSequenceNode::checkType(BPatch_function* func) {
     return ret;
 }
 
-bool AstNode::accessesParam() {
-    return false;
-}
-
-
-// This is not the most efficient way to traverse a DAG
-bool AstOperatorNode::accessesParam()
-{
-    bool ret = false;
-    if (loperand)
-        ret |= loperand->accessesParam();
-    if (roperand)
-        ret |= roperand->accessesParam();
-    if (eoperand)
-        ret |= eoperand->accessesParam();
-    return ret;
-}
-
-
-bool AstCallNode::accessesParam() {
-    for (unsigned i = 0; i < args_.size(); i++) {
-        if (args_[i]->accessesParam())
-            return true;
-    }
-    return false;
-}
-
-bool AstSequenceNode::accessesParam() {
-    for (unsigned i = 0; i < sequence_.size(); i++) {
-        if (sequence_[i]->accessesParam())
-            return true;
-    }
-    return false;
-}
-
-bool AstVariableNode::accessesParam() {
-    return ast_wrappers_[index]->accessesParam();
-}
-
 // Our children may have incorrect useCounts (most likely they
 // assume that we will not bother them again, which is wrong)
 void AstNode::fixChildrenCounts()
 {
-    std::vector<AstNodePtr> children;
-    getChildren(children);
     for (unsigned i=0; i<children.size(); i++) {
 		children[i]->setUseCount();
     }
@@ -2523,7 +2323,6 @@ bool AstOperatorNode::canBeKept() const {
 bool AstOperandNode::canBeKept() const {
 
     switch (oType) {
-    case operandType::DataReg:
     case operandType::DataIndir:
     case operandType::RegOffset:
     case operandType::origRegister:
@@ -2539,8 +2338,8 @@ bool AstOperandNode::canBeKept() const {
 
 bool AstCallNode::canBeKept() const {
     if (constFunc_) {
-        for (unsigned i = 0; i < args_.size(); i++) {
-            if (!args_[i]->canBeKept()) {
+        for (unsigned i = 0; i < children.size(); i++) {
+            if (!children[i]->canBeKept()) {
                 fprintf(stderr, "AST %p: labelled const func but argument %u cannot be kept!\n",
                         (const void*)this, i);
                 return false;
@@ -2550,23 +2349,6 @@ bool AstCallNode::canBeKept() const {
     }
     return false;
 
-}
-
-bool AstSequenceNode::canBeKept() const {
-	// Theoretically we could keep the entire thing, but... not sure
-	// that's a terrific idea. For now, don't keep a sequence node around.
-    return false;
-}
-
-bool AstVariableNode::canBeKept() const {
-    return ast_wrappers_[index]->canBeKept();
-}
-
-bool AstMemoryNode::canBeKept() const {
-	// Despite our memory loads, we can be kept;
-	// we're loading off process state, which is defined
-	// to be invariant during the instrumentation phase.
-	return true;
 }
 
 // Occasionally, we do not call .generateCode_phase2 for the referenced node,
@@ -2580,218 +2362,6 @@ void AstNode::decUseCount(codeGen &gen)
     if (useCount == 0) {
         gen.tracker()->removeKeptRegister(gen, this);
     }
-}
-
-// Return all children of this node ([lre]operand, ..., operands[])
-
-void AstNode::getChildren(std::vector<AstNodePtr > &) {
-}
-
-void AstNode::setChildren(std::vector<AstNodePtr > &) {
-}
-
-void AstOperatorNode::getChildren(std::vector<AstNodePtr > &children) {
-    if (loperand) children.push_back(loperand);
-    if (roperand) children.push_back(roperand);
-    if (eoperand) children.push_back(eoperand);
-}
-
-void AstOperatorNode::setChildren(std::vector<AstNodePtr > &children){
-   int count = (loperand ? 1 : 0) + (roperand ? 1 : 0) + (eoperand ? 1 : 0);
-   if ((int)children.size() == count){
-      //memory management?
-      if (loperand) loperand = children[0];
-      if (roperand) roperand = children[1];
-      if (eoperand) eoperand = children[2];
-   }else{
-      fprintf(stderr, "OPERATOR setChildren given bad arguments. Wanted:%d , given:%d\n", count, (int)children.size());
-   }
-}
-
-AstNodePtr AstOperatorNode::deepCopy(){
-   AstNodePtr copy = operatorNode(op, (loperand ? loperand->deepCopy() : loperand),
-                                  (roperand ? roperand->deepCopy() : roperand),
-                                  (eoperand ? eoperand->deepCopy() : eoperand));
-   copy->setType(bptype);
-   copy->setTypeChecking(doTypeCheck);
-
-   copy->setLineNum(getLineNum());
-   copy->setColumnNum(getColumnNum());
-   copy->setSnippetName(snippetName);
-
-/* TODO: Impliment this copy.
-   copy->columnInfoSet = columnInfoSet
-   copy->lineInfoSet = lineInfoSet;
-*/
-   return copy;
-}
-
-void AstOperandNode::getChildren(std::vector<AstNodePtr > &children) {
-    if (operand_) children.push_back(operand_);
-}
-
-void AstOperandNode::setChildren(std::vector<AstNodePtr > &children){
-   if (children.size() == 1){
-      //memory management?
-      operand_ = children[0];
-   }else{
-      fprintf(stderr, "OPERAND setChildren given bad arguments. Wanted:%d , given:%d\n", 1,  (int)children.size());
-   }
-}
-
-AstNodePtr AstOperandNode::deepCopy(){
-   AstOperandNode * copy = new AstOperandNode();
-   copy->oType = oType;
-   copy->oValue = oValue; //this might need to be copied deeper
-   copy->oVar = oVar;
-   if(operand_) copy->operand_ = operand_->deepCopy();
-
-   copy->setType(bptype);
-   copy->setTypeChecking(doTypeCheck);
-
-   copy->setLineNum(getLineNum());
-   copy->lineInfoSet = lineInfoSet;
-   copy->setColumnNum(getColumnNum());
-   copy->columnInfoSet = columnInfoSet;
-   copy->setSnippetName(getSnippetName());
-   return AstNodePtr(copy);
-}
-
-void AstCallNode::getChildren(std::vector<AstNodePtr > &children) {
-    for (unsigned i = 0; i < args_.size(); i++)
-        children.push_back(args_[i]);
-}
-
-void AstCallNode::setChildren(std::vector<AstNodePtr > &children){
-   if (children.size() == args_.size()){
-      //memory management?
-      for (unsigned i = 0; i < args_.size(); i++){
-         AstNodePtr * newNode = new AstNodePtr(children[i]);
-         args_.push_back(*newNode);
-         args_.erase(args_.begin() + i + 1);
-      }
-   }else{
-      fprintf(stderr, "CALL setChildren given bad arguments. Wanted:%d , given:%d\n",  (int)args_.size(),  (int)children.size());
-   }
-}
-
-AstNodePtr AstCallNode::deepCopy(){
-   std::vector<AstNodePtr> empty_args;
-
-   AstCallNode * copy;
-
-   if(func_name_.empty()){
-      copy = new AstCallNode();
-   }else{
-      copy = new AstCallNode(func_name_, empty_args);
-   }
-   copy->func_addr_ = func_addr_;
-   copy->func_ = func_;
-
-   for(unsigned int i = 0; i < args_.size(); ++i){
-      copy->args_.push_back(args_[i]->deepCopy());
-   }
-
-   copy->callReplace_ = callReplace_;
-   copy->constFunc_ = constFunc_;
-
-   copy->setType(bptype);
-   copy->setTypeChecking(doTypeCheck);
-
-   copy->setLineNum(getLineNum());
-   copy->lineInfoSet = lineInfoSet;
-   copy->setColumnNum(getColumnNum());
-   copy->columnInfoSet = columnInfoSet;
-   copy->setSnippetName(getSnippetName());
-   copy->snippetNameSet = snippetNameSet;
-
-   return AstNodePtr(copy);
-}
-
-void AstSequenceNode::getChildren(std::vector<AstNodePtr > &children) {
-    for (unsigned i = 0; i < sequence_.size(); i++)
-        children.push_back(sequence_[i]);
-}
-
-void AstSequenceNode::setChildren(std::vector<AstNodePtr > &children){
-   if (children.size() == sequence_.size()){
-      //memory management?
-      for (unsigned i = 0; i < sequence_.size(); i++){
-         AstNodePtr * newNode = new AstNodePtr(children[i]);
-         sequence_.push_back(*newNode);
-         sequence_.erase(sequence_.begin() + i + 1);
-      }
-   }else{
-      fprintf(stderr, "SEQ setChildren given bad arguments. Wanted:%d , given:%d\n", (int)sequence_.size(),  (int)children.size());
-   }
-}
-
-AstNodePtr AstSequenceNode::deepCopy(){
-   AstSequenceNode * copy = new AstSequenceNode();
-   for(unsigned int i = 0; i < sequence_.size(); ++i){
-      copy->sequence_.push_back(sequence_[i]->deepCopy());
-   }
-
-   copy->setType(bptype);
-   copy->setTypeChecking(doTypeCheck);
-
-   copy->setLineNum(getLineNum());
-   copy->lineInfoSet = lineInfoSet;
-   copy->setColumnNum(getColumnNum());
-   copy->columnInfoSet = columnInfoSet;
-   copy->setSnippetName(getSnippetName());
-   copy->snippetNameSet = snippetNameSet;
-
-   return AstNodePtr(copy);
-}
-
-void AstVariableNode::getChildren(std::vector<AstNodePtr > &children) {
-    ast_wrappers_[index]->getChildren(children);
-}
-
-void AstVariableNode::setChildren(std::vector<AstNodePtr > &children){
-   ast_wrappers_[index]->setChildren(children);
-}
-
-AstNodePtr AstVariableNode::deepCopy(){
-   AstVariableNode * copy = new AstVariableNode();
-   copy->index = index;
-   copy->ranges_ = ranges_; //i'm not sure about this one. (it's a vector)
-   for(unsigned int i = 0; i < ast_wrappers_.size(); ++i){
-      copy->ast_wrappers_.push_back(ast_wrappers_[i]->deepCopy());
-   }
-
-   copy->setType(bptype);
-   copy->setTypeChecking(doTypeCheck);
-
-   copy->setLineNum(getLineNum());
-   copy->lineInfoSet = lineInfoSet;
-   copy->setColumnNum(getColumnNum());
-   copy->columnInfoSet = columnInfoSet;
-   copy->setSnippetName(getSnippetName());
-   copy->snippetNameSet = snippetNameSet;
-
-   return AstNodePtr(copy);
-}
-
-void AstOperatorNode::setVariableAST(codeGen &g) {
-    if(loperand) loperand->setVariableAST(g);
-    if(roperand) roperand->setVariableAST(g);
-    if(eoperand) eoperand->setVariableAST(g);
-}
-
-void AstOperandNode::setVariableAST(codeGen &g){
-    if(operand_) operand_->setVariableAST(g);
-}
-
-void AstCallNode::setVariableAST(codeGen &g){
-    for (unsigned i = 0; i < args_.size(); i++)
-        args_[i]->setVariableAST(g);
-}
-
-void AstSequenceNode::setVariableAST(codeGen &g) {
-    for (unsigned i = 0; i < sequence_.size(); i++)
-        sequence_[i]->setVariableAST(g);
 }
 
 void AstVariableNode::setVariableAST(codeGen &gen){
@@ -2821,263 +2391,20 @@ void AstVariableNode::setVariableAST(codeGen &gen){
     assert(found);
 }
 
-bool AstCallNode::containsFuncCall() const {
-   return true;
-}
-
-
-
-bool AstOperatorNode::containsFuncCall() const {
-	if (loperand && loperand->containsFuncCall()) return true;
-	if (roperand && roperand->containsFuncCall()) return true;
-	if (eoperand && eoperand->containsFuncCall()) return true;
-	return false;
-}
-
-bool AstOperandNode::containsFuncCall() const {
-	if (operand_ && operand_->containsFuncCall()) return true;
-	return false;
-}
-
-bool AstSequenceNode::containsFuncCall() const {
-	for (unsigned i = 0; i < sequence_.size(); i++) {
-		if (sequence_[i]->containsFuncCall()) return true;
-	}
-	return false;
-}
-
-bool AstVariableNode::containsFuncCall() const
-{
-    return ast_wrappers_[index]->containsFuncCall();
-}
-
-bool AstNullNode::containsFuncCall() const
-{
-   return false;
-}
-
-bool AstStackInsertNode::containsFuncCall() const
-{
-    return false;
-}
-
-bool AstStackRemoveNode::containsFuncCall() const
-{
-    return false;
-}
-
-bool AstStackGenericNode::containsFuncCall() const
-{
-    return false;
-}
-
-bool AstMemoryNode::containsFuncCall() const
-{
-   return false;
-}
-
-bool AstOriginalAddrNode::containsFuncCall() const
-{
-   return false;
-}
-
-bool AstActualAddrNode::containsFuncCall() const
-{
-   return false;
-}
-
-bool AstDynamicTargetNode::containsFuncCall() const
-{
-   return false;
-}
-bool AstScrambleRegistersNode::containsFuncCall() const
-{
-   return false;
-}
-
-bool AstCallNode::usesAppRegister() const {
-   for (unsigned i=0; i<args_.size(); i++) {
-      if (args_[i] && args_[i]->usesAppRegister()) return true;
-   }
-   return false;
-}
-
-bool AstOperatorNode::usesAppRegister() const {
-	if (loperand && loperand->usesAppRegister()) return true;
-	if (roperand && roperand->usesAppRegister()) return true;
-	if (eoperand && eoperand->usesAppRegister()) return true;
-	return false;
-}
-
 bool AstOperandNode::usesAppRegister() const {
-   if (oType == AstNode::operandType::FrameAddr ||
-       oType == AstNode::operandType::RegOffset ||
-       oType == AstNode::operandType::origRegister ||
-       oType == AstNode::operandType::Param ||
-       oType == AstNode::operandType::ParamAtEntry ||
-       oType == AstNode::operandType::ParamAtCall ||
-       oType == AstNode::operandType::ReturnVal)
+   if (oType == operandType::FrameAddr ||
+       oType == operandType::RegOffset ||
+       oType == operandType::origRegister ||
+       oType == operandType::Param ||
+       oType == operandType::ParamAtEntry ||
+       oType == operandType::ParamAtCall ||
+       oType == operandType::ReturnVal)
    {
       return true;
    }
 
    if (operand_ && operand_->usesAppRegister()) return true;
    return false;
-}
-
-bool AstSequenceNode::usesAppRegister() const {
-	for (unsigned i = 0; i < sequence_.size(); i++) {
-		if (sequence_[i]->usesAppRegister()) return true;
-	}
-	return false;
-}
-
-bool AstVariableNode::usesAppRegister() const
-{
-    return ast_wrappers_[index]->usesAppRegister();
-}
-
-bool AstNullNode::usesAppRegister() const
-{
-   return false;
-}
-
-bool AstStackInsertNode::usesAppRegister() const
-{
-    return false;
-}
-
-bool AstStackRemoveNode::usesAppRegister() const
-{
-    return false;
-}
-
-bool AstStackGenericNode::usesAppRegister() const
-{
-    return false;
-}
-
-bool AstDynamicTargetNode::usesAppRegister() const
-{
-   return false;
-}
-
-bool AstActualAddrNode::usesAppRegister() const
-{
-   return false;
-}
-
-bool AstOriginalAddrNode::usesAppRegister() const
-{
-   return false;
-}
-
-bool AstMemoryNode::usesAppRegister() const
-{
-   return true;
-}
-
-bool AstScrambleRegistersNode::usesAppRegister() const
-{
-   return true;
-}
-
-void regTracker_t::addKeptRegister(codeGen &gen, AstNode *n, Dyninst::Register reg) {
-	assert(n);
-	if (tracker.find(n) != tracker.end()) {
-		assert(tracker[n].keptRegister == reg);
-		return;
-	}
-	commonExpressionTracker t;
-	t.keptRegister = reg;
-	t.keptLevel = condLevel;
-	tracker[n] = t;
-	gen.rs()->markKeptRegister(reg);
-}
-
-void regTracker_t::removeKeptRegister(codeGen &gen, AstNode *n) {
-   auto iter = tracker.find(n);
-   if (iter == tracker.end()) return;
-
-   gen.rs()->unKeepRegister(iter->second.keptRegister);
-   tracker.erase(iter);
-}
-
-Dyninst::Register regTracker_t::hasKeptRegister(AstNode *n) {
-   auto iter = tracker.find(n);
-   if (iter == tracker.end())
-      return Dyninst::Null_Register;
-   else return iter->second.keptRegister;
-}
-
-// Find if the given register is "owned" by an AST node,
-// and if so nuke it.
-
-bool regTracker_t::stealKeptRegister(Dyninst::Register r) {
-	ast_printf("STEALING kept register %u for someone else\n", r);
-        for (auto iter = tracker.begin(); iter != tracker.end(); ++iter) {
-           if (iter->second.keptRegister == r) {
-              tracker.erase(iter);
-              return true;
-           }
-        }
-	fprintf(stderr, "Odd - couldn't find kept register %u\n", r);
-	return true;
-}
-
-void regTracker_t::reset() {
-	condLevel = 0;
-	tracker.clear();
-}
-
-void regTracker_t::increaseConditionalLevel() {
-	condLevel++;
-	ast_printf("Entering conditional branch, level now %d\n", condLevel);
-}
-
-void regTracker_t::decreaseAndClean(codeGen &) {
-
-    assert(condLevel > 0);
-
-    ast_printf("Exiting from conditional branch, level currently %d\n", condLevel);
-
-    std::vector<AstNode *> delete_list;
-
-    for (auto iter = tracker.begin(); iter != tracker.end();) {
-       if (iter->second.keptLevel == condLevel) {
-          iter = tracker.erase(iter);
-       }
-       else {
-          ++iter;
-       }
-    }
-
-    condLevel--;
-}
-
-void regTracker_t::debugPrint() {
-    if (!dyn_debug_ast) return;
-
-    fprintf(stderr, "==== Begin debug dump of register tracker ====\n");
-
-    fprintf(stderr, "Condition level: %d\n", condLevel);
-
-    for (auto iter = tracker.begin(); iter != tracker.end(); ++iter) {
-       fprintf(stderr, "AstNode %p: register %u, condition level %d\n",
-               (void*)iter->first, iter->second.keptRegister, iter->second.keptLevel);
-    }
-    fprintf(stderr, "==== End debug dump of register tracker ====\n");
-}
-
-unsigned AstNode::getTreeSize() {
-	std::vector<AstNodePtr > children;
-	getChildren(children);
-
-	unsigned size_ = 1; // Us
-	for (unsigned i = 0; i < children.size(); i++)
-		size_ += children[i]->getTreeSize();
-	return size_;
-
 }
 
 int_variable* AstOperandNode::lookUpVar(AddressSpace* as)
@@ -3119,12 +2446,6 @@ void AstOperandNode::emitVariableStore(opCode op, Dyninst::Register src1, Dynins
   {
     gen.codeEmitter()->emitStoreShared(src1, oVar, (var!=NULL), size_, gen);
   }
-}
-
-bool AstNode::decRefCount()
-{
-   referenceCount--;
-   return true;
 }
 
 bool AstNode::generate(Point *point, Buffer &buffer) {
@@ -3193,7 +2514,7 @@ std::string AstStackGenericNode::format(std::string indent) {
 
 std::string AstOperatorNode::format(std::string indent) {
    std::stringstream ret;
-   ret << indent << "Op/" << hex << this << dec << "(" << convert(op) << ")" << endl;
+   ret << indent << "Op/" << hex << this << dec << "(" << format_opcode(op) << ")" << endl;
    if (loperand) ret << indent << loperand->format(indent + "  ");
    if (roperand) ret << indent << roperand->format(indent + "  ");
    if (eoperand) ret << indent << eoperand->format(indent + "  ");
@@ -3203,7 +2524,7 @@ std::string AstOperatorNode::format(std::string indent) {
 
 std::string AstOperandNode::format(std::string indent) {
    std::stringstream ret;
-   ret << indent << "Oper/" << hex << this << dec << "(" << convert(oType) << "/" << oValue << ")" << endl;
+   ret << indent << "Oper/" << hex << this << dec << "(" << format_operand(oType) << "/" << oValue << ")" << endl;
    if (operand_) ret << indent << operand_->format(indent + "  ");
 
    return ret.str();
@@ -3217,8 +2538,8 @@ std::string AstCallNode::format(std::string indent) {
    else ret << "(" << func_name_ << ")";
    ret << endl;
    indent += "  ";
-   for (unsigned i = 0; i < args_.size(); ++i) {
-      ret << indent << args_[i]->format(indent + "  ");
+   for (unsigned i = 0; i < children.size(); ++i) {
+      ret << indent << children[i]->format(indent + "  ");
    }
 
    return ret.str();
@@ -3227,8 +2548,8 @@ std::string AstCallNode::format(std::string indent) {
 std::string AstSequenceNode::format(std::string indent) {
    std::stringstream ret;
    ret << indent << "Seq/" << hex << this << dec << "()" << endl;
-   for (unsigned i = 0; i < sequence_.size(); ++i) {
-      ret << indent << sequence_[i]->format(indent + "  ");
+   for (unsigned i = 0; i < children.size(); ++i) {
+      ret << indent << children[i]->format(indent + "  ");
    }
    return ret.str();
 }
@@ -3236,9 +2557,9 @@ std::string AstSequenceNode::format(std::string indent) {
 
 std::string AstVariableNode::format(std::string indent) {
    std::stringstream ret;
-   ret << indent << "Var/" << hex << this << dec << "(" << ast_wrappers_.size() << ")" << endl;
-   for (unsigned i = 0; i < ast_wrappers_.size(); ++i) {
-      ret << indent << ast_wrappers_[i]->format(indent + "  ");
+   ret << indent << "Var/" << hex << this << dec << "(" << children.size() << ")" << endl;
+   for (unsigned i = 0; i < children.size(); ++i) {
+      ret << indent << children[i]->format(indent + "  ");
    }
 
    return ret.str();
@@ -3253,86 +2574,10 @@ std::string AstMemoryNode::format(std::string indent) {
    return ret.str();
 }
 
-std::string AstNode::convert(operandType type) {
-   switch(type) {
-      case operandType::Constant: return "Constant";
-      case operandType::ConstantString: return "ConstantString";
-      case operandType::DataReg: return "DataReg";
-      case operandType::DataIndir: return "DataIndir";
-      case operandType::Param: return "Param";
-      case operandType::ParamAtCall: return "ParamAtCall";
-      case operandType::ParamAtEntry: return "ParamAtEntry";
-      case operandType::ReturnVal: return "ReturnVal";
-      case operandType::ReturnAddr: return "ReturnAddr";
-      case operandType::DataAddr: return "DataAddr";
-      case operandType::FrameAddr: return "FrameAddr";
-      case operandType::RegOffset: return "RegOffset";
-      case operandType::origRegister: return "OrigRegister";
-      case operandType::variableAddr: return "variableAddr";
-      case operandType::variableValue: return "variableValue";
-      case operandType::AddressAsPlaceholderRegAndOffset: return "AddressAsPlaceholderRegAndOffset";
-      default: return "UnknownOperand";
-   }
-}
-
-std::string AstNode::convert(opCode op) {
-   switch(op) {
-      case invalidOp: return "invalid";
-      case plusOp: return "plus";
-      case minusOp: return "minus";
-      case xorOp: return "xor";
-      case timesOp: return "times";
-      case divOp: return "div";
-      case lessOp: return "less";
-      case leOp: return "le";
-      case greaterOp: return "greater";
-      case geOp: return "ge";
-      case eqOp: return "equal";
-      case neOp: return "ne";
-      case loadOp: return "loadOp";
-      case loadConstOp: return "loadConstOp";
-      case loadFrameRelativeOp: return "loadFrameRelativeOp";
-      case loadFrameAddr: return "loadFrameAddr";
-      case loadRegRelativeOp: return "loadRegRelativeOp";
-      case loadRegRelativeAddr: return "loadRegRelativeAddr";
-      case storeOp: return "storeOp";
-      case storeFrameRelativeOp: return "storeFrameRelativeOp";
-      case ifOp: return "if";
-      case whileOp: return "while";
-      case doOp: return "do";
-      case callOp: return "call";
-      case noOp: return "no";
-      case orOp: return "or";
-      case andOp: return "and";
-      case getRetValOp: return "getRetValOp";
-      case getRetAddrOp: return "getRetAddrOp";
-      case getSysRetValOp: return "getSysRetValOp";
-      case getParamOp: return "getParamOp";
-      case getParamAtCallOp: return "getParamAtCallOp";
-      case getParamAtEntryOp: return "getParamAtEntryOp";
-      case getSysParamOp: return "getSysParamOp";
-      case getAddrOp: return "getAddrOp";
-      case loadIndirOp: return "loadIndirOp";
-      case storeIndirOp: return "storeIndirOp";
-      case saveRegOp: return "saveRegOp";
-      case loadRegOp: return "loadRegOp";
-      case saveStateOp: return "saveStateOp";
-      case loadStateOp: return "loadStateOp";
-      case funcJumpOp: return "funcJump";
-      case funcCallOp: return "funcCall";
-      case branchOp: return "branch";
-      case ifMCOp: return "ifMC";
-      case breakOp: return "break";
-      default: return "UnknownOp";
-   }
-}
-
 bool AstOperandNode::initRegisters(codeGen &g) {
     bool ret = true;
-    std::vector<AstNodePtr> kids;
-    getChildren(kids);
-    for (unsigned i = 0; i < kids.size(); i++) {
-        if (!kids[i]->initRegisters(g))
+    for (unsigned i = 0; i < children.size(); i++) {
+        if (!children[i]->initRegisters(g))
             ret = false;
     }
 
@@ -3354,7 +2599,7 @@ AstAtomicOperationStmtNode::AstAtomicOperationStmtNode(opCode astOpcode, AstNode
 std::string AstAtomicOperationStmtNode::format(std::string indent) {
     std::stringstream ret;
     ret << indent << "Op/" << hex << this << dec << "("
-        << "atomic " << convert(opcode) << ")" << endl;
+        << "atomic " << format_opcode(opcode) << ")" << endl;
     if (variable)
        ret << indent << variable->format(indent + "  ");
     if (constant)

@@ -1380,9 +1380,6 @@ codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register /*src2
          insnCodeGen::generateBranch(gen, dest);
          break;
       }
-      case trampPreamble: {
-         break;
-      }
       default:
          abort();        // unexpected op for this emit!
    }
@@ -1947,13 +1944,11 @@ void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::R
            registerSpace * /*rs*/, int size,
            const instPoint * /* location */, AddressSpace * /* proc */, bool s)
 {
-    assert ((op!=branchOp) && (op!=ifOp) &&
-            (op!=trampPreamble));         // !emitA
+    assert ((op!=branchOp) && (op!=ifOp));         // !emitA
     assert ((op!=getRetValOp) && (op!=getRetAddrOp) && 
             (op!=getParamOp));                                  // !emitR
     assert ((op!=loadOp) && (op!=loadConstOp));                 // !emitVload
     assert ((op!=storeOp));                                     // !emitVstore
-    assert ((op!=updateCostOp));                                // !emitVupdate
     
     if (op ==  loadIndirOp) {
         // same as loadOp, but the value to load is already in a register
@@ -2166,7 +2161,7 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction insn,
    cft->apply(&f);
    assert(f.m_stack.size() == 1);
    args.push_back(f.m_stack[0]);
-   args.push_back(AstNode::operandNode(AstNode::operandType::Constant,
+   args.push_back(AstNode::operandNode(operandType::Constant,
                                        (void *) addr));
    inst_printf("%s[%d]:  Inserting dynamic call site instrumentation for %s\n",
                FILE__, __LINE__, cft->format(insn.getArch()).c_str());
@@ -2403,8 +2398,7 @@ int EmitterIA32::emitCallParams(codeGen &gen,
        RealRegister r = gen.rs()->loadVirtual(srcs[i], gen);
        ::emitPush(r, gen);
        frame_size += 4;
-       if (operands[i]->decRefCount())
-          gen.rs()->freeRegister(srcs[i]);
+       gen.rs()->freeRegister(srcs[i]);
     }
     return frame_size;
 }

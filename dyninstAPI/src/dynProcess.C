@@ -1617,9 +1617,9 @@ bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
     // build AstNode for "DYNINSTos_malloc" call
     std::string callee = "DYNINSTos_malloc";
     std::vector<AstNodePtr> args(3);
-    args[0] = AstNode::operandNode(AstNode::operandType::Constant, (void *)(Address)size);
-    args[1] = AstNode::operandNode(AstNode::operandType::Constant, (void *)lo);
-    args[2] = AstNode::operandNode(AstNode::operandType::Constant, (void *)hi);
+    args[0] = AstNode::operandNode(operandType::Constant, (void *)(Address)size);
+    args[1] = AstNode::operandNode(operandType::Constant, (void *)lo);
+    args[2] = AstNode::operandNode(operandType::Constant, (void *)hi);
     AstNodePtr code = AstNode::funcCallNode(callee, args);
 
     // issue RPC and wait for result
@@ -1720,7 +1720,7 @@ void PCProcess::installInstrRequests(const std::vector<instMapping*> &requests) 
            }
            else {
               std::vector<AstNodePtr> def_args;
-              def_args.push_back(AstNode::operandNode(AstNode::operandType::Constant,
+              def_args.push_back(AstNode::operandNode(operandType::Constant,
                                                       (void *)0));
               ast = AstNode::funcCallNode(req->inst,
                                           def_args);

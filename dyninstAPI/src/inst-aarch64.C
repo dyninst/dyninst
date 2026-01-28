@@ -1011,8 +1011,8 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
     if(branch_target == registerSpace::ignored) return false;
 
     //jumping to Xn (BLR Xn)
-    args.push_back(AstNode::operandNode(AstNode::operandType::origRegister,(void *)(long)branch_target));
-    args.push_back(AstNode::operandNode(AstNode::operandType::Constant, (void *) addr));
+    args.push_back(AstNode::operandNode(operandType::origRegister,(void *)(long)branch_target));
+    args.push_back(AstNode::operandNode(operandType::Constant, (void *) addr));
 
     return true;
 }

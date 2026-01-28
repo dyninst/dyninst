@@ -37,7 +37,6 @@
 #include <map>
 #include <vector>
 #include <unordered_map>
-#include "opcode.h" // enum opCode now defined here.
 #include "dyn_register.h"
 #include "codegen.h" // codeBufIndex_t 
 #include "dyninstAPI/src/ast.h" // astNodePtr
@@ -160,7 +159,7 @@ codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register src2, 
                      codeGen &gen, RegControl rc, bool noCost);
 
 // for operations requiring a Dyninst::Register to be returned
-// (e.g., getRetValOp, getRetAddrOp, getParamOp, getSysRetValOp, getSysParamOp)
+// (e.g., getRetValOp, getRetAddrOp, getParamOp)
 Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst,
                codeGen &gen, bool noCost, 
                const instPoint *location, bool for_multithreaded);
@@ -236,5 +235,24 @@ bool emitStoreConst(Dyninst::Address addr, int imm, codeGen &gen, bool noCost);
 bool emitAddSignedImm(Dyninst::Address addr, long int imm, codeGen &gen, bool noCost);
 //Subtract constant from memory at address
 bool emitSubSignedImm(Dyninst::Address addr, long int imm, codeGen &gen, bool noCost);
+
+inline bool isPowerOf2(int value, int &result) {
+  if(value <= 0) {
+    return (false);
+  }
+  if(value == 1) {
+    result = 0;
+    return (true);
+  }
+  if((value % 2) != 0) {
+    return (false);
+  }
+  if(isPowerOf2(value / 2, result)) {
+    result++;
+    return (true);
+  } else {
+    return (false);
+  }
+}
 
 #endif

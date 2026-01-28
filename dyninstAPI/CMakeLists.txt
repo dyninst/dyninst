@@ -92,6 +92,7 @@ set(_private_headers
     src/mapped_object.h
     src/nt_signal_emul.h
     src/opcode.h
+    src/OperandType.h
     src/os.h
     src/parRegion.h
     src/parse-cfg.h
@@ -104,6 +105,7 @@ set(_private_headers
     src/PointHandler.h
     src/RegisterConversion.h
     src/registerSpace.h
+    src/regTracker.h
     src/syscallNotification.h
     src/trapMappings.h
     src/unix.h
@@ -139,6 +141,7 @@ set(_sources
     src/pcEventHandler.C
     src/pcEventMuxer.C
     src/registerSpace.C
+    src/regTracker.C
     src/variable.C
     src/BPatch.C
     src/BPatch_addressSpace.C
