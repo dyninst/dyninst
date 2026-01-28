@@ -31,6 +31,7 @@
 // $Id: baseTramp.C,v 1.68 2008/09/03 06:08:44 jaw Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
+#include "baseTramp-aarch64.h"
 #include "baseTramp-x86.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/dynThread.h"
@@ -82,6 +83,8 @@ baseTramp *baseTramp::create() {
   return new baseTramp_x86();
 #elif DYNINST_CODEGEN_ARCH_I386
   return new baseTramp_x86();
+#elif DYNINST_CODEGEN_ARCH_AARCH64
+  return new baseTramp_aarch64();
 #endif
 }
 

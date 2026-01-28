@@ -49,6 +49,7 @@ set(_private_headers
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h
     src/ast.h
     src/baseTramp.h
+    src/trampolines/baseTramp-aarch64.h
     src/trampolines/baseTramp-x86.h
     src/binaryEdit.h
     src/block.h
@@ -254,7 +255,8 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/parse-aarch64.C
     src/RegisterConversion-aarch64.C
     src/Relocation/Widgets/CFWidget-aarch64.C
-    src/Relocation/Widgets/PCWidget-aarch64.C)
+    src/Relocation/Widgets/PCWidget-aarch64.C
+    src/trampolines/baseTramp-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(
     APPEND
