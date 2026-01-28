@@ -38,79 +38,94 @@
 
 namespace Dyninst {
 
-enum RegKind : uint32_t { SCALAR, VECTOR, SCALAR_PREDICATE, UNDEFINED_KIND };
+enum class RegKind : uint8_t { SCALAR, VECTOR, SCALAR_PREDICATE, UNKOWN_KIND };
 
-constexpr uint32_t REG_ID_WIDTH = 16;
-constexpr uint32_t REG_KIND_WIDTH = 2;
-constexpr uint32_t REG_COUNT_WIDTH = 14;
-// total = 32
+class MachineId final {
+  uint32_t id_;
 
-struct RegisterInfo {
-  uint32_t id : REG_ID_WIDTH;
-  uint32_t kind : REG_KIND_WIDTH;
-  uint32_t count : REG_COUNT_WIDTH;
+public:
+  explicit constexpr MachineId(uint32_t id) : id_(id) {}
+  constexpr uint32_t getId() const { return id_; }
+};
 
-  constexpr RegisterInfo(uint32_t regId, uint32_t regKind, uint32_t numRegs)
-      : id(regId), kind(regKind), count(numRegs) {}
+class BlockSize final {
+  uint32_t count_;
+
+public:
+  explicit constexpr BlockSize(uint32_t count) : count_(count) {}
+  constexpr uint32_t getCount() const { return count_; }
 };
 
 class Register {
-  union {
-    RegisterInfo info;
-    uint32_t value;
-  };
+  MachineId id;
+  RegKind kind;
+  BlockSize count;
 
 public:
-  constexpr Register(uint32_t val = -1) : value(val) {}
-
-  Register(uint32_t id, RegKind kind, uint32_t count) {
-    assert(id >> REG_ID_WIDTH == 0 && "id is wider than than specified");
-    assert(count >> REG_COUNT_WIDTH == 0 && "count is wider than specified");
-    assert(count != 0 && "count must be non-zero");
-
-    uint32_t kindNum = static_cast<uint32_t>(kind);
-    assert(kindNum >> REG_KIND_WIDTH == 0 && "kind is out of range");
-
-    info = RegisterInfo(id, kindNum, count);
+  static Register makeScalarRegister(MachineId machId, BlockSize blockSize) {
+    return Register(machId, RegKind::SCALAR, blockSize);
   }
 
-  constexpr uint32_t getId() const { return info.id; }
+  static Register makeVectorRegister(MachineId machId, BlockSize blockSize) {
+    return Register(machId, RegKind::VECTOR, blockSize);
+  }
 
-  constexpr RegKind getKind() const { return static_cast<RegKind>(info.kind); }
+  // Default is an invalid register.
+  constexpr Register()
+      : id(MachineId(static_cast<uint32_t>(-1))), kind(RegKind::UNKOWN_KIND), count(BlockSize(1)) {}
 
-  constexpr uint32_t getCount() const { return info.count; }
+  // This is only to make existing code work, and must go away in the future.
+  constexpr Register(uint32_t rawId)
+      : id(MachineId(static_cast<uint32_t>(rawId))), kind(RegKind::SCALAR), count(BlockSize(1)) {}
 
-  constexpr uint32_t getValue() const { return value; }
+  constexpr Register(MachineId machId, RegKind regKind, BlockSize blockSize)
+      : id(machId), kind(regKind), count(blockSize) {}
 
-  constexpr operator uint32_t() const { return value; }
+  constexpr uint32_t getId() const { return id.getId(); }
+
+  constexpr uint32_t getValue() const { return this->getId(); }
+
+  constexpr bool isScalar() const { return kind == RegKind::SCALAR; }
+
+  constexpr bool isVector() const { return kind == RegKind::VECTOR; }
+
+  constexpr bool isScalarPredicate() const { return kind == RegKind::SCALAR_PREDICATE; }
+
+  constexpr uint32_t getCount() const { return count.getCount(); }
+
+  constexpr operator uint32_t() const { return this->getId(); }
 
   // If this is a contiguous register block, return individual registers in that block.
-  void getIndividualRegisters(std::vector<Register> &individualRegisters) const {
+  std::vector<Register> getIndividualRegisters() const {
+    std::vector<Register> individualRegisters;
+
     uint32_t baseId = this->getId();
     uint32_t numRegs = this->getCount();
     uint32_t lastId = baseId + numRegs - 1;
-    RegKind kind = this->getKind();
+    RegKind regKind = this->kind;
 
     assert(numRegs > 1 && "This must be a register block");
-    for (uint32_t id = baseId; id <= lastId; ++id) {
-      individualRegisters.push_back(Register(id, kind, 1));
+    for (uint32_t idNum = baseId; idNum <= lastId; ++idNum) {
+      individualRegisters.emplace_back(Register(MachineId(idNum), regKind, BlockSize(1)));
     }
+    return individualRegisters;
   }
 
   // Required for hashmap lookup
-  constexpr bool operator==(const Register &other) const { return value == other.getValue(); }
+  constexpr bool operator==(const Register &other) const { return id.getId() == other.getValue(); }
 
   constexpr bool operator!=(const Register &other) const { return !(*this == other); }
 
-  // Required for compatibility with integers
+  // Required for compatibility with integers.
+  // TODO: This must go away in the future.
   constexpr bool operator==(const int &other) const {
-    return value == static_cast<uint32_t>(other);
+    return id.getId() == static_cast<uint32_t>(other);
   }
 
   constexpr bool operator!=(const int &other) const { return !(*this == other); }
 
   constexpr bool operator==(const unsigned &other) const {
-    return value == static_cast<uint32_t>(other);
+    return id.getId() == static_cast<uint32_t>(other);
   }
 
   constexpr bool operator!=(const unsigned &other) const { return !(*this == other); }
@@ -120,7 +135,7 @@ public:
 typedef long long int RegValue;
 
 /* '255' */
-constexpr Register Null_Register(static_cast<unsigned int>(-1));
+constexpr Register Null_Register{};
 
 } // namespace Dyninst
 
