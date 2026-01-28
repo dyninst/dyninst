@@ -285,6 +285,7 @@ Block::getInsn(Offset a) const {
 
 
 bool Block::operator==(const Block &rhs) const {
+    // prevent dead lock when compariing a block to itself
     if(this == &rhs) return true;
     boost::lock_guard<const Block> g1(*this);
     boost::lock_guard<const Block> g2(rhs);
