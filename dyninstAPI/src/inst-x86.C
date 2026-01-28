@@ -2181,18 +2181,6 @@ int getMaxJumpSize()
   return JUMP_REL32_SZ;
 }
 
-// TODO: fix this so we don't screw future instrumentation of this
-// function. It's a cute little hack, but jeez.
-bool func_instance::setReturnValue(int val)
-{
-    codeGen gen(16);
-
-    emitMovImmToReg(RealRegister(REGNUM_EAX), val, gen);
-    emitSimpleInsn(0xc3, gen); //ret
-    
-    return proc()->writeTextSpace((void *) addr(), gen.used(), gen.start_ptr());
-}
-
 /**
  * Fills in an indirect function pointer at 'addr' to point to 'f'.
  **/
