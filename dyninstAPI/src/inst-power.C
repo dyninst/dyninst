@@ -366,7 +366,7 @@ void registerSpace::initialize() {
 
 unsigned registerSpace::SPR(Register x) {
     // Encodings from architecture manual
-    switch ((powerRegisters_t) x.getValue()) {
+    switch ((powerRegisters_t) x.getId()) {
     case xer:
         return SPR_XER;
         break;
@@ -1626,7 +1626,7 @@ static inline void restoreGPRtoGPR(codeGen &gen,
 //        insnCodeGen::generateImm(gen, Lop, dest, REG_SP,
 //                                 gpr_off + reg*gpr_size);
     else {
-        bperr( "GPR %u should not be restored...", reg.getValue());
+        bperr( "GPR %u should not be restored...", reg.getId());
         assert(0);
     }
 }
