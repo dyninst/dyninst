@@ -42,7 +42,8 @@
 class AddressSpace;
 
 
-class baseTramp { 
+class baseTramp {
+protected:
     baseTramp();
 
  public:
@@ -65,7 +66,7 @@ class baseTramp {
 
     bool checkForFuncCalls();
 
-    ~baseTramp();
+    virtual ~baseTramp();
 
     int numDefinedRegs();
 
@@ -120,8 +121,8 @@ class baseTramp {
 
  public:
     // Code generation methods
-    bool generateSaves(codeGen &gen, registerSpace *);
-    bool generateRestores(codeGen &gen, registerSpace *);
+    virtual bool generateSaves(codeGen &, registerSpace *) { return false; }
+    virtual bool generateRestores(codeGen &, registerSpace *) { return false; }
     
     // Generated state methods
     bitArray definedRegs;
