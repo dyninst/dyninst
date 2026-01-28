@@ -76,8 +76,12 @@ baseTramp::~baseTramp()
    //TODO: implement me
 }
 
+baseTramp *baseTramp::create() {
+  return new baseTramp();
+}
+
 baseTramp *baseTramp::create(instPoint *p) {
-   baseTramp *bt = new baseTramp();
+   baseTramp *bt = create();
    bt->point_ = p;
    return bt;
 }
@@ -86,7 +90,7 @@ baseTramp *baseTramp::createForIRPC(AddressSpace *as) {
     // We use baseTramps to generate save and restore code for iRPCs
     // iRPCs don't have a corresponding instPoint so the AddressSpace
     // needs to be specified
-    baseTramp *bt = new baseTramp();
+    baseTramp *bt = create();
     bt->as_ = as;
     return bt;
 }

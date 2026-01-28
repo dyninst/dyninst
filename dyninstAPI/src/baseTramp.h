@@ -46,6 +46,9 @@ class baseTramp {
 protected:
     baseTramp();
 
+private:
+    static baseTramp *create();
+
  public:
     static baseTramp *create(instPoint *p);
     static baseTramp *createForIRPC(AddressSpace *as);
