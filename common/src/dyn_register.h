@@ -83,8 +83,6 @@ public:
 
   constexpr uint32_t getId() const { return id.getId(); }
 
-  constexpr uint32_t getValue() const { return this->getId(); }
-
   constexpr bool isScalar() const { return kind == RegKind::SCALAR; }
 
   constexpr bool isVector() const { return kind == RegKind::VECTOR; }
@@ -112,7 +110,7 @@ public:
   }
 
   // Required for hashmap lookup
-  constexpr bool operator==(const Register &other) const { return id.getId() == other.getValue(); }
+  constexpr bool operator==(const Register &other) const { return id.getId() == other.getId(); }
 
   constexpr bool operator!=(const Register &other) const { return !(*this == other); }
 
