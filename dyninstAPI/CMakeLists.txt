@@ -49,6 +49,7 @@ set(_private_headers
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h
     src/ast.h
     src/baseTramp.h
+    src/trampolines/baseTramp-x86.h
     src/binaryEdit.h
     src/block.h
     src/BPatch_collections.h
@@ -231,7 +232,8 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     src/emit-x86.C
     src/codegen-x86.C
     src/parse-x86.C
-    src/IAPI_to_AST.C)
+    src/IAPI_to_AST.C
+    src/trampolines/baseTramp-x86.C)
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(
     APPEND
@@ -339,4 +341,7 @@ foreach(t ${dyninstAPI_TARGETS})
     target_compile_definitions(
       ${t} PRIVATE "DYNINST_COMPILER_SEARCH_DIRS=${DYNINST_COMPILER_SEARCH_DIRS}")
   endif()
+
+  target_include_directories(
+    ${t} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/trampolines>")
 endforeach()
