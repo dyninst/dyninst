@@ -50,6 +50,7 @@ set(_private_headers
     src/ast.h
     src/baseTramp.h
     src/trampolines/baseTramp-aarch64.h
+    src/trampolines/baseTramp-ppc.h
     src/trampolines/baseTramp-x86.h
     src/binaryEdit.h
     src/block.h
@@ -244,7 +245,8 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
     src/parse-power.C
     src/RegisterConversion-ppc.C
     src/Relocation/Widgets/CFWidget-ppc.C
-    src/Relocation/Widgets/PCWidget-ppc.C)
+    src/Relocation/Widgets/PCWidget-ppc.C
+    src/trampolines/baseTramp-ppc.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(
     APPEND

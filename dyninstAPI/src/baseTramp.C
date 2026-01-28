@@ -32,6 +32,7 @@
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "baseTramp-aarch64.h"
+#include "baseTramp-ppc.h"
 #include "baseTramp-x86.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/dynThread.h"
@@ -85,6 +86,8 @@ baseTramp *baseTramp::create() {
   return new baseTramp_x86();
 #elif DYNINST_CODEGEN_ARCH_AARCH64
   return new baseTramp_aarch64();
+#elif DYNINST_CODEGEN_ARCH_POWER
+  return new baseTramp_ppc();
 #endif
 }
 
