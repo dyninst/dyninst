@@ -89,6 +89,8 @@ baseTramp *baseTramp::create() {
   return new baseTramp_aarch64();
 #elif DYNINST_CODEGEN_ARCH_POWER
   return new baseTramp_ppc();
+#elif DYNINST_CODEGEN_ARCH_RISCV64
+  return new baseTramp();
 #elif DYNINST_CODEGEN_ARCH_AMDGPU_GFX908
   return new baseTramp_amdgpu();
 #elif DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A
