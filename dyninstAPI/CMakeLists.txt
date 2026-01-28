@@ -50,6 +50,7 @@ set(_private_headers
     src/ast.h
     src/baseTramp.h
     src/trampolines/baseTramp-aarch64.h
+    src/trampolines/baseTramp-amdgpu.h
     src/trampolines/baseTramp-ppc.h
     src/trampolines/baseTramp-x86.h
     src/binaryEdit.h
@@ -274,7 +275,8 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/AmdgpuPointHandler.C
     src/AmdgpuPrologue.C
     src/AmdgpuEpilogue.C
-    src/amdgpu-gfx908-details.C)
+    src/amdgpu-gfx908-details.C
+    src/trampolines/baseTramp-amdgpu.C)
 endif()
 
 if(DYNINST_OS_FreeBSD)
