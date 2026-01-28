@@ -75,7 +75,7 @@ const char *registerNames[] = { "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
 			"r16", "r17", "r18", "r19", "r20", "r21", "r22", "r23",
 			"r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31"};
 
-Register floatingLiveRegList[] = {13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+Dyninst::Register floatingLiveRegList[] = {13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
 unsigned int floatingLiveRegListSize = 14;
 
 // Note that while we have register definitions for r13..r31, we only
@@ -363,7 +363,7 @@ void registerSpace::initialize() {
     initialize64();
 }
 
-unsigned registerSpace::SPR(Register x) {
+unsigned registerSpace::SPR(Dyninst::Register x) {
     // Encodings from architecture manual
     switch ((powerRegisters_t) x) {
     case xer:
@@ -419,7 +419,7 @@ unsigned registerSpace::SPR(Register x) {
 // However, the two 5-bit halves of the SPR field are reversed
 // so just using the xfxform will not work
 void saveSPR(codeGen &gen,     //Instruction storage pointer
-             Register    scratchReg, //Scratch register
+             Dyninst::Register    scratchReg, //Scratch register
              int         sprnum,     //SPR number
              int         stkOffset) //Offset from stack pointer
 {
@@ -452,7 +452,7 @@ void saveSPR(codeGen &gen,     //Instruction storage pointer
     //    instructions generated.
     //
 void restoreSPR(codeGen &gen,       //Instruction storage pointer
-                Register      scratchReg, //Scratch register
+                Dyninst::Register      scratchReg, //Scratch register
                 int           sprnum,     //SPR number
                 int           stkOffset)  //Offset from stack pointer
 {
@@ -483,7 +483,7 @@ void restoreSPR(codeGen &gen,       //Instruction storage pointer
 	   //  The instruction storage pointer is advanced the number of 
 	   //    instructions generated.
 void saveLR(codeGen &gen,       //Instruction storage pointer
-            Register      scratchReg, //Scratch register
+            Dyninst::Register      scratchReg, //Scratch register
             int           stkOffset)  //Offset from stack pointer
 {
     saveSPR(gen, scratchReg, SPR_LR, stkOffset);
@@ -498,7 +498,7 @@ void saveLR(codeGen &gen,       //Instruction storage pointer
 	   //    instructions generated.
 	   //
 void restoreLR(codeGen &gen,       //Instruction storage pointer
-               Register      scratchReg, //Scratch register
+               Dyninst::Register      scratchReg, //Scratch register
                int           stkOffset)  //Offset from stack pointer
 {
     restoreSPR(gen, scratchReg, SPR_LR, stkOffset);
@@ -514,7 +514,7 @@ void restoreLR(codeGen &gen,       //Instruction storage pointer
 	   //    instructions in the sequence.
 	   //
 void setBRL(codeGen &gen,        //Instruction storage pointer
-            Register      scratchReg,  //Scratch register
+            Dyninst::Register      scratchReg,  //Scratch register
             long          val,         //Value to set link register to
             instruction   ti)          //Tail instruction
 {
@@ -544,7 +544,7 @@ void resetBRL(AddressSpace  *p,   //Process to write instructions into
 	      unsigned  val) //Value to set link register
 {
     codeGen gen(10*instruction::size());
-    Register scratch = 10;
+    Dyninst::Register scratch = 10;
     if (val) {
         setBRL(gen, scratch, val, instruction(BRLraw));
     }
@@ -562,7 +562,7 @@ void resetBRL(AddressSpace  *p,   //Process to write instructions into
     //    instructions generated.
     //
 void saveCR(codeGen &gen,       //Instruction storage pointer
-            Register      scratchReg, //Scratch register
+            Dyninst::Register      scratchReg, //Scratch register
             int           stkOffset)  //Offset from stack pointer
 {
     instruction insn;
@@ -591,7 +591,7 @@ void saveCR(codeGen &gen,       //Instruction storage pointer
     //    instructions generated.
     //
 void restoreCR(codeGen &gen,       //Instruction storage pointer
-               Register      scratchReg, //Scratch register
+               Dyninst::Register      scratchReg, //Scratch register
                int           stkOffset)  //Offset from stack pointer
 {
     instruction insn;
@@ -622,7 +622,7 @@ void restoreCR(codeGen &gen,       //Instruction storage pointer
     //    instructions generated.
     //
 void saveFPSCR(codeGen &gen,       //Instruction storage pointer
-               Register      scratchReg, //Scratch fp register
+               Dyninst::Register      scratchReg, //Scratch fp register
                int           stkOffset)  //Offset from stack pointer
 {
     instruction mffs;
@@ -647,7 +647,7 @@ void saveFPSCR(codeGen &gen,       //Instruction storage pointer
     //    instructions generated.
     //
 void restoreFPSCR(codeGen &gen,       //Instruction storage pointer
-                  Register      scratchReg, //Scratch fp register
+                  Dyninst::Register      scratchReg, //Scratch fp register
                   int           stkOffset)  //Offset from stack pointer
 {
     insnCodeGen::generateImm(gen, LFDop, scratchReg, REG_SP, stkOffset);
@@ -675,7 +675,7 @@ void resetBR(AddressSpace  *p,    //Process to write instruction into
 }
 
 void saveRegisterAtOffset(codeGen &gen,
-                          Register reg,
+                          Dyninst::Register reg,
                           int save_off) {
     if (gen.width() == 4) {
         insnCodeGen::generateImm(gen, STop,
@@ -688,22 +688,22 @@ void saveRegisterAtOffset(codeGen &gen,
 
 // Dest != reg : optimizate away a load/move pair
 void saveRegister(codeGen &gen,
-                  Register source,
-                  Register dest,
+                  Dyninst::Register source,
+                  Dyninst::Register dest,
                   int save_off)
 {
     saveRegisterAtOffset(gen, source, save_off + (dest * gen.width()));
 }
 
 void saveRegister(codeGen &gen,
-                  Register reg,
+                  Dyninst::Register reg,
                   int save_off)
 {
     saveRegister(gen, reg, reg, save_off);
 }
 
 void restoreRegisterAtOffset(codeGen &gen,
-                             Register dest,
+                             Dyninst::Register dest,
                              int saved_off) {
     if (gen.width() == 4) {
         insnCodeGen::generateImm(gen, Lop, 
@@ -716,22 +716,22 @@ void restoreRegisterAtOffset(codeGen &gen,
 
 // Dest != reg : optimizate away a load/move pair
 void restoreRegister(codeGen &gen,
-                     Register source,
-                     Register dest, 
+                     Dyninst::Register source,
+                     Dyninst::Register dest,
                      int saved_off)
 {
     return restoreRegisterAtOffset(gen, dest, saved_off + (source * gen.width()));
 }
 
 void restoreRegister(codeGen &gen,
-                     Register reg,
+                     Dyninst::Register reg,
                      int save_off)
 {
     restoreRegister(gen, reg, reg, save_off);
 }
 
 void saveFPRegister(codeGen &gen, 
-                    Register reg,
+                    Dyninst::Register reg,
                     int save_off)
 {
     assert("WE SHOULD NOT BE HERE" == 0);
@@ -741,8 +741,8 @@ void saveFPRegister(codeGen &gen,
 }
 
 void restoreFPRegister(codeGen &gen,
-                       Register source,
-                       Register dest,
+                       Dyninst::Register source,
+                       Dyninst::Register dest,
                        int save_off)
 {
     assert("WE SHOULD NOT BE HERE" == 0);
@@ -752,7 +752,7 @@ void restoreFPRegister(codeGen &gen,
 }
 
 void restoreFPRegister(codeGen &gen,
-                       Register reg,
+                       Dyninst::Register reg,
                        int save_off)
 {
     restoreFPRegister(gen, reg, reg, save_off);
@@ -970,7 +970,7 @@ unsigned restoreSPRegisters(codeGen &gen,
     return num_restored;
 }
 
-void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
+void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Register dest,
              codeGen &gen, bool noCost, registerSpace * /* rs */, bool s)
 {
     int iop=-1;
@@ -995,7 +995,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
             return;
         }
         else {
-            Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
+            Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
             emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
             emitV(op, src1, dest2, dest, gen, noCost, gen.rs(), 
                   gen.width(), gen.point(), gen.addrSpace(), s);
@@ -1004,7 +1004,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         break;
         
     case divOp: {
-            Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
+            Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
             emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
             emitV(op, src1, dest2, dest, gen, noCost, gen.rs(),
                   gen.width(), gen.point(), gen.addrSpace(), s);
@@ -1025,7 +1025,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         return;
         break;
     default:
-        Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
+        Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
         emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
         emitV(op, src1, dest2, dest, gen, noCost, gen.rs(),
               gen.width(), gen.point(), gen.addrSpace(), s);
@@ -1053,14 +1053,14 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
      if it is, we use the register info we gathered,
      otherwise, we punt and save everything */
   if (callee->ifunc()->isLeafFunc()) {
-      std::set<Register> * gprs = callee->ifunc()->usedGPRs();
-      std::set<Register>::iterator It = gprs->begin();
+      std::set<Dyninst::Register> * gprs = callee->ifunc()->usedGPRs();
+      std::set<Dyninst::Register>::iterator It = gprs->begin();
       for(unsigned i = 0; i < gprs->size(); i++) {
           rs->GPRs()[*(It++)]->beenUsed = true;
       }
       
-      std::set<Register> * fprs = callee->ifunc()->usedFPRs();
-      std::set<Register>::iterator It2 = fprs->begin();
+      std::set<Dyninst::Register> * fprs = callee->ifunc()->usedFPRs();
+      std::set<Dyninst::Register>::iterator It2 = fprs->begin();
       for(unsigned i = 0; i < fprs->size(); i++)
       {
           rs->FPRs()[registerSpace::FPR(*(It2++))]->beenUsed = true;
@@ -1078,7 +1078,7 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
 }
 
 
-Register emitFuncCall(opCode op,
+Dyninst::Register emitFuncCall(opCode op,
                       codeGen &gen,
                       std::vector<AstNodePtr> &operands, bool noCost,
                       func_instance *callee) {
@@ -1104,7 +1104,7 @@ void EmitterPOWER::emitCallWithSaves(codeGen &gen, Address dest, bool saveToc, b
 }
 
 
-Register EmitterPOWER::emitCallReplacement(opCode ocode,
+Dyninst::Register EmitterPOWER::emitCallReplacement(opCode ocode,
                                            codeGen &gen,
                                            bool /* noCost */,
                                            func_instance *callee) {
@@ -1121,7 +1121,7 @@ Register EmitterPOWER::emitCallReplacement(opCode ocode,
     //  Sanity check for opcode.
     assert(ocode == funcJumpOp);
 
-    Register freeReg = 0;
+    Dyninst::Register freeReg = 0;
     instruction mtlr(MTLR0raw);
 
     // 64-bit Mutatees
@@ -1162,7 +1162,7 @@ Register EmitterPOWER::emitCallReplacement(opCode ocode,
 // Instrumentation vs function call replacement
 // Static vs. dynamic 
 
-Register EmitterPOWER::emitCall(opCode ocode,
+Dyninst::Register EmitterPOWER::emitCall(opCode ocode,
                                 codeGen &gen,
                                 const std::vector<AstNodePtr> &operands,
                                 bool noCost,
@@ -1192,7 +1192,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
  
     Address toc_anchor = 0;
     Address caller_toc = 0;
-    std::vector <Register> srcs;
+    std::vector <Dyninst::Register> srcs;
 
     // Linux, 64, static/dynamic, inst/repl
     // DYN
@@ -1268,7 +1268,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
     // Note: if we're in function replacement, we can assert operands.empty()
         // Try to target the code generation
         
-        Register reg = Null_Register;
+        Dyninst::Register reg = Null_Register;
         // Try to allocate the correct parameter register
         if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r3 + u, true))
             reg = registerSpace::r3 + u;
@@ -1327,7 +1327,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
             // Ummm... we didn't find it? Ah, so copying us (since we're wrong)
             // into scratch.
 	    if (!hasSourceBeenCopied) {
-                Register scratch = gen.rs()->getScratchRegister(gen);
+                Dyninst::Register scratch = gen.rs()->getScratchRegister(gen);
 		insnCodeGen::generateImm(gen, ORILop, u+3, scratch, 0);
 		gen.rs()->freeRegister(u+3);
 		scratchRegs[whichSource] = scratch;
@@ -1354,7 +1354,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
     
     emitCallInstruction(gen, callee, setTOC, toc_anchor);
     // ALL instrumentation
-    Register retReg = Null_Register;
+    Dyninst::Register retReg = Null_Register;
     if (inInstrumentation) {
         // get a register to keep the return value in.
         retReg = gen.rs()->allocateRegister(gen, noCost);        
@@ -1397,7 +1397,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
 }
 
  
-codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, long dest,
+codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, long dest,
 	      codeGen &gen, RegControl, bool /*noCost*/)
 {
     codeBufIndex_t retval = 0;
@@ -1435,7 +1435,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, long dest,
     return retval;
 }
 
-Register emitR(opCode op, Register src1, Register src2, Register dest,
+Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dest,
                codeGen &gen, bool /*noCost*/,
                const instPoint * /*location*/, bool /*for_MT*/)
 {
@@ -1504,7 +1504,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
     }
 
     assert(regSlot);
-    Register reg = regSlot->number;
+    Dyninst::Register reg = regSlot->number;
 
     switch(regSlot->liveState) {
     case registerSlot::spilled: {
@@ -1537,14 +1537,14 @@ void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &)
 
 
 // VG(11/16/01): Say if we have to restore a register to get its original value
-static inline bool needsRestore(Register x)
+static inline bool needsRestore(Dyninst::Register x)
 {
   return ((x <= 12) && !(x==2)) || (x == POWER_XER2531);
 }
 
 // VG(03/15/02): Restore mutatee value of GPR reg to dest GPR
 static inline void restoreGPRtoGPR(codeGen &gen,
-                                   Register reg, Register dest)
+                                   Dyninst::Register reg, Dyninst::Register dest)
 {
     int frame_size, gpr_size, gpr_off;
     if (gen.width() == 4) {
@@ -1573,7 +1573,7 @@ static inline void restoreGPRtoGPR(codeGen &gen,
 }
 
 // VG(03/15/02): Restore mutatee value of XER to dest GPR
-static inline void restoreXERtoGPR(codeGen &gen, Register dest)
+static inline void restoreXERtoGPR(codeGen &gen, Dyninst::Register dest)
 {
     if (gen.width() == 4) {
         insnCodeGen::generateImm(gen, Lop, dest, REG_SP,
@@ -1586,7 +1586,7 @@ static inline void restoreXERtoGPR(codeGen &gen, Register dest)
 
 // VG(03/15/02): Move bits 25:31 of GPR reg to GPR dest
 static inline void moveGPR2531toGPR(codeGen &gen,
-                                    Register reg, Register dest)
+                                    Dyninst::Register reg, Dyninst::Register dest)
 {
   // keep only bits 32+25:32+31; extrdi dest, reg, 7 (n bits), 32+25 (start at b)
   // which is actually: rldicl dest, reg, 32+25+7 (b+n), 64-7 (64-n)
@@ -1608,11 +1608,11 @@ static inline void moveGPR2531toGPR(codeGen &gen,
 // VG(11/16/01): Emit code to add the original value of a register to
 // another. The original value may need to be restored from stack...
 // VG(03/15/02): Made functionality more obvious by adding the above functions
-static inline void emitAddOriginal(Register src, Register acc, 
+static inline void emitAddOriginal(Dyninst::Register src, Dyninst::Register acc,
                                    codeGen &gen, bool noCost)
 {
     bool nr = needsRestore(src);
-    Register temp;
+    Dyninst::Register temp;
     
     if(nr) {
         // this needs gen because it uses emitV...
@@ -1642,7 +1642,7 @@ static inline void emitAddOriginal(Register src, Register acc,
 
 // VG(11/07/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
-void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
+void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift,
 		codeGen &gen,
 		bool noCost)
 {
@@ -1671,13 +1671,13 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
 
 }
 
-void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,               
+void emitCSload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, codeGen &gen,
 		bool noCost)
 {
   emitASload(as, dest, 0, gen, noCost);
 }
 
-void emitVload(opCode op, Address src1, Register src2, Register dest,
+void emitVload(opCode op, Address src1, Dyninst::Register src2, Dyninst::Register dest,
                codeGen &gen, bool /*noCost*/, 
                registerSpace * /*rs*/, int size,
                const instPoint * /* location */, AddressSpace *proc)
@@ -1761,14 +1761,14 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
   }
 }
 
-void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
+void emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, Address dest,
 		codeGen &gen, bool noCost, 
                 registerSpace * /* rs */, int size,
                 const instPoint * /* location */, AddressSpace *proc)
 {
     if (op == storeOp) {
 	// temp register to hold base address for store (added 6/26/96 jkh)
-	Register temp = gen.rs()->getScratchRegister(gen, noCost);
+	Dyninst::Register temp = gen.rs()->getScratchRegister(gen, noCost);
 
         insnCodeGen::loadPartialImmIntoReg(gen, temp, (long)dest);
         if (size == 1)
@@ -1804,7 +1804,7 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
     } else assert(0 && "Unknown op passed to emitVstore");
 }
 
-void emitV(opCode op, Register src1, Register src2, Register dest,
+void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dest,
            codeGen &gen, bool /*noCost*/,
            registerSpace * /*rs*/, int size,
            const instPoint * /* location */, AddressSpace *proc, bool s)
@@ -1866,7 +1866,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
                 break;
 
             case minusOp:
-                Register temp;
+                Dyninst::Register temp;
                 // need to flip operands since this computes ra-rb not rb-ra
                 temp = src1;
                 src1 = src2;
@@ -1993,7 +1993,7 @@ bool doNotOverflow(int64_t value) {
 
 
 void emitLoadPreviousStackFrameRegister(Address register_num, 
-                                        Register dest,
+                                        Dyninst::Register dest,
                                         codeGen &gen,
                                         int /*size*/,
                                         bool noCost)
@@ -2016,7 +2016,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
       offset = TRAMP_SPR_OFFSET(gen.width()) + STK_LR; 
 
         // Get address (SP + offset) and stick in register dest.
-        emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest,
+        emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
                 gen, noCost, gen.rs());
         // Load LR into register dest
         emitV(loadIndirOp, dest, 0, dest, gen, noCost, gen.rs(),
@@ -2031,7 +2031,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 	  offset = TRAMP_SPR_OFFSET(gen.width()) + STK_CTR_64;
 
         // Get address (SP + offset) and stick in register dest.
-        emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest,
+        emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
                 gen, noCost, gen.rs());
         // Load LR into register dest
         emitV(loadIndirOp, dest, 0, dest, gen, noCost, gen.rs(),
@@ -2055,7 +2055,7 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
   static RegisterAST::Ptr ctr64(new RegisterAST(ppc64::ctr));
   static RegisterAST::Ptr lr32(new RegisterAST(ppc32::lr));
   static RegisterAST::Ptr lr64(new RegisterAST(ppc64::lr));
-    Register branch_target = registerSpace::ignored;
+    Dyninst::Register branch_target = registerSpace::ignored;
 
     // Is this a branch conditional link register (BCLR)
     // BCLR uses the xlform (6,5,5,5,10,1)
@@ -2219,7 +2219,7 @@ bool image::updatePltFunc(parse_func *caller_func, Address stub_addr)
     return true;
 }
 
-bool EmitterPOWER::emitCallRelative(Register dest, Address offset, Register base, codeGen &gen){
+bool EmitterPOWER::emitCallRelative(Dyninst::Register dest, Address offset, Dyninst::Register base, codeGen &gen){
     // Loads a saved register from the stack. 
     int imm = offset;
     if (gen.width() == 4) {
@@ -2242,7 +2242,7 @@ bool EmitterPOWER::emitCallRelative(Register dest, Address offset, Register base
     return true;
 }
 
-bool EmitterPOWER::emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen){ 
+bool EmitterPOWER::emitLoadRelative(Dyninst::Register dest, Address offset, Dyninst::Register base, int size, codeGen &gen){
   if (((long)MIN_IMM16 <= (long)offset) && ((long) offset <= (long)MAX_IMM16)) {
     int ocode = Lop;
     switch (size) {
@@ -2304,7 +2304,7 @@ bool EmitterPOWER::emitLoadRelative(Register dest, Address offset, Register base
 }
 
 
-void EmitterPOWER::emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen){
+void EmitterPOWER::emitStoreRelative(Dyninst::Register source, Address offset, Dyninst::Register base, int size, codeGen &gen){
   if (((long)MIN_IMM16 <= (long)offset) && ((long) offset <= (long)MAX_IMM16)) {
     int ocode = STop;
     switch (size) {
@@ -2424,11 +2424,11 @@ bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, func_instance* callee
 }
 
 bool EmitterPOWER32Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
-  Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+  Dyninst::Register scratchReg = gen.rs()->getScratchRegister(gen, true);
   if (scratchReg == Null_Register) return false;
 
-  Register scratchLR = Null_Register;
-  std::vector<Register> excluded; excluded.push_back(scratchReg);
+  Dyninst::Register scratchLR = Null_Register;
+  std::vector<Dyninst::Register> excluded; excluded.push_back(scratchReg);
   scratchLR = gen.rs()->getScratchRegister(gen, excluded, true);
   if (scratchLR == Null_Register) {
     if (scratchReg == registerSpace::r0) return false;
@@ -2489,11 +2489,11 @@ bool EmitterPOWER32Stat::emitTOCJump(block_instance *block, codeGen &gen) {
 
 
 bool EmitterPOWER32Stat::emitTOCCommon(block_instance *block, bool call, codeGen &gen) {
-  Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+  Dyninst::Register scratchReg = gen.rs()->getScratchRegister(gen, true);
   if (scratchReg == Null_Register) return false;
 
-  Register scratchLR = Null_Register;
-  std::vector<Register> excluded; excluded.push_back(scratchReg);
+  Dyninst::Register scratchLR = Null_Register;
+  std::vector<Dyninst::Register> excluded; excluded.push_back(scratchReg);
   scratchLR = gen.rs()->getScratchRegister(gen, excluded, true);
   if (scratchLR == Null_Register) {
     if (scratchReg == registerSpace::r0) return false;
@@ -2818,7 +2818,7 @@ bool EmitterPOWER::emitCallInstruction(codeGen &gen, func_instance *callee, bool
     return true;
 }
 
-void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable* var, bool is_local, int size, codeGen &gen, Address offset)
+void EmitterPOWER::emitLoadShared(opCode op, Dyninst::Register dest, const image_variable* var, bool is_local, int size, codeGen &gen, Address offset)
 {
    // create or retrieve jump slot
    Address addr;
@@ -2838,11 +2838,11 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
 
    inst_printf("emitLoadShared addr 0x%lx curr adress 0x%lx offset %lu 0x%lx size %d\n", 
    	addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
-   Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+   Dyninst::Register scratchReg = gen.rs()->getScratchRegister(gen, true);
 
    if (scratchReg == Null_Register) {
-   	std::vector<Register> freeReg;
-        std::vector<Register> excludeReg;
+   	std::vector<Dyninst::Register> freeReg;
+        std::vector<Dyninst::Register> excludeReg;
    	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
    	assert (stackSize == 1);
    	scratchReg = freeReg[0];
@@ -2883,7 +2883,7 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
   return;
 }
 
-void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, bool is_local, int size, codeGen & gen)
+void EmitterPOWER::emitStoreShared(Dyninst::Register source, const image_variable * var, bool is_local, int size, codeGen & gen)
 {
    // create or retrieve jump slot
    Address addr;
@@ -2899,10 +2899,10 @@ void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, 
    		addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
 
    // load register with address from jump slot
-   Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+   Dyninst::Register scratchReg = gen.rs()->getScratchRegister(gen, true);
    if (scratchReg == Null_Register) {
-   	std::vector<Register> freeReg;
-        std::vector<Register> excludeReg;
+   	std::vector<Dyninst::Register> freeReg;
+        std::vector<Dyninst::Register> excludeReg;
    	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
 	assert (stackSize == 1);
 	scratchReg = freeReg[0];
@@ -2915,12 +2915,12 @@ void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, 
    Address varOffset = addr - gen.currAddr()+4;
    
    if(!is_local) {
-        std::vector<Register> exclude;
+        std::vector<Dyninst::Register> exclude;
         exclude.push_back(scratchReg);
-   	Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
+   	Dyninst::Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
    	if (scratchReg1 == Null_Register) {
-   		std::vector<Register> freeReg;
-        	std::vector<Register> excludeReg;
+   		std::vector<Dyninst::Register> freeReg;
+        	std::vector<Dyninst::Register> excludeReg;
    		stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
 		assert (stackSize == 1);
 		scratchReg1 = freeReg[0];
@@ -2998,7 +2998,7 @@ Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
     return relocation_address;
 }
 
-Address EmitterPOWER::emitMovePCToReg(Register dest, codeGen &gen)
+Address EmitterPOWER::emitMovePCToReg(Dyninst::Register dest, codeGen &gen)
 {
          insnCodeGen::generateBranch(gen, gen.currAddr(),  gen.currAddr()+4, true); // blrl
 	 Address ret = gen.currAddr();
