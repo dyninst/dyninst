@@ -41,14 +41,14 @@ Dyninst::Register regTracker_t::hasKeptRegister(AstNode *n) {
 // and if so nuke it.
 
 bool regTracker_t::stealKeptRegister(Dyninst::Register r) {
-  ast_printf("STEALING kept register %u for someone else\n", r);
+  ast_printf("STEALING kept register %u for someone else\n", r.getId());
   for (auto iter = tracker.begin(); iter != tracker.end(); ++iter) {
     if (iter->second.keptRegister == r) {
       tracker.erase(iter);
       return true;
     }
   }
-  fprintf(stderr, "Odd - couldn't find kept register %u\n", r);
+  fprintf(stderr, "Odd - couldn't find kept register %u\n", r.getId());
   return true;
 }
 
@@ -92,7 +92,7 @@ void regTracker_t::debugPrint() {
 
   for (auto iter = tracker.begin(); iter != tracker.end(); ++iter) {
     fprintf(stderr, "AstNode %p: register %u, condition level %d\n",
-            (void *)iter->first, iter->second.keptRegister,
+            (void *)iter->first, iter->second.keptRegister.getId(),
             iter->second.keptLevel);
   }
   fprintf(stderr, "==== End debug dump of register tracker ====\n");
