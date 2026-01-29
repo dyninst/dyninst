@@ -32,6 +32,7 @@
 #define POINT_HANDLER_H
 
 #include "BPatch_point.h"
+#include "patchAPI/h/Point.h"
 #include <vector>
 
 namespace Dyninst {
@@ -39,6 +40,8 @@ namespace Dyninst {
 // This struct abstracts architecture-specific handling of points.
 struct PointHandler {
   virtual void handlePoints(std::vector<BPatch_point *> const & /* points */) {}
+
+  virtual void handlePatchPoint(PatchAPI::Point * /* point */) {}
 
   virtual ~PointHandler() = default;
 };
