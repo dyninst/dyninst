@@ -96,11 +96,7 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *ob
     //    (c) library_adjust - create room for a new program header in a position-indepdent library
     //                         by increasing all virtual addresses for the library
     // 2) Use existing Phdr (used in bleugene - will be handled in function fixPhdrs)
-    //    (a) replaceNOTE section - if NOTE exists
-
-    // default
     createNewPhdr = true;
-    replaceNOTE = false;
 
     //If we're dealing with a library that can be loaded anywhere,
     // then load the program headers into the later part of the binary,
@@ -443,7 +439,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     secNameIndex = 1;
     //Section name index for new sections
     loadSecTotalSize = 0;
-    unsigned NOBITStotalsize = 0;
     int dirtySecsChange = 0;
     unsigned extraAlignSize = 0;
 
@@ -472,7 +467,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     findSegmentEnds();
     unsigned insertPoint = oldEhdr->e_shnum;
     unsigned insertPointOffset = 0;
-    unsigned NOBITSstartPoint = oldEhdr->e_shnum;
 
     if (movePHdrsFirst) {
         newEhdr->e_phoff = sizeof(Elf_Ehdr);
@@ -821,7 +815,7 @@ void emitElf<ElfTypes>::createNewPhdrRegion(std::unordered_map<std::string, unsi
 
 
 template<class ElfTypes>
-void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
+void emitElf<ElfTypes>::fixPhdrs(unsigned &) {
     // This function has to perform the addresses fix in two passes.
     // First we must update the old headers addresses, and than
     // we should look where to insert the new LOAD segment
@@ -847,7 +841,6 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
     }
 
     // Copy old segments to vector and update contents
-    bool replaced = false;
     Elf_Phdr *old = oldPhdr;
     vector<Elf_Phdr> segments;
 
@@ -903,19 +896,7 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
                     segments[i].p_paddr += library_adjust;
                 }
             }
-        } else if (replaceNOTE && old->p_type == PT_NOTE && !replaced) {
-            replaced = true;
-            segments[i].p_type = PT_LOAD;
-            segments[i].p_offset = firstNewLoadSec->sh_offset;
-            segments[i].p_vaddr = newSegmentStart;
-            segments[i].p_paddr = segments[i].p_vaddr;
-            segments[i].p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
-            segments[i].p_memsz =
-                    (currEndAddress - firstNewLoadSec->sh_addr) - (newSegmentStart - firstNewLoadSec->sh_addr);
-            segments[i].p_flags = PF_R + PF_W + PF_X;
-            segments[i].p_align = pgSize;
-        }
-        else if (old->p_type == PT_INTERP && movePHdrsFirst && old->p_offset) {
+        } else if (old->p_type == PT_INTERP && movePHdrsFirst && old->p_offset) {
             Elf_Off addr_shift = library_adjust;
             Elf_Off offset_shift = pgSize;
             if (old->p_offset < pgSize) {
