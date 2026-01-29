@@ -2274,3 +2274,19 @@ void Symtab::dumpModRanges() {
 void Symtab::dumpFuncRanges() {
     impl->func_lookup.PrintPreorder();
 }
+
+void Symtab::prependInitArrayFunc(Offset funcAddr) {
+    newInitArrayFuncs_.push_back(funcAddr);
+}
+
+void Symtab::getNewInitArrayFuncs(std::vector<Offset>& newInitArrayFuncs) {
+   newInitArrayFuncs = newInitArrayFuncs_;
+}
+
+void Symtab::prependFiniArrayFunc(Offset funcAddr) {
+    newFiniArrayFuncs_.push_back(funcAddr);
+}
+
+void Symtab::getNewFiniArrayFuncs(std::vector<Offset>& newFiniArrayFuncs) {
+   newFiniArrayFuncs = newFiniArrayFuncs_;
+}
