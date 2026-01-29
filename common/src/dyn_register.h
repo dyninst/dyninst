@@ -85,6 +85,8 @@ public:
 
   constexpr uint32_t getId() const { return id.getId(); }
 
+  constexpr RegKind getKind() const { return kind; }
+
   constexpr bool isScalar() const { return kind == RegKind::SCALAR; }
 
   constexpr bool isVector() const { return kind == RegKind::VECTOR; }
@@ -152,17 +154,8 @@ template <> struct hash<Dyninst::Register> {
     size_t seed = 0;
 
     boost::hash_combine(seed, reg.getId());
+    boost::hash_combine(seed, reg.getKind());
     boost::hash_combine(seed, reg.getCount());
-
-    uint8_t kindVal = 3; // for RegKind::UNKOWN_KIND
-    if (reg.isScalar())
-      kindVal = 0;
-    else if (reg.isVector())
-      kindVal = 1;
-    else if (reg.isScalarPredicate())
-      kindVal = 2;
-
-    boost::hash_combine(seed, kindVal);
 
     return seed;
   }
