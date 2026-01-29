@@ -720,12 +720,7 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
     // Pre-calculate space for temporaries and floating-point state.
     int extra_space = 0;
     if (useFPRs) {
-        if (gen.rs()->hasXMM) {
-            extra_space += TRAMP_FRAME_SIZE + 512;
-        } else {
-            extra_space += TRAMP_FRAME_SIZE + FSAVE_STATE_SIZE;
-        }
-
+      extra_space += TRAMP_FRAME_SIZE + 512;
     } else if (localSpace) {
         extra_space += TRAMP_FRAME_SIZE;
     }
@@ -745,23 +740,17 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
     extra_space_check = extra_space;
 
     if (useFPRs) {
-        if (gen.rs()->hasXMM) {
-           // need to save the floating point state (x87, MMX, SSE)
-           // We're guaranteed to be 16-byte aligned now, so just
-           // emit the fxsave.
+       // need to save the floating point state (x87, MMX, SSE)
+       // We're guaranteed to be 16-byte aligned now, so just
+       // emit the fxsave.
 
-           // fxsave (%esp) ; 0x0f 0xae 0x04 0x24
-           GET_PTR(insn, gen);
-           append_memory_as_byte(insn, 0x0f);
-           append_memory_as_byte(insn, 0xae);
-           append_memory_as_byte(insn, 0x04);
-           append_memory_as_byte(insn, 0x24);
-           SET_PTR(insn, gen);
-        }
-        else {
-           emitOpRegRM(FSAVE, RealRegister(FSAVE_OP),
-                       RealRegister(REGNUM_ESP), 0, gen);
-        }
+       // fxsave (%esp) ; 0x0f 0xae 0x04 0x24
+       GET_PTR(insn, gen);
+       append_memory_as_byte(insn, 0x0f);
+       append_memory_as_byte(insn, 0xae);
+       append_memory_as_byte(insn, 0x04);
+       append_memory_as_byte(insn, 0x24);
+       SET_PTR(insn, gen);
     }
 
     return true;
@@ -789,19 +778,14 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt,codeGen &gen)
     }
 
     if (useFPRs) {
-        if (gen.rs()->hasXMM) {
-            // restore saved FP state
-            // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
-            GET_PTR(insn, gen);
-            append_memory_as_byte(insn, 0x0f);
-            append_memory_as_byte(insn, 0xae);
-            append_memory_as_byte(insn, 0x0c);
-            append_memory_as_byte(insn, 0x24);
-            SET_PTR(insn, gen);
-
-        } else
-           emitOpRegRM(FRSTOR, RealRegister(FRSTOR_OP),
-                       RealRegister(REGNUM_ESP), 0, gen);
+      // restore saved FP state
+      // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
+      GET_PTR(insn, gen);
+      append_memory_as_byte(insn, 0x0f);
+      append_memory_as_byte(insn, 0xae);
+      append_memory_as_byte(insn, 0x0c);
+      append_memory_as_byte(insn, 0x24);
+      SET_PTR(insn, gen);
     }
 
     // Remove extra space allocated for temporaries and floating-point state
