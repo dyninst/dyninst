@@ -415,13 +415,19 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT Architecture Instruction::getArch() const { return arch_decoded_from; }
 
+  DYNINST_EXPORT void Instruction::forceSetCall() const {
+    if(arch_decoded_from == Arch_riscv64) {
+      categories.categories.push_back(c_CallInsn);
+    }
+  }
+
+  DYNINST_EXPORT void Instruction::forceSetReturn() const {
+    if(arch_decoded_from == Arch_riscv64) {
+      categories.categories.push_back(c_ReturnInsn);
+    }
+  }
+
   DYNINST_EXPORT InsnCategory Instruction::getCategory() const {
-    if(m_InsnOp.isMultiInsnCall || m_InsnOp.isNonABICall)
-      return c_CallInsn;
-    if(m_InsnOp.isMultiInsnBranch)
-      return c_BranchInsn;
-    if(m_InsnOp.isNonABIReturn)
-      return c_ReturnInsn;
     if(arch_decoded_from == Arch_riscv64) {
       if(categories.categories.size()) {
         return categories.categories[0];
