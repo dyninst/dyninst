@@ -78,7 +78,7 @@ public:
 
   // This is only to make existing code work, and must go away in the future.
   constexpr Register(uint32_t rawId)
-      : id(MachineId(static_cast<uint32_t>(rawId))), kind(RegKind::SCALAR), count(BlockSize(1)) {}
+      : id(MachineId(rawId)), kind(RegKind::SCALAR), count(BlockSize(1)) {}
 
   constexpr Register(MachineId machId, RegKind regKind, BlockSize blockSize)
       : id(machId), kind(regKind), count(blockSize) {}
@@ -108,35 +108,33 @@ public:
 
     assert(numRegs > 1 && "This must be a register block");
     for (uint32_t idNum = baseId; idNum <= lastId; ++idNum) {
-      individualRegisters.emplace_back(Register(MachineId(idNum), regKind, BlockSize(1)));
+      individualRegisters.emplace_back(MachineId(idNum), regKind, BlockSize(1));
     }
     return individualRegisters;
   }
 
   // Required for hashmap lookup
   constexpr bool operator==(const Register &other) const {
-    return id.getId() == other.getId() && count.getCount() == other.getCount() &&
-           ((this->isScalar() && other.isScalar()) ||
-            (this->isVector() && other.isVector()) ||
-            (this->isScalarPredicate() && other.isScalarPredicate()) ||
-            (this->isUnkownKind() && other.isUnkownKind()));
+    return id.getId() == other.getId() &&
+           count.getCount() == other.getCount() &&
+           this->kind == other.kind;
   }
 
   constexpr bool operator!=(const Register &other) const { return !(*this == other); }
 
   // Required for compatibility with integers.
   // TODO: This must go away in the future.
-  constexpr bool operator==(const int &other) const {
+  constexpr bool operator==(int other) const {
     return id.getId() == static_cast<uint32_t>(other);
   }
 
-  constexpr bool operator!=(const int &other) const { return !(*this == other); }
+  constexpr bool operator!=(int other) const { return !(*this == other); }
 
-  constexpr bool operator==(const unsigned &other) const {
+  constexpr bool operator==(unsigned other) const {
     return id.getId() == static_cast<uint32_t>(other);
   }
 
-  constexpr bool operator!=(const unsigned &other) const { return !(*this == other); }
+  constexpr bool operator!=(unsigned other) const { return !(*this == other); }
 };
 
 /* register content 64-bit */
