@@ -285,9 +285,6 @@ Block::getInsn(Offset a) const {
 
 
 bool Block::operator==(const Block &rhs) const {
-    // prevent dead lock when compariing a block to itself
-    if(this == &rhs) return true;
-    // prevent deadlock by locking both blocks at the same time
     // All sinks are equal
     if(_start == std::numeric_limits<Address>::max()) {
         return rhs._start == _start;
