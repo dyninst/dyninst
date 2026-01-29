@@ -36,6 +36,8 @@
 #include <stdint.h>
 #include <vector>
 
+#include <boost/container_hash/hash.hpp>
+
 namespace Dyninst {
 
 enum class RegKind : uint8_t { SCALAR, VECTOR, SCALAR_PREDICATE, UNKOWN_KIND };
@@ -149,7 +151,22 @@ constexpr Register Null_Register{};
 namespace std {
 template <> struct hash<Dyninst::Register> {
   size_t operator()(const Dyninst::Register &reg) const noexcept {
-    return std::hash<uint32_t>{}(reg);
+    size_t seed = 0;
+
+    boost::hash_combine(seed, reg.getId());
+    boost::hash_combine(seed, reg.getCount());
+
+    uint8_t kindVal = 3; // for RegKind::UNKOWN_KIND
+    if (reg.isScalar())
+      kindVal = 0;
+    else if (reg.isVector())
+      kindVal = 1;
+    else if (reg.isScalarPredicate())
+      kindVal = 2;
+
+    boost::hash_combine(seed, kindVal);
+
+    return seed;
   }
 };
 } // namespace std
