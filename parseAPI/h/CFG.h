@@ -337,7 +337,6 @@ private:
     bool _parsed;
 
     Function * _createdByFunc;
-    mutable boost::recursive_mutex _mutex;
 
  friend class Edge;
  friend class Function;

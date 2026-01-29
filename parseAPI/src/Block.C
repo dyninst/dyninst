@@ -288,9 +288,6 @@ bool Block::operator==(const Block &rhs) const {
     // prevent dead lock when compariing a block to itself
     if(this == &rhs) return true;
     // prevent deadlock by locking both blocks at the same time
-    boost::lock(this->_mutex,rhs._mutex);
-    boost::lock_guard<boost::recursive_mutex> g1(this->_mutex,boost::adopt_lock);
-    boost::lock_guard<boost::recursive_mutex> g2(rhs._mutex,boost::adopt_lock);
     // All sinks are equal
     if(_start == std::numeric_limits<Address>::max()) {
         return rhs._start == _start;
