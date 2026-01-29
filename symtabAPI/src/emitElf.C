@@ -97,11 +97,9 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *ob
     //                         by increasing all virtual addresses for the library
     // 2) Use existing Phdr (used in bleugene - will be handled in function fixPhdrs)
     //    (a) replaceNOTE section - if NOTE exists
-    //    (b) BSSExpandFlag - expand BSS section - default option
 
     // default
     createNewPhdr = true;
-    BSSExpandFlag = false;
     replaceNOTE = false;
 
     //If we're dealing with a library that can be loaded anywhere,
@@ -559,23 +557,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             newshdr->sh_entsize = 0x0;
         }
 
-        if (BSSExpandFlag) {
-            // Add the expanded SHT_NOBITS section size if the section comes after those sections
-            if (scncount > NOBITSstartPoint)
-                newshdr->sh_offset += NOBITStotalsize;
-
-            // Expand the NOBITS sections in file & and change the type from SHT_NOBITS to SHT_PROGBITS
-            if (shdr->sh_type == SHT_NOBITS) {
-                newshdr->sh_type = SHT_PROGBITS;
-                newdata->d_buf = allocate_buffer(shdr->sh_size);
-                memset(newdata->d_buf, '\0', shdr->sh_size);
-                newdata->d_size = shdr->sh_size;
-                if (NOBITSstartPoint == oldEhdr->e_shnum)
-                    NOBITSstartPoint = scncount;
-                NOBITStotalsize += shdr->sh_size;
-            }
-        }
-
         vector<vector<unsigned long> > moveSecAddrRange = object->getMoveSecAddrRange();
 
         for (unsigned i = 0; i != moveSecAddrRange.size(); i++) {
@@ -692,26 +673,13 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         if (newshdr->sh_offset > 0)
             newshdr->sh_offset += dirtySecsChange;
 
-        if (BSSExpandFlag) {
-            if (newshdr->sh_offset > 0) {
-                newshdr->sh_offset += extraAlignSize;
-            }
-        } else if (newshdr->sh_offset >= insertPointOffset) {
+        if (newshdr->sh_offset >= insertPointOffset) {
             newshdr->sh_offset += extraAlignSize;
         }
 
         if (foundSec->isDirty())
             dirtySecsChange += newshdr->sh_size - shdr->sh_size;
-
-        if (BSSExpandFlag && newshdr->sh_addr) {
-            unsigned newOff =
-                    newshdr->sh_offset - (newshdr->sh_offset & (pgSize - 1)) + (newshdr->sh_addr & (pgSize - 1));
-            if (newOff < newshdr->sh_offset)
-                newOff += pgSize;
-            extraAlignSize += newOff - newshdr->sh_offset;
-            newshdr->sh_offset = newOff;
-        }
-
+        
         secLinkMapping[sectionNumber] = shdr->sh_link;
         secInfoMapping[sectionNumber] = shdr->sh_info;
 
@@ -916,14 +884,6 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
             if (!createNewPhdr && segments[i].p_align > pgSize) {
                 segments[i].p_align = pgSize;
             }
-            if (BSSExpandFlag) {
-                if (old->p_flags == 6 || old->p_flags == 7) {
-                    segments[i].p_memsz += loadSecTotalSize + extraAlignSize;
-                    segments[i].p_filesz = segments[i].p_memsz;
-                    segments[i].p_flags = 7;
-                }
-            }
-
             if (movePHdrsFirst) {
                 if (!old->p_offset) {
                     if (segments[i].p_vaddr) {
