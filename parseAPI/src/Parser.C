@@ -1188,9 +1188,7 @@ Parser::delete_bogus_edges(Edge* e)
     // It is possible that all incoming edges are bogus
     // indirect edges, then the last removed edge will
     // trigger the deletion of the block.
-    Block::edgelist sources;
-    cur->copy_sources(sources);
-    if (sources.size() > 0) return;
+    if (cur->sources().size() > 0) return;
 
     // If an indirect edge points a function entry,
     // and the entry block does not have other incoming edges,
