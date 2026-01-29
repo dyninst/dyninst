@@ -29,7 +29,7 @@
  */
 
 #include "InstWidget.h"
-#include "dyninstAPI/src/baseTramp.h"
+#include "baseTramp.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/debug.h"
 #include "CFG.h"

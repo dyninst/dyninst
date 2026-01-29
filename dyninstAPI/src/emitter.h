@@ -40,7 +40,7 @@
 #include <vector>
 #include "common/src/headers.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/baseTramp.h"
+#include "baseTramp.h"
 #include "dyninstAPI/src/ast.h"
 
 class codeGen;

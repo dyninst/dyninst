@@ -85,11 +85,6 @@ void registerSpace::initialize64() { assert(!"No 64-bit registers for AMDGPU"); 
 
 void registerSpace::initialize() { initialize32(); }
 
-/*********************************** Base Tramp ***********************************************/
-bool baseTramp::generateSaves(codeGen & /* gen */, registerSpace *) { return true; }
-
-bool baseTramp::generateRestores(codeGen & /* gen */, registerSpace *) { return true; }
-
 /***********************************************************************************************/
 /***********************************************************************************************/
 

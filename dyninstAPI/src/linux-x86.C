@@ -40,7 +40,7 @@
 #include <math.h> // for floor()
 #include <unistd.h> // for sysconf()
 
-#include "dyninstAPI/src/baseTramp.h"
+#include "baseTramp.h"
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"

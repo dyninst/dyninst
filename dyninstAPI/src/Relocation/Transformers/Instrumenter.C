@@ -36,7 +36,7 @@
 #include "../Widgets/Widget.h"
 #include "../CFG/RelocTarget.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/baseTramp.h"
+#include "baseTramp.h"
 #include "../Widgets/InstWidget.h"
 #include "../Widgets/CFWidget.h"
 #include "../CFG/RelocGraph.h"

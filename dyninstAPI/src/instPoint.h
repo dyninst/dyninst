@@ -43,7 +43,7 @@
 #include "dyninstAPI/src/ast.h"
 #include "bitArray.h"
 
-#include "dyninstAPI/src/baseTramp.h" // iterator
+#include "baseTramp.h" // iterator
 
 #include "Point.h"
 #include "Snippet.h"

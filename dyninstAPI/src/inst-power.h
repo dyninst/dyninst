@@ -37,6 +37,7 @@
 #define INST_POWER_H
 
 #include <stdint.h>
+#include "dyn_register.h"
 
 
 /* "pseudo" instructions that are placed in the tramp code for the inst funcs
@@ -168,59 +169,59 @@
 class codeGen;
 
 void saveSPR(codeGen &gen,
-             Register scratchReg,
+             Dyninst::Register scratchReg,
              int sprnum,
              int stkOffset);
 void restoreSPR(codeGen &gen,
-                Register scratchReg,
+                Dyninst::Register scratchReg,
                 int sprnum,
                 int stkOffset);
 void saveLR(codeGen &gen,
-            Register scratchReg,
+            Dyninst::Register scratchReg,
             int stkOffset);
 void restoreLR(codeGen &gen,
-               Register scratchReg,
+               Dyninst::Register scratchReg,
                int stkOffset);
 void setBRL(codeGen &gen,
-            Register scratchReg,
+            Dyninst::Register scratchReg,
             long val,
             unsigned ti); // We're lazy and hand in the next insn
 void saveCR(codeGen &gen,
-            Register scratchReg,
+            Dyninst::Register scratchReg,
             int stkOffset);
 void restoreCR(codeGen &gen,
-               Register scratchReg,
+               Dyninst::Register scratchReg,
                int stkOffset);
 void saveFPSCR(codeGen &gen,
-               Register scratchReg,
+               Dyninst::Register scratchReg,
                int stkOffset);
 void restoreFPSCR(codeGen &gen,
-                  Register scratchReg,
+                  Dyninst::Register scratchReg,
                   int stkOffset);
 void saveRegister(codeGen &gen,
-                  Register reg,
+                  Dyninst::Register reg,
                   int save_off);
 // We may want to restore a _logical_ register N
 // (that is, the save slot for N) into a different reg.
 // This avoids using a temporary
 void restoreRegister(codeGen &gen,
-                     Register source,
-                     Register dest,
+                     Dyninst::Register source,
+                     Dyninst::Register dest,
                      int save_off);
 // Much more common case
 void restoreRegister(codeGen &gen,
-                     Register reg,
+                     Dyninst::Register reg,
                      int save_off);
 void saveFPRegister(codeGen &gen,
-                    Register reg,
+                    Dyninst::Register reg,
                     int save_off);
 // See above...
 void restoreFPRegister(codeGen &gen,
-                       Register source,
-                       Register dest,
+                       Dyninst::Register source,
+                       Dyninst::Register dest,
                        int save_off);
 void restoreFPRegister(codeGen &gen,
-                       Register reg,
+                       Dyninst::Register reg,
                        int save_off);
 void pushStack(codeGen &gen);
 void popStack(codeGen &gen);

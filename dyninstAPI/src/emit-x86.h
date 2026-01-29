@@ -41,7 +41,7 @@
 #include "common/src/headers.h"
 #include "common/src/arch-x86.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/baseTramp.h"
+#include "baseTramp.h"
 
 #include "dyninstAPI/src/emitter.h"
 class codeGen;
