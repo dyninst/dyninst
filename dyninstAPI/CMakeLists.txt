@@ -43,11 +43,11 @@ set(_private_headers
     src/addressSpace.h
     src/AmdgpuKernelDescriptor.h
     src/AmdgpuPointHandler.h
-    src/AmdgpuPrologue.h
-    src/AmdgpuEpilogue.h
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDHSAKernelDescriptor.h
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h
     src/ast.h
+    src/ASTs/AmdgpuEpilogue.h
+    src/ASTs/AmdgpuPrologue.h
     src/ASTs/ast_helpers.h
     src/ASTs/AstAddrNode.h
     src/ASTs/AstAtomicOperationStmtNode.h
@@ -311,8 +311,8 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/Relocation/Widgets/PCWidget-amdgpu.C
     src/AmdgpuKernelDescriptor.C
     src/AmdgpuPointHandler.C
-    src/AmdgpuPrologue.C
-    src/AmdgpuEpilogue.C
+    src/ASTs/AmdgpuPrologue.C
+    src/ASTs/AmdgpuEpilogue.C
     src/amdgpu-gfx908-details.C)
 endif()
 
