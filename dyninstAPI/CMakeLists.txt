@@ -275,8 +275,7 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/AmdgpuPointHandler.C
     src/AmdgpuPrologue.C
     src/AmdgpuEpilogue.C
-    src/amdgpu-gfx908-details.C
-    src/trampolines/baseTramp-amdgpu.C)
+    src/amdgpu-gfx908-details.C)
 endif()
 
 if(DYNINST_OS_FreeBSD)
