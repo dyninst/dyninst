@@ -1155,7 +1155,7 @@ Parser::finalize_jump_tables()
                 if (validTargets.find(jti->tableEntryMap[addr]) != validTargets.end()) continue;
                 if (edgeMap.find(jti->tableEntryMap[addr]) == edgeMap.end()) continue;
                 Edge * e = edgeMap[jti->tableEntryMap[addr]];
-                delete_bogus_blocks(e);
+                delete_bogus_edges(e);
             }
 
             // Adjust jump table end
@@ -1168,7 +1168,7 @@ Parser::finalize_jump_tables()
  * blocks and edges that should be removed
  */
     void
-Parser::delete_bogus_blocks(Edge* e)
+Parser::delete_bogus_edges(Edge* e)
 {
     Block* cur = e->trg();
 
@@ -1190,9 +1190,7 @@ Parser::delete_bogus_blocks(Edge* e)
     // trigger the deletion of the block.
     Block::edgelist sources;
     cur->copy_sources(sources);
-    for (auto eit = sources.begin(); eit != sources.end(); ++eit)
-        if ((*eit)->type() != INDIRECT && (*eit)->src() != e->src()) 
-            return;
+    if (sources.size() > 0) return;
 
     // If an indirect edge points a function entry,
     // and the entry block does not have other incoming edges,
@@ -1206,7 +1204,7 @@ Parser::delete_bogus_blocks(Edge* e)
     Block::edgelist targets;
     cur->copy_targets(targets);
     for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
-        delete_bogus_blocks(*eit);
+        delete_bogus_edges(*eit);
     }
 }
 
