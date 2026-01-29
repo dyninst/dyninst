@@ -48,7 +48,7 @@ set(_private_headers
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDHSAKernelDescriptor.h
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h
     src/ast.h
-    src/baseTramp.h
+    src/trampolines/baseTramp.h
     src/trampolines/baseTramp-aarch64.h
     src/trampolines/baseTramp-amdgpu.h
     src/trampolines/baseTramp-ppc.h
@@ -119,7 +119,6 @@ set(_private_headers
 set(_sources
     src/addressSpace.C
     src/ast.C
-    src/baseTramp.C
     src/binaryEdit.C
     src/block.C
     src/codeRange.C
@@ -200,7 +199,8 @@ set(_sources
     src/Relocation/Widgets/PCWidget.C
     src/Relocation/Widgets/RelDataWidget.C
     src/Relocation/Widgets/StackModWidget.C
-    src/Relocation/patchapi_debug.C)
+    src/Relocation/patchapi_debug.C
+    src/trampolines/baseTramp.C)
 
 list(FIND DYNINST_PLATFORM_CAPABILITIES "-Dcap_stack_mods" cap_stack_mods_found)
 if(cap_stack_mods_found GREATER -1)

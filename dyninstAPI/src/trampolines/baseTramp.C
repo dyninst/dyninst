@@ -30,7 +30,7 @@
 
 // $Id: baseTramp.C,v 1.68 2008/09/03 06:08:44 jaw Exp $
 
-#include "dyninstAPI/src/baseTramp.h"
+#include "baseTramp.h"
 #include "baseTramp-aarch64.h"
 #include "baseTramp-amdgpu.h"
 #include "baseTramp-ppc.h"
