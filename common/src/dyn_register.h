@@ -41,11 +41,11 @@ namespace Dyninst {
 
 enum class RegKind : uint8_t { SCALAR, VECTOR, SCALAR_PREDICATE, UNKOWN_KIND };
 
-class MachineId final {
+class OperandRegId final {
   uint32_t id_;
 
 public:
-  explicit constexpr MachineId(uint32_t id) : id_(id) {}
+  explicit constexpr OperandRegId(uint32_t id) : id_(id) {}
   constexpr uint32_t getId() const { return id_; }
 };
 
@@ -58,29 +58,29 @@ public:
 };
 
 class Register {
-  MachineId id;
+  OperandRegId id;
   RegKind kind;
   BlockSize count;
 
 public:
-  static Register makeScalarRegister(MachineId machId, BlockSize blockSize) {
-    return Register(machId, RegKind::SCALAR, blockSize);
+  static Register makeScalarRegister(OperandRegId regId, BlockSize blockSize) {
+    return Register(regId, RegKind::SCALAR, blockSize);
   }
 
-  static Register makeVectorRegister(MachineId machId, BlockSize blockSize) {
-    return Register(machId, RegKind::VECTOR, blockSize);
+  static Register makeVectorRegister(OperandRegId regId, BlockSize blockSize) {
+    return Register(regId, RegKind::VECTOR, blockSize);
   }
 
   // Default is an invalid register.
   constexpr Register()
-      : id(MachineId(static_cast<uint32_t>(-1))), kind(RegKind::UNKOWN_KIND), count(BlockSize(1)) {}
+      : id(OperandRegId(static_cast<uint32_t>(-1))), kind(RegKind::UNKOWN_KIND), count(BlockSize(1)) {}
 
   // This is only to make existing code work, and must go away in the future.
   constexpr Register(uint32_t rawId)
-      : id(MachineId(rawId)), kind(RegKind::SCALAR), count(BlockSize(1)) {}
+      : id(OperandRegId(rawId)), kind(RegKind::SCALAR), count(BlockSize(1)) {}
 
-  constexpr Register(MachineId machId, RegKind regKind, BlockSize blockSize)
-      : id(machId), kind(regKind), count(blockSize) {}
+  constexpr Register(OperandRegId regId, RegKind regKind, BlockSize blockSize)
+      : id(regId), kind(regKind), count(blockSize) {}
 
   constexpr uint32_t getId() const { return id.getId(); }
 
@@ -108,7 +108,7 @@ public:
     RegKind regKind = this->kind;
 
     for (uint32_t idNum = baseId; idNum <= lastId; ++idNum) {
-      individualRegisters.emplace_back(MachineId(idNum), regKind, BlockSize(1));
+      individualRegisters.emplace_back(OperandRegId(idNum), regKind, BlockSize(1));
     }
     return individualRegisters;
   }
