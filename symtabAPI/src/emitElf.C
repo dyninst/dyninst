@@ -477,7 +477,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     std::unordered_map<unsigned, unsigned> secInfoMapping;
     std::unordered_map<unsigned, unsigned> changeMapping;
     std::unordered_map<string, unsigned> newNameIndexMapping;
-    std::unordered_map<unsigned, string> oldIndexNameMapping;
 
     std::unordered_set<string> updateLinkInfoSecs = {
         ".dynsym", /*".dynstr",*/ ".rela.dyn", ".rela.plt", ".dynamic", ".symtab"};
@@ -504,7 +503,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
         sectionNumber++;
         changeMapping[sectionNumber] = 0;
-        oldIndexNameMapping[scncount + 1] = string(name);
         newNameIndexMapping[string(name)] = sectionNumber;
 
         newscn = elf_newscn(newElf);
