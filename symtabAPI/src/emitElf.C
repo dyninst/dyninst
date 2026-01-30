@@ -552,7 +552,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                 changeMapping[sectionNumber] = 1;
                 string newName = ".o";
                 newName.append(name, 2, strlen(name));
-                renameSection((string) name, newName, false);
+                renameSection(name, newName, false);
             }
         }
 
@@ -588,7 +588,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             changeMapping[sectionNumber] = 1;
             string newName = ".o";
             newName.append(name, 2, strlen(name));
-            renameSection((string) name, newName, false);
+            renameSection(name, newName, false);
         }
 
         // Only need to rewrite data section
@@ -599,7 +599,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
             string newName = ".o";
             newName.append(name, 2, strlen(name));
-            renameSection((string) name, newName, false);
+            renameSection(name, newName, false);
         }
 
         if (isStaticBinary && (strcmp(name, ".rela.plt") == 0)) {
