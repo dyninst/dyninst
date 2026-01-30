@@ -1185,9 +1185,7 @@ Parser::delete_bogus_edges(Edge* e)
 
     // If the target block has other incoming edges,
     // then we do not remove the block at this point.
-    // It is possible that all incoming edges are bogus
-    // indirect edges, then the last removed edge will
-    // trigger the deletion of the block.
+// If there are other incoming edges, do not propagate.
     if (cur->sources().size() > 0) return;
 
     // If an indirect edge points a function entry,
