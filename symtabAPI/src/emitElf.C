@@ -402,8 +402,6 @@ void emitElf<ElfTypes>::renameSection(const std::string &oldStr, const std::stri
 
 template<class ElfTypes>
 bool emitElf<ElfTypes>::driver(std::string fName) {
-    vector<ExceptionBlock *> exceptions;
-    obj->getAllExceptions(exceptions);
 
     int newfd;
     Region *foundSec = NULL;
