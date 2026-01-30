@@ -851,10 +851,9 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &) {
         else if (old->p_type == PT_PHDR) {
             if (!movePHdrsFirst)
                 segments[i].p_vaddr = phdrSegAddr;
-            else if (movePHdrsFirst)
-                segments[i].p_vaddr = old->p_vaddr - pgSize + library_adjust;
             else
-                segments[i].p_vaddr = old->p_vaddr;
+                segments[i].p_vaddr = old->p_vaddr - pgSize + library_adjust;
+
             segments[i].p_offset = newEhdr->e_phoff;
             segments[i].p_paddr = segments[i].p_vaddr;
             segments[i].p_filesz = sizeof(Elf_Phdr) * newEhdr->e_phnum;
