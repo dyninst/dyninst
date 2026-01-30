@@ -127,13 +127,13 @@ public:
   // Required for compatibility with integers.
   // TODO: This must go away in the future.
   constexpr bool operator==(int other) const {
-    return id.getId() == Register(other);
+    return *this == Register(other);
   }
 
   constexpr bool operator!=(int other) const { return !(*this == other); }
 
   constexpr bool operator==(unsigned other) const {
-    return id.getId() == Register(other);
+    return *this == Register(other);
   }
 
   constexpr bool operator!=(unsigned other) const { return !(*this == other); }
