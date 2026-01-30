@@ -31,7 +31,6 @@
 #ifndef DYNINST_REGISTER
 #define DYNINST_REGISTER
 
-#include <assert.h>
 #include <functional>
 #include <stdint.h>
 #include <vector>
@@ -108,7 +107,6 @@ public:
     uint32_t lastId = baseId + numRegs - 1;
     RegKind regKind = this->kind;
 
-    assert(numRegs > 1 && "This must be a register block");
     for (uint32_t idNum = baseId; idNum <= lastId; ++idNum) {
       individualRegisters.emplace_back(MachineId(idNum), regKind, BlockSize(1));
     }
