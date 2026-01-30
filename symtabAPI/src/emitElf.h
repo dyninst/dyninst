@@ -246,7 +246,7 @@ namespace Dyninst {
                                  bool dynSymFlag = false);
             void findSegmentEnds();
             void renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll=true);
-            void fixPhdrs(unsigned &);
+            void fixPhdrs();
             void createNewPhdrRegion(std::unordered_map<std::string, unsigned> &newNameIndexMapping);
 
             bool addSectionHeaderTable(Elf_Shdr *shdr);

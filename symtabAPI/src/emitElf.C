@@ -739,7 +739,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     //copy program headers
     oldPhdr = ElfTypes::elf_getphdr(
             oldElf);
-    fixPhdrs(extraAlignSize);
+    fixPhdrs();
 
     //Write the new Elf file
     if (elf_update(newElf, ELF_C_WRITE) < 0) {
@@ -804,7 +804,7 @@ void emitElf<ElfTypes>::createNewPhdrRegion(std::unordered_map<std::string, unsi
 
 
 template<class ElfTypes>
-void emitElf<ElfTypes>::fixPhdrs(unsigned &) {
+void emitElf<ElfTypes>::fixPhdrs() {
     // This function has to perform the addresses fix in two passes.
     // First we must update the old headers addresses, and than
     // we should look where to insert the new LOAD segment
