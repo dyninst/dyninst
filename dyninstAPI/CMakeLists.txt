@@ -269,6 +269,7 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/inst-amdgpu.C
     src/emit-amdgpu.C
     src/codegen-amdgpu.C
+    src/registerSpace/registerSpace-amdgpu.C
     src/parse-amdgpu.C
     src/RegisterConversion-amdgpu.C
     src/Relocation/Widgets/CFWidget-amdgpu.C
