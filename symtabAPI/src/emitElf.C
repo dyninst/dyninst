@@ -95,14 +95,6 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *ob
     //    (b) create new section called dynphdrs and change pointers (createNewPhdrRegion)
     //    (c) library_adjust - create room for a new program header in a position-indepdent library
     //                         by increasing all virtual addresses for the library
-    // 2) Use existing Phdr (used in bleugene - will be handled in function fixPhdrs)
-    //    (a) replaceNOTE section - if NOTE exists
-    //    (b) BSSExpandFlag - expand BSS section - default option
-
-    // default
-    createNewPhdr = true;
-    BSSExpandFlag = false;
-    replaceNOTE = false;
 
     //If we're dealing with a library that can be loaded anywhere,
     // then load the program headers into the later part of the binary,
@@ -113,7 +105,7 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *ob
     // works and will avoid the kernel bug.
 
     isStaticBinary = obj_->isStaticBinary();
-    movePHdrsFirst = createNewPhdr && object && object->getLoadAddress();
+    movePHdrsFirst = object && object->getLoadAddress();
 
     //If we want to try a mode where we add the program headers to a library
     // that can be loaded anywhere, and put the program headers in the first
@@ -410,9 +402,6 @@ void emitElf<ElfTypes>::renameSection(const std::string &oldStr, const std::stri
 
 template<class ElfTypes>
 bool emitElf<ElfTypes>::driver(std::string fName) {
-    vector<ExceptionBlock *> exceptions;
-    obj->getAllExceptions(exceptions);
-
     int newfd;
     Region *foundSec = NULL;
     unsigned pgSize = getpagesize();
@@ -445,7 +434,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     secNameIndex = 1;
     //Section name index for new sections
     loadSecTotalSize = 0;
-    unsigned NOBITStotalsize = 0;
     int dirtySecsChange = 0;
     unsigned extraAlignSize = 0;
 
@@ -456,7 +444,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         return false;
     }
 
-    dynsym_info = 0;
     // Write the Elf header first!
     newEhdr = ElfTypes::elf_newehdr(
             newElf);
@@ -474,7 +461,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     findSegmentEnds();
     unsigned insertPoint = oldEhdr->e_shnum;
     unsigned insertPointOffset = 0;
-    unsigned NOBITSstartPoint = oldEhdr->e_shnum;
 
     if (movePHdrsFirst) {
         newEhdr->e_phoff = sizeof(Elf_Ehdr);
@@ -491,7 +477,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     std::unordered_map<unsigned, unsigned> secInfoMapping;
     std::unordered_map<unsigned, unsigned> changeMapping;
     std::unordered_map<string, unsigned> newNameIndexMapping;
-    std::unordered_map<unsigned, string> oldIndexNameMapping;
 
     std::unordered_set<string> updateLinkInfoSecs = {
         ".dynsym", /*".dynstr",*/ ".rela.dyn", ".rela.plt", ".dynamic", ".symtab"};
@@ -518,7 +503,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
         sectionNumber++;
         changeMapping[sectionNumber] = 0;
-        oldIndexNameMapping[scncount + 1] = string(name);
         newNameIndexMapping[string(name)] = sectionNumber;
 
         newscn = elf_newscn(newElf);
@@ -559,23 +543,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             newshdr->sh_entsize = 0x0;
         }
 
-        if (BSSExpandFlag) {
-            // Add the expanded SHT_NOBITS section size if the section comes after those sections
-            if (scncount > NOBITSstartPoint)
-                newshdr->sh_offset += NOBITStotalsize;
-
-            // Expand the NOBITS sections in file & and change the type from SHT_NOBITS to SHT_PROGBITS
-            if (shdr->sh_type == SHT_NOBITS) {
-                newshdr->sh_type = SHT_PROGBITS;
-                newdata->d_buf = allocate_buffer(shdr->sh_size);
-                memset(newdata->d_buf, '\0', shdr->sh_size);
-                newdata->d_size = shdr->sh_size;
-                if (NOBITSstartPoint == oldEhdr->e_shnum)
-                    NOBITSstartPoint = scncount;
-                NOBITStotalsize += shdr->sh_size;
-            }
-        }
-
         vector<vector<unsigned long> > moveSecAddrRange = object->getMoveSecAddrRange();
 
         for (unsigned i = 0; i != moveSecAddrRange.size(); i++) {
@@ -585,7 +552,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                 changeMapping[sectionNumber] = 1;
                 string newName = ".o";
                 newName.append(name, 2, strlen(name));
-                renameSection((string) name, newName, false);
+                renameSection(name, newName, false);
             }
         }
 
@@ -621,7 +588,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             changeMapping[sectionNumber] = 1;
             string newName = ".o";
             newName.append(name, 2, strlen(name));
-            renameSection((string) name, newName, false);
+            renameSection(name, newName, false);
         }
 
         // Only need to rewrite data section
@@ -632,7 +599,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
             string newName = ".o";
             newName.append(name, 2, strlen(name));
-            renameSection((string) name, newName, false);
+            renameSection(name, newName, false);
         }
 
         if (isStaticBinary && (strcmp(name, ".rela.plt") == 0)) {
@@ -677,10 +644,8 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             if (newshdr->sh_offset > 0) {
                 if (newshdr->sh_offset < pgSize && !strcmp(name, INTERP_NAME)) {
                     newshdr->sh_addr -= pgSize;
-                    if (createNewPhdr) {
-                        newshdr->sh_addr += oldEhdr->e_phentsize;
-                        newshdr->sh_offset += oldEhdr->e_phentsize;
-                    }
+                    newshdr->sh_addr += oldEhdr->e_phentsize;
+                    newshdr->sh_offset += oldEhdr->e_phentsize;
                 } else
                     newshdr->sh_offset += pgSize;
             }
@@ -692,26 +657,13 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         if (newshdr->sh_offset > 0)
             newshdr->sh_offset += dirtySecsChange;
 
-        if (BSSExpandFlag) {
-            if (newshdr->sh_offset > 0) {
-                newshdr->sh_offset += extraAlignSize;
-            }
-        } else if (newshdr->sh_offset >= insertPointOffset) {
+        if (newshdr->sh_offset >= insertPointOffset) {
             newshdr->sh_offset += extraAlignSize;
         }
 
         if (foundSec->isDirty())
             dirtySecsChange += newshdr->sh_size - shdr->sh_size;
-
-        if (BSSExpandFlag && newshdr->sh_addr) {
-            unsigned newOff =
-                    newshdr->sh_offset - (newshdr->sh_offset & (pgSize - 1)) + (newshdr->sh_addr & (pgSize - 1));
-            if (newOff < newshdr->sh_offset)
-                newOff += pgSize;
-            extraAlignSize += newOff - newshdr->sh_offset;
-            newshdr->sh_offset = newOff;
-        }
-
+        
         secLinkMapping[sectionNumber] = shdr->sh_link;
         secInfoMapping[sectionNumber] = shdr->sh_info;
 
@@ -737,7 +689,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             if (!createLoadableSections(newshdr, extraAlignSize, newNameIndexMapping,
                        sectionNumber))
                 return false;
-            if (createNewPhdr && !movePHdrsFirst) {
+            if (!movePHdrsFirst) {
                 sectionNumber++;
                 createNewPhdrRegion(newNameIndexMapping);
             }
@@ -787,7 +739,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     //copy program headers
     oldPhdr = ElfTypes::elf_getphdr(
             oldElf);
-    fixPhdrs(extraAlignSize);
+    fixPhdrs();
 
     //Write the new Elf file
     if (elf_update(newElf, ELF_C_WRITE) < 0) {
@@ -810,8 +762,7 @@ void emitElf<ElfTypes>::createNewPhdrRegion(std::unordered_map<std::string, unsi
     assert(!movePHdrsFirst);
 
     unsigned phdr_size = oldEhdr->e_phnum * oldEhdr->e_phentsize;
-    if (createNewPhdr)
-        phdr_size += oldEhdr->e_phentsize;
+    phdr_size += oldEhdr->e_phentsize;
 
     unsigned align = 0;
     if (currEndOffset % 8)
@@ -853,7 +804,7 @@ void emitElf<ElfTypes>::createNewPhdrRegion(std::unordered_map<std::string, unsi
 
 
 template<class ElfTypes>
-void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
+void emitElf<ElfTypes>::fixPhdrs() {
     // This function has to perform the addresses fix in two passes.
     // First we must update the old headers addresses, and than
     // we should look where to insert the new LOAD segment
@@ -873,13 +824,10 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
     newEhdr->e_phnum = oldEhdr->e_phnum;
     newEhdr->e_phentsize = oldEhdr->e_phentsize;
 
-    if (createNewPhdr) {
-        newEhdr->e_phnum++;
-        if (hasRewrittenTLS && !TLSExists) newEhdr->e_phnum++;
-    }
+    newEhdr->e_phnum++;
+    if (hasRewrittenTLS && !TLSExists) newEhdr->e_phnum++;
 
     // Copy old segments to vector and update contents
-    bool replaced = false;
     Elf_Phdr *old = oldPhdr;
     vector<Elf_Phdr> segments;
 
@@ -895,12 +843,11 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
             segments[i].p_filesz = segments[i].p_memsz;
         }
         else if (old->p_type == PT_PHDR) {
-            if (createNewPhdr && !movePHdrsFirst)
+            if (!movePHdrsFirst)
                 segments[i].p_vaddr = phdrSegAddr;
-            else if (createNewPhdr && movePHdrsFirst)
-                segments[i].p_vaddr = old->p_vaddr - pgSize + library_adjust;
             else
-                segments[i].p_vaddr = old->p_vaddr;
+                segments[i].p_vaddr = old->p_vaddr - pgSize + library_adjust;
+
             segments[i].p_offset = newEhdr->e_phoff;
             segments[i].p_paddr = segments[i].p_vaddr;
             segments[i].p_filesz = sizeof(Elf_Phdr) * newEhdr->e_phnum;
@@ -913,17 +860,6 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
             segments[i].p_memsz = newTLSData->sh_size + old->p_memsz - old->p_filesz;
             segments[i].p_align = newTLSData->sh_addralign;
         } else if (old->p_type == PT_LOAD) {
-            if (!createNewPhdr && segments[i].p_align > pgSize) {
-                segments[i].p_align = pgSize;
-            }
-            if (BSSExpandFlag) {
-                if (old->p_flags == 6 || old->p_flags == 7) {
-                    segments[i].p_memsz += loadSecTotalSize + extraAlignSize;
-                    segments[i].p_filesz = segments[i].p_memsz;
-                    segments[i].p_flags = 7;
-                }
-            }
-
             if (movePHdrsFirst) {
                 if (!old->p_offset) {
                     if (segments[i].p_vaddr) {
@@ -943,23 +879,11 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
                     segments[i].p_paddr += library_adjust;
                 }
             }
-        } else if (replaceNOTE && old->p_type == PT_NOTE && !replaced) {
-            replaced = true;
-            segments[i].p_type = PT_LOAD;
-            segments[i].p_offset = firstNewLoadSec->sh_offset;
-            segments[i].p_vaddr = newSegmentStart;
-            segments[i].p_paddr = segments[i].p_vaddr;
-            segments[i].p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
-            segments[i].p_memsz =
-                    (currEndAddress - firstNewLoadSec->sh_addr) - (newSegmentStart - firstNewLoadSec->sh_addr);
-            segments[i].p_flags = PF_R + PF_W + PF_X;
-            segments[i].p_align = pgSize;
-        }
-        else if (old->p_type == PT_INTERP && movePHdrsFirst && old->p_offset) {
+        } else if (old->p_type == PT_INTERP && movePHdrsFirst && old->p_offset) {
             Elf_Off addr_shift = library_adjust;
             Elf_Off offset_shift = pgSize;
             if (old->p_offset < pgSize) {
-                offset_shift = createNewPhdr ? oldEhdr->e_phentsize : 0;
+                offset_shift = oldEhdr->e_phentsize;
                 addr_shift -= pgSize - offset_shift;
             }
             segments[i].p_offset += offset_shift;
@@ -977,7 +901,7 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
         ++old;
     }
 
-    if (createNewPhdr && firstNewLoadSec)
+    if (firstNewLoadSec)
     {
         // Create New Segment
         Elf_Phdr newSeg;
