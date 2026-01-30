@@ -62,6 +62,25 @@ void AmdgpuGfx908PointHandler::handlePoints(std::vector<BPatch_point *> const &p
   }
 }
 
+void AmdgpuGfx908PointHandler::handlePatchPoint(PatchAPI::Point *point) {
+  using namespace PatchAPI;
+  Register baseRegs = getPrologueRegisterPair(point);
+  for (Point::instance_iter iter = point->begin(); iter != point->end(); ++iter) {
+    if ((*iter)->type() == SnippetType::REGULAR) {
+      // AstNodePtr ast = static_cast<AstNodePtr>((*iter)->snippet());
+      // Traverse this AST and look for every AstOperandNode
+    }
+  }
+}
+
+Register AmdgpuGfx908PointHandler::getPrologueRegisterPair(PatchAPI::Point *point) const {
+  using namespace PatchAPI;
+  PatchFunction *function = point->func();
+  auto iter = prologueRegisterMap.find(function);
+  assert(iter != prologueRegisterMap.end() && "function must be mapped");
+  return iter->second;
+}
+
 BPatch_variableExpr* AmdgpuGfx908PointHandler::getKernelDescriptorVariable(BPatch_function *f) {
   // The kernel descriptor symbols have global visibility. So Dyninst will see them as global
   // variables.
@@ -137,13 +156,18 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
     exit(1);
   }
 
-  int reg = 94;
+  Register reg = 94;
   if (!isRegPairAvailable(reg, function)) {
     std::cerr << "Can't instrument " << function->getMangledName()
               << " as s94 and s95 are not available.\n"
               << "exiting...\n";
     exit(1);
   }
+
+  // We know which register will be used in the prologue to hold base address of instrumentation
+  // variables for this kernel. Save it.
+  PatchAPI::PatchFunction *patchApiFunction = PatchAPI::convert(function);
+  prologueRegisterMap[patchApiFunction] = reg;
 
   std::vector<BPatch_point *> entryPoints;
   function->getEntryPoints(entryPoints);
