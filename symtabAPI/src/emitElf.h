@@ -210,7 +210,7 @@ namespace Dyninst {
             std::map<unsigned, std::vector<std::string> > verdauxEntries;
             std::map<std::string, unsigned> versionNames;
             std::vector<Elf_Half> versionSymTable;
-            int curVersionNum, verneednum, verdefnum, dynsym_info{};
+            int curVersionNum, verneednum, verdefnum{};
 
             // Needed when adding a new segment
             Elf_Off newSegmentStart;

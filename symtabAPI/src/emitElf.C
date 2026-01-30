@@ -402,7 +402,6 @@ void emitElf<ElfTypes>::renameSection(const std::string &oldStr, const std::stri
 
 template<class ElfTypes>
 bool emitElf<ElfTypes>::driver(std::string fName) {
-
     int newfd;
     Region *foundSec = NULL;
     unsigned pgSize = getpagesize();
@@ -445,7 +444,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         return false;
     }
 
-    dynsym_info = 0;
     // Write the Elf header first!
     newEhdr = ElfTypes::elf_newehdr(
             newElf);
