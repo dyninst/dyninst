@@ -245,6 +245,7 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
     src/inst-power.C
     src/codegen-power.C
     src/parse-power.C
+    src/registerSpace/registerSpace-ppc.C
     src/RegisterConversion-ppc.C
     src/Relocation/Widgets/CFWidget-ppc.C
     src/Relocation/Widgets/PCWidget-ppc.C
