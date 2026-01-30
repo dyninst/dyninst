@@ -258,6 +258,7 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/codegen-aarch64.C
     src/parse-aarch64.C
     src/RegisterConversion-aarch64.C
+    src/registerSpace/registerSpace-aarch64.C
     src/Relocation/Widgets/CFWidget-aarch64.C
     src/Relocation/Widgets/PCWidget-aarch64.C
     src/trampolines/baseTramp-aarch64.C)
@@ -342,5 +343,8 @@ foreach(t ${dyninstAPI_TARGETS})
   endif()
 
   target_include_directories(
-    ${t} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/trampolines>")
+    ${t}
+    PUBLIC
+      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/trampolines;${CMAKE_CURRENT_SOURCE_DIR}/src/registerSpace>"
+    )
 endforeach()
