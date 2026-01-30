@@ -75,7 +75,7 @@ public:
   constexpr Register()
       : id(OperandRegId(static_cast<uint32_t>(-1))), kind(RegKind::UNKOWN_KIND), count(BlockSize(1)) {}
 
-  // This is only to make existing code work, and must go away in the future.
+  // Support existing Register usage that initializes with uint32_t.
   constexpr Register(uint32_t rawId)
       : id(OperandRegId(rawId)), kind(RegKind::SCALAR), count(BlockSize(1)) {}
 
