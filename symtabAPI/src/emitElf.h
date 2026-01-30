@@ -234,7 +234,6 @@ namespace Dyninst {
             //flags
             // Expand NOBITS sections within the object file to their size
             bool movePHdrsFirst;
-            bool createNewPhdr;
             unsigned loadSecTotalSize;
 
             bool isStripped;

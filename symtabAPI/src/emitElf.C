@@ -95,8 +95,6 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *ob
     //    (b) create new section called dynphdrs and change pointers (createNewPhdrRegion)
     //    (c) library_adjust - create room for a new program header in a position-indepdent library
     //                         by increasing all virtual addresses for the library
-    // 2) Use existing Phdr (used in bleugene - will be handled in function fixPhdrs)
-    createNewPhdr = true;
 
     //If we're dealing with a library that can be loaded anywhere,
     // then load the program headers into the later part of the binary,
@@ -107,7 +105,7 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *ob
     // works and will avoid the kernel bug.
 
     isStaticBinary = obj_->isStaticBinary();
-    movePHdrsFirst = createNewPhdr && object && object->getLoadAddress();
+    movePHdrsFirst = object && object->getLoadAddress();
 
     //If we want to try a mode where we add the program headers to a library
     // that can be loaded anywhere, and put the program headers in the first
@@ -652,10 +650,8 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             if (newshdr->sh_offset > 0) {
                 if (newshdr->sh_offset < pgSize && !strcmp(name, INTERP_NAME)) {
                     newshdr->sh_addr -= pgSize;
-                    if (createNewPhdr) {
-                        newshdr->sh_addr += oldEhdr->e_phentsize;
-                        newshdr->sh_offset += oldEhdr->e_phentsize;
-                    }
+                    newshdr->sh_addr += oldEhdr->e_phentsize;
+                    newshdr->sh_offset += oldEhdr->e_phentsize;
                 } else
                     newshdr->sh_offset += pgSize;
             }
@@ -699,7 +695,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             if (!createLoadableSections(newshdr, extraAlignSize, newNameIndexMapping,
                        sectionNumber))
                 return false;
-            if (createNewPhdr && !movePHdrsFirst) {
+            if (!movePHdrsFirst) {
                 sectionNumber++;
                 createNewPhdrRegion(newNameIndexMapping);
             }
@@ -772,8 +768,7 @@ void emitElf<ElfTypes>::createNewPhdrRegion(std::unordered_map<std::string, unsi
     assert(!movePHdrsFirst);
 
     unsigned phdr_size = oldEhdr->e_phnum * oldEhdr->e_phentsize;
-    if (createNewPhdr)
-        phdr_size += oldEhdr->e_phentsize;
+    phdr_size += oldEhdr->e_phentsize;
 
     unsigned align = 0;
     if (currEndOffset % 8)
@@ -835,10 +830,8 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &) {
     newEhdr->e_phnum = oldEhdr->e_phnum;
     newEhdr->e_phentsize = oldEhdr->e_phentsize;
 
-    if (createNewPhdr) {
-        newEhdr->e_phnum++;
-        if (hasRewrittenTLS && !TLSExists) newEhdr->e_phnum++;
-    }
+    newEhdr->e_phnum++;
+    if (hasRewrittenTLS && !TLSExists) newEhdr->e_phnum++;
 
     // Copy old segments to vector and update contents
     Elf_Phdr *old = oldPhdr;
@@ -856,9 +849,9 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &) {
             segments[i].p_filesz = segments[i].p_memsz;
         }
         else if (old->p_type == PT_PHDR) {
-            if (createNewPhdr && !movePHdrsFirst)
+            if (!movePHdrsFirst)
                 segments[i].p_vaddr = phdrSegAddr;
-            else if (createNewPhdr && movePHdrsFirst)
+            else if (movePHdrsFirst)
                 segments[i].p_vaddr = old->p_vaddr - pgSize + library_adjust;
             else
                 segments[i].p_vaddr = old->p_vaddr;
@@ -874,9 +867,6 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &) {
             segments[i].p_memsz = newTLSData->sh_size + old->p_memsz - old->p_filesz;
             segments[i].p_align = newTLSData->sh_addralign;
         } else if (old->p_type == PT_LOAD) {
-            if (!createNewPhdr && segments[i].p_align > pgSize) {
-                segments[i].p_align = pgSize;
-            }
             if (movePHdrsFirst) {
                 if (!old->p_offset) {
                     if (segments[i].p_vaddr) {
@@ -900,7 +890,7 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &) {
             Elf_Off addr_shift = library_adjust;
             Elf_Off offset_shift = pgSize;
             if (old->p_offset < pgSize) {
-                offset_shift = createNewPhdr ? oldEhdr->e_phentsize : 0;
+                offset_shift = oldEhdr->e_phentsize;
                 addr_shift -= pgSize - offset_shift;
             }
             segments[i].p_offset += offset_shift;
@@ -918,7 +908,7 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &) {
         ++old;
     }
 
-    if (createNewPhdr && firstNewLoadSec)
+    if (firstNewLoadSec)
     {
         // Create New Segment
         Elf_Phdr newSeg;
