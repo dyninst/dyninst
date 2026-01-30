@@ -301,13 +301,6 @@ elseif(DYNINST_OS_Windows)
     src/Relocation/DynPointMaker.C)
 endif()
 
-if(DYNINST_CODEGEN_ARCH_I386
-   AND DYNINST_HOST_ARCH_I386
-   AND DYNINST_OS_UNIX)
-  list(APPEND _sources src/cpuid-x86.S)
-  set_source_files_properties(src/cpuid-x86.S PROPERTIES LANGUAGE C)
-endif()
-
 # cmake-format: off
 dyninst_library(
   dyninstAPI
