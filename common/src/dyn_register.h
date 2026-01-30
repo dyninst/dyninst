@@ -87,6 +87,8 @@ public:
 
   constexpr RegKind getKind() const { return kind; }
 
+  constexpr uint32_t getCount() const { return count.getCount(); }
+
   constexpr bool isScalar() const { return kind == RegKind::SCALAR; }
 
   constexpr bool isVector() const { return kind == RegKind::VECTOR; }
@@ -94,8 +96,6 @@ public:
   constexpr bool isScalarPredicate() const { return kind == RegKind::SCALAR_PREDICATE; }
 
   constexpr bool isUnkownKind() const { return kind == RegKind::UNKOWN_KIND; }
-
-  constexpr uint32_t getCount() const { return count.getCount(); }
 
   constexpr operator uint32_t() const { return this->getId(); }
 
