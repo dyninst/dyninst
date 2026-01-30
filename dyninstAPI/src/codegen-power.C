@@ -31,7 +31,7 @@
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/inst-power.h"
 #include "dyninstAPI/src/emit-power.h"

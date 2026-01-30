@@ -30,7 +30,7 @@
 
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/dynProcess.h"
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 #include "arch-amdgpu.h"
 #include "emit-amdgpu.h"
 
