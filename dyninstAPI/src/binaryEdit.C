@@ -351,7 +351,15 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file,
 
     // Testing
 
-    newBinaryEdit->makeInitAndFiniIfNeeded();
+    if (linkedFile->getArchitecture() == Arch_riscv64) {
+        // RISC-V ELF does not use _init and _fini
+        // Instead, we create custom init and fini functions and add it to .init_array and .fini_array
+        newBinaryEdit->makeDyninstInitIfNeeded();
+        newBinaryEdit->makeDyninstFiniIfNeeded();
+    }
+    else {
+        newBinaryEdit->makeInitAndFiniIfNeeded();
+    }
 
     newBinaryEdit->createMemoryBackingStore(newBinaryEdit->getAOut());
     newBinaryEdit->initialize();
@@ -402,6 +410,7 @@ bool BinaryEdit::getResolvedLibraryPath(const std::string &, std::vector<std::st
 #if !(defined(cap_binary_rewriter) && (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)\
 		|| defined(DYNINST_HOST_ARCH_POWER)   \
 		|| defined(DYNINST_HOST_ARCH_AARCH64) \
+		|| defined(DYNINST_HOST_ARCH_RISCV64) \
 		|| defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) \
 		)) 
 bool BinaryEdit::doStaticBinarySpecialCases() {

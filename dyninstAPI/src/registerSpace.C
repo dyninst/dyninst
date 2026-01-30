@@ -62,6 +62,9 @@
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "dyninstAPI/src/emit-aarch64.h"
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
+#include "dyninstAPI/src/inst-riscv64.h"
+#include "dyninstAPI/src/emit-riscv64.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 #include "dyninstAPI/src/emit-amdgpu.h"
 #endif
@@ -105,6 +108,19 @@ unsigned registerSlot::encoding() const {
     // Should do a mapping here from entire register space to "expected" encodings.
     return number;
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64) 
+    switch (type) {
+        case GPR:
+            return registerSpace::GPR(number);
+            break;
+        case FPR:
+            return registerSpace::FPR(number);
+            break;
+        default:
+            assert(0);
+            return Null_Register;
+            break;
+    }
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64) 
     switch (type) {
         case GPR:
             return registerSpace::GPR(number);
@@ -1507,6 +1523,9 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 #if defined(DYNINST_CODEGEN_ARCH_AARCH64)
 	assert(0);
 	//#error "aarch64 should not be 32bit long"
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
+	assert(0);
+	//#error "riscv64 should not be 32bit long"
 #else
 		range = regToMachReg32.equal_range(reg);
 		live = &live1;
