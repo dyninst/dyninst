@@ -230,6 +230,7 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     APPEND
     _sources
     src/RegisterConversion-x86.C
+    src/registerSpace/registerSpace-x86.C
     src/Relocation/Widgets/CFWidget-x86.C
     src/Relocation/Widgets/PCWidget-x86.C
     src/inst-x86.C
