@@ -44,7 +44,7 @@
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_collections.h"
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/mapped_object.h"

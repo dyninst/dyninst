@@ -1,7 +1,7 @@
 #include "Architecture.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/emit-amdgpu.h"
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 #include "emitter_test.h"
 
 int main() {

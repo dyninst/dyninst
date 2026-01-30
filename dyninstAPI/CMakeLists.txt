@@ -109,7 +109,7 @@ set(_private_headers
     src/pdwinnt.h
     src/PointHandler.h
     src/RegisterConversion.h
-    src/registerSpace.h
+    src/registerSpace/registerSpace.h
     src/regTracker.h
     src/syscallNotification.h
     src/trapMappings.h
@@ -144,7 +144,6 @@ set(_sources
     src/parse-cfg.C
     src/pcEventHandler.C
     src/pcEventMuxer.C
-    src/registerSpace.C
     src/regTracker.C
     src/variable.C
     src/BPatch.C
@@ -175,6 +174,7 @@ set(_sources
     src/Parsing-arch.C
     src/Parsing.C
     src/Patching.C
+    src/registerSpace/registerSpace.C
     src/Relocation/CFG/RelocBlock.C
     src/Relocation/CFG/RelocEdge.C
     src/Relocation/CFG/RelocGraph.C
