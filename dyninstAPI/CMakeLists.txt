@@ -52,6 +52,7 @@ set(_private_headers
     src/trampolines/baseTramp-aarch64.h
     src/trampolines/baseTramp-amdgpu.h
     src/trampolines/baseTramp-ppc.h
+    src/trampolines/baseTramp-riscv64.h
     src/trampolines/baseTramp-x86.h
     src/binaryEdit.h
     src/block.h

@@ -34,6 +34,7 @@
 #include "baseTramp-aarch64.h"
 #include "baseTramp-amdgpu.h"
 #include "baseTramp-ppc.h"
+#include "baseTramp-riscv64.h"
 #include "baseTramp-x86.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/dynThread.h"
@@ -90,7 +91,7 @@ baseTramp *baseTramp::create() {
 #elif DYNINST_CODEGEN_ARCH_POWER
   return new baseTramp_ppc();
 #elif DYNINST_CODEGEN_ARCH_RISCV64
-  return new baseTramp();
+  return new baseTramp_riscv64();
 #elif DYNINST_CODEGEN_ARCH_AMDGPU_GFX908
   return new baseTramp_amdgpu();
 #elif DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A
