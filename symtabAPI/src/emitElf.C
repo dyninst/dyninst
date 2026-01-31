@@ -602,19 +602,15 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             renameSection(name, newName, false);
         }
 
-        if (isStaticBinary && (strcmp(name, ".rela.plt") == 0)) {
+        if (isStaticBinary && ((strcmp(name, ".rel.plt") == 0) || (strcmp(name, ".rela.plt") == 0 ))) {
             string newName = ".o";
             newName.append(name, 2, strlen(name));
             renameSection(name, newName, false);
+            // The old sections are no longer REL or RELA, change to PROGBITS
+            newshdr->sh_type = SHT_PROGBITS;
+
         }
 
-        if (isStaticBinary && (strcmp(name, ".rela.plt") == 0)) {
-            string newName = ".o";
-            newName.append(name, 2, strlen(name));
-            renameSection(name, newName, false);
-            // Clear the PLT type; use PROGBITS
-            newshdr->sh_type = SHT_PROGBITS;
-        }
         if (library_adjust > 0 &&
                 (strcmp(name, ".init_array") == 0 || strcmp(name, ".fini_array") == 0 ||
                  strcmp(name, "__libc_subfreeres") == 0 || strcmp(name, "__libc_atexit") == 0 ||
