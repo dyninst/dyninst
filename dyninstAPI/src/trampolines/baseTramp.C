@@ -30,7 +30,12 @@
 
 // $Id: baseTramp.C,v 1.68 2008/09/03 06:08:44 jaw Exp $
 
-#include "dyninstAPI/src/baseTramp.h"
+#include "baseTramp.h"
+#include "baseTramp-aarch64.h"
+#include "baseTramp-amdgpu.h"
+#include "baseTramp-ppc.h"
+#include "baseTramp-riscv64.h"
+#include "baseTramp-x86.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/dynThread.h"
 #include "dyninstAPI/src/binaryEdit.h"
@@ -76,8 +81,28 @@ baseTramp::~baseTramp()
    //TODO: implement me
 }
 
+baseTramp *baseTramp::create() {
+#ifdef DYNINST_CODEGEN_ARCH_X86_64
+  return new baseTramp_x86();
+#elif DYNINST_CODEGEN_ARCH_I386
+  return new baseTramp_x86();
+#elif DYNINST_CODEGEN_ARCH_AARCH64
+  return new baseTramp_aarch64();
+#elif DYNINST_CODEGEN_ARCH_POWER
+  return new baseTramp_ppc();
+#elif DYNINST_CODEGEN_ARCH_RISCV64
+  return new baseTramp_riscv64();
+#elif DYNINST_CODEGEN_ARCH_AMDGPU_GFX908
+  return new baseTramp_amdgpu();
+#elif DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A
+  return new baseTramp_amdgpu();
+#elif DYNINST_CODEGEN_ARCH_AMDGPU_GFX940
+  return new baseTramp_amdgpu();
+#endif
+}
+
 baseTramp *baseTramp::create(instPoint *p) {
-   baseTramp *bt = new baseTramp();
+   baseTramp *bt = create();
    bt->point_ = p;
    return bt;
 }
@@ -86,7 +111,7 @@ baseTramp *baseTramp::createForIRPC(AddressSpace *as) {
     // We use baseTramps to generate save and restore code for iRPCs
     // iRPCs don't have a corresponding instPoint so the AddressSpace
     // needs to be specified
-    baseTramp *bt = new baseTramp();
+    baseTramp *bt = create();
     bt->as_ = as;
     return bt;
 }

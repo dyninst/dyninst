@@ -48,7 +48,12 @@ set(_private_headers
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDHSAKernelDescriptor.h
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h
     src/ast.h
-    src/baseTramp.h
+    src/trampolines/baseTramp.h
+    src/trampolines/baseTramp-aarch64.h
+    src/trampolines/baseTramp-amdgpu.h
+    src/trampolines/baseTramp-ppc.h
+    src/trampolines/baseTramp-riscv64.h
+    src/trampolines/baseTramp-x86.h
     src/binaryEdit.h
     src/block.h
     src/BPatch_collections.h
@@ -115,7 +120,6 @@ set(_private_headers
 set(_sources
     src/addressSpace.C
     src/ast.C
-    src/baseTramp.C
     src/binaryEdit.C
     src/block.C
     src/codeRange.C
@@ -196,7 +200,8 @@ set(_sources
     src/Relocation/Widgets/PCWidget.C
     src/Relocation/Widgets/RelDataWidget.C
     src/Relocation/Widgets/StackModWidget.C
-    src/Relocation/patchapi_debug.C)
+    src/Relocation/patchapi_debug.C
+    src/trampolines/baseTramp.C)
 
 list(FIND DYNINST_PLATFORM_CAPABILITIES "-Dcap_stack_mods" cap_stack_mods_found)
 if(cap_stack_mods_found GREATER -1)
@@ -231,7 +236,8 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     src/emit-x86.C
     src/codegen-x86.C
     src/parse-x86.C
-    src/IAPI_to_AST.C)
+    src/IAPI_to_AST.C
+    src/trampolines/baseTramp-x86.C)
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(
     APPEND
@@ -241,7 +247,8 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
     src/parse-power.C
     src/RegisterConversion-ppc.C
     src/Relocation/Widgets/CFWidget-ppc.C
-    src/Relocation/Widgets/PCWidget-ppc.C)
+    src/Relocation/Widgets/PCWidget-ppc.C
+    src/trampolines/baseTramp-ppc.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(
     APPEND
@@ -252,7 +259,8 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/parse-aarch64.C
     src/RegisterConversion-aarch64.C
     src/Relocation/Widgets/CFWidget-aarch64.C
-    src/Relocation/Widgets/PCWidget-aarch64.C)
+    src/Relocation/Widgets/PCWidget-aarch64.C
+    src/trampolines/baseTramp-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(
     APPEND
@@ -332,4 +340,7 @@ foreach(t ${dyninstAPI_TARGETS})
     target_compile_definitions(
       ${t} PRIVATE "DYNINST_COMPILER_SEARCH_DIRS=${DYNINST_COMPILER_SEARCH_DIRS}")
   endif()
+
+  target_include_directories(
+    ${t} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/trampolines>")
 endforeach()

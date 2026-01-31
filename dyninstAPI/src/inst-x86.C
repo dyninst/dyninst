@@ -48,7 +48,7 @@
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/inst-x86.h"
-#include "dyninstAPI/src/baseTramp.h"
+#include "baseTramp.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/instPoint.h" // includes instPoint-x86.h
 
@@ -533,15 +533,6 @@ void registerSpace::initialize()
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
     initialize64();
 #endif
-}
-
-bool baseTramp::generateSaves(codeGen& gen, registerSpace*) {
-   return gen.codeEmitter()->emitBTSaves(this, gen);
-}
-
-bool baseTramp::generateRestores(codeGen &gen, registerSpace*) {
-
-   return gen.codeEmitter()->emitBTRestores(this, gen);
 }
 
 /****************************************************************************/
