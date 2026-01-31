@@ -274,6 +274,15 @@ Block::getInsns(Insns &insns) const {
     insns[off] = insn;
     off += insn.size();
   }
+  Instruction lastInsn = insns[last()];
+  for (auto eit = targets().begin(); eit != targets().end(); eit++) {
+    if ((*eit)->type() == RET) {
+      lastInsn.forceSetReturn();
+    }
+    if ((*eit)->type() == CALL) {
+      lastInsn.forceSetCall();
+    }
+  }
 }
 
 InstructionAPI::Instruction
