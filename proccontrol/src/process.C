@@ -8253,6 +8253,13 @@ Breakpoint::ptr Breakpoint::newHardwareBreakpoint(unsigned int mode,
   return newbp;
 }
 
+Breakpoint::ptr Breakpoint::newSynchronousBreakpoint() {
+  Breakpoint::ptr newbp = Breakpoint::ptr(new Breakpoint());
+  newbp->llbreakpoint_ = new int_breakpoint(newbp);
+  newbp->llbreakpoint_->makeSynchronous();
+  return newbp;
+}
+
 void *Breakpoint::getData() const {
    return llbreakpoint_->getData();
 }
@@ -8278,6 +8285,10 @@ void Breakpoint::setSuppressCallbacks(bool b)
 bool Breakpoint::suppressCallbacks() const
 {
    return llbreakpoint_->suppressCallbacks();
+}
+
+bool Breakpoint::isSynchronous() const {
+  return llbreakpoint_->isSynchronous();
 }
 
 // Note: These locks are intentionally indirect and leaked!
