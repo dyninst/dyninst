@@ -38,6 +38,7 @@ RUN apt-get -qq update && \
       g++                     \
       git                     \
       libiberty-dev           \
+      libicu-dev              \
       libomp-dev              \
       pkg-config              \
       libtbb-dev
