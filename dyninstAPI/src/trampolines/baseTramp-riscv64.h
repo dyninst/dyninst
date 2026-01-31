@@ -36,12 +36,12 @@
 
 class baseTramp_riscv64 final : public baseTramp {
 public:
-  bool generateSaves(codeGen &gen, registerSpace *) override {
+  bool generateSaves(codeGen &, registerSpace *) override {
     inst_printf("baseTramp codegen isn't implemented on RISCV64");
     return false;
   }
   
-  bool generateRestores(codeGen &gen, registerSpace *) override {
+  bool generateRestores(codeGen &, registerSpace *) override {
     inst_printf("baseTramp codegen isn't implemented on RISCV64");
     return false;
   }
