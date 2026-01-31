@@ -36,7 +36,6 @@
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "common/src/arch-aarch64.h"
 #include "dyninstAPI/src/codegen.h"
-#include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/os.h"
@@ -952,8 +951,8 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
     if(branch_target == registerSpace::ignored) return false;
 
     //jumping to Xn (BLR Xn)
-    args.push_back(AstNode::operandNode(operandType::origRegister,(void *)(long)branch_target));
-    args.push_back(AstNode::operandNode(operandType::Constant, (void *) addr));
+    args.push_back(OperandNode::origRegister((void *)(long)branch_target));
+    args.push_back(OperandNode::Constant((void *) addr));
 
     return true;
 }

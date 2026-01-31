@@ -60,7 +60,6 @@
 
 #include <sstream>
 
-#include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/dynThread.h"
 #include "dyninstAPI/src/dynProcess.h"
@@ -171,12 +170,12 @@ AstNodePtr PCProcess::createUnprotectStackAST() {
     func_instance *mprot = funcs[0];
     
     std::vector<AstNodePtr> args;
-    args.push_back(AstNode::operandNode(operandType::Constant, (void *)page_start));
-    args.push_back(AstNode::operandNode(operandType::Constant, (void *)(intptr_t)size));
+    args.push_back(OperandNode::Constant((void *)page_start));
+    args.push_back(OperandNode::Constant((void *)(intptr_t)size));
     // prot = READ|WRITE|EXECUTE
-    args.push_back(AstNode::operandNode(operandType::Constant, (void *)7));
+    args.push_back(OperandNode::Constant((void *)7));
 
-    return AstNode::funcCallNode(mprot, args);
+    return CallNode::call(mprot, args);
 }
 
 bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 

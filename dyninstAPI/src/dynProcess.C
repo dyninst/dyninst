@@ -1617,10 +1617,10 @@ bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
     // build AstNode for "DYNINSTos_malloc" call
     std::string callee = "DYNINSTos_malloc";
     std::vector<AstNodePtr> args(3);
-    args[0] = AstNode::operandNode(operandType::Constant, (void *)(Address)size);
-    args[1] = AstNode::operandNode(operandType::Constant, (void *)lo);
-    args[2] = AstNode::operandNode(operandType::Constant, (void *)hi);
-    AstNodePtr code = AstNode::funcCallNode(callee, args);
+    args[0] = OperandNode::Constant((void *)(Address)size);
+    args[1] = OperandNode::Constant((void *)lo);
+    args[2] = OperandNode::Constant((void *)hi);
+    AstNodePtr code = CallNode::namedCall(callee, args);
 
     // issue RPC and wait for result
     bool wasRunning = !isStopped();
@@ -1714,16 +1714,15 @@ void PCProcess::installInstrRequests(const std::vector<instMapping*> &requests) 
            // should be silently handled or not
            AstNodePtr ast;
            if ((req->where & FUNC_ARG) && req->args.size()>0) {
-              ast = AstNode::funcCallNode(req->inst, 
-                                          req->args,
-                                          this);
+              ast = CallNode::namedCall(req->inst,
+                                        req->args,
+                                        this);
            }
            else {
               std::vector<AstNodePtr> def_args;
-              def_args.push_back(AstNode::operandNode(operandType::Constant,
-                                                      (void *)0));
-              ast = AstNode::funcCallNode(req->inst,
-                                          def_args);
+              def_args.push_back(OperandNode::Constant((void *)0));
+              ast = CallNode::namedCall(req->inst,
+                                        def_args);
            }
            // We mask to strip off the FUNC_ARG bit...
            std::vector<Point *> points;

@@ -39,7 +39,7 @@
 #include <unordered_map>
 #include "dyn_register.h"
 #include "codegen.h" // codeBufIndex_t 
-#include "dyninstAPI/src/ast.h" // astNodePtr
+#include "AstNode.h" // astNodePtr
 
 namespace Dyninst {
    namespace PatchAPI {

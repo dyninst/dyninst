@@ -41,7 +41,6 @@
 #include "dyninstAPI/src/inst-power.h"
 #include "common/src/arch-power.h"
 #include "dyninstAPI/src/codegen.h"
-#include "dyninstAPI/src/ast.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/instPoint.h" // class instPoint
@@ -2080,12 +2079,10 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
     if(branch_target != registerSpace::ignored)
     {
         // Where we're jumping to (link register, count register)
-        args.push_back( AstNode::operandNode(operandType::origRegister,
-                        (void *)(long)branch_target));
+        args.push_back(OperandNode::origRegister((void *)(long)branch_target));
 
         // Where we are now
-        args.push_back( AstNode::operandNode(operandType::Constant,
-                        (void *) addr));
+        args.push_back(OperandNode::Constant((void *) addr));
 
         return true;
     }

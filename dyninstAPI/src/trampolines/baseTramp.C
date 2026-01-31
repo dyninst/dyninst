@@ -40,7 +40,7 @@
 #include "dyninstAPI/src/dynThread.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/registerSpace.h"
-#include "dyninstAPI/src/ast.h"
+#include "ast.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "debug.h"
 #include "mapped_object.h"
@@ -338,14 +338,14 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
          if (ast) 
             miniTramps.push_back(ast);
          else
-            miniTramps.push_back(AstNode::snippetNode((*iter)->snippet()));
+            miniTramps.push_back(SnippetNode::snippet((*iter)->snippet()));
       }
    }
    else {
       miniTramps.push_back(ast_);
    }
 
-   AstNodePtr minis = AstNode::sequenceNode(miniTramps);
+   AstNodePtr minis = SequenceNode::sequence(miniTramps);
 
    AstNodePtr baseTrampSequence;
    std::vector<AstNodePtr > baseTrampElements;
@@ -357,10 +357,10 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
     
    if (guarded() &&
        minis->containsFuncCall()) {
-     baseTrampElements.push_back(AstNode::funcCallNode("DYNINST_unlock_tramp_guard", empty_args));
+     baseTrampElements.push_back(CallNode::namedCall("DYNINST_unlock_tramp_guard", empty_args));
    }
 
-   baseTrampSequence = AstNode::sequenceNode(baseTrampElements);
+   baseTrampSequence = SequenceNode::sequence(baseTrampElements);
 
    AstNodePtr baseTrampAST;
 
@@ -368,10 +368,9 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    // we just run the minitramps.
    if (guarded() &&
        minis->containsFuncCall()) {
-      baseTrampAST = AstNode::operatorNode(ifOp,
-                                           // trampGuardAddr,
-					   AstNode::funcCallNode("DYNINST_lock_tramp_guard", empty_args),
-                                           baseTrampSequence);
+      baseTrampAST = OperatorNode::If(
+          CallNode::namedCall("DYNINST_lock_tramp_guard", empty_args),
+          baseTrampSequence);
    }
    else {
       baseTrampAST = baseTrampSequence;
