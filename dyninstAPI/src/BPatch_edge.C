@@ -117,6 +117,9 @@ BPatch_point *BPatch_edge::getPoint()
       BPatch_flowGraph *cfg = getFlowGraph();
       instPoint *ip = instPoint::edge(cfg->ll_func(),
                                       edge);
+      if (!ip) {
+          return point;
+      }
       AddressSpace *as = cfg->getllAddSpace();
       assert(as);
       
