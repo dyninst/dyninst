@@ -431,25 +431,4 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     return true;
 }
 
-func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorHandler) {
-    using namespace Dyninst::InstructionAPI;
-
-    const std::vector<func_instance *> *matching_funcs = findFuncVectorByMangled(ctorHandler);
-    if( matching_funcs != NULL ) {
-        return matching_funcs->at(0);
-    }
-    return NULL;
-}
-
-func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHandler) {
-    using namespace Dyninst::InstructionAPI;
-
-    const std::vector<func_instance *> *matching_funcs = findFuncVectorByMangled(dtorHandler);
-    if( matching_funcs != NULL ) {
-        return matching_funcs->at(0);
-    }
-    return NULL;
-}
-
-
 #endif
