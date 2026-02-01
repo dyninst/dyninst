@@ -335,7 +335,6 @@ class parse_func : public ParseAPI::Function
    void parseOMP(image_parRegion * parReg, parse_func * parentFunc, int & currentSectionNum);
    void parseOMPFunc(bool hasLoop);
    void addRegion(image_parRegion * iPar) { parRegionsList.push_back(iPar); }
-   bool OMPparsed() { return OMPparsed_; }
    /****************************************/
    bool isPLTFunction();
 
