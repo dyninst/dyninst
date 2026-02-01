@@ -39,7 +39,7 @@
 
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/mapped_object.h"
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_collections.h"
