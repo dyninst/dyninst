@@ -90,8 +90,7 @@ bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) c
 }
 
 bool AmdgpuGfx908PointHandler::isRegPairAvailable(Register regPair, BPatch_function *function) {
-  vector<Register> individualRegs;
-  regPair.getIndividualRegisters(individualRegs);
+  vector<Register> individualRegs = regPair.getIndividualRegisters();
   assert(individualRegs.size() == 2);
 
   MachRegister machReg = convertRegID(individualRegs[0], Arch_amdgpu_gfx908);
@@ -138,7 +137,7 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
     exit(1);
   }
 
-  Register regPair(94, SCALAR, GENERAL_PURPOSE, 2);
+  Register regPair = Register::makeScalarRegister(OperandRegId(94), BlockSize(2));
   if (!isRegPairAvailable(regPair, function)) {
     std::cerr << "Can't instrument " << function->getMangledName()
               << " as s94 and s95 are not available.\n"

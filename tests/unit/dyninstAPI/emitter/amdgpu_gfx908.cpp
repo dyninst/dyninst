@@ -34,7 +34,7 @@ int main() {
   // Load 64-bit immediate into register pair s[0:1]
   // s0 contains lower 32 bits
   // s1 contains upper 32 bits
-  Register regBlock0To1(0, SCALAR, GENERAL_PURPOSE, 2);
+  Register regBlock0To1 = Dyninst::Register::makeScalarRegister(Dyninst::OperandRegId(0), Dyninst::BlockSize(2));
   emitter->emitLoadConst(regBlock0To1, (uint64_t)0x123456789, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<16>{{
     0xff,0x00,0x80,0xbe,0x89,0x67,0x45,0x23, // s_mov_b32 s0, 0x23456789
@@ -42,7 +42,7 @@ int main() {
   }});
 
   // Load a dword from s[2:3] into s4
-  Register regBlock2To3(2, SCALAR, GENERAL_PURPOSE, 2);
+  Register regBlock2To3 = Dyninst::Register::makeScalarRegister(Dyninst::OperandRegId(2), Dyninst::BlockSize(2));
   emitter->emitLoadIndir(RegisterConstants::s4, regBlock2To3, 1, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<12>{{
     0x01,0x01,0x02,0xc0,0x00,0x00,0x00,0x00, // s_load_dword s4, s[2:3], 0x0
@@ -57,7 +57,7 @@ int main() {
   }});
 
   // Load 2 dwords from s[2:3] + 0x1234 into s[4:5]
-  Register regBlock4To5(4, SCALAR, GENERAL_PURPOSE, 2);
+  Register regBlock4To5 = Dyninst::Register::makeScalarRegister(Dyninst::OperandRegId(4), Dyninst::BlockSize(2));
   emitter->emitLoadRelative(regBlock4To5, 0x1234, regBlock2To3, 2, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<12>{{
     0x01,0x01,0x06,0xc0,0x34,0x12,0x00,0x00, // s_load_dwordx2 s[4:5], s[2:3], 0x1234
@@ -65,7 +65,7 @@ int main() {
   }});
 
   // Load 4 dwords from s[2:3] + 0x1234 into s[4:7]
-  Register regBlock4To7(4, SCALAR, GENERAL_PURPOSE, 4);
+  Register regBlock4To7 = Dyninst::Register::makeScalarRegister(Dyninst::OperandRegId(4), Dyninst::BlockSize(4));
   emitter->emitLoadRelative(regBlock4To7, 0x1234, regBlock2To3, 4, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<12>{{
     0x01,0x01,0x0a,0xc0,0x34,0x12,0x00,0x00, // s_load_dwordx4 s[4:7], s[2:3], 0x1234
@@ -73,7 +73,7 @@ int main() {
   }});
 
   // Load 8 dwords from s[2:3] + 0x1234 into s[4:11]
-  Register regBlock4To11(4, SCALAR, GENERAL_PURPOSE, 8);
+  Register regBlock4To11 = Dyninst::Register::makeScalarRegister(Dyninst::OperandRegId(4), Dyninst::BlockSize(8));
   emitter->emitLoadRelative(regBlock4To11, 0x1234, regBlock2To3, 8, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<12>{{
     0x01,0x01,0x0e,0xc0,0x34,0x12,0x00,0x00, // s_load_dwordx8 s[4:11], s[2:3], 0x1234
@@ -81,7 +81,7 @@ int main() {
   }});
 
   // Load 16 dwords from s[2:3] + 0x1234 into s[4:19]
-  Register regBlock4To19(4, SCALAR, GENERAL_PURPOSE, 16);
+  Register regBlock4To19 = Dyninst::Register::makeScalarRegister(Dyninst::OperandRegId(4), Dyninst::BlockSize(16));
   emitter->emitLoadRelative(regBlock4To19, 0x1234, regBlock2To3, 16, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<12>{{
     0x01,0x01,0x12,0xc0,0x34,0x12,0x00,0x00, // s_load_dwordx16 s[4:19], s[2:3], 0x1234

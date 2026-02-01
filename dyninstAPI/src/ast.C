@@ -2641,14 +2641,11 @@ bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen &gen, bool noCost, 
 
   // TODO : allocate addrRegPair as a SGPR block of size 2.
   // TODO : baseRegPair should be the cached value for a particular kernel.
-  Register addrRegPair(88, SCALAR, GENERAL_PURPOSE, 2);
-  Register baseRegPair(94, SCALAR, GENERAL_PURPOSE, 2);
+  Register addrRegPair(OperandRegId(88), RegKind::SCALAR, BlockSize(2));
+  Register baseRegPair(OperandRegId(94), RegKind::SCALAR, BlockSize(2));
 
-  std::vector<Register> addrRegs;
-  std::vector<Register> baseRegs;
-
-  addrRegPair.getIndividualRegisters(addrRegs);
-  baseRegPair.getIndividualRegisters(baseRegs);
+  std::vector<Register> addrRegs = addrRegPair.getIndividualRegisters();
+  std::vector<Register> baseRegs = baseRegPair.getIndividualRegisters();
 
   emitter->emitMoveRegToReg(baseRegs[0], addrRegs[0], gen);
   emitter->emitMoveRegToReg(baseRegs[1], addrRegs[1], gen);

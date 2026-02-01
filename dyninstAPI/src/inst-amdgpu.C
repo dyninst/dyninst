@@ -52,7 +52,7 @@ void registerSpace::initialize32() {
   for (unsigned id = 0; id <= 101; id++) {
     char name[32];
     sprintf(name, "s%u", id);
-    Register sgpr(id, SCALAR, GENERAL_PURPOSE, 0);
+    Register sgpr = Register::makeScalarRegister(OperandRegId(id), BlockSize(1));
     registers.push_back(new registerSlot(sgpr, name,
                                          /*offLimits =*/false, registerSlot::liveAlways,
                                          registerSlot::SGPR));
@@ -62,7 +62,7 @@ void registerSpace::initialize32() {
   for (unsigned id = 0; id <= 255; id++) {
     char name[32];
     sprintf(name, "v%u", id);
-    Register vgpr(id, VECTOR, GENERAL_PURPOSE, 0);
+    Register vgpr = Register::makeVectorRegister(OperandRegId(id), BlockSize(1));
     registers.push_back(new registerSlot(vgpr, name,
                                          /*offLimits =*/false, registerSlot::liveAlways,
                                          registerSlot::VGPR));

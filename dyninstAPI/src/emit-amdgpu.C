@@ -42,10 +42,9 @@ using namespace AmdgpuGfx908;
 
 // ==== Helper functions begin
 bool EmitterAmdgpuGfx908::isValidSgpr(Register reg) const {
-  return reg.getKind() == SCALAR &&
-         reg.getCount() < 2 && reg.getId() >= MIN_SGPR_ID &&
-         reg.getId() <= MAX_SGPR_ID &&
-         reg.getUsage() == GENERAL_PURPOSE;
+  return reg.isScalar() &&
+         reg.getCount() == 1 && reg.getId() >= MIN_SGPR_ID &&
+         reg.getId() <= MAX_SGPR_ID;
 }
 
 bool EmitterAmdgpuGfx908::isValidSgprBlock(Register regBlock) const {
@@ -53,10 +52,9 @@ bool EmitterAmdgpuGfx908::isValidSgprBlock(Register regBlock) const {
   auto numRegs = regBlock.getCount();
   auto lastRegId = firstRegId + numRegs - 1;
 
-  return regBlock.getKind() == SCALAR &&
-         numRegs > 0 &&
-         firstRegId >= MIN_SGPR_ID && lastRegId <= MAX_SGPR_ID &&
-         regBlock.getUsage() == GENERAL_PURPOSE;
+  return regBlock.isScalar() &&
+         numRegs > 1 &&
+         firstRegId >= MIN_SGPR_ID && lastRegId <= MAX_SGPR_ID;
 }
 
 // Register pairs must be even aligned
@@ -69,9 +67,6 @@ unsigned EmitterAmdgpuGfx908::emitIf(Register expr_reg, Register target, RegCont
                                      codeGen &gen) {
   assert(isValidSgprPair(target) && "target must be a valid SGPR pair");
   assert(isValidSgpr(expr_reg) && "expr_reg must be a valid SGPR");
-
-  assert(target.getId() >= SGPR_0 && target.getId() <= SGPR_101 && "target must be an SGPR");
-  assert(target.getId() % 2 == 0 && "target must be even as we will use target, target+1 in pair");
 
   emitSopK(S_CMPK_EQ_U32, expr_reg.getId(), 0, gen);
   emitConditionalBranch(/* onConditionTrue = */ false, 0, gen);
@@ -250,17 +245,11 @@ void EmitterAmdgpuGfx908::emitLoadConst(Register dest, Address imm, codeGen &gen
   // Caller must ensure that dest is a SGPR pair beginning at an even reg id.
   assert(isValidSgprPair(dest) && "dest must be a valid SGPR pair");
   assert(sizeof(Address) == 8); // must be a 64-bit address
-  Register reg0 = dest;
-  Register reg1 = dest + 1;
-
-  assert(dest.getId() >= SGPR_0 && dest.getId() <= SGPR_101 && "reg0 must be an SGPR");
-  assert(reg0.getId() % 2 == 0 && "reg0 must be even as we will use reg0, reg1 in pair");
 
   uint32_t lowerAddress = imm;
   uint32_t upperAddress = (imm >> 32);
 
-  std::vector<Register> regs;
-  dest.getIndividualRegisters(regs);
+  std::vector<Register> regs = dest.getIndividualRegisters();
 
   emitMovLiteral(regs[0], lowerAddress, gen);
   emitMovLiteral(regs[1], upperAddress, gen);
@@ -294,7 +283,7 @@ bool EmitterAmdgpuGfx908::emitLoadRelative(Register dest, Address offset, Regist
   if (size == 1) {
     assert(isValidSgpr(dest) && "dest must be a valid SGPR");
   } else {
-    assert(isValidSgprBlock(dest) && dest.details.count == size &&
+    assert(isValidSgprBlock(dest) && dest.getCount() == size &&
            "dest must be a register block of size 'size'");
   }
   uint32_t alignment = size >= 4 ? 4 : size;
@@ -405,7 +394,7 @@ void EmitterAmdgpuGfx908::emitStoreRelative(Register source, Address offset, Reg
   if (size == 1)
     assert(isValidSgpr(source) && "source must be a valid SGPR");
   else
-    assert(isValidSgprBlock(source) && source.details.count == size &&
+    assert(isValidSgprBlock(source) && source.getCount() == size &&
            "source must be a register block of size 'size'");
 
   assert(isValidSgprPair(base) && "base must be a valid SGPR pair");
@@ -580,7 +569,7 @@ void EmitterAmdgpuGfx908::emitShortJump(int16_t wordOffset, codeGen &gen) {
 void EmitterAmdgpuGfx908::emitLongJump(Register reg, uint64_t fromAddress, uint64_t toAddress,
                                        codeGen &gen) {
   assert(isValidSgprBlock(reg) && "reg must be a valid SGPR block");
-  assert(reg.details.count == 4 && "reg must have 4 registers");
+  assert(reg.getCount() == 4 && "reg must have 4 registers");
 
   // s_getpc_b64 will give us beginning of next instruction.
   // So our fromAddress must be incremented by 4 to accomodate for this.
@@ -594,7 +583,7 @@ void EmitterAmdgpuGfx908::emitLongJump(Register reg, uint64_t fromAddress, uint6
            /* literal=*/0, gen);
 
   // we store the diff = to - from in this register pair
-  Register diffRegPair(reg.getId() + 2, SCALAR, GENERAL_PURPOSE, 2);
+  Register diffRegPair(OperandRegId(reg.getId() + 2), RegKind::SCALAR, BlockSize(2));
   this->emitLoadConst(diffRegPair, (uint64_t)diff, gen);
   // Now we have:
   // reg+2 = lower bits of diff

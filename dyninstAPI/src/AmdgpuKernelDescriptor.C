@@ -679,7 +679,7 @@ Register AmdgpuKernelDescriptor::getKernargPtrRegisterPair() {
     kernargPtrRegId += 2;
   }
 
-  return Register(kernargPtrRegId, SCALAR, GENERAL_PURPOSE, 2);
+  return Register::makeScalarRegister(OperandRegId(kernargPtrRegId), BlockSize(2));
 }
 
 void AmdgpuKernelDescriptor::dump(std::ostream &os) const {
