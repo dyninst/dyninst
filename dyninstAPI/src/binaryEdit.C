@@ -1119,30 +1119,26 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
    * about these dependencies. So if the dependencies haven't already been
    * loaded, load them.
    */
-  bool loadLibc = true;
+  const bool found_libc = [&libs]() {
+    auto itr = std::find_if(libs.begin(), libs.end(),
+      [](Archive *a) {
+        return a->name().find("libc.a") != std::string::npos;
+      }
+    );
+    return itr != libs.end();
+  }();
 
-  for (auto libIter = libs.begin(); libIter != libs.end(); ++libIter) {
-    if ((*libIter)->name().find("libc.a") != std::string::npos) {
-      loadLibc = false;
-    }
-  }
-
-  if (loadLibc) {
+  if (!found_libc) {
     std::map<std::string, BinaryEdit *> res;
     openResolvedLibraryName("libc.a", res);
     if (res.empty()) {
-      cerr << "Fatal error: failed to load DyninstAPI_RT library dependency "
-              "(libc.a)"
-           << endl;
+      logLine("Fatal error: failed to load DyninstAPI_RT library dependency (libc.a)");
       return false;
     }
 
-    std::map<std::string, BinaryEdit *>::iterator bedit_it;
-    for (bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it) {
-      if (bedit_it->second == NULL) {
-        cerr << "Fatal error: failed to load DyninstAPI_RT library dependency "
-                "(libc.a)"
-             << endl;
+    for (auto &r : res) {
+      if (!r.second) {
+        logLine("Fatal error: failed to load DyninstAPI_RT library dependency (libc.a)");
         return false;
       }
     }
@@ -1150,11 +1146,9 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     // libc.a may be depending on libgcc.a
     res.clear();
     if (!openResolvedLibraryName("libgcc.a", res)) {
-      cerr << "Failed to find libgcc.a, which can be needed by libc.a on "
-              "certain platforms"
-           << endl;
-      cerr << "Set LD_LIBRARY_PATH to the directory containing libgcc.a"
-           << endl;
+      logLine("Failed to find libgcc.a, which can be needed by libc.a on "
+              "certain platforms.\n"
+              "Set LD_LIBRARY_PATH to the directory containing libgcc.a");
     }
   }
 
