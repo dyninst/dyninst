@@ -283,7 +283,7 @@ bool EmitterAmdgpuGfx908::emitLoadRelative(Register dest, Address offset, Regist
   if (size == 1) {
     assert(isValidSgpr(dest) && "dest must be a valid SGPR");
   } else {
-    assert(isValidSgprBlock(dest) && dest.getCount() == size &&
+    assert(isValidSgprBlock(dest) && dest.getCount() == static_cast<uint32_t>(size) &&
            "dest must be a register block of size 'size'");
   }
   uint32_t alignment = size >= 4 ? 4 : size;
@@ -394,7 +394,7 @@ void EmitterAmdgpuGfx908::emitStoreRelative(Register source, Address offset, Reg
   if (size == 1)
     assert(isValidSgpr(source) && "source must be a valid SGPR");
   else
-    assert(isValidSgprBlock(source) && source.getCount() == size &&
+    assert(isValidSgprBlock(source) && source.getCount() == static_cast<uint32_t>(size) &&
            "source must be a register block of size 'size'");
 
   assert(isValidSgprPair(base) && "base must be a valid SGPR pair");
