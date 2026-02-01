@@ -333,7 +333,6 @@ class parse_func : public ParseAPI::Function
 
    /****** OpenMP Parsing Functions *******/
    void parseOMP(image_parRegion * parReg, parse_func * parentFunc, int & currentSectionNum);
-   void addRegion(image_parRegion * iPar) { parRegionsList.push_back(iPar); }
    /****************************************/
    bool isPLTFunction();
 
