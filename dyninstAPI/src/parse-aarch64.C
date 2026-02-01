@@ -70,14 +70,6 @@ namespace {
   char const* DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
 }
 
-std::string parse_func::calcParentFunc(const parse_func *,
-                                    std::vector<image_parRegion *> &/*pR*/)
-{
-	assert(0);
-	return {};
-}
-
-
 void parse_func::parseOMP(image_parRegion *, parse_func *, int &)
 {
 	assert(0);

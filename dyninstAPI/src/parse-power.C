@@ -78,34 +78,6 @@ static void add_handler(instPoint* pt, func_instance* add_me)
   instrumentation->disableRecursiveGuard();
 }
 
-std::string parse_func::calcParentFunc(const parse_func * imf,
-                                    std::vector<image_parRegion *> &/*pR*/)
-{
-  /* We need to figure out the function that called the outlined
-     parallel region function.  We do this by chopping off the
-     last @OL@number */
-   auto const& tmp = imf->prettyName();
-   const char * nameStart = tmp.c_str();
-   const char * nameEnd = strrchr(nameStart, '@');
-   int strSize = nameEnd - nameStart - 3;
-   
-   /* Make sure that the shortened string is not of size 0,
-      this would happen if a function started with @ or if there
-      was less than two characters between the beginning and @
-      This wouldn't happen for OpenMP functions, but might for imposters*/
-   if (strSize > 0)
-   {
-      std::string tempPDS(nameStart, strSize);
-      return tempPDS;
-   }
-   else   /* if it starts with @ just return the full function as its parent, we'll sort it out later */
-   {
-      std::string tempPDS(nameStart);
-      return tempPDS;
-   }
-}
-
-
 void parse_func::parseOMP(image_parRegion * parReg, parse_func * parentFunc, int & currentSectionNum)
 {  
   /* Each region is contained in a function, for the worksharing constructs
