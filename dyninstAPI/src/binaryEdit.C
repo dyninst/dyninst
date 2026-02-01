@@ -1157,45 +1157,37 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
 
 static bool replaceHandler(
     func_instance *origHandler, func_instance *newHandler,
-    std::vector<std::pair<int_symbol *, std::string>> &reloc_replacements) {
+    int_symbol *sym, char const* name) {
 
   // Add instrumentation to replace the function
-  // TODO: this should be a function replacement!
   origHandler->proc()->replaceFunction(origHandler, newHandler);
   AddressSpace::patch(origHandler->proc());
   
-  for (auto &r : reloc_replacements) {
-    int_symbol *newList = r.first;
-    std::string const& listRelName = r.second;
+  // Update the symbol name in the RT library
+  Symbol const* newListSym = sym->sym();
 
-    /* create the special relocation for the new list -- search the RT library
-     * for the symbol
-     */
-    Symbol const* newListSym = newList->sym();
+  std::vector<Region *> allRegions;
+  if (!newListSym->getSymtab()->getAllRegions(allRegions)) {
+    return false;
+  }
 
-    std::vector<Region *> allRegions;
-    if (!newListSym->getSymtab()->getAllRegions(allRegions)) {
-      return false;
-    }
-
-    bool found = false;
-    for (auto *reg : allRegions) {
-      for (auto &rel : reg->getRelocations()) {
-        if (rel.getDynSym() == newListSym) {
-          rel.setName(listRelName);
-          found = true;
-        }
+  bool found = false;
+  for (auto *reg : allRegions) {
+    for (auto &rel : reg->getRelocations()) {
+      if (rel.getDynSym() == newListSym) {
+        rel.setName(name);
+        found = true;
       }
     }
-    if (!found) {
-      return false;
-    }
+  }
+  if (!found) {
+    return false;
   }
 
   return true;
 }
 
-static bool update_irel(func_instance *globalIrelHandler, BinaryEdit *be) {
+static bool update_irel(func_instance *globalHandler, BinaryEdit *be) {
   auto find_sym_info = [be](char const* name) {
     int_symbol sym{};
     for (BinaryEdit *lib : be->rtLibrary()) {
@@ -1205,32 +1197,33 @@ static bool update_irel(func_instance *globalIrelHandler, BinaryEdit *be) {
     }
     return std::make_tuple(sym, false);
   };
-  func_instance *dyninstIrelHandler = be->findOnlyOneFunction(DYNINST_IREL_HANDLER);
-  int_symbol irelStart;
-  {
-    bool found{false};
-    std::tie(irelStart, found) = find_sym_info(DYNINST_IREL_START);
-    if(!found) {
-      write_printf("Didn't find a symbol for '%s'\n", DYNINST_IREL_START);
+  
+  using name_tup = std::tuple<char const*, char const*>;
+  auto sym_names = {
+    name_tup{DYNINST_IREL_START, SYMTAB_IREL_START},
+    name_tup{DYNINST_IREL_END, SYMTAB_IREL_END}
+  };
+  
+  func_instance *dyninstHandler = be->findOnlyOneFunction(DYNINST_IREL_HANDLER);
+  
+  for(auto &s : sym_names) {
+    auto dyn_name = std::get<0>(s);
+    auto symtab_name = std::get<1>(s);
+    
+    int_symbol irel{};
+    {
+      bool found{false};
+      std::tie(irel, found) = find_sym_info(dyn_name);
+      if(!found) {
+        write_printf("Didn't find a symbol for '%s'\n", dyn_name);
+        return false;
+      }
+    }
+    
+    auto success = replaceHandler(globalHandler, dyninstHandler, &irel, symtab_name);
+    if(!success) {
       return false;
     }
-  }
-
-  int_symbol irelEnd;
-  {
-    bool found{false};
-    std::tie(irelEnd, found) = find_sym_info(DYNINST_IREL_END);
-    if(!found) {
-      write_printf("Didn't find a symbol for '%s'\n", DYNINST_IREL_END);
-      return false;
-    }
-  }
-
-  std::vector<std::pair<int_symbol *, string>> tmp;
-  tmp.push_back(make_pair(&irelStart, SYMTAB_IREL_START));
-  tmp.push_back(make_pair(&irelEnd, SYMTAB_IREL_END));
-  if (!replaceHandler(globalIrelHandler, dyninstIrelHandler, tmp)) {
-    return false;
   }
   
   return true;
