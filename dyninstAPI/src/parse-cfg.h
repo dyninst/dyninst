@@ -331,9 +331,6 @@ class parse_func : public ParseAPI::Function
 
    parse_block * entryBlock();
 
-   /****** OpenMP Parsing Functions *******/
-   void parseOMP(image_parRegion * parReg, parse_func * parentFunc, int & currentSectionNum);
-   /****************************************/
    bool isPLTFunction();
 
    std::set<Register> * usedGPRs() { calcUsedRegs(); return &(usedRegisters->generalPurposeRegisters);}

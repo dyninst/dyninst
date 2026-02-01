@@ -32,10 +32,6 @@
 #include "mapped_object.h"
 #include "parse-cfg.h"
 
-void parse_func::parseOMP(image_parRegion *, parse_func *, int &) {
-  assert(!"Not implemented for AMDGPU");
-}
-
 void parse_func::calcUsedRegs() {
 
   assert(!"Not implemented for AMDGPU");
