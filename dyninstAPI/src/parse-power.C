@@ -145,9 +145,6 @@ void parse_func::parseOMP(image_parRegion * parReg, parse_func * parentFunc, int
 
 void parse_func::parseOMPFunc(bool /*hasLoop*/)
 {
-   if (OMPparsed_)
-      return;
-   OMPparsed_ = true;
 }
 
 /* This does a linear scan to find out which registers are used in the function,

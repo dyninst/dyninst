@@ -369,7 +369,6 @@ class parse_func : public ParseAPI::Function
 
    pdmodule *mod_{nullptr};	/* pointer to file that defines func. */
    image *image_{nullptr};
-   bool OMPparsed_{false};              /* Set true in parseOMPFunc */
 
    /////  Variables for liveness Analysis
    enum regUseState { unknown, used, unused };
