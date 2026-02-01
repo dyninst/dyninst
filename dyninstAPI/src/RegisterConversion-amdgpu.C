@@ -160,7 +160,6 @@ multimap<Register, MachRegister> regToMachReg32 = map_list_of
   (NS_amdgpu::RegisterConstants::xnack_mask_hi, amdgpu_gfx908::xnack_mask_hi)
   (NS_amdgpu::RegisterConstants::vcc_lo, amdgpu_gfx908::vcc_lo)
   (NS_amdgpu::RegisterConstants::vcc_hi, amdgpu_gfx908::vcc_hi)
-  (NS_amdgpu::RegisterConstants::m0,     amdgpu_gfx908::m0)
   (NS_amdgpu::RegisterConstants::exec_lo, amdgpu_gfx908::exec_lo)
   (NS_amdgpu::RegisterConstants::exec_hi, amdgpu_gfx908::exec_hi)
 
@@ -533,7 +532,6 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
   (amdgpu_gfx908::xnack_mask_hi, NS_amdgpu::RegisterConstants::xnack_mask_hi)
   (amdgpu_gfx908::vcc_lo, NS_amdgpu::RegisterConstants::vcc_lo)
   (amdgpu_gfx908::vcc_hi, NS_amdgpu::RegisterConstants::vcc_hi)
-  (amdgpu_gfx908::m0,     NS_amdgpu::RegisterConstants::m0)
   (amdgpu_gfx908::exec_lo, NS_amdgpu::RegisterConstants::exec_lo)
   (amdgpu_gfx908::exec_hi, NS_amdgpu::RegisterConstants::exec_hi)
 

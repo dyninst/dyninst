@@ -164,7 +164,6 @@ DYNINST_EXPORT extern const Register xnack_mask_lo;
 DYNINST_EXPORT extern const Register xnack_mask_hi;
 DYNINST_EXPORT extern const Register vcc_lo;
 DYNINST_EXPORT extern const Register vcc_hi;
-DYNINST_EXPORT extern const Register m0;
 DYNINST_EXPORT extern const Register exec_lo;
 DYNINST_EXPORT extern const Register exec_hi;
 

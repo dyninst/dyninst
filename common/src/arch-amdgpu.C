@@ -141,7 +141,6 @@ DYNINST_EXPORT extern const Register xnack_mask_lo(OperandRegId(104), RegKind::S
 DYNINST_EXPORT extern const Register xnack_mask_hi(OperandRegId(105), RegKind::SCALAR, BlockSize(1));
 DYNINST_EXPORT extern const Register vcc_lo(OperandRegId(106), RegKind::SCALAR, BlockSize(1));
 DYNINST_EXPORT extern const Register vcc_hi(OperandRegId(107), RegKind::SCALAR, BlockSize(1));
-DYNINST_EXPORT extern const Register m0(OperandRegId(124), RegKind::SCALAR, BlockSize(1));
 DYNINST_EXPORT extern const Register exec_lo(OperandRegId(126), RegKind::SCALAR_PREDICATE, BlockSize(1));
 DYNINST_EXPORT extern const Register exec_hi(OperandRegId(127), RegKind::SCALAR_PREDICATE, BlockSize(1));
 
