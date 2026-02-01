@@ -972,29 +972,30 @@ static void add_handler(instPoint *pt, func_instance *add_me) {
   instrumentation->disableRecursiveGuard();
 }
 
-static bool update_irel(func_instance*, BinaryEdit*);
+static bool update_irel(func_instance *, BinaryEdit *);
 
 bool BinaryEdit::doStaticBinarySpecialCases() {
-  
-  switch(this->getArch()) {
-    case Arch_none:
-    case Arch_aarch32:
-    case Arch_riscv64:
-    case Arch_cuda:
-    case Arch_amdgpu_gfx908:
-    case Arch_amdgpu_gfx90a:
-    case Arch_amdgpu_gfx940:
-    case Arch_intelGen9:
-      write_printf("Static rewriting unsupported for '%s'", getArchitectureName(this->getArch()));
-      return false;
-    case Arch_aarch64:
-    case Arch_x86:
-    case Arch_x86_64:
-    case Arch_ppc32:
-    case Arch_ppc64:
-      break;
+
+  switch (this->getArch()) {
+  case Arch_none:
+  case Arch_aarch32:
+  case Arch_riscv64:
+  case Arch_cuda:
+  case Arch_amdgpu_gfx908:
+  case Arch_amdgpu_gfx90a:
+  case Arch_amdgpu_gfx940:
+  case Arch_intelGen9:
+    write_printf("Static rewriting unsupported for '%s'",
+                 getArchitectureName(this->getArch()));
+    return false;
+  case Arch_aarch64:
+  case Arch_x86:
+  case Arch_x86_64:
+  case Arch_ppc32:
+  case Arch_ppc64:
+    break;
   }
-  
+
   /* Special Case 1A: Handling global constructors
    *
    * Place the Dyninst constructor handler after the global ELF ctors so it is
@@ -1070,7 +1071,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
    *
    */
   if (auto *globalIrelHandler = findOnlyOneFunction(LIBC_IREL_HANDLER)) {
-    if(!update_irel(globalIrelHandler, this)) {
+    if (!update_irel(globalIrelHandler, this)) {
       return false;
     }
   }
@@ -1120,11 +1121,9 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
    * loaded, load them.
    */
   const bool found_libc = [&libs]() {
-    auto itr = std::find_if(libs.begin(), libs.end(),
-      [](Archive *a) {
-        return a->name().find("libc.a") != std::string::npos;
-      }
-    );
+    auto itr = std::find_if(libs.begin(), libs.end(), [](Archive *a) {
+      return a->name().find("libc.a") != std::string::npos;
+    });
     return itr != libs.end();
   }();
 
@@ -1132,13 +1131,15 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     std::map<std::string, BinaryEdit *> res;
     openResolvedLibraryName("libc.a", res);
     if (res.empty()) {
-      logLine("Fatal error: failed to load DyninstAPI_RT library dependency (libc.a)");
+      logLine("Fatal error: failed to load DyninstAPI_RT library dependency "
+              "(libc.a)");
       return false;
     }
 
     for (auto &r : res) {
       if (!r.second) {
-        logLine("Fatal error: failed to load DyninstAPI_RT library dependency (libc.a)");
+        logLine("Fatal error: failed to load DyninstAPI_RT library dependency "
+                "(libc.a)");
         return false;
       }
     }
@@ -1155,16 +1156,16 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
   return true;
 }
 
-static bool replaceHandler(
-    func_instance *origHandler, func_instance *newHandler,
-    int_symbol *sym, char const* name) {
+static bool replaceHandler(func_instance *origHandler,
+                           func_instance *newHandler, int_symbol *sym,
+                           char const *name) {
 
   // Add instrumentation to replace the function
   origHandler->proc()->replaceFunction(origHandler, newHandler);
   AddressSpace::patch(origHandler->proc());
-  
+
   // Update the symbol name in the RT library
-  Symbol const* newListSym = sym->sym();
+  Symbol const *newListSym = sym->sym();
 
   std::vector<Region *> allRegions;
   if (!newListSym->getSymtab()->getAllRegions(allRegions)) {
@@ -1188,43 +1189,43 @@ static bool replaceHandler(
 }
 
 static bool update_irel(func_instance *globalHandler, BinaryEdit *be) {
-  auto find_sym_info = [be](char const* name) {
+  auto find_sym_info = [be](char const *name) {
     int_symbol sym{};
     for (BinaryEdit *lib : be->rtLibrary()) {
-      if(lib->getSymbolInfo(name, sym)) {
+      if (lib->getSymbolInfo(name, sym)) {
         return std::make_tuple(sym, true);
       }
     }
     return std::make_tuple(sym, false);
   };
-  
-  using name_tup = std::tuple<char const*, char const*>;
+
+  using name_tup = std::tuple<char const *, char const *>;
   auto sym_names = {
     name_tup{DYNINST_IREL_START, SYMTAB_IREL_START},
     name_tup{DYNINST_IREL_END, SYMTAB_IREL_END}
   };
-  
+
   func_instance *dyninstHandler = be->findOnlyOneFunction(DYNINST_IREL_HANDLER);
-  
-  for(auto &s : sym_names) {
+
+  for (auto &s : sym_names) {
     auto dyn_name = std::get<0>(s);
     auto symtab_name = std::get<1>(s);
-    
+
     int_symbol irel{};
     {
       bool found{false};
       std::tie(irel, found) = find_sym_info(dyn_name);
-      if(!found) {
+      if (!found) {
         write_printf("Didn't find a symbol for '%s'\n", dyn_name);
         return false;
       }
     }
-    
+
     auto success = replaceHandler(globalHandler, dyninstHandler, &irel, symtab_name);
-    if(!success) {
+    if (!success) {
       return false;
     }
   }
-  
+
   return true;
 }
