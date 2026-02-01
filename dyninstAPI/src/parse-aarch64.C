@@ -75,11 +75,6 @@ void parse_func::parseOMP(image_parRegion *, parse_func *, int &)
 	assert(0);
 }
 
-void parse_func::parseOMPFunc(bool /*hasLoop*/)
-{
-	assert(0);
-}
-
 /* This does a linear scan to find out which registers are used in the function,
    it then stores these registers so the scan only needs to be done once.
    It returns true or false based on whether the function is a leaf function,

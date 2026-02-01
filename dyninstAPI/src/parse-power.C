@@ -138,14 +138,7 @@ void parse_func::parseOMP(image_parRegion * parReg, parse_func * parentFunc, int
    //     it seems to be after the last instruction
    Address last = extents().back()->end();
    parReg->setLastInsn(last);
-   
-   // we parse the outlined function to look for inlined constructs like "Master" and "Ordered"
-   parseOMPFunc(false);
 }	  
-
-void parse_func::parseOMPFunc(bool /*hasLoop*/)
-{
-}
 
 /* This does a linear scan to find out which registers are used in the function,
    it then stores these registers so the scan only needs to be done once.
