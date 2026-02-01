@@ -291,7 +291,7 @@ void registerSpace::initialize() {
 
 unsigned registerSpace::SPR(Dyninst::Register x) {
     // Encodings from architecture manual
-    switch (static_cast<powerRegisters_t>(x)) {
+    switch (static_cast<powerRegisters_t>(x.getID())) {
     case xer:
         return SPR_XER;
         break;
