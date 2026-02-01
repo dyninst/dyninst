@@ -1085,31 +1085,32 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
    * pthreads support, pthreads needs to be loaded.
    */
   bool isMTCapable = isMultiThreadCapable();
-  bool foundPthreads = false;
   Symtab *origBinary = mobj->parse_img()->getObject();
-  vector<Archive *> libs;
-  vector<Archive *>::iterator libIter;
-  if (origBinary->getLinkingResources(libs)) {
-    for (libIter = libs.begin(); libIter != libs.end(); ++libIter) {
-      if ((*libIter)->name().find("libpthread") != std::string::npos ||
-          (*libIter)->name().find("libthr") != std::string::npos) {
-        foundPthreads = true;
-        break;
+  std::vector<Archive *> libs;
+  origBinary->getLinkingResources(libs);
+
+  const bool foundPthreads = [&libs]() {
+    auto thread_libs = {"libpthread", "libthr"};
+    for (auto *lib : libs) {
+      for (auto name : thread_libs) {
+        if (lib->name().find(name) != std::string::npos) {
+          return true;
+        }
       }
     }
-  }
+    return false;
+  }();
 
   if (foundPthreads && (!isMTCapable || origBinary->isStripped())) {
-    fprintf(stderr,
-            "\nWARNING: the pthreads library has been loaded and\n"
+    logLine("\nWARNING: the pthreads library has been loaded and\n"
             "the original binary is not multithread-capable or\n"
             "it is stripped. Currently, the combination of these two\n"
             "scenarios is unsupported and unexpected behavior may occur.\n");
   } else if (!foundPthreads && isMTCapable) {
-    fprintf(stderr, "\nWARNING: the pthreads library has not been loaded and\n"
-                    "the original binary is multithread-capable. Unexpected\n"
-                    "behavior may occur because some pthreads routines are\n"
-                    "unavailable in the original binary\n");
+    logLine("\nWARNING: the pthreads library has not been loaded and\n"
+            "the original binary is multithread-capable. Unexpected\n"
+            "behavior may occur because some pthreads routines are\n"
+            "unavailable in the original binary\n");
   }
 
   /*
@@ -1120,7 +1121,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
    */
   bool loadLibc = true;
 
-  for (libIter = libs.begin(); libIter != libs.end(); ++libIter) {
+  for (auto libIter = libs.begin(); libIter != libs.end(); ++libIter) {
     if ((*libIter)->name().find("libc.a") != std::string::npos) {
       loadLibc = false;
     }
