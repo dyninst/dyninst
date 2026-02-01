@@ -1058,7 +1058,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
   }
   if (auto *ctor = mobj->findGlobalConstructorFunc(LIBC_CTOR_HANDLER)) {
     // Wire in our handler at libc ctor exits
-    vector<instPoint *> init_pts;
+    std::vector<instPoint *> init_pts;
     ctor->funcExitPoints(&init_pts);
     for (auto *exit_pt : init_pts) {
       add_handler(exit_pt, dyninstCtorHandler);
