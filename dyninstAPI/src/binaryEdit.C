@@ -1158,37 +1158,31 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
 static bool replaceHandler(
     func_instance *origHandler, func_instance *newHandler,
     std::vector<std::pair<int_symbol *, std::string>> &reloc_replacements) {
+
   // Add instrumentation to replace the function
   // TODO: this should be a function replacement!
-  // And why the hell is it in parse-x86.C?
   origHandler->proc()->replaceFunction(origHandler, newHandler);
   AddressSpace::patch(origHandler->proc());
   
-  for (auto iter = reloc_replacements.begin(); iter != reloc_replacements.end();
-       ++iter) {
-    int_symbol *newList = iter->first;
-    std::string listRelName = iter->second;
+  for (auto &r : reloc_replacements) {
+    int_symbol *newList = r.first;
+    std::string const& listRelName = r.second;
 
     /* create the special relocation for the new list -- search the RT library
      * for the symbol
      */
-    Symbol *newListSym = const_cast<Symbol *>(newList->sym());
+    Symbol const* newListSym = newList->sym();
 
     std::vector<Region *> allRegions;
     if (!newListSym->getSymtab()->getAllRegions(allRegions)) {
       return false;
     }
 
-    std::vector<Region *>::iterator reg_it;
     bool found = false;
-    for (reg_it = allRegions.begin(); reg_it != allRegions.end(); ++reg_it) {
-      std::vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
-      vector<relocationEntry>::iterator rel_it;
-      for (rel_it = region_rels.begin(); rel_it != region_rels.end();
-           ++rel_it) {
-        if (rel_it->getDynSym() == newListSym) {
-          relocationEntry *rel = &(*rel_it);
-          rel->setName(listRelName);
+    for (auto *reg : allRegions) {
+      for (auto &rel : reg->getRelocations()) {
+        if (rel.getDynSym() == newListSym) {
+          rel.setName(listRelName);
           found = true;
         }
       }
