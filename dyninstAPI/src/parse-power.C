@@ -60,24 +60,6 @@
 #include "RegisterConversion.h"
 #include "registerSpace.h"
 
-
-using namespace Dyninst::SymtabAPI;
-namespace {
-  char const* LIBC_CTOR_HANDLER("__libc_csu_init");
-  char const* LIBC_DTOR_HANDLER("__libc_csu_fini");
-  char const* DYNINST_CTOR_HANDLER("DYNINSTglobal_ctors_handler");
-  char const* DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
-}
-
-static void add_handler(instPoint* pt, func_instance* add_me)
-{
-  vector<AstNodePtr> args;
-  // no args, just add
-  AstNodePtr snip = AstNode::funcCallNode(add_me, args);
-  auto instrumentation = pt->pushFront(snip);
-  instrumentation->disableRecursiveGuard();
-}
-
 /*
 By parsing the function that actually sets up the parameters for the OMP
 region we discover informations such as what type of parallel region we're
