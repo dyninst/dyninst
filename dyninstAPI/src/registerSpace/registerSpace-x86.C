@@ -1,5 +1,6 @@
 #include "registerSpace.h"
 #include "arch-x86.h"
+#include "inst-x86.h"
 
 #include <vector>
 #include <cstdio>
