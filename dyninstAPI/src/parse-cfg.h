@@ -335,7 +335,6 @@ class parse_func : public ParseAPI::Function
    std::string calcParentFunc(const parse_func * imf, std::vector<image_parRegion *> & pR);
    void parseOMP(image_parRegion * parReg, parse_func * parentFunc, int & currentSectionNum);
    void parseOMPFunc(bool hasLoop);
-   bool parseOMPParent(image_parRegion * iPar, int desiredNum, int & currentSectionNum);
    void addRegion(image_parRegion * iPar) { parRegionsList.push_back(iPar); }
    bool OMPparsed() { return OMPparsed_; }
    /****************************************/

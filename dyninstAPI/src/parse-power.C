@@ -78,18 +78,6 @@ static void add_handler(instPoint* pt, func_instance* add_me)
   instrumentation->disableRecursiveGuard();
 }
 
-/*
-By parsing the function that actually sets up the parameters for the OMP
-region we discover informations such as what type of parallel region we're
-dealing with */
-bool parse_func::parseOMPParent(image_parRegion * /*iPar*/, int /*desiredNum*/, int & /*currentSectionNum*/ )
-{
-    return false;
-}
-
-
-
-	
 std::string parse_func::calcParentFunc(const parse_func * imf,
                                     std::vector<image_parRegion *> &/*pR*/)
 {
@@ -179,11 +167,8 @@ void parse_func::parseOMP(image_parRegion * parReg, parse_func * parentFunc, int
    Address last = extents().back()->end();
    parReg->setLastInsn(last);
    
-   // we need to parse the parent function to get all the information about the region, mostly for worksharing constructs
-   bool hasLoop = parentFunc->parseOMPParent(parReg, desiredNum + totalSectionGroups, currentSectionNum);	    
-   
    // we parse the outlined function to look for inlined constructs like "Master" and "Ordered"
-   parseOMPFunc(hasLoop);
+   parseOMPFunc(false);
 }	  
 
 void parse_func::parseOMPFunc(bool /*hasLoop*/)

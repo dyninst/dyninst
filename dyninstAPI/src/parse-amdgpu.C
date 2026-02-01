@@ -32,12 +32,6 @@
 #include "mapped_object.h"
 #include "parse-cfg.h"
 
-bool parse_func::parseOMPParent(image_parRegion * /*iPar*/, int /*desiredNum*/,
-                                int & /*currentSectionNum*/) {
-  assert(!"Not implemented for AMDGPU");
-  return false;
-}
-
 std::string parse_func::calcParentFunc(const parse_func *,
                                        std::vector<image_parRegion *> & /*pR*/) {
   assert(!"Not implemented for AMDGPU");
