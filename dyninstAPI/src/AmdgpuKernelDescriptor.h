@@ -32,6 +32,7 @@
 #define KERNEL_DESCRIPTOR_H
 
 #include "external/amdgpu/AMDHSAKernelDescriptor.h"
+#include "dyn_register.h"
 
 #include <ostream>
 #include <string>
@@ -272,7 +273,7 @@ public:
   // ==== END OF ALL FIELDS ===
 
 
-  unsigned getKernargPtrRegister();
+  Register getKernargPtrRegisterPair();
 
   void dump(std::ostream &os) const;
   void dumpDetailed(std::ostream &os) const;
