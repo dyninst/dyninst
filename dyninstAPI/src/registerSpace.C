@@ -1538,7 +1538,7 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 
 bool registerSpace::canAllocate(Register singleReg) const {
-  assert(!singleReg.isRegisterBlock() && "singleReg must not be a register block");
+  assert(singleReg.getCount() == 1 && "singleReg must be a single register");
 
   auto iter = registers_.find(singleReg);
   if (iter == registers_.end()) {
@@ -1582,21 +1582,21 @@ Dyninst::Register registerSpace::allocateGprBlock(RegKind regKind, uint32_t numR
     // Check whether the single individual consecutive registers can be allocated
     bool canAllocateBlock = true;
     for (uint32_t currentId = id; currentId < id + numRegs; ++currentId) {
-      Register singleReg(currentId, regKind, RegUsage::GENERAL_PURPOSE, 0);
+      Register singleReg(OperandRegId(currentId), regKind, BlockSize(1));
       canAllocateBlock &= canAllocate(singleReg);
     }
 
     if (canAllocateBlock) {
       // Allocate those individual registers
       for (uint32_t currentId = id; currentId < id + numRegs; ++currentId) {
-        Register reg(currentId, regKind, RegUsage::GENERAL_PURPOSE, 0);
-        auto *regSlot = this->registers_[reg];
+        Register singleReg(OperandRegId(currentId), regKind, BlockSize(1));
+        auto *regSlot = this->registers_[singleReg];
         regSlot->markUsed(true);
 
         const char *regIdPrefix = regKind == RegKind::SCALAR ? "s" : "v";
         regalloc_printf("Allocated register %s%u\n", regIdPrefix, currentId);
       }
-      return Register(id, regKind, RegUsage::GENERAL_PURPOSE, numRegs);
+      return Register(OperandRegId(id), regKind, BlockSize(numRegs));
     }
   }
   return Null_Register;
@@ -1604,13 +1604,13 @@ Dyninst::Register registerSpace::allocateGprBlock(RegKind regKind, uint32_t numR
 
 
 void registerSpace::freeGprBlock(Register regBlock) {
-  assert(regBlock.getUsage() == RegUsage::GENERAL_PURPOSE && "block must be a GPR block");
+  assert((regBlock.isScalar() || regBlock.isVector()) && "regBlock must be a scalar or vector register block");
   uint32_t startId = regBlock.getId();
   uint32_t numRegs = regBlock.getCount();
   uint32_t endId = startId + numRegs - 1;
 
-  for (uint32_t id = startId; id <= endId; ++id) {
-    Register reg(id, regBlock.getKind(), regBlock.getUsage(), 0);
+  vector<Register> individualRegs = regBlock.getIndividualRegisters();
+  for(auto reg : individualRegs) {
     this->freeRegister(reg);
   }
 }
