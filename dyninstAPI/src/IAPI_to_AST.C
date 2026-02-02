@@ -41,6 +41,11 @@
 
 using namespace Dyninst::InstructionAPI;
 
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
+namespace OperatorNode = Dyninst::DyninstAPI::OperatorNode;
+namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
+
 void ASTFactory::visit(BinaryFunction* b)
 {
     AstNodePtr rhs = m_stack.back();

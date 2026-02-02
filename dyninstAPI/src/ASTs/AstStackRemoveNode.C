@@ -1,8 +1,11 @@
 #include "ast_helpers.h"
 #include "AstStackRemoveNode.h"
+#include "RegisterConversion.h"
 
 #include <iomanip>
 #include <sstream>
+
+namespace Dyninst { namespace DyninstAPI {
 
 std::string AstStackRemoveNode::format(std::string indent) {
   std::stringstream ret;
@@ -162,5 +165,7 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost, Address 
 
   return true;
 }
+
+}}
 
 #endif

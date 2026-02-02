@@ -41,6 +41,8 @@ using Dyninst::PatchAPI::DynReplaceFuncCommand;
 using Dyninst::PatchAPI::DynModifyCallCommand;
 using Dyninst::PatchAPI::DynRemoveCallCommand;
 
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
 /* Instrumenter Command, which is called implicitly by Patcher's run()  */
 bool DynInstrumenter::run() {
   DynAddrSpace* das = dynamic_cast<DynAddrSpace*>(as_);

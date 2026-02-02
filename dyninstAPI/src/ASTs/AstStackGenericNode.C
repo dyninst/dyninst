@@ -4,6 +4,8 @@
 #include <iomanip>
 #include <sstream>
 
+namespace Dyninst { namespace DyninstAPI {
+
 std::string AstStackGenericNode::format(std::string indent) {
   std::stringstream ret;
   ret << indent << "StackGeneric/" << std::hex << this;
@@ -31,3 +33,5 @@ bool AstStackGenericNode::generateCode_phase2(codeGen &gen, bool, Dyninst::Addre
 }
 
 #endif
+
+}}

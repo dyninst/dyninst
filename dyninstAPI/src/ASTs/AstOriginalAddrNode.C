@@ -4,6 +4,8 @@
 
 #include <boost/make_shared.hpp>
 
+namespace Dyninst { namespace DyninstAPI {
+
 bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
                                               Dyninst::Register &retReg) {
   RETURN_KEPT_REG(retReg);
@@ -29,3 +31,5 @@ namespace AddressNode {
   }
 
 }
+
+}}

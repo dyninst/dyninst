@@ -38,6 +38,8 @@
 
 class codeGen;
 
+namespace Dyninst { namespace DyninstAPI {
+
 class AstScrambleRegistersNode : public AstNode {
 public:
   bool usesAppRegister() const override {
@@ -55,5 +57,7 @@ namespace RegisterNode {
   }
 
 }
+
+}}
 
 #endif

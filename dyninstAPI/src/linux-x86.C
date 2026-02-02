@@ -68,6 +68,11 @@
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "instructionAPI/h/Instruction.h"
 
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
+namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
+namespace CallNode = Dyninst::DyninstAPI::CallNode;
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace Dyninst::ProcControlAPI;

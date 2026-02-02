@@ -36,6 +36,8 @@
 
 class codeGen;
 
+namespace Dyninst { namespace DyninstAPI {
+
 class AstStackNode : public AstNode {
 public:
   enum MSpecialType {
@@ -47,5 +49,7 @@ protected:
   bool allocateCanaryRegister(codeGen &gen, bool noCost, Dyninst::Register &reg,
                               bool &needSaveAndRestore);
 };
+
+}}
 
 #endif

@@ -40,6 +40,8 @@
 
 class codeGen;
 
+namespace Dyninst { namespace DyninstAPI {
+
 // This is a little odd, since an AstNode _is_
 // a Snippet. It's a compatibility interface to
 // allow generic PatchAPI snippets to play nice
@@ -62,5 +64,7 @@ namespace SnippetNode {
   }
 
 }
+
+}}
 
 #endif

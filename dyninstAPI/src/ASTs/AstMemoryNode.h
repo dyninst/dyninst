@@ -39,6 +39,8 @@
 
 class codeGen;
 
+namespace Dyninst { namespace DyninstAPI {
+
 class AstMemoryNode : public AstNode {
 public:
   enum class memoryType {
@@ -82,5 +84,7 @@ namespace MemoryNode {
   }
 
 }
+
+}}
 
 #endif

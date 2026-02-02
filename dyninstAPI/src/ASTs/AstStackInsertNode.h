@@ -39,6 +39,8 @@
 
 class codeGen;
 
+namespace Dyninst { namespace DyninstAPI {
+
 class AstStackInsertNode : public AstStackNode {
 public:
   AstStackInsertNode(int s, MSpecialType t) : size(s), type(t) {}
@@ -68,5 +70,7 @@ namespace StackInsertNode {
   }
 
 }
+
+}}
 
 #endif

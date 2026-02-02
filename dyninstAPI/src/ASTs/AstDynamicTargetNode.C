@@ -7,6 +7,8 @@
 
 #include <boost/make_shared.hpp>
 
+namespace Dyninst { namespace DyninstAPI {
+
 bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen, bool noCost, Address &retAddr,
                                                Dyninst::Register &retReg) {
   if(gen.point()->type() != instPoint::PreCall && gen.point()->type() != instPoint::FuncExit &&
@@ -58,3 +60,5 @@ namespace TargetNode {
   }
 
 }
+
+}}

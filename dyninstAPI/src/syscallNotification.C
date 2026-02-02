@@ -43,6 +43,10 @@
 using namespace ProcControlAPI;
 using namespace PatchAPI;
 
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
+namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
+
 
 syscallNotification::syscallNotification(syscallNotification *parentSN,
                                          PCProcess *child) : preForkInst(NULL),

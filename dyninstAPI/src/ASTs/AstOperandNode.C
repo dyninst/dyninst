@@ -13,6 +13,8 @@
 #include <iomanip>
 #include <sstream>
 
+namespace Dyninst { namespace DyninstAPI {
+
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 int AstOperandNode::lastOffset = 0;
 std::map<std::string, int> AstOperandNode::allocTable = {{"--init--", -1}};
@@ -368,3 +370,5 @@ bool AstOperandNode::canBeKept() const {
   }
   return true;
 }
+
+}}

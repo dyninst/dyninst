@@ -40,6 +40,8 @@
 
 class codeGen;
 
+namespace Dyninst { namespace DyninstAPI {
+
 // This corresponds to a single statement, and not an expression that can be nested among other
 // expressions.
 class AstAtomicOperationStmtNode : public AstNode {
@@ -74,5 +76,7 @@ namespace AtomicOperation {
   }
 
 }
+
+}}
 
 #endif

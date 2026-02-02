@@ -4,6 +4,8 @@
 #include <iomanip>
 #include <sstream>
 
+namespace Dyninst { namespace DyninstAPI {
+
 std::string AstAtomicOperationStmtNode::format(std::string indent) {
   std::stringstream ret;
 
@@ -79,3 +81,5 @@ bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen &, bool, Dyninst::A
   return false;
 }
 #endif
+
+}}

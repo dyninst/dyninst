@@ -31,6 +31,8 @@
 #include "AmdgpuEpilogue.h"
 #include "emit-amdgpu.h"
 
+namespace Dyninst { namespace DyninstAPI {
+
 // Similar approach to prologue
 bool AmdgpuEpilogue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::Buffer &buffer) {
   // We need 8 bytes for the epilogue (a s_dcache_wb instruction).
@@ -43,3 +45,5 @@ bool AmdgpuEpilogue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::B
 
   return true;
 }
+
+}}

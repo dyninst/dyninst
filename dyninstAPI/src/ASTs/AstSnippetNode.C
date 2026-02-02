@@ -6,6 +6,8 @@
 #include <iomanip>
 #include <sstream>
 
+namespace Dyninst { namespace DyninstAPI {
+
 bool AstSnippetNode::generateCode_phase2(codeGen &gen, bool, Dyninst::Address &,
                                          Dyninst::Register &) {
   Dyninst::Buffer buf(gen.currAddr(), 1024);
@@ -15,3 +17,5 @@ bool AstSnippetNode::generateCode_phase2(codeGen &gen, bool, Dyninst::Address &,
   gen.copy(buf.start_ptr(), buf.size());
   return true;
 }
+
+}}

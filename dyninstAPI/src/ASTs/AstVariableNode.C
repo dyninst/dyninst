@@ -6,6 +6,8 @@
 #include <iomanip>
 #include <sstream>
 
+namespace Dyninst { namespace DyninstAPI {
+
 void AstVariableNode::setVariableAST(codeGen &gen) {
   if(!ranges_) {
     return;
@@ -51,3 +53,5 @@ std::string AstVariableNode::format(std::string indent) {
 
   return ret.str();
 }
+
+}}

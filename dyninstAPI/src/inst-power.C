@@ -61,6 +61,8 @@
 
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
 extern bool isPowerOf2(int value, int &result);
 
 #define DISTANCE(x,y)   ((x<y) ? (y-x) : (x-y))

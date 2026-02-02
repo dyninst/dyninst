@@ -73,6 +73,8 @@ class registerSpace;
 // undo this optimization and grab a register. Grab the register from the AstNode
 // with the lowest usage count.
 
+namespace Dyninst { namespace DyninstAPI {
+
 class AstNode;
 typedef boost::shared_ptr<AstNode> AstNodePtr;
 
@@ -216,5 +218,7 @@ public:
   // PatchAPI compatibility
   virtual bool generate(Dyninst::PatchAPI::Point *, Dyninst::Buffer &);
 };
+
+}}
 
 #endif

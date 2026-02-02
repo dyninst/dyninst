@@ -38,6 +38,8 @@
 
 class codeGen;
 
+namespace Dyninst { namespace DyninstAPI {
+
 // Acquire the thread index value - a 0...n labeling of threads.
 class AstThreadIndexNode : public AstCallNode {
 public:
@@ -61,5 +63,7 @@ namespace ThreadNode {
   }
 
 }
+
+}}
 
 #endif

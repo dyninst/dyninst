@@ -50,7 +50,17 @@
 using namespace Dyninst;
 using namespace PatchAPI;
 
-#define DCAST_AST(ast) boost::dynamic_pointer_cast<AstNode>(ast)
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
+#define DCAST_AST(ast) boost::dynamic_pointer_cast<Dyninst::DyninstAPI::AstNode>(ast)
+
+namespace OperatorNode = Dyninst::DyninstAPI::OperatorNode;
+namespace SequenceNode = Dyninst::DyninstAPI::SequenceNode;
+namespace CallNode = Dyninst::DyninstAPI::CallNode;
+namespace StackInsertNode = Dyninst::DyninstAPI::StackInsertNode;
+namespace StackRemoveNode = Dyninst::DyninstAPI::StackRemoveNode;
+namespace StackNode = Dyninst::DyninstAPI::StackNode;
+namespace SnippetNode = Dyninst::DyninstAPI::SnippetNode;
 
 // Normal constructor
 baseTramp::baseTramp() :

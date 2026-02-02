@@ -8,6 +8,8 @@
 #include "Point.h"
 #include "registerSpace.h"
 
+namespace Dyninst { namespace DyninstAPI {
+
 void AstNode::setType(BPatch_type *t) {
   bptype = t;
   if(t != NULL) {
@@ -239,3 +241,5 @@ std::string AstNode::format(std::string indent) {
   ret << indent << "Default/" << std::hex << this << "()\n";
   return ret.str();
 }
+
+}}

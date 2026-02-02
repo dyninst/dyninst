@@ -39,6 +39,8 @@
 
 class codeGen;
 
+namespace Dyninst { namespace DyninstAPI {
+
 class AstStackGenericNode : public AstNode {
 public:
   std::string format(std::string indent) override;
@@ -59,5 +61,7 @@ namespace StackNode {
   }
 
 }
+
+}}
 
 #endif

@@ -40,6 +40,8 @@
 
 class codeGen;
 
+namespace Dyninst { namespace DyninstAPI {
+
 class AstOperatorNode : public AstNode {
 public:
   AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r = AstNodePtr(),
@@ -128,5 +130,7 @@ namespace OperatorNode {
 
   // clang-format on
 }
+
+}}
 
 #endif

@@ -15,6 +15,8 @@
 #include <iomanip>
 #include <sstream>
 
+namespace Dyninst { namespace DyninstAPI {
+
 AstMemoryNode::AstMemoryNode(memoryType mem, unsigned which, int size_) : mem_(mem), which_(which) {
 
   assert(BPatch::bpatch != NULL);
@@ -126,3 +128,5 @@ std::string AstMemoryNode::format(std::string indent) {
 
   return ret.str();
 }
+
+}}

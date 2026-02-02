@@ -6,6 +6,8 @@
 #include "instPoint.h"
 #include "registerSpace.h"
 
+namespace Dyninst { namespace DyninstAPI {
+
 bool AstStackNode::allocateCanaryRegister(codeGen &gen, bool noCost, Dyninst::Register &reg,
                                           bool &needSaveAndRestore) {
   // Let's see if we can find a dead register to use!
@@ -36,3 +38,5 @@ bool AstStackNode::allocateCanaryRegister(codeGen &gen, bool noCost, Dyninst::Re
 
   return true;
 }
+
+}}
