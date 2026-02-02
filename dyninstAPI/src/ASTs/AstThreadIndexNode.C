@@ -1,6 +1,8 @@
 #include "AstThreadIndexNode.h"
 #include "debug.h"
 
+namespace Dyninst { namespace DyninstAPI {
+
 // We use one of these across all platforms, since it
 // devolves into a process-specific function node.
 // However, this lets us delay that until code generation
@@ -22,3 +24,5 @@ bool AstThreadIndexNode::canBeKept() const {
   }
   return true;
 }
+
+}}

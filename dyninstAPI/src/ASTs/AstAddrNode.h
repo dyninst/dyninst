@@ -39,6 +39,8 @@ class BPatch_type;
 class BPatch_function;
 class codeGen;
 
+namespace Dyninst { namespace DyninstAPI {
+
 class AstActualAddrNode : public AstNode {
 public:
   BPatch_type *checkType(BPatch_function *) override {
@@ -72,5 +74,7 @@ namespace AddressNode {
   AstNodePtr original();
 
 }
+
+}}
 
 #endif

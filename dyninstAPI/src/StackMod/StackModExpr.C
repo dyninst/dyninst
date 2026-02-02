@@ -36,6 +36,11 @@
 
 using namespace Dyninst;
 
+namespace StackInsertNode = Dyninst::DyninstAPI::StackInsertNode;
+namespace StackRemoveNode = Dyninst::DyninstAPI::StackRemoveNode;
+namespace StackNode = Dyninst::DyninstAPI::StackNode;
+
+
 BPatch_stackInsertExpr::BPatch_stackInsertExpr(int size)
 {
     ast_wrapper = StackInsertNode::generic(size);

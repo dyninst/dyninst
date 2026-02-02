@@ -100,6 +100,8 @@ namespace Dyninst {
    }
 }
 
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
 // This file serves to define an "address space", a set of routines that 
 // code generation and instrumentation rely on to perform their duties. 
 // This was derived from the process class and serves as a parent to that

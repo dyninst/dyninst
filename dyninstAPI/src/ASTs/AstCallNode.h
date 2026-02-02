@@ -43,6 +43,8 @@ class BPatch_function;
 class codeGen;
 class func_instance;
 
+namespace Dyninst { namespace DyninstAPI {
+
 class AstCallNode : public AstNode {
 public:
   AstCallNode(std::string name) : func_name_{std::move(name)} {}
@@ -114,5 +116,7 @@ namespace CallNode {
     return boost::make_shared<AstCallNode>(addr, args);
   }
 }
+
+}}
 
 #endif

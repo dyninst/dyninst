@@ -11,6 +11,8 @@
 #include <iomanip>
 #include <sstream>
 
+namespace Dyninst { namespace DyninstAPI {
+
 bool AstCallNode::initRegisters(codeGen &gen) {
   // For now, we only care if we should save everything. "Everything", of course,
   // is platform dependent. This is the new location of the clobberAllFuncCalls
@@ -174,3 +176,5 @@ namespace CallNode {
     return boost::make_shared<AstCallNode>(ifunc, args);
   }
 }
+
+}}

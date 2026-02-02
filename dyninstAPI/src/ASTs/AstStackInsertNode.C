@@ -8,6 +8,8 @@
 #include <iomanip>
 #include <sstream>
 
+namespace Dyninst { namespace DyninstAPI {
+
 std::string AstStackInsertNode::format(std::string indent) {
   std::stringstream ret;
   ret << indent << "StackInsert/" << std::hex << this;
@@ -131,3 +133,5 @@ bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst:
 }
 
 #endif
+
+}}

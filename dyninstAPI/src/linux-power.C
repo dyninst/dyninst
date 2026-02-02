@@ -45,6 +45,8 @@
 #include "dyninstAPI/src/function.h"
 #include "common/src/linuxHeaders.h"
 
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
 
 // FIXME: HOST+CODEGEN
 // This is a temporary fix as getMaxBranch is used for both host and codegen

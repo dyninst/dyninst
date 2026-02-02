@@ -55,6 +55,11 @@
 
 #include <sstream>
 
+namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
+namespace CallNode = Dyninst::DyninstAPI::CallNode;
+
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
 namespace {
 	// maximum number of addresses per outstanding printf!
 	const unsigned int _numaddrstrs=8;
@@ -1788,7 +1793,7 @@ bool PCProcess::postIRPC(void* buffer, int size, void* userData, bool runProcess
                             result);    
 }
 
-bool PCProcess::postIRPC(AstNodePtr action, void *userData, 
+bool PCProcess::postIRPC(AstNodePtr action, void *userData,
                          bool runProcessWhenDone, PCThread *thread, bool synchronous,
                          void **result, bool userRPC, bool isMemAlloc, Address addr)
 {   

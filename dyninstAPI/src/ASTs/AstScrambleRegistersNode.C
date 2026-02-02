@@ -5,6 +5,8 @@
 #include <iomanip>
 #include <sstream>
 
+namespace Dyninst { namespace DyninstAPI {
+
 #ifndef DYNINST_CODEGEN_ARCH_X86_64
 
 bool AstScrambleRegistersNode::generateCode_phase2(codeGen &, bool, Dyninst::Address &,
@@ -26,3 +28,5 @@ bool AstScrambleRegistersNode::generateCode_phase2(codeGen &gen, bool, Address &
 }
 
 #endif
+
+}}

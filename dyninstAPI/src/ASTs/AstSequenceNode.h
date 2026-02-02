@@ -41,6 +41,8 @@ class BPatch_type;
 class BPatch_function;
 class codeGen;
 
+namespace Dyninst { namespace DyninstAPI {
+
 class AstSequenceNode : public AstNode {
 public:
   AstSequenceNode(std::vector<AstNodePtr> &sequence) {
@@ -68,5 +70,7 @@ namespace SequenceNode {
     return boost::make_shared<AstSequenceNode>(vals);
   }
 }
+
+}}
 
 #endif

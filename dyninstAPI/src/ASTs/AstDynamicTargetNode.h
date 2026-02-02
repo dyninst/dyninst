@@ -41,6 +41,8 @@ class BPatch_function;
 class BPatch_type;
 class codeGen;
 
+namespace Dyninst { namespace DyninstAPI {
+
 class AstDynamicTargetNode : public AstNode {
 public:
   BPatch_type *checkType(BPatch_function *) override {
@@ -57,5 +59,7 @@ namespace TargetNode {
   AstNodePtr dynamic();
 
 }
+
+}}
 
 #endif

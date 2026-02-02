@@ -36,6 +36,8 @@
 #include "common/src/dyn_register.h"
 #include "patchAPI/h/Snippet.h"
 
+namespace Dyninst { namespace DyninstAPI {
+
 // The epilogue writes back the contents of scalar data cache to corresponding global memory.
 // PatchAPI snippet is used to insert the following epilogue:
 //
@@ -57,5 +59,7 @@ class AmdgpuEpilogueSnippet : public BPatch_snippet {
 public:
   AmdgpuEpilogueSnippet(const AstNodePtr &p) : BPatch_snippet(p) {}
 };
+
+}}
 
 #endif

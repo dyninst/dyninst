@@ -46,6 +46,8 @@ class int_variable;
 class codeGen;
 class image_variable;
 
+namespace Dyninst { namespace DyninstAPI {
+
 class AstOperandNode : public AstNode {
   friend class AstOperatorNode;
 
@@ -204,5 +206,7 @@ namespace OperandNode {
   }
 
 }
+
+}}
 
 #endif

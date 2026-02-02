@@ -43,6 +43,8 @@ class BPatch_type;
 class BPatch_function;
 class codeGen;
 
+namespace Dyninst { namespace DyninstAPI {
+
 class AstVariableNode : public AstNode {
 public:
   using range_t = std::pair<Dyninst::Offset, Dyninst::Offset>;
@@ -107,5 +109,7 @@ namespace VariableNode {
   }
 
 }
+
+}}
 
 #endif

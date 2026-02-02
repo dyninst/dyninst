@@ -39,6 +39,8 @@
 
 class codeGen;
 
+namespace Dyninst { namespace DyninstAPI {
+
 class AstNullNode : public AstNode {
 public:
   AstNullNode() = default;
@@ -60,5 +62,7 @@ namespace NullNode {
     return boost::make_shared<AstNullNode>();
   }
 }
+
+}}
 
 #endif

@@ -60,6 +60,7 @@
 #include "RegisterConversion.h"
 #include "registerSpace.h"
 
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
 
 using namespace Dyninst::SymtabAPI;
 namespace {

@@ -36,6 +36,8 @@
 #include "common/src/dyn_register.h"
 #include "patchAPI/h/Snippet.h"
 
+namespace Dyninst { namespace DyninstAPI {
+
 // The prologue loads a register pair with address of the buffer containing instrumentation
 // variables.
 // PatchAPI snippet is used to insert the following prologue:
@@ -70,5 +72,7 @@ class AmdgpuPrologueSnippet : public BPatch_snippet {
 public:
   AmdgpuPrologueSnippet(const AstNodePtr &p) : BPatch_snippet(p) {}
 };
+
+}}
 
 #endif

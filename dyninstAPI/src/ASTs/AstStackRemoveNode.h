@@ -41,6 +41,8 @@
 class codeGen;
 class func_instance;
 
+namespace Dyninst { namespace DyninstAPI {
+
 class AstStackRemoveNode : public AstStackNode {
 public:
   explicit AstStackRemoveNode(int s, MSpecialType t = GENERIC_AST) : size(s), type(t) {}
@@ -80,4 +82,7 @@ namespace StackRemoveNode {
                                                   canaryAfterPrologue, canaryHeight);
   }
 }
+
+}}
+
 #endif

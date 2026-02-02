@@ -4,6 +4,8 @@
 #include <iomanip>
 #include <sstream>
 
+namespace Dyninst { namespace DyninstAPI {
+
 bool AstNullNode::generateCode_phase2(codeGen &gen, bool, Dyninst::Address &retAddr,
                                       Dyninst::Register &retReg) {
   retAddr = Dyninst::ADDR_NULL;
@@ -19,3 +21,5 @@ std::string AstNullNode::format(std::string indent) {
   ret << indent << "Null/" << std::hex << this << "()\n";
   return ret.str();
 }
+
+}}

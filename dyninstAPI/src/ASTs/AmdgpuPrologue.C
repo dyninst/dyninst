@@ -31,6 +31,8 @@
 #include "AmdgpuPrologue.h"
 #include "emit-amdgpu.h"
 
+namespace Dyninst { namespace DyninstAPI {
+
 bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::Buffer &buffer) {
   // To avoid any code duplication or refactoring right now, we use a 'codeGen'
   // object to generate the code and copy what we get there into the
@@ -46,3 +48,5 @@ bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::B
 
   return true;
 }
+
+}}

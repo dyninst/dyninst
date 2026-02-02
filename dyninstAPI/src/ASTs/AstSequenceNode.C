@@ -8,6 +8,8 @@
 #include <iomanip>
 #include <sstream>
 
+namespace Dyninst { namespace DyninstAPI {
+
 bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
                                           Dyninst::Register &retReg) {
   RETURN_KEPT_REG(retReg);
@@ -81,3 +83,5 @@ std::string AstSequenceNode::format(std::string indent) {
   }
   return ret.str();
 }
+
+}}

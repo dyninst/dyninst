@@ -116,7 +116,7 @@ public:
     virtual Address emitMovePCToReg(Register, codeGen &gen);
 
     // This one we actually use now.
-    virtual Register emitCall(opCode, codeGen &, const std::vector <AstNodePtr> &,
+    virtual Register emitCall(opCode, codeGen &, const std::vector <Dyninst::DyninstAPI::AstNodePtr> &,
                               bool, func_instance *);
 
     virtual void emitGetRetVal(Register, bool, codeGen &) { assert(0); }

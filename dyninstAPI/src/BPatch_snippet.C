@@ -64,6 +64,21 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
+namespace OperatorNode = Dyninst::DyninstAPI::OperatorNode;
+namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
+namespace CallNode = Dyninst::DyninstAPI::CallNode;
+namespace SequenceNode = Dyninst::DyninstAPI::SequenceNode;
+namespace NullNode = Dyninst::DyninstAPI::NullNode;
+namespace VariableNode = Dyninst::DyninstAPI::VariableNode;
+namespace MemoryNode = Dyninst::DyninstAPI::MemoryNode;
+namespace ThreadNode = Dyninst::DyninstAPI::ThreadNode;
+namespace AddressNode = Dyninst::DyninstAPI::AddressNode;
+namespace TargetNode = Dyninst::DyninstAPI::TargetNode;
+namespace RegisterNode = Dyninst::DyninstAPI::RegisterNode;
+
+
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "inst-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_POWER)
@@ -148,7 +163,7 @@ BPatch_snippet::~BPatch_snippet()
 
 AstNodePtr generateVariableBase(const BPatch_snippet &lOperand)
 {
-  AstNodePtr variableBase;
+  DyninstAPI::AstNodePtr variableBase;
   if(lOperand.ast_wrapper->getoType() == operandType::variableValue)
   {
     variableBase = OperandNode::variableAddr(lOperand.ast_wrapper->getOVar());

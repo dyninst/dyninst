@@ -38,6 +38,8 @@ namespace {
   }
 }
 
+namespace Dyninst { namespace DyninstAPI {
+
 AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNodePtr e)
     : AstNode(), op(opC), loperand(l), roperand(r), eoperand(e) {
   // Optimization pass...
@@ -873,3 +875,5 @@ std::string AstOperatorNode::format(std::string indent) {
 
   return ret.str();
 }
+
+}}
