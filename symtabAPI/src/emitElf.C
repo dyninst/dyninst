@@ -682,7 +682,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         rewrite_printf("Failed to create new loadable sections\n");
         return false;
     }
-    if (createNewPhdr && !movePHdrsFirst) {
+    if (!movePHdrsFirst) {
         sectionNumber++;
         createNewPhdrRegion(newNameIndexMapping);
     }
