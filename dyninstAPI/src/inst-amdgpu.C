@@ -38,7 +38,6 @@
 /************************************* Register Space **************************************/
 
 void registerSpace::initialize32() {
-  // using namespace NS_amdgpu;
   static bool done = false;
   if (done)
     return;
@@ -49,7 +48,7 @@ void registerSpace::initialize32() {
   // use for instrumentation are considered. This might need work later on.
 
   // SGPRs
-  for (unsigned id = 0; id <= 101; id++) {
+  for (unsigned id = NS_amdgpu::MIN_SGPR_ID; id <= NS_amdgpu::MAX_SGPR_ID; id++) {
     char name[32];
     sprintf(name, "s%u", id);
     Register sgpr = Register::makeScalarRegister(OperandRegId(id), BlockSize(1));

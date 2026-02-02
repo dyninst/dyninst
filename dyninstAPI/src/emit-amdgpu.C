@@ -34,6 +34,7 @@
 
 #include "dyninstAPI/src/emit-amdgpu.h"
 #include "dyninstAPI/src/registerSpace.h"
+#include "arch-amdgpu.h"
 
 using namespace Dyninst;
 using namespace AmdgpuGfx908;
@@ -43,17 +44,20 @@ using namespace AmdgpuGfx908;
 // ==== Helper functions begin
 bool EmitterAmdgpuGfx908::isValidSgpr(Register reg) const {
   return reg.isScalar() &&
-         reg.getCount() == 1 && reg.getId() >= MIN_SGPR_ID &&
-         reg.getId() <= MAX_SGPR_ID;
+         reg.getCount() == 1 && reg.getId() >= NS_amdgpu::MIN_SGPR_ID &&
+         reg.getId() <= NS_amdgpu::MAX_SGPR_ID;
 }
 
 bool EmitterAmdgpuGfx908::isValidSgprBlock(Register regBlock) const {
   auto firstRegId = regBlock.getId();
   auto numRegs = regBlock.getCount();
+
+  if (numRegs <= 1)
+    return false;
+
   auto lastRegId = firstRegId + numRegs - 1;
 
   return regBlock.isScalar() &&
-         numRegs > 1 &&
          firstRegId >= MIN_SGPR_ID && lastRegId <= MAX_SGPR_ID;
 }
 

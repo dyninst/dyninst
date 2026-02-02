@@ -90,7 +90,7 @@ bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) c
 }
 
 bool AmdgpuGfx908PointHandler::isRegAvailable(Register regPair, BPatch_function *function) {
-  vector<Register> individualRegs = regPair.getIndividualRegisters();
+  vector<Register> const &individualRegs = regPair.getIndividualRegisters();
 
   ParseAPI::Location location(ParseAPI::convert(function));
   LivenessAnalyzer livenessAnalyzer(Arch_amdgpu_gfx908, /* width = */ 8);
@@ -103,10 +103,10 @@ bool AmdgpuGfx908PointHandler::isRegAvailable(Register regPair, BPatch_function 
     bool success = livenessAnalyzer.query(location, LivenessAnalyzer::Before, machReg, isMachRegLive);
 
     if (!success) {
-      std::cerr << "AmdgpuPointHandler : liveness query on " << function->getMangledName()
+      ast_cerr << "AmdgpuPointHandler : liveness query on " << function->getMangledName()
                 << " failed.\n"
                 << "exiting...\n";
-      exit(1);
+      assert(0);
     }
 
     isBlockLive &= isMachRegLive;
