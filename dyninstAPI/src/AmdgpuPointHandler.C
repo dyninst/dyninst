@@ -89,31 +89,31 @@ bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) c
   return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() != getMaxGranulatedWavefrontSgprCount());
 }
 
-bool AmdgpuGfx908PointHandler::isRegPairAvailable(Register regPair, BPatch_function *function) {
+bool AmdgpuGfx908PointHandler::isRegAvailable(Register regPair, BPatch_function *function) {
   vector<Register> individualRegs = regPair.getIndividualRegisters();
-  assert(individualRegs.size() == 2);
-
-  MachRegister machReg = convertRegID(individualRegs[0], Arch_amdgpu_gfx908);
-  MachRegister nextMachReg = convertRegID(individualRegs[1], Arch_amdgpu_gfx908);
-
-  bool isMachRegLive = false, isNextMachRegLive = false;
 
   ParseAPI::Location location(ParseAPI::convert(function));
   LivenessAnalyzer livenessAnalyzer(Arch_amdgpu_gfx908, /* width = */ 8);
 
-  bool success =
-      livenessAnalyzer.query(location, LivenessAnalyzer::Before, machReg, isMachRegLive) &&
-      livenessAnalyzer.query(location, LivenessAnalyzer::Before, nextMachReg, isNextMachRegLive);
+  // Check for liveness of the entire block
+  bool isBlockLive = true;
+  for (const auto &individualReg : individualRegs) {
+    MachRegister machReg = convertRegID(individualReg, Arch_amdgpu_gfx908);
+    bool isMachRegLive;
+    bool success = livenessAnalyzer.query(location, LivenessAnalyzer::Before, machReg, isMachRegLive);
 
-  if (!success) {
-    std::cerr << "AmdgpuPointHandler : liveness query on " << function->getMangledName()
-              << " failed.\n"
-              << "exiting...\n";
-    exit(1);
+    if (!success) {
+      std::cerr << "AmdgpuPointHandler : liveness query on " << function->getMangledName()
+                << " failed.\n"
+                << "exiting...\n";
+      exit(1);
+    }
+
+    isBlockLive &= isMachRegLive;
   }
 
-  // The register pair must be dead.
-  return !isMachRegLive && !isNextMachRegLive;
+  // The block must be dead
+  return !isBlockLive;
 }
 
 void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function) {
@@ -138,7 +138,7 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
   }
 
   Register regPair = Register::makeScalarRegister(OperandRegId(94), BlockSize(2));
-  if (!isRegPairAvailable(regPair, function)) {
+  if (!isRegAvailable(regPair, function)) {
     std::cerr << "Can't instrument " << function->getMangledName()
               << " as s94 and s95 are not available.\n"
               << "exiting...\n";
