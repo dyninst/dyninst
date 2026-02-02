@@ -38,7 +38,7 @@
 #include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/AbslocInterface.h" // And more of the same
 #include "dataflowAPI/h/SymEval.h" // Variable class
-#include "common/h/DynAST.h"
+#include "DynAST.h"
 #include "parseAPI/h/CFG.h"
 
 
@@ -228,6 +228,7 @@ namespace SymbolicEvaluation {
  class ConstantAST;
  class AbsRegionAST;
  class RoseAST;
+ class StackAST;
  }
 
 class StackTamperVisitor : public ASTVisitor {
@@ -239,7 +240,7 @@ class StackTamperVisitor : public ASTVisitor {
   virtual AST::Ptr visit(DataflowAPI::ConstantAST *);
   virtual AST::Ptr visit(DataflowAPI::VariableAST *);
   virtual AST::Ptr visit(DataflowAPI::RoseAST *);
-  virtual AST::Ptr visit(StackAST *);
+  virtual AST::Ptr visit(DataflowAPI::StackAST *);
   virtual ~StackTamperVisitor() {}
   
   ParseAPI::StackTamper tampersStack(AST::Ptr a, Address &modAddr);

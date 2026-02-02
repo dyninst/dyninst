@@ -285,8 +285,6 @@ Block::getInsn(Offset a) const {
 
 
 bool Block::operator==(const Block &rhs) const {
-    boost::lock_guard<const Block> g1(*this);
-    boost::lock_guard<const Block> g2(rhs);
     // All sinks are equal
     if(_start == std::numeric_limits<Address>::max()) {
         return rhs._start == _start;
@@ -294,12 +292,7 @@ bool Block::operator==(const Block &rhs) const {
     return _obj == rhs._obj &&
            _region == rhs._region &&
            _start == rhs._start &&
-           _end == rhs._end &&
-           _lastInsn == rhs._lastInsn &&
-           _srclist == rhs._srclist &&
-           _trglist == rhs._trglist &&
-           _func_cnt == rhs._func_cnt &&
-           _parsed == rhs._parsed;
+           _end == rhs._end;
 }
 
 bool Block::operator!=(const Block &rhs) const {
@@ -328,13 +321,25 @@ void Block::removeTarget(Edge * e)
 {
     if (e == NULL) return;
     boost::lock_guard<Block> g(*this);
-    _trglist.erase(e);
+    auto it = _trglist.begin();
+    while(it != _trglist.end()){
+      auto cur_it = it;
+      ++it;
+      if(**cur_it == *e)
+        _trglist.erase(cur_it);
+    }
 }
 
 void Block::removeSource(Edge * e) {
     if (e == NULL) return;
     boost::lock_guard<Block> g(*this);
-    _srclist.erase(e);
+    auto it = _srclist.begin();
+    while(it != _srclist.end()){
+      auto cur_it = it;
+      ++it;
+      if(**cur_it == *e)
+        _srclist.erase(cur_it);
+    }
 }
 
 void Block::moveTargetEdges(Block* B) {

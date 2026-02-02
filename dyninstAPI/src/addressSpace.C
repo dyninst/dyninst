@@ -44,7 +44,7 @@
 #include "InstructionDecoder.h"
 #include "Instruction.h"
 
-#include "common/h/DynAST.h"
+#include "DynAST.h"
 #include "Relocation/CodeMover.h"
 #include "Relocation/Springboard.h"
 #include "Relocation/Transformers/Include.h"
@@ -948,7 +948,7 @@ AstNodePtr AddressSpace::trampGuardAST() {
 
    if (trampGuardAST_) return trampGuardAST_;
 
-   trampGuardAST_ = AstNode::operandNode(AstNode::operandType::variableAddr, trampGuardBase_->ivar());
+   trampGuardAST_ = AstNode::operandNode(operandType::variableAddr, trampGuardBase_->ivar());
    return trampGuardAST_;
 }
 

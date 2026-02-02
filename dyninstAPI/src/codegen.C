@@ -46,7 +46,7 @@
 
 #include "instructionAPI/h/InstructionDecoder.h"
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #define CODE_GEN_OFFSET_SIZE 1U
 #elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
 #define CODE_GEN_OFFSET_SIZE 2U
@@ -649,7 +649,7 @@ Emitter *codeGen::codeEmitter() const {
 void codeGen::beginTrackRegDefs()
 {
    trackRegDefs_ = true;
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
     regsDefined_ = bitArray(REGNUM_IGNORED+1);
 #elif defined(DYNINST_CODEGEN_ARCH_POWER)
     regsDefined_ = bitArray(registerSpace::lastReg);

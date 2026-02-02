@@ -142,11 +142,6 @@ void emitJmpMC(int condition, int offset, codeGen &gen);
 unsigned char cmovOpcodeFromRelOp(unsigned op, bool s);
 unsigned char jccOpcodeFromRelOp(unsigned op, bool s);
 
-
-// function that uses cpuid instruction to figure out whether the processor uses 
-// XMM registers
-bool xmmCapable();
-
 void emitBTRegRestores32(baseTramp *bti, codeGen &gen);
 
 struct stackItem {

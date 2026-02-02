@@ -28,6 +28,7 @@ RUN yum update -y &&   \
       g++              \
       git              \
       glibc-static     \
+      libicu-devel     \
       libomp           \
       libstdc++-static \
       tbb-devel

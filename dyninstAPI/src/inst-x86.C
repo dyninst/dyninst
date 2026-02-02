@@ -48,7 +48,7 @@
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/inst-x86.h"
-#include "dyninstAPI/src/baseTramp.h"
+#include "baseTramp.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/instPoint.h" // includes instPoint-x86.h
 
@@ -69,8 +69,6 @@
 
 class ExpandInstruction;
 class InsertNops;
-
-extern "C" int cpuidCall();
 
 /****************************************************************************/
 /****************************************************************************/
@@ -530,69 +528,11 @@ void registerSpace::initialize()
     
     if (inited) return;
     inited = true;
-    if(xmmCapable())
-    {
-      hasXMM = true;
-    }
-    
 
     initialize32();
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
     initialize64();
 #endif
-}
-
-/* This makes a call to the cpuid instruction, which returns an int where each bit is 
-   a feature.  Bit 24 contains whether fxsave is possible, meaning that xmm registers
-   are saved. */
-#if defined(os_windows)
-int cpuidCall() {
-#ifdef _WIN64
-    int result[4];
-    __cpuid(result, 1);
-    return result[4]; // edx
-#else
-    DWORD result = 0;
-    // Note: mov <target> <source>, so backwards from what gnu uses
-    _asm {
-        push ebx
-        mov eax, 1
-        cpuid
-        pop ebx
-        mov result, edx
-    }
-    return result;
-#endif
-}
-#endif
-
-#if defined(x86_64_unknown_linux2_4)              \
- || defined(os_freebsd) || defined(DYNINST_HOST_ARCH_X86_64) \
- || !defined(DYNINST_HOST_ARCH_X86) || !defined(DYNINST_CODEGEN_ARCH_X86)
-bool xmmCapable()
-{
-  return true;
-}
-#else
-bool xmmCapable()
-{
-  int features = cpuidCall();
-  char * ptr = (char *)&features;
-  ptr += 3;
-  if (0x1 & (*ptr))
-    return true;
-  else
-    return false;
-}
-#endif
-
-bool baseTramp::generateSaves(codeGen& gen, registerSpace*) {
-   return gen.codeEmitter()->emitBTSaves(this, gen);
-}
-
-bool baseTramp::generateRestores(codeGen &gen, registerSpace*) {
-
-   return gen.codeEmitter()->emitBTRestores(this, gen);
 }
 
 /****************************************************************************/
@@ -1380,9 +1320,6 @@ codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register /*src2
          insnCodeGen::generateBranch(gen, dest);
          break;
       }
-      case trampPreamble: {
-         break;
-      }
       default:
          abort();        // unexpected op for this emit!
    }
@@ -1947,13 +1884,11 @@ void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::R
            registerSpace * /*rs*/, int size,
            const instPoint * /* location */, AddressSpace * /* proc */, bool s)
 {
-    assert ((op!=branchOp) && (op!=ifOp) &&
-            (op!=trampPreamble));         // !emitA
+    assert ((op!=branchOp) && (op!=ifOp));         // !emitA
     assert ((op!=getRetValOp) && (op!=getRetAddrOp) && 
             (op!=getParamOp));                                  // !emitR
     assert ((op!=loadOp) && (op!=loadConstOp));                 // !emitVload
     assert ((op!=storeOp));                                     // !emitVstore
-    assert ((op!=updateCostOp));                                // !emitVupdate
     
     if (op ==  loadIndirOp) {
         // same as loadOp, but the value to load is already in a register
@@ -2098,77 +2033,6 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
 }
 
 
-// TODO: mux this between x86 and AMD64
-int getInsnCost(opCode op)
-{
-   if (op == loadConstOp) {
-      return(1);
-   } else if (op ==  loadOp) {
-      return(1+1);
-   } else if (op ==  loadIndirOp) {
-      return(3);
-   } else if (op ==  storeOp) {
-      return(1+1); 
-   } else if (op ==  storeIndirOp) {
-      return(3);
-   } else if (op ==  ifOp) {
-      return(1+2+1);
-   } else if (op ==  ifMCOp) { // VG(8/15/02): No clue if this is right or not
-      return(1+2+1);
-   } else if (op ==  whileOp) {
-      return(1+2+1+1); /* Need to find out about this */
-   } else if (op == branchOp) {
-      return(1);	/* XXX Need to find out what value this should be. */
-   } else if (op ==  callOp) {
-      // cost of call only
-      return(1+2+1+1);
-   } else if (op == funcJumpOp) {
-      // copy callOp
-      return(1+2+1+1);
-   } else if (op == updateCostOp) {
-      return(3);
-   } else if (op ==  trampPreamble) {
-      return(0);
-   } else if (op == noOp) {
-      return(1);
-   } else if (op == getRetValOp) {
-      return (1+1);
-   } else if (op == getRetAddrOp) { 
-      return (1); 
-   } else if (op == getParamOp) {
-      return(1+1);
-   } else {
-      switch (op) {
-         // rel ops
-        case eqOp:
-        case neOp:
-        case lessOp:
-        case leOp:
-        case greaterOp:
-        case geOp:
-	        return(1+1+2+1+1+1);
-	        break;
-        case divOp:
-           return(1+2+46+1);
-        case timesOp:
-           return(1+10+1);
-        case plusOp:
-        case minusOp:
-        case xorOp:
-        case orOp:
-        case andOp:
-           return(1+2+1);
-        case getAddrOp:
-           return(0);	// doesn't add anything to operand
-        default:
-           assert(0);
-           return 0;
-           break;
-      }
-   }
-   return 0;
-}
-
 bool EmitterIA32::emitPush(codeGen &gen, Dyninst::Register reg) {
     RealRegister real_reg = gen.rs()->loadVirtual(reg, gen);
     return ::emitPush(real_reg, gen);
@@ -2237,7 +2101,7 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction insn,
    cft->apply(&f);
    assert(f.m_stack.size() == 1);
    args.push_back(f.m_stack[0]);
-   args.push_back(AstNode::operandNode(AstNode::operandType::Constant,
+   args.push_back(AstNode::operandNode(operandType::Constant,
                                        (void *) addr));
    inst_printf("%s[%d]:  Inserting dynamic call site instrumentation for %s\n",
                FILE__, __LINE__, cft->format(insn.getArch()).c_str());
@@ -2250,18 +2114,6 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction insn,
 int getMaxJumpSize()
 {
   return JUMP_REL32_SZ;
-}
-
-// TODO: fix this so we don't screw future instrumentation of this
-// function. It's a cute little hack, but jeez.
-bool func_instance::setReturnValue(int val)
-{
-    codeGen gen(16);
-
-    emitMovImmToReg(RealRegister(REGNUM_EAX), val, gen);
-    emitSimpleInsn(0xc3, gen); //ret
-    
-    return proc()->writeTextSpace((void *) addr(), gen.used(), gen.start_ptr());
 }
 
 /**
@@ -2326,7 +2178,7 @@ int registerSpace::framePointer() {
 
    DYNINST_DIAGNOSTIC_END_SUPPRESS_DUPLICATED_BRANCHES
 }
-#elif defined(DYNINST_CODEGEN_ARCH_X86)
+#elif defined(DYNINST_CODEGEN_ARCH_I386)
 int registerSpace::framePointer() { 
    return REGNUM_EBP; 
 }
@@ -2474,8 +2326,7 @@ int EmitterIA32::emitCallParams(codeGen &gen,
        RealRegister r = gen.rs()->loadVirtual(srcs[i], gen);
        ::emitPush(r, gen);
        frame_size += 4;
-       if (operands[i]->decRefCount())
-          gen.rs()->freeRegister(srcs[i]);
+       gen.rs()->freeRegister(srcs[i]);
     }
     return frame_size;
 }

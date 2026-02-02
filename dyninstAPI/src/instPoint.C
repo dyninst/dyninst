@@ -39,7 +39,7 @@
 #include "common/src/stats.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/baseTramp.h"
+#include "baseTramp.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/dynThread.h"
 

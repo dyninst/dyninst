@@ -21,7 +21,7 @@ elseif(DYNINST_HOST_ARCH_RISCV64)
 endif()
 
 if(DYNINST_CODEGEN_ARCH_I386)
-  set(ARCH_DEFINES_CODEGEN -Darch_x86)
+  set(ARCH_DEFINES_CODEGEN -Darch_i386)
   set(CAP_DEFINES
       ${CAP_DEFINES}
       -Dcap_fixpoint_gen

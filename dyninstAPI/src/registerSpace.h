@@ -460,9 +460,6 @@ class registerSpace {
     unsigned addr_width;
 
  public:
-    static bool hasXMM;  // for Intel architectures, XMM registers
-
- public:
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
     typedef enum { r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12,
                    r13, r14, r15, r16, r17, r18, r19, r20, r21, r22, r23,
@@ -478,7 +475,7 @@ class registerSpace {
     static unsigned SPR(Dyninst::Register x);
     int framePointer() { return r1; }
 #endif
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
     int framePointer();
 #endif
 #if defined(DYNINST_CODEGEN_ARCH_AARCH64)
@@ -532,5 +529,8 @@ class registerSpace {
 
 
 };
+
+void emitLoadPreviousStackFrameRegister(Dyninst::Address register_num, Dyninst::Register dest,
+                                        codeGen &gen, int size, bool noCost);
 
 #endif

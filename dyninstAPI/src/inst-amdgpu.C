@@ -34,8 +34,6 @@
 #include "arch-amdgpu.h"
 #include "emit-amdgpu.h"
 
-void initDefaultPointFrequencyTable() { assert(!"Not implemented for AMDGPU"); }
-
 /************************************* Register Space **************************************/
 
 void registerSpace::initialize32() {
@@ -86,11 +84,6 @@ void registerSpace::initialize32() {
 void registerSpace::initialize64() { assert(!"No 64-bit registers for AMDGPU"); }
 
 void registerSpace::initialize() { initialize32(); }
-
-/*********************************** Base Tramp ***********************************************/
-bool baseTramp::generateSaves(codeGen & /* gen */, registerSpace *) { return true; }
-
-bool baseTramp::generateRestores(codeGen & /* gen */, registerSpace *) { return true; }
 
 /***********************************************************************************************/
 /***********************************************************************************************/
@@ -154,11 +147,6 @@ void emitV(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /
            codeGen & /* gen */, bool /*noCost*/, registerSpace * /*rs*/, int /* size */,
            const instPoint * /* location */, AddressSpace * /* proc */, bool /* s */) {
   assert(!"Not imeplemented for AMDGPU");
-}
-
-int getInsnCost(opCode) {
-  assert(!"Not implemented for AMDGPU");
-  return 0;
 }
 
 bool doNotOverflow(int64_t /* value */) {

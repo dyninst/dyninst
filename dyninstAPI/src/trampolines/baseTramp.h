@@ -42,8 +42,12 @@
 class AddressSpace;
 
 
-class baseTramp { 
+class baseTramp {
+protected:
     baseTramp();
+
+private:
+    static baseTramp *create();
 
  public:
     static baseTramp *create(instPoint *p);
@@ -65,7 +69,7 @@ class baseTramp {
 
     bool checkForFuncCalls();
 
-    ~baseTramp();
+    virtual ~baseTramp();
 
     int numDefinedRegs();
 
@@ -86,6 +90,13 @@ class baseTramp {
 
     // The second records (during code gen) what has been done so we
     // can undo it later. 
+    
+    typedef enum {
+       cfj_unset = 0,
+       cfj_none = 1,
+       cfj_jump = 2,
+       cfj_call = 3
+    } cfjRet_t;
     
     cfjRet_t funcJumpState_;
     bool needsStackFrame_;
@@ -113,8 +124,8 @@ class baseTramp {
 
  public:
     // Code generation methods
-    bool generateSaves(codeGen &gen, registerSpace *);
-    bool generateRestores(codeGen &gen, registerSpace *);
+    virtual bool generateSaves(codeGen &, registerSpace *) { return false; }
+    virtual bool generateRestores(codeGen &, registerSpace *) { return false; }
     
     // Generated state methods
     bitArray definedRegs;

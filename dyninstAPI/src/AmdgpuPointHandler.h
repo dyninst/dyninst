@@ -45,7 +45,11 @@
 #include <unordered_set>
 
 namespace Dyninst {
-// This implements prologue/epilogue insertion at function entry/exit respectively.
+// This implements:
+// 1. Prologue/epilogue insertion at function entry/exit respectively.
+// 2. Kernel descriptor rewriting for instrumented kernels.
+// 3. Functions that write information about instrumented kernels and instrumentation variables to disk.
+//    (These functions are called before the rewritten binary is written to disk)
 struct AmdgpuGfx908PointHandler : PointHandler {
 
   unsigned eflag = EF_AMDGPU_MACH_AMDGCN_GFX908;
@@ -55,12 +59,14 @@ struct AmdgpuGfx908PointHandler : PointHandler {
   void handlePoints(std::vector<BPatch_point *> const &points);
 
   BPatch_variableExpr* getKernelDescriptorVariable(BPatch_function *f);
+  uint32_t getMaxGranulatedWavefrontSgprCount() const;
 
   bool canInstrument(const AmdgpuKernelDescriptor &kd) const;
   bool isRegPairAvailable(Register reg, BPatch_function *function);
 
   void insertPrologueIfKernel(BPatch_function *function);
   void insertEpilogueIfKernel(BPatch_function *function);
+  void maximizeSgprAllocationIfKernel(BPatch_function *function);
 
   void insertPrologueAtPoints(AmdgpuPrologueSnippet &snippet, std::vector<BPatch_point *> &points);
   void insertEpilogueAtPoints(AmdgpuEpilogueSnippet &snippet, std::vector<BPatch_point *> &points);

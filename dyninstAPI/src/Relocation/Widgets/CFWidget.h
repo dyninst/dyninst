@@ -34,6 +34,7 @@
 #include <map>
 #include <string>
 #include "Widget.h"
+#include "common/src/dyn_register.h"
 
 class block_instance;
 class func_instance;
@@ -59,7 +60,7 @@ namespace NS_amdgpu {
   class instruction;
 }
 
-#if defined(DYNINST_CODEGEN_ARCH_X86) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 typedef NS_x86::instruction arch_insn;
 #elif defined(DYNINST_CODEGEN_ARCH_POWER) 
 typedef NS_power::instruction arch_insn;
@@ -189,15 +190,13 @@ class CFWidget : public Widget {
 								 TargetInt *to,
 								 const RelocBlock *trace,
 								 InstructionAPI::Instruction insn);
-  // The Register holds the translated destination (if any)
-  // TODO replace with the register IDs that Bill's building
-  typedef unsigned Register;
+
   bool generateIndirect(CodeBuffer &gens,
-						Register reg,
+						Dyninst::Register reg,
 						const RelocBlock *trace,
 						InstructionAPI::Instruction insn);
   bool generateIndirectCall(CodeBuffer &gens,
-							Register reg,
+							Dyninst::Register reg,
 							InstructionAPI::Instruction insn,
 							const RelocBlock *trace,
 							Address origAddr);

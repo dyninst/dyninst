@@ -35,6 +35,7 @@
 #include "dyntypes.h"
 #include "common/src/dyn_register.h"
 #include "arch-aarch64.h"
+#include "patch.h"
 
 class AddressSpace;
 

@@ -210,7 +210,7 @@ namespace Dyninst {
             std::map<unsigned, std::vector<std::string> > verdauxEntries;
             std::map<std::string, unsigned> versionNames;
             std::vector<Elf_Half> versionSymTable;
-            int curVersionNum, verneednum, verdefnum, dynsym_info{};
+            int curVersionNum, verneednum, verdefnum{};
 
             // Needed when adding a new segment
             Elf_Off newSegmentStart;
@@ -233,10 +233,7 @@ namespace Dyninst {
 
             //flags
             // Expand NOBITS sections within the object file to their size
-            bool BSSExpandFlag;
             bool movePHdrsFirst;
-            bool createNewPhdr;
-            bool replaceNOTE;
             unsigned loadSecTotalSize;
 
             bool isStripped;
@@ -249,7 +246,7 @@ namespace Dyninst {
                                  bool dynSymFlag = false);
             void findSegmentEnds();
             void renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll=true);
-            void fixPhdrs(unsigned &);
+            void fixPhdrs();
             void createNewPhdrRegion(std::unordered_map<std::string, unsigned> &newNameIndexMapping);
 
             bool addSectionHeaderTable(Elf_Shdr *shdr);
