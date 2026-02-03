@@ -29,7 +29,6 @@
  */
 #if !defined(IA_RISCV64__H)
 #define IA_RISCV64__H
-#include "common/h/DynAST.h"
 #include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/SymEval.h"
 #include "dataflowAPI/h/slicing.h"
