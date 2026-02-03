@@ -30,7 +30,7 @@
 #if !defined(IA_POWER__H)
 #define IA_POWER__H
 #include <string>
-#include "common/h/DynAST.h"
+#include "DynAST.h"
 #include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/SymEval.h"
 #include "dataflowAPI/h/slicing.h"
@@ -59,12 +59,6 @@ class PPC_BLR_Visitor: public ASTVisitor
      virtual AST::Ptr visit(DataflowAPI::VariableAST *);
      virtual AST::Ptr visit(DataflowAPI::RoseAST *);
      //virtual AST::Ptr visit(StackAST *);
-     virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();}
-     virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();}
-     virtual ASTPtr visit(StpAST *) {return AST::Ptr();}
-     virtual ASTPtr visit(YicesAST *) {return AST::Ptr();}
-     virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();}
-
   
    virtual ~PPC_BLR_Visitor() {}
 

@@ -118,7 +118,7 @@ class DYNINST_EXPORT Edge {
          Block * target,
          EdgeTypeEnum type);
      virtual ~Edge();
-
+    bool operator==(const Edge& rhs) const;
     void ignore_index() { _from_index = false; }
     void from_index() { _from_index = true; }
     Block * src() const { return _source.load(); }
@@ -337,7 +337,6 @@ private:
     bool _parsed;
 
     Function * _createdByFunc;
-
 
  friend class Edge;
  friend class Function;
@@ -901,6 +900,10 @@ class DYNINST_EXPORT LoopTreeNode {
     std::vector<Function *> callees;
 
 }; // class LoopTreeNode 
+
+inline bool Edge::operator==(const Edge& rhs) const {
+  return type() == rhs.type() && (*src()) == *(rhs.src()) && *trg() == *(rhs.trg());
+}
 
 } //namespace ParseAPI
 } //namespace Dyninst

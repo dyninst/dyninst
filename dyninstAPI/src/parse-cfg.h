@@ -188,7 +188,6 @@ class parse_func_registers {
  public:
   std::set<Register> generalPurposeRegisters;
   std::set<Register> floatingPointRegisters;
-  std::set<Register> specialPurposeRegisters;
 };
 
 class parse_func : public ParseAPI::Function

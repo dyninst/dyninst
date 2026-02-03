@@ -1,8 +1,0 @@
-##ext_advsimd_execute
-CheckFPAdvSIMDEnabled64();
-bits(datasize) hi = V[m];
-bits(datasize) lo = V[n];
-bits(datasize*2) concat = hi : lo;
-
-V[d] = concat<position+datasize-1:position>;
-@@

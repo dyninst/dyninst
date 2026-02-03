@@ -41,14 +41,26 @@ set(_public_headers
 
 set(_private_headers
     src/addressSpace.h
+    src/AmdgpuKernelDescriptor.h
+    src/AmdgpuPointHandler.h
+    src/AmdgpuPrologue.h
+    src/AmdgpuEpilogue.h
+    ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDHSAKernelDescriptor.h
+    ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h
     src/ast.h
-    src/baseTramp.h
+    src/trampolines/baseTramp.h
+    src/trampolines/baseTramp-aarch64.h
+    src/trampolines/baseTramp-amdgpu.h
+    src/trampolines/baseTramp-ppc.h
+    src/trampolines/baseTramp-riscv64.h
+    src/trampolines/baseTramp-x86.h
     src/binaryEdit.h
     src/block.h
     src/BPatch_collections.h
     src/BPatch_libInfo.h
     src/BPatch_memoryAccessAdapter.h
     src/BPatch_private.h
+    src/codegen-amdgpu.h
     src/codegen-aarch64.h
     src/codegen.h
     src/codegen-power.h
@@ -57,14 +69,15 @@ set(_private_headers
     src/debug.h
     src/dynProcess.h
     src/dynThread.h
+    src/emit-amdgpu.h
     src/emit-aarch64.h
+    src/emit-amdgpu.h
     src/emit-power.h
     src/emitter.h
     src/emit-x86.h
     src/frameChecker.h
     src/frame.h
     src/freebsd.h
-    src/freebsd-x86.h
     src/function.h
     src/hybridAnalysis.h
     src/IAPI_to_AST.h
@@ -84,6 +97,7 @@ set(_private_headers
     src/mapped_object.h
     src/nt_signal_emul.h
     src/opcode.h
+    src/OperandType.h
     src/os.h
     src/parRegion.h
     src/parse-cfg.h
@@ -93,17 +107,19 @@ set(_private_headers
     src/pcEventHandler.h
     src/pcEventMuxer.h
     src/pdwinnt.h
+    src/PointHandler.h
     src/RegisterConversion.h
     src/registerSpace.h
+    src/regTracker.h
     src/syscallNotification.h
     src/trapMappings.h
     src/unix.h
-    src/util.h)
+    src/util.h
+    src/amdgpu-gfx908-details.h)
 
 set(_sources
     src/addressSpace.C
     src/ast.C
-    src/baseTramp.C
     src/binaryEdit.C
     src/block.C
     src/codeRange.C
@@ -129,6 +145,7 @@ set(_sources
     src/pcEventHandler.C
     src/pcEventMuxer.C
     src/registerSpace.C
+    src/regTracker.C
     src/variable.C
     src/BPatch.C
     src/BPatch_addressSpace.C
@@ -183,7 +200,8 @@ set(_sources
     src/Relocation/Widgets/PCWidget.C
     src/Relocation/Widgets/RelDataWidget.C
     src/Relocation/Widgets/StackModWidget.C
-    src/Relocation/patchapi_debug.C)
+    src/Relocation/patchapi_debug.C
+    src/trampolines/baseTramp.C)
 
 list(FIND DYNINST_PLATFORM_CAPABILITIES "-Dcap_stack_mods" cap_stack_mods_found)
 if(cap_stack_mods_found GREATER -1)
@@ -218,7 +236,8 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     src/emit-x86.C
     src/codegen-x86.C
     src/parse-x86.C
-    src/IAPI_to_AST.C)
+    src/IAPI_to_AST.C
+    src/trampolines/baseTramp-x86.C)
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(
     APPEND
@@ -228,7 +247,8 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
     src/parse-power.C
     src/RegisterConversion-ppc.C
     src/Relocation/Widgets/CFWidget-ppc.C
-    src/Relocation/Widgets/PCWidget-ppc.C)
+    src/Relocation/Widgets/PCWidget-ppc.C
+    src/trampolines/baseTramp-ppc.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(
     APPEND
@@ -239,29 +259,32 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/parse-aarch64.C
     src/RegisterConversion-aarch64.C
     src/Relocation/Widgets/CFWidget-aarch64.C
-    src/Relocation/Widgets/PCWidget-aarch64.C)
+    src/Relocation/Widgets/PCWidget-aarch64.C
+    src/trampolines/baseTramp-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  list(APPEND src/emit-amdgpu.C src/amdgpu-gfx908-details.C)
+  list(
+    APPEND
+    _sources
+    src/inst-amdgpu.C
+    src/emit-amdgpu.C
+    src/codegen-amdgpu.C
+    src/parse-amdgpu.C
+    src/RegisterConversion-amdgpu.C
+    src/Relocation/Widgets/CFWidget-amdgpu.C
+    src/Relocation/Widgets/PCWidget-amdgpu.C
+    src/AmdgpuKernelDescriptor.C
+    src/AmdgpuPointHandler.C
+    src/AmdgpuPrologue.C
+    src/AmdgpuEpilogue.C
+    src/amdgpu-gfx908-details.C)
 endif()
 
 if(DYNINST_OS_FreeBSD)
-  list(
-    APPEND
-    _sources
-    src/freebsd.C
-    src/unix.C
-    src/freebsd-x86.C
-    src/syscallNotification.C
-    src/syscall-freebsd.C)
+  list(APPEND _sources src/freebsd.C src/unix.C src/syscallNotification.C
+       src/syscall-freebsd.C)
 elseif(DYNINST_OS_Linux)
-  list(
-    APPEND
-    _sources
-    src/linux.C
-    src/inst-linux.C
-    src/unix.C
-    src/syscallNotification.C
-    src/syscall-linux.C)
+  list(APPEND _sources src/linux.C src/unix.C src/syscallNotification.C
+       src/syscall-linux.C)
   if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
     list(APPEND _sources src/linux-x86.C)
   elseif(DYNINST_HOST_ARCH_PPC64LE)
@@ -284,13 +307,6 @@ elseif(DYNINST_OS_Windows)
     src/Relocation/DynInstrumenter.C
     src/Relocation/DynObject.C
     src/Relocation/DynPointMaker.C)
-endif()
-
-if(DYNINST_CODEGEN_ARCH_I386
-   AND DYNINST_HOST_ARCH_I386
-   AND DYNINST_OS_UNIX)
-  list(APPEND _sources src/cpuid-x86.S)
-  set_source_files_properties(src/cpuid-x86.S PROPERTIES LANGUAGE C)
 endif()
 
 # cmake-format: off
@@ -324,4 +340,7 @@ foreach(t ${dyninstAPI_TARGETS})
     target_compile_definitions(
       ${t} PRIVATE "DYNINST_COMPILER_SEARCH_DIRS=${DYNINST_COMPILER_SEARCH_DIRS}")
   endif()
+
+  target_include_directories(
+    ${t} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/trampolines>")
 endforeach()

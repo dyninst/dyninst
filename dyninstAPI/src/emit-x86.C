@@ -392,18 +392,9 @@ void EmitterIA32::emitLoadOrigRegister(Address register_num, Register dest, code
 
 }
 
-void EmitterIA32::emitStoreOrigRegister(Address register_num, Register src, codeGen &gen) {
+void EmitterIA32::emitStoreOrigRegister(Address, Register, codeGen &) {
 
-   assert(0); //MATT TODO
-   //Previous stack frame register is stored on the stack,
-    //it was stored there at the begining of the base tramp.
-    
-    //Calculate the register's offset from the frame pointer in REGNUM_EBP
-    unsigned offset = SAVED_EAX_OFFSET - (register_num * 4);
-
-    emitMovRMToReg(RealRegister(REGNUM_EAX), RealRegister(REGNUM_EBP), -1*(src*4), gen);
-    gen.markRegDefined(REGNUM_EAX);
-    emitMovRegToRM(RealRegister(REGNUM_EBP), offset, RealRegister(REGNUM_EAX), gen);
+   assert(0);
 }
 
 void EmitterIA32::emitStore(Address addr, Register src, int size, codeGen &gen)
@@ -729,12 +720,7 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
     // Pre-calculate space for temporaries and floating-point state.
     int extra_space = 0;
     if (useFPRs) {
-        if (gen.rs()->hasXMM) {
-            extra_space += TRAMP_FRAME_SIZE + 512;
-        } else {
-            extra_space += TRAMP_FRAME_SIZE + FSAVE_STATE_SIZE;
-        }
-
+      extra_space += TRAMP_FRAME_SIZE + 512;
     } else if (localSpace) {
         extra_space += TRAMP_FRAME_SIZE;
     }
@@ -754,23 +740,17 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
     extra_space_check = extra_space;
 
     if (useFPRs) {
-        if (gen.rs()->hasXMM) {
-           // need to save the floating point state (x87, MMX, SSE)
-           // We're guaranteed to be 16-byte aligned now, so just
-           // emit the fxsave.
+       // need to save the floating point state (x87, MMX, SSE)
+       // We're guaranteed to be 16-byte aligned now, so just
+       // emit the fxsave.
 
-           // fxsave (%esp) ; 0x0f 0xae 0x04 0x24
-           GET_PTR(insn, gen);
-           append_memory_as_byte(insn, 0x0f);
-           append_memory_as_byte(insn, 0xae);
-           append_memory_as_byte(insn, 0x04);
-           append_memory_as_byte(insn, 0x24);
-           SET_PTR(insn, gen);
-        }
-        else {
-           emitOpRegRM(FSAVE, RealRegister(FSAVE_OP),
-                       RealRegister(REGNUM_ESP), 0, gen);
-        }
+       // fxsave (%esp) ; 0x0f 0xae 0x04 0x24
+       GET_PTR(insn, gen);
+       append_memory_as_byte(insn, 0x0f);
+       append_memory_as_byte(insn, 0xae);
+       append_memory_as_byte(insn, 0x04);
+       append_memory_as_byte(insn, 0x24);
+       SET_PTR(insn, gen);
     }
 
     return true;
@@ -798,19 +778,14 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt,codeGen &gen)
     }
 
     if (useFPRs) {
-        if (gen.rs()->hasXMM) {
-            // restore saved FP state
-            // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
-            GET_PTR(insn, gen);
-            append_memory_as_byte(insn, 0x0f);
-            append_memory_as_byte(insn, 0xae);
-            append_memory_as_byte(insn, 0x0c);
-            append_memory_as_byte(insn, 0x24);
-            SET_PTR(insn, gen);
-
-        } else
-           emitOpRegRM(FRSTOR, RealRegister(FRSTOR_OP),
-                       RealRegister(REGNUM_ESP), 0, gen);
+      // restore saved FP state
+      // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
+      GET_PTR(insn, gen);
+      append_memory_as_byte(insn, 0x0f);
+      append_memory_as_byte(insn, 0xae);
+      append_memory_as_byte(insn, 0x0c);
+      append_memory_as_byte(insn, 0x24);
+      SET_PTR(insn, gen);
     }
 
     // Remove extra space allocated for temporaries and floating-point state
@@ -871,20 +846,20 @@ static void emitRex(bool is_64, Register* r, Register* x, Register* b, codeGen &
     // "R" register - extension to ModRM reg field
     if (r && *r & 0x08) {
        rex |= 0x04;
-       *r &= 0x07;
+       *r = r->getId() & 0x07;
     }
     
     // "X" register - extension to SIB index field
     if (x && *x & 0x08) {
        rex |= 0x02;
-       *x &= 0x07;
+       *x = x->getId() & 0x07;
     }
 
     // "B" register - extension to ModRM r/m field, SIB base field,
     // or opcode reg field
     if (b && *b & 0x08) {
        rex |= 0x01;
-       *b &= 0x07;
+       *b = b->getId() & 0x07;
     }
     
     // emit the rex, if needed
@@ -1735,12 +1710,12 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<AstNo
          if (!callerSave) {
             // We don't care!
             regalloc_printf("%s[%d]: pre-call, skipping callee-saved register %u\n", FILE__, __LINE__,
-                     reg->number);
+                     reg->number.getId());
             continue;
          }
 
          regalloc_printf("%s[%d]: pre-call, register %u has refcount %d, keptValue %d, liveState %s\n",
-                         FILE__, __LINE__, reg->number,
+                         FILE__, __LINE__, reg->number.getId(),
                          reg->refCount,
                          reg->keptValue,
                          (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::spilled) ? "spilled" : "dead"));
@@ -1802,7 +1777,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<AstNo
    int frame_size = 0;
    for (int u = operands.size() - 1; u >= 0; u--) {
       Address unused = ADDR_NULL;
-      unsigned reg = Null_Register;
+      Register reg = Null_Register;
       if(u >= (int)AMD64_ARG_REGS)
       {
          if (!operands[u]->generateCode_phase2(gen,
@@ -1847,8 +1822,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<AstNo
    for (unsigned i = 0; i < operands.size(); i++) {
       if (i == AMD64_ARG_REGS) break;
 
-      if (operands[i]->decRefCount())
-         gen.rs()->freeRegister(amd64_arg_regs[i]);
+      gen.rs()->freeRegister(amd64_arg_regs[i]);
    }
    if(frame_size)
    {
@@ -2281,7 +2255,7 @@ bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
       regalloc_printf("\t shouldSaveReg for iRPC\n");
    }
    if (reg->liveState != registerSlot::live) {
-      regalloc_printf("\t Reg %u not live, concluding don't save\n", reg->number);
+      regalloc_printf("\t Reg %u not live, concluding don't save\n", reg->number.getId());
       return false;
    }
    if (saveFlags) {
@@ -2294,7 +2268,7 @@ bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
    }
    if (inst && inst->validOptimizationInfo() && !inst->definedRegs[reg->encoding()]) {
       regalloc_printf("\t Base tramp instance doesn't have reg %u (num %u) defined; concluding don't save\n",
-                      reg->encoding(), reg->number);
+                      reg->encoding(), reg->number.getId());
       return false;
    }
    return true;

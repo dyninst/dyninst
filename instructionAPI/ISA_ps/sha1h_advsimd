@@ -1,6 +1,0 @@
-##sha1h_advsimd_execute
-CheckCryptoEnabled64();
-
-bits(32) operand = V[n];        // read element [0] only,  [1-3] zeroed
-V[d] = ROL(operand, 30);
-@@

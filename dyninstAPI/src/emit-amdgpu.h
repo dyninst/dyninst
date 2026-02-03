@@ -33,7 +33,7 @@
 
 #include "common/src/headers.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/baseTramp.h"
+#include "baseTramp.h"
 #include "dyninstAPI/src/instPoint.h"
 #include <assert.h>
 #include <vector>
@@ -217,5 +217,9 @@ public:
   void emitLongJump(Register reg, uint64_t fromAddress, uint64_t toAddress, codeGen &gen);
 
   void emitScalarDataCacheWriteback(codeGen &gen);
+
+  void emitAtomicAdd(Register baseAddrReg, Register src0, codeGen &gen);
+
+  void emitAtomicSub(Register baseAddrReg, Register src0, codeGen &gen);
 };
 #endif

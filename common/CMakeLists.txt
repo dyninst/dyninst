@@ -12,7 +12,6 @@ set(_public_headers
     h/compiler_annotations.h
     h/compiler_diagnostics.h
     h/concurrent.h
-    h/DynAST.h
     h/dyn_regs.h
     h/dyn_syscalls.h
     h/dyntypes.h
@@ -58,6 +57,7 @@ set(_public_headers
 set(_private_headers
     src/addrtranslate.h
     src/addrtranslate-sysv.h
+    src/arch-amdgpu.h
     src/arch-aarch64.h
     src/arch-power.h
     src/arch-x86.h
@@ -103,11 +103,11 @@ set(_sources
     src/Edge.C
     src/DOT.C
     src/dyn_regs.C
-    src/AST.C
     src/addrtranslate.C
     src/arch-x86.C
     src/arch-power.C
     src/arch-aarch64.C
+    src/arch-amdgpu.C
     src/debug_common.C
     src/VariableLocation.C
     src/Buffer.C

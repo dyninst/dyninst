@@ -37,18 +37,22 @@
 #include "dyntypes.h"
 #include "dyn_register.h"
 #include "dyninstAPI/src/patch.h"
+#include "regTracker.h"
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
 #include "codegen-power.h"
 using namespace NS_power;
 #elif defined(i386_unknown_nt4_0) \
-   || defined(DYNINST_CODEGEN_ARCH_X86)           \
+   || defined(DYNINST_CODEGEN_ARCH_I386)           \
    || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "codegen-x86.h"
 using namespace NS_x86;
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "codegen-aarch64.h"
 using namespace NS_aarch64;
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#include "codegen-amdgpu.h"
+using namespace NS_amdgpu;
 #else
 #error "unknown architecture"
 #endif
@@ -68,7 +72,6 @@ using namespace NS_aarch64;
 class AddressSpace;
 class instPoint;
 class registerSpace;
-class regTracker_t;
 class AstNode;
 class Emitter;
 class func_instance;
