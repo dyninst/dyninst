@@ -65,6 +65,8 @@ using namespace Dyninst::SymtabAPI;
 
 using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
 
+namespace CallNode = Dyninst::DyninstAPI::CallNode;
+
 namespace {
   char const* LIBC_CTOR_HANDLER("__libc_csu_init");
   char const* LIBC_DTOR_HANDLER("__libc_csu_fini");
