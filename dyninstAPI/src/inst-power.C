@@ -63,6 +63,8 @@
 
 using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
 
+namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
+
 extern bool isPowerOf2(int value, int &result);
 
 #define DISTANCE(x,y)   ((x<y) ? (y-x) : (x-y))
