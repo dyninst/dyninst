@@ -129,6 +129,7 @@ class PC_EXPORT Breakpoint
    static Breakpoint::ptr newTransferBreakpoint(Dyninst::Address to);
    static Breakpoint::ptr newTransferOffsetBreakpoint(signed long shift);
    static Breakpoint::ptr newHardwareBreakpoint(unsigned int mode, unsigned int size);
+   static Breakpoint::ptr newSynchronousBreakpoint();
 
    void *getData() const;
    void setData(void *p) const;
@@ -138,6 +139,8 @@ class PC_EXPORT Breakpoint
 
    void setSuppressCallbacks(bool);
    bool suppressCallbacks() const;
+   
+   bool isSynchronous() const;
 };
 
 class PC_EXPORT Library
