@@ -166,6 +166,6 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost, Address 
   return true;
 }
 
-}}
-
 #endif
+
+}}
