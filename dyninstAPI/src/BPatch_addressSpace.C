@@ -80,9 +80,9 @@ BPatch_addressSpace::BPatch_addressSpace() :
    pendingInsertions(NULL), image(NULL)
 {
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  pointHandler.reset(new Dyninst::AmdgpuGfx908PointHandler());
+  pointHandler.reset(new Dyninst::DyninstAPI::AmdgpuGfx908PointHandler());
 #else
-  pointHandler.reset(new Dyninst::PointHandler());
+  pointHandler.reset(new Dyninst::DyninstAPI::PointHandler());
 #endif
 }
 
