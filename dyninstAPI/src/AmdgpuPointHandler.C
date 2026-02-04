@@ -137,6 +137,7 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
     exit(1);
   }
 
+  // TODO: This must be allocated and saved
   Register regPair = Register::makeScalarRegister(OperandRegId(94), BlockSize(2));
   if (!isRegAvailable(regPair, function)) {
     std::cerr << "Can't instrument " << function->getMangledName()
