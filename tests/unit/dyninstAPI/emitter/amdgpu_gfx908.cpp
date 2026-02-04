@@ -8,7 +8,6 @@ int main() {
   using Dyninst::verify_emitter;
   using Dyninst::emitter_buffer_t;
   using namespace NS_amdgpu;
-  using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
 
   constexpr auto arch = Dyninst::Arch_amdgpu_gfx908;
   auto const size = Dyninst::getArchAddressWidth(arch);
