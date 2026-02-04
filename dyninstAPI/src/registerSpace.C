@@ -1605,9 +1605,6 @@ Dyninst::Register registerSpace::allocateGprBlock(RegKind regKind, uint32_t numR
 
 void registerSpace::freeGprBlock(Register regBlock) {
   assert((regBlock.isScalar() || regBlock.isVector()) && "regBlock must be a scalar or vector register block");
-  uint32_t startId = regBlock.getId();
-  uint32_t numRegs = regBlock.getCount();
-  uint32_t endId = startId + numRegs - 1;
 
   vector<Register> individualRegs = regBlock.getIndividualRegisters();
   for(auto reg : individualRegs) {
