@@ -1565,11 +1565,11 @@ Dyninst::Register registerSpace::allocateGprBlock(RegKind regKind, uint32_t numR
   uint32_t maxGprId = 0;
 
   if (regKind == RegKind::SCALAR) {
-    minGprId = AmdgpuGfx908::MIN_SGPR_ID;
-    maxGprId = AmdgpuGfx908::MAX_SGPR_ID;
+    minGprId = NS_amdgpu::MIN_SGPR_ID;
+    maxGprId = NS_amdgpu::MAX_SGPR_ID;
   } else if (regKind == RegKind::VECTOR) {
-    minGprId = AmdgpuGfx908::MIN_VGPR_ID;
-    maxGprId = AmdgpuGfx908::MAX_VGPR_ID;
+    minGprId = NS_amdgpu::MIN_VGPR_ID;
+    maxGprId = NS_amdgpu::MAX_VGPR_ID;
   } else {
     regalloc_printf("regKind can't be allocated\n");
     assert(0);
