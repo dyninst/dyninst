@@ -48,7 +48,7 @@
 #include <cassert>
 #include <fstream>
 
-namespace Dyninst {
+namespace Dyninst { namespace DyninstAPI {
 
 void AmdgpuGfx908PointHandler::handlePoints(std::vector<BPatch_point *> const &points) {
   for (BPatch_point *point : points) {
@@ -272,4 +272,4 @@ void AmdgpuGfx908PointHandler::writeInstrumentationVarTable(const std::string &f
   outFile.close();
 }
 
-} // namespace Dyninst
+}}
