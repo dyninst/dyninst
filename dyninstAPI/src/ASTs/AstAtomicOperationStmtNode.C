@@ -1,8 +1,13 @@
 #include "AstAtomicOperationStmtNode.h"
+#include "AstOperandNode.h"
 #include "codegen.h"
 
 #include <iomanip>
 #include <sstream>
+
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#include "emit-amdgpu.h"
+#endif
 
 namespace Dyninst { namespace DyninstAPI {
 
@@ -24,8 +29,6 @@ std::string AstAtomicOperationStmtNode::format(std::string indent) {
 }
 
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-
-#include "emit-amdgpu.h"
 
 bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen &gen, bool noCost, Address &retAddr,
                                                      Dyninst::Register &) {
