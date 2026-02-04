@@ -100,8 +100,6 @@ namespace Dyninst {
    }
 }
 
-using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
-
 // This file serves to define an "address space", a set of routines that 
 // code generation and instrumentation rely on to perform their duties. 
 // This was derived from the process class and serves as a parent to that
@@ -345,7 +343,7 @@ class AddressSpace : public InstructionSource {
     typedef boost::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
     bool getDynamicCallSiteArgs(InstructionAPI::Instruction insn,
                                 Address addr,
-                                std::vector<AstNodePtr> &args);
+                                std::vector<Dyninst::DyninstAPI::AstNodePtr> &args);
 
     // Default to "nope"
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
@@ -358,7 +356,7 @@ class AddressSpace : public InstructionSource {
     
     // Trampoline guard get/set functions
     int_variable* trampGuardBase(void) { return trampGuardBase_; }
-    AstNodePtr trampGuardAST(void);
+    Dyninst::DyninstAPI::AstNodePtr trampGuardAST(void);
 
     // Get the current code generator (or emitter)
     Emitter *getEmitter();
@@ -508,7 +506,7 @@ class AddressSpace : public InstructionSource {
     std::vector<mapped_object *> mapped_objects;
 
     int_variable* trampGuardBase_; // Tramp recursion index mapping
-    AstNodePtr trampGuardAST_;
+    Dyninst::DyninstAPI::AstNodePtr trampGuardAST_;
 
     void *up_ptr_;
 
