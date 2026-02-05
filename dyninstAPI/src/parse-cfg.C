@@ -217,11 +217,6 @@ parse_block::parse_block(
 #endif
 }
 
-parse_block::~parse_block() {
-
-}
-
-
 void parse_block::debugPrint() {
    // no looping if we're not printing anything
     if(!dyn_debug_parsing)

@@ -69,7 +69,7 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     parse_block(ParseAPI::CodeObject *, ParseAPI::CodeRegion*, Address);
  public:
     parse_block(parse_func*,ParseAPI::CodeRegion*,Address);
-    ~parse_block();
+    ~parse_block() = default;
 
     // just pass through to Block
     Address firstInsnOffset() const;
