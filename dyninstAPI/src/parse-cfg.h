@@ -326,8 +326,6 @@ class parse_func : public ParseAPI::Function
    bool savesReturnAddr() const { return saves_return_addr_; }
 #endif
 
-   bool containsSharedBlocks() const { return containsSharedBlocks_; }
-
    parse_block * entryBlock();
 
    /****** OpenMP Parsing Functions *******/
@@ -377,10 +375,6 @@ class parse_func : public ParseAPI::Function
    enum regUseState { unknown, used, unused };
    parse_func_registers * usedRegisters{nullptr};
    regUseState containsFPRWrites_{unknown};   // floating point registers
-
-   ///////////////////// CFG and function body
-   bool containsSharedBlocks_{false};  // True if one or more blocks in this
-                                       // function are shared with another function.
 
    //  OpenMP (and other parallel language) support
    std::vector<image_parRegion*> parRegionsList; /* vector of all parallel regions within function */

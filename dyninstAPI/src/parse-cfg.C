@@ -95,7 +95,6 @@ parse_func::parse_func(
   OMPparsed_(false),
   usedRegisters(NULL),
   containsFPRWrites_(unknown),
-  containsSharedBlocks_(false),
   hasWeirdInsns_(false),
   prevBlocksUnresolvedCF_(0),
   unresolvedCF_(UNSET_CF),
