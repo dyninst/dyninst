@@ -54,7 +54,6 @@ namespace Dyninst {
 
   inline unsigned getArchAddressWidth(Architecture arch) {
     switch(arch) {
-      case Arch_none: return 0;
       case Arch_x86:
       case Arch_ppc32: return 4;
       case Arch_x86_64:
@@ -66,7 +65,9 @@ namespace Dyninst {
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940: return 8;
-      default: assert(0); return 0;
+      case Arch_none:
+      case Arch_aarch32:
+        return 0;
     }
     return 0;
   }
