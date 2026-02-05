@@ -127,7 +127,6 @@ class parse_block : public codeRange, public ParseAPI::Block  {
             return false;
         }
     };
-    typedef std::set<parse_block *, parse_block::compare> blockSet;
 
     // This is copied from the union of all successor blocks
     const bitArray getLivenessOut(parse_func * context);
