@@ -391,7 +391,6 @@ class parse_func : public ParseAPI::Function
    ParseAPI::FuncReturnStatus init_retstatus_{ParseAPI::FuncReturnStatus::UNSET};
 
    // Architecture specific data
-   bool o7_live{false};
    bool saves_return_addr_{false};
 
    bool isPLTFunction_{false};

@@ -99,7 +99,6 @@ parse_func::parse_func(
   prevBlocksUnresolvedCF_(0),
   unresolvedCF_(UNSET_CF),
   init_retstatus_(UNSET),
-  o7_live(false),
   saves_return_addr_(false),
   isPLTFunction_(false),
   containsPowerPreamble_(false),
