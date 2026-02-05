@@ -346,9 +346,6 @@ class parse_func : public ParseAPI::Function
    bool writesFPRs(unsigned level = 0);
    bool writesSPRs(unsigned level = 0);
 
-
-   void calcBlockLevelLiveness();
-
    const SymtabAPI::Function *func() const { return func_; }
 
    bool containsPowerPreamble() { return containsPowerPreamble_; }
