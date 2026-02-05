@@ -377,7 +377,6 @@ class parse_func : public ParseAPI::Function
    enum regUseState { unknown, used, unused };
    parse_func_registers * usedRegisters{nullptr};
    regUseState containsFPRWrites_{unknown};   // floating point registers
-   regUseState containsSPRWrites_{unknown};   // stack pointer registers
 
    ///////////////////// CFG and function body
    bool containsSharedBlocks_{false};  // True if one or more blocks in this
