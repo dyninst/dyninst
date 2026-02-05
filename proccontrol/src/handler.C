@@ -1564,7 +1564,24 @@ HandleBreakpoint::handleEvent(Event::ptr ev)
     if(!int_ebp->cb_bps.empty() && !ebp->suppressCB())
     {
         pthrd_printf("BP handler is setting user state to reflect breakpoint\n");
-        switch(ebp->getSyncType())
+
+        const Event::SyncType effective_sync_type = [&ebp, &hl_bps]() {
+            /**
+             * A synchronous breakpoint requires all threads in the process to be
+             * stopped before it is "executed".
+             **/
+            for(auto&& bp : hl_bps)
+            {
+                if(bp->isSynchronous())
+                {
+                    pthrd_printf("Found synchronous breakpoint, upgrading to sync_process\n");
+                    return Event::sync_process;
+                }
+            }
+            return ebp->getSyncType();
+        }();
+
+        switch(effective_sync_type)
         {
             case Event::sync_process: {
                 int_threadPool* pool = proc->threadPool();
