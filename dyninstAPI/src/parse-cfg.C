@@ -101,7 +101,6 @@ parse_func::parse_func(
   init_retstatus_(UNSET),
   o7_live(false),
   saves_return_addr_(false),
-  livenessCalculated_(false),
   isPLTFunction_(false),
   containsPowerPreamble_(false),
   noPowerPreambleFunc_(NULL)

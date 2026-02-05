@@ -347,7 +347,6 @@ class parse_func : public ParseAPI::Function
    bool writesSPRs(unsigned level = 0);
 
 
-   void invalidateLiveness() { livenessCalculated_ = false; }
    void calcBlockLevelLiveness();
 
    const SymtabAPI::Function *func() const { return func_; }
@@ -395,7 +394,6 @@ class parse_func : public ParseAPI::Function
    bool o7_live{false};
    bool saves_return_addr_{false};
 
-   bool livenessCalculated_{false};
    bool isPLTFunction_{false};
 
    bool containsPowerPreamble_{false};
