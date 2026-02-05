@@ -346,7 +346,6 @@ class parse_func : public ParseAPI::Function
    bool isLeafFunc();
 
    bool writesFPRs(unsigned level = 0);
-   bool writesSPRs(unsigned level = 0);
 
 
    void invalidateLiveness() { livenessCalculated_ = false; }
