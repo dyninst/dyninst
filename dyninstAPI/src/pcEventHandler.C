@@ -353,6 +353,15 @@ bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr ev, PCProcess 
   proccontrol_printf("%s[%d]: entering handleThreadCreate for %d/%d\n",
 		     FILE__, __LINE__, evProc->getPid(), ev->getLWP());
 
+    // Check if the thread still exists
+#if defined(os_linux) || defined(os_freebsd)
+    if (!ev->getNewThread()) {
+        proccontrol_printf("%s[%d]: thread %d/%d not found, it may have already exited. Ignoring thread create event.\n",
+            FILE__, __LINE__, evProc->getPid(), ev->getLWP());
+            return true;
+    }
+#endif
+
     if( !ev->getNewThread()->haveUserThreadInfo() ) {
         proccontrol_printf("%s[%d]: no user thread info for thread %d/%d, postponing thread create\n",
                 FILE__, __LINE__, evProc->getPid(), ev->getLWP());
@@ -407,6 +416,13 @@ bool PCEventHandler::handleThreadDestroy(EventThreadDestroy::const_ptr ev, PCPro
 			 FILE__, __LINE__, evProc->getPid(), ev->getThread()->getLWP()); 
         BPatch_process *bpproc = BPatch::bpatch->getProcessByPid(evProc->getPid());
         if( bpproc == NULL ) {
+#if defined(os_linux) || defined(os_freebsd)
+            if (ev->getEventType().code() == EventType::LWPDestroy) {
+                proccontrol_printf("%s[%d]: failed to locate process %d, for corresponding LWPDestroy event. It may have already exited. Ignoring event.\n",
+                    FILE__, __LINE__, evProc->getPid());
+                return true;
+            }
+#endif
             proccontrol_printf("%s[%d]: failed to locate BPatch_process for process %d\n",
                     FILE__, __LINE__, evProc->getPid());
             return false;
