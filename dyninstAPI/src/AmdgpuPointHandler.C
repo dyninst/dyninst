@@ -89,8 +89,8 @@ bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) c
   return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() != getMaxGranulatedWavefrontSgprCount());
 }
 
-bool AmdgpuGfx908PointHandler::isRegAvailable(Register regPair, BPatch_function *function) {
-  vector<Register> const &individualRegs = regPair.getIndividualRegisters();
+bool AmdgpuGfx908PointHandler::isRegAvailable(Register reg, BPatch_function *function) {
+  vector<Register> const &individualRegs = reg.getIndividualRegisters();
 
   ParseAPI::Location location(ParseAPI::convert(function));
   LivenessAnalyzer livenessAnalyzer(Arch_amdgpu_gfx908, /* width = */ 8);
@@ -110,10 +110,14 @@ bool AmdgpuGfx908PointHandler::isRegAvailable(Register regPair, BPatch_function 
     }
 
     isBlockLive &= isMachRegLive;
+    if (!isBlockLive)
+      break;
   }
 
-  // The block must be dead
-  return !isBlockLive;
+  if (isBlockLive)
+    return false; // live register, block unavailable
+
+  return true; // all dead, block available
 }
 
 void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function) {
