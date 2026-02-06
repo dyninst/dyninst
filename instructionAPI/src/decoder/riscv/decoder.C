@@ -424,7 +424,7 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_compressed_insn_ope
     case riscv64_op_c_jal: {
       assert(operands.size() == 1);
       assert(operands[0].type == RISCV_OP_IMM);
-      const auto ra_reg = make_reg_op(RISCV_REG_RA, CS_AC_WRITE);
+      const auto ra_reg = make_reg_op(RISCV_REG_X1, CS_AC_WRITE);
       const auto imm = make_imm_op(operands[0].imm);
       res = {ra_reg, imm};
       break;
@@ -432,7 +432,7 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_compressed_insn_ope
     case riscv64_op_c_jalr: {
       assert(operands.size() == 1);
       assert(operands[0].type == RISCV_OP_REG);
-      const auto ra_reg = make_reg_op(RISCV_REG_RA, CS_AC_WRITE);
+      const auto ra_reg = make_reg_op(RISCV_REG_X1, CS_AC_WRITE);
       const auto rs_reg = make_reg_op(operands[0].reg, CS_AC_READ);
       const auto zero_imm = make_imm_op(0);
       res = {ra_reg, rs_reg, zero_imm};
@@ -610,7 +610,7 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_pseudo_insn_operand
       }
       // jal offset -> jal x1, offset
       else if (rd_enc == GPR_RA) {
-        res = {make_reg_op(RISCV_REG_RA, CS_AC_WRITE), operands[0]};
+        res = {make_reg_op(RISCV_REG_X1, CS_AC_WRITE), operands[0]};
       }
     }
     break;
@@ -619,7 +619,7 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_pseudo_insn_operand
     if (op_count == 0) {
       // ret -> jalr x0, x1, 0
       res = {make_reg_op(RISCV_REG_X0, CS_AC_WRITE),
-             make_reg_op(RISCV_REG_RA, CS_AC_READ), make_imm_op(0)};
+             make_reg_op(RISCV_REG_X1, CS_AC_READ), make_imm_op(0)};
     }
     if (op_count == 1) {
       // We must inspect rd to tell apart the j and jal pseudo instruction
@@ -633,7 +633,7 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_pseudo_insn_operand
       }
       // jalr rs -> jalr x1, rs, 0
       else if (rd_enc == GPR_RA) {
-        res = {make_reg_op(RISCV_REG_RA, CS_AC_WRITE), operands[0],
+        res = {make_reg_op(RISCV_REG_X1, CS_AC_WRITE), operands[0],
                make_imm_op(0)};
       }
     }
