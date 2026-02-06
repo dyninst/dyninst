@@ -102,7 +102,7 @@ decode_categories(di::Instruction &insn, di::InstructionDecoder_riscv64::disasse
   // branch
   switch (insn.getOperation().getID()) {
   case riscv64_op_jal: {
-    if (operands[0].reg == RISCV_REG_ZERO) {
+    if (operands[0].reg == RISCV_REG_X0) {
       // jal zero, ... is branch
       categories.erase(std::remove(categories.begin(), categories.end(), di::c_CallInsn), categories.end());
       // ret (jalr zero, ra, 0)
@@ -111,7 +111,7 @@ decode_categories(di::Instruction &insn, di::InstructionDecoder_riscv64::disasse
     break;
   }
   case riscv64_op_jalr: {
-    if (operands[0].reg == RISCV_REG_ZERO) {
+    if (operands[0].reg == RISCV_REG_X0) {
       categories.erase(std::remove(categories.begin(), categories.end(), di::c_CallInsn), categories.end());
       categories.erase(std::remove(categories.begin(), categories.end(), di::c_BranchInsn), categories.end());
       // ret (jalr zero, ra, 0)
@@ -131,8 +131,8 @@ decode_categories(di::Instruction &insn, di::InstructionDecoder_riscv64::disasse
   case riscv64_op_bge:
   case riscv64_op_bltu:
   case riscv64_op_bgeu: {
-    if (operands[0].reg != RISCV_REG_ZERO ||
-        operands[1].reg != RISCV_REG_ZERO) {
+    if (operands[0].reg != RISCV_REG_X0 ||
+        operands[1].reg != RISCV_REG_X0) {
       categories.push_back(di::c_ConditionalInsn);
     }
     break;
