@@ -74,7 +74,7 @@ InstructionDecoder_riscv64::InstructionDecoder_riscv64(Dyninst::Architecture a)
     : InstructionDecoderImpl(a) {
 
   // Currently we only support RV64
-  mode = (cs_mode)(CS_MODE_RISCV64 | CS_MODE_RISCVC);
+  mode = (cs_mode)(CS_MODE_RISCV64 | CS_MODE_RISCV_C);
 
   cs_open(CS_ARCH_RISCV, this->mode, &disassembler.handle);
   cs_option(disassembler.handle, CS_OPT_DETAIL, CS_OPT_ON);
