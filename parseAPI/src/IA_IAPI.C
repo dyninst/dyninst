@@ -570,7 +570,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
 
         if (isMultiInsnJump(&target, context, currBlk)) {
             CodeSource *cs = currBlk->obj()->cs();
-            std::map<Dyninst::Address, std::string> symtab_entries = cs->symtab_linkage();
+            const std::map<Dyninst::Address, std::string>& symtab_entries = cs->symtab_linkage();
             // If the target address points to the entry point of a function,
             // It is identified as a function call.
             if (symtab_entries.find(target) != symtab_entries.end() ||
