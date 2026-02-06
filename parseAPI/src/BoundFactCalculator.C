@@ -356,7 +356,6 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     }
 
     if (node->assign()->block()->obj()->cs()->getArch() == Arch_riscv64 &&
-            node->assign() &&
             node->assign()->out().absloc().type() == Absloc::Register &&
             IsConditionalJump(node->assign()->insn())) {
         parsing_printf("\t\tThe predecessor node is a conditional jump (RISC-V)!\n");
