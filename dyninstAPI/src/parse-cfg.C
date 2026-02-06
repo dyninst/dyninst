@@ -398,7 +398,7 @@ bool parse_func::isLeafFunc() {
     if (!parsed())
         image_->analyzeIfNeeded();
 
-    return !callEdges().empty();
+    return callEdges().empty();
 }
 
 void parse_func::addParRegion(Address begin, Address end, parRegType t)
