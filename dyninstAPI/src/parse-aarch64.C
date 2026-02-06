@@ -71,53 +71,6 @@ namespace {
   char const* DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
 }
 
-/* This does a linear scan to find out which registers are used in the function,
-   it then stores these registers so the scan only needs to be done once.
-   It returns true or false based on whether the function is a leaf function,
-   since if it is not the function could call out to another function that
-   clobbers more registers so more analysis would be needed */
-void parse_func::calcUsedRegs()
-{
-    if (!usedRegisters)
-    {
-        usedRegisters = new parse_func_registers();
-        using namespace Dyninst::InstructionAPI;
-        std::set<RegisterAST::Ptr> writtenRegs;
-
-        auto bl = blocks();
-        auto curBlock = bl.begin();
-        for( ; curBlock != bl.end(); ++curBlock)
-        {
-            InstructionDecoder d(getPtrToInstruction((*curBlock)->start()),
-                    (*curBlock)->size(),
-                    isrc()->getArch());
-            Instruction i;
-            i = d.decode();
-            while(i.isValid())
-            {
-                i.getWriteSet(writtenRegs);
-                i = d.decode();
-            }
-        }
-
-        for(auto const& reg : writtenRegs) {
-          MachRegister r = reg->getID();
-          auto regID = convertRegID(r.getBaseRegister());
-          if(regID == registerSpace::ignored) {
-            logLine("parse_func::calcUsedRegs: unknown written register\n");
-            continue;
-          }
-          if(r.isGeneralPurpose()) {
-            usedRegisters->generalPurposeRegisters.insert(regID);
-          }
-          else if(r.isFloatingPoint()) {
-            usedRegisters->floatingPointRegisters.insert(regID);
-          }
-        }
-    }
-    return;
-}
-
 static void add_handler(instPoint* pt, func_instance* add_me)
 {
   vector<codeGenASTPtr> args;
