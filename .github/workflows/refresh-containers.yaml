@@ -5,10 +5,6 @@ on:
     - cron: '0 3 25 * *'  # 3AM on the 25th of every month
   workflow_dispatch:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
 
   get-oses:
