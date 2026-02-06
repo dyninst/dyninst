@@ -70,7 +70,7 @@ decode_categories(di::Instruction &insn, di::InstructionDecoder_riscv64::disasse
       categories.push_back(di::c_InterruptInsn);
       categories.push_back(di::c_ReturnInsn);
       break;
-    case RISCV_GRP_ISRV32:
+    case RISCV_FEATURE_ISRV32:
     case RISCV_FEATURE_ISRV64:
       categories.push_back(di::c_VectorInsn);
       break;
