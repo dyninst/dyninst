@@ -325,7 +325,6 @@ namespace riscv {
       case RISCV_INS_SUBW: return "subw";
       case RISCV_INS_SW: return "sw";
       case RISCV_INS_UNIMP: return "unimp";
-      case RISCV_INS_URET: return "uret";
       case RISCV_INS_WFI: return "wfi";
       case RISCV_INS_XOR: return "xor";
       case RISCV_INS_XORI: return "xori";
@@ -604,7 +603,6 @@ namespace riscv {
       case RISCV_INS_SUBW: return riscv64_op_subw;
       case RISCV_INS_SW: return riscv64_op_sw;
       case RISCV_INS_UNIMP: return riscv64_op_unimp;
-      case RISCV_INS_URET: return riscv64_op_uret;
       case RISCV_INS_WFI: return riscv64_op_wfi;
       case RISCV_INS_XOR: return riscv64_op_xor;
       case RISCV_INS_XORI: return riscv64_op_xori;
