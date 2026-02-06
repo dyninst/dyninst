@@ -115,7 +115,7 @@ decode_categories(di::Instruction &insn, di::InstructionDecoder_riscv64::disasse
       categories.erase(std::remove(categories.begin(), categories.end(), di::c_CallInsn), categories.end());
       categories.erase(std::remove(categories.begin(), categories.end(), di::c_BranchInsn), categories.end());
       // ret (jalr zero, ra, 0)
-      if (operands[1].reg == RISCV_REG_RA && operands[2].imm == 0) {
+      if (operands[1].reg == RISCV_REG_X1 && operands[2].imm == 0) {
         categories.push_back(di::c_ReturnInsn);
       }
       // jalr zero, ... is branch
