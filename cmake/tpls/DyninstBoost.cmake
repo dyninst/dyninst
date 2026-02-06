@@ -53,7 +53,9 @@ if(NOT TARGET Dyninst::Boost)
   target_include_directories(Dyninst::Boost SYSTEM INTERFACE ${Boost_INCLUDE_DIRS})
   target_compile_definitions(Dyninst::Boost
                              INTERFACE BOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
+endif()
 
+if(NOT TARGET Dyninst::Boost_headers)
   # Just the headers (effectively a simplified Boost::headers target)
   add_library(Dyninst::Boost_headers INTERFACE IMPORTED)
   target_include_directories(Dyninst::Boost_headers SYSTEM

@@ -1,6 +1,7 @@
 include_guard(GLOBAL)
 
 include(DyninstLibrary)
+include(DyninstBoost)
 
 configure_file(${PROJECT_SOURCE_DIR}/cmake/dyninstversion.h.in
                ${CMAKE_CURRENT_SOURCE_DIR}/h/dyninstversion.h)
@@ -166,7 +167,7 @@ dyninst_library(
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
   DEFINES COMMON_LIB
-  PUBLIC_DEPS Dyninst::TBB Dyninst::Boost
+  PUBLIC_DEPS Dyninst::TBB Dyninst::Boost Boost::thread Boost::filesystem
   PRIVATE_DEPS Dyninst::LibIberty OpenMP::OpenMP_CXX Dyninst::Valgrind Threads::Threads
 )
 # cmake-format: on
