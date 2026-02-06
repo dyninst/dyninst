@@ -150,6 +150,10 @@ void InstructionDecoder_riscv64::decode_operands(Instruction &insn) {
     case RISCV_OP_MEM:
       decode_mem(insn, operand, !is_encoded);
       break;
+    case RISCV_OP_FP:
+    case RISCV_OP_CSR:
+      decode_printf("Unhandled operand type\n");
+      return;
     case RISCV_OP_INVALID:
       decode_printf("[0x%lx %s %s] has an invalid operand.\n",
                     disassembler.insn->address, disassembler.insn->mnemonic, disassembler.insn->op_str);
@@ -169,6 +173,10 @@ void InstructionDecoder_riscv64::decode_operands(Instruction &insn) {
     case RISCV_OP_MEM:
       decode_mem(insn, operand, is_encoded);
       break;
+    case RISCV_OP_FP:
+    case RISCV_OP_CSR:
+      decode_printf("Unhandled operand type\n");
+      return;
     case RISCV_OP_INVALID:
       decode_printf("[0x%lx %s %s] has an invalid operand.\n",
                     disassembler.insn->address, disassembler.insn->mnemonic,
