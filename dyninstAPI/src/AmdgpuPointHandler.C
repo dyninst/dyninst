@@ -89,31 +89,35 @@ bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) c
   return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() != getMaxGranulatedWavefrontSgprCount());
 }
 
-bool AmdgpuGfx908PointHandler::isRegPairAvailable(Register reg, BPatch_function *function) {
-  assert(reg % 2 == 0 && "reg must be even");
-  assert(reg <= 101 && "reg must be a valid SGPR");
-
-  MachRegister machReg = convertRegID(reg, Arch_amdgpu_gfx908);
-  MachRegister nextMachReg = convertRegID(reg + 1, Arch_amdgpu_gfx908);
-
-  bool isMachRegLive = false, isNextMachRegLive = false;
+bool AmdgpuGfx908PointHandler::isRegAvailable(Register reg, BPatch_function *function) {
+  vector<Register> const &individualRegs = reg.getIndividualRegisters();
 
   ParseAPI::Location location(ParseAPI::convert(function));
   LivenessAnalyzer livenessAnalyzer(Arch_amdgpu_gfx908, /* width = */ 8);
 
-  bool success =
-      livenessAnalyzer.query(location, LivenessAnalyzer::Before, machReg, isMachRegLive) &&
-      livenessAnalyzer.query(location, LivenessAnalyzer::Before, nextMachReg, isNextMachRegLive);
+  // Check for liveness of the entire block
+  bool isBlockLive = true;
+  for (const auto &individualReg : individualRegs) {
+    MachRegister machReg = convertRegID(individualReg, Arch_amdgpu_gfx908);
+    bool isMachRegLive;
+    bool success = livenessAnalyzer.query(location, LivenessAnalyzer::Before, machReg, isMachRegLive);
 
-  if (!success) {
-    std::cerr << "AmdgpuPointHandler : liveness query on " << function->getMangledName()
-              << " failed.\n"
-              << "exiting...\n";
-    exit(1);
+    if (!success) {
+      ast_cerr << "AmdgpuPointHandler : liveness query on " << function->getMangledName()
+                << " failed.\n"
+                << "exiting...\n";
+      assert(0);
+    }
+
+    isBlockLive &= isMachRegLive;
+    if (!isBlockLive)
+      break;
   }
 
-  // The register pair must be dead.
-  return !isMachRegLive && !isNextMachRegLive;
+  if (isBlockLive)
+    return false; // live register, block unavailable
+
+  return true; // all dead, block available
 }
 
 void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function) {
@@ -137,8 +141,8 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
     exit(1);
   }
 
-  int reg = 94;
-  if (!isRegPairAvailable(reg, function)) {
+  Register regPair = Register::makeScalarRegister(OperandRegId(94), BlockSize(2));
+  if (!isRegAvailable(regPair, function)) {
     std::cerr << "Can't instrument " << function->getMangledName()
               << " as s94 and s95 are not available.\n"
               << "exiting...\n";
@@ -149,7 +153,7 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
   function->getEntryPoints(entryPoints);
 
   auto prologuePtr =
-      boost::make_shared<AmdgpuPrologue>(reg, kd.getKernargPtrRegister(), kd.getKernargSize());
+      boost::make_shared<AmdgpuPrologue>(regPair, kd.getKernargPtrRegisterPair(), kd.getKernargSize());
 
   AstNodePtr prologueNodePtr =
         boost::make_shared<AmdgpuPrologueNode>(prologuePtr);

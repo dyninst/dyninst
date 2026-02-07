@@ -63,6 +63,7 @@
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "dyninstAPI/src/emit-aarch64.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#include "arch-amdgpu.h"
 #include "dyninstAPI/src/emit-amdgpu.h"
 #endif
 

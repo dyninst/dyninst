@@ -62,7 +62,7 @@ struct AmdgpuGfx908PointHandler : PointHandler {
   uint32_t getMaxGranulatedWavefrontSgprCount() const;
 
   bool canInstrument(const AmdgpuKernelDescriptor &kd) const;
-  bool isRegPairAvailable(Register reg, BPatch_function *function);
+  bool isRegAvailable(Register reg, BPatch_function *function);
 
   void insertPrologueIfKernel(BPatch_function *function);
   void insertEpilogueIfKernel(BPatch_function *function);
