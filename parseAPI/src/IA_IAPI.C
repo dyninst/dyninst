@@ -428,7 +428,7 @@ bool IA_IAPI::isFrameSetupInsn() const
 bool IA_IAPI::isDynamicCall() const
 {
     Instruction ci = curInsn();
-    if(ci.isValid() && ci.isCall() && !ci.isMultiInsnCall())
+    if(ci.isValid() && ci.isCall())
     {
         Address addr;
         bool success;
@@ -579,7 +579,6 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                         FILE__, __LINE__, current, target);
                 //outEdges.push_back(std::make_pair(target, CALL));
                 //outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
-                curInsnIter->second.getOperation().isMultiInsnCall = true;
                 success = true;
                 ftEdge = true;
             }
@@ -605,15 +604,6 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                 outEdges.push_back(std::make_pair(*ait, CATCH));
             }
         }
-
-        // Non-ABI calls
-        if (ci.getOperation().getID() == riscv64_op_jalr || ci.getOperation().getID() == riscv64_op_jal) {
-            MachRegister linkReg = (boost::dynamic_pointer_cast<RegisterAST>(ci.getOperand(0).getValue()))->getID();
-            if (linkReg != riscv64::ra) {
-                curInsnIter->second.getOperation().isNonABICall = true;
-            }
-        }
-
         return;
     }
     else if(ci.isBranch())
@@ -664,7 +654,6 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             {
                 outEdges.push_back(std::make_pair(getNextAddr(), FALLTHROUGH));
             }
-            curInsnIter->second.getOperation().isNonABIReturn = true;
             return;
         }
         else if (isMultiInsnJump(&target, context, currBlk))
@@ -685,7 +674,6 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                         FILE__, __LINE__, target);
                 outEdges.push_back(std::make_pair(target, DIRECT));
             }
-            curInsnIter->second.getOperation().isMultiInsnBranch = true;
             return;
         }
         else
