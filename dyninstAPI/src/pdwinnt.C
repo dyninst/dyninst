@@ -42,7 +42,7 @@
 #include "dyninstAPI/src/emit-x86.h"
 #include "common/src/arch-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 #include "image.h"
 #include <boost/tuple/tuple.hpp>
 

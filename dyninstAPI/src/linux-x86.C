@@ -56,7 +56,7 @@
 
 #include "dyninstAPI/src/linux.h"
 
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 
 #include <sstream>
 
