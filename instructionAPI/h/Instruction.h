@@ -164,8 +164,8 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT bool isSoftwareException() const { return isGPUKernelExit() || getCategory() == c_SoftwareExceptionInsn; }
     DYNINST_EXPORT bool isConditional() const { return checked_category(c_ConditionalInsn); }
 
-    DYNINST_EXPORT void forceSetReturn() const;
-    DYNINST_EXPORT void forceSetCall() const;
+    DYNINST_EXPORT void forceReturn() const;
+    DYNINST_EXPORT void forceCall() const;
 
     typedef std::list<CFT>::const_iterator cftConstIter;
     DYNINST_EXPORT cftConstIter cft_begin() const { return m_Successors.begin(); }

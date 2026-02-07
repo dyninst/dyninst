@@ -444,6 +444,18 @@ namespace Dyninst { namespace InstructionAPI {
     return c;
   }
 
+  DYNINST_EXPORT void Instruction::forceCall() const {
+    if(arch_decoded_from == Arch_riscv64) {
+      categories.categories.push_back(c_CallInsn);
+    }
+  }
+
+  DYNINST_EXPORT void Instruction::forceReturn() const {
+    if(arch_decoded_from == Arch_riscv64) {
+      categories.categories.push_back(c_ReturnInsn);
+    }
+  }
+
   void Instruction::addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect,
                                  bool isConditional, bool isFallthrough, bool isImplicit) const {
     CFT c(e, isCall, isIndirect, isConditional, isFallthrough);
