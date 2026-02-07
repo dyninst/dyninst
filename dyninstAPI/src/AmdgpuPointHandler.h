@@ -44,7 +44,8 @@
 #include <string>
 #include <unordered_set>
 
-namespace Dyninst {
+namespace Dyninst { namespace DyninstAPI {
+
 // This implements:
 // 1. Prologue/epilogue insertion at function entry/exit respectively.
 // 2. Kernel descriptor rewriting for instrumented kernels.
@@ -75,4 +76,4 @@ struct AmdgpuGfx908PointHandler : PointHandler {
   void writeInstrumentationVarTable(const std::string &filePath);
 };
 
-} // namespace Dyninst
+}}

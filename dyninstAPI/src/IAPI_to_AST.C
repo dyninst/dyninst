@@ -41,6 +41,11 @@
 
 using namespace Dyninst::InstructionAPI;
 
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
+namespace OperatorNode = Dyninst::DyninstAPI::OperatorNode;
+namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
+
 void ASTFactory::visit(BinaryFunction* b)
 {
     AstNodePtr rhs = m_stack.back();
@@ -49,17 +54,11 @@ void ASTFactory::visit(BinaryFunction* b)
     m_stack.pop_back();
     if(b->isAdd())
     {
-        m_stack.push_back(AstNode::operatorNode(
-                plusOp,
-                lhs,
-                rhs));
+        m_stack.push_back(OperatorNode::plus(lhs,rhs));
     }
     else if(b->isMultiply())
     {
-        m_stack.push_back(AstNode::operatorNode(
-                timesOp,
-        lhs,
-        rhs));
+        m_stack.push_back(OperatorNode::times(lhs, rhs));
     }
     else
     {
@@ -71,26 +70,23 @@ void ASTFactory::visit(Dereference* )
 {
     AstNodePtr effaddr = m_stack.back();
     m_stack.pop_back();
-	m_stack.push_back(AstNode::operandNode(operandType::DataIndir, effaddr));
+	m_stack.push_back(OperandNode::DataIndir(effaddr));
 }
 
 void ASTFactory::visit(Immediate* i)
 {
-    m_stack.push_back(AstNode::operandNode(operandType::Constant,
-                    (void*)(i->eval().convert<long>())));
+    m_stack.push_back(OperandNode::Constant((void*)(i->eval().convert<long>())));
 }
 
 void ASTFactory::visit(RegisterAST* r)
 {
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)  
-    m_stack.push_back(AstNode::operandNode(operandType::origRegister,
-                      (void*)(intptr_t)(convertRegID(r))));
+    m_stack.push_back(OperandNode::origRegister((void*)(intptr_t)(convertRegID(r))));
 #else
     MachRegister reg = r->getID();
     reg = reg.getBaseRegister();
     Register astreg = reg.val() & ~reg.getArchitecture();
-    m_stack.push_back(AstNode::operandNode(AstNode::origRegister,
-                      (void*)(astreg)));
+    m_stack.push_back(OperandNode::origRegister((void*)(astreg)));
 #endif
 }
 void ASTFactory::visit(MultiRegisterAST* )
