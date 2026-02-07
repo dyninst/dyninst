@@ -1000,10 +1000,6 @@ void BPatch_function::fixupUnknown(BPatch_module *module) {
    }
 }
 
-bool BPatch_function::containsSharedBlocks() {
-    return func->containsSharedBlocks();
-}
-
 // isPrimary: function will now use this name as a primary output name
 // isMangled: this is the "mangled" name rather than demangled (pretty)
 const char *BPatch_function::addName(const char *name,

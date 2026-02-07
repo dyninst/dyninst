@@ -238,7 +238,6 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
   const std::vector< int_parRegion* > &parRegions();
 
-  bool containsSharedBlocks() const { return ifunc()->containsSharedBlocks(); }
   unsigned getNumDynamicCalls();
 
   // Fill the <callers> vector with pointers to the statically-determined
