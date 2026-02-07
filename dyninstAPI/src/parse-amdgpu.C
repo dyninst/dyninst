@@ -56,11 +56,6 @@ void parse_func::calcUsedRegs() {
   return;
 }
 
-bool BinaryEdit::doStaticBinarySpecialCases() {
-  assert(!"Not implemented for AMDGPU");
-  return false;
-}
-
 func_instance *mapped_object::findGlobalConstructorFunc(const std::string & /* ctorHandler */) {
   assert(!"Not implemented for AMDGPU");
   return nullptr;
