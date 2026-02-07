@@ -318,8 +318,6 @@ class parse_func : public ParseAPI::Function
 
    bool isLeafFunc();
 
-   bool writesFPRs(unsigned level = 0);
-
    const SymtabAPI::Function *func() const { return func_; }
 
    bool containsPowerPreamble() { return containsPowerPreamble_; }
@@ -336,10 +334,6 @@ class parse_func : public ParseAPI::Function
 
    pdmodule *mod_{nullptr};	/* pointer to file that defines func. */
    image *image_{nullptr};
-
-   /////  Variables for liveness Analysis
-   enum regUseState { unknown, used, unused };
-   regUseState containsFPRWrites_{unknown};   // floating point registers
 
    bool hasWeirdInsns_{false};    // true if we stopped the parse at a
 								  // weird instruction (e.g., arpl)

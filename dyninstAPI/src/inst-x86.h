@@ -56,6 +56,7 @@
 */
 
 #include <assert.h>
+#include "parse-cfg.h"
 #include "registerSpace.h"
 
 #define NUM_VIRTUAL_REGISTERS (32)   /* number of virtual registers */
@@ -163,5 +164,7 @@ struct stackItemLocation {
 };
 
 stackItemLocation getHeightOf(stackItem sitem, codeGen &gen);
+
+bool writesFPRs(parse_func *func, unsigned level = 0);
 
 #endif

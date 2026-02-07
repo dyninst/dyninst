@@ -42,128 +42,13 @@
 #include <set>
 #include <algorithm>
 #include "registers/x86_regs.h"
-
+#include "codeGenAST.h"
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 
 using namespace Dyninst::ParseAPI;
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
-
-bool parse_func::writesFPRs(unsigned level) {
-    
-    using namespace Dyninst::InstructionAPI;
-    // Oh, we should be parsed by now...
-    if (!parsed()) image_->analyzeIfNeeded();
-
-    if (containsFPRWrites_ == unknown) {
-        // Iterate down and find out...
-        // We know if we have callees because we can
-        // check the instPoints; no reason to iterate over.
-        // We also cache callee values here for speed.
-
-        if (level >= 3) {
-            return true; // Arbitrarily decided level 3 iteration.
-        }        
-        const Function::edgelist & calls = callEdges();
-        Function::edgelist::const_iterator cit = calls.begin();
-        for( ; cit != calls.end(); ++cit) {
-            if(!(*cit)->trg()) continue;
-            parse_func * ct = dynamic_cast<parse_func*>(
-                obj()->findFuncByEntry(region(),(*cit)->trg()->start()));
-            if(ct && ct != this) {
-                if (ct->writesFPRs(level+1)) {
-                    // One of our kids does... if we're top-level, cache it; in 
-                    // any case, return
-                    if (level == 0)
-                        containsFPRWrites_ = used;
-                    return true;
-                }
-            }
-            else if(!ct){
-                // Indirect call... oh, yeah. 
-                if (level == 0)
-                    containsFPRWrites_ = used;
-                return true;
-            }
-        }
-
-        // No kids contain writes. See if our code does.
-        static RegisterAST::Ptr st0(new RegisterAST(x86::st0));
-        static RegisterAST::Ptr st1(new RegisterAST(x86::st1));
-        static RegisterAST::Ptr st2(new RegisterAST(x86::st2));
-        static RegisterAST::Ptr st3(new RegisterAST(x86::st3));
-        static RegisterAST::Ptr st4(new RegisterAST(x86::st4));
-        static RegisterAST::Ptr st5(new RegisterAST(x86::st5));
-        static RegisterAST::Ptr st6(new RegisterAST(x86::st6));
-        static RegisterAST::Ptr st7(new RegisterAST(x86::st7));
-        static RegisterAST::Ptr xmm0(new RegisterAST(x86::xmm0));
-        static RegisterAST::Ptr xmm1(new RegisterAST(x86::xmm1));
-        static RegisterAST::Ptr xmm2(new RegisterAST(x86::xmm2));
-        static RegisterAST::Ptr xmm3(new RegisterAST(x86::xmm3));
-        static RegisterAST::Ptr xmm4(new RegisterAST(x86::xmm4));
-        static RegisterAST::Ptr xmm5(new RegisterAST(x86::xmm5));
-        static RegisterAST::Ptr xmm6(new RegisterAST(x86::xmm6));
-        static RegisterAST::Ptr xmm7(new RegisterAST(x86::xmm7));
-
-        vector<FuncExtent *>::const_iterator eit = extents().begin();
-        for( ; eit != extents().end(); ++eit) {
-            FuncExtent * fe = *eit;
-        
-            const unsigned char* buf = (const unsigned char*)
-                isrc()->getPtrToInstruction(fe->start());
-            if(!buf) {
-                parsing_printf("%s[%d]: failed to get insn ptr at %lx\n",
-                    FILE__, __LINE__,fe->start());
-                // if the function cannot be parsed, it is only safe to 
-                // assume that the FPRs are written -- mcnulty
-                return true; 
-            }
-            InstructionDecoder d(buf,fe->end()-fe->start(),isrc()->getArch());
-            Instruction i = d.decode();
-
-            while((i.isValid())) {
-                if(i.isWritten(st0) ||
-                    i.isWritten(st1) ||
-                    i.isWritten(st2) ||
-                    i.isWritten(st3) ||
-                    i.isWritten(st4) ||
-                    i.isWritten(st5) ||
-                    i.isWritten(st6) ||
-                    i.isWritten(st7) ||
-                   i.isWritten(xmm0) ||
-                   i.isWritten(xmm1) ||
-                   i.isWritten(xmm2) ||
-                   i.isWritten(xmm3) ||
-                   i.isWritten(xmm4) ||
-                   i.isWritten(xmm5) ||
-                   i.isWritten(xmm6) ||
-                   i.isWritten(xmm7)
-                  )
-                {
-                    containsFPRWrites_ = used;
-                    return true;
-                }
-                i = d.decode();
-            }
-        }
-        // No kids do, and we don't. Impressive.
-        containsFPRWrites_ = unused;
-        return false;
-    }
-    else if (containsFPRWrites_ == used) {
-        return true;
-    }
-    else if (containsFPRWrites_ == unused) {
-        return false;
-    }
-
-    fprintf(stderr, "ERROR: function %s, containsFPRWrites_ is %d (illegal value!)\n", 
-	    symTabName().c_str(), containsFPRWrites_);
-    
-    assert(0);
-    return false;
-}
 
 #if defined(os_linux) || defined(os_freebsd)
 
