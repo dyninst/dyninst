@@ -50,12 +50,6 @@ void parse_func::parseOMP(image_parRegion *, parse_func *, int &) {
 
 void parse_func::parseOMPFunc(bool /*hasLoop*/) { assert(!"Not implemented for AMDGPU"); }
 
-void parse_func::calcUsedRegs() {
-
-  assert(!"Not implemented for AMDGPU");
-  return;
-}
-
 bool BinaryEdit::doStaticBinarySpecialCases() {
   assert(!"Not implemented for AMDGPU");
   return false;

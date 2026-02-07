@@ -40,6 +40,7 @@
 #include "dyn_register.h"
 #include "codegen.h" // codeBufIndex_t 
 #include "dyninstAPI/src/ast.h" // astNodePtr
+#include "parse-cfg.h"
 
 namespace Dyninst {
    namespace PatchAPI {
