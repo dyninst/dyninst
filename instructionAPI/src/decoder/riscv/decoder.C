@@ -70,6 +70,8 @@ bool is_compressed(di::Instruction &insn);
 namespace Dyninst {
 namespace InstructionAPI {
 
+using namespace NS_riscv64;
+
 InstructionDecoder_riscv64::InstructionDecoder_riscv64(Dyninst::Architecture a)
     : InstructionDecoderImpl(a) {
 
