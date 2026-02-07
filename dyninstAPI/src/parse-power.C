@@ -79,67 +79,6 @@ static void add_handler(instPoint* pt, func_instance* add_me)
   instrumentation->disableRecursiveGuard();
 }  
 
-/* This does a linear scan to find out which registers are used in the function,
-   it then stores these registers so the scan only needs to be done once.
-   It returns true or false based on whether the function is a leaf function,
-   since if it is not the function could call out to another function that
-   clobbers more registers so more analysis would be needed */
-void parse_func::calcUsedRegs()
-{
-   if (usedRegisters != NULL)
-      return; 
-   else
-   {
-      usedRegisters = new parse_func_registers();
-    using namespace Dyninst::InstructionAPI;
-    std::set<RegisterAST::Ptr> writtenRegs;
-
-    auto bl = blocks();
-    auto curBlock = bl.begin();
-    for( ; curBlock != bl.end(); ++curBlock) 
-    {
-        InstructionDecoder d(getPtrToInstruction((*curBlock)->start()),
-        (*curBlock)->size(),
-        isrc()->getArch());
-        Instruction i;
-        unsigned size = 0;
-        while(size < (*curBlock)->size())
-        {
-            i = d.decode();
-            size += i.size();
-            i.getWriteSet(writtenRegs);
-        }
-    }
-
-    for(auto const& reg : writtenRegs) {
-      MachRegister r = reg->getID();
-      auto regID = convertRegID(r);
-      if(regID == registerSpace::ignored) {
-        logLine("parse_func::calcUsedRegs: unknown written register\n");
-        continue;
-      }
-      auto const category = r.regClass();
-
-      // ppc{32,64}::{G,F}PR can be the same value, so avoid a -Wlogical-op warning
-      auto const is_gpr32 = (category == ppc32::GPR);
-      auto const is_gpr64 = (category == ppc64::GPR);
-      auto const is_gpr = (is_gpr32 || is_gpr64);
-
-      auto const is_fpr32 = (category == ppc32::FPR);
-      auto const is_fpr64 = (category == ppc64::FPR);
-      auto const is_fpr = (is_fpr32 || is_fpr64);
-
-      if(is_gpr) {
-        usedRegisters->generalPurposeRegisters.insert(regID);
-      }
-      else if(is_fpr) {
-        usedRegisters->floatingPointRegisters.insert(regID);
-      }
-    }
-   }
-   return;
-}
-
 #include "binaryEdit.h"
 #include "addressSpace.h"
 #include "function.h"
