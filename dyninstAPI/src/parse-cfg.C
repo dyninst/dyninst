@@ -92,7 +92,6 @@ parse_func::parse_func(
   func_(func),
   mod_(m),
   image_(i),
-  containsFPRWrites_(unknown),
   hasWeirdInsns_(false),
   prevBlocksUnresolvedCF_(0),
   unresolvedCF_(UNSET_CF),
