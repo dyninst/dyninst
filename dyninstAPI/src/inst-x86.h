@@ -164,4 +164,6 @@ struct stackItemLocation {
 
 stackItemLocation getHeightOf(stackItem sitem, codeGen &gen);
 
+bool writesFPRs(parse_func *func, unsigned level = 0);
+
 #endif
