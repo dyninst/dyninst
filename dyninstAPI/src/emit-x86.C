@@ -2743,7 +2743,7 @@ bool EmitterAMD64::emitAdjustStackPointer(int index, codeGen &gen) {
 
 #endif /* end of AMD64-specific functions */
 
-Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
+Address Emitterx86::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
 {
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();
