@@ -1303,7 +1303,7 @@ Address EmitterAARCH64::emitMovePCToReg(Register dest, codeGen &gen) {
     return ret;
 }
 
-Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
+Address EmitterAARCH64::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
     // from POWER64 getInterModuleFuncAddr
 
     AddressSpace *addrSpace = gen.addrSpace();

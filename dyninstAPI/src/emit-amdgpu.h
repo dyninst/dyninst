@@ -221,10 +221,12 @@ public:
   void emitAtomicAdd(Register baseAddrReg, Register src0, codeGen &gen);
 
   void emitAtomicSub(Register baseAddrReg, Register src0, codeGen &gen);
+
 private:
   // Some helper functions
   bool isValidSgpr(Register reg) const;
   bool isValidSgprBlock(Register regBlock) const;
   bool isValidSgprPair(Register regBlock) const;
+  Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) /* override */;
 };
 #endif

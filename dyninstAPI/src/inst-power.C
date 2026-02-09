@@ -3007,7 +3007,7 @@ Address EmitterPOWER::emitMovePCToReg(Dyninst::Register dest, codeGen &gen)
 	 return ret;
 }
 
-Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
+Address EmitterPOWER::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
 {
     AddressSpace *addrSpace = gen.addrSpace();
     if (!addrSpace)

@@ -65,6 +65,8 @@ class Emitterx86 : public Emitter {
         virtual void emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen) = 0;
 
         virtual bool emitCallInstruction(codeGen &, func_instance *, Register) = 0;
+
+        Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) /* override */;
 };
 
 // 32-bit class declared here since its implementation is in both inst-x86.C and emit-x86.C

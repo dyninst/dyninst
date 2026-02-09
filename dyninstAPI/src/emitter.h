@@ -112,7 +112,7 @@ class Emitter {
     
     virtual bool clobberAllFuncCall(registerSpace *rs,func_instance *callee) = 0;
 
-    Address getInterModuleFuncAddr(func_instance *func, codeGen& gen);
+    virtual Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) = 0;
     Address getInterModuleVarAddr(const image_variable *var, codeGen& gen);
 
     virtual bool emitPLTCall(func_instance *, codeGen &) { assert(0); return false;}
