@@ -132,7 +132,7 @@ Address Emitter::getInterModuleVarAddr(const image_variable * /* var */, codeGen
   return 0;
 }
 
-Address Emitter::getInterModuleFuncAddr(func_instance * /* func */, codeGen & /* gen */) {
+Address EmitterAmdgpuGfx908::getInterModuleFuncAddr(func_instance * /* func */, codeGen & /* gen */) {
   assert(!"Not implemented for AMDGPU");
   return 0;
 }
