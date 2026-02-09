@@ -119,6 +119,7 @@ class EmitterPOWER : public Emitter {
     void emitCallWithSaves(codeGen &gen, Address dest, bool saveToc, bool saveLR, bool saveR12);
     
     Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) /* override */;
+    Address getInterModuleVarAddr(const image_variable *var, codeGen& gen) /* override */;
 
  protected:
     virtual bool emitCallInstruction(codeGen &, func_instance *,

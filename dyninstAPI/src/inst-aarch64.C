@@ -1234,7 +1234,7 @@ void EmitterAARCH64::emitStoreShared(Register source, const image_variable *var,
     assert(stackSize <= 0 && "stack not empty at the end");
 }
 
-Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen &gen) {
+Address EmitterAARCH64::getInterModuleVarAddr(const image_variable *var, codeGen &gen) {
     AddressSpace *addrSpace = gen.addrSpace();
     if (!addrSpace)
         assert(0 && "No AddressSpace associated with codeGen object");

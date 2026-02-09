@@ -2777,7 +2777,7 @@ Address Emitterx86::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
     return relocation_address;
 }
 
-Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
+Address Emitterx86::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
 {
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();

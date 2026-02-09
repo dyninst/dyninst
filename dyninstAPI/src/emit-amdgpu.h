@@ -228,5 +228,6 @@ private:
   bool isValidSgprBlock(Register regBlock) const;
   bool isValidSgprPair(Register regBlock) const;
   Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) /* override */;
+  Address getInterModuleVarAddr(const image_variable *var, codeGen& gen) /* override */;
 };
 #endif

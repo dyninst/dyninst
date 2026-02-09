@@ -2941,7 +2941,7 @@ void EmitterPOWER::emitStoreShared(Dyninst::Register source, const image_variabl
   return;
 }
 
-Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
+Address EmitterPOWER::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
 {
     AddressSpace *addrSpace = gen.addrSpace();
     if (!addrSpace)
