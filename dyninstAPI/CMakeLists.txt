@@ -65,6 +65,7 @@ set(_private_headers
     src/codegen.h
     src/codegen-power.h
     src/codegen-x86.h
+    src/codegen-riscv64.h
     src/codeRange.h
     src/debug.h
     src/dynProcess.h
@@ -75,6 +76,7 @@ set(_private_headers
     src/emit-power.h
     src/emitter.h
     src/emit-x86.h
+    src/emit-riscv64.h
     src/frameChecker.h
     src/frame.h
     src/freebsd.h
@@ -88,11 +90,13 @@ set(_private_headers
     src/instPoint.h
     src/inst-power.h
     src/inst-x86.h
+    src/inst-riscv64.h
     src/LinearVariable.h
     src/linux-aarch64.h
     src/linux.h
     src/linux-power.h
     src/linux-x86.h
+    src/linux-riscv64.h
     src/mapped_module.h
     src/mapped_object.h
     src/nt_signal_emul.h
@@ -223,6 +227,8 @@ elseif(DYNINST_HOST_ARCH_PPC64LE)
   list(APPEND _sources src/stackwalk-ppc.C src/dynProcess-power.C)
 elseif(DYNINST_HOST_ARCH_AARCH64)
   list(APPEND _sources src/stackwalk-aarch64.C src/dynProcess-aarch64.C)
+elseif(DYNINST_HOST_ARCH_RISCV64)
+  list(APPEND _sources src/stackwalk-riscv64.C src/dynProcess-riscv64.C)
 endif()
 
 if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
@@ -261,6 +267,17 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/Relocation/Widgets/CFWidget-aarch64.C
     src/Relocation/Widgets/PCWidget-aarch64.C
     src/trampolines/baseTramp-aarch64.C)
+elseif(DYNINST_CODEGEN_ARCH_RISCV64)
+  list(
+    APPEND
+    _sources
+    src/inst-riscv64.C
+    src/emit-riscv64.C
+    src/codegen-riscv64.C
+    src/parse-riscv64.C
+    src/RegisterConversion-riscv64.C
+    src/Relocation/Widgets/CFWidget-riscv64.C
+    src/Relocation/Widgets/PCWidget-riscv64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(
     APPEND
@@ -291,6 +308,8 @@ elseif(DYNINST_OS_Linux)
     list(APPEND _sources src/linux-power.C)
   elseif(DYNINST_HOST_ARCH_AARCH64)
     list(APPEND _sources src/linux-aarch64.C)
+  elseif(DYNINST_HOST_ARCH_RISCV64)
+    list(APPEND _sources src/linux-riscv64.C)
   endif()
 elseif(DYNINST_OS_Windows)
   list(

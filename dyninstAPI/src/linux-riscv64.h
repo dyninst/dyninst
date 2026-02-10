@@ -1,76 +1,56 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// $Id: linux.h,v 1.37 2007/12/04 18:05:24 legendre Exp $
-
-#if !defined(os_linux)
+#if !defined(os_linux) || !defined(DYNINST_CODEGEN_ARCH_RISCV64)
 #error "invalid architecture-os inclusion"
 #endif
 
-#ifndef LINUX_PD_HDR
-#define LINUX_PD_HDR
-class PCProcess;
+#ifndef LINUX_RISCV64_HDR
+#define LINUX_RISCV64_HDR
 
-#include "common/src/linuxKludges.h"
-#include "symtabAPI/h/Symtab.h"
-#include "symtabAPI/h/Archive.h"
+#include "dyntypes.h"
 
-#define EXIT_NAME "_exit"
+// floor of inferior malloc address range within a single branch of x
+// for 32-bit ELF RISC-V mutatees
+extern Dyninst::Address region_lo(const Dyninst::Address x);
 
-#if !defined(DYNINST_HOST_ARCH_X86_64)
-#define SIGNAL_HANDLER	 "__restore"
-#else
-#define SIGNAL_HANDLER   "__restore_rt"
-#endif
+// floor of inferior malloc address range within a single branch of x
+// for 64-bit ELF RISC-V mutatees
+extern Dyninst::Address region_lo_64(const Dyninst::Address x);
 
-#if (defined(os_linux) || defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4)) && \
-   (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64))
-#include "linux-x86.h"
-#elif defined(os_linux) && defined(DYNINST_HOST_ARCH_POWER)
-#include "linux-power.h"
-#elif defined(os_linux) && defined(DYNINST_HOST_ARCH_AARCH64)
-#include "linux-aarch64.h"
-#elif defined(os_linux) && defined(DYNINST_HOST_ARCH_RISCV64)
-#include "linux-riscv64.h"
-#else
-#error Invalid or unknown architecture-os inclusion
-#endif
+// ceiling of inferior malloc address range within a single branch of x
+// for 32-bit ELF RISC-V mutatees
+extern Dyninst::Address region_hi(const Dyninst::Address x);
 
-#include "unix.h"
-
-#ifndef WNOWAIT
-#define WNOWAIT WNOHANG
-#endif
-
-bool get_linux_version(int &major, int &minor, int &subvers);
-bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers);
+// ceiling of inferior malloc address range within a single branch of x
+// for 64-bit ELF RISC-V mutatees
+extern Dyninst::Address region_hi_64(const Dyninst::Address x);
 
 #endif
