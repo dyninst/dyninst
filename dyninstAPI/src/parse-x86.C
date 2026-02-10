@@ -48,6 +48,8 @@
 
 using namespace Dyninst::ParseAPI;
 
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
 bool parse_func::writesFPRs(unsigned level) {
     
     using namespace Dyninst::InstructionAPI;
@@ -242,7 +244,7 @@ static void add_handler(instPoint* pt, func_instance* add_me)
 {
   vector<AstNodePtr> args;
   // no args, just add
-  AstNodePtr snip = AstNode::funcCallNode(add_me, args);
+  AstNodePtr snip = DyninstAPI::CallNode::call(add_me, args);
   auto instrumentation = pt->pushFront(snip);
   instrumentation->disableRecursiveGuard();
 }

@@ -34,7 +34,7 @@
 #include "BPatch_point.h"
 #include <vector>
 
-namespace Dyninst {
+namespace Dyninst { namespace DyninstAPI {
 
 // This struct abstracts architecture-specific handling of points.
 struct PointHandler {
@@ -43,5 +43,6 @@ struct PointHandler {
   virtual ~PointHandler() = default;
 };
 
-} // namespace Dyninst
+}}
+
 #endif

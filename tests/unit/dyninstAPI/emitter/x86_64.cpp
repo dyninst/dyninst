@@ -4,6 +4,8 @@
 #include "dyninstAPI/src/registerSpace.h"
 #include "emitter_test.h"
 
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
 int main() {
   using Dyninst::verify_emitter;
   using Dyninst::emitter_buffer_t;

@@ -31,9 +31,8 @@
 #ifndef _EMIT_AMDGPU_H
 #define _EMIT_AMDGPU_H
 
-#include "common/src/headers.h"
-#include "dyninstAPI/src/ast.h"
 #include "baseTramp.h"
+#include "AstNode.h"
 #include "dyninstAPI/src/instPoint.h"
 #include <assert.h>
 #include <vector>
@@ -153,7 +152,7 @@ public:
 
   bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
 
-  Register emitCall(opCode op, codeGen &gen, const std::vector<AstNodePtr> &operands, bool noCost,
+  Register emitCall(opCode op, codeGen &gen, const std::vector<Dyninst::DyninstAPI::AstNodePtr> &operands, bool noCost,
                     func_instance *callee);
 
   void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);

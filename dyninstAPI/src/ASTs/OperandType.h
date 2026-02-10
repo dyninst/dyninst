@@ -80,6 +80,7 @@ inline std::string format_operand(operandType type) {
   }
   return "UnknownOperand";
 }
+
 // clang-format on
 
 #endif

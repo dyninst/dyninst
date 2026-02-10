@@ -28,47 +28,55 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AMDGPU_PROLOGUE_H
-#define AMDGPU_PROLOGUE_H
+#ifndef DYNINST_DYNINSTAPI_ASTATOMICOPERATIONSTMTNODE_H
+#define DYNINST_DYNINSTAPI_ASTATOMICOPERATIONSTMTNODE_H
 
-#include "BPatch_snippet.h"
-#include "ast.h"
-#include "common/src/dyn_register.h"
-#include "patchAPI/h/Snippet.h"
+#include "AstNode.h"
+#include "dyn_register.h"
+#include "opcode.h"
 
-// The prologue loads a register pair with address of the buffer containing instrumentation
-// variables.
-// PatchAPI snippet is used to insert the following prologue:
-//
-// Example when dest = 94, base = 4, offset = 0xabc; address_of_buffer is at s[4:5] + 0xabc.
-// Load it into s[94:95].
-//
-// s_load_dwordx2 s[94:95], s[4:5], 0xabc
-// s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
-//
-class AmdgpuPrologue : public Dyninst::PatchAPI::Snippet {
+#include <boost/make_shared.hpp>
+#include <string>
+
+class codeGen;
+
+namespace Dyninst { namespace DyninstAPI {
+
+// This corresponds to a single statement, and not an expression that can be nested among other
+// expressions.
+class AstAtomicOperationStmtNode : public AstNode {
 public:
-  AmdgpuPrologue(Dyninst::Register dest, Dyninst::Register base, unsigned offset)
-      : dest_(dest), base_(base), offset_(offset) {}
+  AstAtomicOperationStmtNode(opCode op, AstNodePtr var, AstNodePtr constant_)
+      : opcode{op}, variable{std::move(var)}, constant{std::move(constant_)} {}
 
-  bool generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer);
+  std::string format(std::string indent) override;
+
+  bool canBeKept() const override {
+    return true;
+  }
 
 private:
-  Dyninst::Register dest_;
-  Dyninst::Register base_;
-  unsigned offset_;
+  bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
+                           Dyninst::Register &) override;
+  opCode opcode{};
+  AstNodePtr variable{};
+  AstNodePtr constant{};
 };
 
-// The AST node for the above PatchAPI snippet.
-class AmdgpuPrologueNode : public AstSnippetNode {
-public:
-  AmdgpuPrologueNode(Dyninst::PatchAPI::SnippetPtr p) : AstSnippetNode(p) {}
-};
+namespace AtomicOperation {
 
-// BPatch_snippet that uses the above AST node.
-class AmdgpuPrologueSnippet : public BPatch_snippet {
-public:
-  AmdgpuPrologueSnippet(const AstNodePtr &p) : BPatch_snippet(p) {}
-};
+  inline AstNodePtr plus(AstNodePtr var, AstNodePtr constant) {
+    return boost::make_shared<AstAtomicOperationStmtNode>(plusOp, std::move(var),
+                                                          std::move(constant));
+  }
+
+  inline AstNodePtr minus(AstNodePtr var, AstNodePtr constant) {
+    return boost::make_shared<AstAtomicOperationStmtNode>(minusOp, std::move(var),
+                                                          std::move(constant));
+  }
+
+}
+
+}}
 
 #endif
