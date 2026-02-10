@@ -30,6 +30,7 @@
 
 // $Id: binaryEdit.C,v 1.26 2008/10/28 18:42:44 bernat Exp $
 
+#include "Architecture.h"
 #include "binaryEdit.h"
 #include "common/src/headers.h"
 #include "mapped_object.h"
@@ -39,8 +40,19 @@
 #include "instPoint.h"
 #include "function.h"
 #include "Object.h"
+#include "ast.h"
+#include "addressSpace.h"
+#include "image.h"
+#include "Symbol.h"
+#include "Archive.h"
+
+#include <cstdio>
+#include <iostream>
+#include <map>
+#include <tuple>
 
 using namespace Dyninst::SymtabAPI;
+
 
 // Reading and writing get somewhat interesting. We are building
 // a false address space - that of the "inferior" binary we're editing. 
@@ -396,16 +408,6 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename, std::ma
 bool BinaryEdit::getResolvedLibraryPath(const std::string &, std::vector<std::string> &) {
     assert(!"Not implemented");
     return false;
-}
-#endif
-
-#if !(defined(cap_binary_rewriter) && (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)\
-		|| defined(DYNINST_HOST_ARCH_POWER)   \
-		|| defined(DYNINST_HOST_ARCH_AARCH64) \
-		|| defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) \
-		)) 
-bool BinaryEdit::doStaticBinarySpecialCases() {
-    return true;
 }
 #endif
 
@@ -941,3 +943,289 @@ void BinaryEdit::addTrap(Address from, Address to, codeGen &gen) {
    springboard_cerr << "Generated springboard trap " << hex << from << "->" << to << dec << endl;
 }
 
+/*
+ * Static binary rewriting support
+ *
+ * Some of the following functions replace the standard ctor and dtor handlers
+ * in a binary. Currently, these operations only work with binaries linked with
+ * the GNU toolchain. However, it should be straightforward to extend these
+ * operations to other toolchains.
+ */
+namespace {
+  char const *LIBC_CTOR_HANDLER("__libc_csu_init");
+  char const *LIBC_DTOR_HANDLER("__libc_csu_fini");
+  char const *DYNINST_CTOR_HANDLER("DYNINSTglobal_ctors_handler");
+  char const *DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
+  char const *LIBC_IREL_HANDLER("__libc_csu_irel");
+  char const *DYNINST_IREL_HANDLER("DYNINSTglobal_irel_handler");
+  char const *DYNINST_IREL_START("DYNINSTirel_start");
+  char const *DYNINST_IREL_END("DYNINSTirel_end");
+  char const *SYMTAB_IREL_START("__SYMTABAPI_IREL_START__");
+  char const *SYMTAB_IREL_END("__SYMTABAPI_IREL_END__");
+}
+
+static void add_handler(instPoint *pt, func_instance *add_me) {
+  std::vector<AstNodePtr> args;
+  // no args, just add
+  AstNodePtr snip = AstNode::funcCallNode(add_me, args);
+  auto instrumentation = pt->pushFront(snip);
+  instrumentation->disableRecursiveGuard();
+}
+
+static bool update_irel(func_instance *, BinaryEdit *);
+
+bool BinaryEdit::doStaticBinarySpecialCases() {
+
+  switch (this->getArch()) {
+  case Arch_none:
+  case Arch_aarch32:
+  case Arch_riscv64:
+  case Arch_cuda:
+  case Arch_amdgpu_gfx908:
+  case Arch_amdgpu_gfx90a:
+  case Arch_amdgpu_gfx940:
+  case Arch_intelGen9:
+    write_printf("Static rewriting unsupported for '%s'",
+                 getArchitectureName(this->getArch()));
+    return false;
+  case Arch_aarch64:
+  case Arch_x86:
+  case Arch_x86_64:
+  case Arch_ppc32:
+  case Arch_ppc64:
+    break;
+  }
+
+  /* Special Case 1A: Handling global constructors
+   *
+   * Place the Dyninst constructor handler after the global ELF ctors so it is
+   * invoked last.
+   *
+   * Prior to glibc-2.34, this was in the exit point(s) of __libc_csu_init which
+   * calls all of the initializers in preinit_array and init_array as per
+   * SystemV before __libc_start_main is invoked.
+   *
+   * In glibc-2.34, the code from the csu_* functions was moved into
+   * __libc_start_main, so now the only place where we are guaranteed that the
+   * global constructors have all been called is at the beginning of 'main'.
+   */
+  func_instance *dyninstCtorHandler = findOnlyOneFunction(DYNINST_CTOR_HANDLER);
+  if (!dyninstCtorHandler) {
+    logLine("failed to find Dyninst constructor handler\n");
+    return false;
+  }
+  if (auto *ctor = mobj->findGlobalConstructorFunc(LIBC_CTOR_HANDLER)) {
+    // Wire in our handler at libc ctor exits
+    std::vector<instPoint *> init_pts;
+    ctor->funcExitPoints(&init_pts);
+    for (auto *exit_pt : init_pts) {
+      add_handler(exit_pt, dyninstCtorHandler);
+    }
+  } else if (auto *main = findOnlyOneFunction("main")) {
+    // Insert constructor into the beginning of 'main'
+    add_handler(main->funcEntryPoint(true), dyninstCtorHandler);
+  } else {
+    logLine("failed to find place to insert Dyninst constructors\n");
+    return false;
+  }
+
+  /* Special Case 1B: Handling global destructors
+   *
+   * Place the Dyninst destructor handler before the global ELF dtors so it is
+   * invoked first.
+   *
+   * Prior to glibc-2.34, this was in the entry point of __libc_csu_fini.
+   *
+   * In glibc-2.34, the code in __libc_csu_fini was moved into a hidden function
+   * that is registered with atexit. To ensure the Dyninst destructors are
+   * always called first, we have to insert the handler at the beginning of
+   * `exit`.
+   *
+   * This is a fragile solution as there is no requirement that a symbol for
+   * `exit` is exported. If we can't find it, we'll just fail here.
+   */
+  func_instance *dyninstDtorHandler = findOnlyOneFunction(DYNINST_DTOR_HANDLER);
+  if (!dyninstDtorHandler) {
+    logLine("failed to find Dyninst destructor handler\n");
+    return false;
+  }
+  if (auto *dtor = mobj->findGlobalDestructorFunc(LIBC_DTOR_HANDLER)) {
+    // Insert destructor into beginning of libc global dtor handler
+    add_handler(dtor->funcEntryPoint(true), dyninstDtorHandler);
+  } else if (auto *exit_ = findOnlyOneFunction("exit")) {
+    // Insert destructor into beginning of `exit`
+    add_handler(exit_->funcEntryPoint(true), dyninstDtorHandler);
+  } else {
+    logLine("failed to find place to insert Dyninst destructors\n");
+    return false;
+  }
+
+  AddressSpace::patch(this);
+
+  /* Special Case 1C: Instrument irel handlers
+   *
+   * Replace the irel handler with our extended version, since they hard-code
+   * ALL THE OFFSETS in the function.
+   *
+   * __libc_csu_irel was removed from glibc-2.19 in 2013.
+   *
+   */
+  if (auto *globalIrelHandler = findOnlyOneFunction(LIBC_IREL_HANDLER)) {
+    if (!update_irel(globalIrelHandler, this)) {
+      return false;
+    }
+  }
+
+  /*
+   * Special Case 2: Issue a warning if attempting to link pthreads into a
+   * binary that originally did not support it or into a binary that is
+   * stripped. This scenario is not supported with the initial release of the
+   * binary rewriter for static binaries.
+   *
+   * The other side of the coin, if working with a binary that does have
+   * pthreads support, pthreads needs to be loaded.
+   */
+  bool isMTCapable = isMultiThreadCapable();
+  Symtab *origBinary = mobj->parse_img()->getObject();
+  std::vector<Archive *> libs;
+  origBinary->getLinkingResources(libs);
+
+  const bool foundPthreads = [&libs]() {
+    auto thread_libs = {"libpthread", "libthr"};
+    for (auto *lib : libs) {
+      for (auto name : thread_libs) {
+        if (lib->name().find(name) != std::string::npos) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }();
+
+  if (foundPthreads && (!isMTCapable || origBinary->isStripped())) {
+    logLine("\nWARNING: the pthreads library has been loaded and\n"
+            "the original binary is not multithread-capable or\n"
+            "it is stripped. Currently, the combination of these two\n"
+            "scenarios is unsupported and unexpected behavior may occur.\n");
+  } else if (!foundPthreads && isMTCapable) {
+    logLine("\nWARNING: the pthreads library has not been loaded and\n"
+            "the original binary is multithread-capable. Unexpected\n"
+            "behavior may occur because some pthreads routines are\n"
+            "unavailable in the original binary\n");
+  }
+
+  /*
+   * Special Case 3:
+   * The RT library has some dependencies -- Symtab always needs to know
+   * about these dependencies. So if the dependencies haven't already been
+   * loaded, load them.
+   */
+  const bool found_libc = [&libs]() {
+    auto itr = std::find_if(libs.begin(), libs.end(), [](Archive *a) {
+      return a->name().find("libc.a") != std::string::npos;
+    });
+    return itr != libs.end();
+  }();
+
+  if (!found_libc) {
+    std::map<std::string, BinaryEdit *> res;
+    openResolvedLibraryName("libc.a", res);
+    if (res.empty()) {
+      logLine("Fatal error: failed to load DyninstAPI_RT library dependency "
+              "(libc.a)");
+      return false;
+    }
+
+    for (auto &r : res) {
+      if (!r.second) {
+        logLine("Fatal error: failed to load DyninstAPI_RT library dependency "
+                "(libc.a)");
+        return false;
+      }
+    }
+
+    // libc.a may be depending on libgcc.a
+    res.clear();
+    if (!openResolvedLibraryName("libgcc.a", res)) {
+      logLine("Failed to find libgcc.a, which can be needed by libc.a on "
+              "certain platforms.\n"
+              "Set LD_LIBRARY_PATH to the directory containing libgcc.a");
+    }
+  }
+
+  return true;
+}
+
+static bool replaceHandler(func_instance *origHandler,
+                           func_instance *newHandler, int_symbol *sym,
+                           char const *name) {
+
+  // Add instrumentation to replace the function
+  origHandler->proc()->replaceFunction(origHandler, newHandler);
+  AddressSpace::patch(origHandler->proc());
+
+  // Update the symbol name in the RT library
+  Symbol const *newListSym = sym->sym();
+
+  std::vector<Region *> allRegions;
+  if (!newListSym->getSymtab()->getAllRegions(allRegions)) {
+    return false;
+  }
+
+  bool found = false;
+  for (auto *reg : allRegions) {
+    for (auto &rel : reg->getRelocations()) {
+      if (rel.getDynSym() == newListSym) {
+        rel.setName(name);
+        found = true;
+      }
+    }
+  }
+  if (!found) {
+    return false;
+  }
+
+  return true;
+}
+
+static bool update_irel(func_instance *globalHandler, BinaryEdit *be) {
+  auto find_sym_info = [be](char const *name) {
+    int_symbol sym{};
+    for (BinaryEdit *lib : be->rtLibrary()) {
+      if (lib->getSymbolInfo(name, sym)) {
+        return std::make_tuple(sym, true);
+      }
+    }
+    return std::make_tuple(sym, false);
+  };
+
+  using name_tup = std::tuple<char const *, char const *>;
+  auto sym_names = {
+    name_tup{DYNINST_IREL_START, SYMTAB_IREL_START},
+    name_tup{DYNINST_IREL_END, SYMTAB_IREL_END}
+  };
+
+  func_instance *dyninstHandler = be->findOnlyOneFunction(DYNINST_IREL_HANDLER);
+
+  for (auto &s : sym_names) {
+    auto dyn_name = std::get<0>(s);
+    auto symtab_name = std::get<1>(s);
+
+    int_symbol irel{};
+    {
+      bool found{false};
+      std::tie(irel, found) = find_sym_info(dyn_name);
+      if (!found) {
+        write_printf("Didn't find a symbol for '%s'\n", dyn_name);
+        return false;
+      }
+    }
+
+    auto success = replaceHandler(globalHandler, dyninstHandler, &irel, symtab_name);
+    if (!success) {
+      return false;
+    }
+  }
+
+  return true;
+}
