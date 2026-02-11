@@ -322,14 +322,6 @@ class parse_func : public ParseAPI::Function
 
    parse_block * entryBlock();
 
-   /****** OpenMP Parsing Functions *******/
-   std::string calcParentFunc(const parse_func * imf, std::vector<image_parRegion *> & pR);
-   void parseOMP(image_parRegion * parReg, parse_func * parentFunc, int & currentSectionNum);
-   void parseOMPFunc(bool hasLoop);
-   bool parseOMPParent(image_parRegion * iPar, int desiredNum, int & currentSectionNum);
-   void addRegion(image_parRegion * iPar) { parRegionsList.push_back(iPar); }
-   bool OMPparsed() { return OMPparsed_; }
-   /****************************************/
    bool isPLTFunction();
 
    std::set<Register> * usedGPRs() { calcUsedRegs(); return &(usedRegisters->generalPurposeRegisters);}
@@ -358,7 +350,6 @@ class parse_func : public ParseAPI::Function
 
    pdmodule *mod_{nullptr};	/* pointer to file that defines func. */
    image *image_{nullptr};
-   bool OMPparsed_{false};              /* Set true in parseOMPFunc */
 
    /////  Variables for liveness Analysis
    enum regUseState { unknown, used, unused };

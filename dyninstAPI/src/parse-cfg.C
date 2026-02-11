@@ -92,7 +92,6 @@ parse_func::parse_func(
   func_(func),
   mod_(m),
   image_(i),
-  OMPparsed_(false),
   usedRegisters(NULL),
   containsFPRWrites_(unknown),
   hasWeirdInsns_(false),

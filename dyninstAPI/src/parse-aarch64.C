@@ -70,37 +70,6 @@ namespace {
   char const* DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
 }
 
-/*
-By parsing the function that actually sets up the parameters for the OMP
-region we discover informations such as what type of parallel region we're
-dealing with */
-bool parse_func::parseOMPParent(image_parRegion * /*iPar*/, int /*desiredNum*/, int & /*currentSectionNum*/ )
-{
-	assert(0);
-	return false;
-}
-
-
-
-
-std::string parse_func::calcParentFunc(const parse_func *,
-                                    std::vector<image_parRegion *> &/*pR*/)
-{
-	assert(0);
-	return {};
-}
-
-
-void parse_func::parseOMP(image_parRegion *, parse_func *, int &)
-{
-	assert(0);
-}
-
-void parse_func::parseOMPFunc(bool /*hasLoop*/)
-{
-	assert(0);
-}
-
 /* This does a linear scan to find out which registers are used in the function,
    it then stores these registers so the scan only needs to be done once.
    It returns true or false based on whether the function is a leaf function,
