@@ -2013,16 +2013,8 @@ string mapped_object::fileName() const {
   
 }
 
-func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorHandler) {
+func_instance *mapped_object::findGlobalFunc(const std::string &ctorHandler) {
   auto *funcs = findFuncVectorByMangled(ctorHandler);
-  if(funcs) {
-    return (*funcs)[0];
-  }
-  return nullptr;
-}
-
-func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHandler) {
-  auto *funcs = findFuncVectorByMangled(dtorHandler);
   if(funcs) {
     return (*funcs)[0];
   }
