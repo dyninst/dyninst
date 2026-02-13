@@ -92,8 +92,6 @@ parse_func::parse_func(
   func_(func),
   mod_(m),
   image_(i),
-  usedRegisters(NULL),
-  containsFPRWrites_(unknown),
   hasWeirdInsns_(false),
   prevBlocksUnresolvedCF_(0),
   unresolvedCF_(UNSET_CF),
@@ -118,7 +116,6 @@ parse_func::~parse_func()
 {
     /* FIXME */ 
   mal_printf("~image_func() for func at %lx\n",_start);
-  delete usedRegisters;
 }
 
 bool parse_func::addSymTabName(std::string name, bool isPrimary) 

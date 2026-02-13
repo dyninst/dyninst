@@ -32,12 +32,6 @@
 #include "mapped_object.h"
 #include "parse-cfg.h"
 
-void parse_func::calcUsedRegs() {
-
-  assert(!"Not implemented for AMDGPU");
-  return;
-}
-
 bool BinaryEdit::doStaticBinarySpecialCases() {
   assert(!"Not implemented for AMDGPU");
   return false;
