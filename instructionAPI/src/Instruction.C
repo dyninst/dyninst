@@ -346,18 +346,19 @@ namespace Dyninst { namespace InstructionAPI {
       return "ERROR_NO_ARCH_SET_FOR_INSTRUCTION";
     }
 
-    // remove this once ArchSpecificFormatter is extended for all architectures
 
     std::string opstr = m_EncodedInsnOp.format();
     opstr += " ";
-    std::list<Operand>::const_iterator currOperand;
-    std::vector<std::string> formattedOperands;
-    for(currOperand = m_EncodedOperands.begin(); currOperand != m_EncodedOperands.end(); ++currOperand) {
-      /* If this operand is implicit, don't put it in the list of operands. */
-      if(currOperand->isImplicit())
-        continue;
 
-      formattedOperands.push_back(currOperand->format(getArch(), addr));
+    std::vector<std::string> formattedOperands;
+    for(auto&& operands : {m_Operands, m_EncodedOperands}) {
+      for(auto&& op : operands) {
+        /* If this operand is implicit, don't put it in the list of operands. */
+        if(op.isImplicit())
+          continue;
+
+        formattedOperands.push_back(op.format(getArch(), addr));
+      }
     }
 
     return opstr + formatter->getInstructionString(formattedOperands);
