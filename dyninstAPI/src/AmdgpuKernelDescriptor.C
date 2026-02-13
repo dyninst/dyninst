@@ -665,21 +665,21 @@ bool AmdgpuKernelDescriptor::supportsArchitectedFlatScratch() const {
 
 #undef GET_VALUE
 
-unsigned AmdgpuKernelDescriptor::getKernargPtrRegister() {
-  unsigned kernargPtrReg = 0;
+Register AmdgpuKernelDescriptor::getKernargPtrRegisterPair() {
+  unsigned kernargPtrRegId = 0;
   if (this->getKernelCodeProperty_EnableSgprPrivateSegmentBuffer()) {
-    kernargPtrReg += 4;
+    kernargPtrRegId += 4;
   }
 
   if (this->getKernelCodeProperty_EnableSgprDispatchPtr()) {
-    kernargPtrReg += 2;
+    kernargPtrRegId += 2;
   }
 
   if (this->getKernelCodeProperty_EnableSgprQueuePtr()) {
-    kernargPtrReg += 2;
+    kernargPtrRegId += 2;
   }
 
-  return kernargPtrReg;
+  return Register::makeScalarRegister(OperandRegId(kernargPtrRegId), BlockSize(2));
 }
 
 void AmdgpuKernelDescriptor::dump(std::ostream &os) const {
