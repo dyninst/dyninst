@@ -52,7 +52,6 @@
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 
-#include "mapped_object.h"
 #include "binaryEdit.h"
 #include "addressSpace.h"
 #include "function.h"
@@ -160,7 +159,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
         logLine("failed to find Dyninst constructor handler\n");
         return false;
     }
-    if(auto *ctor = mobj->findGlobalConstructorFunc(LIBC_CTOR_HANDLER)) {
+    if(auto *ctor = mobj->findGlobalFunc(LIBC_CTOR_HANDLER)) {
         // Wire in our handler at libc ctor exits
         vector<instPoint*> init_pts;
         ctor->funcExitPoints(&init_pts);
@@ -193,7 +192,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
         logLine("failed to find Dyninst destructor handler\n");
         return false;
     }
-    if(auto *dtor = mobj->findGlobalDestructorFunc(LIBC_DTOR_HANDLER)) {
+    if(auto *dtor = mobj->findGlobalFunc(LIBC_DTOR_HANDLER)) {
     	// Insert destructor into beginning of libc global dtor handler
         add_handler(dtor->funcEntryPoint(true), dyninstDtorHandler);
     } else if(auto *exit_ = findOnlyOneFunction("exit")) {
@@ -294,24 +293,3 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
 
     return true;
 }
-
-func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorHandler) {
-    using namespace Dyninst::InstructionAPI;
-
-    const std::vector<func_instance *> *ctorFuncs = findFuncVectorByMangled(ctorHandler);
-    if( ctorFuncs != NULL ) {
-        return ctorFuncs->at(0);
-    }
-    return NULL;
-}
-
-func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHandler) {
-    using namespace Dyninst::InstructionAPI;
-
-    const std::vector<func_instance *> *ctorFuncs = findFuncVectorByMangled(dtorHandler);
-    if( ctorFuncs != NULL ) {
-        return ctorFuncs->at(0);
-    }
-    return NULL;
-}
-

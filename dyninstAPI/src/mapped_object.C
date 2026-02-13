@@ -1888,21 +1888,6 @@ void mapped_object::setCodeBytesUpdated(bool newval)
     }
 }
 
-#if !( (defined(os_linux) || defined(os_freebsd)) && \
-       (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64) || defined(DYNINST_HOST_ARCH_POWER)\
-        ||defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)\
-       ) )
-func_instance *mapped_object::findGlobalConstructorFunc(const std::string &) {
-    assert(!"Not implemented");
-    return NULL;
-}
-
-func_instance *mapped_object::findGlobalDestructorFunc(const std::string &) {
-    assert(!"Not implemented");
-    return NULL;
-}
-#endif
-
 bool mapped_object::isEmulInsn(Address insnAddr)
 {
     return ( emulInsns_.end() != emulInsns_.find(insnAddr) );
@@ -2026,4 +2011,12 @@ void mapped_object::replacePLTStub(SymtabAPI::Symbol *sym, func_instance *orig, 
 string mapped_object::fileName() const { 
   return parse_img()->getObject()->name();
   
+}
+
+func_instance *mapped_object::findGlobalFunc(const std::string &ctorHandler) {
+  auto *funcs = findFuncVectorByMangled(ctorHandler);
+  if(funcs) {
+    return (*funcs)[0];
+  }
+  return nullptr;
 }

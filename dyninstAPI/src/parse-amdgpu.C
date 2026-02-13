@@ -42,13 +42,3 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
   assert(!"Not implemented for AMDGPU");
   return false;
 }
-
-func_instance *mapped_object::findGlobalConstructorFunc(const std::string & /* ctorHandler */) {
-  assert(!"Not implemented for AMDGPU");
-  return nullptr;
-}
-
-func_instance *mapped_object::findGlobalDestructorFunc(const std::string & /* dtorHandler */) {
-  assert(!"Not implemented for AMDGPU");
-  return nullptr;
-}
