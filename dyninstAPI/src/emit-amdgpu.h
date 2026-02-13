@@ -221,5 +221,8 @@ public:
   void emitAtomicAdd(Register baseAddrReg, Register src0, codeGen &gen);
 
   void emitAtomicSub(Register baseAddrReg, Register src0, codeGen &gen);
+
+  Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) /* override */;
+  Address getInterModuleVarAddr(const image_variable *var, codeGen& gen) /* override */;
 };
 #endif
