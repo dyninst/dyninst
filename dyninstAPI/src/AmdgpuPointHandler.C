@@ -199,7 +199,14 @@ void AmdgpuGfx908PointHandler::maximizeSgprAllocationIfKernel(BPatch_function *f
   kd.setCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount(newValue);
 
   uint32_t kernargSize = kd.getKernargSize();
-  uint32_t newKernargSize = roundUpTo8(kernargSize) + 8;
+
+  uint32_t sizeOfDyninstMemArg = 8;
+  uint32_t newKernargSize = roundUpTo8(kernargSize) + sizeOfDyninstMemArg;
+
+  // WavesPerBlock is also passed by address, and thus of size 8
+  uint32_t sizeOfWavesPerBlockArg = 8;
+  newKernargSize += sizeOfWavesPerBlockArg;
+
   kd.setKernargSize(newKernargSize);
 
   // We have modified the kernel descriptor. Now overwrite the original one with it.
