@@ -87,6 +87,8 @@ namespace Dyninst { namespace InstructionAPI {
 
     void updateMnemonic(std::string new_mnemonic) { mnemonic = std::move(new_mnemonic); }
 
+    DYNINST_EXPORT bool operator==(Operation const&) const;
+
     bool isVectorInsn{};
     bool isMultiInsnCall{};
     bool isMultiInsnBranch{};
