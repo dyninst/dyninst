@@ -1718,8 +1718,7 @@ Handler::handler_ret_t HandleBreakpointRestore::handleEvent(Event::ptr ev)
    // for stepping over a cleared breakpoint.
    {
       riscv_thread *rt = dynamic_cast<riscv_thread *>(thrd);
-      if (rt && rt->hasEmulatedSSBreakpoints() &&
-          rt->isEmulatedSSAddress(bp->getAddr())) {
+      if (rt && rt->hasEmulatedSSBreakpoints()) {
          pthrd_printf("Cleaning up emulated SS breakpoints in "
                       "BreakpointRestore for %d/%d\n",
                       proc->getPid(), thrd->getLWP());
