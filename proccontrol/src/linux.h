@@ -45,6 +45,7 @@
 #include "x86_process.h"
 #include "ppc_process.h"
 #include "arm_process.h"
+#include "riscv_process.h"
 #include "mmapalloc.h"
 #include "processplat.h"
 
@@ -199,6 +200,17 @@ class linux_arm_process : public linux_process, public arm_process
    virtual Dyninst::Architecture getTargetArch();
 };
 
+class linux_riscv_process : public linux_process, public riscv_process
+{
+  public:
+   linux_riscv_process(Dyninst::PID p, std::string e, std::vector<std::string> a,
+           std::vector<std::string> envp, std::map<int,int> f);
+   linux_riscv_process(Dyninst::PID pid_, int_process *p);
+   virtual ~linux_riscv_process();
+
+   virtual Dyninst::Architecture getTargetArch();
+};
+
 
 class linux_thread : virtual public thread_db_thread
 {
@@ -263,6 +275,13 @@ class linux_arm_thread : virtual public linux_thread, virtual public arm_thread
   public:
    linux_arm_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
    virtual ~linux_arm_thread();
+};
+
+class linux_riscv_thread : virtual public linux_thread, virtual public riscv_thread
+{
+  public:
+   linux_riscv_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
+   virtual ~linux_riscv_thread();
 };
 
 class LinuxPtrace

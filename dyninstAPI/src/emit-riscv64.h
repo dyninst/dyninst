@@ -33,7 +33,7 @@
 
 #include "common/src/headers.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/baseTramp.h"
+#include "baseTramp.h"
 #include "dyninstAPI/src/instPoint.h"
 #include <assert.h>
 #include <vector>

@@ -36,7 +36,7 @@
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/BPatch_collections.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/baseTramp.h"
+#include "trampolines/baseTramp-riscv64.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/debug.h"
@@ -262,7 +262,7 @@ void popStack(codeGen &gen, int size) {
 
 /*********************************** Base Tramp
  * ***********************************************/
-bool baseTramp::generateSaves(codeGen &gen, registerSpace *) {
+bool baseTramp_riscv64::generateSaves(codeGen &gen, registerSpace *) {
 
   EmitterRISCV64SaveRestoreRegs saveRestoreRegs;
 
@@ -293,7 +293,7 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *) {
   return true;
 }
 
-bool baseTramp::generateRestores(codeGen &gen, registerSpace *) {
+bool baseTramp_riscv64::generateRestores(codeGen &gen, registerSpace *) {
   EmitterRISCV64SaveRestoreRegs restoreRegs;
 
   if (this->savedFPRs) {
@@ -606,10 +606,10 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction insn,
   if (branch_target == registerSpace::ignored)
     return false;
 
-  args.push_back(AstNode::operandNode(AstNode::operandType::origRegister,
+  args.push_back(AstNode::operandNode(operandType::origRegister,
                                       (void *)(long)branch_target));
   args.push_back(
-      AstNode::operandNode(AstNode::operandType::Constant, (void *)addr));
+      AstNode::operandNode(operandType::Constant, (void *)addr));
 
   return true;
 }

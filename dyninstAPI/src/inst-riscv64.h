@@ -52,6 +52,9 @@
 #define REG_COST_ADDR 5
 #define REG_COST_VALUE 6
 
+#define REG_FP 8
+#define REG_SP 2
+
 #define REG_SCRATCH 10
 
 #define STACKSKIP 288

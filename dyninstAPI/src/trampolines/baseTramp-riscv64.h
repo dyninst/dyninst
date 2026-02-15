@@ -32,19 +32,11 @@
 #define DYNINST_DYNINSTAPI_BASETRAMP_RISCV64_H
 
 #include "baseTramp.h"
-#include "debug.h"
 
 class baseTramp_riscv64 final : public baseTramp {
 public:
-  bool generateSaves(codeGen &, registerSpace *) override {
-    inst_printf("baseTramp codegen isn't implemented on RISCV64");
-    return false;
-  }
-  
-  bool generateRestores(codeGen &, registerSpace *) override {
-    inst_printf("baseTramp codegen isn't implemented on RISCV64");
-    return false;
-  }
+  bool generateSaves(codeGen &, registerSpace *) override;
+  bool generateRestores(codeGen &, registerSpace *) override;
 };
 
 #endif

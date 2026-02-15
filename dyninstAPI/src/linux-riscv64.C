@@ -38,7 +38,7 @@
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/inst-riscv64.h"
-#include "dyninstAPI/src/baseTramp.h"
+#include "baseTramp.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/function.h"
 #include "common/src/linuxHeaders.h"
