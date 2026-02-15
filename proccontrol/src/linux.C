@@ -1491,6 +1491,7 @@ bool linux_thread::plat_cont()
       #if defined(DYNINST_HOST_ARCH_RISCV64)
       int_thread *thr = thread()->llthrd();
 
+      // Not using em_singlestep on purpose, since it doesn't work with
       vector<Address> addrs;
       async_ret_t aresult = llproc()->plat_needsEmulatedSingleStep(thr, addrs);
 
@@ -1501,18 +1502,25 @@ bool linux_thread::plat_cont()
          return false;
       }
 
+      int_breakpoint* bp = new int_breakpoint(Breakpoint::ptr());
+      bp->setThreadSpecific(thr->thread());
+      bp->setOneTimeBreakpoint(true);
+
       for (vector<Address>::iterator j = addrs.begin(); j != addrs.end(); j++) {
          Address addr = *j;
          pthrd_printf("Installing emulated non-user single-step breakpoint for %d/%d at %lx\n",
                       llproc()->getPid(), thr->getLWP(), addr);
-         int_breakpoint* bp = new int_breakpoint(Breakpoint::ptr());
-         bp->setThreadSpecific(thr->thread());
-         bp->setOneTimeBreakpoint(true);
          llproc()->addBreakpoint(addr, bp);
       }
 
       pthrd_printf("Calling PTRACE_CONT to emulate PTRACE_SINGLESTEP on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_CONT, lwp, NULL, data);
+
+      // In case of conditional branching 2 breakpoints are installed, one for the next instruction
+      // and one where the branch goes to.
+      // We cannot remove here because the thread may not be stopped yet.
+      // The second breakpoint will be removed when hit automatically.
+
       #else
       pthrd_printf("Calling PTRACE_SINGLESTEP on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_SINGLESTEP, lwp, NULL, data);

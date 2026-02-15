@@ -353,13 +353,13 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
     * We also need an emulated single step to single step an atomic
     * instruction sequence. The sequence looks something like this:
     *
-    * lwarx
+    * ld
     * ...
-    * stwcx.
+    * st.
     * <breapoint>
     *
     * We need to set the breakpoint at the instruction immediately after
-    * stwcx.
+    * st.
     */
    Address pc;
    async_ret_t aresult = readPCForSS(thr, pc);
@@ -379,9 +379,11 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
         if (aresult == aret_error || aresult == aret_async)
            return aresult;
 
-        bool isCompressed = (rawInsn & 0b11) != 0b11;
+        bool isCompressed = (rawInsn & 3) != 3;
 
         instruction insn(&rawInsn, isCompressed);
+
+        Dyninst::Address nextInsnAddr = pc + insn.size();
         
         if( atomicLoad(insn) ) {
             sequenceStarted = true;
@@ -390,7 +392,7 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
 
         if( atomicStore(insn) && sequenceStarted ) {
             foundEnd = true;
-            addrResult.push_back(pc + insn.size());
+            addrResult.push_back(nextInsnAddr);
         }
 
         // For control flow instructions, assume target is outside atomic instruction sequence
@@ -417,23 +419,33 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
              assert(ready);
              if(!ready) return aret_error;
  
-             cfTarget = (Address) Response->getResult();
+             Address regValue = (Address) Response->getResult();
 
              if (insn.isBranchOffset()) {
-                 cfTarget += insn.getBranchOffset();
+               signed long offset = insn.getBranchOffset();
+               cfTarget = regValue + offset;
+               pthrd_printf("DEBUG: found Branch Reg instruction with offset Imm, target address is 0x%lx + %ld = 0x%lx\n", regValue, offset, cfTarget);
+             } else {
+               cfTarget = regValue;
+               pthrd_printf("DEBUG: found Branch Reg instruction, target address is 0x%lx\n", cfTarget);
              }
-
-             // TODO check condition
-
-             pthrd_printf("DEBUG: find Branch Reg instruction, target address is 0x%lx\n", cfTarget);
          }else{ // return target address by calculating the offset and pc
              cfTarget = insn.getTarget(pc);
-             pthrd_printf("DEBUG: find Branch Reg instruction, getTarget is 0x%lx\n", cfTarget);
+             pthrd_printf("DEBUG: found Branch Imm instruction, getTarget is 0x%lx\n", cfTarget);
          }
          if (cfTarget == 0) {
-            cfTarget = pc + insn.size();
+            cfTarget = nextInsnAddr;
+            pthrd_printf("DEBUG: No branch or branch 0, target address is next instruction: 0x%lx\n", cfTarget);
          }
          addrResult.push_back(cfTarget);
+
+         // If the instruction is a conditional branch,
+         // we need to set the breakpoint at the next instruction in case
+         // the branch won't be taken.
+         if (insn.isCondBranch() && cfTarget != nextInsnAddr) {
+            pthrd_printf("DEBUG: Branch is conditional, set breakpoint also at the next instruction: 0x%lx\n", nextInsnAddr);
+            addrResult.push_back(nextInsnAddr);
+         }
          break;
         }
 
