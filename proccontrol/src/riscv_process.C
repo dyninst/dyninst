@@ -419,6 +419,12 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
  
              cfTarget = (Address) Response->getResult();
 
+             if (insn.isBranchOffset()) {
+                 cfTarget += insn.getBranchOffset();
+             }
+
+             // TODO check condition
+
              pthrd_printf("DEBUG: find Branch Reg instruction, target address is 0x%lx\n", cfTarget);
          }else{ // return target address by calculating the offset and pc
              cfTarget = insn.getTarget(pc);
