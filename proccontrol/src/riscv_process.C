@@ -410,7 +410,7 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
              pthrd_printf("DEBUG: find Branch Reg instruction, target reg is %u\n", regNum);
  
              reg_response::ptr Response = reg_response::createRegResponse();
-             bool result = thr->getRegister(MachRegister::getArchReg(regNum, Arch_riscv64), Response);
+             bool result = thr->getRegister(as_system_register(regNum), Response);
              if (!result || Response->hasError()) {
                 pthrd_printf("Error reading PC address to check for emulated single step condition\n");
                 return aret_error;
