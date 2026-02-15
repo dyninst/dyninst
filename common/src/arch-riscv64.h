@@ -434,7 +434,7 @@ public:
   static bool isAligned(Dyninst::Address addr) { return !(addr & 0x1); }
 
   unsigned getTargetReg() const;
-  signed long signExtend(unsigned long i, unsigned int pos);
+  signed long signExtend(unsigned long i, unsigned int pos) const;
   Dyninst::Address getTarget(Dyninst::Address addr) const;
 
   bool isBranchReg() const;
@@ -445,7 +445,7 @@ public:
   bool isCall() const;
   unsigned getLinkReg() const;
   unsigned getBranchTargetReg() const;
-  Dyninst::Address getBranchOffset() const;
+  signed long getBranchOffset() const;
   unsigned getCondBranchOp() const;
   unsigned getCondBranchReg1() const;
   unsigned getCondBranchReg2() const;

@@ -83,6 +83,9 @@
 #include<sys/user.h>
 #include<sys/procfs.h>
 #include<sys/uio.h>
+#if defined(DYNINST_HOST_ARCH_RISCV64)
+#include "riscv_process.h"
+#endif
 #if !defined(WITH_SYMLITE)
 #include<linux/elf.h>
 #endif
@@ -752,7 +755,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 #elif defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
 #define DEFAULT_PROCESS_TYPE linux_x86_process
 #define DEFAULT_THREAD_TYPE linux_x86_thread
-#elif defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_AARCH32) || defined(DYNINST_HOST_ARCH_RISCV64)
+#elif defined(DYNINST_HOST_ARCH_AARCH64) || defined(DYNINST_HOST_ARCH_AARCH32)
 #define DEFAULT_PROCESS_TYPE linux_arm_process
 #define DEFAULT_THREAD_TYPE linux_arm_thread
 #elif defined(DYNINST_HOST_ARCH_RISCV64)
@@ -1279,7 +1282,8 @@ Dyninst::Architecture linux_riscv_process::getTargetArch()
    if (arch != Dyninst::Arch_none) {
       return arch;
    }
-   return Dyninst::Arch_riscv64;
+   arch = Dyninst::Arch_riscv64;
+   return arch;
 }
 static std::vector<unsigned int> fake_async_msgs;
 void linux_thread::fake_async_main(void *)
@@ -1513,13 +1517,17 @@ bool linux_thread::plat_cont()
          llproc()->addBreakpoint(addr, bp);
       }
 
+      // Track the emulated SS breakpoints so they can all be cleaned up
+      // when the step completes.
+      riscv_thread *rt = dynamic_cast<riscv_thread *>(thr);
+      if (rt) {
+         rt->setEmulatedSSBreakpoints(addrs, bp);
+      }
+
       pthrd_printf("Calling PTRACE_CONT to emulate PTRACE_SINGLESTEP on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_CONT, lwp, NULL, data);
 
-      // In case of conditional branching 2 breakpoints are installed, one for the next instruction
-      // and one where the branch goes to.
-      // We cannot remove here because the thread may not be stopped yet.
-      // The second breakpoint will be removed when hit automatically.
+      // Cleanup of all emulated breakpoints is handled in HandleBreakpointRestore
 
       #else
       pthrd_printf("Calling PTRACE_SINGLESTEP on %d with signal %d\n", lwp, tmpSignal);

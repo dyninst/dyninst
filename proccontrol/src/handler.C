@@ -45,6 +45,10 @@
 #include "windows_process.h"
 #endif
 
+#if defined(DYNINST_HOST_ARCH_RISCV64)
+#include "riscv_process.h"
+#endif
+
 #include <iostream>
 
 using namespace Dyninst;
@@ -1708,6 +1712,21 @@ Handler::handler_ret_t HandleBreakpointRestore::handleEvent(Event::ptr ev)
       proc->handlerPool()->notifyOfPendingAsyncs(int_bpc->bp_resume, ev);
       return ret_async;
    }
+
+#if defined(DYNINST_HOST_ARCH_RISCV64)
+   // Clean up all emulated singlestep breakpoints installed by plat_cont
+   // for stepping over a cleared breakpoint.
+   {
+      riscv_thread *rt = dynamic_cast<riscv_thread *>(thrd);
+      if (rt && rt->hasEmulatedSSBreakpoints() &&
+          rt->isEmulatedSSAddress(bp->getAddr())) {
+         pthrd_printf("Cleaning up emulated SS breakpoints in "
+                      "BreakpointRestore for %d/%d\n",
+                      proc->getPid(), thrd->getLWP());
+         rt->clearEmulatedSSBreakpoints();
+      }
+   }
+#endif
 
    pthrd_printf("Restoring thread state after breakpoint restore\n");
    if (swbp)

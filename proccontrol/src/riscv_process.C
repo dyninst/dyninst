@@ -483,7 +483,8 @@ void riscv_process::plat_getEmulatedSingleStepAsyncs(int_thread *, std::set<resp
 // riscv thread functions implementations
 
 riscv_thread::riscv_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
-   int_thread(p, t, l), have_cached_pc(false), cached_pc(0)
+   int_thread(p, t, l), have_cached_pc(false), cached_pc(0),
+   emulated_ss_bp_(nullptr)
 {
 }
 
@@ -544,4 +545,39 @@ bool riscv_thread::haveCachedPC(Address &pc)
         return false;
     pc = cached_pc;
     return true;
+}
+
+void riscv_thread::setEmulatedSSBreakpoints(const std::vector<Address> &addrs, int_breakpoint *bp)
+{
+    emulated_ss_addrs_ = addrs;
+    emulated_ss_bp_ = bp;
+}
+
+void riscv_thread::clearEmulatedSSBreakpoints()
+{
+    if (!emulated_ss_bp_) return;
+
+    int_process *proc = llproc();
+    for (const auto &addr : emulated_ss_addrs_) {
+        pthrd_printf("Removing emulated SS breakpoint at %lx for %d/%d\n",
+                     addr, proc->getPid(), getLWP());
+        std::set<response::ptr> resps;
+        proc->removeBreakpoint(addr, emulated_ss_bp_, resps);
+    }
+    delete emulated_ss_bp_;
+    emulated_ss_bp_ = nullptr;
+    emulated_ss_addrs_.clear();
+}
+
+bool riscv_thread::hasEmulatedSSBreakpoints() const
+{
+    return emulated_ss_bp_ != nullptr;
+}
+
+bool riscv_thread::isEmulatedSSAddress(Address addr) const
+{
+    for (const auto &a : emulated_ss_addrs_) {
+        if (a == addr) return true;
+    }
+    return false;
 }

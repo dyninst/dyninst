@@ -73,6 +73,14 @@ class riscv_thread : virtual public int_thread
   protected:
     bool have_cached_pc;
     Address cached_pc;
+
+    // Tracking emulated singlestep breakpoints installed by plat_cont.
+    // These must be explicitly cleaned up when the emulated step completes,
+    // since the one-time breakpoint mechanism alone does not remove the
+    // un-hit breakpoint in the conditional branch case.
+    std::vector<Address> emulated_ss_addrs_;
+    int_breakpoint *emulated_ss_bp_;
+
   public:
     riscv_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
     virtual ~riscv_thread();
@@ -95,6 +103,12 @@ class riscv_thread : virtual public int_thread
     void setCachedPC(Address pc);
     void clearCachedPC();
     bool haveCachedPC(Address &pc);
+
+    // Emulated singlestep breakpoint tracking for plat_cont path
+    void setEmulatedSSBreakpoints(const std::vector<Address> &addrs, int_breakpoint *bp);
+    void clearEmulatedSSBreakpoints();
+    bool hasEmulatedSSBreakpoints() const;
+    bool isEmulatedSSAddress(Address addr) const;
 };
 
 #endif

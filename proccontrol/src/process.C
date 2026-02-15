@@ -3608,6 +3608,32 @@ void int_thread::cleanFromHandler(int_thread *thrd, bool should_delete)
 #endif
 
    if (should_delete) {
+      #if defined(DYNINST_HOST_ARCH_RISCV64)
+      // Clear any missing breakpoint state for this thread.
+      bp_instance *clearing_bp = thrd->isClearingBreakpoint();
+      if (clearing_bp) {
+         int_process *proc = thrd->llproc();
+         pthrd_printf("Thread %d/%d exiting while clearing breakpoint at %lx. "
+                      "Cleaning up breakpoint state.\n",
+                      proc->getPid(), thrd->getLWP(), clearing_bp->getAddr());
+
+         thrd->markClearingBreakpoint(NULL);
+         thrd->setSingleStepMode(false);
+
+         // Re-insert the original breakpoint that was suspended for single-step
+         sw_breakpoint *swbp = clearing_bp->swBP();
+         if (swbp) {
+            std::set<response::ptr> bp_resume;
+            clearing_bp->resume(proc, bp_resume);
+         }
+
+         // Restore BreakpointResumeState for all threads in the process
+         if (swbp)
+            thrd->getBreakpointResumeState().restoreStateProc();
+         else
+            thrd->getBreakpointResumeState().restoreState();
+      }
+      #endif
       thrd->getExitingState().setState(int_thread::exited);
 	  if(ProcPool()->findThread(thrd->getLWP()) != NULL) {
 	      ProcPool()->rmThread(thrd);
