@@ -249,7 +249,9 @@ LoadedLib *AddressTranslateSysV::getAOut()
             case PT_NOTE:
             case PT_SHLIB:
             case PT_TLS:
+#ifdef PT_RISCV_ATTRIBUTES
             case PT_RISCV_ATTRIBUTES:
+#endif
                break;
             default:
                done = true;
