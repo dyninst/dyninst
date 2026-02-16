@@ -257,8 +257,6 @@ jobs:
           cd /
           git clone --depth=1 https://github.com/llnl/launchmon.git
           cd launchmon
-          wget https://patch-diff.githubusercontent.com/raw/LLNL/LaunchMON/pull/65.patch
-          git apply 65.patch
           ./bootstrap
           mkdir build
           cd build
