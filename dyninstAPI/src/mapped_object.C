@@ -2014,9 +2014,9 @@ string mapped_object::fileName() const {
 }
 
 func_instance *mapped_object::findGlobalFunc(const std::string &ctorHandler) {
-  auto *funcs = findFuncVectorByMangled(ctorHandler);
-  if(funcs) {
-    return (*funcs)[0];
+  auto *candidates = findFuncVectorByMangled(ctorHandler);
+  if(candidates) {
+    return (*candidates)[0];
   }
   return nullptr;
 }
