@@ -2,6 +2,7 @@
 #include "cft_tests.h"
 #include "InstructionDecoder.h"
 #include "memory_tests.h"
+#include "opcode_tests.h"
 #include "Register.h"
 #include "register_tests.h"
 #include "registers/MachRegister.h"
@@ -24,7 +25,8 @@
 namespace di = Dyninst::InstructionAPI;
 
 struct call_test {
-  std::vector<unsigned char> opcode;
+  std::vector<unsigned char> bytes;
+  di::opcode_test opcode;
   di::register_rw_test regs;
   di::mem_test mem;
   di::cft_test cft;
@@ -68,7 +70,7 @@ bool run(Dyninst::Architecture arch, std::vector<call_test> const &tests) {
   std::clog << "Running tests for 'call' in " << sarch << " mode\n";
   for(auto const &t : tests) {
     test_id++;
-    di::InstructionDecoder d(t.opcode.data(), t.opcode.size(), arch);
+    di::InstructionDecoder d(t.bytes.data(), t.bytes.size(), arch);
     auto insn = d.decode();
     if(!insn.isValid()) {
       std::cerr << "Failed to decode " << sarch << " test " << test_id << '\n';
@@ -87,6 +89,9 @@ bool run(Dyninst::Architecture arch, std::vector<call_test> const &tests) {
     if(!di::verify(insn, t.cft)) {
       failed = true;
     }
+    if(!di::verify(insn, t.opcode)) {
+      failed = true;
+    }
 
     std::clog << "\n";
   }
@@ -103,11 +108,15 @@ std::vector<call_test> make_tests(Dyninst::Architecture arch) {
   auto ip = Dyninst::MachRegister::getPC(arch);
 
   using reg_set = Dyninst::register_set;
+  
+  auto eax_str = std::string(is_64 ? "%rax" : "%eax");
+  auto ecx_str = std::string(is_64 ? "%rcx" : "%ecx");
 
   // clang-format off
   return {
     { // call [8*EAX + ECX + 0xDEADBEEF]
       {0xff, 0x94, 0xc1, 0xef, 0xbe, 0xad, 0xde},
+      di::opcode_test(e_call, "call 0xdeadbeef("+ecx_str+","+eax_str+",8)"),
       di::register_rw_test{
         reg_set{eax, ecx, ip, sp},
         reg_set{sp, ip}
@@ -126,6 +135,7 @@ std::vector<call_test> make_tests(Dyninst::Architecture arch) {
     },
     { // call 0x12345678
       {0xe8, 0x73, 0x56, 0x34, 0x12, },
+      di::opcode_test(e_call, "call 0x12345678(%rip)"),
       di::register_rw_test{
         reg_set{ip, sp},
         reg_set{sp, ip}
@@ -144,6 +154,7 @@ std::vector<call_test> make_tests(Dyninst::Architecture arch) {
     },
     { // call eax
       {0xff, 0xd0, },
+      di::opcode_test(e_call, "call "+eax_str),
       di::register_rw_test{
         reg_set{ip, sp, eax},
         reg_set{sp, ip}
@@ -174,6 +185,7 @@ std::vector<call_test> make_tests32() {
   return {
     { // call far 0x9abc:0x12345678
       {0x9a, 0x78, 0x56, 0x34, 0x12, 0xbc, 0x9a, },
+      di::opcode_test(e_call, "call $0x9abc12345678"),
       di::register_rw_test{
         reg_set{sp, ip},
         reg_set{sp, ip}
@@ -207,6 +219,7 @@ std::vector<call_test> make_tests64() {
   return {
     { // call qword ptr [rcx+rax*8-0x12345678]
       {0xff, 0x94, 0xc1, 0x78, 0x56, 0x34, 0x12},
+      di::opcode_test(e_call, "call 0x12345678(%rcx,%rax,8)"),
       di::register_rw_test{
         reg_set{sp, ip, rcx, rax},
         reg_set{sp, ip}
