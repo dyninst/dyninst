@@ -468,4 +468,12 @@ namespace Dyninst { namespace InstructionAPI {
     m_EncodedOperands.push_back(Operand(e, isRead, isWritten, isImplicit, trueP, falseP));
   }
 
+  bool Instruction::isCompressed() const {
+    /* RISCV64 compressed instructions have a separation Operation for
+     * the compressed and decompressed forms. In all other cases and
+     * architectures, they are the same.
+     */
+    return !(m_EncodedInsnOp == m_InsnOp);
+  }
+
 }}

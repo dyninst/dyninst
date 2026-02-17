@@ -126,6 +126,8 @@ namespace Dyninst { namespace InstructionAPI {
 
     DYNINST_EXPORT size_t size() const;
 
+    DYNINST_EXPORT bool isCompressed() const;
+
     DYNINST_EXPORT void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
     DYNINST_EXPORT void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
 
