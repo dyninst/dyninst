@@ -304,7 +304,7 @@ unsigned instruction::getCondBranchOp() const {
 }
 
 unsigned instruction::getCondBranchReg1() const {
-  if (isCondBranch()) {
+  if (!isCondBranch()) {
     return false;
   }
   if (isCompressed()) {
@@ -316,7 +316,7 @@ unsigned instruction::getCondBranchReg1() const {
 }
 
 unsigned instruction::getCondBranchReg2() const {
-  if (isCondBranch()) {
+  if (!isCondBranch()) {
     return false;
   }
   if (isCompressed()) {
@@ -360,14 +360,14 @@ bool instruction::isAuipc() const {
 }
 
 Dyninst::Address instruction::getAuipcOffset() const {
-  if (isAuipc()) {
+  if (!isAuipc()) {
     return -1;
   }
   return static_cast<Dyninst::Address>(insn_.raw & AUIPC_IMM_MASK);
 }
 
 unsigned instruction::getAuipcReg() const {
-  if (isAuipc()) {
+  if (!isAuipc()) {
     return -1;
   }
   return ((insn_.raw & AUIPC_REG_MASK) >> AUIPC_REG_SHIFT);
