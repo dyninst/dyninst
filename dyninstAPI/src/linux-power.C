@@ -47,6 +47,8 @@
 
 using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
 
+namespace NullNode = Dyninst::DyninstAPI::NullNode;
+
 
 // FIXME: HOST+CODEGEN
 // This is a temporary fix as getMaxBranch is used for both host and codegen
