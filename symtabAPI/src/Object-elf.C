@@ -679,6 +679,13 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
         }
 
         if (strcmp(name, TEXT_NAME) == 0) {
+            // NOBITS .text section means that we are probably dealing with
+            // debug symbols being split into a separate ELF file.
+            // This file doesn't contain code for us to parse.
+            if (scn.sh_type() == SHT_NOBITS) {
+                log_elferror(err_func_, "section .text can't be NOBITS");
+                return false;
+            }
             text_addr_ = scn.sh_addr();
             text_size_ = scn.sh_size();
 
@@ -2758,6 +2765,12 @@ int read_except_table_gcc3(
     unsigned char lpstart_format, ttype_format, table_format;
     unsigned long value, table_end, region_start, region_size, landingpad_base;
     unsigned long catch_block, action, augmentor_len;
+
+    // An attempt to read data from NOBITS section will result in
+    // NULL pointer dereference
+    if (!eh_frame->isValid() || eh_frame->sh_type() == SHT_NOBITS) {
+        return false;
+    }
 
     Dwarf_Off offset = 0, next_offset, saved_cur_offset;
     int res = 0;
