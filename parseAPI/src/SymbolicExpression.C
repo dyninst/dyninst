@@ -174,7 +174,54 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                                       }
                                                   }
                                               }
-                                          } 
+                                          }
+                                          // Case 4a: if (c1 + x) + c2 = x + (c1 + c2), where x is anything, c1 and c2 are constants
+                                          // Case 4b: if (x + c1) + c2 = x + (c1 + c2), where x is anything, c1 and c2 are constants
+                                          // Case 4c: if c1 + (c2 + x) = x + (c1 + c2), where x is anything, c1 and c2 are constants
+                                          // Case 4d: if c1 + (x + c2) = x + (c1 + c2), where x is anything, c1 and c2 are constants
+                                          if ((roseAST->child(0)->getID() == AST::V_RoseAST && roseAST->child(1)->getID() == AST::V_ConstantAST) ||
+                                              (roseAST->child(1)->getID() == AST::V_RoseAST && roseAST->child(0)->getID() == AST::V_ConstantAST)) {
+                                              RoseAST::Ptr rOp;
+                                              RoseAST::Ptr oldX = nullptr;
+                                              ConstantAST::Ptr oldC1 = nullptr, oldC2 = nullptr;
+                                              if (roseAST->child(0)->getID() == AST::V_RoseAST) {
+                                                  rOp = boost::static_pointer_cast<RoseAST>(roseAST->child(0));
+                                                  if (rOp->val().op == ROSEOperation::addOp) {
+                                                      if (rOp->child(0)->getID() == AST::V_ConstantAST) {
+                                                          // Case 4a
+                                                          oldX = boost::static_pointer_cast<RoseAST>(rOp->child(1));
+                                                          oldC1 = boost::static_pointer_cast<ConstantAST>(rOp->child(0));
+                                                          oldC2 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+                                                      } else if (rOp->child(1)->getID() == AST::V_ConstantAST) {
+                                                          // Case 4b
+                                                          oldX = boost::static_pointer_cast<RoseAST>(rOp->child(0));
+                                                          oldC1 = boost::static_pointer_cast<ConstantAST>(rOp->child(1));
+                                                          oldC2 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+                                                      }
+                                                  }
+                                              } else {
+                                                  rOp = boost::static_pointer_cast<RoseAST>(roseAST->child(1));
+                                                  if (rOp->val().op == ROSEOperation::addOp) {
+                                                      if (rOp->child(0)->getID() == AST::V_ConstantAST) {
+                                                          // Case 4c
+                                                          oldX = boost::static_pointer_cast<RoseAST>(rOp->child(1));
+                                                          oldC2 = boost::static_pointer_cast<ConstantAST>(rOp->child(0));
+                                                          oldC1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+                                                      } else if (rOp->child(1)->getID() == AST::V_ConstantAST) {
+                                                          // Case 4d
+                                                          oldX = boost::static_pointer_cast<RoseAST>(rOp->child(0));
+                                                          oldC2 = boost::static_pointer_cast<ConstantAST>(rOp->child(1));
+                                                          oldC1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+                                                      }
+                                                  }
+                                              }
+                                              if (oldX && oldC1 && oldC2) {
+                                                  size_t size = std::max(oldC1->val().size, oldC2->val().size);
+                                                  ConstantAST::Ptr newC = ConstantAST::create(Constant(oldC1->val().val + oldC2->val().val, size));
+                                                  RoseAST::Ptr newRoot = RoseAST::create(ROSEOperation(roseAST->val()), oldX, newC);
+                                                  return newRoot;
+                                              }
+                                          }
                                           break;
             case ROSEOperation::sMultOp:
             case ROSEOperation::uMultOp:
