@@ -6,6 +6,7 @@ configure_file(${PROJECT_SOURCE_DIR}/cmake/dyninstversion.h.in
                ${CMAKE_CURRENT_SOURCE_DIR}/h/dyninstversion.h)
 
 set(_public_headers
+    h/abi.h
     h/Annotatable.h
     h/Architecture.h
     h/Buffer.h
@@ -42,6 +43,7 @@ set(_public_headers
     h/registers/cuda_regs.h
     h/registers/ppc32_regs.h
     h/registers/ppc64_regs.h
+    h/registers/registerSet.h
     h/registers/reg_def.h
     h/registers/register_set.h
     h/registers/riscv64_regs.h
@@ -55,6 +57,12 @@ set(_public_headers
     )
 
 set(_private_headers
+    src/ABI/aarch64.h
+    src/ABI/architecture.h
+    src/ABI/interface_definition.h
+    src/ABI/ppc64.h
+    src/ABI/x86_64.h
+    src/ABI/x86.h
     src/addrtranslate.h
     src/addrtranslate-sysv.h
     src/arch-amdgpu.h
@@ -88,6 +96,7 @@ set(_private_headers
     src/vm_maps.h)
 
 set(_sources
+    src/ABI/ABI.C
     src/pfq-rwlock.C
     src/concurrent.C
     src/Timer.C
