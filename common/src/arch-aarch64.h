@@ -270,11 +270,6 @@ class DYNINST_EXPORT instruction {
 		}
 
     bool isCall() const;
-
-    static bool isAligned(Dyninst::Address addr) {
-        return !(addr & 0x3);
-    }
-
     bool isBranchReg() const;
     bool isCondBranch() const;
     bool isUncondBranch() const;

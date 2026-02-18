@@ -31,6 +31,8 @@
 #ifndef DYNINST_ARCHITECTURE_H
 #define DYNINST_ARCHITECTURE_H
 
+#include "dyntypes.h"
+
 #include <cassert>
 
 namespace Dyninst {
@@ -88,6 +90,28 @@ namespace Dyninst {
       case Arch_intelGen9: return "intelGen9"; break;
     }
     return "UNKNOWN";
+  }
+  
+  inline bool isAligned(Architecture arch, Dyninst::Address addr) {
+    // Is multiple of four
+    bool const ismo4 = !(addr & 0x3);
+    
+    switch(arch) {
+      case Arch_none: return false;
+      case Arch_x86: return true;
+      case Arch_x86_64: return true;
+      case Arch_ppc32: return ismo4;
+      case Arch_ppc64: return ismo4;
+      case Arch_aarch32: return ismo4;
+      case Arch_aarch64: return ismo4;
+      case Arch_riscv64: return ismo4;
+      case Arch_cuda: return false;
+      case Arch_amdgpu_gfx908: return false;
+      case Arch_amdgpu_gfx90a: return false;
+      case Arch_amdgpu_gfx940: return false;
+      case Arch_intelGen9: return false;
+    }
+    return false;
   }
 
 }
