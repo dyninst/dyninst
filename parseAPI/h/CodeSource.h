@@ -129,6 +129,16 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     mutable std::map<Address, std::string> _linkage;
 
     /*
+     * .rela.dyn external linkage table. Used in RISC-V
+     */
+    std::map<Address, std::pair<std::string, Address> > _reladyn_linkage;
+
+    /*
+     * .symtab external linkage table. Used in RISC-V
+     */
+    std::map<Address, std::string> _symtab_linkage;
+
+    /*
      * Table of Contents for position independent references. Optional.
      */
     Address _table_of_contents;
@@ -182,7 +192,10 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     virtual Address baseAddress() const { return 0; }
     virtual Address loadAddress() const { return 0; }
 
-    std::map< Address, std::string > & linkage() const { return _linkage; }
+    const std::map< Address, std::string > & linkage() const { return _linkage; }
+    const std::map< Address, std::pair<std::string, Address> > & reladyn_linkage() const { return _reladyn_linkage; }
+    const std::map< Address, std::string> & symtab_linkage() const { return _symtab_linkage; }
+
 //    std::vector< Hint > const& hints() const { return _hints; } 
     dyn_c_vector<Hint> const& hints() const { return _hints; }
     std::vector<CodeRegion *> const& regions() const { return _regions; }
@@ -211,10 +224,10 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
  protected:
     CodeSource() : _regions_overlap(false),
                    _table_of_contents(0) {}
-
+   
     void addRegion(CodeRegion *);
     void removeRegion(CodeRegion *);
-   
+
  private: 
     // statistics
     virtual bool init_stats() { return false; }

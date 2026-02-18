@@ -162,11 +162,10 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT bool isVector() const { return getCategory() == c_VectorInsn; }
     DYNINST_EXPORT bool isGPUKernelExit() const { return getCategory() == c_GPUKernelExitInsn; }
     DYNINST_EXPORT bool isSoftwareException() const { return isGPUKernelExit() || getCategory() == c_SoftwareExceptionInsn; }
+    DYNINST_EXPORT bool isConditional() const { return checked_category(c_ConditionalInsn); }
 
-    DYNINST_EXPORT bool isMultiInsnCall() const { return isCall() && getOperation().isMultiInsnCall; }
-    DYNINST_EXPORT bool isMultiInsnBranch() const { return isBranch() && getOperation().isMultiInsnBranch; }
-    DYNINST_EXPORT bool isNonABICall() const { return isCall() && getOperation().isNonABICall; }
-    DYNINST_EXPORT bool isNonABIReturn() const { return isReturn() && getOperation().isNonABIReturn; }
+    DYNINST_EXPORT void forceReturn() const;
+    DYNINST_EXPORT void forceCall() const;
 
     typedef std::list<CFT>::const_iterator cftConstIter;
     DYNINST_EXPORT cftConstIter cft_begin() const { return m_Successors.begin(); }

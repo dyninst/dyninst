@@ -88,6 +88,22 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
         plt_entries[lit->first] = lit->second;
     }
 
+    // Cache other relocation entries in .rela.dyn (Used by RISC-V)
+    const map<Address, std::pair<string, Address>> & rlm = obj.cs()->reladyn_linkage();
+    map<Address, std::pair<string, Address>>::const_iterator rlit = rlm.begin();
+    for( ; rlit != rlm.end(); ++rlit) {
+        parsing_printf("Cached .rela entry %s @ %lx (%lx)\n", rlit->second.first.c_str(), rlit->second.second, rlit->first);
+        reladyn_entries[rlit->first] = rlit->second;
+    }
+
+    // cache other relocation entries in .symtab (Used by RISC-V)
+    const map<Address, string> & slm = obj.cs()->symtab_linkage();
+    map<Address, string>::const_iterator slit = slm.begin();
+    for( ; slit != slm.end(); ++slit) {
+        parsing_printf("Cached .symtab entry %s (%lx)\n", slit->second.c_str(), slit->first);
+        symtab_entries[slit->first] = slit->second;
+    }
+
     if(obj.cs()->regions().empty()) {
         parsing_printf("[%s:%d] CodeSource provides no CodeRegions"
                 " -- unparesable\n",

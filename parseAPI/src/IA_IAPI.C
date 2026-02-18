@@ -41,6 +41,7 @@
 #include "dyntypes.h"
 #include "instructionAPI/h/syscalls.h"
 #include "instructionAPI/h/interrupts.h"
+#include "dyn_regs.h"
 
 #include <deque>
 #include <map>
@@ -49,6 +50,7 @@
 #include "IA_x86.h"
 #include "IA_power.h"
 #include "IA_aarch64.h"
+#include "IA_riscv64.h"
 #include "IA_amdgpu.h"
 
 using namespace Dyninst;
@@ -118,6 +120,8 @@ IA_IAPI* IA_IAPI::makePlatformIA_IAPI(Architecture arch,
             return new IA_power(dec_, where_, o, r, isrc, curBlk_);
         case Arch_aarch64:
             return new IA_aarch64(dec_, where_, o, r, isrc, curBlk_);
+        case Arch_riscv64:
+            return new IA_riscv64(dec_, where_, o, r, isrc, curBlk_);
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
         case Arch_amdgpu_gfx940:
@@ -142,6 +146,7 @@ void IA_IAPI::initASTs()
                 framePtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc32)));
                 framePtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc64)));
                 framePtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_aarch64)));
+                framePtr[Arch_riscv64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_riscv64)));
                 framePtr[Arch_amdgpu_gfx908] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_gfx908)));
                 framePtr[Arch_amdgpu_gfx90a] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_gfx90a)));
                 framePtr[Arch_amdgpu_gfx940] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_gfx940)));
@@ -153,6 +158,7 @@ void IA_IAPI::initASTs()
                 stackPtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc32)));
                 stackPtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc64)));
                 stackPtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_aarch64)));
+                stackPtr[Arch_riscv64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_riscv64)));
                 stackPtr[Arch_amdgpu_gfx908] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_gfx908)));
                 stackPtr[Arch_amdgpu_gfx90a] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_gfx90a)));
                 stackPtr[Arch_amdgpu_gfx940] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_gfx940)));
@@ -164,6 +170,7 @@ void IA_IAPI::initASTs()
                 thePC[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
                 thePC[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
                 thePC[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_aarch64)));
+                thePC[Arch_riscv64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_riscv64)));
                 thePC[Arch_amdgpu_gfx908] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx908)));
                 thePC[Arch_amdgpu_gfx90a] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx90a)));
                 thePC[Arch_amdgpu_gfx940] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx940)));
@@ -561,6 +568,22 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             }
         }
 
+        if (isMultiInsnJump(&target, context, currBlk)) {
+            CodeSource *cs = currBlk->obj()->cs();
+            const std::map<Dyninst::Address, std::string>& symtab_entries = cs->symtab_linkage();
+            // If the target address points to the entry point of a function,
+            // It is identified as a function call.
+            if (symtab_entries.find(target) != symtab_entries.end() ||
+                    plt_entries->find(target) != plt_entries->end()) {
+                parsing_printf("%s[%d]: multi instruction call from %lx to %lx\n",
+                        FILE__, __LINE__, current, target);
+                //outEdges.push_back(std::make_pair(target, CALL));
+                //outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
+                success = true;
+                ftEdge = true;
+            }
+        }
+
         if (callEdge) {
             if (success) {                
                 outEdges.push_back(std::make_pair(target, CALL));
@@ -615,6 +638,36 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                     tailCalls[DIRECT] = true;
                 }
             }
+            else
+            {
+                parsing_printf("%s[%d]: tail call to %lx\n", 
+                        FILE__, __LINE__, target);
+                outEdges.push_back(std::make_pair(target, DIRECT));
+            }
+            return;
+        }
+        else if(isReturn(context, currBlk))
+        {
+            parsing_printf("%s[%d]: return candidate %s at 0x%lx\n", FILE__, __LINE__,
+                    ci.format().c_str(), current);
+            if(ci.allowsFallThrough())
+            {
+                outEdges.push_back(std::make_pair(getNextAddr(), FALLTHROUGH));
+            }
+            return;
+        }
+        else if (isMultiInsnJump(&target, context, currBlk))
+        {
+            // If the target address lies within the current context
+            // It is an unconditional jump
+            if(target >= context->entry()->start() &&
+                    target < context->entry()->end())
+            {
+                parsing_printf("%s[%d]: multi instruction jump from %lx to %lx\n", 
+                        FILE__, __LINE__, current, target);
+                outEdges.push_back(std::make_pair(target, DIRECT));
+            }
+            // Otherwise, treat it as a tail call
             else
             {
                 parsing_printf("%s[%d]: tail call to %lx\n", 
@@ -788,6 +841,11 @@ bool IA_IAPI::simulateJump() const
         return isFakeCall();
     }
     // TODO: we don't simulate jumps on x86 architectures; add logic as we need it.                
+    return false;
+}
+
+bool IA_IAPI::isMultiInsnJump(Address *, Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block *) const
+{
     return false;
 }
 
