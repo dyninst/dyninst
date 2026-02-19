@@ -42,6 +42,12 @@ using namespace AmdgpuGfx908;
 // ===== EmitterAmdgpuGfx908 implementation begin =====
 
 // ==== Helper functions begin
+bool EmitterAmdgpuGfx908::isValidVgpr(Register reg) const {
+  return reg.isVector() &&
+         reg.getCount() == 1 && reg.getId() >= NS_amdgpu::MIN_VGPR_ID &&
+         reg.getId() <= NS_amdgpu::MAX_VGPR_ID;
+}
+
 bool EmitterAmdgpuGfx908::isValidSgpr(Register reg) const {
   return reg.isScalar() &&
          reg.getCount() == 1 && reg.getId() >= NS_amdgpu::MIN_SGPR_ID &&
@@ -81,14 +87,9 @@ unsigned EmitterAmdgpuGfx908::emitIf(Register expr_reg, Register target, RegCont
   return setPcInstOffset;
 }
 
-// EmitterAmdgpuGfx908 implementation
-void EmitterAmdgpuGfx908::emitOp(unsigned opcode, Register dest, Register src1, Register src2,
-                                 codeGen &gen) {
-  // TODO: We eventually want to get rid of this assert and generate code based on operand kind.
-  assert(isValidSgpr(dest) && isValidSgpr(src1) && isValidSgpr(src2) && "each operand must be a valid SGPR");
-
-  uint32_t opcodeSop2 = 0;
-  switch (opcode) {
+unsigned EmitterAmdgpuGfx908::getSop2Opcode(unsigned opCode) const {
+  unsigned opcodeSop2 = 0;
+  switch (opCode) {
   case plusOp:
     opcodeSop2 = S_ADD_I32;
     break;
@@ -120,12 +121,62 @@ void EmitterAmdgpuGfx908::emitOp(unsigned opcode, Register dest, Register src1, 
   default:
     assert(!"opcode must correspond to a supported SOP2 operation");
   }
+  return opcodeSop2;
+}
 
-  emitSop2(opcodeSop2, dest.getId(), src1.getId(), src2.getId(), gen);
+unsigned EmitterAmdgpuGfx908::getVop2Opcode(unsigned opCode) const {
+  unsigned opcodeVop2 = 0;
+  switch (opCode) {
+  case plusOp:
+    opcodeVop2 = V_ADD_U32;
+    break;
+
+  case minusOp:
+    opcodeVop2 = V_SUB_U32;
+    break;
+
+  case andOp:
+    opcodeVop2 = V_AND_B32;
+    break;
+
+  case orOp:
+    opcodeVop2 = V_OR_B32;
+    break;
+
+  case xorOp:
+    opcodeVop2 = V_XOR_B32;
+    break;
+
+  default:
+    assert(!"opcode must correspond to a supported SOP2 operation");
+  }
+  return opcodeVop2;
+}
+
+// EmitterAmdgpuGfx908 implementation
+void EmitterAmdgpuGfx908::emitOp(unsigned opcode, Register dest, Register src1, Register src2,
+                                 codeGen &gen) {
+  if (isValidSgpr(dest) && isValidSgpr(src1) && isValidSgpr(src2)) {
+    // generate SOP2 instruction
+    uint32_t opcodeSop2 = getSop2Opcode(opcode);
+    emitSop2(opcodeSop2, dest.getId(), src1.getId(), src2.getId(), gen);
+  } else if (isValidVgpr(dest) && isValidVgpr(src1) && isValidVgpr(src2)) {
+    // generate VOP2 instruction
+    uint32_t opcodeVop2 = getVop2Opcode(opcode);
+    uint32_t src2ValueToAdd = 256;
+    emitVop2(opcodeVop2, dest.getId(), src1.getId(), src2.getId() + src2ValueToAdd, gen);
+  } else {
+    assert("invalid combination of registers in emitOp");
+  }
 }
 
 void EmitterAmdgpuGfx908::emitOpImmSimple(unsigned op, Register dest, Register src1,
                                           RegValue src2imm, codeGen &gen) {
+  // Temporary workaround for inline operations
+  if (op == andOp) {
+    emitSop2(S_AND_B32, dest.getId(), /* src0 */ src2imm, src1.getId(), gen);
+    return;
+  }
 
   assert(isValidSgpr(dest) && isValidSgpr(src1) && "dest and src1 must be valid SGPRs");
   assert(dest == src1 && "dest and src1 must be the same for SOPK");
@@ -628,5 +679,31 @@ void EmitterAmdgpuGfx908::emitAtomicSub(Register baseAddrReg, Register src0, cod
   assert(isValidSgpr(src0) && "src0 must be a valid SGPR");
 
   emitSmem(S_ATOMIC_SUB, src0.getId(), (baseAddrReg.getId() >> 1), /* offset = */ 0, gen);
+}
+
+
+void EmitterAmdgpuGfx908::emitScalarLogicalRightShift(Register dest, Register src, uint32_t shiftAmount, codeGen &gen) {
+  assert(isValidSgpr(dest) && isValidSgpr(src) && "dest and src must be valid sgprs");
+  assert(shiftAmount <= 64 && "shiftAmount must be within range");
+
+  // shiftAmount encoded by adding 128 to it
+  const uint32_t valueToAdd = 128;
+  shiftAmount += valueToAdd;
+
+  emitSop2(S_LSHR_B32, dest.getId(), /* src0 */ shiftAmount, src.getId(), gen);
+}
+
+// vgpr = vgpr * sgpr
+void EmitterAmdgpuGfx908::emitVMulLoU32(Register dest, Register src0, Register src1, codeGen &gen) {
+  assert(isValidVgpr(dest) && isValidVgpr(src0) && isValidSgpr(src1));
+  const uint32_t vgprValueToAdd = 256;
+  emitVop3a(V_MUL_LO_U32, dest.getId(), src0.getId() + vgprValueToAdd, src1.getId(), /* src2 */ 0, gen);
+}
+
+void EmitterAmdgpuGfx908::emitReadFirstLane(Register vreg, Register sreg, codeGen &gen) {
+  assert(isValidVgpr(vreg) && isValidSgpr(sreg));
+  const uint32_t vgprValueToAdd = 256;
+  emitVop1(V_READFIRSTLANE_B32, sreg.getId(), vreg.getId() + 256, gen);
+
 }
 // ===== EmitterAmdgpuGfx908 implementation end =====

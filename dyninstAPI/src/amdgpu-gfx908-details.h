@@ -65,7 +65,19 @@ enum ContentMask32 : uint32_t {
   Mask_SopP_Encoding  = 0xC0000000,    // 0b11000000000000000000000000000000
   Mask_SopP_FixedBits = 0x3F800000,    // 0b00111111100000000000000000000000
   Mask_SopP_Opcode    = 0x007F0000,    // 0b00000000011111110000000000000000
-  Mask_SopP_SImm16    = 0x0000FFFF     // 0b00000000000000001111111111111111
+  Mask_SopP_SImm16    = 0x0000FFFF,    // 0b00000000000000001111111111111111
+
+  Mask_Vop1_Encoding  = 0b10000000000000000000000000000000,
+  Mask_Vop1_FixedBits = 0b01111110000000000000000000000000,
+  Mask_Vop1_Vdst      = 0b00000001111111100000000000000000,
+  Mask_Vop1_Opcode    = 0b00000000000000011111111000000000,
+  Mask_Vop1_Src0      = 0b00000000000000000000000111111111,
+
+  Mask_Vop2_Encoding  = 0b10000000000000000000000000000000,
+  Mask_Vop2_Opcode    = 0b01111110000000000000000000000000,
+  Mask_Vop2_Vdst      = 0b00000001111111100000000000000000,
+  Mask_Vop2_Vsrc1     = 0b00000000000000011111111000000000,
+  Mask_Vop2_Src0      = 0b00000000000000000000000111111111
 };
 
 enum ContentMask64 : uint64_t {
@@ -80,7 +92,19 @@ enum ContentMask64 : uint64_t {
   Mask_Smem_Sbase    = 0x000000000000003F,  // 0b0000000000000000000000000000000000000000000000000000000000111111
   Mask_Smem_Soffset  = 0xFE00000000000000,  // 0b1111111000000000000000000000000000000000000000000000000000000000
   Mask_Smem_R4       = 0x01E0000000000000,  // 0b0000000111100000000000000000000000000000000000000000000000000000
-  Mask_Smem_Offset   = 0x001FFFFF00000000   // 0b0000000000011111111111111111111100000000000000000000000000000000
+  Mask_Smem_Offset   = 0x001FFFFF00000000,  // 0b0000000000011111111111111111111100000000000000000000000000000000
+
+  Mask_Vop3a_Encoding = 0b0000000000000000000000000000000011111100000000000000000000000000,
+  Mask_Vop3a_Opcode   = 0b0000000000000000000000000000000000000011111111110000000000000000,
+  Mask_Vop3a_Clmp     = 0b0000000000000000000000000000000000000000000000001000000000000000,
+  Mask_Vop3a_OpSel    = 0b0000000000000000000000000000000000000000000000000111100000000000,
+  Mask_Vop3a_Abs      = 0b0000000000000000000000000000000000000000000000000000011100000000,
+  Mask_Vop3a_Vdst     = 0b0000000000000000000000000000000000000000000000000000000011111111,
+  Mask_Vop3a_Src0     = 0b0000000000000000000000011111111100000000000000000000000000000000,
+  Mask_Vop3a_Src1     = 0b0000000000000011111111100000000000000000000000000000000000000000,
+  Mask_Vop3a_Src2     = 0b0000011111111100000000000000000000000000000000000000000000000000,
+  Mask_Vop3a_Omod     = 0b0001100000000000000000000000000000000000000000000000000000000000,
+  Mask_Vop3a_Neg      = 0b1110000000000000000000000000000000000000000000000000000000000000
  };
 
 // === SOP1 BEGIN ===
@@ -136,8 +160,8 @@ enum SOP2_Opcode {
   S_NOR_B32 = 24,
   S_NOR_B64 = 25,
   S_XNOR_B32 = 26,
-  S_XNOR_B64 = 27
-
+  S_XNOR_B64 = 27,
+  S_LSHR_B32 = 30
 };
 
 void setEncodingSop2(uint32_t &rawInst);
@@ -321,6 +345,85 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset,
               codeGen &gen);
 
 // === SMEM END ===
+
+
+// === VOP1 BEGIN ===
+
+// VOP1 instruction format in memory: [encoding] [fixed bits] [vdst] [opcode] [src]
+//                   bits (total 32):   1(0)       6[111111]     8       8      9
+// This enum contains particular VOP1 instructions of interest.
+// Extend it later as needed.
+enum VOP1_Opcode {
+  V_MOV_B32 = 1,
+  V_READFIRSTLANE_B32 = 2
+};
+
+void setEncodingVop1(uint32_t &rawInst);
+void setFixedBitsVop1(uint32_t &rawInst);
+void setOpcodeVop1(uint32_t value, uint32_t &rawInst);
+void setVdstVop1(uint32_t value, uint32_t &rawInst);
+void setSrc0Vop1(uint32_t value, uint32_t &rawInst);
+
+void emitVop1(unsigned opcode, uint32_t vdst, uint32_t src0, codeGen &gen);
+
+// === VOP1 END ===
+
+
+// VOP2 instruction format in memory: [encoding] [opcode] [vdst] [vsrc1] [vsrc0]
+//                   bits (total 32):   1(0)       6        8       8       9
+// This enum contains particular VOP2 instructions of interest.
+// Extend it later as needed.
+enum VOP2_Opcode {
+  V_ADD_U32 = 52,
+  V_SUB_U32 = 53,
+  V_AND_B32 = 19,
+  V_OR_B32  = 20,
+  V_XOR_B32 = 21
+};
+
+void setEncodingVop2(uint32_t &rawInst);
+void setOpcodeVop2(uint32_t value, uint32_t &rawInst);
+void setVdstVop2(uint32_t value, uint32_t &rawInst);
+void setVsrc1Vop2(uint32_t value, uint32_t &rawInst);
+void setSrc0Vop2(uint32_t value, uint32_t &rawInst);
+
+void emitVop2(unsigned opcode, uint32_t vdst, uint32_t vsrc1, uint32_t src0,
+              codeGen &gen);
+
+// === VOP2 END ===
+
+// === VOP3A BEGIN ===
+// VOP3A instruction format in memory : (total 64 bits)
+
+// 31                                          0
+// [encoding] [opcode] [clmp] [op_sel] [abs] [vdst]
+//  6(110100)    10      1       4       3     8
+//
+// 63                           32
+// [neg] [omod] [src2] [src1] [src0]
+//   3     2       9       9     9
+//
+// This enum contains particular VOP3A instructions of interest.
+// Extend it later as needed.
+enum VOP3A_Opcode {
+  V_MUL_LO_U32 = 645
+};
+
+void setEncodingVop3a(uint64_t &rawInst);
+void setOpcodeVop3a(uint64_t value, uint64_t &rawInst);
+void setClmpVop3a(bool value, uint64_t &rawInst);
+void setOpSelVop3a(uint32_t value, uint64_t &rawInst);
+void setAbsVop3a(uint32_t value, uint64_t &rawInst);
+void setVdstVop3a(uint32_t value, uint64_t &rawInst);
+void setSrc0Vop3a(uint64_t &rawInst);
+void setSrc1Vop3a(uint64_t value, uint64_t &rawInst);
+void setSrc2Vop3a(uint64_t value, uint64_t &rawInst);
+void setOmodVop3a(uint64_t value, uint64_t &rawInst);
+void setNegVop3a(uint64_t &rawInst);
+
+void emitVop3a(unsigned opcode, uint64_t vdst, uint64_t src0, uint64_t src1, uint64_t src2,
+               codeGen &gen);
+// === VOP3A END ===
 
 } // namespace AmdgpuGfx908
 

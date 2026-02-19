@@ -29,6 +29,9 @@
 #include "amdgpu-gfx908-details.h"
 #include "unaligned_memory_access.h"
 
+#include <bitset>
+#include <iostream>
+
 namespace AmdgpuGfx908 {
 
 using namespace Dyninst;
@@ -341,4 +344,163 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset, 
 }
 // === SMEM END ===
 
+// === VOP1 BEGIN ===
+void setEncodingVop1(uint32_t &rawInst) {
+  uint32_t mask = Mask_Vop1_Encoding;
+  // Encoding bit must be 0, so no need to set a value.
+  rawInst = (rawInst & ~mask);
+}
+
+void setFixedBitsVop1(uint32_t &rawInst) {
+  uint32_t mask = Mask_Vop1_FixedBits;
+  rawInst = (rawInst & ~mask) | ((uint32_t)(0b111111 << 25));
+}
+
+void setVdstVop1(uint32_t value, uint32_t &rawInst) {
+  uint32_t mask = Mask_Vop1_Vdst;
+  rawInst = (rawInst & ~mask) | ((uint32_t)(value << 17) & mask);
+}
+
+void setOpcodeVop1(uint32_t value, uint32_t &rawInst) {
+  uint32_t mask = Mask_Vop1_Opcode;
+  rawInst = (rawInst & ~mask) | ((uint32_t)(value << 9) & mask);
+}
+
+void setSrc0Vop1(uint32_t value, uint32_t &rawInst) {
+  uint32_t mask = Mask_Vop1_Src0;
+  rawInst = (rawInst & ~mask) | (value & mask);
+}
+
+void emitVop1(unsigned opcode, uint32_t vdst, uint32_t src0, codeGen &gen) {
+  uint32_t newRawInst = 0xFFFFFFFF;
+  setEncodingVop1(newRawInst);
+  setFixedBitsVop1(newRawInst);
+  setOpcodeVop1(opcode, newRawInst);
+  setVdstVop1(vdst, newRawInst);
+  setSrc0Vop1(src0, newRawInst);
+
+  auto rawInstBuffer = gen.cur_ptr();
+  append_memory_as(rawInstBuffer, newRawInst);
+  gen.update(rawInstBuffer);
+}
+// === VOP1 END ===
+
+// === VOP2 BEGIN ===
+void setEncodingVop2(uint32_t &rawInst) {
+  uint32_t mask = Mask_Vop2_Encoding;
+  // Encoding bit must be 0, so no need to set a value.
+  rawInst = (rawInst & ~mask);
+}
+
+void setOpcodeVop2(uint32_t value, uint32_t &rawInst) {
+  uint32_t mask = Mask_Vop2_Opcode;
+  rawInst = (rawInst & ~mask) | ((value << 25) & mask);
+}
+
+void setVdstVop2(uint32_t value, uint32_t &rawInst) {
+  uint32_t mask = Mask_Vop2_Vdst;
+  rawInst = (rawInst & ~mask) | ((value << 17) & mask);
+}
+
+void setVsrc1Vop2(uint32_t value, uint32_t &rawInst) {
+  uint32_t mask = Mask_Vop2_Vsrc1;
+  rawInst = (rawInst & ~mask) | ((value << 9) & mask);
+}
+
+void setSrc0Vop2(uint32_t value, uint32_t &rawInst) {
+  uint32_t mask = Mask_Vop2_Src0;
+  rawInst = (rawInst & ~mask) | (value);
+}
+
+void emitVop2(unsigned opcode, uint32_t vdst, uint32_t vsrc1, uint32_t src0,
+    codeGen &gen) {
+  uint32_t newRawInst = 0xFFFFFFFF;
+  setEncodingVop2(newRawInst);
+  setOpcodeVop2(opcode, newRawInst);
+  setVdstVop2(vdst, newRawInst);
+  setVsrc1Vop2(vsrc1, newRawInst);
+  setSrc0Vop2(src0, newRawInst);
+
+  auto rawInstBuffer = gen.cur_ptr();
+  append_memory_as(rawInstBuffer, newRawInst);
+  gen.update(rawInstBuffer);
+}
+// === VOP2 END ===
+
+// === VOP3A BEGIN ===
+void setEncodingVop3a(uint64_t &rawInst) {
+  uint64_t mask = Mask_Vop3a_Encoding;
+  rawInst = (rawInst & ~mask) | (((uint64_t)(0b110100) << 26) & mask);
+}
+
+void setOpcodeVop3a(uint64_t value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Vop3a_Opcode;
+  rawInst = (rawInst & ~mask) | (((uint64_t)(value) << 16) & mask);
+}
+
+void setClmpVop3a(bool value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Vop3a_Clmp;
+  rawInst = (rawInst & ~mask) | (((uint64_t)(value) << 15) & mask);
+}
+
+void setOpSelVop3a(uint32_t value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Vop3a_OpSel;
+  rawInst = (rawInst & ~mask) | (((uint64_t)(value) << 11) & mask);
+}
+
+void setAbsVop3a(uint32_t value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Vop3a_Abs;
+  rawInst = (rawInst & ~mask) | (((uint64_t)(value) << 8) & mask);
+}
+
+void setVdstVop3a(uint32_t value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Vop3a_Vdst;
+  rawInst = (rawInst & ~mask) | ((uint64_t)(value) & mask);
+}
+
+void setSrc0Vop3a(uint64_t value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Vop3a_Src0;
+  rawInst = (rawInst & ~mask) | (((uint64_t)(value) << 32) & mask);
+}
+
+void setSrc1Vop3a(uint64_t value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Vop3a_Src1;
+  rawInst = (rawInst & ~mask) | (((uint64_t)(value) << 41) & mask);
+}
+
+void setSrc2Vop3a(uint64_t value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Vop3a_Src2;
+  rawInst = (rawInst & ~mask) | (((uint64_t)(value) << 50) & mask);
+}
+
+void setOmodVop3a(uint64_t value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Vop3a_Omod;
+  rawInst = (rawInst & ~mask) | (((uint64_t)(value) << 59) & mask);
+}
+
+void setNegVop3a(uint64_t value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Vop3a_Neg;
+  rawInst = (rawInst & ~mask) | (((uint64_t)(value) << 61) & mask);
+}
+
+void emitVop3a(unsigned opcode, uint64_t vdst, uint64_t src0, uint64_t src1, uint64_t src2,
+    codeGen &gen) {
+  uint64_t newRawInst = 0xFFFFFFFFFFFFFFFF;
+  setEncodingVop3a(newRawInst);
+  setOpcodeVop3a(opcode, newRawInst);
+  setClmpVop3a(0, newRawInst);
+  setOpSelVop3a(0, newRawInst);
+  setAbsVop3a(0, newRawInst);
+  setVdstVop3a(vdst, newRawInst);
+  setSrc0Vop3a(src0, newRawInst);
+  setSrc1Vop3a(src1, newRawInst);
+  setSrc2Vop3a(src2, newRawInst);
+  setOmodVop3a(0, newRawInst);
+  setNegVop3a(0, newRawInst);
+
+  auto rawInstBuffer = gen.cur_ptr();
+  append_memory_as(rawInstBuffer, newRawInst);
+  gen.update(rawInstBuffer);
+}
+// === VOP3A END ===
 } // namespace AmdgpuGfx908

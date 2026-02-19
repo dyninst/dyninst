@@ -221,10 +221,21 @@ public:
   void emitAtomicAdd(Register baseAddrReg, Register src0, codeGen &gen);
 
   void emitAtomicSub(Register baseAddrReg, Register src0, codeGen &gen);
+
+  void emitScalarLogicalRightShift(Register dest, Register src, uint32_t shiftAmount, codeGen &gen);
+
+  void emitVMulLoU32(Register dest, Register src0, Register src1, codeGen &gen);
+
+  void emitReadFirstLane(Register vreg, Register sreg, codeGen &gen);
 private:
   // Some helper functions
+  bool isValidVgpr(Register reg) const;
   bool isValidSgpr(Register reg) const;
   bool isValidSgprBlock(Register regBlock) const;
   bool isValidSgprPair(Register regBlock) const;
+
+  // Dyninst opcode --> AMDGPU opcode
+  uint32_t getSop2Opcode(unsigned opCode) const;
+  uint32_t getVop2Opcode(unsigned opCode) const;
 };
 #endif
