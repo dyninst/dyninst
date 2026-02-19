@@ -174,7 +174,7 @@ void EmitterAmdgpuGfx908::emitOpImmSimple(unsigned op, Register dest, Register s
                                           RegValue src2imm, codeGen &gen) {
   // Temporary workaround for inline operations
   if (op == andOp) {
-    emitSop2(S_AND_B32, dest.getId(), /* src0 */ src2imm, src1.getId(), gen);
+    emitSop2WithSrc1Literal(S_AND_B32, dest.getId(), src1.getId(), src2imm, gen);
     return;
   }
 
