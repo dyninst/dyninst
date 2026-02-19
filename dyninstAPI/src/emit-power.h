@@ -39,6 +39,7 @@
 #include <assert.h>
 #include "codeGenAST.h"
 #include <vector>
+#include "codegen/RegControl.h"
 #include "common/src/headers.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "baseTramp.h"
@@ -54,7 +55,7 @@ class EmitterPOWER : public Emitter {
 
  public:
     virtual ~EmitterPOWER() {}
-    virtual codeBufIndex_t emitIf(Register, Register, RegControl, codeGen &) { assert(0); return 0; }
+    virtual codeBufIndex_t emitIf(Register, Register, Dyninst::DyninstAPI::RegControl, codeGen &) { assert(0); return 0; }
     virtual void emitOp(unsigned, Register, Register, Register, codeGen &) { assert(0); }
     virtual void emitOpImm(unsigned, unsigned, Register, Register, RegValue,
 			   codeGen &) { assert(0); }

@@ -32,6 +32,7 @@
  * emit-amdgpu.C - AMD GPU mi{25,50,100,200,300}  code generators (emitters)
  */
 
+#include "codegen/RegControl.h"
 #include "dyninstAPI/src/emit-amdgpu.h"
 #include "registerSpace.h"
 #include "arch-amdgpu.h"
@@ -67,7 +68,7 @@ bool EmitterAmdgpuGfx908::isValidSgprPair(Register regBlock) const {
 }
 // ==== Helper functions end
 
-unsigned EmitterAmdgpuGfx908::emitIf(Register expr_reg, Register target, RegControl /* rc */,
+unsigned EmitterAmdgpuGfx908::emitIf(Register expr_reg, Register target, Dyninst::DyninstAPI::RegControl /* rc */,
                                      codeGen &gen) {
   assert(isValidSgprPair(target) && "target must be a valid SGPR pair");
   assert(isValidSgpr(expr_reg) && "expr_reg must be a valid SGPR");

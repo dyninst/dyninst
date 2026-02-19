@@ -35,6 +35,7 @@
 #include <iomanip>
 #include <cstdint>
 #include <limits.h>
+#include "codegen/RegControl.h"
 #include "common/src/headers.h"
 #include "compiler_annotations.h"
 #include "compiler_diagnostics.h"
@@ -835,7 +836,7 @@ Dyninst::Register EmitterIA32::emitCall(opCode op,
  */
 
 codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, long dest,
-                     codeGen &gen, RegControl rc, bool /*noCost*/)
+                     codeGen &gen, Dyninst::DyninstAPI::RegControl rc, bool /*noCost*/)
 {
    // retval is the address of the jump (if one is created). 
    // It's always the _start_ of the jump, which means that if we need

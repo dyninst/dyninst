@@ -33,6 +33,7 @@
  * $Id: inst-power.C,v 1.291 2008/06/19 22:13:42 jaw Exp $
  */
 
+#include "codegen/RegControl.h"
 #include "common/src/headers.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/image.h"
@@ -1118,7 +1119,7 @@ Dyninst::Register EmitterPOWER::emitCall(opCode ocode,
 
  
 codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, long dest,
-	      codeGen &gen, RegControl, bool /*noCost*/)
+	      codeGen &gen, Dyninst::DyninstAPI::RegControl, bool /*noCost*/)
 {
     codeBufIndex_t retval = 0;
     switch (op) {

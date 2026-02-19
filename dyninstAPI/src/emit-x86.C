@@ -35,6 +35,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include "codegen/RegControl.h"
 #include "compiler_annotations.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/function.h"
@@ -128,7 +129,7 @@ void EmitterIA32::emitLEA(Register base, Register index, unsigned int scale, int
     gen.markRegDefined(dest);
 }
 
-codeBufIndex_t EmitterIA32::emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen)
+codeBufIndex_t EmitterIA32::emitIf(Register expr_reg, Register target, Dyninst::DyninstAPI::RegControl rc, codeGen &gen)
 {
    RealRegister r = gen.rs()->loadVirtual(expr_reg, gen);
    emitOpRegReg(TEST_EV_GV, r, r, gen);
@@ -142,7 +143,7 @@ codeBufIndex_t EmitterIA32::emitIf(Register expr_reg, Register target, RegContro
    if (target)
       disp = target - 6;
    
-   if (rc == rc_before_jump)
+   if (rc == Dyninst::DyninstAPI::RegControl::rc_before_jump)
       gen.rs()->pushNewRegState();
    GET_PTR(insn, gen);
    // je dest
@@ -1204,7 +1205,7 @@ void EmitterAMD64::emitLEA(Register base, Register index, unsigned int scale, in
     gen.markRegDefined(dest);
 }
 
-codeBufIndex_t EmitterAMD64::emitIf(Register expr_reg, Register target, RegControl, codeGen &gen)
+codeBufIndex_t EmitterAMD64::emitIf(Register expr_reg, Register target, Dyninst::DyninstAPI::RegControl, codeGen &gen)
 {
     // test %expr, %expr
     emitOpRegReg64(0x85, expr_reg, expr_reg, true, gen);

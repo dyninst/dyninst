@@ -29,6 +29,7 @@
  */
 
 #include "common/src/headers.h"
+#include "codegen/RegControl.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/dynProcess.h"
@@ -634,7 +635,7 @@ Register EmitterAARCH64::emitCall(opCode op,
 
 
 codeBufIndex_t emitA(opCode op, Register src1, Register, long dest,
-        codeGen &gen, RegControl rc, bool)
+        codeGen &gen, Dyninst::DyninstAPI::RegControl rc, bool)
 {
     codeBufIndex_t retval = 0;
 

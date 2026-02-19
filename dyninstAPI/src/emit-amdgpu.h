@@ -31,6 +31,7 @@
 #ifndef _EMIT_AMDGPU_H
 #define _EMIT_AMDGPU_H
 
+#include "codegen/RegControl.h"
 #include "baseTramp.h"
 #include "dyninstAPI/src/instPoint.h"
 #include <assert.h>
@@ -75,8 +76,8 @@ public:
 
   // The target address is held in an even aligned register pair
   // Return the index of s_setpc_b64 in the codegen memory buffer.
-  // Note that RegControl is unused on AMDGPU, simply pass rc_no_control.
-  codeBufIndex_t emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen);
+  // Note that Dyninst::DyninstAPI::RegControl is unused on AMDGPU, simply pass Dyninst::DyninstAPI::RegControl::rc_no_control.
+  codeBufIndex_t emitIf(Register expr_reg, Register target, Dyninst::DyninstAPI::RegControl rc, codeGen &gen);
 
   void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
 

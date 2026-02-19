@@ -54,12 +54,13 @@
 #include "RegisterConversion.h"
 */
 
+#include "codegen/RegControl.h"
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "dyninstAPI/src/emit-aarch64.h"
 #include "registerSpace.h"
 
 codeBufIndex_t EmitterAARCH64::emitIf(
-        Register expr_reg, Register target, RegControl /*rc*/, codeGen &gen)
+        Register expr_reg, Register target, Dyninst::DyninstAPI::RegControl /*rc*/, codeGen &gen)
 {
     instruction insn;
     insn.clear();

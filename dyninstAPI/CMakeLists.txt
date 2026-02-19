@@ -84,6 +84,7 @@ set(_private_headers
     src/codegen.h
     src/codegen-power.h
     src/codegen-x86.h
+    src/codegen/RegControl.h
     src/codeRange.h
     src/debug.h
     src/dynProcess.h

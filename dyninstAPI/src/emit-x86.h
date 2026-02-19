@@ -38,6 +38,7 @@
 
 #include <assert.h>
 #include <vector>
+#include "codegen/RegControl.h"
 #include "common/src/headers.h"
 #include "common/src/arch-x86.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -77,7 +78,7 @@ class EmitterIA32 : public Emitterx86 {
 
 public:
     virtual ~EmitterIA32() {}
-    codeBufIndex_t emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen);
+    codeBufIndex_t emitIf(Register expr_reg, Register target, Dyninst::DyninstAPI::RegControl rc, codeGen &gen);
     void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
     void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen, bool s);
     void emitDiv(Register dest, Register src1, Register src2, codeGen &gen, bool s);
@@ -187,7 +188,7 @@ class EmitterAMD64 : public Emitterx86 {
 
 public:
     virtual ~EmitterAMD64() {}
-    codeBufIndex_t emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen);
+    codeBufIndex_t emitIf(Register expr_reg, Register target, Dyninst::DyninstAPI::RegControl rc, codeGen &gen);
     void emitOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
     void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen, bool s);
     void emitDiv(Register dest, Register src1, Register src2, codeGen &gen, bool s);

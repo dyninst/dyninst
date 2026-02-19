@@ -40,6 +40,7 @@
 #include <unordered_map>
 #include "dyn_register.h"
 #include "codegen.h" // codeBufIndex_t 
+#include "codegen/RegControl.h"
 
 namespace Dyninst {
    namespace PatchAPI {
@@ -145,16 +146,10 @@ public:
  * functions replace "emit" with more strongly typed versions.
  */
 
-typedef enum gnenum {
-   rc_before_jump,
-   rc_after_jump,
-   rc_no_control
-} RegControl;
-
 // The return value is a magic "hand this in when we update" black box;
 // emitA handles emission of things like ifs that need to be updated later.
 codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register src2, long dst,
-                     codeGen &gen, RegControl rc, bool noCost);
+                     codeGen &gen, Dyninst::DyninstAPI::RegControl rc, bool noCost);
 
 // for operations requiring a Dyninst::Register to be returned
 // (e.g., getRetValOp, getRetAddrOp, getParamOp)

@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "codegen/RegControl.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/dynProcess.h"
 #include "registerSpace.h"
@@ -59,7 +60,7 @@ Register emitFuncCall(opCode /* op */, codeGen & /* gen */,
 }
 
 codeBufIndex_t emitA(opCode /* op */, Register /* src1 */, Register, long /* dest */,
-                     codeGen & /* gen */, RegControl /* rc */, bool) {
+                     codeGen & /* gen */, Dyninst::DyninstAPI::RegControl /* rc */, bool) {
   assert(!"Not implemented for AMDGPU");
   return 0;
 }
