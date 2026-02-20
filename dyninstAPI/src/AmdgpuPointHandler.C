@@ -85,39 +85,46 @@ uint32_t AmdgpuGfx908PointHandler::getMaxGranulatedWavefrontSgprCount() const {
   return 2 * ((maxSgprCount / 16) - 1);
 }
 
+// This returns the maximum SGPR ID by looking at the number of SGPR blocks allocated in the
+// kernel.
+uint32_t AmdgpuGfx908PointHandler::getMaxUsedSgprId(const AmdgpuKernelDescriptor &kd) const {
+  // The below math comes from LLVM AMDGPUUsage documentation
+  // numSgprBlocks = 2 * ((maxUsedSgprId / 16) - 1)
+  //
+  // Therefore, maxUsedSgprId = ((numSgprBlocks/2) + 1) * 16
+
+  const uint32_t numSgprBlocks = kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount();
+  const uint32_t maxUsedSgprId = ((numSgprBlocks/2) + 1) * 16;
+  return maxUsedSgprId;
+}
+
 bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) const {
   return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() != getMaxGranulatedWavefrontSgprCount());
 }
 
-bool AmdgpuGfx908PointHandler::isRegAvailable(Register reg, BPatch_function *function) {
-  vector<Register> const &individualRegs = reg.getIndividualRegisters();
+bool AmdgpuGfx908PointHandler::isScalarRegAvailable(Register reg, const AmdgpuKernelDescriptor &kd) const {
+  // The register pair we want available should not be used in the kernel at all.
+  // Since we max out register usage, it should also not be a s100-101. So maximum usable SGPR is s99.
+  //
+  // This check is coarse. We eventually want to move away from maxing out register
+  // usage and this check will also go away.
 
-  ParseAPI::Location location(ParseAPI::convert(function));
-  LivenessAnalyzer livenessAnalyzer(Arch_amdgpu_gfx908, /* width = */ 8);
+  assert(reg.isScalar() && "reg must be scalar");
 
-  // Check for liveness of the entire block
-  bool isBlockLive = true;
-  for (const auto &individualReg : individualRegs) {
-    MachRegister machReg = convertRegID(individualReg, Arch_amdgpu_gfx908);
-    bool isMachRegLive;
-    bool success = livenessAnalyzer.query(location, LivenessAnalyzer::Before, machReg, isMachRegLive);
+  // We can only use upto s99
+  const uint32_t maxUsableSgprId = 99;
 
-    if (!success) {
-      ast_cerr << "AmdgpuPointHandler : liveness query on " << function->getMangledName()
-                << " failed.\n"
-                << "exiting...\n";
-      assert(0);
-    }
+  const uint32_t firstRegId = reg.getId();
+  const uint32_t numRegs = reg.getCount();
+  const uint32_t lastRegId = firstRegId + numRegs - 1;
 
-    isBlockLive &= isMachRegLive;
-    if (!isBlockLive)
-      break;
-  }
+  const uint32_t maxUsedSgprIdInKernel = getMaxUsedSgprId(kd);
 
-  if (isBlockLive)
-    return false; // live register, block unavailable
+  const bool isPair = numRegs == 2;
+  const bool isEvenAligned = firstRegId % 2 == 0;
+  const bool isNotUsedInKernel = firstRegId > maxUsedSgprIdInKernel && lastRegId <= maxUsableSgprId;
 
-  return true; // all dead, block available
+  return isPair && isEvenAligned && isNotUsedInKernel;
 }
 
 void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function) {
@@ -142,7 +149,7 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
   }
 
   Register regPair = Register::makeScalarRegister(OperandRegId(94), BlockSize(2));
-  if (!isRegAvailable(regPair, function)) {
+  if (!isScalarRegAvailable(regPair, kd)) {
     std::cerr << "Can't instrument " << function->getMangledName()
               << " as s94 and s95 are not available.\n"
               << "exiting...\n";
