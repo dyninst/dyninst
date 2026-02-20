@@ -41,7 +41,6 @@
 #include <unordered_map>
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/ast.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/debug.h"
@@ -66,6 +65,8 @@
 #include <sstream>
 #include <assert.h>
 #include "unaligned_memory_access.h"
+
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
 
 class ExpandInstruction;
 class InsertNops;
@@ -2101,8 +2102,7 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction insn,
    cft->apply(&f);
    assert(f.m_stack.size() == 1);
    args.push_back(f.m_stack[0]);
-   args.push_back(AstNode::operandNode(operandType::Constant,
-                                       (void *) addr));
+   args.push_back(DyninstAPI::OperandNode::Constant((void *) addr));
    inst_printf("%s[%d]:  Inserting dynamic call site instrumentation for %s\n",
                FILE__, __LINE__, cft->format(insn.getArch()).c_str());
    return true;

@@ -49,6 +49,8 @@ class registerSpace;
 
 class registerSlot;
 
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
 // Emitter moved to emitter.h - useful on other platforms as well
 
 class Emitterx86 : public Emitter {

@@ -28,18 +28,36 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "AmdgpuEpilogue.h"
-#include "emit-amdgpu.h"
+#ifndef DYNINST_DYNINSTAPI_ASTSCRAMBLEREGISTERSNODE_H
+#define DYNINST_DYNINSTAPI_ASTSCRAMBLEREGISTERSNODE_H
 
-// Similar approach to prologue
-bool AmdgpuEpilogue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::Buffer &buffer) {
-  // We need 8 bytes for the epilogue (a s_dcache_wb instruction).
-  codeGen gen(20);
-  EmitterAmdgpuGfx908 emitter;
+#include "AstNode.h"
+#include "dyn_register.h"
 
-  emitter.emitScalarDataCacheWriteback(gen);
+#include <boost/make_shared.hpp>
 
-  buffer.copy(gen.start_ptr(), gen.used());
+class codeGen;
 
-  return true;
+namespace Dyninst { namespace DyninstAPI {
+
+class AstScrambleRegistersNode : public AstNode {
+public:
+  bool usesAppRegister() const override {
+    return true;
+  }
+
+private:
+  bool generateCode_phase2(codeGen &gen, bool, Dyninst::Address &, Dyninst::Register &) override;
+};
+
+namespace RegisterNode {
+
+  inline AstNodePtr scramble() {
+    return boost::make_shared<AstScrambleRegistersNode>();
+  }
+
 }
+
+}}
+
+#endif

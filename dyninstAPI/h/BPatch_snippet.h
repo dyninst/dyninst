@@ -44,14 +44,17 @@
 #include "BPatch_enums.h"
 #include "boost/shared_ptr.hpp"
 
-class AstNode;
 // Don't include the boost shared_ptr library
 class BPatch_snippet;
 
-typedef boost::shared_ptr<AstNode> AstNodePtr;
+namespace Dyninst { namespace DyninstAPI {
+  class AstNode;
+}}
+
+using AstNodePtr = boost::shared_ptr<Dyninst::DyninstAPI::AstNode>;
 namespace boost {
    template< typename T > class shared_ptr;
-   template<> class shared_ptr<AstNode *>;
+   template<> class shared_ptr<Dyninst::DyninstAPI::AstNode *>;
 }
 
 namespace Dyninst {
@@ -63,7 +66,6 @@ namespace Dyninst {
 }
 
 
-class AstNode;
 class BPatch_process;
 class BPatch_function;
 class BPatch_point;

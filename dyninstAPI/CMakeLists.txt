@@ -43,11 +43,31 @@ set(_private_headers
     src/addressSpace.h
     src/AmdgpuKernelDescriptor.h
     src/AmdgpuPointHandler.h
-    src/AmdgpuPrologue.h
-    src/AmdgpuEpilogue.h
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDHSAKernelDescriptor.h
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h
     src/ast.h
+    src/ASTs/AmdgpuEpilogue.h
+    src/ASTs/AmdgpuPrologue.h
+    src/ASTs/ast_helpers.h
+    src/ASTs/AstAddrNode.h
+    src/ASTs/AstAtomicOperationStmtNode.h
+    src/ASTs/AstCallNode.h
+    src/ASTs/AstDynamicTargetNode.h
+    src/ASTs/AstMemoryNode.h
+    src/ASTs/AstNode.h
+    src/ASTs/AstNullNode.h
+    src/ASTs/AstStackNode.h
+    src/ASTs/AstOperandNode.h
+    src/ASTs/AstOperatorNode.h
+    src/ASTs/AstScrambleRegistersNode.h
+    src/ASTs/AstSequenceNode.h
+    src/ASTs/AstSnippetNode.h
+    src/ASTs/AstStackInsertNode.h
+    src/ASTs/AstStackGenericNode.h
+    src/ASTs/AstStackRemoveNode.h
+    src/ASTs/AstThreadIndexNode.h
+    src/ASTs/AstVariableNode.h
+    src/ASTs/OperandType.h
     src/trampolines/baseTramp.h
     src/trampolines/baseTramp-aarch64.h
     src/trampolines/baseTramp-amdgpu.h
@@ -97,7 +117,6 @@ set(_private_headers
     src/mapped_object.h
     src/nt_signal_emul.h
     src/opcode.h
-    src/OperandType.h
     src/os.h
     src/parRegion.h
     src/parse-cfg.h
@@ -119,7 +138,25 @@ set(_private_headers
 
 set(_sources
     src/addressSpace.C
-    src/ast.C
+    src/ASTs/AstActualAddrNode.C
+    src/ASTs/AstAtomicOperationStmtNode.C
+    src/ASTs/AstCallNode.C
+    src/ASTs/AstDynamicTargetNode.C
+    src/ASTs/AstMemoryNode.C
+    src/ASTs/AstNode.C
+    src/ASTs/AstNullNode.C
+    src/ASTs/AstOperandNode.C
+    src/ASTs/AstOperatorNode.C
+    src/ASTs/AstOriginalAddrNode.C
+    src/ASTs/AstScrambleRegistersNode.C
+    src/ASTs/AstSequenceNode.C
+    src/ASTs/AstSnippetNode.C
+    src/ASTs/AstStackNode.C
+    src/ASTs/AstStackInsertNode.C
+    src/ASTs/AstStackGenericNode.C
+    src/ASTs/AstStackRemoveNode.C
+    src/ASTs/AstThreadIndexNode.C
+    src/ASTs/AstVariableNode.C
     src/binaryEdit.C
     src/block.C
     src/codeRange.C
@@ -274,8 +311,8 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/Relocation/Widgets/PCWidget-amdgpu.C
     src/AmdgpuKernelDescriptor.C
     src/AmdgpuPointHandler.C
-    src/AmdgpuPrologue.C
-    src/AmdgpuEpilogue.C
+    src/ASTs/AmdgpuPrologue.C
+    src/ASTs/AmdgpuEpilogue.C
     src/amdgpu-gfx908-details.C)
 endif()
 
@@ -342,5 +379,8 @@ foreach(t ${dyninstAPI_TARGETS})
   endif()
 
   target_include_directories(
-    ${t} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/trampolines>")
+    ${t}
+    PUBLIC
+      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/trampolines;${CMAKE_CURRENT_SOURCE_DIR}/src/ASTs>"
+    )
 endforeach()

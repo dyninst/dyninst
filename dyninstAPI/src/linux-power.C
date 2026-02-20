@@ -45,6 +45,10 @@
 #include "dyninstAPI/src/function.h"
 #include "common/src/linuxHeaders.h"
 
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
+namespace NullNode = Dyninst::DyninstAPI::NullNode;
+
 
 // FIXME: HOST+CODEGEN
 // This is a temporary fix as getMaxBranch is used for both host and codegen
@@ -117,7 +121,7 @@ bool PCProcess::getOPDFunctionAddr(Dyninst::Address &addr) {
 
 AstNodePtr PCProcess::createUnprotectStackAST() {
     // This is not necessary on power
-    return AstNode::nullNode();
+    return NullNode::create();
 }
 
 bool Frame::setPC(Dyninst::Address newpc) {

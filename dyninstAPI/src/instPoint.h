@@ -40,7 +40,6 @@
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/codeRange.h"
 #include "common/src/stats.h"
-#include "dyninstAPI/src/ast.h"
 #include "bitArray.h"
 
 #include "baseTramp.h" // iterator

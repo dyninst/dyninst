@@ -35,6 +35,8 @@
 #include "emit-amdgpu.h"
 #include "dyn_register.h"
 
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
 /************************************* Register Space **************************************/
 
 void registerSpace::initialize32() {

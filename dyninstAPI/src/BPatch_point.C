@@ -63,6 +63,8 @@
 #include "mapped_object.h"
 #include "Snippet.h"
 
+using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+
 /*
  * Private constructor, insn
  */
@@ -472,7 +474,7 @@ void *BPatch_point::monitorCalls( BPatch_function * user_cb )
   func_instance * fb = func_to_use->lowlevel_func();
 
   // Monitoring function
-  AstNodePtr ast = AstNode::funcCallNode(fb, args);
+  AstNodePtr ast = DyninstAPI::CallNode::call(fb, args);
 
   Dyninst::PatchAPI::InstancePtr res = point->pushBack(ast);
 

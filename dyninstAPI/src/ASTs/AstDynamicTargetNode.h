@@ -28,34 +28,38 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AMDGPU_EPILOGUE_H
-#define AMDGPU_EPILOGUE_H
+#ifndef DYNINST_DYNINSTAPI_ASTDYNAMICTARGETNODE_H
+#define DYNINST_DYNINSTAPI_ASTDYNAMICTARGETNODE_H
 
-#include "BPatch_snippet.h"
-#include "ast.h"
-#include "common/src/dyn_register.h"
-#include "patchAPI/h/Snippet.h"
+#include "AstNode.h"
+#include "dyn_register.h"
 
-// The epilogue writes back the contents of scalar data cache to corresponding global memory.
-// PatchAPI snippet is used to insert the following epilogue:
-//
-//  s_dcache_wb
-//
-class AmdgpuEpilogue : public Dyninst::PatchAPI::Snippet {
+#include <boost/make_shared.hpp>
+#include <string>
+
+class BPatch_function;
+class BPatch_type;
+class codeGen;
+
+namespace Dyninst { namespace DyninstAPI {
+
+class AstDynamicTargetNode : public AstNode {
 public:
-  bool generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer);
+  BPatch_type *checkType(BPatch_function *) override {
+    return getType();
+  }
+
+private:
+  bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
+                           Dyninst::Register &retReg) override;
 };
 
-// The AST node for the above PatchAPI snippet.
-class AmdgpuEpilogueNode : public AstSnippetNode {
-public:
-  AmdgpuEpilogueNode(Dyninst::PatchAPI::SnippetPtr p) : AstSnippetNode(p) {}
-};
+namespace TargetNode {
 
-// BPatch_snippet that uses the above AST node.
-class AmdgpuEpilogueSnippet : public BPatch_snippet {
-public:
-  AmdgpuEpilogueSnippet(const AstNodePtr &p) : BPatch_snippet(p) {}
-};
+  AstNodePtr dynamic();
+
+}
+
+}}
 
 #endif
