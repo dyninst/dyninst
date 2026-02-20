@@ -103,11 +103,10 @@ bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) c
 }
 
 bool AmdgpuGfx908PointHandler::isScalarRegAvailable(Register reg, const AmdgpuKernelDescriptor &kd) const {
-  // The register pair we want available should not be used in the kernel at all.
-  // Since we max out register usage, it should also not be a s100-101. So maximum usable SGPR is s99.
-  //
-  // This check is coarse. We eventually want to move away from maxing out register
-  // usage and this check will also go away.
+  // Since we max out register usage, the maximum SPGR is 101. AMDGPU GFX908
+  // aliases the VCC (opcode register ids 106 and 107) to highest allocated
+  // register pair (100 and 101 in this case), so the actual maximum available
+  // is 99.
 
   assert(reg.isScalar() && "reg must be scalar");
 
