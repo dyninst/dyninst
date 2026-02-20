@@ -52,7 +52,6 @@
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 
-#include "mapped_object.h"
 #include "binaryEdit.h"
 #include "addressSpace.h"
 #include "function.h"
@@ -68,37 +67,6 @@ namespace {
   char const* LIBC_DTOR_HANDLER("__libc_csu_fini");
   char const* DYNINST_CTOR_HANDLER("DYNINSTglobal_ctors_handler");
   char const* DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
-}
-
-/*
-By parsing the function that actually sets up the parameters for the OMP
-region we discover informations such as what type of parallel region we're
-dealing with */
-bool parse_func::parseOMPParent(image_parRegion * /*iPar*/, int /*desiredNum*/, int & /*currentSectionNum*/ )
-{
-	assert(0);
-	return false;
-}
-
-
-
-
-std::string parse_func::calcParentFunc(const parse_func *,
-                                    std::vector<image_parRegion *> &/*pR*/)
-{
-	assert(0);
-	return {};
-}
-
-
-void parse_func::parseOMP(image_parRegion *, parse_func *, int &)
-{
-	assert(0);
-}
-
-void parse_func::parseOMPFunc(bool /*hasLoop*/)
-{
-	assert(0);
 }
 
 /* This does a linear scan to find out which registers are used in the function,
@@ -191,7 +159,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
         logLine("failed to find Dyninst constructor handler\n");
         return false;
     }
-    if(auto *ctor = mobj->findGlobalConstructorFunc(LIBC_CTOR_HANDLER)) {
+    if(auto *ctor = mobj->findGlobalFunc(LIBC_CTOR_HANDLER)) {
         // Wire in our handler at libc ctor exits
         vector<instPoint*> init_pts;
         ctor->funcExitPoints(&init_pts);
@@ -224,7 +192,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
         logLine("failed to find Dyninst destructor handler\n");
         return false;
     }
-    if(auto *dtor = mobj->findGlobalDestructorFunc(LIBC_DTOR_HANDLER)) {
+    if(auto *dtor = mobj->findGlobalFunc(LIBC_DTOR_HANDLER)) {
     	// Insert destructor into beginning of libc global dtor handler
         add_handler(dtor->funcEntryPoint(true), dyninstDtorHandler);
     } else if(auto *exit_ = findOnlyOneFunction("exit")) {
@@ -325,24 +293,3 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
 
     return true;
 }
-
-func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorHandler) {
-    using namespace Dyninst::InstructionAPI;
-
-    const std::vector<func_instance *> *ctorFuncs = findFuncVectorByMangled(ctorHandler);
-    if( ctorFuncs != NULL ) {
-        return ctorFuncs->at(0);
-    }
-    return NULL;
-}
-
-func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHandler) {
-    using namespace Dyninst::InstructionAPI;
-
-    const std::vector<func_instance *> *ctorFuncs = findFuncVectorByMangled(dtorHandler);
-    if( ctorFuncs != NULL ) {
-        return ctorFuncs->at(0);
-    }
-    return NULL;
-}
-

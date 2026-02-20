@@ -5,6 +5,10 @@ on:
     - cron: '0 3 * * 1' # Monday at 3AM
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
 
   get-oses:
@@ -253,8 +257,6 @@ jobs:
           cd /
           git clone --depth=1 https://github.com/llnl/launchmon.git
           cd launchmon
-          wget https://patch-diff.githubusercontent.com/raw/LLNL/LaunchMON/pull/65.patch
-          git apply 65.patch
           ./bootstrap
           mkdir build
           cd build

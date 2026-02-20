@@ -69,7 +69,7 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     parse_block(ParseAPI::CodeObject *, ParseAPI::CodeRegion*, Address);
  public:
     parse_block(parse_func*,ParseAPI::CodeRegion*,Address);
-    ~parse_block();
+    ~parse_block() = default;
 
     // just pass through to Block
     Address firstInsnOffset() const;
@@ -127,13 +127,7 @@ class parse_block : public codeRange, public ParseAPI::Block  {
             return false;
         }
     };
-    typedef std::set<parse_block *, parse_block::compare> blockSet;
 
-    const bitArray &getLivenessIn(parse_func * context);
-    // This is copied from the union of all successor blocks
-    const bitArray getLivenessOut(parse_func * context);
-
-    typedef std::map<Offset, InstructionAPI::Instruction> Insns;
     // The provided parameter is a magic offset to add to each instruction's
     // address; we do this to avoid a copy when getting Insns from block_instances
     void getInsns(Insns &instances, Address offset = 0);
@@ -188,7 +182,6 @@ class parse_func_registers {
  public:
   std::set<Register> generalPurposeRegisters;
   std::set<Register> floatingPointRegisters;
-  std::set<Register> specialPurposeRegisters;
 };
 
 class parse_func : public ParseAPI::Function
@@ -327,18 +320,8 @@ class parse_func : public ParseAPI::Function
    bool savesReturnAddr() const { return saves_return_addr_; }
 #endif
 
-   bool containsSharedBlocks() const { return containsSharedBlocks_; }
-
    parse_block * entryBlock();
 
-   /****** OpenMP Parsing Functions *******/
-   std::string calcParentFunc(const parse_func * imf, std::vector<image_parRegion *> & pR);
-   void parseOMP(image_parRegion * parReg, parse_func * parentFunc, int & currentSectionNum);
-   void parseOMPFunc(bool hasLoop);
-   bool parseOMPParent(image_parRegion * iPar, int desiredNum, int & currentSectionNum);
-   void addRegion(image_parRegion * iPar) { parRegionsList.push_back(iPar); }
-   bool OMPparsed() { return OMPparsed_; }
-   /****************************************/
    bool isPLTFunction();
 
    std::set<Register> * usedGPRs() { calcUsedRegs(); return &(usedRegisters->generalPurposeRegisters);}
@@ -347,11 +330,6 @@ class parse_func : public ParseAPI::Function
    bool isLeafFunc();
 
    bool writesFPRs(unsigned level = 0);
-   bool writesSPRs(unsigned level = 0);
-
-
-   void invalidateLiveness() { livenessCalculated_ = false; }
-   void calcBlockLevelLiveness();
 
    const SymtabAPI::Function *func() const { return func_; }
 
@@ -372,17 +350,11 @@ class parse_func : public ParseAPI::Function
 
    pdmodule *mod_{nullptr};	/* pointer to file that defines func. */
    image *image_{nullptr};
-   bool OMPparsed_{false};              /* Set true in parseOMPFunc */
 
    /////  Variables for liveness Analysis
    enum regUseState { unknown, used, unused };
    parse_func_registers * usedRegisters{nullptr};
    regUseState containsFPRWrites_{unknown};   // floating point registers
-   regUseState containsSPRWrites_{unknown};   // stack pointer registers
-
-   ///////////////////// CFG and function body
-   bool containsSharedBlocks_{false};  // True if one or more blocks in this
-                                       // function are shared with another function.
 
    //  OpenMP (and other parallel language) support
    std::vector<image_parRegion*> parRegionsList; /* vector of all parallel regions within function */
@@ -400,10 +372,8 @@ class parse_func : public ParseAPI::Function
    ParseAPI::FuncReturnStatus init_retstatus_{ParseAPI::FuncReturnStatus::UNSET};
 
    // Architecture specific data
-   bool o7_live{false};
    bool saves_return_addr_{false};
 
-   bool livenessCalculated_{false};
    bool isPLTFunction_{false};
 
    bool containsPowerPreamble_{false};
