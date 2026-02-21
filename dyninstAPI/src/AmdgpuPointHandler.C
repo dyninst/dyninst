@@ -57,7 +57,7 @@ void AmdgpuGfx908PointHandler::handlePoints(std::vector<BPatch_point *> const &p
     if (result.second) {
       insertPrologueIfKernel(f);
       insertEpilogueIfKernel(f);
-      maximizeSgprAllocationIfKernel(f);
+      rewriteKernelDescriptorIfKernel(f);
     }
   }
 }
@@ -83,6 +83,12 @@ uint32_t AmdgpuGfx908PointHandler::getMaxGranulatedWavefrontSgprCount() const {
   // This math comes from LLVM AMDGPUUsage documentation
   const uint32_t maxSgprCount = 112; // Set SGPRs to 112 (max value)
   return 2 * ((maxSgprCount / 16) - 1);
+}
+
+uint32_t AmdgpuGfx908PointHandler::getMaxGranulatedWorkitemVgprCount() const {
+  // This math comes from LLVM AMDGPUUsage documentation
+  const uint32_t maxVgprCount = 256; // Set VGPRs to 256 (max value)
+  return ((maxVgprCount / 4) - 1);
 }
 
 bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) const {
@@ -182,7 +188,7 @@ static constexpr uint32_t roundUpTo8(uint32_t x) {
   return ((x + 7) / 8) * 8;
 }
 
-void AmdgpuGfx908PointHandler::maximizeSgprAllocationIfKernel(BPatch_function *function) {
+void AmdgpuGfx908PointHandler::rewriteKernelDescriptorIfKernel(BPatch_function *function) {
   BPatch_variableExpr *kdVariable = getKernelDescriptorVariable(function);
   assert(kdVariable);
 
@@ -197,6 +203,9 @@ void AmdgpuGfx908PointHandler::maximizeSgprAllocationIfKernel(BPatch_function *f
 
   uint32_t newValue = this->getMaxGranulatedWavefrontSgprCount();
   kd.setCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount(newValue);
+
+  newValue = this->getMaxGranulatedWorkitemVgprCount();
+  kd.setCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount(newValue);
 
   uint32_t kernargSize = kd.getKernargSize();
 
