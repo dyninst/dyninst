@@ -132,4 +132,30 @@ extern const unsigned int aarch64_munmap_start_position;
 extern const unsigned char aarch64_call_munmap[];
 extern const unsigned int aarch64_call_munmap_size;
 
+extern const unsigned int linux_riscv64_mmap_start_position;
+extern const unsigned int linux_riscv64_mmap_addr_hi32_lui;
+extern const unsigned int linux_riscv64_mmap_addr_hi32_addiw;
+extern const unsigned int linux_riscv64_mmap_addr_lo32_lui;
+extern const unsigned int linux_riscv64_mmap_addr_lo32_addiw;
+extern const unsigned int linux_riscv64_mmap_size_hi32_lui;
+extern const unsigned int linux_riscv64_mmap_size_hi32_addiw;
+extern const unsigned int linux_riscv64_mmap_size_lo32_lui;
+extern const unsigned int linux_riscv64_mmap_size_lo32_addiw;
+extern const unsigned int linux_riscv64_mmap_flags_lui;
+extern const unsigned int linux_riscv64_mmap_flags_addiw;
+extern const uint32_t linux_riscv64_call_mmap[];
+extern const unsigned int linux_riscv64_call_mmap_size;
+
+extern const unsigned int linux_riscv64_munmap_start_position;
+extern const unsigned int linux_riscv64_munmap_addr_hi32_lui;
+extern const unsigned int linux_riscv64_munmap_addr_hi32_addiw;
+extern const unsigned int linux_riscv64_munmap_addr_lo32_lui;
+extern const unsigned int linux_riscv64_munmap_addr_lo32_addiw;
+extern const unsigned int linux_riscv64_munmap_size_hi32_lui;
+extern const unsigned int linux_riscv64_munmap_size_hi32_addiw;
+extern const unsigned int linux_riscv64_munmap_size_lo32_lui;
+extern const unsigned int linux_riscv64_munmap_size_lo32_addiw;
+extern const uint32_t linux_riscv64_call_munmap[];
+extern const unsigned int linux_riscv64_call_munmap_size;
+
 #endif
