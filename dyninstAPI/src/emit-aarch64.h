@@ -168,6 +168,9 @@ public:
 
     virtual bool clobberAllFuncCall(registerSpace *rs, func_instance *callee);
 
+    Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) /* override */;
+    Address getInterModuleVarAddr(const image_variable *var, codeGen& gen) /* override */;
+
 protected:
     virtual bool emitCallInstruction(codeGen &, func_instance *,
                                      bool, Address);

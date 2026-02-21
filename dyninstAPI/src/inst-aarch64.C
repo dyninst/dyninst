@@ -1234,7 +1234,7 @@ void EmitterAARCH64::emitStoreShared(Register source, const image_variable *var,
     assert(stackSize <= 0 && "stack not empty at the end");
 }
 
-Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen &gen) {
+Address EmitterAARCH64::getInterModuleVarAddr(const image_variable *var, codeGen &gen) {
     AddressSpace *addrSpace = gen.addrSpace();
     if (!addrSpace)
         assert(0 && "No AddressSpace associated with codeGen object");
@@ -1303,7 +1303,7 @@ Address EmitterAARCH64::emitMovePCToReg(Register dest, codeGen &gen) {
     return ret;
 }
 
-Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
+Address EmitterAARCH64::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
     // from POWER64 getInterModuleFuncAddr
 
     AddressSpace *addrSpace = gen.addrSpace();
