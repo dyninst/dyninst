@@ -295,6 +295,91 @@ static const unsigned char linux_aarch64_call_munmap[] = {
 };
 static const unsigned int linux_aarch64_call_munmap_size = sizeof(linux_aarch64_call_munmap);
 
+//riscv64
+static const unsigned int linux_riscv64_mmap_start_position = 4;
+
+static const unsigned int linux_riscv64_mmap_addr_hi32_lui  =  1;
+static const unsigned int linux_riscv64_mmap_addr_hi32_addiw =  2;
+static const unsigned int linux_riscv64_mmap_addr_lo32_lui  =  4;
+static const unsigned int linux_riscv64_mmap_addr_lo32_addiw =  5;
+static const unsigned int linux_riscv64_mmap_size_hi32_lui  =  9;
+static const unsigned int linux_riscv64_mmap_size_hi32_addiw = 10;
+static const unsigned int linux_riscv64_mmap_size_lo32_lui  = 12;
+static const unsigned int linux_riscv64_mmap_size_lo32_addiw = 13;
+static const unsigned int linux_riscv64_mmap_flags_lui      = 18;
+static const unsigned int linux_riscv64_mmap_flags_addiw    = 19;
+static const uint32_t linux_riscv64_call_mmap[] = {
+    //  mmap(void *addr, size_t size, int prot, int flags, int fd, off_t offset)
+    /*  0 */ 0x00000013,  // nop
+    // Load addr into a0 (64-bit: upper 32 bits, then lower 32 bits via t0)
+    /*  1 */ 0x00000537,  // lui    a0, <addr[63:44]>      (patched)
+    /*  2 */ 0x0005051b,  // addiw  a0, a0, <addr[43:32]>  (patched)
+    /*  3 */ 0x02051513,  // slli   a0, a0, 32
+    /*  4 */ 0x000002b7,  // lui    t0, <addr[31:12]>      (patched)
+    /*  5 */ 0x0002829b,  // addiw  t0, t0, <addr[11:0]>   (patched)
+    /*  6 */ 0x02029293,  // slli   t0, t0, 32
+    /*  7 */ 0x0202d293,  // srli   t0, t0, 32
+    /*  8 */ 0x00556533,  // or     a0, a0, t0
+    // Load size into a1 (64-bit)
+    /*  9 */ 0x000005b7,  // lui    a1, <size[63:44]>      (patched)
+    /* 10 */ 0x0005859b,  // addiw  a1, a1, <size[43:32]>  (patched)
+    /* 11 */ 0x02059593,  // slli   a1, a1, 32
+    /* 12 */ 0x000002b7,  // lui    t0, <size[31:12]>      (patched)
+    /* 13 */ 0x0002829b,  // addiw  t0, t0, <size[11:0]>   (patched)
+    /* 14 */ 0x02029293,  // slli   t0, t0, 32
+    /* 15 */ 0x0202d293,  // srli   t0, t0, 32
+    /* 16 */ 0x0055e5b3,  // or     a1, a1, t0
+    /* 17 */ 0x00700613,  // addi   a2, x0, 7        ; prot = RWX
+    // Load flags into a3 (32-bit)
+    /* 18 */ 0x000006b7,  // lui    a3, <flags[31:12]>     (patched)
+    /* 19 */ 0x0006869b,  // addiw  a3, a3, <flags[11:0]>  (patched)
+    /* 20 */ 0xfff00713,  // addi   a4, x0, -1       ; fd = -1
+    /* 21 */ 0x00000793,  // addi   a5, x0, 0        ; offset = 0
+    /* 22 */ 0x0de00893,  // addi   a7, x0, 222      ; __NR_mmap
+    /* 23 */ 0x00000073,  // ecall
+    /* 24 */ 0x00100073,  // ebreak                   ; trap
+    /* 25 */ 0x00000013   // nop
+};
+static const unsigned int linux_riscv64_call_mmap_size = sizeof(linux_riscv64_call_mmap);
+
+static const unsigned int linux_riscv64_munmap_start_position = 4;
+
+static const unsigned int linux_riscv64_munmap_addr_hi32_lui  =  1;
+static const unsigned int linux_riscv64_munmap_addr_hi32_addiw =  2;
+static const unsigned int linux_riscv64_munmap_addr_lo32_lui  =  4;
+static const unsigned int linux_riscv64_munmap_addr_lo32_addiw =  5;
+static const unsigned int linux_riscv64_munmap_size_hi32_lui  =  9;
+static const unsigned int linux_riscv64_munmap_size_hi32_addiw = 10;
+static const unsigned int linux_riscv64_munmap_size_lo32_lui  = 12;
+static const unsigned int linux_riscv64_munmap_size_lo32_addiw = 13;
+static const uint32_t linux_riscv64_call_munmap[] = {
+    //  munmap(void *addr, size_t size)
+    /*  0 */ 0x00000013,  // nop
+    // Load addr into a0 (64-bit)
+    /*  1 */ 0x00000537,  // lui    a0, <addr[63:44]>      (patched)
+    /*  2 */ 0x0005051b,  // addiw  a0, a0, <addr[43:32]>  (patched)
+    /*  3 */ 0x02051513,  // slli   a0, a0, 32
+    /*  4 */ 0x000002b7,  // lui    t0, <addr[31:12]>      (patched)
+    /*  5 */ 0x0002829b,  // addiw  t0, t0, <addr[11:0]>   (patched)
+    /*  6 */ 0x02029293,  // slli   t0, t0, 32
+    /*  7 */ 0x0202d293,  // srli   t0, t0, 32
+    /*  8 */ 0x00556533,  // or     a0, a0, t0
+    // Load size into a1 (64-bit)
+    /*  9 */ 0x000005b7,  // lui    a1, <size[63:44]>      (patched)
+    /* 10 */ 0x0005859b,  // addiw  a1, a1, <size[43:32]>  (patched)
+    /* 11 */ 0x02059593,  // slli   a1, a1, 32
+    /* 12 */ 0x000002b7,  // lui    t0, <size[31:12]>      (patched)
+    /* 13 */ 0x0002829b,  // addiw  t0, t0, <size[11:0]>   (patched)
+    /* 14 */ 0x02029293,  // slli   t0, t0, 32
+    /* 15 */ 0x0202d293,  // srli   t0, t0, 32
+    /* 16 */ 0x0055e5b3,  // or     a1, a1, t0
+    /* 17 */ 0x0d700893,  // addi   a7, x0, 215      ; __NR_munmap
+    /* 18 */ 0x00000073,  // ecall
+    /* 19 */ 0x00100073,  // ebreak                   ; trap
+    /* 20 */ 0x00000013   // nop
+};
+static const unsigned int linux_riscv64_call_munmap_size = sizeof(linux_riscv64_call_munmap);
+
 static const unsigned int freebsd_x86_64_mmap_flags_position = 21;
 static const unsigned int freebsd_x86_64_mmap_size_position = 34;
 static const unsigned int freebsd_x86_64_mmap_addr_position = 44;
@@ -674,7 +759,50 @@ bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, boo
 
 #endif
 
-    }else{
+    } else if (getTargetArch() == Arch_riscv64) {
+        const void *buf_tmp;
+
+        bool use_linux = (getOS() == Linux);
+
+        if (use_linux) {
+           start_offset = linux_riscv64_mmap_start_position;
+           buffer_size  = linux_riscv64_call_mmap_size;
+           buf_tmp      = linux_riscv64_call_mmap;
+        }
+        else {
+           assert(0);
+        }
+
+        buffer = malloc(buffer_size);
+        memcpy(buffer, buf_tmp, buffer_size);
+
+        uint32_t *pwords = static_cast<uint32_t *>(buffer);
+
+        uint32_t addr_lo32 = static_cast<uint32_t>(addr);
+        uint32_t addr_hi32 = static_cast<uint32_t>(uint64_t{addr} >> 32);
+        uint32_t size_lo32 = static_cast<uint32_t>(size);
+        uint32_t size_hi32 = static_cast<uint32_t>(uint64_t{size} >> 32);
+        uint32_t flags32   = static_cast<uint32_t>(flags);
+
+#define RV_PATCH_LUI_ADDIW(pwords, lui_idx, addiw_idx, val32) \
+        do { \
+            uint32_t _lo12 = (val32) & 0xFFF; \
+            uint32_t _hi20 = ((val32) + 0x800) >> 12; \
+            (pwords)[(lui_idx)]   |= (_hi20 & 0xFFFFF) << 12; \
+            (pwords)[(addiw_idx)] |= (_lo12 & 0xFFF) << 20; \
+        } while(0)
+
+        RV_PATCH_LUI_ADDIW(pwords, linux_riscv64_mmap_addr_hi32_lui,
+                           linux_riscv64_mmap_addr_hi32_addiw, addr_hi32);
+        RV_PATCH_LUI_ADDIW(pwords, linux_riscv64_mmap_addr_lo32_lui,
+                           linux_riscv64_mmap_addr_lo32_addiw, addr_lo32);
+        RV_PATCH_LUI_ADDIW(pwords, linux_riscv64_mmap_size_hi32_lui,
+                           linux_riscv64_mmap_size_hi32_addiw, size_hi32);
+        RV_PATCH_LUI_ADDIW(pwords, linux_riscv64_mmap_size_lo32_lui,
+                           linux_riscv64_mmap_size_lo32_addiw, size_lo32);
+        RV_PATCH_LUI_ADDIW(pwords, linux_riscv64_mmap_flags_lui,
+                           linux_riscv64_mmap_flags_addiw, flags32);
+    } else {
         assert(0);
     }
 
@@ -862,6 +990,38 @@ bool mmap_alloc_process::plat_createDeallocationSnippet(Dyninst::Address addr,
 
         // Assuming endianess of debugger and debuggee match
         assert(addr_size == 8);
+   }
+   else if (getTargetArch() == Arch_riscv64) {
+        const void *buf_tmp = NULL;
+
+        bool use_linux = (getOS() == Linux);
+        if (use_linux) {
+            buf_tmp      = linux_riscv64_call_munmap;
+            buffer_size  = linux_riscv64_call_munmap_size;
+            start_offset = linux_riscv64_munmap_start_position;
+        }
+        else {
+           assert(0);
+        }
+
+        buffer = malloc(buffer_size);
+        memcpy(buffer, buf_tmp, buffer_size);
+
+        uint32_t *pwords = static_cast<uint32_t *>(buffer);
+
+        uint32_t addr_lo32 = static_cast<uint32_t>(addr);
+        uint32_t addr_hi32 = static_cast<uint32_t>(uint64_t{addr} >> 32);
+        uint32_t size_lo32 = static_cast<uint32_t>(size);
+        uint32_t size_hi32 = static_cast<uint32_t>(uint64_t{size} >> 32);
+
+        RV_PATCH_LUI_ADDIW(pwords, linux_riscv64_munmap_addr_hi32_lui,
+                           linux_riscv64_munmap_addr_hi32_addiw, addr_hi32);
+        RV_PATCH_LUI_ADDIW(pwords, linux_riscv64_munmap_addr_lo32_lui,
+                           linux_riscv64_munmap_addr_lo32_addiw, addr_lo32);
+        RV_PATCH_LUI_ADDIW(pwords, linux_riscv64_munmap_size_hi32_lui,
+                           linux_riscv64_munmap_size_hi32_addiw, size_hi32);
+        RV_PATCH_LUI_ADDIW(pwords, linux_riscv64_munmap_size_lo32_lui,
+                           linux_riscv64_munmap_size_lo32_addiw, size_lo32);
    }
    else {
       assert(0);

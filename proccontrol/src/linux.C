@@ -2751,7 +2751,7 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
       num_found++;
       const unsigned int offset = i->second.first;
       const unsigned int size = i->second.second;
-      assert(offset+size < MAX_USER_SIZE);
+      assert(offset+size <= MAX_USER_SIZE);
 
       if ((offset+size) > sizeof(prgregset_t)) continue;
 

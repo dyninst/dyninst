@@ -68,6 +68,7 @@ class Codegen {
 
    bool generatePreambleRISCV64();
    bool generateCallRISCV64(Address addr, const std::vector<Address> &args);
+   void generateRISCV64(Address val, unsigned reg);
 
    bool generateTrap();
    bool generateNoops();
