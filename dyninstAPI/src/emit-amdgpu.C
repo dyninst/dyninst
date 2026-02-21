@@ -33,7 +33,7 @@
  */
 
 #include "dyninstAPI/src/emit-amdgpu.h"
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 #include "arch-amdgpu.h"
 
 using namespace Dyninst;

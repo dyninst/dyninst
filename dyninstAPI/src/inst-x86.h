@@ -56,7 +56,7 @@
 */
 
 #include <assert.h>
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 
 #define NUM_VIRTUAL_REGISTERS (32)   /* number of virtual registers */
 #define IA32_FPR_VIRTUAL_REGISTER (NUM_VIRTUAL_REGISTERS + 1)

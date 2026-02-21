@@ -38,7 +38,7 @@
 
 #include "dyninstAPI/src/addressSpace.h" // For determining which type of getPC to emit
 #include "dyninstAPI/src/RegisterConversion.h"
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 
 #include "dyninstAPI/src/emitter.h"
 
@@ -97,7 +97,7 @@ bool PCWidget::PCtoReg(const codeGen &templ, const RelocBlock *t, CodeBuffer &bu
   return true;
 }
 
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 #include "dyninstAPI/src/inst-x86.h"
 
 bool IPPatch::apply(codeGen &gen, CodeBuffer *) {

@@ -41,7 +41,7 @@
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "baseTramp.h"
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 #include "dyninstAPI/src/function.h"
 #include "common/src/linuxHeaders.h"
 

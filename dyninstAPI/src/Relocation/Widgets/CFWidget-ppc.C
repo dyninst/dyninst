@@ -41,7 +41,7 @@
 #include "../CodeBuffer.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/emit-power.h"
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 
 using namespace Dyninst;
 using namespace Relocation;
