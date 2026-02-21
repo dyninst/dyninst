@@ -41,6 +41,7 @@ static Register generateLinearBlockId(codeGen &gen) {
   // blockIdx.x is contained in s6
   // blockIdx.y is contained in s7
   //
+  //
   // Say we use s60 = gridDim.x
   // Say we use s61 = s60 * s7
   // LinearBlockId = s62 = s61 + s6
@@ -103,8 +104,8 @@ static Register generateLocalWavefrontId(codeGen &gen) {
 
   Register kernargBaseReg = Register::makeScalarRegister(OperandRegId(4), BlockSize(2));
   emitter.emitLoadRelative(s64, /* offset */44, kernargBaseReg, /* size */ 1, gen);
-  emitter.emitOpImmSimple(andOp, s64, s64, 0x0000FFFF, gen);
-  emitter.emitOp(timesOp, v200, v1, s65, gen);
+  emitter.emitOpImmSimple(andOp, s65, s64, 0x0000FFFF, gen);
+  emitter.emitVMulLoU32(v200, v1, s65, gen);
   emitter.emitOp(plusOp, v201, v200, v0, gen);
   emitter.emitReadFirstLane(v201, s66, gen);
   emitter.emitScalarLogicalRightShift(s66, s66, /*shiftAmt*/6, gen);
