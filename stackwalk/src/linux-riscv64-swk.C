@@ -109,20 +109,20 @@ bool DebugStepperImpl::isFrameRegister(MachRegister reg)
 {
    if (getProcessState()->getAddressWidth() == 4){
        assert(0);
-      return (reg == riscv64::x29);
+      return (reg == riscv64::x8);
    }
    else
-      return (reg == riscv64::x29);
+      return (reg == riscv64::x8);
 }
 
 bool DebugStepperImpl::isStackRegister(MachRegister reg)
 {
    if (getProcessState()->getAddressWidth() == 4){
        assert(0);
-      return (reg == riscv64::sp);
+      return (reg == riscv64::x2);
    }
    else
-      return (reg == riscv64::sp);
+      return (reg == riscv64::x2);
 }
 
 static     ucontext_t dummy_context;

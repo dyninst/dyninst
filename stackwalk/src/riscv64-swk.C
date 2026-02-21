@@ -45,15 +45,18 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-// TODO
 #if defined(os_linux)
-#define GET_FRAME_POINTER(spr)     __asm__("add %0, zero, fp;" : "=r"(spr))
-#define GET_RET_ADDR(spr)       __asm__("add %0, zero, ra;" : "=r"(spr))
-#define GET_STACK_POINTER(spr)  __asm__("syscall")
+#define GET_FRAME_POINTER(spr)  __asm__("mv %0, s0;" : "=r"(spr))
+#define GET_RET_ADDR(spr)       __asm__("mv %0, ra;" : "=r"(spr))
+#define GET_STACK_POINTER(spr)  __asm__("mv %0, sp;" : "=r"(spr))
 #else
 #error Unknown platform
 #endif
 
+// On RISC-V, the frame layout is:
+//   [fp-16] = saved s0 (old frame pointer)
+//   [fp-8]  = saved ra (return address)
+// where fp (s0) is set to the old SP value.
 struct ra_fp_pair_t  {
     unsigned long FP;
     unsigned long LR;
@@ -61,41 +64,38 @@ struct ra_fp_pair_t  {
 
 bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegisterVal &val)
 {
-//   ra_fp_pair_t *framePointer;
-//   ra_fp_pair_t thisFramePair;
-//   ra_fp_pair_t stackWalkFramePair;
+   bool found_reg = false;
 
-//   bool found_reg = false;
+   unsigned long cur_fp;
+   GET_FRAME_POINTER(cur_fp);
 
-//   ra_fp_pair_t * sp;
-//   GET_STACK_POINTER(sp);
+   if (!cur_fp) return false;
 
-//   framePointer = (ra_fp_pair_t *) sp;
-//   if(!framePointer) return false;
-//   if(!framePointer->FP) return false;
-//   thisFramePair = *framePointer;
-//   stackWalkFramePair = *( (ra_fp_pair_t*) (thisFramePair.FP));
+   // On RISC-V, saved FP is at [fp-16] and saved RA is at [fp-8]
+   // Read the caller's frame pair from the current fp
+   ra_fp_pair_t *callerPair = (ra_fp_pair_t *)(cur_fp - sizeof(ra_fp_pair_t));
+   if (!callerPair) return false;
 
-//   if (reg.isStackPointer() || reg == Dyninst::StackTop) {
-//     val = (Dyninst::MachRegisterVal) ((ra_fp_pair_t*)framePointer->FP)->FP;
-//     if(val != 0) found_reg = true;
-//   }
+   if (reg.isStackPointer() || reg == Dyninst::StackTop) {
+     val = (Dyninst::MachRegisterVal) callerPair->FP;
+     if(val != 0) found_reg = true;
+   }
 
-//   if (reg.isFramePointer()) {
-//      val = (Dyninst::MachRegisterVal) ((ra_fp_pair_t*)framePointer->FP)->FP;
-//      if( val != 0) found_reg = true;
-//   }
+   if (reg.isFramePointer()) {
+      val = (Dyninst::MachRegisterVal) callerPair->FP;
+      if( val != 0) found_reg = true;
+   }
 
-//   sw_printf("RISCV_DEBUG: ra %p\n", (void *) stackWalkFramePair.LR);
+   sw_printf("RISCV_DEBUG: ra %p\n", (void *) callerPair->LR);
 
-//   if (reg.isPC() || reg == Dyninst::ReturnAddr) {
-//      val = (Dyninst::MachRegisterVal) stackWalkFramePair.LR;
-//      if( val != 0) found_reg = true;
-//   }
+   if (reg.isPC() || reg == Dyninst::ReturnAddr) {
+      val = (Dyninst::MachRegisterVal) callerPair->LR;
+      if( val != 0) found_reg = true;
+   }
 
-//   sw_printf("[%s:%d] - Returning value %lx for reg %s\n",
-//             FILE__, __LINE__, val, reg.name().c_str());
-//   return found_reg;
+   sw_printf("[%s:%d] - Returning value %lx for reg %s\n",
+             FILE__, __LINE__, val, reg.name().c_str());
+   return found_reg;
 }
 
 Dyninst::Architecture ProcSelf::getArchitecture()
@@ -162,12 +162,16 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 
   in_fp = in.getFP();
 
+  // On RISC-V, fp (s0) = old SP, so the caller's SP is the current FP
   out_sp = in_fp;
   out.setSP(out_sp);
 
+  // On RISC-V, saved FP is at [fp-16] and saved RA is at [fp-8]
+  Address read_addr = in_fp - sizeof(ra_fp_pair_t);
+
   // Read the current frame
   if (sizeof(uint64_t) == addrWidth) {
-     result = getProcessState()->readMem(&this_frame_pair, in_fp,
+     result = getProcessState()->readMem(&this_frame_pair, read_addr,
                                          sizeof(this_frame_pair));
   }
   else {
@@ -175,7 +179,7 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   }
 
   if (!result) {
-    sw_printf("[%s:%d] - Couldn't read from %lx\n", FILE__, __LINE__, in_fp);
+    sw_printf("[%s:%d] - Couldn't read from %lx\n", FILE__, __LINE__, read_addr);
     return gcf_error;
   }
 
@@ -187,22 +191,21 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   if (FrameFuncHelper::unset_frame == alloc_frame.second)
   {
     ra_loc.location = loc_register;
-    ra_loc.val.reg = riscv64::x30;
+    ra_loc.val.reg = riscv64::x1;  // ra register on RISC-V
 
     // Leaf function - does not save return address
-    // Get the RA from the PC register
+    // Get the RA from the ra register
     if (sizeof(uint64_t) == addrWidth)
     {
-      result = getProcessState()->getRegValue(riscv64::x30, in.getThread(), out_ra);
+      result = getProcessState()->getRegValue(riscv64::x1, in.getThread(), out_ra);
     }
     else
     {
 		//riscv32 is not supported now
 		assert(0);
-        //result = getProcessState()->getRegValue(riscv32::lr, in.getThread(), out_ra);
     }
     if (!result) {
-        sw_printf("[%s:%d] - Error getting PC value for thrd %d\n",
+        sw_printf("[%s:%d] - Error getting RA value for thrd %d\n",
                   FILE__, __LINE__, (int) in.getThread());
         return gcf_error;
     }
@@ -210,8 +213,9 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   else
   {
     // not leaf functions on RISCV
+    // saved RA is at [fp - 8]
     ra_loc.location = loc_address;
-    ra_loc.val.addr = in_fp + sizeof(uint64_t); //&(actual_frame_pair_p->LR)
+    ra_loc.val.addr = in_fp - sizeof(uint64_t); // address of saved RA
 
     // Function saves return address
     if (sizeof(uint64_t) == addrWidth)
@@ -233,8 +237,9 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   }
   else
   {
+    // saved FP is at [fp - 16]
     fp_loc.location = loc_address;
-    fp_loc.val.addr = in_fp;
+    fp_loc.val.addr = in_fp - sizeof(ra_fp_pair_t); // address of saved FP
 
     if (sizeof(uint64_t) == addrWidth) {
         out.setFP(this_frame_pair.FP);
@@ -405,9 +410,13 @@ void riscv64_LookupFuncStart::releaseMe()
 // but this will involve apply parseAPI to the mutatee...
 // in bytes
 #define FUNCTION_PROLOG_TOCHECK 20
-static const unsigned int push_fp_ra      = 0xa9807bfd ; // stp x29, x30, [sp, #x]!
-static const unsigned int mov_sp_fp       = 0x910003fd ; // mov x29(fp), sp
-static const unsigned int push_fp_ra_mask = 0xffc07fff ; // mask for push_fp_ra
+// RISC-V prologue patterns:
+//   sd s0, offset(sp)
+static const unsigned int save_fp_to_stack      = 0x00813023;
+static const unsigned int save_fp_to_stack_mask  = 0x01FFF07F;
+//   addi s0, sp, imm
+static const unsigned int setup_fp              = 0x00010413;
+static const unsigned int setup_fp_mask          = 0x000FFFFF;
 
 FrameFuncHelper::alloc_frame_t riscv64_LookupFuncStart::allocatesFrame(Address addr)
 {
@@ -457,20 +466,20 @@ FrameFuncHelper::alloc_frame_t riscv64_LookupFuncStart::allocatesFrame(Address a
       goto done;
    }
 
-   //Try to find a 'push (r|e)bp'
+   //Try to find 'sd s0, offset(sp)' - save frame pointer
    for (cur=0; cur<FUNCTION_PROLOG_TOCHECK/4; cur++)
    {
-      if ( (mem[cur]&push_fp_ra_mask) == push_fp_ra )
+      if ( (mem[cur] & save_fp_to_stack_mask) == save_fp_to_stack )
       {
          push_fp_ra_pos = cur*4;
          break;
       }
    }
 
-   //Try to find the mov esp->ebp
+   //Try to find 'addi s0, sp, imm' - set up frame pointer
    for (cur = cur+1; cur<FUNCTION_PROLOG_TOCHECK/4; cur++)
    {
-       if(mem[cur] == mov_sp_fp){
+       if((mem[cur] & setup_fp_mask) == setup_fp){
             mov_sp_fp_pos = cur*4;
             break;
        }
@@ -518,27 +527,27 @@ namespace Dyninst {
     void getTrapInstruction(char *buffer, unsigned buf_size,
                             unsigned &actual_len, bool include_return)
     {
-        //trap
-        //ret
+      // RISC-V ebreak instruction: 0x00100073
       assert(buf_size >= 4);
-      buffer[0] = 0x00;
+      buffer[0] = 0x73;
       buffer[1] = 0x00;
-      buffer[2] = 0x20;
-      buffer[3] = 0xd4;
+      buffer[2] = 0x10;
+      buffer[3] = 0x00;
       actual_len = 4;
       if (include_return)
       {
+        // RISC-V ret (jalr x0, x1, 0): 0x00008067
         assert(buf_size >= 8);
-        buffer[4] = 0xc0;
-        buffer[5] = 0x03;
-        buffer[6] = 0x5f;
-        buffer[7] = 0xd6;
+        buffer[4] = 0x67;
+        buffer[5] = 0x80;
+        buffer[6] = 0x00;
+        buffer[7] = 0x00;
         actual_len = 8;
         return;
       }
 
-      assert(buf_size >= 1);
-      actual_len = 1;
+      assert(buf_size >= 4);
+      actual_len = 4;
       return;
     }
   }

@@ -24,6 +24,7 @@ set(_private_headers
     src/libstate.h
     src/linuxbsd-swk.h
     src/linux-swk.h
+    src/riscv64-swk.h
     src/sw.h
     src/symtab-swk.h
     src/x86-swk.h)
