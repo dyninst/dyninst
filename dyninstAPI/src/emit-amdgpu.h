@@ -202,6 +202,8 @@ public:
   // s[reg:reg+1] += constant
   void emitAddConstantToRegPair(Register reg, int constant, codeGen &gen);
 
+  void emitAddRegToRegPair(Register regPair, Register singleReg, codeGen &gen);
+
   void emitEndProgram(codeGen &gen);
 
   // Set 32-bit reg = 32-bit literal

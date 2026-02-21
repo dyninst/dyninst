@@ -172,9 +172,9 @@ void EmitterAmdgpuGfx908::emitOp(unsigned opcode, Register dest, Register src1, 
 
 void EmitterAmdgpuGfx908::emitOpImmSimple(unsigned op, Register dest, Register src1,
                                           RegValue src2imm, codeGen &gen) {
-  // Temporary workaround for inline operations
-  if (op == andOp) {
-    emitSop2WithSrc1Literal(S_AND_B32, dest.getId(), src1.getId(), src2imm, gen);
+  if (op == plusOp || op == timesOp || op == andOp) {
+    uint32_t opcodeSop2 = getSop2Opcode(op);
+    emitSop2WithSrc1Literal(opcodeSop2, dest.getId(), src1.getId(), src2imm, gen);
     return;
   }
 
@@ -661,6 +661,16 @@ void EmitterAmdgpuGfx908::emitAddConstantToRegPair(Register reg, int constant, c
 
   // reg+1 has upper bits. Add 0 with carry.
   emitSop2WithSrc1Literal(S_ADDC_U32, reg.getId() + 1, reg.getId() + 1, 0, gen);
+}
+
+void EmitterAmdgpuGfx908::emitAddRegToRegPair(Register regPair, Register singleReg, codeGen &gen) {
+  assert(isValidSgprPair(regPair) && isValidSgpr(singleReg) && "regPair must be a valid SGPR pair and singleReg must be a valid SGPR");
+
+  // reg[0] has lower bits
+  emitSop2(S_ADD_U32, regPair.getId(), regPair.getId(), singleReg.getId(), gen);
+
+  // reg[1] has upper bits. Add 0 with carry.
+  emitSop2WithSrc1Literal(S_ADDC_U32, regPair.getId() + 1, regPair.getId() + 1, 0, gen);
 }
 
 void EmitterAmdgpuGfx908::emitScalarDataCacheWriteback(codeGen &gen) {
