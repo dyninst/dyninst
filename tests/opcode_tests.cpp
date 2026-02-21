@@ -1,5 +1,6 @@
 #include "opcode_tests.h"
 
+#include <boost/algorithm/string.hpp>
 #include <iostream>
 
 namespace Dyninst {
@@ -27,6 +28,16 @@ bool verify(Instruction const &insn, opcode_test const &expected) {
     std::cerr << "Expected: " << expected.encoded_opcode_mnemonic
               << ", Found: " << insn.getEncodedOperation().format();
     std::cerr << '\n';
+    failed = true;
+  }
+
+  // The formatter sometimes introduces trailing whitespace, so remove it
+  auto text = insn.format();
+  boost::algorithm::trim_right(text);
+  if(text != expected.text) {
+    std::cerr << "Mismatched formatted assembly string\n"
+              << "Expected: '" << expected.text << "', "
+              << "Found: '" << text << "'\n";
     failed = true;
   }
 

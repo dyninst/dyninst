@@ -486,4 +486,11 @@ namespace Dyninst { namespace InstructionAPI {
     });
     return;
   }
+
+  bool Operation::operator==(Operation const &rhs) const {
+    return operationID == rhs.operationID &&
+           archDecodedFrom == rhs.archDecodedFrom &&
+           mnemonic == rhs.mnemonic;
+  }
+
 }}

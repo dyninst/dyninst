@@ -139,7 +139,10 @@ namespace Dyninst { namespace InstructionAPI {
     return m_EncodedInsnOp;
   }
   DYNINST_EXPORT std::vector<Operand> Instruction::getExplicitEncodedOperands() const {
-    return std::vector<Operand>(m_EncodedOperands.begin(), m_EncodedOperands.end());
+    if(isCompressed()) {
+      return std::vector<Operand>(m_EncodedOperands.begin(), m_EncodedOperands.end());
+    }
+    return getExplicitOperands();
   }
 
   DYNINST_EXPORT const Operation& Instruction::getOperation() const { return m_InsnOp; }
@@ -350,14 +353,14 @@ namespace Dyninst { namespace InstructionAPI {
 
     std::string opstr = m_EncodedInsnOp.format();
     opstr += " ";
-    std::list<Operand>::const_iterator currOperand;
+
     std::vector<std::string> formattedOperands;
-    for(currOperand = m_EncodedOperands.begin(); currOperand != m_EncodedOperands.end(); ++currOperand) {
+    for(auto const& op : getExplicitEncodedOperands()) {
       /* If this operand is implicit, don't put it in the list of operands. */
-      if(currOperand->isImplicit())
+      if(op.isImplicit())
         continue;
 
-      formattedOperands.push_back(currOperand->format(getArch(), addr));
+      formattedOperands.push_back(op.format(getArch(), addr));
     }
 
     return opstr + formatter->getInstructionString(formattedOperands);
@@ -466,6 +469,14 @@ namespace Dyninst { namespace InstructionAPI {
   void Instruction::appendEncodedOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit,
                                          bool trueP, bool falseP) const {
     m_EncodedOperands.push_back(Operand(e, isRead, isWritten, isImplicit, trueP, falseP));
+  }
+
+  bool Instruction::isCompressed() const {
+    /* RISCV64 compressed instructions have a separation Operation for
+     * the compressed and decompressed forms. In all other cases and
+     * architectures, they are the same.
+     */
+    return !(m_EncodedInsnOp == m_InsnOp);
   }
 
 }}
