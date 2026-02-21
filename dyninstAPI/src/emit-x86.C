@@ -1660,7 +1660,7 @@ bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
       False - No FP Writes
    */
 
-   if (callee->ifunc()->writesFPRs()) {
+   if (writesFPRs(callee->ifunc())) {
       for (unsigned i = 0; i < rs->FPRs().size(); i++) {
          // We might want this to be another flag, actually
          rs->FPRs()[i]->beenUsed = true;
