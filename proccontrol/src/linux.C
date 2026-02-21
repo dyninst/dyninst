@@ -3077,7 +3077,7 @@ bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
             if (error == ESRCH)
                setLastError(err_exited, "Process exited during operation");
             else
-               setLastError(err_internal, "Error doing PTRACE_ARM_GET_THREAD_AREA\n");
+               setLastError(err_internal, "Error doing PTRACE_RISCV_GET_THREAD_AREA\n");
             return false;
          }
 
