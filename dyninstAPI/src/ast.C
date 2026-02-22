@@ -1420,6 +1420,58 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
          src2 = gen.rs()->allocateRegister(gen, noCost);
          switch (loperand->getoType()) {
+#if defined DYNINST_CODEGEN_ARCH_AMDGPU_GFX908
+           case operandType::AddressAsPlaceholderRegAndOffset: {
+             using namespace NS_amdgpu::RegisterConstants;
+             std::cerr << "for store\n";
+             // This is per-wave instance.
+             // prologue sets up instrumentation memory base address in s[94:95].
+             // wave-id is in s68.
+             //
+             //
+             // baseAddress = s[94:95]
+             // per-wave-variable-offset = wave-id * sizeOfTableInBytes + variableOffsetInTable
+             // Use s69 <- per-wave-variable-offset
+             //
+             // per-wave-variable-address = baseAddress + s69
+             // s[70:71] = s[94:95] + s69
+             // retReg = load s[70:71]
+
+             // sizeOfTableInBytes = variableSize(4) * numEntries
+             const uint32_t sizeOfVariable = 4;
+             // There is one empty entry which we want to ignore.
+             const uint32_t numEntriesInAllocTable = AstOperandNode::allocTable.size() - 1;
+             const uint32_t sizeOfTable = sizeOfVariable * numEntriesInAllocTable;
+             std::cerr << "sizeOfTableInByes = " << sizeOfTable << '\n';
+
+             AstOperandNode *offset = dynamic_cast<AstOperandNode *>((AstNode *)loperand->operand().get());
+             const uint32_t variableOffsetInTable = (uint32_t)((uint64_t)offset->getOValue());
+             std::cerr << "variableOffsetInTable = " << variableOffsetInTable << '\n';
+
+             // Full sequence
+             // s69 = s68 * sizeOfTableInBytes;
+             // s69 = s69 + variableOffsetInTable; // full offset of variable
+             //
+             // s70 = s94
+             // s71 = s95
+             // s[70:71] += s69 // added it to base address
+             // store src1, s[70:71]
+
+             EmitterAmdgpuGfx908 *emitter = dynamic_cast<EmitterAmdgpuGfx908 *>(gen.emitter());
+             assert(emitter);
+
+             emitter->emitOpImmSimple(timesOp, s69, s68, sizeOfTable, gen);
+             emitter->emitOpImmSimple(plusOp, s69, s69, variableOffsetInTable, gen);
+
+             emitter->emitMoveRegToReg(s94, s70, gen);
+             emitter->emitMoveRegToReg(s95, s71, gen);
+
+             Register s70_71 = Register::makeScalarRegister(OperandRegId(70), BlockSize(2));
+             emitter->emitAddRegToRegPair(s70_71, s69, gen);
+             emitter->emitStoreIndir(s70_71, src1, /* size */1, gen);
+             break;
+          }
+#endif
             case operandType::variableValue:
                loperand->emitVariableStore(storeOp, src1, src2, gen,
                                            noCost, gen.rs(), size, gen.point(), gen.addrSpace());
@@ -1548,6 +1600,28 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                                noCost, addr, src1)) ERROR_RETURN;
             REGISTER_CHECK(src1);
 
+#if defined DYNINST_CODEGEN_ARCH_AMDGPU_GFX908
+               if (!roperand->generateCode_phase2(gen, noCost, addr, right_dest)) ERROR_RETURN;
+               REGISTER_CHECK(right_dest);
+
+            if (retReg == Dyninst::Null_Register) {
+               retReg = allocateAndKeep(gen, noCost);
+            }
+
+
+            EmitterAmdgpuGfx908 *emitter = dynamic_cast<EmitterAmdgpuGfx908 *>(gen.emitter());
+            assert(emitter);
+            // retReg = src1 op rightDest
+            emitter->emitOp(op, retReg, src1, right_dest, gen);
+
+            if (src1 != Dyninst::Null_Register) {
+               // Don't free inputs until afterwards; we have _no_ idea
+               gen.rs()->freeRegister(src1);
+            }
+            // what the underlying code might do with a temporary register.
+            if (right_dest != Dyninst::Null_Register)
+               gen.rs()->freeRegister(right_dest);
+#else
          if ((roperand->getoType() == operandType::Constant) &&
              doNotOverflow((int64_t)roperand->getOValue())) {
             if (retReg == Dyninst::Null_Register) {
@@ -1581,8 +1655,10 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             if (right_dest != Dyninst::Null_Register)
                gen.rs()->freeRegister(right_dest);
          }
+#endif
       }
    }
+
 	decUseCount(gen);
    return true;
 }
@@ -1614,6 +1690,57 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
      const uint32_t immediateValue = (uint32_t)((uint64_t)this->getOValue());
      // TODO: Change this to allocate SGPR explicitly instead of the current mechanism.
      emitter->emitMovLiteral(retReg, immediateValue, gen);
+     break;
+   }
+
+   case operandType::AddressAsPlaceholderRegAndOffset: {
+      using namespace NS_amdgpu::RegisterConstants;
+      std::cerr << "for load\n";
+      // This is per-wave instance.
+      // prologue sets up instrumentation memory base address in s[94:95].
+      // wave-id is in s68.
+      //
+      //
+      // baseAddress = s[94:95]
+      // per-wave-variable-offset = wave-id * sizeOfTableInBytes + variableOffsetInTable
+      // Use s69 <- per-wave-variable-offset
+      //
+      // per-wave-variable-address = baseAddress + s69
+      // s[70:71] = s[94:95] + s69
+      // retReg = load s[70:71]
+
+      // sizeOfTableInBytes = variableSize(4) * numEntries
+      const uint32_t sizeOfVariable = 4;
+      // There is one empty entry which we want to ignore.
+      const uint32_t numEntriesInAllocTable = AstOperandNode::allocTable.size() - 1;
+      const uint32_t sizeOfTable = sizeOfVariable * numEntriesInAllocTable;
+      std::cerr << "sizeOfTableInByes = " << sizeOfTable << '\n';
+
+      AstOperandNode *offset = dynamic_cast<AstOperandNode *>((AstNode *)this->operand().get());
+      const uint32_t variableOffsetInTable = (uint32_t)((uint64_t)offset->getOValue());
+      std::cerr << "variableOffsetInTable = " << variableOffsetInTable << '\n';
+
+      // Full sequence
+      // s69 = s68 * sizeOfTableInBytes;
+      // s69 = s69 + variableOffsetInTable; // full offset of variable
+      //
+      // s70 = s94
+      // s71 = s95
+      // s[70:71] += s69 // added it to base address
+      // store src1, s[70:71]
+
+      EmitterAmdgpuGfx908 *emitter = dynamic_cast<EmitterAmdgpuGfx908 *>(gen.emitter());
+      assert(emitter);
+
+      emitter->emitOpImmSimple(timesOp, s69, s68, sizeOfTable, gen);
+      emitter->emitOpImmSimple(plusOp, s69, s69, variableOffsetInTable, gen);
+
+      emitter->emitMoveRegToReg(s94, s70, gen);
+      emitter->emitMoveRegToReg(s95, s71, gen);
+
+      Register s70_71 = Register::makeScalarRegister(OperandRegId(70), BlockSize(2));
+      emitter->emitAddRegToRegPair(s70_71, s69, gen);
+      emitter->emitLoadIndir(retReg, s70_71, /* size */1, gen);
      break;
    }
 #else
