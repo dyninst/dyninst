@@ -61,20 +61,22 @@ static Register generateWavesPerBlock(codeGen &gen) {
   using namespace NS_amdgpu::RegisterConstants;
 
   EmitterAmdgpuGfx908 emitter;
-
-  // Waves per block is at index 296
-  // kernarg base = s[4:5]
-  Register kernargBaseReg = Register::makeScalarRegister(OperandRegId(4), BlockSize(2));
-
-  // s[64:65] = wavesPerBlockPtr
-  // s[64:65] = load s[4:5] + 296
-  // wavesPerBlockReg = s63 = load s[64:65]
-  // Return s63
-
-  Register s64_65 = Register::makeScalarRegister(OperandRegId(64), BlockSize(2));
-  emitter.emitLoadRelative(s64_65, /* offset */296, kernargBaseReg, /* size */2, gen);
-  emitter.emitLoadIndir(s63, s64_65, /*size*/1, gen);
-
+  //
+  // // Waves per block is at index 296
+  // // kernarg base = s[4:5]
+  // Register kernargBaseReg = Register::makeScalarRegister(OperandRegId(4), BlockSize(2));
+  //
+  // // s[64:65] = wavesPerBlockPtr
+  // // s[64:65] = load s[4:5] + 296
+  // // wavesPerBlockReg = s63 = load s[64:65]
+  // // Return s63
+  //
+  // Register s64_65 = Register::makeScalarRegister(OperandRegId(64), BlockSize(2));
+  // emitter.emitLoadRelative(s64_65, [> offset */296, kernargBaseReg, /* size <]2, gen);
+  // emitter.emitLoadIndir(s63, s64_65, [>size<]1, gen);
+  //
+  // VectorAdd has 4 wavefronts per block -- hardcoding right now
+  emitter.emitMovLiteral(s63, 4, gen);
   return s63;
 }
 
