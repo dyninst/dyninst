@@ -185,11 +185,11 @@ bool riscv_process::plat_convertToBreakpointAddress(Address &, int_thread *) {
 
 // to check if this insn is exclusive load/store
 static bool atomicLoad(const instruction &insn) {
-    return insn.isAtomicLoad();
+    return !insn.isCompressed() && insn.isAtomicLoad();
 }
 
 static bool atomicStore(const instruction &insn) {
-    return insn.isAtomicStore();
+    return !insn.isCompressed() && insn.isAtomicStore();
 }
 
 static void clear_ss_state_cb(int_thread *thr) {
@@ -381,9 +381,15 @@ async_ret_t riscv_process::plat_needsEmulatedSingleStep(int_thread *thr, std::ve
 
         bool isCompressed = (rawInsn & 3) != 3;
 
+        if (isCompressed) {
+            rawInsn = rawInsn & 0xFFFF;
+        }
+
         instruction insn(&rawInsn, isCompressed);
 
         Dyninst::Address nextInsnAddr = pc + insn.size();
+
+        pthrd_printf("Checking instruction at 0x%lx for atomic sequence: raw=0x%x (isCompressed: %s) size: %u\n", pc, rawInsn, isCompressed ? "true" : "false", insn.size());
         
         if( atomicLoad(insn) ) {
             sequenceStarted = true;

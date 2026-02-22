@@ -52,7 +52,7 @@ constexpr int32_t CBRANCH_INSN_MASK = 0xe003;
 constexpr int32_t CJAL_INSN = 0x2001;
 constexpr int32_t CJALR_INSN = 0x9002;
 constexpr int32_t CJR_INSN = 0x8002;
-constexpr int32_t CJR_INSN_MASK = 0xf003;
+constexpr int32_t CJR_INSN_MASK = 0xf07f;
 constexpr int32_t CJUMP_INSN = 0xa001;
 constexpr int32_t CJUMP_INSN_MASK = 0xe003;
 constexpr int32_t JAL_INSN = 0x0000006f;
@@ -196,7 +196,7 @@ bool instruction::isCall() const {
     if (result == CJAL_INSN) {
       return true;
     }
-    result = insn_.raw & CJR_INSN;
+    result = insn_.raw & CJR_INSN_MASK;
     if (result == CJALR_INSN) {
       return true;
     }
