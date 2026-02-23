@@ -434,7 +434,6 @@ Register registerSpace::getScratchRegister(codeGen &gen, std::vector<Register> &
         return Null_Register;
     }
 
-    toUse->alloc_num = num_allocs;
     num_allocs++;
 
   toUse->markUsed(false);
@@ -871,7 +870,7 @@ void registerSlot::debugPrint(const char *prefix) {
     if (!dyn_debug_regalloc) return;
 
 	if (prefix) fprintf(stderr, "%s", prefix);
-	fprintf(stderr, "Num: %u, name %s, type %s, refCount %d, liveState %s, beenUsed %d, initialState %s, offLimits %d, keptValue %d, alloc %d\n",
+	fprintf(stderr, "Num: %u, name %s, type %s, refCount %d, liveState %s, beenUsed %d, initialState %s, offLimits %d, keptValue %d\n",
                 number.getId(),
                 name.c_str(),
                 (type == GPR) ? "GPR" : ((type == FPR) ? "FPR" : "SPR"),
@@ -880,8 +879,7 @@ void registerSlot::debugPrint(const char *prefix) {
                 beenUsed,
                 (initialState == deadAlways) ? "always dead" : ((initialState == deadABI) ? "ABI dead" : "always live"),
                 offLimits,
-                keptValue,
-                alloc_num);
+                keptValue);
 }
 
 void registerSpace::debugPrint() {

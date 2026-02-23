@@ -87,7 +87,6 @@ class RealRegister {
 
 class registerSlot {
  public:
-   int alloc_num{}; //MATT TODO: Remove
     const Dyninst::Register number{Dyninst::Null_Register};    // what register is it, using our Dyninst::Register enum
     const std::string name{"DEFAULT REGISTER"};
 
