@@ -33,17 +33,20 @@
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
 
-#include <stdio.h>
-#include <string>
-#include <assert.h>
-#include <vector>
 #include <map>
 #include <set>
+#include <string>
 #include <unordered_map>
-#include "dyn_register.h"
-#include "inst.h" // callWhen...
-#include "RealRegister.h"
+#include <vector>
+
 #include "bitArray.h"
+#include "dyn_register.h"
+#include "inst.h"
+#include "RealRegister.h"
+
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
+#include "inst-x86.h"
+#endif
 
 class codeGen;
 class instPoint;
@@ -67,10 +70,6 @@ class baseTramp;
 // Terminology:
 // "Live" : contains a value outside of instrumentation, and so must be saved before use
 // "Used" : used by instrumentation code.
-
-#if defined(DYNINST_CODEGEN_ARCH_X86_64)
-#include "inst-x86.h"
-#endif
 
 class registerSlot {
  public:
