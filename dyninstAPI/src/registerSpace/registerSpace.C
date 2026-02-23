@@ -353,8 +353,6 @@ Register registerSpace::getScratchRegister(codeGen &gen, bool noCost, bool realR
 }
 
 Register registerSpace::getScratchRegister(codeGen &gen, std::vector<Register> &excluded, bool noCost, bool realReg) {
-  static int num_allocs = 0;
-
   std::vector<registerSlot *> couldBeStolen;
   std::vector<registerSlot *> couldBeSpilled;
 
@@ -433,8 +431,6 @@ Register registerSpace::getScratchRegister(codeGen &gen, std::vector<Register> &
       // debugPrint();
         return Null_Register;
     }
-
-    num_allocs++;
 
   toUse->markUsed(false);
 
