@@ -151,7 +151,7 @@ class registerSlot {
                  initialLiveness_t initial,
                  regType_t type_) :
         number(num),
-        name(name_),
+        name(std::move(name_)),
         initialState(initial),
         offLimits(offLimits_),
         type(type_) {}
