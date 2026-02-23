@@ -42,7 +42,7 @@
 #include <unordered_map>
 #include "dyn_register.h"
 #include "inst.h" // callWhen...
-
+#include "RealRegister.h"
 #include "bitArray.h"
 
 class codeGen;
@@ -67,19 +67,6 @@ class baseTramp;
 // Terminology:
 // "Live" : contains a value outside of instrumentation, and so must be saved before use
 // "Used" : used by instrumentation code.
-
-class RealRegister {
-   //This is currently only used on x86_32 to represent the
-   // virtual/real register difference.  'Dyninst::Register' still refers
-   // to virtual registers on this platform.  Contained in a struct
-   // so that no one can accidently cast a Dyninst::Register into a RealRegister
-   friend class registerSpace;
-   signed int r;
- public:
-   RealRegister() { r = 0; }
-   explicit RealRegister(int reg) { r = reg; }
-   int reg() const { return r; }
-};
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "inst-x86.h"

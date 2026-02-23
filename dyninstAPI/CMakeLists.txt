@@ -127,6 +127,7 @@ set(_private_headers
     src/PointHandler.h
     src/RegisterConversion.h
     src/registerSpace/registerSpace.h
+    src/registerSpace/RealRegister.h
     src/regTracker.h
     src/syscallNotification.h
     src/trapMappings.h
