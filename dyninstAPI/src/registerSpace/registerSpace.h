@@ -87,37 +87,37 @@ class RealRegister {
 
 class registerSlot {
  public:
-   int alloc_num; //MATT TODO: Remove
-    const Dyninst::Register number;    // what register is it, using our Dyninst::Register enum
-    const std::string name;
+   int alloc_num{}; //MATT TODO: Remove
+    const Dyninst::Register number{Dyninst::Null_Register};    // what register is it, using our Dyninst::Register enum
+    const std::string name{"DEFAULT REGISTER"};
 
     typedef enum { deadAlways, deadABI, liveAlways } initialLiveness_t;
-    const initialLiveness_t initialState;
+    const initialLiveness_t initialState{deadAlways};
 
     // Are we off limits for allocation in this particular instance?
-    bool offLimits;
+    bool offLimits{true};
 
     typedef enum { invalid, GPR, FPR, SPR, SGPR, VGPR, realReg} regType_t;
-    const regType_t type;
+    const regType_t type{invalid};
 
     ////////// Code generation
 
-    int refCount;      	// == 0 if free
+    int refCount{};      	// == 0 if free
 
     typedef enum { live, spilled, dead } livenessState_t;
-    livenessState_t liveState;
+    livenessState_t liveState{live};
 
-    bool keptValue;     // Are we keeping this (as long as we can) to save
+    bool keptValue{false};     // Are we keeping this (as long as we can) to save
     // the pre-calculated value? Note: refCount can be 0 and
     // this still set.
 
-    bool beenUsed;      // Has this register been used by generated code?
+    bool beenUsed{false};      // Has this register been used by generated code?
 
     // New version of "if we were saved, then where?" It's a pair - true/false,
     // then offset from the "zeroed" stack pointer.
     typedef enum { unspilled, framePointer } spillReference_t;
-    spillReference_t spilledState;
-    int saveOffset; // Offset where this register can be
+    spillReference_t spilledState{unspilled};
+    int saveOffset{-1}; // Offset where this register can be
                     // retrieved.
     // AMD-64: this is the number of words
     // POWER: this is the number of bytes
@@ -145,39 +145,16 @@ class registerSlot {
 
     void debugPrint(const char *str = NULL);
 
-    // Don't want to use this...
-    registerSlot() :
-       alloc_num(0),
-        number(Dyninst::Null_Register),
-        name("DEFAULT REGISTER"),
-        initialState(deadAlways),
-        offLimits(true),
-        type(invalid),
-        refCount(0),
-        liveState(live),
-        keptValue(false),
-        beenUsed(false),
-        spilledState(unspilled),
-        saveOffset(-1)
-        {}
-
     registerSlot(Dyninst::Register num,
                  std::string name_,
                  bool offLimits_,
                  initialLiveness_t initial,
                  regType_t type_) :
-       alloc_num(0),
         number(num),
         name(name_),
         initialState(initial),
         offLimits(offLimits_),
-        type(type_),
-        refCount(0),
-        liveState(live),
-        keptValue(false),
-        beenUsed(false),
-        spilledState(unspilled),
-        saveOffset(-1) {}
+        type(type_) {}
 
 };
 
