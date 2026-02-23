@@ -700,7 +700,7 @@ void EmitterAmdgpuGfx908::emitScalarLogicalRightShift(Register dest, Register sr
   const uint32_t valueToAdd = 128;
   shiftAmount += valueToAdd;
 
-  emitSop2(S_LSHR_B32, dest.getId(), /* src0 */ shiftAmount, src.getId(), gen);
+  emitSop2(S_LSHR_B32, dest.getId(), src.getId(), /* src1 */ shiftAmount, gen);
 }
 
 // vgpr = vgpr * sgpr
