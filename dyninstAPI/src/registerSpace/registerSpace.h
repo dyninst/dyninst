@@ -254,8 +254,6 @@ class registerSpace {
 
     registerSpace(const registerSpace &);
 
-    registerSlot &getRegisterSlot(Dyninst::Register reg);
-
     registerSlot *findRegister(Dyninst::Register reg);
     registerSlot *findRegister(RealRegister reg);
 
