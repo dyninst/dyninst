@@ -556,12 +556,6 @@ void registerSpace::cleanSpace() {
     }
 }
 
-bool registerSpace::restoreRegister(Register, codeGen &, bool /*noCost*/)
-{
-    assert(0);
-    return true;
-}
-
 bool registerSpace::popRegister(Register, codeGen &, bool) {
     assert(0);
     return true;
