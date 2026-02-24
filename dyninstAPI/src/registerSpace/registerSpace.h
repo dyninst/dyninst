@@ -187,7 +187,6 @@ class registerSpace {
      * allocates and uses virtual registers, these methods provide mappings from
      * virtual registers to real registers.
      **/
- public:
     //Put VReg into RReg
     RealRegister loadVirtual(registerSlot *virt_r, codeGen &gen);
     RealRegister loadVirtual(Dyninst::Register virt_r, codeGen &gen);
@@ -249,7 +248,6 @@ class registerSpace {
     void movVRegToReal(registerSlot *v_reg, RealRegister r, codeGen &gen);
     void movRegToReg(RealRegister dest, RealRegister src, codeGen &gen);
 
- private:
     registerSlot *findRegister(Dyninst::Register reg);
     registerSlot *findRegister(RealRegister reg);
 
