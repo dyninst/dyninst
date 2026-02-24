@@ -734,8 +734,6 @@ void registerSpace::debugPrint() {
   fprintf(stderr, "Beginning debug print of registerSpace at %p...", (void*)this);
   fprintf(stderr, "GPRs: %ld, FPRs: %ld, SPRs: %ld\n",
 	  (long) GPRs_.size(), (long) FPRs_.size(), (long) SPRs_.size());
-  fprintf(stderr, "Stack pointer is at %d\n",
-	  currStackPointer);
   fprintf(stderr, "Register dump:");
   fprintf(stderr, "=====GPRs=====\n");
   for (unsigned i = 0; i < GPRs_.size(); i++) {

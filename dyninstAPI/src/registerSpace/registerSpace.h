@@ -263,8 +263,6 @@ class registerSpace {
 
     bool markSavedRegister(registerSlot *num, int offsetFromFP);
 
-    int currStackPointer{};
-
     // This structure is permanently tainted by its association with
     // virtual registers...
     std::unordered_map<Dyninst::Register, registerSlot *> registers_;
