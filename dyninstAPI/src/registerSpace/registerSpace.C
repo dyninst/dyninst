@@ -208,29 +208,6 @@ void registerSpace::createRegSpaceInt(std::vector<registerSlot *> &registers,
 
 }
 
-bool registerSpace::trySpecificRegister(codeGen &, Register num,
-					bool)
-{
-  auto iter = registers_.find(num);
-  if (iter == registers_.end()) return false;
-  registerSlot *reg = iter->second;
-
-  if (reg->offLimits) return false;
-  else if (reg->refCount > 0) return false;
-  else if (reg->liveState == registerSlot::live) {
-        return false;
-  }
-  else if (reg->keptValue) {
-     return false;
-  }
-
-  reg->markUsed(true);
-
-  regalloc_printf("Allocated register %u\n", num.getId());
-
-  return true;
-}
-
 bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num,
 					     bool noCost)
 {
@@ -553,8 +530,8 @@ void registerSpace::forceFreeRegister(Register num)
 }
 
 // DO NOT USE THIS!!!! to tell if you can use a register as
-// a scratch register; do that with trySpecificRegister
-// or allocateSpecificRegister. This is _ONLY_ to determine
+// a scratch register; do that with allocateSpecificRegister
+// This is _ONLY_ to determine
 // if a register should be saved (e.g., over a call).
 bool registerSpace::isFreeRegister(Register num) {
     registerSlot *reg = findRegister(num);

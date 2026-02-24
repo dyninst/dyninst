@@ -106,9 +106,6 @@ class registerSpace {
     // to touch)
     Dyninst::Register getScratchRegister(codeGen &gen, std::vector<Dyninst::Register> &excluded, bool noCost = true, bool realReg = false);
 
-
-    bool trySpecificRegister(codeGen &gen, Dyninst::Register reg, bool noCost = true);
-
     bool saveAllRegisters(codeGen &gen, bool noCost);
     bool restoreAllRegisters(codeGen &gen, bool noCost);
 
@@ -137,8 +134,8 @@ class registerSpace {
 
     // Check to see if the register is free
     // DO NOT USE THIS!!!! to tell if you can use a register as
-    // a scratch register; do that with trySpecificRegister
-    // or allocateSpecificRegister. This is _ONLY_ to determine
+    // a scratch register; do that with allocateSpecificRegister.
+    // This is _ONLY_ to determine
     // if a register should be saved (e.g., over a call).
     bool isFreeRegister(Dyninst::Register k);
 
