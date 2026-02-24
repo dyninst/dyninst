@@ -262,8 +262,6 @@ class registerSpace {
 
     bool stealRegister(Dyninst::Register reg, codeGen &gen, bool noCost);
 
-    bool popRegister(Dyninst::Register reg, codeGen &gen, bool noCost);
-
     bool markSavedRegister(registerSlot *num, int offsetFromFP);
 
     int currStackPointer{};

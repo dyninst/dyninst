@@ -556,11 +556,6 @@ void registerSpace::cleanSpace() {
     }
 }
 
-bool registerSpace::popRegister(Register, codeGen &, bool) {
-    assert(0);
-    return true;
-}
-
 bool registerSpace::markReadOnly(Register) {
     assert(0);
     return true;
