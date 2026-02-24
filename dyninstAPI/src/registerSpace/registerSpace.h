@@ -75,11 +75,12 @@ class registerSpace {
     static registerSpace *getRegisterSpace(unsigned addr_width);
 
     registerSpace() = default;
+    registerSpace(const registerSpace &) = delete;
+    ~registerSpace();
+    registerSpace &operator=(const registerSpace &src) = delete;
 
     static void createRegisterSpace(std::vector<registerSlot *> &registers);
     static void createRegisterSpace64(std::vector<registerSlot *> &registers);
-
-    ~registerSpace();
 
     // Read the value in register souce from wherever we've stored it in
     // memory (including the register itself), and stick it in actual register
@@ -249,9 +250,6 @@ class registerSpace {
     void movRegToReg(RealRegister dest, RealRegister src, codeGen &gen);
 
  private:
-
-    registerSpace(const registerSpace &);
-
     registerSlot *findRegister(Dyninst::Register reg);
     registerSlot *findRegister(RealRegister reg);
 
@@ -277,9 +275,6 @@ class registerSpace {
     static void initialize();
     static void initialize32();
     static void initialize64();
-
-
-    registerSpace &operator=(const registerSpace &src);
 
     typedef enum {arbitrary, ABI_boundary, allSaved} rs_location_t;
 
