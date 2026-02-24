@@ -207,11 +207,11 @@ LoadedLib *AddressTranslateSysV::getAOut()
 
    // Get the base address
    Address baseAddr = 0;
-   if (program_base && reader) {
+   if (program_header_base && reader) {
       bool done = false;
       Address phdr_vaddr = (Address) -1;
       Address load_vaddr = (Address) -1;
-      Address header_addr = program_base;
+      Address header_addr = program_header_base;
 
       while (!done) {
          Address p_vaddr;
@@ -264,7 +264,7 @@ LoadedLib *AddressTranslateSysV::getAOut()
       else {
          // PIE binary, find it
          assert(phdr_vaddr != (Address) -1);
-         baseAddr = program_base - phdr_vaddr;
+         baseAddr = program_header_base - phdr_vaddr;
       }
    }         
 

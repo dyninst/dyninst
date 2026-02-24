@@ -404,7 +404,13 @@ bool AuxvParser::readAuxvInfo()
            interpreter_base = auxv_entry.value;
            break;
         case AT_PHDR:
-           phdr = auxv_entry.value;
+           phdrBase = auxv_entry.value;
+           break;
+        case AT_PHNUM:
+           phdrCount = auxv_entry.value;
+           break;
+        case AT_PHENT:
+           phdrSize = auxv_entry.value;
            break;
      }
 

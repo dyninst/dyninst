@@ -388,7 +388,7 @@ AddressTranslateSysV::AddressTranslateSysV() :
    AddressTranslate(NULL_PID),
    reader(NULL),
    interpreter_base(0),
-   program_base(0),
+   program_header_base(0),
    page_size(0),
    set_interp_base(0),
    address_size(0),

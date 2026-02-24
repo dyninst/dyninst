@@ -46,7 +46,9 @@ class DYNINST_EXPORT AuxvParser
    Dyninst::Address vsyscall_text{0};
    Dyninst::Address vsyscall_end{0};
    bool found_vsyscall{false};
-   Dyninst::Address phdr{0};
+   Dyninst::Address phdrBase{0};
+   Dyninst::Address phdrCount{0};
+   Dyninst::Address phdrSize{0};
 
    unsigned page_size{0};
    unsigned addr_size{0};
@@ -70,7 +72,9 @@ class DYNINST_EXPORT AuxvParser
    Dyninst::Address getVsyscallBase()        { return vsyscall_base; }
    Dyninst::Address getVsyscallText()        { return vsyscall_text; }
    Dyninst::Address getVsyscallEnd()         { return vsyscall_end; }
-   Dyninst::Address getProgramBase()         { return phdr; }
+   Dyninst::Address getProgramHeaderBase()   { return phdrBase; }
+   Dyninst::Address getProgramHeaderCount()  { return phdrCount; }
+   Dyninst::Address getProgramHeaderSize()   { return phdrSize; }
    Dyninst::Address getPageSize()            { return page_size; }
 };
 
