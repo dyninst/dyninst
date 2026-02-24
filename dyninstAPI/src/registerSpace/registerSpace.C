@@ -393,7 +393,6 @@ bool registerSpace::checkVolatileRegisters(codeGen &,
 #if defined(DYNINST_CODEGEN_ARCH_X86_64) || defined(DYNINST_CODEGEN_ARCH_I386)
 bool registerSpace::saveVolatileRegisters(codeGen &gen)
 {
-    savedFlagSize = 0;
     if (!checkVolatileRegisters(gen, registerSlot::live))
         return false;
 
@@ -439,7 +438,6 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen)
 
     }
 
-    savedFlagSize = addr_width;
     return true;
 }
 #else
