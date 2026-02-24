@@ -346,8 +346,6 @@ class registerSpace {
 
     Dyninst::Register getRegByName(const std::string name);
     std::string getRegByNumber(Dyninst::Register num);
-    void getAllRegisterNames(std::vector<std::string> &ret);
-
 
 };
 

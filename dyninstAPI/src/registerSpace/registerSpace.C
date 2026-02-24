@@ -830,15 +830,6 @@ registerSlot *registerSpace::operator[](Register reg) {
 }
 
 
-// Big honkin' name->register map
-
-void registerSpace::getAllRegisterNames(std::vector<std::string> &ret) {
-    // Currently GPR only
-    for (unsigned i = 0; i < GPRs_.size(); i++) {
-        ret.push_back(GPRs_[i]->name);
-    }
-}
-
 Register registerSpace::getRegByName(const std::string name) {
     map<std::string,Register>::iterator cur = registersByName.find(name);
     if (cur == registersByName.end())
