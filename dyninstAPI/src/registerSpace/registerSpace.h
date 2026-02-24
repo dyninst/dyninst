@@ -345,7 +345,6 @@ class registerSpace {
     // The reverse map can be handled by doing a rs[x]->name
 
     Dyninst::Register getRegByName(const std::string name);
-    std::string getRegByNumber(Dyninst::Register num);
 
 };
 

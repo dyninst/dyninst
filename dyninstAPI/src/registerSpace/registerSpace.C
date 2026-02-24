@@ -837,10 +837,6 @@ Register registerSpace::getRegByName(const std::string name) {
     return (*cur).second;
 }
 
-std::string registerSpace::getRegByNumber(Register reg) {
-    return registers_[reg]->name;
-}
-
 // If we have defined realRegisters_ (IA-32 and 32-bit mode AMD-64)
 // return that. Otherwise return GPRs.
 std::vector<registerSlot *> &registerSpace::realRegs() {
