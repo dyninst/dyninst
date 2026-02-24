@@ -128,6 +128,7 @@ set(_private_headers
     src/RegisterConversion.h
     src/registerSpace/registerSpace.h
     src/registerSpace/RealRegister.h
+    src/registerSpace/registerSlot.h
     src/regTracker.h
     src/syscallNotification.h
     src/trapMappings.h
@@ -209,6 +210,7 @@ set(_sources
     src/Parsing.C
     src/Patching.C
     src/registerSpace/registerSpace.C
+    src/registerSpace/registerSlot.C
     src/Relocation/CFG/RelocBlock.C
     src/Relocation/CFG/RelocEdge.C
     src/Relocation/CFG/RelocGraph.C
