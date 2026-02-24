@@ -28,8 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// $Id: registerSpace.h,v 1.18 2008/06/19 19:53:37 legendre Exp $
-
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
 
@@ -118,7 +116,6 @@ class registerSpace {
     bool markSavedRegister(Dyninst::Register num, int offsetFromFP);
     bool markSavedRegister(RealRegister num, int offsetFromFP);
 
-    //
     bool markKeptRegister(Dyninst::Register num);
 
     // Things that will be modified implicitly by anything else we
