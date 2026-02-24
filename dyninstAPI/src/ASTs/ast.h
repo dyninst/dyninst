@@ -32,6 +32,7 @@
 #define DYNINST_DYNINSTAPI_AST_H
 
 #include "codeGenAST.h"
+#include "variableAST.h"
 #include "AstAddrNode.h"
 #include "AstAtomicOperationStmtNode.h"
 #include "AstCallNode.h"
@@ -48,6 +49,5 @@
 #include "AstStackNode.h"
 #include "AstStackRemoveNode.h"
 #include "AstThreadIndexNode.h"
-#include "AstVariableNode.h"
 
 #endif

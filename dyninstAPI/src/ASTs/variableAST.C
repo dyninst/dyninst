@@ -1,14 +1,14 @@
-#include "AstVariableNode.h"
 #include "codegen.h"
 #include "debug.h"
 #include "instPoint.h"
+#include "variableAST.h"
 
 #include <iomanip>
 #include <sstream>
 
 namespace Dyninst { namespace DyninstAPI {
 
-void AstVariableNode::setVariableAST(codeGen &gen) {
+void variableAST::setVariableAST(codeGen &gen) {
   if(!ranges_) {
     return;
   }
@@ -42,7 +42,7 @@ void AstVariableNode::setVariableAST(codeGen &gen) {
   assert(found);
 }
 
-std::string AstVariableNode::format(std::string indent) {
+std::string variableAST::format(std::string indent) {
   std::stringstream ret;
   ret << indent << "Var/" << std::hex << this << std::dec << "(" << children.size() << ")"
       << std::endl;
