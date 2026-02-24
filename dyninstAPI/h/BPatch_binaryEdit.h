@@ -71,7 +71,6 @@ class DYNINST_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     friend class BPatch_point;
     friend class BPatch_funcCallExpr;
     friend class BPatch_instruction;
-    friend class AstNode; // AST needs to translate instPoint to
     friend class AstOperatorNode;
     friend class AstMemoryNode;
 

@@ -65,8 +65,6 @@ typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
 typedef enum { callPreInsn, callPostInsn, callBranchTargetInsn, callUnset } callWhen;
 typedef enum { orderFirstAtPoint, orderLastAtPoint } callOrder;
 
-class AstNode;
-
 /* Utility functions */
 
 
