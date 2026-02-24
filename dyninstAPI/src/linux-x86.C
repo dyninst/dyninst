@@ -68,7 +68,7 @@
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "instructionAPI/h/Instruction.h"
 
-using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
 namespace CallNode = Dyninst::DyninstAPI::CallNode;
@@ -117,7 +117,7 @@ bool PCProcess::getOPDFunctionAddr(Address &) {
     return true;
 }
 
-AstNodePtr PCProcess::createUnprotectStackAST() {
+codeGenASTPtr PCProcess::createUnprotectStackAST() {
     // Since we are punching our way down to an internal function, we
     // may run into problems due to stack execute protection. Basically,
     // glibc knows that it needs to be able to execute on the stack in
@@ -151,7 +151,7 @@ AstNodePtr PCProcess::createUnprotectStackAST() {
     ret = findVarsByAll("__stack_prot", vars);
 
     if(!ret || vars.size() == 0) {
-        return AstNodePtr();
+        return codeGenASTPtr();
     } else if(vars.size() > 1) {
         startup_printf("%s[%d]: Warning: found more than one __stack_prot variable\n",
                 FILE__, __LINE__);
@@ -168,13 +168,13 @@ AstNodePtr PCProcess::createUnprotectStackAST() {
     if(!ret || funcs.size() == 0) {
         startup_printf("%s[%d]: Couldn't find mprotect\n",
                 FILE__, __LINE__);
-        return AstNodePtr();
+        return codeGenASTPtr();
     }
 
     // mprotect: int mprotect(const void *addr, size_t len, int prot);
     func_instance *mprot = funcs[0];
     
-    std::vector<AstNodePtr> args;
+    std::vector<codeGenASTPtr> args;
     args.push_back(OperandNode::Constant((void *)page_start));
     args.push_back(OperandNode::Constant((void *)(intptr_t)size));
     // prot = READ|WRITE|EXECUTE

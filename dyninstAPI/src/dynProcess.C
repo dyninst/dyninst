@@ -58,7 +58,7 @@
 namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
 namespace CallNode = Dyninst::DyninstAPI::CallNode;
 
-using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 namespace {
 	// maximum number of addresses per outstanding printf!
@@ -1621,13 +1621,13 @@ bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
     // word-align buffer size
     // (see "DYNINSTheap_align" in rtinst/src/RTheap-<os>.c)
     alignUp(size, 4);
-    // build AstNode for "DYNINSTos_malloc" call
+    // build codeGenAST for "DYNINSTos_malloc" call
     std::string callee = "DYNINSTos_malloc";
-    std::vector<AstNodePtr> args(3);
+    std::vector<codeGenASTPtr> args(3);
     args[0] = OperandNode::Constant((void *)(Address)size);
     args[1] = OperandNode::Constant((void *)lo);
     args[2] = OperandNode::Constant((void *)hi);
-    AstNodePtr code = CallNode::namedCall(callee, args);
+    codeGenASTPtr code = CallNode::namedCall(callee, args);
 
     // issue RPC and wait for result
     bool wasRunning = !isStopped();
@@ -1719,14 +1719,14 @@ void PCProcess::installInstrRequests(const std::vector<instMapping*> &requests) 
 		       func->obj()->fullName().c_str());
             
            // should be silently handled or not
-           AstNodePtr ast;
+           codeGenASTPtr ast;
            if ((req->where & FUNC_ARG) && req->args.size()>0) {
               ast = CallNode::namedCall(req->inst,
                                         req->args,
                                         this);
            }
            else {
-              std::vector<AstNodePtr> def_args;
+              std::vector<codeGenASTPtr> def_args;
               def_args.push_back(OperandNode::Constant((void *)0));
               ast = CallNode::namedCall(req->inst,
                                         def_args);
@@ -1795,7 +1795,7 @@ bool PCProcess::postIRPC(void* buffer, int size, void* userData, bool runProcess
                             result);    
 }
 
-bool PCProcess::postIRPC(AstNodePtr action, void *userData,
+bool PCProcess::postIRPC(codeGenASTPtr action, void *userData,
                          bool runProcessWhenDone, PCThread *thread, bool synchronous,
                          void **result, bool userRPC, bool isMemAlloc, Address addr)
 {   

@@ -58,7 +58,7 @@ private:
 
 namespace ThreadNode {
 
-  inline AstNodePtr index() {
+  inline codeGenASTPtr index() {
     return boost::make_shared<AstThreadIndexNode>();
   }
 

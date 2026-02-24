@@ -31,17 +31,17 @@
 #ifndef DYNINST_DYNINSTAPI_ASTNULLNODE_H
 #define DYNINST_DYNINSTAPI_ASTNULLNODE_H
 
-#include "AstNode.h"
 #include "dyn_register.h"
 
 #include <boost/make_shared.hpp>
+#include "codeGenAST.h"
 #include <string>
 
 class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstNullNode : public AstNode {
+class AstNullNode : public codeGenAST {
 public:
   AstNullNode() = default;
 
@@ -58,7 +58,7 @@ private:
 
 namespace NullNode {
 
-  inline AstNodePtr create() {
+  inline codeGenASTPtr create() {
     return boost::make_shared<AstNullNode>();
   }
 }

@@ -148,7 +148,7 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost, Address 
     // Otherwise, call specified failure function
     // NOTE: Skipping saving live registers that will be clobbered by the call because this will be
     // non-returning
-    std::vector<AstNodePtr> operands;
+    std::vector<codeGenASTPtr> operands;
     func_instance *func = func_; // c&p'd from AstCallNode
     codeBufIndex_t preCallIndex = gen.getIndex();
     emitter->emitCallInstruction(gen, func, canaryReg);

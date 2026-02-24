@@ -25,7 +25,7 @@ bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst
 
 namespace AddressNode {
 
-  AstNodePtr original() {
+  codeGenASTPtr original() {
     static auto node = boost::make_shared<AstOriginalAddrNode>();
     return node;
   }

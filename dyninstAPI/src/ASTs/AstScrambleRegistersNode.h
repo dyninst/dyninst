@@ -31,16 +31,16 @@
 #ifndef DYNINST_DYNINSTAPI_ASTSCRAMBLEREGISTERSNODE_H
 #define DYNINST_DYNINSTAPI_ASTSCRAMBLEREGISTERSNODE_H
 
-#include "AstNode.h"
 #include "dyn_register.h"
 
 #include <boost/make_shared.hpp>
+#include "codeGenAST.h"
 
 class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstScrambleRegistersNode : public AstNode {
+class AstScrambleRegistersNode : public codeGenAST {
 public:
   bool usesAppRegister() const override {
     return true;
@@ -52,7 +52,7 @@ private:
 
 namespace RegisterNode {
 
-  inline AstNodePtr scramble() {
+  inline codeGenASTPtr scramble() {
     return boost::make_shared<AstScrambleRegistersNode>();
   }
 

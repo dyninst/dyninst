@@ -44,13 +44,13 @@ void emitImm(opCode /* op */, Register /* src1 */, RegValue /* src2imm */, Regis
   assert(!"Not implemented for AMDGPU");
 }
 
-Register emitFuncCall(opCode, codeGen &, std::vector<AstNodePtr> &, bool, Address) {
+Register emitFuncCall(opCode, codeGen &, std::vector<codeGenASTPtr> &, bool, Address) {
   assert(!"Not implemented for AMDGPU");
   return 0;
 }
 
 Register emitFuncCall(opCode /* op */, codeGen & /* gen */,
-                      std::vector<AstNodePtr> & /* operands */, bool /* noCost */,
+                      std::vector<codeGenASTPtr> & /* operands */, bool /* noCost */,
                       func_instance * /* callee */) {
   assert(!"Not implemented for AMDGPU");
   return 0;
@@ -110,7 +110,7 @@ void emitLoadPreviousStackFrameRegister(Address /* register_num */, Register /* 
 void emitStorePreviousStackFrameRegister(Address, Register, codeGen &, int, bool) {}
 
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction /* i */, Address /* addr */,
-                                          std::vector<AstNodePtr> & /* args */) {
+                                          std::vector<codeGenASTPtr> & /* args */) {
   assert(!"Not implemented for AMDGPU");
   return false;
 }

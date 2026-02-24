@@ -31,10 +31,10 @@
 #ifndef DYNINST_DYNINSTAPI_ASTVARIABLENODE_H
 #define DYNINST_DYNINSTAPI_ASTVARIABLENODE_H
 
-#include "AstNode.h"
 #include "dyn_register.h"
 
 #include <boost/make_shared.hpp>
+#include "codeGenAST.h"
 #include <string>
 #include <utility>
 #include <vector>
@@ -45,11 +45,11 @@ class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstVariableNode : public AstNode {
+class AstVariableNode : public codeGenAST {
 public:
   using range_t = std::pair<Dyninst::Offset, Dyninst::Offset>;
 
-  AstVariableNode(std::vector<AstNodePtr> &ast_wrappers, std::vector<range_t> *ranges)
+  AstVariableNode(std::vector<codeGenASTPtr> &ast_wrappers, std::vector<range_t> *ranges)
       : ranges_{ranges} {
     children = ast_wrappers;
     assert(!children.empty());
@@ -69,7 +69,7 @@ public:
     return children[index]->getoType();
   }
 
-  AstNodePtr operand() const override {
+  codeGenASTPtr operand() const override {
     return children[index]->operand();
   }
 
@@ -99,11 +99,11 @@ private:
 
 namespace VariableNode {
 
-  inline AstNodePtr variable(std::vector<AstNodePtr> &asts) {
+  inline codeGenASTPtr variable(std::vector<codeGenASTPtr> &asts) {
     return boost::make_shared<AstVariableNode>(asts, nullptr);
   }
 
-  inline AstNodePtr variableWithRanges(std::vector<AstNodePtr> &asts,
+  inline codeGenASTPtr variableWithRanges(std::vector<codeGenASTPtr> &asts,
                                        std::vector<AstVariableNode::range_t> *ranges) {
     return boost::make_shared<AstVariableNode>(asts, ranges);
   }

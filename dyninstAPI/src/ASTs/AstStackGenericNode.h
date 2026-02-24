@@ -31,17 +31,17 @@
 #ifndef DYNINST_DYNINSTAPI_ASTSTACKGENERICNODE_H
 #define DYNINST_DYNINSTAPI_ASTSTACKGENERICNODE_H
 
-#include "AstNode.h"
 #include "dyn_register.h"
 
 #include <boost/make_shared.hpp>
+#include "codeGenAST.h"
 #include <string>
 
 class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstStackGenericNode : public AstNode {
+class AstStackGenericNode : public codeGenAST {
 public:
   std::string format(std::string indent) override;
 
@@ -56,7 +56,7 @@ private:
 
 namespace StackNode {
 
-  inline AstNodePtr generic() {
+  inline codeGenASTPtr generic() {
     return boost::make_shared<AstStackGenericNode>();
   }
 

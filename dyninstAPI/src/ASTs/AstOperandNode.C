@@ -35,7 +35,7 @@ AstOperandNode::AstOperandNode(operandType ot, void *arg) : oType(ot), oVar(NULL
 }
 
 // And an indirect (say, a load)
-AstOperandNode::AstOperandNode(operandType ot, AstNodePtr l)
+AstOperandNode::AstOperandNode(operandType ot, codeGenASTPtr l)
     : oType(ot), oValue(NULL), oVar(NULL), operand_(l) {
   if(operand_) {
     children.push_back(operand_);
@@ -175,7 +175,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost, Address &,
       break;
     case operandType::RegOffset:
       // Prepare offset from value in any general register (not just fp).
-      // This AstNode holds the register number, and loperand holds offset.
+      // This codeGenAST holds the register number, and loperand holds offset.
       assert(operand_);
       addr = (Address)operand_->getOValue();
       emitVload(loadRegRelativeOp, addr, (long)oValue, retReg, gen, noCost, gen.rs(), size,

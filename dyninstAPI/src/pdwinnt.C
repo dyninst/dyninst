@@ -426,7 +426,7 @@ static void emitNeededCallSaves(codeGen &gen, Register reg, std::vector<Register
 static void emitNeededCallRestores(codeGen &gen, std::vector<Register> &saves);
 
 int EmitterIA32::emitCallParams(codeGen &gen, 
-                              const std::vector<AstNodePtr> &operands,
+                              const std::vector<codeGenASTPtr> &operands,
                               func_instance *target, 
                               std::vector<Register> &extra_saves, 
                               bool noCost)

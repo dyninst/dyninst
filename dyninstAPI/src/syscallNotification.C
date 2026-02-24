@@ -43,7 +43,7 @@
 using namespace ProcControlAPI;
 using namespace PatchAPI;
 
-using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
 
@@ -104,7 +104,7 @@ bool syscallNotification::installPreFork() {
 bool syscallNotification::installPostFork() {
    if (!PCEventMuxer::useBreakpoint(EventType(EventType::Post, EventType::Fork))) return true;
 
-   AstNodePtr returnVal = OperandNode::ReturnVal((void *)0);
+   codeGenASTPtr returnVal = OperandNode::ReturnVal((void *)0);
    postForkInst = new instMapping(getForkFuncName(), "DYNINST_instForkExit",
                                   FUNC_EXIT|FUNC_ARG,
                                   returnVal);
@@ -124,7 +124,7 @@ bool syscallNotification::installPostFork() {
 
 bool syscallNotification::installPreExec() {
    if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Exec))) return true;
-   AstNodePtr arg0 = OperandNode::Param((void *)0);
+   codeGenASTPtr arg0 = OperandNode::Param((void *)0);
    preExecInst = new instMapping(getExecFuncName(), "DYNINST_instExecEntry",
                                  FUNC_ENTRY|FUNC_ARG,
                                  arg0);
@@ -151,7 +151,7 @@ bool syscallNotification::installPostExec() {
 
 bool syscallNotification::installPreExit() {
    if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Exit))) return true;
-   AstNodePtr arg0 = OperandNode::Param((void *)0);
+   codeGenASTPtr arg0 = OperandNode::Param((void *)0);
    preExitInst = new instMapping(getExitFuncName(), "DYNINST_instExitEntry",
                                  FUNC_ENTRY|FUNC_ARG,
                                  arg0);

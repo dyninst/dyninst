@@ -31,11 +31,11 @@
 #ifndef DYNINST_DYNINSTAPI_ASTATOMICOPERATIONSTMTNODE_H
 #define DYNINST_DYNINSTAPI_ASTATOMICOPERATIONSTMTNODE_H
 
-#include "AstNode.h"
 #include "dyn_register.h"
 #include "opcode.h"
 
 #include <boost/make_shared.hpp>
+#include "codeGenAST.h"
 #include <string>
 
 class codeGen;
@@ -44,9 +44,9 @@ namespace Dyninst { namespace DyninstAPI {
 
 // This corresponds to a single statement, and not an expression that can be nested among other
 // expressions.
-class AstAtomicOperationStmtNode : public AstNode {
+class AstAtomicOperationStmtNode : public codeGenAST {
 public:
-  AstAtomicOperationStmtNode(opCode op, AstNodePtr var, AstNodePtr constant_)
+  AstAtomicOperationStmtNode(opCode op, codeGenASTPtr var, codeGenASTPtr constant_)
       : opcode{op}, variable{std::move(var)}, constant{std::move(constant_)} {}
 
   std::string format(std::string indent) override;
@@ -59,18 +59,18 @@ private:
   bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
                            Dyninst::Register &) override;
   opCode opcode{};
-  AstNodePtr variable{};
-  AstNodePtr constant{};
+  codeGenASTPtr variable{};
+  codeGenASTPtr constant{};
 };
 
 namespace AtomicOperation {
 
-  inline AstNodePtr plus(AstNodePtr var, AstNodePtr constant) {
+  inline codeGenASTPtr plus(codeGenASTPtr var, codeGenASTPtr constant) {
     return boost::make_shared<AstAtomicOperationStmtNode>(plusOp, std::move(var),
                                                           std::move(constant));
   }
 
-  inline AstNodePtr minus(AstNodePtr var, AstNodePtr constant) {
+  inline codeGenASTPtr minus(codeGenASTPtr var, codeGenASTPtr constant) {
     return boost::make_shared<AstAtomicOperationStmtNode>(minusOp, std::move(var),
                                                           std::move(constant));
   }

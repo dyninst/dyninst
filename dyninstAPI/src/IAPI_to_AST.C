@@ -41,16 +41,16 @@
 
 using namespace Dyninst::InstructionAPI;
 
-using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 namespace OperatorNode = Dyninst::DyninstAPI::OperatorNode;
 namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
 
 void ASTFactory::visit(BinaryFunction* b)
 {
-    AstNodePtr rhs = m_stack.back();
+    codeGenASTPtr rhs = m_stack.back();
     m_stack.pop_back();
-    AstNodePtr lhs = m_stack.back();
+    codeGenASTPtr lhs = m_stack.back();
     m_stack.pop_back();
     if(b->isAdd())
     {
@@ -68,7 +68,7 @@ void ASTFactory::visit(BinaryFunction* b)
 
 void ASTFactory::visit(Dereference* )
 {
-    AstNodePtr effaddr = m_stack.back();
+    codeGenASTPtr effaddr = m_stack.back();
     m_stack.pop_back();
 	m_stack.push_back(OperandNode::DataIndir(effaddr));
 }

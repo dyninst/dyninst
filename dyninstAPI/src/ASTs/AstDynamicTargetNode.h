@@ -31,7 +31,7 @@
 #ifndef DYNINST_DYNINSTAPI_ASTDYNAMICTARGETNODE_H
 #define DYNINST_DYNINSTAPI_ASTDYNAMICTARGETNODE_H
 
-#include "AstNode.h"
+#include "codeGenAST.h"
 #include "dyn_register.h"
 
 #include <boost/make_shared.hpp>
@@ -43,7 +43,7 @@ class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstDynamicTargetNode : public AstNode {
+class AstDynamicTargetNode : public codeGenAST {
 public:
   BPatch_type *checkType(BPatch_function *) override {
     return getType();
@@ -56,7 +56,7 @@ private:
 
 namespace TargetNode {
 
-  AstNodePtr dynamic();
+  codeGenASTPtr dynamic();
 
 }
 

@@ -249,7 +249,7 @@ void AddressSpace::deleteAddressSpace() {
    runtime_lib.clear();
 
    trampGuardBase_ = NULL;
-   trampGuardAST_ = DyninstAPI::AstNodePtr();
+   trampGuardAST_ = DyninstAPI::codeGenASTPtr();
 
    // up_ptr_ is untouched
    costAddr_ = 0;
@@ -940,10 +940,10 @@ void AddressSpace::getAllModules(std::vector<mapped_module *> &mods){
    }
 }
 
-DyninstAPI::AstNodePtr AddressSpace::trampGuardAST() {
+DyninstAPI::codeGenASTPtr AddressSpace::trampGuardAST() {
    if (!trampGuardBase_) {
       // Don't have it yet....
-      return DyninstAPI::AstNodePtr();
+      return DyninstAPI::codeGenASTPtr();
    }
 
    if (trampGuardAST_) return trampGuardAST_;

@@ -62,7 +62,7 @@
 //#warning "This file is not implemented yet!"
 using namespace Dyninst::SymtabAPI;
 
-using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 namespace CallNode = Dyninst::DyninstAPI::CallNode;
 
@@ -122,9 +122,9 @@ void parse_func::calcUsedRegs()
 
 static void add_handler(instPoint* pt, func_instance* add_me)
 {
-  vector<AstNodePtr> args;
+  vector<codeGenASTPtr> args;
   // no args, just add
-  AstNodePtr snip = CallNode::call(add_me, args);
+  codeGenASTPtr snip = CallNode::call(add_me, args);
   auto instrumentation = pt->pushFront(snip);
   instrumentation->disableRecursiveGuard();
 }

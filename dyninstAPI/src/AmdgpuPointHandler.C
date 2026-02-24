@@ -161,7 +161,7 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
   auto prologuePtr =
       boost::make_shared<AmdgpuPrologue>(regPair, kd.getKernargPtrRegisterPair(), kd.getKernargSize());
 
-  DyninstAPI::AstNodePtr prologueNodePtr =
+  DyninstAPI::codeGenASTPtr prologueNodePtr =
         boost::make_shared<AmdgpuPrologueNode>(prologuePtr);
 
   AmdgpuPrologueSnippet prologueSnippet(prologueNodePtr);
@@ -181,7 +181,7 @@ void AmdgpuGfx908PointHandler::insertEpilogueIfKernel(BPatch_function *function)
 
   auto epiloguePtr = boost::make_shared<AmdgpuEpilogue>();
 
-  DyninstAPI::AstNodePtr epilogueNodePtr = boost::make_shared<AmdgpuEpilogueNode>(epiloguePtr);
+  DyninstAPI::codeGenASTPtr epilogueNodePtr = boost::make_shared<AmdgpuEpilogueNode>(epiloguePtr);
 
   AmdgpuEpilogueSnippet epilogueSnippet(epilogueNodePtr);
   insertEpilogueAtPoints(epilogueSnippet, exitPoints);

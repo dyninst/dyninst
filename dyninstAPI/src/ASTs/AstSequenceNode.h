@@ -31,10 +31,10 @@
 #ifndef DYNINST_DYNINSTAPI_ASTSEQUENCENODE_H
 #define DYNINST_DYNINSTAPI_ASTSEQUENCENODE_H
 
-#include "AstNode.h"
 #include "dyn_register.h"
 
 #include <boost/make_shared.hpp>
+#include "codeGenAST.h"
 #include <string>
 
 class BPatch_type;
@@ -43,9 +43,9 @@ class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstSequenceNode : public AstNode {
+class AstSequenceNode : public codeGenAST {
 public:
-  AstSequenceNode(std::vector<AstNodePtr> &sequence) {
+  AstSequenceNode(std::vector<codeGenASTPtr> &sequence) {
     children = sequence;
   }
 
@@ -66,7 +66,7 @@ private:
 
 namespace SequenceNode {
 
-  inline AstNodePtr sequence(std::vector<AstNodePtr> &vals) {
+  inline codeGenASTPtr sequence(std::vector<codeGenASTPtr> &vals) {
     return boost::make_shared<AstSequenceNode>(vals);
   }
 }

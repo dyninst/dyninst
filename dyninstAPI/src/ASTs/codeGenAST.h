@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_DYNINSTAPI_ASTNODE_H
-#define DYNINST_DYNINSTAPI_ASTNODE_H
+#ifndef DYNINST_DYNINSTAPI_CODEGENAST_H
+#define DYNINST_DYNINSTAPI_CODEGENAST_H
 
 #include "dyn_register.h"
 #include "opcode.h"
@@ -70,21 +70,21 @@ class registerSpace;
 // the table with that level value (undoing all kept registers along that
 // path).
 // 7) If we need a register, the register allocator (registerSpace) can forcibly
-// undo this optimization and grab a register. Grab the register from the AstNode
+// undo this optimization and grab a register. Grab the register from the codeGenAST
 // with the lowest usage count.
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstNode;
-typedef boost::shared_ptr<AstNode> AstNodePtr;
+class codeGenAST;
+typedef boost::shared_ptr<codeGenAST> codeGenASTPtr;
 
-class AstNode : public Dyninst::PatchAPI::Snippet {
+class codeGenAST : public Dyninst::PatchAPI::Snippet {
 public:
   virtual std::string format(std::string indent);
 
-  AstNode() = default;
+  codeGenAST() = default;
 
-  virtual ~AstNode() = default;
+  virtual ~codeGenAST() = default;
 
   virtual bool generateCode(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
                             Dyninst::Register &retReg);
@@ -112,8 +112,8 @@ public:
 
   bool previousComputationValid(Dyninst::Register &reg, codeGen &gen);
 
-  virtual AstNodePtr operand() const {
-    return AstNodePtr();
+  virtual codeGenASTPtr operand() const {
+    return codeGenASTPtr();
   }
 
   virtual bool containsFuncCall() const {
@@ -163,7 +163,7 @@ public:
   Dyninst::Register allocateAndKeep(codeGen &gen, bool noCost);
 
   // Return all children of this node ([lre]operand, ..., operands[])
-  std::vector<AstNodePtr> const &getChildren() const {
+  std::vector<codeGenASTPtr> const &getChildren() const {
     return children;
   }
 
@@ -198,7 +198,7 @@ protected:
   BPatch_type *bptype{};  // type of corresponding BPatch_snippet
   bool doTypeCheck{true}; // should operands be type checked
   int size{4};            // size of the operations (in bytes)
-  std::vector<AstNodePtr> children{};
+  std::vector<codeGenASTPtr> children{};
 
 public:
   // Functions for getting and setting type decoration used by the

@@ -66,7 +66,7 @@
 #include <assert.h>
 #include "unaligned_memory_access.h"
 
-using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 class ExpandInstruction;
 class InsertNops;
@@ -752,7 +752,7 @@ unsigned char jccOpcodeFromRelOp(unsigned op, bool s)
 // this function just multiplexes between the 32-bit and 64-bit versions
 Dyninst::Register emitFuncCall(opCode op,
                       codeGen &gen,
-                      std::vector<AstNodePtr> &operands, 
+                      std::vector<codeGenASTPtr> &operands, 
                       bool noCost,
                       func_instance *callee)
 {
@@ -808,7 +808,7 @@ void EmitterIA32::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 
 Dyninst::Register EmitterIA32::emitCall(opCode op,
                                codeGen &gen,
-                               const std::vector<AstNodePtr> &operands, 
+                               const std::vector<codeGenASTPtr> &operands, 
                                bool noCost, func_instance *callee) {
     bool inInstrumentation = true;
     if (op != callOp) {
@@ -1647,7 +1647,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 // This can handle indirect control transfers as well 
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction insn,
                                           Address addr,
-                                          std::vector<AstNodePtr> &args)
+                                          std::vector<codeGenASTPtr> &args)
 {
    using namespace Dyninst::InstructionAPI;        
    Expression::Ptr cft = insn.getControlFlowTarget();
@@ -1854,7 +1854,7 @@ void emitJump(unsigned disp32, codeGen &gen)
 // they are identical on Linux and FreeBSD
 
 int EmitterIA32::emitCallParams(codeGen &gen, 
-                              const std::vector<AstNodePtr> &operands,
+                              const std::vector<codeGenASTPtr> &operands,
                               func_instance */*target*/, 
                               std::vector<Dyninst::Register> &/*extra_saves*/,
                               bool noCost)

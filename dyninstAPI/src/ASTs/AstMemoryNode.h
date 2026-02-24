@@ -31,17 +31,17 @@
 #ifndef DYNINST_DYNINSTAPI_ASTMEMORYNODE_H
 #define DYNINST_DYNINSTAPI_ASTMEMORYNODE_H
 
-#include "AstNode.h"
 #include "dyn_register.h"
 
 #include <boost/make_shared.hpp>
+#include "codeGenAST.h"
 #include <string>
 
 class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstMemoryNode : public AstNode {
+class AstMemoryNode : public codeGenAST {
 public:
   enum class memoryType {
     EffectiveAddr,
@@ -73,12 +73,12 @@ private:
 
 namespace MemoryNode {
 
-  inline AstNodePtr effectiveAddress(int which, int size) {
+  inline codeGenASTPtr effectiveAddress(int which, int size) {
     auto t = AstMemoryNode::memoryType::EffectiveAddr;
     return boost::make_shared<AstMemoryNode>(t, which, size);
   }
 
-  inline AstNodePtr bytesAccessed(int which) {
+  inline codeGenASTPtr bytesAccessed(int which) {
     auto t = AstMemoryNode::memoryType::BytesAccessed;
     return boost::make_shared<AstMemoryNode>(t, which);
   }

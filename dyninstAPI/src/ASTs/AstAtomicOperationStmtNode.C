@@ -48,12 +48,12 @@ bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen &gen, bool noCost, 
   assert(src0 != Dyninst::Null_Register);
 
   // Now generate code for the variable -- load a register pair with the address of the variable.
-  AstOperandNode *variableOperand = dynamic_cast<AstOperandNode *>((AstNode *)variable.get());
+  AstOperandNode *variableOperand = dynamic_cast<AstOperandNode *>((codeGenAST *)variable.get());
   assert(variableOperand);
   assert(variableOperand->getoType() == operandType::AddressAsPlaceholderRegAndOffset);
 
   AstOperandNode *offset =
-      dynamic_cast<AstOperandNode *>((AstNode *)variableOperand->operand().get());
+      dynamic_cast<AstOperandNode *>((codeGenAST *)variableOperand->operand().get());
   assert(offset);
 
   EmitterAmdgpuGfx908 *emitter = dynamic_cast<EmitterAmdgpuGfx908 *>(gen.emitter());

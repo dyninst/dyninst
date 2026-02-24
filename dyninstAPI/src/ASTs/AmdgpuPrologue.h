@@ -70,7 +70,7 @@ public:
 // BPatch_snippet that uses the above AST node.
 class AmdgpuPrologueSnippet : public BPatch_snippet {
 public:
-  AmdgpuPrologueSnippet(const AstNodePtr &p) : BPatch_snippet(p) {}
+  AmdgpuPrologueSnippet(const codeGenASTPtr &p) : BPatch_snippet(p) {}
 };
 
 }}

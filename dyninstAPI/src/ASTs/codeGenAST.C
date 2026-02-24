@@ -1,16 +1,16 @@
 #include "addressSpace.h"
 #include "ast_helpers.h"
-#include "AstNode.h"
 #include "BPatch.h"
 #include "BPatch_type.h"
 #include "Buffer.h"
+#include "codeGenAST.h"
 #include "debug.h"
 #include "Point.h"
 #include "registerSpace.h"
 
 namespace Dyninst { namespace DyninstAPI {
 
-void AstNode::setType(BPatch_type *t) {
+void codeGenAST::setType(BPatch_type *t) {
   bptype = t;
   if(t != NULL) {
     size = t->getSize();
@@ -38,7 +38,7 @@ void AstNode::setType(BPatch_type *t) {
 // 1: Node can be kept, but doesn't matter as it's only used once.
 // >1: keep result in a register.
 
-void AstNode::setUseCount() {
+void codeGenAST::setUseCount() {
   if(useCount) {
     // If the useCount is 1, then it means this node can
     // be shared, and there is a copy. In that case, we assume
@@ -63,7 +63,7 @@ void AstNode::setUseCount() {
   }
 }
 
-void AstNode::cleanUseCount() {
+void codeGenAST::cleanUseCount() {
   useCount = 0;
 
   for(unsigned i = 0; i < children.size(); i++) {
@@ -73,7 +73,7 @@ void AstNode::cleanUseCount() {
 
 // Allocate a register and make it available for sharing if our
 // node is shared
-Dyninst::Register AstNode::allocateAndKeep(codeGen &gen, bool noCost) {
+Dyninst::Register codeGenAST::allocateAndKeep(codeGen &gen, bool noCost) {
   ast_printf("Allocating register for node %p, useCount %d\n", (void *)this, useCount);
   // Allocate a register
   Dyninst::Register dest = gen.rs()->allocateRegister(gen, noCost);
@@ -115,7 +115,7 @@ Dyninst::Register AstNode::allocateAndKeep(codeGen &gen, bool noCost) {
 // currently available. In order to fix this problem, we will need to
 // implement a "virtual" register allocator - naim 11/06/96
 //
-bool AstNode::generateCode(codeGen &gen, bool noCost, Address &retAddr, Dyninst::Register &retReg) {
+bool codeGenAST::generateCode(codeGen &gen, bool noCost, Address &retAddr, Dyninst::Register &retReg) {
   static bool entered = false;
 
   bool ret = true;
@@ -162,7 +162,7 @@ bool AstNode::generateCode(codeGen &gen, bool noCost, Address &retAddr, Dyninst:
   return ret;
 }
 
-bool AstNode::generateCode(codeGen &gen, bool noCost) {
+bool codeGenAST::generateCode(codeGen &gen, bool noCost) {
   Address unused = ADDR_NULL;
   Dyninst::Register unusedReg = Dyninst::Null_Register;
   bool ret = generateCode(gen, noCost, unused, unusedReg);
@@ -171,7 +171,7 @@ bool AstNode::generateCode(codeGen &gen, bool noCost) {
   return ret;
 }
 
-bool AstNode::previousComputationValid(Dyninst::Register &reg, codeGen &gen) {
+bool codeGenAST::previousComputationValid(Dyninst::Register &reg, codeGen &gen) {
   Dyninst::Register keptReg = gen.tracker()->hasKeptRegister(this);
   if(keptReg != Dyninst::Null_Register) {
     reg = keptReg;
@@ -181,7 +181,7 @@ bool AstNode::previousComputationValid(Dyninst::Register &reg, codeGen &gen) {
   return false;
 }
 
-bool AstNode::initRegisters(codeGen &g) {
+bool codeGenAST::initRegisters(codeGen &g) {
   bool ret = true;
   for(unsigned i = 0; i < children.size(); i++) {
     if(!children[i]->initRegisters(g)) {
@@ -191,13 +191,13 @@ bool AstNode::initRegisters(codeGen &g) {
   return ret;
 }
 
-BPatch_type *AstNode::checkType(BPatch_function *) {
+BPatch_type *codeGenAST::checkType(BPatch_function *) {
   return BPatch::bpatch->type_Untyped;
 }
 
 // Our children may have incorrect useCounts (most likely they
 // assume that we will not bother them again, which is wrong)
-void AstNode::fixChildrenCounts() {
+void codeGenAST::fixChildrenCounts() {
   for(unsigned i = 0; i < children.size(); i++) {
     children[i]->setUseCount();
   }
@@ -205,7 +205,7 @@ void AstNode::fixChildrenCounts() {
 
 // Occasionally, we do not call .generateCode_phase2 for the referenced node,
 // but generate code by hand. This routine decrements its use count properly
-void AstNode::decUseCount(codeGen &gen) {
+void codeGenAST::decUseCount(codeGen &gen) {
   if(useCount == 0) {
     return;
   }
@@ -217,7 +217,7 @@ void AstNode::decUseCount(codeGen &gen) {
   }
 }
 
-bool AstNode::generate(Point *point, Buffer &buffer) {
+bool codeGenAST::generate(Point *point, Buffer &buffer) {
   // For now, be really inefficient. Yay!
   codeGen gen(1024);
   instPoint *ip = IPCONV(point);
@@ -236,7 +236,7 @@ bool AstNode::generate(Point *point, Buffer &buffer) {
   return true;
 }
 
-std::string AstNode::format(std::string indent) {
+std::string codeGenAST::format(std::string indent) {
   std::stringstream ret;
   ret << indent << "Default/" << std::hex << this << "()\n";
   return ret.str();

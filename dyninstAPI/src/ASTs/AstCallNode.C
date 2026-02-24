@@ -161,7 +161,7 @@ std::string AstCallNode::format(std::string indent) {
 }
 
 namespace CallNode {
-  AstNodePtr namedCall(std::string name, std::vector<AstNodePtr> &args, AddressSpace *addrSpace) {
+  codeGenASTPtr namedCall(std::string name, std::vector<codeGenASTPtr> &args, AddressSpace *addrSpace) {
 
     if(!addrSpace) {
       return boost::make_shared<AstCallNode>(std::move(name), args);
@@ -170,7 +170,7 @@ namespace CallNode {
     func_instance *ifunc = addrSpace->findOnlyOneFunction(name);
     if(ifunc == NULL) {
       ast_printf("%s[%d]: Can't find function %s\n", FILE__, __LINE__, name.c_str());
-      return AstNodePtr();
+      return codeGenASTPtr();
     }
 
     return boost::make_shared<AstCallNode>(ifunc, args);

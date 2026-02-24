@@ -31,14 +31,15 @@
 #ifndef DYNINST_DYNINSTAPI_STACKAST_H
 #define DYNINST_DYNINSTAPI_STACKAST_H
 
-#include "AstNode.h"
+#include "codeGenAST.h"
+
 #include "dyn_register.h"
 
 class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstStackNode : public AstNode {
+class AstStackNode : public codeGenAST {
 public:
   enum MSpecialType {
     GENERIC_AST,

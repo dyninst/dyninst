@@ -31,10 +31,10 @@
 #ifndef DYNINST_DYNINSTAPI_ASTCALLNODE_H
 #define DYNINST_DYNINSTAPI_ASTCALLNODE_H
 
-#include "AstNode.h"
 #include "dyn_register.h"
 
 #include <boost/make_shared.hpp>
+#include "codeGenAST.h"
 #include <string>
 #include <vector>
 
@@ -45,19 +45,19 @@ class func_instance;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstCallNode : public AstNode {
+class AstCallNode : public codeGenAST {
 public:
   AstCallNode(std::string name) : func_name_{std::move(name)} {}
 
-  AstCallNode(func_instance *func, std::vector<AstNodePtr> &args) : func_{func} {
+  AstCallNode(func_instance *func, std::vector<codeGenASTPtr> &args) : func_{func} {
     set_args(args);
   }
 
-  AstCallNode(std::string name, std::vector<AstNodePtr> &args) : func_name_{std::move(name)} {
+  AstCallNode(std::string name, std::vector<codeGenASTPtr> &args) : func_name_{std::move(name)} {
     set_args(args);
   }
 
-  AstCallNode(Dyninst::Address addr, std::vector<AstNodePtr> &args) : func_addr_{addr} {
+  AstCallNode(Dyninst::Address addr, std::vector<codeGenASTPtr> &args) : func_addr_{addr} {
     set_args(args);
   }
 
@@ -79,7 +79,7 @@ private:
   bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
                            Dyninst::Register &retReg) override;
 
-  void set_args(std::vector<AstNodePtr> &args) {
+  void set_args(std::vector<codeGenASTPtr> &args) {
     children = args;
   }
 
@@ -92,27 +92,27 @@ private:
 
 namespace CallNode {
 
-  AstNodePtr namedCall(std::string name, std::vector<AstNodePtr> &args, AddressSpace *addrSpace);
+  codeGenASTPtr namedCall(std::string name, std::vector<codeGenASTPtr> &args, AddressSpace *addrSpace);
 
-  inline AstNodePtr namedCall(std::string name, std::vector<AstNodePtr> &args) {
+  inline codeGenASTPtr namedCall(std::string name, std::vector<codeGenASTPtr> &args) {
     return boost::make_shared<AstCallNode>(std::move(name), args);
   }
 
-  inline AstNodePtr call(func_instance *func, std::vector<AstNodePtr> &args) {
+  inline codeGenASTPtr call(func_instance *func, std::vector<codeGenASTPtr> &args) {
     if(!func) {
       return {};
     }
     return boost::make_shared<AstCallNode>(func, args);
   }
 
-  inline AstNodePtr replace(func_instance *func) {
+  inline codeGenASTPtr replace(func_instance *func) {
     if(!func) {
       return {};
     }
     return boost::make_shared<AstCallNode>(func);
   }
 
-  inline AstNodePtr target(Dyninst::Address addr, std::vector<AstNodePtr> &args) {
+  inline codeGenASTPtr target(Dyninst::Address addr, std::vector<codeGenASTPtr> &args) {
     return boost::make_shared<AstCallNode>(addr, args);
   }
 }

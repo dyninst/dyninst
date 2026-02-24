@@ -50,9 +50,9 @@
 using namespace Dyninst;
 using namespace PatchAPI;
 
-using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
-#define DCAST_AST(ast) boost::dynamic_pointer_cast<Dyninst::DyninstAPI::AstNode>(ast)
+#define DCAST_AST(ast) boost::dynamic_pointer_cast<Dyninst::DyninstAPI::codeGenAST>(ast)
 
 namespace OperatorNode = Dyninst::DyninstAPI::OperatorNode;
 namespace SequenceNode = Dyninst::DyninstAPI::SequenceNode;
@@ -333,7 +333,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
 	
    gen.setRegisterSpace(registerSpace::actualRegSpace(instP()));
 
-   std::vector<AstNodePtr> miniTramps;
+   std::vector<codeGenASTPtr> miniTramps;
 
    if (point_) {
       // Sort snippets by type to have prologues before regular snippets and epilogues after regular snippets,
@@ -344,7 +344,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
 
       for (instPoint::instance_iter iter = point_->begin(); 
            iter != point_->end(); ++iter) {
-         AstNodePtr ast = DCAST_AST((*iter)->snippet());
+         codeGenASTPtr ast = DCAST_AST((*iter)->snippet());
          if (ast) 
             miniTramps.push_back(ast);
          else
@@ -355,15 +355,15 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
       miniTramps.push_back(ast_);
    }
 
-   AstNodePtr minis = SequenceNode::sequence(miniTramps);
+   codeGenASTPtr minis = SequenceNode::sequence(miniTramps);
 
-   AstNodePtr baseTrampSequence;
-   std::vector<AstNodePtr > baseTrampElements;
+   codeGenASTPtr baseTrampSequence;
+   std::vector<codeGenASTPtr > baseTrampElements;
 
     
    // Run the minitramps
    baseTrampElements.push_back(minis);
-   vector<AstNodePtr> empty_args;
+   vector<codeGenASTPtr> empty_args;
     
    if (guarded() &&
        minis->containsFuncCall()) {
@@ -372,7 +372,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
 
    baseTrampSequence = SequenceNode::sequence(baseTrampElements);
 
-   AstNodePtr baseTrampAST;
+   codeGenASTPtr baseTrampAST;
 
    // If trampAddr is non-NULL, then we wrap this with an IF. If not, 
    // we just run the minitramps.
@@ -437,7 +437,7 @@ bool baseTramp::checkForFuncCalls()
 */
       for (instPoint::instance_iter iter = point_->begin(); 
            iter != point_->end(); ++iter) {
-         AstNodePtr ast = DCAST_AST((*iter)->snippet());
+         codeGenASTPtr ast = DCAST_AST((*iter)->snippet());
          if (!ast) continue;
          if (ast->containsFuncCall()) return true;
       }
@@ -466,7 +466,7 @@ bool baseTramp::doOptimizations()
    */
    for (instPoint::instance_iter iter = point_->begin(); 
         iter != point_->end(); ++iter) {
-      AstNodePtr ast = DCAST_AST((*iter)->snippet());
+      codeGenASTPtr ast = DCAST_AST((*iter)->snippet());
       if (!ast) continue;
       if (ast->containsFuncCall()) {
          hasFuncCall = true;

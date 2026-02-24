@@ -41,7 +41,7 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen, bool noCost, Addres
     return true;
   } else { // this is a dynamic ctrl flow instruction, have
     // getDynamicCallSiteArgs generate the necessary AST
-    std::vector<AstNodePtr> args;
+    std::vector<codeGenASTPtr> args;
     if(!gen.addrSpace()->getDynamicCallSiteArgs(insn, gen.point()->block()->last(), args)) {
       return false;
     }
@@ -54,7 +54,7 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen, bool noCost, Addres
 
 namespace TargetNode {
 
-  AstNodePtr dynamic() {
+  codeGenASTPtr dynamic() {
     static auto node = boost::make_shared<AstDynamicTargetNode>();
     return node;
   }

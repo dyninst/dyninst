@@ -63,7 +63,7 @@
 #include "mapped_object.h"
 #include "Snippet.h"
 
-using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 /*
  * Private constructor, insn
@@ -463,7 +463,7 @@ void *BPatch_point::monitorCalls( BPatch_function * user_cb )
   // the second the (address of the) callsite.
 
   InstructionAPI::Instruction insn = point->block()->getInsn(point->block()->last());
-  std::vector<AstNodePtr> args;
+  std::vector<codeGenASTPtr> args;
   if (!lladdSpace->getDynamicCallSiteArgs(insn, point->block()->last(), args))
       return NULL;
   if (args.size() != 2)
@@ -474,7 +474,7 @@ void *BPatch_point::monitorCalls( BPatch_function * user_cb )
   func_instance * fb = func_to_use->lowlevel_func();
 
   // Monitoring function
-  AstNodePtr ast = DyninstAPI::CallNode::call(fb, args);
+  codeGenASTPtr ast = DyninstAPI::CallNode::call(fb, args);
 
   Dyninst::PatchAPI::InstancePtr res = point->pushBack(ast);
 

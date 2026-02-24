@@ -45,7 +45,7 @@
 #include "dyninstAPI/src/function.h"
 #include "common/src/linuxHeaders.h"
 
-using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 namespace NullNode = Dyninst::DyninstAPI::NullNode;
 
@@ -108,7 +108,7 @@ bool PCProcess::getOPDFunctionAddr(Dyninst::Address &) {
     return true;
 }
 
-AstNodePtr PCProcess::createUnprotectStackAST() {
+codeGenASTPtr PCProcess::createUnprotectStackAST() {
     // This is not necessary on power
     return NullNode::create();
 }

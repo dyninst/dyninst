@@ -60,7 +60,7 @@
 #include "RegisterConversion.h"
 #include "registerSpace.h"
 
-using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 namespace CallNode = Dyninst::DyninstAPI::CallNode;
 
@@ -74,9 +74,9 @@ namespace {
 
 static void add_handler(instPoint* pt, func_instance* add_me)
 {
-  vector<AstNodePtr> args;
+  vector<codeGenASTPtr> args;
   // no args, just add
-  AstNodePtr snip = CallNode::call(add_me, args);
+  codeGenASTPtr snip = CallNode::call(add_me, args);
   auto instrumentation = pt->pushFront(snip);
   instrumentation->disableRecursiveGuard();
 }  

@@ -32,7 +32,7 @@
 #include "PointHandler.h"
 #include "common/src/dyn_register.h"
 
-// We use std::shared_ptr for prologue and epilogue asts because AstNodePtr is a boost::shared_ptr
+// We use std::shared_ptr for prologue and epilogue asts because codeGenASTPtr is a boost::shared_ptr
 #include "boost/shared_ptr.hpp"
 
 #include "AmdgpuEpilogue.h"

@@ -36,7 +36,7 @@
 #include <unordered_map>
 
 namespace Dyninst { namespace DyninstAPI {
-  class AstNode;
+  class codeGenAST;
 }}
 
 class codeGen;
@@ -55,11 +55,11 @@ public:
 
   regTracker_t() : condLevel(0) {}
 
-  std::unordered_map<Dyninst::DyninstAPI::AstNode *, commonExpressionTracker> tracker;
+  std::unordered_map<Dyninst::DyninstAPI::codeGenAST *, commonExpressionTracker> tracker;
 
-  void addKeptRegister(codeGen &gen, Dyninst::DyninstAPI::AstNode *n, Dyninst::Register reg);
-  void removeKeptRegister(codeGen &gen, Dyninst::DyninstAPI::AstNode *n);
-  Dyninst::Register hasKeptRegister(Dyninst::DyninstAPI::AstNode *n);
+  void addKeptRegister(codeGen &gen, Dyninst::DyninstAPI::codeGenAST *n, Dyninst::Register reg);
+  void removeKeptRegister(codeGen &gen, Dyninst::DyninstAPI::codeGenAST *n);
+  Dyninst::Register hasKeptRegister(Dyninst::DyninstAPI::codeGenAST *n);
   bool stealKeptRegister(Dyninst::Register reg);
 
   void reset();

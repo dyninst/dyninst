@@ -61,7 +61,7 @@
 
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
-using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
 
@@ -771,7 +771,7 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
 
 Dyninst::Register emitFuncCall(opCode op,
                       codeGen &gen,
-                      std::vector<AstNodePtr> &operands, bool noCost,
+                      std::vector<codeGenASTPtr> &operands, bool noCost,
                       func_instance *callee) {
     return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
 }
@@ -855,7 +855,7 @@ Dyninst::Register EmitterPOWER::emitCallReplacement(opCode ocode,
 
 Dyninst::Register EmitterPOWER::emitCall(opCode ocode,
                                 codeGen &gen,
-                                const std::vector<AstNodePtr> &operands,
+                                const std::vector<codeGenASTPtr> &operands,
                                 bool noCost,
                                 func_instance *callee) {
     bool inInstrumentation = true;
@@ -1741,7 +1741,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 using namespace Dyninst::InstructionAPI; 
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 					  Address addr, 
-					  std::vector<AstNodePtr> &args)
+					  std::vector<codeGenASTPtr> &args)
 {
   static RegisterAST::Ptr ctr32(new RegisterAST(ppc32::ctr));
   static RegisterAST::Ptr ctr64(new RegisterAST(ppc64::ctr));

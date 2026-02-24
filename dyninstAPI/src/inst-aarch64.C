@@ -59,7 +59,7 @@ using namespace boost::assign;
 
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
-using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
 
@@ -446,7 +446,7 @@ bool EmitterAARCH64::clobberAllFuncCall(registerSpace *rs,
 
 Register emitFuncCall(opCode op,
                       codeGen &gen,
-                      std::vector <AstNodePtr> &operands, bool noCost,
+                      std::vector <codeGenASTPtr> &operands, bool noCost,
                       func_instance *callee) {
     return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
 }
@@ -466,7 +466,7 @@ Register EmitterAARCH64::emitCallReplacement(opCode,
 
 Register EmitterAARCH64::emitCall(opCode op,
                                   codeGen &gen,
-                                  const std::vector<AstNodePtr> &operands,
+                                  const std::vector<codeGenASTPtr> &operands,
                                   bool,
                                   func_instance *callee) 
 {
@@ -887,7 +887,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 // This can handle indirect control transfers as well
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 					  Address addr,
-					  std::vector<AstNodePtr> &args)
+					  std::vector<codeGenASTPtr> &args)
 {
     namespace di = Dyninst::InstructionAPI;
 

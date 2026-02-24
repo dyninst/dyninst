@@ -31,7 +31,8 @@
 #ifndef DYNINST_DYNINSTAPI_ASTADDRNODE_H
 #define DYNINST_DYNINSTAPI_ASTADDRNODE_H
 
-#include "AstNode.h"
+#include "codeGenAST.h"
+
 #include "dyn_register.h"
 #include "dyntypes.h"
 
@@ -41,7 +42,7 @@ class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstActualAddrNode : public AstNode {
+class AstActualAddrNode : public codeGenAST {
 public:
   BPatch_type *checkType(BPatch_function *) override {
     return getType();
@@ -52,7 +53,7 @@ private:
                            Dyninst::Register &retReg) override;
 };
 
-class AstOriginalAddrNode : public AstNode {
+class AstOriginalAddrNode : public codeGenAST {
 public:
   BPatch_type *checkType(BPatch_function *) override {
     return getType();
@@ -69,9 +70,9 @@ private:
 
 namespace AddressNode {
 
-  AstNodePtr actual();
+  codeGenASTPtr actual();
 
-  AstNodePtr original();
+  codeGenASTPtr original();
 
 }
 

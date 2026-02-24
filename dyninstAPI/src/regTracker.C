@@ -8,7 +8,7 @@
 
 namespace dapi = Dyninst::DyninstAPI;
 
-void regTracker_t::addKeptRegister(codeGen &gen, dapi::AstNode *n,
+void regTracker_t::addKeptRegister(codeGen &gen, dapi::codeGenAST *n,
                                    Dyninst::Register reg) {
   assert(n);
   if (tracker.find(n) != tracker.end()) {
@@ -22,7 +22,7 @@ void regTracker_t::addKeptRegister(codeGen &gen, dapi::AstNode *n,
   gen.rs()->markKeptRegister(reg);
 }
 
-void regTracker_t::removeKeptRegister(codeGen &gen, dapi::AstNode *n) {
+void regTracker_t::removeKeptRegister(codeGen &gen, dapi::codeGenAST *n) {
   auto iter = tracker.find(n);
   if (iter == tracker.end())
     return;
@@ -31,7 +31,7 @@ void regTracker_t::removeKeptRegister(codeGen &gen, dapi::AstNode *n) {
   tracker.erase(iter);
 }
 
-Dyninst::Register regTracker_t::hasKeptRegister(dapi::AstNode *n) {
+Dyninst::Register regTracker_t::hasKeptRegister(dapi::codeGenAST *n) {
   auto iter = tracker.find(n);
   if (iter == tracker.end())
     return Dyninst::Null_Register;
@@ -71,7 +71,7 @@ void regTracker_t::decreaseAndClean(codeGen &) {
   ast_printf("Exiting from conditional branch, level currently %d\n",
              condLevel);
 
-  std::vector<dapi::AstNode *> delete_list;
+  std::vector<dapi::codeGenAST *> delete_list;
 
   for (auto iter = tracker.begin(); iter != tracker.end();) {
     if (iter->second.keptLevel == condLevel) {
@@ -93,7 +93,7 @@ void regTracker_t::debugPrint() {
   fprintf(stderr, "Condition level: %d\n", condLevel);
 
   for (auto iter = tracker.begin(); iter != tracker.end(); ++iter) {
-    fprintf(stderr, "dapi::AstNode %p: register %u, condition level %d\n",
+    fprintf(stderr, "codeGenAST %p: register %u, condition level %d\n",
             (void *)iter->first, iter->second.keptRegister.getId(),
             iter->second.keptLevel);
   }

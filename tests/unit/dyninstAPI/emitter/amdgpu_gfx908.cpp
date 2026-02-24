@@ -269,7 +269,7 @@ These need to expand over many 'opcode' values
 
 These are not implemented
   bool clobberAllFuncCall(registerSpace *rs, func_instance *callee);
-  Register emitCall(opCode op, codeGen &gen, const std::vector<AstNodePtr> &operands, bool noCost, func_instance *callee);
+  Register emitCall(opCode op, codeGen &gen, const std::vector<codeGenASTPtr> &operands, bool noCost, func_instance *callee);
   bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
   void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen);
   bool emitPLTCall(func_instance *dest, codeGen &gen);
@@ -289,7 +289,7 @@ These are not implemented
   void emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen);
   void emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen);
   bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
-  Register emitCall(opCode op, codeGen &gen, const std::vector<AstNodePtr> &operands, bool noCost, func_instance *callee);
+  Register emitCall(opCode op, codeGen &gen, const std::vector<codeGenASTPtr> &operands, bool noCost, func_instance *callee);
   void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
   void emitGetRetAddr(Register dest, codeGen &gen);
   void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen);

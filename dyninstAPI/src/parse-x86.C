@@ -48,7 +48,7 @@
 
 using namespace Dyninst::ParseAPI;
 
-using AstNodePtr = Dyninst::DyninstAPI::AstNodePtr;
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 bool parse_func::writesFPRs(unsigned level) {
     
@@ -242,9 +242,9 @@ static bool replaceHandler(func_instance *origHandler, func_instance *newHandler
 
 static void add_handler(instPoint* pt, func_instance* add_me)
 {
-  vector<AstNodePtr> args;
+  vector<codeGenASTPtr> args;
   // no args, just add
-  AstNodePtr snip = DyninstAPI::CallNode::call(add_me, args);
+  codeGenASTPtr snip = DyninstAPI::CallNode::call(add_me, args);
   auto instrumentation = pt->pushFront(snip);
   instrumentation->disableRecursiveGuard();
 }

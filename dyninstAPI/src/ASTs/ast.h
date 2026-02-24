@@ -31,12 +31,12 @@
 #ifndef DYNINST_DYNINSTAPI_AST_H
 #define DYNINST_DYNINSTAPI_AST_H
 
+#include "codeGenAST.h"
 #include "AstAddrNode.h"
 #include "AstAtomicOperationStmtNode.h"
 #include "AstCallNode.h"
 #include "AstDynamicTargetNode.h"
 #include "AstMemoryNode.h"
-#include "AstNode.h"
 #include "AstNullNode.h"
 #include "AstOperandNode.h"
 #include "AstOperatorNode.h"

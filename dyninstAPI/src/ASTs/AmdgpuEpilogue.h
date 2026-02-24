@@ -57,7 +57,7 @@ public:
 // BPatch_snippet that uses the above AST node.
 class AmdgpuEpilogueSnippet : public BPatch_snippet {
 public:
-  AmdgpuEpilogueSnippet(const AstNodePtr &p) : BPatch_snippet(p) {}
+  AmdgpuEpilogueSnippet(const codeGenASTPtr &p) : BPatch_snippet(p) {}
 };
 
 }}

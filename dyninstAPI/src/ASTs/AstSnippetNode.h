@@ -31,22 +31,22 @@
 #ifndef DYNINST_DYNINSTAPI_ASTSNIPPETNODE_H
 #define DYNINST_DYNINSTAPI_ASTSNIPPETNODE_H
 
-#include "AstNode.h"
 #include "dyn_register.h"
 #include "PatchCommon.h"
 
 #include <boost/make_shared.hpp>
+#include "codeGenAST.h"
 #include <string>
 
 class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-// This is a little odd, since an AstNode _is_
+// This is a little odd, since an codeGenAST _is_
 // a Snippet. It's a compatibility interface to
 // allow generic PatchAPI snippets to play nice
 // in our world.
-class AstSnippetNode : public AstNode {
+class AstSnippetNode : public codeGenAST {
 public:
   AstSnippetNode(Dyninst::PatchAPI::SnippetPtr snippet) : snip_{std::move(snippet)} {}
 
@@ -59,7 +59,7 @@ namespace SnippetNode {
 
   namespace patch = Dyninst::PatchAPI;
 
-  inline AstNodePtr snippet(patch::SnippetPtr snippet) {
+  inline codeGenASTPtr snippet(patch::SnippetPtr snippet) {
     return boost::make_shared<AstSnippetNode>(std::move(snippet));
   }
 

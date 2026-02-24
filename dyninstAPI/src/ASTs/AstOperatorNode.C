@@ -40,8 +40,8 @@ namespace {
 
 namespace Dyninst { namespace DyninstAPI {
 
-AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNodePtr e)
-    : AstNode(), op(opC), loperand(l), roperand(r), eoperand(e) {
+AstOperatorNode::AstOperatorNode(opCode opC, codeGenASTPtr l, codeGenASTPtr r, codeGenASTPtr e)
+    : codeGenAST(), op(opC), loperand(l), roperand(r), eoperand(e) {
   // Optimization pass...
   if(!loperand) {
     return;
@@ -50,7 +50,7 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNode
     if(op == plusOp) {
       if(loperand->getoType() == operandType::Constant) {
         // Swap left and right...
-        AstNodePtr temp = loperand;
+        codeGenASTPtr temp = loperand;
         loperand = roperand;
         roperand = temp;
       }
@@ -59,13 +59,13 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNode
       if(roperand->getoType() == operandType::undefOperandType) {
         // ...
       } else if(roperand->getoType() != operandType::Constant) {
-        AstNodePtr temp = roperand;
+        codeGenASTPtr temp = roperand;
         roperand = loperand;
         loperand = temp;
       } else {
         if(!isPowerOf2((Address)roperand->getOValue()) &&
            isPowerOf2((Address)loperand->getOValue())) {
-          AstNodePtr temp = roperand;
+          codeGenASTPtr temp = roperand;
           roperand = loperand;
           loperand = temp;
         }
@@ -170,7 +170,7 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool 
     return false;
   }
 
-  AstNode *const_oper = NULL;
+  codeGenAST *const_oper = NULL;
   if(arithl->getoType() == operandType::DataAddr && arithr->getoType() == operandType::Constant &&
      laddr == (Dyninst::Address)arithl->getOValue()) {
     const_oper = arithr;
