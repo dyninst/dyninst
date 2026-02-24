@@ -148,7 +148,6 @@ class registerSpace {
 
     // Reset when the regSpace is reset - marked offlimits for
     // allocation.
-    bool markReadOnly(Dyninst::Register k);
     bool readOnlyRegister(Dyninst::Register k);
     // Make sure that no registers remain allocated, except "to_exclude"
     // Used for assertion checking.

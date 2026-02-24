@@ -556,11 +556,6 @@ void registerSpace::cleanSpace() {
     }
 }
 
-bool registerSpace::markReadOnly(Register) {
-    assert(0);
-    return true;
-}
-
 bool registerSpace::readProgramRegister(codeGen &gen,
                                         Register source,
                                         Register destination,
