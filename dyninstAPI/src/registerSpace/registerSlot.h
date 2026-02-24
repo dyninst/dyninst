@@ -36,31 +36,43 @@
 #include <cassert>
 #include <string>
 
-// A class to retain information about where the original register can be found.
-// It can be in one of the following states: 1) Unsaved, and available via the
-// register itself; 2) Saved in a frame, e.g., a base tramp; 3) Pushed on the
-// stack at a relative offset from the current stack pointer. 4) TODO: we could
-// subclass this and make "get me the current value" a member function; not sure
-// it's really worth it for the minimal amount of memory multiple types will
-// use.
+/*
+ * Information about where a register can be found
+ *
+ * It can be in one of the following states:
+ *
+ *  1) Unsaved, and available via the register itself
+ *
+ *  2) Saved in a frame (e.g., a base tramp)
+ *
+ *  3) Pushed on the stack at a relative offset from the
+ *     current stack pointer.
+ *
+ *
+ * Terminology:
+ *
+ *  Live - contains a value outside of instrumentation; must be saved before use
+ *  Used - used by instrumentation code
+ */
 
-// We also need a better way of tracking what state a register is in. Here's
-// some possibilities, not at all mutually independent:
-
-// Live at the start of instrumentation, or dead;
-// Used during the generation of a subexpression
-// Currently reserved by another AST, but we could recalculate if necessary
-// At a function call node, is it carrying a value?
-
-// Terminology:
-// "Live" : contains a value outside of instrumentation, and so must be saved
-// before use "Used" : used by instrumentation code.
+/*  TODO
+ *
+ *  1. We could subclass this and make "get me the current value" a member
+ *     function. Not sure it's really worth it for the minimal amount of
+ *     memory multiple types will use.
+ *
+ *  2. We also need a better way of tracking what state a register is in.
+ *     Here are some possibilities, not at all mutually independent:
+ *
+ *     a) Live at the start of instrumentation, or dead;
+ *     b) Used during the generation of a subexpression
+ *     c) Currently reserved by another AST (could recalculate if necessary)
+ *     d) At a function call node, is it carrying a value?
+ */
 
 class registerSlot {
 public:
-  const Dyninst::Register number{
-      Dyninst::Null_Register}; // what register is it, using our
-                               // Dyninst::Register enum
+  const Dyninst::Register number{Dyninst::Null_Register};
   const std::string name{"DEFAULT REGISTER"};
 
   typedef enum { deadAlways, deadABI, liveAlways } initialLiveness_t;
@@ -74,27 +86,34 @@ public:
 
   ////////// Code generation
 
-  int refCount{}; // == 0 if free
+  // == 0 if free
+  int refCount{};
 
   typedef enum { live, spilled, dead } livenessState_t;
   livenessState_t liveState{live};
 
-  bool keptValue{false}; // Are we keeping this (as long as we can) to save
-  // the pre-calculated value? Note: refCount can be 0 and
-  // this still set.
+  // Are we keeping this (as long as we can) to save the pre-calculated value?
+  // Note: refCount can be 0 and this still set.
+  bool keptValue{false};
 
-  bool beenUsed{false}; // Has this register been used by generated code?
+  // Has this register been used by generated code?
+  bool beenUsed{false};
 
   // New version of "if we were saved, then where?" It's a pair - true/false,
   // then offset from the "zeroed" stack pointer.
   typedef enum { unspilled, framePointer } spillReference_t;
   spillReference_t spilledState{unspilled};
-  int saveOffset{-1}; // Offset where this register can be
-                      // retrieved.
-  // AMD-64: this is the number of words
-  // POWER: this is the number of bytes
-  // I know it's inconsistent, but it's easier this way since POWER
-  // has some funky math.
+
+  /*
+   * Offset where this register can be retrieved
+   *
+   *  AMD-64: this is the number of words
+   *  POWER: this is the number of bytes
+   *
+   *  I know it's inconsistent, but it's easier this way since
+   *  POWER has some funky math.
+   */
+  int saveOffset{-1};
 
   //////// Member functions
 
@@ -111,9 +130,6 @@ public:
       refCount = 1;
     beenUsed = true;
   }
-
-  // Default is just fine
-  // registerSlot(const registerSlot &r)
 
   void debugPrint(const char *str = NULL);
 
