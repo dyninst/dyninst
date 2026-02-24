@@ -119,14 +119,6 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP)
       ret->initRealRegSpace();
       return ret;
    }
-    // Use one of the other registerSpaces...
-    // If we're entry/exit/call site, return the optimistic version
-    /*    if (iP->getPointType() == functionEntry)
-        return optimisticRegSpace(iP->proc());
-    if (iP->getPointType() == functionExit)
-        return optimisticRegSpace(iP->proc());
-    if (iP->getPointType() == callSite)
-    return optimisticRegSpace(iP->proc());*/
 
     return conservativeRegSpace(iP->proc());
 }
