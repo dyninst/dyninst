@@ -264,7 +264,6 @@ class registerSpace {
     registerSlot *findRegister(Dyninst::Register reg);
     registerSlot *findRegister(RealRegister reg);
 
-    bool spillRegister(Dyninst::Register reg, codeGen &gen, bool noCost);
     bool stealRegister(Dyninst::Register reg, codeGen &gen, bool noCost);
 
     bool restoreRegister(Dyninst::Register reg, codeGen &gen, bool noCost);

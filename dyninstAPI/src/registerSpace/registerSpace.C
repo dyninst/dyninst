@@ -208,8 +208,8 @@ void registerSpace::createRegSpaceInt(std::vector<registerSlot *> &registers,
 
 }
 
-bool registerSpace::trySpecificRegister(codeGen &gen, Register num,
-					bool noCost)
+bool registerSpace::trySpecificRegister(codeGen &, Register num,
+					bool)
 {
   auto iter = registers_.find(num);
   if (iter == registers_.end()) return false;
@@ -218,9 +218,7 @@ bool registerSpace::trySpecificRegister(codeGen &gen, Register num,
   if (reg->offLimits) return false;
   else if (reg->refCount > 0) return false;
   else if (reg->liveState == registerSlot::live) {
-     if (!spillRegister(num, gen, noCost)) {
         return false;
-     }
   }
   else if (reg->keptValue) {
      return false;
@@ -256,10 +254,8 @@ bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num,
       return false;
     }
     else if (reg->liveState == registerSlot::live) {
-      if (!spillRegister(num, gen, noCost)) {
 	regalloc_printf("Error: specific register could not be spilled!\n");
 	return false;
-      }
     }
     else if (reg->keptValue) {
       if (!stealRegister(num, gen, noCost)) {
@@ -336,16 +332,6 @@ Register registerSpace::getScratchRegister(codeGen &gen, std::vector<Register> &
         break;
     }
 
-    if (toUse == NULL) {
-        // Argh. Let's assume spilling is cheaper
-        for (unsigned i = 0; i < couldBeSpilled.size(); i++) {
-            if (spillRegister(couldBeSpilled[i]->number, gen, noCost)) {
-                toUse = couldBeSpilled[i];
-                break;
-            }
-        }
-    }
-
     // Still?
     if (toUse == NULL) {
         for (unsigned i = 0; i < couldBeStolen.size(); i++) {
@@ -385,13 +371,6 @@ Register registerSpace::allocateRegister(codeGen &gen,
   }
   regalloc_printf("Allocated register %u\n", reg.getId());
   return reg;
-}
-
-bool registerSpace::spillRegister(Register reg, codeGen &, bool /*noCost*/) {
-  assert(!registers_[reg]->offLimits);
-
-  //assert(0 && "Unimplemented!");
-  return false;
 }
 
 bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
