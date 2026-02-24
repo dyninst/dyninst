@@ -38,6 +38,9 @@
 // Contained in a struct so that no one can accidently cast
 // a Dyninst::Register into a RealRegister
 
+#include "registerSlot.h"
+#include <vector>
+
 class RealRegister {
   int r{};
 
@@ -45,6 +48,21 @@ public:
   RealRegister() = default;
   explicit RealRegister(int reg) { r = reg; }
   int reg() const { return r; }
+};
+
+struct RealRegsState {
+  bool is_allocatable;
+  bool been_used;
+  int last_used;
+  registerSlot *contains;
+};
+
+struct regState_t {
+  regState_t();
+  int pc_rel_offset;
+  int timeline;
+  int stack_height;
+  std::vector<RealRegsState> registerStates;
 };
 
 #endif

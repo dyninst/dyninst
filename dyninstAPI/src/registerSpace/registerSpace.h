@@ -57,23 +57,6 @@ class baseTramp;
 
 class instPoint;
 
-typedef struct {
-   bool is_allocatable;
-   bool been_used;
-   int last_used;
-   registerSlot *contains;
-} RealRegsState;
-
-
-class regState_t {
- public:
-   regState_t();
-   int pc_rel_offset;
-   int timeline;
-   int stack_height;
-   std::vector<RealRegsState> registerStates;
-};
-
 class registerSpace {
    friend class baseTramp;
  private:
