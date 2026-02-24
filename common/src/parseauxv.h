@@ -38,18 +38,18 @@
 class DYNINST_EXPORT AuxvParser
 {
  private:
-   int pid;
-   unsigned ref_count;
-   bool create_err;
-   Dyninst::Address interpreter_base;
-   Dyninst::Address vsyscall_base;
-   Dyninst::Address vsyscall_text;
-   Dyninst::Address vsyscall_end;
-   bool found_vsyscall;
-   Dyninst::Address phdr;
+   int pid{-1};
+   unsigned ref_count{0};
+   bool create_err{true};
+   Dyninst::Address interpreter_base{0};
+   Dyninst::Address vsyscall_base{0};
+   Dyninst::Address vsyscall_text{0};
+   Dyninst::Address vsyscall_end{0};
+   bool found_vsyscall{false};
+   Dyninst::Address phdr{0};
 
-   unsigned page_size;
-   unsigned addr_size;
+   unsigned page_size{0};
+   unsigned addr_size{0};
    
    bool readAuxvInfo();
    void *readAuxvFromProc();
@@ -65,13 +65,13 @@ class DYNINST_EXPORT AuxvParser
    void deleteAuxvParser();
    ~AuxvParser();
 
-   Dyninst::Address getInterpreterBase();
-   bool parsedVsyscall();
-   Dyninst::Address getVsyscallBase();
-   Dyninst::Address getVsyscallText();
-   Dyninst::Address getVsyscallEnd();
-   Dyninst::Address getProgramBase();
-   Dyninst::Address getPageSize();
+   Dyninst::Address getInterpreterBase()     { return interpreter_base; }
+   bool parsedVsyscall()                     { return found_vsyscall; }
+   Dyninst::Address getVsyscallBase()        { return vsyscall_base; }
+   Dyninst::Address getVsyscallText()        { return vsyscall_text; }
+   Dyninst::Address getVsyscallEnd()         { return vsyscall_end; }
+   Dyninst::Address getProgramBase()         { return phdr; }
+   Dyninst::Address getPageSize()            { return page_size; }
 };
 
 
