@@ -165,8 +165,6 @@ void registerSpace::createRegSpaceInt(std::vector<registerSlot *> &registers,
 
         rs->registers_[reg] = registers[i];
 
-        rs->registersByName[registers[i]->name] = registers[i]->number;
-
         switch (registers[i]->type) {
         case registerSlot::GPR: {
         case registerSlot::SGPR:
@@ -827,14 +825,6 @@ std::vector<registerSlot *>& registerSpace::trampRegs()
 
 registerSlot *registerSpace::operator[](Register reg) {
     return registers_[reg];
-}
-
-
-Register registerSpace::getRegByName(const std::string name) {
-    map<std::string,Register>::iterator cur = registersByName.find(name);
-    if (cur == registersByName.end())
-        return Null_Register;
-    return (*cur).second;
 }
 
 // If we have defined realRegisters_ (IA-32 and 32-bit mode AMD-64)

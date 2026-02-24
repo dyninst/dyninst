@@ -340,12 +340,6 @@ class registerSpace {
     int framePointer() { return RegisterConstants::s33; }
 #endif
 
-    // Create a map of register names to register numbers
-    std::map<std::string, Dyninst::Register> registersByName;
-    // The reverse map can be handled by doing a rs[x]->name
-
-    Dyninst::Register getRegByName(const std::string name);
-
 };
 
 void emitLoadPreviousStackFrameRegister(Dyninst::Address register_num, Dyninst::Register dest,
