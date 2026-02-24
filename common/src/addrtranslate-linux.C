@@ -31,7 +31,7 @@
 #include "common/src/addrtranslate.h"
 #include "common/src/addrtranslate-sysv.h"
 #include "common/src/linuxKludges.h"
-#include "common/src/parseauxv.h"
+#include "common/src/AuxvParser.h"
 #include "common/src/dyninst_filesystem.h"
 
 #include <elf.h>
