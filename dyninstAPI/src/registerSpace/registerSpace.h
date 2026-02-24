@@ -52,10 +52,7 @@
 class codeGen;
 class instPoint;
 class AddressSpace;
-class parse_block;
 class baseTramp;
-
-class instPoint;
 
 class registerSpace {
    friend class baseTramp;
