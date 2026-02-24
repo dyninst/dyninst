@@ -701,15 +701,7 @@ bool registerSpace::markSavedRegister(registerSlot *s, int offsetFromFP) {
     if (s == NULL)  {
         // We get this on platforms where we save registers we don't use in
         // code generation... like, say, RSP or RBP on AMD-64.
-        //fprintf(stderr, "ERROR: unable to find register %d\n", num);
         return false;
-    }
-
-    if (s->spilledState != registerSlot::unspilled) {
-        // Things to do... add this check in, yo. Right now we don't clean
-        // properly.
-
-//        assert(0);
     }
 
     s->liveState = registerSlot::spilled;
