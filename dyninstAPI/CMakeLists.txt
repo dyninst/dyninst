@@ -138,7 +138,7 @@ set(_private_headers
 
 set(_sources
     src/addressSpace.C
-    src/ASTs/AstActualAddrNode.C
+    src/ASTs/actualAddressAST.C
     src/ASTs/AstMemoryNode.C
     src/ASTs/AstNullNode.C
     src/ASTs/AstOperandNode.C
