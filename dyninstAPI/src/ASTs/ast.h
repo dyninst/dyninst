@@ -31,7 +31,6 @@
 #ifndef DYNINST_DYNINSTAPI_AST_H
 #define DYNINST_DYNINSTAPI_AST_H
 
-#include <operatorAST.h>
 #include "codeGenAST.h"
 #include "addressAST.h"
 #include "atomicOperationAST.h"
@@ -40,6 +39,7 @@
 #include "memoryAccessAST.h"
 #include "nullAST.h"
 #include "operandAST.h"
+#include "operatorAST.h"
 #include "threadAST.h"
 #include "variableAST.h"
 #include "AstScrambleRegistersNode.h"

@@ -174,7 +174,7 @@ codeGenASTPtr generateVariableBase(const BPatch_snippet &lOperand)
   }
   else
   {
-    variableBase = OperatorNode::getAddr(lOperand.ast_wrapper);
+    variableBase = operatorAST::getAddr(lOperand.ast_wrapper);
   }
   return variableBase;
 }
@@ -261,8 +261,8 @@ codeGenASTPtr generateArrayRef(const BPatch_snippet &lOperand,
 
         auto ast = [&]() {
           auto val = operandAST::Constant((void *)elementSize);
-          auto rhs = OperatorNode::times(std::move(val), rOperand.ast_wrapper);
-          return operandAST::DataIndir(OperatorNode::plus(arrayBase, std::move(rhs)));
+          auto rhs = operatorAST::times(std::move(val), rOperand.ast_wrapper);
+          return operandAST::DataIndir(operatorAST::plus(arrayBase, std::move(rhs)));
         }();
 
         BPatch_type *elem_bptype = NULL;
@@ -363,7 +363,7 @@ codeGenASTPtr generateFieldRef(const BPatch_snippet &lOperand,
 
         auto ast = [&]() {
           auto val = operandAST::Constant((void *)offset);
-          auto rhs = OperatorNode::plus(structBase, std::move(val));
+          auto rhs = operatorAST::plus(structBase, std::move(val));
           return operandAST::DataIndir(std::move(rhs));
         }();
 
@@ -411,22 +411,22 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
 
         switch(op) {
                 case BPatch_assign:
-                        ast_wrapper = OperatorNode::store(lop_ast, rop_ast);
+                        ast_wrapper = operatorAST::store(lop_ast, rop_ast);
                         break;
                 case BPatch_plus:
-                        ast_wrapper = OperatorNode::plus(lop_ast, rop_ast);
+                        ast_wrapper = operatorAST::plus(lop_ast, rop_ast);
                         break;
                 case BPatch_minus:
-                        ast_wrapper = OperatorNode::minus(lop_ast, rop_ast);
+                        ast_wrapper = operatorAST::minus(lop_ast, rop_ast);
                         break;
                 case BPatch_xor:
-                        ast_wrapper = OperatorNode::Xor(lop_ast, rop_ast);
+                        ast_wrapper = operatorAST::Xor(lop_ast, rop_ast);
                         break;
                 case BPatch_divide:
-                        ast_wrapper = OperatorNode::div(lop_ast, rop_ast);
+                        ast_wrapper = operatorAST::div(lop_ast, rop_ast);
                         break;
                 case BPatch_times:
-                        ast_wrapper = OperatorNode::times(lop_ast, rop_ast);
+                        ast_wrapper = operatorAST::times(lop_ast, rop_ast);
                         break;
                 case BPatch_mod:
                         /* XXX Not yet implemented. */
@@ -491,7 +491,7 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_unOp op,
           BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
           assert(type != NULL);
           negOne->setType(type);
-          ast_wrapper = OperatorNode::times(negOne, lOperand.ast_wrapper);
+          ast_wrapper = operatorAST::times(negOne, lOperand.ast_wrapper);
           break;
       }
    case BPatch_addr:  {
@@ -544,28 +544,28 @@ BPatch_boolExpr::BPatch_boolExpr(BPatch_relOp op,
 
     switch(op) {
       case BPatch_lt:
-        ast_wrapper = OperatorNode::less(lop_ast, rop_ast);
+        ast_wrapper = operatorAST::less(lop_ast, rop_ast);
         break;
       case BPatch_eq:
-        ast_wrapper = OperatorNode::eq(lop_ast, rop_ast);
+        ast_wrapper = operatorAST::eq(lop_ast, rop_ast);
         break;
       case BPatch_gt:
-        ast_wrapper = OperatorNode::greater(lop_ast, rop_ast);
+        ast_wrapper = operatorAST::greater(lop_ast, rop_ast);
         break;
       case BPatch_le:
-        ast_wrapper = OperatorNode::le(lop_ast, rop_ast);
+        ast_wrapper = operatorAST::le(lop_ast, rop_ast);
         break;
       case BPatch_ne:
-        ast_wrapper = OperatorNode::ne(lop_ast, rop_ast);
+        ast_wrapper = operatorAST::ne(lop_ast, rop_ast);
         break;
       case BPatch_ge:
-        ast_wrapper = OperatorNode::ge(lop_ast, rop_ast);
+        ast_wrapper = operatorAST::ge(lop_ast, rop_ast);
         break;
       case BPatch_and:
-        ast_wrapper = OperatorNode::And(lop_ast, rop_ast);
+        ast_wrapper = operatorAST::And(lop_ast, rop_ast);
         break;
       case BPatch_or:
-        ast_wrapper = OperatorNode::Or(lop_ast, rop_ast);
+        ast_wrapper = operatorAST::Or(lop_ast, rop_ast);
         break;
       default:
         /* XXX Handle the error case here */
@@ -702,7 +702,7 @@ BPatch_constExpr::BPatch_constExpr(long long value)
 
 BPatch_whileExpr::BPatch_whileExpr(const BPatch_snippet &conditional,
                                     const BPatch_snippet &body) {
-   ast_wrapper = OperatorNode::While(conditional.ast_wrapper, body.ast_wrapper);
+   ast_wrapper = operatorAST::While(conditional.ast_wrapper, body.ast_wrapper);
    assert(BPatch::bpatch != NULL);
    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
@@ -751,7 +751,7 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
 BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
                                      const BPatch_snippet &tClause)
 {
-    ast_wrapper = OperatorNode::If(conditional.ast_wrapper, tClause.ast_wrapper);
+    ast_wrapper = operatorAST::If(conditional.ast_wrapper, tClause.ast_wrapper);
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -771,7 +771,7 @@ BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
                                           const BPatch_snippet &tClause,
                                           const BPatch_snippet &fClause)
 {
-    ast_wrapper = OperatorNode::If(conditional.ast_wrapper, tClause.ast_wrapper, fClause.ast_wrapper);
+    ast_wrapper = operatorAST::If(conditional.ast_wrapper, tClause.ast_wrapper, fClause.ast_wrapper);
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
@@ -1364,7 +1364,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
        // convert to *(&basrVar + offset)
        auto fieldExpr = [&]() {
          auto val = operandAST::Constant((void *)offset);
-         auto rhs = OperatorNode::plus(generateVariableBase(*this), std::move(val));
+         auto rhs = operatorAST::plus(generateVariableBase(*this), std::move(val));
          return operandAST::DataIndir(std::move(rhs));
        }();
 
@@ -1436,7 +1436,7 @@ BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr(int _which)
 
 BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExpr(const BPatch_snippet &tClause)
 {
-    ast_wrapper = OperatorNode::ifMC(tClause.ast_wrapper);
+    ast_wrapper = operatorAST::ifMC(tClause.ast_wrapper);
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -1668,16 +1668,16 @@ BPatch_atomicOperationStmt::BPatch_atomicOperationStmt(BPatch_binOp operation,
     auto &const_ast = constant.ast_wrapper;
     switch (operation) {
     case BPatch_plus:
-        ast_wrapper = OperatorNode::plus(var_ast, const_ast);
+        ast_wrapper = operatorAST::plus(var_ast, const_ast);
         break;
     case BPatch_minus:
-        ast_wrapper = OperatorNode::minus(var_ast, const_ast);
+        ast_wrapper = operatorAST::minus(var_ast, const_ast);
         break;
     case BPatch_divide:
-        ast_wrapper = OperatorNode::div(var_ast, const_ast);
+        ast_wrapper = operatorAST::div(var_ast, const_ast);
         break;
     case BPatch_times:
-        ast_wrapper = OperatorNode::times(var_ast, const_ast);
+        ast_wrapper = operatorAST::times(var_ast, const_ast);
         break;
     default:
         assert(!"operation not supported yet");

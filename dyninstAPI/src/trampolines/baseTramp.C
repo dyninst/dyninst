@@ -52,10 +52,11 @@ using namespace PatchAPI;
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
+using operatorAST = Dyninst::DyninstAPI::operatorAST;
 
 #define DCAST_AST(ast) boost::dynamic_pointer_cast<Dyninst::DyninstAPI::codeGenAST>(ast)
 
-namespace OperatorNode = Dyninst::DyninstAPI::OperatorNode;
+
 namespace SequenceNode = Dyninst::DyninstAPI::SequenceNode;
 namespace StackInsertNode = Dyninst::DyninstAPI::StackInsertNode;
 namespace StackRemoveNode = Dyninst::DyninstAPI::StackRemoveNode;
@@ -378,7 +379,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    // we just run the minitramps.
    if (guarded() &&
        minis->containsFuncCall()) {
-      baseTrampAST = OperatorNode::If(
+      baseTrampAST = operatorAST::If(
           functionCallAST::namedCall("DYNINST_lock_tramp_guard", empty_args),
           baseTrampSequence);
    }
