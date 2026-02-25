@@ -1,6 +1,5 @@
 #include "addressSpace.h"
 #include "ast_helpers.h"
-#include "AstMemoryNode.h"
 #include "BPatch.h"
 #include "BPatch_addressSpace.h"
 #include "BPatch_collections.h"
@@ -10,6 +9,7 @@
 #include "codegen.h"
 #include "debug.h"
 #include "instPoint.h"
+#include "memoryAccessAST.h"
 #include "registerSpace.h"
 
 #include <iomanip>
@@ -17,7 +17,7 @@
 
 namespace Dyninst { namespace DyninstAPI {
 
-AstMemoryNode::AstMemoryNode(memoryType mem, unsigned which, int size_) : mem_(mem), which_(which) {
+memoryAccessAST::memoryAccessAST(memoryType mem, unsigned which, int size_) : mem_(mem), which_(which) {
 
   assert(BPatch::bpatch != NULL);
   assert(BPatch::bpatch->stdTypes != NULL);
@@ -48,7 +48,7 @@ AstMemoryNode::AstMemoryNode(memoryType mem, unsigned which, int size_) : mem_(m
   doTypeCheck = BPatch::bpatch->isTypeChecked();
 }
 
-bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
+bool memoryAccessAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
                                         Dyninst::Register &retReg) {
 
   RETURN_KEPT_REG(retReg);
@@ -121,7 +121,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addr
   return true;
 }
 
-std::string AstMemoryNode::format(std::string indent) {
+std::string memoryAccessAST::format(std::string indent) {
   std::stringstream ret;
   ret << indent << "Mem/" << std::hex << this << "("
       << ((mem_ == memoryType::EffectiveAddr) ? "EffAddr" : "BytesAcc") << ")\n";

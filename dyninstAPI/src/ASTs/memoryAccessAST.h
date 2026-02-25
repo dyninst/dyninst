@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_DYNINSTAPI_ASTMEMORYNODE_H
-#define DYNINST_DYNINSTAPI_ASTMEMORYNODE_H
+#ifndef DYNINST_DYNINSTAPI_MEMORYACCESSAST_H
+#define DYNINST_DYNINSTAPI_MEMORYACCESSAST_H
 
 #include "dyn_register.h"
 
@@ -41,14 +41,14 @@ class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstMemoryNode : public codeGenAST {
+class memoryAccessAST : public codeGenAST {
 public:
   enum class memoryType {
     EffectiveAddr,
     BytesAccessed
   };
 
-  AstMemoryNode(memoryType mem, unsigned which, int size = 8);
+  memoryAccessAST(memoryType mem, unsigned which, int size = 8);
 
   bool canBeKept() const override {
     // Despite our memory loads, we can be kept;
@@ -74,13 +74,13 @@ private:
 namespace MemoryNode {
 
   inline codeGenASTPtr effectiveAddress(int which, int size) {
-    auto t = AstMemoryNode::memoryType::EffectiveAddr;
-    return boost::make_shared<AstMemoryNode>(t, which, size);
+    auto t = memoryAccessAST::memoryType::EffectiveAddr;
+    return boost::make_shared<memoryAccessAST>(t, which, size);
   }
 
   inline codeGenASTPtr bytesAccessed(int which) {
-    auto t = AstMemoryNode::memoryType::BytesAccessed;
-    return boost::make_shared<AstMemoryNode>(t, which);
+    auto t = memoryAccessAST::memoryType::BytesAccessed;
+    return boost::make_shared<memoryAccessAST>(t, which);
   }
 
 }

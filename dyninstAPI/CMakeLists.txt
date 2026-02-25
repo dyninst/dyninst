@@ -50,7 +50,7 @@ set(_private_headers
     src/ASTs/AmdgpuPrologue.h
     src/ASTs/ast_helpers.h
     src/ASTs/addressAST.h
-    src/ASTs/AstMemoryNode.h
+    src/ASTs/memoryAccessAST.h
     src/ASTs/AstNullNode.h
     src/ASTs/AstStackNode.h
     src/ASTs/AstOperandNode.h
@@ -139,7 +139,7 @@ set(_private_headers
 set(_sources
     src/addressSpace.C
     src/ASTs/actualAddressAST.C
-    src/ASTs/AstMemoryNode.C
+    src/ASTs/memoryAccessAST.C
     src/ASTs/AstNullNode.C
     src/ASTs/AstOperandNode.C
     src/ASTs/AstOperatorNode.C
