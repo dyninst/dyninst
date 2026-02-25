@@ -46,6 +46,16 @@ namespace Dyninst { namespace DyninstAPI {
 // expressions.
 class atomicOperationAST : public codeGenAST {
 public:
+  using Ptr = boost::shared_ptr<atomicOperationAST>;
+
+  static Ptr plus(codeGenASTPtr var, codeGenASTPtr constant) {
+    return boost::make_shared<atomicOperationAST>(plusOp, std::move(var), std::move(constant));
+  }
+
+  static Ptr minus(codeGenASTPtr var, codeGenASTPtr constant) {
+    return boost::make_shared<atomicOperationAST>(minusOp, std::move(var), std::move(constant));
+  }
+
   atomicOperationAST(opCode op, codeGenASTPtr var, codeGenASTPtr constant_)
       : opcode{op}, variable{std::move(var)}, constant{std::move(constant_)} {}
 
@@ -62,20 +72,6 @@ private:
   codeGenASTPtr variable{};
   codeGenASTPtr constant{};
 };
-
-namespace AtomicOperation {
-
-  inline codeGenASTPtr plus(codeGenASTPtr var, codeGenASTPtr constant) {
-    return boost::make_shared<atomicOperationAST>(plusOp, std::move(var),
-                                                          std::move(constant));
-  }
-
-  inline codeGenASTPtr minus(codeGenASTPtr var, codeGenASTPtr constant) {
-    return boost::make_shared<atomicOperationAST>(minusOp, std::move(var),
-                                                          std::move(constant));
-  }
-
-}
 
 }}
 
