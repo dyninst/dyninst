@@ -1,15 +1,15 @@
 #include "ast_helpers.h"
-#include "AstDynamicTargetNode.h"
 #include "block.h"
 #include "codegen.h"
 #include "instPoint.h"
 #include "Instruction.h"
+#include "jumpTargetAST.h"
 
 #include <boost/make_shared.hpp>
 
 namespace Dyninst { namespace DyninstAPI {
 
-bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen, bool noCost, Address &retAddr,
+bool dynamicJumpTargetAST::generateCode_phase2(codeGen &gen, bool noCost, Address &retAddr,
                                                Dyninst::Register &retReg) {
   if(gen.point()->type() != instPoint::PreCall && gen.point()->type() != instPoint::FuncExit &&
      gen.point()->type() != instPoint::PreInsn) {
@@ -55,7 +55,7 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen, bool noCost, Addres
 namespace TargetNode {
 
   codeGenASTPtr dynamic() {
-    static auto node = boost::make_shared<AstDynamicTargetNode>();
+    static auto node = boost::make_shared<dynamicJumpTargetAST>();
     return node;
   }
 

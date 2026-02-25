@@ -43,7 +43,7 @@ class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstDynamicTargetNode : public codeGenAST {
+class dynamicJumpTargetAST : public codeGenAST {
 public:
   BPatch_type *checkType(BPatch_function *) override {
     return getType();
