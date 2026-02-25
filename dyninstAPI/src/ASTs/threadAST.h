@@ -41,9 +41,9 @@ class codeGen;
 namespace Dyninst { namespace DyninstAPI {
 
 // Acquire the thread index value - a 0...n labeling of threads.
-class AstThreadIndexNode : public AstCallNode {
+class threadAST : public AstCallNode {
 public:
-  AstThreadIndexNode() : AstCallNode("DYNINSTthreadIndex") {}
+  threadAST() : AstCallNode("DYNINSTthreadIndex") {}
 
   bool canBeKept() const override;
 

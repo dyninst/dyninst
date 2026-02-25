@@ -1,5 +1,5 @@
-#include "AstThreadIndexNode.h"
 #include "debug.h"
+#include "threadAST.h"
 
 namespace Dyninst { namespace DyninstAPI {
 
@@ -14,7 +14,7 @@ AstThreadIndexNode AstThreadIndexNode::node{};
 // The output depends solely on input parameters, so can
 // be guaranteed to not change if executed multiple times
 // in the same sequence - AKA "can be kept".
-bool AstThreadIndexNode::canBeKept() const {
+bool threadAST::canBeKept() const {
   for(auto &&c : children) {
     if(!c->canBeKept()) {
       ast_printf("AST %p: labelled const func but argument %s cannot be kept!\n",

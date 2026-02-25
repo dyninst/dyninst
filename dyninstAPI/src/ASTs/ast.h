@@ -33,6 +33,7 @@
 
 #include "codeGenAST.h"
 #include "atomicOperationAST.h"
+#include "threadAST.h"
 #include "variableAST.h"
 #include "AstAddrNode.h"
 #include "AstCallNode.h"
@@ -48,6 +49,5 @@
 #include "AstStackInsertNode.h"
 #include "AstStackNode.h"
 #include "AstStackRemoveNode.h"
-#include "AstThreadIndexNode.h"
 
 #endif
