@@ -73,8 +73,8 @@ using nullAST = Dyninst::DyninstAPI::nullAST;
 using operandAST = Dyninst::DyninstAPI::operandAST;
 using operatorAST = Dyninst::DyninstAPI::operatorAST;
 using scrambleRegistersAST = Dyninst::DyninstAPI::scrambleRegistersAST;
+using sequenceAST = Dyninst::DyninstAPI::sequenceAST;
 
-namespace SequenceNode = Dyninst::DyninstAPI::SequenceNode;
 namespace AddressAST = Dyninst::DyninstAPI::AddressAST;
 namespace jumpTargetAST = Dyninst::DyninstAPI::jumpTargetAST;
 
@@ -458,7 +458,7 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
                                 sequence.push_back(lOperand.ast_wrapper);
                                 sequence.push_back(rOperand.ast_wrapper);
 
-                                ast_wrapper = SequenceNode::sequence(sequence);
+                                ast_wrapper = sequenceAST::create(sequence);
                                 ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
                                 return;
                         }
@@ -900,7 +900,7 @@ BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
         assert(items[i]->ast_wrapper);
         sequence.push_back(items[i]->ast_wrapper);
     }
-    ast_wrapper = SequenceNode::sequence(sequence);
+    ast_wrapper = sequenceAST::create(sequence);
 
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }

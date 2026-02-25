@@ -53,11 +53,12 @@ using namespace PatchAPI;
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
 using operatorAST = Dyninst::DyninstAPI::operatorAST;
+using sequenceAST = Dyninst::DyninstAPI::sequenceAST;
 
 #define DCAST_AST(ast) boost::dynamic_pointer_cast<Dyninst::DyninstAPI::codeGenAST>(ast)
 
 
-namespace SequenceNode = Dyninst::DyninstAPI::SequenceNode;
+
 namespace StackInsertNode = Dyninst::DyninstAPI::StackInsertNode;
 namespace StackRemoveNode = Dyninst::DyninstAPI::StackRemoveNode;
 namespace StackNode = Dyninst::DyninstAPI::StackNode;
@@ -356,7 +357,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
       miniTramps.push_back(ast_);
    }
 
-   codeGenASTPtr minis = SequenceNode::sequence(miniTramps);
+   codeGenASTPtr minis = sequenceAST::create(miniTramps);
 
    codeGenASTPtr baseTrampSequence;
    std::vector<codeGenASTPtr > baseTrampElements;
@@ -371,7 +372,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
      baseTrampElements.push_back(functionCallAST::namedCall("DYNINST_unlock_tramp_guard", empty_args));
    }
 
-   baseTrampSequence = SequenceNode::sequence(baseTrampElements);
+   baseTrampSequence = sequenceAST::create(baseTrampElements);
 
    codeGenASTPtr baseTrampAST;
 

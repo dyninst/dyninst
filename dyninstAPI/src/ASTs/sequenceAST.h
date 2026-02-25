@@ -45,6 +45,12 @@ namespace Dyninst { namespace DyninstAPI {
 
 class sequenceAST : public codeGenAST {
 public:
+  using Ptr = boost::shared_ptr<sequenceAST>;
+
+  static Ptr create(std::vector<codeGenASTPtr> &vals) {
+    return boost::make_shared<sequenceAST>(vals);
+  }
+
   sequenceAST(std::vector<codeGenASTPtr> &sequence) {
     children = sequence;
   }
@@ -63,13 +69,6 @@ private:
   bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
                            Dyninst::Register &retReg) override;
 };
-
-namespace SequenceNode {
-
-  inline codeGenASTPtr sequence(std::vector<codeGenASTPtr> &vals) {
-    return boost::make_shared<sequenceAST>(vals);
-  }
-}
 
 }}
 
