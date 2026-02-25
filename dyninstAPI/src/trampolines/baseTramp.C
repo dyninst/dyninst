@@ -55,10 +55,9 @@ using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
 using operatorAST = Dyninst::DyninstAPI::operatorAST;
 using sequenceAST = Dyninst::DyninstAPI::sequenceAST;
 using snippetAST = Dyninst::DyninstAPI::snippetAST;
+using stackRemovalAST = Dyninst::DyninstAPI::stackRemovalAST;
 
 #define DCAST_AST(ast) boost::dynamic_pointer_cast<Dyninst::DyninstAPI::codeGenAST>(ast)
-
-namespace StackRemoveNode = Dyninst::DyninstAPI::StackRemoveNode;
 
 // Normal constructor
 baseTramp::baseTramp() :

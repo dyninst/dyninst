@@ -45,6 +45,18 @@ namespace Dyninst { namespace DyninstAPI {
 
 class stackRemovalAST : public stackAST {
 public:
+  using Ptr = boost::shared_ptr<stackRemovalAST>;
+
+  static Ptr generic(int size) {
+    return boost::make_shared<stackRemovalAST>(size, stackAST::GENERIC_AST);
+  }
+
+  static Ptr canary(int size, func_instance *func, bool canaryAfterPrologue,
+                           long canaryHeight) {
+    return boost::make_shared<stackRemovalAST>(size, stackAST::CANARY_AST, func,
+                                                  canaryAfterPrologue, canaryHeight);
+  }
+
   explicit stackRemovalAST(int s, MSpecialType t = GENERIC_AST) : size(s), type(t) {}
 
   stackRemovalAST(int s, MSpecialType t, func_instance *func, bool canaryAfterPrologue,
@@ -69,19 +81,6 @@ private:
   bool canaryAfterPrologue_{};
   long canaryHeight_{};
 };
-
-namespace StackRemoveNode {
-
-  inline codeGenASTPtr generic(int size) {
-    return boost::make_shared<stackRemovalAST>(size, stackAST::GENERIC_AST);
-  }
-
-  inline codeGenASTPtr canary(int size, func_instance *func, bool canaryAfterPrologue,
-                           long canaryHeight) {
-    return boost::make_shared<stackRemovalAST>(size, stackAST::CANARY_AST, func,
-                                                  canaryAfterPrologue, canaryHeight);
-  }
-}
 
 }}
 
