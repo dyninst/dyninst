@@ -6,7 +6,7 @@
 
 namespace Dyninst { namespace DyninstAPI {
 
-bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
+bool originalAddressAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
                                               Dyninst::Register &retReg) {
   RETURN_KEPT_REG(retReg);
 
@@ -26,7 +26,7 @@ bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst
 namespace AddressNode {
 
   codeGenASTPtr original() {
-    static auto node = boost::make_shared<AstOriginalAddrNode>();
+    static auto node = boost::make_shared<originalAddressAST>();
     return node;
   }
 

@@ -53,7 +53,7 @@ private:
                            Dyninst::Register &retReg) override;
 };
 
-class AstOriginalAddrNode : public codeGenAST {
+class originalAddressAST : public codeGenAST {
 public:
   BPatch_type *checkType(BPatch_function *) override {
     return getType();

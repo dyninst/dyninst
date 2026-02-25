@@ -143,7 +143,7 @@ set(_sources
     src/ASTs/AstNullNode.C
     src/ASTs/AstOperandNode.C
     src/ASTs/AstOperatorNode.C
-    src/ASTs/AstOriginalAddrNode.C
+    src/ASTs/originalAddressAST.C
     src/ASTs/AstScrambleRegistersNode.C
     src/ASTs/AstSequenceNode.C
     src/ASTs/AstSnippetNode.C
