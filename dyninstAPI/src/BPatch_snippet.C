@@ -69,11 +69,11 @@ using variableAST = Dyninst::DyninstAPI::variableAST;
 using threadAST = Dyninst::DyninstAPI::threadAST;
 using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
 using memoryAccessAST = Dyninst::DyninstAPI::memoryAccessAST;
+using nullAST = Dyninst::DyninstAPI::nullAST;
 
 namespace OperatorNode = Dyninst::DyninstAPI::OperatorNode;
 namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
 namespace SequenceNode = Dyninst::DyninstAPI::SequenceNode;
-namespace NullNode = Dyninst::DyninstAPI::NullNode;
 namespace AddressAST = Dyninst::DyninstAPI::AddressAST;
 namespace jumpTargetAST = Dyninst::DyninstAPI::jumpTargetAST;
 namespace RegisterNode = Dyninst::DyninstAPI::RegisterNode;
@@ -101,7 +101,7 @@ namespace RegisterNode = Dyninst::DyninstAPI::RegisterNode;
  * tries to generate code)
  */
 BPatch_snippet::BPatch_snippet() {
-    ast_wrapper = NullNode::create();
+    ast_wrapper = nullAST::create();
 }
 
 /*
@@ -784,7 +784,7 @@ BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
  */
 BPatch_nullExpr::BPatch_nullExpr()
 {
-    ast_wrapper = NullNode::create();
+    ast_wrapper = nullAST::create();
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());

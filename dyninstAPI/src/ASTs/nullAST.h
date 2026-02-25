@@ -43,6 +43,12 @@ namespace Dyninst { namespace DyninstAPI {
 
 class nullAST : public codeGenAST {
 public:
+  using Ptr = boost::shared_ptr<nullAST>;
+
+  static Ptr create() {
+    return boost::make_shared<nullAST>();
+  }
+
   nullAST() = default;
 
   virtual std::string format(std::string indent) override;
@@ -55,13 +61,6 @@ private:
   bool generateCode_phase2(codeGen &gen, bool, Dyninst::Address &retAddr,
                            Dyninst::Register &retReg) override;
 };
-
-namespace NullNode {
-
-  inline codeGenASTPtr create() {
-    return boost::make_shared<nullAST>();
-  }
-}
 
 }}
 
