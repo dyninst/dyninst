@@ -42,6 +42,12 @@ namespace Dyninst { namespace DyninstAPI {
 
 class scrambleRegistersAST : public codeGenAST {
 public:
+  using Ptr = boost::shared_ptr<scrambleRegistersAST>;
+
+  static Ptr create() {
+    return boost::make_shared<scrambleRegistersAST>();
+  }
+
   bool usesAppRegister() const override {
     return true;
   }
@@ -49,14 +55,6 @@ public:
 private:
   bool generateCode_phase2(codeGen &gen, bool, Dyninst::Address &, Dyninst::Register &) override;
 };
-
-namespace RegisterNode {
-
-  inline codeGenASTPtr scramble() {
-    return boost::make_shared<scrambleRegistersAST>();
-  }
-
-}
 
 }}
 

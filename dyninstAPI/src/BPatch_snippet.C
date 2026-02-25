@@ -72,11 +72,11 @@ using memoryAccessAST = Dyninst::DyninstAPI::memoryAccessAST;
 using nullAST = Dyninst::DyninstAPI::nullAST;
 using operandAST = Dyninst::DyninstAPI::operandAST;
 using operatorAST = Dyninst::DyninstAPI::operatorAST;
+using scrambleRegistersAST = Dyninst::DyninstAPI::scrambleRegistersAST;
 
 namespace SequenceNode = Dyninst::DyninstAPI::SequenceNode;
 namespace AddressAST = Dyninst::DyninstAPI::AddressAST;
 namespace jumpTargetAST = Dyninst::DyninstAPI::jumpTargetAST;
-namespace RegisterNode = Dyninst::DyninstAPI::RegisterNode;
 
 
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
@@ -1655,7 +1655,7 @@ BPatch_dynamicTargetExpr::BPatch_dynamicTargetExpr() {
 BPatch_scrambleRegistersExpr::BPatch_scrambleRegistersExpr(){
 
 
-    ast_wrapper = RegisterNode::scramble();
+    ast_wrapper = scrambleRegistersAST::create();
     ast_wrapper->setType(BPatch::bpatch->type_Untyped);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
    
