@@ -71,8 +71,8 @@ using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
 using memoryAccessAST = Dyninst::DyninstAPI::memoryAccessAST;
 using nullAST = Dyninst::DyninstAPI::nullAST;
 using operandAST = Dyninst::DyninstAPI::operandAST;
+using operatorAST = Dyninst::DyninstAPI::operatorAST;
 
-namespace OperatorNode = Dyninst::DyninstAPI::OperatorNode;
 namespace SequenceNode = Dyninst::DyninstAPI::SequenceNode;
 namespace AddressAST = Dyninst::DyninstAPI::AddressAST;
 namespace jumpTargetAST = Dyninst::DyninstAPI::jumpTargetAST;

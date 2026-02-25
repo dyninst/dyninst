@@ -42,10 +42,8 @@
 using namespace Dyninst::InstructionAPI;
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
-
-namespace OperatorNode = Dyninst::DyninstAPI::OperatorNode;
-
 using operandAST = Dyninst::DyninstAPI::operandAST;
+using operatorAST = Dyninst::DyninstAPI::operatorAST;
 
 void ASTFactory::visit(BinaryFunction* b)
 {
