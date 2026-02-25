@@ -41,9 +41,9 @@
 #include "registerSpace.h"
 
 #include "dyninstAPI/h/BPatch.h"
-#include "dyninstAPI/src/BPatch_collections.h"
+#include "BPatch_collections.h"
 #include "dyninstAPI/h/BPatch_type.h"
-#include "dyninstAPI/src/BPatch_libInfo.h" // For instPoint->BPatch_point mapping
+#include "BPatch_libInfo.h" // For instPoint->BPatch_point mapping
 
 #include "dyninstAPI/h/BPatch_point.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
