@@ -56,9 +56,9 @@
 #include <sstream>
 
 namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
-namespace CallNode = Dyninst::DyninstAPI::CallNode;
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
+using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
 
 namespace {
 	// maximum number of addresses per outstanding printf!
@@ -1627,7 +1627,7 @@ bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
     args[0] = OperandNode::Constant((void *)(Address)size);
     args[1] = OperandNode::Constant((void *)lo);
     args[2] = OperandNode::Constant((void *)hi);
-    codeGenASTPtr code = CallNode::namedCall(callee, args);
+    codeGenASTPtr code = functionCallAST::namedCall(callee, args);
 
     // issue RPC and wait for result
     bool wasRunning = !isStopped();
@@ -1721,14 +1721,14 @@ void PCProcess::installInstrRequests(const std::vector<instMapping*> &requests) 
            // should be silently handled or not
            codeGenASTPtr ast;
            if ((req->where & FUNC_ARG) && req->args.size()>0) {
-              ast = CallNode::namedCall(req->inst,
+              ast = functionCallAST::namedCall(req->inst,
                                         req->args,
                                         this);
            }
            else {
               std::vector<codeGenASTPtr> def_args;
               def_args.push_back(OperandNode::Constant((void *)0));
-              ast = CallNode::namedCall(req->inst,
+              ast = functionCallAST::namedCall(req->inst,
                                         def_args);
            }
            // We mask to strip off the FUNC_ARG bit...

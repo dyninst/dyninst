@@ -51,12 +51,12 @@ using namespace Dyninst;
 using namespace PatchAPI;
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
+using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
 
 #define DCAST_AST(ast) boost::dynamic_pointer_cast<Dyninst::DyninstAPI::codeGenAST>(ast)
 
 namespace OperatorNode = Dyninst::DyninstAPI::OperatorNode;
 namespace SequenceNode = Dyninst::DyninstAPI::SequenceNode;
-namespace CallNode = Dyninst::DyninstAPI::CallNode;
 namespace StackInsertNode = Dyninst::DyninstAPI::StackInsertNode;
 namespace StackRemoveNode = Dyninst::DyninstAPI::StackRemoveNode;
 namespace StackNode = Dyninst::DyninstAPI::StackNode;
@@ -367,7 +367,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
     
    if (guarded() &&
        minis->containsFuncCall()) {
-     baseTrampElements.push_back(CallNode::namedCall("DYNINST_unlock_tramp_guard", empty_args));
+     baseTrampElements.push_back(functionCallAST::namedCall("DYNINST_unlock_tramp_guard", empty_args));
    }
 
    baseTrampSequence = SequenceNode::sequence(baseTrampElements);
@@ -379,7 +379,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    if (guarded() &&
        minis->containsFuncCall()) {
       baseTrampAST = OperatorNode::If(
-          CallNode::namedCall("DYNINST_lock_tramp_guard", empty_args),
+          functionCallAST::namedCall("DYNINST_lock_tramp_guard", empty_args),
           baseTrampSequence);
    }
    else {

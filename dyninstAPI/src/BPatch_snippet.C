@@ -67,10 +67,10 @@ using namespace Dyninst::SymtabAPI;
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using variableAST = Dyninst::DyninstAPI::variableAST;
 using threadAST = Dyninst::DyninstAPI::threadAST;
+using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
 
 namespace OperatorNode = Dyninst::DyninstAPI::OperatorNode;
 namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
-namespace CallNode = Dyninst::DyninstAPI::CallNode;
 namespace SequenceNode = Dyninst::DyninstAPI::SequenceNode;
 namespace NullNode = Dyninst::DyninstAPI::NullNode;
 namespace MemoryNode = Dyninst::DyninstAPI::MemoryNode;
@@ -731,7 +731,7 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
     //  to generate function calls can lead to non uniqueness probs
     //  in the case of overloaded callee functions.
 
-    ast_wrapper = CallNode::call(func.lowlevel_func(), ast_args);
+    ast_wrapper = functionCallAST::call(func.lowlevel_func(), ast_args);
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -1393,7 +1393,7 @@ BPatch_breakPointExpr::BPatch_breakPointExpr()
 {
     std::vector<codeGenASTPtr > null_args;
 
-    ast_wrapper = CallNode::namedCall("DYNINST_snippetBreakpoint", null_args);
+    ast_wrapper = functionCallAST::namedCall("DYNINST_snippetBreakpoint", null_args);
 
     assert(BPatch::bpatch != NULL);
 
@@ -1466,7 +1466,7 @@ BPatch_tidExpr::BPatch_tidExpr(BPatch_process *proc)
   BPatch_function *thread_func = thread_funcs[0];
 
   std::vector<codeGenASTPtr> args;
-  ast_wrapper = CallNode::call(thread_func->lowlevel_func(), args);
+  ast_wrapper = functionCallAST::call(thread_func->lowlevel_func(), args);
 
   assert(BPatch::bpatch != NULL);
   ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -1547,7 +1547,7 @@ BPatch_stopThreadExpr::BPatch_stopThreadExpr
     ast_args.push_back(calculation.ast_wrapper);
 
     // create func call & set type
-    ast_wrapper = CallNode::namedCall("DYNINST_stopThread", ast_args);
+    ast_wrapper = functionCallAST::namedCall("DYNINST_stopThread", ast_args);
     ast_wrapper->setType(BPatch::bpatch->type_Untyped);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
@@ -1584,7 +1584,7 @@ BPatch_stopThreadExpr::BPatch_stopThreadExpr(
     ast_args.push_back(objEndNode);
 
     // create func call & set type
-    ast_wrapper = CallNode::namedCall("DYNINST_stopInterProc", ast_args);
+    ast_wrapper = functionCallAST::namedCall("DYNINST_stopInterProc", ast_args);
     ast_wrapper->setType(BPatch::bpatch->type_Untyped);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
@@ -1617,7 +1617,7 @@ BPatch_shadowExpr::BPatch_shadowExpr
     ast_args.push_back(calculation.ast_wrapper);
 
     // create func call & set type
-    ast_wrapper = CallNode::namedCall("RThandleShadow", ast_args);
+    ast_wrapper = functionCallAST::namedCall("RThandleShadow", ast_args);
     ast_wrapper->setType(BPatch::bpatch->type_Untyped);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }

@@ -244,7 +244,7 @@ static void add_handler(instPoint* pt, func_instance* add_me)
 {
   vector<codeGenASTPtr> args;
   // no args, just add
-  codeGenASTPtr snip = DyninstAPI::CallNode::call(add_me, args);
+  codeGenASTPtr snip = DyninstAPI::functionCallAST::call(add_me, args);
   auto instrumentation = pt->pushFront(snip);
   instrumentation->disableRecursiveGuard();
 }

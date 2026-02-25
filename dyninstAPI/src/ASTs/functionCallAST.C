@@ -160,21 +160,19 @@ std::string functionCallAST::format(std::string indent) {
   return ret.str();
 }
 
-namespace CallNode {
-  codeGenASTPtr namedCall(std::string name, std::vector<codeGenASTPtr> &args, AddressSpace *addrSpace) {
+functionCallAST::Ptr functionCallAST::namedCall(std::string name, std::vector<codeGenASTPtr> &args, AddressSpace *addrSpace) {
 
-    if(!addrSpace) {
-      return boost::make_shared<functionCallAST>(std::move(name), args);
-    }
-
-    func_instance *ifunc = addrSpace->findOnlyOneFunction(name);
-    if(ifunc == NULL) {
-      ast_printf("%s[%d]: Can't find function %s\n", FILE__, __LINE__, name.c_str());
-      return codeGenASTPtr();
-    }
-
-    return boost::make_shared<functionCallAST>(ifunc, args);
+  if(!addrSpace) {
+    return namedCall(std::move(name), args);
   }
+
+  func_instance *ifunc = addrSpace->findOnlyOneFunction(name);
+  if(ifunc == NULL) {
+    ast_printf("%s[%d]: Can't find function %s\n", FILE__, __LINE__, name.c_str());
+    return functionCallAST::Ptr();
+  }
+
+  return boost::make_shared<functionCallAST>(ifunc, args);
 }
 
 }}

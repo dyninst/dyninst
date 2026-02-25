@@ -69,9 +69,9 @@
 #include "instructionAPI/h/Instruction.h"
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
+using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
 
 namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
-namespace CallNode = Dyninst::DyninstAPI::CallNode;
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -180,7 +180,7 @@ codeGenASTPtr PCProcess::createUnprotectStackAST() {
     // prot = READ|WRITE|EXECUTE
     args.push_back(OperandNode::Constant((void *)7));
 
-    return CallNode::call(mprot, args);
+    return functionCallAST::call(mprot, args);
 }
 
 bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 

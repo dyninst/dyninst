@@ -47,6 +47,32 @@ namespace Dyninst { namespace DyninstAPI {
 
 class functionCallAST : public codeGenAST {
 public:
+  using Ptr = boost::shared_ptr<functionCallAST>;
+
+  static Ptr namedCall(std::string name, std::vector<codeGenASTPtr> &args, AddressSpace *addrSpace);
+
+  static Ptr namedCall(std::string name, std::vector<codeGenASTPtr> &args) {
+    return boost::make_shared<functionCallAST>(std::move(name), args);
+  }
+
+  static Ptr call(func_instance *func, std::vector<codeGenASTPtr> &args) {
+    if(!func) {
+      return {};
+    }
+    return boost::make_shared<functionCallAST>(func, args);
+  }
+
+  static Ptr replacement(func_instance *func) {
+    if(!func) {
+      return {};
+    }
+    return boost::make_shared<functionCallAST>(func);
+  }
+
+  static Ptr target(Dyninst::Address addr, std::vector<codeGenASTPtr> &args) {
+    return boost::make_shared<functionCallAST>(addr, args);
+  }
+
   functionCallAST(std::string name) : func_name_{std::move(name)} {}
 
   functionCallAST(func_instance *func, std::vector<codeGenASTPtr> &args) : func_{func} {
@@ -89,33 +115,6 @@ private:
 
   bool callReplace_{false}; // Node is intended for function call replacement
 };
-
-namespace CallNode {
-
-  codeGenASTPtr namedCall(std::string name, std::vector<codeGenASTPtr> &args, AddressSpace *addrSpace);
-
-  inline codeGenASTPtr namedCall(std::string name, std::vector<codeGenASTPtr> &args) {
-    return boost::make_shared<functionCallAST>(std::move(name), args);
-  }
-
-  inline codeGenASTPtr call(func_instance *func, std::vector<codeGenASTPtr> &args) {
-    if(!func) {
-      return {};
-    }
-    return boost::make_shared<functionCallAST>(func, args);
-  }
-
-  inline codeGenASTPtr replace(func_instance *func) {
-    if(!func) {
-      return {};
-    }
-    return boost::make_shared<functionCallAST>(func);
-  }
-
-  inline codeGenASTPtr target(Dyninst::Address addr, std::vector<codeGenASTPtr> &args) {
-    return boost::make_shared<functionCallAST>(addr, args);
-  }
-}
 
 }}
 

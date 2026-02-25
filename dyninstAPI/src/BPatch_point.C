@@ -474,7 +474,7 @@ void *BPatch_point::monitorCalls( BPatch_function * user_cb )
   func_instance * fb = func_to_use->lowlevel_func();
 
   // Monitoring function
-  codeGenASTPtr ast = DyninstAPI::CallNode::call(fb, args);
+  codeGenASTPtr ast = DyninstAPI::functionCallAST::call(fb, args);
 
   Dyninst::PatchAPI::InstancePtr res = point->pushBack(ast);
 

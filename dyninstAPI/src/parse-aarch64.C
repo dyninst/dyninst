@@ -63,8 +63,7 @@
 using namespace Dyninst::SymtabAPI;
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
-
-namespace CallNode = Dyninst::DyninstAPI::CallNode;
+using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
 
 namespace {
   char const* LIBC_CTOR_HANDLER("__libc_csu_init");
@@ -124,7 +123,7 @@ static void add_handler(instPoint* pt, func_instance* add_me)
 {
   vector<codeGenASTPtr> args;
   // no args, just add
-  codeGenASTPtr snip = CallNode::call(add_me, args);
+  codeGenASTPtr snip = functionCallAST::call(add_me, args);
   auto instrumentation = pt->pushFront(snip);
   instrumentation->disableRecursiveGuard();
 }

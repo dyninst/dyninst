@@ -61,8 +61,7 @@
 #include "registerSpace.h"
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
-
-namespace CallNode = Dyninst::DyninstAPI::CallNode;
+using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
 
 using namespace Dyninst::SymtabAPI;
 namespace {
@@ -76,7 +75,7 @@ static void add_handler(instPoint* pt, func_instance* add_me)
 {
   vector<codeGenASTPtr> args;
   // no args, just add
-  codeGenASTPtr snip = CallNode::call(add_me, args);
+  codeGenASTPtr snip = functionCallAST::call(add_me, args);
   auto instrumentation = pt->pushFront(snip);
   instrumentation->disableRecursiveGuard();
 }  
