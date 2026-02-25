@@ -1,14 +1,14 @@
 #include "Architecture.h"
 #include "ast_helpers.h"
-#include "AstStackNode.h"
 #include "codegen.h"
 #include "debug.h"
 #include "instPoint.h"
 #include "registerSpace.h"
+#include "stackAST.h"
 
 namespace Dyninst { namespace DyninstAPI {
 
-bool AstStackNode::allocateCanaryRegister(codeGen &gen, bool noCost, Dyninst::Register &reg,
+bool stackAST::allocateCanaryRegister(codeGen &gen, bool noCost, Dyninst::Register &reg,
                                           bool &needSaveAndRestore) {
   // Let's see if we can find a dead register to use!
   instPoint *point = gen.point();

@@ -43,11 +43,11 @@
 #include "scrambleRegistersAST.h"
 #include "sequenceAST.h"
 #include "snippetAST.h"
+#include "stackAST.h"
 #include "threadAST.h"
 #include "variableAST.h"
 #include "AstStackGenericNode.h"
 #include "AstStackInsertNode.h"
-#include "AstStackNode.h"
 #include "AstStackRemoveNode.h"
 
 #endif

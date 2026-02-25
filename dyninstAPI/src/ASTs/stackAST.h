@@ -39,7 +39,7 @@ class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstStackNode : public codeGenAST {
+class stackAST : public codeGenAST {
 public:
   enum MSpecialType {
     GENERIC_AST,

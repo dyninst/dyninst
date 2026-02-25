@@ -31,17 +31,17 @@
 #ifndef DYNINST_DYNINSTAPI_ASTSTACKINSERTNODE_H
 #define DYNINST_DYNINSTAPI_ASTSTACKINSERTNODE_H
 
-#include "AstStackNode.h"
 #include "dyn_register.h"
 
 #include <boost/make_shared.hpp>
+#include "stackAST.h"
 #include <string>
 
 class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstStackInsertNode : public AstStackNode {
+class AstStackInsertNode : public stackAST {
 public:
   AstStackInsertNode(int s, MSpecialType t) : size(s), type(t) {}
 
@@ -62,11 +62,11 @@ private:
 namespace StackInsertNode {
 
   inline codeGenASTPtr generic(int s) {
-    return boost::make_shared<AstStackInsertNode>(s, AstStackNode::GENERIC_AST);
+    return boost::make_shared<AstStackInsertNode>(s, stackAST::GENERIC_AST);
   }
 
   inline codeGenASTPtr canary(int s) {
-    return boost::make_shared<AstStackInsertNode>(s, AstStackNode::CANARY_AST);
+    return boost::make_shared<AstStackInsertNode>(s, stackAST::CANARY_AST);
   }
 
 }

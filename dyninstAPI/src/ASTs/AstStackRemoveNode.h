@@ -31,11 +31,11 @@
 #ifndef DYNINST_DYNINSTAPI_ASTSTACKREMOVENODE_H
 #define DYNINST_DYNINSTAPI_ASTSTACKREMOVENODE_H
 
-#include "AstStackNode.h"
 #include "dyn_register.h"
 
 #include <boost/make_shared.hpp>
 #include "codeGenAST.h"
+#include "stackAST.h"
 #include <string>
 
 class codeGen;
@@ -43,7 +43,7 @@ class func_instance;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstStackRemoveNode : public AstStackNode {
+class AstStackRemoveNode : public stackAST {
 public:
   explicit AstStackRemoveNode(int s, MSpecialType t = GENERIC_AST) : size(s), type(t) {}
 
@@ -73,12 +73,12 @@ private:
 namespace StackRemoveNode {
 
   inline codeGenASTPtr generic(int size) {
-    return boost::make_shared<AstStackRemoveNode>(size, AstStackNode::GENERIC_AST);
+    return boost::make_shared<AstStackRemoveNode>(size, stackAST::GENERIC_AST);
   }
 
   inline codeGenASTPtr canary(int size, func_instance *func, bool canaryAfterPrologue,
                            long canaryHeight) {
-    return boost::make_shared<AstStackRemoveNode>(size, AstStackNode::CANARY_AST, func,
+    return boost::make_shared<AstStackRemoveNode>(size, stackAST::CANARY_AST, func,
                                                   canaryAfterPrologue, canaryHeight);
   }
 }
