@@ -1,16 +1,16 @@
 #include "ast_helpers.h"
-#include "AstSequenceNode.h"
 #include "BPatch.h"
 #include "BPatch_type.h"
 #include "codegen.h"
 #include "registerSpace.h"
+#include "sequenceAST.h"
 
 #include <iomanip>
 #include <sstream>
 
 namespace Dyninst { namespace DyninstAPI {
 
-bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
+bool sequenceAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
                                           Dyninst::Register &retReg) {
   RETURN_KEPT_REG(retReg);
   Dyninst::Register tmp = Dyninst::Null_Register;
@@ -38,7 +38,7 @@ bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Ad
   return true;
 }
 
-BPatch_type *AstSequenceNode::checkType(BPatch_function *func) {
+BPatch_type *sequenceAST::checkType(BPatch_function *func) {
   BPatch_type *ret = NULL;
   BPatch_type *sType = NULL;
   bool errorFlag = false;
@@ -75,7 +75,7 @@ BPatch_type *AstSequenceNode::checkType(BPatch_function *func) {
   return ret;
 }
 
-std::string AstSequenceNode::format(std::string indent) {
+std::string sequenceAST::format(std::string indent) {
   std::stringstream ret;
   ret << indent << "Seq/" << std::hex << this << std::dec << "()" << std::endl;
   for(unsigned i = 0; i < children.size(); ++i) {

@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_DYNINSTAPI_ASTSEQUENCENODE_H
-#define DYNINST_DYNINSTAPI_ASTSEQUENCENODE_H
+#ifndef DYNINST_DYNINSTAPI_SEQUENCEAST_H
+#define DYNINST_DYNINSTAPI_SEQUENCEAST_H
 
 #include "dyn_register.h"
 
@@ -43,9 +43,9 @@ class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstSequenceNode : public codeGenAST {
+class sequenceAST : public codeGenAST {
 public:
-  AstSequenceNode(std::vector<codeGenASTPtr> &sequence) {
+  sequenceAST(std::vector<codeGenASTPtr> &sequence) {
     children = sequence;
   }
 
@@ -67,7 +67,7 @@ private:
 namespace SequenceNode {
 
   inline codeGenASTPtr sequence(std::vector<codeGenASTPtr> &vals) {
-    return boost::make_shared<AstSequenceNode>(vals);
+    return boost::make_shared<sequenceAST>(vals);
   }
 }
 
