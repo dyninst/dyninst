@@ -1,6 +1,6 @@
 #include "ast_helpers.h"
-#include "AstScrambleRegistersNode.h"
 #include "codegen.h"
+#include "scrambleRegistersAST.h"
 
 #include <iomanip>
 #include <sstream>
@@ -9,14 +9,14 @@ namespace Dyninst { namespace DyninstAPI {
 
 #ifndef DYNINST_CODEGEN_ARCH_X86_64
 
-bool AstScrambleRegistersNode::generateCode_phase2(codeGen &, bool, Dyninst::Address &,
+bool scrambleRegistersAST::generateCode_phase2(codeGen &, bool, Dyninst::Address &,
                                                    Dyninst::Register &) {
   return true;
 }
 
 #else
 
-bool AstScrambleRegistersNode::generateCode_phase2(codeGen &gen, bool, Address &,
+bool scrambleRegistersAST::generateCode_phase2(codeGen &gen, bool, Address &,
                                                    Dyninst::Register &) {
   for(int i = 0; i < gen.rs()->numGPRs(); i++) {
     registerSlot *reg = gen.rs()->GPRs()[i];

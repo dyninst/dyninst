@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_DYNINSTAPI_ASTSCRAMBLEREGISTERSNODE_H
-#define DYNINST_DYNINSTAPI_ASTSCRAMBLEREGISTERSNODE_H
+#ifndef DYNINST_DYNINSTAPI_SCRAMBLEREGISTERSAST_H
+#define DYNINST_DYNINSTAPI_SCRAMBLEREGISTERSAST_H
 
 #include "dyn_register.h"
 
@@ -40,7 +40,7 @@ class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstScrambleRegistersNode : public codeGenAST {
+class scrambleRegistersAST : public codeGenAST {
 public:
   bool usesAppRegister() const override {
     return true;
@@ -53,7 +53,7 @@ private:
 namespace RegisterNode {
 
   inline codeGenASTPtr scramble() {
-    return boost::make_shared<AstScrambleRegistersNode>();
+    return boost::make_shared<scrambleRegistersAST>();
   }
 
 }
