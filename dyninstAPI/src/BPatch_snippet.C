@@ -66,6 +66,7 @@ using namespace Dyninst::SymtabAPI;
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using variableAST = Dyninst::DyninstAPI::variableAST;
+using threadAST = Dyninst::DyninstAPI::threadAST;
 
 namespace OperatorNode = Dyninst::DyninstAPI::OperatorNode;
 namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
@@ -73,7 +74,6 @@ namespace CallNode = Dyninst::DyninstAPI::CallNode;
 namespace SequenceNode = Dyninst::DyninstAPI::SequenceNode;
 namespace NullNode = Dyninst::DyninstAPI::NullNode;
 namespace MemoryNode = Dyninst::DyninstAPI::MemoryNode;
-namespace ThreadNode = Dyninst::DyninstAPI::ThreadNode;
 namespace AddressNode = Dyninst::DyninstAPI::AddressNode;
 namespace TargetNode = Dyninst::DyninstAPI::TargetNode;
 namespace RegisterNode = Dyninst::DyninstAPI::RegisterNode;
@@ -1444,7 +1444,7 @@ BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExpr(const BPatch_snippe
 
 BPatch_threadIndexExpr::BPatch_threadIndexExpr()
 {
-    ast_wrapper = ThreadNode::index();
+    ast_wrapper = threadAST::index();
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());

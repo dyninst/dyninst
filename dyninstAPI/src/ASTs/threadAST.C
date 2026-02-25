@@ -1,15 +1,9 @@
 #include "debug.h"
 #include "threadAST.h"
 
-namespace Dyninst { namespace DyninstAPI {
+#include <boost/make_shared.hpp>
 
-// We use one of these across all platforms, since it
-// devolves into a process-specific function node.
-// However, this lets us delay that until code generation
-// when we have the process pointer. If we get multiples,
-// we'll screw up our pointer-based common subexpression
-// elimination.
-AstThreadIndexNode AstThreadIndexNode::node{};
+namespace Dyninst { namespace DyninstAPI {
 
 // The output depends solely on input parameters, so can
 // be guaranteed to not change if executed multiple times
@@ -23,6 +17,18 @@ bool threadAST::canBeKept() const {
     }
   }
   return true;
+}
+
+
+// We use one of these across all platforms, since it
+// devolves into a process-specific function node.
+// However, this lets us delay that until code generation
+// when we have the process pointer. If we get multiples,
+// we'll screw up our pointer-based common subexpression
+// elimination.
+threadAST::Ptr threadAST::index() {
+  static threadAST::Ptr idx = boost::make_shared<threadAST>();
+  return idx;
 }
 
 }}

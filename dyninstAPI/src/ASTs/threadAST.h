@@ -34,8 +34,6 @@
 #include "AstCallNode.h"
 #include "dyn_register.h"
 
-#include <boost/make_shared.hpp>
-
 class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
@@ -43,6 +41,10 @@ namespace Dyninst { namespace DyninstAPI {
 // Acquire the thread index value - a 0...n labeling of threads.
 class threadAST : public AstCallNode {
 public:
+  using Ptr = boost::shared_ptr<threadAST>;
+
+  static Ptr index();
+
   threadAST() : AstCallNode("DYNINSTthreadIndex") {}
 
   bool canBeKept() const override;
@@ -52,17 +54,7 @@ private:
     // No codegen needed
     return true;
   }
-
-  static AstThreadIndexNode node;
 };
-
-namespace ThreadNode {
-
-  inline codeGenASTPtr index() {
-    return boost::make_shared<AstThreadIndexNode>();
-  }
-
-}
 
 }}
 
