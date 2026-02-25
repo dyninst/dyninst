@@ -46,8 +46,8 @@
 #include "snippetAST.h"
 #include "stackAST.h"
 #include "stackInsertionAST.h"
+#include "stackRemovalAST.h"
 #include "threadAST.h"
 #include "variableAST.h"
-#include "AstStackRemoveNode.h"
 
 #endif

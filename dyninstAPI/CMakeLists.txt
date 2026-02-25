@@ -60,7 +60,7 @@ set(_private_headers
     src/ASTs/snippetAST.h
     src/ASTs/stackInsertionAST.h
     src/ASTs/genericStackAST.h
-    src/ASTs/AstStackRemoveNode.h
+    src/ASTs/stackRemovalAST.h
     src/ASTs/atomicOperationAST.h
     src/ASTs/codeGenAST.h
     src/ASTs/functionCallAST.h
@@ -150,7 +150,7 @@ set(_sources
     src/ASTs/stackAST.C
     src/ASTs/stackInsertionAST.C
     src/ASTs/genericStackAST.C
-    src/ASTs/AstStackRemoveNode.C
+    src/ASTs/stackRemovalAST.C
     src/ASTs/atomicOperationAST.C
     src/ASTs/codeGenAST.C
     src/ASTs/functionCallAST.C

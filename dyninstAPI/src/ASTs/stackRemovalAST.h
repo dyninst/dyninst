@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_DYNINSTAPI_ASTSTACKREMOVENODE_H
-#define DYNINST_DYNINSTAPI_ASTSTACKREMOVENODE_H
+#ifndef DYNINST_DYNINSTAPI_STACKREMOVALAST_H
+#define DYNINST_DYNINSTAPI_STACKREMOVALAST_H
 
 #include "dyn_register.h"
 
@@ -43,11 +43,11 @@ class func_instance;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstStackRemoveNode : public stackAST {
+class stackRemovalAST : public stackAST {
 public:
-  explicit AstStackRemoveNode(int s, MSpecialType t = GENERIC_AST) : size(s), type(t) {}
+  explicit stackRemovalAST(int s, MSpecialType t = GENERIC_AST) : size(s), type(t) {}
 
-  AstStackRemoveNode(int s, MSpecialType t, func_instance *func, bool canaryAfterPrologue,
+  stackRemovalAST(int s, MSpecialType t, func_instance *func, bool canaryAfterPrologue,
                      long canaryHeight)
       : size(s), type(t), func_(func), canaryAfterPrologue_(canaryAfterPrologue),
         canaryHeight_(canaryHeight) {}
@@ -73,12 +73,12 @@ private:
 namespace StackRemoveNode {
 
   inline codeGenASTPtr generic(int size) {
-    return boost::make_shared<AstStackRemoveNode>(size, stackAST::GENERIC_AST);
+    return boost::make_shared<stackRemovalAST>(size, stackAST::GENERIC_AST);
   }
 
   inline codeGenASTPtr canary(int size, func_instance *func, bool canaryAfterPrologue,
                            long canaryHeight) {
-    return boost::make_shared<AstStackRemoveNode>(size, stackAST::CANARY_AST, func,
+    return boost::make_shared<stackRemovalAST>(size, stackAST::CANARY_AST, func,
                                                   canaryAfterPrologue, canaryHeight);
   }
 }

@@ -1,13 +1,13 @@
 #include "ast_helpers.h"
-#include "AstStackRemoveNode.h"
 #include "RegisterConversion.h"
+#include "stackRemovalAST.h"
 
 #include <iomanip>
 #include <sstream>
 
 namespace Dyninst { namespace DyninstAPI {
 
-std::string AstStackRemoveNode::format(std::string indent) {
+std::string stackRemovalAST::format(std::string indent) {
   std::stringstream ret;
   ret << indent << "StackRemove/" << std::hex << this;
   ret << "(size " << size << ")";
@@ -20,7 +20,7 @@ std::string AstStackRemoveNode::format(std::string indent) {
 
 #ifndef cap_stack_mods
 
-bool AstStackRemoveNode::generateCode_phase2(codeGen &, bool, Address &, Dyninst::Register &) {
+bool stackRemovalAST::generateCode_phase2(codeGen &, bool, Address &, Dyninst::Register &) {
   (void)func_;
   (void)canaryAfterPrologue_;
   (void)canaryHeight_;
@@ -34,7 +34,7 @@ bool AstStackRemoveNode::generateCode_phase2(codeGen &, bool, Address &, Dyninst
 #include "RegisterConversion.h"
 #include "registers/MachRegister.h"
 
-bool AstStackRemoveNode::generateCode_phase2(codeGen &gen, bool noCost, Address &,
+bool stackRemovalAST::generateCode_phase2(codeGen &gen, bool noCost, Address &,
                                              Dyninst::Register &) {
   // Turn off default basetramp instrumentation saves & restores
   gen.setInsertNaked(true);
