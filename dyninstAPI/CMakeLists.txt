@@ -49,7 +49,7 @@ set(_private_headers
     src/ASTs/AmdgpuEpilogue.h
     src/ASTs/AmdgpuPrologue.h
     src/ASTs/ast_helpers.h
-    src/ASTs/AstAddrNode.h
+    src/ASTs/addressAST.h
     src/ASTs/AstMemoryNode.h
     src/ASTs/AstNullNode.h
     src/ASTs/AstStackNode.h

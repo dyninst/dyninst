@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_DYNINSTAPI_ASTADDRNODE_H
-#define DYNINST_DYNINSTAPI_ASTADDRNODE_H
+#ifndef DYNINST_DYNINSTAPI_ADDRESSAST_H
+#define DYNINST_DYNINSTAPI_ADDRESSAST_H
 
 #include "codeGenAST.h"
 
@@ -42,7 +42,7 @@ class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstActualAddrNode : public codeGenAST {
+class actualAddressAST : public codeGenAST {
 public:
   BPatch_type *checkType(BPatch_function *) override {
     return getType();

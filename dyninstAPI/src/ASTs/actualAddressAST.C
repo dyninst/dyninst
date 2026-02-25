@@ -1,5 +1,5 @@
 #include "ast_helpers.h"
-#include "AstAddrNode.h"
+#include "addressAST.h"
 #include "codegen.h"
 #include "opcode.h"
 
@@ -7,7 +7,7 @@
 
 namespace Dyninst { namespace DyninstAPI {
 
-bool AstActualAddrNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
+bool actualAddressAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
                                             Dyninst::Register &retReg) {
   if(retReg == Dyninst::Null_Register) {
     retReg = allocateAndKeep(gen, noCost);
@@ -24,7 +24,7 @@ bool AstActualAddrNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::
 namespace AddressNode {
 
   codeGenASTPtr actual() {
-    static auto node = boost::make_shared<AstActualAddrNode>();
+    static auto node = boost::make_shared<actualAddressAST>();
     return node;
   }
 
