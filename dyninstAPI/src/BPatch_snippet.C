@@ -495,7 +495,7 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_unOp op,
           break;
       }
    case BPatch_addr:  {
-     ast_wrapper = codeGenASTPtr(generateVariableBase(lOperand));
+     ast_wrapper = generateVariableBase(lOperand);
        // create a new type which is a pointer to type
        BPatch_type *baseType = const_cast<BPatch_type *>
            (lOperand.ast_wrapper->getType());
@@ -1623,7 +1623,7 @@ BPatch_shadowExpr::BPatch_shadowExpr
 }
 
 BPatch_originalAddressExpr::BPatch_originalAddressExpr() {
-    ast_wrapper = codeGenASTPtr(AddressAST::original());
+    ast_wrapper = AddressAST::original();
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -1633,7 +1633,7 @@ BPatch_originalAddressExpr::BPatch_originalAddressExpr() {
 }
 
 BPatch_actualAddressExpr::BPatch_actualAddressExpr() {
-    ast_wrapper = codeGenASTPtr(AddressAST::actual());
+    ast_wrapper = AddressAST::actual();
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
