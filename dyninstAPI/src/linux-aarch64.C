@@ -46,8 +46,7 @@
 #include "common/src/linuxHeaders.h"
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
-
-namespace NullNode = Dyninst::DyninstAPI::NullNode;
+using nullAST = Dyninst::DyninstAPI::nullAST;
 
 
 // FIXME: HOST+CODEGEN
@@ -110,7 +109,7 @@ bool PCProcess::getOPDFunctionAddr(Dyninst::Address &) {
 
 codeGenASTPtr PCProcess::createUnprotectStackAST() {
     // This is not necessary on power
-    return NullNode::create();
+    return nullAST::create();
 }
 
 bool Frame::setPC(Dyninst::Address newpc) {
