@@ -54,6 +54,7 @@ using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
 using operatorAST = Dyninst::DyninstAPI::operatorAST;
 using sequenceAST = Dyninst::DyninstAPI::sequenceAST;
+using snippetAST = Dyninst::DyninstAPI::snippetAST;
 
 #define DCAST_AST(ast) boost::dynamic_pointer_cast<Dyninst::DyninstAPI::codeGenAST>(ast)
 
@@ -62,7 +63,6 @@ using sequenceAST = Dyninst::DyninstAPI::sequenceAST;
 namespace StackInsertNode = Dyninst::DyninstAPI::StackInsertNode;
 namespace StackRemoveNode = Dyninst::DyninstAPI::StackRemoveNode;
 namespace StackNode = Dyninst::DyninstAPI::StackNode;
-namespace SnippetNode = Dyninst::DyninstAPI::SnippetNode;
 
 // Normal constructor
 baseTramp::baseTramp() :
@@ -350,7 +350,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
          if (ast) 
             miniTramps.push_back(ast);
          else
-            miniTramps.push_back(SnippetNode::snippet((*iter)->snippet()));
+            miniTramps.push_back(snippetAST::create((*iter)->snippet()));
       }
    }
    else {

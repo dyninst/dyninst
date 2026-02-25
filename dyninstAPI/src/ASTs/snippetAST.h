@@ -48,22 +48,18 @@ namespace Dyninst { namespace DyninstAPI {
 // in our world.
 class snippetAST : public codeGenAST {
 public:
+  using Ptr = boost::shared_ptr<snippetAST>;
+
+  static Ptr create(Dyninst::PatchAPI::SnippetPtr snippet) {
+    return boost::make_shared<snippetAST>(std::move(snippet));
+  }
+
   snippetAST(Dyninst::PatchAPI::SnippetPtr snippet) : snip_{std::move(snippet)} {}
 
   bool generateCode_phase2(codeGen &gen, bool, Dyninst::Address &, Dyninst::Register &) override;
 
   Dyninst::PatchAPI::SnippetPtr snip_{};
 };
-
-namespace SnippetNode {
-
-  namespace patch = Dyninst::PatchAPI;
-
-  inline codeGenASTPtr snippet(patch::SnippetPtr snippet) {
-    return boost::make_shared<snippetAST>(std::move(snippet));
-  }
-
-}
 
 }}
 
