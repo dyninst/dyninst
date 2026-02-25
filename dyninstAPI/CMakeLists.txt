@@ -50,7 +50,6 @@ set(_private_headers
     src/ASTs/AmdgpuPrologue.h
     src/ASTs/ast_helpers.h
     src/ASTs/AstAddrNode.h
-    src/ASTs/AstAtomicOperationStmtNode.h
     src/ASTs/AstCallNode.h
     src/ASTs/AstDynamicTargetNode.h
     src/ASTs/AstMemoryNode.h
@@ -65,6 +64,7 @@ set(_private_headers
     src/ASTs/AstStackGenericNode.h
     src/ASTs/AstStackRemoveNode.h
     src/ASTs/AstThreadIndexNode.h
+    src/ASTs/atomicOperationAST.h
     src/ASTs/codeGenAST.h
     src/ASTs/variableAST.h
     src/ASTs/OperandType.h
@@ -139,7 +139,6 @@ set(_private_headers
 set(_sources
     src/addressSpace.C
     src/ASTs/AstActualAddrNode.C
-    src/ASTs/AstAtomicOperationStmtNode.C
     src/ASTs/AstCallNode.C
     src/ASTs/AstDynamicTargetNode.C
     src/ASTs/AstMemoryNode.C
@@ -155,6 +154,7 @@ set(_sources
     src/ASTs/AstStackGenericNode.C
     src/ASTs/AstStackRemoveNode.C
     src/ASTs/AstThreadIndexNode.C
+    src/ASTs/atomicOperationAST.C
     src/ASTs/codeGenAST.C
     src/ASTs/variableAST.C
     src/binaryEdit.C

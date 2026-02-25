@@ -1,4 +1,4 @@
-#include "AstAtomicOperationStmtNode.h"
+#include "atomicOperationAST.h"
 #include "AstOperandNode.h"
 #include "codegen.h"
 
@@ -11,7 +11,7 @@
 
 namespace Dyninst { namespace DyninstAPI {
 
-std::string AstAtomicOperationStmtNode::format(std::string indent) {
+std::string atomicOperationAST::format(std::string indent) {
   std::stringstream ret;
 
   ret << indent << "Op/" << std::hex << this << "("
@@ -30,7 +30,7 @@ std::string AstAtomicOperationStmtNode::format(std::string indent) {
 
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 
-bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen &gen, bool noCost, Address &retAddr,
+bool atomicOperationAST::generateCode_phase2(codeGen &gen, bool noCost, Address &retAddr,
                                                      Dyninst::Register &) {
   // This has 2 operands - variable and constant.
   // Codegen for atomic add has the following steps:
@@ -79,7 +79,7 @@ bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen &gen, bool noCost, 
   return ret;
 }
 #else
-bool AstAtomicOperationStmtNode::generateCode_phase2(codeGen &, bool, Dyninst::Address &,
+bool atomicOperationAST::generateCode_phase2(codeGen &, bool, Dyninst::Address &,
                                                      Dyninst::Register &) {
   return false;
 }
