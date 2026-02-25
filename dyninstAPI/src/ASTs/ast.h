@@ -33,11 +33,11 @@
 
 #include "codeGenAST.h"
 #include "atomicOperationAST.h"
+#include "functionCallAST.h"
 #include "jumpTargetAST.h"
 #include "threadAST.h"
 #include "variableAST.h"
 #include "AstAddrNode.h"
-#include "AstCallNode.h"
 #include "AstMemoryNode.h"
 #include "AstNullNode.h"
 #include "AstOperandNode.h"

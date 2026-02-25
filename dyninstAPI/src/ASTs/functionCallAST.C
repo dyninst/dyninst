@@ -1,19 +1,19 @@
 #include "addressSpace.h"
 #include "ast_helpers.h"
-#include "AstCallNode.h"
 #include "BPatch.h"
 #include "BPatch_function.h"
 #include "codegen.h"
 #include "debug.h"
 #include "emitter.h"
 #include "function.h"
+#include "functionCallAST.h"
 
 #include <iomanip>
 #include <sstream>
 
 namespace Dyninst { namespace DyninstAPI {
 
-bool AstCallNode::initRegisters(codeGen &gen) {
+bool functionCallAST::initRegisters(codeGen &gen) {
   // For now, we only care if we should save everything. "Everything", of course,
   // is platform dependent. This is the new location of the clobberAllFuncCalls
   // that had previously been in emitCall.
@@ -49,7 +49,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
   return ret;
 }
 
-bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost, Address &,
+bool functionCallAST::generateCode_phase2(codeGen &gen, bool noCost, Address &,
                                       Dyninst::Register &retReg) {
   // We call this anyway... not that we'll ever be kept.
   // Well... if we can somehow know a function is entirely
@@ -112,7 +112,7 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost, Address &,
   return true;
 }
 
-BPatch_type *AstCallNode::checkType(BPatch_function *func) {
+BPatch_type *functionCallAST::checkType(BPatch_function *func) {
   BPatch_type *ret = NULL;
   bool errorFlag = false;
 
@@ -143,7 +143,7 @@ BPatch_type *AstCallNode::checkType(BPatch_function *func) {
   return ret;
 }
 
-std::string AstCallNode::format(std::string indent) {
+std::string functionCallAST::format(std::string indent) {
   std::stringstream ret;
   ret << indent << "Call/" << hex << this << dec;
   if(func_) {
@@ -164,7 +164,7 @@ namespace CallNode {
   codeGenASTPtr namedCall(std::string name, std::vector<codeGenASTPtr> &args, AddressSpace *addrSpace) {
 
     if(!addrSpace) {
-      return boost::make_shared<AstCallNode>(std::move(name), args);
+      return boost::make_shared<functionCallAST>(std::move(name), args);
     }
 
     func_instance *ifunc = addrSpace->findOnlyOneFunction(name);
@@ -173,7 +173,7 @@ namespace CallNode {
       return codeGenASTPtr();
     }
 
-    return boost::make_shared<AstCallNode>(ifunc, args);
+    return boost::make_shared<functionCallAST>(ifunc, args);
   }
 }
 

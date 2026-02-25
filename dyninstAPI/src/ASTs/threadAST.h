@@ -31,21 +31,21 @@
 #ifndef DYNINST_DYNINSTAPI_ASTTHREADINDEXNODE_H
 #define DYNINST_DYNINSTAPI_ASTTHREADINDEXNODE_H
 
-#include "AstCallNode.h"
 #include "dyn_register.h"
+#include "functionCallAST.h"
 
 class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
 // Acquire the thread index value - a 0...n labeling of threads.
-class threadAST : public AstCallNode {
+class threadAST : public functionCallAST {
 public:
   using Ptr = boost::shared_ptr<threadAST>;
 
   static Ptr index();
 
-  threadAST() : AstCallNode("DYNINSTthreadIndex") {}
+  threadAST() : functionCallAST("DYNINSTthreadIndex") {}
 
   bool canBeKept() const override;
 

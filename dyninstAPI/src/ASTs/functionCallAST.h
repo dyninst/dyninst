@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_DYNINSTAPI_ASTCALLNODE_H
-#define DYNINST_DYNINSTAPI_ASTCALLNODE_H
+#ifndef DYNINST_DYNINSTAPI_FUNCTIONCALLAST_H
+#define DYNINST_DYNINSTAPI_FUNCTIONCALLAST_H
 
 #include "dyn_register.h"
 
@@ -45,25 +45,25 @@ class func_instance;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstCallNode : public codeGenAST {
+class functionCallAST : public codeGenAST {
 public:
-  AstCallNode(std::string name) : func_name_{std::move(name)} {}
+  functionCallAST(std::string name) : func_name_{std::move(name)} {}
 
-  AstCallNode(func_instance *func, std::vector<codeGenASTPtr> &args) : func_{func} {
+  functionCallAST(func_instance *func, std::vector<codeGenASTPtr> &args) : func_{func} {
     set_args(args);
   }
 
-  AstCallNode(std::string name, std::vector<codeGenASTPtr> &args) : func_name_{std::move(name)} {
+  functionCallAST(std::string name, std::vector<codeGenASTPtr> &args) : func_name_{std::move(name)} {
     set_args(args);
   }
 
-  AstCallNode(Dyninst::Address addr, std::vector<codeGenASTPtr> &args) : func_addr_{addr} {
+  functionCallAST(Dyninst::Address addr, std::vector<codeGenASTPtr> &args) : func_addr_{addr} {
     set_args(args);
   }
 
-  AstCallNode(func_instance *func) : func_{func}, callReplace_{true} {}
+  functionCallAST(func_instance *func) : func_{func}, callReplace_{true} {}
 
-  virtual ~AstCallNode() = default;
+  virtual ~functionCallAST() = default;
 
   std::string format(std::string indent) override;
 
@@ -95,25 +95,25 @@ namespace CallNode {
   codeGenASTPtr namedCall(std::string name, std::vector<codeGenASTPtr> &args, AddressSpace *addrSpace);
 
   inline codeGenASTPtr namedCall(std::string name, std::vector<codeGenASTPtr> &args) {
-    return boost::make_shared<AstCallNode>(std::move(name), args);
+    return boost::make_shared<functionCallAST>(std::move(name), args);
   }
 
   inline codeGenASTPtr call(func_instance *func, std::vector<codeGenASTPtr> &args) {
     if(!func) {
       return {};
     }
-    return boost::make_shared<AstCallNode>(func, args);
+    return boost::make_shared<functionCallAST>(func, args);
   }
 
   inline codeGenASTPtr replace(func_instance *func) {
     if(!func) {
       return {};
     }
-    return boost::make_shared<AstCallNode>(func);
+    return boost::make_shared<functionCallAST>(func);
   }
 
   inline codeGenASTPtr target(Dyninst::Address addr, std::vector<codeGenASTPtr> &args) {
-    return boost::make_shared<AstCallNode>(addr, args);
+    return boost::make_shared<functionCallAST>(addr, args);
   }
 }
 
