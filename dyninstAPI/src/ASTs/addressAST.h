@@ -44,6 +44,8 @@ namespace Dyninst { namespace DyninstAPI {
 
 class actualAddressAST : public codeGenAST {
 public:
+  using Ptr = boost::shared_ptr<actualAddressAST>;
+
   BPatch_type *checkType(BPatch_function *) override {
     return getType();
   }
@@ -55,6 +57,8 @@ private:
 
 class originalAddressAST : public codeGenAST {
 public:
+  using Ptr = boost::shared_ptr<originalAddressAST>;
+
   BPatch_type *checkType(BPatch_function *) override {
     return getType();
   }
@@ -68,11 +72,11 @@ private:
                            Dyninst::Register &retReg) override;
 };
 
-namespace AddressNode {
+namespace AddressAST {
 
-  codeGenASTPtr actual();
+  actualAddressAST::Ptr actual();
 
-  codeGenASTPtr original();
+  originalAddressAST::Ptr original();
 
 }
 

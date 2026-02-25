@@ -74,7 +74,7 @@ namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
 namespace SequenceNode = Dyninst::DyninstAPI::SequenceNode;
 namespace NullNode = Dyninst::DyninstAPI::NullNode;
 namespace MemoryNode = Dyninst::DyninstAPI::MemoryNode;
-namespace AddressNode = Dyninst::DyninstAPI::AddressNode;
+namespace AddressAST = Dyninst::DyninstAPI::AddressAST;
 namespace jumpTargetAST = Dyninst::DyninstAPI::jumpTargetAST;
 namespace RegisterNode = Dyninst::DyninstAPI::RegisterNode;
 
@@ -1541,7 +1541,7 @@ BPatch_stopThreadExpr::BPatch_stopThreadExpr
 
     // set up funcCall args
     std::vector<codeGenASTPtr> ast_args;
-    ast_args.push_back(AddressNode::actual());
+    ast_args.push_back(AddressAST::actual());
     ast_args.push_back(idNode);
     ast_args.push_back(icNode);
     ast_args.push_back(calculation.ast_wrapper);
@@ -1576,7 +1576,7 @@ BPatch_stopThreadExpr::BPatch_stopThreadExpr(
 
     // set up funcCall args
     std::vector<codeGenASTPtr> ast_args;
-    ast_args.push_back(AddressNode::actual());
+    ast_args.push_back(AddressAST::actual());
     ast_args.push_back(idNode);
     ast_args.push_back(icNode);
     ast_args.push_back(calculation.ast_wrapper);
@@ -1611,7 +1611,7 @@ BPatch_shadowExpr::BPatch_shadowExpr
     }
     ast_args.back()->setType(BPatch::bpatch->type_Untyped);
 
-    ast_args.push_back(AddressNode::actual());
+    ast_args.push_back(AddressAST::actual());
     ast_args.push_back(idNode);
     ast_args.push_back(icNode);
     ast_args.push_back(calculation.ast_wrapper);
@@ -1623,7 +1623,7 @@ BPatch_shadowExpr::BPatch_shadowExpr
 }
 
 BPatch_originalAddressExpr::BPatch_originalAddressExpr() {
-    ast_wrapper = codeGenASTPtr(AddressNode::original());
+    ast_wrapper = codeGenASTPtr(AddressAST::original());
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -1633,7 +1633,7 @@ BPatch_originalAddressExpr::BPatch_originalAddressExpr() {
 }
 
 BPatch_actualAddressExpr::BPatch_actualAddressExpr() {
-    ast_wrapper = codeGenASTPtr(AddressNode::actual());
+    ast_wrapper = codeGenASTPtr(AddressAST::actual());
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
