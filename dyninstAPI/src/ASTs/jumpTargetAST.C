@@ -52,9 +52,9 @@ bool dynamicJumpTargetAST::generateCode_phase2(codeGen &gen, bool noCost, Addres
   }
 }
 
-namespace TargetNode {
+namespace jumpTargetAST {
 
-  codeGenASTPtr dynamic() {
+  dynamicJumpTargetAST::Ptr dynamic() {
     static auto node = boost::make_shared<dynamicJumpTargetAST>();
     return node;
   }

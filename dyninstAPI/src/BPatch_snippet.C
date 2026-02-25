@@ -75,7 +75,7 @@ namespace SequenceNode = Dyninst::DyninstAPI::SequenceNode;
 namespace NullNode = Dyninst::DyninstAPI::NullNode;
 namespace MemoryNode = Dyninst::DyninstAPI::MemoryNode;
 namespace AddressNode = Dyninst::DyninstAPI::AddressNode;
-namespace TargetNode = Dyninst::DyninstAPI::TargetNode;
+namespace jumpTargetAST = Dyninst::DyninstAPI::jumpTargetAST;
 namespace RegisterNode = Dyninst::DyninstAPI::RegisterNode;
 
 
@@ -1643,7 +1643,7 @@ BPatch_actualAddressExpr::BPatch_actualAddressExpr() {
 }
 
 BPatch_dynamicTargetExpr::BPatch_dynamicTargetExpr() {
-    ast_wrapper = TargetNode::dynamic();
+    ast_wrapper = jumpTargetAST::dynamic();
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());

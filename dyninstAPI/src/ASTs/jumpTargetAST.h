@@ -34,7 +34,6 @@
 #include "codeGenAST.h"
 #include "dyn_register.h"
 
-#include <boost/make_shared.hpp>
 #include <string>
 
 class BPatch_function;
@@ -45,6 +44,8 @@ namespace Dyninst { namespace DyninstAPI {
 
 class dynamicJumpTargetAST : public codeGenAST {
 public:
+  using Ptr = boost::shared_ptr<dynamicJumpTargetAST>;
+
   BPatch_type *checkType(BPatch_function *) override {
     return getType();
   }
@@ -54,9 +55,9 @@ private:
                            Dyninst::Register &retReg) override;
 };
 
-namespace TargetNode {
+namespace jumpTargetAST {
 
-  codeGenASTPtr dynamic();
+  dynamicJumpTargetAST::Ptr dynamic();
 
 }
 
