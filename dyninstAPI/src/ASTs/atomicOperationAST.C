@@ -1,6 +1,6 @@
 #include "atomicOperationAST.h"
-#include "AstOperandNode.h"
 #include "codegen.h"
+#include "operandAST.h"
 
 #include <iomanip>
 #include <sstream>
@@ -48,12 +48,12 @@ bool atomicOperationAST::generateCode_phase2(codeGen &gen, bool noCost, Address 
   assert(src0 != Dyninst::Null_Register);
 
   // Now generate code for the variable -- load a register pair with the address of the variable.
-  AstOperandNode *variableOperand = dynamic_cast<AstOperandNode *>((codeGenAST *)variable.get());
+  operandAST *variableOperand = dynamic_cast<operandAST *>((codeGenAST *)variable.get());
   assert(variableOperand);
   assert(variableOperand->getoType() == operandType::AddressAsPlaceholderRegAndOffset);
 
-  AstOperandNode *offset =
-      dynamic_cast<AstOperandNode *>((codeGenAST *)variableOperand->operand().get());
+  operandAST *offset =
+      dynamic_cast<operandAST *>((codeGenAST *)variableOperand->operand().get());
   assert(offset);
 
   EmitterAmdgpuGfx908 *emitter = dynamic_cast<EmitterAmdgpuGfx908 *>(gen.emitter());

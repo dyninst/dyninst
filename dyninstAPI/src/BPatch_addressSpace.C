@@ -619,9 +619,9 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
   assert(type->getSize() > 0 && type->getSize() % 4 == 0);
   int size = (int)type->getSize();
 
-  DyninstAPI::AstOperandNode::addToTable(name, size);
-  int offset = DyninstAPI::AstOperandNode::getOffset(name);
-  assert(DyninstAPI::AstOperandNode::lastOffset > -1);
+  DyninstAPI::operandAST::addToTable(name, size);
+  int offset = DyninstAPI::operandAST::getOffset(name);
+  assert(DyninstAPI::operandAST::lastOffset > -1);
 
   // An AstOperandNode containing another AstOperandNode that is a constant.
   // The constant represents offset in the GPU memory buffer.

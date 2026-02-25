@@ -1,5 +1,4 @@
 #include "ast_helpers.h"
-#include "AstOperandNode.h"
 #include "BPatch.h"
 #include "BPatch_collections.h"
 #include "BPatch_function.h"
@@ -8,6 +7,7 @@
 #include "headers.h"
 #include "mapped_module.h"
 #include "mapped_object.h"
+#include "operandAST.h"
 #include "registerSpace.h"
 
 #include <iomanip>
@@ -16,12 +16,12 @@
 namespace Dyninst { namespace DyninstAPI {
 
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-int AstOperandNode::lastOffset = 0;
-std::map<std::string, int> AstOperandNode::allocTable = {{"--init--", -1}};
+int operandAST::lastOffset = 0;
+std::map<std::string, int> operandAST::allocTable = {{"--init--", -1}};
 #endif
 
 // Direct operand
-AstOperandNode::AstOperandNode(operandType ot, void *arg) : oType(ot), oVar(NULL), operand_() {
+operandAST::operandAST(operandType ot, void *arg) : oType(ot), oVar(NULL), operand_() {
 
   if(ot == operandType::ConstantString) {
     oValue = (void *)P_strdup((char *)arg);
@@ -35,14 +35,14 @@ AstOperandNode::AstOperandNode(operandType ot, void *arg) : oType(ot), oVar(NULL
 }
 
 // And an indirect (say, a load)
-AstOperandNode::AstOperandNode(operandType ot, codeGenASTPtr l)
+operandAST::operandAST(operandType ot, codeGenASTPtr l)
     : oType(ot), oValue(NULL), oVar(NULL), operand_(l) {
   if(operand_) {
     children.push_back(operand_);
   }
 }
 
-AstOperandNode::AstOperandNode(operandType ot, const image_variable *iv)
+operandAST::operandAST(operandType ot, const image_variable *iv)
     : oType(ot), oValue(NULL), oVar(iv), operand_() {
   assert(oVar);
   if(operand_) {
@@ -50,7 +50,7 @@ AstOperandNode::AstOperandNode(operandType ot, const image_variable *iv)
   }
 }
 
-bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost, Address &,
+bool operandAST::generateCode_phase2(codeGen &gen, bool noCost, Address &,
                                          Dyninst::Register &retReg) {
   RETURN_KEPT_REG(retReg);
 
@@ -210,7 +210,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost, Address &,
   return true;
 }
 
-bool AstOperandNode::usesAppRegister() const {
+bool operandAST::usesAppRegister() const {
   if(oType == operandType::FrameAddr || oType == operandType::RegOffset ||
      oType == operandType::origRegister || oType == operandType::Param ||
      oType == operandType::ParamAtEntry || oType == operandType::ParamAtCall ||
@@ -224,7 +224,7 @@ bool AstOperandNode::usesAppRegister() const {
   return false;
 }
 
-int_variable *AstOperandNode::lookUpVar(AddressSpace *as) {
+int_variable *operandAST::lookUpVar(AddressSpace *as) {
   mapped_module *mod = as->findModule(oVar->pdmod()->fileName());
   if(mod && mod->obj()) // && (oVar->pdmod() == mod->pmod()))
   {
@@ -234,7 +234,7 @@ int_variable *AstOperandNode::lookUpVar(AddressSpace *as) {
   return NULL;
 }
 
-void AstOperandNode::emitVariableLoad(opCode op, Dyninst::Register src2, Dyninst::Register dest,
+void operandAST::emitVariableLoad(opCode op, Dyninst::Register src2, Dyninst::Register dest,
                                       codeGen &gen, bool noCost, registerSpace *rs, int size_,
                                       const instPoint *point, AddressSpace *as) {
   int_variable *var = lookUpVar(as);
@@ -245,7 +245,7 @@ void AstOperandNode::emitVariableLoad(opCode op, Dyninst::Register src2, Dyninst
   }
 }
 
-void AstOperandNode::emitVariableStore(opCode op, Dyninst::Register src1, Dyninst::Register src2,
+void operandAST::emitVariableStore(opCode op, Dyninst::Register src1, Dyninst::Register src2,
                                        codeGen &gen, bool noCost, registerSpace *rs, int size_,
                                        const instPoint *point, AddressSpace *as) {
   int_variable *var = lookUpVar(as);
@@ -256,7 +256,7 @@ void AstOperandNode::emitVariableStore(opCode op, Dyninst::Register src1, Dynins
   }
 }
 
-bool AstOperandNode::initRegisters(codeGen &g) {
+bool operandAST::initRegisters(codeGen &g) {
   bool ret = true;
   for(unsigned i = 0; i < children.size(); i++) {
     if(!children[i]->initRegisters(g)) {
@@ -275,7 +275,7 @@ bool AstOperandNode::initRegisters(codeGen &g) {
   return ret;
 }
 
-std::string AstOperandNode::format(std::string indent) {
+std::string operandAST::format(std::string indent) {
   std::stringstream ret;
   ret << indent << "Oper/" << hex << this << dec << "(" << format_operand(oType) << "/" << oValue
       << ")" << endl;
@@ -286,7 +286,7 @@ std::string AstOperandNode::format(std::string indent) {
   return ret.str();
 }
 
-BPatch_type *AstOperandNode::checkType(BPatch_function *func) {
+BPatch_type *operandAST::checkType(BPatch_function *func) {
   BPatch_type *ret = NULL;
   BPatch_type *type = NULL;
   bool errorFlag = false;
@@ -353,7 +353,7 @@ BPatch_type *AstOperandNode::checkType(BPatch_function *func) {
   return ret;
 }
 
-bool AstOperandNode::canBeKept() const {
+bool operandAST::canBeKept() const {
 
   switch(oType) {
     case operandType::DataIndir:

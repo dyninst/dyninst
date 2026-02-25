@@ -53,7 +53,7 @@ set(_private_headers
     src/ASTs/memoryAccessAST.h
     src/ASTs/nullAST.h
     src/ASTs/AstStackNode.h
-    src/ASTs/AstOperandNode.h
+    src/ASTs/operandAST.h
     src/ASTs/AstOperatorNode.h
     src/ASTs/AstScrambleRegistersNode.h
     src/ASTs/AstSequenceNode.h
@@ -141,7 +141,7 @@ set(_sources
     src/ASTs/actualAddressAST.C
     src/ASTs/memoryAccessAST.C
     src/ASTs/nullAST.C
-    src/ASTs/AstOperandNode.C
+    src/ASTs/operandAST.C
     src/ASTs/AstOperatorNode.C
     src/ASTs/originalAddressAST.C
     src/ASTs/AstScrambleRegistersNode.C

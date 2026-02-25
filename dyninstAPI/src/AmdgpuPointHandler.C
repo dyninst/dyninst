@@ -267,7 +267,7 @@ void AmdgpuGfx908PointHandler::writeInstrumentationVarTable(const std::string &f
   // To get all instrumentation variables sorted by offsets
   std::map<int, std::string> reverseAllocTable;
 
-  for (auto it : DyninstAPI::AstOperandNode::allocTable) {
+  for (auto it : DyninstAPI::operandAST::allocTable) {
     auto name = it.first;
     if (name == "--init--") // ignore this one as it was only used to initialize the table
       continue;

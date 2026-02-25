@@ -125,8 +125,8 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool 
     laddr = (Dyninst::Address)loperand->getOValue();
   } else {
     if(loperand->getoType() == operandType::variableValue) {
-      boost::shared_ptr<AstOperandNode> lnode =
-          boost::dynamic_pointer_cast<AstOperandNode>(loperand);
+      boost::shared_ptr<operandAST> lnode =
+          boost::dynamic_pointer_cast<operandAST>(loperand);
 
       int_variable *var = lnode->lookUpVar(gen.addrSpace());
       if(!var || gen.addrSpace()->needsPIC(var)) {
@@ -164,8 +164,8 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool 
     return false;
   }
 
-  AstOperandNode *arithl = dynamic_cast<AstOperandNode *>(roper->loperand.get());
-  AstOperandNode *arithr = dynamic_cast<AstOperandNode *>(roper->roperand.get());
+  operandAST *arithl = dynamic_cast<operandAST *>(roper->loperand.get());
+  operandAST *arithr = dynamic_cast<operandAST *>(roper->roperand.get());
   if(!arithl || !arithr) {
     return false;
   }
@@ -628,8 +628,8 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Ad
         case operandType::Param:
         case operandType::ParamAtCall:
         case operandType::ParamAtEntry: {
-          boost::shared_ptr<AstOperandNode> lnode =
-              boost::dynamic_pointer_cast<AstOperandNode>(loperand);
+          boost::shared_ptr<operandAST> lnode =
+              boost::dynamic_pointer_cast<operandAST>(loperand);
           emitR(getParamOp, (Dyninst::Address)lnode->oValue, src1, src2, gen, noCost, gen.point(),
                 gen.addrSpace()->multithread_capable());
           loperand->decUseCount(gen);
