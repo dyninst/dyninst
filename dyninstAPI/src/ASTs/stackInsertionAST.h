@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_DYNINSTAPI_ASTSTACKINSERTNODE_H
-#define DYNINST_DYNINSTAPI_ASTSTACKINSERTNODE_H
+#ifndef DYNINST_DYNINSTAPI_STACKINSERTIONAST_H
+#define DYNINST_DYNINSTAPI_STACKINSERTIONAST_H
 
 #include "dyn_register.h"
 
@@ -41,9 +41,9 @@ class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstStackInsertNode : public stackAST {
+class stackInsertionAST : public stackAST {
 public:
-  AstStackInsertNode(int s, MSpecialType t) : size(s), type(t) {}
+  stackInsertionAST(int s, MSpecialType t) : size(s), type(t) {}
 
   std::string format(std::string indent) override;
 
@@ -62,11 +62,11 @@ private:
 namespace StackInsertNode {
 
   inline codeGenASTPtr generic(int s) {
-    return boost::make_shared<AstStackInsertNode>(s, stackAST::GENERIC_AST);
+    return boost::make_shared<stackInsertionAST>(s, stackAST::GENERIC_AST);
   }
 
   inline codeGenASTPtr canary(int s) {
-    return boost::make_shared<AstStackInsertNode>(s, stackAST::CANARY_AST);
+    return boost::make_shared<stackInsertionAST>(s, stackAST::CANARY_AST);
   }
 
 }

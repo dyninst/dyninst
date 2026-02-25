@@ -1,16 +1,16 @@
 #include "Architecture.h"
 #include "ast_helpers.h"
-#include "AstStackInsertNode.h"
 #include "codegen.h"
 #include "RegisterConversion.h"
 #include "registers/MachRegister.h"
+#include "stackInsertionAST.h"
 
 #include <iomanip>
 #include <sstream>
 
 namespace Dyninst { namespace DyninstAPI {
 
-std::string AstStackInsertNode::format(std::string indent) {
+std::string stackInsertionAST::format(std::string indent) {
   std::stringstream ret;
   ret << indent << "StackInsert/" << std::hex << this;
   ret << "(size " << size << ")";
@@ -23,13 +23,13 @@ std::string AstStackInsertNode::format(std::string indent) {
 
 #ifndef cap_stack_mods
 
-bool AstStackInsertNode::generateCode_phase2(codeGen &, bool, Address &, Dyninst::Register &) {
+bool stackInsertionAST::generateCode_phase2(codeGen &, bool, Address &, Dyninst::Register &) {
   return false;
 }
 
 #else
 
-bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
+bool stackInsertionAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
                                              Dyninst::Register &) {
   // Turn off default basetramp instrumentation saves & restores
   gen.setInsertNaked(true);
