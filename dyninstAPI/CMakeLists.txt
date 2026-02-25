@@ -59,7 +59,7 @@ set(_private_headers
     src/ASTs/sequenceAST.h
     src/ASTs/snippetAST.h
     src/ASTs/AstStackInsertNode.h
-    src/ASTs/AstStackGenericNode.h
+    src/ASTs/genericStackAST.h
     src/ASTs/AstStackRemoveNode.h
     src/ASTs/atomicOperationAST.h
     src/ASTs/codeGenAST.h
@@ -149,7 +149,7 @@ set(_sources
     src/ASTs/snippetAST.C
     src/ASTs/stackAST.C
     src/ASTs/AstStackInsertNode.C
-    src/ASTs/AstStackGenericNode.C
+    src/ASTs/genericStackAST.C
     src/ASTs/AstStackRemoveNode.C
     src/ASTs/atomicOperationAST.C
     src/ASTs/codeGenAST.C

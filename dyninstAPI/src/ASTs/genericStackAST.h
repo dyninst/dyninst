@@ -41,7 +41,7 @@ class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstStackGenericNode : public codeGenAST {
+class genericStackAST : public codeGenAST {
 public:
   std::string format(std::string indent) override;
 
@@ -57,7 +57,7 @@ private:
 namespace StackNode {
 
   inline codeGenASTPtr generic() {
-    return boost::make_shared<AstStackGenericNode>();
+    return boost::make_shared<genericStackAST>();
   }
 
 }

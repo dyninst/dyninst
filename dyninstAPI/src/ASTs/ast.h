@@ -35,6 +35,7 @@
 #include "addressAST.h"
 #include "atomicOperationAST.h"
 #include "functionCallAST.h"
+#include "genericStackAST.h"
 #include "jumpTargetAST.h"
 #include "memoryAccessAST.h"
 #include "nullAST.h"
@@ -46,7 +47,6 @@
 #include "stackAST.h"
 #include "threadAST.h"
 #include "variableAST.h"
-#include "AstStackGenericNode.h"
 #include "AstStackInsertNode.h"
 #include "AstStackRemoveNode.h"
 
