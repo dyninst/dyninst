@@ -49,6 +49,17 @@ class variableAST : public codeGenAST {
 public:
   using range_t = std::pair<Dyninst::Offset, Dyninst::Offset>;
 
+  using Ptr = boost::shared_ptr<variableAST>;
+
+  static Ptr simple(std::vector<codeGenASTPtr> &asts) {
+    return boost::make_shared<variableAST>(asts, nullptr);
+  }
+
+  static Ptr withRanges(std::vector<codeGenASTPtr> &asts,
+                        std::vector<variableAST::range_t> *ranges) {
+    return boost::make_shared<variableAST>(asts, ranges);
+  }
+
   variableAST(std::vector<codeGenASTPtr> &ast_wrappers, std::vector<range_t> *ranges)
       : ranges_{ranges} {
     children = ast_wrappers;
@@ -96,19 +107,6 @@ private:
   std::vector<range_t> *ranges_{};
   unsigned index{};
 };
-
-namespace VariableNode {
-
-  inline codeGenASTPtr variable(std::vector<codeGenASTPtr> &asts) {
-    return boost::make_shared<variableAST>(asts, nullptr);
-  }
-
-  inline codeGenASTPtr variableWithRanges(std::vector<codeGenASTPtr> &asts,
-                                       std::vector<variableAST::range_t> *ranges) {
-    return boost::make_shared<variableAST>(asts, ranges);
-  }
-
-}
 
 }}
 

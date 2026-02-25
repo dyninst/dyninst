@@ -65,13 +65,13 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
+using variableAST = Dyninst::DyninstAPI::variableAST;
 
 namespace OperatorNode = Dyninst::DyninstAPI::OperatorNode;
 namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
 namespace CallNode = Dyninst::DyninstAPI::CallNode;
 namespace SequenceNode = Dyninst::DyninstAPI::SequenceNode;
 namespace NullNode = Dyninst::DyninstAPI::NullNode;
-namespace VariableNode = Dyninst::DyninstAPI::VariableNode;
 namespace MemoryNode = Dyninst::DyninstAPI::MemoryNode;
 namespace ThreadNode = Dyninst::DyninstAPI::ThreadNode;
 namespace AddressNode = Dyninst::DyninstAPI::AddressNode;
@@ -1107,7 +1107,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
    variableAst->setTypeChecking(BPatch::bpatch->isTypeChecked());
    variableAst->setType(type);
    variableASTs.push_back(variableAst);
-   ast_wrapper = VariableNode::variable(variableASTs);
+   ast_wrapper = variableAST::simple(variableASTs);
    assert(BPatch::bpatch != NULL);
    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
@@ -1196,7 +1196,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 
                 ranges->push_back(pair<Address, Address>(low, hi));
         }
-        ast_wrapper = VariableNode::variableWithRanges(variableASTs, ranges);
+        ast_wrapper = variableAST::withRanges(variableASTs, ranges);
         assert(BPatch::bpatch != NULL);
         ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
