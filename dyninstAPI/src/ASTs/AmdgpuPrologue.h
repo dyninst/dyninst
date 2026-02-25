@@ -62,9 +62,9 @@ private:
 };
 
 // The AST node for the above PatchAPI snippet.
-class AmdgpuPrologueNode : public AstSnippetNode {
+class AmdgpuPrologueNode : public snippetAST {
 public:
-  AmdgpuPrologueNode(Dyninst::PatchAPI::SnippetPtr p) : AstSnippetNode(p) {}
+  AmdgpuPrologueNode(Dyninst::PatchAPI::SnippetPtr p) : snippetAST(p) {}
 };
 
 // BPatch_snippet that uses the above AST node.

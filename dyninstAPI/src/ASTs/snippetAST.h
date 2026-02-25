@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_DYNINSTAPI_ASTSNIPPETNODE_H
-#define DYNINST_DYNINSTAPI_ASTSNIPPETNODE_H
+#ifndef DYNINST_DYNINSTAPI_SNIPPETAST_H
+#define DYNINST_DYNINSTAPI_SNIPPETAST_H
 
 #include "dyn_register.h"
 #include "PatchCommon.h"
@@ -46,9 +46,9 @@ namespace Dyninst { namespace DyninstAPI {
 // a Snippet. It's a compatibility interface to
 // allow generic PatchAPI snippets to play nice
 // in our world.
-class AstSnippetNode : public codeGenAST {
+class snippetAST : public codeGenAST {
 public:
-  AstSnippetNode(Dyninst::PatchAPI::SnippetPtr snippet) : snip_{std::move(snippet)} {}
+  snippetAST(Dyninst::PatchAPI::SnippetPtr snippet) : snip_{std::move(snippet)} {}
 
   bool generateCode_phase2(codeGen &gen, bool, Dyninst::Address &, Dyninst::Register &) override;
 
@@ -60,7 +60,7 @@ namespace SnippetNode {
   namespace patch = Dyninst::PatchAPI;
 
   inline codeGenASTPtr snippet(patch::SnippetPtr snippet) {
-    return boost::make_shared<AstSnippetNode>(std::move(snippet));
+    return boost::make_shared<snippetAST>(std::move(snippet));
   }
 
 }
