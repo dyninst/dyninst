@@ -52,20 +52,20 @@
 // linker scope.  Instead they're non-const.  Every accessor function is
 // const anyways, so we'll just close our eyes and pretend they're declared
 // const.
-#  define DEF_REGISTER(name, value, Arch)                                                          \
+#  define DEF_REGISTER(name, value)                                                                \
     const signed int i##name = (value);                                                            \
-    DYNINST_EXPORT MachRegister name(i##name, Arch "::" #name)
+    DYNINST_EXPORT MachRegister name(i##name, #name)
 
-#  define DEF_REGISTER_ALIAS(name, target, Arch)                                                   \
+#  define DEF_REGISTER_ALIAS(name, target)                                                         \
     const signed int i##name = i##target;                                                          \
-    DYNINST_EXPORT MachRegister name(i##name, Arch "::" #name)
+    DYNINST_EXPORT MachRegister name(i##name, #name)
 
 #else
-#  define DEF_REGISTER(name, value, Arch)                                                          \
+#  define DEF_REGISTER(name, value)                                                                \
     const signed int i##name = (value);                                                            \
     DYNINST_EXPORT extern MachRegister name
 
-#  define DEF_REGISTER_ALIAS(name, target, Arch)                                                   \
+#  define DEF_REGISTER_ALIAS(name, target)                                                         \
     const signed int i##name = i##target;                                                          \
     DYNINST_EXPORT extern MachRegister name
 
