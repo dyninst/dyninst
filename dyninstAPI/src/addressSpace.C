@@ -948,7 +948,7 @@ DyninstAPI::codeGenASTPtr AddressSpace::trampGuardAST() {
 
    if (trampGuardAST_) return trampGuardAST_;
 
-   trampGuardAST_ = DyninstAPI::OperandNode::variableAddr(trampGuardBase_->ivar());
+   trampGuardAST_ = DyninstAPI::operandAST::variableAddr(trampGuardBase_->ivar());
    return trampGuardAST_;
 }
 

@@ -52,6 +52,77 @@ class operandAST : public codeGenAST {
   friend class AstOperatorNode;
 
 public:
+  using Ptr = boost::shared_ptr<operandAST>;
+
+  static Ptr Constant(void *v) {
+    return boost::make_shared<operandAST>(operandType::Constant, v);
+  }
+
+  static Ptr ConstantString(const char *str) {
+    auto val = static_cast<void *>(const_cast<char *>(str));
+    return boost::make_shared<operandAST>(operandType::ConstantString, val);
+  }
+
+  static Ptr DataIndir(codeGenASTPtr l) {
+    return boost::make_shared<operandAST>(operandType::DataIndir, l);
+  }
+
+  static Ptr Param(void *v) {
+    return boost::make_shared<operandAST>(operandType::Param, v);
+  }
+
+  static Ptr ParamAtCall(void *v) {
+    return boost::make_shared<operandAST>(operandType::ParamAtCall, v);
+  }
+
+  static Ptr ParamAtEntry(void *v) {
+    return boost::make_shared<operandAST>(operandType::ParamAtEntry, v);
+  }
+
+  static Ptr ReturnVal(void *v) {
+    return boost::make_shared<operandAST>(operandType::ReturnVal, v);
+  }
+
+  static Ptr ReturnAddr(void *v) {
+    return boost::make_shared<operandAST>(operandType::ReturnAddr, v);
+  }
+
+  static Ptr DataAddr(void *v) {
+    return boost::make_shared<operandAST>(operandType::DataAddr, v);
+  }
+
+  static Ptr FrameAddr(void *v) {
+    return boost::make_shared<operandAST>(operandType::FrameAddr, v);
+  }
+
+  static Ptr RegOffset(void *v) {
+    return boost::make_shared<operandAST>(operandType::RegOffset, v);
+  }
+
+  static Ptr RegOffset(codeGenASTPtr arg) {
+    return boost::make_shared<operandAST>(operandType::RegOffset, arg);
+  }
+
+  static Ptr origRegister(void *v) {
+    return boost::make_shared<operandAST>(operandType::origRegister, v);
+  }
+
+  static Ptr variableAddr(image_variable const *addr) {
+    return boost::make_shared<operandAST>(operandType::variableAddr, addr);
+  }
+
+  static Ptr variableValue(image_variable const *v) {
+    return boost::make_shared<operandAST>(operandType::variableValue, v);
+  }
+
+  static Ptr undefOperandType(void *v) {
+    return boost::make_shared<operandAST>(operandType::undefOperandType, v);
+  }
+
+  static Ptr AddressAsPlaceholderRegAndOffset(codeGenASTPtr arg) {
+    return boost::make_shared<operandAST>(operandType::AddressAsPlaceholderRegAndOffset, arg);
+  }
+
   // Direct operand
   operandAST(operandType ot, void *arg);
 
@@ -133,79 +204,6 @@ private:
   const image_variable *oVar{};
   codeGenASTPtr operand_{};
 };
-
-namespace OperandNode {
-
-  inline codeGenASTPtr Constant(void *v) {
-    return boost::make_shared<operandAST>(operandType::Constant, v);
-  }
-
-  inline codeGenASTPtr ConstantString(const char *str) {
-    auto val = static_cast<void *>(const_cast<char *>(str));
-    return boost::make_shared<operandAST>(operandType::ConstantString, val);
-  }
-
-  inline codeGenASTPtr DataIndir(codeGenASTPtr l) {
-    return boost::make_shared<operandAST>(operandType::DataIndir, l);
-  }
-
-  inline codeGenASTPtr Param(void *v) {
-    return boost::make_shared<operandAST>(operandType::Param, v);
-  }
-
-  inline codeGenASTPtr ParamAtCall(void *v) {
-    return boost::make_shared<operandAST>(operandType::ParamAtCall, v);
-  }
-
-  inline codeGenASTPtr ParamAtEntry(void *v) {
-    return boost::make_shared<operandAST>(operandType::ParamAtEntry, v);
-  }
-
-  inline codeGenASTPtr ReturnVal(void *v) {
-    return boost::make_shared<operandAST>(operandType::ReturnVal, v);
-  }
-
-  inline codeGenASTPtr ReturnAddr(void *v) {
-    return boost::make_shared<operandAST>(operandType::ReturnAddr, v);
-  }
-
-  inline codeGenASTPtr DataAddr(void *v) {
-    return boost::make_shared<operandAST>(operandType::DataAddr, v);
-  }
-
-  inline codeGenASTPtr FrameAddr(void *v) {
-    return boost::make_shared<operandAST>(operandType::FrameAddr, v);
-  }
-
-  inline codeGenASTPtr RegOffset(void *v) {
-    return boost::make_shared<operandAST>(operandType::RegOffset, v);
-  }
-
-  inline codeGenASTPtr RegOffset(codeGenASTPtr arg) {
-    return boost::make_shared<operandAST>(operandType::RegOffset, arg);
-  }
-
-  inline codeGenASTPtr origRegister(void *v) {
-    return boost::make_shared<operandAST>(operandType::origRegister, v);
-  }
-
-  inline codeGenASTPtr variableAddr(image_variable const *addr) {
-    return boost::make_shared<operandAST>(operandType::variableAddr, addr);
-  }
-
-  inline codeGenASTPtr variableValue(image_variable const *v) {
-    return boost::make_shared<operandAST>(operandType::variableValue, v);
-  }
-
-  inline codeGenASTPtr undefOperandType(void *v) {
-    return boost::make_shared<operandAST>(operandType::undefOperandType, v);
-  }
-
-  inline codeGenASTPtr AddressAsPlaceholderRegAndOffset(codeGenASTPtr arg) {
-    return boost::make_shared<operandAST>(operandType::AddressAsPlaceholderRegAndOffset, arg);
-  }
-
-}
 
 }}
 

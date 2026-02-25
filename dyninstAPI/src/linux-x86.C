@@ -70,8 +70,7 @@
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
-
-namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
+using operandAST = Dyninst::DyninstAPI::operandAST;
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -175,10 +174,10 @@ codeGenASTPtr PCProcess::createUnprotectStackAST() {
     func_instance *mprot = funcs[0];
     
     std::vector<codeGenASTPtr> args;
-    args.push_back(OperandNode::Constant((void *)page_start));
-    args.push_back(OperandNode::Constant((void *)(intptr_t)size));
+    args.push_back(operandAST::Constant((void *)page_start));
+    args.push_back(operandAST::Constant((void *)(intptr_t)size));
     // prot = READ|WRITE|EXECUTE
-    args.push_back(OperandNode::Constant((void *)7));
+    args.push_back(operandAST::Constant((void *)7));
 
     return functionCallAST::call(mprot, args);
 }

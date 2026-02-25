@@ -60,8 +60,7 @@ using namespace boost::assign;
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
-
-namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
+using operandAST = Dyninst::DyninstAPI::operandAST;
 
 extern bool isPowerOf2(int value, int &result);
 
@@ -899,8 +898,8 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
     if(branch_target == registerSpace::ignored) return false;
 
     //jumping to Xn (BLR Xn)
-    args.push_back(OperandNode::origRegister((void *)(long)branch_target));
-    args.push_back(OperandNode::Constant((void *) addr));
+    args.push_back(operandAST::origRegister((void *)(long)branch_target));
+    args.push_back(operandAST::Constant((void *) addr));
 
     return true;
 }

@@ -625,8 +625,8 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
 
   // An AstOperandNode containing another AstOperandNode that is a constant.
   // The constant represents offset in the GPU memory buffer.
-  auto val = DyninstAPI::OperandNode::Constant(reinterpret_cast<void*>(static_cast<uintptr_t>(offset)));
-  auto ast_wrapper = DyninstAPI::OperandNode::AddressAsPlaceholderRegAndOffset(std::move(val));
+  auto val = DyninstAPI::operandAST::Constant(reinterpret_cast<void*>(static_cast<uintptr_t>(offset)));
+  auto ast_wrapper = DyninstAPI::operandAST::AddressAsPlaceholderRegAndOffset(std::move(val));
 
   ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
   ast_wrapper->setType(type);
