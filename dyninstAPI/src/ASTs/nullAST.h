@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_DYNINSTAPI_ASTNULLNODE_H
-#define DYNINST_DYNINSTAPI_ASTNULLNODE_H
+#ifndef DYNINST_DYNINSTAPI_NULLAST_H
+#define DYNINST_DYNINSTAPI_NULLAST_H
 
 #include "dyn_register.h"
 
@@ -41,9 +41,9 @@ class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstNullNode : public codeGenAST {
+class nullAST : public codeGenAST {
 public:
-  AstNullNode() = default;
+  nullAST() = default;
 
   virtual std::string format(std::string indent) override;
 
@@ -59,7 +59,7 @@ private:
 namespace NullNode {
 
   inline codeGenASTPtr create() {
-    return boost::make_shared<AstNullNode>();
+    return boost::make_shared<nullAST>();
   }
 }
 
