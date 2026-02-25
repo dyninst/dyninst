@@ -108,15 +108,12 @@ std::vector<call_test> make_tests(Dyninst::Architecture arch) {
   auto ip = Dyninst::MachRegister::getPC(arch);
 
   using reg_set = Dyninst::register_set;
-  
-  auto eax_str = std::string(is_64 ? "%rax" : "%eax");
-  auto ecx_str = std::string(is_64 ? "%rcx" : "%ecx");
 
   // clang-format off
   return {
     { // call [8*EAX + ECX + 0xDEADBEEF]
       {0xff, 0x94, 0xc1, 0xef, 0xbe, 0xad, 0xde},
-      di::opcode_test(e_call, "call 0xdeadbeef("+ecx_str+","+eax_str+",8)"),
+      di::opcode_test(e_call, "call 0xdeadbeef(%"+ecx.name()+",%"+eax.name()+",8)"),
       di::register_rw_test{
         reg_set{eax, ecx, ip, sp},
         reg_set{sp, ip}
@@ -154,7 +151,7 @@ std::vector<call_test> make_tests(Dyninst::Architecture arch) {
     },
     { // call eax
       {0xff, 0xd0, },
-      di::opcode_test(e_call, "call "+eax_str),
+      di::opcode_test(e_call, "call %"+eax.name()),
       di::register_rw_test{
         reg_set{ip, sp, eax},
         reg_set{sp, ip}
