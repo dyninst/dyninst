@@ -37,14 +37,14 @@
 using namespace Dyninst;
 
 using genericStackAST = Dyninst::DyninstAPI::genericStackAST;
+using stackInsertionAST = Dyninst::DyninstAPI::stackInsertionAST;
 
-namespace StackInsertNode = Dyninst::DyninstAPI::StackInsertNode;
 namespace StackRemoveNode = Dyninst::DyninstAPI::StackRemoveNode;
 
 
 BPatch_stackInsertExpr::BPatch_stackInsertExpr(int size)
 {
-    ast_wrapper = StackInsertNode::generic(size);
+    ast_wrapper = stackInsertionAST::generic(size);
     assert(BPatch::bpatch != NULL);
 }
 
@@ -62,7 +62,7 @@ BPatch_stackMoveExpr::BPatch_stackMoveExpr()
 
 BPatch_canaryExpr::BPatch_canaryExpr()
 {
-    ast_wrapper = StackInsertNode::canary(0);
+    ast_wrapper = stackInsertionAST::canary(0);
 
     assert(BPatch::bpatch != NULL);
 }

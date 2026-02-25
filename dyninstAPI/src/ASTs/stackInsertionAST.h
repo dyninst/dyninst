@@ -43,6 +43,16 @@ namespace Dyninst { namespace DyninstAPI {
 
 class stackInsertionAST : public stackAST {
 public:
+  using Ptr = boost::shared_ptr<stackInsertionAST>;
+
+  static Ptr generic(int s) {
+    return boost::make_shared<stackInsertionAST>(s, stackAST::GENERIC_AST);
+  }
+
+  static Ptr canary(int s) {
+    return boost::make_shared<stackInsertionAST>(s, stackAST::CANARY_AST);
+  }
+
   stackInsertionAST(int s, MSpecialType t) : size(s), type(t) {}
 
   std::string format(std::string indent) override;
@@ -58,18 +68,6 @@ private:
   int size{};
   MSpecialType type{};
 };
-
-namespace StackInsertNode {
-
-  inline codeGenASTPtr generic(int s) {
-    return boost::make_shared<stackInsertionAST>(s, stackAST::GENERIC_AST);
-  }
-
-  inline codeGenASTPtr canary(int s) {
-    return boost::make_shared<stackInsertionAST>(s, stackAST::CANARY_AST);
-  }
-
-}
 
 }}
 

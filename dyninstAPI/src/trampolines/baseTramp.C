@@ -58,9 +58,6 @@ using snippetAST = Dyninst::DyninstAPI::snippetAST;
 
 #define DCAST_AST(ast) boost::dynamic_pointer_cast<Dyninst::DyninstAPI::codeGenAST>(ast)
 
-
-
-namespace StackInsertNode = Dyninst::DyninstAPI::StackInsertNode;
 namespace StackRemoveNode = Dyninst::DyninstAPI::StackRemoveNode;
 
 // Normal constructor
