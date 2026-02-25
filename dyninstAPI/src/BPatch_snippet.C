@@ -68,12 +68,12 @@ using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using variableAST = Dyninst::DyninstAPI::variableAST;
 using threadAST = Dyninst::DyninstAPI::threadAST;
 using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
+using memoryAccessAST = Dyninst::DyninstAPI::memoryAccessAST;
 
 namespace OperatorNode = Dyninst::DyninstAPI::OperatorNode;
 namespace OperandNode = Dyninst::DyninstAPI::OperandNode;
 namespace SequenceNode = Dyninst::DyninstAPI::SequenceNode;
 namespace NullNode = Dyninst::DyninstAPI::NullNode;
-namespace MemoryNode = Dyninst::DyninstAPI::MemoryNode;
 namespace AddressAST = Dyninst::DyninstAPI::AddressAST;
 namespace jumpTargetAST = Dyninst::DyninstAPI::jumpTargetAST;
 namespace RegisterNode = Dyninst::DyninstAPI::RegisterNode;
@@ -1414,7 +1414,7 @@ BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which, int size)
 #else
   assert(_which >= 0 && _which <= (int) BPatch_instruction::nmaxacc_NP);
 #endif
-  ast_wrapper = MemoryNode::effectiveAddress(_which, size);
+  ast_wrapper = memoryAccessAST::effectiveAddress(_which, size);
 }
 
 
@@ -1430,7 +1430,7 @@ BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr(int _which)
 #else
   assert(_which >= 0 && _which <= (int)BPatch_instruction::nmaxacc_NP);
 #endif
-  ast_wrapper = MemoryNode::bytesAccessed(_which);
+  ast_wrapper = memoryAccessAST::bytesAccessed(_which);
 }
 
 

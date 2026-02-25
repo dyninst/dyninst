@@ -43,10 +43,22 @@ namespace Dyninst { namespace DyninstAPI {
 
 class memoryAccessAST : public codeGenAST {
 public:
+  using Ptr = boost::shared_ptr<memoryAccessAST>;
+
   enum class memoryType {
     EffectiveAddr,
     BytesAccessed
   };
+
+  static Ptr effectiveAddress(int which, int size) {
+    auto t = memoryAccessAST::memoryType::EffectiveAddr;
+    return boost::make_shared<memoryAccessAST>(t, which, size);
+  }
+
+  static Ptr bytesAccessed(int which) {
+    auto t = memoryAccessAST::memoryType::BytesAccessed;
+    return boost::make_shared<memoryAccessAST>(t, which);
+  }
 
   memoryAccessAST(memoryType mem, unsigned which, int size = 8);
 
@@ -70,20 +82,6 @@ private:
   memoryType mem_{};
   unsigned which_{};
 };
-
-namespace MemoryNode {
-
-  inline codeGenASTPtr effectiveAddress(int which, int size) {
-    auto t = memoryAccessAST::memoryType::EffectiveAddr;
-    return boost::make_shared<memoryAccessAST>(t, which, size);
-  }
-
-  inline codeGenASTPtr bytesAccessed(int which) {
-    auto t = memoryAccessAST::memoryType::BytesAccessed;
-    return boost::make_shared<memoryAccessAST>(t, which);
-  }
-
-}
 
 }}
 
