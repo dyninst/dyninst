@@ -1,5 +1,4 @@
 #include "ast_helpers.h"
-#include "AstOperatorNode.h"
 #include "BPatch.h"
 #include "BPatch_addressSpace.h"
 #include "BPatch_collections.h"
@@ -9,6 +8,7 @@
 #include "debug.h"
 #include "dyntypes.h"
 #include "mapped_object.h"
+#include "operatorAST.h"
 #include "registerSpace.h"
 
 #include <iomanip>
@@ -40,7 +40,7 @@ namespace {
 
 namespace Dyninst { namespace DyninstAPI {
 
-AstOperatorNode::AstOperatorNode(opCode opC, codeGenASTPtr l, codeGenASTPtr r, codeGenASTPtr e)
+operatorAST::operatorAST(opCode opC, codeGenASTPtr l, codeGenASTPtr r, codeGenASTPtr e)
     : codeGenAST(), op(opC), loperand(l), roperand(r), eoperand(e) {
   // Optimization pass...
   if(!loperand) {
@@ -84,7 +84,7 @@ AstOperatorNode::AstOperatorNode(opCode opC, codeGenASTPtr l, codeGenASTPtr r, c
   }
 }
 
-bool AstOperatorNode::initRegisters(codeGen &g) {
+bool operatorAST::initRegisters(codeGen &g) {
   bool ret = true;
   for(unsigned i = 0; i < children.size(); i++) {
     if(!children[i]->initRegisters(g)) {
@@ -111,7 +111,7 @@ bool AstOperatorNode::initRegisters(codeGen &g) {
 
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 
-bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool noCost) {
+bool operatorAST::generateOptimizedAssignment(codeGen &gen, int size_, bool noCost) {
   (void)size_;
   if(!(loperand && roperand)) {
     return false;
@@ -155,7 +155,7 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool 
     return true;
   }
 
-  AstOperatorNode *roper = dynamic_cast<AstOperatorNode *>(roperand.get());
+  operatorAST *roper = dynamic_cast<operatorAST *>(roperand.get());
   if(!roper) {
     return false;
   }
@@ -219,12 +219,12 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, int size_, bool 
   return true;
 }
 #else
-bool AstOperatorNode::generateOptimizedAssignment(codeGen &, int, bool) {
+bool operatorAST::generateOptimizedAssignment(codeGen &, int, bool) {
   return false;
 }
 #endif
 
-bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
+bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
                                           Dyninst::Register &retReg) {
   if(!loperand) {
     return false;
@@ -749,7 +749,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Ad
   return true;
 }
 
-BPatch_type *AstOperatorNode::checkType(BPatch_function *func) {
+BPatch_type *operatorAST::checkType(BPatch_function *func) {
   BPatch_type *ret = NULL;
   BPatch_type *lType = NULL, *rType = NULL, *eType = NULL;
   bool errorFlag = false;
@@ -829,7 +829,7 @@ BPatch_type *AstOperatorNode::checkType(BPatch_function *func) {
 
 // Check if the node can be kept at all. Some nodes (e.g., storeOp)
 // can not be cached. In fact, there are fewer nodes that can be cached.
-bool AstOperatorNode::canBeKept() const {
+bool operatorAST::canBeKept() const {
   switch(op) {
     case plusOp:
     case minusOp:
@@ -859,7 +859,7 @@ bool AstOperatorNode::canBeKept() const {
   return true;
 }
 
-std::string AstOperatorNode::format(std::string indent) {
+std::string operatorAST::format(std::string indent) {
   std::stringstream ret;
   ret << indent << "Op/" << std::hex << this << std::dec << "(" << format_opcode(op) << ")"
       << std::endl;

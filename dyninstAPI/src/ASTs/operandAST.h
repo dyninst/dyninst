@@ -49,7 +49,7 @@ class image_variable;
 namespace Dyninst { namespace DyninstAPI {
 
 class operandAST : public codeGenAST {
-  friend class AstOperatorNode;
+  friend class operatorAST;
 
 public:
   using Ptr = boost::shared_ptr<operandAST>;

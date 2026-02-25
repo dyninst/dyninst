@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_DYNINSTAPI_ASTOPERATORNODE_H
-#define DYNINST_DYNINSTAPI_ASTOPERATORNODE_H
+#ifndef DYNINST_DYNINSTAPI_OPERATORAST_H
+#define DYNINST_DYNINSTAPI_OPERATORAST_H
 
 #include "dyn_register.h"
 #include "opcode.h"
@@ -42,9 +42,9 @@ class codeGen;
 
 namespace Dyninst { namespace DyninstAPI {
 
-class AstOperatorNode : public codeGenAST {
+class operatorAST : public codeGenAST {
 public:
-  AstOperatorNode(opCode opC, codeGenASTPtr l, codeGenASTPtr r = codeGenASTPtr(),
+  operatorAST(opCode opC, codeGenASTPtr l, codeGenASTPtr r = codeGenASTPtr(),
                   codeGenASTPtr e = codeGenASTPtr());
 
   std::string format(std::string indent) override;
@@ -71,61 +71,61 @@ private:
 namespace OperatorNode {
   // clang-format off
   inline codeGenASTPtr And(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<AstOperatorNode>(andOp, std::move(lhs), std::move(rhs));
+    return boost::make_shared<operatorAST>(andOp, std::move(lhs), std::move(rhs));
   }
   inline codeGenASTPtr div(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<AstOperatorNode>(divOp, std::move(lhs), std::move(rhs));
+    return boost::make_shared<operatorAST>(divOp, std::move(lhs), std::move(rhs));
   }
   inline codeGenASTPtr eq(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<AstOperatorNode>(eqOp, std::move(lhs), std::move(rhs));
+    return boost::make_shared<operatorAST>(eqOp, std::move(lhs), std::move(rhs));
   }
   inline codeGenASTPtr ge(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<AstOperatorNode>(geOp, std::move(lhs), std::move(rhs));
+    return boost::make_shared<operatorAST>(geOp, std::move(lhs), std::move(rhs));
   }
   inline codeGenASTPtr getAddr(codeGenASTPtr arg) {
-    return boost::make_shared<AstOperatorNode>(getAddrOp, std::move(arg));
+    return boost::make_shared<operatorAST>(getAddrOp, std::move(arg));
   }
   inline codeGenASTPtr greater(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<AstOperatorNode>(greaterOp, std::move(lhs), std::move(rhs));
+    return boost::make_shared<operatorAST>(greaterOp, std::move(lhs), std::move(rhs));
   }
   inline codeGenASTPtr ifMC(codeGenASTPtr arg) {
-    return boost::make_shared<AstOperatorNode>(ifMCOp, std::move(arg));
+    return boost::make_shared<operatorAST>(ifMCOp, std::move(arg));
   }
   inline codeGenASTPtr If(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<AstOperatorNode>(ifOp, std::move(lhs), std::move(rhs));
+    return boost::make_shared<operatorAST>(ifOp, std::move(lhs), std::move(rhs));
   }
   inline codeGenASTPtr If(codeGenASTPtr cond, codeGenASTPtr true_clause, codeGenASTPtr false_clause) {
-    return boost::make_shared<AstOperatorNode>(ifOp, std::move(cond), std::move(true_clause), std::move(false_clause));
+    return boost::make_shared<operatorAST>(ifOp, std::move(cond), std::move(true_clause), std::move(false_clause));
   }
   inline codeGenASTPtr le(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<AstOperatorNode>(leOp, std::move(lhs), std::move(rhs));
+    return boost::make_shared<operatorAST>(leOp, std::move(lhs), std::move(rhs));
   }
   inline codeGenASTPtr less(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<AstOperatorNode>(lessOp, std::move(lhs), std::move(rhs));
+    return boost::make_shared<operatorAST>(lessOp, std::move(lhs), std::move(rhs));
   }
   inline codeGenASTPtr minus(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<AstOperatorNode>(minusOp, std::move(lhs), std::move(rhs));
+    return boost::make_shared<operatorAST>(minusOp, std::move(lhs), std::move(rhs));
   }
   inline codeGenASTPtr ne(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<AstOperatorNode>(neOp, std::move(lhs), std::move(rhs));
+    return boost::make_shared<operatorAST>(neOp, std::move(lhs), std::move(rhs));
   }
   inline codeGenASTPtr Or(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<AstOperatorNode>(orOp, std::move(lhs), std::move(rhs));
+    return boost::make_shared<operatorAST>(orOp, std::move(lhs), std::move(rhs));
   }
   inline codeGenASTPtr plus(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<AstOperatorNode>(plusOp, std::move(lhs), std::move(rhs));
+    return boost::make_shared<operatorAST>(plusOp, std::move(lhs), std::move(rhs));
   }
   inline codeGenASTPtr store(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<AstOperatorNode>(storeOp, std::move(lhs), std::move(rhs));
+    return boost::make_shared<operatorAST>(storeOp, std::move(lhs), std::move(rhs));
   }
   inline codeGenASTPtr times(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<AstOperatorNode>(timesOp, std::move(lhs), std::move(rhs));
+    return boost::make_shared<operatorAST>(timesOp, std::move(lhs), std::move(rhs));
   }
   inline codeGenASTPtr While(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<AstOperatorNode>(whileOp, std::move(lhs), std::move(rhs));
+    return boost::make_shared<operatorAST>(whileOp, std::move(lhs), std::move(rhs));
   }
   inline codeGenASTPtr Xor(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<AstOperatorNode>(xorOp, std::move(lhs), std::move(rhs));
+    return boost::make_shared<operatorAST>(xorOp, std::move(lhs), std::move(rhs));
   }
 
   // clang-format on
