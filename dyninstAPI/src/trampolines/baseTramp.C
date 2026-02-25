@@ -62,7 +62,6 @@ using snippetAST = Dyninst::DyninstAPI::snippetAST;
 
 namespace StackInsertNode = Dyninst::DyninstAPI::StackInsertNode;
 namespace StackRemoveNode = Dyninst::DyninstAPI::StackRemoveNode;
-namespace StackNode = Dyninst::DyninstAPI::StackNode;
 
 // Normal constructor
 baseTramp::baseTramp() :

@@ -43,6 +43,12 @@ namespace Dyninst { namespace DyninstAPI {
 
 class genericStackAST : public codeGenAST {
 public:
+  using Ptr = boost::shared_ptr<genericStackAST>;
+
+  static Ptr create() {
+    return boost::make_shared<genericStackAST>();
+  }
+
   std::string format(std::string indent) override;
 
   bool canBeKept() const override {
@@ -53,14 +59,6 @@ private:
   bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
                            Dyninst::Register &) override;
 };
-
-namespace StackNode {
-
-  inline codeGenASTPtr generic() {
-    return boost::make_shared<genericStackAST>();
-  }
-
-}
 
 }}
 
