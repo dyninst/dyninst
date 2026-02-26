@@ -276,10 +276,6 @@ std::string AmdgpuFormatter::formatBinaryFunc(const std::string &left, const std
 
 std::string AmdgpuFormatter::formatRegister(MachRegister  m_Reg, uint32_t m_num_elements, unsigned m_Low , unsigned m_High) {
     std::string name = m_Reg.name();
-    std::string::size_type substr = name.rfind("::");
-    if(substr != std::string::npos){
-        name = name.substr(substr+2,name.length());
-    }
     if( m_num_elements ==0 ){
         return "";
     }else if ( m_num_elements > 1){
@@ -360,8 +356,6 @@ std::string AmdgpuFormatter::formatRegister(MachRegister  m_Reg, uint32_t m_num_
 
 std::string AmdgpuFormatter::formatMultiRegister(MachRegister m_Reg, uint32_t len) {
     std::string name = m_Reg.name();
-    auto i = name.rfind("::");
-    name.erase(0,i+2);
     uint32_t id = m_Reg & 0xff ;
     uint32_t regClass = m_Reg.regClass();
     DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP
