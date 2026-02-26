@@ -58,21 +58,14 @@ std::string PPCFormatter::formatImmediate(const std::string &evalString) const  
 }
 
 std::string PPCFormatter::formatRegister(const std::string &regName) const  {
-    if (regName == "ppc64::pc"  || 
-        regName == "ppc64::ctr" || 
-        regName == "ppc64::lr"  ||
-        regName == "ppc64::cr0") {
+    if (regName == "pc"  ||
+        regName == "ctr" ||
+        regName == "lr"  ||
+        regName == "cr0") {
 
         return "";
     }
-    std::string::size_type lastColon = regName.rfind(':');
-    std::string ret = regName;
-
-    if (lastColon != std::string::npos) {
-        ret = ret.substr(lastColon + 1, ret.length());
-    }
-
-    return ret;
+    return regName;
 }
 
 std::string PPCFormatter::formatDeref(const std::string &addrString) const  {
