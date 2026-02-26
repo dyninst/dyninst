@@ -400,18 +400,11 @@ std::string x86Formatter::formatImmediate(const std::string &evalString) const
 
 std::string x86Formatter::formatRegister(const std::string &regName) const
 {
-    std::string outReg{'%'};
+    std::string outReg = "%" + regName;
 
-    auto regNameOffset = regName.find("::");
-    if (regNameOffset == std::string::npos)  {
-	regNameOffset = 0;	// no "::", copy whole string
-    }  else  {
-	regNameOffset += 2;	// skip "::"
+    for(char &c : outReg) {
+      c = std::tolower(c);
     }
-    auto sBegin = regName.cbegin() + regNameOffset;
-    auto sEnd = regName.cend();
-    auto outRegInserter = std::back_inserter(outReg);
-    std::transform(sBegin, sEnd, outRegInserter, [](unsigned char c){ return std::tolower(c);});
 
     return outReg;
 }
