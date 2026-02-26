@@ -99,12 +99,8 @@ std::string ArmFormatter::formatImmediate(const std::string &evalString) const  
 }
 
 std::string ArmFormatter::formatRegister(const std::string &regName) const  {
-    std::string::size_type substr = regName.rfind(':');
     std::string ret = regName;
 
-    if (substr != std::string::npos) {
-        ret = ret.substr(substr + 1, ret.length());
-    }
     for(char &c : ret) c = std::toupper(c);
 
     return ret;
