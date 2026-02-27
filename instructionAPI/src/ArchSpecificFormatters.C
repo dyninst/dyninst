@@ -228,9 +228,7 @@ std::string AmdgpuFormatter::formatImmediate(const std::string &evalString) cons
 }
 
 std::string AmdgpuFormatter::formatRegister(const std::string &regName) const  {
-    std::string ret = regName;
-    for(auto &c : ret ) c = ::toupper(c);
-    return ret;
+    return regName;
 }
 
 std::string AmdgpuFormatter::formatDeref(const std::string &addrString) const  {
