@@ -99,11 +99,7 @@ std::string ArmFormatter::formatImmediate(const std::string &evalString) const  
 }
 
 std::string ArmFormatter::formatRegister(const std::string &regName) const  {
-    std::string ret = regName;
-
-    for(char &c : ret) c = std::toupper(c);
-
-    return ret;
+    return regName;
 }
 
 std::string ArmFormatter::formatDeref(const std::string &addrString) const  {
