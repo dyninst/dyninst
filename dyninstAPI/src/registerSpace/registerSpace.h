@@ -107,8 +107,6 @@ class registerSpace {
     // to touch)
     Dyninst::Register getScratchRegister(codeGen &gen, std::vector<Dyninst::Register> &excluded, bool noCost = true, bool realReg = false);
 
-    bool saveAllRegisters(codeGen &gen, bool noCost);
-
     // For now, we save registers elsewhere and mark them here.
     bool markSavedRegister(Dyninst::Register num, int offsetFromFP);
     bool markSavedRegister(RealRegister num, int offsetFromFP);
