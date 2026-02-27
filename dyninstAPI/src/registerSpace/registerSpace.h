@@ -145,9 +145,6 @@ class registerSpace {
     // and call this routine to correct this.
     void incRefCount(Dyninst::Register k);
 
-    // Reset when the regSpace is reset - marked offlimits for
-    // allocation.
-    bool readOnlyRegister(Dyninst::Register k);
     // Make sure that no registers remain allocated, except "to_exclude"
     // Used for assertion checking.
     void checkLeaks(Dyninst::Register to_exclude);
