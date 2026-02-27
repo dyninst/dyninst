@@ -4,6 +4,8 @@
 #include "registerSpace.h"
 #include "emitter_test.h"
 
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
+
 int main() {
   using Dyninst::verify_emitter;
   using Dyninst::emitter_buffer_t;
@@ -281,7 +283,7 @@ These require a valid baseTramp (codeGen::bt())
 These require additional mocking to test.
 
   bool clobberAllFuncCall(registerSpace *rs, func_instance *callee);
-  Register emitCall(opCode op, codeGen &gen, const std::vector<AstNodePtr> &operands, bool noCost, func_instance *callee);
+  Register emitCall(opCode op, codeGen &gen, const std::vector<codeGenASTPtr> &operands, bool noCost, func_instance *callee);
   bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
   void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen);
   bool emitPLTCall(func_instance *dest, codeGen &gen);

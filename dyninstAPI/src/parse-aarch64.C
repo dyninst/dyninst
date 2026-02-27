@@ -61,6 +61,9 @@
 //#warning "This file is not implemented yet!"
 using namespace Dyninst::SymtabAPI;
 
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
+using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
+
 namespace {
   char const* LIBC_CTOR_HANDLER("__libc_csu_init");
   char const* LIBC_DTOR_HANDLER("__libc_csu_fini");
@@ -117,9 +120,9 @@ void parse_func::calcUsedRegs()
 
 static void add_handler(instPoint* pt, func_instance* add_me)
 {
-  vector<AstNodePtr> args;
+  vector<codeGenASTPtr> args;
   // no args, just add
-  AstNodePtr snip = AstNode::funcCallNode(add_me, args);
+  codeGenASTPtr snip = functionCallAST::call(add_me, args);
   auto instrumentation = pt->pushFront(snip);
   instrumentation->disableRecursiveGuard();
 }

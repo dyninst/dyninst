@@ -28,18 +28,39 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "AmdgpuEpilogue.h"
-#include "emit-amdgpu.h"
+#ifndef DYNINST_DYNINSTAPI_SNIPPETAST_H
+#define DYNINST_DYNINSTAPI_SNIPPETAST_H
 
-// Similar approach to prologue
-bool AmdgpuEpilogue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::Buffer &buffer) {
-  // We need 8 bytes for the epilogue (a s_dcache_wb instruction).
-  codeGen gen(20);
-  EmitterAmdgpuGfx908 emitter;
+#include "dyn_register.h"
+#include "PatchCommon.h"
 
-  emitter.emitScalarDataCacheWriteback(gen);
+#include <boost/make_shared.hpp>
+#include "codeGenAST.h"
+#include <string>
 
-  buffer.copy(gen.start_ptr(), gen.used());
+class codeGen;
 
-  return true;
-}
+namespace Dyninst { namespace DyninstAPI {
+
+// This is a little odd, since an codeGenAST _is_
+// a Snippet. It's a compatibility interface to
+// allow generic PatchAPI snippets to play nice
+// in our world.
+class snippetAST : public codeGenAST {
+public:
+  using Ptr = boost::shared_ptr<snippetAST>;
+
+  static Ptr create(Dyninst::PatchAPI::SnippetPtr snippet) {
+    return boost::make_shared<snippetAST>(std::move(snippet));
+  }
+
+  snippetAST(Dyninst::PatchAPI::SnippetPtr snippet) : snip_{std::move(snippet)} {}
+
+  bool generateCode_phase2(codeGen &gen, bool, Dyninst::Address &, Dyninst::Register &) override;
+
+  Dyninst::PatchAPI::SnippetPtr snip_{};
+};
+
+}}
+
+#endif

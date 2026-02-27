@@ -32,7 +32,7 @@
 #include "PointHandler.h"
 #include "common/src/dyn_register.h"
 
-// We use std::shared_ptr for prologue and epilogue asts because AstNodePtr is a boost::shared_ptr
+// We use std::shared_ptr for prologue and epilogue asts because codeGenASTPtr is a boost::shared_ptr
 #include "boost/shared_ptr.hpp"
 
 #include "AmdgpuEpilogue.h"
@@ -44,7 +44,8 @@
 #include <string>
 #include <unordered_set>
 
-namespace Dyninst {
+namespace Dyninst { namespace DyninstAPI {
+
 // This implements:
 // 1. Prologue/epilogue insertion at function entry/exit respectively.
 // 2. Kernel descriptor rewriting for instrumented kernels.
@@ -76,4 +77,4 @@ struct AmdgpuGfx908PointHandler : PointHandler {
   void writeInstrumentationVarTable(const std::string &filePath);
 };
 
-} // namespace Dyninst
+}}

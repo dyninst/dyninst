@@ -28,47 +28,25 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AMDGPU_PROLOGUE_H
-#define AMDGPU_PROLOGUE_H
+#include "AmdgpuPrologue.h"
+#include "emit-amdgpu.h"
 
-#include "BPatch_snippet.h"
-#include "ast.h"
-#include "common/src/dyn_register.h"
-#include "patchAPI/h/Snippet.h"
+namespace Dyninst { namespace DyninstAPI {
 
-// The prologue loads a register pair with address of the buffer containing instrumentation
-// variables.
-// PatchAPI snippet is used to insert the following prologue:
-//
-// Example when dest = 94, base = 4, offset = 0xabc; address_of_buffer is at s[4:5] + 0xabc.
-// Load it into s[94:95].
-//
-// s_load_dwordx2 s[94:95], s[4:5], 0xabc
-// s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
-//
-class AmdgpuPrologue : public Dyninst::PatchAPI::Snippet {
-public:
-  AmdgpuPrologue(Dyninst::Register dest, Dyninst::Register base, unsigned offset)
-      : dest_(dest), base_(base), offset_(offset) {}
+bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::Buffer &buffer) {
+  // To avoid any code duplication or refactoring right now, we use a 'codeGen'
+  // object to generate the code and copy what we get there into the
+  // 'Dyninst::Buffer' object passed here.
 
-  bool generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer);
+  // We need 12 bytes for the prologue (a s_load_dwordx2, followed by a waitcnt)
+  codeGen gen(20);
+  EmitterAmdgpuGfx908 emitter;
 
-private:
-  Dyninst::Register dest_;
-  Dyninst::Register base_;
-  unsigned offset_;
-};
+  emitter.emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);
 
-// The AST node for the above PatchAPI snippet.
-class AmdgpuPrologueNode : public AstSnippetNode {
-public:
-  AmdgpuPrologueNode(Dyninst::PatchAPI::SnippetPtr p) : AstSnippetNode(p) {}
-};
+  buffer.copy(gen.start_ptr(), gen.used());
 
-// BPatch_snippet that uses the above AST node.
-class AmdgpuPrologueSnippet : public BPatch_snippet {
-public:
-  AmdgpuPrologueSnippet(const AstNodePtr &p) : BPatch_snippet(p) {}
-};
+  return true;
+}
 
-#endif
+}}

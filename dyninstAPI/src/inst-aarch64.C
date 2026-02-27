@@ -36,7 +36,6 @@
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "common/src/arch-aarch64.h"
 #include "dyninstAPI/src/codegen.h"
-#include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/os.h"
@@ -59,6 +58,9 @@ using namespace boost::assign;
 #include <sstream>
 
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
+
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
+using operandAST = Dyninst::DyninstAPI::operandAST;
 
 extern bool isPowerOf2(int value, int &result);
 
@@ -443,7 +445,7 @@ bool EmitterAARCH64::clobberAllFuncCall(registerSpace *rs,
 
 Register emitFuncCall(opCode op,
                       codeGen &gen,
-                      std::vector <AstNodePtr> &operands, bool noCost,
+                      std::vector <codeGenASTPtr> &operands, bool noCost,
                       func_instance *callee) {
     return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
 }
@@ -463,7 +465,7 @@ Register EmitterAARCH64::emitCallReplacement(opCode,
 
 Register EmitterAARCH64::emitCall(opCode op,
                                   codeGen &gen,
-                                  const std::vector<AstNodePtr> &operands,
+                                  const std::vector<codeGenASTPtr> &operands,
                                   bool,
                                   func_instance *callee) 
 {
@@ -884,7 +886,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 // This can handle indirect control transfers as well
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 					  Address addr,
-					  std::vector<AstNodePtr> &args)
+					  std::vector<codeGenASTPtr> &args)
 {
     namespace di = Dyninst::InstructionAPI;
 
@@ -896,8 +898,8 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
     if(branch_target == registerSpace::ignored) return false;
 
     //jumping to Xn (BLR Xn)
-    args.push_back(AstNode::operandNode(operandType::origRegister,(void *)(long)branch_target));
-    args.push_back(AstNode::operandNode(operandType::Constant, (void *) addr));
+    args.push_back(operandAST::origRegister((void *)(long)branch_target));
+    args.push_back(operandAST::Constant((void *) addr));
 
     return true;
 }

@@ -80,9 +80,9 @@ BPatch_addressSpace::BPatch_addressSpace() :
    pendingInsertions(NULL), image(NULL)
 {
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  pointHandler.reset(new Dyninst::AmdgpuGfx908PointHandler());
+  pointHandler.reset(new Dyninst::DyninstAPI::AmdgpuGfx908PointHandler());
 #else
-  pointHandler.reset(new Dyninst::PointHandler());
+  pointHandler.reset(new Dyninst::DyninstAPI::PointHandler());
 #endif
 }
 
@@ -619,17 +619,14 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
   assert(type->getSize() > 0 && type->getSize() % 4 == 0);
   int size = (int)type->getSize();
 
-  AstOperandNode::addToTable(name, size);
-  int offset = AstOperandNode::getOffset(name);
-  assert(AstOperandNode::lastOffset > -1);
+  DyninstAPI::operandAST::addToTable(name, size);
+  int offset = DyninstAPI::operandAST::getOffset(name);
+  assert(DyninstAPI::operandAST::lastOffset > -1);
 
   // An AstOperandNode containing another AstOperandNode that is a constant.
   // The constant represents offset in the GPU memory buffer.
-  AstNodePtr ast_wrapper(
-                  AstNode::operandNode(operandType::AddressAsPlaceholderRegAndOffset,
-                    AstNode::operandNode(operandType::Constant, reinterpret_cast<void*>(static_cast<uintptr_t>(offset)))
-                  )
-                );
+  auto val = DyninstAPI::operandAST::Constant(reinterpret_cast<void*>(static_cast<uintptr_t>(offset)));
+  auto ast_wrapper = DyninstAPI::operandAST::AddressAsPlaceholderRegAndOffset(std::move(val));
 
   ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
   ast_wrapper->setType(type);

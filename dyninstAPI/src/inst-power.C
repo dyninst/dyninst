@@ -41,7 +41,6 @@
 #include "dyninstAPI/src/inst-power.h"
 #include "common/src/arch-power.h"
 #include "dyninstAPI/src/codegen.h"
-#include "dyninstAPI/src/ast.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/instPoint.h" // class instPoint
@@ -61,6 +60,9 @@
 #include <sstream>
 
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
+
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
+using operandAST = Dyninst::DyninstAPI::operandAST;
 
 extern bool isPowerOf2(int value, int &result);
 
@@ -768,7 +770,7 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
 
 Dyninst::Register emitFuncCall(opCode op,
                       codeGen &gen,
-                      std::vector<AstNodePtr> &operands, bool noCost,
+                      std::vector<codeGenASTPtr> &operands, bool noCost,
                       func_instance *callee) {
     return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
 }
@@ -852,7 +854,7 @@ Dyninst::Register EmitterPOWER::emitCallReplacement(opCode ocode,
 
 Dyninst::Register EmitterPOWER::emitCall(opCode ocode,
                                 codeGen &gen,
-                                const std::vector<AstNodePtr> &operands,
+                                const std::vector<codeGenASTPtr> &operands,
                                 bool noCost,
                                 func_instance *callee) {
     bool inInstrumentation = true;
@@ -1738,7 +1740,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 using namespace Dyninst::InstructionAPI; 
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 					  Address addr, 
-					  std::vector<AstNodePtr> &args)
+					  std::vector<codeGenASTPtr> &args)
 {
   static RegisterAST::Ptr ctr32(new RegisterAST(ppc32::ctr));
   static RegisterAST::Ptr ctr64(new RegisterAST(ppc64::ctr));
@@ -1769,12 +1771,10 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
     if(branch_target != registerSpace::ignored)
     {
         // Where we're jumping to (link register, count register)
-        args.push_back( AstNode::operandNode(operandType::origRegister,
-                        (void *)(long)branch_target));
+        args.push_back(operandAST::origRegister((void *)(long)branch_target));
 
         // Where we are now
-        args.push_back( AstNode::operandNode(operandType::Constant,
-                        (void *) addr));
+        args.push_back(operandAST::Constant((void *) addr));
 
         return true;
     }

@@ -60,9 +60,9 @@ class DynInstrumenter : public Dyninst::PatchAPI::Instrumenter {
 class DynInsertSnipCommand : public Command {
   public:
     DynInsertSnipCommand(instPoint* pt, callOrder order,
-                         AstNodePtr ast, bool recursive);
+                         DyninstAPI::codeGenASTPtr ast, bool recursive);
     static DynInsertSnipCommand* create(instPoint* pt, callOrder order,
-                      AstNodePtr ast, bool recursive);
+                      DyninstAPI::codeGenASTPtr ast, bool recursive);
     virtual ~DynInsertSnipCommand() {}
 
     Instance::Ptr inst() { return inst_; }

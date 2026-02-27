@@ -40,7 +40,7 @@
 #include "dyninstAPI/src/dynThread.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "registerSpace.h"
-#include "dyninstAPI/src/ast.h"
+#include "ast.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "debug.h"
 #include "mapped_object.h"
@@ -50,7 +50,14 @@
 using namespace Dyninst;
 using namespace PatchAPI;
 
-#define DCAST_AST(ast) boost::dynamic_pointer_cast<AstNode>(ast)
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
+using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
+using operatorAST = Dyninst::DyninstAPI::operatorAST;
+using sequenceAST = Dyninst::DyninstAPI::sequenceAST;
+using snippetAST = Dyninst::DyninstAPI::snippetAST;
+using stackRemovalAST = Dyninst::DyninstAPI::stackRemovalAST;
+
+#define DCAST_AST(ast) boost::dynamic_pointer_cast<Dyninst::DyninstAPI::codeGenAST>(ast)
 
 // Normal constructor
 baseTramp::baseTramp() :
@@ -323,7 +330,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
 	
    gen.setRegisterSpace(registerSpace::actualRegSpace(instP()));
 
-   std::vector<AstNodePtr> miniTramps;
+   std::vector<codeGenASTPtr> miniTramps;
 
    if (point_) {
       // Sort snippets by type to have prologues before regular snippets and epilogues after regular snippets,
@@ -334,44 +341,43 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
 
       for (instPoint::instance_iter iter = point_->begin(); 
            iter != point_->end(); ++iter) {
-         AstNodePtr ast = DCAST_AST((*iter)->snippet());
+         codeGenASTPtr ast = DCAST_AST((*iter)->snippet());
          if (ast) 
             miniTramps.push_back(ast);
          else
-            miniTramps.push_back(AstNode::snippetNode((*iter)->snippet()));
+            miniTramps.push_back(snippetAST::create((*iter)->snippet()));
       }
    }
    else {
       miniTramps.push_back(ast_);
    }
 
-   AstNodePtr minis = AstNode::sequenceNode(miniTramps);
+   codeGenASTPtr minis = sequenceAST::create(miniTramps);
 
-   AstNodePtr baseTrampSequence;
-   std::vector<AstNodePtr > baseTrampElements;
+   codeGenASTPtr baseTrampSequence;
+   std::vector<codeGenASTPtr > baseTrampElements;
 
     
    // Run the minitramps
    baseTrampElements.push_back(minis);
-   vector<AstNodePtr> empty_args;
+   vector<codeGenASTPtr> empty_args;
     
    if (guarded() &&
        minis->containsFuncCall()) {
-     baseTrampElements.push_back(AstNode::funcCallNode("DYNINST_unlock_tramp_guard", empty_args));
+     baseTrampElements.push_back(functionCallAST::namedCall("DYNINST_unlock_tramp_guard", empty_args));
    }
 
-   baseTrampSequence = AstNode::sequenceNode(baseTrampElements);
+   baseTrampSequence = sequenceAST::create(baseTrampElements);
 
-   AstNodePtr baseTrampAST;
+   codeGenASTPtr baseTrampAST;
 
    // If trampAddr is non-NULL, then we wrap this with an IF. If not, 
    // we just run the minitramps.
    if (guarded() &&
        minis->containsFuncCall()) {
-      baseTrampAST = AstNode::operatorNode(ifOp,
-                                           // trampGuardAddr,
-					   AstNode::funcCallNode("DYNINST_lock_tramp_guard", empty_args),
-                                           baseTrampSequence);
+      baseTrampAST = operatorAST::If(
+          functionCallAST::namedCall("DYNINST_lock_tramp_guard", empty_args),
+          baseTrampSequence);
    }
    else {
       baseTrampAST = baseTrampSequence;
@@ -428,7 +434,7 @@ bool baseTramp::checkForFuncCalls()
 */
       for (instPoint::instance_iter iter = point_->begin(); 
            iter != point_->end(); ++iter) {
-         AstNodePtr ast = DCAST_AST((*iter)->snippet());
+         codeGenASTPtr ast = DCAST_AST((*iter)->snippet());
          if (!ast) continue;
          if (ast->containsFuncCall()) return true;
       }
@@ -457,7 +463,7 @@ bool baseTramp::doOptimizations()
    */
    for (instPoint::instance_iter iter = point_->begin(); 
         iter != point_->end(); ++iter) {
-      AstNodePtr ast = DCAST_AST((*iter)->snippet());
+      codeGenASTPtr ast = DCAST_AST((*iter)->snippet());
       if (!ast) continue;
       if (ast->containsFuncCall()) {
          hasFuncCall = true;

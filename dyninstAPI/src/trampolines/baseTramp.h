@@ -41,6 +41,7 @@
 
 class AddressSpace;
 
+namespace dapi = Dyninst::DyninstAPI;
 
 class baseTramp {
 protected:
@@ -73,13 +74,13 @@ private:
 
     int numDefinedRegs();
 
-    void setIRPCAST(AstNodePtr ast) { ast_ = ast; }
+    void setIRPCAST(dapi::codeGenASTPtr ast) { ast_ = ast; }
 
   private:
     instPoint *point_;
     AddressSpace *as_;
 
-    AstNodePtr ast_;
+    dapi::codeGenASTPtr ast_;
     
     bool shouldRegenBaseTramp(registerSpace *rs); 
 

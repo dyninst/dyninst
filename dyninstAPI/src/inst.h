@@ -33,13 +33,13 @@
 #ifndef INST_HDR
 #define INST_HDR
 
+#include "codeGenAST.h" // codeGenASTPtr
 #include <string>
 #include <map>
 #include <vector>
 #include <unordered_map>
 #include "dyn_register.h"
 #include "codegen.h" // codeBufIndex_t 
-#include "dyninstAPI/src/ast.h" // astNodePtr
 
 namespace Dyninst {
    namespace PatchAPI {
@@ -65,8 +65,6 @@ typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
 typedef enum { callPreInsn, callPostInsn, callBranchTargetInsn, callUnset } callWhen;
 typedef enum { orderFirstAtPoint, orderLastAtPoint } callOrder;
 
-class AstNode;
-
 /* Utility functions */
 
 
@@ -89,28 +87,28 @@ class instMapping {
    public:
 
       instMapping(const std::string f, const std::string i, const int w, 
-            callWhen wn, callOrder o, AstNodePtr a = AstNodePtr(), std::string l = "")
+            callWhen wn, callOrder o, Dyninst::DyninstAPI::codeGenASTPtr a = Dyninst::DyninstAPI::codeGenASTPtr(), std::string l = "")
          : func(f), inst(i), lib(l),
          where(w), when(wn), order(o), useTrampGuard(true),
          mt_only(false), allow_trap(false) {
-            if (a != AstNodePtr()) args.push_back(a);
+            if (a != Dyninst::DyninstAPI::codeGenASTPtr()) args.push_back(a);
          }
 
       instMapping(const std::string f, const std::string i, const int w, 
-            AstNodePtr a = AstNodePtr(), std::string l = "")
+            Dyninst::DyninstAPI::codeGenASTPtr a = Dyninst::DyninstAPI::codeGenASTPtr(), std::string l = "")
          : func(f), inst(i), lib(l),
          where(w), when(callPreInsn), order(orderLastAtPoint),
          useTrampGuard(true), mt_only(false), allow_trap(false) {
-            if (a != AstNodePtr()) args.push_back(a);
+            if (a != Dyninst::DyninstAPI::codeGenASTPtr()) args.push_back(a);
          }
 
       instMapping(const std::string f, const std::string i, const int w, 
-            std::vector<AstNodePtr> &aList, std::string l = "") :
+            std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &aList, std::string l = "") :
          func(f), inst(i), lib(l),
          where(w), when(callPreInsn), order(orderLastAtPoint),
          useTrampGuard(true), mt_only(false), allow_trap(false) {
             for(unsigned u=0; u < aList.size(); u++) {
-               if (aList[u] != AstNodePtr()) args.push_back(aList[u]);
+               if (aList[u] != Dyninst::DyninstAPI::codeGenASTPtr()) args.push_back(aList[u]);
             }
          }
 
@@ -132,7 +130,7 @@ public:
   int where;                   /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
   callWhen when;               /* callPreInsn, callPostInsn */
   callOrder order;             /* orderFirstAtPoint, orderLastAtPoint */
-  std::vector<AstNodePtr> args;      /* what to pass as arg0 ... n */
+  std::vector<Dyninst::DyninstAPI::codeGenASTPtr> args;      /* what to pass as arg0 ... n */
   bool useTrampGuard;
   bool mt_only;
   bool allow_trap;
@@ -214,7 +212,7 @@ void emitCSload(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &
 
 // VG(11/06/01): moved here and added location
 Dyninst::Register emitFuncCall(opCode op, codeGen &gen,
-                      std::vector<AstNodePtr> &operands,
+                      std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands,
 					  bool noCost, 
                       func_instance *func);
 

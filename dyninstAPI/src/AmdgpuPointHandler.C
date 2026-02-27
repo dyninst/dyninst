@@ -48,7 +48,7 @@
 #include <cassert>
 #include <fstream>
 
-namespace Dyninst {
+namespace Dyninst { namespace DyninstAPI {
 
 void AmdgpuGfx908PointHandler::handlePoints(std::vector<BPatch_point *> const &points) {
   for (BPatch_point *point : points) {
@@ -161,7 +161,7 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
   auto prologuePtr =
       boost::make_shared<AmdgpuPrologue>(regPair, kd.getKernargPtrRegisterPair(), kd.getKernargSize());
 
-  AstNodePtr prologueNodePtr =
+  DyninstAPI::codeGenASTPtr prologueNodePtr =
         boost::make_shared<AmdgpuPrologueNode>(prologuePtr);
 
   AmdgpuPrologueSnippet prologueSnippet(prologueNodePtr);
@@ -181,7 +181,7 @@ void AmdgpuGfx908PointHandler::insertEpilogueIfKernel(BPatch_function *function)
 
   auto epiloguePtr = boost::make_shared<AmdgpuEpilogue>();
 
-  AstNodePtr epilogueNodePtr = boost::make_shared<AmdgpuEpilogueNode>(epiloguePtr);
+  DyninstAPI::codeGenASTPtr epilogueNodePtr = boost::make_shared<AmdgpuEpilogueNode>(epiloguePtr);
 
   AmdgpuEpilogueSnippet epilogueSnippet(epilogueNodePtr);
   insertEpilogueAtPoints(epilogueSnippet, exitPoints);
@@ -267,7 +267,7 @@ void AmdgpuGfx908PointHandler::writeInstrumentationVarTable(const std::string &f
   // To get all instrumentation variables sorted by offsets
   std::map<int, std::string> reverseAllocTable;
 
-  for (auto it : AstOperandNode::allocTable) {
+  for (auto it : DyninstAPI::operandAST::allocTable) {
     auto name = it.first;
     if (name == "--init--") // ignore this one as it was only used to initialize the table
       continue;
@@ -282,4 +282,4 @@ void AmdgpuGfx908PointHandler::writeInstrumentationVarTable(const std::string &f
   outFile.close();
 }
 
-} // namespace Dyninst
+}}

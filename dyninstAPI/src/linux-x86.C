@@ -60,7 +60,6 @@
 
 #include <sstream>
 
-#include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/dynThread.h"
 #include "dyninstAPI/src/dynProcess.h"
@@ -68,6 +67,10 @@
 #include "common/src/linuxHeaders.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "instructionAPI/h/Instruction.h"
+
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
+using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
+using operandAST = Dyninst::DyninstAPI::operandAST;
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -113,7 +116,7 @@ bool PCProcess::getOPDFunctionAddr(Address &) {
     return true;
 }
 
-AstNodePtr PCProcess::createUnprotectStackAST() {
+codeGenASTPtr PCProcess::createUnprotectStackAST() {
     // Since we are punching our way down to an internal function, we
     // may run into problems due to stack execute protection. Basically,
     // glibc knows that it needs to be able to execute on the stack in
@@ -147,7 +150,7 @@ AstNodePtr PCProcess::createUnprotectStackAST() {
     ret = findVarsByAll("__stack_prot", vars);
 
     if(!ret || vars.size() == 0) {
-        return AstNodePtr();
+        return codeGenASTPtr();
     } else if(vars.size() > 1) {
         startup_printf("%s[%d]: Warning: found more than one __stack_prot variable\n",
                 FILE__, __LINE__);
@@ -164,19 +167,19 @@ AstNodePtr PCProcess::createUnprotectStackAST() {
     if(!ret || funcs.size() == 0) {
         startup_printf("%s[%d]: Couldn't find mprotect\n",
                 FILE__, __LINE__);
-        return AstNodePtr();
+        return codeGenASTPtr();
     }
 
     // mprotect: int mprotect(const void *addr, size_t len, int prot);
     func_instance *mprot = funcs[0];
     
-    std::vector<AstNodePtr> args;
-    args.push_back(AstNode::operandNode(operandType::Constant, (void *)page_start));
-    args.push_back(AstNode::operandNode(operandType::Constant, (void *)(intptr_t)size));
+    std::vector<codeGenASTPtr> args;
+    args.push_back(operandAST::Constant((void *)page_start));
+    args.push_back(operandAST::Constant((void *)(intptr_t)size));
     // prot = READ|WRITE|EXECUTE
-    args.push_back(AstNode::operandNode(operandType::Constant, (void *)7));
+    args.push_back(operandAST::Constant((void *)7));
 
-    return AstNode::funcCallNode(mprot, args);
+    return functionCallAST::call(mprot, args);
 }
 
 bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 

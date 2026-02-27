@@ -41,7 +41,7 @@
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/ast.h"
+#include "ast.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "registerSpace.h"
@@ -1679,7 +1679,7 @@ bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
 
 static Register amd64_arg_regs[] = {REGNUM_RDI, REGNUM_RSI, REGNUM_RDX, REGNUM_RCX, REGNUM_R8, REGNUM_R9};
 #define AMD64_ARG_REGS (sizeof(amd64_arg_regs) / sizeof(Register))
-Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<AstNodePtr> &operands,
+Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands,
                                 bool noCost, func_instance *callee)
 {
    assert(op == callOp);

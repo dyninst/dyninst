@@ -36,40 +36,45 @@
 
 using namespace Dyninst;
 
+using genericStackAST = Dyninst::DyninstAPI::genericStackAST;
+using stackInsertionAST = Dyninst::DyninstAPI::stackInsertionAST;
+using stackRemovalAST = Dyninst::DyninstAPI::stackRemovalAST;
+
+
 BPatch_stackInsertExpr::BPatch_stackInsertExpr(int size)
 {
-    ast_wrapper = AstNodePtr(AstNode::stackInsertNode(size, AstNode::GENERIC_AST));
+    ast_wrapper = stackInsertionAST::generic(size);
     assert(BPatch::bpatch != NULL);
 }
 
 BPatch_stackRemoveExpr::BPatch_stackRemoveExpr(int size)
 {
-    ast_wrapper = AstNodePtr(AstNode::stackRemoveNode(size, AstNode::GENERIC_AST));
+    ast_wrapper = stackRemovalAST::generic(size);
     assert(BPatch::bpatch != NULL);
 }
 
 BPatch_stackMoveExpr::BPatch_stackMoveExpr()
 {
-    ast_wrapper = AstNodePtr(AstNode::stackGenericNode());
+    ast_wrapper = genericStackAST::create();
     assert(BPatch::bpatch != NULL);
 }
 
 BPatch_canaryExpr::BPatch_canaryExpr()
 {
-    ast_wrapper = AstNodePtr(AstNode::stackInsertNode(0, AstNode::CANARY_AST));
+    ast_wrapper = stackInsertionAST::canary(0);
 
     assert(BPatch::bpatch != NULL);
 }
 
 BPatch_canaryCheckExpr::BPatch_canaryCheckExpr(BPatch_function* failureFunc, bool canaryAfterPrologue, long canaryHeight)
 {
-    ast_wrapper = AstNodePtr(AstNode::stackRemoveNode(0, AstNode::CANARY_AST, failureFunc->lowlevel_func(), canaryAfterPrologue, canaryHeight));
+    ast_wrapper = stackRemovalAST::canary(0, failureFunc->lowlevel_func(), canaryAfterPrologue, canaryHeight);
 
     assert(BPatch::bpatch != NULL);
 }
 
 BPatch_stackRandomizeExpr::BPatch_stackRandomizeExpr()
 {
-    ast_wrapper = AstNodePtr(AstNode::stackGenericNode());
+    ast_wrapper = genericStackAST::create();
     assert(BPatch::bpatch != NULL);
 }

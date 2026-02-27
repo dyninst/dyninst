@@ -185,7 +185,7 @@ public:
     bool getOPDFunctionAddr(Address &opdAddr); // architecture-specific
 
     // iRPC interface
-    bool postIRPC(AstNodePtr action,
+    bool postIRPC(Dyninst::DyninstAPI::codeGenASTPtr action,
                  void *userData,
                  bool runProcessWhenDone,
                  PCThread *thread,
@@ -475,7 +475,7 @@ protected:
     // RT library management
     bool loadRTLib();
 
-    AstNodePtr createUnprotectStackAST(); // architecture-specific
+    Dyninst::DyninstAPI::codeGenASTPtr createUnprotectStackAST(); // architecture-specific
     bool setRTLibInitParams();
     bool instrumentMTFuncs();
     bool extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record);

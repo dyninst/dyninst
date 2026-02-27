@@ -49,6 +49,8 @@ class registerSpace;
 
 class registerSlot;
 
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
+
 // Emitter moved to emitter.h - useful on other platforms as well
 
 class Emitterx86 : public Emitter {
@@ -105,10 +107,10 @@ public:
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     // We can overload this for the stat/dyn case
     virtual Register emitCall(opCode op, codeGen &gen,
-                              const std::vector<AstNodePtr> &operands,
+                              const std::vector<codeGenASTPtr> &operands,
                               bool noCost, func_instance *callee);
     int emitCallParams(codeGen &gen, 
-                       const std::vector<AstNodePtr> &operands,
+                       const std::vector<codeGenASTPtr> &operands,
                        func_instance *target, 
                        std::vector<Register> &extra_saves,
                        bool noCost);
@@ -220,7 +222,7 @@ public:
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     // See comment on 32-bit emitCall
     virtual Register emitCall(opCode op, codeGen &gen,
-                              const std::vector<AstNodePtr> &operands,
+                              const std::vector<codeGenASTPtr> &operands,
                               bool noCost, func_instance *callee);
     void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
     void emitGetRetAddr(Register dest, codeGen &gen);

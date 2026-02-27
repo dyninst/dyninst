@@ -67,7 +67,9 @@ namespace Dyninst {
     class Symbol;
     struct AddressRange;
   }
-  struct PointHandler;
+  namespace DyninstAPI {
+    struct PointHandler;
+  }
 }
 
 
@@ -192,7 +194,7 @@ class DYNINST_EXPORT BPatch_addressSpace {
  protected:
   virtual void getAS(std::vector<AddressSpace *> &as) = 0;
 
-  std::unique_ptr<Dyninst::PointHandler> pointHandler;
+  std::unique_ptr<Dyninst::DyninstAPI::PointHandler> pointHandler;
 
  public:
 

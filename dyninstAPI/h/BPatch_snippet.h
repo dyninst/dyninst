@@ -44,14 +44,17 @@
 #include "BPatch_enums.h"
 #include "boost/shared_ptr.hpp"
 
-class AstNode;
 // Don't include the boost shared_ptr library
 class BPatch_snippet;
 
-typedef boost::shared_ptr<AstNode> AstNodePtr;
+namespace Dyninst { namespace DyninstAPI {
+  class codeGenAST;
+}}
+
+using codeGenASTPtr = boost::shared_ptr<Dyninst::DyninstAPI::codeGenAST>;
 namespace boost {
    template< typename T > class shared_ptr;
-   template<> class shared_ptr<AstNode *>;
+   template<> class shared_ptr<Dyninst::DyninstAPI::codeGenAST *>;
 }
 
 namespace Dyninst {
@@ -63,7 +66,6 @@ namespace Dyninst {
 }
 
 
-class AstNode;
 class BPatch_process;
 class BPatch_function;
 class BPatch_point;
@@ -128,11 +130,11 @@ class DYNINST_EXPORT BPatch_snippet {
     friend class BPatch_shadowExpr;
     friend class BPatch_utilExpr;
     friend class BPatch_atomicOperationStmt;
-    friend AstNodePtr generateArrayRef(const BPatch_snippet &lOperand, 
+    friend codeGenASTPtr generateArrayRef(const BPatch_snippet &lOperand,
                                        const BPatch_snippet &rOperand);
-    friend AstNodePtr generateFieldRef(const BPatch_snippet &lOperand, 
+    friend codeGenASTPtr generateFieldRef(const BPatch_snippet &lOperand,
                                        const BPatch_snippet &rOperand);
-    friend AstNodePtr generateVariableBase(const BPatch_snippet &lOperand);
+    friend codeGenASTPtr generateVariableBase(const BPatch_snippet &lOperand);
     friend Dyninst::PatchAPI::SnippetPtr convert(const BPatch_snippet *snip);
 
     public:
@@ -141,7 +143,7 @@ class DYNINST_EXPORT BPatch_snippet {
     //  Default constructor
 
     BPatch_snippet();
-    BPatch_snippet(const AstNodePtr& ast);
+    BPatch_snippet(const codeGenASTPtr& ast);
 
     //  BPatch_snippet::BPatch_snippet
     //  Copy constructor
@@ -184,9 +186,9 @@ class DYNINST_EXPORT BPatch_snippet {
     bool checkTypesAtPoint(BPatch_point* p) const;
     
     //    protected:
-    //AstNodePtr *ast_wrapper; 
+    //codeGenASTPtr *ast_wrapper;
 
-    AstNodePtr ast_wrapper;
+    codeGenASTPtr ast_wrapper;
 
 };
 
@@ -355,7 +357,7 @@ class DYNINST_EXPORT BPatch_variableExpr : public BPatch_snippet
     BPatch_variableExpr(const char *in_name, 
                         BPatch_addressSpace *in_addSpace,
                         AddressSpace *as,
-                        AstNodePtr ast_wrapper_,
+                        codeGenASTPtr ast_wrapper_,
                         BPatch_type *type, void* in_address);
     // Used to get forked copies of variable expressions
     // Used by malloc & malloc_by_type
