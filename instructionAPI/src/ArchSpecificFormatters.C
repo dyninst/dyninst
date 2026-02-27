@@ -383,13 +383,7 @@ std::string x86Formatter::formatImmediate(const std::string &evalString) const
 
 std::string x86Formatter::formatRegister(const std::string &regName) const
 {
-    std::string outReg = "%" + regName;
-
-    for(char &c : outReg) {
-      c = std::tolower(c);
-    }
-
-    return outReg;
+    return "%" + regName;
 }
 
 std::string x86Formatter::formatDeref(const std::string &addrString) const
