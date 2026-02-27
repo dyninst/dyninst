@@ -16,10 +16,10 @@ void registerSpace::initialize32() {
     
     std::vector<registerSlot *> registers;
 
-    // When we use 
+    // Off-limits due to our "stack slot" register mechanism
     registerSlot *eax = new registerSlot(REGNUM_EAX,
                                         "eax",
-                                        false, // Off-limits due to our "stack slot" register mechanism
+                                        false,
                                         registerSlot::liveAlways,
                                         registerSlot::realReg);
     registerSlot *ecx = new registerSlot(REGNUM_ECX,
@@ -37,11 +37,13 @@ void registerSpace::initialize32() {
                                         false,
                                         registerSlot::liveAlways,
                                         registerSlot::realReg);
+
+    // I'd argue the SP is a special-purpose reg
     registerSlot *esp = new registerSlot(REGNUM_ESP,
                                         "esp",
-                                        true, // Off-limits...
+                                        true,
                                         registerSlot::liveAlways,
-                                        registerSlot::realReg); // I'd argue the SP is a special-purpose reg
+                                        registerSlot::realReg);
     registerSlot *ebp = new registerSlot(REGNUM_EBP,
                                         "ebp",
                                         true,
@@ -90,13 +92,17 @@ void registerSpace::initialize32() {
                                               registerSlot::GPR);
         registers.push_back(virt);
     }
-    // Create a single FPR representation to represent
-    // whether any FPR is live
+
+
+    /* Create a single FPR representation to represent whether any FPR is live
+     *
+     *  It's always live because we check this via overapproximation and not the
+     *  regular liveness algorithm (start out *dead* and set live if written)
+     */
     registerSlot *fpr = new registerSlot(IA32_FPR_VIRTUAL_REGISTER,
                                          "virtFPR",
-                                         true, // off-limits...
-                                         registerSlot::liveAlways, // because we check this via overapproximation and not the
-                                         // regular liveness algorithm, start out *dead* and set live if written
+                                         true,
+                                         registerSlot::liveAlways,
                                          registerSlot::FPR);
     registers.push_back(fpr);
 
@@ -128,8 +134,7 @@ void registerSpace::initialize64() {
 
     registerSlot * rax = new registerSlot(REGNUM_RAX,
                                           "rax",
-					  // TODO FIXME but I need it...
-                                          false, // We use it implicitly _everywhere_
+                                          false,
                                           registerSlot::deadABI,
                                           registerSlot::GPR);
     registerSlot * rcx = new registerSlot(REGNUM_RCX,
@@ -149,7 +154,7 @@ void registerSpace::initialize64() {
                                           registerSlot::GPR);
     registerSlot * rsp = new registerSlot(REGNUM_RSP,
                                           "rsp",
-                                          true, // Off-limits...
+                                          true,
                                           registerSlot::liveAlways,
                                           registerSlot::GPR); 
     registerSlot * rbp = new registerSlot(REGNUM_RBP,
@@ -291,11 +296,14 @@ void registerSpace::initialize64() {
                                          registerSlot::liveAlways,
                                          registerSlot::SPR));
 
+    /*
+     *  It's always live because we check this via overapproximation and not the
+     *  regular liveness algorithm (start out *dead* and set live if written)
+     */
     registers.push_back(new registerSlot(REGNUM_DUMMYFPR,
                                          "dummyFPR",
                                          true,
-                                         registerSlot::liveAlways, // because we check this via overapproximation and not the
-                                         // regular liveness algorithm, start out *dead* and set live if written
+                                         registerSlot::liveAlways,
                                          registerSlot::FPR));
     registers.push_back(new registerSlot(REGNUM_MM0,
 					 "MM0/ST(0)",
