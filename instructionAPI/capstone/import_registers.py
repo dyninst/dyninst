@@ -94,8 +94,8 @@ with open("{0:s}.registers".format(args.arch), "w") as file:
     if base_category not in unique_ids_by_category:
       unique_ids_by_category[base_category] = 0
 
-    #                  (   name,  ID |    size |     cat |       arch,  "arch"
-    fmt = "DEF_REGISTER(%{0:d}s, %3d | %{1:d}s | %{2:d}s | Arch_{3:s}, \"{3:s}\");\n".format(
+    #                  (   name,  ID |    size |     cat |       arch
+    fmt = "DEF_REGISTER(%{0:d}s, %3d | %{1:d}s | %{2:d}s | Arch_{3:s});\n".format(
       max_name_len+2,
       max_size_len,
       max_cat_len,
