@@ -31,8 +31,3 @@
 #include "binaryEdit.h"
 #include "mapped_object.h"
 #include "parse-cfg.h"
-
-bool BinaryEdit::doStaticBinarySpecialCases() {
-  assert(!"Not implemented for AMDGPU");
-  return false;
-}
