@@ -51,6 +51,7 @@
 #include "parseAPI/h/CFG.h"
 #include "Instruction.h"
 #include "Register.h"
+#include "registers/aarch64_regs.h"
 
 #include "emitter.h"
 #include "emit-aarch64.h"
@@ -189,15 +190,15 @@ unsigned EmitterAARCH64SaveRegs::saveSPRegisters(
 
 void EmitterAARCH64SaveRegs::createFrame(codeGen &gen) {
     //Save link register
-    Register linkRegister = gen.rs()->getRegByName("r30");
+    Register linkRegister = convertRegID(Dyninst::aarch64::lr);
     insnCodeGen::saveRegister(gen, linkRegister, -2*GPRSIZE_64);
 
     //Save frame pointer
-    Register framePointer = gen.rs()->getRegByName("r29");
+    Register framePointer = convertRegID(Dyninst::aarch64::fp);
     insnCodeGen::saveRegister(gen, framePointer, -2*GPRSIZE_64);
 
     //Move stack pointer to frame pointer
-    Register stackPointer = gen.rs()->getRegByName("sp");
+    Register stackPointer = convertRegID(Dyninst::aarch64::sp);
     insnCodeGen::generateMoveSP(gen, stackPointer, framePointer, true);
 }
 
@@ -283,11 +284,11 @@ unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(
 
 void EmitterAARCH64RestoreRegs::tearFrame(codeGen &gen) {
     //Restore frame pointer
-    Register framePointer = gen.rs()->getRegByName("r29");
+    Register framePointer = convertRegID(Dyninst::aarch64::fp);
     insnCodeGen::restoreRegister(gen, framePointer, 2*GPRSIZE_64);
 
     //Restore link register
-    Register linkRegister = gen.rs()->getRegByName("r30");
+    Register linkRegister = convertRegID(Dyninst::aarch64::lr);
     insnCodeGen::restoreRegister(gen, linkRegister, 2*GPRSIZE_64);
 }
 
