@@ -151,7 +151,6 @@ class registerSpace {
     int numGPRs() const { return GPRs_.size(); }
     int numFPRs() const { return FPRs_.size(); }
     int numSPRs() const { return SPRs_.size(); }
-    int numRegisters() const { return registers_.size(); }
 
     std::vector <registerSlot *> &GPRs() { return GPRs_; }
     std::vector <registerSlot *> &FPRs() { return FPRs_; }
