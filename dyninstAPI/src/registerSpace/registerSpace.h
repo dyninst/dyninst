@@ -145,10 +145,6 @@ class registerSpace {
     // and call this routine to correct this.
     void incRefCount(Dyninst::Register k);
 
-    // Make sure that no registers remain allocated, except "to_exclude"
-    // Used for assertion checking.
-    void checkLeaks(Dyninst::Register to_exclude);
-
     int getAddressWidth() { return addr_width; }
     void debugPrint();
     void printAllocedRegisters();
