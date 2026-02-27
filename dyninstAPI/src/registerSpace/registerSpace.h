@@ -147,7 +147,6 @@ class registerSpace {
 
     int getAddressWidth() { return addr_width; }
     void debugPrint();
-    void printAllocedRegisters();
 
     int numGPRs() const { return GPRs_.size(); }
     int numFPRs() const { return FPRs_.size(); }
