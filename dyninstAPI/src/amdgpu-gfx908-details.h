@@ -104,7 +104,21 @@ enum ContentMask64 : uint64_t {
   Mask_Vop3a_Src1     = 0b0000000000000011111111100000000000000000000000000000000000000000,
   Mask_Vop3a_Src2     = 0b0000011111111100000000000000000000000000000000000000000000000000,
   Mask_Vop3a_Omod     = 0b0001100000000000000000000000000000000000000000000000000000000000,
-  Mask_Vop3a_Neg      = 0b1110000000000000000000000000000000000000000000000000000000000000
+  Mask_Vop3a_Neg      = 0b1110000000000000000000000000000000000000000000000000000000000000,
+
+  Mask_Flat_Encoding  = 0b0000000000000000000000000000000011111100000000000000000000000000,
+  Mask_Flat_FixedBits = 0b0000000000000000000000000000000000000010000000000000000000000000,
+  Mask_Flat_Opcode    = 0b0000000000000000000000000000000000000001111111000000000000000000,
+  Mask_Flat_Glc       = 0b0000000000000000000000000000000000000000000000100000000000000000,
+  Mask_Flat_Slc       = 0b0000000000000000000000000000000000000000000000010000000000000000,
+  Mask_Flat_Seg       = 0b0000000000000000000000000000000000000000000000001100000000000000,
+  Mask_Flat_Lds       = 0b0000000000000000000000000000000000000000000000000010000000000000,
+  Mask_Flat_Offset    = 0b0000000000000000000000000000000000000000000000000001111111111111,
+  Mask_Flat_Addr      = 0b0000000000000000000000001111111100000000000000000000000000000000,
+  Mask_Flat_Data      = 0b0000000000000000111111110000000000000000000000000000000000000000,
+  Mask_Flat_Saddr     = 0b0000000001111111000000000000000000000000000000000000000000000000,
+  Mask_Flat_Nv        = 0b0000000010000000000000000000000000000000000000000000000000000000,
+  Mask_Flat_Vdst      = 0b1111111100000000000000000000000000000000000000000000000000000000
  };
 
 // === SOP1 BEGIN ===
@@ -364,8 +378,8 @@ void setOpcodeVop1(uint32_t value, uint32_t &rawInst);
 void setVdstVop1(uint32_t value, uint32_t &rawInst);
 void setSrc0Vop1(uint32_t value, uint32_t &rawInst);
 
-void emitVop1(unsigned opcode, uint32_t vdst, uint32_t src0, codeGen &gen);
-
+void emitVop1(unsigned opcode, Register vdst, Register src0, bool hasLiteral,
+              uint32_t literal, codeGen &gen);
 // === VOP1 END ===
 
 
@@ -378,7 +392,8 @@ enum VOP2_Opcode {
   V_SUB_U32 = 53,
   V_AND_B32 = 19,
   V_OR_B32  = 20,
-  V_XOR_B32 = 21
+  V_XOR_B32 = 21,
+  V_MUL_U32_U24 = 8
 };
 
 void setEncodingVop2(uint32_t &rawInst);
@@ -390,6 +405,8 @@ void setSrc0Vop2(uint32_t value, uint32_t &rawInst);
 void emitVop2(unsigned opcode, uint32_t vdst, uint32_t vsrc1, uint32_t src0,
               codeGen &gen);
 
+void emitVop2WithSrc0Literal(unsigned opcode, uint32_t vdst, uint32_t vsrc1Literal, uint32_t src0,
+                             codeGen &gen);
 // === VOP2 END ===
 
 // === VOP3A BEGIN ===
@@ -424,6 +441,45 @@ void setNegVop3a(uint64_t &rawInst);
 void emitVop3a(unsigned opcode, uint64_t vdst, uint64_t src0, uint64_t src1, uint64_t src2,
                codeGen &gen);
 // === VOP3A END ===
+
+
+// === FLAT BEGIN ===
+// FLAT instruction format in memory : (total 64 bits)
+
+// 31                                                             0
+// [encoding] [fixedbits] [opcode] [glc] [slc] [seg] [lds] [offset]
+//  6(110111)    1 (1)       7       1     1     2     1      13
+//
+// 63                              32
+// [vdst] [nv] [saddr]  [data] [addr]
+//   8     1       7       8     8
+//
+// This enum contains particular FLAT instructions of interest.
+// Extend it later as needed.
+enum FLAT_Opcode {
+  GLOBAL_LOAD_DWORD = 20,
+  GLOBAL_LOAD_DWORDX2 = 21,
+  GLOBAL_STORE_DWORD = 28,
+};
+
+void setEncodingFlat(uint64_t &rawInst);
+void setFixedBits(uint64_t &rawInst);
+void setOpcodeFlat(uint64_t value, uint64_t &rawInst);
+void setGlcFlat(bool value, uint64_t &rawInst);
+void setSlcFlat(bool value, uint64_t &rawInst);
+void setSegFlat(uint64_t value, uint64_t &rawInst);
+void setLdsFlat(bool value, uint64_t &rawInst);
+void setOffsetFlat(uint64_t value, uint64_t &rawInst);
+void setAddrFlat(uint64_t value, uint64_t &rawInst);
+void setDataFlat(uint64_t value, uint64_t &rawInst);
+void setSaddrFlat(uint64_t value, uint64_t &rawInst);
+void setNvFlat(bool value, uint64_t &rawInst);
+void setVdstFlat(uint64_t value, uint64_t &rawInst);
+
+void emitFlat(unsigned opcode, uint64_t vdst, uint64_t saddr, uint64_t data, uint64_t addr,
+              codeGen &gen);
+
+// === FLAT END ===
 
 } // namespace AmdgpuGfx908
 

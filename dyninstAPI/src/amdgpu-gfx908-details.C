@@ -371,7 +371,8 @@ void setSrc0Vop1(uint32_t value, uint32_t &rawInst) {
   rawInst = (rawInst & ~mask) | (value & mask);
 }
 
-void emitVop1(unsigned opcode, uint32_t vdst, uint32_t src0, codeGen &gen) {
+void emitVop1(unsigned opcode, Register vdst, Register src0, bool hasLiteral, uint32_t literal,
+              codeGen &gen) {
   uint32_t newRawInst = 0xFFFFFFFF;
   setEncodingVop1(newRawInst);
   setFixedBitsVop1(newRawInst);
@@ -381,6 +382,11 @@ void emitVop1(unsigned opcode, uint32_t vdst, uint32_t src0, codeGen &gen) {
 
   auto rawInstBuffer = gen.cur_ptr();
   append_memory_as(rawInstBuffer, newRawInst);
+
+  if (hasLiteral) {
+    append_memory_as(rawInstBuffer, literal);
+  }
+
   gen.update(rawInstBuffer);
 }
 // === VOP1 END ===
@@ -423,6 +429,15 @@ void emitVop2(unsigned opcode, uint32_t vdst, uint32_t vsrc1, uint32_t src0,
 
   auto rawInstBuffer = gen.cur_ptr();
   append_memory_as(rawInstBuffer, newRawInst);
+  gen.update(rawInstBuffer);
+}
+
+void emitVop2WithSrc0Literal(unsigned opcode, uint32_t vdst, uint32_t vsrc1, uint32_t src0Literal,
+                             codeGen &gen) {
+  emitVop2(opcode, vdst, vsrc1, /* src0*/ 255, gen);
+
+  auto rawInstBuffer = gen.cur_ptr();
+  append_memory_as(rawInstBuffer, src0Literal);
   gen.update(rawInstBuffer);
 }
 // === VOP2 END ===
@@ -503,4 +518,114 @@ void emitVop3a(unsigned opcode, uint64_t vdst, uint64_t src0, uint64_t src1, uin
   gen.update(rawInstBuffer);
 }
 // === VOP3A END ===
+
+// === FLAT BEGIN ===
+
+void setEncodingFlat(uint64_t &rawInst) {
+  uint64_t mask = Mask_Flat_Encoding;
+  rawInst = (rawInst & ~mask) | (((uint64_t)(0b110111) << 26) & mask);
+}
+
+void setFixedBitsFlat(uint64_t &rawInst) {
+  uint64_t mask = Mask_Flat_FixedBits;
+  rawInst = (rawInst & ~mask) | (((uint64_t)(1) << 25) & mask);
+}
+
+void setOpcodeFlat(uint64_t value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Flat_Opcode;
+  rawInst = (rawInst & ~mask) | (((uint64_t)(value) << 18) & mask);
+}
+
+void setSlcFlat(bool value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Flat_Glc;
+  rawInst = (rawInst & ~mask) | (((uint64_t)(value) << 17) & mask);
+}
+
+void setGlcFlat(bool value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Flat_Glc;
+  rawInst = (rawInst & ~mask) | (((uint64_t)(value) << 16) & mask);
+}
+
+void setSegFlat(uint64_t value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Flat_Seg;
+  rawInst = (rawInst & ~mask) | ((value << 14) & mask);
+}
+
+void setLdsFlat(bool value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Flat_Lds;
+  rawInst = (rawInst & ~mask) | (((uint64_t)value << 13) & mask);
+}
+
+void setOffsetFlat(uint64_t value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Flat_Offset;
+  rawInst = (rawInst & ~mask) | (value & mask);
+}
+
+void setAddrFlat(uint64_t value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Flat_Addr;
+  rawInst = (rawInst & ~mask) | ((value << 32) & mask);
+}
+
+void setDataFlat(uint64_t value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Flat_Data;
+  rawInst = (rawInst & ~mask) | ((value << 40) & mask);
+}
+
+void setSaddrFlat(uint64_t value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Flat_Saddr;
+  rawInst = (rawInst & ~mask) | ((value << 48) & mask);
+}
+
+void setNvFlat(bool value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Flat_Nv;
+  rawInst = (rawInst & ~mask) | (((uint64_t)value << 55) & mask);
+}
+
+void setVdstFlat(uint64_t value, uint64_t &rawInst) {
+  uint64_t mask = Mask_Flat_Vdst;
+  rawInst = (rawInst & ~mask) | ((value << 56) & mask);
+}
+
+void emitFlat(unsigned opcode, uint64_t vdst, uint64_t saddr, uint64_t data, uint64_t addr,
+              codeGen &gen) {
+
+  std::cerr << "emitFlat\n";
+  std::cerr << std::hex << "opcode = " << opcode << " vdst = " << vdst << " saddr = " << saddr << " data = " << data << " addr = " << addr << "\n";
+
+  uint64_t newRawInst = 0xFFFFFFFFFFFFFFFF;
+  setEncodingFlat(newRawInst);
+  std::cerr << "after encoding : " << newRawInst << '\n';
+  setFixedBitsFlat(newRawInst);
+  std::cerr << "after fixed bits : " << newRawInst << '\n';
+  setOpcodeFlat(opcode, newRawInst);
+  std::cerr << "after opcode : " << newRawInst << '\n';
+  setSlcFlat(0, newRawInst);
+  std::cerr << "after slc : " << newRawInst << '\n';
+  setGlcFlat(0, newRawInst);
+  std::cerr << "after glc : " << newRawInst << '\n';
+  // We only care about global memory instructions, hence seg = 2
+  setSegFlat(2, newRawInst);
+  std::cerr << "after seg : " << newRawInst << '\n';
+  // As mentioned above, we only care for global memory instructions, so LDS = 0
+  setLdsFlat(0, newRawInst);
+  std::cerr << "after lds : " << newRawInst << '\n';
+  setOffsetFlat(0, newRawInst);
+  std::cerr << "after offset : " << newRawInst << '\n';
+
+  setVdstFlat(vdst, newRawInst);
+  std::cerr << "after vdst : " << newRawInst << '\n';
+  setNvFlat(0, newRawInst);
+  std::cerr << "after nv : " << newRawInst << '\n';
+  setSaddrFlat(saddr, newRawInst);
+  std::cerr << "after saddr : " << newRawInst << '\n';
+  setDataFlat(data, newRawInst);
+  std::cerr << "after data : " << newRawInst << '\n';
+  setAddrFlat(addr, newRawInst);
+  std::cerr << "after Addr : " << newRawInst << '\n' << '\n';
+  auto rawInstBuffer = gen.cur_ptr();
+  append_memory_as(rawInstBuffer, newRawInst);
+  gen.update(rawInstBuffer);
+}
+
+// === FLAT END ===
 } // namespace AmdgpuGfx908
