@@ -135,6 +135,10 @@ unsigned EmitterAmdgpuGfx908::getVop2Opcode(unsigned opCode) const {
     opcodeVop2 = V_SUB_U32;
     break;
 
+  case timesOp:
+    opcodeVop2 = V_MUL_U32_U24;
+    break;
+
   case andOp:
     opcodeVop2 = V_AND_B32;
     break;
@@ -148,7 +152,7 @@ unsigned EmitterAmdgpuGfx908::getVop2Opcode(unsigned opCode) const {
     break;
 
   default:
-    assert(!"opcode must correspond to a supported SOP2 operation");
+    assert(!"opcode must correspond to a supported VOP2 operation");
   }
   return opcodeVop2;
 }
@@ -172,7 +176,14 @@ void EmitterAmdgpuGfx908::emitOp(unsigned opcode, Register dest, Register src1, 
 
 void EmitterAmdgpuGfx908::emitOpImmSimple(unsigned op, Register dest, Register src1,
                                           RegValue src2imm, codeGen &gen) {
-  if (op == plusOp || op == timesOp || op == andOp) {
+
+  if (isValidVgpr(dest) && isValidVgpr(src1)) {
+    uint32_t opcodeVop2 = getVop2Opcode(op);
+    emitVop2WithSrc0Literal(opcodeVop2, dest.getId(), src1.getId(), src2imm, gen);
+    return;
+  }
+
+  else if (isValidSgpr(dest) && isValidSgpr(src1)) {
     uint32_t opcodeSop2 = getSop2Opcode(op);
     emitSop2WithSrc1Literal(opcodeSop2, dest.getId(), src1.getId(), src2imm, gen);
     return;
@@ -602,12 +613,20 @@ void EmitterAmdgpuGfx908::emitEndProgram(codeGen &gen) {
 }
 
 void EmitterAmdgpuGfx908::emitMovLiteral(Register reg, uint32_t literal, codeGen &gen) {
-  assert(isValidSgpr(reg) && "reg must be a valid SGPR");
-  // s_mov_b32 reg, < 32-bit constant literal >
-  // The literal follows the instruction, so set src0 = 0xFF just like the
-  // assembler does.
-  emitSop1(S_MOV_B32, /* dest = */ reg.getId(), /* src0 = */ 0xFF, /* hasLiteral = */ true, literal,
-           gen);
+  if (isValidSgpr(reg)) {
+    // s_mov_b32 reg, < 32-bit constant literal >
+    // The literal follows the instruction, so set src0 = 0xFF just like the
+    // assembler does.
+    emitSop1(S_MOV_B32, /* dest = */ reg.getId(), /* src0 = */ 0xFF, /* hasLiteral = */ true, literal,
+            gen);
+  } else if (isValidVgpr(reg)){
+    // v_mov_b32 reg, < 32-bit constant literal >
+    // The literal follows the instruction, so set src0 = 0xFF just like the
+    // assembler does.
+    emitVop1(V_MOV_B32, /* vdst */reg.getId(), /*src0*/0xFF, /* hasLiteral */true, literal, gen);
+  } else {
+    assert("invalid register");
+  }
 }
 
 void EmitterAmdgpuGfx908::emitConditionalBranch(bool onConditionTrue, int16_t wordOffset,
@@ -713,7 +732,25 @@ void EmitterAmdgpuGfx908::emitVMulLoU32(Register dest, Register src0, Register s
 void EmitterAmdgpuGfx908::emitReadFirstLane(Register vreg, Register sreg, codeGen &gen) {
   assert(isValidVgpr(vreg) && isValidSgpr(sreg));
   const uint32_t vgprValueToAdd = 256;
-  emitVop1(V_READFIRSTLANE_B32, sreg.getId(), vreg.getId() + 256, gen);
+  emitVop1(V_READFIRSTLANE_B32, sreg.getId(), vreg.getId() + 256, /* hasLiteral */false, /* literal */0, gen);
+}
 
+
+void EmitterAmdgpuGfx908::emitVectorLoad(Register dest, Register baseReg, Register offsetReg, codeGen &gen) {
+  assert(isValidVgpr(dest) && "dest must be a valid VGPR");
+  assert(isValidSgprPair(baseReg) && "baseReg must be a valid SGPR pair");
+  assert(isValidVgpr(offsetReg) && "offsetReg must be a valid VGPR");
+
+  emitFlat(GLOBAL_LOAD_DWORD, dest.getId(), baseReg.getId(), 0, offsetReg.getId(), gen);
+  return;
+}
+
+void EmitterAmdgpuGfx908::emitVectorStore(Register valueReg, Register baseReg, Register offsetReg, codeGen &gen) {
+  assert(isValidVgpr(valueReg) && "dest must be a valid VGPR");
+  assert(isValidSgprPair(baseReg) && "baseReg must be a valid SGPR pair");
+  assert(isValidVgpr(offsetReg) && "offsetReg must be a valid VGPR");
+
+  emitFlat(GLOBAL_STORE_DWORD, valueReg.getId(), baseReg.getId(), 0, offsetReg.getId(), gen);
+  return;
 }
 // ===== EmitterAmdgpuGfx908 implementation end =====

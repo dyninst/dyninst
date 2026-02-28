@@ -229,6 +229,10 @@ public:
   void emitVMulLoU32(Register dest, Register src0, Register src1, codeGen &gen);
 
   void emitReadFirstLane(Register vreg, Register sreg, codeGen &gen);
+
+  void emitVectorLoad(Register dest, Register baseReg, Register offsetReg, codeGen &gen);
+
+  void emitVectorStore(Register valueReg, Register baseReg, Register offsetReg, codeGen &gen);
 private:
   // Some helper functions
   bool isValidVgpr(Register reg) const;
