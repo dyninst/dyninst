@@ -249,32 +249,7 @@ void *parse_block::getPtrToInstruction(Address addr) const {
     return region()->getPtrToInstruction(addr);
 }
 
-/* Returns NULL if the address is not within a block belonging to this function.
-   Why do we even bother returning NULL if the address is outside of this
-   function? FIXME check whether we can do away with that.
-*/
 void *parse_func::getPtrToInstruction(Address addr) const {
-    // The commented-out code checks whether the address is within
-    // the bytes of this function (one of its basic blocks). Instead,
-    // we do a fast path and just pass the request through to the image.
-    // The old tests are preserved for posterity.
-    /*
-    if (addr < getOffset()) return NULL;
-
-    // XXX this call may modify the current function, so const semantics
-    //     are not actually perserved
-    set<Function *> stab;
-    img()->findFuncs(addr,stab);
-
-    if(!stab.empty()) {
-        set<Function*>::iterator fit = stab.begin();
-        for( ; fit != stab.end(); ++fit) {
-            if(*fit == this)
-                return obj().getPtrToInstruction(addr);
-        }
-    }
-    return NULL;
-    */
     return isrc()->getPtrToInstruction(addr);
 }
 
