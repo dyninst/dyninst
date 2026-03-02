@@ -440,16 +440,6 @@ void parse_block::setUnresolvedCF(bool newVal)
    unresolvedCF_ = newVal;
 }
 
-parse_func *parse_block::getCallee() {
-   for (edgelist::const_iterator iter = targets().begin(); iter != targets().end(); ++iter) {
-      if ((*iter)->type() == ParseAPI::CALL) {
-         parse_block *t = static_cast<parse_block *>((*iter)->trg());
-         return t->getEntryFunc();
-      }
-   }
-   return NULL;
-}
-
 std::pair<bool, Address> parse_block::callTarget() {
    using namespace InstructionAPI;
    Offset off = lastInsnOffset();

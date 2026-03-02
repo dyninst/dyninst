@@ -93,8 +93,6 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     int id() const { return blockNumber_; }
     void debugPrint();
     
-    // Find callees
-    parse_func *getCallee();
     // Returns the address of our callee (if we're a call block, of course)
     std::pair<bool, Address> callTarget();
 
