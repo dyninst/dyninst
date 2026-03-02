@@ -107,25 +107,6 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     Address get_address() const { return firstInsnOffset(); }
     unsigned get_size() const { return getSize(); }
 
-    // etc.
-    struct compare {
-        bool operator()(parse_block * const &b1,
-                        parse_block * const &b2) const {
-            if(b1->firstInsnOffset() < b2->firstInsnOffset())
-                return true;
-            if(b2->firstInsnOffset() < b1->firstInsnOffset())
-                return false;
-
-            // XXX the remainder is debugging, and should be removed
-            if(b1 != b2)
-                fprintf(stderr,"error: two blocks (%p,%p) at 0x%lx\n",
-                    (void*)b1,(void*)b2,b1->firstInsnOffset());
-
-            assert(b1 == b2);
-            return false;
-        }
-    };
-
     // The provided parameter is a magic offset to add to each instruction's
     // address; we do this to avoid a copy when getting Insns from block_instances
     void getInsns(Insns &instances, Address offset = 0);
