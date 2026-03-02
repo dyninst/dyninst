@@ -350,12 +350,6 @@ bool parse_block::isIndirectTailCallBlock()
     }
     return false;
 }
-image *parse_block::img()
-{
-    vector<Function*> funcs;
-    getFuncs(funcs);
-    return static_cast<parse_func*>(funcs[0])->img();
-}
 
 parse_func *parse_block::getEntryFunc() const {
     parse_func *ret =

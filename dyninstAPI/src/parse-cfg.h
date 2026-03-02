@@ -92,7 +92,6 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     // misc utility
     int id() const { return blockNumber_; }
     void debugPrint();
-    image *img();
     
     // Find callees
     parse_func *getCallee();
