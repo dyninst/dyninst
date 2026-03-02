@@ -41,8 +41,6 @@
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-int parse_func_count = 0;
-
 
 const char * image_edge::getTypeString()
 {
@@ -101,12 +99,6 @@ parse_func::parse_func(
   containsPowerPreamble_(false),
   noPowerPreambleFunc_(NULL)
 {
-#if defined(ROUGH_MEMORY_PROFILE)
-    parse_func_count++;
-    if ((parse_func_count % 100) == 0)
-        fprintf(stderr, "parse_func_count: %d (%d)\n",
-                parse_func_count, parse_func_count*sizeof(parse_func));
-#endif
     _src = src;
     func->setData(this);
 }	
@@ -169,8 +161,6 @@ bool parse_func::isPLTFunction() {
            obj()->cs()->linkage().end();
 }
 
-int parse_block_count = 0;
-
 /*
  * For CFGFactory::mksink only 
  */
@@ -199,12 +189,6 @@ parse_block::parse_block(
 { 
     // basic block IDs are unique within images.
     blockNumber_ = func->img()->getNextBlockID();
-#if defined(ROUGH_MEMORY_PROFILE)
-    parse_block_count++;
-    if ((parse_block_count % 100) == 0)
-        fprintf(stderr, "parse_block_count: %d (%d)\n",
-                parse_block_count, parse_block_count*sizeof(parse_block));
-#endif
 }
 
 void parse_block::debugPrint() {
