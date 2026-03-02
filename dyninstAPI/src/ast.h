@@ -223,7 +223,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
 	// Allocate a register and make it available for sharing if our
    // node is shared
-	Dyninst::Register allocateAndKeep(codeGen &gen, bool noCost);
+	Dyninst::Register allocateAndKeep(codeGen &gen, bool noCost, bool allocateVector = false);
 
 	// Return all children of this node ([lre]operand, ..., operands[])
 	std::vector<AstNodePtr> const& getChildren() const { return children; }
@@ -441,12 +441,13 @@ class AstOperandNode : public AstNode {
    static int lastOffset; // Last ofsfet in our GPU memory buffer.
    static std::map<std::string, int> allocTable;
    static void addToTable(const std::string &variableName, int size) {
+      const int vectorLength = 64;
       // We shouldn't allocate more than once
       assert(allocTable.find(variableName) == allocTable.end() && "Can't allocate variable twice");
       assert(size >0);
       allocTable[variableName] = lastOffset;
       std::cerr << "inserted " << variableName << " of " << size << " bytes at " << lastOffset << "\n";
-      lastOffset += size;
+      lastOffset += size * vectorLength;
    }
 
    static int getOffset(const std::string &variableName) {

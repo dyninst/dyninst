@@ -485,12 +485,17 @@ void AstNode::cleanUseCount()
 
 // Allocate a register and make it available for sharing if our
 // node is shared
-Dyninst::Register AstNode::allocateAndKeep(codeGen &gen, bool noCost)
+Dyninst::Register AstNode::allocateAndKeep(codeGen &gen, bool noCost, bool allocateVector)
 {
     ast_printf("Allocating register for node %p, useCount %d\n", (void*)this, useCount);
     // Allocate a register
-    Dyninst::Register dest = gen.rs()->allocateRegister(gen, noCost);
 
+    Dyninst::Register dest;    // This is for AMDGPU
+    if (allocateVector) {
+      dest = gen.rs()->allocateGprBlock(RegKind::VECTOR, /*numRegs*/1, /*alignment*/1);
+    } else {
+      dest = gen.rs()->allocateRegister(gen, noCost);
+    }
     ast_printf("Allocator returned %u\n", dest.getId());
     assert(dest != Dyninst::Null_Register);
 
@@ -1428,6 +1433,9 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
              // prologue sets up instrumentation memory base address in s[94:95].
              // wave-id is in s68.
              //
+
+             //
+             //
              //
              // baseAddress = s[94:95]
              // per-wave-variable-offset = wave-id * sizeOfTableInBytes + variableOffsetInTable
@@ -1435,13 +1443,20 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
              //
              // per-wave-variable-address = baseAddress + s69
              // s[70:71] = s[94:95] + s69
+             //
+             // v201 contains global lane-ids
+             // v201 = v201 & 63 gives wave-local lane ids as it computes V201 % 64
+             //
+             // retReg = load v201
+             //
              // retReg = load s[70:71]
 
-             // sizeOfTableInBytes = variableSize(4) * numEntries
+             // sizeOfTableInBytes = variableSize(4) * vectorLength * numEntries
              const uint32_t sizeOfVariable = 4;
+             const uint32_t vectorLength = 64;
              // There is one empty entry which we want to ignore.
              const uint32_t numEntriesInAllocTable = AstOperandNode::allocTable.size() - 1;
-             const uint32_t sizeOfTable = sizeOfVariable * numEntriesInAllocTable;
+             const uint32_t sizeOfTable = sizeOfVariable * vectorLength * numEntriesInAllocTable;
              std::cerr << "sizeOfTableInByes = " << sizeOfTable << '\n';
 
              AstOperandNode *offset = dynamic_cast<AstOperandNode *>((AstNode *)loperand->operand().get());
@@ -1455,7 +1470,10 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
              // s70 = s94
              // s71 = s95
              // s[70:71] += s69 // added it to base address
-             // store src1, s[70:71]
+             //
+             // v201 = v201 & vectorLength
+             // v201 = v201 * sizeOfVariable
+             // global_store_dword src1, v201, s[70:71]
 
              EmitterAmdgpuGfx908 *emitter = dynamic_cast<EmitterAmdgpuGfx908 *>(gen.emitter());
              assert(emitter);
@@ -1468,7 +1486,11 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
              Register s70_71 = Register::makeScalarRegister(OperandRegId(70), BlockSize(2));
              emitter->emitAddRegToRegPair(s70_71, s69, gen);
-             emitter->emitStoreIndir(s70_71, src1, /* size */1, gen);
+             emitter->emitOpImmSimple(andOp, v201, v201, vectorLength - 1, gen);
+             emitter->emitOpImmSimple(timesOp, v201, v201, sizeOfVariable, gen);
+
+             // now v201 has 0-63 id.
+             emitter->emitVectorStore(v214, s70_71, v201, gen);
              break;
           }
 #endif
@@ -1594,19 +1616,25 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       {
          if(!roperand) { return false; }
          bool signedOp = IsSignedOperation(loperand->getType(), roperand->getType());
+#if defined DYNINST_CODEGEN_ARCH_AMDGPU_GFX908
+         retReg = NS_amdgpu::RegisterConstants::v214;
+         src1 = NS_amdgpu::RegisterConstants::v212;
+         right_dest = NS_amdgpu::RegisterConstants::v213;
+
          src1 = Dyninst::Null_Register;
          right_dest = Dyninst::Null_Register;
             if (!loperand->generateCode_phase2(gen,
                                                noCost, addr, src1)) ERROR_RETURN;
             REGISTER_CHECK(src1);
 
-#if defined DYNINST_CODEGEN_ARCH_AMDGPU_GFX908
+
                if (!roperand->generateCode_phase2(gen, noCost, addr, right_dest)) ERROR_RETURN;
                REGISTER_CHECK(right_dest);
 
-            if (retReg == Dyninst::Null_Register) {
-               retReg = allocateAndKeep(gen, noCost);
-            }
+
+            // if (retReg == Dyninst::Null_Register) {
+            //    retReg = allocateAndKeep(gen, noCost);
+            // }
 
 
             EmitterAmdgpuGfx908 *emitter = dynamic_cast<EmitterAmdgpuGfx908 *>(gen.emitter());
@@ -1614,13 +1642,13 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             // retReg = src1 op rightDest
             emitter->emitOp(op, retReg, src1, right_dest, gen);
 
-            if (src1 != Dyninst::Null_Register) {
-               // Don't free inputs until afterwards; we have _no_ idea
-               gen.rs()->freeRegister(src1);
-            }
+            // if (src1 != Dyninst::Null_Register) {
+            //    // Don't free inputs until afterwards; we have _no_ idea
+            //    gen.rs()->freeRegister(src1);
+            // }
             // what the underlying code might do with a temporary register.
-            if (right_dest != Dyninst::Null_Register)
-               gen.rs()->freeRegister(right_dest);
+            // if (right_dest != Dyninst::Null_Register)
+            //    gen.rs()->freeRegister(right_dest);
 #else
          if ((roperand->getoType() == operandType::Constant) &&
              doNotOverflow((int64_t)roperand->getOValue())) {
@@ -1674,7 +1702,11 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
 
    // Allocate a register to return
    if (retReg == Dyninst::Null_Register) {
+#if defined (DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+     // retReg = NS_amdgpu::RegisterConstants::v202; //allocateAndKeep(gen, noCost, [>allocateVector<]true);
+#else
        retReg = allocateAndKeep(gen, noCost);
+#endif
    }
 
    Dyninst::Register temp;
@@ -1686,15 +1718,18 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    case operandType::Constant: {
      assert(oVar == NULL);
      // Move constant into retReg
+
+     retReg = NS_amdgpu::RegisterConstants::v212;
      Emitter *emitter = gen.emitter();
      const uint32_t immediateValue = (uint32_t)((uint64_t)this->getOValue());
-     // TODO: Change this to allocate SGPR explicitly instead of the current mechanism.
      emitter->emitMovLiteral(retReg, immediateValue, gen);
      break;
    }
 
    case operandType::AddressAsPlaceholderRegAndOffset: {
       using namespace NS_amdgpu::RegisterConstants;
+     retReg = NS_amdgpu::RegisterConstants::v213;
+
       std::cerr << "for load\n";
       // This is per-wave instance.
       // prologue sets up instrumentation memory base address in s[94:95].
@@ -1707,13 +1742,20 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
       //
       // per-wave-variable-address = baseAddress + s69
       // s[70:71] = s[94:95] + s69
+      //
+      // v201 contains global lane-ids
+      // v201 = v201 & 63 gives wave-local lane ids as it computes V201 % 64
+      //
+      // retReg = load v201
+      //
       // retReg = load s[70:71]
 
-      // sizeOfTableInBytes = variableSize(4) * numEntries
+      // sizeOfTableInBytes = variableSize(4) * vectorLength * numEntries
       const uint32_t sizeOfVariable = 4;
+      const uint32_t vectorLength = 64;
       // There is one empty entry which we want to ignore.
       const uint32_t numEntriesInAllocTable = AstOperandNode::allocTable.size() - 1;
-      const uint32_t sizeOfTable = sizeOfVariable * numEntriesInAllocTable;
+      const uint32_t sizeOfTable = sizeOfVariable * vectorLength * numEntriesInAllocTable;
       std::cerr << "sizeOfTableInByes = " << sizeOfTable << '\n';
 
       AstOperandNode *offset = dynamic_cast<AstOperandNode *>((AstNode *)this->operand().get());
@@ -1727,7 +1769,10 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
       // s70 = s94
       // s71 = s95
       // s[70:71] += s69 // added it to base address
-      // store src1, s[70:71]
+      //
+      // v201 = v201 & vectorLength
+      // v201 = v201 * sizeOfVariable
+      // global_store_dword src1, v201, s[70:71]
 
       EmitterAmdgpuGfx908 *emitter = dynamic_cast<EmitterAmdgpuGfx908 *>(gen.emitter());
       assert(emitter);
@@ -1740,8 +1785,12 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
 
       Register s70_71 = Register::makeScalarRegister(OperandRegId(70), BlockSize(2));
       emitter->emitAddRegToRegPair(s70_71, s69, gen);
-      emitter->emitLoadIndir(retReg, s70_71, /* size */1, gen);
-     break;
+      emitter->emitOpImmSimple(andOp, v201, v201, vectorLength - 1, gen);
+      emitter->emitOpImmSimple(timesOp, v201, v201, sizeOfVariable, gen);
+
+      // now v201 has 0-63 id.
+      emitter->emitVectorLoad(retReg, s70_71, v201, gen);
+      break;
    }
 #else
    case operandType::Constant:

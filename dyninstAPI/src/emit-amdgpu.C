@@ -742,6 +742,7 @@ void EmitterAmdgpuGfx908::emitVectorLoad(Register dest, Register baseReg, Regist
   assert(isValidVgpr(offsetReg) && "offsetReg must be a valid VGPR");
 
   emitFlat(GLOBAL_LOAD_DWORD, dest.getId(), baseReg.getId(), 0, offsetReg.getId(), gen);
+  emitSopP(S_WAITCNT, /* simm16 = */ 0, gen);
   return;
 }
 
@@ -751,6 +752,7 @@ void EmitterAmdgpuGfx908::emitVectorStore(Register valueReg, Register baseReg, R
   assert(isValidVgpr(offsetReg) && "offsetReg must be a valid VGPR");
 
   emitFlat(GLOBAL_STORE_DWORD, valueReg.getId(), baseReg.getId(), 0, offsetReg.getId(), gen);
+  emitSopP(S_WAITCNT, /* simm16 = */ 0, gen);
   return;
 }
 // ===== EmitterAmdgpuGfx908 implementation end =====
