@@ -58,9 +58,6 @@ using namespace Dyninst;
 
 class pdmodule;
 
-class parse_block;
-class image_edge;
-
 class parse_block : public codeRange, public ParseAPI::Block  {
     friend class parse_func;
     friend class DynCFGFactory;
