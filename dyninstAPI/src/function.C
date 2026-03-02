@@ -250,37 +250,6 @@ void func_instance::setHandlerFaultAddrAddr(Address faa, bool set) {
   }
 }
 
-void func_instance::getReachableBlocks(const set<block_instance*> &exceptBlocks,
-                                      const list<block_instance*> &seedBlocks,
-                                      set<block_instance*> &reachBlocks)//output
-{
-    list<parse_block*> imgSeeds;
-    for (list<block_instance*>::const_iterator sit = seedBlocks.begin();
-         sit != seedBlocks.end();
-         sit++)
-    {
-        imgSeeds.push_back((*sit)->llb());
-    }
-    set<parse_block*> imgExcept;
-    for (set<block_instance*>::const_iterator eit = exceptBlocks.begin();
-         eit != exceptBlocks.end();
-         eit++)
-    {
-        imgExcept.insert((*eit)->llb());
-    }
-
-    // image-level function does the work
-    set<parse_block*> imgReach;
-    ifunc()->getReachableBlocks(imgExcept,imgSeeds,imgReach);
-
-    for (set<parse_block*>::iterator rit = imgReach.begin();
-         rit != imgReach.end();
-         rit++)
-    {
-        reachBlocks.insert( obj()->findBlock(*rit) );
-    }
-}
-
 void print_func_vector_by_pretty_name(std::string prefix,
                                       std::vector<func_instance *>*funcs) {
     unsigned int i;
