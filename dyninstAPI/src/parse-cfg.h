@@ -258,11 +258,6 @@ class parse_func : public ParseAPI::Function
    ///////////////////////////////////////////////////
    // Mutable function code, used for hybrid analysis
    ///////////////////////////////////////////////////
-   
-   void getReachableBlocks
-   ( const std::set<parse_block*> &exceptBlocks, // input
-     const std::list<parse_block*> &seedBlocks, // input
-     std::set<parse_block*> &reachableBlocks ); // output
    ParseAPI::FuncReturnStatus init_retstatus() const; // only call on defensive binaries
    void setinit_retstatus(ParseAPI::FuncReturnStatus rs); //also sets retstatus
    bool hasWeirdInsns() { return hasWeirdInsns_; } // true if we stopped the 

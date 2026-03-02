@@ -351,66 +351,6 @@ void parse_block::getInsns(Insns &insns, Address base) {
    }
 }
 
-
-/* This function is static.
- *
- * Find the blocks that are reachable from the seed blocks 
- * if the except blocks are not part of the CFG
- */
-void parse_func::getReachableBlocks
-(const std::set<parse_block*> &exceptBlocks,
- const std::list<parse_block*> &seedBlocks,
- std::set<parse_block*> &reachBlocks)
-{
-    using namespace ParseAPI;
-    mal_printf("reachable blocks for func %lx from %lu start blocks\n",
-               addr(), seedBlocks.size());
-
-    // init visited set with seed and except blocks
-    std::set<parse_block*> visited;
-    visited.insert(exceptBlocks.begin(), exceptBlocks.end());
-    visited.insert(seedBlocks.begin(), seedBlocks.end());
-
-    // add seed blocks to the worklist (unless the seed is in exceptBlocks)
-    std::list<parse_block*> worklist;
-    for (list<parse_block*>::const_iterator sit = seedBlocks.begin();
-         sit != seedBlocks.end();
-         sit++) 
-    {
-        visited.insert(*sit);
-        if (exceptBlocks.end() == exceptBlocks.find(*sit)) {
-            worklist.push_back(*sit);
-            reachBlocks.insert(*sit);
-        }
-    }
-        
-    // iterate through worklist, adding all blocks (except for
-    // seedBlocks) that are reachable through target edges to the
-    // reachBlocks set
-    while(worklist.size()) {
-        parse_block *curBlock = worklist.front();
-        const Block::edgelist & outEdges = curBlock->targets();
-        Block::edgelist::const_iterator tIter = outEdges.begin();
-        for (; tIter != outEdges.end(); tIter++) {
-            parse_block *targB = (parse_block*) (*tIter)->trg();
-            if ( CALL != (*tIter)->type() &&
-                 false == (*tIter)->sinkEdge() &&
-                 visited.end() == visited.find(targB) )
-                 //reachBlocks.end() == reachBlocks.find(targB) &&
-                 //exceptBlocks.end() == exceptBlocks.find(targB) &&
-                 //seedBlocks.end() == seedBlocks.find(targB) )
-            {
-                worklist.push_back(targB);
-                reachBlocks.insert(targB);
-                visited.insert(targB);
-                mal_printf("block [%lx %lx] is reachable\n",
-                           targB->firstInsnOffset(),
-                           targB->endOffset());
-            }
-        }
-        worklist.pop_front();
-    } 
-}
 void parse_func::setinit_retstatus(ParseAPI::FuncReturnStatus rs)
 {
     init_retstatus_ = rs;
