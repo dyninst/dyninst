@@ -94,8 +94,12 @@ class image_edge : public Dyninst::ParseAPI::Edge {
     Dyninst::ParseAPI::Edge(source,target,type)
    { }
 
-   virtual parse_block * src() const { return (parse_block*)Dyninst::ParseAPI::Edge::src(); }
-   virtual parse_block * trg() const { return (parse_block*)Dyninst::ParseAPI::Edge::trg(); }
+   parse_block * src() const {
+     return static_cast<parse_block*>(Dyninst::ParseAPI::Edge::src());
+   }
+   parse_block * trg() const {
+     return static_cast<parse_block*>(Dyninst::ParseAPI::Edge::trg());
+   }
 
    const char * getTypeString();
 };
