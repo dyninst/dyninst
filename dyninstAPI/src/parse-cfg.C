@@ -59,13 +59,6 @@ parse_func::parse_func(
     func->setData(this);
 }	
 
-
-parse_func::~parse_func() 
-{
-    /* FIXME */ 
-  mal_printf("~image_func() for func at %lx\n",_start);
-}
-
 bool parse_func::addSymTabName(std::string name, bool isPrimary) 
 {
     if(func_->addMangledName(name.c_str(), isPrimary)){

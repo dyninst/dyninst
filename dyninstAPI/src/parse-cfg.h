@@ -73,7 +73,7 @@ class parse_func : public Dyninst::ParseAPI::Function
        Dyninst::InstructionSource * isrc,
        Dyninst::ParseAPI::FuncSource src);
 
-   ~parse_func();
+   ~parse_func() = default;
 
    Dyninst::SymtabAPI::Function* getSymtabFunction() const{
       return  func_; 
