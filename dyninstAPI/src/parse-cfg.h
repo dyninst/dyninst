@@ -138,9 +138,6 @@ class parse_func : public Dyninst::ParseAPI::Function
    ////////////////////////////////////////////////
    // Instpoints!
    ////////////////////////////////////////////////
-
-   // Initiate parsing on this function
-   bool parse();
  
    bool isInstrumentable();
    bool hasUnresolvedCF();
