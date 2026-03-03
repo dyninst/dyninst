@@ -40,25 +40,22 @@
 
 #include <string>
 
-using namespace std;
-using namespace Dyninst;
-
 class pdmodule;
 
-class parse_block : public codeRange, public ParseAPI::Block  {
+class parse_block : public codeRange, public Dyninst::ParseAPI::Block  {
     friend class parse_func;
     friend class DynCFGFactory;
  private:
-    parse_block(ParseAPI::CodeObject *, ParseAPI::CodeRegion*, Address);
+    parse_block(Dyninst::ParseAPI::CodeObject *, Dyninst::ParseAPI::CodeRegion*, Dyninst::Address);
  public:
-    parse_block(parse_func*,ParseAPI::CodeRegion*,Address);
+    parse_block(parse_func*, Dyninst::ParseAPI::CodeRegion*, Dyninst::Address);
     ~parse_block() = default;
 
     // just pass through to Block
-    Address firstInsnOffset() const;
-    Address lastInsnOffset() const;
-    Address endOffset() const;
-    Address getSize() const;
+    Dyninst::Address firstInsnOffset() const;
+    Dyninst::Address lastInsnOffset() const;
+    Dyninst::Address endOffset() const;
+    Dyninst::Address getSize() const;
 
     // cfg access & various predicates 
     bool isShared() const { return containingFuncs() > 1; }
@@ -78,15 +75,15 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     void debugPrint();
     
     // Returns the address of our callee (if we're a call block, of course)
-    std::pair<bool, Address> callTarget();
+    std::pair<bool, Dyninst::Address> callTarget();
 
     // instrumentation-related
     bool needsRelocation() const { return needsRelocation_; }
     void markAsNeedingRelocation() { needsRelocation_ = true; }
 
     // codeRange implementation
-    void *getPtrToInstruction(Address addr) const;
-    Address get_address() const { return firstInsnOffset(); }
+    void *getPtrToInstruction(Dyninst::Address addr) const;
+    Dyninst::Address get_address() const { return firstInsnOffset(); }
     unsigned get_size() const { return getSize(); }
 
  private:
@@ -97,43 +94,43 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     bool abruptEnd_;
 };
 
-inline Address 
+inline Dyninst::Address 
 parse_block::firstInsnOffset() const {
-    return ParseAPI::Block::start(); 
+    return Dyninst::ParseAPI::Block::start(); 
 }
-inline Address 
+inline Dyninst::Address 
 parse_block::lastInsnOffset() const {
-    return ParseAPI::Block::lastInsnAddr();
+    return Dyninst::ParseAPI::Block::lastInsnAddr();
 }
-inline Address 
+inline Dyninst::Address 
 parse_block::endOffset() const {
-    return ParseAPI::Block::end();
+    return Dyninst::ParseAPI::Block::end();
 }
-inline Address 
+inline Dyninst::Address 
 parse_block::getSize() const {
-    return ParseAPI::Block::size();
+    return Dyninst::ParseAPI::Block::size();
 }
 
-class image_edge : public ParseAPI::Edge {
+class image_edge : public Dyninst::ParseAPI::Edge {
     friend class parse_block;
  public:
     image_edge(parse_block *source, 
                parse_block *target, 
                EdgeTypeEnum type) :
-    ParseAPI::Edge(source,target,type)
+    Dyninst::ParseAPI::Edge(source,target,type)
    { }
 
     // MSVC++ 2003 does not properly support covariant return types
     // in overloaded methods
 #if !defined _MSC_VER || _MSC_VER > 1310 
-   virtual parse_block * src() const { return (parse_block*)ParseAPI::Edge::src(); }
-   virtual parse_block * trg() const { return (parse_block*)ParseAPI::Edge::trg(); }
+   virtual parse_block * src() const { return (parse_block*)Dyninst::ParseAPI::Edge::src(); }
+   virtual parse_block * trg() const { return (parse_block*)Dyninst::ParseAPI::Edge::trg(); }
 #endif
 
    const char * getTypeString();
 };
 
-class parse_func : public ParseAPI::Function
+class parse_func : public Dyninst::ParseAPI::Function
 {
    enum UnresolvedCF {
       UNSET_CF,
@@ -147,51 +144,51 @@ class parse_func : public ParseAPI::Function
    /* Annotatable requires a default constructor */
    parse_func() { }
   public:
-   parse_func(SymtabAPI::Function *func, 
+   parse_func(Dyninst::SymtabAPI::Function *func, 
         pdmodule *m, 
         image *i, 
-        ParseAPI::CodeObject * obj,
-        ParseAPI::CodeRegion * reg,
-        InstructionSource * isrc,
-        FuncSource src);
+        Dyninst::ParseAPI::CodeObject * obj,
+        Dyninst::ParseAPI::CodeRegion * reg,
+        Dyninst::InstructionSource * isrc,
+        Dyninst::ParseAPI::FuncSource src);
 
    ~parse_func();
 
-   SymtabAPI::Function* getSymtabFunction() const{
+   Dyninst::SymtabAPI::Function* getSymtabFunction() const{
       return  func_; 
    }	
 
    /*** Function naming ***/
-   string symTabName() const { 
+   std::string symTabName() const { 
        return func_->getFirstSymbol()->getMangledName();
    }
-   string prettyName() const {
+   std::string prettyName() const {
        return func_->getFirstSymbol()->getPrettyName();
    }
-   string typedName() const {
+   std::string typedName() const {
        return func_->getFirstSymbol()->getTypedName();
    }
-   SymtabAPI::Aggregate::name_iter symtab_names_begin() const 
+   Dyninst::SymtabAPI::Aggregate::name_iter symtab_names_begin() const 
    {
      return func_->mangled_names_begin();
    }
-   SymtabAPI::Aggregate::name_iter symtab_names_end() const 
+   Dyninst::SymtabAPI::Aggregate::name_iter symtab_names_end() const 
    {
      return func_->mangled_names_end();
    }
-   SymtabAPI::Aggregate::name_iter pretty_names_begin() const 
+   Dyninst::SymtabAPI::Aggregate::name_iter pretty_names_begin() const 
    {
      return func_->pretty_names_begin();
    }
-   SymtabAPI::Aggregate::name_iter pretty_names_end() const 
+   Dyninst::SymtabAPI::Aggregate::name_iter pretty_names_end() const 
    {
      return func_->pretty_names_end();
    }
-   SymtabAPI::Aggregate::name_iter typed_names_begin() const 
+   Dyninst::SymtabAPI::Aggregate::name_iter typed_names_begin() const 
    {
      return func_->typed_names_begin();
    }
-   SymtabAPI::Aggregate::name_iter typed_names_end() const 
+   Dyninst::SymtabAPI::Aggregate::name_iter typed_names_end() const 
    {
      return func_->typed_names_end();
    }
@@ -204,12 +201,12 @@ class parse_func : public ParseAPI::Function
    bool addTypedName(std::string name, bool isPrimary = false);
 
    /*** Location queries ***/
-   Address getOffset() const;
-   Address getPtrOffset() const;
+   Dyninst::Address getOffset() const;
+   Dyninst::Address getPtrOffset() const;
    unsigned getSymTabSize() const;
-   Address getEndOffset(); // May trigger parsing
+   Dyninst::Address getEndOffset(); // May trigger parsing
 
-   void *getPtrToInstruction(Address addr) const;
+   void *getPtrToInstruction(Dyninst::Address addr) const;
 
    /*** misc. accessors ***/
    pdmodule *pdmod() const { return mod_;}
@@ -235,8 +232,8 @@ class parse_func : public ParseAPI::Function
    ///////////////////////////////////////////////////
    // Mutable function code, used for hybrid analysis
    ///////////////////////////////////////////////////
-   ParseAPI::FuncReturnStatus init_retstatus() const; // only call on defensive binaries
-   void setinit_retstatus(ParseAPI::FuncReturnStatus rs); //also sets retstatus
+   Dyninst::ParseAPI::FuncReturnStatus init_retstatus() const; // only call on defensive binaries
+   void setinit_retstatus(Dyninst::ParseAPI::FuncReturnStatus rs); //also sets retstatus
    bool hasWeirdInsns() { return hasWeirdInsns_; } // true if we stopped the 
                                 // parse at a weird instruction (e.g., arpl)
    void setHasWeirdInsns(bool wi);
@@ -268,19 +265,19 @@ class parse_func : public ParseAPI::Function
 
    bool isLeafFunc();
 
-   const SymtabAPI::Function *func() const { return func_; }
+   const Dyninst::SymtabAPI::Function *func() const { return func_; }
 
    bool containsPowerPreamble() { return containsPowerPreamble_; }
    void setContainsPowerPreamble(bool c) { containsPowerPreamble_ = c; }
    parse_func* getNoPowerPreambleFunc() { return noPowerPreambleFunc_; }
    void setNoPowerPreambleFunc(parse_func* f) { noPowerPreambleFunc_ = f; }
-   Address getPowerTOCBaseAddress() { return baseTOC_; }
-   void setPowerTOCBaseAddress(Address addr) { baseTOC_ = addr; }
+   Dyninst::Address getPowerTOCBaseAddress() { return baseTOC_; }
+   void setPowerTOCBaseAddress(Dyninst::Address addr) { baseTOC_ = addr; }
 
 
  private:
    ///////////////////// Basic func info
-   SymtabAPI::Function *func_{nullptr};		/* pointer to the underlying symtab Function */
+   Dyninst::SymtabAPI::Function *func_{nullptr};		/* pointer to the underlying symtab Function */
 
    pdmodule *mod_{nullptr};	/* pointer to file that defines func. */
    image *image_{nullptr};
@@ -293,7 +290,7 @@ class parse_func : public ParseAPI::Function
    bool isInstrumentableByFunctionName();
    UnresolvedCF unresolvedCF_{UNSET_CF};
 
-   ParseAPI::FuncReturnStatus init_retstatus_{ParseAPI::FuncReturnStatus::UNSET};
+   Dyninst::ParseAPI::FuncReturnStatus init_retstatus_{Dyninst::ParseAPI::FuncReturnStatus::UNSET};
 
    // Architecture specific data
    bool saves_return_addr_{false};
@@ -303,14 +300,14 @@ class parse_func : public ParseAPI::Function
    bool containsPowerPreamble_{false};
    // If the function contains the power preamble, this field points the corresponding function that does not contain the preamble
    parse_func* noPowerPreambleFunc_{nullptr};
-   Address baseTOC_{};
+   Dyninst::Address baseTOC_{};
 };
 
-inline Address 
+inline Dyninst::Address 
 parse_func::getOffset() const {
-    return ParseAPI::Function::addr();
+    return Dyninst::ParseAPI::Function::addr();
 }
-inline Address 
+inline Dyninst::Address 
 parse_func::getPtrOffset() const {
     return func_->getFirstSymbol()->getPtrOffset();
 }
