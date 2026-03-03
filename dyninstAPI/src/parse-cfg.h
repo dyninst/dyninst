@@ -35,55 +35,13 @@
 
 #include "codeRange.h"
 #include "Parsing.h"
+#include "parse_block.h"
 #include "Symbol.h"
 #include "Function.h"
 
 #include <string>
 
 class pdmodule;
-
-class parse_block : public codeRange, public Dyninst::ParseAPI::Block  {
- public:
-    parse_block(parse_func*, Dyninst::ParseAPI::CodeRegion*, Dyninst::Address);
-    parse_block(Dyninst::ParseAPI::CodeObject *, Dyninst::ParseAPI::CodeRegion*, Dyninst::Address);
-
-    ~parse_block() = default;
-
-    // cfg access & various predicates 
-    bool isShared() const { return containingFuncs() > 1; }
-    bool isExitBlock();
-    bool isCallBlock();
-    bool isIndirectTailCallBlock();
-    bool isEntryBlock(parse_func * f) const;
-    parse_func *getEntryFunc() const;  // func starting with this bock
-
-    bool unresolvedCF() const { return unresolvedCF_; }
-    bool abruptEnd() const { return abruptEnd_; }
-    void setUnresolvedCF(bool newVal);
-    void setAbruptEnd(bool newVal) { abruptEnd_ = newVal; }
-
-    // misc utility
-    int id() const { return blockNumber_; }
-    
-    // Returns the address of our callee (if we're a call block, of course)
-    std::pair<bool, Dyninst::Address> callTarget();
-
-    // instrumentation-related
-    bool needsRelocation() const { return needsRelocation_; }
-    void markAsNeedingRelocation() { needsRelocation_ = true; }
-
-    // codeRange implementation
-    void *getPtrToInstruction(Dyninst::Address addr) const;
-    Dyninst::Address get_address() const { return start(); }
-    unsigned get_size() const { return size(); }
-
- private:
-    bool needsRelocation_;
-    int blockNumber_;
-
-    bool unresolvedCF_;
-    bool abruptEnd_;
-};
 
 class image_edge : public Dyninst::ParseAPI::Edge {
  public:
