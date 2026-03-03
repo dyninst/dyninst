@@ -180,7 +180,7 @@ bool parse_func::isInstrumentable() {
       return false;
    else {
       // Create instrumentation points for non-plt functions 
-      if(obj()->cs()->linkage().find(getOffset()) != obj()->cs()->linkage().end()) { 
+      if(obj()->cs()->linkage().find(addr()) != obj()->cs()->linkage().end()) {
           return false;
       }
     }

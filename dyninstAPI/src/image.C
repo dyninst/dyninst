@@ -1668,7 +1668,7 @@ parse_func *image::addFunction(Address functionEntryAddr, const char *fName)
      // list of inferior heaps...
      string compString = "DYNINSTstaticHeap";
      if (!func->symTabName().compare(0, compString.size(), compString)) {
-         codeHeaps_.push_back(pair<string, Address>(func->symTabName(), func->getOffset()));
+         codeHeaps_.push_back(pair<string, Address>(func->symTabName(), func->addr()));
      }
 
      func->addSymTabName( funcName ); 

@@ -467,7 +467,7 @@ std::string func_instance::get_name() const
 }
 
 Offset func_instance::addrToOffset(const Address a) const {
-   return a - (addr() - ifunc()->getOffset());
+   return a - (addr() - ifunc()->addr());
 }
 
 bool func_instance::consistency() const {
