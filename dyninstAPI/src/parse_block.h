@@ -90,13 +90,13 @@ public:
   }
 
   // codeRange implementation
-  void *getPtrToInstruction(Dyninst::Address addr) const;
+  void *getPtrToInstruction(Dyninst::Address addr) const override;
 
-  Dyninst::Address get_address() const {
+  Dyninst::Address get_address() const override {
     return start();
   }
 
-  unsigned get_size() const {
+  unsigned get_size() const override {
     return size();
   }
 
