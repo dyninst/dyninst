@@ -50,7 +50,6 @@ class parse_block : public codeRange, public Dyninst::ParseAPI::Block  {
     ~parse_block() = default;
 
     // just pass through to Block
-    Dyninst::Address endOffset() const;
     Dyninst::Address getSize() const;
 
     // cfg access & various predicates 
@@ -89,10 +88,6 @@ class parse_block : public codeRange, public Dyninst::ParseAPI::Block  {
     bool abruptEnd_;
 };
 
-inline Dyninst::Address 
-parse_block::endOffset() const {
-    return Dyninst::ParseAPI::Block::end();
-}
 inline Dyninst::Address 
 parse_block::getSize() const {
     return Dyninst::ParseAPI::Block::size();

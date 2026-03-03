@@ -334,7 +334,7 @@ std::pair<bool, Address> parse_block::callTarget() {
    Offset off = lastInsnAddr();
    const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);
    if (ptr == NULL) return std::make_pair(false, 0);
-   InstructionDecoder d(ptr, endOffset() - lastInsnAddr(), obj()->cs()->getArch());
+   InstructionDecoder d(ptr, end() - lastInsnAddr(), obj()->cs()->getArch());
    Instruction insn = d.decode();
 
    // Bind PC to that insn
