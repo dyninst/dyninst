@@ -15,12 +15,10 @@ namespace insn = Dyninst::InstructionAPI;
  * For CFGFactory::mksink only
  */
 parse_block::parse_block(parse::CodeObject *obj, parse::CodeRegion *reg, Dyninst::Address addr)
-    : Block(obj, reg, addr), needsRelocation_(false), blockNumber_(0), unresolvedCF_(false),
-      abruptEnd_(false) {}
+    : Block(obj, reg, addr){}
 
 parse_block::parse_block(parse_func *func, parse::CodeRegion *reg, Dyninst::Address firstOffset)
-    : Block(func->obj(), reg, firstOffset, func), needsRelocation_(false), blockNumber_(0),
-      unresolvedCF_(false), abruptEnd_(false) {
+    : Block(func->obj(), reg, firstOffset, func) {
   // basic block IDs are unique within images.
   blockNumber_ = func->img()->getNextBlockID();
 }

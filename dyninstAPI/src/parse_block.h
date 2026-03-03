@@ -101,11 +101,11 @@ public:
   }
 
 private:
-  bool needsRelocation_;
-  int blockNumber_;
+  bool needsRelocation_{false};
+  int blockNumber_{0};
 
-  bool unresolvedCF_;
-  bool abruptEnd_;
+  bool unresolvedCF_{false};
+  bool abruptEnd_{false};
 };
 
 #endif
