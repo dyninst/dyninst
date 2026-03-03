@@ -120,7 +120,10 @@ class parse_func : public Dyninst::ParseAPI::Function
    bool addTypedName(std::string name, bool isPrimary = false);
 
    /*** Location queries ***/
-   Dyninst::Address getPtrOffset() const;
+   Dyninst::Address getPtrOffset() const {
+       return func_->getFirstSymbol()->getPtrOffset();
+   }
+
    unsigned getSymTabSize() const;
    Dyninst::Address getEndOffset(); // May trigger parsing
 
@@ -209,10 +212,6 @@ class parse_func : public Dyninst::ParseAPI::Function
    Dyninst::Address baseTOC_{};
 };
 
-inline Dyninst::Address 
-parse_func::getPtrOffset() const {
-    return func_->getFirstSymbol()->getPtrOffset();
-}
 inline unsigned 
 parse_func::getSymTabSize() const { 
     return func_->getFirstSymbol()->getSize();
