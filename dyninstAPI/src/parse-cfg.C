@@ -120,6 +120,9 @@ Address parse_func::getEndOffset() {
 }
 
 bool parse_func::isPLTFunction() {
+    if(isPLTFunction_) {
+      return true;
+    }
     return obj()->cs()->linkage().find(addr()) !=
            obj()->cs()->linkage().end();
 }
@@ -200,4 +203,17 @@ bool parse_func::isInstrumentable() {
       return false;
    }
    return true;
+}
+
+parse_func *parse_func::plt_func(
+   Dyninst::SymtabAPI::Function *func,
+   pdmodule *m,
+   image *i,
+   Dyninst::ParseAPI::CodeObject * obj,
+   Dyninst::ParseAPI::CodeRegion * reg,
+   Dyninst::InstructionSource * isrc,
+   Dyninst::ParseAPI::FuncSource src) {
+  auto *f = new parse_func(func, m, i, obj, reg, isrc, src);
+  f->isPLTFunction_ = true;
+  return f;
 }

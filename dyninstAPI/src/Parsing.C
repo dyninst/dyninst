@@ -150,8 +150,7 @@ DynCFGFactory::mkfunc(
             }
         }
         if(stf && stf->getFirstSymbol()) {
-            ret = new parse_func(stf, pdmod,_img,obj,reg,isrc,src);
-            ret->isPLTFunction_ = true;
+            ret = parse_func::plt_func(stf, pdmod,_img,obj,reg,isrc,src);
             // PLT stubs are typically are undefined symbols in the binary,
             // so there is no corresponding SymtabAPI::Function at Symtab level.
             // PLTFunction is a subclass of SymtabAPI::Function to represent PLT stubs.

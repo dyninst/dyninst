@@ -51,7 +51,6 @@ class parse_func : public Dyninst::ParseAPI::Function
       NO_UNRESOLVED_CF
    };
 
-  friend class DynCFGFactory;
   friend class DynParseCallback;
   public:
    /* Annotatable requires a default constructor */
@@ -64,6 +63,15 @@ class parse_func : public Dyninst::ParseAPI::Function
         Dyninst::ParseAPI::CodeRegion * reg,
         Dyninst::InstructionSource * isrc,
         Dyninst::ParseAPI::FuncSource src);
+
+   static parse_func *plt_func(
+       Dyninst::SymtabAPI::Function *func,
+       pdmodule *m,
+       image *i,
+       Dyninst::ParseAPI::CodeObject * obj,
+       Dyninst::ParseAPI::CodeRegion * reg,
+       Dyninst::InstructionSource * isrc,
+       Dyninst::ParseAPI::FuncSource src);
 
    ~parse_func();
 
