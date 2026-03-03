@@ -49,9 +49,6 @@ class parse_block : public codeRange, public Dyninst::ParseAPI::Block  {
 
     ~parse_block() = default;
 
-    // just pass through to Block
-    Dyninst::Address getSize() const;
-
     // cfg access & various predicates 
     bool isShared() const { return containingFuncs() > 1; }
     bool isExitBlock();
@@ -78,7 +75,7 @@ class parse_block : public codeRange, public Dyninst::ParseAPI::Block  {
     // codeRange implementation
     void *getPtrToInstruction(Dyninst::Address addr) const;
     Dyninst::Address get_address() const { return start(); }
-    unsigned get_size() const { return getSize(); }
+    unsigned get_size() const { return size(); }
 
  private:
     bool needsRelocation_;
@@ -87,11 +84,6 @@ class parse_block : public codeRange, public Dyninst::ParseAPI::Block  {
     bool unresolvedCF_;
     bool abruptEnd_;
 };
-
-inline Dyninst::Address 
-parse_block::getSize() const {
-    return Dyninst::ParseAPI::Block::size();
-}
 
 class image_edge : public Dyninst::ParseAPI::Edge {
     friend class parse_block;
