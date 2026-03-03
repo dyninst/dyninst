@@ -43,7 +43,6 @@
 class pdmodule;
 
 class parse_block : public codeRange, public Dyninst::ParseAPI::Block  {
-    friend class parse_func;
     friend class DynCFGFactory;
  private:
     parse_block(Dyninst::ParseAPI::CodeObject *, Dyninst::ParseAPI::CodeRegion*, Dyninst::Address);
