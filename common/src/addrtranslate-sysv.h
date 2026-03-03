@@ -115,7 +115,9 @@ public:
 private:
    ProcessReader *reader;
    Address interpreter_base;
-   Address program_base;
+   Address program_header_base;
+   unsigned long program_header_count;
+   unsigned long program_header_size;
    Address page_size;
    bool set_interp_base;
    int address_size;
