@@ -79,12 +79,9 @@ bool parse_block::isCallBlock() {
 }
 
 bool parse_block::isIndirectTailCallBlock() {
-  const Block::edgelist &trgs = targets();
-  if(!trgs.empty()) {
-    for(Block::edgelist::const_iterator eit = trgs.begin(); eit != trgs.end(); eit++) {
-      if((*eit)->type() == parse::INDIRECT && (*eit)->interproc()) {
-        return true;
-      }
+  for(parse::Edge *e : targets()) {
+    if(e->type() == parse::INDIRECT && e->interproc()) {
+      return true;
     }
   }
   return false;
