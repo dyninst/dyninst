@@ -70,12 +70,9 @@ bool parse_block::isExitBlock() {
 }
 
 bool parse_block::isCallBlock() {
-  const Block::edgelist &trgs = targets();
-  if(!trgs.empty()) {
-    for(Block::edgelist::const_iterator eit = trgs.begin(); eit != trgs.end(); eit++) {
-      if((*eit)->type() == parse::CALL) {
-        return true;
-      }
+  for(parse::Edge *e : targets()) {
+    if(e->type() == parse::CALL) {
+      return true;
     }
   }
   return false;
