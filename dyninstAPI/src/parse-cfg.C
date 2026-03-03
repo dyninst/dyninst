@@ -335,22 +335,6 @@ bool parse_func::isLeafFunc() {
     return callEdges().empty();
 }
 
-void parse_block::getInsns(Insns &insns, Address base) {
-   using namespace InstructionAPI;
-   Offset off = firstInsnOffset();
-   const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);
-   if (ptr == NULL) return;
-
-   InstructionDecoder d(ptr, getSize(),obj()->cs()->getArch());
-
-   while (off < endOffset()) {
-      Instruction insn = d.decode();
-
-      insns[off + base] = insn;
-      off += insn.size();
-   }
-}
-
 void parse_func::setinit_retstatus(ParseAPI::FuncReturnStatus rs)
 {
     init_retstatus_ = rs;
