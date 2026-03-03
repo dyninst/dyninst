@@ -53,7 +53,6 @@ class parse_func : public Dyninst::ParseAPI::Function {
 public:
   parse_func() {}
 
-public:
   parse_func(Dyninst::SymtabAPI::Function *func, pdmodule *m, image *i,
              Dyninst::ParseAPI::CodeObject *obj, Dyninst::ParseAPI::CodeRegion *reg,
              Dyninst::InstructionSource *isrc, Dyninst::ParseAPI::FuncSource src);
