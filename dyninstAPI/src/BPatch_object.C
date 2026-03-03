@@ -30,6 +30,7 @@
 
 #include <string>
 #include <vector>
+#include <queue>
 
 #if defined(cap_stack_mods)
 #include "stackanalysis.h"

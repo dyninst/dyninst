@@ -33,25 +33,14 @@
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
 
-#include <assert.h>
-#include <list>
-#include <map>
-#include <stddef.h>
-#include <utility>
-#include <vector>
 #include <string>
 #include "codeRange.h"
-#include <unordered_map>
 #include "symtabAPI/h/Symbol.h"
-#include "bitArray.h"
-#include "InstructionCache.h"
-#include <set>
 
 #include "Parsing.h"
 
 #include "symtabAPI/h/Function.h"
 
-#include <queue>
 
 using namespace std;
 using namespace Dyninst;
@@ -145,8 +134,6 @@ class image_edge : public ParseAPI::Edge {
 
    const char * getTypeString();
 };
-
-#include "ast.h"
 
 class parse_func : public ParseAPI::Function
 {
