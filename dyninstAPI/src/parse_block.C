@@ -132,7 +132,7 @@ std::pair<bool, Address> parse_block::callTarget() {
 
   insn::Expression::Ptr cft = insn.getControlFlowTarget();
   if(cft) {
-    insn::Expression::Ptr pc(new insn::RegisterAST(MachRegister::getPC(obj()->cs()->getArch())));
+    insn::Expression::Ptr pc(new insn::RegisterAST(Dyninst::MachRegister::getPC(obj()->cs()->getArch())));
     cft->bind(pc.get(), Result(u64, lastInsnAddr()));
     Result res = cft->eval();
     if(!res.defined) {
