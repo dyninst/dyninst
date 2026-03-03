@@ -331,10 +331,10 @@ void parse_block::setUnresolvedCF(bool newVal)
 
 std::pair<bool, Address> parse_block::callTarget() {
    using namespace InstructionAPI;
-   Offset off = lastInsnOffset();
+   Offset off = lastInsnAddr();
    const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);
    if (ptr == NULL) return std::make_pair(false, 0);
-   InstructionDecoder d(ptr, endOffset() - lastInsnOffset(), obj()->cs()->getArch());
+   InstructionDecoder d(ptr, endOffset() - lastInsnAddr(), obj()->cs()->getArch());
    Instruction insn = d.decode();
 
    // Bind PC to that insn
