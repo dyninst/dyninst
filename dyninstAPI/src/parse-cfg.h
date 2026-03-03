@@ -321,20 +321,6 @@ class parse_func : public ParseAPI::Function
    Address baseTOC_{};
 };
 
-typedef parse_func *ifuncPtr;
-
-struct ifuncCmp
-{
-    int operator()( const ifuncPtr &f1, const ifuncPtr &f2 ) const
-    {
-        if( f1->getOffset() > f2->getOffset() )
-            return 1;
-        if( f1->getOffset() < f2->getOffset() )
-            return -1;
-        return 0;
-    }
-};
-
 inline Address 
 parse_func::getOffset() const {
     return ParseAPI::Function::addr();
