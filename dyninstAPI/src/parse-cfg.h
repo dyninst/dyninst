@@ -94,12 +94,8 @@ class image_edge : public Dyninst::ParseAPI::Edge {
     Dyninst::ParseAPI::Edge(source,target,type)
    { }
 
-    // MSVC++ 2003 does not properly support covariant return types
-    // in overloaded methods
-#if !defined _MSC_VER || _MSC_VER > 1310 
    virtual parse_block * src() const { return (parse_block*)Dyninst::ParseAPI::Edge::src(); }
    virtual parse_block * trg() const { return (parse_block*)Dyninst::ParseAPI::Edge::trg(); }
-#endif
 
    const char * getTypeString();
 };
