@@ -52,15 +52,8 @@ parse_func::parse_func(
   Function(func->getOffset(),func->getFirstSymbol()->getMangledName(),obj,reg,isrc),
   func_(func),
   mod_(m),
-  image_(i),
-  hasWeirdInsns_(false),
-  prevBlocksUnresolvedCF_(0),
-  unresolvedCF_(UNSET_CF),
-  init_retstatus_(UNSET),
-  saves_return_addr_(false),
-  isPLTFunction_(false),
-  containsPowerPreamble_(false),
-  noPowerPreambleFunc_(NULL)
+  image_(i)
+
 {
     _src = src;
     func->setData(this);
