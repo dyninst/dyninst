@@ -43,24 +43,6 @@
 
 class pdmodule;
 
-class image_edge : public Dyninst::ParseAPI::Edge {
- public:
-    image_edge(parse_block *source, 
-               parse_block *target, 
-               EdgeTypeEnum type) :
-    Dyninst::ParseAPI::Edge(source,target,type)
-   { }
-
-   parse_block * src() const {
-     return static_cast<parse_block*>(Dyninst::ParseAPI::Edge::src());
-   }
-   parse_block * trg() const {
-     return static_cast<parse_block*>(Dyninst::ParseAPI::Edge::trg());
-   }
-
-   const char * getTypeString();
-};
-
 class parse_func : public Dyninst::ParseAPI::Function
 {
    enum UnresolvedCF {

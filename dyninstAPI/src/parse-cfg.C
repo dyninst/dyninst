@@ -41,43 +41,6 @@
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-
-const char * image_edge::getTypeString()
-{
-    switch(type()) {
-        case CALL:
-            return "CALL";
-            break;
-        case COND_TAKEN:
-            return "COND BRANCH - TAKEN";
-            break;
-        case COND_NOT_TAKEN:
-            return "COND BRANCH - NOT TAKEN";
-            break;
-        case INDIRECT:
-            return "INDIRECT BRANCH";
-            break;
-        case DIRECT:
-            return "UNCOND BRANCH";
-            break;
-        case FALLTHROUGH:
-            return "FALLTHROUGH";
-            break;
-        case CATCH:
-            return "CATCH";
-            break;
-        case CALL_FT:
-            return "POST-CALL FALLTHROUGH";
-            break;
-        case RET:
-            return "RETURN";
-            break;
-        default:
-            return "ERROR UNKNOWN";
-            break;
-    }
-}
-
 parse_func::parse_func(
     SymtabAPI::Function *func, 
     pdmodule *m, 

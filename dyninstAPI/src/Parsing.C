@@ -206,14 +206,9 @@ DynCFGFactory::mksink(CodeObject *obj, CodeRegion *r) {
 
 Edge *
 DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
-    image_edge * ret;
     record_edge_alloc(type,false); // FIXME can't tell if it's a sink
 
-    ret = new image_edge((parse_block*)src,
-                         (parse_block*)trg,
-                         type);
-
-    return ret;
+    return new Edge(src, trg, type);
 }
 
 void
