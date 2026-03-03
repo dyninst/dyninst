@@ -2247,7 +2247,7 @@ bool EmitterPOWER32Stat::emitTOCCommon(block_instance *block, bool call, codeGen
 
   // Generate the PLT call
 
-  Address dest = block->llb()->firstInsnOffset();
+  Address dest = block->llb()->start();
   Address pcVal = emitMovePCToReg(scratchReg, gen);
 
   if (!call) {

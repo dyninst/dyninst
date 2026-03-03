@@ -50,7 +50,6 @@ class parse_block : public codeRange, public Dyninst::ParseAPI::Block  {
     ~parse_block() = default;
 
     // just pass through to Block
-    Dyninst::Address firstInsnOffset() const;
     Dyninst::Address lastInsnOffset() const;
     Dyninst::Address endOffset() const;
     Dyninst::Address getSize() const;
@@ -80,7 +79,7 @@ class parse_block : public codeRange, public Dyninst::ParseAPI::Block  {
 
     // codeRange implementation
     void *getPtrToInstruction(Dyninst::Address addr) const;
-    Dyninst::Address get_address() const { return firstInsnOffset(); }
+    Dyninst::Address get_address() const { return start(); }
     unsigned get_size() const { return getSize(); }
 
  private:
@@ -91,10 +90,6 @@ class parse_block : public codeRange, public Dyninst::ParseAPI::Block  {
     bool abruptEnd_;
 };
 
-inline Dyninst::Address 
-parse_block::firstInsnOffset() const {
-    return Dyninst::ParseAPI::Block::start(); 
-}
 inline Dyninst::Address 
 parse_block::lastInsnOffset() const {
     return Dyninst::ParseAPI::Block::lastInsnAddr();

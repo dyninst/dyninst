@@ -104,7 +104,7 @@ int block_instance::id() const {
 }
 
 Address block_instance::GetBlockStartingAddress() {
-  return llb()->firstInsnOffset();
+  return llb()->start();
 }
 
 
