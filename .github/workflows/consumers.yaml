@@ -356,7 +356,7 @@ jobs:
         run: |
           set -ex
           apt update
-          apt install -y libxml2-dev autoconf m4 libtool gcc-13 g++-13 gfortran-13 libiberty-dev binutils-dev
+          apt install -y wget libxml2-dev autoconf m4 libtool gcc-13 g++-13 gfortran-13 libiberty-dev binutils-dev
 
         # extrae does not build with gcc-14 (the default compiler on the latest fedora)
       - name: Build extrae
@@ -368,6 +368,9 @@ jobs:
           git clone --depth=1 https://github.com/bsc-performance-tools/extrae
           cd extrae
           
+          wget https://patch-diff.githubusercontent.com/raw/bsc-performance-tools/extrae/pull/140.patch
+          git apply 140.patch
+
           ./bootstrap
           
           lib_dir_suffix=
