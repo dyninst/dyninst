@@ -113,8 +113,6 @@ class parse_func : public Dyninst::ParseAPI::Function
    {
      return func_->typed_names_end();
    }
-   
-   void copyNames(parse_func *duplicate);
 
    // return true if the name is new (and therefore added)
    bool addSymTabName(std::string name, bool isPrimary = false);
