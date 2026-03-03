@@ -3,8 +3,8 @@
 #include "dyntypes.h"
 #include "image.h"
 #include "InstructionDecoder.h"
-#include "parse-cfg.h"
 #include "parse_block.h"
+#include "parse_func.h"
 #include "Register.h"
 #include "registers/MachRegister.h"
 
