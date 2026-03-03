@@ -272,7 +272,6 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     src/inst-x86.C
     src/emit-x86.C
     src/codegen-x86.C
-    src/parse-x86.C
     src/IAPI_to_AST.C
     src/trampolines/baseTramp-x86.C)
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
@@ -281,7 +280,6 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
     _sources
     src/inst-power.C
     src/codegen-power.C
-    src/parse-power.C
     src/registerSpace/registerSpace-ppc.C
     src/RegisterConversion-ppc.C
     src/Relocation/Widgets/CFWidget-ppc.C
@@ -294,7 +292,6 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/inst-aarch64.C
     src/emit-aarch64.C
     src/codegen-aarch64.C
-    src/parse-aarch64.C
     src/RegisterConversion-aarch64.C
     src/registerSpace/registerSpace-aarch64.C
     src/Relocation/Widgets/CFWidget-aarch64.C
@@ -308,7 +305,6 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/emit-amdgpu.C
     src/codegen-amdgpu.C
     src/registerSpace/registerSpace-amdgpu.C
-    src/parse-amdgpu.C
     src/RegisterConversion-amdgpu.C
     src/Relocation/Widgets/CFWidget-amdgpu.C
     src/Relocation/Widgets/PCWidget-amdgpu.C
