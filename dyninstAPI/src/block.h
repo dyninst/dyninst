@@ -34,7 +34,7 @@
 #include <set>
 #include <string>
 #include <vector>
-#include "parse-cfg.h"
+#include "parse_block.h"
 #include "parseAPI/h/CFG.h"
 #include "instPoint.h"
 #include "PatchCFG.h"
@@ -42,7 +42,6 @@
 
 class block_instance;
 class func_instance;
-class parse_func;
 class BPatch_edge;
 class mapped_object;
 

@@ -41,7 +41,6 @@
 #include <vector>
 #include "codegen.h"
 #include "codeRange.h"
-#include "parse-cfg.h"
 
 #include "bitArray.h"
 
@@ -60,6 +59,8 @@
 #include "StackMod/TMap.h"
 #endif
 #include "Relocation/DynCommon.h"
+
+#include "parse_func.h"
 
 class PCProcess;
 class mapped_module;

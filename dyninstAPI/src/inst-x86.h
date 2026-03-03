@@ -56,7 +56,6 @@
 */
 
 #include <assert.h>
-#include "parse-cfg.h"
 #include "registerSpace.h"
 #include "RealRegister.h"
 
@@ -166,6 +165,7 @@ struct stackItemLocation {
 
 stackItemLocation getHeightOf(stackItem sitem, codeGen &gen);
 
+class parse_func;
 bool writesFPRs(parse_func *func, unsigned level = 0);
 
 #endif
