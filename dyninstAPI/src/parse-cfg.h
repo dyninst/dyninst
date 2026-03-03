@@ -124,7 +124,10 @@ class parse_func : public Dyninst::ParseAPI::Function
        return func_->getFirstSymbol()->getPtrOffset();
    }
 
-   unsigned getSymTabSize() const;
+   unsigned getSymTabSize() const {
+      return func_->getFirstSymbol()->getSize();
+   }
+
    Dyninst::Address getEndOffset(); // May trigger parsing
 
    void *getPtrToInstruction(Dyninst::Address addr) const;
@@ -212,10 +215,6 @@ class parse_func : public Dyninst::ParseAPI::Function
    Dyninst::Address baseTOC_{};
 };
 
-inline unsigned 
-parse_func::getSymTabSize() const { 
-    return func_->getFirstSymbol()->getSize();
-}
 
 
 
