@@ -86,7 +86,6 @@ class parse_block : public codeRange, public Dyninst::ParseAPI::Block  {
 };
 
 class image_edge : public Dyninst::ParseAPI::Edge {
-    friend class parse_block;
  public:
     image_edge(parse_block *source, 
                parse_block *target, 
