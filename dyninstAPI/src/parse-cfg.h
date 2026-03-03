@@ -169,13 +169,6 @@ class parse_func : public Dyninst::ParseAPI::Function
    // Misc
    ////////////////////////////////////////////////
 
-    struct compare {
-        bool operator()(parse_func * const &f1,
-                        parse_func * const &f2) const {
-            return (f1->getOffset() < f2->getOffset());
-        }
-    };
-
    bool savesReturnAddr() const { return saves_return_addr_; }
 
    parse_block * entryBlock();
