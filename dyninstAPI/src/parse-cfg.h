@@ -72,7 +72,6 @@ class parse_block : public codeRange, public Dyninst::ParseAPI::Block  {
 
     // misc utility
     int id() const { return blockNumber_; }
-    void debugPrint();
     
     // Returns the address of our callee (if we're a call block, of course)
     std::pair<bool, Dyninst::Address> callTarget();

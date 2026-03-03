@@ -191,41 +191,6 @@ parse_block::parse_block(
     blockNumber_ = func->img()->getNextBlockID();
 }
 
-void parse_block::debugPrint() {
-   // no looping if we're not printing anything
-    if(!dyn_debug_parsing)
-        return;
-
-    parsing_printf("Block %d: starts 0x%lx, last 0x%lx, end 0x%lx\n",
-                   blockNumber_,
-                   start(),
-                   lastInsnAddr(),
-                   end());
-
-    parsing_printf("  Sources:\n");
-    const Block::edgelist & srcs = sources();
-    Block::edgelist::const_iterator sit = srcs.begin();
-    unsigned s = 0;
-    for ( ; sit != srcs.end(); ++sit) {
-        parse_block * src = static_cast<parse_block*>((*sit)->src());
-        parsing_printf("    %u: block %d (%s)\n",
-                       s, src->blockNumber_,
-                       static_cast<image_edge*>(*sit)->getTypeString());
-        ++s;
-    }
-    parsing_printf("  Targets:\n");
-    const Block::edgelist & trgs = sources();
-    Block::edgelist::const_iterator tit = trgs.begin();
-    unsigned t = 0;
-    for( ; tit != trgs.end(); ++tit) {
-        parse_block * trg = static_cast<parse_block*>((*tit)->trg());
-        parsing_printf("    %u: block %d (%s)\n",
-                       t, trg->blockNumber_,
-                       static_cast<image_edge*>(*tit)->getTypeString());
-        ++t;
-    }
-}
-
 void *parse_block::getPtrToInstruction(Address addr) const {
     if (addr < start()) return NULL;
     if (addr >= end()) return NULL;
