@@ -33,14 +33,12 @@
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
 
-#include <string>
 #include "codeRange.h"
-#include "symtabAPI/h/Symbol.h"
-
 #include "Parsing.h"
+#include "Symbol.h"
+#include "Function.h"
 
-#include "symtabAPI/h/Function.h"
-
+#include <string>
 
 using namespace std;
 using namespace Dyninst;
