@@ -29,27 +29,17 @@
  */
 
 #include "ArchSpecificFormatters.h"
-#include "../h/Instruction.h"
-#include "../h/InstructionCategories.h"
-#include "../h/Register.h"
-#include "Dereference.h"
-#include "InstructionDecoder.h"
-#include "Operation_impl.h"
-#include "common/src/arch-x86.h"
-#include "dyninstversion.h"
+#include "Instruction.h"
+#include "InstructionCategories.h"
 #include "interrupts.h"
-#include "entryIDs.h"
+#include "Operation_impl.h"
+#include "Register.h"
+#include "common/src/arch-x86.h"
 #include "dyn_regs.h"
+#include "entryIDs.h"
 
 #include <algorithm>
-#include <boost/iterator/indirect_iterator.hpp>
-#include <functional>
-#include <iomanip>
-#include <iostream>
 #include <set>
-#include <signal.h>
-#include <sstream>
-#include <stdio.h>
 #include <string>
 
 using namespace std;
