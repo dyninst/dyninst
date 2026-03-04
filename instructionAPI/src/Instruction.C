@@ -401,8 +401,6 @@ namespace Dyninst { namespace InstructionAPI {
     return false;
   }
 
-  bool Instruction::isLegalInsn() const { return m_Valid; }
-
   Architecture Instruction::getArch() const { return arch_decoded_from; }
 
   InsnCategory Instruction::getCategory() const {
