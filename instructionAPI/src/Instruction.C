@@ -42,9 +42,6 @@
 #include <set>
 #include <string>
 
-using namespace std;
-using namespace NS_x86;
-
 namespace Dyninst { namespace InstructionAPI {
 
   namespace {
