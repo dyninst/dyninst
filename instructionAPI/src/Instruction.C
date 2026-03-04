@@ -211,28 +211,25 @@ namespace Dyninst { namespace InstructionAPI {
   size_t Instruction::size() const { return m_size; }
 
   void Instruction::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const {
-    for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
-        curOperand != m_Operands.end(); ++curOperand) {
-      curOperand->getReadSet(regsRead);
+    for(auto const& op : m_Operands) {
+      op.getReadSet(regsRead);
     }
     std::copy(m_InsnOp.implicitReads().begin(), m_InsnOp.implicitReads().end(),
               std::inserter(regsRead, regsRead.begin()));
   }
 
   void Instruction::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const {
-    for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
-        curOperand != m_Operands.end(); ++curOperand) {
-      curOperand->getWriteSet(regsWritten);
+    for(auto const& op : m_Operands) {
+      op.getWriteSet(regsWritten);
     }
     std::copy(m_InsnOp.implicitWrites().begin(), m_InsnOp.implicitWrites().end(),
               std::inserter(regsWritten, regsWritten.begin()));
   }
 
   bool Instruction::isRead(Expression::Ptr candidate) const {
-    for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
-        curOperand != m_Operands.end(); ++curOperand) {
+    for(auto const& op : m_Operands) {
       // Check if the candidate is read as an explicit operand
-      if(curOperand->isRead(candidate)) {
+      if(op.isRead(candidate)) {
         return true;
       }
     }
@@ -241,9 +238,8 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   bool Instruction::isWritten(Expression::Ptr candidate) const {
-    for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
-        curOperand != m_Operands.end(); ++curOperand) {
-      if(curOperand->isWritten(candidate)) {
+    for(auto const& op : m_Operands) {
+      if(op.isWritten(candidate)) {
         return true;
       }
     }
@@ -264,9 +260,8 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   bool Instruction::writesMemory() const {
-    for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
-        curOperand != m_Operands.end(); ++curOperand) {
-      if(curOperand->writesMemory()) {
+    for(auto const& op : m_Operands) {
+      if(op.writesMemory()) {
         return true;
       }
     }
@@ -275,9 +270,8 @@ namespace Dyninst { namespace InstructionAPI {
 
   void
   Instruction::getMemoryReadOperands(std::set<Expression::Ptr>& memAccessors) const {
-    for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
-        curOperand != m_Operands.end(); ++curOperand) {
-      curOperand->addEffectiveReadAddresses(memAccessors);
+    for(auto& op : m_Operands) {
+      op.addEffectiveReadAddresses(memAccessors);
     }
     std::copy(m_InsnOp.getImplicitMemReads().begin(), m_InsnOp.getImplicitMemReads().end(),
               std::inserter(memAccessors, memAccessors.begin()));
@@ -285,9 +279,8 @@ namespace Dyninst { namespace InstructionAPI {
 
   void
   Instruction::getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const {
-    for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
-        curOperand != m_Operands.end(); ++curOperand) {
-      curOperand->addEffectiveWriteAddresses(memAccessors);
+    for(auto& op : m_Operands) {
+      op.addEffectiveWriteAddresses(memAccessors);
     }
     std::copy(m_InsnOp.getImplicitMemWrites().begin(), m_InsnOp.getImplicitMemWrites().end(),
               std::inserter(memAccessors, memAccessors.begin()));
