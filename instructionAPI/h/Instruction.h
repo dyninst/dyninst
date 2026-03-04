@@ -215,11 +215,11 @@ namespace Dyninst { namespace InstructionAPI {
     mutable Operation m_InsnOp;
     // Encoded instruction opcode, for RISC-V compressed instructions
     mutable Operation m_EncodedInsnOp;
-    std::array<uint8_t, maxInstructionLength> m_RawInsn;
+    std::array<uint8_t, maxInstructionLength> m_RawInsn{};
     uint8_t m_size{};
-    Architecture arch_decoded_from;
+    Architecture arch_decoded_from{Dyninst::Arch_none};
     mutable std::list<CFT> m_Successors;
-    mutable category_t categories;
+    mutable category_t categories{};
   };
 }}
 
