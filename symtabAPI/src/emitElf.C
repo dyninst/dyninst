@@ -91,10 +91,8 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *ob
 
     //Set variable based on the mechanism to add new load segment
     // 1) createNewPhdr (Total program headers + 1) - default
-    //	(a) movePHdrsFirst
-    //    (b) create new section called dynphdrs and change pointers 
-    //    (c) library_adjust - create room for a new program header in a position-indepdent library
-    //                         by increasing all virtual addresses for the library
+    //    library_adjust - create room for a new program header in a position-indepdent library
+    //    by increasing all virtual addresses for the library
 
     //If we're dealing with a library that can be loaded anywhere,
     // then load the program headers into the later part of the binary,
@@ -105,7 +103,6 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *ob
     // works and will avoid the kernel bug.
 
     isStaticBinary = obj_->isStaticBinary();
-    movePHdrsFirst = object && object->getLoadAddress();
 
     //If we want to try a mode where we add the program headers to a library
     // that can be loaded anywhere, and put the program headers in the first
@@ -115,8 +112,7 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *ob
     // changes to the binary, and isn't well tested.
 
     library_adjust = 0;
-    if (!movePHdrsFirst) {
-        movePHdrsFirst = true;
+    if (!(object && object->getLoadAddress())) {
         library_adjust = getpagesize();
     }
 
