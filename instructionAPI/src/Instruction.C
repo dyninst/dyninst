@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "ArchSpecificFormatters.h"
 #include "../h/Instruction.h"
 #include "../h/InstructionCategories.h"
 #include "../h/Register.h"
@@ -53,8 +54,6 @@
 
 using namespace std;
 using namespace NS_x86;
-
-#include "ArchSpecificFormatters.h"
 
 namespace Dyninst { namespace InstructionAPI {
 
@@ -100,7 +99,7 @@ namespace Dyninst { namespace InstructionAPI {
                                           Dyninst::Architecture arch)
       : m_InsnOp(what), m_EncodedInsnOp(what), m_Valid(is_valid_mnemonic(arch, what.getID())),
         m_size{static_cast<decltype(m_size)>(size)},
-        arch_decoded_from(arch), formatter(&ArchSpecificFormatter::getFormatter(arch)) {
+        arch_decoded_from(arch) {
     copyRaw(size, raw);
   }
 
@@ -108,7 +107,7 @@ namespace Dyninst { namespace InstructionAPI {
                                           Dyninst::Architecture arch)
       : m_InsnOp(what), m_EncodedInsnOp(encoded_what), m_Valid(is_valid_mnemonic(arch, what.getID())),
         m_size{static_cast<decltype(m_size)>(size)},
-        arch_decoded_from(arch), formatter(&ArchSpecificFormatter::getFormatter(arch)) {
+        arch_decoded_from(arch) {
     copyRaw(size, raw);
   }
 
@@ -127,7 +126,7 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   Instruction::Instruction()
-      : m_Valid(false), m_size(0), arch_decoded_from(Arch_none), formatter(nullptr) {
+      : m_Valid(false), m_size(0), arch_decoded_from(Arch_none) {
     copyRaw(0, nullptr);
   }
 
@@ -183,7 +182,9 @@ namespace Dyninst { namespace InstructionAPI {
   std::vector<Operand> Instruction::getDisplayOrderedOperands() const {
     auto operands = getExplicitOperands();
 
-    if(formatter->operandPrintOrderReversed()) {
+    auto &formatter = ArchSpecificFormatter::getFormatter(arch_decoded_from);
+
+    if(formatter.operandPrintOrderReversed()) {
       std::reverse(operands.begin(), operands.end());
     }
 
@@ -340,16 +341,14 @@ namespace Dyninst { namespace InstructionAPI {
     return m_Successors.front().target;
   }
 
-  ArchSpecificFormatter& Instruction::getFormatter() const { return *formatter; }
+  ArchSpecificFormatter& Instruction::getFormatter() const {
+    return ArchSpecificFormatter::getFormatter(arch_decoded_from);
+  }
 
   std::string Instruction::format(Address addr) const {
-    // if Arch_none, this is an error and the formatter is nullptr,
-    // so return an error string (could also abort or except)
     if(arch_decoded_from == Arch_none) {
       return "ERROR_NO_ARCH_SET_FOR_INSTRUCTION";
     }
-
-    // remove this once ArchSpecificFormatter is extended for all architectures
 
     std::string opstr = m_EncodedInsnOp.format();
     opstr += " ";
@@ -363,7 +362,8 @@ namespace Dyninst { namespace InstructionAPI {
       formattedOperands.push_back(op.format(getArch(), addr));
     }
 
-    return opstr + formatter->getInstructionString(formattedOperands);
+    auto &formatter = ArchSpecificFormatter::getFormatter(arch_decoded_from);
+    return opstr + formatter.getInstructionString(formattedOperands);
   }
 
   bool Instruction::allowsFallThrough() const {

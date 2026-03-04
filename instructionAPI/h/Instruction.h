@@ -31,7 +31,6 @@
 #if !defined(INSTRUCTION_H)
 #define INSTRUCTION_H
 
-#include "ArchSpecificFormatters.h"
 #include "compiler_annotations.h"
 #include "Expression.h"
 #include "InstructionCategories.h"
@@ -221,8 +220,6 @@ namespace Dyninst { namespace InstructionAPI {
     uint8_t m_size{};
     Architecture arch_decoded_from;
     mutable std::list<CFT> m_Successors;
-    // formatter is a non-owning pointer to a singleton object
-    ArchSpecificFormatter* formatter;
     mutable category_t categories;
   };
 }}
