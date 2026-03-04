@@ -82,17 +82,17 @@ namespace Dyninst { namespace InstructionAPI {
     }
   }
 
-  Instruction::Instruction(Operation what, size_t size, const unsigned char* raw,
-                                          Dyninst::Architecture arch)
-      : m_InsnOp(what), m_EncodedInsnOp(what), m_size{static_cast<decltype(m_size)>(size)},
-        arch_decoded_from(arch) {
+  Instruction::Instruction(Operation what, size_t size, const unsigned char *raw,
+                           Dyninst::Architecture arch)
+      : m_InsnOp(what), m_EncodedInsnOp(what),
+        m_size{static_cast<decltype(m_size)>(size)}, arch_decoded_from(arch) {
     copyRaw(size, raw);
   }
 
-  Instruction::Instruction(Operation what, Operation encoded_what, size_t size, const unsigned char* raw,
-                                          Dyninst::Architecture arch)
-      : m_InsnOp(what), m_EncodedInsnOp(encoded_what), m_size{static_cast<decltype(m_size)>(size)},
-        arch_decoded_from(arch) {
+  Instruction::Instruction(Operation what, Operation encoded_what, size_t size,
+                           const unsigned char *raw, Dyninst::Architecture arch)
+      : m_InsnOp(what), m_EncodedInsnOp(encoded_what),
+        m_size{static_cast<decltype(m_size)>(size)}, arch_decoded_from(arch) {
     copyRaw(size, raw);
   }
 
