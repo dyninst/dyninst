@@ -73,7 +73,7 @@ public:
     abruptEnd_ = newVal;
   }
 
-  int id() const {
+  int id() const override {
     return blockNumber_;
   }
 
