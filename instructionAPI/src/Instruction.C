@@ -110,8 +110,7 @@ namespace Dyninst { namespace InstructionAPI {
     this->m_size = new_size;
   }
 
-  Instruction::Instruction()
-      : m_size(0), arch_decoded_from(Arch_none) {
+  Instruction::Instruction() {
     copyRaw(0, nullptr);
   }
 
