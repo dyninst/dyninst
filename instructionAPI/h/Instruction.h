@@ -148,7 +148,7 @@ namespace Dyninst { namespace InstructionAPI {
     std::string format(Address addr = 0) const;
 
     bool isValid() const;
-    bool isLegalInsn() const;
+    bool isLegalInsn() const { return isValid(); }
 
     Architecture getArch() const;
 
