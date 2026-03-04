@@ -92,7 +92,7 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *ob
     //Set variable based on the mechanism to add new load segment
     // 1) createNewPhdr (Total program headers + 1) - default
     //	(a) movePHdrsFirst
-    //    (b) create new section called dynphdrs and change pointers (createNewPhdrRegion)
+    //    (b) create new section called dynphdrs and change pointers 
     //    (c) library_adjust - create room for a new program header in a position-indepdent library
     //                         by increasing all virtual addresses for the library
 
@@ -456,9 +456,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     unsigned insertPoint = oldEhdr->e_shnum;
     unsigned insertPointOffset = 0;
 
-    if (movePHdrsFirst) {
-        newEhdr->e_phoff = sizeof(Elf_Ehdr);
-    }
+    newEhdr->e_phoff = sizeof(Elf_Ehdr);
     newEhdr->e_entry += library_adjust;
 
     /* flag the file for no auto-layout */
@@ -620,25 +618,23 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             }
         }
         // Change offsets of sections based on the newly added sections
-        if (movePHdrsFirst) {
-            /* This special case is specific to FreeBSD but there is no harm in
-             * handling it on other platforms.
-             *
-             * This is necessary because the INTERP header must be located within in
-             * the first page of the file -- if the section is moved to the next
-             * page the object file will not be parsed correctly by the kernel.
-             *
-             * However, the .interp section still needs to be shifted, but just
-             * by the difference in size of the new PHDR segment.
-             */
-            if (newshdr->sh_offset > 0) {
-                if (newshdr->sh_offset < pgSize && !strcmp(name, INTERP_NAME)) {
-                    newshdr->sh_addr -= pgSize;
-                    newshdr->sh_addr += oldEhdr->e_phentsize;
-                    newshdr->sh_offset += oldEhdr->e_phentsize;
-                } else
-                    newshdr->sh_offset += pgSize;
-            }
+        /* This special case is specific to FreeBSD but there is no harm in
+         * handling it on other platforms.
+         *
+         * This is necessary because the INTERP header must be located within in
+         * the first page of the file -- if the section is moved to the next
+         * page the object file will not be parsed correctly by the kernel.
+         *
+         * However, the .interp section still needs to be shifted, but just
+         * by the difference in size of the new PHDR segment.
+         */
+        if (newshdr->sh_offset > 0) {
+            if (newshdr->sh_offset < pgSize && !strcmp(name, INTERP_NAME)) {
+                newshdr->sh_addr -= pgSize;
+                newshdr->sh_addr += oldEhdr->e_phentsize;
+                newshdr->sh_offset += oldEhdr->e_phentsize;
+            } else
+                newshdr->sh_offset += pgSize;
         }
 
         if (scncount > insertPoint && newshdr->sh_offset >= insertPointOffset)
@@ -679,10 +675,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             if (!createLoadableSections(newshdr, extraAlignSize, newNameIndexMapping,
                        sectionNumber))
                 return false;
-            if (!movePHdrsFirst) {
-                sectionNumber++;
-                createNewPhdrRegion(newNameIndexMapping);
-            }
 
             // Update the heap symbols, now that loadSecTotalSize is set
             updateSymbols(dynsymData, dynStrData, loadSecTotalSize);
@@ -746,53 +738,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     return true;
 }
 
-
-template<class ElfTypes>
-void emitElf<ElfTypes>::createNewPhdrRegion(std::unordered_map<std::string, unsigned> &newNameIndexMapping) {
-    assert(!movePHdrsFirst);
-
-    unsigned phdr_size = oldEhdr->e_phnum * oldEhdr->e_phentsize;
-    phdr_size += oldEhdr->e_phentsize;
-
-    unsigned align = 0;
-    if (currEndOffset % 8)
-        align = 8 - (currEndOffset % 8);
-
-    newEhdr->e_phoff = currEndOffset + align;
-    phdr_offset = newEhdr->e_phoff;
-
-    Address endaddr = currEndAddress;
-    currEndAddress += phdr_size + align;
-    currEndOffset += phdr_size + align;
-    loadSecTotalSize += phdr_size + align;
-
-    //libelf.so.1 is annoying.  It'll overwrite the data
-    // between sections with 0's, even if we've stuck the
-    // program headers in there.  Create a dummy section
-    // to contain the program headers.
-    phdrs_scn = elf_newscn(newElf);
-    Elf_Shdr *newshdr = ElfTypes::elf_getshdr(phdrs_scn);
-    const char *newname = ".dynphdrs";
-
-    secNames.push_back(newname);
-    newNameIndexMapping[newname] = secNames.size() - 1;
-    newshdr->sh_name = secNameIndex;
-    secNameIndex += strlen(newname) + 1;
-    newshdr->sh_flags = SHF_ALLOC;
-    newshdr->sh_type = SHT_PROGBITS;
-    newshdr->sh_offset = newEhdr->e_phoff;
-    newshdr->sh_addr = endaddr + align;
-    newshdr->sh_size = phdr_size;
-    newshdr->sh_link = SHN_UNDEF;
-    newshdr->sh_info = 0;
-    newshdr->sh_addralign = 4;
-    newshdr->sh_entsize = newEhdr->e_phentsize;
-    phdrSegOff = newshdr->sh_offset;
-    phdrSegAddr = newshdr->sh_addr;
-
-}
-
-
 template<class ElfTypes>
 void emitElf<ElfTypes>::fixPhdrs() {
     // This function has to perform the addresses fix in two passes.
@@ -833,11 +778,7 @@ void emitElf<ElfTypes>::fixPhdrs() {
             segments[i].p_filesz = segments[i].p_memsz;
         }
         else if (old->p_type == PT_PHDR) {
-            if (!movePHdrsFirst)
-                segments[i].p_vaddr = phdrSegAddr;
-            else
-                segments[i].p_vaddr = old->p_vaddr - pgSize + library_adjust;
-
+            segments[i].p_vaddr = old->p_vaddr - pgSize + library_adjust;
             segments[i].p_offset = newEhdr->e_phoff;
             segments[i].p_paddr = segments[i].p_vaddr;
             segments[i].p_filesz = sizeof(Elf_Phdr) * newEhdr->e_phnum;
@@ -850,26 +791,24 @@ void emitElf<ElfTypes>::fixPhdrs() {
             segments[i].p_memsz = newTLSData->sh_size + old->p_memsz - old->p_filesz;
             segments[i].p_align = newTLSData->sh_addralign;
         } else if (old->p_type == PT_LOAD) {
-            if (movePHdrsFirst) {
-                if (!old->p_offset) {
-                    if (segments[i].p_vaddr) {
-                        segments[i].p_vaddr = old->p_vaddr - pgSize;
-                        segments[i].p_align = pgSize;
-                    }
-
-                    segments[i].p_paddr = segments[i].p_vaddr;
-                    segments[i].p_filesz += pgSize;
-                    segments[i].p_memsz = segments[i].p_filesz;
-                } else {
-                    segments[i].p_offset += pgSize;
+            if (!old->p_offset) {
+                if (segments[i].p_vaddr) {
+                    segments[i].p_vaddr = old->p_vaddr - pgSize;
                     segments[i].p_align = pgSize;
                 }
-                if (segments[i].p_vaddr) {
-                    segments[i].p_vaddr += library_adjust;
-                    segments[i].p_paddr += library_adjust;
-                }
+
+                segments[i].p_paddr = segments[i].p_vaddr;
+                segments[i].p_filesz += pgSize;
+                segments[i].p_memsz = segments[i].p_filesz;
+            } else {
+                segments[i].p_offset += pgSize;
+                segments[i].p_align = pgSize;
             }
-        } else if (old->p_type == PT_INTERP && movePHdrsFirst && old->p_offset) {
+            if (segments[i].p_vaddr) {
+                segments[i].p_vaddr += library_adjust;
+                segments[i].p_paddr += library_adjust;
+            }
+        } else if (old->p_type == PT_INTERP && old->p_offset) {
             Elf_Off addr_shift = library_adjust;
             Elf_Off offset_shift = pgSize;
             if (old->p_offset < pgSize) {
@@ -880,7 +819,7 @@ void emitElf<ElfTypes>::fixPhdrs() {
             segments[i].p_vaddr += addr_shift;
             segments[i].p_paddr += addr_shift;
         }
-        else if (movePHdrsFirst && old->p_offset) {
+        else if (old->p_offset) {
             segments[i].p_offset += pgSize;
             if (segments[i].p_vaddr) {
                 segments[i].p_vaddr += library_adjust;
