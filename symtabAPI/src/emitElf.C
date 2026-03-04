@@ -115,18 +115,12 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *ob
     // changes to the binary, and isn't well tested.
 
     library_adjust = 0;
-    if (cannotRelocatePhdrs() && !movePHdrsFirst) {
+    if (!movePHdrsFirst) {
         movePHdrsFirst = true;
         library_adjust = getpagesize();
     }
 
     assert(obj && object && object == dynamic_cast<ObjectELF*>(obj->getObject()));
-}
-
-template<typename ElfTypes>
-bool emitElf<ElfTypes>::cannotRelocatePhdrs()
-{
-    return true;
 }
 
 static int elfSymType(Symbol *sym)

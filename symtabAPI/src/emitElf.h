@@ -281,7 +281,6 @@ namespace Dyninst {
             void addDTNeeded(std::string s);
 
             void log_elferror(void (*err_func)(const char *), const char* msg);
-            bool cannotRelocatePhdrs();
 
             bool isStaticBinary;
             std::vector<void*> buffers;
