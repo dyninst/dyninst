@@ -377,7 +377,6 @@ typename emitElf<ElfTypes>::Elf_Off emitElf<ElfTypes>::findLastLoadableSec() {
     }
     Elf_Scn *scn = NULL;
     Elf_Shdr *shdr;
-    lastLoadableSecStart = 0;
     while((scn = elf_nextscn(oldElf, scn))) {
         shdr = ElfTypes::elf_getshdr(scn);
         Elf_Off secStart = shdr->sh_addr;
