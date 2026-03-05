@@ -387,7 +387,6 @@ typename emitElf<ElfTypes>::Elf_Off emitElf<ElfTypes>::findLastLoadableSec() {
     return lastLoadableSecStart;
 }
 
-
 // Rename an old section. Lengths of old and new names must match.
 // Only renames the FIRST matching section encountered.
 template<class ElfTypes>
@@ -459,8 +458,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
     newEhdr->e_shnum += newSecs.size();
 
-    // Find the end of text and data segments
-    //findSegmentEnds();
     Elf_Off lastLoadableSecStart = findLastLoadableSec();
     unsigned insertPoint = oldEhdr->e_shnum;
     unsigned insertPointOffset = 0;
