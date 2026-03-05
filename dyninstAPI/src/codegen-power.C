@@ -76,54 +76,10 @@ std::shared_ptr<TrackStacktraces> _global_stack_track;
 
 
 void insnCodeGen::generate(codeGen &gen, instruction&insn) {
-  // void *buffer[50];
-  // char **strings;
-  // int nptrs;
-  // nptrs = backtrace(buffer, 50);
-  // strings = backtrace_symbols(buffer, nptrs);
-  // std::stringstream ss;
-  // if (strings != NULL) {
-  //   for (int i = 0; i < nptrs; i++) 
-  //     ss << strings[i] << std::endl;
-  // }
-
-  /*
-  AddressSpace *as = gen.addrSpace();
-  bool isLittleEndian = true;
-  if (as) {
-    const std::vector<mapped_object*> objs = as->mappedObjects();
-    if (objs.size() > 0) {
-      mapped_object *mo = objs[0];
-      SymtabAPI::Symtab* sym = mo->parse_img()->getObject(); 
-      isLittleEndian = !sym->isBigEndianDataEncoding();
-    } else {
-      fprintf(stderr, "No mapped_object object\n");
-    }
-  } else {
-    fprintf(stderr, "No AddressSpace object\n");
-  }
-  unsigned raw;
-  if (isLittleEndian) {
-    // Writing an instruction.  Convert byte order if necessary.
-    raw = swapBytesIfNeeded(insn.asInt());
-  } else {
-    raw = insn.asInt();
-  }
-  */
-  // if (_global_stack_track.get() == NULL)
-  //   _global_stack_track.reset(new TrackStacktraces());
-  // _global_stack_track->Insert(ss.str());
-  // if (gen.currAddr() == 0xe5f88d4) {
-  //   fprintf(stderr, "%s\n", "Hello!, whats next???? " );
-  //   fprintf(stderr, "%08x\n", insn.asInt());
-  // }
   unsigned raw = insn.asInt();
   if (gen.currAddr() == 0xe93e3fc){
     std::cerr << "Generating b e93e3fc, e93e88c" << std::endl;
-    //assert(1==0);
   }
-  // fprintf(stderr, "Instruction Written: %08x at position: %16x\n", insn.asInt(), gen.currAddr());
-  //fprintf(stderr, "Raw Written value %u\n", raw);
   gen.copy(&raw, sizeof(unsigned));
 }
 
