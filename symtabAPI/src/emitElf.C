@@ -78,8 +78,7 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *ob
         olddynStrData(NULL), olddynStrSize(0),
         symTabData(NULL), dynsymData(NULL), dynData(NULL),
         phdrs_scn(NULL), verneednum(0), verdefnum(0),
-        newSegmentStart(0), firstNewLoadSec(NULL),
-        dataSegEnd(0), dynSegOff(0), dynSegAddr(0),
+        newSegmentStart(0), firstNewLoadSec(NULL), dynSegOff(0), dynSegAddr(0),
         phdrSegOff(0), phdrSegAddr(0), dynSegSize(0),
         secNameIndex(0), currEndOffset(0), currEndAddress(0),
         linkedStaticData(NULL), loadSecTotalSize(0),
@@ -359,22 +358,35 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
 
 // Find the end of data/text segment
 template<class ElfTypes>
-void emitElf<ElfTypes>::findSegmentEnds() {
+typename emitElf<ElfTypes>::Elf_Off emitElf<ElfTypes>::findLastLoadableSec() {
     Elf_Phdr *tmp = ElfTypes::elf_getphdr(oldElf);
     // Find the offset of the start of the text & the data segment
     // The first LOAD segment is the text & the second LOAD segment
     // is the data
-    dataSegEnd = 0;
+    Elf_Off lastDataSegStart=0, lastDataSegEnd=0, lastLoadableSecStart=0;
     for (unsigned i = 0; i < oldEhdr->e_phnum; i++) {
         if (tmp->p_type == PT_LOAD) {
-            if (dataSegEnd < tmp->p_vaddr + tmp->p_memsz)
-                dataSegEnd = tmp->p_vaddr + tmp->p_memsz;
+            if (lastDataSegEnd < tmp->p_vaddr + tmp->p_memsz){
+                lastDataSegEnd = tmp->p_vaddr + tmp->p_memsz;
+                lastDataSegStart = tmp->p_vaddr;
+              }
         } else if (PT_TLS == tmp->p_type) {
             TLSExists = true;
         }
         tmp++;
     }
+    Elf_Scn *scn = NULL;
+    Elf_Shdr *shdr;
+    lastLoadableSecStart = 0;
+    while((scn = elf_nextscn(oldElf, scn))) {
+        shdr = ElfTypes::elf_getshdr(scn);
+        Elf_Off secStart = shdr->sh_addr;
+        if( lastDataSegStart <= secStart  && secStart < lastDataSegEnd && secStart > lastLoadableSecStart)
+          lastLoadableSecStart = secStart;
+    }
+    return lastLoadableSecStart;
 }
+
 
 // Rename an old section. Lengths of old and new names must match.
 // Only renames the FIRST matching section encountered.
@@ -448,7 +460,8 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     newEhdr->e_shnum += newSecs.size();
 
     // Find the end of text and data segments
-    findSegmentEnds();
+    //findSegmentEnds();
+    Elf_Off lastLoadableSecStart = findLastLoadableSec();
     unsigned insertPoint = oldEhdr->e_shnum;
     unsigned insertPointOffset = 0;
 
@@ -503,7 +516,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         secNames.push_back(name);
         newshdr->sh_name = secNameIndex;
         secNameIndex += strlen(name) + 1;
-
+        // For sections with vaddr > 0, adjust load addddress by library_adjust
         if (newshdr->sh_addr) {
             newshdr->sh_addr += library_adjust;
 
@@ -659,7 +672,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                 changeMapping[sectionNumber]);
 
         //Insert new loadable sections at the end of data segment
-        if (shdr->sh_addr + shdr->sh_size == dataSegEnd && !createdLoadableSections) {
+        if (shdr->sh_addr == lastLoadableSecStart && !createdLoadableSections) {
             createdLoadableSections = true;
             insertPoint = scncount;
             if (SHT_NOBITS == shdr->sh_type) {
