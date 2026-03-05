@@ -175,9 +175,6 @@ typedef unsigned codeBufIndex_t;
 
 #define maxFPR 32           /* Save FPRs 0-13 */
 
-// Helps to mitigate host/target endian mismatches
-unsigned int swapBytesIfNeeded(unsigned int i);
-
 class DYNINST_EXPORT instruction {
 	private:
     instructUnion insn_;

@@ -1027,8 +1027,6 @@ DYNINST_EXPORT Dyninst::Address get_target(const unsigned char *instr, unsigned 
 #define EXTENDED_0x81_CMP 7
 #define EXTENDED_0x83_AND 4
 
-unsigned int swapBytesIfNeeded(unsigned int i);
-
 class instruction {
  public:
     instruction(): type_(0), size_(0), ptr_(0), op_ptr_(0) {}

@@ -37,13 +37,6 @@ ATOMIC_t ATOMIC;
 UNCOND_BR_t UNCOND_BR;
 COND_BR_t COND_BR;
 
-unsigned int swapBytesIfNeeded(unsigned int i)
-{
-	assert(0);
-    return i;
-}
-
-
 // i = signed int value to be extended
 // pos = the total length of signed value to be extended
 int instruction::signExtend(unsigned int i, unsigned int pos)

@@ -157,11 +157,6 @@ using namespace Dyninst;
 
 namespace NS_x86 {
 
-unsigned int swapBytesIfNeeded(unsigned int i)
-{
-    return i;
-}
-
 // groups
 enum {
   Grp1a=0, Grp1b, Grp1c, Grp1d, Grp1A, Grp2, Grp3a, Grp3b, Grp4, Grp5, Grp6, Grp7,

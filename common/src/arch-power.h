@@ -784,9 +784,6 @@ const int maxGPR=32;           /* More space than is needed */
 #define MAX_IMM48      ((long)(-1 >> 17))   // To avoid warnings on 32-bit
 #define MIN_IMM48      ((long)(~MAX_IMM48)) // compilers.
 
-// Helps to mitigate host/target endian mismatches
-DYNINST_EXPORT unsigned int swapBytesIfNeeded(unsigned int i);
-
 ///////////////////////////////////////////////////////
 // Bum bum bum.....
 ///////////////////////////////////////////////////////
