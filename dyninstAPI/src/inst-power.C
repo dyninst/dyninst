@@ -51,7 +51,7 @@
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/mapped_object.h"
-#include "parse-cfg.h"
+#include "parse_func.h"
 #include "parseAPI/h/CFG.h"
 #include "RegisterConversion.h"
 #include "emitter.h"
@@ -2247,7 +2247,7 @@ bool EmitterPOWER32Stat::emitTOCCommon(block_instance *block, bool call, codeGen
 
   // Generate the PLT call
 
-  Address dest = block->llb()->firstInsnOffset();
+  Address dest = block->llb()->start();
   Address pcVal = emitMovePCToReg(scratchReg, gen);
 
   if (!call) {

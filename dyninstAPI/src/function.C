@@ -53,8 +53,6 @@ using namespace Dyninst::PatchAPI;
 using namespace Dyninst::Relocation;
 using namespace Dyninst::PatchAPI;
 
-int func_instance_count = 0;
-
 func_instance::func_instance(parse_func *f,
                              Address baseAddr,
                              mapped_module *mod) :
@@ -73,13 +71,6 @@ func_instance::func_instance(parse_func *f,
      _powerPreambleFunc(NULL)
 {
   assert(f);
-#if defined(ROUGH_MEMORY_PROFILE)
-  func_instance_count++;
-  if ((func_instance_count % 1000) == 0)
-    fprintf(stderr, "func_instance_count: %d (%d)\n",
-            func_instance_count, func_instance_count*sizeof(func_instance));
-#endif
-
     parsing_printf("%s: creating new proc-specific function at 0x%lx\n",
                    symTabName().c_str(), addr_);
 #if defined(cap_stack_mods)
@@ -257,37 +248,6 @@ void func_instance::setHandlerFaultAddrAddr(Address faa, bool set) {
                                    sizeof(Address),
                                    (void*)&origAddr) );
   }
-}
-
-void func_instance::getReachableBlocks(const set<block_instance*> &exceptBlocks,
-                                      const list<block_instance*> &seedBlocks,
-                                      set<block_instance*> &reachBlocks)//output
-{
-    list<parse_block*> imgSeeds;
-    for (list<block_instance*>::const_iterator sit = seedBlocks.begin();
-         sit != seedBlocks.end();
-         sit++)
-    {
-        imgSeeds.push_back((*sit)->llb());
-    }
-    set<parse_block*> imgExcept;
-    for (set<block_instance*>::const_iterator eit = exceptBlocks.begin();
-         eit != exceptBlocks.end();
-         eit++)
-    {
-        imgExcept.insert((*eit)->llb());
-    }
-
-    // image-level function does the work
-    set<parse_block*> imgReach;
-    ifunc()->getReachableBlocks(imgExcept,imgSeeds,imgReach);
-
-    for (set<parse_block*>::iterator rit = imgReach.begin();
-         rit != imgReach.end();
-         rit++)
-    {
-        reachBlocks.insert( obj()->findBlock(*rit) );
-    }
 }
 
 void print_func_vector_by_pretty_name(std::string prefix,
@@ -507,7 +467,7 @@ std::string func_instance::get_name() const
 }
 
 Offset func_instance::addrToOffset(const Address a) const {
-   return a - (addr() - ifunc()->getOffset());
+   return a - (addr() - ifunc()->addr());
 }
 
 bool func_instance::consistency() const {

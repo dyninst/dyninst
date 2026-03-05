@@ -33,7 +33,8 @@
 #include "Instruction.h"
 
 #include "image.h"
-#include "parse-cfg.h"
+#include "parse_block.h"
+#include "parse_func.h"
 #include "instPoint.h"
 #include "Parsing.h"
 #include "debug.h"
@@ -150,8 +151,7 @@ DynCFGFactory::mkfunc(
             }
         }
         if(stf && stf->getFirstSymbol()) {
-            ret = new parse_func(stf, pdmod,_img,obj,reg,isrc,src);
-            ret->isPLTFunction_ = true;
+            ret = parse_func::plt_func(stf, pdmod,_img,obj,reg,isrc,src);
             // PLT stubs are typically are undefined symbols in the binary,
             // so there is no corresponding SymtabAPI::Function at Symtab level.
             // PLTFunction is a subclass of SymtabAPI::Function to represent PLT stubs.
@@ -206,14 +206,9 @@ DynCFGFactory::mksink(CodeObject *obj, CodeRegion *r) {
 
 Edge *
 DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
-    image_edge * ret;
     record_edge_alloc(type,false); // FIXME can't tell if it's a sink
 
-    ret = new image_edge((parse_block*)src,
-                         (parse_block*)trg,
-                         type);
-
-    return ret;
+    return new Edge(src, trg, type);
 }
 
 void

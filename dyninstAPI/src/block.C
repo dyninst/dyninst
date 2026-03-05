@@ -29,8 +29,6 @@
  */
 
 #include "function.h"
-#include "parse-cfg.h"
-
 #include "mapped_object.h"
 #include "mapped_module.h"
 #include "InstructionDecoder.h"
@@ -104,7 +102,7 @@ int block_instance::id() const {
 }
 
 Address block_instance::GetBlockStartingAddress() {
-  return llb()->firstInsnOffset();
+  return llb()->start();
 }
 
 

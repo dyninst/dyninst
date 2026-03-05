@@ -40,7 +40,6 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "baseTramp.h"
 #include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/parse-cfg.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/addressSpace.h"
 

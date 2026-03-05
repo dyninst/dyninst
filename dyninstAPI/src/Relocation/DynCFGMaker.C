@@ -31,7 +31,6 @@
 #include "DynObject.h"
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
-#include "dyninstAPI/src/parse-cfg.h"
 #include "dyninstAPI/src/function.h"
 
 using Dyninst::PatchAPI::DynCFGMaker;

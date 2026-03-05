@@ -31,7 +31,6 @@
 #include "BPatch_point.h"
 #include "BPatch_addressSpace.h"
 #include "../function.h"
-#include "../parse-cfg.h"
 #include "Snippet.h"
 
 using Dyninst::PatchAPI::DynInstrumenter;

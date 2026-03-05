@@ -2087,7 +2087,7 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
         using namespace ParseAPI;
         bool foundStub = false;
         parse_block *curImgBlock = (*bit)->llb();
-        Address base = (*bit)->start() - curImgBlock->firstInsnOffset();
+        Address base = (*bit)->start() - curImgBlock->start();
         const Block::edgelist & sourceEdges = curImgBlock->sources();
 
         // search for stubs in all functions containing the overwritten block

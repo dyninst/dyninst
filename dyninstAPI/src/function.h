@@ -41,7 +41,6 @@
 #include <vector>
 #include "codegen.h"
 #include "codeRange.h"
-#include "parse-cfg.h"
 
 #include "bitArray.h"
 
@@ -60,6 +59,8 @@
 #include "StackMod/TMap.h"
 #endif
 #include "Relocation/DynCommon.h"
+
+#include "parse_func.h"
 
 class PCProcess;
 class mapped_module;
@@ -260,11 +261,6 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   int getParamSize() { return paramSize; }
   void setParamSize(int s) { paramSize = s; }
 #endif
-
-  void getReachableBlocks(const std::set<block_instance*> &exceptBlocks,
-                          const std::list<block_instance*> &seedBlocks,
-                          std::set<block_instance*> &reachBlocks);//output
-
 
   // So we can assert(consistency());
   bool consistency() const;

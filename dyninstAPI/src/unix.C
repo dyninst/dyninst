@@ -661,7 +661,6 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 #if defined(os_linux) || defined(os_freebsd)
 
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/parse-cfg.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "symtabAPI/h/Symtab.h"

@@ -117,7 +117,8 @@ set(_private_headers
     src/nt_signal_emul.h
     src/opcode.h
     src/os.h
-    src/parse-cfg.h
+    src/parse_block.h
+    src/parse_func.h
     src/Parsing.h
     src/patch.h
     src/Patching.h
@@ -177,7 +178,8 @@ set(_sources
     src/instPoint.C
     src/mapped_module.C
     src/mapped_object.C
-    src/parse-cfg.C
+    src/parse_block.C
+    src/parse_func.C
     src/pcEventHandler.C
     src/pcEventMuxer.C
     src/regTracker.C
