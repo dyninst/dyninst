@@ -90,10 +90,6 @@ namespace Dyninst { namespace InstructionAPI {
     DYNINST_EXPORT bool operator==(Operation const&) const;
 
     bool isVectorInsn{};
-    bool isMultiInsnCall{};
-    bool isMultiInsnBranch{};
-    bool isNonABICall{};
-    bool isNonABIReturn{};
 
   private:
     std::once_flag data_initialized;

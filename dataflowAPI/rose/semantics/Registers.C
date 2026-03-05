@@ -2,6 +2,7 @@
 //#include "sage3basic.h"
 #include "Registers.h"
 #include "external/rose/armv8InstructionEnum.h"
+#include "external/rose/riscv64InstructionEnum.h"
 #include "external/rose/amdgpuInstructionEnum.h"
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
@@ -253,6 +254,36 @@ RegisterDictionary::dictionary_amdgpu() {
         regs->insert("src_scc",amdgpu_regclass_misc, amdgpu_src_scc, 0,  1);
         regs->insert("vcc_lo", amdgpu_regclass_misc,  amdgpu_vcc_lo, 0, 32);
         regs->insert("vcc_hi", amdgpu_regclass_misc,  amdgpu_vcc_hi, 0, 32);
+    });
+    return regs;
+}
+
+
+/** RISC-V Registers
+ * Scalar Register
+ *
+ */
+const RegisterDictionary *
+RegisterDictionary::dictionary_riscv64() {
+    static std::once_flag initialized;
+    static RegisterDictionary *regs = NULL;
+
+    std::call_once(initialized, []() {
+        regs = new RegisterDictionary("riscv64");
+
+        /* All of the general purpose registers  */
+        for (unsigned idx = 0; idx < 32; idx++) {
+            regs->insert("x" + StringUtility::numberToString(idx), riscv64_regclass_gpr, riscv64_gpr_x0 + idx, 0, 64);
+        }
+
+        /* All of the floating point registers  */
+        for (unsigned idx = 0; idx < 32; idx++) {
+            regs->insert("f" + StringUtility::numberToString(idx), riscv64_regclass_fpr, riscv64_fpr_f0 + idx, 0, 32);
+        }
+
+        /* The program counter */
+        regs->insert("pc", riscv64_regclass_pc, 0, 0, 64);
+
     });
     return regs;
 }

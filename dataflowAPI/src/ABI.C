@@ -46,6 +46,10 @@
 #  include "registers/aarch64_regs.h"
 #endif
 
+#if defined(DYNINST_CODEGEN_ARCH_RISCV64)
+#  include "registers/riscv64_regs.h"
+#endif
+
 using namespace Dyninst;
 using namespace DataflowAPI;
 
@@ -132,6 +136,12 @@ ABI* ABI::getABI(int addr_width){
 	globalABI64_->addr_width = 8;
 	globalABI_->index = &machRegIndex_aarch64();
 	globalABI64_->index = &machRegIndex_aarch64();
+#endif
+
+#if defined(DYNINST_CODEGEN_ARCH_RISCV64)
+	globalABI64_->addr_width = 8;
+	globalABI_->index = &machRegIndex_riscv64();
+	globalABI64_->index = &machRegIndex_riscv64();
 #endif
 
 // We _only_ support instrumenting 32-bit binaries on 64-bit systems
@@ -698,6 +708,72 @@ void ABI::initialize64(){
 }
 #endif
 
+//#warning "This is not verified!"
+#if defined(DYNINST_CODEGEN_ARCH_RISCV64)
+void ABI::initialize64(){
+    RegisterMap riscv64Map = machRegIndex_riscv64();
+	int sz = riscv64Map.size();
+
+	returnRegs64_ = getBitArray(sz);
+    (*returnRegs64_)[riscv64Map[riscv64::a0]] = true;
+    (*returnRegs64_)[riscv64Map[riscv64::a1]] = true;
+
+	returnRead64_ = getBitArray(sz);
+    (*returnRegs64_)[riscv64Map[riscv64::a0]] = true;
+    (*returnRegs64_)[riscv64Map[riscv64::a1]] = true;
+    //Callee-saved registers
+    (*returnRead64_)[riscv64Map[riscv64::s0]] = true;
+    (*returnRead64_)[riscv64Map[riscv64::s1]] = true;
+    (*returnRead64_)[riscv64Map[riscv64::s2]] = true;
+    (*returnRead64_)[riscv64Map[riscv64::s3]] = true;
+    (*returnRead64_)[riscv64Map[riscv64::s4]] = true;
+    (*returnRead64_)[riscv64Map[riscv64::s5]] = true;
+    (*returnRead64_)[riscv64Map[riscv64::s6]] = true;
+    (*returnRead64_)[riscv64Map[riscv64::s7]] = true;
+    (*returnRead64_)[riscv64Map[riscv64::s8]] = true;
+    (*returnRead64_)[riscv64Map[riscv64::s9]] = true;
+    (*returnRead64_)[riscv64Map[riscv64::s10]] = true;
+    (*returnRead64_)[riscv64Map[riscv64::s11]] = true;
+    (*returnRead64_)[riscv64Map[riscv64::sp]] = true;
+    (*returnRead64_)[riscv64Map[riscv64::gp]] = true;
+    (*returnRead64_)[riscv64Map[riscv64::tp]] = true;
+
+    callParam64_ = getBitArray(sz);
+    (*callParam64_)[riscv64Map[riscv64::a0]] = true;
+    (*callParam64_)[riscv64Map[riscv64::a1]] = true;
+    (*callParam64_)[riscv64Map[riscv64::a2]] = true;
+    (*callParam64_)[riscv64Map[riscv64::a3]] = true;
+    (*callParam64_)[riscv64Map[riscv64::a4]] = true;
+    (*callParam64_)[riscv64Map[riscv64::a5]] = true;
+    (*callParam64_)[riscv64Map[riscv64::a6]] = true;
+    (*callParam64_)[riscv64Map[riscv64::a7]] = true;
+
+	callRead64_ = getBitArray(sz);
+	(*callRead64_)[riscv64Map[riscv64::a0]] = true;
+	(*callRead64_)[riscv64Map[riscv64::a1]] = true;
+	(*callRead64_)[riscv64Map[riscv64::a2]] = true;
+	(*callRead64_)[riscv64Map[riscv64::a3]] = true;
+	(*callRead64_)[riscv64Map[riscv64::a4]] = true;
+	(*callRead64_)[riscv64Map[riscv64::a5]] = true;
+	(*callRead64_)[riscv64Map[riscv64::a6]] = true;
+	(*callRead64_)[riscv64Map[riscv64::a7]] = true;
+
+	callWritten64_ = callRead64_;
+	//First, GPRs...
+	(*callWritten64_)[riscv64Map[riscv64::t0]] = true;
+	(*callWritten64_)[riscv64Map[riscv64::t1]] = true;
+	(*callWritten64_)[riscv64Map[riscv64::t2]] = true;
+	(*callWritten64_)[riscv64Map[riscv64::t3]] = true;
+	(*callWritten64_)[riscv64Map[riscv64::t4]] = true;
+	(*callWritten64_)[riscv64Map[riscv64::t5]] = true;
+	(*callWritten64_)[riscv64Map[riscv64::t6]] = true;
+
+	syscallRead64_ = &getBitArray(sz)->set();
+	syscallWritten64_ = &getBitArray(sz)->set();
+
+	allRegs64_ = &getBitArray(sz)->set();
+}
+#endif
 
 void ABI::initialize64(Architecture arch){
     int sz;

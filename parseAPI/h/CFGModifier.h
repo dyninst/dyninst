@@ -118,7 +118,7 @@ class InsertedRegion : public CodeRegion {
    DYNINST_EXPORT Address offset() const { return base_; }
    DYNINST_EXPORT Address length() const { return size_; }
    DYNINST_EXPORT unsigned int getAddressWidth() const {
-      if (arch_ == Arch_ppc64 || arch_ == Arch_x86_64 || arch_ == Arch_aarch64) return 8;
+      if (arch_ == Arch_ppc64 || arch_ == Arch_x86_64 || arch_ == Arch_aarch64 || arch_ == Arch_riscv64) return 8;
       else return 4;
    }
    DYNINST_EXPORT Architecture getArch() const { return arch_; }

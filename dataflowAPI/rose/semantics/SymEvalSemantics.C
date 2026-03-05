@@ -297,6 +297,36 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTARM64::convert(const RegisterD
     return Dyninst::Absloc(mreg);
 }
 
+Dyninst::Absloc SymEvalSemantics::RegisterStateASTRiscv64::convert(const RegisterDescriptor &reg) {
+    Dyninst::MachRegister mreg;
+
+    unsigned int major = reg.get_major();
+    unsigned int size = reg.get_nbits();
+
+    switch (major) {
+            case riscv64_regclass_gpr: {
+            unsigned int minor = reg.get_minor();
+            Dyninst::MachRegister base = Dyninst::riscv64::x0;
+            mreg = Dyninst::MachRegister(base.val() + (minor - riscv64_gpr_x0));
+            break;
+        }
+        case riscv64_regclass_fpr: {
+            unsigned int minor = reg.get_minor();
+            Dyninst::MachRegister base = Dyninst::riscv64::f0;
+            mreg = Dyninst::MachRegister(base.val() + (minor - riscv64_fpr_f0));
+            break;
+        }
+        case riscv64_regclass_pc: {
+            mreg = Dyninst::MachRegister(Dyninst::riscv64::pc);
+            break;
+        }
+        default:
+            ASSERT_always_forbid("Unexpected register major type.");
+    }
+
+    return Dyninst::Absloc(mreg);
+}
+
 Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC32::convert(const RegisterDescriptor &reg) {
     Dyninst::MachRegister mreg;
 
@@ -566,6 +596,12 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::extract(const BaseS
     return createTernaryAST(Dyninst::DataflowAPI::ROSEOperation::extractOp, a_, begin_, end_, end - begin);
 }
 
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::extract(const BaseSemantics::SValuePtr &a_,
+                                                                  const BaseSemantics::SValuePtr &begin_,
+                                                                  const BaseSemantics::SValuePtr &end_) {
+    return createTernaryAST(Dyninst::DataflowAPI::ROSEOperation::extractOp, a_, begin_, end_);
+}
+
 BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::ite(const BaseSemantics::SValuePtr &sel_,
                                                               const BaseSemantics::SValuePtr &a_,
                                                               const BaseSemantics::SValuePtr &b_) {
@@ -658,6 +694,11 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::signedModulo(const 
 }
 
 BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::signedMultiply(const BaseSemantics::SValuePtr &a_,
+                                                                         const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::sMultOp, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::signedUnsignedMultiply(const BaseSemantics::SValuePtr &a_,
                                                                          const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::sMultOp, a_, b_);
 }

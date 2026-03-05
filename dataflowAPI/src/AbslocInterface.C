@@ -47,6 +47,7 @@
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/CodeObject.h"
 #include "registers/aarch64_regs.h"
+#include "registers/riscv64_regs.h"
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
@@ -937,6 +938,56 @@ void AssignmentConverter::convert(const Instruction &I,
     assignments.push_back(ra);
     break;
   }      
+  case riscv64_op_jalr: {
+    auto operands = I.getAllOperands();
+    assert(operands.size() == 4);
+
+    AbsRegion rd = AbsRegion((boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue()))->getID());
+    AbsRegion rs = AbsRegion((boost::dynamic_pointer_cast<RegisterAST>(operands[1].getValue()))->getID());
+    AbsRegion pc(Absloc::makePC(func->isrc()->getArch()));
+
+    // Write pc with rs
+    Assignment::Ptr pcA = Assignment::makeAssignment(I,
+            addr,
+            func,
+            block,
+            pc);
+    pcA->addInput(rs);
+    Assignment::Ptr rdA = Assignment::makeAssignment(I,
+            addr,
+            func,
+            block,
+            rd);
+    rdA->addInput(pc);
+
+    assignments.push_back(pcA);
+    assignments.push_back(rdA);
+    break;
+  }
+  case riscv64_op_beq:
+  case riscv64_op_bne:
+  case riscv64_op_blt:
+  case riscv64_op_bge:
+  case riscv64_op_bltu:
+  case riscv64_op_bgeu: {
+      auto operands = I.getAllOperands();
+      assert(operands.size() == 4);
+
+      AbsRegion rs1 = AbsRegion((boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue()))->getID());
+      AbsRegion rs2 = AbsRegion((boost::dynamic_pointer_cast<RegisterAST>(operands[1].getValue()))->getID());
+      AbsRegion pc(Absloc::makePC(func->isrc()->getArch()));
+
+      Assignment::Ptr pcA = Assignment::makeAssignment(I,
+              addr,
+              func,
+              block,
+              pc);
+      pcA->addInput(rs1);
+      pcA->addInput(rs2);
+
+      assignments.push_back(pcA);
+      break;
+  }
   default:
     // Assume full intra-dependence of non-flag and non-pc registers. 
     std::vector<AbsRegion> used;

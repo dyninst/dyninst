@@ -331,7 +331,7 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
         JumpTableReadVisitor jtrv(index, v, cs, block->region(), isZeroExtend, memoryReadSize);
         jumpTargetExpr->accept(&jtrv);
        if (jtrv.valid && cs->isCode(jtrv.targetAddress)) {
-            if (cs->getArch() == Arch_x86_64 && FindJunkInstruction(jtrv.targetAddress)) {
+            if ((cs->getArch() == Arch_x86_64 || cs->getArch() == Arch_riscv64) && FindJunkInstruction(jtrv.targetAddress)) {
                 parsing_printf("WARNING: resolving jump tables leads to junk instruction from %lx\n", jtrv.targetAddress);
                 break;
             }
