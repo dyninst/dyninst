@@ -481,7 +481,6 @@ public:
   //
   // // To solve host/target endian mismatches
   // static int signExtend(unsigned int i, unsigned int pos);
-  // static instructUnion &swapBytes(instructUnion &i);
   //
   // // We need instruction::size() all _over_ the place.
   static unsigned size() { return sizeof(instructUnion); }

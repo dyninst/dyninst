@@ -45,19 +45,6 @@ int instruction::signExtend(unsigned int i, unsigned int pos)
      return ret;
 }
 
-instructUnion &instruction::swapBytes(instructUnion &i)
-{
-    unsigned char tmp = i.byte[0];
-    i.byte[0] = i.byte[3];
-    i.byte[3] = tmp;
-
-    tmp = i.byte[1];
-    i.byte[1] = i.byte[2];
-    i.byte[2] = tmp;
-
-    return i;
-}
-
 instruction *instruction::copy() const {
     return new instruction(*this);
 }

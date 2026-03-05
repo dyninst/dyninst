@@ -50,12 +50,6 @@ int instruction::signExtend(unsigned int i, unsigned int pos)
 	return ret;
 }
 
-instructUnion &instruction::swapBytes(instructUnion &i)
-{
-	assert(0);
-    return i;
-}
-
 instruction *instruction::copy() const {
 	assert(0);
     return new instruction(*this);

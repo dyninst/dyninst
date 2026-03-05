@@ -411,11 +411,6 @@ DYNINST_EXPORT extern const Register ignored{};
 //   return 0;
 // }
 //
-// instructUnion &instruction::swapBytes(instructUnion &i) {
-//   assert(!"Not implemented for AMDGPU");
-//   return i;
-// }
-//
 // instruction *instruction::copy() const {
 //   assert(!"Not implemented for AMDGPU");
 //   return nullptr;
