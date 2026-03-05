@@ -44,8 +44,5 @@
 #include "registers/MachRegister.h"
 #include "dyn_register.h"
 
-#define MAX_IMM16 (32767)
-#define MIN_IMM16 (-32768)
-
 #endif
 

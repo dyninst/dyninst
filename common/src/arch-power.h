@@ -44,6 +44,9 @@ class AddressSpace;
 
 namespace NS_power {
 
+#define MAX_IMM16 (32767)
+#define MIN_IMM16 (-32768)
+
 /*
  * Define power instruction information.
  *
