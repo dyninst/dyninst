@@ -44,7 +44,6 @@
 #include "registers/MachRegister.h"
 #include "common/src/ia32_locations.h"
 #include "dyn_register.h"
-#include "arch.h"
 
 namespace NS_x86 {
 

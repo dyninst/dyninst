@@ -38,7 +38,6 @@
 #include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
 #include "dyntypes.h"
-#include "arch.h"
 #include <vector>
 class AddressSpace;
 

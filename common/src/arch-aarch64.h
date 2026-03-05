@@ -39,7 +39,6 @@
 #include "registers/aarch64_regs.h"
 #include <assert.h>
 #include <vector>
-#include "arch.h"
 class AddressSpace;
 
 namespace NS_aarch64 {
