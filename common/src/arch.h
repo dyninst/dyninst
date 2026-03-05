@@ -44,14 +44,8 @@
 #include "registers/MachRegister.h"
 #include "dyn_register.h"
 
-namespace NS_common {
 #define MAX_IMM16 (32767)
 #define MIN_IMM16 (-32768)
-class instruction {
-  public:
-    instruction() = default;
-};
 
-}
 #endif
 
