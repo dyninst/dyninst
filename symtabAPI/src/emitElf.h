@@ -233,7 +233,6 @@ namespace Dyninst {
 
             //flags
             // Expand NOBITS sections within the object file to their size
-            bool movePHdrsFirst;
             unsigned loadSecTotalSize;
 
             bool isStripped;
@@ -247,7 +246,6 @@ namespace Dyninst {
             void findSegmentEnds();
             void renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll=true);
             void fixPhdrs();
-            void createNewPhdrRegion(std::unordered_map<std::string, unsigned> &newNameIndexMapping);
 
             bool addSectionHeaderTable(Elf_Shdr *shdr);
 
@@ -281,7 +279,6 @@ namespace Dyninst {
             void addDTNeeded(std::string s);
 
             void log_elferror(void (*err_func)(const char *), const char* msg);
-            bool cannotRelocatePhdrs();
 
             bool isStaticBinary;
             std::vector<void*> buffers;
