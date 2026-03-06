@@ -376,9 +376,8 @@ typename emitElf<ElfTypes>::Elf_Off emitElf<ElfTypes>::findLastLoadableSec() {
         tmp++;
     }
     Elf_Scn *scn = NULL;
-    Elf_Shdr *shdr;
     while((scn = elf_nextscn(oldElf, scn))) {
-        shdr = ElfTypes::elf_getshdr(scn);
+        Elf_Shdr * shdr = ElfTypes::elf_getshdr(scn);
         Elf_Off secStart = shdr->sh_addr;
         if( lastDataSegStart <= secStart  && secStart < lastDataSegEnd && secStart > lastLoadableSecStart)
           lastLoadableSecStart = secStart;
@@ -512,7 +511,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         secNames.push_back(name);
         newshdr->sh_name = secNameIndex;
         secNameIndex += strlen(name) + 1;
-        // For sections with vaddr > 0, adjust load addddress by library_adjust
         if (newshdr->sh_addr) {
             newshdr->sh_addr += library_adjust;
 
