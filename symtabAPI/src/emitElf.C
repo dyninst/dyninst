@@ -360,9 +360,6 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
 template<class ElfTypes>
 typename emitElf<ElfTypes>::Elf_Off emitElf<ElfTypes>::findLastLoadableSec() {
     Elf_Phdr *tmp = ElfTypes::elf_getphdr(oldElf);
-    // Find the offset of the start of the text & the data segment
-    // The first LOAD segment is the text & the second LOAD segment
-    // is the data
     Elf_Off lastDataSegStart=0, lastDataSegEnd=0, lastLoadableSecStart=0;
     for (unsigned i = 0; i < oldEhdr->e_phnum; i++) {
         if (tmp->p_type == PT_LOAD) {
