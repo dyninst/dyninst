@@ -498,8 +498,11 @@ bool EmitterAmdgpuGfx908::emitMoveRegToReg(Register src, Register dest, codeGen 
   // TODO:
   // 1. Allow this to move entire register blocks at the same time (using multiple instructions)
   // 2. Make this work with VGPR-VGPR movs
-  assert(isValidSgpr(src) && isValidSgpr(dest) && "src and dest must be valid SGPRs");
-  emitSop1(S_MOV_B32, dest.getId(), src.getId(), /*hasLiteral=*/false, /*literal =*/0, gen);
+  if (isValidSgpr(src) && isValidSgpr(dest)) {
+    emitSop1(S_MOV_B32, dest.getId(), src.getId(), /*hasLiteral=*/false, /*literal =*/0, gen);
+  } else if (isValidVgpr(src) && isValidVgpr(dest)) {
+    emitVop1(V_MOV_B32, /* vdst */dest.getId(), /* src0 */src.getId(), /* hasLiteral */false, 0, gen);
+  }
 
   return false;
 }
@@ -747,11 +750,13 @@ void EmitterAmdgpuGfx908::emitVectorLoad(Register dest, Register baseReg, Regist
 }
 
 void EmitterAmdgpuGfx908::emitVectorStore(Register valueReg, Register baseReg, Register offsetReg, codeGen &gen) {
+  cerr << std::dec << "valueReg  id : " << valueReg.getId() << " baseReg id : " << baseReg.getId() << " offsetReg : " << offsetReg.getId() << '\n';
   assert(isValidVgpr(valueReg) && "dest must be a valid VGPR");
   assert(isValidSgprPair(baseReg) && "baseReg must be a valid SGPR pair");
   assert(isValidVgpr(offsetReg) && "offsetReg must be a valid VGPR");
 
-  emitFlat(GLOBAL_STORE_DWORD, valueReg.getId(), baseReg.getId(), 0, offsetReg.getId(), gen);
+  emitFlat(GLOBAL_STORE_DWORD, 0, baseReg.getId(), valueReg.getId(), offsetReg.getId(), gen);
+  // void emitFlat( opcode,  vdst,  saddr,  data,  addr,
   emitSopP(S_WAITCNT, /* simm16 = */ 0, gen);
   return;
 }

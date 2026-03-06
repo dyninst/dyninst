@@ -1486,8 +1486,8 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
              Register s70_71 = Register::makeScalarRegister(OperandRegId(70), BlockSize(2));
              emitter->emitAddRegToRegPair(s70_71, s69, gen);
-             emitter->emitOpImmSimple(andOp, v201, v201, vectorLength - 1, gen);
-             emitter->emitOpImmSimple(timesOp, v201, v201, sizeOfVariable, gen);
+             // emitter->emitOpImmSimple(andOp, v201, v201, vectorLength - 1, gen);
+             // emitter->emitOpImmSimple(timesOp, v201, v201, sizeOfVariable, gen);
 
              // now v201 has 0-63 id.
              emitter->emitVectorStore(v214, s70_71, v201, gen);
@@ -1785,8 +1785,9 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
 
       Register s70_71 = Register::makeScalarRegister(OperandRegId(70), BlockSize(2));
       emitter->emitAddRegToRegPair(s70_71, s69, gen);
-      emitter->emitOpImmSimple(andOp, v201, v201, vectorLength - 1, gen);
-      emitter->emitOpImmSimple(timesOp, v201, v201, sizeOfVariable, gen);
+      // issue -- v201 is already overwritten. Move all this into the prologue.
+      // emitter->emitOpImmSimple(andOp, v201, v201, vectorLength - 1, gen);
+      // emitter->emitOpImmSimple(timesOp, v201, v201, sizeOfVariable, gen);
 
       // now v201 has 0-63 id.
       emitter->emitVectorLoad(retReg, s70_71, v201, gen);

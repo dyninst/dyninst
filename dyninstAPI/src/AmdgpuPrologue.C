@@ -111,6 +111,13 @@ static Register generateLocalWavefrontId(codeGen &gen) {
   emitter.emitOp(plusOp, v201, v200, v0, gen);
   emitter.emitReadFirstLane(v201, s66, gen);
   emitter.emitScalarLogicalRightShift(s66, s66, /*shiftAmt*/6, gen);
+
+  // v201 = v201 & vectorLength
+  // v201 = v201 * sizeOfVariable
+  const uint32_t vectorLength = 64;
+  const uint32_t sizeOfVariable = sizeof (unsigned);
+  emitter.emitOpImmSimple(andOp, v201, v201, vectorLength - 1, gen);
+  emitter.emitOpImmSimple(timesOp, v201, v201, sizeOfVariable, gen);
   return s66;
 }
 
