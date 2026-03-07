@@ -1124,8 +1124,6 @@ class instruction {
   bool isSysCallInsn() const { return op_ptr_[0] == SYSCALL[0] &&
                                    op_ptr_[1] == SYSCALL[1]; }
 
-  static bool isAligned(const Dyninst::Address ) { return true; }
-
     void print()
   {
       for (unsigned i = 0; i < size_; i++)

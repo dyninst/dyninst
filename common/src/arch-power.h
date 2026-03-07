@@ -888,11 +888,6 @@ class DYNINST_EXPORT instruction {
     bool valid() const { return IFORM_OP(*this) > 0; }
     
     bool isCall() const;
-    
-    static bool isAligned(Dyninst::Address addr) {
-        return !(addr & 0x3);
-    }
-    
     bool isCondBranch() const;
     bool isUncondBranch() const;
     bool isThunk() const;
