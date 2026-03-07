@@ -1,0 +1,163 @@
+variable TERMINATION_FILE = false
+variable RMEM = false
+
+core {
+  files
+    model/core/prelude.sail,
+    model/core/errors.sail,
+    model/core/xlen.sail,
+    model/core/flen.sail,
+    model/core/vlen.sail,
+    model/core/prelude_mem_addrtype.sail,
+    model/core/prelude_mem_metadata.sail,
+    model/core/prelude_mem.sail,
+    model/core/arithmetic.sail,
+    model/core/range_util.sail,
+    model/core/rvfi_dii.sail,
+    model/core/rvfi_dii_v1.sail,
+    model/core/rvfi_dii_v2.sail,
+    model/core/extensions.sail,
+    model/core/types_common.sail,
+    model/core/types_ext.sail,
+    model/core/types.sail,
+    model/core/vmem_types.sail,
+    model/core/vext_types.sail,
+    model/core/csr_begin.sail,
+    model/core/callbacks.sail,
+    model/core/reg_type.sail,
+    model/core/regs.sail,
+    model/core/pc_access.sail,
+    model/core/sys_regs.sail,
+    model/core/ext_regs.sail,
+    model/core/addr_checks_common.sail,
+    model/core/addr_checks.sail,
+    model/core/misa_ext.sail,
+    model/core/softfloat_interface.sail,
+}
+
+exceptions {
+  requires core
+
+  files
+    model/exceptions/sys_exceptions.sail,
+    model/exceptions/sync_exception.sail,
+}
+
+pmp {
+  requires core
+
+  files
+    model/pmp/pmp_regs.sail,
+    model/pmp/pmp_control.sail,
+}
+
+sys {
+  requires core, exceptions, pmp, A_types
+
+  files
+    model/extensions/cfi/zicfilp_regs.sail,
+    model/extensions/Smcntrpmf/smcntrpmf.sail,
+    model/extensions/V/vreg_type.sail,
+    model/extensions/V/vext_regs.sail,
+    model/extensions/V/vext_control.sail,
+    model/sys/sys_reservation.sail,
+    model/sys/sys_control.sail,
+    model/sys/platform.sail,
+    model/sys/pma.sail,
+    model/sys/mem.sail,
+    model/sys/inst_retire.sail,
+    model/sys/vmem_pte.sail,
+    model/sys/vmem_ptw.sail,
+    model/sys/vmem_tlb.sail,
+    model/sys/vmem.sail,
+    model/sys/vmem_utils.sail,
+    model/sys/insts_begin.sail,
+}
+
+extensions {
+  requires core
+
+  I {
+    I_types {
+      before sys
+      files model/extensions/I/base_types.sail
+    }
+    I_insts {
+      requires exceptions, sys, I_types
+
+      files
+        model/extensions/I/base_insts.sail,
+        model/extensions/I/reserved_fence_insts.sail,
+        if $RMEM then
+          model/extensions/I/jalr_rmem.sail
+        else
+          model/extensions/I/jalr_seq.sail
+    }
+  }
+
+  Zicsr {
+    Zicsr_types {
+      before sys
+      files model/extensions/Zicsr/zicsr_types.sail
+    }
+    Zicsr_insts {
+      requires sys, exceptions, pmp, Zicsr_types
+      files model/extensions/Zicsr/zicsr_insts.sail
+    }
+  }
+
+  Zifenci {
+    requires sys
+    files model/extensions/Zifenci/zifencei_insts.sail
+  }
+
+  A {
+    A_types {
+      before sys
+      files model/extensions/A/aext_types.sail
+    }
+    Zaamo {
+      requires sys, A_types
+      files model/extensions/A/zaamo_insts.sail
+    }
+  }
+
+  M {
+    M_types {
+      before sys
+      files model/extensions/M/mext_types.sail
+    }
+    M_insts {
+      requires sys, I, M_types
+      files model/extensions/M/mext_insts.sail
+    }
+  }
+
+  C {
+    Zca {
+      requires exceptions, sys, I
+      files model/extensions/C/zca_insts.sail
+    }
+  }
+
+  FD {
+    FD_core {
+      before sys
+      files
+        model/extensions/FD/freg_type.sail,
+        model/extensions/FD/fdext_regs.sail,
+        model/extensions/FD/fdext_control.sail,
+    }
+
+    FD_instructions {
+      requires sys, I, FD_core
+      files
+        model/extensions/FD/fext_insts.sail,
+        model/extensions/FD/zcf_insts.sail,
+        model/extensions/FD/dext_insts.sail,
+        model/extensions/FD/zcd_insts.sail,
+        model/extensions/FD/zfh_insts.sail,
+        model/extensions/FD/zfa_insts.sail,
+    }
+  }
+}
