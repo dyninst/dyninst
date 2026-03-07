@@ -943,8 +943,12 @@ namespace Dyninst { namespace InstructionAPI {
       } else {
         optype = op_d;
       }
+    }else if(optype == op_x){ 
+      if (pref.vex_ll == 0)
+        optype = op_dq;
+      else
+        optype = op_qq;
     }
-
     switch(operand.admet) {
       case 0:
         // No operand
