@@ -64,7 +64,7 @@ bool run(Dyninst::Architecture arch, std::vector<rv64i_tests> const &tests) {
 }
 
 std::vector<rv64i_tests> make_tests64() {
-  auto zero = Dyninst::riscv64::zero;
+//  auto zero = Dyninst::riscv64::zero;
   auto ra = Dyninst::riscv64::ra;
   auto sp = Dyninst::riscv64::sp;
   auto gp = Dyninst::riscv64::gp;
@@ -128,10 +128,10 @@ std::vector<rv64i_tests> make_tests64() {
     },
 
     // --- B-type branches ---
-    { // beq t1, zero, 12
+    { // beq t1, zero, 12 (aka, beqz t1, 12)
       {0x63,0x06,0x03,0x00},
-      di::opcode_test{riscv64_op_beq, "beq", "beq t1, zero, 0xc"},
-      di::register_rw_test{ reg_set{t1, zero, pc}, reg_set{pc} },
+      di::opcode_test{riscv64_op_beq, "beq", "beq t1, 0xc"},
+      di::register_rw_test{ reg_set{t1, pc}, reg_set{pc} },
       di::mem_test{}
     },
     { // bne s1, s2, 12
@@ -166,7 +166,7 @@ std::vector<rv64i_tests> make_tests64() {
     },
 
     // --- Jalr (I-type) ---
-    { // jalr s11, t6, 0x10
+    { // jalr s11, t6, 0x10 (aka jalr s11, 0x10(t6))
       {0xe7,0x8d,0x0f,0x01},
       di::opcode_test{riscv64_op_jalr, "jalr", "jalr s11, t6, 0x10"},
       di::register_rw_test{ reg_set{t6}, reg_set{s11, pc} },
