@@ -1615,16 +1615,20 @@ DispatcherRiscv64::signedUnsignedMultiply(const BaseSemantics::SValuePtr &a,
   // Symbolically, the result of signed(a) * unsigned(b) is
   //   unsigned_multiply(|a|, b) with proper signednes added
   // Thus, the following sequence is equivalent to signed(a) * unsigned(b):
-  //   sign = a >> (XLEN-1)
-  //   |a| = (a ^ sign) - sign
-  //   result = (mul(|a|, b) ^ sign) - sign
+  //   sign = a >> (XLEN-1)                    // -1 (all ones) or 0 (all zeros)
+  //   |a| = (a ^ sign) - sign                 // two's complement if negative
+  //   result = (umul(|a|, b) ^ sign) - sign   // two's complement umul if a was negative
 
-  BaseSemantics::SValuePtr sign = operators->shiftRightArithmetic(
-      a, operators->number_(XLENBITS, XLENBITS - 1));
-  BaseSemantics::SValuePtr absA =
-      operators->subtract(operators->xor_(a, sign), sign);
-  BaseSemantics::SValuePtr result = operators->subtract(
-      operators->xor_(operators->unsignedMultiply(absA, b), sign), sign);
+  auto numBits = a->get_width();
+  auto sign = operators->shiftRightArithmetic(
+      a, operators->number_(numBits, numBits - 1));
+  // two's complement if a is negative
+  auto absA = operators->subtract(operators->xor_(a, sign), sign);
+  // lower numBits of unsigned multipy
+  auto m = operators->extract(operators->unsignedMultiply(absA, b), 0, numBits);
+  // two's complement if a is negative
+  auto result = operators->subtract(operators->xor_(m, sign), sign);
+
   return result;
 }
 } // namespace InstructionSemantics2
