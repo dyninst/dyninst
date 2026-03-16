@@ -59,7 +59,7 @@ namespace Dyninst { namespace InstructionAPI {
       : operationID(id), archDecodedFrom(arch), mnemonic{std::move(m)} {
     switch(archDecodedFrom) {
       case Arch_x86:
-      case Arch_ppc32: addrWidth = u32; break;
+      addrWidth = u32; break;
       default: addrWidth = u64; break;
     }
   }
@@ -99,7 +99,7 @@ namespace Dyninst { namespace InstructionAPI {
     // Defaults for no size prefix
     switch(archDecodedFrom) {
       case Arch_x86:
-      case Arch_ppc32: addrWidth = u32; break;
+      addrWidth = u32; break;
       default: addrWidth = u64; break;
     }
     if(p && p->getCount()) {
