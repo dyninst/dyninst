@@ -45,6 +45,33 @@
 using namespace std;
 using namespace NS_x86;
 
+static bool getVectorizationInfo(ia32_entry* e) {
+  for(int i = 0; i < 3; i++) {
+    switch(e->operands[i].admet) {
+      case am_V:
+      case am_W:
+      case am_P:
+      case am_Q:
+      case am_HK:
+      case am_H:
+      case am_X:
+      case am_XH:
+      case am_XU:
+      case am_XV:
+      case am_XW:
+      case am_Y:
+      case am_YH:
+      case am_YU:
+      case am_YV:
+      case am_YW:
+      case am_VK:
+      case am_WK: return true;
+      default: break;
+    }
+  }
+  return false;
+}
+
 namespace Dyninst { namespace InstructionAPI {
 
   bool readsOperand(unsigned int opsema, unsigned int i) {
@@ -1721,9 +1748,28 @@ namespace Dyninst { namespace InstructionAPI {
           return;
         }
       }
-      m_Operation =
-          Operation(decodedInstruction->getEntry(), decodedInstruction->getPrefix(), locs, m_Arch);
 
+      {
+        auto *e = decodedInstruction->getEntry();
+        auto *p = decodedInstruction->getPrefix();
+        auto op = Operation(e->getID(locs), "", m_Arch);
+
+        op.isVectorInsn = getVectorizationInfo(e);
+        op.addrWidth = (m_Arch == Arch_x86) ? u32 : u64;
+
+        if(p && p->getCount()) {
+          if(p->getPrefix(0) == PREFIX_REP)
+            op.prefixID = prefix_rep;
+          if(p->getPrefix(0) == PREFIX_REPNZ)
+            op.prefixID = prefix_repnz;
+          op.segPrefix = p->getPrefix(1);
+          if(p->getAddrSzPrefix()) {
+            op.addrWidth = u16;
+          }
+        }
+
+        m_Operation = op;
+      }
     } else {
       // Gap parsing can trigger this case; in particular, when it encounters prefixes in an invalid
       // order. Notably, if a REX prefix (0x40-0x48) appears followed by another prefix (0x66, 0x67,
