@@ -55,9 +55,6 @@ namespace Dyninst { namespace InstructionAPI {
     return boost::make_shared<RegisterAST>(regID, 0, regID.size() * 8);
   }
 
-  Operation::Operation(entryID id, std::string m, Architecture arch)
-      : operationID(id), archDecodedFrom(arch), mnemonic{std::move(m)} {}
-
   Operation::Operation(const Operation& o) {
     operationID = o.operationID;
     archDecodedFrom = o.archDecodedFrom;
