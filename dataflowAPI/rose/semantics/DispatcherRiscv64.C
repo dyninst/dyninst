@@ -1550,7 +1550,7 @@ DispatcherRiscv64::PopCount(const BaseSemantics::SValuePtr &expr) {
 BaseSemantics::SValuePtr
 DispatcherRiscv64::Brev8(const BaseSemantics::SValuePtr &expr) {
   size_t len = expr->get_width();
-  BaseSemantics::SValuePtr result = operators->number_(0, len);
+  BaseSemantics::SValuePtr result = operators->number_(len, 0);
 
   // iterate over bytes
   for (size_t byte = 0; byte < len; byte += 8) {
