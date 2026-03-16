@@ -110,10 +110,6 @@ namespace Dyninst { namespace InstructionAPI {
     this->m_size = new_size;
   }
 
-  Instruction::Instruction() {
-    copyRaw(0, nullptr);
-  }
-
   bool Instruction::isValid() const {
     return is_valid_mnemonic(getArch(), m_InsnOp.getID());
   }

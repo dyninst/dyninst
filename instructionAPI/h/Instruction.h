@@ -94,11 +94,12 @@ namespace Dyninst { namespace InstructionAPI {
       }
     };
 
+    Instruction() = default;
+
     Instruction(Operation what, size_t size, const unsigned char* raw,
                                Dyninst::Architecture arch);
     Instruction(Operation what, Operation encoded_what, size_t size, const unsigned char* raw,
                 Dyninst::Architecture arch);
-    Instruction();
 
     Operation& getOperation();
     const Operation& getOperation() const;
