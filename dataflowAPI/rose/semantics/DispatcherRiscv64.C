@@ -1509,7 +1509,7 @@ DispatcherRiscv64::CarrylessMultiply(const BaseSemantics::SValuePtr &a,
     // if b_bit == 1, XOR (a << i) into result; else XOR 0
     BaseSemantics::SValuePtr term = operators->ite(
         b_bit, operators->shiftLeft(a, operators->number_(len, i)),
-        operators->number_(0, len));
+        operators->number_(len, 0));
     result = operators->xor_(result, term);
   }
 
