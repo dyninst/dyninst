@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(INSTRUCTION_H)
-#define INSTRUCTION_H
+#ifndef DYNINST_INSTRUCTIONAPI_INSTRUCTION_H
+#define DYNINST_INSTRUCTIONAPI_INSTRUCTION_H
 
 #include "compiler_annotations.h"
 #include "Expression.h"
@@ -223,4 +223,4 @@ namespace Dyninst { namespace InstructionAPI {
   };
 }}
 
-#endif //! defined(INSTRUCTION_H)
+#endif
