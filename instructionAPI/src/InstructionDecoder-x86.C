@@ -605,7 +605,7 @@ namespace Dyninst { namespace InstructionAPI {
   static IntelRegTable_access IntelRegTable;
 
   bool InstructionDecoder_x86::isDefault64Insn() {
-    switch(m_Operation.getID()) {
+    switch(this->m_EntryID) {
       case e_jmp:
       case e_pop:
       case e_push:
@@ -960,7 +960,7 @@ namespace Dyninst { namespace InstructionAPI {
       }
     }
 
-    if(cat == c_BranchInsn && insn_to_complete->getOperation().getID() != e_jmp) {
+    if(cat == c_BranchInsn && m_EntryID != e_jmp) {
       isConditional = true;
     }
 
@@ -1719,7 +1719,7 @@ namespace Dyninst { namespace InstructionAPI {
     ia32_decode(IA32_DECODE_PREFIXES, b.start, *decodedInstruction, is64BitMode);
 
     if(decodedInstruction->getLegacyType() == ILLEGAL) {
-      m_Operation = Operation(e_No_Entry, "", m_Arch);
+      this->m_EntryID = e_No_Entry;
       return;
     }
 
@@ -1756,7 +1756,7 @@ namespace Dyninst { namespace InstructionAPI {
           case e_xchg:
             break;
           default:
-            m_Operation = Operation(e_No_Entry, "", m_Arch);
+            this->m_EntryID = e_No_Entry;
             return;
         }
       } else if(decodedInstruction->getPrefix()->getPrefix(0) == PREFIX_REP &&
@@ -1764,10 +1764,12 @@ namespace Dyninst { namespace InstructionAPI {
                 *(b.start + 2) == (unsigned char)(0x1E)) {
         // handling ENDBR family
         if(*(b.start + 3) == (unsigned char)(0xFB)) {
-          m_Operation = Operation(e_endbr32, entryNames_IAPI[e_endbr32], m_Arch);
+          m_EntryID = e_endbr32;
+          m_Mnemonic = entryNames_IAPI[e_endbr32];
           return;
         } else if(*(b.start + 3) == (unsigned char)(0xFA)) {
-          m_Operation = Operation(e_endbr64, entryNames_IAPI[e_endbr64], m_Arch);
+          m_EntryID = e_endbr64;
+          m_Mnemonic = entryNames_IAPI[e_endbr64];
           return;
         }
       }
@@ -1775,23 +1777,21 @@ namespace Dyninst { namespace InstructionAPI {
       {
         auto *e = decodedInstruction->getEntry();
         auto *p = decodedInstruction->getPrefix();
-        auto op = Operation(e->getID(locs), "", m_Arch);
+        this->m_EntryID = e->getID(locs);
 
-        op.isVectorInsn = getVectorizationInfo(e);
-        op.addrWidth = (m_Arch == Arch_x86) ? u32 : u64;
+        this->isVectorInsn = getVectorizationInfo(e);
+        this->addrWidth = (m_Arch == Arch_x86) ? u32 : u64;
 
         if(p && p->getCount()) {
           if(p->getPrefix(0) == PREFIX_REP)
-            op.prefixID = prefix_rep;
+            this->prefixID = prefix_rep;
           if(p->getPrefix(0) == PREFIX_REPNZ)
-            op.prefixID = prefix_repnz;
-          op.segPrefix = p->getPrefix(1);
+            this->prefixID = prefix_repnz;
+          this->segPrefix = p->getPrefix(1);
           if(p->getAddrSzPrefix()) {
-            op.addrWidth = u16;
+            this->addrWidth = u16;
           }
         }
-
-        m_Operation = op;
       }
     } else {
       // Gap parsing can trigger this case; in particular, when it encounters prefixes in an invalid
@@ -1799,7 +1799,7 @@ namespace Dyninst { namespace InstructionAPI {
       // etc) we'll reject the instruction as invalid and send it back with no entry.  Since this is
       // a common byte sequence to see in, for example, ASCII strings, we want to simply accept this
       // and move on, not yell at the user.
-      m_Operation = Operation(e_No_Entry, "", m_Arch);
+      this->m_EntryID = e_No_Entry;
     }
   }
 
@@ -1807,7 +1807,7 @@ namespace Dyninst { namespace InstructionAPI {
     doIA32Decode(b);
 
     // Do not move through the buffer if a bad instruction was encountered
-    if(m_Operation.getID() == e_No_Entry)
+    if(this->m_EntryID == e_No_Entry)
       return;
 
     b.start += decodedInstruction->getSize();
@@ -1898,7 +1898,13 @@ namespace Dyninst { namespace InstructionAPI {
     decodeOpcode(b);
     unsigned int decodedSize = b.start - start;
 
-    auto insn = Instruction(m_Operation, decodedSize, start, m_Arch);
+    auto op = Operation(m_EntryID, std::move(m_Mnemonic), m_Arch);
+    op.isVectorInsn = this->isVectorInsn;
+    op.prefixID = this->prefixID;
+    op.addrWidth = this->addrWidth;
+    op.segPrefix = this->segPrefix;
+
+    auto insn = Instruction(std::move(op), decodedSize, start, m_Arch);
 
     if(insn.isValid()) {
       decodeOperands(&insn);

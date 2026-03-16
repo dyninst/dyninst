@@ -81,6 +81,12 @@ namespace Dyninst { namespace InstructionAPI {
     bool sizePrefixPresent;
     bool addrSizePrefixPresent;
     bool is64BitMode;
+    prefixEntryID prefixID{prefix_none};
+    bool isVectorInsn{false};
+    Result_Type addrWidth;
+    int segPrefix{};
+    entryID m_EntryID{e_No_Entry};
+    std::string m_Mnemonic;
   };
 }}
 
