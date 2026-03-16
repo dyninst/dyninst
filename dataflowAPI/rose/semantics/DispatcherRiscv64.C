@@ -1527,7 +1527,7 @@ DispatcherRiscv64::CarrylessMultiplyReverse(const BaseSemantics::SValuePtr &a,
     BaseSemantics::SValuePtr b_bit = operators->extract(b, i, i + 1);
     BaseSemantics::SValuePtr term = operators->ite(
         b_bit, operators->shiftLeft(a, operators->number_(len, i)),
-        operators->number_(0, len));
+        operators->number_(len, 0));
     result = operators->xor_(result, term);
   }
 
