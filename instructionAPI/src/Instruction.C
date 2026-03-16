@@ -243,9 +243,8 @@ namespace Dyninst { namespace InstructionAPI {
     if(isPrefetch()) {
       return false;
     }
-    for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
-        curOperand != m_Operands.end(); ++curOperand) {
-      if(curOperand->readsMemory()) {
+    for(auto const& op : m_Operands) {
+      if(op.readsMemory()) {
         return true;
       }
     }
@@ -375,8 +374,8 @@ namespace Dyninst { namespace InstructionAPI {
       case e_js:
       case e_je: return true;
       default: {
-        for(cftConstIter targ = m_Successors.begin(); targ != m_Successors.end(); ++targ) {
-          if(targ->isFallthrough)
+        for(auto const& targ : m_Successors) {
+          if(targ.isFallthrough)
             return true;
         }
         return m_Successors.empty();
@@ -405,8 +404,8 @@ namespace Dyninst { namespace InstructionAPI {
       return c_VectorInsn;
     InsnCategory c = entryToCategory(m_InsnOp.getID());
     if(c == c_BranchInsn && (arch_decoded_from == Arch_ppc32 || arch_decoded_from == Arch_ppc64)) {
-      for(cftConstIter cft = cft_begin(); cft != cft_end(); ++cft) {
-        if(cft->isCall) {
+      for(auto const& cft : m_Successors) {
+        if(cft.isCall) {
           return c_CallInsn;
         }
       }
