@@ -39,7 +39,6 @@
 
 #include <mutex>
 #include <set>
-#include <stddef.h>
 #include <string>
 
 namespace NS_x86 {
