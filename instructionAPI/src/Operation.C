@@ -28,6 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "BinaryFunction.h"
+#include "Immediate.h"
 #include "Operation_impl.h"
 #include "Register.h"
 #include "common/src/arch-x86.h"
@@ -42,8 +44,6 @@
 #include <mutex>
 
 using namespace NS_x86;
-#include "BinaryFunction.h"
-#include "Immediate.h"
 
 namespace Dyninst { namespace InstructionAPI {
 
