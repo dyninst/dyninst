@@ -9,6 +9,10 @@ on:
        - '**CMakeLists.txt'
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   cmake-formatting:
     runs-on: ubuntu-latest

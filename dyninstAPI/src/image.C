@@ -36,7 +36,6 @@
 #include <fstream>
 
 #include "image.h"
-#include "parRegion.h"
 #include "inst.h"
 #include "debug.h"
 #include "function.h"
@@ -1518,11 +1517,6 @@ image::~image()
     createdVariables.clear();
     exportedVariables.clear();
 
-   
-    for (i = 0; i < parallelRegions.size(); i++)
-      delete parallelRegions[i];
-    parallelRegions.clear();
-
     // Finally, remove us from the image list.
     allImages.erase(
         std::remove_if(allImages.begin(), allImages.end(),
@@ -1674,7 +1668,7 @@ parse_func *image::addFunction(Address functionEntryAddr, const char *fName)
      // list of inferior heaps...
      string compString = "DYNINSTstaticHeap";
      if (!func->symTabName().compare(0, compString.size(), compString)) {
-         codeHeaps_.push_back(pair<string, Address>(func->symTabName(), func->getOffset()));
+         codeHeaps_.push_back(pair<string, Address>(func->symTabName(), func->addr()));
      }
 
      func->addSymTabName( funcName ); 

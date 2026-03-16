@@ -62,13 +62,6 @@ BPatch_basicBlock::BPatch_basicBlock(block_instance *ib, BPatch_flowGraph *fg):
   sourceBlocks(NULL),
   instructions(NULL)
 {
-
-#if defined(ROUGH_MEMORY_PROFILE)
-  bpatch_basicBlock_count++;
-  if ((bpatch_basicBlock_count % 10) == 0)
-    fprintf(stderr, "bpatch_basicBlock_count: %d (%d)\n",
-            bpatch_basicBlock_count, bpatch_basicBlock_count*sizeof(BPatch_basicBlock));
-#endif
 }
 
 //destructor of the class BPatch_basicBlock

@@ -107,7 +107,7 @@ void PCThread::findSingleThreadInfo() {
             if( tmpFunc != NULL ) {
                 mapped_module *mod = tmpFunc->mod();
                 if( mod && !mod->obj()->isSystemLib(mod->obj()->fullName()) ) {
-                    startFuncAddr_ = tmpFunc->ifunc()->getOffset();
+                    startFuncAddr_ = tmpFunc->ifunc()->addr();
                 }
             }
         }

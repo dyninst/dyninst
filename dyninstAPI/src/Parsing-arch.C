@@ -31,7 +31,7 @@
 
 #include "parseAPI/h/InstructionAdapter.h"
 
-#include "parse-cfg.h"
+#include "parse_func.h"
 
 #include "Parsing.h"
 #include "debug.h"

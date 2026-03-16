@@ -101,135 +101,135 @@ std::vector<rv64zicsr_tests> make_tests64() {
   // clang-format off
   return {
     // --- CSRs ---
-    { // csrrw zero, mstatus, ra
+    { // csrrw ra
       {0x73,0x90,0x00,0x30},
-      di::opcode_test{riscv64_op_csrrw, "csrrw"},
+      di::opcode_test{riscv64_op_csrrw, "csrrw", "csrrw ra"},
       di::register_rw_test{ reg_set{ra}, reg_set{} },
       di::mem_test{}
     },
-    { // csrrw sp, misa, gp
+    { // csrrw sp, gp
       {0x73,0x91,0x11,0x30},
-      di::opcode_test{riscv64_op_csrrw, "csrrw"},
+      di::opcode_test{riscv64_op_csrrw, "csrrw", "csrrw sp, gp"},
       di::register_rw_test{ reg_set{gp}, reg_set{sp} },
       di::mem_test{}
     },
-    { // csrrw tp, mie, t0
+    { // csrrw tp, t0
       {0x73,0x92,0x42,0x30},
-      di::opcode_test{riscv64_op_csrrw, "csrrw"},
+      di::opcode_test{riscv64_op_csrrw, "csrrw", "csrrw tp, t0"},
       di::register_rw_test{ reg_set{t0}, reg_set{tp} },
       di::mem_test{}
     },
-    { // csrrs t1, mtvec, t2
+    { // csrrs t1, t2
       {0x73,0xa3,0x53,0x30},
-      di::opcode_test{riscv64_op_csrrs, "csrrs"},
+      di::opcode_test{riscv64_op_csrrs, "csrrs", "csrrs t1, t2"},
       di::register_rw_test{ reg_set{t2}, reg_set{t1} },
       di::mem_test{}
     },
-    { // csrrs s0, mcountinhibit, s1
+    { // csrrs s0, s1
       {0x73,0xa4,0x04,0x32},
-      di::opcode_test{riscv64_op_csrrs, "csrrs"},
+      di::opcode_test{riscv64_op_csrrs, "csrrs", "csrrs s0, s1"},
       di::register_rw_test{ reg_set{s1}, reg_set{s0} },
       di::mem_test{}
     },
-    { // csrrs a0, mhpmevent3, a1
+    { // csrrs a0, a1
       {0x73,0xa5,0x35,0x32},
-      di::opcode_test{riscv64_op_csrrs, "csrrs"},
+      di::opcode_test{riscv64_op_csrrs, "csrrs", "csrrs a0, a1"},
       di::register_rw_test{ reg_set{a1}, reg_set{a0} },
       di::mem_test{}
     },
-    { // csrrc a2, mhpmcounter3, a3
+    { // csrrc a2, a3
       {0x73,0xb6,0x36,0xb0},
-      di::opcode_test{riscv64_op_csrrc, "csrrc"},
+      di::opcode_test{riscv64_op_csrrc, "csrrc", "csrrc a2, a3"},
       di::register_rw_test{ reg_set{a3}, reg_set{a2} },
       di::mem_test{}
     },
-    { // csrrc a4, mcycle, a5
+    { // csrrc a4, a5
       {0x73,0xb7,0x07,0xb0},
-      di::opcode_test{riscv64_op_csrrc, "csrrc"},
+      di::opcode_test{riscv64_op_csrrc, "csrrc", "csrrc a4, a5"},
       di::register_rw_test{ reg_set{a5}, reg_set{a4} },
       di::mem_test{}
     },
-    { // csrrc a6, minstret, a7
+    { // csrrc a6, a7
       {0x73,0xb8,0x28,0xb0},
-      di::opcode_test{riscv64_op_csrrc, "csrrc"},
+      di::opcode_test{riscv64_op_csrrc, "csrrc", "csrrc a6, a7"},
       di::register_rw_test{ reg_set{a7}, reg_set{a6} },
       di::mem_test{}
     },
-    { // csrrc s2, mvendorid, s3
+    { // csrrc s2, s3
       {0x73,0xb9,0x19,0xf1},
-      di::opcode_test{riscv64_op_csrrc, "csrrc"},
+      di::opcode_test{riscv64_op_csrrc, "csrrc", "csrrc s2, s3"},
       di::register_rw_test{ reg_set{s3}, reg_set{s2} },
       di::mem_test{}
     },
-    { // csrrwi s4, marchid, 1
+    { // csrrwi s4, 1
       {0x73,0xda,0x20,0xf1},
-      di::opcode_test{riscv64_op_csrrwi, "csrrwi"},
+      di::opcode_test{riscv64_op_csrrwi, "csrrwi", "csrrwi s4, 0x1"},
       di::register_rw_test{ reg_set{}, reg_set{s4} },
       di::mem_test{}
     },
-    { // csrrwi s5, mimpid, 2
+    { // csrrwi s5, 2
       {0xf3,0x5a,0x31,0xf1},
-      di::opcode_test{riscv64_op_csrrwi, "csrrwi"},
+      di::opcode_test{riscv64_op_csrrwi, "csrrwi", "csrrwi s5, 0x2"},
       di::register_rw_test{ reg_set{}, reg_set{s5} },
       di::mem_test{}
     },
-    { // csrrwi s6, mhartid, 3
+    { // csrrwi s6, 3
       {0x73,0xdb,0x41,0xf1},
-      di::opcode_test{riscv64_op_csrrwi, "csrrwi"},
+      di::opcode_test{riscv64_op_csrrwi, "csrrwi", "csrrwi s6, 0x3"},
       di::register_rw_test{ reg_set{}, reg_set{s6} },
       di::mem_test{}
     },
-    { // csrrwi s7, mconfigptr, 4
+    { // csrrwi s7, 4
       {0xf3,0x5b,0x52,0xf1},
-      di::opcode_test{riscv64_op_csrrwi, "csrrwi"},
+      di::opcode_test{riscv64_op_csrrwi, "csrrwi", "csrrwi s7, 0x4"},
       di::register_rw_test{ reg_set{}, reg_set{s7} },
       di::mem_test{}
     },
-    { // csrrsi s8, mscratch, 8
+    { // csrrsi s8, 8
       {0x73,0x6c,0x04,0x34},
-      di::opcode_test{riscv64_op_csrrsi, "csrrsi"},
+      di::opcode_test{riscv64_op_csrrsi, "csrrsi", "csrrsi s8, 0x8"},
       di::register_rw_test{ reg_set{}, reg_set{s8} },
       di::mem_test{}
     },
-    { // csrrsi s9, mepc, 12
+    { // csrrsi s9, 12
       {0xf3,0x6c,0x16,0x34},
-      di::opcode_test{riscv64_op_csrrsi, "csrrsi"},
+      di::opcode_test{riscv64_op_csrrsi, "csrrsi", "csrrsi s9, 0xc"},
       di::register_rw_test{ reg_set{}, reg_set{s9} },
       di::mem_test{}
     },
-    { // csrrsi s10, mcause, 16
+    { // csrrsi s10, 16
       {0x73,0x6d,0x28,0x34},
-      di::opcode_test{riscv64_op_csrrsi, "csrrsi"},
+      di::opcode_test{riscv64_op_csrrsi, "csrrsi", "csrrsi s10, 0x10"},
       di::register_rw_test{ reg_set{}, reg_set{s10} },
       di::mem_test{}
     },
-    { // csrrsi s11, mtval, 19
+    { // csrrsi s11, 19
       {0xf3,0xed,0x39,0x34},
-      di::opcode_test{riscv64_op_csrrsi, "csrrsi"},
+      di::opcode_test{riscv64_op_csrrsi, "csrrsi", "csrrsi s11, 0x13"},
       di::register_rw_test{ reg_set{}, reg_set{s11} },
       di::mem_test{}
     },
-    { // csrrci t3, mip, 20
+    { // csrrci t3, 20
       {0x73,0x7e,0x4a,0x34},
-      di::opcode_test{riscv64_op_csrrci, "csrrci"},
+      di::opcode_test{riscv64_op_csrrci, "csrrci", "csrrci t3, 0x14"},
       di::register_rw_test{ reg_set{}, reg_set{t3} },
       di::mem_test{}
     },
-    { // csrrci t4, tselect, 23
+    { // csrrci t4, 23
       {0xf3,0xfe,0x0b,0x7a},
-      di::opcode_test{riscv64_op_csrrci, "csrrci"},
+      di::opcode_test{riscv64_op_csrrci, "csrrci", "csrrci t4, 0x17"},
       di::register_rw_test{ reg_set{}, reg_set{t4} },
       di::mem_test{}
     },
-    { // csrrci t5, tdata1, 24
+    { // csrrci t5, 24
       {0x73,0x7f,0x1c,0x7a},
-      di::opcode_test{riscv64_op_csrrci, "csrrci"},
+      di::opcode_test{riscv64_op_csrrci, "csrrci", "csrrci t5, 0x18"},
       di::register_rw_test{ reg_set{}, reg_set{t5} },
       di::mem_test{}
     },
-    { // csrrci t6, tdata2, 31
+    { // csrrci t6, 31
       {0xf3,0xff,0x2f,0x7a},
-      di::opcode_test{riscv64_op_csrrci, "csrrci"},
+      di::opcode_test{riscv64_op_csrrci, "csrrci", "csrrci t6, 0x1f"},
       di::register_rw_test{ reg_set{}, reg_set{t6} },
       di::mem_test{}
     },

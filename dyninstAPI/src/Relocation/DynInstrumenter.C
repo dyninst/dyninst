@@ -31,7 +31,6 @@
 #include "BPatch_point.h"
 #include "BPatch_addressSpace.h"
 #include "../function.h"
-#include "../parse-cfg.h"
 #include "Snippet.h"
 
 using Dyninst::PatchAPI::DynInstrumenter;
@@ -40,6 +39,8 @@ using Dyninst::PatchAPI::DynRemoveSnipCommand;
 using Dyninst::PatchAPI::DynReplaceFuncCommand;
 using Dyninst::PatchAPI::DynModifyCallCommand;
 using Dyninst::PatchAPI::DynRemoveCallCommand;
+
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 /* Instrumenter Command, which is called implicitly by Patcher's run()  */
 bool DynInstrumenter::run() {
@@ -65,14 +66,14 @@ bool DynInstrumenter::undo() {
 /* Insert Snippet Command */
 
 DynInsertSnipCommand::DynInsertSnipCommand(instPoint* pt, callOrder order,
-                                           AstNodePtr ast, bool recursive) {
+                                           codeGenASTPtr ast, bool recursive) {
    inst_ = (order == orderFirstAtPoint) ? pt->pushFront(ast) : pt->pushBack(ast);
    if (inst_ && recursive)
       inst_->disableRecursiveGuard();
 }
 
 DynInsertSnipCommand* DynInsertSnipCommand::create(instPoint* pt, callOrder order,
-                                                   AstNodePtr ast, bool recursive) {
+                                                   codeGenASTPtr ast, bool recursive) {
    return new DynInsertSnipCommand(pt, order, ast, recursive);
 }
 

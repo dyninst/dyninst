@@ -30,60 +30,12 @@
 
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/dynProcess.h"
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 #include "arch-amdgpu.h"
 #include "emit-amdgpu.h"
+#include "dyn_register.h"
 
-/************************************* Register Space **************************************/
-
-void registerSpace::initialize32() {
-  using namespace NS_amdgpu;
-  static bool done = false;
-  if (done)
-    return;
-
-  std::vector<registerSlot *> registers;
-
-  // TODO: This initialization doesn't consider all registers. Right now only the registers we typically
-  // use for instrumentation are considered. This might need work later on.
-
-  // SGPRs
-  for (unsigned idx = sgpr0; idx <= sgpr101; idx++) {
-    char name[32];
-    sprintf(name, "sgpr%u", idx - sgpr0);
-    registers.push_back(new registerSlot(idx, name,
-                                         /*offLimits =*/false, registerSlot::liveAlways,
-                                         registerSlot::SGPR));
-  }
-
-  // VGPRs
-  for (unsigned idx = v0; idx <= v255; idx++) {
-    char name[32];
-    sprintf(name, "vgpr%u", idx - v0);
-    registers.push_back(new registerSlot(idx, name,
-                                         /*offLimits =*/false, registerSlot::liveAlways,
-                                         registerSlot::VGPR));
-  }
-
-  // clang-format off
-    // SPRs
-    registers.push_back(new registerSlot(flat_scratch_lo, "flat_scratch_lo", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(flat_scratch_lo, "flat_scratch_hi", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(xnack_mask_lo, "xnack_mask_lo", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(xnack_mask_lo, "xnack_mask_hi", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(vcc_lo, "vcc_lo", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(vcc_lo, "vcc_hi", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(exec_lo, "exec_lo", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(exec_lo, "exec_hi", true, registerSlot::liveAlways, registerSlot::SPR));
-  // clang-format on
-
-  registerSpace::createRegisterSpace64(registers);
-  done = true;
-}
-
-void registerSpace::initialize64() { assert(!"No 64-bit registers for AMDGPU"); }
-
-void registerSpace::initialize() { initialize32(); }
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 /***********************************************************************************************/
 /***********************************************************************************************/
@@ -94,13 +46,13 @@ void emitImm(opCode /* op */, Register /* src1 */, RegValue /* src2imm */, Regis
   assert(!"Not implemented for AMDGPU");
 }
 
-Register emitFuncCall(opCode, codeGen &, std::vector<AstNodePtr> &, bool, Address) {
+Register emitFuncCall(opCode, codeGen &, std::vector<codeGenASTPtr> &, bool, Address) {
   assert(!"Not implemented for AMDGPU");
   return 0;
 }
 
 Register emitFuncCall(opCode /* op */, codeGen & /* gen */,
-                      std::vector<AstNodePtr> & /* operands */, bool /* noCost */,
+                      std::vector<codeGenASTPtr> & /* operands */, bool /* noCost */,
                       func_instance * /* callee */) {
   assert(!"Not implemented for AMDGPU");
   return 0;
@@ -160,7 +112,7 @@ void emitLoadPreviousStackFrameRegister(Address /* register_num */, Register /* 
 void emitStorePreviousStackFrameRegister(Address, Register, codeGen &, int, bool) {}
 
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction /* i */, Address /* addr */,
-                                          std::vector<AstNodePtr> & /* args */) {
+                                          std::vector<codeGenASTPtr> & /* args */) {
   assert(!"Not implemented for AMDGPU");
   return false;
 }
@@ -175,12 +127,12 @@ Emitter *AddressSpace::getEmitter() {
   return &gfx908Emitter;
 }
 
-Address Emitter::getInterModuleVarAddr(const image_variable * /* var */, codeGen & /* gen */) {
+Address EmitterAmdgpuGfx908::getInterModuleVarAddr(const image_variable * /* var */, codeGen & /* gen */) {
   assert(!"Not implemented for AMDGPU");
   return 0;
 }
 
-Address Emitter::getInterModuleFuncAddr(func_instance * /* func */, codeGen & /* gen */) {
+Address EmitterAmdgpuGfx908::getInterModuleFuncAddr(func_instance * /* func */, codeGen & /* gen */) {
   assert(!"Not implemented for AMDGPU");
   return 0;
 }

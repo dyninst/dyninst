@@ -36,6 +36,8 @@
 #ifndef INST_POWER_H
 #define INST_POWER_H
 
+#include "dyn_register.h"
+
 #include <stdint.h>
 #include "dyn_register.h"
 

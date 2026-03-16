@@ -1,0 +1,157 @@
+#include "function.h"
+#include "image.h"
+#include "InstructionDecoder.h"
+#include "parse_func.h"
+
+namespace st = Dyninst::SymtabAPI;
+namespace parse = Dyninst::ParseAPI;
+
+parse_func::parse_func(st::Function *func, pdmodule *m, image *i, parse::CodeObject *obj,
+                       parse::CodeRegion *reg, InstructionSource *isrc, FuncSource src)
+    : Function(func->getOffset(), func->getFirstSymbol()->getMangledName(), obj, reg, isrc),
+      func_(func), mod_(m), image_(i)
+
+{
+  _src = src;
+  func->setData(this);
+}
+
+bool parse_func::addSymTabName(std::string name, bool isPrimary) {
+  if(func_->addMangledName(name.c_str(), isPrimary)) {
+    return true;
+  }
+
+  return false;
+}
+
+bool parse_func::addPrettyName(std::string name, bool isPrimary) {
+  if(func_->addPrettyName(name.c_str(), isPrimary)) {
+    return true;
+  }
+
+  return false;
+}
+
+bool parse_func::addTypedName(std::string name, bool isPrimary) {
+  // Count this as a pretty name in function lookup...
+  if(func_->addTypedName(name.c_str(), isPrimary)) {
+    return true;
+  }
+
+  return false;
+}
+
+bool parse_func::isInstrumentableByFunctionName() {
+  // XXXXX kludge: these functions are called by DYNINSTgetCPUtime,
+  // they can't be instrumented or we would have an infinite loop
+  if(prettyName() == "gethrvtime" || prettyName() == "_divdi3" ||
+     prettyName() == "GetProcessTimes") {
+    return false;
+  }
+  return true;
+}
+
+Dyninst::Address parse_func::getEndOffset() {
+  if(!parsed()) {
+    image_->analyzeIfNeeded();
+  }
+  if(blocks().empty()) {
+    fprintf(stderr, "error: end offset requested for empty function\n");
+    return addr();
+  } else {
+    return extents().back()->end();
+  }
+}
+
+bool parse_func::isPLTFunction() {
+  if(isPLTFunction_) {
+    return true;
+  }
+  return obj()->cs()->linkage().find(addr()) != obj()->cs()->linkage().end();
+}
+
+void *parse_func::getPtrToInstruction(Dyninst::Address addr) const {
+  return isrc()->getPtrToInstruction(addr);
+}
+
+bool parse_func::isLeafFunc() {
+  if(!parsed()) {
+    image_->analyzeIfNeeded();
+  }
+
+  return callEdges().empty();
+}
+
+void parse_func::setinit_retstatus(ParseAPI::FuncReturnStatus rs) {
+  init_retstatus_ = rs;
+  if(rs > retstatus()) {
+    set_retstatus(rs);
+  }
+}
+
+ParseAPI::FuncReturnStatus parse_func::init_retstatus() const {
+  if(parse::UNSET == init_retstatus_) {
+    assert(!obj()->defensiveMode()); // should have been set for defensive binaries
+    return retstatus();
+  }
+  if(init_retstatus_ > retstatus()) {
+    return retstatus();
+  }
+  return init_retstatus_;
+}
+
+void parse_func::setHasWeirdInsns(bool wi) {
+  hasWeirdInsns_ = wi;
+}
+
+bool parse_func::hasUnresolvedCF() {
+  if(unresolvedCF_ == UNSET_CF) {
+    for(blocklist::iterator iter = blocks().begin(); iter != blocks().end(); ++iter) {
+      for(parse::Block::edgelist::const_iterator iter2 = (*iter)->targets().begin();
+          iter2 != (*iter)->targets().end(); ++iter2) {
+        if((*iter2)->sinkEdge()) {
+          if((*iter2)->interproc()) {
+            continue;
+          }
+          if(((*iter2)->type() == ParseAPI::INDIRECT) || ((*iter2)->type() == ParseAPI::DIRECT)) {
+            unresolvedCF_ = HAS_UNRESOLVED_CF;
+            break;
+          }
+        }
+      }
+      if(unresolvedCF_ == HAS_UNRESOLVED_CF) {
+        break;
+      }
+    }
+    if(unresolvedCF_ == UNSET_CF) {
+      unresolvedCF_ = NO_UNRESOLVED_CF;
+    }
+  }
+  return (unresolvedCF_ == HAS_UNRESOLVED_CF);
+}
+
+bool parse_func::isInstrumentable() {
+  if(!isInstrumentableByFunctionName() || img()->isUnlinkedObjectFile()) {
+    return false;
+  } else {
+    // Create instrumentation points for non-plt functions
+    if(obj()->cs()->linkage().find(addr()) != obj()->cs()->linkage().end()) {
+      return false;
+    }
+  }
+
+  if(hasUnresolvedCF()) {
+    return false;
+  }
+  return true;
+}
+
+parse_func *parse_func::plt_func(Dyninst::SymtabAPI::Function *func, pdmodule *m, image *i,
+                                 Dyninst::ParseAPI::CodeObject *obj,
+                                 Dyninst::ParseAPI::CodeRegion *reg,
+                                 Dyninst::InstructionSource *isrc,
+                                 Dyninst::ParseAPI::FuncSource src) {
+  auto *f = new parse_func(func, m, i, obj, reg, isrc, src);
+  f->isPLTFunction_ = true;
+  return f;
+}

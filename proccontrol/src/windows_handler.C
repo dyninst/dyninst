@@ -52,7 +52,7 @@
 
 #include "snippets.h"
 
-#include "common/src/parseauxv.h"
+#include "common/src/AuxvParser.h"
 
 #include <sstream>
 #include <iostream>

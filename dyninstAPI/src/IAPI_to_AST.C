@@ -41,25 +41,23 @@
 
 using namespace Dyninst::InstructionAPI;
 
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
+using operandAST = Dyninst::DyninstAPI::operandAST;
+using operatorAST = Dyninst::DyninstAPI::operatorAST;
+
 void ASTFactory::visit(BinaryFunction* b)
 {
-    AstNodePtr rhs = m_stack.back();
+    codeGenASTPtr rhs = m_stack.back();
     m_stack.pop_back();
-    AstNodePtr lhs = m_stack.back();
+    codeGenASTPtr lhs = m_stack.back();
     m_stack.pop_back();
     if(b->isAdd())
     {
-        m_stack.push_back(AstNode::operatorNode(
-                plusOp,
-                lhs,
-                rhs));
+        m_stack.push_back(operatorAST::plus(lhs,rhs));
     }
     else if(b->isMultiply())
     {
-        m_stack.push_back(AstNode::operatorNode(
-                timesOp,
-        lhs,
-        rhs));
+        m_stack.push_back(operatorAST::times(lhs, rhs));
     }
     else
     {
@@ -69,28 +67,25 @@ void ASTFactory::visit(BinaryFunction* b)
 
 void ASTFactory::visit(Dereference* )
 {
-    AstNodePtr effaddr = m_stack.back();
+    codeGenASTPtr effaddr = m_stack.back();
     m_stack.pop_back();
-	m_stack.push_back(AstNode::operandNode(operandType::DataIndir, effaddr));
+	m_stack.push_back(operandAST::DataIndir(effaddr));
 }
 
 void ASTFactory::visit(Immediate* i)
 {
-    m_stack.push_back(AstNode::operandNode(operandType::Constant,
-                    (void*)(i->eval().convert<long>())));
+    m_stack.push_back(operandAST::Constant((void*)(i->eval().convert<long>())));
 }
 
 void ASTFactory::visit(RegisterAST* r)
 {
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)  
-    m_stack.push_back(AstNode::operandNode(operandType::origRegister,
-                      (void*)(intptr_t)(convertRegID(r))));
+    m_stack.push_back(operandAST::origRegister((void*)(intptr_t)(convertRegID(r))));
 #else
     MachRegister reg = r->getID();
     reg = reg.getBaseRegister();
     Register astreg = reg.val() & ~reg.getArchitecture();
-    m_stack.push_back(AstNode::operandNode(AstNode::origRegister,
-                      (void*)(astreg)));
+    m_stack.push_back(operandAST::origRegister((void*)(astreg)));
 #endif
 }
 void ASTFactory::visit(MultiRegisterAST* )

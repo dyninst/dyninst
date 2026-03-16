@@ -58,21 +58,14 @@ std::string PPCFormatter::formatImmediate(const std::string &evalString) const  
 }
 
 std::string PPCFormatter::formatRegister(const std::string &regName) const  {
-    if (regName == "ppc64::pc"  || 
-        regName == "ppc64::ctr" || 
-        regName == "ppc64::lr"  ||
-        regName == "ppc64::cr0") {
+    if (regName == "pc"  ||
+        regName == "ctr" ||
+        regName == "lr"  ||
+        regName == "cr0") {
 
         return "";
     }
-    std::string::size_type lastColon = regName.rfind(':');
-    std::string ret = regName;
-
-    if (lastColon != std::string::npos) {
-        ret = ret.substr(lastColon + 1, ret.length());
-    }
-
-    return ret;
+    return regName;
 }
 
 std::string PPCFormatter::formatDeref(const std::string &addrString) const  {
@@ -106,15 +99,7 @@ std::string ArmFormatter::formatImmediate(const std::string &evalString) const  
 }
 
 std::string ArmFormatter::formatRegister(const std::string &regName) const  {
-    std::string::size_type substr = regName.rfind(':');
-    std::string ret = regName;
-
-    if (substr != std::string::npos) {
-        ret = ret.substr(substr + 1, ret.length());
-    }
-    for(char &c : ret) c = std::toupper(c);
-
-    return ret;
+    return regName;
 }
 
 std::string ArmFormatter::formatDeref(const std::string &addrString) const  {
@@ -154,53 +139,48 @@ std::string RiscvFormatter::formatImmediate(const std::string &evalString) const
 
 std::string RiscvFormatter::formatRegister(const std::string &regName) const  {
     constexpr bool use_register_aliases = true;
-    std::string::size_type substr = regName.rfind(':');
-    std::string ret = regName;
 
-    if (substr != std::string::npos) {
-        ret = ret.substr(substr + 1, ret.length());
-        if (use_register_aliases) {
-            if (ret[0] == 'x') {
-                int regID = std::stoi(ret.substr(1));
-                if (regID == 0) {
-                    return "zero";
-                } else if (regID == 1) {
-                    return "ra";
-                } else if (regID == 2) {
-                    return "sp";
-                } else if (regID == 3) {
-                    return "gp";
-                } else if (regID == 4) {
-                    return "tp";
-                } else if (regID >= 5 && regID <= 7) {
-                    return "t" + std::to_string(regID - 5);
-                } else if (regID >= 8 && regID <= 9) {
-                    return "s" + std::to_string(regID - 8);
-                } else if (regID >= 10 && regID <= 17) {
-                    return "a" + std::to_string(regID - 10);
-                } else if (regID >= 18 && regID <= 27) {
-                    return "s" + std::to_string(regID - 16);
-                } else if (regID >= 28 && regID <= 31) {
-                    return "t" + std::to_string(regID - 25);
-                }
+    if (use_register_aliases) {
+        if (regName[0] == 'x') {
+            int regID = std::stoi(regName.substr(1));
+            if (regID == 0) {
+                return "zero";
+            } else if (regID == 1) {
+                return "ra";
+            } else if (regID == 2) {
+                return "sp";
+            } else if (regID == 3) {
+                return "gp";
+            } else if (regID == 4) {
+                return "tp";
+            } else if (regID >= 5 && regID <= 7) {
+                return "t" + std::to_string(regID - 5);
+            } else if (regID >= 8 && regID <= 9) {
+                return "s" + std::to_string(regID - 8);
+            } else if (regID >= 10 && regID <= 17) {
+                return "a" + std::to_string(regID - 10);
+            } else if (regID >= 18 && regID <= 27) {
+                return "s" + std::to_string(regID - 16);
+            } else if (regID >= 28 && regID <= 31) {
+                return "t" + std::to_string(regID - 25);
             }
-            else if (ret[0] == 'f') {
-                int regID = std::stoi(ret.substr(1));
-                if (regID >= 0 && regID <= 7) {
-                    return "ft" + std::to_string(regID);
-                } else if (regID >= 8 && regID <= 9) {
-                    return "fs" + std::to_string(regID - 8);
-                } else if (regID >= 10 && regID <= 17) {
-                    return "fa" + std::to_string(regID - 10);
-                } else if (regID >= 18 && regID <= 27) {
-                    return "fs" + std::to_string(regID - 16);
-                } else if (regID >= 28 && regID <= 31) {
-                    return "ft" + std::to_string(regID - 20);
-                }
+        }
+        else if (regName[0] == 'f') {
+            int regID = std::stoi(regName.substr(1));
+            if (regID >= 0 && regID <= 7) {
+                return "ft" + std::to_string(regID);
+            } else if (regID >= 8 && regID <= 9) {
+                return "fs" + std::to_string(regID - 8);
+            } else if (regID >= 10 && regID <= 17) {
+                return "fa" + std::to_string(regID - 10);
+            } else if (regID >= 18 && regID <= 27) {
+                return "fs" + std::to_string(regID - 16);
+            } else if (regID >= 28 && regID <= 31) {
+                return "ft" + std::to_string(regID - 20);
             }
         }
     }
-    return ret;
+    return regName;
 }
 
 std::string RiscvFormatter::formatDeref(const std::string &addrString) const  {
@@ -248,9 +228,7 @@ std::string AmdgpuFormatter::formatImmediate(const std::string &evalString) cons
 }
 
 std::string AmdgpuFormatter::formatRegister(const std::string &regName) const  {
-    std::string ret = regName;
-    for(auto &c : ret ) c = ::toupper(c);
-    return ret;
+    return regName;
 }
 
 std::string AmdgpuFormatter::formatDeref(const std::string &addrString) const  {
@@ -281,10 +259,6 @@ std::string AmdgpuFormatter::formatBinaryFunc(const std::string &left, const std
 
 std::string AmdgpuFormatter::formatRegister(MachRegister  m_Reg, uint32_t m_num_elements, unsigned m_Low , unsigned m_High) {
     std::string name = m_Reg.name();
-    std::string::size_type substr = name.rfind("::");
-    if(substr != std::string::npos){
-        name = name.substr(substr+2,name.length());
-    }
     if( m_num_elements ==0 ){
         return "";
     }else if ( m_num_elements > 1){
@@ -365,8 +339,6 @@ std::string AmdgpuFormatter::formatRegister(MachRegister  m_Reg, uint32_t m_num_
 
 std::string AmdgpuFormatter::formatMultiRegister(MachRegister m_Reg, uint32_t len) {
     std::string name = m_Reg.name();
-    auto i = name.rfind("::");
-    name.erase(0,i+2);
     uint32_t id = m_Reg & 0xff ;
     uint32_t regClass = m_Reg.regClass();
     DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_LOGICAL_OP
@@ -411,20 +383,7 @@ std::string x86Formatter::formatImmediate(const std::string &evalString) const
 
 std::string x86Formatter::formatRegister(const std::string &regName) const
 {
-    std::string outReg{'%'};
-
-    auto regNameOffset = regName.find("::");
-    if (regNameOffset == std::string::npos)  {
-	regNameOffset = 0;	// no "::", copy whole string
-    }  else  {
-	regNameOffset += 2;	// skip "::"
-    }
-    auto sBegin = regName.cbegin() + regNameOffset;
-    auto sEnd = regName.cend();
-    auto outRegInserter = std::back_inserter(outReg);
-    std::transform(sBegin, sEnd, outRegInserter, [](unsigned char c){ return std::tolower(c);});
-
-    return outReg;
+    return "%" + regName;
 }
 
 std::string x86Formatter::formatDeref(const std::string &addrString) const

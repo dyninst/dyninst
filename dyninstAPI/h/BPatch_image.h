@@ -37,7 +37,6 @@
 #include "BPatch_type.h"
 #include "BPatch_process.h"
 #include "BPatch_binaryEdit.h"
-#include "BPatch_parRegion.h"
 #include "dyntypes.h"
 
 #include <string>
@@ -135,14 +134,6 @@ class DYNINST_EXPORT BPatch_image: public BPatch_sourceObj {
   BPatch_Vector<BPatch_function *> * getProcedures(bool incUninstrumentable = false);
     
   bool getProcedures(BPatch_Vector<BPatch_function*> &procs, bool incUninstrumentable = false);
-
-  //  BPatch_image::getParRegions
-  //  
-  //  Returns a list of all procedures in the image upon success,
-  //  NULL upon failure
-
-  BPatch_Vector<BPatch_parRegion *> * 
-  getParRegions(bool incUninstrumentable = false);
 
   //  BPatch_image::getModules
   //  

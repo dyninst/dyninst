@@ -221,7 +221,7 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
    if( !origBinEdit->writeFile(outFile) ) return false;
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
    std::string inputFileName = this->getImage()->getProgramFileName();
-   auto *amdgpuPointHandler = dynamic_cast<Dyninst::AmdgpuGfx908PointHandler* >(pointHandler.get());
+   auto *amdgpuPointHandler = dynamic_cast<Dyninst::DyninstAPI::AmdgpuGfx908PointHandler* >(pointHandler.get());
    assert(amdgpuPointHandler);
    amdgpuPointHandler->writeInstrumentedKernelNames(inputFileName + ".instrumentedKernelNames");
    amdgpuPointHandler->writeInstrumentationVarTable(inputFileName + ".instrumentationVarTable");

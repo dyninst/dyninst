@@ -72,14 +72,14 @@ public:
   }
 
   // Default is an invalid register.
-  constexpr Register()
+  constexpr Register() noexcept
       : id(OperandRegId(static_cast<uint32_t>(-1))), kind(RegKind::UNKOWN_KIND), count(BlockSize(1)) {}
 
   // Support existing Register usage that initializes with uint32_t.
-  constexpr Register(uint32_t rawId)
+  constexpr Register(uint32_t rawId) noexcept
       : id(OperandRegId(rawId)), kind(RegKind::SCALAR), count(BlockSize(1)) {}
 
-  constexpr Register(OperandRegId regId, RegKind regKind, BlockSize blockSize)
+  constexpr Register(OperandRegId regId, RegKind regKind, BlockSize blockSize) noexcept
       : id(regId), kind(regKind), count(blockSize) {}
 
   constexpr uint32_t getId() const { return id.getId(); }

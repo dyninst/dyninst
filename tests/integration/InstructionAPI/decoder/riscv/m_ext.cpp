@@ -103,79 +103,79 @@ std::vector<m_ext_tests> make_tests64() {
   return {
     { // mul t0, tp, s7
       {0xb3,0x02,0x72,0x03},
-      di::opcode_test{riscv64_op_mul, "mul"},
+      di::opcode_test{riscv64_op_mul, "mul", "mul t0, tp, s7"},
       di::register_rw_test{ reg_set{tp, s7}, reg_set{t0} },
       di::mem_test{}
     },
     { // mul sp, zero, ra
       {0x33,0x01,0x10,0x02},
-      di::opcode_test{riscv64_op_mul, "mul"},
+      di::opcode_test{riscv64_op_mul, "mul", "mul sp, zero, ra"},
       di::register_rw_test{ reg_set{zero, ra}, reg_set{sp} },
       di::mem_test{}
     },
     { // mulh t3, t4, a2
       {0x33,0x9e,0xce,0x02},
-      di::opcode_test{riscv64_op_mulh, "mulh"},
+      di::opcode_test{riscv64_op_mulh, "mulh", "mulh t3, t4, a2"},
       di::register_rw_test{ reg_set{t4, a2}, reg_set{t3} },
       di::mem_test{}
     },
     { // mulh gp, t6, s11
       {0xb3,0x91,0xbf,0x03},
-      di::opcode_test{riscv64_op_mulh, "mulh"},
+      di::opcode_test{riscv64_op_mulh, "mulh", "mulh gp, t6, s11"},
       di::register_rw_test{ reg_set{t6, s11}, reg_set{gp} },
       di::mem_test{}
     },
     { // mulhsu s1, s2, a0
       {0xb3,0x24,0xa9,0x02},
-      di::opcode_test{riscv64_op_mulhsu, "mulhsu"},
+      di::opcode_test{riscv64_op_mulhsu, "mulhsu", "mulhsu s1, s2, a0"},
       di::register_rw_test{ reg_set{s2, a0}, reg_set{s1} },
       di::mem_test{}
     },
     { // mulhu s0, a2, s9
       {0x33,0x34,0x96,0x03},
-      di::opcode_test{riscv64_op_mulhu, "mulhu"},
+      di::opcode_test{riscv64_op_mulhu, "mulhu", "mulhu s0, a2, s9"},
       di::register_rw_test{ reg_set{a2, s9}, reg_set{s0} },
       di::mem_test{}
     },
     { // div s3, s4, s5
       {0xb3,0x49,0x5a,0x03},
-      di::opcode_test{riscv64_op_div, "div"},
+      di::opcode_test{riscv64_op_div, "div", "div s3, s4, s5"},
       di::register_rw_test{ reg_set{s4, s5}, reg_set{s3} },
       di::mem_test{}
     },
     { // divu s6, t2, s8
       {0x33,0xdb,0x83,0x03},
-      di::opcode_test{riscv64_op_divu, "divu"},
+      di::opcode_test{riscv64_op_divu, "divu", "divu s6, t2, s8"},
       di::register_rw_test{ reg_set{t2, s8}, reg_set{s6} },
       di::mem_test{}
     },
     { // rem t1, s10, zero
       {0x33,0x63,0x0d,0x02},
-      di::opcode_test{riscv64_op_rem, "rem"},
+      di::opcode_test{riscv64_op_rem, "rem", "rem t1, s10, zero"},
       di::register_rw_test{ reg_set{s10, zero}, reg_set{t1} },
       di::mem_test{}
     },
     { // remu t1, a4, s3
       {0x33,0x73,0x37,0x03},
-      di::opcode_test{riscv64_op_remu, "remu"},
+      di::opcode_test{riscv64_op_remu, "remu", "remu t1, a4, s3"},
       di::register_rw_test{ reg_set{a4, s3}, reg_set{t1} },
       di::mem_test{}
     },
     { // mulw a6, t5, a1
       {0x3b,0x08,0xbf,0x02},
-      di::opcode_test{riscv64_op_mulw, "mulw"},
+      di::opcode_test{riscv64_op_mulw, "mulw", "mulw a6, t5, a1"},
       di::register_rw_test{ reg_set{t5, a1}, reg_set{a6} },
       di::mem_test{}
     },
     { // divw s3, s4, s5
       {0xbb,0x49,0x5a,0x03},
-      di::opcode_test{riscv64_op_divw, "divw"},
+      di::opcode_test{riscv64_op_divw, "divw", "divw s3, s4, s5"},
       di::register_rw_test{ reg_set{s4, s5}, reg_set{s3} },
       di::mem_test{}
     },
     { // remw a5, a3, a7
       {0xbb,0xe7,0x16,0x03},
-      di::opcode_test{riscv64_op_remw, "remw"},
+      di::opcode_test{riscv64_op_remw, "remw", "remw a5, a3, a7"},
       di::register_rw_test{ reg_set{a3, a7}, reg_set{a5} },
       di::mem_test{}
     },

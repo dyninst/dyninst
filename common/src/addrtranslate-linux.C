@@ -31,7 +31,7 @@
 #include "common/src/addrtranslate.h"
 #include "common/src/addrtranslate-sysv.h"
 #include "common/src/linuxKludges.h"
-#include "common/src/parseauxv.h"
+#include "common/src/AuxvParser.h"
 #include "common/src/dyninst_filesystem.h"
 
 #include <elf.h>
@@ -207,13 +207,15 @@ LoadedLib *AddressTranslateSysV::getAOut()
 
    // Get the base address
    Address baseAddr = 0;
-   if (program_base && reader) {
-      bool done = false;
+   if (program_header_base && reader) {
       Address phdr_vaddr = (Address) -1;
       Address load_vaddr = (Address) -1;
-      Address header_addr = program_base;
+      Address header_addr = program_header_base;
 
-      while (!done) {
+      assert((address_size == 4 && program_header_size == sizeof(Elf32_Phdr))
+                || (address_size == 8 && program_header_size == sizeof(Elf64_Phdr)));
+
+      for (unsigned long h = 0; h < program_header_count; ++h)  {
          Address p_vaddr;
          unsigned type;
          if (address_size == 4) {
@@ -223,7 +225,6 @@ LoadedLib *AddressTranslateSysV::getAOut()
             }
             p_vaddr = header.p_vaddr;
             type = header.p_type;
-            header_addr += sizeof(Elf32_Phdr);
          }
          else {
             Elf64_Phdr header;
@@ -232,31 +233,21 @@ LoadedLib *AddressTranslateSysV::getAOut()
             }
             p_vaddr = header.p_vaddr;
             type = header.p_type;
-            header_addr += sizeof(Elf64_Phdr);
          }
+	 // find the PHDR address and the minimum LOAD address
          switch (type) {
             case PT_PHDR:
                phdr_vaddr = p_vaddr;
                break;
             case PT_LOAD:
-               if (load_vaddr == (Address) -1) {
+               if (p_vaddr < load_vaddr) {
                   load_vaddr = p_vaddr;
                }
                break;
-            case PT_NULL:
-            case PT_DYNAMIC:
-            case PT_INTERP:
-            case PT_NOTE:
-            case PT_SHLIB:
-            case PT_TLS:
-               break;
             default:
-               done = true;
+               break;
          }
-         if (phdr_vaddr != (Address) -1 &&
-             load_vaddr != (Address) -1) {
-            done = true;
-         }
+         header_addr += program_header_size;
       }
       if (load_vaddr != 0) {
          baseAddr = 0;
@@ -264,7 +255,7 @@ LoadedLib *AddressTranslateSysV::getAOut()
       else {
          // PIE binary, find it
          assert(phdr_vaddr != (Address) -1);
-         baseAddr = program_base - phdr_vaddr;
+         baseAddr = program_header_base - phdr_vaddr;
       }
    }         
 

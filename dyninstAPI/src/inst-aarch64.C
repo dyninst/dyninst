@@ -36,7 +36,6 @@
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "common/src/arch-aarch64.h"
 #include "dyninstAPI/src/codegen.h"
-#include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/os.h"
@@ -44,12 +43,15 @@
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_collections.h"
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "RegisterConversion.h"
 #include "parseAPI/h/CFG.h"
+#include "Instruction.h"
+#include "Register.h"
+#include "registers/aarch64_regs.h"
 
 #include "emitter.h"
 #include "emit-aarch64.h"
@@ -60,6 +62,9 @@ using namespace boost::assign;
 
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
+using operandAST = Dyninst::DyninstAPI::operandAST;
+
 extern bool isPowerOf2(int value, int &result);
 
 #define DISTANCE(x, y)   ((x<y) ? (y-x) : (x-y))
@@ -67,62 +72,6 @@ extern bool isPowerOf2(int value, int &result);
 Address getMaxBranch() {
     return MAX_BRANCH_OFFSET;
 }
-
-/************************************* Register Space **************************************/
-
-void registerSpace::initialize32() {
-    assert(!"No 32-bit implementation for the ARM architecture!");
-}
-
-void registerSpace::initialize64() {
-    static bool done = false;
-    if (done)
-        return;
-
-    std::vector < registerSlot * > registers;
-
-    //GPRs
-    for (unsigned idx = r0; idx <= r28; idx++) {
-        char name[32];
-        sprintf(name, "r%u", idx - r0);
-        registers.push_back(new registerSlot(idx,
-                                             name,
-                                             false,
-                                             registerSlot::liveAlways,
-                                             registerSlot::GPR));
-    }
-    //Mark r29 (frame pointer) and r30 (link register) as off-limits
-    registers.push_back(new registerSlot(r29, "r29", true, registerSlot::liveAlways, registerSlot::GPR));
-    registers.push_back(new registerSlot(r30, "r30", true, registerSlot::liveAlways, registerSlot::GPR));
-
-    //SPRs
-    registers.push_back(new registerSlot(lr, "lr", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(sp, "sp", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(nzcv, "nzcv", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(fpcr, "fpcr", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(fpsr, "fpsr", true, registerSlot::liveAlways, registerSlot::SPR));
-
-    //FPRs
-    for (unsigned idx = fpr0; idx <= fpr31; idx++) {
-        char name[32];
-        sprintf(name, "fpr%u", idx - fpr0);
-        registers.push_back(new registerSlot(idx,
-                                             name,//TODO mov SP to FP
-                                             false,
-                                             registerSlot::liveAlways,
-                                             registerSlot::FPR));
-    }
-
-    registerSpace::createRegisterSpace64(registers);
-    done = true;
-}
-
-void registerSpace::initialize() {
-    initialize64();
-}
-
-/************************************************************************************************/
-/************************************************************************************************/
 
 /********************************* EmitterAARCH64SaveRegs ***************************************/
 
@@ -241,15 +190,15 @@ unsigned EmitterAARCH64SaveRegs::saveSPRegisters(
 
 void EmitterAARCH64SaveRegs::createFrame(codeGen &gen) {
     //Save link register
-    Register linkRegister = gen.rs()->getRegByName("r30");
+    Register linkRegister = convertRegID(Dyninst::aarch64::lr);
     insnCodeGen::saveRegister(gen, linkRegister, -2*GPRSIZE_64);
 
     //Save frame pointer
-    Register framePointer = gen.rs()->getRegByName("r29");
+    Register framePointer = convertRegID(Dyninst::aarch64::fp);
     insnCodeGen::saveRegister(gen, framePointer, -2*GPRSIZE_64);
 
     //Move stack pointer to frame pointer
-    Register stackPointer = gen.rs()->getRegByName("sp");
+    Register stackPointer = convertRegID(Dyninst::aarch64::sp);
     insnCodeGen::generateMoveSP(gen, stackPointer, framePointer, true);
 }
 
@@ -335,11 +284,11 @@ unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(
 
 void EmitterAARCH64RestoreRegs::tearFrame(codeGen &gen) {
     //Restore frame pointer
-    Register framePointer = gen.rs()->getRegByName("r29");
+    Register framePointer = convertRegID(Dyninst::aarch64::fp);
     insnCodeGen::restoreRegister(gen, framePointer, 2*GPRSIZE_64);
 
     //Restore link register
-    Register linkRegister = gen.rs()->getRegByName("r30");
+    Register linkRegister = convertRegID(Dyninst::aarch64::lr);
     insnCodeGen::restoreRegister(gen, linkRegister, 2*GPRSIZE_64);
 }
 
@@ -466,6 +415,56 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
 
 void cleanUpAndExit(int status);
 
+struct parsed_regs {
+  std::set<Dyninst::Register> gprs, fprs;
+};
+
+/* This does a linear scan to find out which registers are used in the function,
+   it then stores these registers so the scan only needs to be done once.
+   It returns true or false based on whether the function is a leaf function,
+   since if it is not the function could call out to another function that
+   clobbers more registers so more analysis would be needed */
+static parsed_regs calcUsedRegs(parse_func *func) {
+  
+  parsed_regs usedRegisters{};
+
+  using namespace Dyninst::InstructionAPI;
+  std::set<RegisterAST::Ptr> writtenRegs;
+
+  auto bl = func->blocks();
+  auto curBlock = bl.begin();
+  for( ; curBlock != bl.end(); ++curBlock)
+  {
+      InstructionDecoder d(func->getPtrToInstruction((*curBlock)->start()),
+              (*curBlock)->size(),
+              func->isrc()->getArch());
+      Instruction i;
+      i = d.decode();
+      while(i.isValid())
+      {
+          i.getWriteSet(writtenRegs);
+          i = d.decode();
+      }
+  }
+
+  for(auto const& reg : writtenRegs) {
+    MachRegister r = reg->getID();
+    auto regID = convertRegID(r.getBaseRegister());
+    if(regID == registerSpace::ignored) {
+      logLine("parse_func::calcUsedRegs: unknown written register\n");
+      continue;
+    }
+    if(r.isGeneralPurpose()) {
+      usedRegisters.gprs.insert(regID);
+    }
+    else if(r.isFloatingPoint()) {
+      usedRegisters.fprs.insert(regID);
+    }
+  }
+  return usedRegisters;
+}
+
+
 /* Recursive function that goes to where our instrumentation is calling
 to figure out what registers are clobbered there, and in any function
 that it calls, to a certain depth ... at which point we clobber everything
@@ -475,31 +474,30 @@ look at the first level and not do recursive, since we would have to also
 store and reexamine every call out instead of doing it on the fly like before*/
 bool EmitterAARCH64::clobberAllFuncCall(registerSpace *rs,
                                         func_instance *callee) {
-    if(!callee)
-        return true;
+  if (!callee)
+    return true;
 
-    if(callee->ifunc()->isLeafFunc()) {
-        std::set<Register> *gpRegs = callee->ifunc()->usedGPRs();
-        for(std::set<Register>::iterator itr = gpRegs->begin(); itr != gpRegs->end(); itr++)
-            rs->GPRs()[*itr]->beenUsed = true;
+  if (callee->ifunc()->isLeafFunc()) {
+    auto const &regs = calcUsedRegs(callee->ifunc());
 
-        std::set<Register> *fpRegs = callee->ifunc()->usedFPRs();
-        for(std::set<Register>::iterator itr = fpRegs->begin(); itr != fpRegs->end(); itr++) {
-          rs->FPRs()[registerSpace::FPR(*itr)]->beenUsed = true;
-        }
-    } else {
-        for(int idx = 0; idx < rs->numGPRs(); idx++)
-            rs->GPRs()[idx]->beenUsed = true;
-        for(int idx = 0; idx < rs->numFPRs(); idx++)
-            rs->FPRs()[idx]->beenUsed = true;
+    for (auto const &r : regs.gprs) {
+      rs->GPRs()[r]->beenUsed = true;
     }
-
-    return false;
+    for (auto const &r : regs.fprs) {
+      rs->FPRs()[registerSpace::FPR(r)]->beenUsed = true;
+    }
+  } else {
+    for (int idx = 0; idx < rs->numGPRs(); idx++)
+      rs->GPRs()[idx]->beenUsed = true;
+    for (int idx = 0; idx < rs->numFPRs(); idx++)
+      rs->FPRs()[idx]->beenUsed = true;
+  }
+  return false;
 }
 
 Register emitFuncCall(opCode op,
                       codeGen &gen,
-                      std::vector <AstNodePtr> &operands, bool noCost,
+                      std::vector <codeGenASTPtr> &operands, bool noCost,
                       func_instance *callee) {
     return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
 }
@@ -519,7 +517,7 @@ Register EmitterAARCH64::emitCallReplacement(opCode,
 
 Register EmitterAARCH64::emitCall(opCode op,
                                   codeGen &gen,
-                                  const std::vector<AstNodePtr> &operands,
+                                  const std::vector<codeGenASTPtr> &operands,
                                   bool,
                                   func_instance *callee) 
 {
@@ -940,7 +938,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 // This can handle indirect control transfers as well
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 					  Address addr,
-					  std::vector<AstNodePtr> &args)
+					  std::vector<codeGenASTPtr> &args)
 {
     namespace di = Dyninst::InstructionAPI;
 
@@ -952,8 +950,8 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
     if(branch_target == registerSpace::ignored) return false;
 
     //jumping to Xn (BLR Xn)
-    args.push_back(AstNode::operandNode(operandType::origRegister,(void *)(long)branch_target));
-    args.push_back(AstNode::operandNode(operandType::Constant, (void *) addr));
+    args.push_back(operandAST::origRegister((void *)(long)branch_target));
+    args.push_back(operandAST::Constant((void *) addr));
 
     return true;
 }
@@ -1234,7 +1232,7 @@ void EmitterAARCH64::emitStoreShared(Register source, const image_variable *var,
     assert(stackSize <= 0 && "stack not empty at the end");
 }
 
-Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen &gen) {
+Address EmitterAARCH64::getInterModuleVarAddr(const image_variable *var, codeGen &gen) {
     AddressSpace *addrSpace = gen.addrSpace();
     if (!addrSpace)
         assert(0 && "No AddressSpace associated with codeGen object");
@@ -1303,7 +1301,7 @@ Address EmitterAARCH64::emitMovePCToReg(Register dest, codeGen &gen) {
     return ret;
 }
 
-Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
+Address EmitterAARCH64::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
     // from POWER64 getInterModuleFuncAddr
 
     AddressSpace *addrSpace = gen.addrSpace();

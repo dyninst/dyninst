@@ -72,7 +72,6 @@ using namespace NS_amdgpu;
 class AddressSpace;
 class instPoint;
 class registerSpace;
-class AstNode;
 class Emitter;
 class func_instance;
 class PCThread;
@@ -84,9 +83,6 @@ class block_instance;
 // and a pointer to where we are in the buffer. This may vary by platform,
 // hence the typedef wrappers.
 class codeGen {
-    // Instruction modifies these.
-    //friend class instruction;
-    friend class AstNode;
  public:
     // Default constructor -- makes an empty generation area
     codeGen();

@@ -308,10 +308,8 @@ public:
     // If we already know the source or target hand them in for efficiency
     edge_instance *findEdge(ParseAPI::Edge *, block_instance *src = NULL, block_instance *trg = NULL);
 
-    // These methods should be invoked to find the global constructor and
-    // destructor functions in stripped, static binaries
-    func_instance *findGlobalConstructorFunc(const std::string &ctorHandler);
-    func_instance *findGlobalDestructorFunc(const std::string &dtorHandler);
+    // Find the global constructor and destructor functions in stripped, static binaries
+    func_instance *findGlobalFunc(const std::string &handler);
 
     // We store callee names at the mapped_object level for
     // efficiency

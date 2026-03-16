@@ -38,403 +38,399 @@
 #include "registers/AMDGPU/amdgpu_gfx908_regs.h"
 #include "registers/AMDGPU/amdgpu_gfx90a_regs.h"
 #include "registers/AMDGPU/amdgpu_gfx940_regs.h"
+#include "dyn_register.h"
 #include <assert.h>
 #include <vector>
 class AddressSpace;
 
 namespace NS_amdgpu {
-// AMDGPU GFX908 register enumeration. Note that THIS enumeration is for Dyninst's abstraction, and the enumerations are NOT meant to map to the architectural register number here.
-// We map these registers to MachRegisters in RegisterConversion-amdgpu.C
+// AMDGPU GFX908 registers of interest for code generation. We will use liveness on these to
+// allocate them for use in instrumentation.
+// Note that this is for Dyninst's abstraction for code generation.
+// The register ids are actual register numbers that are used in instructions. Since SGPRs and VGPRs have
+// the same register numbers, they need to be distinguished.
+//
+// We map these 'Register's to MachRegisters in RegisterConversion-amdgpu.C
 // For information on architectural registers see MachRegister in dyn_regs.h
-typedef enum {
-sgpr0,
-sgpr1,
-sgpr2,
-sgpr3,
-sgpr4,
-sgpr5,
-sgpr6,
-sgpr7,
-sgpr8,
-sgpr9,
-sgpr10,
-sgpr11,
-sgpr12,
-sgpr13,
-sgpr14,
-sgpr15,
-sgpr16,
-sgpr17,
-sgpr18,
-sgpr19,
-sgpr20,
-sgpr21,
-sgpr22,
-sgpr23,
-sgpr24,
-sgpr25,
-sgpr26,
-sgpr27,
-sgpr28,
-sgpr29,
-sgpr30,
-sgpr31,
-sgpr32,
-sgpr33,
-sgpr34,
-sgpr35,
-sgpr36,
-sgpr37,
-sgpr38,
-sgpr39,
-sgpr40,
-sgpr41,
-sgpr42,
-sgpr43,
-sgpr44,
-sgpr45,
-sgpr46,
-sgpr47,
-sgpr48,
-sgpr49,
-sgpr50,
-sgpr51,
-sgpr52,
-sgpr53,
-sgpr54,
-sgpr55,
-sgpr56,
-sgpr57,
-sgpr58,
-sgpr59,
-sgpr60,
-sgpr61,
-sgpr62,
-sgpr63,
-sgpr64,
-sgpr65,
-sgpr66,
-sgpr67,
-sgpr68,
-sgpr69,
-sgpr70,
-sgpr71,
-sgpr72,
-sgpr73,
-sgpr74,
-sgpr75,
-sgpr76,
-sgpr77,
-sgpr78,
-sgpr79,
-sgpr80,
-sgpr81,
-sgpr82,
-sgpr83,
-sgpr84,
-sgpr85,
-sgpr86,
-sgpr87,
-sgpr88,
-sgpr89,
-sgpr90,
-sgpr91,
-sgpr92,
-sgpr93,
-sgpr94,
-sgpr95,
-sgpr96,
-sgpr97,
-sgpr98,
-sgpr99,
-sgpr100,
-sgpr101,
-flat_scratch_lo,
-flat_scratch_hi,
-xnack_mask_lo,
-xnack_mask_hi,
-vcc_lo,
-vcc_hi,
-ttmp0,
-ttmp1,
-ttmp2,
-ttmp3,
-ttmp4,
-ttmp5,
-ttmp6,
-ttmp7,
-ttmp8,
-ttmp9,
-ttmp10,
-ttmp11,
-ttmp12,
-ttmp13,
-ttmp14,
-ttmp15,
-m0,
-exec_lo,
-exec_hi,
 
-// now do vector registers
-v0,
-v1,
-v2,
-v3,
-v4,
-v5,
-v6,
-v7,
-v8,
-v9,
-v10,
-v11,
-v12,
-v13,
-v14,
-v15,
-v16,
-v17,
-v18,
-v19,
-v20,
-v21,
-v22,
-v23,
-v24,
-v25,
-v26,
-v27,
-v28,
-v29,
-v30,
-v31,
-v32,
-v33,
-v34,
-v35,
-v36,
-v37,
-v38,
-v39,
-v40,
-v41,
-v42,
-v43,
-v44,
-v45,
-v46,
-v47,
-v48,
-v49,
-v50,
-v51,
-v52,
-v53,
-v54,
-v55,
-v56,
-v57,
-v58,
-v59,
-v60,
-v61,
-v62,
-v63,
-v64,
-v65,
-v66,
-v67,
-v68,
-v69,
-v70,
-v71,
-v72,
-v73,
-v74,
-v75,
-v76,
-v77,
-v78,
-v79,
-v80,
-v81,
-v82,
-v83,
-v84,
-v85,
-v86,
-v87,
-v88,
-v89,
-v90,
-v91,
-v92,
-v93,
-v94,
-v95,
-v96,
-v97,
-v98,
-v99,
-v100,
-v101,
-v102,
-v103,
-v104,
-v105,
-v106,
-v107,
-v108,
-v109,
-v110,
-v111,
-v112,
-v113,
-v114,
-v115,
-v116,
-v117,
-v118,
-v119,
-v120,
-v121,
-v122,
-v123,
-v124,
-v125,
-v126,
-v127,
-v128,
-v129,
-v130,
-v131,
-v132,
-v133,
-v134,
-v135,
-v136,
-v137,
-v138,
-v139,
-v140,
-v141,
-v142,
-v143,
-v144,
-v145,
-v146,
-v147,
-v148,
-v149,
-v150,
-v151,
-v152,
-v153,
-v154,
-v155,
-v156,
-v157,
-v158,
-v159,
-v160,
-v161,
-v162,
-v163,
-v164,
-v165,
-v166,
-v167,
-v168,
-v169,
-v170,
-v171,
-v172,
-v173,
-v174,
-v175,
-v176,
-v177,
-v178,
-v179,
-v180,
-v181,
-v182,
-v183,
-v184,
-v185,
-v186,
-v187,
-v188,
-v189,
-v190,
-v191,
-v192,
-v193,
-v194,
-v195,
-v196,
-v197,
-v198,
-v199,
-v200,
-v201,
-v202,
-v203,
-v204,
-v205,
-v206,
-v207,
-v208,
-v209,
-v210,
-v211,
-v212,
-v213,
-v214,
-v215,
-v216,
-v217,
-v218,
-v219,
-v220,
-v221,
-v222,
-v223,
-v224,
-v225,
-v226,
-v227,
-v228,
-v229,
-v230,
-v231,
-v232,
-v233,
-v234,
-v235,
-v236,
-v237,
-v238,
-v239,
-v240,
-v241,
-v242,
-v243,
-v244,
-v245,
-v246,
-v247,
-v248,
-v249,
-v250,
-v251,
-v252,
-v253,
-v254,
-v255,
+using namespace Dyninst;
 
-ignored} amdgpuRegisters_t;
+constexpr uint32_t MIN_SGPR_ID = 0;
+constexpr uint32_t MAX_SGPR_ID = 101;
 
+namespace RegisterConstants {
+DYNINST_EXPORT extern const Register s0;
+DYNINST_EXPORT extern const Register s1;
+DYNINST_EXPORT extern const Register s2;
+DYNINST_EXPORT extern const Register s3;
+DYNINST_EXPORT extern const Register s4;
+DYNINST_EXPORT extern const Register s5;
+DYNINST_EXPORT extern const Register s6;
+DYNINST_EXPORT extern const Register s7;
+DYNINST_EXPORT extern const Register s8;
+DYNINST_EXPORT extern const Register s9;
+DYNINST_EXPORT extern const Register s10;
+DYNINST_EXPORT extern const Register s11;
+DYNINST_EXPORT extern const Register s12;
+DYNINST_EXPORT extern const Register s13;
+DYNINST_EXPORT extern const Register s14;
+DYNINST_EXPORT extern const Register s15;
+DYNINST_EXPORT extern const Register s16;
+DYNINST_EXPORT extern const Register s17;
+DYNINST_EXPORT extern const Register s18;
+DYNINST_EXPORT extern const Register s19;
+DYNINST_EXPORT extern const Register s20;
+DYNINST_EXPORT extern const Register s21;
+DYNINST_EXPORT extern const Register s22;
+DYNINST_EXPORT extern const Register s23;
+DYNINST_EXPORT extern const Register s24;
+DYNINST_EXPORT extern const Register s25;
+DYNINST_EXPORT extern const Register s26;
+DYNINST_EXPORT extern const Register s27;
+DYNINST_EXPORT extern const Register s28;
+DYNINST_EXPORT extern const Register s29;
+DYNINST_EXPORT extern const Register s30;
+DYNINST_EXPORT extern const Register s31;
+DYNINST_EXPORT extern const Register s32;
+DYNINST_EXPORT extern const Register s33;
+DYNINST_EXPORT extern const Register s34;
+DYNINST_EXPORT extern const Register s35;
+DYNINST_EXPORT extern const Register s36;
+DYNINST_EXPORT extern const Register s37;
+DYNINST_EXPORT extern const Register s38;
+DYNINST_EXPORT extern const Register s39;
+DYNINST_EXPORT extern const Register s40;
+DYNINST_EXPORT extern const Register s41;
+DYNINST_EXPORT extern const Register s42;
+DYNINST_EXPORT extern const Register s43;
+DYNINST_EXPORT extern const Register s44;
+DYNINST_EXPORT extern const Register s45;
+DYNINST_EXPORT extern const Register s46;
+DYNINST_EXPORT extern const Register s47;
+DYNINST_EXPORT extern const Register s48;
+DYNINST_EXPORT extern const Register s49;
+DYNINST_EXPORT extern const Register s50;
+DYNINST_EXPORT extern const Register s51;
+DYNINST_EXPORT extern const Register s52;
+DYNINST_EXPORT extern const Register s53;
+DYNINST_EXPORT extern const Register s54;
+DYNINST_EXPORT extern const Register s55;
+DYNINST_EXPORT extern const Register s56;
+DYNINST_EXPORT extern const Register s57;
+DYNINST_EXPORT extern const Register s58;
+DYNINST_EXPORT extern const Register s59;
+DYNINST_EXPORT extern const Register s60;
+DYNINST_EXPORT extern const Register s61;
+DYNINST_EXPORT extern const Register s62;
+DYNINST_EXPORT extern const Register s63;
+DYNINST_EXPORT extern const Register s64;
+DYNINST_EXPORT extern const Register s65;
+DYNINST_EXPORT extern const Register s66;
+DYNINST_EXPORT extern const Register s67;
+DYNINST_EXPORT extern const Register s68;
+DYNINST_EXPORT extern const Register s69;
+DYNINST_EXPORT extern const Register s70;
+DYNINST_EXPORT extern const Register s71;
+DYNINST_EXPORT extern const Register s72;
+DYNINST_EXPORT extern const Register s73;
+DYNINST_EXPORT extern const Register s74;
+DYNINST_EXPORT extern const Register s75;
+DYNINST_EXPORT extern const Register s76;
+DYNINST_EXPORT extern const Register s77;
+DYNINST_EXPORT extern const Register s78;
+DYNINST_EXPORT extern const Register s79;
+DYNINST_EXPORT extern const Register s80;
+DYNINST_EXPORT extern const Register s81;
+DYNINST_EXPORT extern const Register s82;
+DYNINST_EXPORT extern const Register s83;
+DYNINST_EXPORT extern const Register s84;
+DYNINST_EXPORT extern const Register s85;
+DYNINST_EXPORT extern const Register s86;
+DYNINST_EXPORT extern const Register s87;
+DYNINST_EXPORT extern const Register s88;
+DYNINST_EXPORT extern const Register s89;
+DYNINST_EXPORT extern const Register s90;
+DYNINST_EXPORT extern const Register s91;
+DYNINST_EXPORT extern const Register s92;
+DYNINST_EXPORT extern const Register s93;
+DYNINST_EXPORT extern const Register s94;
+DYNINST_EXPORT extern const Register s95;
+DYNINST_EXPORT extern const Register s96;
+DYNINST_EXPORT extern const Register s97;
+DYNINST_EXPORT extern const Register s98;
+DYNINST_EXPORT extern const Register s99;
+DYNINST_EXPORT extern const Register s100;
+DYNINST_EXPORT extern const Register s101;
+DYNINST_EXPORT extern const Register flat_scratch_lo;
+DYNINST_EXPORT extern const Register flat_scratch_hi;
+DYNINST_EXPORT extern const Register xnack_mask_lo;
+DYNINST_EXPORT extern const Register xnack_mask_hi;
+DYNINST_EXPORT extern const Register vcc_lo;
+DYNINST_EXPORT extern const Register vcc_hi;
+DYNINST_EXPORT extern const Register exec_lo;
+DYNINST_EXPORT extern const Register exec_hi;
+
+// Vector registers
+DYNINST_EXPORT extern const Register v0;
+DYNINST_EXPORT extern const Register v1;
+DYNINST_EXPORT extern const Register v2;
+DYNINST_EXPORT extern const Register v3;
+DYNINST_EXPORT extern const Register v4;
+DYNINST_EXPORT extern const Register v5;
+DYNINST_EXPORT extern const Register v6;
+DYNINST_EXPORT extern const Register v7;
+DYNINST_EXPORT extern const Register v8;
+DYNINST_EXPORT extern const Register v9;
+DYNINST_EXPORT extern const Register v10;
+DYNINST_EXPORT extern const Register v11;
+DYNINST_EXPORT extern const Register v12;
+DYNINST_EXPORT extern const Register v13;
+DYNINST_EXPORT extern const Register v14;
+DYNINST_EXPORT extern const Register v15;
+DYNINST_EXPORT extern const Register v16;
+DYNINST_EXPORT extern const Register v17;
+DYNINST_EXPORT extern const Register v18;
+DYNINST_EXPORT extern const Register v19;
+DYNINST_EXPORT extern const Register v20;
+DYNINST_EXPORT extern const Register v21;
+DYNINST_EXPORT extern const Register v22;
+DYNINST_EXPORT extern const Register v23;
+DYNINST_EXPORT extern const Register v24;
+DYNINST_EXPORT extern const Register v25;
+DYNINST_EXPORT extern const Register v26;
+DYNINST_EXPORT extern const Register v27;
+DYNINST_EXPORT extern const Register v28;
+DYNINST_EXPORT extern const Register v29;
+DYNINST_EXPORT extern const Register v30;
+DYNINST_EXPORT extern const Register v31;
+DYNINST_EXPORT extern const Register v32;
+DYNINST_EXPORT extern const Register v33;
+DYNINST_EXPORT extern const Register v34;
+DYNINST_EXPORT extern const Register v35;
+DYNINST_EXPORT extern const Register v36;
+DYNINST_EXPORT extern const Register v37;
+DYNINST_EXPORT extern const Register v38;
+DYNINST_EXPORT extern const Register v39;
+DYNINST_EXPORT extern const Register v40;
+DYNINST_EXPORT extern const Register v41;
+DYNINST_EXPORT extern const Register v42;
+DYNINST_EXPORT extern const Register v43;
+DYNINST_EXPORT extern const Register v44;
+DYNINST_EXPORT extern const Register v45;
+DYNINST_EXPORT extern const Register v46;
+DYNINST_EXPORT extern const Register v47;
+DYNINST_EXPORT extern const Register v48;
+DYNINST_EXPORT extern const Register v49;
+DYNINST_EXPORT extern const Register v50;
+DYNINST_EXPORT extern const Register v51;
+DYNINST_EXPORT extern const Register v52;
+DYNINST_EXPORT extern const Register v53;
+DYNINST_EXPORT extern const Register v54;
+DYNINST_EXPORT extern const Register v55;
+DYNINST_EXPORT extern const Register v56;
+DYNINST_EXPORT extern const Register v57;
+DYNINST_EXPORT extern const Register v58;
+DYNINST_EXPORT extern const Register v59;
+DYNINST_EXPORT extern const Register v60;
+DYNINST_EXPORT extern const Register v61;
+DYNINST_EXPORT extern const Register v62;
+DYNINST_EXPORT extern const Register v63;
+DYNINST_EXPORT extern const Register v64;
+DYNINST_EXPORT extern const Register v65;
+DYNINST_EXPORT extern const Register v66;
+DYNINST_EXPORT extern const Register v67;
+DYNINST_EXPORT extern const Register v68;
+DYNINST_EXPORT extern const Register v69;
+DYNINST_EXPORT extern const Register v70;
+DYNINST_EXPORT extern const Register v71;
+DYNINST_EXPORT extern const Register v72;
+DYNINST_EXPORT extern const Register v73;
+DYNINST_EXPORT extern const Register v74;
+DYNINST_EXPORT extern const Register v75;
+DYNINST_EXPORT extern const Register v76;
+DYNINST_EXPORT extern const Register v77;
+DYNINST_EXPORT extern const Register v78;
+DYNINST_EXPORT extern const Register v79;
+DYNINST_EXPORT extern const Register v80;
+DYNINST_EXPORT extern const Register v81;
+DYNINST_EXPORT extern const Register v82;
+DYNINST_EXPORT extern const Register v83;
+DYNINST_EXPORT extern const Register v84;
+DYNINST_EXPORT extern const Register v85;
+DYNINST_EXPORT extern const Register v86;
+DYNINST_EXPORT extern const Register v87;
+DYNINST_EXPORT extern const Register v88;
+DYNINST_EXPORT extern const Register v89;
+DYNINST_EXPORT extern const Register v90;
+DYNINST_EXPORT extern const Register v91;
+DYNINST_EXPORT extern const Register v92;
+DYNINST_EXPORT extern const Register v93;
+DYNINST_EXPORT extern const Register v94;
+DYNINST_EXPORT extern const Register v95;
+DYNINST_EXPORT extern const Register v96;
+DYNINST_EXPORT extern const Register v97;
+DYNINST_EXPORT extern const Register v98;
+DYNINST_EXPORT extern const Register v99;
+DYNINST_EXPORT extern const Register v100;
+DYNINST_EXPORT extern const Register v101;
+DYNINST_EXPORT extern const Register v102;
+DYNINST_EXPORT extern const Register v103;
+DYNINST_EXPORT extern const Register v104;
+DYNINST_EXPORT extern const Register v105;
+DYNINST_EXPORT extern const Register v106;
+DYNINST_EXPORT extern const Register v107;
+DYNINST_EXPORT extern const Register v108;
+DYNINST_EXPORT extern const Register v109;
+DYNINST_EXPORT extern const Register v110;
+DYNINST_EXPORT extern const Register v111;
+DYNINST_EXPORT extern const Register v112;
+DYNINST_EXPORT extern const Register v113;
+DYNINST_EXPORT extern const Register v114;
+DYNINST_EXPORT extern const Register v115;
+DYNINST_EXPORT extern const Register v116;
+DYNINST_EXPORT extern const Register v117;
+DYNINST_EXPORT extern const Register v118;
+DYNINST_EXPORT extern const Register v119;
+DYNINST_EXPORT extern const Register v120;
+DYNINST_EXPORT extern const Register v121;
+DYNINST_EXPORT extern const Register v122;
+DYNINST_EXPORT extern const Register v123;
+DYNINST_EXPORT extern const Register v124;
+DYNINST_EXPORT extern const Register v125;
+DYNINST_EXPORT extern const Register v126;
+DYNINST_EXPORT extern const Register v127;
+DYNINST_EXPORT extern const Register v128;
+DYNINST_EXPORT extern const Register v129;
+DYNINST_EXPORT extern const Register v130;
+DYNINST_EXPORT extern const Register v131;
+DYNINST_EXPORT extern const Register v132;
+DYNINST_EXPORT extern const Register v133;
+DYNINST_EXPORT extern const Register v134;
+DYNINST_EXPORT extern const Register v135;
+DYNINST_EXPORT extern const Register v136;
+DYNINST_EXPORT extern const Register v137;
+DYNINST_EXPORT extern const Register v138;
+DYNINST_EXPORT extern const Register v139;
+DYNINST_EXPORT extern const Register v140;
+DYNINST_EXPORT extern const Register v141;
+DYNINST_EXPORT extern const Register v142;
+DYNINST_EXPORT extern const Register v143;
+DYNINST_EXPORT extern const Register v144;
+DYNINST_EXPORT extern const Register v145;
+DYNINST_EXPORT extern const Register v146;
+DYNINST_EXPORT extern const Register v147;
+DYNINST_EXPORT extern const Register v148;
+DYNINST_EXPORT extern const Register v149;
+DYNINST_EXPORT extern const Register v150;
+DYNINST_EXPORT extern const Register v151;
+DYNINST_EXPORT extern const Register v152;
+DYNINST_EXPORT extern const Register v153;
+DYNINST_EXPORT extern const Register v154;
+DYNINST_EXPORT extern const Register v155;
+DYNINST_EXPORT extern const Register v156;
+DYNINST_EXPORT extern const Register v157;
+DYNINST_EXPORT extern const Register v158;
+DYNINST_EXPORT extern const Register v159;
+DYNINST_EXPORT extern const Register v160;
+DYNINST_EXPORT extern const Register v161;
+DYNINST_EXPORT extern const Register v162;
+DYNINST_EXPORT extern const Register v163;
+DYNINST_EXPORT extern const Register v164;
+DYNINST_EXPORT extern const Register v165;
+DYNINST_EXPORT extern const Register v166;
+DYNINST_EXPORT extern const Register v167;
+DYNINST_EXPORT extern const Register v168;
+DYNINST_EXPORT extern const Register v169;
+DYNINST_EXPORT extern const Register v170;
+DYNINST_EXPORT extern const Register v171;
+DYNINST_EXPORT extern const Register v172;
+DYNINST_EXPORT extern const Register v173;
+DYNINST_EXPORT extern const Register v174;
+DYNINST_EXPORT extern const Register v175;
+DYNINST_EXPORT extern const Register v176;
+DYNINST_EXPORT extern const Register v177;
+DYNINST_EXPORT extern const Register v178;
+DYNINST_EXPORT extern const Register v179;
+DYNINST_EXPORT extern const Register v180;
+DYNINST_EXPORT extern const Register v181;
+DYNINST_EXPORT extern const Register v182;
+DYNINST_EXPORT extern const Register v183;
+DYNINST_EXPORT extern const Register v184;
+DYNINST_EXPORT extern const Register v185;
+DYNINST_EXPORT extern const Register v186;
+DYNINST_EXPORT extern const Register v187;
+DYNINST_EXPORT extern const Register v188;
+DYNINST_EXPORT extern const Register v189;
+DYNINST_EXPORT extern const Register v190;
+DYNINST_EXPORT extern const Register v191;
+DYNINST_EXPORT extern const Register v192;
+DYNINST_EXPORT extern const Register v193;
+DYNINST_EXPORT extern const Register v194;
+DYNINST_EXPORT extern const Register v195;
+DYNINST_EXPORT extern const Register v196;
+DYNINST_EXPORT extern const Register v197;
+DYNINST_EXPORT extern const Register v198;
+DYNINST_EXPORT extern const Register v199;
+DYNINST_EXPORT extern const Register v200;
+DYNINST_EXPORT extern const Register v201;
+DYNINST_EXPORT extern const Register v202;
+DYNINST_EXPORT extern const Register v203;
+DYNINST_EXPORT extern const Register v204;
+DYNINST_EXPORT extern const Register v205;
+DYNINST_EXPORT extern const Register v206;
+DYNINST_EXPORT extern const Register v207;
+DYNINST_EXPORT extern const Register v208;
+DYNINST_EXPORT extern const Register v209;
+DYNINST_EXPORT extern const Register v210;
+DYNINST_EXPORT extern const Register v211;
+DYNINST_EXPORT extern const Register v212;
+DYNINST_EXPORT extern const Register v213;
+DYNINST_EXPORT extern const Register v214;
+DYNINST_EXPORT extern const Register v215;
+DYNINST_EXPORT extern const Register v216;
+DYNINST_EXPORT extern const Register v217;
+DYNINST_EXPORT extern const Register v218;
+DYNINST_EXPORT extern const Register v219;
+DYNINST_EXPORT extern const Register v220;
+DYNINST_EXPORT extern const Register v221;
+DYNINST_EXPORT extern const Register v222;
+DYNINST_EXPORT extern const Register v223;
+DYNINST_EXPORT extern const Register v224;
+DYNINST_EXPORT extern const Register v225;
+DYNINST_EXPORT extern const Register v226;
+DYNINST_EXPORT extern const Register v227;
+DYNINST_EXPORT extern const Register v228;
+DYNINST_EXPORT extern const Register v229;
+DYNINST_EXPORT extern const Register v230;
+DYNINST_EXPORT extern const Register v231;
+DYNINST_EXPORT extern const Register v232;
+DYNINST_EXPORT extern const Register v233;
+DYNINST_EXPORT extern const Register v234;
+DYNINST_EXPORT extern const Register v235;
+DYNINST_EXPORT extern const Register v236;
+DYNINST_EXPORT extern const Register v237;
+DYNINST_EXPORT extern const Register v238;
+DYNINST_EXPORT extern const Register v239;
+DYNINST_EXPORT extern const Register v240;
+DYNINST_EXPORT extern const Register v241;
+DYNINST_EXPORT extern const Register v242;
+DYNINST_EXPORT extern const Register v243;
+DYNINST_EXPORT extern const Register v244;
+DYNINST_EXPORT extern const Register v245;
+DYNINST_EXPORT extern const Register v246;
+DYNINST_EXPORT extern const Register v247;
+DYNINST_EXPORT extern const Register v248;
+DYNINST_EXPORT extern const Register v249;
+DYNINST_EXPORT extern const Register v250;
+DYNINST_EXPORT extern const Register v251;
+DYNINST_EXPORT extern const Register v252;
+DYNINST_EXPORT extern const Register v253;
+DYNINST_EXPORT extern const Register v254;
+DYNINST_EXPORT extern const Register v255;
+
+DYNINST_EXPORT extern const Register ignored;
+
+} // namespace RegisterConstants
 
 typedef const unsigned int insn_mask;
 

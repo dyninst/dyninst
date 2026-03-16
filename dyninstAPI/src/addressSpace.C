@@ -249,7 +249,7 @@ void AddressSpace::deleteAddressSpace() {
    runtime_lib.clear();
 
    trampGuardBase_ = NULL;
-   trampGuardAST_ = AstNodePtr();
+   trampGuardAST_ = DyninstAPI::codeGenASTPtr();
 
    // up_ptr_ is untouched
    costAddr_ = 0;
@@ -940,15 +940,15 @@ void AddressSpace::getAllModules(std::vector<mapped_module *> &mods){
    }
 }
 
-AstNodePtr AddressSpace::trampGuardAST() {
+DyninstAPI::codeGenASTPtr AddressSpace::trampGuardAST() {
    if (!trampGuardBase_) {
       // Don't have it yet....
-      return AstNodePtr();
+      return DyninstAPI::codeGenASTPtr();
    }
 
    if (trampGuardAST_) return trampGuardAST_;
 
-   trampGuardAST_ = AstNode::operandNode(operandType::variableAddr, trampGuardBase_->ivar());
+   trampGuardAST_ = DyninstAPI::operandAST::variableAddr(trampGuardBase_->ivar());
    return trampGuardAST_;
 }
 
@@ -2087,7 +2087,7 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
         using namespace ParseAPI;
         bool foundStub = false;
         parse_block *curImgBlock = (*bit)->llb();
-        Address base = (*bit)->start() - curImgBlock->firstInsnOffset();
+        Address base = (*bit)->start() - curImgBlock->start();
         const Block::edgelist & sourceEdges = curImgBlock->sources();
 
         // search for stubs in all functions containing the overwritten block

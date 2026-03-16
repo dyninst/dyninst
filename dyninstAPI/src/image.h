@@ -117,8 +117,6 @@ class lineTable;
 class parse_func;
 class image_variable;
 
-class image_parRegion;
-
 class Frame;
 
 class pdmodule;
@@ -483,10 +481,6 @@ class image : public codeRange {
    std::vector<image_variable *> everyUniqueVariable;
    std::vector<image_variable *> createdVariables;
    std::vector<image_variable *> exportedVariables;
-
-   // This contains all parallel regions on the image
-   // These line up with the code generated to support OpenMP, UPC, Titanium, ...
-   std::vector<image_parRegion *> parallelRegions;
 
    // unique (by image) numbering of basic blocks
    int nextBlockID_;

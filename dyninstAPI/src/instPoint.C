@@ -35,7 +35,6 @@
 #include <assert.h>
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/ast.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -50,7 +49,6 @@ using namespace Dyninst::InstructionAPI;
 using namespace Dyninst::ParseAPI;
 
 #include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/parse-cfg.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/emitter.h"
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)

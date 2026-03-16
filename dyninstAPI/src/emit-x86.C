@@ -41,10 +41,10 @@
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/ast.h"
+#include "ast.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 
 #include "dyninstAPI/src/dynProcess.h"
 
@@ -1660,7 +1660,7 @@ bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
       False - No FP Writes
    */
 
-   if (callee->ifunc()->writesFPRs()) {
+   if (writesFPRs(callee->ifunc())) {
       for (unsigned i = 0; i < rs->FPRs().size(); i++) {
          // We might want this to be another flag, actually
          rs->FPRs()[i]->beenUsed = true;
@@ -1679,7 +1679,7 @@ bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
 
 static Register amd64_arg_regs[] = {REGNUM_RDI, REGNUM_RSI, REGNUM_RDX, REGNUM_RCX, REGNUM_R8, REGNUM_R9};
 #define AMD64_ARG_REGS (sizeof(amd64_arg_regs) / sizeof(Register))
-Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<AstNodePtr> &operands,
+Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands,
                                 bool noCost, func_instance *callee)
 {
    assert(op == callOp);
@@ -2743,7 +2743,7 @@ bool EmitterAMD64::emitAdjustStackPointer(int index, codeGen &gen) {
 
 #endif /* end of AMD64-specific functions */
 
-Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
+Address Emitterx86::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
 {
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();
@@ -2777,7 +2777,7 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
     return relocation_address;
 }
 
-Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
+Address Emitterx86::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
 {
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();

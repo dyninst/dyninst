@@ -41,9 +41,12 @@
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/inst-power.h"
 #include "baseTramp.h"
-#include "dyninstAPI/src/registerSpace.h"
+#include "registerSpace.h"
 #include "dyninstAPI/src/function.h"
 #include "common/src/linuxHeaders.h"
+
+using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
+using nullAST = Dyninst::DyninstAPI::nullAST;
 
 
 // FIXME: HOST+CODEGEN
@@ -115,9 +118,9 @@ bool PCProcess::getOPDFunctionAddr(Dyninst::Address &addr) {
     return result;
 }
 
-AstNodePtr PCProcess::createUnprotectStackAST() {
+codeGenASTPtr PCProcess::createUnprotectStackAST() {
     // This is not necessary on power
-    return AstNode::nullNode();
+    return nullAST::create();
 }
 
 bool Frame::setPC(Dyninst::Address newpc) {

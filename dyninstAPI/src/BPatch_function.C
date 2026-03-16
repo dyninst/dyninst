@@ -940,8 +940,8 @@ BPatch_variableExpr *BPatch_function::getFunctionRef()
   //  But since we are adding this as part of the DPCL compatibility process
   //  we use the IBM API, to eliminate one API difference.
   
-  AstNodePtr ast(AstNode::operandNode(operandType::Constant, (void *) remoteAddress));
-  
+  DyninstAPI::codeGenASTPtr ast = DyninstAPI::operandAST::Constant((void *)remoteAddress);
+
   // the variableExpr owns the ast now.
   return new BPatch_variableExpr(fname.c_str(), addSpace, lladdSpace, ast, 
                                  type, (void *) remoteAddress);
@@ -998,10 +998,6 @@ void BPatch_function::fixupUnknown(BPatch_module *module) {
          (*vars)[i]->fixupUnknown(module);
       delete vars;
    }
-}
-
-bool BPatch_function::containsSharedBlocks() {
-    return func->containsSharedBlocks();
 }
 
 // isPrimary: function will now use this name as a primary output name

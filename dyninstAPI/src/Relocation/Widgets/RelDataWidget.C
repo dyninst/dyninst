@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <dyninstAPI/src/registerSpace.h>
+#include <registerSpace.h>
 #include "RelDataWidget.h"
 #include "instructionAPI/h/Instruction.h"
 #include "dyninstAPI/src/debug.h"

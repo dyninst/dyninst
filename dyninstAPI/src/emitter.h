@@ -37,11 +37,11 @@
 #define _EMITTER_H
 
 #include <assert.h>
+#include "codeGenAST.h"
 #include <vector>
 #include "common/src/headers.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "baseTramp.h"
-#include "dyninstAPI/src/ast.h"
 
 class codeGen;
 class registerSpace;
@@ -90,7 +90,7 @@ class Emitter {
     virtual bool emitMoveRegToReg(Register src, Register dest, codeGen &gen) = 0;
     virtual bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen) = 0;
 
-    virtual Register emitCall(opCode op, codeGen &gen, const std::vector<AstNodePtr> &operands,
+    virtual Register emitCall(opCode op, codeGen &gen, const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands,
 			      bool noCost, func_instance *callee) = 0;
 
     virtual void emitGetRetVal(Register dest, bool addr_of, codeGen &gen) = 0;
@@ -112,8 +112,8 @@ class Emitter {
     
     virtual bool clobberAllFuncCall(registerSpace *rs,func_instance *callee) = 0;
 
-    Address getInterModuleFuncAddr(func_instance *func, codeGen& gen);
-    Address getInterModuleVarAddr(const image_variable *var, codeGen& gen);
+    virtual Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) = 0;
+    virtual Address getInterModuleVarAddr(const image_variable *var, codeGen& gen) = 0;
 
     virtual bool emitPLTCall(func_instance *, codeGen &) { assert(0); return false;}
     virtual bool emitPLTJump(func_instance *, codeGen &) { assert(0); return false;}

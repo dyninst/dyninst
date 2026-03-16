@@ -31,11 +31,10 @@
 #ifndef _EMIT_AMDGPU_H
 #define _EMIT_AMDGPU_H
 
-#include "common/src/headers.h"
-#include "dyninstAPI/src/ast.h"
 #include "baseTramp.h"
 #include "dyninstAPI/src/instPoint.h"
 #include <assert.h>
+#include "codeGenAST.h"
 #include <vector>
 
 #include "dyninstAPI/src/amdgpu-gfx908-details.h"
@@ -153,7 +152,7 @@ public:
 
   bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
 
-  Register emitCall(opCode op, codeGen &gen, const std::vector<AstNodePtr> &operands, bool noCost,
+  Register emitCall(opCode op, codeGen &gen, const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands, bool noCost,
                     func_instance *callee);
 
   void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
@@ -221,5 +220,13 @@ public:
   void emitAtomicAdd(Register baseAddrReg, Register src0, codeGen &gen);
 
   void emitAtomicSub(Register baseAddrReg, Register src0, codeGen &gen);
+private:
+  // Some helper functions
+  bool isValidSgpr(Register reg) const;
+  bool isValidSgprBlock(Register regBlock) const;
+  bool isValidSgprPair(Register regBlock) const;
+
+  Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) /* override */;
+  Address getInterModuleVarAddr(const image_variable *var, codeGen& gen) /* override */;
 };
 #endif

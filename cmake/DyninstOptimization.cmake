@@ -69,6 +69,7 @@ if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
       list(APPEND DYNINST_CXX_FLAGS -stdlib=${DYNINST_CXXSTDLIB})
       list(APPEND DYNINST_CXX_LINK_FLAGS -stdlib=${DYNINST_CXXSTDLIB})
     endif()
+    list(APPEND DYNINST_LINK_FLAGS "-Wl-mllvm,-hot-cold-split=true")
   endif()
 
   if(DYNINST_FORCE_RUNPATH)

@@ -146,7 +146,6 @@ class DYNINST_EXPORT BPatch_process : public BPatch_addressSpace {
   friend class BPatch_eventMailbox;
   friend class BPatch_instruction;
   friend class BPatch_addressSpace;
-  friend class AstNode; // AST needs to translate instPoint to
   friend class AstOperatorNode;
   friend class AstMemoryNode;
   friend class PCEventHandler; // to deliver events for callbacks

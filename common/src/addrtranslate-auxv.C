@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/src/parseauxv.h"
+#include "common/src/AuxvParser.h"
 #include "common/src/headers.h"
 
 #include "common/src/addrtranslate.h"
@@ -49,7 +49,9 @@ bool AddressTranslateSysV::setInterpreterBase() {
     if (!parser) return false;
 
     interpreter_base = parser->getInterpreterBase();
-    program_base = parser->getProgramBase();
+    program_header_base = parser->getProgramHeaderBase();
+    program_header_count = parser->getProgramHeaderCount();
+    program_header_size = parser->getProgramHeaderSize();
     page_size = parser->getPageSize();
 
     set_interp_base = true;

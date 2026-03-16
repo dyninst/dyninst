@@ -37,12 +37,11 @@
 #define _EMITTER_POWER_H
 
 #include <assert.h>
+#include "codeGenAST.h"
 #include <vector>
 #include "common/src/headers.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "baseTramp.h"
-#include "dyninstAPI/src/ast.h"
-
 #include "dyninstAPI/src/emitter.h"
 
 class codeGen;
@@ -92,7 +91,7 @@ class EmitterPOWER : public Emitter {
     virtual Address emitMovePCToReg(Register, codeGen& gen);
 
     // This one we actually use now.
-    virtual Register emitCall(opCode, codeGen &, const std::vector<AstNodePtr> &,
+    virtual Register emitCall(opCode, codeGen &, const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &,
 			      bool, func_instance *);
 
     virtual void emitGetRetVal(Register, bool, codeGen &) { assert(0); }
@@ -118,6 +117,9 @@ class EmitterPOWER : public Emitter {
                                          func_instance *);
     void emitCallWithSaves(codeGen &gen, Address dest, bool saveToc, bool saveLR, bool saveR12);
     
+    Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) /* override */;
+    Address getInterModuleVarAddr(const image_variable *var, codeGen& gen) /* override */;
+
  protected:
     virtual bool emitCallInstruction(codeGen &, func_instance *,
                                      bool, Address);

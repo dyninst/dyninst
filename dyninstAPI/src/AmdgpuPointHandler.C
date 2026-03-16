@@ -48,7 +48,7 @@
 #include <cassert>
 #include <fstream>
 
-namespace Dyninst {
+namespace Dyninst { namespace DyninstAPI {
 
 void AmdgpuGfx908PointHandler::handlePoints(std::vector<BPatch_point *> const &points) {
   for (BPatch_point *point : points) {
@@ -85,35 +85,45 @@ uint32_t AmdgpuGfx908PointHandler::getMaxGranulatedWavefrontSgprCount() const {
   return 2 * ((maxSgprCount / 16) - 1);
 }
 
+// This returns the maximum SGPR ID by looking at the number of SGPR blocks allocated in the
+// kernel.
+uint32_t AmdgpuGfx908PointHandler::getMaxUsedSgprId(const AmdgpuKernelDescriptor &kd) const {
+  // The below math comes from LLVM AMDGPUUsage documentation
+  // numSgprBlocks = 2 * ((maxUsedSgprId / 16) - 1)
+  //
+  // Therefore, maxUsedSgprId = ((numSgprBlocks/2) + 1) * 16
+
+  const uint32_t numSgprBlocks = kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount();
+  const uint32_t maxUsedSgprId = ((numSgprBlocks/2) + 1) * 16;
+  return maxUsedSgprId;
+}
+
 bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) const {
   return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() != getMaxGranulatedWavefrontSgprCount());
 }
 
-bool AmdgpuGfx908PointHandler::isRegPairAvailable(Register reg, BPatch_function *function) {
-  assert(reg % 2 == 0 && "reg must be even");
-  assert(reg <= 101 && "reg must be a valid SGPR");
+bool AmdgpuGfx908PointHandler::isScalarRegAvailable(Register reg, const AmdgpuKernelDescriptor &kd) const {
+  // Since we max out register usage, the maximum SPGR is 101. AMDGPU GFX908
+  // aliases the VCC (opcode register ids 106 and 107) to highest allocated
+  // register pair (100 and 101 in this case), so the actual maximum available
+  // is 99.
 
-  MachRegister machReg = convertRegID(reg, Arch_amdgpu_gfx908);
-  MachRegister nextMachReg = convertRegID(reg + 1, Arch_amdgpu_gfx908);
+  assert(reg.isScalar() && "reg must be scalar");
 
-  bool isMachRegLive = false, isNextMachRegLive = false;
+  // We can only use upto s99
+  const uint32_t maxUsableSgprId = 99;
 
-  ParseAPI::Location location(ParseAPI::convert(function));
-  LivenessAnalyzer livenessAnalyzer(Arch_amdgpu_gfx908, /* width = */ 8);
+  const uint32_t firstRegId = reg.getId();
+  const uint32_t numRegs = reg.getCount();
+  const uint32_t lastRegId = firstRegId + numRegs - 1;
 
-  bool success =
-      livenessAnalyzer.query(location, LivenessAnalyzer::Before, machReg, isMachRegLive) &&
-      livenessAnalyzer.query(location, LivenessAnalyzer::Before, nextMachReg, isNextMachRegLive);
+  const uint32_t maxUsedSgprIdInKernel = getMaxUsedSgprId(kd);
 
-  if (!success) {
-    std::cerr << "AmdgpuPointHandler : liveness query on " << function->getMangledName()
-              << " failed.\n"
-              << "exiting...\n";
-    exit(1);
-  }
+  const bool isPair = numRegs == 2;
+  const bool isEvenAligned = firstRegId % 2 == 0;
+  const bool isNotUsedInKernel = firstRegId > maxUsedSgprIdInKernel && lastRegId <= maxUsableSgprId;
 
-  // The register pair must be dead.
-  return !isMachRegLive && !isNextMachRegLive;
+  return isPair && isEvenAligned && isNotUsedInKernel;
 }
 
 void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function) {
@@ -137,8 +147,8 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
     exit(1);
   }
 
-  int reg = 94;
-  if (!isRegPairAvailable(reg, function)) {
+  Register regPair = Register::makeScalarRegister(OperandRegId(94), BlockSize(2));
+  if (!isScalarRegAvailable(regPair, kd)) {
     std::cerr << "Can't instrument " << function->getMangledName()
               << " as s94 and s95 are not available.\n"
               << "exiting...\n";
@@ -149,9 +159,9 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
   function->getEntryPoints(entryPoints);
 
   auto prologuePtr =
-      boost::make_shared<AmdgpuPrologue>(reg, kd.getKernargPtrRegister(), kd.getKernargSize());
+      boost::make_shared<AmdgpuPrologue>(regPair, kd.getKernargPtrRegisterPair(), kd.getKernargSize());
 
-  AstNodePtr prologueNodePtr =
+  DyninstAPI::codeGenASTPtr prologueNodePtr =
         boost::make_shared<AmdgpuPrologueNode>(prologuePtr);
 
   AmdgpuPrologueSnippet prologueSnippet(prologueNodePtr);
@@ -171,7 +181,7 @@ void AmdgpuGfx908PointHandler::insertEpilogueIfKernel(BPatch_function *function)
 
   auto epiloguePtr = boost::make_shared<AmdgpuEpilogue>();
 
-  AstNodePtr epilogueNodePtr = boost::make_shared<AmdgpuEpilogueNode>(epiloguePtr);
+  DyninstAPI::codeGenASTPtr epilogueNodePtr = boost::make_shared<AmdgpuEpilogueNode>(epiloguePtr);
 
   AmdgpuEpilogueSnippet epilogueSnippet(epilogueNodePtr);
   insertEpilogueAtPoints(epilogueSnippet, exitPoints);
@@ -257,7 +267,7 @@ void AmdgpuGfx908PointHandler::writeInstrumentationVarTable(const std::string &f
   // To get all instrumentation variables sorted by offsets
   std::map<int, std::string> reverseAllocTable;
 
-  for (auto it : AstOperandNode::allocTable) {
+  for (auto it : DyninstAPI::operandAST::allocTable) {
     auto name = it.first;
     if (name == "--init--") // ignore this one as it was only used to initialize the table
       continue;
@@ -272,4 +282,4 @@ void AmdgpuGfx908PointHandler::writeInstrumentationVarTable(const std::string &f
   outFile.close();
 }
 
-} // namespace Dyninst
+}}

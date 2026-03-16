@@ -200,32 +200,6 @@ bool BPatch_image::getProcedures(BPatch_Vector<BPatch_function*> &procs, bool in
    return some_succeeded;
 }
 
-
-BPatch_Vector<BPatch_parRegion *> *BPatch_image::getParRegions(bool incUninstrumentable)
-{
-   BPatch_Vector<BPatch_function *> procList;
-   bool result = getProcedures(procList, incUninstrumentable);
-   if (!result)
-      return NULL;
-
-   BPatch_Vector<BPatch_parRegion *> *parRegionList = new BPatch_Vector<BPatch_parRegion *>;
-   if (parRegionList == NULL) return NULL;
-
-
-   for (unsigned int i=0; i < (unsigned) procList.size(); i++) {
-      func_instance * intF = procList[i]->lowlevel_func();
-      const std::vector<int_parRegion *> intPR = intF->parRegions();
-
-      for (unsigned int j=0; j < (unsigned) intPR.size(); j++)
-      {
-         BPatch_parRegion * pR = new BPatch_parRegion(intPR[j], procList[i]);
-         parRegionList->push_back(pR);
-      }
-   }
-
-   return parRegionList;
-}
-
 /*
  * BPatch_image::getGlobalVariables
  *

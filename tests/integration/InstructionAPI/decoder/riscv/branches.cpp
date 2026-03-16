@@ -117,7 +117,7 @@ std::vector<branch_test> make_tests64() {
     // Return instructions
     { // ret (jalr x0, ra, 0)
       {0x67,0x80,0x00,0x00},
-      di::opcode_test{riscv64_op_jalr, "jalr"},
+      di::opcode_test{riscv64_op_jalr, "jalr", "jalr zero, ra, 0x0"},
       di::register_rw_test{ reg_set{ra}, reg_set{zero, pc} },
       di::mem_test{},
       di::cft_test{
@@ -127,7 +127,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // ret (c.jr ra)
       {0x82,0x80},
-      di::opcode_test{riscv64_op_jalr, riscv64_op_c_jr, "jalr", "c.jr"},
+      di::opcode_test{riscv64_op_jalr, riscv64_op_c_jr, "jalr", "c.jr", "c.jr ra"},
       di::register_rw_test{ reg_set{ra}, reg_set{zero, pc} },
       di::mem_test{},
       di::cft_test{
@@ -138,7 +138,7 @@ std::vector<branch_test> make_tests64() {
     // Branch instructions
     { // jal zero, 16
       {0x6f,0x00,0x00,0x01},
-      di::opcode_test{riscv64_op_jal, "jal"},
+      di::opcode_test{riscv64_op_jal, "jal", "jal zero, 0x10"},
       di::register_rw_test{ reg_set{pc}, reg_set{zero, pc} },
       di::mem_test{},
       di::cft_test{
@@ -148,7 +148,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // jal ra, 32
       {0xef,0x00,0x00,0x02},
-      di::opcode_test{riscv64_op_jal, "jal"},
+      di::opcode_test{riscv64_op_jal, "jal", "jal ra, 0x20"},
       di::register_rw_test{ reg_set{pc}, reg_set{ra, pc} },
       di::mem_test{},
       di::cft_test{
@@ -158,7 +158,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // jal t0, -16
       {0xef,0xf2,0x1f,0xff},
-      di::opcode_test{riscv64_op_jal, "jal"},
+      di::opcode_test{riscv64_op_jal, "jal", "jal t0, 0xfffffff0"},
       di::register_rw_test{ reg_set{pc}, reg_set{t0, pc} },
       di::mem_test{},
       di::cft_test{
@@ -168,7 +168,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // jal s0, -32
       {0x6f,0xf4,0x1f,0xfe},
-      di::opcode_test{riscv64_op_jal, "jal"},
+      di::opcode_test{riscv64_op_jal, "jal", "jal s0, 0xffffffe0"},
       di::register_rw_test{ reg_set{pc}, reg_set{s0, pc} },
       di::mem_test{},
       di::cft_test{
@@ -178,7 +178,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // jalr zero, s11, 64
       {0x67,0x80,0x0d,0x04},
-      di::opcode_test{riscv64_op_jalr, "jalr"},
+      di::opcode_test{riscv64_op_jalr, "jalr", "jalr zero, s11, 0x40"},
       di::register_rw_test{ reg_set{s11}, reg_set{zero, pc} },
       di::mem_test{},
       di::cft_test{
@@ -188,7 +188,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // jalr ra, s10, -64
       {0xe7,0x00,0x0d,0xfc},
-      di::opcode_test{riscv64_op_jalr, "jalr"},
+      di::opcode_test{riscv64_op_jalr, "jalr", "jalr ra, s10, 0xffffffc0"},
       di::register_rw_test{ reg_set{s10}, reg_set{ra, pc} },
       di::mem_test{},
       di::cft_test{
@@ -198,7 +198,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // jalr s2, s3, 1023
       {0x67,0x89,0xf9,0x3f},
-      di::opcode_test{riscv64_op_jalr, "jalr"},
+      di::opcode_test{riscv64_op_jalr, "jalr", "jalr s2, s3, 0x3ff"},
       di::register_rw_test{ reg_set{s3}, reg_set{s2, pc} },
       di::mem_test{},
       di::cft_test{
@@ -206,9 +206,9 @@ std::vector<branch_test> make_tests64() {
         {is_call, !is_conditional, is_indirect, !is_fallthrough, !is_branch, !is_return}
       }
     },
-    { // jalr sp, gp, 0
+    { // jalr sp, gp, 0x3ff
       {0x67,0x81,0xf1,0x3f},
-      di::opcode_test{riscv64_op_jalr, "jalr"},
+      di::opcode_test{riscv64_op_jalr, "jalr", "jalr sp, gp, 0x3ff"},
       di::register_rw_test{ reg_set{gp}, reg_set{sp, pc} },
       di::mem_test{},
       di::cft_test{
@@ -218,7 +218,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // c.j 2
       {0x09,0xa0},
-      di::opcode_test{riscv64_op_jal, riscv64_op_c_j, "jal", "c.j"},
+      di::opcode_test{riscv64_op_jal, riscv64_op_c_j, "jal", "c.j", "c.j 0x2"},
       di::register_rw_test{ reg_set{pc}, reg_set{zero, pc} },
       di::mem_test{},
       di::cft_test{
@@ -228,7 +228,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // c.jr t1
       {0x02,0x83},
-      di::opcode_test{riscv64_op_jalr, riscv64_op_c_jr, "jalr", "c.jr"},
+      di::opcode_test{riscv64_op_jalr, riscv64_op_c_jr, "jalr", "c.jr", "c.jr t1"},
       di::register_rw_test{ reg_set{t1}, reg_set{zero, pc} },
       di::mem_test{},
       di::cft_test{
@@ -238,7 +238,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // c.jr tp
       {0x02,0x82},
-      di::opcode_test{riscv64_op_jalr, riscv64_op_c_jr, "jalr", "c.jr"},
+      di::opcode_test{riscv64_op_jalr, riscv64_op_c_jr, "jalr", "c.jr", "c.jr tp"},
       di::register_rw_test{ reg_set{tp}, reg_set{zero, pc} },
       di::mem_test{},
       di::cft_test{
@@ -248,7 +248,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // c.jalr ra
       {0x82,0x90},
-      di::opcode_test{riscv64_op_jalr, riscv64_op_c_jalr, "jalr", "c.jalr"},
+      di::opcode_test{riscv64_op_jalr, riscv64_op_c_jalr, "jalr", "c.jalr", "c.jalr ra"},
       di::register_rw_test{ reg_set{ra}, reg_set{ra, pc} },
       di::mem_test{},
       di::cft_test{
@@ -258,7 +258,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // c.jalr s1
       {0x82,0x94},
-      di::opcode_test{riscv64_op_jalr, riscv64_op_c_jalr, "jalr", "c.jalr"},
+      di::opcode_test{riscv64_op_jalr, riscv64_op_c_jalr, "jalr", "c.jalr", "c.jalr s1"},
       di::register_rw_test{ reg_set{s1}, reg_set{ra, pc} },
       di::mem_test{},
       di::cft_test{
@@ -268,7 +268,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // beq t2, a2, 2
       {0x63,0x81,0xc3,0x00},
-      di::opcode_test{riscv64_op_beq, "beq"},
+      di::opcode_test{riscv64_op_beq, "beq", "beq t2, a2, 0x2"},
       di::register_rw_test{ reg_set{t2, a2, pc}, reg_set{pc} },
       di::mem_test{},
       di::cft_test{
@@ -278,7 +278,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // beq t5, t6, 88
       {0x63,0x0c,0xff,0x05},
-      di::opcode_test{riscv64_op_beq, "beq"},
+      di::opcode_test{riscv64_op_beq, "beq", "beq t5, t6, 0x58"},
       di::register_rw_test{ reg_set{t5, t6, pc}, reg_set{pc} },
       di::mem_test{},
       di::cft_test{
@@ -288,7 +288,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // beq s7, s7, -10
       {0xe3,0x8b,0x7b,0xff},
-      di::opcode_test{riscv64_op_beq, "beq"},
+      di::opcode_test{riscv64_op_beq, "beq", "beq s7, s7, 0xfffffff6"},
       di::register_rw_test{ reg_set{s7, pc}, reg_set{pc} },
       di::mem_test{},
       di::cft_test{
@@ -298,7 +298,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // beq t4, t4, 0
       {0x63,0x80,0xde,0x01},
-      di::opcode_test{riscv64_op_beq, "beq"},
+      di::opcode_test{riscv64_op_beq, "beq", "beq t4, t4, 0x0"},
       di::register_rw_test{ reg_set{t4, pc}, reg_set{pc} },
       di::mem_test{},
       di::cft_test{
@@ -308,7 +308,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // beq zero, zero, 0
       {0x63,0x00,0x00,0x00},
-      di::opcode_test{riscv64_op_beq, "beq"},
+      di::opcode_test{riscv64_op_beq, "beq", "beq zero, zero, 0x0"},
       di::register_rw_test{ reg_set{zero, pc}, reg_set{pc} },
       di::mem_test{},
       di::cft_test{
@@ -318,7 +318,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // beq zero, zero, 1024
       {0x63,0x00,0x00,0x40},
-      di::opcode_test{riscv64_op_beq, "beq"},
+      di::opcode_test{riscv64_op_beq, "beq", "beq zero, zero, 0x400"},
       di::register_rw_test{ reg_set{zero, pc}, reg_set{pc} },
       di::mem_test{},
       di::cft_test{
@@ -328,7 +328,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // bne a3, a4, -2
       {0xe3,0x9f,0xe6,0xfe},
-      di::opcode_test{riscv64_op_bne, "bne"},
+      di::opcode_test{riscv64_op_bne, "bne", "bne a3, a4, 0xfffffffe"},
       di::register_rw_test{ reg_set{a3, a4, pc}, reg_set{pc} },
       di::mem_test{},
       di::cft_test{
@@ -338,7 +338,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // bne t3, t3, 100
       {0x63,0x12,0xce,0x07},
-      di::opcode_test{riscv64_op_bne, "bne"},
+      di::opcode_test{riscv64_op_bne, "bne", "bne t3, t3, 0x64"},
       di::register_rw_test{ reg_set{t3, pc}, reg_set{pc} },
       di::mem_test{},
       di::cft_test{
@@ -348,7 +348,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // blt a5, a6, 12
       {0x63,0xc6,0x07,0x01},
-      di::opcode_test{riscv64_op_blt, "blt"},
+      di::opcode_test{riscv64_op_blt, "blt", "blt a5, a6, 0xc"},
       di::register_rw_test{ reg_set{a5, a6, pc}, reg_set{pc} },
       di::mem_test{},
       di::cft_test{
@@ -358,7 +358,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // bge s4, s5, 24
       {0x63,0x5c,0x5a,0x01},
-      di::opcode_test{riscv64_op_bge, "bge"},
+      di::opcode_test{riscv64_op_bge, "bge", "bge s4, s5, 0x18"},
       di::register_rw_test{ reg_set{s4, s5, pc}, reg_set{pc} },
       di::mem_test{},
       di::cft_test{
@@ -368,7 +368,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // bltu s6, a7, -24
       {0xe3,0x64,0x1b,0xff},
-      di::opcode_test{riscv64_op_bltu, "bltu"},
+      di::opcode_test{riscv64_op_bltu, "bltu", "bltu s6, a7, 0xffffffe8"},
       di::register_rw_test{ reg_set{s6, a7, pc}, reg_set{pc} },
       di::mem_test{},
       di::cft_test{
@@ -378,7 +378,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // bgeu s8, s9, 72
       {0x63,0x74,0x9c,0x05},
-      di::opcode_test{riscv64_op_bgeu, "bgeu"},
+      di::opcode_test{riscv64_op_bgeu, "bgeu", "bgeu s8, s9, 0x48"},
       di::register_rw_test{ reg_set{s8, s9, pc}, reg_set{pc} },
       di::mem_test{},
       di::cft_test{
@@ -388,7 +388,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // c.beqz a0, 6
       {0x19,0xc1},
-      di::opcode_test{riscv64_op_beq, riscv64_op_c_beqz, "beq", "c.beqz"},
+      di::opcode_test{riscv64_op_beq, riscv64_op_c_beqz, "beq", "c.beqz", "c.beqz a0, 0x6"},
       di::register_rw_test{ reg_set{a0, zero, pc}, reg_set{pc} },
       di::mem_test{},
       di::cft_test{
@@ -398,7 +398,7 @@ std::vector<branch_test> make_tests64() {
     },
     { // c.bnez a1, 44
       {0x95,0xe5},
-      di::opcode_test{riscv64_op_bne, riscv64_op_c_bnez, "bne", "c.bnez"},
+      di::opcode_test{riscv64_op_bne, riscv64_op_c_bnez, "bne", "c.bnez", "c.bnez a1, 0x2c"},
       di::register_rw_test{ reg_set{a1, zero, pc}, reg_set{pc} },
       di::mem_test{},
       di::cft_test{

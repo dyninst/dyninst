@@ -535,6 +535,17 @@ Dyninst::LWP EventNewLWP::getLWP() const
 Thread::const_ptr EventNewLWP::getNewThread() const
 {
    int_thread *thr = getProcess()->llproc()->threadPool()->findThreadByLWP(lwp);
+   
+#if defined(os_linux) || defined(os_freebsd)
+   if (!thr) {
+      int pid = getProcess()->llproc()->getPid();
+      if (lwp != pid) {
+         pthrd_printf("Non-main thread %d/%d not found\n", pid, lwp);
+         return Thread::const_ptr();
+      }
+   }
+#endif
+
    assert(thr);
    return thr->thread();
 }

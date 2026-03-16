@@ -177,32 +177,30 @@ instruction.
 void getWriteSet(std::set<RegisterAST::Ptr> & regsWritten) const
 \end{apient}
 \apidesc{
-Insert the set of registers written by the instruction into
-\code{regsWritten}. The list of registers returned in
-\code{regsWritten} includes registers that are explicitly written as destination
-operands (like the destination of a move). It also includes registers that are
-implicitly written (like the stack pointer in a push or pop instruction). It
-does not include any registers used only in computing the effective address of a
-write. \code{pop} \code{$\ast$eax}, for example, writes to \code{esp}, reads
-\code{esp}, and reads \code{eax}, but despite the fact that \code{$\ast$eax} is
-the destination operand, \code{eax} is not itself written.
-
-For both the write set and the read set (below), it is possible to determine
-whether a register is accessed implicitly or explicitly by examining the
-Operands. An explicitly accessed register appears as an operand that is written
-or read; also, any registers used in any address calculations are explicitly
-read. Any element of the write set or read set that is not explicitly written or
-read is implicitly written or read. 
+  Inserts into \code{regsWritten} all registers written by the instruction.
+  
+  A register is considered written if it 1) is an explicit destination operand
+  or 2) is implicitly written as a side effect of executing the instruction.
+  
+  For example on x86, \code{pop eax} explicitly writes to \code{eax} but also
+  implicitly writes to the stack pointer (\code{esp}). The set of written
+  registers is then \code{eax} and \code{esp}.
 }
 
 \begin{apient}
 void getReadSet(std::set<RegisterAST::Ptr> & regsRead) const
 \end{apient}
 \apidesc{
-    Insert the set of registers read by the instruction into \code{regsRead}.
-
-    If an operand is used to compute an effective address, the registers
-    involved are read but not written, regardless of the effect on the operand.
+  Inserts into \code{regsRead} all registers read by the instruction.
+  
+  A register is considered read if it 1) is an explicit source operand
+  or 2) is implicitly read as a side effect of executing the instruction.
+  
+  For example on x86, \code{jc [eax]} explicitly reads \code{eax} but also
+  implicitly reads \code{flags} to check the carry bit (subregister cf).
+  The set of read registers is then \code{eax}, \code{flags}, and \code{cf}.
+  
+  NOTE: Registers used in an address calculation are considered explicitly read.
 }
 
 \begin{apient}

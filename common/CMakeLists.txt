@@ -77,7 +77,7 @@ set(_private_headers
     src/registers/MachRegisterCache.h
     src/NodeIterator.h
     src/ntHeaders.h
-    src/parseauxv.h
+    src/AuxvParser.h
     src/dyninst_filesystem.h
     src/sha1.h
     src/stats.h
@@ -122,7 +122,7 @@ endif()
 if(DYNINST_OS_FreeBSD)
   list(APPEND _sources src/freebsdKludges.C src/addrtranslate-freebsd.C)
 elseif(DYNINST_OS_Linux)
-  list(APPEND _sources src/linuxKludges.C src/parseauxv.C src/addrtranslate-auxv.C
+  list(APPEND _sources src/linuxKludges.C src/AuxvParser.C src/addrtranslate-auxv.C
        src/addrtranslate-linux.C)
 elseif(DYNINST_OS_Windows)
   list(APPEND _sources src/ntKludges.C src/addrtranslate-win.C)

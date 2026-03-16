@@ -140,267 +140,267 @@ std::vector<rv64f_tests> make_tests64() {
     // FP Loads / Stores
     { // fld f0, 0(zero)
       {0x07,0x30,0x00,0x00},
-      di::opcode_test{riscv64_op_fld, "fld"},
+      di::opcode_test{riscv64_op_fld, "fld", "fld ft0, 0x0(zero)"},
       di::register_rw_test{ reg_set{zero}, reg_set{f0} },
       di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{zero}, reg_set{} } }
     },
     { // fld f23, 0(ra)
       {0x87,0xbb,0x00,0x00},
-      di::opcode_test{riscv64_op_fld, "fld"},
+      di::opcode_test{riscv64_op_fld, "fld", "fld fs7, 0x0(ra)"},
       di::register_rw_test{ reg_set{ra}, reg_set{f23} },
       di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{ra}, reg_set{} } }
     },
-    { // fsd f1, 8(s2)
+    { // fsd ft1, 8(s2)
       {0x27,0x34,0x19,0x00},
-      di::opcode_test{riscv64_op_fsd, "fsd"},
+      di::opcode_test{riscv64_op_fsd, "fsd", "fsd ft1, 0x8(s2)"},
       di::register_rw_test{ reg_set{f1, s2}, reg_set{} },
       di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{s2} } }
     },
-    { // fsd f24, -14(t0)
+    { // fsd fs8, -14(t0)
       {0x27,0xb9,0x82,0xff},
-      di::opcode_test{riscv64_op_fsd, "fsd"},
+      di::opcode_test{riscv64_op_fsd, "fsd", "fsd fs8, 0xfffffffffffffff2(t0)"},
       di::register_rw_test{ reg_set{f24, t0}, reg_set{} },
       di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{t0} } }
     },
 
     // FP Move to/from Integer Registers
-    { // fmv.x.d a0, f2
+    { // fmv.x.d a0, ft2
       {0x53,0x05,0x01,0xe2},
-      di::opcode_test{riscv64_op_fmv_x_d, "fmv.x.d"},
+      di::opcode_test{riscv64_op_fmv_x_d, "fmv.x.d", "fmv.x.d a0, ft2"},
       di::register_rw_test{ reg_set{f2}, reg_set{a0} },
       di::mem_test{}
     },
-    { // fmv.x.d sp, f28
+    { // fmv.x.d sp, ft8
       {0x53,0x01,0x0e,0xe2},
-      di::opcode_test{riscv64_op_fmv_x_d, "fmv.x.d"},
+      di::opcode_test{riscv64_op_fmv_x_d, "fmv.x.d", "fmv.x.d sp, ft8"},
       di::register_rw_test{ reg_set{f28}, reg_set{sp} },
       di::mem_test{}
     },
     { // fmv.d.x f3, a1
       {0xd3,0x81,0x05,0xf2},
-      di::opcode_test{riscv64_op_fmv_d_x, "fmv.d.x"},
+      di::opcode_test{riscv64_op_fmv_d_x, "fmv.d.x", "fmv.d.x ft3, a1"},
       di::register_rw_test{ reg_set{a1}, reg_set{f3} },
       di::mem_test{}
     },
-    { // fmv.d.x f25, s11
+    { // fmv.d.x fs9, s11
       {0xd3,0x8c,0x0d,0xf2},
-      di::opcode_test{riscv64_op_fmv_d_x, "fmv.d.x"},
+      di::opcode_test{riscv64_op_fmv_d_x, "fmv.d.x", "fmv.d.x fs9, s11"},
       di::register_rw_test{ reg_set{s11}, reg_set{f25} },
       di::mem_test{}
     },
 
     // FP Arithmetic
-    { // fadd.d f4, f5, f6
+    { // fadd.d ft4, ft5, ft6
       {0x53,0xf2,0x62,0x02},
-      di::opcode_test{riscv64_op_fadd_d, "fadd.d"},
+      di::opcode_test{riscv64_op_fadd_d, "fadd.d", "fadd.d ft4, ft5, ft6"},
       di::register_rw_test{ reg_set{f5, f6}, reg_set{f4} },
       di::mem_test{}
     },
-    { // fsub.d f7, f8, f9
+    { // fsub.d ft7, fs0, fs1
       {0xd3,0x73,0x94,0x0a},
-      di::opcode_test{riscv64_op_fsub_d, "fsub.d"},
+      di::opcode_test{riscv64_op_fsub_d, "fsub.d", "fsub.d ft7, fs0, fs1"},
       di::register_rw_test{ reg_set{f8, f9}, reg_set{f7} },
       di::mem_test{}
     },
-    { // fmul.d f8, f18, f19
+    { // fmul.d fs0, fs2, fs3
       {0x53,0x74,0x39,0x13},
-      di::opcode_test{riscv64_op_fmul_d, "fmul.d"},
+      di::opcode_test{riscv64_op_fmul_d, "fmul.d", "fmul.d fs0, fs2, fs3"},
       di::register_rw_test{ reg_set{f18, f19}, reg_set{f8} },
       di::mem_test{}
     },
-    { // fdiv.d f9, f20, f21
+    { // fdiv.d fs1, fs4, fs5
       {0xd3,0x74,0x5a,0x1b},
-      di::opcode_test{riscv64_op_fdiv_d, "fdiv.d"},
+      di::opcode_test{riscv64_op_fdiv_d, "fdiv.d", "fdiv.d fs1, fs4, fs5"},
       di::register_rw_test{ reg_set{f20, f21}, reg_set{f9} },
       di::mem_test{}
     },
-    { // fsqrt.d f10, f22
+    { // fsqrt.d fa0, fs6
       {0x53,0x75,0x0b,0x5a},
-      di::opcode_test{riscv64_op_fsqrt_d, "fsqrt.d"},
+      di::opcode_test{riscv64_op_fsqrt_d, "fsqrt.d", "fsqrt.d fa0, fs6"},
       di::register_rw_test{ reg_set{f22}, reg_set{f10} },
       di::mem_test{}
     },
 
     // FP Sign Manipulation
-    { // fsgnj.d f11, f0, f1
+    { // fsgnj.d fa1, ft0, ft1
       {0xd3,0x05,0x10,0x22},
-      di::opcode_test{riscv64_op_fsgnj_d, "fsgnj.d"},
+      di::opcode_test{riscv64_op_fsgnj_d, "fsgnj.d", "fsgnj.d fa1, ft0, ft1"},
       di::register_rw_test{ reg_set{f0, f1}, reg_set{f11} },
       di::mem_test{}
     },
-    { // fsgnjn.d f10, f11, f12
+    { // fsgnjn.d fa0, fa1, fa2
       {0x53,0x95,0xc5,0x22},
-      di::opcode_test{riscv64_op_fsgnjn_d, "fsgnjn.d"},
+      di::opcode_test{riscv64_op_fsgnjn_d, "fsgnjn.d", "fsgnjn.d fa0, fa1, fa2"},
       di::register_rw_test{ reg_set{f11, f12}, reg_set{f10} },
       di::mem_test{}
     },
-    { // fsgnjx.d f13, f14, f15
+    { // fsgnjx.d fa3, fa4, fa5
       {0xd3,0x26,0xf7,0x22},
-      di::opcode_test{riscv64_op_fsgnjx_d, "fsgnjx.d"},
+      di::opcode_test{riscv64_op_fsgnjx_d, "fsgnjx.d", "fsgnjx.d fa3, fa4, fa5"},
       di::register_rw_test{ reg_set{f14, f15}, reg_set{f13} },
       di::mem_test{}
     },
 
     // FP Comparisons
-    { // feq.d a2, f16, f17
+    { // feq.d a2, fa6, fa7
       {0x53,0x26,0x18,0xa3},
-      di::opcode_test{riscv64_op_feq_d, "feq.d"},
+      di::opcode_test{riscv64_op_feq_d, "feq.d", "feq.d a2, fa6, fa7"},
       di::register_rw_test{ reg_set{f16, f17}, reg_set{a2} },
       di::mem_test{}
     },
-    { // feq.d s7, f31, f29
+    { // feq.d s7, ft11, ft9
       {0xd3,0xab,0xdf,0xa3},
-      di::opcode_test{riscv64_op_feq_d, "feq.d"},
+      di::opcode_test{riscv64_op_feq_d, "feq.d", "feq.d s7, ft11, ft9"},
       di::register_rw_test{ reg_set{f31, f29}, reg_set{s7} },
       di::mem_test{}
     },
-    { // flt.d a3, f0, f1
+    { // flt.d a3, ft0, ft1
       {0xd3,0x16,0x10,0xa2},
-      di::opcode_test{riscv64_op_flt_d, "flt.d"},
+      di::opcode_test{riscv64_op_flt_d, "flt.d", "flt.d a3, ft0, ft1"},
       di::register_rw_test{ reg_set{f0, f1}, reg_set{a3} },
       di::mem_test{}
     },
-    { // flt.d s9, f4, f26
+    { // flt.d s9, ft4, fs10
       {0xd3,0x1c,0xa2,0xa3},
-      di::opcode_test{riscv64_op_flt_d, "flt.d"},
+      di::opcode_test{riscv64_op_flt_d, "flt.d", "flt.d s9, ft4, fs10"},
       di::register_rw_test{ reg_set{f4, f26}, reg_set{s9} },
       di::mem_test{}
     },
-    { // fle.d a4, f2, f3
+    { // fle.d a4, ft2, ft3
       {0x53,0x07,0x31,0xa2},
-      di::opcode_test{riscv64_op_fle_d, "fle.d"},
+      di::opcode_test{riscv64_op_fle_d, "fle.d", "fle.d a4, ft2, ft3"},
       di::register_rw_test{ reg_set{f2, f3}, reg_set{a4} },
       di::mem_test{}
     },
-    { // fle.d gp, f27, f16
+    { // fle.d gp, fs11, fa6
       {0xd3,0x81,0x0d,0xa3},
-      di::opcode_test{riscv64_op_fle_d, "fle.d"},
+      di::opcode_test{riscv64_op_fle_d, "fle.d", "fle.d gp, fs11, fa6"},
       di::register_rw_test{ reg_set{f27, f16}, reg_set{gp} },
       di::mem_test{}
     },
 
     // FP Conversions (Word / Long, Signed / Unsigned)
-    { // fcvt.d.w f0, a5
+    { // fcvt.d.w ft0, a5
       {0x53,0x80,0x07,0xd2},
-      di::opcode_test{riscv64_op_fcvt_d_w, "fcvt.d.w"},
+      di::opcode_test{riscv64_op_fcvt_d_w, "fcvt.d.w", "fcvt.d.w ft0, a5"},
       di::register_rw_test{ reg_set{a5}, reg_set{f0} },
       di::mem_test{}
     },
-    { // fcvt.d.w f30, s6
+    { // fcvt.d.w ft10, s6
       {0x53,0x0f,0x0b,0xd2},
-      di::opcode_test{riscv64_op_fcvt_d_w, "fcvt.d.w"},
+      di::opcode_test{riscv64_op_fcvt_d_w, "fcvt.d.w", "fcvt.d.w ft10, s6"},
       di::register_rw_test{ reg_set{s6}, reg_set{f30} },
       di::mem_test{}
     },
-    { // fcvt.d.wu f1, a6
+    { // fcvt.d.wu ft1, a6
       {0xd3,0x00,0x18,0xd2},
-      di::opcode_test{riscv64_op_fcvt_d_wu, "fcvt.d.wu"},
+      di::opcode_test{riscv64_op_fcvt_d_wu, "fcvt.d.wu", "fcvt.d.wu ft1, a6"},
       di::register_rw_test{ reg_set{a6}, reg_set{f1} },
       di::mem_test{}
     },
-    { // fcvt.d.wu f7, tp
+    { // fcvt.d.wu ft7, tp
       {0xd3,0x03,0x12,0xd2},
-      di::opcode_test{riscv64_op_fcvt_d_wu, "fcvt.d.wu"},
+      di::opcode_test{riscv64_op_fcvt_d_wu, "fcvt.d.wu", "fcvt.d.wu ft7, tp"},
       di::register_rw_test{ reg_set{tp}, reg_set{f7} },
       di::mem_test{}
     },
-    { // fcvt.w.d a7, f4
+    { // fcvt.w.d a7, ft4
       {0xd3,0x78,0x02,0xc2},
-      di::opcode_test{riscv64_op_fcvt_w_d, "fcvt.w.d"},
+      di::opcode_test{riscv64_op_fcvt_w_d, "fcvt.w.d", "fcvt.w.d a7, ft4"},
       di::register_rw_test{ reg_set{f4}, reg_set{a7} },
       di::mem_test{}
     },
-    { // fcvt.w.d t4, f20
+    { // fcvt.w.d t4, fs4
       {0xd3,0x7e,0x0a,0xc2},
-      di::opcode_test{riscv64_op_fcvt_w_d, "fcvt.w.d"},
+      di::opcode_test{riscv64_op_fcvt_w_d, "fcvt.w.d", "fcvt.w.d t4, fs4"},
       di::register_rw_test{ reg_set{f20}, reg_set{t4} },
       di::mem_test{}
     },
-    { // fcvt.wu.d s0, f5
+    { // fcvt.wu.d s0, ft5
       {0x53,0xf4,0x12,0xc2},
-      di::opcode_test{riscv64_op_fcvt_wu_d, "fcvt.wu.d"},
+      di::opcode_test{riscv64_op_fcvt_wu_d, "fcvt.wu.d", "fcvt.wu.d s0, ft5"},
       di::register_rw_test{ reg_set{f5}, reg_set{s0} },
       di::mem_test{}
     },
-    { // fcvt.wu.d t6, f1
+    { // fcvt.wu.d t6, ft1
       {0xd3,0xff,0x10,0xc2},
-      di::opcode_test{riscv64_op_fcvt_wu_d, "fcvt.w.d"},
+      di::opcode_test{riscv64_op_fcvt_wu_d, "fcvt.w.d", "fcvt.wu.d t6, ft1"},
       di::register_rw_test{ reg_set{f1}, reg_set{t6} },
       di::mem_test{}
     },
-    { // fcvt.d.l f6, s1
+    { // fcvt.d.l ft6, s1
       {0x53,0xf3,0x24,0xd2},
-      di::opcode_test{riscv64_op_fcvt_d_l, "fcvt.d.l"},
+      di::opcode_test{riscv64_op_fcvt_d_l, "fcvt.d.l", "fcvt.d.l ft6, s1"},
       di::register_rw_test{ reg_set{s1}, reg_set{f6} },
       di::mem_test{}
     },
-    { // fcvt.d.l f29, s8
+    { // fcvt.d.l ft9, s8
       {0xd3,0x7e,0x2c,0xd2},
-      di::opcode_test{riscv64_op_fcvt_d_l, "fcvt.d.l"},
+      di::opcode_test{riscv64_op_fcvt_d_l, "fcvt.d.l", "fcvt.d.l ft9, s8"},
       di::register_rw_test{ reg_set{s8}, reg_set{f29} },
       di::mem_test{}
     },
-    { // fcvt.d.lu f7, t1
+    { // fcvt.d.lu ft7, t1
       {0xd3,0x73,0x33,0xd2},
-      di::opcode_test{riscv64_op_fcvt_d_lu, "fcvt.d.lu"},
+      di::opcode_test{riscv64_op_fcvt_d_lu, "fcvt.d.lu", "fcvt.d.lu ft7, t1"},
       di::register_rw_test{ reg_set{t1}, reg_set{f7} },
       di::mem_test{}
     },
-    { // fcvt.d.lu f13, s10
+    { // fcvt.d.lu fa3, s10
       {0xd3,0x76,0x3d,0xd2},
-      di::opcode_test{riscv64_op_fcvt_d_lu, "fcvt.d.lu"},
+      di::opcode_test{riscv64_op_fcvt_d_lu, "fcvt.d.lu", "fcvt.d.lu fa3, s10"},
       di::register_rw_test{ reg_set{s10}, reg_set{f13} },
       di::mem_test{}
     },
-    { // fcvt.l.d t5, f3
+    { // fcvt.l.d t5, ft3
       {0x53,0xff,0x21,0xc2},
-      di::opcode_test{riscv64_op_fcvt_l_d, "fcvt.l.d"},
+      di::opcode_test{riscv64_op_fcvt_l_d, "fcvt.l.d", "fcvt.l.d t5, ft3"},
       di::register_rw_test{ reg_set{f3}, reg_set{t5} },
       di::mem_test{}
     },
-    { // fcvt.l.d s3, f8
+    { // fcvt.l.d s3, fs0
       {0xd3,0x79,0x24,0xc2},
-      di::opcode_test{riscv64_op_fcvt_l_d, "fcvt.l.d"},
+      di::opcode_test{riscv64_op_fcvt_l_d, "fcvt.l.d", "fcvt.l.d s3, fs0"},
       di::register_rw_test{ reg_set{f8}, reg_set{s3} },
       di::mem_test{}
     },
-    { // fcvt.lu.d s4, f9
+    { // fcvt.lu.d s4, fs1
       {0x53,0xfa,0x34,0xc2},
-      di::opcode_test{riscv64_op_fcvt_lu_d, "fcvt.lu.d"},
+      di::opcode_test{riscv64_op_fcvt_lu_d, "fcvt.lu.d", "fcvt.lu.d s4, fs1"},
       di::register_rw_test{ reg_set{f9}, reg_set{s4} },
       di::mem_test{}
     },
-    { // fcvt.lu.d t3, f21
+    { // fcvt.lu.d t3, fs5
       {0x53,0xfe,0x3a,0xc2},
-      di::opcode_test{riscv64_op_fcvt_lu_d, "fcvt.lu.d"},
+      di::opcode_test{riscv64_op_fcvt_lu_d, "fcvt.lu.d", "fcvt.lu.d t3, fs5"},
       di::register_rw_test{ reg_set{f21}, reg_set{t3} },
       di::mem_test{}
     },
 
     // Cross-Precision Conversion
-    { // fcvt.s.d f10, f11
+    { // fcvt.s.d fa0, fa1
       {0x53,0xf5,0x15,0x40},
-      di::opcode_test{riscv64_op_fcvt_s_d, "fcvt.s.d"},
+      di::opcode_test{riscv64_op_fcvt_s_d, "fcvt.s.d", "fcvt.s.d fa0, fa1"},
       di::register_rw_test{ reg_set{f11}, reg_set{f10} },
       di::mem_test{}
     },
-    { // fcvt.d.s f0, f1
+    { // fcvt.d.s ft0, ft1
       {0x53,0x80,0x00,0x42},
-      di::opcode_test{riscv64_op_fcvt_d_s, "fcvt.d.s"},
+      di::opcode_test{riscv64_op_fcvt_d_s, "fcvt.d.s", "fcvt.d.s ft0, ft1"},
       di::register_rw_test{ reg_set{f1}, reg_set{f0} },
       di::mem_test{}
     },
 
     // FP Classify
-    { // fclass.d t2, f2
+    { // fclass.d t2, ft2
       {0xd3,0x13,0x01,0xe2},
-      di::opcode_test{riscv64_op_fclass_d, "fclass.d"},
+      di::opcode_test{riscv64_op_fclass_d, "fclass.d", "fclass.d t2, ft2"},
       di::register_rw_test{ reg_set{f2}, reg_set{t2} },
       di::mem_test{}
     },
-    { // fclass.d s5, f31
+    { // fclass.d s5, ft11
       {0xd3,0x9a,0x0f,0xe2},
-      di::opcode_test{riscv64_op_fclass_d, "fclass.d"},
+      di::opcode_test{riscv64_op_fclass_d, "fclass.d", "fclass.d s5, ft11"},
       di::register_rw_test{ reg_set{f31}, reg_set{s5} },
       di::mem_test{}
     },
