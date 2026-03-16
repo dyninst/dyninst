@@ -159,13 +159,13 @@ namespace Dyninst { namespace InstructionAPI {
 
     SetUpNonOperandData();
 
-    for(registerSet::const_iterator r = otherRead.begin(); r != otherRead.end(); ++r) {
-      if(*candidate == *(*r)) {
+    for(RegisterAST::Ptr const& r : otherRead) {
+      if(*candidate == *r) {
         return true;
       }
     }
-    for(VCSet::const_iterator e = otherEffAddrsRead.begin(); e != otherEffAddrsRead.end(); ++e) {
-      if(*candidate == *(*e)) {
+    for(Expression::Ptr const& e : otherEffAddrsRead) {
+      if(*candidate == *e) {
         return true;
       }
     }
@@ -186,14 +186,13 @@ namespace Dyninst { namespace InstructionAPI {
 
     SetUpNonOperandData();
 
-    for(registerSet::const_iterator r = otherWritten.begin(); r != otherWritten.end(); ++r) {
-      if(*candidate == *(*r)) {
+    for(RegisterAST::Ptr const& r : otherWritten) {
+      if(*candidate == *r) {
         return true;
       }
     }
-    for(VCSet::const_iterator e = otherEffAddrsWritten.begin(); e != otherEffAddrsWritten.end();
-        ++e) {
-      if(*candidate == *(*e)) {
+    for(Expression::Ptr const& e : otherEffAddrsWritten) {
+      if(*candidate == *e) {
         return true;
       }
     }
