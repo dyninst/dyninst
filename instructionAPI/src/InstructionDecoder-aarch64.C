@@ -33,6 +33,7 @@
 #include "registers/aarch64_regs.h"
 #include "unaligned_memory_access.h"
 #include <boost/make_shared.hpp>
+#include <algorithm>
 
 #if defined(__GNUC__)
 #define insn_printf(format, ...)                                                                   \
@@ -508,8 +509,10 @@ void InstructionDecoder_aarch64::set32Mode()
         reg = sysRegMap(systemRegEncoding);
       insn_in_progress->appendOperand(makeRegisterExpression(reg), !isRtRead, isRtRead);
       insn_in_progress->appendOperand(makeRtExpr(), isRtRead, !isRtRead);
-      if(!isRtRead)
-        insn_in_progress->m_Operands.reverse();
+      if(!isRtRead) {
+        auto &ops = insn_in_progress->m_Operands;
+        std::reverse(ops.begin(), ops.end());
+      }
     }
   }
 
@@ -2832,10 +2835,14 @@ insn_in_progress->appendOperand(makeRnExpr(), true, true);
         curOperands.insert(curOperands.begin() + 1, curOperands.back());
         curOperands.pop_back();
         insn_in_progress->m_Operands.assign(curOperands.begin(), curOperands.end());
-      } else
-        insn_in_progress->m_Operands.reverse();
-    } else
-      insn_in_progress->m_Operands.reverse();
+      } else {
+        auto &ops = insn_in_progress->m_Operands;
+        std::reverse(ops.begin(), ops.end());
+      }
+    } else {
+      auto &ops = insn_in_progress->m_Operands;
+      std::reverse(ops.begin(), ops.end());
+    }
   }
 
   void InstructionDecoder_aarch64::processAlphabetImm() {

@@ -39,7 +39,6 @@
 #include "dyninst_visibility.h"
 
 #include <array>
-#include <list>
 #include <set>
 #include <stddef.h>
 #include <string.h>
@@ -170,7 +169,7 @@ namespace Dyninst { namespace InstructionAPI {
     bool isNonABICall() const { return isCall() && getOperation().isNonABICall; }
     bool isNonABIReturn() const { return isReturn() && getOperation().isNonABIReturn; }
 
-    typedef std::list<CFT>::const_iterator cftConstIter;
+    typedef std::vector<CFT>::const_iterator cftConstIter;
     cftConstIter cft_begin() const { return m_Successors.begin(); }
     cftConstIter cft_end() const { return m_Successors.end(); }
 
@@ -209,16 +208,16 @@ namespace Dyninst { namespace InstructionAPI {
       return getCategory() == c;
     }
 
-    mutable std::list<Operand> m_Operands;
+    mutable std::vector<Operand> m_Operands;
     // Encoded instruction operands, for RISC-V compressed instructions
-    mutable std::list<Operand> m_EncodedOperands;
+    mutable std::vector<Operand> m_EncodedOperands;
     mutable Operation m_InsnOp;
     // Encoded instruction opcode, for RISC-V compressed instructions
     mutable Operation m_EncodedInsnOp;
     std::array<uint8_t, maxInstructionLength> m_RawInsn{};
     uint8_t m_size{};
     Architecture arch_decoded_from{Dyninst::Arch_none};
-    mutable std::list<CFT> m_Successors;
+    mutable std::vector<CFT> m_Successors;
     mutable category_t categories{};
   };
 }}

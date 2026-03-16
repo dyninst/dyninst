@@ -175,9 +175,7 @@ namespace Dyninst { namespace InstructionAPI {
       // Out of range = empty operand
       return Operand(Expression::Ptr(), false, false);
     }
-    std::list<Operand>::const_iterator found = m_Operands.begin();
-    std::advance(found, index);
-    return *found;
+    return m_Operands[index];
   }
 
   Operand Instruction::getEncodedExplicitOperand(int index) const {
@@ -185,9 +183,7 @@ namespace Dyninst { namespace InstructionAPI {
       // Out of range = empty operand
       return Operand(Expression::Ptr(), false, false);
     }
-    std::list<Operand>::const_iterator found = m_EncodedOperands.begin();
-    std::advance(found, index);
-    return *found;
+    return m_EncodedOperands[index];
   }
 
   const void* Instruction::ptr() const {
