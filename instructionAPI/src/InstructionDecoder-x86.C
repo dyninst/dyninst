@@ -1668,9 +1668,8 @@ namespace Dyninst { namespace InstructionAPI {
     decodedInstruction = new(decodedInstruction) ia32_instruction(NULL, NULL, locs);
     ia32_decode(IA32_DECODE_PREFIXES, b.start, *decodedInstruction, is64BitMode);
 
-    static ia32_entry invalid = {e_No_Entry, 0, 0, false, {{0, 0}, {0, 0}, {0, 0}}, 0, 0, 0};
     if(decodedInstruction->getLegacyType() == ILLEGAL) {
-      m_Operation = Operation(&invalid, nullptr, nullptr, m_Arch);
+      m_Operation = Operation(e_No_Entry, "", m_Arch);
       return;
     }
 
@@ -1707,7 +1706,7 @@ namespace Dyninst { namespace InstructionAPI {
           case e_xchg:
             break;
           default:
-            m_Operation = Operation(&invalid, decodedInstruction->getPrefix(), locs, m_Arch);
+            m_Operation = Operation(e_No_Entry, "", m_Arch);
             return;
         }
       } else if(decodedInstruction->getPrefix()->getPrefix(0) == PREFIX_REP &&
@@ -1731,7 +1730,7 @@ namespace Dyninst { namespace InstructionAPI {
       // etc) we'll reject the instruction as invalid and send it back with no entry.  Since this is
       // a common byte sequence to see in, for example, ASCII strings, we want to simply accept this
       // and move on, not yell at the user.
-      m_Operation = Operation(&invalid, decodedInstruction->getPrefix(), locs, m_Arch);
+      m_Operation = Operation(e_No_Entry, "", m_Arch);
     }
   }
 
