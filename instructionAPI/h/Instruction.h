@@ -106,7 +106,7 @@ namespace Dyninst { namespace InstructionAPI {
     const Operation& getEncodedOperation() const;
     std::vector<Operand> getExplicitEncodedOperands() const;
 
-    std::vector<Operand> getAllOperands() const;
+    std::vector<Operand> const& getAllOperands() const;
     std::vector<Operand> getExplicitOperands() const;
     std::vector<Operand> getImplicitOperands() const;
 

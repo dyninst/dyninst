@@ -129,8 +129,8 @@ namespace Dyninst { namespace InstructionAPI {
     return m_EncodedInsnOp;
   }
 
-  std::vector<Operand> Instruction::getAllOperands() const {
-    return std::vector<Operand>(m_Operands.begin(), m_Operands.end());
+  std::vector<Operand> const& Instruction::getAllOperands() const {
+    return m_Operands;
   }
 
   std::vector<Operand> Instruction::getExplicitOperands() const {
