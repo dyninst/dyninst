@@ -387,9 +387,7 @@ namespace Dyninst { namespace InstructionAPI {
 
   Architecture Instruction::getArch() const { return arch_decoded_from; }
 
-  DYNINST_EXPORT Architecture Instruction::getArch() const { return arch_decoded_from; }
-
-  DYNINST_EXPORT InsnCategory Instruction::getCategory() const {
+  InsnCategory Instruction::getCategory() const {
     if(arch_decoded_from == Arch_riscv64) {
       if(categories.categories.size()) {
         return categories.categories[0];
@@ -418,13 +416,13 @@ namespace Dyninst { namespace InstructionAPI {
     return c;
   }
 
-  DYNINST_EXPORT void Instruction::forceCall() const {
+  void Instruction::forceCall() const {
     if(arch_decoded_from == Arch_riscv64) {
       categories.categories.push_back(c_CallInsn);
     }
   }
 
-  DYNINST_EXPORT void Instruction::forceReturn() const {
+  void Instruction::forceReturn() const {
     if(arch_decoded_from == Arch_riscv64) {
       categories.categories.push_back(c_ReturnInsn);
     }
