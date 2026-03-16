@@ -1520,7 +1520,7 @@ BaseSemantics::SValuePtr
 DispatcherRiscv64::CarrylessMultiplyReverse(const BaseSemantics::SValuePtr &a,
                                             const BaseSemantics::SValuePtr &b) {
   size_t len = a->get_width();
-  BaseSemantics::SValuePtr result = operators->number_(0, len);
+  BaseSemantics::SValuePtr result = operators->number_(len, 0);
 
   // iterate from most significant bit down to least
   for (int i = len - 1; i >= 0; i--) {
