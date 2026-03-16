@@ -56,13 +56,7 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   Operation::Operation(entryID id, std::string m, Architecture arch)
-      : operationID(id), archDecodedFrom(arch), mnemonic{std::move(m)} {
-    switch(archDecodedFrom) {
-      case Arch_x86:
-      addrWidth = u32; break;
-      default: addrWidth = u64; break;
-    }
-  }
+      : operationID(id), archDecodedFrom(arch), mnemonic{std::move(m)} {}
 
   Operation::Operation(const Operation& o) {
     operationID = o.operationID;
@@ -336,6 +330,11 @@ namespace Dyninst { namespace InstructionAPI {
       if(operationID == e_push) {
         BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
         // special case for push: we write at the new value of the SP.
+
+        if(addrWidth == Result_Type{}) {
+          addrWidth = (archDecodedFrom == Arch_x86) ? u32 : u64;
+        }
+
         Result dummy(addrWidth, 0);
         Expression::Ptr push_addr(new BinaryFunction(
             *(op_data(archDecodedFrom).stackPointerAsExpr.begin()),
