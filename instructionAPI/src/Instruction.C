@@ -118,7 +118,7 @@ namespace Dyninst { namespace InstructionAPI {
 
   std::vector<Operand> Instruction::getExplicitEncodedOperands() const {
     if(isCompressed()) {
-      return std::vector<Operand>(m_EncodedOperands.begin(), m_EncodedOperands.end());
+      return m_EncodedOperands;
     }
     return getExplicitOperands();
   }
