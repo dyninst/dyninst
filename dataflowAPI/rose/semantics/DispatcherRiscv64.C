@@ -1500,7 +1500,7 @@ BaseSemantics::SValuePtr
 DispatcherRiscv64::CarrylessMultiply(const BaseSemantics::SValuePtr &a,
                                      const BaseSemantics::SValuePtr &b) {
   size_t len = a->get_width();
-  BaseSemantics::SValuePtr result = operators->number_(0, len);
+  BaseSemantics::SValuePtr result = operators->number_(len, 0);
 
   for (size_t i = 0; i < len; i++) {
     // extract bit i from b
