@@ -1577,7 +1577,7 @@ BaseSemantics::SValuePtr
 DispatcherRiscv64::Rev8(const BaseSemantics::SValuePtr &expr) {
   size_t len = expr->get_width();
   size_t num_bytes = len / 8;
-  BaseSemantics::SValuePtr result = operators->number_(0, len);
+  BaseSemantics::SValuePtr result = operators->number_(len, 0);
 
   for (size_t i = 0; i < num_bytes; i++) {
     BaseSemantics::SValuePtr byte =
