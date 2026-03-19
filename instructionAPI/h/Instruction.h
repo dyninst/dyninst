@@ -164,6 +164,7 @@ namespace Dyninst { namespace InstructionAPI {
     bool isVector() const { return getCategory() == c_VectorInsn; }
     bool isGPUKernelExit() const { return getCategory() == c_GPUKernelExitInsn; }
     bool isSoftwareException() const { return isGPUKernelExit() || getCategory() == c_SoftwareExceptionInsn; }
+    bool isConditional() const { return checked_category(c_ConditionalInsn); }
 
     void forceReturn() const;
     void forceCall() const;
