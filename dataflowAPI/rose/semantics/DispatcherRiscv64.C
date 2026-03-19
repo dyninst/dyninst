@@ -1485,7 +1485,7 @@ DispatcherRiscv64::RoundTowardsZero(const BaseSemantics::SValuePtr &expr) {
 }
 
 BaseSemantics::SValuePtr
-DispatcherRiscv64::CountTrailingZeroBits(const BaseSemantics::SValuePtr &expr) {
+DispatcherRiscv64::CountTrailingSignBits(const BaseSemantics::SValuePtr &expr) {
   size_t len = expr->get_width();
 
   for (int idx = 0; idx < len; idx++)
