@@ -62,13 +62,13 @@ typedef std::set<Point*> PointSet;
 typedef PointSet::iterator PointIter;
 
 class Instance;
-typedef boost::shared_ptr<Instance> InstancePtr;
+typedef dyncompat::shared_ptr<Instance> InstancePtr;
 typedef std::set<InstancePtr> InstanceSet;
 using InstanceList = std::deque<InstancePtr>;
 
 class Instrumenter;
 class PatchMgr;
-typedef boost::shared_ptr<PatchMgr> PatchMgrPtr;
+typedef dyncompat::shared_ptr<PatchMgr> PatchMgrPtr;
 
 class PatchFunction;
 class PatchBlock;
@@ -82,7 +82,7 @@ class BatchCommand;
 class Patcher;
 
 class Snippet;
-typedef boost::shared_ptr<Snippet> SnippetPtr;
+typedef dyncompat::shared_ptr<Snippet> SnippetPtr;
 
 typedef std::map<PatchFunction*, PatchFunction*> FuncModMap;
 typedef std::map<PatchFunction*, std::pair<PatchFunction*, std::string> > FuncWrapMap;

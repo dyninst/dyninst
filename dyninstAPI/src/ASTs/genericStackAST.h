@@ -33,7 +33,7 @@
 
 #include "dyn_register.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include "codeGenAST.h"
 #include <string>
 
@@ -43,10 +43,10 @@ namespace Dyninst { namespace DyninstAPI {
 
 class genericStackAST : public codeGenAST {
 public:
-  using Ptr = boost::shared_ptr<genericStackAST>;
+  using Ptr = dyncompat::shared_ptr<genericStackAST>;
 
   static Ptr create() {
-    return boost::make_shared<genericStackAST>();
+    return dyncompat::make_shared<genericStackAST>();
   }
 
   std::string format(std::string indent) override;

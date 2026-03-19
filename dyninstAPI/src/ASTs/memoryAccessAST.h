@@ -33,7 +33,7 @@
 
 #include "dyn_register.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include "codeGenAST.h"
 #include <string>
 
@@ -43,7 +43,7 @@ namespace Dyninst { namespace DyninstAPI {
 
 class memoryAccessAST : public codeGenAST {
 public:
-  using Ptr = boost::shared_ptr<memoryAccessAST>;
+  using Ptr = dyncompat::shared_ptr<memoryAccessAST>;
 
   enum class memoryType {
     EffectiveAddr,
@@ -52,12 +52,12 @@ public:
 
   static Ptr effectiveAddress(int which, int size) {
     auto t = memoryAccessAST::memoryType::EffectiveAddr;
-    return boost::make_shared<memoryAccessAST>(t, which, size);
+    return dyncompat::make_shared<memoryAccessAST>(t, which, size);
   }
 
   static Ptr bytesAccessed(int which) {
     auto t = memoryAccessAST::memoryType::BytesAccessed;
-    return boost::make_shared<memoryAccessAST>(t, which);
+    return dyncompat::make_shared<memoryAccessAST>(t, which);
   }
 
   memoryAccessAST(memoryType mem, unsigned which, int size = 8);

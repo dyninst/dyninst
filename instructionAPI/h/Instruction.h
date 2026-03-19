@@ -184,7 +184,7 @@ namespace Dyninst { namespace InstructionAPI {
 
     void updateMnemonic(std::string new_mnemonic) { m_InsnOp.updateMnemonic(new_mnemonic); }
 
-    typedef boost::shared_ptr<Instruction> Ptr;
+    typedef dyncompat::shared_ptr<Instruction> Ptr;
 
   private:
     void updateSize(const unsigned int new_size, const unsigned char * raw);

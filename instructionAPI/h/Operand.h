@@ -45,7 +45,7 @@
 namespace Dyninst { namespace InstructionAPI {
   class Operand {
   public:
-    typedef boost::shared_ptr<Operand> Ptr;
+    typedef dyncompat::shared_ptr<Operand> Ptr;
 
     explicit Operand(Expression::Ptr val = {}, bool read = false, bool written = false, bool implicit = false,
                      bool trueP = false, bool falseP = false) noexcept

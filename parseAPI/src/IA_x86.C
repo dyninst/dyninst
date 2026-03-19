@@ -47,7 +47,7 @@
 #include "Register.h"
 #include "MultiRegister.h"
 
-#include <boost/variant2/variant.hpp>
+#include <dyncompat/variant2/variant.hpp>
 #include <stack>
 
 using namespace Dyninst;
@@ -131,7 +131,7 @@ bool IA_x86::isFrameSetupInsn(Instruction i) const
  */
 class leaSimplifyVisitor : public InstructionAPI::Visitor
 {
-        using ExprNodeValues = boost::variant2::variant<Expression*, RegisterAST*, int64_t>;
+        using ExprNodeValues = dyncompat::variant2::variant<Expression*, RegisterAST*, int64_t>;
         using ExprStack = std::stack<ExprNodeValues>;
         ExprStack exprStack;
 
@@ -142,10 +142,10 @@ class leaSimplifyVisitor : public InstructionAPI::Visitor
             auto op2 = exprStack.top();
             exprStack.pop();
 
-            auto value = boost::variant2::get_if<int64_t>(&op1);
+            auto value = dyncompat::variant2::get_if<int64_t>(&op1);
             if (!value)  {
                 std::swap(op1, op2);  // op1 not an immediate, commute and try again
-                value = boost::variant2::get_if<int64_t>(&op1);
+                value = dyncompat::variant2::get_if<int64_t>(&op1);
             }
             if (value && ((*value == 0 && bf->isAdd()) || (*value == 1 && bf->isMultiply())))  {
                 exprStack.push(op2);  // additive or multiplicative identity, simplify to op2
@@ -173,7 +173,7 @@ class leaSimplifyVisitor : public InstructionAPI::Visitor
 
         // return simplified result RegisterAST* or nullptr if not a registerAST*
         const RegisterAST *getRegister() const {
-            auto value = boost::variant2::get_if<RegisterAST *>(&exprStack.top());
+            auto value = dyncompat::variant2::get_if<RegisterAST *>(&exprStack.top());
             return value ? *value : nullptr;
         }
         void reset()  {      // reset the visitor for reuse
@@ -255,7 +255,7 @@ namespace {
 bool IA_x86::isThunk() const {
   // Before we go a-wandering, check the target
    bool valid; Address addr;
-   boost::tie(valid, addr) = getCFT();
+   dyncompat::tie(valid, addr) = getCFT();
    if (!valid ||
        !_isrc->isValidAddress(addr)) {
         parsing_printf("... Call to 0x%lx is invalid (outside code or data)\n",
@@ -317,7 +317,7 @@ bool IA_x86::isTailCall(const Function *context, EdgeTypeEnum type, unsigned int
     }
     
     bool valid; Address addr;
-    boost::tie(valid, addr) = getCFT();
+    dyncompat::tie(valid, addr) = getCFT();
 
     Function* callee = _obj->findFuncByEntry(_cr, addr);
     Block* target = _obj->findBlockByEntry(_cr, addr);
@@ -417,7 +417,7 @@ bool IA_x86::isTailCall(const Function *context, EdgeTypeEnum type, unsigned int
             if(prevInsn.isWritten(stackPtr[_isrc->getArch()]))
             {
 				bool call_fallthrough = false;
-                boost::lock_guard<Block> g(*_curBlk);
+                dyncompat::lock_guard<Block> g(*_curBlk);
 
 				if (_curBlk->start() == prevIter->first) {
 					for (auto eit = _curBlk->sources().begin(); eit != _curBlk->sources().end(); ++eit) {						
@@ -534,7 +534,7 @@ bool IA_x86::isFakeCall() const
     // get func entry
     bool tampers = false;
     bool valid; Address entry;
-    boost::tie(valid, entry) = getCFT();
+    dyncompat::tie(valid, entry) = getCFT();
 
     if (!valid) return false;
 
@@ -563,7 +563,7 @@ bool IA_x86::isFakeCall() const
     // transfer instructions, or hit a return instruction
     while (insn.isCall() || insn.isBranch())
     {
-       boost::tie(valid, entry) = ah->getCFT();
+       dyncompat::tie(valid, entry) = ah->getCFT();
        if ( !valid || ! _cr->contains(entry) || ! _isrc->isCode(entry) ) {
           mal_printf("WARNING: found call to function at %lx that "
                      "leaves to %lx, out of the code region %s[%d]\n", 
@@ -813,7 +813,7 @@ bool IA_x86::isNopJump() const
         return false;
     }
     bool valid; Address addr;
-    boost::tie(valid, addr) = getCFT();
+    dyncompat::tie(valid, addr) = getCFT();
     if(valid && current+1 == addr) {
         return true;
     }

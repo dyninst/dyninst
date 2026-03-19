@@ -42,7 +42,7 @@ struct Patch;
 
 class CallbackWidget : public Widget {
  public:
-  typedef boost::shared_ptr<CallbackWidget> Ptr;
+  typedef dyncompat::shared_ptr<CallbackWidget> Ptr;
 
   // I believe I can patch in the current code generation
   // system here...

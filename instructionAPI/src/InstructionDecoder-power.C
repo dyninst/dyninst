@@ -33,7 +33,7 @@
 #include "registers/ppc64_regs.h"
 #include "unaligned_memory_access.h"
 
-#include <boost/assign/list_of.hpp>
+#include <dyncompat/assign/list_of.hpp>
 #include <mutex>
 
 namespace Dyninst { namespace InstructionAPI {
@@ -951,7 +951,7 @@ which are both 0).
 
 #define fn(x) (&InstructionDecoder_power::x)
 
-  using namespace boost::assign;
+  using namespace dyncompat::assign;
 
 #include "power_opcode_tables.C"
 

@@ -19,7 +19,6 @@ ARG build_jobs=1
 RUN yum update -y &&   \
     yum install -y     \
       binutils-devel   \
-      boost-devel      \
       clang            \
       cmake            \
       libdwarf-devel   \

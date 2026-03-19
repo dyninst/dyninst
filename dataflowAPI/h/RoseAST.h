@@ -35,7 +35,7 @@
 // #include "ASTVisitor.h"
 #include "dyninst_visibility.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include <ostream>
 #include <sstream>
 #include <string>
@@ -206,7 +206,7 @@ namespace Dyninst { namespace DataflowAPI {
 
   class RoseAST : public AST {
   public:
-    using Ptr = boost::shared_ptr<RoseAST>;
+    using Ptr = dyncompat::shared_ptr<RoseAST>;
 
     RoseAST() = default;
 
@@ -228,19 +228,19 @@ namespace Dyninst { namespace DataflowAPI {
     RoseAST(ROSEOperation t, Children kids) : t_{std::move(t)}, kids_{std::move(kids)} {}
 
     static Ptr create(ROSEOperation t, AST::Ptr a) {
-      return boost::make_shared<RoseAST>(std::move(t), a);
+      return dyncompat::make_shared<RoseAST>(std::move(t), a);
     }
 
     static Ptr create(ROSEOperation t, AST::Ptr a, AST::Ptr b) {
-      return boost::make_shared<RoseAST>(std::move(t), a, b);
+      return dyncompat::make_shared<RoseAST>(std::move(t), a, b);
     }
 
     static Ptr create(ROSEOperation t, AST::Ptr a, AST::Ptr b, AST::Ptr c) {
-      return boost::make_shared<RoseAST>(std::move(t), a, b, c);
+      return dyncompat::make_shared<RoseAST>(std::move(t), a, b, c);
     }
 
     static Ptr create(ROSEOperation t, Children c) {
-      return boost::make_shared<RoseAST>(std::move(t), std::move(c));
+      return dyncompat::make_shared<RoseAST>(std::move(t), std::move(c));
     }
 
     std::string format() const override {
@@ -271,7 +271,7 @@ namespace Dyninst { namespace DataflowAPI {
 
     static Ptr convert(AST::Ptr a) {
       if(a->getID() == V_RoseAST) {
-        return boost::static_pointer_cast<RoseAST>(a);
+        return dyncompat::static_pointer_cast<RoseAST>(a);
       }
       return Ptr{};
     }

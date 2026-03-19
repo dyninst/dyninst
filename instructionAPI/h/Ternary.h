@@ -43,7 +43,7 @@ namespace Dyninst { namespace InstructionAPI {
 
   class DYNINST_EXPORT TernaryAST : public Expression {
   public:
-    typedef boost::shared_ptr<TernaryAST> Ptr;
+    typedef dyncompat::shared_ptr<TernaryAST> Ptr;
 
     TernaryAST(Expression::Ptr cond, Expression::Ptr first, Expression::Ptr second,
                Result_Type result_type);

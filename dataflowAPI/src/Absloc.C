@@ -40,7 +40,7 @@
 #include "parseAPI/h/CFG.h"
 
 #include <sstream>
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 
 using namespace Dyninst;
 // using namespace Dyninst::DepGraphAPI;
@@ -257,7 +257,7 @@ Assignment::Ptr Assignment::makeAssignment(const InstructionAPI::Instruction& i,
                              ParseAPI::Block *b,
                              const std::vector<AbsRegion> &ins,
                              const AbsRegion &o) {
-      return boost::make_shared<Assignment>(i, a, f, b, ins, o);
+      return dyncompat::make_shared<Assignment>(i, a, f, b, ins, o);
 }
 
 Assignment::Ptr Assignment::makeAssignment(const InstructionAPI::Instruction& i,
@@ -265,7 +265,7 @@ Assignment::Ptr Assignment::makeAssignment(const InstructionAPI::Instruction& i,
                              ParseAPI::Function *f,
                              ParseAPI::Block *b,
                              const AbsRegion &o) {
-      return  boost::make_shared<Assignment>(i, a, f, b, o);
+      return  dyncompat::make_shared<Assignment>(i, a, f, b, o);
 
 }			     
 

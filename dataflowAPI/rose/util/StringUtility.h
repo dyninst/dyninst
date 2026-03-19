@@ -20,7 +20,7 @@
  *  This name space provides functions for operating on strings.
  *
  *  It also provides some unrelated functions: functions for operating on file names (see also @ref rose::FileSystem and
- *  boost::filesystem for better implementations), and functions for performing file I/O. These unrelated functions should
+ *  dyncompat::filesystem for better implementations), and functions for performing file I/O. These unrelated functions should
  *  eventually move to other name spaces. */
 namespace StringUtility {
 
@@ -130,7 +130,7 @@ namespace StringUtility {
 
 /** Convert an integer to a string.
  *
- *  These functions are wrappers around <code>boost::lexical_cast<std::string></code>.
+ *  These functions are wrappers around <code>dyncompat::lexical_cast<std::string></code>.
  *
  *  @{ */
     std::string numberToString(long long);
@@ -567,8 +567,8 @@ namespace StringUtility {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // This part of the StringUtility API deals with file names and should be moved to some other name space. In particular, it
 // provides no definitions for "path", "filename", "extension", etc. and many of these functions won't work properly on a
-// non-POSIX system. Therefore, consider using rose::FileSystem, which is mostly a thin wrapper around boost::filesystem. The
-// boost::filesystem documentation has good definitions for what the various terms should mean and works on non-POSIX file
+// non-POSIX system. Therefore, consider using rose::FileSystem, which is mostly a thin wrapper around dyncompat::filesystem. The
+// dyncompat::filesystem documentation has good definitions for what the various terms should mean and works on non-POSIX file
 // systems.
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -610,7 +610,7 @@ namespace StringUtility {
  *
  *  Removes the "path" part of a "filename" (if there is one) and returns just the file name.
  *
- *  Terms are loosely defined and not likely to work for non-POSIX systems; consider using boost::filesystem instead. */
+ *  Terms are loosely defined and not likely to work for non-POSIX systems; consider using dyncompat::filesystem instead. */
     std::string stripPathFromFileName(const std::string &fileNameWithPath);
 
 /** Returns all but the last component of a path in a filesystem.
@@ -619,18 +619,18 @@ namespace StringUtility {
  *  Make it safe to input a filename without a path name (return the filename).
  *
  *  Terms are loosely defined and this function possibly doesn't work for non-POSIX file systems; consider using
- *  boost::filesystem instead. */
+ *  dyncompat::filesystem instead. */
     std::string getPathFromFileName(const std::string &fileNameWithPath);
 
 /** Get the file name without the ".suffix".
  *
  *  Terms are loosely defined and it's not clear what happens for inputs like ".", ".foo", "..", ".foo.bar", "/.",
- *  etc. Consider using boost::filesystem instead. */
+ *  etc. Consider using dyncompat::filesystem instead. */
     std::string stripFileSuffixFromFileName(const std::string &fileNameWithSuffix);
 
 /** Get the absolute path from the relative path.
  *
- *  Terms are loosely defined and this function is not likely to work on non-POSIX systems. Consider using boost::filesystem
+ *  Terms are loosely defined and this function is not likely to work on non-POSIX systems. Consider using dyncompat::filesystem
  *  instead. */
     std::string getAbsolutePathFromRelativePath(const std::string &relativePath, bool printErrorIfAny = false);
 
@@ -640,7 +640,7 @@ namespace StringUtility {
  *  returns the original fileName.
  *
  *  Terms are loosely defined and this function is not likely to work correctly in some situations, such as when the "." is not
- *  in the last component of the file name.  Consider using boost::filesystem instead. */
+ *  in the last component of the file name.  Consider using dyncompat::filesystem instead. */
     std::string fileNameSuffix(const std::string &fileName);
 
 /** Find file names non-recursively.
@@ -649,7 +649,7 @@ namespace StringUtility {
  *  substring of their name. Note that @p patternString is not a glob or regular expression.  The return value strings are
  *  formed by concatenating the @p pathString and the file name with an intervening slash.
  *
- *  This function does not work for non-POSIX systems. Consider using boost::filesystem instead, which has a directory iterator
+ *  This function does not work for non-POSIX systems. Consider using dyncompat::filesystem instead, which has a directory iterator
  *  that works for non-POSIX systems also. */
     std::list <std::string> findfile(std::string patternString, std::string pathString);
 
@@ -671,7 +671,7 @@ namespace StringUtility {
     static const std::string FILENAME_LIBRARY_STL = "STL";
     static const std::string FILENAME_LIBRARY_LINUX = "Linux";
     static const std::string FILENAME_LIBRARY_GCC = "GCC";
-    static const std::string FILENAME_LIBRARY_BOOST = "Boost";
+    static const std::string FILENAME_LIBRARY_DYNCOMPAT = "Dyncompat";
     static const std::string FILENAME_LIBRARY_ROSE = "Rose";
 
 // CH (2/16/2010): Use this typedef to avoid following changes

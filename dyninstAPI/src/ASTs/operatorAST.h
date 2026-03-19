@@ -34,7 +34,7 @@
 #include "dyn_register.h"
 #include "opcode.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include "codeGenAST.h"
 #include <string>
 
@@ -44,64 +44,64 @@ namespace Dyninst { namespace DyninstAPI {
 
 class operatorAST : public codeGenAST {
 public:
-  using Ptr = boost::shared_ptr<operatorAST>;
+  using Ptr = dyncompat::shared_ptr<operatorAST>;
 
   static Ptr And(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<operatorAST>(andOp, std::move(lhs), std::move(rhs));
+    return dyncompat::make_shared<operatorAST>(andOp, std::move(lhs), std::move(rhs));
   }
   static Ptr div(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<operatorAST>(divOp, std::move(lhs), std::move(rhs));
+    return dyncompat::make_shared<operatorAST>(divOp, std::move(lhs), std::move(rhs));
   }
   static Ptr eq(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<operatorAST>(eqOp, std::move(lhs), std::move(rhs));
+    return dyncompat::make_shared<operatorAST>(eqOp, std::move(lhs), std::move(rhs));
   }
   static Ptr ge(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<operatorAST>(geOp, std::move(lhs), std::move(rhs));
+    return dyncompat::make_shared<operatorAST>(geOp, std::move(lhs), std::move(rhs));
   }
   static Ptr getAddr(codeGenASTPtr arg) {
-    return boost::make_shared<operatorAST>(getAddrOp, std::move(arg));
+    return dyncompat::make_shared<operatorAST>(getAddrOp, std::move(arg));
   }
   static Ptr greater(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<operatorAST>(greaterOp, std::move(lhs), std::move(rhs));
+    return dyncompat::make_shared<operatorAST>(greaterOp, std::move(lhs), std::move(rhs));
   }
   static Ptr ifMC(codeGenASTPtr arg) {
-    return boost::make_shared<operatorAST>(ifMCOp, std::move(arg));
+    return dyncompat::make_shared<operatorAST>(ifMCOp, std::move(arg));
   }
   static Ptr If(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<operatorAST>(ifOp, std::move(lhs), std::move(rhs));
+    return dyncompat::make_shared<operatorAST>(ifOp, std::move(lhs), std::move(rhs));
   }
   static Ptr If(codeGenASTPtr cond, codeGenASTPtr true_clause, codeGenASTPtr false_clause) {
-    return boost::make_shared<operatorAST>(ifOp, std::move(cond), std::move(true_clause), std::move(false_clause));
+    return dyncompat::make_shared<operatorAST>(ifOp, std::move(cond), std::move(true_clause), std::move(false_clause));
   }
   static Ptr le(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<operatorAST>(leOp, std::move(lhs), std::move(rhs));
+    return dyncompat::make_shared<operatorAST>(leOp, std::move(lhs), std::move(rhs));
   }
   static Ptr less(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<operatorAST>(lessOp, std::move(lhs), std::move(rhs));
+    return dyncompat::make_shared<operatorAST>(lessOp, std::move(lhs), std::move(rhs));
   }
   static Ptr minus(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<operatorAST>(minusOp, std::move(lhs), std::move(rhs));
+    return dyncompat::make_shared<operatorAST>(minusOp, std::move(lhs), std::move(rhs));
   }
   static Ptr ne(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<operatorAST>(neOp, std::move(lhs), std::move(rhs));
+    return dyncompat::make_shared<operatorAST>(neOp, std::move(lhs), std::move(rhs));
   }
   static Ptr Or(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<operatorAST>(orOp, std::move(lhs), std::move(rhs));
+    return dyncompat::make_shared<operatorAST>(orOp, std::move(lhs), std::move(rhs));
   }
   static Ptr plus(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<operatorAST>(plusOp, std::move(lhs), std::move(rhs));
+    return dyncompat::make_shared<operatorAST>(plusOp, std::move(lhs), std::move(rhs));
   }
   static Ptr store(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<operatorAST>(storeOp, std::move(lhs), std::move(rhs));
+    return dyncompat::make_shared<operatorAST>(storeOp, std::move(lhs), std::move(rhs));
   }
   static Ptr times(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<operatorAST>(timesOp, std::move(lhs), std::move(rhs));
+    return dyncompat::make_shared<operatorAST>(timesOp, std::move(lhs), std::move(rhs));
   }
   static Ptr While(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<operatorAST>(whileOp, std::move(lhs), std::move(rhs));
+    return dyncompat::make_shared<operatorAST>(whileOp, std::move(lhs), std::move(rhs));
   }
   static Ptr Xor(codeGenASTPtr lhs, codeGenASTPtr rhs) {
-    return boost::make_shared<operatorAST>(xorOp, std::move(lhs), std::move(rhs));
+    return dyncompat::make_shared<operatorAST>(xorOp, std::move(lhs), std::move(rhs));
   }
 
   operatorAST(opCode opC, codeGenASTPtr l, codeGenASTPtr r = codeGenASTPtr(),

@@ -4,7 +4,7 @@
 #include "InstructionDecoder.h"
 
 #include <algorithm>
-#include <boost/range/iterator_range.hpp>
+#include <dyncompat/range/iterator_range.hpp>
 #include <iostream>
 
 namespace di = Dyninst::InstructionAPI;
@@ -20,7 +20,7 @@ namespace Dyninst { namespace InstructionAPI {
       return false;
     }
 
-    auto all_cfts = boost::make_iterator_range(insn.cft_begin(), insn.cft_end());
+    auto all_cfts = dyncompat::make_iterator_range(insn.cft_begin(), insn.cft_end());
 
     if(num_cft && !test.hasCFT) {
       std::cerr << "Control flow targets found, but none expected.\n";

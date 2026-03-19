@@ -45,7 +45,7 @@
 #include "../Transformers/Transformer.h" // transformer class
 #include "RelocGraph.h"
 
-#include "boost/tuple/tuple.hpp"
+#include "dyncompat/tuple/tuple.hpp"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -188,7 +188,7 @@ void RelocBlock::processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *c
          case ParseAPI::DIRECT: {
             bool valid;
             Address addr;
-            boost::tie(valid, addr) = getJumpTarget();
+            dyncompat::tie(valid, addr) = getJumpTarget();
             if (valid) {
                cfg->makeEdge(new Target<RelocBlock *>(this), 
                              new Target<Address>(addr),

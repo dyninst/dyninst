@@ -72,7 +72,6 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   DYNINST_DEPS common instructionAPI pcontrol ${SYMREADER}
   DYNINST_INTERNAL_DEPS dynDwarf dynElf
-  PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS Dyninst::ElfUtils
 )
 # cmake-format: on

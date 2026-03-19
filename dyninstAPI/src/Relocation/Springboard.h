@@ -225,7 +225,7 @@ struct SpringboardInfo {
 class InstalledSpringboards
 {
  public:
-  typedef boost::shared_ptr<InstalledSpringboards> Ptr;
+  typedef dyncompat::shared_ptr<InstalledSpringboards> Ptr;
   static const int Allocated;
   static const int UnallocatedStart;
  InstalledSpringboards() {}
@@ -280,7 +280,7 @@ class SpringboardBuilder {
     Succeeded } generateResult_t;
 
  public:
-  typedef boost::shared_ptr<SpringboardBuilder> Ptr;
+  typedef dyncompat::shared_ptr<SpringboardBuilder> Ptr;
   typedef std::set<func_instance *> FuncSet;
 
   static Ptr createFunc(FuncSet::const_iterator begin, FuncSet::const_iterator end, AddressSpace *addrSpace);

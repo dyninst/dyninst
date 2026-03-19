@@ -47,7 +47,7 @@ namespace Dyninst { namespace InstructionAPI {
     friend class MultiRegisterAST;
 
   public:
-    typedef boost::shared_ptr<RegisterAST> Ptr;
+    typedef dyncompat::shared_ptr<RegisterAST> Ptr;
 
     RegisterAST(MachRegister r, uint32_t num_elements = 1);
     RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit,

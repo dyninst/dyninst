@@ -5,15 +5,15 @@
 #include <stdint.h>
 #include <cassert>
 #include <limits>
-#include <boost/static_assert.hpp>
-#include <boost/optional.hpp>
+#include <dyncompat/static_assert.hpp>
+#include <dyncompat/optional.hpp>
 
 namespace IntegerOpsPrivate {
 
     template <typename T>
     struct NumBits {
-        BOOST_STATIC_ASSERT (std::numeric_limits<T>::radix == 2);
-        BOOST_STATIC_ASSERT (std::numeric_limits<T>::is_integer);
+        DYN_STATIC_ASSERT (std::numeric_limits<T>::radix == 2);
+        DYN_STATIC_ASSERT (std::numeric_limits<T>::is_integer);
         static const size_t value = std::numeric_limits<T>::digits;
     };
 
@@ -302,15 +302,15 @@ namespace IntegerOps {
 
 /** Optionally returns the zero-origin position of the most significant set bit.  Returns nothing if no bits are set. */
     template<typename T>
-    inline boost::optional<size_t> msb_set(T val)
+    inline dyncompat::optional<size_t> msb_set(T val)
     {
       if (val!=0) {
         for (size_t bitno = 8*sizeof(T); bitno>0; --bitno) {
           if (0 != (val & shl1<T>(bitno-1)))
-            return boost::optional<size_t>(bitno-1);
+            return dyncompat::optional<size_t>(bitno-1);
         }
       }
-      return boost::optional<size_t>();
+      return dyncompat::optional<size_t>();
     }
 
 } // namespace

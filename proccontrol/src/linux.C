@@ -73,7 +73,7 @@
 #include "linuxHeaders.h"
 #include "common/src/AuxvParser.h"
 
-#include "boost/shared_ptr.hpp"
+#include "dyncompat/shared_ptr.hpp"
 
 #include "unaligned_memory_access.h"
 
@@ -1073,7 +1073,7 @@ bool linux_process::plat_attachWillTriggerStop() {
     // Retrieve the state of the process and its controlling tty
     snprintf(procName, 64, "/proc/%d/stat", pid);
 
-    boost::shared_ptr<FILE> sfile(fopen(procName, "r"), fclose);
+    dyncompat::shared_ptr<FILE> sfile(fopen(procName, "r"), fclose);
     if (!sfile) {
         perr_printf("Failed to determine whether attach would trigger stop -- assuming it will\n");
         return true;
@@ -1854,7 +1854,7 @@ bool linux_process::readStatM(unsigned long &stk, unsigned long &heap, unsigned 
    path[63] = '\0';
 
    unsigned long size, resident, shared, text, lib, data, dt;
-   boost::shared_ptr<FILE> f(fopen(path, "r"), fclose);
+   dyncompat::shared_ptr<FILE> f(fopen(path, "r"), fclose);
    if (!f) {
       perr_printf("Could not open %s: %s\n", path, strerror(errno));
       setLastError(err_internal, "Could not access /proc");

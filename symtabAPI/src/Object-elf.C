@@ -76,14 +76,14 @@ using namespace std;
 #include <iomanip>
 
 #include <fstream>
-#include <boost/assign/list_of.hpp>
-#include <boost/assign/std/set.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/optional.hpp>
+#include <dyncompat/assign/list_of.hpp>
+#include <dyncompat/assign/std/set.hpp>
+#include <dyncompat/optional.hpp>
+#include <filesystem>
 
 #include "SymReader.h"
 #include <endian.h>
-using namespace boost::assign;
+using namespace dyncompat::assign;
 
 // add some space to avoid looking for functions in data regions
 #define EXTRA_SPACE 8
@@ -1596,25 +1596,25 @@ void ObjectELF::load_object(bool alloc_syms) {
             auto riscv_parse_attr_int = [this](int tag, int value) noexcept -> bool {
                 switch (tag) {
                     case RiscvAttrTag::unaligned_access:
-                        riscv_attrs.unaligned_access = boost::make_optional(value != 0);
+                        riscv_attrs.unaligned_access = dyncompat::make_optional(value != 0);
                         return false;
                     case RiscvAttrTag::stack_align:
-                        riscv_attrs.stack_align = boost::make_optional(value);
+                        riscv_attrs.stack_align = dyncompat::make_optional(value);
                         return false;
                     case RiscvAttrTag::priv_spec:
-                        riscv_attrs.priv_spec = boost::make_optional(value);
+                        riscv_attrs.priv_spec = dyncompat::make_optional(value);
                         return false;
                     case RiscvAttrTag::priv_spec_minor:
-                        riscv_attrs.priv_spec_minor = boost::make_optional(value);
+                        riscv_attrs.priv_spec_minor = dyncompat::make_optional(value);
                         return false;
                     case RiscvAttrTag::priv_spec_revision:
-                        riscv_attrs.priv_spec_revision = boost::make_optional(value);
+                        riscv_attrs.priv_spec_revision = dyncompat::make_optional(value);
                         return false;
                     case RiscvAttrTag::atomic_abi:
-                        riscv_attrs.atomic_abi = boost::make_optional(value);
+                        riscv_attrs.atomic_abi = dyncompat::make_optional(value);
                         return false;
                     case RiscvAttrTag::x3_reg_usage:
-                        riscv_attrs.stack_align = boost::make_optional(value);
+                        riscv_attrs.stack_align = dyncompat::make_optional(value);
                         return false;
                     default:
                         return true;
@@ -3223,7 +3223,7 @@ void ObjectELF::parseLineInfoForCU(Offset offset_, LineInformation* li_for_modul
     }
 
     StringTablePtr strings(li_for_module->getStrings());
-    boost::unique_lock<dyn_mutex> l(strings->lock);
+    dyncompat::unique_lock<dyn_mutex> l(strings->lock);
     Dwarf_Files *files;
     size_t offset = strings->size();
     size_t filecount;
@@ -3253,7 +3253,7 @@ void ObjectELF::parseLineInfoForCU(Offset offset_, LineInformation* li_for_modul
         return s_name;
     };
 
-    using namespace boost::filesystem;
+    namespace fs = std::filesystem;
     for(size_t i = 0; i < filecount; i++)
     {
         auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
@@ -3261,7 +3261,7 @@ void ObjectELF::parseLineInfoForCU(Offset offset_, LineInformation* li_for_modul
         auto result = convert_to_absolute(filename);
         filename = result.c_str();
 
-        string f = path(filename).filename().string();
+        string f = fs::path(filename).filename().string();
         auto tmp = strrchr(filename, '/');
         if(tmp) ++tmp;
 
@@ -3468,7 +3468,7 @@ InlinedFunction* ObjectELF::recordAnInlinedFunction(
 
     // Use the filename and line number from the caller 
     const string& src_file = (*strings)[caller.string_table_index].str;                
-    ifunc->callsite_file_number = strings->project<0>(strings->get<1>().insert(StringTableEntry(src_file,"")).first) - strings->begin();      
+    ifunc->callsite_file_number = strings->ensure(src_file);
     ifunc->callsite_line = caller.line_number;
     
     // Use the function name from the callee
@@ -3507,7 +3507,7 @@ LineInformation* ObjectELF::parseLineInfoForObject(StringTablePtr strings)
     std::string debug_str_secname = ".debug_str";
     associated_symtab->findRegion(debug_str, debug_str_secname);
 
-    boost::lock_guard<Object> guard(*this);
+    dyncompat::lock_guard<Object> guard(*this);
 
     if (li_for_object) {
         // The line information for this object has been parsed.
@@ -3539,16 +3539,16 @@ LineInformation* ObjectELF::parseLineInfoForObject(StringTablePtr strings)
     if (status != 0) break;
       
 
-    boost::unique_lock<dyn_mutex> l(strings->lock);
+    dyncompat::unique_lock<dyn_mutex> l(strings->lock);
     size_t offset = strings->size();
 
-    using namespace boost::filesystem;
+    namespace fs = std::filesystem;
     for(size_t i = 0; i < fileCount; i++)
     {
         auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
         if(!filename) continue;
 
-        string f = path(filename).filename().string();
+        string f = fs::path(filename).filename().string();
         auto tmp = strrchr(filename, '/');
         if(tmp) ++tmp;
 

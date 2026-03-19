@@ -35,7 +35,7 @@
 #include <map>
 #include <stack>
 #include "parseAPI/h/CFG.h"
-#include "boost/shared_ptr.hpp"
+#include "dyncompat/shared_ptr.hpp"
 
 class block_instance;
 class baseTramp;
@@ -66,7 +66,7 @@ class RelocGraph;
  
 class Transformer {
  public:
-  typedef boost::shared_ptr<Widget> WidgetPtr;
+  typedef dyncompat::shared_ptr<Widget> WidgetPtr;
   typedef std::list<WidgetPtr> WidgetList;
   typedef std::map<block_instance *, RelocBlock *> RelocBlockMap;
 

@@ -40,7 +40,6 @@ include(DyninstOptimization)
 
 # Locate third-party libraries
 include(DyninstThreads)
-include(DyninstBoost)
 include(DyninstTBB)
 include(DyninstElfUtils)
 include(DyninstLibIberty)

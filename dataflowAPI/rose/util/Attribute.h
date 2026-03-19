@@ -49,8 +49,8 @@
 #define Sawyer_Attribute_H
 
 #include <stddef.h>
-#include <boost/any.hpp>
-#include <boost/lexical_cast.hpp>
+#include <dyncompat/any.hpp>
+#include <dyncompat/lexical_cast.hpp>
 #include "Exception.h"
 #include "Map.h"
 #include "Optional.h"
@@ -182,18 +182,18 @@ public:
     /** Constructor taking an attribute name or description. */
     AlreadyExists(const std::string &attrName, Id id)
         : Exception::AlreadyExists(attrName + " is already a declared attribute (id=" +
-                                   boost::lexical_cast<std::string>(id) + ")") {}
+                                   dyncompat::lexical_cast<std::string>(id) + ")") {}
 };
 
 /** Exception thrown when wrong data type is queried. */
-typedef boost::bad_any_cast WrongQueryType;
+typedef dyncompat::bad_any_cast WrongQueryType;
 
 /** API and storage for attributes.
  *
  *  This is the interface inherited by objects that can store attributes.  See the @ref Attribute "namespace" for usage and
  *  examples. */
 class SAWYER_EXPORT Storage {
-    typedef Sawyer::Container::Map<Id, boost::any> AttrMap;
+    typedef Sawyer::Container::Map<Id, dyncompat::any> AttrMap;
     AttrMap values_;
 public:
     /** Check attribute existence.
@@ -223,7 +223,7 @@ public:
      *  retrieving the attribute. */
     template<typename T>
     void setAttribute(Id id, const T &value) {
-        values_.insert(id, boost::any(value));
+        values_.insert(id, dyncompat::any(value));
     }
 
     /** Get an attribute that is known to exist.
@@ -237,13 +237,13 @@ public:
         if (found == values_.nodes().end()) {
             std::string name = Attribute::name(id);
             if (name.empty()) {
-                throw DoesNotExist("attribute id " + boost::lexical_cast<std::string>(id) + " [not declared]");
+                throw DoesNotExist("attribute id " + dyncompat::lexical_cast<std::string>(id) + " [not declared]");
             } else {
                 throw DoesNotExist(name);
             }
         }
-        checkBoost();
-        return boost::any_cast<T>(values_.getOptional(id).orDefault());
+        checkAnyCompatibility();
+        return dyncompat::any_cast<T>(values_.getOptional(id).orDefault());
     }
 
     /** Return an attribute or a specified value.
@@ -253,8 +253,8 @@ public:
      *  provided default type isn't checked). */
     template<typename T>
     T attributeOrElse(Id id, const T &dflt) const {
-        checkBoost();
-        return boost::any_cast<T>(values_.getOptional(id).orElse(dflt));
+        checkAnyCompatibility();
+        return dyncompat::any_cast<T>(values_.getOptional(id).orElse(dflt));
     }
 
     /** Return an attribute or a default-constructed value.
@@ -267,7 +267,7 @@ public:
         AttrMap::ConstNodeIterator found = values_.find(id);
         if (found == values_.nodes().end())
             return T();
-        return boost::any_cast<T>(found->value());
+        return dyncompat::any_cast<T>(found->value());
     }
 
     /** Return the attribute as an optional value.
@@ -278,7 +278,7 @@ public:
         AttrMap::ConstNodeIterator found = values_.find(id);
         if (found == values_.nodes().end())
             return Sawyer::Nothing();
-        return boost::any_cast<T>(found->value());
+        return dyncompat::any_cast<T>(found->value());
     }
 
     /** Number of attributes stored. */
@@ -290,7 +290,7 @@ public:
     std::vector<Id> attributeIds() const;
 
 private:
-    void checkBoost() const;
+    void checkAnyCompatibility() const;
 };
 
 } // namespace

@@ -40,7 +40,7 @@
 #include "Ternary.h"
 #include "Visitor.h"
 
-#include <boost/shared_ptr.hpp>
+#include <dyncompat/shared_ptr.hpp>
 
 namespace Dyninst { namespace InstructionAPI {
 
@@ -54,7 +54,7 @@ namespace Dyninst { namespace InstructionAPI {
         regs.reserve(5);
       }
       void visit(RegisterAST* r) {
-        regs.push_back(boost::reinterpret_pointer_cast<RegisterAST>(r->shared_from_this()));
+        regs.push_back(dyncompat::reinterpret_pointer_cast<RegisterAST>(r->shared_from_this()));
       }
       void visit(BinaryFunction*) {}
       void visit(Dereference*) {}

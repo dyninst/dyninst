@@ -37,7 +37,7 @@
 #include "PatchMgr.h"
 #include "PatchCallback.h"
 #include "Point.h"
-#include <boost/shared_ptr.hpp>
+#include <dyncompat/shared_ptr.hpp>
 
 using namespace std;
 using namespace Dyninst;

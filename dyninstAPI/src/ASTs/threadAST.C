@@ -1,7 +1,7 @@
 #include "debug.h"
 #include "threadAST.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 
 namespace Dyninst { namespace DyninstAPI {
 
@@ -27,7 +27,7 @@ bool threadAST::canBeKept() const {
 // we'll screw up our pointer-based common subexpression
 // elimination.
 threadAST::Ptr threadAST::index() {
-  static threadAST::Ptr idx = boost::make_shared<threadAST>();
+  static threadAST::Ptr idx = dyncompat::make_shared<threadAST>();
   return idx;
 }
 

@@ -425,7 +425,7 @@ bool IA_IAPI::isDynamicCall() const
     {
         Address addr;
         bool success;
-        boost::tie(success, addr) = getCFT();
+        dyncompat::tie(success, addr) = getCFT();
         if (!success) {
             parsing_printf("... Call 0x%lx is indirect\n", current);
             return true;
@@ -440,7 +440,7 @@ bool IA_IAPI::isAbsoluteCall() const
     if(ci.isCall())
     {
         Expression::Ptr cft = ci.getControlFlowTarget();
-        if(cft && boost::dynamic_pointer_cast<Immediate>(cft))
+        if(cft && dyncompat::dynamic_pointer_cast<Immediate>(cft))
         {
             return true;
         }
@@ -477,7 +477,7 @@ bool IA_IAPI::isIndirectJump() const {
     if(ci.allowsFallThrough()) return false;
     bool valid;
     Address target;
-    boost::tie(valid, target) = getCFT(); 
+    dyncompat::tie(valid, target) = getCFT(); 
     if (valid) return false;
     parsing_printf("... indirect jump at 0x%lx, delay parsing it\n", current);
     return true;
@@ -531,7 +531,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
     {
         bool success; 
         Address target;
-        boost::tie(success, target) = getCFT();
+        dyncompat::tie(success, target) = getCFT();
         bool callEdge = true;
         bool ftEdge = true;
         if( success && !isDynamicCall() )
@@ -595,7 +595,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
 
         bool valid;
         Address target;
-        boost::tie(valid, target) = getCFT(); 
+        dyncompat::tie(valid, target) = getCFT(); 
         // Direct jump
         if (valid) 
         {
@@ -718,7 +718,7 @@ bool IA_IAPI::isIPRelativeBranch() const
 
     bool valid;
     Address target;
-    boost::tie(valid, target) = getCFT();
+    dyncompat::tie(valid, target) = getCFT();
 
     if(ci.isBranch() && !valid) {
         Expression::Ptr cft = ci.getControlFlowTarget();
@@ -759,7 +759,7 @@ bool IA_IAPI::isRealCall() const
     // Obviated by simulateJump
     bool success;
     Address addr;
-    boost::tie(success, addr) = getCFT();
+    dyncompat::tie(success, addr) = getCFT();
     if (success &&
             (addr == getNextAddr())) {
         parsing_printf("... getting PC\n");
@@ -837,7 +837,7 @@ bool IA_IAPI::isRelocatable(InstrumentableLevel lvl) const
         if(!isDynamicCall())
         {
             bool valid; Address addr;
-            boost::tie(valid, addr) = getCFT();
+            dyncompat::tie(valid, addr) = getCFT();
             assert(valid);
             if(!_isrc->isValidAddress(addr))
             {

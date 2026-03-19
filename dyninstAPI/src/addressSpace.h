@@ -340,7 +340,7 @@ class AddressSpace : public InstructionSource {
     const func_instance *isFunctionReplacement(func_instance *func) const;
 
     // And this....
-    typedef boost::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
+    typedef dyncompat::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
     bool getDynamicCallSiteArgs(InstructionAPI::Instruction insn,
                                 Address addr,
                                 std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &args);

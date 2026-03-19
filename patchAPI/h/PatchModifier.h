@@ -56,7 +56,7 @@ class DYNINST_EXPORT InsertedCode {
   public:
   InsertedCode() : entry_(NULL) {}
 
-   typedef boost::shared_ptr<InsertedCode> Ptr;
+   typedef dyncompat::shared_ptr<InsertedCode> Ptr;
    PatchBlock *entry() { return entry_; }
    const std::vector<PatchEdge *> &exits() { return exits_;}
    const std::set<PatchBlock *> &blocks() { return blocks_; }

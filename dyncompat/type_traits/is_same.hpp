@@ -1,0 +1,6 @@
+#ifndef DYNINST_DYNCOMPAT_TYPE_TRAITS_IS_SAME_HPP
+#define DYNINST_DYNCOMPAT_TYPE_TRAITS_IS_SAME_HPP
+
+#include "../type_traits.hpp"
+
+#endif

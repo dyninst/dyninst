@@ -70,7 +70,7 @@ bool remove(PatchFunction *func)
 
 \begin{apient}
 class InsertedCode {
-  typedef boost::shared_ptr<...> Ptr;
+  typedef dyncompat::shared_ptr<...> Ptr;
   PatchBlock *entry();
   const std::vector<PatchEdge *> &exits();
   const std::set<PatchBlock *> &blocks();

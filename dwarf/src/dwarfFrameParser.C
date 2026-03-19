@@ -105,7 +105,7 @@ DwarfFrameParser::DwarfFrameParser(Dwarf * dbg_, Elf * eh_frame, Architecture ar
     dbg(dbg_),
     dbg_eh_frame(eh_frame),
     arch(arch_),
-    fde_dwarf_once(BOOST_ONCE_INIT),
+    fde_dwarf_once(DYNCOMPAT_ONCE_INIT),
     fde_dwarf_status(dwarf_status_uninitialized)
 {
 }
@@ -210,7 +210,7 @@ bool DwarfFrameParser::getRegsForFunction(
         return false;
     }
 
-    boost::unique_lock<dyn_mutex> l(cfi_lock);
+    dyncompat::unique_lock<dyn_mutex> l(cfi_lock);
     for(size_t i=0; i<cfi_data.size(); i++)
     {
         auto next_pc = range.first;
@@ -438,7 +438,7 @@ bool DwarfFrameParser::getRegAtFrame(
 
 void DwarfFrameParser::setupCFIData()
 {
-    boost::call_once(fde_dwarf_once, [&]{
+    dyncompat::call_once(fde_dwarf_once, [&]{
         if (!dbg && !dbg_eh_frame) {
             fde_dwarf_status = dwarf_status_error;
             return;

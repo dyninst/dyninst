@@ -1,9 +1,8 @@
 #include "common/src/dyninst_filesystem.h"
 
 #include <array>
-#include <boost/algorithm/string/replace.hpp>
-#include <boost/filesystem.hpp>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -63,10 +62,10 @@ int main() {
 
   // Remove terminal slashes
   auto simplify = [](std::string &path) {
-    namespace bf = boost::filesystem;
+    namespace fs = std::filesystem;
 
     if(path.empty()) {
-      return bf::path{};
+      return fs::path{};
     }
 
     auto has_terminal_slash = [&path]() {
@@ -77,12 +76,12 @@ int main() {
       path.erase(path.length() - 1);
     }
 
-    // bf::canonical (see below) requires that the path exists.
-    if(!bf::exists(path)) {
-      return bf::path(path);
+    // fs::canonical (see below) requires that the path exists.
+    if(!fs::exists(path)) {
+      return fs::path(path);
     }
 
-    return bf::canonical(bf::path(path));
+    return fs::canonical(fs::path(path));
   };
 
   bool failed = false;
@@ -98,8 +97,8 @@ int main() {
     test_id++;
   }
 
-  namespace bf = boost::filesystem;
-  bf::remove(bf::path(test_file_path));
+  namespace fs = std::filesystem;
+  fs::remove(fs::path(test_file_path));
 
   return (failed) ? EXIT_FAILURE : EXIT_SUCCESS;
 }

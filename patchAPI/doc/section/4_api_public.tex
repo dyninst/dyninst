@@ -9,14 +9,14 @@ programmers can add the C++ \emph{using} keyword above any references to
 PatchAPI objects, e.g.,\emph{using namespace Dyninst::PatchAPI} or \emph{using
   Dyninst::PatchAPI::Point}.
 
-Classes in PatchAPI use either the C++ raw pointer or the boost shared pointer
-(\emph{boost::shared\_ptr<T>}) for memory management. A class uses a raw pointer
+Classes in PatchAPI use either the C++ raw pointer or the dyncompat shared pointer
+(\emph{dyncompat::shared\_ptr<T>}) for memory management. A class uses a raw pointer
 whenever it is returning a handle to the user that is controlled and destroyed
 by the PatchAPI runtime library. Classes that use a raw pointer include the CFG
 objects, a Point, and various plugins, e.g., AddrSpace, CFGMaker, PointMaker,
 and Instrumenter.  A class uses a shared\_pointer whenever it is handing
 something to the user that the PatchAPI runtime library is not controlling and
-destroying. Classes that use a boost shared pointer include a Snippet, PatchMgr,
+destroying. Classes that use a dyncompat shared pointer include a Snippet, PatchMgr,
 and Instance, where we typedef a class's shared pointer by appending the Ptr to
 the class name, e.g., PatchMgrPtr for PatchMgr.
 
@@ -1405,4 +1405,3 @@ Programmers implement this method, which is to be invoked after a block is
 split. The provided Point belonged to the first block and is being
 moved to the second. 
 }
-

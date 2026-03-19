@@ -5,7 +5,7 @@
 #include "Instruction.h"
 #include "jumpTargetAST.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 
 namespace Dyninst { namespace DyninstAPI {
 
@@ -55,7 +55,7 @@ bool dynamicJumpTargetAST::generateCode_phase2(codeGen &gen, bool noCost, Addres
 namespace jumpTargetAST {
 
   dynamicJumpTargetAST::Ptr dynamic() {
-    static auto node = boost::make_shared<dynamicJumpTargetAST>();
+    static auto node = dyncompat::make_shared<dynamicJumpTargetAST>();
     return node;
   }
 

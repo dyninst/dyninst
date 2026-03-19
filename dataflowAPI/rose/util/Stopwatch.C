@@ -9,10 +9,10 @@
 #include "Stopwatch.h"
 #include <iostream>
 
-#if defined(SAWYER_HAVE_BOOST_CHRONO)
-#   include <boost/chrono/duration.hpp>
-#   include <boost/chrono/system_clocks.hpp>
-#elif defined(BOOST_WINDOWS)
+#if defined(SAWYER_HAVE_DYNCOMPAT_CHRONO)
+#   include <dyncompat/chrono/duration.hpp>
+#   include <dyncompat/chrono/system_clocks.hpp>
+#elif defined(DYNCOMPAT_WINDOWS)
 #   include <time.h>
 #   include <windows.h>
 #   undef ERROR                                         // not sure where this pollution comes from
@@ -24,9 +24,9 @@
 namespace Sawyer {
 
 static Stopwatch::TimePoint getCurrentTime() {
-#if defined(SAWYER_HAVE_BOOST_CHRONO)
-    return boost::chrono::high_resolution_clock::now();
-#elif defined(BOOST_WINDOWS)
+#if defined(SAWYER_HAVE_DYNCOMPAT_CHRONO)
+    return dyncompat::chrono::high_resolution_clock::now();
+#elif defined(DYNCOMPAT_WINDOWS)
     FILETIME ft;
     GetSystemTimeAsFileTime(&ft);
     unsigned __int64 t = ft.dwHighDateTime;
@@ -50,7 +50,7 @@ Stopwatch::report(bool clear) const {
         elapsed_ += now - begin_;
         begin_ = now;
     }
-#ifdef SAWYER_HAVE_BOOST_CHRONO
+#ifdef SAWYER_HAVE_DYNCOMPAT_CHRONO
     double retval = elapsed_.count();
 #else
     double retval = elapsed_;

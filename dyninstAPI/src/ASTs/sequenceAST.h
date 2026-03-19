@@ -33,7 +33,7 @@
 
 #include "dyn_register.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include "codeGenAST.h"
 #include <string>
 
@@ -45,10 +45,10 @@ namespace Dyninst { namespace DyninstAPI {
 
 class sequenceAST : public codeGenAST {
 public:
-  using Ptr = boost::shared_ptr<sequenceAST>;
+  using Ptr = dyncompat::shared_ptr<sequenceAST>;
 
   static Ptr create(std::vector<codeGenASTPtr> &vals) {
-    return boost::make_shared<sequenceAST>(vals);
+    return dyncompat::make_shared<sequenceAST>(vals);
   }
 
   sequenceAST(std::vector<codeGenASTPtr> &sequence) {

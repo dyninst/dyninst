@@ -212,7 +212,7 @@ each AST node type. Users can inherit from this class to write customized analys
 for ASTs.
 
 \begin{apient}
-typedef boost::shared_ptr<AST> ASTVisitor::ASTPtr;
+typedef dyncompat::shared_ptr<AST> ASTVisitor::ASTPtr;
 virtual ASTVisitor::ASTPtr ASTVisitor::visit(AST *);
 virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::BottomAST *);
 virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::ConstantAST *);

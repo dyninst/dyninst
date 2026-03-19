@@ -35,7 +35,7 @@
 #include <stdint.h>
 #include <vector>
 
-#include <boost/container_hash/hash.hpp>
+#include <dyncompat/container_hash/hash.hpp>
 
 namespace Dyninst {
 
@@ -151,9 +151,9 @@ template <> struct hash<Dyninst::Register> {
   size_t operator()(const Dyninst::Register &reg) const noexcept {
     size_t seed = 0;
 
-    boost::hash_combine(seed, reg.getId());
-    boost::hash_combine(seed, reg.getKind());
-    boost::hash_combine(seed, reg.getCount());
+    dyncompat::hash_combine(seed, reg.getId());
+    dyncompat::hash_combine(seed, reg.getKind());
+    dyncompat::hash_combine(seed, reg.getCount());
 
     return seed;
   }

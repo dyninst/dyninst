@@ -53,7 +53,7 @@
 
 #include "AbslocInterface.h"
 
-#include <boost/functional/hash.hpp>
+#include <dyncompat/functional/hash.hpp>
 
 namespace Dyninst {
 
@@ -65,15 +65,15 @@ namespace ParseAPI {
 
 class Assignment;
 class AbsRegion;
-typedef boost::shared_ptr<Assignment> AssignmentPtr;
+typedef dyncompat::shared_ptr<Assignment> AssignmentPtr;
 
 class Graph;
-typedef boost::shared_ptr<Graph> GraphPtr;
+typedef dyncompat::shared_ptr<Graph> GraphPtr;
 
  namespace InstructionAPI {
    class Instruction;
  }
- typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+ typedef dyncompat::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
 
  class Slicer;
 
@@ -82,7 +82,7 @@ typedef boost::shared_ptr<Graph> GraphPtr;
 // the DDG code.
 class DYNINST_EXPORT SliceNode : public Node {
  public:
-  typedef boost::shared_ptr<SliceNode> Ptr;
+  typedef dyncompat::shared_ptr<SliceNode> Ptr;
       
   static SliceNode::Ptr create(AssignmentPtr ptr,
 				ParseAPI::Block *block,
@@ -118,7 +118,7 @@ class DYNINST_EXPORT SliceNode : public Node {
 
 class SliceEdge : public Edge {
   public:
-   typedef boost::shared_ptr<SliceEdge> Ptr;
+   typedef dyncompat::shared_ptr<SliceEdge> Ptr;
 
    DYNINST_EXPORT static SliceEdge::Ptr create(SliceNode::Ptr source,
                                                 SliceNode::Ptr target,
@@ -729,7 +729,7 @@ private:
   struct EdgeTupleHasher {
     size_t operator() (const EdgeTuple& et) const {
         size_t seed = (size_t)(et.s.get());
-        boost::hash_combine( seed , (size_t)(et.d.get()));
+        dyncompat::hash_combine( seed , (size_t)(et.d.get()));
 	return seed;
     }
   };

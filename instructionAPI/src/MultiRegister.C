@@ -37,7 +37,7 @@
 #include "registers/MachRegister.h"
 #include "registers/x86_regs.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include <set>
 #include <sstream>
 #include <vector>
@@ -50,7 +50,7 @@ namespace Dyninst { namespace InstructionAPI {
     uint32_t regVal = r.val();
     for(uint32_t i = 0; i < num_elements; i++) {
       m_Regs.push_back(
-          boost::make_shared<RegisterAST>(MachRegister(regVal + i), 0, r.size() * 8, num_elements));
+          dyncompat::make_shared<RegisterAST>(MachRegister(regVal + i), 0, r.size() * 8, num_elements));
     }
   }
 

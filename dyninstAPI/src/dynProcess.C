@@ -46,7 +46,7 @@
 #include "common/src/dyninst_filesystem.h"
 
 #include "PCErrors.h"
-#include <boost/tuple/tuple.hpp>
+#include <dyncompat/tuple/tuple.hpp>
 
 #include "symtabAPI/h/SymtabReader.h"
 #include "patchAPI/h/PatchMgr.h"

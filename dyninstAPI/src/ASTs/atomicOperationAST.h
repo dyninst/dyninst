@@ -34,7 +34,7 @@
 #include "dyn_register.h"
 #include "opcode.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include "codeGenAST.h"
 #include <string>
 
@@ -46,14 +46,14 @@ namespace Dyninst { namespace DyninstAPI {
 // expressions.
 class atomicOperationAST : public codeGenAST {
 public:
-  using Ptr = boost::shared_ptr<atomicOperationAST>;
+  using Ptr = dyncompat::shared_ptr<atomicOperationAST>;
 
   static Ptr plus(codeGenASTPtr var, codeGenASTPtr constant) {
-    return boost::make_shared<atomicOperationAST>(plusOp, std::move(var), std::move(constant));
+    return dyncompat::make_shared<atomicOperationAST>(plusOp, std::move(var), std::move(constant));
   }
 
   static Ptr minus(codeGenASTPtr var, codeGenASTPtr constant) {
-    return boost::make_shared<atomicOperationAST>(minusOp, std::move(var), std::move(constant));
+    return dyncompat::make_shared<atomicOperationAST>(minusOp, std::move(var), std::move(constant));
   }
 
   atomicOperationAST(opCode op, codeGenASTPtr var, codeGenASTPtr constant_)

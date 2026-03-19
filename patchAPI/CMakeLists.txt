@@ -44,6 +44,5 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   DEFINES PATCHAPI_LIB
   DYNINST_DEPS common instructionAPI parseAPI
-  PRIVATE_DEPS Dyninst::Boost
 )
 # cmake-format: on

@@ -37,7 +37,7 @@
 #include "registers/MachRegister.h"
 #include "registers/x86_regs.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include <set>
 #include <sstream>
 #include <vector>
@@ -130,7 +130,7 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   RegisterAST::Ptr RegisterAST::promote(const Expression::Ptr regPtr) {
-    const RegisterAST::Ptr r = boost::dynamic_pointer_cast<RegisterAST>(regPtr);
+    const RegisterAST::Ptr r = dyncompat::dynamic_pointer_cast<RegisterAST>(regPtr);
     return RegisterAST::promote(r.get());
   }
 
@@ -143,7 +143,7 @@ namespace Dyninst { namespace InstructionAPI {
     // We want to upconvert the register ID to the maximal containing
     // register for the platform - either EAX or RAX as appropriate.
 
-    return boost::make_shared<RegisterAST>(regPtr->getPromotedReg(), 0,
+    return dyncompat::make_shared<RegisterAST>(regPtr->getPromotedReg(), 0,
                                            regPtr->getPromotedReg().size());
   }
 

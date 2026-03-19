@@ -34,7 +34,7 @@
 #include "dyn_register.h"
 #include "PatchCommon.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include "codeGenAST.h"
 #include <string>
 
@@ -48,10 +48,10 @@ namespace Dyninst { namespace DyninstAPI {
 // in our world.
 class snippetAST : public codeGenAST {
 public:
-  using Ptr = boost::shared_ptr<snippetAST>;
+  using Ptr = dyncompat::shared_ptr<snippetAST>;
 
   static Ptr create(Dyninst::PatchAPI::SnippetPtr snippet) {
-    return boost::make_shared<snippetAST>(std::move(snippet));
+    return dyncompat::make_shared<snippetAST>(std::move(snippet));
   }
 
   snippetAST(Dyninst::PatchAPI::SnippetPtr snippet) : snip_{std::move(snippet)} {}

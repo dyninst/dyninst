@@ -32,7 +32,7 @@
 #include "Register.h"
 #include "registers/aarch64_regs.h"
 #include "unaligned_memory_access.h"
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 
 #if defined(__GNUC__)
 #define insn_printf(format, ...)                                                                   \

@@ -30,10 +30,9 @@
 
 #include "dyninst_filesystem.h"
 
-#include <boost/algorithm/string/replace.hpp>
-#include <boost/algorithm/string/trim.hpp>
-#include <boost/filesystem.hpp>
+#include <cctype>
 #include <cstdlib>
+#include <filesystem>
 #include <string>
 
 #ifdef os_windows
@@ -54,6 +53,29 @@ namespace Dyninst {
 #include <vector>
 
 namespace Dyninst { namespace filesystem {
+
+  static void trim_in_place(std::string& value) {
+    auto is_space = [](unsigned char ch) { return std::isspace(ch) != 0; };
+
+    auto begin = value.begin();
+    while(begin != value.end() && is_space(static_cast<unsigned char>(*begin))) {
+      ++begin;
+    }
+
+    auto end = value.end();
+    while(end != begin && is_space(static_cast<unsigned char>(*(end - 1)))) {
+      --end;
+    }
+
+    value.assign(begin, end);
+  }
+
+  static void collapse_duplicate_slashes(std::string& value) {
+    for(std::string::size_type pos = value.find("//"); pos != std::string::npos;
+        pos = value.find("//", pos)) {
+      value.replace(pos, 2, "/");
+    }
+  }
 
   static std::string get_home_dir(const std::string& username = {}) {
 
@@ -125,7 +147,10 @@ namespace Dyninst { namespace filesystem {
     // Everything after ~NAME
     auto trailing_path = path_name.substr(user_name.length() + 1);
 
-    namespace fs = boost::filesystem;
+    namespace fs = std::filesystem;
+    if(!trailing_path.empty() && trailing_path.front() == '/') {
+      trailing_path.erase(trailing_path.begin());
+    }
     auto full_path = fs::path(home) / trailing_path;
     return full_path.string();
   }
@@ -133,30 +158,29 @@ namespace Dyninst { namespace filesystem {
 #endif
 
 std::string extract_filename(const std::string& path) {
-  boost::filesystem::path p(path);
+  std::filesystem::path p(path);
   return p.filename().string();
 }
 
 std::string canonicalize(std::string path) {
-  namespace ba = boost::algorithm;
-  namespace bf = boost::filesystem;
+  namespace fs = std::filesystem;
 
   // Remove all leading and trailing spaces in-place.
-  ba::trim(path);
+  trim_in_place(path);
 
   // Collapse multiple slashes and remove terminal slashes
-  boost::algorithm::replace_all(path, "//", "/");
+  collapse_duplicate_slashes(path);
 
   // If it has a tilde, expand tilde pathname
   if(path.find('~') != std::string::npos) {
     path = expand_tilde(path);
   }
 
-  // Convert to a boost::filesystem::path
-  auto boost_path = bf::path(path);
+  // Convert to a filesystem::path
+  auto fs_path = fs::path(path);
 
-  // bf::canonical (see below) requires that the path exists.
-  if(!bf::exists(boost_path)) {
+  // fs::canonical (see below) requires that the path exists.
+  if(!fs::exists(fs_path)) {
     return path;
   }
 
@@ -166,9 +190,9 @@ std::string canonicalize(std::string path) {
    * current working directory) that has no symbolic links, '.',
    * or '..' elements and strips trailing directory separator.
    */
-  boost::system::error_code ec;
-  auto canonical_path = bf::canonical(boost_path, ec);
-  if(ec != boost::system::errc::success) {
+  std::error_code ec;
+  auto canonical_path = fs::canonical(fs_path, ec);
+  if(ec) {
     return {};
   }
 

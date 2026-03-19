@@ -1,11 +1,12 @@
 #include "../util/StringUtility.h"
 //#include "sage3basic.h"
 #include "Registers.h"
+#include <algorithm>
 #include "external/rose/armv8InstructionEnum.h"
 #include "external/rose/amdgpuInstructionEnum.h"
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
-#include <boost/foreach.hpp>
+#include <dyncompat/foreach.hpp>
 #include <mutex>
 
 std::ostream&

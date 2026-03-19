@@ -79,7 +79,7 @@ const char MULTIPLE_WILDCARD_CHARACTER = '*';
  *   section....
 ************************************************************************/
 
-class Object : public boost::basic_lockable_adapter<boost::mutex>
+class Object : public dyncompat::basic_lockable_adapter<dyncompat::mutex>
 {
 public:
     DYNINST_EXPORT unsigned nsymbols () const;

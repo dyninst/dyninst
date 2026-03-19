@@ -8,7 +8,7 @@ upon this graph interface, so users can inherit the defined classes for
 customization.
 
 \begin{apient}
-typedef boost::shared_ptr<Graph> Ptr;
+typedef dyncompat::shared_ptr<Graph> Ptr;
 \end{apient}
 \apidesc{Shared pointer for Graph}
 
@@ -84,7 +84,7 @@ unsigned size() const;
 \definedin{Node.h}
 
 \begin{apient}
-typedef boost::shared_ptr<Node> Ptr;
+typedef dyncompat::shared_ptr<Node> Ptr;
 \end{apient}
 \apidesc{Shared pointer for Node}
 
@@ -134,7 +134,7 @@ class NodeIterator;
 \definedin{Edge.h}
 
 \begin{apient}
-typedef boost::shared_ptr<Edge> Edge::Ptr;
+typedef dyncompat::shared_ptr<Edge> Edge::Ptr;
 \end{apient}
 \apidesc{Shared pointer for \code{Edge}.}
 

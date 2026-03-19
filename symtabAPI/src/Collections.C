@@ -113,29 +113,29 @@ const dyn_c_vector<localVar *> &localVarCollection::getAllVars() const
 
 // Could be somewhere else... for DWARF-work.
 dyn_c_hash_map<void *, typeCollection *> typeCollection::fileToTypesMap;
-dyn_hash_map<int, std::vector<std::pair<dataClass, boost::shared_ptr<Type>*> > *> *deferred_lookups_p = NULL;
+dyn_hash_map<int, std::vector<std::pair<dataClass, dyncompat::shared_ptr<Type>*> > *> *deferred_lookups_p = NULL;
 
-void typeCollection::addDeferredLookup(int tid, dataClass tdc, boost::shared_ptr<Type>*th)
+void typeCollection::addDeferredLookup(int tid, dataClass tdc, dyncompat::shared_ptr<Type>*th)
 {
 	if (!deferred_lookups_p)
-		deferred_lookups_p = new dyn_hash_map<int, std::vector<std::pair<dataClass, boost::shared_ptr<Type>*> > *>();
+		deferred_lookups_p = new dyn_hash_map<int, std::vector<std::pair<dataClass, dyncompat::shared_ptr<Type>*> > *>();
 	auto& deferred_lookups = *deferred_lookups_p;
 
 	auto iter = deferred_lookups.find(tid);
 	if (iter == deferred_lookups.end())
-		deferred_lookups[tid] = new std::vector<std::pair<dataClass, boost::shared_ptr<Type> *> >();
+		deferred_lookups[tid] = new std::vector<std::pair<dataClass, dyncompat::shared_ptr<Type> *> >();
 	deferred_lookups[tid]->push_back(std::make_pair(tdc, th));
 }
 
 bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 {
 	if (!deferred_lookups_p) return true; // nothing to do
-	dyn_hash_map<int, std::vector<std::pair<dataClass, boost::shared_ptr<Type>*> > *> &deferred_lookups = *deferred_lookups_p;
+	dyn_hash_map<int, std::vector<std::pair<dataClass, dyncompat::shared_ptr<Type>*> > *> &deferred_lookups = *deferred_lookups_p;
 	bool err = false;
-	dyn_hash_map<int, std::vector<std::pair<dataClass, boost::shared_ptr<Type>*> > *>::iterator iter;
+	dyn_hash_map<int, std::vector<std::pair<dataClass, dyncompat::shared_ptr<Type>*> > *>::iterator iter;
 	for (iter = deferred_lookups.begin(); iter != deferred_lookups.end(); iter++)
 	{
-		std::vector<std::pair<dataClass, boost::shared_ptr<Type>*> > *to_assign = iter->second;
+		std::vector<std::pair<dataClass, dyncompat::shared_ptr<Type>*> > *to_assign = iter->second;
 		if (!to_assign->size())
 		{
 			continue;
@@ -144,9 +144,9 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 		for (unsigned int i = 0; i < to_assign->size(); ++i)
 		{
 			dataClass ldc = (*to_assign)[i].first;
-			boost::shared_ptr<Type>*th = (*to_assign)[i].second;
+			dyncompat::shared_ptr<Type>*th = (*to_assign)[i].second;
 
-			boost::shared_ptr<Type> t = primary_tc->findType(iter->first, Type::share);
+			dyncompat::shared_ptr<Type> t = primary_tc->findType(iter->first, Type::share);
 			if (t && (t->getDataClass() != ldc)) t = NULL;
 
 			if (!t)
@@ -171,7 +171,7 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 				for (tciter = fileToTypesMap.begin(); tciter != fileToTypesMap.end(); tciter++)
 				{
 					if (tciter->second == primary_tc) continue;
-					boost::shared_ptr<Type> localt = tciter->second->findType(iter->first, Type::share);
+					dyncompat::shared_ptr<Type> localt = tciter->second->findType(iter->first, Type::share);
 					if (localt)
 					{
 						if (localt->getDataClass() != ldc)
@@ -251,41 +251,41 @@ typeCollection::~typeCollection() {}
  * name		The name of the type to look up.
  * id           The unique type ID of the type tp look up.
  */
-boost::shared_ptr<Type> typeCollection::findType(std::string name, Type::do_share_t)
+dyncompat::shared_ptr<Type> typeCollection::findType(std::string name, Type::do_share_t)
 {
-    dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
+    dyn_c_hash_map<std::string, dyncompat::shared_ptr<Type>>::const_accessor a;
 
     if (typesByName.find(a, name))
     	return a->second;
     else if (Symtab::builtInTypes())
         return Symtab::builtInTypes()->findBuiltInType(name, Type::share);
     else
-        return boost::shared_ptr<Type>();
+        return dyncompat::shared_ptr<Type>();
 }
 
-boost::shared_ptr<Type> typeCollection::findTypeLocal(std::string name, Type::do_share_t)
+dyncompat::shared_ptr<Type> typeCollection::findTypeLocal(std::string name, Type::do_share_t)
 {
-    dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
+    dyn_c_hash_map<std::string, dyncompat::shared_ptr<Type>>::const_accessor a;
 
     if (typesByName.find(a, name))
         return a->second;
     else
-        return boost::shared_ptr<Type>();
+        return dyncompat::shared_ptr<Type>();
 }
 
-boost::shared_ptr<Type> typeCollection::findTypeLocal(const int ID, Type::do_share_t)
+dyncompat::shared_ptr<Type> typeCollection::findTypeLocal(const int ID, Type::do_share_t)
 {
-    dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor a;
+    dyn_c_hash_map<int, dyncompat::shared_ptr<Type>>::const_accessor a;
     if (typesByID.find(a, ID))
         return a->second;
     else
-        return boost::shared_ptr<Type>();
+        return dyncompat::shared_ptr<Type>();
 }
 
 
-boost::shared_ptr<Type> typeCollection::findOrCreateType( const int ID, Type::do_share_t)
+dyncompat::shared_ptr<Type> typeCollection::findOrCreateType( const int ID, Type::do_share_t)
 {
-    dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor ca;
+    dyn_c_hash_map<int, dyncompat::shared_ptr<Type>>::const_accessor ca;
     if (typesByID.find(ca, ID))
     {
         return ca->second;
@@ -293,7 +293,7 @@ boost::shared_ptr<Type> typeCollection::findOrCreateType( const int ID, Type::do
 
     if ( Symtab::builtInTypes() )
     {
-        boost::shared_ptr<Type> returnType = Symtab::builtInTypes()->findBuiltInType(ID, Type::share);
+        dyncompat::shared_ptr<Type> returnType = Symtab::builtInTypes()->findBuiltInType(ID, Type::share);
 
         if (returnType)
             return returnType;
@@ -301,8 +301,8 @@ boost::shared_ptr<Type> typeCollection::findOrCreateType( const int ID, Type::do
 
     // If someone else added a placeholder in the meanwhile, return that.
     // Note: name == "", so typesByName doesn't need updated.
-    dyn_c_hash_map<int, boost::shared_ptr<Type>>::accessor a;
-    if (!typesByID.insert(a, {ID, boost::shared_ptr<Type>()}))
+    dyn_c_hash_map<int, dyncompat::shared_ptr<Type>>::accessor a;
+    if (!typesByID.insert(a, {ID, dyncompat::shared_ptr<Type>()}))
     {
       return a->second;
     }
@@ -314,14 +314,14 @@ boost::shared_ptr<Type> typeCollection::findOrCreateType( const int ID, Type::do
     return a->second;
 } /* end findOrCreateType() */
 
-boost::shared_ptr<Type> typeCollection::findType(const int ID, Type::do_share_t)
+dyncompat::shared_ptr<Type> typeCollection::findType(const int ID, Type::do_share_t)
 {
-    dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor a;
+    dyn_c_hash_map<int, dyncompat::shared_ptr<Type>>::const_accessor a;
     if (typesByID.find(a, ID))
         return a->second;
     else
     {
-        boost::shared_ptr<Type> ret = NULL;
+        dyncompat::shared_ptr<Type> ret = NULL;
 
         if (Symtab::builtInTypes())
             ret = Symtab::builtInTypes()->findBuiltInType(ID, Type::share);
@@ -339,13 +339,13 @@ boost::shared_ptr<Type> typeCollection::findType(const int ID, Type::do_share_t)
  *
  * name		The name of the type to look up.
  */
-boost::shared_ptr<Type> typeCollection::findVariableType(std::string const& name, Type::do_share_t)
+dyncompat::shared_ptr<Type> typeCollection::findVariableType(std::string const& name, Type::do_share_t)
 {
-    dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
+    dyn_c_hash_map<std::string, dyncompat::shared_ptr<Type>>::const_accessor a;
     if (globalVarsByName.find(a, name))
         return a->second;
     else
-        return boost::shared_ptr<Type>();
+        return dyncompat::shared_ptr<Type>();
 }
 
 /*
@@ -356,9 +356,9 @@ boost::shared_ptr<Type> typeCollection::findVariableType(std::string const& name
  * when it is no longer needed.  For one thing, this means that a type
  * allocated on the stack should *NEVER* be put into a typeCollection.
  */
-void typeCollection::addType(boost::shared_ptr<Type> type)
+void typeCollection::addType(dyncompat::shared_ptr<Type> type)
 {
-    dyn_c_hash_map<int, boost::shared_ptr<Type>>::accessor a;
+    dyn_c_hash_map<int, dyncompat::shared_ptr<Type>>::accessor a;
     if(!typesByID.insert({type->getID(), type}))
       return;  // Type is already present
     if(type->getName() != "") { //Type could have no name.
@@ -366,7 +366,7 @@ void typeCollection::addType(boost::shared_ptr<Type> type)
     }
 }
 
-void typeCollection::addGlobalVariable(boost::shared_ptr<Type> type)
+void typeCollection::addGlobalVariable(dyncompat::shared_ptr<Type> type)
 {
     globalVarsByName.insert({type->getName(), type});
 }
@@ -380,7 +380,7 @@ void typeCollection::clearNumberedTypes()
  * localVarCollection::getAllVars()
  * this function returns all the local variables in the collection.
  */
-void typeCollection::getAllTypes(std::vector<boost::shared_ptr<Type>>& vec) {
+void typeCollection::getAllTypes(std::vector<dyncompat::shared_ptr<Type>>& vec) {
    for (auto it = typesByName.begin();
         it != typesByName.end();
         it ++) {
@@ -388,7 +388,7 @@ void typeCollection::getAllTypes(std::vector<boost::shared_ptr<Type>>& vec) {
    }
 }
 
-void typeCollection::getAllGlobalVariables(vector<pair<string, boost::shared_ptr<Type>>>& vec) {
+void typeCollection::getAllGlobalVariables(vector<pair<string, dyncompat::shared_ptr<Type>>>& vec) {
     for(auto it = globalVarsByName.begin();
         it != globalVarsByName.end(); it++) {
 	vec.push_back(make_pair(it->first, it->second));
@@ -431,25 +431,25 @@ builtInTypeCollection::~builtInTypeCollection()
  * name		The name of the type to look up.
  * id           The unique type ID of the type tp look up.
  */
-boost::shared_ptr<Type> builtInTypeCollection::findBuiltInType(std::string &name, Type::do_share_t)
+dyncompat::shared_ptr<Type> builtInTypeCollection::findBuiltInType(std::string &name, Type::do_share_t)
 {
-    dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
+    dyn_c_hash_map<std::string, dyncompat::shared_ptr<Type>>::const_accessor a;
     if (builtInTypesByName.find(a, name))
        return a->second;
     else
-       return boost::shared_ptr<Type>();
+       return dyncompat::shared_ptr<Type>();
 }
 
-boost::shared_ptr<Type> builtInTypeCollection::findBuiltInType(const int ID, Type::do_share_t)
+dyncompat::shared_ptr<Type> builtInTypeCollection::findBuiltInType(const int ID, Type::do_share_t)
 {
-    dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor a;
+    dyn_c_hash_map<int, dyncompat::shared_ptr<Type>>::const_accessor a;
     if (builtInTypesByID.find(a, ID))
        return a->second;
     else
-       return boost::shared_ptr<Type>();
+       return dyncompat::shared_ptr<Type>();
 }
 
-void builtInTypeCollection::addBuiltInType(boost::shared_ptr<Type> type)
+void builtInTypeCollection::addBuiltInType(dyncompat::shared_ptr<Type> type)
 {
   if(type->getName() != "") { //Type could have no name.
     {
@@ -463,7 +463,7 @@ void builtInTypeCollection::addBuiltInType(boost::shared_ptr<Type> type)
   }
 }
 
-void builtInTypeCollection::getAllBuiltInTypes(std::vector<boost::shared_ptr<Type>>& vec) {
+void builtInTypeCollection::getAllBuiltInTypes(std::vector<dyncompat::shared_ptr<Type>>& vec) {
    for (auto it = builtInTypesByID.begin();
        it != builtInTypesByID.end();
        it ++) {

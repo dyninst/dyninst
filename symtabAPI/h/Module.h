@@ -40,7 +40,7 @@
 #include <stddef.h>
 #include <string>
 #include <vector>
-#include <boost/shared_ptr.hpp>
+#include <dyncompat/shared_ptr.hpp>
 
 namespace Dyninst { namespace SymtabAPI {
 
@@ -90,28 +90,28 @@ namespace Dyninst { namespace SymtabAPI {
                              bool checkCase = true);
 
     // Type output methods
-    virtual bool findType(boost::shared_ptr<Type> &type, std::string const& name);
+    virtual bool findType(dyncompat::shared_ptr<Type> &type, std::string const& name);
 
     bool findType(Type *&t, std::string const& n) {
-      boost::shared_ptr<Type> tp;
+      dyncompat::shared_ptr<Type> tp;
       auto r = findType(tp, n);
       t = tp.get();
       return r;
     }
 
-    virtual bool findVariableType(boost::shared_ptr<Type> &type, std::string const& name);
+    virtual bool findVariableType(dyncompat::shared_ptr<Type> &type, std::string const& name);
 
     bool findVariableType(Type *&t, std::string const& n) {
-      boost::shared_ptr<Type> tp;
+      dyncompat::shared_ptr<Type> tp;
       auto r = findVariableType(tp, n);
       t = tp.get();
       return r;
     }
 
-    void getAllTypes(std::vector<boost::shared_ptr<Type>> &);
+    void getAllTypes(std::vector<dyncompat::shared_ptr<Type>> &);
 
     std::vector<Type *> *getAllTypes() {
-      std::vector<boost::shared_ptr<Type>> v;
+      std::vector<dyncompat::shared_ptr<Type>> v;
       getAllTypes(v);
       auto r = new std::vector<Type *>(v.size());
       for (std::size_t i = 0; i < v.size(); i++)
@@ -119,10 +119,10 @@ namespace Dyninst { namespace SymtabAPI {
       return r;
     }
 
-    void getAllGlobalVars(std::vector<std::pair<std::string, boost::shared_ptr<Type>>> &);
+    void getAllGlobalVars(std::vector<std::pair<std::string, dyncompat::shared_ptr<Type>>> &);
 
     std::vector<std::pair<std::string, Type *>> *getAllGlobalVars() {
-      std::vector<std::pair<std::string, boost::shared_ptr<Type>>> v;
+      std::vector<std::pair<std::string, dyncompat::shared_ptr<Type>>> v;
       getAllGlobalVars(v);
       auto r = new std::vector<std::pair<std::string, Type *>>(v.size());
       for (std::size_t i = 0; i < v.size(); i++)

@@ -43,7 +43,7 @@
 #include <vector>
 #include <iostream>
 #include "Annotatable.h"
-#include <boost/iterator/transform_iterator.hpp>
+#include <dyncompat/iterator/transform_iterator.hpp>
 #include <functional>
 #include "Symbol.h"
 #include "concurrent.h"
@@ -88,7 +88,7 @@ class DYNINST_EXPORT Aggregate
       //std::vector<std::string> getAllMangledNames();
       //std::vector<std::string> getAllPrettyNames();
       //std::vector<std::string> getAllTypedNames();
-      using name_iter = boost::transform_iterator<decltype(std::mem_fn(&Symbol::getPrettyName)), std::vector<Symbol*>::const_iterator>;
+      using name_iter = dyncompat::transform_iterator<decltype(std::mem_fn(&Symbol::getPrettyName)), std::vector<Symbol*>::const_iterator>;
       name_iter mangled_names_begin() const;
       name_iter mangled_names_end() const;
       name_iter pretty_names_begin() const;

@@ -15,7 +15,7 @@ namespace InstructionSemantics2 {
 namespace BaseSemantics {
 
 /** Shared-ownership pointer to generic register states. See @ref heap_object_shared_ownership. */
-typedef boost::shared_ptr<class RegisterStateGeneric> RegisterStateGenericPtr;
+typedef dyncompat::shared_ptr<class RegisterStateGeneric> RegisterStateGenericPtr;
 
 /** A RegisterState for any architecture.
  *
@@ -197,7 +197,7 @@ public:
     /** Run-time promotion of a base register state pointer to a RegisterStateGeneric pointer. This is a checked conversion--it
      *  will fail if @p from does not point to a RegisterStateGeneric object. */
     static RegisterStateGenericPtr promote(const RegisterStatePtr &from) {
-        RegisterStateGenericPtr retval = boost::dynamic_pointer_cast<RegisterStateGeneric>(from);
+        RegisterStateGenericPtr retval = dyncompat::dynamic_pointer_cast<RegisterStateGeneric>(from);
         ASSERT_not_null(retval);
         return retval;
     }

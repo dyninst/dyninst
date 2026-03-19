@@ -92,7 +92,7 @@ namespace Dyninst {
 
             void setupInsnWord(InstructionDecoder::buffer &b); 
             // pointer to the instruction that we are currently working on
-            boost::shared_ptr<Instruction> insn_in_progress;
+            dyncompat::shared_ptr<Instruction> insn_in_progress;
 
             template<int start, int end>
                 int field(unsigned int raw)  {

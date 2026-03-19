@@ -30,9 +30,9 @@
 #ifndef _ITERATORS_H_
 #define _ITERATORS_H_
 
-#include <boost/iterator/filter_iterator.hpp>
-#include <boost/type_traits.hpp>
-#include <boost/function.hpp>
+#include <dyncompat/iterator/filter_iterator.hpp>
+#include <dyncompat/type_traits.hpp>
+#include <dyncompat/function.hpp>
 /*
  * An iterator and a predicate interface, and a 
  * ContainerWrapper that can provide a forward

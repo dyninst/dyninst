@@ -44,7 +44,7 @@
 #include "dyninstAPI/src/inst-x86.h"
 #include "registerSpace.h"
 #include "image.h"
-#include <boost/tuple/tuple.hpp>
+#include <dyncompat/tuple/tuple.hpp>
 
 #include "dyninstAPI/src/function.h"
 #include "dynProcess.h"

@@ -32,7 +32,7 @@
 #include "registerSpace.h"
 
 #include <map>
-#include <boost/assign/list_of.hpp>
+#include <dyncompat/assign/list_of.hpp>
 
 #include "Register.h"
 #include "registers/MachRegister.h"
@@ -42,7 +42,7 @@
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace std;
-using namespace boost::assign;
+using namespace dyncompat::assign;
 
 //#warning "This file is not verified yet!"
 multimap<Register, MachRegister> regToMachReg64 = map_list_of

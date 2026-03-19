@@ -2,7 +2,7 @@
 #include "addressAST.h"
 #include "codegen.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 
 namespace Dyninst { namespace DyninstAPI {
 
@@ -26,7 +26,7 @@ bool originalAddressAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst:
 namespace AddressAST {
 
   originalAddressAST::Ptr original() {
-    static auto node = boost::make_shared<originalAddressAST>();
+    static auto node = dyncompat::make_shared<originalAddressAST>();
     return node;
   }
 

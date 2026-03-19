@@ -9,7 +9,7 @@
 #define Sawyer_IntervalMap_H
 
 #include <stddef.h>
-#include <boost/cstdint.hpp>
+#include <dyncompat/cstdint.hpp>
 #include "Assert.h"
 #include "Map.h"
 #include "Optional.h"
@@ -130,7 +130,7 @@ public:
  *  Here's another way:
  *
  * @code
- *  BOOST_FOREACH (const Map::Node &node, map.nodes()) {
+ *  DYN_FOREACH (const Map::Node &node, map.nodes()) {
  *      const Interval &interval = node.key();
  *      const Stats &stats = node.value();
  *      ...
@@ -249,15 +249,15 @@ public:
      *  are traversed in key order.
      *
      * @{ */
-    boost::iterator_range<NodeIterator> nodes() { return map_.nodes(); }
-    boost::iterator_range<ConstNodeIterator> nodes() const { return map_.nodes(); }
+    dyncompat::iterator_range<NodeIterator> nodes() { return map_.nodes(); }
+    dyncompat::iterator_range<ConstNodeIterator> nodes() const { return map_.nodes(); }
     /** @} */
 
     /** Iterators for traversing keys.
      *
      *  Returns a range of iteratores that traverse all keys (non-overlapping intervals) of this container according to the
      *  order of the intervals. */
-    boost::iterator_range<ConstIntervalIterator> intervals() const { return map_.keys(); }
+    dyncompat::iterator_range<ConstIntervalIterator> intervals() const { return map_.keys(); }
 
     /** Iterators for traversing values.
      *
@@ -265,8 +265,8 @@ public:
      *  in the order of their associated keys.
      *
      * @{ */
-    boost::iterator_range<ValueIterator> values() { return map_.values(); }
-    boost::iterator_range<ConstValueIterator> values() const { return map_.values(); }
+    dyncompat::iterator_range<ValueIterator> values() { return map_.values(); }
+    dyncompat::iterator_range<ConstValueIterator> values() const { return map_.values(); }
     /** @} */
 
     /** Find the first node whose interval ends at or above the specified scalar key.
@@ -356,23 +356,23 @@ public:
      *  Returns an iterator range that enumerates the nodes that overlap with the specified interval.
      *
      *  @{ */
-    boost::iterator_range<NodeIterator> findAll(const Interval &interval) {
+    dyncompat::iterator_range<NodeIterator> findAll(const Interval &interval) {
         return findAllImpl(*this, interval);
     }
-    boost::iterator_range<ConstNodeIterator> findAll(const Interval &interval) const {
+    dyncompat::iterator_range<ConstNodeIterator> findAll(const Interval &interval) const {
         return findAllImpl(*this, interval);
     }
 
     template<class IMap>
-    static boost::iterator_range<typename IntervalMapTraits<IMap>::NodeIterator>
+    static dyncompat::iterator_range<typename IntervalMapTraits<IMap>::NodeIterator>
     findAllImpl(IMap &imap, const Interval &interval) {
         typedef typename IntervalMapTraits<IMap>::NodeIterator Iter;
         if (interval.isEmpty())
-            return boost::iterator_range<Iter>(imap.nodes().end(), imap.nodes().end());
+            return dyncompat::iterator_range<Iter>(imap.nodes().end(), imap.nodes().end());
         Iter begin = imap.lowerBound(interval.least());
         if (begin==imap.nodes().end() || begin->key().least() > interval.greatest())
-            return boost::iterator_range<Iter>(imap.nodes().end(), imap.nodes().end());
-        return boost::iterator_range<Iter>(begin, imap.upperBound(interval.greatest()));
+            return dyncompat::iterator_range<Iter>(imap.nodes().end(), imap.nodes().end());
+        return dyncompat::iterator_range<Iter>(begin, imap.upperBound(interval.greatest()));
     }
     /** @} */
     
@@ -925,7 +925,7 @@ private:
     }
 
     // a more convenient way to check whether interval contains at least size items and still handle overflow
-    static bool isLarge(const Interval &interval, boost::uint64_t size) {
+    static bool isLarge(const Interval &interval, dyncompat::uint64_t size) {
         return !interval.isEmpty() && (interval.size()==0 || interval.size() >= size);
     }
 };

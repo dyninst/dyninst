@@ -433,7 +433,7 @@ Dispatcher::advanceInstructionPointer(SgAsmInstruction *insn) {
     BaseSemantics::SValuePtr ipValue;
     if (!autoResetInstructionPointer_ && operators->currentState() && operators->currentState()->registerState()) {
         BaseSemantics::RegisterStateGenericPtr grState =
-            boost::dynamic_pointer_cast<BaseSemantics::RegisterStateGeneric>(operators->currentState()->registerState());
+            dyncompat::dynamic_pointer_cast<BaseSemantics::RegisterStateGeneric>(operators->currentState()->registerState());
         if (grState && grState->is_partly_stored(ipReg))
             ipValue = operators->readRegister(ipReg);
     }

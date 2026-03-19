@@ -90,7 +90,6 @@ dyninst_library(
   PUBLIC_HEADER_FILES ${_parseapi_public_headers} ${_dataflow_public_headers} 
   SOURCE_FILES ${_parseapi_sources} ${_dataflow_sources}
   DYNINST_DEPS common instructionAPI ${SYMREADER}
-  PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS OpenMP::OpenMP_CXX
 )
 # cmake-format: on

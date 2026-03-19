@@ -149,7 +149,7 @@ GraphPtr JumpTableIndexPred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdg
     // Start from each node to do DFS and build edges
     newG->allNodes(gbegin, gend);
     for (; gbegin != gend; ++gbegin) {
-        SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*gbegin);
+        SliceNode::Ptr node = dyncompat::static_pointer_cast<SliceNode>(*gbegin);
 	BuildEdges(node, targetMap, newG, visitedEdges);
     }
     parsing_printf("\t\t calculate edges in the new graph\n");
@@ -159,7 +159,7 @@ GraphPtr JumpTableIndexPred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdg
     newG->addNode(virtualExit);
     newG->allNodes(gbegin, gend);
     for (; gbegin != gend; ++gbegin) {
-        SliceNode::Ptr cur = boost::static_pointer_cast<SliceNode>(*gbegin);
+        SliceNode::Ptr cur = dyncompat::static_pointer_cast<SliceNode>(*gbegin);
 	if (!cur->hasOutEdges() && cur != virtualExit) {
 	    newG->insertPair(cur, virtualExit, TypedSliceEdge::create(cur, virtualExit, FALLTHROUGH));
 	}
@@ -218,7 +218,7 @@ bool JumpTableIndexPred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> 
     // that in the future we can match a
     // corresponding write to identify aliasing
     if (ap->insn().readsMemory() && expandRet.first->getID() == AST::V_RoseAST) {
-        RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(expandRet.first);
+        RoseAST::Ptr roseAST = dyncompat::static_pointer_cast<RoseAST>(expandRet.first);
 	if (roseAST->val().op == ROSEOperation::derefOp) {
 	    readAST.push_back(expandRet.first);
 	}
@@ -256,9 +256,9 @@ bool JumpTableIndexPred::IsIndexBounded(GraphPtr slice,
         parsing_printf("WARNING: Do not find exit node for analyzing indirect jump at %lx ....\n", block->last());
 	return false;
     }
-    SliceNode::Ptr virtualExit = boost::static_pointer_cast<SliceNode>(*exitBegin);
+    SliceNode::Ptr virtualExit = dyncompat::static_pointer_cast<SliceNode>(*exitBegin);
     virtualExit->ins(srcBegin, srcEnd);
-    SliceNode::Ptr jumpNode = boost::static_pointer_cast<SliceNode>(*srcBegin);
+    SliceNode::Ptr jumpNode = dyncompat::static_pointer_cast<SliceNode>(*srcBegin);
     
     BoundFact *bf = bfc.GetBoundFactOut(virtualExit);
     VariableAST::Ptr i = VariableAST::create(Variable(index));

@@ -33,7 +33,7 @@
 
 #include "dyn_register.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include "codeGenAST.h"
 #include <string>
 #include <utility>
@@ -49,15 +49,15 @@ class variableAST : public codeGenAST {
 public:
   using range_t = std::pair<Dyninst::Offset, Dyninst::Offset>;
 
-  using Ptr = boost::shared_ptr<variableAST>;
+  using Ptr = dyncompat::shared_ptr<variableAST>;
 
   static Ptr simple(std::vector<codeGenASTPtr> &asts) {
-    return boost::make_shared<variableAST>(asts, nullptr);
+    return dyncompat::make_shared<variableAST>(asts, nullptr);
   }
 
   static Ptr withRanges(std::vector<codeGenASTPtr> &asts,
                         std::vector<variableAST::range_t> *ranges) {
-    return boost::make_shared<variableAST>(asts, ranges);
+    return dyncompat::make_shared<variableAST>(asts, ranges);
   }
 
   variableAST(std::vector<codeGenASTPtr> &ast_wrappers, std::vector<range_t> *ranges)

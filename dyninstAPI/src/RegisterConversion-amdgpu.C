@@ -30,7 +30,7 @@
 
 #include "RegisterConversion.h"
 
-#include <boost/assign/list_of.hpp>
+#include <dyncompat/assign/list_of.hpp>
 #include <map>
 
 #include "Register.h"
@@ -42,7 +42,7 @@
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace std;
-using namespace boost::assign;
+using namespace dyncompat::assign;
 
 // AMDGPU has 32-bit registers, and we use a pair of registers for 64-bit values.
 // regToMachReg64 is here only to prevent linker error because parts of the x86

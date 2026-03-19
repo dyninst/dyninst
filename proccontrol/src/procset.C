@@ -44,7 +44,7 @@
 #include <map>
 #include <algorithm>
 
-#include <boost/crc.hpp>
+#include <dyncompat/crc.hpp>
 #include <iterator>
 
 
@@ -1786,7 +1786,7 @@ struct bufferCompare {
       buffer = b;
       size = s;
       use_checksum = uc;
-      boost::crc_32_type crcComputer;
+      dyncompat::crc_32_type crcComputer;
       crcComputer.process_bytes(b, s);
       checksum = crcComputer.checksum();
    }

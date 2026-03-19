@@ -48,7 +48,7 @@ namespace Dyninst { namespace DataflowAPI {
 
   class DYNINST_EXPORT SymEval {
   public:
-    typedef boost::shared_ptr<SliceNode> SliceNodePtr;
+    typedef dyncompat::shared_ptr<SliceNode> SliceNodePtr;
 
   public:
     typedef enum {

@@ -45,7 +45,7 @@ namespace Relocation {
 
 class PCWidget : public Widget {
  public:
-   typedef boost::shared_ptr<PCWidget> Ptr;
+   typedef dyncompat::shared_ptr<PCWidget> Ptr;
 
    static Ptr create(InstructionAPI::Instruction insn,
 		     Address addr,

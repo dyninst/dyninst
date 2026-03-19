@@ -35,7 +35,7 @@
 #include "opcode.h"
 #include "OperandType.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include "codeGenAST.h"
 #include <string>
 
@@ -52,75 +52,75 @@ class operandAST : public codeGenAST {
   friend class operatorAST;
 
 public:
-  using Ptr = boost::shared_ptr<operandAST>;
+  using Ptr = dyncompat::shared_ptr<operandAST>;
 
   static Ptr Constant(void *v) {
-    return boost::make_shared<operandAST>(operandType::Constant, v);
+    return dyncompat::make_shared<operandAST>(operandType::Constant, v);
   }
 
   static Ptr ConstantString(const char *str) {
     auto val = static_cast<void *>(const_cast<char *>(str));
-    return boost::make_shared<operandAST>(operandType::ConstantString, val);
+    return dyncompat::make_shared<operandAST>(operandType::ConstantString, val);
   }
 
   static Ptr DataIndir(codeGenASTPtr l) {
-    return boost::make_shared<operandAST>(operandType::DataIndir, l);
+    return dyncompat::make_shared<operandAST>(operandType::DataIndir, l);
   }
 
   static Ptr Param(void *v) {
-    return boost::make_shared<operandAST>(operandType::Param, v);
+    return dyncompat::make_shared<operandAST>(operandType::Param, v);
   }
 
   static Ptr ParamAtCall(void *v) {
-    return boost::make_shared<operandAST>(operandType::ParamAtCall, v);
+    return dyncompat::make_shared<operandAST>(operandType::ParamAtCall, v);
   }
 
   static Ptr ParamAtEntry(void *v) {
-    return boost::make_shared<operandAST>(operandType::ParamAtEntry, v);
+    return dyncompat::make_shared<operandAST>(operandType::ParamAtEntry, v);
   }
 
   static Ptr ReturnVal(void *v) {
-    return boost::make_shared<operandAST>(operandType::ReturnVal, v);
+    return dyncompat::make_shared<operandAST>(operandType::ReturnVal, v);
   }
 
   static Ptr ReturnAddr(void *v) {
-    return boost::make_shared<operandAST>(operandType::ReturnAddr, v);
+    return dyncompat::make_shared<operandAST>(operandType::ReturnAddr, v);
   }
 
   static Ptr DataAddr(void *v) {
-    return boost::make_shared<operandAST>(operandType::DataAddr, v);
+    return dyncompat::make_shared<operandAST>(operandType::DataAddr, v);
   }
 
   static Ptr FrameAddr(void *v) {
-    return boost::make_shared<operandAST>(operandType::FrameAddr, v);
+    return dyncompat::make_shared<operandAST>(operandType::FrameAddr, v);
   }
 
   static Ptr RegOffset(void *v) {
-    return boost::make_shared<operandAST>(operandType::RegOffset, v);
+    return dyncompat::make_shared<operandAST>(operandType::RegOffset, v);
   }
 
   static Ptr RegOffset(codeGenASTPtr arg) {
-    return boost::make_shared<operandAST>(operandType::RegOffset, arg);
+    return dyncompat::make_shared<operandAST>(operandType::RegOffset, arg);
   }
 
   static Ptr origRegister(void *v) {
-    return boost::make_shared<operandAST>(operandType::origRegister, v);
+    return dyncompat::make_shared<operandAST>(operandType::origRegister, v);
   }
 
   static Ptr variableAddr(image_variable const *addr) {
-    return boost::make_shared<operandAST>(operandType::variableAddr, addr);
+    return dyncompat::make_shared<operandAST>(operandType::variableAddr, addr);
   }
 
   static Ptr variableValue(image_variable const *v) {
-    return boost::make_shared<operandAST>(operandType::variableValue, v);
+    return dyncompat::make_shared<operandAST>(operandType::variableValue, v);
   }
 
   static Ptr undefOperandType(void *v) {
-    return boost::make_shared<operandAST>(operandType::undefOperandType, v);
+    return dyncompat::make_shared<operandAST>(operandType::undefOperandType, v);
   }
 
   static Ptr AddressAsPlaceholderRegAndOffset(codeGenASTPtr arg) {
-    return boost::make_shared<operandAST>(operandType::AddressAsPlaceholderRegAndOffset, arg);
+    return dyncompat::make_shared<operandAST>(operandType::AddressAsPlaceholderRegAndOffset, arg);
   }
 
   // Direct operand

@@ -52,8 +52,8 @@
 #include "symtab_impl.hpp"
 #include "symtabAPI/src/Object.h"
 
-#include <boost/iterator/function_output_iterator.hpp>
-#include <boost/foreach.hpp>
+#include <dyncompat/iterator/function_output_iterator.hpp>
+#include <dyncompat/foreach.hpp>
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;

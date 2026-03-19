@@ -11,9 +11,9 @@
 #include <iosfwd>
 #include "Sawyer.h"
 
-#ifdef SAWYER_HAVE_BOOST_CHRONO
-# include <boost/chrono/duration.hpp>
-# include <boost/chrono/system_clocks.hpp>
+#ifdef SAWYER_HAVE_DYNCOMPAT_CHRONO
+# include <dyncompat/chrono/duration.hpp>
+# include <dyncompat/chrono/system_clocks.hpp>
 #endif
 
 namespace Sawyer {
@@ -41,9 +41,9 @@ namespace Sawyer {
  *  synchronization occurs above the method calls. */
 class SAWYER_EXPORT Stopwatch {
 public:
-#ifdef SAWYER_HAVE_BOOST_CHRONO
-    typedef boost::chrono::high_resolution_clock::time_point TimePoint;
-    typedef boost::chrono::duration<double> Duration;
+#ifdef SAWYER_HAVE_DYNCOMPAT_CHRONO
+    typedef dyncompat::chrono::high_resolution_clock::time_point TimePoint;
+    typedef dyncompat::chrono::duration<double> Duration;
 #else
     typedef double TimePoint;
     typedef double Duration;

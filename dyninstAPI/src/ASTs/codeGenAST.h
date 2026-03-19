@@ -76,7 +76,7 @@ class registerSpace;
 namespace Dyninst { namespace DyninstAPI {
 
 class codeGenAST;
-typedef boost::shared_ptr<codeGenAST> codeGenASTPtr;
+typedef dyncompat::shared_ptr<codeGenAST> codeGenASTPtr;
 
 class codeGenAST : public Dyninst::PatchAPI::Snippet {
 public:

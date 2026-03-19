@@ -44,7 +44,7 @@ namespace Dyninst { namespace DyninstAPI {
 
 class dynamicJumpTargetAST : public codeGenAST {
 public:
-  using Ptr = boost::shared_ptr<dynamicJumpTargetAST>;
+  using Ptr = dyncompat::shared_ptr<dynamicJumpTargetAST>;
 
   BPatch_type *checkType(BPatch_function *) override {
     return getType();

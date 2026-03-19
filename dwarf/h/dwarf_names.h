@@ -51,7 +51,7 @@ namespace Dyninst { namespace DwarfDyninst {
 
     /* The absolute path of `filename` relative to `base`
      *
-     *  We could use boost::filesystem::absolute here, but we don't need to pay the cost of
+     *  We could use dyncompat::filesystem::absolute here, but we don't need to pay the cost of
      *  its flexibility for multiple path separators since DWARF is currently only on
      *  Unix-like platforms.
      */

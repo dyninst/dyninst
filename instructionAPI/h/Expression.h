@@ -37,8 +37,8 @@
 #include "Result.h"
 #include "Visitor.h"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
+#include <dyncompat/shared_ptr.hpp>
+#include <dyncompat/enable_shared_from_this.hpp>
 #include <sstream>
 #include <set>
 #include <string>
@@ -51,9 +51,9 @@ namespace Dyninst { namespace InstructionAPI {
 
   enum formatStyle { defaultStyle, memoryAccessStyle };
 
-  class DYNINST_EXPORT Expression : public boost::enable_shared_from_this<Expression> {
+  class DYNINST_EXPORT Expression : public dyncompat::enable_shared_from_this<Expression> {
   public:
-    typedef boost::shared_ptr<Expression> Ptr;
+    typedef dyncompat::shared_ptr<Expression> Ptr;
 
   protected:
     Expression(Result_Type t);

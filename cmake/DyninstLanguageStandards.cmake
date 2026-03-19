@@ -10,7 +10,7 @@
 #
 
 set(DYNINST_CXX_LANGUAGE_STANDARD
-    "11"
+    "17"
     CACHE STRING "C++ language standard version.")
 set(DYNINST_C_LANGUAGE_STANDARD
     "11"
@@ -20,18 +20,18 @@ set(DYNINST_C_LANGUAGE_STANDARD
 # --------  C++ language features ----------------
 #
 
-# Disable compiler-specific C++ language extensions (e.g., gnu++11)
+# Disable compiler-specific C++ language extensions (e.g., gnu++17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Require C++11 support
+# Require C++17 support
 set(CMAKE_CXX_STANDARD ${DYNINST_CXX_LANGUAGE_STANDARD})
 message(STATUS "C++ language standard:  ${DYNINST_CXX_LANGUAGE_STANDARD}")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Require the standards-compliant C++11 ABI for gcc
+# Require a compiler with usable C++17 support.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "6.0")
-    message(FATAL_ERROR "Dyninst requires gcc >= 6.0")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "10.0")
+    message(FATAL_ERROR "Dyninst requires gcc >= 10.0")
   endif()
 endif()
 

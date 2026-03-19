@@ -35,6 +35,7 @@
 #include <map>
 #include <list>
 #include <set>
+#include <dyncompat/weak_ptr.hpp>
 
 #include "common/h/dyntypes.h"
 #include "Handler.h"
@@ -59,9 +60,9 @@ class IRPC;
 
 class iRPCAllocation
 {
-   friend void boost::checked_delete<iRPCAllocation>(iRPCAllocation *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<iRPCAllocation>(iRPCAllocation *) CHECKED_DELETE_NOEXCEPT;
   public:
-   typedef boost::shared_ptr<iRPCAllocation> ptr;
+   typedef dyncompat::shared_ptr<iRPCAllocation> ptr;
   iRPCAllocation() :
       addr(0),
       size(0),
@@ -88,17 +89,17 @@ class iRPCAllocation
    int ref_count;
 
    //These are NULL if the user handed us memory to run the iRPC in.
-   boost::weak_ptr<int_iRPC> creation_irpc;
-   boost::weak_ptr<int_iRPC> deletion_irpc;
+   dyncompat::weak_ptr<int_iRPC> creation_irpc;
+   dyncompat::weak_ptr<int_iRPC> deletion_irpc;
 };
 
-class int_iRPC : public boost::enable_shared_from_this<int_iRPC>
+class int_iRPC : public dyncompat::enable_shared_from_this<int_iRPC>
 {
-   friend void boost::checked_delete<int_iRPC>(int_iRPC *) CHECKED_DELETE_NOEXCEPT;   
+   friend void dyncompat::checked_delete<int_iRPC>(int_iRPC *) CHECKED_DELETE_NOEXCEPT;   
    friend class iRPCMgr;
    friend class Dyninst::ProcControlAPI::IRPC;
  public:
-   typedef boost::shared_ptr<int_iRPC> ptr;
+   typedef dyncompat::shared_ptr<int_iRPC> ptr;
 
 
    typedef enum {

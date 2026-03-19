@@ -73,8 +73,8 @@ namespace Dyninst {
 
 class StackAnalysis {
 public:
-   typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
-   typedef boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
+   typedef dyncompat::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+   typedef dyncompat::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
 
    // This class represents a stack pointer definition by recording the block
    // and address of the definition, as well as the original absloc that was

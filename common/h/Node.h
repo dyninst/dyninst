@@ -39,7 +39,7 @@
 #include "Annotatable.h"
 
 #include "dyntypes.h"
-#include "boost/shared_ptr.hpp"
+#include "dyncompat/shared_ptr.hpp"
 
 
 class BPatch_function;
@@ -56,12 +56,12 @@ class DYNINST_EXPORT Node  {
     friend class Edge;
     friend class Graph;
     
-	typedef boost::shared_ptr<Edge> EdgePtr;
-	typedef boost::shared_ptr<Graph> GraphPtr;
+	typedef dyncompat::shared_ptr<Edge> EdgePtr;
+	typedef dyncompat::shared_ptr<Graph> GraphPtr;
     typedef std::unordered_set<EdgePtr, Edge::EdgePtrHasher> EdgeSet;
 
  public:
-	 typedef boost::shared_ptr<Node> Ptr;
+	 typedef dyncompat::shared_ptr<Node> Ptr;
 	 struct NodePtrHasher {
 	     size_t operator() (const Ptr &n) const noexcept {
 	         return (size_t)n.get();
@@ -116,7 +116,7 @@ class DYNINST_EXPORT Node  {
  
 class DYNINST_EXPORT PhysicalNode : public Node {
 public:
-	typedef boost::shared_ptr<PhysicalNode> Ptr;
+	typedef dyncompat::shared_ptr<PhysicalNode> Ptr;
      
     static Node::Ptr createNode(Address addr);
     
@@ -141,7 +141,7 @@ class  DYNINST_EXPORT VirtualNode : public Node {
     friend class Graph;
 
  public:
-    typedef boost::shared_ptr<VirtualNode> Ptr;
+    typedef dyncompat::shared_ptr<VirtualNode> Ptr;
     
     static Node::Ptr createNode();
     static Node::Ptr createNode(std::string name); 

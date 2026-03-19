@@ -166,7 +166,7 @@ dyninst_library(
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
   DEFINES COMMON_LIB
-  PUBLIC_DEPS Dyninst::TBB Dyninst::Boost
+  PUBLIC_DEPS Dyninst::TBB
   PRIVATE_DEPS Dyninst::LibIberty OpenMP::OpenMP_CXX Dyninst::Valgrind Threads::Threads
 )
 # cmake-format: on

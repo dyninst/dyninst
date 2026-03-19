@@ -17,7 +17,7 @@ namespace rose {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Shared-ownership pointer to an ARM instruction dispatcher. See @ref heap_object_shared_ownership. */
-            typedef boost::shared_ptr<class DispatcherARM64> DispatcherARM64Ptr;
+            typedef dyncompat::shared_ptr<class DispatcherARM64> DispatcherARM64Ptr;
 
             class DispatcherARM64 : public BaseSemantics::Dispatcher {
             protected:
@@ -97,7 +97,7 @@ namespace rose {
 
                 /** Dynamic cast to a DispatcherARM64Ptr with assertion. */
                 static DispatcherARM64Ptr promote(const BaseSemantics::DispatcherPtr &d) {
-                    DispatcherARM64Ptr retval = boost::dynamic_pointer_cast<DispatcherARM64>(d);
+                    DispatcherARM64Ptr retval = dyncompat::dynamic_pointer_cast<DispatcherARM64>(d);
                     assert(retval != NULL);
                     return retval;
                 }

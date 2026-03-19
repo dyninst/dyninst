@@ -33,7 +33,7 @@
 
 #include "dyn_register.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include "codeGenAST.h"
 #include <string>
 
@@ -43,10 +43,10 @@ namespace Dyninst { namespace DyninstAPI {
 
 class nullAST : public codeGenAST {
 public:
-  using Ptr = boost::shared_ptr<nullAST>;
+  using Ptr = dyncompat::shared_ptr<nullAST>;
 
   static Ptr create() {
-    return boost::make_shared<nullAST>();
+    return dyncompat::make_shared<nullAST>();
   }
 
   nullAST() = default;

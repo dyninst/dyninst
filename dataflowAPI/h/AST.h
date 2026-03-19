@@ -31,8 +31,8 @@
 #ifndef DYNINST_DATAFLOWAPI_AST_H
 #define DYNINST_DATAFLOWAPI_AST_H
 
-#include "boost/enable_shared_from_this.hpp"
-#include "boost/shared_ptr.hpp"
+#include "dyncompat/enable_shared_from_this.hpp"
+#include "dyncompat/shared_ptr.hpp"
 #include "dyninst_visibility.h"
 
 #include <cassert>
@@ -42,7 +42,7 @@ namespace Dyninst {
 
   class ASTVisitor;
 
-  class DYNINST_EXPORT AST : public boost::enable_shared_from_this<AST> {
+  class DYNINST_EXPORT AST : public dyncompat::enable_shared_from_this<AST> {
   public:
     // This is a global list of all AST types.
     // If you add an AST type you should update this list.
@@ -57,7 +57,7 @@ namespace Dyninst {
       V_StackAST
     } ID;
 
-    using Ptr = boost::shared_ptr<AST>;
+    using Ptr = dyncompat::shared_ptr<AST>;
     using Children = std::vector<AST::Ptr>;
 
     AST() = default;

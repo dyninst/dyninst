@@ -33,7 +33,7 @@
 
 #include "dyn_register.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include "codeGenAST.h"
 #include "stackAST.h"
 #include <string>
@@ -45,15 +45,15 @@ namespace Dyninst { namespace DyninstAPI {
 
 class stackRemovalAST : public stackAST {
 public:
-  using Ptr = boost::shared_ptr<stackRemovalAST>;
+  using Ptr = dyncompat::shared_ptr<stackRemovalAST>;
 
   static Ptr generic(int size) {
-    return boost::make_shared<stackRemovalAST>(size, stackAST::GENERIC_AST);
+    return dyncompat::make_shared<stackRemovalAST>(size, stackAST::GENERIC_AST);
   }
 
   static Ptr canary(int size, func_instance *func, bool canaryAfterPrologue,
                            long canaryHeight) {
-    return boost::make_shared<stackRemovalAST>(size, stackAST::CANARY_AST, func,
+    return dyncompat::make_shared<stackRemovalAST>(size, stackAST::CANARY_AST, func,
                                                   canaryAfterPrologue, canaryHeight);
   }
 

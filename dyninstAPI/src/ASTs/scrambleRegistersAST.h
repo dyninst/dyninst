@@ -33,7 +33,7 @@
 
 #include "dyn_register.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include "codeGenAST.h"
 
 class codeGen;
@@ -42,10 +42,10 @@ namespace Dyninst { namespace DyninstAPI {
 
 class scrambleRegistersAST : public codeGenAST {
 public:
-  using Ptr = boost::shared_ptr<scrambleRegistersAST>;
+  using Ptr = dyncompat::shared_ptr<scrambleRegistersAST>;
 
   static Ptr create() {
-    return boost::make_shared<scrambleRegistersAST>();
+    return dyncompat::make_shared<scrambleRegistersAST>();
   }
 
   bool usesAppRegister() const override {

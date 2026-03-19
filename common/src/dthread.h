@@ -35,13 +35,10 @@
 #include "dyninst_visibility.h"
 #include <cassert>
 
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/variant/get.hpp>
-#include <boost/variant/static_visitor.hpp>
-#include <boost/variant/variant.hpp>
-#include <boost/interprocess/sync/scoped_lock.hpp>
+#include <dyncompat/thread/condition_variable.hpp>
+#include <dyncompat/thread/mutex.hpp>
+#include <dyncompat/thread/recursive_mutex.hpp>
+#include <dyncompat/interprocess/sync/scoped_lock.hpp>
 
 #if !defined(os_windows)
 #define cap_pthreads
@@ -83,18 +80,18 @@ class DYNINST_EXPORT DThread {
 };
 
 template<bool isRecursive>
-struct boost_mutex_selector
+struct mutex_selector
 {
-	typedef boost::mutex mutex;
+	typedef dyncompat::mutex mutex;
 };
 template<>
-struct boost_mutex_selector<true>
+struct mutex_selector<true>
 {
-	typedef boost::recursive_mutex mutex;
+	typedef dyncompat::recursive_mutex mutex;
 };
 
 template <bool isRecursive = false>
-class DYNINST_EXPORT Mutex : public boost_mutex_selector<isRecursive>::mutex {
+class DYNINST_EXPORT Mutex : public mutex_selector<isRecursive>::mutex {
 public:
 	typedef Mutex<isRecursive> type;
    
@@ -103,7 +100,7 @@ public:
 
 template <typename mutex_t = Mutex<false> >
 class DYNINST_EXPORT CondVar {
-   boost::condition_variable_any cond;
+   dyncompat::condition_variable_any cond;
    mutex_t *mutex;
    bool created_mutex;
  public:
@@ -132,10 +129,10 @@ class DYNINST_EXPORT CondVar {
 };
 
 template <class Mut = Mutex<false>>
-class ScopeLock : public boost::interprocess::scoped_lock<Mut>
+class ScopeLock : public dyncompat::interprocess::scoped_lock<Mut>
 {
   public:
-  ScopeLock(Mut &mut) : boost::interprocess::scoped_lock<Mut>(mut) {}
+  ScopeLock(Mut &mut) : dyncompat::interprocess::scoped_lock<Mut>(mut) {}
 };
 
 

@@ -4,7 +4,7 @@
 #include "Result.h"
 
 #include <algorithm>
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <vector>
@@ -20,12 +20,12 @@
 namespace di = Dyninst::InstructionAPI;
 
 di::Expression::Ptr make_reg(Dyninst::MachRegister reg) {
-  return boost::make_shared<di::RegisterAST>(reg, 0, 8, 1);
+  return dyncompat::make_shared<di::RegisterAST>(reg, 0, 8, 1);
 }
 
 di::Expression::Ptr make_add(di::Expression::Ptr lhs, di::Expression::Ptr rhs) {
   di::BinaryFunction::funcT::Ptr adder(new di::BinaryFunction::addResult());
-  return boost::make_shared<di::BinaryFunction>(lhs, rhs, di::u32, adder);
+  return dyncompat::make_shared<di::BinaryFunction>(lhs, rhs, di::u32, adder);
 }
 
 int main() {

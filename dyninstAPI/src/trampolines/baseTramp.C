@@ -57,7 +57,7 @@ using sequenceAST = Dyninst::DyninstAPI::sequenceAST;
 using snippetAST = Dyninst::DyninstAPI::snippetAST;
 using stackRemovalAST = Dyninst::DyninstAPI::stackRemovalAST;
 
-#define DCAST_AST(ast) boost::dynamic_pointer_cast<Dyninst::DyninstAPI::codeGenAST>(ast)
+#define DCAST_AST(ast) dyncompat::dynamic_pointer_cast<Dyninst::DyninstAPI::codeGenAST>(ast)
 
 // Normal constructor
 baseTramp::baseTramp() :

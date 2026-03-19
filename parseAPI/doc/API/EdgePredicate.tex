@@ -16,8 +16,8 @@ function:
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left, numberstyle=\tiny, stepnumber=5, numbersep=5pt}
 \begin{lstlisting}
-    #include <boost/filter_iterator.hpp>
-    using boost::make_filter_iterator;
+    #include <dyncompat/filter_iterator.hpp>
+    using dyncompat::make_filter_iterator;
     struct target_block
     {
       Block* operator()(Edge* e) { return e->trg(); }

@@ -40,7 +40,7 @@
 #include "registers/x86_regs.h"
 #include "unaligned_memory_access.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 
 using namespace std;
 using namespace NS_x86;
@@ -146,9 +146,9 @@ namespace Dyninst { namespace InstructionAPI {
     int op_type = is64BitMode ? op_q : op_d;
     decode_SIB(locs->sib_byte, scale, index, base);
 
-    Expression::Ptr scaleAST(boost::make_shared<Immediate>(Result(u8, dword_t(scale))));
+    Expression::Ptr scaleAST(dyncompat::make_shared<Immediate>(Result(u8, dword_t(scale))));
     Expression::Ptr indexAST(
-        boost::make_shared<RegisterAST>(makeRegisterID(index, op_type, locs->rex_x)));
+        dyncompat::make_shared<RegisterAST>(makeRegisterID(index, op_type, locs->rex_x)));
     Expression::Ptr baseAST;
     if(base == 0x05) {
       switch(locs->modrm_mod) {
@@ -157,7 +157,7 @@ namespace Dyninst { namespace InstructionAPI {
           break;
         case 0x01:
         case 0x02:
-          baseAST = boost::make_shared<RegisterAST>(makeRegisterID(base, op_type, locs->rex_b));
+          baseAST = dyncompat::make_shared<RegisterAST>(makeRegisterID(base, op_type, locs->rex_b));
           break;
         case 0x03:
         default:
@@ -165,7 +165,7 @@ namespace Dyninst { namespace InstructionAPI {
           break;
       };
     } else {
-      baseAST = boost::make_shared<RegisterAST>(makeRegisterID(base, op_type, locs->rex_b));
+      baseAST = dyncompat::make_shared<RegisterAST>(makeRegisterID(base, op_type, locs->rex_b));
     }
 
     if(index == 0x04 && (!(is64BitMode) || !(locs->rex_x))) {
@@ -341,15 +341,15 @@ namespace Dyninst { namespace InstructionAPI {
 
     switch(locs->modrm_mod) {
       case 1:
-        return boost::make_shared<Immediate>(
+        return dyncompat::make_shared<Immediate>(
             Result(s8, Dyninst::read_memory_as<byte_t>(b.start + disp_pos)));
         break;
       case 2:
         if(0 && sizePrefixPresent) {
-          return boost::make_shared<Immediate>(
+          return dyncompat::make_shared<Immediate>(
               Result(s16, Dyninst::read_memory_as<word_t>(b.start + disp_pos)));
         } else {
-          return boost::make_shared<Immediate>(
+          return dyncompat::make_shared<Immediate>(
               Result(s32, Dyninst::read_memory_as<dword_t>(b.start + disp_pos)));
         }
         break;
@@ -357,18 +357,18 @@ namespace Dyninst { namespace InstructionAPI {
         // In 16-bit mode, the word displacement is modrm r/m 6
         if(sizePrefixPresent && !is64BitMode) {
           if(locs->modrm_rm == 6) {
-            return boost::make_shared<Immediate>(
+            return dyncompat::make_shared<Immediate>(
                 Result(s16, Dyninst::read_memory_as<dword_t>(b.start + disp_pos)));
           }
           // TODO FIXME; this was decoding wrong, but I'm not sure
           // why...
           else if(locs->modrm_rm == 5) {
             assert(b.start + disp_pos + 4 <= b.end);
-            return boost::make_shared<Immediate>(
+            return dyncompat::make_shared<Immediate>(
                 Result(s32, Dyninst::read_memory_as<dword_t>(b.start + disp_pos)));
           } else {
             assert(b.start + disp_pos + 1 <= b.end);
-            return boost::make_shared<Immediate>(Result(s8, 0));
+            return dyncompat::make_shared<Immediate>(Result(s8, 0));
           }
           break;
         }
@@ -376,22 +376,22 @@ namespace Dyninst { namespace InstructionAPI {
         else {
           if(locs->modrm_rm == 5) {
             if(b.start + disp_pos + 4 <= b.end)
-              return boost::make_shared<Immediate>(
+              return dyncompat::make_shared<Immediate>(
                   Result(s32, Dyninst::read_memory_as<dword_t>(b.start + disp_pos)));
             else
-              return boost::make_shared<Immediate>(Result());
+              return dyncompat::make_shared<Immediate>(Result());
           } else {
             if(b.start + disp_pos + 1 <= b.end)
-              return boost::make_shared<Immediate>(Result(s8, 0));
+              return dyncompat::make_shared<Immediate>(Result(s8, 0));
             else {
-              return boost::make_shared<Immediate>(Result());
+              return dyncompat::make_shared<Immediate>(Result());
             }
           }
           break;
         }
       default:
         assert(b.start + disp_pos + 1 <= b.end);
-        return boost::make_shared<Immediate>(Result(s8, 0));
+        return dyncompat::make_shared<Immediate>(Result(s8, 0));
     }
   }
 
@@ -1079,7 +1079,7 @@ namespace Dyninst { namespace InstructionAPI {
             decodeImmediate(optype, b.start + locs->imm_position[imm_index++], true));
         Expression::Ptr EIP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
         Expression::Ptr InsnSize(
-            boost::make_shared<Immediate>(Result(u8, decodedInstruction->getSize())));
+            dyncompat::make_shared<Immediate>(Result(u8, decodedInstruction->getSize())));
         Expression::Ptr postEIP(makeAddExpression(EIP, InsnSize, u32));
         Expression::Ptr op(makeAddExpression(Offset, postEIP, u32));
         insn_to_complete->addSuccessor(op, isCall, false, isConditional, false);
@@ -1487,7 +1487,7 @@ namespace Dyninst { namespace InstructionAPI {
 
         Expression::Ptr ds(makeRegisterExpression(m_Arch == Arch_x86 ? x86::ds : x86_64::ds));
         Expression::Ptr si(makeRegisterExpression(si_reg));
-        Expression::Ptr segmentOffset(boost::make_shared<Immediate>(Result(u32, 0x10)));
+        Expression::Ptr segmentOffset(dyncompat::make_shared<Immediate>(Result(u32, 0x10)));
         Expression::Ptr ds_segment = makeMultiplyExpression(ds, segmentOffset, u32);
         Expression::Ptr ds_si = makeAddExpression(ds_segment, si, u32);
         insn_to_complete->appendOperand(makeDereferenceExpression(ds_si, makeSizeType(optype)),
@@ -1512,7 +1512,7 @@ namespace Dyninst { namespace InstructionAPI {
         Expression::Ptr es(makeRegisterExpression(m_Arch == Arch_x86 ? x86::es : x86_64::es));
         Expression::Ptr di(makeRegisterExpression(di_reg));
 
-        Immediate::Ptr imm(boost::make_shared<Immediate>(Result(u32, 0x10)));
+        Immediate::Ptr imm(dyncompat::make_shared<Immediate>(Result(u32, 0x10)));
         Expression::Ptr es_segment(makeMultiplyExpression(es, imm, u32));
         Expression::Ptr es_di(makeAddExpression(es_segment, di, u32));
         insn_to_complete->appendOperand(makeDereferenceExpression(es_di, makeSizeType(optype)),

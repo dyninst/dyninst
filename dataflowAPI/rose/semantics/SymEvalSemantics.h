@@ -122,7 +122,7 @@ namespace rose {
                     virtual uint64_t get_number() const {
                         assert(expr->getID() == Dyninst::AST::V_ConstantAST);
                         //TODO
-                        Dyninst::DataflowAPI::Constant constant = boost::dynamic_pointer_cast<Dyninst::DataflowAPI::ConstantAST>(expr)->val();
+                        Dyninst::DataflowAPI::Constant constant = dyncompat::dynamic_pointer_cast<Dyninst::DataflowAPI::ConstantAST>(expr)->val();
                         return constant.val;
                     }
 
@@ -135,13 +135,13 @@ namespace rose {
                 /*                                          Register State                                         */
                 /***************************************************************************************************/
 
-                typedef boost::shared_ptr<class RegisterStateAST> RegisterStateASTPtr;
-                typedef boost::shared_ptr<class RegisterStateASTARM64> RegisterStateASTARM64Ptr;
-                typedef boost::shared_ptr<class RegisterStateASTPPC32> RegisterStateASTPPC32Ptr;
-                typedef boost::shared_ptr<class RegisterStateASTPPC64> RegisterStateASTPPC64Ptr;
-                typedef boost::shared_ptr<class RegisterStateAST_amdgpu_gfx908> RegisterStateAST_amdgpu_gfx908_Ptr;
-                typedef boost::shared_ptr<class RegisterStateAST_amdgpu_gfx90a> RegisterStateAST_amdgpu_gfx90a_Ptr;
-                typedef boost::shared_ptr<class RegisterStateAST_amdgpu_gfx940> RegisterStateAST_amdgpu_gfx940_Ptr;
+                typedef dyncompat::shared_ptr<class RegisterStateAST> RegisterStateASTPtr;
+                typedef dyncompat::shared_ptr<class RegisterStateASTARM64> RegisterStateASTARM64Ptr;
+                typedef dyncompat::shared_ptr<class RegisterStateASTPPC32> RegisterStateASTPPC32Ptr;
+                typedef dyncompat::shared_ptr<class RegisterStateASTPPC64> RegisterStateASTPPC64Ptr;
+                typedef dyncompat::shared_ptr<class RegisterStateAST_amdgpu_gfx908> RegisterStateAST_amdgpu_gfx908_Ptr;
+                typedef dyncompat::shared_ptr<class RegisterStateAST_amdgpu_gfx90a> RegisterStateAST_amdgpu_gfx90a_Ptr;
+                typedef dyncompat::shared_ptr<class RegisterStateAST_amdgpu_gfx940> RegisterStateAST_amdgpu_gfx940_Ptr;
                 class RegisterStateAST : public BaseSemantics::RegisterState {
                 public:
                     RegisterStateAST(const BaseSemantics::SValuePtr &protoval,
@@ -163,7 +163,7 @@ namespace rose {
                     }
 
                     static RegisterStateASTPtr promote(const BaseSemantics::RegisterStatePtr &from) {
-                        RegisterStateASTPtr retval = boost::dynamic_pointer_cast<RegisterStateAST>(from);
+                        RegisterStateASTPtr retval = dyncompat::dynamic_pointer_cast<RegisterStateAST>(from);
                         ASSERT_not_null(retval);
                         return retval;
                     }
@@ -210,7 +210,7 @@ namespace rose {
                     }
 
                     static RegisterStateASTARM64Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
-                        RegisterStateASTARM64Ptr retval = boost::dynamic_pointer_cast<RegisterStateASTARM64>(from);
+                        RegisterStateASTARM64Ptr retval = dyncompat::dynamic_pointer_cast<RegisterStateASTARM64>(from);
                         ASSERT_not_null(retval);
                         return retval;
                     }
@@ -230,7 +230,7 @@ namespace rose {
                     }
 
                     static RegisterStateASTPPC32Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
-                        RegisterStateASTPPC32Ptr retval = boost::dynamic_pointer_cast<RegisterStateASTPPC32>(from);
+                        RegisterStateASTPPC32Ptr retval = dyncompat::dynamic_pointer_cast<RegisterStateASTPPC32>(from);
                         ASSERT_not_null(retval);
                         return retval;
                     }
@@ -249,7 +249,7 @@ namespace rose {
                     }
 
                     static RegisterStateASTPPC64Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
-                        RegisterStateASTPPC64Ptr retval = boost::dynamic_pointer_cast<RegisterStateASTPPC64>(from);
+                        RegisterStateASTPPC64Ptr retval = dyncompat::dynamic_pointer_cast<RegisterStateASTPPC64>(from);
                         ASSERT_not_null(retval);
                         return retval;
                     }
@@ -269,7 +269,7 @@ namespace rose {
                         }
 
                         static RegisterStateAST_amdgpu_gfx908_Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
-                            RegisterStateAST_amdgpu_gfx908_Ptr retval = boost::dynamic_pointer_cast<RegisterStateAST_amdgpu_gfx908>(from);
+                            RegisterStateAST_amdgpu_gfx908_Ptr retval = dyncompat::dynamic_pointer_cast<RegisterStateAST_amdgpu_gfx908>(from);
                             ASSERT_not_null(retval);
                             return retval;
                         }
@@ -290,7 +290,7 @@ namespace rose {
                         }
 
                         static RegisterStateAST_amdgpu_gfx90a_Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
-                            RegisterStateAST_amdgpu_gfx90a_Ptr retval = boost::dynamic_pointer_cast<RegisterStateAST_amdgpu_gfx90a>(from);
+                            RegisterStateAST_amdgpu_gfx90a_Ptr retval = dyncompat::dynamic_pointer_cast<RegisterStateAST_amdgpu_gfx90a>(from);
                             ASSERT_not_null(retval);
                             return retval;
                         }
@@ -310,7 +310,7 @@ namespace rose {
                         }
 
                         static RegisterStateAST_amdgpu_gfx940_Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
-                            RegisterStateAST_amdgpu_gfx940_Ptr retval = boost::dynamic_pointer_cast<RegisterStateAST_amdgpu_gfx940>(from);
+                            RegisterStateAST_amdgpu_gfx940_Ptr retval = dyncompat::dynamic_pointer_cast<RegisterStateAST_amdgpu_gfx940>(from);
                             ASSERT_not_null(retval);
                             return retval;
                         }
@@ -324,7 +324,7 @@ namespace rose {
                 /*                                           Memory State                                          */
                 /***************************************************************************************************/
 
-                typedef boost::shared_ptr<class MemoryStateAST> MemoryStateASTPtr;
+                typedef dyncompat::shared_ptr<class MemoryStateAST> MemoryStateASTPtr;
 
                 class MemoryStateAST : public BaseSemantics::MemoryState {
                 protected:
@@ -341,7 +341,7 @@ namespace rose {
                     }
 
                     static MemoryStateASTPtr promote(const BaseSemantics::MemoryStatePtr &from) {
-                        MemoryStateASTPtr retval = boost::dynamic_pointer_cast<MemoryStateAST>(from);
+                        MemoryStateASTPtr retval = dyncompat::dynamic_pointer_cast<MemoryStateAST>(from);
                         ASSERT_not_null(retval);
                         return retval;
                     }
@@ -381,7 +381,7 @@ namespace rose {
                 /*                                                State                                            */
                 /***************************************************************************************************/
 
-                typedef boost::shared_ptr<class StateAST> StateASTPtr;
+                typedef dyncompat::shared_ptr<class StateAST> StateASTPtr;
 
                 class StateAST : public BaseSemantics::State {
                 public:
@@ -433,7 +433,7 @@ namespace rose {
                     }
 
                     static StateASTPtr promote(const BaseSemantics::StatePtr &from) {
-                        StateASTPtr retval = boost::dynamic_pointer_cast<StateAST>(from);
+                        StateASTPtr retval = dyncompat::dynamic_pointer_cast<StateAST>(from);
                         ASSERT_not_null(retval);
                         return retval;
                     }
@@ -462,7 +462,7 @@ namespace rose {
                 /***************************************************************************************************/
                 /*                                          RiscOperators                                          */
                 /***************************************************************************************************/
-                typedef boost::shared_ptr<class RiscOperatorsAST> RiscOperatorsASTPtr;
+                typedef dyncompat::shared_ptr<class RiscOperatorsAST> RiscOperatorsASTPtr;
 
                 /** RISC operators for use by the Symbolic Semantics Domain of Dyninst.
                  *
@@ -501,7 +501,7 @@ namespace rose {
                     /** Run-time promotion of a base RiscOperators pointer to symbolic operators. This is a checked conversion--it
                     *  will fail if @p x does not point to a SymbolicSemantics::RiscOperators object. */
                     static RiscOperatorsASTPtr promote(const BaseSemantics::RiscOperatorsPtr &x) {
-                        RiscOperatorsASTPtr retval = boost::dynamic_pointer_cast<RiscOperatorsAST>(x);
+                        RiscOperatorsASTPtr retval = dyncompat::dynamic_pointer_cast<RiscOperatorsAST>(x);
                         ASSERT_not_null(retval);
                         return retval;
                     }

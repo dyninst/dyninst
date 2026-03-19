@@ -1,6 +1,6 @@
 #include "opcode_tests.h"
 
-#include <boost/algorithm/string.hpp>
+#include <dyncompat/algorithm/string.hpp>
 #include <iostream>
 
 namespace Dyninst {
@@ -33,7 +33,7 @@ bool verify(Instruction const &insn, opcode_test const &expected) {
 
   // The formatter sometimes introduces trailing whitespace, so remove it
   auto text = insn.format();
-  boost::algorithm::trim_right(text);
+  dyncompat::algorithm::trim_right(text);
   if(text != expected.text) {
     std::cerr << "Mismatched formatted assembly string\n"
               << "Expected: '" << expected.text << "', "

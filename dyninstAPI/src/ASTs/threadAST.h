@@ -41,7 +41,7 @@ namespace Dyninst { namespace DyninstAPI {
 // Acquire the thread index value - a 0...n labeling of threads.
 class threadAST : public functionCallAST {
 public:
-  using Ptr = boost::shared_ptr<threadAST>;
+  using Ptr = dyncompat::shared_ptr<threadAST>;
 
   static Ptr index();
 

@@ -17,8 +17,8 @@
 
 #include <stddef.h>
 #include <utility>
-#include <boost/config.hpp>
-#include <boost/logic/tribool.hpp>
+#include <dyncompat/config.hpp>
+#include <dyncompat/logic/tribool.hpp>
 #include <cassert>
 #include <cstring>
 #include <list>
@@ -375,7 +375,7 @@ struct SAWYER_EXPORT ColorSpec {
     AnsiColor foreground;                               /**< Foreground color, or @ref COLOR_DEFAULT. */
     AnsiColor background;                               /**< Background color, or @ref COLOR_DEFAULT. */
 #include "WarningsOff.h"
-    boost::tribool bold;                                /**< Use ANSI "bold" attribute? */
+    dyncompat::tribool bold;                                /**< Use ANSI "bold" attribute? */
 #include "WarningsRestore.h"
 
     /** Constructs an object with default foreground and background colors. */
@@ -428,15 +428,15 @@ struct SAWYER_EXPORT MesgProps {
 #include "WarningsOff.h"
     Optional<std::string> facilityName;                 /**< The name of the logging facility that produced this message. */
     Optional<Importance> importance;                    /**< The message importance level. */
-    boost::tribool isBuffered;                          /**< Whether the output buffered and emitted on a per-message basis. */
+    dyncompat::tribool isBuffered;                          /**< Whether the output buffered and emitted on a per-message basis. */
     Optional<std::string> completionStr;                /**< String to append to the end of each complete message. */
     Optional<std::string> interruptionStr;              /**< String to append when a partial message is interrupted. */
     Optional<std::string> cancelationStr;               /**< String to append to a partial message when it is destroyed. */
     Optional<std::string> lineTermination;              /**< Line termination for completion, interruption, and cancelation. */
-    boost::tribool useColor;                            /**< Whether to use ANSI escape sequences to colorize output. */
+    dyncompat::tribool useColor;                            /**< Whether to use ANSI escape sequences to colorize output. */
 #include "WarningsRestore.h"
 
-    MesgProps(): isBuffered(boost::indeterminate), useColor(boost::indeterminate) {}
+    MesgProps(): isBuffered(dyncompat::indeterminate), useColor(dyncompat::indeterminate) {}
 
     /** Merge the specified properties into this object and return new properties.  Each property of the return value will be
      *  the value from this object, except when this object's property is missing, in which case the property value from the
@@ -1328,7 +1328,7 @@ public:
     virtual void post(const Mesg&, const MesgProps&) /*override*/;
 };
 
-#ifndef BOOST_WINDOWS
+#ifndef DYNCOMPAT_WINDOWS
 /** Sends messages to the syslog daemon.
  *
  *  Thread safety: Unknown (depends on whether syslog is thread-safe). */

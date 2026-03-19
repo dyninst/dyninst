@@ -263,7 +263,7 @@ bool BPatch_module::parseTypesIfNecessary()
 	mod->pmod()->mod()->exec()->parseTypesNow();
 	moduleTypes = BPatch_typeCollection::getModTypeCollection(this);
 
-	vector<boost::shared_ptr<Type>> modtypes;
+	vector<dyncompat::shared_ptr<Type>> modtypes;
     mod->pmod()->mod()->getAllTypes(modtypes);
 
 	if (modtypes.empty())
@@ -276,7 +276,7 @@ bool BPatch_module::parseTypesIfNecessary()
 		moduleTypes->addType(type);
 	}
 
-	vector<pair<string, boost::shared_ptr<Type> > > globalVars;
+	vector<pair<string, dyncompat::shared_ptr<Type> > > globalVars;
     mod->pmod()->mod()->getAllGlobalVars(globalVars);
 
 	if (globalVars.empty())

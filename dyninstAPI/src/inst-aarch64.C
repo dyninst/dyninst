@@ -56,8 +56,8 @@
 #include "emitter.h"
 #include "emit-aarch64.h"
 
-#include <boost/assign/list_of.hpp>
-using namespace boost::assign;
+#include <dyncompat/assign/list_of.hpp>
+using namespace dyncompat::assign;
 #include <sstream>
 
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
@@ -943,7 +943,7 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
     namespace di = Dyninst::InstructionAPI;
 
     auto cft = i.getControlFlowTarget();
-    auto target_reg = boost::dynamic_pointer_cast<di::RegisterAST>(cft);
+    auto target_reg = dyncompat::dynamic_pointer_cast<di::RegisterAST>(cft);
     if(!target_reg) return false;
     auto branch_target = convertRegID(target_reg);
 

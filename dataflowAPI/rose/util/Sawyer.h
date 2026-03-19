@@ -11,8 +11,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <vector>
-#include <boost/cstdint.hpp>
-#include <boost/thread/recursive_mutex.hpp>
+#include <dyncompat/cstdint.hpp>
+#include <dyncompat/thread/recursive_mutex.hpp>
 #include <cstdio>
 #include <string>
 
@@ -93,13 +93,11 @@
  *  $ SAWYER_BLD=/some/directory/in/which/to/build
  *  $ mkdir $SAWYER_BLD
  *  $ cd $SAWYER_BLD
- *  $ cmake $SAWYER_SRC -DBOOST_ROOT=/location/of/boost -DCMAKE_INSTALL_PREFIX:PATH=/place/to/install/sawyer
+*  $ cmake $SAWYER_SRC -DCMAKE_INSTALL_PREFIX:PATH=/place/to/install/sawyer
  * @endcode
  *
- *  The @c BOOST_ROOT should be the directory containing Boost's "include" and "lib" directories. It's necessary only when
- *  Boost isn't installed in a well-known location.  In addition to Boost header files, %Sawyer also requires these Boost
- *  libraries: iostreams, system, filesystem, regex, chrono, and thread. These libraries should have been compiled with the
- *  same C++ compiler and switches as %Sawyer.
+*  %Sawyer is configured as part of Dyninst and uses the same vendored compatibility headers as the rest of the tree. No
+*  external compatibility package install is required for this build.
  *
  *  The @c CMAKE_BUILD_TYPE can be specified to control whether a debug or release version of the library is created. Its value
  *  should be the word "Debug" or "Release". The default is "Release".  For instance, "-DCMAKE_BUILD_TYPE=Debug".
@@ -132,46 +130,22 @@
  *  $ make install
  * @endcode
  *
- *  The current build system makes no attempt to name libraries in ways that distinguish the Boost version, build type,
- *  thread-support, compiler version, etc.  We recommend that %Sawyer be used only in programs that are built with compatible
- *  configuration, and the CMAKE_INSTALL_PREFIX can be used to create a naming scheme to install multiple %Sawyer
- *  configurations on one machine.
+*  The current build system makes no attempt to name libraries in ways that distinguish build type, thread-support, compiler
+*  version, etc.  We recommend that %Sawyer be used only in programs that are built with compatible
+*  configuration, and the CMAKE_INSTALL_PREFIX can be used to create a naming scheme to install multiple %Sawyer
+*  configurations on one machine.
  *
  *  @section mingw Cross compiling on Linux targeting Microsoft Windows
  *
- *  %Sawyer is not regularly tested on Microsoft platforms, but the MinGW compiler is supported.  On Debian this compiler can be
- *  installed with "sudo apt-get install mingw-w64".  One also needs cross-compiled Boost libraries, that can be created with
- *  these steps:
- *
- *  @li Download and untar the Boost source code (this example uses version 1.47).
- *  @li Run "boostrap.sh" in the Boost source directory
- *  @li Edit project-config.jam and replace the (commented out) "using gcc" line with "using gcc : mingw32 :
- *      i586-mingw32msvc-g++ ;". The space before the semi-colon is required.
- *  @li Create the installation directory. This example uses "$HOME/lib-mingw32/boost-1.47".
- *  @li Compile Boost with the following commands. The NO_ZLIB and NO_BZIP2 are for the iostreams package since we didn't
- *      cross compile zlib or bzip2 (%Sawyer doesn't use those features of iosreams).
- *
- * @code
- *  $ ./bjam --help
- *  $ ./bjam install toolset=gcc-mingw32 \
- *        --prefix=$HOME/lib-mingw32/boost-1.47 \
- *        --layout=versioned \
- *        --with-iostreams --with-system --with-filesystem --with-regex --with-chrono \
- *        -sNO_ZLIB=1 -sNO_BZIP2=1
- * @endcode
- *
- *  To compile %Sawyer use the same cmake command as for native compiling, but add
- *  "-DCMAKE_TOOLCHAIN_FILE=$SAWYER_SRC/Toolchain-cross-mingw32-linux.cmake". Also make sure the @c BOOST_ROOT parameter points
- *  to the cross-compiled version of Boost, which must be installed in a directory that's at or below one of the @c
- *  CMAKE_FIND_ROOT_PATH directories specified in the Toolchain-cross-mingw32-linux.cmake. Then run "make" and "make install"
- *  like normal.
+*  %Sawyer is not regularly tested on Microsoft platforms, but the MinGW compiler is supported. On Debian this compiler can be
+*  installed with "sudo apt-get install mingw-w64". To compile %Sawyer use the same cmake command as for native compiling, but
+*  add "-DCMAKE_TOOLCHAIN_FILE=$SAWYER_SRC/Toolchain-cross-mingw32-linux.cmake". Then run "make" and "make install" like
+*  normal.
  *
  *  @section msvc Native compiling with Microsoft Visual Studio
  *
- *  %Sawyer is seldom tested in this manner, but Microsoft Visual Studio versions 10 2010 and 12 2013 have been tested at
- *  time or another.  To install Boost, follow the instructions at the <a href="http://boost.org">Boost web site</a>. The
- *  instructions didn't work for my virtual machine with Windows 8.1 Enterprise and Visual Studio 12 2013, so I used
- *  precompiled Boost libraries I found at boost.org [Matzke].
+*  %Sawyer is seldom tested in this manner, but Microsoft Visual Studio versions 10 2010 and 12 2013 have been tested at
+*  time or another.
  *
  *  Generate a Visual Studio project file with a command like this, and the usual CMake options described above.  IIRC, cmake
  *  expects Windows-style path names having backslashes instead of POSIX names.
@@ -332,7 +306,7 @@
      #define SAWYER_THREAD_LOCAL /*void*/
 #endif
 
-#ifdef BOOST_WINDOWS
+#ifdef DYNCOMPAT_WINDOWS
 // FIXME[Robb Matzke 2014-06-18]: get rid of ROSE_UTIL_EXPORTS; cmake can only have one DEFINE_SYMBOL
 #   if defined(SAWYER_DO_EXPORTS) || defined(ROSE_UTIL_EXPORTS) // defined in CMake when compiling libsawyer
 #       define SAWYER_EXPORT __declspec(dllexport)
@@ -372,12 +346,12 @@ SAWYER_EXPORT bool initializeLibrary(size_t vmajor=SAWYER_VERSION_MAJOR,
 /** Portable replacement for ::strtoll
  *
  *  Microsoft doesn't define this function, so we define it in the Sawyer namespace. */
-SAWYER_EXPORT boost::int64_t strtoll(const char*, char**, int);
+SAWYER_EXPORT dyncompat::int64_t strtoll(const char*, char**, int);
 
 /** Portable replacement for ::strtoull
  *
  *  Microsoft doesn't define this function, so we define it in the Sawyer namespace. */
-SAWYER_EXPORT boost::uint64_t strtoull(const char*, char**, int);
+SAWYER_EXPORT dyncompat::uint64_t strtoull(const char*, char**, int);
 
 /** Reads one line of input from a file.
  *
@@ -397,8 +371,8 @@ SAWYER_EXPORT std::string generateSequentialName(size_t length=3);
 
 } // namespace
 
-// Define only when we have the Boost Chrono library, which was first available in boost-1.47.
-//#define SAWYER_HAVE_BOOST_CHRONO
+// Define only when we have dyncompat chrono support.
+//#define SAWYER_HAVE_DYNCOMPAT_CHRONO
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -409,9 +383,9 @@ SAWYER_EXPORT std::string generateSequentialName(size_t length=3);
 //                      preprocessor.
 //
 // The following macros are used to distinguish between different target environments, regardless of what compiler is being
-// used or the environment which is doing the compiling.  For instance, BOOST_WINDOWS will be defined when using the MinGW
+// used or the environment which is doing the compiling.  For instance, DYNCOMPAT_WINDOWS will be defined when using the MinGW
 // compiler on Linux to target a Windows environment.
-//     BOOST_WINDOWS    The Windows API is present.  This is defined (or not) by including <boost/config.hpp>.
+//     DYNCOMPAT_WINDOWS    The Windows API is present.  This is defined (or not) by including <dyncompat/config.hpp>.
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -50,8 +50,8 @@
 #include "ParseCallback.h"
 
 #include "common/src/dthread.h"
-#include <boost/thread/lockable_adapter.hpp>
-#include <boost/thread/shared_mutex.hpp>
+#include <dyncompat/thread/lockable_adapter.hpp>
+#include <dyncompat/thread/shared_mutex.hpp>
 #include <unordered_map>
 
 using namespace std;
@@ -86,7 +86,7 @@ namespace Dyninst {
             // All allocated frames
             LockFreeQueue<ParseFrame *> frames;
 
-            boost::atomic<bool> delayed_frames_changed;
+            dyncompat::atomic<bool> delayed_frames_changed;
             dyn_c_hash_map<Function*, std::set<ParseFrame*> > delayed_frames;
 
             // differentiate those provided via hints and
@@ -101,7 +101,7 @@ namespace Dyninst {
             dyn_hash_map<Address, string> plt_entries;
 
     // a sink block for unbound edges
-    boost::atomic<Block *> _sink;
+    dyncompat::atomic<Block *> _sink;
 #ifdef ADD_PARSE_FRAME_TIMERS
     dyn_c_hash_map<unsigned int, unsigned int > time_histogram;
 #endif
@@ -276,7 +276,7 @@ namespace Dyninst {
 
     Mutex<true> parse_mutex;
 
-    struct NewFrames : public std::set<ParseFrame*>, public boost::lockable_adapter<boost::mutex> {};
+    struct NewFrames : public std::set<ParseFrame*>, public dyncompat::lockable_adapter<dyncompat::mutex> {};
 
     LockFreeQueueItem<ParseFrame *> *ProcessOneFrame(ParseFrame *pf, bool recursive);
 

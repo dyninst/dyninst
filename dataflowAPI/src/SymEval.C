@@ -35,7 +35,7 @@
 #include "../rose/SgAsmInstruction.h"
 #include "../rose/x86InstructionSemantics.h"
 #include "../rose/x86_64InstructionSemantics.h"
-#include "boost/tuple/tuple.hpp"
+#include "dyncompat/tuple/tuple.hpp"
 #include "debug_dataflow.h"
 #include "DynAST.h"
 #include "parseAPI/h/CFG.h"
@@ -133,7 +133,7 @@ void dfs(Node::Ptr source, std::map<Node::Ptr, int> &state, std::set<Edge::Ptr> 
   // state[source]++;
   std::map<Node::Ptr, int>::iterator ssit = state.find(source);
   if(ssit == state.end()) {
-    boost::tuples::tie(ssit, boost::tuples::ignore) = state.insert(make_pair(source, 1));
+    dyncompat::tuples::tie(ssit, dyncompat::tuples::ignore) = state.insert(make_pair(source, 1));
   } else {
     (*ssit).second++;
   }
@@ -212,7 +212,7 @@ public:
     for(; begin != end; ++begin) {
       Edge::Ptr edge = *begin;
       if(skip_edges.find(edge) == skip_edges.end()) {
-        SliceNode::Ptr parent = boost::static_pointer_cast<SliceNode>(edge->source());
+        SliceNode::Ptr parent = dyncompat::static_pointer_cast<SliceNode>(edge->source());
         if(done.find(parent) == done.end()) {
           ++pcnt;
         }
@@ -241,7 +241,7 @@ public:
     for(; begin != end; ++begin) {
       Edge::Ptr edge = *begin;
       if(skip_edges.find(edge) == skip_edges.end()) {
-        SliceNode::Ptr child = boost::static_pointer_cast<SliceNode>(edge->target());
+        SliceNode::Ptr child = dyncompat::static_pointer_cast<SliceNode>(edge->target());
         if(remove(child)) {
           children.insert(child);
         }
@@ -320,7 +320,7 @@ SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result
   for(; gbegin != gend; ++gbegin) {
     Node::Ptr ptr = *gbegin;
     expand_cerr << "pushing " << (*gbegin)->format() << " to sortVector" << endl;
-    SliceNode::Ptr cur = boost::static_pointer_cast<SliceNode>(ptr);
+    SliceNode::Ptr cur = dyncompat::static_pointer_cast<SliceNode>(ptr);
     sortVector.push_back(cur);
   }
   std::stable_sort(sortVector.begin(), sortVector.end(), vectorSort);
@@ -332,7 +332,7 @@ SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result
   std::vector<SliceNode::Ptr>::iterator vit = sortVector.begin();
   for(; vit != sortVector.end(); ++vit) {
     SliceNode::Ptr ptr = *vit;
-    Node::Ptr cur = boost::static_pointer_cast<Node>(ptr);
+    Node::Ptr cur = dyncompat::static_pointer_cast<Node>(ptr);
     dfs_worklist.push(cur);
   }
 
@@ -349,7 +349,7 @@ SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result
   for(; gbegin != gend; ++gbegin) {
     expand_cerr << "adding " << (*gbegin)->format() << " to worklist" << endl;
     Node::Ptr ptr = *gbegin;
-    SliceNode::Ptr sptr = boost::static_pointer_cast<SliceNode>(ptr);
+    SliceNode::Ptr sptr = dyncompat::static_pointer_cast<SliceNode>(ptr);
     worklist.insert(sptr, false);
   }
 
@@ -362,7 +362,7 @@ SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result
     SliceNode::Ptr aNode;
     int order;
 
-    boost::tie(aNode, order) = worklist.pop_next();
+    dyncompat::tie(aNode, order) = worklist.pop_next();
     if(order == -1) { // empty
       break;
     }
@@ -412,7 +412,7 @@ SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result
       aNode->outs(oB, oE);
       for(; oB != oE; ++oB) {
         if(worklist.skipEdges().find(*oB) == worklist.skipEdges().end()) {
-          SliceNode::Ptr out = boost::static_pointer_cast<SliceNode>((*oB)->target());
+          SliceNode::Ptr out = dyncompat::static_pointer_cast<SliceNode>((*oB)->target());
           worklist.insert(out);
         }
       }
@@ -629,8 +629,8 @@ SymEval::Retval_t process(SliceNode::Ptr ptr, Result_t &dbase, std::set<Edge::Pt
   ptr->ins(begin, end);
 
   for(; begin != end; ++begin) {
-    SliceEdge::Ptr edge = boost::static_pointer_cast<SliceEdge>(*begin);
-    SliceNode::Ptr source = boost::static_pointer_cast<SliceNode>(edge->source());
+    SliceEdge::Ptr edge = dyncompat::static_pointer_cast<SliceEdge>(*begin);
+    SliceNode::Ptr source = dyncompat::static_pointer_cast<SliceNode>(edge->source());
 
     // Skip this one to break a cycle.
     if(skipEdges.find(edge) != skipEdges.end()) {
@@ -654,7 +654,7 @@ SymEval::Retval_t process(SliceNode::Ptr ptr, Result_t &dbase, std::set<Edge::Pt
   // If not (like this one), add it
 
   AST::Ptr ast;
-  boost::tie(ast, failedTranslation) = SymEval::expand(ptr->assign());
+  dyncompat::tie(ast, failedTranslation) = SymEval::expand(ptr->assign());
   // expand_cerr << "\t ... resulting in " << dbase.format() << endl;
 
   // We have an AST. Now substitute in all of its predecessors.

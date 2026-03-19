@@ -51,7 +51,7 @@ namespace PatchAPI {
  */
 class DYNINST_EXPORT Snippet {
   public:
-    typedef boost::shared_ptr<Snippet> Ptr;
+    typedef dyncompat::shared_ptr<Snippet> Ptr;
     Snippet() {}
     virtual ~Snippet() {}
     static Snippet::Ptr create(Snippet *a) { return Ptr(a); }

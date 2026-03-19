@@ -38,7 +38,7 @@
 #include <list>
 #include <map>
 #include "dyninstAPI/src/codegen.h" // codeGen structure
-#include "boost/shared_ptr.hpp"
+#include "dyncompat/shared_ptr.hpp"
 
 namespace Dyninst {
 namespace Relocation {
@@ -48,8 +48,8 @@ class SpringboardMap;
 struct SpringboardReq;
 class SpringboardBuilder;
 
-typedef boost::shared_ptr<Dyninst::Relocation::CodeMover> CodeMoverPtr;
-typedef boost::shared_ptr<Dyninst::Relocation::SpringboardBuilder> SpringboardBuilderPtr;
+typedef dyncompat::shared_ptr<Dyninst::Relocation::CodeMover> CodeMoverPtr;
+typedef dyncompat::shared_ptr<Dyninst::Relocation::SpringboardBuilder> SpringboardBuilderPtr;
 
 }
 }

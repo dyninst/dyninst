@@ -19,7 +19,7 @@ namespace rose {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Shared-ownership pointer to an AMDGPU instruction dispatcher. See @ref heap_object_shared_ownership. */
-            typedef boost::shared_ptr<class DispatcherAMDGPU> DispatcherAMDGPUPtr;
+            typedef dyncompat::shared_ptr<class DispatcherAMDGPU> DispatcherAMDGPUPtr;
 
             class DispatcherAMDGPU : public BaseSemantics::Dispatcher {
             protected:
@@ -99,7 +99,7 @@ namespace rose {
 
                 /** Dynamic cast to a DispatcherAMDGPUPtr with assertion. */
                 static DispatcherAMDGPUPtr promote(const BaseSemantics::DispatcherPtr &d) {
-                    DispatcherAMDGPUPtr retval = boost::dynamic_pointer_cast<DispatcherAMDGPU>(d);
+                    DispatcherAMDGPUPtr retval = dyncompat::dynamic_pointer_cast<DispatcherAMDGPU>(d);
                     assert(retval != NULL);
                     return retval;
                 }

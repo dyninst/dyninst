@@ -157,14 +157,14 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
     std::unordered_map<Assignment::Ptr, AST::Ptr, Assignment::AssignmentPtrHasher> exprs;
     std::unordered_map<Assignment::Ptr, int, Assignment::AssignmentPtrHasher> inDegree;
     for (; nbegin != nend; ++nbegin) {
-        SliceNode::Ptr n = boost::static_pointer_cast<SliceNode>(*nbegin);
+        SliceNode::Ptr n = dyncompat::static_pointer_cast<SliceNode>(*nbegin);
         working_list.push(n);
         inQueue.insert(n->assign());
     }
 
     g->allNodes(nbegin, nend);
     for (; nbegin != nend; ++nbegin) {
-        SliceNode::Ptr n = boost::static_pointer_cast<SliceNode>(*nbegin);
+        SliceNode::Ptr n = dyncompat::static_pointer_cast<SliceNode>(*nbegin);
         inDegree[n->assign()] = CountInDegree(n);
     }
     AST::Ptr jumpTarget;
@@ -221,7 +221,7 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
         }
         parsing_printf("JumpTableFormatPred: analyze %s at %lx\n", n->assign()->format().c_str(), n->assign()->addr());
         for (; nbegin != nend; ++nbegin) {
-            SliceNode::Ptr p = boost::static_pointer_cast<SliceNode>(*nbegin);
+            SliceNode::Ptr p = dyncompat::static_pointer_cast<SliceNode>(*nbegin);
 
             if (exprs.find(p->assign()) == exprs.end()) {
                 parsing_printf("\tWARNING: For %s, its predecessor %s does not have an expression\n", n->assign()->format().c_str(), p->assign()->format().c_str());
@@ -264,7 +264,7 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
                 if (*lhs == *exp) {
                     match++;
                     if (rhs->getID() == AST::V_ConstantAST) {
-                        ConstantAST::Ptr c = boost::static_pointer_cast<ConstantAST>(rhs);
+                        ConstantAST::Ptr c = dyncompat::static_pointer_cast<ConstantAST>(rhs);
                         constAddr.insert(c->val().val);
                     } else {
                         nonConstant++;
@@ -297,7 +297,7 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
         // Enumerate every successor and add them to the working list
         n->outs(nbegin, nend);
         for (; nbegin != nend; ++nbegin) {
-            SliceNode::Ptr p = boost::static_pointer_cast<SliceNode>(*nbegin);
+            SliceNode::Ptr p = dyncompat::static_pointer_cast<SliceNode>(*nbegin);
             inDegree[p->assign()] --;
             if (inDegree[p->assign()] == 0 && inQueue.find(p->assign()) == inQueue.end()) {
                 inQueue.insert(p->assign());
@@ -359,7 +359,7 @@ bool JumpTableFormatPred::findRead(Graph::Ptr g, SliceNode::Ptr &readNode) {
     NodeIterator gbegin, gend;
     g->allNodes(gbegin, gend);
     for (; gbegin != gend; ++gbegin) {
-        SliceNode::Ptr n = boost::static_pointer_cast<SliceNode>(*gbegin);
+        SliceNode::Ptr n = dyncompat::static_pointer_cast<SliceNode>(*gbegin);
         if (n->assign() == memLoc) {
             continue;
         }
@@ -483,7 +483,7 @@ bool JumpTableFormatPred::adjustSliceFrame(Slicer::SliceFrame &frame, SliceNode:
     n->outs(nbegin, nend);
     parsing_printf("\tadd %s to active map\n", src.format().c_str());
     for (; nbegin != nend; ++nbegin) {
-        SliceNode::Ptr next = boost::static_pointer_cast<SliceNode>(*nbegin);
+        SliceNode::Ptr next = dyncompat::static_pointer_cast<SliceNode>(*nbegin);
         frame.active[src].push_back(Slicer::Element(next->block(), next->func(), src, next->assign()));
         if (n->assign()->out() != src) {
             aliases[next->assign()] = make_pair(VariableAST::create(Variable(n->assign()->out())), VariableAST::create(Variable(src)));

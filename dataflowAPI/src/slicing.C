@@ -1754,7 +1754,7 @@ void Slicer::cleanGraph(Graph::Ptr ret) {
 	  expand_cerr << "NodeIterator in cleanGraph: " << (*nbegin)->format() << endl;
       numNodes++;
       SliceNode::Ptr foozle =
-          boost::dynamic_pointer_cast<SliceNode>(*nbegin);
+          dyncompat::dynamic_pointer_cast<SliceNode>(*nbegin);
       //cerr << "Checking " << foozle << "/" << foozle->format() << endl;
       if ((*nbegin)->hasOutEdges()) {
           slicing_cerr << "\t has out edges, leaving in" << endl;
@@ -1826,7 +1826,7 @@ ParseAPI::Block *Slicer::getBlock(ParseAPI::Edge *e,
 
 bool Slicer::isWidenNode(Node::Ptr n) {
   SliceNode::Ptr foozle =
-    boost::dynamic_pointer_cast<SliceNode>(n);
+    dyncompat::dynamic_pointer_cast<SliceNode>(n);
   if (!foozle) return false;
   if (!foozle->assign()) return true;
   return false;

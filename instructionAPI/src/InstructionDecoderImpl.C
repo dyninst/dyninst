@@ -43,17 +43,17 @@
 #include "BinaryFunction.h"
 #include "Dereference.h"
 #include "Ternary.h"
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 
 namespace Dyninst
 {
     namespace InstructionAPI
     {
-        boost::shared_ptr<Instruction> InstructionDecoderImpl::makeInstruction(entryID opcode, const char* mnem,
+        dyncompat::shared_ptr<Instruction> InstructionDecoderImpl::makeInstruction(entryID opcode, const char* mnem,
             unsigned int decodedSize, const unsigned char* raw)
         {
             Operation tmp(opcode, mnem, m_Arch);
-            return boost::make_shared<Instruction>(tmp, decodedSize, raw, m_Arch);
+            return dyncompat::make_shared<Instruction>(tmp, decodedSize, raw, m_Arch);
         }
 
         InstructionDecoderImpl::Ptr InstructionDecoderImpl::makeDecoderImpl(Architecture a)
@@ -92,47 +92,47 @@ namespace Dyninst
         {
             BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
 
-            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, adder);
+            return dyncompat::make_shared<BinaryFunction>(lhs, rhs, resultType, adder);
         }
         Expression::Ptr InstructionDecoderImpl::makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs,
                 Result_Type resultType)
         {
             BinaryFunction::funcT::Ptr multiplier(new BinaryFunction::multResult());
-            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, multiplier);
+            return dyncompat::make_shared<BinaryFunction>(lhs, rhs, resultType, multiplier);
         }
         Expression::Ptr InstructionDecoderImpl::makeLeftShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
                 Result_Type resultType)
         {
             BinaryFunction::funcT::Ptr leftShifter(new BinaryFunction::leftShiftResult());
-            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, leftShifter);
+            return dyncompat::make_shared<BinaryFunction>(lhs, rhs, resultType, leftShifter);
         }
         Expression::Ptr InstructionDecoderImpl::makeRightArithmeticShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
                 Result_Type resultType)
         {
             BinaryFunction::funcT::Ptr rightArithmeticShifter(new BinaryFunction::rightArithmeticShiftResult());
-            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, rightArithmeticShifter);
+            return dyncompat::make_shared<BinaryFunction>(lhs, rhs, resultType, rightArithmeticShifter);
         }
         Expression::Ptr InstructionDecoderImpl::makeRightLogicalShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
                 Result_Type resultType)
         {
             BinaryFunction::funcT::Ptr rightLogicalShifter(new BinaryFunction::rightLogicalShiftResult());
-            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, rightLogicalShifter);
+            return dyncompat::make_shared<BinaryFunction>(lhs, rhs, resultType, rightLogicalShifter);
         }
         Expression::Ptr InstructionDecoderImpl::makeRightRotateExpression(Expression::Ptr lhs, Expression::Ptr rhs,
                 Result_Type resultType)
         {
             BinaryFunction::funcT::Ptr rightRotator(new BinaryFunction::rightRotateResult());
-            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, rightRotator);
+            return dyncompat::make_shared<BinaryFunction>(lhs, rhs, resultType, rightRotator);
         }
 
         Expression::Ptr InstructionDecoderImpl::makeTernaryExpression(Expression::Ptr cond, Expression::Ptr first, Expression::Ptr second,Result_Type result_type){
-            return boost::make_shared<TernaryAST>(cond,first,second,result_type);
+            return dyncompat::make_shared<TernaryAST>(cond,first,second,result_type);
         }
 
         Expression::Ptr InstructionDecoderImpl::makeDereferenceExpression(Expression::Ptr addrToDereference,
                 Result_Type resultType)
         {
-            return boost::make_shared<Dereference>(addrToDereference, resultType);
+            return dyncompat::make_shared<Dereference>(addrToDereference, resultType);
         }
         Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID, uint32_t num_elements )
         {
@@ -140,12 +140,12 @@ namespace Dyninst
             int minusArch = newID & ~(registerID.getArchitecture());
             int convertedID = minusArch | m_Arch;
             MachRegister converted(convertedID);
-            return boost::make_shared<RegisterAST>(converted, 0, registerID.size() * 8,num_elements);
+            return dyncompat::make_shared<RegisterAST>(converted, 0, registerID.size() * 8,num_elements);
         }
         
         Expression::Ptr InstructionDecoderImpl::makeMultiRegisterExpression(MachRegister registerID, uint32_t num_elements )
         {
-            return boost::make_shared<MultiRegisterAST>(registerID, num_elements);
+            return dyncompat::make_shared<MultiRegisterAST>(registerID, num_elements);
         }
         
        
@@ -156,7 +156,7 @@ namespace Dyninst
             int minusArch = newID & ~(registerID.getArchitecture());
             int convertedID = minusArch | m_Arch;
             MachRegister converted(convertedID);
-            return boost::make_shared<RegisterAST>(converted, start, end);
+            return dyncompat::make_shared<RegisterAST>(converted, start, end);
         }
 
 
@@ -166,7 +166,7 @@ namespace Dyninst
             int minusArch = newID & ~(registerID.getArchitecture());
             int convertedID = minusArch | m_Arch;
             MachRegister converted(convertedID);
-            return boost::make_shared<RegisterAST>(converted, 0, registerID.size() * 8, extendFrom);
+            return dyncompat::make_shared<RegisterAST>(converted, 0, registerID.size() * 8, extendFrom);
         }
 		Expression::Ptr InstructionDecoderImpl::makeMaskRegisterExpression(MachRegister registerID)
         {
@@ -174,7 +174,7 @@ namespace Dyninst
             int minusArch = newID & ~(registerID.getArchitecture());
             int convertedID = minusArch | m_Arch;
             MachRegister converted(convertedID);
-            return boost::make_shared<MaskRegisterAST>(converted, 0, registerID.size() * 8);
+            return dyncompat::make_shared<MaskRegisterAST>(converted, 0, registerID.size() * 8);
         }
     }
 }

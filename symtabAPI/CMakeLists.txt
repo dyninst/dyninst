@@ -104,7 +104,7 @@ dyninst_library(
   DEFINES SYMTAB_LIB
   DYNINST_DEPS common
   DYNINST_INTERNAL_DEPS dynDwarf dynElf
-  PRIVATE_DEPS OpenMP::OpenMP_CXX Dyninst::Boost Dyninst::ElfUtils Dyninst::PeParse
+  PRIVATE_DEPS OpenMP::OpenMP_CXX Dyninst::ElfUtils Dyninst::PeParse
 )
 # cmake-format: on
 

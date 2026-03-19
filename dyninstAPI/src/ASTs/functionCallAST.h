@@ -34,7 +34,7 @@
 #include "codeGenAST.h"
 #include "dyn_register.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include <string>
 #include <vector>
 
@@ -47,30 +47,30 @@ namespace Dyninst { namespace DyninstAPI {
 
 class functionCallAST : public codeGenAST {
 public:
-  using Ptr = boost::shared_ptr<functionCallAST>;
+  using Ptr = dyncompat::shared_ptr<functionCallAST>;
 
   static Ptr namedCall(std::string name, std::vector<codeGenASTPtr> &args, AddressSpace *addrSpace);
 
   static Ptr namedCall(std::string name, std::vector<codeGenASTPtr> &args) {
-    return boost::make_shared<functionCallAST>(std::move(name), args);
+    return dyncompat::make_shared<functionCallAST>(std::move(name), args);
   }
 
   static Ptr call(func_instance *func, std::vector<codeGenASTPtr> &args) {
     if(!func) {
       return {};
     }
-    return boost::make_shared<functionCallAST>(func, args);
+    return dyncompat::make_shared<functionCallAST>(func, args);
   }
 
   static Ptr replacement(func_instance *func) {
     if(!func) {
       return {};
     }
-    return boost::make_shared<functionCallAST>(func);
+    return dyncompat::make_shared<functionCallAST>(func);
   }
 
   static Ptr target(Dyninst::Address addr, std::vector<codeGenASTPtr> &args) {
-    return boost::make_shared<functionCallAST>(addr, args);
+    return dyncompat::make_shared<functionCallAST>(addr, args);
   }
 
   functionCallAST(std::string name) : func_name_{std::move(name)} {}

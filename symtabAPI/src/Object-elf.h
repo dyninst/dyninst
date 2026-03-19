@@ -74,14 +74,14 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
-#include <boost/optional.hpp>
+#include <dyncompat/optional.hpp>
 
 
 namespace Dyninst{
 
 namespace DwarfDyninst {
    class DwarfFrameParser;
-   typedef boost::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
+   typedef dyncompat::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
 }
 
 namespace SymtabAPI{
@@ -128,13 +128,13 @@ struct RiscvAttributes {
     RiscvFloatAbiEnum floatABI;
     std::map<std::string, std::pair<int, int>> riscv_extensions;
     std::string riscv_extension_string;
-    boost::optional<int64_t> stack_align;
-    boost::optional<bool> unaligned_access;
-    boost::optional<int64_t> priv_spec;          // Deprecated
-    boost::optional<int64_t> priv_spec_minor;    // Deprecated
-    boost::optional<int64_t> priv_spec_revision; // Deprecated
-    boost::optional<int64_t> atomic_abi;
-    boost::optional<int64_t> x3_reg_usage;
+    dyncompat::optional<int64_t> stack_align;
+    dyncompat::optional<bool> unaligned_access;
+    dyncompat::optional<int64_t> priv_spec;          // Deprecated
+    dyncompat::optional<int64_t> priv_spec_minor;    // Deprecated
+    dyncompat::optional<int64_t> priv_spec_revision; // Deprecated
+    dyncompat::optional<int64_t> atomic_abi;
+    dyncompat::optional<int64_t> x3_reg_usage;
 };
 
 class open_statement {
@@ -359,7 +359,7 @@ public:
     DYNINST_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &segs) override;
 
     private:
-    std::vector<std::vector<boost::shared_ptr<void> > > freeList;
+    std::vector<std::vector<dyncompat::shared_ptr<void> > > freeList;
   static void log_elferror (void (*)(const char *), const char *);
     
   Elf_X *elfHdr;

@@ -88,7 +88,7 @@
 
 // DQ (3/22/2009): MS does not define some of the standard Linux types
 #if ROSE_MICROSOFT_OS
-// Using boost/cstdint.hpp instead.
+// Using the local compatibility cstdint header instead.
 // typedef uint64_t unsigned long long;
 
 // DQ (3/22/2009): This is defined in <linux/limits.h>, for MS we pick a value consistatn with MKS.

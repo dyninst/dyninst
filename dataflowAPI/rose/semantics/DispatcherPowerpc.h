@@ -20,7 +20,7 @@ namespace BinaryAnalysis {
 namespace InstructionSemantics2 {
 
 /** Shared-ownership pointer to a PowerPC instruction dispatcher. See @ref heap_object_shared_ownership. */
-typedef boost::shared_ptr<class DispatcherPowerpc> DispatcherPowerpcPtr;
+typedef dyncompat::shared_ptr<class DispatcherPowerpc> DispatcherPowerpcPtr;
 
 class DispatcherPowerpc: public BaseSemantics::Dispatcher {
 protected:
@@ -75,7 +75,7 @@ public:
 
     /** Dynamic cast to a DispatcherPowerpcPtr with assertion. */
     static DispatcherPowerpcPtr promote(const BaseSemantics::DispatcherPtr &d) {
-        DispatcherPowerpcPtr retval = boost::dynamic_pointer_cast<DispatcherPowerpc>(d);
+        DispatcherPowerpcPtr retval = dyncompat::dynamic_pointer_cast<DispatcherPowerpc>(d);
         assert(retval!=NULL);
         return retval;
     }

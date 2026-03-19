@@ -6,6 +6,7 @@
 #include <iostream>
 #include "PCProcess.h"
 #include <sys/mman.h>
+#include <unistd.h>
 
 using namespace Dyninst;
 using namespace std;
@@ -168,4 +169,3 @@ bool Codegen::generateStackUnprotect(Address var_addr, Address mprotect_addr) {
 
    return generateCall(mprotect_addr, args);
 }
-

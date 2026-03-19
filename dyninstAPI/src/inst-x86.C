@@ -242,14 +242,15 @@ static inline unsigned char makeSIBbyte(unsigned Scale, unsigned Index,
 void emitAddressingMode(unsigned base, RegValue disp,
                         unsigned reg_opcode, codeGen &gen)
 {
+   constexpr unsigned invalid_reg = static_cast<unsigned>(-1);
    // MT linux uses ESP+4
    // we need an SIB in that case
    if (base == REGNUM_ESP) {
-      emitAddressingMode(REGNUM_ESP, Null_Register, 0, disp, reg_opcode, gen);
+      emitAddressingMode(REGNUM_ESP, invalid_reg, 0, disp, reg_opcode, gen);
       return;
    }
    GET_PTR(insn, gen);
-   if (base == Null_Register) {
+   if (base == invalid_reg) {
       append_memory_as_byte(insn, makeModRMbyte(0, reg_opcode, 5));
       assert(numeric_limits<int32_t>::lowest() <= disp  && disp <= numeric_limits<int32_t>::max() && "disp more than 32 bits");
       append_memory_as(insn, static_cast<int32_t>(disp));
@@ -271,7 +272,8 @@ void emitAddressingMode(unsigned base, unsigned index,
                         unsigned int scale, RegValue disp,
                         int reg_opcode, codeGen &gen)
 {
-   bool needSIB = (base == REGNUM_ESP) || (index != Null_Register);
+   constexpr unsigned invalid_reg = static_cast<unsigned>(-1);
+   bool needSIB = (base == REGNUM_ESP) || (index != invalid_reg);
 
    if(!needSIB) {
       emitAddressingMode(base, disp, reg_opcode, gen);
@@ -281,14 +283,14 @@ void emitAddressingMode(unsigned base, unsigned index,
    // This isn't true for AMD-64...
    //assert(index != REGNUM_ESP);
    
-   if(index == Null_Register) {
+   if(index == invalid_reg) {
       assert(base == REGNUM_ESP); // not necessary, but sane
       index = 4;           // (==REGNUM_ESP) which actually means no index in SIB
    }
 
    GET_PTR(insn, gen);
    
-   if(base == Null_Register) { // we have to emit [index<<scale+disp32]
+   if(base == invalid_reg) { // we have to emit [index<<scale+disp32]
       append_memory_as_byte(insn, makeModRMbyte(0, reg_opcode, 4));
       append_memory_as_byte(insn, makeSIBbyte(scale, index, 5));
       assert(numeric_limits<int32_t>::lowest() <= disp  && disp <= numeric_limits<int32_t>::max() && "disp more than 32 bits");

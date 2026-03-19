@@ -42,27 +42,22 @@
 #include "BPatch_callbacks.h"
 #include "BPatch_instruction.h" // for register type
 #include "BPatch_enums.h"
-#include "boost/shared_ptr.hpp"
+#include "dyncompat/shared_ptr.hpp"
 
-// Don't include the boost shared_ptr library
+// Forward-declare the AST wrapper without pulling in additional API headers.
 class BPatch_snippet;
 
 namespace Dyninst {
   namespace DyninstAPI {
     class codeGenAST;
   }
-  using BPatch_codeGenASTPtr = boost::shared_ptr<DyninstAPI::codeGenAST>;
-}
-
-namespace boost {
-   template< typename T > class shared_ptr;
-   template<> class shared_ptr<Dyninst::DyninstAPI::codeGenAST *>;
+  using BPatch_codeGenASTPtr = dyncompat::shared_ptr<DyninstAPI::codeGenAST>;
 }
 
 namespace Dyninst {
    namespace PatchAPI {
       class Snippet;
-      typedef boost::shared_ptr<Snippet> SnippetPtr;
+      typedef dyncompat::shared_ptr<Snippet> SnippetPtr;
       DYNINST_EXPORT SnippetPtr convert(const BPatch_snippet *);
    }
 }
@@ -613,5 +608,4 @@ public:
                              const BPatch_constExpr &constant);
 };
 #endif /* _BPatch_snippet_h_ */
-
 

@@ -125,8 +125,8 @@ bool operatorAST::generateOptimizedAssignment(codeGen &gen, int size_, bool noCo
     laddr = (Dyninst::Address)loperand->getOValue();
   } else {
     if(loperand->getoType() == operandType::variableValue) {
-      boost::shared_ptr<operandAST> lnode =
-          boost::dynamic_pointer_cast<operandAST>(loperand);
+      dyncompat::shared_ptr<operandAST> lnode =
+          dyncompat::dynamic_pointer_cast<operandAST>(loperand);
 
       int_variable *var = lnode->lookUpVar(gen.addrSpace());
       if(!var || gen.addrSpace()->needsPIC(var)) {
@@ -628,8 +628,8 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
         case operandType::Param:
         case operandType::ParamAtCall:
         case operandType::ParamAtEntry: {
-          boost::shared_ptr<operandAST> lnode =
-              boost::dynamic_pointer_cast<operandAST>(loperand);
+          dyncompat::shared_ptr<operandAST> lnode =
+              dyncompat::dynamic_pointer_cast<operandAST>(loperand);
           emitR(getParamOp, (Dyninst::Address)lnode->oValue, src1, src2, gen, noCost, gen.point(),
                 gen.addrSpace()->multithread_capable());
           loperand->decUseCount(gen);

@@ -54,13 +54,13 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT void Operand::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const {
     if(m_isWritten) {
-      RegisterAST::Ptr op_as_reg = boost::dynamic_pointer_cast<RegisterAST>(op_value);
+      RegisterAST::Ptr op_as_reg = dyncompat::dynamic_pointer_cast<RegisterAST>(op_value);
       if(op_as_reg) {
         regsWritten.insert(op_as_reg);
       } else {
 
         MultiRegisterAST::Ptr op_as_multireg =
-            boost::dynamic_pointer_cast<MultiRegisterAST>(op_value);
+            dyncompat::dynamic_pointer_cast<MultiRegisterAST>(op_value);
         if(op_as_multireg) {
           for(auto reg : op_as_multireg->getRegs()) {
             regsWritten.insert(reg);
@@ -71,7 +71,7 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   DYNINST_EXPORT RegisterAST::Ptr Operand::getPredicate() const {
-    RegisterAST::Ptr op_as_reg = boost::dynamic_pointer_cast<RegisterAST>(op_value);
+    RegisterAST::Ptr op_as_reg = dyncompat::dynamic_pointer_cast<RegisterAST>(op_value);
     if(m_isTruePredicate || m_isFalsePredicate) {
       return op_as_reg;
     }
@@ -89,16 +89,16 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   DYNINST_EXPORT bool Operand::readsMemory() const {
-    return (boost::dynamic_pointer_cast<Dereference>(op_value) && m_isRead);
+    return (dyncompat::dynamic_pointer_cast<Dereference>(op_value) && m_isRead);
   }
 
   DYNINST_EXPORT bool Operand::writesMemory() const {
-    return (boost::dynamic_pointer_cast<Dereference>(op_value) && m_isWritten);
+    return (dyncompat::dynamic_pointer_cast<Dereference>(op_value) && m_isWritten);
   }
 
   DYNINST_EXPORT void
   Operand::addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const {
-    auto deref = boost::dynamic_pointer_cast<Dereference>(op_value);
+    auto deref = dyncompat::dynamic_pointer_cast<Dereference>(op_value);
     if(deref && m_isRead) {
       for(auto se : deref->getSubexpressions()) {
         memAccessors.insert(se);
@@ -108,7 +108,7 @@ namespace Dyninst { namespace InstructionAPI {
 
   DYNINST_EXPORT void
   Operand::addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const {
-    auto deref = boost::dynamic_pointer_cast<Dereference>(op_value);
+    auto deref = dyncompat::dynamic_pointer_cast<Dereference>(op_value);
     if(deref && m_isWritten) {
       for(auto se : deref->getSubexpressions()) {
         memAccessors.insert(se);

@@ -45,7 +45,7 @@
 namespace Dyninst { namespace InstructionAPI {
   class DYNINST_EXPORT MultiRegisterAST : public Expression {
   public:
-    typedef boost::shared_ptr<MultiRegisterAST> Ptr;
+    typedef dyncompat::shared_ptr<MultiRegisterAST> Ptr;
 
     MultiRegisterAST(MachRegister r, uint32_t num_elements = 1);
     MultiRegisterAST(std::vector<RegisterAST::Ptr> _in);

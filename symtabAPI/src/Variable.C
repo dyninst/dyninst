@@ -52,28 +52,28 @@ using namespace Dyninst::SymtabAPI;
 
 Variable::Variable(Symbol *sym) :
 	Aggregate(sym),
-	type_(NULL)
+	type_()
 {
 }
 
 Variable::Variable() :
 	Aggregate(),
-	type_(NULL)
+	type_()
 {
 }
-void Variable::setType(boost::shared_ptr<Type> type)
+void Variable::setType(dyncompat::shared_ptr<Type> type)
 {
 	type_ = type;
 }
 
-boost::shared_ptr<Type> Variable::getType(Type::do_share_t)
+dyncompat::shared_ptr<Type> Variable::getType(Type::do_share_t)
 {
 	module_->exec()->parseTypesNow();
 	return type_;
 }
 
 void Variable::print(std::ostream &os) const {
-	boost::shared_ptr<Type> var_t = const_cast<Variable *>(this)->getType(Type::share);
+	dyncompat::shared_ptr<Type> var_t = const_cast<Variable *>(this)->getType(Type::share);
 	std::string tname(var_t ? var_t->getName() : "no_type");
 
 	os  << "Variable{"        
@@ -107,7 +107,7 @@ bool Variable::removeSymbol(Symbol *sym)
     return true;
 }
 
-localVar::localVar(std::string name,  boost::shared_ptr<Type> typ, std::string fileName, 
+localVar::localVar(std::string name,  dyncompat::shared_ptr<Type> typ, std::string fileName, 
 		int lineNum, FunctionBase *f, std::vector<VariableLocation> *locs) :
 	name_(name), 
 	type_(typ), 
@@ -260,12 +260,12 @@ std::string &localVar::getName()
 	return name_;
 }
 
-boost::shared_ptr<Type> localVar::getType(Type::do_share_t)
+dyncompat::shared_ptr<Type> localVar::getType(Type::do_share_t)
 {
 	return type_;
 }
 
-bool localVar::setType(boost::shared_ptr<Type> newType) 
+bool localVar::setType(dyncompat::shared_ptr<Type> newType) 
 {
 	type_ = newType;
 	return true;

@@ -37,7 +37,7 @@
 #include "registers/x86_64_regs.h"
 #include "registers/x86_regs.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include <map>
 #include <mutex>
 
@@ -48,11 +48,11 @@ using namespace NS_x86;
 namespace Dyninst { namespace InstructionAPI {
 
   RegisterAST::Ptr makeRegFromID(MachRegister regID, unsigned int low, unsigned int high) {
-    return boost::make_shared<RegisterAST>(regID, low, high);
+    return dyncompat::make_shared<RegisterAST>(regID, low, high);
   }
 
   RegisterAST::Ptr makeRegFromID(MachRegister regID) {
-    return boost::make_shared<RegisterAST>(regID, 0, regID.size() * 8);
+    return dyncompat::make_shared<RegisterAST>(regID, 0, regID.size() * 8);
   }
 
   Operation::Operation(entryID id, std::string m, Architecture arch)

@@ -45,7 +45,7 @@
 
 #include "common/src/dyninst_filesystem.h"
 #include "Object.h"
-#include <boost/foreach.hpp>
+#include <dyncompat/foreach.hpp>
 #include <algorithm>
 
 #if defined(cap_dwarf)
@@ -200,13 +200,13 @@ bool Module::getStatements(std::vector<LineInformation::Statement_t> &statements
 	return (statements.size() > initial_size);
 }
 
-void Module::getAllTypes(vector<boost::shared_ptr<Type>>& v)
+void Module::getAllTypes(vector<dyncompat::shared_ptr<Type>>& v)
 {
 	exec_->parseTypesNow();
 	if(typeInfo_) typeInfo_->getAllTypes(v);	
 }
 
-void Module::getAllGlobalVars(vector<pair<string, boost::shared_ptr<Type>>>& v)
+void Module::getAllGlobalVars(vector<pair<string, dyncompat::shared_ptr<Type>>>& v)
 {
 	exec_->parseTypesNow();
 	if(typeInfo_) typeInfo_->getAllGlobalVariables(v);
@@ -223,7 +223,7 @@ typeCollection *Module::getModuleTypesPrivate()
   return typeInfo_;
 }
 
-bool Module::findType(boost::shared_ptr<Type> &type, std::string const& name)
+bool Module::findType(dyncompat::shared_ptr<Type> &type, std::string const& name)
 {
 	typeCollection *tc = getModuleTypes();
 	if (!tc) return false;
@@ -236,7 +236,7 @@ bool Module::findType(boost::shared_ptr<Type> &type, std::string const& name)
    return true;
 }
 
-bool Module::findVariableType(boost::shared_ptr<Type> &type, std::string const& name)
+bool Module::findVariableType(dyncompat::shared_ptr<Type> &type, std::string const& name)
 {
 	typeCollection *tc = getModuleTypes();
 	if (!tc) return false;

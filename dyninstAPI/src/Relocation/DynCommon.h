@@ -37,7 +37,7 @@
 // Dyninst Internal
 #include "dyninstAPI/src/addressSpace.h"
 
-#define DYN_CAST(type, obj)  boost::dynamic_pointer_cast<type>(obj)
+#define DYN_CAST(type, obj)  dyncompat::dynamic_pointer_cast<type>(obj)
 
 // Shortcuts for type casting
 #define SCAST_MO(o) static_cast<mapped_object*>(o)

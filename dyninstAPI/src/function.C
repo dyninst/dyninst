@@ -170,8 +170,8 @@ block_instance * func_instance::setNewEntry(block_instance *def,
             ParseAPI::Intraproc epred;
             const Block::edgelist & ib_ins = block->llb()->sources();
 	    
-	    if(std::distance(boost::make_filter_iterator(epred, ib_ins.begin(), ib_ins.end()), 
-			     boost::make_filter_iterator(epred, ib_ins.end(), ib_ins.end())) == 0)
+	    if(std::distance(dyncompat::make_filter_iterator(epred, ib_ins.begin(), ib_ins.end()), 
+			     dyncompat::make_filter_iterator(epred, ib_ins.end(), ib_ins.end())) == 0)
             {
                 if (NULL != newEntry) {
                     fprintf(stderr,"WARNING: multiple blocks in function %lx "

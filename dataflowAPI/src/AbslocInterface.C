@@ -52,7 +52,7 @@ using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 extern int df_debug_stackanalysis;
 
-template class std::vector<boost::shared_ptr<Dyninst::Assignment> >;
+template class std::vector<dyncompat::shared_ptr<Dyninst::Assignment> >;
 
 void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
 				    Address addr,
@@ -73,13 +73,13 @@ void AbsRegionConverter::convertAll(const InstructionAPI::Instruction &insn, Add
 
     if(reg == aarch64::nzcv) {
       for(auto &&f : flagRegs) {
-        auto ast = boost::make_shared<RegisterAST>(f);
+        auto ast = dyncompat::make_shared<RegisterAST>(f);
         auto region = AbsRegionConverter::convert(ast);
         absregs.push_back(region);
       }
       return;
     }
-    auto ast = boost::make_shared<RegisterAST>(reg);
+    auto ast = dyncompat::make_shared<RegisterAST>(reg);
     auto region = AbsRegionConverter::convert(ast);
     absregs.push_back(region);
   };
@@ -502,7 +502,7 @@ void AssignmentConverter::convert(const Instruction &I,
         //
         auto operands = I.getAllOperands();
         assert(operands.size() == 2);
-        MultiRegisterAST::Ptr pc_reg  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
+        MultiRegisterAST::Ptr pc_reg  = dyncompat::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
         const std::vector<RegisterAST::Ptr> & pc_regasts = pc_reg->getRegs();
         AbsRegion lowpc_dst  = AbsRegion(pc_regasts[0]->getID()) ;
         AbsRegion highpc_dst = AbsRegion(pc_regasts[1]->getID()) ;
@@ -541,7 +541,7 @@ void AssignmentConverter::convert(const Instruction &I,
 
         auto operands = I.getAllOperands();
         assert(operands.size() == 2);
-        MultiRegisterAST::Ptr pc_reg  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
+        MultiRegisterAST::Ptr pc_reg  = dyncompat::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
         const std::vector<RegisterAST::Ptr> & pc_regasts = pc_reg->getRegs();
         AbsRegion lowpc_src  = AbsRegion(pc_regasts[0]->getID()) ;
         AbsRegion highpc_src = AbsRegion(pc_regasts[1]->getID()) ;
@@ -557,7 +557,7 @@ void AssignmentConverter::convert(const Instruction &I,
         auto operands = I.getAllOperands();
         assert(operands.size() == 4);
 
-        MultiRegisterAST::Ptr pc_src_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[1].getValue());
+        MultiRegisterAST::Ptr pc_src_regs  = dyncompat::dynamic_pointer_cast<MultiRegisterAST>(operands[1].getValue());
         const std::vector<RegisterAST::Ptr> & pc_src_regasts = pc_src_regs->getRegs();
         AbsRegion pc_src_low  = AbsRegion(pc_src_regasts[0]->getID()) ;
         AbsRegion pc_src_hi = AbsRegion(pc_src_regasts[1]->getID()) ;
@@ -576,7 +576,7 @@ void AssignmentConverter::convert(const Instruction &I,
         pcA->addInput(pc_src_hi);
         assignments.push_back(pcA);
 
-        MultiRegisterAST::Ptr pc_dst_regs  = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
+        MultiRegisterAST::Ptr pc_dst_regs  = dyncompat::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
         const std::vector<RegisterAST::Ptr> & pc_dst_regasts = pc_dst_regs->getRegs();
         AbsRegion pc_dst_low  = AbsRegion(pc_dst_regasts[0]->getID()) ;
         AbsRegion pc_dst_hi = AbsRegion(pc_dst_regasts[1]->getID()) ;
@@ -609,7 +609,7 @@ void AssignmentConverter::convert(const Instruction &I,
 
         assert(operands.size() == 4);
 
-        RegisterAST::Ptr dst_sgpr = boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
+        RegisterAST::Ptr dst_sgpr = dyncompat::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
 
         std::vector<AbsRegion> regions;
 
@@ -657,7 +657,7 @@ void AssignmentConverter::convert(const Instruction &I,
         auto operands = I.getAllOperands();
         assert(operands.size() == 5);
 
-        RegisterAST::Ptr dst_sgpr = boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
+        RegisterAST::Ptr dst_sgpr = dyncompat::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
         std::vector<AbsRegion> regions;
 
         aConverter.convertAll(operands[0].getValue(), addr, func, block, regions);

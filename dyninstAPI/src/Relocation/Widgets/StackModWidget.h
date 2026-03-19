@@ -40,7 +40,7 @@ namespace Relocation {
 
 class StackModWidget : public Widget {
  public:
-   typedef boost::shared_ptr<StackModWidget> Ptr;
+   typedef dyncompat::shared_ptr<StackModWidget> Ptr;
 
    virtual bool generate(const codeGen &, const RelocBlock *, CodeBuffer &);
 

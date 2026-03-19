@@ -164,12 +164,12 @@ dwarf_bounds dwarf_subrange_bounds(Dwarf_Die *die) {
   if (count.value) {
     auto const lb = [&bounds]() {
       // If we have a lower bound, use it
-      if (bounds.lower.value) return bounds.lower.value.get();
+      if (bounds.lower.value) return bounds.lower.value.value();
 
       // Otherwise, assume the array is zero-based
       return static_cast<Dwarf_Word>(0);
     }();
-    bounds.upper = dwarf_result{lb + count.value.get() - static_cast<Dwarf_Word>(1)};
+    bounds.upper = dwarf_result(lb + count.value.value() - static_cast<Dwarf_Word>(1));
   }
 
   // If the upper bound and count are missing, then the upper bound value is unknown.

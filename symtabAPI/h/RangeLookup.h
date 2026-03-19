@@ -40,14 +40,6 @@
 #include "dyntypes.h"
 #include "dyninst_visibility.h"
 #include "IBSTree.h"
-#include <boost/multi_index_container.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/multi_index/mem_fun.hpp>
-#include <boost/multi_index/member.hpp>
-#include <boost/multi_index/identity.hpp>
-#include <boost/multi_index/composite_key.hpp>
-#include <boost/scoped_ptr.hpp>
-
 
 namespace Dyninst {
     namespace SymtabAPI {
@@ -98,40 +90,6 @@ namespace Dyninst {
             os << std::hex << "[" << ar.first << ", " << ar.second << ")";
             return os;
         }
-        template <typename Value>
-        struct RangeLookupTypes
-        {
-            typedef typename boost::multi_index::composite_key<Value,
-                    boost::multi_index::const_mem_fun<Value, Offset, &Value::startAddr>,
-                    boost::multi_index::const_mem_fun<Value, Offset, &Value::endAddr> >
-                    addr_range_key;
-            typedef typename boost::multi_index::composite_key<Value,
-                    boost::multi_index::const_mem_fun<Value, Offset, &Value::endAddr>,
-                    boost::multi_index::const_mem_fun<Value, Offset, &Value::startAddr> >
-            upper_bound_key;
-            typedef typename boost::multi_index::composite_key<Value,
-                    boost::multi_index::const_mem_fun<Value, unsigned int, &Value::getFileIndex>,
-                    boost::multi_index::const_mem_fun<Value, unsigned int, &Value::getLine> >
-                    line_info_key;
-            typedef typename boost::multi_index_container
-                    <
-                            typename Value::Ptr,
-                            boost::multi_index::indexed_by<
-                                    boost::multi_index::ordered_non_unique< boost::multi_index::tag<typename Value::addr_range>, addr_range_key>,
-                                    boost::multi_index::ordered_non_unique< boost::multi_index::tag<typename Value::upper_bound>, upper_bound_key>,
-                                    boost::multi_index::ordered_non_unique< boost::multi_index::tag<typename Value::line_info>, line_info_key >
-                            >
-                    > type;
-            typedef typename boost::multi_index::index<type, typename Value::addr_range>::type addr_range_index;
-            typedef typename boost::multi_index::index<type, typename Value::upper_bound>::type upper_bound_index;
-            typedef typename boost::multi_index::index<type, typename Value::line_info>::type line_info_index;
-            typedef typename type::value_type value_type;
-
-
-        };
-
-
     }
 }
 #endif
-

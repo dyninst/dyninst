@@ -46,7 +46,7 @@
 #include <iosfwd>
 #include <string>
 #include <vector>
-#include <boost/shared_ptr.hpp>
+#include <dyncompat/shared_ptr.hpp>
 
 #ifndef CASE_RETURN_STR
 #define CASE_RETURN_STR(x) case x: return #x
@@ -262,16 +262,16 @@ class DYNINST_EXPORT LookupInterface
                                             bool isRegex = false,
                                             bool checkCase = false,
                                             bool includeUndefined = false) = 0;
-      virtual bool findType(boost::shared_ptr<Type>& type, std::string const& name) = 0;
+      virtual bool findType(dyncompat::shared_ptr<Type>& type, std::string const& name) = 0;
       bool findType(Type*& t, std::string const& n) {
-        boost::shared_ptr<Type> tp;
+        dyncompat::shared_ptr<Type> tp;
         auto r = findType(tp, n);
         t = tp.get();
         return r;
       }
-      virtual bool findVariableType(boost::shared_ptr<Type>& type, std::string const& name)= 0;
+      virtual bool findVariableType(dyncompat::shared_ptr<Type>& type, std::string const& name)= 0;
       bool findVariableType(Type*& t, std::string const& n) {
-        boost::shared_ptr<Type> tp;
+        dyncompat::shared_ptr<Type> tp;
         auto r = findVariableType(tp, n);
         t = tp.get();
         return r;

@@ -34,7 +34,7 @@
 #include "elfutils/libdw.h"
 #include "dyntypes.h"
 #include <string>
-#include <boost/shared_ptr.hpp>
+#include <dyncompat/shared_ptr.hpp>
 #include "dyninst_visibility.h"
 
 namespace Dyninst {
@@ -43,7 +43,7 @@ class Elf_X;
 namespace DwarfDyninst {
 class DwarfFrameParser;
 
-typedef boost::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
+typedef dyncompat::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
 
 class DYNINST_EXPORT DwarfHandle {
   public:

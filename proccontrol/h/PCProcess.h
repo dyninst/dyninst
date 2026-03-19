@@ -45,13 +45,13 @@
 #include "EventType.h"
 #include "dyninst_visibility.h"
 #include "PCErrors.h"
-#include "boost/checked_delete.hpp"
-#include "boost/shared_ptr.hpp"
-#include "boost/weak_ptr.hpp"
-#include "boost/enable_shared_from_this.hpp"
-#include "boost/version.hpp"
+#include "dyncompat/checked_delete.hpp"
+#include "dyncompat/shared_ptr.hpp"
+#include "dyncompat/weak_ptr.hpp"
+#include "dyncompat/enable_shared_from_this.hpp"
+#include "dyncompat/version.hpp"
 
-#define CHECKED_DELETE_NOEXCEPT BOOST_NOEXCEPT
+#define CHECKED_DELETE_NOEXCEPT DYNCOMPAT_NOEXCEPT
 
 
 
@@ -73,7 +73,7 @@ class MTLock;
 #define PC_VERSION_8_1_0
 #define PC_VERSION_8_2_0
 
-#define pc_const_cast boost::const_pointer_cast
+#define pc_const_cast dyncompat::const_pointer_cast
 
 namespace Dyninst {
 
@@ -109,8 +109,8 @@ class ExecFileInfo;
 class DYNINST_EXPORT Breakpoint 
 {
    friend class ::int_breakpoint;
-   friend void boost::checked_delete<Breakpoint>(Breakpoint *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const Breakpoint>(const Breakpoint *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<Breakpoint>(Breakpoint *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<const Breakpoint>(const Breakpoint *) CHECKED_DELETE_NOEXCEPT;
  private:
    int_breakpoint *llbreakpoint_;
    Breakpoint();
@@ -121,9 +121,9 @@ class DYNINST_EXPORT Breakpoint
    static const int BP_R = 4;
 
    int_breakpoint *llbp() const;
-   typedef boost::shared_ptr<Breakpoint> ptr;
-   typedef boost::shared_ptr<const Breakpoint> const_ptr;
-   typedef boost::weak_ptr<Breakpoint> weak_ptr;
+   typedef dyncompat::shared_ptr<Breakpoint> ptr;
+   typedef dyncompat::shared_ptr<const Breakpoint> const_ptr;
+   typedef dyncompat::weak_ptr<Breakpoint> weak_ptr;
 
    static Breakpoint::ptr newBreakpoint();
    static Breakpoint::ptr newTransferBreakpoint(Dyninst::Address to);
@@ -146,15 +146,15 @@ class DYNINST_EXPORT Breakpoint
 class DYNINST_EXPORT Library
 {
    friend class ::int_library;
-   friend void boost::checked_delete<Library>(Library *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const Library>(const Library *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<Library>(Library *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<const Library>(const Library *) CHECKED_DELETE_NOEXCEPT;
  private:
    int_library *lib;
    Library();
    ~Library();
  public:
-   typedef boost::shared_ptr<Library> ptr;
-   typedef boost::shared_ptr<const Library> const_ptr;
+   typedef dyncompat::shared_ptr<Library> ptr;
+   typedef dyncompat::shared_ptr<const Library> const_ptr;
 
    std::string getName() const;
    std::string getAbsoluteName() const;
@@ -236,8 +236,8 @@ class DYNINST_EXPORT LibraryPool
 class DYNINST_EXPORT IRPC
 {
    friend class ::int_iRPC;
-   friend void boost::checked_delete<IRPC>(IRPC *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const IRPC>(const IRPC *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<IRPC>(IRPC *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<const IRPC>(const IRPC *) CHECKED_DELETE_NOEXCEPT;
  private:
    rpc_wrapper *wrapper;
    IRPC(rpc_wrapper *wrapper_);
@@ -251,9 +251,9 @@ class DYNINST_EXPORT IRPC
 	  // Callback = 4,
 	  Done = 5 } State;
 
-   typedef boost::shared_ptr<IRPC> ptr;
-   typedef boost::shared_ptr<const IRPC> const_ptr;
-   typedef boost::weak_ptr<IRPC> weak_ptr;
+   typedef dyncompat::shared_ptr<IRPC> ptr;
+   typedef dyncompat::shared_ptr<const IRPC> const_ptr;
+   typedef dyncompat::weak_ptr<IRPC> weak_ptr;
    
    static IRPC::ptr createIRPC(void *binary_blob, unsigned size, 
                                bool non_blocking = false);
@@ -283,7 +283,7 @@ class DYNINST_EXPORT IRPC
    bool continueStoppedIRPC();
 };
 
-class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
+class DYNINST_EXPORT Process : public dyncompat::enable_shared_from_this<Process>
 {
  private:
    friend class ::int_process;
@@ -294,13 +294,13 @@ class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
    
    Process();
    ~Process();
-   friend void boost::checked_delete<Process>(Process *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const Process>(const Process *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<Process>(Process *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<const Process>(const Process *) CHECKED_DELETE_NOEXCEPT;
  public:
-   typedef boost::shared_ptr<Process> ptr;
-   typedef boost::shared_ptr<const Process> const_ptr;
-   typedef boost::weak_ptr<Process> weak_ptr;
-   typedef boost::weak_ptr<const Process> const_weak_ptr;
+   typedef dyncompat::shared_ptr<Process> ptr;
+   typedef dyncompat::shared_ptr<const Process> const_ptr;
+   typedef dyncompat::weak_ptr<Process> weak_ptr;
+   typedef dyncompat::weak_ptr<const Process> const_weak_ptr;
 
    static void version(int& major, int& minor, int& maintenance);
 
@@ -352,7 +352,7 @@ class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
    
    //cb_func_t really takes an 'Event::const_ptr' as parameter, but this declaration
    // defines the shared_ptr declaration due to Event::const_ptr not being defined yet.
-   typedef cb_ret_t(*cb_func_t)(boost::shared_ptr<const Event>);
+   typedef cb_ret_t(*cb_func_t)(dyncompat::shared_ptr<const Event>);
 
    static bool handleEvents(bool block);
    static bool registerEventCallback(EventType evt, cb_func_t cbfunc);
@@ -559,7 +559,7 @@ class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
 	ExecFileInfo* getExecutableInfo() const;
 };
 
-class DYNINST_EXPORT Thread : public boost::enable_shared_from_this<Thread>
+class DYNINST_EXPORT Thread : public dyncompat::enable_shared_from_this<Thread>
 {
  protected:
    friend class ::int_thread;
@@ -568,14 +568,14 @@ class DYNINST_EXPORT Thread : public boost::enable_shared_from_this<Thread>
 
    Thread();
    ~Thread();
-   friend void boost::checked_delete<Thread>(Thread *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const Thread>(const Thread *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<Thread>(Thread *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<const Thread>(const Thread *) CHECKED_DELETE_NOEXCEPT;
 
  public:
-   typedef boost::shared_ptr<Thread> ptr;
-   typedef boost::shared_ptr<const Thread> const_ptr;
-   typedef boost::weak_ptr<Thread> weak_ptr;
-   typedef boost::weak_ptr<const Thread> const_weak_ptr;
+   typedef dyncompat::shared_ptr<Thread> ptr;
+   typedef dyncompat::shared_ptr<const Thread> const_ptr;
+   typedef dyncompat::weak_ptr<Thread> weak_ptr;
+   typedef dyncompat::weak_ptr<const Thread> const_weak_ptr;
    int_thread *llthrd() const;
    void setLastError(err_t ec, const char *es) const;
 

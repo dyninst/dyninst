@@ -64,7 +64,7 @@ Scope(PatchFunction *f) : obj(NULL), func(f), block(NULL), wholeProgram(false) {
 };
 
 
-class DYNINST_EXPORT PatchMgr : public boost::enable_shared_from_this<PatchMgr> {
+class DYNINST_EXPORT PatchMgr : public dyncompat::enable_shared_from_this<PatchMgr> {
   friend class Point;
   friend class PatchObject; // for splitting blocks as that is _not_ public.
   typedef std::pair<PatchFunction *, PatchBlock *> BlockInstance;
@@ -80,7 +80,7 @@ class DYNINST_EXPORT PatchMgr : public boost::enable_shared_from_this<PatchMgr> 
   typedef std::vector<Point::Type> EnumeratedTypes;
 
   public:
-  typedef boost::shared_ptr<PatchMgr> Ptr;
+  typedef dyncompat::shared_ptr<PatchMgr> Ptr;
   typedef std::pair<Location, Point::Type> Candidate;
   typedef std::vector<Candidate> Candidates;
 

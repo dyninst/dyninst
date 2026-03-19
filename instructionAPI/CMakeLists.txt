@@ -159,7 +159,6 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   DEFINES INSTRUCTION_LIB
   DYNINST_DEPS common
-  PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS ${_capstone_dep}
 )
 # cmake-format: on

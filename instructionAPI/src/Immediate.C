@@ -32,15 +32,15 @@
 #include "Immediate.h"
 #include "Visitor.h"
 
-#include <boost/assign/list_of.hpp>
-#include <boost/make_shared.hpp>
+#include <dyncompat/assign/list_of.hpp>
+#include <dyncompat/make_shared.hpp>
 #include <iostream>
 #include <sstream>
 #include <string>
 
 namespace Dyninst { namespace InstructionAPI {
   Immediate::Ptr Immediate::makeImmediate(const Result& val) {
-    return boost::make_shared<Immediate>(val);
+    return dyncompat::make_shared<Immediate>(val);
   }
 
   Immediate::Immediate(const Result& val) : Expression(val.type) { setValue(val); }
@@ -63,7 +63,7 @@ namespace Dyninst { namespace InstructionAPI {
       : Immediate(val), name_(name) {}
 
   Immediate::Ptr NamedImmediate::makeNamedImmediate(std::string name, const Result& val) {
-    Immediate::Ptr ret = boost::make_shared<NamedImmediate>(name, val);
+    Immediate::Ptr ret = dyncompat::make_shared<NamedImmediate>(name, val);
     return ret;
   }
 
@@ -75,13 +75,13 @@ namespace Dyninst { namespace InstructionAPI {
 
   ArmConditionImmediate::ArmConditionImmediate(const Result& val) : Immediate(val) {
     m_condLookupMap =
-        boost::assign::map_list_of(0, "eq")(1, "ne")(2, "cs")(3, "cc")(4, "mi")(5, "pl")(6, "vs")(
+        dyncompat::assign::map_list_of(0, "eq")(1, "ne")(2, "cs")(3, "cc")(4, "mi")(5, "pl")(6, "vs")(
             7, "vc")(8, "hi")(9, "ls")(10, "ge")(11, "lt")(12, "gt")(13, "le")(14, "al")(15, "nv")
             .convert_to_container<std::map<unsigned int, std::string>>();
   }
 
   Immediate::Ptr ArmConditionImmediate::makeArmConditionImmediate(const Result& val) {
-    Immediate::Ptr ret = boost::make_shared<ArmConditionImmediate>(val);
+    Immediate::Ptr ret = dyncompat::make_shared<ArmConditionImmediate>(val);
     return ret;
   }
 
@@ -97,7 +97,7 @@ namespace Dyninst { namespace InstructionAPI {
 
   ArmPrfmTypeImmediate::ArmPrfmTypeImmediate(const Result& val) : Immediate(val) {
     m_prfmTypeLookupMap =
-        boost::assign::map_list_of(0, "PLDL1KEEP")(1, "PLDL1STRM")(2, "PLDL2KEEP")(3, "PLDL2STRM")(
+        dyncompat::assign::map_list_of(0, "PLDL1KEEP")(1, "PLDL1STRM")(2, "PLDL2KEEP")(3, "PLDL2STRM")(
             4, "PLDL3KEEP")(5, "PLDL3STRM")(8, "PLIL1KEEP")(9, "PLIL1STRM")(10, "PLIL2KEEP")(
             11, "PLIL2STRM")(12, "PLIL3KEEP")(13, "PLIL3STRM")(16, "PSTL1KEEP")(17, "PSTL1STRM")(
             18, "PSTL2KEEP")(19, "PSTL2STRM")(20, "PSTL3KEEP")(21, "PSTL3STRM")
@@ -105,7 +105,7 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   Immediate::Ptr ArmPrfmTypeImmediate::makeArmPrfmTypeImmediate(const Result& val) {
-    Immediate::Ptr ret = boost::make_shared<ArmPrfmTypeImmediate>(val);
+    Immediate::Ptr ret = dyncompat::make_shared<ArmPrfmTypeImmediate>(val);
     return ret;
   }
 

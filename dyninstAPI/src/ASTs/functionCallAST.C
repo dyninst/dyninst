@@ -172,7 +172,7 @@ functionCallAST::Ptr functionCallAST::namedCall(std::string name, std::vector<co
     return functionCallAST::Ptr();
   }
 
-  return boost::make_shared<functionCallAST>(ifunc, args);
+  return dyncompat::make_shared<functionCallAST>(ifunc, args);
 }
 
 }}

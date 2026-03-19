@@ -37,6 +37,7 @@
 #include <stddef.h>
 #include <utility>
 #include <vector>
+#include <dyncompat/weak_ptr.hpp>
 
 #include "dyntypes.h"
 #include "PCProcess.h"
@@ -61,10 +62,10 @@ class MemoryUsageSet;
 class PSetFeatures;
 class TSetFeatures;
 
-typedef boost::shared_ptr<ProcessSet> ProcessSet_ptr;
-typedef boost::shared_ptr<ThreadSet> ThreadSet_ptr;
-typedef boost::shared_ptr<const ProcessSet> ProcessSet_const_ptr;
-typedef boost::shared_ptr<const ThreadSet> ThreadSet_const_ptr;
+typedef dyncompat::shared_ptr<ProcessSet> ProcessSet_ptr;
+typedef dyncompat::shared_ptr<ThreadSet> ThreadSet_ptr;
+typedef dyncompat::shared_ptr<const ProcessSet> ProcessSet_const_ptr;
+typedef dyncompat::shared_ptr<const ThreadSet> ThreadSet_const_ptr;
 
 /**
  * AddressSet represents a set of Process/Address pairs.  It is used to 
@@ -84,15 +85,15 @@ class DYNINST_EXPORT AddressSet
 {
   private:
    int_addressSet *iaddrs;
-   friend void boost::checked_delete<AddressSet>(AddressSet *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<AddressSet>(AddressSet *) CHECKED_DELETE_NOEXCEPT;
    friend class ProcessSet;
    AddressSet();
    ~AddressSet();
   public:
    int_addressSet *get_iaddrs() { return iaddrs; }
 
-   typedef boost::shared_ptr<AddressSet> ptr;
-   typedef boost::shared_ptr<AddressSet> const_ptr;
+   typedef dyncompat::shared_ptr<AddressSet> ptr;
+   typedef dyncompat::shared_ptr<AddressSet> const_ptr;
    
    /**
     * Create new Address sets
@@ -164,7 +165,7 @@ class DYNINST_EXPORT AddressSet
  * perform collective operations on the entire set, which may be more effecient
  * than the equivalent sequential operations.
  **/
-class DYNINST_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
+class DYNINST_EXPORT ProcessSet : public dyncompat::enable_shared_from_this<ProcessSet>
 {
    friend class ThreadSet;
   private:
@@ -174,13 +175,13 @@ class DYNINST_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessS
    ProcessSet();
    ~ProcessSet();
 
-   friend void boost::checked_delete<ProcessSet>(ProcessSet *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<ProcessSet>(ProcessSet *) CHECKED_DELETE_NOEXCEPT;
  public:
    int_processSet *getIntProcessSet(); //Not for public use
-   typedef boost::shared_ptr<ProcessSet> ptr;
-   typedef boost::shared_ptr<const ProcessSet> const_ptr;
-   typedef boost::weak_ptr<ProcessSet> weak_ptr;
-   typedef boost::weak_ptr<const ProcessSet> const_weak_ptr;
+   typedef dyncompat::shared_ptr<ProcessSet> ptr;
+   typedef dyncompat::shared_ptr<const ProcessSet> const_ptr;
+   typedef dyncompat::weak_ptr<ProcessSet> weak_ptr;
+   typedef dyncompat::weak_ptr<const ProcessSet> const_weak_ptr;
 
    /**
     * Create new ProcessSets from existing Process objects
@@ -405,19 +406,19 @@ class DYNINST_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessS
    const MemoryUsageSet *getMemoryUsage() const;
 };
 
-class DYNINST_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
+class DYNINST_EXPORT ThreadSet : public dyncompat::enable_shared_from_this<ThreadSet> {
   private:
    int_threadSet *ithrset;
    TSetFeatures *features;
    
    ThreadSet();
    ~ThreadSet();
-   friend void boost::checked_delete<ThreadSet>(ThreadSet *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<ThreadSet>(ThreadSet *) CHECKED_DELETE_NOEXCEPT;
   public:
-   typedef boost::shared_ptr<ThreadSet> ptr;
-   typedef boost::shared_ptr<const ThreadSet> const_ptr;
-   typedef boost::weak_ptr<ThreadSet> weak_ptr;
-   typedef boost::weak_ptr<const ThreadSet> const_weak_ptr;
+   typedef dyncompat::shared_ptr<ThreadSet> ptr;
+   typedef dyncompat::shared_ptr<const ThreadSet> const_ptr;
+   typedef dyncompat::weak_ptr<ThreadSet> weak_ptr;
+   typedef dyncompat::weak_ptr<const ThreadSet> const_weak_ptr;
 
    int_threadSet *getIntThreadSet() const;
 

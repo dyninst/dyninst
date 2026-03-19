@@ -834,6 +834,7 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt,codeGen &gen)
 static void emitRex(bool is_64, Register* r, Register* x, Register* b, codeGen &gen)
 {
     unsigned char rex = 0x40;
+    constexpr uint32_t invalid_reg = static_cast<uint32_t>(-1);
 
     // need rex for 64-bit ops in most cases
     if (is_64)
@@ -844,20 +845,20 @@ static void emitRex(bool is_64, Register* r, Register* x, Register* b, codeGen &
     // returning since we account for it in the rex prefix
     
     // "R" register - extension to ModRM reg field
-    if (r && *r & 0x08) {
+    if (r && r->getId() != invalid_reg && (r->getId() & 0x08)) {
        rex |= 0x04;
        *r = r->getId() & 0x07;
     }
     
     // "X" register - extension to SIB index field
-    if (x && *x & 0x08) {
+    if (x && x->getId() != invalid_reg && (x->getId() & 0x08)) {
        rex |= 0x02;
        *x = x->getId() & 0x07;
     }
 
     // "B" register - extension to ModRM r/m field, SIB base field,
     // or opcode reg field
-    if (b && *b & 0x08) {
+    if (b && b->getId() != invalid_reg && (b->getId() & 0x08)) {
        rex |= 0x01;
        *b = b->getId() & 0x07;
     }
@@ -867,6 +868,35 @@ static void emitRex(bool is_64, Register* r, Register* x, Register* b, codeGen &
     //  need a "blank" rex, like using %sil or %dil)
     if (rex & 0x0f)
        emitSimpleInsn(rex, gen);
+}
+
+static Register emergencyScratch(Register avoid1 = Null_Register, Register avoid2 = Null_Register)
+{
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
+    constexpr Register candidates[] = {
+        Register(REGNUM_R15), Register(REGNUM_R14), Register(REGNUM_R11), Register(REGNUM_R10),
+        Register(REGNUM_R9),  Register(REGNUM_R8),  Register(REGNUM_RDI), Register(REGNUM_RSI),
+        Register(REGNUM_RBX), Register(REGNUM_RCX), Register(REGNUM_RDX), Register(REGNUM_RAX)
+    };
+
+    for (Register candidate : candidates) {
+        if (candidate != avoid1 && candidate != avoid2) {
+            return candidate;
+        }
+    }
+#endif
+    return Register(REGNUM_RAX);
+}
+
+static Register getScratchRegisterOrEmergency(codeGen &gen,
+                                              Register avoid1 = Null_Register,
+                                              Register avoid2 = Null_Register)
+{
+    Register scratch = gen.rs()->getScratchRegister(gen);
+    if (scratch != Null_Register) {
+        return scratch;
+    }
+    return emergencyScratch(avoid1, avoid2);
 }
 
 void EmitterIA32::emitStoreImm(Address addr, int imm, codeGen &gen, bool /*noCost*/) 
@@ -1454,7 +1484,7 @@ void EmitterAMD64::emitDivImm(Register dest, Register src1, RegValue src2imm, co
 void EmitterAMD64::emitLoad(Register dest, Address addr, int size, codeGen &gen)
 {
 
-   Register scratch = gen.rs()->getScratchRegister(gen);
+   Register scratch = getScratchRegisterOrEmergency(gen, dest);
    
    // mov $addr, %rax
    emitMovImmToReg64(scratch, addr, true, gen);
@@ -1480,7 +1510,7 @@ void EmitterAMD64::emitLoadIndir(Register dest, Register addr_src, int size, cod
 void EmitterAMD64::emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen)
 {
    if (gen.bt()->createdFrame) {
-      Register scratch = gen.rs()->getScratchRegister(gen);
+      Register scratch = getScratchRegisterOrEmergency(gen, dest);
       // mov (%rbp), %rax
       emitMovRMToReg64(scratch, REGNUM_RBP, 0, 8, gen);
       
@@ -1525,7 +1555,7 @@ void EmitterAMD64::emitLoadOrigRegRelative(Register dest, Address offset,
                                            Register base, codeGen &gen,
                                            bool store)
 {
-   Register scratch = gen.rs()->getScratchRegister(gen);
+   Register scratch = getScratchRegisterOrEmergency(gen, dest, base);
    gen.markRegDefined(scratch);
    gen.markRegDefined(dest);
    // either load the address or the contents at that address
@@ -1589,7 +1619,7 @@ void EmitterAMD64::emitStoreOrigRegister(Address register_num, Register src, cod
 
 void EmitterAMD64::emitStore(Address addr, Register src, int size, codeGen &gen)
 {
-   Register scratch = gen.rs()->getScratchRegister(gen);
+   Register scratch = getScratchRegisterOrEmergency(gen, src);
    gen.markRegDefined(scratch);
 
    // mov $addr, %rax
@@ -1607,7 +1637,7 @@ void EmitterAMD64::emitStoreIndir(Register addr_reg, Register src, int size, cod
 void EmitterAMD64::emitStoreFrameRelative(Address offset, Register src, Register /*scratch*/, int size, codeGen &gen)
 {
    if (gen.bt()->createdFrame) {
-      Register scratch = gen.rs()->getScratchRegister(gen);
+      Register scratch = getScratchRegisterOrEmergency(gen, src);
       gen.markRegDefined(scratch);
       // mov (%rbp), %rax
       emitMovRMToReg64(scratch, REGNUM_RBP, 0, 8, gen);

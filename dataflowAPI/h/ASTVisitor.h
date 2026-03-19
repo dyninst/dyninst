@@ -46,7 +46,7 @@ namespace Dyninst {
 
   class DYNINST_EXPORT ASTVisitor {
   public:
-    using ASTPtr = boost::shared_ptr<AST>;
+    using ASTPtr = dyncompat::shared_ptr<AST>;
 
     virtual ASTPtr visit(AST *) {
       return AST::Ptr();

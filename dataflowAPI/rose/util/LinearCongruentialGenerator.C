@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #ifndef _MSC_VER
 #include <sys/time.h>

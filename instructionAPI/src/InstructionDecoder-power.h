@@ -296,7 +296,7 @@ namespace Dyninst { namespace InstructionAPI {
     Expression::Ptr makeFallThroughExpr();
 
     unsigned int insn;
-    boost::shared_ptr<Instruction> insn_in_progress;
+    dyncompat::shared_ptr<Instruction> insn_in_progress;
     bool isRAWritten;
     bool invertBranchCondition;
     bool isFPInsn;

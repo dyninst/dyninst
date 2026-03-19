@@ -35,7 +35,7 @@
 #include "ASTVisitor.h"
 #include "dyninst_visibility.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include <ostream>
 #include <sstream>
 #include <string>
@@ -83,14 +83,14 @@ namespace Dyninst { namespace DataflowAPI {
 
   class DYNINST_EXPORT ConstantAST : public Dyninst::AST {
   public:
-    using Ptr = boost::shared_ptr<ConstantAST>;
+    using Ptr = dyncompat::shared_ptr<ConstantAST>;
 
     ConstantAST() = default;
 
     explicit ConstantAST(Constant t) : t_(std::move(t)) {}
 
     static Ptr create(Constant t) {
-      return boost::make_shared<ConstantAST>(std::move(t));
+      return dyncompat::make_shared<ConstantAST>(std::move(t));
     }
 
     std::string format() const override {
@@ -109,7 +109,7 @@ namespace Dyninst { namespace DataflowAPI {
 
     static Ptr convert(Dyninst::AST::Ptr a) {
       if(a->getID() == V_ConstantAST) {
-        return boost::static_pointer_cast<ConstantAST>(a);
+        return dyncompat::static_pointer_cast<ConstantAST>(a);
       }
       return Ptr{};
     }

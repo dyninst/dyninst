@@ -354,7 +354,6 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   DYNINST_DEPS common instructionAPI stackwalk pcontrol patchAPI parseAPI symtabAPI
   DYNINST_INTERNAL_DEPS dynDwarf dynElf
-  PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS Threads::Threads Dyninst::PeParse
 )
 # cmake-format: on

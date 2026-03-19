@@ -32,11 +32,13 @@
 #define LINE_INFORMATION_H
 
 #include <string>
+#include <map>
+#include <set>
 #include <utility>
 #include <vector>
 #include "symutil.h"
-#include "RangeLookup.h"
 #include "Annotatable.h"
+#include "RangeLookup.h"
 #include "Statement.h"
 
 #define NEW_GETSOURCELINES_INTERFACE
@@ -44,15 +46,32 @@
 namespace Dyninst{
 namespace SymtabAPI{
 
-class DYNINST_EXPORT LineInformation final :
-                        private RangeLookupTypes< Statement >::type
-{
+class DYNINST_EXPORT LineInformation final {
 public:
-    typedef RangeLookupTypes< Statement> traits;
-    typedef RangeLookupTypes< Statement >::type impl_t;
-    typedef impl_t::index<Statement::addr_range>::type::const_iterator const_iterator;
-    typedef impl_t::index<Statement::line_info>::type::const_iterator const_line_info_iterator;
-    typedef traits::value_type Statement_t;
+    typedef Statement::Ptr Statement_t;
+
+private:
+    struct StatementAddrLess {
+        bool operator()(Statement::Ptr lhs, Statement::Ptr rhs) const;
+    };
+
+    struct LineInfoKey {
+        unsigned int file_index{};
+        unsigned int line{};
+    };
+
+    struct LineInfoKeyLess {
+        bool operator()(const LineInfoKey &lhs, const LineInfoKey &rhs) const;
+    };
+
+    using addr_index_t = std::set<Statement::Ptr, StatementAddrLess>;
+    using line_index_t = std::multimap<LineInfoKey, Statement::Ptr, LineInfoKeyLess>;
+    using upper_bound_index_t = std::multimap<Offset, Statement::Ptr>;
+
+public:
+    typedef addr_index_t::const_iterator const_iterator;
+    typedef line_index_t::const_iterator const_line_info_iterator;
+
       LineInformation();
 
       bool addLine( const std::string &lineSource,
@@ -98,6 +117,22 @@ public:
     StringTablePtr getStrings() ;
 
     void setStrings(StringTablePtr strings_);
+
+private:
+    std::pair<const_iterator, bool> insert(Statement::Ptr statement);
+
+    template <typename Iterator>
+    void insert(Iterator first, Iterator last) {
+        for (; first != last; ++first) {
+            insert(*first);
+        }
+    }
+
+    static LineInfoKey make_key(unsigned int file_index, unsigned int line_no);
+
+    addr_index_t by_addr_;
+    line_index_t by_line_;
+    upper_bound_index_t by_end_;
 };
 
 }//namespace SymtabAPI

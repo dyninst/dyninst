@@ -36,7 +36,7 @@
 #include "dyninst_visibility.h"
 #include "stackanalysis.h"
 
-#include <boost/make_shared.hpp>
+#include <dyncompat/make_shared.hpp>
 #include <iomanip>
 #include <ostream>
 #include <sstream>
@@ -46,14 +46,14 @@ namespace Dyninst { namespace DataflowAPI {
 
   class StackAST : public AST {
   public:
-    using Ptr = boost::shared_ptr<StackAST>;
+    using Ptr = dyncompat::shared_ptr<StackAST>;
 
     StackAST() = default;
 
     explicit StackAST(StackAnalysis::Height t) : t_{std::move(t)} {}
 
     static Ptr create(StackAnalysis::Height t) {
-      return boost::make_shared<StackAST>(std::move(t));
+      return dyncompat::make_shared<StackAST>(std::move(t));
     }
 
     std::string format() const override {
@@ -72,7 +72,7 @@ namespace Dyninst { namespace DataflowAPI {
 
     static Ptr convert(AST::Ptr a) {
       if(a->getID() == V_StackAST) {
-        return boost::static_pointer_cast<StackAST>(a);
+        return dyncompat::static_pointer_cast<StackAST>(a);
       }
       return Ptr{};
     }

@@ -32,7 +32,7 @@
 #define __ANNOTATABLE_H__
 
 #if defined (MSC_VER)
-#define DYN_DETAIL_BOOST_NO_INTRINSIC_WCHAR_T 1
+#define DYN_DETAIL_DYNCOMPAT_NO_INTRINSIC_WCHAR_T 1
 #endif
 #include "dyntypes.h"
 #include "dyninst_visibility.h"
