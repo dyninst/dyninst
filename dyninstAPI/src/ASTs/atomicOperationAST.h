@@ -56,6 +56,14 @@ public:
     return boost::make_shared<atomicOperationAST>(minusOp, std::move(var), std::move(constant));
   }
 
+  static Ptr times(codeGenASTPtr var, codeGenASTPtr constant) {
+    return boost::make_shared<atomicOperationAST>(timesOp, std::move(var), std::move(constant));
+  }
+
+  static Ptr div(codeGenASTPtr var, codeGenASTPtr constant) {
+    return boost::make_shared<atomicOperationAST>(divOp, std::move(var), std::move(constant));
+  }
+
   atomicOperationAST(opCode op, codeGenASTPtr var, codeGenASTPtr constant_)
       : opcode{op}, variable{std::move(var)}, constant{std::move(constant_)} {}
 

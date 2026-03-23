@@ -1669,16 +1669,16 @@ BPatch_atomicOperationStmt::BPatch_atomicOperationStmt(BPatch_binOp operation,
     auto &const_ast = constant.ast_wrapper;
     switch (operation) {
     case BPatch_plus:
-        ast_wrapper = boost::make_shared<atomicOperationAST>(plusOp, var_ast, const_ast);
+        ast_wrapper = atomicOperationAST::plus(var_ast, const_ast);
         break;
     case BPatch_minus:
-        ast_wrapper = boost::make_shared<atomicOperationAST>(minusOp, var_ast, const_ast);
+        ast_wrapper = atomicOperationAST::minus(var_ast, const_ast);
         break;
     case BPatch_divide:
-        ast_wrapper = boost::make_shared<atomicOperationAST>(divOp, var_ast, const_ast);
+        ast_wrapper = atomicOperationAST::div(var_ast, const_ast);
         break;
     case BPatch_times:
-        ast_wrapper = boost::make_shared<atomicOperationAST>(timesOp, var_ast, const_ast);
+        ast_wrapper = atomicOperationAST::times(var_ast, const_ast);
         break;
     default:
         assert(!"operation not supported yet");
