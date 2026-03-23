@@ -1012,7 +1012,7 @@ namespace Dyninst { namespace InstructionAPI {
       case am_A: {
         // am_A only shows up as a far call/jump.  Position 1 should be universally safe.
         Expression::Ptr addr(decodeImmediate(optype, b.start + 1));
-        insn_to_complete->addSuccessor(addr, isCall, false, false, false);
+        add_successor(addr, isCall, !CFT_INDIRECT, !CFT_CONDITIONAL, !CFT_FALLTHROUGH);
       } break;
 
       case am_B: {
@@ -1057,8 +1057,7 @@ namespace Dyninst { namespace InstructionAPI {
         // can be am_R or am_M
       case am_RM:
         if(isCFT) {
-          insn_to_complete->addSuccessor(makeModRMExpression(b, optype), isCall, true, false,
-                                         false);
+          add_successor(makeModRMExpression(b, optype), isCall, CFT_INDIRECT, !CFT_CONDITIONAL, !CFT_FALLTHROUGH);
         } else {
           insn_to_complete->appendOperand(makeModRMExpression(b, optype), isRead, isWritten,
                                           isImplicit);
@@ -1133,9 +1132,9 @@ namespace Dyninst { namespace InstructionAPI {
             boost::make_shared<Immediate>(Result(u8, decodedInstruction->getSize())));
         Expression::Ptr postEIP(makeAddExpression(EIP, InsnSize, u32));
         Expression::Ptr op(makeAddExpression(Offset, postEIP, u32));
-        insn_to_complete->addSuccessor(op, isCall, false, isConditional, false);
+        add_successor(op, isCall, !CFT_INDIRECT, isConditional, !CFT_FALLTHROUGH);
         if(isConditional)
-          insn_to_complete->addSuccessor(postEIP, false, false, true, true);
+          add_successor(postEIP, !CFT_CALL, !CFT_INDIRECT, CFT_CONDITIONAL, CFT_FALLTHROUGH);
       } break;
       case am_O: {
         // Address/offset width, which is *not* what's encoded by the optype...
@@ -1840,7 +1839,7 @@ namespace Dyninst { namespace InstructionAPI {
       auto sp = is64BitMode ? x86_64::rsp : x86::esp;
       auto type = is64BitMode ? u64 : u32;
       auto action = makeDereferenceExpression(makeRegisterExpression(sp), type);
-      insn_to_complete->addSuccessor(action, false, true, false, false, true);
+      add_successor(action, !CFT_CALL, CFT_INDIRECT, !CFT_CONDITIONAL, !CFT_FALLTHROUGH, OP_IMPLICIT);
     }
 
     if(insn_to_complete->getOperation().getID() == e_endbr32 ||
@@ -1890,6 +1889,11 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   DYNINST_EXPORT Instruction InstructionDecoder_x86::decode(InstructionDecoder::buffer& b) {
+    // The member variables are moved-from if 'decode' was called before.
+    // Explicitly construct new ones to prevent UB.
+    m_Operands = {};
+    m_CFT_Targets = {};
+
     const unsigned char* start = b.start;
     decodeOpcode(b);
     unsigned int decodedSize = b.start - start;
@@ -1899,6 +1903,9 @@ namespace Dyninst { namespace InstructionAPI {
     if(insn.isValid()) {
       decodeOperands(&insn);
     }
+
+    insn.m_Successors = std::move(m_CFT_Targets);
+    insn.m_Operands = std::move(m_Operands);
 
     return insn;
   }
