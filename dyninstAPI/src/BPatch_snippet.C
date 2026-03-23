@@ -72,6 +72,7 @@ using memoryAccessAST = Dyninst::DyninstAPI::memoryAccessAST;
 using nullAST = Dyninst::DyninstAPI::nullAST;
 using operandAST = Dyninst::DyninstAPI::operandAST;
 using operatorAST = Dyninst::DyninstAPI::operatorAST;
+using atomicOperationAST = Dyninst::DyninstAPI::atomicOperationAST;
 using scrambleRegistersAST = Dyninst::DyninstAPI::scrambleRegistersAST;
 using sequenceAST = Dyninst::DyninstAPI::sequenceAST;
 
@@ -1668,16 +1669,16 @@ BPatch_atomicOperationStmt::BPatch_atomicOperationStmt(BPatch_binOp operation,
     auto &const_ast = constant.ast_wrapper;
     switch (operation) {
     case BPatch_plus:
-        ast_wrapper = operatorAST::plus(var_ast, const_ast);
+        ast_wrapper = boost::make_shared<atomicOperationAST>(plusOp, var_ast, const_ast);
         break;
     case BPatch_minus:
-        ast_wrapper = operatorAST::minus(var_ast, const_ast);
+        ast_wrapper = boost::make_shared<atomicOperationAST>(minusOp, var_ast, const_ast);
         break;
     case BPatch_divide:
-        ast_wrapper = operatorAST::div(var_ast, const_ast);
+        ast_wrapper = boost::make_shared<atomicOperationAST>(divOp, var_ast, const_ast);
         break;
     case BPatch_times:
-        ast_wrapper = operatorAST::times(var_ast, const_ast);
+        ast_wrapper = boost::make_shared<atomicOperationAST>(timesOp, var_ast, const_ast);
         break;
     default:
         assert(!"operation not supported yet");
