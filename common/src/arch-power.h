@@ -758,10 +758,6 @@ const int maxGPR=32;           /* More space than is needed */
 
 #define MAX_IMM		0x1<<15		/* 15 plus sign == 16 bits */
 
-// Delcared some other functions in inst-power.C
-// bool isCallInsn(const instruction);
-// bool isReturnInsn(const image *, Address, bool&);
-
 // Define bounds for immediate offsets.
 // Use strange definitions to avoid compiler warnings.
 
