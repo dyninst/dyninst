@@ -218,9 +218,6 @@ enum AMD64_REG_NUMBERS {
 }
 ;
 
-#define READ_OP 0
-#define WRITE_OP 1
-
 /* operand sizes */
 #define byteSzB (1)    /* size of a byte operand */
 #define wordSzB (2)    /* size of a word operand */
