@@ -12069,47 +12069,6 @@ bool isStackFramePrecheck_msvs( const unsigned char *buffer )
    return (gap_initial_bytes[*buffer] != 0);
 }  
 
-/*
-   bool isStackFramePreamble( instruction& insn1 )
-   {
-   instruction insn2, insn3;
-   insn2.setInstruction( insn1.ptr() + insn1.size() );
-   insn3.setInstruction( insn2.ptr() + insn2.size() );
-
-   const unsigned char* p = insn1.op_ptr();
-   const unsigned char* q = insn2.op_ptr();
-   const unsigned char* r = insn3.op_ptr();
-
-   unsigned Mod1_1 =  ( q[ 1 ] >> 3 ) & 0x07;
-   unsigned Mod1_2 =  q[ 1 ] & 0x07;
-   unsigned Mod2_1 =  ( r[ 1 ] >> 3 ) & 0x07;
-   unsigned Mod2_2 =  r[ 1 ] & 0x07;
-
-   if( insn1.size() != 1 )
-   {
-   return false;  //shouldn't need this, but you never know
-   }
-
-   if( p[ 0 ] == PUSHEBP  )
-   {
-// Looking for mov %esp -> %ebp in one of the two
-// following instructions.  There are two ways to encode
-// mov %esp -> %ebp: as '0x8b 0xec' or as '0x89 0xe5'.
-if( insn2.isMoveRegMemToRegMem() &&
-((Mod1_1 == 0x05 && Mod1_2 == 0x04) ||
-(Mod1_1 == 0x04 && Mod1_2 == 0x05)))
-return true;
-
-if( insn3.isMoveRegMemToRegMem() &&
-((Mod2_1 == 0x05 && Mod2_2 == 0x04) ||
-(Mod2_1 == 0x04 && Mod2_2 == 0x05)))
-return true;
-}
-
-return false;
-}
-*/
-
 instruction *instruction::copy() const {
    // Or should we copy? I guess it depends on who allocated
    // the memory...
