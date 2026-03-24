@@ -474,7 +474,6 @@ bool insnCodeGen::generateMem(codeGen &gen,
       emit_sib = 1;
       SIB_SET_REG(new_sib, newreg & 7);
       SIB_SET_INDEX(new_sib, newreg & 4); //4 encodes to no-index
-      //SIB_SET_SS(new_sib, 0); //Gives gcc warning statement w/ no effect
       loc.rex_x = 0; //If we emit a rex, don't extend the index.
    }
    

@@ -12170,7 +12170,4 @@ unsigned instruction::maxJumpSize(unsigned /*addr_width*/)
 #endif
 
 
-#define SIB_SET_SS(x, y) ((x) | (((y) & 3) << 6))
-
-
 } // namespace arch_x86
