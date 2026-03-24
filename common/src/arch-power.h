@@ -349,18 +349,6 @@ namespace NS_power {
 #define AFORM_RC_SET(x, y)  ((x).setBits( 0,  1, (y)))
 
 typedef union {
-//  struct iform  iform;  // branch;
-//  struct bform  bform;  // cbranch;
-//  struct dform  dform;
-//  struct dsform dsform;
-//  struct xform  xform;
-//  struct xoform xoform;
-//  struct xlform xlform;
-//  struct xfxform xfxform;
-//  struct xflform xflform;
-//  struct mform  mform;
-//  struct mdform  mdform;
-//  struct aform  aform;
     unsigned char byte[4];
     unsigned int  raw;
 } instructUnion;
