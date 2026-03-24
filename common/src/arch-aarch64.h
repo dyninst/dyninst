@@ -47,15 +47,6 @@ namespace NS_aarch64 {
  *
  */
 
-//#define ATOMIC_MASK    (0x3f400000)
-//#define ATOMIC_LD (0x08400000)
-//#define ATOMIC_ST (0x08000000)
-//
-//#define UNCOND_BR_IMM_MASK  (0x7c000000)
-//#define UNCOND_BR_IMM       (0x14000000)
-//#define UNCOND_BR_REG_MASK  (0xfe000000)
-//#define UNCOND_BR_REG       (0xd6000000)
-
 #define BREAK_POINT_INSN 0xd4200000
 
 #define BOp             0x05
