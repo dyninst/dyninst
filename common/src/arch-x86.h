@@ -218,13 +218,6 @@ enum AMD64_REG_NUMBERS {
 }
 ;
 
-/* operand sizes */
-#define byteSzB (1)    /* size of a byte operand */
-#define wordSzB (2)    /* size of a word operand */
-#define dwordSzB (4)   /* size of a dword operand */
-#define qwordSzB (8)   /* size of a qword operand */
-#define dqwordSzB (16)   /* size of a double qword (oword) operand */
-
 /* The following values are or'ed together to form an instruction type descriptor */
 /* the instruction types of interest */
 #define IS_CALL (1<<1)   /* call instruction */

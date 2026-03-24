@@ -155,6 +155,13 @@ using namespace std;
 using namespace boost::assign;
 using namespace Dyninst;
 
+/* operand sizes */
+#define byteSzB (1)    /* size of a byte operand */
+#define wordSzB (2)    /* size of a word operand */
+#define dwordSzB (4)   /* size of a dword operand */
+#define qwordSzB (8)   /* size of a qword operand */
+#define dqwordSzB (16)   /* size of a double qword (oword) operand */
+
 namespace NS_x86 {
 
 // groups
