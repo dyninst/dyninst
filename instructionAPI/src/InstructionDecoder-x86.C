@@ -45,6 +45,12 @@
 using namespace std;
 using namespace NS_x86;
 
+/* operand types */
+/* signed char required for correct immediate value interpretation */
+typedef signed char byte_t;   /* a byte operand */
+typedef short word_t;  /* a word (16-bit) operand */
+typedef int dword_t;   /* a double word (32-bit) operand */
+
 static bool getVectorizationInfo(ia32_entry* e) {
   for(int i = 0; i < 3; i++) {
     switch(e->operands[i].admet) {
