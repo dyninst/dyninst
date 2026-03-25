@@ -1007,15 +1007,6 @@ void insnCodeGen::removeStackFrame(codeGen &gen) {
                 popStack(gen);
 }
 
-                // {insn_ = {byte = {0xa6, 0x3, 0x8, 0x7c}, raw = 0x7c0803a6}}    
-                // {insn_ = {byte = {0xa6, 0x3, 0x8, 0x7c}, raw = 0x7c0803a6}}       
-bool insnCodeGen::generateMem(codeGen &,
-                              instruction&,
-                              Dyninst::Address,
-                              Dyninst::Address,
-                              Dyninst::Register,
-                  Dyninst::Register) {return false; }
-
 void insnCodeGen::generateMoveFromLR(codeGen &gen, Dyninst::Register rt) {
     instruction insn;
     insn.clear();

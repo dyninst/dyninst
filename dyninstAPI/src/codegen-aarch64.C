@@ -619,16 +619,6 @@ assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-bool insnCodeGen::generateMem(codeGen &,
-                              instruction&,
-                              Dyninst::Address,
-                              Dyninst::Address,
-                              Dyninst::Register,
-                  Dyninst::Register) {
-assert(0);
-//#warning "This function is not implemented yet!"
-return false; }
-
 void insnCodeGen::generateMoveFromLR(codeGen &, Dyninst::Register) {
 assert(0);
 //#warning "This function is not implemented yet!"

@@ -119,13 +119,6 @@ class insnCodeGen {
                          patchTarget *fallthroughOverride = NULL,
                          patchTarget *targetOverride = NULL);
 
-    static bool generateMem(codeGen &gen,
-                            NS_power::instruction &insn,
-                            Dyninst::Address origAddr,
-                            Dyninst::Address newAddr,
-                            Dyninst::Register newLoadReg,
-                            Dyninst::Register newStoreReg);
-
    // Routines to create/remove a new stack frame for getting scratch registers
    static int createStackFrame(codeGen &gen, int numRegs, std::vector<Dyninst::Register>& freeReg,  std::vector<Dyninst::Register>& excludeReg);
    static void removeStackFrame(codeGen &gen);

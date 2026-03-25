@@ -82,13 +82,6 @@ class insnCodeGen {
                 patchTarget *fallthroughOverride = NULL,
                 patchTarget *targetOverride = NULL);
 
-  static bool generateMem(codeGen &gen,
-                   NS_x86::instruction & insn,
-                   Dyninst::Address origAddr,
-                   Dyninst::Address newAddr,
-                   Dyninst::Register newLoadReg,
-                   Dyninst::Register newStoreReg);
-
   static bool modifyJump(Dyninst::Address target,
                          NS_x86::instruction &insn, 
                          codeGen &gen);

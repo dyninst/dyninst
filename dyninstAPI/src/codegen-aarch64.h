@@ -165,13 +165,6 @@ public:
 
     static void generateMoveToCR(codeGen &gen, Dyninst::Register rs);
 
-    static bool generateMem(codeGen &gen,
-                            NS_aarch64::instruction &insn,
-                            Dyninst::Address origAddr,
-                            Dyninst::Address newAddr,
-                            Dyninst::Register newLoadReg,
-                            Dyninst::Register newStoreReg);
-
     /** *** **/
 
     static void generateAddSubShifted(
