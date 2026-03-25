@@ -35,7 +35,7 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/addressSpace.h"
-
+#include "arch-regs-x86.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "registerSpace.h"

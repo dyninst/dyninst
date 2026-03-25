@@ -1,6 +1,7 @@
 #include "ast_helpers.h"
 #include "RegisterConversion.h"
 #include "stackRemovalAST.h"
+#include "arch-regs-x86.h"
 
 #include <iomanip>
 #include <sstream>

@@ -32,7 +32,7 @@
 #include "CFWidget.h"
 #include "Widget.h"
 #include "../CFG/RelocTarget.h"
-
+#include "arch-regs-x86.h"
 #include "instructionAPI/h/Instruction.h"
 
 #include "dyninstAPI/src/debug.h"

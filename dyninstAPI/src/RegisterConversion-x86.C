@@ -30,6 +30,7 @@
 
 #include "RegisterConversion.h"
 #include "inst-x86.h"
+#include "arch-regs-x86.h"
 
 #include <map>
 #include <boost/assign/list_of.hpp>

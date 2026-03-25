@@ -1,4 +1,5 @@
 #include "Architecture.h"
+#include "common/src/arch-regs-x86.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "registerSpace.h"

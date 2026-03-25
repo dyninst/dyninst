@@ -39,7 +39,7 @@
 #include "codegen.h"
 #include "debug.h"
 #include "addressSpace.h"
-
+#include "arch-regs-x86.h"
 #include "InstructionDecoder.h"
 #include "Instruction.h"
 

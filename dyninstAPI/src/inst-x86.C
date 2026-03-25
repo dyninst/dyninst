@@ -55,7 +55,7 @@
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/dynProcess.h"
-
+#include "arch-regs-x86.h"
 #include "registerSpace.h"
 
 #include "mapped_module.h"

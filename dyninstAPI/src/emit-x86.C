@@ -45,7 +45,7 @@
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "registerSpace.h"
-
+#include "arch-regs-x86.h"
 #include "dyninstAPI/src/dynProcess.h"
 
 #include "dyninstAPI/src/binaryEdit.h"

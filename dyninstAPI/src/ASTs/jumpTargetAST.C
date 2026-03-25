@@ -1,3 +1,4 @@
+#include "arch-regs-x86.h"
 #include "ast_helpers.h"
 #include "block.h"
 #include "codegen.h"

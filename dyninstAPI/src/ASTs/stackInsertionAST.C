@@ -1,4 +1,5 @@
 #include "Architecture.h"
+#include "arch-regs-x86.h"
 #include "ast_helpers.h"
 #include "codegen.h"
 #include "RegisterConversion.h"
