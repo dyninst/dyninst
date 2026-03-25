@@ -1124,9 +1124,6 @@ private:
   const unsigned char *op_ptr_;    // pointer to the opcode
 };
 
-/** Only appropriate for call/jump functions **/
-int displacement(const unsigned char *instr, unsigned type);
-
 /** Returns the immediate operand of an instruction **/
 
     DYNINST_EXPORT int count_prefixes(unsigned insnType);

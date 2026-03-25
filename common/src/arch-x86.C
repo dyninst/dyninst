@@ -11756,6 +11756,9 @@ unsigned get_instruction(const unsigned char* addr, unsigned &insnType,
    return r1;
 }
 
+/** Only appropriate for call/jump functions **/
+int displacement(const unsigned char *instr, unsigned type);
+
 // find the target of a jump or call
 Address get_target(const unsigned char *instr, unsigned type, unsigned size,
       Address addr) {
