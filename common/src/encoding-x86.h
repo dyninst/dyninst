@@ -305,4 +305,6 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
 /* Masks */
 #define FPOS 17
 
+#define EXTENDED_0x81_ADD 0
+#define EXTENDED_0x83_AND 4
 #endif

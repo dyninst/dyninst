@@ -347,16 +347,6 @@ DYNINST_EXPORT Dyninst::Address get_target(const unsigned char *instr, unsigned 
 #define SUB_REG_IMM32 (5)
 #define LEAVE (0xC9)
 
-#define EXTENDED_0x81_ADD 0
-#define EXTENDED_0x81_OR 1
-#define EXTENDED_0x81_ADDC 2
-#define EXTENDED_0x81_SHIFT 3
-#define EXTENDED_0x81_AND 4
-#define EXTENDED_0x81_SUB 5
-#define EXTENDED_0x81_XOR 6
-#define EXTENDED_0x81_CMP 7
-#define EXTENDED_0x83_AND 4
-
 class instruction {
  public:
     instruction(): type_(0), size_(0), ptr_(0), op_ptr_(0) {}
