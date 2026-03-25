@@ -1132,10 +1132,6 @@ inline bool is_disp8(long disp) {
    return (disp >= -128 && disp < 127);
 }
 
-inline bool is_disp16(long disp) {
-   return (disp >= -32768 && disp < 32767);
-}
-
 inline bool is_disp32(long disp) {
   return (disp <= INT32_MAX && disp >= INT32_MIN);
 }
