@@ -94,6 +94,7 @@ set(_sources
     src/Timer.C
     src/lprintf.C
     src/dyninst_filesystem.C
+    src/encoding-x86.h
     src/stats.C
     src/Annotatable.C
     src/MappedFile.C

@@ -150,6 +150,7 @@
 #include "unaligned_memory_access.h"
 #include <cstdint>
 #include "debug_common.h"
+#include "encoding-x86.h"
 
 using namespace std;
 using namespace boost::assign;
