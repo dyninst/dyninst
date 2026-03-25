@@ -99,15 +99,6 @@ class ia32_prefixes
   int vex_aaa; /* Selects the vector mask register for EVEX */
 };
 
-// helper routine to tack-on rex bit when needed
-inline int apply_rex_bit(int reg, bool rex_bit)
-{
-    if (rex_bit)
-	return reg + 8;
-    else
-	return reg;
-}
-
 //VG(6/20/02): To support Paradyn without forcing it to include BPatch_memoryAccess, we
 //             define this IA-32 "specific" class to encapsulate the same info - yuck
 

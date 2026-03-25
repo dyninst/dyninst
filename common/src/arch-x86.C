@@ -169,6 +169,15 @@ using namespace Dyninst;
 #define s3I (1 << 18) /* 3rd operand is implicit */
 #define s4I (1 << 19) /* 4th operand is implicit */
 
+// helper routine to tack-on rex bit when needed
+static int apply_rex_bit(int reg, bool rex_bit)
+{
+    if (rex_bit)
+  return reg + 8;
+    else
+  return reg;
+}
+
 namespace NS_x86 {
 
 // groups
