@@ -136,11 +136,7 @@ typedef unsigned codeBufIndex_t;
 const unsigned char SYSCALL[] = {0x0F, 0x05};
 
 /* limits */
-#define MIN_IMM8 (-128)
 #define MAX_IMM8 (127)
-
-// Size of floating point information saved by FSAVE
-#define FSAVE_STATE_SIZE 108
 
 // Prefix groups
 enum {
