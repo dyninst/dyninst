@@ -11766,6 +11766,9 @@ Address get_target(const unsigned char *instr, unsigned type, unsigned size,
    return (Address)(addr + size + disp);
 }
 
+
+const unsigned char* skip_headers(const unsigned char*, ia32_instruction* = NULL);
+
 // get the displacement of a jump or call
 int displacement(const unsigned char *instr, unsigned type) {
 
