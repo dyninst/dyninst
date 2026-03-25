@@ -326,18 +326,6 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
 /* Masks */
 #define FPOS 17
 
-struct modRMByte {
-  unsigned mod : 2;
-  unsigned reg : 3;
-  unsigned rm  : 3;
-};
-
-struct sIBByte {
-  unsigned scale : 2;
-  unsigned index : 3;
-  unsigned base  : 3;
-};
-
 class ia32_instruction;
 
 class ia32_prefixes
