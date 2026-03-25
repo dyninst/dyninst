@@ -320,24 +320,14 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
 #define s4OP s1W2R3R4R
 
 /* Implicit mask getters */
-#define sGetImplicitOP1(b) ((b) & s1I)
-#define sGetImplicitOP2(b) ((b) & s2I)
-#define sGetImplicitOP3(b) ((b) & s3I)
-#define sGetImplicitOP4(b) ((b) & s4I)
 #define sGetImplicitOPs(b) ((b) & 0xFFFF0000)
 #define sGetImplicitOP(b, i) ((b) & (1 << (16 + (i))))
-
-/* Implicit mask setters */
-#define sSetImplicitOP1(b) ((b) | s1I)
-#define sSetImplicitOP2(b) ((b) | s12)
-#define sSetImplicitOP3(b) ((b) | s13)
-#define sSetImplicitOP4(b) ((b) | s14)
 
 /* Instruction decoration descriptors */
 #define sGetDecoration(b) ((b) & 0xFFFF)
 #define sSetDecoration(b, dec) (((b) & ~0xFFFF) | (dec))
 
-enum { 
+enum {
     s1D = 1, /* Take decoration from 1st operand */
     s1D2D /* Take decoration from 1st, 2nd operand in that order */
 };
