@@ -323,15 +323,6 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
 #define sGetImplicitOPs(b) ((b) & 0xFFFF0000)
 #define sGetImplicitOP(b, i) ((b) & (1 << (16 + (i))))
 
-/* Instruction decoration descriptors */
-#define sGetDecoration(b) ((b) & 0xFFFF)
-#define sSetDecoration(b, dec) (((b) & ~0xFFFF) | (dec))
-
-enum {
-    s1D = 1, /* Take decoration from 1st operand */
-    s1D2D /* Take decoration from 1st, 2nd operand in that order */
-};
-
 /* Masks */
 #define FPOS 17
 
