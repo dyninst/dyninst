@@ -11943,11 +11943,6 @@ skip_headers(const unsigned char* addr, ia32_instruction* instruct)
    return addr + instruct->getSize();
 }
 
-bool insn_hasDisp8(unsigned ModRMbyte){
-   unsigned Mod = (ModRMbyte >> 6) & 0x03;
-   return (Mod == 1);
-}
-
 bool insn_hasDisp32(unsigned ModRMbyte){
    unsigned Mod = (ModRMbyte >> 6) & 0x03;
    /* unsigned Reg = (ModRMbyte >> 3) & 0x07; */
