@@ -536,20 +536,6 @@ struct ia32_entry {
   unsigned int impl_dec; /* Implicit operands and decoration descriptions */
 };
 
-using std::vector;
-struct flagInfo
-{
-  flagInfo(const vector<Dyninst::MachRegister>& rf, const vector<Dyninst::MachRegister>& wf) : readFlags(rf), writtenFlags(wf)
-  {
-  }
-  flagInfo() 
-  {
-  }
-  
-  vector<Dyninst::MachRegister> readFlags;
-  vector<Dyninst::MachRegister> writtenFlags;
-};
-
 class ia32_instruction
 {
   friend unsigned int ia32_decode_operands (const ia32_prefixes& pref, 
@@ -597,12 +583,6 @@ class ia32_instruction
   const ia32_memacc& getMac(int which) const { return mac[which]; }
   const ia32_condition& getCond() const { return *cond; }
   const ia32_locations& getLocationInfo() const { return *loc; }
-
-  DYNINST_EXPORT static dyn_hash_map<entryID, flagInfo> const& getFlagTable();
-  static void initFlagTable(dyn_hash_map<entryID, flagInfo>&);
-private:
-    static dyn_hash_map<entryID, flagInfo> flagTable;
-  
 };
 
 // VG(02/07/2002): Information that the decoder can return is

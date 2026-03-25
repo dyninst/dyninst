@@ -47,6 +47,9 @@ using namespace NS_x86;
 
 namespace Dyninst { namespace InstructionAPI {
 
+  static std::vector<Dyninst::MachRegister> get_read_flags(entryID);
+  static std::vector<Dyninst::MachRegister> get_written_flags(entryID);
+
   RegisterAST::Ptr makeRegFromID(MachRegister regID, unsigned int low, unsigned int high) {
     return boost::make_shared<RegisterAST>(regID, low, high);
   }
@@ -337,87 +340,83 @@ namespace Dyninst { namespace InstructionAPI {
         }
       }
 
-      dyn_hash_map<entryID, flagInfo>::const_iterator found =
-          ia32_instruction::getFlagTable().find(operationID);
-      if(found != ia32_instruction::getFlagTable().end()) {
-        for(unsigned i = 0; i < found->second.readFlags.size(); i++) {
-          switch(found->second.readFlags[i]) {
-            case x86::icf:
-              otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cf : x86_64::cf));
-              break;
-            case x86::ipf:
-              otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::pf : x86_64::pf));
-              break;
-            case x86::iaf:
-              otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::af : x86_64::af));
-              break;
-            case x86::izf:
-              otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
-              break;
-            case x86::isf:
-              otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::sf : x86_64::sf));
-              break;
-            case x86::itf:
-              otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::tf : x86_64::tf));
-              break;
-            case x86::idf:
-              otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
-              break;
-            case x86::iof:
-              otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::of : x86_64::of));
-              break;
-            case x86::int_:
-              otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::nt_ : x86_64::nt_));
-              break;
-            case x86::iif_:
-              otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
-              break;
-            case x86::irf:
-              otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::rf : x86_64::rf));
-              break;
-            default: assert(0);
-          }
+      for(MachRegister m : get_read_flags(operationID)) {
+        switch(m) {
+          case x86::icf:
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cf : x86_64::cf));
+            break;
+          case x86::ipf:
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::pf : x86_64::pf));
+            break;
+          case x86::iaf:
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::af : x86_64::af));
+            break;
+          case x86::izf:
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
+            break;
+          case x86::isf:
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::sf : x86_64::sf));
+            break;
+          case x86::itf:
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::tf : x86_64::tf));
+            break;
+          case x86::idf:
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
+            break;
+          case x86::iof:
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::of : x86_64::of));
+            break;
+          case x86::int_:
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::nt_ : x86_64::nt_));
+            break;
+          case x86::iif_:
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
+            break;
+          case x86::irf:
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::rf : x86_64::rf));
+            break;
+          default:
+            break;
         }
+      }
 
-        for(unsigned j = 0; j < found->second.writtenFlags.size(); j++) {
-          switch(found->second.writtenFlags[j]) {
-            case x86::icf:
-              otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cf : x86_64::cf));
-              break;
-            case x86::ipf:
-              otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::pf : x86_64::pf));
-              break;
-            case x86::iaf:
-              otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::af : x86_64::af));
-              break;
-            case x86::izf:
-              otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
-              break;
-            case x86::isf:
-              otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::sf : x86_64::sf));
-              break;
-            case x86::itf:
-              otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::tf : x86_64::tf));
-              break;
-            case x86::idf:
-              otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
-              break;
-            case x86::iof:
-              otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::of : x86_64::of));
-              break;
-            case x86::int_:
-              otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::nt_ : x86_64::nt_));
-              break;
-            case x86::iif_:
-              otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
-              break;
-            case x86::irf:
-              otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::rf : x86_64::rf));
-              break;
-            default:
-              fprintf(stderr, "ERROR: unhandled entry %s\n", found->second.writtenFlags[j].name().c_str());
-              assert(0);
-          }
+      for(MachRegister m : get_written_flags(operationID)) {
+        switch(m) {
+          case x86::icf:
+            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cf : x86_64::cf));
+            break;
+          case x86::ipf:
+            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::pf : x86_64::pf));
+            break;
+          case x86::iaf:
+            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::af : x86_64::af));
+            break;
+          case x86::izf:
+            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
+            break;
+          case x86::isf:
+            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::sf : x86_64::sf));
+            break;
+          case x86::itf:
+            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::tf : x86_64::tf));
+            break;
+          case x86::idf:
+            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
+            break;
+          case x86::iof:
+            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::of : x86_64::of));
+            break;
+          case x86::int_:
+            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::nt_ : x86_64::nt_));
+            break;
+          case x86::iif_:
+            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
+            break;
+          case x86::irf:
+            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::rf : x86_64::rf));
+            break;
+          default:
+            break;
         }
       }
     });
@@ -428,6 +427,179 @@ namespace Dyninst { namespace InstructionAPI {
     return operationID == rhs.operationID &&
            archDecodedFrom == rhs.archDecodedFrom &&
            mnemonic == rhs.mnemonic;
+  }
+
+  std::vector<Dyninst::MachRegister> get_read_flags(entryID id) {
+    switch(id) {
+      case e_aaa: return {x86::af};
+      case e_aas: return {x86::af};
+      case e_adc: return {x86::cf};
+      case e_cmovbe: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_cmove: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_cmovb: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_cmovae: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_cmova: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_cmovne: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_cmovle: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_cmovl: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_cmovge: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_cmovno: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_cmovns: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_cmovo: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_cmovp: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_cmovnp: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_cmovs: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_daa: return {x86::af,x86::cf};
+      case e_das: return {x86::af,x86::cf};
+      case e_div: return {x86::af,x86::cf};
+      case e_insb: return {x86::df};
+      case e_insw: return {x86::df};
+      case e_insd: return {x86::df};
+      case e_into: return {x86::of};
+      case e_iret: return {x86::nt_};
+      case e_jb: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_jb_jnaej_j: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_jbe: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_jl: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_jle: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_jae: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_jnb_jae_j: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_ja: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_jge: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_jg: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_jno: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_jnp: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_jns: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_jne: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_jo: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_jp: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_js: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_je: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_lodsb: return {x86::df};
+      case e_lodsd: return {x86::df};
+      case e_lodsw: return {x86::df};
+      case e_loope: return {x86::zf};
+      case e_loopne: return {x86::zf};
+      case e_outsb: return {x86::df};
+      case e_outsw: return {x86::df};
+      case e_outsd: return {x86::df};
+      case e_rcl: return {x86::cf};
+      case e_rcr: return {x86::cf};
+      case e_rol: return {x86::cf};
+      case e_ror: return {x86::cf};
+      case e_sahf: return {x86::sf,x86::zf,x86::af,x86::pf,x86::cf};
+      case e_salc: return {x86::cf};
+      case e_sbb: return {x86::cf};
+      case e_setb: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_setbe: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_setl: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_setle: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_setae: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_seta: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_setge: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_setg: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_setno: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_setnp: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_setns: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_setne: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_seto: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_setp: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_sets: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_sete: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_stosb: return {x86::df};
+      case e_stosd: return {x86::df};
+      case e_stosw: return {x86::df};
+      case e_scasb: return {x86::df};
+      case e_scasw: return {x86::df};
+      case e_scasd: return {x86::df};
+      case e_popcnt: return {x86::of,x86::sf,x86::zf,x86::af,x86::cf,x86::pf};
+      default:
+        return {};
+    }
+  }
+
+  std::vector<MachRegister> get_written_flags(entryID id) {
+    auto standardFlags = {x86::of,x86::sf,x86::zf,x86::af,x86::pf,x86::cf};
+    switch(id) {
+      case e_aaa: return standardFlags;
+      case e_aad: return standardFlags;
+      case e_aam: return standardFlags;
+      case e_aas: return standardFlags;
+      case e_adc: return standardFlags;
+      case e_add: return standardFlags;
+      case e_and: return standardFlags;
+      case e_arpl: return {x86::zf};
+      case e_bsf: return standardFlags;
+      case e_bsr: return standardFlags;
+      case e_bt: return standardFlags;
+      case e_bts: return standardFlags;
+      case e_btr: return standardFlags;
+      case e_btc: return standardFlags;
+      case e_clc: return {x86::cf};
+      case e_cld: return {x86::df};
+      case e_cli: return {x86::if_};
+      case e_cmc: return {x86::cf};
+      case e_cmp: return standardFlags;
+      case e_cmpsb: return standardFlags;
+      case e_cmpsd: return standardFlags;
+      case e_cmpss: return standardFlags;
+      case e_cmpsw: return standardFlags;
+      case e_cmpxchg: return standardFlags;
+      case e_cmpxchg8b: return {x86::zf};
+      case e_comisd: return standardFlags;
+      case e_comiss: return standardFlags;
+      case e_daa: return standardFlags;
+      case e_das: return standardFlags;
+      case e_dec: return {x86::of,x86::sf,x86::zf,x86::af,x86::pf};
+      case e_div: return standardFlags;
+      case e_idiv: return standardFlags;
+      case e_imul: return standardFlags;
+      case e_inc: return {x86::of,x86::sf,x86::zf,x86::af,x86::pf};
+      case e_int: return {x86::tf,x86::nt_};
+      case e_int3: return {x86::tf,x86::nt_};
+      case e_int80: return {x86::tf,x86::nt_};
+      case e_into: return {x86::tf,x86::nt_};
+      case e_ucomisd: return standardFlags;
+      case e_ucomiss: return standardFlags;
+      case e_iret: return {x86::of,x86::sf,x86::zf,x86::af,x86::pf,x86::cf,x86::tf,x86::if_,x86::df};
+      case e_lar: return {x86::zf};
+      case e_lsl: return {x86::zf};
+      case e_mul: return standardFlags;
+      case e_neg: return standardFlags;
+      case e_or: return standardFlags;
+      case e_popf: return {x86::of,x86::sf,x86::zf,x86::af,x86::pf,x86::cf,x86::tf,x86::if_,x86::df,x86::nt_};
+      case e_popfd: return {x86::of,x86::sf,x86::zf,x86::af,x86::pf,x86::cf,x86::tf,x86::if_,x86::df,x86::nt_};
+      case e_rcl: return {x86::of,x86::cf};
+      case e_rcr: return {x86::of,x86::cf};
+      case e_rol: return {x86::of,x86::cf};
+      case e_ror: return {x86::of,x86::cf};
+      case e_rsm: return {x86::of,x86::sf,x86::zf,x86::af,x86::pf,x86::cf,x86::tf,x86::if_,x86::df,x86::nt_,x86::rf};
+      case e_sar: return standardFlags;
+      case e_shr: return standardFlags;
+      case e_sbb: return standardFlags;
+      case e_shld: return standardFlags;
+      case e_shrd: return standardFlags;
+      case e_shl: return standardFlags;
+      case e_stc: return {x86::cf};
+      case e_std: return {x86::df};
+      case e_sti: return {x86::if_};
+      case e_sub: return standardFlags;
+      case e_test: return standardFlags;
+      case e_verr: return {x86::zf};
+      case e_verw: return {x86::zf};
+      case e_xadd: return standardFlags;
+      case e_xor: return standardFlags;
+      case e_scasb: return standardFlags;
+      case e_scasw: return standardFlags;
+      case e_scasd: return standardFlags;
+      case e_pcmpestri: return standardFlags;
+      case e_pcmpestrm: return standardFlags;
+      case e_pcmpistri: return standardFlags;
+      case e_pcmpistrm: return standardFlags;
+      case e_ptest: return standardFlags;
+      default:
+        return {};
+    }
   }
 
 }}
