@@ -34,6 +34,13 @@ endif()
 # Starting in CMake 3.20, suppress "unknown version" warnings
 set(Boost_NO_WARN_NEW_VERSIONS ON)
 
+# If Dyninst::Boost target already exists (created by rocprofiler-systems build),
+# skip find_package since dependencies are being built from source
+if(TARGET Dyninst::Boost)
+  message(STATUS "Using pre-configured Dyninst::Boost target (building from source)")
+  return()
+endif()
+
 # Library components that need to be linked against
 set(_boost_components atomic chrono date_time filesystem thread timer)
 find_package(

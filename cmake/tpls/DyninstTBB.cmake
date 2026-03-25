@@ -26,6 +26,13 @@ if(TBB_ROOT_DIR)
   set(_find_path_args NO_CMAKE_SYSTEM_PATH NO_SYSTEM_ENVIRONMENT_PATH)
 endif()
 
+# If Dyninst::TBB target already exists (created by rocprofiler-systems build),
+# skip find_package since dependencies are being built from source
+if(TARGET Dyninst::TBB)
+  message(STATUS "Using pre-configured Dyninst::TBB target (building from source)")
+  return()
+endif()
+
 find_package(
   TBB ${_min_version}
   COMPONENTS tbb tbbmalloc tbbmalloc_proxy

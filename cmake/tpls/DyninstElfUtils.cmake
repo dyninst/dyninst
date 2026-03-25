@@ -36,6 +36,13 @@ if(ElfUtils_ROOT_DIR)
   set(ElfUtils_NO_SYSTEM_PATHS ON)
 endif()
 
+# If Dyninst::ElfUtils target already exists (created by rocprofiler-systems build),
+# skip find_package since dependencies are being built from source
+if(TARGET Dyninst::ElfUtils)
+  message(STATUS "Using pre-configured Dyninst::ElfUtils target (building from source)")
+  return()
+endif()
+
 find_package(Elfutils ${_min_version} REQUIRED COMPONENTS ${_components})
 unset(_components)
 

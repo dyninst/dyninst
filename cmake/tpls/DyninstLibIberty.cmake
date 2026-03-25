@@ -32,6 +32,13 @@ if(LibIberty_ROOT_DIR)
   mark_as_advanced(LibIberty_ROOT)
 endif()
 
+# If Dyninst::LibIberty target already exists (created by rocprofiler-systems build),
+# skip find_package since dependencies are being built from source
+if(TARGET Dyninst::LibIberty)
+  message(STATUS "Using pre-configured Dyninst::LibIberty target (building from source)")
+  return()
+endif()
+
 find_package(LibIberty REQUIRED)
 
 if(NOT TARGET Dyninst::LibIberty)
