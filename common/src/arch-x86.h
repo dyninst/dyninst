@@ -1142,8 +1142,6 @@ inline bool is_addr32(Dyninst::Address addr) {
     return (addr < UINT32_MAX);
 }
 
-DYNINST_EXPORT void decode_SIB(unsigned sib, unsigned& scale, 
-        Dyninst::Register& index_reg, Dyninst::Register& base_reg);
 DYNINST_EXPORT const unsigned char* skip_headers(const unsigned char*, 
         ia32_instruction* = NULL);
 
