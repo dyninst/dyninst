@@ -162,6 +162,12 @@ using namespace Dyninst;
 #define qwordSzB (8)   /* size of a qword operand */
 #define dqwordSzB (16)   /* size of a double qword (oword) operand */
 
+/* Implicit operand specifier */
+#define s1I (1 << 16) /* 1st operand is implicit */
+#define s2I (1 << 17) /* 2nd operand is implicit */
+#define s3I (1 << 18) /* 3rd operand is implicit */
+#define s4I (1 << 19) /* 4th operand is implicit */
+
 namespace NS_x86 {
 
 // groups

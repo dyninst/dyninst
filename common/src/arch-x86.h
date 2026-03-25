@@ -319,12 +319,6 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
 /* This should equal the first operand semantic where 4 operands are used. */
 #define s4OP s1W2R3R4R
 
-/* Implicit operand specifier */
-#define s1I (1 << 16) /* 1st operand is implicit */
-#define s2I (1 << 17) /* 2nd operand is implicit */
-#define s3I (1 << 18) /* 3rd operand is implicit */
-#define s4I (1 << 19) /* 4th operand is implicit */
-
 /* Implicit mask getters */
 #define sGetImplicitOP1(b) ((b) & s1I)
 #define sGetImplicitOP2(b) ((b) & s2I)
