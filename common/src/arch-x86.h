@@ -521,9 +521,6 @@ struct ia32_operand {  // operand as given in Intel book tables
 struct ia32_entry {
   DYNINST_EXPORT const char* name(ia32_locations* locs = NULL);
   DYNINST_EXPORT entryID getID(ia32_locations* locs = NULL) const;
-  // returns true if any flags are read/written, false otherwise
-  DYNINST_EXPORT bool flagsUsed(std::set<Dyninst::MachRegister>& flagsRead, std::set<Dyninst::MachRegister>& flagsWritten,
-		 ia32_locations* locs = NULL);
   entryID id;
   unsigned int otable;       // which opcode table is next; if t_done it is the current one
   unsigned char tabidx;      // at what index to look, 0 if it easy to deduce from opcode

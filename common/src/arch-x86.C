@@ -2241,22 +2241,6 @@ list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)
   flagTable_[e_ptest] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
 }
 
-bool ia32_entry::flagsUsed(std::set<MachRegister>& flagsRead, std::set<MachRegister>& flagsWritten, ia32_locations* locs)
-{
-  dyn_hash_map<entryID, flagInfo>::const_iterator found = ia32_instruction::getFlagTable().find(getID(locs));
-  if(found == ia32_instruction::getFlagTable().end())
-  {
-    return false;
-  }
-  // No entries for something that touches no flags, so always return true if we had an entry
-
-  copy((found->second).readFlags.begin(), (found->second).readFlags.end(), inserter(flagsRead, flagsRead.begin()));
-  copy((found->second).writtenFlags.begin(), (found->second).writtenFlags.end(), inserter(flagsWritten,flagsWritten.begin()));
-  return true;
-}
-
-
-
 // Modded table entry for push/pop, daa, das, aaa, aas, insb/w/d, outsb/w/d, xchg, cbw
 // les, lds, aam, aad, loop(z/nz), cmpxch, lss, mul, imul, div, idiv, cmpxch8, [ld/st]mxcsr
 // clflush, prefetch*
