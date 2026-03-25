@@ -306,12 +306,6 @@ DYNINST_EXPORT ia32_instruction &
 ia32_decode(unsigned int capabilities, const unsigned char *addr, ia32_instruction &, bool mode_64);
 
 
-enum dynamic_call_address_mode {
-  REGISTER_DIRECT, REGISTER_INDIRECT,
-  REGISTER_INDIRECT_DISPLACED, SIB, DISPLACED, 
-  IP_INDIRECT_DISPLACED
-};
-
 /*
    get_instruction: get the instruction that starts at instr.
    return the size of the instruction and set instType to a type descriptor
