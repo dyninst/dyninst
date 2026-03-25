@@ -94,15 +94,6 @@ typedef unsigned codeBufIndex_t;
 
 /* end of instruction type descriptor values */
 
-/* opcodes of some one byte opcode instructions */
-/* ADD */
-#define ADD_EB_GB (0x00)
-#define ADD_EV_GV (0x01)
-#define ADD_GB_EB (0x02)
-#define ADD_GV_EV (0x03)
-#define ADD_AL_LB (0x04)
-#define ADD_RAX_LZ (0x05)
-
 #define PUSHES    (0x06) /* Invalid in 64 bit mode */
 #define POPES     (0x07) /* Invalid in 64 bit mode */
 
