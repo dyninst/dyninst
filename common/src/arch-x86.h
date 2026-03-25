@@ -132,11 +132,6 @@ const unsigned char SYSCALL[] = {0x0F, 0x05};
 /* limits */
 #define MAX_IMM8 (127)
 
-// Prefix groups
-enum {
-  RepGroup = 0
-};
-
 #ifndef VEX_PREFIX_MASKS
 #define VEX_PREFIX_MASKS
 
