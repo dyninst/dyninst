@@ -49,6 +49,9 @@ using namespace Dyninst::ParseAPI;
 
 #if defined(cap_stripped_binaries)
 
+static bool isStackFramePrecheck_msvs( const unsigned char *buffer );
+static bool isStackFramePrecheck_gcc( const unsigned char *buffer );
+
 #include "ProbabilisticParser.h"
 #include "common/src/arch-x86.h"
 
@@ -181,7 +184,7 @@ namespace hd {
             (const unsigned char*)(cr->getPtrToInstruction(addr));
         if(!bufferBegin)
             return false;
-        if (!NS_x86::isStackFramePrecheck_gcc(bufferBegin))
+        if (!isStackFramePrecheck_gcc(bufferBegin))
             return false;
 
         InstructionDecoder dec(bufferBegin, 
@@ -202,7 +205,7 @@ namespace hd {
             (const unsigned char*)(cr->getPtrToInstruction(addr));
         if(!bufferBegin)
             return false;
-        if (!NS_x86::isStackFramePrecheck_msvs(bufferBegin))
+        if (!isStackFramePrecheck_msvs(bufferBegin))
             return false;
     
         InstructionDecoder dec(bufferBegin, 
@@ -393,6 +396,54 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
         }
         finalize();
     }
+}
+
+bool isStackFramePrecheck_gcc( const unsigned char *buffer )
+{
+   //Currently enabled entry bytes for gaps:
+   //  0x55 - push %ebp
+   static char gap_initial_bytes[] =
+   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+   return (gap_initial_bytes[*buffer] != 0);
+}
+
+bool isStackFramePrecheck_msvs( const unsigned char *buffer )
+{
+   //Currently enabled entry bytes for gaps:
+   //  0x55 - push %ebp
+   static char gap_initial_bytes[] =
+   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+   return (gap_initial_bytes[*buffer] != 0);
 }
 
 #else // cap_stripped binaries
