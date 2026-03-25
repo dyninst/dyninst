@@ -1142,7 +1142,6 @@ inline bool is_addr32(Dyninst::Address addr) {
     return (addr < UINT32_MAX);
 }
 
-DYNINST_EXPORT bool insn_hasSIB(unsigned,unsigned&,unsigned&,unsigned&);
 DYNINST_EXPORT bool insn_hasDisp8(unsigned ModRM);
 DYNINST_EXPORT bool insn_hasDisp32(unsigned ModRM);
 
