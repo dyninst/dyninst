@@ -1142,8 +1142,6 @@ inline bool is_addr32(Dyninst::Address addr) {
     return (addr < UINT32_MAX);
 }
 
-DYNINST_EXPORT bool insn_hasDisp32(unsigned ModRM);
-
 DYNINST_EXPORT bool isStackFramePrecheck_msvs( const unsigned char *buffer );
 DYNINST_EXPORT bool isStackFramePrecheck_gcc( const unsigned char *buffer );
 

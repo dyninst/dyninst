@@ -11943,13 +11943,6 @@ skip_headers(const unsigned char* addr, ia32_instruction* instruct)
    return addr + instruct->getSize();
 }
 
-bool insn_hasDisp32(unsigned ModRMbyte){
-   unsigned Mod = (ModRMbyte >> 6) & 0x03;
-   /* unsigned Reg = (ModRMbyte >> 3) & 0x07; */
-   unsigned RM = ModRMbyte & 0x07;
-   return (Mod == 0 && RM == 5) || (Mod == 2);
-}
-
 const char* ia32_entry::name(ia32_locations* loc)
 {
    dyn_hash_map<entryID, string>::const_iterator found = entryNames_IAPI.find(id);
