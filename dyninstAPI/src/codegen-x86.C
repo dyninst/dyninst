@@ -73,32 +73,6 @@ using namespace Dyninst::InstructionAPI;
 #define REX_SET_R(x, v) ((x) = static_cast<unsigned char>((x) | ((v) ? 0x4 : 0)))
 #define REX_SET_X(x, v) ((x) = static_cast<unsigned char>((x) | ((v) ? 0x2 : 0)))
 #define REX_SET_B(x, v) ((x) = static_cast<unsigned char>((x) | ((v) ? 0x1 : 0)))
-unsigned copy_prefixes(const unsigned char *&origInsn, unsigned char *&newInsn, unsigned insnType) {
-  unsigned nPrefixes = count_prefixes(insnType);
-
-  for (unsigned u = 0; u < nPrefixes; u++)
-     *newInsn++ = *origInsn++;
-  return nPrefixes;
-}
-
-//Copy all prefixes but the Operand-Size and Dyninst::Address-Size prefixes (0x66 and 0x67)
-unsigned copy_prefixes_nosize(const unsigned char *&origInsn, unsigned char *&newInsn, 
-                              unsigned insnType) 
-{
-    unsigned retval = 0;
-    unsigned nPrefixes = count_prefixes(insnType);
-
-    for (unsigned u = 0; u < nPrefixes; u++) {
-        if (*origInsn == 0x66 || *origInsn == 0x67)
-        {
-            origInsn++;
-            continue;
-        }
-        retval++;
-        *newInsn++ = *origInsn++;
-    }
-    return retval;
-}
 
 //Copy all prefixes but the Operand-Size and Dyninst::Address-Size prefixes (0x66 and 0x67)
 // Returns the number of bytes copied
