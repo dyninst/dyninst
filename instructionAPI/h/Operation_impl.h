@@ -50,12 +50,9 @@ namespace Dyninst { namespace InstructionAPI {
     friend class InstructionDecoder_x86;
 
   public:
-    Operation(const Operation& o);
     Operation() = default;
     Operation(entryID id, std::string m, Architecture arch)
       : operationID(id), archDecodedFrom(arch), mnemonic{std::move(m)} {}
-
-    const Operation& operator=(const Operation& o);
 
     std::string format() const;
 
