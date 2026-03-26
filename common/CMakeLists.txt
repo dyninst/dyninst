@@ -70,6 +70,7 @@ set(_private_headers
     src/headers.h
     src/ia32_locations.h
     src/ia32_memacc.h
+    src/ia32_prefixes.h
     src/IntervalTree.h
     src/linuxHeaders.h
     src/linuxKludges.h
@@ -97,6 +98,7 @@ set(_sources
     src/dyninst_filesystem.C
     src/encoding-x86.h
     src/ia32_memacc.C
+    src/ia32_prefixes.C
     src/stats.C
     src/Annotatable.C
     src/MappedFile.C
