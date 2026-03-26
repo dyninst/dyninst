@@ -42,6 +42,7 @@
 #include "registers/x86_64_regs.h"
 #include "InstructionDecoder.h"
 #include "Instruction.h"
+#include "arch-x86.h"
 
 using namespace std;
 using namespace Dyninst;

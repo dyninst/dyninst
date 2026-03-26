@@ -196,7 +196,7 @@ enum VEX_TYPE
 #define PREFIX_SZADDR  (unsigned char)(0x67)
 #endif
 
-DYNINST_EXPORT void ia32_set_mode_64(bool mode);
+void ia32_set_mode_64(bool mode);
 
 /**
  * AVX/AVX2/EVEX addressing modes (not in manual).

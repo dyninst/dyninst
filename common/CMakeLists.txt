@@ -68,6 +68,7 @@ set(_private_headers
     src/freebsdHeaders.h
     src/freebsdKludges.h
     src/headers.h
+    src/ia32_entry.h
     src/ia32_locations.h
     src/ia32_memacc.h
     src/ia32_prefixes.h
@@ -97,6 +98,7 @@ set(_sources
     src/lprintf.C
     src/dyninst_filesystem.C
     src/encoding-x86.h
+    src/ia32_entry.C
     src/ia32_memacc.C
     src/ia32_prefixes.C
     src/stats.C

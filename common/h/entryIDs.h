@@ -56,9 +56,4 @@ enum prefixEntryID : unsigned int {
   prefix_repnz
 };
 
-namespace NS_x86 {
-DYNINST_EXPORT extern dyn_hash_map<entryID, std::string> entryNames_IAPI;
-DYNINST_EXPORT extern dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI;
-}
-
 #endif

@@ -47,45 +47,12 @@
 #include "encoding-x86.h"
 #include "ia32_memacc.h"
 #include "ia32_prefixes.h"
+#include "ia32_entry.h"
 
 namespace NS_x86 {
 
 typedef unsigned char codeBuf_t;
 typedef unsigned codeBufIndex_t;
-
-struct ia32_condition
-{
-  bool is;
-  // TODO: add a field/hack for ECX [not needed for CMOVcc, but for Jcc]
-  int tttn;
-
-  ia32_condition() : is(false), tttn(-1) {}
-  void set(int _tttn) { is = true; tttn = _tttn; }
-};
-
-struct ia32_operand {  // operand as given in Intel book tables
-  unsigned int admet;  // addressing method
-  unsigned int optype; // operand type;
-};
-
-// An instruction table entry
-struct ia32_entry {
-  DYNINST_EXPORT const char* name(ia32_locations* locs = NULL);
-  DYNINST_EXPORT entryID getID(ia32_locations* locs = NULL) const;
-  entryID id;
-  unsigned int otable;       // which opcode table is next; if t_done it is the current one
-  unsigned char tabidx;      // at what index to look, 0 if it easy to deduce from opcode
-  bool hasModRM;             // true if the instruction has a MOD/RM byte
-  ia32_operand operands[4];  // operand descriptors
-  unsigned int legacyType;   // legacy type of the instruction (e.g. (IS_CALL | REL_W))
-  // code to decode memory access - this field should be seen as two 16 bit fields
-  // the lower half gives operand semantics, e.g. s1RW2R, the upper half is a fXXX hack if needed
-  // before hating me for this: it takes a LOT less time to add ONE field to ~2000 table lines!
-  // The upper 3 bits of this field (bits 29, 30, 31) are specifiers for implicit operands.
-  unsigned int opsema;  
-
-  unsigned int impl_dec; /* Implicit operands and decoration descriptions */
-};
 
 class ia32_instruction
 {
