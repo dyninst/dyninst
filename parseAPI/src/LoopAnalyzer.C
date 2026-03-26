@@ -322,7 +322,7 @@ void LoopAnalyzer::FillMoreBackEdges(Loop *loop) {
     // All back edges to the header of the loop have been identified.
     // Now find all back edges to the other entries of the loop.
     for (auto bit = loop->exclusiveBlocks.begin(); bit != loop->exclusiveBlocks.end(); ++bit) {
-        Block* b = *bit;
+        Block* b = bit->second;
         for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
             Edge *e = *eit;
             if (e->interproc() || e->sinkEdge()) continue;

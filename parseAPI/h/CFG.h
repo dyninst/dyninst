@@ -757,7 +757,9 @@ private:
 	/** the basic blocks in the loop */
 
         std::set<Block*> childBlocks;
-        std::set<Block*> exclusiveBlocks;
+        std::map<Address, Block*> exclusiveBlocks;
+        bool exclBlocksOverlap = false;
+
     Loop* parent;
 public:
 	/** If loop which directly encloses this loop. NULL if no such loop */

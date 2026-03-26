@@ -55,9 +55,24 @@ Loop::Loop(Edge *be, const Function *f)
 
 bool Loop::containsAddress(Address addr)
 {
-    for(auto i = exclusiveBlocks.begin(); i != exclusiveBlocks.end(); i++) {
-	if ((*i)->containsAddr(addr))
+    /* upper_bound() implies that bit and everything to the right
+     * cannot contain addr.
+     *
+     * If no blocks overlap, then --bit is the only block that could
+     * contain addr.  If blocks do overlap, then we have to search
+     * everything to the left.
+     */
+    auto bit = exclusiveBlocks.upper_bound(addr);
+
+    while (bit != exclusiveBlocks.begin()) {
+	--bit;
+
+	if (bit->second->containsAddr(addr)) {
 	    return true;
+	}
+	if (! exclBlocksOverlap) {
+	    break;
+	}
     }
 
     return false;
@@ -120,54 +135,70 @@ Loop::getOuterLoops(vector<Loop*>& nls)
 
 //returns the basic blocks in the loop
 bool Loop::getLoopBasicBlocks(vector<Block*>& bbs) {
-   bbs.insert(bbs.end(), exclusiveBlocks.begin(), exclusiveBlocks.end());
+    for (auto it = exclusiveBlocks.begin(); it != exclusiveBlocks.end(); ++it) {
+	bbs.push_back(it->second);
+    }
     bbs.insert(bbs.end(), childBlocks.begin(), childBlocks.end());
   return true;
 }
 
 void Loop::insertBlock(Block* b)
 {
-    if(childBlocks.find(b) == childBlocks.end()) exclusiveBlocks.insert(b);
+    if(childBlocks.find(b) == childBlocks.end()) {
+	/*
+	 * Test if the new block overlaps an existing block.  If this
+	 * is the first overlap, then only need to check one block on
+	 * each side of upper_bound().
+	 */
+	if (! exclBlocksOverlap) {
+	    auto bit = exclusiveBlocks.upper_bound(b->start());
+
+	    if (bit != exclusiveBlocks.end() && b->end() > bit->second->start()) {
+		exclBlocksOverlap = true;
+	    }
+	    else if (bit != exclusiveBlocks.begin()) {
+		--bit;
+		if (bit->second->end() > b->start()) {
+		    exclBlocksOverlap = true;
+		}
+	     }
+	}
+	exclusiveBlocks[b->start()] = b;
+    }
 }
+
 void Loop::insertChildBlock(Block* b)
 {
-    exclusiveBlocks.erase(b);
+    exclusiveBlocks.erase(b->start());
     childBlocks.insert(b);
 }
 
 
 // returns the basic blocks in this loop, not those of its inner loops
 bool Loop::getLoopBasicBlocksExclusive(vector<Block*>& bbs) {
-    std::copy(exclusiveBlocks.begin(), exclusiveBlocks.end(), std::back_inserter(bbs));
+    for (auto it = exclusiveBlocks.begin(); it != exclusiveBlocks.end(); ++it) {
+	bbs.push_back(it->second);
+    }
     return true;
 }
 
 
-
 bool Loop::hasBlock(Block* block) 
 {
-    vector<Block*> blks;
-    getLoopBasicBlocks(blks);
+    if (hasBlockExclusive(block)) {
+	return true;
+    }
 
-    for(unsigned i = 0; i < blks.size(); i++)
-        if (blks[i]->start() == block->start())
-            return true;
-    return false;
+    auto it = childBlocks.find(block);
+    return it != childBlocks.end();
 }
 
 
 bool Loop::hasBlockExclusive(Block*block) 
 {
-    vector<Block*> blks;
-    getLoopBasicBlocksExclusive(blks);
-
-    for(unsigned i = 0; i < blks.size(); i++)
-        if (blks[i]->start() == block->start())
-            return true;
-    return false;
+    auto it = exclusiveBlocks.find(block->start());
+    return it != exclusiveBlocks.end();
 }
-
-
 
 
 int Loop::getLoopEntries(vector<Block*> &e) {
@@ -194,7 +225,7 @@ void Loop::insertLoop(Loop *childLoop) {
     for (auto b = childLoop->exclusiveBlocks.begin();
          b != childLoop->exclusiveBlocks.end();
          ++b) {
-        insertChildBlock(*b);
+        insertChildBlock(b->second);
     }
     for (auto b = childLoop->childBlocks.begin();
          b != childLoop->childBlocks.end();
@@ -207,11 +238,11 @@ std::string Loop::format() const {
    std::stringstream ret;
    
    ret << hex << "(Loop " << this << ": ";
-   for (std::set<Block *>::iterator iter = exclusiveBlocks.begin();
+   for (auto iter = exclusiveBlocks.begin();
         iter != exclusiveBlocks.end(); ++iter) {
-      ret << (*iter)->start() << ", ";
+      ret << iter->second->start() << ", ";
    }
-    for (std::set<Block *>::iterator iter = childBlocks.begin();
+    for (auto iter = childBlocks.begin();
          iter != childBlocks.end(); ++iter) {
         ret << (*iter)->start() << ", ";
     }
