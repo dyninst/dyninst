@@ -307,4 +307,35 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
 
 #define EXTENDED_0x81_ADD 0
 #define EXTENDED_0x83_AND 4
+
+// Size of a jump rel32 instruction
+#define JUMP_REL32_SZ (6)
+// Maxium size of an emitted jump
+#define JUMP_SZ (5)
+// Size of a call rel32 instruction
+#define CALL_REL32_SZ (5)
+// >2gb displacement in 32 bit mode
+#define CALL_ABS32_SZ (11)
+#define JUMP_ABS32_SZ (6)
+// Max size of a relocated thunk call
+#define CALL_RELOC_THUNK (13)
+
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
+// size of instruction seqeunce to get anywhere in address space
+// without touching any registers
+#define JUMP_ABS64_SZ (14)
+// Jump is push/return; call is push/push/return, so subtract a return
+#define CALL_ABS64_SZ (JUMP_ABS64_SZ+JUMP_ABS64_SZ-1)
+#endif
+
+#define PUSH_RM_OPC1 (0xFF)
+#define PUSH_RM_OPC2 (6)
+#define CALL_RM_OPC1 (0xFF)
+#define CALL_RM_OPC2 (2)
+#define JUMP_RM_OPC1 (0xFF)
+#define JUMP_RM_OPC2 (4)
+#define PUSH_EBP (0x50+REGNUM_EBP)
+#define SUB_REG_IMM32 (5)
+#define LEAVE (0xC9)
+
 #endif
