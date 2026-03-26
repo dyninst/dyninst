@@ -45,6 +45,7 @@
 #include "common/src/ia32_locations.h"
 #include "dyn_register.h"
 #include "encoding-x86.h"
+#include "ia32_memacc.h"
 
 namespace NS_x86 {
 
@@ -97,83 +98,6 @@ class ia32_prefixes
   int vex_x; /* The VEX REXX bit for VEX2, VEX3 or EVEX */
   int vex_b; /* The VEX REXB bit for VEX2, VEX3 or EVEX */
   int vex_aaa; /* Selects the vector mask register for EVEX */
-};
-
-//VG(6/20/02): To support Paradyn without forcing it to include BPatch_memoryAccess, we
-//             define this IA-32 "specific" class to encapsulate the same info - yuck
-
-struct ia32_memacc
-{
-  bool is;
-  bool read;
-  bool write;
-  bool nt;     // non-temporal, e.g. movntq...
-  bool prefetch;
-
-  int addr_size; // size of address in 16-bit words
-  long imm;
-  int scale;
-  int regs[2]; // register encodings (in ISA order): 0-7
-               // (E)AX, (E)CX, (E)DX, (E)BX
-               // (E)SP, (E)BP, (E)SI, (E)DI
-
-  int size;
-  int sizehack;  // register (E)CX or string based
-  int prefetchlvl; // prefetch level
-  int prefetchstt; // prefetch state (AMD)
-
-  ia32_memacc() : is(false), read(false), write(false), nt(false), 
-       prefetch(false), addr_size(2), imm(0), scale(0), size(0), sizehack(0),
-       prefetchlvl(-1), prefetchstt(-1)
-  {
-    regs[0] = -1;
-    regs[1] = -1;
-  }
-
-  void set16(int reg0, int reg1, long disp)
-  { 
-    is = true;
-    addr_size  = 1; 
-    regs[0] = reg0; 
-    regs[1] = reg1; 
-    imm     = disp;
-  }
-
-  void set(int reg, long disp, int addr_sz)
-  { 
-    is = true;
-    addr_size = addr_sz;
-    regs[0] = reg; 
-    imm     = disp;
-  }
-
-  void set_sib(int base, int scal, int indx, long disp, int addr_sz)
-  {
-    is = true;
-    addr_size = addr_sz;
-    regs[0] = base;
-    regs[1] = indx;
-    scale   = scal;
-    imm     = disp;
-  }
-
-  void setXY(int reg, int _size, int _addr_size)
-  {
-    is = true;
-    regs[0] = reg;
-    size = _size;
-    addr_size = _addr_size;
-  }
-
-  void print();
-};
-
-enum sizehacks {
-  shREP=1,
-  shREPECMPS,
-  shREPESCAS,
-  shREPNECMPS,
-  shREPNESCAS
 };
 
 struct ia32_condition

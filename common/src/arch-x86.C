@@ -9320,13 +9320,6 @@ static void ia32_translate_for_64(ia32_entry** gotit_ptr)
 static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsigned char *addr, ia32_memacc *macadr,
                                       const ia32_prefixes *pref, ia32_locations *pos, bool mode_64);
 
-
-void ia32_memacc::print()
-{
-    fprintf(stderr, "base: %d, index: %d, scale:%d, disp: %ld (%lx), size: %d, addr_size: %d\n",
-	    regs[0], regs[1], scale, imm, (unsigned long)imm, size, addr_size);
-}
-
 int getOperSz(const ia32_prefixes &pref) 
 {
     /* TODO: VEX prefixed instructions only touch XMM or YMM unless they are loading/storing to memory. */

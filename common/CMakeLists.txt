@@ -69,6 +69,7 @@ set(_private_headers
     src/freebsdKludges.h
     src/headers.h
     src/ia32_locations.h
+    src/ia32_memacc.h
     src/IntervalTree.h
     src/linuxHeaders.h
     src/linuxKludges.h
@@ -95,6 +96,7 @@ set(_sources
     src/lprintf.C
     src/dyninst_filesystem.C
     src/encoding-x86.h
+    src/ia32_memacc.C
     src/stats.C
     src/Annotatable.C
     src/MappedFile.C
