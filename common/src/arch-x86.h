@@ -48,60 +48,13 @@
 #include "ia32_memacc.h"
 #include "ia32_prefixes.h"
 #include "ia32_entry.h"
+#include "ia32_instruction.h"
 
 namespace NS_x86 {
 
 typedef unsigned char codeBuf_t;
 typedef unsigned codeBufIndex_t;
 
-class ia32_instruction
-{
-  friend unsigned int ia32_decode_operands (const ia32_prefixes& pref, 
-                                            const ia32_entry& gotit, 
-                                            const char* addr, 
-                                            ia32_instruction& instruct);
-  friend DYNINST_EXPORT bool ia32_decode_prefixes(const unsigned char *addr, ia32_instruction &insn, bool mode_64);
-  friend DYNINST_EXPORT ia32_instruction &
-  ia32_decode(unsigned int capa, const unsigned char *addr, ia32_instruction &instruct, bool mode_64);
-  friend DYNINST_EXPORT int
-  ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instruction &instruct, ia32_entry **gotit_ret,
-                       bool mode_64);
-  friend unsigned int ia32_decode_operands(const ia32_prefixes &pref, const ia32_entry &gotit, const unsigned char *addr,
-                                             ia32_instruction &instruct, ia32_memacc *mac, bool mode_64);
-  friend ia32_instruction& ia32_decode_FP(const ia32_prefixes& pref, const unsigned char* addr,
-                                          ia32_instruction& instruct);
-  friend unsigned int ia32_emulate_old_type(ia32_instruction &instruct, bool mode_64);
-  friend ia32_instruction &
-  ia32_decode_FP(unsigned int opcode, const ia32_prefixes &pref, const unsigned char *addr, ia32_instruction &instruct,
-                   ia32_entry *entry, ia32_memacc *mac, bool mode_64);
-
-  unsigned int   size;
-  ia32_prefixes  prf;
-  ia32_memacc    *mac;
-  ia32_condition *cond;
-  ia32_entry     *entry;
-  ia32_locations *loc;
-  unsigned int   legacy_type;
-  bool           rip_relative_data;
-
-
- public:
-  ia32_instruction(ia32_memacc* _mac = NULL, ia32_condition* _cnd = NULL,
-                   ia32_locations *loc_ = NULL)
-    : size(0), prf(), mac(_mac), cond(_cnd), entry(NULL), loc(loc_),
-      legacy_type(0), rip_relative_data(false)
-  {}
-
-  ia32_entry * getEntry() { return entry; }
-  unsigned int getSize() const { return size; }
-  unsigned int getPrefixCount() const { return prf.getCount(); }
-  ia32_prefixes * getPrefix() { return &prf; }
-  unsigned int getLegacyType() const { return legacy_type; }
-  bool hasRipRelativeData() const { return rip_relative_data; }
-  const ia32_memacc& getMac(int which) const { return mac[which]; }
-  const ia32_condition& getCond() const { return *cond; }
-  const ia32_locations& getLocationInfo() const { return *loc; }
-};
 
 // VG(02/07/2002): Information that the decoder can return is
 //   #defined below. The decoder always returns the size of the 
