@@ -28,8 +28,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+
+#include "dyninstAPI/src/block.h"
+#include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/emit-amdgpu.h"
+#include "dyninstAPI/src/registerSpace/registerSpace.h"
 #include <cstdint>
 #include <stdlib.h>
 
@@ -53,9 +57,30 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
   if (wordOffset >= INT16_MIN && wordOffset <= INT16_MAX) {
     emitter->emitShortJump(wordOffset, gen);
   } else {
-    // TODO: Right now hardcoding s80. But this needs to use 2 pairs of dead registers.
-    Register regBlock = Register::makeScalarRegister(OperandRegId(80), BlockSize(4));
+    auto as = gen.addrSpace();
+    block_instance *blockInstance = as->findBlockByEntry(from);
+    assert(blockInstance);
+
+    func_instance *funcInstance = blockInstance->entryOfFunc();
+    if (!funcInstance) {
+      // FIXME:
+      // This happens because springboard generates jumps twice and in the second round the basic block
+      // doesn't have a parent function.
+      //
+      // The branches are inserted in the first time the code is generated.
+      return;
+    }
+
+    instPoint *blockExitPoint = instPoint::blockExit(funcInstance, blockInstance);
+    assert(blockExitPoint);
+
+    registerSpace *regSpace = registerSpace::actualRegSpace(blockExitPoint);
+    assert(regSpace);
+
+    // We relax the alignment to 2 because we will use the 4 registers as 2 pairs.
+    Register regBlock = regSpace->allocateGprBlock(RegKind::SCALAR, /* numRegs */4, /* alignment */2);
     emitter->emitLongJump(regBlock, from, to, gen);
+    regSpace->freeGprBlock(regBlock);
   }
 }
 
