@@ -174,7 +174,7 @@ jobs:
           os: ${{ matrix.os }}
           compiler: ${{ matrix.compiler }}
           src-dir: "${GITHUB_WORKSPACE}/src"
-          install-dir: ${{ matrix.install-dir }}
+          install-dir: "${GITHUB_WORKSPACE}/install"
 
       - name: Checkout Test Suite
         if: ${{ matrix.compiler != 'clang' }}
@@ -189,7 +189,7 @@ jobs:
         run: |
           set -ex
           cd ${GITHUB_WORKSPACE}/testsuite; mkdir build; cd build
-          cmake .. -DDyninst_ROOT=${{ matrix.install-dir }}
+          cmake .. -DDyninst_ROOT="${GITHUB_WORKSPACE}/install"
           cmake --build . --parallel 2
 
       - name: Checkout Examples
@@ -203,7 +203,7 @@ jobs:
         run: |
           set -ex
           cd ${GITHUB_WORKSPACE}/examples; mkdir build; cd build
-          cmake .. -DDyninst_ROOT=${{ matrix.install-dir }}
+          cmake .. -DDyninst_ROOT="${GITHUB_WORKSPACE}/install"
           cmake --build . --parallel 2
 
       - name: Checkout External Tests
@@ -217,7 +217,7 @@ jobs:
         run: |
           set -ex
           cd ${GITHUB_WORKSPACE}/external-tests; mkdir build; cd build
-          cmake .. -DDyninst_ROOT=${{ matrix.install-dir }} -DCMAKE_CXX_STANDARD=17
+          cmake .. -DDyninst_ROOT="${GITHUB_WORKSPACE}/install" -DCMAKE_CXX_STANDARD=17
           cmake --build . --parallel 2
 
       - name: Run external tests
@@ -226,6 +226,6 @@ jobs:
         run: |
           set -ex
           export LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH
-          export DYNINSTAPI_RT_LIB=$(find ${{ matrix.install-dir }} -name libdyninstAPI_RT.so)
+          export DYNINSTAPI_RT_LIB=$(find "${GITHUB_WORKSPACE}/install" -name libdyninstAPI_RT.so)
           cd ${GITHUB_WORKSPACE}/external-tests/build
           ctest --no-tests=error -VV --output-on-failure .
