@@ -1332,3 +1332,25 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 
 	return false;
 }
+
+bool registerSpace::canAllocate(Register reg) const {
+  assert(reg.getCount() == 1 && "reg must be a single register");
+
+  auto iter = registers_.find(reg);
+  if (iter == registers_.end()) {
+    return false;
+  }
+
+  registerSlot *regSlot = iter->second;
+
+  if (regSlot->offLimits)
+    return false;
+  else if (regSlot->refCount > 0)
+    return false;
+  else if (regSlot->liveState == registerSlot::live)
+    return false;
+  else if (regSlot->keptValue)
+    return false;
+
+  return true;
+}

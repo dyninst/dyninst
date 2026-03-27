@@ -1,5 +1,6 @@
 #include "arch-amdgpu.h"
 #include "registerSpace.h"
+#include "debug.h"
 
 #include <vector>
 
@@ -52,3 +53,58 @@ void registerSpace::initialize32() {
 void registerSpace::initialize64() { assert(!"No 64-bit registers for AMDGPU"); }
 
 void registerSpace::initialize() { initialize32(); }
+
+Dyninst::Register registerSpace::allocateGprBlock(RegKind regKind, uint32_t numRegs,
+                                                  uint32_t alignment) {
+  uint32_t minGprId = 0;
+  uint32_t maxGprId = 0;
+
+  if (regKind == RegKind::SCALAR) {
+    minGprId = NS_amdgpu::MIN_SGPR_ID;
+    maxGprId = NS_amdgpu::MAX_SGPR_ID;
+  } else if (regKind == RegKind::VECTOR) {
+    minGprId = NS_amdgpu::MIN_VGPR_ID;
+    maxGprId = NS_amdgpu::MAX_VGPR_ID;
+  } else {
+    regalloc_printf("regKind can't be allocated\n");
+    assert(0);
+    return Null_Register;
+  }
+
+  assert(minGprId % alignment == 0);
+
+  for (uint32_t id = minGprId; id + numRegs - 1 <= maxGprId; id += alignment) {
+    // Check whether the single individual consecutive registers can be allocated
+    bool canAllocateBlock = true;
+    for (uint32_t currentId = id; currentId < id + numRegs; ++currentId) {
+      Register singleReg(OperandRegId(currentId), regKind, BlockSize(1));
+      canAllocateBlock &= canAllocate(singleReg);
+    }
+
+    if (canAllocateBlock) {
+      // Allocate those individual registers
+      for (uint32_t currentId = id; currentId < id + numRegs; ++currentId) {
+        Register reg(OperandRegId(currentId), regKind, BlockSize(1));
+        auto *regSlot = this->registers_[reg];
+        regSlot->markUsed(true);
+        regSlot->refCount = 1;
+
+        const char *regIdPrefix = regKind == RegKind::SCALAR ? "s" : "v";
+        regalloc_printf("Allocated register %s%u\n", regIdPrefix, currentId);
+      }
+      return Register(OperandRegId(id), regKind, BlockSize(numRegs));
+    }
+  }
+  return Null_Register;
+}
+
+
+void registerSpace::freeGprBlock(Register regBlock) {
+  bool scalarOrVector = regBlock.getKind() == RegKind::SCALAR || regBlock.getKind() == RegKind::VECTOR;
+  assert(scalarOrVector && "regBlock must be a scalar or vector block");
+
+  std::vector<Register> individualRegs = regBlock.getIndividualRegisters();
+  for (auto reg : individualRegs) {
+    freeRegister(reg);
+  }
+}

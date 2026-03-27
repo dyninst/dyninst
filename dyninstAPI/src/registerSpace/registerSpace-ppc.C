@@ -315,3 +315,8 @@ unsigned registerSpace::SPR(Dyninst::Register x) {
     }
     return Dyninst::Null_Register;
 }
+
+Dyninst::Register registerSpace::allocateGprBlock(RegKind regKind, uint32_t numRegs, uint32_t alignment) {
+  assert("registerSpace::allocateGprBlock not implemented for Power");
+  return Null_Register;
+}

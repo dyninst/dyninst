@@ -58,6 +58,9 @@ using namespace Dyninst;
 constexpr uint32_t MIN_SGPR_ID = 0;
 constexpr uint32_t MAX_SGPR_ID = 101;
 
+constexpr uint32_t MIN_VGPR_ID = 0;
+constexpr uint32_t MAX_VGPR_ID = 255;
+
 namespace RegisterConstants {
 DYNINST_EXPORT extern const Register s0;
 DYNINST_EXPORT extern const Register s1;
