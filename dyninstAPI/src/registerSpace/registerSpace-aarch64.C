@@ -59,3 +59,7 @@ Dyninst::Register registerSpace::allocateGprBlock(RegKind regKind, uint32_t numR
   assert("registerSpace::allocateGprBlock not implemented for AArch64");
   return Null_Register;
 }
+
+void registerSpace::freeGprBlock(Register regBlock) {
+  assert("registerSpace::allocateGprBlock not implemented for AArch64");
+}
