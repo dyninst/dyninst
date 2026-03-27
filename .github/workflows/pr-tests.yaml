@@ -175,7 +175,6 @@ jobs:
           compiler: ${{ matrix.compiler }}
           src-dir: "${GITHUB_WORKSPACE}/src"
           install-dir: ${{ matrix.install-dir }}
-          tests: "OFF"
 
       - name: Checkout Test Suite
         if: ${{ matrix.compiler != 'clang' }}
