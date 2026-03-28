@@ -64,7 +64,7 @@ bool atomicOperationAST::generateCode_phase2(codeGen &gen, bool noCost, Address 
   registerSpace *regSpace = gen.rs();
 
   Register addrRegPair =
-      regSpace->allocateGprBlock(RegKind::SCALAR, /* numRegs =*/2, /* alignment =*/2);
+      regSpace->allocateGprBlock(RegKind::SCALAR, /* numRegs */2, NS_amdgpu::PAIR_ALIGNMENT);
 
   assert(addrRegPair != Null_Register &&
          "AtomicOperationStmtNode : Failed to allocate register pair");

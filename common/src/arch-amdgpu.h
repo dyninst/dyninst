@@ -55,6 +55,10 @@ namespace NS_amdgpu {
 
 using namespace Dyninst;
 
+constexpr uint32_t SINGLE_ALIGNMENT = 1;
+constexpr uint32_t PAIR_ALIGNMENT = 2;
+constexpr uint32_t QUAD_ALIGNMENT = 4;
+
 constexpr uint32_t MIN_SGPR_ID = 0;
 constexpr uint32_t MAX_SGPR_ID = 101;
 
