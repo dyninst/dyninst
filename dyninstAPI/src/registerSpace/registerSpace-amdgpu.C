@@ -99,7 +99,7 @@ Dyninst::Register registerSpace::allocateGprBlock(RegKind regKind, uint32_t numR
 }
 
 
-void registerSpace::freeGprBlock(Register regBlock) {
+void registerSpace::freeGprBlock(Dyninst::Register regBlock) {
   bool scalarOrVector = regBlock.getKind() == RegKind::SCALAR || regBlock.getKind() == RegKind::VECTOR;
   assert(scalarOrVector && "regBlock must be a scalar or vector block");
 

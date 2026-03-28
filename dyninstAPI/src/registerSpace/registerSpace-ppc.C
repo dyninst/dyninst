@@ -321,6 +321,6 @@ Dyninst::Register registerSpace::allocateGprBlock(RegKind regKind, uint32_t numR
   return Null_Register;
 }
 
-void registerSpace::freeGprBlock(Register regBlock) {
+void registerSpace::freeGprBlock(Dyninst::Register regBlock) {
   assert("registerSpace::allocateGprBlock not implemented for Power");
 }
