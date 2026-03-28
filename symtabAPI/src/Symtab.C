@@ -1785,21 +1785,6 @@ DYNINST_EXPORT bool Symtab::emit(std::string const& filename, unsigned flag)
    return emitSymbols(obj, filename, flag);
 }
 
-DYNINST_EXPORT void Symtab::addDynLibSubstitution(std::string const& oldName, std::string const& newName)
-{
-   dynLibSubs[oldName] = newName;
-}
-
-DYNINST_EXPORT std::string Symtab::getDynLibSubstitution(std::string const& name)
-{
-   map<std::string, std::string>::iterator loc = dynLibSubs.find(name);
-
-   if (loc == dynLibSubs.end())
-      return name;
-   else
-      return loc->second;
-}
-
 DYNINST_EXPORT bool Symtab::getSegments(vector<Segment> &segs) const
 {
    segs = segments_;

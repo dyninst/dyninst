@@ -2006,13 +2006,12 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
     std::vector<std::string>::iterator dit;
     for (dit = unversionedNeededEntries.begin(); dit != unversionedNeededEntries.end(); dit++) {
         // account for any substitutions due to rewriting a shared lib
-        std::string name = obj->getDynLibSubstitution(*dit);
         // no need for self-references
-        if (!(obj->name() == name)) {
-            versionNames[name] = dynSymbolNamesLength;
-            dynStrs.push_back(name);
-            dynSymbolNamesLength += (name).size() + 1;
-            addDTNeeded(name);
+        if (!(obj->name() == *dit)) {
+            versionNames[*dit] = dynSymbolNamesLength;
+            dynStrs.push_back(*dit);
+            dynSymbolNamesLength += (*dit).size() + 1;
+            addDTNeeded(*dit);
         }
     }
     for (it = verneedEntries.begin(); it != verneedEntries.end(); it++) {

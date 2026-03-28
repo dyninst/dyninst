@@ -549,9 +549,6 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
  private:
    Object *obj_private{};
 
-   // dynamic library name substitutions
-   std::map <std::string, std::string> dynLibSubs{};
-
    public:
    static boost::shared_ptr<Type>& type_Error();
    static boost::shared_ptr<Type>& type_Untyped();
