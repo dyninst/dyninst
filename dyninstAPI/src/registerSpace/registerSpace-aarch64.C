@@ -55,11 +55,11 @@ void registerSpace::initialize64() {
 
 void registerSpace::initialize() { initialize64(); }
 
-Dyninst::Register registerSpace::allocateGprBlock(RegKind regKind, uint32_t numRegs, uint32_t alignment) {
+Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind /*regKind*/, uint32_t /*numRegs*/, uint32_t /*alignment*/) {
   assert("registerSpace::allocateGprBlock not implemented for AArch64");
-  return Null_Register;
+  return Dyninst::Null_Register;
 }
 
-void registerSpace::freeGprBlock(Dyninst::Register regBlock) {
+void registerSpace::freeGprBlock(Dyninst::Register /*regBlock*/) {
   assert("registerSpace::allocateGprBlock not implemented for AArch64");
 }

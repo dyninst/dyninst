@@ -42,7 +42,7 @@ bool atomicOperationAST::generateCode_phase2(codeGen &gen, bool noCost, Address 
 
   bool ret = true;
 
-  Register src0 = Dyninst::Null_Register;
+  Dyninst::Register src0 = Dyninst::Null_Register;
   if(!constant->generateCode_phase2(gen, noCost, retAddr, src0)) {
     fprintf(stderr, "WARNING: failed in generateCode internals!\n");
     ret = false;
@@ -63,7 +63,7 @@ bool atomicOperationAST::generateCode_phase2(codeGen &gen, bool noCost, Address 
 
   registerSpace *regSpace = gen.rs();
 
-  Register addrRegPair =
+  Dyninst::Register addrRegPair =
       regSpace->allocateGprBlock(RegKind::SCALAR, /* numRegs */2, NS_amdgpu::PAIR_ALIGNMENT);
 
   assert(addrRegPair != Null_Register &&
@@ -74,11 +74,11 @@ bool atomicOperationAST::generateCode_phase2(codeGen &gen, bool noCost, Address 
              addrRegId + 1);
 
   // TODO this needs to pick up the register from placeholderReg
-  Register baseRegPair = Register(OperandRegId(94), RegKind::SCALAR, BlockSize(2));
+  Dyninst::Register baseRegPair = Dyninst::Register(OperandRegId(94), RegKind::SCALAR, BlockSize(2));
 
   // TODO: make movs work with blocks.
-  std::vector<Register> addrRegs = addrRegPair.getIndividualRegisters();
-  std::vector<Register> baseRegs = baseRegPair.getIndividualRegisters();
+  std::vector<Dyninst::Register> addrRegs = addrRegPair.getIndividualRegisters();
+  std::vector<Dyninst::Register> baseRegs = baseRegPair.getIndividualRegisters();
 
   emitter->emitMoveRegToReg(baseRegs[0], addrRegs[0], gen);
   emitter->emitMoveRegToReg(baseRegs[1], addrRegs[1], gen);

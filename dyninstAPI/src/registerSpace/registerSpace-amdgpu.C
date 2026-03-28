@@ -54,7 +54,7 @@ void registerSpace::initialize64() { assert(!"No 64-bit registers for AMDGPU"); 
 
 void registerSpace::initialize() { initialize32(); }
 
-Dyninst::Register registerSpace::allocateGprBlock(RegKind regKind, uint32_t numRegs,
+Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind regKind, uint32_t numRegs,
                                                   uint32_t alignment) {
   uint32_t minGprId = 0;
   uint32_t maxGprId = 0;
@@ -77,14 +77,14 @@ Dyninst::Register registerSpace::allocateGprBlock(RegKind regKind, uint32_t numR
     // Check whether the single individual consecutive registers can be allocated
     bool canAllocateBlock = true;
     for (uint32_t currentId = id; currentId < id + numRegs; ++currentId) {
-      Register singleReg(OperandRegId(currentId), regKind, BlockSize(1));
+      Dyninst::Register singleReg(OperandRegId(currentId), regKind, BlockSize(1));
       canAllocateBlock &= canAllocate(singleReg);
     }
 
     if (canAllocateBlock) {
       // Allocate those individual registers
       for (uint32_t currentId = id; currentId < id + numRegs; ++currentId) {
-        Register reg(OperandRegId(currentId), regKind, BlockSize(1));
+        Dyninst::Register reg(OperandRegId(currentId), regKind, BlockSize(1));
         auto *regSlot = this->registers_[reg];
         regSlot->markUsed(true);
         regSlot->refCount = 1;
@@ -100,10 +100,10 @@ Dyninst::Register registerSpace::allocateGprBlock(RegKind regKind, uint32_t numR
 
 
 void registerSpace::freeGprBlock(Dyninst::Register regBlock) {
-  bool scalarOrVector = regBlock.getKind() == RegKind::SCALAR || regBlock.getKind() == RegKind::VECTOR;
+  bool scalarOrVector = regBlock.getKind() == Dyninst::RegKind::SCALAR || regBlock.getKind() == Dyninst::RegKind::VECTOR;
   assert(scalarOrVector && "regBlock must be a scalar or vector block");
 
-  std::vector<Register> individualRegs = regBlock.getIndividualRegisters();
+  std::vector<Dyninst::Register> individualRegs = regBlock.getIndividualRegisters();
   for (auto reg : individualRegs) {
     freeRegister(reg);
   }
