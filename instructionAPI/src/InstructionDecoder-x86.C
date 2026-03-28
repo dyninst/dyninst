@@ -1012,7 +1012,7 @@ namespace Dyninst { namespace InstructionAPI {
       case am_A: {
         // am_A only shows up as a far call/jump.  Position 1 should be universally safe.
         Expression::Ptr addr(decodeImmediate(optype, b.start + 1));
-        add_successor(addr, isCall, !CFT_INDIRECT, !CFT_CONDITIONAL, !CFT_FALLTHROUGH);
+        add_successor(addr, isCall, !CFT_INDIRECT, !CFT_CONDITIONAL, !CFT_FALLTHROUGH, !OP_IMPLICIT);
       } break;
 
       case am_B: {
@@ -1057,7 +1057,7 @@ namespace Dyninst { namespace InstructionAPI {
         // can be am_R or am_M
       case am_RM:
         if(isCFT) {
-          add_successor(makeModRMExpression(b, optype), isCall, CFT_INDIRECT, !CFT_CONDITIONAL, !CFT_FALLTHROUGH);
+          add_successor(makeModRMExpression(b, optype), isCall, CFT_INDIRECT, !CFT_CONDITIONAL, !CFT_FALLTHROUGH, !OP_IMPLICIT);
         } else {
           add_operand(makeModRMExpression(b, optype), isRead, isWritten,
                                           isImplicit);
@@ -1132,9 +1132,9 @@ namespace Dyninst { namespace InstructionAPI {
             boost::make_shared<Immediate>(Result(u8, decodedInstruction->getSize())));
         Expression::Ptr postEIP(makeAddExpression(EIP, InsnSize, u32));
         Expression::Ptr op(makeAddExpression(Offset, postEIP, u32));
-        add_successor(op, isCall, !CFT_INDIRECT, isConditional, !CFT_FALLTHROUGH);
+        add_successor(op, isCall, !CFT_INDIRECT, isConditional, !CFT_FALLTHROUGH, !OP_IMPLICIT);
         if(isConditional)
-          add_successor(postEIP, !CFT_CALL, !CFT_INDIRECT, CFT_CONDITIONAL, CFT_FALLTHROUGH);
+          add_successor(postEIP, !CFT_CALL, !CFT_INDIRECT, CFT_CONDITIONAL, CFT_FALLTHROUGH, !OP_IMPLICIT);
       } break;
       case am_O: {
         // Address/offset width, which is *not* what's encoded by the optype...
