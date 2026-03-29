@@ -224,26 +224,6 @@ void setBRL(codeGen &gen,        //Instruction storage pointer
     insnCodeGen::generate(gen,insn);
 }
 
-     //////////////////////////////////////////////////////////////////////////
-     //Writes out instructions to place a value into the link register.
-     //  If val == 0, then the instruction sequence is followed by a `nop'.
-     //  If val != 0, then the instruction sequence is followed by a `brl'.
-     //
-void resetBRL(AddressSpace  *p,   //Process to write instructions into
-	      Address   loc, //Address in process to write into
-	      unsigned  val) //Value to set link register
-{
-    codeGen gen(10*instruction::size());
-    Dyninst::Register scratch = 10;
-    if (val) {
-        setBRL(gen, scratch, val, instruction(BRLraw));
-    }
-    else {
-        setBRL(gen, scratch, val, instruction(NOOPraw));
-    }
-    p->writeTextSpace((void *)loc, gen.used(), gen.start_ptr());
-}
-
     /////////////////////////////////////////////////////////////////////////
     //Generates instructions to save the condition codes register onto stack.
     //  Returns the number of bytes needed to store the generated
