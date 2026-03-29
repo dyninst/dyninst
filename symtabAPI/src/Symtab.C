@@ -1498,15 +1498,6 @@ bool Symtab::addUserType(Type *t)
    return true;
 }
 
-bool Symtab::addRegion(Region *sec)
-{
-  regions_.push_back(sec);
-  sec->setSymtab(this);
-  std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
-  addUserRegion(sec);
-   return true;
-}
-
 void Symtab::parseLineInformation()
 {
    Object *linkedFile = getObject();

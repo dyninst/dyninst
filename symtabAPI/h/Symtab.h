@@ -310,7 +310,6 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    bool addRegion(Offset vaddr, void *data, unsigned int dataSize, 
          std::string const& name, Region::RegionType rType_, bool loadable = false,
          unsigned long memAlign = sizeof(unsigned), bool tls = false);
-   bool addRegion(Region *newreg);
    bool emit(std::string const& filename, unsigned flag = 0);
 
    void addDynLibSubstitution(std::string const& oldName, std::string const& newName);
