@@ -324,7 +324,6 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
                                           Offset newDataLength);
    bool fixup_RegionAddr(const char* name, Offset memOffset, long memSize);
    bool updateRegion(const char* name, void *buffer, unsigned size);
-   bool updateCode(void *buffer, unsigned size);
    bool updateData(void *buffer, unsigned size);
    Offset getFreeOffset(unsigned size);
 

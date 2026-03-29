@@ -590,7 +590,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       // From the SymtabAPI documentation: we have the following methods we want to use.
       // Symtab::addSection(Offset vaddr, void *data, unsigned int dataSize, std::string name, 
       //                    unsigned long flags, bool loadable)
-      // Symtab::updateCode(void *buffer, unsigned size)
       // Symtab::emit(std::string filename)
         
       // First, text
