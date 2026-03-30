@@ -43,6 +43,11 @@ namespace Dyninst
 namespace InstructionAPI
 {
   namespace {
+    constexpr bool CFT_CALL = true;
+    constexpr bool CFT_INDIRECT = true;
+    constexpr bool CFT_CONDITIONAL = true;
+    constexpr bool CFT_FALLTHROUGH = true;
+
     constexpr bool OP_READ = true;
     constexpr bool OP_WRITTEN = true;
     constexpr bool OP_IMPLICIT = true;
@@ -87,9 +92,23 @@ class InstructionDecoderImpl
           m_Operands.emplace_back(std::forward<Args>(args)...);
         }
 
+        template<typename... Args>
+        void add_cft_target(Args&&... args) {
+          m_CFT_Targets.emplace_back(std::forward<Args>(args)...);
+        }
+
+        void add_successor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional,
+                           bool isFallthrough, bool isImplicit = false) {
+          add_cft_target(e, isCall, isIndirect, isConditional, isFallthrough);
+          if(!isFallthrough) {
+            add_operand(e, OP_READ, !OP_WRITTEN, isImplicit);
+          }
+        }
+
         Operation m_Operation;
         Architecture m_Arch;
         std::vector<Operand> m_Operands;
+        std::vector<Instruction::CFT> m_CFT_Targets;
 };
 
 }

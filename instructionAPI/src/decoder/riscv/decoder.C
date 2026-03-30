@@ -122,6 +122,7 @@ Instruction InstructionDecoder_riscv64::decode(InstructionDecoder::buffer &buf) 
   decode_operands(insn);
 
   insn.m_Operands = std::move(m_Operands);
+  insn.m_Successors = std::move(m_CFT_Targets);
 
   return insn;
 }
@@ -288,8 +289,7 @@ void InstructionDecoder_riscv64::add_branch_insn_successors(
         Immediate::makeImmediate(Result(imm_type, operands[1].imm));
     auto const target = makeAddExpression(std::move(pc), imm, imm_type);
     const bool is_call_insn = link_reg != riscv64::zero;
-    const Instruction::CFT cft(std::move(target), is_call_insn, !is_indirect, !is_conditional, !is_fallthrough);
-    insn.addSuccessor(std::move(cft));
+    add_successor(target, is_call_insn, !CFT_INDIRECT, !CFT_CONDITIONAL, !CFT_FALLTHROUGH, OP_IMPLICIT);
     break;
   }
   case riscv64_op_jalr: {
@@ -303,8 +303,7 @@ void InstructionDecoder_riscv64::add_branch_insn_successors(
     auto const target = makeAddExpression(std::move(rs), std::move(imm),
                                           std::max(reg_type, imm_type));
     const bool is_call_insn = link_reg != riscv64::zero;
-    const Instruction::CFT cft(std::move(target), is_call_insn, is_indirect, !is_conditional, !is_fallthrough);
-    insn.addSuccessor(std::move(cft));
+    add_successor(std::move(target), is_call_insn, CFT_INDIRECT, !CFT_CONDITIONAL, !CFT_FALLTHROUGH, OP_IMPLICIT);
     break;
   }
   case riscv64_op_beq:
@@ -325,13 +324,10 @@ void InstructionDecoder_riscv64::add_branch_insn_successors(
                                           std::max(reg_type, imm_type));
     if (operands[0].reg == RISCV_REG_ZERO &&
         operands[1].reg == RISCV_REG_ZERO) {
-        const Instruction::CFT cft(std::move(target), !is_call, !is_indirect, !is_conditional, !is_fallthrough);
-        insn.addSuccessor(std::move(cft));
+        add_successor(std::move(target), !CFT_CALL, !CFT_INDIRECT, !CFT_CONDITIONAL, !CFT_FALLTHROUGH, OP_IMPLICIT);
     } else {
-        const Instruction::CFT cft1(std::move(target), !is_call, !is_indirect, is_conditional, is_fallthrough);
-        insn.addSuccessor(std::move(cft1));
-        const Instruction::CFT cft2(std::move(pc), !is_call, !is_indirect, is_conditional, is_fallthrough);
-        insn.addSuccessor(std::move(cft2));
+        add_successor(std::move(target), !CFT_CALL, !CFT_INDIRECT, CFT_CONDITIONAL, CFT_FALLTHROUGH);
+        add_successor(std::move(pc), !CFT_CALL, !CFT_INDIRECT, CFT_CONDITIONAL, CFT_FALLTHROUGH);
     }
     break;
   }
