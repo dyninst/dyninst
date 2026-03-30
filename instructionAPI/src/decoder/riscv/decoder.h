@@ -64,13 +64,13 @@ private:
   void decode_operands(Instruction &);
   void decode_reg(cs_riscv_op const &operand, bool is_encoded);
   void decode_imm(cs_riscv_op const &operand, bool is_encoded);
-  void decode_mem(Instruction &insn, cs_riscv_op const &operand, bool is_encoded);
-  void add_branch_insn_successors(Instruction &,
+  void decode_mem(const Instruction &insn, cs_riscv_op const &operand, bool is_encoded);
+  void add_branch_insn_successors(const Instruction &,
                                   const std::vector<cs_riscv_op> &);
-  void add_pc_operands(Instruction &);
-  std::vector<cs_riscv_op> restore_pseudo_insn_operands(Instruction &,
+  void add_pc_operands(const Instruction &);
+  std::vector<cs_riscv_op> restore_pseudo_insn_operands(const Instruction &,
                                                         std::vector<cs_riscv_op> &);
-  std::vector<cs_riscv_op> restore_compressed_insn_operands(Instruction &,
+  std::vector<cs_riscv_op> restore_compressed_insn_operands(const Instruction &,
                                                             std::vector<cs_riscv_op> &);
   template<typename... Args>
   void add_encoded_operand(Args... args) {

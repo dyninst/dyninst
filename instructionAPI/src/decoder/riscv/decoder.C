@@ -249,7 +249,7 @@ void InstructionDecoder_riscv64::decode_imm(cs_riscv_op const &operand, bool is_
   return;
 }
 
-void InstructionDecoder_riscv64::decode_mem(Instruction &insn, cs_riscv_op const &operand, bool is_encoded) {
+void InstructionDecoder_riscv64::decode_mem(const Instruction &insn, cs_riscv_op const &operand, bool is_encoded) {
   const entryID eid = insn.getOperation().getID();
   const int8_t size = riscv::mem_size(eid);
   auto const type = size_to_type_signed(size);
@@ -332,7 +332,7 @@ void InstructionDecoder_riscv64::add_branch_insn_successors(
 }
 
 std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_compressed_insn_operands(
-    Instruction &insn, std::vector<cs_riscv_op> &operands) {
+    const Instruction &insn, std::vector<cs_riscv_op> &operands) {
   std::vector<cs_riscv_op> res = operands;
   switch (insn.getEncodedOperation().getID()) {
     case riscv64_op_c_add:
@@ -448,7 +448,7 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_compressed_insn_ope
 }
 
 std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_pseudo_insn_operands(
-    Instruction &insn, std::vector<cs_riscv_op> &operands) {
+    const Instruction &insn, std::vector<cs_riscv_op> &operands) {
   const auto op_count = operands.size();
   std::vector<cs_riscv_op> res = operands;
   switch (insn.getEncodedOperation().getID()) {
