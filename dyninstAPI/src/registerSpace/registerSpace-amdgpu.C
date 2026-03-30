@@ -106,8 +106,7 @@ void registerSpace::freeGprBlock(Dyninst::Register regBlock) {
   bool scalarOrVector = regBlock.getKind() == Dyninst::RegKind::SCALAR || regBlock.getKind() == Dyninst::RegKind::VECTOR;
   assert(scalarOrVector && "regBlock must be a scalar or vector block");
 
-  std::vector<Dyninst::Register> individualRegs = regBlock.getIndividualRegisters();
-  for (auto reg : individualRegs) {
+  for (auto reg : regBlock.getIndividualRegisters()) {
     freeRegister(reg);
   }
 }
