@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(INSTRUCTION_DECODER_IMPL_H)
-#define INSTRUCTION_DECODER_IMPL_H
+#ifndef DYNINST_INSTRUCTIONAPI_INSTRUCTIONDECODERIMPL_H
+#define DYNINST_INSTRUCTIONAPI_INSTRUCTIONDECODERIMPL_H
 
 #include "Architecture.h"
 #include "entryIDs.h"
