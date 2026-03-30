@@ -53,7 +53,7 @@ namespace Dyninst { namespace InstructionAPI {
 
   class InstructionDecoderImpl {
   public:
-    typedef boost::shared_ptr<InstructionDecoderImpl> Ptr;
+    using Ptr = boost::shared_ptr<InstructionDecoderImpl>;
 
     InstructionDecoderImpl(Architecture a) : m_Arch(a) {}
 
