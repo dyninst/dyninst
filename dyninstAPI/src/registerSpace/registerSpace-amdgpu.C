@@ -59,16 +59,19 @@ Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind regKind, uint
   uint32_t minGprId = 0;
   uint32_t maxGprId = 0;
 
-  if (regKind == RegKind::SCALAR) {
-    minGprId = NS_amdgpu::MIN_SGPR_ID;
-    maxGprId = NS_amdgpu::MAX_SGPR_ID;
-  } else if (regKind == RegKind::VECTOR) {
-    minGprId = NS_amdgpu::MIN_VGPR_ID;
-    maxGprId = NS_amdgpu::MAX_VGPR_ID;
-  } else {
-    regalloc_printf("regKind can't be allocated\n");
-    assert(0);
-    return Null_Register;
+  switch(regKind) {
+    case RegKind::SCALAR:
+      minGprId = NS_amdgpu::MIN_SGPR_ID;
+      maxGprId = NS_amdgpu::MAX_SGPR_ID;
+      break;
+    case RegKind::VECTOR:
+      minGprId = NS_amdgpu::MIN_VGPR_ID;
+      maxGprId = NS_amdgpu::MAX_VGPR_ID;
+      break;
+    default:
+      regalloc_printf("regKind can't be allocated\n");
+      assert(0);
+      return Null_Register;
   }
 
   assert(minGprId % alignment == 0);
