@@ -28,154 +28,157 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "InstructionDecoderImpl.h"
-#include "InstructionDecoder-x86.h"
-#include "InstructionDecoder-power.h"
 #include "InstructionDecoder-aarch64.h"
+#include "InstructionDecoder-power.h"
+#include "InstructionDecoder-x86.h"
+#include "InstructionDecoderImpl.h"
 #ifdef DYNINST_ENABLE_CAPSTONE
 #include "decoder/riscv/decoder.h"
 #endif
 #include "AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h"
 #include "AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h"
 #include "AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h"
-#include "MultiRegister.h"
-
 #include "BinaryFunction.h"
 #include "Dereference.h"
+#include "MultiRegister.h"
 #include "Ternary.h"
+
 #include <boost/make_shared.hpp>
 
-namespace Dyninst
-{
-    namespace InstructionAPI
-    {
-        boost::shared_ptr<Instruction> InstructionDecoderImpl::makeInstruction(entryID opcode, const char* mnem,
-            unsigned int decodedSize, const unsigned char* raw)
-        {
-            Operation tmp(opcode, mnem, m_Arch);
-            return boost::make_shared<Instruction>(tmp, decodedSize, raw, m_Arch);
-        }
+namespace Dyninst { namespace InstructionAPI {
 
-        InstructionDecoderImpl::Ptr InstructionDecoderImpl::makeDecoderImpl(Architecture a)
-        {
-            switch(a)
-            {
-                case Arch_x86:
-                case Arch_x86_64:
-                    return Ptr(new InstructionDecoder_x86(a));
-                case Arch_ppc32:
-                case Arch_ppc64:
-                    return Ptr(new InstructionDecoder_power(a));
-                case Arch_aarch32:
-                case Arch_aarch64:
-                    return Ptr(new InstructionDecoder_aarch64(a));
-                case Arch_riscv64:
+  boost::shared_ptr<Instruction> InstructionDecoderImpl::makeInstruction(entryID opcode,
+                                                                         const char *mnem,
+                                                                         unsigned int decodedSize,
+                                                                         const unsigned char *raw) {
+    Operation tmp(opcode, mnem, m_Arch);
+    return boost::make_shared<Instruction>(tmp, decodedSize, raw, m_Arch);
+  }
+
+  InstructionDecoderImpl::Ptr InstructionDecoderImpl::makeDecoderImpl(Architecture a) {
+    switch(a) {
+      case Arch_x86:
+      case Arch_x86_64:
+        return Ptr(new InstructionDecoder_x86(a));
+      case Arch_ppc32:
+      case Arch_ppc64:
+        return Ptr(new InstructionDecoder_power(a));
+      case Arch_aarch32:
+      case Arch_aarch64:
+        return Ptr(new InstructionDecoder_aarch64(a));
+      case Arch_riscv64:
 #if defined(DYNINST_ENABLE_CAPSTONE)
-                    return Ptr(new InstructionDecoder_riscv64(a));
+        return Ptr(new InstructionDecoder_riscv64(a));
 #else
-                    assert(!"Dyninst must be configured with -DDYNINST_ENABLE_CAPSTONE=ON to parse RISC-V instructions.");
-                    return Ptr();
+        assert(!"Dyninst must be configured with -DDYNINST_ENABLE_CAPSTONE=ON to parse RISC-V instructions.");
+        return Ptr();
 #endif
-                case Arch_amdgpu_gfx908:
-                    return Ptr(new InstructionDecoder_amdgpu_gfx908(a));
-               case Arch_amdgpu_gfx90a:
-                    return Ptr(new InstructionDecoder_amdgpu_gfx90a(a));
-               case Arch_amdgpu_gfx940:
-                    return Ptr(new InstructionDecoder_amdgpu_gfx940(a));
-                default:
-                    assert(0);
-                    return Ptr();
-            }
-        }
-        Expression::Ptr InstructionDecoderImpl::makeAddExpression(Expression::Ptr lhs,
-                Expression::Ptr rhs, Result_Type resultType)
-        {
-            BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
-
-            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, adder);
-        }
-        Expression::Ptr InstructionDecoderImpl::makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs,
-                Result_Type resultType)
-        {
-            BinaryFunction::funcT::Ptr multiplier(new BinaryFunction::multResult());
-            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, multiplier);
-        }
-        Expression::Ptr InstructionDecoderImpl::makeLeftShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
-                Result_Type resultType)
-        {
-            BinaryFunction::funcT::Ptr leftShifter(new BinaryFunction::leftShiftResult());
-            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, leftShifter);
-        }
-        Expression::Ptr InstructionDecoderImpl::makeRightArithmeticShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
-                Result_Type resultType)
-        {
-            BinaryFunction::funcT::Ptr rightArithmeticShifter(new BinaryFunction::rightArithmeticShiftResult());
-            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, rightArithmeticShifter);
-        }
-        Expression::Ptr InstructionDecoderImpl::makeRightLogicalShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
-                Result_Type resultType)
-        {
-            BinaryFunction::funcT::Ptr rightLogicalShifter(new BinaryFunction::rightLogicalShiftResult());
-            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, rightLogicalShifter);
-        }
-        Expression::Ptr InstructionDecoderImpl::makeRightRotateExpression(Expression::Ptr lhs, Expression::Ptr rhs,
-                Result_Type resultType)
-        {
-            BinaryFunction::funcT::Ptr rightRotator(new BinaryFunction::rightRotateResult());
-            return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, rightRotator);
-        }
-
-        Expression::Ptr InstructionDecoderImpl::makeTernaryExpression(Expression::Ptr cond, Expression::Ptr first, Expression::Ptr second,Result_Type result_type){
-            return boost::make_shared<TernaryAST>(cond,first,second,result_type);
-        }
-
-        Expression::Ptr InstructionDecoderImpl::makeDereferenceExpression(Expression::Ptr addrToDereference,
-                Result_Type resultType)
-        {
-            return boost::make_shared<Dereference>(addrToDereference, resultType);
-        }
-        Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID, uint32_t num_elements )
-        {
-            int newID = registerID.val();
-            int minusArch = newID & ~(registerID.getArchitecture());
-            int convertedID = minusArch | m_Arch;
-            MachRegister converted(convertedID);
-            return boost::make_shared<RegisterAST>(converted, 0, registerID.size() * 8,num_elements);
-        }
-        
-        Expression::Ptr InstructionDecoderImpl::makeMultiRegisterExpression(MachRegister registerID, uint32_t num_elements )
-        {
-            return boost::make_shared<MultiRegisterAST>(registerID, num_elements);
-        }
-        
-       
-
-        Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID, unsigned int start , unsigned int end)
-        {
-            int newID = registerID.val();
-            int minusArch = newID & ~(registerID.getArchitecture());
-            int convertedID = minusArch | m_Arch;
-            MachRegister converted(convertedID);
-            return boost::make_shared<RegisterAST>(converted, start, end);
-        }
-
-
-        Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID, Result_Type extendFrom)
-        {
-            int newID = registerID.val();
-            int minusArch = newID & ~(registerID.getArchitecture());
-            int convertedID = minusArch | m_Arch;
-            MachRegister converted(convertedID);
-            return boost::make_shared<RegisterAST>(converted, 0, registerID.size() * 8, extendFrom);
-        }
-		Expression::Ptr InstructionDecoderImpl::makeMaskRegisterExpression(MachRegister registerID)
-        {
-            int newID = registerID.val();
-            int minusArch = newID & ~(registerID.getArchitecture());
-            int convertedID = minusArch | m_Arch;
-            MachRegister converted(convertedID);
-            return boost::make_shared<MaskRegisterAST>(converted, 0, registerID.size() * 8);
-        }
+      case Arch_amdgpu_gfx908:
+        return Ptr(new InstructionDecoder_amdgpu_gfx908(a));
+      case Arch_amdgpu_gfx90a:
+        return Ptr(new InstructionDecoder_amdgpu_gfx90a(a));
+      case Arch_amdgpu_gfx940:
+        return Ptr(new InstructionDecoder_amdgpu_gfx940(a));
+      default:
+        assert(0);
+        return Ptr();
     }
-}
+  }
 
+  Expression::Ptr InstructionDecoderImpl::makeAddExpression(Expression::Ptr lhs,
+                                                            Expression::Ptr rhs,
+                                                            Result_Type resultType) {
+    BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
+
+    return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, adder);
+  }
+
+  Expression::Ptr InstructionDecoderImpl::makeMultiplyExpression(Expression::Ptr lhs,
+                                                                 Expression::Ptr rhs,
+                                                                 Result_Type resultType) {
+    BinaryFunction::funcT::Ptr multiplier(new BinaryFunction::multResult());
+    return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, multiplier);
+  }
+
+  Expression::Ptr InstructionDecoderImpl::makeLeftShiftExpression(Expression::Ptr lhs,
+                                                                  Expression::Ptr rhs,
+                                                                  Result_Type resultType) {
+    BinaryFunction::funcT::Ptr leftShifter(new BinaryFunction::leftShiftResult());
+    return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, leftShifter);
+  }
+
+  Expression::Ptr InstructionDecoderImpl::makeRightArithmeticShiftExpression(
+      Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType) {
+    BinaryFunction::funcT::Ptr rightArithmeticShifter(
+        new BinaryFunction::rightArithmeticShiftResult());
+    return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, rightArithmeticShifter);
+  }
+
+  Expression::Ptr InstructionDecoderImpl::makeRightLogicalShiftExpression(Expression::Ptr lhs,
+                                                                          Expression::Ptr rhs,
+                                                                          Result_Type resultType) {
+    BinaryFunction::funcT::Ptr rightLogicalShifter(new BinaryFunction::rightLogicalShiftResult());
+    return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, rightLogicalShifter);
+  }
+
+  Expression::Ptr InstructionDecoderImpl::makeRightRotateExpression(Expression::Ptr lhs,
+                                                                    Expression::Ptr rhs,
+                                                                    Result_Type resultType) {
+    BinaryFunction::funcT::Ptr rightRotator(new BinaryFunction::rightRotateResult());
+    return boost::make_shared<BinaryFunction>(lhs, rhs, resultType, rightRotator);
+  }
+
+  Expression::Ptr InstructionDecoderImpl::makeTernaryExpression(Expression::Ptr cond,
+                                                                Expression::Ptr first,
+                                                                Expression::Ptr second,
+                                                                Result_Type result_type) {
+    return boost::make_shared<TernaryAST>(cond, first, second, result_type);
+  }
+
+  Expression::Ptr
+  InstructionDecoderImpl::makeDereferenceExpression(Expression::Ptr addrToDereference,
+                                                    Result_Type resultType) {
+    return boost::make_shared<Dereference>(addrToDereference, resultType);
+  }
+
+  Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID,
+                                                                 uint32_t num_elements) {
+    int newID = registerID.val();
+    int minusArch = newID & ~(registerID.getArchitecture());
+    int convertedID = minusArch | m_Arch;
+    MachRegister converted(convertedID);
+    return boost::make_shared<RegisterAST>(converted, 0, registerID.size() * 8, num_elements);
+  }
+
+  Expression::Ptr InstructionDecoderImpl::makeMultiRegisterExpression(MachRegister registerID,
+                                                                      uint32_t num_elements) {
+    return boost::make_shared<MultiRegisterAST>(registerID, num_elements);
+  }
+
+  Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID,
+                                                                 unsigned int start,
+                                                                 unsigned int end) {
+    int newID = registerID.val();
+    int minusArch = newID & ~(registerID.getArchitecture());
+    int convertedID = minusArch | m_Arch;
+    MachRegister converted(convertedID);
+    return boost::make_shared<RegisterAST>(converted, start, end);
+  }
+
+  Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID,
+                                                                 Result_Type extendFrom) {
+    int newID = registerID.val();
+    int minusArch = newID & ~(registerID.getArchitecture());
+    int convertedID = minusArch | m_Arch;
+    MachRegister converted(convertedID);
+    return boost::make_shared<RegisterAST>(converted, 0, registerID.size() * 8, extendFrom);
+  }
+
+  Expression::Ptr InstructionDecoderImpl::makeMaskRegisterExpression(MachRegister registerID) {
+    int newID = registerID.val();
+    int minusArch = newID & ~(registerID.getArchitecture());
+    int convertedID = minusArch | m_Arch;
+    MachRegister converted(convertedID);
+    return boost::make_shared<MaskRegisterAST>(converted, 0, registerID.size() * 8);
+  }
+}}
