@@ -87,6 +87,10 @@ InstructionDecoder_riscv64::~InstructionDecoder_riscv64() {
 }
 
 Instruction InstructionDecoder_riscv64::decode(InstructionDecoder::buffer &buf) {
+  // The member variables are moved-from if 'decode' was called before.
+  // Explicitly construct new ones to prevent UB.
+  m_Operands = decltype(m_Operands){};
+
   auto *code = buf.start;
   size_t code_size = buf.end - buf.start;
   uint64_t cap_addr = 0;
@@ -116,6 +120,9 @@ Instruction InstructionDecoder_riscv64::decode(InstructionDecoder::buffer &buf) 
   unsigned int decodedSize = buf.start - code_ptr;
   Instruction insn(std::move(op), std::move(encoded_op), decodedSize, code_ptr, m_Arch);
   decode_operands(insn);
+
+  insn.m_Operands = std::move(m_Operands);
+
   return insn;
 }
 
@@ -179,7 +186,6 @@ void InstructionDecoder_riscv64::decode_operands(Instruction &insn) {
 
   // Handle implicit operands
   for (auto r : implicit_registers(d)) {
-    constexpr bool is_implicit = true;
     riscv_reg reg = r.first;
     MachRegister mreg = riscv::translate_register(reg, this->mode);
     auto regAST = makeRegisterExpression(mreg);
@@ -187,7 +193,7 @@ void InstructionDecoder_riscv64::decode_operands(Instruction &insn) {
     // For compressed instructions, we already handled non-encoded operands
     // Thus, for compressed instructions, we only add implicit registers to encoded operands
     if (!is_compressed(insn)) {
-      insn.appendOperand(regAST, s.read, s.written, is_implicit);
+      add_operand(regAST, s.read, s.written, OP_IMPLICIT);
     }
     insn.appendEncodedOperand(regAST, s.read, s.written, is_implicit);
   }
@@ -203,8 +209,6 @@ void InstructionDecoder_riscv64::decode_operands(Instruction &insn) {
 }
 
 void InstructionDecoder_riscv64::decode_reg(Instruction &insn, cs_riscv_op const &operand, bool is_encoded) {
-  constexpr bool is_implicit = true;
-
   riscv_reg reg = static_cast<riscv_reg>(operand.reg);
   auto regAST = makeRegisterExpression(riscv::translate_register(reg, mode));
 
@@ -221,7 +225,7 @@ void InstructionDecoder_riscv64::decode_reg(Instruction &insn, cs_riscv_op const
     insn.appendEncodedOperand(regAST, is_read, is_written, !is_implicit);
   }
   else {
-    insn.appendOperand(regAST, is_read, is_written, !is_implicit);
+    add_operand(regAST, is_read, is_written, !OP_IMPLICIT);
   }
 }
 
@@ -240,7 +244,7 @@ void InstructionDecoder_riscv64::decode_imm(Instruction &insn, cs_riscv_op const
     insn.appendEncodedOperand(std::move(imm), !is_read, !is_written, !is_implicit);
   }
   else {
-    insn.appendOperand(std::move(imm), !is_read, !is_written, !is_implicit);
+    add_operand(std::move(imm), !OP_READ, !OP_WRITTEN, !OP_IMPLICIT);
   }
   return;
 }
@@ -261,8 +265,8 @@ void InstructionDecoder_riscv64::decode_mem(Instruction &insn, cs_riscv_op const
                               riscv::is_mem_store(eid), !is_implicit);
   }
   else {
-    insn.appendOperand(std::move(deref), riscv::is_mem_load(eid),
-                       riscv::is_mem_store(eid), !is_implicit);
+    add_operand(std::move(deref), riscv::is_mem_load(eid),
+                       riscv::is_mem_store(eid), !OP_IMPLICIT);
   }
 }
 
@@ -822,12 +826,12 @@ void InstructionDecoder_riscv64::add_pc_operands(Instruction &insn) {
   auto const pc = makeRegisterExpression(MachRegister::getPC(this->m_Arch));
   switch (eid) {
   case riscv64_op_auipc: {
-    insn.appendOperand(pc, is_read, !is_write, is_implicit);
+    add_operand(pc, OP_READ, !OP_WRITTEN, OP_IMPLICIT);
     insn.appendEncodedOperand(pc, is_read, !is_write, is_implicit);
     break;
   }
   case riscv64_op_jalr: {
-    insn.appendOperand(pc, !is_read, is_write, is_implicit);
+    add_operand(pc, !OP_READ, OP_WRITTEN, OP_IMPLICIT);
     insn.appendEncodedOperand(pc, !is_read, is_write, is_implicit);
     break;
   }
@@ -838,7 +842,7 @@ void InstructionDecoder_riscv64::add_pc_operands(Instruction &insn) {
   case riscv64_op_bge:
   case riscv64_op_bltu:
   case riscv64_op_bgeu: {
-    insn.appendOperand(pc, is_read, is_write, is_implicit);
+    add_operand(pc, OP_READ, OP_WRITTEN, OP_IMPLICIT);
     insn.appendEncodedOperand(pc, is_read, is_write, is_implicit);
     break;
   }

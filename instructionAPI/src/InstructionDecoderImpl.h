@@ -42,6 +42,12 @@ namespace Dyninst
 {
 namespace InstructionAPI
 {
+  namespace {
+    constexpr bool OP_READ = true;
+    constexpr bool OP_WRITTEN = true;
+    constexpr bool OP_IMPLICIT = true;
+  }
+
 class InstructionDecoderImpl
 {
     public:
@@ -76,9 +82,14 @@ class InstructionDecoderImpl
         boost::shared_ptr<Instruction> makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,
                                      const unsigned char* raw);
 
+        template<typename... Args>
+        void add_operand(Args&&... args) {
+          m_Operands.emplace_back(std::forward<Args>(args)...);
+        }
+
         Operation m_Operation;
         Architecture m_Arch;
-
+        std::vector<Operand> m_Operands;
 };
 
 }
