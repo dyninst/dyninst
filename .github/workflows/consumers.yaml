@@ -241,14 +241,11 @@ jobs:
           cd /
           git clone --depth=1 https://gitlab.com/graphviz/graphviz.git
           cd graphviz
-          ./autogen.sh
           mkdir build
           cd build
-          ../configure --without-qt --without-gts --without-doc --without-expat --without-ghostscript \
-                       --without-gtkplus --without-libgd --without-pangocairo --without-popler \
-                       --without-quartz --without-x
-          make -j2
-          make install
+          cmake .. -DWITH_EXPAT=OFF -DWITH_GHOSTSCRIPT=OFF -DWITH_GTK=OFF -DWITH_QUARTZ=OFF -DWITH_X=OFF
+          cmake --build . --parallel 2
+          cmake --install .
 
       - name: Install launchmon
         shell: bash
