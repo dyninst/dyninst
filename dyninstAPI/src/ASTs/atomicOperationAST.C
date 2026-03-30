@@ -67,10 +67,10 @@ bool atomicOperationAST::generateCode_phase2(codeGen &gen, bool noCost, Address 
       regSpace->allocateGprBlock(RegKind::SCALAR, /* numRegs */2, NS_amdgpu::PAIR_ALIGNMENT);
 
   assert(addrRegPair != Null_Register &&
-         "AtomicOperationStmtNode : Failed to allocate register pair");
+         "atomicOperationAST : Failed to allocate register pair");
 
   const uint32_t addrRegId = addrRegPair.getId();
-  ast_printf("AtomicOperationStmtNode allocated scalar register block s[%u:%u]\n", addrRegId,
+  ast_printf("atomicOperationAST allocated scalar register block s[%u:%u]\n", addrRegId,
              addrRegId + 1);
 
   // TODO this needs to pick up the register from placeholderReg
