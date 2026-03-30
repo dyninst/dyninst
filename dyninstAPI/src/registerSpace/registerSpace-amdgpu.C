@@ -62,7 +62,7 @@ Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind regKind, uint
   switch(regKind) {
     case RegKind::SCALAR:
       minGprId = NS_amdgpu::MIN_SGPR_ID;
-      maxGprId = NS_amdgpu::MAX_SGPR_ID;
+      maxGprId = NS_amdgpu::MAX_ALLOCATABLE_SGPR_ID;
       break;
     case RegKind::VECTOR:
       minGprId = NS_amdgpu::MIN_VGPR_ID;

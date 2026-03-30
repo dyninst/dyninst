@@ -62,6 +62,12 @@ constexpr uint32_t QUAD_ALIGNMENT = 4;
 constexpr uint32_t MIN_SGPR_ID = 0;
 constexpr uint32_t MAX_SGPR_ID = 101;
 
+// Since we max out register allocation for GFX908 kernels in the kernel descriptor,
+// vcc will alias with s[100:101] as it aliases to the last allocated SGPR pair.
+
+// We don't want these registers to be used in instrumentation code.
+constexpr uint32_t MAX_ALLOCATABLE_SGPR_ID = MAX_SGPR_ID - 2;
+
 constexpr uint32_t MIN_VGPR_ID = 0;
 constexpr uint32_t MAX_VGPR_ID = 255;
 
