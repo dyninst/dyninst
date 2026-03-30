@@ -48,6 +48,7 @@ public:
 private:
   cs_mode mode{};
   disassem disassembler{};
+  std::vector<Operand> insn_encoded_operands;
 
 public:
   InstructionDecoder_riscv64(Dyninst::Architecture a);
@@ -71,6 +72,10 @@ private:
                                                         std::vector<cs_riscv_op> &);
   std::vector<cs_riscv_op> restore_compressed_insn_operands(Instruction &,
                                                             std::vector<cs_riscv_op> &);
+  template<typename... Args>
+  void add_encoded_operand(Args... args) {
+    insn_encoded_operands.emplace_back(args...);
+  }
 };
 
 } // namespace InstructionAPI

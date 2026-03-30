@@ -90,6 +90,8 @@ Instruction InstructionDecoder_riscv64::decode(InstructionDecoder::buffer &buf) 
   // The member variables are moved-from if 'decode' was called before.
   // Explicitly construct new ones to prevent UB.
   m_Operands = decltype(m_Operands){};
+  m_CFT_Targets = decltype(m_CFT_Targets){};
+  insn_encoded_operands = decltype(insn_encoded_operands){};
 
   auto *code = buf.start;
   size_t code_size = buf.end - buf.start;
@@ -121,6 +123,7 @@ Instruction InstructionDecoder_riscv64::decode(InstructionDecoder::buffer &buf) 
   Instruction insn(std::move(op), std::move(encoded_op), decodedSize, code_ptr, m_Arch);
   decode_operands(insn);
 
+  insn.m_EncodedOperands = std::move(insn_encoded_operands);
   insn.m_Operands = std::move(m_Operands);
   insn.m_Successors = std::move(m_CFT_Targets);
 
@@ -196,7 +199,7 @@ void InstructionDecoder_riscv64::decode_operands(Instruction &insn) {
     if (!is_compressed(insn)) {
       add_operand(regAST, s.read, s.written, OP_IMPLICIT);
     }
-    insn.appendEncodedOperand(regAST, s.read, s.written, is_implicit);
+    add_encoded_operand(regAST, s.read, s.written, OP_IMPLICIT);
   }
 
   // Special case: Capstone does not handle implicit pc registers
@@ -223,7 +226,7 @@ void InstructionDecoder_riscv64::decode_reg(Instruction &insn, cs_riscv_op const
   }
 
   if (is_encoded) {
-    insn.appendEncodedOperand(regAST, is_read, is_written, !is_implicit);
+    add_encoded_operand(regAST, is_read, is_written, !OP_IMPLICIT);
   }
   else {
     add_operand(regAST, is_read, is_written, !OP_IMPLICIT);
@@ -237,12 +240,8 @@ void InstructionDecoder_riscv64::decode_imm(Instruction &insn, cs_riscv_op const
   auto type = size_to_type_signed(RISCV_IMM_SIZE);
   auto imm = Immediate::makeImmediate(Result(type, operand.imm));
 
-  constexpr bool is_read = true;
-  constexpr bool is_written = true;
-  constexpr bool is_implicit = true;
-
   if (is_encoded) {
-    insn.appendEncodedOperand(std::move(imm), !is_read, !is_written, !is_implicit);
+    add_encoded_operand(std::move(imm), !OP_READ, !OP_WRITTEN, !OP_IMPLICIT);
   }
   else {
     add_operand(std::move(imm), !OP_READ, !OP_WRITTEN, !OP_IMPLICIT);
@@ -254,7 +253,6 @@ void InstructionDecoder_riscv64::decode_mem(Instruction &insn, cs_riscv_op const
   const entryID eid = insn.getOperation().getID();
   const int8_t size = riscv::mem_size(eid);
   auto const type = size_to_type_signed(size);
-  const bool is_implicit = true;
 
   auto disp = Immediate::makeImmediate(Result(type, operand.mem.disp));
   auto base = makeRegisterExpression(riscv::translate_register(
@@ -262,8 +260,8 @@ void InstructionDecoder_riscv64::decode_mem(Instruction &insn, cs_riscv_op const
   auto add = makeAddExpression(std::move(base), std::move(disp), type);
   auto deref = makeDereferenceExpression(std::move(add), type);
   if (is_encoded) {
-    insn.appendEncodedOperand(std::move(deref), riscv::is_mem_load(eid),
-                              riscv::is_mem_store(eid), !is_implicit);
+    add_encoded_operand(std::move(deref), riscv::is_mem_load(eid),
+                              riscv::is_mem_store(eid), !OP_IMPLICIT);
   }
   else {
     add_operand(std::move(deref), riscv::is_mem_load(eid),
@@ -272,11 +270,7 @@ void InstructionDecoder_riscv64::decode_mem(Instruction &insn, cs_riscv_op const
 }
 
 void InstructionDecoder_riscv64::add_branch_insn_successors(
-    Instruction &insn, const std::vector<cs_riscv_op> &operands) {
-  constexpr bool is_call = true;
-  constexpr bool is_indirect = true;
-  constexpr bool is_conditional = true;
-  constexpr bool is_fallthrough = true;
+    const Instruction &insn, const std::vector<cs_riscv_op> &operands) {
 
   auto const pc = makeRegisterExpression(MachRegister::getPC(this->m_Arch));
   auto const reg_type = size_to_type_signed(RISCV_REG_SIZE);
@@ -813,22 +807,19 @@ std::vector<cs_riscv_op> InstructionDecoder_riscv64::restore_pseudo_insn_operand
   return res;
 }
 
-void InstructionDecoder_riscv64::add_pc_operands(Instruction &insn) {
-  constexpr bool is_read = true;
-  constexpr bool is_write = true;
-  constexpr bool is_implicit = true;
+void InstructionDecoder_riscv64::add_pc_operands(const Instruction &insn) {
   const entryID eid = insn.getOperation().getID();
 
   auto const pc = makeRegisterExpression(MachRegister::getPC(this->m_Arch));
   switch (eid) {
   case riscv64_op_auipc: {
     add_operand(pc, OP_READ, !OP_WRITTEN, OP_IMPLICIT);
-    insn.appendEncodedOperand(pc, is_read, !is_write, is_implicit);
+    add_encoded_operand(pc, OP_READ, !OP_WRITTEN, OP_IMPLICIT);
     break;
   }
   case riscv64_op_jalr: {
     add_operand(pc, !OP_READ, OP_WRITTEN, OP_IMPLICIT);
-    insn.appendEncodedOperand(pc, !is_read, is_write, is_implicit);
+    add_encoded_operand(pc, !OP_READ, OP_WRITTEN, OP_IMPLICIT);
     break;
   }
   case riscv64_op_jal:
@@ -839,7 +830,7 @@ void InstructionDecoder_riscv64::add_pc_operands(Instruction &insn) {
   case riscv64_op_bltu:
   case riscv64_op_bgeu: {
     add_operand(pc, OP_READ, OP_WRITTEN, OP_IMPLICIT);
-    insn.appendEncodedOperand(pc, is_read, is_write, is_implicit);
+    add_encoded_operand(pc, OP_READ, OP_WRITTEN, OP_IMPLICIT);
     break;
   }
   default: {
