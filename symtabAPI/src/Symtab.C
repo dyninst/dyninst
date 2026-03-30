@@ -1847,18 +1847,6 @@ DYNINST_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset,
     return true;
 }
 
-DYNINST_EXPORT bool Symtab::updateRegion(const char* name, void *buffer, unsigned size)
-{
-   Region *sec;
-
-   if (!findRegion(sec, name))
-      return false;
-
-   sec->setPtrToRawData(buffer, size);
-
-   return true;
-}
-
 DYNINST_EXPORT Offset Symtab::getFreeOffset(unsigned size) 
 {
    // Look through sections until we find a gap with
