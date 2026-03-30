@@ -153,10 +153,10 @@ void InstructionDecoder_riscv64::decode_operands(Instruction &insn) {
   for (auto &operand : operands) {
     switch (operand.type) {
     case RISCV_OP_REG:
-      decode_reg(insn, operand, !is_encoded);
+      decode_reg(operand, !is_encoded);
       break;
     case RISCV_OP_IMM:
-      decode_imm(insn, operand, !is_encoded);
+      decode_imm(operand, !is_encoded);
       break;
     case RISCV_OP_MEM:
       decode_mem(insn, operand, !is_encoded);
@@ -172,10 +172,10 @@ void InstructionDecoder_riscv64::decode_operands(Instruction &insn) {
   for (auto &operand : encoded_operands) {
     switch (operand.type) {
     case RISCV_OP_REG:
-      decode_reg(insn, operand, is_encoded);
+      decode_reg(operand, is_encoded);
       break;
     case RISCV_OP_IMM:
-      decode_imm(insn, operand, is_encoded);
+      decode_imm(operand, is_encoded);
       break;
     case RISCV_OP_MEM:
       decode_mem(insn, operand, is_encoded);
@@ -212,7 +212,7 @@ void InstructionDecoder_riscv64::decode_operands(Instruction &insn) {
   }
 }
 
-void InstructionDecoder_riscv64::decode_reg(Instruction &insn, cs_riscv_op const &operand, bool is_encoded) {
+void InstructionDecoder_riscv64::decode_reg(cs_riscv_op const &operand, bool is_encoded) {
   riscv_reg reg = static_cast<riscv_reg>(operand.reg);
   auto regAST = makeRegisterExpression(riscv::translate_register(reg, mode));
 
@@ -233,7 +233,7 @@ void InstructionDecoder_riscv64::decode_reg(Instruction &insn, cs_riscv_op const
   }
 }
 
-void InstructionDecoder_riscv64::decode_imm(Instruction &insn, cs_riscv_op const &operand, bool is_encoded) {
+void InstructionDecoder_riscv64::decode_imm(cs_riscv_op const &operand, bool is_encoded) {
 
   // Capstone does not track the size of immediate
 

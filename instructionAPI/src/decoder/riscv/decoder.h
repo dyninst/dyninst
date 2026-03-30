@@ -62,8 +62,8 @@ public:
 
 private:
   void decode_operands(Instruction &);
-  void decode_reg(Instruction &insn, cs_riscv_op const &operand, bool is_encoded);
-  void decode_imm(Instruction &insn, cs_riscv_op const &operand, bool is_encoded);
+  void decode_reg(cs_riscv_op const &operand, bool is_encoded);
+  void decode_imm(cs_riscv_op const &operand, bool is_encoded);
   void decode_mem(Instruction &insn, cs_riscv_op const &operand, bool is_encoded);
   void add_branch_insn_successors(Instruction &,
                                   const std::vector<cs_riscv_op> &);
