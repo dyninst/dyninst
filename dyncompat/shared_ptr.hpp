@@ -30,6 +30,7 @@ public:
   template <typename Integer, typename = std::enable_if_t<std::is_integral_v<Integer>>>
   shared_ptr(Integer value) : base(nullptr) {
     assert(value == 0);
+    (void)value;
   }
 
   shared_ptr(const base& other) DYNCOMPAT_NOEXCEPT : base(other) {}
@@ -64,6 +65,7 @@ public:
   template <typename Integer, typename = std::enable_if_t<std::is_integral_v<Integer>>>
   shared_ptr& operator=(Integer value) {
     assert(value == 0);
+    (void)value;
     base::reset();
     return *this;
   }
