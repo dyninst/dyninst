@@ -57,6 +57,15 @@ public:
   constexpr uint32_t getCount() const { return count_; }
 };
 
+// Instead of a raw number, this is used to specify alignment for allocating registers during code generation.
+class Alignment final {
+  uint32_t value_;
+
+public:
+  explicit constexpr Alignment(uint32_t value) : value_(value) {}
+  constexpr uint32_t getValue() const { return value_; }
+};
+
 class Register {
   OperandRegId id;
   RegKind kind;
