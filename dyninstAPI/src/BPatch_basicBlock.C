@@ -32,7 +32,7 @@
 
 #include <stdio.h>
 #include <iostream>
-#include <boost/bind/bind.hpp>
+#include <dyncompat/bind/bind.hpp>
 
 #include "util.h"
 
@@ -123,11 +123,11 @@ void BPatch_basicBlock::getSources(BPatch_Vector<BPatch_basicBlock*>& srcs){
   func_instance *func = flowGraph->getFunction()->lowlevel_func();
   SingleContext epred_(func->ifunc(),false,true);
   //Intraproc epred(&epred_);
-  std::for_each(boost::make_filter_iterator(epred_, isrcs.begin(), isrcs.end()),
-		boost::make_filter_iterator(epred_, isrcs.end(), isrcs.end()),
-		boost::bind(source_helper,
-			    boost::placeholders::_1,
-			    boost::ref(srcs),
+  std::for_each(dyncompat::make_filter_iterator(epred_, isrcs.begin(), isrcs.end()),
+		dyncompat::make_filter_iterator(epred_, isrcs.end(), isrcs.end()),
+		dyncompat::bind(source_helper,
+			    dyncompat::placeholders::_1,
+			    dyncompat::ref(srcs),
 			    flowGraph,
 			    func));
   

@@ -91,9 +91,9 @@ class image_variable;
 // with the lowest usage count.
 
 class AstNode;
-typedef boost::shared_ptr<AstNode> AstNodePtr;
+typedef dyncompat::shared_ptr<AstNode> AstNodePtr;
 class AstMiniTrampNode;
-typedef boost::shared_ptr<AstMiniTrampNode> AstMiniTrampNodePtr;
+typedef dyncompat::shared_ptr<AstMiniTrampNode> AstMiniTrampNodePtr;
 
 typedef enum {
    cfj_unset = 0,
@@ -937,8 +937,8 @@ void emitStorePreviousStackFrameRegister(Dyninst::Address register_num,
                                          int size,
                                          bool noCost);
 
-#define SCAST_AST(ast) boost::static_pointer_cast<AstNode>(ast)
-#define DCAST_AST(ast) boost::dynamic_pointer_cast<AstNode>(ast)
+#define SCAST_AST(ast) dyncompat::static_pointer_cast<AstNode>(ast)
+#define DCAST_AST(ast) dyncompat::dynamic_pointer_cast<AstNode>(ast)
 
 
 #endif /* AST_HDR */

@@ -38,7 +38,7 @@ namespace Dyninst {
 
 namespace DwarfDyninst {
 class DwarfFrameParser;
-typedef boost::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
+typedef dyncompat::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
 }
 
 namespace Stackwalker {

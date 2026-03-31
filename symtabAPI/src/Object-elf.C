@@ -76,13 +76,13 @@ using namespace std;
 
 #include <fstream>
 
-#include <boost/assign/list_of.hpp>
-#include <boost/assign/std/set.hpp>
-#include <boost/filesystem.hpp>
+#include <dyncompat/assign/list_of.hpp>
+#include <dyncompat/assign/std/set.hpp>
+#include <filesystem>
 
 #include "SymReader.h"
 #include <endian.h>
-using namespace boost::assign;
+using namespace dyncompat::assign;
 
 // add some space to avoid looking for functions in data regions
 #define EXTRA_SPACE 8
@@ -3198,7 +3198,7 @@ void Object::parseLineInfoForCU(Offset offset_, LineInformation* li_for_module)
     }
 
     StringTablePtr strings(li_for_module->getStrings());
-    boost::unique_lock<dyn_mutex> l(strings->lock);
+    dyncompat::unique_lock<dyn_mutex> l(strings->lock);
     Dwarf_Files *files;
     size_t offset = strings->size();
     size_t filecount;
@@ -3228,7 +3228,7 @@ void Object::parseLineInfoForCU(Offset offset_, LineInformation* li_for_module)
         return s_name;
     };
 
-    using namespace boost::filesystem;
+    using namespace std::filesystem;
     for(size_t i = 0; i < filecount; i++)
     {
         auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
@@ -3444,7 +3444,7 @@ InlinedFunction* Object::recordAnInlinedFunction(
 
     // Use the filename and line number from the caller 
     const string& src_file = (*strings)[caller.string_table_index].str;                
-    ifunc->callsite_file_number = strings->project<0>(strings->get<1>().insert(StringTableEntry(src_file,"")).first) - strings->begin();      
+    ifunc->callsite_file_number = strings->ensure(src_file);      
     ifunc->callsite_line = caller.line_number;
     
     // Use the function name from the callee
@@ -3515,10 +3515,10 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
     if (status != 0) break;
       
 
-    boost::unique_lock<dyn_mutex> l(strings->lock);
+    dyncompat::unique_lock<dyn_mutex> l(strings->lock);
     size_t offset = strings->size();
 
-    using namespace boost::filesystem;
+    using namespace std::filesystem;
     for(size_t i = 0; i < fileCount; i++)
     {
         auto filename = dwarf_filesrc(files, i, nullptr, nullptr);

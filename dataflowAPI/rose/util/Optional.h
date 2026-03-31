@@ -36,7 +36,7 @@ public:
 
 /** Holds a value or nothing.
  *
- *  This class is similar to boost::optional except simpler in order to avoid problems we were seeing with Microsoft
+ *  This class is similar to dyncompat::optional except simpler in order to avoid problems we were seeing with Microsoft
  *  compilers.
  *
  *  The stored value type (@ref Value) cannot be a reference type. */

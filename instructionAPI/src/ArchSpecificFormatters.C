@@ -11,8 +11,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include <boost/algorithm/string/join.hpp>
-#include <boost/shared_ptr.hpp>
+#include <dyncompat/algorithm/string/join.hpp>
+#include <dyncompat/shared_ptr.hpp>
 #include "../../common/h/compiler_diagnostics.h"
 #include "Architecture.h"
 #include "registers/AMDGPU/amdgpu_gfx908_regs.h"
@@ -27,7 +27,14 @@ using namespace Dyninst::InstructionAPI;
 std::string ArchSpecificFormatter::getInstructionString(const std::vector<std::string> &operands) const
 {
     // non-x86_64 operand formatter:  join non-empty operands strings with ", "
-    return boost::algorithm::join_if(operands, ", ", [](const std::string &op){return !op.empty();});
+    std::string result;
+    for(const auto &op : operands) {
+        if(!op.empty()) {
+            if(!result.empty()) result += ", ";
+            result += op;
+        }
+    }
+    return result;
 }
 
 std::string ArchSpecificFormatter::formatBinaryFunc(const std::string &left, const std::string &func, const std::string &right) const  {
@@ -408,27 +415,27 @@ bool x86Formatter::operandPrintOrderReversed() const
 ///////////////////////////
 ArchSpecificFormatter& ArchSpecificFormatter::getFormatter(Architecture a)
 {
-    static dyn_tls std::map<Dyninst::Architecture, boost::shared_ptr<ArchSpecificFormatter> > theFormatters;
+    static dyn_tls std::map<Dyninst::Architecture, dyncompat::shared_ptr<ArchSpecificFormatter> > theFormatters;
     auto found = theFormatters.find(a);
     if(found != theFormatters.end()) return *found->second;
     switch(a) {
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
         case Arch_amdgpu_gfx940:
-            theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new AmdgpuFormatter());
+            theFormatters[a] = dyncompat::shared_ptr<ArchSpecificFormatter>(new AmdgpuFormatter());
             break;
         case Arch_aarch32:
         case Arch_aarch64:
-            theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new ArmFormatter());
+            theFormatters[a] = dyncompat::shared_ptr<ArchSpecificFormatter>(new ArmFormatter());
             break;
         case Arch_ppc32:
         case Arch_ppc64:
-            theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new PPCFormatter());
+            theFormatters[a] = dyncompat::shared_ptr<ArchSpecificFormatter>(new PPCFormatter());
             break;
         case Arch_x86:
         case Arch_x86_64:
         default:
-            theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new x86Formatter());
+            theFormatters[a] = dyncompat::shared_ptr<ArchSpecificFormatter>(new x86Formatter());
             break;
     }
     return *theFormatters[a];

@@ -41,9 +41,9 @@
 #include <mutex>
 
 #include "util.h"
-#include <boost/thread/lockable_adapter.hpp>
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/flyweight.hpp>
+#include <dyncompat/thread/lockable_adapter.hpp>
+#include <dyncompat/thread/recursive_mutex.hpp>
+#include <string>
 
 // OpCode = operation + encoding
 // contents:
@@ -96,7 +96,7 @@ namespace Dyninst
     /// %Operations are constructed by the %InstructionDecoder as part of the process
     /// of constructing an %Instruction.
     
-    class Operation : public boost::lockable_adapter<boost::recursive_mutex>
+    class Operation : public dyncompat::lockable_adapter<dyncompat::recursive_mutex>
     {
     public:
       typedef std::set<RegisterAST::Ptr> registerSet;

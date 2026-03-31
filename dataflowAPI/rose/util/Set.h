@@ -13,8 +13,8 @@
 
 #include <memory>
 #include <stddef.h>
-#include <boost/foreach.hpp>
-#include <boost/range/iterator_range.hpp>
+#include <dyncompat/foreach.hpp>
+#include <dyncompat/range/iterator_range.hpp>
 #include <set>
 #include <vector>
 
@@ -84,7 +84,7 @@ public:
         : set_(begin, end, comparator, allocator) {}
 
     template<class InputIterator>
-    explicit Set(const boost::iterator_range<InputIterator> &range,
+    explicit Set(const dyncompat::iterator_range<InputIterator> &range,
                  const Comparator &/*comparator*/ = Comparator(), const Allocator &/*allocator*/ = Allocator())
         : set_(range.begin(), range.end()) {}
     /** @} */
@@ -106,8 +106,8 @@ public:
     /** Value iterator range.
      *
      *  Returns an iterator range that covers all values in the set. */
-    boost::iterator_range<ConstIterator> values() const {
-        return boost::iterator_range<ConstIterator>(set_.begin(), set_.end());
+    dyncompat::iterator_range<ConstIterator> values() const {
+        return dyncompat::iterator_range<ConstIterator>(set_.begin(), set_.end());
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -132,7 +132,7 @@ public:
      *
      *  Returns true if any of the specified values exist in this set. */
     bool existsAny(const Set &other) const {
-        BOOST_FOREACH (const Value &otherValue, other.values()) {
+        DYN_FOREACH (const Value &otherValue, other.values()) {
             if (exists(otherValue))
                 return true;
         }
@@ -143,7 +143,7 @@ public:
      *
      *  Returns true if all specified values exist in this set. */
     bool existsAll(const Set &other) const {
-        BOOST_FOREACH (const Value &otherValue, other.values()) {
+        DYN_FOREACH (const Value &otherValue, other.values()) {
             if (!exists(otherValue))
                 return false;
         }
@@ -217,7 +217,7 @@ public:
      *  already members of this set. */
     bool insert(const Set &values) {
         bool isInserted = false;
-        BOOST_FOREACH (const Value &value, values.values()) {
+        DYN_FOREACH (const Value &value, values.values()) {
             if (set_.insert(value).second)
                 isInserted = true;
         }
@@ -237,7 +237,7 @@ public:
      *  were members of this set. */
     bool erase(const Set &values) {
         bool isErased = false;
-        BOOST_FOREACH (const Value &value, values.values()) {
+        DYN_FOREACH (const Value &value, values.values()) {
             if (1 == set_.erase(value))
                 isErased = true;
         }
@@ -257,11 +257,11 @@ public:
     Set& operator&=(const Set &other) {
         std::vector<Value> toErase;
         toErase.reserve(set_.size());
-        BOOST_FOREACH (const Value &value, set_) {
+        DYN_FOREACH (const Value &value, set_) {
             if (!other.exists(value))
                 toErase.push_back(value);
         }
-        BOOST_FOREACH (const Value &value, toErase)
+        DYN_FOREACH (const Value &value, toErase)
             set_.erase(value);
         return *this;
     }
@@ -270,7 +270,7 @@ public:
      *
      *  Adds those members of @p other that are not already members of this set. */
     Set& operator|=(const Set &other) {
-        BOOST_FOREACH (const Value &v, other.values())
+        DYN_FOREACH (const Value &v, other.values())
             set_.insert(v);
         return *this;
     }
@@ -282,11 +282,11 @@ public:
     Set& operator-=(const Set &other) {
         std::vector<Value> toErase;
         toErase.reserve(set_.size());
-        BOOST_FOREACH (const Value &value, set_) {
+        DYN_FOREACH (const Value &value, set_) {
             if (other.exists(value))
                 toErase.push_back(value);
         }
-        BOOST_FOREACH (const Value &value, toErase)
+        DYN_FOREACH (const Value &value, toErase)
             set_.erase(value);
         return *this;
     }

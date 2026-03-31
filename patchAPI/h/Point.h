@@ -323,9 +323,9 @@ enum SnippetState {
 
 /* A representation of a particular snippet inserted at a
    particular point */
-class PATCHAPI_EXPORT Instance : public boost::enable_shared_from_this<Instance> {
+class PATCHAPI_EXPORT Instance : public dyncompat::enable_shared_from_this<Instance> {
   public:
-   typedef boost::shared_ptr<Instance> Ptr;
+   typedef dyncompat::shared_ptr<Instance> Ptr;
 
   Instance(Point* point, SnippetPtr snippet)
      : point_(point), snippet_(snippet), state_(PENDING), type_(SYSTEM), guarded_(true) { }

@@ -285,8 +285,8 @@ Block::getInsn(Offset a) const {
 
 
 bool Block::operator==(const Block &rhs) const {
-    boost::lock_guard<const Block> g1(*this);
-    boost::lock_guard<const Block> g2(rhs);
+    dyncompat::lock_guard<const Block> g1(*this);
+    dyncompat::lock_guard<const Block> g2(rhs);
     // All sinks are equal
     if(_start == std::numeric_limits<Address>::max()) {
         return rhs._start == _start;
@@ -308,13 +308,13 @@ bool Block::operator!=(const Block &rhs) const {
 
 void Block::addSource(Edge * e) 
 {
-    boost::lock_guard<Block> g(*this);
+    dyncompat::lock_guard<Block> g(*this);
     _srclist.insert(e);
 }
 
 void Block::addTarget(Edge * e)
 {
-    boost::lock_guard<Block> g(*this);
+    dyncompat::lock_guard<Block> g(*this);
     if(e->type() == FALLTHROUGH ||
             e->type() == COND_NOT_TAKEN)
     {
@@ -327,19 +327,19 @@ void Block::addTarget(Edge * e)
 void Block::removeTarget(Edge * e)
 {
     if (e == NULL) return;
-    boost::lock_guard<Block> g(*this);
+    dyncompat::lock_guard<Block> g(*this);
     _trglist.erase(e);
 }
 
 void Block::removeSource(Edge * e) {
     if (e == NULL) return;
-    boost::lock_guard<Block> g(*this);
+    dyncompat::lock_guard<Block> g(*this);
     _srclist.erase(e);
 }
 
 void Block::moveTargetEdges(Block* B) {
     if (this == B) return;
-    boost::lock_guard<Block> g(*this);
+    dyncompat::lock_guard<Block> g(*this);
     Block* A = this;
     /* We move outgoing edges from this block to block B, which is 
      * necessary when spliting blocks.
@@ -358,17 +358,17 @@ void Block::moveTargetEdges(Block* B) {
 }
 
 void Block::copy_sources(edgelist & src) const {
-    boost::lock_guard<boost::recursive_mutex> g(lockable());
+    dyncompat::lock_guard<dyncompat::recursive_mutex> g(lockable());
     src = _srclist;
 }
 
 void Block::copy_targets(edgelist & trg) const {
-    boost::lock_guard<boost::recursive_mutex> g(lockable());
+    dyncompat::lock_guard<dyncompat::recursive_mutex> g(lockable());
     trg = _trglist;
 }
 
 bool Block::hasCallSource() const {
-    boost::lock_guard<boost::recursive_mutex> g(lockable());
+    dyncompat::lock_guard<dyncompat::recursive_mutex> g(lockable());
     for (auto e: _srclist)
         if (e->type() == CALL)
             return true;
@@ -376,6 +376,6 @@ bool Block::hasCallSource() const {
 }
 
 Edge* Block::getOnlyIncomingEdge() const {
-    boost::lock_guard<boost::recursive_mutex> g(lockable());
+    dyncompat::lock_guard<dyncompat::recursive_mutex> g(lockable());
     return _srclist.size() == 1 ? *_srclist.begin() : nullptr;
 }

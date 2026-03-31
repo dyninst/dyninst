@@ -9,9 +9,9 @@
 #include "../integerOps.h"
 #include "../util/Combinatorics.h"
 
-#include <boost/foreach.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
+#include <dyncompat/foreach.hpp>
+#include <dyncompat/thread/locks.hpp>
+#include <dyncompat/thread/mutex.hpp>
 
 namespace rose {
 namespace BinaryAnalysis {
@@ -22,15 +22,15 @@ namespace SymbolicExpr {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // A mutex that's used by various methods in this namespace
-static boost::mutex symbolicExprMutex;
+static dyncompat::mutex symbolicExprMutex;
 
 // Returns the next name counter. If @p useThis is specified then return that value and make sure the next value to be
 // returned is larger.
 static uint64_t
 nextNameCounter(uint64_t useThis = (uint64_t)(-1)) {
-    static boost::mutex mutex;
+    static dyncompat::mutex mutex;
     static uint64_t counter = 0;
-    boost::lock_guard<boost::mutex> lock(mutex);
+    dyncompat::lock_guard<dyncompat::mutex> lock(mutex);
     if (useThis == (uint64_t)(-1))
         return ++counter;
     counter = std::max(counter, useThis);
@@ -83,7 +83,7 @@ escapeCharacter(char ch) {
 static std::string
 nameEscape(const std::string &s) {
     std::string retval;
-    BOOST_FOREACH (char ch, s) {
+    DYN_FOREACH (char ch, s) {
         switch (ch) {
             case '(':
             case ')':
@@ -110,7 +110,7 @@ commentEscape(const std::string &s) {
     // leave that as an exercise for the reader. ;-)
     bool escapeAngleBrackets = false;
     int angleBracketDepth = 0;
-    BOOST_FOREACH (char ch, s) {
+    DYN_FOREACH (char ch, s) {
         if ('<' == ch) {
             ++angleBracketDepth;
         } else if ('>' == ch && --angleBracketDepth < 0) {
@@ -119,7 +119,7 @@ commentEscape(const std::string &s) {
         }
     }
 
-    BOOST_FOREACH (char ch, s) {
+    DYN_FOREACH (char ch, s) {
         switch (ch) {
             case '<':
             case '>':
@@ -232,7 +232,7 @@ struct Hasher: Visitor {
                 InteriorPtr inode = node->isInteriorNode();
                 ASSERT_not_null(inode);
                 h = hash(h, inode->getOperator());
-                BOOST_FOREACH (const Ptr &child, inode->children()) {
+                DYN_FOREACH (const Ptr &child, inode->children()) {
                     ASSERT_require(child->isHashed());
                     h = hash(h, child->hash());
                 }
@@ -261,13 +261,13 @@ Node::hash() {
         Hasher hasher;
         depthFirstTraversal(hasher);
     }
-    boost::unique_lock<boost::mutex> lock(symbolicExprMutex);
+    dyncompat::unique_lock<dyncompat::mutex> lock(symbolicExprMutex);
     return hashval_;
 }
 
 void
 Node::hash(uint64_t h) {
-    boost::unique_lock<boost::mutex> lock(symbolicExprMutex);
+    dyncompat::unique_lock<dyncompat::mutex> lock(symbolicExprMutex);
     hashval_ = h;
 }
 
@@ -417,7 +417,7 @@ Interior::adjustWidth() {
         }
         case OP_CONCAT: {
             size_t totalWidth = 0;
-            BOOST_FOREACH (const Ptr &child, children_) {
+            DYN_FOREACH (const Ptr &child, children_) {
                 if (!child->isScalar())
                     throw Exception(toStr(op_) + " operator's arguments must be scalar");
                 totalWidth += child->nBits();
@@ -595,7 +595,7 @@ Interior::adjustWidth() {
 void
 Interior::adjustBitFlags(unsigned flags) {
     flags_ = flags;
-    BOOST_FOREACH (const Ptr &child, children_)
+    DYN_FOREACH (const Ptr &child, children_)
         flags_ |= child->flags();
 }
 
@@ -1384,7 +1384,8 @@ ExtractSimplifier::rewrite(Interior *inode) const {
     if (from_node && to_node && from_node->isNumber() && to_node->isNumber() &&
         ioperand && OP_CONCAT==ioperand->getOperator()) {
         size_t partAt = 0;                              // starting bit number in child
-        BOOST_REVERSE_FOREACH (const Ptr part, ioperand->children()) { // concatenated parts
+        for (auto it = ioperand->children().rbegin(); it != ioperand->children().rend(); ++it) { // concatenated parts
+            const Ptr part = *it;
             size_t partEnd = partAt + part->nBits();
             if (partEnd <= from) {
                 // Part is entirely left of what we need
@@ -1976,9 +1977,9 @@ SetSimplifier::rewrite(Interior *inode) const {
     // Remove duplicate arguments
     bool removedDuplicate = false;
     Nodes elements;
-    BOOST_FOREACH (const Ptr &elmt1, inode->children()) {
+    DYN_FOREACH (const Ptr &elmt1, inode->children()) {
         bool isDuplicate = false;
-        BOOST_FOREACH (const Ptr &elmt2, elements) {
+        DYN_FOREACH (const Ptr &elmt2, elements) {
             if (elmt1->mustEqual(elmt2, solver)) {
                 isDuplicate = true;
                 break;

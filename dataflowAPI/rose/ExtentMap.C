@@ -5,7 +5,8 @@
 
 #include "util/StringUtility.h"
 #include "ExtentMap.h"
-#include <boost/foreach.hpp>
+#include <cstring>
+#include <dyncompat/foreach.hpp>
 
 #define DUMP_FIELD_WIDTH        64
 
@@ -19,7 +20,7 @@ AddressInterval toAddressInterval(const Extent &x) {
 
 ExtentMap toExtentMap(const AddressIntervalSet &x) {
     ExtentMap retval;
-    BOOST_FOREACH (const AddressInterval &interval, x.intervals())
+    DYN_FOREACH (const AddressInterval &interval, x.intervals())
         retval.insert(toExtent(interval));
     return retval;
 }
@@ -44,7 +45,7 @@ std::ostream& operator<<(std::ostream &out, const AddressInterval &x) {
 
 std::ostream& operator<<(std::ostream &out, const AddressIntervalSet &x) {
     out <<"{";
-    BOOST_FOREACH (const AddressInterval &interval, x.intervals())
+    DYN_FOREACH (const AddressInterval &interval, x.intervals())
         out <<" " <<interval;
     out <<" }";
     return out;

@@ -5118,7 +5118,7 @@ namespace rose {
                 RegisterDictionary::RegisterDescriptors registers = regdict->get_largest_registers();
                 registers.erase(std::remove_if(registers.begin(), registers.end(), isStatusRegister),
                                 registers.end());
-                BOOST_FOREACH(
+                DYN_FOREACH(
                 const RegisterDescriptor &reg, regdict->get_smallest_registers()) {
                     if (isStatusRegister(reg))
                         registers.push_back(reg);

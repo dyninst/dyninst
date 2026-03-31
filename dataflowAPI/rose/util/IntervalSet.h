@@ -14,8 +14,8 @@
 
 #include <stddef.h>
 #include <utility>
-#include <boost/integer_traits.hpp>
-#include <boost/iterator/iterator_facade.hpp>
+#include <dyncompat/integer_traits.hpp>
+#include <dyncompat/iterator/iterator_facade.hpp>
 
 namespace Sawyer {
 namespace Container {
@@ -40,7 +40,7 @@ namespace Container {
  *  // Build the functionExtent and count total instruction size
  *  Sawyer::Container::IntervalSet<AddressInterval> functionExtent;
  *  uint32_t insnTotalSize = 0;
- *  BOOST_FOREACH (const AddressInterval &insnInterval, instructionIntervals) {
+ *  DYN_FOREACH (const AddressInterval &insnInterval, instructionIntervals) {
  *      functionExtent.insert(insnInterval);
  *      insnTotalSize += insnInterval.size();
  *  }
@@ -64,14 +64,14 @@ public:
      *
      *  Iterates over the intervals of the container, which are the Interval type provided as a class template
      *  parameter. Dereferencing the iterator will return a const reference to an interval (possibly a singlton interval). */
-    class ConstIntervalIterator: public boost::iterator_facade<ConstIntervalIterator, const Interval,
-                                                               boost::bidirectional_traversal_tag> {
+    class ConstIntervalIterator: public dyncompat::iterator_facade<ConstIntervalIterator, const Interval,
+                                                               dyncompat::bidirectional_traversal_tag> {
         typedef typename IntervalMap<Interval, int>::ConstNodeIterator MapNodeIterator;
         MapNodeIterator iter_;
     public:
         ConstIntervalIterator() {}
     private:
-        friend class boost::iterator_core_access;
+        friend class dyncompat::iterator_core_access;
         friend class IntervalSet;
         explicit ConstIntervalIterator(MapNodeIterator iter): iter_(iter) {}
         const Interval& dereference() const { return iter_->key(); }
@@ -88,8 +88,8 @@ public:
      *  @li The set can hold a very large number of values, even the entire value space, in which case iterating over values
      *      rather than storage nodes could take a very long time.
      *  @li Iterating over values for a non-integral type is most likely nonsensical. */
-    class ConstScalarIterator: public boost::iterator_facade<ConstScalarIterator, const typename Interval::Value,
-                                                             boost::bidirectional_traversal_tag> {
+    class ConstScalarIterator: public dyncompat::iterator_facade<ConstScalarIterator, const typename Interval::Value,
+                                                             dyncompat::bidirectional_traversal_tag> {
         ConstIntervalIterator iter_;
         typename Interval::Value offset_;
         mutable typename Interval::Value value_;        // so dereference() can return a reference
@@ -97,7 +97,7 @@ public:
         ConstScalarIterator(): offset_(0) {}
         ConstScalarIterator(ConstIntervalIterator iter): iter_(iter), offset_(0) {}
     private:
-        friend class boost::iterator_core_access;
+        friend class dyncompat::iterator_core_access;
         friend class IntervalSet;
         const typename Interval::Value& dereference() const {
             ASSERT_require2(iter_->least() <= iter_->greatest(), "stored interval cannot be empty");
@@ -163,7 +163,7 @@ public:
      *  The newly constructed set will contain copies of the intervals from the specified iterator range.  The range's
      *  dereferenced iterators must be convertible to the set's interval type. */
     template<class Iterator>
-    IntervalSet(const boost::iterator_range<Iterator> &intervals) {
+    IntervalSet(const dyncompat::iterator_range<Iterator> &intervals) {
         for (Iterator iter=intervals.begin(); iter!=intervals.end(); ++iter)
             insert(*iter);
     }
@@ -201,7 +201,7 @@ public:
      *  The newly constructed set will contain copies of the intervals from the specified iterator range.  The range's
      *  dereferenced iterators must be convertible to the set's interval type. */
     template<class Iterator>
-    IntervalSet& operator=(const boost::iterator_range<Iterator> &intervals) {
+    IntervalSet& operator=(const dyncompat::iterator_range<Iterator> &intervals) {
         clear();
         for (Iterator iter=intervals.begin(); iter!=intervals.end(); ++iter)
             insert(*iter);
@@ -213,14 +213,14 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /** Iterator range for all intervals actually stored by this set. */
-    boost::iterator_range<ConstIntervalIterator> intervals() const {
-        return boost::iterator_range<ConstIntervalIterator>(ConstIntervalIterator(map_.nodes().begin()),
+    dyncompat::iterator_range<ConstIntervalIterator> intervals() const {
+        return dyncompat::iterator_range<ConstIntervalIterator>(ConstIntervalIterator(map_.nodes().begin()),
                                                             ConstIntervalIterator(map_.nodes().end()));
     }
 
     /** Iterator range for all scalar values logically represented by this set. */
-    boost::iterator_range<ConstScalarIterator> scalars() const {
-        return boost::iterator_range<ConstScalarIterator>(ConstScalarIterator(intervals().begin()),
+    dyncompat::iterator_range<ConstScalarIterator> scalars() const {
+        return dyncompat::iterator_range<ConstScalarIterator>(ConstScalarIterator(intervals().begin()),
                                                           ConstScalarIterator(intervals().end()));
     }
 
@@ -255,9 +255,9 @@ public:
     /** Finds all nodes overlapping the specified interval.
      *
      *  Returns an iterator range that enumerates the nodes that overlap with the specified interval. */
-    boost::iterator_range<ConstIntervalIterator> findAll(const Interval &interval) const {
-        boost::iterator_range<typename Map::ConstNodeIterator> range = map_.findAll(interval);
-        return boost::iterator_range<ConstIntervalIterator>(ConstIntervalIterator(range.begin()),
+    dyncompat::iterator_range<ConstIntervalIterator> findAll(const Interval &interval) const {
+        dyncompat::iterator_range<typename Map::ConstNodeIterator> range = map_.findAll(interval);
+        return dyncompat::iterator_range<ConstIntervalIterator>(ConstIntervalIterator(range.begin()),
                                                             ConstIntervalIterator(range.end()));
     }
 

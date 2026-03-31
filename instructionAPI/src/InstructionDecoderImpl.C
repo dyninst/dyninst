@@ -46,7 +46,7 @@ namespace Dyninst
 {
     namespace InstructionAPI
     {
-        boost::shared_ptr<Instruction> InstructionDecoderImpl::makeInstruction(entryID opcode, const char* mnem,
+        dyncompat::shared_ptr<Instruction> InstructionDecoderImpl::makeInstruction(entryID opcode, const char* mnem,
             unsigned int decodedSize, const unsigned char* raw)
         {
             Operation tmp(opcode, mnem, m_Arch);

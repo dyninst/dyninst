@@ -6,6 +6,7 @@
 #include <iostream>
 #include "PCProcess.h"
 #include <sys/mman.h>
+#include <unistd.h>
 
 using namespace Dyninst;
 using namespace std;

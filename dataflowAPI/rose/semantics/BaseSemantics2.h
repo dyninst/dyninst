@@ -12,9 +12,9 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/optional.hpp>
+#include <dyncompat/shared_ptr.hpp>
+#include <dyncompat/enable_shared_from_this.hpp>
+#include <dyncompat/optional.hpp>
 #include "../SgAsmInstruction.h"
 #include "../SgAsmExpression.h"
 #include "../util/Assert.h"
@@ -86,7 +86,7 @@ namespace rose {
  *
  *  Most of the instruction semantics components have abstract base classes. Instances of concrete subclasses thereof are
  *  passed around by pointers, and in order to simplify memory management issues, those objects are reference counted.  Most
- *  objects use <code>boost::shared_ptr</code>, but SValue objects use a faster custom smart pointer (it also uses a custom
+ *  objects use <code>dyncompat::shared_ptr</code>, but SValue objects use a faster custom smart pointer (it also uses a custom
  *  allocator, and testing showed a substantial speed improvement over Boost when compiled with GCC's "-O3" switch). In any
  *  case, to alleviate the user from having to remember which kind of objects use which smart pointer implementation, pointer
  *  typedefs are created for each class&mdash;their names are the same as the class but suffixed with "Ptr".  Users will almost
@@ -166,7 +166,7 @@ namespace rose {
  *
  *  @code
  *      // Smart pointer for the subclass
- *      typedef boost::shared_ptr<class MyThing> MyThingPtr;
+ *      typedef dyncompat::shared_ptr<class MyThing> MyThingPtr;
  *
  *      // Class derived from OtherThing, which eventually derives from a class
  *      // defined in BinarySemantics::InstructionSemantics2::BaseSemantics--lets
@@ -224,7 +224,7 @@ namespace rose {
  *          // Define the checking dynamic pointer cast.
  *      public:
  *          static MyThingPtr promomte(const BaseSemantics::ThingPtr &obj) {
- *              MyThingPtr retval = boost::dynamic_pointer_cast<MyThingPtr>(obj);
+ *              MyThingPtr retval = dyncompat::dynamic_pointer_cast<MyThingPtr>(obj);
  *              assert(retval!=NULL);
  *              return NULL;
  *          }
@@ -763,12 +763,12 @@ namespace rose {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Shared-ownership pointer to a register state. See @ref heap_object_shared_ownership. */
-                typedef boost::shared_ptr<class RegisterState> RegisterStatePtr;
+                typedef dyncompat::shared_ptr<class RegisterState> RegisterStatePtr;
 
 /** The set of all registers and their values. RegisterState objects are allocated on the heap and reference counted.  The
  *  BaseSemantics::RegisterState is an abstract class that defines the interface.  See the
  *  rose::BinaryAnalysis::InstructionSemantics2 namespace for an overview of how the parts fit together.*/
-                class RegisterState : public boost::enable_shared_from_this<RegisterState> {
+                class RegisterState : public dyncompat::enable_shared_from_this<RegisterState> {
                 private:
                     MergerPtr merger_;
                     SValuePtr protoval_;                                /**< Prototypical value for virtual constructors. */
@@ -936,12 +936,12 @@ namespace rose {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Shared-ownership pointer to a memory state. See @ref heap_object_shared_ownership. */
-                typedef boost::shared_ptr<class MemoryState> MemoryStatePtr;
+                typedef dyncompat::shared_ptr<class MemoryState> MemoryStatePtr;
 
 /** Represents all memory in the state. MemoryState objects are allocated on the heap and reference counted.  The
  *  BaseSemantics::MemoryState is an abstract class that defines the interface.  See the
  *  rose::BinaryAnalysis::InstructionSemantics2 namespace for an overview of how the parts fit together.*/
-                class MemoryState : public boost::enable_shared_from_this<MemoryState> {
+                class MemoryState : public dyncompat::enable_shared_from_this<MemoryState> {
                     SValuePtr addrProtoval_;
                     /**< Prototypical value for addresses. */
                     SValuePtr valProtoval_;
@@ -1135,7 +1135,7 @@ namespace rose {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Shared-ownership pointer to a semantic state. See @ref heap_object_shared_ownership. */
-                typedef boost::shared_ptr<class State> StatePtr;
+                typedef dyncompat::shared_ptr<class State> StatePtr;
 
 /** Base class for semantics machine states.
  *
@@ -1153,7 +1153,7 @@ namespace rose {
  *  State objects are allocated on the heap and reference counted.  The BaseSemantics::State is an abstract class that defines
  *  the interface.  See the rose::BinaryAnalysis::InstructionSemantics2 namespace for an overview of how the parts fit
  *  together.  */
-                class State : public boost::enable_shared_from_this<State> {
+                class State : public dyncompat::enable_shared_from_this<State> {
                     SValuePtr protoval_;                                // Initial value used to create additional values as needed.
                     RegisterStatePtr registers_;                        // All machine register values for this semantic state.
                     MemoryStatePtr memory_;                             // All memory for this semantic state.
@@ -1172,7 +1172,7 @@ namespace rose {
 
                     // deep-copy the registers and memory
                     State(const State &other)
-                            : boost::enable_shared_from_this<State>(other),
+                            : dyncompat::enable_shared_from_this<State>(other),
                               protoval_(other.protoval_) {
                         registers_ = other.registers_->clone();
                         memory_ = other.memory_->clone();
@@ -1210,7 +1210,7 @@ namespace rose {
                      *  objects because many analyses depend on being able to make a copy of the entire semantic state at each machine
                      *  instruction, at each CFG vertex, etc. */
                     virtual StatePtr clone() const {
-                        StatePtr self = boost::const_pointer_cast<State>(shared_from_this());
+                        StatePtr self = dyncompat::const_pointer_cast<State>(shared_from_this());
                         return instance(self);
                     }
 
@@ -1382,7 +1382,7 @@ namespace rose {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Shared-ownership pointer to a RISC operators object. See @ref heap_object_shared_ownership. */
-                typedef boost::shared_ptr<class RiscOperators> RiscOperatorsPtr;
+                typedef dyncompat::shared_ptr<class RiscOperators> RiscOperatorsPtr;
 
 /** Base class for most instruction semantics RISC operators.
  *
@@ -1404,7 +1404,7 @@ namespace rose {
  *  RiscOperator objects are allocated on the heap and reference counted.  The BaseSemantics::RiscOperator is an abstract class
  *  that defines the interface.  See the rose::BinaryAnalysis::InstructionSemantics2 namespace for an overview of how the parts
  *  fit together. */
-                class RiscOperators : public boost::enable_shared_from_this<RiscOperators> {
+                class RiscOperators : public dyncompat::enable_shared_from_this<RiscOperators> {
                     SValuePtr protoval_;                                // Prototypical value used for its virtual constructors
                     StatePtr currentState_;                             // State upon which RISC operators operate
                     StatePtr initialState_;                             // Lazily updated initial state; see readMemory
@@ -2093,7 +2093,7 @@ namespace rose {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Shared-ownership pointer to a semantics instruction dispatcher. See @ref heap_object_shared_ownership. */
-                typedef boost::shared_ptr<class Dispatcher> DispatcherPtr;
+                typedef dyncompat::shared_ptr<class Dispatcher> DispatcherPtr;
 
 /** Functor that knows how to dispatch a single kind of instruction. */
                 class InsnProcessor {
@@ -2116,7 +2116,7 @@ namespace rose {
  *  Dispatcher objects are allocated on the heap and reference counted.  The BaseSemantics::Dispatcher is an abstract class
  *  that defines the interface.  See the rose::BinaryAnalysis::InstructionSemantics2 namespace for an overview of how the parts
  *  fit together. */
-                class Dispatcher : public boost::enable_shared_from_this<Dispatcher> {
+                class Dispatcher : public dyncompat::enable_shared_from_this<Dispatcher> {
                 protected:
                     RiscOperatorsPtr operators;
                     const RegisterDictionary *regdict;

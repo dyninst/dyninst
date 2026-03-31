@@ -1,14 +1,20 @@
 #define __STDC_LIMIT_MACROS
 
 #include "LinearCongruentialGenerator.h"
+#include <unistd.h>
 #include "../integerOps.h"
+#include <unistd.h>
 
 #include <fcntl.h>
+#include <unistd.h>
 #include <stdint.h>
+#include <unistd.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #ifndef _MSC_VER
 #include <sys/time.h>
+#include <unistd.h>
 #endif
 
 #ifndef _MSC_VER

@@ -39,7 +39,6 @@
 #include "Operation_impl.h"
 #include "InstructionDecoder.h"
 #include "Dereference.h"
-#include <boost/iterator/indirect_iterator.hpp>
 #include <iostream>
 #include <sstream>
 #include <iomanip>

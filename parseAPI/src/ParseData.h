@@ -46,10 +46,10 @@
 #include "ParserDetails.h"
 #include "debug_parse.h"
 
-#include <boost/thread/locks.hpp>
-#include <boost/thread/lockable_adapter.hpp>
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/atomic.hpp>
+#include <dyncompat/thread/locks.hpp>
+#include <dyncompat/thread/lockable_adapter.hpp>
+#include <dyncompat/thread/recursive_mutex.hpp>
+#include <dyncompat/atomic.hpp>
 
 #include "concurrent.h"
 
@@ -63,7 +63,7 @@ class ParseData;
 
 /** Describes a saved frame during recursive parsing **/
 // Parsing data for a function. 
-class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
+class ParseFrame : public dyncompat::lockable_adapter<dyncompat::recursive_mutex> {
  public:
     enum Status {
         UNPARSED,
@@ -102,12 +102,12 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
         ParseWorkBundle *b,
         Function* shared_func);
     void pushWork(ParseWorkElem * elem) {
-        boost::lock_guard<ParseFrame> g(*this);
+        dyncompat::lock_guard<ParseFrame> g(*this);
         parsing_printf("\t pushing work element for block %p, edge %p, target %p\n", (void*)elem->cur(), (void*)elem->edge(), (void*)elem->target());
         worklist.push(elem);
     }
     ParseWorkElem * popWork() {
-        boost::lock_guard<ParseFrame> g(*this);
+        dyncompat::lock_guard<ParseFrame> g(*this);
         ParseWorkElem * ret = NULL;
         if(!worklist.empty()) {
             ret = worklist.top();
@@ -117,7 +117,7 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
     }
 
     void pushDelayedWork(ParseWorkElem * elem, Function * ct) {
-        boost::lock_guard<ParseFrame> g(*this);
+        dyncompat::lock_guard<ParseFrame> g(*this);
         delayedWork.insert(make_pair(elem, ct));
     }
 
@@ -164,7 +164,7 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
     void set_status(Status);
     void set_internal_status(Status s) { _status.store(s); } 
  private:
-    boost::atomic<Status> _status;
+    dyncompat::atomic<Status> _status;
     ParseData * _pd;
 };
 

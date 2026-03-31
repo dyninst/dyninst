@@ -46,7 +46,7 @@
 #include "symtab_impl.hpp"
 #include "symtabAPI/src/Object.h"
 
-#include "boost/tuple/tuple.hpp"
+#include "dyncompat/tuple/tuple.hpp"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -155,7 +155,7 @@ bool Symtab::deleteSymbolFromIndices(Symbol *sym) {
 
 bool Symtab::deleteSymbol(Symbol *sym)
 {
-    boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
+    dyncompat::unique_lock<dyn_rwlock> l(symbols_rwlock);
     if (sym->aggregate_) {
         sym->aggregate_->removeSymbol(sym);
     }

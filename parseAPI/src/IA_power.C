@@ -121,7 +121,7 @@ bool IA_power::isTailCall(const Function* context, EdgeTypeEnum type, unsigned i
     }
 
     bool valid; Address addr;
-    boost::tie(valid, addr) = getCFT();
+    std::tie(valid, addr) = getCFT();
 
     Function* callee = _obj->findFuncByEntry(_cr, addr);
     Block* target = _obj->findBlockByEntry(_cr, addr);

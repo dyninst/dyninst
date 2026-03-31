@@ -30,7 +30,7 @@
 
 #include "stackanalysis.h"
 
-#include <boost/bind/bind.hpp>
+#include <dyncompat/bind/bind.hpp>
 #include <queue>
 #include <stack>
 #include <vector>
@@ -270,13 +270,13 @@ void StackAnalysis::summarizeBlocks(bool verbose) {
       }
 
       // Add blocks reachable from this one to the work stack
-      boost::lock_guard<Block> g(*block);
+      dyncompat::lock_guard<Block> g(*block);
       const Block::edgelist &targs = block->targets();
       std::for_each(
-         boost::make_filter_iterator(epred, targs.begin(), targs.end()),
-         boost::make_filter_iterator(epred, targs.end(), targs.end()),
-         boost::bind(add_target_exclude, boost::ref(workstack),
-            boost::ref(doneSet), boost::placeholders::_1)
+         dyncompat::make_filter_iterator(epred, targs.begin(), targs.end()),
+         dyncompat::make_filter_iterator(epred, targs.end(), targs.end()),
+         dyncompat::bind(add_target_exclude, dyncompat::ref(workstack),
+            dyncompat::ref(doneSet), dyncompat::placeholders::_1)
       );
    }
 }
@@ -345,13 +345,13 @@ void StackAnalysis::fixpoint(bool verbose) {
       }
 
       // Step 4: push all children on the worklist.
-      boost::lock_guard<Block> g(*block);
+      dyncompat::lock_guard<Block> g(*block);
       const Block::edgelist &outEdges = block->targets();
       std::for_each(
-         boost::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
-         boost::make_filter_iterator(epred2, outEdges.end(), outEdges.end()),
-         boost::bind(add_target_list_exclude, boost::ref(worklist),
-            boost::ref(workSet), boost::placeholders::_1)
+         dyncompat::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
+         dyncompat::make_filter_iterator(epred2, outEdges.end(), outEdges.end()),
+         dyncompat::bind(add_target_list_exclude, dyncompat::ref(worklist),
+            dyncompat::ref(workSet), dyncompat::placeholders::_1)
       );
 
       firstBlock = false;
@@ -373,7 +373,7 @@ void getRetAndTailCallBlocks(Function *func, std::set<Block *> &retBlocks) {
       Block *currBlock = workstack.top();
       workstack.pop();
 
-      boost::lock_guard<Block> g(*currBlock);
+      dyncompat::lock_guard<Block> g(*currBlock);
       const Block::edgelist &targs = currBlock->targets();
       for (auto iter = targs.begin(); iter != targs.end(); iter++) {
          Edge *currEdge = *iter;
@@ -384,10 +384,10 @@ void getRetAndTailCallBlocks(Function *func, std::set<Block *> &retBlocks) {
       }
 
       std::for_each(
-         boost::make_filter_iterator(epred, targs.begin(), targs.end()),
-         boost::make_filter_iterator(epred, targs.end(), targs.end()),
-         boost::bind(add_target_exclude, boost::ref(workstack),
-            boost::ref(doneSet), boost::placeholders::_1)
+         dyncompat::make_filter_iterator(epred, targs.begin(), targs.end()),
+         dyncompat::make_filter_iterator(epred, targs.end(), targs.end()),
+         dyncompat::bind(add_target_exclude, dyncompat::ref(workstack),
+            dyncompat::ref(doneSet), dyncompat::placeholders::_1)
       );
    }
 }
@@ -500,13 +500,13 @@ void StackAnalysis::summaryFixpoint() {
       (*blockEffects)[block].accumulate(input, blockSummaryOutputs[block]);
 
       // Step 4: push all children on the worklist.
-      boost::lock_guard<Block> g(*block);
+      dyncompat::lock_guard<Block> g(*block);
       const Block::edgelist &outEdges = block->targets();
 
       std::for_each(
-         boost::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
-         boost::make_filter_iterator(epred2, outEdges.end(), outEdges.end()),
-         boost::bind(add_target, boost::ref(worklist), boost::placeholders::_1)
+         dyncompat::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
+         dyncompat::make_filter_iterator(epred2, outEdges.end(), outEdges.end()),
+         dyncompat::bind(add_target, dyncompat::ref(worklist), dyncompat::placeholders::_1)
       );
 
       firstBlock = false;
@@ -1300,9 +1300,9 @@ void StackAnalysis::handleDiv(Instruction insn,
    STACKANALYSIS_ASSERT(dynamic_cast<RegisterAST*>(remainder.get()));
    STACKANALYSIS_ASSERT(!dynamic_cast<Immediate*>(divisor.get()));
 
-   MachRegister quotientReg = (boost::dynamic_pointer_cast<InstructionAPI::
+   MachRegister quotientReg = (dyncompat::dynamic_pointer_cast<InstructionAPI::
       RegisterAST>(quotient))->getID();
-   MachRegister remainderReg = (boost::dynamic_pointer_cast<InstructionAPI::
+   MachRegister remainderReg = (dyncompat::dynamic_pointer_cast<InstructionAPI::
       RegisterAST>(remainder))->getID();
 
    xferFuncs.push_back(TransferFunc::retopFunc(Absloc(quotientReg)));
@@ -1327,7 +1327,7 @@ void StackAnalysis::handleMul(Instruction insn,
 
    Expression::Ptr target = operands[0].getValue();
    STACKANALYSIS_ASSERT(dynamic_cast<RegisterAST*>(target.get()));
-   MachRegister targetReg = (boost::dynamic_pointer_cast<InstructionAPI::
+   MachRegister targetReg = (dyncompat::dynamic_pointer_cast<InstructionAPI::
       RegisterAST>(target))->getID();
 
    if (operands.size() == 2) {
@@ -1349,7 +1349,7 @@ void StackAnalysis::handleMul(Instruction insn,
          } else if (multiplierVal == 1) {
             if (dynamic_cast<RegisterAST*>(multiplicand.get())) {
                // mul reg1, reg2, 1
-               MachRegister multiplicandReg = boost::dynamic_pointer_cast<
+               MachRegister multiplicandReg = dyncompat::dynamic_pointer_cast<
                   RegisterAST>(multiplicand)->getID();
                Absloc targetLoc(targetReg);
                Absloc multiplicandLoc(multiplicandReg);
@@ -1371,7 +1371,7 @@ void StackAnalysis::handleMul(Instruction insn,
          STACKANALYSIS_ASSERT(dynamic_cast<RegisterAST*>(multiplicand.get()));
          STACKANALYSIS_ASSERT(dynamic_cast<RegisterAST*>(multiplier.get()) ||
             dynamic_cast<Dereference*>(multiplier.get()));
-         MachRegister multiplicandReg = boost::dynamic_pointer_cast<
+         MachRegister multiplicandReg = dyncompat::dynamic_pointer_cast<
             RegisterAST>(multiplicand)->getID();
          xferFuncs.push_back(TransferFunc::retopFunc(Absloc(targetReg)));
          xferFuncs.push_back(TransferFunc::retopFunc(Absloc(multiplicandReg)));
@@ -1410,7 +1410,7 @@ void StackAnalysis::handlePushPop(Instruction insn, Block *block,
             Expression::Ptr readExpr = insn.getOperand(0).getValue();
             if (dynamic_cast<RegisterAST*>(readExpr.get())) {
                // Get copied register
-               MachRegister readReg = boost::dynamic_pointer_cast<RegisterAST>(
+               MachRegister readReg = dyncompat::dynamic_pointer_cast<RegisterAST>(
                   readExpr)->getID();
                Absloc readLoc(readReg);
                xferFuncs.push_back(TransferFunc::copyFunc(readLoc, writtenLoc));
@@ -1460,7 +1460,7 @@ void StackAnalysis::handlePushPop(Instruction insn, Block *block,
       // Get target register
       Expression::Ptr targExpr = insn.getOperand(0).getValue();
       STACKANALYSIS_ASSERT(dynamic_cast<RegisterAST*>(targExpr.get()));
-      MachRegister targReg = boost::dynamic_pointer_cast<RegisterAST>(
+      MachRegister targReg = dyncompat::dynamic_pointer_cast<RegisterAST>(
          targExpr)->getID();
       Absloc targLoc(targReg);
 
@@ -1775,7 +1775,7 @@ void StackAnalysis::handleLEA(Instruction insn,
          STACKANALYSIS_ASSERT(false);
       }
 
-      MachRegister reg = (boost::dynamic_pointer_cast<InstructionAPI::
+      MachRegister reg = (dyncompat::dynamic_pointer_cast<InstructionAPI::
          RegisterAST>(regExpr))->getID();
 
       long scale = 1;
@@ -1833,9 +1833,9 @@ void StackAnalysis::handleLEA(Instruction insn,
       STACKANALYSIS_ASSERT(dynamic_cast<RegisterAST*>(indexExpr.get()));
       STACKANALYSIS_ASSERT(dynamic_cast<Immediate*>(scaleExpr.get()));
 
-      MachRegister base = (boost::dynamic_pointer_cast<InstructionAPI::
+      MachRegister base = (dyncompat::dynamic_pointer_cast<InstructionAPI::
          RegisterAST>(baseExpr))->getID();
-      MachRegister index = (boost::dynamic_pointer_cast<InstructionAPI::
+      MachRegister index = (dyncompat::dynamic_pointer_cast<InstructionAPI::
          RegisterAST>(indexExpr))->getID();
       long scale = scaleExpr->eval().convert<long>();
 
@@ -2462,7 +2462,7 @@ bool StackAnalysis::handleNormalCall(Instruction insn, Block *block,
    if (off != block->lastInsnAddr()) return false;
 
    Address calledAddr = 0;
-   boost::lock_guard<Block> g(*block);
+   dyncompat::lock_guard<Block> g(*block);
    const Block::edgelist &outs = block->targets();
    for (auto eit = outs.begin(); eit != outs.end(); eit++) {
       Edge *edge = *eit;
@@ -2633,7 +2633,7 @@ bool StackAnalysis::handleNormalCall(Instruction insn, Block *block,
 bool StackAnalysis::handleJump(Instruction insn, Block *block, Offset off,
                                TransferFuncs &xferFuncs, TransferSet &funcSummary) {
    Address calledAddr = 0;
-   boost::lock_guard<Block> g(*block);
+   dyncompat::lock_guard<Block> g(*block);
    const Block::edgelist &outs = block->targets();
    for (auto eit = outs.begin(); eit != outs.end(); eit++) {
       Edge *edge = *eit;
@@ -2888,15 +2888,15 @@ void StackAnalysis::meetInputs(Block *block, AbslocState &blockInput,
    intra_nosink_nocatch epred2;
 
    stackanalysis_printf("\t ... In edges: ");
-   boost::lock_guard<Block> g(*block);
+   dyncompat::lock_guard<Block> g(*block);
 
    const Block::edgelist & inEdges = block->sources();
    std::for_each(
-      boost::make_filter_iterator(epred2, inEdges.begin(), inEdges.end()),
-      boost::make_filter_iterator(epred2, inEdges.end(), inEdges.end()),
-      boost::bind(&StackAnalysis::meet, this,
-         boost::bind(&StackAnalysis::getSrcOutputLocs, this, boost::placeholders::_1),
-         boost::ref(input)));
+      dyncompat::make_filter_iterator(epred2, inEdges.begin(), inEdges.end()),
+      dyncompat::make_filter_iterator(epred2, inEdges.end(), inEdges.end()),
+      dyncompat::bind(&StackAnalysis::meet, this,
+         dyncompat::bind(&StackAnalysis::getSrcOutputLocs, this, dyncompat::placeholders::_1),
+         dyncompat::ref(input)));
    stackanalysis_printf("\n");
 
    meet(blockInput, input);
@@ -2907,15 +2907,15 @@ void StackAnalysis::meetSummaryInputs(Block *block, TransferSet &blockInput,
    TransferSet &input) {
    input.clear();
    intra_nosink_nocatch epred2;
-   boost::lock_guard<Block> g(*block);
+   dyncompat::lock_guard<Block> g(*block);
 
    const Block::edgelist & inEdges = block->sources();
    std::for_each(
-      boost::make_filter_iterator(epred2, inEdges.begin(), inEdges.end()),
-      boost::make_filter_iterator(epred2, inEdges.end(), inEdges.end()),
-      boost::bind(&StackAnalysis::meetSummary, this,
-         boost::bind(&StackAnalysis::getSummarySrcOutputLocs, this, boost::placeholders::_1),
-         boost::ref(input)));
+      dyncompat::make_filter_iterator(epred2, inEdges.begin(), inEdges.end()),
+      dyncompat::make_filter_iterator(epred2, inEdges.end(), inEdges.end()),
+      dyncompat::bind(&StackAnalysis::meetSummary, this,
+         dyncompat::bind(&StackAnalysis::getSummarySrcOutputLocs, this, dyncompat::placeholders::_1),
+         dyncompat::ref(input)));
 
    meetSummary(blockInput, input);
 }

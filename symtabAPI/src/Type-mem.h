@@ -32,7 +32,7 @@
 #define TYPE_MEM_H_
 
 #include "symtabAPI/h/Type.h"
-#include "boost/static_assert.hpp"
+#include "dyncompat/static_assert.hpp"
 #include <assert.h>
 #include <string>
 #include <string.h>
@@ -53,18 +53,18 @@ T *upgradePlaceholder(Type *placeholder, T *new_type)
 }
 
 template<class T>
-typename boost::enable_if<
-    boost::integral_constant<bool, !bool(boost::is_same<Type, T>::value)>,
-boost::shared_ptr<Type>>::type typeCollection::addOrUpdateType(boost::shared_ptr<T> type)
+typename std::enable_if<
+    !std::is_same<Type, T>::value,
+dyncompat::shared_ptr<Type>>::type typeCollection::addOrUpdateType(dyncompat::shared_ptr<T> type)
 {
 	//Instanciating this function for 'Type' would be a mistake, which
 	//the following assert tries to guard against.  If you trigger this,
 	//then a caller to this function is likely using 'Type'.  Change
 	//this to a more specific call, e.g. typeFunction instead of Type
     // NOTE: Disabled, we use SFINAE instead to handle this.
-    // BOOST_STATIC_ASSERT(sizeof(T) != sizeof(Type));
+    // DYN_STATIC_ASSERT(sizeof(T) != sizeof(Type));
 
-    dyn_c_hash_map<int, boost::shared_ptr<Type>>::accessor a;
+    dyn_c_hash_map<int, dyncompat::shared_ptr<Type>>::accessor a;
 	if (typesByID.insert(a, {type->getID(), type}))
 	{
 		if ( type->getName() != "" )
@@ -95,7 +95,7 @@ boost::shared_ptr<Type>>::type typeCollection::addOrUpdateType(boost::shared_ptr
 	/* The type may have gained a name. */
 	if ( a->second->getName() != "")
 	{
-        dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::accessor o;
+        dyn_c_hash_map<std::string, dyncompat::shared_ptr<Type>>::accessor o;
 		if (typesByName.find(o, a->second->getName()))
 		{
 			if (a->second != o->second)

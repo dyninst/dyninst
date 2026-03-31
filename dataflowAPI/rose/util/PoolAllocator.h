@@ -14,10 +14,10 @@
 #include <stdint.h>
 #include <string.h>
 #include <utility>
-#include <boost/version.hpp>
-#include <boost/foreach.hpp>
-#include <boost/static_assert.hpp>
-#include <boost/cstdint.hpp>
+#include <dyncompat/version.hpp>
+#include <dyncompat/foreach.hpp>
+#include <dyncompat/static_assert.hpp>
+#include <dyncompat/cstdint.hpp>
 #include <list>
 #include "Assert.h"
 #include "Interval.h"
@@ -76,7 +76,7 @@ private:
     // Singly-linked list of cells (units of object backing store) that are not being used by the caller.
     struct FreeCell { FreeCell *next; };
 
-    typedef Sawyer::Container::Interval<boost::uint64_t> ChunkAddressInterval;
+    typedef Sawyer::Container::Interval<uint64_t> ChunkAddressInterval;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //                                  Basic unit of allocation.
@@ -85,7 +85,7 @@ private:
     class Chunk {
         unsigned char data_[chunkSize];
     public:
-        BOOST_STATIC_ASSERT(chunkSize >= sizeof(FreeCell));
+        DYN_STATIC_ASSERT(chunkSize >= sizeof(FreeCell));
 
         FreeCell* fill(size_t cellSize) {               // create a free list for this chunk
             ASSERT_require(cellSize >= sizeof(FreeCell));
@@ -101,8 +101,8 @@ private:
         }
 
         ChunkAddressInterval extent() const {
-            return ChunkAddressInterval::hull(reinterpret_cast<boost::uint64_t>(data_),
-                                              reinterpret_cast<boost::uint64_t>(data_+chunkSize-1));
+            return ChunkAddressInterval::hull(reinterpret_cast<uint64_t>(data_),
+                                              reinterpret_cast<uint64_t>(data_+chunkSize-1));
         }
     };
 
@@ -225,11 +225,11 @@ DYNINST_DIAGNOSTIC_END_SUPPRESS_UNUSED_VARIABLE
         // Information about each chunk.
         ChunkInfoMap chunkInfoNS() const {
             ChunkInfoMap map;
-            BOOST_FOREACH (const Chunk* chunk, chunks_)
+            DYN_FOREACH (const Chunk* chunk, chunks_)
                 map.insert(chunk->extent(), ChunkInfo(chunk, chunkSize / cellSize_));
             for (size_t freeListIdx = 0; freeListIdx < N_FREE_LISTS; ++freeListIdx) {
                 for (FreeCell *cell=freeLists_[freeListIdx]; cell!=NULL; cell=cell->next) {
-                    typename ChunkInfoMap::ValueIterator found = map.find(reinterpret_cast<boost::uint64_t>(cell));
+                    typename ChunkInfoMap::ValueIterator found = map.find(reinterpret_cast<uint64_t>(cell));
                     ASSERT_require2(found!=map.values().end(), "each freelist item must be some chunk cell");
                     ASSERT_require2(found->nUsed > 0, "freelist must be consistent with chunk capacities");
                     --found->nUsed;
@@ -291,7 +291,7 @@ DYNINST_DIAGNOSTIC_END_SUPPRESS_UNUSED_VARIABLE
                 FreeCell *next = NULL;
                 for (FreeCell *cell = freeLists_[oldFreeListIdx]; cell != NULL; cell = next) {
                     next = cell->next;
-                    boost::uint64_t cellAddr = reinterpret_cast<boost::uint64_t>(cell);
+                    uint64_t cellAddr = reinterpret_cast<uint64_t>(cell);
                     if (map[cellAddr].nUsed != 0) {
                         // Keep this cell by round-robin inserting it into a new free list.
                         cell->next = newFreeLists[newFreeListIdx];
@@ -307,7 +307,7 @@ DYNINST_DIAGNOSTIC_END_SUPPRESS_UNUSED_VARIABLE
             typename std::list<Chunk*>::iterator iter = chunks_.begin();
             while (iter!=chunks_.end()) {
                 Chunk *chunk = *iter;
-                boost::uint64_t cellAddr = chunk->extent().least(); // any cell will do
+                uint64_t cellAddr = chunk->extent().least(); // any cell will do
                 if (map[cellAddr].nUsed == 0) {
                     delete chunk;
                     iter = chunks_.erase(iter);
@@ -326,7 +326,7 @@ DYNINST_DIAGNOSTIC_END_SUPPRESS_UNUSED_VARIABLE
 
             const size_t nCells = chunkSize / cellSize_;
             size_t totalUsed=0;
-            BOOST_FOREACH (const ChunkInfo &info, cim.values()) {
+            DYN_FOREACH (const ChunkInfo &info, cim.values()) {
                 out <<"  chunk " <<info.chunk <<"\t" <<info.nUsed <<"/" <<nCells <<"\t= " <<100.0*info.nUsed/nCells <<"%\n";
                 totalUsed += info.nUsed;
             }
@@ -343,7 +343,7 @@ DYNINST_DIAGNOSTIC_END_SUPPRESS_UNUSED_VARIABLE
             const size_t nCells = chunkSize / cellSize_;
             size_t nReserved = nCells * cim.nIntervals();
             size_t nAllocated = 0;
-            BOOST_FOREACH (const ChunkInfo &info, cim.values())
+            DYN_FOREACH (const ChunkInfo &info, cim.values())
                 nAllocated += info.nUsed;
             return std::make_pair(nAllocated, nReserved);
         }

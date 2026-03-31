@@ -42,7 +42,7 @@ namespace Relocation {
 
 class RelDataWidget : public Widget {
  public:
-   typedef boost::shared_ptr<RelDataWidget> Ptr;
+   typedef dyncompat::shared_ptr<RelDataWidget> Ptr;
 
    virtual bool generate(const codeGen &, const RelocBlock *, CodeBuffer &);
 

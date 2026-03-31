@@ -186,7 +186,7 @@ public:
 
 private:
     /** size of tree **/
-    boost::atomic<int> treeSize;
+    dyncompat::atomic<int> treeSize;
 
     /** pointer to the tree root **/
     IBSNode<ITYPE> *root;

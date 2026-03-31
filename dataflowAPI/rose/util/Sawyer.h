@@ -11,8 +11,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <vector>
-#include <boost/cstdint.hpp>
-#include <boost/thread/recursive_mutex.hpp>
+#include <dyncompat/cstdint.hpp>
+#include <dyncompat/thread/recursive_mutex.hpp>
 #include <cstdio>
 #include <string>
 
@@ -332,7 +332,7 @@
      #define SAWYER_THREAD_LOCAL /*void*/
 #endif
 
-#ifdef BOOST_WINDOWS
+#ifdef _WIN32
 // FIXME[Robb Matzke 2014-06-18]: get rid of ROSE_UTIL_EXPORTS; cmake can only have one DEFINE_SYMBOL
 #   if defined(SAWYER_DO_EXPORTS) || defined(ROSE_UTIL_EXPORTS) // defined in CMake when compiling libsawyer
 #       define SAWYER_EXPORT __declspec(dllexport)
@@ -372,12 +372,12 @@ SAWYER_EXPORT bool initializeLibrary(size_t vmajor=SAWYER_VERSION_MAJOR,
 /** Portable replacement for ::strtoll
  *
  *  Microsoft doesn't define this function, so we define it in the Sawyer namespace. */
-SAWYER_EXPORT boost::int64_t strtoll(const char*, char**, int);
+SAWYER_EXPORT int64_t strtoll(const char*, char**, int);
 
 /** Portable replacement for ::strtoull
  *
  *  Microsoft doesn't define this function, so we define it in the Sawyer namespace. */
-SAWYER_EXPORT boost::uint64_t strtoull(const char*, char**, int);
+SAWYER_EXPORT uint64_t strtoull(const char*, char**, int);
 
 /** Reads one line of input from a file.
  *
@@ -409,9 +409,9 @@ SAWYER_EXPORT std::string generateSequentialName(size_t length=3);
 //                      preprocessor.
 //
 // The following macros are used to distinguish between different target environments, regardless of what compiler is being
-// used or the environment which is doing the compiling.  For instance, BOOST_WINDOWS will be defined when using the MinGW
+// used or the environment which is doing the compiling.  For instance, _WIN32 will be defined when using the MinGW
 // compiler on Linux to target a Windows environment.
-//     BOOST_WINDOWS    The Windows API is present.  This is defined (or not) by including <boost/config.hpp>.
+//     _WIN32    The Windows API is present.  This is defined (or not) by including <boost/config.hpp>.
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

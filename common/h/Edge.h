@@ -31,8 +31,8 @@
 #if !defined(EDGE_H)
 #define EDGE_H
 
-#include "boost/shared_ptr.hpp"
-#include "boost/weak_ptr.hpp"
+#include "dyncompat/shared_ptr.hpp"
+#include "dyncompat/weak_ptr.hpp"
 #include <stddef.h>
 #include <set>
 #include "Annotatable.h"
@@ -47,7 +47,7 @@ class COMMON_EXPORT Edge : public AnnotatableSparse {
     friend class Graph;
     friend class Creator;
  public:
-    typedef boost::shared_ptr<Edge> Ptr;
+    typedef dyncompat::shared_ptr<Edge> Ptr;
     struct EdgePtrHasher {
         size_t operator() (const Ptr &e) const noexcept {
 	    return (size_t)e.get();
@@ -56,8 +56,8 @@ class COMMON_EXPORT Edge : public AnnotatableSparse {
 
 
  private:
-    typedef boost::shared_ptr<Node> NodeSharedPtr;
-	typedef boost::weak_ptr<Node> NodePtr;
+    typedef dyncompat::shared_ptr<Node> NodeSharedPtr;
+	typedef dyncompat::weak_ptr<Node> NodePtr;
     
  public:
     

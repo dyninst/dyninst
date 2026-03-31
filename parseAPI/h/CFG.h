@@ -39,9 +39,9 @@
 #include <map>
 #include <string>
 #include <functional>
-#include <boost/iterator/transform_iterator.hpp>
-#include <boost/range/iterator_range.hpp>
-#include <boost/thread/lock_guard.hpp>
+#include <dyncompat/iterator/transform_iterator.hpp>
+#include <dyncompat/range/iterator_range.hpp>
+#include <dyncompat/thread/lock_guard.hpp>
 #include "dyntypes.h"
 #include "IBSTree.h"
 
@@ -52,16 +52,16 @@
 #include "CodeSource.h"
 
 #include <iostream>
-#include <boost/thread/lockable_adapter.hpp>
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/atomic.hpp>
+#include <dyncompat/thread/lockable_adapter.hpp>
+#include <dyncompat/thread/recursive_mutex.hpp>
+#include <dyncompat/atomic.hpp>
 #include <list>
 
 namespace Dyninst {
 
    namespace InstructionAPI {
       class Instruction;
-      typedef boost::shared_ptr<Instruction> InstructionPtr;
+      typedef dyncompat::shared_ptr<Instruction> InstructionPtr;
    }
 
 namespace ParseAPI {
@@ -94,7 +94,7 @@ class PARSER_EXPORT Edge {
    friend class CFGModifier;
     friend class Block;
  protected:
-    boost::atomic<Block *> _source;
+    dyncompat::atomic<Block *> _source;
     Block * _target;
     ParseData* index;
     Offset _target_off;
@@ -233,7 +233,7 @@ class CodeRegion;
 
 class PARSER_EXPORT Block :
         public Dyninst::SimpleInterval<Address, int>,
-        public boost::lockable_adapter<boost::recursive_mutex> {
+        public dyncompat::lockable_adapter<dyncompat::recursive_mutex> {
     friend class CFGModifier;
     friend class Parser;
  public:
@@ -333,7 +333,7 @@ private:
 
     edgelist _srclist;
     edgelist _trglist;
-    boost::atomic<int> _func_cnt;
+    dyncompat::atomic<int> _func_cnt;
     bool _parsed;
 
     Function * _createdByFunc;
@@ -376,7 +376,7 @@ class FuncExtent;
 class Loop;
 class LoopTreeNode;
 
-class PARSER_EXPORT Function : public AnnotatableSparse, public boost::lockable_adapter<boost::recursive_mutex> {
+class PARSER_EXPORT Function : public AnnotatableSparse, public dyncompat::lockable_adapter<dyncompat::recursive_mutex> {
    friend class CFGModifier;
    friend class LoopAnalyzer;
  protected:
@@ -387,7 +387,7 @@ class PARSER_EXPORT Function : public AnnotatableSparse, public boost::lockable_
     bool _cache_valid;
     
     FuncSource _src;
-    boost::atomic<FuncReturnStatus> _rs;
+    dyncompat::atomic<FuncReturnStatus> _rs;
 
     std::string _name;
     Block * _entry;
@@ -423,17 +423,17 @@ class PARSER_EXPORT Function : public AnnotatableSparse, public boost::lockable_
     typedef select2nd<blockmap::value_type> selector;
 
     
-    typedef boost::transform_iterator<selector, blockmap::iterator> bmap_iterator;
-    typedef boost::transform_iterator<selector, blockmap::const_iterator> bmap_const_iterator;
-    typedef boost::iterator_range<bmap_iterator> blocklist;
-    typedef boost::iterator_range<bmap_const_iterator> const_blocklist;
+    typedef dyncompat::transform_iterator<selector, blockmap::iterator> bmap_iterator;
+    typedef dyncompat::transform_iterator<selector, blockmap::const_iterator> bmap_const_iterator;
+    typedef dyncompat::iterator_range<bmap_iterator> blocklist;
+    typedef dyncompat::iterator_range<bmap_const_iterator> const_blocklist;
     typedef std::set<Edge*> edgelist;
     
     Function(Address addr, std::string name, CodeObject * obj, 
         CodeRegion * region, InstructionSource * isource);
 
     virtual ~Function();
-    boost::recursive_mutex& lockable() { return boost::lockable_adapter<boost::recursive_mutex>::lockable(); }
+    dyncompat::recursive_mutex& lockable() { return dyncompat::lockable_adapter<dyncompat::recursive_mutex>::lockable(); }
 
     virtual const std::string & name() const;
     void rename(std::string n) { _name = n; }
@@ -455,7 +455,7 @@ class PARSER_EXPORT Function : public AnnotatableSparse, public boost::lockable_
     const_blocklist blocks() const;
     size_t num_blocks()
     {
-      boost::lock_guard<Function> g(*this);
+      dyncompat::lock_guard<Function> g(*this);
       if(!_cache_valid) finalize();
       return _bmap.size();
     }

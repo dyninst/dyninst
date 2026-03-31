@@ -33,8 +33,8 @@
 #ifndef _BITARRAY_
 #define _BITARRAY_
 #include <memory>
-#include <boost/dynamic_bitset.hpp>
-typedef boost::dynamic_bitset<unsigned long, std::allocator<unsigned long> > bitArray;
+#include <dyncompat/dynamic_bitset.hpp>
+typedef dyncompat::dynamic_bitset<unsigned long, std::allocator<unsigned long> > bitArray;
 
 // Bitarrays for register liveness. This could move to registerSpace...
 #define SPEC_GPR_BIT(x) (x.size() - 3)

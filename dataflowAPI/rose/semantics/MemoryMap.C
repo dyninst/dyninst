@@ -7,11 +7,11 @@
 #include "../util/rose_getline.h"
 #include "../util/rose_strtoull.h"
 
-#include <boost/filesystem.hpp>
-#include <boost/foreach.hpp>
+#include <filesystem>
+#include <dyncompat/foreach.hpp>
 
-#include <boost/config.hpp>
-#ifndef BOOST_WINDOWS
+#include <dyncompat/config.hpp>
+#ifndef _WIN32
 # include <fcntl.h>                                     // for open()
 # include <sys/ptrace.h>                                // for ptrace()
 # include <sys/wait.h>                                  // for waitpid()
@@ -125,7 +125,7 @@ MemoryMap::segmentTitle(const Segment &segment) {
 size_t
 MemoryMap::insertFile(const std::string &fileName, rose_addr_t startVa, bool writable, std::string segmentName) {
     if (segmentName.empty())
-        segmentName = FileSystem::toString(boost::filesystem::path(fileName).filename());
+        segmentName = FileSystem::toString(std::filesystem::path(fileName).filename());
     Segment segment = Segment::fileInstance(fileName, READABLE | (writable?WRITABLE:0), segmentName);
     AddressInterval fileInterval = AddressInterval::baseSize(startVa, segment.buffer()->size());
     insert(fileInterval, segment);
@@ -246,7 +246,7 @@ MemoryMap::insertFile(const std::string &locatorString) {
     std::string fileName = s;
     if (fileName.size()!=strlen(fileName.c_str()))
         throw insertFileError(locatorString, "invalid file name");
-    std::string segmentName = FileSystem::toString(boost::filesystem::path(fileName).filename());
+    std::string segmentName = FileSystem::toString(std::filesystem::path(fileName).filename());
 
     //-------------------------------- 
     // Open the file and read the data
@@ -264,7 +264,7 @@ MemoryMap::insertFile(const std::string &locatorString) {
     // If no file size was specified then try to get one, or delay getting one until later.  On POSIX systems we can use stat
     // to get the file size, which is useful because infinite devices (like /dev/zero) will return zero.  Otherwise we'll get
     // the file size by trying to read from the file.
-#if !defined(BOOST_WINDOWS)                             // not targeting Windows; i.e., not Microsoft C++ and not MinGW
+#if !defined(_WIN32)                             // not targeting Windows; i.e., not Microsoft C++ and not MinGW
     if (!optionalFSize) {
         struct stat sb;
         if (0==stat(fileName.c_str(), &sb))
@@ -317,7 +317,7 @@ MemoryMap::insertFile(const std::string &locatorString) {
 
     // Choose accessibility
     if (!optionalAccess) {
-#ifdef BOOST_WINDOWS
+#ifdef _WIN32
         optionalAccess = READABLE | WRITABLE;
 #else
         unsigned a = 0;
@@ -383,7 +383,7 @@ insertProcessError(const std::string &locatorString, const std::string &mesg) {
 // FIXME[Robb P. Matzke 2014-10-09]: No idea how to do this in Microsoft Windows!
 void
 MemoryMap::insertProcess(const std::string &locatorString) {
-#ifdef BOOST_WINDOWS                                    // FIXME[Robb P. Matzke 2014-10-10]
+#ifdef _WIN32                                    // FIXME[Robb P. Matzke 2014-10-10]
     throw std::runtime_error("MemoryMap::insertProcess is not available on Microsoft Windows");
 #else
 
@@ -413,7 +413,7 @@ MemoryMap::insertProcess(const std::string &locatorString) {
     if (':'!=*s++)
         throw insertProcessError(locatorString, "initial colon expected");
     while (':'!=*s) {
-        if (boost::starts_with(s, "noattach")) {
+        if (dyncompat::starts_with(s, "noattach")) {
             doAttach = false;
             s += strlen("noattach");
         } else {
@@ -439,7 +439,7 @@ MemoryMap::insertProcess(const std::string &locatorString) {
             throw insertProcessError(locatorString, "process exited before it could be read");
         if (WIFSIGNALED(wstat))
             throw insertProcessError(locatorString, "process died with " +
-                                     boost::to_lower_copy(std::string(strsignal(WTERMSIG(wstat)))) +
+                                     dyncompat::to_lower_copy(std::string(strsignal(WTERMSIG(wstat)))) +
                                      " before it could be read");
         local.resumeProcess = pid;
         ASSERT_require2(WIFSTOPPED(wstat) && WSTOPSIG(wstat)==SIGSTOP, "subordinate process did not stop");
@@ -521,7 +521,7 @@ MemoryMap::insertProcess(const std::string &locatorString) {
                     continue;
                 //mlog[WARN] <<strerror(errno) <<" during read from " <<memName <<" for segment " <<kernelSegmentName
                 //           <<" at " <<segmentInterval <<"\n";
-                segmentName += "[" + boost::to_lower_copy(std::string(strerror(errno))) + "]";
+                segmentName += "[" + dyncompat::to_lower_copy(std::string(strerror(errno))) + "]";
                 break;
             } else if (0==nRead) {
                 //mlog[WARN] <<"short read from " <<memName <<" for segment " <<kernelSegmentName <<" at " <<segmentInterval <<"\n";
@@ -605,7 +605,7 @@ MemoryMap::eraseZeros(size_t minsize)
     }
     if (zeroInterval.size() >= minsize)
         toRemove.insert(zeroInterval);
-    BOOST_FOREACH (const AddressInterval &interval, toRemove.intervals())
+    DYN_FOREACH (const AddressInterval &interval, toRemove.intervals())
         erase(interval);
 }
 
@@ -692,7 +692,7 @@ MemoryMap::dump(std::ostream &out, std::string prefix) const
         return;
     }
 
-    BOOST_FOREACH (const Node &node, nodes()) {
+    DYN_FOREACH (const Node &node, nodes()) {
         const AddressInterval &range = node.key();
         const Segment &segment = node.value();
         out <<prefix

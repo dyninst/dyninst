@@ -35,7 +35,7 @@
 #define GRAPH_H
 
 #include "dyntypes.h"
-#include "boost/shared_ptr.hpp"
+#include "dyncompat/shared_ptr.hpp"
 #include <string>
 #include <set>
 #include <list>
@@ -63,14 +63,14 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
     
  protected:
 
-    typedef boost::shared_ptr<Node> NodePtr;
-    typedef boost::shared_ptr<Edge> EdgePtr;
+    typedef dyncompat::shared_ptr<Node> NodePtr;
+    typedef dyncompat::shared_ptr<Edge> EdgePtr;
 
     typedef std::unordered_set<NodePtr, Node::NodePtrHasher> NodeSet;
     typedef std::unordered_map<Address, NodeSet> NodeMap;
 
  public:    
-    typedef boost::shared_ptr<Graph> Ptr;
+    typedef dyncompat::shared_ptr<Graph> Ptr;
 
     // Interface class for predicate-based searches. Users
     // can inherit this class to specify the functor to use
@@ -78,7 +78,7 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
     class NodePredicate {
 
     public:
-        typedef boost::shared_ptr<NodePredicate> Ptr;
+        typedef dyncompat::shared_ptr<NodePredicate> Ptr;
         virtual ~NodePredicate() {}
         virtual bool predicate(const NodePtr &node) = 0;
         static Ptr getPtr(NodePredicate *p) { 

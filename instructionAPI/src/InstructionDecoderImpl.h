@@ -46,7 +46,7 @@ namespace InstructionAPI
 class InstructionDecoderImpl
 {
     public:
-        typedef boost::shared_ptr<InstructionDecoderImpl> Ptr;
+        typedef dyncompat::shared_ptr<InstructionDecoderImpl> Ptr;
       
         InstructionDecoderImpl(Architecture a) : m_Arch(a) {}
         virtual ~InstructionDecoderImpl() {}
@@ -80,7 +80,7 @@ class InstructionDecoderImpl
         // added to support ternary value 
         virtual Expression::Ptr makeTernaryExpression(Expression::Ptr cond, Expression::Ptr first, Expression::Ptr second, Result_Type resultType);
         //Instruction* makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,const unsigned char* raw);
-        boost::shared_ptr<Instruction> makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,
+        dyncompat::shared_ptr<Instruction> makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,
                                      const unsigned char* raw);
       
     protected:

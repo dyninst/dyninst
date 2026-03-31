@@ -64,11 +64,11 @@ public:
 
 class PC_EXPORT WinEventNewThread : public EventNewLWP
 {
-   friend void boost::checked_delete<WinEventNewThread>(WinEventNewThread *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const WinEventNewThread>(const WinEventNewThread *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<WinEventNewThread>(WinEventNewThread *) noexcept;
+   friend void dyncompat::checked_delete<const WinEventNewThread>(const WinEventNewThread *) noexcept;
  public:
-   typedef boost::shared_ptr<WinEventNewThread> ptr;
-   typedef boost::shared_ptr<const WinEventNewThread> const_ptr;
+   typedef dyncompat::shared_ptr<WinEventNewThread> ptr;
+   typedef dyncompat::shared_ptr<const WinEventNewThread> const_ptr;
    WinEventNewThread(Dyninst::LWP l, HANDLE ht, LPTHREAD_START_ROUTINE ts, LPVOID base) :
       EventNewLWP(l, (int) int_thread::as_created_attached),
       hthread(ht), thread_start(ts), tls_base(base)
@@ -86,11 +86,11 @@ private:
 
 class PC_EXPORT WinEventThreadInfo : public Event
 {
-   friend void boost::checked_delete<WinEventThreadInfo>(WinEventThreadInfo *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const WinEventThreadInfo>(const WinEventThreadInfo *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<WinEventThreadInfo>(WinEventThreadInfo *) noexcept;
+   friend void dyncompat::checked_delete<const WinEventThreadInfo>(const WinEventThreadInfo *) noexcept;
  public:
-   typedef boost::shared_ptr<WinEventThreadInfo> ptr;
-   typedef boost::shared_ptr<const WinEventThreadInfo> const_ptr;
+   typedef dyncompat::shared_ptr<WinEventThreadInfo> ptr;
+   typedef dyncompat::shared_ptr<const WinEventThreadInfo> const_ptr;
 	WinEventThreadInfo(Dyninst::LWP l, HANDLE ht, LPTHREAD_START_ROUTINE ts,
 		LPVOID base) : Event(EventType(EventType::None, EventType::ThreadInfo)), hthread(ht), thread_start(ts), tls_base(base),
 		lwp(l)

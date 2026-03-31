@@ -7,15 +7,16 @@
 
 #include "Message.h"
 
-#include <boost/algorithm/string/case_conv.hpp>
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/find.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/config.hpp>
-#include <boost/foreach.hpp>
+#include <dyncompat/algorithm/string/case_conv.hpp>
+#include <dyncompat/algorithm/string/classification.hpp>
+#include <dyncompat/algorithm/string/find.hpp>
+#include <dyncompat/algorithm/string/predicate.hpp>
+#include <dyncompat/config.hpp>
+#include <dyncompat/foreach.hpp>
 #include <cerrno>
 #include <cmath>
 #include <cstdio>
+#include <unistd.h>
 #include <iomanip>
 #include <iostream>
 #include "Sawyer.h"
@@ -25,7 +26,7 @@
 #include <sys/stat.h>
 #include <vector>
 
-#ifdef BOOST_WINDOWS
+#ifdef _WIN32
 //#   include <stdafx.h>
 #   include <windows.h>
 #   include <tchar.h>
@@ -35,8 +36,8 @@
 #endif
 
 #if defined(SAWYER_HAVE_BOOST_CHRONO)
-#   include <boost/chrono.hpp>
-#elif defined(BOOST_WINDOWS)
+#include <chrono>
+#elif defined(_WIN32)
 #   include <time.h>
 #   include <windows.h>
 #   undef ERROR                                         // not sure where this pollution comes from
@@ -121,11 +122,11 @@ SAWYER_EXPORT double
 now() {
 #if defined(SAWYER_HAVE_BOOST_CHRONO)
     // Boost::chrono is thread-safe since we're using only stack allocated objects
-    boost::chrono::system_clock::time_point curtime = boost::chrono::system_clock::now();
-    boost::chrono::system_clock::time_point epoch;
-    boost::chrono::duration<double> diff = curtime - epoch;
+    std::chrono::system_clock::time_point curtime = std::chrono::system_clock::now();
+    std::chrono::system_clock::time_point epoch;
+    std::chrono::duration<double> diff = curtime - epoch;
     return diff.count();
-#elif defined(BOOST_WINDOWS)
+#elif defined(_WIN32)
     FILETIME ft;
     GetSystemTimeAsFileTime(&ft);
     unsigned __int64 t = ft.dwHighDateTime;
@@ -177,7 +178,7 @@ MesgProps::merge(const MesgProps &other) const {
         retval.facilityName = other.facilityName;
     if (!importance)
         retval.importance = other.importance;
-    if (indeterminate(isBuffered))
+    if (dyncompat::indeterminate(isBuffered))
         retval.isBuffered = other.isBuffered;
     if (!completionStr)
         retval.completionStr = other.completionStr;
@@ -187,7 +188,7 @@ MesgProps::merge(const MesgProps &other) const {
         retval.cancelationStr = other.cancelationStr;
     if (!lineTermination)
         retval.lineTermination = other.lineTermination;
-    if (indeterminate(useColor))
+    if (dyncompat::indeterminate(useColor))
         retval.useColor = other.useColor;
     return retval;
 }
@@ -211,7 +212,7 @@ MesgProps::print(std::ostream &o) const {
     }
 
     o <<", isBuffered=";
-    if (!indeterminate(isBuffered)) {
+    if (!dyncompat::indeterminate(isBuffered)) {
         o <<(isBuffered ? "yes" : "no");
     } else {
         o <<"undef";
@@ -246,7 +247,7 @@ MesgProps::print(std::ostream &o) const {
     }
     
     o <<", useColor=";
-    if (!indeterminate(useColor)) {
+    if (!dyncompat::indeterminate(useColor)) {
         o <<(useColor ? "yes" : "no");
     } else {
         o <<"undef";
@@ -288,7 +289,7 @@ Mesg::post(const BakedDestinations &baked) const {
 
 SAWYER_EXPORT bool
 Mesg::hasText() const {
-    return boost::find_token(text_, boost::is_graph());
+    return std::any_of(text_.begin(), text_.end(), [](unsigned char c){ return std::isgraph(c); });
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -654,7 +655,7 @@ Prefix::silentInstance() {
 // thread-safe (assuming Windows API is thread-safe)
 SAWYER_EXPORT void
 Prefix::setProgramName() {
-#ifdef BOOST_WINDOWS
+#ifdef _WIN32
 # if 0 // [Robb Matzke 2014-06-13] temporarily disable for ROSE linking error (needs psapi.lib in Windows)
     if (HANDLE handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, GetCurrentProcessId())) {
         TCHAR buffer[MAX_PATH];
@@ -755,7 +756,7 @@ Prefix::toString(const Mesg &mesg, const MesgProps &props) const {
         programNameShown = *programName_;
         retval <<*programName_;
         if (showThreadId_) {
-#ifdef BOOST_WINDOWS
+#ifdef _WIN32
             retval <<"[" <<GetCurrentProcessId() <<"]";
 #else
             retval <<"[" <<getpid() <<"]";
@@ -931,7 +932,7 @@ UnformattedSink::gangInternal(const GangPtr &g) {
 // only called from the c'tor
 SAWYER_EXPORT void
 FdSink::init() {
-#ifdef BOOST_WINDOWS
+#ifdef _WIN32
     gangInternal(Gang::instanceForId(fd_));
     overridePropertiesNS().useColor = true;
 #else
@@ -951,7 +952,7 @@ SAWYER_EXPORT void
 FdSink::post(const Mesg &mesg, const MesgProps &props) {
     if (!partialMessagesAllowed_ && !mesg.isComplete())
         return;
-#ifdef BOOST_WINDOWS
+#ifdef _WIN32
     // FIXME[Robb Matzke 2014-06-10]: what is the most basic file level on Windows; one which doesn't need construction?
     std::cout <<render(mesg, props);
 #else
@@ -978,7 +979,7 @@ FdSink::post(const Mesg &mesg, const MesgProps &props) {
 // only called from the c'tor
 SAWYER_EXPORT void
 FileSink::init() {
-#ifdef BOOST_WINDOWS
+#ifdef _WIN32
     gangInternal(Gang::instanceForTty());
     overridePropertiesNS().useColor = true;
     defaultPropertiesNS().isBuffered = false;
@@ -1014,7 +1015,7 @@ StreamSink::post(const Mesg &mesg, const MesgProps &props) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef BOOST_WINDOWS
+#ifndef _WIN32
 SyslogSink::SyslogSink(const char *ident, int option, int facility) {
     init();
     openlog(ident, option, facility);
@@ -1638,7 +1639,7 @@ SAWYER_EXPORT Facilities&
 Facilities::erase(Facility &facility) {
     SAWYER_THREAD_TRAITS::LockGuard lock(mutex_);
     FacilityMap map = facilities_;;
-    BOOST_FOREACH (const FacilityMap::Node &node, map.nodes()) {
+    DYN_FOREACH (const FacilityMap::Node &node, map.nodes()) {
         if (node.value() == &facility)
             facilities_.erase(node.key());
     }
@@ -1656,7 +1657,7 @@ Facilities::facility(const std::string &name) const {
 SAWYER_EXPORT Facilities&
 Facilities::reenable() {
     SAWYER_THREAD_TRAITS::LockGuard lock(mutex_);
-    BOOST_FOREACH (const FacilityMap::Node &node, facilities_.nodes()) {
+    DYN_FOREACH (const FacilityMap::Node &node, facilities_.nodes()) {
         for (int i=0; i<N_IMPORTANCE; ++i) {
             Importance imp = (Importance)i;
             node.value()->get(imp).enable(impset_.find(imp)!=impset_.end());
@@ -1669,7 +1670,7 @@ Facilities::reenable() {
 SAWYER_EXPORT Facilities&
 Facilities::reenableFrom(const Facilities &other) {
     LockGuard2<SAWYER_THREAD_TRAITS::Mutex> lock(mutex_, other.mutex_);
-    BOOST_FOREACH (const FacilityMap::Node &src, other.facilities_.nodes()) {
+    DYN_FOREACH (const FacilityMap::Node &src, other.facilities_.nodes()) {
         FacilityMap::NodeIterator fi_dst = facilities_.find(src.key());
         if (fi_dst!=facilities_.nodes().end()) {
             for (int i=0; i<N_IMPORTANCE; ++i) {
@@ -1715,7 +1716,7 @@ Facilities::enableNS(Importance imp, bool b) {
     } else {
         impset_.erase(imp);
     }
-    BOOST_FOREACH (const FacilityMap::Node &node, facilities_.nodes())
+    DYN_FOREACH (const FacilityMap::Node &node, facilities_.nodes())
         node.value()->get(imp).enable(b);
     return *this;
 }
@@ -1724,7 +1725,7 @@ Facilities::enableNS(Importance imp, bool b) {
 SAWYER_EXPORT Facilities&
 Facilities::enable(bool b) {
     SAWYER_THREAD_TRAITS::LockGuard lock(mutex_);
-    BOOST_FOREACH (Facility *facility, facilities_.values()) {
+    DYN_FOREACH (Facility *facility, facilities_.values()) {
         if (b) {
             for (int i=0; i<N_IMPORTANCE; ++i) {
                 Importance imp = (Importance)i;
@@ -1818,7 +1819,7 @@ Facilities::parseImportanceName(const char *&str) {
     while (isspace(*s)) ++s;
     for (size_t i=0; i<nwords; ++i) {
         size_t n = strlen(words[i]);
-        if (boost::iequals(std::string(s).substr(0, n), std::string(words[i]).substr(0, n)) && '_'!=s[n]) {
+        if (dyncompat::iequals(std::string(s).substr(0, n), std::string(words[i]).substr(0, n)) && '_'!=s[n]) {
             str += (s-str) + n;
             return words[i];
         }
@@ -1829,21 +1830,21 @@ Facilities::parseImportanceName(const char *&str) {
 // class method; thread-safe
 SAWYER_EXPORT Importance
 Facilities::importanceFromString(const std::string &str) {
-    if (boost::iequals(str, "debug"))
+    if (dyncompat::iequals(str, "debug"))
         return DEBUG;
-    if (boost::iequals(str, "trace"))
+    if (dyncompat::iequals(str, "trace"))
         return TRACE;
-    if (boost::iequals(str, "where"))
+    if (dyncompat::iequals(str, "where"))
         return WHERE;
-    if (boost::iequals(str, "march"))
+    if (dyncompat::iequals(str, "march"))
         return MARCH;
-    if (boost::iequals(str, "info"))
+    if (dyncompat::iequals(str, "info"))
         return INFO;
-    if (boost::iequals(str, "warn"))
+    if (dyncompat::iequals(str, "warn"))
         return WARN;
-    if (boost::iequals(str, "error"))
+    if (dyncompat::iequals(str, "error"))
         return ERROR;
-    if (boost::iequals(str, "fatal"))
+    if (dyncompat::iequals(str, "fatal"))
         return FATAL;
     return N_IMPORTANCE;                                // error
 }
@@ -1889,14 +1890,14 @@ Facilities::parseImportanceList(const std::string &facilityName, const char *&st
         }
 
         ControlTerm term(facilityName, enablement.compare("!")!=0);
-        if (boost::iequals(importance, "all") || boost::iequals(importance, "none")) {
+        if (dyncompat::iequals(importance, "all") || dyncompat::iequals(importance, "none")) {
             if (!enablement.empty())
                 throw ControlError("'"+importance+"' cannot be preceded by '"+enablement+"'", enablementStart);
             if (!relation.empty())
                 throw ControlError("'"+importance+"' cannot be preceded by '"+relation+"'", relationStart);
             term.lo = DEBUG;
             term.hi = FATAL;
-            term.enable = !boost::iequals(importance, "none");
+            term.enable = !dyncompat::iequals(importance, "none");
         } else {
             Importance imp = importanceFromString(importance);
             if (N_IMPORTANCE==imp)
@@ -2010,7 +2011,7 @@ SAWYER_EXPORT std::string
 Facilities::configuration() const {
     SAWYER_THREAD_TRAITS::LockGuard lock(mutex_);
     std::string retval;
-    BOOST_FOREACH (const FacilityMap::Node &facility, facilities_.nodes()) {
+    DYN_FOREACH (const FacilityMap::Node &facility, facilities_.nodes()) {
         retval += (retval.empty()?"":",") + facility.key() + "(";
         for (int imp=0; imp<N_IMPORTANCE; ++imp) {
             retval += (imp==0 ? "" : ",");
@@ -2028,7 +2029,7 @@ SAWYER_EXPORT std::vector<std::string>
 Facilities::facilityNames() const {
     SAWYER_THREAD_TRAITS::LockGuard lock(mutex_);
     std::vector<std::string> allNames;
-    BOOST_FOREACH (const std::string &name, facilities_.keys())
+    DYN_FOREACH (const std::string &name, facilities_.keys())
         allNames.push_back(name);
     return allNames;
 }
@@ -2048,7 +2049,7 @@ Facilities::print(std::ostream &log) const {
     if (facilities_.isEmpty()) {
         log <<"no message facilities registered\n";
     } else {
-        BOOST_FOREACH (const FacilityMap::Node &fnode, facilities_.nodes()) {
+        DYN_FOREACH (const FacilityMap::Node &fnode, facilities_.nodes()) {
             Facility *facility = fnode.value();
 
             // A short easy to read format. Letters indicate the importances that are enabled; dashes keep them aligned.
@@ -2068,7 +2069,7 @@ Facilities::print(std::ostream &log) const {
 
 void
 FacilitiesGuard::save() {
-    BOOST_FOREACH (const std::string &facilityName, facilities_.facilityNames()) {
+    DYN_FOREACH (const std::string &facilityName, facilities_.facilityNames()) {
         std::vector<bool> facilityState = state_.insertMaybeDefault(facilityName);
         facilityState.resize(N_IMPORTANCE, false);
         Facility &facility = facilities_.facility(facilityName);
@@ -2079,7 +2080,7 @@ FacilitiesGuard::save() {
 
 void
 FacilitiesGuard::restore() {
-    BOOST_FOREACH (const State::Node &saved, state_.nodes()) {
+    DYN_FOREACH (const State::Node &saved, state_.nodes()) {
         try {
             Facility &facility = facilities_.facility(saved.key());
             for (int i=0; i<N_IMPORTANCE; ++i)
@@ -2112,7 +2113,7 @@ public:
 };
 
 #if SAWYER_MULTI_THREADED
-static boost::once_flag initFlag = BOOST_ONCE_INIT;
+static dyncompat::once_flag initFlag = DYNCOMPAT_ONCE_INIT;
 #endif
 
 // thread-safe
@@ -2120,7 +2121,7 @@ SAWYER_EXPORT bool
 initializeLibrary() {
     Initializer init;
 #if SAWYER_MULTI_THREADED
-    boost::call_once(initFlag, init);
+    dyncompat::call_once(initFlag, init);
 #else
     static bool initialized = false;
     if (!initialized) {

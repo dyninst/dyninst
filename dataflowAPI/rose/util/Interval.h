@@ -11,7 +11,7 @@
 #include "Assert.h"
 #include "Sawyer.h"
 #include <utility>
-#include <boost/integer_traits.hpp>
+#include <dyncompat/integer_traits.hpp>
 
 namespace Sawyer {
 namespace Container {
@@ -73,7 +73,7 @@ public:
 
     /** Construct an interval that covers the entire domain. */
     static Interval whole() {
-        return hull(boost::integer_traits<T>::const_min, boost::integer_traits<T>::const_max);
+        return hull(dyncompat::integer_traits<T>::const_min, dyncompat::integer_traits<T>::const_max);
     }
 
     /** Assignment from an interval. */
@@ -108,7 +108,7 @@ public:
     bool isSingleton() const { return lo_ == hi_; }
 
     /** True if interval covers entire space. */
-    bool isWhole() const { return lo_==boost::integer_traits<T>::const_min && hi_==boost::integer_traits<T>::const_max; }
+    bool isWhole() const { return lo_==dyncompat::integer_traits<T>::const_min && hi_==dyncompat::integer_traits<T>::const_max; }
 
     /** True if two intervals overlap.
      *

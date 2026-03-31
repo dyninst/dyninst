@@ -56,8 +56,8 @@
 #include "emitter.h"
 #include "emit-aarch64.h"
 
-#include <boost/assign/list_of.hpp>
-using namespace boost::assign;
+#include <dyncompat/assign/list_of.hpp>
+using namespace dyncompat::assign;
 #include <sstream>
 
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"

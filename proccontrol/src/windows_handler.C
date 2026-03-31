@@ -139,7 +139,7 @@ Handler::handler_ret_t WindowsHandleNewThr::handleEvent(Event::ptr ev)
 	ProcPool()->condvar()->unlock();
 	assert(thr);
                                         
-   WinEventNewThread::ptr we = boost::dynamic_pointer_cast<WinEventNewThread>(ev);
+   WinEventNewThread::ptr we = dyncompat::dynamic_pointer_cast<WinEventNewThread>(ev);
    if(we)
    {
 		pthrd_printf("WinHandleCreateThread handling thread creation for thread %d, handle %x\n",
@@ -338,7 +338,7 @@ Handler::handler_ret_t WindowsHandleSetThreadInfo::handleEvent( Event::ptr ev )
 {
 	windows_thread *thr = static_cast<windows_thread*>(ev->getThread()->llthrd());
                                         
-   WinEventThreadInfo::ptr we = boost::dynamic_pointer_cast<WinEventThreadInfo>(ev);
+   WinEventThreadInfo::ptr we = dyncompat::dynamic_pointer_cast<WinEventThreadInfo>(ev);
    if(we)
    {
 	   ProcPool()->rmThread(thr);

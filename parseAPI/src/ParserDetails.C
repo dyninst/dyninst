@@ -330,7 +330,7 @@ void Parser::ProcessUnresBranchEdge(
 
     bool valid;
     Address addr;
-    boost::tie(valid, addr) = ah->getCFT();
+    std::tie(valid, addr) = ah->getCFT();
     if (!valid) {
         det.data.unres.dynamic = true;
         det.data.unres.absolute_address = true;

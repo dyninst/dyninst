@@ -84,9 +84,9 @@ struct PoolDestructor
 };
 
 template <typename T> inline
-boost::shared_ptr<T> make_shared(T* t)
+dyncompat::shared_ptr<T> make_shared(T* t)
 {
-    return boost::shared_ptr<T>(t, PoolDestructor<T>()/*, typename unlocked_fast_alloc<T>::type()*/);
+    return dyncompat::shared_ptr<T>(t, PoolDestructor<T>()/*, typename unlocked_fast_alloc<T>::type()*/);
 }
 
 

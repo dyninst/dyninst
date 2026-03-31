@@ -60,7 +60,7 @@
 #include "mapped_object.h"
 #include "Relocation/DynAddrSpace.h"
 
-#include "boost/filesystem.hpp"
+#include <filesystem>
 using Dyninst::PatchAPI::DynAddrSpacePtr;
 using Dyninst::PatchAPI::DynAddrSpace;
 
@@ -281,7 +281,7 @@ bool BPatch_binaryEdit::finalizeInsertionSet(bool /*atomic*/, bool * /*modified*
 
 BPatch_object *BPatch_binaryEdit::loadLibrary(const char *libname, bool deps)
 {
-   boost::filesystem::path p(libname);
+   std::filesystem::path p(libname);
    string filename = p.filename().string();
    auto loaded = loadedLibrary.find(filename); 
    if (loaded != loadedLibrary.end()) {

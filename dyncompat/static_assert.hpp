@@ -1,0 +1,6 @@
+#ifndef DYNINST_DYNCOMPAT_STATIC_ASSERT_HPP
+#define DYNINST_DYNCOMPAT_STATIC_ASSERT_HPP
+
+#define DYN_STATIC_ASSERT(...) static_assert((__VA_ARGS__), #__VA_ARGS__)
+
+#endif

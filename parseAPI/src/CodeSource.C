@@ -31,7 +31,7 @@
 #include <vector>
 #include <map>
 #include <iostream>
-#include <boost/assign/list_of.hpp>
+#include <dyncompat/assign/list_of.hpp>
 
 #include "dyntypes.h"
 
@@ -87,7 +87,7 @@ CodeSource::findRegions(Address addr, set<CodeRegion *> & ret) const
 
 dyn_hash_map<std::string, bool>
 CodeSource::non_returning_funcs =
-    boost::assign::map_list_of
+    dyncompat::assign::map_list_of
         // libc-2.31.so from glibc 2.31
         ("_Exit", true)
         ("__GI___assert_fail", true)
@@ -226,13 +226,13 @@ CodeSource::non_returning_funcs =
 
 dyn_hash_map<int, bool>
 CodeSource::non_returning_syscalls_x86 =
-    boost::assign::map_list_of
+    dyncompat::assign::map_list_of
         (1 /*exit*/,true)
         (119 /*sigreturn*/, true);
 
 dyn_hash_map<int, bool>
 CodeSource::non_returning_syscalls_x86_64 =
-    boost::assign::map_list_of
+    dyncompat::assign::map_list_of
         (60 /*exit*/,true)
         (15 /*sigreturn*/, true);
 

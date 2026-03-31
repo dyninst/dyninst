@@ -63,13 +63,13 @@ FunctionBase::FunctionBase() :
 {
 }
 
-boost::shared_ptr<Type> FunctionBase::getReturnType(Type::do_share_t) const
+dyncompat::shared_ptr<Type> FunctionBase::getReturnType(Type::do_share_t) const
 {
     getModule()->exec()->parseTypesNow();
     return retType_;
 }
 
-bool FunctionBase::setReturnType(boost::shared_ptr<Type> newType)
+bool FunctionBase::setReturnType(dyncompat::shared_ptr<Type> newType)
 {
    retType_ = newType;
    return true;
@@ -392,7 +392,7 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::VariableLocation &l)
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &f)
 {
-	boost::shared_ptr<Type> retType = (const_cast<Function &>(f)).getReturnType(Type::share);
+	dyncompat::shared_ptr<Type> retType = (const_cast<Function &>(f)).getReturnType(Type::share);
 
 	std::string tname(retType ? retType->getName() : "no_type");
 	const Aggregate *ag = dynamic_cast<const Aggregate *>(&f);
@@ -445,7 +445,7 @@ InlinedFunction::InlinedFunction(FunctionBase *parent) :
 {
     inline_parent = parent;
     offset_ = parent->getOffset();
-    boost::unique_lock<dyn_mutex> l(parent->inlines_lock);
+    dyncompat::unique_lock<dyn_mutex> l(parent->inlines_lock);
     parent->inlines.push_back(this);
 }
 
@@ -487,12 +487,8 @@ unsigned InlinedFunction::getSize() const
 
 void InlinedFunction::setFile(string filename) {
     StringTablePtr strs = module_->getStrings();
-    boost::unique_lock<dyn_mutex> l(strs->lock);
-    // This looks gross, but here's what it does:
-    // Get index 1 (unique by name). Insert the filename on that index (which defaults to push_back if empty).
-    // Returns an <iterator, bool>; get the iterator (we don't care if it's new). Project to random access (index 0).
-    // Difference from begin == array index in string table.
-    callsite_file_number = strs->project<0>(strs->get<1>().insert(StringTableEntry(filename,"")).first) - strs->begin();
+    dyncompat::unique_lock<dyn_mutex> l(strs->lock);
+    callsite_file_number = strs->ensure(std::move(filename));
 }
 
 Module* Function::getModule() const {

@@ -49,7 +49,7 @@
 #include <utility>
 #include <vector>
 
-#include "boost/shared_ptr.hpp"
+#include "dyncompat/shared_ptr.hpp"
 
 #include "pcEventMuxer.h"
 

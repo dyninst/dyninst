@@ -42,22 +42,17 @@
 #include "BPatch_callbacks.h"
 #include "BPatch_instruction.h" // for register type
 #include "BPatch_enums.h"
-#include "boost/shared_ptr.hpp"
+#include "dyncompat/shared_ptr.hpp"
 
 class AstNode;
 // Don't include the boost shared_ptr library
 class BPatch_snippet;
 
-typedef boost::shared_ptr<AstNode> AstNodePtr;
-namespace boost {
-   template< typename T > class shared_ptr;
-   template<> class shared_ptr<AstNode *>;
-}
-
+typedef dyncompat::shared_ptr<AstNode> AstNodePtr;
 namespace Dyninst {
    namespace PatchAPI {
       class Snippet;
-      typedef boost::shared_ptr<Snippet> SnippetPtr;
+      typedef dyncompat::shared_ptr<Snippet> SnippetPtr;
       BPATCH_DLL_EXPORT SnippetPtr convert(const BPatch_snippet *);
    }
 }

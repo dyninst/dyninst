@@ -19,7 +19,7 @@ public:
 };
 
 #if SAWYER_MULTI_THREADED
-static boost::once_flag initFlag = BOOST_ONCE_INIT;
+static dyncompat::once_flag initFlag = DYNCOMPAT_ONCE_INIT;
 #endif
 
 // thread-safe
@@ -34,7 +34,7 @@ initializeLibrary(size_t vmajor, size_t vminor, size_t vpatch, bool withThreads)
 
     Initializer init;
 #if SAWYER_MULTI_THREADED
-    boost::call_once(initFlag, init);
+    dyncompat::call_once(initFlag, init);
 #else
     static bool initialized = false;
     if (!initialized) {
@@ -48,7 +48,7 @@ initializeLibrary(size_t vmajor, size_t vminor, size_t vpatch, bool withThreads)
 // Presence/absense of strtoll and strtoull depends on the compiler rather than the target environment.   For instance, MinGW
 // has strtoll and strtoull and lacks _strtoi64 and _strtoui64 even though both MinGW and MVC are targeting a Windows
 // environment.
-SAWYER_EXPORT boost::int64_t
+SAWYER_EXPORT int64_t
 strtoll(const char *input, char **rest, int base) {
 #ifdef _MSC_VER
     return _strtoi64(input, rest, base);
@@ -57,7 +57,7 @@ strtoll(const char *input, char **rest, int base) {
 #endif
 }
 
-SAWYER_EXPORT boost::uint64_t
+SAWYER_EXPORT uint64_t
 strtoull(const char *input, char **rest, int base) {
 #ifdef _MSC_VER
     return _strtoui64(input, rest, base);
@@ -82,7 +82,7 @@ readOneLine(FILE *stream) {
 
 SAWYER_EXPORT FILE*
 popen(const std::string &cmd, const char *how) {
-#ifdef BOOST_WINDOWS
+#ifdef _WIN32
     return ::_popen(cmd.c_str(), how);
 #else
     return ::popen(cmd.c_str(), how);
@@ -91,7 +91,7 @@ popen(const std::string &cmd, const char *how) {
 
 SAWYER_EXPORT int
 pclose(FILE *f) {
-#ifdef BOOST_WINDOWS
+#ifdef _WIN32
     return ::_pclose(f);
 #else
     return ::pclose(f);

@@ -1,8 +1,12 @@
+#include <algorithm>
 #include "../util/StringUtility.h"
 //#include "sage3basic.h"
+#include <algorithm>
 #include "Registers.h"
+#include <algorithm>
 #include "RegisterParts.h"
-#include <boost/foreach.hpp>
+#include <algorithm>
+#include <dyncompat/foreach.hpp>
 
 namespace rose {
 namespace BinaryAnalysis {
@@ -19,8 +23,8 @@ RegisterParts::erase(const RegisterDescriptor &reg) {
 
 RegisterParts&
 RegisterParts::operator-=(const RegisterParts &other) {
-    BOOST_FOREACH (const Map::Node &node, other.map_.nodes()) {
-        BOOST_FOREACH (const BitRange &bits, node.value().intervals())
+    DYN_FOREACH (const Map::Node &node, other.map_.nodes()) {
+        DYN_FOREACH (const BitRange &bits, node.value().intervals())
             erase(RegisterDescriptor(node.key().get_major(), node.key().get_minor(), bits.least(), bits.size()));
     }
     return *this;
@@ -35,7 +39,7 @@ RegisterParts::operator-(const RegisterParts &other) const {
 
 RegisterParts&
 RegisterParts::operator|=(const RegisterParts &other) {
-    BOOST_FOREACH (const Map::Node &node, other.map_.nodes())
+    DYN_FOREACH (const Map::Node &node, other.map_.nodes())
         map_.insertMaybeDefault(node.key()).insertMultiple(node.value());
     return *this;
 }
@@ -49,7 +53,7 @@ RegisterParts::operator|(const RegisterParts &other) const {
 
 RegisterParts&
 RegisterParts::operator&=(const RegisterParts &other) {
-    BOOST_FOREACH (const Map::Node &node, other.map_.nodes()) {
+    DYN_FOREACH (const Map::Node &node, other.map_.nodes()) {
         if (map_.exists(node.key())) {
             BitSet &set = map_[node.key()];
             set.eraseMultiple(node.value());
@@ -74,10 +78,10 @@ RegisterParts::extract(const RegisterDictionary *regDict, bool extractAll) {
         return retval;
 
     if (regDict) {
-        BOOST_FOREACH (const RegisterDictionary::Entries::value_type &pair, regDict->get_registers())
+        DYN_FOREACH (const RegisterDictionary::Entries::value_type &pair, regDict->get_registers())
             allRegs.push_back(pair.second);
         std::sort(allRegs.begin(), allRegs.end(), RegisterDictionary::SortBySize(RegisterDictionary::SortBySize::DESCENDING));
-        BOOST_FOREACH (const RegisterDescriptor &reg, allRegs) {
+        DYN_FOREACH (const RegisterDescriptor &reg, allRegs) {
             if (existsAll(reg)) {
                 retval.push_back(reg);
                 erase(reg);
@@ -88,8 +92,8 @@ RegisterParts::extract(const RegisterDictionary *regDict, bool extractAll) {
     }
 
     if (!regDict || extractAll) {
-        BOOST_FOREACH (const Map::Node &node, map_.nodes()) {
-            BOOST_FOREACH (const BitRange &bits, node.value().intervals())
+        DYN_FOREACH (const Map::Node &node, map_.nodes()) {
+            DYN_FOREACH (const BitRange &bits, node.value().intervals())
                 retval.push_back(RegisterDescriptor(node.key().get_major(), node.key().get_minor(), bits.least(), bits.size()));
         }
         clear();

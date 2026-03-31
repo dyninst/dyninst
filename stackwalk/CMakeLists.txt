@@ -72,7 +72,7 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   DEFINES STACKWALKER_EXPORTS
   DYNINST_DEPS common dynDwarf dynElf instructionAPI pcontrol ${SYMREADER}
-  PUBLIC_DEPS Dyninst::Boost_headers
+  PUBLIC_DEPS
   PRIVATE_DEPS Dyninst::ElfUtils
 )
 # cmake-format: on

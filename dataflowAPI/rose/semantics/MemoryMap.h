@@ -56,7 +56,7 @@ T alignDown(T address, T alignment) {
  *  initialize(myData, myDataSize);
  *
  *  // Create the two buffers: one for the file, one for the overlay data
- *  Buffer::Ptr fileBuf = MappedBuffer::instance("the_file", boost::iostreams::mapped_file::readonly);
+ *  Buffer::Ptr fileBuf = MappedBuffer::instance("the_file", 0);
  *  Buffer::Ptr dataBuf = StaticBuffer::instance(myData, myDataSize);
  *
  *  // Create the memory map.

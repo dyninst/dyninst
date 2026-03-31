@@ -39,7 +39,7 @@
 #include <iostream>
 #include "Result.h"
 #include "ArchSpecificFormatters.h"
-#include "boost/enable_shared_from_this.hpp"
+#include "dyncompat/enable_shared_from_this.hpp"
 
 namespace Dyninst
 {
@@ -67,10 +67,10 @@ namespace Dyninst
     /// - They are of the same type
     /// - If leaf nodes, they represent the same immediate value or the same register
     /// - If non-leaf nodes, they represent the same operation and their corresponding children are equal
-    class INSTRUCTION_EXPORT InstructionAST : public boost::enable_shared_from_this<InstructionAST>
+    class INSTRUCTION_EXPORT InstructionAST : public dyncompat::enable_shared_from_this<InstructionAST>
     {
     public:
-      typedef boost::shared_ptr<InstructionAST> Ptr;
+      typedef dyncompat::shared_ptr<InstructionAST> Ptr;
 
       InstructionAST();
       InstructionAST(const InstructionAST&) = default;

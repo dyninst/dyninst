@@ -45,7 +45,7 @@
 #include "int_event.h"
 #include "Mailbox.h"
 
-#include "boost/filesystem.hpp"
+#include <filesystem>
 
 using namespace std;
 
@@ -948,7 +948,7 @@ td_thragent_t *thread_db_process::getThreadDBAgent() {
 
 static string stripLibraryName(const char *libname)
 {
-   boost::filesystem::path p(libname);
+   std::filesystem::path p(libname);
    return p.filename().string();
 }
 

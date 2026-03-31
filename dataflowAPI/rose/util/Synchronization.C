@@ -7,18 +7,11 @@
 
 #include "Synchronization.h"
 
-#include <boost/random/uniform_smallint.hpp>
-#if BOOST_VERSION >= 104700
-    #include <boost/random/mersenne_twister.hpp>
-    #define SAWYER_PRN_GENERATOR boost::random::mt11213b
-    #define SAWYER_UNIFORM_SIZE_T boost::random::uniform_smallint<size_t>
-#else
-    // Boost 1.45 and 1.46 say that mt11213b is only 44% as fast as rand48. Also, these things were not part of the
-    // boost::random namespace in those versions.
-    #include <boost/random/linear_congruential.hpp>         // 64% as fast as mersenne_twister according to boost 1.59
-    #define SAWYER_PRN_GENERATOR boost::rand48
-    #define SAWYER_UNIFORM_SIZE_T boost::uniform_smallint<size_t>
-#endif
+#include <cassert>
+#include <random>
+
+#define SAWYER_PRN_GENERATOR std::mt19937
+#define SAWYER_UNIFORM_SIZE_T std::uniform_int_distribution<size_t>
 
 namespace Sawyer {
 

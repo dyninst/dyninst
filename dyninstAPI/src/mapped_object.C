@@ -46,7 +46,7 @@
 #include "InstructionDecoder.h"
 #include "Parsing.h"
 #include "instPoint.h"
-#include <boost/tuple/tuple.hpp>
+#include <dyncompat/tuple/tuple.hpp>
 #include "BPatch_image.h"
 #include "PatchCFG.h"
 #include "PCProcess.h"

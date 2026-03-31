@@ -305,7 +305,7 @@ namespace Dyninst
             }
 
 
-      typedef boost::shared_ptr<Instruction> Ptr;
+      typedef dyncompat::shared_ptr<Instruction> Ptr;
 
     private:
       void updateSize(const unsigned int new_size) {m_size = new_size;}

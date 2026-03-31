@@ -31,15 +31,6 @@
 #if !defined(IBSTREE_FAST_H)
 #define IBSTREE_FAST_H
 #include "IBSTree.h"
-#include <boost/multi_index_container.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/multi_index/mem_fun.hpp>
-#include <boost/multi_index/identity.hpp>
-#include <boost/multi_index/member.hpp>
-#include <boost/multi_index/composite_key.hpp>
-#include <boost/mpl/insert_range.hpp>
-#include <boost/mpl/inherit_linearly.hpp>
-#include <boost/mpl/inherit.hpp>
 #include <assert.h>
 #include <set>
 #include <iostream>
@@ -56,14 +47,22 @@ namespace Dyninst
     public:
         typedef typename ITYPE::type interval_type;
 
-        IBSTree<ITYPE> overlapping_intervals;
-        typedef boost::multi_index_container<ITYPE*,
-                boost::multi_index::indexed_by<
-                        boost::multi_index::ordered_unique<
-                                boost::multi_index::const_mem_fun<ITYPE, interval_type, &ITYPE::high> >
-                > > interval_set;
+        struct interval_by_high {
+            using is_transparent = void;
 
-        //typedef std::set<ITYPE*, order_by_lower<ITYPE> > interval_set;
+            bool operator()(const ITYPE* lhs, const ITYPE* rhs) const
+            {
+                if (lhs->high() != rhs->high()) return lhs->high() < rhs->high();
+                if (lhs->low() != rhs->low()) return lhs->low() < rhs->low();
+                return lhs < rhs;
+            }
+
+            bool operator()(const ITYPE* lhs, interval_type rhs) const { return lhs->high() < rhs; }
+            bool operator()(interval_type lhs, const ITYPE* rhs) const { return lhs < rhs->high(); }
+        };
+
+        IBSTree<ITYPE> overlapping_intervals;
+        typedef std::set<ITYPE*, interval_by_high> interval_set;
         interval_set unique_intervals;
 
         IBSTree_fast()
@@ -140,8 +139,14 @@ namespace Dyninst
         dyn_rwlock::unique_lock l(rwlock);
 
         overlapping_intervals.remove(entry);
-        typename interval_set::iterator found = unique_intervals.find(entry->high());
-        if(found != unique_intervals.end() && *found == entry) unique_intervals.erase(found);
+        auto found = unique_intervals.lower_bound(entry->high());
+        while (found != unique_intervals.end() && (*found)->high() == entry->high()) {
+            if (*found == entry) {
+                unique_intervals.erase(found);
+                break;
+            }
+            ++found;
+        }
     }
     template<class ITYPE>
     int IBSTree_fast<ITYPE>::find(interval_type X, std::set<ITYPE*> &results) const
@@ -168,7 +173,7 @@ namespace Dyninst
         int num_overlapping = overlapping_intervals.find(I, results);
         if(num_overlapping) return num_overlapping;
         typename interval_set::const_iterator lb = unique_intervals.upper_bound(I->low());
-        typename interval_set::iterator  ub = lb;
+        typename interval_set::const_iterator ub = lb;
         while(ub != unique_intervals.end() && (*ub)->low() < I->high())
         {
             results.insert(*ub);

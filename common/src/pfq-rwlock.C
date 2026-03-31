@@ -92,12 +92,12 @@ dyn_rwlock::~dyn_rwlock() {
 
 void dyn_rwlock::lock_shared() {
     // Register a ticket, and check for writers.
-    unsigned int ticket = rin.fetch_add(TICKET, boost::memory_order_acquire);
+    unsigned int ticket = rin.fetch_add(TICKET, std::memory_order_acquire);
     unsigned int phase = ticket & PHASE;
 
     if (ticket & WRITER) {
         // There is a writer present, try to wait.
-        boost::unique_lock<boost::mutex> l(inlock);
+        dyncompat::unique_lock<dyncompat::mutex> l(inlock);
         rcond.wait(l, [this,&phase](){ return rwakeup[phase]; });
     }
 
@@ -112,11 +112,11 @@ void dyn_rwlock::unlock_shared() {
     ANNOTATE_RWLOCK_RELEASED(this, 0 /* reader mode */);
 
     // Pull off an outgoing ticket and see if we're the last reader.
-    unsigned int ticket = rout.fetch_add(TICKET, boost::memory_order_acq_rel);
+    unsigned int ticket = rout.fetch_add(TICKET, std::memory_order_acq_rel);
 
     if (ticket & WRITER && ticket == last) {
         // Wake up the writer, its our job.
-        boost::unique_lock<dyn_mutex> l(outlock);
+        dyncompat::unique_lock<dyn_mutex> l(outlock);
         wwakeup = true;
         wcond.notify_one();
     }
@@ -127,16 +127,16 @@ void dyn_rwlock::lock() {
     wlock.lock();
 
     // Choose the final reader, and make sure no others come in.
-    unsigned int lr = rin.fetch_xor(PHASE|WRITER, boost::memory_order_acquire);
+    unsigned int lr = rin.fetch_xor(PHASE|WRITER, std::memory_order_acquire);
     last = (lr - TICKET) ^ (PHASE | WRITER);
 
     // Let the last reader know that they should wake me up.
     // Rel to "release" the previous write to last.
-    unsigned int cr = rout.fetch_xor(PHASE|WRITER, boost::memory_order_acq_rel);
+    unsigned int cr = rout.fetch_xor(PHASE|WRITER, std::memory_order_acq_rel);
 
     if (cr != lr) {
         // There actually was a reader inside. Wait for him to leave.
-        boost::unique_lock<boost::mutex> l(outlock);
+        dyncompat::unique_lock<dyncompat::mutex> l(outlock);
         wcond.wait(l, [this](){ return wwakeup; });
         wwakeup = false;
     }
@@ -155,15 +155,15 @@ void dyn_rwlock::unlock() {
     ANNOTATE_RWLOCK_RELEASED(this, 1 /* writer mode */);
 
     // Make sure any speedy readers don't try to wake me up again.
-    rout.fetch_xor(WRITER, boost::memory_order_relaxed);
+    rout.fetch_xor(WRITER, std::memory_order_relaxed);
 
     // Let in any new readers, since we're done with it at the moment.
-    unsigned int phase = rin.fetch_xor(WRITER, boost::memory_order_acq_rel);
+    unsigned int phase = rin.fetch_xor(WRITER, std::memory_order_acq_rel);
     phase &= PHASE;
 
     // Wake up any readers that were waiting for us.
     {
-        boost::unique_lock<dyn_mutex> l(inlock);
+        dyncompat::unique_lock<dyn_mutex> l(inlock);
         rwakeup[phase] = true;
         rcond.notify_all();
     }

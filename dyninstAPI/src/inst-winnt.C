@@ -45,7 +45,7 @@
 
 #include "Instruction.h"
 #include "InstructionDecoder.h"
-#include <boost/tuple/tuple.hpp>
+#include <dyncompat/tuple/tuple.hpp>
 
 using namespace Dyninst::InstructionAPI;
 

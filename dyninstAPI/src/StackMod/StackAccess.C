@@ -686,7 +686,7 @@ bool getMemoryOffset(ParseAPI::Function *func,
                 if (children.size() == 1) {
                     InstructionAPI::InstructionAST::Ptr child =
                         children.front();
-                    val = boost::dynamic_pointer_cast<InstructionAPI::
+                    val = dyncompat::dynamic_pointer_cast<InstructionAPI::
                         Expression>(child);
                 }
             }

@@ -99,17 +99,17 @@ class EventSyscall;
 class EventPreSyscall;
 class EventPostSyscall;
 
-class PC_EXPORT Event : public boost::enable_shared_from_this<Event>
+class PC_EXPORT Event : public dyncompat::enable_shared_from_this<Event>
 {
-   friend void boost::checked_delete<Event>(Event *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const Event>(const Event *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<Event>(Event *) noexcept;
+   friend void dyncompat::checked_delete<const Event>(const Event *) noexcept;
    friend class ::HandlerPool;
    friend class ::int_process;
    friend class ::HandleCallbacks;
  public:
-   typedef boost::shared_ptr<Event> ptr;
-   typedef boost::shared_ptr<const Event> const_ptr;
-   typedef boost::weak_ptr<Event> weak_ptr;
+   typedef dyncompat::shared_ptr<Event> ptr;
+   typedef dyncompat::shared_ptr<const Event> const_ptr;
+   typedef dyncompat::weak_ptr<Event> weak_ptr;
 
    Event(EventType etype_, Thread::ptr thread_ = Thread::ptr());
    virtual ~Event();
@@ -142,128 +142,128 @@ class PC_EXPORT Event : public boost::enable_shared_from_this<Event>
    Event::weak_ptr subservientTo() const;
    void addSubservientEvent(Event::ptr ev);
 
-   boost::shared_ptr<EventTerminate> getEventTerminate();
-   boost::shared_ptr<const EventTerminate> getEventTerminate() const;
+   dyncompat::shared_ptr<EventTerminate> getEventTerminate();
+   dyncompat::shared_ptr<const EventTerminate> getEventTerminate() const;
 
-   boost::shared_ptr<EventExit> getEventExit();
-   boost::shared_ptr<const EventExit> getEventExit() const;
+   dyncompat::shared_ptr<EventExit> getEventExit();
+   dyncompat::shared_ptr<const EventExit> getEventExit() const;
 
-   boost::shared_ptr<EventCrash> getEventCrash();
-   boost::shared_ptr<const EventCrash> getEventCrash() const;
+   dyncompat::shared_ptr<EventCrash> getEventCrash();
+   dyncompat::shared_ptr<const EventCrash> getEventCrash() const;
 
-   boost::shared_ptr<EventForceTerminate> getEventForceTerminate();
-   boost::shared_ptr<const EventForceTerminate> getEventForceTerminate() const;
+   dyncompat::shared_ptr<EventForceTerminate> getEventForceTerminate();
+   dyncompat::shared_ptr<const EventForceTerminate> getEventForceTerminate() const;
 
-   boost::shared_ptr<EventExec> getEventExec();
-   boost::shared_ptr<const EventExec> getEventExec() const;
+   dyncompat::shared_ptr<EventExec> getEventExec();
+   dyncompat::shared_ptr<const EventExec> getEventExec() const;
 
-   boost::shared_ptr<EventStop> getEventStop();
-   boost::shared_ptr<const EventStop> getEventStop() const;
+   dyncompat::shared_ptr<EventStop> getEventStop();
+   dyncompat::shared_ptr<const EventStop> getEventStop() const;
 
-   boost::shared_ptr<EventBreakpoint> getEventBreakpoint();
-   boost::shared_ptr<const EventBreakpoint> getEventBreakpoint() const;
+   dyncompat::shared_ptr<EventBreakpoint> getEventBreakpoint();
+   dyncompat::shared_ptr<const EventBreakpoint> getEventBreakpoint() const;
 
-   boost::shared_ptr<EventNewThread> getEventNewThread();
-   boost::shared_ptr<const EventNewThread> getEventNewThread() const;
+   dyncompat::shared_ptr<EventNewThread> getEventNewThread();
+   dyncompat::shared_ptr<const EventNewThread> getEventNewThread() const;
 
-   boost::shared_ptr<EventNewUserThread> getEventNewUserThread();
-   boost::shared_ptr<const EventNewUserThread> getEventNewUserThread() const;
+   dyncompat::shared_ptr<EventNewUserThread> getEventNewUserThread();
+   dyncompat::shared_ptr<const EventNewUserThread> getEventNewUserThread() const;
 
-   boost::shared_ptr<EventNewLWP> getEventNewLWP();
-   boost::shared_ptr<const EventNewLWP> getEventNewLWP() const;
+   dyncompat::shared_ptr<EventNewLWP> getEventNewLWP();
+   dyncompat::shared_ptr<const EventNewLWP> getEventNewLWP() const;
 
-   boost::shared_ptr<EventThreadDestroy> getEventThreadDestroy();
-   boost::shared_ptr<const EventThreadDestroy> getEventThreadDestroy() const;
+   dyncompat::shared_ptr<EventThreadDestroy> getEventThreadDestroy();
+   dyncompat::shared_ptr<const EventThreadDestroy> getEventThreadDestroy() const;
 
-   boost::shared_ptr<EventUserThreadDestroy> getEventUserThreadDestroy();
-   boost::shared_ptr<const EventUserThreadDestroy> getEventUserThreadDestroy() const;
+   dyncompat::shared_ptr<EventUserThreadDestroy> getEventUserThreadDestroy();
+   dyncompat::shared_ptr<const EventUserThreadDestroy> getEventUserThreadDestroy() const;
 
-   boost::shared_ptr<EventLWPDestroy> getEventLWPDestroy();
-   boost::shared_ptr<const EventLWPDestroy> getEventLWPDestroy() const;
+   dyncompat::shared_ptr<EventLWPDestroy> getEventLWPDestroy();
+   dyncompat::shared_ptr<const EventLWPDestroy> getEventLWPDestroy() const;
 
-   boost::shared_ptr<EventFork> getEventFork();
-   boost::shared_ptr<const EventFork> getEventFork() const;
+   dyncompat::shared_ptr<EventFork> getEventFork();
+   dyncompat::shared_ptr<const EventFork> getEventFork() const;
 
-   boost::shared_ptr<EventSignal> getEventSignal();
-   boost::shared_ptr<const EventSignal> getEventSignal() const;
+   dyncompat::shared_ptr<EventSignal> getEventSignal();
+   dyncompat::shared_ptr<const EventSignal> getEventSignal() const;
 
-   boost::shared_ptr<EventBootstrap> getEventBootstrap();
-   boost::shared_ptr<const EventBootstrap> getEventBootstrap() const;
+   dyncompat::shared_ptr<EventBootstrap> getEventBootstrap();
+   dyncompat::shared_ptr<const EventBootstrap> getEventBootstrap() const;
 
-   boost::shared_ptr<EventPreBootstrap> getEventPreBootstrap();
-   boost::shared_ptr<const EventPreBootstrap> getEventPreBootstrap() const;
+   dyncompat::shared_ptr<EventPreBootstrap> getEventPreBootstrap();
+   dyncompat::shared_ptr<const EventPreBootstrap> getEventPreBootstrap() const;
 
-   boost::shared_ptr<EventRPC> getEventRPC();
-   boost::shared_ptr<const EventRPC> getEventRPC() const;
+   dyncompat::shared_ptr<EventRPC> getEventRPC();
+   dyncompat::shared_ptr<const EventRPC> getEventRPC() const;
 
-   boost::shared_ptr<EventRPCLaunch> getEventRPCLaunch();
-   boost::shared_ptr<const EventRPCLaunch> getEventRPCLaunch() const;
+   dyncompat::shared_ptr<EventRPCLaunch> getEventRPCLaunch();
+   dyncompat::shared_ptr<const EventRPCLaunch> getEventRPCLaunch() const;
 
-   boost::shared_ptr<EventSingleStep> getEventSingleStep();
-   boost::shared_ptr<const EventSingleStep> getEventSingleStep() const;
+   dyncompat::shared_ptr<EventSingleStep> getEventSingleStep();
+   dyncompat::shared_ptr<const EventSingleStep> getEventSingleStep() const;
 
-   boost::shared_ptr<EventBreakpointClear> getEventBreakpointClear();
-   boost::shared_ptr<const EventBreakpointClear> getEventBreakpointClear() const;
+   dyncompat::shared_ptr<EventBreakpointClear> getEventBreakpointClear();
+   dyncompat::shared_ptr<const EventBreakpointClear> getEventBreakpointClear() const;
 
-   boost::shared_ptr<EventBreakpointRestore> getEventBreakpointRestore();
-   boost::shared_ptr<const EventBreakpointRestore> getEventBreakpointRestore() const;
+   dyncompat::shared_ptr<EventBreakpointRestore> getEventBreakpointRestore();
+   dyncompat::shared_ptr<const EventBreakpointRestore> getEventBreakpointRestore() const;
 
-   boost::shared_ptr<EventLibrary> getEventLibrary();
-   boost::shared_ptr<const EventLibrary> getEventLibrary() const;
+   dyncompat::shared_ptr<EventLibrary> getEventLibrary();
+   dyncompat::shared_ptr<const EventLibrary> getEventLibrary() const;
 
-   boost::shared_ptr<EventAsync> getEventAsync();
-   boost::shared_ptr<const EventAsync> getEventAsync() const;
+   dyncompat::shared_ptr<EventAsync> getEventAsync();
+   dyncompat::shared_ptr<const EventAsync> getEventAsync() const;
 
-   boost::shared_ptr<EventChangePCStop> getEventChangePCStop();
-   boost::shared_ptr<const EventChangePCStop> getEventChangePCStop() const;
+   dyncompat::shared_ptr<EventChangePCStop> getEventChangePCStop();
+   dyncompat::shared_ptr<const EventChangePCStop> getEventChangePCStop() const;
 
-   boost::shared_ptr<EventDetach> getEventDetach();
-   boost::shared_ptr<const EventDetach> getEventDetach() const;
+   dyncompat::shared_ptr<EventDetach> getEventDetach();
+   dyncompat::shared_ptr<const EventDetach> getEventDetach() const;
 
-   boost::shared_ptr<EventIntBootstrap> getEventIntBootstrap();
-   boost::shared_ptr<const EventIntBootstrap> getEventIntBootstrap() const;
+   dyncompat::shared_ptr<EventIntBootstrap> getEventIntBootstrap();
+   dyncompat::shared_ptr<const EventIntBootstrap> getEventIntBootstrap() const;
 
-   boost::shared_ptr<EventNop> getEventNop();
-   boost::shared_ptr<const EventNop> getEventNop() const;
+   dyncompat::shared_ptr<EventNop> getEventNop();
+   dyncompat::shared_ptr<const EventNop> getEventNop() const;
 
-   boost::shared_ptr<EventThreadDB> getEventThreadDB();
-   boost::shared_ptr<const EventThreadDB> getEventThreadDB() const;
+   dyncompat::shared_ptr<EventThreadDB> getEventThreadDB();
+   dyncompat::shared_ptr<const EventThreadDB> getEventThreadDB() const;
 
-   boost::shared_ptr<EventWinStopThreadDestroy> getEventWinStopThreadDestroy();
-   boost::shared_ptr<const EventWinStopThreadDestroy> getEventWinStopThreadDestroy() const;
+   dyncompat::shared_ptr<EventWinStopThreadDestroy> getEventWinStopThreadDestroy();
+   dyncompat::shared_ptr<const EventWinStopThreadDestroy> getEventWinStopThreadDestroy() const;
 
-   boost::shared_ptr<EventControlAuthority> getEventControlAuthority();
-   boost::shared_ptr<const EventControlAuthority> getEventControlAuthority() const;
+   dyncompat::shared_ptr<EventControlAuthority> getEventControlAuthority();
+   dyncompat::shared_ptr<const EventControlAuthority> getEventControlAuthority() const;
 
-   boost::shared_ptr<EventAsyncIO> getEventAsyncIO();
-   boost::shared_ptr<const EventAsyncIO> getEventAsyncIO() const;
+   dyncompat::shared_ptr<EventAsyncIO> getEventAsyncIO();
+   dyncompat::shared_ptr<const EventAsyncIO> getEventAsyncIO() const;
 
-   boost::shared_ptr<EventAsyncRead> getEventAsyncRead();
-   boost::shared_ptr<const EventAsyncRead> getEventAsyncRead() const;
+   dyncompat::shared_ptr<EventAsyncRead> getEventAsyncRead();
+   dyncompat::shared_ptr<const EventAsyncRead> getEventAsyncRead() const;
 
-   boost::shared_ptr<EventAsyncWrite> getEventAsyncWrite();
-   boost::shared_ptr<const EventAsyncWrite> getEventAsyncWrite() const;
+   dyncompat::shared_ptr<EventAsyncWrite> getEventAsyncWrite();
+   dyncompat::shared_ptr<const EventAsyncWrite> getEventAsyncWrite() const;
 
-   boost::shared_ptr<EventAsyncReadAllRegs> getEventAsyncReadAllRegs();
-   boost::shared_ptr<const EventAsyncReadAllRegs> getEventAsyncReadAllRegs() const;
+   dyncompat::shared_ptr<EventAsyncReadAllRegs> getEventAsyncReadAllRegs();
+   dyncompat::shared_ptr<const EventAsyncReadAllRegs> getEventAsyncReadAllRegs() const;
 
-   boost::shared_ptr<EventAsyncSetAllRegs> getEventAsyncSetAllRegs();
-   boost::shared_ptr<const EventAsyncSetAllRegs> getEventAsyncSetAllRegs() const;
+   dyncompat::shared_ptr<EventAsyncSetAllRegs> getEventAsyncSetAllRegs();
+   dyncompat::shared_ptr<const EventAsyncSetAllRegs> getEventAsyncSetAllRegs() const;
 
-   boost::shared_ptr<EventAsyncFileRead> getEventAsyncFileRead();
-   boost::shared_ptr<const EventAsyncFileRead> getEventAsyncFileRead() const;
+   dyncompat::shared_ptr<EventAsyncFileRead> getEventAsyncFileRead();
+   dyncompat::shared_ptr<const EventAsyncFileRead> getEventAsyncFileRead() const;
 
-   boost::shared_ptr<EventPostponedSyscall> getEventPostponedSyscall();
-   boost::shared_ptr<const EventPostponedSyscall> getEventPostponedSyscall() const;
+   dyncompat::shared_ptr<EventPostponedSyscall> getEventPostponedSyscall();
+   dyncompat::shared_ptr<const EventPostponedSyscall> getEventPostponedSyscall() const;
 
-   boost::shared_ptr<EventSyscall> getEventSyscall();
-   boost::shared_ptr<const EventSyscall> getEventSyscall() const;
+   dyncompat::shared_ptr<EventSyscall> getEventSyscall();
+   dyncompat::shared_ptr<const EventSyscall> getEventSyscall() const;
    
-   boost::shared_ptr<EventPreSyscall> getEventPreSyscall();
-   boost::shared_ptr<const EventPreSyscall> getEventPreSyscall() const;
+   dyncompat::shared_ptr<EventPreSyscall> getEventPreSyscall();
+   dyncompat::shared_ptr<const EventPreSyscall> getEventPreSyscall() const;
    
-   boost::shared_ptr<EventPostSyscall> getEventPostSyscall();
-   boost::shared_ptr<const EventPostSyscall> getEventPostSyscall() const;
+   dyncompat::shared_ptr<EventPostSyscall> getEventPostSyscall();
+   dyncompat::shared_ptr<const EventPostSyscall> getEventPostSyscall() const;
 
 
    //Not meant for public consumption
@@ -309,24 +309,24 @@ OS& operator<<(OS& str, Event& e)
 
 class PC_EXPORT EventTerminate : public Event
 {
-   friend void boost::checked_delete<EventTerminate>(EventTerminate *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventTerminate>(const EventTerminate *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventTerminate>(EventTerminate *) noexcept;
+   friend void dyncompat::checked_delete<const EventTerminate>(const EventTerminate *) noexcept;
  public:
-   typedef boost::shared_ptr<EventTerminate> ptr;
-   typedef boost::shared_ptr<const EventTerminate> const_ptr;
+   typedef dyncompat::shared_ptr<EventTerminate> ptr;
+   typedef dyncompat::shared_ptr<const EventTerminate> const_ptr;
    EventTerminate(EventType type_);
    virtual ~EventTerminate();
 };
 
 class PC_EXPORT EventExit : public EventTerminate
 {
-   friend void boost::checked_delete<EventExit>(EventExit *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventExit>(const EventExit *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventExit>(EventExit *) noexcept;
+   friend void dyncompat::checked_delete<const EventExit>(const EventExit *) noexcept;
  private:
    int exitcode;
  public:
-   typedef boost::shared_ptr<EventExit> ptr;
-   typedef boost::shared_ptr<const EventExit> const_ptr;
+   typedef dyncompat::shared_ptr<EventExit> ptr;
+   typedef dyncompat::shared_ptr<const EventExit> const_ptr;
    int getExitCode() const;
    EventExit(EventType::Time eventtime, int exitcode_);
    virtual ~EventExit();
@@ -334,13 +334,13 @@ class PC_EXPORT EventExit : public EventTerminate
 
 class PC_EXPORT EventCrash : public EventTerminate
 {
-   friend void boost::checked_delete<EventCrash>(EventCrash *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventCrash>(const EventCrash *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventCrash>(EventCrash *) noexcept;
+   friend void dyncompat::checked_delete<const EventCrash>(const EventCrash *) noexcept;
  private:
    int termsig;
  public:
-   typedef boost::shared_ptr<EventCrash> ptr;
-   typedef boost::shared_ptr<const EventCrash> const_ptr;
+   typedef dyncompat::shared_ptr<EventCrash> ptr;
+   typedef dyncompat::shared_ptr<const EventCrash> const_ptr;
    int getTermSignal() const;
    EventCrash(int termsig);
    virtual ~EventCrash();
@@ -348,13 +348,13 @@ class PC_EXPORT EventCrash : public EventTerminate
 
 class PC_EXPORT EventForceTerminate : public EventTerminate
 {
-   friend void boost::checked_delete<EventForceTerminate>(EventForceTerminate *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventForceTerminate>(const EventForceTerminate *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventForceTerminate>(EventForceTerminate *) noexcept;
+   friend void dyncompat::checked_delete<const EventForceTerminate>(const EventForceTerminate *) noexcept;
  private:
    int termsig;
  public:
-   typedef boost::shared_ptr<EventForceTerminate> ptr;
-   typedef boost::shared_ptr<const EventForceTerminate> const_ptr;
+   typedef dyncompat::shared_ptr<EventForceTerminate> ptr;
+   typedef dyncompat::shared_ptr<const EventForceTerminate> const_ptr;
    int getTermSignal() const;
    EventForceTerminate(int termsig);
    virtual ~EventForceTerminate();
@@ -362,13 +362,13 @@ class PC_EXPORT EventForceTerminate : public EventTerminate
 
 class PC_EXPORT EventExec : public Event
 {
-   friend void boost::checked_delete<EventExec>(EventExec *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventExec>(const EventExec *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventExec>(EventExec *) noexcept;
+   friend void dyncompat::checked_delete<const EventExec>(const EventExec *) noexcept;
  private:
    std::string execpath;
  public:
-   typedef boost::shared_ptr<EventExec> ptr;
-   typedef boost::shared_ptr<const EventExec> const_ptr;
+   typedef dyncompat::shared_ptr<EventExec> ptr;
+   typedef dyncompat::shared_ptr<const EventExec> const_ptr;
    EventExec(EventType::Time etime_, std::string path = std::string(""));
    virtual ~EventExec();
 
@@ -378,22 +378,22 @@ class PC_EXPORT EventExec : public Event
 
 class PC_EXPORT EventStop : public Event
 {
-   friend void boost::checked_delete<EventStop>(EventStop *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventStop>(const EventStop *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventStop>(EventStop *) noexcept;
+   friend void dyncompat::checked_delete<const EventStop>(const EventStop *) noexcept;
  public:
-   typedef boost::shared_ptr<EventStop> ptr;
-   typedef boost::shared_ptr<const EventStop> const_ptr;
+   typedef dyncompat::shared_ptr<EventStop> ptr;
+   typedef dyncompat::shared_ptr<const EventStop> const_ptr;
    EventStop();
    virtual ~EventStop();
 };
 
 class PC_EXPORT EventNewThread : public Event
 {
-   friend void boost::checked_delete<EventNewThread>(EventNewThread *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventNewThread>(const EventNewThread *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventNewThread>(EventNewThread *) noexcept;
+   friend void dyncompat::checked_delete<const EventNewThread>(const EventNewThread *) noexcept;
  public:
-   typedef boost::shared_ptr<EventNewThread> ptr;
-   typedef boost::shared_ptr<const EventNewThread> const_ptr;
+   typedef dyncompat::shared_ptr<EventNewThread> ptr;
+   typedef dyncompat::shared_ptr<const EventNewThread> const_ptr;
    EventNewThread(EventType et);
    virtual ~EventNewThread();
 
@@ -404,13 +404,13 @@ class PC_EXPORT EventNewThread : public Event
 class int_eventNewUserThread;
 class PC_EXPORT EventNewUserThread : public EventNewThread
 {
-   friend void boost::checked_delete<EventNewUserThread>(EventNewUserThread *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventNewUserThread>(const EventNewUserThread *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventNewUserThread>(EventNewUserThread *) noexcept;
+   friend void dyncompat::checked_delete<const EventNewUserThread>(const EventNewUserThread *) noexcept;
   private:
    int_eventNewUserThread *iev;
   public:
-   typedef boost::shared_ptr<EventNewUserThread> ptr;
-   typedef boost::shared_ptr<const EventNewUserThread> const_ptr;   
+   typedef dyncompat::shared_ptr<EventNewUserThread> ptr;
+   typedef dyncompat::shared_ptr<const EventNewUserThread> const_ptr;   
 
    EventNewUserThread();
    virtual ~EventNewUserThread();
@@ -423,15 +423,15 @@ class PC_EXPORT EventNewUserThread : public EventNewThread
 class int_eventNewLWP;
 class PC_EXPORT EventNewLWP : public EventNewThread
 {
-   friend void boost::checked_delete<EventNewLWP>(EventNewLWP *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventNewLWP>(const EventNewLWP *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventNewLWP>(EventNewLWP *) noexcept;
+   friend void dyncompat::checked_delete<const EventNewLWP>(const EventNewLWP *) noexcept;
   private:
    int_eventNewLWP *iev;
    Dyninst::LWP lwp;
   public:
    int_eventNewLWP *getInternalEvent();
-   typedef boost::shared_ptr<EventNewLWP> ptr;
-   typedef boost::shared_ptr<const EventNewLWP> const_ptr;   
+   typedef dyncompat::shared_ptr<EventNewLWP> ptr;
+   typedef dyncompat::shared_ptr<const EventNewLWP> const_ptr;   
    EventNewLWP(Dyninst::LWP lwp_, int status = 0);
    virtual ~EventNewLWP();
 
@@ -441,46 +441,46 @@ class PC_EXPORT EventNewLWP : public EventNewThread
 
 class PC_EXPORT EventThreadDestroy : public Event
 {
-   friend void boost::checked_delete<EventThreadDestroy>(EventThreadDestroy *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventThreadDestroy>(const EventThreadDestroy *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventThreadDestroy>(EventThreadDestroy *) noexcept;
+   friend void dyncompat::checked_delete<const EventThreadDestroy>(const EventThreadDestroy *) noexcept;
  public:
-   typedef boost::shared_ptr<EventThreadDestroy> ptr;
-   typedef boost::shared_ptr<const EventThreadDestroy> const_ptr;
+   typedef dyncompat::shared_ptr<EventThreadDestroy> ptr;
+   typedef dyncompat::shared_ptr<const EventThreadDestroy> const_ptr;
    EventThreadDestroy(EventType et);
    virtual ~EventThreadDestroy() = 0;
 };
 
 class PC_EXPORT EventUserThreadDestroy : public EventThreadDestroy
 {
-   friend void boost::checked_delete<EventUserThreadDestroy>(EventUserThreadDestroy *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventUserThreadDestroy>(const EventUserThreadDestroy *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventUserThreadDestroy>(EventUserThreadDestroy *) noexcept;
+   friend void dyncompat::checked_delete<const EventUserThreadDestroy>(const EventUserThreadDestroy *) noexcept;
  public:
-   typedef boost::shared_ptr<EventUserThreadDestroy> ptr;
-   typedef boost::shared_ptr<const EventUserThreadDestroy> const_ptr;
+   typedef dyncompat::shared_ptr<EventUserThreadDestroy> ptr;
+   typedef dyncompat::shared_ptr<const EventUserThreadDestroy> const_ptr;
    EventUserThreadDestroy(EventType::Time time_);
    virtual ~EventUserThreadDestroy();
 };
 
 class PC_EXPORT EventLWPDestroy : public EventThreadDestroy
 {
-   friend void boost::checked_delete<EventLWPDestroy>(EventLWPDestroy *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventLWPDestroy>(const EventLWPDestroy *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventLWPDestroy>(EventLWPDestroy *) noexcept;
+   friend void dyncompat::checked_delete<const EventLWPDestroy>(const EventLWPDestroy *) noexcept;
  public:
-   typedef boost::shared_ptr<EventLWPDestroy> ptr;
-   typedef boost::shared_ptr<const EventLWPDestroy> const_ptr;
+   typedef dyncompat::shared_ptr<EventLWPDestroy> ptr;
+   typedef dyncompat::shared_ptr<const EventLWPDestroy> const_ptr;
    EventLWPDestroy(EventType::Time time_);
    virtual ~EventLWPDestroy();
 };
 
 class PC_EXPORT EventFork : public Event
 {
-   friend void boost::checked_delete<EventFork>(EventFork *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventFork>(const EventFork *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventFork>(EventFork *) noexcept;
+   friend void dyncompat::checked_delete<const EventFork>(const EventFork *) noexcept;
   private:
    Dyninst::PID pid;
   public:
-   typedef boost::shared_ptr<EventFork> ptr;
-   typedef boost::shared_ptr<const EventFork> const_ptr;
+   typedef dyncompat::shared_ptr<EventFork> ptr;
+   typedef dyncompat::shared_ptr<const EventFork> const_ptr;
    EventFork(EventType::Time time_, Dyninst::PID pid_);
    virtual ~EventFork();
    Dyninst::PID getPID() const;
@@ -493,8 +493,8 @@ public:
    // causes of signal. unknown refers to all non-access violations.
    // this is needed for defensve mode.
    enum Cause { Unknown, ReadViolation, WriteViolation, ExecuteViolation };
-   friend void boost::checked_delete<EventSignal>(EventSignal *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventSignal>(const EventSignal *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventSignal>(EventSignal *) noexcept;
+   friend void dyncompat::checked_delete<const EventSignal>(const EventSignal *) noexcept;
  private:
    int sig;
    // address that caused the signal (if any), the cause, and
@@ -503,8 +503,8 @@ public:
    Cause cause;
    bool first;
  public:
-   typedef boost::shared_ptr<EventSignal> ptr;
-   typedef boost::shared_ptr<const EventSignal> const_ptr;
+   typedef dyncompat::shared_ptr<EventSignal> ptr;
+   typedef dyncompat::shared_ptr<const EventSignal> const_ptr;
    EventSignal(int sig);
    EventSignal(int s, Address a, Cause c, bool f) : Event(EventType(EventType::None, EventType::Signal)), 
        sig(s), addr(a), cause(c), first(f) { }
@@ -522,22 +522,22 @@ public:
 
 class PC_EXPORT EventBootstrap : public Event
 {
-   friend void boost::checked_delete<EventBootstrap>(EventBootstrap *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventBootstrap>(const EventBootstrap *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventBootstrap>(EventBootstrap *) noexcept;
+   friend void dyncompat::checked_delete<const EventBootstrap>(const EventBootstrap *) noexcept;
  public:
-   typedef boost::shared_ptr<EventBootstrap> ptr;
-   typedef boost::shared_ptr<const EventBootstrap> const_ptr;
+   typedef dyncompat::shared_ptr<EventBootstrap> ptr;
+   typedef dyncompat::shared_ptr<const EventBootstrap> const_ptr;
    EventBootstrap();
    virtual ~EventBootstrap();
 };
 
 class PC_EXPORT EventPreBootstrap : public Event
 {
-   friend void boost::checked_delete<EventPreBootstrap>(EventPreBootstrap *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventPreBootstrap>(const EventPreBootstrap *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventPreBootstrap>(EventPreBootstrap *) noexcept;
+   friend void dyncompat::checked_delete<const EventPreBootstrap>(const EventPreBootstrap *) noexcept;
  public:
-   typedef boost::shared_ptr<EventPreBootstrap> ptr;
-   typedef boost::shared_ptr<const EventPreBootstrap> const_ptr;
+   typedef dyncompat::shared_ptr<EventPreBootstrap> ptr;
+   typedef dyncompat::shared_ptr<const EventPreBootstrap> const_ptr;
    EventPreBootstrap();
    virtual ~EventPreBootstrap();
 };
@@ -546,16 +546,16 @@ class PC_EXPORT EventPreBootstrap : public Event
 class int_eventRPC;
 class PC_EXPORT EventRPC : public Event
 {
-   friend void boost::checked_delete<EventRPC>(EventRPC *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventRPC>(const EventRPC *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventRPC>(EventRPC *) noexcept;
+   friend void dyncompat::checked_delete<const EventRPC>(const EventRPC *) noexcept;
  private:
    int_eventRPC *int_rpc;
    rpc_wrapper *wrapper;
  public:
    virtual bool suppressCB() const;
    rpc_wrapper *getllRPC();
-   typedef boost::shared_ptr<EventRPC> ptr;
-   typedef boost::shared_ptr<const EventRPC> const_ptr;
+   typedef dyncompat::shared_ptr<EventRPC> ptr;
+   typedef dyncompat::shared_ptr<const EventRPC> const_ptr;
    EventRPC(rpc_wrapper *wrapper_);
    virtual ~EventRPC();
 
@@ -565,11 +565,11 @@ class PC_EXPORT EventRPC : public Event
 
 class PC_EXPORT EventRPCLaunch : public Event
 {
-   friend void boost::checked_delete<EventRPCLaunch>(EventRPCLaunch *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventRPCLaunch>(const EventRPCLaunch *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventRPCLaunch>(EventRPCLaunch *) noexcept;
+   friend void dyncompat::checked_delete<const EventRPCLaunch>(const EventRPCLaunch *) noexcept;
  public:
-   typedef boost::shared_ptr<EventRPCLaunch> ptr;
-   typedef boost::shared_ptr<const EventRPCLaunch> const_ptr;
+   typedef dyncompat::shared_ptr<EventRPCLaunch> ptr;
+   typedef dyncompat::shared_ptr<const EventRPCLaunch> const_ptr;
    virtual bool procStopper() const;
    EventRPCLaunch();
    virtual ~EventRPCLaunch();
@@ -577,25 +577,25 @@ class PC_EXPORT EventRPCLaunch : public Event
 
 class PC_EXPORT EventSingleStep : public Event
 {
-   friend void boost::checked_delete<EventSingleStep>(EventSingleStep *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventSingleStep>(const EventSingleStep *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventSingleStep>(EventSingleStep *) noexcept;
+   friend void dyncompat::checked_delete<const EventSingleStep>(const EventSingleStep *) noexcept;
  public:
-   typedef boost::shared_ptr<EventSingleStep> ptr;
-   typedef boost::shared_ptr<const EventSingleStep> const_ptr;
+   typedef dyncompat::shared_ptr<EventSingleStep> ptr;
+   typedef dyncompat::shared_ptr<const EventSingleStep> const_ptr;
    EventSingleStep();
    virtual ~EventSingleStep();
 };
 
 class PC_EXPORT EventSyscall : public Event
 {
-   friend void boost::checked_delete<EventSyscall>(EventSyscall *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventSyscall>(const EventSyscall *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventSyscall>(EventSyscall *) noexcept;
+   friend void dyncompat::checked_delete<const EventSyscall>(const EventSyscall *) noexcept;
 
    friend MachSyscall makeFromEvent(const EventSyscall *);
 
  public:
-   typedef boost::shared_ptr<EventSyscall> ptr;
-   typedef boost::shared_ptr<const EventSyscall> const_ptr;
+   typedef dyncompat::shared_ptr<EventSyscall> ptr;
+   typedef dyncompat::shared_ptr<const EventSyscall> const_ptr;
    EventSyscall(EventType type_);
    virtual ~EventSyscall();
 
@@ -608,28 +608,28 @@ class PC_EXPORT EventSyscall : public Event
 
 class PC_EXPORT EventPreSyscall : public EventSyscall
 {
-   friend void boost::checked_delete<EventPreSyscall>(EventPreSyscall *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventPreSyscall>(const EventPreSyscall *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventPreSyscall>(EventPreSyscall *) noexcept;
+   friend void dyncompat::checked_delete<const EventPreSyscall>(const EventPreSyscall *) noexcept;
 
    friend MachSyscall makeFromEvent(const EventPreSyscall *);
 
  public:
-   typedef boost::shared_ptr<EventPreSyscall> ptr;
-   typedef boost::shared_ptr<const EventPreSyscall> const_ptr;
+   typedef dyncompat::shared_ptr<EventPreSyscall> ptr;
+   typedef dyncompat::shared_ptr<const EventPreSyscall> const_ptr;
    EventPreSyscall();
    virtual ~EventPreSyscall();
 };
 
 class PC_EXPORT EventPostSyscall : public EventSyscall
 {
-   friend void boost::checked_delete<EventPostSyscall>(EventPostSyscall *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventPostSyscall>(const EventPostSyscall *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventPostSyscall>(EventPostSyscall *) noexcept;
+   friend void dyncompat::checked_delete<const EventPostSyscall>(const EventPostSyscall *) noexcept;
 
    friend MachSyscall makeFromEvent(const EventPostSyscall *);
 
  public:
-   typedef boost::shared_ptr<EventPostSyscall> ptr;
-   typedef boost::shared_ptr<const EventPostSyscall> const_ptr;
+   typedef dyncompat::shared_ptr<EventPostSyscall> ptr;
+   typedef dyncompat::shared_ptr<const EventPostSyscall> const_ptr;
    EventPostSyscall();
    virtual ~EventPostSyscall();
 
@@ -639,13 +639,13 @@ class PC_EXPORT EventPostSyscall : public EventSyscall
 class int_eventBreakpoint;
 class PC_EXPORT EventBreakpoint : public Event
 {
-   friend void boost::checked_delete<EventBreakpoint>(EventBreakpoint *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventBreakpoint>(const EventBreakpoint *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventBreakpoint>(EventBreakpoint *) noexcept;
+   friend void dyncompat::checked_delete<const EventBreakpoint>(const EventBreakpoint *) noexcept;
  private:
    int_eventBreakpoint *int_bp;
  public:
-   typedef boost::shared_ptr<EventBreakpoint> ptr;
-   typedef boost::shared_ptr<const EventBreakpoint> const_ptr;
+   typedef dyncompat::shared_ptr<EventBreakpoint> ptr;
+   typedef dyncompat::shared_ptr<const EventBreakpoint> const_ptr;
    int_eventBreakpoint *getInternal() const;
 
    EventBreakpoint(int_eventBreakpoint *ibp);
@@ -662,13 +662,13 @@ class PC_EXPORT EventBreakpoint : public Event
 class int_eventBreakpointClear;
 class PC_EXPORT EventBreakpointClear : public Event
 {
-   friend void boost::checked_delete<EventBreakpointClear>(EventBreakpointClear *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventBreakpointClear>(const EventBreakpointClear *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventBreakpointClear>(EventBreakpointClear *) noexcept;
+   friend void dyncompat::checked_delete<const EventBreakpointClear>(const EventBreakpointClear *) noexcept;
   private:
    int_eventBreakpointClear *int_bpc;
   public:
-   typedef boost::shared_ptr<EventBreakpointClear> ptr;
-   typedef boost::shared_ptr<const EventBreakpointClear> const_ptr;
+   typedef dyncompat::shared_ptr<EventBreakpointClear> ptr;
+   typedef dyncompat::shared_ptr<const EventBreakpointClear> const_ptr;
    EventBreakpointClear();
    virtual ~EventBreakpointClear();
    
@@ -679,13 +679,13 @@ class PC_EXPORT EventBreakpointClear : public Event
 class int_eventBreakpointRestore;
 class EventBreakpointRestore : public Event
 {
-   friend void boost::checked_delete<EventBreakpointRestore>(EventBreakpointRestore *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventBreakpointRestore>(const EventBreakpointRestore *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventBreakpointRestore>(EventBreakpointRestore *) noexcept;
+   friend void dyncompat::checked_delete<const EventBreakpointRestore>(const EventBreakpointRestore *) noexcept;
   private:
    int_eventBreakpointRestore *int_bpr;
   public:
-   typedef boost::shared_ptr<EventBreakpointRestore> ptr;
-   typedef boost::shared_ptr<const EventBreakpointRestore> const_ptr;
+   typedef dyncompat::shared_ptr<EventBreakpointRestore> ptr;
+   typedef dyncompat::shared_ptr<const EventBreakpointRestore> const_ptr;
 
    EventBreakpointRestore(int_eventBreakpointRestore *iebpr);
    virtual ~EventBreakpointRestore();
@@ -695,14 +695,14 @@ class EventBreakpointRestore : public Event
 
 class PC_EXPORT EventLibrary : public Event
 {
-   friend void boost::checked_delete<EventLibrary>(EventLibrary *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventLibrary>(const EventLibrary *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventLibrary>(EventLibrary *) noexcept;
+   friend void dyncompat::checked_delete<const EventLibrary>(const EventLibrary *) noexcept;
  private:
    std::set<Library::ptr> added_libs;
    std::set<Library::ptr> rmd_libs;
  public:
-   typedef boost::shared_ptr<EventLibrary> ptr;
-   typedef boost::shared_ptr<const EventLibrary> const_ptr;
+   typedef dyncompat::shared_ptr<EventLibrary> ptr;
+   typedef dyncompat::shared_ptr<const EventLibrary> const_ptr;
    EventLibrary();
    EventLibrary(const std::set<Library::ptr> &added_libs_,
                 const std::set<Library::ptr> &rmd_libs_);
@@ -717,14 +717,14 @@ class PC_EXPORT EventLibrary : public Event
 class int_eventAsync;
 class PC_EXPORT EventAsync : public Event
 {
-   friend void boost::checked_delete<EventAsync>(EventAsync *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventAsync>(const EventAsync *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventAsync>(EventAsync *) noexcept;
+   friend void dyncompat::checked_delete<const EventAsync>(const EventAsync *) noexcept;
    
   private:
    int_eventAsync *internal;
   public:
-   typedef boost::shared_ptr<EventAsync> ptr;
-   typedef boost::shared_ptr<const EventAsync> const_ptr;
+   typedef dyncompat::shared_ptr<EventAsync> ptr;
+   typedef dyncompat::shared_ptr<const EventAsync> const_ptr;
 
    EventAsync(int_eventAsync *ievent);
    virtual ~EventAsync();
@@ -733,11 +733,11 @@ class PC_EXPORT EventAsync : public Event
 
 class PC_EXPORT EventChangePCStop : public Event
 {
-   friend void boost::checked_delete<EventChangePCStop>(EventChangePCStop *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventChangePCStop>(const EventChangePCStop *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventChangePCStop>(EventChangePCStop *) noexcept;
+   friend void dyncompat::checked_delete<const EventChangePCStop>(const EventChangePCStop *) noexcept;
  public:
-   typedef boost::shared_ptr<EventChangePCStop> ptr;
-   typedef boost::shared_ptr<const EventChangePCStop> const_ptr;
+   typedef dyncompat::shared_ptr<EventChangePCStop> ptr;
+   typedef dyncompat::shared_ptr<const EventChangePCStop> const_ptr;
    EventChangePCStop();
    virtual ~EventChangePCStop();
 };
@@ -745,12 +745,12 @@ class PC_EXPORT EventChangePCStop : public Event
 class int_eventDetach;
 class PC_EXPORT EventDetach : public Event
 {
-   friend void boost::checked_delete<EventDetach>(EventDetach *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventDetach>(const EventDetach *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventDetach>(EventDetach *) noexcept;
+   friend void dyncompat::checked_delete<const EventDetach>(const EventDetach *) noexcept;
    int_eventDetach *int_detach;
  public:
-   typedef boost::shared_ptr<EventDetach> ptr;
-   typedef boost::shared_ptr<const EventDetach> const_ptr;
+   typedef dyncompat::shared_ptr<EventDetach> ptr;
+   typedef dyncompat::shared_ptr<const EventDetach> const_ptr;
 
    EventDetach();
    virtual ~EventDetach();
@@ -760,13 +760,13 @@ class PC_EXPORT EventDetach : public Event
 
 class PC_EXPORT EventIntBootstrap : public Event
 {
-   friend void boost::checked_delete<EventIntBootstrap>(EventIntBootstrap *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventIntBootstrap>(const EventIntBootstrap *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventIntBootstrap>(EventIntBootstrap *) noexcept;
+   friend void dyncompat::checked_delete<const EventIntBootstrap>(const EventIntBootstrap *) noexcept;
    
    void *data;
  public:
-   typedef boost::shared_ptr<EventIntBootstrap> ptr;
-   typedef boost::shared_ptr<const EventIntBootstrap> const_ptr;
+   typedef dyncompat::shared_ptr<EventIntBootstrap> ptr;
+   typedef dyncompat::shared_ptr<const EventIntBootstrap> const_ptr;
    EventIntBootstrap(void *d = NULL);
    virtual ~EventIntBootstrap();
 
@@ -776,11 +776,11 @@ class PC_EXPORT EventIntBootstrap : public Event
 
 class PC_EXPORT EventNop : public Event
 {
-   friend void boost::checked_delete<EventNop>(EventNop *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventNop>(const EventNop *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventNop>(EventNop *) noexcept;
+   friend void dyncompat::checked_delete<const EventNop>(const EventNop *) noexcept;
  public:
-   typedef boost::shared_ptr<EventNop> ptr;
-   typedef boost::shared_ptr<const EventNop> const_ptr;
+   typedef dyncompat::shared_ptr<EventNop> ptr;
+   typedef dyncompat::shared_ptr<const EventNop> const_ptr;
    EventNop();
    virtual ~EventNop();
 };
@@ -788,12 +788,12 @@ class PC_EXPORT EventNop : public Event
 class int_eventThreadDB;
 class PC_EXPORT EventThreadDB : public Event
 {
-   friend void boost::checked_delete<EventThreadDB>(EventThreadDB *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventThreadDB>(const EventThreadDB *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventThreadDB>(EventThreadDB *) noexcept;
+   friend void dyncompat::checked_delete<const EventThreadDB>(const EventThreadDB *) noexcept;
    int_eventThreadDB *int_etdb;
   public:
-   typedef boost::shared_ptr<EventThreadDB> ptr;
-   typedef boost::shared_ptr<const EventThreadDB> const_ptr;
+   typedef dyncompat::shared_ptr<EventThreadDB> ptr;
+   typedef dyncompat::shared_ptr<const EventThreadDB> const_ptr;
    int_eventThreadDB *getInternal() const;
 
    EventThreadDB();
@@ -804,11 +804,11 @@ class PC_EXPORT EventThreadDB : public Event
 
 class PC_EXPORT EventWinStopThreadDestroy : public EventThreadDestroy
 {
-   friend void boost::checked_delete<EventWinStopThreadDestroy>(EventWinStopThreadDestroy *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventWinStopThreadDestroy>(const EventWinStopThreadDestroy *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventWinStopThreadDestroy>(EventWinStopThreadDestroy *) noexcept;
+   friend void dyncompat::checked_delete<const EventWinStopThreadDestroy>(const EventWinStopThreadDestroy *) noexcept;
  public:
-   typedef boost::shared_ptr<EventWinStopThreadDestroy> ptr;
-   typedef boost::shared_ptr<const EventWinStopThreadDestroy> const_ptr;
+   typedef dyncompat::shared_ptr<EventWinStopThreadDestroy> ptr;
+   typedef dyncompat::shared_ptr<const EventWinStopThreadDestroy> const_ptr;
    EventWinStopThreadDestroy(EventType::Time time_);
    virtual ~EventWinStopThreadDestroy();
 };
@@ -816,12 +816,12 @@ class PC_EXPORT EventWinStopThreadDestroy : public EventThreadDestroy
 class int_eventControlAuthority;
 class PC_EXPORT EventControlAuthority : public Event
 {
-   friend void boost::checked_delete<EventControlAuthority>(EventControlAuthority *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventControlAuthority>(const EventControlAuthority *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventControlAuthority>(EventControlAuthority *) noexcept;
+   friend void dyncompat::checked_delete<const EventControlAuthority>(const EventControlAuthority *) noexcept;
    int_eventControlAuthority *iev;
   public:
-   typedef boost::shared_ptr<EventControlAuthority> ptr;
-   typedef boost::shared_ptr<const EventControlAuthority> const_ptr;
+   typedef dyncompat::shared_ptr<EventControlAuthority> ptr;
+   typedef dyncompat::shared_ptr<const EventControlAuthority> const_ptr;
    int_eventControlAuthority *getInternalEvent() const;
 
    EventControlAuthority(EventType::Time t, int_eventControlAuthority *iev_);
@@ -843,13 +843,13 @@ class PC_EXPORT EventControlAuthority : public Event
 
 class int_eventAsyncIO;
 class PC_EXPORT EventAsyncIO : public Event {
-   friend void boost::checked_delete<EventAsyncIO>(EventAsyncIO *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventAsyncIO>(const EventAsyncIO *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventAsyncIO>(EventAsyncIO *) noexcept;
+   friend void dyncompat::checked_delete<const EventAsyncIO>(const EventAsyncIO *) noexcept;
   protected:
    int_eventAsyncIO *iev;
   public:
-   typedef boost::shared_ptr<EventAsyncIO> ptr;
-   typedef boost::shared_ptr<const EventAsyncIO> const_ptr;
+   typedef dyncompat::shared_ptr<EventAsyncIO> ptr;
+   typedef dyncompat::shared_ptr<const EventAsyncIO> const_ptr;
    int_eventAsyncIO *getInternalEvent() const;
 
    EventAsyncIO(EventType et, int_eventAsyncIO *iev_);
@@ -860,11 +860,11 @@ class PC_EXPORT EventAsyncIO : public Event {
 };
 
 class PC_EXPORT EventAsyncRead : public EventAsyncIO {
-   friend void boost::checked_delete<EventAsyncRead>(EventAsyncRead *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventAsyncRead>(const EventAsyncRead *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventAsyncRead>(EventAsyncRead *) noexcept;
+   friend void dyncompat::checked_delete<const EventAsyncRead>(const EventAsyncRead *) noexcept;
   public:
-   typedef boost::shared_ptr<EventAsyncRead> ptr;
-   typedef boost::shared_ptr<const EventAsyncRead> const_ptr;
+   typedef dyncompat::shared_ptr<EventAsyncRead> ptr;
+   typedef dyncompat::shared_ptr<const EventAsyncRead> const_ptr;
    
    EventAsyncRead(int_eventAsyncIO *iev_);
    ~EventAsyncRead();
@@ -875,11 +875,11 @@ class PC_EXPORT EventAsyncRead : public EventAsyncIO {
 };
 
 class PC_EXPORT EventAsyncWrite : public EventAsyncIO {
-   friend void boost::checked_delete<EventAsyncWrite>(EventAsyncWrite *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventAsyncWrite>(const EventAsyncWrite *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventAsyncWrite>(EventAsyncWrite *) noexcept;
+   friend void dyncompat::checked_delete<const EventAsyncWrite>(const EventAsyncWrite *) noexcept;
   public:
-   typedef boost::shared_ptr<EventAsyncWrite> ptr;
-   typedef boost::shared_ptr<const EventAsyncWrite> const_ptr;
+   typedef dyncompat::shared_ptr<EventAsyncWrite> ptr;
+   typedef dyncompat::shared_ptr<const EventAsyncWrite> const_ptr;
    
    EventAsyncWrite(int_eventAsyncIO *iev_);
    ~EventAsyncWrite();
@@ -889,11 +889,11 @@ class PC_EXPORT EventAsyncWrite : public EventAsyncIO {
 };
 
 class PC_EXPORT EventAsyncReadAllRegs : public EventAsyncIO {
-   friend void boost::checked_delete<EventAsyncReadAllRegs>(EventAsyncReadAllRegs *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventAsyncReadAllRegs>(const EventAsyncReadAllRegs *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventAsyncReadAllRegs>(EventAsyncReadAllRegs *) noexcept;
+   friend void dyncompat::checked_delete<const EventAsyncReadAllRegs>(const EventAsyncReadAllRegs *) noexcept;
   public:
-   typedef boost::shared_ptr<EventAsyncReadAllRegs> ptr;
-   typedef boost::shared_ptr<const EventAsyncReadAllRegs> const_ptr;
+   typedef dyncompat::shared_ptr<EventAsyncReadAllRegs> ptr;
+   typedef dyncompat::shared_ptr<const EventAsyncReadAllRegs> const_ptr;
    
    EventAsyncReadAllRegs(int_eventAsyncIO *iev_);
    ~EventAsyncReadAllRegs();
@@ -902,11 +902,11 @@ class PC_EXPORT EventAsyncReadAllRegs : public EventAsyncIO {
 };
 
 class PC_EXPORT EventAsyncSetAllRegs : public EventAsyncIO {
-   friend void boost::checked_delete<EventAsyncSetAllRegs>(EventAsyncSetAllRegs *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventAsyncSetAllRegs>(const EventAsyncSetAllRegs *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventAsyncSetAllRegs>(EventAsyncSetAllRegs *) noexcept;
+   friend void dyncompat::checked_delete<const EventAsyncSetAllRegs>(const EventAsyncSetAllRegs *) noexcept;
   public:
-   typedef boost::shared_ptr<EventAsyncSetAllRegs> ptr;
-   typedef boost::shared_ptr<const EventAsyncSetAllRegs> const_ptr;
+   typedef dyncompat::shared_ptr<EventAsyncSetAllRegs> ptr;
+   typedef dyncompat::shared_ptr<const EventAsyncSetAllRegs> const_ptr;
    
    EventAsyncSetAllRegs(int_eventAsyncIO *iev_);
    ~EventAsyncSetAllRegs();
@@ -914,12 +914,12 @@ class PC_EXPORT EventAsyncSetAllRegs : public EventAsyncIO {
 
 class int_eventAsyncFileRead;
 class PC_EXPORT EventAsyncFileRead : public Event {
-   friend void boost::checked_delete<EventAsyncFileRead>(EventAsyncFileRead *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventAsyncFileRead>(const EventAsyncFileRead *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventAsyncFileRead>(EventAsyncFileRead *) noexcept;
+   friend void dyncompat::checked_delete<const EventAsyncFileRead>(const EventAsyncFileRead *) noexcept;
    int_eventAsyncFileRead *iev;
   public:
-   typedef boost::shared_ptr<EventAsyncFileRead> ptr;
-   typedef boost::shared_ptr<const EventAsyncFileRead> const_ptr;
+   typedef dyncompat::shared_ptr<EventAsyncFileRead> ptr;
+   typedef dyncompat::shared_ptr<const EventAsyncFileRead> const_ptr;
    int_eventAsyncFileRead *getInternal();
    
    EventAsyncFileRead(int_eventAsyncFileRead *iev_);
@@ -938,11 +938,11 @@ class PC_EXPORT EventAsyncFileRead : public Event {
 
 class EventPostponedSyscall : public Event
 {
-   friend void boost::checked_delete<EventPostponedSyscall>(EventPostponedSyscall *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const EventPostponedSyscall>(const EventPostponedSyscall *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<EventPostponedSyscall>(EventPostponedSyscall *) noexcept;
+   friend void dyncompat::checked_delete<const EventPostponedSyscall>(const EventPostponedSyscall *) noexcept;
   public:
-   typedef boost::shared_ptr<EventPostponedSyscall> ptr;
-   typedef boost::shared_ptr<const EventPostponedSyscall> const_ptr;
+   typedef dyncompat::shared_ptr<EventPostponedSyscall> ptr;
+   typedef dyncompat::shared_ptr<const EventPostponedSyscall> const_ptr;
 
    EventPostponedSyscall();
    virtual ~EventPostponedSyscall();

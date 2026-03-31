@@ -12,8 +12,8 @@
 #include "Sawyer.h"
 
 #ifdef SAWYER_HAVE_BOOST_CHRONO
-# include <boost/chrono/duration.hpp>
-# include <boost/chrono/system_clocks.hpp>
+#include <chrono>
+
 #endif
 
 namespace Sawyer {
@@ -42,8 +42,8 @@ namespace Sawyer {
 class SAWYER_EXPORT Stopwatch {
 public:
 #ifdef SAWYER_HAVE_BOOST_CHRONO
-    typedef boost::chrono::high_resolution_clock::time_point TimePoint;
-    typedef boost::chrono::duration<double> Duration;
+    typedef std::chrono::high_resolution_clock::time_point TimePoint;
+    typedef std::chrono::duration<double> Duration;
 #else
     typedef double TimePoint;
     typedef double Duration;

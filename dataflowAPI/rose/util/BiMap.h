@@ -10,7 +10,7 @@
 
 #include "Map.h"
 #include "Sawyer.h"
-#include <boost/foreach.hpp>
+#include <dyncompat/foreach.hpp>
 
 namespace Sawyer {
 namespace Container {
@@ -48,7 +48,7 @@ public:
      *  map across both input maps. */
     template<class U>
     BiMap(const BiMap<Source, U> &a, const BiMap<U, Target> &b) {
-        BOOST_FOREACH (const typename Forward::Node &anode, a.forward_.nodes()) {
+        DYN_FOREACH (const typename Forward::Node &anode, a.forward_.nodes()) {
             if (b.forward_.exists(anode.value())) {
                 const Target &target = b.forward_[anode.value()];
                 forward_.insert(anode.key(), target);
