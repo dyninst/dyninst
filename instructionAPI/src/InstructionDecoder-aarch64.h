@@ -69,7 +69,7 @@ namespace Dyninst { namespace InstructionAPI {
     bool is64Bit{};
     bool isValid{};
 
-    void mainDecode();
+    Instruction mainDecode();
 
     int findInsnTableIndex(unsigned int);
 

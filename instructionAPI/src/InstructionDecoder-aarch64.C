@@ -288,10 +288,10 @@ namespace Dyninst { namespace InstructionAPI {
 
     insn = b.start[3] << 24 | b.start[2] << 16 | b.start[1] << 8 | b.start[0];
 
-    mainDecode();
+    auto inst = mainDecode();
     b.start += 4;
 
-    return *(insn_in_progress.get());
+    return inst;
   }
 
   /* replace this function with a more generic function, which is setRegWidth
@@ -2971,8 +2971,8 @@ add_operand(makeRnExpr(), true, true);
     if(!isValid) {
       this->mnemonic = INVALID_ENTRY.mnemonic;
       this->operationID = INVALID_ENTRY.op;
-      insn_in_progress->m_Operands.clear();
-      insn_in_progress->m_Successors.clear();
+      this->m_Operands.clear();
+      this->m_CFT_Targets.clear();
     } else {
       reorderOperands();
 
@@ -3034,7 +3034,7 @@ add_operand(makeRnExpr(), true, true);
 
   void InstructionDecoder_aarch64::setFlags() { isPstateWritten = true; }
 
-  void InstructionDecoder_aarch64::mainDecode() {
+  Instruction InstructionDecoder_aarch64::mainDecode() {
     // The member variables are moved-from if 'decode' was called before.
     // Explicitly construct new ones to prevent UB.
     m_Operands = decltype(m_Operands){};
@@ -3060,6 +3060,6 @@ add_operand(makeRnExpr(), true, true);
       insn_in_progress->m_InsnOp.isVectorInsn =
           (insn_table_entry.operands[0] == &InstructionDecoder_aarch64::setSIMDMode);
     }
-    return;
+    return *insn_in_progress;
   }
 }}
