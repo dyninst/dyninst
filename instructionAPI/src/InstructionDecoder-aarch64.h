@@ -83,7 +83,6 @@ namespace Dyninst { namespace InstructionAPI {
     void reorderOperands();
 
     unsigned int insn{};
-    boost::shared_ptr<Instruction> insn_in_progress;
 
     template <int start, int end> int field(unsigned int raw) {
       return (raw >> (start) & (0xFFFFFFFF >> (31 - (end - start))));

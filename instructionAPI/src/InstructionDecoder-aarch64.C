@@ -3043,23 +3043,27 @@ add_operand(makeRnExpr(), true, true);
     int insn_table_index = findInsnTableIndex(0);
     const auto& insn_table_entry = aarch64_insn_entry::main_insn_table[insn_table_index];
 
-    insn_in_progress = makeInstruction(insn_table_entry.op, insn_table_entry.mnemonic, 4,
-                                       reinterpret_cast<unsigned char*>(&insn));
-
     operationID = insn_table_entry.op;
     mnemonic = (insn_table_entry.mnemonic ? insn_table_entry.mnemonic : "");
+
     modify_mnemonic_simd_upperhalf_insns();
 
     decodeOperands();
 
-    insn_in_progress->m_Successors = std::move(m_CFT_Targets);
-    insn_in_progress->m_Operands = std::move(m_Operands);
-
-    insn_in_progress->arch_decoded_from = Arch_aarch64;
+    Operation oper(operationID, mnemonic, m_Arch);
     if(insn_table_entry.operands[0] != nullptr) {
-      insn_in_progress->m_InsnOp.isVectorInsn =
+      oper.isVectorInsn =
           (insn_table_entry.operands[0] == &InstructionDecoder_aarch64::setSIMDMode);
     }
-    return *insn_in_progress;
+
+    unsigned char bytes[sizeof(decltype(insn))];
+    Dyninst::write_memory_as(bytes, insn);
+
+    Instruction inst(std::move(oper), sizeof(bytes), bytes, m_Arch);
+    inst.m_Successors = std::move(m_CFT_Targets);
+    inst.m_Operands = std::move(m_Operands);
+
+    return inst;
   }
+
 }}
