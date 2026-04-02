@@ -60,6 +60,8 @@ namespace Dyninst { namespace InstructionAPI {
 
   private:
 
+    entryID operationID{aarch64_op_INVALID};
+
     bool isPstateRead{}, isPstateWritten{};
     bool isFPInsn{}, isSIMDInsn{};
     bool skipRn{}, skipRm{};
