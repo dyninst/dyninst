@@ -2186,8 +2186,8 @@ add_operand(makeRnExpr(), true, true);
   template <unsigned int endBit, unsigned int startBit> void InstructionDecoder_aarch64::OPRcond() {
     int condVal = field<startBit, endBit>(insn);
     if(IS_INSN_B_COND(insn)) {
-      insn_in_progress->getOperation().mnemonic += ".";
-      insn_in_progress->getOperation().mnemonic += condNames[condVal];
+      this->mnemonic += ".";
+      this->mnemonic += condNames[condVal];
     } else {
       if(IS_INSN_COND_SELECT(insn))
         fix_condinsn_alias_and_cond(condVal);
@@ -2487,7 +2487,7 @@ add_operand(makeRnExpr(), true, true);
     }
 
     this->operationID = modifiedID;
-    insn_in_progress->getOperation().mnemonic = bitfieldInsnAliasMap(modifiedID);
+    this->mnemonic = bitfieldInsnAliasMap(modifiedID);
 
     return do_further_processing;
   }
@@ -2531,7 +2531,7 @@ add_operand(makeRnExpr(), true, true);
     }
 
     this->operationID = modifiedID;
-    insn_in_progress->getOperation().mnemonic = condInsnAliasMap(modifiedID);
+    this->mnemonic = condInsnAliasMap(modifiedID);
     if(skipRm)
       cond = ((cond % 2) == 0) ? (cond + 1) : (cond - 1);
   }
@@ -2540,7 +2540,7 @@ add_operand(makeRnExpr(), true, true);
     if(field<30, 30>(insn) != 1 || field<28, 28>(insn) != 0)
       return;
 
-    string cur_mnemonic = insn_in_progress->getOperation().mnemonic;
+    string cur_mnemonic = this->mnemonic;
     bool add2 = false;
 
     if(IS_INSN_SIMD_3DIFF(insn) || IS_INSN_SCALAR_3DIFF(insn))
@@ -2560,7 +2560,7 @@ add_operand(makeRnExpr(), true, true);
     }
 
     if(add2)
-      insn_in_progress->getOperation().mnemonic = cur_mnemonic + "2";
+      this->mnemonic = cur_mnemonic + "2";
   }
 
   template <unsigned int endBit, unsigned int startBit> void InstructionDecoder_aarch64::OPRimm() {
@@ -2653,7 +2653,7 @@ add_operand(makeRnExpr(), true, true);
         if(IS_INSN_LOGICAL_SHIFT(insn) && shiftField == 0 && field<5, 9>(insn) == 0x1F &&
            immVal == 0) {
           this->operationID = aarch64_op_mov_orr_log_shift;
-          insn_in_progress->getOperation().mnemonic = "mov";
+          this->mnemonic = "mov";
           skipRn = true;
 
           add_operand(makeRmExpr(), true, false);
@@ -2915,7 +2915,6 @@ add_operand(makeRnExpr(), true, true);
   bool InstructionDecoder_aarch64::pre_process_checks(const aarch64_insn_entry& entry) {
     bool ret = false;
     entryID insnID = entry.op;
-    const string& mnemonic = entry.mnemonic;
 
     vector<entryID> simdCompareRegInsns = {aarch64_op_cmeq_advsimd_reg, aarch64_op_cmge_advsimd_reg,
                                            aarch64_op_cmgt_advsimd_reg, aarch64_op_cmhi_advsimd,
@@ -2977,7 +2976,7 @@ add_operand(makeRnExpr(), true, true);
       isValid = false;
 
     if(!isValid) {
-      insn_in_progress->getOperation().mnemonic = INVALID_ENTRY.mnemonic;
+      this->mnemonic = INVALID_ENTRY.mnemonic;
       this->operationID = INVALID_ENTRY.op;
       insn_in_progress->m_Operands.clear();
       insn_in_progress->m_Successors.clear();
@@ -3055,6 +3054,7 @@ add_operand(makeRnExpr(), true, true);
                                        reinterpret_cast<unsigned char*>(&insn));
 
     operationID = insn_table_entry.op;
+    mnemonic = (insn_table_entry.mnemonic ? insn_table_entry.mnemonic : "");
     modify_mnemonic_simd_upperhalf_insns();
 
     decodeOperands(insn_in_progress.get());

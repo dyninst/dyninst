@@ -61,6 +61,7 @@ namespace Dyninst { namespace InstructionAPI {
   private:
 
     entryID operationID{aarch64_op_INVALID};
+    std::string mnemonic{};
 
     bool isPstateRead{}, isPstateWritten{};
     bool isFPInsn{}, isSIMDInsn{};
