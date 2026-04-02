@@ -95,7 +95,10 @@ ArmFormatter::ArmFormatter() {
 }
 
 std::string ArmFormatter::formatImmediate(const std::string &evalString) const  {
-    return "0x" + evalString;
+    if(evalString.empty()) {
+      return "";
+    }
+    return "#" + std::to_string(strtol(evalString.c_str(), nullptr, 10));
 }
 
 std::string ArmFormatter::formatRegister(const std::string &regName) const  {
