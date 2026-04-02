@@ -2956,13 +2956,11 @@ add_operand(makeRnExpr(), true, true);
     return ret;
   }
 
-  bool InstructionDecoder_aarch64::decodeOperands(const Instruction* insn_to_complete) {
+  bool InstructionDecoder_aarch64::decodeOperands() {
     int insn_table_index = findInsnTableIndex(0);
     isValid = !pre_process_checks(aarch64_insn_entry::main_insn_table[insn_table_index]);
     const auto& insn_table_entry = isValid ? aarch64_insn_entry::main_insn_table[insn_table_index]
                                            : aarch64_insn_entry::main_insn_table[0];
-
-    Dyninst::read_memory_as<decltype(insn)>(insn_to_complete->ptr());
 
     if(IS_INSN_LDST_REG(insn) || IS_INSN_ADDSUB_EXT(insn) || IS_INSN_ADDSUB_SHIFT(insn) ||
        IS_INSN_LOGICAL_SHIFT(insn))
@@ -3057,7 +3055,7 @@ add_operand(makeRnExpr(), true, true);
     mnemonic = (insn_table_entry.mnemonic ? insn_table_entry.mnemonic : "");
     modify_mnemonic_simd_upperhalf_insns();
 
-    decodeOperands(insn_in_progress.get());
+    decodeOperands();
 
     insn_in_progress->m_Successors = std::move(m_CFT_Targets);
     insn_in_progress->m_Operands = std::move(m_Operands);

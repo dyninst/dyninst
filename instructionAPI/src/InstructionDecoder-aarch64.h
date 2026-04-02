@@ -73,7 +73,7 @@ namespace Dyninst { namespace InstructionAPI {
 
     int findInsnTableIndex(unsigned int);
 
-    bool decodeOperands(const Instruction* insn_to_complete);
+    bool decodeOperands();
 
     /*members for handling operand re-ordering, will be removed later once a generic operand
      * ordering method is incorporated*/
