@@ -1715,10 +1715,10 @@ Expression::Ptr scale = Immediate::makeImmediate(Result(u32, unsign_extend32(sca
       int branchType = field<21, 22>(insn);
 
       insn_in_progress->appendOperand(makePCExpr(), false, true, true);
-      insn_in_progress->addSuccessor(makeRnExpr(), field<21, 21>(insn) == 1, true, false, false);
+      add_successor(makeRnExpr(), field<21, 21>(insn) == 1, true, false, false);
 
       if(branchType == 0x1) {
-        insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
+        add_successor(makeFallThroughExpr(), false, false, false, true);
       }
     } else
       insn_in_progress->appendOperand(makeRnExpr(), true, false);
@@ -2336,10 +2336,10 @@ insn_in_progress->appendOperand(makeRnExpr(), true, true);
     int64_t offset = sign_extend64(immLen + 2, immVal * 4);
     Expression::Ptr rhs = Immediate::makeImmediate(Result(s64, offset));
 
-    insn_in_progress->addSuccessor(makeAddExpression(lhs, rhs, s64), branchIsCall, false,
+    add_successor(makeAddExpression(lhs, rhs, s64), branchIsCall, false,
                                    bIsConditional, false);
     if(branchIsCall) {
-      insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
+      add_successor(makeFallThroughExpr(), false, false, false, true);
     }
   }
 
@@ -2699,7 +2699,7 @@ insn_in_progress->appendOperand(makeRnExpr(), true, true);
         insn_in_progress->appendOperand(makeb40Expr(), true, false);
 
       if(bIsConditional)
-        insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, true, true);
+        add_successor(makeFallThroughExpr(), false, false, true, true);
     } else if(IS_INSN_PCREL_ADDR(insn)) // pc-relative addressing
     {
       if(IS_FIELD_IMMLO(startBit, endBit)) {
@@ -3052,6 +3052,10 @@ insn_in_progress->appendOperand(makeRnExpr(), true, true);
   void InstructionDecoder_aarch64::setFlags() { isPstateWritten = true; }
 
   void InstructionDecoder_aarch64::mainDecode() {
+    // The member variables are moved-from if 'decode' was called before.
+    // Explicitly construct new ones to prevent UB.
+    m_CFT_Targets = decltype(m_CFT_Targets){};
+
     int insn_table_index = findInsnTableIndex(0);
     const auto& insn_table_entry = aarch64_insn_entry::main_insn_table[insn_table_index];
 
@@ -3061,6 +3065,8 @@ insn_in_progress->appendOperand(makeRnExpr(), true, true);
     modify_mnemonic_simd_upperhalf_insns();
 
     decodeOperands(insn_in_progress.get());
+
+    insn_in_progress->m_Successors = std::move(m_CFT_Targets);
 
     insn_in_progress->arch_decoded_from = Arch_aarch64;
     if(insn_table_entry.operands[0] != nullptr) {
