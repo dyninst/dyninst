@@ -2840,10 +2840,8 @@ add_operand(makeRnExpr(), true, true);
       while(oprRotateAmt--)
         std::rotate(m_Operands.begin(), m_Operands.begin() + 1, m_Operands.begin() + 3);
 
-      insn_in_progress->m_Operands.assign(m_Operands.begin(), m_Operands.end());
     } else if(IS_INSN_LDST_POST(insn) || IS_INSN_LDST_PAIR_POST(insn)) {
       std::iter_swap(m_Operands.begin(), m_Operands.end() - 1);
-      insn_in_progress->m_Operands.assign(m_Operands.begin(), m_Operands.end());
     } else if(IS_INSN_LDST_PAIR(insn)) {
       assert(m_Operands.size() == 4 || m_Operands.size() == 3);
       if(m_Operands.size() == 3) {
@@ -2852,7 +2850,6 @@ add_operand(makeRnExpr(), true, true);
       } else if(m_Operands.size() == 4) {
         std::iter_swap(m_Operands.begin(), m_Operands.end() - 1);
       }
-      insn_in_progress->m_Operands.assign(m_Operands.begin(), m_Operands.end());
     } else if(IS_INSN_LDST_EX_PAIR(insn)) {
       if(m_Operands.size() == 3) {
         m_Operands.insert(m_Operands.begin(), m_Operands.back());
@@ -2861,12 +2858,10 @@ add_operand(makeRnExpr(), true, true);
         m_Operands.insert(m_Operands.begin() + 1, m_Operands.back());
         m_Operands.pop_back();
       }
-      insn_in_progress->m_Operands.assign(m_Operands.begin(), m_Operands.end());
     } else if(IS_INSN_ST_EX(insn)) {
       if(m_Operands.size() == 3) {
         m_Operands.insert(m_Operands.begin() + 1, m_Operands.back());
         m_Operands.pop_back();
-        insn_in_progress->m_Operands.assign(m_Operands.begin(), m_Operands.end());
       } else {
         std::reverse(m_Operands.begin(), m_Operands.end());
       }
