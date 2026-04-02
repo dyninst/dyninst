@@ -33,27 +33,30 @@
 
 #include "Instruction.h"
 
+#include <boost/optional.hpp>
+
 namespace Dyninst {
 namespace InstructionAPI {
 
 struct opcode_test {
-  entryID opcode;
-  entryID encoded_opcode;
-  std::string opcode_mnemonic;
-  std::string encoded_opcode_mnemonic;
-  std::string text;
-  
+  entryID opcode{};
+  boost::optional<entryID> encoded_opcode{};
+  std::string opcode_mnemonic{};
+  std::string encoded_opcode_mnemonic{};
+  std::string text{};
+
   opcode_test(entryID op, entryID enc_op, const std::string &op_mnem,
               const std::string &enc_op_mnem, std::string assembly_text)
       : opcode(op), encoded_opcode(enc_op), opcode_mnemonic(op_mnem),
         encoded_opcode_mnemonic(enc_op_mnem), text{std::move(assembly_text)} {}
-        
+
   // Constructor for the case where the opcode is the same as the encoded opcode
   opcode_test(entryID op, const std::string &op_mnem, std::string assembly_text)
       : opcode_test(op, op, op_mnem, op_mnem, std::move(assembly_text)) {}
-      
+
   opcode_test(entryID op, std::string assembly_text)
-      : opcode_test(op, "", std::move(assembly_text)) {}
+      : opcode{op}, text{std::move(assembly_text)} {}
+
 };
 
 bool verify(Instruction const &, opcode_test const &);

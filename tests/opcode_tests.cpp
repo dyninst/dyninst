@@ -11,7 +11,7 @@ bool verify(Instruction const &insn, opcode_test const &expected) {
   entryID actual_opcode = insn.getOperation().getID();
   entryID actual_encoded_opcode = insn.getEncodedOperation().getID();
   entryID expected_opcode = expected.opcode;
-  entryID expected_encoded_opcode = expected.encoded_opcode;
+  boost::optional<entryID> expected_encoded_opcode = expected.encoded_opcode;
 
   bool failed = false;
 
@@ -23,7 +23,7 @@ bool verify(Instruction const &insn, opcode_test const &expected) {
     failed = true;
   }
 
-  if (actual_encoded_opcode != expected_encoded_opcode) {
+  if (expected_encoded_opcode && actual_encoded_opcode != *expected_encoded_opcode) {
     std::cerr << "Mismatched encoded opcode\n";
     std::cerr << "Expected: " << expected.encoded_opcode_mnemonic
               << ", Found: " << insn.getEncodedOperation().format();
