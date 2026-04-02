@@ -18,6 +18,7 @@ bool verify(Instruction const &insn, opcode_test const &expected) {
   if (actual_opcode != expected_opcode) {
     std::cerr << "Mismatched opcode\n";
     std::cerr << "Expected: " << expected.opcode_mnemonic
+              << " (" << static_cast<int>(insn.getOperation().getID()) << ") "
               << ", Found: " << insn.getOperation().format();
     std::cerr << '\n';
     failed = true;
