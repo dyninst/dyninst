@@ -74,33 +74,42 @@ Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind regKind, uint
       return Null_Register;
   }
 
-  assert(minGprId % alignment.getValue() == 0);
+  uint32_t alignmentValue{alignment.getValue()};
+  assert(minGprId % alignmentValue == 0);
 
-  for (uint32_t id = minGprId; id + numRegs - 1 <= maxGprId; id += alignment.getValue()) {
-    // Check whether the single individual consecutive registers can be allocated
-    bool canAllocateBlock = true;
-    for (uint32_t currentId = id; currentId < id + numRegs; ++currentId) {
-      Dyninst::Register singleReg(OperandRegId(currentId), regKind, BlockSize(1));
-      canAllocateBlock &= canAllocate(singleReg);
-    }
+  // Check whether the single individual consecutive registers can be allocated
+  auto nextId{minGprId};  // next register to test
+  auto baseId{nextId};    // alignment aligned base id of register block
 
-    if (canAllocateBlock) {
-      // Allocate those individual registers
-      for (uint32_t currentId = id; currentId < id + numRegs; ++currentId) {
-        Dyninst::Register reg(OperandRegId(currentId), regKind, BlockSize(1));
-        auto *regSlot = this->registers_[reg];
-        regSlot->markUsed(true);
-        regSlot->refCount = 1;
-
-        const char *regIdPrefix = regKind == RegKind::SCALAR ? "s" : "v";
-        regalloc_printf("Allocated register %s%u\n", regIdPrefix, currentId);
+  while (nextId + numRegs - 1 <= maxGprId) {
+    Dyninst::Register singleReg(OperandRegId(nextId), regKind, BlockSize(1));
+    if (canAllocate(singleReg)) {
+      if (nextId - baseId + 1 == numRegs) {
+        break;            // found enough registers: [baseId, nextId]
       }
-      return Register(OperandRegId(id), regKind, BlockSize(numRegs));
+      ++nextId;
+    } else {              // failed, begin at next alignment
+      baseId = ((nextId + alignmentValue) / alignmentValue) * alignmentValue;
+      nextId = baseId;
     }
   }
-  return Null_Register;
-}
 
+  if (nextId - baseId + 1 != numRegs) {
+    return Null_Register; // not enough registers, fail
+  }
+
+  for (auto allocId = baseId; allocId <= nextId; ++allocId) {
+    Dyninst::Register reg(OperandRegId(allocId), regKind, BlockSize(1));
+    auto *regSlot = this->registers_[reg];
+    regSlot->markUsed(true);
+    regSlot->refCount = 1;
+
+    const char *regIdPrefix = regKind == RegKind::SCALAR ? "s" : "v";
+    regalloc_printf("Allocated register %s%u\n", regIdPrefix, baseId);
+  }
+
+  return Register(OperandRegId(baseId), regKind, BlockSize(numRegs));
+}
 
 void registerSpace::freeGprBlock(Dyninst::Register regBlock) {
   bool scalarOrVector = regBlock.getKind() == Dyninst::RegKind::SCALAR || regBlock.getKind() == Dyninst::RegKind::VECTOR;
