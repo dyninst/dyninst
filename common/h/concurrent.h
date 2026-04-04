@@ -42,6 +42,11 @@
 #include <tbb/concurrent_hash_map.h>
 #include <tbb/concurrent_vector.h>
 #include <tbb/concurrent_queue.h>
+
+#ifdef DYNINST_TBB_HAS_VERSION_H
+#include <tbb/version.h>
+#endif
+
 #include <boost/functional/hash.hpp>
 
 namespace Dyninst {

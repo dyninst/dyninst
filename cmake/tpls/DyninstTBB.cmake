@@ -49,4 +49,13 @@ message(STATUS "Found TBB ${TBB_VERSION}")
 get_target_property(_tmp TBB::tbb INTERFACE_INCLUDE_DIRECTORIES)
 message(STATUS "TBB include directories: ${_tmp}")
 
+# Starting with 2021.2, the version macros were extracted into 'version.h'
+# To retain support for earlier versions, we conditionally include it
+foreach(_dir ${_tmp})
+  if(EXISTS "${_dir}/tbb/version.h")
+    target_compile_definitions(Dyninst::TBB INTERFACE "DYNINST_TBB_HAS_VERSION_H")
+    break()
+  endif()
+endforeach()
+
 unset(_find_path_args)
