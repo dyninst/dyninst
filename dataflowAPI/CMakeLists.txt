@@ -22,39 +22,7 @@ set(_rose_sources
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/StringUtility.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Synchronization.C)
 
-# FIXME: Rose needs a bunch of warning cleanup
-set_source_files_properties(${_rose_sources} PROPERTIES LANGUAGE CXX COMPILE_FLAGS -w)
-
-set(_dataflow_sources
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ABI.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Absloc.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/AbslocInterface.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/AST.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/convertOpcodes.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/debug_dataflow.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ExpressionConversionVisitor.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/InstructionCache.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/liveness.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RegisterMap.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RoseImpl.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RoseInsnFactory.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/slicing.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/stackanalysis.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymbolicExpansion.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEval.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEvalPolicy.C
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Visitors.C
-    ${_rose_sources})
-
-set(_dataflow_private_headers
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/debug_dataflow.h
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ExpressionConversionVisitor.h
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RegisterMap.h
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RoseInsnFactory.h
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymbolicExpansion.h
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEvalPolicy.h
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEvalVisitors.h
-    # ROSE
+set(_rose_headers
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/conversions.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/ExtentMap.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/integerOps.h
@@ -118,6 +86,41 @@ set(_dataflow_private_headers
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/Synchronization.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/WarningsOff.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/util/WarningsRestore.h)
+
+# FIXME: Rose needs a bunch of warning cleanup
+set_source_files_properties(${_rose_sources} PROPERTIES LANGUAGE CXX COMPILE_FLAGS -w)
+set_source_files_properties(${_rose_headers} PROPERTIES COMPILE_FLAGS -w)
+
+set(_dataflow_sources
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ABI.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Absloc.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/AbslocInterface.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/AST.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/convertOpcodes.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/debug_dataflow.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ExpressionConversionVisitor.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/InstructionCache.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/liveness.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RegisterMap.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RoseImpl.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RoseInsnFactory.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/slicing.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/stackanalysis.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymbolicExpansion.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEval.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEvalPolicy.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Visitors.C
+    ${_rose_sources})
+
+set(_dataflow_private_headers
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/debug_dataflow.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ExpressionConversionVisitor.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RegisterMap.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RoseInsnFactory.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymbolicExpansion.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEvalPolicy.h
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEvalVisitors.h
+    ${_rose_headers})
 
 set(_dataflow_public_headers
     ${PROJECT_SOURCE_DIR}/dataflowAPI/h/ABI.h
