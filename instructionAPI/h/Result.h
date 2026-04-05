@@ -270,7 +270,11 @@ namespace Dyninst
                 /// This constructor creates a %Result of type \c t and contents \c v for any \c v that is implicitly
                 /// convertible to type \c t.  Attempting to construct a %Result with a value that is incompatible with
                 /// its type will result in a compile-time error.
-                template<typename T>
+
+                template<bool b, typename T>
+                using enable_if_t = typename std::enable_if<b, T>::type;
+
+                template<typename T, enable_if_t<!std::is_floating_point<T>::value, bool> = true>
                     Result(Result_Type t, T v) :
                         type(t), defined(true)
             {
@@ -377,16 +381,18 @@ namespace Dyninst
                         break;
                 }
             }
-                Result(Result_Type t, float v) :
-                    type(t), defined(true)
+
+                template <typename T, enable_if_t<std::is_same<T, float>::value, bool> = true>
+                Result(Result_Type, T v) :
+                    type(sp_float), defined(true)
             {
-                assert(t == sp_float || t == dp_float);
-                val.dblval = (double)v;
+                val.floatval = v;
             }
-                Result(Result_Type t, double v) :
-                    type(t), defined(true)
+
+                template <typename T, enable_if_t<std::is_same<T, double>::value, bool> = true>
+                Result(Result_Type, T v) :
+                    type(dp_float), defined(true)
             {
-                assert(t == sp_float || t == dp_float);
                 val.dblval = v;
             }
                 ~Result()

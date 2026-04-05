@@ -1863,9 +1863,15 @@ insn_in_progress->appendOperand(makeRnExpr(), true, true);
     if(skipRm)
       return;
 
-    if(IS_INSN_FP_COMPARE(insn) && field<3, 3>(insn) == 1)
-      insn_in_progress->appendOperand(
-          Immediate::makeImmediate(Result(isSinglePrec() ? sp_float : dp_float, 0.0)), true, false);
+    if(IS_INSN_FP_COMPARE(insn) && field<3, 3>(insn) == 1) {
+      auto res = [this]() {
+        if(isSinglePrec()) {
+          return Result{sp_float, 0.0f};
+        }
+        return Result{dp_float, 0.0};
+      }();
+      insn_in_progress->appendOperand(Immediate::makeImmediate(res), true, false);
+    }
     else
       insn_in_progress->appendOperand(makeRmExpr(), true, false);
   }
