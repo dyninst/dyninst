@@ -98,6 +98,15 @@ std::string ArmFormatter::formatImmediate(const std::string &evalString) const  
     if(evalString.empty()) {
       return "";
     }
+
+    // Assume it's a float if there's a decimal point
+    if(evalString.find('.') != std::string::npos) {
+      double d = strtod(evalString.c_str(), nullptr);
+      char str[64]{};
+      snprintf(str, sizeof(str), "%0.8f", d);
+      return "#" + std::string(str);
+    }
+
     return "#" + std::to_string(strtol(evalString.c_str(), nullptr, 10));
 }
 

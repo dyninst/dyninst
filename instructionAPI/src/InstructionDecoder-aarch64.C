@@ -2348,25 +2348,54 @@ insn_in_progress->appendOperand(makeRnExpr(), true, true);
                              Immediate::makeImmediate(Result(u64, unsign_extend64(3, 4))), u64);
   }
 
+  /******************************************************************************
+    bits(N) VFPExpandImm(bits(8) imm8, integer N)
+      assert N IN {16,32,64};
+      constant integer E = (if N == 16 then 5 else (if N == 32 then 8 else 11));
+      constant integer F = (N - E) - 1;
+      sign = imm8<7>;
+      exp = NOT(imm8<6>):Replicate(imm8<6>, E-3):imm8<5:4>;
+      frac = imm8<3:0>:Zeros(F-4);
+      result = sign : exp : frac;
+      return result;
+  ******************************************************************************/
   template <typename T, Result_Type rT>
   Expression::Ptr InstructionDecoder_aarch64::fpExpand(int val) {
-    int N, E, F;
-    T frac, expandedImm, sign, exp;
+    constexpr uint8_t N = (rT == sp_float) ? 32 : 64;
+    constexpr uint8_t E = (N == 32) ? 8 : 11;
+    constexpr uint8_t F = N - E - 1;
 
-    N = (rT == s32) ? 32 : 64;
-    E = (N == 32) ? 8 : 11;
-    F = N - E - 1;
+    // sign = imm8<7>;
+    const T sign = field<7, 7>(val);
 
-    sign = (val & 0x80) >> 7;
+    const T exp = [&]() {
+      // NOT(imm8<6>)
+      const T exp0 = field<6, 6>(~val);
 
-    int val6 = ((~val) & 0x40) >> 6, val6mask = (1 << (E - 3)) - 1;
-    exp = (val6 << (E - 1)) | ((val6 ? val6mask : 0) << 2) | ((val & 0x30) >> 4);
+      auto replicate = [](T x, T nbits) -> T {
+        if (x == 0) {
+          return 0x0;
+        }
+        return ~(T{0xff} << nbits);
+      };
 
-    frac = (val & 0xF) << (F - 4);
+      // Replicate(imm8<6>, E-3)
+      const T exp1 = replicate(field<6, 6>(val), E - 3U);
 
-    expandedImm = (sign << (E + F)) | (exp << F) | frac;
+      // imm8<5:4>
+      const T exp2 = field<4, 5>(val);
 
-    return Immediate::makeImmediate(Result(rT, expandedImm));
+      return (exp0 << (E - 1U)) | (exp1 << (E - 2U)) | exp2;
+    }();
+
+    const T frac = static_cast<T>(field<0, 3>(val)) << (F - 4U);
+
+    T expandedImm = (sign << (E + F)) | (exp << F) | frac;
+
+    using res_t = typename Result_type2type<rT>::type;
+    auto res = Dyninst::read_memory_as<res_t>(&expandedImm);
+
+    return Immediate::makeImmediate(Result(rT, res));
   }
 
   template <typename T>
@@ -2687,9 +2716,9 @@ insn_in_progress->appendOperand(makeRnExpr(), true, true);
         isValid = false;
     } else if(isFPInsn) {
       if(isSinglePrec())
-        insn_in_progress->appendOperand(fpExpand<int32_t, s32>(immVal), true, false);
+        insn_in_progress->appendOperand(fpExpand<uint32_t, sp_float>(immVal), true, false);
       else
-        insn_in_progress->appendOperand(fpExpand<int64_t, s64>(immVal), true, false);
+        insn_in_progress->appendOperand(fpExpand<uint64_t, dp_float>(immVal), true, false);
     } else if(IS_INSN_EXCEPTION(insn)) {
       Expression::Ptr imm = Immediate::makeImmediate(Result(u16, immVal));
       insn_in_progress->appendOperand(imm, true, false);
