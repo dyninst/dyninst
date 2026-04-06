@@ -67,7 +67,7 @@ namespace Dyninst { namespace InstructionAPI {
       bool isConditional;
       bool isFallthrough;
 
-      CFT(Expression::Ptr t, bool call, bool indir, bool cond, bool ft)
+      CFT(Expression::Ptr t, bool call, bool indir, bool cond, bool ft) noexcept
           : target(t), isCall(call), isIndirect(indir), isConditional(cond), isFallthrough(ft) {}
     };
 
