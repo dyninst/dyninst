@@ -2376,7 +2376,11 @@ insn_in_progress->appendOperand(makeRnExpr(), true, true);
         if (x == 0) {
           return 0x0;
         }
-        return ~(T{0xff} << nbits);
+
+        // 1) produce M 1's, M=8*sizeof(T)
+        // 2) left shift to make 'nbits' of LSB zeroes
+        // 3) negate to make 'nbits' LSB ones and M-nbits zeroes
+        return ~(~T{} << nbits);
       };
 
       // Replicate(imm8<6>, E-3)
