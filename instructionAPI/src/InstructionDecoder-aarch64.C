@@ -2362,7 +2362,7 @@ insn_in_progress->appendOperand(makeRnExpr(), true, true);
   template <typename T, Result_Type rT>
   Expression::Ptr InstructionDecoder_aarch64::fpExpand(int val) {
     constexpr uint8_t N = (rT == sp_float) ? 32 : 64;
-    constexpr uint8_t E = (N == 32) ? 8 : 11;
+    constexpr uint8_t E = (rT == sp_float) ? 8 : 11;
     constexpr uint8_t F = N - E - 1;
 
     // sign = imm8<7>;
