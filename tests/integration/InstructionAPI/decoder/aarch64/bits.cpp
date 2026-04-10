@@ -132,7 +132,7 @@ std::vector<math_test> make_tests() {
     },
     { // bfxil  x0, lr, #0, #2
       {0xc0, 0x07, 0x40, 0xb3},
-      di::opcode_test(aarch64_op_bfxil_bfm, "bfi"), // WRONG: should be 'bfxil x0, x30, #0, #2'
+      di::opcode_test(aarch64_op_bfxil_bfm, "bfxil x0, x30, #0, #2"),
       di::register_rw_test {
         reg_set{x30},
         reg_set{x0},
@@ -236,7 +236,7 @@ std::vector<math_test> make_tests() {
     },
     { // ubfx x20, x0, #1, #8
       {0x14, 0x20, 0x41, 0xd3},
-      di::opcode_test(aarch64_op_ubfx_ubfm, "lsl"),  // WRONG: should be 'ubfx x20, x0, #1, #8'
+      di::opcode_test(aarch64_op_ubfx_ubfm, "ubfx x20, x0, #1, #8"),
       di::register_rw_test {
         reg_set{x0},
         reg_set{x20},

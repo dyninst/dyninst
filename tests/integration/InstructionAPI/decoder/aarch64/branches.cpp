@@ -78,7 +78,7 @@ std::vector<math_test> make_tests() {
     },
     { // b.gt 0xfc
       {0xec, 0x07, 0x00, 0x54},
-      di::opcode_test(aarch64_op_b_cond, "b"),  // WRONG: should be 'b.gt 0xfc'
+      di::opcode_test(aarch64_op_b_cond, "b.gt pc + #0"),  // WRONG: should be 'b.gt 0xfc'
       di::register_rw_test {
         reg_set{pc, nzcv},
         reg_set{pc},
@@ -86,7 +86,7 @@ std::vector<math_test> make_tests() {
     },
     { // b.ne 0xfffffffffffffffc
       {0xe1, 0xff, 0xff, 0x54},
-      di::opcode_test(aarch64_op_b_cond, "b"),  // WRONG: should be 'b.ne 0xfffffffffffffffc'
+      di::opcode_test(aarch64_op_b_cond, "b.ne pc + #0"),  // WRONG: should be 'b.ne 0xfffffffffffffffc'
       di::register_rw_test {
         reg_set{pc, nzcv},
         reg_set{pc},
