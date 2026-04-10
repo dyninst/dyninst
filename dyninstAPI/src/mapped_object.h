@@ -138,7 +138,6 @@ struct edgeStub {
 class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     friend class mapped_module; // for findFunction
     friend class func_instance;
-    friend class block_instance; // Adds to codeRangesByAddr_
     friend class edge_instance;
     friend class DynCFGMaker;
  private:
@@ -354,8 +353,6 @@ public:
     func_index_t allFunctionsByPrettyName;
     var_index_t allVarsByMangledName;
     var_index_t allVarsByPrettyName;
-
-    codeRangeTree codeRangesByAddr_;
 
     // And those call...
     void addFunction(func_instance *func);

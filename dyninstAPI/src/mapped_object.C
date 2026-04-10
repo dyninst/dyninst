@@ -277,7 +277,6 @@ mapped_object::~mapped_object()
    }
    allVarsByPrettyName.clear();
 
-   // codeRangesByAddr_ is static
     // Remainder are static
    image::removeImage(image_);
 }
