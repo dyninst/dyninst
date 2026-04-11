@@ -2086,10 +2086,10 @@ void EmitterAMD64::emitCSload(int ra, int rb, int sc, long imm, Register dest, c
    // count is at most 1 register or constant or hack (aka pseudoregister)
    assert((ra == -1) &&
           ((rb == -1) ||
-           ((imm == 0) && (rb == 1 /*REGNUM_ECX */ || rb >= IA32_EMULATE))));
+           ((imm == 0) && (rb == 1 /*REGNUM_ECX */ || rb >= Dyninst::DyninstAPI::IA32_EMULATE))));
    
    gen.markRegDefined(dest);
-   if(rb >= IA32_EMULATE) {      
+   if(rb >= Dyninst::DyninstAPI::IA32_EMULATE) {      
       // need to emulate repeated SCAS or CMPS to figure out byte count
       
       // TODO: firewall code to ensure that direction is up
@@ -2105,18 +2105,18 @@ void EmitterAMD64::emitCSload(int ra, int rb, int sc, long imm, Register dest, c
       bool rcx_wasUsed = false;
       
       switch(rb) {
-         case IA32_NESCAS:
+         case Dyninst::DyninstAPI::IA32_NESCAS:
             neg = true;
 	    DYNINST_FALLTHROUGH;
-         case IA32_ESCAS:
+         case Dyninst::DyninstAPI::IA32_ESCAS:
             opcode_small = 0xAE;
             opcode_large = 0xAF;
             restore_rax = true;
             break;
-         case IA32_NECMPS:
+         case Dyninst::DyninstAPI::IA32_NECMPS:
             neg = true;
 	    DYNINST_FALLTHROUGH;
-         case IA32_ECMPS:
+         case Dyninst::DyninstAPI::IA32_ECMPS:
             opcode_small = 0xA6;
             opcode_large = 0xA7;
             restore_rsi = true;

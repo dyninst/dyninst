@@ -54,7 +54,9 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
 {
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
     static unsigned int log2[] = { 0, 0, 1, 1, 2, 2, 2, 2, 3 };
-    
+  
+  namespace da = Dyninst::DyninstAPI;
+
   // TODO 16-bit registers
     
   int nac = 0;
@@ -101,7 +103,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
 					   false, false,
                                            mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                            0, -1, -1, 0,
-                                           bmapcond, false, mac.prefetchstt + IA32AMDprefetch);
+                                           bmapcond, false, mac.prefetchstt + da::IA32AMDprefetch);
         }
         else switch(mac.sizehack) { // translation to pseudoregisters
         case 0:
@@ -121,28 +123,28 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
 	  bmap = new BPatch_memoryAccess(current,
 					 mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
-                                         0, -1, IA32_ESCAS, log2[mac.size],
+                                         0, -1, da::IA32_ESCAS, log2[mac.size],
                                          bmapcond, false);
           break;
         case shREPNESCAS:
 	  bmap = new BPatch_memoryAccess(current,
 					 mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
-                                         0, -1, IA32_NESCAS, log2[mac.size],
+                                         0, -1, da::IA32_NESCAS, log2[mac.size],
                                          bmapcond, false);
           break;
         case shREPECMPS:
 	  bmap = new BPatch_memoryAccess(current,
 					 mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
-                                         0, -1, IA32_ECMPS, log2[mac.size],
+                                         0, -1, da::IA32_ECMPS, log2[mac.size],
                                          bmapcond, false);
           break;
         case shREPNECMPS:
 	  bmap = new BPatch_memoryAccess(current,
 					 mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
-                                         0, -1, IA32_NECMPS, log2[mac.size],
+                                         0, -1, da::IA32_NECMPS, log2[mac.size],
                                          bmapcond, false);
           break;
         default:
@@ -169,14 +171,14 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
         case shREPECMPS:
           bmap->set2nd(mac.read, mac.write,
                        mac.imm, mac.regs[0], mac.regs[1], mac.scale,
-                       0, -1, IA32_ECMPS, log2[mac.size],
+                       0, -1, da::IA32_ECMPS, log2[mac.size],
                        bmapcond, false);
           break;
         case shREPNECMPS:
           //fprintf(stderr, "In set2nd[shREPNECMPS]!!!\n");
           bmap->set2nd(mac.read, mac.write,
                        mac.imm, mac.regs[0], mac.regs[1], mac.scale,
-                       0, -1, IA32_NECMPS, log2[mac.size],
+                       0, -1, da::IA32_NECMPS, log2[mac.size],
                        bmapcond, false);
           break;
         default:

@@ -1245,15 +1245,15 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Dyninst::Register
    // count is at most 1 register or constant or hack (aka pseudoregister)
    assert((ra == -1) &&
           ((rb == -1) ||
-            ((imm == 0) && (rb == 1 /*REGNUM_ECX */ || rb >= IA32_EMULATE))));
+            ((imm == 0) && (rb == 1 /*REGNUM_ECX */ || rb >= Dyninst::DyninstAPI::IA32_EMULATE))));
 
-   if(rb >= IA32_EMULATE) {
+   if(rb >= Dyninst::DyninstAPI::IA32_EMULATE) {
       bool neg = false;
       switch(rb) {
-        case IA32_NESCAS:
+        case Dyninst::DyninstAPI::IA32_NESCAS:
            neg = true;
 	   DYNINST_FALLTHROUGH;
-        case IA32_ESCAS: {
+        case Dyninst::DyninstAPI::IA32_ESCAS: {
            // plan: restore flags, edi, eax, ecx; do rep(n)e scas(b/w);
            // compute (saved_ecx - ecx) << sc;
 
@@ -1292,10 +1292,10 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Dyninst::Register
            emitMovRegToReg(dest_r, RealRegister(REGNUM_EAX), gen);
            break;
         }
-        case IA32_NECMPS:
+        case Dyninst::DyninstAPI::IA32_NECMPS:
            neg = true;
 	   DYNINST_FALLTHROUGH;
-        case IA32_ECMPS: {
+        case Dyninst::DyninstAPI::IA32_ECMPS: {
            // plan: restore flags, esi, edi, ecx; do rep(n)e cmps(b/w);
            // compute (saved_ecx - ecx) << sc;
 

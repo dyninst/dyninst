@@ -69,6 +69,14 @@ namespace Dyninst { namespace DyninstAPI {
     Address getInterModuleVarAddr(const image_variable *var, codeGen &gen) override;
   };
 
+  static constexpr auto IA32_EMULATE = 1000;
+  static constexpr auto IA32_ESCAS = 1000;
+  static constexpr auto IA32_NESCAS = 1001;
+  static constexpr auto IA32_ECMPS = 1002;
+  static constexpr auto IA32_NECMPS = 1003;
+  static constexpr auto IA32AMDprefetch = 100;
+  static constexpr auto IA32AMDprefetchw = 101;
+
 }}
 
 #endif

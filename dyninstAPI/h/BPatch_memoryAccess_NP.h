@@ -43,14 +43,6 @@ class BPatch_point;
 /* Pseudoregisters definitions */
 #define POWER_XER2531	9999
 
-#define IA32_EMULATE	1000
-#define IA32_ESCAS	1000
-#define IA32_NESCAS	1001
-#define IA32_ECMPS	1002
-#define IA32_NECMPS	1003
-
-#define IA32AMDprefetch  100
-
 //extern void initOpCodeInfo();
 
 /* This is believed to be machine independent, modulo register numbers of course */
