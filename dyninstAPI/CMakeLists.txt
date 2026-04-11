@@ -270,6 +270,8 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     _sources
     src/codegen/emitters/x86/IA32/EmitterIA32Dyn.C
     src/codegen/emitters/x86/IA32/EmitterIA32Dyn.h
+    src/codegen/emitters/x86/IA32/EmitterIA32Stat.C
+    src/codegen/emitters/x86/IA32/EmitterIA32Stat.h
     src/codegen/emitters/x86/IA32/EmitterIA32.C
     src/codegen/emitters/x86/IA32/EmitterIA32.h
     src/codegen/emitters/x86/Emitterx86.C

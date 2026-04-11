@@ -48,7 +48,7 @@
 #include "codegen/emitters/x86/Emitterx86.h"
 #include "codegen/emitters/x86/IA32/EmitterIA32.h"
 #include "codegen/emitters/x86/IA32/EmitterIA32Dyn.h"
-
+#include "codegen/emitters/x86/IA32/EmitterIA32Stat.h"
 
 class codeGen;
 class registerSpace;
@@ -58,18 +58,6 @@ class registerSlot;
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 // Emitter moved to emitter.h - useful on other platforms as well
-
-class EmitterIA32Stat : public Dyninst::DyninstAPI::EmitterIA32 {
- public:
-
-    ~EmitterIA32Stat() {}
-
-    virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
-    virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
-    
- protected:
-    bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
-};
 
 // some useful 64-bit codegen functions
 void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen);

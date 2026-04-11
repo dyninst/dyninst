@@ -1362,7 +1362,7 @@ bool emitSubSignedImm(Address addr, long int imm, codeGen &gen, bool noCost) {
 Emitter *AddressSpace::getEmitter() 
 {
    static Dyninst::DyninstAPI::EmitterIA32Dyn emitter32Dyn;
-   static EmitterIA32Stat emitter32Stat;
+   static Dyninst::DyninstAPI::EmitterIA32Stat emitter32Stat;
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
    static EmitterAMD64Dyn emitter64Dyn;
