@@ -36,6 +36,7 @@
 #include <cstdint>
 #include <limits.h>
 #include "codegen/RegControl.h"
+#include "codegen/emitters/x86/IA32/EmitterIA32Dyn.h"
 #include "common/src/headers.h"
 #include "compiler_annotations.h"
 #include "compiler_diagnostics.h"
@@ -1360,7 +1361,7 @@ bool emitSubSignedImm(Address addr, long int imm, codeGen &gen, bool noCost) {
 
 Emitter *AddressSpace::getEmitter() 
 {
-   static EmitterIA32Dyn emitter32Dyn;
+   static Dyninst::DyninstAPI::EmitterIA32Dyn emitter32Dyn;
    static EmitterIA32Stat emitter32Stat;
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)

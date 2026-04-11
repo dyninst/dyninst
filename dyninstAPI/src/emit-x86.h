@@ -47,6 +47,7 @@
 #include "dyninstAPI/src/emitter.h"
 #include "codegen/emitters/x86/Emitterx86.h"
 #include "codegen/emitters/x86/IA32/EmitterIA32.h"
+#include "codegen/emitters/x86/IA32/EmitterIA32Dyn.h"
 
 
 class codeGen;
@@ -57,14 +58,6 @@ class registerSlot;
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 // Emitter moved to emitter.h - useful on other platforms as well
-
-class EmitterIA32Dyn : public Dyninst::DyninstAPI::EmitterIA32 {
- public:
-    ~EmitterIA32Dyn() {}
-    
- protected:
-    bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
-};
 
 class EmitterIA32Stat : public Dyninst::DyninstAPI::EmitterIA32 {
  public:
