@@ -41,6 +41,7 @@
 namespace Dyninst { namespace DyninstAPI { namespace x86 {
 
   void emitAddMem(Address addr, int imm, codeGen &gen);
+  void emitSegPrefix(Register segReg, codeGen &gen);
 
 }}}
 

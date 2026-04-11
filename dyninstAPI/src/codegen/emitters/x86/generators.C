@@ -1,4 +1,6 @@
+#include "arch-regs-x86.h"
 #include "codegen/emitters/x86/generators.h"
+#include "inst-x86.h"
 #include "registerSpace/registerSpace.h"
 #include "unaligned_memory_access.h"
 
@@ -56,6 +58,20 @@ namespace Dyninst { namespace DyninstAPI { namespace x86 {
     }
 
     SET_PTR(insn, gen);
+  }
+
+  void emitSegPrefix(Register segReg, codeGen &gen) {
+    switch(segReg) {
+      case REGNUM_FS:
+        emitSimpleInsn(PREFIX_SEGFS, gen);
+        return;
+      case REGNUM_GS:
+        emitSimpleInsn(PREFIX_SEGGS, gen);
+        return;
+      default:
+        assert(0 && "Segment register not handled");
+        return;
+    }
   }
 
 }}}

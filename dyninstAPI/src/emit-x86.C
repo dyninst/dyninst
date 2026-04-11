@@ -97,22 +97,6 @@ static void emitXMMRegsSaveRestore(codeGen& gen, bool isRestore)
 }
 #endif
 
-static void emitSegPrefix(Register segReg, codeGen& gen)
-{
-    switch(segReg) {
-        case REGNUM_FS:
-            emitSimpleInsn(PREFIX_SEGFS, gen);
-            return;
-        case REGNUM_GS:
-            emitSimpleInsn(PREFIX_SEGGS, gen);
-            return;
-        default:
-            assert(0 && "Segment register not handled");
-            return;
-    }
-}
-
-
 bool EmitterIA32::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
    RealRegister src_r = gen.rs()->loadVirtual(src, gen);
    RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
@@ -340,7 +324,7 @@ bool EmitterIA32::emitLoadRelative(Register /*dest*/, Address /*offset*/, Regist
 bool EmitterIA32::emitLoadRelativeSegReg(Register /*dest*/, Address offset, Register base, int /*size*/, codeGen &gen)
 {
     // WARNING: dest is hard-coded to EAX currently
-    emitSegPrefix(base, gen);
+    Dyninst::DyninstAPI::x86::emitSegPrefix(base, gen);
     GET_PTR(insn, gen);
     append_memory_as_byte(insn, 0xa1);
     append_memory_as_byte(insn, offset);
@@ -965,7 +949,7 @@ static void emitMovSegRMToReg64(Register dest, Register base, int disp, codeGen 
 
     gen.markRegDefined(dest);
 
-    emitSegPrefix(base, gen);
+    Dyninst::DyninstAPI::x86::emitSegPrefix(base, gen);
     emitRex(true, &tmp_dest, NULL, &tmp_base, gen);
     emitOpSegRMReg(MOV_RM32_TO_R32, RealRegister(tmp_dest), RealRegister(tmp_base), disp, gen);
 }
@@ -2838,7 +2822,7 @@ bool EmitterIA32::emitXorRegImm(Register dest, int imm, codeGen& gen)
 bool EmitterIA32::emitXorRegSegReg(Register /*dest*/, Register base, int disp, codeGen& gen)
 {
     // WARNING: dest is hard-coded to EDX currently
-    emitSegPrefix(base, gen);
+    Dyninst::DyninstAPI::x86::emitSegPrefix(base, gen);
     GET_PTR(insn, gen);
     append_memory_as_byte(insn, 0x33);
     append_memory_as_byte(insn, 0x15);
@@ -2943,7 +2927,7 @@ bool EmitterAMD64::emitXorRegSegReg(Register dest, Register base, int disp, code
     Register tmp_dest = dest;
     Register tmp_base = base;
 
-    emitSegPrefix(base, gen);
+    Dyninst::DyninstAPI::x86::emitSegPrefix(base, gen);
     emitRex(true, &tmp_dest, NULL, &tmp_base, gen);
     emitOpSegRMReg(XOR_R32_RM32, RealRegister(tmp_dest), RealRegister(tmp_base), disp, gen);
     gen.markRegDefined(dest);
