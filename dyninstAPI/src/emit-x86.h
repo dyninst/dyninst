@@ -129,8 +129,6 @@ public:
     void emitStackAlign(int offset, codeGen &gen);
     bool emitBTSaves(baseTramp* bt, codeGen &gen);
     bool emitBTRestores(baseTramp* bt, codeGen &gen);
-    void emitLoadEffectiveAddress(Register base, Register index, unsigned int scale, int disp,
-				  Register dest, codeGen &gen);
     void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
     void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
     bool emitPush(codeGen &gen, Register pushee);
