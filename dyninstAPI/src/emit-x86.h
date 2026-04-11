@@ -107,7 +107,6 @@ public:
     void emitStoreShared(Register source, const image_variable *var, bool is_local,int size, codeGen &gen);
 
     bool clobberAllFuncCall(registerSpace *rs,func_instance *callee);
-    void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     // We can overload this for the stat/dyn case
     virtual Register emitCall(opCode op, codeGen &gen,
                               const std::vector<codeGenASTPtr> &operands,
@@ -222,7 +221,6 @@ public:
     void emitStoreShared(Register source, const image_variable *var, bool is_local,int size, codeGen &gen);
 
     bool clobberAllFuncCall(registerSpace *rs, func_instance *callee);
-    void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     // See comment on 32-bit emitCall
     virtual Register emitCall(opCode op, codeGen &gen,
                               const std::vector<codeGenASTPtr> &operands,

@@ -1627,20 +1627,6 @@ void EmitterAMD64::emitStoreRelative(Register src, Address offset, Register base
                     gen);
 }
 
-void EmitterAMD64::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
-{
-   if (liveFPReg != NULL)
-   {
-      if (liveFPReg[0] == 0 && saveOrNot)
-      {
-         int * temp = const_cast<int *>(liveFPReg);
-         temp[0] = 1;
-      }
-   }
-}
-
-
-
 /* Recursive function that goes to where our instrumentation is calling
    to figure out what registers are clobbered there, and in any function
    that it calls, to a certain depth ... at which point we clobber everything

@@ -793,20 +793,6 @@ bool EmitterIA32::clobberAllFuncCall( registerSpace *rs,
   return true;
 }
 
-
-void EmitterIA32::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
-{
-   if (liveFPReg != NULL)
-   {
-      if (liveFPReg[0] == 0 && saveOrNot)
-      {
-         int * temp = const_cast<int *>(liveFPReg);
-         temp[0] = 1;
-      }
-   }
-}
-
-
 Dyninst::Register EmitterIA32::emitCall(opCode op,
                                codeGen &gen,
                                const std::vector<codeGenASTPtr> &operands, 
