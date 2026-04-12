@@ -761,73 +761,7 @@ Dyninst::Register emitFuncCall(opCode op,
 
 
 
-/* Recursive function that goes to where our instrumentation is calling
-to figure out what registers are clobbered there, and in any function
-that it calls, to a certain depth ... at which point we clobber everything
 
-Update-12/06, njr, since we're going to a cached system we are just going to 
-look at the first level and not do recursive, since we would have to also
-store and reexamine every call out instead of doing it on the fly like before*/
-
-// Should be a member of the registerSpace class?
-
-bool EmitterIA32::clobberAllFuncCall( registerSpace *rs,
-                                      func_instance *callee)
-		   
-{
-  if (callee == NULL) return false;
-
-  /* This will calculate the values if the first time around, otherwise
-     will check preparsed, stored values.
-     True - FP Writes are present
-     False - No FP Writes
-  */
-
-  if (writesFPRs(callee->ifunc())) {
-      for (unsigned i = 0; i < rs->FPRs().size(); i++) {
-          rs->FPRs()[i]->beenUsed = true;
-      }
-  }
-  return true;
-}
-
-Dyninst::Register EmitterIA32::emitCall(opCode op,
-                               codeGen &gen,
-                               const std::vector<codeGenASTPtr> &operands, 
-                               bool noCost, func_instance *callee) {
-    bool inInstrumentation = true;
-    if (op != callOp) {
-      cerr << "ERROR: emitCall with op == " << op << endl;
-    }
-    assert(op == callOp);
-    std::vector <Dyninst::Register> srcs;
-    int param_size;
-    std::vector<Dyninst::Register> saves;
-    
-    //  Sanity check for NULL address arg
-    if (!callee) {
-        char msg[256];
-        sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
-                "callee argument", __FILE__, __LINE__);
-        showErrorCallback(80, msg);
-        assert(0);
-    }
-
-   param_size = emitCallParams(gen, operands, callee, saves, noCost);
-
-   Dyninst::Register ret = REGNUM_EAX;
-
-   emitCallInstruction(gen, callee, ret);
-
-   emitCallCleanup(gen, callee, param_size, saves);
-
-   if (!inInstrumentation) return Null_Register;
-
-   // allocate a (virtual) register to store the return value
-   // Virtual register
-
-   return ret;
-}
 
 /*
  * emit code for op(src1,src2, dest)
@@ -918,31 +852,6 @@ void emitSHL(RealRegister dest, unsigned char pos, codeGen &gen)
    SET_PTR(insn, gen);
 }
 
-void EmitterIA32::emitPushFlags(codeGen &gen) {
-    // These crank the saves forward
-    emitSimpleInsn(PUSHFD, gen);
-}
-
-void EmitterIA32::emitRestoreFlags(codeGen &, unsigned )
-{
-    assert(!"never use this!");
-    return;
-}
-
-void EmitterIA32::emitRestoreFlagsFromStackSlot(codeGen &gen)
-{
-    // if the flags aren't on the stack, they're already restored...
-    if((*gen.rs())[IA32_FLAG_VIRTUAL_REGISTER]->liveState == registerSlot::spilled)
-    {
-        stackItemLocation loc = getHeightOf(stackItem(RealRegister(IA32_FLAG_VIRTUAL_REGISTER)), gen);
-        assert(loc.offset % 4 == 0);
-        ::emitPush(RealRegister(REGNUM_EAX), gen);
-        emitMovRMToReg(RealRegister(REGNUM_EAX), loc.reg, loc.offset, gen);
-        emitRestoreO(gen);
-        emitSimpleInsn(0x9E, gen); // SAHF
-        ::emitPop(RealRegister(REGNUM_EAX), gen);
-    }
-}
 
 // VG(8/15/02): Emit the jcc over a conditional snippet
 void emitJmpMC(int condition, int offset, codeGen &gen)
@@ -1130,102 +1039,7 @@ void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackS
     gen.codeEmitter()->emitASload(ra, rb, sc, imm, dest, stackShift, gen);
 }
 
-void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Dyninst::Register dest, int stackOffset, codeGen &gen)
-{
-    bool havera = ra > -1, haverb = rb > -1;
-   
-   // assuming 32-bit addressing (for now)
-   
-   if (ra == REGNUM_ESP && !haverb && sc == 0 && gen.bt()) {
-      //Optimization, common for push/pop
-      RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-      stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-      if (!gen.bt() || gen.bt()->alignedStack) {
-          emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
-          if (imm) ::emitLEA(dest_r, RealRegister(Null_Register), 0, imm, dest_r, gen);
-      }
-      else
-          ::emitLEA(loc.reg, RealRegister(Null_Register), 0,
-                  loc.offset, dest_r, gen);
-      return;
-   }
 
-   RealRegister src1_r(-1);
-   Dyninst::Register src1 = Null_Register;
-   if (havera) {
-      if (gen.inInstrumentation()) {
-       src1 = restoreGPRtoReg(RealRegister(ra), gen);
-       src1_r = gen.rs()->loadVirtual(src1, gen);
-      gen.rs()->markKeptRegister(src1);
-     }
-     else {
-       // Don't have a base tramp - use only reals
-       src1_r = RealRegister(ra);
-	   // If this is a stack pointer, modify imm to compensate
-	   // for any changes in the stack pointer
-	   if (ra == REGNUM_ESP) {
-		   imm -= stackOffset;
-	   }
-     }
-   }
-
-   RealRegister src2_r(-1);
-   Dyninst::Register src2 = Null_Register;
-   if (haverb) {
-      if (ra == rb) {
-         src2_r = src1_r;
-      }
-      else if (gen.inInstrumentation()) {
-	src2 = restoreGPRtoReg(RealRegister(rb), gen);
-	src2_r = gen.rs()->loadVirtual(src2, gen);
-	gen.rs()->markKeptRegister(src2);
-      }
-      else {
-		  src2_r = RealRegister(rb);
-	      // If this is a stack pointer, modify imm to compensate
-	      // for any changes in the stack pointer
-	      if (rb == REGNUM_ESP) {
-			  imm -= (stackOffset*sc);
-		  }
-      }
-   }
-   
-   if (havera && !haverb && !sc && !imm) {
-      //Optimized case, just use the existing src1_r
-      if (gen.inInstrumentation()) {
-       gen.rs()->unKeepRegister(src1);
-       gen.rs()->freeRegister(src1);
-       gen.rs()->noteVirtualInReal(dest, src1_r);
-       return;
-     }
-     else {
-       // No base tramp, no virtual registers - emit a move?
-       emitMovRegToReg(RealRegister(dest), src1_r, gen);
-       return;
-     }
-   }
-
-   // Emit the lea to do the math for us:
-   // e.g. lea eax, [eax + edx * sc + imm] if both ra and rb had to be
-   // restored
-   RealRegister dest_r; 
-   if (gen.inInstrumentation()) {
-     dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-   }
-   else {
-     dest_r = RealRegister(dest);
-   }
-   ::emitLEA(src1_r, src2_r, sc, (long) imm, dest_r, gen);
-
-   if (src1 != Null_Register) {
-       gen.rs()->unKeepRegister(src1);
-       gen.rs()->freeRegister(src1);
-   }
-   if (src2 != Null_Register) {
-       gen.rs()->unKeepRegister(src2);
-       gen.rs()->freeRegister(src2);
-   }
-}
 
 void emitCSload(const BPatch_countSpec_NP *as, Dyninst::Register dest,
 		codeGen &gen, bool /* noCost */ )
@@ -1238,119 +1052,6 @@ void emitCSload(const BPatch_countSpec_NP *as, Dyninst::Register dest,
    int sc  = as->getScale();
 
    gen.codeEmitter()->emitCSload(ra, rb, sc, imm, dest, gen);
-}
-
-void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Dyninst::Register dest, codeGen &gen)
-{
-   // count is at most 1 register or constant or hack (aka pseudoregister)
-   assert((ra == -1) &&
-          ((rb == -1) ||
-            ((imm == 0) && (rb == 1 /*REGNUM_ECX */ || rb >= Dyninst::DyninstAPI::IA32_EMULATE))));
-
-   if(rb >= Dyninst::DyninstAPI::IA32_EMULATE) {
-      bool neg = false;
-      switch(rb) {
-        case Dyninst::DyninstAPI::IA32_NESCAS:
-           neg = true;
-	   DYNINST_FALLTHROUGH;
-        case Dyninst::DyninstAPI::IA32_ESCAS: {
-           // plan: restore flags, edi, eax, ecx; do rep(n)e scas(b/w);
-           // compute (saved_ecx - ecx) << sc;
-
-           gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EAX), gen);
-           gen.rs()->makeRegisterAvail(RealRegister(REGNUM_ECX), gen);
-           gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EDI), gen);
-           
-           // mov eax<-offset[ebp]
-           emitRestoreFlagsFromStackSlot(gen);
-           restoreGPRtoGPR(RealRegister(REGNUM_EAX), RealRegister(REGNUM_EAX), gen);
-           restoreGPRtoGPR(RealRegister(REGNUM_ECX), RealRegister(REGNUM_ECX), gen);
-           restoreGPRtoGPR(RealRegister(REGNUM_EDI), RealRegister(REGNUM_EDI), gen);
-           gen.markRegDefined(REGNUM_EAX);
-           gen.markRegDefined(REGNUM_ECX);
-           gen.markRegDefined(REGNUM_EDI);
-           emitSimpleInsn(neg ? 0xF2 : 0xF3, gen); // rep(n)e
-           switch(sc) {
-             case 0:
-                emitSimpleInsn(0xAE, gen); // scasb
-                break;
-             case 1:
-                emitSimpleInsn(0x66, gen); // operand size override for scasw;
-		DYNINST_FALLTHROUGH;
-             case 2:
-                emitSimpleInsn(0xAF, gen); // scasw/d
-                break;
-             default:
-                assert(!"Wrong scale!");
-           }
-           restoreGPRtoGPR(RealRegister(REGNUM_ECX), RealRegister(REGNUM_EAX), gen); // old ecx -> eax
-           emitSubRegReg(RealRegister(REGNUM_EAX), RealRegister(REGNUM_ECX), gen); // eax = eax - ecx
-           gen.markRegDefined(REGNUM_EAX);
-           if(sc > 0)
-              emitSHL(RealRegister(REGNUM_EAX), static_cast<unsigned char>(sc), gen); // shl eax, scale
-           RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-           emitMovRegToReg(dest_r, RealRegister(REGNUM_EAX), gen);
-           break;
-        }
-        case Dyninst::DyninstAPI::IA32_NECMPS:
-           neg = true;
-	   DYNINST_FALLTHROUGH;
-        case Dyninst::DyninstAPI::IA32_ECMPS: {
-           // plan: restore flags, esi, edi, ecx; do rep(n)e cmps(b/w);
-           // compute (saved_ecx - ecx) << sc;
-
-           gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EAX), gen);
-           gen.rs()->makeRegisterAvail(RealRegister(REGNUM_ESI), gen);
-           gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EDI), gen);
-           gen.rs()->makeRegisterAvail(RealRegister(REGNUM_ECX), gen);
-           
-           // mov eax<-offset[ebp]
-           emitRestoreFlagsFromStackSlot(gen);
-           restoreGPRtoGPR(RealRegister(REGNUM_ECX), RealRegister(REGNUM_ECX), gen);
-           gen.markRegDefined(REGNUM_ECX);
-           restoreGPRtoGPR(RealRegister(REGNUM_ESI), RealRegister(REGNUM_ESI), gen);
-           gen.markRegDefined(REGNUM_ESI);
-           restoreGPRtoGPR(RealRegister(REGNUM_EDI), RealRegister(REGNUM_EDI), gen);
-           gen.markRegDefined(REGNUM_EDI);
-           emitSimpleInsn(neg ? 0xF2 : 0xF3, gen); // rep(n)e
-           switch(sc) {
-             case 0:
-                emitSimpleInsn(0xA6, gen); // cmpsb
-                break;
-             case 1:
-                emitSimpleInsn(0x66, gen); // operand size override for cmpsw;
-		DYNINST_FALLTHROUGH;
-             case 2:
-                emitSimpleInsn(0xA7, gen); // cmpsw/d
-                break;
-             default:
-                assert(!"Wrong scale!");
-           }
-           restoreGPRtoGPR(RealRegister(REGNUM_ECX), RealRegister(REGNUM_EAX), gen); // old ecx -> eax
-           emitSubRegReg(RealRegister(REGNUM_EAX), RealRegister(REGNUM_ECX), gen); // eax = eax - ecx
-           if(sc > 0)
-              emitSHL(RealRegister(REGNUM_EAX), static_cast<unsigned char>(sc), gen); // shl eax, scale
-           RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-           emitMovRegToReg(dest_r, RealRegister(REGNUM_EAX), gen);
-
-           break;
-        }
-        default:
-           assert(!"Wrong emulation!");
-      }
-   }
-   else if(rb > -1) {
-      // TODO: 16-bit pseudoregisters
-      assert(rb < 8); 
-      RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-      restoreGPRtoGPR(RealRegister(rb), dest_r, gen); // mov dest, [saved_rb]
-      if(sc > 0)
-         emitSHL(dest_r, static_cast<unsigned char>(sc), gen); // shl eax, scale
-   }
-   else {
-      RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-      emitMovImmToReg(dest_r, imm, gen);
-   }
 }
 
 void emitVload(opCode op, Address src1, Dyninst::Register src2, Dyninst::Register dest,
@@ -1572,16 +1273,6 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
 }
 
 
-bool EmitterIA32::emitPush(codeGen &gen, Dyninst::Register reg) {
-    RealRegister real_reg = gen.rs()->loadVirtual(reg, gen);
-    return ::emitPush(real_reg, gen);
-}
-
-bool EmitterIA32::emitPop(codeGen &gen, Dyninst::Register reg) {
-    RealRegister real_reg = gen.rs()->loadVirtual(reg, gen);
-    return ::emitPop(real_reg, gen);
-}
-
 bool emitPush(RealRegister reg, codeGen &gen) {
     GET_PTR(insn, gen);
     int r = reg.reg();
@@ -1607,17 +1298,6 @@ bool emitPop(RealRegister reg, codeGen &gen) {
     }
     return true;
 }
-
-bool EmitterIA32::emitAdjustStackPointer(int index, codeGen &gen) {
-	// The index will be positive for "needs popped" and negative
-	// for "needs pushed". However, positive + SP works, so don't
-	// invert.
-	int popVal = index * gen.addrSpace()->getAddressWidth();
-	emitOpExtRegImm(0x81, EXTENDED_0x81_ADD, RealRegister(REGNUM_ESP), popVal, gen);
-   gen.rs()->incStack(-1 * popVal);
-	return true;
-}
-
 
 void emitLoadPreviousStackFrameRegister(Address register_num,
                                         Dyninst::Register dest,
@@ -1831,55 +1511,6 @@ void emitJump(unsigned disp32, codeGen &gen)
    append_memory_as(insn, uint32_t{disp32});
    SET_PTR(insn, gen);
 }
-
-#if defined(os_linux)   \
- || defined(os_freebsd)
-
-// These functions were factored from linux-x86.C because
-// they are identical on Linux and FreeBSD
-
-int EmitterIA32::emitCallParams(codeGen &gen, 
-                              const std::vector<codeGenASTPtr> &operands,
-                              func_instance */*target*/, 
-                              std::vector<Dyninst::Register> &/*extra_saves*/,
-                              bool noCost)
-{
-    std::vector <Dyninst::Register> srcs;
-    unsigned frame_size = 0;
-    unsigned u;
-    for (u = 0; u < operands.size(); u++) {
-        Address unused = ADDR_NULL;
-        Dyninst::Register reg = Null_Register;
-        if (!operands[u]->generateCode_phase2(gen,
-                                              noCost,
-                                              unused,
-                                              reg)) assert(0); // ARGH....
-        assert (reg != Null_Register); // Give me a real return path!
-        srcs.push_back(reg);
-    }
-    
-    // push arguments in reverse order, last argument first
-    // must use int instead of unsigned to avoid nasty underflow problem:
-    for (int i=srcs.size() - 1; i >= 0; i--) {
-       RealRegister r = gen.rs()->loadVirtual(srcs[i], gen);
-       ::emitPush(r, gen);
-       frame_size += 4;
-       gen.rs()->freeRegister(srcs[i]);
-    }
-    return frame_size;
-}
-
-bool EmitterIA32::emitCallCleanup(codeGen &gen,
-                                func_instance * /*target*/, 
-                                int frame_size, 
-                                std::vector<Dyninst::Register> &/*extra_saves*/)
-{
-   if (frame_size)
-      emitOpRegImm(0, RealRegister(REGNUM_ESP), frame_size, gen); // add esp, frame_size
-   gen.rs()->incStack(-1 * frame_size);
-   return true;
-}
-#endif
 
 bool writesFPRs(parse_func *func, unsigned level) {
   // Iterate down and find out...
