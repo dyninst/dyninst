@@ -27,23 +27,10 @@ static int extra_space_check{};
 
 namespace Dyninst { namespace DyninstAPI {
 
-  /* Recursive function that goes to where our instrumentation is calling
-  to figure out what registers are clobbered there, and in any function
-  that it calls, to a certain depth ... at which point we clobber everything
-  Update-12/06, njr, since we're going to a cached system we are just going to
-  look at the first level and not do recursive, since we would have to also
-  store and reexamine every call out instead of doing it on the fly like before*/
-  // Should be a member of the registerSpace class?
   bool EmitterIA32::clobberAllFuncCall(registerSpace *rs, func_instance *callee) {
     if(callee == NULL) {
       return false;
     }
-
-    /* This will calculate the values if the first time around, otherwise
-       will check preparsed, stored values.
-       True - FP Writes are present
-       False - No FP Writes
-    */
 
     if(writesFPRs(callee->ifunc())) {
       for(unsigned i = 0; i < rs->FPRs().size(); i++) {
@@ -422,14 +409,9 @@ namespace Dyninst { namespace DyninstAPI {
       return Null_Register;
     }
 
-    // allocate a (virtual) register to store the return value
-    // Virtual register
-
     return ret;
   }
 
-  // These functions were factored from linux-x86.C because
-  // they are identical on Linux and FreeBSD
   int EmitterIA32::emitCallParams(codeGen &gen, const std::vector<codeGenASTPtr> &operands,
                                   func_instance * /*target*/,
                                   std::vector<Dyninst::Register> & /*extra_saves*/, bool noCost) {
@@ -440,9 +422,9 @@ namespace Dyninst { namespace DyninstAPI {
       Address unused = ADDR_NULL;
       Dyninst::Register reg = Null_Register;
       if(!operands[u]->generateCode_phase2(gen, noCost, unused, reg)) {
-        assert(0); // ARGH....
+        assert(0);
       }
-      assert(reg != Null_Register); // Give me a real return path!
+      assert(reg != Null_Register);
       srcs.push_back(reg);
     }
 
@@ -1065,8 +1047,7 @@ namespace Dyninst { namespace DyninstAPI {
     assert(0);
   }
 
-  void EmitterIA32::emitStoreRelative(Register /*src*/, Address /*offset*/, Register /*base*/,
-                                      int /*size*/, codeGen & /*gen*/) {
+  void EmitterIA32::emitStoreRelative(Register, Address, Register, int, codeGen &) {
     assert(0);
     return;
   }
