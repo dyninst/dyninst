@@ -1,6 +1,7 @@
 #include "addressSpace.h"
 #include "arch-regs-x86.h"
 #include "arch-x86.h"
+#include "Architecture.h"
 #include "binaryEdit.h"
 #include "codegen/emitters/x86/Emitterx86.h"
 #include "codegen/RegControl.h"
@@ -24,10 +25,7 @@ namespace Dyninst { namespace DyninstAPI {
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();
     Address relocation_address;
-    unsigned int jump_slot_size = 4;
-#if defined(DYNINST_CODEGEN_ARCH_X86_64)
-    jump_slot_size = 8;
-#endif
+    const unsigned int jump_slot_size = getArchAddressWidth(gen.getArch());
 
     if(!binEdit || !func) {
       assert(!"Invalid function call (function info is missing)");
@@ -57,10 +55,7 @@ namespace Dyninst { namespace DyninstAPI {
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();
     Address relocation_address;
-    unsigned int jump_slot_size = 4;
-#if defined(DYNINST_CODEGEN_ARCH_X86_64)
-    jump_slot_size = 8;
-#endif
+    const unsigned int jump_slot_size = getArchAddressWidth(gen.getArch());
 
     if(!binEdit || !var) {
       assert(!"Invalid variable load (variable info is missing)");
