@@ -46,7 +46,7 @@ namespace Dyninst { namespace DyninstAPI {
     ~EmitterIA32Dyn() = default;
 
   protected:
-    bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
+    bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret) override;
   };
 
 }}
