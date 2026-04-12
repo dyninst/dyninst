@@ -46,20 +46,20 @@ namespace Dyninst { namespace DyninstAPI {
 
     virtual ~EmitterIA32() = default;
 
-    bool clobberAllFuncCall(registerSpace *rs, func_instance *callee);
+    bool clobberAllFuncCall(registerSpace *rs, func_instance *callee) override;
 
-    void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
+    void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost) override;
 
-    bool emitAdjustStackPointer(int index, codeGen &gen);
+    bool emitAdjustStackPointer(int index, codeGen &gen) override;
 
-    void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen);
+    void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen) override;
 
-    bool emitBTRestores(baseTramp *bt, codeGen &gen);
+    bool emitBTRestores(baseTramp *bt, codeGen &gen) override;
 
-    bool emitBTSaves(baseTramp *bt, codeGen &gen);
+    bool emitBTSaves(baseTramp *bt, codeGen &gen) override;
 
     virtual Register emitCall(opCode op, codeGen &gen, const std::vector<codeGenASTPtr> &operands,
-                              bool noCost, func_instance *callee);
+                              bool noCost, func_instance *callee) override;
 
     bool emitCallCleanup(codeGen &gen, func_instance *target, int frame_size,
                          std::vector<Register> &extra_saves);
@@ -67,94 +67,100 @@ namespace Dyninst { namespace DyninstAPI {
     int emitCallParams(codeGen &gen, const std::vector<codeGenASTPtr> &operands, func_instance *target,
                        std::vector<Register> &extra_saves, bool noCost);
 
-    bool emitCallRelative(Register, Address, Register, codeGen &);
+    bool emitCallRelative(Register, Address, Register, codeGen &) override;
 
-    void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
+    void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen) override;
 
-    void emitDiv(Register dest, Register src1, Register src2, codeGen &gen, bool s);
+    void emitDiv(Register dest, Register src1, Register src2, codeGen &gen, bool s) override;
 
-    void emitDivImm(Register dest, Register src1, RegValue src1imm, codeGen &gen, bool s);
+    void emitDivImm(Register dest, Register src1, RegValue src1imm, codeGen &gen, bool s) override;
 
     void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of,
-                      codeGen &gen);
+                      codeGen &gen) override;
 
-    void emitGetRetAddr(Register dest, codeGen &gen);
+    void emitGetRetAddr(Register dest, codeGen &gen) override;
 
-    void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
+    void emitGetRetVal(Register dest, bool addr_of, codeGen &gen) override;
 
-    codeBufIndex_t emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen);
+    codeBufIndex_t emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen) override;
 
-    void emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen &gen);
+    void emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest,
+                 codeGen &gen) override;
 
-    void emitLoad(Register dest, Address addr, int size, codeGen &gen);
+    void emitLoad(Register dest, Address addr, int size, codeGen &gen) override;
 
-    void emitLoadConst(Register dest, Address imm, codeGen &gen);
+    void emitLoadConst(Register dest, Address imm, codeGen &gen) override;
 
-    void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
+    void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen) override;
 
-    void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen);
+    void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen) override;
 
-    void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
+    void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen) override;
 
-    void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen);
+    void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen) override;
 
-    void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store);
+    void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen,
+                                 bool store) override;
 
-    bool emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen);
+    bool emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen) override;
 
-    bool emitLoadRelativeSegReg(Register dest, Address offset, Register base, int size, codeGen &gen);
+    bool emitLoadRelativeSegReg(Register dest, Address offset, Register base, int size,
+                                codeGen &gen) override;
 
     void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size,
-                        codeGen &gen, Address offset);
+                        codeGen &gen, Address offset) override;
 
-    bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
+    bool emitMoveRegToReg(Register src, Register dest, codeGen &gen) override;
 
-    bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
+    bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen) override;
 
-    void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
+    void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen) override;
 
     void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
-                   codeGen &gen);
+                   codeGen &gen) override;
 
-    bool emitPop(codeGen &gen, Register popee);
+    bool emitPop(codeGen &gen, Register popee) override;
 
-    bool emitPush(codeGen &gen, Register pushee);
+    bool emitPush(codeGen &gen, Register pushee) override;
 
-    void emitPushFlags(codeGen &gen);
+    void emitPushFlags(codeGen &gen) override;
 
-    void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen, bool s);
+    void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen, bool s) override;
 
-    void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s);
+    void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen,
+                      bool s) override;
 
-    void emitRestoreFlags(codeGen &gen, unsigned offset);
+    void emitRestoreFlags(codeGen &gen, unsigned offset) override;
 
-    void emitRestoreFlagsFromStackSlot(codeGen &gen);
+    void emitRestoreFlagsFromStackSlot(codeGen &gen) override;
 
     void emitStackAlign(int offset, codeGen &gen);
 
-    void emitStore(Address addr, Register src, int size, codeGen &gen);
+    void emitStore(Address addr, Register src, int size, codeGen &gen) override;
 
-    void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen);
+    void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size,
+                                codeGen &gen) override;
 
-    void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
+    void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost) override;
 
-    void emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen);
+    void emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen) override;
 
-    void emitStoreOrigRegister(Address register_num, Register dest, codeGen &gen);
+    void emitStoreOrigRegister(Address register_num, Register dest, codeGen &gen) override;
 
-    void emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen);
+    void emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen) override;
 
-    void emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen);
+    void emitStoreShared(Register source, const image_variable *var, bool is_local, int size,
+                         codeGen &gen) override;
 
-    void emitTimesImm(Register dest, Register src1, RegValue src1imm, codeGen &gen);
+    void emitTimesImm(Register dest, Register src1, RegValue src1imm, codeGen &gen) override;
 
-    bool emitXorRegImm(Register dest, int imm, codeGen &gen);
+    bool emitXorRegImm(Register dest, int imm, codeGen &gen) override;
 
-    bool emitXorRegReg(Register dest, Register base, codeGen &gen);
+    bool emitXorRegReg(Register dest, Register base, codeGen &gen) override;
 
-    bool emitXorRegRM(Register dest, Register base, int disp, codeGen &gen);
+    bool emitXorRegRM(Register dest, Register base, int disp, codeGen &gen) override;
 
-    bool emitXorRegSegReg(Register dest, Register base, int disp, codeGen &gen);
+    bool emitXorRegSegReg(Register dest, Register base, int disp, codeGen &gen) override;
   };
 
 }}
