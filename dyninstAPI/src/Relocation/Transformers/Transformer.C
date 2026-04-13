@@ -34,6 +34,8 @@
 #include "dyninstAPI/src/Relocation/CFG/RelocBlock.h"
 #include "dyninstAPI/src/Relocation/CFG/RelocTarget.h"
 #include "../CFG/RelocGraph.h"
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/mapped_module.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -41,10 +43,20 @@ using namespace Relocation;
 bool Transformer::processGraph(RelocGraph *cfg) {
    for (RelocBlock *cur = cfg->head; cur != NULL; cur = cur->next()) {
       if (!process(cur, cfg)) {
-         cerr << "Failed to transform trace " << cur->id() << endl;
+         cerr << "Failed to transform trace " << cur->id();
+         if (cur->func()) {
+            cerr << " in function '" << cur->func()->prettyName() << "'";
+            if (cur->func()->mod())
+               cerr << " in module '" << cur->func()->mod()->fileName() << "'";
+            if (cur->func()->obj())
+               cerr << " in object '" << cur->func()->obj()->fileName() << "'";
+         }
+         auto savedFlags = cerr.flags();
+         cerr << " at address " << showbase << hex << cur->origAddr();
+         cerr.flags(savedFlags);
+         cerr << endl;
          return false;
       }
    }
    return true;
 }
-
