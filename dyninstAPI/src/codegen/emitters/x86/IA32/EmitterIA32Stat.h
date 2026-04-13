@@ -45,11 +45,11 @@ namespace Dyninst { namespace DyninstAPI {
 
     ~EmitterIA32Stat() = default;
 
-    virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
-    virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
+    bool emitPLTCall(func_instance *dest, codeGen &gen) override;
+    bool emitPLTJump(func_instance *dest, codeGen &gen) override;
 
   protected:
-    bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
+    bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret) override;
   };
 
 }}
