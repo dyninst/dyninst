@@ -124,6 +124,13 @@ namespace Dyninst { namespace InstructionAPI {
       }
     }
 
+    virtual void reset_operands() {
+      // The member variables are moved-from if 'decode' was called before.
+      // Explicitly construct new ones to prevent UB.
+      m_Operands = {};
+      m_CFT_Targets = {};
+    }
+
     Operation m_Operation;
     Architecture m_Arch;
     std::vector<Operand> m_Operands;

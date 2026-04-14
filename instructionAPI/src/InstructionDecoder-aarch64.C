@@ -3035,10 +3035,7 @@ add_operand(makeRnExpr(), true, true);
   void InstructionDecoder_aarch64::setFlags() { isPstateWritten = true; }
 
   Instruction InstructionDecoder_aarch64::mainDecode() {
-    // The member variables are moved-from if 'decode' was called before.
-    // Explicitly construct new ones to prevent UB.
-    m_Operands = decltype(m_Operands){};
-    m_CFT_Targets = decltype(m_CFT_Targets){};
+	reset_operands();
 
     int insn_table_index = findInsnTableIndex(0);
     const auto& insn_table_entry = aarch64_insn_entry::main_insn_table[insn_table_index];
