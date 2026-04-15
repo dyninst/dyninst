@@ -49,12 +49,7 @@ class BPatch_point;
 #define IA32_ECMPS	1002
 #define IA32_NECMPS	1003
 
-#define IA32prefetchNTA  0
-#define IA32prefetchT0   1
-#define IA32prefetchT1   2
-#define IA32prefetchT2   3
 #define IA32AMDprefetch  100
-#define IA32AMDprefetchw 101
 
 //extern void initOpCodeInfo();
 
