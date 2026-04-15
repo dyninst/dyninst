@@ -155,9 +155,6 @@ namespace Dyninst { namespace DyninstAPI {
     bool emitXorRegRM(Register dest, Register base, int disp, codeGen &gen);
 
     bool emitXorRegSegReg(Register dest, Register base, int disp, codeGen &gen);
-
-  protected:
-    virtual bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret) = 0;
   };
 
 }}
