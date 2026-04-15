@@ -43,6 +43,7 @@
 #include "common/src/arch-x86.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "baseTramp.h"
+#include "function_cache.h"
 
 #include "dyninstAPI/src/emitter.h"
 #include "codegen/emitters/x86/Emitterx86.h"
@@ -141,6 +142,9 @@ public:
  protected:
     virtual bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret) = 0;
 
+ private:
+    // clobberAllFuncCall can be expensive, so don't re-analyze functions
+    Dyninst::DyninstAPI::function_cache clobbered_functions;
 };
 
 class EmitterAMD64Dyn : public EmitterAMD64 {

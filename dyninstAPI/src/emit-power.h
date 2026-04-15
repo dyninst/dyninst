@@ -44,6 +44,7 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "baseTramp.h"
 #include "dyninstAPI/src/emitter.h"
+#include "function_cache.h"
 
 class codeGen;
 class registerSpace;
@@ -125,6 +126,9 @@ class EmitterPOWER : public Emitter {
     virtual bool emitCallInstruction(codeGen &, func_instance *,
                                      bool, Address);
 
+ private:
+    // clobberAllFuncCall can be expensive, so don't re-analyze functions
+    Dyninst::DyninstAPI::function_cache clobbered_functions;
 };
 
 class EmitterPOWER32Dyn : public EmitterPOWER

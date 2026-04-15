@@ -39,6 +39,7 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "baseTramp.h"
 #include "dyninstAPI/src/emitter.h"
+#include "function_cache.h"
 
 class codeGen;
 
@@ -176,6 +177,10 @@ protected:
 
     virtual Register emitCallReplacement(opCode, codeGen &, bool,
                                          func_instance *);
+
+ private:
+    // clobberAllFuncCall can be expensive, so don't re-analyze functions
+    Dyninst::DyninstAPI::function_cache clobbered_functions;
 };
 
 class EmitterAARCH64Dyn : public EmitterAARCH64 {

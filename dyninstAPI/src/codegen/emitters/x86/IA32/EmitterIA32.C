@@ -32,6 +32,11 @@ namespace Dyninst { namespace DyninstAPI {
       return false;
     }
 
+    if(clobbered_functions.contains(callee)) {
+      return true;
+    }
+    clobbered_functions.insert(callee);
+
     if(writesFPRs(callee->ifunc())) {
       for(unsigned i = 0; i < rs->FPRs().size(); i++) {
         rs->FPRs()[i]->beenUsed = true;

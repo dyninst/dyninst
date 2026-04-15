@@ -851,11 +851,10 @@ bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
 {
    if (callee == NULL) return false;
    
-   /* This will calculate the values if the first time around, otherwise
-      will check preparsed, stored values.
-      True - FP Writes are present
-      False - No FP Writes
-   */
+   if(clobbered_functions.contains(callee)) {
+     return true;
+   }
+   clobbered_functions.insert(callee);
 
    if (writesFPRs(callee->ifunc())) {
       for (unsigned i = 0; i < rs->FPRs().size(); i++) {

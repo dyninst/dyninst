@@ -773,6 +773,11 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
 {
   if (!callee) return true;
 
+  if(clobbered_functions.contains(callee)) {
+    return true;
+  }
+  clobbered_functions.insert(callee);
+
   /* usedRegs does calculations if not done before and returns
      whether or not the callee is a leaf function.
      if it is, we use the register info we gathered,

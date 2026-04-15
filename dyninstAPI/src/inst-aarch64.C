@@ -478,6 +478,11 @@ bool EmitterAARCH64::clobberAllFuncCall(registerSpace *rs,
   if (!callee)
     return true;
 
+  if(clobbered_functions.contains(callee)) {
+    return true;
+  }
+  clobbered_functions.insert(callee);
+
   if (callee->ifunc()->isLeafFunc()) {
     auto const &regs = calcUsedRegs(callee->ifunc());
 

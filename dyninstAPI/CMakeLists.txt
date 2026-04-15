@@ -99,6 +99,7 @@ set(_private_headers
     src/frame.h
     src/freebsd.h
     src/function.h
+    src/function_cache.h
     src/hybridAnalysis.h
     src/IAPI_to_AST.h
     src/image.h

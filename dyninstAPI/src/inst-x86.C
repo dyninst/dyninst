@@ -760,10 +760,6 @@ Dyninst::Register emitFuncCall(opCode op,
     return reg;
 }
 
-
-
-
-
 /*
  * emit code for op(src1,src2, dest)
  * ibuf is an instruction buffer where instructions are generated

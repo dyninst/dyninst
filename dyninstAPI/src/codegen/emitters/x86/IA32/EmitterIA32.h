@@ -37,6 +37,7 @@
 
 #include "ASTs/codeGenAST.h"
 #include "codegen/emitters/x86/Emitterx86.h"
+#include "function_cache.h"
 
 namespace Dyninst { namespace DyninstAPI {
 
@@ -161,6 +162,10 @@ namespace Dyninst { namespace DyninstAPI {
     bool emitXorRegRM(Register dest, Register base, int disp, codeGen &gen) override;
 
     bool emitXorRegSegReg(Register dest, Register base, int disp, codeGen &gen) override;
+
+ private:
+    // clobberAllFuncCall can be expensive, so don't re-analyze functions
+    Dyninst::DyninstAPI::function_cache clobbered_functions;
   };
 
 }}
