@@ -207,6 +207,23 @@ void EmitterIA32::emitDiv(Register dest, Register src1, Register src2, codeGen &
    gen.rs()->freeRegister(scratch);
 }
 
+void EmitterIA32::emitMod(Register dest, Register src1, Register src2, codeGen &gen, bool s)
+{
+   Register scratch = gen.rs()->allocateRegister(gen, true);
+   gen.rs()->loadVirtualToSpecific(src1, RealRegister(REGNUM_EAX), gen);
+   gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EDX), gen);
+   gen.rs()->noteVirtualInReal(scratch, RealRegister(REGNUM_EDX));
+   RealRegister src2_r = gen.rs()->loadVirtual(src2, gen);
+   gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EAX), gen);
+   emitSimpleInsn(0x99, gen);            //cdq (src1 -> eax:edx)
+   if (s)
+       emitOpExtReg(0xF7, 0x7, src2_r, gen); //idiv
+   else
+       emitOpExtReg(0xF7, 0x6, src2_r, gen); //div
+   gen.rs()->noteVirtualInReal(dest, RealRegister(REGNUM_EDX));  // remainder in EDX
+   gen.rs()->freeRegister(scratch);
+}
+
 void EmitterIA32::emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, 
                             RegValue src2imm, codeGen &gen)
 {
@@ -281,6 +298,28 @@ void EmitterIA32::emitDivImm(Register dest, Register src1, RegValue src2imm, cod
       emitDiv(dest, src1, src2, gen, s);
       gen.rs()->freeRegister(src2);
    }
+}
+
+void EmitterIA32::emitModImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s)
+{
+   int result;
+   if (src2imm == 1) {
+      RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+      emitMovImmToReg(dest_r, 0, gen);
+      return;
+   }
+   if (!s && isPowerOf2(src2imm, result)) {
+      RealRegister src1_r = gen.rs()->loadVirtual(src1, gen);
+      RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+      if (src1 != dest)
+         emitMovRegToReg(dest_r, src1_r, gen);
+      emitOpExtRegImm(0x81, 0x4, dest_r, src2imm - 1, gen);  // AND
+      return;
+   }
+   Register src2 = gen.rs()->allocateRegister(gen, true);
+   emitLoadConst(src2, src2imm, gen);
+   emitMod(dest, src1, src2, gen, s);
+   gen.rs()->freeRegister(src2);
 }
 
 void EmitterIA32::emitLoad(Register dest, Address addr, int size, codeGen &gen)
@@ -1364,6 +1403,49 @@ void EmitterAMD64::emitDiv(Register dest, Register src1, Register src2, codeGen 
       emitPopReg64(REGNUM_RDX, gen);
 }
 
+void EmitterAMD64::emitMod(Register dest, Register src1, Register src2, codeGen &gen, bool s)
+{
+   bool save_rdx = false;
+   if (!gen.rs()->isFreeRegister(REGNUM_RDX) && (dest != REGNUM_RDX)) {
+      save_rdx = true;
+      emitPushReg64(REGNUM_RDX, gen);
+   }
+   else {
+      gen.markRegDefined(REGNUM_RDX);
+   }
+
+   Register scratchReg = src2;
+   if (scratchReg == REGNUM_RDX) {
+      std::vector<Register> dontUse;
+      dontUse.push_back(REGNUM_RAX);
+      dontUse.push_back(src2);
+      dontUse.push_back(dest);
+      dontUse.push_back(src1);
+      scratchReg = gen.rs()->getScratchRegister(gen, dontUse);
+      emitMovRegToReg64(scratchReg, src2, true, gen);
+   }
+   gen.markRegDefined(scratchReg);
+
+   emitMovRegToReg64(REGNUM_RAX, src1, true, gen);
+   gen.markRegDefined(REGNUM_RAX);
+
+   emitSimpleInsn(0x48, gen); // REX.W
+   emitSimpleInsn(0x99, gen); // cqo
+
+   if (s) {
+       emitOpRegReg64(0xF7, 0x7, scratchReg, true, gen);
+   } else {
+       emitOpRegReg64(0xF7, 0x6, scratchReg, true, gen);
+   }
+
+   // mov %rdx, %dest (remainder instead of quotient)
+   emitMovRegToReg64(dest, REGNUM_RDX, true, gen);
+   gen.markRegDefined(dest);
+
+   if (save_rdx)
+      emitPopReg64(REGNUM_RDX, gen);
+}
+
 void EmitterAMD64::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
 {
    int result = -1;
@@ -1449,6 +1531,57 @@ void EmitterAMD64::emitDivImm(Register dest, Register src1, RegValue src2imm, co
       if (save_rdx)
          emitPopReg64(REGNUM_RDX, gen);
    }
+}
+
+void EmitterAMD64::emitModImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s)
+{
+   int result = -1;
+   gen.markRegDefined(dest);
+   if (src2imm == 1) {
+      emitMovImmToReg64(dest, 0, true, gen);
+      return;
+   }
+   if (!s && isPowerOf2(src2imm, result)) {
+      if (src1 != dest) {
+         emitMovRegToReg64(dest, src1, true, gen);
+      }
+      emitOpRegImm64(0x81, 0x4, dest, src2imm - 1, true, gen);  // AND
+      return;
+   }
+
+   bool save_rdx = false;
+   if (!gen.rs()->isFreeRegister(REGNUM_RDX) && (dest != REGNUM_RDX)) {
+      save_rdx = true;
+      emitPushReg64(REGNUM_RDX, gen);
+   }
+   else {
+      gen.markRegDefined(REGNUM_RDX);
+   }
+   emitMovRegToReg64(REGNUM_EAX, src1, true, gen);
+   gen.markRegDefined(REGNUM_RAX);
+   if (s) {
+       emitSimpleInsn(0x48, gen); // REX.W
+       emitSimpleInsn(0x99, gen);
+   } else {
+       emitMovImmToReg64(REGNUM_RDX, 0, true, gen);
+   }
+   emitPushImm(src2imm, gen);
+
+   if (s) {
+       emitOpRegRM64(0xF7, 0x7, REGNUM_RSP, 0, true, gen);
+   }
+   else {
+       emitOpRegRM64(0xF7, 0x6, REGNUM_RSP, 0, true, gen);
+   }
+
+   // mov %rdx, %dest (remainder instead of quotient)
+   emitMovRegToReg64(dest, REGNUM_RDX, true, gen);
+
+   emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, 8, true, gen);
+   gen.rs()->incStack(-8);
+
+   if (save_rdx)
+      emitPopReg64(REGNUM_RDX, gen);
 }
 
 void EmitterAMD64::emitLoad(Register dest, Address addr, int size, codeGen &gen)

@@ -686,6 +686,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
     case xorOp:
     case timesOp:
     case divOp:
+    case modOp:
     case orOp:
     case andOp:
     case eqOp:
@@ -836,6 +837,7 @@ bool operatorAST::canBeKept() const {
     case xorOp:
     case timesOp:
     case divOp:
+    case modOp:
     case neOp:
     case noOp:
     case orOp:

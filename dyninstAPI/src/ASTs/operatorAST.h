@@ -82,6 +82,9 @@ public:
   static Ptr minus(codeGenASTPtr lhs, codeGenASTPtr rhs) {
     return boost::make_shared<operatorAST>(minusOp, std::move(lhs), std::move(rhs));
   }
+  static Ptr mod(codeGenASTPtr lhs, codeGenASTPtr rhs) {
+    return boost::make_shared<operatorAST>(modOp, std::move(lhs), std::move(rhs));
+  }
   static Ptr ne(codeGenASTPtr lhs, codeGenASTPtr rhs) {
     return boost::make_shared<operatorAST>(neOp, std::move(lhs), std::move(rhs));
   }

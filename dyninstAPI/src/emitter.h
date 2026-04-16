@@ -131,6 +131,9 @@ class Emitter {
 
     // TODO : Make all targets use this instead of having this functionality floating around in the codebase.
     virtual void emitMovePCtoReg(Register /* reg */, codeGen & /* gen */) {}
+
+    virtual void emitMod(Register dest, Register src1, Register src2, codeGen &gen, bool s) = 0;
+    virtual void emitModImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s) = 0;
 };
 
 #endif

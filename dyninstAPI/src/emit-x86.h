@@ -81,11 +81,13 @@ public:
     void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
     void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen, bool s);
     void emitDiv(Register dest, Register src1, Register src2, codeGen &gen, bool s);
+    void emitMod(Register dest, Register src1, Register src2, codeGen &gen, bool s);
     void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
 			   codeGen &gen);
     void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s);
     void emitTimesImm(Register dest, Register src1, RegValue src1imm, codeGen &gen);
     void emitDivImm(Register dest, Register src1, RegValue src1imm, codeGen &gen, bool s);
+    void emitModImm(Register dest, Register src1, RegValue src1imm, codeGen &gen, bool s);
     void emitLoad(Register dest, Address addr, int size, codeGen &gen);
     void emitLoadConst(Register dest, Address imm, codeGen &gen);
     void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen);
@@ -191,11 +193,13 @@ public:
     void emitOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
     void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen, bool s);
     void emitDiv(Register dest, Register src1, Register src2, codeGen &gen, bool s);
+    void emitMod(Register dest, Register src1, Register src2, codeGen &gen, bool s);
     void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
 			   codeGen &gen);
     void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s);
     void emitTimesImm(Register dest, Register src1, RegValue src1imm, codeGen &gen);
     void emitDivImm(Register dest, Register src1, RegValue src1imm, codeGen &gen, bool s);
+    void emitModImm(Register dest, Register src1, RegValue src1imm, codeGen &gen, bool s);
     void emitLoad(Register dest, Address addr, int size, codeGen &gen);
     void emitLoadConst(Register dest, Address imm, codeGen &gen);
     void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen);

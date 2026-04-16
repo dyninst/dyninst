@@ -118,6 +118,25 @@ int main() {
     0x48, 0x83, 0xc4, 0x08                                // add rsp, 8
     }});
 
+  // Modulo rdx by rcx (remainder of rdx/rcx -> rax)
+  emitter->emitMod(REGNUM_EAX, REGNUM_EDX, REGNUM_ECX, gen, false);
+  failed |= !verify_emitter(gen, emitter_buffer_t<11>{{
+    0x48, 0x8b, 0xc2,   // mov rax, rdx       (src1 -> rax for div)
+    0x48, 0x99,         // cqo                (sign-extend rax -> rdx:rax)
+    0x48, 0xf7, 0xf1,   // div rcx            (rdx:rax / rcx -> quotient=rax, remainder=rdx)
+    0x48, 0x8b, 0xc2    // mov rax, rdx       (remainder -> dest)
+  }});
+
+  // Modulo rsi by 0x12345678, store remainder in rdx
+  emitter->emitModImm(REGNUM_EDX, REGNUM_ESI, 0x12345678, gen, false);
+  failed |= !verify_emitter(gen, emitter_buffer_t<26>{{
+    0x48, 0x8b, 0xc6,                                     // mov rax, rsi
+    0x48, 0xba, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,   // mov rdx, 0x0
+    0x68, 0x78, 0x56, 0x34, 0x12,                         // push 0x12345678
+    0x48, 0xf7, 0x34, 0x24,                               // div qword ptr [rsp]
+    0x48, 0x83, 0xc4, 0x08                                // add rsp, 8
+    }});
+
   // pushfq
   emitter->emitPushFlags(gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<1>{{0x9c}});

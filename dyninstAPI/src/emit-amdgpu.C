@@ -227,6 +227,11 @@ void EmitterAmdgpuGfx908::emitDiv(Register /* dest */, Register /* src1 */, Regi
   assert(!"emitDiv not implemented yet");
 }
 
+void EmitterAmdgpuGfx908::emitMod(Register /* dest */, Register /* src1 */, Register /* src2 */,
+                                  codeGen & /* gen */, bool /* s */) {
+  assert(!"emitMod not implemented yet");
+}
+
 void EmitterAmdgpuGfx908::emitTimesImm(Register dest, Register src1, RegValue src2imm,
                                        codeGen &gen) {
   assert(isValidSgpr(dest) && "dest must be a valid SGPR");
@@ -238,6 +243,11 @@ void EmitterAmdgpuGfx908::emitTimesImm(Register dest, Register src1, RegValue sr
 void EmitterAmdgpuGfx908::emitDivImm(Register /* dest */, Register /* src1 */,
                                      RegValue /* src2imm */, codeGen & /* gen */, bool /* s */) {
   assert(!"emitDivImm not implemented yet");
+}
+
+void EmitterAmdgpuGfx908::emitModImm(Register /* dest */, Register /* src1 */,
+                                     RegValue /* src2imm */, codeGen & /* gen */, bool /* s */) {
+  assert(!"emitModImm not implemented yet");
 }
 
 void EmitterAmdgpuGfx908::emitLoad(Register /* dest */, Address /* addr */, int /* size */,

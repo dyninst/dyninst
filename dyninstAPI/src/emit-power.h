@@ -61,8 +61,10 @@ class EmitterPOWER : public Emitter {
     virtual void emitRelOp(unsigned, Register, Register, Register, codeGen &, bool) { assert(0); }
     virtual void emitRelOpImm(unsigned, Register, Register, RegValue, codeGen &, bool) { assert(0); }
     virtual void emitDiv(Register, Register, Register, codeGen &, bool) { assert(0); }
+    virtual void emitMod(Register, Register, Register, codeGen &, bool) { assert(0); }
     virtual void emitTimesImm(Register, Register, RegValue, codeGen &) { assert(0); }
     virtual void emitDivImm(Register, Register, RegValue, codeGen &, bool) { assert(0); }
+    virtual void emitModImm(Register, Register, RegValue, codeGen &, bool) { assert(0); }
     virtual void emitLoad(Register, Address, int, codeGen &) { assert(0); }
     virtual void emitLoadConst(Register, Address, codeGen &) { assert(0); }
     virtual void emitLoadIndir(Register, Register, int, codeGen &) { assert(0); }

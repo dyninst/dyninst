@@ -430,8 +430,7 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
                         ast_wrapper = operatorAST::times(lop_ast, rop_ast);
                         break;
                 case BPatch_mod:
-                        /* XXX Not yet implemented. */
-                        assert(0);
+                        ast_wrapper = operatorAST::mod(lop_ast, rop_ast);
                         break;
                 case BPatch_ref:
          ast_wrapper = generateArrayRef(lOperand, rOperand);

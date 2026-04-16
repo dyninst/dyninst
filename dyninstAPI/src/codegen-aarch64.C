@@ -293,6 +293,27 @@ void insnCodeGen::generateMul(codeGen &gen, Dyninst::Register rm, Dyninst::Regis
     insnCodeGen::generate(gen, insn);
 }
 
+// Same encoding as MUL/MADD but with o0 bit (bit 15) set to 1.
+void insnCodeGen::generateMSub(codeGen &gen, Dyninst::Register rm,
+        Dyninst::Register rn, Dyninst::Register ra,
+        Dyninst::Register rd, bool is64bit) {
+    instruction insn;
+    insn.clear();
+
+    if(is64bit)
+        INSN_SET(insn, 31, 31, 1);
+
+    INSN_SET(insn, 21, 28, MULOp);
+    INSN_SET(insn, 15, 15, 1);       // o0=1: MSUB (vs o0=0: MADD/MUL)
+    INSN_SET(insn, 10, 14, ra);
+
+    INSN_SET(insn, 16, 20, rm);
+    INSN_SET(insn, 5, 9, rn);
+    INSN_SET(insn, 0, 4, rd);
+
+    insnCodeGen::generate(gen, insn);
+}
+
 //#sasha is rm or rn the denominator?
 void insnCodeGen::generateDiv(
         codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd, bool is64bit, bool s)

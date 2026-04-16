@@ -99,9 +99,13 @@ public:
 
   void emitDiv(Register dest, Register src1, Register src2, codeGen &gen, bool s);
 
+  void emitMod(Register dest, Register src1, Register src2, codeGen &gen, bool s);
+
   void emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen);
 
   void emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s);
+
+  void emitModImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s);
 
   // TODO: Implementation requires full 'codeGen' and 'registerSpace' class to
   // allocate register. This method doesn't fit AMDGPU because addr needs to be

@@ -680,6 +680,13 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
                   gen.width(), gen.point(), gen.addrSpace(), s);
             return;
         }
+    case modOp: {
+            Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
+            emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
+            emitV(op, src1, dest2, dest, gen, noCost, gen.rs(),
+                  gen.width(), gen.point(), gen.addrSpace(), s);
+            return;
+        }
         // Bool ops
     case orOp:
         iop = ORILop;
@@ -1613,6 +1620,40 @@ void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::R
                     instXop = DIVLSxop; // Extended opcode for signed division
                 else
                     instXop = DIVLUxop; // Extended opcode for unsigned division
+                break;
+
+                case modOp:
+                {
+                    // dest = src1 - (src1/src2)*src2
+
+                    // dest = src1 / src2
+                    insn.clear();
+                    XOFORM_OP_SET(insn, DIVSop);
+                    XOFORM_RT_SET(insn, dest);
+                    XOFORM_RA_SET(insn, src1);
+                    XOFORM_RB_SET(insn, src2);
+                    XOFORM_XO_SET(insn, s ? DIVLSxop : DIVLUxop);
+                    insnCodeGen::generate(gen, insn);
+
+                    // dest = dest * src2
+                    insn.clear();
+                    XOFORM_OP_SET(insn, MULSop);
+                    XOFORM_RT_SET(insn, dest);
+                    XOFORM_RA_SET(insn, dest);
+                    XOFORM_RB_SET(insn, src2);
+                    XOFORM_XO_SET(insn, MULLxop);
+                    insnCodeGen::generate(gen, insn);
+
+                    // dest = src1 - dest (SUBF computes RB - RA)
+                    insn.clear();
+                    XOFORM_OP_SET(insn, SFop);
+                    XOFORM_RT_SET(insn, dest);
+                    XOFORM_RA_SET(insn, dest);
+                    XOFORM_RB_SET(insn, src1);
+                    XOFORM_XO_SET(insn, SFxop);
+                    insnCodeGen::generate(gen, insn);
+                    return;
+                }
                 break;
 
             // Bool ops

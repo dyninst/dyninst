@@ -66,9 +66,13 @@ public:
 
     virtual void emitDiv(Register, Register, Register, codeGen &, bool) { assert(0); }
 
+    virtual void emitMod(Register, Register, Register, codeGen &, bool) { assert(0); }
+
     virtual void emitTimesImm(Register, Register, RegValue, codeGen &) { assert(0); }
 
     virtual void emitDivImm(Register, Register, RegValue, codeGen &, bool) { assert(0); }
+
+    virtual void emitModImm(Register, Register, RegValue, codeGen &, bool) { assert(0); }
 
     virtual void emitLoad(Register, Address, int, codeGen &);
 

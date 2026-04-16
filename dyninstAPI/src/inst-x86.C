@@ -1477,6 +1477,10 @@ void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::R
            gen.codeEmitter()->emitDiv(dest, src1, src2, gen, s);
            return;
         }
+        case modOp: {
+           gen.codeEmitter()->emitMod(dest, src1, src2, gen, s);
+           return;
+        }
            // Bool ops
         case orOp:
            opcode = 0x0B; // OR 
@@ -1541,6 +1545,9 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
             return;
          case divOp:
             gen.codeEmitter()->emitDivImm(dest, src1, src2imm, gen, s);
+            return;
+         case modOp:
+            gen.codeEmitter()->emitModImm(dest, src1, src2imm, gen, s);
             return;
          // Bool ops
          case orOp:

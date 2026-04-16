@@ -175,6 +175,9 @@ public:
 
     static void generateMul(codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd, bool is64bit);
 
+    static void generateMSub(codeGen &gen, Dyninst::Register rm, Dyninst::Register rn,
+            Dyninst::Register ra, Dyninst::Register rd, bool is64bit);
+
     static void generateDiv(codeGen &gen, Dyninst::Register rm, Dyninst::Register rn, Dyninst::Register rd, bool is64bit, bool s);
 
     static void generateBitwiseOpShifted(codeGen &gen, BitwiseOp op, int shift,
