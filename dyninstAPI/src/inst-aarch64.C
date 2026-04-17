@@ -918,18 +918,6 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
     return;
 }
 
-// This is used for checking wether immediate value should be encoded
-// into a instruction. In fact, only being used for loading constant
-// value into a register, and in ARMv8 there are 16 bits for immediate
-// values in the instruction MOV.
-// value here is never a negative value since constant values are saved
-// as void* in the AST operand.
-bool doNotOverflow(int64_t value)
-{
-    if ((value >= 0) && (value <= 0xFFFF)) return true;
-    else return false;
-}
-
 void emitLoadPreviousStackFrameRegister(Address register_num,
                                         Register dest,
                                         codeGen &gen,

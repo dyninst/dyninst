@@ -1,3 +1,4 @@
+#include "Architecture.h"
 #include "ast_helpers.h"
 #include "BPatch.h"
 #include "BPatch_addressSpace.h"
@@ -12,6 +13,7 @@
 #include "registerSpace.h"
 
 #include <iomanip>
+#include <limits>
 #include <sstream>
 
 namespace {
@@ -36,6 +38,8 @@ namespace {
     }
     return false;
   }
+
+  bool can_encode_directly(int64_t, Dyninst::Architecture);
 }
 
 namespace Dyninst { namespace DyninstAPI {
@@ -707,7 +711,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
       REGISTER_CHECK(src1);
 
       if((roperand->getoType() == operandType::Constant) &&
-         doNotOverflow((int64_t)roperand->getOValue())) {
+         can_encode_directly((int64_t)roperand->getOValue(), gen.getArch())) {
         if(retReg == Dyninst::Null_Register) {
           retReg = allocateAndKeep(gen, noCost);
           ast_printf("Operator node, const RHS, allocated register %u\n", retReg.getId());
@@ -877,3 +881,39 @@ std::string operatorAST::format(std::string indent) {
 }
 
 }}
+
+namespace {
+
+  // Checks if an immediate `value` should be directly encoded into a instruction
+  bool can_encode_directly(int64_t value, Dyninst::Architecture arch) {
+    switch(arch) {
+      case Dyninst::Arch_x86:
+      case Dyninst::Arch_x86_64: {
+        constexpr auto min = std::numeric_limits<int32_t>::min();
+        constexpr auto max = std::numeric_limits<int32_t>::max();
+        return (min <= value) && (value <= max);
+      }
+
+      case Dyninst::Arch_aarch64: {
+        // ARMv8 has 16 bits for immediate values in the instruction MOV.
+        return (value >= 0) && (value <= 0xFFFF);
+      }
+
+      case Dyninst::Arch_ppc32:
+      case Dyninst::Arch_ppc64:
+        return (value <= 32767) && (value >= -32768);
+
+      case Dyninst::Arch_riscv64:
+      case Dyninst::Arch_none:
+      case Dyninst::Arch_aarch32:
+      case Dyninst::Arch_cuda:
+      case Dyninst::Arch_amdgpu_gfx908:
+      case Dyninst::Arch_amdgpu_gfx90a:
+      case Dyninst::Arch_amdgpu_gfx940:
+      case Dyninst::Arch_intelGen9:
+        return false;
+    }
+    return false;
+  }
+
+}

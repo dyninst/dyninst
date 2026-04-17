@@ -102,11 +102,6 @@ void emitV(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /
   assert(!"Not imeplemented for AMDGPU");
 }
 
-bool doNotOverflow(int64_t /* value */) {
-  assert(!"Not implemented for AMDGPU");
-  return false;
-}
-
 void emitLoadPreviousStackFrameRegister(Address /* register_num */, Register /* dest */,
                                         codeGen & /* gen */, int /* size */, bool) {}
 

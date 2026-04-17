@@ -1710,15 +1710,6 @@ void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::R
   return;
 }
 
-
-
-bool doNotOverflow(int64_t value) {
-    if ( (value <= 32767) && (value >= -32768) ) return(true);
-    else return(false);
-
-}
-
-
 void emitLoadPreviousStackFrameRegister(Address register_num, 
                                         Dyninst::Register dest,
                                         codeGen &gen,

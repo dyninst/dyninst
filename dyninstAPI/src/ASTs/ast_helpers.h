@@ -45,6 +45,4 @@
     }                                                                                              \
   } while(0)
 
-extern bool doNotOverflow(int64_t value);
-
 #endif
