@@ -6,6 +6,7 @@
 #include "codegen/emitters/x86/generators.h"
 #include "codegen/emitters/x86/IA32/EmitterIA32.h"
 #include "codegen/RegControl.h"
+#include "common/src/bitmath.h"
 #include "debug.h"
 #include "function.h"
 #include "image.h"
@@ -20,8 +21,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <limits>
-
-extern bool isPowerOf2(int value, int &result);
 
 static int extra_space_check{};
 
@@ -594,24 +593,25 @@ namespace Dyninst { namespace DyninstAPI {
 
   void EmitterIA32::emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen,
                                bool s) {
-    int result;
     if(src2imm == 1) {
       return;
     }
 
-    if(isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
+    if(can_optimize_as_shift(src2imm, MAX_IMM8)) {
       RealRegister src1_r = gen.rs()->loadVirtual(src1, gen);
       RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+
+      const uint8_t num_bits_to_shift = *Dyninst::ilog2(src2imm);
 
       if(src1 != dest) {
         emitMovRegToReg(dest_r, src1_r, gen);
       }
       if(s) {
         // sar dest, result
-        emitOpExtRegImm8(0xC1, 7, dest_r, static_cast<unsigned char>(result), gen);
+        emitOpExtRegImm8(0xC1, 7, dest_r, num_bits_to_shift, gen);
       } else {
         // shr dest, result
-        emitOpExtRegImm8(0xC1, 5, dest_r, static_cast<unsigned char>(result), gen);
+        emitOpExtRegImm8(0xC1, 5, dest_r, num_bits_to_shift, gen);
       }
 
     } else {
@@ -1077,8 +1077,6 @@ namespace Dyninst { namespace DyninstAPI {
   }
 
   void EmitterIA32::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen) {
-    int result;
-
     RealRegister src1_r = gen.rs()->loadVirtual(src1, gen);
     RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
 
@@ -1087,12 +1085,13 @@ namespace Dyninst { namespace DyninstAPI {
       return;
     }
 
-    if(isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
+    if(can_optimize_as_shift(src2imm, MAX_IMM8)) {
       // sal dest, result
       if(src1 != dest) {
         emitMovRegToReg(dest_r, src1_r, gen);
       }
-      emitOpExtRegImm8(0xC1, 4, dest_r, static_cast<char>(result), gen);
+      const uint8_t bits_to_shift = *Dyninst::ilog2(src2imm);
+      emitOpExtRegImm8(0xC1, 4, dest_r, bits_to_shift, gen);
     } else {
       // imul src1 * src2imm -> dest_r
       emitOpRegRegImm(0x69, dest_r, src1_r, src2imm, gen);
