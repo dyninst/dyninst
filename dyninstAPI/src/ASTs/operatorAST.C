@@ -252,7 +252,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
       // so we decrement its useCount by hand.
       // Would be nice to allow register branches...
       loperand->decUseCount(gen);
-      (void)emitA(branchOp, 0, 0, (Dyninst::Register)offset, gen, Dyninst::DyninstAPI::RegControl::rc_no_control, noCost);
+      (void)emitA(branchOp, 0, 0, (Dyninst::Register)offset, gen, Dyninst::DyninstAPI::RegControl::rc_no_control);
       retReg = Dyninst::Null_Register; // No return register
       break;
     }
@@ -268,7 +268,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
       codeBufIndex_t ifIndex = gen.getIndex();
 
       size_t preif_patches_size = gen.allPatches().size();
-      codeBufIndex_t thenSkipStart = emitA(op, src1, 0, 0, gen, Dyninst::DyninstAPI::RegControl::rc_before_jump, noCost);
+      codeBufIndex_t thenSkipStart = emitA(op, src1, 0, 0, gen, Dyninst::DyninstAPI::RegControl::rc_before_jump);
 
       size_t postif_patches_size = gen.allPatches().size();
 
@@ -294,7 +294,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
       if(eoperand) {
         gen.rs()->pushNewRegState(); // Create registerState for else
         preelse_patches_size = gen.allPatches().size();
-        elseSkipStart = emitA(branchOp, 0, 0, 0, gen, Dyninst::DyninstAPI::RegControl::rc_no_control, noCost);
+        elseSkipStart = emitA(branchOp, 0, 0, 0, gen, Dyninst::DyninstAPI::RegControl::rc_no_control);
         postelse_patches_size = gen.allPatches().size();
       }
 
@@ -318,7 +318,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
         // If/when we vectorize, we can do this in a two-pass arrangement
         (void)emitA(op, src1_copy, 0,
                     (Dyninst::Register)codeGen::getDisplacement(thenSkipStart, elseStartIndex), gen,
-                    Dyninst::DyninstAPI::RegControl::rc_no_control, noCost);
+                    Dyninst::DyninstAPI::RegControl::rc_no_control);
         // Now we can free the register
         // Dyninst::Register has already been freed; we're just re-using it.
         // gen.rs()->freeRegister(src1);
@@ -352,7 +352,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
           gen.setIndex(elseSkipIndex);
           emitA(branchOp, 0, 0,
                 (Dyninst::Register)codeGen::getDisplacement(elseSkipStart, endIndex), gen,
-                Dyninst::DyninstAPI::RegControl::rc_no_control, noCost);
+                Dyninst::DyninstAPI::RegControl::rc_no_control);
           gen.setIndex(endIndex);
         }
       }
@@ -416,7 +416,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
       codeBufIndex_t startIndex = gen.getIndex();
 
       size_t preif_patches_size = gen.allPatches().size();
-      codeBufIndex_t thenSkipStart = emitA(ifOp, src1, 0, 0, gen, Dyninst::DyninstAPI::RegControl::rc_before_jump, noCost);
+      codeBufIndex_t thenSkipStart = emitA(ifOp, src1, 0, 0, gen, Dyninst::DyninstAPI::RegControl::rc_before_jump);
 
       size_t postif_patches_size = gen.allPatches().size();
 
@@ -437,8 +437,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
 
       // END from ifOp
 
-      (void)emitA(branchOp, 0, 0, codeGen::getDisplacement(gen.getIndex(), top), gen, Dyninst::DyninstAPI::RegControl::rc_no_control,
-                  noCost);
+      (void)emitA(branchOp, 0, 0, codeGen::getDisplacement(gen.getIndex(), top), gen, Dyninst::DyninstAPI::RegControl::rc_no_control);
 
       // BEGIN from ifOp
 
@@ -462,7 +461,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
         // If/when we vectorize, we can do this in a two-pass arrangement
         (void)emitA(ifOp, src1_copy, 0,
                     (Dyninst::Register)codeGen::getDisplacement(thenSkipStart, elseStartIndex), gen,
-                    Dyninst::DyninstAPI::RegControl::rc_no_control, noCost);
+                    Dyninst::DyninstAPI::RegControl::rc_no_control);
         // Now we can free the register
         // Dyninst::Register has already been freed; we're just re-using it.
         // gen.rs()->freeRegister(src1);

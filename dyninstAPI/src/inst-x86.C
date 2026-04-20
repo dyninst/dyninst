@@ -767,7 +767,7 @@ Dyninst::Register emitFuncCall(opCode op,
  */
 
 codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, long dest,
-                     codeGen &gen, Dyninst::DyninstAPI::RegControl rc, bool /*noCost*/)
+                     codeGen &gen, Dyninst::DyninstAPI::RegControl rc)
 {
    // retval is the address of the jump (if one is created). 
    // It's always the _start_ of the jump, which means that if we need
