@@ -115,7 +115,7 @@ class EmitterPOWER : public Emitter {
     
     virtual bool clobberAllFuncCall(registerSpace *rs,func_instance *callee);
 
-    virtual Register emitCallReplacement(opCode, codeGen &, bool,
+    virtual Register emitCallReplacement(opCode, codeGen &,
                                          func_instance *);
     void emitCallWithSaves(codeGen &gen, Address dest, bool saveToc, bool saveLR, bool saveR12);
     
@@ -150,7 +150,7 @@ class EmitterPOWER32Stat : public EmitterPOWER
  protected:
     virtual bool emitCallInstruction(codeGen &, func_instance *, bool,
                                      Address);
-    virtual Register emitCallReplacement(opCode, codeGen &, bool,
+    virtual Register emitCallReplacement(opCode, codeGen &,
                                          func_instance *) {
         assert(0 && "emitCallReplacement not implemented for binary rewriter");
     }
@@ -183,7 +183,7 @@ class EmitterPOWER64Stat : public EmitterPOWER {
  protected:
     virtual bool emitCallInstruction(codeGen &, func_instance *, bool,
                                      Address);
-    virtual Register emitCallReplacement(opCode, codeGen &, bool,
+    virtual Register emitCallReplacement(opCode, codeGen &,
                                          func_instance *) {
         assert(0 && "emitCallReplacement not implemented for binary rewriter");
     }

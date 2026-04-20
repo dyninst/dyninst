@@ -510,7 +510,6 @@ Register emitFuncCall(opCode op,
 
 Register EmitterAARCH64::emitCallReplacement(opCode,
                                              codeGen &,
-                                             bool,
                                              func_instance *) {
     assert(0); //Not implemented
     return 0;

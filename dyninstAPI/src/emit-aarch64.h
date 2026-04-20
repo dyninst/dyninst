@@ -175,7 +175,7 @@ protected:
     virtual bool emitCallInstruction(codeGen &, func_instance *,
                                      bool, Address);
 
-    virtual Register emitCallReplacement(opCode, codeGen &, bool,
+    virtual Register emitCallReplacement(opCode, codeGen &,
                                          func_instance *);
 
  private:
@@ -212,7 +212,7 @@ protected:
     virtual bool emitCallInstruction(codeGen &, func_instance *, bool,
                                      Address);
 
-    virtual Register emitCallReplacement(opCode, codeGen &, bool,
+    virtual Register emitCallReplacement(opCode, codeGen &,
                                          func_instance *) {
         assert(0 && "emitCallReplacement not implemented for binary rewriter");
     }

@@ -832,7 +832,6 @@ void EmitterPOWER::emitCallWithSaves(codeGen &gen, Address dest, bool saveToc, b
 
 Dyninst::Register EmitterPOWER::emitCallReplacement(opCode ocode,
                                            codeGen &gen,
-                                           bool /* noCost */,
                                            func_instance *callee) {
     // This takes care of the special case where we are replacing an existing
     // linking branch instruction.
@@ -898,7 +897,7 @@ Dyninst::Register EmitterPOWER::emitCall(opCode ocode,
     // if false we're in function call replacement
 
     if (ocode == funcJumpOp)
-	return emitCallReplacement(ocode, gen, noCost, callee);
+	return emitCallReplacement(ocode, gen, callee);
 
     //  Sanity check for NULL address argument
     if (!callee) {
