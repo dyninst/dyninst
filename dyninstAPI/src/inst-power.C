@@ -1396,8 +1396,7 @@ void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackS
 
 }
 
-void emitCSload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, codeGen &gen,
-		bool noCost)
+void emitCSload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, codeGen &gen)
 {
   emitASload(as, dest, 0, gen);
 }

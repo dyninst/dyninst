@@ -814,8 +814,7 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
         insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, imm, dest, dest, true);	
 }
 
-void emitCSload(const BPatch_addrSpec_NP *, Register, codeGen &,
-                bool) {
+void emitCSload(const BPatch_addrSpec_NP *, Register, codeGen &) {
     assert(0); //Not implemented
 }
 

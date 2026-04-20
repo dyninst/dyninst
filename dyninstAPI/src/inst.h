@@ -203,7 +203,7 @@ void emitJmpMC(int condition, int offset, codeGen &gen);
 
 void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen);
 
-void emitCSload(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &gen, bool noCost);
+void emitCSload(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &gen);
 
 // VG(11/06/01): moved here and added location
 Dyninst::Register emitFuncCall(opCode op, codeGen &gen,

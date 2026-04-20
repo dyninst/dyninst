@@ -1039,7 +1039,7 @@ void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackS
 
 
 void emitCSload(const BPatch_countSpec_NP *as, Dyninst::Register dest,
-		codeGen &gen, bool /* noCost */ )
+		codeGen &gen)
 {
    // VG(7/30/02): different from ASload on this platform, no LEA business
 

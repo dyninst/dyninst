@@ -111,7 +111,7 @@ bool memoryAccessAST::generateCode_phase2(codeGen &gen, Dyninst::Address &,
         assert(0);
       }
       count = ma->getByteCount(which_);
-      emitCSload(count, retReg, gen, noCost);
+      emitCSload(count, retReg, gen);
       break;
     }
     default:
