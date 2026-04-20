@@ -1831,7 +1831,7 @@ bool PCProcess::postIRPC(codeGenASTPtr action, void *userData,
    }
    
    Register resultReg = Null_Register;
-   if( !action->generateCode(irpcBuf, false, resultReg) ) {
+   if( !action->generateCode(irpcBuf, resultReg) ) {
       proccontrol_printf("%s[%d]: failed to generate code from AST\n",
                          FILE__, __LINE__);
       return false;

@@ -395,7 +395,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
        generateSaves(gen, gen.rs());
    }
 
-   if (!baseTrampAST->generateCode(gen, false)) {
+   if (!baseTrampAST->generateCode(gen)) {
       fprintf(stderr, "Gripe: base tramp creation failed\n");
       retval = false;
    }
