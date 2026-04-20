@@ -43,7 +43,7 @@ using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 // TODO: ALL THESE MUST GO AWAY ENTIRELY AS CODEGEN MATURES
 void emitImm(opCode /* op */, Register /* src1 */, RegValue /* src2imm */, Register /* dest */,
-             codeGen & /* gen */, bool /*noCost*/, registerSpace * /* rs */, bool /* s */) {
+             codeGen & /* gen */, registerSpace * /* rs */, bool /* s */) {
   assert(!"Not implemented for AMDGPU");
 }
 

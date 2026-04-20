@@ -189,7 +189,7 @@ void     emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, c
 
 // and the retyped original emitImm companion
 void     emitImm(opCode op, Dyninst::Register src, Dyninst::RegValue src2imm, Dyninst::Register dst,
-                 codeGen &gen, bool noCost,
+                 codeGen &gen,
                  registerSpace *rs = NULL, bool s = true);
 
 

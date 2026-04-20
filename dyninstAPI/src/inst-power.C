@@ -642,7 +642,7 @@ unsigned restoreSPRegisters(codeGen &gen,
 }
 
 void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Register dest,
-             codeGen &gen, bool noCost, registerSpace * /* rs */, bool s)
+             codeGen &gen, registerSpace * /* rs */, bool s)
 {
     int iop=-1;
     int result=-1;
@@ -1461,7 +1461,7 @@ void emitVload(opCode op, Address src1, Dyninst::Register src2, Dyninst::Registe
     break;
   case loadRegRelativeAddr:
     gen.rs()->readProgramRegister(gen, src2, dest, size);
-    emitImm(plusOp, dest, src1, dest, gen, false);
+    emitImm(plusOp, dest, src1, dest, gen);
     break;
   case loadRegRelativeOp:
     gen.rs()->readProgramRegister(gen, src2, dest, size);
@@ -1742,7 +1742,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 
         // Get address (SP + offset) and stick in register dest.
         emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
-                gen, noCost, gen.rs());
+                gen, gen.rs());
         // Load LR into register dest
         emitV(loadIndirOp, dest, 0, dest, gen, gen.rs(),
               gen.width(), gen.point(), gen.addrSpace());
@@ -1757,7 +1757,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 
         // Get address (SP + offset) and stick in register dest.
         emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
-                gen, noCost, gen.rs());
+                gen, gen.rs());
         // Load LR into register dest
         emitV(loadIndirOp, dest, 0, dest, gen, gen.rs(),
               gen.width(), gen.point(), gen.addrSpace());
