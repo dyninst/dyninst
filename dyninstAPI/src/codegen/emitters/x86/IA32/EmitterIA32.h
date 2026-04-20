@@ -66,7 +66,7 @@ namespace Dyninst { namespace DyninstAPI {
                          std::vector<Register> &extra_saves);
 
     int emitCallParams(codeGen &gen, const std::vector<codeGenASTPtr> &operands, func_instance *target,
-                       std::vector<Register> &extra_saves, bool noCost);
+                       std::vector<Register> &extra_saves);
 
     bool emitCallRelative(Register, Address, Register, codeGen &) override;
 

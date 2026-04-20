@@ -402,7 +402,7 @@ namespace Dyninst { namespace DyninstAPI {
       assert(0);
     }
 
-    param_size = emitCallParams(gen, operands, callee, saves, noCost);
+    param_size = emitCallParams(gen, operands, callee, saves);
 
     Dyninst::Register ret = REGNUM_EAX;
 
@@ -419,7 +419,7 @@ namespace Dyninst { namespace DyninstAPI {
 
   int EmitterIA32::emitCallParams(codeGen &gen, const std::vector<codeGenASTPtr> &operands,
                                   func_instance * /*target*/,
-                                  std::vector<Dyninst::Register> & /*extra_saves*/, bool noCost) {
+                                  std::vector<Dyninst::Register> & /*extra_saves*/) {
     std::vector<Dyninst::Register> srcs;
     unsigned frame_size = 0;
     unsigned u;
