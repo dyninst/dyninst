@@ -97,7 +97,7 @@ void emitVstore(opCode /* op */, Register /* src1 */, Register /*src2*/, Address
 }
 
 void emitV(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */,
-           codeGen & /* gen */, bool /*noCost*/, registerSpace * /*rs*/, int /* size */,
+           codeGen & /* gen */, registerSpace * /*rs*/, int /* size */,
            const instPoint * /* location */, AddressSpace * /* proc */, bool /* s */) {
   assert(!"Not imeplemented for AMDGPU");
 }

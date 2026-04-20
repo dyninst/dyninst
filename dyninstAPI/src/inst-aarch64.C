@@ -396,7 +396,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
             {
                 Register scratch = gen.rs()->getScratchRegister(gen);
                 emitVload(loadConstOp, src2imm, 0, scratch, gen, true);
-                emitV(op, src1, scratch, dest, gen, true);
+                emitV(op, src1, scratch, dest, gen);
             }
             break;
         case neOp:
@@ -877,7 +877,7 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 }
 
 void emitV(opCode op, Register src1, Register src2, Register dest,
-        codeGen &gen, bool /*noCost*/,
+        codeGen &gen,
            registerSpace * /*rs*/, int size,
            const instPoint * /* location */, AddressSpace *proc, bool s) 
 {

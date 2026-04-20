@@ -668,7 +668,7 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
         else {
             Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen);
             emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
-            emitV(op, src1, dest2, dest, gen, noCost, gen.rs(), 
+            emitV(op, src1, dest2, dest, gen, gen.rs(),
                   gen.width(), gen.point(), gen.addrSpace(), s);
             return;
         }
@@ -677,7 +677,7 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
     case divOp: {
             Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen);
             emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
-            emitV(op, src1, dest2, dest, gen, noCost, gen.rs(),
+            emitV(op, src1, dest2, dest, gen, gen.rs(),
                   gen.width(), gen.point(), gen.addrSpace(), s);
             return;
         }
@@ -698,7 +698,7 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
     default:
         Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen);
         emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
-        emitV(op, src1, dest2, dest, gen, noCost, gen.rs(),
+        emitV(op, src1, dest2, dest, gen, gen.rs(),
               gen.width(), gen.point(), gen.addrSpace(), s);
         return;
         break;
@@ -1360,7 +1360,7 @@ static inline void emitAddOriginal(Dyninst::Register src, Dyninst::Register acc,
     
     // add temp to dest;
     // writes at gen+base and updates base, we must update insn...
-    emitV(plusOp, temp, acc, acc, gen, noCost, 0);
+    emitV(plusOp, temp, acc, acc, gen, 0);
     
     if(nr)
         gen.rs()->freeRegister(temp);
@@ -1531,7 +1531,7 @@ void emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, A
 }
 
 void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dest,
-           codeGen &gen, bool /*noCost*/,
+           codeGen &gen,
            registerSpace * /*rs*/, int size,
            const instPoint * /* location */, AddressSpace *proc, bool s)
 {
@@ -1746,7 +1746,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
         emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
                 gen, noCost, gen.rs());
         // Load LR into register dest
-        emitV(loadIndirOp, dest, 0, dest, gen, noCost, gen.rs(),
+        emitV(loadIndirOp, dest, 0, dest, gen, gen.rs(),
               gen.width(), gen.point(), gen.addrSpace());
         break;
 
@@ -1761,7 +1761,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
         emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
                 gen, noCost, gen.rs());
         // Load LR into register dest
-        emitV(loadIndirOp, dest, 0, dest, gen, noCost, gen.rs(),
+        emitV(loadIndirOp, dest, 0, dest, gen, gen.rs(),
               gen.width(), gen.point(), gen.addrSpace());
       break;
 
