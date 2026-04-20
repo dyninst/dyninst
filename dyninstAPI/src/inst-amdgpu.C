@@ -47,13 +47,13 @@ void emitImm(opCode /* op */, Register /* src1 */, RegValue /* src2imm */, Regis
   assert(!"Not implemented for AMDGPU");
 }
 
-Register emitFuncCall(opCode, codeGen &, std::vector<codeGenASTPtr> &, bool, Address) {
+Register emitFuncCall(opCode, codeGen &, std::vector<codeGenASTPtr> &, Address) {
   assert(!"Not implemented for AMDGPU");
   return 0;
 }
 
 Register emitFuncCall(opCode /* op */, codeGen & /* gen */,
-                      std::vector<codeGenASTPtr> & /* operands */, bool /* noCost */,
+                      std::vector<codeGenASTPtr> & /* operands */,
                       func_instance * /* callee */) {
   assert(!"Not implemented for AMDGPU");
   return 0;

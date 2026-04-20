@@ -208,7 +208,6 @@ void emitCSload(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &
 // VG(11/06/01): moved here and added location
 Dyninst::Register emitFuncCall(opCode op, codeGen &gen,
                       std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands,
-					  bool noCost, 
                       func_instance *func);
 
 extern Dyninst::Address getMaxBranch();

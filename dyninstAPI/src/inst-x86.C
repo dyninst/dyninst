@@ -753,7 +753,6 @@ unsigned char jccOpcodeFromRelOp(unsigned op, bool s)
 Dyninst::Register emitFuncCall(opCode op,
                       codeGen &gen,
                       std::vector<codeGenASTPtr> &operands, 
-                      bool noCost,
                       func_instance *callee)
 {
     Dyninst::Register reg = gen.codeEmitter()->emitCall(op, gen, operands, noCost, callee);

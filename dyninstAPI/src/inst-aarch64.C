@@ -503,7 +503,7 @@ bool EmitterAARCH64::clobberAllFuncCall(registerSpace *rs,
 
 Register emitFuncCall(opCode op,
                       codeGen &gen,
-                      std::vector <codeGenASTPtr> &operands, bool noCost,
+                      std::vector <codeGenASTPtr> &operands,
                       func_instance *callee) {
     return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
 }

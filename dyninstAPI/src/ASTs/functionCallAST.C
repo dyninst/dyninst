@@ -76,9 +76,9 @@ bool functionCallAST::generateCode_phase2(codeGen &gen, Address &,
   Dyninst::Register tmp = 0;
 
   if(use_func && !callReplace_) {
-    tmp = emitFuncCall(callOp, gen, children, noCost, use_func);
+    tmp = emitFuncCall(callOp, gen, children, use_func);
   } else if(use_func && callReplace_) {
-    tmp = emitFuncCall(funcJumpOp, gen, children, noCost, use_func);
+    tmp = emitFuncCall(funcJumpOp, gen, children, use_func);
   } else {
     char msg[256];
     sprintf(msg, "%s[%d]:  internal error:  unable to find %s", __FILE__, __LINE__,
