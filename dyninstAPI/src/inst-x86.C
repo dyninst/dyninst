@@ -1350,7 +1350,7 @@ bool emitAddSignedImm(Address addr, long int imm, codeGen &gen) {
    return true;
 }
 
-bool emitSubSignedImm(Address addr, long int imm, codeGen &gen, bool noCost) {
+bool emitSubSignedImm(Address addr, long int imm, codeGen &gen) {
    gen.codeEmitter()->emitAddSignedImm(addr, imm * -1, gen);
    return true;
 }
