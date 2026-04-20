@@ -630,18 +630,18 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
         case operandType::ParamAtEntry: {
           boost::shared_ptr<operandAST> lnode =
               boost::dynamic_pointer_cast<operandAST>(loperand);
-          emitR(getParamOp, (Dyninst::Address)lnode->oValue, src1, src2, gen, noCost, gen.point(),
+          emitR(getParamOp, (Dyninst::Address)lnode->oValue, src1, src2, gen, gen.point(),
                 gen.addrSpace()->multithread_capable());
           loperand->decUseCount(gen);
           break;
         }
         case operandType::ReturnVal:
-          emitR(getRetValOp, Dyninst::Null_Register, src1, src2, gen, noCost, gen.point(),
+          emitR(getRetValOp, Dyninst::Null_Register, src1, src2, gen, gen.point(),
                 gen.addrSpace()->multithread_capable());
           loperand->decUseCount(gen);
           break;
         case operandType::ReturnAddr:
-          emitR(getRetAddrOp, Dyninst::Null_Register, src1, src2, gen, noCost, gen.point(),
+          emitR(getRetAddrOp, Dyninst::Null_Register, src1, src2, gen, gen.point(),
                 gen.addrSpace()->multithread_capable());
           break;
         default: {

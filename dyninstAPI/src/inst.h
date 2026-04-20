@@ -154,7 +154,7 @@ codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register src2, 
 // for operations requiring a Dyninst::Register to be returned
 // (e.g., getRetValOp, getRetAddrOp, getParamOp)
 Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst,
-               codeGen &gen, bool noCost, 
+               codeGen &gen,
                const instPoint *location, bool for_multithreaded);
 
 // for general arithmetic and logic operations which return nothing

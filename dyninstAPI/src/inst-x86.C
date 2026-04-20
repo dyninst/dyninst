@@ -798,7 +798,7 @@ codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register /*src2
 }
 
 Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dest,
-               codeGen &gen, bool noCost,
+               codeGen &gen,
                const instPoint *location, bool /*for_multithreaded*/)
 {
    bool get_addr_of = (src2 != Null_Register);

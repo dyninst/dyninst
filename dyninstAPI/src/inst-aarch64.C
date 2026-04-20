@@ -667,7 +667,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register, long dest,
 }
 
 Register emitR(opCode op, Register src1, Register src2, Register dest,
-               codeGen &gen, bool /*noCost*/,
+               codeGen &gen,
                const instPoint *, bool /*for_MT*/)
 {
     registerSlot *regSlot = NULL;

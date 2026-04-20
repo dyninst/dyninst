@@ -114,7 +114,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, bool noCost, Address &,
                        gen.addrSpace());
       break;
     case operandType::ReturnVal:
-      src = emitR(getRetValOp, 0, Dyninst::Null_Register, retReg, gen, noCost, gen.point(),
+      src = emitR(getRetValOp, 0, Dyninst::Null_Register, retReg, gen, gen.point(),
                   gen.addrSpace()->multithread_capable());
       REGISTER_CHECK(src);
       if(src != retReg) {
@@ -124,7 +124,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, bool noCost, Address &,
       }
       break;
     case operandType::ReturnAddr:
-      src = emitR(getRetAddrOp, 0, Dyninst::Null_Register, retReg, gen, noCost, gen.point(),
+      src = emitR(getRetAddrOp, 0, Dyninst::Null_Register, retReg, gen, gen.point(),
                   gen.addrSpace()->multithread_capable());
       REGISTER_CHECK(src);
       if(src != retReg) {
@@ -151,7 +151,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, bool noCost, Address &,
           assert(0);
           break;
       }
-      src = emitR(paramOp, (Address)oValue, Dyninst::Null_Register, retReg, gen, noCost,
+      src = emitR(paramOp, (Address)oValue, Dyninst::Null_Register, retReg, gen,
                   gen.point(), gen.addrSpace()->multithread_capable());
       REGISTER_CHECK(src);
       if(src != retReg) {
