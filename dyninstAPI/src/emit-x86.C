@@ -876,7 +876,7 @@ bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
 static Register amd64_arg_regs[] = {REGNUM_RDI, REGNUM_RSI, REGNUM_RDX, REGNUM_RCX, REGNUM_R8, REGNUM_R9};
 #define AMD64_ARG_REGS (sizeof(amd64_arg_regs) / sizeof(Register))
 Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands,
-                                bool noCost, func_instance *callee)
+                                func_instance *callee)
 {
    assert(op == callOp);
    std::vector <Register> srcs;

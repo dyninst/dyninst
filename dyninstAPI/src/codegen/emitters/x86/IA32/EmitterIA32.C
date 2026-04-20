@@ -382,7 +382,7 @@ namespace Dyninst { namespace DyninstAPI {
   }
 
   Dyninst::Register EmitterIA32::emitCall(opCode op, codeGen &gen,
-                                          const std::vector<codeGenASTPtr> &operands, bool noCost,
+                                          const std::vector<codeGenASTPtr> &operands,
                                           func_instance *callee) {
     bool inInstrumentation = true;
     if(op != callOp) {

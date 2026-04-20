@@ -153,7 +153,7 @@ public:
 
   bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
 
-  Register emitCall(opCode op, codeGen &gen, const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands, bool noCost,
+  Register emitCall(opCode op, codeGen &gen, const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands,
                     func_instance *callee);
 
   void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);

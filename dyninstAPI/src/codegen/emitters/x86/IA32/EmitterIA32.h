@@ -60,7 +60,7 @@ namespace Dyninst { namespace DyninstAPI {
     bool emitBTSaves(baseTramp *bt, codeGen &gen) override;
 
     virtual Register emitCall(opCode op, codeGen &gen, const std::vector<codeGenASTPtr> &operands,
-                              bool noCost, func_instance *callee) override;
+                              func_instance *callee) override;
 
     bool emitCallCleanup(codeGen &gen, func_instance *target, int frame_size,
                          std::vector<Register> &extra_saves);

@@ -94,7 +94,7 @@ class EmitterPOWER : public Emitter {
 
     // This one we actually use now.
     virtual Register emitCall(opCode, codeGen &, const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &,
-			      bool, func_instance *);
+			      func_instance *);
 
     virtual void emitGetRetVal(Register, bool, codeGen &) { assert(0); }
     virtual void emitGetRetAddr(Register, codeGen &) { assert(0); }

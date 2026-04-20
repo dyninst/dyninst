@@ -755,7 +755,7 @@ Dyninst::Register emitFuncCall(opCode op,
                       std::vector<codeGenASTPtr> &operands, 
                       func_instance *callee)
 {
-    Dyninst::Register reg = gen.codeEmitter()->emitCall(op, gen, operands, noCost, callee);
+    Dyninst::Register reg = gen.codeEmitter()->emitCall(op, gen, operands, callee);
     return reg;
 }
 

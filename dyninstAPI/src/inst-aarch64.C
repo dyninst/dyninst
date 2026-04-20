@@ -505,7 +505,7 @@ Register emitFuncCall(opCode op,
                       codeGen &gen,
                       std::vector <codeGenASTPtr> &operands,
                       func_instance *callee) {
-    return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
+    return gen.emitter()->emitCall(op, gen, operands, callee);
 }
 
 Register EmitterAARCH64::emitCallReplacement(opCode,
@@ -524,7 +524,6 @@ Register EmitterAARCH64::emitCallReplacement(opCode,
 Register EmitterAARCH64::emitCall(opCode op,
                                   codeGen &gen,
                                   const std::vector<codeGenASTPtr> &operands,
-                                  bool,
                                   func_instance *callee) 
 {
     //#sasha This function implementation is experimental.

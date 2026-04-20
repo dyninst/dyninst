@@ -111,7 +111,7 @@ public:
     // See comment on 32-bit emitCall
     virtual Register emitCall(opCode op, codeGen &gen,
                               const std::vector<codeGenASTPtr> &operands,
-                              bool noCost, func_instance *callee);
+                              func_instance *callee);
     void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
     void emitGetRetAddr(Register dest, codeGen &gen);
     void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen);

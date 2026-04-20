@@ -451,7 +451,7 @@ bool EmitterAmdgpuGfx908::emitMoveRegToReg(registerSlot * /* src */, registerSlo
 
 Register EmitterAmdgpuGfx908::emitCall(opCode /* op */, codeGen & /* gen */,
                                        const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> & /* operands */,
-                                       bool /* noCost */, func_instance * /* callee */) {
+                                       func_instance * /* callee */) {
   assert(!"emitCall not implemented yet");
   return 0;
 }

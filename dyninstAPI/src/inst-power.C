@@ -808,7 +808,7 @@ Dyninst::Register emitFuncCall(opCode op,
                       codeGen &gen,
                       std::vector<codeGenASTPtr> &operands,
                       func_instance *callee) {
-    return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
+    return gen.emitter()->emitCall(op, gen, operands, callee);
 }
 
 void EmitterPOWER::emitCallWithSaves(codeGen &gen, Address dest, bool saveToc, bool saveLR, bool saveR12) {
@@ -891,7 +891,6 @@ Dyninst::Register EmitterPOWER::emitCallReplacement(opCode ocode,
 Dyninst::Register EmitterPOWER::emitCall(opCode ocode,
                                 codeGen &gen,
                                 const std::vector<codeGenASTPtr> &operands,
-                                bool noCost,
                                 func_instance *callee) {
     bool inInstrumentation = true;
 
