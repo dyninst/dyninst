@@ -149,7 +149,7 @@ public:
 
     virtual void emitStoreImm(Address, int, codeGen &) { assert(0); }
 
-    virtual void emitAddSignedImm(Address, int, codeGen &, bool) { assert(0); }
+    virtual void emitAddSignedImm(Address, int, codeGen &) { assert(0); }
 
     virtual bool emitPush(codeGen &, Register) {
         assert(0);

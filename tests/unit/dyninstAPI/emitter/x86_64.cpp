@@ -196,7 +196,7 @@ int main() {
   failed |= !verify_emitter(gen, emitter_buffer_t<7>{{0x48, 0x81, 0xc4, 0xa0, 0x91, 0x0, 0x0}});
 
   // add qword ptr [0x12345678], 0x04
-  emitter->emitAddSignedImm(0x12345678, 0x4, gen, false);
+  emitter->emitAddSignedImm(0x12345678, 0x4, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<9>{{0x48, 0x83, 0x04, 0x25, 0x78, 0x56, 0x34, 0x12, 0x04}});
 
   // Load BPatch_countSpec_NP (I don't actually know what this is supposed to do)

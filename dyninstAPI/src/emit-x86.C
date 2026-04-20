@@ -1903,7 +1903,7 @@ void EmitterAMD64::emitStoreImm(Address addr, int imm, codeGen &gen)
    }
 }
 
-void EmitterAMD64::emitAddSignedImm(Address addr, int imm, codeGen &gen,bool noCost)
+void EmitterAMD64::emitAddSignedImm(Address addr, int imm, codeGen &gen)
 {
    if (!isImm64bit(addr) && !isImm64bit(imm)) {
       Dyninst::DyninstAPI::x86::emitAddMem(addr, imm, gen);

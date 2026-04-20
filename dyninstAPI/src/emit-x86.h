@@ -124,7 +124,7 @@ public:
     bool emitBTSaves(baseTramp* bt, codeGen &gen);
     bool emitBTRestores(baseTramp* bt, codeGen &gen);
     void emitStoreImm(Address addr, int imm, codeGen &gen);
-    void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
+    void emitAddSignedImm(Address addr, int imm, codeGen &gen);
     bool emitPush(codeGen &gen, Register pushee);
     bool emitPop(codeGen &gen, Register popee);
 

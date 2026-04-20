@@ -45,7 +45,7 @@ namespace Dyninst { namespace DyninstAPI {
     return true;
   }
 
-  void EmitterIA32::emitAddSignedImm(Address addr, int imm, codeGen &gen, bool /*noCost*/) {
+  void EmitterIA32::emitAddSignedImm(Address addr, int imm, codeGen &gen) {
     x86::emitAddMem(addr, imm, gen);
   }
 

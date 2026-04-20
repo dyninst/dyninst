@@ -182,9 +182,8 @@ public:
   void emitStoreImm(Address addr, int imm, codeGen &gen);
 
   // TODO: Implementation requires full 'codeGen' and 'registerSpace' class to
-  // allocate register. ALSO FIXME: bool noCost seems like a redundant
-  // parameter.
-  void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
+  // allocate register.
+  void emitAddSignedImm(Address addr, int imm, codeGen &gen);
 
   bool emitPush(codeGen &, Register);
 

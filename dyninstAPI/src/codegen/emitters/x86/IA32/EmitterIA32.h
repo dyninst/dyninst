@@ -49,7 +49,7 @@ namespace Dyninst { namespace DyninstAPI {
 
     bool clobberAllFuncCall(registerSpace *rs, func_instance *callee) override;
 
-    void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost) override;
+    void emitAddSignedImm(Address addr, int imm, codeGen &gen) override;
 
     bool emitAdjustStackPointer(int index, codeGen &gen) override;
 

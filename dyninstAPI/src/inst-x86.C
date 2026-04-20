@@ -1345,13 +1345,13 @@ bool emitStoreConst(Address addr, int imm, codeGen &gen, bool noCost) {
    return true;
 }
 
-bool emitAddSignedImm(Address addr, long int imm, codeGen &gen, bool noCost) {
-   gen.codeEmitter()->emitAddSignedImm(addr, imm, gen, noCost);
+bool emitAddSignedImm(Address addr, long int imm, codeGen &gen) {
+   gen.codeEmitter()->emitAddSignedImm(addr, imm, gen);
    return true;
 }
 
 bool emitSubSignedImm(Address addr, long int imm, codeGen &gen, bool noCost) {
-   gen.codeEmitter()->emitAddSignedImm(addr, imm * -1, gen, noCost);
+   gen.codeEmitter()->emitAddSignedImm(addr, imm * -1, gen);
    return true;
 }
 

@@ -509,8 +509,7 @@ void EmitterAmdgpuGfx908::emitStoreImm(Address /* addr */, int /* imm */, codeGe
   assert(!"emitStoreImm not implemented yet");
 }
 
-void EmitterAmdgpuGfx908::emitAddSignedImm(Address /* addr */, int /* imm */, codeGen & /* gen */,
-                                           bool /* noCost */) {
+void EmitterAmdgpuGfx908::emitAddSignedImm(Address /* addr */, int /* imm */, codeGen & /* gen */) {
   assert(!"emitAddSignedImm not implemented yet");
 }
 

@@ -206,7 +206,7 @@ bool operatorAST::generateOptimizedAssignment(codeGen &gen, int size_, bool noCo
 
   long int imm = (long int)const_oper->getOValue();
   if(roper->op == plusOp) {
-    emitAddSignedImm(laddr, imm, gen, noCost);
+    emitAddSignedImm(laddr, imm, gen);
   } else {
     emitSubSignedImm(laddr, imm, gen, noCost);
   }
