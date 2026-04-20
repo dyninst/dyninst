@@ -1083,7 +1083,7 @@ Dyninst::Register EmitterPOWER::emitCall(opCode ocode,
     Dyninst::Register retReg = Null_Register;
     if (inInstrumentation) {
         // get a register to keep the return value in.
-        retReg = gen.rs()->allocateRegister(gen, noCost);        
+        retReg = gen.rs()->allocateRegister(gen);
         // put the return value from register 3 to the newly allocated register.
         insnCodeGen::generateImm(gen, ORILop, 3, retReg, 0);
     }
@@ -1342,7 +1342,7 @@ static inline void emitAddOriginal(Dyninst::Register src, Dyninst::Register acc,
     
     if(nr) {
         // this needs gen because it uses emitV...
-        temp = gen.rs()->allocateRegister(gen, noCost);
+        temp = gen.rs()->allocateRegister(gen);
         
         // Emit code to restore the original ra register value in temp.
         // The offset compensates for the gap 0, 3, 4, ...

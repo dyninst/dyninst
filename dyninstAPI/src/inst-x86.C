@@ -502,7 +502,7 @@ void emitMovPCRMToReg(RealRegister dest, int offset, codeGen &gen, bool deref_re
          pc_reg = dest;
       }
       else {
-         gen.rs()->pc_rel_reg = gen.rs()->allocateRegister(gen, true);
+         gen.rs()->pc_rel_reg = gen.rs()->allocateRegister(gen);
          pc_reg = gen.rs()->loadVirtualForWrite(gen.rs()->pc_rel_reg, gen);
       }
       gen.rs()->pc_rel_offset() = used + 5;

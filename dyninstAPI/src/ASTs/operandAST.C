@@ -168,7 +168,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, bool noCost, Address &,
       break;
     case operandType::FrameAddr:
       addr = (Address)oValue;
-      temp = gen.rs()->allocateRegister(gen, noCost);
+      temp = gen.rs()->allocateRegister(gen);
       emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, noCost, gen.rs(), size, gen.point(),
                 gen.addrSpace());
       gen.rs()->freeRegister(temp);

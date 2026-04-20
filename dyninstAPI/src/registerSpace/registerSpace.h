@@ -96,7 +96,7 @@ class registerSpace {
                               unsigned size);
 
 
-    Dyninst::Register allocateRegister(codeGen &gen, bool noCost, bool realReg = false);
+    Dyninst::Register allocateRegister(codeGen &gen, bool realReg = false);
     bool allocateSpecificRegister(codeGen &gen, Dyninst::Register r);
 
     bool canAllocate(Dyninst::Register reg) const;

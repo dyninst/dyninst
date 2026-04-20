@@ -322,7 +322,6 @@ Register registerSpace::getScratchRegister(codeGen &gen, std::vector<Register> &
 }
 
 Register registerSpace::allocateRegister(codeGen &gen,
-                                         bool noCost,
 					 bool realReg)
 {
   regalloc_printf("Allocating and retaining register...\n");

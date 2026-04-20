@@ -197,7 +197,7 @@ void EmitterAARCH64::emitGetParam(
 void EmitterAARCH64::emitRelOpImm(
         unsigned opcode, Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s)
 {
-    //Register src2 = gen.rs()->allocateRegister(gen, true);
+    //Register src2 = gen.rs()->allocateRegister(gen);
     Register src2 = gen.rs()->getScratchRegister(gen);
     emitLoadConst(src2, src2imm, gen);
 

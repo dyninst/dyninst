@@ -76,7 +76,7 @@ void codeGenAST::cleanUseCount() {
 Dyninst::Register codeGenAST::allocateAndKeep(codeGen &gen, bool noCost) {
   ast_printf("Allocating register for node %p, useCount %d\n", (void *)this, useCount);
   // Allocate a register
-  Dyninst::Register dest = gen.rs()->allocateRegister(gen, noCost);
+  Dyninst::Register dest = gen.rs()->allocateRegister(gen);
 
   ast_printf("Allocator returned %u\n", dest.getId());
   assert(dest != Dyninst::Null_Register);

@@ -567,7 +567,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
       // it, so we need to bump up their useCounts
       loperand->fixChildrenCounts();
 
-      src2 = gen.rs()->allocateRegister(gen, noCost);
+      src2 = gen.rs()->allocateRegister(gen);
       switch(loperand->getoType()) {
         case operandType::variableValue:
           loperand->emitVariableStore(storeOp, src1, src2, gen, noCost, gen.rs(), size, gen.point(),

@@ -20,8 +20,8 @@ namespace Dyninst { namespace DyninstAPI {
     gen.rs()->makeRegisterAvail(RealRegister(REGNUM_ECX), gen);
     gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EDX), gen);
 
-    Register placeholder1 = gen.rs()->allocateRegister(gen, true);
-    Register placeholder2 = gen.rs()->allocateRegister(gen, true);
+    Register placeholder1 = gen.rs()->allocateRegister(gen);
+    Register placeholder2 = gen.rs()->allocateRegister(gen);
     gen.rs()->noteVirtualInReal(ret, RealRegister(REGNUM_EAX));
     gen.rs()->noteVirtualInReal(placeholder1, RealRegister(REGNUM_ECX));
     gen.rs()->noteVirtualInReal(placeholder2, RealRegister(REGNUM_EDX));

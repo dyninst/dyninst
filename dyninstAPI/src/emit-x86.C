@@ -1057,7 +1057,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<Dynin
    // allocate a (virtual) register to store the return value
    // We do this now because the state is correct again in the RS.
 
-   Register ret = gen.rs()->allocateRegister(gen, noCost);
+   Register ret = gen.rs()->allocateRegister(gen);
    gen.markRegDefined(ret);
    emitMovRegToReg64(ret, REGNUM_EAX, true, gen);
 
@@ -1895,7 +1895,7 @@ void EmitterAMD64::emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost
       emitMovImmToMem(addr, imm, gen);
    }
    else {
-      Register r = gen.rs()->allocateRegister(gen, noCost);
+      Register r = gen.rs()->allocateRegister(gen);
       gen.markRegDefined(r);
       emitMovImmToReg64(r, addr, true, gen);
       emitMovImmToRM64(r, 0, imm, true, gen);
@@ -1909,7 +1909,7 @@ void EmitterAMD64::emitAddSignedImm(Address addr, int imm, codeGen &gen,bool noC
       Dyninst::DyninstAPI::x86::emitAddMem(addr, imm, gen);
    }
    else {
-      Register r = gen.rs()->allocateRegister(gen, noCost);      
+      Register r = gen.rs()->allocateRegister(gen);
       gen.markRegDefined(r);
       emitMovImmToReg64(r, addr, true, gen);
       emitAddRM64(r, imm, true, gen);
@@ -1991,7 +1991,7 @@ void EmitterAMD64::emitStoreShared(Register source, const image_variable *var, b
   }
   
   // temporary virtual register for storing destination address
-  Register dest = gen.rs()->allocateRegister(gen, false); 
+  Register dest = gen.rs()->allocateRegister(gen);
   gen.markRegDefined(dest);
  
   // load register with address from jump slot
