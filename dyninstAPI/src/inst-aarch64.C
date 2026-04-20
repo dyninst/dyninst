@@ -775,8 +775,7 @@ void MovePCToReg(Register dest, codeGen &gen) {
 // Yuhan(02/04/19): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
 void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
-                codeGen &gen,
-                bool) {
+                codeGen &gen) {
 
     // Haven't implemented non-zero shifts yet
     assert(stackShift == 0);

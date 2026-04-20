@@ -1399,7 +1399,7 @@ void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackS
 void emitCSload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, codeGen &gen,
 		bool noCost)
 {
-  emitASload(as, dest, 0, gen, noCost);
+  emitASload(as, dest, 0, gen);
 }
 
 void emitVload(opCode op, Address src1, Dyninst::Register src2, Dyninst::Register dest,

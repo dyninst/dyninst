@@ -76,7 +76,7 @@ void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &) {
 }
 
 void emitASload(const BPatch_addrSpec_NP * /* as */, Register /* dest */, int /* stackShift */,
-                codeGen & /* gen */, bool) {
+                codeGen & /* gen */) {
   assert(!"Not imeplemented for AMDGPU");
 }
 

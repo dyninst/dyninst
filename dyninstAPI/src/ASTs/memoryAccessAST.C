@@ -88,7 +88,7 @@ bool memoryAccessAST::generateCode_phase2(codeGen &gen, Dyninst::Address &,
         assert(0);
       }
       start = ma->getStartAddr(which_);
-      emitASload(start, retReg, 0, gen, noCost);
+      emitASload(start, retReg, 0, gen);
       break;
     }
     case memoryType::BytesAccessed: {

@@ -1025,7 +1025,7 @@ void restoreGPRtoGPR(RealRegister src, RealRegister dest, codeGen &gen)
 
 // VG(11/07/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
-void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen, bool /* noCost */)
+void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen)
 {
     // TODO 16-bit registers, rep hacks
     long imm = as->getImm();
