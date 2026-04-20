@@ -577,7 +577,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
         case operandType::DataAddr:
           addr = (Dyninst::Address)loperand->getOValue();
           assert(loperand->getOVar() == NULL);
-          emitVstore(storeOp, src1, src2, addr, gen, noCost, gen.rs(), size, gen.point(),
+          emitVstore(storeOp, src1, src2, addr, gen, gen.rs(), size, gen.point(),
                      gen.addrSpace());
           // We are not calling generateCode for the left branch,
           // so need to decrement the refcount by hand
@@ -585,7 +585,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
           break;
         case operandType::FrameAddr:
           addr = (Dyninst::Address)loperand->getOValue();
-          emitVstore(storeFrameRelativeOp, src1, src2, addr, gen, noCost, gen.rs(), size,
+          emitVstore(storeFrameRelativeOp, src1, src2, addr, gen, gen.rs(), size,
                      gen.point(), gen.addrSpace());
           loperand->decUseCount(gen);
           break;

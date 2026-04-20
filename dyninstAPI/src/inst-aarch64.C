@@ -860,7 +860,7 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 }
 
 void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
-        codeGen &gen, bool,
+        codeGen &gen,
         registerSpace * /* rs */, int size,
         const instPoint * /* location */, AddressSpace *)
 {
