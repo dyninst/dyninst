@@ -31,7 +31,7 @@ bool stackAST::allocateCanaryRegister(codeGen &gen, bool noCost, Dyninst::Regist
   reg = deadRegSpace->getScratchRegister(gen, realReg);
   if(reg == Dyninst::Null_Register) {
     ast_printf("WARNING: using default allocateAndKeep in allocateCanaryRegister\n");
-    reg = allocateAndKeep(gen, noCost);
+    reg = allocateAndKeep(gen);
   }
   needSaveAndRestore = true;
   ast_printf("allocateCanaryRegister will require save&restore at 0x%lx\n", gen.point()->addr());

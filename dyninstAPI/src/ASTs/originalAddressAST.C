@@ -11,7 +11,7 @@ bool originalAddressAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst:
   RETURN_KEPT_REG(retReg);
 
   if(retReg == Dyninst::Null_Register) {
-    retReg = allocateAndKeep(gen, noCost);
+    retReg = allocateAndKeep(gen);
   }
 
   if(retReg == Dyninst::Null_Register) {

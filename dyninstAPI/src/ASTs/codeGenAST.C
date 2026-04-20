@@ -73,7 +73,7 @@ void codeGenAST::cleanUseCount() {
 
 // Allocate a register and make it available for sharing if our
 // node is shared
-Dyninst::Register codeGenAST::allocateAndKeep(codeGen &gen, bool noCost) {
+Dyninst::Register codeGenAST::allocateAndKeep(codeGen &gen) {
   ast_printf("Allocating register for node %p, useCount %d\n", (void *)this, useCount);
   // Allocate a register
   Dyninst::Register dest = gen.rs()->allocateRegister(gen);

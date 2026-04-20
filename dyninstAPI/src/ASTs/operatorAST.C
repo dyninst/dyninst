@@ -477,7 +477,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
       switch(loperand->getoType()) {
         case operandType::variableAddr:
           if(retReg == Dyninst::Null_Register) {
-            retReg = allocateAndKeep(gen, noCost);
+            retReg = allocateAndKeep(gen);
           }
           assert(loperand->getOVar());
           loperand->emitVariableLoad(loadConstOp, retReg, retReg, gen, noCost, gen.rs(), size,
@@ -485,7 +485,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
           break;
         case operandType::variableValue:
           if(retReg == Dyninst::Null_Register) {
-            retReg = allocateAndKeep(gen, noCost);
+            retReg = allocateAndKeep(gen);
           }
           assert(loperand->getOVar());
           loperand->emitVariableLoad(loadOp, retReg, retReg, gen, noCost, gen.rs(), size,
@@ -494,7 +494,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
         case operandType::DataAddr: {
           addr = reinterpret_cast<Dyninst::Address>(loperand->getOValue());
           if(retReg == Dyninst::Null_Register) {
-            retReg = allocateAndKeep(gen, noCost);
+            retReg = allocateAndKeep(gen);
           }
           assert(!loperand->getOVar());
           emitVload(loadConstOp, addr, retReg, retReg, gen, noCost, gen.rs(), size, gen.point(),
@@ -503,7 +503,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
         case operandType::FrameAddr: {
           // load the address fp + addr into dest
           if(retReg == Dyninst::Null_Register) {
-            retReg = allocateAndKeep(gen, noCost);
+            retReg = allocateAndKeep(gen);
           }
           Dyninst::Register temp = gen.rs()->getScratchRegister(gen);
           addr = (Dyninst::Address)loperand->getOValue();
@@ -516,7 +516,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
 
           // load the address reg + addr into dest
           if(retReg == Dyninst::Null_Register) {
-            retReg = allocateAndKeep(gen, noCost);
+            retReg = allocateAndKeep(gen);
           }
           addr = (Dyninst::Address)loperand->operand()->getOValue();
 
@@ -709,7 +709,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
       if((roperand->getoType() == operandType::Constant) &&
          doNotOverflow((int64_t)roperand->getOValue())) {
         if(retReg == Dyninst::Null_Register) {
-          retReg = allocateAndKeep(gen, noCost);
+          retReg = allocateAndKeep(gen);
           ast_printf("Operator node, const RHS, allocated register %u\n", retReg.getId());
         } else {
           ast_printf("Operator node, const RHS, keeping register %u\n", retReg.getId());
@@ -730,7 +730,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
         }
         REGISTER_CHECK(right_dest);
         if(retReg == Dyninst::Null_Register) {
-          retReg = allocateAndKeep(gen, noCost);
+          retReg = allocateAndKeep(gen);
         }
         emitV(op, src1, right_dest, retReg, gen, noCost, gen.rs(), size, gen.point(),
               gen.addrSpace(), signedOp);

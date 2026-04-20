@@ -21,7 +21,7 @@ bool dynamicJumpTargetAST::generateCode_phase2(codeGen &gen, bool noCost, Addres
   if(insn.isReturn()) {
     // if this is a return instruction our AST reads the top stack value
     if(retReg == Dyninst::Null_Register) {
-      retReg = allocateAndKeep(gen, noCost);
+      retReg = allocateAndKeep(gen);
     }
     if(retReg == Dyninst::Null_Register) {
       return false;

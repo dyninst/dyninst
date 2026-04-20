@@ -57,7 +57,7 @@ bool memoryAccessAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Ad
   const BPatch_addrSpec_NP *start;
   const BPatch_countSpec_NP *count;
   if(retReg == Dyninst::Null_Register) {
-    retReg = allocateAndKeep(gen, noCost);
+    retReg = allocateAndKeep(gen);
   }
   switch(mem_) {
     case memoryType::EffectiveAddr: {

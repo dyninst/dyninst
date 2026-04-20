@@ -59,7 +59,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, bool noCost, Address &,
 
   // Allocate a register to return
   if(retReg == Dyninst::Null_Register) {
-    retReg = allocateAndKeep(gen, noCost);
+    retReg = allocateAndKeep(gen);
   }
   Dyninst::Register temp;
   int tSize;

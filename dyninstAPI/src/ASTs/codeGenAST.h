@@ -160,7 +160,7 @@ public:
 
   // Allocate a register and make it available for sharing if our
   // node is shared
-  Dyninst::Register allocateAndKeep(codeGen &gen, bool noCost);
+  Dyninst::Register allocateAndKeep(codeGen &gen);
 
   // Return all children of this node ([lre]operand, ..., operands[])
   std::vector<codeGenASTPtr> const &getChildren() const {
