@@ -1335,7 +1335,7 @@ static inline void moveGPR2531toGPR(codeGen &gen,
 // another. The original value may need to be restored from stack...
 // VG(03/15/02): Made functionality more obvious by adding the above functions
 static inline void emitAddOriginal(Dyninst::Register src, Dyninst::Register acc,
-                                   codeGen &gen, bool noCost)
+                                   codeGen &gen)
 {
     bool nr = needsRestore(src);
     Dyninst::Register temp;
@@ -1388,12 +1388,12 @@ void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackS
   // If ra is used in the address spec, allocate a temp register and
   // get the value of ra from stack into it
   if(ra > -1)
-      emitAddOriginal(ra, dest, gen, noCost);
+      emitAddOriginal(ra, dest, gen);
 
   // If rb is used in the address spec, allocate a temp register and
   // get the value of ra from stack into it
   if(rb > -1)
-    emitAddOriginal(rb, dest, gen, noCost);
+    emitAddOriginal(rb, dest, gen);
 
 }
 
