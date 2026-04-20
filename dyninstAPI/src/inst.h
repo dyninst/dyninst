@@ -165,7 +165,7 @@ void     emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dynins
 
 // for loadOp and loadConstOp (reading from an Dyninst::Address)
 void     emitVload(opCode op, Dyninst::Address src1, Dyninst::Register src2, Dyninst::Register dst,
-                   codeGen &gen, bool noCost, 
+                   codeGen &gen,
                    registerSpace *rs = NULL, int size = 4, 
                    const instPoint * location = NULL, AddressSpace * proc = NULL);
 
@@ -177,7 +177,7 @@ void     emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, D
 
 // for loadOp and loadConstOp (reading from an Dyninst::Address)
 void     emitVload(opCode op, const image_variable* src1, Dyninst::Register src2, Dyninst::Register dst,
-                   codeGen &gen, bool noCost, 
+                   codeGen &gen,
                    registerSpace *rs = NULL, int size = 4, 
                    const instPoint * location = NULL, AddressSpace * proc = NULL);
 

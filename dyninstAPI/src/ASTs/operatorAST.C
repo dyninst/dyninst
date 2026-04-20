@@ -497,7 +497,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
             retReg = allocateAndKeep(gen);
           }
           assert(!loperand->getOVar());
-          emitVload(loadConstOp, addr, retReg, retReg, gen, noCost, gen.rs(), size, gen.point(),
+          emitVload(loadConstOp, addr, retReg, retReg, gen, gen.rs(), size, gen.point(),
                     gen.addrSpace());
         } break;
         case operandType::FrameAddr: {
@@ -507,7 +507,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
           }
           Dyninst::Register temp = gen.rs()->getScratchRegister(gen);
           addr = (Dyninst::Address)loperand->getOValue();
-          emitVload(loadFrameAddr, addr, temp, retReg, gen, noCost, gen.rs(), size, gen.point(),
+          emitVload(loadFrameAddr, addr, temp, retReg, gen, gen.rs(), size, gen.point(),
                     gen.addrSpace());
           break;
         }
@@ -520,7 +520,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
           }
           addr = (Dyninst::Address)loperand->operand()->getOValue();
 
-          emitVload(loadRegRelativeAddr, addr, (long)loperand->getOValue(), retReg, gen, noCost,
+          emitVload(loadRegRelativeAddr, addr, (long)loperand->getOValue(), retReg, gen,
                     gen.rs(), size, gen.point(), gen.addrSpace());
           break;
         }
@@ -596,7 +596,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
           // This is cheating, but I need to pass 4 data values into emitVstore, and
           // it only allows for 3.  Prepare the dest address in scratch register src2.
 
-          emitVload(loadRegRelativeAddr, addr, (long)loperand->getOValue(), src2, gen, noCost,
+          emitVload(loadRegRelativeAddr, addr, (long)loperand->getOValue(), src2, gen,
                     gen.rs(), size, gen.point(), gen.addrSpace());
 
           // Same as DataIndir at this point.

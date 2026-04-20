@@ -85,7 +85,7 @@ void emitCSload(const BPatch_addrSpec_NP *, Register, codeGen &, bool) {
 }
 
 void emitVload(opCode /* op */, Address /* src1 */, Register /* src2 */, Register /* dest */,
-               codeGen & /* gen */, bool /*noCost*/, registerSpace * /*rs*/, int /* size */,
+               codeGen & /* gen */, registerSpace * /*rs*/, int /* size */,
                const instPoint * /* location */, AddressSpace *) {
   assert(!"Not imeplemented for AMDGPU");
 }

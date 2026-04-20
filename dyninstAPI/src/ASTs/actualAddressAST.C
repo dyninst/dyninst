@@ -16,7 +16,7 @@ bool actualAddressAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::A
     return false;
   }
 
-  emitVload(loadConstOp, gen.currAddr(), retReg, retReg, gen, noCost);
+  emitVload(loadConstOp, gen.currAddr(), retReg, retReg, gen);
 
   return true;
 }

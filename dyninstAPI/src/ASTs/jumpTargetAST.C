@@ -28,11 +28,11 @@ bool dynamicJumpTargetAST::generateCode_phase2(codeGen &gen, bool noCost, Addres
     }
 
 #if defined(DYNINST_CODEGEN_ARCH_I386)
-    emitVload(loadRegRelativeOp, (Address)0, REGNUM_ESP, retReg, gen, noCost);
+    emitVload(loadRegRelativeOp, (Address)0, REGNUM_ESP, retReg, gen);
 #elif defined(DYNINST_CODEGEN_ARCH_X86_64)
-    emitVload(loadRegRelativeOp, (Address)0, REGNUM_RSP, retReg, gen, noCost);
+    emitVload(loadRegRelativeOp, (Address)0, REGNUM_RSP, retReg, gen);
 #elif defined(DYNINST_CODEGEN_ARCH_POWER) // KEVINTODO: untested
-    emitVload(loadRegRelativeOp, (Address)sizeof(Address), REG_SP, retReg, gen, noCost);
+    emitVload(loadRegRelativeOp, (Address)sizeof(Address), REG_SP, retReg, gen);
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
     // #warning "This function is not implemented yet!"
     assert(0);

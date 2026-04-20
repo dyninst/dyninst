@@ -667,7 +667,7 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
         }
         else {
             Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen);
-            emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
+            emitVload(loadConstOp, src2imm, dest2, dest2, gen);
             emitV(op, src1, dest2, dest, gen, gen.rs(),
                   gen.width(), gen.point(), gen.addrSpace(), s);
             return;
@@ -676,7 +676,7 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
         
     case divOp: {
             Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen);
-            emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
+            emitVload(loadConstOp, src2imm, dest2, dest2, gen);
             emitV(op, src1, dest2, dest, gen, gen.rs(),
                   gen.width(), gen.point(), gen.addrSpace(), s);
             return;
@@ -697,7 +697,7 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
         break;
     default:
         Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen);
-        emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
+        emitVload(loadConstOp, src2imm, dest2, dest2, gen);
         emitV(op, src1, dest2, dest, gen, gen.rs(),
               gen.width(), gen.point(), gen.addrSpace(), s);
         return;
@@ -817,9 +817,9 @@ void EmitterPOWER::emitCallWithSaves(codeGen &gen, Address dest, bool saveToc, b
     if (saveLR) {}
     if (saveR12) {}
 
-    emitVload(loadConstOp, dest, 0, 0, gen, false);
+    emitVload(loadConstOp, dest, 0, 0, gen);
     insnCodeGen::generateMoveToLR(gen, 0);
-    emitVload(loadConstOp, dest, 12, 12, gen, false);
+    emitVload(loadConstOp, dest, 12, 12, gen);
     instruction brl(BRLraw);
     insnCodeGen::generate(gen,brl);
     inst_printf("Generated BRL\n");
@@ -857,7 +857,7 @@ Dyninst::Register EmitterPOWER::emitCallReplacement(opCode ocode,
     }
 
     // Load register with address.
-    emitVload(loadConstOp, callee->addr(), freeReg, freeReg, gen, false);
+    emitVload(loadConstOp, callee->addr(), freeReg, freeReg, gen);
 
     // Move to link register.
     insnCodeGen::generate(gen,mtlr);
@@ -865,7 +865,7 @@ Dyninst::Register EmitterPOWER::emitCallReplacement(opCode ocode,
     Address toc_new = gen.addrSpace()->proc()->getTOCoffsetInfo(callee);
     if (toc_new) {
         // Set up the new TOC value
-        emitVload(loadConstOp, toc_new, freeReg, freeReg, gen, false);
+        emitVload(loadConstOp, toc_new, freeReg, freeReg, gen);
     }
 
     // blr - branch through the link reg.
@@ -876,7 +876,7 @@ Dyninst::Register EmitterPOWER::emitCallReplacement(opCode ocode,
     Address toc_orig = gen.addrSpace()->proc()->getTOCoffsetInfo(caller);
     if (toc_new) {
         // Restore the original TOC value.
-        emitVload(loadConstOp, toc_orig, freeReg, freeReg, gen, false);
+        emitVload(loadConstOp, toc_orig, freeReg, freeReg, gen);
     }
 
     // What to return here?
@@ -1111,7 +1111,7 @@ Dyninst::Register EmitterPOWER::emitCall(opCode ocode,
     
     if (!inInstrumentation && setTOC) {
         // Need to reset the TOC
-        emitVload(loadConstOp, caller_toc, 2, 2, gen, false);
+        emitVload(loadConstOp, caller_toc, 2, 2, gen);
 
         // Also store toc_orig [r2] into the TOC save area [40(r1)].
         // Subsequent code will look for it there.
@@ -1383,7 +1383,7 @@ void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackS
 
   // emit code to load the immediate (constant offset) into dest; this
   // writes at gen+base and updates base, we must update insn...
-  emitVload(loadConstOp, (Address)imm, dest, dest, gen, noCost);
+  emitVload(loadConstOp, (Address)imm, dest, dest, gen);
   
   // If ra is used in the address spec, allocate a temp register and
   // get the value of ra from stack into it
@@ -1404,7 +1404,7 @@ void emitCSload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, codeGen &g
 }
 
 void emitVload(opCode op, Address src1, Dyninst::Register src2, Dyninst::Register dest,
-               codeGen &gen, bool /*noCost*/, 
+               codeGen &gen,
                registerSpace * /*rs*/, int size,
                const instPoint * /* location */, AddressSpace *proc)
 {
@@ -2507,7 +2507,7 @@ bool EmitterPOWER::emitCallInstruction(codeGen &gen, func_instance *callee, bool
         // Use scratchReg to set destination of the call...
         inst_printf("[EmitterPOWER::EmitCallInstruction] needLongBranch, Emitting VLOAD  Callee: 0x%lx, ScratchReg: %u\n",
                     callee->addr(), (unsigned) scratchReg);
-        emitVload(loadConstOp, callee->addr(), scratchReg, scratchReg, gen, false);
+        emitVload(loadConstOp, callee->addr(), scratchReg, scratchReg, gen);
         insnCodeGen::generateMoveToLR(gen, scratchReg);
 
         inst_printf("Generated LR value in %d\n", scratchReg);
@@ -2519,13 +2519,13 @@ bool EmitterPOWER::emitCallInstruction(codeGen &gen, func_instance *callee, bool
         inst_printf("[EmitterPOWER::EmitCallInstruction] Setting TOC anchor, toc_anchor: %lx, register: 2(fixed)\n",
                     (uint64_t)toc_anchor);
         // Set up the new TOC value
-        emitVload(loadConstOp, toc_anchor, 2, 2, gen, false);
+        emitVload(loadConstOp, toc_anchor, 2, 2, gen);
         inst_printf("Set new TOC\n");
     }
 
     // ALL dynamic; call instruction generation
     if (needLongBranch) {
-        emitVload(loadConstOp, callee->addr(), 12, 12, gen, false);
+        emitVload(loadConstOp, callee->addr(), 12, 12, gen);
         instruction brl(BRLraw);
         insnCodeGen::generate(gen,brl);
         inst_printf("Generated BRL\n");
@@ -2533,7 +2533,7 @@ bool EmitterPOWER::emitCallInstruction(codeGen &gen, func_instance *callee, bool
     else {
         inst_printf("[EmitterPOWER::EmitCallInstruction] Generating Call, curAddress: %lx, calleeAddr: %lx\n",
                      gen.currAddr(), callee->addr());
-        emitVload(loadConstOp, callee->addr(), 12, 12, gen, false);
+        emitVload(loadConstOp, callee->addr(), 12, 12, gen);
         insnCodeGen::generateCall(gen, gen.currAddr(), callee->addr());
 
         inst_printf("Generated short call from 0x%lx to 0x%lx\n",

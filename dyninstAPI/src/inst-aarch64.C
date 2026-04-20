@@ -395,7 +395,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         case eqOp:
             {
                 Register scratch = gen.rs()->getScratchRegister(gen);
-                emitVload(loadConstOp, src2imm, 0, scratch, gen, true);
+                emitVload(loadConstOp, src2imm, 0, scratch, gen);
                 emitV(op, src1, scratch, dest, gen);
             }
             break;
@@ -821,7 +821,7 @@ void emitCSload(const BPatch_addrSpec_NP *, Register, codeGen &,
 }
 
 void emitVload(opCode op, Address src1, Register src2, Register dest,
-               codeGen &gen, bool /*noCost*/,
+               codeGen &gen,
                registerSpace * /*rs*/, int size,
                const instPoint * /* location */, AddressSpace *)
 {
