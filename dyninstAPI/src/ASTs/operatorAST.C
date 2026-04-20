@@ -149,7 +149,7 @@ bool operatorAST::generateOptimizedAssignment(codeGen &gen, int size_, bool noCo
 
 #endif
     int imm = (int)(long)roperand->getOValue();
-    emitStoreConst(laddr, (int)imm, gen, noCost);
+    emitStoreConst(laddr, (int)imm, gen);
     loperand->decUseCount(gen);
     roperand->decUseCount(gen);
     return true;

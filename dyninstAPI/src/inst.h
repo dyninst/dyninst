@@ -223,7 +223,7 @@ bool writeFunctionPtr(AddressSpace *p, Dyninst::Address addr, func_instance *f);
  * false if the platform can't perform any optimizations.
  **/
 //Store constant in memory at address
-bool emitStoreConst(Dyninst::Address addr, int imm, codeGen &gen, bool noCost);
+bool emitStoreConst(Dyninst::Address addr, int imm, codeGen &gen);
 //Add constant to memory at address
 bool emitAddSignedImm(Dyninst::Address addr, long int imm, codeGen &gen);
 //Subtract constant from memory at address

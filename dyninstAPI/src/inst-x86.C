@@ -1340,7 +1340,7 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   
 }
 
-bool emitStoreConst(Address addr, int imm, codeGen &gen, bool noCost) {
+bool emitStoreConst(Address addr, int imm, codeGen &gen) {
    gen.codeEmitter()->emitStoreImm(addr, imm, gen);
    return true;
 }
