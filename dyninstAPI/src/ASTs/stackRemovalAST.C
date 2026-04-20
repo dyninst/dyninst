@@ -61,7 +61,7 @@ bool stackRemovalAST::generateCode_phase2(codeGen &gen, bool noCost, Address &,
     Dyninst::Register canaryReg = Dyninst::Null_Register;
     bool needSaveAndRestore = true;
     if(gen.getArch() == Arch_x86_64) {
-      allocateCanaryRegister(gen, noCost, canaryReg, needSaveAndRestore);
+      allocateCanaryRegister(gen, canaryReg, needSaveAndRestore);
     } else {
       canaryReg = REGNUM_EDX;
       gen.rs()->noteVirtualInReal(canaryReg, RealRegister(canaryReg));

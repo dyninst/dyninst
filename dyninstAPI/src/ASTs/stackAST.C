@@ -8,8 +8,8 @@
 
 namespace Dyninst { namespace DyninstAPI {
 
-bool stackAST::allocateCanaryRegister(codeGen &gen, bool noCost, Dyninst::Register &reg,
-                                          bool &needSaveAndRestore) {
+bool stackAST::allocateCanaryRegister(codeGen &gen, Dyninst::Register &reg,
+                                      bool &needSaveAndRestore) {
   // Let's see if we can find a dead register to use!
   instPoint *point = gen.point();
 

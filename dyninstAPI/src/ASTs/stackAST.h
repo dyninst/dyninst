@@ -47,8 +47,7 @@ public:
   };
 
 protected:
-  bool allocateCanaryRegister(codeGen &gen, bool noCost, Dyninst::Register &reg,
-                              bool &needSaveAndRestore);
+  bool allocateCanaryRegister(codeGen &gen, Dyninst::Register &reg, bool &needSaveAndRestore);
 };
 
 }}
