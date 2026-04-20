@@ -115,7 +115,7 @@ Dyninst::Register codeGenAST::allocateAndKeep(codeGen &gen) {
 // currently available. In order to fix this problem, we will need to
 // implement a "virtual" register allocator - naim 11/06/96
 //
-bool codeGenAST::generateCode(codeGen &gen, bool noCost, Address &retAddr, Dyninst::Register &retReg) {
+bool codeGenAST::generateCode(codeGen &gen, Address &retAddr, Dyninst::Register &retReg) {
   static bool entered = false;
 
   bool ret = true;
@@ -162,10 +162,10 @@ bool codeGenAST::generateCode(codeGen &gen, bool noCost, Address &retAddr, Dynin
   return ret;
 }
 
-bool codeGenAST::generateCode(codeGen &gen, bool noCost) {
+bool codeGenAST::generateCode(codeGen &gen) {
   Address unused = ADDR_NULL;
   Dyninst::Register unusedReg = Dyninst::Null_Register;
-  bool ret = generateCode(gen, noCost, unused, unusedReg);
+  bool ret = generateCode(gen, unused, unusedReg);
   gen.rs()->freeRegister(unusedReg);
 
   return ret;
@@ -225,7 +225,7 @@ bool codeGenAST::generate(Point *point, Buffer &buffer) {
   gen.setPoint(ip);
   gen.setRegisterSpace(registerSpace::actualRegSpace(ip));
   gen.setAddrSpace(ip->proc());
-  if(!generateCode(gen, false)) {
+  if(!generateCode(gen)) {
     return false;
   }
 

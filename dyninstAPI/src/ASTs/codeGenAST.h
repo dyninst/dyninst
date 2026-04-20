@@ -86,14 +86,14 @@ public:
 
   virtual ~codeGenAST() = default;
 
-  virtual bool generateCode(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
+  virtual bool generateCode(codeGen &gen, Dyninst::Address &retAddr,
                             Dyninst::Register &retReg);
 
-  virtual bool generateCode(codeGen &gen, bool noCost);
+  virtual bool generateCode(codeGen &gen);
 
-  virtual bool generateCode(codeGen &gen, bool noCost, Dyninst::Register &retReg) {
+  virtual bool generateCode(codeGen &gen, Dyninst::Register &retReg) {
     Dyninst::Address unused = Dyninst::ADDR_NULL;
-    return generateCode(gen, noCost, unused, retReg);
+    return generateCode(gen, unused, retReg);
   }
 
   virtual bool generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
