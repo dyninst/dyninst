@@ -33,6 +33,7 @@
 
 #include <map>
 #include <vector>
+#include <cstdint>
 #include <string>
 #include "Architecture.h"
 #include "registers/MachRegister.h"

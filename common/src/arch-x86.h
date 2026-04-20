@@ -36,6 +36,7 @@
 
 #include "dyntypes.h"
 #include <assert.h>
+#include <cstdint>
 #include <stdio.h>
 #include <set>
 #include <map>

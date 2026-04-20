@@ -100,6 +100,7 @@ A million repetitions of "a"
 /* #define SHA1HANDSOFF  */
 
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
