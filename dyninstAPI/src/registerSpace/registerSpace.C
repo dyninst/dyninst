@@ -198,8 +198,7 @@ void registerSpace::createRegSpaceInt(std::vector<registerSlot *> &registers,
 
 }
 
-bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num,
-					     bool noCost)
+bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num)
 {
   regalloc_printf("Allocating specific register %u\n", num.getId());
 

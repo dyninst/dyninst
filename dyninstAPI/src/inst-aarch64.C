@@ -571,7 +571,7 @@ Register EmitterAARCH64::emitCall(opCode op,
     for(size_t id = 0; id < operands.size(); id++)
     {
         Register reg = Null_Register;
-        if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r0 + id, true))
+        if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r0 + id))
             reg = registerSpace::r0 + id;
 
         Address unnecessary = ADDR_NULL;

@@ -987,7 +987,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<Dynin
       }
       else
       {
-          if (gen.rs()->allocateSpecificRegister(gen, (unsigned) amd64_arg_regs[u], true))
+          if (gen.rs()->allocateSpecificRegister(gen, (unsigned) amd64_arg_regs[u]))
             reg = amd64_arg_regs[u];
          else {
             cerr << "Error: tried to allocate register " << amd64_arg_regs[u] << " and failed!" << endl;

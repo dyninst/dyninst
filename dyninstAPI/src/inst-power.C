@@ -996,7 +996,7 @@ Dyninst::Register EmitterPOWER::emitCall(opCode ocode,
         
         Dyninst::Register reg = Null_Register;
         // Try to allocate the correct parameter register
-        if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r3 + u, true))
+        if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r3 + u))
             reg = registerSpace::r3 + u;
 	Address unused = ADDR_NULL;
 	if (!operands[u]->generateCode_phase2( gen, false, unused, reg)) assert(0);
