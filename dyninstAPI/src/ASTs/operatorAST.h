@@ -120,7 +120,7 @@ private:
   bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
                            Dyninst::Register &retReg) override;
 
-  bool generateOptimizedAssignment(codeGen &gen, int size, bool noCost);
+  bool generateOptimizedAssignment(codeGen &gen, int size);
 
   opCode op{};
   codeGenASTPtr loperand{};

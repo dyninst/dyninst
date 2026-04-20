@@ -111,7 +111,7 @@ bool operatorAST::initRegisters(codeGen &g) {
 
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 
-bool operatorAST::generateOptimizedAssignment(codeGen &gen, int size_, bool noCost) {
+bool operatorAST::generateOptimizedAssignment(codeGen &gen, int size_) {
   (void)size_;
   if(!(loperand && roperand)) {
     return false;
@@ -219,7 +219,7 @@ bool operatorAST::generateOptimizedAssignment(codeGen &gen, int size_, bool noCo
   return true;
 }
 #else
-bool operatorAST::generateOptimizedAssignment(codeGen &, int, bool) {
+bool operatorAST::generateOptimizedAssignment(codeGen &, int) {
   return false;
 }
 #endif
@@ -552,7 +552,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
       if(!roperand) {
         return false;
       }
-      bool result = generateOptimizedAssignment(gen, size, noCost);
+      bool result = generateOptimizedAssignment(gen, size);
       if(result) {
         break;
       }
