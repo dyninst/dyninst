@@ -505,7 +505,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
           if(retReg == Dyninst::Null_Register) {
             retReg = allocateAndKeep(gen, noCost);
           }
-          Dyninst::Register temp = gen.rs()->getScratchRegister(gen, noCost);
+          Dyninst::Register temp = gen.rs()->getScratchRegister(gen);
           addr = (Dyninst::Address)loperand->getOValue();
           emitVload(loadFrameAddr, addr, temp, retReg, gen, noCost, gen.rs(), size, gen.point(),
                     gen.addrSpace());

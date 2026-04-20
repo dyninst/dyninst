@@ -522,7 +522,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
   //   // code there and we don't want to hit that.
   //   registerSpace *rs = registerSpace::actualRegSpace(point);
   //   gen.setRegisterSpace(rs);
-  //   Dyninst::Register scratch = rs->getScratchRegister(gen, true);
+  //   Dyninst::Register scratch = rs->getScratchRegister(gen);
   //   // 
   //   assert(scratch == Null_Register);
 
@@ -993,7 +993,7 @@ int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, std::vector<Dyninst
                 stack_size = saveGPRegisters(gen, gen.rs(), gpr_off, numRegs);
 		assert (stack_size == numRegs);
 		for (int i = 0; i < numRegs; i++){
-			Dyninst::Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
+			Dyninst::Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg);
 			assert (scratchReg != Null_Register);
 			freeReg.push_back(scratchReg);
 			excludeReg.push_back(scratchReg);

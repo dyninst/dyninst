@@ -239,12 +239,12 @@ bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num)
     return true;
 }
 
-Register registerSpace::getScratchRegister(codeGen &gen, bool noCost, bool realReg) {
+Register registerSpace::getScratchRegister(codeGen &gen, bool realReg) {
     std::vector<Register> empty;
-    return getScratchRegister(gen, empty, noCost, realReg);
+    return getScratchRegister(gen, empty, realReg);
 }
 
-Register registerSpace::getScratchRegister(codeGen &gen, std::vector<Register> &excluded, bool noCost, bool realReg) {
+Register registerSpace::getScratchRegister(codeGen &gen, std::vector<Register> &excluded, bool realReg) {
   std::vector<registerSlot *> couldBeStolen;
   std::vector<registerSlot *> couldBeSpilled;
 
@@ -326,7 +326,7 @@ Register registerSpace::allocateRegister(codeGen &gen,
 					 bool realReg)
 {
   regalloc_printf("Allocating and retaining register...\n");
-  Register reg = getScratchRegister(gen, noCost, realReg);
+  Register reg = getScratchRegister(gen, realReg);
   regalloc_printf("retaining register %u\n", reg.getId());
   if (reg == Null_Register) return Null_Register;
   if (realReg) {

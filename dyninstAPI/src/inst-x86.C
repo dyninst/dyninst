@@ -960,7 +960,7 @@ Dyninst::Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *
          dest = gen.rs()->getScratchRegister(gen);
       }
       else {
-         dest = gen.rs()->getScratchRegister(gen, false, true);
+         dest = gen.rs()->getScratchRegister(gen, true);
       }
    }
    

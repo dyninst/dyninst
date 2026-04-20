@@ -179,7 +179,7 @@ unsigned EmitterAARCH64SaveRegs::saveSPRegisters(
 
     for(std::vector<registerSlot *>::iterator itr = spRegs.begin(); itr != spRegs.end(); itr++) {
         registerSlot *cur = *itr;
-        saveSPR(gen, theRegSpace->getScratchRegister(gen, true), regMap[cur], -4*GPRSIZE_32);
+        saveSPR(gen, theRegSpace->getScratchRegister(gen), regMap[cur], -4*GPRSIZE_32);
         theRegSpace->markSavedRegister(cur->number, offset);
 
         offset += 4*GPRSIZE_32;
@@ -276,7 +276,7 @@ unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(
 
     for(std::vector<registerSlot *>::iterator itr = spRegs.begin(); itr != spRegs.end(); itr++) {
         registerSlot *cur = *itr;
-        restoreSPR(gen, theRegSpace->getScratchRegister(gen, true), regMap[cur], 4*GPRSIZE_32);
+        restoreSPR(gen, theRegSpace->getScratchRegister(gen), regMap[cur], 4*GPRSIZE_32);
         ret++;
     }
 
@@ -1044,7 +1044,7 @@ bool EmitterAARCH64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
     Address dest = getInterModuleFuncAddr(callee, gen);
     long varOffset = dest - gen.currAddr();
 
-    Register baseReg = gen.rs()->getScratchRegister(gen, true);
+    Register baseReg = gen.rs()->getScratchRegister(gen);
     assert(baseReg != Null_Register && "cannot get a scratch register");
     emitMovePCToReg(baseReg, gen);
 
@@ -1080,7 +1080,7 @@ bool EmitterAARCH64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
     Address dest = getInterModuleFuncAddr(callee, gen);
     long varOffset = dest - gen.currAddr();
 
-    Register baseReg = gen.rs()->getScratchRegister(gen, true);
+    Register baseReg = gen.rs()->getScratchRegister(gen);
     assert(baseReg != Null_Register && "cannot get a scratch register");
     emitMovePCToReg(baseReg, gen);
 
@@ -1161,7 +1161,7 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
     }
 
     // load register with address from jump slot
-    Register baseReg = gen.rs()->getScratchRegister(gen, true);
+    Register baseReg = gen.rs()->getScratchRegister(gen);
     assert(baseReg != Null_Register && "cannot get a scratch register");
 
     emitMovePCToReg(baseReg, gen);
@@ -1209,7 +1209,7 @@ void EmitterAARCH64::emitStoreShared(Register source, const image_variable *var,
     }
 
     // load register with address from jump slot
-    Register baseReg = gen.rs()->getScratchRegister(gen, true);
+    Register baseReg = gen.rs()->getScratchRegister(gen);
     assert(baseReg != Null_Register && "cannot get a scratch register");
 
     emitMovePCToReg(baseReg, gen);
@@ -1218,7 +1218,7 @@ void EmitterAARCH64::emitStoreShared(Register source, const image_variable *var,
     if(!is_local) {
         std::vector<Register> exclude;
         exclude.push_back(baseReg);
-        Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
+        Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude);
         assert(scratchReg1 != Null_Register && "cannot get a scratch register");
         emitLoadRelative(scratchReg1, varOffset, baseReg, gen.width(), gen);
         emitStoreRelative(source, 0, scratchReg1, size, gen);

@@ -106,10 +106,10 @@ class registerSpace {
 
     // Like allocate, but don't keep it around; if someone else tries to
     // allocate they might get this one.
-    Dyninst::Register getScratchRegister(codeGen &gen, bool noCost = true, bool realReg = false);
+    Dyninst::Register getScratchRegister(codeGen &gen, bool realReg = false);
     // Like the above, but excluding a set of registers (that we don't want
     // to touch)
-    Dyninst::Register getScratchRegister(codeGen &gen, std::vector<Dyninst::Register> &excluded, bool noCost = true, bool realReg = false);
+    Dyninst::Register getScratchRegister(codeGen &gen, std::vector<Dyninst::Register> &excluded, bool realReg = false);
 
     // For now, we save registers elsewhere and mark them here.
     bool markSavedRegister(Dyninst::Register num, int offsetFromFP);

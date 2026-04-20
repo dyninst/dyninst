@@ -666,7 +666,7 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
             return;
         }
         else {
-            Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
+            Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen);
             emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
             emitV(op, src1, dest2, dest, gen, noCost, gen.rs(), 
                   gen.width(), gen.point(), gen.addrSpace(), s);
@@ -675,7 +675,7 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
         break;
         
     case divOp: {
-            Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
+            Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen);
             emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
             emitV(op, src1, dest2, dest, gen, noCost, gen.rs(),
                   gen.width(), gen.point(), gen.addrSpace(), s);
@@ -696,7 +696,7 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
         return;
         break;
     default:
-        Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
+        Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen);
         emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
         emitV(op, src1, dest2, dest, gen, noCost, gen.rs(),
               gen.width(), gen.point(), gen.addrSpace(), s);
@@ -1494,7 +1494,7 @@ void emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, A
 {
     if (op == storeOp) {
 	// temp register to hold base address for store (added 6/26/96 jkh)
-	Dyninst::Register temp = gen.rs()->getScratchRegister(gen, noCost);
+	Dyninst::Register temp = gen.rs()->getScratchRegister(gen);
 
         insnCodeGen::loadPartialImmIntoReg(gen, temp, (long)dest);
         if (size == 1)
@@ -2149,12 +2149,12 @@ bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, func_instance* callee
 }
 
 bool EmitterPOWER32Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
-  Dyninst::Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+  Dyninst::Register scratchReg = gen.rs()->getScratchRegister(gen);
   if (scratchReg == Null_Register) return false;
 
   Dyninst::Register scratchLR = Null_Register;
   std::vector<Dyninst::Register> excluded; excluded.push_back(scratchReg);
-  scratchLR = gen.rs()->getScratchRegister(gen, excluded, true);
+  scratchLR = gen.rs()->getScratchRegister(gen, excluded);
   if (scratchLR == Null_Register) {
     if (scratchReg == registerSpace::r0) return false;
     // We can use r0 for this, since it's volatile. 
@@ -2214,12 +2214,12 @@ bool EmitterPOWER32Stat::emitTOCJump(block_instance *block, codeGen &gen) {
 
 
 bool EmitterPOWER32Stat::emitTOCCommon(block_instance *block, bool call, codeGen &gen) {
-  Dyninst::Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+  Dyninst::Register scratchReg = gen.rs()->getScratchRegister(gen);
   if (scratchReg == Null_Register) return false;
 
   Dyninst::Register scratchLR = Null_Register;
   std::vector<Dyninst::Register> excluded; excluded.push_back(scratchReg);
-  scratchLR = gen.rs()->getScratchRegister(gen, excluded, true);
+  scratchLR = gen.rs()->getScratchRegister(gen, excluded);
   if (scratchLR == Null_Register) {
     if (scratchReg == registerSpace::r0) return false;
     // We can use r0 for this, since it's volatile. 
@@ -2563,7 +2563,7 @@ void EmitterPOWER::emitLoadShared(opCode op, Dyninst::Register dest, const image
 
    inst_printf("emitLoadShared addr 0x%lx curr adress 0x%lx offset %lu 0x%lx size %d\n", 
    	addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
-   Dyninst::Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+   Dyninst::Register scratchReg = gen.rs()->getScratchRegister(gen);
 
    if (scratchReg == Null_Register) {
    	std::vector<Dyninst::Register> freeReg;
@@ -2624,7 +2624,7 @@ void EmitterPOWER::emitStoreShared(Dyninst::Register source, const image_variabl
    		addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
 
    // load register with address from jump slot
-   Dyninst::Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+   Dyninst::Register scratchReg = gen.rs()->getScratchRegister(gen);
    if (scratchReg == Null_Register) {
    	std::vector<Dyninst::Register> freeReg;
         std::vector<Dyninst::Register> excludeReg;
@@ -2642,7 +2642,7 @@ void EmitterPOWER::emitStoreShared(Dyninst::Register source, const image_variabl
    if(!is_local) {
         std::vector<Dyninst::Register> exclude;
         exclude.push_back(scratchReg);
-   	Dyninst::Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
+   	Dyninst::Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude);
    	if (scratchReg1 == Null_Register) {
    		std::vector<Dyninst::Register> freeReg;
         	std::vector<Dyninst::Register> excludeReg;

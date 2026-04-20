@@ -141,7 +141,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
         registerSpace *rs = registerSpace::actualRegSpace(point);
         gen.setRegisterSpace(rs);
 
-        scratch = rs->getScratchRegister(gen, true);
+        scratch = rs->getScratchRegister(gen);
     }
 
     if (scratch == Null_Register)
@@ -442,9 +442,9 @@ void insnCodeGen::generateMoveSP(codeGen &gen, Dyninst::Register rn, Dyninst::Re
 Dyninst::Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, std::vector<Dyninst::Register> *exclude) {
     Dyninst::Register scratchReg;
     if(exclude)
-	    scratchReg = gen.rs()->getScratchRegister(gen, *exclude, true);
+	    scratchReg = gen.rs()->getScratchRegister(gen, *exclude);
     else
-	    scratchReg = gen.rs()->getScratchRegister(gen, true);
+	    scratchReg = gen.rs()->getScratchRegister(gen);
 
     if (scratchReg == Null_Register) {
         fprintf(stderr, " %s[%d] No scratch register available to generate add instruction!", FILE__, __LINE__);
@@ -810,7 +810,7 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
         //If it's larger than |1MB|, move target to register and generate LDR
         else {
             // Get scratch register
-            Dyninst::Register scratch = gen.rs()->getScratchRegister(gen, true);
+            Dyninst::Register scratch = gen.rs()->getScratchRegister(gen);
             if(scratch == Null_Register)
                 assert(!"No scratch register available to load the target \
                         address into for a PC-relative data access using LDR/LDRSW!");
