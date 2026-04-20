@@ -1719,8 +1719,7 @@ bool doNotOverflow(int64_t value) {
 void emitLoadPreviousStackFrameRegister(Address register_num, 
                                         Dyninst::Register dest,
                                         codeGen &gen,
-                                        int /*size*/,
-                                        bool noCost)
+                                        int /*size*/)
 {
     // As of 10/24/2007, the size parameter is still incorrect.
     // Luckily, we know implicitly what size they actually want.

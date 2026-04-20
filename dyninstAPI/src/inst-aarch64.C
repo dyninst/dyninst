@@ -930,8 +930,7 @@ bool doNotOverflow(int64_t value)
 void emitLoadPreviousStackFrameRegister(Address register_num,
                                         Register dest,
                                         codeGen &gen,
-                                        int /*size*/,
-                                        bool)
+                                        int /*size*/)
 {
     gen.codeEmitter()->emitLoadOrigRegister(register_num, dest, gen);
 }

@@ -108,7 +108,7 @@ bool doNotOverflow(int64_t /* value */) {
 }
 
 void emitLoadPreviousStackFrameRegister(Address /* register_num */, Register /* dest */,
-                                        codeGen & /* gen */, int /* size */, bool) {}
+                                        codeGen & /* gen */, int /* size */) {}
 
 void emitStorePreviousStackFrameRegister(Address, Register, codeGen &, int, bool) {}
 

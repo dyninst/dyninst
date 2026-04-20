@@ -563,8 +563,7 @@ bool registerSpace::readProgramRegister(codeGen &gen,
     emitLoadPreviousStackFrameRegister((Address)source,
                                        destination,
                                        gen,
-                                       size,
-                                       true);
+                                       size);
     return true;
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 //#warning "This fucntion is not implemented yet!"
