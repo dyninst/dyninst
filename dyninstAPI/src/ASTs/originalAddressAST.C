@@ -6,7 +6,7 @@
 
 namespace Dyninst { namespace DyninstAPI {
 
-bool originalAddressAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
+bool originalAddressAST::generateCode_phase2(codeGen &gen, Dyninst::Address &,
                                               Dyninst::Register &retReg) {
   RETURN_KEPT_REG(retReg);
 

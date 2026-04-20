@@ -50,7 +50,7 @@ operandAST::operandAST(operandType ot, const image_variable *iv)
   }
 }
 
-bool operandAST::generateCode_phase2(codeGen &gen, bool noCost, Address &,
+bool operandAST::generateCode_phase2(codeGen &gen, Address &,
                                          Dyninst::Register &retReg) {
   RETURN_KEPT_REG(retReg);
 
@@ -83,7 +83,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, bool noCost, Address &,
       break;
 #endif
     case operandType::DataIndir:
-      if(!operand_->generateCode_phase2(gen, noCost, addr, src)) {
+      if(!operand_->generateCode_phase2(gen, addr, src)) {
         ERROR_RETURN;
       }
       REGISTER_CHECK(src);

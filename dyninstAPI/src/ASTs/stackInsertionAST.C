@@ -24,13 +24,13 @@ std::string stackInsertionAST::format(std::string indent) {
 
 #ifndef cap_stack_mods
 
-bool stackInsertionAST::generateCode_phase2(codeGen &, bool, Address &, Dyninst::Register &) {
+bool stackInsertionAST::generateCode_phase2(codeGen &, Address &, Dyninst::Register &) {
   return false;
 }
 
 #else
 
-bool stackInsertionAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
+bool stackInsertionAST::generateCode_phase2(codeGen &gen, Dyninst::Address &,
                                              Dyninst::Register &) {
   // Turn off default basetramp instrumentation saves & restores
   gen.setInsertNaked(true);

@@ -146,7 +146,7 @@ bool codeGenAST::generateCode(codeGen &gen, bool noCost, Address &retAddr, Dynin
   }
 
   // note: this could return the value "(Address)(-1)" -- csserra
-  if(!generateCode_phase2(gen, noCost, retAddr, retReg)) {
+  if(!generateCode_phase2(gen, retAddr, retReg)) {
     fprintf(stderr, "WARNING: failed in generateCode internals!\n");
     ret = false;
   }

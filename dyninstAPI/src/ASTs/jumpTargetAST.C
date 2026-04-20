@@ -10,7 +10,7 @@
 
 namespace Dyninst { namespace DyninstAPI {
 
-bool dynamicJumpTargetAST::generateCode_phase2(codeGen &gen, bool noCost, Address &retAddr,
+bool dynamicJumpTargetAST::generateCode_phase2(codeGen &gen, Address &retAddr,
                                                Dyninst::Register &retReg) {
   if(gen.point()->type() != instPoint::PreCall && gen.point()->type() != instPoint::FuncExit &&
      gen.point()->type() != instPoint::PreInsn) {
@@ -46,7 +46,7 @@ bool dynamicJumpTargetAST::generateCode_phase2(codeGen &gen, bool noCost, Addres
     if(!gen.addrSpace()->getDynamicCallSiteArgs(insn, gen.point()->block()->last(), args)) {
       return false;
     }
-    if(!args[0]->generateCode_phase2(gen, noCost, retAddr, retReg)) {
+    if(!args[0]->generateCode_phase2(gen, retAddr, retReg)) {
       return false;
     }
     return true;

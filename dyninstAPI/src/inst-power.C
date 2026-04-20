@@ -999,7 +999,7 @@ Dyninst::Register EmitterPOWER::emitCall(opCode ocode,
         if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r3 + u))
             reg = registerSpace::r3 + u;
 	Address unused = ADDR_NULL;
-	if (!operands[u]->generateCode_phase2( gen, false, unused, reg)) assert(0);
+	if (!operands[u]->generateCode_phase2( gen, unused, reg)) assert(0);
 	assert(reg != Null_Register);
 	srcs.push_back(reg);
     }
@@ -1369,8 +1369,7 @@ static inline void emitAddOriginal(Dyninst::Register src, Dyninst::Register acc,
 // VG(11/07/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
 void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift,
-		codeGen &gen,
-		bool noCost)
+		codeGen &gen)
 {
   // Haven't implemented non-zero shifts yet
   assert(stackShift == 0);

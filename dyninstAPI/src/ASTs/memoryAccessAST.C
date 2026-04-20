@@ -48,7 +48,7 @@ memoryAccessAST::memoryAccessAST(memoryType mem, unsigned which, int size_) : me
   doTypeCheck = BPatch::bpatch->isTypeChecked();
 }
 
-bool memoryAccessAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
+bool memoryAccessAST::generateCode_phase2(codeGen &gen, Dyninst::Address &,
                                         Dyninst::Register &retReg) {
 
   RETURN_KEPT_REG(retReg);

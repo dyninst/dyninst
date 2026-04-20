@@ -50,7 +50,7 @@ public:
   bool canBeKept() const override;
 
 private:
-  bool generateCode_phase2(codeGen &, bool, Dyninst::Address &, Dyninst::Register &) override {
+  bool generateCode_phase2(codeGen &, Dyninst::Address &, Dyninst::Register &) override {
     // No codegen needed
     return true;
   }

@@ -56,7 +56,7 @@ public:
 
   snippetAST(Dyninst::PatchAPI::SnippetPtr snippet) : snip_{std::move(snippet)} {}
 
-  bool generateCode_phase2(codeGen &gen, bool, Dyninst::Address &, Dyninst::Register &) override;
+  bool generateCode_phase2(codeGen &gen, Dyninst::Address &, Dyninst::Register &) override;
 
   Dyninst::PatchAPI::SnippetPtr snip_{};
 };

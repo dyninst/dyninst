@@ -102,7 +102,7 @@ public:
   bool initRegisters(codeGen &gen) override;
 
 private:
-  bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
+  bool generateCode_phase2(codeGen &gen, Dyninst::Address &,
                            Dyninst::Register &retReg) override;
 
   void set_args(std::vector<codeGenASTPtr> &args) {

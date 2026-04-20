@@ -426,7 +426,7 @@ namespace Dyninst { namespace DyninstAPI {
     for(u = 0; u < operands.size(); u++) {
       Address unused = ADDR_NULL;
       Dyninst::Register reg = Null_Register;
-      if(!operands[u]->generateCode_phase2(gen, noCost, unused, reg)) {
+      if(!operands[u]->generateCode_phase2(gen, unused, reg)) {
         assert(0);
       }
       assert(reg != Null_Register);

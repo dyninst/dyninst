@@ -977,7 +977,6 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<Dynin
       if(u >= (int)AMD64_ARG_REGS)
       {
          if (!operands[u]->generateCode_phase2(gen,
-                                               noCost,
                                                unused,
                                                reg)) assert(0);
          assert(reg != Null_Register);
@@ -995,7 +994,6 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<Dynin
          }
          gen.markRegDefined(reg);
          if (!operands[u]->generateCode_phase2(gen,
-                                               noCost,
                                                unused,
                                                reg)) assert(0);
 	 if (reg != amd64_arg_regs[u]) {

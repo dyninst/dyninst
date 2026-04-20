@@ -575,7 +575,7 @@ Register EmitterAARCH64::emitCall(opCode op,
             reg = registerSpace::r0 + id;
 
         Address unnecessary = ADDR_NULL;
-        if (!operands[id]->generateCode_phase2(gen, false, unnecessary, reg))
+        if (!operands[id]->generateCode_phase2(gen, unnecessary, reg))
             assert(0);
         assert(reg!=Null_Register);
     }

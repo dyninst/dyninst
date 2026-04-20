@@ -49,7 +49,7 @@ bool functionCallAST::initRegisters(codeGen &gen) {
   return ret;
 }
 
-bool functionCallAST::generateCode_phase2(codeGen &gen, bool noCost, Address &,
+bool functionCallAST::generateCode_phase2(codeGen &gen, Address &,
                                       Dyninst::Register &retReg) {
   // We call this anyway... not that we'll ever be kept.
   // Well... if we can somehow know a function is entirely

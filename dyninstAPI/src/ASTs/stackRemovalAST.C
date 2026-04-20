@@ -21,7 +21,7 @@ std::string stackRemovalAST::format(std::string indent) {
 
 #ifndef cap_stack_mods
 
-bool stackRemovalAST::generateCode_phase2(codeGen &, bool, Address &, Dyninst::Register &) {
+bool stackRemovalAST::generateCode_phase2(codeGen &, Address &, Dyninst::Register &) {
   (void)func_;
   (void)canaryAfterPrologue_;
   (void)canaryHeight_;
@@ -35,7 +35,7 @@ bool stackRemovalAST::generateCode_phase2(codeGen &, bool, Address &, Dyninst::R
 #include "RegisterConversion.h"
 #include "registers/MachRegister.h"
 
-bool stackRemovalAST::generateCode_phase2(codeGen &gen, bool noCost, Address &,
+bool stackRemovalAST::generateCode_phase2(codeGen &gen, Address &,
                                              Dyninst::Register &) {
   // Turn off default basetramp instrumentation saves & restores
   gen.setInsertNaked(true);

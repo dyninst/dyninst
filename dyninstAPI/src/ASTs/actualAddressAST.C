@@ -7,7 +7,7 @@
 
 namespace Dyninst { namespace DyninstAPI {
 
-bool actualAddressAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
+bool actualAddressAST::generateCode_phase2(codeGen &gen, Dyninst::Address &,
                                             Dyninst::Register &retReg) {
   if(retReg == Dyninst::Null_Register) {
     retReg = allocateAndKeep(gen);

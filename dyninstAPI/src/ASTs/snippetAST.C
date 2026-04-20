@@ -8,7 +8,7 @@
 
 namespace Dyninst { namespace DyninstAPI {
 
-bool snippetAST::generateCode_phase2(codeGen &gen, bool, Dyninst::Address &,
+bool snippetAST::generateCode_phase2(codeGen &gen, Dyninst::Address &,
                                          Dyninst::Register &) {
   Dyninst::Buffer buf(gen.currAddr(), 1024);
   if(!snip_->generate(gen.point(), buf)) {

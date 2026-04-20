@@ -10,7 +10,7 @@
 
 namespace Dyninst { namespace DyninstAPI {
 
-bool sequenceAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
+bool sequenceAST::generateCode_phase2(codeGen &gen, Dyninst::Address &,
                                           Dyninst::Register &retReg) {
   RETURN_KEPT_REG(retReg);
   Dyninst::Register tmp = Dyninst::Null_Register;
@@ -21,7 +21,7 @@ bool sequenceAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
   }
 
   for(unsigned i = 0; i < children.size() - 1; i++) {
-    if(!children[i]->generateCode_phase2(gen, noCost, unused, tmp)) {
+    if(!children[i]->generateCode_phase2(gen, unused, tmp)) {
       ERROR_RETURN;
     }
     gen.rs()->freeRegister(tmp);
@@ -29,7 +29,7 @@ bool sequenceAST::generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Addres
   }
 
   // We keep the last one
-  if(!children.back()->generateCode_phase2(gen, noCost, unused, retReg)) {
+  if(!children.back()->generateCode_phase2(gen, unused, retReg)) {
     ERROR_RETURN;
   }
 

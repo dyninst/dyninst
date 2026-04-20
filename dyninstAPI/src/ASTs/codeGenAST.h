@@ -96,7 +96,7 @@ public:
     return generateCode(gen, noCost, unused, retReg);
   }
 
-  virtual bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &retAddr,
+  virtual bool generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
                                    Dyninst::Register &retReg) = 0;
 
   // Perform whatever pre-processing steps are necessary.

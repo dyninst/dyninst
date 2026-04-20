@@ -6,7 +6,7 @@
 
 namespace Dyninst { namespace DyninstAPI {
 
-bool nullAST::generateCode_phase2(codeGen &gen, bool, Dyninst::Address &retAddr,
+bool nullAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
                                       Dyninst::Register &retReg) {
   retAddr = Dyninst::ADDR_NULL;
   retReg = Dyninst::Null_Register;

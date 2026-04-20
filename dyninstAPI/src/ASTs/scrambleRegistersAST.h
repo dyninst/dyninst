@@ -53,7 +53,7 @@ public:
   }
 
 private:
-  bool generateCode_phase2(codeGen &gen, bool, Dyninst::Address &, Dyninst::Register &) override;
+  bool generateCode_phase2(codeGen &gen, Dyninst::Address &, Dyninst::Register &) override;
 };
 
 }}

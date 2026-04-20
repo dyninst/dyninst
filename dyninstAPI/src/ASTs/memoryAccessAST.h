@@ -76,7 +76,7 @@ public:
   }
 
 private:
-  bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &,
+  bool generateCode_phase2(codeGen &gen, Dyninst::Address &,
                            Dyninst::Register &retReg) override;
 
   memoryType mem_{};

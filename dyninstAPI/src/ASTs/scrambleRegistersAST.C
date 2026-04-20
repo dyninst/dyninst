@@ -10,14 +10,14 @@ namespace Dyninst { namespace DyninstAPI {
 
 #ifndef DYNINST_CODEGEN_ARCH_X86_64
 
-bool scrambleRegistersAST::generateCode_phase2(codeGen &, bool, Dyninst::Address &,
+bool scrambleRegistersAST::generateCode_phase2(codeGen &, Dyninst::Address &,
                                                    Dyninst::Register &) {
   return true;
 }
 
 #else
 
-bool scrambleRegistersAST::generateCode_phase2(codeGen &gen, bool, Address &,
+bool scrambleRegistersAST::generateCode_phase2(codeGen &gen, Address &,
                                                    Dyninst::Register &) {
   for(int i = 0; i < gen.rs()->numGPRs(); i++) {
     registerSlot *reg = gen.rs()->GPRs()[i];

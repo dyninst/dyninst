@@ -15,14 +15,14 @@ std::string genericStackAST::format(std::string indent) {
 
 #ifndef cap_stack_mods
 
-bool genericStackAST::generateCode_phase2(codeGen &, bool, Dyninst::Address &,
+bool genericStackAST::generateCode_phase2(codeGen &, Dyninst::Address &,
                                               Dyninst::Register &) {
   return false;
 }
 
 #else
 
-bool genericStackAST::generateCode_phase2(codeGen &gen, bool, Dyninst::Address &,
+bool genericStackAST::generateCode_phase2(codeGen &gen, Dyninst::Address &,
                                               Dyninst::Register &) {
   gen.setInsertNaked(true);
   gen.setModifiedStackFrame(true);

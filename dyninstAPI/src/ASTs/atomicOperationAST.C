@@ -32,7 +32,7 @@ std::string atomicOperationAST::format(std::string indent) {
 
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 
-bool atomicOperationAST::generateCode_phase2(codeGen &gen, bool noCost, Address &retAddr,
+bool atomicOperationAST::generateCode_phase2(codeGen &gen, Address &retAddr,
                                                      Dyninst::Register &) {
   // This has 2 operands - variable and constant.
   // Codegen for atomic add has the following steps:
@@ -43,7 +43,7 @@ bool atomicOperationAST::generateCode_phase2(codeGen &gen, bool noCost, Address 
   bool ret = true;
 
   Dyninst::Register src0 = Dyninst::Null_Register;
-  if(!constant->generateCode_phase2(gen, noCost, retAddr, src0)) {
+  if(!constant->generateCode_phase2(gen, retAddr, src0)) {
     fprintf(stderr, "WARNING: failed in generateCode internals!\n");
     ret = false;
   }
@@ -100,7 +100,7 @@ bool atomicOperationAST::generateCode_phase2(codeGen &gen, bool noCost, Address 
   return ret;
 }
 #else
-bool atomicOperationAST::generateCode_phase2(codeGen &, bool, Dyninst::Address &,
+bool atomicOperationAST::generateCode_phase2(codeGen &, Dyninst::Address &,
                                                      Dyninst::Register &) {
   return false;
 }

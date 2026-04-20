@@ -99,9 +99,9 @@ public:
   }
 
 private:
-  bool generateCode_phase2(codeGen &gen, bool noCost, Dyninst::Address &addr,
+  bool generateCode_phase2(codeGen &gen, Dyninst::Address &addr,
                            Dyninst::Register &retReg) override {
-    return children[index]->generateCode_phase2(gen, noCost, addr, retReg);
+    return children[index]->generateCode_phase2(gen, addr, retReg);
   }
 
   std::vector<range_t> *ranges_{};
