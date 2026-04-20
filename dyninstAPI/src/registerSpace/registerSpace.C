@@ -225,7 +225,7 @@ bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num,
 	return false;
     }
     else if (reg->keptValue) {
-      if (!stealRegister(num, gen, noCost)) {
+      if (!stealRegister(num, gen)) {
 	regalloc_printf("Error: register has cached value, unable to steal!\n");
 	return false;
       }
@@ -302,7 +302,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, std::vector<Register> &
     // Still?
     if (toUse == NULL) {
         for (unsigned i = 0; i < couldBeStolen.size(); i++) {
-            if (stealRegister(couldBeStolen[i]->number, gen, noCost)) {
+            if (stealRegister(couldBeStolen[i]->number, gen)) {
                 toUse = couldBeStolen[i];
                 break;
             }
@@ -340,7 +340,7 @@ Register registerSpace::allocateRegister(codeGen &gen,
   return reg;
 }
 
-bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
+bool registerSpace::stealRegister(Register reg, codeGen &gen) {
     // Can be made a return false; this for correctness.
     assert(registers_[reg]->refCount == 0);
     assert(registers_[reg]->keptValue == true);
