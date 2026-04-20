@@ -505,8 +505,7 @@ bool EmitterAmdgpuGfx908::emitBTRestores(baseTramp * /* bt */, codeGen & /* gen 
   return false;
 }
 
-void EmitterAmdgpuGfx908::emitStoreImm(Address /* addr */, int /* imm */, codeGen & /* gen */,
-                                       bool /* noCost */) {
+void EmitterAmdgpuGfx908::emitStoreImm(Address /* addr */, int /* imm */, codeGen & /* gen */) {
   assert(!"emitStoreImm not implemented yet");
 }
 

@@ -147,7 +147,7 @@ public:
         return true;
     }
 
-    virtual void emitStoreImm(Address, int, codeGen &, bool) { assert(0); }
+    virtual void emitStoreImm(Address, int, codeGen &) { assert(0); }
 
     virtual void emitAddSignedImm(Address, int, codeGen &, bool) { assert(0); }
 

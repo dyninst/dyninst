@@ -179,7 +179,7 @@ public:
   bool emitBTRestores(baseTramp *bt, codeGen &gen);
 
   // TODO: requires allocating / deallocating register (see next comment).
-  void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
+  void emitStoreImm(Address addr, int imm, codeGen &gen);
 
   // TODO: Implementation requires full 'codeGen' and 'registerSpace' class to
   // allocate register. ALSO FIXME: bool noCost seems like a redundant

@@ -1341,7 +1341,7 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
 }
 
 bool emitStoreConst(Address addr, int imm, codeGen &gen, bool noCost) {
-   gen.codeEmitter()->emitStoreImm(addr, imm, gen, noCost);
+   gen.codeEmitter()->emitStoreImm(addr, imm, gen);
    return true;
 }
 

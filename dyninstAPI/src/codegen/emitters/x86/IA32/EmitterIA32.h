@@ -142,7 +142,7 @@ namespace Dyninst { namespace DyninstAPI {
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size,
                                 codeGen &gen) override;
 
-    void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost) override;
+    void emitStoreImm(Address addr, int imm, codeGen &gen) override;
 
     void emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen) override;
 

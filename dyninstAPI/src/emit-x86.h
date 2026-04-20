@@ -123,7 +123,7 @@ public:
     void emitStackAlign(int offset, codeGen &gen);
     bool emitBTSaves(baseTramp* bt, codeGen &gen);
     bool emitBTRestores(baseTramp* bt, codeGen &gen);
-    void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
+    void emitStoreImm(Address addr, int imm, codeGen &gen);
     void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
     bool emitPush(codeGen &gen, Register pushee);
     bool emitPop(codeGen &gen, Register popee);

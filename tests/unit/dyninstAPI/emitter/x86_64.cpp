@@ -43,7 +43,7 @@ int main() {
   }});
 
   // Store an immediate value at a fixed address
-  emitter->emitStoreImm(0x12345678, 0x9abcdef, gen, false);
+  emitter->emitStoreImm(0x12345678, 0x9abcdef, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<11>{{
     // mov dword ptr [0x12345678], 0x9abcdef
     0xc7, 0x04, 0x25, 0x78, 0x56, 0x34, 0x12, 0xef, 0xcd, 0xab, 0x09

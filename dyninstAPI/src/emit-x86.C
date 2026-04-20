@@ -1889,7 +1889,7 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
     return true;
 }
 
-void EmitterAMD64::emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost) 
+void EmitterAMD64::emitStoreImm(Address addr, int imm, codeGen &gen)
 {
    if (!isImm64bit(addr) && !isImm64bit(imm)) {
       emitMovImmToMem(addr, imm, gen);

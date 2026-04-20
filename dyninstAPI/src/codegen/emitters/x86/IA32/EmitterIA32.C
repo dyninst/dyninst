@@ -1038,7 +1038,7 @@ namespace Dyninst { namespace DyninstAPI {
     emitMovRegToRM(RealRegister(REGNUM_EBP), offset, src_r, gen);
   }
 
-  void EmitterIA32::emitStoreImm(Address addr, int imm, codeGen &gen, bool /*noCost*/) {
+  void EmitterIA32::emitStoreImm(Address addr, int imm, codeGen &gen) {
     emitMovImmToMem(addr, imm, gen);
   }
 
