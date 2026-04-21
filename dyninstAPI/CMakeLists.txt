@@ -211,7 +211,6 @@ set(_sources
     src/BPatch_statement.C
     src/BPatch_thread.C
     src/BPatch_type.C
-    src/instMapping.C
     src/Parsing-arch.C
     src/Parsing.C
     src/Patching.C

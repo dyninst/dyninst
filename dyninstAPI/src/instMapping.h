@@ -32,6 +32,7 @@
 #define DYNINST_DYNINSTAPI_INSTMAPPING_H
 
 #include "ASTs/codeGenAST.h"
+#include "instPoint.h"
 
 #include <string>
 #include <vector>
@@ -67,7 +68,18 @@ namespace Dyninst { namespace DyninstAPI {
     }
 
     // Fork
-    instMapping(const instMapping *parMapping, AddressSpace *child);
+    instMapping(const instMapping *parIM, AddressSpace *child)
+        : func(parIM->func), inst(parIM->inst), where(parIM->where),
+          useTrampGuard(parIM->useTrampGuard), allow_trap(parIM->allow_trap) {
+      for(auto ast : parIM->args) {
+        args.push_back(ast);
+      }
+      for(auto instance : parIM->instances) {
+        auto cMT = getChildInstance(instance, child);
+        assert(cMT);
+        instances.push_back(cMT);
+      }
+    }
 
     void dontUseTrampGuard() {
       useTrampGuard = false;
