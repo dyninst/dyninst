@@ -106,6 +106,7 @@ set(_private_headers
     src/infHeap.h
     src/inst-aarch64.h
     src/inst.h
+    src/instMapping.h
     src/instPoint.h
     src/inst-power.h
     src/inst-x86.h
@@ -210,6 +211,7 @@ set(_sources
     src/BPatch_statement.C
     src/BPatch_thread.C
     src/BPatch_type.C
+    src/instMapping.C
     src/Parsing-arch.C
     src/Parsing.C
     src/Patching.C

@@ -38,6 +38,7 @@ class BPatch_snippet;
 
 #include <vector>
 #include "BPatch_snippet.h"
+#include "instMapping.h"
 
 // TODO: this is bpatch-specific, move to BPatch_private.h?
 struct batchInsertionRecord {
@@ -46,8 +47,8 @@ struct batchInsertionRecord {
     // For delayed insertion; vector because there is a vector-insert technique
     std::vector<BPatch_point *> points_;
     // This has to be vectorized to handle the multiple-point insertion + edges.
-    std::vector<callWhen> when_;
-    callOrder order_;
+    std::vector<Dyninst::DyninstAPI::callWhen> when_;
+    Dyninst::DyninstAPI::callOrder order_;
     BPatch_snippet snip; // Make a copy so that the user doesn't have to.
     BPatchSnippetHandle *handle_; // handle to fill in
 

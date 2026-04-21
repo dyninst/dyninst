@@ -34,23 +34,23 @@
 #define SYSCALL_NOTIFICATION_H
 
 // Non-NULL for platforms where we don't need the instMapping
-#define SYSCALL_INSTALLED ((instMapping *)1)
+#define SYSCALL_INSTALLED ((Dyninst::DyninstAPI::instMapping *)1)
 
 #include <cassert>
 #include <cstdlib>
+#include "instMapping.h"
 
-class instMapping;
 class PCProcess;
 
 class syscallNotification {
   private:
     // If we use instrumentation to get notification of a syscall
-    instMapping *preForkInst;
-    instMapping *postForkInst;
-    instMapping *preExecInst;
-    instMapping *postExecInst;
-    instMapping *preExitInst;
-    instMapping *preLwpExitInst;
+    Dyninst::DyninstAPI::instMapping *preForkInst;
+    Dyninst::DyninstAPI::instMapping *postForkInst;
+    Dyninst::DyninstAPI::instMapping *preExecInst;
+    Dyninst::DyninstAPI::instMapping *postExecInst;
+    Dyninst::DyninstAPI::instMapping *preExitInst;
+    Dyninst::DyninstAPI::instMapping *preLwpExitInst;
     PCProcess *proc;
 
     // platform dependent

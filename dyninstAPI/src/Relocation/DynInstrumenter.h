@@ -34,7 +34,7 @@
 #include "Instrumenter.h"
 #include "DynAddrSpace.h"
 #include "Command.h"
-
+#include "instMapping.h"
 #include "dyninstAPI/src/instPoint.h"
 
 using Dyninst::PatchAPI::DynAddrSpace;
@@ -59,9 +59,9 @@ class DynInstrumenter : public Dyninst::PatchAPI::Instrumenter {
 /* Dyninst-specific Insert Snippet Command  */
 class DynInsertSnipCommand : public Command {
   public:
-    DynInsertSnipCommand(instPoint* pt, callOrder order,
+    DynInsertSnipCommand(instPoint* pt, Dyninst::DyninstAPI::callOrder order,
                          DyninstAPI::codeGenASTPtr ast, bool recursive);
-    static DynInsertSnipCommand* create(instPoint* pt, callOrder order,
+    static DynInsertSnipCommand* create(instPoint* pt, Dyninst::DyninstAPI::callOrder order,
                       DyninstAPI::codeGenASTPtr ast, bool recursive);
     virtual ~DynInsertSnipCommand() {}
 

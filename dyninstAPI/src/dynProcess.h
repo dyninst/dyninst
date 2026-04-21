@@ -52,7 +52,7 @@
 #include "ast.h"
 #include "syscallNotification.h"
 #include "baseTramp.h"
-
+#include "instMapping.h"
 #include "Symtab.h"
 
 #include "symtabAPI/h/SymtabReader.h"
@@ -179,7 +179,7 @@ public:
 
     // Instrumentation support
     bool mappedObjIsDeleted(mapped_object *obj);
-    void installInstrRequests(const std::vector<instMapping*> &requests);
+    void installInstrRequests(const std::vector<Dyninst::DyninstAPI::instMapping*> &requests);
     Address getTOCoffsetInfo(Address dest); // platform-specific
     Address getTOCoffsetInfo(func_instance *func); // platform-specific
     bool getOPDFunctionAddr(Address &opdAddr); // architecture-specific

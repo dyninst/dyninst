@@ -37,7 +37,7 @@
 #include "addressSpace.h"
 #include "dynProcess.h"
 #include "debug.h"
-
+#include "instMapping.h"
 #include "mapped_module.h"
 
 #include "BPatch_libInfo.h"
@@ -75,6 +75,8 @@ using Dyninst::PatchAPI::DynInsertSnipCommand;
 using Dyninst::PatchAPI::DynReplaceFuncCommand;
 using Dyninst::PatchAPI::DynModifyCallCommand;
 using Dyninst::PatchAPI::DynRemoveCallCommand;
+
+namespace dapi = Dyninst::DyninstAPI;
 
 BPatch_addressSpace::BPatch_addressSpace() :
    pendingInsertions(NULL), image(NULL)
@@ -860,8 +862,8 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
 extern bool BPatchToInternalArgs(BPatch_point *point,
       BPatch_callWhen when,
       BPatch_snippetOrder order,
-      callWhen &ipWhen,
-      callOrder &ipOrder);
+      dapi::callWhen &ipWhen,
+      dapi::callOrder &ipOrder);
 
 
 BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &expr,
@@ -940,8 +942,8 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
          continue;
       }
 
-      callWhen ipWhen;
-      callOrder ipOrder;
+      dapi::callWhen ipWhen;
+      dapi::callOrder ipOrder;
 
       if (!BPatchToInternalArgs(bppoint, when, order, ipWhen, ipOrder)) {
         fprintf(stderr, "[%s:%d] - BPatchToInternalArgs failed for point %u\n",
@@ -955,7 +957,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
 
       /* PatchAPI stuffs */
       instPoint *ipoint = static_cast<instPoint *>(bppoint->getPoint(when));
-      Dyninst::PatchAPI::InstancePtr instance = (ipOrder == orderFirstAtPoint) ?
+      Dyninst::PatchAPI::InstancePtr instance = (ipOrder == dapi::orderFirstAtPoint) ?
          ipoint->pushFront(expr.ast_wrapper) :
          ipoint->pushBack(expr.ast_wrapper);
       /* End of PatchAPI stuffs */

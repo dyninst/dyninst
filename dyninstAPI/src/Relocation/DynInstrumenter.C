@@ -42,6 +42,8 @@ using Dyninst::PatchAPI::DynRemoveCallCommand;
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
+namespace dapi = Dyninst::DyninstAPI;
+
 /* Instrumenter Command, which is called implicitly by Patcher's run()  */
 bool DynInstrumenter::run() {
   DynAddrSpace* das = dynamic_cast<DynAddrSpace*>(as_);
@@ -65,14 +67,14 @@ bool DynInstrumenter::undo() {
 
 /* Insert Snippet Command */
 
-DynInsertSnipCommand::DynInsertSnipCommand(instPoint* pt, callOrder order,
+DynInsertSnipCommand::DynInsertSnipCommand(instPoint* pt, dapi::callOrder order,
                                            codeGenASTPtr ast, bool recursive) {
-   inst_ = (order == orderFirstAtPoint) ? pt->pushFront(ast) : pt->pushBack(ast);
+   inst_ = (order == dapi::orderFirstAtPoint) ? pt->pushFront(ast) : pt->pushBack(ast);
    if (inst_ && recursive)
       inst_->disableRecursiveGuard();
 }
 
-DynInsertSnipCommand* DynInsertSnipCommand::create(instPoint* pt, callOrder order,
+DynInsertSnipCommand* DynInsertSnipCommand::create(instPoint* pt, dapi::callOrder order,
                                                    codeGenASTPtr ast, bool recursive) {
    return new DynInsertSnipCommand(pt, order, ast, recursive);
 }

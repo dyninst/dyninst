@@ -59,6 +59,8 @@ using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
 using operandAST = Dyninst::DyninstAPI::operandAST;
 
+namespace dapi = Dyninst::DyninstAPI;
+
 namespace {
 	// maximum number of addresses per outstanding printf!
 	const unsigned int _numaddrstrs=8;
@@ -1672,7 +1674,7 @@ bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
 }
 
 // A copy of the BPatch-level instrumentation installer
-void PCProcess::installInstrRequests(const std::vector<instMapping*> &requests) {
+void PCProcess::installInstrRequests(const std::vector<dapi::instMapping*> &requests) {
     if (requests.size() == 0) {
         return;
     }
@@ -1686,7 +1688,7 @@ void PCProcess::installInstrRequests(const std::vector<instMapping*> &requests) 
     for (unsigned lcv=0; lcv < requests.size(); lcv++) {
       inst_printf("%s[%d]: handling request %u of %lu\n", FILE__, __LINE__, lcv+1, requests.size());
 
-        instMapping *req = requests[lcv];
+        dapi::instMapping *req = requests[lcv];
         
         if(!multithread_capable() && req->is_MTonly())
             continue;
@@ -1756,7 +1758,7 @@ void PCProcess::installInstrRequests(const std::vector<instMapping*> &requests) 
 	   inst_printf("%s[%d]: found %lu points to instrument\n", FILE__, __LINE__, points.size());
            for (std::vector<Point *>::iterator iter = points.begin();
                 iter != points.end(); ++iter) {
-              Dyninst::PatchAPI::Instance::Ptr inst = (req->order == orderFirstAtPoint) ? 
+              Dyninst::PatchAPI::Instance::Ptr inst = (req->order == dapi::orderFirstAtPoint) ?
                  (*iter)->pushFront(ast) :
                  (*iter)->pushBack(ast);
               if (inst) {

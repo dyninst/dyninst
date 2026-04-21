@@ -51,7 +51,7 @@
 #include "addressSpace.h"
 #include "dynProcess.h"
 #include "debug.h"
-
+#include "instMapping.h"
 #include "BPatch_memoryAccessAdapter.h"
 
 #include "BPatch_edge.h"
@@ -64,6 +64,8 @@
 #include "Snippet.h"
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
+
+namespace dapi = Dyninst::DyninstAPI;
 
 /*
  * Private constructor, insn
@@ -532,8 +534,8 @@ int BPatch_point::getDisplacedInstructions(int /*maxSize*/, void* /*insns*/)
 bool BPatchToInternalArgs(BPatch_point *point,
                           BPatch_callWhen when,
                           BPatch_snippetOrder order,
-                          callWhen &ipWhen,
-                          callOrder &ipOrder) {
+                          dapi::callWhen &ipWhen,
+                          dapi::callOrder &ipOrder) {
     // Edge instrumentation: overrides inputs
 
   if (point->edge()) {
@@ -545,11 +547,11 @@ bool BPatchToInternalArgs(BPatch_point *point,
     switch(point->edge()->getType()) {
     case CondJumpTaken:
     case UncondJump:
-      ipWhen = callBranchTargetInsn;
+      ipWhen = dapi::callBranchTargetInsn;
       break;
     case CondJumpNottaken:
     case NonJump:
-      ipWhen = callPostInsn;
+      ipWhen = dapi::callPostInsn;
       break;
     default:
        fprintf(stderr, "Unknown edge type %d\n", point->edge()->getType());
@@ -559,18 +561,18 @@ bool BPatchToInternalArgs(BPatch_point *point,
   else {
     // Instruction level
     if (when == BPatch_callBefore)
-      ipWhen = callPreInsn;
+      ipWhen = dapi::callPreInsn;
     else if (when == BPatch_callAfter)
-      ipWhen = callPostInsn;
+      ipWhen = dapi::callPostInsn;
     else if (when == BPatch_callUnset)
-      ipWhen = callPreInsn;
+      ipWhen = dapi::callPreInsn;
   }
 
 
   if (order == BPatch_firstSnippet)
-    ipOrder = orderFirstAtPoint;
+    ipOrder = dapi::orderFirstAtPoint;
   else if (order == BPatch_lastSnippet)
-    ipOrder = orderLastAtPoint;
+    ipOrder = dapi::orderLastAtPoint;
   else
     return false;
 
@@ -602,7 +604,7 @@ bool BPatchToInternalArgs(BPatch_point *point,
       //  The semantics of pre/post insn at exit are setup for the new
       //  defintion of using this to control before/after stack creation,
       //  but the lower levels of dyninst don't know about this yet.
-      ipWhen = callPreInsn;
+      ipWhen = dapi::callPreInsn;
   }
 
   return true;

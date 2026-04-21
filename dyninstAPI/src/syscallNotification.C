@@ -34,7 +34,7 @@
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/syscallNotification.h"
 #include "dyninstAPI/src/dynProcess.h"
-
+#include "instMapping.h"
 #include "EventType.h"
 #include "dyninstAPI/src/pcEventMuxer.h"
 #include "patchAPI/h/PatchMgr.h"
@@ -45,6 +45,8 @@ using namespace PatchAPI;
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using operandAST = Dyninst::DyninstAPI::operandAST;
+
+namespace dapi = Dyninst::DyninstAPI;
 
 
 syscallNotification::syscallNotification(syscallNotification *parentSN,
@@ -59,22 +61,22 @@ syscallNotification::syscallNotification(syscallNotification *parentSN,
     // the parent process
     // We don't copy the instMappings, but make new copies.
   if (parentSN->preForkInst) {
-    preForkInst = new instMapping(parentSN->preForkInst, child);
+    preForkInst = new dapi::instMapping(parentSN->preForkInst, child);
   }
   if (parentSN->postForkInst) {
-    postForkInst = new instMapping(parentSN->postForkInst, child);
+    postForkInst = new dapi::instMapping(parentSN->postForkInst, child);
   }
   if (parentSN->preExecInst) {
-    preExecInst = new instMapping(parentSN->preExecInst, child);
+    preExecInst = new dapi::instMapping(parentSN->preExecInst, child);
   }
   if (parentSN->postExecInst) {
-    postExecInst = new instMapping(parentSN->postExecInst, child);
+    postExecInst = new dapi::instMapping(parentSN->postExecInst, child);
   }
   if (parentSN->preExitInst) {
-    preExitInst = new instMapping(parentSN->preExitInst, child);
+    preExitInst = new dapi::instMapping(parentSN->preExitInst, child);
   }
   if (parentSN->preLwpExitInst) {
-    preLwpExitInst = new instMapping(parentSN->preLwpExitInst, child);
+    preLwpExitInst = new dapi::instMapping(parentSN->preLwpExitInst, child);
   }
 }
 
@@ -85,11 +87,11 @@ bool syscallNotification::installPreFork() {
     return true;
   }
 
-   preForkInst = new instMapping(getForkFuncName(),
+   preForkInst = new dapi::instMapping(getForkFuncName(),
                                  "DYNINST_instForkEntry",
                                  FUNC_ENTRY);
    preForkInst->dontUseTrampGuard();
-   std::vector<instMapping *> instReqs;
+   std::vector<dapi::instMapping *> instReqs;
    instReqs.push_back(preForkInst);
    
    proc->installInstrRequests(instReqs);
@@ -104,13 +106,13 @@ bool syscallNotification::installPostFork() {
    if (!PCEventMuxer::useBreakpoint(EventType(EventType::Post, EventType::Fork))) return true;
 
    codeGenASTPtr returnVal = operandAST::ReturnVal((void *)0);
-   postForkInst = new instMapping(getForkFuncName(), "DYNINST_instForkExit",
+   postForkInst = new dapi::instMapping(getForkFuncName(), "DYNINST_instForkExit",
                                   FUNC_EXIT|FUNC_ARG,
                                   returnVal);
    postForkInst->dontUseTrampGuard();
    postForkInst->canUseTrap(false);
    
-   std::vector<instMapping *> instReqs;
+   std::vector<dapi::instMapping *> instReqs;
    instReqs.push_back(postForkInst);
    
    proc->installInstrRequests(instReqs);
@@ -124,12 +126,12 @@ bool syscallNotification::installPostFork() {
 bool syscallNotification::installPreExec() {
    if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Exec))) return true;
    codeGenASTPtr arg0 = operandAST::Param((void *)0);
-   preExecInst = new instMapping(getExecFuncName(), "DYNINST_instExecEntry",
+   preExecInst = new dapi::instMapping(getExecFuncName(), "DYNINST_instExecEntry",
                                  FUNC_ENTRY|FUNC_ARG,
                                  arg0);
    preExecInst->dontUseTrampGuard();
    
-   std::vector<instMapping *> instReqs;
+   std::vector<dapi::instMapping *> instReqs;
    instReqs.push_back(preExecInst);
    
    proc->installInstrRequests(instReqs);
@@ -151,14 +153,14 @@ bool syscallNotification::installPostExec() {
 bool syscallNotification::installPreExit() {
    if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Exit))) return true;
    codeGenASTPtr arg0 = operandAST::Param((void *)0);
-   preExitInst = new instMapping(getExitFuncName(), "DYNINST_instExitEntry",
+   preExitInst = new dapi::instMapping(getExitFuncName(), "DYNINST_instExitEntry",
                                  FUNC_ENTRY|FUNC_ARG,
                                  arg0);
    preExitInst->dontUseTrampGuard();
    
    preExitInst->allow_trap = true;
    
-   std::vector<instMapping *> instReqs;
+   std::vector<dapi::instMapping *> instReqs;
    instReqs.push_back(preExitInst);
    
    proc->installInstrRequests(instReqs);
