@@ -36,6 +36,11 @@
 #include <string>
 #include <vector>
 
+#define FUNC_ENTRY 0x1 /* entry to the function */
+#define FUNC_EXIT 0x2  /* exit from function */
+#define FUNC_CALL 0x4  /* subroutines called from func */
+#define FUNC_ARG 0x8   /* use arg as argument */
+
 namespace Dyninst { namespace DyninstAPI {
 
   enum callWhen {

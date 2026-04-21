@@ -61,17 +61,6 @@ class image_variable;
 func_instance *getFunction(instPoint *point);
 
 /*
- * struct to define a list of inst requests 
- *
- */
-#define FUNC_ENTRY      0x1             /* entry to the function */
-#define FUNC_EXIT       0x2             /* exit from function */
-#define FUNC_CALL       0x4             /* subroutines called from func */
-#define FUNC_ARG  	0x8             /* use arg as argument */
-
-
-
-/*
  * Generate an instruction.
  * Previously this was handled by the polymorphic "emit" function, which
  * took a variety of argument types and variously returned either an
