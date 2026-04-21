@@ -80,7 +80,6 @@ namespace Dyninst { namespace DyninstAPI {
     std::string func;                  /* function to instrument */
     std::string inst;                  /* inst. function to place at func */
     int where;                         /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
-    callWhen when{callPreInsn};        /* callPreInsn, callPostInsn */
     callOrder order{orderLastAtPoint}; /* orderFirstAtPoint, orderLastAtPoint */
     std::vector<codeGenASTPtr> args;   /* what to pass as arg0 ... n */
     bool useTrampGuard{true};
