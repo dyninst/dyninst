@@ -75,10 +75,6 @@ namespace Dyninst { namespace DyninstAPI {
       useTrampGuard = false;
     }
 
-    void markAs_MTonly() {
-      mt_only = true;
-    }
-
     void canUseTrap(bool t) {
       allow_trap = t;
     }
