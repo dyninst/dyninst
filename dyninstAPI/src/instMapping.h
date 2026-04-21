@@ -98,7 +98,7 @@ namespace Dyninst { namespace DyninstAPI {
       allow_trap = t;
     }
 
-    bool is_MTonly() {
+    bool is_MTonly() const {
       return mt_only;
     }
 
