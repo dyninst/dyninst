@@ -177,7 +177,6 @@ set(_sources
     src/hybridOverwrites.C
     src/image.C
     src/infHeap.C
-    src/inst.C
     src/instPoint.C
     src/mapped_module.C
     src/mapped_object.C
