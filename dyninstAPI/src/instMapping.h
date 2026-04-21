@@ -54,30 +54,30 @@ namespace Dyninst { namespace DyninstAPI {
   class instMapping {
 
   public:
-    instMapping(const std::string f, const std::string i, const int w, callWhen wn, callOrder o,
+    instMapping(std::string f, std::string i, const int w, callWhen wn, callOrder o,
                 Dyninst::DyninstAPI::codeGenASTPtr a = Dyninst::DyninstAPI::codeGenASTPtr(),
                 std::string l = "")
-        : func(f), inst(i), lib(l), where(w), when(wn), order(o), useTrampGuard(true),
-          mt_only(false), allow_trap(false) {
-      if(a) {
-        args.push_back(a);
-      }
-    }
-
-    instMapping(const std::string f, const std::string i, const int w,
-                Dyninst::DyninstAPI::codeGenASTPtr a = Dyninst::DyninstAPI::codeGenASTPtr(),
-                std::string l = "")
-        : func(f), inst(i), lib(l), where(w), when(callPreInsn), order(orderLastAtPoint),
+        : func(std::move(f)), inst(std::move(i)), lib(std::move(l)), where(w), when(wn), order(o),
           useTrampGuard(true), mt_only(false), allow_trap(false) {
       if(a) {
         args.push_back(a);
       }
     }
 
-    instMapping(const std::string f, const std::string i, const int w,
+    instMapping(std::string f, std::string i, const int w,
+                Dyninst::DyninstAPI::codeGenASTPtr a = Dyninst::DyninstAPI::codeGenASTPtr(),
+                std::string l = "")
+        : func(std::move(f)), inst(std::move(i)), lib(std::move(l)), where(w), when(callPreInsn),
+          order(orderLastAtPoint), useTrampGuard(true), mt_only(false), allow_trap(false) {
+      if(a) {
+        args.push_back(a);
+      }
+    }
+
+    instMapping(std::string f, std::string i, const int w,
                 std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &aList, std::string l = "")
-        : func(f), inst(i), lib(l), where(w), when(callPreInsn), order(orderLastAtPoint),
-          useTrampGuard(true), mt_only(false), allow_trap(false) {
+        : func(std::move(f)), inst(std::move(i)), lib(std::move(l)), where(w), when(callPreInsn),
+          order(orderLastAtPoint), useTrampGuard(true), mt_only(false), allow_trap(false) {
       for(auto ast : aList) {
         if(ast) {
           args.push_back(ast);
