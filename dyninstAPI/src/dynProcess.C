@@ -1755,9 +1755,7 @@ void PCProcess::installInstrRequests(const std::vector<dapi::instMapping*> &requ
 	   inst_printf("%s[%d]: found %lu points to instrument\n", FILE__, __LINE__, points.size());
            for (std::vector<Point *>::iterator iter = points.begin();
                 iter != points.end(); ++iter) {
-              Dyninst::PatchAPI::Instance::Ptr inst = (req->order == dapi::orderFirstAtPoint) ?
-                 (*iter)->pushFront(ast) :
-                 (*iter)->pushBack(ast);
+              Dyninst::PatchAPI::Instance::Ptr inst = (*iter)->pushBack(ast);
               if (inst) {
                  if (!req->useTrampGuard) inst->disableRecursiveGuard();
                  req->instances.push_back(inst);

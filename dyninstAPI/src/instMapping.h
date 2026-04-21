@@ -77,11 +77,10 @@ namespace Dyninst { namespace DyninstAPI {
       allow_trap = t;
     }
 
-    std::string func;                  /* function to instrument */
-    std::string inst;                  /* inst. function to place at func */
-    int where;                         /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
-    callOrder order{orderLastAtPoint}; /* orderFirstAtPoint, orderLastAtPoint */
-    std::vector<codeGenASTPtr> args;   /* what to pass as arg0 ... n */
+    std::string func;                /* function to instrument */
+    std::string inst;                /* inst. function to place at func */
+    int where;                       /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
+    std::vector<codeGenASTPtr> args; /* what to pass as arg0 ... n */
     bool useTrampGuard{true};
     bool allow_trap{false};
     std::vector<Dyninst::PatchAPI::InstancePtr> instances;
