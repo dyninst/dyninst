@@ -55,8 +55,7 @@ namespace Dyninst { namespace DyninstAPI {
 
   public:
     instMapping(std::string f, std::string i, const int w, callWhen wn, callOrder o,
-                Dyninst::DyninstAPI::codeGenASTPtr a = Dyninst::DyninstAPI::codeGenASTPtr(),
-                std::string l = "")
+                codeGenASTPtr a = codeGenASTPtr(), std::string l = "")
         : func(std::move(f)), inst(std::move(i)), lib(std::move(l)), where(w), when(wn), order(o),
           useTrampGuard(true), mt_only(false), allow_trap(false) {
       if(a) {
@@ -64,8 +63,7 @@ namespace Dyninst { namespace DyninstAPI {
       }
     }
 
-    instMapping(std::string f, std::string i, const int w,
-                Dyninst::DyninstAPI::codeGenASTPtr a = Dyninst::DyninstAPI::codeGenASTPtr(),
+    instMapping(std::string f, std::string i, const int w, codeGenASTPtr a = codeGenASTPtr(),
                 std::string l = "")
         : func(std::move(f)), inst(std::move(i)), lib(std::move(l)), where(w), when(callPreInsn),
           order(orderLastAtPoint), useTrampGuard(true), mt_only(false), allow_trap(false) {
@@ -74,8 +72,8 @@ namespace Dyninst { namespace DyninstAPI {
       }
     }
 
-    instMapping(std::string f, std::string i, const int w,
-                std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &aList, std::string l = "")
+    instMapping(std::string f, std::string i, const int w, std::vector<codeGenASTPtr> &aList,
+                std::string l = "")
         : func(std::move(f)), inst(std::move(i)), lib(std::move(l)), where(w), when(callPreInsn),
           order(orderLastAtPoint), useTrampGuard(true), mt_only(false), allow_trap(false) {
       for(auto ast : aList) {
@@ -104,13 +102,13 @@ namespace Dyninst { namespace DyninstAPI {
       return mt_only;
     }
 
-    std::string func;                                     /* function to instrument */
-    std::string inst;                                     /* inst. function to place at func */
-    std::string lib;                                      /* library name */
-    int where;                                            /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
-    callWhen when;                                        /* callPreInsn, callPostInsn */
-    callOrder order;                                      /* orderFirstAtPoint, orderLastAtPoint */
-    std::vector<Dyninst::DyninstAPI::codeGenASTPtr> args; /* what to pass as arg0 ... n */
+    std::string func;                /* function to instrument */
+    std::string inst;                /* inst. function to place at func */
+    std::string lib;                 /* library name */
+    int where;                       /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
+    callWhen when;                   /* callPreInsn, callPostInsn */
+    callOrder order;                 /* orderFirstAtPoint, orderLastAtPoint */
+    std::vector<codeGenASTPtr> args; /* what to pass as arg0 ... n */
     bool useTrampGuard;
     bool mt_only;
     bool allow_trap;
