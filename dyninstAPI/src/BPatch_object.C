@@ -81,7 +81,7 @@ std::string BPatch_object::pathName() {
    return obj->fullName();
 }
 
-bool BPatch_object::isSharedLib() {
+bool BPatch_object::isSharedLib() const {
    return obj->isSharedLib();
 }
 

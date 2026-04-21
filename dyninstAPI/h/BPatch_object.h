@@ -111,7 +111,7 @@ class DYNINST_EXPORT BPatch_object {
 
     // BPatch_object::isSharedLib
     // Returns true if this object represents a shared library
-    bool isSharedLib();
+    bool isSharedLib() const;
 
     
     // BPatch_object::offsetToAddr
