@@ -59,7 +59,7 @@ namespace Dyninst { namespace DyninstAPI {
                 std::string l = "")
         : func(f), inst(i), lib(l), where(w), when(wn), order(o), useTrampGuard(true),
           mt_only(false), allow_trap(false) {
-      if(a != Dyninst::DyninstAPI::codeGenASTPtr()) {
+      if(a) {
         args.push_back(a);
       }
     }
@@ -69,7 +69,7 @@ namespace Dyninst { namespace DyninstAPI {
                 std::string l = "")
         : func(f), inst(i), lib(l), where(w), when(callPreInsn), order(orderLastAtPoint),
           useTrampGuard(true), mt_only(false), allow_trap(false) {
-      if(a != Dyninst::DyninstAPI::codeGenASTPtr()) {
+      if(a) {
         args.push_back(a);
       }
     }
