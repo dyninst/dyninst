@@ -81,6 +81,10 @@ std::string BPatch_object::pathName() {
    return obj->fullName();
 }
 
+bool BPatch_object::isSharedLib() {
+   return obj->isSharedLib();
+}
+
 Dyninst::Address BPatch_object::fileOffsetToAddr(const Dyninst::Offset fileOffset) {
    // File offset, so duck into SymtabAPI to turn it into a "mem offset" 
    // (aka ELF shifted) address
