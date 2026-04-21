@@ -78,10 +78,6 @@ namespace Dyninst { namespace DyninstAPI {
       allow_trap = t;
     }
 
-    bool is_MTonly() const {
-      return mt_only;
-    }
-
     std::string func;                  /* function to instrument */
     std::string inst;                  /* inst. function to place at func */
     std::string lib;                   /* library name */
@@ -90,7 +86,6 @@ namespace Dyninst { namespace DyninstAPI {
     callOrder order{orderLastAtPoint}; /* orderFirstAtPoint, orderLastAtPoint */
     std::vector<codeGenASTPtr> args;   /* what to pass as arg0 ... n */
     bool useTrampGuard{true};
-    bool mt_only{false};
     bool allow_trap{false};
     std::vector<Dyninst::PatchAPI::InstancePtr> instances;
   };

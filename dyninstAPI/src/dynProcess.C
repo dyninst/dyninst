@@ -1690,9 +1690,6 @@ void PCProcess::installInstrRequests(const std::vector<dapi::instMapping*> &requ
 
         dapi::instMapping *req = requests[lcv];
         
-        if(!multithread_capable() && req->is_MTonly())
-            continue;
-        
         std::vector<func_instance *> matchingFuncs;
         
         if (!findFuncsByAll(req->func, matchingFuncs, req->lib)) {

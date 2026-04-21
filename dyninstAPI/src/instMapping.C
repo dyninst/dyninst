@@ -10,8 +10,7 @@ namespace Dyninst { namespace DyninstAPI {
 
   instMapping::instMapping(const instMapping *parIM, AddressSpace *child)
       : func(parIM->func), inst(parIM->inst), where(parIM->where), when(parIM->when),
-        order(parIM->order), useTrampGuard(parIM->useTrampGuard), mt_only(parIM->mt_only),
-        allow_trap(parIM->allow_trap) {
+        order(parIM->order), useTrampGuard(parIM->useTrampGuard), allow_trap(parIM->allow_trap) {
     for(auto ast : parIM->args) {
       args.push_back(ast);
     }
