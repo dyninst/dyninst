@@ -78,9 +78,9 @@ namespace Dyninst { namespace DyninstAPI {
                 std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &aList, std::string l = "")
         : func(f), inst(i), lib(l), where(w), when(callPreInsn), order(orderLastAtPoint),
           useTrampGuard(true), mt_only(false), allow_trap(false) {
-      for(unsigned u = 0; u < aList.size(); u++) {
-        if(aList[u] != Dyninst::DyninstAPI::codeGenASTPtr()) {
-          args.push_back(aList[u]);
+      for(auto ast : aList) {
+        if(ast) {
+          args.push_back(ast);
         }
       }
     }
