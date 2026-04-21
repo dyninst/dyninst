@@ -59,9 +59,8 @@ namespace Dyninst { namespace DyninstAPI {
   class instMapping {
 
   public:
-    instMapping(std::string f, std::string i, const int w, codeGenASTPtr a = codeGenASTPtr(),
-                std::string l = "")
-        : func(std::move(f)), inst(std::move(i)), lib(std::move(l)), where(w) {
+    instMapping(std::string f, std::string i, const int w, codeGenASTPtr a = codeGenASTPtr())
+        : func(std::move(f)), inst(std::move(i)), where(w) {
       if(a) {
         args.push_back(a);
       }
@@ -80,7 +79,6 @@ namespace Dyninst { namespace DyninstAPI {
 
     std::string func;                  /* function to instrument */
     std::string inst;                  /* inst. function to place at func */
-    std::string lib;                   /* library name */
     int where;                         /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
     callWhen when{callPreInsn};        /* callPreInsn, callPostInsn */
     callOrder order{orderLastAtPoint}; /* orderFirstAtPoint, orderLastAtPoint */

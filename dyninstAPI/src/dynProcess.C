@@ -1692,13 +1692,13 @@ void PCProcess::installInstrRequests(const std::vector<dapi::instMapping*> &requ
         
         std::vector<func_instance *> matchingFuncs;
         
-        if (!findFuncsByAll(req->func, matchingFuncs, req->lib)) {
-            inst_printf("%s[%d]: failed to find any functions matching %s (lib %s), returning failure from installInstrRequests\n", FILE__, __LINE__, req->func.c_str(), req->lib.c_str());
+        if (!findFuncsByAll(req->func, matchingFuncs)) {
+            inst_printf("%s[%d]: failed to find any functions matching %s, returning failure from installInstrRequests\n", FILE__, __LINE__, req->func.c_str());
             return;
         }
         else {
-            inst_printf("%s[%d]: found %lu functions matching %s (lib %s), instrumenting...\n",
-                        FILE__, __LINE__, matchingFuncs.size(), req->func.c_str(), req->lib.c_str());
+            inst_printf("%s[%d]: found %lu functions matching %s, instrumenting...\n",
+                        FILE__, __LINE__, matchingFuncs.size(), req->func.c_str());
         }
 
         for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
