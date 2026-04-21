@@ -88,7 +88,6 @@ namespace Dyninst { namespace DyninstAPI {
     // Fork
     instMapping(const instMapping *parMapping, AddressSpace *child);
 
-  public:
     void dontUseTrampGuard() {
       useTrampGuard = false;
     }
