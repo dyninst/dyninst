@@ -38,17 +38,17 @@
 
 namespace Dyninst { namespace DyninstAPI {
 
-  typedef enum {
+  enum callWhen {
     callPreInsn,
     callPostInsn,
     callBranchTargetInsn,
     callUnset
-  } callWhen;
+  };
 
-  typedef enum {
+  enum callOrder {
     orderFirstAtPoint,
     orderLastAtPoint
-  } callOrder;
+  };
 
   // Container class for "instrument this point with this function".
   class instMapping {
