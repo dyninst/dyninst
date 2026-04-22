@@ -105,7 +105,7 @@ bool functionCallAST::generateCode_phase2(codeGen &gen, Address &,
       gen.tracker()->addKeptRegister(gen, this, retReg);
     }
   } else if(retReg != tmp) {
-    emitImm(orOp, tmp, 0, retReg, gen, gen.rs());
+    emitImm(orOp, tmp, 0, retReg, gen);
     gen.rs()->freeRegister(tmp);
   }
   decUseCount(gen);

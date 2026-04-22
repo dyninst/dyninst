@@ -350,7 +350,7 @@ void popStack(codeGen &gen)
 
 //TODO: 32-/64-bit regs?
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
-        codeGen &gen, registerSpace * /* rs */, bool s)
+        codeGen &gen, bool s)
 {
     switch(op) {
         case plusOp:

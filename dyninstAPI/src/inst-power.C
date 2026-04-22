@@ -642,7 +642,7 @@ unsigned restoreSPRegisters(codeGen &gen,
 }
 
 void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Register dest,
-             codeGen &gen, registerSpace * /* rs */, bool s)
+             codeGen &gen, bool s)
 {
     int iop=-1;
     int result=-1;
@@ -1730,7 +1730,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 
         // Get address (SP + offset) and stick in register dest.
         emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
-                gen, gen.rs());
+                gen);
         // Load LR into register dest
         emitV(loadIndirOp, dest, 0, dest, gen,
               gen.width(), gen.addrSpace());
@@ -1745,7 +1745,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 
         // Get address (SP + offset) and stick in register dest.
         emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
-                gen, gen.rs());
+                gen);
         // Load LR into register dest
         emitV(loadIndirOp, dest, 0, dest, gen,
               gen.width(), gen.addrSpace());

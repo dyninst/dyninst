@@ -1197,7 +1197,7 @@ void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::R
 }
 
 void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Register dest,
-             codeGen &gen, registerSpace *, bool s)
+             codeGen &gen, bool s)
 {
    if (op ==  storeOp) {
        // this doesn't seem to ever be called from ast.C (or anywhere) - gq

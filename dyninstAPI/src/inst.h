@@ -100,7 +100,7 @@ void     emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, D
 // and the retyped original emitImm companion
 void     emitImm(opCode op, Dyninst::Register src, Dyninst::RegValue src2imm, Dyninst::Register dst,
                  codeGen &gen,
-                 registerSpace *rs = NULL, bool s = true);
+                 bool s = true);
 
 
 //#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
