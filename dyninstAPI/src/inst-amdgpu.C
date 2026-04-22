@@ -92,7 +92,7 @@ void emitVload(opCode /* op */, Address /* src1 */, Register /* src2 */, Registe
 
 void emitVstore(opCode /* op */, Register /* src1 */, Register /*src2*/, Address /* dest */,
                 codeGen & /* gen */, int /* size */,
-                const instPoint * /* location */, AddressSpace *) {
+                AddressSpace *) {
   assert(!"Not imeplemented for AMDGPU");
 }
 

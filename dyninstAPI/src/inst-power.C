@@ -1486,7 +1486,7 @@ void emitVload(opCode op, Address src1, Dyninst::Register src2, Dyninst::Registe
 void emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, Address dest,
 		codeGen &gen,
                 int size,
-                const instPoint * /* location */, AddressSpace *proc)
+                AddressSpace *proc)
 {
     if (op == storeOp) {
 	// temp register to hold base address for store (added 6/26/96 jkh)
