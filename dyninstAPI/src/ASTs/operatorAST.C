@@ -573,7 +573,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
       src2 = gen.rs()->allocateRegister(gen);
       switch(loperand->getoType()) {
         case operandType::variableValue:
-          loperand->emitVariableStore(storeOp, src1, src2, gen, size, gen.point(),
+          loperand->emitVariableStore(storeOp, src1, src2, gen, size,
                                       gen.addrSpace());
           loperand->decUseCount(gen);
           break;

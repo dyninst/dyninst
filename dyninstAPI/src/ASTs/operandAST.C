@@ -245,7 +245,7 @@ void operandAST::emitVariableLoad(opCode op, Dyninst::Register src2, Dyninst::Re
 
 void operandAST::emitVariableStore(opCode op, Dyninst::Register src1, Dyninst::Register src2,
                                        codeGen &gen, int size_,
-                                       const instPoint *point, AddressSpace *as) {
+                                       AddressSpace *as) {
   int_variable *var = lookUpVar(as);
   if(var && !as->needsPIC(var)) {
     emitVstore(op, src1, src2, var->getAddress(), gen, size_, as);
