@@ -94,7 +94,7 @@ void     emitVload(opCode op, Dyninst::Address src1, Dyninst::Register src2, Dyn
 // for storeOp (writing to an Dyninst::Address)
 void     emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Address dst,
                     codeGen &gen,
-                    registerSpace *rs = NULL, int size = 4, 
+                    int size = 4,
                     const instPoint * location = NULL, AddressSpace * proc = NULL);
 
 // for storeOp (writing to an Dyninst::Address)

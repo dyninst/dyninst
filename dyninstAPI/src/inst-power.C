@@ -1485,7 +1485,7 @@ void emitVload(opCode op, Address src1, Dyninst::Register src2, Dyninst::Registe
 
 void emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, Address dest,
 		codeGen &gen,
-                registerSpace * /* rs */, int size,
+                int size,
                 const instPoint * /* location */, AddressSpace *proc)
 {
     if (op == storeOp) {
