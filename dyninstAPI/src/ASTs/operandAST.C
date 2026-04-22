@@ -79,7 +79,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
     case operandType::Constant:
       assert(oVar == NULL);
       emitVload(loadConstOp, (Address)oValue, retReg, retReg, gen, size,
-                gen.point(), gen.addrSpace());
+                gen.addrSpace());
       break;
 #endif
     case operandType::DataIndir:
@@ -161,13 +161,13 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
     case operandType::DataAddr:
       assert(oVar == NULL);
       addr = reinterpret_cast<Address>(oValue);
-      emitVload(loadOp, addr, retReg, retReg, gen, size, gen.point(),
+      emitVload(loadOp, addr, retReg, retReg, gen, size,
                 gen.addrSpace());
       break;
     case operandType::FrameAddr:
       addr = (Address)oValue;
       temp = gen.rs()->allocateRegister(gen);
-      emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, size, gen.point(),
+      emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, size,
                 gen.addrSpace());
       gen.rs()->freeRegister(temp);
       break;
@@ -177,7 +177,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
       assert(operand_);
       addr = (Address)operand_->getOValue();
       emitVload(loadRegRelativeOp, addr, (long)oValue, retReg, gen, size,
-                gen.point(), gen.addrSpace());
+                gen.addrSpace());
       break;
     case operandType::ConstantString:
       // XXX This is for the std::string type.  If/when we fix the std::string type
@@ -192,7 +192,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
       }
 
       if(!gen.addrSpace()->needsPIC()) {
-        emitVload(loadConstOp, addr, retReg, retReg, gen, size, gen.point(),
+        emitVload(loadConstOp, addr, retReg, retReg, gen, size,
                   gen.addrSpace());
       } else {
         gen.codeEmitter()->emitLoadShared(loadConstOp, retReg, NULL, true, size, gen, addr);
@@ -237,7 +237,7 @@ void operandAST::emitVariableLoad(opCode op, Dyninst::Register src2, Dyninst::Re
                                       const instPoint *point, AddressSpace *as) {
   int_variable *var = lookUpVar(as);
   if(var && !as->needsPIC(var)) {
-    emitVload(op, var->getAddress(), src2, dest, gen, size_, point, as);
+    emitVload(op, var->getAddress(), src2, dest, gen, size_, as);
   } else {
     gen.codeEmitter()->emitLoadShared(op, dest, oVar, (var != NULL), size_, gen, 0);
   }

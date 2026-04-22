@@ -819,7 +819,7 @@ void emitCSload(const BPatch_addrSpec_NP *, Register, codeGen &) {
 void emitVload(opCode op, Address src1, Register src2, Register dest,
                codeGen &gen,
                int size,
-               const instPoint * /* location */, AddressSpace *)
+               AddressSpace *)
 {
     switch(op)
     {

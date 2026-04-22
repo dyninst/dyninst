@@ -1402,7 +1402,7 @@ void emitCSload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, codeGen &g
 void emitVload(opCode op, Address src1, Dyninst::Register src2, Dyninst::Register dest,
                codeGen &gen,
                int size,
-               const instPoint * /* location */, AddressSpace *proc)
+               AddressSpace *proc)
 {
   switch(op) {
   case loadConstOp:
