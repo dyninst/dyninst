@@ -824,7 +824,7 @@ Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src
     }
     assert(get_addr_of);
     emitV(storeIndirOp, src2, 0, dest, gen,
-          gen.addrSpace()->getAddressWidth(), gen.point(), gen.addrSpace());
+          gen.addrSpace()->getAddressWidth(), gen.addrSpace());
     return(dest);
 }
 
@@ -1109,7 +1109,7 @@ void emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, Addre
 void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dest,
            codeGen &gen,
            int size,
-           const instPoint * /* location */, AddressSpace * /* proc */, bool s)
+           AddressSpace * /* proc */, bool s)
 {
     assert ((op!=branchOp) && (op!=ifOp));         // !emitA
     assert ((op!=getRetValOp) && (op!=getRetAddrOp) && 

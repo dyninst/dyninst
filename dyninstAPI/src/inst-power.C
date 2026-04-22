@@ -669,7 +669,7 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
             Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen);
             emitVload(loadConstOp, src2imm, dest2, dest2, gen);
             emitV(op, src1, dest2, dest, gen,
-                  gen.width(), gen.point(), gen.addrSpace(), s);
+                  gen.width(), gen.addrSpace(), s);
             return;
         }
         break;
@@ -678,7 +678,7 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
             Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen);
             emitVload(loadConstOp, src2imm, dest2, dest2, gen);
             emitV(op, src1, dest2, dest, gen,
-                  gen.width(), gen.point(), gen.addrSpace(), s);
+                  gen.width(), gen.addrSpace(), s);
             return;
         }
         // Bool ops
@@ -699,7 +699,7 @@ void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Regis
         Dyninst::Register dest2 = gen.rs()->getScratchRegister(gen);
         emitVload(loadConstOp, src2imm, dest2, dest2, gen);
         emitV(op, src1, dest2, dest, gen,
-              gen.width(), gen.point(), gen.addrSpace(), s);
+              gen.width(), gen.addrSpace(), s);
         return;
         break;
     }
@@ -1529,7 +1529,7 @@ void emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, A
 void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dest,
            codeGen &gen,
            int size,
-           const instPoint * /* location */, AddressSpace *proc, bool s)
+           AddressSpace *proc, bool s)
 {
 
     assert ((op!=branchOp) && (op!=ifOp));         // !emitA
@@ -1733,7 +1733,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
                 gen, gen.rs());
         // Load LR into register dest
         emitV(loadIndirOp, dest, 0, dest, gen,
-              gen.width(), gen.point(), gen.addrSpace());
+              gen.width(), gen.addrSpace());
         break;
 
     case registerSpace::ctr:
@@ -1748,7 +1748,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
                 gen, gen.rs());
         // Load LR into register dest
         emitV(loadIndirOp, dest, 0, dest, gen,
-              gen.width(), gen.point(), gen.addrSpace());
+              gen.width(), gen.addrSpace());
       break;
 
     default:

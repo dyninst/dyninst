@@ -83,7 +83,7 @@ Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src
 void     emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst,
                codeGen &gen,
                int size = 4,
-               const instPoint * location = NULL, AddressSpace * proc = NULL, bool s = true);
+               AddressSpace * proc = NULL, bool s = true);
 
 // for loadOp and loadConstOp (reading from an Dyninst::Address)
 void     emitVload(opCode op, Dyninst::Address src1, Dyninst::Register src2, Dyninst::Register dst,

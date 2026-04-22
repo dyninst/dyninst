@@ -875,7 +875,7 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 void emitV(opCode op, Register src1, Register src2, Register dest,
         codeGen &gen,
            int size,
-           const instPoint * /* location */, AddressSpace *proc, bool s) 
+           AddressSpace *proc, bool s)
 {
     switch(op){
         case plusOp:

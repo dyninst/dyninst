@@ -603,7 +603,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
                     gen.rs(), size, gen.point(), gen.addrSpace());
 
           // Same as DataIndir at this point.
-          emitV(storeIndirOp, src1, 0, src2, gen, size, gen.point(),
+          emitV(storeIndirOp, src1, 0, src2, gen, size,
                 gen.addrSpace());
           loperand->decUseCount(gen);
           break;
@@ -617,7 +617,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
           REGISTER_CHECK(tmp);
 
           // tmp now contains address to store into
-          emitV(storeIndirOp, src1, 0, tmp, gen, size, gen.point(),
+          emitV(storeIndirOp, src1, 0, tmp, gen, size,
                 gen.addrSpace());
           gen.rs()->freeRegister(tmp);
           loperand->decUseCount(gen);
@@ -655,7 +655,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
           }
           REGISTER_CHECK(tmp);
 
-          emitV(storeIndirOp, src1, 0, tmp, gen, size, gen.point(),
+          emitV(storeIndirOp, src1, 0, tmp, gen, size,
                 gen.addrSpace());
           gen.rs()->freeRegister(tmp);
           break;
@@ -678,7 +678,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
       }
       REGISTER_CHECK(src1);
       REGISTER_CHECK(src2);
-      emitV(op, src1, 0, src2, gen, size, gen.point(), gen.addrSpace());
+      emitV(op, src1, 0, src2, gen, size, gen.addrSpace());
       gen.rs()->freeRegister(src1);
       gen.rs()->freeRegister(src2);
       retReg = Dyninst::Null_Register;
@@ -735,7 +735,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
         if(retReg == Dyninst::Null_Register) {
           retReg = allocateAndKeep(gen);
         }
-        emitV(op, src1, right_dest, retReg, gen, size, gen.point(),
+        emitV(op, src1, right_dest, retReg, gen, size,
               gen.addrSpace(), signedOp);
         if(src1 != Dyninst::Null_Register) {
           // Don't free inputs until afterwards; we have _no_ idea
