@@ -169,7 +169,7 @@ public:
                          registerSpace *rs, int size, const instPoint *point,
                          AddressSpace *as) override;
   void emitVariableLoad(opCode op, Dyninst::Register src2, Dyninst::Register dest, codeGen &gen,
-                        registerSpace *rs, int size, const instPoint *point,
+                        int size, const instPoint *point,
                         AddressSpace *as) override;
 
   bool initRegisters(codeGen &gen) override;

@@ -105,12 +105,12 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
       break;
     case operandType::variableAddr:
       assert(oVar);
-      emitVariableLoad(loadConstOp, retReg, retReg, gen, gen.rs(), size, gen.point(),
+      emitVariableLoad(loadConstOp, retReg, retReg, gen, size, gen.point(),
                        gen.addrSpace());
       break;
     case operandType::variableValue:
       assert(oVar);
-      emitVariableLoad(loadOp, retReg, retReg, gen, gen.rs(), size, gen.point(),
+      emitVariableLoad(loadOp, retReg, retReg, gen, size, gen.point(),
                        gen.addrSpace());
       break;
     case operandType::ReturnVal:
@@ -233,7 +233,7 @@ int_variable *operandAST::lookUpVar(AddressSpace *as) {
 }
 
 void operandAST::emitVariableLoad(opCode op, Dyninst::Register src2, Dyninst::Register dest,
-                                      codeGen &gen, registerSpace *rs, int size_,
+                                      codeGen &gen, int size_,
                                       const instPoint *point, AddressSpace *as) {
   int_variable *var = lookUpVar(as);
   if(var && !as->needsPIC(var)) {

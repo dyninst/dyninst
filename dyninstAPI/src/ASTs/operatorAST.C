@@ -483,7 +483,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
             retReg = allocateAndKeep(gen);
           }
           assert(loperand->getOVar());
-          loperand->emitVariableLoad(loadConstOp, retReg, retReg, gen, gen.rs(), size,
+          loperand->emitVariableLoad(loadConstOp, retReg, retReg, gen, size,
                                      gen.point(), gen.addrSpace());
           break;
         case operandType::variableValue:
@@ -491,7 +491,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
             retReg = allocateAndKeep(gen);
           }
           assert(loperand->getOVar());
-          loperand->emitVariableLoad(loadOp, retReg, retReg, gen, gen.rs(), size,
+          loperand->emitVariableLoad(loadOp, retReg, retReg, gen, size,
                                      gen.point(), gen.addrSpace());
           break;
         case operandType::DataAddr: {
