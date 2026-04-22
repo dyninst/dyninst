@@ -857,7 +857,7 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 
 void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
         codeGen &gen,
-        registerSpace * /* rs */, int size,
+        int size,
         const instPoint * /* location */, AddressSpace *)
 {
     if (op ==  storeOp) {
@@ -874,7 +874,7 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 
 void emitV(opCode op, Register src1, Register src2, Register dest,
         codeGen &gen,
-           registerSpace * /*rs*/, int size,
+           int size,
            const instPoint * /* location */, AddressSpace *proc, bool s) 
 {
     switch(op){

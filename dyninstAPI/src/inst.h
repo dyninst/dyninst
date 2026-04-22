@@ -82,7 +82,7 @@ Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src
 // for general arithmetic and logic operations which return nothing
 void     emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst,
                codeGen &gen,
-               registerSpace *rs = NULL, int size = 4,
+               int size = 4,
                const instPoint * location = NULL, AddressSpace * proc = NULL, bool s = true);
 
 // for loadOp and loadConstOp (reading from an Dyninst::Address)

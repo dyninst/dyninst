@@ -94,7 +94,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
       } else {
         tSize = sizeof(long);
       }
-      emitV(loadIndirOp, src, 0, retReg, gen, gen.rs(), tSize, gen.point(),
+      emitV(loadIndirOp, src, 0, retReg, gen, tSize, gen.point(),
             gen.addrSpace());
       gen.rs()->freeRegister(src);
       break;
