@@ -166,7 +166,7 @@ public:
   bool usesAppRegister() const override;
 
   void emitVariableStore(opCode op, Dyninst::Register src1, Dyninst::Register src2, codeGen &gen,
-                         registerSpace *rs, int size, const instPoint *point,
+                         int size, const instPoint *point,
                          AddressSpace *as) override;
   void emitVariableLoad(opCode op, Dyninst::Register src2, Dyninst::Register dest, codeGen &gen,
                         int size,
