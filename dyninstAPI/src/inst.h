@@ -97,12 +97,6 @@ void     emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, D
                     registerSpace *rs = NULL, int size = 4, 
                     const instPoint * location = NULL, AddressSpace * proc = NULL);
 
-// for loadOp and loadConstOp (reading from an Dyninst::Address)
-void     emitVload(opCode op, const image_variable* src1, Dyninst::Register src2, Dyninst::Register dst,
-                   codeGen &gen,
-                   registerSpace *rs = NULL, int size = 4, 
-                   const instPoint * location = NULL, AddressSpace * proc = NULL);
-
 // for storeOp (writing to an Dyninst::Address)
 void     emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, const image_variable* dst,
                     codeGen &gen,
