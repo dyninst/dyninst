@@ -666,7 +666,7 @@ codeBufIndex_t emitA(opCode op, Register src1, long dest,
 
 Register emitR(opCode op, Register src1, Register src2, Register dest,
                codeGen &gen,
-               const instPoint *, bool /*for_MT*/)
+               const instPoint *)
 {
     registerSlot *regSlot = NULL;
     unsigned addrWidth = gen.width();

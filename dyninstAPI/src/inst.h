@@ -77,7 +77,7 @@ codeBufIndex_t emitA(opCode op, Dyninst::Register src1, long dst,
 // (e.g., getRetValOp, getRetAddrOp, getParamOp)
 Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst,
                codeGen &gen,
-               const instPoint *location, bool for_multithreaded);
+               const instPoint *location);
 
 // for general arithmetic and logic operations which return nothing
 void     emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst,

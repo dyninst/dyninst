@@ -66,7 +66,7 @@ codeBufIndex_t emitA(opCode /* op */, Register /* src1 */, long /* dest */,
 }
 
 Register emitR(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */,
-               codeGen & /* gen */, const instPoint *, bool /*for_MT*/) {
+               codeGen & /* gen */, const instPoint *) {
   assert(!"Not implemented for AMDGPU");
   return 0;
 }
