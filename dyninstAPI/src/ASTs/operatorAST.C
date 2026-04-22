@@ -484,7 +484,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
           }
           assert(loperand->getOVar());
           loperand->emitVariableLoad(loadConstOp, retReg, retReg, gen, size,
-                                     gen.point(), gen.addrSpace());
+                                     gen.addrSpace());
           break;
         case operandType::variableValue:
           if(retReg == Dyninst::Null_Register) {
@@ -492,7 +492,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
           }
           assert(loperand->getOVar());
           loperand->emitVariableLoad(loadOp, retReg, retReg, gen, size,
-                                     gen.point(), gen.addrSpace());
+                                     gen.addrSpace());
           break;
         case operandType::DataAddr: {
           addr = reinterpret_cast<Dyninst::Address>(loperand->getOValue());

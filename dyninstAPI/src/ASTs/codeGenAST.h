@@ -186,7 +186,7 @@ public:
   }
 
   virtual void emitVariableLoad(opCode, Dyninst::Register, Dyninst::Register, codeGen &,
-                                int, const instPoint *, AddressSpace *) {
+                                int, AddressSpace *) {
     assert(!"Never call this on anything but an operand");
   }
 
