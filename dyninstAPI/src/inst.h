@@ -70,7 +70,7 @@ func_instance *getFunction(instPoint *point);
 
 // The return value is a magic "hand this in when we update" black box;
 // emitA handles emission of things like ifs that need to be updated later.
-codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register src2, long dst,
+codeBufIndex_t emitA(opCode op, Dyninst::Register src1, long dst,
                      codeGen &gen, Dyninst::DyninstAPI::RegControl rc);
 
 // for operations requiring a Dyninst::Register to be returned

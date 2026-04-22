@@ -59,7 +59,7 @@ Register emitFuncCall(opCode /* op */, codeGen & /* gen */,
   return 0;
 }
 
-codeBufIndex_t emitA(opCode /* op */, Register /* src1 */, Register, long /* dest */,
+codeBufIndex_t emitA(opCode /* op */, Register /* src1 */, long /* dest */,
                      codeGen & /* gen */, Dyninst::DyninstAPI::RegControl /* rc */) {
   assert(!"Not implemented for AMDGPU");
   return 0;

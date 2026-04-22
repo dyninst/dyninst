@@ -756,7 +756,7 @@ Dyninst::Register emitFuncCall(opCode op,
  * base is the next free position on ibuf where code is to be generated
  */
 
-codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, long dest,
+codeBufIndex_t emitA(opCode op, Dyninst::Register src1, long dest,
                      codeGen &gen, Dyninst::DyninstAPI::RegControl rc)
 {
    // retval is the address of the jump (if one is created). 

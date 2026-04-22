@@ -1121,7 +1121,7 @@ Dyninst::Register EmitterPOWER::emitCall(opCode ocode,
 }
 
  
-codeBufIndex_t emitA(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, long dest,
+codeBufIndex_t emitA(opCode op, Dyninst::Register src1, long dest,
 	      codeGen &gen, Dyninst::DyninstAPI::RegControl)
 {
     codeBufIndex_t retval = 0;
