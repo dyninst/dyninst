@@ -1043,7 +1043,7 @@ void emitCSload(const BPatch_countSpec_NP *as, Dyninst::Register dest,
 
 void emitVload(opCode op, Address src1, Dyninst::Register src2, Dyninst::Register dest,
                codeGen &gen,
-               registerSpace * /*rs*/, int size,
+               int size,
                const instPoint * /* location */, AddressSpace * /* proc */)
 {
    if (op == loadConstOp) {
