@@ -54,12 +54,6 @@ class registerSpace;
 class AddressSpace;
 class image_variable;
 
-/* Utility functions */
-
-
-/* return the function asociated with a point. */
-func_instance *getFunction(instPoint *point);
-
 /*
  * Generate an instruction.
  * Previously this was handled by the polymorphic "emit" function, which
