@@ -72,12 +72,16 @@ AddressSpace *BPatch_object::ll_as() { return obj->proc(); }
 
 BPatch_addressSpace *BPatch_object::as() { return img->getAddressSpace(); }
 
-std::string BPatch_object::name() {
+std::string BPatch_object::name() const {
    return obj->fileName();
 }
 
-std::string BPatch_object::pathName() {
+std::string BPatch_object::pathName() const {
    return obj->fullName();
+}
+
+bool BPatch_object::isSharedLib() const {
+   return obj->isSharedLib();
 }
 
 Dyninst::Address BPatch_object::fileOffsetToAddr(const Dyninst::Offset fileOffset) {
