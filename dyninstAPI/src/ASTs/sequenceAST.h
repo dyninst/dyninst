@@ -66,7 +66,7 @@ public:
   }
 
 private:
-  bool generateCode_phase2(codeGen &genw, Dyninst::Address &,
+  bool generateCode_phase2(codeGen &gen, Dyninst::Address &,
                            Dyninst::Register &retReg) override;
 };
 
