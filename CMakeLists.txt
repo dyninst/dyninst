@@ -25,10 +25,10 @@ project(
   LANGUAGES C CXX ASM)
 
 list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/cmake"
+     "${PROJECT_SOURCE_DIR}/cmake/tpls" "${PROJECT_SOURCE_DIR}/cmake/Modules")
 
 # Add dyncompat headers (boost replacement)
 include_directories(SYSTEM "${PROJECT_SOURCE_DIR}")
-     "${PROJECT_SOURCE_DIR}/cmake/tpls" "${PROJECT_SOURCE_DIR}/cmake/Modules")
 
 # These need to be done before anything else
 include(DyninstLibrarySettings)
