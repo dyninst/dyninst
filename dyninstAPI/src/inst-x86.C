@@ -200,15 +200,6 @@ bool can_do_relocation(PCProcess *proc,
  *
  **************************************************************/
 
-
-
-
-#define MAX_BRANCH	(static_cast<uint32_t>(1)<<31)
-
-Address getMaxBranch() {
-  return (Address)MAX_BRANCH;
-}
-
 /* build the MOD/RM byte of an instruction */
 static inline unsigned char makeModRMbyte(unsigned Mod, unsigned Reg,
                                           unsigned RM)
