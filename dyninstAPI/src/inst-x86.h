@@ -134,7 +134,6 @@ void emitPushImm(unsigned int imm, codeGen &gen);
 void emitAddMemImm32(Dyninst::Address dest, int imm, codeGen &gen);
 void emitCallRel32(unsigned disp32, codeGen &gen);
 
-void emitJmpMC(int condition, int offset, codeGen &gen);
 // helper functions for emitters
 
 unsigned char cmovOpcodeFromRelOp(unsigned op, bool s);
