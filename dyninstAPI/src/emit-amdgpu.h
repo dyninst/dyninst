@@ -169,6 +169,8 @@ public:
 
   void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
 
+  void emitCountSpecLoad(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &gen);
+
   void emitPushFlags(codeGen &gen);
 
   void emitRestoreFlags(codeGen &gen, unsigned offset);

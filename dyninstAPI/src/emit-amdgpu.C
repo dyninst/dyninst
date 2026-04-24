@@ -487,6 +487,10 @@ void EmitterAmdgpuGfx908::emitCSload(int /* ra */, int /* rb */, int /* sc */, l
   assert(!"emitCSload not implemented yet");
 }
 
+void EmitterAmdgpuGfx908::emitCountSpecLoad(const BPatch_addrSpec_NP *, Register, codeGen &) {
+  assert(!"Not imeplemented for AMDGPU");
+}
+
 void EmitterAmdgpuGfx908::emitPushFlags(codeGen & /* gen */) {
   assert(!"emitPushFlags not implemented yet");
 }

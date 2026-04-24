@@ -64,10 +64,6 @@ void emitASload(const BPatch_addrSpec_NP * /* as */, Register /* dest */, int /*
   assert(!"Not imeplemented for AMDGPU");
 }
 
-void emitCSload(const BPatch_addrSpec_NP *, Register, codeGen &) {
-  assert(!"Not imeplemented for AMDGPU");
-}
-
 void emitVload(opCode /* op */, Address /* src1 */, Register /* src2 */, Register /* dest */,
                codeGen & /* gen */, int /* size */,
                AddressSpace *) {
