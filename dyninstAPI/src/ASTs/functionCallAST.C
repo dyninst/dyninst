@@ -76,9 +76,9 @@ bool functionCallAST::generateCode_phase2(codeGen &gen, Address &,
   Dyninst::Register tmp = 0;
 
   if(use_func && !callReplace_) {
-    tmp = emitFuncCall(callOp, gen, children, use_func);
+    tmp = gen.emitter()->emitCall(callOp, gen, children, use_func);
   } else if(use_func && callReplace_) {
-    tmp = emitFuncCall(funcJumpOp, gen, children, use_func);
+    tmp = gen.emitter()->emitCall(funcJumpOp, gen, children, use_func);
   } else {
     char msg[256];
     sprintf(msg, "%s[%d]:  internal error:  unable to find %s", __FILE__, __LINE__,
@@ -93,7 +93,7 @@ bool functionCallAST::generateCode_phase2(codeGen &gen, Address &,
     // Happens in function replacement... didn't allocate
     // a return register.
   } else if(retReg == Dyninst::Null_Register) {
-    // emitFuncCall allocated tmp; we can use it, but let's see
+    // emitCall allocated tmp; we can use it, but let's see
     //  if we should keep it around.
     retReg = tmp;
     // from allocateAndKeep:

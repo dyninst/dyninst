@@ -790,13 +790,6 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
 }
 
 
-Dyninst::Register emitFuncCall(opCode op,
-                      codeGen &gen,
-                      std::vector<codeGenASTPtr> &operands,
-                      func_instance *callee) {
-    return gen.emitter()->emitCall(op, gen, operands, callee);
-}
-
 void EmitterPOWER::emitCallWithSaves(codeGen &gen, Address dest, bool saveToc, bool saveLR, bool saveR12) {
     // Save the values onto the stack.... (might be needed).
     if (saveToc) {}

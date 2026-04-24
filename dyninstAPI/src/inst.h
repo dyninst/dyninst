@@ -109,11 +109,6 @@ void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackS
 
 void emitCSload(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &gen);
 
-// VG(11/06/01): moved here and added location
-Dyninst::Register emitFuncCall(opCode op, codeGen &gen,
-                      std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands,
-                      func_instance *func);
-
 // find these internal functions before finding any other functions
 // extern std::unordered_map<std::string, unsigned> tagDict;
 

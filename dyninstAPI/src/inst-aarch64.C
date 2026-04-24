@@ -494,13 +494,6 @@ bool EmitterAARCH64::clobberAllFuncCall(registerSpace *rs,
   return false;
 }
 
-Register emitFuncCall(opCode op,
-                      codeGen &gen,
-                      std::vector <codeGenASTPtr> &operands,
-                      func_instance *callee) {
-    return gen.emitter()->emitCall(op, gen, operands, callee);
-}
-
 Register EmitterAARCH64::emitCallReplacement(opCode,
                                              codeGen &,
                                              func_instance *) {
