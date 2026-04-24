@@ -100,6 +100,7 @@ class EmitterPOWER : public Emitter {
     virtual void emitGetRetAddr(Register, codeGen &) { assert(0); }
     virtual void emitGetParam(Register, Register, instPoint::Type, opCode, bool, codeGen &) { assert(0); }
     virtual void emitASload(int, int, int, long, Register, int, codeGen &) { assert(0); }
+    virtual void emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen);
     virtual void emitCSload(int, int, int, long, Register, codeGen &) { assert(0); }
     virtual void emitPushFlags(codeGen &) { assert(0); }
     virtual void emitRestoreFlags(codeGen &, unsigned) { assert(0); }

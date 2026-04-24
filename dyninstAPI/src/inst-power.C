@@ -1339,7 +1339,7 @@ static inline void emitAddOriginal(Dyninst::Register src, Dyninst::Register acc,
 
 // VG(11/07/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
-void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift,
+void EmitterPOWER::emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift,
 		codeGen &gen)
 {
   // Haven't implemented non-zero shifts yet
@@ -1369,7 +1369,7 @@ void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackS
 
 void emitCSload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, codeGen &gen)
 {
-  emitASload(as, dest, 0, gen);
+  gen.emitter()->emitAddrSpecLoad(as, dest, 0, gen);
 }
 
 void emitVload(opCode op, Address src1, Dyninst::Register src2, Dyninst::Register dest,
