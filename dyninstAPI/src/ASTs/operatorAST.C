@@ -40,6 +40,8 @@ namespace {
   }
 
   bool can_encode_directly(int64_t, Dyninst::Architecture);
+
+  void emitJmpMC(int condition, int offset, codeGen &gen);
 }
 
 namespace Dyninst { namespace DyninstAPI {
@@ -377,26 +379,28 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
       BPatch_point *bpoint = bproc->findOrCreateBPPoint(
           NULL, gen.point(), BPatch_point::convertInstPointType_t(gen.point()->type()));
 
-      const BPatch_memoryAccess *ma = bpoint->getMemoryAccess();
-      assert(ma);
-      int cond = ma->conditionCode_NP();
-      if(cond > -1) {
-        codeBufIndex_t startIndex = gen.getIndex();
-        emitJmpMC(cond, 0 /* target, changed later */, gen);
-        codeBufIndex_t fromIndex = gen.getIndex();
-        // Add the snippet to the tracker, as AM has indicated...
-        gen.tracker()->increaseConditionalLevel();
-        // generate code with the right path
-        if(!loperand->generateCode_phase2(gen, addr, src1)) {
-          ERROR_RETURN;
+      if(gen.getArch() == Dyninst::Arch_x86 || gen.getArch() == Dyninst::Arch_x86_64) {
+        const BPatch_memoryAccess *ma = bpoint->getMemoryAccess();
+        assert(ma);
+        int cond = ma->conditionCode_NP();
+        if(cond > -1) {
+          codeBufIndex_t startIndex = gen.getIndex();
+          emitJmpMC(cond, 0 /* target, changed later */, gen);
+          codeBufIndex_t fromIndex = gen.getIndex();
+          // Add the snippet to the tracker, as AM has indicated...
+          gen.tracker()->increaseConditionalLevel();
+          // generate code with the right path
+          if(!loperand->generateCode_phase2(gen, addr, src1)) {
+            ERROR_RETURN;
+          }
+          gen.rs()->freeRegister(src1);
+          gen.tracker()->decreaseAndClean(gen);
+          codeBufIndex_t endIndex = gen.getIndex();
+          // call emit again now with correct offset.
+          gen.setIndex(startIndex);
+          emitJmpMC(cond, codeGen::getDisplacement(fromIndex, endIndex), gen);
+          gen.setIndex(endIndex);
         }
-        gen.rs()->freeRegister(src1);
-        gen.tracker()->decreaseAndClean(gen);
-        codeBufIndex_t endIndex = gen.getIndex();
-        // call emit again now with correct offset.
-        gen.setIndex(startIndex);
-        emitJmpMC(cond, codeGen::getDisplacement(fromIndex, endIndex), gen);
-        gen.setIndex(endIndex);
       } else {
         if(!loperand->generateCode_phase2(gen, addr, src1)) {
           ERROR_RETURN;
@@ -910,6 +914,29 @@ namespace {
         return false;
     }
     return false;
+  }
+
+  // VG(8/15/02): Emit the jcc over a conditional snippet
+  void emitJmpMC(int condition, int offset, codeGen &gen) {
+#if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+    // What we want:
+    //   mov eax, [original EFLAGS]
+    //   push eax
+    //   popfd
+    //   jCC target   ; CC = !condition (we jump on the negated condition)
+
+    assert(condition >= 0 && condition <= 0x0F);
+
+    // bperr("OC: %x, NC: %x\n", condition, condition ^ 0x01);
+    condition ^= 0x01; // flip last bit to negate the tttn condition
+
+    gen.codeEmitter()->emitRestoreFlagsFromStackSlot(gen);
+    emitJcc(condition, offset, gen);
+#else
+    (void)condition;
+    (void)offset;
+    (void)gen;
+#endif
   }
 
 }

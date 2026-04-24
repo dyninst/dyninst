@@ -1240,12 +1240,6 @@ Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src
     return Null_Register;
 }
 
-void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &)
-{
-  // Not needed for memory instrumentation, otherwise TBD
-}
-
-
 // VG(11/16/01): Say if we have to restore a register to get its original value
 static inline bool needsRestore(Dyninst::Register x)
 {

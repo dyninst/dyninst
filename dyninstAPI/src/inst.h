@@ -103,8 +103,6 @@ typedef BPatch_addrSpec_NP BPatch_countSpec_NP;
 
 // Don't need the above: countSpec is typedefed to addrSpec
 
-void emitJmpMC(int condition, int offset, codeGen &gen);
-
 void emitASload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen);
 
 void emitCSload(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &gen);

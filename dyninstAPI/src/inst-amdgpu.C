@@ -71,10 +71,6 @@ Register emitR(opCode /* op */, Register /* src1 */, Register /* src2 */, Regist
   return 0;
 }
 
-void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &) {
-  assert(!"Not implemented for AMDGPU");
-}
-
 void emitASload(const BPatch_addrSpec_NP * /* as */, Register /* dest */, int /* stackShift */,
                 codeGen & /* gen */) {
   assert(!"Not imeplemented for AMDGPU");

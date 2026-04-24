@@ -831,24 +831,6 @@ void emitSHL(RealRegister dest, unsigned char pos, codeGen &gen)
 }
 
 
-// VG(8/15/02): Emit the jcc over a conditional snippet
-void emitJmpMC(int condition, int offset, codeGen &gen)
-{
-    // What we want: 
-    //   mov eax, [original EFLAGS]
-    //   push eax
-    //   popfd
-    //   jCC target   ; CC = !condition (we jump on the negated condition)
-    
-    assert(condition >= 0 && condition <= 0x0F);
-    
-    //bperr("OC: %x, NC: %x\n", condition, condition ^ 0x01);
-    condition ^= 0x01; // flip last bit to negate the tttn condition
-    
-    gen.codeEmitter()->emitRestoreFlagsFromStackSlot(gen);
-    emitJcc(condition, offset, gen);
-}
-
 stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
 {
    int offset = 0;
