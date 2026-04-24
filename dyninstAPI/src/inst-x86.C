@@ -1330,11 +1330,6 @@ bool emitAddSignedImm(Address addr, long int imm, codeGen &gen) {
    return true;
 }
 
-bool emitSubSignedImm(Address addr, long int imm, codeGen &gen) {
-   gen.codeEmitter()->emitAddSignedImm(addr, imm * -1, gen);
-   return true;
-}
-
 Emitter *AddressSpace::getEmitter() 
 {
    static Dyninst::DyninstAPI::EmitterIA32Dyn emitter32Dyn;

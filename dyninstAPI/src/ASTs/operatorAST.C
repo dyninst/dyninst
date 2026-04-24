@@ -212,7 +212,7 @@ bool operatorAST::generateOptimizedAssignment(codeGen &gen, int size_) {
   if(roper->op == plusOp) {
     emitAddSignedImm(laddr, imm, gen);
   } else {
-    emitSubSignedImm(laddr, imm, gen);
+    gen.codeEmitter()->emitAddSignedImm(laddr, -imm, gen);
   }
 
   loperand->decUseCount(gen);
