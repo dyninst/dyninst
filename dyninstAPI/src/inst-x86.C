@@ -976,19 +976,6 @@ void restoreGPRtoGPR(RealRegister src, RealRegister dest, codeGen &gen)
    restoreGPRtoReg(src, gen, &dest);
 }
 
-void emitCSload(const BPatch_countSpec_NP *as, Dyninst::Register dest,
-		codeGen &gen)
-{
-   // VG(7/30/02): different from ASload on this platform, no LEA business
-
-   long imm = as->getImm();
-   int ra  = as->getReg(0);
-   int rb  = as->getReg(1);
-   int sc  = as->getScale();
-
-   gen.codeEmitter()->emitCSload(ra, rb, sc, imm, dest, gen);
-}
-
 void emitVload(opCode op, Address src1, Dyninst::Register src2, Dyninst::Register dest,
                codeGen &gen,
                int size,

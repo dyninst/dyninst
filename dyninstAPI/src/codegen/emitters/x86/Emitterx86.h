@@ -52,6 +52,8 @@ namespace Dyninst { namespace DyninstAPI {
 
     void emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen) override final;
 
+    void emitCountSpecLoad(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &gen) override;
+
     virtual void emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest,
                          codeGen &gen) = 0;
 
