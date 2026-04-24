@@ -66,9 +66,6 @@ using namespace boost::assign;
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using operandAST = Dyninst::DyninstAPI::operandAST;
 
-extern bool isPowerOf2(int value, int &result);
-
-#define DISTANCE(x, y)   ((x<y) ? (y-x) : (x-y))
 
 /********************************* EmitterAARCH64SaveRegs ***************************************/
 
