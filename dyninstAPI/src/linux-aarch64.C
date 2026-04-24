@@ -33,6 +33,7 @@
 #include <string>
 #include <dlfcn.h>
 
+#include "arch-aarch64.h"
 #include "dyninstAPI/src/linux-aarch64.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/dynProcess.h"
@@ -49,18 +50,9 @@ using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using nullAST = Dyninst::DyninstAPI::nullAST;
 
 
-// FIXME: HOST+CODEGEN
-// This is a temporary fix as getMaxBranch is used for both host and codegen
-// This file is compiled when host architecture is AArch64. If codegen isn't for AArch64, we define the following:
-#if !defined(DYNINST_CODEGEN_ARCH_AARCH64)
-
-
-Address getMaxBranch() {
+static Address getMaxBranch() {
     return MAX_BRANCH_OFFSET;
 }
-
-#endif
-
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
