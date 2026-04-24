@@ -1367,7 +1367,7 @@ void EmitterPOWER::emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Regis
 
 }
 
-void emitCSload(const BPatch_addrSpec_NP *as, Dyninst::Register dest, codeGen &gen)
+void EmitterPOWER::emitCountSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, codeGen &gen)
 {
   gen.emitter()->emitAddrSpecLoad(as, dest, 0, gen);
 }
