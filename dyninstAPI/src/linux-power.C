@@ -50,17 +50,9 @@ using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using nullAST = Dyninst::DyninstAPI::nullAST;
 
 
-// FIXME: HOST+CODEGEN
-// This is a temporary fix as getMaxBranch is used for both host and codegen
-// This file is compiled when host architecture is Power. If codegen isn't for Power, we define the following:
-#if !defined(DYNINST_CODEGEN_ARCH_POWER)
-
-Address getMaxBranch() {
+static Address getMaxBranch() {
   return MAX_BRANCH;
 }
-
-#endif
-
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
