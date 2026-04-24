@@ -1320,11 +1320,6 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   
 }
 
-bool emitStoreConst(Address addr, int imm, codeGen &gen) {
-   gen.codeEmitter()->emitStoreImm(addr, imm, gen);
-   return true;
-}
-
 bool emitAddSignedImm(Address addr, long int imm, codeGen &gen) {
    gen.codeEmitter()->emitAddSignedImm(addr, imm, gen);
    return true;

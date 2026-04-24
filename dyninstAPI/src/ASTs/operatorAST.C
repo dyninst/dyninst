@@ -153,7 +153,7 @@ bool operatorAST::generateOptimizedAssignment(codeGen &gen, int size_) {
 
 #endif
     int imm = (int)(long)roperand->getOValue();
-    emitStoreConst(laddr, (int)imm, gen);
+    gen.codeEmitter()->emitStoreImm(laddr, imm, gen);
     loperand->decUseCount(gen);
     roperand->decUseCount(gen);
     return true;
@@ -210,7 +210,7 @@ bool operatorAST::generateOptimizedAssignment(codeGen &gen, int size_) {
 
   long int imm = (long int)const_oper->getOValue();
   if(roper->op == plusOp) {
-    emitAddSignedImm(laddr, imm, gen);
+    gen.codeEmitter()->emitAddSignedImm(laddr, imm, gen);
   } else {
     gen.codeEmitter()->emitAddSignedImm(laddr, -imm, gen);
   }

@@ -119,13 +119,6 @@ Dyninst::Register emitFuncCall(opCode op, codeGen &gen,
 
 bool writeFunctionPtr(AddressSpace *p, Dyninst::Address addr, func_instance *f);
 
-/**
- * A set of optimized emiters for common idioms.  Return 
- * false if the platform can't perform any optimizations.
- **/
-//Store constant in memory at address
-bool emitStoreConst(Dyninst::Address addr, int imm, codeGen &gen);
-
 inline bool isPowerOf2(int value, int &result) {
   if(value <= 0) {
     return (false);
