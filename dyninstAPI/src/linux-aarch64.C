@@ -54,7 +54,6 @@ using nullAST = Dyninst::DyninstAPI::nullAST;
 // This file is compiled when host architecture is AArch64. If codegen isn't for AArch64, we define the following:
 #if !defined(DYNINST_CODEGEN_ARCH_AARCH64)
 
-#define MAX_BRANCH_OFFSET      0x07ffffff  // 128MB  Used for B
 
 Address getMaxBranch() {
     return MAX_BRANCH_OFFSET;

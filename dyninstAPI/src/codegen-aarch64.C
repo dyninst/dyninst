@@ -37,6 +37,7 @@
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "dyninstAPI/src/emit-aarch64.h"
 #include "dyninstAPI/src/function.h"
+#include "arch-aarch64.h"
 
 void insnCodeGen::generate(codeGen &gen, instruction &insn) {
   unsigned raw = insn.asInt();
