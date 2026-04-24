@@ -101,11 +101,6 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction /* i */, A
   return false;
 }
 
-bool writeFunctionPtr(AddressSpace * /* p */, Address /* addr */, func_instance * /* f */) {
-  assert(!"Not implemented for AMDGPU");
-  return false;
-}
-
 Emitter *AddressSpace::getEmitter() {
   static EmitterAmdgpuGfx908 gfx908Emitter;
   return &gfx908Emitter;

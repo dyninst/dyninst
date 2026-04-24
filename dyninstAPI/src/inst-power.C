@@ -1785,25 +1785,6 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
     }
 }
 
-bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
-{
-    // 64-bit ELF PowerPC Linux uses r2 for TOC base register
-    if (p->getAddressWidth() == sizeof(uint64_t)) {
-        Address val_to_write = f->addr();
-        // Use function descriptor address, if available.
-        if (f->getPtrAddress()) val_to_write = f->getPtrAddress();
-        return p->writeDataSpace((void *) addr,
-                                 sizeof(val_to_write), &val_to_write);
-    }
-    else {
-        // Originally copied from inst-x86.C
-        // 32-bit ELF PowerPC Linux mutatee
-        uint32_t val_to_write = (uint32_t)f->addr();
-        return p->writeDataSpace((void *) addr,
-                                 sizeof(val_to_write), &val_to_write);
-    }
-}
-
 Emitter *AddressSpace::getEmitter() 
 {
     static EmitterPOWER32Dyn emitter32Dyn;

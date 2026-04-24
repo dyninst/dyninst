@@ -127,4 +127,13 @@ bool PCProcess::hasBeenBound(const relocationEntry &entry,
     return false;
 }
 
+/**
+ * Fills in an indirect function pointer at 'addr' to point to 'f'.
+ **/
+bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
+{
+   Address val_to_write = f->addr();
+   return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);
+}
+
 #endif

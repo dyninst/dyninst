@@ -112,8 +112,6 @@ void emitCSload(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &
 // find these internal functions before finding any other functions
 // extern std::unordered_map<std::string, unsigned> tagDict;
 
-bool writeFunctionPtr(AddressSpace *p, Dyninst::Address addr, func_instance *f);
-
 inline bool isPowerOf2(int value, int &result) {
   if(value <= 0) {
     return (false);

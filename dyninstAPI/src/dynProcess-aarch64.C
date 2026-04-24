@@ -83,4 +83,9 @@ bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &, Address,
     return false;
 }
 
+bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f) {
+    Address val_to_write = f->addr();
+    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);
+    return false;
+}
 

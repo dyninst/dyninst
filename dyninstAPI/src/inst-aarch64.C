@@ -931,12 +931,6 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
     return true;
 }
 
-bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f) {
-    Address val_to_write = f->addr();
-    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);
-    return false;
-}
-
 Emitter *AddressSpace::getEmitter() {
     static EmitterAARCH64Stat emitter64Stat;
     static EmitterAARCH64Dyn emitter64Dyn;

@@ -1301,15 +1301,6 @@ int getMaxJumpSize()
   return JUMP_REL32_SZ;
 }
 
-/**
- * Fills in an indirect function pointer at 'addr' to point to 'f'.
- **/
-bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
-{
-   Address val_to_write = f->addr();
-   return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   
-}
-
 bool emitAddSignedImm(Address addr, long int imm, codeGen &gen) {
    gen.codeEmitter()->emitAddSignedImm(addr, imm, gen);
    return true;

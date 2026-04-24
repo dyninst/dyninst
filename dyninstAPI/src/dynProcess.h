@@ -717,4 +717,6 @@ class DynWandererHelper : public Dyninst::Stackwalker::WandererHelper {
     virtual ~DynWandererHelper();
 };
 
+bool writeFunctionPtr(AddressSpace *p, Dyninst::Address addr, func_instance *f);
+
 #endif
