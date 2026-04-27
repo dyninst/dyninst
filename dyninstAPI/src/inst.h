@@ -97,14 +97,6 @@ void     emitImm(opCode op, Dyninst::Register src, Dyninst::RegValue src2imm, Dy
                  bool s = true);
 
 
-//#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-class BPatch_addrSpec_NP;
-typedef BPatch_addrSpec_NP BPatch_countSpec_NP;
-
-// Don't need the above: countSpec is typedefed to addrSpec
-
-void emitCSload(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &gen);
-
 // find these internal functions before finding any other functions
 // extern std::unordered_map<std::string, unsigned> tagDict;
 

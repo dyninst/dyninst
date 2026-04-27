@@ -101,6 +101,7 @@ class Emitter {
     virtual void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen) = 0;
     virtual void emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen) = 0;
     virtual void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen) = 0;
+    virtual void emitCountSpecLoad(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &gen) = 0;
     virtual void emitPushFlags(codeGen &gen) = 0;
     virtual void emitRestoreFlags(codeGen &gen, unsigned offset) = 0;
     // Built-in offset...
