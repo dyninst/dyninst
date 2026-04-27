@@ -54,87 +54,100 @@ class registerSlot;
 // class for encapsulating
 // platform dependent code generation functions
 class Emitter {
+public:
+  virtual ~Emitter() {}
 
- public:
-    virtual ~Emitter() {}
-    virtual codeBufIndex_t emitIf(Register expr_reg, Register target, Dyninst::DyninstAPI::RegControl rc, codeGen &gen) = 0;
-    virtual void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen) = 0;
-    virtual void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
-			   codeGen &gen) = 0;
-    virtual void emitOpImmSimple(unsigned /* op */, Register /* dest */, Register /* src1 */, RegValue /* src2imm */, codeGen & /* gen */) {}
-    virtual void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen, bool s) = 0;
-    virtual void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s) = 0;
-    virtual void emitDiv(Register dest, Register src1, Register src2, codeGen &gen, bool s) = 0;
-    virtual void emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen) = 0;
-    virtual void emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s) = 0;
-    virtual void emitLoad(Register dest, Address addr, int size, codeGen &gen) = 0;
-    virtual void emitLoadConst(Register dest, Address imm, codeGen &gen) = 0;
-    virtual void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen) = 0;
-    virtual bool emitCallRelative(Register, Address, Register, codeGen &) = 0;
-    virtual bool emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen) = 0;
-    virtual void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size, codeGen &gen, Address offset) = 0;
+  /*** Function calls and arguments ***/
+  virtual bool clobberAllFuncCall(registerSpace *rs,func_instance *callee) = 0;
+  virtual Register emitCall(opCode op, codeGen &gen, const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands, func_instance *callee) = 0;
+  virtual void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen) = 0;
+  virtual bool emitPLTCall(func_instance *, codeGen &) { assert(0); return false;}
+  virtual bool emitPLTJump(func_instance *, codeGen &) { assert(0); return false;}
+  virtual Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) = 0;
+  virtual Address getInterModuleVarAddr(const image_variable *var, codeGen& gen) = 0;
 
-    virtual void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen) = 0;
 
-    // These implicitly use the stored original/non-inst value
-    virtual void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen) = 0;
-    virtual void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store) = 0;
-    virtual void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen) = 0;
-    
-    virtual void emitStoreOrigRegister(Address register_num, Register dest, codeGen &gen) = 0;
+  /*** Arithmetic ***/
+  virtual void emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen) = 0;
 
-    virtual void emitStore(Address addr, Register src, int size, codeGen &gen) = 0;
-    virtual void emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen) = 0;
-    virtual void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen) = 0;
-    virtual void emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen) = 0;
-    virtual void emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen) = 0;
 
-    virtual bool emitMoveRegToReg(Register src, Register dest, codeGen &gen) = 0;
-    virtual bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen) = 0;
+  /*** Basic load operations ***/
+  virtual void emitLoad(Register dest, Address addr, int size, codeGen &gen) = 0;
+  virtual void emitLoadConst(Register dest, Address imm, codeGen &gen) = 0;
+  virtual void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen) = 0;
+  // These implicitly use the stored original/non-inst value
+  virtual void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store) = 0;
+  virtual void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen) = 0;
+  virtual bool emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen) = 0;
+  virtual void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size, codeGen &gen, Address offset) = 0;
 
-    virtual Register emitCall(opCode op, codeGen &gen, const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands,
-			      func_instance *callee) = 0;
 
-    virtual void emitGetRetVal(Register dest, bool addr_of, codeGen &gen) = 0;
-    virtual void emitGetRetAddr(Register dest, codeGen &gen) = 0;
-    virtual void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen) = 0;
-    virtual void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen) = 0;
-    virtual void emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen) = 0;
-    virtual void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen) = 0;
-    virtual void emitCountSpecLoad(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &gen) = 0;
-    virtual void emitPushFlags(codeGen &gen) = 0;
-    virtual void emitRestoreFlags(codeGen &gen, unsigned offset) = 0;
-    // Built-in offset...
-    virtual void emitRestoreFlagsFromStackSlot(codeGen &gen) = 0;
-    virtual bool emitBTSaves(baseTramp* bt, codeGen &gen) = 0;
-    virtual bool emitBTRestores(baseTramp* bt, codeGen &gen) = 0;
-    virtual void emitStoreImm(Address addr, int imm, codeGen &gen) = 0;
-    virtual void emitAddSignedImm(Address addr, int imm, codeGen &gen) = 0;
-    virtual bool emitPush(codeGen &, Register) = 0;
-    virtual bool emitPop(codeGen &, Register) = 0;
-    virtual bool emitAdjustStackPointer(int index, codeGen &gen) = 0;
-    
-    virtual bool clobberAllFuncCall(registerSpace *rs,func_instance *callee) = 0;
+  /*** Basic store operations ***/
+  virtual void emitStore(Address addr, Register src, int size, codeGen &gen) = 0;
+  virtual void emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen) = 0;
+  virtual void emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen) = 0;
+  virtual void emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen) = 0;
 
-    virtual Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) = 0;
-    virtual Address getInterModuleVarAddr(const image_variable *var, codeGen& gen) = 0;
 
-    virtual bool emitPLTCall(func_instance *, codeGen &) { assert(0); return false;}
-    virtual bool emitPLTJump(func_instance *, codeGen &) { assert(0); return false;}
+  /*** For BPatch_memoryAccess ***/
+  virtual void emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen) = 0;
+  virtual void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen) = 0;
+  virtual void emitCountSpecLoad(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &gen) = 0;
+  virtual void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen) = 0;
 
-    virtual bool emitTOCJump(block_instance *, codeGen &) { assert(0); return false; }
-    virtual bool emitTOCCall(block_instance *, codeGen &) { assert(0); return false; }
 
-    virtual void emitNops(unsigned /* numNops */, codeGen & /* gen */) {}
-    virtual void emitEndProgram(codeGen & /* gen */) {}
-    virtual void emitMovLiteral(Register /* reg */, uint32_t /* value */, codeGen & /* gen */) {}
-    virtual void emitConditionalBranch(bool /* onConditionTrue */, int16_t /* wordOffset */,
-                                     codeGen & /* gen */) {}
-    virtual void emitShortJump(int16_t /* wordOffset */, codeGen & /* gen */) {}
-    virtual void emitLongJump(Register /* reg */, uint64_t /* fromAddress */, uint64_t /* toAddress */, codeGen & /* gen */) {}
+  /*** Register-direct operations ***/
+  // TODO : Make all targets use this instead of having this functionality floating around in the codebase.
+  virtual void emitMovePCtoReg(Register /* reg */, codeGen & /* gen */) {}
+  virtual bool emitMoveRegToReg(Register src, Register dest, codeGen &gen) = 0;
+  virtual bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen) = 0;
 
-    // TODO : Make all targets use this instead of having this functionality floating around in the codebase.
-    virtual void emitMovePCtoReg(Register /* reg */, codeGen & /* gen */) {}
+
+  /*** Generic operations ***/
+  virtual void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen) = 0;
+  virtual void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm, codeGen &gen) = 0;
+  virtual void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen, bool s) = 0;
+  virtual void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s) = 0;
+
+  /*** Complete if/then/else operation ***/
+  virtual codeBufIndex_t emitIf(Register expr_reg, Register target, Dyninst::DyninstAPI::RegControl rc, codeGen &gen) = 0;
+
+
+  /*** AMDGPU-only ***/
+  virtual void emitEndProgram(codeGen & /* gen */) {}
+  virtual void emitNops(unsigned /* numNops */, codeGen & /* gen */) {}
+  virtual void emitConditionalBranch(bool /* onConditionTrue */, int16_t /* wordOffset */, codeGen & /* gen */) {}
+  virtual void emitLongJump(Register /* reg */, uint64_t /* fromAddress */, uint64_t /* toAddress */, codeGen & /* gen */) {}
+  virtual void emitShortJump(int16_t /* wordOffset */, codeGen & /* gen */) {}
+  virtual void emitMovLiteral(Register /* reg */, uint32_t /* value */, codeGen & /* gen */) {}
+  virtual void emitOpImmSimple(unsigned /* op */, Register /* dest */, Register /* src1 */, RegValue /* src2imm */, codeGen & /* gen */) {}
+
+
+  /*** x86-only ***/
+  virtual void emitAddSignedImm(Address addr, int imm, codeGen &gen) = 0;
+  virtual void emitDiv(Register dest, Register src1, Register src2, codeGen &gen, bool s) = 0;
+  virtual void emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s) = 0;
+  virtual void emitGetRetAddr(Register dest, codeGen &gen) = 0;
+  virtual void emitGetRetVal(Register dest, bool addr_of, codeGen &gen) = 0;
+  virtual void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen) = 0;
+  virtual void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen) = 0;
+  virtual void emitRestoreFlags(codeGen &gen, unsigned offset) = 0;
+  virtual void emitRestoreFlagsFromStackSlot(codeGen &gen) = 0; // Built-in offset...
+  virtual void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen) = 0;
+  virtual void emitStoreImm(Address addr, int imm, codeGen &gen) = 0;
+  virtual void emitStoreOrigRegister(Address register_num, Register dest, codeGen &gen) = 0;
+  virtual bool emitAdjustStackPointer(int index, codeGen &gen) = 0;
+  virtual bool emitPop(codeGen &, Register) = 0;
+  virtual bool emitPush(codeGen &, Register) = 0;
+  virtual void emitPushFlags(codeGen &gen) = 0;
+  virtual bool emitBTRestores(baseTramp* bt, codeGen &gen) = 0;
+  virtual bool emitBTSaves(baseTramp* bt, codeGen &gen) = 0;
+
+
+  /*** PowerPC-only ***/
+  virtual bool emitCallRelative(Register, Address, Register, codeGen &) = 0;
+  virtual bool emitTOCCall(block_instance *, codeGen &) { assert(0); return false; }
+  virtual bool emitTOCJump(block_instance *, codeGen &) { assert(0); return false; }
 };
 
 #endif
