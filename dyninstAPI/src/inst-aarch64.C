@@ -792,10 +792,6 @@ void EmitterAARCH64::emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Register des
         insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, imm, dest, dest, true);	
 }
 
-void emitCSload(const BPatch_addrSpec_NP *, Register, codeGen &) {
-    assert(0); //Not implemented
-}
-
 void emitVload(opCode op, Address src1, Register src2, Register dest,
                codeGen &gen,
                int size,

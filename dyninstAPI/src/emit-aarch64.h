@@ -132,6 +132,10 @@ public:
 
     virtual void emitCSload(int, int, int, long, Register, codeGen &) { assert(0); }
 
+    virtual void emitCountSpecLoad(const BPatch_countSpec_NP *, Dyninst::Register, codeGen &) {
+      assert(0);
+    }
+
     virtual void emitPushFlags(codeGen &) { assert(0); }
 
     virtual void emitRestoreFlags(codeGen &, unsigned) { assert(0); }
