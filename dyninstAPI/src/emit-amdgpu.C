@@ -477,6 +477,11 @@ void EmitterAmdgpuGfx908::emitASload(int /* ra */, int /* rb */, int /* sc */, l
   assert(!"emitASload not implemented yet");
 }
 
+void EmitterAmdgpuGfx908::emitAddrSpecLoad(const BPatch_addrSpec_NP * /* as */, Dyninst::Register /* dest */,
+                                           int /* stackShift */, codeGen & /* gen */) {
+  assert(!"emitAddrSpecLoad not implemented yet");
+}
+
 void EmitterAmdgpuGfx908::emitCSload(int /* ra */, int /* rb */, int /* sc */, long /* imm */,
                                      Register /* dest */, codeGen & /* gen */) {
   assert(!"emitCSload not implemented yet");
