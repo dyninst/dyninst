@@ -50,6 +50,8 @@ namespace Dyninst { namespace DyninstAPI {
 
     virtual bool emitCallInstruction(codeGen &, func_instance *, Register) = 0;
 
+    void emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen) override final;
+
     virtual void emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest,
                          codeGen &gen) = 0;
 

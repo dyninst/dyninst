@@ -37,6 +37,7 @@
 #define _EMITTER_H
 
 #include <assert.h>
+#include "BPatch_memoryAccess_NP.h"
 #include "codeGenAST.h"
 #include <vector>
 #include "codegen/RegControl.h"
