@@ -36,20 +36,19 @@
 #ifndef _EMITTER_H
 #define _EMITTER_H
 
-#include <assert.h>
+#include "baseTramp.h"
 #include "BPatch_memoryAccess_NP.h"
 #include "codeGenAST.h"
-#include <vector>
 #include "codegen/RegControl.h"
 #include "common/src/headers.h"
-#include "dyninstAPI/src/instPoint.h"
-#include "baseTramp.h"
+#include "instPoint.h"
+
+#include <cassert>
+#include <vector>
 
 class codeGen;
-class registerSpace;
-class baseTramp;
-
 class registerSlot;
+class registerSpace;
 
 // class for encapsulating
 // platform dependent code generation functions
