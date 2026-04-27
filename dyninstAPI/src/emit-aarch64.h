@@ -54,6 +54,8 @@ class EmitterAARCH64 : public Emitter {
 public:
     virtual ~EmitterAARCH64() {}
 
+    void emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen);
+
     virtual codeBufIndex_t emitIf(Register, Register, Dyninst::DyninstAPI::RegControl, codeGen &);
 
     virtual void emitOp(unsigned, Register, Register, Register, codeGen &);
