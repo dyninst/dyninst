@@ -28,11 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/*
- * emit-x86.h - x86 & AMD64 code generators
- * $Id: emitter.h,v 1.10 2008/03/25 19:24:29 bernat Exp $
- */
-
 #ifndef _EMITTER_H
 #define _EMITTER_H
 
@@ -50,8 +45,6 @@ class codeGen;
 class registerSlot;
 class registerSpace;
 
-// class for encapsulating
-// platform dependent code generation functions
 class Emitter {
 public:
   virtual ~Emitter() {}
