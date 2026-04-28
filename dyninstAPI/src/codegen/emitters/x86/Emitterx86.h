@@ -54,6 +54,8 @@ namespace Dyninst { namespace DyninstAPI {
 
     void emitCountSpecLoad(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &gen) override;
 
+    void emitImm(opCode op, Dyninst::Register src, Dyninst::RegValue src2imm, Dyninst::Register dst, codeGen &gen, bool isSigned = true) final override;
+
     virtual void emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest,
                          codeGen &gen) = 0;
 
