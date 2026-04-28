@@ -85,6 +85,8 @@ public:
   void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
                  codeGen &gen);
 
+  void emitImm(opCode op, Dyninst::Register src, Dyninst::RegValue src2imm, Dyninst::Register dst, codeGen &gen, bool isSigned = true);
+
   // The above signature is wierd, hence use the one below. TODO: later on, clean up the above mess
   void emitOpImmSimple(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen);
 
