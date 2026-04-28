@@ -119,7 +119,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
       if(src != retReg) {
         // Move src to retReg. Can't simply return src, since it was not
         // allocated properly
-        emitImm(orOp, src, 0, retReg, gen);
+        gen.emitter()->emitImm(orOp, src, 0, retReg, gen);
       }
       break;
     case operandType::ReturnAddr:
@@ -128,7 +128,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
       if(src != retReg) {
         // Move src to retReg. Can't simply return src, since it was not
         // allocated properly
-        emitImm(orOp, src, 0, retReg, gen);
+        gen.emitter()->emitImm(orOp, src, 0, retReg, gen);
       }
       break;
     case operandType::Param:
@@ -155,7 +155,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
       if(src != retReg) {
         // Move src to retReg. Can't simply return src, since it was not
         // allocated properly
-        emitImm(orOp, src, 0, retReg, gen);
+        gen.emitter()->emitImm(orOp, src, 0, retReg, gen);
       }
     } break;
     case operandType::DataAddr:

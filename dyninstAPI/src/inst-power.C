@@ -1432,7 +1432,7 @@ void emitVload(opCode op, Address src1, Dyninst::Register src2, Dyninst::Registe
     break;
   case loadRegRelativeAddr:
     gen.rs()->readProgramRegister(gen, src2, dest, size);
-    emitImm(plusOp, dest, src1, dest, gen);
+    gen.emitter()->emitImm(plusOp, dest, src1, dest, gen);
     break;
   case loadRegRelativeOp:
     gen.rs()->readProgramRegister(gen, src2, dest, size);
@@ -1702,7 +1702,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
       offset = TRAMP_SPR_OFFSET(gen.width()) + STK_LR; 
 
         // Get address (SP + offset) and stick in register dest.
-        emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
+        gen.emitter()->emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
                 gen);
         // Load LR into register dest
         emitV(loadIndirOp, dest, 0, dest, gen,
@@ -1717,7 +1717,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 	  offset = TRAMP_SPR_OFFSET(gen.width()) + STK_CTR_64;
 
         // Get address (SP + offset) and stick in register dest.
-        emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
+        gen.emitter()->emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
                 gen);
         // Load LR into register dest
         emitV(loadIndirOp, dest, 0, dest, gen,

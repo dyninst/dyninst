@@ -91,11 +91,6 @@ void     emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, D
                     int size = 4,
                     AddressSpace * proc = NULL);
 
-// and the retyped original emitImm companion
-void     emitImm(opCode op, Dyninst::Register src, Dyninst::RegValue src2imm, Dyninst::Register dst,
-                 codeGen &gen,
-                 bool s = true);
-
 
 // find these internal functions before finding any other functions
 // extern std::unordered_map<std::string, unsigned> tagDict;

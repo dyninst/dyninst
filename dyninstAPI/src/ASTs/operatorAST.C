@@ -719,7 +719,7 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
           ast_printf("Operator node, const RHS, keeping register %u\n", retReg.getId());
         }
 
-        emitImm(op, src1, (RegValue)roperand->getOValue(), retReg, gen, signedOp);
+        gen.emitter()->emitImm(op, src1, (RegValue)roperand->getOValue(), retReg, gen, signedOp);
 
         if(src1 != Dyninst::Null_Register) {
           gen.rs()->freeRegister(src1);

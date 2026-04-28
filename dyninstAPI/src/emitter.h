@@ -96,6 +96,7 @@ public:
 
 
   /*** Generic operations ***/
+  virtual void emitImm(opCode op, Dyninst::Register src, Dyninst::RegValue src2imm, Dyninst::Register dst, codeGen &gen, bool isSigned = true) = 0;
   virtual void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen) = 0;
   virtual void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm, codeGen &gen) = 0;
   virtual void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen, bool s) = 0;
