@@ -627,7 +627,7 @@ unsigned restoreSPRegisters(codeGen &gen,
     return num_restored;
 }
 
-void emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Register dest,
+void EmitterPOWER::emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, Dyninst::Register dest,
              codeGen &gen, bool s)
 {
     int iop=-1;

@@ -60,6 +60,7 @@ class EmitterPOWER : public Emitter {
     virtual void emitOp(unsigned, Register, Register, Register, codeGen &) { assert(0); }
     virtual void emitOpImm(unsigned, unsigned, Register, Register, RegValue,
 			   codeGen &) { assert(0); }
+    virtual void emitImm(opCode op, Dyninst::Register src, Dyninst::RegValue src2imm, Dyninst::Register dst, codeGen &gen, bool isSigned = true);
     virtual void emitRelOp(unsigned, Register, Register, Register, codeGen &, bool) { assert(0); }
     virtual void emitRelOpImm(unsigned, Register, Register, RegValue, codeGen &, bool) { assert(0); }
     virtual void emitDiv(Register, Register, Register, codeGen &, bool) { assert(0); }
