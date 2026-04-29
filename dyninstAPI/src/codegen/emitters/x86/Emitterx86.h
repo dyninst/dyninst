@@ -48,6 +48,8 @@ namespace Dyninst { namespace DyninstAPI {
 
     virtual ~Emitterx86() = default;
 
+    codeBufIndex_t emitA(opCode op, Dyninst::Register src1, long dst, codeGen &gen, Dyninst::DyninstAPI::RegControl rc) final override;
+
     virtual bool emitCallInstruction(codeGen &, func_instance *, Register) = 0;
 
     void emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen) override final;

@@ -731,43 +731,6 @@ unsigned char jccOpcodeFromRelOp(unsigned op, bool s)
    return 0x0;
 }
 
-/*
- * emit code for op(src1,src2, dest)
- * ibuf is an instruction buffer where instructions are generated
- * base is the next free position on ibuf where code is to be generated
- */
-
-codeBufIndex_t emitA(opCode op, Dyninst::Register src1, long dest,
-                     codeGen &gen, Dyninst::DyninstAPI::RegControl rc)
-{
-   // retval is the address of the jump (if one is created). 
-   // It's always the _start_ of the jump, which means that if we need
-   // to offset (like x86 (to - (from + insnsize))) we do it later.
-   codeBufIndex_t retval = 0;
-   
-   switch (op) {
-      case ifOp: {
-         // if src1 == 0 jump to dest
-         // src1 is a temporary
-         // dest is a target address
-         retval = gen.codeEmitter()->emitIf(src1, dest, rc, gen);
-         break;
-      }
-      case branchOp: {
-         // dest is the displacement from the current value of insn
-         // this will need to work for both 32-bits and 64-bits
-         // (since there is no JMP rel64)
-         retval = gen.getIndex();
-         insnCodeGen::generateBranch(gen, dest);
-         break;
-      }
-      default:
-         abort();        // unexpected op for this emit!
-   }
-   
-   return retval;
-}
-
 Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dest,
                codeGen &gen,
                const instPoint *location)
