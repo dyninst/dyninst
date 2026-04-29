@@ -557,7 +557,7 @@ Register EmitterAARCH64::emitCall(opCode op,
 }
 
 
-codeBufIndex_t emitA(opCode op, Register src1, long dest,
+codeBufIndex_t EmitterAARCH64::emitA(opCode op, Register src1, long dest,
         codeGen &gen, Dyninst::DyninstAPI::RegControl rc)
 {
     codeBufIndex_t retval = 0;
