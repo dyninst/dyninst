@@ -1331,7 +1331,7 @@ static inline void emitAddOriginal(Dyninst::Register src, Dyninst::Register acc,
     
     // add temp to dest;
     // writes at gen+base and updates base, we must update insn...
-    emitV(plusOp, temp, acc, acc, gen, 0);
+    gen.emitter()->emitV(plusOp, temp, acc, acc, gen, 0);
     
     if(nr)
         gen.rs()->freeRegister(temp);
@@ -1499,7 +1499,7 @@ void emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, A
     } else assert(0 && "Unknown op passed to emitVstore");
 }
 
-void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dest,
+void EmitterPOWER::emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dest,
            codeGen &gen,
            int size,
            AddressSpace *proc, bool s)
@@ -1705,7 +1705,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
         gen.emitter()->emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
                 gen);
         // Load LR into register dest
-        emitV(loadIndirOp, dest, 0, dest, gen,
+        gen.emitter()->emitV(loadIndirOp, dest, 0, dest, gen,
               gen.width(), gen.addrSpace());
         break;
 
@@ -1720,7 +1720,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
         gen.emitter()->emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
                 gen);
         // Load LR into register dest
-        emitV(loadIndirOp, dest, 0, dest, gen,
+        gen.emitter()->emitV(loadIndirOp, dest, 0, dest, gen,
               gen.width(), gen.addrSpace());
       break;
 
