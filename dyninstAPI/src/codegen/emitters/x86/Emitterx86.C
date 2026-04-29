@@ -57,6 +57,46 @@ namespace Dyninst { namespace DyninstAPI {
     return retval;
   }
 
+  Dyninst::Register Emitterx86::emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2,
+                                      Dyninst::Register dest, codeGen &gen,
+                                      const instPoint *location) {
+    bool get_addr_of = (src2 != Null_Register);
+    switch(op) {
+      case getRetValOp:
+        // dest is a register where we can store the value
+        // the return value is in the saved EAX
+        gen.codeEmitter()->emitGetRetVal(dest, get_addr_of, gen);
+        if(!get_addr_of) {
+          return dest;
+        }
+        break;
+      case getRetAddrOp:
+        // dest is a register where we can store the return address
+        gen.codeEmitter()->emitGetRetAddr(dest, gen);
+        return dest;
+        break;
+      case getParamOp:
+      case getParamAtCallOp:
+      case getParamAtEntryOp:
+        // src1 is the number of the argument
+        // dest is a register where we can store the value
+        gen.codeEmitter()->emitGetParam(dest, src1, location->type(), op, get_addr_of, gen);
+        if(!get_addr_of) {
+          return dest;
+        }
+        break;
+      case loadRegOp:
+        assert(src1 == 0);
+        assert(0);
+        return dest;
+      default:
+        abort(); // unexpected op for this emit!
+    }
+    assert(get_addr_of);
+    emitV(storeIndirOp, src2, 0, dest, gen, gen.addrSpace()->getAddressWidth(), gen.addrSpace());
+    return (dest);
+  }
+
   // VG(11/07/01): Load in destination the effective address given
   // by the address descriptor. Used for memory access stuff.
   void Emitterx86::emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift,

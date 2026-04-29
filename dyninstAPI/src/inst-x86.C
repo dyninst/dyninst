@@ -731,47 +731,6 @@ unsigned char jccOpcodeFromRelOp(unsigned op, bool s)
    return 0x0;
 }
 
-Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dest,
-               codeGen &gen,
-               const instPoint *location)
-{
-   bool get_addr_of = (src2 != Null_Register);
-   switch (op) {
-       case getRetValOp:
-          // dest is a register where we can store the value
-          // the return value is in the saved EAX
-          gen.codeEmitter()->emitGetRetVal(dest, get_addr_of, gen);
-          if (!get_addr_of)
-             return dest;
-          break;
-       case getRetAddrOp: 
-          // dest is a register where we can store the return address
-          gen.codeEmitter()->emitGetRetAddr(dest, gen);
-          return dest;
-          break;
-       case getParamOp:
-       case getParamAtCallOp:
-       case getParamAtEntryOp:
-          // src1 is the number of the argument
-          // dest is a register where we can store the value
-          gen.codeEmitter()->emitGetParam(dest, src1, location->type(), op,
-                                          get_addr_of, gen);
-          if (!get_addr_of)
-             return dest;
-          break;
-       case loadRegOp:
-          assert(src1 == 0);
-          assert(0);
-          return dest;
-       default:
-          abort();                  // unexpected op for this emit!
-    }
-    assert(get_addr_of);
-    emitV(storeIndirOp, src2, 0, dest, gen,
-          gen.addrSpace()->getAddressWidth(), gen.addrSpace());
-    return(dest);
-}
-
 void emitSHL(RealRegister dest, unsigned char pos, codeGen &gen)
 {
    gen.markRegDefined(dest.reg());
