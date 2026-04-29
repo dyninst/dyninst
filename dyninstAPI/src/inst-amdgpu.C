@@ -42,12 +42,6 @@ using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 /***********************************************************************************************/
 
 // TODO: ALL THESE MUST GO AWAY ENTIRELY AS CODEGEN MATURES
-codeBufIndex_t emitA(opCode /* op */, Register /* src1 */, long /* dest */,
-                     codeGen & /* gen */, Dyninst::DyninstAPI::RegControl /* rc */) {
-  assert(!"Not implemented for AMDGPU");
-  return 0;
-}
-
 Register emitR(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */,
                codeGen & /* gen */, const instPoint *) {
   assert(!"Not implemented for AMDGPU");
@@ -106,4 +100,10 @@ Address EmitterAmdgpuGfx908::getInterModuleFuncAddr(func_instance * /* func */, 
 void EmitterAmdgpuGfx908::emitImm(opCode /* op */, Register /* src1 */, RegValue /* src2imm */, Register /* dest */,
              codeGen & /* gen */, bool /* s */) {
   assert(!"Not implemented for AMDGPU");
+}
+
+codeBufIndex_t EmitterAmdgpuGfx908::emitA(opCode /* op */, Register /* src1 */, long /* dest */,
+                     codeGen & /* gen */, Dyninst::DyninstAPI::RegControl /* rc */) {
+  assert(!"Not implemented for AMDGPU");
+  return 0;
 }

@@ -79,6 +79,8 @@ public:
   // Note that Dyninst::DyninstAPI::RegControl is unused on AMDGPU, simply pass Dyninst::DyninstAPI::RegControl::rc_no_control.
   codeBufIndex_t emitIf(Register expr_reg, Register target, Dyninst::DyninstAPI::RegControl rc, codeGen &gen);
 
+  codeBufIndex_t emitA(opCode op, Dyninst::Register src1, long dst, codeGen &gen, Dyninst::DyninstAPI::RegControl rc);
+
   void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
 
   // What is opcode2?
