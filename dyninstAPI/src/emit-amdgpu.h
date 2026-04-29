@@ -81,6 +81,8 @@ public:
 
   codeBufIndex_t emitA(opCode op, Dyninst::Register src1, long dst, codeGen &gen, Dyninst::DyninstAPI::RegControl rc);
 
+  Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst, codeGen &gen, const instPoint *location);
+
   void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
 
   // What is opcode2?
