@@ -1138,7 +1138,7 @@ codeBufIndex_t EmitterPOWER::emitA(opCode op, Dyninst::Register src1, long dest,
     return retval;
 }
 
-Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dest,
+Dyninst::Register EmitterPOWER::emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dest,
                codeGen &gen,
                const instPoint * /*location*/)
 {
