@@ -79,7 +79,7 @@ else()
   find_library(
     LibDW_LIBRARIES
     NAMES libdw dw
-    PATH_SUFFIXES elfutils ${_find_path_args})
+    PATH_SUFFIXES elfutils lib64 ${_find_path_args})
 
   if(EXISTS "${LibDW_INCLUDE_DIRS}/version.h")
     file(STRINGS "${LibDW_INCLUDE_DIRS}/version.h" _version_line

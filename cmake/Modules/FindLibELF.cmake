@@ -79,7 +79,7 @@ else()
   find_library(
     LibELF_LIBRARIES
     NAMES libelf elf
-    PATH_SUFFIXES elfutils ${_find_path_args})
+    PATH_SUFFIXES elfutils lib64 ${_find_path_args})
 
   macro(_check_libelf_version _file)
     file(STRINGS ${_file} _version_line REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")

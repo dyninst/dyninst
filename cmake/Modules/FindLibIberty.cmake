@@ -48,7 +48,7 @@ mark_as_advanced(LibIberty_INCLUDE_DIRS)
 find_library(
   LibIberty_LIBRARIES
   NAMES libiberty iberty
-  PATH_SUFFIXES libiberty ${_find_path_args})
+  PATH_SUFFIXES libiberty lib64 ${_find_path_args})
 mark_as_advanced(LibIberty_LIBRARIES)
 
 include(FindPackageHandleStandardArgs)

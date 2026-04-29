@@ -32,7 +32,10 @@ cmake_policy(SET CMP0074 NEW) # Use <Package>_ROOT
 
 find_path(Thread_DB_INCLUDE_DIRS NAMES thread_db.h)
 
-find_library(Thread_DB_LIBRARIES NAMES thread_db)
+find_library(
+  Thread_DB_LIBRARIES
+  NAMES thread_db
+  PATH_SUFFIXES lib64)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
