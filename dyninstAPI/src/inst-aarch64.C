@@ -782,7 +782,7 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
     return;
 }
 
-void emitV(opCode op, Register src1, Register src2, Register dest,
+void EmitterAARCH64::emitV(opCode op, Register src1, Register src2, Register dest,
         codeGen &gen,
            int size,
            AddressSpace *proc, bool s)
