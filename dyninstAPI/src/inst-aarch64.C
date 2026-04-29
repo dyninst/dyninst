@@ -584,7 +584,7 @@ codeBufIndex_t EmitterAARCH64::emitA(opCode op, Register src1, long dest,
     return retval;
 }
 
-Register emitR(opCode op, Register src1, Register src2, Register dest,
+Register EmitterAARCH64::emitR(opCode op, Register src1, Register src2, Register dest,
                codeGen &gen,
                const instPoint *)
 {

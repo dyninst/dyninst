@@ -56,6 +56,8 @@ public:
 
     virtual codeBufIndex_t emitA(opCode op, Dyninst::Register src1, long dst, codeGen &gen, Dyninst::DyninstAPI::RegControl rc);
 
+    virtual Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst, codeGen &gen, const instPoint *location);
+
     void emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen);
 
     virtual codeBufIndex_t emitIf(Register, Register, Dyninst::DyninstAPI::RegControl, codeGen &);
