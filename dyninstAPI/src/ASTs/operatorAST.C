@@ -637,16 +637,16 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
         case operandType::ParamAtEntry: {
           boost::shared_ptr<operandAST> lnode =
               boost::dynamic_pointer_cast<operandAST>(loperand);
-          emitR(getParamOp, (Dyninst::Address)lnode->oValue, src1, src2, gen, gen.point());
+          gen.emitter()->emitR(getParamOp, (Dyninst::Address)lnode->oValue, src1, src2, gen, gen.point());
           loperand->decUseCount(gen);
           break;
         }
         case operandType::ReturnVal:
-          emitR(getRetValOp, Dyninst::Null_Register, src1, src2, gen, gen.point());
+          gen.emitter()->emitR(getRetValOp, Dyninst::Null_Register, src1, src2, gen, gen.point());
           loperand->decUseCount(gen);
           break;
         case operandType::ReturnAddr:
-          emitR(getRetAddrOp, Dyninst::Null_Register, src1, src2, gen, gen.point());
+          gen.emitter()->emitR(getRetAddrOp, Dyninst::Null_Register, src1, src2, gen, gen.point());
           break;
         default: {
           // Could be an error, could be an attempt to load based on an arithmetic expression

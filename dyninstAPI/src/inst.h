@@ -62,12 +62,6 @@ class image_variable;
  * functions replace "emit" with more strongly typed versions.
  */
 
-// for operations requiring a Dyninst::Register to be returned
-// (e.g., getRetValOp, getRetAddrOp, getParamOp)
-Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst,
-               codeGen &gen,
-               const instPoint *location);
-
 // for general arithmetic and logic operations which return nothing
 void     emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst,
                codeGen &gen,

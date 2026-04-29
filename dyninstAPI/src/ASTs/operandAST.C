@@ -114,7 +114,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
                        gen.addrSpace());
       break;
     case operandType::ReturnVal:
-      src = emitR(getRetValOp, 0, Dyninst::Null_Register, retReg, gen, gen.point());
+      src = gen.emitter()->emitR(getRetValOp, 0, Dyninst::Null_Register, retReg, gen, gen.point());
       REGISTER_CHECK(src);
       if(src != retReg) {
         // Move src to retReg. Can't simply return src, since it was not
@@ -123,7 +123,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
       }
       break;
     case operandType::ReturnAddr:
-      src = emitR(getRetAddrOp, 0, Dyninst::Null_Register, retReg, gen, gen.point());
+      src = gen.emitter()->emitR(getRetAddrOp, 0, Dyninst::Null_Register, retReg, gen, gen.point());
       REGISTER_CHECK(src);
       if(src != retReg) {
         // Move src to retReg. Can't simply return src, since it was not
@@ -149,7 +149,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
           assert(0);
           break;
       }
-      src = emitR(paramOp, (Address)oValue, Dyninst::Null_Register, retReg, gen,
+      src = gen.emitter()->emitR(paramOp, (Address)oValue, Dyninst::Null_Register, retReg, gen,
                   gen.point());
       REGISTER_CHECK(src);
       if(src != retReg) {
