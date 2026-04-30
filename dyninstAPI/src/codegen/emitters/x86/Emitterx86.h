@@ -57,6 +57,9 @@ namespace Dyninst { namespace DyninstAPI {
     void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst,
                codeGen &gen, int size = 4, AddressSpace * proc = NULL, bool s = true) final override;
 
+    void emitVload(opCode op, Dyninst::Address src1, Dyninst::Register src2, Dyninst::Register dst,
+                   codeGen &gen, int size = 4, AddressSpace * proc = NULL) final override;
+
     virtual bool emitCallInstruction(codeGen &, func_instance *, Register) = 0;
 
     void emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen) override final;
