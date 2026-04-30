@@ -86,6 +86,9 @@ public:
   void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst,
              codeGen &gen, int size = 4, AddressSpace * proc = NULL, bool s = true);
 
+  void emitVload(opCode op, Dyninst::Address src1, Dyninst::Register src2, Dyninst::Register dst,
+                 codeGen &gen, int size = 4, AddressSpace * proc = NULL);
+
   void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
 
   // What is opcode2?
