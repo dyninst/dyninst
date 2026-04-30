@@ -559,6 +559,27 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             newshdr->sh_entsize = 0x0;
         }
 
+        if (library_adjust > 0 && newdata->d_buf && newdata->d_size) {
+            std::vector<Offset> &relr_relocs = object->getRelrDynRelocs();
+            for (unsigned ri = 0; ri < relr_relocs.size(); ++ri) {
+                Offset relr_addr = relr_relocs[ri];
+                if (relr_addr < shdr->sh_addr ||
+                    relr_addr + sizeof(Elf_Relr) > shdr->sh_addr + shdr->sh_size)
+                    continue;
+
+                Offset relr_off = relr_addr - shdr->sh_addr;
+                if (relr_off + sizeof(Elf_Relr) > newdata->d_size)
+                    continue;
+
+                char *loc = static_cast<char *>(newdata->d_buf) + relr_off;
+                Elf_Relr val = 0;
+                memcpy(&val, loc, sizeof(val));
+                if (!val) continue;
+                val += library_adjust;
+                memcpy(loc, &val, sizeof(val));
+            }
+        }
+
         vector<vector<unsigned long> > moveSecAddrRange = object->getMoveSecAddrRange();
 
         for (unsigned i = 0; i != moveSecAddrRange.size(); i++) {
@@ -631,7 +652,18 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                 (strcmp(name, ".init_array") == 0 || strcmp(name, ".fini_array") == 0 ||
                  strcmp(name, "__libc_subfreeres") == 0 || strcmp(name, "__libc_atexit") == 0 ||
                  strcmp(name, "__libc_thread_subfreeres") == 0 || strcmp(name, "__libc_IO_vtables") == 0)) {
+            std::vector<Offset> &relr_relocs = object->getRelrDynRelocs();
             for(std::size_t off = 0; off < newdata->d_size; off += sizeof(void*)) {
+                Offset addr = shdr->sh_addr + off;
+                bool is_relr_location = false;
+                for (unsigned ri = 0; ri < relr_relocs.size(); ++ri) {
+                    if (relr_relocs[ri] == addr) {
+                        is_relr_location = true;
+                        break;
+                    }
+                }
+                if (is_relr_location) continue;
+
                 char *loc = static_cast<char*>(newdata->d_buf) + off;
                 size_t val{};
                 // The calls to memcpy are required to not break the aliasing rules.
@@ -952,6 +984,19 @@ void emitElf<ElfTypes>::fixPhdrs() {
 #if !defined(DT_TLSDESC_GOT)
 #define DT_TLSDESC_GOT 0x6ffffef7
 #endif
+// Older elf.h headers may not define RELR dynamic tag constants
+#if !defined(DT_RELRSZ)
+#define DT_RELRSZ 35
+#endif
+#if !defined(DT_RELR)
+#define DT_RELR 36
+#endif
+#if !defined(DT_RELRENT)
+#define DT_RELRENT 37
+#endif
+#if !defined(SHT_RELR)
+#define SHT_RELR 19
+#endif
 
 //This method updates the .dynamic section to reflect the changes to the relocation section
 template<class ElfTypes>
@@ -965,10 +1010,12 @@ void emitElf<ElfTypes>::updateDynamic(unsigned tag, Elf_Addr val) {
         case DT_STRSZ:
         case DT_RELSZ:
         case DT_RELASZ:
+        case DT_RELRSZ:
         case DT_PLTRELSZ:
         case DT_RELACOUNT:
         case DT_RELENT:
         case DT_RELAENT:
+        case DT_RELRENT:
             dynamicSecData[tag][0]->d_un.d_val = val;
             break;
         case DT_HASH:
@@ -977,6 +1024,7 @@ void emitElf<ElfTypes>::updateDynamic(unsigned tag, Elf_Addr val) {
         case DT_STRTAB:
         case DT_REL:
         case DT_RELA:
+        case DT_RELR:
         case DT_VERSYM:
         case DT_JMPREL:
             dynamicSecData[tag][0]->d_un.d_ptr = val;
@@ -1155,6 +1203,20 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
                 updateDynamic(DT_RELA, newshdr->sh_addr);
             else if (newSecs[i]->getRegionType() == Region::RT_PLTRELA)
                 updateDynamic(DT_JMPREL, newshdr->sh_addr);
+        }
+        else if (newSecs[i]->getRegionType() == Region::RT_RELR)
+        {
+            newshdr->sh_type = SHT_RELR;
+            newshdr->sh_flags = SHF_ALLOC;
+            newshdr->sh_entsize = sizeof(Elf_Relr);
+            // SHT_RELR entries are Elf32_Word for ELFCLASS32 and Elf64_Xword
+            // for ELFCLASS64
+            newdata->d_type =
+                (sizeof(Elf_Relr) == sizeof(Elf32_Word)) ? ELF_T_WORD : ELF_T_XWORD;
+            newdata->d_align = sizeof(Elf_Relr);
+            updateDynamic(DT_RELR, newshdr->sh_addr);
+            updateDynamic(DT_RELRSZ, newSecs[i]->getDiskSize());
+            updateDynamic(DT_RELRENT, sizeof(Elf_Relr));
         }
         else if (newSecs[i]->getRegionType() == Region::RT_STRTAB)    //String table Section
         {
@@ -1775,6 +1837,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
             createRelocationSections(object->getDynRelocs(), true, dynSymNameMapping);
             createRelocationSections(object->getPLTRelocs(), false, dynSymNameMapping);
         }
+        createRelrRelocationSection(object->getRelrDynRelocs());
 
         //add .dynamic section
         if (dynsecSize)
@@ -1991,6 +2054,26 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
 }
 
 template<class ElfTypes>
+void emitElf<ElfTypes>::createRelrRelocationSection(std::vector<Offset> &relr_table) {
+    if (relr_table.empty()) return;
+
+    Elf_Relr *relrs = (Elf_Relr *) malloc(sizeof(Elf_Relr) * relr_table.size());
+    for (unsigned i = 0; i < relr_table.size(); ++i) {
+        relrs[i] = static_cast<Elf_Relr>(relr_table[i] + library_adjust);
+    }
+
+    dyn_hash_map<int, Region *> secTagRegionMapping = object->getTagRegionMapping();
+    string name;
+    if (secTagRegionMapping.find(DT_RELR) != secTagRegionMapping.end())
+        name = secTagRegionMapping[DT_RELR]->getRegionName();
+    else
+        name = ".relr.dyn";
+
+    obj->addRegion(0, relrs, relr_table.size() * sizeof(Elf_Relr), name,
+                   Region::RT_RELR, true);
+}
+
+template<class ElfTypes>
 void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedSecData, unsigned &verneedSecSize,
                                                char *&verdefSecData,
                                                unsigned &verdefSecSize, unsigned &dynSymbolNamesLength,
@@ -2002,6 +2085,17 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
         iter->second = dynSymbolNamesLength;
         dynStrs.push_back(iter->first);
         dynSymbolNamesLength += iter->first.size() + 1;
+    }
+
+    if (object->hasRelrdyn() &&
+        verneedEntries["libc.so.6"].find("GLIBC_ABI_DT_RELR") ==
+            verneedEntries["libc.so.6"].end()) {
+        if (versionNames.find("GLIBC_ABI_DT_RELR") == versionNames.end()) {
+            versionNames["GLIBC_ABI_DT_RELR"] = dynSymbolNamesLength;
+            dynStrs.push_back("GLIBC_ABI_DT_RELR");
+            dynSymbolNamesLength += std::string("GLIBC_ABI_DT_RELR").size() + 1;
+        }
+        verneedEntries["libc.so.6"]["GLIBC_ABI_DT_RELR"] = curVersionNum++;
     }
 
     //reconstruct .gnu_version section
