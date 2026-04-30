@@ -62,12 +62,6 @@ class image_variable;
  * functions replace "emit" with more strongly typed versions.
  */
 
-// for loadOp and loadConstOp (reading from an Dyninst::Address)
-void     emitVload(opCode op, Dyninst::Address src1, Dyninst::Register src2, Dyninst::Register dst,
-                   codeGen &gen,
-                   int size = 4,
-                   AddressSpace * proc = NULL);
-
 // for storeOp (writing to an Dyninst::Address)
 void     emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Address dst,
                     codeGen &gen,

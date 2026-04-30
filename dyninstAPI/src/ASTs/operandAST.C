@@ -78,7 +78,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
 #else
     case operandType::Constant:
       assert(oVar == NULL);
-      emitVload(loadConstOp, (Address)oValue, retReg, retReg, gen, size,
+      gen.emitter()->emitVload(loadConstOp, (Address)oValue, retReg, retReg, gen, size,
                 gen.addrSpace());
       break;
 #endif
@@ -161,13 +161,13 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
     case operandType::DataAddr:
       assert(oVar == NULL);
       addr = reinterpret_cast<Address>(oValue);
-      emitVload(loadOp, addr, retReg, retReg, gen, size,
+      gen.emitter()->emitVload(loadOp, addr, retReg, retReg, gen, size,
                 gen.addrSpace());
       break;
     case operandType::FrameAddr:
       addr = (Address)oValue;
       temp = gen.rs()->allocateRegister(gen);
-      emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, size,
+      gen.emitter()->emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, size,
                 gen.addrSpace());
       gen.rs()->freeRegister(temp);
       break;
@@ -176,7 +176,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
       // This codeGenAST holds the register number, and loperand holds offset.
       assert(operand_);
       addr = (Address)operand_->getOValue();
-      emitVload(loadRegRelativeOp, addr, (long)oValue, retReg, gen, size,
+      gen.emitter()->emitVload(loadRegRelativeOp, addr, (long)oValue, retReg, gen, size,
                 gen.addrSpace());
       break;
     case operandType::ConstantString:
@@ -192,7 +192,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
       }
 
       if(!gen.addrSpace()->needsPIC()) {
-        emitVload(loadConstOp, addr, retReg, retReg, gen, size,
+        gen.emitter()->emitVload(loadConstOp, addr, retReg, retReg, gen, size,
                   gen.addrSpace());
       } else {
         gen.codeEmitter()->emitLoadShared(loadConstOp, retReg, NULL, true, size, gen, addr);
@@ -237,7 +237,7 @@ void operandAST::emitVariableLoad(opCode op, Dyninst::Register src2, Dyninst::Re
                                       AddressSpace *as) {
   int_variable *var = lookUpVar(as);
   if(var && !as->needsPIC(var)) {
-    emitVload(op, var->getAddress(), src2, dest, gen, size_, as);
+    gen.emitter()->emitVload(op, var->getAddress(), src2, dest, gen, size_, as);
   } else {
     gen.codeEmitter()->emitLoadShared(op, dest, oVar, (var != NULL), size_, gen, 0);
   }
