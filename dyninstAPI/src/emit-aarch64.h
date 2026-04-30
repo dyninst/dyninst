@@ -64,6 +64,9 @@ public:
     virtual void emitVload(opCode op, Dyninst::Address src1, Dyninst::Register src2, Dyninst::Register dst,
                            codeGen &gen, int size = 4, AddressSpace * proc = NULL);
 
+    virtual void emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Address dst,
+                            codeGen &gen, int size = 4, AddressSpace * proc = NULL);
+
     void emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen);
 
     virtual codeBufIndex_t emitIf(Register, Register, Dyninst::DyninstAPI::RegControl, codeGen &);
