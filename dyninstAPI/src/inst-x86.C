@@ -898,29 +898,6 @@ void restoreGPRtoGPR(RealRegister src, RealRegister dest, codeGen &gen)
    restoreGPRtoReg(src, gen, &dest);
 }
 
-void emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, Address dest,
-                codeGen &gen,
-                int size,
-                AddressSpace * /* proc */)
-{
-   if (op ==  storeOp) {
-      // [dest] = src1
-      // dest has the address where src1 is to be stored
-      // src1 is a temporary
-      // src2 is a "scratch" register, we don't need it in this architecture
-       gen.codeEmitter()->emitStore(dest, src1, size, gen);
-      return;
-   } else if (op == storeFrameRelativeOp) {
-       // src1 is a temporary
-       // src2 is a "scratch" register, we don't need it in this architecture
-       // dest is the frame offset 
-       gen.codeEmitter()->emitStoreFrameRelative(dest, src1, src2, size, gen);
-       return;
-   } else {
-       abort();                // unexpected op for this emit!
-   }
-}
-
 bool emitPush(RealRegister reg, codeGen &gen) {
     GET_PTR(insn, gen);
     int r = reg.reg();
