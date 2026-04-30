@@ -29,6 +29,7 @@
  */
 
 
+#define jk_rewrite_printf rewrite_printf
 #include <cstring>
 #include <algorithm>
 #include "emitElf.h"
@@ -351,6 +352,8 @@ void emitElf<ElfTypes>::getSectionAndSegmentProperties(const char* shnames) {
             lastLoadedSectionNum = i;
         }
     }
+
+    jk_rewrite_printf("getSectionAndSegmentProperties: maxSegmentLoadedAddr=%0lx maxSectionEndAddr=%0lx lastLoadedSectionNumber=%lu TLSExists=%d\n", uint64_t{maxSegmentLoadedAddr}, uint64_t{maxSectionEndAddr}, uint64_t{lastLoadedSectionNum}, TLSExists);
 }
 
 // Rename an old section. New name is old name with 2nd char changed to 'o'
@@ -466,6 +469,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             continue;
 
         sectionNumber++;
+	jk_rewrite_printf("SECTION:  sectionNumber=%03u\n", sectionNumber);
         changeMapping[sectionNumber] = false;
         newNameIndexMapping[name] = sectionNumber;
 
@@ -704,6 +708,13 @@ void emitElf<ElfTypes>::createNewPhdrRegion(Elf_Shdr* &newshdr, std::unordered_m
 }
 
 
+void jk_log_segment(const char *label, unsigned num, unsigned type, unsigned long vAddr, unsigned long off, unsigned long memSz)
+{
+    jk_rewrite_printf("%20s [%02x] type=%04x vaddr=%08lx off=%08lx memSz=%08lx\n",
+                        label, num, type, vAddr, off, memSz);
+}
+
+
 template<class ElfTypes>
 void emitElf<ElfTypes>::fixPhdrs() {
     // This function has to perform the addresses fix in two passes.
@@ -757,6 +768,9 @@ void emitElf<ElfTypes>::fixPhdrs() {
             segments[i].p_memsz = newTLSData->sh_size + old->p_memsz - old->p_filesz;
             segments[i].p_align = newTLSData->sh_addralign;
         }
+
+        jk_log_segment("old", i, old->p_type, old->p_vaddr, old->p_offset, old->p_memsz);
+        jk_log_segment("  ->", i, segments[i].p_type, segments[i].p_vaddr, segments[i].p_offset, segments[i].p_memsz);
 
         ++old;
     }
