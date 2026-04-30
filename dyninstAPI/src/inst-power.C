@@ -1456,7 +1456,7 @@ void EmitterPOWER::emitVload(opCode op, Address src1, Dyninst::Register src2, Dy
   }
 }
 
-void emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, Address dest,
+void EmitterPOWER::emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register /*src2*/, Address dest,
 		codeGen &gen,
                 int size,
                 AddressSpace *proc)
