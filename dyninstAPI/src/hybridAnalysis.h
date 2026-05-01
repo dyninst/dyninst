@@ -168,8 +168,7 @@ private:
     bool instrumentModule(BPatch_module *mod, bool useInsertionSet); 
     bool instrumentFunction(BPatch_function *func, 
                             bool useInsertionSet, 
-                            bool instrumentReturns=false,
-                            bool syncShadow = false);
+                            bool instrumentReturns=false);
     bool parseAfterCallAndInstrument(BPatch_point *callPoint, 
                         BPatch_function *calledFunc,
                         bool foundByRet) ;

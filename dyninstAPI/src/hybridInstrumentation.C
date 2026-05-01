@@ -267,8 +267,7 @@ bool HybridAnalysis::canUseCache(BPatch_point *pt)
 // unresolved, abruptEnds, and return instructions
 bool HybridAnalysis::instrumentFunction(BPatch_function *func, 
     bool useInsertionSet, 
-    bool instrumentReturns,
-    bool addShadowSync) 
+    bool instrumentReturns)
 {
     if (!instrumentReturns)
     {
@@ -289,10 +288,9 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 
     Address funcAddr = (Address) func->getBaseAddr();
     int pointCount = 0;
-    mal_printf("instfunc at %lx; useInsertion %s, instrumentReturns %s, shadowSync %s\n", funcAddr,
+    mal_printf("instfunc at %lx; useInsertion %s, instrumentReturns %s\n", funcAddr,
         useInsertionSet ? "true" : "false",
-        instrumentReturns ? "true" : "false",
-        addShadowSync ? "true" : "false");
+        instrumentReturns ? "true" : "false");
     // first check to see if we've applied function replacement
     std::map<BPatch_function *,BPatch_function *>::iterator 
         rfIter = replacedFuncs_.find(func);
@@ -560,22 +558,6 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             }
         }
 	}
-
-    // If we're copying original<->shadow do it here
-    if (addShadowSync) {
-        if (false)
-        {
-            malware_cerr << "Adding shadow sync instrumentation to function " << func->getName() << endl;
-            std::vector<BPatch_point *> *entryPoints = func->findPoint(BPatch_entry);
-            if (entryPoints) {
-                pointCount++;
-            }
-            std::vector<BPatch_point *> *exitPoints = func->findPoint(BPatch_exit);
-            if (exitPoints) {
-                pointCount++;
-            }
-        }
-    }
     
     // close insertion set
     if (pointCount) {
@@ -1191,7 +1173,7 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
             targFunc = proc()->findFunctionByEntry(target);
         }
         addIndirectEdgeIfNeeded(point, target);
-        instrumentFunction(targFunc, false, instReturns, true);
+        instrumentFunction(targFunc, false, instReturns);
         proc()->finalizeInsertionSet(false);
         doMoreProcessing = false;
     }
