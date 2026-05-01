@@ -213,7 +213,6 @@ private:
               std::map<BPatch_point*,BPatchSnippetHandle*> *> * instrumentedFuncs;
     std::map< BPatch_point* , SynchHandle* > synchMap_pre_; // maps from prePt
     std::map< BPatch_point* , SynchHandle* > synchMap_post_; // maps from postPt
-    std::set< std::string > skipShadowFuncs_;
     std::map< BPatch_function *, BPatch_function *> replacedFuncs_;
     std::set< BPatch_point* > cachePoints_;
     BPatch_module *sharedlib_runtime;

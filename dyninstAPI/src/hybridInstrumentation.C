@@ -568,7 +568,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 
     // If we're copying original<->shadow do it here
     if (addShadowSync) {
-        if ((skipShadowFuncs_.find(func->getName()) == skipShadowFuncs_.end()))
+        if (false)
         {
             malware_cerr << "Adding shadow sync instrumentation to function " << func->getName() << endl;
             std::vector<BPatch_point *> *entryPoints = func->findPoint(BPatch_entry);
