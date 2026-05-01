@@ -1590,39 +1590,6 @@ BPatch_stopThreadExpr::BPatch_stopThreadExpr(
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
-
-BPatch_shadowExpr::BPatch_shadowExpr
-      (bool entry,
-      const BPatchStopThreadCallback &bp_cb,
-       const BPatch_snippet &calculation,
-       bool useCache,
-       BPatch_stInterpret interp)
-{
-    codeGenASTPtr idNode;
-    codeGenASTPtr icNode;
-    constructorHelper(bp_cb, useCache, interp, idNode, icNode);
-
-    // set up funcCall args
-    std::vector<codeGenASTPtr> ast_args;
-    if (entry) {
-        ast_args.push_back(operandAST::Constant((void *)1));
-    }
-    else {
-        ast_args.push_back(operandAST::Constant((void *)0));
-    }
-    ast_args.back()->setType(BPatch::bpatch->type_Untyped);
-
-    ast_args.push_back(AddressAST::actual());
-    ast_args.push_back(idNode);
-    ast_args.push_back(icNode);
-    ast_args.push_back(calculation.ast_wrapper);
-
-    // create func call & set type
-    ast_wrapper = functionCallAST::namedCall("RThandleShadow", ast_args);
-    ast_wrapper->setType(BPatch::bpatch->type_Untyped);
-    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
-}
-
 BPatch_originalAddressExpr::BPatch_originalAddressExpr() {
     ast_wrapper = AddressAST::original();
 

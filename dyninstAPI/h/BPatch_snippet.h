@@ -129,7 +129,6 @@ class DYNINST_EXPORT BPatch_snippet {
     friend class BPatch_sequence;
     friend class BPatch_insnExpr;
     friend class BPatch_stopThreadExpr;
-    friend class BPatch_shadowExpr;
     friend class BPatch_utilExpr;
     friend class BPatch_atomicOperationStmt;
     friend Dyninst::BPatch_codeGenASTPtr generateArrayRef(const BPatch_snippet &lOperand,
@@ -530,20 +529,6 @@ typedef enum {
     BPatch_interpAsTarget,
     BPatch_interpAsReturnAddr,
 } BPatch_stInterpret;
-
-class DYNINST_EXPORT BPatch_shadowExpr : public BPatch_snippet {
- public:
-  // BPatch_stopThreadExpr 
-  //  This snippet type stops the thread that executes it.  It
-  //  evaluates a calculation snippet and triggers a callback to the
-  //  user program with the result of the calculation and a pointer to
-  //  the BPatch_point at which the snippet was inserted
-  BPatch_shadowExpr(bool entry, 
-		    const BPatchStopThreadCallback &cb,
-		    const BPatch_snippet &calculation,
-		    bool useCache = false,
-		    BPatch_stInterpret interp = BPatch_noInterp);
-};
 
 class DYNINST_EXPORT BPatch_stopThreadExpr : public BPatch_snippet {
  public:
