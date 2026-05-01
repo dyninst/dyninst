@@ -89,11 +89,6 @@ static void signalHandlerExitCB_wrapper(BPatch_point *point, void *dontcare)
     dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
         getHybridAnalysis()->signalHandlerExitCB(point,dontcare); 
 }
-static void synchShadowOrigCB_wrapper(BPatch_point *point, void *toOrig) 
-{
-    dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
-        getHybridAnalysis()->synchShadowOrigCB(point, (bool) toOrig);
-}
 
 InternalSignalHandlerCallback HybridAnalysis::getSignalHandlerCB()
 { return signalHandlerCB_wrapper; }
@@ -574,14 +569,10 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             std::vector<BPatch_point *> *entryPoints = func->findPoint(BPatch_entry);
             if (entryPoints) {
                 pointCount++;
-                proc()->insertSnippet(BPatch_shadowExpr(true, synchShadowOrigCB_wrapper, BPatch_constExpr(1)),
-                    *entryPoints, BPatch_firstSnippet);
             }
             std::vector<BPatch_point *> *exitPoints = func->findPoint(BPatch_exit);
             if (exitPoints) {
                 pointCount++;
-                proc()->insertSnippet(BPatch_shadowExpr(false, synchShadowOrigCB_wrapper, BPatch_constExpr(0)),
-                    *exitPoints, BPatch_lastSnippet);
             }
         }
     }
