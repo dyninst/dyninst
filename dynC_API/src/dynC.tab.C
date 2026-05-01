@@ -2421,10 +2421,6 @@ yyreduce:
           (yyval.snippet) = new BPatch_retExpr();
           break;
        }
-       if(strcmp((yyvsp[0].sval), "thread_index") == 0){
-          (yyval.snippet) = new BPatch_threadIndexExpr();
-          break;
-       }
        if(strcmp((yyvsp[0].sval), "tid") == 0){
           (yyval.snippet) = snippetGen->getContextInfo(SnippetGenerator::SG_TID);
           if((yyval.snippet) == NULL){

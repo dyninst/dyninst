@@ -742,10 +742,6 @@ arith_expression: variable_expr
           $$ = new BPatch_retExpr();
           break;
        }
-       if(strcmp($3, "thread_index") == 0){
-          $$ = new BPatch_threadIndexExpr();
-          break;
-       }
        if(strcmp($3, "tid") == 0){
           $$ = snippetGen->getContextInfo(SnippetGenerator::SG_TID);
           if($$ == NULL){

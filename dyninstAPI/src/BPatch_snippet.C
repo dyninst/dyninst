@@ -66,7 +66,6 @@ using namespace Dyninst::SymtabAPI;
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using variableAST = Dyninst::DyninstAPI::variableAST;
-using threadAST = Dyninst::DyninstAPI::threadAST;
 using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
 using memoryAccessAST = Dyninst::DyninstAPI::memoryAccessAST;
 using nullAST = Dyninst::DyninstAPI::nullAST;
@@ -1441,16 +1440,6 @@ BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExpr(const BPatch_snippe
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
-}
-
-BPatch_threadIndexExpr::BPatch_threadIndexExpr()
-{
-    ast_wrapper = threadAST::index();
-
-    assert(BPatch::bpatch != NULL);
-    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
-    BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
-    assert(type != NULL);
 }
 
 BPatch_tidExpr::BPatch_tidExpr(BPatch_process *proc)
