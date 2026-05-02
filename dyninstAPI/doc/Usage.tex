@@ -1,0 +1,48 @@
+In this section, we describe the steps needed to compile your mutator and mutatee programs and to run
+them. First we give you an overview of the major steps and then we explain each one in detail.
+
+\subsection{Creating a mutator program}
+
+The first step in using Dyninst is to create a mutator program. The mutator program specifies the
+mutatee (either by naming an executable to start or by supplying a process ID for an existing
+process). In addition, your mutator will include the calls to the API library to modify the mutatee.
+For the rest of this section, we assume that the mutator is the sample program given in Appendix A.
+
+The following \code{CMakeLists.txt} shows how create your mutator program with Dyninst.
+
+\begin{lstlisting}
+  cmake_minimum_required(VERSION 3.15)
+  project(retee LANGUAGES CXX)
+  
+  find_package(Dyninst REQUIRED)
+  
+  add_executable(retee retee.cpp)
+  target_link_libraries(retee PUBLIC Dyninst::dyninstAPI)
+\end{lstlisting}
+
+\subsection{Setting Up the Application Program (mutatee)}
+
+On most platforms, any additional code that your mutator might need to call in the mutatee (for example
+files containing instrumentation functions that were too complex to write directly using the API) can
+be put into a dynamically loaded shared library, which your mutator program can load into the mutatee
+at runtime using the loadLibrary member function of \code{BPatch\_process}.
+
+To locate the runtime library that Dyninst needs to load into your program, an additional environment
+variable must be set. The variable \code{DYNINSTAPI\_RT\_LIB} should be set to the full pathname of the
+run time instrumentation library, which should be:
+
+
+NOTE: \code{DYNINST\_LIB} should be set to the location where Dyninst library files were installed
+
+\begin{lstlisting}
+\$(DYNINST_LIB)/libdyninstAPI_RT.so (UNIX)
+
+\%DYNINST_LIB/libdyninstAPI_RT.dll (Windows)
+\end{lstlisting}
+
+\subsection{Running the Mutator}
+
+At this point, you should be ready to run your application program with your mutator. For example,
+to start the sample program shown in Appendix A:
+
+\code{retee foo <pid>}
