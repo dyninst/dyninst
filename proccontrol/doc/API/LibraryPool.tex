@@ -1,0 +1,37 @@
+A \code{LibraryPool} is a container representing the executable
+and set shared libraries (e.g., .dll and .so libraries) loaded into the target
+process\' address space. A statically linked target
+process will only have a single executable, while a dynamically linked target
+process will have an executable and zero or more shared libraries. It satisfies
+the C++
+\href{https://en.cppreference.com/cpp/named_req/ForwardIterator}{LegacyForwardIterator}
+concept. It also offers the standard \code{begin/end} members for iteration.
+
+\begin{apient}
+  size_t size() const
+\end{apient}
+
+\apidesc{
+  This function returns the number of elements in the library set.
+}
+
+\begin{apient}
+  Library::ptr getExecutable()
+  Library::const_ptr getExecutable() const
+\end{apient}
+
+\apidesc{
+  These functions respectively return a pointer or a const pointer to
+  the Library object that represents the target process\' executable.
+}
+
+\begin{apient}
+  Library::ptr getLibraryByName(std::string name)
+  Library::const_ptr getLibraryByName(std::string name) const
+\end{apient}
+
+\apidesc{
+  These functions respectively return a pointer or a const pointer to
+  the Library object that with a file name equal to name. If no library
+  is found, returns an iterator that compares equal with \code{end()}
+}
