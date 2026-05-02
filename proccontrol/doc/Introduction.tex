@@ -1,0 +1,122 @@
+\section{Introduction}
+This document describes ProcControlAPI, an API and library for controlling
+processes. ProcControlAPI runs as part of a controller process
+and manages one or more target processes. It allows the controller process
+to perform operations on target
+processes, such as writing to memory, stopping and running threads, or
+receiving notification when certain events occur. ProcControlAPI presents
+these operations through a platform-independent API and high-level
+abstractions. Users can describe what they want ProcControlAPI to do, and
+ProcControlAPI handles the details.
+
+An example use for ProcControlAPI would be as the underlying mechanism for a
+debugger. A user writing a debugger could provide their own user interface and
+debugging strategies, while using ProcControlAPI to perform operations such as
+creating processes, running threads, and handling breakpoints.
+
+The interface for ProcControlAPI can be generally divided into two parts: an
+interface for managing a process (e.g., reading and writing to target process
+memory, stopping and running threads), and an interface for monitoring a target
+process for certain events (e.g., watching the target process for fork or
+thread creation events). The manager interface uses a set of C++ objects to
+represent a target process and its threads, libraries, registers and other
+interesting aspects. Operations performed on these C++ objects in the
+controller process are translated into corresponding operations on the target
+process. The event interface uses a callback system to notify the
+ProcControlAPI user of interesting events in the target process. 
+
+\subsection{Simple Example}
+
+As an example, consider the code in Figure 1 that creates a target process and
+prints a message whenever that target process creates a new thread. Details
+on the API function used in this example can be found in latter sections of
+this manual, but we will provide a high level description of the operations
+here. Note that proper error handling and checking have been left out for
+brevity.
+
+\begin{lstlisting}[language=c++]
+  #include "Event.h"
+  #include "PCProcess.h"
+
+  #include <iostream>
+  #include <string>
+
+  namespace pc = Dyninst::ProcControlAPI;
+
+  pc::Process::cb_ret_t on_thread_create(pc::Event::const_ptr ev) {
+    // Callback when the target process creates a thread.
+    auto new_thrd_ev = ev->getEventNewThread();
+    auto new_thrd = new_thrd_ev->getNewThread();
+
+    std::cout << "Got a new thread with LWP " << new_thrd->getLWP() << std::endl;
+    return Process::cbDefault;
+  }
+
+  int main(int argc, char *argv[]) {
+    std::vector<std::string> args;
+
+    // Create a new target process
+    std::string exec = argv[1];
+    for (int i = 1; i < argc; i++) {
+      args.emplace_back(argv[i]);
+    }
+
+    pc::Process::ptr proc = pc::Process::createProcess(exec, args);
+
+    // Tell ProcControlAPI about our callback function
+    pc::Process::registerEventCallback(pc::EventType::ThreadCreate,
+                                       on_thread_create);
+
+    // Run the process and wait for it to terminate.
+    proc->continueProc();
+
+    while (!proc->isTerminated()) {
+      pc::Process::handleEvents(true);
+    }
+  }
+\end{lstlisting}
+
+We ask ProcControlAPI to create a new Process using the
+given arguments. ProcControlAPI will spawn a new target process
+ and leave it in a stopped state to prevent it from executing.
+
+\begin{enumerate}
+\item After creating the new target process we register a callback
+function. We ask ProcControlAPI to call our
+function, on\_thread\_create, when an event of type EventType::ThreadCreate
+occurs in the target process. 
+
+\item The on\_thread\_create function takes a pointer to an object of type
+Event and returns a Process::cb\_ret\_t. The Event describes the target
+process event that triggered
+this callback. In this case, it provides information about the new thread in
+the target process. It is worth noting that Event::const\_ptr is a not a
+regular pointer, but a reference counted shared pointer. This means that we
+do not have to be concerned with cleaning the Event- it
+will be automatically cleaned when the last reference disappears. The
+Process::cb\_ret\_t describes what action should be taken on the process in
+response to this event, which is described in more detail in section 6. 
+
+\item The Event class has several child classes, one of which is EventNewThread.
+We start by casting the Event into an EventNewThread and then extract
+information about the new thread from the EventNewThread.
+
+\item In step 6, we\'ve finished handling the new thread
+event and need to tell ProcControlAPI what to do in response to this event.
+For example, we could choose to stop the process from further execution by
+returning a value of Process::cbProcStop. Instead, we choose let
+ProcControlAPI take its default action for an EventNewThread by returning
+Process::cbDefault, which is to continue the process and its new thread (which
+were both stopped before delivery of the callback).
+
+\item The registering of our callback in step 3 did not actually trigger any
+calls to the callback function- the target process was
+created in a stopped state and has not yet been able to create any threads.
+We tell ProcControlAPI to continue the target process in this step, which
+allows it to execute and possibly start generating new events. 
+
+\item In this step we wait for the target process to finish executing and
+terminate. Calling Process::handleEvents
+blocks the controller process until an event occurs, allowing us to wait for
+events without needing to spin the controller process on the CPU. 
+\end{enumerate}

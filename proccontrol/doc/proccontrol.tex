@@ -1,0 +1,35 @@
+\documentclass{article}
+\newcommand{\ManualName}{proccontrol}
+
+\usepackage{pgf}
+\pgfrealjobname{proccontrol}
+
+\input{../../common/doc/manual_commands.tex}
+
+\begin{document}
+\input{../../common/doc/manual_frontpage.tex}
+
+\lstset{
+  basicstyle=\ttfamily,
+  keywordstyle=\ttfamily\color{purple},
+  commentstyle=\ttfamily\color{lightgray},
+  stringstyle=\ttfamily\color{orange},
+  frame=leftline,
+  % Highlight the proccontrol types like they are keywords, but in a different color
+  emph={
+    Process,
+    Event,
+    EventType
+  },
+  emphstyle=\color{blue}
+}
+
+\tableofcontents
+\clearpage
+
+\setcounter{secnumdepth}{5}
+
+\section{Introduction}
+  \input{Introduction}
+
+\end{document}
