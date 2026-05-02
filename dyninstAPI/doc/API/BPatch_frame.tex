@@ -1,0 +1,65 @@
+A \code{BPatch\_frame} object represents a stack frame. The
+getCallStack member function of \code{BPatch\_thread} returns a vector of
+\code{BPatch\_frame} objects representing the frames currently on the stack.
+
+\begin{apient}
+  enum BPatch_frameType {
+    BPatch_frameNormal,     // Normal stack frame
+    BPatch_frameSignal,     // Signal invocation
+    BPatch_frameTrampoline, // Call into instrumentation code
+  }
+\end{apient}
+
+\begin{apient}
+  BPatch_frameType getFrameType()
+\end{apient}
+
+\apidesc{
+  Return the type of the stack frame.
+}
+
+\begin{apient}
+  void *getFP()
+\end{apient}
+
+\apidesc{
+  Return the frame pointer for the stack frame.
+}
+\begin{apient}
+  void *getPC()
+\end{apient}
+
+\apidesc{
+  Returns the program counter associated with the stack frame.
+}
+\begin{apient}
+  BPatch_function *findFunction()
+\end{apient}
+
+\apidesc{
+  Returns the function associated with the stack frame.
+}
+\begin{apient}
+  BPatch_thread *getThread()
+\end{apient}
+
+\apidesc{
+  Returns the thread associated with the stack frame.
+}
+\begin{apient}
+  BPatch_point *getPoint()
+  BPatch_point *findPoint()
+\end{apient}
+
+\apidesc{
+  For stack frames corresponding to inserted instrumentation, returns
+  the instrumentation point where that instrumentation.
+}
+
+\begin{apient}
+  bool isSynthesized()
+\end{apient}
+
+\apidesc{
+  Returns true if this frame was artificially created, false otherwise.
+}
