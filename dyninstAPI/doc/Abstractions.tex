@@ -1,0 +1,49 @@
+The DyninstAPI library provides an interface for instrumenting and working with
+binaries and processes. The user writes a mutator, which uses the DyninstAPI
+library to operate on the application. The process that contains the mutator
+and DyninstAPI library is known as the mutator process. The mutator process
+operates on other processes or on-disk binaries, which are known as mutatees.
+
+The API is based on abstractions of a program. For dynamic instrumentation, it
+can be based on the state while in execution. The two primary abstractions in
+the API are points and snippets. A point is a location in a program where
+instrumentation can be inserted. A snippet is a representation of some
+executable code to be inserted into a program at a point. For example, if
+we wished to record the number of times a procedure was invoked, the point
+would be entry point of the procedure, and the snippets would be a statement
+to increment a counter. Snippets can include conditionals and function calls.
+
+Mutatees are represented using an address space abstraction. For dynamic
+instrumentation, the address space represents a process and includes any
+dynamic libraries loaded with the process. For static instrumentation, the
+address space includes a disk executable and includes any dynamic library
+files on which the executable depends. The address space abstraction is
+extended by process and binary abstractions for dynamic and static
+instrumentation. The process abstraction represents information about a
+running process such as threads or stack state. The binary abstraction
+represents information about a binary found on disk.
+
+The code and data represented by an address space is broken up into function
+and variable abstractions. Functions contain points, which specify locations
+to insert instrumentation. Functions also contain a control flow graph
+abstraction, which contains information about basic blocks, edges, loops, and
+instructions. If the mutatee contains debug information, DyninstAPI will also
+provide abstractions about variable and function types, local variables,
+function parameters, and source code line information. The collection of
+functions and variables in a mutatee is represented as an image.
+
+The API includes a simple type system based on structural equivalence. If
+mutatee programs have been compiled with debugging symbols and the symbols
+are in a format that Dyninst understands, type checking is performed on code
+to be inserted into the mutatee. See Section for a complete description of the
+type system.
+
+Due to language constructs or compiler optimizations, it may be possible for
+multiple functions to overlap (that is, share part of the same function body) or
+for a single function to have multiple entry points. In practice, it is
+impossible to determine the difference between multiple overlapping functions
+and a single function with multiple entry points. The DyninstAPI uses a model
+where each function has a single entry point, and multiple functions may overlap
+(share code). We guarantee that instrumentation inserted in a particular function
+is only executed in the context of that function, even if instrumentation is
+inserted into a location that exists in multiple functions.
