@@ -1,0 +1,20 @@
+\begin{apient}
+  BPatch_ifExpr(const BPatch_boolExpr &conditional,
+                const BPatch_snippet &tClause,
+                const BPatch_snippet &fClause)
+
+  BPatch_ifExpr(const BPatch_boolExpr &conditional,
+                const BPatch_snippet &tClause)
+\end{apient}
+
+\apidesc{
+  This constructor creates an if statement. The first argument,
+  conditional, should be a Boolean expression that will be
+  evaluated to decide which clause should be executed. The second
+  argument, tClause, is the snippet to execute if the
+  conditional evaluates to true. The third argument, fClause, is the
+  snippet to execute if the conditional evaluates to
+  false. This third argument is optional. Else-if statements, can be
+  constructed by making the fClause of an if statement
+  another if statement.
+}

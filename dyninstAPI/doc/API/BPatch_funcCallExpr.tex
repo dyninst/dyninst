@@ -1,0 +1,18 @@
+\begin{apient}
+  BPatch_funcCallExpr(const BPatch_function& func,
+                      const std::vector<BPatch_snippet*> &args)
+\end{apient}
+
+\apidesc{
+  Define a call to a function. The passed function must be valid for
+  the current code region. Args is a list of
+  arguments to pass to the function; the maximum number of arguments
+  varies by platform and is summarized below. If type
+  checking is enabled, the types of the passed arguments are checked
+  against the function to be called. Availability of
+  type checking depends on the source language of the application and
+  program being compiled for debugging.
+  
+  AMD64 and IA-32 platforms can have any number of arguments. PowerPC
+  can have at most 8.
+}
