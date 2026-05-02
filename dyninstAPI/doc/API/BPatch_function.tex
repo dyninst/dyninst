@@ -1,0 +1,263 @@
+An object of this class represents a function in the application. A
+\code{BPatch\_image} object (see description below) can
+be used to retrieve a \code{BPatch\_function} object representing a
+given function.
+
+\begin{apient}
+  std::string getName();
+  std::string getDemangledName();
+  std::string getMangledName();
+  std::string getTypedName();
+  void getNames(std::vector<std::string> &names);
+  void getDemangledNames(std::vector<std::string> &names);
+  void getMangledNames(std::vector<std::string> &names)
+  void getTypedNames(std::vector<std::string> &names);
+\end{apient}
+
+\apidesc{
+  Return name(s) of the function. The getName functions return the
+  primary name; this is typically the first symbol we
+  encounter while parsing the program; getName is an alias for
+  getDemangledName. The getNames functions return all known
+  names for the function, including any names specified by weak symbols.
+}
+
+\begin{apient}
+  bool getAddressRange(Dyninst::Address &start, Dyninst::Address &end)
+\end{apient}
+
+\apidesc{
+  Returns the bounds of the function; for non-contiguous functions,
+  this is the lowest and highest address of code that
+  the function includes.
+}
+
+\begin{apient}
+  std::vector<BPatch_localVar *> *getParams()
+\end{apient}
+
+\apidesc{
+  Return a vector of \code{BPatch\_localVar} snippets that refer to
+  the parameters of this function. The position in the vector
+  corresponds to the position in the parameter list (starting from
+  zero). The returned local variables can be used to
+  check the types of functions, and can be used in snippet expressions.
+}
+
+\begin{apient}
+  BPatch_type *getReturnType()
+\end{apient}
+
+\apidesc{
+  Return the type of the return value for this function.
+}
+
+\begin{apient}
+  BPatch_variableExpr *getFunctionRef()
+\end{apient}
+
+\apidesc{
+  For platforms with complex function pointers (e.g., 64-bit PPC)
+  this constructs and returns the appropriate descriptor.
+}
+
+\begin{apient}
+  std::vector<BPatch_localVar *> *getVars()
+\end{apient}
+
+\apidesc{
+  Returns a vector of \code{BPatch\_localVar} objects that contain
+  the local variables in this function. These
+  can be used as parts of snippets in instrumentation. This function
+  requires debug information to be
+  present in the mutatee. If Dyninst was unable to find any local
+  variables, this function will return an empty vector.
+  It is up to the user to free the vector returned by this function.
+}
+
+\begin{apient}
+  bool isInstrumentable()
+\end{apient}
+
+\apidesc{
+  Return true if the function can be instrumented, and false if it
+  cannot. Various conditions can cause a function to be
+  uninstrumentable. For example, there exists a platform-specific
+  minimum function size beyond which a function cannot
+  be instrumented.
+}
+
+\begin{apient}
+  bool isSharedLib()
+\end{apient}
+
+\apidesc{
+  This function returns true if the function is defined in a shared library.
+}
+
+\begin{apient}
+  BPatch_module *getModule()
+\end{apient}
+
+\apidesc{
+  Return the module that contains this function. Depending on whether
+  the program was compiled for debugging or the
+  symbol table stripped, this information may not be available. This
+  function returns NULL if module information was
+  not found.
+}
+
+\begin{apient}
+  char *getModuleName(char *name, int maxLen)
+\end{apient}
+
+\apidesc{
+  Copies the name of the module that contains this function into the
+  buffer pointed to by name. Copies at most maxLen
+  characters and returns a pointer to name.
+}
+
+\begin{apient}
+  enum BPatch_procedureLocation {
+    BPatch_entry,
+    BPatch_exit,
+    BPatch_subroutine,
+    BPatch_locInstruction,
+    BPatch_locBasicBlockEntry,
+    BPatch_locLoopEntry,
+    BPatch_locLoopExit,
+    BPatch_locLoopStartIter,
+    BPatch_locLoopStartExit,
+    BPatch_allLocations
+  }
+\end{apient}
+
+\apidesc{}
+
+\begin{apient}
+  const std::vector<BPatch_point *> *findPoint(const BPatch_procedureLocation loc)
+\end{apient}
+
+\apidesc{
+  Return the \code{BPatch\_point} or list of \code{BPatch\_points}
+  associated with the procedure. It is used to select which type of
+  points associated with the procedure will be returned.
+  \code{BPatch\_entry} and \code{BPatch\_exit} request respectively the entry
+  and exit points of the subroutine. \code{BPatch\_subroutine}
+  returns the list of points where the procedure calls other
+  procedures. If the lookup fails to locate any points of the
+  requested type, NULL is returned.
+}
+
+\begin{apient}
+  enum BPatch_opCode {
+    BPatch_opLoad,
+    BPatch_opStore,
+    BPatch_opPrefetch
+  }
+\end{apient}
+
+\apidesc{}
+
+\begin{apient}
+  std::vector<BPatch_point *> *findPoint(const std::set<BPatch_opCode> &ops)
+  std::vector<BPatch_point *> *findPoint(const BPatch_Set<BPatch_opCode>& ops)
+\end{apient}
+
+\apidesc{
+  Return the vector of \code{BPatch\_point}s corresponding to the set
+  of machine instruction types described by the argument.
+  Any combination of opcode type may be
+  requested by passing an appropriate argument set containing the
+  desired types. The instrumentation points created by
+  this function have additional memory access information attached to
+  them. This allows such points to be used for memory
+  access specific snippets (e.g. effective address). The memory
+  access information attached is described under Memory
+  Access classes in section.
+}
+
+\begin{apient}
+  BPatch_localVar *findLocalVar(const char *name)
+\end{apient}
+
+\apidesc{
+  Search the function\'s local variable collection for name. This
+  returns a pointer to the local
+  variable if a match is found. This function returns NULL if it
+  fails to find any variables.
+}
+
+\begin{apient}
+  std::vector<BPatch_variableExpr *> *findVariable(const char *name)
+  bool findVariable(const char *name, std::vector<BPatch_variableExpr> &vars)
+\end{apient}
+
+\apidesc{
+  Return a set of variables matching name at the scope of this
+  function. If no variables match in the local scope, then
+  the global scope will be searched for matches. This function
+  returns NULL if it fails to find any variables.
+}
+
+\begin{apient}
+  BPatch_localVar *findLocalParam(const char *name)
+\end{apient}
+
+\apidesc{
+  Search the function\'s parameters for a given name. A
+  \code{BPatch\_localVar} pointer is returned if a
+  match is found, and NULL is returned otherwise.
+}
+
+\begin{apient}
+  void *getBaseAddr()
+\end{apient}
+
+\apidesc{
+  Return the starting address of the function in the mutatee\'s address space.
+}
+
+\begin{apient}
+  BPatch_flowGraph *getCFG()
+\end{apient}
+
+\apidesc{
+  Return the control flow graph for the function, or NULL if this
+  information is not available. The \code{BPatch\_flowGraph} is
+  described in section.
+}
+
+\begin{apient}
+  bool findOverlapping(std::vector<BPatch_function *> &funcs)
+\end{apient}
+
+\apidesc{
+  Determine which functions overlap with the current function. Return
+  true if other
+  functions overlap the current function; the overlapping functions
+  are added to the funcs vector. Return false if no
+  other functions overlap the current function.
+}
+
+\begin{apient}
+  bool addMods(std::set<StackMod *> mods)
+\end{apient}
+
+\apidesc{
+  Implemented on x86 and x86-64
+
+  Apply stack modifications in mods to the current function; the
+  StackMod class is described in section. Perform error checking,
+  handle stack alignment
+  requirements, and generate any modifications
+  required for cleanup at function exit. addMods atomically adds all
+  modifications in mods; if any mod is found to be
+  unsafe, none of the modifications in mods will be applied.
+
+  addMods can only be used in binary rewriting mode.
+
+  Returns false if the stack modifications are unsafe or if Dyninst
+  is unable to perform the analysis required to
+  guarantee safety.
+}

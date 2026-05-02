@@ -1,0 +1,242 @@
+An object of this class represents a program module, which is part of
+a program's executable image.
+A \code{BPatch\_module} represents a source file in either an
+executable or a shared library. Dyninst automatically creates
+a module called \code{DEFAULT\_MODULE} in each executable to hold any
+objects that it cannot match to a source file.
+\code{BPatch\_module} objects are obtained by calling the
+\code{BPatch\_image} member function \code{getModules}.
+
+\begin{apient}
+  std::vector<BPatch_function*> *findFunction(const char *name,
+                                              std::vector<BPatch_function*> &funcs,
+                                              bool incUninstrumentable = false)
+\end{apient}
+
+\apidesc{
+  Return a vector of \code{BPatch\_functions} matching name, or NULL if the function does not
+  exist. If name contains a POSIX-extended regular expression, a regex search will be per-
+  formed on function names, and matching \code{BPatch\_functions} returned. If the \code{incUninstrumentable}
+  flag is set, the returned table of procedures will include
+  uninstrumentable functions. The default behavior is to omit these functions.
+  [NOTE: If name is not found to match any demangled function names in the module, the
+  search is repeated as if name is a mangled function name. If this second search succeeds,
+  functions with mangled names matching name are returned instead.]
+}
+
+\begin{apient}
+  BPatch_Vector<BPatch_function *> *findFunctionByAddress(void *addr,
+                                                          bool notify_on_failure = true,
+                                                          bool incUninstrumentable = false)
+\end{apient}
+
+\apidesc{
+  Return a vector of \code{BPatch\_function} s that contains addr, or
+  NULL if the function does not exist.
+  If the incUninstrumentable flag is set, the returned table of
+  procedures will include uninstrumentable functions. The
+  default behavior is to omit these functions.
+}
+
+\begin{apient}
+  BPatch_function *findFunctionByEntry(Dyninst::Address addr)
+\end{apient}
+
+\apidesc{
+  Returns the function that begins at the specified address addr.
+}
+
+\begin{apient}
+  BPatch_function *findFunctionByMangled(const char *mangled_name,
+                                         bool incUninstrumentable = false)
+\end{apient}
+
+\apidesc{
+  Return a \code{BPatch\_function} for the mangled function name
+  defined in the module corresponding to the invoking
+  \code{BPatch\_module}, or NULL if it does not define the function.
+
+  If the incUninstrumentable flag is set, the functions searched will
+  include uninstrumentable functions. The default
+  behavior is to omit these functions.
+}
+
+\begin{apient}
+  bool getAddressRanges(char *fileName, unsigned int lineNo,
+                        std::vector<std::pair<unsigned long, unsigned long>> &ranges)
+\end{apient}
+
+\apidesc{
+  Given a filename and line number, fileName and lineNo, this
+  function returns the ranges of mutatee
+  addresses that implement the code range in the output parameter
+  ranges. In many cases a source code line will only
+  have one address range implementing it. However, compiler
+  optimizations may turn this into multiple, disjoint address
+  ranges. This information is only available if the mutatee was
+  compiled with debug information.
+  This function may be more efficient than the \code{BPatch\_process}
+  version of this function. Calling
+  \code{BPatch\_process::getAddressRange} will cause Dyninst to parse
+  line information for all modules in a process. If
+  \code{BPatch\_module::getAddressRange} is called then only the
+  debug information in this module will be parsed.
+  This function returns true if it was able to find any line
+  information, false otherwise.
+}
+
+\begin{apient}
+  size_t getAddressWidth()
+\end{apient}
+
+\apidesc{
+  Return the size (in bytes) of a pointer in this module. On 32-bit
+  systems this function will return 4, and on 64-bit
+  systems this function will return 8.
+}
+
+\begin{apient}
+  void *getBaseAddr()
+\end{apient}
+
+\apidesc{
+  Return the base address of the module. This address is defined as
+  the start of the first function in the module.
+}
+
+\begin{apient}
+  std::vector<BPatch_function *> *getProcedures(bool incUninstrumentable = false)
+\end{apient}
+
+\apidesc{
+  Return a vector containing the functions in the module.
+}
+
+\begin{apient}
+  char *getFullName(char *buffer, int length)
+\end{apient}
+
+\apidesc{
+  Fills buffer with the full path name of a module, up to length
+  characters when this information is available.
+}
+
+\begin{apient}
+  BPatch_hybridMode getHybridMode()
+\end{apient}
+
+\apidesc{
+  Return the mutator\'s analysis mode for the mutate; the default
+  mode is the normal mode.
+}
+
+\begin{apient}
+  char *getName(char *buffer, int len)
+\end{apient}
+
+\apidesc{
+  This function copies the filename of the module into buffer, up to
+  len characters. It returns the value of the buffer
+  parameter.
+}
+
+\begin{apient}
+  unsigned long getSize()
+\end{apient}
+
+\apidesc{
+  Return the size of the module. The size is defined as the end of
+  the last function minus the start of the first
+  function.
+}
+
+\begin{apient}
+  bool getSourceLines(unsigned long addr, std::vector<BPatch_statement> &lines)
+\end{apient}
+
+\apidesc{
+  This function returns the line information associated with the
+  mutatee address addr. The vector lines contain pairs of
+  filenames and line numbers that are associated with addr. In many
+  cases only one filename and line number is
+  associated with an address, but certain compiler optimizations may
+  lead to multiple filenames and lines at an address.
+  This information is only available if the mutatee was compiled with
+  debug information.
+  This function may be more efficient than the \code{BPatch\_process}
+  version of this function. Calling
+  \code{BPatch\_process::getSourceLines} will cause Dyninst to parse
+  line information for all modules in a process. If
+  \code{BPatch\_module::getSourceLines} is called then only the debug
+  information in this module will be parsed.
+  This function returns true if it was able to find any line
+  information at addr, or false otherwise.
+}
+
+\begin{apient}
+  char *getUniqueString(char *buffer, int length)
+\end{apient}
+
+\apidesc{
+  Performs a lookup and returns a unique string for this image.
+  Returns a string the can be compared (via strcmp) to
+  indicate if two images refer to the same underlying object file
+  (i.e., executable or library). The contents of the
+  string are implementation specific and defined to have no semantic meaning.
+}
+
+\begin{apient}
+  bool getVariables(std::vector<BPatch_variableExpr *> &vars)
+\end{apient}
+
+\apidesc{
+  Fill the vector vars with the global variables that are specified
+  in this module. Returns false if no results are
+  found and true otherwise.
+}
+
+\begin{apient}
+  BpatchSnippetHandle* insertInitCallback(Bpatch_snippet& callback)
+\end{apient}
+
+\apidesc{
+  This function inserts the snippet callback at the entry point of
+  this module's init function
+  (creating a new init function/section if necessary).
+}
+
+\begin{apient}
+  BpatchSnippetHandle* insertFiniCallback(Bpatch_snippet& callback)
+\end{apient}
+
+\apidesc{
+  This function inserts the snippet callback at the exit point of
+  this module's fini function
+  (creating a new fini function/section if necessary).
+}
+
+\begin{apient}
+  bool isExploratoryModeOn()
+\end{apient}
+
+\apidesc{
+  This function returns true if the mutator's analysis mode sets to
+  the defensive mode or the
+  exploratory mode.
+}
+
+\begin{apient}
+  bool isMutatee()
+\end{apient}
+
+\apidesc{
+  This function returns true if the module is the mutatee.
+}
+
+\begin{apient}
+  bool isSharedLib()
+\end{apient}
+
+\apidesc{
+  This function returns true if the module is part of a shared library.
+}

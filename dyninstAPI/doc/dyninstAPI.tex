@@ -9,6 +9,28 @@
 \begin{document}
 \input{../../common/doc/manual_frontpage.tex}
 
+\lstset{
+  basicstyle=\ttfamily,
+  keywordstyle=\ttfamily\color{purple},
+  commentstyle=\ttfamily\color{lightgray},
+  stringstyle=\ttfamily\color{orange},
+  frame=leftline,
+  % Highlight the BPatch types like they are keywords, but in a different color
+  emph={
+    BPatch_actualAddressExpr, BPatch_addressSpace, BPatch_addrSpec_NP, BPatch_arithExpr,
+    BPatch_basicBlockLoop, BPatch_basicBlock, BPatch_binaryEdit, BPatch_boolExpr,
+    BPatch_breakPointExpr, BPatch_bytesAccessedExpr, BPatch_cblock, BPatch_constExpr,
+    BPatch_countSpec_NP, BPatch_dynamicTargetExpr, BPatch_edge, BPatch_effectiveAddressExpr,
+    BPatch_flowGraph, BPatch_frame, BPatch_funcCallExpr, BPatch_function, BPatch_ifExpr,
+    BPatch_image, BPatch_instruction, BPatch_loopTreeNode, BPatch_module, BPatch_nullExpr,
+    BPatch_object, BPatch_originalAddressExpr, BPatch_paramExpr, BPatch_process, BPatch_registerExpr,
+    BPatch_retExpr, BPatch_scrambleRegistersExpr, BPatch_sequence, BPatch_snippet, BPatch_sourceBlock,
+    BPatch_sourceObj, BPatch_stopThreadExpr, BPatch, BPatch_thread, BPatch_tidExpr, BPatch_variableExpr,
+    BPatch_whileExpr, StackMod 
+  },
+  emphstyle=\color{blue}
+}
+
 \tableofcontents
 \clearpage
 
@@ -21,6 +43,30 @@
   \input{Abstractions}
 
 \section{Analysis API}
-  \input{API/BPatch}
+\input{API/BPatch}
+
+  \subsection{Components of a Binary}
+    DyninstAPI creates representations for the various components of a binary
+    file. These include the instructions and their semantics, basic blocks,
+    functions, and file-level features like data regions and symbol tables.
+
+    \subsubsection{BPatch\_addressSpace}
+      \input{API/BPatch_addressSpace}
+    \subsubsection{BPatch\_basicBlock}
+      \input{API/BPatch_basicBlock}
+    \subsubsection{BPatch\_function}
+      \input{API/BPatch_function}
+    \subsubsection{BPatch\_image}
+      \input{API/BPatch_image}
+    \subsubsection{BPatch\_instruction}
+      \input{API/BPatch_instruction}
+    \subsubsection{BPatch\_module}
+      \input{API/BPatch_module}
+    \subsubsection{BPatch\_object}
+      \input{API/BPatch_object}
+    \subsubsection{BPatch\_sourceBlock}
+      \input{API/BPatch_sourceBlock}
+    \subsubsection{BPatch\_sourceObj}
+      \input{API/BPatch_sourceObj}
 
 \end{document}
