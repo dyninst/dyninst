@@ -1,0 +1,35 @@
+This class encapsulates the information required to determine an
+effective address at runtime. The general
+representation for an address is a sum of two registers and a
+constant; this may change in future releases. Some
+architectures use only certain bits of a register (e.g. bits 25:31 of
+XER register on the Power chip family); these are
+represented as pseudo-registers. The numbering scheme for registers
+and pseudo-registers is implementation dependent
+and should not be relied upon; it may change in future releases.
+
+\begin{apient}
+  int getImm()
+\end{apient}
+
+\apidesc{
+  Return the constant offset. This may be positive or negative.
+}
+
+\begin{apient}
+  int getReg(unsigned i)
+\end{apient}
+
+\apidesc{
+  Return the register number for the ith register in the sum, where 0
+  ${\leq}$ i ${\leq}$ 2. Register numbers are
+  positive; a value of -1 means no register.
+}
+
+\begin{apient}
+  int getScale()
+\end{apient}
+
+\apidesc{
+  Returns any scaling factor used in the memory address computation.
+}
