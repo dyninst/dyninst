@@ -1,0 +1,96 @@
+\code{IRPC} represents an Inferior Remote Procedure Call that can be run in a
+target process. See \code{Process::postIRPC} and \code{Thread::postIRPC} for
+information about posting an IRPC.
+
+\begin{apient}
+IRPC::ptr IRPC::const_ptr
+\end{apient}
+
+\apidesc{
+The IRPC::ptr and IRPC::const\_ptr respectively represent a pointer and a const
+pointer to an IRPC object. Both pointer types are reference counted and will
+cause the underlying IRPC object to be cleaned when there are no more
+references. ProcControlAPI will maintain internal references to any IRPC
+currently posted or executing.
+}
+
+\begin{apient}
+IRPC::ptr createIRPC(void *binary_blob, unsigned int size, bool non_blocking = false)
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+IRPC::ptr createIRPC(void *binary_blob, unsigned int size, Dyninst::Address addr, bool non_blocking = false)
+\end{apient}
+
+\apidesc{
+The createIRPC static function creates and returns a new IRPC object. The
+binary\_blob and size parameters specify a buffer of machine code bytes that
+this IRPC should execute when invoked. ProcControlAPI will maintain its own
+copy of the binary\_blob buffer, the ProcControlAPI user can free the buffer
+once this function completes. 
+If the non\_blocking parameter is true then calls to
+Process::handleEvents will block until this IRPC is
+completed. 
+If the addr parameter is given, then ProcControlAPI will write and run the
+binary code at addr. Otherwise ProcControlAPI will select a location at
+which to run the IRPC.
+}
+
+\begin{apient}
+Dyninst::Address getAddress() const
+\end{apient}
+
+\apidesc{
+The getAddress function returns the address at which the IRPC will be run. If
+the IRPC was not given an address at construction and has not yet started
+running, then this function may return 0.
+}
+
+\begin{apient}
+void *getBinaryCodeBlob() const
+\end{apient}
+
+\apidesc{
+The getBinaryCodeBlob returns a pointer to memory that contains the binary code
+for this IRPC. 
+}
+
+\begin{apient}
+unsigned int getBinaryCodeSize() const
+\end{apient}
+
+\apidesc{
+The getBinaryCodeSize function returns the size of the binary code blob buffer.
+}
+
+\begin{apient}
+unsigned long getID() const
+\end{apient}
+
+\apidesc{
+The getID function returns an integer identifier that uniquely identifies this
+IRPC.
+}
+
+\begin{apient}
+void setStartOffset(unsigned long off)
+\end{apient}
+
+\apidesc{
+By default an IRPC will start executing its code blob at the beginning of the
+blob. This function can be used to tell ProcControlAPI to start execution of
+the code blob at some byte offset, off, into the blob. 
+This function should be called before the IRPC is posted.
+}
+
+\begin{apient}
+unsigned long getStartOffset() const
+\end{apient}
+
+\apidesc{
+If a start offset has been set for this IRPC, then getStartOffset returns it.
+Otherwise this function returns 0.
+}
