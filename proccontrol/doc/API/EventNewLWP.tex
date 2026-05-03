@@ -1,0 +1,18 @@
+An \code{EventNewLWP} triggers when a process spawns a new LWP. The Event
+class\' getThread function returns the original Thread that performed the spawn
+operation, while EventNewThread\'s getNewThread returns the newly created
+Thread.
+
+A callback function that receives an EventNewThread can use the two field form
+of \code{Process::cb\_ret\_t} to control the parent and child thread.
+
+Associated EventType Code: \code{LWPCreate}
+
+\begin{apient}
+Thread::const_ptr getNewThread() const
+\end{apient}
+
+\apidesc{
+This function returns a const pointer to the Thread object that represents the
+newly spawned thread.
+}

@@ -1,0 +1,18 @@
+An \code{EventCrash} triggers when a process performs an abnormal exit (e.g.,
+crashing on a memory violation). The process that crashed is referenced with
+Event\'s getProcess function.
+
+An EventCrash may be associated with an EventType of pre-crash or post-crash.
+Pre-crash means the process has not yet cleaned up its address space, and thus
+memory can still be read or written. Post-crash means the process has cleaned up
+its address space, memory is no longer accessible.
+
+Associated EventType Code: \code{Crash}
+
+\begin{apient}
+int getTermSignal() const
+\end{apient}
+
+\apidesc{
+This function returns the signal that caused the process to crash.
+}

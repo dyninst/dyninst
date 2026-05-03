@@ -66,6 +66,75 @@
   \subsection{ThreadSet}
     \input{API/ThreadSet}
 
+\section{Events}
+  ProcControlAPI captures and delivers events from processes and threads.
+
+  \subsection{Event}
+    \input{API/Event}
+  
+  An \code{Event} passed to a callback function can be cast to the
+  appropriate child class by inspecting the \code{EventType}.
+
+  \subsection{EventBreakpoint}
+    \input{API/EventBreakpoint}
+
+  \subsection{EventCrash}
+    \input{API/EventCrash}
+
+  \subsection{EventExec}
+    \input{API/EventExec}
+
+  \subsection{EventExit}
+    \input{API/EventExit}
+
+  \subsection{EventForceTerminate}
+    \input{API/EventForceTerminate}
+
+  \subsection{EventFork}
+    \input{API/EventFork}
+
+  \subsection{EventLWPDestroy}
+    \input{API/EventLWPDestroy}
+
+  \subsection{EventLibrary}
+    \input{API/EventLibrary}
+
+  \subsection{EventNewLWP}
+    \input{API/EventNewLWP}
+
+  \subsection{EventNewThread}
+    \input{API/EventNewThread}
+
+  \subsection{EventNewUserThread}
+    \input{API/EventNewUserThread}
+
+  \subsection{EventPostSyscall}
+    \input{API/EventPostSyscall}
+
+  \subsection{EventPreSyscall}
+    \input{API/EventPreSyscall}
+
+  \subsection{EventRPC}
+    \input{API/EventRPC}
+
+  \subsection{EventSignal}
+    \input{API/EventSignal}
+
+  \subsection{EventSingleStep}
+    \input{API/EventSingleStep}
+
+  \subsection{EventStop}
+    \input{API/EventStop}
+
+  \subsection{EventTerminate}
+    \input{API/EventTerminate}
+
+  \subsection{EventThreadDestroy}
+    \input{API/EventThreadDestroy}
+
+  \subsection{EventUserThreadDestroy}
+    \input{API/EventUserThreadDestroy}
+
 \section{Libraries}
   ProcControlAPI offers several facilities for interacting with libraries
   both in a created address spaces as well as loading new libraries into one.

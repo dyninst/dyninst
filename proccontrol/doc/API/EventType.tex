@@ -1,0 +1,128 @@
+\subsection{EventType}
+\index{EventType: : : :!}The EventType class represents a type of event. Each
+instance of an Event happening has one associated EventType, and callback
+functions\index{callback function: : : :!} can be registered against
+EventTypes. All EventTypes have an associate code$\text{\textgreek{—}}$an
+integral value that identifies the EventType. Some EventTypes also have a
+time associated with them (Pre, Post, or None)$\text{\textgreek{—}}$describing
+when an Event may occur relative to the Code. For example, an EventType with
+a code of Exit and a time of Pre (written as pre-exit) would be associated with
+an Event that occurs just before a process exits and its address space is
+cleaned. An EventType with code Exit and a time of Post would be associated
+with an Event that occurs after the process exits and the address space is
+cleaned.
+
+When using EventTypes to register for callback functions a special time value of
+Any can be used. This signifies that the callback function should trigger for
+both Pre and Post time events. ProcControlAPI will never deliver an Event
+that has an EventType with time code Any.
+
+More details on Events and EventTypes can be found in Section
+\ref{bkm:Ref273435580}.
+
+EventType Types:
+
+typedef enum \{
+
+Pre = 0,
+
+Post,
+
+None,
+
+Any
+
+\} Time; \index{EventType, Time: : : :!}
+
+
+\bigskip
+
+typedef int Code;
+
+The Time and Code types are respectively used to describe the time and code
+values of an EventType. 
+
+EventType Constants:
+
+static const int Error = -1\index{EventType, Code: : : :!}
+
+static const int Unset = 0
+
+static const int Exit = 1
+
+static const int Crash = 2
+
+static const int Fork = 3
+
+static const int Exec = 4
+
+static const int ThreadCreate = 5
+
+static const int ThreadDestroy = 6
+
+static const int Stop = 7
+
+static const int Signal = 8
+
+static const int LibraryLoad = 9
+
+static const int LibraryUnload = 10
+
+static const int Bootstrap = 11
+
+static const int Breakpoint = 12
+
+static const int RPC = 13
+
+static const int SingleStep = 14
+
+static const int Library = 15
+
+static const int MaxProcCtrlEvent = 1000
+
+These constants describe possible values for an EventType$\text{\textgreek{’}}$s
+code. The Error and Unset codes are for handling error cases and should not
+be used for callback functions or be associated with Events. 
+
+The EventType codes were implemented as an integer (rather than an enum) to
+allow users to create custom EventTypes. Any custom EventType should begin at
+the MaxProcCtrlEvent value, all smaller values are reserved by ProcControlAPI.
+
+EventType Related Types:
+
+struct eventtype\_cmp\index{eventtype\_cmp: : : :!} \{
+
+bool operator()(const EventType \&a, const EventType \&b);
+
+\}
+
+This type defines a less-than comparison function for EventTypes. While a
+comparison of EventTypes does not have a semantic meaning, this can be useful
+for inserting EventTypes into maps or other STL data structures.
+
+EventType Member Functions:
+
+EventType\index{EventType constructor: : : :!}(Code e)
+
+Constructs an EventType with the given code and a time of Any.
+
+EventType\index{EventType constructor: : : :!}(Time t, Code e)
+
+Constructs an EventType with the given time and code values.
+
+EventType\index{EventType constructor: : : :!}()
+
+Constructs an EventType with an Unset code and None time value.
+
+Code code\index{code, EventType: : : :!}() const
+
+Returns the code value of the EventType.
+
+Time time\index{time, EventType: : : :!}() const
+
+Returns the time value of the EventType.
+
+std::string name\index{name, EventType: : : :!}() const
+
+Returns a human readable name for this EventType.
+

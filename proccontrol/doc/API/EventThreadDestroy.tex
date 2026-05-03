@@ -1,0 +1,9 @@
+An \code{EventThreadDestroy} triggers when a thread exits. Event\'s getThread
+member function returns the thread that exited.
+
+This event is never instantiated by ProcControlAPI and simply serves as a
+place-holder type for a user to deal with thread destruction without having to
+deal with the specifics of LWP and user thread destruction.
+
+Associated EventType Codes: \code{ThreadDestroy}, \code{UserThreadDestroy}, and
+\code{LWPDestroy}
