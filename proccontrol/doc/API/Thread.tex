@@ -1,0 +1,362 @@
+The \code{Thread} class represents a single thread of execution
+in the target process. Any Process has at least one Thread, and
+multi-threaded target processes may have more. Each Thread has an associated
+integral value known as its LWP, which serves as a handle for communicating
+with the OS about the thread (e.g., a PID value on Linux). On some systems,
+depending on availability, a Thread may have information from the user space
+threading library.
+
+\begin{apient}
+Thread::ptr
+Thread::const_ptr
+\end{apient}
+
+\apidesc{
+The Thread::ptr and Thread::const\_ptr respectively represent a pointer and a
+const pointer to a Thread object. Both pointer types are reference counted
+and cause the underlying Thread object to be cleaned when there are no more
+references. ProcControlAPI maintains internal references to any Thread it
+actively controls, relinquishing those references when the thread exits or is
+detached.
+}
+
+\begin{apient}
+Dyninst::LWP getLWP() const
+\end{apient}
+
+\apidesc{
+This function returns an OS handle for this thread. On Linux this returns a
+pid\_t for this thread. On FreeBSD, this returns a lwpid\_t.
+}
+
+\begin{apient}
+Process::ptr getProcess()
+Process::const_ptr getProcess() const
+\end{apient}
+
+\apidesc{
+These functions return a pointer to the Process object that contains this
+thread. 
+}
+
+\begin{apient}
+bool isStopped() const
+\end{apient}
+
+\apidesc{
+This function returns true if this thread is in a stopped state and false
+otherwise.
+}
+
+\begin{apient}
+bool isRunning() const
+\end{apient}
+
+\apidesc{
+This function returns true if this thread is in a running state and false
+otherwise.
+}
+
+\begin{apient}
+bool isLive() const
+\end{apient}
+
+\apidesc{
+This function returns true if this thread is alive, and it returns false if this
+thread has been destroyed.
+}
+
+\begin{apient}
+bool isDetached() const
+\end{apient}
+
+\apidesc{
+This function returns true if this thread has been detached via
+Process::temporaryDetach and false otherwise.
+}
+
+\begin{apient}
+bool isInitialThread() const
+\end{apient}
+
+\apidesc{
+This function returns true if this thread is the initial thread for the process
+and false otherwise.
+}
+
+\begin{apient}
+bool stopThread()
+\end{apient}
+
+\apidesc{
+This function moves the thread to into a stopped state. Upon a successful call
+to this function the Thread object will be paused and will not resume execution
+until the Thread is continued. It is an error to call this function from a
+callback. Instead of calling this function, a callback can stop a thread by
+returning Process::cbThreadStop or Process::cbProcStop.
+ProcControlAPI may deliver callbacks when this function is called.
+Upon success this function returns true, otherwise it returns false. Upon an
+error a subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool continueThread()
+\end{apient}
+
+\apidesc{
+This function moves the thread into a running state. It is an error to call
+this function from a callback. Instead of calling this function, a callback
+can stop a thread by returning Process::cbThreadContinue or
+Process::cbProcContinue.
+ProcControlAPI may deliver callbacks when this function is called.
+Upon success this function returns true, otherwise it returns false. Upon an
+error a subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) const
+\end{apient}
+
+\apidesc{
+This function gets the value of a single register from this thread. The
+register is specified by the reg parameter, and the value of the register is
+returned by the val parameter.
+
+It is an error to call this function on a thread that is not in the stopped
+state.
+
+Upon success this function returns true, otherwise it returns false. Upon an
+error a subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool getAllRegisters(RegisterPool pool) const
+\end{apient}
+
+\apidesc{
+This function reads the values of every register in the thread and returns them
+as part of the RegisterPool object pool. Depending on the OS, this call may
+be more efficient that calling Thread::getRegister multiple times.
+It is an error to call this function on a thread that is not in the stopped
+state.
+Upon success this function returns true, otherwise it returns false. Upon an
+error a subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const
+\end{apient}
+
+\apidesc{
+This function writes the value of a single register in this thread. The
+register is specified by the reg parameter, and the value that should be
+written is specified by the val parameter.
+
+It is an error to call this function on a thread that is not in the stopped
+state.
+Upon success this function returns true, otherwise it returns false. Upon an
+error a subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool setAllRegisters(RegisterPool &pool) const
+\end{apient}
+
+\apidesc{
+This function sets the values of every register in this thread to the values
+specified in the RegisterPool object pool. Depending on the OS, this call may
+be more efficient that calling Thread::setRegister multiple times.
+It is an error to call this function on a thread that is not in the stopped
+state.
+Upon success this function returns true, otherwise it returns false. Upon an
+error a subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool haveUserThreadInfo() const
+\end{apient}
+
+\apidesc{
+This function returns true if information about this
+Thread\'s underlying user-level thread is available.
+}
+
+\begin{apient}
+Dyninst::THR_ID getTID() const
+\end{apient}
+
+\apidesc{
+This function returns the unique identifier for the user-level thread. This
+value is only valid if haveUserThreadInfo returns true.
+}
+
+\begin{apient}
+Dyninst::Address getStartFunction() const
+\end{apient}
+
+\apidesc{
+This function returns the address of the initial function for the user-level
+thread. This value is only valid if haveUserThreadInfo returns true.
+}
+
+\begin{apient}
+Dyninst::Address getStackBase() const
+\end{apient}
+
+\apidesc{
+This function returns the address of the bottom of the user-level
+thread\'s stack. This value is only valid if
+haveUserThreadInfo returns true.
+}
+
+\begin{apient}
+unsigned long getStackSize() const
+\end{apient}
+
+\apidesc{
+This function returns the size in bytes of the user-level
+thread\'s allocated stack. This value is only valid if
+haveUserThreadInfo returns true.
+}
+
+\begin{apient}
+Dyninst::Address getTLS() const
+\end{apient}
+
+\apidesc{
+This function returns the address of the user-level
+thread\'s thread local storage area. This value is only
+valid if haveUserThreadInfo returns true.
+}
+
+\begin{apient}
+bool readThreadLocalMemory(void *buffer,
+                           Library::const_ptr lib,
+                           Dyninst::Offset tls_symbol_offset,
+                           size_t size) const
+\end{apient}
+
+\apidesc{
+This function reads from a symbol in thread local storage (TLS) memory. TLS is
+memory that is local to a thread and has a lifetime matching the thread. The
+tls\_symbol\_offset is the TLS symbol\'s offset in lib, and
+can be found by reading a TLS symbol\'s value. The lib
+parameter can point to a library or the executable. The buffer parameter
+specifies an address in the controller process where ProcControlAPI should
+write the copied bytes. 
+It is an error to call this function on a Thread that is not in a stopped state.
+It is also an error to call this function on a Thread that has not have
+user-level thread information, which can be tested with haveUserThreadInfo.
+This function returns true on success and false on error. Upon an error a
+subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool writeThreadLocalMemory(Library::const_ptr lib,
+                            Dyninst::Offset tls_symbol_offset,
+                            const void *buffer,
+                            size_t size) const
+\end{apient}
+
+\apidesc{
+This function writes to a symbol in thread local storage (TLS) memory. TLS is
+memory that is local to a thread and has a lifetime matching the thread. The
+tls\_symbol\_offset is the TLS symbol\'s offset in lib, and
+can be found by reading a TLS symbol\'s value. The lib
+parameter can point to a library or the executable. The buffer parameter
+specifies an address in the controller process where ProcControlAPI should read
+the bytes to be copied.
+It is an error to call this function on a Thread that is not in a stopped state.
+It is also an error to call this function on a Thread that has not have
+user-level thread information, which can be tested with haveUserThreadInfo.
+This function returns true on success and false on error. Upon an error a
+subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool getThreadLocalAddress(Library::const_ptr lib,
+                           Dyninst::Offset tls_symbol_offset,
+                           Dyninst::Address &result_addr) const
+\end{apient}
+
+\apidesc{
+This function looks up the address of a symbol in thread local storage (TLS)
+memory. The tls\_symbol\_offset is the TLS symbol\'s offset
+in lib, and can be found by reading a TLS symbol\'s value.
+The lib parameter can point to a library or the executable. The result\_addr
+parameter will be set to the target address for the TLS symbol in this Thread.
+It is an error to call this function on a Thread that is not in a stopped state.
+It is also an error to call this function on a Thread that has not have
+user-level thread information, which can be tested with haveUserThreadInfo.
+This function returns true on success and false on error. Upon an error a
+subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool postIRPC(IRPC::ptr irpc) const
+\end{apient}
+
+\apidesc{
+This function posts the given irpc to the Thread. The IRPC is put irpc into
+the Thread\'s queue of posted IRPCs and will be run when
+ready.
+Each instance of an IRPC object can be posted at most once. It is an error to
+attempt to post a single IRPC object multiple times.
+This function returns true on success and false on error. Upon an error a
+subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
+\end{apient}
+
+\apidesc{
+This function returns all IRPCs posted to this Thread in the vector rpcs. This
+does not include any running IRPC.
+This function returns true on success and false on error. Upon an error a
+subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+IRPC::const_ptr getRunningIRPC() const
+\end{apient}
+
+\apidesc{
+This function returns a const pointer to any IRPC that is actively running on
+this Thread. If there is no IRPC actively running, then this function returns
+IRPC::const\_ptr().
+}
+
+\begin{apient}
+void setSingleStepMode(bool mode) const
+\end{apient}
+
+\apidesc{
+This function sets whether a Thread is in single-step mode. If called with a
+mode of true, then the Thread is put in single-step mode. If called with a
+mode of false, then the Thread is taken out of single-step mode. 
+A Thread in single-step mode will pause execution at each instruction and
+trigger an EventSingleStep event. After each EventSingleStep is handled (and
+presuming the Thread is still running and in single-step mode) the Thread will
+execute one more instruction and trigger another EventSingleStep.
+}
+
+\begin{apient}
+bool getSingleStepMode() const
+\end{apient}
+
+\apidesc{
+This function returns true if the Thread is in single-step mode and false
+otherwise.
+}
+
+\begin{apient}
+void *getData() const
+void setData(void *p)
+\end{apient}
+
+\apidesc{
+These functions respectively get and set an opaque data object that can be
+associated with this Thread. The data is not interpreted by ProcControlAPI,
+but remains associated with the Thread.
+}
