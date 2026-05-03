@@ -1,0 +1,215 @@
+An \code{AddressSet} is a collection of \code{Process} and
+\code{Dyninst::Address} tuples. \code{AddressSet} is used by the
+ProcessSet\index{ProcessSet: : : :!} and ThreadSet\index{ThreadSet: : : :!}
+classes for performing group operations on large numbers of processes. An
+\code{AddressSet} might, for example, represent the location of a symbol across
+numerous processes, or the location of a buffer in each process where data can
+be written or read.  It satisfies the C++
+\href{https://en.cppreference.com/cpp/named_req/ForwardIterator}{LegacyForwardIterator}
+concept. It also offers the standard \code{begin/end} members for iteration.
+
+\begin{apient}
+AddressSet::ptr
+AddressSet::const_ptr
+\end{apient}
+
+\apidesc{
+The AddressSet::ptr and AddressSet::const\_ptr respectively represent a pointer
+and a const pointer to an AddressSet object. Both pointer types are reference
+counted and will cause the underlying AddressSet object to be cleaned when
+there are no more references.
+}
+
+\begin{apient}
+typedef std::pair<Dyninst::Address, Process::ptr> value_type
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+static AddressSet::ptr newAddressSet()
+\end{apient}
+
+\apidesc{
+This function returns a new AddressSet that is empty.
+}
+
+\begin{apient}
+static AddressSet::ptr newAddressSet(ProcessSet::const_ptr ps, Dyninst::Address addr)
+\end{apient}
+
+\apidesc{
+This function returns a new AddressSet initialized with the elements from ps
+paired with the Address addr.
+}
+
+\begin{apient}
+static AddressSet::ptr newAddressSet(ProcessSet::const_ptr ps,
+                                     std::string library_name,
+                                     Dyninst::Offset off)
+\end{apient}
+
+\apidesc{
+This function returns a new AddressSet initialized with the elements from ps.
+The Address element for each process is calculated by looking up the load
+address of library\_name in each Process and adding it to off.
+}
+
+\begin{apient}
+iterator find(Dyninst::Address addr)
+const_iterator find(Dyninst::Address addr) const
+\end{apient}
+
+\apidesc{
+These functions return an iterator that points to the first element in the
+AddressSet with an address of addr. They return end() if no element matches
+addr.
+}
+
+\begin{apient}
+iterator find(Dyninst::Address addr, Process::const_ptr proc)
+const_iterator find(Dyninst::Address addr, Process::const_ptr proc) const
+\end{apient}
+
+\apidesc{
+These functions return an iterator that points to any element that has a process
+and address of proc and addr. It returns end() if no element matches.
+}
+
+\begin{apient}
+size_t count(Dyninst::Address addr) const
+\end{apient}
+
+\apidesc{
+This function returns the number of elements with address addr.
+}
+
+\begin{apient}
+size_t size() const
+\end{apient}
+
+\apidesc{
+This function returns the number of elements in the AddressSet.
+}
+
+\begin{apient}
+bool empty() const
+\end{apient}
+
+\apidesc{
+This function returns true if the AddressSet has zero elements and false
+otherwise.
+}
+
+\begin{apient}
+std::pair<iterator, bool> insert(Dyninst::Address addr, Process::const_ptr proc)
+\end{apient}
+
+\apidesc{
+This function inserts a new element into the AddressSet with addr and proc as
+its values. If another element with those values already exists, then no new
+element will be inserted. It returns an iterator that points to the new or
+existing element and a boolean value that is true if a new element was inserted
+and false otherwise.
+}
+
+\begin{apient}
+size_t insert(Dyninst::Address addr, ProcessSet::const_ptr ps)
+\end{apient}
+
+\apidesc{
+For every element in ps, this function inserts it and addr into the AddressSet.
+It returns the number of new elements created.
+}
+
+\begin{apient}
+void erase(iterator pos)
+\end{apient}
+
+\apidesc{
+This function removes the element pointed to by pos from the AddressSet.
+}
+
+\begin{apient}
+size_t erase(Process::const_ptr proc)
+\end{apient}
+
+\apidesc{
+This function removes every element with a process of proc from the AddressSet.
+It returns the number of elements removed.
+}
+
+\begin{apient}
+size_t erase(Dyninst::Address addr,
+\end{apient}
+
+\apidesc{
+Process::const\_ptr proc)
+This function removes any element that has and address and process of addr and
+proc from the AddressSet. It returns the number of elements removed.
+}
+
+\begin{apient}
+void clear()
+\end{apient}
+
+\apidesc{
+This function erases all elements from the AddressSet leaving an AddressSet of
+size zero.
+}
+
+\begin{apient}
+iterator lower_bound(Dyninst::Address addr)
+\end{apient}
+
+\apidesc{
+This function returns an iterator pointing to the first element in the
+AddressSet that has an address greater than or equal to addr.
+}
+
+\begin{apient}
+iterator upper_bound(Dyninst::Address addr)
+\end{apient}
+
+\apidesc{
+This function returns an iterator pointing to the first element in the
+AddressSet that has an address greater than addr.
+}
+
+\begin{apient}
+std::pair<iterator, iterator> equal_range(Address addr) const
+\end{apient}
+
+\apidesc{
+This function returns a pair of iterators. The first iterator has the same
+value as the return of lower\_bound(addr) and the second iterator has the same
+value as the return of upper\_bound(addr).
+}
+
+\begin{apient}
+AddressSet::ptr set_union(AddressSet::const_ptr aset)
+\end{apient}
+
+\apidesc{
+This function returns a new AddressSet whose elements are the set union of this
+AddressSet and aset.
+}
+
+\begin{apient}
+AddressSet::ptr set_intersection(AddressSet::const_ptr aset)
+\end{apient}
+
+\apidesc{
+This function returns a new AddressSet whose elements are the set intersection
+of this AddressSet and aset.
+}
+
+\begin{apient}
+AddressSet::ptr set_difference(AddressSet::const_ptr aset)
+\end{apient}
+
+\apidesc{
+This function returns a new AddressSet whose elements are the set difference of
+this AddressSet minus aset.
+}
