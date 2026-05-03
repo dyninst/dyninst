@@ -140,6 +140,54 @@
   \subsection{IRPC}
     \input {API/IRPC}
 
+\section{Breakpoints}
+  A breakpoint is a point in the code region of a target process that,
+  when executed, stops the process execution and notifies ProcControlAPI.
+  Upon being continued the process will resume execution at the point. A
+  Breakpoint object is a handle that can represents one or more breakpoints in
+  one or more processes. Upon receiving notification that a breakpoint has
+  executed, ProcControlAPI will deliver a callback with an EventBreakpoint. 
+  
+  Some Breakpoint objects can be created as control-transfer
+  breakpoints. When a process is
+  continued after executing a control-transfer the process will resume at an
+  alternate location, rather than at the breakpoint's
+  installation point.
+  
+  A single Breakpoint can be inserted into multiple locations within a target
+  process. This can be useful when a user has wants to perform a single action
+  at multiple locations in a target process. For example, if a user wants to
+  insert a breakpoint at the entry to function foo, and foo has multiple
+  instantiations in a process, then a single Breakpoint can be inserted at each
+  instance of foo.
+  
+  A single Breakpoint object can be inserted into multiple target processes at the
+  same time. When a process does an operation that copies an address space,
+  such as fork on UNIX, the child process will receive all Breakpoint objects
+  that were installed in the parent process. 
+  
+  Multiple Breakpoint objects can be inserted into the same location with-in the
+  same process. When this location is executed in the target process a single
+  callback will be delivered, and the EventBreakpoint object will contain a
+  reference to each Breakpoint inserted at the location. At most one
+  control-transfer breakpoint can be inserted at any one point in a process.
+  
+  Due to the many-to-many nature of Breakpoints and Processes, a single
+  installation of a Breakpoint can be identified by a Breakpoint, Process,
+  Address triple. The functions for inserting and removing breakpoints
+  (Process::addBreakpoint and Process::rmBreakpoint) need all three pieces of
+  information.
+  
+  A Breakpoint can be a hardware breakpoint or
+  a software breakpoint. A hardware
+  breakpoint is typically implemented by setting special debug register in the
+  process and can trigger on code execution, data reads or data write. A
+  software breakpoint is typically implemented by writing a special instruction
+  into a code sequence and can only be triggered by code execution. There are
+  typically a limited number of hardware breakpoints available at the same time.
+
+  \subsection{Breakpoint}
+    \input{API/Breakpoint}
 
 \section{Libraries}
   ProcControlAPI offers several facilities for interacting with libraries
