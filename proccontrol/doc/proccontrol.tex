@@ -204,7 +204,6 @@
   \subsection{MachSyscall}
     \input{API/MachSyscall}
 
-
 \section{Libraries}
   ProcControlAPI offers several facilities for interacting with libraries
   both in a created address spaces as well as loading new libraries into one.
@@ -214,5 +213,31 @@
 
   \subsection{LibraryPool}
     \input{API/LibraryPool}
+
+\section{Platform-specific Features}
+  The classes described in this section are all used to configure
+  platform-specific features for Process objects. The three tracking classes
+  (LibraryTracking, ThreadTracking, LWPTracking) all contain member functions to
+  set either interrupt-driven or polling-driven handling for different events
+  associated with Process objects. When interrupt-driven handling is enabled,
+  the associated process may be modified to accommodate timely handling (e.g.,
+  inserting breakpoints). When polling-driven handling is enabled, the
+  associated process is not modified and events are handled on demand by calling
+  the appropriate “refresh” member function.
+
+  \subsection{FollowFork}
+    \input{API/FollowFork}
+
+  \subsection{LWPTracking}
+    \input{API/LWPTracking}
+
+  \subsection{LibraryTracking}
+    \input{API/LibraryTracking}
+
+  \subsection{SignalMask}
+    \input{API/SignalMask}
+
+  \subsection{ThreadTracking}
+    \input{API/ThreadTracking}
 
 \end{document}

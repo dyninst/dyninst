@@ -1,0 +1,50 @@
+\code{LWPTracking} is used to configure the handling of LWP events for its
+associated Process.
+
+\begin{apient}
+static void setDefaultTrackLWPs(bool b)
+\end{apient}
+
+\apidesc{
+Sets the default handling mechanism for LWP events across all Process objects to
+interrupt-driven (b = true) or polling-driven (b = false).
+}
+
+\begin{apient}
+static bool getDefaultTrackLWPs()
+\end{apient}
+
+\apidesc{
+Returns the current default handling mechanism for LWP events across all Process
+objects. A return value of true indicates interrupt-driven while false
+indicates polling-driven.
+}
+
+\begin{apient}
+bool setTrackLWPs(bool b) const
+\end{apient}
+
+\apidesc{
+Sets the LWP event handling mechanism for the associated Process object to
+interrupt-driven (b = true) or polling-driven (b = false).
+Returns true on success and false on failure.
+}
+
+\begin{apient}
+bool getTrackLWPs() const
+\end{apient}
+
+\apidesc{
+Returns the current LWP event handling mechanism for the associated Process
+object. A return value of true indicates interrupt-driven while false
+indicates polling-driven.
+}
+
+\begin{apient}
+bool refreshLWPs()
+\end{apient}
+
+\apidesc{
+Manually polls for queued LWP events to handle.
+Returns true on success and false on failure.
+}

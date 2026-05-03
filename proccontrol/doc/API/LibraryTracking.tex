@@ -1,0 +1,50 @@
+\code{LibraryTracking} is used to configure the handling of library events for
+its associated Process.
+
+\begin{apient}
+static void setDefaultTrackLibraries(bool b)
+\end{apient}
+
+\apidesc{
+Sets the default handling mechanism for library events across all Process
+objects to interrupt-driven (b = true) or polling-driven (b = false).
+}
+
+\begin{apient}
+static bool getDefaultTrackLibraries()
+\end{apient}
+
+\apidesc{
+Returns the current default handling mechanism for library events across all
+Process objects. A return value of true indicates interrupt-driven while
+false indicates polling-driven.
+}
+
+\begin{apient}
+bool setTrackLibraries(bool b) const
+\end{apient}
+
+\apidesc{
+Sets the library event handling mechanism for the associated Process object to
+interrupt-driven (b = true) or polling-driven (b = false).
+Returns true on success and false on failure.
+}
+
+\begin{apient}
+bool getTrackLibraries() const
+\end{apient}
+
+\apidesc{
+Returns the current library event handling mechanism for the associated Process
+object. A return value of true indicates interrupt-driven while false
+indicates polling-driven.
+}
+
+\begin{apient}
+bool refreshLibraries()
+\end{apient}
+
+\apidesc{
+Manually polls for queued library events to handle.
+Returns true on success and false on failure.
+}
