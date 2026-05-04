@@ -351,6 +351,9 @@ public:
     std::vector<relocationEntry> &getDynRelocs() { return relocation_table_; }
     std::vector<Offset> &getRelrDynRelocs() { return relr_relocation_table_; }
 
+    const dyn_hash_map<unsigned, std::vector<std::string>> &getVersionMapping() const { return versionMapping; }
+    const dyn_hash_map<unsigned, std::string> &getVersionFileNameMapping() const { return versionFileNameMapping; }
+
     Offset getInitAddr() const override {return init_addr_; }
     Offset getFiniAddr() const override { return fini_addr_; }
 
