@@ -2087,21 +2087,33 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
         dynSymbolNamesLength += iter->first.size() + 1;
     }
 
-    if (object->hasRelrdyn() &&
-        verneedEntries["libc.so.6"].find("GLIBC_ABI_DT_RELR") ==
-            verneedEntries["libc.so.6"].end()) {
-        if (versionNames.find("GLIBC_ABI_DT_RELR") == versionNames.end()) {
-            versionNames["GLIBC_ABI_DT_RELR"] = dynSymbolNamesLength;
-            dynStrs.push_back("GLIBC_ABI_DT_RELR");
-            dynSymbolNamesLength += std::string("GLIBC_ABI_DT_RELR").size() + 1;
-        }
-        verneedEntries["libc.so.6"]["GLIBC_ABI_DT_RELR"] = curVersionNum++;
-    }
-
     //reconstruct .gnu_version section
     symVers = (Elf_Half *) malloc(versionSymTable.size() * sizeof(Elf_Half));
     for (unsigned i = 0; i < versionSymTable.size(); i++)
         symVers[i] = versionSymTable[i];
+
+    // Preserve original .gnu.version_r entries that were not recreated through
+    // symbol version references, unless their provider library was removed
+    const auto &originalVersionMapping = object->getVersionMapping();
+    const auto &originalVersionFileNameMapping = object->getVersionFileNameMapping();
+    const auto &removedLibraries = object->libsRMd();
+    for (const auto &versionEntry : originalVersionMapping) {
+        auto fileEntry = originalVersionFileNameMapping.find(versionEntry.first);
+        if (fileEntry == originalVersionFileNameMapping.end()) continue;
+        if (find(removedLibraries.begin(), removedLibraries.end(), fileEntry->second) !=
+            removedLibraries.end()) continue;
+
+        auto &versionEntries = verneedEntries[fileEntry->second];
+        for (const auto &versionName : versionEntry.second) {
+            if (versionEntries.find(versionName) != versionEntries.end()) continue;
+            if (versionNames.find(versionName) == versionNames.end()) {
+                versionNames[versionName] = dynSymbolNamesLength;
+                dynStrs.push_back(versionName);
+                dynSymbolNamesLength += versionName.size() + 1;
+            }
+            versionEntries[versionName] = curVersionNum++;
+        }
+    }
 
     //reconstruct .gnu.version_r section
     verneedSecSize = 0;
