@@ -1091,10 +1091,6 @@ void image::findModByAddr (const Symbol *lookUp, vector<Symbol *> &mods,
   }
 }
 
-unsigned int int_addrHash(const Address& addr) {
-  return (unsigned int)addr;
-}
-
 /*
  * load an executable:
  *   1.) parse symbol table and identify routines.
