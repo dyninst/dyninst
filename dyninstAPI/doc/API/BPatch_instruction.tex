@@ -1,0 +1,64 @@
+This class encapsulates a memory access abstraction. It contains
+information that describes the memory access type:
+read, write, read/write, or prefetch. It also contains information
+that allows the effective address and the number of
+bytes transferred to be determined.
+
+\begin{apient}
+  bool isALoad()
+\end{apient}
+
+\apidesc{
+  Return true if the memory access is a load (memory is read into a register).
+}
+
+\begin{apient}
+  bool isAStore()
+\end{apient}
+
+\apidesc{
+  Return true if the memory access is write. Some machine
+  instructions may both load and store.
+}
+
+\begin{apient}
+  bool isAPrefetch_NP()
+\end{apient}
+
+\apidesc{
+  Return true if memory access is a prefetch (i.e, it has no
+  observable effect on user registers). It this returns true,
+  the instruction is considered neither load nor store. Prefetches
+  are detected only on IA32.
+}
+
+\begin{apient}
+  short prefetchType_NP()
+\end{apient}
+
+\apidesc{
+  If the memory access is a prefetch, this method returns a platform
+  specific prefetch type.
+}
+
+\begin{apient}
+  BPatch_addrSpec_NP getStartAddr_NP()
+\end{apient}
+
+\apidesc{
+  Return an address specification that allows the effective address
+  of a memory reference to be computed. For example,
+  on the x86 platform a memory access instruction operand may contain
+  a base register, an index register, a scaling
+  value, and a constant base. The \code{BPatch\_addrSpec\_NP}
+  describes each of these values.
+}
+
+\begin{apient}
+  BPatch_countSpec_NP getByteCount_NP()
+\end{apient}
+
+\apidesc{
+  Return a specification that describes the number of bytes
+  transferred by the memory access.
+}

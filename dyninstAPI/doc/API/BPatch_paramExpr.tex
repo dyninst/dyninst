@@ -1,0 +1,13 @@
+\begin{apient}
+  BPatch_paramExpr(int paramNum)
+\end{apient}
+
+\apidesc{
+  This constructor creates an expression whose value is a parameter
+  being passed to a function. ParamNum specifies the
+  number of the parameter to return, starting at 0. Since the
+  contents of parameters may change during subroutine
+  execution, this snippet type is only valid at points that are
+  entries to subroutines, or when inserted at a call point
+  with the when parameter set to \code{BPatch\_callBefore.}
+}

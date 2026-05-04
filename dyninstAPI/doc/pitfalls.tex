@@ -1,0 +1,46 @@
+These are some common pitfalls users have reported when using Dyninst.
+Many of these are either due to limitations in the current
+implementations, or reflect design decisions that may not
+produce the expected behavior from the system.
+
+\setlength{\leftskip}{0.5cm}
+
+  \textbf{Attach followed by detach}
+  
+  If a mutator attaches to a mutatee, and immediately exits, the
+  current behavior is that the mutatee is left suspended.
+  To make sure the application continues, call detach with the appropriate flags.
+  
+  \textbf{Attaching to a program that has already been modified by Dyninst}
+  
+  If a mutator attaches to a program that has already been modified by
+  a previous mutator, a warning message will be
+  issued. We are working to fix this problem, but the correct semantics
+  are still being specified. Currently, a message
+  is printed to indicate that this has been attempted, and the attach will fail.
+  
+  \textbf{Dyninst is event-driven}
+  
+  Dyninst must sometimes handle events that take place in the mutatee,
+  for instance when a new shared library is loaded,
+  or when the mutatee executes a fork or exec. Dyninst handles events
+  when it checks the status of the mutatee, so to
+  allow this the mutator should periodically call one of the functions
+  \code{BPatch::pollForStatusChange}, \code{BPatch::wait­ForStatusChange},
+  \code{BPatch\_thread::isStopped}, or \code{BPatch\_­thread::is­Termin­ated}.
+  
+  \textbf{Missing or out-of-date DbgHelp DLL (Windows)}
+  
+  Dyninst requires an up-to-date DbgHelp library on Windows. See the
+  section on Windows-specific architectural
+  issues for details.
+  
+  \textbf{Portland Compiler Group – missing debug symbols}
+  
+  The Portland Group compiler (pgcc) on Linux produces debug symbols
+  that are not read correctly by Dyninst. The
+  binaries produced by the compiler do not contain the source file
+  information necessary for Dyninst to assign the debug
+  symbols to the correct module.
+
+\setlength{\leftskip}{0cm}

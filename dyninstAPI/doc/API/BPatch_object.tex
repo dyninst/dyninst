@@ -1,0 +1,89 @@
+An object of this class represents the original executable or a library.
+It serves as a container of \code{BPatch\_module} objects.
+
+\begin{apient}
+  std::string name()
+  std::string pathName()
+\end{apient}
+
+\apidesc{
+  Return the name of this file; either just the file name or the
+  fully path-qualified name.
+}
+
+\begin{apient}
+  Dyninst::Address fileOffsetToAddr(Dyninst::Offset offset)
+\end{apient}
+
+\apidesc{
+  Convert the provided offset into the file into a full address in memory.
+}
+
+\begin{apient}
+  struct Region {
+    typedef enum {
+      UNKNOWN,
+      CODE,
+      DATA
+    } type_t;
+    Dyninst::Address base;
+    unsigned long size;
+    type_t type;
+  }
+\end{apient}
+
+\apidesc{
+  A contiguous sequence of addresses that represents either code or data.
+}
+
+\begin{apient}
+  void regions(std::vector<Region> &regions)
+\end{apient}
+
+\apidesc{
+  Returns information about the address ranges occupied by this
+  object in memory.
+}
+
+\begin{apient}
+  void modules(std::vector<BPatch_module *> &modules)
+\end{apient}
+
+\apidesc{
+  Returns the modules contained in this object.
+}
+
+\begin{apient}
+  bool findPoints(Dyninst::Address addr, std::vector<BPatch_point *> &points)
+\end{apient}
+
+\apidesc{
+  Return a vector of \code{BPatch\_points} that correspond with the
+  provided address, one per function that includes an
+  instruction at that address. There will be one element if there is
+  not overlapping code.
+}
+
+\begin{apient}
+  std::vector<BPatch_function*> *
+  findFunction(const char *name, std::vector<BPatch_function*> &funcs,
+               bool notify_on_failure = true, bool regex_case_sensitive = true,
+               bool incUninstrumentable = false)
+\end{apient}
+
+\apidesc{
+  Return a vector of \code{BPatch\_function}s matching name, or NULL
+  if the function does not exist. If name contains a
+  POSIX-extended regular expression, a regex search will be performed
+  on function names, and matching \code{BPatch\_function}s
+  returned.
+  If the incUninstrumentable flag is set, the returned table of
+  procedures will include uninstrumentable functions. The
+  default behavior is to omit these functions.
+
+  [NOTE: If name is not found to match any demangled function names
+    in the \code{BPatch\_object}, the search is repeated as if
+    name is a mangled function name. If this second search succeeds,
+    functions with mangled names matching name are
+  returned instead.]
+}

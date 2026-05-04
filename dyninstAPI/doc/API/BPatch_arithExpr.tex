@@ -1,0 +1,44 @@
+\begin{apient}
+  enum BPatch_binOp {
+    BPatch_assign,  // assign the value of rOperand to lOperand
+    BPatch_plus,    // add lOperand and rOperand
+    BPatch_minus,   // subtract rOperand from lOperand
+    BPatch_divide,  // divide rOperand by lOperand
+    BPatch_times,   // multiply rOperand by lOperand
+    BPatch_ref,     // Array reference of the form lOperand[rOperand]
+    BPatch_seq,     // Define a sequence of two expressions (similar to comma in C)
+  }
+\end{apient}
+
+\apidesc{
+  The type of binary operation to perform.
+}
+
+\begin{apient}
+  BPatch_arithExpr(BPatch_binOp op, const BPatch_snippet &lOperand,
+                   const BPatch_snippet &rOperand)}
+\end{apient}
+
+\apidesc{
+Perform the requested binary operation.
+}
+
+\begin{apient}
+  enum BPatch_unOp {
+    BPatch_negate, // Returns the negation of an integer
+    BPatch_addr,   // Returns a pointer to a BPatch_variableExpr
+    BPatch_deref,  // Dereferences a pointer
+  }
+\end{apient}
+
+\apidesc{
+  The type of unary operation to perform.
+}
+
+\begin{apient}
+  BPatch_arithExpr(BPatch_unOp, const BPatch_snippet &operand)
+\end{apient}
+
+\apidesc{
+  Perform the requested unary operation.
+}

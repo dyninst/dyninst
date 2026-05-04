@@ -1,0 +1,28 @@
+\begin{apient}
+  enum BPatch_relOp {
+    BPatch_lt,  // Return lOperand < rOperand
+    BPatch_eq,  // Return lOperand == rOperand
+    BPatch_gt,  // Return lOperand > rOperand
+    BPatch_le,  // Return lOperand <= rOperand
+    BPatch_ne,  // Return lOperand != rOperand
+    BPatch_ge,  // Return lOperand >= rOperand
+    BPatch_and, // Return lOperand && rOperand (Boolean and)
+    BPatch_or,  // Return lOperand || rOperand (Boolean or)
+  }
+\end{apient}
+
+\apidesc{
+  The boolean operation to perform.
+}
+
+\begin{apient}
+  BPatch_boolExpr(BPatch_relOp op, const BPatch_snippet &lOperand,
+                  const BPatch_snippet &rOperand)}
+\end{apient}
+
+\apidesc{
+  Define a relational snippet.
+
+  The type of the returned snippet is boolean, and the operands
+  are type-checked.
+}

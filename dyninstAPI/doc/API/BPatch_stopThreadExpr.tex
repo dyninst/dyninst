@@ -1,0 +1,13 @@
+\begin{apient}
+  BPatch_stopThreadExpr(const BPatchStopThreadCallback &cb,
+                        const BPatch_snippet &calculation,
+                        bool useCache = false,
+                        BPatch_stInterpret interp = BPatch_noInterp)
+\end{apient}
+
+\apidesc{
+  This snippet stops the thread that executes it. It evaluates a
+  calculation snippet and triggers a callback to the user
+  program with the result of the calculation and a pointer to the
+  \code{BPatch\_point}  at which the snippet was inserted.
+}

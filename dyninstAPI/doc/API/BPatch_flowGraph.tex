@@ -1,0 +1,120 @@
+\code{BPatch\_flowGraph} represents the control flow graph of a
+function. It provides methods for discovering the
+basic blocks and loops within the function (using which a caller can
+navigate the graph). A \code{BPatch\_flowGraph} object
+can be obtained by calling the getCFG method of a
+\code{BPatch\_function} object.
+
+\begin{apient}
+  bool containsDynamicCallsites()
+\end{apient}
+
+\apidesc{
+  Return true if the control flow graph contains any dynamic call
+  sites (e.g., calls through a function pointer).
+}
+
+\begin{apient}
+  void getAllBasicBlocks(std::set<BPatch_basicBlock*>&)
+  void getAllBasicBlocks(BPatch_Set<BPatch_basicBlock*>&)
+\end{apient}
+
+\apidesc{
+  Fill the given set with pointers to all basic blocks in the control
+  flow graph.
+}
+
+\begin{apient}
+  void getEntryBasicBlock(std::vector<BPatch_basicBlock*>&)
+\end{apient}
+
+\apidesc{
+  Fill the given vector with pointers to all basic blocks that are
+  entry points to the function.
+}
+
+\begin{apient}
+  void getExitBasicBlock(std::vector<BPatch_basicBlock*>&)
+\end{apient}
+
+\apidesc{
+  Fill the given vector with pointers to all basic blocks that are
+  exit points of the function.
+}
+
+\begin{apient}
+  void getLoops(std::vector<BPatch_basicBlockLoop*>&)
+\end{apient}
+
+\apidesc{
+  Fill the given vector with a list of all natural (single entry)
+  loops in the control flow graph.
+}
+
+\begin{apient}
+  void getOuterLoops(std::vector<BPatch_basicBlockLoop*>&)
+\end{apient}
+
+\apidesc{
+  Fill the given vector with a list of all natural (single entry)
+  outer loops in the control flow graph.
+}
+
+\begin{apient}
+  BPatch_loopTreeNode *getLoopTree()
+\end{apient}
+
+\apidesc{
+  Return the root node of the tree of loops in this flow graph.
+}
+
+\begin{apient}
+  enum BPatch_procedureLocation {
+    BPatch_locLoopEntry,
+    BPatch_locLoopExit,
+    BPatch_locLoopStartIter,
+    BPatch_locLoopEndIter
+  }
+\end{apient}
+
+\apidesc{
+  The place in the loop structure of the current procedure.
+}
+
+\begin{apient}
+  std::vector<BPatch_point*> *findLoopInstPoints(const BPatch_procedureLocation loc,
+                                                 BPatch_basicBlockLoop *loop)
+\end{apient}
+
+\apidesc{
+  Find instrumentation points for the given loop that correspond to
+  the given location: loop entry, loop exit, the start
+  of a loop iteration and the end of a loop iteration.
+  \code{BPatch\_locLoopEntry}  and \code{BPatch\_locLoopExit}  instrumentation
+  points respectively execute once before the first iteration of a
+  loop and after the last iteration.
+  \code{BPatch\_locLoopStartIter}  and \code{BPatch\_locLoopEndIter}
+  respectively execute at the beginning and end of each loop
+  iteration.
+}
+
+\begin{apient}
+  BPatch_basicBlock* findBlockByAddr(Dyninst::Address addr);
+\end{apient}
+
+\apidesc{
+  Find the basic block within this flow graph that contains addr.
+  Returns NULL on failure. This method is inefficient but
+  guaranteed to succeed if addr is present in any block in this CFG.
+  [NOTE: Dyninst is not always able to generate a correct flow graph
+    in the presence of indirect jumps. If a function
+    has a case statement or indirect jump instructions, the targets
+    of the jumps are found by searching instruction
+    patterns (peep-hole). The instruction patterns generated are
+    compiler specific and the control flow graph analyses
+    include only the ones we have seen. During the control flow graph
+    generation, if a pattern that is not handled is used
+    for case statement or multi-jump instructions in the function
+    address space, the generated control flow graph may not
+  be complete.]
+}

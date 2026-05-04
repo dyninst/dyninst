@@ -1,0 +1,36 @@
+In this section, we describe how to access the underlying component library abstractions from corresponding
+Dyninst abstractions. The component libraries (SymtabAPI, InstructionAPI, ParseAPI, and PatchAPI) often
+provide greater functionality and cleaner interfaces than Dyninst, and thus users may wish to use a mix
+of abstractions. In general, users may access component library abstractions via a convert function, which
+is overloaded and namespaced to give consistent behavior. The definitions of all component library
+abstractions are located in the appropriate documentation.
+
+\begin{apient}
+  PatchAPI::PatchMgrPtr PatchAPI::convert(BPatch_addressSpace *);
+  
+  PatchAPI::PatchObject *PatchAPI::convert(BPatch_object *);
+  
+  ParseAPI::CodeObject *ParseAPI::convert(BPatch_object *);
+  
+  SymtabAPI::Symtab *SymtabAPI::convert(BPatch_object *);
+  
+  SymtabAPI::Module *SymtabAPI::convert(BPatch_module *);
+  
+  PatchAPI::PatchFunction *PatchAPI::convert(BPatch_function *);
+  
+  ParseAPI::Function *ParseAPI::convert(BPatch_function *);
+  
+  PatchAPI::PatchBlock *PatchAPI::convert(BPatch_basicBlock *);
+  
+  ParseAPI::Block *ParseAPI::convert(BPatch_basicBlock *);
+  
+  PatchAPI::PatchEdge *PatchAPI::convert(BPatch_edge *);
+  
+  ParseAPI::Edge *ParseAPI::convert(BPatch_edge *);
+  
+  PatchAPI::Point *PatchAPI::convert(BPatch_point *, BPatch_callWhen);
+  
+  PatchAPI::SnippetPtr PatchAPI::convert(BPatch_snippet *);
+  
+  SymtabAPI::Type *SymtabAPI::convert(BPatch_type *);
+\end{apient}

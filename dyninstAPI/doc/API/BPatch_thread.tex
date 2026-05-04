@@ -1,0 +1,121 @@
+The \code{BPatch\_thread} class represents and controls a thread of
+execution that is running in a process.
+
+\begin{apient}
+  void getCallStack(std::vector<BPatch_frame>& stack)
+\end{apient}
+
+\apidesc{
+  This function fills the given vector with current information about
+  the call stack of the thread. Each stack frame is
+  represented by a  \code{BPatch\_frame}.
+}
+
+\begin{apient}
+  dynthread_t getTid()
+\end{apient}
+
+\apidesc{
+  This function returns a platform-specific identifier for this
+  thread. This is the identifier that is used by the
+  threading library. For example, on pthread applications this
+  function will return the thread\'s \code{pthread\_t} value.
+}
+
+\begin{apient}
+  Dyninst::LWP getLWP()
+\end{apient}
+
+\apidesc{
+  This function returns a platform-specific identifier that the
+  operating system uses to identify this thread. For
+  example, on UNIX platforms this returns the LWP id. On Windows this
+  returns a HANDLE object for the thread.
+}
+
+\begin{apient}
+  unsigned getBPatchID()
+\end{apient}
+
+\apidesc{
+  This function returns a Dyninst-specific identifier for this
+  thread. These ID's apply only to
+  running threads, the BPatch ID of an already terminated thread my
+  be repeated in a new thread.
+}
+
+\begin{apient}
+  BPatch_function *getInitialFunc()
+\end{apient}
+
+\apidesc{
+  Return the function that was used by the application to start this
+  thread. For example, on pthread applications this
+  will return the initial function that was passed to \code{pthread\_create}.
+}
+
+\begin{apient}
+  unsigned long getStackTopAddr()
+\end{apient}
+
+\apidesc{
+  Returns the base address for this thread's stack.
+}
+
+\begin{apient}
+  bool isDeadOnArrival()
+\end{apient}
+
+\apidesc{
+  This function returns true if this thread terminated execution
+  before Dyninst was able to
+  attach to it. Since Dyninst performs new thread detection
+  asynchronously, it is possible
+  for a thread to be created and destroyed before Dyninst can attach
+  to it. When this hap-
+  pens, a new \code{BPatch\_thread} is created, but isDeadOnArrival
+  always returns true for this
+  thread. It is illegal to perform any thread-level operations on a
+  dead on arrival thread.
+}
+
+\begin{apient}
+  BPatch_process *getProcess()
+\end{apient}
+
+\apidesc{
+  Return the  \code{BPatch\_process}  that contains this thread.
+}
+
+\begin{apient}
+  void *oneTimeCode(const BPatch_snippet &expr, bool *err = NULL)
+\end{apient}
+
+\apidesc{
+  Cause the snippet expr to be evaluated by the process immediately.
+  This is similar to the  \code{BPatch\_process::oneTimeCode}
+  function, except that the snippet is guaranteed to run only on this
+  thread. The process must be stopped to call this
+  function. The behavior is synchronous; oneTimeCode will not return
+  until after the snippet has been run in the
+  application.
+}
+
+\begin{apient}
+  bool oneTimeCodeAsync(const BPatch_snippet  &expr, void *userData = NULL,
+                        BpatchOneTimeCodeCallback cb = NULL)
+\end{apient}
+
+\apidesc{
+  This function sets up the snippet expr to be evaluated by this
+  thread at the next available opportunity. When the
+  snippet finishes running, Dyninst will callback any function
+  registered through BPatch::registerOneTimeCodeCallback,
+  with userData passed as a parameter. This function returns true if
+  expr was posted or false otherwise.
+  This is similar to the  \code{BPatch\_process::oneTimeCodeAsync}
+  function, except that the snippet is guaranteed to run only on
+  this thread. The process must be stopped to call this function. The
+  behavior is asynchronous; oneTimeCodeAsync
+  returns before the snippet is executed.
+}

@@ -1,0 +1,168 @@
+The \code{BPatch\_basicBlock} class represents a basic block in the application being
+instrumented. Objects of this class representing the blocks within a function
+can be obtained using the \code{BPatch\_flowGraph} object for the function.
+\code{BPatch\_basicBlock} includes methods for navigating through the control flow
+graph of the containing function.
+
+\begin{apient}
+  void getSources(std::vector<BPatch_basicBlock*>&)
+\end{apient}
+
+\apidesc{
+  Fills the given vector with the list of predecessors for this basic block (i.e,
+  basic blocks that have an outgoing edge in the control flow graph leading to
+  this block).
+}
+
+\begin{apient}
+  void getTargets(std::vector<BPatch_basicBlock*>&)
+\end{apient}
+
+\apidesc{
+  Fills the given vector with the list of successors for this basic block (i.e,
+  basic blocks that are the destinations of outgoing edges from this block in the
+  control flow graph).
+}
+
+\begin{apient}
+  void getOutgoingEdges(std::vector<BPatch_edge *> &out)
+\end{apient}
+
+\apidesc{
+  Fill out with all of the control flow edges that leave this basic block.
+}
+
+\begin{apient}
+  void getIncomingEdges(std::vector<BPatch_edge *> &inc)
+\end{apient}
+
+\apidesc{
+  Fills inc with all of the control flow edges that point to this basic block.
+}
+
+\begin{apient}
+  bool getInstructions(std::vector<Dyninst::InstructionAPI::Instruction>&)
+  
+  bool getInstructions(std::vector<std::pair<Dyninst::InstructionAPI::Instruction, Address> >&)
+\end{apient}
+
+\apidesc{
+  Fills the given vector with InstructionAPI Instruction objects representing the
+  instructions in this basic block, and call also returns the address each instruction
+  starts at.
+}
+
+\begin{apient}
+  bool dominates(BPatch_basicBlock*)
+\end{apient}
+
+\apidesc{
+  This function returns true if the argument is pre-dominated in the control flow
+  graph by this block, and false if it is not.
+}
+
+\begin{apient}
+  BPatch_basicBlock* getImmediateDominator()
+\end{apient}
+
+\apidesc{
+  Return the basic block that immediately pre-dominates this block in the control flow graph.
+}
+
+\begin{apient}
+  void getImmediateDominates(std::vector<BPatch_basicBlock*>&)
+\end{apient}
+
+\apidesc{
+  Fill the given vector with a list of pointers to the basic blocks that are
+  immediately dominated by this basic block in the control flow graph.
+}
+\begin{apient}
+  void getAllDominates(std::set<BPatch_basicBlock*>&)
+  void getAllDominates(BPatch_Set<BPatch_basicBlock*>&)
+\end{apient}
+
+\apidesc{
+  Fill the given set with pointers to all basic blocks that are dominated by this
+  basic block in the control flow graph.
+}
+
+\begin{apient}
+  bool getSourceBlocks(std::vector<BPatch_sourceBlock*>&)
+\end{apient}
+
+\apidesc{
+  Fill the given vector with pointers to the source blocks contributing to this
+  basic block\'s instruction sequence.
+}
+\begin{apient}
+  int getBlockNumber()
+\end{apient}
+
+\apidesc{
+  Return the ID number of this basic block. The ID numbers are consecutive from 0 to
+  n-1, where n is the number of basic blocks in the flow graph to which this basic
+  block belongs.
+}
+\begin{apient}
+  std::vector<BPatch_point *> findPoint(const std::set<BPatch_opCode> &ops)
+  std::vector<BPatch_point *> findPoint(const BPatch_Set<BPatch_opCode> &ops)
+\end{apient}
+
+\apidesc{
+  Find all points in the basic block that match the given operation.
+}
+\begin{apient}
+  BPatch_point *findEntryPoint(
+  BPatch_point *findExitPoint()
+\end{apient}
+
+\apidesc{
+  Find the entry or exit point of the block.
+}
+
+\begin{apient}
+  unsigned long getStartAddress()
+\end{apient}
+
+\apidesc{
+  This function returns the starting address of the basic block. The address returned
+  is an absolute address.
+}
+\begin{apient}
+  unsigned long getEndAddress()
+\end{apient}
+
+\apidesc{
+  This function returns the end address of the basic block. The address returned is
+  an absolute address.
+}
+\begin{apient}
+  unsigned long getLastInsnAddress()
+\end{apient}
+
+\apidesc{
+  Return the address of the last instruction in a basic block.
+}
+\begin{apient}
+  bool isEntryBlock()
+\end{apient}
+
+\apidesc{
+  This function returns true if this basic block is an entry block into a function.
+}
+\begin{apient}
+  bool isExitBlock()
+\end{apient}
+
+\apidesc{
+  This function returns true if this basic block is an exit block of a function.
+}
+\begin{apient}
+  unsigned size()
+\end{apient}
+
+\apidesc{
+  Return the size of a basic block. The size is defined as the difference between the
+  end address and the start address of the basic block.
+}

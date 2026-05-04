@@ -1,0 +1,78 @@
+A snippet is an abstract representation of code to insert into a
+program. Snippets are defined by creating a new instance of the
+correct subclass of a snippet. For example, to create
+a snippet to call a function, create a new instance of the class
+\code{BPatch\_funcCallExpr}. Creating a snippet does
+not result in code being inserted into an application. Code is
+generated when a request is made to insert a
+snippet at a specific point in a program. Sub-snippets may be shared
+by different snippets (i.e, a handle to a
+snippet may be passed as an argument to create two different
+snippets), but whether the generated code is shared (or
+replicated) between two snippets is implementation dependent.
+
+\subsubsection{BPatch\_snippet}
+\input{API/BPatch_snippet}
+
+\subsubsection{BPatch\_actualAddressExpr}
+\input{API/BPatch_actualAddressExpr}
+
+\subsubsection{BPatch\_arithExpr}
+\input{API/BPatch_arithExpr}
+
+\subsubsection{BPatch\_boolExpr}
+\input{API/BPatch_boolExpr}
+
+\subsubsection{BPatch\_breakPointExpr}
+\input{API/BPatch_breakPointExpr}
+
+\subsubsection{BPatch\_bytesAccessedExpr}
+\input{API/BPatch_bytesAccessedExpr}
+
+\subsubsection{BPatch\_constExpr}
+\input{API/BPatch_constExpr}
+
+\subsubsection{BPatch\_dynamicTargetExpr}
+\input{API/BPatch_dynamicTargetExpr}
+
+\subsubsection{BPatch\_effectiveAddressExpr}
+\input{API/BPatch_effectiveAddressExpr}
+
+\subsubsection{BPatch\_funcCallExpr}
+\input{API/BPatch_funcCallExpr}
+
+\subsubsection{BPatch\_ifExpr}
+\input{API/BPatch_ifExpr}
+
+\subsubsection{BPatch\_nullExpr}
+\input{API/BPatch_nullExpr}
+
+\subsubsection{BPatch\_originalAddressExpr}
+\input{API/BPatch_originalAddressExpr}
+
+\subsubsection{BPatch\_paramExpr}
+\input{API/BPatch_paramExpr}
+
+\subsubsection{BPatch\_registerExpr}
+\input{API/BPatch_registerExpr}
+
+\subsubsection{BPatch\_retExpr}
+\input{API/BPatch_retExpr}
+
+\subsubsection{BPatch\_scrambleRegistersExpr}
+\input{API/BPatch_scrambleRegistersExpr}
+
+\subsubsection{BPatch\_sequence}
+\input{API/BPatch_sequence}
+
+\subsubsection{BPatch\_stopThreadExpr}
+\input{API/BPatch_stopThreadExpr}
+
+\subsubsection{BPatch\_tidExpr}
+\input{API/BPatch_tidExpr}
+
+\subsubsection{BPatch\_variableExpr}
+\input{API/BPatch_variableExpr}
+
+\subsubsection{BPatch\_whileExpr}
+\input{API/BPatch_whileExpr}

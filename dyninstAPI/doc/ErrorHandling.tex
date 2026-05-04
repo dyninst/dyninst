@@ -1,0 +1,371 @@
+The following functions are intended as a way for API users to be
+informed when an error or significant event occurs.
+Each function allows a user to register a handler for an event. The
+return code for all callback registration
+functions is the address of the handler that was previously
+registered (which may be NULL if no handler was previously
+registered). For backwards compatibility reasons, some callbacks may
+pass a \code{BPatch\_thread} object when a
+\code{BPatch\_process} may be more appropriate. A
+\code{BPatch\_thread} may be converted into a \code{BPatch\_process} using
+\code{BPatch\_thread::getProcess()}.
+
+\subsection{Asynchronous Callbacks}
+
+\begin{apient}
+  typedef void (*BPatchAsyncThreadEventCallback)(
+    BPatch_process *proc,
+    BPatch_thread *thread
+  )
+
+  bool registerThreadEventCallback(BPatch_asyncEventType type,
+                                   BPatchAsyncThreadEventCallback cb)
+
+  bool removeThreadEventCallback(BPatch_asyncEventType type,
+                                 BPatch_AsyncThreadEventCallback cb)
+\end{apient}
+
+\apidesc{
+  The type parameter can be either one of
+  \code{BPatch\_threadCreateEvent} or
+  \code{BPatch\_threadDestroyEvent}. Different callbacks
+  can be registered for different values of type.
+}
+
+\subsection{Code Discovery Callbacks}
+
+\begin{apient}
+  typedef void (*BPatchCodeDiscoveryCallback)(
+    BPatch_Vector<BPatch_function*> &newFuncs,
+    BPatch_Vector<BPatch_function*> &modFuncs
+  )
+
+  bool registerCodeDiscoveryCallback(BPatchCodeDiscoveryCallback cb)
+  bool removeCodeDiscoveryCallback(BPatchCodeDiscoveryCallback cb)
+\end{apient}
+
+\apidesc{
+  This callback is invoked whenever previously un-analyzed code is
+  discovered through runtime analysis, and delivers a
+  vector of functions whose analysis have been modified and a vector
+  of functions that are newly discovered.
+}
+
+\subsection{Code Overwrite Callbacks}
+
+\begin{apient}
+  typedef void (*BPatchCodeOverwriteBeginCallback)(
+    BPatch_Vector<BPatch_basicBlock*> &overwriteLoopBlocks
+  )
+
+  typedef void (*BPatchCodeOverwriteEndCallback)(
+    BPatch_Vector<std::pair<Dyninst::Address,int>> &deadBlocks,
+    BPatch_Vector<BPatch_function*> &owFuncs,
+    BPatch_Vector<BPatch_function*> &modFuncs,
+    BPatch_Vector<BPatch_function*> &newFuncs
+  )
+
+  bool registerCodeOverwriteCallbacks(BPatchCodeOverwriteBeginCallback cbBegin,
+                                      BPatchCodeOverwriteEndCallback cbEnd)
+\end{apient}
+
+\apidesc{
+  Register a callback at the beginning and end of overwrite events.
+  Only invoke if Dyninst\'s hybrid analysis mode is set
+  to \code{BPatch\_defensiveMode}.
+
+  The \code{BPatchCodeOverwriteBeginCallback} callback allows the
+  user to remove any instrumentation when the program starts
+  writing to a code page, which may be desirable as instrumentation
+  cannot be removed during the overwrite loop\'s
+  execution, and any breakpoint instrumentation will dramatically
+  slow the loop\'s execution.
+
+  The \code{BPatchCodeOverwriteEndCallback} callback delivers the
+  effects of the overwrite loop when it is done executing. In
+  many cases no code will have changed.
+}
+
+\subsection{Dynamic calls}
+
+\begin{apient}
+  typedef void (*BPatchDynamicCallSiteCallback)(
+    BPatch_point*at_point,
+    BPatch_function *called_function
+  )
+
+  bool registerDynamicCallCallback(BPatchDynamicCallSiteCallback cb)
+  bool removeDynamicCallCallback(BPatchDynamicCallSiteCallback cb)
+\end{apient}
+
+\apidesc{
+  The \code{registerDynamicCallCallback} interface will not
+  automatically instrument any dynamic call site. To make sure the call
+  back function is called, the user needs to explicitly instrument
+  dynamic call sites. One way to achieve this goal is to
+  first get instrumentation points representing dynamic call sites
+  and then call \code{BPatch\_point::monitorCalls} with a NULL
+  input parameter.
+}
+
+\subsection{Dynamic libraries}
+
+\begin{apient}
+  typedef void (*BPatchDynLibraryCallback)(
+    BPatch_thread *thr,
+    BPatch_object *obj,
+    bool loaded
+  )
+
+  BPatchDynLibraryCallback registerDynLibraryCallback(BPatchDynLibraryCallback func)
+\end{apient}
+
+\apidesc{
+  Note that in versions previous to 9.1, BPatchDynLibraryCallback\'s
+  signature took a \code{BPatch\_module}
+  instead of a \code{BPatch\_object}.
+}
+
+\subsection{Errors}
+
+\begin{apient}
+  enum BPatchErrorLevel {
+    BPatchFatal,
+    BPatchSerious,
+    BPatchWarning,
+    BPatchInfo
+  }
+\end{apient}
+
+\begin{apient}
+  typedef void (*BPatchErrorCallback)(
+    BPatchErrorLevel severity,
+    int number,
+    const char * const *params
+  )
+\end{apient}
+
+\begin{apient}
+  BPatchErrorCallback registerErrorCallback(BPatchErrorCallback func)
+\end{apient}
+
+\apidesc{
+  This function registers the error callback function with the BPatch
+  class. The return value is the address of the
+  previous error callback function. Dyninst users can change the
+  error callback during program execution (e.g., one error
+  callback before a GUI is initialized, and a different one after).
+  The severity field indicates how important the error
+  is (from fatal to information/status). The number is a unique
+  number that identifies this error message. Params are
+  the parameters that describe the detail about an error, e.g., the
+  process id where the error occurred. The number and
+  meaning of params depends on the error. However, for a given error
+  number the number of parameters returned will
+  always be the same.
+}
+
+\subsection{Exec}
+
+\begin{apient}
+  typedef void (*BPatchExecCallback)(
+    BPatch_thread *thr
+  )
+\end{apient}
+
+\begin{apient}
+  BPatchExecCallback registerExecCallback(BPatchExecCallback func)
+\end{apient}
+
+\apidesc{
+  Not implemented on Windows.
+}
+
+\subsection{Exit}
+
+\begin{apient}
+  enum BPatch_exitType {
+    NoExit,
+    ExitedNormally,
+    ExitedViaSignal
+  }
+\end{apient}
+
+\apidesc{
+  Mechanism by which the process exited.
+}
+
+\begin{apient}
+  typedef void (*BPatchExitCallback)(
+    BPatch_thread *proc,
+    BPatch_exitType exit_type
+  )
+\end{apient}
+
+\begin{apient}
+  BPatchExitCallback registerExitCallback(BPatchExitCallback func)
+\end{apient}
+  
+\apidesc{
+  Register a function to be called when a process terminates. For a
+  normal process exit, the callback will actually be
+  called just before the process exits, but while its process state
+  still exists. This allows final actions to be taken
+  on the process before it actually exits. The function
+  \code{BPatch\_thread::isTerminated()} will return true in this context
+  even though the process hasn't yet actually exited. In the case
+  of an exit due to a signal, the
+  process will have already exited.
+}
+
+\subsection{Fork}
+
+\begin{apient}
+  typedef void (*BPatchForkCallback)(
+    BPatch_thread *parent,
+    BPatch_thread *child
+  )
+\end{apient}
+
+\apidesc{
+  This is the prototype for the pre-fork and post-fork callbacks.
+  The parent parameter is the parent thread, and the
+  child parameter is a \code{BPatch\_thread} in the newly created
+  process. When invoked as a pre-fork callback, the child is NULL.
+}
+
+\begin{apient}
+  BPatchForkCallback registerPreForkCallback(BPatchForkCallback func)
+\end{apient}
+
+\apidesc{
+  Not implemented on Windows
+}
+
+\begin{apient}
+  BPatchForkCallback registerPostForkCallback(BPatchForkCallback func)
+\end{apient}
+
+\apidesc{
+  Not implemented on Windows
+
+  Register callbacks for pre-fork (before the child is created) and
+  post-fork (immediately after the child is created).
+  When a pre-fork callback is executed the child parameter will be NULL.
+}
+
+\subsection{One Time Code}
+
+\begin{apient}
+  typedef void (*BPatchOneTimeCodeCallback)(
+    Bpatch_thread *thr,
+    void *userData,
+    void *returnValue
+  )
+\end{apient}
+
+\begin{apient}
+  BPatchOneTimeCodeCallback registerOneTimeCodeCallback(BPatchOneTimeCodeCallback func)
+\end{apient}
+
+\apidesc{
+  The thr field contains the thread that executed the oneTimeCode
+  (if thread-specific) or an unspecified thread in the
+  process (if process-wide). The userData field contains the value
+  passed to the oneTimeCode call. The returnValue
+  field contains the return result of the oneTimeCode snippet.
+}
+
+\subsection{Signal Handler}
+
+\begin{apient}
+  typedef void (*BPatchSignalHandlerCallback)(
+    BPatch_point *at_point,
+    long signum,
+    std::vector<Dyninst::Address> *handlers
+  )
+\end{apient}
+
+\begin{apient}
+  bool registerSignalHandlerCallback(BPatchSignalHandlerCallback cb, std::set<long> &signal_numbers)
+  bool registerSignalHandlerCallback(BPatchSignalHandlerCallback cb, BPatch_Set<long> *signal_numbers)
+\end{apient}
+
+\apidesc{
+  This function registers the signal handler callback function with
+  the BPatch class. The return value indicates success
+  or failure. The \code{signal\_numbers} set contains those signal
+  numbers for which the callback will be invoked.
+
+  The \code{at\_point} parameter indicates the point at which the
+  signal/exception was raised, signum is the number of the
+  signal/exception that was raised, and the handlers vector
+  contains any registered handler(s) for the signal/exception.
+  In Windows this corresponds to the stack of Structured Exception
+  Handlers, while for Unix systems there will be at
+  most one registered exception handler. This functionality is only
+  fully implemented for the Windows platform.
+}
+
+\begin{apient}
+  bool removeSignalHandlerCallback(BPatchSignalHandlerCallback cb)
+\end{apient}
+
+\apidesc{
+  Removes a callback registered with \code{registerSignalHandlerCallback}.
+}
+
+
+
+\subsection{Stopped Threads}
+
+\begin{apient}
+  typedef void (*BPatchStopThreadCallback)(
+    BPatch_point *at_point,
+    void *returnValue
+  )
+\end{apient}
+
+\apidesc{
+  This is the prototype for the callback that is associated with
+  the stopThreadExpr snippet class (see Section).
+  Unlike the other callbacks in this section, stopThreadExpr
+  callbacks are registered during
+  the creation of the stopThreadExpr snippet type. Whenever a
+  stopThreadExpr snippet executes in a given thread, the
+  snippet evaluates the calculation snippet that stopThreadExpr
+  takes as a parameter, stops the
+  thread\'s execution and invokes this callback. The
+  \code{at\_point} parameter is the \code{BPatch\_point} at
+  which the stopThreadExpr snippet was inserted, and returnValue
+  contains the computation made by the calculation
+  snippet.
+}
+
+\subsection[User-triggered callbacks]{User-triggered callbacks}
+
+\begin{apient}
+  typedef void (*BPatchUserEventCallback)(
+    BPatch_process *proc,
+    void *buf,
+    unsigned int bufsize
+  )
+\end{apient}
+
+\begin{apient}
+  bool registerUserEventCallback(BPatchUserEventCallback cb)
+\end{apient}
+
+\apidesc{
+  Register a callback that is executed when the user sends a
+  message from the mutatee using the DYNINSTuserMessage
+  function in the runtime library.
+}
+
+\begin{apient}
+  bool removeUserEventCallback(BPatchUserEventCallback cb)
+\end{apient}
+
+\apidesc{
+  Removes a callback registered with \code{registerUserEventCallback}.
+}

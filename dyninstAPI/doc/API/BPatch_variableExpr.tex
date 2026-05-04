@@ -1,0 +1,35 @@
+\begin{apient}
+  BPatch_variableExpr(char *in_name,
+                      BPatch_addressSpace *in_addSpace,
+                      AddressSpace *as,
+                      AstNodePtr ast_wrapper_,
+                      BPatch_type *type,
+                      void* in_address)
+  
+  BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
+                      AddressSpace *as,
+                      void *in_address,
+                      int in_register,
+                      BPatch_type *type,
+                      BPatch_storagestorage = BPatch_storageAddr,
+                      BPatch_point *scp = NULL)
+
+  BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
+                      AddressSpace *as,
+                      BPatch_localVar *lv,
+                      BPatch_type *type,
+                      BPatch_point *scp)
+
+  BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
+                      AddressSpace *ll_addSpace,
+                      int_variable *iv,
+                      BPatch_type *type)
+\end{apient}
+
+\apidesc{
+  Define a variable snippet of the appropriate type. The first
+  constructor is used to get function pointers; the second
+  is used to get forked copies of variable expression, used by
+  malloc; the third is used for local variables; and the
+  last is used by \code{BPatch\_addressSpace::findOrCreateVariable().}
+}
