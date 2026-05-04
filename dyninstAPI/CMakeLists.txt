@@ -28,7 +28,6 @@ set(_public_headers
     h/BPatch_object.h
     h/BPatch_point.h
     h/BPatch_process.h
-    h/BPatch_Set.h
     h/BPatch_snippet.h
     h/BPatch_sourceBlock.h
     h/BPatch_sourceObj.h

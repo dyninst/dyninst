@@ -172,13 +172,6 @@ BPatch_basicBlock::getAllDominates(std::set<BPatch_basicBlock*>& buffer){
   return;
 }
 
-void BPatch_basicBlock::getAllDominates(BPatch_Set<BPatch_basicBlock *> &buffer) {
-   std::set<BPatch_basicBlock *> tmp;
-   getAllDominates(tmp);
-
-   std::copy(tmp.begin(), tmp.end(), std::inserter(buffer.int_set, buffer.begin()));
-}
-
 void
 BPatch_basicBlock::getAllPostDominates(std::set<BPatch_basicBlock*>& buffer){
   flowGraph->fillPostDominatorInfo();
@@ -192,14 +185,6 @@ BPatch_basicBlock::getAllPostDominates(std::set<BPatch_basicBlock*>& buffer){
   }
   return;
 }
-
-void
-BPatch_basicBlock::getAllPostDominates(BPatch_Set<BPatch_basicBlock*>& buffer){
-   std::set<BPatch_basicBlock *> tmp;
-   getAllPostDominates(tmp);
-   std::copy(tmp.begin(), tmp.end(), std::inserter(buffer.int_set, buffer.begin()));
-}
-
 
 //returns the immediate dominator of the basic block
 BPatch_basicBlock* BPatch_basicBlock::getImmediateDominator(){
@@ -366,23 +351,6 @@ struct funcPtrPredicate : public insnPredicate
 
 struct findInsns : public insnPredicate
 {
-  findInsns(const BPatch_Set<BPatch_opCode>& ops)
-    : findLoads(false), findStores(false), findPrefetch(false)
-  {
-    BPatch_opCode* opa = new BPatch_opCode[ops.size()];
-    ops.elements(opa);
-
-
-    for(unsigned int i=0; i<ops.size(); ++i) {
-      switch(opa[i]) {
-      case BPatch_opLoad: findLoads = true; break;
-      case BPatch_opStore: findStores = true; break;
-      case BPatch_opPrefetch: findPrefetch = true; break;
-      }
-    }
-    delete[] opa;
-  }
-
    findInsns(const std::set<BPatch_opCode>& ops)
       : findLoads(false), findStores(false), findPrefetch(false) {
       for (std::set<BPatch_opCode>::iterator iter = ops.begin();
@@ -470,17 +438,6 @@ BPatch_basicBlock::findPointByPredicate(insnPredicate& f)
 }
 
 BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPoint(const std::set<BPatch_opCode>& ops)
-{
-
-  // function is generally uninstrumentable (with current technology)
-  if (!flowGraph->getFunction()->func->isInstrumentable())
-    return NULL;
-
-  findInsns filter(ops);
-  return findPointByPredicate(filter);
-}
-
-BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPoint(const BPatch_Set<BPatch_opCode>& ops)
 {
 
   // function is generally uninstrumentable (with current technology)

@@ -37,7 +37,6 @@
 #include <vector>
 #include "Annotatable.h"
 #include "BPatch_Vector.h"
-#include "BPatch_Set.h"
 #include "BPatch_enums.h"
 #include "BPatch_type.h"
 #include "BPatch_module.h"
@@ -237,7 +236,6 @@ public:
     //  BPatch_function::findPoint
     //  Returns a vector of inst points, corresponding to the given set of op codes
 
-    BPatch_Vector<BPatch_point *> * findPoint(const BPatch_Set<BPatch_opCode>& ops);
     BPatch_Vector<BPatch_point *> * findPoint(const std::set<BPatch_opCode>& ops);
 
     //  BPatch_function::findPoint
