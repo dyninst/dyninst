@@ -28,6 +28,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#ifndef DYNINST_INSTRUCTIONAPI_INSTRUCTIONDECODER_POWER_H
+#define DYNINST_INSTRUCTIONAPI_INSTRUCTIONDECODER_POWER_H
+
+#include "dyninst_visibility.h"
 #include "Immediate.h"
 #include "InstructionDecoderImpl.h"
 #include "registers/ppc32_regs.h"
@@ -39,7 +43,7 @@
 namespace Dyninst { namespace InstructionAPI {
   struct power_entry;
 
-  class InstructionDecoder_power : public InstructionDecoderImpl {
+  class DYNINST_EXPORT InstructionDecoder_power : public InstructionDecoderImpl {
     friend struct power_entry;
 
   public:
@@ -81,14 +85,42 @@ namespace Dyninst { namespace InstructionAPI {
     Expression::Ptr makeTOExpr();
     Expression::Ptr makeDSExpr();
     Expression::Ptr makeQFRAExpr();
-    template <Result_Type size> void L();
-    template <Result_Type size> void ST();
-    template <Result_Type size> void LX();
-    template <Result_Type size> void STX();
-    template <Result_Type size> void LU();
-    template <Result_Type size> void STU();
-    template <Result_Type size> void LUX();
-    template <Result_Type size> void STUX();
+
+    template <Result_Type size> void L() {
+       insn_in_progress->appendOperand(makeMemRefNonIndex(size), true, false);
+     }
+
+     template <Result_Type size> void ST() {
+       insn_in_progress->appendOperand(makeMemRefNonIndex(size), false, true);
+     }
+
+     template <Result_Type size> void LX() {
+       insn_in_progress->appendOperand(makeMemRefIndex(size), true, false);
+     }
+
+     template <Result_Type size> void STX() {
+       insn_in_progress->appendOperand(makeMemRefIndex(size), false, true);
+     }
+
+     template <Result_Type size> void LU() {
+       L<size>();
+       insn_in_progress->appendOperand(makeRAExpr(), false, true, true);
+     }
+
+     template <Result_Type size> void STU() {
+       ST<size>();
+       insn_in_progress->appendOperand(makeRAExpr(), false, true, true);
+     }
+
+     template <Result_Type size> void LUX() {
+       LX<size>();
+       insn_in_progress->appendOperand(makeRAExpr(), false, true, true);
+     }
+
+     template <Result_Type size> void STUX() {
+       STX<size>();
+       insn_in_progress->appendOperand(makeRAExpr(), false, true, true);
+     }
 
     void FC();
     void BHRBE();
@@ -304,3 +336,6 @@ namespace Dyninst { namespace InstructionAPI {
     bool findRAAndRS(const struct power_entry*);
   };
 }}
+
+#endif
+
