@@ -128,14 +128,13 @@ class inferiorHeap {
     void clear();
     
   inferiorHeap() {
-      freed = 0; disabledListTotalMem = 0; totalFreeMemAvailable = 0;
+      freed = 0; totalFreeMemAvailable = 0;
   }
   inferiorHeap(const inferiorHeap &src);  // create a new heap that is a copy
                                           // of src (used on fork)
   inferiorHeap& operator=(const inferiorHeap &src);
   std::unordered_map<Dyninst::Address, heapItem*> heapActive; // active part of heap
   std::vector<heapItem*> heapFree;           // free block of data inferior heap 
-  int disabledListTotalMem;             // total size of item waiting to free
   int totalFreeMemAvailable;            // total free memory in the heap
   int freed;                            // total reclaimed (over time)
 
