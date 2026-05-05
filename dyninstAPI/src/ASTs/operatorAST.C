@@ -6,6 +6,7 @@
 #include "BPatch_memoryAccess_NP.h"
 #include "BPatch_point.h"
 #include "codegen.h"
+#include "common/src/bitmath.h"
 #include "debug.h"
 #include "dyntypes.h"
 #include "mapped_object.h"
@@ -17,15 +18,6 @@
 #include <sstream>
 
 namespace {
-  bool isPowerOf2(Dyninst::Address addr) {
-    if(addr == Dyninst::ADDR_NULL) {
-      return false;
-    }
-
-    auto const x = static_cast<uint32_t>(addr);
-    return (x & (x - 1UL)) == 0UL;
-  }
-
   bool IsSignedOperation(BPatch_type *l, BPatch_type *r) {
     if(l == NULL || r == NULL) {
       return true;
@@ -69,8 +61,8 @@ operatorAST::operatorAST(opCode opC, codeGenASTPtr l, codeGenASTPtr r, codeGenAS
         roperand = loperand;
         loperand = temp;
       } else {
-        if(!isPowerOf2((Address)roperand->getOValue()) &&
-           isPowerOf2((Address)loperand->getOValue())) {
+        if(!Dyninst::isPowerOf2((Address)roperand->getOValue()) &&
+            Dyninst::isPowerOf2((Address)loperand->getOValue())) {
           codeGenASTPtr temp = roperand;
           roperand = loperand;
           loperand = temp;
