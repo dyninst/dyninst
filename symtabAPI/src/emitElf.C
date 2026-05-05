@@ -176,11 +176,7 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
     sym->st_info = (unsigned char) ELF64_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType(symbol));
 
     if (symbol->getRegion()) {
-#if defined(os_freebsd)
-        sym->st_shndx = (Elf_Half) symbol->getRegion()->getRegionNumber();
-#else
         sym->st_shndx = (Elf_Section) symbol->getRegion()->getRegionNumber();
-#endif
     }
     else if (symbol->isAbsolute()) {
         sym->st_shndx = SHN_ABS;
