@@ -329,7 +329,7 @@ void emitElf<ElfTypes>::findSegmentEnds() {
 }
 
 // Rename an old section. Lengths of old and new names must match.
-// Only renames the FIRST matching section encountered.
+// Only renames the FIRST matching section encountered unless renameAll is true.
 template<class ElfTypes>
 void emitElf<ElfTypes>::renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll) {
     assert(oldStr.length() == newStr.length());
@@ -381,7 +381,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     // ".shstrtab" section: string table for section header names
     const char *shnames = pdelf_get_shnames(oldElfHandle);
     if (shnames == NULL) {
-        log_elferror(err_func_, ".shstrtab section");
+        log_elferror(err_func_, ".shstrtab section not found");
         return false;
     }
 
