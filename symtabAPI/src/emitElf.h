@@ -80,22 +80,22 @@ namespace Dyninst {
         };
 
         struct ElfTypes32 {
-            typedef Elf32_Ehdr Elf_Ehdr;
-            typedef Elf32_Phdr Elf_Phdr;
-            typedef Elf32_Shdr Elf_Shdr;
-            typedef Elf32_Dyn Elf_Dyn;
-            typedef Elf32_Half Elf_Half;
-            typedef Elf32_Addr Elf_Addr;
-            typedef Elf32_Off Elf_Off;
-            typedef Elf32_Word Elf_Word;
-            typedef Elf32_Sym Elf_Sym;
-            typedef Elf32_Section Elf_Section;
-            typedef Elf32_Rel Elf_Rel;
-            typedef Elf32_Rela Elf_Rela;
-            typedef Elf32_Verneed Elf_Verneed;
-            typedef Elf32_Vernaux Elf_Vernaux;
-            typedef Elf32_Verdef Elf_Verdef;
-            typedef Elf32_Verdaux Elf_Verdaux;
+            using Elf_Ehdr = Elf32_Ehdr;
+            using Elf_Phdr = Elf32_Phdr;
+            using Elf_Shdr = Elf32_Shdr;
+            using Elf_Dyn = Elf32_Dyn;
+            using Elf_Half = Elf32_Half;
+            using Elf_Addr = Elf32_Addr;
+            using Elf_Off = Elf32_Off;
+            using Elf_Word = Elf32_Word;
+            using Elf_Sym = Elf32_Sym;
+            using Elf_Section = Elf32_Section;
+            using Elf_Rel = Elf32_Rel;
+            using Elf_Rela = Elf32_Rela;
+            using Elf_Verneed = Elf32_Verneed;
+            using Elf_Vernaux = Elf32_Vernaux;
+            using Elf_Verdef = Elf32_Verdef;
+            using Elf_Verdaux = Elf32_Verdaux;
 
             Elf_Ehdr *elf_newehdr(Elf *elf) { return elf32_newehdr(elf); }
 
@@ -111,22 +111,22 @@ namespace Dyninst {
         };
 
         struct ElfTypes64 {
-            typedef Elf64_Ehdr Elf_Ehdr;
-            typedef Elf64_Phdr Elf_Phdr;
-            typedef Elf64_Shdr Elf_Shdr;
-            typedef Elf64_Dyn Elf_Dyn;
-            typedef Elf64_Half Elf_Half;
-            typedef Elf64_Addr Elf_Addr;
-            typedef Elf64_Off Elf_Off;
-            typedef Elf64_Word Elf_Word;
-            typedef Elf64_Sym Elf_Sym;
-            typedef Elf64_Section Elf_Section;
-            typedef Elf64_Rel Elf_Rel;
-            typedef Elf64_Rela Elf_Rela;
-            typedef Elf64_Verneed Elf_Verneed;
-            typedef Elf64_Vernaux Elf_Vernaux;
-            typedef Elf64_Verdef Elf_Verdef;
-            typedef Elf64_Verdaux Elf_Verdaux;
+            using Elf_Ehdr = Elf64_Ehdr;
+            using Elf_Phdr = Elf64_Phdr;
+            using Elf_Shdr = Elf64_Shdr;
+            using Elf_Dyn = Elf64_Dyn;
+            using Elf_Half = Elf64_Half;
+            using Elf_Addr = Elf64_Addr;
+            using Elf_Off = Elf64_Off;
+            using Elf_Word = Elf64_Word;
+            using Elf_Sym = Elf64_Sym;
+            using Elf_Section = Elf64_Section;
+            using Elf_Rel = Elf64_Rel;
+            using Elf_Rela = Elf64_Rela;
+            using Elf_Verneed = Elf64_Verneed;
+            using Elf_Vernaux = Elf64_Vernaux;
+            using Elf_Verdef = Elf64_Verdef;
+            using Elf_Verdaux = Elf64_Verdaux;
 
             Elf_Ehdr *elf_newehdr(Elf *elf) { return elf64_newehdr(elf); }
 
@@ -145,22 +145,22 @@ namespace Dyninst {
         public:
             emitElf(Elf_X *pX, bool i, ObjectELF *pObject, void (*pFunction)(const char *), Symtab *pSymtab);
 
-            typedef typename ElfTypes::Elf_Ehdr Elf_Ehdr;
-            typedef typename ElfTypes::Elf_Phdr Elf_Phdr;
-            typedef typename ElfTypes::Elf_Shdr Elf_Shdr;
-            typedef typename ElfTypes::Elf_Dyn Elf_Dyn;
-            typedef typename ElfTypes::Elf_Half Elf_Half;
-            typedef typename ElfTypes::Elf_Addr Elf_Addr;
-            typedef typename ElfTypes::Elf_Off Elf_Off;
-            typedef typename ElfTypes::Elf_Word Elf_Word;
-            typedef typename ElfTypes::Elf_Sym Elf_Sym;
-            typedef typename ElfTypes::Elf_Section Elf_Section;
-            typedef typename ElfTypes::Elf_Rel Elf_Rel;
-            typedef typename ElfTypes::Elf_Rela Elf_Rela;
-            typedef typename ElfTypes::Elf_Verneed Elf_Verneed;
-            typedef typename ElfTypes::Elf_Vernaux Elf_Vernaux;
-            typedef typename ElfTypes::Elf_Verdef Elf_Verdef;
-            typedef typename ElfTypes::Elf_Verdaux Elf_Verdaux;
+            using Elf_Ehdr = typename ElfTypes::Elf_Ehdr;
+            using Elf_Phdr = typename ElfTypes::Elf_Phdr;
+            using Elf_Shdr = typename ElfTypes::Elf_Shdr;
+            using Elf_Dyn = typename ElfTypes::Elf_Dyn;
+            using Elf_Half = typename ElfTypes::Elf_Half;
+            using Elf_Addr = typename ElfTypes::Elf_Addr;
+            using Elf_Off = typename ElfTypes::Elf_Off;
+            using Elf_Word = typename ElfTypes::Elf_Word;
+            using Elf_Sym = typename ElfTypes::Elf_Sym;
+            using Elf_Section = typename ElfTypes::Elf_Section;
+            using Elf_Rel = typename ElfTypes::Elf_Rel;
+            using Elf_Rela = typename ElfTypes::Elf_Rela;
+            using Elf_Verneed = typename ElfTypes::Elf_Verneed;
+            using Elf_Vernaux = typename ElfTypes::Elf_Vernaux;
+            using Elf_Verdef = typename ElfTypes::Elf_Verdef;
+            using Elf_Verdaux = typename ElfTypes::Elf_Verdaux;
 
             ~emitElf() {
                 if( linkedStaticData ) delete[] linkedStaticData;
@@ -172,30 +172,30 @@ namespace Dyninst {
             bool driver(std::string fName);
 
         private:
-            Elf_X *oldElfHandle;
-            Elf *newElf;
-            Elf *oldElf;
-            Symtab *obj;
+            Elf_X *oldElfHandle{};
+            Elf *newElf{};
+            Elf *oldElf{};
+            Symtab *obj{};
             //New Section & Program Headers
-            Elf_Ehdr *newEhdr;
-            Elf_Ehdr *oldEhdr;
+            Elf_Ehdr *newEhdr{};
+            Elf_Ehdr *oldEhdr{};
 
-            Elf_Phdr *newPhdr;
-            Elf_Phdr *oldPhdr;
-            Offset phdr_offset;
+            Elf_Phdr *newPhdr{};
+            Elf_Phdr *oldPhdr{};
+            Offset phdr_offset{};
 
             //important data sections in the
             //new Elf that need updated
-            Elf_Data *textData;
-            Elf_Data *symStrData;
-            Elf_Data *dynStrData;
-            char *olddynStrData;
-            unsigned olddynStrSize;
-            Elf_Data *symTabData;
-            Elf_Data *dynsymData;
-            Elf_Data *dynData;
+            Elf_Data *textData{};
+            Elf_Data *symStrData{};
+            Elf_Data *dynStrData{};
+            char *olddynStrData{};
+            unsigned olddynStrSize{};
+            Elf_Data *symTabData{};
+            Elf_Data *dynsymData{};
+            Elf_Data *dynData{};
 
-            Elf_Scn *phdrs_scn;
+            Elf_Scn *phdrs_scn{};
 
             std::vector<Region *>nonLoadableSecs;
             std::vector<Region *> newSecs;
@@ -210,37 +210,47 @@ namespace Dyninst {
             std::map<unsigned, std::vector<std::string> > verdauxEntries;
             std::map<std::string, unsigned> versionNames;
             std::vector<Elf_Half> versionSymTable;
-            int curVersionNum, verneednum, verdefnum{};
+            int curVersionNum{2};
+            int verneednum{};
+            int verdefnum{};
 
             // Needed when adding a new segment
-            Elf_Off newSegmentStart;
-            Elf_Shdr *firstNewLoadSec;// initialize to NULL
+            Elf_Off newSegmentStart{};
+            Elf_Shdr *firstNewLoadSec{};// initialize to NULL
 
             // data segment end
-            Elf_Off dataSegEnd;
-            Elf_Off dynSegOff, dynSegAddr, phdrSegOff, phdrSegAddr;
-            unsigned dynSegSize;
+            Elf_Off dataSegEnd{};
+            Elf_Off dynSegOff{};
+            Elf_Off dynSegAddr{};
+            Elf_Off phdrSegOff{};
+            Elf_Off phdrSegAddr{};
+            unsigned dynSegSize{};
 
             //Section Names for all sections
-            vector<std::string> secNames;
-            unsigned secNameIndex;
-            Offset currEndOffset;
-            Address currEndAddress;
+            vector<std::string> secNames{};
+            unsigned secNameIndex{};
+            Offset currEndOffset{};
+            Address currEndAddress{};
 
             // Pointer to all relocatable code and data allocated during a static link,
             // to be deleted after written out
-            char *linkedStaticData;
+            char *linkedStaticData{};
 
             //flags
             // Expand NOBITS sections within the object file to their size
-            bool movePHdrsFirst;
-            unsigned loadSecTotalSize;
+            bool movePHdrsFirst{};
+            unsigned loadSecTotalSize{};
 
-            bool isStripped;
-            int library_adjust;
-            ObjectELF *object;
+            bool isStripped{};
+            int library_adjust{};
+            ObjectELF *object{};
 
             void (*err_func_)(const char*);
+
+            bool hasRewrittenTLS{};
+            bool TLSExists{};
+            Elf_Shdr *newTLSData{};
+            bool isStaticBinary{};
 
             bool createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf_Sym *> &symbols,
                                  bool dynSymFlag = false);
@@ -262,10 +272,6 @@ namespace Dyninst {
 
             void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
 
-            bool hasRewrittenTLS;
-            bool TLSExists;
-            Elf_Shdr *newTLSData;
-
             void updateDynamic(unsigned tag, Elf_Addr val);
 
             void createSymbolVersions(Elf_Half *&symVers, char *&verneedSecData, unsigned &verneedSecSize,
@@ -283,7 +289,6 @@ namespace Dyninst {
             void log_elferror(void (*err_func)(const char *), const char* msg);
             bool cannotRelocatePhdrs();
 
-            bool isStaticBinary;
             std::vector<void*> buffers;
             char* allocate_buffer(size_t);
 
