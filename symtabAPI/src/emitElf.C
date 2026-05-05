@@ -404,9 +404,12 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     /* flag the file for no auto-layout */
     elf_flagelf(newElf, ELF_C_SET, ELF_F_LAYOUT);
 
-    Elf_Scn *scn = NULL, *newscn = NULL;
-    Elf_Data *newdata = NULL, *olddata = NULL;
-    Elf_Shdr *newshdr = NULL, *shdr = NULL;
+    Elf_Scn *scn{};
+    Elf_Scn *newscn{};
+    Elf_Data *newdata{};
+    Elf_Data *olddata{};
+    Elf_Shdr *shdr{};
+    Elf_Shdr *newshdr{};
     std::unordered_map<unsigned, unsigned> secLinkMapping;
     std::unordered_map<unsigned, unsigned> secInfoMapping;
     std::unordered_map<unsigned, unsigned> changeMapping;
