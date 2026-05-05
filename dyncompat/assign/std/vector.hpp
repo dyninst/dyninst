@@ -1,0 +1,6 @@
+#ifndef DYNINST_DYNCOMPAT_ASSIGN_STD_VECTOR_HPP
+#define DYNINST_DYNCOMPAT_ASSIGN_STD_VECTOR_HPP
+
+#include "../list_of.hpp"
+
+#endif

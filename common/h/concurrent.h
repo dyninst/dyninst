@@ -35,14 +35,14 @@
 #include <memory>
 #include <stddef.h>
 #include <vector>
-#include <boost/atomic.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/locks.hpp>
+#include <dyncompat/atomic.hpp>
+#include <dyncompat/thread/mutex.hpp>
+#include <dyncompat/thread/condition_variable.hpp>
+#include <dyncompat/thread/locks.hpp>
 #include <tbb/concurrent_hash_map.h>
 #include <tbb/concurrent_vector.h>
 #include <tbb/concurrent_queue.h>
-#include <boost/functional/hash.hpp>
+#include <dyncompat/functional/hash.hpp>
 
 namespace Dyninst {
 
@@ -59,7 +59,7 @@ namespace concurrent {
   template <typename K>
   struct hasher {
     size_t operator()(K const& k) const {
-      return boost::hash<K>{}(k);
+      return dyncompat::hash<K>{}(k);
     }
   };
 
@@ -202,24 +202,24 @@ using dyn_c_vector = tbb::concurrent_vector<T, std::allocator<T>>;
 template<typename T>
 using dyn_c_queue = tbb::concurrent_queue<T, std::allocator<T>>;
 
-class dyn_mutex : public boost::mutex {
+class dyn_mutex : public dyncompat::mutex {
 public:
-    using unique_lock = boost::unique_lock<dyn_mutex>;
+    using unique_lock = dyncompat::unique_lock<dyn_mutex>;
 };
 
 class COMMON_EXPORT dyn_rwlock {
     // Reader management members
-    boost::atomic<unsigned int> rin;
-    boost::atomic<unsigned int> rout;
+    dyncompat::atomic<unsigned int> rin;
+    dyncompat::atomic<unsigned int> rout;
     unsigned int last;
     dyn_mutex inlock;
-    boost::condition_variable rcond;
+    dyncompat::condition_variable rcond;
     bool rwakeup[2];
 
     // Writer management members
     dyn_mutex wlock;
     dyn_mutex outlock;
-    boost::condition_variable wcond;
+    dyncompat::condition_variable wcond;
     bool wwakeup;
 public:
     dyn_rwlock();
@@ -230,8 +230,8 @@ public:
     void lock();
     void unlock();
 
-    using unique_lock = boost::unique_lock<dyn_rwlock>;
-    using shared_lock = boost::shared_lock<dyn_rwlock>;
+    using unique_lock = dyncompat::unique_lock<dyn_rwlock>;
+    using shared_lock = dyncompat::shared_lock<dyn_rwlock>;
 };
 
 class COMMON_EXPORT dyn_thread {

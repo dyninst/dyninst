@@ -2,7 +2,7 @@
 #define MACH_SYSCALL_H_
 
 #include <string>
-#include "boost/shared_ptr.hpp"
+#include "dyncompat/shared_ptr.hpp"
 
 #include "Architecture.h"
 #include "registers/MachRegister.h"
@@ -35,7 +35,7 @@ namespace ProcControlAPI
     class Process;
 
     MachSyscall makeFromEvent(const EventSyscall * ev);
-    MachSyscall makeFromID(boost::shared_ptr<Process> proc, unsigned long id);
+    MachSyscall makeFromID(dyncompat::shared_ptr<Process> proc, unsigned long id);
 }
 
 class COMMON_EXPORT MachSyscall 
@@ -50,7 +50,7 @@ class COMMON_EXPORT MachSyscall
         friend MachSyscall ProcControlAPI::makeFromEvent(const ProcControlAPI::EventSyscall *);
 
         // Allows users to construct a MachSyscall
-        friend MachSyscall ProcControlAPI::makeFromID(boost::shared_ptr<ProcControlAPI::Process>, SyscallIDIndependent);
+        friend MachSyscall ProcControlAPI::makeFromID(dyncompat::shared_ptr<ProcControlAPI::Process>, SyscallIDIndependent);
         
         static MachSyscall makeFromPlatform(Platform, SyscallIDIndependent);     
 

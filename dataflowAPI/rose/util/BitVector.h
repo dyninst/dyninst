@@ -10,11 +10,12 @@
 
 #include <assert.h>
 #include <stddef.h>
+#include <cmath>
 #include <stdint.h>
 #include <string>
 #include <string.h>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/cstdint.hpp>
+#include <dyncompat/algorithm/string/predicate.hpp>
+#include <dyncompat/cstdint.hpp>
 #include "Assert.h"
 #include "BitVectorSupport.h"
 #include "Optional.h"
@@ -24,7 +25,7 @@
 namespace Sawyer {
 namespace Container {
 
-#ifdef BOOST_WINDOWS
+#ifdef _WIN32
 /** Log base 2.
  *
  *  Returns the logorithm base 2 of n by the change-of-base formula. */
@@ -101,19 +102,19 @@ public:
         // Radix information
         size_t bitsPerDigit = 0;
         const char *digits = NULL;
-        if (boost::starts_with(str, "0x")) {
+        if (dyncompat::starts_with(str, "0x")) {
             bitsPerDigit = 4;
             digits = "0123456789abcdefABCDEF";
             str = str.substr(2);
-        } else if (boost::starts_with(str, "0b")) {
+        } else if (dyncompat::starts_with(str, "0b")) {
             bitsPerDigit = 1;
             digits = "01";
             str = str.substr(2);
-        } else if (boost::ends_with(str, "h")) {
+        } else if (dyncompat::ends_with(str, "h")) {
             bitsPerDigit = 4;
             digits = "0123456789abcdefABCDEF";
             str = str.substr(0, str.size()-1);
-        } else if (boost::starts_with(str, "0")) {
+        } else if (dyncompat::starts_with(str, "0")) {
             bitsPerDigit = 2;
             digits = "01234567";
             str = str.substr(1);
@@ -1093,7 +1094,7 @@ public:
      *
      *  Returns the bits of the specified range by interpreting them as an unsigned integer.  The range must be valid for this
      *  vector. If the range contains more than 64 bits then only the low-order 64 bits are considered. */
-    boost::uint64_t toInteger(const BitRange &range) const {
+    uint64_t toInteger(const BitRange &range) const {
         checkRange(range);
         return BitVectorSupport::toInteger(data(), range);
     }
@@ -1102,7 +1103,7 @@ public:
      *
      *  Returns the bits of this vector by interpreting them as an unsigned integer.  If this vector contains more than 64 bits
      *  then only the low-order 64 bits are considered. */
-    boost::uint64_t toInteger() const {
+    uint64_t toInteger() const {
         if (size() <= 64)
             return BitVectorSupport::toInteger(data(), size());
         return BitVectorSupport::toInteger(data(), hull());
@@ -1171,7 +1172,7 @@ public:
      *  Assigns the specified value to the bits indicated by @p range of this vector.  If the range contains fewer than 64 bits
      *  then only the low order bits of @p value are used; if the range contains more than 64 bits then the high-order bits are
      *  cleared. The range must be a valid range for this vector. */
-    BitVector& fromInteger(const BitRange &range, boost::uint64_t value) {
+    BitVector& fromInteger(const BitRange &range, uint64_t value) {
         checkRange(range);
         BitVectorSupport::fromInteger(data(), range, value);
         return *this;
@@ -1184,7 +1185,7 @@ public:
      *  vector is not changed by this operation.
      *
      *  @sa The assignment operator. */
-    BitVector& fromInteger(boost::uint64_t value) {
+    BitVector& fromInteger(uint64_t value) {
         BitVectorSupport::fromInteger(data(), hull(), value);
         return *this;
     }

@@ -1,0 +1,6 @@
+#ifndef DYNINST_DYNCOMPAT_SMART_PTR_MAKE_SHARED_HPP
+#define DYNINST_DYNCOMPAT_SMART_PTR_MAKE_SHARED_HPP
+
+#include "../make_shared.hpp"
+
+#endif

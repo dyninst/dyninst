@@ -53,7 +53,7 @@ namespace Dyninst
     {
     public:
       /// \brief A type definition for a reference-counted pointer to a %TernaryAST.
-      typedef boost::shared_ptr<TernaryAST> Ptr;
+      typedef dyncompat::shared_ptr<TernaryAST> Ptr;
       
       /// Construct a register, assigning it the ID \c id.
       TernaryAST(Expression::Ptr cond , Expression::Ptr first , Expression::Ptr second, Result_Type result_type);

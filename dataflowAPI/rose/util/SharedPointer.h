@@ -22,7 +22,7 @@ namespace Sawyer {
 /** Reference-counting smart pointer.
  *
  *  This class is a reference-counting pointer to an object that inherits from @ref SharedObject. Usage is similar to
- *  <code>boost::shared_ptr</code>.
+ *  <code>dyncompat::shared_ptr</code>.
  *  
  *  @sa SharedObject, @ref SharedFromThis
  *

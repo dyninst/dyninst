@@ -104,7 +104,7 @@ dyninst_library(
   SOURCE_FILES ${SRC_LIST} ${ROSE_SRC}
   DEFINES PARSER_LIB DATAFLOW_LIB
   DYNINST_DEPS common instructionAPI ${SYMREADER}
-  PUBLIC_DEPS Dyninst::Boost_headers
+  PUBLIC_DEPS
   PRIVATE_DEPS OpenMP::OpenMP_CXX
 )
 # cmake-format: on

@@ -11,7 +11,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string>
-#include <boost/cstdint.hpp>
+#include <dyncompat/cstdint.hpp>
 #include "Access.h"
 #include "AllocatingBuffer.h"
 #include "MappedBuffer.h"
@@ -32,7 +32,7 @@ namespace Container {
  *  containing the segment.  A segment points to a buffer which might not be the same size as what is entered in the map;
  *  buffers that are longer than the mapped interval of address space have data which is not accessible (at least not through
  *  that segment), and buffers that are shorter may return short data from read and write operations. */
-template<class A = size_t, class T = boost::uint8_t>
+template<class A = size_t, class T = uint8_t>
 class AddressSegment {
     typename Buffer<A, T>::Ptr buffer_;                 // reference counted buffer
     A offset_;                                          // initial offset into buffer
@@ -106,9 +106,9 @@ public:
     /** Map a file into an address space. */
     static AddressSegment fileInstance(const std::string &fileName, unsigned accessBits=Access::READABLE,
                                        const std::string &name="") {
-        boost::iostreams::mapped_file::mapmode mode = (accessBits & Access::WRITABLE)!=0 ?
-                                                      boost::iostreams::mapped_file::readwrite :
-                                                      boost::iostreams::mapped_file::readonly;
+        int mode = (accessBits & Access::WRITABLE)!=0 ?
+                                                      1 :
+                                                      0;
         return AddressSegment(MappedBuffer<A, T>::instance(fileName, mode), 0, accessBits, name);
     }
 

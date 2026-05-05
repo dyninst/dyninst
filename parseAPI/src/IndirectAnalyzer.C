@@ -21,14 +21,14 @@ using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
 
 static bool IsIndexing(AST::Ptr node, AbsRegion &index) {
-    RoseAST::Ptr n = boost::static_pointer_cast<RoseAST>(node);
+    RoseAST::Ptr n = dyncompat::static_pointer_cast<RoseAST>(node);
     if (n->val().op != ROSEOperation::sMultOp &&
         n->val().op != ROSEOperation::uMultOp &&
 	n->val().op != ROSEOperation::shiftLOp &&
 	n->val().op != ROSEOperation::rotateLOp) return false;
     if (n->child(0)->getID() != AST::V_VariableAST) return false;
     if (n->child(1)->getID() != AST::V_ConstantAST) return false;
-    VariableAST::Ptr var = boost::static_pointer_cast<VariableAST>(n->child(0));
+    VariableAST::Ptr var = dyncompat::static_pointer_cast<VariableAST>(n->child(0));
     index = var->val().reg;
     return true;
 }
@@ -37,18 +37,18 @@ static bool IsVariableArgumentFormat(AST::Ptr t, AbsRegion &index) {
     if (t->getID() != AST::V_RoseAST) {
         return false;
     }
-    RoseAST::Ptr rt = boost::static_pointer_cast<RoseAST>(t);
+    RoseAST::Ptr rt = dyncompat::static_pointer_cast<RoseAST>(t);
     if (rt->val().op != ROSEOperation::addOp) {
         return false;
     }
     if (rt->child(0)->getID() != AST::V_ConstantAST || rt->child(1)->getID() != AST::V_RoseAST) {
         return false;
     }
-    RoseAST::Ptr c1 = boost::static_pointer_cast<RoseAST>(rt->child(1));
+    RoseAST::Ptr c1 = dyncompat::static_pointer_cast<RoseAST>(rt->child(1));
     if (c1->val().op == ROSEOperation::addOp) {
         if (c1->child(0)->getID() == AST::V_RoseAST && c1->child(1)->getID() == AST::V_ConstantAST) {
-	    RoseAST::Ptr lc = boost::static_pointer_cast<RoseAST>(c1->child(0));
-	    ConstantAST::Ptr rc = boost::static_pointer_cast<ConstantAST>(c1->child(1));
+	    RoseAST::Ptr lc = dyncompat::static_pointer_cast<RoseAST>(c1->child(0));
+	    ConstantAST::Ptr rc = dyncompat::static_pointer_cast<ConstantAST>(c1->child(1));
 	    if (lc->val().op == ROSEOperation::invertOp && rc->val().val == 1) {
 	        return IsIndexing(lc->child(0), index);
 	    }
@@ -67,7 +67,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     parsing_printf("Apply indirect control flow analysis at %lx for function %s\n", block->last(), func->name().c_str());
     parsing_printf("Looking for thunk\n");
 
-    boost::make_lock_guard(*func);
+    dyncompat::make_lock_guard(*func);
 //  Find all blocks that reach the block containing the indirect jump
 //  This is a prerequisit for finding thunks
     GetAllReachableBlock();
@@ -120,7 +120,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 
         if( new_ast->getID() == AST::V_ConstantAST) {
             ConstantAST::Ptr constAST = 
-                boost::static_pointer_cast<ConstantAST>(new_ast);
+                dyncompat::static_pointer_cast<ConstantAST>(new_ast);
             uint64_t val = constAST->val().val;
             //std::cerr << " resolved, value = " <<  std::hex <<val <<std::endl;
             outEdges.push_back(std::make_pair(Address(val),CALL));
@@ -224,7 +224,7 @@ void IndirectControlFlowAnalyzer::GetAllReachableBlock() {
 	q.pop();
 	if (reachable.find(cur) != reachable.end()) continue;
 	reachable.insert(cur);
-    boost::lock_guard<Block> g(*cur);
+    dyncompat::lock_guard<Block> g(*cur);
 	for (auto eit = cur->sources().begin(); eit != cur->sources().end(); ++eit)
 	    if ((*eit)->intraproc()) {
 	        if ((*eit)->src() == NULL) {
@@ -249,7 +249,7 @@ static Address ThunkAdjustment(Address afterThunk, MachRegister reg, ParseAPI::B
     if (nextInsn.getOperation().getID() != e_add) return 0;
     vector<Operand> operands;
     nextInsn.getOperands(operands);
-    RegisterAST::Ptr regAST = boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
+    RegisterAST::Ptr regAST = dyncompat::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
     // The first operand should be a register
     if (regAST == 0) return 0;
     if (regAST->getID() != reg) return 0;
@@ -279,7 +279,7 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
         if (insnBlock->getInstruction().getCategory() == c_CallInsn && insnBlock->isThunk()) {
             bool valid;
             Address addr;
-            boost::tie(valid, addr) = insnBlock->getCFT();
+            std::tie(valid, addr) = insnBlock->getCFT();
             const unsigned char *target = (const unsigned char *) b->region()->getPtrToInstruction(addr);
             // CFT may be located in another Region. In such case target will be 0, and we should find proper Region
             // TODO search for the correct Region instead of just ignoring the instruction

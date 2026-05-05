@@ -11,7 +11,7 @@
 #include <stddef.h>
 #include <string>
 #include <cassert>
-#include <boost/any.hpp>
+#include <dyncompat/any.hpp>
 #include <inttypes.h>
 #include "../util/Attribute.h"
 #include "../util/BitVector.h"
@@ -270,7 +270,7 @@ namespace rose {
                 /**< Optional comment. Only for debugging; not significant for any calculation. */
                 uint64_t hashval_;
                 /**< Optional hash used as a quick way to indicate that two expressions are different. */
-                boost::any userData_;             /**< Additional user-specified data. This is not part of the hash. */
+                dyncompat::any userData_;             /**< Additional user-specified data. This is not part of the hash. */
 
             public:
                 // Bit flags
@@ -401,11 +401,11 @@ namespace rose {
                  *  expressions.
                  *
                  * @{ */
-                void userData(boost::any &data) {
+                void userData(dyncompat::any &data) {
                     userData_ = data;
                 }
 
-                const boost::any &userData() {
+                const dyncompat::any &userData() {
                     return userData_;
                 }
                 /** @} */

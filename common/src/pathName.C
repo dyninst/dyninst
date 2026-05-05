@@ -34,9 +34,9 @@
 #include <assert.h>
 #include <limits.h>
 #include "common/src/pathName.h"
-#include <boost/filesystem.hpp>
-#include <boost/algorithm/string/replace.hpp>
-#include <boost/algorithm/string/trim.hpp>
+#include <filesystem>
+#include <algorithm>
+#include <cctype>
 
 #if defined(os_windows) //ccw 20 july 2000 : 29 mar 2001
 	#define S_ISDIR(x) ((x) & _S_IFDIR)
@@ -268,7 +268,7 @@ bool executableFromArgv0AndPathAndCwd(std::string &result,
 
 std::string extract_pathname_tail(const std::string &path)
 {
-    boost::filesystem::path p(path);
+    std::filesystem::path p(path);
     return p.filename().string();
 }
 
@@ -276,17 +276,19 @@ std::string resolve_file_path(char const* path) {
 	return resolve_file_path(std::string{path});
 }
 std::string resolve_file_path(std::string path) {
-	namespace ba = boost::algorithm;
-	namespace bf = boost::filesystem;
+	namespace bf = std::filesystem;
 
 	// Remove all leading and trailing spaces in-place.
-	ba::trim(path);
+	auto not_space = [](unsigned char c){ return !std::isspace(c); };
+	path.erase(path.begin(), std::find_if(path.begin(), path.end(), not_space));
+	path.erase(std::find_if(path.rbegin(), path.rend(), not_space).base(), path.end());
 
 #ifndef os_windows
 	// On Linux-like OSes, collapse doubled directory separators
-	// similar to POSIX `realpath`. On Windows, '//' is a (possibly)
-	// meaningful separator, so don't change it.
-	ba::replace_all(path, "//", "/");
+	std::string::size_type pos = 0;
+	while((pos = path.find("//", pos)) != std::string::npos) {
+		path.replace(pos, 2, "/");
+	}
 #endif
 
 	// If it has a tilde, expand tilde pathname
@@ -295,7 +297,7 @@ std::string resolve_file_path(std::string path) {
 		path = expand_tilde_pathname(path);
 	}
 
-	// Convert to a boost::filesystem::path
+	// Convert to a std::filesystem::path
 	// This makes a copy of `path`.
 	auto boost_path = bf::path(path);
 
@@ -312,15 +314,11 @@ std::string resolve_file_path(std::string path) {
 	 *
 	 * NOTE: makes a copy of the path.
 	 */
-	boost::system::error_code ec;
+	std::error_code ec;
 	auto canonical_path = bf::canonical(boost_path, ec);
-	if(ec != boost::system::errc::success) {
+	if(ec) {
 		return {};
 	}
 
-	/* This is a bit strange, but is most optimal as it is the only
-	 * member string-conversion function that does not inhibit moving
-	 * the return value out (required here by C++11).
-	 */
-	return canonical_path.string<std::string>();
+	return canonical_path.string();
 }

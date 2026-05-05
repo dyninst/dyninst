@@ -1,0 +1,6 @@
+#ifndef DYNINST_DYNCOMPAT_CHECKED_DELETE_HPP
+#define DYNINST_DYNCOMPAT_CHECKED_DELETE_HPP
+
+#include "shared_ptr.hpp"
+
+#endif

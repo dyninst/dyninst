@@ -9,10 +9,10 @@
 #define Sawyer_BitVectorSupport_H
 
 #include <stddef.h>
-#include <boost/cstdint.hpp>
+#include <dyncompat/cstdint.hpp>
 #include <algorithm>
-#include <boost/foreach.hpp>
-#include <boost/lexical_cast.hpp>
+#include <dyncompat/foreach.hpp>
+#include <dyncompat/lexical_cast.hpp>
 #include <cstring>
 #include "Assert.h"
 #include "Interval.h"
@@ -930,7 +930,7 @@ void bitwiseXor(const Word *vec1, const BitRange &range1, Word *vec2, const BitR
  *
  *  Zero extends or truncates @p value to the same width as @p range and copies it into the bit vector. */
 template<class Word>
-void fromInteger(Word *words, const BitRange &range, boost::uint64_t value) {
+void fromInteger(Word *words, const BitRange &range, uint64_t value) {
     ASSERT_require(8==sizeof value);
     if (range.isEmpty())
         return;
@@ -956,8 +956,8 @@ void fromInteger(Word *words, const BitRange &range, boost::uint64_t value) {
  *  Converts the specified range to an unsigned 64-bit value and returns that value. Returns zero if the range is empty.  If
  *  the range is wider than 64 bits then all of its high-order bits are ignored and only the lowest 64 bits are used. */
 template<class Word>
-boost::uint64_t toInteger(const Word *words, const BitRange &range) {
-    boost::uint64_t result = 0;
+uint64_t toInteger(const Word *words, const BitRange &range) {
+    uint64_t result = 0;
     ASSERT_require(8==sizeof result);
 
     // Copy the bits into the low bits of a temporary bit vector
@@ -970,7 +970,7 @@ boost::uint64_t toInteger(const Word *words, const BitRange &range) {
 
     // Convert the temporary bit vector to an integer
     for (size_t i=0; i<nTmpWords; ++i)
-        result |= (boost::uint64_t)tmp[i] << (i * bitsPerWord<Word>::value);
+        result |= (uint64_t)tmp[i] << (i * bitsPerWord<Word>::value);
     return result;
 }
 
@@ -978,12 +978,12 @@ boost::uint64_t toInteger(const Word *words, const BitRange &range) {
  *
  *  Faster version of @ref toInteger for instances where the range offset is zero, and the size is not greater than 64 bits. */
 template<class Word>
-boost::uint64_t toInteger(const Word *words, size_t nbits) {
-    boost::uint64_t result = 0;
+uint64_t toInteger(const Word *words, size_t nbits) {
+    uint64_t result = 0;
     ASSERT_require(nbits <= 64);
     size_t nTmpWords = numberOfWords<Word>(nbits);
     for (size_t i=0; i<nTmpWords; ++i)
-        result |= (boost::uint64_t)words[i] << (i * bitsPerWord<Word>::value);
+        result |= (uint64_t)words[i] << (i * bitsPerWord<Word>::value);
     if (nbits < 64)
         result &= ~((~/*UINT64_C(0)*/0ULL) << nbits);
     return result;
@@ -1366,8 +1366,8 @@ void fromString(Word *vec, const BitRange &range, const std::string &input) {
     for (size_t idx=0; idx<input.size(); ++idx) {
         if ('_'!=input[idx] && charToDigit<Word>(input[idx]) >= Word(1) << bitsPerDigit) {
             throw std::runtime_error(std::string("invalid character '") + input[idx] + "' at index " +
-                                     boost::lexical_cast<std::string>(idx) + " in base-" +
-                                     boost::lexical_cast<std::string>(1 << bitsPerDigit) + " input string");
+                                     dyncompat::lexical_cast<std::string>(idx) + " in base-" +
+                                     dyncompat::lexical_cast<std::string>(1 << bitsPerDigit) + " input string");
         }
     }
 
@@ -1400,10 +1400,10 @@ void fromString(Word *vec, const BitRange &range, const std::string &input) {
  *  parse to more than 64 bits. */
 template<class Word>
 void fromDecimal(Word *vec, const BitRange &range, const std::string &input) {
-    boost::uint64_t v = 0;
-    BOOST_FOREACH (char ch, input) {
+    uint64_t v = 0;
+    DYN_FOREACH (char ch, input) {
         if (isdigit(ch)) {
-            boost::uint64_t tmp = v * 10 + (ch - '0');
+            uint64_t tmp = v * 10 + (ch - '0');
             if (tmp < v)
                 throw std::runtime_error("overflow parsing decimal string");
             v = tmp;

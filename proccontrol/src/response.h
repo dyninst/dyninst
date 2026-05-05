@@ -48,9 +48,9 @@ class stack_response;
 class data_response;
 class HandlerPool;
 
-class response : public boost::enable_shared_from_this<response> {
-   friend void boost::checked_delete<response>(response *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const response>(const response *) CHECKED_DELETE_NOEXCEPT;
+class response : public dyncompat::enable_shared_from_this<response> {
+   friend void dyncompat::checked_delete<response>(response *) noexcept;
+   friend void dyncompat::checked_delete<const response>(const response *) noexcept;
    friend class responses_pending;
    friend unsigned newResponseID();
    friend unsigned newResponseID(unsigned);
@@ -93,19 +93,19 @@ class response : public boost::enable_shared_from_this<response> {
    int multi_resp_recvd;
 
   public:
-   typedef boost::shared_ptr<response> ptr;
-   typedef boost::shared_ptr<const response> const_ptr;
+   typedef dyncompat::shared_ptr<response> ptr;
+   typedef dyncompat::shared_ptr<const response> const_ptr;
 
    virtual ~response();
 
    unsigned int getID() const;
 
-   boost::shared_ptr<result_response> getResultResponse();
-   boost::shared_ptr<mem_response> getMemResponse();
-   boost::shared_ptr<reg_response> getRegResponse();
-   boost::shared_ptr<allreg_response> getAllRegResponse();
-   boost::shared_ptr<stack_response> getStackResponse();
-   boost::shared_ptr<data_response> getDataResponse();
+   dyncompat::shared_ptr<result_response> getResultResponse();
+   dyncompat::shared_ptr<mem_response> getMemResponse();
+   dyncompat::shared_ptr<reg_response> getRegResponse();
+   dyncompat::shared_ptr<allreg_response> getAllRegResponse();
+   dyncompat::shared_ptr<stack_response> getStackResponse();
+   dyncompat::shared_ptr<data_response> getDataResponse();
 
    bool isReady() const;
    bool testReady() const;
@@ -163,15 +163,15 @@ class result_response : public response
 {
    friend class linux_process;
    friend class linux_thread;
-   friend void boost::checked_delete<result_response>(result_response *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const result_response>(const result_response *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<result_response>(result_response *) noexcept;
+   friend void dyncompat::checked_delete<const result_response>(const result_response *) noexcept;
   private:
    bool b;
    result_response();
 
   public:
-   typedef boost::shared_ptr<result_response> ptr;
-   typedef boost::shared_ptr<const result_response> const_ptr;
+   typedef dyncompat::shared_ptr<result_response> ptr;
+   typedef dyncompat::shared_ptr<const result_response> const_ptr;
 
    static result_response::ptr createResultResponse();
 
@@ -186,8 +186,8 @@ class result_response : public response
 class reg_response : public response
 {
    friend class linux_thread;
-   friend void boost::checked_delete<reg_response>(reg_response *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const reg_response>(const reg_response *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<reg_response>(reg_response *) noexcept;
+   friend void dyncompat::checked_delete<const reg_response>(const reg_response *) noexcept;
   private:
    Dyninst::MachRegisterVal val;
    reg_response();
@@ -196,8 +196,8 @@ class reg_response : public response
    int_thread *thr;
 
   public:
-   typedef boost::shared_ptr<reg_response> ptr;
-   typedef boost::shared_ptr<const reg_response> const_ptr;
+   typedef dyncompat::shared_ptr<reg_response> ptr;
+   typedef dyncompat::shared_ptr<const reg_response> const_ptr;
 
    static reg_response::ptr createRegResponse();
 
@@ -211,8 +211,8 @@ class reg_response : public response
 
 class allreg_response : public response
 {
-   friend void boost::checked_delete<allreg_response>(allreg_response *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const allreg_response>(const allreg_response *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<allreg_response>(allreg_response *) noexcept;
+   friend void dyncompat::checked_delete<const allreg_response>(const allreg_response *) noexcept;
   private:
    int_registerPool *regpool;
    int_thread *thr;
@@ -221,8 +221,8 @@ class allreg_response : public response
    allreg_response();
 
   public:
-   typedef boost::shared_ptr<allreg_response> ptr;
-   typedef boost::shared_ptr<const allreg_response> const_ptr;
+   typedef dyncompat::shared_ptr<allreg_response> ptr;
+   typedef dyncompat::shared_ptr<const allreg_response> const_ptr;
 
    static allreg_response::ptr createAllRegResponse(int_registerPool *regpool);
    static allreg_response::ptr createAllRegResponse();
@@ -243,8 +243,8 @@ class allreg_response : public response
 
 class mem_response : public response
 {
-   friend void boost::checked_delete<mem_response>(mem_response *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const mem_response>(const mem_response *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<mem_response>(mem_response *) noexcept;
+   friend void dyncompat::checked_delete<const mem_response>(const mem_response *) noexcept;
   private:
    char *buffer;
    unsigned size;
@@ -254,8 +254,8 @@ class mem_response : public response
    mem_response(char *targ, unsigned targ_size);
 
   public:
-   typedef boost::shared_ptr<mem_response> ptr;
-   typedef boost::shared_ptr<const mem_response> const_ptr;
+   typedef dyncompat::shared_ptr<mem_response> ptr;
+   typedef dyncompat::shared_ptr<const mem_response> const_ptr;
 
    static mem_response::ptr createMemResponse();
    static mem_response::ptr createMemResponse(char *targ, unsigned targ_size);
@@ -276,16 +276,16 @@ class mem_response : public response
 
 class stack_response : public response
 {
-   friend void boost::checked_delete<stack_response>(stack_response *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const stack_response>(const stack_response *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<stack_response>(stack_response *) noexcept;
+   friend void dyncompat::checked_delete<const stack_response>(const stack_response *) noexcept;
   private:
    void *data;
    int_thread *thr;
    stack_response(int_thread *t);
 
   public:
-   typedef boost::shared_ptr<stack_response> ptr;
-   typedef boost::shared_ptr<const stack_response> const_ptr;
+   typedef dyncompat::shared_ptr<stack_response> ptr;
+   typedef dyncompat::shared_ptr<const stack_response> const_ptr;
 
    static stack_response::ptr createStackResponse(int_thread *t);
 
@@ -298,14 +298,14 @@ class stack_response : public response
 
 class data_response : public response
 {
-   friend void boost::checked_delete<data_response>(data_response *) CHECKED_DELETE_NOEXCEPT;
-   friend void boost::checked_delete<const data_response>(const data_response *) CHECKED_DELETE_NOEXCEPT;
+   friend void dyncompat::checked_delete<data_response>(data_response *) noexcept;
+   friend void dyncompat::checked_delete<const data_response>(const data_response *) noexcept;
   private:
    void *data;
    data_response();
   public:
-   typedef boost::shared_ptr<data_response> ptr;
-   typedef boost::shared_ptr<const data_response> const_ptr;
+   typedef dyncompat::shared_ptr<data_response> ptr;
+   typedef dyncompat::shared_ptr<const data_response> const_ptr;
 
    static data_response::ptr createDataResponse();
 

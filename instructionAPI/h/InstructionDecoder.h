@@ -96,7 +96,7 @@ namespace Dyninst
 
         private:
             buffer m_buf;
-      boost::shared_ptr<InstructionDecoderImpl> m_Impl;
+      dyncompat::shared_ptr<InstructionDecoderImpl> m_Impl;
     };
 
   }

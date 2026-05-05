@@ -9,7 +9,7 @@
 #define Sawyer_Container_IntervalSetMap_H
 
 #include <stddef.h>
-#include <boost/foreach.hpp>
+#include <dyncompat/foreach.hpp>
 #include "IntervalMap.h"
 #include "Sawyer.h"
 
@@ -92,8 +92,8 @@ public:
      *  Returns the union of the sets stored across an interval of keys. */
     Set getUnion(const Interval &interval) const {
         Set retval;
-        BOOST_FOREACH (const typename Super::Node &node, this->findAll(interval)) {
-            BOOST_FOREACH (const typename Set::Value &member, node.value().values()) {
+        DYN_FOREACH (const typename Super::Node &node, this->findAll(interval)) {
+            DYN_FOREACH (const typename Set::Value &member, node.value().values()) {
                 retval.insert(member);
             }
         }
@@ -106,7 +106,7 @@ public:
     Set getIntersection(const Interval &interval) const {
         Set retval;
         size_t nNodes = 0;
-        BOOST_FOREACH (const typename Super::Node &node, this->findAll(interval)) {
+        DYN_FOREACH (const typename Super::Node &node, this->findAll(interval)) {
             const Set &set = this->get(node.key().least());
             if (1 == ++nNodes) {
                 retval = set;
@@ -134,7 +134,7 @@ public:
      *  returns false if the @p interval is empty. This is more efficient than calling <code>getUnion(interval)</code> and
      *  checking whether it contains @p value. */
     bool existsAnywhere(const Interval &interval, const typename Set::Value &value) const {
-        BOOST_FOREACH (const typename Super::Node &node, this->findAll(interval)) {
+        DYN_FOREACH (const typename Super::Node &node, this->findAll(interval)) {
             if (node.value().exists(value))
                 return true;
         }
@@ -149,7 +149,7 @@ public:
     bool existsEverywhere(const Interval &interval, const typename Set::Value &value) const {
         if (interval.isEmpty())
             return false;
-        BOOST_FOREACH (const typename Super::Node &node, this->findAll(interval)) {
+        DYN_FOREACH (const typename Super::Node &node, this->findAll(interval)) {
             if (!node.value().exists(value))
                 return false;
         }

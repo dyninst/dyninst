@@ -73,7 +73,7 @@ namespace Dyninst{
 
 namespace DwarfDyninst {
    class DwarfFrameParser;
-   typedef boost::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
+   typedef dyncompat::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
 }
 
 namespace SymtabAPI{
@@ -303,7 +303,7 @@ public:
     SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &segs) override;
 
     private:
-    std::vector<std::vector<boost::shared_ptr<void> > > freeList;
+    std::vector<std::vector<dyncompat::shared_ptr<void> > > freeList;
   static void log_elferror (void (*)(const char *), const char *);
     
   Elf_X *elfHdr;

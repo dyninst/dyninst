@@ -351,7 +351,7 @@ extern "C" struct stat64_ret_t {
 };
 
 typedef stat64_ret_t *stat64_ptr;
-typedef boost::shared_ptr<int_fileInfo> int_fileInfo_ptr;
+typedef dyncompat::shared_ptr<int_fileInfo> int_fileInfo_ptr;
 
 class RemoteIO;
 class RemoteIOSet;

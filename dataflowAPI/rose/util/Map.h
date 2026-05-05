@@ -14,7 +14,7 @@
 #include <memory>
 #include <stddef.h>
 #include <utility>
-#include <boost/range/iterator_range.hpp>
+#include <dyncompat/range/iterator_range.hpp>
 #include <map>
 #include <stdexcept>
 
@@ -238,7 +238,7 @@ public:
     template<class Key2, class T2, class Cmp2, class Alloc2>
     Map(const Map<Key2, T2, Cmp2, Alloc2> &other) {
         typedef typename Map<Key2, T2, Cmp2, Alloc2>::ConstNodeIterator OtherIterator;
-        boost::iterator_range<OtherIterator> otherNodes = other.nodes();
+        dyncompat::iterator_range<OtherIterator> otherNodes = other.nodes();
         for (OtherIterator otherIter=otherNodes.begin(); otherIter!=otherNodes.end(); ++otherIter)
             map_.insert(map_.end(), std::make_pair(Key(otherIter->key()), Value(otherIter->value())));
     }
@@ -250,7 +250,7 @@ public:
     Map& operator=(const Map<Key2, T2, Cmp2, Alloc2> &other) {
         typedef typename Map<Key2, T2, Cmp2, Alloc2>::ConstNodeIterator OtherIterator;
         clear();
-        boost::iterator_range<OtherIterator> otherNodes = other.nodes();
+        dyncompat::iterator_range<OtherIterator> otherNodes = other.nodes();
         for (OtherIterator otherIter=otherNodes.begin(); otherIter!=otherNodes.end(); ++otherIter)
             map_.insert(map_.end(), std::make_pair(Key(otherIter->key()), Value(otherIter->value())));
     }
@@ -265,11 +265,11 @@ public:
      *  This returns a range of node-iterators that will traverse all nodes (key/value pairs) of this container.
      *
      * @{ */
-    boost::iterator_range<NodeIterator> nodes() {
-        return boost::iterator_range<NodeIterator>(NodeIterator(map_.begin()), NodeIterator(map_.end()));
+    dyncompat::iterator_range<NodeIterator> nodes() {
+        return dyncompat::iterator_range<NodeIterator>(NodeIterator(map_.begin()), NodeIterator(map_.end()));
     }
-    boost::iterator_range<ConstNodeIterator> nodes() const {
-        return boost::iterator_range<ConstNodeIterator>(ConstNodeIterator(map_.begin()), ConstNodeIterator(map_.end()));
+    dyncompat::iterator_range<ConstNodeIterator> nodes() const {
+        return dyncompat::iterator_range<ConstNodeIterator>(ConstNodeIterator(map_.begin()), ConstNodeIterator(map_.end()));
     }
     /** @} */
 
@@ -278,11 +278,11 @@ public:
      *  Returns a range of key-iterators that will traverse the keys of this container.
      *
      * @{ */
-    boost::iterator_range<ConstKeyIterator> keys() {
-        return boost::iterator_range<ConstKeyIterator>(NodeIterator(map_.begin()), NodeIterator(map_.end()));
+    dyncompat::iterator_range<ConstKeyIterator> keys() {
+        return dyncompat::iterator_range<ConstKeyIterator>(NodeIterator(map_.begin()), NodeIterator(map_.end()));
     }
-    boost::iterator_range<ConstKeyIterator> keys() const {
-        return boost::iterator_range<ConstKeyIterator>(ConstNodeIterator(map_.begin()), ConstNodeIterator(map_.end()));
+    dyncompat::iterator_range<ConstKeyIterator> keys() const {
+        return dyncompat::iterator_range<ConstKeyIterator>(ConstNodeIterator(map_.begin()), ConstNodeIterator(map_.end()));
     }
     /** @} */
 
@@ -292,11 +292,11 @@ public:
      *  key order, although the keys are not directly available via these iterators.
      *
      * @{ */
-    boost::iterator_range<ValueIterator> values() {
-        return boost::iterator_range<ValueIterator>(NodeIterator(map_.begin()), NodeIterator(map_.end()));
+    dyncompat::iterator_range<ValueIterator> values() {
+        return dyncompat::iterator_range<ValueIterator>(NodeIterator(map_.begin()), NodeIterator(map_.end()));
     }
-    boost::iterator_range<ConstValueIterator> values() const {
-        return boost::iterator_range<ConstValueIterator>(ConstNodeIterator(map_.begin()), ConstNodeIterator(map_.end()));
+    dyncompat::iterator_range<ConstValueIterator> values() const {
+        return dyncompat::iterator_range<ConstValueIterator>(ConstNodeIterator(map_.begin()), ConstNodeIterator(map_.end()));
     }
     /** @} */
 
@@ -566,7 +566,7 @@ public:
         return *this;
     }
     template<class OtherNodeIterator>
-    Map& insertMultiple(const boost::iterator_range<OtherNodeIterator> &range) {
+    Map& insertMultiple(const dyncompat::iterator_range<OtherNodeIterator> &range) {
         return insertMultiple(range.begin(), range.end());
     }
     /** @} */
@@ -600,7 +600,7 @@ public:
      *
      *  @sa insert insertDefault insertMaybe insertMaybeDefault insertMultiple */
     template<class OtherNodeIterator>
-    Map& insertMaybeMultiple(const boost::iterator_range<OtherNodeIterator> &range) {
+    Map& insertMaybeMultiple(const dyncompat::iterator_range<OtherNodeIterator> &range) {
         for (OtherNodeIterator otherIter=range.begin(); otherIter!=range.end(); ++otherIter)
             insert(Key(otherIter->key()), Value(otherIter->value()));
         return *this;
@@ -636,7 +636,7 @@ public:
      *
      *  @sa erase eraseAt eraseAtMultiple */
     template<class OtherKeyIterator>
-    Map& eraseMultiple(const boost::iterator_range<OtherKeyIterator> &range) {
+    Map& eraseMultiple(const dyncompat::iterator_range<OtherKeyIterator> &range) {
         for (OtherKeyIterator otherIter=range.begin(); otherIter!=range.end(); ++otherIter)
             map_.erase(Key(*otherIter));
         return *this;
@@ -676,7 +676,7 @@ public:
         return *this;
     }
     template<class Iter>
-    Map& eraseAtMultiple(const boost::iterator_range<Iter> &range) {
+    Map& eraseAtMultiple(const dyncompat::iterator_range<Iter> &range) {
         map_.erase(range.begin().base(), range.end().base());
         return *this;
     }

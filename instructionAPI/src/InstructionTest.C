@@ -30,12 +30,12 @@
 
 #include "../h/InstructionDecoder.h"
 #include <iostream>
-#include <boost/assign.hpp>
+#include <dyncompat/assign/list_of.hpp>
 #include "../h/Register.h"
 
 using namespace Dyninst::InstructionAPI;
 using namespace std;
-using namespace boost::assign;
+using namespace dyncompat::assign;
 
 template< typename strT >
 strT& operator<<(strT& s, std::set<RegisterAST::Ptr> regs)
@@ -74,7 +74,7 @@ public:
     return testAssertEqual(expectedRead, actualRead) && testAssertEqual(expectedWritten, actualWritten);
   }
   template< typename T1, typename T2>
-  bool testAssertEqual(boost::shared_ptr<T1> lhs, boost::shared_ptr<T2> rhs)
+  bool testAssertEqual(dyncompat::shared_ptr<T1> lhs, dyncompat::shared_ptr<T2> rhs)
   {
     numTests++;
     if(*lhs == *rhs)

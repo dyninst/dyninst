@@ -33,7 +33,7 @@
 #include <assert.h>
 #include <utility>
 #include <iterator>
-#include <boost/atomic.hpp>
+#include <dyncompat/atomic.hpp>
 
 #define DEBUG_LOCKFREEQUEUE 0
 
@@ -87,7 +87,7 @@ private:
     return (item_type * const) ~0; 
   }
 
-  boost::atomic<item_type *> _next;
+  dyncompat::atomic<item_type *> _next;
   T _value;
   LFQ_DEBUG(item_type *validate;)
 };
@@ -217,7 +217,7 @@ private:
   }
 
 private:
-  boost::atomic<item_type *> head;
+  dyncompat::atomic<item_type *> head;
 };
 
 #endif

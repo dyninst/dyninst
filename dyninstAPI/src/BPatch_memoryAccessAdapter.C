@@ -195,7 +195,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
                insn.getOperation().getID() == power_op_stmw)
             {
                 RegisterAST::Ptr byteOverride =
-                        boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
+                        dyncompat::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
                 assert(byteOverride);
                 MachRegister base = byteOverride->getID().getBaseRegister();
                 unsigned int converted = base.val() & 0xFFFF;
@@ -205,7 +205,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
                insn.getOperation().getID() == power_op_stswi)
             {
                 Immediate::Ptr byteOverride =
-                        boost::dynamic_pointer_cast<Immediate>(insn.getOperand(2).getValue());
+                        dyncompat::dynamic_pointer_cast<Immediate>(insn.getOperand(2).getValue());
                 assert(byteOverride);
                 bytes = byteOverride->eval().convert<unsigned int>();
                 if(bytes == 0) bytes = 32;

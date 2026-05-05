@@ -40,7 +40,7 @@
 #include "registers/x86_64_regs.h"
 #include "dataflowAPI/h/liveness.h"
 #include "dataflowAPI/h/ABI.h"
-#include <boost/bind/bind.hpp>
+#include <dyncompat/bind/bind.hpp>
 #include "instructionAPI/h/syscalls.h"
 #include "instructionAPI/h/interrupts.h"
 
@@ -105,19 +105,19 @@ const bitArray& LivenessAnalyzer::getLivenessOut(Block *block, bitArray &allRegs
 	
 
     // OUT(X) = UNION(IN(Y)) for all successors Y of X
-    boost::lock_guard<Block> g(*block);
+    dyncompat::lock_guard<Block> g(*block);
     const Block::edgelist & target_edges = block -> targets();
 
     liveness_cerr << "getLivenessOut for block [" << hex << block->start() << "," << block->end() << "]" << dec << endl;
     
-    std::for_each(boost::make_filter_iterator(epred, target_edges.begin(), target_edges.end()),
-		  boost::make_filter_iterator(epred, target_edges.end(), target_edges.end()),
-		  boost::bind(&LivenessAnalyzer::processEdgeLiveness, 
+    std::for_each(dyncompat::make_filter_iterator(epred, target_edges.begin(), target_edges.end()),
+		  dyncompat::make_filter_iterator(epred, target_edges.end(), target_edges.end()),
+		  dyncompat::bind(&LivenessAnalyzer::processEdgeLiveness, 
 			      this, 
-				  boost::placeholders::_1,
-			      boost::ref(data), 
+				  dyncompat::placeholders::_1,
+			      dyncompat::ref(data), 
 			      block,
-			      boost::ref(allRegsDefined)));
+			      dyncompat::ref(allRegsDefined)));
     
     liveness_cerr << " Returning liveness for out " << endl;
     liveness_cerr << "  " << data.out << endl;
@@ -569,7 +569,7 @@ void *LivenessAnalyzer::getPtrToInstruction(Block *block, Address addr) const{
 }
 bool LivenessAnalyzer::isExitBlock(Block *block)
 {
-    boost::lock_guard<Block> g(*block);
+    dyncompat::lock_guard<Block> g(*block);
     const Block::edgelist & trgs = block->targets();
 
     bool interprocEdge = false;

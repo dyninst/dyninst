@@ -44,10 +44,10 @@
 
 #include "StringUtility.h"
 
-#include <boost/foreach.hpp>
+#include <dyncompat/foreach.hpp>
 // DQ (8/31/2009): This now compiles properly (at least for analysis, it might still fail for the code generation).
 // #ifndef USE_ROSE
-#include <boost/lexical_cast.hpp>
+#include <dyncompat/lexical_cast.hpp>
 // #endif
 
 // DQ (9/29/2006): This is required for 64-bit g++ 3.4.4 compiler.
@@ -369,7 +369,7 @@ StringUtility:: tokenize ( std::string X, char delim ) {
 // DQ (8/31/2009): This now compiles properly (at least for analysis, it might still fail for the code generation).
 // #ifdef USE_ROSE   
 #if 0
-// Liao, 2/11/2009, Alternative to boost::lexical_cast,
+// Liao, 2/11/2009, Alternative to dyncompat::lexical_cast,
 // since ROSE has problem in compiling it. Bug 313
 // https://outreach.scidac.gov/tracker/index.php?func=detail&aid=313&group_id=24&atid=185
 template <typename T>
@@ -386,7 +386,7 @@ StringUtility::numberToString ( long long x )
    {
 // DQ (8/31/2009): This now compiles properly (at least for analysis, it might still fail for the code generation).
 // #ifndef USE_ROSE     
-     return boost::lexical_cast<std::string>(x);
+     return dyncompat::lexical_cast<std::string>(x);
 // #else
 //   return numToString<long long>(x);
 //#endif
@@ -397,7 +397,7 @@ StringUtility::numberToString ( unsigned long long x )
    {
 // DQ (8/31/2009): This now compiles properly (at least for analysis, it might still fail for the code generation).
 // #ifndef USE_ROSE     
-     return boost::lexical_cast<std::string>(x);
+     return dyncompat::lexical_cast<std::string>(x);
 // #else     
 //   return numToString<unsigned long long >(x);
 // #endif     
@@ -408,7 +408,7 @@ StringUtility::numberToString ( long x )
    {
 // DQ (8/31/2009): This now compiles properly (at least for analysis, it might still fail for the code generation).
 // #ifndef USE_ROSE     
-     return boost::lexical_cast<std::string>(x);
+     return dyncompat::lexical_cast<std::string>(x);
 // #else     
 //   return numToString<long>(x);
 // #endif     
@@ -419,7 +419,7 @@ StringUtility::numberToString ( unsigned long x )
    {
 // DQ (8/31/2009): This now compiles properly (at least for analysis, it might still fail for the code generation).
 // #ifndef USE_ROSE     
-     return boost::lexical_cast<std::string>(x);
+     return dyncompat::lexical_cast<std::string>(x);
 // #else     
 //   return numToString<unsigned long>(x);
 // #endif     
@@ -430,7 +430,7 @@ StringUtility::numberToString ( int x )
    {
 // DQ (8/31/2009): This now compiles properly (at least for analysis, it might still fail for the code generation).
 // #ifndef USE_ROSE     
-     return boost::lexical_cast<std::string>(x);
+     return dyncompat::lexical_cast<std::string>(x);
 // #else     
 //   return numToString<int >(x);
 // #endif     
@@ -441,7 +441,7 @@ StringUtility::numberToString ( unsigned int x )
    {
 // DQ (8/31/2009): This now compiles properly (at least for analysis, it might still fail for the code generation).
 // #ifndef USE_ROSE     
-     return boost::lexical_cast<std::string>(x);
+     return dyncompat::lexical_cast<std::string>(x);
 // #else     
 //      return numToString<unsigned int >(x);
 // #endif     
@@ -492,17 +492,17 @@ StringUtility::numberToString ( double x )
 string
 StringUtility::numberToString ( __int128 x )
    {
-  // DQ (2/22/2014): I don't think that the boost::lexical_cast can support __int128 yet.
+  // DQ (2/22/2014): I don't think that the dyncompat::lexical_cast can support __int128 yet.
      long long temp_x = (long long) x;
-     return boost::lexical_cast<std::string>(temp_x);
+     return dyncompat::lexical_cast<std::string>(temp_x);
    }
 
 string
 StringUtility::numberToString ( unsigned __int128 x )
    {
-  // DQ (2/22/2014): I don't think that the boost::lexical_cast can support __int128 yet.
+  // DQ (2/22/2014): I don't think that the dyncompat::lexical_cast can support __int128 yet.
      unsigned long long temp_x = (unsigned long long) x;
-     return boost::lexical_cast<std::string>(temp_x);
+     return dyncompat::lexical_cast<std::string>(temp_x);
    }
       #endif
    #endif
@@ -511,7 +511,7 @@ StringUtility::numberToString ( unsigned __int128 x )
 std::string
 StringUtility::cEscape(const std::string &s) {
     std::string result;
-    BOOST_FOREACH (char ch, s) {
+    DYN_FOREACH (char ch, s) {
         switch (ch) {
             case '\a':
                 result += "\\a";

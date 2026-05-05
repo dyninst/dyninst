@@ -33,7 +33,7 @@
 
 #include "Module.h"
 
-#include <boost/container_hash/hash.hpp>
+#include <dyncompat/container_hash/hash.hpp>
 #include <tbb/concurrent_unordered_set.h>
 
 namespace Dyninst { namespace SymtabAPI {
@@ -43,8 +43,8 @@ namespace Dyninst { namespace SymtabAPI {
     struct hash {
       size_t operator()(Module *m) const {
         size_t seed{0UL};
-        boost::hash_combine(seed, m->fileName());
-        boost::hash_combine(seed, m->addr());
+        dyncompat::hash_combine(seed, m->fileName());
+        dyncompat::hash_combine(seed, m->addr());
         return seed;
       }
     };

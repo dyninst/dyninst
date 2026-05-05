@@ -42,8 +42,8 @@
 
 #include "InstructionSource.h"
 
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/thread/lockable_adapter.hpp>
+#include <dyncompat/thread/recursive_mutex.hpp>
+#include <dyncompat/thread/lockable_adapter.hpp>
 #include "concurrent.h"
 
 class StatContainer;
@@ -258,7 +258,7 @@ class PARSER_EXPORT SymtabCodeRegion : public CodeRegion {
     SymtabAPI::Region * symRegion() const { return _region; }
 };
 
-class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable_adapter<boost::recursive_mutex> {
+class PARSER_EXPORT SymtabCodeSource : public CodeSource, public dyncompat::lockable_adapter<dyncompat::recursive_mutex> {
  private:
     SymtabAPI::Symtab * _symtab;
     bool owns_symtab;

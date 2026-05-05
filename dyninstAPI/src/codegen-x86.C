@@ -30,9 +30,9 @@
 
 #include <assert.h>
 #include <stdio.h>
-#include "boost/assign/list_of.hpp"
-#include "boost/assign/std/vector.hpp"
-#include "boost/assign/std/set.hpp"
+#include "dyncompat/assign/list_of.hpp"
+#include "dyncompat/assign/std/vector.hpp"
+#include "dyncompat/assign/std/set.hpp"
 #include <map>
 #include <string>
 #include "common/src/ia32_locations.h"
@@ -53,7 +53,7 @@
 #include "unaligned_memory_access.h"
 
 using namespace std;
-using namespace boost::assign;
+using namespace dyncompat::assign;
 using namespace Dyninst::InstructionAPI;
 
 

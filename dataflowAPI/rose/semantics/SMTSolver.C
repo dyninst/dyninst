@@ -6,8 +6,8 @@
 #include "../util/rose_getline.h"
 #include "SMTSolver.h"
 
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
+#include <dyncompat/thread/locks.hpp>
+#include <dyncompat/thread/mutex.hpp>
 #include <fcntl.h> /*for O_RDWR, etc.*/
 #include "../util/Stopwatch.h"
 
@@ -21,7 +21,7 @@ namespace rose {
         }
 
         SMTSolver::Stats SMTSolver::class_stats;
-        boost::mutex SMTSolver::class_stats_mutex;
+        dyncompat::mutex SMTSolver::class_stats_mutex;
 
         void
         SMTSolver::init() { }
@@ -29,14 +29,14 @@ namespace rose {
 // class method
         SMTSolver::Stats
         SMTSolver::get_class_stats() {
-            boost::lock_guard <boost::mutex> lock(class_stats_mutex);
+            dyncompat::lock_guard <dyncompat::mutex> lock(class_stats_mutex);
             return class_stats;
         }
 
 // class method
         void
         SMTSolver::reset_class_stats() {
-            boost::lock_guard <boost::mutex> lock(class_stats_mutex);
+            dyncompat::lock_guard <dyncompat::mutex> lock(class_stats_mutex);
             class_stats = Stats();
         }
 
@@ -80,7 +80,7 @@ namespace rose {
             // Keep track of how often we call the SMT solver.
             ++stats.ncalls;
             {
-                boost::lock_guard <boost::mutex> lock(class_stats_mutex);
+                dyncompat::lock_guard <dyncompat::mutex> lock(class_stats_mutex);
                 ++class_stats.ncalls;
             }
             output_text = "";
@@ -120,7 +120,7 @@ namespace rose {
             //ASSERT_require(status >= 0);
             stats.input_size += sb.st_size;
             {
-                boost::lock_guard <boost::mutex> lock(class_stats_mutex);
+                dyncompat::lock_guard <dyncompat::mutex> lock(class_stats_mutex);
                 class_stats.input_size += sb.st_size;
             }
 
@@ -148,7 +148,7 @@ namespace rose {
                 while ((nread = rose_getline(&line, &line_alloc, output)) > 0) {
                     stats.output_size += nread;
                     {
-                        boost::lock_guard <boost::mutex> lock(class_stats_mutex);
+                        dyncompat::lock_guard <dyncompat::mutex> lock(class_stats_mutex);
                         class_stats.output_size += nread;
                     }
                     if (!got_satunsat_line) {

@@ -37,8 +37,8 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <boost/tuple/tuple.hpp>
-#include <boost/static_assert.hpp>
+#include <dyncompat/tuple/tuple.hpp>
+#include <dyncompat/static_assert.hpp>
 
 #include "InstructionAdapter.h"
 #include "InstructionDecoder.h"

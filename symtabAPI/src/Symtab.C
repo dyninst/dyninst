@@ -142,37 +142,37 @@ std::string Symtab::printError(SymtabError e)
     }		
 }
 
-static LazySingleton<boost::shared_ptr<Type>> ls_type_Error;
-boost::shared_ptr<Type>& Symtab::type_Error()
+static LazySingleton<dyncompat::shared_ptr<Type>> ls_type_Error;
+dyncompat::shared_ptr<Type>& Symtab::type_Error()
 {
     return ls_type_Error.get([](){
         return Type::make_shared<Type>(std::string("<error"),0,dataUnknownType);
     });
 }
-static LazySingleton<boost::shared_ptr<Type>> ls_type_Untyped;
-boost::shared_ptr<Type>& Symtab::type_Untyped()
+static LazySingleton<dyncompat::shared_ptr<Type>> ls_type_Untyped;
+dyncompat::shared_ptr<Type>& Symtab::type_Untyped()
 {
     return ls_type_Untyped.get([](){
         return Type::make_shared<Type>(std::string("<no type>"), 0, dataUnknownType);
     });
 }
 
-static LazySingleton<boost::shared_ptr<builtInTypeCollection>> ls_builtInTypes;
-boost::shared_ptr<builtInTypeCollection>& Symtab::builtInTypes()
+static LazySingleton<dyncompat::shared_ptr<builtInTypeCollection>> ls_builtInTypes;
+dyncompat::shared_ptr<builtInTypeCollection>& Symtab::builtInTypes()
 {
     return ls_builtInTypes.get(setupBuiltinTypes);
 }
 
-static LazySingleton<boost::shared_ptr<typeCollection>> ls_stdTypes;
-boost::shared_ptr<typeCollection>& Symtab::stdTypes()
+static LazySingleton<dyncompat::shared_ptr<typeCollection>> ls_stdTypes;
+dyncompat::shared_ptr<typeCollection>& Symtab::stdTypes()
 {
     return ls_stdTypes.get(setupStdTypes);
 }
 
-boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
+dyncompat::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
 {
-    boost::shared_ptr<builtInTypeCollection> builtInTypes =
-       boost::shared_ptr<builtInTypeCollection>(new builtInTypeCollection);
+    dyncompat::shared_ptr<builtInTypeCollection> builtInTypes =
+       dyncompat::shared_ptr<builtInTypeCollection>(new builtInTypeCollection);
 
    // NOTE: integral type  mean twos-complement
    // -1  int, 32 bit signed integral type
@@ -267,10 +267,10 @@ boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
 }
 
 
-boost::shared_ptr<typeCollection> Symtab::setupStdTypes() 
+dyncompat::shared_ptr<typeCollection> Symtab::setupStdTypes() 
 {
-    boost::shared_ptr<typeCollection> stdTypes =
-       boost::shared_ptr<typeCollection>(new typeCollection);
+    dyncompat::shared_ptr<typeCollection> stdTypes =
+       dyncompat::shared_ptr<typeCollection>(new typeCollection);
 
    stdTypes->addType(Type::make_shared<typeScalar>(-1, sizeof(int), "int"));
    auto charType = Type::make_shared<typeScalar>(-2, sizeof(char), "char");
@@ -585,7 +585,7 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
         //   Keep module information
 
         auto add_func = [this](Function *f) {
-	  boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
+	  dyncompat::unique_lock<dyn_rwlock> l(symbols_rwlock);
 	  everyFunction.push_back(f);
 	  sorted_everyFunction = false;
         };
@@ -671,13 +671,13 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
                   NULL == sym->getRegion() ) )
             {
                 var = new Variable(sym);
-                boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
+                dyncompat::unique_lock<dyn_rwlock> l(symbols_rwlock);
                 everyVariable.push_back(var);
             }else{
                 var->addSymbol(sym);
             }
         } else {
-            boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
+            dyncompat::unique_lock<dyn_rwlock> l(symbols_rwlock);
             everyVariable.push_back(var);
         }
         sym->setVariable(var);
@@ -1554,9 +1554,9 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
     for (auto *m : impl->modules)
    {
        StringTablePtr s = m->getStrings();
-       boost::unique_lock<dyn_mutex> l(s->lock);
+       dyncompat::unique_lock<dyn_mutex> l(s->lock);
        // Only check modules that have this filename present
-       if(s->get<1>().find(lineSource) == s->get<1>().end()) {
+       if(!s->contains(lineSource)) {
            continue;
        }
        LineInformation *lineInformation = m->parseLineInformation();
@@ -1643,17 +1643,17 @@ bool Symtab::addType(Type *type)
   return true;
 }
 
-SYMTAB_EXPORT void Symtab::getAllstdTypes(vector<boost::shared_ptr<Type>>& v)
+SYMTAB_EXPORT void Symtab::getAllstdTypes(vector<dyncompat::shared_ptr<Type>>& v)
 {
    return stdTypes()->getAllTypes(v); 	
 }
 
-SYMTAB_EXPORT void Symtab::getAllbuiltInTypes(vector<boost::shared_ptr<Type>>& v)
+SYMTAB_EXPORT void Symtab::getAllbuiltInTypes(vector<dyncompat::shared_ptr<Type>>& v)
 {
    return builtInTypes()->getAllBuiltInTypes(v);
 }
 
-SYMTAB_EXPORT bool Symtab::findType(boost::shared_ptr<Type> &type, std::string name)
+SYMTAB_EXPORT bool Symtab::findType(dyncompat::shared_ptr<Type> &type, std::string name)
 {
    parseTypesNow();
 
@@ -1674,9 +1674,9 @@ SYMTAB_EXPORT bool Symtab::findType(boost::shared_ptr<Type> &type, std::string n
    return true;	
 }
 
-SYMTAB_EXPORT boost::shared_ptr<Type> Symtab::findType(unsigned type_id, Type::do_share_t)
+SYMTAB_EXPORT dyncompat::shared_ptr<Type> Symtab::findType(unsigned type_id, Type::do_share_t)
 {
-	boost::shared_ptr<Type> t;
+	dyncompat::shared_ptr<Type> t;
    parseTypesNow();
 
    if (impl->modules.empty())
@@ -1712,7 +1712,7 @@ SYMTAB_EXPORT boost::shared_ptr<Type> Symtab::findType(unsigned type_id, Type::d
    return t;	
 }
 
-SYMTAB_EXPORT bool Symtab::findVariableType(boost::shared_ptr<Type>& type, std::string name)
+SYMTAB_EXPORT bool Symtab::findVariableType(dyncompat::shared_ptr<Type>& type, std::string name)
 {
    parseTypesNow();
     type = NULL;

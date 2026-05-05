@@ -1,0 +1,6 @@
+#ifndef DYNINST_DYNCOMPAT_ENABLE_SHARED_FROM_THIS_HPP
+#define DYNINST_DYNCOMPAT_ENABLE_SHARED_FROM_THIS_HPP
+
+#include "shared_ptr.hpp"
+
+#endif

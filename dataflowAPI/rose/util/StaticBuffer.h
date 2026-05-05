@@ -63,8 +63,8 @@ public:
         Address nWritten = newBuffer->write(values_, 0, size_);
         if (nWritten != size_) {
             throw std::runtime_error("StaticBuffer::copy() failed after copying " +
-                                     boost::lexical_cast<std::string>(nWritten) + " of " +
-                                     boost::lexical_cast<std::string>(size_) +
+                                     dyncompat::lexical_cast<std::string>(nWritten) + " of " +
+                                     dyncompat::lexical_cast<std::string>(size_) +
                                      (1==size_?" value":" values"));
         }
         return newBuffer;

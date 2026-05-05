@@ -51,7 +51,7 @@
 #include "IndirectAnalyzer.h"
 #include "registers/ppc32_regs.h"
 #include "registers/abstract_regs.h"
-#include <boost/timer/timer.hpp>
+#include <chrono>
 #include <fstream>
 #include "instructionAPI/h/syscalls.h"
 
@@ -349,7 +349,7 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
         if (elem->order() == ParseWorkElem::call_fallthrough)
         {
             ParseAPI::Edge *callEdge = NULL;
-            boost::lock_guard<Block> g(*src);
+            dyncompat::lock_guard<Block> g(*src);
             Block::edgelist trgs = src->targets();
             for (Block::edgelist::iterator eit = trgs.begin();
                     eit != trgs.end();
@@ -447,9 +447,9 @@ Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
     LockFreeQueueItem<ParseFrame*> *frame_list = 0;
     assert(pf->func);
     {
-        boost::lock_guard<ParseFrame> g(*pf);
+        dyncompat::lock_guard<ParseFrame> g(*pf);
 #ifdef ADD_PARSE_FRAME_TIMERS
-        boost::timer::cpu_timer t;
+        std::chrono::steady_clock t;
         t.start();
 #endif
         parse_frame(*pf,recursive);
@@ -578,7 +578,7 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
                                                     continue;
                                                 }
                                                 a->second.insert(pf);
-                                                delayed_frames_changed.exchange(true, boost::memory_order_relaxed);
+                                                delayed_frames_changed.exchange(true, std::memory_order_relaxed);
                                             }
                                         }
                                     } else {
@@ -804,7 +804,7 @@ void Parser::cleanup_frames()  {
     bool
 Parser::finalize(Function *f)
 {
-    boost::lock_guard<Function> g(*f);
+    dyncompat::lock_guard<Function> g(*f);
     if(f->_cache_valid) {
         return true;
     }
@@ -984,7 +984,7 @@ Parser::finalize(Function *f)
                 eit != edges.end();
                 eit++)
         {
-            boost::lock_guard<Block> blockGuard(*(*eit)->src());
+            dyncompat::lock_guard<Block> blockGuard(*(*eit)->src());
             if (2 > (*eit)->src()->targets().size()) {
                 Block *ft = _parse_data->findBlock((*eit)->src()->region(),
                         (*eit)->src()->end());
@@ -1493,7 +1493,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 // check for system call FT
                 ParseAPI::Edge* edge = work->edge();
                 Block::Insns blockInsns;
-                //                boost::lock_guard<Block> src_guard(*edge->src());
+                //                dyncompat::lock_guard<Block> src_guard(*edge->src());
                 edge->src()->getInsns(blockInsns);
                 auto prev = blockInsns.rbegin();
                 InstructionAPI::Instruction prevInsn = prev->second;
@@ -1985,7 +1985,7 @@ Parser::block_at(ParseFrame &frame,
 #ifdef ENABLE_RACE_DETECTION
         // this lock causes deadlock when running in parallel, but it is
         // useful for suppressing unimportant races on the iterator
-        boost::lock_guard<Function> g(*owner);
+        dyncompat::lock_guard<Function> g(*owner);
 #endif
         // An already existing block
         auto iter = frame.leadersToBlock.find(addr);
@@ -2410,7 +2410,7 @@ void Parser::resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work)
         }
         // remove func from delayedFrames map
         delayed_frames.erase(a);
-        delayed_frames_changed.exchange(true, boost::memory_order_relaxed);
+        delayed_frames_changed.exchange(true, std::memory_order_relaxed);
     }
 }
 

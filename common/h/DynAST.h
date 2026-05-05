@@ -38,7 +38,7 @@
 #include <iostream>
 #include <map>
 #include "util.h"
-#include "boost/enable_shared_from_this.hpp"
+#include "dyncompat/enable_shared_from_this.hpp"
 
 namespace Dyninst {
 
@@ -89,7 +89,7 @@ class ASTVisitor;
 #define DEF_AST_LEAF_TYPE(name, type)					\
 class name : public AST {						\
  public:								\
- typedef boost::shared_ptr<name> Ptr;			\
+ typedef dyncompat::shared_ptr<name> Ptr;			\
  static Ptr create(type t) { return Ptr(new name(t)); }			\
  virtual ~name() {}							\
  virtual const std::string format() const {				\
@@ -100,7 +100,7 @@ class name : public AST {						\
  virtual AST::Ptr accept(ASTVisitor *v) { return v->visit(this); }	\
  virtual ID getID() const { return V_##name; }				\
   static Ptr convert(AST::Ptr a) {					\
-  return ((a->getID() == V_##name) ? boost::static_pointer_cast<name>(a) : Ptr()); \
+  return ((a->getID() == V_##name) ? dyncompat::static_pointer_cast<name>(a) : Ptr()); \
   }									\
   const type &val() const { return t_; }				\
  private:								\
@@ -115,7 +115,7 @@ class name : public AST {						\
 #define DEF_AST_INTERNAL_TYPE(name, type)				\
 class name : public AST {						\
  public:								\
-  typedef boost::shared_ptr<name> Ptr;			\
+  typedef dyncompat::shared_ptr<name> Ptr;			\
   virtual ~name() {}							\
   static Ptr create(type t, AST::Ptr a) { return Ptr(new name(t, a)); }	\
   static Ptr create(type t, AST::Ptr a, AST::Ptr b) { return Ptr(new name(t, a, b)); } \
@@ -135,7 +135,7 @@ class name : public AST {						\
   virtual AST::Ptr accept(ASTVisitor *v) { return v->visit(this); }	\
   virtual ID getID() const { return V_##name; }				\
   static Ptr convert(AST::Ptr a) {					\
-    return ((a->getID() == V_##name) ? boost::static_pointer_cast<name>(a) : Ptr()); \
+    return ((a->getID() == V_##name) ? dyncompat::static_pointer_cast<name>(a) : Ptr()); \
   }									\
   const type &val() const { return t_; }				\
   void setChild(int i, AST::Ptr a) { kids_[i] = a; }			\
@@ -163,7 +163,7 @@ class name : public AST {						\
   Children kids_;							\
  }									\
 
-class COMMON_EXPORT AST : public boost::enable_shared_from_this<AST> {
+class COMMON_EXPORT AST : public dyncompat::enable_shared_from_this<AST> {
  public:
 
   // This is a global list of all AST types, including those that are not
@@ -186,7 +186,7 @@ class COMMON_EXPORT AST : public boost::enable_shared_from_this<AST> {
     V_YicesAST,
     V_SemanticsAST } ID;
 
-  typedef boost::shared_ptr<AST> Ptr;
+  typedef dyncompat::shared_ptr<AST> Ptr;
   typedef std::vector<AST::Ptr> Children;      
 
   AST() {}
@@ -236,7 +236,7 @@ class COMMON_EXPORT AST : public boost::enable_shared_from_this<AST> {
 
  class COMMON_EXPORT ASTVisitor {
  public:
-   typedef boost::shared_ptr<AST> ASTPtr;
+   typedef dyncompat::shared_ptr<AST> ASTPtr;
 
    virtual ASTPtr visit(AST *) {return AST::Ptr();}
    virtual ASTPtr visit(DataflowAPI::BottomAST *) {return AST::Ptr();}

@@ -46,7 +46,7 @@
 #include <set>
 using namespace std;
 
-#include "boost/tuple/tuple.hpp"
+#include "dyncompat/tuple/tuple.hpp"
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -398,11 +398,11 @@ class emitElfStatic {
     bool isStripped_;
     bool hasRewrittenTLS_;
 
-    typedef boost::tuple<Offset, Offset, Offset> TOCstub;
+    typedef dyncompat::tuple<Offset, Offset, Offset> TOCstub;
     std::map<Symbol *, TOCstub> stubMap;
-    Offset getStubOffset(TOCstub &t) { return boost::get<0>(t); }
-    Offset getNewTOC(TOCstub &t) { return boost::get<1>(t); }
-    Offset getOldTOC(TOCstub &t) { return boost::get<2>(t); }
+    Offset getStubOffset(TOCstub &t) { return dyncompat::get<0>(t); }
+    Offset getNewTOC(TOCstub &t) { return dyncompat::get<1>(t); }
+    Offset getOldTOC(TOCstub &t) { return dyncompat::get<2>(t); }
 
 };
 

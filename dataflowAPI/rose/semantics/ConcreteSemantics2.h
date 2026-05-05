@@ -168,7 +168,7 @@ namespace rose {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Shared-ownership pointer to a concrete memory state. See @ref heap_object_shared_ownership. */
-                typedef boost::shared_ptr<class MemoryState> MemoryStatePtr;
+                typedef dyncompat::shared_ptr<class MemoryState> MemoryStatePtr;
 
 /** Byte-addressable memory.
  *
@@ -190,7 +190,7 @@ namespace rose {
 
                     MemoryState(const MemoryState &other)
                             : BaseSemantics::MemoryState(other), map_(other.map_), pageSize_(other.pageSize_) {
-                        BOOST_FOREACH(MemoryMap::Segment & segment, map_.values())
+                        DYN_FOREACH(MemoryMap::Segment & segment, map_.values())
                         segment.buffer()->copyOnWrite(true);
                     }
 
@@ -242,7 +242,7 @@ namespace rose {
                     /** Recasts a base pointer to a concrete memory state. This is a checked cast that will fail if the specified pointer does
                      *  not have a run-time type that is a ConcreteSemantics::MemoryState or subclass thereof. */
                     static MemoryStatePtr promote(const BaseSemantics::MemoryStatePtr &x) {
-                        MemoryStatePtr retval = boost::dynamic_pointer_cast<MemoryState>(x);
+                        MemoryStatePtr retval = dyncompat::dynamic_pointer_cast<MemoryState>(x);
                         ASSERT_not_null(retval);
                         return retval;
                     }
@@ -316,7 +316,7 @@ namespace rose {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Shared-ownership pointer to concrete RISC operations. See @ref heap_object_shared_ownership. */
-                typedef boost::shared_ptr<class RiscOperators> RiscOperatorsPtr;
+                typedef dyncompat::shared_ptr<class RiscOperators> RiscOperatorsPtr;
 
 /** Defines RISC operators for the ConcreteSemantics domain.
  *
@@ -398,7 +398,7 @@ namespace rose {
                     /** Run-time promotion of a base RiscOperators pointer to concrete operators. This is a checked conversion--it
                      *  will fail if @p x does not point to a ConcreteSemantics::RiscOperators object. */
                     static RiscOperatorsPtr promote(const BaseSemantics::RiscOperatorsPtr &x) {
-                        RiscOperatorsPtr retval = boost::dynamic_pointer_cast<RiscOperators>(x);
+                        RiscOperatorsPtr retval = dyncompat::dynamic_pointer_cast<RiscOperators>(x);
                         ASSERT_not_null(retval);
                         return retval;
                     }

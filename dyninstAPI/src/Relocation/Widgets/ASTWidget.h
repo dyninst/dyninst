@@ -35,7 +35,7 @@
 #include "Widget.h"
 
 class AstNode;
-typedef boost::shared_ptr<AstNode> AstNodePtr;
+typedef dyncompat::shared_ptr<AstNode> AstNodePtr;
 class instPoint;
 
 namespace Dyninst {
@@ -43,7 +43,7 @@ namespace Relocation {
 
 class ASTWidget : public Widget {
  public:
-  typedef boost::shared_ptr<ASTWidget> Ptr;
+  typedef dyncompat::shared_ptr<ASTWidget> Ptr;
 
   static Ptr create(AstNodePtr, instPoint *);
 

@@ -1,9 +1,9 @@
 #include <map>
 #include <vector>
 #include <iostream>
-#include <boost/assign/list_of.hpp>
+#include <dyncompat/assign/list_of.hpp>
 #include <bitset>
-using namespace boost::assign;
+using namespace dyncompat::assign;
 #include "test_aarch64_decoder_table.h"
 
 using namespace std;

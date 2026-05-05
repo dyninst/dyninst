@@ -23,11 +23,11 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/cstdint.hpp>
-#include <boost/foreach.hpp>
-#include <boost/integer_traits.hpp>
-#include <boost/lexical_cast.hpp>
+#include <dyncompat/algorithm/string/predicate.hpp>
+#include <dyncompat/cstdint.hpp>
+#include <dyncompat/foreach.hpp>
+#include <dyncompat/integer_traits.hpp>
+#include <dyncompat/lexical_cast.hpp>
 
 namespace Sawyer {
 namespace Container {
@@ -171,7 +171,7 @@ public:
         }
         if (!nameSubstring_.empty()) {
             out <<", substr=\"";
-            BOOST_FOREACH (char ch, nameSubstring_) {
+            DYN_FOREACH (char ch, nameSubstring_) {
                 switch (ch) {
                     case '\a': out <<"\\a"; break;
                     case '\b': out <<"\\b"; break;
@@ -311,12 +311,12 @@ public:
 
     /** Limit addresses. See @ref AddressMap::after. */
     AddressMapConstraints after(Address x) const {
-        return x==boost::integer_traits<Address>::const_max ? none() : atOrAfter(x+1);
+        return x==dyncompat::integer_traits<Address>::const_max ? none() : atOrAfter(x+1);
     }
 
     /** Limit addreses.  See @ref AddressMap::before. */
     AddressMapConstraints before(Address x) const {
-        return x==boost::integer_traits<Address>::const_min ? none() : atOrBefore(x-1);
+        return x==dyncompat::integer_traits<Address>::const_min ? none() : atOrBefore(x-1);
     }
 
     /** Limit matching to single segment.  See @ref AddressMap::singleSegment. */
@@ -434,12 +434,12 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Methods that directly call the AddressMap
 public:
-    boost::iterator_range<typename AddressMapTraits<AddressMap>::NodeIterator>
+    dyncompat::iterator_range<typename AddressMapTraits<AddressMap>::NodeIterator>
     nodes(MatchFlags flags=0) const {
         return map_->nodes(*this, flags);
     }
 
-    boost::iterator_range<typename AddressMapTraits<AddressMap>::SegmentIterator>
+    dyncompat::iterator_range<typename AddressMapTraits<AddressMap>::SegmentIterator>
     segments(MatchFlags flags=0) const {
         return map_->segments(*this, flags);
     }
@@ -555,7 +555,7 @@ struct MatchedConstraints {
     typedef typename AddressMap::Address Address;
     Sawyer::Container::Interval<Address> interval_;
     typedef typename AddressMapTraits<AddressMap>::NodeIterator NodeIterator;
-    boost::iterator_range<NodeIterator> nodes_;
+    dyncompat::iterator_range<NodeIterator> nodes_;
 };
 
 // Finds the minimum possible address and node iterator for the specified constraints in this map and returns that
@@ -641,7 +641,7 @@ isSatisfied(const typename AddressMap::Node &node, const AddressMapConstraints<A
     const Segment &segment = node.value();
     if (!segment.isAccessible(c.required(), c.prohibited()))
         return false;                               // wrong segment permissions
-    if (!boost::contains(segment.name(), c.substr()))
+    if (!dyncompat::contains(segment.name(), c.substr()))
         return false;                               // wrong segment name
     if (!c.segmentPredicates().apply(true, typename SegmentPredicate<Address, Value>::Args(node.key(), node.value())))
         return false;                               // user-supplied predicates failed
@@ -655,7 +655,7 @@ matchForward(AddressMap &amap, const AddressMapConstraints<AddressMap> &c, Match
     typedef typename AddressMap::Address Address;
     typedef typename AddressMapTraits<AddressMap>::NodeIterator Iterator;
     MatchedConstraints<AddressMap> retval;
-    retval.nodes_ = boost::iterator_range<Iterator>(amap.nodes().end(), amap.nodes().end());
+    retval.nodes_ = dyncompat::iterator_range<Iterator>(amap.nodes().end(), amap.nodes().end());
     if (c.neverMatches() || amap.isEmpty())
         return retval;
 
@@ -714,7 +714,7 @@ matchForward(AddressMap &amap, const AddressMapConstraints<AddressMap> &c, Match
 
     // Build the result
     retval.interval_ = Sawyer::Container::Interval<Address>::hull(minAddr, maxAddr);
-    retval.nodes_ = boost::iterator_range<Iterator>(begin, end);
+    retval.nodes_ = dyncompat::iterator_range<Iterator>(begin, end);
     return retval;
 }
 
@@ -725,7 +725,7 @@ matchBackward(AddressMap &amap, const AddressMapConstraints<AddressMap> &c, Matc
     typedef typename AddressMap::Address Address;
     typedef typename AddressMapTraits<AddressMap>::NodeIterator Iterator;
     MatchedConstraints<AddressMap> retval;
-    retval.nodes_ = boost::iterator_range<Iterator>(amap.nodes().end(), amap.nodes().end());
+    retval.nodes_ = dyncompat::iterator_range<Iterator>(amap.nodes().end(), amap.nodes().end());
     if (c.neverMatches() || amap.isEmpty())
         return retval;
 
@@ -790,7 +790,7 @@ matchBackward(AddressMap &amap, const AddressMapConstraints<AddressMap> &c, Matc
 
     // Build the result
     retval.interval_ = Sawyer::Container::Interval<Address>::hull(minAddr, maxAddr);
-    retval.nodes_ = boost::iterator_range<Iterator>(begin, end);
+    retval.nodes_ = dyncompat::iterator_range<Iterator>(begin, end);
     return retval;
 }
 
@@ -960,7 +960,7 @@ matchConstraints(AddressMap &amap, const AddressMapConstraints<AddressMap> &c, M
  * causes problems for AddressMap because unqualified references to <tt>%Interval</tt> should refer to the
  * Sawyer::Container::Interval class template, but instead they refer to the @ref IntervalMap::Interval "Interval" typedef in
  * the base class.  Our work around is to qualify all occurrences of <tt>%Interval</tt> where Microsoft compilers go wrong. */
-template<class A, class T = boost::uint8_t>
+template<class A, class T = uint8_t>
 class AddressMap: public IntervalMap<Interval<A>, AddressSegment<A, T>, AddressMapImpl::SegmentMergePolicy<A, T> > {
     // "Interval" is qualified to work around bug in Microsoft compilers. See doxygen note above.
     typedef IntervalMap<Sawyer::Container::Interval<A>, AddressSegment<A, T>, AddressMapImpl::SegmentMergePolicy<A, T> > Super;
@@ -997,7 +997,7 @@ public:
      *  an @ref AllocatingBuffer. */
     AddressMap(const AddressMap &other, bool copyOnWrite=false): Super(other) {
         if (copyOnWrite) {
-            BOOST_FOREACH (Segment &segment, this->values()) {
+            DYN_FOREACH (Segment &segment, this->values()) {
                 if (const typename Buffer::Ptr &buffer = segment.buffer())
                     buffer->copyOnWrite(true);
             }
@@ -1263,20 +1263,20 @@ public:
      *
      *  @li Checks that the buffers of the map are appropriate sizes for the address interval in which they're mapped. */
     void checkConsistency() const {
-        BOOST_FOREACH (const Node &node, nodes()) {
+        DYN_FOREACH (const Node &node, nodes()) {
             const Sawyer::Container::Interval<Address> &interval = node.key();
             const Segment &segment = node.value();
             if (segment.buffer()==NULL) {
                 throw std::runtime_error("AddressMap null buffer for interval [" +
-                                         boost::lexical_cast<std::string>(interval.least()) +
-                                         "," + boost::lexical_cast<std::string>(interval.greatest()) + "]");
+                                         dyncompat::lexical_cast<std::string>(interval.least()) +
+                                         "," + dyncompat::lexical_cast<std::string>(interval.greatest()) + "]");
             }
             Address bufAvail = segment.buffer()->available(segment.offset());
             if (bufAvail < interval.size()) {
-                throw std::runtime_error("AddressMap segment at [" + boost::lexical_cast<std::string>(interval.least()) +
-                                         "," + boost::lexical_cast<std::string>(interval.greatest()) + "] points to only " +
-                                         boost::lexical_cast<std::string>(bufAvail) + (1==bufAvail?" value":" values") +
-                                         " but the interval size is " + boost::lexical_cast<std::string>(interval.size()));
+                throw std::runtime_error("AddressMap segment at [" + dyncompat::lexical_cast<std::string>(interval.least()) +
+                                         "," + dyncompat::lexical_cast<std::string>(interval.greatest()) + "] points to only " +
+                                         dyncompat::lexical_cast<std::string>(bufAvail) + (1==bufAvail?" value":" values") +
+                                         " but the interval size is " + dyncompat::lexical_cast<std::string>(interval.size()));
             }
         }
     }
@@ -1294,8 +1294,8 @@ public:
      *  This is just an alias for the @ref values method defined in the super class.
      *
      *  @{ */
-    boost::iterator_range<SegmentIterator> segments() { return this->values(); }
-    boost::iterator_range<ConstSegmentIterator> segments() const { return this->values(); }
+    dyncompat::iterator_range<SegmentIterator> segments() { return this->values(); }
+    dyncompat::iterator_range<ConstSegmentIterator> segments() const { return this->values(); }
 
     /** Segments that overlap with constraints.
      *
@@ -1312,27 +1312,27 @@ public:
      *
      * @code
      *  typedef AddressMap<Address,Value>::Segment Segment;
-     *  BOOST_FOREACH (Segment &segment, map.substr("IAT").segments(MATCH_NONCONTIGUOUS))
+     *  DYN_FOREACH (Segment &segment, map.substr("IAT").segments(MATCH_NONCONTIGUOUS))
      *      segment.accessibility(segment.accessibility() & ~EXECUTABLE);
      * @endcode
      *
      * @{ */
-    boost::iterator_range<ConstSegmentIterator>
+    dyncompat::iterator_range<ConstSegmentIterator>
     segments(const AddressMapConstraints<const AddressMap> &c, MatchFlags flags=0) const {
         using namespace AddressMapImpl;
         if (0==(flags & (MATCH_CONTIGUOUS|MATCH_NONCONTIGUOUS)))
             flags |= MATCH_CONTIGUOUS;
         MatchedConstraints<const AddressMap> m = matchConstraints(*this, c, flags);
-        return boost::iterator_range<ConstSegmentIterator>(m.nodes_.begin(), m.nodes_.end());
+        return dyncompat::iterator_range<ConstSegmentIterator>(m.nodes_.begin(), m.nodes_.end());
     }
 
-    boost::iterator_range<SegmentIterator>
+    dyncompat::iterator_range<SegmentIterator>
     segments(const AddressMapConstraints<AddressMap> &c, MatchFlags flags=0) {
         using namespace AddressMapImpl;
         if (0==(flags & (MATCH_CONTIGUOUS|MATCH_NONCONTIGUOUS)))
             flags |= MATCH_CONTIGUOUS;
         MatchedConstraints<AddressMap> m = matchConstraints(*this, c, flags);
-        return boost::iterator_range<SegmentIterator>(m.nodes_);
+        return dyncompat::iterator_range<SegmentIterator>(m.nodes_);
     }
     /** @} */
 
@@ -1342,8 +1342,8 @@ public:
      *  name that takes a constraint and thus returns only some nodes.
      *
      * @{ */
-    boost::iterator_range<NodeIterator> nodes() { return Super::nodes(); }
-    boost::iterator_range<ConstNodeIterator> nodes() const { return Super::nodes(); }
+    dyncompat::iterator_range<NodeIterator> nodes() { return Super::nodes(); }
+    dyncompat::iterator_range<ConstNodeIterator> nodes() const { return Super::nodes(); }
     /** @} */
 
     /** Nodes that overlap with constraints.
@@ -1360,12 +1360,12 @@ public:
      *
      * @code
      *  typedef AddressMap<Address,Value>::Node Node;
-     *  BOOST_FOREACH (const Node &node, map.within(1000,2000).substr("IAT").nodes(MATCH_NONCONTIGUOUS))
+     *  DYN_FOREACH (const Node &node, map.within(1000,2000).substr("IAT").nodes(MATCH_NONCONTIGUOUS))
      *      std::cout <<"segment at " <<node.key() <<" named " <<node.value().name() <<"\n";
      * @endcode
      *
      * @{ */
-    boost::iterator_range<ConstNodeIterator>
+    dyncompat::iterator_range<ConstNodeIterator>
     nodes(const AddressMapConstraints<const AddressMap> &c, MatchFlags flags=0) const {
         using namespace AddressMapImpl;
         if (0==(flags & (MATCH_CONTIGUOUS|MATCH_NONCONTIGUOUS)))
@@ -1374,7 +1374,7 @@ public:
         return m.nodes_;
     }
 
-    boost::iterator_range<NodeIterator>
+    dyncompat::iterator_range<NodeIterator>
     nodes(const AddressMapConstraints<AddressMap> &c, MatchFlags flags=0) {
         using namespace AddressMapImpl;
         if (0==(flags & (MATCH_CONTIGUOUS|MATCH_NONCONTIGUOUS)))
@@ -1406,7 +1406,7 @@ public:
      *  but a slightly faster test (that is also more self-documenting) is:
      *
      * @code
-     *  if (a == boost::integer_traits<Address>::const_max)
+     *  if (a == dyncompat::integer_traits<Address>::const_max)
      *      break;
      * @endcode
      *
@@ -1573,7 +1573,7 @@ public:
     void traverse(Functor &functor, const AddressMapConstraints<const AddressMap> &c, MatchFlags flags=0) const {
         using namespace AddressMapImpl;
         MatchedConstraints<const AddressMap> m = matchConstraints(*this, c, flags);
-        BOOST_FOREACH (const Node &node, m.nodes_) {
+        DYN_FOREACH (const Node &node, m.nodes_) {
             Sawyer::Container::Interval<Address> part = m.interval_ & node.key();
             if (!functor(*this, part))
                 return;
@@ -1584,7 +1584,7 @@ public:
     void traverse(Functor &functor, const AddressMapConstraints<AddressMap> &c, MatchFlags flags=0) {
         using namespace AddressMapImpl;
         MatchedConstraints<AddressMap> m = matchConstraints(*this, c, flags);
-        BOOST_FOREACH (const Node &node, m.nodes_) {
+        DYN_FOREACH (const Node &node, m.nodes_) {
             Sawyer::Container::Interval<Address> part = m.interval_ & node.key();
             if (!functor(*this, part))
                 return;
@@ -1620,7 +1620,7 @@ public:
      *  std::vector<Value> buf(1024);
      *  while (Interval<Address> accessed = map.atOrAfter(a).read(buf)) {
      *      a = accessed.least();
-     *      BOOST_FOREACH (const Value &v, buf)
+     *      DYN_FOREACH (const Value &v, buf)
      *          std::cout <<a++ <<": " <<v <<"\n";
      *      if (accessed.greatest()==map.hull().greatest())
      *          break; // to handle case when a++ overflowed
@@ -1645,7 +1645,7 @@ public:
             flags |= MATCH_CONTIGUOUS;
         MatchedConstraints<const AddressMap> m = matchConstraints(*this, c, flags);
         if (buf) {
-            BOOST_FOREACH (const Node &node, m.nodes_) {
+            DYN_FOREACH (const Node &node, m.nodes_) {
                 Sawyer::Container::Interval<Address> part = m.interval_ & node.key(); // part of segment to read
                 ASSERT_forbid(part.isEmpty());
                 Address bufferOffset = part.least() - node.key().least() + node.value().offset();
@@ -1706,7 +1706,7 @@ public:
             flags |= MATCH_CONTIGUOUS;
         MatchedConstraints<AddressMap> m = matchConstraints(*this, c.prohibit(Access::IMMUTABLE), flags);
         if (buf) {
-            BOOST_FOREACH (Node &node, m.nodes_) {
+            DYN_FOREACH (Node &node, m.nodes_) {
                 Segment &segment = node.value();
                 Sawyer::Container::Interval<Address> part = m.interval_ & node.key(); // part of segment to write
                 ASSERT_forbid(part.isEmpty());
@@ -1759,11 +1759,11 @@ public:
         if (0==(flags & (MATCH_CONTIGUOUS|MATCH_NONCONTIGUOUS)))
             flags |= MATCH_NONCONTIGUOUS;
         MatchedConstraints<AddressMap> m = matchConstraints(*this, c.addressConstraints(), flags);
-        BOOST_FOREACH (const Node &node, m.nodes_) {
+        DYN_FOREACH (const Node &node, m.nodes_) {
             if (isSatisfied(node, c))
                 toErase.insert(node.key() & m.interval_);
         }
-        BOOST_FOREACH (const Sawyer::Container::Interval<Address> &interval, toErase.intervals())
+        DYN_FOREACH (const Sawyer::Container::Interval<Address> &interval, toErase.intervals())
             this->erase(interval);
     }
 
@@ -1786,12 +1786,12 @@ public:
             flags |= MATCH_NONCONTIGUOUS;
         IntervalSet<Sawyer::Container::Interval<Address> > toKeep;
         MatchedConstraints<AddressMap> m = matchConstraints(*this, c.addressConstraints(), flags);
-        BOOST_FOREACH (const Node &node, m.nodes_) {
+        DYN_FOREACH (const Node &node, m.nodes_) {
             if (isSatisfied(node, c))
                 toKeep.insert(node.key() & m.interval_);
         }
         toKeep.invert();
-        BOOST_FOREACH (const Sawyer::Container::Interval<Address> &interval, toKeep.intervals())
+        DYN_FOREACH (const Sawyer::Container::Interval<Address> &interval, toKeep.intervals())
             this->erase(interval);
     }
 
@@ -1822,7 +1822,7 @@ public:
         typedef std::pair<Sawyer::Container::Interval<Address>, Segment> ISPair;
         std::vector<ISPair> newSegments;
         MatchedConstraints<AddressMap> m = matchConstraints(*this, c.addressConstraints(), flags);
-        BOOST_FOREACH (Node &node, m.nodes_) {
+        DYN_FOREACH (Node &node, m.nodes_) {
             Segment &segment = node.value();
             if (isSatisfied(node, c)) {
                 unsigned newAccess = (segment.accessibility() | requiredAccess) & ~prohibitedAccess;
@@ -1837,7 +1837,7 @@ public:
                 }
             }
         }
-        BOOST_FOREACH (const ISPair &pair, newSegments)
+        DYN_FOREACH (const ISPair &pair, newSegments)
             this->insert(pair.first, pair.second);
     }
     

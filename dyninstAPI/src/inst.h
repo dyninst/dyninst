@@ -45,7 +45,7 @@
 namespace Dyninst {
    namespace PatchAPI {
       class Instance;
-      typedef boost::shared_ptr<Instance> InstancePtr;
+      typedef dyncompat::shared_ptr<Instance> InstancePtr;
    }
 }
 

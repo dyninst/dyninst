@@ -11,7 +11,7 @@
 #include "Buffer.h"
 #include "Sawyer.h"
 
-#include <boost/lexical_cast.hpp>
+#include <dyncompat/lexical_cast.hpp>
 #include <cstring>                                      // memcpy
 #include <string>
 #include <vector>
@@ -50,8 +50,8 @@ public:
         Address nWritten = newBuffer->write(&values_[0], 0, this->size());
         if (nWritten != this->size()) {
             throw std::runtime_error("AllocatingBuffer::copy() failed after copying " +
-                                     boost::lexical_cast<std::string>(nWritten) + " of " +
-                                     boost::lexical_cast<std::string>(this->size()) +
+                                     dyncompat::lexical_cast<std::string>(nWritten) + " of " +
+                                     dyncompat::lexical_cast<std::string>(this->size()) +
                                      (1==this->size()?" value":" values"));
         }
         return newBuffer;

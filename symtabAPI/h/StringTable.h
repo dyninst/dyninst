@@ -5,17 +5,15 @@
 #ifndef DYNINST_STRINGTABLE_H
 #define DYNINST_STRINGTABLE_H
 
+#include <filesystem>
 #include <ostream>
 #include <stddef.h>
+#include <optional>
 #include <string>
+#include <utility>
+#include <vector>
 #include "concurrent.h"
-#include <boost/shared_ptr.hpp>
-#include <boost/multi_index_container.hpp>
-#include <boost/multi_index/random_access_index.hpp>
-#include <boost/multi_index/identity.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/thread/lockable_adapter.hpp>
-#include <boost/thread/synchronized_value.hpp>
+#include <dyncompat/shared_ptr.hpp>
 
 namespace Dyninst {
     namespace SymtabAPI {
@@ -25,39 +23,73 @@ namespace Dyninst {
         struct StringTableEntry {
             std::string str;
             std::string filename;
-            StringTableEntry(std::string s, std::string f) : str(s), filename(f){}
+            StringTableEntry(std::string s, std::string f)
+                : str(std::move(s)),
+                  filename(f.empty() ? std::filesystem::path(str).filename().string() : std::move(f)) {}
             bool operator==(std::string s) const {
                 return s == str ||
                     s == str.substr(str.rfind("/")+1);
             }
         };
 
-        namespace bmi = boost::multi_index;
-        typedef boost::multi_index_container
-        <
-            StringTableEntry,
-            bmi::indexed_by
-            <
-                bmi::random_access<>,
-                bmi::ordered_non_unique
-                <
-                    bmi::member<StringTableEntry, const std::string, &StringTableEntry::str>
-                >,
-                bmi::ordered_non_unique
-                <
-                    bmi::member<StringTableEntry, const std::string, &StringTableEntry::filename>
-                >
-            >
-        >
-        StringTableBase;
+        struct StringTable {
+            using container_type = std::vector<StringTableEntry>;
+            using value_type = container_type::value_type;
+            using iterator = container_type::iterator;
+            using const_iterator = container_type::const_iterator;
 
-        struct StringTable : public StringTableBase {
-            StringTable() : StringTableBase() {}
-            ~StringTable() {}
             dyn_mutex lock;
+
+            size_t size() const { return entries_.size(); }
+            bool empty() const { return entries_.empty(); }
+
+            value_type &operator[](size_t idx) { return entries_[idx]; }
+            const value_type &operator[](size_t idx) const { return entries_[idx]; }
+
+            iterator begin() { return entries_.begin(); }
+            iterator end() { return entries_.end(); }
+            const_iterator begin() const { return entries_.begin(); }
+            const_iterator end() const { return entries_.end(); }
+
+            template <typename S1, typename S2>
+            void emplace_back(S1 &&str, S2 &&filename) {
+                entries_.emplace_back(std::forward<S1>(str), std::forward<S2>(filename));
+            }
+
+            size_t ensure(std::string str, std::string filename = "") {
+                if (auto idx = find(str)) {
+                    return *idx;
+                }
+                entries_.emplace_back(std::move(str), std::move(filename));
+                return entries_.size() - 1;
+            }
+
+            bool contains(const std::string &str) const { return static_cast<bool>(find(str)); }
+
+            std::vector<size_t> find_by_filename(const std::string &filename) const {
+                std::vector<size_t> matches;
+                for (size_t i = 0; i < entries_.size(); ++i) {
+                    if (entries_[i].filename == filename) {
+                        matches.push_back(i);
+                    }
+                }
+                return matches;
+            }
+
+            std::optional<size_t> find(const std::string &str) const {
+                for (size_t i = 0; i < entries_.size(); ++i) {
+                    if (entries_[i].str == str) {
+                        return i;
+                    }
+                }
+                return std::nullopt;
+            }
+
+        private:
+            container_type entries_;
         };
 
-        typedef boost::shared_ptr<StringTable> StringTablePtr;
+        typedef dyncompat::shared_ptr<StringTable> StringTablePtr;
 
         inline std::ostream& operator<<(std::ostream& s, StringTableEntry e)
         {
@@ -81,4 +113,3 @@ namespace Dyninst {
 
 
 #endif //DYNINST_STRINGTABLE_H
-

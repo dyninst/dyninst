@@ -29,7 +29,7 @@
  */
 
 #include "util.h"
-#include <boost/optional.hpp>
+#include <dyncompat/optional.hpp>
 #include <dwarf.h>
 #include <elfutils/libdw.h>
 
@@ -39,7 +39,7 @@ namespace DwarfDyninst {
 struct dwarf_error {};
 
 struct dwarf_result {
-  boost::optional<Dwarf_Word> value;
+  dyncompat::optional<Dwarf_Word> value;
   bool error = false;
   dwarf_result() = default;
   dwarf_result(Dwarf_Word t) : value{t} {}

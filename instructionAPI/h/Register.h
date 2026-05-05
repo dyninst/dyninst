@@ -55,7 +55,7 @@ namespace Dyninst
     {
     public:
       /// \brief A type definition for a reference-counted pointer to a %RegisterAST.
-      typedef boost::shared_ptr<RegisterAST> Ptr;
+      typedef dyncompat::shared_ptr<RegisterAST> Ptr;
       
       /// Construct a register, assigning it the ID \c id.
       RegisterAST(MachRegister r, uint32_t num_elements = 1 );

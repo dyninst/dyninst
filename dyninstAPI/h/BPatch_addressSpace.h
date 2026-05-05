@@ -31,7 +31,7 @@
 #ifndef _BPatch_addressSpace_h_
 #define _BPatch_addressSpace_h_
 
-#include "boost/shared_ptr.hpp"
+#include "dyncompat/shared_ptr.hpp"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_enums.h"
@@ -44,7 +44,7 @@
 #include <set>
 #include <stdio.h>
 #include <signal.h>
-#include <boost/iterator/transform_iterator.hpp>
+#include <dyncompat/iterator/transform_iterator.hpp>
 #include "dyntypes.h"
 // PatchAPI stuffs
 //#include "Command.h"
@@ -59,9 +59,9 @@ namespace Dyninst {
     class Instance;
     class PatchFunction;
     class Point;
-    typedef boost::shared_ptr<PatchMgr> PatchMgrPtr;
-    typedef boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
-    typedef boost::shared_ptr<Instance> InstancePtr;
+    typedef dyncompat::shared_ptr<PatchMgr> PatchMgrPtr;
+    typedef dyncompat::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
+    typedef dyncompat::shared_ptr<Instance> InstancePtr;
     BPATCH_DLL_EXPORT PatchMgrPtr convert(const BPatch_addressSpace *);
   }
   namespace SymtabAPI {

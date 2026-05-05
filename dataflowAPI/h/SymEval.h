@@ -332,8 +332,8 @@ class SymEvalPolicy;
 
 class  SymEval {
 public:
-    typedef boost::shared_ptr<SliceNode> SliceNodePtr;
-    typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+    typedef dyncompat::shared_ptr<SliceNode> SliceNodePtr;
+    typedef dyncompat::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
 public:
   typedef enum {
      FAILED,

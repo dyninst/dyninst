@@ -52,7 +52,7 @@ class RelocBlock;
 struct RelocEdge;
 class TargetInt;
 class Widget;
-typedef boost::shared_ptr<Widget> WidgetPtr;
+typedef dyncompat::shared_ptr<Widget> WidgetPtr;
 typedef std::list<WidgetPtr> WidgetList;
 
 class RelocGraph {

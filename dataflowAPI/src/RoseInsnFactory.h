@@ -39,7 +39,7 @@
 #include "Visitor.h"
 #include "Instruction.h"
 #include "common/h/util.h"
-#include "boost/shared_ptr.hpp"
+#include "dyncompat/shared_ptr.hpp"
 #include <vector>
 #include <stddef.h>
 #include <string>
@@ -81,8 +81,8 @@ namespace Dyninst {
     namespace DataflowAPI {
         class RoseInsnFactory {
         protected:
-            typedef boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
-            typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+            typedef dyncompat::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
+            typedef dyncompat::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
             uint64_t _addr = 0 ;
         public:
             DATAFLOW_EXPORT RoseInsnFactory(void) { }

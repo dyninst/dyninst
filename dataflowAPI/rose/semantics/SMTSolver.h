@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 #include "BinarySymbolicExpr.h"
-#include <boost/thread/mutex.hpp>
+#include <dyncompat/thread/mutex.hpp>
 
 /* Enable type formatting macros, not enabled by default in C++ */
 #ifndef __STDC_FORMAT_MACROS
@@ -152,7 +152,7 @@ namespace rose {
             std::string output_text;
 
             // Statistics
-            static boost::mutex class_stats_mutex;
+            static dyncompat::mutex class_stats_mutex;
             static Stats class_stats;                   // all access must be protected by class_stats_mutex
             Stats stats;
 

@@ -30,9 +30,9 @@
 #ifndef _ITERATORS_H_
 #define _ITERATORS_H_
 
-#include <boost/iterator/filter_iterator.hpp>
-#include <boost/type_traits.hpp>
-#include <boost/function.hpp>
+#include <dyncompat/iterator/filter_iterator.hpp>
+#include <dyncompat/type_traits.hpp>
+#include <dyncompat/function.hpp>
 /*
  * An iterator and a predicate interface, and a 
  * ContainerWrapper that can provide a forward
@@ -93,8 +93,8 @@ template <
 
  public:
  
- typedef boost::filter_iterator<PREDICATE, typename boost::remove_const<C>::type::iterator> iterator;
- typedef boost::filter_iterator<PREDICATE, typename boost::remove_const<C>::type::const_iterator> const_iterator;
+ typedef dyncompat::filter_iterator<PREDICATE, typename boost::remove_const<C>::type::iterator> iterator;
+ typedef dyncompat::filter_iterator<PREDICATE, typename boost::remove_const<C>::type::const_iterator> const_iterator;
  
 
  PARSER_EXPORT ContainerWrapper(C & cont) : _m_container(cont) { }
@@ -102,47 +102,47 @@ template <
 
  iterator        begin()
  {
-   return boost::make_filter_iterator<PREDICATE>(_m_container.begin(), _m_container.end());
+   return dyncompat::make_filter_iterator<PREDICATE>(_m_container.begin(), _m_container.end());
  }
  
  template <typename P>
- boost::filter_iterator<P, typename boost::remove_const<C>::type::iterator> 
+ dyncompat::filter_iterator<P, typename boost::remove_const<C>::type::iterator> 
  begin(P * p)
  {
-   return boost::make_filter_iterator(*p, _m_container.begin(), _m_container.end());
+   return dyncompat::make_filter_iterator(*p, _m_container.begin(), _m_container.end());
  }
  
  iterator end()
  {
-   return boost::make_filter_iterator<PREDICATE>(_m_container.end(), _m_container.end());
+   return dyncompat::make_filter_iterator<PREDICATE>(_m_container.end(), _m_container.end());
  }
  template <typename P>
- boost::filter_iterator<P, typename boost::remove_const<C>::type::iterator> 
+ dyncompat::filter_iterator<P, typename boost::remove_const<C>::type::iterator> 
  end(P * p)
  {
-   return boost::make_filter_iterator<>(*p, _m_container.end(), _m_container.end());
+   return dyncompat::make_filter_iterator<>(*p, _m_container.end(), _m_container.end());
  }
  const_iterator        begin() const
  {
-   return boost::make_filter_iterator<PREDICATE>(_m_container.begin(), _m_container.end());
+   return dyncompat::make_filter_iterator<PREDICATE>(_m_container.begin(), _m_container.end());
  }
  
  template <typename P>
- boost::filter_iterator<P, typename boost::remove_const<C>::type::const_iterator> 
+ dyncompat::filter_iterator<P, typename boost::remove_const<C>::type::const_iterator> 
  begin(P * p) const
  {
-   return boost::make_filter_iterator(*p, _m_container.begin(), _m_container.end());
+   return dyncompat::make_filter_iterator(*p, _m_container.begin(), _m_container.end());
  }
  
  const_iterator end() const
  {
-   return boost::make_filter_iterator<PREDICATE>(_m_container.end(), _m_container.end());
+   return dyncompat::make_filter_iterator<PREDICATE>(_m_container.end(), _m_container.end());
  } 
  template <typename P>
- boost::filter_iterator<P, typename boost::remove_const<C>::type::const_iterator> 
+ dyncompat::filter_iterator<P, typename boost::remove_const<C>::type::const_iterator> 
  end(P * p) const
  {
-   return boost::make_filter_iterator(*p, _m_container.end(), _m_container.end());
+   return dyncompat::make_filter_iterator(*p, _m_container.end(), _m_container.end());
  }
 
  size_t          size() const;

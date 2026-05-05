@@ -73,7 +73,7 @@ namespace Dyninst
 						return m_name;
 					}
 					
-					typedef boost::shared_ptr<funcT> Ptr;
+					typedef dyncompat::shared_ptr<funcT> Ptr;
 	
 					private:
                         std::string m_name;

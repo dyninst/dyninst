@@ -58,8 +58,8 @@ class CodeBuffer;
 class Widget {
   friend class Transformer;
  public:
-  typedef boost::shared_ptr<Widget> Ptr;
-  typedef boost::shared_ptr<RelocBlock> RelocBlockPtr;
+  typedef dyncompat::shared_ptr<Widget> Ptr;
+  typedef dyncompat::shared_ptr<RelocBlock> RelocBlockPtr;
 
   Widget() {}
 

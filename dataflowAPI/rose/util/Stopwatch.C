@@ -10,9 +10,9 @@
 #include <iostream>
 
 #if defined(SAWYER_HAVE_BOOST_CHRONO)
-#   include <boost/chrono/duration.hpp>
-#   include <boost/chrono/system_clocks.hpp>
-#elif defined(BOOST_WINDOWS)
+#include <chrono>
+
+#elif defined(_WIN32)
 #   include <time.h>
 #   include <windows.h>
 #   undef ERROR                                         // not sure where this pollution comes from
@@ -25,8 +25,8 @@ namespace Sawyer {
 
 static Stopwatch::TimePoint getCurrentTime() {
 #if defined(SAWYER_HAVE_BOOST_CHRONO)
-    return boost::chrono::high_resolution_clock::now();
-#elif defined(BOOST_WINDOWS)
+    return std::chrono::high_resolution_clock::now();
+#elif defined(_WIN32)
     FILETIME ft;
     GetSystemTimeAsFileTime(&ft);
     unsigned __int64 t = ft.dwHighDateTime;

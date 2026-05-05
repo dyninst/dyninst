@@ -1,0 +1,6 @@
+#ifndef DYNINST_DYNCOMPAT_THREAD_LOCKABLE_ADAPTER_HPP
+#define DYNINST_DYNCOMPAT_THREAD_LOCKABLE_ADAPTER_HPP
+
+#include "../dyninst_thread_compat.hpp"
+
+#endif

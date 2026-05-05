@@ -184,7 +184,7 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
         bool minuendIsZero = true;
         AST::Ptr child = ast->child(0);	
 	if (child->getID() == AST::V_RoseAST) {
-	    RoseAST::Ptr childRose = boost::static_pointer_cast<RoseAST>(child);
+	    RoseAST::Ptr childRose = dyncompat::static_pointer_cast<RoseAST>(child);
 	    if (childRose->val().op == ROSEOperation::addOp) {
 	        minuendIsZero = false;
 	        subtrahend = childRose->child(0);
@@ -192,7 +192,7 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
 		// If the minuend is a constant, then
 		// the minuend is currently in its two-complement form
 		if (minuend->getID() == AST::V_ConstantAST) {
-		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(minuend);
+		    ConstantAST::Ptr constAST = dyncompat::static_pointer_cast<ConstantAST>(minuend);
 		    uint64_t val = constAST->val().val;
 		    int size = constAST->val().size;
 		    if (size < 64) 
@@ -203,10 +203,10 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
 		        parsing_printf("WARNING: constant bit size %d exceeds 64!\n", size);
 		    minuend = ConstantAST::create(Constant(val, size));
 		} else if (minuend->getID() == AST::V_RoseAST) {
-		    RoseAST::Ptr sub = boost::static_pointer_cast<RoseAST>(minuend);
+		    RoseAST::Ptr sub = dyncompat::static_pointer_cast<RoseAST>(minuend);
 		    minuend = AST::Ptr();
 		    if (sub->val().op == ROSEOperation::addOp && sub->child(0)->getID() == AST::V_RoseAST) {
-		        sub = boost::static_pointer_cast<RoseAST>(sub->child(0));
+		        sub = dyncompat::static_pointer_cast<RoseAST>(sub->child(0));
 			if (sub->val().op == ROSEOperation::invertOp) {
 			    // Otherwise, the minuend ast is in the form of add(invert(minuend), 1)
   		            // Need to extract the real minuend
@@ -258,11 +258,11 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
         firstAdd = false;
         Address tableBase = 0;
 	if (ast->child(0)->getID() == AST::V_ConstantAST && PotentialIndexing(ast->child(1))) {
-	    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(ast->child(0));
+	    ConstantAST::Ptr constAST = dyncompat::static_pointer_cast<ConstantAST>(ast->child(0));
 	    tableBase = (Address)constAST->val().val;
 	}
 	if (ast->child(1)->getID() == AST::V_ConstantAST && PotentialIndexing(ast->child(0))) {
-	    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(ast->child(1));
+	    ConstantAST::Ptr constAST = dyncompat::static_pointer_cast<ConstantAST>(ast->child(1));
 	    tableBase = (Address)constAST->val().val;
 	}
 	if (tableBase) {
@@ -294,25 +294,25 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 	 ast->val().op == ROSEOperation::shiftLOp ||
 	 ast->val().op == ROSEOperation::rotateLOp) && memoryReadLayer > 0) {
 	if (ast->child(0)->getID() == AST::V_ConstantAST && ast->child(1)->getID() == AST::V_VariableAST) {
-	    ConstantAST::Ptr constAst = boost::static_pointer_cast<ConstantAST>(ast->child(0));	   
+	    ConstantAST::Ptr constAst = dyncompat::static_pointer_cast<ConstantAST>(ast->child(0));	   
 	    if (!((ast->val().op == ROSEOperation::uMultOp || ast->val().op == ROSEOperation::sMultOp) &&
 	        !findTableBase &&
 		constAst->val().val == 1)) {
 		findIndex = true;
 		numOfVar++;
-		VariableAST::Ptr varAst = boost::static_pointer_cast<VariableAST>(ast->child(1));
+		VariableAST::Ptr varAst = dyncompat::static_pointer_cast<VariableAST>(ast->child(1));
 		index = varAst->val().reg;
 		return AST::Ptr();
 	    }
 	}
 	if (ast->child(1)->getID() == AST::V_ConstantAST && ast->child(0)->getID() == AST::V_VariableAST) {
-	    ConstantAST::Ptr constAst = boost::static_pointer_cast<ConstantAST>(ast->child(1));	   
+	    ConstantAST::Ptr constAst = dyncompat::static_pointer_cast<ConstantAST>(ast->child(1));	   
 	    if (!((ast->val().op == ROSEOperation::uMultOp || ast->val().op == ROSEOperation::sMultOp) &&
 	        !findTableBase &&
 		constAst->val().val == 1)) {
 		findIndex = true;
 		numOfVar++;
-		VariableAST::Ptr varAst = boost::static_pointer_cast<VariableAST>(ast->child(0));
+		VariableAST::Ptr varAst = dyncompat::static_pointer_cast<VariableAST>(ast->child(0));
 		index = varAst->val().reg;
 		return AST::Ptr();
 	    }
@@ -335,7 +335,7 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::VariableAST *) {
 bool JumpTableFormatVisitor::PotentialIndexing(AST::Ptr ast) {
     if (ast->getID() == AST::V_VariableAST) return true;
     if (ast->getID() == AST::V_RoseAST) {
-        RoseAST::Ptr r = boost::static_pointer_cast<RoseAST>(ast);
+        RoseAST::Ptr r = dyncompat::static_pointer_cast<RoseAST>(ast);
 	if (r->val().op == ROSEOperation::uMultOp || 
 	    r->val().op == ROSEOperation::sMultOp || 
 	    r->val().op == ROSEOperation::shiftLOp || 
@@ -348,8 +348,8 @@ bool JumpTableFormatVisitor::PotentialIndexing(AST::Ptr ast) {
 	if (r->val().op == ROSEOperation::addOp) {
 	    // The index can be subtracted 
 	    if (r->child(0)->getID() == AST::V_RoseAST && r->child(1)->getID() == AST::V_ConstantAST) {
-	        RoseAST::Ptr lc = boost::static_pointer_cast<RoseAST>(r->child(0));
-		ConstantAST::Ptr rc = boost::static_pointer_cast<ConstantAST>(r->child(1));
+	        RoseAST::Ptr lc = dyncompat::static_pointer_cast<RoseAST>(r->child(0));
+		ConstantAST::Ptr rc = dyncompat::static_pointer_cast<ConstantAST>(r->child(1));
 		if (lc->val().op == ROSEOperation::invertOp && rc->val().val == 1) {
 		    return PotentialIndexing(lc->child(0));
 		}

@@ -52,7 +52,7 @@
 #include "ExceptionBlock.h"
 #include "dyninstversion.h"
 
-#include "boost/shared_ptr.hpp"
+#include "dyncompat/shared_ptr.hpp"
 
 class MappedFile;
 
@@ -249,18 +249,18 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool getTruncateLinePaths();
    
    /***** Type Information *****/
-   virtual bool findType(boost::shared_ptr<Type>& type, std::string name);
+   virtual bool findType(dyncompat::shared_ptr<Type>& type, std::string name);
    bool findType(Type*& t, std::string n) {
-     boost::shared_ptr<Type> tp;
+     dyncompat::shared_ptr<Type> tp;
      auto r = findType(tp, n);
      t = tp.get();
      return r;
    }
-   virtual boost::shared_ptr<Type> findType(unsigned type_id, Type::do_share_t);
+   virtual dyncompat::shared_ptr<Type> findType(unsigned type_id, Type::do_share_t);
    Type* findType(unsigned i) { return findType(i, Type::share).get(); }
-   virtual bool findVariableType(boost::shared_ptr<Type>& type, std::string name);
+   virtual bool findVariableType(dyncompat::shared_ptr<Type>& type, std::string name);
    bool findVariableType(Type*& t, std::string n) {
-     boost::shared_ptr<Type> tp;
+     dyncompat::shared_ptr<Type> tp;
      auto r = findVariableType(tp, n);
      t = tp.get();
      return r;
@@ -268,20 +268,20 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    bool addType(Type *typ);
 
-   static boost::shared_ptr<builtInTypeCollection>& builtInTypes();
-   static boost::shared_ptr<typeCollection>& stdTypes();
+   static dyncompat::shared_ptr<builtInTypeCollection>& builtInTypes();
+   static dyncompat::shared_ptr<typeCollection>& stdTypes();
 
-   static void getAllstdTypes(std::vector<boost::shared_ptr<Type>>&);
+   static void getAllstdTypes(std::vector<dyncompat::shared_ptr<Type>>&);
    static std::vector<Type*>* getAllstdTypes() {
-     std::vector<boost::shared_ptr<Type>> v;
+     std::vector<dyncompat::shared_ptr<Type>> v;
      getAllstdTypes(v);
      auto r = new std::vector<Type*>(v.size());
      for(std::size_t i = 0; i < v.size(); i++) (*r)[i] = v[i].get();
      return r;
    }
-   static void getAllbuiltInTypes(std::vector<boost::shared_ptr<Type>>&);
+   static void getAllbuiltInTypes(std::vector<dyncompat::shared_ptr<Type>>&);
    static std::vector<Type*>* getAllbuiltInTypes() {
-     std::vector<boost::shared_ptr<Type>> v;
+     std::vector<dyncompat::shared_ptr<Type>> v;
      getAllbuiltInTypes(v);
      auto r = new std::vector<Type*>(v.size());
      for(std::size_t i = 0; i < v.size(); i++) (*r)[i] = v[i].get();
@@ -462,10 +462,10 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    /***** Private Data Members *****/
    private:
 
-   static boost::shared_ptr<typeCollection> setupStdTypes();
-   static boost::shared_ptr<builtInTypeCollection> setupBuiltinTypes();
+   static dyncompat::shared_ptr<typeCollection> setupStdTypes();
+   static dyncompat::shared_ptr<builtInTypeCollection> setupBuiltinTypes();
    dyn_rwlock symbols_rwlock{};
-   // boost::mutex symbols_mutex;
+   // dyncompat::mutex symbols_mutex;
 
    std::string member_name_{};
    Offset member_offset_{};
@@ -554,8 +554,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    std::map <std::string, std::string> dynLibSubs{};
 
    public:
-   static boost::shared_ptr<Type>& type_Error();
-   static boost::shared_ptr<Type>& type_Untyped();
+   static dyncompat::shared_ptr<Type>& type_Error();
+   static dyncompat::shared_ptr<Type>& type_Untyped();
 
  private:
     unsigned _ref_cnt{1};

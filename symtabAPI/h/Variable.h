@@ -62,9 +62,9 @@ class SYMTAB_EXPORT Variable : public Aggregate, public AnnotatableSparse {
     /* Symbol management */
     bool removeSymbol(Symbol *sym);      
 
-   void setType(boost::shared_ptr<Type> type);
+   void setType(dyncompat::shared_ptr<Type> type);
    void setType(Type* t) { setType(t->reshare()); }
-   boost::shared_ptr<Type> getType(Type::do_share_t);
+   dyncompat::shared_ptr<Type> getType(Type::do_share_t);
    Type* getType() { return getType(Type::share).get(); }
    bool operator==(const Variable &v);
 
@@ -75,7 +75,7 @@ class SYMTAB_EXPORT Variable : public Aggregate, public AnnotatableSparse {
 
  private:
 
-   boost::shared_ptr<Type> type_;
+   dyncompat::shared_ptr<Type> type_;
 
    void print(std::ostream &) const;
 };
@@ -86,7 +86,7 @@ class SYMTAB_EXPORT localVar : public AnnotatableSparse
 	friend class localVarCollection;
 
 	std::string name_;
-	boost::shared_ptr<Type> type_;
+	dyncompat::shared_ptr<Type> type_;
 	std::string fileName_;
 	int lineNum_;
         FunctionBase *func_;
@@ -105,7 +105,7 @@ class SYMTAB_EXPORT localVar : public AnnotatableSparse
 	localVar() :
         type_(NULL), lineNum_(-1), func_(NULL), locsExpanded_(false) {}
 	//  Internal use only
-	localVar(std::string name,  boost::shared_ptr<Type> typ, std::string fileName, 
+	localVar(std::string name,  dyncompat::shared_ptr<Type> typ, std::string fileName, 
             int lineNum, FunctionBase *f, 
             std::vector<VariableLocation> *locs = NULL);
 	localVar(std::string n, Type* t, std::string fn, int l, FunctionBase *f, 
@@ -121,9 +121,9 @@ class SYMTAB_EXPORT localVar : public AnnotatableSparse
 	public:
 	//  end of functions for internal use only
 	std::string &getName();
-	boost::shared_ptr<Type> getType(Type::do_share_t);
+	dyncompat::shared_ptr<Type> getType(Type::do_share_t);
     Type* getType() { return getType(Type::share).get(); }
-	bool setType(boost::shared_ptr<Type> newType);
+	bool setType(dyncompat::shared_ptr<Type> newType);
 	bool setType(Type* t) { return setType(t->reshare()); }
 	int  getLineNum();
 	std::string &getFileName();

@@ -29,15 +29,14 @@
  */
 
 #include <assert.h>
+#include <filesystem>
 #include <list>
 #include <cstring>
-#include <boost/filesystem.hpp>
-#include "boost/functional/hash.hpp"
 #include "common/src/headers.h"
 #include "Module.h"
 
-#include <functional>
 #include <iostream>
+#include <limits>
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -50,12 +49,49 @@ LineInformation::LineInformation() :strings_(new StringTable)
 {
 }
 
+bool LineInformation::StatementAddrLess::operator()(Statement::Ptr lhs, Statement::Ptr rhs) const
+{
+    if (lhs->startAddr() != rhs->startAddr()) return lhs->startAddr() < rhs->startAddr();
+    if (lhs->endAddr() != rhs->endAddr()) return lhs->endAddr() < rhs->endAddr();
+    if (lhs->getFileIndex() != rhs->getFileIndex()) return lhs->getFileIndex() < rhs->getFileIndex();
+    if (lhs->getLine() != rhs->getLine()) return lhs->getLine() < rhs->getLine();
+    if (lhs->getColumn() != rhs->getColumn()) return lhs->getColumn() < rhs->getColumn();
+    return false;
+}
+
+bool LineInformation::LineInfoKeyLess::operator()(const LineInfoKey &lhs, const LineInfoKey &rhs) const
+{
+    if (lhs.file_index != rhs.file_index) return lhs.file_index < rhs.file_index;
+    return lhs.line < rhs.line;
+}
+
+LineInformation::LineInfoKey LineInformation::make_key(unsigned int file_index, unsigned int line_no)
+{
+    return LineInfoKey{file_index, line_no};
+}
+
+std::pair<LineInformation::const_iterator, bool> LineInformation::insert(Statement::Ptr statement)
+{
+    auto inserted = by_addr_.insert(statement);
+    if (inserted.second) {
+        by_line_.emplace(make_key(statement->getFileIndex(), statement->getLine()), statement);
+        by_end_.emplace(statement->endAddr(), statement);
+    }
+    return inserted;
+}
+
 bool LineInformation::addLine( unsigned int lineSource,
       unsigned int lineNo, 
       unsigned int lineOffset, 
       Offset lowInclusiveAddr, 
       Offset highExclusiveAddr ) 
 {
+    if (lowInclusiveAddr == highExclusiveAddr)  {
+        // if the range is [low, low), adjust it to be [low, low + 1)
+        // as the DWARF spec says the address is include along with any
+        // subsequent address up to but not including the next records address
+        ++highExclusiveAddr;
+    }
     Statement* the_stmt = new Statement(lineSource, lineNo, lineOffset,
                                         lowInclusiveAddr, highExclusiveAddr);
     Statement::Ptr insert_me(the_stmt);
@@ -73,13 +109,8 @@ bool LineInformation::addLine( const std::string &lineSource,
                                Offset lowInclusiveAddr,
                                Offset highExclusiveAddr )
 {
-    // lookup or insert linesource in string table and get iterator
-    auto iter = strings_->get<1>().insert(StringTableEntry(lineSource,"")).first;
-
-    // get index of string in string table
-    auto i = boost::multi_index::project<0>(*strings_, iter) - strings_->get<0>().begin();
-
-    return addLine(i, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr);
+    auto i = strings_->ensure(lineSource);
+    return addLine(static_cast<unsigned int>(i), lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr);
 }
 
 void LineInformation::addLineInfo(LineInformation *lineInfo)
@@ -114,15 +145,10 @@ std::string print(const Dyninst::SymtabAPI::Statement& stmt)
 bool LineInformation::getSourceLines(Offset addressInRange,
                                      vector<Statement_t> &lines)
 {
-    const_iterator start_addr_valid = project<Statement::addr_range>(get<Statement::upper_bound>().lower_bound(addressInRange ));
-    const_iterator end_addr_valid = impl_t::upper_bound(addressInRange );
-    while(start_addr_valid != end_addr_valid && start_addr_valid != end())
-    {
-        if(*(*start_addr_valid) == addressInRange)
-        {
-            lines.push_back(*start_addr_valid);
+    for (auto iter = by_end_.upper_bound(addressInRange); iter != by_end_.end(); ++iter) {
+        if (*(iter->second) == addressInRange) {
+            lines.push_back(iter->second);
         }
-        ++start_addr_valid;
     }
     return true;
 }
@@ -149,7 +175,7 @@ bool LineInformation::getAddressRanges( const char * lineSource,
             i != found_statements.second;
             ++i)
     {
-        ranges.push_back(AddressRange(**i));
+        ranges.push_back(AddressRange(*(i->second)));
     }
 
     return found_statements.first != found_statements.second;
@@ -157,26 +183,20 @@ bool LineInformation::getAddressRanges( const char * lineSource,
 
 LineInformation::const_iterator LineInformation::begin() const 
 {
-   return impl_t::begin();
+   return by_addr_.begin();
 }
 
 LineInformation::const_iterator LineInformation::end() const 
 {
-   return impl_t::end();
+   return by_addr_.end();
 }
 
 LineInformation::const_iterator LineInformation::find(Offset addressInRange) const
 {
-    const_iterator start_addr_valid = project<Statement::addr_range>(get<Statement::upper_bound>().lower_bound(addressInRange ));
-    if(start_addr_valid == end()) return end();
-    const_iterator end_addr_valid = impl_t::upper_bound(addressInRange + 1);
-    while(start_addr_valid != end_addr_valid && start_addr_valid != end())
-    {
-        if(*(*start_addr_valid) == addressInRange)
-        {
-            return start_addr_valid;
+    for (auto iter = by_addr_.begin(); iter != by_addr_.end(); ++iter) {
+        if (**iter == addressInRange) {
+            return iter;
         }
-        ++start_addr_valid;
     }
     return end();
 }
@@ -185,44 +205,44 @@ LineInformation::const_iterator LineInformation::find(Offset addressInRange) con
 
 unsigned LineInformation::getSize() const
 {
-   return impl_t::size();
+   return by_addr_.size();
 }
 
 LineInformation::const_line_info_iterator LineInformation::begin_by_source() const {
-    const traits::line_info_index& i = impl_t::get<Statement::line_info>();
-    return i.begin();
+    return by_line_.begin();
 }
 
 LineInformation::const_line_info_iterator LineInformation::end_by_source() const {
-    const traits::line_info_index& i = impl_t::get<Statement::line_info>();
-    return i.end();
+    return by_line_.end();
 }
 
 std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator>
 LineInformation::range(std::string const& file, const unsigned int lineNo) const
 {
-    using namespace boost::filesystem;
-    auto found_range = strings_->get<2>().equal_range(path(file).filename().string());
+    namespace fs = std::filesystem;
+    auto found_range = strings_->find_by_filename(fs::path(file).filename().string());
 
     std::pair<const_line_info_iterator, const_line_info_iterator > bounds;
-    for(auto found = found_range.first; ((found != found_range.second) && (found != strings_->get<2>().end())); ++found)
+    for(auto found : found_range)
     {
-        unsigned i = strings_->project<0>(found) - strings_->begin();
-        auto idx = boost::make_tuple(i, lineNo);
-        bounds =  get<Statement::line_info>().equal_range(idx);
+        bounds = by_line_.equal_range(make_key(static_cast<unsigned int>(found), lineNo));
         if(bounds.first != bounds.second) {
             return bounds;
         }
     }
-    bounds = make_pair(get<Statement::line_info>().end(), get<Statement::line_info>().end());
+    bounds = std::make_pair(by_line_.end(), by_line_.end());
     return bounds;
 }
 
 std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator>
 LineInformation::equal_range(std::string const& file) const {
-    auto found = strings_->get<1>().find(file);
-    unsigned i = strings_->project<0>(found) - strings_->begin();
-    return get<Statement::line_info>().equal_range(i);
+    auto found = strings_->find(file);
+    if (!found) {
+        return std::make_pair(by_line_.end(), by_line_.end());
+    }
+    return std::make_pair(by_line_.lower_bound(make_key(static_cast<unsigned int>(*found), 0)),
+                          by_line_.upper_bound(make_key(static_cast<unsigned int>(*found),
+                                                        std::numeric_limits<unsigned int>::max())));
 }
 
 StringTablePtr LineInformation::getStrings()  {

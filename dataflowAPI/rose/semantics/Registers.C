@@ -1,11 +1,15 @@
+#include <algorithm>
 #include "../util/StringUtility.h"
 //#include "sage3basic.h"
+#include <algorithm>
 #include "Registers.h"
+#include <algorithm>
 #include "external/rose/armv8InstructionEnum.h"
+#include <algorithm>
 #include "external/rose/amdgpuInstructionEnum.h"
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
-#include <boost/foreach.hpp>
+#include <dyncompat/foreach.hpp>
 #include <mutex>
 
 // These are here temporarily until the classes in this file can be moved into rose::BinaryAnalysis
@@ -190,7 +194,7 @@ RegisterDictionary::resize(const std::string &name, unsigned new_nbits) {
 RegisterParts
 RegisterDictionary::getAllParts() const {
     RegisterParts retval;
-    BOOST_FOREACH (const Entries::value_type &node, forward)
+    DYN_FOREACH (const Entries::value_type &node, forward)
         retval.insert(node.second);
     return retval;
 }

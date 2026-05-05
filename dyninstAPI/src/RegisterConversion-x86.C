@@ -32,7 +32,7 @@
 #include "inst-x86.h"
 
 #include <map>
-#include <boost/assign/list_of.hpp>
+#include <dyncompat/assign/list_of.hpp>
 
 #include "Register.h"
 #include "registers/x86_regs.h"
@@ -41,7 +41,7 @@
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace std;
-using namespace boost::assign;
+using namespace dyncompat::assign;
 using namespace NS_x86;
 
 multimap<Register, MachRegister> regToMachReg32 = map_list_of

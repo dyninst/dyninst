@@ -93,7 +93,7 @@ class ExtPCSensVisitor : public ASTVisitor {
 };
  
 class PCSensitiveTransformer : public Transformer {
-  typedef boost::shared_ptr<RelocInsn> RelocInsnPtr;
+  typedef dyncompat::shared_ptr<RelocInsn> RelocInsnPtr;
   typedef std::list<Assignment::Ptr> AssignList;
 
  public:

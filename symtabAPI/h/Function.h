@@ -85,7 +85,7 @@ class SYMTAB_EXPORT FunctionBase
    friend class DwarfWalker;
   public:
    /***** Return Type Information *****/
-   boost::shared_ptr<Type> getReturnType(Type::do_share_t) const;
+   dyncompat::shared_ptr<Type> getReturnType(Type::do_share_t) const;
    Type* getReturnType() const {
      return getReturnType(Type::share).get();
    }
@@ -120,7 +120,7 @@ class SYMTAB_EXPORT FunctionBase
    /* internal helper functions */
    bool addLocalVar(localVar *);
    bool addParam(localVar *);
-   bool	setReturnType(boost::shared_ptr<Type>);
+   bool	setReturnType(dyncompat::shared_ptr<Type>);
 
    virtual Offset getOffset() const = 0;
    virtual unsigned getSize() const = 0;
@@ -135,7 +135,7 @@ class SYMTAB_EXPORT FunctionBase
    localVarCollection *params;
 
    mutable unsigned functionSize_;
-   boost::shared_ptr<Type>          retType_;
+   dyncompat::shared_ptr<Type>          retType_;
 
    dyn_mutex inlines_lock;
    InlineCollection inlines;

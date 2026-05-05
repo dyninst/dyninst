@@ -1376,41 +1376,41 @@ bool int_eventAsyncFileRead::isComplete()
 #define DEFN_EVENT_CAST(NAME, TYPE) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE) return NAME::ptr();  \
-     return boost::static_pointer_cast<NAME>(shared_from_this()); \
+     return dyncompat::static_pointer_cast<NAME>(shared_from_this()); \
    } \
    NAME::const_ptr Event::get ## NAME() const { \
      if (etype.code() != EventType::TYPE) return NAME::const_ptr();  \
-     return boost::static_pointer_cast<const NAME>(shared_from_this()); \
+     return dyncompat::static_pointer_cast<const NAME>(shared_from_this()); \
    }
 
 #define DEFN_EVENT_CAST2(NAME, TYPE, TYPE2) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2) return NAME::ptr(); \
-     return boost::static_pointer_cast<NAME>(shared_from_this()); \
+     return dyncompat::static_pointer_cast<NAME>(shared_from_this()); \
    } \
    NAME::const_ptr Event::get ## NAME() const { \
      if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2) return NAME::const_ptr(); \
-     return boost::static_pointer_cast<const NAME>(shared_from_this()); \
+     return dyncompat::static_pointer_cast<const NAME>(shared_from_this()); \
    }
 
 #define DEFN_EVENT_CAST3(NAME, TYPE, TYPE2, TYPE3) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2 && etype.code() != EventType::TYPE3) return NAME::ptr(); \
-     return boost::static_pointer_cast<NAME>(shared_from_this()); \
+     return dyncompat::static_pointer_cast<NAME>(shared_from_this()); \
    } \
    NAME::const_ptr Event::get ## NAME() const { \
      if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2 && etype.code() != EventType::TYPE3) return NAME::const_ptr(); \
-     return boost::static_pointer_cast<const NAME>(shared_from_this()); \
+     return dyncompat::static_pointer_cast<const NAME>(shared_from_this()); \
    }
 
 #define DEFN_EVENT_CAST4(NAME, TYPE, TYPE2, TYPE3, TYPE4)   \
    NAME::ptr Event::get ## NAME() {  \
       if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2 && etype.code() != EventType::TYPE3 && etype.code() != EventType::TYPE4) return NAME::ptr(); \
-     return boost::static_pointer_cast<NAME>(shared_from_this()); \
+     return dyncompat::static_pointer_cast<NAME>(shared_from_this()); \
    } \
    NAME::const_ptr Event::get ## NAME() const { \
       if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2 && etype.code() != EventType::TYPE3 && etype.code() != EventType::TYPE4) return NAME::const_ptr(); \
-     return boost::static_pointer_cast<const NAME>(shared_from_this()); \
+     return dyncompat::static_pointer_cast<const NAME>(shared_from_this()); \
    }
 
 

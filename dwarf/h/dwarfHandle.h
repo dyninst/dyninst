@@ -35,7 +35,7 @@
 #include "dyntypes.h"
 #include <map>
 #include <string>
-#include <boost/shared_ptr.hpp>
+#include <dyncompat/shared_ptr.hpp>
 
 namespace Dyninst {
 class Elf_X;
@@ -43,7 +43,7 @@ class Elf_X;
 namespace DwarfDyninst {
 class DwarfFrameParser;
 
-typedef boost::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
+typedef dyncompat::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
 
 class DYNDWARF_EXPORT DwarfHandle {
   public:

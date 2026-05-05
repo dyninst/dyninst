@@ -31,7 +31,7 @@
 #include <map>
 #include <atomic>
 
-#include <boost/assign/list_of.hpp>
+#include <dyncompat/assign/list_of.hpp>
 
 #include "common/src/stats.h"
 #include "dyntypes.h"

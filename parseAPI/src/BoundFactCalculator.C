@@ -96,7 +96,7 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
 	    if (curNodes.size() == 1) {
 	        // If the SCC has only one node,
 		// we connect the virtual entry to this single node
-	        SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*(curNodes.begin()));
+	        SliceNode::Ptr node = dyncompat::static_pointer_cast<SliceNode>(*(curNodes.begin()));
 	        slice->insertPair(virtualEntry, node, TypedSliceEdge::create(virtualEntry, node, FALLTHROUGH));
 	    } else {
 	        // If there are more than one node in this SCC,
@@ -108,7 +108,7 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
 	        set<ParseAPI::Block*> visit;
 		map<ParseAPI::Block*, vector<SliceNode::Ptr> >targetMap;
 		for (auto nit = curNodes.begin(); nit != curNodes.end(); ++nit) {
-		    SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*nit);
+		    SliceNode::Ptr node = dyncompat::static_pointer_cast<SliceNode>(*nit);
 		    ParseAPI::Block * b = node->block();
 		    Address addr = node->addr();
 		    if (targetMap.find(b) == targetMap.end()) {
@@ -196,7 +196,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	    workingList.pop();
 	    inQueue.erase(curNode);
 
-	    SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);
+	    SliceNode::Ptr node = dyncompat::static_pointer_cast<SliceNode>(curNode);
 	    ++inQueueLimit[curNode];
 	    if (inQueueLimit[curNode] > IN_QUEUE_LIMIT) continue;
 
@@ -272,7 +272,7 @@ static bool IsConditionalJump(Instruction insn) {
 
 BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 
-    SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);
+    SliceNode::Ptr node = dyncompat::static_pointer_cast<SliceNode>(curNode);
 
     EdgeIterator gbegin, gend;
     curNode->ins(gbegin, gend);
@@ -280,8 +280,8 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 
     bool first = true;
     for (; gbegin != gend; ++gbegin) {
-        TypedSliceEdge::Ptr edge = boost::static_pointer_cast<TypedSliceEdge>(*gbegin);
-	SliceNode::Ptr srcNode = boost::static_pointer_cast<SliceNode>(edge->source());
+        TypedSliceEdge::Ptr edge = dyncompat::static_pointer_cast<TypedSliceEdge>(*gbegin);
+	SliceNode::Ptr srcNode = dyncompat::static_pointer_cast<SliceNode>(edge->source());
 	BoundFact *prevFact = GetBoundFactOut(srcNode);
 	bool newCopy = false;
 	if (prevFact == NULL) {
@@ -341,7 +341,7 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 }
 
 void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *newFact){
-    SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);
+    SliceNode::Ptr node = dyncompat::static_pointer_cast<SliceNode>(curNode);
     if (!node->assign()) return;
     if (node->assign() && 
         node->assign()->out().absloc().type() == Absloc::Register &&
@@ -438,7 +438,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 
     if (id == e_push) {
          if (calculation->getID() == AST::V_ConstantAST) {
-	     ConstantAST::Ptr c = boost::static_pointer_cast<ConstantAST>(calculation);
+	     ConstantAST::Ptr c = dyncompat::static_pointer_cast<ConstantAST>(calculation);
 	     newFact->PushAConst(c->val().val);
 	     parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
 	     newFact->Print();
