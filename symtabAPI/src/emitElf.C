@@ -386,15 +386,13 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     }
 
     // Write the Elf header first!
-    newEhdr = ElfTypes::elf_newehdr(
-            newElf);
+    newEhdr = ElfTypes::elf_newehdr(newElf);
     if (!newEhdr) {
         log_elferror(err_func_, "newEhdr failed\n");
         return false;
     }
-    oldEhdr = ElfTypes::elf_getehdr(
-            oldElf);
-    memcpy(newEhdr, oldEhdr, sizeof(Elf_Ehdr));
+    oldEhdr = ElfTypes::elf_getehdr(oldElf);
+    *newEhdr = *oldEhdr;
 
     newEhdr->e_shnum += newSecs.size();
 
@@ -445,8 +443,8 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         newshdr = ElfTypes::elf_getshdr(newscn);
         newdata = elf_newdata(newscn);
         olddata = elf_getdata(scn, NULL);
-        memcpy(newshdr, shdr, sizeof(Elf_Shdr));
-        memcpy(newdata, olddata, sizeof(Elf_Data));
+        *newshdr = *shdr;
+        *newdata = *olddata;
 
         secNames.push_back(name);
         newshdr->sh_name = secNameIndex;
@@ -810,7 +808,7 @@ void emitElf<ElfTypes>::fixPhdrs() {
 
     for (unsigned i = 0; i < segments.size(); i++)
     {
-        memcpy(newPhdr, &segments[i], oldEhdr->e_phentsize);
+        *newPhdr = segments[i];
         rewrite_printf("Updated program header: type %u (%s), offset 0x%lx, addr 0x%lx\n",
                 newPhdr->p_type, phdrTypeStr(newPhdr->p_type).c_str(), (long unsigned int)newPhdr->p_offset, (long unsigned int)newPhdr->p_vaddr);
         ++newPhdr;
