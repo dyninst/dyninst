@@ -312,19 +312,19 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
 // Find the end of data/text segment
 template<class ElfTypes>
 void emitElf<ElfTypes>::findSegmentEnds() {
-    Elf_Phdr *tmp = ElfTypes::elf_getphdr(oldElf);
+    Elf_Phdr *phdrs = ElfTypes::elf_getphdr(oldElf);
     // Find the offset of the start of the text & the data segment
     // The first LOAD segment is the text & the second LOAD segment
     // is the data
     dataSegEnd = 0;
     for (unsigned i = 0; i < oldEhdr->e_phnum; i++) {
-        if (tmp->p_type == PT_LOAD) {
-            if (dataSegEnd < tmp->p_vaddr + tmp->p_memsz)
-                dataSegEnd = tmp->p_vaddr + tmp->p_memsz;
-        } else if (PT_TLS == tmp->p_type) {
+        auto phdr{&phdrs[i]};
+        if (phdr->p_type == PT_LOAD) {
+            if (dataSegEnd < phdr->p_vaddr + phdr->p_memsz)
+                dataSegEnd = phdr->p_vaddr + phdr->p_memsz;
+        } else if (PT_TLS == phdr->p_type) {
             TLSExists = true;
         }
-        tmp++;
     }
 }
 
