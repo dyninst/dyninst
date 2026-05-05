@@ -1732,16 +1732,16 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
         }
     }
 
-    unsigned i, j, k, l, m;
-
     Elf_Rel *rels = (Elf_Rel *) malloc(sizeof(Elf_Rel) * (relocation_table.size() + newRels.size()));
     Elf_Rela *relas = (Elf_Rela *) malloc(sizeof(Elf_Rela) * (relocation_table.size() + newRels.size()));
-    j = 0;
-    k = 0;
-    l = 0;
-    m = 0;
+
+    unsigned j = 0;
+    unsigned k = 0;
+    unsigned l = 0;
+    unsigned m = 0;
+
     //reconstruct .rel
-    for (i = 0; i < relocation_table.size(); i++) {
+    for (unsigned i = 0; i < relocation_table.size(); i++) {
         if ((object->getRelType() == Region::RT_REL) && (relocation_table[i].regionType() == Region::RT_REL)) {
             rels[j].r_offset = relocation_table[i].rel_addr();
             unsigned long sym_offset = 0;
@@ -1790,7 +1790,7 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
             k++;
         }
     }
-    for (i = 0; i < newRels.size(); i++) {
+    for (unsigned i = 0; i < newRels.size(); i++) {
         if ((object->getRelType() == Region::RT_REL) && (newRels[i].regionType() == Region::RT_REL)) {
             rels[j].r_offset = newRels[i].rel_addr();
             if (dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
