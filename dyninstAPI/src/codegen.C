@@ -216,16 +216,6 @@ void codeGen::copy(const std::vector<unsigned char> &buf) {
    moveIndex(buf.size());
 }
 
-void codeGen::copy(codeGen &gen) {
-  if ((used() + gen.used()) >= size_) {
-    realloc(used() + gen.used()); 
-  }
-
-  memcpy((void *)cur_ptr(), (void *)gen.start_ptr(), gen.used());
-  offset_ += gen.offset_;
-  assert(used() <= size_);
-}
-
 void codeGen::insert(const void *b, const unsigned size, const codeBufIndex_t index) {
     if (size == 0) return;
     assert(buffer_);

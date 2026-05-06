@@ -110,9 +110,6 @@ class codeGen {
     // Insert buffer into index, moving previous content
     void insert(const void *buf, const unsigned size, const codeBufIndex_t index);
 
-    // Similar, but slurp from the start of the parameter
-    void copy(codeGen &gen);
-
     // How much space are we using?
     unsigned used() const;
 
