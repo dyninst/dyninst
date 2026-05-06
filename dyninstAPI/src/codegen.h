@@ -113,7 +113,6 @@ class codeGen {
     // How much space are we using?
     unsigned used() const;
 
-    unsigned size() const { return size_; }
     unsigned max() const { return max_; }
 
     // Blind pointer to the start of the code area
