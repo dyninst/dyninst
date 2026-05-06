@@ -95,11 +95,6 @@ class codeGen {
     codeGen(const codeGen &) = delete;
     codeGen(codeGen&&) noexcept;
 
-    // We consider our pointer to either be the start
-    // of the buffer, or NULL if the buffer is empty
-    bool operator==(void *ptr) const;
-    bool operator!=(void *ptr) const;
-
     // Initialize the current using the argument as a "template"
     void applyTemplate(const codeGen &codeTemplate);
     static codeGen baseTemplate;

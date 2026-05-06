@@ -116,14 +116,6 @@ codeGen::~codeGen() {
     }
 }
 
-bool codeGen::operator==(void *p) const {
-    return (p == (void *)buffer_);
-}
-
-bool codeGen::operator!=(void *p) const {
-    return (p != (void *)buffer_);
-}
-
 codeGen::codeGen(codeGen &&rhs) noexcept {
   offset_ = rhs.offset_;
   size_ = rhs.size_;
