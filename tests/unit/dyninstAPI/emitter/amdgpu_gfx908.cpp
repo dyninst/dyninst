@@ -31,6 +31,15 @@ int main() {
     0x00,0x00,0x81,0xbe                      // s_mov_b32 s1, s0
   }});
 
+  // Move s[2:3] to s[4:5]
+  Register regBlock2To3 = Dyninst::Register::makeScalarRegister(Dyninst::OperandRegId(2), Dyninst::BlockSize(2));
+  Register regBlock4To5 = Dyninst::Register::makeScalarRegister(Dyninst::OperandRegId(4), Dyninst::BlockSize(2));
+  emitter->emitMoveRegToReg(regBlock2To3, regBlock4To5, gen);
+  failed |= !verify_emitter(gen, emitter_buffer_t<8>{{
+    0x02, 0x00, 0x84, 0xbe,                  // s_mov_b32 s4, s2
+    0x03, 0x00, 0x85, 0xbe                   // s_mov_b32 s5, s3
+  }});
+
   // Load 64-bit immediate into register pair s[0:1]
   // s0 contains lower 32 bits
   // s1 contains upper 32 bits
@@ -42,7 +51,6 @@ int main() {
   }});
 
   // Load a dword from s[2:3] into s4
-  Register regBlock2To3 = Dyninst::Register::makeScalarRegister(Dyninst::OperandRegId(2), Dyninst::BlockSize(2));
   emitter->emitLoadIndir(RegisterConstants::s4, regBlock2To3, 1, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<12>{{
     0x01,0x01,0x02,0xc0,0x00,0x00,0x00,0x00, // s_load_dword s4, s[2:3], 0x0
@@ -57,7 +65,6 @@ int main() {
   }});
 
   // Load 2 dwords from s[2:3] + 0x1234 into s[4:5]
-  Register regBlock4To5 = Dyninst::Register::makeScalarRegister(Dyninst::OperandRegId(4), Dyninst::BlockSize(2));
   emitter->emitLoadRelative(regBlock4To5, 0x1234, regBlock2To3, 2, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<12>{{
     0x01,0x01,0x06,0xc0,0x34,0x12,0x00,0x00, // s_load_dwordx2 s[4:5], s[2:3], 0x1234
