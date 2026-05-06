@@ -120,9 +120,6 @@ class codeGen {
     // Pointer to the current location...
     void *cur_ptr() const;
 
-    // And pointer to a given offset
-    void *get_ptr(unsigned offset) const;
-
     // For things that make a copy of the current pointer and
     // play around with it. This recalculates the current offset
     // based on a new pointer
@@ -232,6 +229,9 @@ class codeGen {
 
  private:
     void realloc(unsigned newSize); 
+
+    // And pointer to a given offset
+    void *get_ptr(unsigned offset) const;
 
     codeBuf_t *buffer_;
     codeBufIndex_t offset_;
