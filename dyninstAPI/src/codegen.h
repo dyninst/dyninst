@@ -157,9 +157,6 @@ class codeGen {
 
     std::vector<relocPatch> &allPatches();
 
-    //Apply all patches that have been added
-    void applyPatches();
-
     void setAddrSpace(AddressSpace *a);
     void setThread(PCThread *t) { thr_ = t; }
     void setRegisterSpace(registerSpace *r) { rs_ = r; }
