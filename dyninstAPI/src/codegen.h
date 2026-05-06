@@ -196,11 +196,7 @@ class codeGen {
 
     void setPCRelUseCount(int c) { pc_rel_use_count = c; }
     int getPCRelUseCount() const { return pc_rel_use_count; }
-    
-    // Immediate uninstrumentation
-    void registerInstrumentation(baseTramp *bt, Dyninst::Address loc) { instrumentation_[bt] = loc; }
-    std::map<baseTramp *, Dyninst::Address> &getInstrumentation() { return instrumentation_; }
-    
+
     void registerRemovedInstrumentation(baseTramp *bt, Dyninst::Address loc) { removedInstrumentation_[bt] = loc; }
     std::map<baseTramp *, Dyninst::Address> &getRemovedInstrumentation() { return removedInstrumentation_; }
 
@@ -239,7 +235,6 @@ class codeGen {
 
     std::vector<relocPatch> patches_;
 
-    std::map<baseTramp *, Dyninst::Address> instrumentation_;
     std::map<baseTramp *, Dyninst::Address> removedInstrumentation_;
 };
 

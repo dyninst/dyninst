@@ -85,7 +85,6 @@ std::string InstWidget::format() const {
 bool InstWidgetPatch::apply(codeGen &gen, CodeBuffer *) {
    relocation_cerr << "\t\t InstWidgetPatch::apply " << this << " /w/ tramp " << tramp << std::endl;
 
-   gen.registerInstrumentation(tramp, gen.currAddr());
    bool ret = tramp->generateCode(gen, gen.currAddr());
    return ret;
 }
