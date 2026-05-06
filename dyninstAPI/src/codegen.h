@@ -149,13 +149,6 @@ class codeGen {
 
     std::string format() const;
 
-    //Have each region generate code with this codeGen object being
-    // placed at addr
-    void applyPCRels(Dyninst::Address addr);
-
-    //Return true if there are any active regions.
-    bool hasPCRels() const;
-
     //Add a new patch point
     void addPatch(const relocPatch &p);
 
