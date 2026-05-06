@@ -92,9 +92,8 @@ class codeGen {
 
     bool valid() { return buffer_ != NULL; }
 
-    // Copy constructor. Deep-copy -- allocates
-    // a new buffer
-    codeGen(const codeGen &);
+    codeGen(const codeGen &) = delete;
+    codeGen(codeGen&&) noexcept;
 
     // We consider our pointer to either be the start
     // of the buffer, or NULL if the buffer is empty

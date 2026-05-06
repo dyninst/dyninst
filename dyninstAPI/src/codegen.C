@@ -116,43 +116,39 @@ codeGen::~codeGen() {
     }
 }
 
-// Deep copy
-codeGen::codeGen(const codeGen &g) :
-    buffer_(NULL),
-    offset_(g.offset_),
-    size_(g.size_),
-    max_(g.max_),
-    pc_rel_use_count(g.pc_rel_use_count),
-    emitter_(NULL),
-    allocated_(g.allocated_),
-    aSpace_(g.aSpace_),
-    thr_(g.thr_),
-    rs_(g.rs_),
-	t_(g.t_),
-    addr_(g.addr_),
-    ip_(g.ip_),
-    f_(g.f_),
-    bt_(g.bt_),
-    isPadded_(g.isPadded_),
-    trackRegDefs_(g.trackRegDefs_),
-    inInstrumentation_(g.inInstrumentation_),
-    insertNaked_(g.insertNaked_),
-    modifiedStackFrame_(g.modifiedStackFrame_)
-{
-    if (size_ != 0) {
-        assert(allocated_); 
-        int bufferSize = size_ + (isPadded_ ? codeGenPadding : 0);
-        buffer_ = (codeBuf_t *) malloc(bufferSize);
-        memcpy(buffer_, g.buffer_, bufferSize);
-    }
-}
-
 bool codeGen::operator==(void *p) const {
     return (p == (void *)buffer_);
 }
 
 bool codeGen::operator!=(void *p) const {
     return (p != (void *)buffer_);
+}
+
+codeGen::codeGen(codeGen &&rhs) noexcept {
+  offset_ = rhs.offset_;
+  size_ = rhs.size_;
+  max_ = rhs.max_;
+  pc_rel_use_count = rhs.pc_rel_use_count;
+  emitter_ = rhs.emitter_;
+  allocated_ = rhs.allocated_;
+  aSpace_ = rhs.aSpace_;
+  thr_ = rhs.thr_;
+  rs_ = rhs.rs_;
+  t_ = rhs.t_;
+  addr_ = rhs.addr_;
+  ip_ = rhs.ip_;
+  f_ = rhs.f_;
+  bt_ = rhs.bt_;
+  regsDefined_ = rhs.regsDefined_;
+  trackRegDefs_ = rhs.trackRegDefs_;
+  inInstrumentation_ = rhs.inInstrumentation_;
+  insertNaked_ = rhs.insertNaked_;
+  modifiedStackFrame_ = rhs.modifiedStackFrame_;
+  patches_ = rhs.patches_;
+
+  buffer_ = rhs.buffer_;
+  rhs.buffer_ = nullptr;
+  rhs.allocated_ = false;
 }
 
 void codeGen::allocate(unsigned size) 
