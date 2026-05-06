@@ -85,7 +85,7 @@ class block_instance;
 class codeGen {
  public:
     // Default constructor -- makes an empty generation area
-    codeGen();
+    codeGen() = default;
     // Make a generation buffer with the given size
     codeGen(unsigned size);
     ~codeGen();
@@ -203,31 +203,31 @@ class codeGen {
     // And pointer to a given offset
     void *get_ptr(unsigned offset) const;
 
-    codeBuf_t *buffer_;
-    codeBufIndex_t offset_;
-    unsigned size_;
-    unsigned max_;
-    int pc_rel_use_count;
+    codeBuf_t *buffer_{};
+    codeBufIndex_t offset_{};
+    unsigned size_{};
+    unsigned max_{};
+    int pc_rel_use_count{};
 
-    Emitter *emitter_;
-    bool allocated_;
+    Emitter *emitter_{};
+    bool allocated_{false};
 
-    AddressSpace *aSpace_;
-    PCThread *thr_;
-    registerSpace *rs_;
-    regTracker_t *t_;
-    Dyninst::Address addr_;
-    instPoint *ip_;
-    func_instance *f_;
-    baseTramp *bt_;
+    AddressSpace *aSpace_{};
+    PCThread *thr_{};
+    registerSpace *rs_{};
+    regTracker_t *t_{};
+    Dyninst::Address addr_{(Dyninst::Address)-1};
+    instPoint *ip_{};
+    func_instance *f_{};
+    baseTramp *bt_{};
 
     bitArray regsDefined_;
-    bool trackRegDefs_;
+    bool trackRegDefs_{false};
 
-    bool inInstrumentation_;
+    bool inInstrumentation_{false};
 
-    bool insertNaked_;
-    bool modifiedStackFrame_;
+    bool insertNaked_{false};
+    bool modifiedStackFrame_{false};
 
     std::vector<relocPatch> patches_;
 };

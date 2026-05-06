@@ -56,28 +56,6 @@
 const unsigned int codeGenPadding = (128);
 const unsigned int codeGenMinAlloc = (4 * 1024);
 
-codeGen::codeGen() :
-    buffer_(NULL),
-    offset_(0),
-    size_(0),
-    max_(0),
-    pc_rel_use_count(0),
-    emitter_(NULL),
-    allocated_(false),
-    aSpace_(NULL),
-    thr_(NULL),
-    rs_(NULL),
-    t_(NULL),
-    addr_((Dyninst::Address)-1),
-    ip_(NULL),
-    f_(NULL),
-    bt_(NULL),
-    trackRegDefs_(false),
-    inInstrumentation_(false), // save default
-    insertNaked_(false),
-    modifiedStackFrame_(false)
-{}
-
 // size is in bytes
 codeGen::codeGen(unsigned size) :
     buffer_(NULL),
