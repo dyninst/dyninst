@@ -98,9 +98,8 @@ InstWidgetPatch::~InstWidgetPatch() {
    // an instPoint.
 }
 
-bool RemovedInstWidgetPatch::apply(codeGen &gen, CodeBuffer *) {
+bool RemovedInstWidgetPatch::apply(codeGen &, CodeBuffer *) {
   // Just want to leave a marker here for later.
-  gen.registerRemovedInstrumentation(tramp, gen.currAddr());
   return true;
 }
 

@@ -197,9 +197,6 @@ class codeGen {
     void setPCRelUseCount(int c) { pc_rel_use_count = c; }
     int getPCRelUseCount() const { return pc_rel_use_count; }
 
-    void registerRemovedInstrumentation(baseTramp *bt, Dyninst::Address loc) { removedInstrumentation_[bt] = loc; }
-    std::map<baseTramp *, Dyninst::Address> &getRemovedInstrumentation() { return removedInstrumentation_; }
-
  private:
     void realloc(unsigned newSize); 
 
@@ -234,8 +231,6 @@ class codeGen {
     bool modifiedStackFrame_;
 
     std::vector<relocPatch> patches_;
-
-    std::map<baseTramp *, Dyninst::Address> removedInstrumentation_;
 };
 
 #endif
