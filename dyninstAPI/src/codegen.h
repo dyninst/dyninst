@@ -102,11 +102,6 @@ class codeGen {
     void allocate(unsigned);
     // And invalidate
     void invalidate();
-
-    // Finally, tighten down the memory usage. This frees the 
-    // buffer if it's bigger than necessary and copies everything
-    // to a new fixed buffer.
-    void finalize();
     
     // Copy a buffer into here and move the offset
     void copy(const void *buf, const unsigned size);

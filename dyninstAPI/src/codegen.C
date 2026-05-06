@@ -180,23 +180,6 @@ void codeGen::invalidate() {
     isPadded_ = false;
 }
 
-void codeGen::finalize() {
-    assert(buffer_);
-    assert(size_);
-    cerr << "FINALIZE!" << endl;
-    applyPatches();
-    if (size_ == offset_) return;
-    if (offset_ == 0) {
-        fprintf(stderr, "Warning: offset is 0 in codeGen::finalize!\n");
-        invalidate();
-        return;
-    }
-    buffer_ = (codeBuf_t *)::realloc(buffer_, used());
-    max_ = used();
-    size_ = used();
-    isPadded_ = false;
-}
-
 void codeGen::copy(const void *b, const unsigned size, const codeBufIndex_t index) {
   if (size == 0) return;
 
