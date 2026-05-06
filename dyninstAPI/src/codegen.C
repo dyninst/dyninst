@@ -248,10 +248,6 @@ void codeGen::invalidate() {
     isPadded_ = false;
 }
 
-bool codeGen::verify() {
-    return true;
-}
-
 void codeGen::finalize() {
     assert(buffer_);
     assert(size_);

@@ -94,8 +94,6 @@ class codeGen {
 
     bool valid() { return buffer_ != NULL; }
 
-    bool verify();
-
     // Copy constructor. Deep-copy -- allocates
     // a new buffer
     codeGen(const codeGen &);
