@@ -1,0 +1,54 @@
+A \code{ThreadPool} is a collection of threads that make up a
+process. Each \code{Process} has one \code{ThreadPool}. A \code{ThreadPool}
+is typically used to iterate over or search the set of Threads. It satisfies the C++
+\href{https://en.cppreference.com/cpp/named_req/ForwardIterator}{LegacyForwardIterator}
+concept. It also offers the standard \code{begin/end} members for iteration.
+
+Note that it is not safe to make assumptions about having consistent contents of
+a ThreadPool for a running target process. As the target process runs, threads
+may be inserted or removed from the ThreadPool. It is generally safer
+to stop a Process before operating on its ThreadPool. When used on a running
+process the ThreadPool iterator methods guarantee that they will not return
+invalid Thread objects (e.g, nothing that would lead to a segfault), but they
+do not guarantee that the Thread objects will refer to live threads or that
+they return all Threads.
+
+\begin{apient}
+ThreadPool::iterator find(Dyninst::LWP lwp)
+ThreadPool::const_iterator find(Dyninst::LWP lwp) const
+\end{apient}
+
+\apidesc{
+The functions respectively return an iterator and a const\_iterator that points
+to the Thread with a LWP of lwp. If lwp is not found in the thread list, then
+this function returns end().
+}
+
+\begin{apient}
+size_t size() const
+\end{apient}
+
+\apidesc{
+This function returns the number of Threads in the Process.
+}
+
+\begin{apient}
+Process::ptr getProcess()
+Process::const_ptr getProcess() const 
+\end{apient}
+
+\apidesc{
+These functions respectively return a pointer or a const pointer to the Process
+that owns this ThreadPool.
+}
+
+\begin{apient}
+Thread::ptr getInitialThread()
+Thread::const_ptr getInitialThread() const
+\end{apient}
+
+\apidesc{
+These functions respectively return a pointer or a const pointer to the initial
+Thread in a Process. The initial thread is the thread that started execution
+of the process (i.e., the thread that called main).
+}

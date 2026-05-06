@@ -1,0 +1,13 @@
+An \code{EventForceTerminate} triggers when a process is forcefully terminated
+via \code{Process::terminate}. When the callback is delivered for this event,
+the address space of the corresponding process will no longer be available.
+
+Associated EventType Code: \code{ForceTerminate}
+
+\begin{apient}
+int getTermSignal() const
+\end{apient}
+
+\apidesc{
+This function returns the signal that was used to terminate the process.
+}

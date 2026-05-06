@@ -1,0 +1,113 @@
+\begin{apient}
+Breakpoint::ptr Breakpoint::const_ptr
+\end{apient}
+
+\apidesc{
+The Breakpoint::ptr and Breakpoint::const\_ptr types are respectively a pointer
+and a const pointer to a Breakpoint object. These pointers are shared
+pointers, and the underlying Breakpoint object will be automatically clean when
+there are no more references to it. ProcControlAPI will automatically
+maintain at least one reference to any Breakpoint that is installed in a target
+process.
+}
+
+\begin{apient}
+static const int BP_X = 1 static const int BP_W = 2 static const int BP_R = 4
+\end{apient}
+
+\apidesc{
+These constant values are used to set execute, write and read bits on hardware
+breakpoints.
+}
+
+\begin{apient}
+Breakpoint::ptr newBreakpoint()
+\end{apient}
+
+\apidesc{
+This function creates a new software Breakpoint object and returns it. The
+Breakpoint is not inserted into a Process until it is passed to
+Process::addBreakpoint().
+}
+
+\begin{apient}
+Breakpoint::ptr newTransferBreakpoint(Dyninst::Address ctrl_to)
+\end{apient}
+
+\apidesc{
+This function creates a new control transfer software breakpoint. Upon
+resumption after executing this Breakpoint, control will resume at the address
+specified by the ctrl\_to parameter.
+}
+
+\begin{apient}
+Breakpoint::ptr newHardwareBreakpoint(unsigned int mode, unsigned int size)
+\end{apient}
+
+\apidesc{
+This function creates a new hardware breakpoint. The mode parameter is a
+bitfield that contains an OR combination the values BP\_X, BP\_W and BP\_R.
+These control whether the breakpoint will trigger when its target address is
+executed, written or read.
+The size parameter specifies a range of memory that this breakpoint monitors.
+If memory is accessed between the target address and target address + size,
+then the breakpoint will trigger.
+}
+
+\begin{apient}
+bool isCtrlTransfer() const
+\end{apient}
+
+\apidesc{
+This function returns true if the Breakpoint is a control transfer breakpoint,
+and false if it is a regular Breakpoint. 
+}
+
+\begin{apient}
+Dyninst::Address getToAddress() const
+\end{apient}
+
+\apidesc{
+If this Breakpoint is a control transfer breakpoint, then this function returns
+the address to which it transfers control. If this Breakpoint is not a
+control transfer breakpoint, then this function returns 0.
+}
+
+\begin{apient}
+void setData(void *data) const
+\end{apient}
+
+\apidesc{
+This function sets the value of an opaque handle that is associated with each
+Breakpoint. The opaque handle can be any value, and it can be retrieved with
+the getData function. 
+}
+
+\begin{apient}
+void *getData() const
+\end{apient}
+
+\apidesc{
+This function returns the value of the opaque handled that is associated with
+this Breakpoint. 
+}
+
+\begin{apient}
+void setSuppressCallbacks(bool val)
+\end{apient}
+
+\apidesc{
+This function can be used to suppress callbacks stemming from a specific
+breakpoint when called with val set to true value. All other effects from
+this breakpoint will still occur, but it will not generate a callback. By
+default callbacks occur from every breakpoint.
+}
+
+\begin{apient}
+bool suppressCallbacks() const
+\end{apient}
+
+\apidesc{
+This function returns true if callbacks have been suppressed for this breakpoint
+from Breakpoint::setSuppressCallbacks and false otherwise.
+}

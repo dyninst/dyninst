@@ -1,0 +1,35 @@
+A \code{MachSyscall} represents a system call in a platform-independent manner.
+
+\begin{apient}
+SyscallIDPlatform num() const
+\end{apient}
+
+\apidesc{
+Returns the platform-specific syscall number
+}
+
+\begin{apient}
+SyscallName name() const
+\end{apient}
+
+\apidesc{
+Returns the name of the system call (e.g. “getpid”)
+}
+
+\begin{apient}
+bool operator==(const MachSyscall&) const
+\end{apient}
+
+\apidesc{
+Equality operator. Two system calls are equal if they are for the same platform
+and have the same syscall number.
+}
+
+\begin{apient}
+static MachSyscall makeFromPlatform(Platform, SyscallIDIndependent)
+\end{apient}
+
+\apidesc{
+Constructs a MachSyscall from a Platform and a platform-independent ID (e.g.
+dyn\_getpid).
+}

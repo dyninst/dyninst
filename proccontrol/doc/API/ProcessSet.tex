@@ -1,0 +1,623 @@
+The ProcessSet class is a set container for multiple
+Process objects. It shares many of the same operations as the Process class,
+but when an operation is performed on a ProcessSet it is done on every Process
+in the ProcessSet. On some systems, a ProcessSet can
+achieve better performance when repeating an operation across many target
+processes. It satisfies the C++
+\href{https://en.cppreference.com/cpp/named_req/ForwardIterator}{LegacyForwardIterator}
+concept. It also offers the standard \code{begin/end} members for iteration.
+
+\begin{apient}
+  ProcessSet::ptr
+  ProcessSet::const_ptr
+\end{apient}
+
+\apidesc{
+  The ptr and const\_ptr types are smart pointers to a ProcessSet object.
+}
+
+\begin{apient}
+  struct CreateInfo
+  struct AttachInfo
+\end{apient}
+
+\apidesc{
+  The CreateInfo and AttachInfo types are used by the
+  ProcessSet::createProcessSet and
+  ProcessSet::attachProcessSet functions when creating groups of processes.
+}
+
+\begin{apient}
+  struct write_t
+  struct read_t
+\end{apient}
+
+\apidesc{
+  The write\_t and read\_t types are used by ProcessSet::readMemory and
+  ProcessSet::writeMemory.
+}
+
+\begin{apient}
+  static ProcessSet::ptr newProcessSet()
+\end{apient}
+
+\apidesc{
+  This function creates a new ProcessSet that is empty.
+}
+
+\begin{apient}
+  static ProcessSet::ptr newProcessSet(Process::const_ptr proc)
+\end{apient}
+
+\apidesc{
+  This function creates a new ProcessSet containing proc.
+}
+
+\begin{apient}
+  static ProcessSet::ptr newProcessSet(ProcessSet::const_ptr pset)
+\end{apient}
+
+\apidesc{
+  This function creates a new ProcessSet that is a copy of pset.
+}
+
+\begin{apient}
+  static ProcessSet::ptr newProcessSet(const std::set<Process::const_ptr> &procs)
+\end{apient}
+
+\apidesc{
+  This function creates a new ProcessSet containing every element from procs.
+}
+
+\begin{apient}
+  static ProcessSet newProcessSet(AddressSet::const_iterator ab, AddressSet::const_iterator ae)
+\end{apient}
+
+\apidesc{
+  This function creates a new ProcessSet containing the processes that are found
+  within \code{[ab, ae)} of an AddressSet.
+}
+
+\begin{apient}
+  static ProcessSet::ptr createProcessSet(std::vector<CreateInfo> &cinfo)
+\end{apient}
+
+\apidesc{
+  This function creates a new ProcessSet by launching new processes. Each
+  element in cinfo specifies an executable, arguments, environment and file
+  descriptor mappings (with similar semantics to
+  Process::createProcess), which are used
+  to launch a new process.
+  Every successfully created Process will be added to a new ProcessSet that is
+  returned by this function.
+  In addition, the cinfo vector will be updated so that each
+  entry\' s proc field points to the Process created by that
+  entry, and the error\_ret entry will contain an error code for any process
+  launch that failed.
+}
+
+\begin{apient}
+  static ProcessSet::ptr attachProcessSet(std::vector<AttachInfo> &ainfo)
+\end{apient}
+
+\apidesc{
+  This function creates a new ProcessSet by attaching to existing processes.
+  Each element in ainfo specifies a PID and executable (with similar semantics
+  to Process::attachProcess), which are
+  used to attach to the processes.
+  Every successfully attached Process will be added to a new ProcessSet that is
+  returned by this function.
+  In addition, the ainfo vector will be updated so that each
+  entry\' s proc field points to the Process attached by that
+  entry, and the error\_ret entry will contain an error code any process attach
+  that failed.
+}
+
+\begin{apient}
+  ProcessSet::ptr set_union(ProcessSet::ptrpset) const
+\end{apient}
+
+\apidesc{
+  This function returns a new ProcessSet whose elements are a set union of this
+  ProcessSet and pset.
+}
+
+\begin{apient}
+  ProcessSet::ptr set_intersection(ProcessSet::ptr pset) const
+\end{apient}
+
+\apidesc{
+  This function returns a new ProcessSet whose elements are a set
+  intersection of
+  this ProcessSet and pset.
+}
+
+\begin{apient}
+  ProcessSet::ptr set_difference(ProcessSet::ptr pset) const
+\end{apient}
+
+\apidesc{
+  This function returns a new ProcessSet whose elements are a set difference of
+  this ProcessSet minus pset.
+}
+
+\begin{apient}
+  iterator find(Process::const_ptr proc)
+  const_iterator find(Process::const_ptr proc) const
+\end{apient}
+
+\apidesc{
+  These functions search a ProcessSet for the Process pointed to by proc and
+  returns an iterator that points to that element. It returns ProcessSet::end()
+  if no element is found.
+}
+
+\begin{apient}
+  iterator find(Dyninst::PID pid)
+  const_iterator find(Dyninst::PID pid) const
+\end{apient}
+
+\apidesc{
+  These functions search a ProcessSet for the Process pointed to by proc and
+  returns an iterator that points to that element. It returns ProcessSet::end()
+  if no element is found.
+}
+
+\begin{apient}
+  bool empty() const
+\end{apient}
+
+\apidesc{
+  This function returns true if the ProcessSet has zero elements,
+  false otherwise.
+}
+
+\begin{apient}
+  size_t size() const
+\end{apient}
+
+\apidesc{
+  This function returns the number of elements in the ProcessSet.
+}
+
+\begin{apient}
+  std::pair<iterator, bool> insert(Process::const_ptr proc)
+\end{apient}
+
+\apidesc{
+  This function inserts proc into the ProcessSet. If proc already exists in the
+  ProcessSet, then no change will occur. This function returns an iterator
+  pointing to either the new or existing element and a boolean that
+  is true if an
+  insert happened and false otherwise.
+}
+
+\begin{apient}
+  void erase(iterator pos)
+\end{apient}
+
+\apidesc{
+  This function removes the element pointed to by pos from the ProcessSet.
+}
+
+\begin{apient}
+  size_t erase(Process::const_ptr proc)
+\end{apient}
+
+\apidesc{
+  This function searches the ProcessSet for proc, then erases that element from
+  the ProcessSet. It returns 1 if it erased an element and 0 otherwise.
+}
+
+\begin{apient}
+  void clear()
+\end{apient}
+
+\apidesc{
+  This function erases all elements in the ProcessSet.
+}
+
+\begin{apient}
+  ProcessSet::ptr getErrorSubset() const
+\end{apient}
+
+\apidesc{
+  This function returns a new ProcessSet containing every Process from this
+  ProcessSet that has a non-zero error code. Error codes are reset upon every
+  ProcessSet API call, so this function shows which Processes had an
+  error on the
+  last ProcessSet operation.
+}
+
+\begin{apient}
+  void getErrorSubsets(std::map<ProcControlAPI::err_t, ProcessSet::ptr> &err_sets) const
+\end{apient}
+
+\apidesc{
+  This function returns a set of new ProcessSets containing every Process from
+  this ProcessSet that has non-zero error codes, and grouped by error code. For
+  each error code generated by the last ProcessSet API operation an element will
+  be added to err\_sets, and every Process that has the same error code will be
+  added to the new ProcessSet associated with that error code.
+}
+
+\begin{apient}
+  bool anyTerminated() const
+  bool allTerminated() const
+\end{apient}
+
+\apidesc{
+  These functions respectively return true if any or all processes in this
+  ProcessSet are terminated, and false otherwise.
+}
+
+\begin{apient}
+  bool anyExited() const
+  bool allExited() const
+\end{apient}
+
+\apidesc{
+  These functions respectively return true if any or all processes in this
+  ProcessSet have exited normally, and false otherwise.
+}
+
+\begin{apient}
+  bool anyCrashed() const
+  bool allCrashed() const
+\end{apient}
+
+\apidesc{
+  These functions respectively return true if any or all processes in this
+  ProcessSet have crashed normally, and false otherwise.
+}
+
+\begin{apient}
+  bool anyDetached()
+  bool allDetached()
+\end{apient}
+
+\apidesc{
+  These functions respectively return true if any or all processes in this
+  ProcessSet have been detached, and false otherwise.
+}
+
+\begin{apient}
+  bool anyThreadStopped()
+  bool allThreadStopped()
+\end{apient}
+
+\apidesc{
+  These functions respectively return true if any or all threads in this
+  ProcessSet are stopped, and false otherwise.
+}
+
+\begin{apient}
+  bool anyThreadRunning()
+  bool allThreadRunning()
+\end{apient}
+
+\apidesc{
+  These functions respectively return true if any or all threads in this
+  ProcessSet are running, and false otherwise.
+}
+
+\begin{apient}
+  ProcessSet::ptr getTerminatedSubset() const
+\end{apient}
+
+\apidesc{
+  This function returns a new ProcessSet, which is a subset of this ProcessSet,
+  and contains every Process that is terminated.
+}
+
+\begin{apient}
+  ProcessSet::ptr getExitedSubset() const
+\end{apient}
+
+\apidesc{
+  This function returns a new ProcessSet, which is a subset of this ProcessSet,
+  and contains every Process that has exited normally.
+}
+
+\begin{apient}
+  ProcessSet::ptr getCrashedSubset() const
+\end{apient}
+
+\apidesc{
+  This function returns a new ProcessSet, which is a subset of this ProcessSet,
+  and contains every Process that has crashed.
+}
+
+\begin{apient}
+  ProcessSet::ptr getDetachedSubset() const
+\end{apient}
+
+\apidesc{
+  This function returns a new ProcessSet, which is a subset of this ProcessSet,
+  and contains every Process that is detached.
+}
+
+\begin{apient}
+  ProcessSet::ptr getAllThreadRunningSubset() const
+  ProcessSet::ptr getAnyThreadRunningSubset() const
+\end{apient}
+
+\apidesc{
+  This function returns a new ProcessSet, which is a subset of this ProcessSet,
+  and contains every Process that respectively has any or all threads running.
+}
+
+\begin{apient}
+  ProcessSet::ptr getAllThreadStoppedSubset() const
+  ProcessSet::ptr getAnyThreadStoppedSubset() const
+\end{apient}
+
+\apidesc{
+  This function returns a new ProcessSet, which is a subset of this ProcessSet,
+  and contains every Process that respectively has any or all threads stopped.
+}
+
+\begin{apient}
+  bool continueProcs()
+\end{apient}
+
+\apidesc{
+  This function continues every thread in every process of this ProcessSet,
+  similar to Process::continueProc. It
+  returns true if every process was successfully continued and false otherwise.
+}
+
+\begin{apient}
+  bool stopProcs()
+\end{apient}
+
+\apidesc{
+  This function stops every thread in every process of this
+  ProcessSet, similar to
+  Process::stopProc. It returns true if every process was
+  successfully stopped and false otherwise.
+}
+
+\begin{apient}
+  bool detach(bool leaveStopped = true)
+\end{apient}
+
+\apidesc{
+  This function detaches from every process in this ProcessSet, similar to
+  Process::detach. It returns true if every
+  process detach was successful and false otherwise.
+  If the leaveStopped parameter is set to true, and the processes in this
+  ProcessSet are stopped, then the processes will be left in a stopped state
+  after the detach.
+}
+
+\begin{apient}
+  bool terminate()
+\end{apient}
+
+\apidesc{
+  This function terminates every process in this ProcessSet, similar to
+  Process::terminate. It returns true if
+  every process was successfully terminated and false otherwise.
+}
+
+\begin{apient}
+  bool temporaryDetach()
+\end{apient}
+
+\apidesc{
+  This function does a temporary detach from every process in this ProcessSet,
+  similar to Process::temporaryDetach.
+  It returns true if every process was successfully detached and false
+  otherwise.
+}
+
+\begin{apient}
+  bool reAttach()
+\end{apient}
+
+\apidesc{
+  This function reattaches to every process in this ProcessSet, similar to
+  Process::reAttach. It returns true if every
+  process was successfully reAttached and false otherwise.
+}
+
+\begin{apient}
+  AddressSet::ptr mallocMemory(size_t sz) const
+\end{apient}
+
+\apidesc{
+  This function allocates a block of memory of size sz in each process in this
+  ProcessSet. The addresses of the allocations are returned in a new AddressSet
+  object.
+}
+
+\begin{apient}
+  bool mallocMemory(size_t size, AddressSet::ptr location)
+\end{apient}
+
+\apidesc{
+  This function allocates a block of memory of size sz in each process in this
+  ProcessSet. The memory will be allocated in each process based on the
+  Process/Address pairs in location.
+  This function\' s behavior is undefined if location contains
+  processes not included in this ProcessSet.
+  This function returns true if every allocation happened without
+  error and false
+  otherwise.
+}
+
+\begin{apient}
+  bool freeMemory(AddressSet::ptr addrs) const
+\end{apient}
+
+\apidesc{
+  This function frees memory allocated by
+  Process::mallocMemory or
+  ProcessSet::mallocMemory. The
+  AddressSet addrs should contain a list of Process/Address pairs that point to
+  the memory that should be freed.
+  This function\' s behavior is undefined if addrs contains
+  processes not included in this ProcessSet.
+  This function returns true if every free happened without error and false
+  otherwise.
+}
+
+\begin{apient}
+  bool readMemory(AddressSet::ptr addrs,
+                  std::multimap<Process::ptr, void *> &result,
+                  size_t size) const
+\end{apient}
+
+\apidesc{
+  This function reads memory from processes in this ProcessSet. addrs should
+  contain the addresses to read memory from. size should be the amount of
+  memory read from each process. The results of the memory reads will be
+  returned by filling in the result multimap. Each process that is read from
+  will have an entry in result along with a malloc allocated buffer containing
+  the results of the read.
+  It is the ProcControlAPI user\' s responsibility to free the
+  memory buffers returned by this function.
+  This function\' s behavior is undefined if addrs contains
+  processes not included in this ProcessSet.
+  This function returns true if every read happened without error, and false
+  otherwise.
+}
+
+\begin{apient}
+  bool readMemory(AddressSet::ptr addrs,
+                  std::map<void *, ProcessSet::ptr> &result,
+                  size_t size)
+\end{apient}
+
+\apidesc{
+  This function reads memory from processes in this ProcessSet. addrs should
+  contain the addresses to read memory from. size should be the amount of
+  memory to read from each process. The results of the memory reads will be
+  aggregated together into the result map. If any two processes read equivalent
+  byte-for-byte data, then those processes are grouped together in a new
+  ProcessSet associated with a common malloc allocated buffer containing their
+  memory contents.
+  It is the ProcControlAPI user\' s responsibility to free the
+  memory buffers returned by this function.
+  This function\' s behavior is undefined if addrs contains
+  processes not included in this ProcessSet.
+  This function returns true if every read happened without error, and false
+  otherwise.
+}
+
+\begin{apient}
+  bool readMemory(std::multimap<Process::const_ptr, read_t> &addr)
+\end{apient}
+
+\apidesc{
+  This function reads memory from processes in this ProcessSet. The processes to
+  read from are specified in the indexes of addr. The remote address, read size
+  and local buffer are specified in the read\_t elements of addr.
+  This function\' s behavior is undefined if addr contains
+  processes not included in this ProcessSet.
+  This function returns true if every read happened without error, and false
+  otherwise. If any read results in an error, then the error\_ret field of the
+  associated addr element will be set.
+}
+
+\begin{apient}
+  bool writMemory(AddressSet::ptr addrs, const void *buffer, size_t sz) const
+\end{apient}
+
+\apidesc{
+  This function will write the contents of buffer of size sz into the memory of
+  each process at addrs.
+  This function\' s behavior is undefined if addrs contains
+  processes not included in this ProcessSet.
+  This function returns true if every write happened without error, and false
+  otherwise.
+}
+
+\begin{apient}
+  bool writeMemory(std::multimap<Process::const_ptr, write_t> &addrs) const
+\end{apient}
+
+\apidesc{
+  This function writes to the memory of each process in addrs. The processes to
+  write to are specified as the indexes of addrs. The local memory buffer,
+  buffer size, and target location are specified in the write\_t element of
+  addrs.
+  This function\' s behavior is undefined if addrs contains
+  processes not included in this ProcessSet.
+  This function returns true if every write happened without error, and false
+  otherwise. If any write results in an error, then the error\_ret field of the
+  associated addr element will be set.
+}
+
+\begin{apient}
+  bool addBreakpoint(AddressSet::ptr as, Breakpoint::ptr bp) const
+\end{apient}
+
+\apidesc{
+  This function inserts the Breakpoint bp into every process and
+  address specified
+  by as. It is similar to Process::addBreakpoint.
+  This function\' s behavior is undefined if addrs contains
+  processes not included in this ProcessSet.
+  This function returns true if every breakpoint add happened without error, and
+  false otherwise.
+}
+
+\begin{apient}
+  bool rmBreakpoint(AddressSet::ptr as, Breakpoint::ptr bp) const
+\end{apient}
+
+\apidesc{
+  The function removes the Breakpoint bp from each process at the locations
+  specified in as. It is similar to Process::rmBreakpoint.
+  This function\' s behavior is undefined if as contains
+  processes not included in this ProcessSet.
+  This function returns true if every breakpoint remove happened without error,
+  and false otherwise.
+}
+
+\begin{apient}
+  bool postIRPC(const std::multimap<Process::const_ptr, IRPC::ptr> &rpcs) const
+\end{apient}
+
+\apidesc{
+  This function posts the IRPC objects specified in rpcs to their associated
+  processes in the multimap. It is similar to Process::postIRPC.
+  This function\' s behavior is undefined if rpcs contains
+  processes not included in this ProcessSet.
+  This function returns true if every post happened without error, and false
+  otherwise.
+}
+
+\begin{apient}
+  bool postIRPC(IRPC::ptr irpc, std::multimap<Process::ptr, IRPC::ptr> *result = NULL)
+\end{apient}
+
+\apidesc{
+  This function makes a copy of irpc for each Process in this
+  ProcessSet and posts
+  it to that Process. If result is non-NULL, then the multimap will be filled
+  with each newly created IRPC and the Process to which it was posted. It is
+  similar to Process::postIRPC.
+  This function returns true if every post happened without error, and false
+  otherwise.
+}
+
+\begin{apient}
+  bool postIRPC(IRPC::ptr irpc,
+                AddressSet::ptr addrs,
+                std::multimap<Process::ptr, IRPC::ptr> *result = NULL)
+\end{apient}
+
+\apidesc{
+  This function makes a copy of irpc and posts it to each Process in
+  addrs at the
+  given Address. If result is non-NULL, then the multimap will be filled with
+  each newly created IRPC and the Process to which it was posted. It is similar
+  to Process::postIRPC.
+  This function\' s behavior is undefined if rpcs contains
+  processes not included in this ProcessSet.
+  This function returns true if every post happened without error, and false
+  otherwise.
+}

@@ -1,0 +1,15 @@
+An \code{EventRPC} triggers when a process or thread completes a ProcControlAPI
+iRPC. When a callback function receives an EventRPC, the memory and registers
+that were used by the iRPC can still be found in the address space and thread
+that the iRPC ran on. Once the callback function completes, the registers and
+memory are restored to their original state.
+
+Associated EventType Code: \code{RPC}
+
+\begin{apient}
+IRPC::const_ptr getIRPC() const
+\end{apient}
+
+\apidesc{
+This function returns a const pointer to the IRPC object that completed.
+}

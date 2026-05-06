@@ -1,0 +1,44 @@
+\code{SignalMask} class is used to configure the signal mask for its associated
+Process.
+
+\begin{apient}
+dyn_sigset_t
+\end{apient}
+
+\apidesc{
+On POSIX systems, this type is equivalent to sigset\_t.
+}
+
+\begin{apient}
+static void setDefaultSigMask(dyn_sigset_t s)
+\end{apient}
+
+\apidesc{
+This function sets the default signal mask across all Process objects to s.
+}
+
+\begin{apient}
+static dyn_sigset_t getDefaultSigMask()
+\end{apient}
+
+\apidesc{
+This function returns the current default signal mask across all Process
+objects.
+}
+
+\begin{apient}
+bool setSigMask(dyn_sigset_t s)
+\end{apient}
+
+\apidesc{
+This function sets the signal mask for the associated Process object to s.
+This function returns true on success and false on failure.
+}
+
+\begin{apient}
+dyn_sigset_t getSigMask() const
+\end{apient}
+
+\apidesc{
+This function returns the current signal mask for the associated Process object.
+}

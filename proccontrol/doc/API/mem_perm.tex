@@ -1,0 +1,88 @@
+The \code{mem\_perm} class represents
+general memory page permission for the given memory page in the process.
+
+
+\begin{apient}
+Process::mem_perm::read Process::mem_perm::write Process::mem_perm::execute
+\end{apient}
+
+\apidesc{
+The Process::mem\_perm::read, Process::mem\_perm::write, and
+Process::mem\_perm::execute, just as their names imply, respectively represent
+read, write, and execution permission of given memory page. 
+}
+
+\begin{apient}
+mem_perm(bool r, bool w, bool x)
+\end{apient}
+
+\apidesc{
+These constructors provide a convenient way to create the specific memory
+permission for the given page.
+}
+
+\begin{apient}
+bool getR() const
+bool getW() const
+bool getX() const
+\end{apient}
+
+\apidesc{
+These functions return true if the given memory page has read, write, and
+execution permission, respectively, and false otherwise.
+}
+
+\begin{apient}
+bool isNone() const
+bool isR()    const
+bool isX()    const
+bool isRW()   const
+bool isRX()   const
+bool isRWX()  const
+\end{apient}
+
+\apidesc{
+These functions return true if the permission of given memory page is
+NO\_ACCESS, READ\_ONLY, EXECUTE, READ\_WRITE, READ\_EXECUTE, and
+READ\_WRITE\_EXECUTE, respectively, and false otherwise.
+}
+
+\begin{apient}
+Process::mem_perm& setR()
+Process::mem_perm& setW()
+Process::mem_perm& setX()
+\end{apient}
+
+\apidesc{
+These functions enable read, write, and execution permission for the given page,
+respectively, and return this mem\_perm.
+}
+
+\begin{apient}
+Process::mem_perm& clrR()
+Process::mem_perm& clrW()
+Process::mem_perm& clrX()
+\end{apient}
+
+\apidesc{
+These functions disable read, write, and execution permission for the given
+page, respectively, and return this mem\_perm.
+}
+
+\begin{apient}
+bool operator<(const mem_perm& p) const
+\end{apient}
+
+\apidesc{
+This function returns true if this mem\_perm is less than p according to the
+notation that read permission encodes to 4, write, 2, and execute, 1, and false
+otherwise.
+}
+
+\begin{apient}
+std::string getPermName()
+\end{apient}
+
+\apidesc{
+Return the memory permission name for this mem\_perm.
+}

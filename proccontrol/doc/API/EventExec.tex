@@ -1,0 +1,15 @@
+An \code{EventExec} triggers when a process performs a UNIX-style exec
+operation. An \code{EventType} of post-Exec means the process has completed the
+exec and setup its new address space. An \code{EventType} of pre-Exec means the
+process has not yet torn down its old address space.
+
+Associated \code{EventType} Code: \code{Exec}
+
+\begin{apient}
+std::string getExecPath() const
+\end{apient}
+
+\apidesc{
+This function returns the file path to the process\' new
+executable.
+}

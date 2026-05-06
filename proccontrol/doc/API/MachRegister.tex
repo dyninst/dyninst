@@ -1,0 +1,159 @@
+The MachRegister interface is used for accessing registers in
+ProcControlAPI. The entire definition of MachRegister contains more register
+names than are listed here; this appendix only lists the registers that can be
+accessed through ProcControlAPI. 
+
+An instance of MachRegister is defined for each register ProcControlAPI can
+name. These instances live inside a namespace that represents the
+register\'s architecture. For example, we can name a
+register from an AMD64 machine with Dyninst::x86\_64::rax or a register from a
+Power machine with Dyninst::ppc32::r1.
+
+
+\begin{apient}
+typedef unsigned long MachRegisterVal
+\end{apient}
+
+\apidesc{
+The MachRegisterVal type is used to represent the contents of a register. If a
+register\'s contents are smaller than MachRegisterVal, then
+it will be up cast into a MachRegisterVal.
+}
+
+\begin{apient}
+typedef enum { Arch_none, Arch_x86, Arch_x86_64, Arch_ppc32, Arch_ppc64 } Architecture
+\end{apient}
+
+\apidesc{
+The Architecture enum represents a system\'s architecture.
+}
+
+\begin{apient}
+unsigned int getArchAddressWidth(Architecture arch)
+\end{apient}
+
+\apidesc{
+Returns the size of a pointer, in bytes, on the given architecture, arch.
+}
+
+\begin{apient}
+MachRegister getPC(Dyninst::Architecture arch)
+\end{apient}
+
+\apidesc{
+Returns the program counter (PC) for the architecture \code{arch}.
+}
+
+\begin{apient}
+MachRegister getFramePointer(Dyninst::Architecture arch)
+\end{apient}
+
+\apidesc{
+Returns the frame pointer for the architecture \code{arch}.
+}
+
+\begin{apient}
+MachRegister getStackPointer(Dyninst::Architecture arch)
+\end{apient}
+
+\apidesc{
+Returns the stack pointer for the architecture \code{arch}.
+}
+
+\begin{apient}
+MachRegister getBaseRegister() const
+\end{apient}
+
+\apidesc{
+This function returns the largest register that may alias with the given
+register. For example, getBaseRegister on x86\_64::ah returns x86\_64::rax.
+}
+
+\begin{apient}
+Architecture getArchitecture() const
+\end{apient}
+
+\apidesc{
+This function returns the Architecture for this register.
+}
+
+\begin{apient}
+bool isValid() const
+\end{apient}
+
+\apidesc{
+This function returns true if this register is valid. Some API functions may
+return invalid registers upon error.
+}
+
+\begin{apient}
+MachRegisterVal getSubRegVal(MachRegister subreg,  MachRegisterVal orig)
+\end{apient}
+
+\apidesc{
+Given a value for this register, orig, and a smaller aliased register, subreg,
+then this function returns the value of the aliased register. For example, if
+this function were called on x86::eax with subreg as x86::al and an orig value
+of 0x11223344, then it would return 0x44.
+}
+
+\begin{apient}
+const char *name() const
+\end{apient}
+
+\apidesc{
+This function returns a human readable name that identifies this register.
+}
+
+\begin{apient}
+unsigned int size() const
+\end{apient}
+
+\apidesc{
+This function returns the size of the register in bytes.
+}
+
+\begin{apient}
+signed int val() const
+\end{apient}
+
+\apidesc{
+This function returns a unique integer that represents this register. This can
+be useful for writing switch statements that take a MachRegister. The unique
+integers for a MachRegister can be found by preceding the register object name
+with an ``i''. For example, a switch statement for MachRegister, reg, could be written as:
+}
+
+
+\begin{lstlisting}[language=c++]
+switch (reg.val()) {
+  case x86\_64::irax:
+  case x86\_64::irbx:
+  case x86\_64::ircx:
+   ...
+}
+\end{lstlisting}
+
+\begin{apient}
+bool isPC() const
+\end{apient}
+
+\apidesc{
+Returns \code{true} if the register is the program counter (PC) for any architecture.
+}
+
+\begin{apient}
+bool isFramePointer() const
+\end{apient}
+
+\apidesc{
+Returns \code{true} if the register is the frame pointer for any architecture.
+}
+
+\begin{apient}
+bool isStackPointer() const
+\end{apient}
+
+\apidesc{
+Returns \code{true} if the register is the stack pointer for any architecture.
+}

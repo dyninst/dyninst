@@ -1,0 +1,15 @@
+An \code{EventFork} triggers when a process performs a UNIX-style fork
+operation. The process that performed the initial fork is returned via Event\'s
+getProcess member function, while the newly created process can be found via
+EventFork\'s getChildProcess member function.
+
+Associated \code{EventType} Code: \code{Fork}
+
+\begin{apient}
+Process::const_ptr getChildProcess() const
+\end{apient}
+
+\apidesc{
+This function returns a pointer to the Process object that represents the newly
+created child process.
+}

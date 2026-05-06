@@ -1,0 +1,11 @@
+An \code{EventStop} is triggered when a process is stopped by a
+non-ProcControlAPI source. On UNIX based systems, this is triggered by receipt
+of a SIGSTOP signal.
+
+Unlike most other events, an EventStop will explicitly move the associated
+thread or process (see the Event\'s SyncType to tell which) to a stopped state.
+Returning cbDefault from a callback function that has received EventStop will
+leave the target process in a stopped state rather than restore it to the
+pre-event state.
+
+Associated EventType Code: \code{Stop}

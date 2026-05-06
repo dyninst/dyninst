@@ -1,0 +1,52 @@
+\subsection{EventNotify}
+\index{EventNotify: : : :!}The EventNotify class is used to notify the user when
+ProcControlAPI is ready to deliver a callback function. EventNotify is a
+singleton class, which means only one instance of it is ever instantiated.
+See Section \ref{bkm:Ref273371799}for a high level description of
+notification.
+
+EventNotify Declared In: 
+
+PCProcess.h
+
+EventNotify Types:
+
+typedef void (*notify\_cb\_t\index{notify\_cb\_t, EventNotify: : : :!})()
+
+This function signature is used for light-weight notification callback.
+
+EventNotify Related Global Functions:
+
+EventNotify *evNotify\index{evNotify: : : :!}()
+
+This function returns the singleton instance of the EventNotify class.
+
+EventNotify Member Functions:
+
+int getFD\index{getFD, EventNotify: : : :!}()
+
+This function returns a file descriptor. ProcControlAPI will write a byte that
+will be available for reading on this file descriptor when a callback function
+is ready to be invoked. Upon seeing that a byte has been written to this
+file descriptor (likely via select or poll) the user should call the
+Process::handleEvents\index{handleEvents, Process: : : :!} function. The user
+should never actually read the byte from this file descriptor; ProcControlAPI
+will handle clearing the byte after the callback function is invoked.
+
+This function returns {}-1 on error. Upon an error a subsequent call to
+getLastError returns details on the error.
+
+void registerCB\index{registerCB, EventNotify: : : :!}(notify\_cb\_t cb)
+
+This function registers a light-weight callback function that will be invoked
+when a ProcControlAPI wishes to notify the user when a callback function is
+ready to be invoked. This light-weight callback may be called by a
+ProcControlAPI internal thread or from a signal handler; the user is encouraged
+to keep its implementation appropriately safe for these circumstances.
+
+void removeCB\index{removeCB, EventNotify: : : :!}(notify\_cb\_t cb)
+
+This function removes a light-weight callback that was previously registered
+with EventNotify::registerCB. ProcControlAPI will no longer invoke the cb
+function after this function completes.
+

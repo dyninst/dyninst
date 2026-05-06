@@ -1,0 +1,34 @@
+A \code{RegisterPool} represents a collection of registers.
+It can be used to get or set all registers in a Thread at once.
+It satisfies the C++
+\href{https://en.cppreference.com/cpp/named_req/ForwardIterator}{LegacyForwardIterator}
+concept. It also offers the standard \code{begin/end} members for iteration.
+
+\begin{apient}
+LibraryPool::iterator find(Dyninst::MachRegister r)
+\end{apient}
+
+\apidesc{
+This function returns an iterator that points to the element in the register
+pool that equals register r. If r is not found, then this function returns
+end().
+}
+
+\begin{apient}
+size_t size() const
+\end{apient}
+
+\apidesc{
+This function returns the number of elements in the register set.
+}
+
+\begin{apient}
+Dyninst::MachRegisterVal& operator[](Dyninst::MachRegister r)
+\end{apient}
+
+\apidesc{
+This function returns a reference to the value associated with the register r in
+this register pool. It can be used to efficiently get and set the values of
+registers in this pool, or to fill the pool with new
+MachRegisters.
+}

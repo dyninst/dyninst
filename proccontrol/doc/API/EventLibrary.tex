@@ -1,0 +1,31 @@
+An \code{EventLibrary} triggers when the process either loads or unloads a
+shared library. ProcControlAPI will not trigger an \code{EventLibrary} for
+library unloads associated with a Process being terminated, and it will not
+trigger \code{EventLibrary} for library loads that happened before a
+ProcControlAPI attach operation.
+
+It is possible for multiple libraries to be loaded or unloaded at the same time.
+In this case, an \code{EventLibrary} will contain multiple libraries in its load
+and unload sets.
+
+Associated \code{EventType} Code: \code{Library}
+
+\begin{apient}
+const std::set<Library::ptr> &libsAdded() const
+\end{apient}
+
+\apidesc{
+This function returns the set of Library objects that were loaded into the
+target process\' address space. The set will be empty if
+no libraries were loaded.
+}
+
+\begin{apient}
+const std::set<Library::ptr> &libsRemoved() const
+\end{apient}
+
+\apidesc{
+This function returns the set of libraries that were unloaded from the target
+process\' address space. The set will be empty if no
+libraries were unloaded.
+}

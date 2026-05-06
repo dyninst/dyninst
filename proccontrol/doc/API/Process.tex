@@ -1,0 +1,682 @@
+The Process class is the primary handle for operating on a single target process.
+Process objects may be created by calls to the static functions
+Process::createProcess or Process::attachProcess, or in response to
+certain types of events (e.g, fork on UNIX systems).
+
+The static functions of the Process class serve as a central location for
+performing general ProcControlAPI operations, such as handleEvents and
+registerEventCallback when dealing with callbacks. 
+
+\begin{apient}
+Process::ptr Process::const_ptr
+\end{apient}
+
+\apidesc{
+The Process::ptr and Process::const\_ptr respectively represent a pointer and a
+const pointer to a Process object. Both pointer types are reference counted
+and will cause the underlying Process object to be cleaned when there are no
+more references. ProcControlAPI will maintain internal references to any
+Process it actively controls, relinquishing those references when the process
+either exits or is detached.
+}
+
+\begin{apient}
+enum Process::cb_action_t {
+  cbDefault,
+  cbThreadContinue,
+  cbThreadStop, 
+  cbProcContinue,
+  cbProcStop
+}
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+struct Process::cb_ret_t {
+  cb_ret_t(cb_action_t p)
+  cb_ret_t(cb_action_t p, cb_action_t c)
+\end{apient}
+
+\apidesc{
+The cb\_ret\_t enum is used as the return type for callback functions registered
+through Process::registerEventCallback(). A callback function can specify
+whether the thread or process associated with its event should be stopped or
+continued by respectively returning cbThreadContinue, cbThreadStop,
+cbProcContinue, or cbProcStop. The cbDefault return value returns a Process
+and Thread to the original state before the event occurred.
+Some events, such as process spawn or thread create involve two processes or
+threads. In this case the ProcControlAPI user can specify a cb\_action\_t
+value for both the parent and child using the two parameter constructor for
+cb\_ret\_t.
+}
+
+\begin{apient}
+typedef Process::cb_ret_t(*cb_func_t)(Event::const_ptr)
+\end{apient}
+
+\apidesc{
+The cb\_func\_t type is a function pointer type for functions that can handle
+event callbacks. The callback function gets an Event::const\_ptr as input,
+which points to the Event that triggered the callback. The cb\_func\_t
+function should return a cb\_ret\_t describing what to do with the process
+after handling the event.
+}
+
+\begin{apient}
+enum OSType{
+  OSNone,
+  Linux,
+  FreeBSD,
+  Windows
+}
+\end{apient}
+
+\apidesc{
+A value from this enum is returned from Process::getOS and signifies the current
+OS on which the target process is running.
+}
+
+\begin{apient}
+typedef std::pair<Dyninst::Address, Dyninst::Address> MemoryRegion
+\end{apient}
+
+\apidesc{
+The MemoryRegion type represents a region of allocated memory, and the first
+part of the pair is the start address, the second, the end.
+}
+
+\begin{apient}
+static Process::ptr createProcess(std::string executable,
+                                  const std::vector<std::string> &argv,
+                                  const std::vector<std::string> &envp = emptyEnv,
+                                  const std::map<int,int> &fds = emptyFDs)
+\end{apient}
+
+\apidesc{
+This function creates a new process by launching an executable file named by
+executable with the arguments specified by argv, the environment specified in
+envp, and it returns a pointer to the new Process object upon success. The
+new process will be created with its initial thread in the stopped state. 
+It is an error to call this function from a callback.
+If the fds map is not empty, then the new process will be created with the file
+descriptors from the fds\'  first elements dup2 mapped to
+the file descriptors in fds\'  second elements.
+If envp is empty, the environment will be inherited from the calling process.
+ProcControlAPI may deliver callbacks when this function is called.
+This function returns Process::ptr() on error, and a subsequent call to
+getLastError returns details on the error.
+}
+
+\begin{apient}
+static Process::ptr attachProcess(Dyninst::PID pid,  std::string executable = "")
+\end{apient}
+
+\apidesc{
+This function creates a new Process object by attaching to the PID specified by
+pid. The new Process object will be returned from this function upon success.
+The executable argument is optional, and can be used to assist ProcControlAPI
+in finding the process\'  executable on operating systems
+where this cannot be easily determined (currently on AIX). The new process
+will be returned with all of its threads in the stopped state.
+It is an error to call this function from a callback.
+ProcControlAPI may deliver callbacks when this function is called.
+This function return Process::ptr() on error, and a subsequent call to
+getLastError returns details on the error.
+}
+
+\begin{apient}
+static bool handleEvents(bool block)
+\end{apient}
+
+\apidesc{
+This function causes ProcControlAPI to handle any pending debug events and
+deliver callbacks. When an event requires a
+callback ProcControlAPI needs control of the main thread in order to deliver
+the callback. This function gives control of the main thread to
+ProcControlAPI for callback delivery. A user can know when to call
+handleEvents by using the EventNotify interface. 
+If the block parameter is true, then handleEvents will block until at least one
+debug event has been handled. If block is false then handleEvents returns
+immediately if no events are ready to be handled. 
+This function returns true if it handled at least one event and false otherwise.
+It is an error to call this function from a callback.
+}
+
+\begin{apient}
+static bool registerEventCallback(EventType evt, cb_func_t cbfunc)
+\end{apient}
+
+\apidesc{
+This function registers a new callback function with ProcControlAPI. Upon
+receiving an event with type evt, ProcControlAPI will deliver a callback with
+that event to the cbfunc function. Multiple functions can be registered to
+receive callbacks for a single EventType, and a single function can be
+registered with multiple EventTypes. 
+If multiple callback functions are registered with a single EventType, then it
+is undefined what order those callback functions will be invoked in. In this
+case the cb\_ret\_t result of the last callback function called will be used to
+determine what stop or continue operations should be performed on the process.
+If a single callback function is registered for the same EventType multiple
+times, then ProcControlAPI will only invoke one call to the callback function
+for each instance of the EventType.
+This function returns true on success and false on error. Upon an error a
+subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+static bool removeEventCallback(EventType evt, cb_func_t cbfunc)
+\end{apient}
+
+\apidesc{
+This function un-registers a callback that was registered with
+registerEventCallback. After a successful call to this function the callback
+function cbfunc will stop being called for events with EventType evt. Other
+callback functions registered for evt will not be affected. Other instances
+of cbfunc registered for different EventTypes will not be affected.
+This function returns true if a callback was successfully removed and false
+otherwise. Upon an error a subsequent call to getLastError returns details on
+the error.
+}
+
+\begin{apient}
+static bool removeEventCallback(EventType evt)
+\end{apient}
+
+\apidesc{
+This function unregisters all callback functions associated with the EventType
+evt. After a successful call to this function ProcControlAPI will stop
+delivering callbacks for evt until a new callback function is registered.
+This function returns true if a callback was successfully removed and false
+otherwise. Upon an error a subsequent call to getLastError returns details on
+the error.
+}
+
+\begin{apient}
+static bool removeEventCallback(cb_func_t func)
+\end{apient}
+
+\apidesc{
+This function unregisters all instances of callback function func from any
+callback with any EventType. 
+This function returns true if a callback was successfully removed and false
+otherwise. Upon an error a subsequent call to getLastError returns details on
+the error.
+}
+
+\begin{apient}
+Dyninst::PID getPid() const
+\end{apient}
+
+\apidesc{
+This function returns an OS handle referencing the process. On UNIX systems
+this is the pid of the process. 
+}
+
+\begin{apient}
+Dyninst::Architecture getArchitecture() const
+\end{apient}
+
+\apidesc{
+This function returns an enum that describes the architecture of the target
+process.
+}
+
+\begin{apient}
+Dyninst::OSType getOS () const
+\end{apient}
+
+\apidesc{
+This function returns an enum that describes the OS of the target process. See
+the beginning of this section for the definition of Dyninst::OSType.
+}
+
+\begin{apient}
+bool supportsLWPEvents () const
+\end{apient}
+
+\apidesc{
+This function returns true if the target process can throw LWP create and
+destroy events and false otherwise.
+}
+
+\begin{apient}
+bool supportsUserThreadEvents() const
+\end{apient}
+
+\apidesc{
+This function returns true if the target process can throw user thread create
+and destroy events and false otherwise.
+}
+
+\begin{apient}
+bool supportsFork () const
+\end{apient}
+
+\apidesc{
+This function returns true if the fork system call is supported in the target
+process and false otherwise.
+}
+
+\begin{apient}
+bool supportsExec () const
+\end{apient}
+
+\apidesc{
+This function returns true if the exec system call is supported in the target
+process and false otherwise.
+}
+
+\begin{apient}
+bool isTerminated() const
+\end{apient}
+
+\apidesc{
+This function returns true if the target process has terminated (either via a
+crash or normal exit) or if the ProcControlAPI has detached from the target
+process. It returns false otherwise.
+}
+
+\begin{apient}
+bool isExited() const
+\end{apient}
+
+\apidesc{
+This function returns true of the target process exited via a normal exit (e.g,
+calling the exit function or returning from main). It returns false
+otherwise.
+}
+
+\begin{apient}
+int getExitCode() const
+\end{apient}
+
+\apidesc{
+If a target process exited normally then this function returns its exit code.
+The return result of this function is undefined if the
+Process\' isExited function returns false.
+}
+
+\begin{apient}
+bool isCrashed() const
+\end{apient}
+
+\apidesc{
+This function returns true if the target process exited because of a crash. It
+returns false otherwise.
+}
+
+\begin{apient}
+int getCrashSignal() const
+\end{apient}
+
+\apidesc{
+If a target process exited because of a crash, then this function returns the
+signal that caused the target process to crash. The return result of this
+function is undefined if the Process\'  isCrashed function
+returns false.
+}
+
+\begin{apient}
+bool hasStoppedThread() const
+\end{apient}
+
+\apidesc{
+This function returns true if the target process has at least one thread in the
+stopped state. It returns false otherwise or if an error occurs. In the
+event of an error a call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool hasRunningThread() const
+\end{apient}
+
+\apidesc{
+This function returns true if the target process has at least one thread in the
+running state. It returns false otherwise or if an error occurs. In the
+event of an error a call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool allThreadsStopped() const
+\end{apient}
+
+\apidesc{
+This function returns true if all threads in the target process are in the
+stopped state. It returns false otherwise or if an error occurs. In the
+event of an error a call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool allThreadsRunning() const
+\end{apient}
+
+\apidesc{
+This function returns true if all threads in the target process are in the
+running state. It returns false otherwise or if an error occurs. In the
+event of an error a call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool allThreadsRunningWhenAttached() const
+\end{apient}
+
+\apidesc{
+This function returns true if all threads were running when the controller
+process attached to this process. It returns false if any threads were stopped.
+If the target process was created instead of attached, this function returns
+true.
+}
+
+\begin{apient}
+bool continueProc()
+\end{apient}
+
+\apidesc{
+This function will move all threads in the target process into the running
+state. This function returns true if at least one thread was continued as
+part of the call, and false otherwise.
+It is an error to call this function from a callback.
+ProcControlAPI may deliver callbacks when this function is called.
+This function return false on error, and a subsequent call to getLastError
+returns details on the error.
+}
+
+\begin{apient}
+bool stopProc()
+\end{apient}
+
+\apidesc{
+This function will move all threads in the target process into the stopped
+state. This function returns true if at least one thread was stopped as part
+of the call, and false otherwise.
+It is an error to call this function from a callback.
+ProcControlAPI may deliver callbacks when this function is called.
+This function return false on error, and a subsequent call to getLastError
+returns details on the error.
+}
+
+\begin{apient}
+bool detach(bool leaveStopped = false)
+\end{apient}
+
+\apidesc{
+This function will detach ProcControlAPI from the target process.
+ProcControlAPI will no longer be able to control or receive events from the
+target process. All breakpoints will be removed from the target. This
+function returns true on success and false on error. Upon an error a
+subsequent call to getLastError returns details on the error.
+If the leaveStopped parameter is set to true, and the process is in a stopped
+state, then the target process will be left in a stopped state after the
+detach. 
+It is an error to call this function from a callback.
+}
+
+\begin{apient}
+bool temporaryDetach()
+\end{apient}
+
+\apidesc{
+This function temporarily detaches from the target process, but leaves the
+Process data structure intact. This functionality is commonly called
+detach-on-the-fly. The target process will not report new events nor be
+controllable or able to be queried by the user. Breakpoints are removed from
+the process. The reAttach function will reconnect the process after this
+call.
+This function returns true on success and false upon error.
+It is an error to call this function from a callback.
+}
+
+\begin{apient}
+bool reAttach()
+\end{apient}
+
+\apidesc{
+This function reconnects to the target process after a temporaryDetach call.
+Any breakpoints will be re-inserted back into the function, and if threads
+have been created or destroyed during the time detached new events will be
+thrown for them.
+This function returns true on success and false upon error.
+It is an error to call this function from a callback.
+}
+
+\begin{apient}
+bool terminate()
+\end{apient}
+
+\apidesc{
+This function forcefully terminated the target process. Upon a successful call
+to this function the target process will end execution. The Process object
+will record the target process as having crashed. This function returns true
+on success and false on error. Upon an error a subsequent call to
+getLastError returns details on the error.
+It is an error to call this function from a callback.
+}
+
+\begin{apient}
+const ThreadPool &threads()
+const ThreadPool &threads()
+\end{apient}
+
+\apidesc{
+Returns the \code{ThreadPool} of the process.
+}
+
+\begin{apient}
+const LibraryPool &libraries() const
+LibraryPool &libraries()
+\end{apient}
+
+\apidesc{
+Returns the \code{LibraryPool} of the process.
+}
+
+\begin{apient}
+bool addLibrary(std::string libname)
+\end{apient}
+
+\apidesc{
+This function causes the specified library to be loaded into the process. It
+will trigger an event (and thus a user callback) for each library loaded
+(including dependencies). 
+}
+
+\begin{apient}
+void *getData () const
+void setData (void *p)
+\end{apient}
+
+\apidesc{
+These functions respectively get and set an opaque data object that can be
+associated with this process. The data is not interpreted by ProcControlAPI,
+but remains associated with the process.
+}
+
+\begin{apient}
+unsigned getMemoryPageSize() const
+\end{apient}
+
+\apidesc{
+This function returns memory page size for the current OS on which the target
+process is running.
+}
+
+\begin{apient}
+Dyninst::Address mallocMemory(size_t size)
+Dyninst::Address mallocMemory(size_t size, Dyninst::Address addr)
+\end{apient}
+
+\apidesc{
+These functions allocate a region of memory in the target
+process\'  address space of size size. Upon a successful
+call these functions will map an area of memory in the target process that is
+readable, writeable and executable. The \code{mallocMemory(size\_t)} function will
+allocate memory at any available address. The \code{mallocMemory(size\_t, Dyninst::Address)}
+function will only allocate memory at the specified address, addr.
+It is an error to call this function from a callback.
+ProcControlAPI may deliver callbacks when this function is called.
+Upon success these functions return the start address of memory that was
+allocated and 0 otherwise. Upon an error a subsequent call to getLastError
+returns details on the error.
+}
+
+\begin{apient}
+bool freeMemory(Dyninst::Address addr)
+\end{apient}
+
+\apidesc{
+This function will free a region of memory that was allocated by the
+mallocMemory function. Upon a successful call to this function, the area of
+memory starting at addr will be unmapped and no longer accessible to the target
+process. It is an error to call this function with an address that was not
+returned by mallocMemory.
+It is an error to call this function from a callback.
+ProcControlAPI may deliver callbacks when this function is called.
+Upon success this function returns true, otherwise it returns false. Upon an
+error a subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool writeMemory(Dyninst::Address addr, void *buffer, size_t size) const
+\end{apient}
+
+\apidesc{
+This function writes to the target process\' s memory. The
+addr parameter specifies an address in the target process to which
+ProcControlAPI should write. The buffer and size parameters specify a region
+of controller process memory that will be copied into the target process.
+It is an error to call this function on a Process that does not have at least
+one Thread in a stopped state.
+This function returns true on success and false on error. Upon an error a
+subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool readMemory(void *buffer, Dyninst::Address addr, size_t size) const
+\end{apient}
+
+\apidesc{
+This function reads from the target process\'  memory. The
+addr and size parameters specify an address in the target process from which
+ProcControlAPI should read. The buffer parameter specifies an address in the
+controller process where ProcControlAPI should write the copied bytes. 
+It is an error to call this function on a Process that does not have at least
+one Thread in a stopped state.
+This function returns true on success and false on error. Upon an error a
+subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool getMemoryAccessRights(Dyninst::Address addr, mem_perm& rights)
+
+bool setMemoryAccessRights(Dyninst::Address addr, size_t size, mem_perm rights, mem_perm& oldRights)
+\end{apient}
+
+\apidesc{
+These functions respectively get and set memory permission at the specified
+address, addr. The setMemoryAccessRights function also affects a region of
+memory in the target process\' s address space of size size.
+}
+
+\begin{apient}
+bool findAllocatedRegionAround(Dyninst::Address addr, MemoryRegion& memRegion)
+\end{apient}
+
+\apidesc{
+This function finds a region of allocated memory memRegion contains address
+addr, and returns true on success, otherwise false.
+}
+
+\begin{apient}
+bool addBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
+\end{apient}
+
+\apidesc{
+This function inserts the Breakpoint specified by bp into the target process at
+address addr.
+It is an error to call this function on a Process that does not have at least
+one Thread in a stopped state.
+This function returns true on success and false on error. Upon an error a
+subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
+\end{apient}
+
+\apidesc{
+This function removes the Breakpoint specified by bp at address addr from the
+target process.
+This function returns true on success and false on error. Upon an error a
+subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool postIRPC(IRPC::ptr irpc) const
+\end{apient}
+
+\apidesc{
+This function posts the given irpc to the Process. ProcControlAPI selects a
+Thread from the Process to run the iRPC and put irpc into that
+Thread\' s queue of posted IRPCs.
+Each instance of an IRPC object can be posted at most once. It is an error to
+attempt to post a single IRPC object multiple times.
+This function returns true on success and false on error. Upon an error a
+subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+bool runIRPCSync(IRPC::ptr irpc)
+\end{apient}
+
+\apidesc{
+This function posts an irpc, similar to Process::postIRPC; continues the thread
+the irpc was posted to; and returns when the irpc has completed running. The
+thread will be returned to its original running state when this function
+returns.
+This function returns true if the irpc was successfully run, and false
+otherwise. Note that stopping the thread that is running the irpc while this
+function waits for irpc completion causes this function to return an error.
+It is an error to call this function from a callback.
+}
+
+\begin{apient}
+bool runIRPCAsync(IRPC::ptr irpc)
+\end{apient}
+
+\apidesc{
+This function posts an irpc, similar to Process::postIRPC, and then continues
+the thread the irpc was posted to.
+This function returns true if the irpc was successfully posted and run, and
+false otherwise.
+It is an error to call this function from a callback.
+}
+
+\begin{apient}
+bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
+\end{apient}
+
+\apidesc{
+This function returns all IRPCs posted to this Process in the rpcs vector.
+This list does not include any IRPCs currently
+running- see Thread::getRunningIRPC() for this
+functionality.
+This function returns true on success and false on error. Upon an error a
+subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
+LibraryTracking *getLibraryTracking()
+ThreadTracking *getThreadTracking()
+LWPTracking *getLWPTracking()
+FollowFork *getFollowFork()
+SignalMask *getSignalMask()
+\end{apient}
+
+\apidesc{
+These functions return pointers to configuration objects for platform-specific
+features associated with this Process object. 
+These functions return NULL if the specified feature is unsupported on the
+current platform.
+}

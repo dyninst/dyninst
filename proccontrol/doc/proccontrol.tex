@@ -1,0 +1,243 @@
+\documentclass{article}
+\newcommand{\ManualName}{proccontrol}
+
+\usepackage{pgf}
+\pgfrealjobname{proccontrol}
+
+\usepackage{amssymb}
+
+\input{../../common/doc/manual_commands.tex}
+
+\begin{document}
+\input{../../common/doc/manual_frontpage.tex}
+
+\lstset{
+  basicstyle=\ttfamily,
+  keywordstyle=\ttfamily\color{purple},
+  commentstyle=\ttfamily\color{lightgray},
+  stringstyle=\ttfamily\color{orange},
+  frame=leftline,
+  % Highlight the proccontrol types like they are keywords, but in a different color
+  emph={
+    Process,
+    Event,
+    EventType
+  },
+  emphstyle=\color{blue}
+}
+
+\tableofcontents
+\clearpage
+
+\setcounter{secnumdepth}{5}
+
+\section{Introduction}
+  \input{Introduction}
+
+\section{Abstractions}
+  \input{Abstractions}
+
+\section{Processes}
+  ProcControlAPI offers several facilities for interacting with processes in a
+  platform-independent manner.
+
+  \subsection{Process}
+    \input{API/Process}
+  
+    \subsubsection{Memory Permissions}
+      \input{API/mem_perm}
+
+  \subsection{ProcessSet}
+    \input{API/ProcessSet}
+
+  \subsection{AddressSet}
+    \input{API/AddressSet}
+
+\section{Threads}
+  ProcControlAPI offers several facilities for interacting with threads in a
+  platform-independent manner.
+
+  \subsection{Thread}
+    \input{API/Thread}
+
+  \subsection{ThreadPool}
+    \input{API/ThreadPool}
+
+  \subsection{ThreadSet}
+    \input{API/ThreadSet}
+
+\section{Events}
+  ProcControlAPI captures and delivers events from processes and threads.
+
+  \subsection{Event}
+    \input{API/Event}
+  
+  An \code{Event} passed to a callback function can be cast to the
+  appropriate child class by inspecting the \code{EventType}.
+
+  \subsection{EventBreakpoint}
+    \input{API/EventBreakpoint}
+
+  \subsection{EventCrash}
+    \input{API/EventCrash}
+
+  \subsection{EventExec}
+    \input{API/EventExec}
+
+  \subsection{EventExit}
+    \input{API/EventExit}
+
+  \subsection{EventForceTerminate}
+    \input{API/EventForceTerminate}
+
+  \subsection{EventFork}
+    \input{API/EventFork}
+
+  \subsection{EventLWPDestroy}
+    \input{API/EventLWPDestroy}
+
+  \subsection{EventLibrary}
+    \input{API/EventLibrary}
+
+  \subsection{EventNewLWP}
+    \input{API/EventNewLWP}
+
+  \subsection{EventNewThread}
+    \input{API/EventNewThread}
+
+  \subsection{EventNewUserThread}
+    \input{API/EventNewUserThread}
+
+  \subsection{EventPostSyscall}
+    \input{API/EventPostSyscall}
+
+  \subsection{EventPreSyscall}
+    \input{API/EventPreSyscall}
+
+  \subsection{EventRPC}
+    \input{API/EventRPC}
+
+  \subsection{EventSignal}
+    \input{API/EventSignal}
+
+  \subsection{EventSingleStep}
+    \input{API/EventSingleStep}
+
+  \subsection{EventStop}
+    \input{API/EventStop}
+
+  \subsection{EventTerminate}
+    \input{API/EventTerminate}
+
+  \subsection{EventThreadDestroy}
+    \input{API/EventThreadDestroy}
+
+  \subsection{EventUserThreadDestroy}
+    \input{API/EventUserThreadDestroy}
+
+\section{Inferior Remote Procedure Calls}
+
+  \subsection{IRPC}
+    \input {API/IRPC}
+
+\section{Breakpoints}
+  A breakpoint is a point in the code region of a target process that,
+  when executed, stops the process execution and notifies ProcControlAPI.
+  Upon being continued the process will resume execution at the point. A
+  Breakpoint object is a handle that can represents one or more breakpoints in
+  one or more processes. Upon receiving notification that a breakpoint has
+  executed, ProcControlAPI will deliver a callback with an EventBreakpoint. 
+  
+  Some Breakpoint objects can be created as control-transfer
+  breakpoints. When a process is
+  continued after executing a control-transfer the process will resume at an
+  alternate location, rather than at the breakpoint's
+  installation point.
+  
+  A single Breakpoint can be inserted into multiple locations within a target
+  process. This can be useful when a user has wants to perform a single action
+  at multiple locations in a target process. For example, if a user wants to
+  insert a breakpoint at the entry to function foo, and foo has multiple
+  instantiations in a process, then a single Breakpoint can be inserted at each
+  instance of foo.
+  
+  A single Breakpoint object can be inserted into multiple target processes at the
+  same time. When a process does an operation that copies an address space,
+  such as fork on UNIX, the child process will receive all Breakpoint objects
+  that were installed in the parent process. 
+  
+  Multiple Breakpoint objects can be inserted into the same location with-in the
+  same process. When this location is executed in the target process a single
+  callback will be delivered, and the EventBreakpoint object will contain a
+  reference to each Breakpoint inserted at the location. At most one
+  control-transfer breakpoint can be inserted at any one point in a process.
+  
+  Due to the many-to-many nature of Breakpoints and Processes, a single
+  installation of a Breakpoint can be identified by a Breakpoint, Process,
+  Address triple. The functions for inserting and removing breakpoints
+  (Process::addBreakpoint and Process::rmBreakpoint) need all three pieces of
+  information.
+  
+  A Breakpoint can be a hardware breakpoint or
+  a software breakpoint. A hardware
+  breakpoint is typically implemented by setting special debug register in the
+  process and can trigger on code execution, data reads or data write. A
+  software breakpoint is typically implemented by writing a special instruction
+  into a code sequence and can only be triggered by code execution. There are
+  typically a limited number of hardware breakpoints available at the same time.
+
+  \subsection{Breakpoint}
+    \input{API/Breakpoint}
+
+\section{Registers}
+
+  \subsection{MachRegister}
+    \input{API/MachRegister}
+
+  \subsection{RegisterPool}
+    \input{API/RegisterPool}
+
+\section{System Calls}
+
+  System calls are currently only supported on Linux.
+
+  \subsection{MachSyscall}
+    \input{API/MachSyscall}
+
+\section{Libraries}
+  ProcControlAPI offers several facilities for interacting with libraries
+  both in a created address spaces as well as loading new libraries into one.
+
+  \subsection{Library}
+    \input{API/Library}  
+
+  \subsection{LibraryPool}
+    \input{API/LibraryPool}
+
+\section{Platform-specific Features}
+  The classes described in this section are all used to configure
+  platform-specific features for Process objects. The three tracking classes
+  (LibraryTracking, ThreadTracking, LWPTracking) all contain member functions to
+  set either interrupt-driven or polling-driven handling for different events
+  associated with Process objects. When interrupt-driven handling is enabled,
+  the associated process may be modified to accommodate timely handling (e.g.,
+  inserting breakpoints). When polling-driven handling is enabled, the
+  associated process is not modified and events are handled on demand by calling
+  the appropriate “refresh” member function.
+
+  \subsection{FollowFork}
+    \input{API/FollowFork}
+
+  \subsection{LWPTracking}
+    \input{API/LWPTracking}
+
+  \subsection{LibraryTracking}
+    \input{API/LibraryTracking}
+
+  \subsection{SignalMask}
+    \input{API/SignalMask}
+
+  \subsection{ThreadTracking}
+    \input{API/ThreadTracking}
+
+\end{document}

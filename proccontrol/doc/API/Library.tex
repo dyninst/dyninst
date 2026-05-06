@@ -1,0 +1,104 @@
+A Library represents a single shared library (frequently
+referred to as a DLL or DSO, depending on the OS) that has been loaded into the
+target process. In addition, a Library will be used to represent the
+process\' executable. Process\' with statically linked executables
+will only contain the single Library that
+represents the executable.
+
+Each Library contains a load address and a file
+name. The load address is the address at which the OS loaded the library, and
+the file name is the path to the library\'s file. Note
+that on some operating systems (e.g., Linux and FreeBSD) the load
+address does not necessarily represent the beginning of the library in memory;
+instead it is a value that can be added to a library\'s
+symbol offsets to compute the dynamic address of a symbol.
+
+Libraries may be loaded and unloaded by the process during execution. A
+library load or unload can trigger a callback with an EventLibrary parameter.
+The current list of libraries loaded into a process can be accessed via the
+\code{LibraryPool} of a \code{Process}.
+
+\begin{apient}
+  Library::ptr
+  Library::const_ptr
+\end{apient}
+
+\apidesc{
+  \code{typedef}s for a pointer and a const pointer to a library.
+}
+
+\begin{apient}
+  std::string getName() const
+\end{apient}
+
+\apidesc{
+  Returns the file name for this Library.
+}
+
+\begin{apient}
+  std::string getAbsoluteName() const
+\end{apient}
+
+\apidesc{
+  Returns a file name for this Library that does not contain symlinks or a
+  relative path.
+}
+
+\begin{apient}
+  Dyninst::Address getLoadAddress() const
+\end{apient}
+
+\apidesc{
+  Returns the load address for this Library.
+}
+
+\begin{apient}
+  Dyninst::Address getDataLoadAddress() const
+\end{apient}
+
+\apidesc{
+  The AIX operating system can have two load addresses for a library:
+  one for the
+  code region and one for the data region. On AIX Library::getLoadAddress
+  returns the load address of the code region and Library::getDataLoadAddress
+  returns the load address of the data region. On non-AIX systems this function
+  returns 0.
+}
+
+\begin{apient}
+  Dyninst::Address getDynamicAddress() const
+\end{apient}
+
+\apidesc{
+  On ELF based systems (FreeBSD, Linux) this function will return the
+  address of the Library\'s dynamic section. On other
+  systems this function returns 0.
+}
+
+\begin{apient}
+  bool isSharedLib() const
+\end{apient}
+
+\apidesc{
+  Returns true of this Library object is refers to a shared library
+  and false if it refers to an executable.
+}
+
+\begin{apient}
+  void *getData() const
+\end{apient}
+
+\apidesc{
+  Returns an opaque data object that user code can associate with
+  this library. Use setData to set this opaque value.
+}
+
+\begin{apient}
+  void setData(void *p) const
+\end{apient}
+
+\apidesc{
+  This function sets associates an opaque data object with the Library.
+  ProcControlAPI does not try to interpret this value, but will return it with
+  the getData function.
+}

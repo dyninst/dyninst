@@ -1,0 +1,222 @@
+The Event class represents an instance of an event happening. Each Event
+has an EventType that describes the event and pointers to the Process and
+Thread that the event occurred on.
+
+The Event class is an abstract class that is never instantiated. Instead,
+ProcControlAPI will instantiate children of the Event class, each of which add
+information specific to the EventType. For example, an Event representing a
+thread creation will have an EventType of ThreadCreate and can be cast into an
+EventNewThread for specific information about the new thread.
+
+An event that occurs on a running thread may cause the process, thread, or
+neither to stop running until the event has been handled. The specifics of
+what is stopped can change between different event types and operating systems.
+Each Event describes whether it stopped the associated process or thread with
+a SyncType field. The values of this field can be async (the event stopped
+neither the process nor thread), sync\_thread (the event stopped its thread),
+or sync\_process (the event stopped all threads in the process). A callback
+function can choose how to resume or stop a process or thread using its return
+value.
+
+\begin{apient}
+  enum SyncType { unset, async, sync_thread, sync_process }
+\end{apient}
+
+\apidesc{
+  The SyncType type is used to describe how a process or thread is stopped by an
+  Event. See the above explanation for more details.
+}
+
+\begin{apient}
+  Thread::const_ptr getThread() const
+\end{apient}
+
+\apidesc{
+  This function returns a const pointer to the Thread object that represents the
+  thread this event occurred on.
+}
+
+\begin{apient}
+  Process::const_ptr getProcess() const
+\end{apient}
+
+\apidesc{
+  This function returns a const pointer to the Process object that
+  represents the
+  process this event occurred on.
+}
+
+\begin{apient}
+  EventType getEventType() const
+\end{apient}
+
+\apidesc{
+  This function returns the EventType associated with this Event.
+}
+
+\begin{apient}
+  SyncType getSyncType() const
+\end{apient}
+
+\apidesc{
+  This function returns the SyncType associated with this Event.
+}
+
+\begin{apient}
+  std::string name() const
+\end{apient}
+
+\apidesc{
+  This function returns a human readable name for this Event.
+}
+
+\begin{apient}
+  EventTerminate::ptr getEventTerminate()
+  EventTerminate::const_ptr getEventTerminate() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventExit::ptr getEventExit()
+  EventExit::const_ptr getEventExit() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventCrash::ptr getEventCrash()
+  EventCrash::const_ptr getEventCrash() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventForceTerminate::ptr getEventForceTerminate()
+  EventForceTerminate::const_ptr getEventForceTerminate() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventExec::ptr getEventExec()
+  EventExec::const_ptr getEventExec() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventStop::ptr getEventStop()
+  EventStop::const_ptr getEventStop() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventBreakpoint::ptr getEventBreakpoint()
+  EventBreakpoint::const_ptr getEventBreakpoint() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventNewThread::ptr getEventNewThread()
+  EventNewThread::const_ptr getEventNewThread() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventNewUserThread::ptr getEventNewUserThread()
+  EventNewUserThread::const_tr getEventNewUserThread() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventNewLWP::ptr getEventNewLWP()
+  EventNewLWP::const_ptr getEventNewLWP() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventThreadDestroy::ptr getEventThreadDestroy()
+  EventThreadDestroy::const_ptr getEventThreadDestroy() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventUserThreadDestroy::ptr getEventUserThreadDestroy()
+  EventUserThreadDestroy::const_ptr getEventUserThreadDestroy() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventLWPDestroy::ptr getEventLWPDestroy()
+  EventLWPDestroy::const_ptr getEventLWPDestroy() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventFork::ptr getEventFork()
+  EventFork::const_ptr getEventFor() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventSignal::ptr getEventSignal()
+  EventSignal::const_ptr getEventSignal() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventRPC::ptr getEventRPC()
+  EventRPC::const_ptr getEventRPC() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventSingleStep::ptr getEventSingleStep()
+  EventSingleStep::const_ptr getEventSingleStep() const
+\end{apient}
+
+\apidesc{
+}
+
+\begin{apient}
+  EventLibrary::ptr getEventLibrary()
+  EventLibrary::const_ptr getEventLibrary() const
+\end{apient}
+
+\apidesc{
+  These functions serve as a form of dynamic\_cast. They cast the Event into a
+  child type and return the result of that cast. If the Event object is not of
+  the appropriate type for the given function, then they return a shared pointer
+  NULL equivalent (ptr() or const\_ptr()).
+  For example, if an Event was an instance of an EventRPC, then the
+  getEventRPC()
+  function would cast it to EventRPC and return the resulting value.
+}

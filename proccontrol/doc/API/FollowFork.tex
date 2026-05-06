@@ -1,0 +1,51 @@
+\code{FollowFork} is used to configure ProcControlAPI's behavior when the
+associated Process forks.
+
+\begin{apient}
+enum follow_t {None, ImmediateDetach, DisableBreakpointsDetach, Follow }
+\end{apient}
+
+\apidesc{
+The follow\_t type represents the configurable behaviors under forking.
+None is specified when fork tracking is not available for the current platform.
+ImmediateDetach means that forked children are never attached to. 
+DisableBreakpointsDetach means that inherited breakpoints are removed from
+forked children, and then the children are detached.
+Follow is the default behavior, and it means that forked children are attached
+to and remain under full control of ProcControlAPI.
+}
+
+\begin{apient}
+static void setDefaultFollowFork(follow_t f)
+\end{apient}
+
+\apidesc{
+This function sets the default forking behavior across all Process objects to f.
+}
+
+\begin{apient}
+static follow_t getDefaultFollowFork()
+\end{apient}
+
+\apidesc{
+This function returns the current default forking behavior across all Process
+objects.
+}
+
+\begin{apient}
+bool setFollowFork(follow_t f) const
+\end{apient}
+
+\apidesc{
+This function sets the forking behavior for the associated Process object to f.
+This function returns true on success and false on failure.
+}
+
+\begin{apient}
+follow_t getFollowFork() const
+\end{apient}
+
+\apidesc{
+This function returns the current forking behavior for the associated Process
+object.
+}

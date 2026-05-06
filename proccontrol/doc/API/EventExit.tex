@@ -1,0 +1,19 @@
+An \code{EventExit} triggers when a process performs a normal exit (e.g.,
+calling the exit function or returning from main). The process that exited is
+referenced with Event\'s getProcess function.
+
+An \code{EventExit} may be associated with an \code{EventType} of pre-exit or
+post-exit.
+Pre-exit means the process has not yet cleaned up its address space, and thus
+memory can still be read or written. Post-exit means the process has cleaned up
+its address space, memory is no longer accessible.
+
+Associated \code{EventType} Code: \code{Exit}
+
+\begin{apient}
+int getExitCode() const
+\end{apient}
+
+\apidesc{
+This function returns the process\' exit code.
+} 
