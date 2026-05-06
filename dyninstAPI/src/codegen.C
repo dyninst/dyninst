@@ -44,8 +44,7 @@
 #include "instPoint.h"
 #include "registerSpace.h"
 #include "bitArray.h"
-
-#include "instructionAPI/h/InstructionDecoder.h"
+#include "InstructionDecoder.h"
 
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #define CODE_GEN_OFFSET_SIZE 1U
@@ -491,11 +490,10 @@ Dyninst::Architecture codeGen::getArch() const {
   return Arch_none;
 }
 
-#include "InstructionDecoder.h"
-using namespace InstructionAPI;
-
 std::string codeGen::format() const {
    if (!aSpace_) return "<codeGen>";
+
+   using namespace InstructionAPI;
 
    stringstream ret;
 
