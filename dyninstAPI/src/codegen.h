@@ -113,8 +113,6 @@ class codeGen {
     // How much space are we using?
     unsigned used() const;
 
-    unsigned max() const { return max_; }
-
     // Blind pointer to the start of the code area
     void *start_ptr() const;
     // With ptr() and used() you can copy into the mutatee.
