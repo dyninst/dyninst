@@ -251,9 +251,11 @@ public:
 
     std::vector< std::vector<Offset> > getMoveSecAddrRange() const {return moveSecAddrRange;}
     dyn_hash_map<int, Region*> getTagRegionMapping() const { return secTagRegionMapping;}
+    bool get_relocationRelr_entries(unsigned relr_scnp_index);
 
     bool hasReldyn() const {return hasReldyn_;}
     bool hasReladyn() const {return hasReladyn_;}
+    bool hasRelrdyn() const {return hasRelrdyn_;}
     bool hasRelplt() const {return hasRelplt_;}
     bool hasRelaplt() const {return hasRelaplt_;}
     bool hasNoteSection() const {return hasNoteSection_;}
@@ -270,6 +272,9 @@ public:
     Offset getRelPLTSize() const { return rel_plt_size_; }
     Offset getRelDynAddr() const { return rel_addr_; }
     Offset getRelDynSize() const { return rel_size_; }
+    Offset getRelrDynAddr() const { return relr_addr_; }
+    Offset getRelrDynSize() const { return relr_size_; }
+    Offset getRelrDynEntrySize() const { return relr_entry_size_; }
     const char* getSoname() const { return soname_; }
     bool hasPieFlag() const { return hasPieFlag_; }
     bool hasProgramLoad() const { return hasProgramLoad_; }
@@ -288,6 +293,10 @@ public:
 
     std::vector<relocationEntry> &getPLTRelocs() { return fbt_; }
     std::vector<relocationEntry> &getDynRelocs() { return relocation_table_; }
+    std::vector<Offset> &getRelrDynRelocs() { return relr_relocation_table_; }
+
+    const dyn_hash_map<unsigned, std::vector<std::string>> &getVersionMapping() const { return versionMapping; }
+    const dyn_hash_map<unsigned, std::string> &getVersionFileNameMapping() const { return versionFileNameMapping; }
 
     Offset getInitAddr() const {return init_addr_; }
     Offset getFiniAddr() const { return fini_addr_; }
@@ -315,9 +324,11 @@ public:
 
   bool hasReldyn_;
   bool hasReladyn_;
+  bool hasRelrdyn_;
   bool hasRelplt_;
   bool hasRelaplt_;
   Region::RegionType relType_;
+  std::vector<Offset> relr_relocation_table_;
 
   bool hasNoteSection_;
 
@@ -347,6 +358,9 @@ public:
   Offset    rel_addr_;
   unsigned  rel_size_;       // DT_REL/DT_RELA in dynamic section
   unsigned  rel_entry_size_; // DT_REL/DT_RELA in dynamic section
+  Offset    relr_addr_;
+  unsigned  relr_size_;       // DT_RELR in dynamic section
+  unsigned  relr_entry_size_; // DT_RELR in dynamic section
   Offset   opd_addr_;
   unsigned opd_size_;
 
