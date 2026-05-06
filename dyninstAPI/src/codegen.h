@@ -97,7 +97,6 @@ class codeGen {
 
     // Initialize the current using the argument as a "template"
     void applyTemplate(const codeGen &codeTemplate);
-    static codeGen baseTemplate;
 
     // Allocate a certain amount of space
     void allocate(unsigned);

@@ -533,8 +533,6 @@ void toAddressPatch::set_address(Dyninst::Address a) {
    addr = a;
 }
 
-codeGen codeGen::baseTemplate;
-
 PCThread *codeGen::thread() {
     return thr_;
 }
