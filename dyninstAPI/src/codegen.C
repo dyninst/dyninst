@@ -325,11 +325,7 @@ long codeGen::getDisplacement(codeBufIndex_t from, codeBufIndex_t to) {
 Dyninst::Address codeGen::currAddr() const {
   if(addr_ == (Dyninst::Address) -1) return (Dyninst::Address) -1;
   assert(addr_ != (Dyninst::Address) -1);
-  return currAddr(addr_);
-}
-
-Dyninst::Address codeGen::currAddr(Dyninst::Address base) const {
-    return (offset_ * CODE_GEN_OFFSET_SIZE) + base;
+  return (offset_ * CODE_GEN_OFFSET_SIZE) + addr_;
 }
 
 void codeGen::fill(unsigned fillSize, int fillType) {

@@ -142,7 +142,6 @@ class codeGen {
     // generation and a base address in the mutatee, 
     // produce a "current" address.
     Dyninst::Address currAddr() const;
-    Dyninst::Address currAddr(Dyninst::Address base) const;
     
     enum { cgNOP, cgTrap, cgIllegal };
 
