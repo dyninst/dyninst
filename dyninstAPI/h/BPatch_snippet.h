@@ -509,13 +509,6 @@ class DYNINST_EXPORT BPatch_ifMachineConditionExpr : public BPatch_snippet {
 };
 
 
-class DYNINST_EXPORT BPatch_threadIndexExpr : public BPatch_snippet {
- public:
-  //
-  // BPatch_threadIndexExpr::BPatch_threadIndexExpr
-  BPatch_threadIndexExpr();
-};
-
 class DYNINST_EXPORT BPatch_tidExpr : public BPatch_snippet {
  public:
   //

@@ -64,7 +64,6 @@ set(_private_headers
     src/ASTs/codeGenAST.h
     src/ASTs/functionCallAST.h
     src/ASTs/jumpTargetAST.h
-    src/ASTs/threadAST.h
     src/ASTs/variableAST.h
     src/ASTs/OperandType.h
     src/trampolines/baseTramp.h
@@ -159,7 +158,6 @@ set(_sources
     src/ASTs/codeGenAST.C
     src/ASTs/functionCallAST.C
     src/ASTs/jumpTargetAST.C
-    src/ASTs/threadAST.C
     src/ASTs/variableAST.C
     src/binaryEdit.C
     src/block.C
