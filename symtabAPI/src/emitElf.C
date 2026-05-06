@@ -309,22 +309,34 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
     return true;
 }
 
-// Find the end of data/text segment
+// Find the last loaded section and if TLS is used
 template<class ElfTypes>
-void emitElf<ElfTypes>::findSegmentEnds() {
+void emitElf<ElfTypes>::getSectionAndSegmentProperties() {
     Elf_Phdr *phdrs = ElfTypes::elf_getphdr(oldElf);
-    // Find the offset of the start of the text & the data segment
-    // The first LOAD segment is the text & the second LOAD segment
-    // is the data
-    dataSegEnd = 0;
+
+    // Find the maximum of the loaded segment end addresses, and if TLS exists
+    Elf_Off maxSegmentLoadedAddr{};
     for (unsigned i = 0; i < oldEhdr->e_phnum; i++) {
         auto phdr{&phdrs[i]};
         if (phdr->p_type == PT_LOAD) {
-            if (dataSegEnd < phdr->p_vaddr + phdr->p_memsz)
-                dataSegEnd = phdr->p_vaddr + phdr->p_memsz;
+            if (maxSegmentLoadedAddr < phdr->p_vaddr + phdr->p_memsz)
+                maxSegmentLoadedAddr = phdr->p_vaddr + phdr->p_memsz;
         } else if (PT_TLS == phdr->p_type) {
             TLSExists = true;
         }
+    }
+
+    // Find the section index containing the max section end address, that is
+    // contained in the max loaded segment
+    Elf_Off maxSectionEndAddr{};
+    for (unsigned i = 0; i < oldEhdr->e_shnum; ++i)  {
+	auto scn{elf_getscn(oldElf, i)};
+        auto shdr{ElfTypes::elf_getshdr(scn)};
+	auto endAddr{shdr->sh_addr + shdr->sh_size};
+	if (endAddr > maxSectionEndAddr && endAddr < maxSegmentLoadedAddr)  {
+	    maxSectionEndAddr = endAddr;
+	    lastLoadedSectionNum = i;
+	}
     }
 }
 
@@ -397,7 +409,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     newEhdr->e_shnum += newSecs.size();
 
     // Find the end of text and data segments
-    findSegmentEnds();
+    getSectionAndSegmentProperties();
     unsigned insertPoint = oldEhdr->e_shnum;
     unsigned insertPointOffset = 0;
 
@@ -564,7 +576,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                 changeMapping[sectionNumber]);
 
         //Insert new loadable sections at the end of data segment
-        if (shdr->sh_addr + shdr->sh_size == dataSegEnd && !createdLoadableSections) {
+        if (scncount == lastLoadedSectionNum && !createdLoadableSections) {
             createdLoadableSections = true;
             insertPoint = scncount;
             if (SHT_NOBITS == shdr->sh_type) {

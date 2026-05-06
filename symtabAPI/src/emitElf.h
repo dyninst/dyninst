@@ -219,7 +219,7 @@ namespace Dyninst {
             Elf_Shdr *firstNewLoadSec{};// initialize to NULL
 
             // data segment end
-            Elf_Off dataSegEnd{};
+            unsigned lastLoadedSectionNum{};
             Elf_Off dynSegOff{};
             Elf_Off dynSegAddr{};
             Elf_Off phdrSegOff{};
@@ -252,7 +252,7 @@ namespace Dyninst {
 
             bool createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf_Sym *> &symbols,
                                  bool dynSymFlag = false);
-            void findSegmentEnds();
+            void getSectionAndSegmentProperties();
             void renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll=true);
             void fixPhdrs();
             void createNewPhdrRegion(std::unordered_map<std::string, unsigned> &newNameIndexMapping);
