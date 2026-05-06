@@ -109,8 +109,6 @@ class codeGen {
     void copy(const std::vector<unsigned char> &buf);
     // Insert buffer into index, moving previous content
     void insert(const void *buf, const unsigned size, const codeBufIndex_t index);
-    // Workaround for copying strings on word-aligned platforms
-    void copyAligned(const void *buf, const unsigned size);
 
     // Similar, but slurp from the start of the parameter
     void copy(codeGen &gen);
