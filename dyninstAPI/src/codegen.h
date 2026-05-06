@@ -170,7 +170,6 @@ class codeGen {
 
     unsigned width() const;
     AddressSpace *addrSpace() const;
-    PCThread *thread();
     Dyninst::Address startAddr() const { return addr_; }
     instPoint *point() const;
     baseTramp *bt() const { return bt_; }
@@ -197,12 +196,6 @@ class codeGen {
 
     void setPCRelUseCount(int c) { pc_rel_use_count = c; }
     int getPCRelUseCount() const { return pc_rel_use_count; }
-
-    // SD-DYNINST
-    // 
-    typedef std::pair<Dyninst::Address, unsigned> Extent;
-    void registerDefensivePad(block_instance *, Dyninst::Address, unsigned);
-    std::map<block_instance *, Extent> &getDefensivePads() { return defensivePads_; }
     
     // Immediate uninstrumentation
     void registerInstrumentation(baseTramp *bt, Dyninst::Address loc) { instrumentation_[bt] = loc; }
@@ -246,7 +239,6 @@ class codeGen {
 
     std::vector<relocPatch> patches_;
 
-    std::map<block_instance *, Extent> defensivePads_;
     std::map<baseTramp *, Dyninst::Address> instrumentation_;
     std::map<baseTramp *, Dyninst::Address> removedInstrumentation_;
 };

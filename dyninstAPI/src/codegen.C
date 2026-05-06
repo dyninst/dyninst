@@ -462,10 +462,6 @@ void toAddressPatch::set_address(Dyninst::Address a) {
    addr = a;
 }
 
-PCThread *codeGen::thread() {
-    return thr_;
-}
-
 unsigned codeGen::width() const {
   return addrSpace()->getAddressWidth();
 }
@@ -550,16 +546,6 @@ Dyninst::Architecture codeGen::getArch() const {
   assert(0);
   return Arch_none;
 }
-
-void codeGen::registerDefensivePad(block_instance *callBlock, Dyninst::Address padStart, unsigned padSize) {
-  // Dyninst::Register a match between a call instruction
-  // and a padding area post-reloc-call for
-  // control flow interception purposes.
-  // This is kind of hacky, btw.
-    //cerr << "Registering pad [" << hex << padStart << "," << padStart + padSize << "], for block @ " << callBlock->start() << dec << endl;
-  defensivePads_[callBlock] = Extent(padStart, padSize);
-}
-
 
 #include "InstructionDecoder.h"
 using namespace InstructionAPI;
