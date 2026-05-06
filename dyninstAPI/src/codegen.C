@@ -355,16 +355,6 @@ void codeGen::fill(unsigned fillSize, int fillType) {
     }
 }
 
-void codeGen::fillRemaining(int fillType) {
-    if (fillType == cgNOP) {
-        insnCodeGen::generateNOOP(*this,
-                                  size_ - used());
-    }
-    else {
-        assert(0 && "unimplemented");
-    }
-}
-
 void codeGen::applyTemplate(const codeGen &c) {
     // Copy off necessary bits...
 

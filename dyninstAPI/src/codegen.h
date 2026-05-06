@@ -146,8 +146,6 @@ class codeGen {
     enum { cgNOP, cgTrap, cgIllegal };
 
     void fill(unsigned fillSize, int fillType);
-    // Since we have a known size
-    void fillRemaining(int fillType);
 
     std::string format() const;
 
