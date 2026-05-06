@@ -155,34 +155,6 @@ bool codeGen::operator!=(void *p) const {
     return (p != (void *)buffer_);
 }
 
-codeGen &codeGen::operator=(const codeGen &g) {
-    // Same as copy constructor, really
-    invalidate();
-    offset_ = g.offset_;
-    size_ = g.size_;
-    max_ = g.max_;
-    pc_rel_use_count = g.pc_rel_use_count;
-    allocated_ = g.allocated_;
-    thr_ = g.thr_;
-    isPadded_ = g.isPadded_;
-    int bufferSize = size_ + (isPadded_ ? codeGenPadding : 0);
-    inInstrumentation_ = g.inInstrumentation_;
-    insertNaked_ = g.insertNaked_;
-    modifiedStackFrame_ = g.modifiedStackFrame_;
-
-    if (size_ != 0) {
-       assert(allocated_); 
-
-       buffer_ = (codeBuf_t *) malloc(bufferSize);
-       //allocate(g.size_);
-	
-       memcpy(buffer_, g.buffer_, bufferSize);
-    }
-    else
-        buffer_ = NULL;
-    return *this;
-}
-
 void codeGen::allocate(unsigned size) 
 {
    if (buffer_ && size > size_) {

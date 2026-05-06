@@ -101,9 +101,6 @@ class codeGen {
     bool operator==(void *ptr) const;
     bool operator!=(void *ptr) const;
 
-    // Assignment....
-    codeGen &operator=(const codeGen &param);
-
     // Initialize the current using the argument as a "template"
     void applyTemplate(const codeGen &codeTemplate);
     static codeGen baseTemplate;
