@@ -110,34 +110,6 @@ codeGen::codeGen(unsigned size) :
     memset(buffer_, 0, size+codeGenPadding);
 }
 
-// size is in bytes
-codeGen::codeGen(codeBuf_t *buffer, int size) :
-    buffer_(buffer),
-    offset_(0),
-    size_(size-codeGenPadding),
-    max_(size+codeGenPadding),
-    pc_rel_use_count(0),
-    emitter_(NULL),
-    allocated_(false),
-    aSpace_(NULL),
-    thr_(NULL),
-    rs_(NULL),
-    t_(NULL),
-    addr_((Dyninst::Address)-1),
-    ip_(NULL),
-    f_(NULL),
-    bt_(NULL),
-    isPadded_(true),
-    trackRegDefs_(false),
-    inInstrumentation_(false),
-    insertNaked_(false),
-    modifiedStackFrame_(false)
-{
-    assert(buffer_);
-    memset(buffer_, 0, size+codeGenPadding);
-}
-
-
 codeGen::~codeGen() {
     if (allocated_ && buffer_) {
         free(buffer_);

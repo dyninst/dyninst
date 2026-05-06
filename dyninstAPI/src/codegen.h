@@ -88,8 +88,6 @@ class codeGen {
     codeGen();
     // Make a generation buffer with the given size
     codeGen(unsigned size);
-    // Use a preallocated buffer
-    codeGen(codeBuf_t *buf, int size);
     ~codeGen();
 
     bool valid() { return buffer_ != NULL; }
