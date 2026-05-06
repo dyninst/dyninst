@@ -149,9 +149,6 @@ class codeGen {
 
     std::string format() const;
 
-    //Add a new patch point
-    void addPatch(const relocPatch &p);
-
     //Create a patch into the codeRange
     void addPatch(codeBufIndex_t index, patchTarget *source, 
                   unsigned size = sizeof(Dyninst::Address),

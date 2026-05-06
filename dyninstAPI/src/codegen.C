@@ -403,11 +403,6 @@ void codeGen::addPatch(codeBufIndex_t index, patchTarget *source,
    patches_.push_back(p);
 }
 
-void codeGen::addPatch(const relocPatch &p)
-{
-   patches_.push_back(p);
-}
-
 void codeGen::applyPatches()
 {
    std::vector<relocPatch>::iterator i;
