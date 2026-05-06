@@ -72,7 +72,6 @@ codeGen::codeGen() :
     ip_(NULL),
     f_(NULL),
     bt_(NULL),
-    isPadded_(true),
     trackRegDefs_(false),
     inInstrumentation_(false), // save default
     insertNaked_(false),
@@ -96,7 +95,6 @@ codeGen::codeGen(unsigned size) :
     ip_(NULL),
     f_(NULL),
     bt_(NULL),
-    isPadded_(true),
     trackRegDefs_(false),
     inInstrumentation_(false),
     insertNaked_(false),
@@ -156,7 +154,6 @@ void codeGen::allocate(unsigned size)
    if (buffer_ == NULL)
    {
       buffer_ = (codeBuf_t *)malloc(max_);
-      isPadded_ = true;
    }
    
    offset_ = 0;
@@ -177,7 +174,6 @@ void codeGen::invalidate() {
     max_ = 0;
     offset_ = 0;
     allocated_ = false;
-    isPadded_ = false;
 }
 
 void codeGen::copy(const void *b, const unsigned size, const codeBufIndex_t index) {

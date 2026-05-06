@@ -220,7 +220,6 @@ class codeGen {
     instPoint *ip_;
     func_instance *f_;
     baseTramp *bt_;
-    bool isPadded_;
 
     bitArray regsDefined_;
     bool trackRegDefs_;
