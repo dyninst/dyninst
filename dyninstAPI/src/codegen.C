@@ -56,36 +56,6 @@
 const unsigned int codeGenPadding = (128);
 const unsigned int codeGenMinAlloc = (4 * 1024);
 
-// size is in bytes
-codeGen::codeGen(unsigned size) :
-    buffer_(NULL),
-    offset_(0),
-    size_(size),
-    max_(size+codeGenPadding),
-    pc_rel_use_count(0),
-    emitter_(NULL),
-    allocated_(true),
-    aSpace_(NULL),
-    thr_(NULL),
-    rs_(NULL),
-	t_(NULL),
-    addr_((Dyninst::Address)-1),
-    ip_(NULL),
-    f_(NULL),
-    bt_(NULL),
-    trackRegDefs_(false),
-    inInstrumentation_(false),
-    insertNaked_(false),
-    modifiedStackFrame_(false)
-{
-    buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
-    if (!buffer_) {
-       fprintf(stderr, "%s[%d]: malloc failed: size is %u + codeGenPadding = %u\n", FILE__, __LINE__, size, codeGenPadding);
-	}
-    assert(buffer_);
-    memset(buffer_, 0, size+codeGenPadding);
-}
-
 codeGen::~codeGen() {
     if (allocated_ && buffer_) {
         free(buffer_);

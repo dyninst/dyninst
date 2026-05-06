@@ -86,8 +86,12 @@ class codeGen {
  public:
     // Default constructor -- makes an empty generation area
     codeGen() = default;
+
     // Make a generation buffer with the given size
-    codeGen(unsigned size);
+    codeGen(unsigned size) : size_{size} {
+      allocate(size);
+    }
+
     ~codeGen();
 
     bool valid() { return buffer_ != NULL; }
