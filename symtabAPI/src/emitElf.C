@@ -147,6 +147,8 @@ std::string phdrTypeStr(Elf64_Word phdr_type) {
             return "STACK";
         case PT_GNU_RELRO:
             return "RELRO";
+        case PT_GNU_PROPERTY:
+            return "PROPERTY";
         case PT_PAX_FLAGS:
             return "PAX";
         default:
