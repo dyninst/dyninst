@@ -498,7 +498,7 @@ std::string codeGen::format() const {
 
    stringstream ret;
 
-   Dyninst::Address base = (addr_ != (Dyninst::Address)-1) ? addr_ : 0;
+   Dyninst::Address base = (addr_ != Dyninst::ADDRESS_INVALID) ? addr_ : 0;
    InstructionDecoder deco
       (buffer_,used(),aSpace_->getArch());
    Instruction insn = deco.decode();

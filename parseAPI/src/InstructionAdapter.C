@@ -40,7 +40,7 @@ using namespace Dyninst::InsnAdapter;
 using namespace Dyninst::ParseAPI;
 
 InstructionAdapter::InstructionAdapter(Address start, CodeObject *o, CodeRegion * r, InstructionSource * isrc, Block * curBlk)
-    : current(start), previous((Address)-1), parsedJumpTable(false), successfullyParsedJumpTable(false),
+    : current(start), previous(Dyninst::ADDRESS_INVALID), parsedJumpTable(false), successfullyParsedJumpTable(false),
     isDynamicCall_(false), checkedDynamicCall_(false),
     isInvalidCallTarget_(false), checkedInvalidCallTarget_(false),
     //context(NULL), 
@@ -57,7 +57,7 @@ InstructionAdapter::reset(
     Block *curBlk)
 {
     current = start;
-    previous = (Address)-1;    
+    previous = Dyninst::ADDRESS_INVALID;
     parsedJumpTable = false;
     successfullyParsedJumpTable = false;
     isDynamicCall_ = false;

@@ -494,7 +494,7 @@ void IA_IAPI::parseSyscall(std::vector<std::pair<Address, EdgeTypeEnum> >& outEd
 {
     parsing_printf("[%s:%d] Treating syscall as call to sink w/ possible FT edge to next insn at 0x%lx\n",
             FILE__, __LINE__, getAddr());
-    outEdges.push_back(std::make_pair((Address)-1,CALL));
+    outEdges.push_back(std::make_pair(Dyninst::ADDRESS_INVALID,CALL));
     outEdges.push_back(std::make_pair(getNextAddr(), CALL_FT));
 }
 
@@ -689,7 +689,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                     parsing_printf("\tIndirect branch as 2nd insn of entry block, treating as tail call\n");
                     parsing_printf("%s[%d]: indirect tail call %s at 0x%lx\n", FILE__, __LINE__,
                             ci.format().c_str(), current);
-                    outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
+                    outEdges.push_back(std::make_pair(Dyninst::ADDRESS_INVALID,INDIRECT));
                     tailCalls[INDIRECT]=true;
                     // Fix the cache, because we're dumb.
                     tailCalls[DIRECT]=true;
@@ -704,7 +704,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             if(isTailCall(context, INDIRECT, num_insns, knownTargets)) {
                 parsing_printf("%s[%d]: indirect tail call %s at 0x%lx\n", FILE__, __LINE__,
                         ci.format().c_str(), current);
-                outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
+                outEdges.push_back(std::make_pair(Dyninst::ADDRESS_INVALID,INDIRECT));
                 tailCalls[INDIRECT] = true;
                 return;
             }
@@ -716,7 +716,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
 
             parsing_printf("Parsed jump table\n");
             if(!successfullyParsedJumpTable || outEdges.empty()) {
-                outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
+                outEdges.push_back(std::make_pair(Dyninst::ADDRESS_INVALID,INDIRECT));
                 parsing_printf("%s[%d]: unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", FILE__, __LINE__,
                         ci.format().c_str(), current, context->name().c_str());
             }
@@ -741,7 +741,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             if(!successfullyParsedJumpTable || outEdges.empty()) {
                 parsing_printf("%s[%d]: BLR unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", 
                         FILE__, __LINE__, ci.format().c_str(), current, context->name().c_str());
-                outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
+                outEdges.push_back(std::make_pair(Dyninst::ADDRESS_INVALID,INDIRECT));
             }
         }
 

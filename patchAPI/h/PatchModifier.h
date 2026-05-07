@@ -80,7 +80,7 @@ class DYNINST_EXPORT PatchModifier {
    // is a valid instruction boundary unless trust is true. 
    static PatchBlock *split(PatchBlock *, Address, 
                                             bool trust = false, 
-                                            Address newlast = (Address)-1);
+                                            Address newlast = Dyninst::ADDRESS_INVALID);
    
    // Remove a block from the CFG; the block must be unreachable
    // (that is, have no in-edges) unless force is true.

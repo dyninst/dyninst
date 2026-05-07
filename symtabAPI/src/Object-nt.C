@@ -836,10 +836,10 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
    SecAlignment = peHdr ->OptionalHeader.SectionAlignment;
    unsigned int nSections = peHdr->FileHeader.NumberOfSections;
    no_of_sections_ = nSections;
-   Address prov_begin = (Address)-1;
-   Address prov_end = (Address)-1;
-   code_off_ = (Address)-1;
-   code_len_ = (Address)-1;
+   Address prov_begin = Dyninst::ADDRESS_INVALID;
+   Address prov_end = Dyninst::ADDRESS_INVALID;
+   code_off_ = Dyninst::ADDRESS_INVALID;
+   code_len_ = Dyninst::ADDRESS_INVALID;
 
    if (defensive) {
        // add section for peHdr, determine the size taken up by the section 
