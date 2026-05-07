@@ -356,15 +356,13 @@ void emitElf<ElfTypes>::renameSection(const std::string &oldStr, const std::stri
 
 template<class ElfTypes>
 bool emitElf<ElfTypes>::driver(std::string fName) {
-    int newfd;
-    Region *foundSec = NULL;
     rewrite_printf("::driver for emitElf\n");
 
     string newFName = fName + "XXXXXX";
     auto buf = std::unique_ptr<char[]>(new char[newFName.length() + 1]);
     strncpy(buf.get(), newFName.c_str(), newFName.length() + 1);
 
-    newfd = mkstemp(buf.get());
+    auto newfd = mkstemp(buf.get());
 
     if (newfd == -1) {
         log_elferror(err_func_, "error opening file to write symbols");
@@ -441,6 +439,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
         // resolve section name
         const char *name = &shnames[shdr->sh_name];
+        Region *foundSec{};
         bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
         if (!result || foundSec->isDirty()) {
             result = obj->findRegion(foundSec, name);
