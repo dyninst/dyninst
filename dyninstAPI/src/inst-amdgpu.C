@@ -60,12 +60,6 @@ void emitVstore(opCode /* op */, Register /* src1 */, Register /*src2*/, Address
   assert(!"Not imeplemented for AMDGPU");
 }
 
-void emitV(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */,
-           codeGen & /* gen */, int /* size */,
-           AddressSpace * /* proc */, bool /* s */) {
-  assert(!"Not imeplemented for AMDGPU");
-}
-
 void emitLoadPreviousStackFrameRegister(Address /* register_num */, Register /* dest */,
                                         codeGen & /* gen */, int /* size */) {}
 
@@ -107,4 +101,10 @@ Register EmitterAmdgpuGfx908::emitR(opCode /* op */, Register /* src1 */, Regist
                codeGen & /* gen */, const instPoint *) {
   assert(!"Not implemented for AMDGPU");
   return 0;
+}
+
+void EmitterAmdgpuGfx908::emitV(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */,
+           codeGen & /* gen */, int /* size */,
+           AddressSpace * /* proc */, bool /* s */) {
+  assert(!"Not imeplemented for AMDGPU");
 }

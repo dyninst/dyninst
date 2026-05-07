@@ -97,6 +97,93 @@ namespace Dyninst { namespace DyninstAPI {
     return (dest);
   }
 
+  void Emitterx86::emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2,
+                         Dyninst::Register dest, codeGen &gen, int size, AddressSpace * /* proc */,
+                         bool s) {
+    assert((op != branchOp) && (op != ifOp));                                  // !emitA
+    assert((op != getRetValOp) && (op != getRetAddrOp) && (op != getParamOp)); // !emitR
+    assert((op != loadOp) && (op != loadConstOp));                             // !emitVload
+    assert((op != storeOp));                                                   // !emitVstore
+
+    if(op == loadIndirOp) {
+      // same as loadOp, but the value to load is already in a register
+      gen.codeEmitter()->emitLoadIndir(dest, src1, size, gen);
+    } else if(op == storeIndirOp) {
+      // same as storeOp, but the address where to store is already in a
+      // register
+      gen.codeEmitter()->emitStoreIndir(dest, src1, size, gen);
+    } else if(op == noOp) {
+      emitSimpleInsn(NOP, gen); // nop
+    } else if(op == saveRegOp) {
+      // Push....
+      assert(src2 == 0);
+      assert(dest == 0);
+      gen.codeEmitter()->emitPush(gen, src1);
+    } else if(op == loadRegOp) {
+      assert(src1 == 0);
+      assert(src2 == 0);
+      gen.codeEmitter()->emitPop(gen, dest);
+    } else {
+      unsigned opcode = 0; // initialize to placate gcc warnings
+      switch(op) {
+          // integer ops
+        case plusOp:
+          // dest = src1 + src2
+          // mv eax, src1
+          // add eax, src2
+          // mov dest, eax
+          opcode = 0x03; // ADD
+          break;
+
+        case minusOp:
+          opcode = 0x2B; // SUB
+          break;
+
+        case xorOp:
+          opcode = 0x33; // XOR
+          break;
+
+        case timesOp:
+          if(s) {
+            opcode = 0x0FAF; // IMUL
+          } else {
+            opcode = 0x0F74; // Unsigned Multiply
+          }
+          break;
+        case divOp: {
+          gen.codeEmitter()->emitDiv(dest, src1, src2, gen, s);
+          return;
+        }
+          // Bool ops
+        case orOp:
+          opcode = 0x0B; // OR
+          break;
+
+        case andOp:
+          opcode = 0x23; // AND
+          break;
+
+          // rel ops
+          // dest = src1 relop src2
+        case eqOp:
+        case neOp:
+        case lessOp:
+        case leOp:
+        case greaterOp:
+        case geOp: {
+          gen.codeEmitter()->emitRelOp(op, dest, src1, src2, gen, s);
+          return;
+          break;
+        }
+        default:
+          abort();
+          break;
+      }
+      gen.codeEmitter()->emitOp(opcode, dest, src1, src2, gen);
+    }
+    return;
+  }
+
   // VG(11/07/01): Load in destination the effective address given
   // by the address descriptor. Used for memory access stuff.
   void Emitterx86::emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift,
