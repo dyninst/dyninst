@@ -101,6 +101,7 @@ void codeGen::allocate(unsigned size)
    if (buffer_ == NULL)
    {
       buffer_ = (codeBuf_t *)malloc(max_);
+      memset(buffer_, 0, max_);
    }
    
    offset_ = 0;
