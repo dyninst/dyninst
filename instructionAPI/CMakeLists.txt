@@ -18,6 +18,7 @@ set(_sources
     src/InstructionDecoder.C
     src/InstructionDecoder-x86.C
     src/InstructionDecoder-power.C
+    src/power_opcode_tables.C
     src/InstructionDecoder-aarch64.C
     src/AMDGPU/gfx908/decodeOperands.C
     src/AMDGPU/gfx908/appendOperands.C
@@ -72,6 +73,7 @@ set(_private_headers
     src/InstructionDecoderImpl.h
     src/InstructionDecoder-power.h
     src/InstructionDecoder-x86.h
+    src/power_opcode_tables.h
     h/syscalls.h
     h/interrupts.h)
 
@@ -117,8 +119,8 @@ endif()
 
 if(NOT instructionDecoderPowerExtraFlags STREQUAL "")
   set_source_files_properties(
-    src/InstructionDecoder-power.C PROPERTIES COMPILE_FLAGS
-                                              "${instructionDecoderPowerExtraFlags}")
+    src/power_opcode_tables.C PROPERTIES COMPILE_FLAGS
+                                         "${instructionDecoderPowerExtraFlags}")
 endif()
 
 set(finalizeOperandsExtraFlags "")

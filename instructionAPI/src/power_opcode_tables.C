@@ -27,7 +27,19 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-std::once_flag built_tables;
+
+#include "power_opcode_tables.h"
+
+#include <boost/assign/list_of.hpp>
+#include <mutex>
+
+#define fn(x) (&InstructionDecoder_power::x)
+
+using namespace boost::assign;
+
+static std::once_flag built_tables;
+
+namespace Dyninst { namespace InstructionAPI {
 
 std::vector<power_entry> power_entry::main_opcode_table;
 power_table power_entry::extended_op_0;
@@ -1495,3 +1507,5 @@ extended_op_63_836[22] = power_entry(power_op_xscvdpqp, "xscvdpqp", NULL, list_o
 extended_op_63_836[25] = power_entry(power_op_xscvqpsdz, "xscvqpsdz", NULL, list_of(fn(VRT))(fn(VRB)));
     });
 }
+
+}}

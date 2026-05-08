@@ -32,6 +32,7 @@
 #include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
 #include "unaligned_memory_access.h"
+#include "power_opcode_tables.h"
 
 #include <boost/assign/list_of.hpp>
 #include <mutex>
@@ -43,54 +44,6 @@ namespace Dyninst { namespace InstructionAPI {
   typedef std::map<unsigned int, power_entry> power_table;
   bool InstructionDecoder_power::foundDoubleHummerInsn = false;
   bool InstructionDecoder_power::foundQuadInsn = false;
-
-  struct power_entry {
-    power_entry(entryID o, const char* m, nextTableFunc next, operandSpec ops)
-        : op(o), mnemonic(m), next_table(next), operands(ops) {}
-
-    power_entry() : op(power_op_INVALID), mnemonic("INVALID"), next_table(NULL) {
-      operands.reserve(5);
-    }
-
-    power_entry(const power_entry& o)
-        : op(o.op), mnemonic(o.mnemonic), next_table(o.next_table), operands(o.operands) {}
-
-    const power_entry& operator=(const power_entry& rhs) {
-      operands.reserve(rhs.operands.size());
-      op = rhs.op;
-      mnemonic = rhs.mnemonic;
-      next_table = rhs.next_table;
-      operands = rhs.operands;
-      return *this;
-    }
-
-    entryID op;
-    const char* mnemonic;
-    nextTableFunc next_table;
-    operandSpec operands;
-    static void buildTables();
-    static std::vector<power_entry> main_opcode_table;
-    static power_table extended_op_0;
-    static power_table extended_op_4;
-    static power_table extended_op_4_1409;
-    static power_table extended_op_4_1538;
-    static power_table extended_op_4_1921;
-    static power_table extended_op_19;
-    static power_table extended_op_30;
-    static power_table extended_op_31;
-    static power_table extended_op_57;
-    static power_table extended_op_58;
-    static power_table extended_op_59;
-    static power_table extended_op_60;
-    static power_table extended_op_60_specials;
-    static power_table extended_op_60_347;
-    static power_table extended_op_60_475;
-    static power_table extended_op_61;
-    static power_table extended_op_63;
-    static power_table extended_op_63_583;
-    static power_table extended_op_63_804;
-    static power_table extended_op_63_836;
-  };
 
   InstructionDecoder_power::InstructionDecoder_power(Architecture a)
       : InstructionDecoderImpl(a), insn(0), isRAWritten(false), invertBranchCondition(false),
@@ -444,42 +397,6 @@ which are both 0).
       insn_in_progress->appendOperand(makeRegisterExpression(ppc32::xer), false, true);
       insn_in_progress->getOperation().mnemonic += "o";
     }
-  }
-
-  template <Result_Type size> void InstructionDecoder_power::L() {
-    insn_in_progress->appendOperand(makeMemRefNonIndex(size), true, false);
-  }
-
-  template <Result_Type size> void InstructionDecoder_power::ST() {
-    insn_in_progress->appendOperand(makeMemRefNonIndex(size), false, true);
-  }
-
-  template <Result_Type size> void InstructionDecoder_power::LX() {
-    insn_in_progress->appendOperand(makeMemRefIndex(size), true, false);
-  }
-
-  template <Result_Type size> void InstructionDecoder_power::STX() {
-    insn_in_progress->appendOperand(makeMemRefIndex(size), false, true);
-  }
-
-  template <Result_Type size> void InstructionDecoder_power::LU() {
-    L<size>();
-    insn_in_progress->appendOperand(makeRAExpr(), false, true, true);
-  }
-
-  template <Result_Type size> void InstructionDecoder_power::STU() {
-    ST<size>();
-    insn_in_progress->appendOperand(makeRAExpr(), false, true, true);
-  }
-
-  template <Result_Type size> void InstructionDecoder_power::LUX() {
-    LX<size>();
-    insn_in_progress->appendOperand(makeRAExpr(), false, true, true);
-  }
-
-  template <Result_Type size> void InstructionDecoder_power::STUX() {
-    STX<size>();
-    insn_in_progress->appendOperand(makeRAExpr(), false, true, true);
   }
 
   void InstructionDecoder_power::LK() {}
@@ -948,12 +865,6 @@ which are both 0).
                                                         unsigned int, unsigned int) {
     return MachRegister(base.val() + encoding);
   }
-
-#define fn(x) (&InstructionDecoder_power::x)
-
-  using namespace boost::assign;
-
-#include "power_opcode_tables.C"
 
   const power_entry& InstructionDecoder_power::extended_op_0() {
     unsigned int xo = field<26, 30>(insn);
