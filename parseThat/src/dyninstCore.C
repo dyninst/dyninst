@@ -37,6 +37,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <set>
 
 #include "unistd.h"
 #include "BPatch.h"
@@ -1119,9 +1120,9 @@ bool instrumentFunctionExit(dynHandle *dh, BPatch_function *func)
 
 bool instrumentBasicBlocks(dynHandle *dh, BPatch_function *func)
 {
-   BPatch_Set<BPatch_basicBlock*> allBlocks;
+   std::set<BPatch_basicBlock*> allBlocks;
    BPatch_snippet incSnippet; 
-   BPatch_Set<BPatch_basicBlock*>::iterator iter;
+   std::set<BPatch_basicBlock*>::iterator iter;
    int bb_warn_cnt = 0, bb_pass_cnt = 0;
 
    sendMsg(config.outfd, ID_INST_BASIC_BLOCK, VERB2);
@@ -1203,10 +1204,10 @@ bool instrumentBasicBlocks(dynHandle *dh, BPatch_function *func)
 
 bool instrumentMemoryReads(dynHandle *dh, BPatch_function *func)
 {
-   BPatch_Set<BPatch_basicBlock*> allBlocks;
+   std::set<BPatch_basicBlock*> allBlocks;
    BPatch_snippet incSnippet; 
-   BPatch_Set<BPatch_opCode> ops;
-   BPatch_Set<BPatch_basicBlock*>::iterator iter;
+   std::set<BPatch_opCode> ops;
+   std::set<BPatch_basicBlock*>::iterator iter;
    int bb_warn_cnt = 0, bb_pass_cnt = 0;
 
    sendMsg(config.outfd, ID_INST_MEM_READ, VERB2);
@@ -1294,10 +1295,10 @@ bool instrumentMemoryReads(dynHandle *dh, BPatch_function *func)
 
 bool instrumentMemoryWrites(dynHandle *dh, BPatch_function *func)
 {
-   BPatch_Set<BPatch_basicBlock*> allBlocks;
+   std::set<BPatch_basicBlock*> allBlocks;
    BPatch_snippet incSnippet; 
-   BPatch_Set<BPatch_opCode> ops;
-   BPatch_Set<BPatch_basicBlock*>::iterator iter;
+   std::set<BPatch_opCode> ops;
+   std::set<BPatch_basicBlock*>::iterator iter;
    int bb_warn_cnt = 0, bb_pass_cnt = 0;
 
    sendMsg(config.outfd, ID_INST_MEM_WRITE, VERB2);

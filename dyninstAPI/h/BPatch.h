@@ -33,7 +33,6 @@
 
 #include <stdio.h>
 #include "BPatch_Vector.h"
-#include "BPatch_Set.h"
 #include "BPatch_thread.h"
 #include "BPatch_type.h"
 #include "BPatch_process.h"
@@ -403,8 +402,6 @@ public:
      
     bool registerSignalHandlerCallback(BPatchSignalHandlerCallback cb, 
                                        std::set<long> &signal_numbers); 
-    bool registerSignalHandlerCallback(BPatchSignalHandlerCallback cb, 
-                                       BPatch_Set<long> *signal_numbers); 
      
      bool removeSignalHandlerCallback(BPatchSignalHandlerCallback cb); 
 

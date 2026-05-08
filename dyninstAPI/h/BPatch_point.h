@@ -34,7 +34,6 @@
 #include <string>
 #include <vector>
 #include "BPatch_Vector.h"
-#include "BPatch_Set.h"
 #include "BPatch_enums.h"
 #include "dyntypes.h"
 

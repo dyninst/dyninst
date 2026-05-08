@@ -36,7 +36,6 @@
 #include <utility>
 #include <vector>
 #include "BPatch_Vector.h"
-#include "BPatch_Set.h"
 #include "BPatch_sourceBlock.h" 
 #include "BPatch_instruction.h"
 #include "Instruction.h"
@@ -75,6 +74,11 @@ template <>
    DYNINST_EXPORT bool operator()(const BPatch_basicBlock * const &l, const BPatch_basicBlock * const &r) const;
 };
 }
+
+template <class T>
+struct comparison {
+   bool operator() (const T&l, const T&r) const { return l < r; }
+};
 
 template <>
 struct comparison <BPatch_basicBlock *> {
@@ -201,7 +205,6 @@ class DYNINST_EXPORT BPatch_basicBlock {
   /** BPatch_basicBlock::getAllDominates   */
   /** method that returns all basic blocks dominated by the basic block */
 
-  void getAllDominates(BPatch_Set<BPatch_basicBlock*> &blocks);
   void getAllDominates(std::set<BPatch_basicBlock*> &blocks);
 
   /** the previous four methods, but for postdominators */
@@ -220,7 +223,6 @@ class DYNINST_EXPORT BPatch_basicBlock {
 
   /** BPatch_basicBlock::getAllPostDominates   */
 
-  void getAllPostDominates(BPatch_Set<BPatch_basicBlock*> &blocks);
   void getAllPostDominates(std::set<BPatch_basicBlock*> &blocks);
 	
   /** BPatch_basicBlock::getSourceBlocks   */
@@ -284,7 +286,6 @@ class DYNINST_EXPORT BPatch_basicBlock {
   /** BPatch_basicBlock::findPoint   */
   /** return a set of points within the basic block */
 
-  BPatch_Vector<BPatch_point*> * findPoint(const BPatch_Set<BPatch_opCode>& ops);
   BPatch_Vector<BPatch_point*> * findPoint(const std::set<BPatch_opCode>& ops);
 
   BPatch_Vector<BPatch_point*> * findPoint(bool(*filter)(Dyninst::InstructionAPI::Instruction));

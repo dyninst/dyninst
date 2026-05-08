@@ -36,7 +36,6 @@
 #include <map>
 #include "Annotatable.h"
 #include "BPatch_Vector.h"
-#include "BPatch_Set.h"
 #include "BPatch_basicBlock.h"
 #include "BPatch_basicBlockLoop.h"
 #include "BPatch_loopTreeNode.h"
@@ -100,7 +99,6 @@ public:
   ~BPatch_flowGraph();
 
   /** returns the set of all basic blocks in the CFG */
-  bool getAllBasicBlocks(BPatch_Set<BPatch_basicBlock*> &blocks); 
   bool getAllBasicBlocks(std::set<BPatch_basicBlock *> &blocks);
   
   /** returns the vector of entry basic blocks to CFG */

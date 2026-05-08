@@ -663,12 +663,6 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(const std::set<BPatch_o
    return ret;
 }
 
-BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(const BPatch_Set<BPatch_opCode>& ops) {
-   std::set<BPatch_opCode> tmp;
-   std::copy(ops.int_set.begin(), ops.int_set.end(), std::inserter(tmp, tmp.end()));
-   return findPoint(tmp);
-}
-
 /*
  * BPatch_function::findPoint
  *

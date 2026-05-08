@@ -293,14 +293,6 @@ BPatch_flowGraph::getAllBasicBlocks(std::set<BPatch_basicBlock*>& abb)
    return true;
 }
 
-bool
-BPatch_flowGraph::getAllBasicBlocks(BPatch_Set<BPatch_basicBlock*>& abb) {
-   std::set<BPatch_basicBlock *> tmp;
-   getAllBasicBlocks(tmp);
-   std::copy(tmp.begin(), tmp.end(), std::inserter(abb.int_set, abb.int_set.end()));
-   return true;
-}
-
 // this is the method that returns the set of entry points
 // basic blocks, to the control flow graph. Actually, there must be
 // only one entry point to each control flow graph but the definition
