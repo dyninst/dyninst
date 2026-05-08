@@ -381,8 +381,6 @@ void AddressSpace::initializeHeap() {
    // (re)initialize everything 
    heap_.heapActive.clear();
    heap_.heapFree.resize(0);
-   heap_.disabledList.resize(0);
-   heap_.disabledListTotalMem = 0;
    heap_.freed = 0;
    heap_.totalFreeMemAvailable = 0;
 

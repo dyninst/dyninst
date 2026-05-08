@@ -46,15 +46,10 @@ inferiorHeap::inferiorHeap(const inferiorHeap &src)
        heapActive[iter->first] = new heapItem(*(iter->second));
     }
 
-    for (unsigned u3 = 0; u3 < src.disabledList.size(); u3++) {
-      disabledList.push_back(src.disabledList[u3]);
-    }
-
     for (unsigned u4 = 0; u4 < src.bufferPool.size(); u4++) {
       bufferPool.push_back(new heapItem(src.bufferPool[u4]));
     }
 
-    disabledListTotalMem = src.disabledListTotalMem;
     totalFreeMemAvailable = src.totalFreeMemAvailable;
     freed = 0;
 }
@@ -70,15 +65,10 @@ inferiorHeap& inferiorHeap::operator=(const inferiorHeap &src)
        heapActive[iter->first] = new heapItem(*(iter->second));
     }
 
-    for (unsigned u3 = 0; u3 < src.disabledList.size(); u3++) {
-      disabledList.push_back(src.disabledList[u3]);
-    }
-
     for (unsigned u4 = 0; u4 < src.bufferPool.size(); u4++) {
       bufferPool.push_back(new heapItem(src.bufferPool[u4]));
     }
 
-    disabledListTotalMem = src.disabledListTotalMem;
     totalFreeMemAvailable = src.totalFreeMemAvailable;
     freed = 0;
 
@@ -97,9 +87,6 @@ void inferiorHeap::clear() {
         delete heapFree[i];
     heapFree.clear();
 
-    disabledList.clear();
-
-    disabledListTotalMem = 0;
     totalFreeMemAvailable = 0;
     freed = 0;
 

@@ -97,38 +97,6 @@ class heapItem {
   void *buffer;
 };
 
-
-// disabledItem: an item on the heap that we are trying to free.
-// "pointsToCheck" corresponds to predecessor code blocks
-// (i.e. prior minitramp/basetramp code)
-class disabledItem {
- public:
-  disabledItem() noexcept : block() {}
-
-  disabledItem(heapItem *h, const std::vector<addrVecType> &preds) :
-    block(h), pointsToCheck(preds) {}
-  disabledItem(const disabledItem &src) :
-    block(src.block), pointsToCheck(src.pointsToCheck) {}
-
-  disabledItem &operator=(const disabledItem &src) {
-    if (&src == this) return *this; // check for x=x    
-    block = src.block;
-    pointsToCheck = src.pointsToCheck;
-    return *this;
-  }
-
-
- ~disabledItem() {}
-  
-  heapItem block;                    // inferior heap block
-  std::vector<addrVecType> pointsToCheck; // list of addresses to check against PCs
-
-  Dyninst::Address getPointer() const {return block.addr;}
-  inferiorHeapType getHeapType() const {return block.type;}
-  const std::vector<addrVecType> &getPointsToCheck() const {return pointsToCheck;}
-  std::vector<addrVecType> &getPointsToCheck() {return pointsToCheck;}
-};
-
 /* Dyninst heap class */
 /*
   This needs a better name. Contains a name, and address, and a size.
@@ -160,15 +128,13 @@ class inferiorHeap {
     void clear();
     
   inferiorHeap() {
-      freed = 0; disabledListTotalMem = 0; totalFreeMemAvailable = 0;
+      freed = 0; totalFreeMemAvailable = 0;
   }
   inferiorHeap(const inferiorHeap &src);  // create a new heap that is a copy
                                           // of src (used on fork)
   inferiorHeap& operator=(const inferiorHeap &src);
   std::unordered_map<Dyninst::Address, heapItem*> heapActive; // active part of heap
   std::vector<heapItem*> heapFree;           // free block of data inferior heap 
-  std::vector<disabledItem> disabledList;    // items waiting to be freed.
-  int disabledListTotalMem;             // total size of item waiting to free
   int totalFreeMemAvailable;            // total free memory in the heap
   int freed;                            // total reclaimed (over time)
 
