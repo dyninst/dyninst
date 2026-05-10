@@ -342,7 +342,7 @@ void EmitterAARCH64::emitImm(opCode op, Register src1, RegValue src2imm, Registe
         case eqOp:
             {
                 Register scratch = gen.rs()->getScratchRegister(gen);
-                emitVload(loadConstOp, src2imm, 0, scratch, gen);
+                gen.emitter()->emitVload(loadConstOp, src2imm, 0, scratch, gen);
                 emitV(op, src1, scratch, dest, gen);
             }
             break;

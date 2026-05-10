@@ -60,6 +60,8 @@ class EmitterPOWER : public Emitter {
     virtual Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst, codeGen &gen, const instPoint *location);
     virtual void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst,
                        codeGen &gen, int size = 4, AddressSpace * proc = NULL, bool s = true);
+    virtual void emitVload(opCode op, Dyninst::Address src1, Dyninst::Register src2, Dyninst::Register dst,
+                           codeGen &gen, int size = 4, AddressSpace * proc = NULL);
     virtual codeBufIndex_t emitIf(Register, Register, Dyninst::DyninstAPI::RegControl, codeGen &) { assert(0); return 0; }
     virtual void emitOp(unsigned, Register, Register, Register, codeGen &) { assert(0); }
     virtual void emitOpImm(unsigned, unsigned, Register, Register, RegValue,

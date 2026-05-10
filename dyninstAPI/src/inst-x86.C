@@ -898,48 +898,6 @@ void restoreGPRtoGPR(RealRegister src, RealRegister dest, codeGen &gen)
    restoreGPRtoReg(src, gen, &dest);
 }
 
-void emitVload(opCode op, Address src1, Dyninst::Register src2, Dyninst::Register dest,
-               codeGen &gen,
-               int size,
-               AddressSpace * /* proc */)
-{
-   if (op == loadConstOp) {
-      // dest is a temporary
-      // src1 is an immediate value 
-      // dest = src1:imm32
-       gen.codeEmitter()->emitLoadConst(dest, src1, gen);
-      return;
-   } else if (op ==  loadOp) {
-      // dest is a temporary
-      // src1 is the address of the operand
-      // dest = [src1]
-       gen.codeEmitter()->emitLoad(dest, src1, size, gen);
-      return;
-   } else if (op == loadFrameRelativeOp) {
-      // dest is a temporary
-      // src1 is the offset of the from the frame of the variable
-       gen.codeEmitter()->emitLoadOrigFrameRelative(dest, src1, gen);
-       return;
-   } else if (op == loadRegRelativeOp) {
-      // dest is a temporary
-      // src2 is the register 
-      // src1 is the offset from the address in src2
-      gen.codeEmitter()->emitLoadOrigRegRelative(dest, src1, src2, gen, true);
-      return;
-   } else if (op == loadRegRelativeAddr) {
-      // dest is a temporary
-      // src2 is the register 
-      // src1 is the offset from the address in src2
-      gen.codeEmitter()->emitLoadOrigRegRelative(dest, src1, src2, gen, false);
-      return;
-   } else if (op == loadFrameAddr) {
-       gen.codeEmitter()->emitLoadFrameAddr(dest, src1, gen);
-       return;
-   } else {
-      abort();                // unexpected op for this emit!
-   }
-}
-
 void emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, Address dest,
                 codeGen &gen,
                 int size,

@@ -103,6 +103,9 @@ public:
   // for general arithmetic and logic operations which return nothing
   virtual void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst,
                     codeGen &gen, int size = 4, AddressSpace * proc = NULL, bool s = true) = 0;
+  // for loadOp and loadConstOp (reading from an Dyninst::Address)
+  virtual void emitVload(opCode op, Dyninst::Address src1, Dyninst::Register src2, Dyninst::Register dst,
+                         codeGen &gen, int size = 4, AddressSpace * proc = NULL) = 0;
   virtual void emitImm(opCode op, Dyninst::Register src, Dyninst::RegValue src2imm, Dyninst::Register dst, codeGen &gen, bool isSigned = true) = 0;
   virtual void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen) = 0;
   virtual void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm, codeGen &gen) = 0;
