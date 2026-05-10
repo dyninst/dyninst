@@ -85,7 +85,6 @@ std::string InstWidget::format() const {
 bool InstWidgetPatch::apply(codeGen &gen, CodeBuffer *) {
    relocation_cerr << "\t\t InstWidgetPatch::apply " << this << " /w/ tramp " << tramp << std::endl;
 
-   gen.registerInstrumentation(tramp, gen.currAddr());
    bool ret = tramp->generateCode(gen, gen.currAddr());
    return ret;
 }
@@ -99,9 +98,8 @@ InstWidgetPatch::~InstWidgetPatch() {
    // an instPoint.
 }
 
-bool RemovedInstWidgetPatch::apply(codeGen &gen, CodeBuffer *) {
+bool RemovedInstWidgetPatch::apply(codeGen &, CodeBuffer *) {
   // Just want to leave a marker here for later.
-  gen.registerRemovedInstrumentation(tramp, gen.currAddr());
   return true;
 }
 

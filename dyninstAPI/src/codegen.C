@@ -44,8 +44,7 @@
 #include "instPoint.h"
 #include "registerSpace.h"
 #include "bitArray.h"
-
-#include "instructionAPI/h/InstructionDecoder.h"
+#include "InstructionDecoder.h"
 
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #define CODE_GEN_OFFSET_SIZE 1U
@@ -56,159 +55,37 @@
 const unsigned int codeGenPadding = (128);
 const unsigned int codeGenMinAlloc = (4 * 1024);
 
-codeGen::codeGen() :
-    buffer_(NULL),
-    offset_(0),
-    size_(0),
-    max_(0),
-    pc_rel_use_count(0),
-    emitter_(NULL),
-    allocated_(false),
-    aSpace_(NULL),
-    thr_(NULL),
-    rs_(NULL),
-    t_(NULL),
-    addr_((Dyninst::Address)-1),
-    ip_(NULL),
-    f_(NULL),
-    bt_(NULL),
-    isPadded_(true),
-    trackRegDefs_(false),
-    inInstrumentation_(false), // save default
-    insertNaked_(false),
-    modifiedStackFrame_(false)
-{}
-
-// size is in bytes
-codeGen::codeGen(unsigned size) :
-    buffer_(NULL),
-    offset_(0),
-    size_(size),
-    max_(size+codeGenPadding),
-    pc_rel_use_count(0),
-    emitter_(NULL),
-    allocated_(true),
-    aSpace_(NULL),
-    thr_(NULL),
-    rs_(NULL),
-	t_(NULL),
-    addr_((Dyninst::Address)-1),
-    ip_(NULL),
-    f_(NULL),
-    bt_(NULL),
-    isPadded_(true),
-    trackRegDefs_(false),
-    inInstrumentation_(false),
-    insertNaked_(false),
-    modifiedStackFrame_(false)
-{
-    buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
-    if (!buffer_) {
-       fprintf(stderr, "%s[%d]: malloc failed: size is %u + codeGenPadding = %u\n", FILE__, __LINE__, size, codeGenPadding);
-	}
-    assert(buffer_);
-    memset(buffer_, 0, size+codeGenPadding);
-}
-
-// size is in bytes
-codeGen::codeGen(codeBuf_t *buffer, int size) :
-    buffer_(buffer),
-    offset_(0),
-    size_(size-codeGenPadding),
-    max_(size+codeGenPadding),
-    pc_rel_use_count(0),
-    emitter_(NULL),
-    allocated_(false),
-    aSpace_(NULL),
-    thr_(NULL),
-    rs_(NULL),
-    t_(NULL),
-    addr_((Dyninst::Address)-1),
-    ip_(NULL),
-    f_(NULL),
-    bt_(NULL),
-    isPadded_(true),
-    trackRegDefs_(false),
-    inInstrumentation_(false),
-    insertNaked_(false),
-    modifiedStackFrame_(false)
-{
-    assert(buffer_);
-    memset(buffer_, 0, size+codeGenPadding);
-}
-
-
 codeGen::~codeGen() {
     if (allocated_ && buffer_) {
         free(buffer_);
     }
 }
 
-// Deep copy
-codeGen::codeGen(const codeGen &g) :
-    buffer_(NULL),
-    offset_(g.offset_),
-    size_(g.size_),
-    max_(g.max_),
-    pc_rel_use_count(g.pc_rel_use_count),
-    emitter_(NULL),
-    allocated_(g.allocated_),
-    aSpace_(g.aSpace_),
-    thr_(g.thr_),
-    rs_(g.rs_),
-	t_(g.t_),
-    addr_(g.addr_),
-    ip_(g.ip_),
-    f_(g.f_),
-    bt_(g.bt_),
-    isPadded_(g.isPadded_),
-    trackRegDefs_(g.trackRegDefs_),
-    inInstrumentation_(g.inInstrumentation_),
-    insertNaked_(g.insertNaked_),
-    modifiedStackFrame_(g.modifiedStackFrame_)
-{
-    if (size_ != 0) {
-        assert(allocated_); 
-        int bufferSize = size_ + (isPadded_ ? codeGenPadding : 0);
-        buffer_ = (codeBuf_t *) malloc(bufferSize);
-        memcpy(buffer_, g.buffer_, bufferSize);
-    }
-}
+codeGen::codeGen(codeGen &&rhs) noexcept {
+  offset_ = rhs.offset_;
+  size_ = rhs.size_;
+  max_ = rhs.max_;
+  pc_rel_use_count = rhs.pc_rel_use_count;
+  emitter_ = rhs.emitter_;
+  allocated_ = rhs.allocated_;
+  aSpace_ = rhs.aSpace_;
+  thr_ = rhs.thr_;
+  rs_ = rhs.rs_;
+  t_ = rhs.t_;
+  addr_ = rhs.addr_;
+  ip_ = rhs.ip_;
+  f_ = rhs.f_;
+  bt_ = rhs.bt_;
+  regsDefined_ = rhs.regsDefined_;
+  trackRegDefs_ = rhs.trackRegDefs_;
+  inInstrumentation_ = rhs.inInstrumentation_;
+  insertNaked_ = rhs.insertNaked_;
+  modifiedStackFrame_ = rhs.modifiedStackFrame_;
+  patches_ = rhs.patches_;
 
-bool codeGen::operator==(void *p) const {
-    return (p == (void *)buffer_);
-}
-
-bool codeGen::operator!=(void *p) const {
-    return (p != (void *)buffer_);
-}
-
-codeGen &codeGen::operator=(const codeGen &g) {
-    // Same as copy constructor, really
-    invalidate();
-    offset_ = g.offset_;
-    size_ = g.size_;
-    max_ = g.max_;
-    pc_rel_use_count = g.pc_rel_use_count;
-    allocated_ = g.allocated_;
-    thr_ = g.thr_;
-    isPadded_ = g.isPadded_;
-    int bufferSize = size_ + (isPadded_ ? codeGenPadding : 0);
-    inInstrumentation_ = g.inInstrumentation_;
-    insertNaked_ = g.insertNaked_;
-    modifiedStackFrame_ = g.modifiedStackFrame_;
-
-    if (size_ != 0) {
-       assert(allocated_); 
-
-       buffer_ = (codeBuf_t *) malloc(bufferSize);
-       //allocate(g.size_);
-	
-       memcpy(buffer_, g.buffer_, bufferSize);
-    }
-    else
-        buffer_ = NULL;
-    return *this;
+  buffer_ = rhs.buffer_;
+  rhs.buffer_ = nullptr;
+  rhs.allocated_ = false;
 }
 
 void codeGen::allocate(unsigned size) 
@@ -224,7 +101,7 @@ void codeGen::allocate(unsigned size)
    if (buffer_ == NULL)
    {
       buffer_ = (codeBuf_t *)malloc(max_);
-      isPadded_ = true;
+      memset(buffer_, 0, max_);
    }
    
    offset_ = 0;
@@ -245,28 +122,6 @@ void codeGen::invalidate() {
     max_ = 0;
     offset_ = 0;
     allocated_ = false;
-    isPadded_ = false;
-}
-
-bool codeGen::verify() {
-    return true;
-}
-
-void codeGen::finalize() {
-    assert(buffer_);
-    assert(size_);
-    cerr << "FINALIZE!" << endl;
-    applyPatches();
-    if (size_ == offset_) return;
-    if (offset_ == 0) {
-        fprintf(stderr, "Warning: offset is 0 in codeGen::finalize!\n");
-        invalidate();
-        return;
-    }
-    buffer_ = (codeBuf_t *)::realloc(buffer_, used());
-    max_ = used();
-    size_ = used();
-    isPadded_ = false;
 }
 
 void codeGen::copy(const void *b, const unsigned size, const codeBufIndex_t index) {
@@ -305,16 +160,6 @@ void codeGen::copy(const std::vector<unsigned char> &buf) {
    moveIndex(buf.size());
 }
 
-void codeGen::copy(codeGen &gen) {
-  if ((used() + gen.used()) >= size_) {
-    realloc(used() + gen.used()); 
-  }
-
-  memcpy((void *)cur_ptr(), (void *)gen.start_ptr(), gen.used());
-  offset_ += gen.offset_;
-  assert(used() <= size_);
-}
-
 void codeGen::insert(const void *b, const unsigned size, const codeBufIndex_t index) {
     if (size == 0) return;
     assert(buffer_);
@@ -327,23 +172,6 @@ void codeGen::insert(const void *b, const unsigned size, const codeBufIndex_t in
 
     moveIndex(size);
 }
-
-void codeGen::copyAligned(const void *b, const unsigned size) {
-  if (size == 0) return;
-
-  assert(buffer_);
-  
-  realloc(used() + size);
-
-  memcpy(cur_ptr(), b, size);
-
-  unsigned alignedSize = size;
-  alignedSize += (CODE_GEN_OFFSET_SIZE - (alignedSize % CODE_GEN_OFFSET_SIZE));
-
-  moveIndex(alignedSize);
-}
-
-
 
 // codeBufIndex_t stores in platform-specific units.
 unsigned codeGen::used() const {
@@ -441,11 +269,7 @@ long codeGen::getDisplacement(codeBufIndex_t from, codeBufIndex_t to) {
 Dyninst::Address codeGen::currAddr() const {
   if(addr_ == (Dyninst::Address) -1) return (Dyninst::Address) -1;
   assert(addr_ != (Dyninst::Address) -1);
-  return currAddr(addr_);
-}
-
-Dyninst::Address codeGen::currAddr(Dyninst::Address base) const {
-    return (offset_ * CODE_GEN_OFFSET_SIZE) + base;
+  return (offset_ * CODE_GEN_OFFSET_SIZE) + addr_;
 }
 
 void codeGen::fill(unsigned fillSize, int fillType) {
@@ -471,16 +295,6 @@ void codeGen::fill(unsigned fillSize, int fillType) {
         break;
     }
     default:
-        assert(0 && "unimplemented");
-    }
-}
-
-void codeGen::fillRemaining(int fillType) {
-    if (fillType == cgNOP) {
-        insnCodeGen::generateNOOP(*this,
-                                  size_ - used());
-    }
-    else {
         assert(0 && "unimplemented");
     }
 }
@@ -532,19 +346,6 @@ void codeGen::addPatch(codeBufIndex_t index, patchTarget *source,
    relocPatch p(index, source, ptype, this, off, size);
    patches_.push_back(p);
 }
-
-void codeGen::addPatch(const relocPatch &p)
-{
-   patches_.push_back(p);
-}
-
-void codeGen::applyPatches()
-{
-   std::vector<relocPatch>::iterator i;
-   for (i = patches_.begin(); i != patches_.end(); i++)
-      (*i).applyPatch();
-}
-
 
 relocPatch::relocPatch(codeBufIndex_t index, patchTarget *s, patch_type_t ptype,
                        codeGen *gen, Dyninst::Offset off, unsigned size) :
@@ -603,12 +404,6 @@ unsigned toAddressPatch::get_size() const {
 
 void toAddressPatch::set_address(Dyninst::Address a) {
    addr = a;
-}
-
-codeGen codeGen::baseTemplate;
-
-PCThread *codeGen::thread() {
-    return thr_;
 }
 
 unsigned codeGen::width() const {
@@ -696,21 +491,10 @@ Dyninst::Architecture codeGen::getArch() const {
   return Arch_none;
 }
 
-void codeGen::registerDefensivePad(block_instance *callBlock, Dyninst::Address padStart, unsigned padSize) {
-  // Dyninst::Register a match between a call instruction
-  // and a padding area post-reloc-call for
-  // control flow interception purposes.
-  // This is kind of hacky, btw.
-    //cerr << "Registering pad [" << hex << padStart << "," << padStart + padSize << "], for block @ " << callBlock->start() << dec << endl;
-  defensivePads_[callBlock] = Extent(padStart, padSize);
-}
-
-
-#include "InstructionDecoder.h"
-using namespace InstructionAPI;
-
 std::string codeGen::format() const {
    if (!aSpace_) return "<codeGen>";
+
+   using namespace InstructionAPI;
 
    stringstream ret;
 
