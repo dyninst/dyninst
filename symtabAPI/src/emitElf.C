@@ -337,16 +337,14 @@ void emitElf<ElfTypes>::getSectionAndSegmentProperties() {
     }
 }
 
-// Rename an old section. Lengths of old and new names must match.
-// Only renames the FIRST matching section encountered unless renameAll is true.
+// Rename an old section. New name is old name with 2nd char changed to 'o'
 template<class ElfTypes>
-void emitElf<ElfTypes>::renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll) {
-    assert(oldStr.length() == newStr.length());
+void emitElf<ElfTypes>::renameSection(const std::string &oldName) {
+    assert(oldName.size() >= 2);
     for (unsigned k = 0; k < secNames.size(); k++) {
-        if (secNames[k] == oldStr) {
-            secNames[k].replace(0, oldStr.length(), newStr);
-            if (!renameAll)
-                break;
+        if (secNames[k] == oldName) {
+            secNames[k][1] = 'o';
+            break;
         }
     }
 }
@@ -484,9 +482,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                 (shdr->sh_addr >= moveSecAddrRange[i][0] && shdr->sh_addr < moveSecAddrRange[i][1])) {
                 newshdr->sh_type = SHT_PROGBITS;
                 changeMapping[sectionNumber] = 1;
-                string newName = ".o";
-                newName.append(name, 2, strlen(name));
-                renameSection(name, newName, false);
+                renameSection(name);
             }
         }
 
@@ -520,9 +516,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             // Change the data to update the relocation addr
             newshdr->sh_type = SHT_PROGBITS;
             changeMapping[sectionNumber] = 1;
-            string newName = ".o";
-            newName.append(name, 2, strlen(name));
-            renameSection(name, newName, false);
+            renameSection(name);
         }
 
         // Only need to rewrite data section
@@ -531,15 +525,11 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             // Clear TLS flag
             newshdr->sh_flags &= ~SHF_TLS;
 
-            string newName = ".o";
-            newName.append(name, 2, strlen(name));
-            renameSection(name, newName, false);
+            renameSection(name);
         }
 
         if (isStaticBinary && ((strcmp(name, ".rel.plt") == 0) || (strcmp(name, ".rela.plt") == 0 ))) {
-            string newName = ".o";
-            newName.append(name, 2, strlen(name));
-            renameSection(name, newName, false);
+            renameSection(name);
             // The old sections are no longer REL or RELA, change to PROGBITS
             newshdr->sh_type = SHT_PROGBITS;
 
