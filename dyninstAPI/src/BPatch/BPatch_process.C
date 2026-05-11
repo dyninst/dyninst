@@ -32,7 +32,6 @@
 
 #include <string>
 
-#include "inst.h"
 #include "instPoint.h"
 #include "function.h" // func_instance
 #include "codeRange.h"

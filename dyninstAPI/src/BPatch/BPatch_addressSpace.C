@@ -31,7 +31,6 @@
 #define BPATCH_FILE
 
 #include "binaryEdit.h"
-#include "inst.h"
 #include "function.h" // Dyninst::PatchAPI::PatchFunction
 #include "codeRange.h"
 #include "addressSpace.h"
@@ -858,7 +857,6 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
  * point        The point at which to insert it.
  */
 
-// This handles conversion without requiring inst.h in a header file...
 extern bool BPatchToInternalArgs(BPatch_point *point,
       BPatch_callWhen when,
       BPatch_snippetOrder order,

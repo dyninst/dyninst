@@ -39,7 +39,6 @@
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/dynProcess.h"
-#include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/inst-power.h"
 #include "common/src/arch-power.h"
 #include "dyninstAPI/src/codegen.h"

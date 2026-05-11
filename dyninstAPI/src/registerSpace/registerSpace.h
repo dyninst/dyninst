@@ -39,7 +39,6 @@
 
 #include "bitArray.h"
 #include "dyn_register.h"
-#include "inst.h"
 #include "RealRegister.h"
 #include "registerSlot.h"
 
