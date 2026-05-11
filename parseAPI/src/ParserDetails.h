@@ -193,7 +193,7 @@ class ParseWorkElem
         : _bundle(NULL),
           _edge(NULL),
           _src(0),
-          _targ((Address)-1),
+          _targ(Dyninst::ADDRESS_INVALID),
           _can_resolve(false),
           _tailcall(false),
           _order(__parse_work_end__),
@@ -207,7 +207,7 @@ class ParseWorkElem
     ParseWorkElem(ParseWorkBundle *bundle, Block *b, const InsnAdapter::IA_IAPI* ah)
          : _bundle(bundle),
           _edge(NULL),
-          _targ((Address)-1),
+          _targ(Dyninst::ADDRESS_INVALID),
           _can_resolve(false),
           _tailcall(false),
           _order(resolve_jump_table),
@@ -220,7 +220,7 @@ class ParseWorkElem
 
     ParseWorkElem(ParseWorkBundle *bundle, Function *f):
           _bundle(bundle),
-          _targ((Address)-1),
+          _targ(Dyninst::ADDRESS_INVALID),
           _can_resolve(false),
           _tailcall(false),
           _order(func_shared_code),

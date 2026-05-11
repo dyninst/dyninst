@@ -220,7 +220,7 @@ class codeGen {
     PCThread *thr_{};
     registerSpace *rs_{};
     regTracker_t *t_{};
-    Dyninst::Address addr_{(Dyninst::Address)-1};
+    Dyninst::Address addr_{Dyninst::ADDRESS_INVALID};
     instPoint *ip_{};
     func_instance *f_{};
     baseTramp *bt_{};

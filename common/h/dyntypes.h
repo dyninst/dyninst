@@ -84,6 +84,7 @@ namespace Dyninst
 #endif
 
   static constexpr Address ADDR_NULL{0};
+  static constexpr Address ADDRESS_INVALID{static_cast<Address>(-1)};
 
 #if defined(_MSC_VER)
    typedef int PID;
@@ -125,6 +126,7 @@ namespace Dyninst
 
 #else
 # define ADDR_NULL (0)
+# define ADDRESS_INVALID (-1)
 typedef unsigned long Address;
 #endif
 
