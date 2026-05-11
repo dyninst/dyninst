@@ -765,7 +765,7 @@ void EmitterAARCH64::emitVload(opCode op, Address src1, Register src2, Register 
     }
 }
 
-void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
+void EmitterAARCH64::emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
         codeGen &gen,
         int size,
         AddressSpace *)

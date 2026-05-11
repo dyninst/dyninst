@@ -48,12 +48,6 @@ void emitASload(const BPatch_addrSpec_NP * /* as */, Register /* dest */, int /*
   assert(!"Not imeplemented for AMDGPU");
 }
 
-void emitVstore(opCode /* op */, Register /* src1 */, Register /*src2*/, Address /* dest */,
-                codeGen & /* gen */, int /* size */,
-                AddressSpace *) {
-  assert(!"Not imeplemented for AMDGPU");
-}
-
 void emitLoadPreviousStackFrameRegister(Address /* register_num */, Register /* dest */,
                                         codeGen & /* gen */, int /* size */) {}
 
@@ -106,5 +100,11 @@ void EmitterAmdgpuGfx908::emitV(opCode /* op */, Register /* src1 */, Register /
 void EmitterAmdgpuGfx908::emitVload(opCode /* op */, Address /* src1 */, Register /* src2 */, Register /* dest */,
                codeGen & /* gen */, int /* size */,
                AddressSpace *) {
+  assert(!"Not imeplemented for AMDGPU");
+}
+
+void EmitterAmdgpuGfx908::emitVstore(opCode /* op */, Register /* src1 */, Register /*src2*/, Address /* dest */,
+                codeGen & /* gen */, int /* size */,
+                AddressSpace *) {
   assert(!"Not imeplemented for AMDGPU");
 }

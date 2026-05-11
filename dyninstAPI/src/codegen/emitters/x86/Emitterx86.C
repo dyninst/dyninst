@@ -223,6 +223,26 @@ namespace Dyninst { namespace DyninstAPI {
     }
   }
 
+  void Emitterx86::emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, Address dest,
+                              codeGen &gen, int size, AddressSpace * /* proc */) {
+    if(op == storeOp) {
+      // [dest] = src1
+      // dest has the address where src1 is to be stored
+      // src1 is a temporary
+      // src2 is a "scratch" register, we don't need it in this architecture
+      gen.codeEmitter()->emitStore(dest, src1, size, gen);
+      return;
+    } else if(op == storeFrameRelativeOp) {
+      // src1 is a temporary
+      // src2 is a "scratch" register, we don't need it in this architecture
+      // dest is the frame offset
+      gen.codeEmitter()->emitStoreFrameRelative(dest, src1, src2, size, gen);
+      return;
+    } else {
+      abort(); // unexpected op for this emit!
+    }
+  }
+
   // VG(11/07/01): Load in destination the effective address given
   // by the address descriptor. Used for memory access stuff.
   void Emitterx86::emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift,

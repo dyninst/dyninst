@@ -62,12 +62,6 @@ class image_variable;
  * functions replace "emit" with more strongly typed versions.
  */
 
-// for storeOp (writing to an Dyninst::Address)
-void     emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Address dst,
-                    codeGen &gen,
-                    int size = 4,
-                    AddressSpace * proc = NULL);
-
 
 // find these internal functions before finding any other functions
 // extern std::unordered_map<std::string, unsigned> tagDict;
