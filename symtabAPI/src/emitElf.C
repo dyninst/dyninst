@@ -379,10 +379,9 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         return false;
     }
 
-    //Section name index for all sections
-    secNames.push_back("");
+    secNames.push_back("");  // section 0 is always ST_NULL with empty name
     secNameIndex = 1;
-    //Section name index for new sections
+
     loadSecTotalSize = 0;
     int dirtySecsChange = 0;
     unsigned extraAlignSize = 0;
