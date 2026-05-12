@@ -33,7 +33,7 @@
 #include "../CFG/RelocTarget.h"
 
 #include "instructionAPI/h/Instruction.h"
-#include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
+#include "BPatch_memoryAccessAdapter.h"
 #include "dyninstAPI/src/emitter.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/debug.h"

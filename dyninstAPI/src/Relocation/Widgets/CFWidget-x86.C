@@ -42,7 +42,7 @@
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "registerSpace.h"
-#include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
+#include "BPatch_memoryAccessAdapter.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 

@@ -31,7 +31,7 @@
 #define BPATCH_FILE
 
 #include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/BPatch_libInfo.h"
+#include "BPatch_libInfo.h"
 #include "dyninstAPI/h/BPatch_loopTreeNode.h"
 #include "dyninstAPI/h/BPatch_basicBlockLoop.h"
 #include "dyninstAPI/h/BPatch_function.h"

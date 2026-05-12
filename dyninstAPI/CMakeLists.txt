@@ -73,10 +73,10 @@ set(_private_headers
     src/trampolines/baseTramp-x86.h
     src/binaryEdit.h
     src/block.h
-    src/BPatch_collections.h
-    src/BPatch_libInfo.h
-    src/BPatch_memoryAccessAdapter.h
-    src/BPatch_private.h
+    src/BPatch/BPatch_collections.h
+    src/BPatch/BPatch_libInfo.h
+    src/BPatch/BPatch_memoryAccessAdapter.h
+    src/BPatch/BPatch_private.h
     src/codegen-amdgpu.h
     src/codegen-aarch64.h
     src/codegen.h
@@ -183,30 +183,30 @@ set(_sources
     src/pcEventMuxer.C
     src/regTracker.C
     src/variable.C
-    src/BPatch.C
-    src/BPatch_addressSpace.C
-    src/BPatch_basicBlock.C
-    src/BPatch_basicBlockLoop.C
-    src/BPatch_binaryEdit.C
-    src/BPatch_collections.C
-    src/BPatch_edge.C
-    src/BPatch_flowGraph.C
-    src/BPatch_frame.C
-    src/BPatch_function.C
-    src/BPatch_image.C
-    src/BPatch_instruction.C
-    src/BPatch_loopTreeNode.C
-    src/BPatch_memoryAccess.C
-    src/BPatch_memoryAccessAdapter.C
-    src/BPatch_module.C
-    src/BPatch_object.C
-    src/BPatch_point.C
-    src/BPatch_process.C
-    src/BPatch_snippet.C
-    src/BPatch_sourceBlock.C
-    src/BPatch_statement.C
-    src/BPatch_thread.C
-    src/BPatch_type.C
+    src/BPatch/BPatch.C
+    src/BPatch/BPatch_addressSpace.C
+    src/BPatch/BPatch_basicBlock.C
+    src/BPatch/BPatch_basicBlockLoop.C
+    src/BPatch/BPatch_binaryEdit.C
+    src/BPatch/BPatch_collections.C
+    src/BPatch/BPatch_edge.C
+    src/BPatch/BPatch_flowGraph.C
+    src/BPatch/BPatch_frame.C
+    src/BPatch/BPatch_function.C
+    src/BPatch/BPatch_image.C
+    src/BPatch/BPatch_instruction.C
+    src/BPatch/BPatch_loopTreeNode.C
+    src/BPatch/BPatch_memoryAccess.C
+    src/BPatch/BPatch_memoryAccessAdapter.C
+    src/BPatch/BPatch_module.C
+    src/BPatch/BPatch_object.C
+    src/BPatch/BPatch_point.C
+    src/BPatch/BPatch_process.C
+    src/BPatch/BPatch_snippet.C
+    src/BPatch/BPatch_sourceBlock.C
+    src/BPatch/BPatch_statement.C
+    src/BPatch/BPatch_thread.C
+    src/BPatch/BPatch_type.C
     src/Parsing-arch.C
     src/Parsing.C
     src/Patching.C
@@ -380,6 +380,7 @@ endif()
 list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/ASTs")
 list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/registerSpace")
 list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/trampolines")
+list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/BPatch")
 
 foreach(t ${dyninstAPI_TARGETS})
   if(DYNINST_OS_Windows)
