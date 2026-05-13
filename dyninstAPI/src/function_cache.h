@@ -48,7 +48,7 @@ namespace Dyninst { namespace DyninstAPI {
         return c->addr() == f->addr() &&
                c->typedName() == f->typedName();
       };
-      return std::find_if(funcs.begin(), funcs.end(), cmp) == funcs.end();
+      return std::find_if(funcs.begin(), funcs.end(), cmp) != funcs.end();
     }
     void insert(func_instance *f) {
       funcs.push_back(f);
