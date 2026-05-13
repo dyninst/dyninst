@@ -57,6 +57,18 @@ using namespace std;
 static std::string secStrtabName{".shstrtab"};
 
 
+// return min value, such that value >= v and value % align_to == 0
+template<typename T>
+T align_up(T v, unsigned long align_to)
+{
+    if (align_to == 0)  {
+        align_to = 1;     // treat 0 as 1
+    }
+    v += align_to - 1;    // force non-aligned values above next alignment
+    v -= (v % align_to);  // align to max value <= v
+    return v;
+}
+
 unsigned int elfHash(const char *name) {
     unsigned int h = 0, g;
 
