@@ -150,7 +150,5 @@ inline int TRAMP_SPR_OFFSET(int x) {
 
 class codeGen;
 
-void pushStack(codeGen &gen);
-void popStack(codeGen &gen);
 
 #endif

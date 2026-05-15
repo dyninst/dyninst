@@ -34,7 +34,8 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     emitters/aarch64/EmitterAarch64Dyn.h
     emitters/aarch64/EmitterAarch64Stat.h
     emitters/aarch64/EmitterAarch64RestoreRegs.h
-    emitters/aarch64/EmitterAarch64SaveRegs.h)
+    emitters/aarch64/EmitterAarch64SaveRegs.h
+    emitters/aarch64/generators.h)
 
   list(
     APPEND
@@ -43,7 +44,8 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     emitters/aarch64/EmitterAarch64.C
     emitters/aarch64/EmitterAarch64Stat.C
     emitters/aarch64/EmitterAarch64RestoreRegs.C
-    emitters/aarch64/EmitterAarch64SaveRegs.C)
+    emitters/aarch64/EmitterAarch64SaveRegs.C
+    emitters/aarch64/generators.C)
 
 endif()
 
