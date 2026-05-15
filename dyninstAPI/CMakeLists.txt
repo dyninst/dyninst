@@ -8,44 +8,24 @@ endif()
 
 include(DyninstLibrary)
 
-set(_public_headers
-    h/BPatch_addressSpace.h
-    h/BPatch_basicBlock.h
-    h/BPatch_basicBlockLoop.h
-    h/BPatch_binaryEdit.h
-    h/BPatch_callbacks.h
-    h/BPatch_edge.h
-    h/BPatch_enums.h
-    h/BPatch_flowGraph.h
-    h/BPatch_frame.h
-    h/BPatch_function.h
-    h/BPatch.h
-    h/BPatch_image.h
-    h/BPatch_instruction.h
-    h/BPatch_loopTreeNode.h
-    h/BPatch_memoryAccess_NP.h
-    h/BPatch_module.h
-    h/BPatch_object.h
-    h/BPatch_point.h
-    h/BPatch_process.h
-    h/BPatch_snippet.h
-    h/BPatch_sourceBlock.h
-    h/BPatch_sourceObj.h
-    h/BPatch_statement.h
-    h/BPatch_thread.h
-    h/BPatch_type.h
-    h/BPatch_Vector.h
-    h/StackMod.h)
-
 add_subdirectory(src/ASTs)
+add_subdirectory(src/BPatch)
 add_subdirectory(src/codegen)
 add_subdirectory(src/registerSpace)
 add_subdirectory(src/Relocation)
 add_subdirectory(src/StackMod)
 add_subdirectory(src/trampolines)
 
-set(_subprojects dyninstAPI_ASTs dyninstAPI_codegen dyninstAPI_registerSpace
-                 dyninstAPI_relocation dyninstAPI_stackmod dyninstAPI_trampolines)
+set(_subprojects
+    dyninstAPI_ASTs
+    dyninstAPI_bpatch
+    dyninstAPI_codegen
+    dyninstAPI_registerSpace
+    dyninstAPI_relocation
+    dyninstAPI_stackmod
+    dyninstAPI_trampolines)
+
+set(_public_headers ${_BPatch_public_headers})
 
 set(_private_headers
     src/addressSpace.h
@@ -55,10 +35,6 @@ set(_private_headers
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h
     src/binaryEdit.h
     src/block.h
-    src/BPatch/BPatch_collections.h
-    src/BPatch/BPatch_libInfo.h
-    src/BPatch/BPatch_memoryAccessAdapter.h
-    src/BPatch/BPatch_private.h
     src/codegen-amdgpu.h
     src/codegen-aarch64.h
     src/codegen.h
@@ -142,30 +118,6 @@ set(_sources
     src/pcEventMuxer.C
     src/regTracker.C
     src/variable.C
-    src/BPatch/BPatch.C
-    src/BPatch/BPatch_addressSpace.C
-    src/BPatch/BPatch_basicBlock.C
-    src/BPatch/BPatch_basicBlockLoop.C
-    src/BPatch/BPatch_binaryEdit.C
-    src/BPatch/BPatch_collections.C
-    src/BPatch/BPatch_edge.C
-    src/BPatch/BPatch_flowGraph.C
-    src/BPatch/BPatch_frame.C
-    src/BPatch/BPatch_function.C
-    src/BPatch/BPatch_image.C
-    src/BPatch/BPatch_instruction.C
-    src/BPatch/BPatch_loopTreeNode.C
-    src/BPatch/BPatch_memoryAccess.C
-    src/BPatch/BPatch_memoryAccessAdapter.C
-    src/BPatch/BPatch_module.C
-    src/BPatch/BPatch_object.C
-    src/BPatch/BPatch_point.C
-    src/BPatch/BPatch_process.C
-    src/BPatch/BPatch_snippet.C
-    src/BPatch/BPatch_sourceBlock.C
-    src/BPatch/BPatch_statement.C
-    src/BPatch/BPatch_thread.C
-    src/BPatch/BPatch_type.C
     src/Parsing-arch.C
     src/Parsing.C
     src/Patching.C)
@@ -252,8 +204,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   endif()
 endif()
 
-list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/BPatch")
-
 foreach(t ${dyninstAPI_TARGETS})
   if(DYNINST_OS_Windows)
     target_link_libraries(${t} PRIVATE dbghelp WS2_32 imagehlp)
@@ -268,9 +218,7 @@ foreach(t ${dyninstAPI_TARGETS})
   foreach(sp ${_subprojects})
     target_include_directories(
       ${t}
-      PUBLIC
-        "$<BUILD_INTERFACE:$<TARGET_PROPERTY:${sp},INTERFACE_INCLUDE_DIRECTORIES>;${_inc_dirs}>"
-      )
+      PUBLIC "$<BUILD_INTERFACE:$<TARGET_PROPERTY:${sp},INTERFACE_INCLUDE_DIRECTORIES>>")
   endforeach()
 
 endforeach()
