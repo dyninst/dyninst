@@ -42,9 +42,10 @@ add_subdirectory(src/codegen)
 add_subdirectory(src/registerSpace)
 add_subdirectory(src/Relocation)
 add_subdirectory(src/StackMod)
+add_subdirectory(src/trampolines)
 
 set(_subprojects dyninstAPI_ASTs dyninstAPI_codegen dyninstAPI_registerSpace
-                 dyninstAPI_relocation dyninstAPI_stackmod)
+                 dyninstAPI_relocation dyninstAPI_stackmod dyninstAPI_trampolines)
 
 set(_private_headers
     src/addressSpace.h
@@ -52,12 +53,6 @@ set(_private_headers
     src/AmdgpuPointHandler.h
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDHSAKernelDescriptor.h
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h
-    src/trampolines/baseTramp.h
-    src/trampolines/baseTramp-aarch64.h
-    src/trampolines/baseTramp-amdgpu.h
-    src/trampolines/baseTramp-ppc.h
-    src/trampolines/baseTramp-riscv64.h
-    src/trampolines/baseTramp-x86.h
     src/binaryEdit.h
     src/block.h
     src/BPatch/BPatch_collections.h
@@ -173,8 +168,7 @@ set(_sources
     src/BPatch/BPatch_type.C
     src/Parsing-arch.C
     src/Parsing.C
-    src/Patching.C
-    src/trampolines/baseTramp.C)
+    src/Patching.C)
 
 if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
   list(APPEND _sources src/stackwalk-x86.C src/dynProcess-x86.C)
@@ -192,20 +186,13 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     src/inst-x86.C
     src/emit-x86.C
     src/codegen-x86.C
-    src/IAPI_to_AST.C
-    src/trampolines/baseTramp-x86.C)
+    src/IAPI_to_AST.C)
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(APPEND _sources src/inst-power.C src/codegen-power.C src/RegisterConversion-ppc.C
        src/trampolines/baseTramp-ppc.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
-  list(
-    APPEND
-    _sources
-    src/inst-aarch64.C
-    src/emit-aarch64.C
-    src/codegen-aarch64.C
-    src/RegisterConversion-aarch64.C
-    src/trampolines/baseTramp-aarch64.C)
+  list(APPEND _sources src/inst-aarch64.C src/emit-aarch64.C src/codegen-aarch64.C
+       src/RegisterConversion-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(
     APPEND
@@ -265,7 +252,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   endif()
 endif()
 
-list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/trampolines")
 list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/BPatch")
 
 foreach(t ${dyninstAPI_TARGETS})
