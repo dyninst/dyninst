@@ -3,9 +3,11 @@
 #include "codegen-aarch64.h"
 #include "codegen.h"
 #include "debug.h"
-#include "emit-aarch64.h"
+#include "codegen/emitters/aarch64/EmitterAarch64RestoreRegs.h"
 #include "inst-aarch64.h"
 #include "registerSpace.h"
+
+namespace dapi = Dyninst::DyninstAPI;
 
 bool baseTramp_aarch64::generateSaves(codeGen &gen, registerSpace *) {
   regalloc_printf("========== baseTramp::generateSaves\n");
@@ -47,7 +49,7 @@ bool baseTramp_aarch64::generateSaves(codeGen &gen, registerSpace *) {
 }
 
 bool baseTramp_aarch64::generateRestores(codeGen &gen, registerSpace *) {
-  EmitterAARCH64RestoreRegs restoreRegs;
+  dapi::EmitterAarch64RestoreRegs restoreRegs;
   unsigned int width = gen.width();
 
   restoreRegs.restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);

@@ -28,10 +28,12 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
 
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(APPEND _headers emitters/aarch64/EmitterAarch64.h
-       emitters/aarch64/EmitterAarch64Dyn.h emitters/aarch64/EmitterAarch64Stat.h)
+       emitters/aarch64/EmitterAarch64Dyn.h emitters/aarch64/EmitterAarch64Stat.h
+       emitters/aarch64/EmitterAarch64RestoreRegs.h)
 
   list(APPEND _sources emitters/aarch64/EmitterAarch64.C
-       emitters/aarch64/EmitterAarch64Dyn.C emitters/aarch64/EmitterAarch64Stat.C)
+       emitters/aarch64/EmitterAarch64.C emitters/aarch64/EmitterAarch64Stat.C
+       emitters/aarch64/EmitterAarch64RestoreRegs.C)
 
 endif()
 
