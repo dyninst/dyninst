@@ -39,8 +39,9 @@ set(_public_headers
 
 add_subdirectory(src/ASTs)
 add_subdirectory(src/codegen)
+add_subdirectory(src/registerSpace)
 
-set(_subprojects dyninstAPI_ASTs dyninstAPI_codegen)
+set(_subprojects dyninstAPI_ASTs dyninstAPI_codegen dyninstAPI_registerSpace)
 
 set(_private_headers
     src/addressSpace.h
@@ -109,9 +110,6 @@ set(_private_headers
     src/pdwinnt.h
     src/PointHandler.h
     src/RegisterConversion.h
-    src/registerSpace/registerSpace.h
-    src/registerSpace/RealRegister.h
-    src/registerSpace/registerSlot.h
     src/regTracker.h
     src/syscallNotification.h
     src/trapMappings.h
@@ -173,8 +171,6 @@ set(_sources
     src/Parsing-arch.C
     src/Parsing.C
     src/Patching.C
-    src/registerSpace/registerSpace.C
-    src/registerSpace/registerSlot.C
     src/Relocation/CFG/RelocBlock.C
     src/Relocation/CFG/RelocEdge.C
     src/Relocation/CFG/RelocGraph.C
@@ -230,7 +226,6 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     APPEND
     _sources
     src/RegisterConversion-x86.C
-    src/registerSpace/registerSpace-x86.C
     src/Relocation/Widgets/CFWidget-x86.C
     src/Relocation/Widgets/PCWidget-x86.C
     src/inst-x86.C
@@ -244,7 +239,6 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
     _sources
     src/inst-power.C
     src/codegen-power.C
-    src/registerSpace/registerSpace-ppc.C
     src/RegisterConversion-ppc.C
     src/Relocation/Widgets/CFWidget-ppc.C
     src/Relocation/Widgets/PCWidget-ppc.C
@@ -257,7 +251,6 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/emit-aarch64.C
     src/codegen-aarch64.C
     src/RegisterConversion-aarch64.C
-    src/registerSpace/registerSpace-aarch64.C
     src/Relocation/Widgets/CFWidget-aarch64.C
     src/Relocation/Widgets/PCWidget-aarch64.C
     src/trampolines/baseTramp-aarch64.C)
@@ -268,7 +261,6 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/inst-amdgpu.C
     src/emit-amdgpu.C
     src/codegen-amdgpu.C
-    src/registerSpace/registerSpace-amdgpu.C
     src/RegisterConversion-amdgpu.C
     src/Relocation/Widgets/CFWidget-amdgpu.C
     src/Relocation/Widgets/PCWidget-amdgpu.C
@@ -328,7 +320,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   endif()
 endif()
 
-list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/registerSpace")
 list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/trampolines")
 list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/BPatch")
 
