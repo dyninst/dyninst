@@ -40,8 +40,10 @@ set(_public_headers
 add_subdirectory(src/ASTs)
 add_subdirectory(src/codegen)
 add_subdirectory(src/registerSpace)
+add_subdirectory(src/Relocation)
 
-set(_subprojects dyninstAPI_ASTs dyninstAPI_codegen dyninstAPI_registerSpace)
+set(_subprojects dyninstAPI_ASTs dyninstAPI_codegen dyninstAPI_registerSpace
+                 dyninstAPI_relocation)
 
 set(_private_headers
     src/addressSpace.h
@@ -171,32 +173,6 @@ set(_sources
     src/Parsing-arch.C
     src/Parsing.C
     src/Patching.C
-    src/Relocation/CFG/RelocBlock.C
-    src/Relocation/CFG/RelocEdge.C
-    src/Relocation/CFG/RelocGraph.C
-    src/Relocation/CFG/RelocTarget.C
-    src/Relocation/CodeBuffer.C
-    src/Relocation/CodeMover.C
-    src/Relocation/CodeTracker.C
-    src/Relocation/DynAddrSpace.C
-    src/Relocation/DynCFGMaker.C
-    src/Relocation/DynInstrumenter.C
-    src/Relocation/DynObject.C
-    src/Relocation/DynPointMaker.C
-    src/Relocation/Springboard.C
-    src/Relocation/Transformers/Instrumenter.C
-    src/Relocation/Transformers/Modification.C
-    src/Relocation/Transformers/Movement-adhoc.C
-    src/Relocation/Transformers/Movement-analysis.C
-    src/Relocation/Transformers/Transformer.C
-    src/Relocation/Widgets/CFWidget.C
-    src/Relocation/Widgets/CallbackWidget.C
-    src/Relocation/Widgets/InsnWidget.C
-    src/Relocation/Widgets/InstWidget.C
-    src/Relocation/Widgets/PCWidget.C
-    src/Relocation/Widgets/RelDataWidget.C
-    src/Relocation/Widgets/StackModWidget.C
-    src/Relocation/patchapi_debug.C
     src/trampolines/baseTramp.C)
 
 list(FIND DYNINST_PLATFORM_CAPABILITIES "-Dcap_stack_mods" cap_stack_mods_found)
@@ -226,8 +202,6 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     APPEND
     _sources
     src/RegisterConversion-x86.C
-    src/Relocation/Widgets/CFWidget-x86.C
-    src/Relocation/Widgets/PCWidget-x86.C
     src/inst-x86.C
     src/emit-x86.C
     src/codegen-x86.C
@@ -240,8 +214,6 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
     src/inst-power.C
     src/codegen-power.C
     src/RegisterConversion-ppc.C
-    src/Relocation/Widgets/CFWidget-ppc.C
-    src/Relocation/Widgets/PCWidget-ppc.C
     src/trampolines/baseTramp-ppc.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(
@@ -251,8 +223,6 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     src/emit-aarch64.C
     src/codegen-aarch64.C
     src/RegisterConversion-aarch64.C
-    src/Relocation/Widgets/CFWidget-aarch64.C
-    src/Relocation/Widgets/PCWidget-aarch64.C
     src/trampolines/baseTramp-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(
@@ -262,8 +232,6 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/emit-amdgpu.C
     src/codegen-amdgpu.C
     src/RegisterConversion-amdgpu.C
-    src/Relocation/Widgets/CFWidget-amdgpu.C
-    src/Relocation/Widgets/PCWidget-amdgpu.C
     src/AmdgpuKernelDescriptor.C
     src/AmdgpuPointHandler.C
     src/amdgpu-gfx908-details.C)
@@ -291,12 +259,7 @@ elseif(DYNINST_OS_Windows)
     src/hybridOverwrites.C
     src/inst-winnt.C
     src/pdwinnt.C
-    src/syscall-nt.C
-    src/Relocation/DynAddrSpace.C
-    src/Relocation/DynCFGMaker.C
-    src/Relocation/DynInstrumenter.C
-    src/Relocation/DynObject.C
-    src/Relocation/DynPointMaker.C)
+    src/syscall-nt.C)
 endif()
 
 # cmake-format: off
