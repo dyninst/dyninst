@@ -82,7 +82,7 @@ bool PCWidget::PCtoReg(const codeGen &templ, const RelocBlock *t, CodeBuffer &bu
 }
 
 #include "registerSpace.h"
-#include "dyninstAPI/src/emit-aarch64.h"
+#include "codegen/emitters/aarch64/EmitterAarch64.h"
 bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
   relocation_cerr << "\t\t IPPatch::apply" << endl;
   relocation_cerr << "\t\t\t Generating IPPatch for target address " << std::hex << addr << ", CodeGen current address " << std::hex << gen.currAddr() << " and register number " << reg << endl;
@@ -101,7 +101,7 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
   gen.setRegisterSpace(rs);
 
   // Calculate the offset between current PC and original RA
-  EmitterAARCH64* emitter = static_cast<EmitterAARCH64*>(gen.emitter());
+  auto* emitter = static_cast<Dyninst::DyninstAPI::EmitterAarch64*>(gen.emitter());
   Address RAOffset = addr - emitter->emitMovePCToReg( 30 /* LR */ , gen) + 4;
   // Load the offset into a scratch register
   std::vector<Register> exclude;

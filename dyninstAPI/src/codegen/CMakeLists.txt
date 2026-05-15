@@ -25,6 +25,12 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     emitters/x86/IA32/EmitterIA32.C
     emitters/x86/IA32/EmitterIA32Dyn.C
     emitters/x86/IA32/EmitterIA32Stat.C)
+
+elseif(DYNINST_CODEGEN_ARCH_AARCH64)
+  list(APPEND _headers emitters/aarch64/EmitterAarch64.h)
+
+  list(APPEND _sources emitters/aarch64/EmitterAarch64.C)
+
 endif()
 
 add_library(dyninstAPI_codegen INTERFACE)
