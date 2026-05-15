@@ -67,20 +67,6 @@ using namespace boost::assign;
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using operandAST = Dyninst::DyninstAPI::operandAST;
 
-void cleanUpAndExit(int status);
-
-//Not correctly implemented
-void MovePCToReg(Register dest, codeGen &gen) {
-    instruction insn;
-    insn.clear();
-
-    INSN_SET(insn, 28, 28, 1);
-    INSN_SET(insn, 0, 4, dest);
-
-    insnCodeGen::generate(gen, insn);
-    return;
-}
-
 void emitLoadPreviousStackFrameRegister(Address register_num,
                                         Register dest,
                                         codeGen &gen,
