@@ -1,5 +1,6 @@
 #include "arch-regs-x86.h"
 #include "codegen/emitters/x86/generators.h"
+#include "encoding-x86.h"
 #include "inst-x86.h"
 #include "registerSpace/registerSpace.h"
 #include "unaligned_memory_access.h"

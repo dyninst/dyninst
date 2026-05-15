@@ -38,8 +38,9 @@ set(_public_headers
     h/StackMod.h)
 
 add_subdirectory(src/ASTs)
+add_subdirectory(src/codegen)
 
-set(_subprojects dyninstAPI_ASTs)
+set(_subprojects dyninstAPI_ASTs dyninstAPI_codegen)
 
 set(_private_headers
     src/addressSpace.h
@@ -64,7 +65,6 @@ set(_private_headers
     src/codegen.h
     src/codegen-power.h
     src/codegen-x86.h
-    src/codegen/RegControl.h
     src/codeRange.h
     src/debug.h
     src/dynProcess.h
@@ -229,16 +229,6 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
   list(
     APPEND
     _sources
-    src/codegen/emitters/x86/IA32/EmitterIA32Dyn.C
-    src/codegen/emitters/x86/IA32/EmitterIA32Dyn.h
-    src/codegen/emitters/x86/IA32/EmitterIA32Stat.C
-    src/codegen/emitters/x86/IA32/EmitterIA32Stat.h
-    src/codegen/emitters/x86/IA32/EmitterIA32.C
-    src/codegen/emitters/x86/IA32/EmitterIA32.h
-    src/codegen/emitters/x86/Emitterx86.C
-    src/codegen/emitters/x86/Emitterx86.h
-    src/codegen/emitters/x86/generators.C
-    src/codegen/emitters/x86/generators.h
     src/RegisterConversion-x86.C
     src/registerSpace/registerSpace-x86.C
     src/Relocation/Widgets/CFWidget-x86.C
@@ -360,7 +350,7 @@ foreach(t ${dyninstAPI_TARGETS})
         "$<BUILD_INTERFACE:$<TARGET_PROPERTY:${sp},INTERFACE_INCLUDE_DIRECTORIES>;${_inc_dirs}>"
       )
   endforeach()
-  
+
 endforeach()
 
 unset(_inc_dirs)
