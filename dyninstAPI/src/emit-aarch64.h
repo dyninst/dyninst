@@ -47,19 +47,6 @@ class registerSpace;
 
 class baseTramp;
 
-class EmitterAARCH64Dyn : public EmitterAARCH64 {
-public:
-    virtual bool emitTOCCall(block_instance *dest, codeGen &gen) { return emitTOCCommon(dest, true, gen); }
-
-    virtual bool emitTOCJump(block_instance *dest, codeGen &gen) { return emitTOCCommon(dest, false, gen); }
-
-    virtual ~EmitterAARCH64Dyn() {}
-
-private:
-    bool emitTOCCommon(block_instance *dest, bool call, codeGen &gen);
-
-};
-
 class EmitterAARCH64Stat : public EmitterAARCH64 {
 public:
     virtual ~EmitterAARCH64Stat() {}

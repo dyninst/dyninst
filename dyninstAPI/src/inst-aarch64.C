@@ -49,6 +49,7 @@
 #include "dyninstAPI/src/mapped_object.h"
 #include "RegisterConversion.h"
 #include "parseAPI/h/CFG.h"
+#include "codegen/emitters/aarch64/EmitterAarch64Dyn.h"
 #include "Instruction.h"
 #include "Register.h"
 #include "registers/aarch64_regs.h"
@@ -387,7 +388,7 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 
 Emitter *AddressSpace::getEmitter() {
     static EmitterAARCH64Stat emitter64Stat;
-    static EmitterAARCH64Dyn emitter64Dyn;
+    static Dyninst::DyninstAPI::EmitterAarch64Dyn emitter64Dyn;
 
     if (proc())
         return &emitter64Dyn;
@@ -403,11 +404,6 @@ Emitter *AddressSpace::getEmitter() {
 #define ADDIS_11_30 0x3d7e0000
 
 bool EmitterAARCH64Stat::emitPLTCommon(func_instance *, bool, codeGen &) {
-    assert(0); //Not implemented
-    return true;
-}
-
-bool EmitterAARCH64Dyn::emitTOCCommon(block_instance *, bool, codeGen &) {
     assert(0); //Not implemented
     return true;
 }
