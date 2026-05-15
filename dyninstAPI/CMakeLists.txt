@@ -37,34 +37,16 @@ set(_public_headers
     h/BPatch_Vector.h
     h/StackMod.h)
 
+add_subdirectory(src/ASTs)
+
+set(_subprojects dyninstAPI_ASTs)
+
 set(_private_headers
     src/addressSpace.h
     src/AmdgpuKernelDescriptor.h
     src/AmdgpuPointHandler.h
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDHSAKernelDescriptor.h
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h
-    src/ast.h
-    src/ASTs/AmdgpuEpilogue.h
-    src/ASTs/AmdgpuPrologue.h
-    src/ASTs/ast_helpers.h
-    src/ASTs/addressAST.h
-    src/ASTs/memoryAccessAST.h
-    src/ASTs/nullAST.h
-    src/ASTs/stackAST.h
-    src/ASTs/operandAST.h
-    src/ASTs/operatorAST.h
-    src/ASTs/scrambleRegistersAST.h
-    src/ASTs/sequenceAST.h
-    src/ASTs/snippetAST.h
-    src/ASTs/stackInsertionAST.h
-    src/ASTs/genericStackAST.h
-    src/ASTs/stackRemovalAST.h
-    src/ASTs/atomicOperationAST.h
-    src/ASTs/codeGenAST.h
-    src/ASTs/functionCallAST.h
-    src/ASTs/jumpTargetAST.h
-    src/ASTs/variableAST.h
-    src/ASTs/OperandType.h
     src/trampolines/baseTramp.h
     src/trampolines/baseTramp-aarch64.h
     src/trampolines/baseTramp-amdgpu.h
@@ -139,24 +121,6 @@ set(_private_headers
 
 set(_sources
     src/addressSpace.C
-    src/ASTs/actualAddressAST.C
-    src/ASTs/memoryAccessAST.C
-    src/ASTs/nullAST.C
-    src/ASTs/operandAST.C
-    src/ASTs/operatorAST.C
-    src/ASTs/originalAddressAST.C
-    src/ASTs/scrambleRegistersAST.C
-    src/ASTs/sequenceAST.C
-    src/ASTs/snippetAST.C
-    src/ASTs/stackAST.C
-    src/ASTs/stackInsertionAST.C
-    src/ASTs/genericStackAST.C
-    src/ASTs/stackRemovalAST.C
-    src/ASTs/atomicOperationAST.C
-    src/ASTs/codeGenAST.C
-    src/ASTs/functionCallAST.C
-    src/ASTs/jumpTargetAST.C
-    src/ASTs/variableAST.C
     src/binaryEdit.C
     src/block.C
     src/codeRange.C
@@ -320,8 +284,6 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/Relocation/Widgets/PCWidget-amdgpu.C
     src/AmdgpuKernelDescriptor.C
     src/AmdgpuPointHandler.C
-    src/ASTs/AmdgpuPrologue.C
-    src/ASTs/AmdgpuEpilogue.C
     src/amdgpu-gfx908-details.C)
 endif()
 
@@ -361,7 +323,7 @@ dyninst_library(
   PUBLIC_HEADER_FILES ${_public_headers}
   SOURCE_FILES ${_sources}
   DYNINST_DEPS common instructionAPI stackwalk pcontrol patchAPI parseAPI symtabAPI
-  DYNINST_INTERNAL_DEPS dynDwarf dynElf
+  DYNINST_INTERNAL_DEPS dynDwarf dynElf ${_subprojects}
   PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS Threads::Threads Dyninst::PeParse
 )
@@ -376,7 +338,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   endif()
 endif()
 
-list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/ASTs")
 list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/registerSpace")
 list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/trampolines")
 list(APPEND _inc_dirs "${CMAKE_CURRENT_SOURCE_DIR}/src/BPatch")
@@ -392,7 +353,14 @@ foreach(t ${dyninstAPI_TARGETS})
       ${t} PRIVATE "DYNINST_COMPILER_SEARCH_DIRS=${DYNINST_COMPILER_SEARCH_DIRS}")
   endif()
 
-  target_include_directories(${t} PUBLIC "$<BUILD_INTERFACE:${_inc_dirs}>")
+  foreach(sp ${_subprojects})
+    target_include_directories(
+      ${t}
+      PUBLIC
+        "$<BUILD_INTERFACE:$<TARGET_PROPERTY:${sp},INTERFACE_INCLUDE_DIRECTORIES>;${_inc_dirs}>"
+      )
+  endforeach()
+  
 endforeach()
 
 unset(_inc_dirs)
