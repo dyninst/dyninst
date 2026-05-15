@@ -4,6 +4,7 @@
 #include "codegen.h"
 #include "debug.h"
 #include "codegen/emitters/aarch64/EmitterAarch64RestoreRegs.h"
+#include "codegen/emitters/aarch64/EmitterAarch64SaveRegs.h"
 #include "inst-aarch64.h"
 #include "registerSpace.h"
 
@@ -15,7 +16,7 @@ bool baseTramp_aarch64::generateSaves(codeGen &gen, registerSpace *) {
   // Make a stack frame.
   pushStack(gen);
 
-  EmitterAARCH64SaveRegs saveRegs;
+  dapi::EmitterAarch64SaveRegs saveRegs;
   unsigned int width = gen.width();
 
   saveRegs.saveGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
