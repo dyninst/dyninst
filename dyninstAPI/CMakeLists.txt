@@ -41,9 +41,10 @@ add_subdirectory(src/ASTs)
 add_subdirectory(src/codegen)
 add_subdirectory(src/registerSpace)
 add_subdirectory(src/Relocation)
+add_subdirectory(src/StackMod)
 
 set(_subprojects dyninstAPI_ASTs dyninstAPI_codegen dyninstAPI_registerSpace
-                 dyninstAPI_relocation)
+                 dyninstAPI_relocation dyninstAPI_stackmod)
 
 set(_private_headers
     src/addressSpace.h
@@ -175,20 +176,6 @@ set(_sources
     src/Patching.C
     src/trampolines/baseTramp.C)
 
-list(FIND DYNINST_PLATFORM_CAPABILITIES "-Dcap_stack_mods" cap_stack_mods_found)
-if(cap_stack_mods_found GREATER -1)
-  list(
-    APPEND
-    _sources
-    src/StackMod/OffsetVector.C
-    src/StackMod/StackAccess.C
-    src/StackMod/StackLocation.C
-    src/StackMod/StackMod.C
-    src/StackMod/StackModExpr.C
-    src/StackMod/StackModChecker.C
-    src/StackMod/TMap.C)
-endif()
-
 if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
   list(APPEND _sources src/stackwalk-x86.C src/dynProcess-x86.C)
 elseif(DYNINST_HOST_ARCH_PPC64LE)
@@ -208,13 +195,8 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     src/IAPI_to_AST.C
     src/trampolines/baseTramp-x86.C)
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
-  list(
-    APPEND
-    _sources
-    src/inst-power.C
-    src/codegen-power.C
-    src/RegisterConversion-ppc.C
-    src/trampolines/baseTramp-ppc.C)
+  list(APPEND _sources src/inst-power.C src/codegen-power.C src/RegisterConversion-ppc.C
+       src/trampolines/baseTramp-ppc.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(
     APPEND
