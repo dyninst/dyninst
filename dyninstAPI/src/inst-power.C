@@ -646,7 +646,6 @@ void EmitterPOWER::emitImm(opCode op, Dyninst::Register src1, RegValue src2imm, 
              codeGen &gen, bool s)
 {
     int iop=-1;
-    int result=-1;
     switch (op) {
         // integer ops
     case plusOp:
