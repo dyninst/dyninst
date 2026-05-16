@@ -5,7 +5,6 @@
 #include "codegen/emitters/aarch64/EmitterAarch64.h"
 #include "codegen/RegControl.h"
 #include "debug.h"
-#include "emit-aarch64.h"
 #include "inst-aarch64.h"
 #include "RegisterConversion.h"
 #include "registerSpace/registerSpace.h"
