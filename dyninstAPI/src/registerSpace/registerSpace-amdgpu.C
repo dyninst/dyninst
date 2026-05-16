@@ -1,7 +1,7 @@
 #include "arch-amdgpu.h"
 #include "registerSpace.h"
 #include "debug.h"
-
+#include "dyn_register.h"
 #include <vector>
 
 void registerSpace::initialize32() {

@@ -41,9 +41,12 @@
 #include "dyn_register.h"
 #include "RealRegister.h"
 #include "registerSlot.h"
+#include "dyntypes.h"
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "inst-x86.h"
+#elif defined DYNINST_CODEGEN_ARCH_AMDGPU_GFX908
+#include "arch-amdgpu.h"
 #endif
 
 class codeGen;

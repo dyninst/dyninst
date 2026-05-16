@@ -33,6 +33,8 @@
 
 #include <string>
 #include "Widget.h"
+#include "function.h"
+
 class block_instance;
 
 namespace Dyninst {
