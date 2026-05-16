@@ -325,7 +325,7 @@ class registerSpace {
     static unsigned VGPR(Dyninst::Register x) { return x; }
     static unsigned AGPR(Dyninst::Register x) { return x; }
 
-    int framePointer() { return RegisterConstants::s33; }
+    int framePointer() { return NS_amdgpu::RegisterConstants::s33; }
 #endif
 
 };
