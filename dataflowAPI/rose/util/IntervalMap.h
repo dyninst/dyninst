@@ -221,7 +221,7 @@ public:
     template<class Interval2, class T2, class Policy2>
     IntervalMap(const IntervalMap<Interval2, T2, Policy2> &other) {
         typedef typename IntervalMap<Interval2, T2, Policy2>::ConstNodeIterator OtherIterator;
-        for (OtherIterator otherIter=other.nodes().begin(); other!=other.nodes().end(); ++other)
+        for (OtherIterator otherIter=other.nodes().begin(); otherIter!=other.nodes().end(); ++otherIter)
             insert(Interval(otherIter->key()), Value(otherIter->value()));
     }
 
@@ -233,7 +233,7 @@ public:
     IntervalMap& operator=(const IntervalMap<Interval2, T2, Policy2> &other) {
         clear();
         typedef typename IntervalMap<Interval2, T2, Policy2>::ConstNodeIterator OtherIterator;
-        for (OtherIterator otherIter=other.nodes().begin(); other!=other.nodes().end(); ++other)
+        for (OtherIterator otherIter=other.nodes().begin(); otherIter!=other.nodes().end(); ++otherIter)
             insert(Interval(otherIter->key()), Value(otherIter->value()));
         return *this;
     }
