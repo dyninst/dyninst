@@ -6,6 +6,7 @@
 #include "BPatch_memoryAccess_NP.h"
 #include "codegen/emitters/x86/Emitterx86.h"
 #include "codegen/RegControl.h"
+#include "common/src/bitmath.h"
 #include "debug.h"
 #include "function.h"
 #include "image.h"
@@ -406,5 +407,22 @@ namespace Dyninst { namespace DyninstAPI {
 
     return relocation_address;
   }
+
+  bool Emitterx86::can_optimize_as_shift(RegValue val, uint8_t max_num_bits) const {
+    if(!Dyninst::isPowerOf2(val)) {
+      return false;
+    }
+
+    // number of bits, n, such that val = 2^n
+    boost::optional<uint8_t> n = Dyninst::ilog2(val);
+
+    if(!n) {
+      return false;
+    }
+
+    // Can the result fit in a single register without overflowing?
+    return *n < max_num_bits;
+  }
+
 
 }}

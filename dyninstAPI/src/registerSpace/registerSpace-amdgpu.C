@@ -1,8 +1,12 @@
 #include "arch-amdgpu.h"
 #include "registerSpace.h"
 #include "debug.h"
-
+#include "dyn_register.h"
 #include <vector>
+
+using Register = Dyninst::Register;
+using OperandRegId = Dyninst::OperandRegId;
+using BlockSize = Dyninst::BlockSize;
 
 void registerSpace::initialize32() {
   static bool done = false;
@@ -60,18 +64,18 @@ Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind regKind, uint
   uint32_t maxGprId = 0;
 
   switch(regKind) {
-    case RegKind::SCALAR:
+    case Dyninst::RegKind::SCALAR:
       minGprId = NS_amdgpu::MIN_SGPR_ID;
       maxGprId = NS_amdgpu::MAX_ALLOCATABLE_SGPR_ID;
       break;
-    case RegKind::VECTOR:
+    case Dyninst::RegKind::VECTOR:
       minGprId = NS_amdgpu::MIN_VGPR_ID;
       maxGprId = NS_amdgpu::MAX_VGPR_ID;
       break;
     default:
       regalloc_printf("regKind can't be allocated\n");
       assert(0);
-      return Null_Register;
+      return Dyninst::Null_Register;
   }
 
   uint32_t alignmentValue{alignment.getValue()};
@@ -95,7 +99,7 @@ Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind regKind, uint
   }
 
   if (nextId - baseId + 1 != numRegs) {
-    return Null_Register; // not enough registers, fail
+    return Dyninst::Null_Register; // not enough registers, fail
   }
 
   for (auto allocId = baseId; allocId <= nextId; ++allocId) {
@@ -104,7 +108,7 @@ Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind regKind, uint
     regSlot->markUsed(true);
     regSlot->refCount = 1;
 
-    const char *regIdPrefix = regKind == RegKind::SCALAR ? "s" : "v";
+    const char *regIdPrefix = regKind == Dyninst::RegKind::SCALAR ? "s" : "v";
     regalloc_printf("Allocated register %s%u\n", regIdPrefix, baseId);
   }
 

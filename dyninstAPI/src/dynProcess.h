@@ -46,7 +46,6 @@
 #include <set>
 
 #include "addressSpace.h"
-#include "inst.h"
 #include "codeRange.h"
 #include "infHeap.h"
 #include "ast.h"

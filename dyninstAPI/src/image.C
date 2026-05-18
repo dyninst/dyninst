@@ -36,7 +36,6 @@
 #include <fstream>
 
 #include "image.h"
-#include "inst.h"
 #include "debug.h"
 #include "function.h"
 #include "Parsing.h"

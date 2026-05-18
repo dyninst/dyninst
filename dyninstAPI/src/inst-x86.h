@@ -56,6 +56,8 @@
 */
 
 #include <assert.h>
+#include "codegen.h"
+#include "dyntypes.h"
 #include "registerSpace.h"
 #include "RealRegister.h"
 

@@ -103,7 +103,6 @@ set(_private_headers
     src/image.h
     src/infHeap.h
     src/inst-aarch64.h
-    src/inst.h
     src/instMapping.h
     src/instPoint.h
     src/inst-power.h

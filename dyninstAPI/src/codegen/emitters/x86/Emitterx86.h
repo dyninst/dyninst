@@ -88,6 +88,9 @@ namespace Dyninst { namespace DyninstAPI {
     Address getInterModuleFuncAddr(func_instance *func, codeGen &gen) override;
 
     Address getInterModuleVarAddr(const image_variable *var, codeGen &gen) override;
+
+  protected:
+    bool can_optimize_as_shift(RegValue val, uint8_t max_num_bits) const;
   };
 
   static constexpr auto IA32_EMULATE = 1000;

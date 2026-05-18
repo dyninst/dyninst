@@ -36,6 +36,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include "codegen/RegControl.h"
+#include "common/src/bitmath.h"
 #include "compiler_annotations.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/function.h"
@@ -58,9 +59,6 @@
 #include "RegisterConversion.h"
 #include "unaligned_memory_access.h"
 #include "codegen/emitters/x86/generators.h"
-
-// where is this defined?
-extern bool isPowerOf2(int value, int &result);
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
 
@@ -577,10 +575,8 @@ void EmitterAMD64::emitDiv(Register dest, Register src1, Register src2, codeGen 
 
 void EmitterAMD64::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
 {
-   int result = -1;
-
    gen.markRegDefined(dest);
-   if (isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
+   if (can_optimize_as_shift(src2imm, MAX_IMM8)) {
       // immediate is a power of two - use a shift
       // mov %src1, %dest (if needed)
       if (src1 != dest) {
@@ -588,7 +584,8 @@ void EmitterAMD64::emitTimesImm(Register dest, Register src1, RegValue src2imm, 
       }
       // sal dest, result
       // Note: sal and shl are the same
-      emitOpRegImm8_64(0xC1, 4, dest, result, true, gen);
+      const uint8_t bits_to_shift = *Dyninst::ilog2(src2imm);
+      emitOpRegImm8_64(0xC1, 4, dest, bits_to_shift, true, gen);
    }
    else {
       // imul %dest, %src1, $src2imm
@@ -598,20 +595,21 @@ void EmitterAMD64::emitTimesImm(Register dest, Register src1, RegValue src2imm, 
 
 void EmitterAMD64::emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s)
 {
-   int result = -1;
    gen.markRegDefined(dest);
-   if (isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
+   if (can_optimize_as_shift(src2imm, MAX_IMM8)) {
       // divisor is a power of two - use a shift instruction
       // mov %src1, %dest (if needed)
       if (src1 != dest) {
          emitMovRegToReg64(dest, src1, true, gen);
       }
+
+      const uint8_t bits_to_shift = *Dyninst::ilog2(src2imm);
       if (s) {
           // sar $result, %dest
-          emitOpRegImm8_64(0xC1, 7, dest, result, true, gen);
+          emitOpRegImm8_64(0xC1, 7, dest, bits_to_shift, true, gen);
       } else {
           // shr $result, %dest
-          emitOpRegImm8_64(0xC1, 5, dest, result, true, gen);
+          emitOpRegImm8_64(0xC1, 5, dest, bits_to_shift, true, gen);
       }
    }
    else {

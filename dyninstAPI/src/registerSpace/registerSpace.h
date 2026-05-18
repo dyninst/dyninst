@@ -39,12 +39,14 @@
 
 #include "bitArray.h"
 #include "dyn_register.h"
-#include "inst.h"
 #include "RealRegister.h"
 #include "registerSlot.h"
+#include "dyntypes.h"
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "inst-x86.h"
+#elif defined DYNINST_CODEGEN_ARCH_AMDGPU_GFX908
+#include "arch-amdgpu.h"
 #endif
 
 class codeGen;
@@ -323,7 +325,7 @@ class registerSpace {
     static unsigned VGPR(Dyninst::Register x) { return x; }
     static unsigned AGPR(Dyninst::Register x) { return x; }
 
-    int framePointer() { return RegisterConstants::s33; }
+    int framePointer() { return NS_amdgpu::RegisterConstants::s33; }
 #endif
 
 };
