@@ -37,6 +37,8 @@
 #include "registerSpace.h"
 #include "arch-amdgpu.h"
 
+#include <cstdlib>
+
 using namespace Dyninst;
 using namespace AmdgpuGfx908;
 
@@ -435,10 +437,26 @@ void EmitterAmdgpuGfx908::emitStoreShared(Register /* source */, const image_var
 
 bool EmitterAmdgpuGfx908::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
   // TODO:
-  // 1. Allow this to move entire register blocks at the same time (using multiple instructions)
-  // 2. Make this work with VGPR-VGPR movs
-  assert(isValidSgpr(src) && isValidSgpr(dest) && "src and dest must be valid SGPRs");
-  emitSop1(S_MOV_B32, dest.getId(), src.getId(), /*hasLiteral=*/false, /*literal =*/0, gen);
+  // Make this work with VGPR-VGPR movs
+
+  bool bothSingleSgprs = isValidSgpr(src) && isValidSgpr(dest);
+  bool bothSgprBlocks = isValidSgprBlock(src) && isValidSgprBlock(dest);
+  bool bothHaveSameCount = src.getCount() == dest.getCount();
+
+  assert((bothSingleSgprs || bothSgprBlocks) && bothHaveSameCount &&
+         "src and dest must be valid sgprs or sgpr blocks of same size");
+
+  assert(std::abs(static_cast<int64_t>(src.getId() - dest.getId())) >= src.getCount() &&
+         "src and dest must not overlap");
+
+  std::vector<Register> srcRegisters = src.getIndividualRegisters();
+  std::vector<Register> destRegisters = dest.getIndividualRegisters();
+
+  assert(srcRegisters.size() == destRegisters.size());
+  for (size_t i = 0; i < srcRegisters.size(); ++i) {
+    emitSop1(S_MOV_B32, destRegisters[i].getId(), srcRegisters[i].getId(),
+             /*hasLiteral*/ false, /*literal*/ 0, gen);
+  }
 
   return false;
 }

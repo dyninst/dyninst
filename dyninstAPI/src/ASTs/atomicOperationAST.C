@@ -76,12 +76,7 @@ bool atomicOperationAST::generateCode_phase2(codeGen &gen, Address &retAddr,
   // TODO this needs to pick up the register from placeholderReg
   Dyninst::Register baseRegPair = Dyninst::Register(OperandRegId(94), RegKind::SCALAR, BlockSize(2));
 
-  // TODO: make movs work with blocks.
-  std::vector<Dyninst::Register> addrRegs = addrRegPair.getIndividualRegisters();
-  std::vector<Dyninst::Register> baseRegs = baseRegPair.getIndividualRegisters();
-
-  emitter->emitMoveRegToReg(baseRegs[0], addrRegs[0], gen);
-  emitter->emitMoveRegToReg(baseRegs[1], addrRegs[1], gen);
+  emitter->emitMoveRegToReg(baseRegPair, addrRegPair, gen);
   emitter->emitAddConstantToRegPair(addrRegPair, (Address)offset->getOValue(), gen);
 
   switch(opcode) {
