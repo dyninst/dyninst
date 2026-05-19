@@ -2315,9 +2315,9 @@ void ObjectELF::find_code_and_data(Elf_X &elf,
         // txtaddr=0, so in this case we set these values by
         // identifying the segment that contains the entryAddress
         if (((phdr.p_vaddr() <= txtaddr) &&
-             (phdr.p_vaddr() + phdr.p_filesz() >= txtaddr)) ||
+             (phdr.p_vaddr() + phdr.p_filesz() > txtaddr)) ||
             (!txtaddr && ((phdr.p_vaddr() <= entryAddress_) &&
-                          (phdr.p_vaddr() + phdr.p_filesz() >= entryAddress_)))) {
+                          (phdr.p_vaddr() + phdr.p_filesz() > entryAddress_)))) {
 
             if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
                 code_ptr_ = (char *) (void *) &file_ptr[phdr.p_offset()];
@@ -2326,7 +2326,7 @@ void ObjectELF::find_code_and_data(Elf_X &elf,
             }
 
         } else if (((phdr.p_vaddr() <= dataddr) &&
-                    (phdr.p_vaddr() + phdr.p_filesz() >= dataddr)) ||
+                    (phdr.p_vaddr() + phdr.p_filesz() > dataddr)) ||
                    (!dataddr && (phdr.p_type() == PT_LOAD))) {
             if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
                 data_ptr_ = (char *) (void *) &file_ptr[phdr.p_offset()];
