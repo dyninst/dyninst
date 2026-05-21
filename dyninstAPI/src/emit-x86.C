@@ -33,6 +33,7 @@
  * $Id: emit-x86.C,v 1.64 2008/09/11 20:14:14 mlam Exp $
  */
 
+#include <algorithm>
 #include <assert.h>
 #include <stdio.h>
 #include "compiler_annotations.h"

@@ -29,6 +29,7 @@
  */
 // x86-specific methods for generating control flow
 
+#include <algorithm>
 #include "CFWidget.h"
 #include "Widget.h"
 #include "../CFG/RelocTarget.h"

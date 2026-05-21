@@ -30,6 +30,7 @@
 
 #define BPATCH_FILE
 
+#include <algorithm>
 #include "binaryEdit.h"
 #include "addressSpace.h"
 #include "inst.h"

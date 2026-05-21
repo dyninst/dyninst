@@ -29,6 +29,7 @@
  */
 
 
+#include <algorithm>
 #include "IA_x86.h"
 #include "Dereference.h"
 #include "Immediate.h"

@@ -29,6 +29,7 @@
  */
 
 #include "InstructionDecoder-power.h"
+#include <algorithm>
 #include <dyncompat/assign/list_of.hpp>
 #include "../../common/src/singleton_object_pool.h"
 #include <mutex>

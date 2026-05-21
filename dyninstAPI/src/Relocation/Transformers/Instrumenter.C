@@ -30,6 +30,7 @@
 
 
 
+#include <algorithm>
 #include "Transformer.h"
 #include "Instrumenter.h"
 #include "dyninstAPI/src/debug.h"

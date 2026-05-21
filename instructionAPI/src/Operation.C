@@ -30,6 +30,7 @@
 
 #define INSIDE_INSTRUCTION_API
 
+#include <algorithm>
 #include "common/src/vgannotations.h"
 
 #include "Operation_impl.h"

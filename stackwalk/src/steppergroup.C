@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <algorithm>
 #include "stackwalk/h/steppergroup.h"
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/swk_errors.h"

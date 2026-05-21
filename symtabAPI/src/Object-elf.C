@@ -33,6 +33,7 @@
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
+#include <algorithm>
 #include "common/src/vgannotations.h"
 #include "unaligned_memory_access.h"
 #include <dwarf_cu_info.h>

@@ -30,6 +30,7 @@
 
 // $Id: unix.C,v 1.243 2008/06/30 17:33:31 legendre Exp $
 
+#include <algorithm>
 #include "os.h"
 #include "debug.h"
 #include "mapped_object.h"

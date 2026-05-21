@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "JumpTableFormatPred.h"
 #include "SymbolicExpression.h"
 #include "IndirectASTVisitor.h"

@@ -30,6 +30,7 @@
 
 // $Id: ast.C,v 1.209 2008/09/15 18:37:49 jaw Exp $
 
+#include <algorithm>
 #include "dyninstAPI/src/image.h"
 #include "function.h"
 #include "inst.h"

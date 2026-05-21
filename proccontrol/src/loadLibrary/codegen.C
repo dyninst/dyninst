@@ -1,6 +1,7 @@
 // Platform-independent code generation methods; mainly function
 // lookup
 
+#include <algorithm>
 #include "loadLibrary/codegen.h"
 #include <iostream>
 #include "int_process.h"

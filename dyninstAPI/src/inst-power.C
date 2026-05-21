@@ -33,6 +33,7 @@
  * $Id: inst-power.C,v 1.291 2008/06/19 22:13:42 jaw Exp $
  */
 
+#include <algorithm>
 #include "common/src/headers.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/image.h"

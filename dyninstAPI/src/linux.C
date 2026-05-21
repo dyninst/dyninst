@@ -30,6 +30,7 @@
 
 // $Id: linux.C,v 1.279 2008/09/03 06:08:44 jaw Exp $
 
+#include <algorithm>
 #include "binaryEdit.h"
 #include "dynProcess.h"
 #include "image.h"

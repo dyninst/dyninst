@@ -5,6 +5,7 @@
 
 
 
+#include <algorithm>
 #include "Message.h"
 
 #include <dyncompat/algorithm/string/case_conv.hpp>

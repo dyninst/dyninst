@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <algorithm>
 #include "CodeBuffer.h"
 #include "CodeTracker.h"
 #include "Widgets/Widget.h" //  Currently Patch is defined here; we may want to move it.

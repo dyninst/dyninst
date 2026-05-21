@@ -30,6 +30,7 @@
  
 // $Id: parse-cfg.C,v 1.60 2008/11/03 15:19:24 jaw Exp $
 
+#include <algorithm>
 #include "function.h"
 #include "instPoint.h"
 

@@ -30,6 +30,7 @@
 
 #define BPATCH_FILE
 
+#include <algorithm>
 #include <stdio.h>
 #include "BPatch_sourceBlock.h"
 #include <iterator>

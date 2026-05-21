@@ -30,6 +30,7 @@
 
 // Graph class implementation
 
+#include <algorithm>
 #include "Graph.h"
 #include "Edge.h"
 #include "Node.h"

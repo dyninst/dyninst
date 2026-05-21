@@ -1,4 +1,5 @@
 //#include "sage3basic.h"
+#include <algorithm>
 #include "../util/StringUtility.h"
 
 //#include "Diagnostics.h"

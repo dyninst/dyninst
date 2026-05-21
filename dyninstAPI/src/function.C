@@ -30,6 +30,7 @@
 
 // $Id: function.C,v 1.10 2005/03/02 19:44:45 bernat Exp
 
+#include <algorithm>
 #include <random>
 #include "function.h"
 #include "instPoint.h"

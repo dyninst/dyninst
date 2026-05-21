@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "MachSyscall.h"
 #include "dyntypes.h"
 

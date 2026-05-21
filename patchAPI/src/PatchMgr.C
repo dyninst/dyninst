@@ -29,6 +29,7 @@
  */
 /* Public Interface */
 
+#include <algorithm>
 #include "PatchMgr.h"
 #include "PatchObject.h"
 #include "PatchCFG.h"

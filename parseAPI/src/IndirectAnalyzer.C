@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "dyntypes.h"
 #include "IndirectAnalyzer.h"
 

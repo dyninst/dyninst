@@ -29,6 +29,7 @@
  */
 /* Public Interface */
 
+#include <algorithm>
 #include "Point.h"
 #include "PatchMgr.h"
 #include "PatchObject.h"

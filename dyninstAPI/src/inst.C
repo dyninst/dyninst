@@ -32,6 +32,7 @@
 // Code to install and remove instrumentation from a running process.
 // Misc constructs.
 
+#include <algorithm>
 #include <assert.h>
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/inst.h"

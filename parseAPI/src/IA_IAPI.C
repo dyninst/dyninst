@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <algorithm>
 #include "common/src/vgannotations.h"
 #include "dyntypes.h"
 #include "registers/x86_regs.h"

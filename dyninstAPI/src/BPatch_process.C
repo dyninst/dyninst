@@ -30,6 +30,7 @@
 
 #define BPATCH_FILE
 
+#include <algorithm>
 #include <string>
 
 #include "inst.h"

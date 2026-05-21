@@ -30,6 +30,7 @@
 
 #define BPATCH_FILE
 
+#include <algorithm>
 #include <stdio.h>
 #include <iostream>
 #include <dyncompat/bind/bind.hpp>

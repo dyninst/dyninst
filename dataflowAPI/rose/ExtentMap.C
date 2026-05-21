@@ -3,6 +3,7 @@
  * single extent.  This class is used to keep track of what parts of a binary file have been parsed, and is also used to
  * manage string table free lists, among other things. */
 
+#include <algorithm>
 #include "util/StringUtility.h"
 #include "ExtentMap.h"
 #include <cstring>

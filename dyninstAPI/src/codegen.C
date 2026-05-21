@@ -30,6 +30,7 @@
 
 // Code generation
 
+#include <algorithm>
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

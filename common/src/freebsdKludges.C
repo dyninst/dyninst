@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <algorithm>
 #include "freebsdKludges.h"
 #include "common/src/headers.h"
 #include <sys/sysctl.h>

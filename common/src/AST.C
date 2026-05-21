@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <algorithm>
 #include "DynAST.h"
 #include "../../dyninstAPI/src/debug.h"
 #include "../../common/src/singleton_object_pool.h"

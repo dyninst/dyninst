@@ -29,6 +29,7 @@
  */
 /* Public Interface */
 
+#include <algorithm>
 #include "AddrSpace.h"
 #include "PatchObject.h"
 #include "PatchMgr.h"

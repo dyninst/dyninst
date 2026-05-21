@@ -129,6 +129,7 @@
 
 
 // This include *really must* come first in the file.
+#include <algorithm>
 #include "common/src/vgannotations.h"
 
 #include <assert.h>

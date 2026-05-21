@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "dyntypes.h"
 #include "Node.h"
 #include "Graph.h"

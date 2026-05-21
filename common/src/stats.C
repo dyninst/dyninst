@@ -33,6 +33,7 @@
  * $Id: stats.C,v 1.2 2008/07/01 19:26:49 legendre Exp $
  */
 
+#include <algorithm>
 #include "common/src/headers.h"
 #include "common/src/stats.h"
 #include "common/h/util.h"

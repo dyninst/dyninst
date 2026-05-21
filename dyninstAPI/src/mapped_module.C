@@ -30,6 +30,7 @@
 
 // $Id: mapped_module.C,v 1.29 2008/06/19 19:53:30 legendre Exp $
 
+#include <algorithm>
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/image.h"

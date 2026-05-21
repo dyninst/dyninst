@@ -33,6 +33,7 @@
  * static executable rewriter
  */
 
+#include <algorithm>
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>

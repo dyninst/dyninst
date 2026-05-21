@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "../util/StringUtility.h"
 //#include "sage3basic.h"
 #include "ConcreteSemantics2.h"

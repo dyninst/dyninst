@@ -97,9 +97,11 @@ endif()
 #   ${CMAKE_<LANG>_FLAGS} ${CMAKE_<LANG>_FLAGS_<BUILD>} <options> ${CMAKE_<LANG>_FLAGS}
 #
 string(TOUPPER ${CMAKE_BUILD_TYPE} _build_type)
-set(DYNINST_C_FLAGS_${_build_type} ${_${_build_type}} ${CMAKE_C_FLAGS})
+separate_arguments(_dyninst_c_flags UNIX_COMMAND "${CMAKE_C_FLAGS}")
+separate_arguments(_dyninst_cxx_flags UNIX_COMMAND "${CMAKE_CXX_FLAGS}")
+set(DYNINST_C_FLAGS_${_build_type} ${_${_build_type}} ${_dyninst_c_flags})
 set(DYNINST_CXX_FLAGS_${_build_type} ${_${_build_type}} ${DYNINST_CXX_FLAGS}
-                                     ${CMAKE_CXX_FLAGS})
+                                     ${_dyninst_cxx_flags})
 unset(_build_type)
 
 # Merge the link flags for C++

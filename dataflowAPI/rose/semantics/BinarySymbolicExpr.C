@@ -1,6 +1,7 @@
 #define __STDC_LIMIT_MACROS
 
 //#include "sage3basic.h"
+#include <algorithm>
 #include "../util/StringUtility.h"
 
 #include "BinarySymbolicExpr.h"

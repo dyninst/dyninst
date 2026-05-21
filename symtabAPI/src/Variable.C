@@ -30,6 +30,7 @@
 
 // $Id: Object.C,v 1.31 2008/11/03 15:19:25 jaw Exp $
 
+#include <algorithm>
 #include "Annotatable.h"
 
 #include "Symtab.h"

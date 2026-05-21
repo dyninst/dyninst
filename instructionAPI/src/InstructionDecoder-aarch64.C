@@ -29,6 +29,7 @@
  */
 
 #include "InstructionDecoder-aarch64.h"
+#include <algorithm>
 #include "registers/aarch64_regs.h"
 
 namespace Dyninst {

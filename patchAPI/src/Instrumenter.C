@@ -29,6 +29,7 @@
  */
 /* Plugin */
 
+#include <algorithm>
 #include "Instrumenter.h"
 #include "PatchCFG.h"
 

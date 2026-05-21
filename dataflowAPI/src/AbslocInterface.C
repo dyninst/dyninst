@@ -29,6 +29,7 @@
  */
 
 
+#include <algorithm>
 #include <deque>
 #include "Absloc.h"
 #include "AbslocInterface.h"

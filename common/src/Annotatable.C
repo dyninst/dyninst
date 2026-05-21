@@ -30,6 +30,7 @@
 
 // $Id: Annotatable.C,v 1.12 2008/11/03 15:19:23 jaw Exp $
 
+#include <algorithm>
 #include "common/src/headers.h"
 #include "dyntypes.h"
 #include "Annotatable.h"

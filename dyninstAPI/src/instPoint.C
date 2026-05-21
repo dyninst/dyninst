@@ -32,6 +32,7 @@
 // instPoint code
 
 
+#include <algorithm>
 #include <assert.h>
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/inst.h"

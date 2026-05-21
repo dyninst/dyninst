@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "SymbolicExpression.h"
 #include "SymEval.h"
 #include "Absloc.h"

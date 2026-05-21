@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <algorithm>
 #include "dataflowAPI/h/ABI.h"
 #include "dataflowAPI/src/RegisterMap.h"
 #include <stdio.h>

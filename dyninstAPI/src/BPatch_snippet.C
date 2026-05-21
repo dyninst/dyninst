@@ -32,6 +32,7 @@
 
 #define BPATCH_FILE
 
+#include <algorithm>
 #include <string.h>
 
 #include "BPatch.h"

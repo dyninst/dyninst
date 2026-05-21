@@ -32,6 +32,7 @@
 
 //#include "SymEval.h"
 //#include "SymEvalPolicy.h"
+#include <algorithm>
 #include "RoseInsnFactory.h"
 
 #include "../rose/RegisterDescriptor.h"

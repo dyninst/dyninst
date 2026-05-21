@@ -30,6 +30,7 @@
 
 // $Id: registerSpace.C,v 1.25 2008/10/27 17:23:53 mlam Exp $
 
+#include <algorithm>
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"

@@ -30,6 +30,7 @@
 
 // $Id: binaryEdit.C,v 1.26 2008/10/28 18:42:44 bernat Exp $
 
+#include <algorithm>
 #include "binaryEdit.h"
 #include "common/src/headers.h"
 #include "mapped_object.h"

@@ -29,6 +29,7 @@
  */
 /* Plugin */
 
+#include <algorithm>
 #include "PatchObject.h"
 #include "PatchCFG.h"
 #include "AddrSpace.h"

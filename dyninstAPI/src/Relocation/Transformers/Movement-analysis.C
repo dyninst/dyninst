@@ -30,6 +30,7 @@
 
 
 
+#include <algorithm>
 #include "Transformer.h"
 #include "Movement-analysis.h"
 #include "Modification.h"

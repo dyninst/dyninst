@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
  
+#include <algorithm>
 #include "Graph.h"
 #include "Node.h"
 #include "Edge.h"

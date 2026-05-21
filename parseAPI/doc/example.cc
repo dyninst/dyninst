@@ -4,6 +4,7 @@
 // Improvements by E. Robbins (er209 at kent dot ac dot uk)
 //
 
+#include <algorithm>
 #include <stdio.h>
 #include <map>
 #include <vector>

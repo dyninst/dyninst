@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <algorithm>
 #include "stackwalk/src/analysis_stepper.h"
 #include "dataflowAPI/h/stackanalysis.h"
 #include "stackwalk/h/swk_errors.h"

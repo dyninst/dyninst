@@ -30,6 +30,7 @@
 
 // $Id: liveness.C,v 1.12 2008/09/04 21:06:20 bill Exp $
 
+#include <algorithm>
 #include "debug_dataflow.h"
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/Location.h"

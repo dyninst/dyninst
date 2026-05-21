@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "common/h/registers/MachRegister.h"
 #include "debug_common.h"
 #include "dyn_regs.h"
