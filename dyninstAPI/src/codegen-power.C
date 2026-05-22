@@ -142,31 +142,6 @@ void insnCodeGen::generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Add
 }
 
 
-void GenerateSavesBaseTrampStyle(codeGen &gen) {
-  // Save everything, then all things are scratch registers...
-
-    unsigned int width = gen.width();
-
-    int gpr_off, fpr_off;
-    gpr_off = TRAMP_GPR_OFFSET(width);
-    fpr_off = TRAMP_FPR_OFFSET(width);
-
-    // Make a stack frame.
-    pushStack(gen);
-
-    // Save GPRs
-    saveGPRegisters(gen, gen.rs(), gpr_off);
-
-
-    saveFPRegisters(gen, gen.rs(), fpr_off);
-    //fprintf(stderr, "I am called!\n");
-    // Save LR            
-    saveLR(gen, REG_SCRATCH /* register to use */, TRAMP_SPR_OFFSET(width) + STK_LR);
-
-    saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), true); // FIXME get liveness fixed
-}
-
-
 void GenerateRestoresBaseTrampStyle(codeGen &gen) {
     unsigned int width = gen.width();
 
@@ -528,7 +503,6 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
 
   //   if (scratch == Null_Register) { 
   //       // Just save and restore everything, this is bad but its likely safe and can be revisted later.
-  //       // GenerateSavesBaseTrampStyle(gen);
   //       // everythingSaved = true;
   //       // do nothing, return
         
