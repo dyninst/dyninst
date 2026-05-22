@@ -122,8 +122,6 @@ void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link)
 void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool link) {
 
     long disp = (to - from);
-    // if (from == 0x10000750 || from == 0x10000758) {
-    // }
     if (ABS(disp) > MAX_BRANCH) {
         return generateLongBranch(gen, from, to, link);
     }
