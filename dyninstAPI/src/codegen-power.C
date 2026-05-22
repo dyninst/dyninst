@@ -142,32 +142,6 @@ void insnCodeGen::generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Add
 }
 
 
-void GenerateRestoresBaseTrampStyle(codeGen &gen) {
-    unsigned int width = gen.width();
-
-    int gpr_off, fpr_off;
-    gpr_off = TRAMP_GPR_OFFSET(width);
-    fpr_off = TRAMP_FPR_OFFSET(width);
-
-    // Restore possible SPR saves
-    restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
-
-    // LR
-    restoreLR(gen, REG_SCRATCH, TRAMP_SPR_OFFSET(width) + STK_LR);
-
-  restoreFPRegisters(gen, gen.rs(), fpr_off);
-
-    // GPRs
-    restoreGPRegisters(gen, gen.rs(), gpr_off);
-
-    /*
-    // Multithread GPR -- always save
-    restoreRegister(gen, REG_MT_POS, TRAMP_GPR_OFFSET);
-    */
-
-    popStack(gen);
-}
-
 void insnCodeGen::generateMoveToSPR(codeGen &gen, Dyninst::Register toSPR,
                                     unsigned sprReg) {
   // Check that this SPR exists
@@ -572,8 +546,6 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
   //   insnCodeGen::generate(gen,branchToBr);
 
   //   // restore the world
-  //   if(everythingSaved)
-  //     GenerateRestoresBaseTrampStyle(gen);
 }
 
 void insnCodeGen::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool isCall) {
