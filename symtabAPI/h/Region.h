@@ -77,6 +77,7 @@ class DYNINST_EXPORT Region : public AnnotatableSparse {
       RT_SYMVERNEEDED,
       RT_REL,
       RT_RELA,
+      RT_RELR,
       RT_PLTREL,
       RT_PLTRELA,
       RT_DYNAMIC,

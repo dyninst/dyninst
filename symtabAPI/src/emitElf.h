@@ -92,6 +92,7 @@ namespace Dyninst {
             typedef Elf32_Section Elf_Section;
             typedef Elf32_Rel Elf_Rel;
             typedef Elf32_Rela Elf_Rela;
+            typedef Elf32_Word Elf_Relr;
             typedef Elf32_Verneed Elf_Verneed;
             typedef Elf32_Vernaux Elf_Vernaux;
             typedef Elf32_Verdef Elf_Verdef;
@@ -123,6 +124,7 @@ namespace Dyninst {
             typedef Elf64_Section Elf_Section;
             typedef Elf64_Rel Elf_Rel;
             typedef Elf64_Rela Elf_Rela;
+            typedef Elf64_Xword Elf_Relr;
             typedef Elf64_Verneed Elf_Verneed;
             typedef Elf64_Vernaux Elf_Vernaux;
             typedef Elf64_Verdef Elf_Verdef;
@@ -157,6 +159,7 @@ namespace Dyninst {
             typedef typename ElfTypes::Elf_Section Elf_Section;
             typedef typename ElfTypes::Elf_Rel Elf_Rel;
             typedef typename ElfTypes::Elf_Rela Elf_Rela;
+            typedef typename ElfTypes::Elf_Relr Elf_Relr;
             typedef typename ElfTypes::Elf_Verneed Elf_Verneed;
             typedef typename ElfTypes::Elf_Vernaux Elf_Vernaux;
             typedef typename ElfTypes::Elf_Verdef Elf_Verdef;
@@ -257,6 +260,7 @@ namespace Dyninst {
 
             void createRelocationSections(std::vector<relocationEntry> &relocation_table, bool isDynRelocs,
                                           std::unordered_map<std::string, unsigned long> &dynSymNameMapping);
+            void createRelrRelocationSection(std::vector<Offset> &relr_table);
 
             void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
 
