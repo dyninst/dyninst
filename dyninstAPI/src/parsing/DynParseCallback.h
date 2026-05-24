@@ -59,6 +59,9 @@ namespace Dyninst { namespace DyninstAPI {
 
     bool hasWeirdInsns(const ParseAPI::Function *) const override;
 
+    void instruction_cb(ParseAPI::Function *, ParseAPI::Block *, Dyninst::Address,
+                        insn_details *) override;
+
     void interproc_cf(ParseAPI::Function *, ParseAPI::Block *, Dyninst::Address,
                       interproc_details *) override;
 
@@ -76,10 +79,6 @@ namespace Dyninst { namespace DyninstAPI {
 
     bool updateCodeBytes(Dyninst::Address target) override;
 
-#if defined(DYNINST_HOST_ARCH_POWER) || defined(DYNINST_HOST_ARCH_AARCH64)
-    void instruction_cb(ParseAPI::Function *, ParseAPI::Block *, Dyninst::Address,
-                        insn_details *);
-#endif
   private:
     image *_img;
   };

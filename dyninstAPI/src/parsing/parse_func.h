@@ -47,7 +47,7 @@ class parse_func : public Dyninst::ParseAPI::Function {
     NO_UNRESOLVED_CF
   };
 
-  friend class DynParseCallback;
+  friend class Dyninst::DyninstAPI::DynParseCallback;
 
 public:
   parse_func() {}

@@ -1,3 +1,4 @@
+#include "Architecture.h"
 #include "DynCommon.h"
 #include "DynParseCallback.h"
 #include "debug.h"
@@ -31,6 +32,38 @@ namespace Dyninst { namespace DyninstAPI {
   bool DynParseCallback::hasWeirdInsns(const ParseAPI::Function *func) const {
     return static_cast<parse_func *>(const_cast<ParseAPI::Function *>(func))
         ->hasWeirdInsns();
+  }
+
+  void DynParseCallback::instruction_cb(ParseAPI::Function *f, ParseAPI::Block *, Address,
+                                        insn_details *det) {
+    switch(f->isrc()->getArch()) {
+    case Arch_none:
+    case Arch_x86:
+    case Arch_x86_64:
+    case Arch_aarch32:
+    case Arch_aarch64:
+    case Arch_riscv64:
+    case Arch_cuda:
+    case Arch_amdgpu_gfx908:
+    case Arch_amdgpu_gfx90a:
+    case Arch_amdgpu_gfx940:
+    case Arch_intelGen9:
+      return;
+    case Arch_ppc32:
+    case Arch_ppc64:
+      break;
+    }
+
+    parse_func *ifunc = static_cast<parse_func *>(f);
+    /* In case we do callback from a place where the leaf function analysis has not been
+     * done */
+    Address ret_addr = 0;
+    if (f->_is_leaf_function) {
+      f->_is_leaf_function = !(det->insn->isReturnAddrSave(ret_addr));
+      if (!f->_is_leaf_function)
+        f->_ret_addr = ret_addr;
+    }
+    ifunc->saves_return_addr_ = !(f->_is_leaf_function);
   }
 
   void DynParseCallback::interproc_cf(ParseAPI::Function *f, ParseAPI::Block *b,
