@@ -64,7 +64,6 @@ namespace Dyninst { namespace DyninstAPI {
 
     boost::lock_guard<decltype(_mtx)> _lock{_mtx};
 
-    parse_func *ret;
     SymtabAPI::Symtab *st = _img->getObject();
     SymtabAPI::Function *stf{};
     pdmodule *pdmod = _img->getOrCreateModule(st->getDefaultModule());
@@ -82,7 +81,7 @@ namespace Dyninst { namespace DyninstAPI {
         }
       }
       if (stf && stf->getFirstSymbol()) {
-        ret = parse_func::plt_func(stf, pdmod, _img, obj, reg, isrc, src);
+        auto *ret = parse_func::plt_func(stf, pdmod, _img, obj, reg, isrc, src);
         // PLT stubs are typically are undefined symbols in the binary,
         // so there is no corresponding SymtabAPI::Function at Symtab level.
         // PLTFunction is a subclass of SymtabAPI::Function to represent PLT stubs.
@@ -100,9 +99,7 @@ namespace Dyninst { namespace DyninstAPI {
     }
     assert(stf);
 
-    ret = new parse_func(stf, pdmod, _img, obj, reg, isrc, src);
-
-    return ret;
+    return new parse_func(stf, pdmod, _img, obj, reg, isrc, src);
   }
 
   ParseAPI::Block *DynCFGFactory::mksink(ParseAPI::CodeObject *obj,
