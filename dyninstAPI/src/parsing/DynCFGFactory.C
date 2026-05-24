@@ -39,9 +39,6 @@ namespace {
 
 namespace Dyninst { namespace DyninstAPI {
 
-  DynCFGFactory::DynCFGFactory(image *im) : _img(im) {
-  }
-
   ParseAPI::Block *DynCFGFactory::mkblock(ParseAPI::Function *f, ParseAPI::CodeRegion *r,
                                           Address addr) {
     auto *block = new parse_block(static_cast<parse_func *>(f), r, addr);

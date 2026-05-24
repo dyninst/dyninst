@@ -47,7 +47,8 @@ namespace Dyninst { namespace DyninstAPI {
 
   class DynCFGFactory : public ParseAPI::CFGFactory {
   public:
-    DynCFGFactory(image *im);
+    DynCFGFactory(image *im) : _img(im) {
+    }
 
     ~DynCFGFactory() {
     }
