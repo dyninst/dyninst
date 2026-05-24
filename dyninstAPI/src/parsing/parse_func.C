@@ -7,7 +7,7 @@ namespace st = Dyninst::SymtabAPI;
 namespace parse = Dyninst::ParseAPI;
 
 parse_func::parse_func(st::Function *func, pdmodule *m, image *i, parse::CodeObject *obj,
-                       parse::CodeRegion *reg, InstructionSource *isrc, FuncSource src)
+                       parse::CodeRegion *reg, InstructionSource *isrc, parse::FuncSource src)
     : Function(func->getOffset(), func->getFirstSymbol()->getMangledName(), obj, reg, isrc),
       func_(func), mod_(m), image_(i)
 

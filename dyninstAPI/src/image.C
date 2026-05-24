@@ -38,7 +38,6 @@
 #include "image.h"
 #include "debug.h"
 #include "patching/function.h"
-#include "parsing/Parsing.h"
 
 #include "common/src/Timer.h"
 #include "common/src/dyninst_filesystem.h"

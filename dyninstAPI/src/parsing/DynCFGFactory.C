@@ -50,15 +50,14 @@ namespace Dyninst { namespace DyninstAPI {
   }
 
   ParseAPI::Edge *DynCFGFactory::mkedge(ParseAPI::Block *src, ParseAPI::Block *trg,
-                                        EdgeTypeEnum type) {
+                                        ParseAPI::EdgeTypeEnum type) {
     return new ParseAPI::Edge(src, trg, type);
   }
 
-  ParseAPI::Function *DynCFGFactory::mkfunc(Address addr, FuncSource src,
+  ParseAPI::Function *DynCFGFactory::mkfunc(Address addr, ParseAPI::FuncSource src,
                                             std::string name, ParseAPI::CodeObject *obj,
                                             ParseAPI::CodeRegion *reg,
                                             InstructionSource *isrc) {
-
     boost::lock_guard<decltype(_mtx)> _lock{_mtx};
 
     SymtabAPI::Symtab *st = _img->getObject();

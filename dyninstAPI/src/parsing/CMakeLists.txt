@@ -1,9 +1,8 @@
 include_guard(GLOBAL)
 
-set(_headers DynCFGFactory.h DynParseCallback.h parse_block.h parse_func.h Parsing.h)
+set(_headers DynCFGFactory.h DynParseCallback.h parse_block.h parse_func.h)
 
-set(_sources DynCFGFactory.C DynParseCallback.C parse_block.C parse_func.C Parsing-arch.C
-             Parsing.C)
+set(_sources DynCFGFactory.C DynParseCallback.C parse_block.C parse_func.C Parsing-arch.C)
 
 # cmake-format: off
 dyninst_library(
