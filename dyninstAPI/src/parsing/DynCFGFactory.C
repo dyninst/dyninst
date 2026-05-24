@@ -43,14 +43,12 @@ namespace Dyninst { namespace DyninstAPI {
 
   ParseAPI::Block *DynCFGFactory::mkblock(ParseAPI::Function *f, ParseAPI::CodeRegion *r,
                                           Address addr) {
-    parse_block *ret;
-
-    ret = new parse_block((parse_func *)f, r, addr);
+    auto *block = new parse_block(static_cast<parse_func *>(f), r, addr);
 
     if (_img->trackNewBlocks_) {
-      _img->newBlocks_.push_back(ret);
+      _img->newBlocks_.push_back(block);
     }
-    return ret;
+    return block;
   }
 
   ParseAPI::Edge *DynCFGFactory::mkedge(ParseAPI::Block *src, ParseAPI::Block *trg,
