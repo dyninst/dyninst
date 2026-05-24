@@ -11,6 +11,7 @@ include(DyninstLibrary)
 add_subdirectory(src/ASTs)
 add_subdirectory(src/BPatch)
 add_subdirectory(src/codegen)
+add_subdirectory(src/parsing)
 add_subdirectory(src/registerSpace)
 add_subdirectory(src/Relocation)
 add_subdirectory(src/StackMod)
@@ -20,6 +21,7 @@ set(_subprojects
     dyninstAPI_ASTs
     dyninstAPI_bpatch
     dyninstAPI_codegen
+    dyninstAPI_parsing
     dyninstAPI_registerSpace
     dyninstAPI_relocation
     dyninstAPI_stackmod
@@ -74,9 +76,6 @@ set(_private_headers
     src/nt_signal_emul.h
     src/opcode.h
     src/os.h
-    src/parse_block.h
-    src/parse_func.h
-    src/Parsing.h
     src/patch.h
     src/Patching.h
     src/pcEventHandler.h
@@ -112,14 +111,10 @@ set(_sources
     src/instPoint.C
     src/mapped_module.C
     src/mapped_object.C
-    src/parse_block.C
-    src/parse_func.C
     src/pcEventHandler.C
     src/pcEventMuxer.C
     src/regTracker.C
     src/variable.C
-    src/Parsing-arch.C
-    src/Parsing.C
     src/Patching.C)
 
 if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
