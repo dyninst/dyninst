@@ -5,6 +5,7 @@
 #include "parse_func.h"
 #include "relocationEntry.h"
 
+#include <boost/thread/lock_guard.hpp>
 #include <limits>
 
 namespace {
@@ -60,7 +61,9 @@ namespace Dyninst { namespace DyninstAPI {
                                             std::string name, ParseAPI::CodeObject *obj,
                                             ParseAPI::CodeRegion *reg,
                                             InstructionSource *isrc) {
-    _mtx.lock();
+
+    boost::lock_guard<decltype(_mtx)> _lock{_mtx};
+
     parse_func *ret;
     SymtabAPI::Symtab *st;
     SymtabAPI::Function *stf = NULL;
@@ -89,7 +92,6 @@ namespace Dyninst { namespace DyninstAPI {
         // Symtab object, we need to add PLTFunction to a data structure for
         // future lookup.
         _img->insertPLTParseFuncMap(stf->getName(), ret);
-        _mtx.unlock();
         return ret;
       }
     }
@@ -103,7 +105,6 @@ namespace Dyninst { namespace DyninstAPI {
 
     ret = new parse_func(stf, pdmod, _img, obj, reg, isrc, src);
 
-    _mtx.unlock();
     return ret;
   }
 
