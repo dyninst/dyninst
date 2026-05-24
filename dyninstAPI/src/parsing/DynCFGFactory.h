@@ -65,12 +65,6 @@ namespace Dyninst { namespace DyninstAPI {
 
     ParseAPI::Block *mksink(ParseAPI::CodeObject *obj, ParseAPI::CodeRegion *r) override;
 
-    // leaving default atm
-    // void free_func(Dyninst::ParseAPI::Function * f);
-    // void free_block(Dyninst::ParseAPI::Block * b);
-    // void free_edge(Dyninst::ParseAPI::Edge * e);
-
-    // void free_all();
     void dump_stats();
 
   private:
@@ -80,7 +74,6 @@ namespace Dyninst { namespace DyninstAPI {
     std::vector<int> _edge_allocs;
     int _block_allocs;
     int _sink_block_allocs;
-    // int _sink_edge_allocs; FIXME can't determine
 
     void _record_func_alloc(Dyninst::ParseAPI::FuncSource fs) {
       assert(fs < ParseAPI::_funcsource_end_);
@@ -89,9 +82,6 @@ namespace Dyninst { namespace DyninstAPI {
     void _record_edge_alloc(ParseAPI::EdgeTypeEnum et, bool /* sink */) {
       assert(et < ParseAPI::_edgetype_end_);
       ++_edge_allocs[et];
-
-      // if(sink)
-      //++_sink_block_allocs;
     }
     void _record_block_alloc(bool sink) {
       ++_block_allocs;

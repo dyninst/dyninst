@@ -80,8 +80,6 @@ namespace Dyninst { namespace DyninstAPI {
 
     ret = new parse_block((parse_func *)f, r, addr);
 
-    // fprintf(stderr,"mkbloc(%lx, %lx) returning %p\n",f->addr(),addr,ret);
-
     if (_img->trackNewBlocks_) {
       _img->newBlocks_.push_back(ret);
     }
