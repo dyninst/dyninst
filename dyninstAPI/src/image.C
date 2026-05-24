@@ -1450,7 +1450,7 @@ image::image(fileDescriptor &desc,
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
 
    // Continue ParseAPI init
-   img_fact_ = new DynCFGFactory(this);
+   img_fact_ = new Dyninst::DyninstAPI::DynCFGFactory(this);
    parse_cb_ = new DynParseCallback(this);
    obj_ = new CodeObject(cs_,img_fact_,parse_cb_,BPatch_defensiveMode == mode);
 

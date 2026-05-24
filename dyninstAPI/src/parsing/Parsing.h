@@ -49,65 +49,6 @@ using std::vector;
 /*** The image_* object factory ***/
 class image;
 
-namespace Dyninst {
-namespace ParseAPI {
-   class CodeObject;
-}
-}
-
-class DynCFGFactory : public Dyninst::ParseAPI::CFGFactory {
-  public:
-    DynCFGFactory(image * im);
-    ~DynCFGFactory() {}
-    
-    Dyninst::ParseAPI::Function * mkfunc(Dyninst::Address addr, FuncSource src, std::string name,
-            Dyninst::ParseAPI::CodeObject * obj, Dyninst::ParseAPI::CodeRegion * reg,
-            Dyninst::InstructionSource * isrc);
-    Dyninst::ParseAPI::Block * mkblock(Dyninst::ParseAPI::Function * f, Dyninst::ParseAPI::CodeRegion * r,
-            Dyninst::Address addr);
-    Dyninst::ParseAPI::Edge * mkedge(Dyninst::ParseAPI::Block * src, Dyninst::ParseAPI::Block * trg,
-            EdgeTypeEnum type);
-
-    Dyninst::ParseAPI::Block * mksink(Dyninst::ParseAPI::CodeObject *obj, Dyninst::ParseAPI::CodeRegion*r);
-
-    // leaving default atm    
-    //void free_func(Dyninst::ParseAPI::Function * f);
-    //void free_block(Dyninst::ParseAPI::Block * b);
-    //void free_edge(Dyninst::ParseAPI::Edge * e);
-
-    //void free_all();
-    void dump_stats();
-
-  private:
-    boost::mutex _mtx;
-    image * _img;     
-    std::vector<int> _func_allocs;
-    std::vector<int> _edge_allocs;
-    int _block_allocs;
-    int _sink_block_allocs;
-    //int _sink_edge_allocs; FIXME can't determine
-
-    void _record_func_alloc(Dyninst::ParseAPI::FuncSource fs)
-    {
-        assert(fs < Dyninst::ParseAPI::_funcsource_end_);
-        ++_func_allocs[fs];
-    }
-    void _record_edge_alloc(Dyninst::ParseAPI::EdgeTypeEnum et,bool /* sink */)
-    {
-        assert(et < Dyninst::ParseAPI::_edgetype_end_);
-        ++_edge_allocs[et];
-
-        //if(sink)
-            //++_sink_block_allocs;
-    }
-    void _record_block_alloc(bool sink)
-    {
-        ++_block_allocs;
-        if(sink)
-            ++_sink_block_allocs;
-    }
-};
-
 class image;
 class DynParseCallback : public Dyninst::ParseAPI::ParseCallback {
  public:
