@@ -65,11 +65,10 @@ namespace Dyninst { namespace DyninstAPI {
     boost::lock_guard<decltype(_mtx)> _lock{_mtx};
 
     parse_func *ret;
-    SymtabAPI::Symtab *st;
+    SymtabAPI::Symtab *st = _img->getObject();
     SymtabAPI::Function *stf = NULL;
     pdmodule *pdmod;
 
-    st = _img->getObject();
     auto found = obj->cs()->linkage().find(addr);
     // PLT stub
     if (found != obj->cs()->linkage().end()) {
