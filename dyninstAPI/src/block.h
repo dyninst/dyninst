@@ -60,26 +60,6 @@ class edge_instance : public Dyninst::PatchAPI::PatchEdge {
     ~edge_instance();
 };
 
-// This is somewhat mangled, but allows Dyninst to access the
-// iteration predicates of Dyninst without having to go back and
-// template that code. Just wrap a ParseAPI predicate in a
-// EdgePredicateAdapter and *poof* you're using edge_instances
-// instead of ParseAPI edges...
-
-class EdgePredicateAdapter 
-   : public ParseAPI::iterator_predicate <
-  edge_instance *,
-  edge_instance * > {
-  public:
-  EdgePredicateAdapter() : int_(NULL) {}
-  EdgePredicateAdapter(ParseAPI::EdgePredicate *intPred) : int_(intPred) {}
-   virtual ~EdgePredicateAdapter() {}
-   virtual bool pred_impl(edge_instance * const e) const { return int_->pred_impl(e->edge()); }
-
-  private:
-   ParseAPI::EdgePredicate *int_;
-};
-
 class block_instance : public Dyninst::PatchAPI::PatchBlock {
   friend class mapped_object;
 
