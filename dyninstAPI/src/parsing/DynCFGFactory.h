@@ -50,8 +50,7 @@ namespace Dyninst { namespace DyninstAPI {
     DynCFGFactory(image *im) : _img(im) {
     }
 
-    ~DynCFGFactory() {
-    }
+    ~DynCFGFactory() = default;
 
     ParseAPI::Block *mkblock(ParseAPI::Function *f, ParseAPI::CodeRegion *r,
                              Dyninst::Address addr) override;
