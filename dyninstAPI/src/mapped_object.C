@@ -63,14 +63,6 @@ using namespace Dyninst::ProcControlAPI;
 #endif
 // Whee hasher...
 
-
-// triggered when parsing needs to check if the underlying data has changed
-bool codeBytesUpdateCB(void *objCB, Address targ)
-{
-    mapped_object *obj = (mapped_object*) objCB;
-    return obj->updateCodeBytesIfNeeded(targ);
-}
-
 mapped_object::mapped_object(fileDescriptor fileDesc,
       image *img,
       AddressSpace *proc,

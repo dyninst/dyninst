@@ -55,6 +55,7 @@
 #include "dynproc/infHeap.h"
 #include "dyninstAPI/h/BPatch_enums.h"
 #include "parsing/DynCFGFactory.h"
+#include "parsing/DynParseCallback.h"
 
 #include <unordered_map>
 
@@ -125,9 +126,6 @@ class module;
 class BPatch_flowGraph;
 class BPatch_loopTreeNode;
 class instPoint;
-
-// ParseAPI classes
-class DynParseCallback;
 
 class PCProcess;
 
@@ -472,7 +470,7 @@ class image : public codeRange {
    Dyninst::ParseAPI::SymtabCodeSource * cs_;
    Dyninst::ParseAPI::SymtabCodeSource::hint_filt *filt;
    Dyninst::DyninstAPI::DynCFGFactory * img_fact_;
-   DynParseCallback * parse_cb_;
+   Dyninst::DyninstAPI::DynParseCallback * parse_cb_;
    void *cb_arg0_; // argument for mapped_object callback
 
    map<SymtabAPI::Module *, pdmodule *> mods_;

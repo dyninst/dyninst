@@ -1451,7 +1451,7 @@ image::image(fileDescriptor &desc,
 
    // Continue ParseAPI init
    img_fact_ = new Dyninst::DyninstAPI::DynCFGFactory(this);
-   parse_cb_ = new DynParseCallback(this);
+   parse_cb_ = new Dyninst::DyninstAPI::DynParseCallback(this);
    obj_ = new CodeObject(cs_,img_fact_,parse_cb_,BPatch_defensiveMode == mode);
 
      if (obj_->cs()->getArch() == Arch_ppc64) {
