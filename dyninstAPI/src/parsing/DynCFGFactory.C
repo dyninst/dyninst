@@ -67,13 +67,12 @@ namespace Dyninst { namespace DyninstAPI {
     parse_func *ret;
     SymtabAPI::Symtab *st = _img->getObject();
     SymtabAPI::Function *stf{};
-    pdmodule *pdmod;
+    pdmodule *pdmod = _img->getOrCreateModule(st->getDefaultModule());
 
     auto found = obj->cs()->linkage().find(addr);
     // PLT stub
     if (found != obj->cs()->linkage().end()) {
       name = found->second;
-      pdmod = _img->getOrCreateModule(st->getDefaultModule());
       std::vector<SymtabAPI::relocationEntry> relocs;
       st->getFuncBindingTable(relocs);
       for (auto i = relocs.begin(); i != relocs.end(); i++) {
@@ -95,7 +94,6 @@ namespace Dyninst { namespace DyninstAPI {
       }
     }
     if (!st->findFuncByEntryOffset(stf, addr)) {
-      pdmod = _img->getOrCreateModule(st->getDefaultModule());
       stf = st->createFunction(name, addr, 0, pdmod->mod());
     } else {
       pdmod = _img->getOrCreateModule(stf->getModule());
