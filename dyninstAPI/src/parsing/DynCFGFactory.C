@@ -7,18 +7,6 @@
 
 #include <limits>
 
-// clang-format off
-#if defined(VERBOSE_CFG_FACTORY)
-#define record_func_alloc(x) do { _record_func_alloc(x); } while(0)
-#define record_edge_alloc(x,s) do { _record_edge_alloc(x,s); } while(0)
-#define record_block_alloc(s) do { _record_block_alloc(s); } while(0)
-#else
-#define record_func_alloc(x) do { } while(0)
-#define record_edge_alloc(x,s) do { } while(0)
-#define record_block_alloc(s) do { } while(0)
-#endif
-// clang-format on
-
 namespace {
 
   class PLTFunction : public Dyninst::SymtabAPI::Function {
@@ -50,33 +38,12 @@ namespace {
 
 namespace Dyninst { namespace DyninstAPI {
 
-  DynCFGFactory::DynCFGFactory(image *im)
-      : _img(im), _func_allocs(ParseAPI::_funcsource_end_),
-        _edge_allocs(ParseAPI::_edgetype_end_), _block_allocs(0), _sink_block_allocs(0) {
-  }
-
-  void DynCFGFactory::dump_stats() {
-    fprintf(stderr, "===DynCFGFactory for image %p===\n", (void *)_img);
-    fprintf(stderr, "   Functions:\n");
-    fprintf(stderr, "   %-12s src\n", "cnt");
-    for (int i = 0; i < ParseAPI::_funcsource_end_; ++i) {
-      fprintf(stderr, "   %-12d %3d\n", _func_allocs[i], i);
-    }
-    fprintf(stderr, "   Edges:\n");
-    fprintf(stderr, "   %-12s type\n", "cnt");
-    for (int i = 0; i < ParseAPI::_edgetype_end_; ++i) {
-      fprintf(stderr, "   %-12d %4d\n", _edge_allocs[i], i);
-    }
-    fprintf(stderr, "   Blocks:\n");
-    fprintf(stderr, "   %-12d total\n", _block_allocs);
-    fprintf(stderr, "   %-12d sink\n", _sink_block_allocs);
+  DynCFGFactory::DynCFGFactory(image *im) : _img(im) {
   }
 
   ParseAPI::Block *DynCFGFactory::mkblock(ParseAPI::Function *f, ParseAPI::CodeRegion *r,
                                           Address addr) {
     parse_block *ret;
-
-    record_block_alloc(false);
 
     ret = new parse_block((parse_func *)f, r, addr);
 
@@ -88,8 +55,6 @@ namespace Dyninst { namespace DyninstAPI {
 
   ParseAPI::Edge *DynCFGFactory::mkedge(ParseAPI::Block *src, ParseAPI::Block *trg,
                                         EdgeTypeEnum type) {
-    record_edge_alloc(type, false); // FIXME can't tell if it's a sink
-
     return new ParseAPI::Edge(src, trg, type);
   }
 
@@ -102,7 +67,6 @@ namespace Dyninst { namespace DyninstAPI {
     SymtabAPI::Symtab *st;
     SymtabAPI::Function *stf = NULL;
     pdmodule *pdmod;
-    record_func_alloc(src);
 
     st = _img->getObject();
     auto found = obj->cs()->linkage().find(addr);
@@ -148,8 +112,6 @@ namespace Dyninst { namespace DyninstAPI {
   ParseAPI::Block *DynCFGFactory::mksink(ParseAPI::CodeObject *obj,
                                          ParseAPI::CodeRegion *r) {
     parse_block *ret;
-
-    record_block_alloc(true);
 
     ret = new parse_block(obj, r, std::numeric_limits<Address>::max());
     return ret;

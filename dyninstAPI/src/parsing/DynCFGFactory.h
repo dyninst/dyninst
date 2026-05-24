@@ -65,29 +65,9 @@ namespace Dyninst { namespace DyninstAPI {
 
     ParseAPI::Block *mksink(ParseAPI::CodeObject *obj, ParseAPI::CodeRegion *r) override;
 
-    void dump_stats();
-
   private:
     boost::mutex _mtx;
     image *_img;
-    std::vector<int> _func_allocs;
-    std::vector<int> _edge_allocs;
-    int _block_allocs;
-    int _sink_block_allocs;
-
-    void _record_func_alloc(Dyninst::ParseAPI::FuncSource fs) {
-      assert(fs < ParseAPI::_funcsource_end_);
-      ++_func_allocs[fs];
-    }
-    void _record_edge_alloc(ParseAPI::EdgeTypeEnum et, bool /* sink */) {
-      assert(et < ParseAPI::_edgetype_end_);
-      ++_edge_allocs[et];
-    }
-    void _record_block_alloc(bool sink) {
-      ++_block_allocs;
-      if (sink)
-        ++_sink_block_allocs;
-    }
   };
 
 }}
