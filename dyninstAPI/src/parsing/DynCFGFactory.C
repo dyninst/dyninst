@@ -101,10 +101,7 @@ namespace Dyninst { namespace DyninstAPI {
 
   ParseAPI::Block *DynCFGFactory::mksink(ParseAPI::CodeObject *obj,
                                          ParseAPI::CodeRegion *r) {
-    parse_block *ret;
-
-    ret = new parse_block(obj, r, std::numeric_limits<Address>::max());
-    return ret;
+    return new parse_block(obj, r, std::numeric_limits<Address>::max());
   }
 
 }}
