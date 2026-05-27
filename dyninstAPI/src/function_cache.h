@@ -44,11 +44,7 @@ namespace Dyninst { namespace DyninstAPI {
       funcs.reserve(10);
     }
     bool contains(func_instance *f) const {
-      auto cmp = [f](func_instance *c) {
-        return c->addr() == f->addr() &&
-               c->typedName() == f->typedName();
-      };
-      return std::find_if(funcs.begin(), funcs.end(), cmp) != funcs.end();
+      return std::find(funcs.begin(), funcs.end(), f) != funcs.end();
     }
     void insert(func_instance *f) {
       funcs.push_back(f);
