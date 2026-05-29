@@ -140,8 +140,7 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     src/codegen-x86.C
     src/IAPI_to_AST.C)
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
-  list(APPEND _sources src/inst-power.C src/codegen-power.C src/RegisterConversion-ppc.C
-       src/trampolines/baseTramp-ppc.C)
+  list(APPEND _sources src/inst-power.C src/codegen-power.C src/RegisterConversion-ppc.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(APPEND _sources src/inst-aarch64.C src/emit-aarch64.C src/codegen-aarch64.C
        src/RegisterConversion-aarch64.C)
