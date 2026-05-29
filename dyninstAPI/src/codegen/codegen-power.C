@@ -34,7 +34,6 @@
 #include "registerSpace/registerSpace.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/inst-power.h"
-#include "dyninstAPI/src/emit-power.h"
 #include "patching/function.h"
 #include "codegen/emitters/PowerPC/ppc64/generators.h"
 

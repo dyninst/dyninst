@@ -3,6 +3,7 @@
 #include "BPatch.h"
 #include "BPatch_type.h"
 #include "Buffer.h"
+#include "codegen/codegen.h"
 #include "ASTs/codeGenAST.h"
 #include "debug.h"
 #include "Point.h"
@@ -217,7 +218,7 @@ void codeGenAST::decUseCount(codeGen &gen) {
   }
 }
 
-bool codeGenAST::generate(Point *point, Buffer &buffer) {
+bool codeGenAST::generate(Dyninst::PatchAPI::Point *point, Buffer &buffer) {
   // For now, be really inefficient. Yay!
   codeGen gen(1024);
   instPoint *ip = IPCONV(point);
