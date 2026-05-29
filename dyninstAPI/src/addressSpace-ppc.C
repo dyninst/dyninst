@@ -5,6 +5,7 @@
 #include "codegen/emitters/PowerPC/ppc32/EmitterPowerPC32Dyn.h"
 #include "codegen/emitters/PowerPC/ppc32/EmitterPowerPC32Stat.h"
 #include "codegen/emitters/PowerPC/ppc64/EmitterPowerPC64Dyn.h"
+#include "codegen/emitters/PowerPC/ppc64/EmitterPowerPC64Stat.h"
 #include "emit-power.h"
 #include "registerSpace/registerSpace.h"
 #include "registers/ppc32_regs.h"
@@ -55,7 +56,7 @@ Emitter *AddressSpace::getEmitter() {
   static Dyninst::DyninstAPI::EmitterPowerPC32Dyn emitter32Dyn;
   static Dyninst::DyninstAPI::EmitterPowerPC64Dyn emitter64Dyn;
   static Dyninst::DyninstAPI::EmitterPowerPC32Stat emitter32Stat;
-  static EmitterPOWER64Stat emitter64Stat;
+  static Dyninst::DyninstAPI::EmitterPowerPC64Stat emitter64Stat;
 
   if (getAddressWidth() == 8) {
     if (proc()) {

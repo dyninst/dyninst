@@ -53,7 +53,6 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     emitters/aarch64/generators.C)
 
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
-
   list(
     APPEND
     _headers
@@ -73,6 +72,7 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
     emitters/PowerPC/generators.C
     emitters/PowerPC/ppc32/EmitterPowerPC32Stat.C
     emitters/PowerPC/ppc64/EmitterPowerPC64Dyn.C
+    emitters/PowerPC/ppc64/EmitterPowerPC64Stat.C
     emitters/PowerPC/ppc64/generators.C)
 
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
