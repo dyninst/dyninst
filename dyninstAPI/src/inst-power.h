@@ -200,20 +200,6 @@ void saveFPSCR(codeGen &gen,
 void restoreFPSCR(codeGen &gen,
                   Dyninst::Register scratchReg,
                   int stkOffset);
-void saveRegister(codeGen &gen,
-                  Dyninst::Register reg,
-                  int save_off);
-// We may want to restore a _logical_ register N
-// (that is, the save slot for N) into a different reg.
-// This avoids using a temporary
-void restoreRegister(codeGen &gen,
-                     Dyninst::Register source,
-                     Dyninst::Register dest,
-                     int save_off);
-// Much more common case
-void restoreRegister(codeGen &gen,
-                     Dyninst::Register reg,
-                     int save_off);
 void saveFPRegister(codeGen &gen,
                     Dyninst::Register reg,
                     int save_off);

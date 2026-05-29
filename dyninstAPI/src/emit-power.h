@@ -45,110 +45,19 @@
 #include "trampolines/baseTramp.h"
 #include "dyninstAPI/src/emitter.h"
 #include "function_cache.h"
+#include "codegen/emitters/PowerPC/EmitterPowerPC.h"
 
 class codeGen;
 class registerSpace;
 class baseTramp;
 
-// class for encapsulating
-// platform dependent code generation functions
-class EmitterPOWER : public Emitter {
-
- public:
-    virtual ~EmitterPOWER() {}
-    virtual codeBufIndex_t emitA(opCode op, Dyninst::Register src1, long dst, codeGen &gen, Dyninst::DyninstAPI::RegControl rc);
-    virtual Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst, codeGen &gen, const instPoint *location);
-    virtual void emitV(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst,
-                       codeGen &gen, int size = 4, AddressSpace * proc = NULL, bool s = true);
-    virtual void emitVload(opCode op, Dyninst::Address src1, Dyninst::Register src2, Dyninst::Register dst,
-                           codeGen &gen, int size = 4, AddressSpace * proc = NULL);
-    virtual void emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Address dst,
-                            codeGen &gen, int size = 4, AddressSpace * proc = NULL);
-    virtual codeBufIndex_t emitIf(Register, Register, Dyninst::DyninstAPI::RegControl, codeGen &) { assert(0); return 0; }
-    virtual void emitOp(unsigned, Register, Register, Register, codeGen &) { assert(0); }
-    virtual void emitOpImm(unsigned, unsigned, Register, Register, RegValue,
-			   codeGen &) { assert(0); }
-    virtual void emitImm(opCode op, Dyninst::Register src, Dyninst::RegValue src2imm, Dyninst::Register dst, codeGen &gen, bool isSigned = true);
-    virtual void emitRelOp(unsigned, Register, Register, Register, codeGen &, bool) { assert(0); }
-    virtual void emitRelOpImm(unsigned, Register, Register, RegValue, codeGen &, bool) { assert(0); }
-    virtual void emitDiv(Register, Register, Register, codeGen &, bool) { assert(0); }
-    virtual void emitTimesImm(Register, Register, RegValue, codeGen &) { assert(0); }
-    virtual void emitDivImm(Register, Register, RegValue, codeGen &, bool) { assert(0); }
-    virtual void emitLoad(Register, Address, int, codeGen &) { assert(0); }
-    virtual void emitLoadConst(Register, Address, codeGen &) { assert(0); }
-    virtual void emitLoadIndir(Register, Register, int, codeGen &) { assert(0); }
-    virtual bool emitCallRelative(Register, Address, Register, codeGen &);
-    virtual bool emitLoadRelative(Register, Address, Register, int, codeGen &);
-    virtual void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size, codeGen &gen, Address offset);
-    virtual void emitLoadFrameAddr(Register, Address, codeGen &) { assert(0); }
-
-    // These implicitly use the stored original/non-inst value
-    virtual void emitLoadOrigFrameRelative(Register, Address, codeGen &) { assert(0); }
-    virtual void emitLoadOrigRegRelative(Register, Address, Register, codeGen &, bool) { assert(0); }
-    virtual void emitLoadOrigRegister(Address, Register, codeGen &) { assert(0); }
-
-    virtual void emitStore(Address, Register, int, codeGen &) { assert(0); }
-    virtual void emitStoreIndir(Register, Register, int, codeGen &) { assert(0); }
-    virtual void emitStoreFrameRelative(Address, Register, Register, int, codeGen &) { assert(0); }
-    virtual void emitStoreRelative(Register, Address, Register, int, codeGen &);
-    virtual void emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen);
-
-
-    virtual void emitStoreOrigRegister(Address, Register, codeGen &) { assert(0); }
-
-    virtual bool emitMoveRegToReg(Register, Register, codeGen &) { assert(0); return 0;}
-    virtual bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
-
-    virtual Address emitMovePCToReg(Register, codeGen& gen);
-
-    // This one we actually use now.
-    virtual Register emitCall(opCode, codeGen &, const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &,
-			      func_instance *);
-
-    virtual void emitGetRetVal(Register, bool, codeGen &) { assert(0); }
-    virtual void emitGetRetAddr(Register, codeGen &) { assert(0); }
-    virtual void emitGetParam(Register, Register, instPoint::Type, opCode, bool, codeGen &) { assert(0); }
-    virtual void emitASload(int, int, int, long, Register, int, codeGen &) { assert(0); }
-    virtual void emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen);
-    virtual void emitCSload(int, int, int, long, Register, codeGen &) { assert(0); }
-    virtual void emitCountSpecLoad(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &gen);
-    virtual void emitPushFlags(codeGen &) { assert(0); }
-    virtual void emitRestoreFlags(codeGen &, unsigned) { assert(0); }
-    // Built-in offset...
-    virtual void emitRestoreFlagsFromStackSlot(codeGen &) { assert(0); }
-    virtual bool emitBTSaves(baseTramp*, codeGen &) { assert(0); return true;}
-    virtual bool emitBTRestores(baseTramp*, codeGen &) { assert(0); return true; }
-    virtual void emitStoreImm(Address, int, codeGen &) { assert(0); }
-    virtual void emitAddSignedImm(Address, int, codeGen &) { assert(0); }
-    virtual bool emitPush(codeGen &, Register) { assert(0); return true;}
-    virtual bool emitPop(codeGen &, Register) { assert(0); return true;}
-    virtual bool emitAdjustStackPointer(int, codeGen &) { assert(0); return true;}
-    
-    virtual bool clobberAllFuncCall(registerSpace *rs,func_instance *callee);
-
-    virtual Register emitCallReplacement(opCode, codeGen &,
-                                         func_instance *);
-    void emitCallWithSaves(codeGen &gen, Address dest, bool saveToc, bool saveLR, bool saveR12);
-    
-    Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) /* override */;
-    Address getInterModuleVarAddr(const image_variable *var, codeGen& gen) /* override */;
-
- protected:
-    virtual bool emitCallInstruction(codeGen &, func_instance *,
-                                     bool, Address);
-
- private:
-    // clobberAllFuncCall can be expensive, so don't re-analyze functions
-    Dyninst::DyninstAPI::function_cache clobbered_functions;
-};
-
-class EmitterPOWER32Dyn : public EmitterPOWER
+class EmitterPOWER32Dyn : public Dyninst::DyninstAPI::EmitterPowerPC
 {
   public:
     virtual ~EmitterPOWER32Dyn() {}
 };
 
-class EmitterPOWER32Stat : public EmitterPOWER
+class EmitterPOWER32Stat : public Dyninst::DyninstAPI::EmitterPowerPC
 {
  public:
     virtual ~EmitterPOWER32Stat() {}
@@ -171,7 +80,7 @@ class EmitterPOWER32Stat : public EmitterPOWER
     bool emitTOCCommon(block_instance *dest, bool call, codeGen &gen);
 };
 
-class EmitterPOWER64Dyn : public EmitterPOWER
+class EmitterPOWER64Dyn : public Dyninst::DyninstAPI::EmitterPowerPC
 {
   public:
   virtual bool emitTOCCall(block_instance *dest, codeGen &gen) { return emitTOCCommon(dest, true, gen); }
@@ -182,7 +91,7 @@ class EmitterPOWER64Dyn : public EmitterPOWER
 
 };
 
-class EmitterPOWER64Stat : public EmitterPOWER {
+class EmitterPOWER64Stat : public Dyninst::DyninstAPI::EmitterPowerPC {
   public:
     virtual ~EmitterPOWER64Stat() {}
 

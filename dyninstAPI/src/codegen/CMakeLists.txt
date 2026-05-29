@@ -54,9 +54,11 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
 
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
 
-  list(APPEND _headers codegen-power.h)
+  list(APPEND _headers codegen-power.h emitters/PowerPC/EmitterPowerPC.h
+       emitters/PowerPC/generators.h)
 
-  list(APPEND _sources codegen-power.C)
+  list(APPEND _sources codegen-power.C emitters/PowerPC/EmitterPowerPC.C
+       emitters/PowerPC/generators.C)
 
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 

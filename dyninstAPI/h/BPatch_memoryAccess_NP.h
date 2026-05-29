@@ -40,9 +40,6 @@
 
 class BPatch_point;
 
-/* Pseudoregisters definitions */
-#define POWER_XER2531	9999
-
 //extern void initOpCodeInfo();
 
 /* This is believed to be machine independent, modulo register numbers of course */
