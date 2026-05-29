@@ -52,29 +52,6 @@ class codeGen;
 class registerSpace;
 class baseTramp;
 
-class EmitterPOWER32Stat : public Dyninst::DyninstAPI::EmitterPowerPC
-{
- public:
-    virtual ~EmitterPOWER32Stat() {}
-
-    virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
-    virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
-
-    virtual bool emitTOCCall(block_instance *dest, codeGen &gen);
-    virtual bool emitTOCJump(block_instance *dest, codeGen &gen);
- protected:
-    virtual bool emitCallInstruction(codeGen &, func_instance *, bool,
-                                     Address);
-    virtual Register emitCallReplacement(opCode, codeGen &,
-                                         func_instance *) {
-        assert(0 && "emitCallReplacement not implemented for binary rewriter");
-    }
-
-  private:
-    bool emitPLTCommon(func_instance *dest, bool call, codeGen &gen);
-    bool emitTOCCommon(block_instance *dest, bool call, codeGen &gen);
-};
-
 class EmitterPOWER64Dyn : public Dyninst::DyninstAPI::EmitterPowerPC
 {
   public:
