@@ -95,7 +95,6 @@ void insnCodeGen::generateTrap(codeGen &gen) {
 
 void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link)
 {
-  //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
     if (ABS(disp) > MAX_BRANCH) {
 	// Too far to branch, and no proc to register trap.
 	fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
@@ -123,75 +122,17 @@ void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link)
 void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool link) {
 
     long disp = (to - from);
-//    fprintf(stderr, "[insnCodeGen::generateBranch] Generating branch from %p to %p\n", from, to);
-    // if (from == 0x10000750 || from == 0x10000758) {
-    //   fprintf(stderr, "Stop here\n");
-    // }
     if (ABS(disp) > MAX_BRANCH) {
-      //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
         return generateLongBranch(gen, from, to, link);
     }
-    //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
     return generateBranch(gen, disp, link);
    
 }
 
 void insnCodeGen::generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Address to) {
-    //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
     generateBranch(gen, from, to, true);
 }
 
-
-void GenerateSavesBaseTrampStyle(codeGen &gen) {
-  // Save everything, then all things are scratch registers...
-
-    unsigned int width = gen.width();
-
-    int gpr_off, fpr_off;
-    gpr_off = TRAMP_GPR_OFFSET(width);
-    fpr_off = TRAMP_FPR_OFFSET(width);
-
-    // Make a stack frame.
-    pushStack(gen);
-
-    // Save GPRs
-    saveGPRegisters(gen, gen.rs(), gpr_off);
-
-
-    saveFPRegisters(gen, gen.rs(), fpr_off);
-    //fprintf(stderr, "I am called!\n");
-    // Save LR            
-    saveLR(gen, REG_SCRATCH /* register to use */, TRAMP_SPR_OFFSET(width) + STK_LR);
-
-    saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), true); // FIXME get liveness fixed
-}
-
-
-void GenerateRestoresBaseTrampStyle(codeGen &gen) {
-    unsigned int width = gen.width();
-
-    int gpr_off, fpr_off;
-    gpr_off = TRAMP_GPR_OFFSET(width);
-    fpr_off = TRAMP_FPR_OFFSET(width);
-
-    // Restore possible SPR saves
-    restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
-
-    // LR
-    restoreLR(gen, REG_SCRATCH, TRAMP_SPR_OFFSET(width) + STK_LR);
-
-  restoreFPRegisters(gen, gen.rs(), fpr_off);
-
-    // GPRs
-    restoreGPRegisters(gen, gen.rs(), gpr_off);
-
-    /*
-    // Multithread GPR -- always save
-    restoreRegister(gen, REG_MT_POS, TRAMP_GPR_OFFSET);
-    */
-
-    popStack(gen);
-}
 
 void insnCodeGen::generateMoveToSPR(codeGen &gen, Dyninst::Register toSPR,
                                     unsigned sprReg) {
@@ -386,11 +327,8 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
                                      bool isCall) {
   bool usingLR = false;
   bool usingCTR = false;
-  //fprintf(stderr, "%s\n", "inside generate long branch");
   // If we are a call, the LR is going to be free. Use TAR to save/restore any register
   if (isCall) {
-    //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
-    //fprintf(stderr, "%s\n", "generating call long branch using LR");
       // This is making the assumption R2/R12 has already been setup correctly, 
       // First generate a scratch register by moving something, i choose R11 to send to TAR
       insnCodeGen::generateMoveToSPR(gen,registerSpace::r10, SPR_TAR);
@@ -413,7 +351,6 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
       XLFORM_LK_SET(branchToBr, (isCall ? 1 : 0));
       insnCodeGen::generate(gen,branchToBr);
   } else {
-    //fprintf(stderr, "%s\n", "generating non-call long branch using TAR");
     // What this does is the following:
     // 1. Attempt to allocate a scratch register, this is needed to store the destination 
     //    address temporarily because you can only move registers to SPRs like CTR/LR/TAR.
@@ -424,16 +361,13 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     // 3. Move the register to the SPR (tar)
     // 4. Restore the original register value (if a scratch register was not found)
     // 5. build the branch instruction.
-    //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
     Dyninst::Register scratch = Null_Register;
     // TODO: Fix this, this should work....
     //= gen.rs()->getScratchRegister(gen);
     if (scratch == Null_Register) {
-      //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
         instPoint *point = GetInstPointPower(gen, from);//gen.point();
         if (!point) {
           // No clue if CTR or LR are filled, use broken trap and likely fail.
-            //fprintf(stderr, "%s\n", "Couldn't grab point - Using a trap instruction.....");
             return generateBranchViaTrap(gen, from, to, isCall);
         }
         // Grab the register space, and see if LR or CTR are free.
@@ -457,12 +391,10 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
               generateMoveToSPR(gen, registerSpace::r10, SPR_CTR);
           }
           if (!usingLR && !usingCTR) {
-              //fprintf(stderr, "%s\n", "Couldn't grab free register - Using a trap instruction.....");
               return generateBranchViaTrap(gen, from, to, isCall);
           }
         }
     } else if (scratch != Null_Register) {
-        //fprintf(stderr, "%s\n", "Generating branch with TAR.....");
         insnCodeGen::generateBranchTar(gen, scratch, to, isCall);
         return;
     }
@@ -494,117 +426,10 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     insnCodeGen::generate(gen, branchToBr);    
   }
   return;
-
-  // bool everythingSaved = false;
-  // //fprintf(stderr, "[insnCodeGen::generateLongBranch] Generating long branch from %p to %p\n", from, to);
-  //   // First, see if we can cheap out
-  //   long disp = (to - from);
-  //   if (ABS(disp) <= MAX_BRANCH) {
-  //       return generateBranch(gen, disp, isCall);
-  //   }
-
-  //   // We can use a register branch via the LR or CTR, if either of them
-  //   // is free.
-    
-  //   // Let's see if we can grab a free GPregister...
-  //   instPoint *point = gen.point();
-  //   if (!point) {
-  //       // fprintf(stderr, " %s[%d] No point generateBranchViaTrap \n", FILE__, __LINE__);
-  //       fprintf(stderr, "This is an instruction which we would trap on\n");
-  //       fprintf(stderr, "[insnCodeGen::generateLongBranch] Building long branch from %llx to %llx at position %llx and this branch call status is %d\n", from, to, gen.currAddr(), isCall);
-  //       // Generate branch via traps is broken, never call it. 
-  //       // assert(1 == 0);
-  //       // return generateBranchViaTrap(gen, from, to, isCall);
-  //   }
-
-  //   if 
-  //   // Could see if the codeGen has it, but right now we have assert
-  //   // code there and we don't want to hit that.
-  //   registerSpace *rs = registerSpace::actualRegSpace(point);
-  //   gen.setRegisterSpace(rs);
-  //   Dyninst::Register scratch = rs->getScratchRegister(gen);
-  //   // 
-  //   assert(scratch == Null_Register);
-
-  //   if (scratch == Null_Register) { 
-  //       // Just save and restore everything, this is bad but its likely safe and can be revisted later.
-  //       // GenerateSavesBaseTrampStyle(gen);
-  //       // everythingSaved = true;
-  //       // do nothing, return
-        
-  //       // scratch = registerSpace::r12;
-  //       // assert(everythingSaved != true)
-  //       // On Linux we save under the stack and hope it doesn't
-  //       // cause problems.
-        
-  //       // original
-  //       //fprintf(stderr, " %s[%d] No registers generateBranchViaTrap \n", FILE__, __LINE__);
-  //       return generateBranchViaTrap(gen, from, to, isCall);
-  //   }
-    
-  //   // Load the destination into our scratch register
-  //   insnCodeGen::loadImmIntoReg(gen, scratch, to);
-  //   unsigned branchRegister = registerSpace::lr;
-  //   // Find out whether the LR or CTR is "dead"...
-  //   //bitArray liveRegs = point->liveRegisters();
-  //   // unsigned branchRegister = 0;
-  //   // if (liveRegs[registerSpace::lr] == false || everythingSaved == true) {
-  //   //     branchRegister = registerSpace::lr;
-  //   // }
-  //   // else {
-  //   //     // live LR means we need to save/restore somewhere
-  //   //     if(isCall) return generateBranchViaTrap(gen, from, to, isCall);
-  //   //     if (liveRegs[registerSpace::ctr] == false) {
-  //   //         branchRegister = registerSpace::ctr;
-  //   //     }
-  //   // }
-
-  //   if (!branchRegister) {
-  //       fprintf(stderr, " %s[%d] No branch register generateBranchViaTrap \n", FILE__, __LINE__);
-  //       return generateBranchViaTrap(gen, from, to, isCall); 
-  //   }
-    
-  //   assert(branchRegister);
-
-  //   instruction moveToBr;
-  //   moveToBr.clear();
-  //   XFXFORM_OP_SET(moveToBr, MTSPRop);
-  //   XFXFORM_RT_SET(moveToBr, scratch);
-  //   if (branchRegister == registerSpace::lr) {
-  //       XFORM_RA_SET(moveToBr, SPR_LR & 0x1f);
-  //       XFORM_RB_SET(moveToBr, (SPR_LR >> 5) & 0x1f);
-  //       // The two halves (top 5 bits/bottom 5 bits) are _reversed_ in this encoding. 
-  //   }
-  //   else {
-  //       XFORM_RA_SET(moveToBr, SPR_CTR & 0x1f);
-  //       XFORM_RB_SET(moveToBr, (SPR_CTR >> 5) & 0x1f);
-  //   }
-  //   XFXFORM_XO_SET(moveToBr, MTSPRxop); // From assembly manual
-  //   insnCodeGen::generate(gen,moveToBr);
-  //   // Aaaand now branch, linking if appropriate
-  //   instruction branchToBr;
-  //   branchToBr.clear();
-  //   XLFORM_OP_SET(branchToBr, BCLRop);
-  //   XLFORM_BT_SET(branchToBr, 0x14); // From architecture manual
-  //   XLFORM_BA_SET(branchToBr, 0); // Unused
-  //   XLFORM_BB_SET(branchToBr, 0); // Unused
-  //   if (branchRegister == registerSpace::lr) {
-  //       XLFORM_XO_SET(branchToBr, BCLRxop);
-  //   }
-  //   else {
-  //       XLFORM_XO_SET(branchToBr, BCCTRxop);
-  //   }
-  //   XLFORM_LK_SET(branchToBr, (isCall ? 1 : 0));
-  //   insnCodeGen::generate(gen,branchToBr);
-
-  //   // restore the world
-  //   if(everythingSaved)
-  //     GenerateRestoresBaseTrampStyle(gen);
 }
 
 void insnCodeGen::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyninst::Address to, bool isCall) {
 
-  //fprintf(stderr, "[insnCodeGen::generateBranchViaTrap] Generating branch via trap from %p to %p\n", from, to);
     long disp = to - from;
     if (ABS(disp) <= MAX_BRANCH) {
         // We shouldn't be here, since this is an internal-called-only func.
@@ -621,8 +446,6 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyn
       if (gen.addrSpace()) {
           // Too far to branch.  Use trap-based instrumentation.
 
-        //fprintf(stderr, "I am in where we should be generating instructions\n" );
-        
         // Here is a potential strategy
         // 1. Create a stack frame
         // 2. Push a (we like r10) register to the frame.
@@ -1044,7 +867,6 @@ bool insnCodeGen::modifyJump(Dyninst::Address target,
 			     codeGen &gen) {
   failedLongBranchLocal = false;
   shouldAssertIfInLongBranch = false;
-//  fprintf(stderr, "Setting link: %d Target Dyninst::Address: %p\n", IFORM_LK(insn), target);
   //assert(IFORM_LK(insn) == true);
   generateBranch(gen,
 		 gen.currAddr(),
@@ -1063,7 +885,6 @@ bool insnCodeGen::modifyJumpCall(Dyninst::Address target,
            codeGen &gen) {
   failedLongBranchLocal = false;
   shouldAssertIfInLongBranch = false;
-  //fprintf(stderr, "Setting link: %d Target Dyninst::Address: %p\n", IFORM_LK(insn), target);
   //assert(IFORM_LK(insn) == true);
   generateBranch(gen,
      gen.currAddr(),
