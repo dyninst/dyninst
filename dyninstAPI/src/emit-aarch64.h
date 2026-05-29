@@ -47,33 +47,6 @@ class registerSpace;
 
 class baseTramp;
 
-class EmitterAARCH64Stat : public EmitterAARCH64 {
-public:
-    virtual ~EmitterAARCH64Stat() {}
-
-    virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
-
-    virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
-
-    virtual bool emitTOCCall(block_instance *dest, codeGen &gen);
-
-    virtual bool emitTOCJump(block_instance *dest, codeGen &gen);
-
-protected:
-    virtual bool emitCallInstruction(codeGen &, func_instance *, bool,
-                                     Address);
-
-    virtual Register emitCallReplacement(opCode, codeGen &,
-                                         func_instance *) {
-        assert(0 && "emitCallReplacement not implemented for binary rewriter");
-    }
-
-private:
-    bool emitPLTCommon(func_instance *dest, bool call, codeGen &gen);
-
-    bool emitTOCCommon(block_instance *dest, bool call, codeGen &gen);
-};
-
 class EmitterAARCH64SaveRegs {
 public:
     virtual ~EmitterAARCH64SaveRegs() {}
