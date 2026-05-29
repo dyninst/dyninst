@@ -435,7 +435,12 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyn
         // We shouldn't be here, since this is an internal-called-only func.
         return generateBranch(gen, disp, isCall);
     }
-    assert(isCall == false);
+
+    if(isCall) {
+      bperr("Cannot generate branch via trap for calls.");
+      assert(0);
+    }
+
     if (gen.addrSpace()) {
         // Too far to branch.  Use trap-based instrumentation.
 
