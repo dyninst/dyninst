@@ -1,5 +1,6 @@
 #include "arch-regs-x86.h"
 #include "EmitterIA32Stat.h"
+#include "encoding-x86.h"
 #include "function.h"
 #include "inst-x86.h"
 #include "registerSpace/RealRegister.h"

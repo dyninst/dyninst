@@ -4,6 +4,7 @@
 #include "Architecture.h"
 #include "binaryEdit.h"
 #include "BPatch_memoryAccess_NP.h"
+#include "codegen-x86.h"
 #include "codegen/emitters/x86/Emitterx86.h"
 #include "codegen/RegControl.h"
 #include "common/src/bitmath.h"
