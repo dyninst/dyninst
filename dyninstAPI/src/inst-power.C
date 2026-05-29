@@ -58,6 +58,7 @@
 #include "emitter.h"
 #include "emit-power.h"
 #include "codegen/emitters/PowerPC/generators.h"
+#include "codegen/emitters/PowerPC/ppc32/EmitterPowerPC32Dyn.h"
 
 #include <sstream>
 

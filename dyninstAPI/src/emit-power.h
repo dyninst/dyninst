@@ -46,16 +46,11 @@
 #include "dyninstAPI/src/emitter.h"
 #include "function_cache.h"
 #include "codegen/emitters/PowerPC/EmitterPowerPC.h"
+#include "codegen/emitters/PowerPC/ppc32/EmitterPowerPC32Dyn.h"
 
 class codeGen;
 class registerSpace;
 class baseTramp;
-
-class EmitterPOWER32Dyn : public Dyninst::DyninstAPI::EmitterPowerPC
-{
-  public:
-    virtual ~EmitterPOWER32Dyn() {}
-};
 
 class EmitterPOWER32Stat : public Dyninst::DyninstAPI::EmitterPowerPC
 {

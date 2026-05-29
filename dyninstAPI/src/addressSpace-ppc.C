@@ -2,6 +2,7 @@
 #include "Instruction.h"
 #include "Register.h"
 #include "addressSpace.h"
+#include "codegen/emitters/PowerPC/ppc32/EmitterPowerPC32Dyn.h"
 #include "emit-power.h"
 #include "registerSpace/registerSpace.h"
 #include "registers/ppc32_regs.h"
@@ -49,7 +50,7 @@ bool AddressSpace::getDynamicCallSiteArgs(di::Instruction i, Address addr,
 }
 
 Emitter *AddressSpace::getEmitter() {
-  static EmitterPOWER32Dyn emitter32Dyn;
+  static Dyninst::DyninstAPI::EmitterPowerPC32Dyn emitter32Dyn;
   static EmitterPOWER64Dyn emitter64Dyn;
   static EmitterPOWER32Stat emitter32Stat;
   static EmitterPOWER64Stat emitter64Stat;
