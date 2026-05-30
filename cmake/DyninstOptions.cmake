@@ -57,6 +57,16 @@ option(DYNINST_ENABLE_FILEFORMAT_PE "Enable PE (Windows .exe/.dll) parsing" OFF)
 
 option(DYNINST_ENABLE_CAPSTONE "Enable Capstone" OFF)
 
+option(
+  DYNINST_ENABLE_ZYDIS
+  "Use Zydis to recover the length of x86-64 instructions InstructionAPI cannot decode"
+  OFF)
+
+option(
+  DYNINST_ENABLE_XED
+  "Use Intel XED to recover the length of x86-64 instructions InstructionAPI cannot decode"
+  OFF)
+
 set(DYNINST_CODEGEN_ARCH
     ""
     CACHE STRING

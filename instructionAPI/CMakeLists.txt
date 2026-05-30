@@ -153,16 +153,29 @@ else()
   set(_capstone_dep)
 endif()
 
+# Optional decoders used by the built-in "unknown instruction" callback to
+# recover the length of x86-64 instructions InstructionAPI cannot decode.
+set(_unknown_insn_deps)
+set(_unknown_insn_defines)
+if(DYNINST_ENABLE_ZYDIS)
+  list(APPEND _unknown_insn_deps Dyninst::Zydis)
+  list(APPEND _unknown_insn_defines DYNINST_ENABLE_ZYDIS)
+endif()
+if(DYNINST_ENABLE_XED)
+  list(APPEND _unknown_insn_deps Dyninst::XED)
+  list(APPEND _unknown_insn_defines DYNINST_ENABLE_XED)
+endif()
+
 # cmake-format: off
 dyninst_library(
   instructionAPI
   PUBLIC_HEADER_FILES ${_public_headers}
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
-  DEFINES INSTRUCTION_LIB
+  DEFINES INSTRUCTION_LIB ${_unknown_insn_defines}
   DYNINST_DEPS common
   PUBLIC_DEPS Dyninst::Boost_headers
-  PRIVATE_DEPS ${_capstone_dep}
+  PRIVATE_DEPS ${_capstone_dep} ${_unknown_insn_deps}
 )
 # cmake-format: on
 
