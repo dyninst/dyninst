@@ -435,49 +435,34 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyn
         // We shouldn't be here, since this is an internal-called-only func.
         return generateBranch(gen, disp, isCall);
     }
-    //assert (isCall == false); // Can't do this yet
-    if (isCall) {
-      // Screw using a trap, just emit a call and save/restore all registers (painful but whatever).
-      //emitCall()
-      assert(isCall == false);       
-      //assert(shouldAssertIfInLongBranch != true);
-      // failedLongBranchLocal = true;
-    } else {    
-      if (gen.addrSpace()) {
-          // Too far to branch.  Use trap-based instrumentation.
 
-        // Here is a potential strategy
-        // 1. Create a stack frame
-        // 2. Push a (we like r10) register to the frame.
-        // 3. Calculate the effective address into the register
-        // 4. Push to TAR
-        // 5. Restore previous register
-        // 6. Delete frame
-        // 7. branch to tar. 
+    if(isCall) {
+      bperr("Cannot generate branch via trap for calls.");
+      assert(0);
+    }
 
+    if (gen.addrSpace()) {
+        // Too far to branch.  Use trap-based instrumentation.
 
-        //instruction insn(NOOPraw);
-        //insnCodeGen::generate(gen,insn);
-        //insnCodeGen::generate(gen,insn);
-        //insnCodeGen::generate(gen,insn);
-        //insnCodeGen::generate(gen,insn);
-        //insnCodeGen::generate(gen,insn);
-        //insnCodeGen::generate(gen,insn);
-        //insnCodeGen::generate(gen,insn);
-        //insnCodeGen::generate(gen,insn);
-        //insnCodeGen::generate(gen,insn);
-        gen.addrSpace()->trapMapping.addTrapMapping(from, to, true);
-        insnCodeGen::generateTrap(gen);        
-      } else {
-          // Too far to branch and no proc to register trap.
-          fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
-                  (unsigned long)ABS(disp), (unsigned long) MAX_BRANCH);
-          bperr( "Error: attempted a branch of 0x%lx\n", (unsigned long)disp);
-          logLine("a branch too far\n");
-          showErrorCallback(52, "Internal error: branch too far");
-          bperr( "Attempted to make a branch of offset 0x%lx\n", (unsigned long)disp);
-          assert(0);
-      }
+      // Here is a potential strategy
+      // 1. Create a stack frame
+      // 2. Push a (we like r10) register to the frame.
+      // 3. Calculate the effective address into the register
+      // 4. Push to TAR
+      // 5. Restore previous register
+      // 6. Delete frame
+      // 7. branch to tar.
+      gen.addrSpace()->trapMapping.addTrapMapping(from, to, true);
+      insnCodeGen::generateTrap(gen);
+    } else {
+        // Too far to branch and no proc to register trap.
+        fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
+                (unsigned long)ABS(disp), (unsigned long) MAX_BRANCH);
+        bperr( "Error: attempted a branch of 0x%lx\n", (unsigned long)disp);
+        logLine("a branch too far\n");
+        showErrorCallback(52, "Internal error: branch too far");
+        bperr( "Attempted to make a branch of offset 0x%lx\n", (unsigned long)disp);
+        assert(0);
     }
 }
 
