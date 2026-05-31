@@ -59,10 +59,6 @@ if(DYNINST_ENABLE_ZYDIS)
   include(DyninstZydis)
 endif()
 
-if(DYNINST_ENABLE_XED)
-  include(DyninstXED)
-endif()
-
 add_subdirectory(common)
 add_subdirectory(elf)
 add_subdirectory(dwarf)

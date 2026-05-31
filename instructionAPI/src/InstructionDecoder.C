@@ -35,24 +35,9 @@
 
 #include <algorithm>
 #include <array>
-#include <mutex>
 
 #if defined(DYNINST_ENABLE_ZYDIS)
 #include <Zydis/Zydis.h>
-#endif
-
-#if defined(DYNINST_ENABLE_XED)
-extern "C" {
-#if defined(__has_include)
-#if __has_include(<xed/xed-interface.h>)
-#include <xed/xed-interface.h>
-#else
-#include <xed-interface.h>
-#endif
-#else
-#include <xed-interface.h>
-#endif
-}
 #endif
 
 namespace {
@@ -60,7 +45,7 @@ namespace {
   using ui = ia::InstructionDecoder::unknown_instruction;
   ui::callback_t callback{};
 
-#if defined(DYNINST_ENABLE_ZYDIS) || defined(DYNINST_ENABLE_XED)
+#if defined(DYNINST_ENABLE_ZYDIS)
   // Built-in "unknown instruction" callback for x86-64. InstructionAPI calls
   // this when it cannot decode a byte sequence; we only need the length of the
   // instruction so the decoder can skip over it, so we hand back a no-op of the
@@ -68,45 +53,16 @@ namespace {
   ia::Instruction default_x86_callback(ia::InstructionDecoder::buffer seqn) {
     using namespace Dyninst;
     auto const buf_len = static_cast<size_t>(seqn.end - seqn.start);
-    bool is_valid = false;
-    unsigned int insn_len = 0;
 
-#if defined(DYNINST_ENABLE_ZYDIS)
-    // Try Zydis first.
-    if(!is_valid) {
-      ZydisDecoder decoder;
-      ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LONG_64, ZYDIS_STACK_WIDTH_64);
+    ZydisDecoder decoder;
+    ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LONG_64, ZYDIS_STACK_WIDTH_64);
 
-      ZydisDecodedInstruction insn;
-      ZydisDecodedOperand operands[ZYDIS_MAX_OPERAND_COUNT];
-      ZyanStatus status =
-          ZydisDecoderDecodeFull(&decoder, seqn.start, buf_len, &insn, operands);
-      if(ZYAN_SUCCESS(status)) {
-        is_valid = true;
-        insn_len = insn.length;
-      }
-    }
-#endif
-
-#if defined(DYNINST_ENABLE_XED)
-    // Fall back to XED if Zydis is unavailable or could not decode.
-    if(!is_valid) {
-      xed_decoded_inst_t xedd;
-      xed_state_t dstate;
-      xed_state_zero(&dstate);
-      dstate.mmode = XED_MACHINE_MODE_LONG_64;
-      xed_decoded_inst_zero_set_mode(&xedd, &dstate);
-
-      auto const len = static_cast<unsigned int>(buf_len);
-      if(xed_decode(&xedd, seqn.start, len) == XED_ERROR_NONE) {
-        is_valid = true;
-        insn_len = xed_decoded_inst_get_length(&xedd);
-      }
-    }
-#endif
-
-    if(is_valid && insn_len > 0) {
-      return ia::Instruction{ia::Operation{e_nop, "nop", Arch_x86_64}, insn_len,
+    ZydisDecodedInstruction insn;
+    ZydisDecodedOperand operands[ZYDIS_MAX_OPERAND_COUNT];
+    ZyanStatus status =
+        ZydisDecoderDecodeFull(&decoder, seqn.start, buf_len, &insn, operands);
+    if(ZYAN_SUCCESS(status) && insn.length > 0) {
+      return ia::Instruction{ia::Operation{e_nop, "nop", Arch_x86_64}, insn.length,
                              seqn.start, Arch_x86_64};
     }
     return ia::Instruction{};
@@ -166,12 +122,7 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   bool InstructionDecoder::unknown_instruction::register_default_callback() {
-#if defined(DYNINST_ENABLE_ZYDIS) || defined(DYNINST_ENABLE_XED)
-#if defined(DYNINST_ENABLE_XED)
-    // XED requires a one-time global table initialization before xed_decode.
-    static std::once_flag xed_init_flag;
-    std::call_once(xed_init_flag, []() { xed_tables_init(); });
-#endif
+#if defined(DYNINST_ENABLE_ZYDIS)
     ::callback = &default_x86_callback;
     return true;
 #else

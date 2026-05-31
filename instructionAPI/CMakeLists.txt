@@ -153,17 +153,13 @@ else()
   set(_capstone_dep)
 endif()
 
-# Optional decoders used by the built-in "unknown instruction" callback to
+# Optional decoder used by the built-in "unknown instruction" callback to
 # recover the length of x86-64 instructions InstructionAPI cannot decode.
 set(_unknown_insn_deps)
 set(_unknown_insn_defines)
 if(DYNINST_ENABLE_ZYDIS)
   list(APPEND _unknown_insn_deps Dyninst::Zydis)
   list(APPEND _unknown_insn_defines DYNINST_ENABLE_ZYDIS)
-endif()
-if(DYNINST_ENABLE_XED)
-  list(APPEND _unknown_insn_deps Dyninst::XED)
-  list(APPEND _unknown_insn_defines DYNINST_ENABLE_XED)
 endif()
 
 # cmake-format: off
