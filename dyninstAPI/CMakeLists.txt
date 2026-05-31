@@ -45,7 +45,6 @@ set(_private_headers
     src/dynProcess.h
     src/dynThread.h
     src/emit-amdgpu.h
-    src/emit-amdgpu.h
     src/emit-power.h
     src/emitter.h
     src/emit-x86.h
