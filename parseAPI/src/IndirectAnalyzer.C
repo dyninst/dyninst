@@ -339,7 +339,7 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
             if (jtrv.readAddress > maxReadAddress) maxReadAddress = jtrv.readAddress;
             if (prevReadAddress > 0) indexStride = jtrv.readAddress - prevReadAddress;
             prevReadAddress = jtrv.readAddress;
-            parsing_printf("\t index %d, table address %lx, target address %lx\n", v, jtrv.readAddress, jtrv.targetAddress);
+            parsing_printf("\t index %ld, table address %lx, target address %lx\n", v, jtrv.readAddress, jtrv.targetAddress);
             jumpTargets.insert(jtrv.targetAddress);
             entries[jtrv.readAddress] = jtrv.targetAddress;
         } else {
