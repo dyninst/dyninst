@@ -41,7 +41,6 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     APPEND
     _sources
     emitters/aarch64/EmitterAarch64.C
-    emitters/aarch64/EmitterAarch64.C
     emitters/aarch64/EmitterAarch64Stat.C
     emitters/aarch64/EmitterAarch64RestoreRegs.C
     emitters/aarch64/EmitterAarch64SaveRegs.C
