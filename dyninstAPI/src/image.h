@@ -69,7 +69,7 @@
 
 #include "parseAPI/h/CodeObject.h"
 #include "parseAPI/h/CodeSource.h"
-#include "dyninstAPI/src/Parsing.h"
+#include "parsing/Parsing.h"
 
 
 using namespace std;

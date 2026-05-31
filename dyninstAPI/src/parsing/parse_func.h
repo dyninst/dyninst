@@ -34,7 +34,7 @@
 #include "codeRange.h"
 #include "Function.h"
 #include "parse_block.h"
-#include "Parsing.h"
+#include "parsing/Parsing.h"
 #include "Symbol.h"
 
 #include <string>

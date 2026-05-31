@@ -44,7 +44,7 @@
 #include "dyninstAPI/src/dynProcess.h"
 #include "symtabAPI/h/Symtab.h"
 #include "InstructionDecoder.h"
-#include "Parsing.h"
+#include "parsing/Parsing.h"
 #include "instPoint.h"
 #include <boost/tuple/tuple.hpp>
 #include "BPatch_image.h"

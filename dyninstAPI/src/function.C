@@ -43,7 +43,7 @@
 
 #include "PatchMgr.h" // Scope
 
-#include "Parsing.h"
+#include "parsing/Parsing.h"
 
 #include "binaryEdit.h"
 
