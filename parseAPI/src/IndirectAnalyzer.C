@@ -326,7 +326,7 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
     set<Address> jumpTargets;
     int64_t start = 0;
     Address prevReadAddress = 0;
-    if (indexBound.low > 0) start = indexBound.low = start;
+    if (indexBound.low > 0) start = indexBound.low;
     for (int64_t v = start; v <= indexBound.high; v += indexBound.stride) {
         JumpTableReadVisitor jtrv(index, v, cs, block->region(), isZeroExtend, memoryReadSize);
         jumpTargetExpr->accept(&jtrv);
