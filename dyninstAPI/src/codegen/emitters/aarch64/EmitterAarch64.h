@@ -109,7 +109,7 @@ namespace Dyninst { namespace DyninstAPI {
     void emitLoadShared(opCode op, Dyninst::Register dest, const image_variable *var, bool is_local,
                         int size, codeGen &gen, Address offset) override;
 
-    Address emitMovePCToReg(Dyninst::Register, codeGen &gen);
+    Address emitMovePCToReg(Dyninst::Register, codeGen &gen) override;
 
     bool emitMoveRegToReg(Dyninst::Register, Dyninst::Register, codeGen &) override;
 
