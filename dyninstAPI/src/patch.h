@@ -96,10 +96,10 @@ public:
 class ifTargetPatch : public patchTarget
 {
  private:
-   signed int targetOffset;
+   Dyninst::Address targetOffset;
  public:
-   ifTargetPatch(signed int o) { targetOffset = o; }
-   virtual Dyninst::Address get_address() const { return (Dyninst::Address) targetOffset; }
+   ifTargetPatch(Dyninst::Address o) { targetOffset = o; }
+   virtual Dyninst::Address get_address() const { return targetOffset; }
    virtual unsigned get_size() const { return 0; }
    virtual std::string get_name() const { return std::string("ifTarget"); }
    virtual ~ifTargetPatch() { }
