@@ -401,6 +401,8 @@ class DYNINST_EXPORT Function : public AnnotatableSparse, public boost::lockable
         int indexStride;
         int memoryReadSize;
         bool isZeroExtend;
+        // If there's something wrong with targets
+        bool areBoundsUnreliable;
         std::map<Address, Address> tableEntryMap;
         Block* block;
     };
