@@ -462,7 +462,7 @@ bool IA_riscv64::isMultiInsnJump(Address *target, Function *context, Block *curr
             auto simplifiedAST = se.SimplifyAnAST(origAST, 0, false);
             if (simplifiedAST->getID() == AST::V_ConstantAST) {
                 DataflowAPI::ConstantAST::Ptr constAST = boost::static_pointer_cast<DataflowAPI::ConstantAST>(simplifiedAST);
-                uint32_t evalAddr = constAST->val().val;
+                Address evalAddr = constAST->val().val;
                 *target = evalAddr;
                 return true;
             }
