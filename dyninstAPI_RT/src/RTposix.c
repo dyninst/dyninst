@@ -154,6 +154,12 @@ int DYNINSTasyncConnect(int pid)
   rtdebug_printf("%s[%d]:  DYNINSTasyncConnnect:  after socket\n", __FILE__, __LINE__);
 
   sadr.sun_family = PF_UNIX;
+  if (strlen(socket_path) >= sizeof(sadr.sun_path)) {
+    fprintf(stderr, "%s[%d]: DYNINSTasyncConnect() socket path too long: %s\n",
+            __FILE__, __LINE__, socket_path);
+    close(sock_fd);
+    return 0;
+  }
   strcpy(sadr.sun_path, socket_path);
 
   rtdebug_printf("%s[%d]:  DYNINSTasyncConnnect:  before connect\n", __FILE__, __LINE__);
