@@ -45,8 +45,6 @@ set(_private_headers
     src/dynProcess.h
     src/dynThread.h
     src/emit-amdgpu.h
-    src/emit-aarch64.h
-    src/emit-amdgpu.h
     src/emit-power.h
     src/emitter.h
     src/emit-x86.h
@@ -142,7 +140,7 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(APPEND _sources src/inst-power.C src/codegen-power.C src/RegisterConversion-ppc.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
-  list(APPEND _sources src/inst-aarch64.C src/emit-aarch64.C src/codegen-aarch64.C
+  list(APPEND _sources src/inst-aarch64.C src/codegen-aarch64.C
        src/RegisterConversion-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(

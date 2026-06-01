@@ -3,17 +3,21 @@
 #include "codegen-aarch64.h"
 #include "codegen.h"
 #include "debug.h"
-#include "emit-aarch64.h"
+#include "codegen/emitters/aarch64/EmitterAarch64RestoreRegs.h"
+#include "codegen/emitters/aarch64/EmitterAarch64SaveRegs.h"
+#include "codegen/emitters/aarch64/generators.h"
 #include "inst-aarch64.h"
 #include "registerSpace.h"
+
+namespace dapi = Dyninst::DyninstAPI;
 
 bool baseTramp_aarch64::generateSaves(codeGen &gen, registerSpace *) {
   regalloc_printf("========== baseTramp::generateSaves\n");
 
   // Make a stack frame.
-  pushStack(gen);
+  dapi::aarch64::pushStack(gen);
 
-  EmitterAARCH64SaveRegs saveRegs;
+  dapi::EmitterAarch64SaveRegs saveRegs;
   unsigned int width = gen.width();
 
   saveRegs.saveGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
@@ -47,7 +51,7 @@ bool baseTramp_aarch64::generateSaves(codeGen &gen, registerSpace *) {
 }
 
 bool baseTramp_aarch64::generateRestores(codeGen &gen, registerSpace *) {
-  EmitterAARCH64RestoreRegs restoreRegs;
+  dapi::EmitterAarch64RestoreRegs restoreRegs;
   unsigned int width = gen.width();
 
   restoreRegs.restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
@@ -59,7 +63,7 @@ bool baseTramp_aarch64::generateRestores(codeGen &gen, registerSpace *) {
   restoreRegs.restoreGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
 
   // Tear down the stack frame.
-  popStack(gen);
+  dapi::aarch64::popStack(gen);
 
   return true;
 }

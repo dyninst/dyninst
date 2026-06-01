@@ -59,7 +59,7 @@
 #include "dyninstAPI/src/emit-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "dyninstAPI/src/inst-aarch64.h"
-#include "dyninstAPI/src/emit-aarch64.h"
+#include "codegen/emitters/aarch64/EmitterAarch64.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 #include "arch-amdgpu.h"
 #include "dyninstAPI/src/emit-amdgpu.h"
