@@ -56,7 +56,7 @@
 #include "mapped_object.h"
 
 #include <sstream>
-#include "Parsing.h"
+#include "parsing/Parsing.h"
 
 #include "Command.h"
 #include "Relocation/DynInstrumenter.h"

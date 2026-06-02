@@ -33,7 +33,7 @@
 
 #include "parse_func.h"
 
-#include "Parsing.h"
+#include "parsing/Parsing.h"
 #include "debug.h"
 
 using namespace Dyninst;

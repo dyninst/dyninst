@@ -36,7 +36,7 @@
 #include "parse_block.h"
 #include "parse_func.h"
 #include "instPoint.h"
-#include "Parsing.h"
+#include "parsing/Parsing.h"
 #include "debug.h"
 #include "BPatch.h"
 #include "mapped_object.h"
