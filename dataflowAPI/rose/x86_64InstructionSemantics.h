@@ -1388,11 +1388,13 @@ struct X86_64InstructionSemantics {
                         break;
                     }
                     case 8: {
+                        // 64-bit shifts mask the count modulo 64, not 32
+                        Word(6) shiftCount64 = extract<0, 6>(read8(operands[1]));
                         Word(64) op = read64(operands[0]);
-                        Word(64) output = policy.shiftLeft(op, shiftCount);
+                        Word(64) output = policy.shiftLeft(op, shiftCount64);
                         Word(1) newCf = policy.ite(shiftCountZero,
                                                    policy.readFlag(x86_flag_cf),
-                                                   extract<63, 64>(policy.shiftLeft(op, policy.add(shiftCount, number<5>(63)))));
+                                                   extract<63, 64>(policy.shiftLeft(op, policy.add(shiftCount64, number<6>(63)))));
                         policy.writeFlag(x86_flag_cf, newCf);
                         policy.writeFlag(x86_flag_of, policy.ite(shiftCountZero,
                                                                  policy.readFlag(x86_flag_of),
@@ -1453,11 +1455,13 @@ struct X86_64InstructionSemantics {
                         break;
                     }
                     case 8: {
+                        // 64-bit shifts mask the count modulo 64, not 32
+                        Word(6) shiftCount64 = extract<0, 6>(read8(operands[1]));
                         Word(64) op = read64(operands[0]);
-                        Word(64) output = policy.shiftRight(op, shiftCount);
+                        Word(64) output = policy.shiftRight(op, shiftCount64);
                         Word(1) newCf = policy.ite(shiftCountZero,
                                                    policy.readFlag(x86_flag_cf),
-                                                   extract<0, 1>(policy.shiftRight(op, policy.add(shiftCount, number<5>(63)))));
+                                                   extract<0, 1>(policy.shiftRight(op, policy.add(shiftCount64, number<6>(63)))));
                         policy.writeFlag(x86_flag_cf, newCf);
                         policy.writeFlag(x86_flag_of, policy.ite(shiftCountZero,
                                                                  policy.readFlag(x86_flag_of),
@@ -1525,13 +1529,15 @@ struct X86_64InstructionSemantics {
                         break;
                     }
                     case 8: {
+                        // 64-bit shifts mask the count modulo 64, not 32
+                        Word(6) shiftCount64 = extract<0, 6>(read8(operands[1]));
                         Word(64) op = read64(operands[0]);
-                        Word(64) output = policy.shiftRightArithmetic(op, shiftCount);
+                        Word(64) output = policy.shiftRightArithmetic(op, shiftCount64);
                         Word(1) newCf = policy.ite(shiftCountZero,
                                                    policy.readFlag(x86_flag_cf),
-                                                   extract<0, 1>(policy.shiftRight(op, policy.add(shiftCount, number<5>(63)))));
+                                                   extract<0, 1>(policy.shiftRight(op, policy.add(shiftCount64, number<6>(63)))));
                         policy.writeFlag(x86_flag_cf, newCf);
-                        // No change with sc = 0, clear when sc = 1, undefined otherwise 
+                        // No change with sc = 0, clear when sc = 1, undefined otherwise
                         policy.writeFlag(x86_flag_of, policy.ite(shiftCountZero,
                                                                  policy.readFlag(x86_flag_of),
                                                                  policy.false_()));
@@ -1636,7 +1642,8 @@ struct X86_64InstructionSemantics {
                     }
                     case 8: {
                         Word(64) op = read64(operands[0]);
-                        Word(5) shiftCount = extract<0, 5>(read8(operands[1]));
+                        // 64-bit rotates mask the count modulo 64, not 32
+                        Word(6) shiftCount = extract<0, 6>(read8(operands[1]));
                         Word(64) output = policy.rotateRight(op, shiftCount);
                         policy.writeFlag(x86_flag_cf, policy.ite(policy.equalToZero(shiftCount),
                                                                  policy.readFlag(x86_flag_cf),

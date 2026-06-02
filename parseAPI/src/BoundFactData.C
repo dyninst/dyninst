@@ -230,16 +230,18 @@ void StridedInterval::Div(const StridedInterval &rhs) {
 }
 
 void StridedInterval::ShiftLeft(const StridedInterval &rhs) {
-    if (rhs.stride == 0) {
-        Mul(StridedInterval(1 << rhs.low));
+    // A shift amount of 64 or more is undefined at the machine level and
+    // would also overflow the 64-bit shift below; treat it as top.
+    if (rhs.stride == 0 && rhs.low >= 0 && rhs.low < 64) {
+        Mul(StridedInterval((int64_t)1 << rhs.low));
     } else {
         // In other case, we widen
 	*this = top;
     }
 }
 void StridedInterval::ShiftRight(const StridedInterval &rhs) {
-    if (rhs.stride == 0) {
-        Div(StridedInterval(1 << rhs.low));
+    if (rhs.stride == 0 && rhs.low >= 0 && rhs.low < 64) {
+        Div(StridedInterval((int64_t)1 << rhs.low));
     } else {
         // In other case, we widen
 	*this = top;
