@@ -51,7 +51,7 @@
 #include "ASTs/ast.h"
 #include "syscallNotification.h"
 #include "trampolines/baseTramp.h"
-#include "instMapping.h"
+#include "patching/instMapping.h"
 #include "Symtab.h"
 
 #include "symtabAPI/h/SymtabReader.h"

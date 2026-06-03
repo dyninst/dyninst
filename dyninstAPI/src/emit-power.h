@@ -41,7 +41,7 @@
 #include <vector>
 #include "codegen/RegControl.h"
 #include "common/src/headers.h"
-#include "dyninstAPI/src/instPoint.h"
+#include "patching/instPoint.h"
 #include "trampolines/baseTramp.h"
 #include "dyninstAPI/src/emitter.h"
 #include "function_cache.h"

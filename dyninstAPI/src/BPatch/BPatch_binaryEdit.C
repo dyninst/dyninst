@@ -32,8 +32,8 @@
 
 #include "binaryEdit.h"
 #include "addressSpace.h"
-#include "instPoint.h"
-#include "function.h" // func_instance
+#include "patching/instPoint.h"
+#include "patching/function.h" // func_instance
 #include "codeRange.h"
 
 #include "mapped_module.h"

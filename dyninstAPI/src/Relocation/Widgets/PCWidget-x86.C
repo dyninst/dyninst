@@ -34,7 +34,7 @@
 #include "../CFG/RelocBlock.h"
 #include "../CodeBuffer.h"
 #include "../CodeTracker.h"
-#include "dyninstAPI/src/function.h"
+#include "patching/function.h"
 
 #include "dyninstAPI/src/addressSpace.h" // For determining which type of getPC to emit
 #include "dyninstAPI/src/RegisterConversion.h"

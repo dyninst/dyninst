@@ -1,4 +1,4 @@
-#include "function.h"
+#include "patching/function.h"
 #include "image.h"
 #include "InstructionDecoder.h"
 #include "parsing/parse_func.h"

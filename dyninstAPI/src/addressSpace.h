@@ -53,7 +53,7 @@
 #include "Relocation/Relocation.h"
 #include "Relocation/CodeTracker.h"
 #include "Relocation/Springboard.h"
-#include "Patching.h"
+#include "patching/Patching.h"
 
 #include "PatchMgr.h"
 #include "Command.h"

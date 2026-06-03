@@ -34,7 +34,7 @@
 
 #include "BPatch_thread.h"
 #include "BPatch.h"
-#include "instPoint.h"
+#include "patching/instPoint.h"
 #include "codeRange.h"
 #include "frame.h"
 

@@ -34,9 +34,9 @@
 
 #include <string.h>
 #include <string>
-#include "function.h"
-#include "instPoint.h"
+#include "patching/function.h"
 #include "ASTs/ast.h"
+#include "patching/instPoint.h"
 
 #include "BPatch.h"
 #include "BPatch_function.h"

@@ -44,7 +44,7 @@
 
 #include "dyninst_visibility.h"
 #include "image.h"
-#include "instPoint.h"
+#include "patching/instPoint.h"
 #include "debug.h"
 
 #include "Instruction.h"
@@ -53,8 +53,8 @@
 
 #include "BPatch_flowGraph.h"
 #include "mapped_object.h"
-#include "function.h"
-#include "block.h"
+#include "patching/function.h"
+#include "patching/block.h"
 
 #include "PatchCFG.h"
 

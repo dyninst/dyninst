@@ -36,9 +36,9 @@
 #include <iosfwd>
 #include <vector>
 
-#include "instPoint.h"
+#include "patching/instPoint.h"
 #include "trampolines/baseTramp.h"
-#include "function.h"
+#include "patching/function.h"
 
 #include "stackwalk/h/frame.h"
 

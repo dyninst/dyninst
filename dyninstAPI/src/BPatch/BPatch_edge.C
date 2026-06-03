@@ -31,11 +31,11 @@
 #define BPATCH_FILE
 
 #include "dyninst_visibility.h"
-#include "function.h"
+#include "patching/function.h"
 #include "BPatch_edge.h"
 #include "BPatch_flowGraph.h"
 #include "BPatch_basicBlock.h"
-#include "instPoint.h"
+#include "patching/instPoint.h"
 #include "BPatch_process.h"
 #include "BPatch_point.h"
 

@@ -35,7 +35,7 @@
 #include "dyntypes.h"
 #include "dyn_register.h"
 #include "arch-power.h"
-#include "patch.h"
+#include "patching/patch.h"
 
 class AddressSpace;
 class codeGen;

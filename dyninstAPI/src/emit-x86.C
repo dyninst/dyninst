@@ -39,7 +39,7 @@
 #include "common/src/bitmath.h"
 #include "compiler_annotations.h"
 #include "dyninstAPI/src/codegen.h"
-#include "dyninstAPI/src/function.h"
+#include "patching/function.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/debug.h"

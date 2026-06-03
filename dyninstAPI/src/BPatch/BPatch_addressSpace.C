@@ -31,12 +31,12 @@
 #define BPATCH_FILE
 
 #include "binaryEdit.h"
-#include "function.h" // Dyninst::PatchAPI::PatchFunction
+#include "patching/function.h" // Dyninst::PatchAPI::PatchFunction
 #include "codeRange.h"
 #include "addressSpace.h"
 #include "dynProcess.h"
 #include "debug.h"
-#include "instMapping.h"
+#include "patching/instMapping.h"
 #include "mapped_module.h"
 
 #include "BPatch_libInfo.h"

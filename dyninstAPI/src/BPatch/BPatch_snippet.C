@@ -48,8 +48,8 @@
 #include "mapped_object.h" // for savetheworld
 #include "mapped_module.h"
 #include "ASTs/ast.h"
-#include "function.h"
-#include "instPoint.h"
+#include "patching/function.h"
+#include "patching/instPoint.h"
 #include "registerSpace/registerSpace.h"
 #include "debug.h"
 #include "dynProcess.h"

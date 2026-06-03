@@ -36,8 +36,8 @@
 #include "../Widgets/CFWidget.h"
 #include "../Widgets/InstWidget.h"
 #include "../CFG/RelocGraph.h"
-#include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/function.h"
+#include "patching/instPoint.h"
+#include "patching/function.h"
 #include "../Widgets/CallbackWidget.h"
 
 

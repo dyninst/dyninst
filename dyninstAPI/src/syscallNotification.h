@@ -38,7 +38,7 @@
 
 #include <cassert>
 #include <cstdlib>
-#include "instMapping.h"
+#include "patching/instMapping.h"
 
 class PCProcess;
 

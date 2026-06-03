@@ -37,8 +37,8 @@
 #include "BPatch_libInfo.h"
 #include "BPatch_process.h"
 #include "dyninst_visibility.h"
-#include "function.h"
-#include "instPoint.h"
+#include "patching/function.h"
+#include "patching/instPoint.h"
 #include "addressSpace.h"
 
 /**************************************************************************

@@ -39,7 +39,7 @@
 
 #include "Instruction.h"
 
-#include "dyninstAPI/src/function.h"
+#include "patching/function.h"
 #include "StackMod.h"
 #include "StackModExpr.h"
 

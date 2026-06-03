@@ -33,7 +33,7 @@
 #include "BPatch_addressSpace.h"
 #include "BPatch_module.h"
 #include "RegisterConversion.h"
-#include "instPoint.h"
+#include "patching/instPoint.h"
 #include "liveness.h"
 
 // The raw kernel descriptor

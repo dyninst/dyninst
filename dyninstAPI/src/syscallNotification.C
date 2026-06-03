@@ -33,7 +33,7 @@
 #include "common/src/headers.h"
 #include "dyninstAPI/src/syscallNotification.h"
 #include "dyninstAPI/src/dynProcess.h"
-#include "instMapping.h"
+#include "patching/instMapping.h"
 #include "EventType.h"
 #include "dyninstAPI/src/pcEventMuxer.h"
 #include "patchAPI/h/PatchMgr.h"

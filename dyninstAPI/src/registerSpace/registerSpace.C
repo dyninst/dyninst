@@ -31,11 +31,11 @@
 // $Id: registerSpace.C,v 1.25 2008/10/27 17:23:53 mlam Exp $
 
 #include "dyninstAPI/src/image.h"
-#include "dyninstAPI/src/instPoint.h"
+#include "patching/instPoint.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "arch-regs-x86.h"
-#include "dyninstAPI/src/function.h"
+#include "patching/function.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "registerSpace/registerSpace.h"
 

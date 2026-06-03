@@ -28,9 +28,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "Patching.h"
-#include "block.h"
-#include "function.h"
+#include "patching/Patching.h"
+#include "patching/block.h"
+#include "patching/function.h"
 #include "mapped_object.h"
 
 using namespace Dyninst;

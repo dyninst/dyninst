@@ -44,13 +44,13 @@
 #include "dyninstAPI/src/codegen.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/os.h"
-#include "dyninstAPI/src/instPoint.h" // class instPoint
+#include "patching/instPoint.h" // class instPoint
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "BPatch/BPatch_collections.h"
 #include "registerSpace/registerSpace.h"
 #include "dyninstAPI/src/binaryEdit.h"
-#include "dyninstAPI/src/function.h"
+#include "patching/function.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "parsing/parse_func.h"
 #include "parseAPI/h/CFG.h"

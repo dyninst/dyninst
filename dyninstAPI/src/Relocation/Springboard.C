@@ -34,7 +34,7 @@
 #include "dyninstAPI/src/codegen.h"
 
 #include "dyninstAPI/src/addressSpace.h"
-#include "dyninstAPI/src/function.h"
+#include "patching/function.h"
 
 using namespace Dyninst;
 using namespace Relocation;

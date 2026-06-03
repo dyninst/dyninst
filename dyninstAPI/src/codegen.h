@@ -36,7 +36,7 @@
 #include <map>
 #include "dyntypes.h"
 #include "dyn_register.h"
-#include "dyninstAPI/src/patch.h"
+#include "patching/patch.h"
 #include "regTracker.h"
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)

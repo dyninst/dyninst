@@ -30,7 +30,7 @@
 
 #include "InstWidget.h"
 #include "trampolines/baseTramp.h"
-#include "dyninstAPI/src/instPoint.h"
+#include "patching/instPoint.h"
 #include "dyninstAPI/src/debug.h"
 #include "CFG.h"
 

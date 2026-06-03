@@ -31,7 +31,7 @@
 #include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/function.h"
+#include "patching/function.h"
 
 #include "symtabAPI/h/Symtab.h"
 using namespace SymtabAPI;

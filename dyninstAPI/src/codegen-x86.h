@@ -37,7 +37,7 @@
 #include "dyntypes.h"
 #include "dyn_register.h"
 #include "arch-x86.h"
-#include "patch.h"
+#include "patching/patch.h"
 
 #include "common/src/ia32_locations.h"
 

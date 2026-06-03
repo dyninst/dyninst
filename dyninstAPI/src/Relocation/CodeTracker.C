@@ -30,8 +30,8 @@
 
 #include "CodeTracker.h"
 #include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/block.h"
+#include "patching/function.h"
+#include "patching/block.h"
 #include "dyninstAPI/src/addressSpace.h"
 
 #include <iostream>

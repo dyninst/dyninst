@@ -31,8 +31,8 @@
 // $Id: function.C,v 1.10 2005/03/02 19:44:45 bernat Exp
 
 #include <random>
-#include "function.h"
-#include "instPoint.h"
+#include "patching/function.h"
+#include "patching/instPoint.h"
 #include "debug.h"
 #include "dynProcess.h"
 

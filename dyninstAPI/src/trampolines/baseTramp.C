@@ -44,7 +44,7 @@
 #include "dyninstAPI/h/BPatch.h"
 #include "debug.h"
 #include "mapped_object.h"
-#include "dyninstAPI/src/instPoint.h"
+#include "patching/instPoint.h"
 #include "Point.h"
 
 using namespace Dyninst;

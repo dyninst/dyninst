@@ -36,7 +36,7 @@
 #include "mapped_module.h"
 #include "dynProcess.h"
 #include "dynThread.h"
-#include "function.h"
+#include "patching/function.h"
 #include "binaryEdit.h"
 #include "common/src/dyninst_filesystem.h"
 #include <sys/stat.h>
@@ -660,8 +660,8 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 
 #if defined(os_linux) || defined(os_freebsd)
 
-#include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/function.h"
+#include "patching/instPoint.h"
+#include "patching/function.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "symtabAPI/h/Symtab.h"
 #include "dyninstAPI/src/mapped_object.h"

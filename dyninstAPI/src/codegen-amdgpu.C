@@ -29,8 +29,8 @@
  */
 
 
-#include "dyninstAPI/src/block.h"
-#include "dyninstAPI/src/function.h"
+#include "patching/block.h"
+#include "patching/function.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/emit-amdgpu.h"
 #include "dyninstAPI/src/registerSpace/registerSpace.h"

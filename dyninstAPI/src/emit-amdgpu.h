@@ -33,7 +33,7 @@
 
 #include "codegen/RegControl.h"
 #include "trampolines/baseTramp.h"
-#include "dyninstAPI/src/instPoint.h"
+#include "patching/instPoint.h"
 #include <assert.h>
 #include "ASTs/codeGenAST.h"
 #include <vector>

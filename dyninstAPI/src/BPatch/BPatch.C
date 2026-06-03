@@ -44,7 +44,7 @@
 #include "BPatch_thread.h"
 #include "debug.h"
 #include "mapped_module.h"
-#include "instPoint.h"
+#include "patching/instPoint.h"
 #include "hybridAnalysis.h"
 #include "BPatch_object.h"
 #include "os.h"

@@ -31,12 +31,12 @@
 #include <stdlib.h>
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/instPoint.h"
+#include "patching/instPoint.h"
 #include "registerSpace/registerSpace.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "codegen/emitters/aarch64/EmitterAarch64.h"
-#include "dyninstAPI/src/function.h"
+#include "patching/function.h"
 #include "arch-aarch64.h"
 
 void insnCodeGen::generate(codeGen &gen, instruction &insn) {

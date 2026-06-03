@@ -34,7 +34,7 @@
 #include "dyninstAPI/src/Relocation/CFG/RelocBlock.h"
 #include "dyninstAPI/src/Relocation/CFG/RelocTarget.h"
 #include "../CFG/RelocGraph.h"
-#include "dyninstAPI/src/function.h"
+#include "patching/function.h"
 #include "dyninstAPI/src/mapped_module.h"
 
 using namespace Dyninst;

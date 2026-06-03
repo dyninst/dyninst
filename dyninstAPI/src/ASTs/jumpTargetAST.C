@@ -1,8 +1,8 @@
 #include "arch-regs-x86.h"
 #include "ast_helpers.h"
-#include "block.h"
+#include "patching/block.h"
 #include "codegen.h"
-#include "instPoint.h"
+#include "patching/instPoint.h"
 #include "Instruction.h"
 #include "jumpTargetAST.h"
 

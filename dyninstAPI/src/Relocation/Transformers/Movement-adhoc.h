@@ -39,7 +39,7 @@ class AddressSpace;
 
 #include "dataflowAPI/h/Absloc.h"
 
-#include "dyninstAPI/src/function.h"
+#include "patching/function.h"
 
 namespace Dyninst {
    namespace InstructionAPI {
