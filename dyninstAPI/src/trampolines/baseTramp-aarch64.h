@@ -31,7 +31,7 @@
 #ifndef DYNINST_DYNINSTAPI_BASETRAMP_AARCH64_H
 #define DYNINST_DYNINSTAPI_BASETRAMP_AARCH64_H
 
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 
 class baseTramp_aarch64 final : public baseTramp {
 public:

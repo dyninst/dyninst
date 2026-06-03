@@ -37,7 +37,7 @@
 #include "dynThread.h"
 #include "function.h"
 #include "instPoint.h"
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 #include "debug.h"
 
 #include "stackwalk/h/framestepper.h"

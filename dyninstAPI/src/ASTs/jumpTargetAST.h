@@ -31,7 +31,7 @@
 #ifndef DYNINST_DYNINSTAPI_ASTDYNAMICTARGETNODE_H
 #define DYNINST_DYNINSTAPI_ASTDYNAMICTARGETNODE_H
 
-#include "codeGenAST.h"
+#include "ASTs/codeGenAST.h"
 #include "dyn_register.h"
 
 #include <string>

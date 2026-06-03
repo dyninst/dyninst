@@ -31,7 +31,7 @@
 #if !defined(IAPI_TO_AST_H)
 #define IAPI_TO_AST_H
 
-#include "ast.h"
+#include "ASTs/ast.h"
 #include "Expression.h"
 #include "Visitor.h"
 #include <deque>

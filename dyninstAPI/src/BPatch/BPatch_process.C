@@ -53,7 +53,7 @@
 #include "hybridAnalysis.h"
 #include "BPatch_private.h"
 #include "parseAPI/h/CFG.h"
-#include "ast.h"
+#include "ASTs/ast.h"
 #include "debug.h"
 #include <boost/tuple/tuple.hpp>
 

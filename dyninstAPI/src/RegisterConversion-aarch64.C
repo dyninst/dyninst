@@ -29,7 +29,7 @@
  */
 
 #include "RegisterConversion.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 
 #include <map>
 #include <boost/assign/list_of.hpp>
@@ -38,7 +38,7 @@
 #include "registers/MachRegister.h"
 #include "registers/abstract_regs.h"
 #include "registers/aarch64_regs.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;

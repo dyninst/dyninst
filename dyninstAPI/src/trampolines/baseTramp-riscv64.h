@@ -31,7 +31,7 @@
 #ifndef DYNINST_DYNINSTAPI_BASETRAMP_RISCV64_H
 #define DYNINST_DYNINSTAPI_BASETRAMP_RISCV64_H
 
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 #include "debug.h"
 
 class baseTramp_riscv64 final : public baseTramp {

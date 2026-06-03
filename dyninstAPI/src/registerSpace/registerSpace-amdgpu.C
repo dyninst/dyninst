@@ -1,5 +1,5 @@
 #include "arch-amdgpu.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 #include "debug.h"
 #include "dyn_register.h"
 #include <vector>

@@ -31,7 +31,7 @@
 #ifndef DYNINST_DYNINSTAPI_STACKAST_H
 #define DYNINST_DYNINSTAPI_STACKAST_H
 
-#include "codeGenAST.h"
+#include "ASTs/codeGenAST.h"
 
 #include "dyn_register.h"
 

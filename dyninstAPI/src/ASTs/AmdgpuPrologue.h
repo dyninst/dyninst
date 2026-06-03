@@ -32,7 +32,7 @@
 #define AMDGPU_PROLOGUE_H
 
 #include "BPatch_snippet.h"
-#include "ast.h"
+#include "ASTs/ast.h"
 #include "common/src/dyn_register.h"
 #include "patchAPI/h/Snippet.h"
 

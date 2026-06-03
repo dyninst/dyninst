@@ -31,9 +31,9 @@
 #ifndef _EMITTER_H
 #define _EMITTER_H
 
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 #include "BPatch_memoryAccess_NP.h"
-#include "codeGenAST.h"
+#include "ASTs/codeGenAST.h"
 #include "codegen/RegControl.h"
 #include "common/src/headers.h"
 #include "instPoint.h"

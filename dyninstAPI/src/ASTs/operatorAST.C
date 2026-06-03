@@ -11,7 +11,7 @@
 #include "dyntypes.h"
 #include "mapped_object.h"
 #include "operatorAST.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 
 #include <iomanip>
 #include <limits>

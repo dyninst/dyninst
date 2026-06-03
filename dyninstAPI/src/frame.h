@@ -37,7 +37,7 @@
 #include <vector>
 
 #include "instPoint.h"
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 #include "function.h"
 
 #include "stackwalk/h/frame.h"

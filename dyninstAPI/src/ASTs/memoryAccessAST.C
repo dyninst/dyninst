@@ -10,7 +10,7 @@
 #include "debug.h"
 #include "instPoint.h"
 #include "memoryAccessAST.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 
 #include <iomanip>
 #include <sstream>

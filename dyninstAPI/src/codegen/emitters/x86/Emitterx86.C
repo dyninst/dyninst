@@ -12,7 +12,7 @@
 #include "function.h"
 #include "image.h"
 #include "inst-x86.h"
-#include "parse_func.h"
+#include "parsing/parse_func.h"
 #include "registerSpace/registerSpace.h"
 #include "Symbol.h"
 #include "unaligned_memory_access.h"

@@ -32,10 +32,10 @@
 #define _EMIT_AMDGPU_H
 
 #include "codegen/RegControl.h"
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 #include "dyninstAPI/src/instPoint.h"
 #include <assert.h>
-#include "codeGenAST.h"
+#include "ASTs/codeGenAST.h"
 #include <vector>
 
 #include "dyninstAPI/src/amdgpu-gfx908-details.h"

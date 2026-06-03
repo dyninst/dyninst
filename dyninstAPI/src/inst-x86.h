@@ -58,8 +58,8 @@
 #include <assert.h>
 #include "codegen.h"
 #include "dyntypes.h"
-#include "registerSpace.h"
-#include "RealRegister.h"
+#include "registerSpace/registerSpace.h"
+#include "registerSpace/RealRegister.h"
 
 #define NUM_VIRTUAL_REGISTERS (32)   /* number of virtual registers */
 #define IA32_FPR_VIRTUAL_REGISTER (NUM_VIRTUAL_REGISTERS + 1)

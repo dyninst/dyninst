@@ -43,10 +43,10 @@
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/debug.h"
-#include "ast.h"
+#include "ASTs/ast.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 #include "arch-regs-x86.h"
 #include "dyninstAPI/src/dynProcess.h"
 

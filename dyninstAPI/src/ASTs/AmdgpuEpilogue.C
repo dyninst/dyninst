@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "AmdgpuEpilogue.h"
+#include "ASTs/AmdgpuEpilogue.h"
 #include "emit-amdgpu.h"
 
 namespace Dyninst { namespace DyninstAPI {

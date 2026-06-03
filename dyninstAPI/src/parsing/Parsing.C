@@ -33,8 +33,8 @@
 #include "Instruction.h"
 
 #include "image.h"
-#include "parse_block.h"
-#include "parse_func.h"
+#include "parsing/parse_block.h"
+#include "parsing/parse_func.h"
 #include "instPoint.h"
 #include "parsing/Parsing.h"
 #include "debug.h"

@@ -8,7 +8,7 @@
 #include "mapped_module.h"
 #include "mapped_object.h"
 #include "operandAST.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 
 #include <iomanip>
 #include <sstream>

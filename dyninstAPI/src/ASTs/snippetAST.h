@@ -35,7 +35,7 @@
 #include "PatchCommon.h"
 
 #include <boost/make_shared.hpp>
-#include "codeGenAST.h"
+#include "ASTs/codeGenAST.h"
 #include <string>
 
 class codeGen;

@@ -41,7 +41,7 @@
 #include "common/src/stats.h"
 #include "bitArray.h"
 
-#include "baseTramp.h" // iterator
+#include "trampolines/baseTramp.h"
 
 #include "Point.h"
 #include "Snippet.h"

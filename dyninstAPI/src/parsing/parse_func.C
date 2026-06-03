@@ -1,7 +1,7 @@
 #include "function.h"
 #include "image.h"
 #include "InstructionDecoder.h"
-#include "parse_func.h"
+#include "parsing/parse_func.h"
 
 namespace st = Dyninst::SymtabAPI;
 namespace parse = Dyninst::ParseAPI;

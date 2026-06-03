@@ -48,9 +48,9 @@
 #include "addressSpace.h"
 #include "codeRange.h"
 #include "infHeap.h"
-#include "ast.h"
+#include "ASTs/ast.h"
 #include "syscallNotification.h"
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 #include "instMapping.h"
 #include "Symtab.h"
 

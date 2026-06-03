@@ -40,7 +40,7 @@
 #include "instPoint.h"
 #include "function.h"
 #include "Object.h"
-#include "ast.h"
+#include "ASTs/ast.h"
 #include "addressSpace.h"
 #include "image.h"
 #include "Symbol.h"

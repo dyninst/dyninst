@@ -2,7 +2,7 @@
 #include "codegen.h"
 #include "debug.h"
 #include "operandAST.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 
 #include <iomanip>
 #include <sstream>

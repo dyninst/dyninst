@@ -31,7 +31,7 @@
 #ifndef DYNINST_DYNINSTAPI_BASETRAMP_AMDGPU_H
 #define DYNINST_DYNINSTAPI_BASETRAMP_AMDGPU_H
 
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 
 class baseTramp_amdgpu final : public baseTramp {
 public:

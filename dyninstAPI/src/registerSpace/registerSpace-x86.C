@@ -1,4 +1,4 @@
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 #include "arch-x86.h"
 #include "inst-x86.h"
 #include "arch-regs-x86.h"

@@ -52,7 +52,7 @@
 #include <queue>
 
 
-#include "ast.h"
+#include "ASTs/ast.h"
 
 #include "sys/stat.h"
 #include "mapped_object.h"

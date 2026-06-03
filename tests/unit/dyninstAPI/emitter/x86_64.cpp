@@ -2,7 +2,7 @@
 #include "common/src/arch-regs-x86.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/emit-x86.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 #include "emitter_test.h"
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;

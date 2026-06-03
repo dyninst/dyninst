@@ -46,7 +46,7 @@
 #include "BPatch_libInfo.h"
 #include "image.h"
 #include "instPoint.h"
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 #include "function.h"
 #include "addressSpace.h"
 #include "dynProcess.h"
@@ -55,7 +55,7 @@
 #include "BPatch_memoryAccessAdapter.h"
 
 #include "BPatch_edge.h"
-#include "ast.h"
+#include "ASTs/ast.h"
 #include "mapped_module.h"
 #include "Instruction.h"
 #include "InstructionDecoder.h"
@@ -326,7 +326,7 @@ BPatch_point::getCurrentSnippets(BPatch_callWhen when)
     }
 }
 
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 
 bool BPatch_point::getLiveRegisters(std::vector<BPatch_register> &liveRegs)
 {

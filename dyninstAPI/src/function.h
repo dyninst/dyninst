@@ -60,7 +60,7 @@
 #endif
 #include "Relocation/DynCommon.h"
 
-#include "parse_func.h"
+#include "parsing/parse_func.h"
 
 class PCProcess;
 class mapped_module;

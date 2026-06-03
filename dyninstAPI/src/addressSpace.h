@@ -35,7 +35,7 @@
 
 #include "infHeap.h"
 #include "codeRange.h"
-#include "ast.h"
+#include "ASTs/ast.h"
 #include "symtabAPI/h/Symtab.h"
 #include "dyninstAPI/src/trapMappings.h"
 #include <assert.h>

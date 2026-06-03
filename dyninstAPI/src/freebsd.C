@@ -37,7 +37,7 @@
 #include "image.h"
 #include "function.h"
 #include "instPoint.h"
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 #include "os.h"
 #include "debug.h"
 #include "mapped_object.h"

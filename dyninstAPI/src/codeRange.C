@@ -34,7 +34,7 @@
 #include "codeRange.h"
 
 #include "dyninstAPI/src/image.h"
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"

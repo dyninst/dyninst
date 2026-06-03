@@ -48,7 +48,7 @@
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/inst-x86.h"
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/instPoint.h" // includes instPoint-x86.h
 #include "registers/x86_regs.h"
@@ -57,7 +57,7 @@
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/dynProcess.h"
 #include "arch-regs-x86.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 
 #include "mapped_module.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
