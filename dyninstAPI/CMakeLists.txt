@@ -12,6 +12,7 @@ add_subdirectory(src/ASTs)
 add_subdirectory(src/BPatch)
 add_subdirectory(src/codegen)
 add_subdirectory(src/parsing)
+add_subdirectory(src/patching)
 add_subdirectory(src/registerSpace)
 add_subdirectory(src/Relocation)
 add_subdirectory(src/StackMod)
@@ -22,6 +23,7 @@ set(_subprojects
     dyninstAPI_bpatch
     dyninstAPI_codegen
     dyninstAPI_parsing
+    dyninstAPI_patching
     dyninstAPI_registerSpace
     dyninstAPI_relocation
     dyninstAPI_stackmod
@@ -36,7 +38,6 @@ set(_private_headers
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDHSAKernelDescriptor.h
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h
     src/binaryEdit.h
-    src/block.h
     src/codegen-amdgpu.h
     src/codegen-aarch64.h
     src/codegen.h
@@ -53,15 +54,12 @@ set(_private_headers
     src/frameChecker.h
     src/frame.h
     src/freebsd.h
-    src/function.h
     src/function_cache.h
     src/hybridAnalysis.h
     src/IAPI_to_AST.h
     src/image.h
     src/infHeap.h
     src/inst-aarch64.h
-    src/instMapping.h
-    src/instPoint.h
     src/inst-power.h
     src/inst-x86.h
     src/LinearVariable.h
@@ -74,8 +72,6 @@ set(_private_headers
     src/nt_signal_emul.h
     src/opcode.h
     src/os.h
-    src/patch.h
-    src/Patching.h
     src/pcEventHandler.h
     src/pcEventMuxer.h
     src/pdwinnt.h
@@ -91,29 +87,24 @@ set(_private_headers
 set(_sources
     src/addressSpace.C
     src/binaryEdit.C
-    src/block.C
     src/codeRange.C
     src/codegen.C
     src/debug.C
     src/dynProcess.C
     src/dynThread.C
-    src/edge.C
     src/frame.C
     src/frameChecker.C
-    src/function.C
     src/hybridCallbacks.C
     src/hybridInstrumentation.C
     src/hybridOverwrites.C
     src/image.C
     src/infHeap.C
-    src/instPoint.C
     src/mapped_module.C
     src/mapped_object.C
     src/pcEventHandler.C
     src/pcEventMuxer.C
     src/regTracker.C
-    src/variable.C
-    src/Patching.C)
+    src/variable.C)
 
 if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
   list(APPEND _sources src/stackwalk-x86.C src/dynProcess-x86.C)
