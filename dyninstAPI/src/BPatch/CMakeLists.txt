@@ -64,9 +64,25 @@ set(_sources
     BPatch_thread.C
     BPatch_type.C)
 
-add_library(dyninstAPI_bpatch INTERFACE)
-target_sources(dyninstAPI_bpatch INTERFACE ${_headers} ${_sources})
-target_include_directories(dyninstAPI_bpatch INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+# cmake-format: off
+dyninst_library(
+  dyninstAPI_bpatch
+  INTERNAL_LIBRARY
+  SOURCE_FILES ${_sources}
+  PRIVATE_HEADER_FILES ${_headers}
+  DYNINST_INTERNAL_DEPS common symtabAPI instructionAPI parseAPI pcontrol patchAPI
+)
+
+set(_inc_dirs
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/..
+  ${CMAKE_CURRENT_SOURCE_DIR}/../ASTs
+  ${CMAKE_CURRENT_SOURCE_DIR}/../registerSpace
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../h
+)
+# cmake-format: on
+
+target_include_directories(dyninstAPI_bpatch PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 
 unset(_headers)
 unset(_sources)
