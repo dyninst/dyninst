@@ -136,7 +136,6 @@ class DYNINST_EXPORT BPatch_process : public BPatch_addressSpace {
   friend class BPatch_function;
   friend class BPatch_frame;
   friend class BPatch_thread;
-  friend class BPatch_asyncEventHandler;
   friend class BPatch_module;
   friend class BPatch_basicBlock;
   friend class BPatch_flowGraph;

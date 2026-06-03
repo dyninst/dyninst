@@ -92,7 +92,6 @@ class DYNINST_EXPORT BPatch_point {
     friend class BPatch_basicBlock;
     friend class BPatch_basicBlockLoop;
     friend class BPatch_flowGraph; // Access to setLoop
-    friend class BPatch_asyncEventHandler;
     friend class BPatch_edge;
     friend class BPatch_snippet;
     friend Dyninst::PatchAPI::Point *Dyninst::PatchAPI::convert(const BPatch_point *, BPatch_callWhen);

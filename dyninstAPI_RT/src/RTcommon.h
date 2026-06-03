@@ -43,8 +43,6 @@ void DYNINSTbreakPoint(void);
 void DYNINSTsafeBreakPoint(void);
 void DYNINSTinit(void);
 int DYNINSTreturnZero(void);
-int DYNINSTwriteEvent(void *ev, size_t sz);
-int DYNINSTasyncConnect(int pid);
 
 int DYNINSTinitializeTrapHandler(void);
 void* dyninstTrapTranslate(void *source, 
