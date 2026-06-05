@@ -51,8 +51,6 @@ set(_private_headers
     src/emit-power.h
     src/emitter.h
     src/emit-x86.h
-    src/frameChecker.h
-    src/frame.h
     src/freebsd.h
     src/function_cache.h
     src/hybridAnalysis.h
@@ -83,8 +81,6 @@ set(_sources
     src/codeRange.C
     src/codegen.C
     src/debug.C
-    src/frame.C
-    src/frameChecker.C
     src/hybridCallbacks.C
     src/hybridInstrumentation.C
     src/hybridOverwrites.C
@@ -93,14 +89,6 @@ set(_sources
     src/mapped_object.C
     src/regTracker.C
     src/variable.C)
-
-if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
-  list(APPEND _sources src/stackwalk-x86.C)
-elseif(DYNINST_HOST_ARCH_PPC64LE)
-  list(APPEND _sources src/stackwalk-ppc.C)
-elseif(DYNINST_HOST_ARCH_AARCH64)
-  list(APPEND _sources src/stackwalk-aarch64.C)
-endif()
 
 if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
   list(

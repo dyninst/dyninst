@@ -3,6 +3,8 @@ include_guard(GLOBAL)
 set(_headers
     dynProcess.h
     dynThread.h
+    frameChecker.h
+    frame.h
     infHeap.h
     nt_signal_emul.h
     pcEventHandler.h
@@ -10,7 +12,14 @@ set(_headers
     syscallNotification.h
     trapMappings.h)
 
-set(_sources dynProcess.C dynThread.C infHeap.C pcEventHandler.C pcEventMuxer.C)
+set(_sources
+    dynProcess.C
+    dynThread.C
+    frame.C
+    frameChecker.C
+    infHeap.C
+    pcEventHandler.C
+    pcEventMuxer.C)
 
 if(DYNINST_OS_UNIX)
   list(APPEND _sources syscallNotification.C)
@@ -25,11 +34,11 @@ elseif(DYNINST_OS_Windows)
 endif()
 
 if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
-  list(APPEND _sources dynProcess-x86.C)
+  list(APPEND _sources dynProcess-x86.C stackwalk-x86.C)
 elseif(DYNINST_HOST_ARCH_PPC64LE)
-  list(APPEND _sources dynProcess-power.C)
+  list(APPEND _sources dynProcess-power.C stackwalk-ppc.C)
 elseif(DYNINST_HOST_ARCH_AARCH64)
-  list(APPEND _sources dynProcess-aarch64.C)
+  list(APPEND _sources dynProcess-aarch64.C stackwalk-aarch64.C)
 endif()
 
 # cmake-format: off
