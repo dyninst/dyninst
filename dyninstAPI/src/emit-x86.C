@@ -40,6 +40,7 @@
 #include "compiler_annotations.h"
 #include "dyninstAPI/src/codegen.h"
 #include "patching/function.h"
+#include "Symbol.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/debug.h"
@@ -1434,12 +1435,45 @@ void EmitterAMD64::emitRestoreFlagsFromStackSlot(codeGen &gen)
    emitSimpleInsn(0x9D, gen);
 }
 
+// SysV AMD64 caller-saved ("volatile") GPRs. A standard-ABI callee may clobber
+// these freely, and a caller normally does not keep them live across a call --
+// EXCEPT for GCC IPA-SRA local clones (.isra/.constprop), which co-allocate
+// scratch registers across the call between a clone and its callers. dyninst
+// cannot see that contract from the callee, so it must conservatively preserve
+// any of these that an inserted snippet clobbers (e.g. %r11 trashed by an
+// instrumentation reporter's printf inside an instrumented
+// std::string::operator=.isra.0 clone whose caller kept %r11 live across it).
+static bool isCallerSavedGPR(int enc)
+{
+   switch (enc) {
+      case REGNUM_RAX: case REGNUM_RCX: case REGNUM_RDX:
+      case REGNUM_RSI: case REGNUM_RDI:
+      case REGNUM_R8:  case REGNUM_R9:  case REGNUM_R10: case REGNUM_R11:
+         return true;
+      default:               // RBX, RBP, R12-R15: callee-saved (preserved by the
+         return false;       // inserted call by ABI); RSP handled separately.
+   }
+}
+
+// True if the instrumented function is a GCC local clone (.isra/.constprop/
+// .part/.cold). Only such clones can carry a non-standard calling convention in
+// which a caller keeps a caller-saved register live across a call, so the
+// conservative save below is restricted to them -- ordinary functions keep the
+// normal liveness-based pruning. Uses SymtabAPI's clone predicate so the
+// detection lives in one place (Symbol::isClone: mangled name contains '.').
+static bool isCloneFunc(baseTramp *inst)
+{
+   if (!inst || !inst->point() || !inst->point()->func())
+      return false;
+   return Dyninst::SymtabAPI::Symbol::isClone(inst->point()->func()->symTabName());
+}
+
 bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
-{ 
+{
   if (reg->encoding() == REGNUM_RSP) {
     return false;
   }
-  
+
    if (inst->point()) {
       regalloc_printf("\t shouldSaveReg for BT %p, from 0x%lx\n", (void*)inst, inst->point()->insnAddr() );
    }
@@ -1447,8 +1481,26 @@ bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
       regalloc_printf("\t shouldSaveReg for iRPC\n");
    }
    if (reg->liveState != registerSlot::live) {
-      regalloc_printf("\t Reg %u not live, concluding don't save\n", reg->number.getId());
-      return false;
+      // A register that is dead at this point normally need not be preserved.
+      // EXCEPTION: intra-procedural liveness cannot see a caller that keeps a
+      // caller-saved register (e.g. %r10/%r11) live across the call under a
+      // non-standard ABI -- only GCC local clones (.isra/.constprop/...) have
+      // such an ABI. For a clone callee, preserve any caller-saved register the
+      // inserted snippet clobbers even when dead here, or we silently corrupt
+      // the caller. isCloneFunc() is checked first: it is false for almost every
+      // function, so non-clones take the normal "dead -> don't save" path
+      // immediately (and we avoid the per-register clobbered/caller-saved work).
+      bool needSave = isCloneFunc(inst)
+                      && isCallerSavedGPR(reg->encoding())
+                      && (!(inst && inst->validOptimizationInfo())
+                          || inst->definedRegs[reg->encoding()]);
+      if (!needSave) {
+         regalloc_printf("\t Reg %u not live, concluding don't save\n", reg->number.getId());
+         return false;
+      }
+      regalloc_printf("\t Reg %u dead but caller-saved & clobbered on a clone; "
+                      "saving conservatively for non-standard-ABI safety\n", reg->number.getId());
+      // fall through to save
    }
    if (saveFlags) {
       // Saving flags takes up EAX/RAX, and so if they're live they must
