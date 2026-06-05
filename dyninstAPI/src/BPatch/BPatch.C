@@ -50,9 +50,9 @@
 #include "os.h"
 
 // ProcControlAPI interface
-#include "dynProcess.h"
-#include "dynThread.h"
-#include "pcEventMuxer.h"
+#include "dynproc/dynProcess.h"
+#include "dynproc/dynThread.h"
+#include "dynproc/pcEventMuxer.h"
 
 #if defined(i386_unknown_nt4_0)
 #include "nt_signal_emul.h"

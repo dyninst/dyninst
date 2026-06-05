@@ -27,12 +27,12 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "pcEventMuxer.h"
-#include "pcEventHandler.h"
+#include "dynproc/pcEventMuxer.h"
+#include "dynproc/pcEventHandler.h"
 #include "BPatch.h"
 #include "debug.h"
 #include "os.h"
-#include "dynProcess.h"
+#include "dynproc/dynProcess.h"
 #include "mapped_object.h"
 #include "registerSpace/registerSpace.h"
 #include "RegisterConversion.h"

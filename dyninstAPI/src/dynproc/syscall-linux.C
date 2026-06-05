@@ -34,7 +34,7 @@
 #define EXEC_FUNC "execve"
 #define EXIT_FUNC "_exit"
 
-#include "dyninstAPI/src/syscallNotification.h"
+#include "dynproc/syscallNotification.h"
 
 const char * syscallNotification::getForkFuncName() {
     return FORK_FUNC;

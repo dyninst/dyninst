@@ -61,8 +61,8 @@
 #include <sstream>
 
 #include "dyninstAPI/src/binaryEdit.h"
-#include "dyninstAPI/src/dynThread.h"
-#include "dyninstAPI/src/dynProcess.h"
+#include "dynproc/dynThread.h"
+#include "dynproc/dynProcess.h"
 #include "common/src/linuxKludges.h"
 #include "common/src/linuxHeaders.h"
 #include "instructionAPI/h/InstructionDecoder.h"

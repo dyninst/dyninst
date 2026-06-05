@@ -49,7 +49,7 @@
 #include "patching/instPoint.h"
 #include "patching/function.h"
 #include "addressSpace.h"
-#include "dynProcess.h"
+#include "dynproc/dynProcess.h"
 #include "debug.h"
 #include "patching/instMapping.h"
 #include "BPatch_memoryAccessAdapter.h"

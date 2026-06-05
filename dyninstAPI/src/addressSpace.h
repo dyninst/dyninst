@@ -33,11 +33,11 @@
 #ifndef ADDRESS_SPACE_H
 #define ADDRESS_SPACE_H
 
-#include "infHeap.h"
+#include "dynproc/infHeap.h"
 #include "codeRange.h"
 #include "ASTs/ast.h"
 #include "symtabAPI/h/Symtab.h"
-#include "dyninstAPI/src/trapMappings.h"
+#include "dynproc/trapMappings.h"
 #include <assert.h>
 #include <map>
 #include <set>

@@ -28,10 +28,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dynProcess.h"
-#include "dynThread.h"
-#include "pcEventHandler.h"
-#include "pcEventMuxer.h"
+#include "dynproc/dynProcess.h"
+#include "dynproc/dynThread.h"
+#include "dynproc/pcEventHandler.h"
+#include "dynproc/pcEventMuxer.h"
 #include "patching/function.h"
 #include "os.h"
 #include "debug.h"

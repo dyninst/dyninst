@@ -41,7 +41,7 @@
 #include "dyninstAPI/h/BPatch_function.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/addressSpace.h"
-#include "dyninstAPI/src/dynProcess.h"
+#include "dynproc/dynProcess.h"
 #include "symtabAPI/h/Symtab.h"
 #include "InstructionDecoder.h"
 #include "parsing/Parsing.h"

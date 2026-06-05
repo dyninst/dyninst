@@ -35,7 +35,7 @@
 
 #include "Event.h"
 #include "dyninstAPI/h/BPatch_process.h"
-#include "dyninstAPI/src/syscallNotification.h"
+#include "dynproc/syscallNotification.h"
 
 #include <map>
 #include <queue>

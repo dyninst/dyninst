@@ -31,7 +31,7 @@
 // $Id: linux.C,v 1.279 2008/09/03 06:08:44 jaw Exp $
 
 #include "binaryEdit.h"
-#include "dynProcess.h"
+#include "dynproc/dynProcess.h"
 #include "image.h"
 #include "patching/function.h"
 #include "patching/instPoint.h"
@@ -51,7 +51,7 @@
 
 #include "boost/shared_ptr.hpp"
 
-#include "pcEventMuxer.h"
+#include "dynproc/pcEventMuxer.h"
 
 #include "common/src/headers.h"
 #include "common/src/linuxKludges.h"

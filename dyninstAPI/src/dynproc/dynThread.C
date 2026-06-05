@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dynProcess.h"
-#include "dynThread.h"
+#include "dynproc/dynProcess.h"
+#include "dynproc/dynThread.h"
 #include "debug.h"
 #include "patching/function.h"
 #include "mapped_module.h"

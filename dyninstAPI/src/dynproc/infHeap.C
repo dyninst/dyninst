@@ -30,7 +30,7 @@
 
 // $Id: infHeap.C,v 1.2 2008/02/07 16:07:55 jaw Exp $
 
-#include "infHeap.h"
+#include "dynproc/infHeap.h"
 
 using namespace Dyninst;
 

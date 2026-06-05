@@ -39,7 +39,7 @@
 #include <map>
 #include <memory>
 
-#include "infHeap.h"
+#include "dynproc/infHeap.h"
 #include "addressSpace.h"
 #include "codeRange.h"
 #include "ASTs/ast.h"

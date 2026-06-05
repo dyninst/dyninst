@@ -37,7 +37,7 @@
 #include "baseTramp-riscv64.h"
 #include "baseTramp-x86.h"
 #include "dyninstAPI/src/addressSpace.h"
-#include "dyninstAPI/src/dynThread.h"
+#include "dynproc/dynThread.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "registerSpace/registerSpace.h"
 #include "ASTs/ast.h"

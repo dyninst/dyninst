@@ -40,7 +40,7 @@
 #include "debug.h"
 #include "BPatch.h"
 #include "mapped_object.h"
-#include "dynProcess.h"
+#include "dynproc/dynProcess.h"
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;

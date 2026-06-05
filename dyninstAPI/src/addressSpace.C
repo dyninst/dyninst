@@ -30,7 +30,7 @@
 
 #include "addressSpace.h"
 #include "codeRange.h"
-#include "dynProcess.h"
+#include "dynproc/dynProcess.h"
 #include "patching/function.h"
 #include "binaryEdit.h"
 #include "trampolines/baseTramp.h"
@@ -62,8 +62,8 @@
 
 #include <boost/bind/bind.hpp>
 
-#include "dynThread.h"
-#include "pcEventHandler.h"
+#include "dynproc/dynThread.h"
+#include "dynproc/pcEventHandler.h"
 #include "unaligned_memory_access.h"
 #include "common/h/util.h"
 

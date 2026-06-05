@@ -33,7 +33,7 @@
 #include <cstdlib>
 
 #include "binaryEdit.h"
-#include "dynProcess.h"
+#include "dynproc/dynProcess.h"
 #include "image.h"
 #include "patching/function.h"
 #include "patching/instPoint.h"
@@ -43,7 +43,7 @@
 #include "mapped_object.h"
 #include "mapped_module.h"
 #include "freebsd.h"
-#include "pcEventMuxer.h"
+#include "dynproc/pcEventMuxer.h"
 #include "common/src/headers.h"
 #include "common/src/freebsdKludges.h"
 #include "common/src/freebsdHeaders.h"

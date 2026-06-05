@@ -35,9 +35,9 @@
 #include "patching/instPoint.h"
 #include "patching/function.h" // func_instance
 #include "codeRange.h"
-#include "dynProcess.h"
-#include "dynThread.h"
-#include "pcEventHandler.h"
+#include "dynproc/dynProcess.h"
+#include "dynproc/dynThread.h"
+#include "dynproc/pcEventHandler.h"
 #include "os.h"
 
 #include "mapped_module.h"

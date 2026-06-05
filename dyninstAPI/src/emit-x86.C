@@ -48,12 +48,12 @@
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "registerSpace/registerSpace.h"
 #include "arch-regs-x86.h"
-#include "dyninstAPI/src/dynProcess.h"
+#include "dynproc/dynProcess.h"
 
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/image.h"
 // get_index...
-#include "dyninstAPI/src/dynThread.h"
+#include "dynproc/dynThread.h"
 #include "ABI.h"
 #include "liveness.h"
 #include "RegisterConversion.h"

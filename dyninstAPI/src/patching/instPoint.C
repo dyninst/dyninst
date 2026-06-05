@@ -39,7 +39,7 @@
 #include "patching/instPoint.h"
 #include "trampolines/baseTramp.h"
 #include "dyninstAPI/src/addressSpace.h"
-#include "dyninstAPI/src/dynThread.h"
+#include "dynproc/dynThread.h"
 
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "Location.h"

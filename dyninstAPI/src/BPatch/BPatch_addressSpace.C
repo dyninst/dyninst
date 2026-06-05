@@ -34,7 +34,7 @@
 #include "patching/function.h" // Dyninst::PatchAPI::PatchFunction
 #include "codeRange.h"
 #include "addressSpace.h"
-#include "dynProcess.h"
+#include "dynproc/dynProcess.h"
 #include "debug.h"
 #include "patching/instMapping.h"
 #include "mapped_module.h"
