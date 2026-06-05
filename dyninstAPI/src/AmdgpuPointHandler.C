@@ -42,7 +42,7 @@
 // Our wrapper around it
 #include "AmdgpuKernelDescriptor.h"
 
-#include "ast.h"
+#include "ASTs/ast.h"
 #include "debug.h"
 
 #include <cassert>

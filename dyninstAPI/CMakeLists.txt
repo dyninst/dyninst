@@ -179,6 +179,7 @@ endif()
 dyninst_library(
   dyninstAPI
   PUBLIC_HEADER_FILES ${_public_headers}
+  PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
   DYNINST_DEPS common instructionAPI stackwalk pcontrol patchAPI parseAPI symtabAPI
   DYNINST_INTERNAL_DEPS dynDwarf dynElf ${_subprojects}
@@ -202,7 +203,6 @@ foreach(t ${dyninstAPI_TARGETS})
   endif()
 
   if(DYNINST_OS_UNIX)
-    target_link_libraries(${t} PRIVATE pthread)
     target_compile_definitions(
       ${t} PRIVATE "DYNINST_COMPILER_SEARCH_DIRS=${DYNINST_COMPILER_SEARCH_DIRS}")
   endif()

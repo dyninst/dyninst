@@ -1,8 +1,8 @@
 #include "regTracker.h"
 #include "codegen.h"
 #include "debug.h"
-#include "ast.h"
-#include "registerSpace.h"
+#include "ASTs/ast.h"
+#include "registerSpace/registerSpace.h"
 
 #include <cassert>
 

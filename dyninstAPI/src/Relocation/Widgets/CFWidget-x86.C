@@ -41,7 +41,7 @@
 #include "../CodeBuffer.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/emit-x86.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 #include "BPatch_memoryAccessAdapter.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"

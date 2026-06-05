@@ -30,7 +30,7 @@
 
 // $Id: baseTramp.C,v 1.68 2008/09/03 06:08:44 jaw Exp $
 
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 #include "baseTramp-aarch64.h"
 #include "baseTramp-amdgpu.h"
 #include "baseTramp-ppc.h"
@@ -39,8 +39,8 @@
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/dynThread.h"
 #include "dyninstAPI/src/binaryEdit.h"
-#include "registerSpace.h"
-#include "ast.h"
+#include "registerSpace/registerSpace.h"
+#include "ASTs/ast.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "debug.h"
 #include "mapped_object.h"

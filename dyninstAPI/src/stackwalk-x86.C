@@ -30,7 +30,7 @@
 
 #include "debug.h"
 #include "dynProcess.h"
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 #include "function.h"
 #include "frameChecker.h"
 

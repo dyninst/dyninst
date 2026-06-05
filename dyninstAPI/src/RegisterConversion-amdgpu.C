@@ -34,7 +34,7 @@
 #include <map>
 
 #include "Register.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 #include "registers/MachRegister.h"
 #include "registers/abstract_regs.h"
 #include <iostream>

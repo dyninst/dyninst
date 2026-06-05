@@ -2,7 +2,7 @@
 #include "BPatch.h"
 #include "BPatch_type.h"
 #include "codegen.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 #include "sequenceAST.h"
 
 #include <iomanip>

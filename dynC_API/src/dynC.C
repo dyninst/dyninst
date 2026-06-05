@@ -29,7 +29,7 @@
  */
 
 #include "dynC.h"
-#include "ast.h"
+#include "ASTs/ast.h"
 #include "snippetGen.h"
 
 #define BASE_TEN 10

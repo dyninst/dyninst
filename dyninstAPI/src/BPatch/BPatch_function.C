@@ -36,7 +36,7 @@
 #include <string>
 #include "function.h"
 #include "instPoint.h"
-#include "ast.h"
+#include "ASTs/ast.h"
 
 #include "BPatch.h"
 #include "BPatch_function.h"

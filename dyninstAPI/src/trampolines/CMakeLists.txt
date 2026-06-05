@@ -18,9 +18,26 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(APPEND _sources baseTramp-aarch64.C)
 endif()
 
-add_library(dyninstAPI_trampolines INTERFACE)
-target_sources(dyninstAPI_trampolines INTERFACE ${_headers} ${_sources})
-target_include_directories(dyninstAPI_trampolines INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+# cmake-format: off
+dyninst_library(
+  dyninstAPI_trampolines
+  INTERNAL_LIBRARY
+  SOURCE_FILES ${_sources}
+  PRIVATE_HEADER_FILES ${_headers}
+  DYNINST_INTERNAL_DEPS common parseAPI patchAPI pcontrol
+)
+
+set(_inc_dirs
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/..
+  ${CMAKE_CURRENT_SOURCE_DIR}/../ASTs
+  ${CMAKE_CURRENT_SOURCE_DIR}/../BPatch
+  ${CMAKE_CURRENT_SOURCE_DIR}/../registerSpace
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../h
+)
+# cmake-format: on
+
+target_include_directories(dyninstAPI_trampolines PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 
 unset(_headers)
 unset(_sources)

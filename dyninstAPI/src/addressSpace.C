@@ -33,7 +33,7 @@
 #include "dynProcess.h"
 #include "function.h"
 #include "binaryEdit.h"
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 
 #include "instPoint.h"
 #include "debug.h"

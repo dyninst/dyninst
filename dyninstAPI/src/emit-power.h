@@ -37,12 +37,12 @@
 #define _EMITTER_POWER_H
 
 #include <assert.h>
-#include "codeGenAST.h"
+#include "ASTs/codeGenAST.h"
 #include <vector>
 #include "codegen/RegControl.h"
 #include "common/src/headers.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 #include "dyninstAPI/src/emitter.h"
 #include "function_cache.h"
 

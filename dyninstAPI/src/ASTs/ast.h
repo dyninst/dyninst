@@ -31,7 +31,7 @@
 #ifndef DYNINST_DYNINSTAPI_AST_H
 #define DYNINST_DYNINSTAPI_AST_H
 
-#include "codeGenAST.h"
+#include "ASTs/codeGenAST.h"
 #include "addressAST.h"
 #include "atomicOperationAST.h"
 #include "functionCallAST.h"

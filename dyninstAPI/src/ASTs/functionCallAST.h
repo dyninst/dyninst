@@ -31,7 +31,7 @@
 #ifndef DYNINST_DYNINSTAPI_FUNCTIONCALLAST_H
 #define DYNINST_DYNINSTAPI_FUNCTIONCALLAST_H
 
-#include "codeGenAST.h"
+#include "ASTs/codeGenAST.h"
 #include "dyn_register.h"
 
 #include <boost/make_shared.hpp>

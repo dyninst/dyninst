@@ -47,14 +47,14 @@
 #include "addressSpace.h"
 #include "mapped_object.h" // for savetheworld
 #include "mapped_module.h"
-#include "ast.h"
+#include "ASTs/ast.h"
 #include "function.h"
 #include "instPoint.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 #include "debug.h"
 #include "dynProcess.h"
 #include "pcEventHandler.h"
-#include "ast.h"
+#include "ASTs/ast.h"
 #include "RegisterConversion.h"
 
 #include "symtabAPI/h/Type.h"

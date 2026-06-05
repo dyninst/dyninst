@@ -37,7 +37,7 @@
 #include "arch-regs-x86.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/mapped_object.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 
 #include "dyninstAPI/h/BPatch.h"
 #include "BPatch_collections.h"

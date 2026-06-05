@@ -42,7 +42,7 @@
 #include "codegen.h"
 #include "function.h"
 #include "instPoint.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 #include "bitArray.h"
 #include "InstructionDecoder.h"
 

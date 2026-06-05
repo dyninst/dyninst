@@ -1,6 +1,6 @@
 #include "arch-power.h"
 #include "dyn_register.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 
 #include <vector>
 #include <cstdio>

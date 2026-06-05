@@ -33,7 +33,7 @@
 
 #include "codeRange.h"
 #include "Function.h"
-#include "parse_block.h"
+#include "parsing/parse_block.h"
 #include "parsing/Parsing.h"
 #include "Symbol.h"
 

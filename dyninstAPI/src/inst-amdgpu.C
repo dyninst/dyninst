@@ -31,7 +31,7 @@
 #include "codegen/RegControl.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/dynProcess.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 #include "arch-amdgpu.h"
 #include "emit-amdgpu.h"
 #include "dyn_register.h"

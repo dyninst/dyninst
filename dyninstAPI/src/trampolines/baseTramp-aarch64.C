@@ -7,7 +7,7 @@
 #include "codegen/emitters/aarch64/EmitterAarch64SaveRegs.h"
 #include "codegen/emitters/aarch64/generators.h"
 #include "inst-aarch64.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 
 namespace dapi = Dyninst::DyninstAPI;
 

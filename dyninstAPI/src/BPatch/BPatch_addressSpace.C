@@ -47,7 +47,7 @@
 
 #include "BPatch_private.h"
 
-#include "ast.h"
+#include "ASTs/ast.h"
 
 #include "BPatch_addressSpace.h"
 
@@ -1018,7 +1018,7 @@ bool BPatch_addressSpace::isStaticExecutable() {
    return aout->getAOut()->isStaticExec();
 }
 
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 
 #if defined(cap_registers)
 void BPatch_addressSpace::init_registers()

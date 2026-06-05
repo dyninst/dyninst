@@ -37,7 +37,7 @@
 
 #include "dyntypes.h"
 #include "bitArray.h"
-#include "ast.h"
+#include "ASTs/ast.h"
 
 class AddressSpace;
 

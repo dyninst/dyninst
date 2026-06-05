@@ -42,7 +42,7 @@
 #include "common/src/headers.h"
 #include "common/src/arch-x86.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 #include "function_cache.h"
 
 #include "dyninstAPI/src/emitter.h"

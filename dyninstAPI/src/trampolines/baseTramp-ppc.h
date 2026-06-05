@@ -31,7 +31,7 @@
 #ifndef DYNINST_DYNINSTAPI_BASETRAMP_PPC_H
 #define DYNINST_DYNINSTAPI_BASETRAMP_PPC_H
 
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 
 class baseTramp_ppc final : public baseTramp {
 public:

@@ -31,7 +31,7 @@
 #ifndef DYNINST_DYNINSTAPI_BASETRAMP_X86_H
 #define DYNINST_DYNINSTAPI_BASETRAMP_X86_H
 
-#include "baseTramp.h"
+#include "trampolines/baseTramp.h"
 
 class baseTramp_x86 final : public baseTramp {
 public:

@@ -2,7 +2,7 @@
 #define DYNINST_DYNINSTAPI_AST_HELPERS_H
 
 #include "codegen.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 
 #include <cstdint>
 #include <cstdio>

@@ -3,10 +3,10 @@
 #include "BPatch.h"
 #include "BPatch_type.h"
 #include "Buffer.h"
-#include "codeGenAST.h"
+#include "ASTs/codeGenAST.h"
 #include "debug.h"
 #include "Point.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 
 namespace Dyninst { namespace DyninstAPI {
 

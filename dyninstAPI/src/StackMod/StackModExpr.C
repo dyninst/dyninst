@@ -31,7 +31,7 @@
 #include "BPatch.h"
 #include "BPatch_function.h"
 
-#include "ast.h"
+#include "ASTs/ast.h"
 #include "StackModExpr.h"
 
 using namespace Dyninst;

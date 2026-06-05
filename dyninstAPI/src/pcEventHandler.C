@@ -33,7 +33,7 @@
 #include "os.h"
 #include "dynProcess.h"
 #include "mapped_object.h"
-#include "registerSpace.h"
+#include "registerSpace/registerSpace.h"
 #include "RegisterConversion.h"
 #include "function.h"
 #include "dynThread.h"
