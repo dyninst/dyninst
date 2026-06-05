@@ -29,7 +29,7 @@
  */
 
 #include "dynproc/dynProcess.h"
-#include "dyninstAPI/src/frame.h"
+#include "dynproc/frame.h"
 #include "dyninstAPI/src/debug.h"
 #include "patching/function.h"
 

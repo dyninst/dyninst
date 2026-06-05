@@ -32,7 +32,7 @@
 #define DYNTHREAD_H
 
 #include <vector>
-#include "frame.h"
+#include "dynproc/frame.h"
 
 #include "PCProcess.h"
 

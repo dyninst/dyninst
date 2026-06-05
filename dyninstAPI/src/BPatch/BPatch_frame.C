@@ -36,7 +36,7 @@
 #include "BPatch.h"
 #include "patching/instPoint.h"
 #include "codeRange.h"
-#include "frame.h"
+#include "dynproc/frame.h"
 
 /***************************************************************************
  * BPatch_frame

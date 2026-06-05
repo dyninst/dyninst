@@ -61,7 +61,7 @@
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/symlookup.h"
 #include "dynproc/pcEventHandler.h"
-#include "frame.h"
+#include "dynproc/frame.h"
 
 #define RPC_LEAVE_AS_IS 0
 #define RPC_RUN_WHEN_DONE 1

@@ -32,7 +32,7 @@
 
 #include <stdio.h>
 #include <iostream>
-#include "frame.h"
+#include "dynproc/frame.h"
 #include "dynproc/dynProcess.h"
 #include "dynproc/dynThread.h"
 #include "patching/function.h"

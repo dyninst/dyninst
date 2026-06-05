@@ -37,7 +37,7 @@
 #include "dyninstAPI/src/linux-power.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dynproc/dynProcess.h"
-#include "dyninstAPI/src/frame.h"
+#include "dynproc/frame.h"
 #include "dyninstAPI/src/debug.h"
 #include "mapped_object.h"
 #include "dyninstAPI/src/inst-power.h"
