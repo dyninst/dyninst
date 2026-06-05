@@ -5,7 +5,6 @@ include(DyninstLibrary)
 set(_sources
     src/debug.C
     src/Instruction.C
-    src/Operation.C
     src/Operand.C
     src/Register.C
     src/MultiRegister.C
@@ -16,7 +15,6 @@ set(_sources
     src/ArchSpecificFormatters.C
     src/Immediate.C
     src/InstructionDecoder.C
-    src/InstructionDecoder-x86.C
     src/InstructionDecoder-power.C
     src/power_opcode_tables.C
     src/InstructionDecoder-aarch64.C
@@ -35,14 +33,20 @@ set(_sources
     src/AMDGPU/gfx940/finalizeOperands.C
     src/AMDGPU/gfx940/amdgpu_gfx940_decoder_impl.C
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
+    src/decoder/riscv/decoder.C
+    src/decoder/riscv/mem_xlat.C
+    src/decoder/riscv/opcode_xlat.C
+    src/decoder/riscv/register_xlat.C
+    src/decoder/x86/decoder.C
+    src/decoder/x86/decode_reg.C
+    src/decoder/x86/decode_imm.C
+    src/decoder/x86/decode_implicit.C
+    src/decoder/x86/decode_mem.C
+    src/decoder/x86/register_xlat.C
+    src/decoder/x86/opcode_xlat.C
     src/InstructionDecoderImpl.C
     src/syscalls.C
     src/interrupts.C)
-
-if(DYNINST_ENABLE_CAPSTONE)
-  list(APPEND _sources src/decoder/riscv/decoder.C src/decoder/riscv/mem_xlat.C
-       src/decoder/riscv/opcode_xlat.C src/decoder/riscv/register_xlat.C)
-endif()
 
 set(_public_headers
     h/ArchSpecificFormatters.h
@@ -69,24 +73,22 @@ set(_private_headers
     src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h
     src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h
     src/decoder/type_conversion.h
-    src/InstructionDecoder-aarch64.h
-    src/InstructionDecoderImpl.h
-    src/InstructionDecoder-power.h
-    src/InstructionDecoder-x86.h
-    src/power_opcode_tables.h
-    h/syscalls.h
-    h/interrupts.h)
-
-if(DYNINST_ENABLE_CAPSTONE)
-  list(
-    APPEND
-    _private_headers
     src/decoder/riscv/categories.h
     src/decoder/riscv/decoder.h
     src/decoder/riscv/mem_xlat.h
     src/decoder/riscv/opcode_xlat.h
-    src/decoder/riscv/register_xlat.h)
-endif()
+    src/decoder/riscv/register_xlat.h
+    src/decoder/x86/categories.h
+    src/decoder/x86/decoder.h
+    src/decoder/x86/opcode_xlat.h
+    src/decoder/x86/register_xlat.h
+    src/decoder/x86/type_conversion.h
+    src/InstructionDecoder-aarch64.h
+    src/InstructionDecoderImpl.h
+    src/InstructionDecoder-power.h
+    src/power_opcode_tables.h
+    h/syscalls.h
+    h/interrupts.h)
 
 set(instructionDecoderPowerExtraFlags "")
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
@@ -147,12 +149,6 @@ if(NOT finalizeOperandsExtraFlags STREQUAL "")
                               PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
 endif()
 
-if(DYNINST_ENABLE_CAPSTONE)
-  set(_capstone_dep Dyninst::Capstone)
-else()
-  set(_capstone_dep)
-endif()
-
 # cmake-format: off
 dyninst_library(
   instructionAPI
@@ -162,7 +158,7 @@ dyninst_library(
   DEFINES INSTRUCTION_LIB
   DYNINST_DEPS common
   PUBLIC_DEPS Dyninst::Boost_headers
-  PRIVATE_DEPS ${_capstone_dep}
+  PRIVATE_DEPS Dyninst::Capstone
 )
 # cmake-format: on
 

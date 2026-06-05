@@ -31,22 +31,16 @@
 #ifndef DYNINST_INSTRUCTIONAPI_OPERATION_IMPL_H
 #define DYNINST_INSTRUCTIONAPI_OPERATION_IMPL_H
 
-#include "Expression.h"
-#include "Register.h"
-#include "Result.h"
+#include "Architecture.h"
 #include "entryIDs.h"
 #include "dyninst_visibility.h"
 
-#include <mutex>
-#include <set>
 #include <string>
 
 namespace Dyninst { namespace InstructionAPI {
 
   class DYNINST_EXPORT Operation {
   public:
-    typedef std::set<RegisterAST::Ptr> registerSet;
-    typedef std::set<Expression::Ptr> VCSet;
     friend class InstructionDecoder_power; // for editing mnemonics after creation
     friend class InstructionDecoder_aarch64;
     friend class InstructionDecoder_amdgpu_gfx908;
@@ -56,47 +50,31 @@ namespace Dyninst { namespace InstructionAPI {
     friend class InstructionDecoder_x86;
 
   public:
-    Operation(const Operation& o);
     Operation() = default;
-    Operation(entryID id, std::string m, Architecture arch)
-      : operationID(id), archDecodedFrom(arch), mnemonic{std::move(m)} {}
 
-    const Operation& operator=(const Operation& o);
+    Operation(entryID id, std::string m) : operationID(id), mnemonic{std::move(m)} {}
 
-    const registerSet& implicitReads();
-    const registerSet& implicitWrites();
+    Operation(entryID id, prefixEntryID pid, std::string m) : Operation(id, std::move(m)) {
+      prefixID = pid;
+    }
 
-    const VCSet& getImplicitMemReads();
-    const VCSet& getImplicitMemWrites();
+    std::string format() const { return mnemonic; }
 
-    std::string format() const;
+    entryID getID() const { return operationID; }
 
-    entryID getID() const;
-    prefixEntryID getPrefixID() const;
-
-    bool isRead(Expression::Ptr candidate);
-    bool isWritten(Expression::Ptr candidate);
+    prefixEntryID getPrefixID() const { return prefixID; }
 
     void updateMnemonic(std::string new_mnemonic) { mnemonic = std::move(new_mnemonic); }
 
-    bool operator==(Operation const&) const;
+    bool operator==(Operation const &rhs) const {
+      return operationID == rhs.operationID && mnemonic == rhs.mnemonic;
+    }
 
     bool isVectorInsn{};
 
   private:
-    std::once_flag data_initialized;
-    void SetUpNonOperandData();
-
-    mutable registerSet otherRead;
-    mutable registerSet otherWritten;
-    mutable VCSet otherEffAddrsRead;
-    mutable VCSet otherEffAddrsWritten;
-
     mutable entryID operationID{};
-    Architecture archDecodedFrom{};
     prefixEntryID prefixID{};
-    Result_Type addrWidth{};
-    int segPrefix{};
     mutable std::string mnemonic;
   };
 }}

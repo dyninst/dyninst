@@ -50,7 +50,7 @@ namespace Dyninst { namespace InstructionAPI {
   class DYNINST_EXPORT Instruction {
 
   public:
-    friend class InstructionDecoder_x86;
+    friend class x86_decoder;
     friend class InstructionDecoder_power;
     friend class InstructionDecoder_aarch64;
     friend class InstructionDecoder_amdgpu_gfx908;
@@ -164,6 +164,7 @@ namespace Dyninst { namespace InstructionAPI {
     bool isGPUKernelExit() const { return getCategory() == c_GPUKernelExitInsn; }
     bool isSoftwareException() const { return isGPUKernelExit() || getCategory() == c_SoftwareExceptionInsn; }
     bool isConditional() const { return checked_category(c_ConditionalInsn); }
+    bool isTransactional() const { return checked_category(c_TransactionalInsn); }
 
     void forceReturn() const;
     void forceCall() const;
@@ -201,10 +202,24 @@ namespace Dyninst { namespace InstructionAPI {
     void copyRaw(size_t size, const unsigned char* raw);
 
     bool checked_category(InsnCategory c) const {
-      if(arch_decoded_from == Arch_riscv64) {
+      switch(arch_decoded_from) {
+      case Arch_riscv64:
+      case Arch_x86:
+      case Arch_x86_64:
         return categories.satisfies(c);
+      case Arch_none:
+      case Arch_ppc32:
+      case Arch_ppc64:
+      case Arch_aarch32:
+      case Arch_aarch64:
+      case Arch_cuda:
+      case Arch_amdgpu_gfx908:
+      case Arch_amdgpu_gfx90a:
+      case Arch_amdgpu_gfx940:
+      case Arch_intelGen9:
+        return getCategory() == c;
       }
-      return getCategory() == c;
+      return false;
     }
 
     mutable std::vector<Operand> m_Operands;

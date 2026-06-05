@@ -55,8 +55,6 @@ set_property(CACHE DYNINST_ENABLE_TESTS PROPERTY STRINGS ${_dyninst_test_types})
 
 option(DYNINST_ENABLE_FILEFORMAT_PE "Enable PE (Windows .exe/.dll) parsing" OFF)
 
-option(DYNINST_ENABLE_CAPSTONE "Enable Capstone" OFF)
-
 set(DYNINST_CODEGEN_ARCH
     ""
     CACHE STRING

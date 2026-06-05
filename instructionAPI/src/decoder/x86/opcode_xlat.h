@@ -28,53 +28,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "InstructionCategories.h"
+#ifndef INSTRUCTIONAPI_X86_OPCODE_XLAT_H
+#define INSTRUCTIONAPI_X86_OPCODE_XLAT_H
+
+#include "capstone/x86.h"
 #include "entryIDs.h"
 
-namespace Dyninst { namespace InstructionAPI {
+namespace Dyninst { namespace InstructionAPI { namespace x86 {
 
-  InsnCategory entryToCategory(entryID e) {
-    switch(e) {
-      case aarch64_op_ret:
-        return c_ReturnInsn;
+  entryID translate_opcode(x86_insn);
 
-      case amdgpu_gfx908_op_S_ENDPGM: // special treatment for endpgm
-      case amdgpu_gfx90a_op_S_ENDPGM: // special treatment for endpgm
-      case amdgpu_gfx940_op_S_ENDPGM: // special treatment for endpgm
-        return c_GPUKernelExitInsn;
+}}}
 
-      case aarch64_op_bl:
-      case aarch64_op_blr:
-        return c_CallInsn;
-
-      case aarch64_op_b_uncond:
-      case aarch64_op_b_cond:
-      case aarch64_op_tbz:
-      case aarch64_op_tbnz:
-      case aarch64_op_cbz:
-      case aarch64_op_cbnz:
-      case aarch64_op_br:
-      case power_op_b:
-      case power_op_bc:
-      case power_op_bcctr:
-      case power_op_bclr:
-#include "amdgpu_branchinsn_table.h"
-        return c_BranchInsn;
-
-      case power_op_cmp:
-      case power_op_cmpi:
-      case power_op_cmpl:
-      case power_op_cmpli:
-        return c_CompareInsn;
-
-      case aarch64_op_brk:
-      case aarch64_op_hlt:
-      case aarch64_op_wfe_hint:
-      case aarch64_op_wfi_hint:
-        return c_SoftwareExceptionInsn;
-      default:
-      	return c_NoCategory;
-    }
-  }
-
-}}
+#endif
