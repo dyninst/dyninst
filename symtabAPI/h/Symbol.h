@@ -146,9 +146,11 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
 
    std::string      getCloneSuffix() const  {return getCloneSuffix(getMangledName());}
    std::string      getVersionSuffix() const  {return getVersionSuffix(getMangledName());}
+   bool             isClone() const  {return isClone(getMangledName());}
    bool             isColdClone() const  {return isColdClone(getMangledName());}
    static std::string   getCloneSuffix(const std::string& s);
    static std::string   getVersionSuffix(const std::string& s);
+   static bool          isClone(const std::string& s) {return s.find('.') != std::string::npos;}
    static bool          isColdClone(const std::string& s);
 
    Module *getModule() const { return module_; } 
