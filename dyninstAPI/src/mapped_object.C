@@ -37,7 +37,7 @@
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/image.h"
-#include "dyninstAPI/src/function.h"
+#include "patching/function.h"
 #include "dyninstAPI/h/BPatch_function.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/addressSpace.h"
@@ -45,7 +45,7 @@
 #include "symtabAPI/h/Symtab.h"
 #include "InstructionDecoder.h"
 #include "parsing/Parsing.h"
-#include "instPoint.h"
+#include "patching/instPoint.h"
 #include <boost/tuple/tuple.hpp>
 #include "BPatch_image.h"
 #include "PatchCFG.h"

@@ -27,61 +27,37 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-
-#include "Patching.h"
-#include "block.h"
-#include "function.h"
+#include "patching/block.h"
+#include "patching/function.h"
 #include "mapped_object.h"
 
 using namespace Dyninst;
-using namespace PatchAPI;
+using namespace Dyninst::ParseAPI;
 
-void DynPatchCallback::split_block_cb(PatchBlock *first, PatchBlock *second)
-{
-    // no splitting needed on block_instance itself
-    // 1) split mapped_object data structures 
-    // 2) split function data structures
-
-    // 1)
-    mapped_object *obj = SCAST_MO(first->object());
-    obj->splitBlock(SCAST_BI(first),SCAST_BI(second));
-
-    // 2)
-    block_instance *b1 = SCAST_BI(first);
-    std::vector<func_instance*> funcs;
-    b1->getFuncs(std::back_inserter(funcs));
-    for (vector<func_instance*>::iterator fit = funcs.begin();
-         fit != funcs.end();
-         fit++)
-    {
-        (*fit)->split_block_cb(b1, SCAST_BI(second));
-    }
-    //KEVINTODO: clean up BPatch-level items from here instead of top-down
+edge_instance::edge_instance(ParseAPI::Edge *e, block_instance *s, block_instance *t)
+  : PatchEdge(e, s, t) {
 }
 
-void DynPatchCallback::remove_block_cb(PatchFunction *f, PatchBlock *b)
-{
-   SCAST_FI(f)->removeBlock(SCAST_BI(b));
+// For forked process
+edge_instance::edge_instance(const edge_instance *parent,
+                             mapped_object *child)
+  : PatchEdge(parent,
+              parent->src_?child->findBlock(parent->src()->llb()):NULL,
+              parent->trg_?child->findBlock(parent->trg()->llb()):NULL) {
 }
 
-void DynPatchCallback::destroy_cb(Point *p) 
-{
-    static_cast<instPoint*>(p)->func()->obj()->remove(static_cast<instPoint*>(p));
+edge_instance::~edge_instance() {
 }
 
-void DynPatchCallback::destroy_cb(PatchAPI::PatchBlock *b)
-{
-    SCAST_MO(b->obj())->destroy(SCAST_BI(b));
+
+AddressSpace *edge_instance::proc() {
+   return src()->proc();
 }
-void DynPatchCallback::destroy_cb(PatchEdge *, PatchObject *)
-{
-    // nothing to do
+
+block_instance *edge_instance::src() const {
+  return SCAST_BI(src_);
 }
-void DynPatchCallback::destroy_cb(PatchAPI::PatchFunction *f)
-{
-    SCAST_MO(f->obj())->destroy(SCAST_FI(f));
-}
-void DynPatchCallback::destroy_cb(PatchAPI::PatchObject *)
-{
-    assert(0 && "implement me");
+
+block_instance *edge_instance::trg() const {
+  return SCAST_BI(trg_);
 }

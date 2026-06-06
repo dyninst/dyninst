@@ -36,7 +36,7 @@
 #include "ASTs/codeGenAST.h"
 #include "codegen/RegControl.h"
 #include "common/src/headers.h"
-#include "instPoint.h"
+#include "patching/instPoint.h"
 
 #include <cassert>
 #include <vector>

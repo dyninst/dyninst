@@ -42,7 +42,7 @@
 #include <stdlib.h>
 #include <vector>
 #include "dyntypes.h"
-#include "dyninstAPI/src/patch.h"
+#include "patching/patch.h"
 
 /** template class for codeRangeTree. The implementation is based on red black
   * tree implementation for efficiency concerns and for getting sorted

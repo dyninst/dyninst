@@ -36,7 +36,7 @@
 #include "instructionAPI/h/InstructionDecoder.h" // for debug
 
 #include "dyninstAPI/src/addressSpace.h" // Also for debug
-#include "dyninstAPI/src/function.h"
+#include "patching/function.h"
 
 #include "dyninstAPI/src/debug.h"
 #include "CodeTracker.h"

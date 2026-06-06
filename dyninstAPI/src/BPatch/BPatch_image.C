@@ -37,8 +37,8 @@
 #include <string.h>
 #include <string>
 
-#include "instPoint.h"
-#include "function.h"
+#include "patching/instPoint.h"
+#include "patching/function.h"
 
 #include "mapped_module.h"
 #include "mapped_object.h"

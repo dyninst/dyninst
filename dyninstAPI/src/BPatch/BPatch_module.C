@@ -35,7 +35,7 @@
 
 #define BPATCH_FILE
 
-#include "function.h"
+#include "patching/function.h"
 #include "debug.h"
 #include "addressSpace.h"
 #include "dynProcess.h"
@@ -50,7 +50,7 @@
 
 #include "mapped_module.h"
 #include "mapped_object.h"
-#include "instPoint.h"
+#include "patching/instPoint.h"
 
 using namespace SymtabAPI;
 

@@ -34,8 +34,8 @@
 #include "Instrumenter.h"
 #include "DynAddrSpace.h"
 #include "Command.h"
-#include "instMapping.h"
-#include "dyninstAPI/src/instPoint.h"
+#include "patching/instMapping.h"
+#include "patching/instPoint.h"
 
 using Dyninst::PatchAPI::DynAddrSpace;
 using Dyninst::PatchAPI::Command;

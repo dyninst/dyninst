@@ -35,7 +35,7 @@
 #include "mapped_object.h"
 #include "registerSpace/registerSpace.h"
 #include "RegisterConversion.h"
-#include "function.h"
+#include "patching/function.h"
 #include "dynThread.h"
 
 #include "Mailbox.h"

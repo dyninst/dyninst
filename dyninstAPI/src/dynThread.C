@@ -31,7 +31,7 @@
 #include "dynProcess.h"
 #include "dynThread.h"
 #include "debug.h"
-#include "function.h"
+#include "patching/function.h"
 #include "mapped_module.h"
 #include "mapped_object.h"
 

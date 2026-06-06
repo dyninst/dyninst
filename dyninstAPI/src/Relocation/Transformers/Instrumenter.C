@@ -35,7 +35,7 @@
 #include "dyninstAPI/src/debug.h"
 #include "../Widgets/Widget.h"
 #include "../CFG/RelocTarget.h"
-#include "dyninstAPI/src/instPoint.h"
+#include "patching/instPoint.h"
 #include "trampolines/baseTramp.h"
 #include "../Widgets/InstWidget.h"
 #include "../Widgets/CFWidget.h"

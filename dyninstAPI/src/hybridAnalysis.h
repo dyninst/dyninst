@@ -40,8 +40,8 @@
 #include "dyntypes.h"
 #include "BPatch_enums.h"
 #include "BPatch_callbacks.h"
-#include "function.h"
-#include "block.h"
+#include "patching/function.h"
+#include "patching/block.h"
 #include "BPatch_process.h"
 
 class BPatch_module;

@@ -35,7 +35,7 @@
 #include <map>
 #include <utility>
 #include "Transformer.h"
-#include "dyninstAPI/src/instPoint.h"
+#include "patching/instPoint.h"
 
 class edge_instance;
 

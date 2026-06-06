@@ -34,9 +34,9 @@
 #include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/dynProcess.h"
 #include "common/src/stats.h"
-#include "dyninstAPI/src/instPoint.h"
+#include "patching/instPoint.h"
 
-#include "dyninstAPI/src/function.h"
+#include "patching/function.h"
 #include "dyninstAPI/src/mapped_object.h"
 
 #include "Instruction.h"

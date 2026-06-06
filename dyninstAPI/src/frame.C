@@ -35,8 +35,8 @@
 #include "frame.h"
 #include "dynProcess.h"
 #include "dynThread.h"
-#include "function.h"
-#include "instPoint.h"
+#include "patching/function.h"
+#include "patching/instPoint.h"
 #include "trampolines/baseTramp.h"
 #include "debug.h"
 

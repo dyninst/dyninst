@@ -1,6 +1,6 @@
 #include "Buffer.h"
 #include "codegen.h"
-#include "instPoint.h"
+#include "patching/instPoint.h"
 #include "snippetAST.h"
 
 #include <iomanip>

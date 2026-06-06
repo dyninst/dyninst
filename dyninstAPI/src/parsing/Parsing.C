@@ -35,7 +35,7 @@
 #include "image.h"
 #include "parsing/parse_block.h"
 #include "parsing/parse_func.h"
-#include "instPoint.h"
+#include "patching/instPoint.h"
 #include "parsing/Parsing.h"
 #include "debug.h"
 #include "BPatch.h"

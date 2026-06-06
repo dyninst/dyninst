@@ -31,7 +31,7 @@
 #ifndef DYNINST_DYNINSTAPI_FUNCTION_CACHE_H
 #define DYNINST_DYNINSTAPI_FUNCTION_CACHE_H
 
-#include "function.h"
+#include "patching/function.h"
 
 #include <vector>
 

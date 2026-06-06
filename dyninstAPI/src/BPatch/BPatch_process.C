@@ -32,8 +32,8 @@
 
 #include <string>
 
-#include "instPoint.h"
-#include "function.h" // func_instance
+#include "patching/instPoint.h"
+#include "patching/function.h" // func_instance
 #include "codeRange.h"
 #include "dynProcess.h"
 #include "dynThread.h"

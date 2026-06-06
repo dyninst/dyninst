@@ -37,7 +37,7 @@
 
 #include "image.h"
 #include "debug.h"
-#include "function.h"
+#include "patching/function.h"
 #include "parsing/Parsing.h"
 
 #include "common/src/Timer.h"
@@ -64,7 +64,7 @@
 #endif
 
 // For callbacks
-#include "dyninstAPI/src/mapped_object.h" 
+#include "dyninstAPI/src/mapped_object.h"
 
 AnnotationClass<image_variable> ImageVariableUpPtrAnno("ImageVariableUpPtrAnno", NULL);
 std::vector<image*> allImages;

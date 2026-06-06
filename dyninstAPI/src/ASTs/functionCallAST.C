@@ -5,7 +5,7 @@
 #include "codegen.h"
 #include "debug.h"
 #include "emitter.h"
-#include "function.h"
+#include "patching/function.h"
 #include "functionCallAST.h"
 
 #include <iomanip>

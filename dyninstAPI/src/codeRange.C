@@ -36,8 +36,8 @@
 #include "dyninstAPI/src/image.h"
 #include "trampolines/baseTramp.h"
 #include "dyninstAPI/src/mapped_object.h"
-#include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/instPoint.h"
+#include "patching/function.h"
+#include "patching/instPoint.h"
 #include "dyninstAPI/src/dynProcess.h"
 
 inferiorRPCinProgress * codeRange::is_inferior_rpc() {

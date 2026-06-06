@@ -31,7 +31,7 @@
 #include "debug.h"
 #include "dynProcess.h"
 #include "trampolines/baseTramp.h"
-#include "function.h"
+#include "patching/function.h"
 #include "frameChecker.h"
 #include "inst-aarch64.h"
 

@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "DynPointMaker.h"
-#include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/instPoint.h"
+#include "patching/function.h"
+#include "patching/instPoint.h"
 #include "instructionAPI/h/Instruction.h"
 
 Point *DynPointMaker::mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f) {

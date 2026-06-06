@@ -8,7 +8,7 @@
 #include "BPatch_type.h"
 #include "codegen.h"
 #include "debug.h"
-#include "instPoint.h"
+#include "patching/instPoint.h"
 #include "memoryAccessAST.h"
 #include "registerSpace/registerSpace.h"
 

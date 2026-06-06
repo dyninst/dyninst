@@ -36,7 +36,7 @@
 #include "mapped_object.h"
 #include "registerSpace/registerSpace.h"
 #include "RegisterConversion.h"
-#include "function.h"
+#include "patching/function.h"
 
 #include "Mailbox.h"
 #include "PCErrors.h"

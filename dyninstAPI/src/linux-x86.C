@@ -42,8 +42,8 @@
 
 #include "trampolines/baseTramp.h"
 #include "dyninstAPI/src/image.h"
-#include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/instPoint.h"
+#include "patching/function.h"
+#include "patching/instPoint.h"
 #include "dyninstAPI/src/os.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/debug.h"
@@ -52,7 +52,7 @@
 #include "dyninstAPI/src/emit-x86.h"
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
-#include "dyninstAPI/src/mapped_object.h" 
+#include "dyninstAPI/src/mapped_object.h"
 
 #include "dyninstAPI/src/linux.h"
 

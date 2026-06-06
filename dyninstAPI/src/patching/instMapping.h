@@ -32,7 +32,7 @@
 #define DYNINST_DYNINSTAPI_INSTMAPPING_H
 
 #include "ASTs/codeGenAST.h"
-#include "instPoint.h"
+#include "patching/instPoint.h"
 
 #include <string>
 #include <vector>

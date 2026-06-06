@@ -30,12 +30,12 @@
 
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/instPoint.h"
+#include "patching/instPoint.h"
 #include "registerSpace/registerSpace.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/inst-power.h"
 #include "dyninstAPI/src/emit-power.h"
-#include "dyninstAPI/src/function.h"
+#include "patching/function.h"
 
 #include <execinfo.h>
 #include <stdio.h>
@@ -293,8 +293,8 @@ bool insnCodeGen::generateBranchCTR(codeGen &gen,
 
 
 #include "addressSpace.h"
-#include "instPoint.h"
-#include "function.h"
+#include "patching/instPoint.h"
+#include "patching/function.h"
 instPoint * GetInstPointPower(codeGen & gen, Dyninst::Address from) {
     // If this point is straight availible from the generator, return it
     instPoint *point = gen.point();

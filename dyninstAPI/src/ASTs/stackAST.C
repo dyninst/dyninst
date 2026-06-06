@@ -2,7 +2,7 @@
 #include "ast_helpers.h"
 #include "codegen.h"
 #include "debug.h"
-#include "instPoint.h"
+#include "patching/instPoint.h"
 #include "registerSpace/registerSpace.h"
 #include "stackAST.h"
 

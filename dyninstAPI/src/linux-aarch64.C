@@ -39,11 +39,11 @@
 #include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/mapped_object.h"
+#include "mapped_object.h"
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "trampolines/baseTramp.h"
 #include "registerSpace/registerSpace.h"
-#include "dyninstAPI/src/function.h"
+#include "patching/function.h"
 #include "common/src/linuxHeaders.h"
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;

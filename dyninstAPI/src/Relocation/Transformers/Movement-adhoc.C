@@ -44,7 +44,7 @@
 #include "instructionAPI/h/MultiRegister.h"
 
 #include "StackMod.h"
-#include "function.h"
+#include "patching/function.h"
 #include "dataflowAPI/h/stackanalysis.h"
 
 using namespace std;

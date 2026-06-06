@@ -35,7 +35,7 @@
 #include "BPatch_libInfo.h"
 #include "BPatch_function.h"
 #include "BPatch_libInfo.h"
-#include "function.h"
+#include "patching/function.h"
 #include "BPatch_statement.h"
 
 #include "dynThread.h"

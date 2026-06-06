@@ -31,11 +31,11 @@
 #include "addressSpace.h"
 #include "codeRange.h"
 #include "dynProcess.h"
-#include "function.h"
+#include "patching/function.h"
 #include "binaryEdit.h"
 #include "trampolines/baseTramp.h"
 
-#include "instPoint.h"
+#include "patching/instPoint.h"
 #include "debug.h"
 
 // Two-level codeRange structure
@@ -54,7 +54,7 @@
 #include <boost/tuple/tuple.hpp>
 
 #include "PatchMgr.h"
-#include "Patching.h"
+#include "patching/Patching.h"
 #include "Relocation/DynAddrSpace.h"
 #include "Relocation/DynPointMaker.h"
 #include "Relocation/DynObject.h"

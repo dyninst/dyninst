@@ -8,7 +8,7 @@
 #include "codegen/RegControl.h"
 #include "common/src/bitmath.h"
 #include "debug.h"
-#include "function.h"
+#include "patching/function.h"
 #include "image.h"
 #include "inst-x86.h"
 #include "parsing/parse_func.h"

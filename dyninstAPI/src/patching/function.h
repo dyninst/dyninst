@@ -44,8 +44,8 @@
 
 #include "bitArray.h"
 
-#include "block.h"
-#include "instPoint.h"
+#include "patching/block.h"
+#include "patching/instPoint.h"
 #include "PatchCFG.h"
 #include "Point.h"
 

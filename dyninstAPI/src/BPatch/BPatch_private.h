@@ -38,7 +38,7 @@ class BPatch_snippet;
 
 #include <vector>
 #include "BPatch_snippet.h"
-#include "instMapping.h"
+#include "patching/instMapping.h"
 
 // TODO: this is bpatch-specific, move to BPatch_private.h?
 struct batchInsertionRecord {

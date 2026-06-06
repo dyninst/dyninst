@@ -36,7 +36,7 @@
 #include <vector>
 #include "parsing/parse_block.h"
 #include "parseAPI/h/CFG.h"
-#include "instPoint.h"
+#include "patching/instPoint.h"
 #include "PatchCFG.h"
 #include "mapped_object.h"
 

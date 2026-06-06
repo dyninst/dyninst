@@ -36,7 +36,7 @@
 #include "binaryEdit.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/instPoint.h"
+#include "patching/instPoint.h"
 #include "common/src/ntHeaders.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/emit-x86.h"
@@ -46,7 +46,7 @@
 #include "image.h"
 #include <boost/tuple/tuple.hpp>
 
-#include "dyninstAPI/src/function.h"
+#include "patching/function.h"
 #include "dynProcess.h"
 
 /* XXX This is only needed for emulating signals. */
