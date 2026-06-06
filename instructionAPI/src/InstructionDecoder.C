@@ -47,10 +47,10 @@ namespace {
 
 #if defined(DYNINST_ENABLE_ZYDIS)
   // Built-in "unknown instruction" callback for x86-64. InstructionAPI calls
-  // this when it cannot decode a byte sequence; we only need the length of the
-  // instruction so the decoder can skip over it, so we hand back a no-op of the
-  // recovered length (its bytes and control flow are never inspected).
-  ia::Instruction default_x86_callback(ia::InstructionDecoder::buffer seqn) {
+  // this when it cannot decode a byte sequence; we use Zydis to recover the
+  // instruction's length and mnemonic so the decoder can skip over it and the
+  // instruction reports the mnemonic Zydis decoded.
+  ia::Instruction zydis_unknown_instruction_callback(ia::InstructionDecoder::buffer seqn) {
     using namespace Dyninst;
     auto const buf_len = static_cast<size_t>(seqn.end - seqn.start);
 
@@ -62,8 +62,9 @@ namespace {
     ZyanStatus status =
         ZydisDecoderDecodeFull(&decoder, seqn.start, buf_len, &insn, operands);
     if(ZYAN_SUCCESS(status) && insn.length > 0) {
-      return ia::Instruction{ia::Operation{e_nop, "nop", Arch_x86_64}, insn.length,
-                             seqn.start, Arch_x86_64};
+      char const* mnemonic = ZydisMnemonicGetString(insn.mnemonic);
+      return ia::Instruction{ia::Operation{e_No_Entry, mnemonic ? mnemonic : "", Arch_x86_64},
+                             insn.length, seqn.start, Arch_x86_64};
     }
     return ia::Instruction{};
   }
@@ -123,7 +124,7 @@ namespace Dyninst { namespace InstructionAPI {
 
   bool InstructionDecoder::unknown_instruction::register_default_callback() {
 #if defined(DYNINST_ENABLE_ZYDIS)
-    ::callback = &default_x86_callback;
+    register_callback(zydis_unknown_instruction_callback);
     return true;
 #else
     return false;
