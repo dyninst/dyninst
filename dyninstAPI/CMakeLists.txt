@@ -64,7 +64,6 @@ set(_private_headers
     src/os.h
     src/pdwinnt.h
     src/PointHandler.h
-    src/RegisterConversion.h
     src/regTracker.h
     src/unix.h
     src/util.h
@@ -85,19 +84,17 @@ set(_sources
     src/variable.C)
 
 if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
-  list(APPEND _sources src/RegisterConversion-x86.C src/inst-x86.C src/emit-x86.C
-       src/IAPI_to_AST.C)
+  list(APPEND _sources src/inst-x86.C src/emit-x86.C src/IAPI_to_AST.C)
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
-  list(APPEND _sources src/inst-power.C src/RegisterConversion-ppc.C)
+  list(APPEND _sources src/inst-power.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
-  list(APPEND _sources src/inst-aarch64.C src/RegisterConversion-aarch64.C)
+  list(APPEND _sources src/inst-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(
     APPEND
     _sources
     src/inst-amdgpu.C
     src/emit-amdgpu.C
-    src/RegisterConversion-amdgpu.C
     src/AmdgpuKernelDescriptor.C
     src/AmdgpuPointHandler.C
     src/amdgpu-gfx908-details.C)
