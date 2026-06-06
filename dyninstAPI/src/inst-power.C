@@ -41,7 +41,7 @@
 #include "dynproc/dynProcess.h"
 #include "dyninstAPI/src/inst-power.h"
 #include "common/src/arch-power.h"
-#include "dyninstAPI/src/codegen.h"
+#include "codegen/codegen.h"
 #include "common/src/stats.h"
 #include "dyninstAPI/src/os.h"
 #include "patching/instPoint.h" // class instPoint

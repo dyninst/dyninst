@@ -39,7 +39,7 @@
 #include "common/src/IntervalTree.h"
 #include "common/h/dyntypes.h"
 #include "Transformers/Transformer.h" // Priority enum
-#include "dyninstAPI/src/codegen.h"
+#include "codegen/codegen.h"
 
 class AddressSpace;
 

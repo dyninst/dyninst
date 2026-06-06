@@ -33,7 +33,7 @@
 #include "Widgets/Widget.h" //  Currently Patch is defined here; we may want to move it.
 
 #include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/codegen.h"
+#include "codegen/codegen.h"
 #include <iostream>
 
 #include "InstructionDecoder.h"

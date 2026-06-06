@@ -31,7 +31,7 @@
 #ifndef DYNINST_DYNINSTAPI_CODEGEN_EMITTER_GENERATORS_H
 #define DYNINST_DYNINSTAPI_CODEGEN_EMITTER_GENERATORS_H
 
-#include "codegen.h"
+#include "codegen/codegen.h"
 
 namespace Dyninst { namespace DyninstAPI { namespace aarch64 {
 

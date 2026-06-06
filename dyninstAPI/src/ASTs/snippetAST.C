@@ -1,5 +1,5 @@
 #include "Buffer.h"
-#include "codegen.h"
+#include "codegen/codegen.h"
 #include "patching/instPoint.h"
 #include "snippetAST.h"
 

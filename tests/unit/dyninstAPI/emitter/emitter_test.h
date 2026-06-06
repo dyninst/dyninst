@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <cstring>
 
-#include "dyninstAPI/src/codegen.h"
+#include "codegen/codegen.h"
 
 namespace Dyninst {
 

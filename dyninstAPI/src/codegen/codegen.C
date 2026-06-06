@@ -39,7 +39,7 @@
 #include "dynproc/dynThread.h"
 #include "dynproc/dynProcess.h"
 #include "compiler_annotations.h"
-#include "codegen.h"
+#include "codegen/codegen.h"
 #include "patching/function.h"
 #include "patching/instPoint.h"
 #include "registerSpace/registerSpace.h"

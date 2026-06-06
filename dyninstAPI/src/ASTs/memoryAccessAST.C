@@ -6,7 +6,7 @@
 #include "BPatch_memoryAccess_NP.h"
 #include "BPatch_point.h"
 #include "BPatch_type.h"
-#include "codegen.h"
+#include "codegen/codegen.h"
 #include "debug.h"
 #include "patching/instPoint.h"
 #include "memoryAccessAST.h"

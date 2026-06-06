@@ -40,7 +40,7 @@
 #define LINUX_X86_HDR
 
 #include "inst-x86.h"
-#include "codegen.h"
+#include "codegen/codegen.h"
 
 /* addresses on x86 don't have to be aligned */
 /* Address bounds of new dynamic heap segments.  On x86 we don't try

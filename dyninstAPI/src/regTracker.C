@@ -1,5 +1,5 @@
 #include "regTracker.h"
-#include "codegen.h"
+#include "codegen/codegen.h"
 #include "debug.h"
 #include "ASTs/ast.h"
 #include "registerSpace/registerSpace.h"
