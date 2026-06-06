@@ -62,7 +62,6 @@ set(_private_headers
     src/inst-aarch64.h
     src/inst-power.h
     src/inst-x86.h
-    src/LinearVariable.h
     src/linux-aarch64.h
     src/linux.h
     src/linux-power.h

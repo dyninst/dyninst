@@ -74,6 +74,7 @@ set(_private_headers
     src/ia32_prefixes.h
     src/instruction-x86.h
     src/IntervalTree.h
+    src/LinearVariable.h
     src/linuxHeaders.h
     src/linuxKludges.h
     src/lprintf.h

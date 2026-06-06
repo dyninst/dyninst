@@ -35,7 +35,7 @@
 #include <map>
 #include <utility>
 #include "Transformer.h"
-#include "dyninstAPI/src/LinearVariable.h"
+#include "common/src/LinearVariable.h"
 
 #include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/AbslocInterface.h" // And more of the same
