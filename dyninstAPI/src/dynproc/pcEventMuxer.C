@@ -35,7 +35,7 @@
 #include "dynproc/dynProcess.h"
 #include "mapped_object.h"
 #include "registerSpace/registerSpace.h"
-#include "RegisterConversion.h"
+#include "registerSpace/RegisterConversion.h"
 #include "patching/function.h"
 
 #include "Mailbox.h"

@@ -2,7 +2,7 @@
 #include "arch-regs-x86.h"
 #include "ast_helpers.h"
 #include "codegen/codegen.h"
-#include "RegisterConversion.h"
+#include "registerSpace/RegisterConversion.h"
 #include "registers/MachRegister.h"
 #include "stackInsertionAST.h"
 

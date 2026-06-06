@@ -32,7 +32,7 @@
 #include "codegen/emitters/aarch64/EmitterAarch64Stat.h"
 #include "Instruction.h"
 #include "Register.h"
-#include "RegisterConversion.h"
+#include "registerSpace/RegisterConversion.h"
 #include "codegen/codegen.h"
 #include "registerSpace/registerSpace.h"
 

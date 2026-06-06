@@ -36,7 +36,7 @@
 #include "Immediate.h"
 #include "Dereference.h"
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
-#include "RegisterConversion.h"
+#include "registerSpace/RegisterConversion.h"
 #endif
 
 using namespace Dyninst::InstructionAPI;

@@ -48,7 +48,7 @@
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
 #include "liveness.h"
-#include "dyninstAPI/src/RegisterConversion.h"
+#include "registerSpace/RegisterConversion.h"
 #include <map>
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)

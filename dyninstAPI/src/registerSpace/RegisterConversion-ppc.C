@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "RegisterConversion.h"
+#include "registerSpace/RegisterConversion.h"
 #include "registerSpace/registerSpace.h"
 
 #include <map>
