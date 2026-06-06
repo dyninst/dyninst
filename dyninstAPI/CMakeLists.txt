@@ -40,11 +40,6 @@ set(_private_headers
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDHSAKernelDescriptor.h
     ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h
     src/binaryEdit.h
-    src/codegen-amdgpu.h
-    src/codegen-aarch64.h
-    src/codegen.h
-    src/codegen-power.h
-    src/codegen-x86.h
     src/codeRange.h
     src/debug.h
     src/emit-amdgpu.h
@@ -79,7 +74,6 @@ set(_sources
     src/addressSpace.C
     src/binaryEdit.C
     src/codeRange.C
-    src/codegen.C
     src/debug.C
     src/hybridCallbacks.C
     src/hybridInstrumentation.C
@@ -97,20 +91,17 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     src/RegisterConversion-x86.C
     src/inst-x86.C
     src/emit-x86.C
-    src/codegen-x86.C
     src/IAPI_to_AST.C)
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
-  list(APPEND _sources src/inst-power.C src/codegen-power.C src/RegisterConversion-ppc.C)
+  list(APPEND _sources src/inst-power.C src/RegisterConversion-ppc.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
-  list(APPEND _sources src/inst-aarch64.C src/codegen-aarch64.C
-       src/RegisterConversion-aarch64.C)
+  list(APPEND _sources src/inst-aarch64.C src/RegisterConversion-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(
     APPEND
     _sources
     src/inst-amdgpu.C
     src/emit-amdgpu.C
-    src/codegen-amdgpu.C
     src/RegisterConversion-amdgpu.C
     src/AmdgpuKernelDescriptor.C
     src/AmdgpuPointHandler.C

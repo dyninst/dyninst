@@ -5,12 +5,15 @@ if(POLICY CMP0076)
   cmake_policy(SET CMP0076 NEW)
 endif()
 
-set(_headers RegControl.h)
+set(_headers codegen.h RegControl.h)
+
+set(_sources codegen.C)
 
 if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
   list(
     APPEND
     _headers
+    codegen-x86.h
     emitters/x86/Emitterx86.h
     emitters/x86/generators.h
     emitters/x86/IA32/EmitterIA32Dyn.h
@@ -20,6 +23,7 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
   list(
     APPEND
     _sources
+    codegen-x86.C
     emitters/x86/Emitterx86.C
     emitters/x86/generators.C
     emitters/x86/IA32/EmitterIA32.C
@@ -30,6 +34,7 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(
     APPEND
     _headers
+    codegen-aarch64.h
     emitters/aarch64/EmitterAarch64.h
     emitters/aarch64/EmitterAarch64Dyn.h
     emitters/aarch64/EmitterAarch64Stat.h
@@ -40,11 +45,24 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(
     APPEND
     _sources
+    codegen-aarch64.C
     emitters/aarch64/EmitterAarch64.C
     emitters/aarch64/EmitterAarch64Stat.C
     emitters/aarch64/EmitterAarch64RestoreRegs.C
     emitters/aarch64/EmitterAarch64SaveRegs.C
     emitters/aarch64/generators.C)
+
+elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
+  
+  list(APPEND _headers codegen-power.h)
+  
+  list(APPEND _sources codegen-power.C)
+  
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+
+  list(APPEND _headers codegen-amdgpu.h)
+  
+  list(APPEND _sources codegen-amdgpu.C)
 
 endif()
 
