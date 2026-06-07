@@ -1,11 +1,11 @@
 include_guard(GLOBAL)
 
-add_executable(pathName filesystem.cpp)
-target_compile_options(pathName PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
-target_link_libraries(pathName PRIVATE common)
-add_test(NAME common_pathName COMMAND pathName)
-set_tests_properties(common_pathName PROPERTIES LABELS "unit" SKIP_REGULAR_EXPRESSION
-                                                "not defined in environment")
+add_executable(filesystem filesystem.cpp)
+target_compile_options(filesystem PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(filesystem PRIVATE common)
+add_test(NAME common_filesystem COMMAND filesystem)
+set_tests_properties(common_filesystem PROPERTIES LABELS "unit" SKIP_REGULAR_EXPRESSION
+                                                  "not defined in environment")
 
 add_executable(bitmath_test bitmath.cpp)
 target_compile_options(bitmath_test PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
