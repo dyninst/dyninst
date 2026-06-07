@@ -840,7 +840,6 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
 
     for(set<Library::ptr>::const_iterator i = added.begin(); i != added.end(); ++i) {
         Address dataAddress = (*i)->getLoadAddress();
-        if( evProc->usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
 
         fileDescriptor tmpDesc((*i)->getAbsoluteName(), (*i)->getLoadAddress(),
                     dataAddress);
@@ -865,7 +864,6 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
 
         // special handling for the RT library
         dataAddress = (*i)->getLoadAddress();
-        if( evProc->usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
         fileDescriptor rtLibDesc(evProc->dyninstRT_name, (*i)->getLoadAddress(),
             dataAddress);
         if( rtLibDesc == tmpDesc ) {
@@ -889,7 +887,6 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
     const set<Library::ptr> &deleted = ev->libsRemoved();
     for(set<Library::ptr>::const_iterator i = deleted.begin(); i != deleted.end(); ++i) {
         Address dataAddress = (*i)->getLoadAddress();
-        if( evProc->usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
         deletedDescriptors.push_back(fileDescriptor((*i)->getAbsoluteName(), (*i)->getLoadAddress(),
                     dataAddress));
     }

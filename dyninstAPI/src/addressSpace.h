@@ -198,7 +198,6 @@ class AddressSpace : public InstructionSource {
     virtual void *getPtrToInstruction(const Address) const;
     virtual void *getPtrToData(const Address a) const { return getPtrToInstruction(a); }
 
-    bool usesDataLoadAddress() const; // OS-specific
     virtual bool isCode(const Address) const;
     virtual bool isData(const Address) const;
     virtual bool isReadOnly(const Address) const;

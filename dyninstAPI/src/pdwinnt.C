@@ -903,10 +903,6 @@ bool PCEventHandler::isValidRTSignal(int signal, PCEventHandler::RTBreakpointVal
 	return false;
 }
 
-bool AddressSpace::usesDataLoadAddress() const
-{
-	return false;
-}
 bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileName)
 {
 	// We don't LD_PRELOAD on Windows
