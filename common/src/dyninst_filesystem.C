@@ -175,4 +175,21 @@ std::string canonicalize(std::string path) {
   return canonical_path.string();
 }
 
+bool exists(std::string const& path) {
+  return boost::filesystem::exists(path);
+}
+
+std::string replace_extension(std::string const& path, std::string const& val) {
+  return boost::filesystem::path(path).replace_extension(val).string();
+}
+
+std::string append_filename_suffix(std::string const& path, std::string const& val) {
+  boost::filesystem::path p(path);
+  auto ext = p.extension();
+  auto x = p.replace_extension("");
+  x += val;
+  x += ext;
+  return x.string();
+}
+
 }}
