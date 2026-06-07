@@ -94,18 +94,3 @@ void inferiorHeap::clear() {
         delete bufferPool[j];
     bufferPool.clear();
 }
-
-int heapItemCmpByAddr(const heapItem **A, const heapItem **B)
-{
-  heapItem *a = *(heapItem **)const_cast<heapItem **>(A);
-  heapItem *b = *(heapItem **)const_cast<heapItem **>(B);
-
-  if (a->addr < b->addr) {
-      return -1;
-  } else if (a->addr > b->addr) {
-      return 1;
-  } else {
-      return 0;
-  }
-}
-

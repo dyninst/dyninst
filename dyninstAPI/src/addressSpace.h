@@ -563,6 +563,5 @@ class AddressSpace : public InstructionSource {
 
 
 bool uninstrument(Dyninst::PatchAPI::Instance::Ptr);
-extern int heapItemCmpByAddr(const heapItem **A, const heapItem **B);
 
 #endif // ADDRESS_SPACE_H
