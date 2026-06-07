@@ -34,7 +34,7 @@
 #include "patching/function.h"
 #include "binaryEdit.h"
 #include "trampolines/baseTramp.h"
-
+#include "common/src/dyninst_filesystem.h"
 #include "patching/instPoint.h"
 #include "debug.h"
 
@@ -2177,4 +2177,44 @@ unsigned AddressSpace::getAddressWidth() const {
     }
     // We can call this before we've attached...best effort guess
     return sizeof(Address);
+}
+
+bool AddressSpace::getDyninstRTLibName() {
+  if(!dyninstRT_name.empty()) {
+    return true;
+  }
+
+  namespace df = Dyninst::filesystem;
+
+  if(auto *name = getenv("DYNINSTAPI_RT_LIB")) {
+    dyninstRT_name = df::canonicalize(name);
+  } else {
+    startup_cerr << "DYNINSTAPI_RT_LIB not found in environment\n";
+    return false;
+  }
+
+#ifndef os_windows
+
+  if(getAOut()->isStaticExec()) {
+    dyninstRT_name = df::replace_extension(dyninstRT_name, ".a");
+  }
+
+#endif
+
+  // Instrumenting a 32-bit binary on a 64-bit host needs the 32-bit runtime
+  if(getAddressWidth() == 4 && (sizeof(void *) == 8)) {
+    auto rt32 = "_m32";
+    if(dyninstRT_name.find(rt32) == std::string::npos) {
+      dyninstRT_name = df::append_filename_suffix(dyninstRT_name, rt32);
+    }
+  }
+
+  if(!Dyninst::filesystem::exists(dyninstRT_name)) {
+    startup_cerr << "DYNINSTAPI_RT_LIB='" << dyninstRT_name << "' does not exist\n";
+    return false;
+  }
+
+  startup_cerr << "Dyninst RT Library name: '" << dyninstRT_name << "'\n";
+
+  return true;
 }
