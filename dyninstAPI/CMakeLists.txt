@@ -49,7 +49,6 @@ set(_private_headers
     src/freebsd.h
     src/function_cache.h
     src/hybridAnalysis.h
-    src/IAPI_to_AST.h
     src/image.h
     src/inst-aarch64.h
     src/inst-power.h
@@ -84,8 +83,7 @@ set(_sources
     src/variable.C)
 
 if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
-  list(APPEND _sources src/addressSpace-x86.C src/inst-x86.C src/emit-x86.C
-       src/IAPI_to_AST.C)
+  list(APPEND _sources src/addressSpace-x86.C src/inst-x86.C src/emit-x86.C)
 
   if(DYNINST_CODEGEN_ARCH_I386)
     list(APPEND _sources src/addressSpace-IA32.C)
