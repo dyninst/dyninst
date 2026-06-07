@@ -930,24 +930,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
     gen.codeEmitter()->emitLoadOrigRegister(register_num, dest, gen);
 }
 
-// First AST node: target of the call
-// Second AST node: source of the call
-// This can handle indirect control transfers as well 
-bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction insn,
-                                          Address addr,
-                                          std::vector<codeGenASTPtr> &args)
-{
-   using namespace Dyninst::InstructionAPI;        
-   Expression::Ptr cft = insn.getControlFlowTarget();
-   ASTFactory f;
-   cft->apply(&f);
-   assert(f.m_stack.size() == 1);
-   args.push_back(f.m_stack[0]);
-   args.push_back(DyninstAPI::operandAST::Constant((void *) addr));
-   inst_printf("%s[%d]:  Inserting dynamic call site instrumentation for %s\n",
-               FILE__, __LINE__, cft->format(insn.getArch()).c_str());
-   return true;
-}
+
 
 /****************************************************************************/
 /****************************************************************************/
@@ -960,34 +943,6 @@ int getMaxJumpSize()
 bool emitAddSignedImm(Address addr, long int imm, codeGen &gen) {
    gen.codeEmitter()->emitAddSignedImm(addr, imm, gen);
    return true;
-}
-
-Emitter *AddressSpace::getEmitter() 
-{
-   static Dyninst::DyninstAPI::EmitterIA32Dyn emitter32Dyn;
-   static Dyninst::DyninstAPI::EmitterIA32Stat emitter32Stat;
-
-#if defined(DYNINST_CODEGEN_ARCH_X86_64)
-   static EmitterAMD64Dyn emitter64Dyn;
-   static EmitterAMD64Stat emitter64Stat;
-
-   if (getAddressWidth() == 8) {
-       if (proc()) {
-           return &emitter64Dyn;
-       }
-       else {
-           assert(edit());
-           return &emitter64Stat;
-       }
-   }
-#endif
-   if (proc()) {
-       return &emitter32Dyn;
-   }
-   else {
-       assert(edit());
-       return &emitter32Stat;
-   }
 }
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
