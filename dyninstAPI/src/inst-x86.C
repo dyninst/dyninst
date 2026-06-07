@@ -61,14 +61,11 @@
 
 #include "mapped_module.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-#include "IAPI_to_AST.h"
 #include "Expression.h"
 #include "Instruction.h"
 #include <sstream>
 #include <assert.h>
 #include "unaligned_memory_access.h"
-
-using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 class ExpandInstruction;
 class InsertNops;
