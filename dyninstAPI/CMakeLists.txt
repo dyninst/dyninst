@@ -86,7 +86,7 @@ set(_sources
 if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
   list(APPEND _sources src/inst-x86.C src/emit-x86.C src/IAPI_to_AST.C)
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
-  list(APPEND _sources src/inst-power.C)
+  list(APPEND _sources src/addresSpace-ppc.C src/inst-power.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(APPEND _sources src/inst-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
