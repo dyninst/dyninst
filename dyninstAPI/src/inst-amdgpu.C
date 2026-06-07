@@ -53,17 +53,6 @@ void emitLoadPreviousStackFrameRegister(Address /* register_num */, Register /* 
 
 void emitStorePreviousStackFrameRegister(Address, Register, codeGen &, int, bool) {}
 
-bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction /* i */, Address /* addr */,
-                                          std::vector<codeGenASTPtr> & /* args */) {
-  assert(!"Not implemented for AMDGPU");
-  return false;
-}
-
-Emitter *AddressSpace::getEmitter() {
-  static EmitterAmdgpuGfx908 gfx908Emitter;
-  return &gfx908Emitter;
-}
-
 Address EmitterAmdgpuGfx908::getInterModuleVarAddr(const image_variable * /* var */, codeGen & /* gen */) {
   assert(!"Not implemented for AMDGPU");
   return 0;
