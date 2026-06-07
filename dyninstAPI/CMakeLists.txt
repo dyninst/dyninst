@@ -84,7 +84,15 @@ set(_sources
     src/variable.C)
 
 if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
-  list(APPEND _sources src/inst-x86.C src/emit-x86.C src/IAPI_to_AST.C)
+  list(APPEND _sources src/addressSpace-x86.C src/inst-x86.C src/emit-x86.C
+       src/IAPI_to_AST.C)
+
+  if(DYNINST_CODEGEN_ARCH_I386)
+    list(APPEND _sources src/addressSpace-IA32.C)
+  elseif(DYNINST_CODEGEN_ARCH_X86_64)
+    list(APPEND _sources src/addressSpace-AMD64.C)
+  endif()
+
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(APPEND _sources src/addressSpace-ppc.C src/inst-power.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
