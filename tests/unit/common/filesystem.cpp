@@ -130,6 +130,10 @@ int test_canonicalize() {
 int test_exists() {
   auto file = "test.out";
   std::ofstream fs{file};
+  if(!fs) {
+    std::cerr << "Failed to open '" << file << "'\n";
+    return EXIT_FAILURE;
+  }
   if(!Dyninst::filesystem::exists(file)) {
     std::cerr << "'" << file << "' doesn't exist, but should.\n";
     return EXIT_FAILURE;
