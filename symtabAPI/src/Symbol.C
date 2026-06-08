@@ -112,7 +112,7 @@ bool Symbol::isColdClone(const std::string& s)
     auto coldEnd = coldOffset + coldSuffix.size();
     if (coldEnd >= cloneSuffix.size())  {
         return true;                        // found at end of suffix
-    }
+     }
     return cloneSuffix[coldEnd] == '.';     // found iff another clone begins
 }
 
