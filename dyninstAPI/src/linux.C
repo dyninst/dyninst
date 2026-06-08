@@ -62,47 +62,6 @@ using namespace Dyninst::ProcControlAPI;
 
 using std::string;
 
-bool get_linux_version(int &major, int &minor, int &subvers)
-{
-    int subsub;
-    return get_linux_version(major,minor,subvers,subsub); 
-}
-
-bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers)
-{
-   static int maj = 0, min = 0, sub = 0, subsub = 0;
-   int result;
-   FILE *f;
-   if (maj)
-   {
-      major = maj;
-      minor = min;
-      subvers = sub;
-      subsubvers = subsub;
-      return true;
-   }
-   f = P_fopen("/proc/version", "r");
-   if (!f) goto error;
-   result = fscanf(f, "Linux version %d.%d.%d.%d", &major, &minor, &subvers,
-                    &subsubvers);
-   fclose(f);
-   if (result != 3 && result != 4) goto error;
-
-   maj = major;
-   min = minor;
-   sub = subvers;
-   subsub = subsubvers;
-   return true;
-
- error:
-   //Assume 2.4, which is the earliest version we support
-   major = maj = 2;
-   minor = min = 4;
-   subvers = sub = 0;
-   subsubvers = subsub = 0;
-   return false;
-}
-
 void PCProcess::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
         inferiorHeapType /* type */ ) 
 {

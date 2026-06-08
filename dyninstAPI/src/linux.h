@@ -68,7 +68,4 @@ class PCProcess;
 #define WNOWAIT WNOHANG
 #endif
 
-bool get_linux_version(int &major, int &minor, int &subvers);
-bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers);
-
 #endif
