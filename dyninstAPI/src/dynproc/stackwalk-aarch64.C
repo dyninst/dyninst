@@ -29,7 +29,7 @@
  */
 
 #include "debug.h"
-#include "dynProcess.h"
+#include "dynproc/dynProcess.h"
 #include "trampolines/baseTramp.h"
 #include "patching/function.h"
 #include "frameChecker.h"

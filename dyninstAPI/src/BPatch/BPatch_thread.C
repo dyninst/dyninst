@@ -38,8 +38,8 @@
 #include "patching/function.h"
 #include "BPatch_statement.h"
 
-#include "dynThread.h"
-#include "dynProcess.h"
+#include "dynproc/dynThread.h"
+#include "dynproc/dynProcess.h"
 #include "debug.h"
 
 /*

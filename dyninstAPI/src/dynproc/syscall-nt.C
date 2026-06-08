@@ -31,8 +31,8 @@
 // $Id: syscall-nt.C,v 1.4 2006/03/14 22:57:31 legendre Exp $
 
 #include "common/src/headers.h"
-#include "dyninstAPI/src/syscallNotification.h"
-#include "dyninstAPI/src/dynProcess.h"
+#include "dynproc/syscallNotification.h"
+#include "dynproc/dynProcess.h"
 
 
 syscallNotification::syscallNotification(syscallNotification *parentSN,

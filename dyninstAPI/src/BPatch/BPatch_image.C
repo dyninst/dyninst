@@ -56,7 +56,7 @@
 
 #include "addressSpace.h"
 
-#include "dynProcess.h"
+#include "dynproc/dynProcess.h"
 
 #include "debug.h"
 

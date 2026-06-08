@@ -31,7 +31,7 @@
 
 #include "DynObject.h"
 #include "PatchMgr.h"
-#include "dyninstAPI/src/dynProcess.h"
+#include "dynproc/dynProcess.h"
 
 using Dyninst::ParseAPI::CodeObject;
 using Dyninst::ParseAPI::CodeRegion;

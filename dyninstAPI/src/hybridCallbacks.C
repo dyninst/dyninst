@@ -36,7 +36,7 @@
 #include "BPatch_module.h"
 #include "patching/instPoint.h"
 #include "patching/function.h"
-#include "dynProcess.h"
+#include "dynproc/dynProcess.h"
 #include "PatchModifier.h"
 #include "BPatch_image.h"
 #include "mapped_object.h"

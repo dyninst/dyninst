@@ -52,8 +52,8 @@
 #include "patching/instPoint.h"
 #include "registerSpace/registerSpace.h"
 #include "debug.h"
-#include "dynProcess.h"
-#include "pcEventHandler.h"
+#include "dynproc/dynProcess.h"
+#include "dynproc/pcEventHandler.h"
 #include "ASTs/ast.h"
 #include "RegisterConversion.h"
 

@@ -34,7 +34,7 @@
 #include "patching/function.h"
 #include "patching/instPoint.h"
 #include "debug.h"
-#include "dynProcess.h"
+#include "dynproc/dynProcess.h"
 
 #include "mapped_object.h"
 #include "mapped_module.h"

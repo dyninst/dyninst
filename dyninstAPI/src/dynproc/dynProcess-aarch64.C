@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dyninstAPI/src/dynProcess.h"
-#include "dyninstAPI/src/frame.h"
+#include "dynproc/dynProcess.h"
+#include "dynproc/frame.h"
 #include "dyninstAPI/src/debug.h"
 #include "patching/function.h"
 
@@ -39,19 +39,18 @@ using namespace SymtabAPI;
 
 // hasBeenBound: returns true if the runtime linker has bound the
 // function symbol corresponding to the relocation entry in at the address
-// specified by entry and base_addr.  If it has been bound, then the callee 
+// specified by entry and base_addr.  If it has been bound, then the callee
 // function is returned in "target_pdf", else it returns false.
-bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry, 
-		func_instance *&target_pdf, Address base_addr) 
+bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
+                             func_instance *&target_pdf, Address base_addr)
 {
-
 	if (isTerminated()) return false;
 
 	// if the relocationEntry has not been bound yet, then the value
 	// at rel_addr is the address of the instruction immediately following
-	// the first instruction in the PLT entry (which is at the target_addr) 
-	// The PLT entries are never modified, instead they use an indirrect 
-	// jump to an address stored in the _GLOBAL_OFFSET_TABLE_.  When the 
+	// the first instruction in the PLT entry (which is at the target_addr)
+	// The PLT entries are never modified, instead they use an indirrect
+	// jump to an address stored in the _GLOBAL_OFFSET_TABLE_.  When the
 	// function symbol is bound by the runtime linker, it changes the address
 	// in the _GLOBAL_OFFSET_TABLE_ corresponding to the PLT entry
 
@@ -77,27 +76,16 @@ bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 	return false;
 }
 
-bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
-                           func_instance * origFunc, Address target_addr) {
-   fprintf(stderr, "[PCProcess::bindPLTEntry] Relocation Entry location target: %lx, relocation: %lx - base_addr: %lx, original_function: %lx, original_name: %s, new_target: %lx\n", entry.target_addr(), entry.rel_addr(), base_addr, origFunc->getPtrAddress(), origFunc->name().c_str(), target_addr);
-   return true;
+bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &, Address,
+                             func_instance *, Address) {
+    assert(0); //Not implemented
+    assert(0 && "TODO!");
+    return false;
 }
 
-bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f)
-{
-    // 64-bit ELF PowerPC Linux uses r2 for TOC base register
-    if (p->getAddressWidth() == sizeof(uint64_t)) {
-        Address val_to_write = f->addr();
-        // Use function descriptor address, if available.
-        if (f->getPtrAddress()) val_to_write = f->getPtrAddress();
-        return p->writeDataSpace((void *) addr,
-                                 sizeof(val_to_write), &val_to_write);
-    }
-    else {
-        // Originally copied from inst-x86.C
-        // 32-bit ELF PowerPC Linux mutatee
-        uint32_t val_to_write = (uint32_t)f->addr();
-        return p->writeDataSpace((void *) addr,
-                                 sizeof(val_to_write), &val_to_write);
-    }
+bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f) {
+    Address val_to_write = f->addr();
+    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);
+    return false;
 }
+

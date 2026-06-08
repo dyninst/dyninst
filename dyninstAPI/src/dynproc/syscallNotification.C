@@ -31,11 +31,11 @@
 // $Id: syscall-linux.C,v 1.20 2008/05/28 17:14:19 legendre Exp $
 
 #include "common/src/headers.h"
-#include "dyninstAPI/src/syscallNotification.h"
-#include "dyninstAPI/src/dynProcess.h"
+#include "dynproc/syscallNotification.h"
+#include "dynproc/dynProcess.h"
 #include "patching/instMapping.h"
 #include "EventType.h"
-#include "dyninstAPI/src/pcEventMuxer.h"
+#include "dynproc/pcEventMuxer.h"
 #include "patchAPI/h/PatchMgr.h"
 #include "patchAPI/h/Point.h"
 

@@ -38,7 +38,7 @@
 #include "patching/function.h"
 #include "debug.h"
 #include "addressSpace.h"
-#include "dynProcess.h"
+#include "dynproc/dynProcess.h"
 #include "BPatch.h"
 #include "BPatch_module.h"
 #include "BPatch_libInfo.h"

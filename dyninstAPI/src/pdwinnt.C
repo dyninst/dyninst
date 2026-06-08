@@ -47,13 +47,13 @@
 #include <boost/tuple/tuple.hpp>
 
 #include "patching/function.h"
-#include "dynProcess.h"
+#include "dynproc/dynProcess.h"
 
 /* XXX This is only needed for emulating signals. */
 #include "BPatch_thread.h"
 #include "BPatch_process.h"
 #include "nt_signal_emul.h"
-#include "dyninstAPI/src/PCEventMuxer.h"
+#include "dynproc/pcEventMuxer.h"
 
 // prototypes of functions used in this file
 

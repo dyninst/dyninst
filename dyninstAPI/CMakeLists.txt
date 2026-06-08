@@ -13,6 +13,7 @@ add_subdirectory(src/BPatch)
 add_subdirectory(src/codegen)
 add_subdirectory(src/parsing)
 add_subdirectory(src/patching)
+add_subdirectory(src/dynproc)
 add_subdirectory(src/registerSpace)
 add_subdirectory(src/Relocation)
 add_subdirectory(src/StackMod)
@@ -24,6 +25,7 @@ set(_subprojects
     dyninstAPI_codegen
     dyninstAPI_parsing
     dyninstAPI_patching
+    dyninstAPI_dynproc
     dyninstAPI_registerSpace
     dyninstAPI_relocation
     dyninstAPI_stackmod
@@ -45,20 +47,15 @@ set(_private_headers
     src/codegen-x86.h
     src/codeRange.h
     src/debug.h
-    src/dynProcess.h
-    src/dynThread.h
     src/emit-amdgpu.h
     src/emit-power.h
     src/emitter.h
     src/emit-x86.h
-    src/frameChecker.h
-    src/frame.h
     src/freebsd.h
     src/function_cache.h
     src/hybridAnalysis.h
     src/IAPI_to_AST.h
     src/image.h
-    src/infHeap.h
     src/inst-aarch64.h
     src/inst-power.h
     src/inst-x86.h
@@ -68,17 +65,12 @@ set(_private_headers
     src/linux-x86.h
     src/mapped_module.h
     src/mapped_object.h
-    src/nt_signal_emul.h
     src/opcode.h
     src/os.h
-    src/pcEventHandler.h
-    src/pcEventMuxer.h
     src/pdwinnt.h
     src/PointHandler.h
     src/RegisterConversion.h
     src/regTracker.h
-    src/syscallNotification.h
-    src/trapMappings.h
     src/unix.h
     src/util.h
     src/amdgpu-gfx908-details.h)
@@ -89,29 +81,14 @@ set(_sources
     src/codeRange.C
     src/codegen.C
     src/debug.C
-    src/dynProcess.C
-    src/dynThread.C
-    src/frame.C
-    src/frameChecker.C
     src/hybridCallbacks.C
     src/hybridInstrumentation.C
     src/hybridOverwrites.C
     src/image.C
-    src/infHeap.C
     src/mapped_module.C
     src/mapped_object.C
-    src/pcEventHandler.C
-    src/pcEventMuxer.C
     src/regTracker.C
     src/variable.C)
-
-if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
-  list(APPEND _sources src/stackwalk-x86.C src/dynProcess-x86.C)
-elseif(DYNINST_HOST_ARCH_PPC64LE)
-  list(APPEND _sources src/stackwalk-ppc.C src/dynProcess-power.C)
-elseif(DYNINST_HOST_ARCH_AARCH64)
-  list(APPEND _sources src/stackwalk-aarch64.C src/dynProcess-aarch64.C)
-endif()
 
 if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
   list(
@@ -141,11 +118,9 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 endif()
 
 if(DYNINST_OS_FreeBSD)
-  list(APPEND _sources src/freebsd.C src/unix.C src/syscallNotification.C
-       src/syscall-freebsd.C)
+  list(APPEND _sources src/freebsd.C src/unix.C)
 elseif(DYNINST_OS_Linux)
-  list(APPEND _sources src/linux.C src/unix.C src/syscallNotification.C
-       src/syscall-linux.C)
+  list(APPEND _sources src/linux.C src/unix.C)
   if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
     list(APPEND _sources src/linux-x86.C)
   elseif(DYNINST_HOST_ARCH_PPC64LE)
@@ -161,8 +136,7 @@ elseif(DYNINST_OS_Windows)
     src/hybridInstrumentation.C
     src/hybridOverwrites.C
     src/inst-winnt.C
-    src/pdwinnt.C
-    src/syscall-nt.C)
+    src/pdwinnt.C)
 endif()
 
 # cmake-format: off

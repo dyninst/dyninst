@@ -47,7 +47,7 @@
 
 #include "addressSpace.h"
 #include "codeRange.h"
-#include "infHeap.h"
+#include "dynproc/infHeap.h"
 #include "ASTs/ast.h"
 #include "syscallNotification.h"
 #include "trampolines/baseTramp.h"
@@ -60,8 +60,8 @@
 #include "stackwalk/h/walker.h"
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/symlookup.h"
-#include "pcEventHandler.h"
-#include "frame.h"
+#include "dynproc/pcEventHandler.h"
+#include "dynproc/frame.h"
 
 #define RPC_LEAVE_AS_IS 0
 #define RPC_RUN_WHEN_DONE 1

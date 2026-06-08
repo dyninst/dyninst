@@ -36,8 +36,8 @@
 #include <string.h>
 #include "addressSpace.h"
 #include "arch-regs-x86.h"
-#include "dynThread.h"
-#include "dynProcess.h"
+#include "dynproc/dynThread.h"
+#include "dynproc/dynProcess.h"
 #include "compiler_annotations.h"
 #include "codegen.h"
 #include "patching/function.h"
