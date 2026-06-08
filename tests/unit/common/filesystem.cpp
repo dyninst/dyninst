@@ -131,7 +131,7 @@ int test_exists() {
   auto file = "test.out";
   std::ofstream fs{file};
   if(!fs) {
-    std::cerr << "Failed to open '" << file << "'\n";
+    std::cerr << "Failed to create '" << file << "'\n";
     return EXIT_FAILURE;
   }
   if(!Dyninst::filesystem::exists(file)) {
