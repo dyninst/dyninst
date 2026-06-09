@@ -155,11 +155,9 @@ endif()
 
 # Optional decoder used by the built-in "unknown instruction" callback to
 # recover the length of x86-64 instructions InstructionAPI cannot decode.
-set(_unknown_insn_deps)
-set(_unknown_insn_defines)
 if(DYNINST_ENABLE_ZYDIS)
-  list(APPEND _unknown_insn_deps Dyninst::Zydis)
-  list(APPEND _unknown_insn_defines DYNINST_ENABLE_ZYDIS)
+  set(_unknown_insn_deps Dyninst::Zydis)
+  set(_unknown_insn_defines DYNINST_ENABLE_ZYDIS)
 endif()
 
 # cmake-format: off
