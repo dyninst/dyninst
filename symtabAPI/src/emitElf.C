@@ -350,6 +350,7 @@ void emitElf<ElfTypes>::getSectionAndSegmentProperties(const char* shnames) {
         auto scn{elf_getscn(oldElf, i)};
         auto shdr{ElfTypes::elf_getshdr(scn)};
         const char *name = &shnames[shdr->sh_name];
+        jk_rewrite_printf("GSASP: i=%2u  sh_name_off=%2u  name=%s\n", i, shdr->sh_name, name);
         if (name == secStrtabName)  {
             continue;
         }
@@ -465,6 +466,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         if (!result || foundSec->isDirty()) {
             result = obj->findRegion(foundSec, name);
         }
+        jk_rewrite_printf("SECTION: scncount=%03u  name=%s\n", scncount, name);
 
         // write the shstrtabsection at the end
         if (name == secStrtabName)
@@ -583,6 +585,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
         rewrite_printf("section %s addr = %lx off = %lx size = %lx\n",
                        name, (long unsigned int)newshdr->sh_addr, (long unsigned int)newshdr->sh_offset, (long unsigned int)newshdr->sh_size);
+        jk_rewrite_printf(" scncount = %02u\n", scncount);
         rewrite_printf(" %02u Link(%u) Info(%u) change(%u)\n",
                 sectionNumber, secLinkMapping[sectionNumber], secInfoMapping[sectionNumber],
                 (unsigned)changeMapping[sectionNumber]);
