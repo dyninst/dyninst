@@ -1434,12 +1434,31 @@ void EmitterAMD64::emitRestoreFlagsFromStackSlot(codeGen &gen)
    emitSimpleInsn(0x9D, gen);
 }
 
+// SysV AMD64 caller-saved ("volatile") GPRs. A standard-ABI callee may clobber
+// these freely, and a caller normally does not keep them live across a call --
+// EXCEPT for GCC IPA-SRA local clones (.isra/.constprop), which co-allocate
+// scratch registers across the call between a clone and its callers. dyninst
+// cannot see that contract from the callee, so it must conservatively preserve
+// any of these that an inserted snippet clobbers (see #2081 follow-up: %r11
+// trashed by FEntryCoverage->printf inside an instrumented operator=.isra.0).
+static bool isCallerSavedGPR(int enc)
+{
+   switch (enc) {
+      case REGNUM_RAX: case REGNUM_RCX: case REGNUM_RDX:
+      case REGNUM_RSI: case REGNUM_RDI:
+      case REGNUM_R8:  case REGNUM_R9:  case REGNUM_R10: case REGNUM_R11:
+         return true;
+      default:               // RBX, RBP, R12-R15: callee-saved (preserved by the
+         return false;       // inserted call by ABI); RSP handled separately.
+   }
+}
+
 bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
-{ 
+{
   if (reg->encoding() == REGNUM_RSP) {
     return false;
   }
-  
+
    if (inst->point()) {
       regalloc_printf("\t shouldSaveReg for BT %p, from 0x%lx\n", (void*)inst, inst->point()->insnAddr() );
    }
@@ -1447,8 +1466,21 @@ bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
       regalloc_printf("\t shouldSaveReg for iRPC\n");
    }
    if (reg->liveState != registerSlot::live) {
-      regalloc_printf("\t Reg %u not live, concluding don't save\n", reg->number.getId());
-      return false;
+      // A register that is dead at this point normally need not be preserved.
+      // EXCEPTION: intra-procedural liveness cannot see a caller that keeps a
+      // caller-saved register (e.g. %r10/%r11) live across the call under a
+      // non-standard ABI (GCC IPA-SRA clones). If the inserted snippet clobbers
+      // such a register we must still save/restore it, or we silently corrupt
+      // the caller. (#2081 follow-up.)
+      bool clobbered = !(inst && inst->validOptimizationInfo())
+                       || inst->definedRegs[reg->encoding()];
+      if (!(clobbered && isCallerSavedGPR(reg->encoding()))) {
+         regalloc_printf("\t Reg %u not live, concluding don't save\n", reg->number.getId());
+         return false;
+      }
+      regalloc_printf("\t Reg %u dead but caller-saved & clobbered; saving "
+                      "conservatively for non-standard-ABI safety\n", reg->number.getId());
+      // fall through to save
    }
    if (saveFlags) {
       // Saving flags takes up EAX/RAX, and so if they're live they must
