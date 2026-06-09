@@ -309,6 +309,292 @@ namespace Dyninst {
             std::vector<void*> buffers;
             char* allocate_buffer(size_t);
 
+            #define jk_rewrite_printf rewrite_printf
+            #define jk_log_shdr(msg, name, index, shdr) do {jk_rewrite_printf("%s%s ", msg, (msg && msg[0]) ? " " : "");jk_dump_shdr(shdr, index, name);}while(0)
+            bool jk_dump_16_byte_line(const unsigned char* buf, unsigned long offset, unsigned low, unsigned high)
+            {
+                offset -= offset % 16;
+                if (offset >= high)  {
+                    return false;
+                }
+                jk_rewrite_printf("%06lx: ", offset);
+                for (auto i = offset; i < offset + 16; ++i)  {
+                    if (i % 8 == 0)  {
+                        jk_rewrite_printf(" ");
+                    }
+                    if (low <= i && i < high)  {
+                        jk_rewrite_printf(" %02x", buf[i]);
+                    }  else  {
+                        jk_rewrite_printf("   ");
+                    }
+                }
+                jk_rewrite_printf("   ");
+                for (auto i = offset; i < offset + 16; ++i)  {
+                    if (i % 8 == 0)  {
+                        jk_rewrite_printf("  ");
+                    }
+                    if (low <= i && i < high)  {
+                        unsigned char c = buf[i];
+                        if (c < 0x20 || (c >= 0x80 && c < 0xa0))  {
+                            c = '.';
+                        }
+                        jk_rewrite_printf("%c", c);
+                    }  else  {
+                        jk_rewrite_printf("   ");
+                    }
+                }
+                jk_rewrite_printf("\n");
+                return true;
+            }
+
+            void jk_dump_bytes(const unsigned char* buf, unsigned long len, std::string msg = "", unsigned long start = 0)
+            {
+                if (!msg.empty())
+                    msg += ":  ";
+                jk_rewrite_printf("\n-------------------\n%sDump @%p for %lu bytes\n-------------------\n", msg.c_str(), buf, len);
+                unsigned long offset{start};
+                while (jk_dump_16_byte_line(buf, offset, start, len))  {
+                    offset += 16;
+                }
+            }
+            void jk_dump_bytes(const char* buf, unsigned long len, std::string msg = "", unsigned long start = 0)
+            {
+                jk_dump_bytes((const unsigned char*) buf, len, msg, start);
+            }
+            void jk_dump_bytes(void* buf, unsigned long len, std::string msg = "", unsigned long start = 0)
+            {
+                jk_dump_bytes((const unsigned char*) buf, len, msg, start);
+            }
+            void jk_dump_ehdr(Elf *elf)
+            {
+                #define ehdr_field_log(fld, type) jk_rewrite_printf("%-16s " #type "\n", "elf." #fld, (unsigned long)ehdr->fld);
+                auto ehdr = this->elf_getehdr(elf);
+
+                ehdr_field_log(e_type,		%lu);
+                ehdr_field_log(e_machine,	%lu);
+                ehdr_field_log(e_version,	%lu);
+                ehdr_field_log(e_entry,		%lx);
+                ehdr_field_log(e_phoff,		%lx);
+                ehdr_field_log(e_shoff,		%lx);
+                ehdr_field_log(e_flags,		%lx);
+                ehdr_field_log(e_ehsize,	%lu);
+                ehdr_field_log(e_phentsize,	%lu);
+                ehdr_field_log(e_phnum,		%lu);
+                ehdr_field_log(e_shentsize,	%lu);
+                ehdr_field_log(e_shnum,		%lu);
+                ehdr_field_log(e_shstrndx,	%lu);
+            }
+            const char* jk_scnTypeStr(Elf64_Word type) {
+                static char unknownBuf[50];
+                #define shTypeToStrCase(s) case s: return & #s [4]
+                switch (type)  {
+                    shTypeToStrCase(SHT_NULL);
+                    shTypeToStrCase(SHT_PROGBITS);
+                    shTypeToStrCase(SHT_SYMTAB);
+                    shTypeToStrCase(SHT_STRTAB);
+                    shTypeToStrCase(SHT_RELA);
+                    shTypeToStrCase(SHT_HASH);
+                    shTypeToStrCase(SHT_DYNAMIC);
+                    shTypeToStrCase(SHT_NOTE);
+                    shTypeToStrCase(SHT_NOBITS);
+                    shTypeToStrCase(SHT_REL);
+                    shTypeToStrCase(SHT_SHLIB);
+                    shTypeToStrCase(SHT_DYNSYM);
+                    shTypeToStrCase(SHT_INIT_ARRAY);
+                    shTypeToStrCase(SHT_FINI_ARRAY);
+                    shTypeToStrCase(SHT_PREINIT_ARRAY);
+                    shTypeToStrCase(SHT_GROUP);
+                    shTypeToStrCase(SHT_SYMTAB_SHNDX);
+                    shTypeToStrCase(SHT_GNU_ATTRIBUTES);
+                    shTypeToStrCase(SHT_GNU_HASH);
+                    shTypeToStrCase(SHT_GNU_LIBLIST);
+                    shTypeToStrCase(SHT_GNU_verdef);
+                    shTypeToStrCase(SHT_GNU_verneed);
+                    shTypeToStrCase(SHT_GNU_versym);
+                    default:
+                        sprintf(unknownBuf, "%08lx", (unsigned long)type);
+                        return unknownBuf;
+                }
+            }
+            std::string jk_scnFlagsStr(Elf64_Word flags)
+            {
+                Elf64_Word mask = ~(Elf64_Word(SHF_WRITE) | SHF_ALLOC | SHF_EXECINSTR | SHF_TLS | SHF_MERGE | SHF_INFO_LINK | SHF_STRINGS);
+                if (flags & mask)  {
+                    char buf[50];
+                    sprintf(buf, "%lx", (unsigned long)flags);
+                    return buf;
+                }
+                std::string r{"       "};
+                if (flags & SHF_WRITE)          r[0] = 'W';
+                if (flags & SHF_ALLOC)          r[1] = 'A';
+                if (flags & SHF_EXECINSTR)      r[2] = 'X';
+                if (flags & SHF_TLS)            r[3] = 'T';
+                if (flags & SHF_MERGE)          r[4] = 'M';
+                if (flags & SHF_STRINGS)        r[5] = 's';
+                if (flags & SHF_INFO_LINK)      r[6] = 'L';
+                return r;
+            }
+            void jk_dump_shdr(Elf_Shdr *shdr, unsigned index=99, std::string name = "")
+            {
+                jk_rewrite_printf("[%2lu] (%3lu) %-21s %-15s %08lx %08lx %08lx %02lx %-6s %02lx %04lx %08lx\n",
+                    (unsigned long)index,
+                    (unsigned long)shdr->sh_name,
+                    name.c_str(),
+                    jk_scnTypeStr(shdr->sh_type),
+                    (unsigned long)shdr->sh_addr,
+                    (unsigned long)shdr->sh_offset,
+                    (unsigned long)shdr->sh_size,
+                    (unsigned long)shdr->sh_entsize,
+                    jk_scnFlagsStr(shdr->sh_flags).c_str(),
+                    (unsigned long)shdr->sh_link,
+                    (unsigned long)shdr->sh_info,
+                    (unsigned long)shdr->sh_addralign
+                );
+            }
+            void jk_dump_scn(Elf_Scn *scn, unsigned index=99, std::string name = "")
+            {
+                auto shdr{this->elf_getshdr(scn)};
+                jk_dump_shdr(shdr, index, name);
+            }
+            void jk_dump_shdrs(Elf *elf)
+            {
+                jk_rewrite_printf("indx namei name                  type            address  offset   size     es flag   lk info algn\n---\n");
+                auto ehdr = this->elf_getehdr(elf);
+                auto shstrndx = ehdr->e_shstrndx;
+                const char *names{};
+                unsigned namesBytes{};
+                if (shstrndx < ehdr->e_shnum)  {
+                    auto shstrscn = elf_getscn(elf, shstrndx);
+                    auto shstrdata = elf_getdata(shstrscn, NULL);
+                    names = (const char*)shstrdata->d_buf;
+                    namesBytes = shstrdata->d_size;
+                }
+                Elf_Scn *scn{};
+                for (unsigned i = 1; (scn = elf_nextscn(elf, scn)); ++i)  {
+                    std::string name{"shstr_scn_not_found"};
+                    auto shdr{ElfTypes::elf_getshdr(scn)};
+                    if (names)  {
+                        auto nameIndex = shdr->sh_name;
+                        if (nameIndex < namesBytes)  {
+                            name = &names[nameIndex];
+                        }  else  {
+                            name = "nameIndex_out_of_bounds";
+                        }
+                    }
+                    jk_dump_shdr(shdr, i, name);
+                }
+            }
+            void jk_dump_new_shdrs(Elf *elf)
+            {
+                Elf_Scn *scn{};
+                for (unsigned i = 1; (scn = elf_nextscn(elf, scn)); ++i)  {
+                    std::string name{"index_too_big"};
+                    if (i < secNames.size())
+                        name = secNames[i];
+                    jk_dump_scn(scn, i);
+                }
+            }
+            const char* jk_phdrTypeStr(Elf64_Word type) {
+                static char unknownBuf[50];
+                #define phTypeToStrCase(s) case s: return & #s [3]
+                switch (type) {
+                    phTypeToStrCase(PT_NULL);
+                    phTypeToStrCase(PT_LOAD);
+                    phTypeToStrCase(PT_DYNAMIC);
+                    phTypeToStrCase(PT_INTERP);
+                    phTypeToStrCase(PT_NOTE);
+                    phTypeToStrCase(PT_SHLIB);
+                    phTypeToStrCase(PT_PHDR);
+                    phTypeToStrCase(PT_TLS);
+                    phTypeToStrCase(PT_GNU_EH_FRAME);
+                    phTypeToStrCase(PT_GNU_STACK);
+                    phTypeToStrCase(PT_GNU_RELRO);
+                    phTypeToStrCase(PT_GNU_PROPERTY);
+                    phTypeToStrCase(PT_PAX_FLAGS);
+                    default:
+                        sprintf(unknownBuf, "%08lx", (unsigned long)type);
+                        return unknownBuf;
+                }
+
+            }
+            std::string jk_phFlagsStr(Elf64_Word flags)
+            {
+                Elf64_Word mask = ~(Elf64_Word(PF_X) | PF_W | PF_R);
+                if (flags & mask)  {
+                    char buf[50];
+                    sprintf(buf, "%lx", (unsigned long)flags);
+                    return buf;
+                }
+                std::string r{"   "};
+                if (flags & PF_R)       r[0] = 'R';
+                if (flags & PF_W)       r[1] = 'W';
+                if (flags & PF_X)       r[2] = 'X';
+                return r;
+            }
+            void jk_dump_phdr(Elf_Phdr *phdr)
+            {
+                jk_rewrite_printf("%-12s %08lx %08lx %08lx %08lx %08lx %-3s %08lx\n",
+                    jk_phdrTypeStr(phdr->p_type),
+                    (unsigned long)phdr->p_offset,
+                    (unsigned long)phdr->p_vaddr,
+                    (unsigned long)phdr->p_paddr,
+                    (unsigned long)phdr->p_filesz,
+                    (unsigned long)phdr->p_memsz,
+                    jk_phFlagsStr(phdr->p_flags).c_str(),
+                    (unsigned long)phdr->p_align
+                );
+            }
+            void jk_dump_phdrs(Elf *elf)
+            {
+                jk_rewrite_printf("type         offset   vaddr    paddr    filesz   memsz    flg align\n---\n");
+                auto ehdr = this->elf_getehdr(elf);
+                auto phdrs = ElfTypes::elf_getphdr(elf);
+                for (unsigned i = 0; i < ehdr->e_phnum; ++i)  {
+                    auto phdr{&phdrs[i]};
+                    jk_dump_phdr(phdr);
+                }
+            }
+            void jk_dump_phdrs_bytes(Elf *elf)
+            {
+                auto ehdr = this->elf_getehdr(elf);
+                auto phdrs = ElfTypes::elf_getphdr(elf);
+                jk_dump_bytes((unsigned char*)phdrs, ehdr->e_phnum * sizeof(phdrs[0]), "elf_getphdr bytes");
+            }
+            void jk_dump_scn_bytes(Elf_Scn *scn, const std::string msg = "")
+            {
+                if (!scn)  {
+                    jk_rewrite_printf("jk_dump_scn_data: ERROR scn == NULL\n");
+                    return;
+                }
+                Elf_Data * data = NULL;
+                while ((data = elf_getdata(scn, data)))  {
+                    auto bytes = data->d_buf;
+                    auto len = data->d_size;
+                    jk_dump_bytes(bytes, len, msg);
+                }
+            }
+            void jk_dump_scn_id_bytes(Elf *elf, unsigned long i, const char *msg = nullptr)
+            {
+                auto scn = elf_getscn(elf, i);
+                jk_dump_scn_bytes(scn, msg);
+            }
+            void jk_dump_elf(Elf *elf, const char *msg = nullptr)
+            {
+                if (msg)  {
+                    jk_rewrite_printf("\n-------------------\n%s\n-------------------\n", msg);
+                }
+                jk_rewrite_printf("Ehdr\n-----\n");
+                jk_dump_ehdr(elf);
+                auto ehdr = this->elf_getehdr(elf);
+                jk_dump_scn_id_bytes(elf, ehdr->e_shstrndx, "shstr section");
+                jk_rewrite_printf("\nPhdrs\n-----\n");
+                jk_dump_phdrs(elf);
+                jk_dump_phdrs_bytes(elf);
+                jk_rewrite_printf("\nSections\n-----\n");
+                jk_dump_shdrs(elf);
+            }
+
+
         };
         extern template class emitElf<ElfTypes32>;
         extern template class emitElf<ElfTypes64>;
