@@ -43,8 +43,6 @@
 namespace {
   namespace ia = Dyninst::InstructionAPI;
   using ui = ia::InstructionDecoder::unknown_instruction;
-  ui::callback_t callback{};
-
 #if defined(DYNINST_ENABLE_ZYDIS)
   // Built-in "unknown instruction" callback for x86-64. InstructionAPI calls
   // this when it cannot decode a byte sequence; we use Zydis to recover the
@@ -68,6 +66,9 @@ namespace {
     }
     return ia::Instruction{};
   }
+  ui::callback_t callback{zydis_unknown_instruction_callback};
+#else
+  ui::callback_t callback{};
 #endif
 }
 
