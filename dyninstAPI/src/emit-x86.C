@@ -1460,12 +1460,21 @@ static bool isCallerSavedGPR(int enc)
 // which a caller keeps a caller-saved register live across a call, so the
 // conservative save below is restricted to them -- ordinary functions keep the
 // normal liveness-based pruning. Uses SymtabAPI's clone predicate so the
-// detection lives in one place (Symbol::isClone: mangled name contains '.').
+// detection lives in one place (Symbol::isClone: name carries a clone suffix).
+//
+// A function can have several symbol-table names (aliases), so check all of
+// them rather than just the primary symTabName(); treat the function as a clone
+// if any name is a clone name.
 static bool isCloneFunc(baseTramp *inst)
 {
    if (!inst || !inst->point() || !inst->point()->func())
       return false;
-   return Dyninst::SymtabAPI::Symbol::isClone(inst->point()->func()->symTabName());
+   func_instance *f = inst->point()->func();
+   for (auto it = f->symtab_names_begin(); it != f->symtab_names_end(); ++it) {
+      if (Dyninst::SymtabAPI::Symbol::isClone(*it))
+         return true;
+   }
+   return false;
 }
 
 bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
