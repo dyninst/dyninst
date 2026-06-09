@@ -132,7 +132,7 @@ mapped_object *mapped_object::createMappedObject(Library::const_ptr lib,
                                                  bool parseGaps) {
    fileDescriptor desc(lib->getAbsoluteName(),
                        lib->getLoadAddress(),
-                       p->usesDataLoadAddress() ? lib->getDataLoadAddress() : lib->getLoadAddress());
+                       lib->getLoadAddress());
    return createMappedObject(desc, p, analysisMode, parseGaps);
 }
    

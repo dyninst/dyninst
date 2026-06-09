@@ -99,10 +99,6 @@ bool PCProcess::skipHeap(const heapDescriptor &) {
     return false;
 }
 
-bool AddressSpace::usesDataLoadAddress() const {
-    return false;
-}
-
 bool PCProcess::copyDanglingMemory(PCProcess *) {
     return true;
 }
