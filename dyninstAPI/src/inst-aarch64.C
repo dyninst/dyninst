@@ -33,7 +33,7 @@
 #include "Instruction.h"
 #include "Register.h"
 #include "RegisterConversion.h"
-#include "codegen.h"
+#include "codegen/codegen.h"
 #include "registerSpace/registerSpace.h"
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;

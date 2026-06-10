@@ -35,7 +35,7 @@
  *  Generic generators for IA32 and AMD64
  */
 
-#include "codegen.h"
+#include "codegen/codegen.h"
 #include "dyntypes.h"
 
 namespace Dyninst { namespace DyninstAPI { namespace x86 {

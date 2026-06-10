@@ -38,7 +38,7 @@
 #include <utility>
 #include <list>
 #include <map>
-#include "dyninstAPI/src/codegen.h" // codeGen structure
+#include "codegen/codegen.h" // codeGen structure
 
 #include "Transformers/Transformer.h"
 

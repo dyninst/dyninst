@@ -31,7 +31,7 @@
 #include "CFG.h"
 #include "Springboard.h"
 #include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/codegen.h"
+#include "codegen/codegen.h"
 
 #include "dyninstAPI/src/addressSpace.h"
 #include "patching/function.h"

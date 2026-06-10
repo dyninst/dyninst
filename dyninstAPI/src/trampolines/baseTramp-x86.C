@@ -1,6 +1,6 @@
 #include "baseTramp-x86.h"
 #include "emitter.h"
-#include "codegen.h"
+#include "codegen/codegen.h"
 
 bool baseTramp_x86::generateSaves(codeGen &gen, registerSpace *) {
   return gen.codeEmitter()->emitBTSaves(this, gen);

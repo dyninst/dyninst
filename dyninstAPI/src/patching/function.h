@@ -39,7 +39,7 @@
 #include <set>
 #include <stddef.h>
 #include <vector>
-#include "codegen.h"
+#include "codegen/codegen.h"
 #include "codeRange.h"
 
 #include "bitArray.h"

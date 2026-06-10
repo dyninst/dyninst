@@ -37,7 +37,7 @@
 
 #include <list>
 #include <map>
-#include "dyninstAPI/src/codegen.h" // codeGen structure
+#include "codegen/codegen.h" // codeGen structure
 #include "boost/shared_ptr.hpp"
 
 namespace Dyninst {

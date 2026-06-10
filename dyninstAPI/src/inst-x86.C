@@ -46,7 +46,7 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/debug.h"
 #include "patching/function.h"
-#include "dyninstAPI/src/codegen.h"
+#include "codegen/codegen.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "trampolines/baseTramp.h"
 #include "dyninstAPI/src/emit-x86.h"

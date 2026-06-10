@@ -29,7 +29,7 @@
  */
 
 #include <stdlib.h>
-#include "dyninstAPI/src/codegen.h"
+#include "codegen/codegen.h"
 #include "dyninstAPI/src/debug.h"
 #include "patching/instPoint.h"
 #include "registerSpace/registerSpace.h"

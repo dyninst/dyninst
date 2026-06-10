@@ -1,5 +1,5 @@
 #include "atomicOperationAST.h"
-#include "codegen.h"
+#include "codegen/codegen.h"
 #include "debug.h"
 #include "operandAST.h"
 #include "registerSpace/registerSpace.h"

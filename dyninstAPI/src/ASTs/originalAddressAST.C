@@ -1,6 +1,6 @@
 #include "ast_helpers.h"
 #include "addressAST.h"
-#include "codegen.h"
+#include "codegen/codegen.h"
 
 #include <boost/make_shared.hpp>
 

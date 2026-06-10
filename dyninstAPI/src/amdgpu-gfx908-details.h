@@ -29,7 +29,7 @@
 #ifndef AMDGPU_GFX908_DETAILS_H
 #define AMDGPU_GFX908_DETAILS_H
 
-#include "codegen.h"
+#include "codegen/codegen.h"
 #include <stdint.h>
 
 namespace AmdgpuGfx908 {

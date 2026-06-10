@@ -35,7 +35,7 @@
  *  Common code for emitting instructions on i386 and x86_64
  */
 
-#include "codegen.h"
+#include "codegen/codegen.h"
 #include "dyn_register.h"
 #include "dyntypes.h"
 #include "emitter.h"

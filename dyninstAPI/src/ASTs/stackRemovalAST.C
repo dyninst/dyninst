@@ -31,7 +31,7 @@ bool stackRemovalAST::generateCode_phase2(codeGen &, Address &, Dyninst::Registe
 #else
 
 #include "Architecture.h"
-#include "codegen.h"
+#include "codegen/codegen.h"
 #include "RegisterConversion.h"
 #include "registers/MachRegister.h"
 

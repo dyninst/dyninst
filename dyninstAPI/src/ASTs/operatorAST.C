@@ -5,7 +5,7 @@
 #include "BPatch_collections.h"
 #include "BPatch_memoryAccess_NP.h"
 #include "BPatch_point.h"
-#include "codegen.h"
+#include "codegen/codegen.h"
 #include "common/src/bitmath.h"
 #include "debug.h"
 #include "dyntypes.h"

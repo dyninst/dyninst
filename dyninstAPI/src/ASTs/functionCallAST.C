@@ -2,7 +2,7 @@
 #include "ast_helpers.h"
 #include "BPatch.h"
 #include "BPatch_function.h"
-#include "codegen.h"
+#include "codegen/codegen.h"
 #include "debug.h"
 #include "emitter.h"
 #include "patching/function.h"

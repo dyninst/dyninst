@@ -60,7 +60,7 @@
 #include <map>
 #include <vector>
 #include <list>
-#include "dyninstAPI/src/codegen.h"
+#include "codegen/codegen.h"
 
 class codeGen;
 

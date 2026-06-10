@@ -1,7 +1,7 @@
 #include "baseTramp-ppc.h"
 #include "inst-power.h"
 #include "debug.h"
-#include "codegen.h"
+#include "codegen/codegen.h"
 #include "BPatch.h"
 
 bool baseTramp_ppc::generateSaves(codeGen &gen, registerSpace *) {
