@@ -85,13 +85,8 @@ set(_sources
     src/variable.C)
 
 if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
-  list(
-    APPEND
-    _sources
-    src/RegisterConversion-x86.C
-    src/inst-x86.C
-    src/emit-x86.C
-    src/IAPI_to_AST.C)
+  list(APPEND _sources src/RegisterConversion-x86.C src/inst-x86.C src/emit-x86.C
+       src/IAPI_to_AST.C)
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(APPEND _sources src/inst-power.C src/RegisterConversion-ppc.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
