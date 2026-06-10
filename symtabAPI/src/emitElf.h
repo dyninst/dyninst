@@ -262,7 +262,7 @@ namespace Dyninst {
 
             bool createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf_Sym *> &symbols,
                                  bool dynSymFlag = false);
-            void getSectionAndSegmentProperties();
+            void getSectionAndSegmentProperties(const char *shnames);
             void renameSection(const std::string &oldName);
             void fixPhdrs();
             void createNewPhdrRegion(std::unordered_map<std::string, unsigned> &newNameIndexMapping);
