@@ -40,6 +40,7 @@
 
 #include "dyninstAPI/src/amdgpu-gfx908-details.h"
 #include "dyninstAPI/src/emitter.h"
+#include "dyninstAPI/src/function_cache.h"
 
 class codeGen;
 
@@ -234,6 +235,14 @@ public:
 
   void emitLongJump(Register reg, uint64_t fromAddress, uint64_t toAddress, codeGen &gen);
 
+  // Indirect call through an 8-byte function-pointer slot at slotAddr.
+  // Allocates scratch SGPRs internally, loads the target from the slot via
+  // SMEM, and emits S_SWAPPC_B64 which jumps to the target while depositing
+  // the return address (PC+4) into lrPair.
+  // lrPair must be a pair-aligned SGPR pair owned by the caller; this
+  // function does not allocate or free it.
+  void emitIndirectCall(Address slotAddr, Register lrPair, codeGen &gen);
+
   void emitScalarDataCacheWriteback(codeGen &gen);
 
   void emitAtomicAdd(Register baseAddrReg, Register src0, codeGen &gen);
@@ -247,5 +256,9 @@ private:
 
   Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) /* override */;
   Address getInterModuleVarAddr(const image_variable *var, codeGen& gen) /* override */;
+
+  // clobberAllFuncCall can be expensive, so don't re-analyze functions
+  // that have already been visited (mirrors emit-x86.h, emit-aarch64.h, etc.).
+  Dyninst::DyninstAPI::function_cache clobbered_functions;
 };
 #endif
