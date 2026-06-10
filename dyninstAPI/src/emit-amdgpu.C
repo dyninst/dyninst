@@ -36,6 +36,7 @@
 #include "dyninstAPI/src/emit-amdgpu.h"
 #include "registerSpace.h"
 #include "arch-amdgpu.h"
+#include "function.h"
 
 using namespace Dyninst;
 using namespace AmdgpuGfx908;
@@ -449,11 +450,46 @@ bool EmitterAmdgpuGfx908::emitMoveRegToReg(registerSlot * /* src */, registerSlo
   return false;
 }
 
-Register EmitterAmdgpuGfx908::emitCall(opCode /* op */, codeGen & /* gen */,
-                                       const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> & /* operands */,
-                                       func_instance * /* callee */) {
-  assert(!"emitCall not implemented yet");
-  return 0;
+Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
+                                       const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands,
+                                       func_instance *callee) {
+  assert(op == callOp);
+  assert(callee && "emitCall: callee is null");
+
+  // Parameter passing on AMDGPU has no agreed convention in dyninst yet; the
+  // external-call path here only emits the control transfer itself.
+  assert(operands.empty() && "AMDGPU emitCall: argument passing not implemented yet");
+
+  // Determine whether the callee lives in a different mapped object (i.e.
+  // a different module / shared object). The static-rewriting flow has us
+  // here only when there is a current function; matches the x86 idiom in
+  // EmitterIA32Stat::emitCallInstruction.
+  func_instance *caller = gen.func();
+  const bool isExternal = caller && (caller->obj() != callee->obj());
+
+  if (!isExternal) {
+    // Intra-module direct call would be a PC-relative branch via
+    // insnCodeGen::generateBranch. Leaving that path for future work so this
+    // commit stays scoped to the inter-module case.
+    assert(!"AMDGPU emitCall: intra-module direct call not implemented yet");
+    return Null_Register;
+  }
+
+  // The link-register pair receives PC+4 from S_SWAPPC_B64.
+  registerSpace *rs = gen.rs();
+  assert(rs && "AMDGPU emitCall: codeGen has no registerSpace");
+  Register lrPair = rs->allocateGprBlock(Dyninst::RegKind::SCALAR,
+                                         /*numRegs=*/2,
+                                         NS_amdgpu::PAIR_ALIGNMENT);
+  assert(lrPair != Null_Register && "AMDGPU emitCall: failed to allocate link-register pair");
+
+  Address slot = getInterModuleFuncAddr(callee, gen);
+  emitIndirectCall(slot, lrPair, gen);
+
+  rs->freeGprBlock(lrPair);
+
+  // No return-value convention pinned down yet for AMDGPU calls.
+  return Null_Register;
 }
 
 void EmitterAmdgpuGfx908::emitGetRetVal(Register /* dest */, bool /* addr_of */,
@@ -537,10 +573,24 @@ bool EmitterAmdgpuGfx908::emitAdjustStackPointer(int /* index */, codeGen & /* g
   return false;
 }
 
-bool EmitterAmdgpuGfx908::clobberAllFuncCall(registerSpace * /* rs */,
-                                             func_instance * /* callee */) {
-  assert(!"clobberAllFuncCall not implemented yet");
-  return false;
+bool EmitterAmdgpuGfx908::clobberAllFuncCall(registerSpace *rs, func_instance *callee) {
+  if (!callee) {
+    return true;
+  }
+  if (clobbered_functions.contains(callee)) {
+    return true;
+  }
+  clobbered_functions.insert(callee);
+
+  // No AMDGPU calling convention is pinned down in dyninst yet, so assume the
+  // callee may write any allocatable SGPR or VGPR. Both kinds live in
+  // registerSpace::GPRs_ on AMDGPU (registerSpace.C:170-181, SGPR/VGPR
+  // fall through into the GPR case), so a single loop covers them.
+  // numFPRs() is 0 on AMDGPU.
+  for (int i = 0; i < rs->numGPRs(); i++) {
+  //  rs->GPRs()[i]->beenUsed = true;
+  }
+  return true;
 }
 
 // Additional interfaces
@@ -608,6 +658,53 @@ void EmitterAmdgpuGfx908::emitLongJump(Register reg, uint64_t fromAddress, uint6
 
   // S_SETPC_B64 writes to the PC, so dest = 0 just like the assembler does.
   emitSop1(S_SETPC_B64, /* dest = */ 0, reg.getId(), /* hasLiteral = */ false, /* literal=*/0, gen);
+}
+
+void EmitterAmdgpuGfx908::emitIndirectCall(Address slotAddr, Register lrPair, codeGen &gen) {
+  assert(isValidSgprPair(lrPair) && "lrPair must be a valid SGPR pair");
+
+  // Need two scratch SGPR pairs adjacent and pair-aligned:
+  //   pair0 (reg, reg+1)   -- slot address (PC-relative), then SMEM base
+  //   pair1 (reg+2, reg+3) -- PC-relative addend, then the loaded callee entry
+  registerSpace *rs = gen.rs();
+  assert(rs && "emitIndirectCall: codeGen has no registerSpace");
+
+  Register block = rs->allocateGprBlock(Dyninst::RegKind::SCALAR,
+                                        /*numRegs=*/4,
+                                        NS_amdgpu::PAIR_ALIGNMENT);
+  assert(block != Null_Register && "emitIndirectCall: failed to allocate scratch SGPR block");
+
+  Register slotAddrPair(OperandRegId(block.getId()),     RegKind::SCALAR, BlockSize(2));
+  Register tgtPair     (OperandRegId(block.getId() + 2), RegKind::SCALAR, BlockSize(2));
+
+  // 1. Compute the slot's runtime address PC-relative. The slot lives in the
+  //    position-independent .dyninstInst region, so an absolute immediate would
+  //    be wrong once the loader relocates the code object. Same getpc+add idiom
+  //    as emitLongJump: S_GETPC_B64 returns (addr-of-getpc + 4), so the addend
+  //    is slotAddr - (currAddr + 4).
+  int64_t getpcAddr = (int64_t)gen.currAddr();
+  int64_t diff = (int64_t)slotAddr - (getpcAddr + 4);
+
+  emitSop1(S_GETPC_B64, /*dest=*/slotAddrPair.getId(), /*src0=*/0,
+           /*hasLiteral=*/false, /*literal=*/0, gen);
+
+  // diff -> tgtPair (reg+2, reg+3), then 64-bit add into slotAddrPair.
+  emitLoadConst(tgtPair, (uint64_t)diff, gen);
+  emitSop2(S_ADD_U32,  slotAddrPair.getId(),     slotAddrPair.getId(),     tgtPair.getId(),     gen);
+  emitSop2(S_ADDC_U32, slotAddrPair.getId() + 1, slotAddrPair.getId() + 1, tgtPair.getId() + 1, gen);
+
+  // 2. Load the 64-bit callee entry from *slotAddr. size=2 means
+  //    S_LOAD_DWORDX2 (2 dwords = 8 bytes); emitLoadRelative emits the
+  //    required S_WAITCNT for us.
+  emitLoadRelative(tgtPair, /*offset=*/0, slotAddrPair, /*size=*/2, gen);
+
+  // 3. Indirect call: PC <- tgtPair, lrPair <- return address (PC+4).
+  emitSop1(S_SWAPPC_B64,
+           /*dest=*/lrPair.getId(),
+           /*src0=*/tgtPair.getId(),
+           /*hasLiteral=*/false, /*literal=*/0, gen);
+
+  rs->freeGprBlock(block);
 }
 
 void EmitterAmdgpuGfx908::emitAddConstantToRegPair(Register reg, int constant, codeGen &gen) {
