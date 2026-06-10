@@ -324,7 +324,7 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
 
 // Find the last loaded section and if TLS is used
 template<class ElfTypes>
-void emitElf<ElfTypes>::getSectionAndSegmentProperties() {
+void emitElf<ElfTypes>::getSectionAndSegmentProperties(Elf_Half shstrndx) {
     Elf_Phdr *phdrs = ElfTypes::elf_getphdr(oldElf);
 
     // Find the maximum of the loaded segment end addresses, and if TLS exists
@@ -340,16 +340,20 @@ void emitElf<ElfTypes>::getSectionAndSegmentProperties() {
     }
 
     // Find the section index containing the max section end address, that is
-    // contained in the max loaded segment
+    // contained in the max loaded segment.  Ignore the shstrndx section since
+    // this section is always moved to the end.
     Elf_Off maxSectionEndAddr{};
     for (unsigned i = 0; i < oldEhdr->e_shnum; ++i)  {
-	auto scn{elf_getscn(oldElf, i)};
+        if (i == shstrndx)  {
+            continue;
+        }
+        auto scn{elf_getscn(oldElf, i)};
         auto shdr{ElfTypes::elf_getshdr(scn)};
-	auto endAddr{shdr->sh_addr + shdr->sh_size};
-	if (endAddr > maxSectionEndAddr && endAddr < maxSegmentLoadedAddr)  {
-	    maxSectionEndAddr = endAddr;
-	    lastLoadedSectionNum = i;
-	}
+        auto endAddr{shdr->sh_addr + shdr->sh_size};
+        if (endAddr > maxSectionEndAddr && endAddr < maxSegmentLoadedAddr)  {
+            maxSectionEndAddr = endAddr;
+            lastLoadedSectionNum = i;
+        }
     }
 }
 
@@ -419,7 +423,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     newEhdr->e_shnum += newSecs.size();
 
     // Find the end of text and data segments
-    getSectionAndSegmentProperties();
+    getSectionAndSegmentProperties(oldEhdr->e_shstrndx);
     unsigned insertPoint = oldEhdr->e_shnum;
     unsigned insertPointOffset = 0;
 
