@@ -31,14 +31,45 @@
 #include "Instruction.h"
 #include "InstructionDecoder.h"
 #include "InstructionDecoderImpl.h"
+#include "entryIDs.h"
 
 #include <algorithm>
 #include <array>
 
+#if defined(DYNINST_ENABLE_ZYDIS)
+#include <Zydis/Zydis.h>
+#endif
+
 namespace {
   namespace ia = Dyninst::InstructionAPI;
   using ui = ia::InstructionDecoder::unknown_instruction;
+#if defined(DYNINST_ENABLE_ZYDIS)
+  // Built-in "unknown instruction" callback for x86-64. InstructionAPI calls
+  // this when it cannot decode a byte sequence; we use Zydis to recover the
+  // instruction's length and mnemonic so the decoder can skip over it and the
+  // instruction reports the mnemonic Zydis decoded.
+  ia::Instruction zydis_unknown_instruction_callback(ia::InstructionDecoder::buffer seqn) {
+    using namespace Dyninst;
+    auto const buf_len = static_cast<size_t>(seqn.end - seqn.start);
+
+    ZydisDecoder decoder;
+    ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LONG_64, ZYDIS_STACK_WIDTH_64);
+
+    ZydisDecodedInstruction insn;
+    ZydisDecodedOperand operands[ZYDIS_MAX_OPERAND_COUNT];
+    ZyanStatus status =
+        ZydisDecoderDecodeFull(&decoder, seqn.start, buf_len, &insn, operands);
+    if(ZYAN_SUCCESS(status) && insn.length > 0) {
+      char const* mnemonic = ZydisMnemonicGetString(insn.mnemonic);
+      return ia::Instruction{ia::Operation{e_No_Entry, mnemonic ? mnemonic : "", Arch_x86_64},
+                             insn.length, seqn.start, Arch_x86_64};
+    }
+    return ia::Instruction{};
+  }
+  ui::callback_t callback{zydis_unknown_instruction_callback};
+#else
   ui::callback_t callback{};
+#endif
 }
 
 using namespace std;
@@ -90,5 +121,14 @@ namespace Dyninst { namespace InstructionAPI {
     auto c = ::callback;
     ::callback = nullptr;
     return c;
+  }
+
+  bool InstructionDecoder::unknown_instruction::register_default_callback() {
+#if defined(DYNINST_ENABLE_ZYDIS)
+    register_callback(zydis_unknown_instruction_callback);
+    return true;
+#else
+    return false;
+#endif
   }
 }}

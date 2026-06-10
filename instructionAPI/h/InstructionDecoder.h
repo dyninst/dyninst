@@ -70,6 +70,15 @@ namespace Dyninst { namespace InstructionAPI {
       using callback_t = Instruction (*)(buffer);
       static void register_callback(callback_t);
       static callback_t unregister_callback();
+
+      // Install Dyninst's built-in callback for x86-64 byte sequences that
+      // InstructionAPI cannot decode. It is backed by Zydis and only recovers
+      // the length of the instruction, returning a no-op of that length so the
+      // decoder can skip over it. Returns true if a callback was installed, or
+      // false if Dyninst was built without Zydis support (in which case nothing
+      // changes).
+      static bool register_default_callback();
+
       unknown_instruction() = delete;
       ~unknown_instruction() = delete;
     };
