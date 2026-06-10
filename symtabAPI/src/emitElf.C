@@ -54,6 +54,8 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
+static std::string secStrtabName{".shstrtab"};
+
 
 // return min value, such that value >= v and value % align_to == 0
 template<typename T>
@@ -324,7 +326,7 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
 
 // Find the last loaded section and if TLS is used
 template<class ElfTypes>
-void emitElf<ElfTypes>::getSectionAndSegmentProperties(Elf_Half shstrndx) {
+void emitElf<ElfTypes>::getSectionAndSegmentProperties(const char* shnames) {
     Elf_Phdr *phdrs = ElfTypes::elf_getphdr(oldElf);
 
     // Find the maximum of the loaded segment end addresses, and if TLS exists
@@ -344,11 +346,12 @@ void emitElf<ElfTypes>::getSectionAndSegmentProperties(Elf_Half shstrndx) {
     // this section is always moved to the end.
     Elf_Off maxSectionEndAddr{};
     for (unsigned i = 0; i < oldEhdr->e_shnum; ++i)  {
-        if (i == shstrndx)  {
-            continue;
-        }
         auto scn{elf_getscn(oldElf, i)};
         auto shdr{ElfTypes::elf_getshdr(scn)};
+        const char *name = &shnames[shdr->sh_name];
+        if (name == secStrtabName)  {
+            continue;
+        }
         auto endAddr{shdr->sh_addr + shdr->sh_size};
         if (endAddr > maxSectionEndAddr && endAddr < maxSegmentLoadedAddr)  {
             maxSectionEndAddr = endAddr;
@@ -423,7 +426,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     newEhdr->e_shnum += newSecs.size();
 
     // Find the end of text and data segments
-    getSectionAndSegmentProperties(oldEhdr->e_shstrndx);
+    getSectionAndSegmentProperties(shnames);
     unsigned insertPoint = oldEhdr->e_shnum;
     unsigned insertPointOffset = 0;
 
@@ -462,7 +465,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         }
 
         // write the shstrtabsection at the end
-        if (!strcmp(name, ".shstrtab"))
+        if (name == secStrtabName)
             continue;
 
         sectionNumber++;
