@@ -3,6 +3,7 @@
 #include "debug.h"
 #include "codegen/codegen.h"
 #include "BPatch.h"
+#include "codegen/emitters/PowerPC/ppc64/generators.h"
 
 bool baseTramp_ppc::generateSaves(codeGen &gen, registerSpace *) {
   regalloc_printf("========== baseTramp::generateSaves\n");
@@ -13,7 +14,7 @@ bool baseTramp_ppc::generateSaves(codeGen &gen, registerSpace *) {
   fpr_off = TRAMP_FPR_OFFSET(width);
 
   // Make a stack frame.
-  pushStack(gen);
+  Dyninst::DyninstAPI::ppc64::pushStack(gen);
 
   // Save GPRs
   saveGPRegisters(gen, gen.rs(), gpr_off);
@@ -53,7 +54,7 @@ bool baseTramp_ppc::generateRestores(codeGen &gen, registerSpace *) {
   // GPRs
   restoreGPRegisters(gen, gen.rs(), gpr_off);
 
-  popStack(gen);
+  Dyninst::DyninstAPI::ppc64::popStack(gen);
 
   return true;
 }

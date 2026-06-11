@@ -211,8 +211,7 @@ void restoreFPRegister(codeGen &gen,
 void restoreFPRegister(codeGen &gen,
                        Dyninst::Register reg,
                        int save_off);
-void pushStack(codeGen &gen);
-void popStack(codeGen &gen);
+
 unsigned saveGPRegisters(codeGen &gen, 
                          registerSpace *theRegSpace,
                          int save_off, int numReqGPRs=-1);

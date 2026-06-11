@@ -36,6 +36,7 @@
 #include "dyninstAPI/src/inst-power.h"
 #include "dyninstAPI/src/emit-power.h"
 #include "patching/function.h"
+#include "codegen/emitters/PowerPC/ppc64/generators.h"
 
 #include <execinfo.h>
 #include <stdio.h>
@@ -796,7 +797,7 @@ int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, std::vector<Dyninst
               int gpr_off, stack_size;
                 //create new stack frame
                 gpr_off = TRAMP_GPR_OFFSET_32;
-                pushStack(gen);
+                Dyninst::DyninstAPI::ppc64::pushStack(gen);
                 // Save GPRs
                 stack_size = saveGPRegisters(gen, gen.rs(), gpr_off, numRegs);
 		assert (stack_size == numRegs);
@@ -812,7 +813,7 @@ int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, std::vector<Dyninst
 void insnCodeGen::removeStackFrame(codeGen &gen) {
                 int gpr_off = TRAMP_GPR_OFFSET_32;
                 restoreGPRegisters(gen, gen.rs(), gpr_off);
-                popStack(gen);
+                Dyninst::DyninstAPI::ppc64::popStack(gen);
 }
 
 void insnCodeGen::generateMoveFromLR(codeGen &gen, Dyninst::Register rt) {

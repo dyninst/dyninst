@@ -60,6 +60,8 @@
 #include "codegen/emitters/PowerPC/generators.h"
 #include "codegen/emitters/PowerPC/ppc32/EmitterPowerPC32Dyn.h"
 #include "codegen/emitters/PowerPC/ppc32/EmitterPowerPC32Stat.h"
+#include "codegen/emitters/PowerPC/ppc64/EmitterPowerPC64Dyn.h"
+#include "codegen/emitters/PowerPC/ppc64/generators.h"
 
 #include <sstream>
 
@@ -362,32 +364,6 @@ void restoreFPRegister(codeGen &gen,
 }	
 
 /*
- * Emit code to push down the stack, AST-generate style
- */
-void pushStack(codeGen &gen)
-{
-    if (gen.width() == 4) {
-	insnCodeGen::generateImm(gen, STUop,
-				 REG_SP, REG_SP, -TRAMP_FRAME_SIZE_32);
-    } else /* gen.width() == 8 */ {
-	insnCodeGen::generateMemAccess64(gen, STDop, STDUxop,
-                                  REG_SP, REG_SP, -TRAMP_FRAME_SIZE_64);
-    }
-}
-
-void popStack(codeGen &gen)
-{
-    if (gen.width() == 4) {
-	insnCodeGen::generateImm(gen, CALop, 
-				 REG_SP, REG_SP, TRAMP_FRAME_SIZE_32);
-
-    } else /* gen.width() == 8 */ {
-	insnCodeGen::generateImm(gen, CALop,
-                                 REG_SP, REG_SP, TRAMP_FRAME_SIZE_64);
-    }
-}
-
-/*
  * Save necessary registers on the stack
  * insn, base: for code generation. Offset: regs saved at offset + reg
  * Returns: number of registers saved.
@@ -679,7 +655,7 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   // Because modification can also call this function, there may not
   // be an instrumentation frame. So, we move down the stack before the
   // call and move up the stack after the call
-  pushStack(gen);
+  Dyninst::DyninstAPI::ppc64::pushStack(gen);
 
   unsigned r_tmp = 12; // R12 ; We need to put callee address into R12 
 
@@ -723,7 +699,7 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   insnCodeGen::generateMemAccess64(gen, LDop, LDxop, TOCreg, REG_SP, 5*wordsize);
 
   // Move back the stack
-  popStack(gen);
+  Dyninst::DyninstAPI::ppc64::popStack(gen);
 
   if (!call) {
     // We genearte a return here for jump case, 
@@ -734,82 +710,6 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
     insnCodeGen::generate(gen, ret);
   }
 
-  return true;
-}
-
-bool EmitterPOWER64Dyn::emitTOCCommon(block_instance *block, bool call, codeGen &gen) {
-  // This code is complicated by the need to set the new TOC and restore it
-  // post-(call/branch). That means we can't use a branch if asked, since we won't
-  // regain control. Fun. 
-  //
-  // 1. Move down the stack and save R12 and LR
-  // 2. R2 := TOC of callee
-  // 3. Load callee into R12 (V2 ABI requires the callee address should be in R12)
-  // 4. LR := R12 
-  // 5. Call LR
-  // 6. Restore R12 and LR
-  // 7. R2 := TOC of caller
-  // 8. Move up the stack
-  // IF (!call)
-  //   Return
-  
-  const unsigned TOCreg = 2;
-  const unsigned wordsize = gen.width();
-  assert(wordsize == 8);
-  Address dest = block->start();
-
-  // We need the callee TOC, which we find by function, not by block. 
-  std::vector<func_instance *> funcs;
-  block->getFuncs(std::back_inserter(funcs));
-  Address callee_toc = gen.addrSpace()->getTOCoffsetInfo(funcs[0]);
-  
-  Address caller_toc = 0;
-  if (gen.func()) {
-    caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.func());
-  }
-  else if (gen.point()) {
-    assert(gen.point()->func());
-    caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.point()->func());
-  }
-  else {
-    // Don't need it, and this might be an iRPC
-  }
-  unsigned r12 = 12;
-
-  // Move down the stack to create space for saving registers
-  pushStack(gen);
-
-  // Save R12 and LR
-  insnCodeGen::generateMoveFromLR(gen, TOCreg);
-  insnCodeGen::generateMemAccess64(gen, STDop, STDxop, TOCreg, REG_SP, 3*wordsize);
-  insnCodeGen::generateMemAccess64(gen, STDop, STDxop, r12, REG_SP, 4*wordsize);
-				     
-  // Use the R12 to generate the destination address
-  insnCodeGen::loadImmIntoReg(gen, r12, dest);
-  insnCodeGen::generateMoveToLR(gen, r12);
-  
-  // Load the callee TOC
-  insnCodeGen::loadImmIntoReg(gen, TOCreg, callee_toc);
-  
-  instruction branch_insn(BRLraw);
-  insnCodeGen::generate(gen, branch_insn);
-
-  // Restore R12 and LR
-  insnCodeGen::generateMemAccess64(gen, LDop, LDxop, TOCreg, REG_SP, 3*wordsize);
-  insnCodeGen::generateMoveToLR(gen, TOCreg);
-  insnCodeGen::generateMemAccess64(gen, LDop, LDxop, r12, REG_SP, 4*wordsize);
-
-  // Load caller TOC
-  insnCodeGen::loadImmIntoReg(gen, TOCreg, caller_toc);
-
-  // Move up the stack
-  popStack(gen);
-
-  if (!call) {
-    instruction ret(BRraw);
-    insnCodeGen::generate(gen, ret);
-  }
-  
   return true;
 }
 

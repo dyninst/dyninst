@@ -61,10 +61,19 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
     emitters/PowerPC/EmitterPowerPC.h
     emitters/PowerPC/generators.h
     emitters/PowerPC/ppc32/EmitterPowerPC32Dyn.h
-    emitters/PowerPC/ppc32/EmitterPowerPC32Stat.h)
+    emitters/PowerPC/ppc32/EmitterPowerPC32Stat.h
+    emitters/PowerPC/ppc64/EmitterPowerPC64Dyn.h
+    emitters/PowerPC/ppc64/generators.h)
 
-  list(APPEND _sources codegen-power.C emitters/PowerPC/EmitterPowerPC.C
-       emitters/PowerPC/generators.C emitters/PowerPC/ppc32/EmitterPowerPC32Stat.C)
+  list(
+    APPEND
+    _sources
+    codegen-power.C
+    emitters/PowerPC/EmitterPowerPC.C
+    emitters/PowerPC/generators.C
+    emitters/PowerPC/ppc32/EmitterPowerPC32Stat.C
+    emitters/PowerPC/ppc64/EmitterPowerPC64Dyn.C
+    emitters/PowerPC/ppc64/generators.C)
 
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 
