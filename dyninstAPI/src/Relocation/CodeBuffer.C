@@ -258,6 +258,14 @@ bool CodeBuffer::generate(Address baseAddr) {
       gen_.allocate(size_);
       totalPadding = 0;
 
+      // Rewrite-progress reporting (DYNINST_DEBUG_PROGRESS). This do/while is a
+      // fixpoint: a branch whose displacement grew forces a full re-emit, so on a
+      // large rewrite (millions of buffer elements) this can take many silent
+      // passes. Report each pass and periodic progress within it.
+      const size_t progTotal = dyn_debug_progress ? buffers_.size() : 0;
+      progress_printf("[dyninst] relocate: emit codebuffer pass %d over %zu buffer elements\n",
+                      curIteration_, progTotal);
+      size_t progN = 0;
       for (Buffers::iterator iter = buffers_.begin();
            iter != buffers_.end(); ++iter) {
 	bool regenerate = false;
@@ -265,9 +273,14 @@ bool CodeBuffer::generate(Address baseAddr) {
             return false;
          }
          doOver |= regenerate;
+         if ((++progN % 500000) == 0)
+            progress_printf("[dyninst] relocate: emit pass %d, %zu/%zu buffer elements\n",
+                            curIteration_, progN, progTotal);
       }
-      
+
    } while (doOver);
+   progress_printf("[dyninst] relocate: emit codebuffer converged after %d pass(es), %u bytes\n",
+                   curIteration_, gen_.used());
 
    shift_ = 0;
    size_ = gen_.used();
