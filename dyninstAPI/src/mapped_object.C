@@ -147,6 +147,18 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
        // we mark all binary regions as possible code-containing areas
        parseGaps = false;
    }
+   // DYNINST_NO_GAP_PARSE: skip speculative idiom-matching gap parsing. On very
+   // large binaries this phase dominates rewrite time -- it is single-threaded
+   // and roughly O(functions x gaps) (getGapRange rebuilds the extent set per
+   // gap, finalize() runs every iteration). Disabling it means functions that
+   // are reachable only via gap heuristics (no symbol, unreachable from parsed
+   // code) will not be discovered, which is usually acceptable for symbol-rich
+   // libraries; named functions are still parsed by the normal recursive descent.
+   if (parseGaps && getenv("DYNINST_NO_GAP_PARSE")) {
+       startup_printf("%s[%d]: DYNINST_NO_GAP_PARSE set; skipping speculative gap parsing\n",
+                      FILE__, __LINE__);
+       parseGaps = false;
+   }
    assert(desc.file() != "");
    startup_printf("%s[%d]:  about to parseImage\n", FILE__, __LINE__);
    startup_printf("%s[%d]: name %s, codeBase 0x%lx, dataBase 0x%lx\n",

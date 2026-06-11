@@ -42,6 +42,8 @@
 #include "CodeTracker.h"
 #include "CFG/RelocGraph.h"
 
+#include <iterator>  // std::distance (rewrite-progress reporting)
+
 using namespace std;
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -70,9 +72,17 @@ CodeMover::~CodeMover() {
 
 bool CodeMover::addFunctions(FuncSet::const_iterator begin, 
 			     FuncSet::const_iterator end) {
+   // Rewrite-progress reporting (DYNINST_DEBUG_PROGRESS). The per-function build
+   // loop and the per-block codegen loop are otherwise silent, so a large binary
+   // rewrite (e.g. a multi-hundred-MB shared library) can look hung for a long time.
+   const size_t progTotal = dyn_debug_progress ? (size_t)std::distance(begin, end) : 0;
+   size_t progN = 0;
+   progress_printf("[dyninst] relocate: building reloc blocks for %zu functions\n", progTotal);
    // A vector of Functions is just an extended vector of basic blocks...
    for (; begin != end; ++begin) {
       func_instance *func = *begin;
+      if ((++progN % 2000) == 0)
+         progress_printf("[dyninst] relocate: scanned %zu/%zu functions\n", progN, progTotal);
       if (!func->isInstrumentable()) {
 	relocation_cerr << "\tFunction " << func->symTabName() << " is non-instrumentable, skipping" << endl;
          continue;
@@ -148,14 +158,18 @@ bool CodeMover::initialize(const codeGen &templ) {
       finalizeRelocBlocks();
    
    // Tell all the blocks to do their generation thang...
+   size_t progN = 0;
    for (RelocBlock *iter = cfg_->begin(); iter != cfg_->end(); iter = iter->next()) {
       if (!iter->finalizeCF()) return false;
-      
+
       if (!iter->generate(templ, buffer_)) {
          cerr << "ERROR: failed to generate RelocBlock!" << endl;
          return false; // Catastrophic failure
       }
+      if ((++progN % 20000) == 0)
+         progress_printf("[dyninst] relocate: generated %zu reloc blocks\n", progN);
    }
+   progress_printf("[dyninst] relocate: generated %zu reloc blocks (codegen done)\n", progN);
    return true;
 }
 
