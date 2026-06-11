@@ -6,7 +6,7 @@
 #include "codegen/RegControl.h"
 #include "debug.h"
 #include "inst-aarch64.h"
-#include "RegisterConversion.h"
+#include "registerSpace/RegisterConversion.h"
 #include "registerSpace/registerSpace.h"
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;

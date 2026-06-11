@@ -32,7 +32,7 @@
 
 #include "BPatch_addressSpace.h"
 #include "BPatch_module.h"
-#include "RegisterConversion.h"
+#include "registerSpace/RegisterConversion.h"
 #include "patching/instPoint.h"
 #include "liveness.h"
 

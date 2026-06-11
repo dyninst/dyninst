@@ -54,7 +54,7 @@
 #include "dyninstAPI/src/mapped_object.h"
 #include "parsing/parse_func.h"
 #include "parseAPI/h/CFG.h"
-#include "RegisterConversion.h"
+#include "registerSpace/RegisterConversion.h"
 #include "emitter.h"
 #include "emit-power.h"
 

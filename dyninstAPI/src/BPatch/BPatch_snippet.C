@@ -55,7 +55,7 @@
 #include "dynproc/dynProcess.h"
 #include "dynproc/pcEventHandler.h"
 #include "ASTs/ast.h"
-#include "RegisterConversion.h"
+#include "registerSpace/RegisterConversion.h"
 
 #include "symtabAPI/h/Type.h"
 #include "symtabAPI/h/Variable.h"

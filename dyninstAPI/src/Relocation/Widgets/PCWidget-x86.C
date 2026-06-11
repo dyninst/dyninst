@@ -37,7 +37,7 @@
 #include "patching/function.h"
 
 #include "dyninstAPI/src/addressSpace.h" // For determining which type of getPC to emit
-#include "dyninstAPI/src/RegisterConversion.h"
+#include "registerSpace/RegisterConversion.h"
 #include "registerSpace/registerSpace.h"
 
 #include "dyninstAPI/src/emitter.h"

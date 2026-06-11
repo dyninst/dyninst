@@ -5,18 +5,18 @@ if(POLICY CMP0076)
   cmake_policy(SET CMP0076 NEW)
 endif()
 
-set(_headers registerSpace.h RealRegister.h registerSlot.h)
+set(_headers RegisterConversion.h registerSpace.h RealRegister.h registerSlot.h)
 
 set(_sources registerSpace.C registerSlot.C)
 
 if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
-  list(APPEND _sources registerSpace-x86.C)
+  list(APPEND _sources RegisterConversion-x86.C registerSpace-x86.C)
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
-  list(APPEND _sources registerSpace-ppc.C)
+  list(APPEND _sources RegisterConversion-ppc.C registerSpace-ppc.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
-  list(APPEND _sources registerSpace-aarch64.C)
+  list(APPEND _sources RegisterConversion-aarch64.C registerSpace-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  list(APPEND _sources registerSpace-amdgpu.C)
+  list(APPEND _sources RegisterConversion-amdgpu.C registerSpace-amdgpu.C)
 endif()
 
 # cmake-format: off

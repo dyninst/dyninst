@@ -57,7 +57,7 @@
 #include "dynproc/dynThread.h"
 #include "ABI.h"
 #include "liveness.h"
-#include "RegisterConversion.h"
+#include "registerSpace/RegisterConversion.h"
 #include "unaligned_memory_access.h"
 #include "codegen/emitters/x86/generators.h"
 

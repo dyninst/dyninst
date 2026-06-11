@@ -40,7 +40,7 @@
 #include "BPatch_function.h"
 #include "BPatch.h"
 #include "mapped_module.h"
-#include "RegisterConversion.h"
+#include "registerSpace/RegisterConversion.h"
 #include "registers/abstract_regs.h"
 //#include "Annotatable.h"
 
