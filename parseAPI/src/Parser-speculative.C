@@ -334,30 +334,43 @@ void Parser::parse_gap_heuristic(CodeRegion * cr)
 }
 
 bool Parser::getGapRange(CodeRegion* cr, Address curAddr, Address& gapStart, Address& gapEnd) {
-    std::set< std::pair<Address, Address> > func_range;
-    for (auto fit = sorted_funcs.begin(); fit != sorted_funcs.end(); ++fit) {
-        Function * f = *fit;
-	for (auto eit = f->extents().begin(); eit != f->extents().end(); ++eit) {
-	    FuncExtent *fe = *eit;
-	    func_range.insert(make_pair(fe->start(), fe->end()));
-	}
-    }
-    auto iter = func_range.upper_bound(make_pair(curAddr, std::numeric_limits<Address>::max() ));
-    if (iter == func_range.end()) {
-        gapEnd = cr->offset() + cr->length();
-    } else {
-        gapEnd = iter->first;
-    }
-    if (iter == func_range.begin()) {
-        gapStart = curAddr;
-    } else {
-	--iter;
-        if (iter->second > curAddr) {
-	    gapStart = iter->second;
-        } else {
-	    gapStart = curAddr;
-        }
-    }
+    // Query the per-region function-extent interval tree (region_data::funcsByRange)
+    // instead of rebuilding a sorted set of *every* function's extents on each call.
+    // This turns the speculative gap pass from O(gaps x functions) into
+    // O(gaps x log functions); on a large binary the old rebuild dominated rewrite
+    // time (it iterated all parsed functions on every gap).
+    //
+    // funcsByRange is populated only by finalize_ranges() (which drains
+    // funcs_to_ranges), and the parser otherwise calls that lazily from the
+    // findFuncs/findBlocks lookup paths. The previous implementation read
+    // sorted_funcs, which parse_at keeps current: each gap-discovered function
+    // downgrades _parse_state below FINALIZED, so finalize() re-runs and re-inserts
+    // into sorted_funcs/funcs_to_ranges. Flush any pending finalized functions into
+    // the tree here so funcsByRange has that same currency -- otherwise a
+    // just-discovered gap function would be invisible (treated as gap, re-scanned,
+    // and possibly able to spawn an overlapping function inside it).
+    if (!funcs_to_ranges.empty())
+        finalize_ranges();
+
+    region_data *rd = _parse_data->findRegion(cr);
+    const Address regEnd = cr->offset() + cr->length();
+
+    // gapStart: if curAddr falls inside one or more already-parsed extents, advance
+    // past the farthest-reaching one; otherwise the gap starts at curAddr itself.
+    gapStart = curAddr;
+    std::set<FuncExtent *> covering;
+    rd->funcsByRange.find(curAddr, covering);
+    for (FuncExtent *fe : covering)
+        if (fe->end() > gapStart) gapStart = fe->end();
+
+    // gapEnd: the start of the first extent beginning strictly after curAddr, or the
+    // end of the region if there is none (mirrors the old upper_bound logic and the
+    // blocksByRange.successor idiom in region_data::get_next_block).
+    gapEnd = regEnd;
+    FuncExtent *next = rd->funcsByRange.successor(curAddr);
+    if (next && next->start() > curAddr && next->start() < gapEnd)
+        gapEnd = next->start();
+
     return gapStart < gapEnd;
 }
 
