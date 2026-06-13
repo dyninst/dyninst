@@ -44,7 +44,6 @@
 #include "dynproc/dynProcess.h"
 #include "symtabAPI/h/Symtab.h"
 #include "InstructionDecoder.h"
-#include "parsing/Parsing.h"
 #include "patching/instPoint.h"
 #include <boost/tuple/tuple.hpp>
 #include "BPatch_image.h"
@@ -62,14 +61,6 @@ using namespace Dyninst::ProcControlAPI;
 #define FS_FIELD_SEPERATOR '/'
 #endif
 // Whee hasher...
-
-
-// triggered when parsing needs to check if the underlying data has changed
-bool codeBytesUpdateCB(void *objCB, Address targ)
-{
-    mapped_object *obj = (mapped_object*) objCB;
-    return obj->updateCodeBytesIfNeeded(targ);
-}
 
 mapped_object::mapped_object(fileDescriptor fileDesc,
       image *img,

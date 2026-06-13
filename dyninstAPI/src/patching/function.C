@@ -43,8 +43,6 @@
 
 #include "PatchMgr.h" // Scope
 
-#include "parsing/Parsing.h"
-
 #include "binaryEdit.h"
 
 using namespace Dyninst;

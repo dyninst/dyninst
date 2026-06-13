@@ -34,7 +34,6 @@
 #include "codeRange.h"
 #include "Function.h"
 #include "parsing/parse_block.h"
-#include "parsing/Parsing.h"
 #include "Symbol.h"
 
 #include <string>
@@ -48,7 +47,7 @@ class parse_func : public Dyninst::ParseAPI::Function {
     NO_UNRESOLVED_CF
   };
 
-  friend class DynParseCallback;
+  friend class Dyninst::DyninstAPI::DynParseCallback;
 
 public:
   parse_func() {}

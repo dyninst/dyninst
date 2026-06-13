@@ -895,7 +895,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     // return addresses, since this jump might be a tail call
     for (unsigned tidx=0; tidx < targFuncs.size(); tidx++) {
         parse_func *imgfunc = targFuncs[tidx]->lowlevel_func()->ifunc();
-        FuncReturnStatus initStatus = imgfunc->init_retstatus();
+        ParseAPI::FuncReturnStatus initStatus = imgfunc->init_retstatus();
         if (ParseAPI::RETURN == initStatus) {
             imgfunc->setinit_retstatus(ParseAPI::UNKNOWN);
             removeInstrumentation(targFuncs[tidx],false,false);
