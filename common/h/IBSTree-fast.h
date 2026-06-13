@@ -181,7 +181,19 @@ namespace Dyninst
     void IBSTree_fast<ITYPE>::successor(interval_type X, std::set<ITYPE*>& results) const
     {
         dyn_rwlock::shared_lock l(rwlock);
-        ITYPE* overlapping_ub = overlapping_intervals.successor(X);
+        // The overlapping-interval tree's scalar successor() asserts that a point has
+        // a unique successor interval. That holds for blocks (unique start addresses),
+        // but not for intervals that can share a start -- e.g. FuncExtents of aliased
+        // or identical-code-folded functions begin at the same address. Use the
+        // set-returning successor and keep the smallest-low() candidate: that is the
+        // true successor, and it collapses any coincident-start ties to a single one
+        // (so the scalar wrapper below still sees at most one result).
+        std::set<ITYPE*> overlapping_cands;
+        overlapping_intervals.successor(X, overlapping_cands);
+        ITYPE* overlapping_ub = NULL;
+        for (ITYPE* cand : overlapping_cands)
+            if (!overlapping_ub || cand->low() < overlapping_ub->low())
+                overlapping_ub = cand;
 
         typename interval_set::const_iterator unique_ub = unique_intervals.upper_bound(X);
         if(overlapping_ub && (unique_ub != unique_intervals.end()))
