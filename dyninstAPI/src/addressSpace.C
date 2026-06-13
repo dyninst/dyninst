@@ -37,6 +37,8 @@
 
 #include "patching/instPoint.h"
 #include "debug.h"
+#include "liveness.h"   // LivenessAnalyzer, for the parallel liveness pre-warm
+#include "BPatch.h"     // BPatch::bpatch->livenessAnalysisOn()
 
 // Two-level codeRange structure
 #include "mapped_object.h"
@@ -1666,6 +1668,39 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 
   relocation_cerr << "Debugging CodeMover" << endl;
   relocation_cerr << cm->format() << endl;
+
+  // Parallel liveness pre-warm. With liveness analysis on, register liveness is
+  // otherwise computed lazily and serially at code-generation time -- by both the
+  // coverage trampolines AND the relocation widgets (e.g. RelDataPatch for
+  // PC-relative fixups, which are created during relocation) -- each via analyze(F)
+  // on the shared liveness analyzer. That per-function analysis dominates rewrite
+  // time on a large binary. Liveness is per-function and intraprocedural, so analyze
+  // every function in parallel here, each thread using its own analyzer (no shared
+  // analyzer state during analysis), then merge the per-function results into the
+  // shared analyzer that instPoint::liveRegisters() reads. Code generation then
+  // finds analyze(F) already cached for every liveness query -- coverage and
+  // relocation alike. Purely a cache warm-up: results are identical to the serial
+  // path, and anything not warmed is still computed on demand there.
+  if (BPatch::bpatch && BPatch::bpatch->livenessAnalysisOn() && begin != end) {
+    std::vector<func_instance *> funcs(begin, end);
+    int width = funcs[0]->ifunc()->region()->getAddressWidth();
+    LivenessAnalyzer *shared = instPoint::livenessAnalyzer(width);
+    // Warm the shared ABI singleton serially (it is lazily created the first time a
+    // LivenessAnalyzer is constructed; concurrent first-creation would race).
+    { LivenessAnalyzer abiWarm(width); (void)abiWarm; }
+    long n = (long) funcs.size();
+#pragma omp parallel
+    {
+      // Per-thread analyzer: analyze() writes only to this thread's caches.
+      LivenessAnalyzer local(width);
+#pragma omp for schedule(dynamic, 64)
+      for (long i = 0; i < n; ++i)
+        local.analyze(funcs[i]->ifunc());
+      // Fold this thread's per-function results into the shared analyzer.
+#pragma omp critical
+      shared->absorb(local);
+    }
+  }
 
   relocation_cerr << "  Entering code generation loop" << endl;
   Address baseAddr = generateCode(cm, nearTo);

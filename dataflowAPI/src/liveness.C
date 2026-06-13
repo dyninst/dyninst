@@ -584,6 +584,16 @@ void LivenessAnalyzer::clean(){
 	cachedLivenessInfo.clean();
 }
 
+void LivenessAnalyzer::absorb(LivenessAnalyzer &other){
+	// std::map::insert(range) keeps any existing entry on a duplicate key. Block-
+	// level liveness is a property of the block + its (block-global) intraprocedural
+	// successors, so a block computed by two threads carries the same value -- keep
+	// either. Used to fold per-thread parallel-prewarm analyzers into the shared one.
+	blockLiveInfo.insert(other.blockLiveInfo.begin(), other.blockLiveInfo.end());
+	liveFuncCalculated.insert(other.liveFuncCalculated.begin(), other.liveFuncCalculated.end());
+	funcRegsDefined.insert(other.funcRegsDefined.begin(), other.funcRegsDefined.end());
+}
+
 void LivenessAnalyzer::clean(Function *func){
 
 	if (liveFuncCalculated.find(func) != liveFuncCalculated.end()){		
