@@ -66,7 +66,7 @@ namespace Dyninst { namespace DyninstAPI {
 
     parse_func *ret;
     SymtabAPI::Symtab *st = _img->getObject();
-    SymtabAPI::Function *stf = NULL;
+    SymtabAPI::Function *stf{};
     pdmodule *pdmod;
 
     auto found = obj->cs()->linkage().find(addr);
