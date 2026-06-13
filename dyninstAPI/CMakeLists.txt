@@ -131,7 +131,7 @@ dyninst_library(
   DYNINST_DEPS common instructionAPI stackwalk pcontrol patchAPI parseAPI symtabAPI
   DYNINST_INTERNAL_DEPS dynDwarf dynElf ${_subprojects}
   PUBLIC_DEPS Dyninst::Boost_headers
-  PRIVATE_DEPS Threads::Threads Dyninst::PeParse
+  PRIVATE_DEPS Threads::Threads Dyninst::PeParse OpenMP::OpenMP_CXX
 )
 # cmake-format: on
 
