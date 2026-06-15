@@ -564,10 +564,6 @@ bool registerSpace::readProgramRegister(codeGen &gen,
                                        gen,
                                        size);
     return true;
-#elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
-//#warning "This fucntion is not implemented yet!"
-		assert(0);
-		return false;
 #else
     // Real version that uses stored information
 
