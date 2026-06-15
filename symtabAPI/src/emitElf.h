@@ -238,7 +238,17 @@ namespace Dyninst {
 
             //Section Names for all sections
             vector<std::string> secNames{};
-            unsigned secNameIndex{};
+            unsigned secNameTableTotalBytes{};
+
+            // add name to secNames, update total bytes including null
+            // returns old total bytes (the offset of just added name)
+            unsigned addSectionName(std::string name)  {
+                auto oldOffset{secNameTableTotalBytes};
+                secNameTableTotalBytes += name.size() + 1;
+                secNames.push_back(std::move(name));
+                return oldOffset;
+            }
+
             Offset currEndOffset{};
             Address currEndAddress{};
 
