@@ -100,8 +100,6 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
       break;
     case operandType::origRegister:
       gen.rs()->readProgramRegister(gen, (Dyninst::Register)(long)oValue, retReg, size);
-      // emitLoadPreviousStackFrameRegister((Address) oValue, retReg, gen,
-      // size, noCost);
       break;
     case operandType::variableAddr:
       assert(oVar);
