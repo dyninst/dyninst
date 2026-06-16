@@ -451,7 +451,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
         sectionNumber++;
         changeMapping[sectionNumber] = false;
-        newNameIndexMapping[string(name)] = sectionNumber;
+        newNameIndexMapping[name] = sectionNumber;
 
         newscn = elf_newscn(newElf);
         newshdr = ElfTypes::elf_getshdr(newscn);
@@ -556,8 +556,8 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         secLinkMapping[sectionNumber] = shdr->sh_link;
         secInfoMapping[sectionNumber] = shdr->sh_info;
 
-        if(updateLinkInfoSecs.find(string(name)) != updateLinkInfoSecs.end())
-            dataLinkInfo[string(name)] = std::make_pair(shdr->sh_link, shdr->sh_info);
+        if(updateLinkInfoSecs.find(name) != updateLinkInfoSecs.end())
+            dataLinkInfo[name] = std::make_pair(shdr->sh_link, shdr->sh_info);
 
         rewrite_printf("section %s addr = %lx off = %lx size = %lx\n",
                        name, (long unsigned int)newshdr->sh_addr, (long unsigned int)newshdr->sh_offset, (long unsigned int)newshdr->sh_size);
@@ -1383,9 +1383,9 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
             std::string errMsg;
             linkedStaticData = linker.linkStatic(obj, err, errMsg);
             if (!linkedStaticData) {
-                std::string linkStaticError =
-                        std::string("Failed to link to static library code into the binary: ") +
-                        emitElfStatic::printStaticLinkError(err) + std::string(" = ")
+                auto linkStaticError =
+                        "Failed to link to static library code into the binary: " +
+                        emitElfStatic::printStaticLinkError(err) + " = "
                         + errMsg;
 		Symtab::setSymtabError(Emit_Error);
                 symtab_log_perror(linkStaticError.c_str());
@@ -1835,7 +1835,7 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
     if (secTagRegionMapping.find(dtype) != secTagRegionMapping.end())
         name = secTagRegionMapping[dtype]->getRegionName();
     else
-        name = std::string(new_name);
+        name = new_name;
     obj->addRegion(0, buffer, reloc_size, name, rtype, true);
     updateDynamic(dsize_type, dynamic_reloc_size);
 }
@@ -2180,7 +2180,8 @@ template<class ElfTypes>
 void emitElf<ElfTypes>::log_elferror(void (*err_func)(const char *), const char *msg) {
     const char *err = elf_errmsg(elf_errno());
     err = err ? err : "(bad elf error)";
-    string str = string(err) + string(msg);
+    string str = err;
+    str += msg;
     err_func(str.c_str());
 }
 
