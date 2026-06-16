@@ -476,7 +476,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         newdata = elf_newdata(newscn);
         olddata = elf_getdata(scn, NULL);
         *newshdr = *shdr;
-        memcpy(newdata, olddata, sizeof(Elf_Data));
+        *newdata = *olddata;
 
         newshdr->sh_name = addSectionName(name);
 
