@@ -440,7 +440,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     Elf_Shdr *newshdr{};
     std::unordered_map<unsigned, unsigned> secLinkMapping;
     std::unordered_map<unsigned, unsigned> secInfoMapping;
-    std::unordered_map<unsigned, unsigned> changeMapping;
+    std::unordered_map<unsigned, bool> changeMapping;
     std::unordered_map<string, unsigned> newNameIndexMapping;
 
     std::unordered_set<string> updateLinkInfoSecs = {
@@ -468,7 +468,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             continue;
 
         sectionNumber++;
-        changeMapping[sectionNumber] = 0;
+        changeMapping[sectionNumber] = false;
         newNameIndexMapping[string(name)] = sectionNumber;
 
         newscn = elf_newscn(newElf);
@@ -502,7 +502,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             if ((moveSecAddrRange[i][0] == shdr->sh_addr) ||
                 (shdr->sh_addr >= moveSecAddrRange[i][0] && shdr->sh_addr < moveSecAddrRange[i][1])) {
                 newshdr->sh_type = SHT_PROGBITS;
-                changeMapping[sectionNumber] = 1;
+                changeMapping[sectionNumber] = true;
                 renameSection(name);
             }
         }
@@ -520,7 +520,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             !strcmp(name, SYMTAB_NAME)) {
             // FIXME: assumes .strtab is next section
             newshdr->sh_link = secNames.size();
-            changeMapping[sectionNumber] = 1;
+            changeMapping[sectionNumber] = true;
             symTabData = newdata;
         }
 
@@ -537,7 +537,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             dynSegAddr = newshdr->sh_addr;
             // Change the data to update the relocation addr
             newshdr->sh_type = SHT_PROGBITS;
-            changeMapping[sectionNumber] = 1;
+            changeMapping[sectionNumber] = true;
             renameSection(name);
         }
 
@@ -581,7 +581,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                        name, (long unsigned int)newshdr->sh_addr, (long unsigned int)newshdr->sh_offset, (long unsigned int)newshdr->sh_size);
         rewrite_printf(" %02u Link(%u) Info(%u) change(%u)\n",
                 sectionNumber, secLinkMapping[sectionNumber], secInfoMapping[sectionNumber],
-                changeMapping[sectionNumber]);
+                (unsigned)changeMapping[sectionNumber]);
 
         //Insert new loadable sections at the end of data segment
         if (scncount == lastLoadedSectionNum && !createdLoadableSections) {
