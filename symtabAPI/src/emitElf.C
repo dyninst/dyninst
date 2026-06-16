@@ -433,7 +433,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     unsigned scncount;
     unsigned sectionNumber = 0;
 
-    for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
+    for (scncount = 1; (scn = elf_nextscn(oldElf, scn)); scncount++) {
         //copy sections from oldElf to newElf
         shdr = ElfTypes::elf_getshdr(scn);
 
