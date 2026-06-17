@@ -29,6 +29,7 @@
  */
 
 #include <algorithm>
+#include <cstdint>
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/walker.h"
 #include "stackwalk/h/procstate.h"

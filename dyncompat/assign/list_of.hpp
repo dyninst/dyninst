@@ -54,10 +54,6 @@ public:
 
   operator std::map<K, V>() const { return std::map<K, V>(values_.begin(), values_.end()); }
 
-  operator std::unordered_map<K, V>() const {
-    return std::unordered_map<K, V>(values_.begin(), values_.end());
-  }
-
   template <typename Map>
   operator Map() const {
     return Map(values_.begin(), values_.end());
