@@ -1693,59 +1693,6 @@ void EmitterPOWER::emitV(opCode op, Dyninst::Register src1, Dyninst::Register sr
   return;
 }
 
-void emitLoadPreviousStackFrameRegister(Address register_num, 
-                                        Dyninst::Register dest,
-                                        codeGen &gen,
-                                        int /*size*/)
-{
-    // As of 10/24/2007, the size parameter is still incorrect.
-    // Luckily, we know implicitly what size they actually want.
-
-    // Offset if needed
-    int offset;
-    // Unused, 3OCT03
-    //instruction *insn_ptr = (instruction *)insn;
-    // We need values to define special registers.
-
-    switch ( (int) register_num) {
-    case registerSpace::lr:
-        // LR is saved on the stack
-        // Note: this is only valid for non-function entry/exit instru. 
-        // Once we've entered a function, the LR is stomped to point
-        // at the exit tramp!
-      offset = TRAMP_SPR_OFFSET(gen.width()) + STK_LR; 
-
-        // Get address (SP + offset) and stick in register dest.
-        gen.emitter()->emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
-                gen);
-        // Load LR into register dest
-        gen.emitter()->emitV(loadIndirOp, dest, 0, dest, gen,
-              gen.width(), gen.addrSpace());
-        break;
-
-    case registerSpace::ctr:
-        // CTR is saved down the stack
-        if (gen.width() == 4)
-	  offset = TRAMP_SPR_OFFSET(gen.width()) + STK_CTR_32;
-        else
-	  offset = TRAMP_SPR_OFFSET(gen.width()) + STK_CTR_64;
-
-        // Get address (SP + offset) and stick in register dest.
-        gen.emitter()->emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
-                gen);
-        // Load LR into register dest
-        gen.emitter()->emitV(loadIndirOp, dest, 0, dest, gen,
-              gen.width(), gen.addrSpace());
-      break;
-
-    default:
-        cerr << "Fallthrough in emitLoadPreviousStackFrameRegister" << endl;
-        cerr << "Unexpected register " << register_num << endl;
-        assert(0);
-        break;
-    }
-}
-
 #define GET_IP      0x429f0005
 #define MFLR_30     0x7fc802a6
 #define ADDIS_30_30 0x3fde0000
