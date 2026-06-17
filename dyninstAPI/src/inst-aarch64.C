@@ -31,9 +31,3 @@
 #include "codegen/codegen.h"
 #include "dyntypes.h"
 #include "emitter.h"
-
-void emitLoadPreviousStackFrameRegister(Dyninst::Address register_num,
-                                        Dyninst::Register dest, codeGen &gen,
-                                        int /*size*/) {
-  gen.codeEmitter()->emitLoadOrigRegister(register_num, dest, gen);
-}

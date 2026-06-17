@@ -920,15 +920,6 @@ bool emitPop(RealRegister reg, codeGen &gen) {
     return true;
 }
 
-void emitLoadPreviousStackFrameRegister(Address register_num,
-                                        Dyninst::Register dest,
-                                        codeGen &gen,
-                                        int){
-    gen.codeEmitter()->emitLoadOrigRegister(register_num, dest, gen);
-}
-
-
-
 /****************************************************************************/
 /****************************************************************************/
 

@@ -38,7 +38,7 @@
 #include "patching/function.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "registerSpace/registerSpace.h"
-
+#include "emitter.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "BPatch_collections.h"
 #include "dyninstAPI/h/BPatch_type.h"
@@ -552,14 +552,13 @@ void registerSpace::cleanSpace() {
 bool registerSpace::readProgramRegister(codeGen &gen,
                                         Register source,
                                         Register destination,
-                                        unsigned size)
+                                        unsigned)
 {
   switch (gen.getArch()) {
   case Arch_x86:
   case Arch_x86_64:
-  case Arch_aarch64:
-  case Arch_amdgpu_gfx908: {
-    emitLoadPreviousStackFrameRegister((Address)source, destination, gen, size);
+  case Arch_aarch64: {
+    gen.codeEmitter()->emitLoadOrigRegister((Address)source, destination, gen);
     return true;
   }
 
@@ -572,6 +571,7 @@ bool registerSpace::readProgramRegister(codeGen &gen,
   case Arch_aarch32:
   case Arch_riscv64:
   case Arch_cuda:
+  case Arch_amdgpu_gfx908:
   case Arch_amdgpu_gfx90a:
   case Arch_amdgpu_gfx940:
   case Arch_intelGen9:
