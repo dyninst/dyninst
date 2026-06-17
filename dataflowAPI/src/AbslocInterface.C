@@ -60,8 +60,24 @@ void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
 				    ParseAPI::Function *func,
                                     ParseAPI::Block *block,
 				    std::vector<AbsRegion> &regions) {
-  for(auto reg : getUsedRegisters(expr)) {
-    regions.push_back(convert(reg, addr, func, block));
+  // If this is a memory dereference, classify the location it accesses by
+  // converting the *whole* address subexpression (registers + immediate
+  // offsets) with the expression-aware overload. That is what resolves a
+  // stack slot, frame slot, or absolute/heap memory location -- it must see
+  // the full address expression, not just the leaf registers.
+  if (auto deref = boost::dynamic_pointer_cast<Dereference>(expr)) {
+    for (auto c : deref->getSubexpressions()) {
+      regions.push_back(convert(c, addr, func, block));
+    }
+  }
+
+  // Add the registers the expression reads as plain register abslocs. For a
+  // dereference these are the address-computation registers; otherwise this
+  // is the operand's register(s) themselves. Use the register-preserving
+  // overload -- routing a bare register through the expression-aware overload
+  // collapses any non-SP/FP/PC register to Absloc::Heap.
+  for (auto reg : getUsedRegisters(expr)) {
+    regions.push_back(convert(reg));
   }
 }
 
