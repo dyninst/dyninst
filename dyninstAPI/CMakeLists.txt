@@ -94,7 +94,7 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(APPEND _sources src/addressSpace-ppc.C src/inst-power.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
-  list(APPEND _sources src/addressSpace-aarch64.C src/inst-aarch64.C)
+  list(APPEND _sources src/addressSpace-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(
     APPEND
