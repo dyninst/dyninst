@@ -12,13 +12,15 @@ static int test_canonicalize();
 static int test_exists();
 static int test_replace_extension();
 static int test_append_filename_suffix();
+static int test_strip_all_extensions();
 
 int main() {
-  std::array<int(*)(), 4> tests = {{
+  std::array<int(*)(), 5> tests = {{
       test_canonicalize,
       test_exists,
       test_replace_extension,
-      test_append_filename_suffix
+      test_append_filename_suffix,
+      test_strip_all_extensions
   }};
 
   bool failed = false;
@@ -195,6 +197,37 @@ int test_append_filename_suffix() {
     auto x = df::append_filename_suffix(f.old, suffix);
     if(x != f.new_) {
       std::cerr << "append_filename_suffix: expected '" << f.new_
+                << "', got '" << x << "'\n";
+      failed = true;
+    }
+  }
+
+  return failed ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+
+int test_strip_all_extensions() {
+  namespace df = Dyninst::filesystem;
+
+  struct name_test {
+    std::string old, new_;
+  };
+
+  std::array<name_test, 7> files = {{
+      {"foo/bar", "foo/bar"},
+      {"foo.txt", "foo"},
+      {"foo/bar.txt", "foo/bar"},
+      {"foo/bar.txt.tar", "foo/bar"},
+      {".", "."},
+      {"..", ".."},
+      {"", ""}
+  }};
+
+  bool failed = false;
+
+  for(auto const& f : files) {
+    auto x = df::strip_all_extensions(f.old);
+    if(x != f.new_) {
+      std::cerr << "strip_all_extensions: expected '" << f.new_
                 << "', got '" << x << "'\n";
       failed = true;
     }
