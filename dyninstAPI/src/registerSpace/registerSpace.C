@@ -551,8 +551,7 @@ void registerSpace::cleanSpace() {
 
 bool registerSpace::readProgramRegister(codeGen &gen,
                                         Register source,
-                                        Register destination,
-                                        unsigned)
+                                        Register destination)
 {
   switch (gen.getArch()) {
   case Arch_x86:

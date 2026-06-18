@@ -99,7 +99,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
       gen.rs()->freeRegister(src);
       break;
     case operandType::origRegister:
-      gen.rs()->readProgramRegister(gen, (Dyninst::Register)(long)oValue, retReg, size);
+      gen.rs()->readProgramRegister(gen, (Dyninst::Register)(long)oValue, retReg);
       break;
     case operandType::variableAddr:
       assert(oVar);
