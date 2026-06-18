@@ -2196,7 +2196,8 @@ bool AddressSpace::getDyninstRTLibName() {
 #ifndef os_windows
 
   if(getAOut()->isStaticExec()) {
-    dyninstRT_name = df::replace_extension(dyninstRT_name, ".a");
+    auto tmp = df::strip_all_extensions(dyninstRT_name);
+    dyninstRT_name = df::replace_extension(tmp, ".a");
   }
 
 #endif
