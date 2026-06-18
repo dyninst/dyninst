@@ -148,10 +148,12 @@ int test_replace_extension() {
     std::string old, new_;
   };
 
-  std::array<name_test, 4> files = {{
+  std::array<name_test, 6> files = {{
       {"foo/bar", "foo/bar.new"},
+      {"/foo/bar", "/foo/bar.new"},
       {"foo.txt", "foo.new"},
       {"foo/bar.txt", "foo/bar.new"},
+      {"foo/bar.txt.tar", "foo/bar.txt.new"},
       {"", ".new"}
   }};
 
@@ -177,10 +179,12 @@ int test_append_filename_suffix() {
     std::string old, new_;
   };
 
-  std::array<name_test, 4> files = {{
+  std::array<name_test, 6> files = {{
       {"foo/bar", "foo/bar_new"},
+      {"/foo/bar", "/foo/bar_new"},
       {"foo.txt", "foo_new.txt"},
       {"foo/bar.txt", "foo/bar_new.txt"},
+      {"foo/bar.txt.tar", "foo/bar_new.txt.tar"},
       {"", "_new"}
   }};
 
