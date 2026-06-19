@@ -196,13 +196,16 @@ std::string replace_extension(std::string const& path, std::string const& val) {
 }
 
 std::string append_filename_suffix(std::string const& path, std::string const& val) {
-  auto loc = path.find('.');
+  auto p = boost::filesystem::path(path);
 
-  if(loc == std::string::npos) {
+  if(!p.has_extension()) {
     return path + val;
   }
 
-  return path.substr(0, loc) + val + path.substr(loc);
+  auto filename = p.filename().string();
+  auto loc = filename.find('.');
+  auto &&new_filename = filename.substr(0, loc) + val + filename.substr(loc);
+  return (p.parent_path() / new_filename).string();
 }
 
 }}

@@ -150,12 +150,13 @@ int test_replace_extension() {
     std::string old, new_;
   };
 
-  std::array<name_test, 6> files = {{
+  std::array<name_test, 7> files = {{
       {"foo/bar", "foo/bar.new"},
       {"/foo/bar", "/foo/bar.new"},
       {"foo.txt", "foo.new"},
       {"foo/bar.txt", "foo/bar.new"},
       {"foo/bar.txt.tar", "foo/bar.txt.new"},
+      {"foo.bar/bar.txt.tar", "foo.bar/bar.txt.new"},
       {"", ".new"}
   }};
 
@@ -181,12 +182,13 @@ int test_append_filename_suffix() {
     std::string old, new_;
   };
 
-  std::array<name_test, 6> files = {{
+  std::array<name_test, 7> files = {{
       {"foo/bar", "foo/bar_new"},
       {"/foo/bar", "/foo/bar_new"},
       {"foo.txt", "foo_new.txt"},
       {"foo/bar.txt", "foo/bar_new.txt"},
       {"foo/bar.txt.tar", "foo/bar_new.txt.tar"},
+      {"foo.bar/bar.txt.tar", "foo.bar/bar_new.txt.tar"},
       {"", "_new"}
   }};
 
@@ -212,11 +214,12 @@ int test_strip_all_extensions() {
     std::string old, new_;
   };
 
-  std::array<name_test, 7> files = {{
+  std::array<name_test, 8> files = {{
       {"foo/bar", "foo/bar"},
       {"foo.txt", "foo"},
       {"foo/bar.txt", "foo/bar"},
       {"foo/bar.txt.tar", "foo/bar"},
+      {"foo.bar/bar.txt.tar", "foo.bar/bar"},
       {".", "."},
       {"..", ".."},
       {"", ""}
