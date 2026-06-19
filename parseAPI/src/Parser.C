@@ -1853,7 +1853,13 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                     // Create a work element to represent that
                     // we will resolve the jump table later
                     end_block(cur,ahPtr);
-                    set_edge_parsing_status(frame,cur->last(), cur);
+                    // If another block already owns the edge ending at this
+                    // address, this block has been split to fall through into
+                    // that canonical block. The owning block is responsible for
+                    // resolving the indirect jump, so pushing another work
+                    // element here would add a duplicate edge to the same block
+                    // when it is later resolved.
+                    if (!set_edge_parsing_status(frame,cur->last(), cur)) break;
                     frame.pushWork( frame.mkWork( work->bundle(), cur, ahPtr));
                 } else {
                     end_block(cur,ahPtr);
