@@ -334,58 +334,76 @@ void Parser::parse_gap_heuristic(CodeRegion * cr)
 }
 
 bool Parser::getGapRange(CodeRegion* cr, Address curAddr, Address& gapStart, Address& gapEnd) {
-    // Query the per-region function-extent interval tree (region_data::funcsByRange)
-    // instead of rebuilding a sorted set of *every* function's extents on each call.
-    // This turns the speculative gap pass from O(gaps x functions) into
-    // O(gaps x log functions); on a large binary the old rebuild dominated rewrite
-    // time (it iterated all parsed functions on every gap).
-    //
-    // funcsByRange is populated only by finalize_ranges() (which drains
-    // funcs_to_ranges), and the parser otherwise calls that lazily from the
-    // findFuncs/findBlocks lookup paths. The previous implementation read
-    // sorted_funcs, which parse_at keeps current: each gap-discovered function
-    // downgrades _parse_state below FINALIZED, so finalize() re-runs and re-inserts
-    // into sorted_funcs/funcs_to_ranges. Flush any pending finalized functions into
-    // the tree here so funcsByRange has that same currency -- otherwise a
-    // just-discovered gap function would be invisible (treated as gap, re-scanned,
-    // and possibly able to spawn an overlapping function inside it).
+    // DIFFERENTIAL ORACLE (diagnostic build): compute the gap both the original
+    // way (rebuild a start-ordered set from sorted_funcs, the pre-#2290 logic) and
+    // the optimized way (query funcsByRange). Abort at the first input where they
+    // disagree, dumping the inputs so we can see exactly how the funcsByRange-based
+    // computation diverges. Returns the OLD (known-correct) result so that, with
+    // asserts disabled, the run still behaves like master.
     if (!funcs_to_ranges.empty())
         finalize_ranges();
 
     region_data *rd = _parse_data->findRegion(cr);
     const Address regEnd = cr->offset() + cr->length();
 
-    // gapStart: if curAddr falls inside one or more already-parsed extents, advance
-    // past the farthest-reaching one; otherwise the gap starts at curAddr itself.
-    gapStart = curAddr;
+    // ---- NEW path: what 3d3f944 (+ successor(gapStart) fix) computes ----
+    Address newGapStart = curAddr;
     std::set<FuncExtent *> covering;
     rd->funcsByRange.find(curAddr, covering);
     for (FuncExtent *fe : covering)
-        if (fe->end() > gapStart) gapStart = fe->end();
+        if (fe->end() > newGapStart) newGapStart = fe->end();
+    Address newGapEnd = regEnd;
+    FuncExtent *next = rd->funcsByRange.successor(newGapStart);
+    if (next && next->start() < newGapEnd)
+        newGapEnd = next->start();
+    bool newRet = newGapStart < newGapEnd;
 
-    // gapEnd: the start of the next extent, or the region end if there is none.
-    //
-    // Query the successor at gapStart, NOT curAddr. IBSTree_fast::successor(X)
-    // returns the extent with the smallest high() > X; when X is inside (or at the
-    // start of) an extent -- which curAddr almost always is, since the gap loop
-    // leaves the cursor on the entry of the function parse_at just discovered (or on
-    // the next function's start when a gap held no FEP) -- that is the *covering*
-    // extent itself, whose start() <= X. gapStart has already been advanced past
-    // every covering extent, so successor(gapStart) skips them and returns the
-    // genuinely-following extent.
-    //
-    // Use its start() directly with no ">curAddr" guard: a contiguous next function
-    // (start() == gapStart) yields gapEnd == gapStart -> returns false, exactly like
-    // the old upper_bound logic; a real gap is bounded at the next function's start.
-    // The discarded guard was the bug -- when successor returned a covering extent it
-    // failed, gapEnd fell back to regEnd, and the scanner walked through already-parsed
-    // functions, spuriously re-parsing inside them and corrupting the CFG.
-    gapEnd = regEnd;
-    FuncExtent *next = rd->funcsByRange.successor(gapStart);
-    if (next && next->start() < gapEnd)
-        gapEnd = next->start();
+    // ---- OLD path: original sorted_funcs rebuild (the reference) ----
+    std::set< std::pair<Address, Address> > func_range;
+    for (auto fit = sorted_funcs.begin(); fit != sorted_funcs.end(); ++fit) {
+        Function * f = *fit;
+        for (auto eit = f->extents().begin(); eit != f->extents().end(); ++eit)
+            func_range.insert(std::make_pair((*eit)->start(), (*eit)->end()));
+    }
+    Address oldGapStart, oldGapEnd;
+    auto iter = func_range.upper_bound(std::make_pair(curAddr, std::numeric_limits<Address>::max()));
+    if (iter == func_range.end())
+        oldGapEnd = regEnd;
+    else
+        oldGapEnd = iter->first;
+    if (iter == func_range.begin()) {
+        oldGapStart = curAddr;
+    } else {
+        --iter;
+        oldGapStart = (iter->second > curAddr) ? iter->second : curAddr;
+    }
+    bool oldRet = oldGapStart < oldGapEnd;
 
-    return gapStart < gapEnd;
+    // ---- differential check ----
+    if (oldGapStart != newGapStart || oldGapEnd != newGapEnd || oldRet != newRet) {
+        fprintf(stderr,
+            "[getGapRange DIVERGENCE] region=[%lx,%lx) curAddr=%lx\n"
+            "    OLD(sorted_funcs): gapStart=%lx gapEnd=%lx ret=%d\n"
+            "    NEW(funcsByRange): gapStart=%lx gapEnd=%lx ret=%d\n",
+            (unsigned long)cr->offset(), (unsigned long)regEnd, (unsigned long)curAddr,
+            (unsigned long)oldGapStart, (unsigned long)oldGapEnd, (int)oldRet,
+            (unsigned long)newGapStart, (unsigned long)newGapEnd, (int)newRet);
+        fprintf(stderr, "    covering(curAddr)=%zu extents:", covering.size());
+        for (FuncExtent* fe : covering)
+            fprintf(stderr, " [%lx,%lx)", (unsigned long)fe->start(), (unsigned long)fe->end());
+        fprintf(stderr, "\n");
+        if (next)
+            fprintf(stderr, "    funcsByRange.successor(%lx) = [%lx,%lx)\n",
+                (unsigned long)newGapStart, (unsigned long)next->start(), (unsigned long)next->end());
+        else
+            fprintf(stderr, "    funcsByRange.successor(%lx) = <none>\n", (unsigned long)newGapStart);
+        assert(!"getGapRange: funcsByRange result diverges from sorted_funcs reference");
+    }
+
+    // Return the OLD (reference) result.
+    gapStart = oldGapStart;
+    gapEnd = oldGapEnd;
+    return oldRet;
 }
 
 void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
