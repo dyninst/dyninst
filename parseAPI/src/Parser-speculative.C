@@ -363,12 +363,26 @@ bool Parser::getGapRange(CodeRegion* cr, Address curAddr, Address& gapStart, Add
     for (FuncExtent *fe : covering)
         if (fe->end() > gapStart) gapStart = fe->end();
 
-    // gapEnd: the start of the first extent beginning strictly after curAddr, or the
-    // end of the region if there is none (mirrors the old upper_bound logic and the
-    // blocksByRange.successor idiom in region_data::get_next_block).
+    // gapEnd: the start of the next extent, or the region end if there is none.
+    //
+    // Query the successor at gapStart, NOT curAddr. IBSTree_fast::successor(X)
+    // returns the extent with the smallest high() > X; when X is inside (or at the
+    // start of) an extent -- which curAddr almost always is, since the gap loop
+    // leaves the cursor on the entry of the function parse_at just discovered (or on
+    // the next function's start when a gap held no FEP) -- that is the *covering*
+    // extent itself, whose start() <= X. gapStart has already been advanced past
+    // every covering extent, so successor(gapStart) skips them and returns the
+    // genuinely-following extent.
+    //
+    // Use its start() directly with no ">curAddr" guard: a contiguous next function
+    // (start() == gapStart) yields gapEnd == gapStart -> returns false, exactly like
+    // the old upper_bound logic; a real gap is bounded at the next function's start.
+    // The discarded guard was the bug -- when successor returned a covering extent it
+    // failed, gapEnd fell back to regEnd, and the scanner walked through already-parsed
+    // functions, spuriously re-parsing inside them and corrupting the CFG.
     gapEnd = regEnd;
-    FuncExtent *next = rd->funcsByRange.successor(curAddr);
-    if (next && next->start() > curAddr && next->start() < gapEnd)
+    FuncExtent *next = rd->funcsByRange.successor(gapStart);
+    if (next && next->start() < gapEnd)
         gapEnd = next->start();
 
     return gapStart < gapEnd;
