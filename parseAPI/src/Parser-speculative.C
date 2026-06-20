@@ -333,57 +333,34 @@ void Parser::parse_gap_heuristic(CodeRegion * cr)
     finalize();
 }
 
-bool Parser::getGapRange(CodeRegion* cr, Address curAddr, Address& gapStart, Address& gapEnd) {
-    // Query the per-region function-extent interval tree (region_data::funcsByRange)
-    // instead of rebuilding a sorted set of *every* function's extents on each call.
-    // This turns the speculative gap pass from O(gaps x functions) into
-    // O(gaps x log functions); on a large binary the old rebuild dominated rewrite
-    // time (it iterated all parsed functions on every gap).
+bool Parser::getGapRange(CodeRegion* cr, Address curAddr, Address& gapStart, Address& gapEnd,
+                         const std::set<std::pair<Address, Address> >& func_range) {
+    // Locate the gap at/after curAddr using a start-ordered index of every parsed
+    // function's extents (start,end). This is the exact pre-#2290 logic, except the
+    // caller (probabilistic_gap_parsing) builds func_range ONCE and maintains it
+    // incrementally instead of rebuilding it from sorted_funcs on every call -- that
+    // per-call O(F) rebuild was the speculative pass's O(gaps x F) hot spot.
     //
-    // funcsByRange is populated only by finalize_ranges() (which drains
-    // funcs_to_ranges), and the parser otherwise calls that lazily from the
-    // findFuncs/findBlocks lookup paths. The previous implementation read
-    // sorted_funcs, which parse_at keeps current: each gap-discovered function
-    // downgrades _parse_state below FINALIZED, so finalize() re-runs and re-inserts
-    // into sorted_funcs/funcs_to_ranges. Flush any pending finalized functions into
-    // the tree here so funcsByRange has that same currency -- otherwise a
-    // just-discovered gap function would be invisible (treated as gap, re-scanned,
-    // and possibly able to spawn an overlapping function inside it).
-    if (!funcs_to_ranges.empty())
-        finalize_ranges();
+    // We deliberately do NOT use funcsByRange here. Its IBSTree_fast::successor is
+    // keyed by interval high(), so for overlapping / identical-code-folded extents it
+    // returns the smallest-high() extent rather than the smallest start() > curAddr.
+    // On an ICF-heavy binary those differ, yielding an over-large gap whose scan walks
+    // into already-parsed code, spuriously re-parses inside it, and corrupts the CFG
+    // (manifesting later as a missing-block liveness assertion). A start-ordered set
+    // answers "smallest start strictly > curAddr" directly and exactly.
+    auto iter = func_range.upper_bound(std::make_pair(curAddr, std::numeric_limits<Address>::max()));
+    if (iter == func_range.end())
+        gapEnd = cr->offset() + cr->length();
+    else
+        gapEnd = iter->first;
 
-    region_data *rd = _parse_data->findRegion(cr);
-    const Address regEnd = cr->offset() + cr->length();
-
-    // gapStart: if curAddr falls inside one or more already-parsed extents, advance
-    // past the farthest-reaching one; otherwise the gap starts at curAddr itself.
-    gapStart = curAddr;
-    std::set<FuncExtent *> covering;
-    rd->funcsByRange.find(curAddr, covering);
-    for (FuncExtent *fe : covering)
-        if (fe->end() > gapStart) gapStart = fe->end();
-
-    // gapEnd: the start of the next extent, or the region end if there is none.
-    //
-    // Query the successor at gapStart, NOT curAddr. IBSTree_fast::successor(X)
-    // returns the extent with the smallest high() > X; when X is inside (or at the
-    // start of) an extent -- which curAddr almost always is, since the gap loop
-    // leaves the cursor on the entry of the function parse_at just discovered (or on
-    // the next function's start when a gap held no FEP) -- that is the *covering*
-    // extent itself, whose start() <= X. gapStart has already been advanced past
-    // every covering extent, so successor(gapStart) skips them and returns the
-    // genuinely-following extent.
-    //
-    // Use its start() directly with no ">curAddr" guard: a contiguous next function
-    // (start() == gapStart) yields gapEnd == gapStart -> returns false, exactly like
-    // the old upper_bound logic; a real gap is bounded at the next function's start.
-    // The discarded guard was the bug -- when successor returned a covering extent it
-    // failed, gapEnd fell back to regEnd, and the scanner walked through already-parsed
-    // functions, spuriously re-parsing inside them and corrupting the CFG.
-    gapEnd = regEnd;
-    FuncExtent *next = rd->funcsByRange.successor(gapStart);
-    if (next && next->start() < gapEnd)
-        gapEnd = next->start();
+    if (iter == func_range.begin()) {
+        gapStart = curAddr;
+    } else {
+        --iter;
+        // If the nearest preceding extent covers curAddr, the gap starts at its end.
+        gapStart = (iter->second > curAddr) ? iter->second : curAddr;
+    }
 
     return gapStart < gapEnd;
 }
@@ -395,6 +372,11 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
     if (_parse_state < COMPLETE)
         parse();
     finalize();
+    // Drain pending finalized functions into funcsByRange now (single-threaded), so
+    // funcs_to_ranges starts empty and the in-loop fold below only sees gap-discovered
+    // functions.
+    if (!funcs_to_ranges.empty())
+        finalize_ranges();
 
     string model_spec;
     if (obj().cs()->getAddressWidth() == 8) 
@@ -404,10 +386,19 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
 
     // Load the pre-trained idiom model:
     hd::ProbabilityCalculator pc(cr, obj().cs(), this, model_spec);
+
+    // Start-ordered index of every parsed extent (start,end). Built once; maintained
+    // incrementally below. getGapRange queries this instead of rebuilding it from
+    // sorted_funcs on every call (the old O(gaps x F) hot spot). See getGapRange.
+    std::set<std::pair<Address, Address> > func_range;
+    for (auto fit = sorted_funcs.begin(); fit != sorted_funcs.end(); ++fit)
+        for (auto eit = (*fit)->extents().begin(); eit != (*fit)->extents().end(); ++eit)
+            func_range.insert(std::make_pair((*eit)->start(), (*eit)->end()));
+
     Address gapStart;
     Address gapEnd;
     Address curAddr = cr->offset();
-    while (getGapRange(cr, curAddr, gapStart, gapEnd)) {
+    while (getGapRange(cr, curAddr, gapStart, gapEnd, func_range)) {
         parsing_printf("[%s] scanning for FEP in [%lx,%lx)\n",
             FILE__,gapStart,gapEnd);
         for(curAddr=gapStart; curAddr < gapEnd; ++curAddr) {
@@ -422,6 +413,14 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
             }
         }
         finalize();
+        // Fold gap-discovered functions into the index, then drain funcs_to_ranges
+        // into funcsByRange (keeping other consumers current and the fold incremental
+        // -- next iteration only sees newly-finalized functions).
+        for (Function* f : funcs_to_ranges)
+            for (auto eit = f->extents().begin(); eit != f->extents().end(); ++eit)
+                func_range.insert(std::make_pair((*eit)->start(), (*eit)->end()));
+        if (!funcs_to_ranges.empty())
+            finalize_ranges();
     }
 }
 
