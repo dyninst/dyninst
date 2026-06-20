@@ -2189,7 +2189,7 @@ bool AddressSpace::getDyninstRTLibName() {
   if(auto *name = getenv("DYNINSTAPI_RT_LIB")) {
     dyninstRT_name = df::canonicalize(name);
   } else {
-    startup_cerr << "DYNINSTAPI_RT_LIB not found in environment\n";
+    showErrorCallback(101, "DYNINSTAPI_RT_LIB not found in environment\n");
     return false;
   }
 
@@ -2211,7 +2211,8 @@ bool AddressSpace::getDyninstRTLibName() {
   }
 
   if(!Dyninst::filesystem::exists(dyninstRT_name)) {
-    startup_cerr << "DYNINSTAPI_RT_LIB='" << dyninstRT_name << "' does not exist\n";
+    auto msg = "DYNINSTAPI_RT_LIB='" + dyninstRT_name + "' does not exist\n";
+    showErrorCallback(101, msg);
     return false;
   }
 
