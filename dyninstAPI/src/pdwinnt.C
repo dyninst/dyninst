@@ -226,39 +226,6 @@ bool getLWPIDs(std::vector <unsigned> &LWPids)
   return false;
 }
 
-
-bool AddressSpace::getDyninstRTLibName() {
-    // Set the name of the dyninst RT lib
-    if (dyninstRT_name.length() == 0) {
-        // Get env variable
-        if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
-            dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
-        }
-        else {
-            std::string msg = std::string("Environment variable ") +
-               std::string("DYNINSTAPI_RT_LIB") +
-               std::string(" has not been defined");
-            showErrorCallback(101, msg);
-            return false;
-        }
-    }
-    //Canonicalize name
-    char *sptr = P_strdup(dyninstRT_name.c_str());
-    for (unsigned i=0; i<strlen(sptr); i++)
-       if (sptr[i] == '/') sptr[i] = '\\';
-    dyninstRT_name = sptr;
-    free(sptr);
-           
-    if (_access(dyninstRT_name.c_str(), 04)) {
-        std::string msg = std::string("Runtime library ") + dyninstRT_name +
-                       std::string(" does not exist or cannot be accessed!");
-        showErrorCallback(101, msg);
-        return false;
-    }
-
-    return true;
-}
-
 void loadNativeDemangler() 
 {
     // ensure we load line number information when we load

@@ -179,17 +179,33 @@ bool exists(std::string const& path) {
   return boost::filesystem::exists(path);
 }
 
+std::string strip_all_extensions(std::string const& path) {
+  auto p = boost::filesystem::path(path);
+
+  if(p.extension().empty()) {
+    return path;
+  }
+
+  auto fn = p.parent_path();
+  for(; !p.extension().empty(); p = p.stem());
+  return (fn/p).string();
+}
+
 std::string replace_extension(std::string const& path, std::string const& val) {
   return boost::filesystem::path(path).replace_extension(val).string();
 }
 
 std::string append_filename_suffix(std::string const& path, std::string const& val) {
-  boost::filesystem::path p(path);
-  auto ext = p.extension();
-  auto x = p.replace_extension("");
-  x += val;
-  x += ext;
-  return x.string();
+  auto p = boost::filesystem::path(path);
+
+  if(!p.has_extension()) {
+    return path + val;
+  }
+
+  auto filename = p.filename().string();
+  auto loc = filename.find('.');
+  auto &&new_filename = filename.substr(0, loc) + val + filename.substr(loc);
+  return (p.parent_path() / new_filename).string();
 }
 
 }}

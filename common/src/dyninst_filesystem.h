@@ -45,10 +45,12 @@ namespace Dyninst { namespace filesystem {
 
   DYNINST_EXPORT std::string replace_extension(std::string const& path, std::string const& val);
 
+  DYNINST_EXPORT std::string strip_all_extensions(std::string const& path);
+
   /*
-   *  Append the suffix `val` to `path` while maintaining any extension
+   *  Append the suffix `val` to `path` while maintaining all extensions
    *
-   *  e.g., append_filename_suffix("foo/bar.txt", "_sfx") returns "foo/bar_sfx.txt"
+   *  e.g., append_filename_suffix("foo/bar.txt.tar", "_sfx") returns "foo/bar_sfx.txt.tar"
    */
   DYNINST_EXPORT std::string append_filename_suffix(std::string const& path, std::string const& val);
 
