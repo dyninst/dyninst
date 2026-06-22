@@ -945,7 +945,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
         sectionNumber++;
         // Add a new loadable section
         if ((newscn = elf_newscn(newElf)) == NULL) {
-            log_elferror(err_func_, "unable to create new function");
+            log_elferror(err_func_, "unable to create new section");
             return false;
         }
         if ((newdata = elf_newdata(newscn)) == NULL) {
@@ -1188,7 +1188,7 @@ bool emitElf<ElfTypes>::addSectionHeaderTable(Elf_Shdr *shdr) {
     Elf_Shdr *newshdr;
 
     if ((newscn = elf_newscn(newElf)) == NULL) {
-        log_elferror(err_func_, "unable to create new function");
+        log_elferror(err_func_, "unable to create new section");
         return false;
     }
     if ((newdata = elf_newdata(newscn)) == NULL) {
@@ -1237,7 +1237,7 @@ bool emitElf<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
     for (unsigned i = 0; i < nonLoadableSecs.size(); i++) {
         // Add a new non-loadable section
         if ((newscn = elf_newscn(newElf)) == NULL) {
-            log_elferror(err_func_, "unable to create new function");
+            log_elferror(err_func_, "unable to create new section");
             return false;
         }
         if ((newdata = elf_newdata(newscn)) == NULL) {
