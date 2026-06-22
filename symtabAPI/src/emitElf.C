@@ -29,7 +29,6 @@
  */
 
 
-#define jk_rewrite_printf rewrite_printf
 #include <cstring>
 #include <algorithm>
 #include "emitElf.h"
@@ -590,6 +589,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                 sectionNumber, secLinkMapping[sectionNumber], secInfoMapping[sectionNumber],
                 (unsigned)changeMapping[sectionNumber]);
 
+	jk_log_shdr("XXXXXXX NEW", name, sectionNumber, shdr);
         //Insert new loadable sections at the end of data segment
         if (scncount == lastLoadedSectionNum && !createdLoadableSections) {
             createdLoadableSections = true;
@@ -638,6 +638,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             auto & data = dataLinkInfo[secNames[scncount]];
             //shdr->sh_link = data.first;
             shdr->sh_info = data.second;
+	    jk_log_shdr("XXXXXXX UPDATE LINKINFO", secNames[scncount].c_str(), scncount, shdr);
         }
     }
 
@@ -659,8 +660,16 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         log_elferror(err_func_, "elf_update failed");
         return false;
     }
+    jk_dump_elf(oldElf, "OLD ELF");
+    jk_dump_elf(newElf, "NEW ELF");
+    jk_dump_scn_bytes(phdrs_scn);
     elf_end(newElf);
     close(newfd);
+    auto newAgainFd = open(newFName.c_str(), O_RDONLY, 0);
+    auto newAgainElf = elf_begin(newAgainFd, ELF_C_READ, NULL);
+    jk_dump_elf(newAgainElf, "NEW AGAIN ELF");
+    elf_end(newAgainElf);
+    close(newAgainFd);
 
     if (rename(newFName.c_str(), fName.c_str())) {
         return false;
@@ -706,6 +715,7 @@ void emitElf<ElfTypes>::createNewPhdrRegion(std::unordered_map<std::string, unsi
     newshdr->sh_info = 0;
     newshdr->sh_addralign = 4;
     newshdr->sh_entsize = newEhdr->e_phentsize;
+    jk_log_shdr("XXXXXXX PHDR", newname, secNames.size() - 1, newshdr);
     phdrSegOff = newshdr->sh_offset;
     phdrSegAddr = newshdr->sh_addr;
 
@@ -773,8 +783,10 @@ void emitElf<ElfTypes>::fixPhdrs() {
             segments[i].p_align = newTLSData->sh_addralign;
         }
 
-        jk_log_segment("old", i, old->p_type, old->p_vaddr, old->p_offset, old->p_memsz);
-        jk_log_segment("  ->", i, segments[i].p_type, segments[i].p_vaddr, segments[i].p_offset, segments[i].p_memsz);
+	jk_rewrite_printf("%5s  ", "old");
+	jk_dump_phdr(old);
+	jk_rewrite_printf("%5s  ", "->");
+	jk_dump_phdr(&segments[i]);
 
         ++old;
     }
