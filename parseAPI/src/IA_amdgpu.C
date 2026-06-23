@@ -140,3 +140,37 @@ bool IA_amdgpu::isNopJump() const
 {
     return false;
 }
+
+bool IA_amdgpu::isSoftwareException() const
+{
+    Instruction ci = curInsn();
+    auto id = ci.getOperation().getID();
+    if(id != amdgpu_gfx908_op_S_TRAP &&
+       id != amdgpu_gfx90a_op_S_TRAP &&
+       id != amdgpu_gfx940_op_S_TRAP)
+        return IA_IAPI::isSoftwareException();
+
+    // s_trap takes a 16-bit immediate whose low 8 bits are the trap ID.
+    //
+    // The per-trap-ID behavior is defined by the AMDGPU trap handler ABI in the
+    // LLVM AMDGPU backend documentation:
+    //   https://llvm.org/docs/AMDGPUUsage.html#trap-handler-abi
+    // (see the "AMDGPU Trap Handler for AMDHSA OS Code Object V3 / V4 and Above"
+    // tables). Summarizing the relevant trap IDs:
+    //   - 0x01 (debugger breakpoint): the wave is halted and the debugger
+    //     resumes it, re-executing the overwritten instruction. Execution
+    //     continues, so the fall-through must be preserved.
+    //   - 0x02 (llvm.trap): the wave is halted and its queue is put into the
+    //     error state, terminating the dispatch's waves. It does not return,
+    //     so this is the only s_trap that ends the block with no fall-through.
+    //   - 0x03 (llvm.debugtrap): a no-op when no debugger is attached, otherwise
+    //     reported to the debugger which resumes the wave. Either way execution
+    //     continues, so the fall-through must be preserved.
+    // All other trap IDs are reserved and are left to fall through.
+    Immediate::Ptr imm =
+        boost::dynamic_pointer_cast<Immediate>(ci.getOperand(0).getValue());
+    if(!imm)
+        return false;
+    Result trapId = imm->eval();
+    return trapId.defined && ((trapId.val.s16val & 0xff) == 0x02);
+}
