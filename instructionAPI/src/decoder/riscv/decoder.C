@@ -881,3 +881,9 @@ bool is_compressed(di::Instruction &insn) {
 }
 
 } // namespace
+
+// Forward compatibility with future capstone versions that may rename
+// CS_MODE_RISCVC to CS_MODE_RISCV_C
+#ifndef CS_MODE_RISCV_C
+#define CS_MODE_RISCV_C CS_MODE_RISCVC
+#endif
