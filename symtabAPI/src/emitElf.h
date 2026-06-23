@@ -216,6 +216,8 @@ namespace Dyninst {
             Elf_Off newSegmentStart;
             Elf_Shdr *firstNewLoadSec;// initialize to NULL
 
+            // data segment end
+            Elf_Off dataSegEnd;
             Elf_Off dynSegOff, dynSegAddr, phdrSegOff, phdrSegAddr;
             unsigned dynSegSize;
 
@@ -241,10 +243,7 @@ namespace Dyninst {
 
             bool createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf_Sym *> &symbols,
                                  bool dynSymFlag = false);
-            // Find the start address of the last section that falls within the
-            // last loadable (PT_LOAD) segment. This is where new loadable
-            // sections are appended. Also sets TLSExists as a side effect.
-            Elf_Off findLastLoadableSec();
+            void findSegmentEnds();
             void renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll=true);
             void fixPhdrs();
 

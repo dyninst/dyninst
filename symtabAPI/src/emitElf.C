@@ -79,7 +79,7 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *ob
         symTabData(NULL), dynsymData(NULL), dynData(NULL),
         phdrs_scn(NULL), verneednum(0), verdefnum(0),
         newSegmentStart(0), firstNewLoadSec(NULL),
-        dynSegOff(0), dynSegAddr(0),
+        dataSegEnd(0), dynSegOff(0), dynSegAddr(0),
         phdrSegOff(0), phdrSegAddr(0), dynSegSize(0),
         secNameIndex(0), currEndOffset(0), currEndAddress(0),
         linkedStaticData(NULL), loadSecTotalSize(0),
@@ -357,51 +357,23 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
     return true;
 }
 
-// Find the start address of the last section that lies within the last
-// loadable (PT_LOAD) segment. This is the section after which dyninst appends
-// the newly created loadable sections.
-//
-// The old implementation (findSegmentEnds) assumed that some section ended
-// exactly on the boundary of the last loadable segment (p_vaddr + p_memsz).
-// That does not hold for all binaries: e.g. when the highest-addressed
-// loadable segment holds relocated read-only metadata (.gnu.hash/.dynstr) and
-// the segment's memsz is padded past the final section, no section ends on the
-// boundary. In that case the insertion point was never found,
-// createLoadableSections() was never called, and the rewritten file came out
-// without a .dynamic section / new code segment (see issue #2081).
-//
-// Instead, find the boundaries of the last loadable segment and return the
-// start address of the highest-addressed section contained within it.
+// Find the end of data/text segment
 template<class ElfTypes>
-typename emitElf<ElfTypes>::Elf_Off emitElf<ElfTypes>::findLastLoadableSec() {
+void emitElf<ElfTypes>::findSegmentEnds() {
     Elf_Phdr *tmp = ElfTypes::elf_getphdr(oldElf);
-    Elf_Off lastDataSegStart = 0, lastDataSegEnd = 0, lastLoadableSecStart = 0;
-
-    // Find the boundaries of the last (highest-addressed) loadable segment.
+    // Find the offset of the start of the text & the data segment
+    // The first LOAD segment is the text & the second LOAD segment
+    // is the data
+    dataSegEnd = 0;
     for (unsigned i = 0; i < oldEhdr->e_phnum; i++) {
         if (tmp->p_type == PT_LOAD) {
-            if (tmp->p_vaddr + tmp->p_memsz > lastDataSegEnd) {
-                lastDataSegStart = tmp->p_vaddr;
-                lastDataSegEnd = tmp->p_vaddr + tmp->p_memsz;
-            }
+            if (dataSegEnd < tmp->p_vaddr + tmp->p_memsz)
+                dataSegEnd = tmp->p_vaddr + tmp->p_memsz;
         } else if (PT_TLS == tmp->p_type) {
             TLSExists = true;
         }
         tmp++;
     }
-
-    // Find the section with the highest start address that falls within the
-    // last loadable segment.
-    Elf_Scn *scn = NULL;
-    while ((scn = elf_nextscn(oldElf, scn))) {
-        Elf_Shdr *shdr = ElfTypes::elf_getshdr(scn);
-        Elf_Off secStart = shdr->sh_addr;
-        if (lastDataSegStart <= secStart && secStart < lastDataSegEnd &&
-            secStart > lastLoadableSecStart)
-            lastLoadableSecStart = secStart;
-    }
-
-    return lastLoadableSecStart;
 }
 
 // Rename an old section. Lengths of old and new names must match.
@@ -475,8 +447,8 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
     newEhdr->e_shnum += newSecs.size();
 
-    // Find the section after which new loadable sections will be appended
-    Elf_Off lastLoadableSecStart = findLastLoadableSec();
+    // Find the end of text and data segments
+    findSegmentEnds();
     unsigned insertPoint = oldEhdr->e_shnum;
     unsigned insertPointOffset = 0;
 
@@ -686,9 +658,8 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                 sectionNumber, secLinkMapping[sectionNumber], secInfoMapping[sectionNumber],
                 changeMapping[sectionNumber]);
 
-        //Insert new loadable sections after the last section of the last
-        //loadable segment
-        if (shdr->sh_addr == lastLoadableSecStart && !createdLoadableSections) {
+        //Insert new loadable sections at the end of data segment
+        if (shdr->sh_addr + shdr->sh_size == dataSegEnd && !createdLoadableSections) {
             createdLoadableSections = true;
             insertPoint = scncount;
             if (SHT_NOBITS == shdr->sh_type) {
@@ -869,31 +840,45 @@ void emitElf<ElfTypes>::fixPhdrs() {
         newSeg.p_flags = PF_R + PF_W + PF_X;
         newSeg.p_align = pgSize;
 
-        // Search position to insert new segment.
-        //
-        // The ELF spec requires loadable segments to appear in the program
-        // header table sorted by ascending p_vaddr. PT_LOAD entries are NOT
-        // necessarily contiguous in the table -- other segment types (e.g.
-        // GNU_STACK) can appear between them -- so we cannot detect "the end
-        // of the loadable phdrs" by looking for the first LOAD->non-LOAD
-        // transition (issue #2081: libtorch_python.so has GNU_STACK as the
-        // second program header, right after the first LOAD).
-        //
-        // Insert the new segment immediately before the first PT_LOAD whose
-        // p_vaddr is greater than newSegmentStart; if there is none (the new
-        // segment has the highest address, which is the common case since it
-        // is appended past the end of the last loadable segment), append it at
-        // the end of the table. Non-loadable entries keep their relative
-        // order, and the PT_LOAD entries stay sorted by p_vaddr.
-        unsigned int position = segments.size();
+        // Search position to insert new segment
+        unsigned int position = -1;
         for( unsigned i = 0; i < segments.size(); i++ )
         {
-            if (segments[i].p_type == PT_LOAD &&
-                segments[i].p_vaddr > newSegmentStart) {
+            if (i + 1 == segments.size()) {
+                // it's the last, so add after
+                position = i + 1;
+                break;
+            }
+            else if (segments[i].p_type == PT_LOAD && segments[i+1].p_type != PT_LOAD) {
+                // insert at end of loadable phdrs
+                position = i + 1;
+                break;
+            }
+            else if (segments[i].p_type != PT_LOAD &&
+                    segments[i+1].p_type == PT_LOAD &&
+                    newSegmentStart < segments[i+1].p_vaddr) {
+                // insert at beginning of loadable list (after the
+                // current phdr)
+                position = i + 1;
+                break;
+            }
+            else if (segments[i].p_type == PT_LOAD &&
+                    segments[i+1].p_type == PT_LOAD &&
+                    newSegmentStart >= segments[i].p_vaddr &&
+                    newSegmentStart < segments[i+1].p_vaddr) {
+                // insert in middle of loadable list, after current
+                position = i + 1;
+                break;
+            }
+            else if (i == 0 &&
+                    segments[i].p_type == PT_LOAD &&
+                    newSegmentStart < segments[i].p_vaddr) {
+                // insert BEFORE current phdr
                 position = i;
                 break;
             }
         }
+        assert(position!=-1U);
 
         // Insert new Segment at position
         if( position == segments.size() )
