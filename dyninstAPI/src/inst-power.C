@@ -1445,11 +1445,11 @@ void EmitterPOWER::emitVload(opCode op, Address src1, Dyninst::Register src2, Dy
   }
     break;
   case loadRegRelativeAddr:
-    gen.rs()->readProgramRegister(gen, src2, dest, size);
+    gen.rs()->readProgramRegister(gen, src2, dest);
     gen.emitter()->emitImm(plusOp, dest, src1, dest, gen);
     break;
   case loadRegRelativeOp:
-    gen.rs()->readProgramRegister(gen, src2, dest, size);
+    gen.rs()->readProgramRegister(gen, src2, dest);
 
     if (size == 1)
       insnCodeGen::generateImm(gen, LBZop, dest, dest, src1);
@@ -1691,59 +1691,6 @@ void EmitterPOWER::emitV(opCode op, Dyninst::Register src1, Dyninst::Register sr
         insnCodeGen::generate(gen,insn);
     }
   return;
-}
-
-void emitLoadPreviousStackFrameRegister(Address register_num, 
-                                        Dyninst::Register dest,
-                                        codeGen &gen,
-                                        int /*size*/)
-{
-    // As of 10/24/2007, the size parameter is still incorrect.
-    // Luckily, we know implicitly what size they actually want.
-
-    // Offset if needed
-    int offset;
-    // Unused, 3OCT03
-    //instruction *insn_ptr = (instruction *)insn;
-    // We need values to define special registers.
-
-    switch ( (int) register_num) {
-    case registerSpace::lr:
-        // LR is saved on the stack
-        // Note: this is only valid for non-function entry/exit instru. 
-        // Once we've entered a function, the LR is stomped to point
-        // at the exit tramp!
-      offset = TRAMP_SPR_OFFSET(gen.width()) + STK_LR; 
-
-        // Get address (SP + offset) and stick in register dest.
-        gen.emitter()->emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
-                gen);
-        // Load LR into register dest
-        gen.emitter()->emitV(loadIndirOp, dest, 0, dest, gen,
-              gen.width(), gen.addrSpace());
-        break;
-
-    case registerSpace::ctr:
-        // CTR is saved down the stack
-        if (gen.width() == 4)
-	  offset = TRAMP_SPR_OFFSET(gen.width()) + STK_CTR_32;
-        else
-	  offset = TRAMP_SPR_OFFSET(gen.width()) + STK_CTR_64;
-
-        // Get address (SP + offset) and stick in register dest.
-        gen.emitter()->emitImm(plusOp ,(Dyninst::Register) REG_SP, (RegValue) offset, dest,
-                gen);
-        // Load LR into register dest
-        gen.emitter()->emitV(loadIndirOp, dest, 0, dest, gen,
-              gen.width(), gen.addrSpace());
-      break;
-
-    default:
-        cerr << "Fallthrough in emitLoadPreviousStackFrameRegister" << endl;
-        cerr << "Unexpected register " << register_num << endl;
-        assert(0);
-        break;
-    }
 }
 
 #define GET_IP      0x429f0005

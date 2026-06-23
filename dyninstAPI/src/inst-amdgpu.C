@@ -48,9 +48,6 @@ void emitASload(const BPatch_addrSpec_NP * /* as */, Register /* dest */, int /*
   assert(!"Not imeplemented for AMDGPU");
 }
 
-void emitLoadPreviousStackFrameRegister(Address /* register_num */, Register /* dest */,
-                                        codeGen & /* gen */, int /* size */) {}
-
 void emitStorePreviousStackFrameRegister(Address, Register, codeGen &, int, bool) {}
 
 Address EmitterAmdgpuGfx908::getInterModuleVarAddr(const image_variable * /* var */, codeGen & /* gen */) {

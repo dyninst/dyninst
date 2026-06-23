@@ -89,8 +89,7 @@ class registerSpace {
     // destination. So the source is the label, and destination is an actual.
     // Size is a legacy parameter for places where we don't have register information
     bool readProgramRegister(codeGen &gen, Dyninst::Register source,
-                             Dyninst::Register destination,
-                             unsigned size);
+                             Dyninst::Register destination);
 
     // And the reverse
     bool writeProgramRegister(codeGen &gen, Dyninst::Register destination,
@@ -329,8 +328,5 @@ class registerSpace {
 #endif
 
 };
-
-void emitLoadPreviousStackFrameRegister(Dyninst::Address register_num, Dyninst::Register dest,
-                                        codeGen &gen, int size);
 
 #endif

@@ -38,7 +38,7 @@
 #include "patching/function.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "registerSpace/registerSpace.h"
-
+#include "emitter.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "BPatch_collections.h"
 #include "dyninstAPI/h/BPatch_type.h"
@@ -551,24 +551,34 @@ void registerSpace::cleanSpace() {
 
 bool registerSpace::readProgramRegister(codeGen &gen,
                                         Register source,
-                                        Register destination,
-                                        unsigned
-#if !defined(DYNINST_CODEGEN_ARCH_POWER)
-                                        size
-#endif
-)
+                                        Register destination)
 {
-#if !defined(DYNINST_CODEGEN_ARCH_POWER)
-    emitLoadPreviousStackFrameRegister((Address)source,
-                                       destination,
-                                       gen,
-                                       size);
+  switch (gen.getArch()) {
+  case Arch_x86:
+  case Arch_x86_64:
+  case Arch_aarch64: {
+    gen.codeEmitter()->emitLoadOrigRegister((Address)source, destination, gen);
     return true;
-#elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
-//#warning "This fucntion is not implemented yet!"
-		assert(0);
-		return false;
-#else
+  }
+
+  case Arch_ppc32:
+  case Arch_ppc64:
+    // Implemented below
+    break;
+
+  case Arch_none:
+  case Arch_aarch32:
+  case Arch_riscv64:
+  case Arch_cuda:
+  case Arch_amdgpu_gfx908:
+  case Arch_amdgpu_gfx90a:
+  case Arch_amdgpu_gfx940:
+  case Arch_intelGen9:
+    regalloc_printf("readProgramRegister not supported for %s\n",
+                    Dyninst::getArchitectureName(gen.getArch()));
+    return false;
+  }
+
     // Real version that uses stored information
 
     // First step: identify the registerSlot that contains information
@@ -609,8 +619,6 @@ bool registerSpace::readProgramRegister(codeGen &gen,
         return false;
         break;
     }
-#endif
-
 }
 bool registerSpace::writeProgramRegister(codeGen &gen,
                                          Register destination,
