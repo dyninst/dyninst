@@ -88,43 +88,6 @@ using operandAST = Dyninst::DyninstAPI::operandAST;
  */
 
     ////////////////////////////////////////////////////////////////////
-    //Generates instructions to save a special purpose register onto
-    //the stack.
-    //  Returns the number of bytes needed to store the generated
-    //    instructions.
-    //  The instruction storage pointer is advanced the number of 
-    //    instructions generated.
-    //
-// NOTE: the bit layout of the mfspr instruction is as follows:
-// opcode:6 ; RT: 5 ; SPR: 10 ; const 339:10 ; Rc: 1
-// However, the two 5-bit halves of the SPR field are reversed
-// so just using the xfxform will not work
-void saveSPR(codeGen &gen,     //Instruction storage pointer
-             Dyninst::Register    scratchReg, //Scratch register
-             int         sprnum,     //SPR number
-             int         stkOffset) //Offset from stack pointer
-{
-    instruction insn;
-
-    // mfspr:  mflr scratchReg
-    insn.clear();
-    XFORM_OP_SET(insn, EXTop);
-    XFORM_RT_SET(insn, scratchReg);
-    XFORM_RA_SET(insn, sprnum & 0x1f);
-    XFORM_RB_SET(insn, (sprnum >> 5) & 0x1f);
-    XFORM_XO_SET(insn, MFSPRxop);
-    insnCodeGen::generate(gen,insn);
-
-    if (gen.width() == 4) {
-	insnCodeGen::generateImm(gen, STop,
-                                 scratchReg, REG_SP, stkOffset);
-    } else /* gen.width() == 8 */ {
-	insnCodeGen::generateMemAccess64(gen, STDop, STDxop,
-                                         scratchReg, REG_SP, stkOffset);
-    }
-}
-
-    ////////////////////////////////////////////////////////////////////
     //Generates instructions to restore a special purpose register from
     //the stack.
     //  Returns the number of bytes needed to store the generated
@@ -167,7 +130,7 @@ void saveLR(codeGen &gen,       //Instruction storage pointer
             Dyninst::Register      scratchReg, //Scratch register
             int           stkOffset)  //Offset from stack pointer
 {
-    saveSPR(gen, scratchReg, SPR_LR, stkOffset);
+    Dyninst::DyninstAPI::ppc::saveSPR(gen, scratchReg, SPR_LR, stkOffset);
     gen.rs()->markSavedRegister(registerSpace::lr, stkOffset);
 }
 
@@ -483,7 +446,7 @@ unsigned saveSPRegisters(codeGen &gen,
     assert (regCTR != NULL); 
     if (force_save || regCTR->liveState == registerSlot::live) 
     {
-    saveSPR(gen, 10, SPR_CTR, save_off + ctr_off); num_saved++;
+    Dyninst::DyninstAPI::ppc::saveSPR(gen, 10, SPR_CTR, save_off + ctr_off); num_saved++;
     gen.rs()->markSavedRegister(registerSpace::ctr, save_off + ctr_off);
     }
 
@@ -491,7 +454,7 @@ unsigned saveSPRegisters(codeGen &gen,
     assert (regXER != NULL); 
     if (force_save || regXER->liveState == registerSlot::live) 
    {
-    saveSPR(gen, 10, SPR_XER, save_off + xer_off); num_saved++;
+    Dyninst::DyninstAPI::ppc::saveSPR(gen, 10, SPR_XER, save_off + xer_off); num_saved++;
     gen.rs()->markSavedRegister(registerSpace::xer, save_off + xer_off);
     }
 

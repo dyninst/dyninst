@@ -64,6 +64,8 @@ namespace Dyninst { namespace DyninstAPI { namespace ppc {
 
   void saveRegister(codeGen &gen, Dyninst::Register source, Dyninst::Register dest, int save_off);
 
+  void saveSPR(codeGen &gen, Dyninst::Register scratchReg, int sprnum, int stkOffset);
+
 }}}
 
 #endif

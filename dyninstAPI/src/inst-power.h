@@ -170,10 +170,7 @@
 ///////////////////////////// Multi-instruction sequences
 class codeGen;
 
-void saveSPR(codeGen &gen,
-             Dyninst::Register scratchReg,
-             int sprnum,
-             int stkOffset);
+
 void restoreSPR(codeGen &gen,
                 Dyninst::Register scratchReg,
                 int sprnum,

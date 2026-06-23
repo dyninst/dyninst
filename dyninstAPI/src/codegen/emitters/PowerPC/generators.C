@@ -96,6 +96,36 @@ namespace Dyninst { namespace DyninstAPI { namespace ppc {
     ppc::saveRegisterAtOffset(gen, source, save_off + (dest * gen.width()));
   }
 
+  /*
+   * Save a special purpose register onto the stack
+   *
+   *  NOTE:
+   *    The bit layout of the mfspr instruction is as follows:
+   *
+   *      opcode:6 ; RT: 5 ; SPR: 10 ; const 339:10 ; Rc: 1
+   *
+   *  However, the two 5-bit halves of the SPR field are reversed so just using the xfx
+   *  form will not work.
+   */
+  void saveSPR(codeGen &gen, Dyninst::Register scratchReg, int sprnum, int stkOffset) {
+    instruction insn;
+
+    // mfspr:  mflr scratchReg
+    insn.clear();
+    XFORM_OP_SET(insn, EXTop);
+    XFORM_RT_SET(insn, scratchReg);
+    XFORM_RA_SET(insn, sprnum & 0x1f);
+    XFORM_RB_SET(insn, (sprnum >> 5) & 0x1f);
+    XFORM_XO_SET(insn, MFSPRxop);
+    insnCodeGen::generate(gen, insn);
+
+    if (gen.width() == 4) {
+      insnCodeGen::generateImm(gen, STop, scratchReg, REG_SP, stkOffset);
+    } else /* gen.width() == 8 */{
+      insnCodeGen::generateMemAccess64(gen, STDop, STDxop, scratchReg, REG_SP, stkOffset);
+    }
+  }
+
   ppc::parsed_regs calcUsedRegs(parse_func *func) {
     ppc::parsed_regs usedRegisters;
     using namespace Dyninst::InstructionAPI;
