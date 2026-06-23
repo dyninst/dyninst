@@ -75,7 +75,7 @@ add_subdirectory(parseThat)
 add_subdirectory(dyninstAPI_RT)
 
 if(DYNINST_ENABLE_TESTS)
-  enable_testing()
+  include(CTest)
   message(STATUS "Enabling tests")
   add_subdirectory(tests)
 endif()
