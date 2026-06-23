@@ -770,51 +770,14 @@ void emitElf<ElfTypes>::fixPhdrs() {
         newSeg.p_flags = PF_R + PF_W + PF_X;
         newSeg.p_align = pgSize;
 
-        // Search position to insert new segment
-        unsigned int position = -1;
-        for( unsigned i = 0; i < segments.size(); i++ )
-        {
-            if (i + 1 == segments.size()) {
-                // it's the last, so add after
-                position = i + 1;
+        // Insert new segment, before PT_LOAD segment with higher vaddr or at end
+        unsigned int insertPos = 0;
+        for (insertPos = 0; insertPos < segments.size(); ++insertPos)  {
+            if (segments[insertPos].p_type == PT_LOAD && newSegmentStart < segments[insertPos].p_vaddr)
                 break;
-            }
-            else if (segments[i].p_type == PT_LOAD && segments[i+1].p_type != PT_LOAD) {
-                // insert at end of loadable phdrs
-                position = i + 1;
-                break;
-            }
-            else if (segments[i].p_type != PT_LOAD &&
-                    segments[i+1].p_type == PT_LOAD &&
-                    newSegmentStart < segments[i+1].p_vaddr) {
-                // insert at beginning of loadable list (after the
-                // current phdr)
-                position = i + 1;
-                break;
-            }
-            else if (segments[i].p_type == PT_LOAD &&
-                    segments[i+1].p_type == PT_LOAD &&
-                    newSegmentStart >= segments[i].p_vaddr &&
-                    newSegmentStart < segments[i+1].p_vaddr) {
-                // insert in middle of loadable list, after current
-                position = i + 1;
-                break;
-            }
-            else if (i == 0 &&
-                    segments[i].p_type == PT_LOAD &&
-                    newSegmentStart < segments[i].p_vaddr) {
-                // insert BEFORE current phdr
-                position = i;
-                break;
-            }
         }
-        assert(position!=-1U);
 
-        // Insert new Segment at position
-        if( position == segments.size() )
-            segments.push_back( newSeg );
-        else
-            segments.insert( segments.begin() + position, newSeg );
+        segments.insert( segments.begin() + insertPos, newSeg );
     }
 
     // Create newPhdr and copy segments to it
