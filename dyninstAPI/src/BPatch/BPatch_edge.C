@@ -39,8 +39,6 @@
 #include "BPatch_process.h"
 #include "BPatch_point.h"
 
-#include "parsing/Parsing.h"
-
 using namespace Dyninst;
 
 string 

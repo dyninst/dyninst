@@ -54,6 +54,8 @@
 #include "dyninstAPI/src/codeRange.h"
 #include "dynproc/infHeap.h"
 #include "dyninstAPI/h/BPatch_enums.h"
+#include "parsing/DynCFGFactory.h"
+#include "parsing/DynParseCallback.h"
 
 #include <unordered_map>
 
@@ -69,8 +71,6 @@
 
 #include "parseAPI/h/CodeObject.h"
 #include "parseAPI/h/CodeSource.h"
-#include "parsing/Parsing.h"
-
 
 using namespace std;
 using namespace Dyninst;
@@ -124,10 +124,6 @@ class module;
 class BPatch_flowGraph;
 class BPatch_loopTreeNode;
 class instPoint;
-
-// ParseAPI classes
-class DynCFGFactory;
-class DynParseCallback;
 
 class PCProcess;
 
@@ -261,7 +257,7 @@ typedef enum {unparsed, symtab, analyzing, analyzed} imageParseState_t;
 //  dynamically linked code belonging to a process
 class image : public codeRange {
    friend class image_variable;
-   friend class DynCFGFactory;
+   friend class Dyninst::DyninstAPI::DynCFGFactory;
  public:
    static image *parseImage(fileDescriptor &desc, 
                             BPatch_hybridMode mode,
@@ -471,8 +467,8 @@ class image : public codeRange {
    Dyninst::ParseAPI::CodeObject * obj_;
    Dyninst::ParseAPI::SymtabCodeSource * cs_;
    Dyninst::ParseAPI::SymtabCodeSource::hint_filt *filt;
-   DynCFGFactory * img_fact_;
-   DynParseCallback * parse_cb_;
+   Dyninst::DyninstAPI::DynCFGFactory * img_fact_;
+   Dyninst::DyninstAPI::DynParseCallback * parse_cb_;
    void *cb_arg0_; // argument for mapped_object callback
 
    map<SymtabAPI::Module *, pdmodule *> mods_;

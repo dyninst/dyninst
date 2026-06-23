@@ -38,7 +38,6 @@
 #include "image.h"
 #include "debug.h"
 #include "patching/function.h"
-#include "parsing/Parsing.h"
 
 #include "common/src/Timer.h"
 #include "common/src/dyninst_filesystem.h"
@@ -1450,8 +1449,8 @@ image::image(fileDescriptor &desc,
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
 
    // Continue ParseAPI init
-   img_fact_ = new DynCFGFactory(this);
-   parse_cb_ = new DynParseCallback(this);
+   img_fact_ = new Dyninst::DyninstAPI::DynCFGFactory(this);
+   parse_cb_ = new Dyninst::DyninstAPI::DynParseCallback(this);
    obj_ = new CodeObject(cs_,img_fact_,parse_cb_,BPatch_defensiveMode == mode);
 
      if (obj_->cs()->getArch() == Arch_ppc64) {
