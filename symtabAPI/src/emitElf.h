@@ -45,6 +45,16 @@
 #include <unordered_set>
 #include <vector>
 
+#ifndef STT_GNU_IFUNC
+#define STT_GNU_IFUNC 10
+#endif
+#ifndef STB_GNU_UNIQUE
+#define STB_GNU_UNIQUE 10
+#endif
+#ifndef PT_GNU_PROPERTY
+#define PT_GNU_PROPERTY 0x6474e553
+#endif
+
 using std::cerr;
 using std::cout;
 using std::endl;

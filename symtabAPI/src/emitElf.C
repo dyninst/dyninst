@@ -92,9 +92,7 @@ static int elfSymType(Symbol *sym)
      case Symbol::ST_NOTYPE : return STT_NOTYPE;
      case Symbol::ST_UNKNOWN: return sym->getInternalType();
      case Symbol::ST_CODE: return STT_FUNC;	// in ELF, ST_CODE maps to STT_FUNC
-#if defined(STT_GNU_IFUNC)
      case Symbol::ST_INDIRECT: return STT_GNU_IFUNC;
-#endif
      default: return STT_SECTION;
   }
 }
@@ -105,9 +103,7 @@ static int elfSymBind(Symbol::SymbolLinkage sLinkage)
   case Symbol::SL_LOCAL: return STB_LOCAL;
   case Symbol::SL_WEAK: return STB_WEAK;
   case Symbol::SL_GLOBAL: return STB_GLOBAL;
-#if defined(STB_GNU_UNIQUE)
   case Symbol::SL_UNIQUE: return STB_GNU_UNIQUE;
-#endif
   default: return STB_LOPROC;
   }
 }
