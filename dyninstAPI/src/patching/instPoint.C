@@ -471,14 +471,26 @@ void instPoint::markModified() {
    }
 }
          
-bitArray instPoint::liveRegisters(){
+LivenessAnalyzer *instPoint::livenessAnalyzer(int addressWidth){
 	static LivenessAnalyzer live1(4);
 	static LivenessAnalyzer live2(8);
-	LivenessAnalyzer *live;
-	if (func()->function()->region()->getAddressWidth() == 4) live = &live1; else live = &live2;
+	return (addressWidth == 4) ? &live1 : &live2;
+}
+
+bitArray instPoint::liveRegisters(){
+	fillLiveRegisters(livenessAnalyzer(func()->function()->region()->getAddressWidth()));
+	return liveRegs_;
+}
+
+// Compute liveRegs_ using a caller-provided analyzer. Idempotent: if liveRegs_ is
+// already populated (cached from a prior call or a parallel pre-warm), returns
+// immediately. Splitting this out of liveRegisters() lets a pre-warm pass fill
+// liveRegs_ with a thread-local analyzer; the serial code-gen path then just hits
+// the cached value.
+void instPoint::fillLiveRegisters(LivenessAnalyzer *live){
 	if (liveRegs_.size() && liveRegs_.size() == live->getABI()->getAllRegs().size()){
-		return liveRegs_;
-	}	
+		return;
+	}
 	switch(type()) {
 		case FuncEntry:
 			if (!live->query(ParseAPI::Location(EntrySite(func()->function(), func()->function()->entry())), LivenessAnalyzer::Before, liveRegs_)) assert(0);
@@ -508,8 +520,6 @@ bitArray instPoint::liveRegisters(){
 		        if (!live->query(ParseAPI::Location(func()->function(), InsnLoc(block()->block(), insnAddr() - func()->obj()->codeBase(), insn())), LivenessAnalyzer::After, liveRegs_)) assert(0);
 			break;
 		default:
-			assert(0);  
+			assert(0);
 	}
-	return liveRegs_;
-
 }
