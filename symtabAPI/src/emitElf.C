@@ -580,7 +580,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                 return false;
 
             sectionNumber++;
-            createNewPhdrRegion(newNameIndexMapping);
+            createNewPhdrRegion(newshdr, newNameIndexMapping);
 
             // Update the heap symbols, now that loadSecTotalSize is set
             updateSymbols(dynsymData, dynStrData, loadSecTotalSize);
@@ -646,7 +646,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
 
 template<class ElfTypes>
-void emitElf<ElfTypes>::createNewPhdrRegion(std::unordered_map<std::string, unsigned> &newNameIndexMapping) {
+void emitElf<ElfTypes>::createNewPhdrRegion(Elf_Shdr* &newshdr, std::unordered_map<std::string, unsigned> &newNameIndexMapping) {
     unsigned phdr_size = oldEhdr->e_phnum * oldEhdr->e_phentsize;
     phdr_size += oldEhdr->e_phentsize;
 
@@ -667,7 +667,7 @@ void emitElf<ElfTypes>::createNewPhdrRegion(std::unordered_map<std::string, unsi
     // program headers in there.  Create a dummy section
     // to contain the program headers.
     phdrs_scn = elf_newscn(newElf);
-    Elf_Shdr *newshdr = ElfTypes::elf_getshdr(phdrs_scn);
+    newshdr = ElfTypes::elf_getshdr(phdrs_scn);
     const char *newname = ".dynphdrs";
 
     newNameIndexMapping[newname] = secNames.size() - 1;
