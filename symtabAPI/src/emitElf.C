@@ -1233,7 +1233,25 @@ bool emitElf<ElfTypes>::addSectionHeaderTable(Elf_Shdr *shdr) {
     newshdr->sh_link = SHN_UNDEF;
     newshdr->sh_flags = 0;
 
-    newshdr->sh_offset = shdr->sh_offset + shdr->sh_size;
+    // Place the section-name table after the highest-offset byte of every other
+    // section, not merely after the caller-supplied shdr. Sections created through
+    // a different offset counter -- notably .dynphdrs (the program header table,
+    // placed by createNewPhdrRegion via currEndOffset) -- are not on that chain, so
+    // chaining off a single predecessor lets .shstrtab (and e_shoff, which is
+    // derived from it) overlap and clobber the program headers on disk.
+    Elf_Off maxEnd = shdr->sh_offset + shdr->sh_size;
+    {
+        Elf_Scn *s = NULL;
+        while ((s = elf_nextscn(newElf, s)) != NULL) {
+            if (s == newscn) continue;                 // the .shstrtab being placed
+            Elf_Shdr *sh = ElfTypes::elf_getshdr(s);
+            if (sh->sh_type == SHT_NOBITS) continue;    // occupies no file space
+            Elf_Off end = sh->sh_offset + sh->sh_size;
+            if (end > maxEnd) maxEnd = end;
+        }
+    }
+    if (maxEnd % 8) maxEnd += 8 - (maxEnd % 8);
+    newshdr->sh_offset = maxEnd;
     newshdr->sh_addr = 0;
     newshdr->sh_info = 0;
     newshdr->sh_addralign = 4;
