@@ -187,9 +187,6 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
     symbols.push_back(sym);
 
     if (dynSymFlag) {
-        char msg[2048];
-        char *mpos = msg;
-        msg[0] = '\0';
         string fileName;
 
         if (!symbol->getVersionFileName(fileName)) {
@@ -202,13 +199,13 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
                 }
                 else {
                     versionSymTable.push_back(0);
-                    mpos += sprintf(mpos, "  local\n");
+                    rewrite_printf("  local\n");
                 }
             }
             else {
                 if (vers->size() > 0) {
                     // new verdef entry
-                    mpos += sprintf(mpos, "verdef: symbol=%s  version=%s ", symbol->getMangledName().c_str(),
+                    rewrite_printf("verdef: symbol=%s  version=%s ", symbol->getMangledName().c_str(),
                                     (*vers)[0].c_str());
                     if (verdefEntries.find((*vers)[0]) != verdefEntries.end()) {
                         unsigned short index = verdefEntries[(*vers)[0]];
@@ -226,7 +223,7 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
                 }
                 // add all versions to the verdef entry
                 for (unsigned i = 0; i < vers->size(); i++) {
-                    mpos += sprintf(mpos, "  {%s}", (*vers)[i].c_str());
+                    rewrite_printf("  {%s}", (*vers)[i].c_str());
                     if (versionNames.find((*vers)[i]) == versionNames.end()) {
                         versionNames[(*vers)[i]] = 0;
                     }
@@ -237,12 +234,12 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
                         verdauxEntries[verdefEntries[(*vers)[0]]].push_back((*vers)[i]);
                     }
                 }
-                mpos += sprintf(mpos, "\n");
+                rewrite_printf("\n");
             }
         }
         else {
             //verneed entry
-            mpos += sprintf(mpos, "need: symbol=%s    filename=%s\n",
+            rewrite_printf("need: symbol=%s    filename=%s\n",
                             symbol->getMangledName().c_str(), fileName.c_str());
 
             vector<string> *vers;
@@ -255,13 +252,13 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
                         if (find(unversionedNeededEntries.begin(),
                                  unversionedNeededEntries.end(),
                                  fileName) == unversionedNeededEntries.end()) {
-                            mpos += sprintf(mpos, "  new unversioned: %s\n", fileName.c_str());
+                            rewrite_printf("  new unversioned: %s\n", fileName.c_str());
                             unversionedNeededEntries.push_back(fileName);
                         }
                     }
 
                     if (symbol->getLinkage() == Symbol::SL_GLOBAL) {
-                        mpos += sprintf(mpos, "  global (w/ filename)\n");
+                        rewrite_printf("  global (w/ filename)\n");
                         versionSymTable.push_back(1);
                     }
                     else {
@@ -276,17 +273,17 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
                     //If the version name already exists then add the same version number to the version symbol table
                     //Else give a new number and add it to the mapping.
                     if (versionNames.find((*vers)[0]) == versionNames.end()) {
-                        mpos += sprintf(mpos, "  new version name: %s\n", (*vers)[0].c_str());
+                        rewrite_printf("  new version name: %s\n", (*vers)[0].c_str());
                         versionNames[(*vers)[0]] = 0;
                     }
 
                     if (verneedEntries.find(fileName) != verneedEntries.end()) {
                         if (verneedEntries[fileName].find((*vers)[0]) != verneedEntries[fileName].end()) {
-                            mpos += sprintf(mpos, "  vernum: %u\n", verneedEntries[fileName][(*vers)[0]]);
+                            rewrite_printf("  vernum: %u\n", verneedEntries[fileName][(*vers)[0]]);
                             versionSymTable.push_back((unsigned short) verneedEntries[fileName][(*vers)[0]]);
                         }
                         else {
-                            mpos += sprintf(mpos, "  new entry #%d: %s [%s]\n",
+                            rewrite_printf("  new entry #%d: %s [%s]\n",
                                             curVersionNum, (*vers)[0].c_str(), fileName.c_str());
                             versionSymTable.push_back((unsigned short) curVersionNum);
                             verneedEntries[fileName][(*vers)[0]] = curVersionNum;
@@ -294,7 +291,7 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
                         }
                     }
                     else {
-                        mpos += sprintf(mpos, "  new entry #%d: %s [%s]\n",
+                        rewrite_printf("  new entry #%d: %s [%s]\n",
                                         curVersionNum, (*vers)[0].c_str(), fileName.c_str());
                         versionSymTable.push_back((unsigned short) curVersionNum);
                         verneedEntries[fileName][(*vers)[0]] = curVersionNum;
