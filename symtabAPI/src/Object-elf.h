@@ -204,6 +204,7 @@ class open_statement {
 class ObjectELF final : public Object
 {
   friend class Module;
+  template<typename ElfTypes> friend class emitElf;
 
   // declared but not implemented; no copying allowed
   ObjectELF(const ObjectELF &);
@@ -565,6 +566,7 @@ private:
   bool DbgSectionMapSorted;
   dyn_mutex dsm_lock;
   std::vector<DbgAddrConversion_t> DebugSectionMap;
+  int getFD() {return mf->getFD();}
 
  public:  
   std::set<std::string> prereq_libs;

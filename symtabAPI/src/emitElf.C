@@ -369,7 +369,14 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     }
     newFName = buf.get();
 
-    fchmod(newfd, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP);
+    struct stat statBuf;
+    decltype(statBuf.st_mode) fileMode{0};
+    if (fstat(object->getFD(), &statBuf) == 0) {
+	fileMode = statBuf.st_mode;
+    }  else  {
+	fileMode = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP;
+    }
+    fchmod(newfd, fileMode | S_IRUSR | S_IWUSR);  // user rw mode during creation
     rewrite_printf("Emitting to temporary file %s\n", buf.get());
 
     if ((newElf = elf_begin(newfd, ELF_C_WRITE, NULL)) == NULL) {
@@ -632,6 +639,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         return false;
     }
     elf_end(newElf);
+    fchmod(newfd, fileMode);  // set mode to same as original file
     close(newfd);
 
     if (rename(newFName.c_str(), fName.c_str())) {
