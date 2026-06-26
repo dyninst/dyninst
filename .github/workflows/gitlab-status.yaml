@@ -1,0 +1,7 @@
+name: "GitLab CDash status reporter"
+
+gitlab-ci-status:
+  - uses: Kitware/cdash-status
+    with:
+      project: TOOLS-SDK
+      status_name: gitlab-cdash
