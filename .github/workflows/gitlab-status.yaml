@@ -1,7 +1,44 @@
-name: "GitLab CDash status reporter"
+name: GitLab CDash status reporter
 
-gitlab-ci-status:
-  - uses: Kitware/cdash-status
-    with:
-      project: TOOLS-SDK
-      status_name: gitlab-cdash
+on:
+  pull_request:
+     types: [opened, synchronize, reopened, ready_for_review]
+     branches:
+        - master
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # Can't use the Kitware/cdash-status directly because event_name is 'pull_request'
+  # and it doesn't check for that (only 'pull_request_target' and 'push')
+  gitlab-ci-status:
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    name: Status for ${{ github.event_name }}, ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Checkout Dyninst
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.02
+        with:
+          path: "src"  # relative to ${GITHUB_WORKSPACE}
+
+      - name: Set environment variables
+        shell: bash
+        run: |
+          echo "COMMIT_SHA=${{ github.event.pull_request.head.sha }}" >> ${GITHUB_ENV}
+          echo "CDASH_BASE_URL=https://open.cdash.org" >> $GITHUB_ENV
+          echo "CDASH_PROJECT=TOOLS-SDK" >> $GITHUB_ENV
+          echo "GITHUB_REPOSITORY=${{ github.repository}}" >> $GITHUB_ENV
+          echo "GITHUB_STATUS_NAME='GitLab CI CDash'" >> $GITHUB_ENV
+          echo "GITHUB_TOKEN=${{ github.token }}" >> $GITHUB_ENV
+          
+          moo=${{ github.token }}
+          echo $moo
+
+      - name: Run CDash status script
+        shell: bash
+        run: bash ${GITHUB_WORKSPACE}/src/.github/scripts/cdash-status.sh
