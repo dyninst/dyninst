@@ -52,7 +52,6 @@ post_url="${API_BASE}/statuses/${COMMIT_SHA}"
 if jq -re "all(. != \"${GITHUB_STATUS_NAME}\")" <<<"${statuses}"; then
   echo "Need to post a status for context ${GITHUB_STATUS_NAME}"
 
-  set -vx
   curl -X POST -q -s \
        -H "Authorization: Bearer ${GITHUB_TOKEN}" \
        -H "Content-Type: application/json" \
