@@ -11,9 +11,9 @@
    */
 #include <iostream>
 #include <set>
+#include <fstream>
 #include "CodeObject.h"
 #include "InstructionDecoder.h"
-using namespace std;
 using namespace Dyninst;
 using namespace ParseAPI;
 using namespace InstructionAPI;
@@ -24,7 +24,10 @@ int main(int argc, char **argv){
         return -1;
     }
     char *binaryPath = argv[1];
-    freopen(argv[2],"w",stdout);
+    std::ofstream of(argv[2]);
+    if(!of){
+      std::cerr << "Cannot open output file !" << std::endl;
+    }
     SymtabCodeSource *sts;
     CodeObject *co;
     SymtabAPI::Symtab *symTab;
@@ -32,7 +35,7 @@ int main(int argc, char **argv){
     bool isParsable = SymtabAPI::Symtab::openFile(symTab, binaryPathStr);
     if(isParsable == false){
         const char *error = "error: file can not be parsed";
-        cout << error;
+        of << error;
         return - 1;
     }
     sts = new SymtabCodeSource(binaryPath);
@@ -44,7 +47,7 @@ int main(int argc, char **argv){
     const CodeObject::funclist &all = co->funcs();
     if(all.size() == 0){
         const char *error = "error: no functions in file";
-        cout << error;
+        of << error;
         return - 1;
     }
     auto fit = all.begin();
@@ -56,7 +59,7 @@ int main(int argc, char **argv){
             f->region()->getArch());
     Instruction instr;;
     for(;fit != all.end(); ++fit){
-        Function *f = *fit;
+        f = *fit;
         //get address of entry point for current function
         //
         auto bit = f->blocks().begin();
@@ -67,13 +70,13 @@ int main(int argc, char **argv){
     }
     fit = all.begin();
     for(;fit != all.end(); ++fit){
-        Function *f = *fit;
+        f = *fit;
         //get address of entry point for current function
-        cout << "Parsing function " << f->name() << " at addreess 0x" << std::hex << f->addr() << endl;
+        of << "Parsing function " << f->name() << " at addreess 0x" << std::hex << f->addr() << std::endl;
         auto bit = f->blocks().begin();
         for(; bit != f->blocks().end(); bit++){
             Block * b = * bit;
-            cout << "Parsing block ( " << std::hex << b->start() << "," << b->end() << ")" << endl;
+            of << "Parsing block ( " << std::hex << b->start() << "," << b->end() << ")" << std::endl;
             for (auto & edges : b->targets() ){
                 Address branch_addr = edges->src()->lastInsnAddr();
 
@@ -82,17 +85,18 @@ int main(int argc, char **argv){
                 std::string instr_str = instr.format(branch_addr);
                 if( edges->type() == COND_TAKEN || edges->type() == DIRECT || edges->type() == CALL || edges->type() == INDIRECT){
                     std::locale loc;
-                    cout << std::hex << branch_addr << " : ";
+                    of << std::hex << branch_addr << " : ";
                     for (std::string::size_type i =0 ; i < instr_str.length(); i++){
-                        cout << std::tolower(instr_str[i],loc) ;
+                        of << std::tolower(instr_str[i],loc) ;
                     }
-                    cout << " ( " << edges->trg()->start() << " ) " ;
+                    of << " ( " << edges->trg()->start() << " ) " ;
                     vector<Operand> operands = instr.getAllOperands();
-                    cout << endl;
+                    of << std::endl;
                 }
             }
         }
-        //cout << endl;
+        //of << std::endl;
     }
+    of.close();
     return 0;
 }
