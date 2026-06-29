@@ -1,3 +1,41 @@
-hello:
+variables:
+  CDASH_SERVER: "https://open.cdash.org/submit.php?project=TOOLS-SDK"
+
+uo-gary:
+  interruptible: true
+  tags: [ 'gary' ]
   script:
-    - echo "Hello, from $HOSTNAME!"
+    - module load gcc/14.0.1
+    - module load e4s/25.06/mvapich4.0-rocm6.4.0
+    - source /storage/packages/e4s/25.06/mvapich4.0-rocm6.4.0/spack/share/spack/setup-env.sh
+    - spack load --first boost+atomic elfutils libiberty+pic intel-tbb
+    - git clone --depth=1 https://gitlab.spack.io/tools-sdk/dyninst
+    - cd dyninst
+    - mkdir build
+    - cd build
+    - cdash_opts="-DBUILDNAME=dyninst -DSUBMIT_URL='$CDASH_SERVER' "
+    - export DYNINST_INSTALL_DIR=$PWD/install
+    - cmake .. -DCMAKE_INSTALL_PREFIX=$DYNINST_INSTALL_DIR -DDYNINST_WARNINGS_AS_ERRORS=ON -DDYNINST_ENABLE_TESTS=ALL -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc ${cdash_opts}
+    - CMAKE_BUILD_PARALLEL_LEVEL=16 ctest -VV -T Configure -T Build -T Test -T Submit
+    - cmake --install .
+    - git clone --depth=1 https://github.com/dyninst/external-tests
+    - cd external-tests
+    - mkdir build
+    - cd build
+    - cdash_opts="-DBUILDNAME=dyninst-external-tests -DSUBMIT_URL='$CDASH_SERVER' "
+    - cmake .. -DDYNINST_DISABLE_STATIC_TESTS=ON -DDyninst_ROOT=$DYNINST_INSTALL_DIR -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc ${cdash_opts}
+    - CMAKE_BUILD_PARALLEL_LEVEL=16 ctest -VV -T Build -T Test -T Submit
+    - git clone --depth=1 https://github.com/dyninst/examples
+    - cd examples
+    - mkdir build
+    - cd build
+    - cdash_opts="-DBUILDNAME=dyninst-examples -DSUBMIT_URL='$CDASH_SERVER' "
+    - cmake .. -DDyninst_ROOT=$DYNINST_INSTALL_DIR -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc ${cdash_opts}
+    - CMAKE_BUILD_PARALLEL_LEVEL=16 ctest -VV -T Build -T Test -T Submit
+    - git clone --depth=1 https://github.com/dyninst/testsuite
+    - cd testsuite
+    - mkdir build
+    - cd build
+    - cdash_opts="-DBUILDNAME=dyninst-testsuite -DSUBMIT_URL='$CDASH_SERVER' "
+    - cmake .. -DDyninst_ROOT=$DYNINST_INSTALL_DIR -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc ${cdash_opts}
+    - CMAKE_BUILD_PARALLEL_LEVEL=16 ctest -VV -T Build -T Submit
