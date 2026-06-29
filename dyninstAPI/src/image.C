@@ -1291,12 +1291,12 @@ void image::analyzeImage() {
        {
         SymtabCodeRegion * scr = static_cast<SymtabCodeRegion*>(*rit);
         if(parseGaps_ && scr->symRegion()->isText()) {
-            progress_printf("[dyninst] parse: speculative gap parsing region [%lx,%lx) (%lu KB) -- this is single-threaded and can be very slow on large binaries\n",
+            progress_printf("parse: speculative gap parsing region [%lx,%lx) (%lu KB) -- this is single-threaded and can be very slow on large binaries\n",
                             (unsigned long)scr->offset(),
                             (unsigned long)(scr->offset() + scr->length()),
                             (unsigned long)(scr->length() / 1024));
             obj_->parseGaps(scr);
-            progress_printf("[dyninst] parse: gap parsing done for region [%lx,%lx)\n",
+            progress_printf("parse: gap parsing done for region [%lx,%lx)\n",
                             (unsigned long)scr->offset(),
                             (unsigned long)(scr->offset() + scr->length()));
         }

@@ -33,6 +33,7 @@
 
 #include <string>
 #include "compiler_annotations.h"
+#include "common/src/debug_common.h"  // shared progress channel (progress_printf / DYNINST_DEBUG_PROGRESS)
 
 #define BPFATAL(x) bpfatal_lf(__FILE__, __LINE__, x)
 extern void logLine(const char *line);
@@ -63,7 +64,6 @@ extern int dyn_debug_proccontrol;
 extern int dyn_debug_stackwalk;
 extern int dyn_debug_inst;
 extern int dyn_debug_reloc;
-extern int dyn_debug_progress;  // coarse rewrite-progress reporting (DYNINST_REPORT_PROGRESS)
 extern int dyn_debug_springboard;
 extern int dyn_debug_sensitivity;
 extern int dyn_debug_dyn_unw;
@@ -113,7 +113,6 @@ extern const std::string CODEGEN_LIVENESS_TIMER;
 #define proccontrol_cerr  debug_sys_cerr(proccontrol)
 #define stackwalk_cerr    debug_sys_cerr(stackwalk)
 #define relocation_cerr   debug_sys_cerr(reloc)
-#define progress_cerr     debug_sys_cerr(progress)
 #define springboard_cerr  debug_sys_cerr(springboard)
 #define malware_cerr      debug_sys_cerr(malware)
 #define trap_cerr         debug_sys_cerr(trap)
@@ -135,7 +134,6 @@ DECLARE_PRINTF_FUNC(proccontrol_printf_int);
 DECLARE_PRINTF_FUNC(stackwalk_printf_int);
 DECLARE_PRINTF_FUNC(inst_printf_int);
 DECLARE_PRINTF_FUNC(reloc_printf_int);
-DECLARE_PRINTF_FUNC(progress_printf_int);
 DECLARE_PRINTF_FUNC(dyn_unw_printf_int);
 DECLARE_PRINTF_FUNC(mutex_printf_int);
 DECLARE_PRINTF_FUNC(thread_printf_int);
@@ -156,7 +154,6 @@ DECLARE_PRINTF_FUNC(stackmods_printf_int);
 #define stackwalk_printf(...)   debug_sys_printf(stackwalk, __VA_ARGS__)
 #define inst_printf(...)        debug_sys_printf(inst, __VA_ARGS__)
 #define reloc_printf(...)       debug_sys_printf(reloc, __VA_ARGS__)
-#define progress_printf(...)    debug_sys_printf(progress, __VA_ARGS__)
 #define dyn_unw_printf(...)     debug_sys_printf(dyn_unw, __VA_ARGS__)
 #define mutex_printf(...)       debug_sys_printf(mutex, __VA_ARGS__)
 #define thread_printf(...)      debug_sys_printf(thread, __VA_ARGS__)

@@ -1662,13 +1662,13 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 
   relocation_cerr << "Debugging CodeMover (pre-transform)" << endl;
   relocation_cerr << cm->format() << endl;
-  progress_printf("[dyninst] relocate: applying instrumentation transforms\n");
+  progress_printf("relocate: applying instrumentation transforms\n");
   transform(cm);
 
   relocation_cerr << "Debugging CodeMover" << endl;
   relocation_cerr << cm->format() << endl;
 
-  progress_printf("[dyninst] relocate: generating code\n");
+  progress_printf("relocate: generating code\n");
   relocation_cerr << "  Entering code generation loop" << endl;
   Address baseAddr = generateCode(cm, nearTo);
   if (!baseAddr) {
@@ -1690,7 +1690,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
     return false;
 
   // Now handle patching; AKA linking
-  progress_printf("[dyninst] relocate: patching jumps/springboards\n");
+  progress_printf("relocate: patching jumps/springboards\n");
   relocation_cerr << "  Patching in jumps to generated code" << endl;
 
   if (!patchCode(cm, spb)) {
@@ -1825,12 +1825,12 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
     return 0;
   }
 
-  // Rewrite-progress reporting (DYNINST_REPORT_PROGRESS). The loop below is an
+  // Rewrite-progress reporting (DYNINST_DEBUG_PROGRESS). The loop below is an
   // address-fixpoint: emit all relocated code, and if it does not fit the
   // allocated space, free and retry. On a large rewrite each pass re-emits
   // millions of blocks, so report each attempt.
   unsigned emitAttempt = 0;
-  progress_printf("[dyninst] relocate: emitting relocated code (address fixpoint)\n");
+  progress_printf("relocate: emitting relocated code (address fixpoint)\n");
   while (1) {
      relocation_cerr << "   Attempting to allocate " << cm->size() << "bytes" << endl;
     unsigned size = cm->size();
@@ -1841,7 +1841,7 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
         size = 1;
     }
     baseAddr = inferiorMalloc(size, anyHeap, nearTo);
-    progress_printf("[dyninst] relocate: emit attempt %u (base=0x%lx, size=%u bytes)\n",
+    progress_printf("relocate: emit attempt %u (base=0x%lx, size=%u bytes)\n",
                     ++emitAttempt, (unsigned long)baseAddr, size);
 
     relocation_cerr << "   Calling CodeMover::relocate" << endl;

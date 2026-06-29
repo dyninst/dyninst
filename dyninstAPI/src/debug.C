@@ -33,7 +33,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <assert.h>
-#include <time.h>     // progress timestamps (progress_printf_int)
 #include <string>
 #include "BPatch.h"
 #include "dyninstAPI/src/debug.h"
@@ -222,7 +221,6 @@ int dyn_debug_proccontrol = 0;
 int dyn_debug_stackwalk = 0;
 int dyn_debug_inst = 0;
 int dyn_debug_reloc = 0;
-int dyn_debug_progress = 0;
 int dyn_debug_springboard = 0;
 int dyn_debug_sensitivity = 0;
 int dyn_debug_dyn_unw = 0;
@@ -267,10 +265,6 @@ bool init_debug() {
   if (check_env_value("DYNINST_DEBUG_SPRINGBOARD")) {
     fprintf(stderr, "Enabling DyninstAPI springboard debug\n");
     dyn_debug_springboard = 1;
-  }
-  if (check_env_value("DYNINST_REPORT_PROGRESS")) {
-    fprintf(stderr, "Enabling DyninstAPI rewrite-progress reporting\n");
-    dyn_debug_progress = 1;
   }
   if (check_env_value("DYNINST_DEBUG_STARTUP")) {
     fprintf(stderr, "Enabling DyninstAPI startup debug\n");
@@ -543,31 +537,6 @@ int reloc_printf_int(const char *format, ...)
   debugPrintLock->lock();
 
   fprintf(stderr, "[%lu]", getExecThreadID());
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
-
-  debugPrintLock->unlock();
-
-  return ret;
-}
-
-int progress_printf_int(const char *format, ...)
-{
-  if (!dyn_debug_progress) return 0;
-  if (NULL == format) return -1;
-
-  debugPrintLock->lock();
-
-  // Unlike the other debug channels, prefix each progress line with a wall-clock
-  // timestamp so phase timing is visible during long rewrites.
-  time_t now = time(NULL);
-  struct tm tmv;
-  char ts[32];
-  if (localtime_r(&now, &tmv) && strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S", &tmv))
-    fprintf(stderr, "[%s] ", ts);
-
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);

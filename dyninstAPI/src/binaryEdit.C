@@ -479,13 +479,13 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          }
       }
 
-      // Rewrite-progress reporting (DYNINST_REPORT_PROGRESS). relocate() emits its
+      // Rewrite-progress reporting (DYNINST_DEBUG_PROGRESS). relocate() emits its
       // own per-phase markers, but the rest of writeFile -- assembling the in-memory
       // output image and emitting it to disk -- is otherwise silent and dominates
       // wall time on a large binary, so bracket each phase below.
-      progress_printf("[dyninst] write: relocating instrumented code (in memory)\n");
+      progress_printf("write: relocating instrumented code (in memory)\n");
       relocate();
-      progress_printf("[dyninst] write: relocation done; assembling output image\n");
+      progress_printf("write: relocation done; assembling output image\n");
 
       vector<Region*> oldSegs;
       symObj->getAllRegions(oldSegs);
@@ -519,12 +519,11 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       std::vector<codeRange *> writes;
       memoryTracker_.elements(writes);
 
-      // Rewrite-progress reporting (DYNINST_REPORT_PROGRESS). This copies every
+      // Rewrite-progress reporting (DYNINST_DEBUG_PROGRESS). This copies every
       // tracked region into the output buffer; on a large rewrite there are millions
-      // of them, so report the total up front and periodic progress within the loop.
-      progress_printf("[dyninst] write: copying %zu tracked regions into output buffer\n",
+      // of them, so bracket the loop with start/done markers.
+      progress_printf("write: copying %zu tracked regions into output buffer\n",
                       (size_t)writes.size());
-      size_t progCopied = 0;
       for (unsigned i = 0; i < writes.size(); i++) {
          assert(newSectionPtr);
          memoryTracker *tracker = dynamic_cast<memoryTracker *>(writes[i]);
@@ -537,11 +536,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          assert((offset + tracker->get_size()) < highWaterMark_);
          void *ptr = (void *)(offset + (Address)newSectionPtr);
          memcpy(ptr, tracker->get_local_ptr(), tracker->get_size());
-         if (dyn_debug_progress && (++progCopied % 100000) == 0)
-            progress_printf("[dyninst] write: copied %zu/%zu regions\n",
-                            progCopied, (size_t)writes.size());
       }
-      progress_printf("[dyninst] write: copied %zu regions into output buffer\n", progCopied);
+      progress_printf("write: copied tracked regions into output buffer\n");
             
       // Righto. Now, that includes the old binary - by design - 
       // so skip it and see what we're talking about size-wise. Which should
@@ -594,7 +590,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 	  symObj->getObject()->addModule(mod);
       }
       buildDyninstSymbols(newSyms, newSec, mod);
-      progress_printf("[dyninst] write: adding %zu instrumentation symbols to symbol table\n",
+      progress_printf("write: adding %zu instrumentation symbols to symbol table\n",
                       (size_t)newSyms.size());
       for (unsigned i = 0; i < newSyms.size(); i++) {
          symObj->addSymbol(newSyms[i]);
@@ -614,14 +610,14 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       
       
       // And now we generate the new binary
-      progress_printf("[dyninst] write: emitting output file %s (final on-disk write; can take a while for large binaries)\n",
+      progress_printf("write: emitting output file %s (final on-disk write; can take a while for large binaries)\n",
                       newFileName.c_str());
       if (!symObj->emit(newFileName.c_str())) {
          SymtabError lastError = Symtab::getLastSymtabError();
          showErrorCallback(109, Symtab::printError(lastError));
          return false;
       }
-      progress_printf("[dyninst] write: wrote output file %s\n", newFileName.c_str());
+      progress_printf("write: wrote output file %s\n", newFileName.c_str());
    return true;
 }
 
