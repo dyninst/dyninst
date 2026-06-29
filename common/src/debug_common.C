@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <time.h>     // progress timestamps (progress_printf_int)
 
 #include "common/src/debug_common.h"
 
@@ -38,6 +39,7 @@ int common_debug_dwarf = 0;
 int common_debug_addrtranslate = 0;
 int common_debug_lineinfo = 0;
 int common_debug_parsing = 0;
+int common_debug_progress = 0;
 int common_debug_initialized = 0;
 
 bool init_debug_common() {
@@ -59,6 +61,15 @@ bool init_debug_common() {
     
     if(getenv("COMMON_DEBUG_PARSING")){
         common_debug_parsing = 1;  
+    }
+
+    // Match the dyninstAPI check_env_value() truthiness (set and non-zero) so the
+    // single DYNINST_DEBUG_PROGRESS knob behaves identically across both layers.
+    {
+        const char *v = getenv("DYNINST_DEBUG_PROGRESS");
+        if (v && atoi(v) != 0) {
+            common_debug_progress = 1;
+        }
     }
 
     return true;
@@ -112,6 +123,32 @@ int common_parsing_printf_int(const char *format, ...)
    init_debug_common();
   if (!common_debug_parsing) return 0;
   if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
+
+int progress_printf_int(const char *format, ...)
+{
+   init_debug_common();
+  if (!common_debug_progress) return 0;
+  if (NULL == format) return -1;
+
+  // Unlike the other debug channels, prefix each progress line with a wall-clock
+  // timestamp so phase timing is visible during long rewrites/parses.
+  time_t now = time(NULL);
+  struct tm tmv;
+  char ts[40];
+#if defined(os_windows)
+  if (localtime_s(&tmv, &now) == 0 && strftime(ts, sizeof(ts), "[%Y-%m-%d %H:%M:%S] ", &tmv))
+#else
+  if (localtime_r(&now, &tmv) && strftime(ts, sizeof(ts), "[%Y-%m-%d %H:%M:%S] ", &tmv))
+#endif
+    fputs(ts, stderr);
 
   va_list va;
   va_start(va, format);

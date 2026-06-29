@@ -39,6 +39,7 @@ DYNINST_EXPORT extern int common_debug_dwarf;
 DYNINST_EXPORT extern int common_debug_addrtranslate;
 DYNINST_EXPORT extern int common_debug_lineinfo;
 DYNINST_EXPORT extern int common_debug_parsing;
+DYNINST_EXPORT extern int common_debug_progress;  // coarse rewrite/parse-progress reporting (DYNINST_DEBUG_PROGRESS)
 DYNINST_EXPORT extern int common_debug_initialized;
 
 #define common_debug_printf(debug_sys_var, debug_sys_printf, ...) \
@@ -62,6 +63,16 @@ DYNINST_EXPORT int lineinfo_printf_int(const char *format, ...)
         DYNINST_PRINTF_ANNOTATION(1, 2);
 DYNINST_EXPORT int common_parsing_printf_int(const char *format, ...)
         DYNINST_PRINTF_ANNOTATION(1, 2);
+
+// Coarse, opt-in progress channel (DYNINST_DEBUG_PROGRESS), shared by dyninstAPI
+// and parseAPI. Each line is prefixed with a wall-clock timestamp so phases can
+// be timed directly from the log. progress_printf_int() is self-gating: it
+// initializes the common debug state and checks common_debug_progress before
+// printing, so it is safe -- and a no-op -- to call when the env var is unset.
+DYNINST_EXPORT int progress_printf_int(const char *format, ...)
+        DYNINST_PRINTF_ANNOTATION(1, 2);
+
+#define progress_printf(...) progress_printf_int(__VA_ARGS__)
 
 // And initialization
 DYNINST_EXPORT bool init_debug_common();
