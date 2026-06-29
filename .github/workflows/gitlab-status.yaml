@@ -39,7 +39,7 @@ jobs:
           echo "CDASH_BASE_URL=https://open.cdash.org" >> $GITHUB_ENV
           echo "CDASH_PROJECT=TOOLS-SDK" >> $GITHUB_ENV
           echo "GITHUB_REPOSITORY=${{ github.repository}}" >> $GITHUB_ENV
-          echo "GITHUB_STATUS_NAME='GitLab CI CDash'" >> $GITHUB_ENV
+          echo "GITHUB_STATUS_NAME='GitLab CI CDash Status'" >> $GITHUB_ENV
           echo "GITHUB_TOKEN=${{ github.token }}" >> $GITHUB_ENV
 
       - name: Run CDash status script
