@@ -333,15 +333,12 @@ void Parser::parse_gap_heuristic(CodeRegion * cr)
     finalize();
 }
 
-bool Parser::getGapRange(CodeRegion* cr, Address curAddr, Address& gapStart, Address& gapEnd) {
-    std::set< std::pair<Address, Address> > func_range;
-    for (auto fit = sorted_funcs.begin(); fit != sorted_funcs.end(); ++fit) {
-        Function * f = *fit;
-	for (auto eit = f->extents().begin(); eit != f->extents().end(); ++eit) {
-	    FuncExtent *fe = *eit;
-	    func_range.insert(make_pair(fe->start(), fe->end()));
-	}
-    }
+bool Parser::getGapRange(CodeRegion* cr, Address curAddr, Address& gapStart, Address& gapEnd,
+                         const std::set<std::pair<Address, Address> >& func_range) {
+    // func_range -- a start-ordered set of every parsed function's extents -- is built
+    // and maintained by the caller (probabilistic_gap_parsing) rather than rebuilt from
+    // sorted_funcs on every call; that per-call O(F) rebuild was the speculative pass's
+    // O(gaps x F) hot spot. The logic below is otherwise unchanged.
     auto iter = func_range.upper_bound(make_pair(curAddr, std::numeric_limits<Address>::max() ));
     if (iter == func_range.end()) {
         gapEnd = cr->offset() + cr->length();
@@ -368,6 +365,11 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
     if (_parse_state < COMPLETE)
         parse();
     finalize();
+    // Drain pending finalized functions into funcsByRange now (single-threaded), so
+    // funcs_to_ranges starts empty and the in-loop fold below only sees gap-discovered
+    // functions.
+    if (!funcs_to_ranges.empty())
+        finalize_ranges();
 
     string model_spec;
     if (obj().cs()->getAddressWidth() == 8) 
@@ -377,10 +379,19 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
 
     // Load the pre-trained idiom model:
     hd::ProbabilityCalculator pc(cr, obj().cs(), this, model_spec);
+
+    // Start-ordered index of every parsed extent (start,end). Built once; maintained
+    // incrementally below. getGapRange queries this instead of rebuilding it from
+    // sorted_funcs on every call (the old O(gaps x F) hot spot). See getGapRange.
+    std::set<std::pair<Address, Address> > func_range;
+    for (Function *f : sorted_funcs)
+        for (FuncExtent *ext : f->extents())
+            func_range.insert(std::make_pair(ext->start(), ext->end()));
+
     Address gapStart;
     Address gapEnd;
     Address curAddr = cr->offset();
-    while (getGapRange(cr, curAddr, gapStart, gapEnd)) {
+    while (getGapRange(cr, curAddr, gapStart, gapEnd, func_range)) {
         parsing_printf("[%s] scanning for FEP in [%lx,%lx)\n",
             FILE__,gapStart,gapEnd);
         for(curAddr=gapStart; curAddr < gapEnd; ++curAddr) {
@@ -395,6 +406,14 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
             }
         }
         finalize();
+        // Fold gap-discovered functions into the index, then drain funcs_to_ranges
+        // into funcsByRange (keeping other consumers current and the fold incremental
+        // -- next iteration only sees newly-finalized functions).
+        for (Function *f : funcs_to_ranges)
+            for (FuncExtent *ext : f->extents())
+                func_range.insert(std::make_pair(ext->start(), ext->end()));
+        if (!funcs_to_ranges.empty())
+            finalize_ranges();
     }
 }
 
