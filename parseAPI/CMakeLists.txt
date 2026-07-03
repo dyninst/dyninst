@@ -94,6 +94,13 @@ dyninst_library(
   DYNINST_DEPS common instructionAPI ${SYMREADER}
   PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS OpenMP::OpenMP_CXX
+               # -pthread (via Threads::Threads) defines _REENTRANT so the
+               # bundled Sawyer/ROSE sources compiled into parseAPI use their
+               # thread-safe pool allocator and refcounting. Linked
+               # unconditionally so these classes are thread-safe even in
+               # non-OpenMP builds where the application drives them in
+               # parallel.
+               Threads::Threads
 )
 # cmake-format: on
 
