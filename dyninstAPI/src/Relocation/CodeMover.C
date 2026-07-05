@@ -118,8 +118,26 @@ void CodeMover::finalizeRelocBlocks() {
    if (finalized_) return;
 
    finalized_ = true;
+   // Two phases, deliberately NOT fused. linkRelocBlocks() builds a block's
+   // edges, but an in-edge whose source is another RelocBlock is deferred and
+   // only materialized when that *source* block is later linked (via its
+   // getSuccessors). determineSpringboards() classifies a block from its
+   // inEdges_, and the IndirBlockEntry upgrade requires the block's INDIRECT
+   // in-edge to already exist. If the two are fused into one loop, a block is
+   // classified against a half-built graph: a jump-table target whose dispatch
+   // block appears later in the list (e.g. a backward indirect jump) has no
+   // INDIRECT in-edge yet, so it is mis-classified as Suggested instead of
+   // IndirBlockEntry. In a later, lower-priority pass it can then lose the
+   // springboard slot to an adjacent block whose 5-byte jump springboard
+   // overwrites its entry, so an indirect dispatch to it lands mid-jump ->
+   // SIGSEGV. This bites -O2/LTO code with dense jump tables and tiny (<5-byte)
+   // case blocks packed together -- e.g. two case targets 3 bytes apart in one
+   // function of SPEC CPU2017 602.gcc_s. Splitting into link-all-then-classify
+   // guarantees the graph is complete before any classification reads it.
    for (RelocBlock *iter = cfg_->begin(); iter != cfg_->end(); iter = iter->next()) {
       iter->linkRelocBlocks(cfg_);
+   }
+   for (RelocBlock *iter = cfg_->begin(); iter != cfg_->end(); iter = iter->next()) {
       iter->determineSpringboards(priorityMap_);
    }
 }
