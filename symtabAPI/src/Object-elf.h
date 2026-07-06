@@ -426,6 +426,10 @@ public:
 
   public:
   Dyninst::DwarfDyninst::DwarfHandle::ptr dwarf;
+  // BUGB/#1437: retained so getEHFrameInfo() can re-walk them after load.
+  Elf_X_Shdr *eh_frame_scn_saved_{nullptr};
+  Elf_X_Shdr *gcc_except_scn_saved_{nullptr};
+  bool getEHFrameInfo(std::vector<EHFunctionInfo> &out);
   private:
 
   enum class ObjectType {

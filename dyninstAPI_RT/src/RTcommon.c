@@ -169,6 +169,34 @@ void DYNINSTBaseInit(void)
 #if defined(cap_mutatee_traps)
    DYNINSTinitializeTrapHandler();
 #endif
+#ifndef DYNINST_RT_STATIC_LIB
+   /* issue #1437: register the synthesized .eh_frame for relocated code so libgcc
+    * can unwind through instrumented frames (C++ exceptions). binaryEdit exports
+    * __dyninst_eh_frame in the rewritten binary; the loader resolves this weak
+    * reference through the GOT. __register_frame lives in libgcc; both refs are
+    * weak so uninstrumented / pure-C binaries link and run unchanged.
+    *
+    * DYNAMIC rewriting only: this whole block is compiled out of the static RT.
+    * The static rewriter relocates any new global-data reference in the relocated
+    * DYNINSTBaseInit to a bad address (it links the RT at emit, after computing
+    * such references), so neither this exported symbol nor an RT global can be
+    * delivered here without crashing. Static-binary exception support therefore
+    * needs a rewriter-aware delivery (post-link patching / runtime scan) and is
+    * not attempted here. */
+   {
+      extern char __dyninst_eh_frame[] __attribute__((weak));
+      extern void __register_frame(void *) __attribute__((weak));
+      void (*rf)(void *) = __register_frame;   /* NULL if the weak ref is unresolved */
+      if (rf && __dyninst_eh_frame) {
+         rf(__dyninst_eh_frame);
+      }
+      /* RT lib is libc-only (injected into the mutatee); it cannot call common's
+       * C++ eh_printf, so it gates on the same env var directly. */
+      if (getenv("DYNINST_DEBUG_EH"))
+         fprintf(stderr, "[dyninst-eh] RT register: __dyninst_eh_frame=%p register_frame=%s\n",
+                 (void*)__dyninst_eh_frame, rf ? "present" : "absent");
+   }
+#endif /* !DYNINST_RT_STATIC_LIB */
    DYNINST_unlock_tramp_guard();
    DYNINSThasInitialized = 1;
 }

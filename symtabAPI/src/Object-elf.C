@@ -1493,6 +1493,9 @@ void ObjectELF::load_object(bool alloc_syms) {
             find_catch_blocks(eh_frame_scnp, gcc_except,
                               txtaddr, dataddr, catch_addrs_);
         }
+        // BUGB/#1437: retain the sections so getEHFrameInfo() can re-walk them.
+        eh_frame_scn_saved_ = eh_frame_scnp;
+        gcc_except_scn_saved_ = gcc_except;
 
 #endif
         if (interp_scnp) {
@@ -3069,6 +3072,243 @@ bool ObjectELF::find_catch_blocks(Elf_X_Shdr *eh_frame,
     sort(catch_addrs.begin(),catch_addrs.end(),exception_compare());
 
     return result;
+}
+
+/**
+ * BUGB / issue #1437: like read_except_table_gcc3, but instead of only the
+ * try/catch *addresses* it captures everything needed to *regenerate* a valid
+ * LSDA for relocated code: per-FDE landing-pad base, full call-site table
+ * (region + landing pad + action), the raw action table, the resolved type-table
+ * targets, and the personality target. Emits one EHFunctionInfo per FDE that
+ * carries a non-null LSDA. All addresses are in the input binary's vaddr space.
+ */
+bool ObjectELF::getEHFrameInfo(std::vector<EHFunctionInfo> &out)
+{
+    Elf_X_Shdr *eh_frame = eh_frame_scn_saved_;
+    Elf_X_Shdr *except_scn = gcc_except_scn_saved_;
+    if (!eh_frame || !except_scn) return false;
+
+    mach_relative_info mi;
+    mi.text = 0; mi.data = 0; mi.pc = 0; mi.func = 0;
+    mi.word_size = eh_frame->wordSize();
+    mi.big_input = elfHdr->e_endian();
+    Elf_X *elfHdrDbg = dwarf->debugLinkFile();
+    auto e_ident = (!eh_frame->isFromDebugFile()) ? elfHdr->e_ident() : elfHdrDbg->e_ident();
+
+    Elf_Data *eh_frame_data = eh_frame->get_data().elf_data();
+    Elf_X_Data except_data = except_scn->get_data();
+    if (!except_data.isValid()) return false;
+    const unsigned char *datap = (const unsigned char *) except_data.get_string();
+    unsigned long except_size = except_data.d_size();
+    Address except_addr = except_scn->sh_addr();
+
+    // Resolve an encoded pointer to its absolute *target*. Unlike
+    // read_val_of_type this does NOT zero indirect entries (we want the slot
+    // address so we can re-encode a pcrel offset to it), and it sign-extends.
+    auto entrySize = [&](unsigned char enc)->int {
+        switch (enc & 0x0f) {
+            case DW_EH_PE_sdata2: case DW_EH_PE_udata2: return 2;
+            case DW_EH_PE_sdata4: case DW_EH_PE_udata4: return 4;
+            case DW_EH_PE_sdata8: case DW_EH_PE_udata8: return 8;
+            case DW_EH_PE_absptr: return (int)mi.word_size;
+            default: return 4;
+        }
+    };
+    auto resolveEnc = [&](unsigned char enc, const unsigned char *p,
+                          Address field_vaddr)->Address {
+        if (enc == DW_EH_PE_omit) return 0;
+        long v = 0;
+        switch (enc & 0x0f) {
+            case DW_EH_PE_sdata4: v = (int32_t) Dyninst::read_memory_as<uint32_t>(p); break;
+            case DW_EH_PE_udata4: v = (uint32_t) Dyninst::read_memory_as<uint32_t>(p); break;
+            case DW_EH_PE_sdata8:
+            case DW_EH_PE_udata8: v = (long) Dyninst::read_memory_as<uint64_t>(p); break;
+            case DW_EH_PE_absptr:
+                v = (mi.word_size == 8) ? (long) Dyninst::read_memory_as<uint64_t>(p)
+                                        : (long) Dyninst::read_memory_as<uint32_t>(p);
+                break;
+            default: return 0;
+        }
+        Address base = 0;
+        switch (enc & 0x70) {
+            case DW_EH_PE_pcrel:   base = field_vaddr; break;
+            case DW_EH_PE_textrel: base = mi.text; break;
+            case DW_EH_PE_datarel: base = mi.data; break;
+            case DW_EH_PE_funcrel: base = mi.func; break;
+            default: base = 0;
+        }
+        return base + (Address) v;
+    };
+
+    Dwarf_Off offset = 0, next_offset, saved_cur_offset;
+    int res = 0;
+    do {
+        Dwarf_CFI_Entry entry;
+        res = dwarf_next_cfi(e_ident, eh_frame_data, true, offset, &next_offset, &entry);
+        saved_cur_offset = offset;
+        offset = next_offset;
+        if (res == 1 && next_offset == (Dwarf_Off)-1) break;
+        if (res == -1) {
+            if (offset != saved_cur_offset) continue;
+            return false;
+        }
+        if (dwarf_cfi_cie_p(&entry)) continue;   // only FDEs
+
+        Dwarf_Off fde_offset = saved_cur_offset;
+        unsigned char *fde_bytes = (unsigned char *) eh_frame->get_data().d_buf() + fde_offset;
+        unsigned char *cie_bytes = (unsigned char *) eh_frame->get_data().d_buf() + entry.fde.CIE_pointer;
+        Dwarf_CFI_Entry thisCIE; Dwarf_Off unused;
+        dwarf_next_cfi(e_ident, eh_frame_data, true, entry.fde.CIE_pointer, &unused, &thisCIE);
+        if (!dwarf_cfi_cie_p(&thisCIE)) continue;
+        const char *augmentor = thisCIE.cie.augmentation;
+        unsigned long augmentor_len = augmentor ? strlen(augmentor) : 0;
+        bool has_L = false;
+        for (unsigned j = 0; j < augmentor_len; j++) if (augmentor[j] == 'L') { has_L = true; break; }
+        if (!has_L) continue;
+
+        Address fde_addr = eh_frame->sh_addr() + fde_offset;
+        Address cie_addr = eh_frame->sh_addr() + entry.fde.CIE_pointer;
+
+        unsigned char lsda_encoding = DW_EH_PE_omit;
+        unsigned char personality_encoding = DW_EH_PE_omit;
+        unsigned char range_encoding = DW_EH_PE_absptr;
+        Address personality_target = 0;
+        unsigned char *cur_augdata = const_cast<unsigned char *>(thisCIE.cie.augmentation_data);
+        for (unsigned j = 0; j < augmentor_len; j++) {
+            if (augmentor[j] == 'L') { lsda_encoding = *cur_augdata++; }
+            else if (augmentor[j] == 'P') {
+                personality_encoding = *cur_augdata++;
+                Address pfield = cie_addr + (unsigned long)(cur_augdata - cie_bytes);
+                personality_target = resolveEnc(personality_encoding, cur_augdata, pfield);
+                cur_augdata += entrySize(personality_encoding);
+            }
+            else if (augmentor[j] == 'R') { range_encoding = *cur_augdata++; }
+            else if (augmentor[j] == 'z') { /* nothing */ }
+            else break;
+        }
+        if (lsda_encoding == DW_EH_PE_omit) continue;
+
+        // FDE header -> low_pc + LSDA pointer
+        const unsigned char *pc_begin_start = fde_bytes + 4 +
+            (Dyninst::read_memory_as<uint32_t>(fde_bytes) == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN);
+        unsigned long pc_begin_val;
+        mi.pc = fde_addr + (unsigned long)(pc_begin_start - fde_bytes);
+        int pc_begin_size = read_val_of_type(range_encoding, &pc_begin_val, pc_begin_start, mi);
+        const unsigned char *pc_range_start = pc_begin_start + pc_begin_size;
+        unsigned long pc_range_val;
+        mi.pc = fde_addr + (unsigned long)(pc_range_start - fde_bytes);
+        int pc_range_size = read_val_of_type(range_encoding, &pc_range_val, pc_range_start, mi);
+        const unsigned char *aug_length_start = pc_range_start + pc_range_size;
+        unsigned long aug_length_value;
+        mi.pc = fde_addr + (unsigned long)(aug_length_start - fde_bytes);
+        int aug_length_size = read_val_of_type(DW_EH_PE_uleb128, &aug_length_value, aug_length_start, mi);
+
+        unsigned char *fde_aug = (unsigned char *) aug_length_start + aug_length_size;
+        unsigned char *lsda_ptr = NULL;
+        cur_augdata = fde_aug;
+        for (unsigned j = 0; j < augmentor_len; j++) {
+            if (augmentor[j] == 'L') {
+                unsigned long lsda_val;
+                mi.pc = fde_addr + (unsigned long)(cur_augdata - fde_bytes);
+                int ps = read_val_of_type(lsda_encoding, &lsda_val, cur_augdata, mi);
+                if (ps == -1) break;
+                lsda_ptr = (unsigned char *) lsda_val;
+                cur_augdata += ps;
+            }
+        }
+        if (!lsda_ptr) continue;
+        unsigned long eoff = (unsigned long)((Address) lsda_ptr - except_addr);
+        if (eoff >= except_size) continue;
+
+        // --- LSDA header ---
+        EHFunctionInfo info;
+        info.func_low_pc = pc_begin_val;
+        info.personality_format = personality_encoding;
+        info.personality_target = personality_target;
+
+        unsigned char lpstart_format = datap[eoff++];
+        Address landingpad_base;
+        if (lpstart_format != DW_EH_PE_omit) {
+            unsigned long v; eoff += read_val_of_type(DW_EH_PE_uleb128, &v, datap + eoff, mi);
+            landingpad_base = v;
+        } else {
+            landingpad_base = pc_begin_val;
+        }
+        info.lpstart = landingpad_base;
+
+        unsigned char ttype_format = datap[eoff++];
+        info.ttype_format = ttype_format;
+        unsigned long ttype_base_val = 0, ttype_base_off = 0;
+        if (ttype_format != DW_EH_PE_omit) {
+            eoff += read_val_of_type(DW_EH_PE_uleb128, &ttype_base_val, datap + eoff, mi);
+            ttype_base_off = eoff;
+        }
+        unsigned long ttype_base_section_off = ttype_base_off + ttype_base_val;
+
+        unsigned char cs_format = datap[eoff++];
+        unsigned long cs_table_len = 0;
+        eoff += read_val_of_type(DW_EH_PE_uleb128, &cs_table_len, datap + eoff, mi);
+        unsigned long cs_table_end = eoff + cs_table_len;
+        while (eoff < cs_table_end && eoff < except_size) {
+            unsigned long rs, rl, lp, act;
+            mi.pc = except_addr + eoff; eoff += read_val_of_type(cs_format, &rs, datap + eoff, mi);
+            mi.pc = except_addr + eoff; eoff += read_val_of_type(cs_format, &rl, datap + eoff, mi);
+            mi.pc = except_addr + eoff; eoff += read_val_of_type(cs_format, &lp, datap + eoff, mi);
+            eoff += read_val_of_type(DW_EH_PE_uleb128, &act, datap + eoff, mi);
+            EHCallSite cs;
+            cs.region_start = landingpad_base + rs;
+            cs.region_size = rl;
+            cs.landing_pad = lp ? (landingpad_base + lp) : 0;
+            cs.action = act;
+            info.callsites.push_back(cs);
+        }
+        unsigned long action_table_off = cs_table_end;
+
+        // Walk action chains from every call-site to find the highest type
+        // filter -> that is the number of entries in the type table.
+        long max_filter = 0;
+        for (size_t c = 0; c < info.callsites.size(); c++) {
+            uint64_t a = info.callsites[c].action;
+            int guard = 0;
+            while (a != 0 && guard++ < 256) {
+                unsigned long p = action_table_off + (a - 1);
+                if (p >= except_size) break;
+                unsigned fs = 0, ns = 0;
+                long filter = read_sleb128(datap + p, &fs);
+                unsigned long np = p + fs;
+                long nextrel = read_sleb128(datap + np, &ns);
+                long af = filter < 0 ? -filter : filter;
+                if (af > max_filter) max_filter = af;
+                if (nextrel == 0) break;
+                long nextpos = (long) np + nextrel;
+                if (nextpos < (long) action_table_off) break;
+                a = (uint64_t)(nextpos - action_table_off) + 1;
+            }
+        }
+
+        if (ttype_format != DW_EH_PE_omit && max_filter > 0) {
+            int esize = entrySize(ttype_format);
+            unsigned long num_types = (unsigned long) max_filter;
+            unsigned long type_table_start = ttype_base_section_off - num_types * esize;
+            for (unsigned long o = action_table_off; o < type_table_start && o < except_size; o++)
+                info.action_table.push_back(datap[o]);
+            for (unsigned long k = 1; k <= num_types; k++) {
+                unsigned long entry_off = ttype_base_section_off - k * esize;
+                Address tgt = resolveEnc(ttype_format, datap + entry_off, except_addr + entry_off);
+                info.type_targets.push_back(tgt);   // index 0 == filter value 1
+            }
+        } else {
+            // Cleanup-only (or omitted type table): copy whatever action bytes
+            // sit between the call-site table and the type-table base.
+            unsigned long end = (ttype_format != DW_EH_PE_omit) ? ttype_base_section_off : action_table_off;
+            for (unsigned long o = action_table_off; o < end && o < except_size; o++)
+                info.action_table.push_back(datap[o]);
+        }
+
+        out.push_back(info);
+    } while (true);
+
+    return true;
 }
 
 #endif
