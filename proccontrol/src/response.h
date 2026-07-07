@@ -325,7 +325,7 @@ class ResponseSet {
   std::map<unsigned, unsigned> ids;
   unsigned myid;
   static unsigned next_id;
-  static Mutex<false> id_lock;
+  static Mutex<false> *id_lock;  // heap-allocated/leaked; see response.C
   static std::map<unsigned, ResponseSet *> all_respsets;
  public:
   ResponseSet();

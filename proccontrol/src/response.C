@@ -43,24 +43,31 @@ using namespace std;
 
 unsigned int response::next_id = 1;
 
-static Mutex<> id_lock;
+// Intentionally heap-allocated and leaked: static destructor order across
+// translation units is unspecified, so a plain static here could be destroyed
+// before int_cleanup (generator.C) stops the handler thread.  The handler
+// thread may still be creating responses during process teardown and would
+// then lock a destroyed mutex (glibc marks it __kind = -1, so lock() throws
+// lock_error -> terminate).  Never destroying it avoids the race.  Mirrors
+// Counter::locks in process.C.
+static Mutex<> *id_lock = new Mutex<>();
 
 unsigned newResponseID()
 {
   unsigned id;
-  id_lock.lock();
+  id_lock->lock();
   id = response::next_id++;
-  id_lock.unlock();
+  id_lock->unlock();
   return id;
 }
 
 unsigned newResponseID(unsigned size)
 {
   unsigned id;
-  id_lock.lock();
+  id_lock->lock();
   id = response::next_id;
   response::next_id += size;
-  id_lock.unlock();
+  id_lock->unlock();
   return id;
 }
 
@@ -192,10 +199,10 @@ unsigned int response::markAsMultiResponse(int num_resps)
 {
    assert(num_resps);
    assert(state == unset);
-   id_lock.lock();
+   id_lock->lock();
    id = next_id;
    next_id += num_resps;
-   id_lock.unlock();
+   id_lock->unlock();
 
    multi_resp_size = num_resps;
 
@@ -725,17 +732,19 @@ void data_response::postResponse(void *d)
 }
 
 unsigned int ResponseSet::next_id = 1;
-Mutex<> ResponseSet::id_lock;
+// Heap-allocated and intentionally leaked; see the note on the file-static
+// id_lock above (avoids a static-destruction race with the handler thread).
+Mutex<> *ResponseSet::id_lock = new Mutex<>();
 std::map<unsigned int, ResponseSet *> ResponseSet::all_respsets;
 
 ResponseSet::ResponseSet()
 {
-  id_lock.lock();
+  id_lock->lock();
   myid = next_id++;
   if (!myid)
     myid = next_id++;
   all_respsets.insert(make_pair(myid, this));
-  id_lock.unlock();
+  id_lock->unlock();
 }
 
 void ResponseSet::addID(unsigned id, unsigned index)
@@ -761,13 +770,13 @@ unsigned int ResponseSet::getID() const {
 ResponseSet *ResponseSet::getResponseSetByID(unsigned int id) {
   map<unsigned int, ResponseSet *>::iterator i;
   ResponseSet *respset = NULL;
-  id_lock.lock();
+  id_lock->lock();
   i = all_respsets.find(id);
   if (i != all_respsets.end()) {
     respset = i->second;
     all_respsets.erase(i);
   }
-  id_lock.unlock();
+  id_lock->unlock();
   return respset;
 }
 
