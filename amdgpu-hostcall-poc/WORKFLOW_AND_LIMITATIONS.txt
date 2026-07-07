@@ -1,0 +1,163 @@
+================================================================================
+ GPU CODE-OBJECT INSTRUMENTATION — END-TO-END WORKFLOW & DEVICE-LIB LIMITATIONS
+================================================================================
+
+The unit of instrumentation is a GPU CODE OBJECT (the amdgcn ELF inside a HIP
+fatbin), not the host executable. The host binary is only the vehicle that loads
+it.
+
+================================================================================
+ END-TO-END WORKFLOW
+================================================================================
+
+--------------------------------------------------------------------------------
+ One-time setup
+--------------------------------------------------------------------------------
+  cd dyninst/build && make dyninstAPI && make install   # patched Dyninst -> ~/bin/dynamd
+  make -C hostcall_lib                                  # device lib -> hostcall_lib.aliased.elf
+
+The library build runs: hipcc --genco -> unbundle -> add_object_aliases.py,
+which injects the .dyninst.<fn> STT_OBJECT call aliases and the
+.dyninst.<fn>.<key> register-usage symbols (num_vgpr, numbered_sgpr,
+private_seg_size, ...).
+
+--------------------------------------------------------------------------------
+ Per application
+--------------------------------------------------------------------------------
+1. EXTRACT the target code object.
+   From the app's fatbin, unbundle the arch-matching code object
+   (clang-offload-bundler), e.g. "...--gfx908". In this repo
+   vectoradd_mutatee/Makefile does it with --genco -> vectoradd.co.
+
+2. INSTRUMENT (./instrument.sh, which drives examples/test_amdgpu_instrument).
+   The mutator:
+     - findFunction for the target kernel and for the hc_* call targets in the
+       library;
+     - inserts calls: hc_open at kernel entry, hc_close at exit, hc_write before
+       every Nth instruction;
+     - each insertion emits a TRAMPOLINE:
+         s_waitcnt 0
+         -> save caller regs (VGPRs via v_writelane+global_store, VCC, SGPRs)
+         -> s_swappc s[30:31] into the callee
+         -> restore
+         -> bump the kernel-descriptor register/scratch grant;
+     - writes cross-object R_AMDGPU_ABS64 relocations against .dyninst.hc_*;
+     - output: vectoradd.inst.co.
+
+3. LOAD + RUN (launcher/hostcall_launcher.cpp, a custom HSA driver):
+     - creates one hsa_executable_t, loads the LIBRARY then the INSTRUMENTED
+       object, hsa_executable_agent_global_variable_define's the `mailbox`, and
+       FREEZES (this resolves the .dyninst.hc_* cross-object relocations -- the
+       reason we bypass hipModuleLoad, which cannot link two same-arch objects);
+     - allocates the DEVICE-LOCAL instrumentation scratch buffer and writes its
+       pointer into kernarg+(ksize-8) (the prologue loads it into s[94:95]);
+     - starts the CPU SERVICE THREAD that polls the mailbox and performs
+       fopen/fwrite/... ;
+     - dispatches the kernel with ROCR_VISIBLE_DEVICES=1.
+   GPU->CPU hostcalls flow through the mailbox; results (e.g. dyninst_trace.txt)
+   appear on the host.
+
+NOTE: this run path is PoC-specialized -- the launcher is a hand-written HSA
+driver, not a general LD_PRELOAD into an arbitrary app. Generalizing step 3 to
+real apps (intercept module load, inject the mailbox + scratch, run the service
+thread) is future work.
+
+Concrete commands (from the project root):
+  cd dyninst/build && make dyninstAPI && make install
+  make -C hostcall_lib
+  ./instrument.sh
+  cd launcher
+  /bin/cp ../vectoradd_mutatee/vectoradd.inst.co .        # /bin/cp: `cp` is aliased to -i
+  /bin/cp ../hostcall_lib/hostcall_lib.aliased.elf .
+  g++ -O2 -std=c++17 -o hostcall_launcher hostcall_launcher.cpp \
+      -I../hostcall_lib -I/opt/rocm-7.0.2/include \
+      -L/opt/rocm-7.0.2/lib -lhsa-runtime64 -pthread
+  ROCR_VISIBLE_DEVICES=1 ./hostcall_launcher vectoradd.inst.co hostcall_lib.aliased.elf
+  cat dyninst_trace.txt
+Expected: "[host] vectoradd PASSED (64 elems)" and 8 "[gpu] function entered"
+trace lines. (Verified 11/11 deterministic runs.)
+
+================================================================================
+ DEVICE-SIDE LIBRARY LIMITATIONS
+================================================================================
+Hard constraints on what a hostcall/instrumentation library function may look
+like:
+
+1. NULLARY -- NO PARAMETER PASSING
+   Dyninst's AMDGPU emitCall cannot pass arguments (assert(operands.empty())).
+   Insertion targets must take NO parameters. That is why the real workers
+   (gpu_fopen/gpu_fwrite, which take args) are wrapped by NULLARY hc_open/
+   hc_write/hc_close. Anything the call needs must travel out-of-band -- via the
+   shared `mailbox` global, or baked into the function.
+
+2. NO RETURN VALUE CONSUMED
+   No return-value convention is pinned (emitGetRetVal unimplemented). The kernel
+   cannot read a value back from the inserted call; results come back only
+   through the mailbox.
+
+3. LEAF FUNCTIONS ONLY / NO SCRATCH
+   Targets must be LEAF (private_seg_size=0) -- force-inline all helpers so no
+   s_swappc is emitted. A non-leaf callee needs a private stack frame (scratch)
+   to preserve caller-saved state across its inner call -- at minimum its own
+   return address s[30:31]. The trampoline does NOT emit the call-ABI scratch
+   prologue (scratch descriptor in s[0:3], stack pointer s32, FLAT_SCRATCH), so a
+   scratch-using callee would fault.
+   AMDGPU function ABI, for reference:
+     caller-saved (volatile): s0-s31, v0-v39, VCC, s[30:31]=return addr
+     callee-saved (preserved): ~s34-s105, v40-v255
+
+4. IDENTICAL ABI / FEATURE SET
+   Cross-object freeze requires the library and target to match EXACTLY:
+   code-object ABI version + feature string + scratch mode + xnack. Here that is
+     --offload-arch=gfx908:sramecc+:xnack- -mcode-object-version=6
+     => ABI v4, e_flags 0xE30
+   Any drift (e.g. generic gfx908, or COV mismatch) breaks linking.
+
+5. MUST CARRY REGISTER-USAGE + CALL-ALIAS SYMBOLS
+   - Call aliases: the loader resolves .symtab STT_OBJECT, not STT_FUNC, so each
+     callable needs a .dyninst.<fn> OBJECT alias.
+   - Register footprint: device functions strip .num_vgpr / .numbered_sgpr /
+     .private_seg_size; these must be re-injected so the trampoline can size the
+     KD grant and the save set.
+   Both are done by add_object_aliases.py.
+
+6. SELF-CONTAINED LANE ELECTION (NO WORKITEM-ID)
+   An inserted call does NOT set up the workitem-id VGPR (v31). The library must
+   elect a lane itself using EXEC-MASK mbcnt (hc_first_active_lane), NOT
+   threadIdx.x. Typically one lane per wave does the hostcall.
+
+7. FULL-EXEC ASSUMPTION FOR THE CURRENT SPILL
+   The trampoline's SGPR pack assumes EXEC is full at the insertion point (true
+   for these workloads). A callee inserted where EXEC is narrowed would need EXEC
+   forced to -1 around the packed store/load (not yet done).
+
+8. MAILBOX ABI + COHERENCE ARE THE LIBRARY'S JOB
+   The device and host must share the exact POD `mailbox` struct. The device side
+   must handle GPU<->CPU coherence for it -- wave-uniform stores go through the
+   scalar cache and need s_dcache_wb; results need s_dcache_inv +
+   __threadfence_system (as hc_call_and_wait does).
+
+9. STANDARD RETURN ABI
+   The function must return via s_setpc_b64 s[30:31] (which compiled device
+   functions do); the trampoline relies on s[30:31] being the return-address
+   pair.
+
+--------------------------------------------------------------------------------
+ SUMMARY
+--------------------------------------------------------------------------------
+The safe shape for a device-side hook is a NULLARY, LEAF, RETURN-NOTHING device
+function, compiled with the EXACT SAME arch/ABI as the target, that talks to the
+host only through the shared mailbox and elects its own lane. Relaxing #1 (args)
+or #3 (non-leaf/scratch) both require additional ABI codegen in the patched
+Dyninst that isn't there yet.
+
+================================================================================
+ RESOLVED / STATUS (2026-07)
+================================================================================
+Pipeline works end-to-end: instrument -> HSA load+freeze -> CPU service thread ->
+fopen -> all trace lines written -> vectoradd computes correct results (PASSED,
+11/11 deterministic runs, no fault). The register-preservation blocker was a
+missing s_waitcnt: dyninst spliced the trampoline between an async s_load filling
+the A/B/C base pointers and the compiler's s_waitcnt guarding their use, so the
+save captured stale (not-yet-loaded) registers. Draining in-flight memory
+(s_waitcnt 0) before the save fixed it. See HOSTCALL_HANDOFF.md for full detail.

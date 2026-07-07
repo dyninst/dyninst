@@ -122,6 +122,30 @@ void emitSop2(unsigned opcode, Register dest, Register src0, Register src1, code
   gen.update(rawInstBuffer);
 }
 
+void emitSop2Raw(unsigned opcode, uint32_t sdst, uint32_t ssrc0, uint32_t ssrc1, codeGen &gen) {
+  uint32_t newRawInst = 0xFFFFFFFF;
+  setEncodingSop2(newRawInst);
+  setOpcodeSop2(opcode, newRawInst);
+  setDstSop2(sdst, newRawInst);
+  setSrc1Sop2(ssrc1, newRawInst);
+  setSrc0Sop2(ssrc0, newRawInst);
+  auto p = gen.cur_ptr();
+  append_memory_as(p, newRawInst);
+  gen.update(p);
+}
+
+void emitSop1Raw(unsigned opcode, uint32_t sdst, uint32_t ssrc0, codeGen &gen) {
+  uint32_t newRawInst = 0xFFFFFFFF;
+  setEncodingSop1(newRawInst);
+  setFixedBitsSop1(newRawInst);
+  setOpcodeSop1(opcode, newRawInst);
+  setDstSop1(sdst, newRawInst);
+  setSrc0Sop1(ssrc0, newRawInst);
+  auto p = gen.cur_ptr();
+  append_memory_as(p, newRawInst);
+  gen.update(p);
+}
+
 void emitSop2WithSrc1Literal(unsigned opcode, Register dest, Register src0, uint32_t src1Literal,
                              codeGen &gen) {
   emitSop2(opcode, dest, src0, /* src1 = */ 255, gen);
@@ -252,6 +276,7 @@ void emitSopP(unsigned opcode, int16_t simm16, codeGen &gen) {
 unsigned getSmemImmBit(unsigned opcode) {
   switch (opcode) {
   case S_DCACHE_WB:
+  case S_DCACHE_INV:
     return 0;
   default:
     return 1;
@@ -340,5 +365,58 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset, 
   gen.update(rawInstBuffer);
 }
 // === SMEM END ===
+
+// === VOP2 BEGIN ===
+void emitVop2(unsigned opcode, uint32_t vdst, uint32_t vsrc1, uint32_t src0, codeGen &gen) {
+  uint32_t raw = 0;
+  raw |= (src0  & 0x1ff);          // SRC0[8:0]
+  raw |= (vsrc1 & 0xff)  << 9;     // VSRC1[16:9]
+  raw |= (vdst  & 0xff)  << 17;    // VDST[24:17]
+  raw |= (opcode & 0x3f) << 25;    // OP[30:25]
+  // ENCODING[31] = 0
+  auto p = gen.cur_ptr();
+  append_memory_as(p, raw);
+  gen.update(p);
+}
+// === VOP2 END ===
+
+// === VOP3A BEGIN ===
+void emitVop3a(unsigned opcode, uint32_t vdst, uint32_t src0, uint32_t src1, uint32_t src2,
+               codeGen &gen) {
+  uint64_t raw = 0;
+  raw |= (uint64_t)(vdst   & 0xff);            // VDST[7:0]
+  raw |= (uint64_t)(opcode & 0x3ff) << 16;     // OP[25:16]
+  raw |= (uint64_t)(0x34)           << 26;     // ENCODING[31:26] = 110100
+  raw |= (uint64_t)(src0   & 0x1ff) << 32;     // SRC0[40:32]
+  raw |= (uint64_t)(src1   & 0x1ff) << 41;     // SRC1[49:41]
+  raw |= (uint64_t)(src2   & 0x1ff) << 50;     // SRC2[58:50]
+  // ABS[10:8], OPSEL[14:11], CLMP[15], OMOD[60:59], NEG[63:61] all 0
+  auto p = gen.cur_ptr();
+  append_memory_as(p, raw);
+  gen.update(p);
+}
+// === VOP3A END ===
+
+// === FLAT/GLOBAL BEGIN ===
+void emitFlatGlobal(unsigned opcode, uint32_t vdst, uint32_t addr, uint32_t data,
+                    uint32_t saddr, int32_t offset, codeGen &gen, bool glc, uint32_t seg) {
+  uint64_t raw = 0;
+  raw |= (uint64_t)((uint32_t)offset & 0x1fff);   // OFFSET[12:0] (signed, 13-bit)
+  // LDS[13] = 0
+  raw |= (uint64_t)(seg & 3)        << 14;         // SEG[15:14]: 2=global, 1=scratch (private)
+  raw |= (uint64_t)(glc ? 1 : 0)   << 16;         // GLC[16]: L2-coherent (bypass L1)
+  // SLC[17] = 0
+  raw |= (uint64_t)(opcode & 0x7f)  << 18;         // OP[24:18]
+  raw |= (uint64_t)(0x37)           << 26;         // ENCODING[31:26] = 110111
+  raw |= (uint64_t)(addr  & 0xff)   << 32;         // ADDR[39:32]  (offset VGPR)
+  raw |= (uint64_t)(data  & 0xff)   << 40;         // DATA[47:40]  (data VGPR, store)
+  raw |= (uint64_t)(saddr & 0x7f)   << 48;         // SADDR[54:48] (SGPR-pair base)
+  // NV[55] = 0
+  raw |= (uint64_t)(vdst  & 0xff)   << 56;         // VDST[63:56]  (dest VGPR, load)
+  auto p = gen.cur_ptr();
+  append_memory_as(p, raw);
+  gen.update(p);
+}
+// === FLAT/GLOBAL END ===
 
 } // namespace AmdgpuGfx908

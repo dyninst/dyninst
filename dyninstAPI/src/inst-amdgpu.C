@@ -38,7 +38,7 @@
 #include "Architecture.h"
 #include "addressSpace.h"
 #include "binaryEdit.h"
-#include "function.h"
+#include "patching/function.h"
 #include "Symbol.h"
 
 #include <cstdlib>

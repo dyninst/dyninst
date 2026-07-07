@@ -36,9 +36,24 @@
 #include "dyninstAPI/src/emit-amdgpu.h"
 #include "registerSpace/registerSpace.h"
 #include "arch-amdgpu.h"
-#include "function.h"
+#include "patching/function.h"
 
+// For bumpCallerKdForCallee: reading/writing a kernel descriptor and reading a
+// callee's exported register-usage symbols.
+#include "mapped_object.h"
+#include "addressSpace.h"
+#include "Symtab.h"
+#include "Symbol.h"
+#include "AmdgpuKernelDescriptor.h"
+#include "external/amdgpu/AMDGPUEFlags.h"
+#include "amdgpu-scratch-abi.h"
+#include "amdgpu-abi-sgpr.h"
+
+#include <cstdio>
 #include <cstdlib>
+#include <string>
+#include <vector>
+#include <map>
 
 using namespace Dyninst;
 using namespace AmdgpuGfx908;
@@ -468,6 +483,292 @@ bool EmitterAmdgpuGfx908::emitMoveRegToReg(registerSlot * /* src */, registerSlo
   return false;
 }
 
+// Live granted-VGPR reader (reads the possibly-mutated .kd); defined below.
+static uint32_t readCallerGrantedVgpr(func_instance *caller, codeGen &gen);
+// Whole-object max of ".dyninst.*.<key>" (transitive footprint); defined below.
+static uint32_t readCalleeMaxAbsSym(func_instance *callee, const char *key);
+
+// bumpCallerKdForCallee MUTATES the caller's .kd VGPR grant. Multiple inserted
+// calls into the same kernel (hc_open/hc_write/hc_close) would each read the
+// already-raised grant and raise it again — the grant ratchets up to gran 31
+// (128 VGPRs) and the spill scratch register (vAddr) drifts call-to-call.
+// To keep the bump idempotent and vAddr stable, cache each caller's ORIGINAL
+// granted VGPR count the first time we see it, and derive both the bump target
+// and vAddr from that fixed value rather than the live (growing) grant.
+static std::map<func_instance *, uint32_t> g_origGrantedVgpr;
+static uint32_t readCallerOriginalGrantedVgpr(func_instance *caller, codeGen &gen) {
+  auto it = g_origGrantedVgpr.find(caller);
+  if (it != g_origGrantedVgpr.end())
+    return it->second;
+  uint32_t v = readCallerGrantedVgpr(caller, gen);
+  g_origGrantedVgpr[caller] = v;
+  return v;
+}
+
+// When we splice an inter-module call into a kernel, the callee (a separately
+// compiled device function) may use more registers/scratch than the caller
+// kernel's descriptor granted for its own code. The wave's register allocation
+// is fixed by the caller's kernel descriptor, so the callee must fit inside it.
+//
+// SGPR is already handled: AmdgpuGfx908PointHandler::maximizeSgprAllocationIfKernel
+// maxes the SGPR grant for every instrumented kernel. Here we bump the VGPR grant
+// PRECISELY (to preserve occupancy) using the callee's exported register-usage
+// symbols, and reserve scratch only if the callee actually uses it.
+//
+// The callee's footprint is read from SHN_ABS symbols ".dyninst.<callee>.num_vgpr"
+// / ".dyninst.<callee>.private_seg_size" whose VALUE is the compiler's
+// post-register-allocation count (injected by add_object_aliases.py --asm).
+static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
+                                  codeGen &gen) {
+  if (!caller || !callee)
+    return;
+
+  AddressSpace *aSpace = gen.addrSpace();
+  mapped_object *callerObj = caller->obj();
+  mapped_object *calleeObj = callee->obj();
+  if (!aSpace || !callerObj || !calleeObj)
+    return;
+
+  // Only kernels have a descriptor "<mangled>.kd". If it's absent, the caller is
+  // an ordinary device function and there is no descriptor to size.
+  int_symbol kdSym;
+  if (!callerObj->getSymbolInfo(caller->symTabName() + ".kd", kdSym))
+    return;
+
+  SymtabAPI::Symtab *calleeSymtab = calleeObj->parse_img()->getObject();
+  if (!calleeSymtab)
+    return;
+
+  const std::string prefix = ".dyninst." + callee->symTabName() + ".";
+  auto readAbs = [&](const std::string &key, uint32_t &out) -> bool {
+    std::vector<SymtabAPI::Symbol *> syms;
+    if (!calleeSymtab->findSymbol(syms, prefix + key) || syms.empty())
+      return false;
+    out = static_cast<uint32_t>(syms[0]->getOffset());
+    return true;
+  };
+
+  uint32_t calleeVgpr = 0;
+  if (!readAbs("num_vgpr", calleeVgpr)) {
+    fprintf(stderr,
+            "[amdgpu] warning: no '.dyninst.%s.num_vgpr' symbol for callee; cannot "
+            "size caller '%s' kernel-descriptor VGPR grant — leaving as-is\n",
+            callee->symTabName().c_str(), caller->symTabName().c_str());
+    return;
+  }
+  // Grant must cover the callee's TRANSITIVE footprint (wrapper + everything it
+  // calls), so use the whole-object max — same set the VGPR save/restore in
+  // emitCall preserves.
+  { uint32_t m = readCalleeMaxAbsSym(callee, "num_vgpr"); if (m > calleeVgpr) calleeVgpr = m; }
+  uint32_t calleeScratch = 0;
+  readAbs("private_seg_size", calleeScratch);  // optional; absent => 0
+  { uint32_t m = readCalleeMaxAbsSym(callee, "private_seg_size"); if (m > calleeScratch) calleeScratch = m; }
+
+  // Read the caller's kernel descriptor from the binary being rewritten.
+  const Address kdAddr = kdSym.getAddr();
+  const size_t kdSize = sizeof(llvm::amdhsa::kernel_descriptor_t);
+  uint8_t kdBytes[sizeof(llvm::amdhsa::kernel_descriptor_t)];
+  if (!aSpace->readDataSpace(reinterpret_cast<const void *>(kdAddr),
+                             static_cast<u_int>(kdSize), kdBytes, true)) {
+    fprintf(stderr, "[amdgpu] warning: failed to read kernel descriptor for '%s'\n",
+            caller->symTabName().c_str());
+    return;
+  }
+
+  Dyninst::AmdgpuKernelDescriptor kd(kdBytes, kdSize, EF_AMDGPU_MACH_AMDGCN_GFX908);
+
+  // VGPR: gfx9/wave64 granule = 4; granted = (granulated + 1) * 4. To fit N regs,
+  // granulated = ceil(N/4) - 1. Only ever raise the grant. The grant must cover
+  // the callee's VGPRs, the kernel's own VGPRs, AND one extra scratch VGPR
+  // (vAddr) that the per-lane VGPR spill in emitCall uses for addressing — vAddr
+  // = max(kernelVgpr, calleeVgpr), so reserve max(...)+1.
+  if (calleeVgpr > 0) {
+    // Use the kernel's ORIGINAL granted VGPR count (cached), NOT the live grant
+    // read from kdBytes — otherwise each inserted call reads the previously-
+    // raised grant and ratchets the count upward (→ gran 31 / 128 VGPRs).
+    const uint32_t curVgpr = readCallerOriginalGrantedVgpr(caller, gen);
+    const uint32_t vAddr   = (curVgpr > calleeVgpr ? curVgpr : calleeVgpr);
+    // Reserve TWO scratch VGPRs above the usage: vAddr (lane offset) and
+    // vPack = vAddr+1 (SGPR packing reg for the vector-path SGPR spill).
+    const uint32_t needVgpr = vAddr + 2;
+    const uint32_t neededGran = (needVgpr + 3u) / 4u - 1u;
+    if (neededGran > kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount())
+      kd.setCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount(neededGran);
+  }
+
+  // Scratch: reserve only if the callee actually uses private/scratch memory.
+  if (calleeScratch > 0) {
+    if (calleeScratch > kd.getPrivateSegmentFixedSize())
+      kd.setPrivateSegmentFixedSize(calleeScratch);
+    kd.setKernelCodeProperty_EnableSgprFlatScratchInit(true);
+    fprintf(stderr,
+            "[amdgpu] warning: callee '%s' uses %u bytes of scratch; caller '%s' "
+            "ALSO needs call-ABI prologue setup (FLAT_SCRATCH/s32/scratch "
+            "descriptor) which is NOT emitted here — scratch-using callees are not "
+            "yet fully supported.\n",
+            callee->symTabName().c_str(), calleeScratch, caller->symTabName().c_str());
+  }
+
+  // Write the modified descriptor back.
+  kd.writeToMemory(kdBytes);
+  if (!aSpace->writeDataSpace(reinterpret_cast<void *>(kdAddr),
+                             static_cast<u_int>(kdSize), kdBytes)) {
+    fprintf(stderr, "[amdgpu] warning: failed to write kernel descriptor for '%s'\n",
+            caller->symTabName().c_str());
+  }
+}
+
+// Read a callee's exported ".dyninst.<callee>.<key>" SHN_ABS value (the
+// compiler's per-function register footprint, injected by add_object_aliases.py).
+// Returns 0 if absent.
+static uint32_t readCalleeAbsSym(func_instance *callee, const char *key) {
+  if (!callee || !callee->obj() || !callee->obj()->parse_img())
+    return 0;
+  SymtabAPI::Symtab *st = callee->obj()->parse_img()->getObject();
+  if (!st)
+    return 0;
+  std::vector<SymtabAPI::Symbol *> syms;
+  std::string name = ".dyninst." + callee->symTabName() + "." + key;
+  if (!st->findSymbol(syms, name) || syms.empty())
+    return 0;
+  return static_cast<uint32_t>(syms[0]->getOffset());
+}
+
+// Largest ".dyninst.*.<key>" value across ALL functions in the callee's object.
+//
+// A dyninst-inserted call transfers into the callee wrapper, which may itself
+// make ordinary (non-inlined) calls into other functions in the SAME library
+// (e.g. hc_write -> gpu_fwrite). Each nested call clobbers its own register
+// frame, so the wrapper's *own* ".dyninst.<callee>.num_vgpr" undercounts the
+// registers actually destroyed by the whole call chain — leaving live caller
+// registers above the wrapper's frame unsaved (observed: the kernel's v[4:5]
+// address pair trashed by gpu_fwrite, faulting on the next load). The per-call
+// save/restore set is independent per call site, so accumulation across other
+// sites can't fix it — this one site must save everything it transitively
+// clobbers. We don't do call-graph analysis; conservatively take the maximum
+// footprint over EVERY function in the callee's address space, which upper-bounds
+// any function the inserted call could transitively reach. Returns 0 if none.
+static uint32_t readCalleeMaxAbsSym(func_instance *callee, const char *key) {
+  if (!callee || !callee->obj() || !callee->obj()->parse_img())
+    return 0;
+  SymtabAPI::Symtab *st = callee->obj()->parse_img()->getObject();
+  if (!st)
+    return 0;
+  std::vector<SymtabAPI::Symbol *> all;
+  if (!st->getAllSymbols(all))
+    return 0;
+  const std::string prefix = ".dyninst.";
+  const std::string suffix = std::string(".") + key;
+  uint32_t maxVal = 0;
+  for (SymtabAPI::Symbol *s : all) {
+    if (!s) continue;
+    const std::string &nm = s->getMangledName();
+    if (nm.size() > prefix.size() + suffix.size() &&
+        nm.compare(0, prefix.size(), prefix) == 0 &&
+        nm.compare(nm.size() - suffix.size(), suffix.size(), suffix) == 0) {
+      uint32_t v = static_cast<uint32_t>(s->getOffset());
+      if (v > maxVal) maxVal = v;
+    }
+  }
+  return maxVal;
+}
+
+// Granted VGPR count of the caller kernel (from its .kd), or 0 if not a kernel.
+// Used to place the VGPR-spill scratch register above the kernel's own usage.
+static uint32_t readCallerGrantedVgpr(func_instance *caller, codeGen &gen) {
+  AddressSpace *aSpace = gen.addrSpace();
+  if (!caller || !caller->obj() || !aSpace)
+    return 0;
+  int_symbol kdSym;
+  if (!caller->obj()->getSymbolInfo(caller->symTabName() + ".kd", kdSym))
+    return 0;
+  const size_t kdSize = sizeof(llvm::amdhsa::kernel_descriptor_t);
+  uint8_t kdBytes[sizeof(llvm::amdhsa::kernel_descriptor_t)];
+  if (!aSpace->readDataSpace(reinterpret_cast<const void *>(kdSym.getAddr()),
+                             static_cast<u_int>(kdSize), kdBytes, true))
+    return 0;
+  Dyninst::AmdgpuKernelDescriptor kd(kdBytes, kdSize, EF_AMDGPU_MACH_AMDGCN_GFX908);
+  return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount() + 1) * 4;
+}
+
+// ===========================================================================
+// gfx908 (CDNA1) ScratchAbi — the per-arch seam for scratch-based register spill
+// (see amdgpu-scratch-abi.h). gfx908 is the worst case: manual FLAT_SCRATCH init
+// (flat_scratch_init is a user SGPR whose enablement SHIFTS the system SGPRs the
+// kernel reads), so enableScratchInKD returns "shifted" and the entry prologue
+// relocates them back ("records the register update"). Spills use scratch_*
+// (FLAT enc, SEG=1): per-lane swizzle + per-wave base are hardware-provided, so
+// no mbcnt lane math or global buffer is needed.
+// ===========================================================================
+namespace {
+// gfx908 special/inline operand encodings.
+enum { GFX908_FLAT_SCRATCH_LO = 102, GFX908_FLAT_SCRATCH_HI = 103,
+       GFX908_INLINE_0 = 128, GFX908_SADDR_BASE = 94 };
+
+class Gfx908ScratchAbi : public Dyninst::DyninstAPI::ScratchAbi {
+public:
+  uint32_t waveSize() const override { return 64; }
+
+  bool enableScratchInKD(Dyninst::AmdgpuKernelDescriptor &kd, uint32_t slotBytes) override {
+    if (slotBytes > kd.getPrivateSegmentFixedSize())
+      kd.setPrivateSegmentFixedSize(slotBytes);
+    // Already scratch-enabled (compiler set flat_scratch_init up): reuse its
+    // FLAT_SCRATCH, only grew the size, no new shift.
+    if (kd.getKernelCodeProperty_EnableSgprFlatScratchInit())
+      return false;
+    const uint32_t uc = kd.getCOMPUTE_PGM_RSRC2_UserSgprCount();
+    kd.setKernelCodeProperty_EnableSgprFlatScratchInit(true);  // +2 user SGPRs at s[uc:uc+1]
+    kd.setCOMPUTE_PGM_RSRC2_UserSgprCount(uc + 2);
+    kd.setCOMPUTE_PGM_RSRC2_EnablePrivateSegment(true);        // wave-offset system SGPR
+    return true;                                               // system SGPRs shifted by +2
+  }
+
+  void emitScratchEntryPrologue(const Dyninst::AmdgpuKernelDescriptor &kd,
+                                codeGen &gen) override {
+    using namespace AmdgpuGfx908;
+    // Read the ABI SGPR layout from the (already scratch-enabled) KD: exact indices
+    // of flat_scratch_init (per-queue base) and the scratch wavefront offset.
+    Dyninst::DyninstAPI::AbiSgprLayout L = Dyninst::DyninstAPI::computeAbiSgprLayout(kd);
+    const uint32_t fsi     = (uint32_t)L.flatScratchInit;   // e.g. s[6:7]
+    const uint32_t waveoff = (uint32_t)L.waveOffset;        // e.g. s9
+
+    // Build a PER-WAVE 64-bit scratch base in s[94:95] = flat_scratch_init +
+    // wave_offset (per ABI: flat_scratch_init is per-queue, wave_offset per-wave).
+    // The spill uses s[94:95] as the global-memory base (proven path) + per-lane
+    // vAddr, so each wave writes its own region — the multi-wave fix. MUST be an
+    // ADD (base + offset), not a mov, or every wave aliases the same address.
+    emitSop2Raw(S_ADD_U32,  GFX908_SADDR_BASE,     fsi,     waveoff,         gen); // s94 = fsi_lo + wave_off
+    emitSop2Raw(S_ADDC_U32, GFX908_SADDR_BASE + 1, fsi + 1, GFX908_INLINE_0, gen); // s95 = fsi_hi + carry
+
+    // Enabling flat_scratch_init shifted the SYSTEM SGPRs up by 2 (Flat Scratch
+    // Init occupies 2 user SGPRs). Move the ones the un-shifted kernel body reads
+    // (wgid/info) back down by 2. Do AFTER the add (which consumes s[fsi],
+    // s[waveoff]); ascending order is collision-free.
+    const uint32_t SHIFT = 2;
+    const int sysRegs[4] = { L.wgidX, L.wgidY, L.wgidZ, L.wgInfo };
+    for (int p : sysRegs)
+      if (p >= 0)
+        emitSop1Raw(/*S_MOV_B32=*/0, (uint32_t)p - SHIFT, (uint32_t)p, gen);
+    emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+  }
+
+  void emitScratchStore(uint32_t vreg, int32_t offset, codeGen &gen) override {
+    using namespace AmdgpuGfx908;
+    emitFlatGlobal(GLOBAL_STORE_DWORD, /*vdst=*/0, /*addr=*/0, /*data=*/vreg,
+                   GFX908_SADDR_BASE, offset, gen, /*glc=*/false, /*seg=*/1);
+  }
+  void emitScratchLoad(uint32_t vreg, int32_t offset, codeGen &gen) override {
+    using namespace AmdgpuGfx908;
+    emitFlatGlobal(GLOBAL_LOAD_DWORD, /*vdst=*/vreg, /*addr=*/0, /*data=*/0,
+                   GFX908_SADDR_BASE, offset, gen, /*glc=*/false, /*seg=*/1);
+  }
+};
+}  // namespace
+
+namespace Dyninst { namespace DyninstAPI {
+ScratchAbi &gfx908ScratchAbi() { static Gfx908ScratchAbi abi; return abi; }
+}}
+
 Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
                                        const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands,
                                        func_instance *callee) {
@@ -493,18 +794,157 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
     return Null_Register;
   }
 
-  // The link-register pair receives PC+4 from S_SWAPPC_B64.
+  // The link-register pair receives the return address from S_SWAPPC_B64.
+  // It MUST be s[30:31]: the AMDGPU non-kernel-function ABI returns via
+  // `s_setpc_b64 s[30:31]`, so a separately-compiled callee reads its return
+  // address from s[30:31]. Using an arbitrary allocated pair here leaves
+  // s[30:31] untouched and the callee returns to garbage (jump to ~0 / fault).
+  // s30/s31 is the ABI return-address register (caller-clobbered by a call), so
+  // it is fixed, not taken from the allocator.
   registerSpace *rs = gen.rs();
   assert(rs && "AMDGPU emitCall: codeGen has no registerSpace");
-  Register lrPair = rs->allocateGprBlock(Dyninst::RegKind::SCALAR,
-                                         /*numRegs=*/2,
-                                         NS_amdgpu::PAIR_ALIGNMENT);
-  assert(lrPair != Null_Register && "AMDGPU emitCall: failed to allocate link-register pair");
+  Register lrPair(OperandRegId(30), RegKind::SCALAR, BlockSize(2));
 
+  // Preserve the caller's registers across the call. The AMDGPU function ABI
+  // lets a callee clobber any caller-saved SGPR (e.g. hc_open uses s[4:5] for
+  // its exec-mask save, but the kernel holds its kernarg pointer there). So
+  // spill the SGPRs the callee will clobber to this wave's scratch slot (base in
+  // s[94:95], set up by the prologue) before the call, and reload them after.
+  // The clobber count is the callee's TRANSITIVE "numbered_sgpr" — the whole-
+  // object max, not just this wrapper's frame, because the wrapper may call
+  // other functions in its library that clobber more SGPRs (see
+  // readCalleeMaxAbsSym).
+  // Register footprint the callee (transitively) clobbers — whole-object max, so
+  // it covers everything the wrapper reaches (e.g. hc_write -> gpu_fwrite).
+  const uint32_t nsgpr = readCalleeMaxAbsSym(callee, "numbered_sgpr");
+  const uint32_t nvgpr = readCalleeMaxAbsSym(callee, "num_vgpr");
+
+  // Scratch VGPRs for the spill machinery, placed ABOVE both the kernel's and the
+  // callee's VGPR usage (bumpCallerKdForCallee grows the grant to cover them):
+  //   vAddr = this lane's byte offset (lane*4), addresses the wave's scratch
+  //   vPack = holds SGPRs packed one-per-lane for the SGPR spill (below)
+  // ORIGINAL granted VGPR (cached) keeps these the same fixed regs for every call.
+  const uint32_t kernelVgpr = readCallerOriginalGrantedVgpr(caller, gen);
+  const uint32_t vAddr = (kernelVgpr > nvgpr ? kernelVgpr : nvgpr);
+  const uint32_t vPack = vAddr + 1;
+  const uint32_t SADDR_S94 = 94;    // s[94:95] scratch base
+  const uint32_t SGPR_AREA = 0;     // SGPR pack area  [0, 256)  (64 lanes * 4B)
+  const uint32_t VGPR_AREA = 512;   // VGPR spill area [512, ...)
+
+  // Two spill backends (env-gated, so the proven global-buffer path stays default
+  // while the scratch path is brought up):
+  //   default        : global_store/load into the launcher's per-wave buffer via
+  //                     s[94:95] base + mbcnt lane offset (vAddr).
+  //   DYNINST_SPILL_SCRATCH : hardware SCRATCH via the ScratchAbi seam — per-lane
+  //                     swizzle + per-wave base are hardware-provided, so no mbcnt
+  //                     lane math and each register needs only 4 bytes of the slot.
+  const bool useScratch = (getenv("DYNINST_SPILL_SCRATCH") != nullptr);
+  Dyninst::DyninstAPI::ScratchAbi &sabi = Dyninst::DyninstAPI::gfx908ScratchAbi();
+  const uint32_t S_SGPR_SLOT = 0;   // scratch: SGPR pack dword (per-lane)
+  const uint32_t S_VGPR_SLOT = 4;   // scratch: VGPR spill area (v_i at +i*4)
+
+  // vAddr = lane*4 (absolute lane id via mbcnt over an all-ones mask: -1=193, 0=128).
+  auto emitLaneByteOffset = [&]() {
+    emitVop3a(V_MBCNT_LO_U32_B32, vAddr, /*src0=*/193, /*src1=*/128, /*src2=*/0, gen);
+    emitVop3a(V_MBCNT_HI_U32_B32, vAddr, /*src0=*/193, /*src1=*/256 + vAddr, /*src2=*/0, gen);
+    emitVop2(V_LSHLREV_B32, vAddr, /*vsrc1=*/vAddr, /*src0=*/130 /*inline 2*/, gen);
+  };
+
+  // SGPR (+VCC) preservation the way LLVM does it — NEVER through SMEM/K$. A
+  // scalar-cache spill is corrupted by the callee's s_dcache_inv (issued for the
+  // hostcall mailbox): observed as C-base reverting to a stale value -> +4 GiB
+  // fault, timing-dependent and immune to wb/inv. Instead move each SGPR into a
+  // lane of vPack with v_writelane, spill vPack through the VECTOR pipe
+  // (global_store), and reverse with global_load + v_readlane. The vector pipe
+  // (vmcnt / L1-L2) is untouched by s_dcache_inv — the same path the VGPR spill
+  // already uses successfully. Lanes: s0..s(nsave-1) in lanes 0.., VCC_LO/HI next.
+  // NOTE: assumes EXEC is full at the insertion point (true here); a narrowed EXEC
+  // would drop the store/load of inactive packing lanes (future: force EXEC=-1).
+  // Spill through the global-memory path: s[94:95] is the base and vAddr = lane*4
+  // gives each lane its own slice (INTRA-wave separation — required because
+  // global_store is per-lane and vPack holds a different value per lane). The
+  // per-wave base in s[94:95] (scratch mode) gives INTER-wave separation. Same
+  // code for both modes; only the prologue differs in what base it puts in
+  // s[94:95] (per-wave scratch region vs. the launcher's shared buffer).
+  const uint32_t nsave = (nsgpr < 62 ? nsgpr : 62);   // keep the 2 vcc lanes < 64
+  auto spillFill = [&](bool save) {
+    if (save) {
+      for (uint32_t s = 0; s < nsave; s++)                                   // s0..s(nsave-1)
+        emitVop3a(V_WRITELANE_B32, /*vdst=*/vPack, /*src0=*/s, /*src1=*/128 + s, /*src2=*/0, gen);
+      emitVop3a(V_WRITELANE_B32, vPack, /*src0=*/106, /*src1=*/128 + nsave,     /*src2=*/0, gen); // vcc_lo
+      emitVop3a(V_WRITELANE_B32, vPack, /*src0=*/107, /*src1=*/128 + nsave + 1, /*src2=*/0, gen); // vcc_hi
+      emitLaneByteOffset();
+      emitFlatGlobal(GLOBAL_STORE_DWORD, /*vdst=*/0, /*addr=*/vAddr, /*data=*/vPack,
+                     SADDR_S94, SGPR_AREA, gen, /*glc=*/true);
+      emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+    } else {
+      emitLaneByteOffset();
+      emitFlatGlobal(GLOBAL_LOAD_DWORD, /*vdst=*/vPack, /*addr=*/vAddr, /*data=*/0,
+                     SADDR_S94, SGPR_AREA, gen, /*glc=*/true);
+      emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+      for (uint32_t s = 0; s < nsave; s++)                                   // vsrc = 256+vPack
+        emitVop3a(V_READLANE_B32, /*vdst=*/s, /*src0=*/256 + vPack, /*src1=*/128 + s, /*src2=*/0, gen);
+      emitVop3a(V_READLANE_B32, /*vdst=*/106, 256 + vPack, /*src1=*/128 + nsave,     /*src2=*/0, gen); // vcc_lo
+      emitVop3a(V_READLANE_B32, /*vdst=*/107, 256 + vPack, /*src1=*/128 + nsave + 1, /*src2=*/0, gen); // vcc_hi
+    }
+  };
+
+  // Preserve the callee-clobbered VGPRs (e.g. v[4:5] address pair). Per-lane, via
+  // the global path. TRANSITIVE footprint (whole-object max): the wrapper's own
+  // num_vgpr undercounts what it clobbers via nested calls.
+  auto vgprSpill = [&](bool save) {
+    if (nvgpr == 0)
+      return;
+    emitLaneByteOffset();
+    for (uint32_t i = 0; i < nvgpr && i < 256; i++) {
+      if (save)
+        emitFlatGlobal(GLOBAL_STORE_DWORD, /*vdst=*/0, /*addr=*/vAddr, /*data=*/i,
+                       SADDR_S94, VGPR_AREA + i * 256, gen, /*glc=*/true);
+      else
+        emitFlatGlobal(GLOBAL_LOAD_DWORD, /*vdst=*/i, /*addr=*/vAddr, /*data=*/0,
+                       SADDR_S94, VGPR_AREA + i * 256, gen, /*glc=*/true);
+    }
+    emitSopP(S_WAITCNT, /*simm16=*/0, gen);   // let the VMEM group complete
+  };
+
+  // Drain ALL in-flight memory before saving registers. dyninst can splice this
+  // call between an async load (s_load/global_load into a register) and the
+  // compiler's s_waitcnt that guards that register's first use — so a register we
+  // are about to spill may still be the target of an outstanding load. Without
+  // this wait the save reads the STALE pre-load value (observed: A/B/C base
+  // pointers saved as garbage while an s_load_dwordx4 from kernarg was in flight
+  // -> nil/wild-address fault; deterministic, hidden by any halt that lets the
+  // load retire). vmcnt+lgkmcnt=0 covers both VMEM and scalar/LDS loads.
+  emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+
+  // Preserve EXEC across the call and force ALL lanes on for the register spill.
+  // The trampoline never saved EXEC before; the callee (hostcall wrapper) narrows
+  // EXEC for lane election and restores it, but the caller's live EXEC must be
+  // guaranteed intact across the whole trampoline — AND the SGPR pack's per-lane
+  // store/load must cover every lane (writelane is EXEC-independent, but the
+  // store/load are not). Save the caller EXEC in a reserved pair (s[92:93], above
+  // the callee's clobber range), run the spill under EXEC=-1, restore the caller
+  // EXEC for the call and again for the post-call continuation. (No-op at full
+  // EXEC, e.g. single-wave N<=64.)  S_MOV_B64=1; EXEC_LO=126; inline -1=193.
+  const uint32_t S_MOV_B64_OP = 1, EXEC_LO = 126, EXEC_SAVE = 92, INLINE_NEG1 = 193;
+  AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_SAVE, EXEC_LO,    gen);  // s[92:93] = exec
+  AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO,   INLINE_NEG1, gen); // exec = -1 (all lanes)
+
+  spillFill(/*save=*/true);
+  vgprSpill(/*save=*/true);
+
+  AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO, EXEC_SAVE, gen);     // exec = caller (for call)
   Address slot = getInterModuleFuncAddr(callee, gen);
   emitIndirectCall(slot, lrPair, gen);
+  AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO, INLINE_NEG1, gen);   // exec = -1 (for restore)
 
-  rs->freeGprBlock(lrPair);
+  vgprSpill(/*save=*/false);
+  spillFill(/*save=*/false);
+
+  AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO, EXEC_SAVE, gen);     // exec = caller (continue)
+
+  // Grow the caller kernel's register/scratch grant to fit the callee.
+  bumpCallerKdForCallee(caller, callee, gen);
 
   // No return-value convention pinned down yet for AMDGPU calls.
   return Null_Register;

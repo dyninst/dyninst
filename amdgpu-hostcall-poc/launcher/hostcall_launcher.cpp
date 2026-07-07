@@ -1,0 +1,303 @@
+// hostcall_launcher — loads the dyninst-instrumented vectoradd code object and
+// the device hostcall library into one HSA executable, resolves the cross-object
+// relocations (the inserted .dyninst.hc_* calls + the shared `mailbox`), starts a
+// CPU service thread for the GPU->CPU hostcalls, and dispatches the kernel.
+//
+// This is the runtime counterpart to the dyninst static-rewrite flow:
+//   instrument.sh -> vectoradd.inst.co   (kernel with hc_open/hc_write/hc_close)
+//   this launcher -> loads it + hostcall_lib.aliased.elf, freezes, runs, services
+//
+// Run with ROCR_VISIBLE_DEVICES=1 so the gfx908 MI100 is the only agent.
+
+#include <hsa/hsa.h>
+#include <hsa/hsa_ext_amd.h>
+#include <atomic>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <thread>
+#include <fcntl.h>
+#include <unistd.h>
+
+#include "hostcalls.h"   // shared mailbox ABI
+
+#define HSA_CHECK(s) do {                                                      \
+    hsa_status_t _s = (s);                                                     \
+    if (_s != HSA_STATUS_SUCCESS) {                                            \
+        const char* _m = nullptr; hsa_status_string(_s, &_m);                 \
+        fprintf(stderr, "HSA error: %s at %s:%d\n", _m, __FILE__, __LINE__);   \
+        exit(1);                                                               \
+    }                                                                          \
+} while (0)
+
+// ---- agent / pool discovery -------------------------------------------------
+struct AgentSearch { hsa_agent_t agent; bool found; };
+static hsa_status_t find_gpu(hsa_agent_t a, void* d) {
+    hsa_device_type_t t; hsa_agent_get_info(a, HSA_AGENT_INFO_DEVICE, &t);
+    if (t != HSA_DEVICE_TYPE_GPU) return HSA_STATUS_SUCCESS;
+    char n[64] = {}; hsa_agent_get_info(a, HSA_AGENT_INFO_NAME, n);
+    if (strstr(n, "gfx908")) { auto* s=(AgentSearch*)d; s->agent=a; s->found=true; return HSA_STATUS_INFO_BREAK; }
+    return HSA_STATUS_SUCCESS;
+}
+static hsa_status_t find_cpu(hsa_agent_t a, void* d) {
+    hsa_device_type_t t; hsa_agent_get_info(a, HSA_AGENT_INFO_DEVICE, &t);
+    if (t == HSA_DEVICE_TYPE_CPU) { auto* s=(AgentSearch*)d; s->agent=a; s->found=true; return HSA_STATUS_INFO_BREAK; }
+    return HSA_STATUS_SUCCESS;
+}
+struct PoolSearch { hsa_amd_memory_pool_t pool; bool found; };
+static hsa_status_t find_fine_grained(hsa_amd_memory_pool_t pool, void* d) {
+    hsa_amd_segment_t seg;
+    hsa_amd_memory_pool_get_info(pool, HSA_AMD_MEMORY_POOL_INFO_SEGMENT, &seg);
+    if (seg != HSA_AMD_SEGMENT_GLOBAL) return HSA_STATUS_SUCCESS;
+    uint32_t flags;
+    hsa_amd_memory_pool_get_info(pool, HSA_AMD_MEMORY_POOL_INFO_GLOBAL_FLAGS, &flags);
+    if (flags & HSA_AMD_MEMORY_POOL_GLOBAL_FLAG_FINE_GRAINED) {
+        auto* s=(PoolSearch*)d; s->pool=pool; s->found=true; return HSA_STATUS_INFO_BREAK;
+    }
+    return HSA_STATUS_SUCCESS;
+}
+// Coarse-grained, ALLOCATABLE device-local (VRAM) pool — iterate the GPU agent.
+// Register-spill scratch must live here, NOT in fine-grained host-coherent
+// memory: the latter's coherent MTYPE means scalar (SMEM) accesses don't cache
+// in K$ normally, so the trampoline's SGPR save->load races with the callee's
+// mandatory s_dcache_inv. Device-local memory uses ordinary K$/L2 caching that
+// is self-coherent within a wave. Match a GLOBAL, non-fine-grained pool that
+// actually permits runtime allocation (skip read-only / non-allocatable pools).
+static hsa_status_t find_coarse_grained(hsa_amd_memory_pool_t pool, void* d) {
+    hsa_amd_segment_t seg;
+    hsa_amd_memory_pool_get_info(pool, HSA_AMD_MEMORY_POOL_INFO_SEGMENT, &seg);
+    if (seg != HSA_AMD_SEGMENT_GLOBAL) return HSA_STATUS_SUCCESS;
+    uint32_t flags;
+    hsa_amd_memory_pool_get_info(pool, HSA_AMD_MEMORY_POOL_INFO_GLOBAL_FLAGS, &flags);
+    if (flags & HSA_AMD_MEMORY_POOL_GLOBAL_FLAG_FINE_GRAINED) return HSA_STATUS_SUCCESS;
+    bool alloc_ok = false;
+    hsa_amd_memory_pool_get_info(pool, HSA_AMD_MEMORY_POOL_INFO_RUNTIME_ALLOC_ALLOWED, &alloc_ok);
+    if (!alloc_ok) return HSA_STATUS_SUCCESS;
+    auto* s=(PoolSearch*)d; s->pool=pool; s->found=true; return HSA_STATUS_INFO_BREAK;
+}
+
+// ---- CPU-side hostcall service loop -----------------------------------------
+static std::atomic<bool> g_run{true};
+
+static void service_loop(HostcallMailbox* mb) {
+    // hc_open is inserted at KERNEL ENTRY, so EVERY wave issues FOPEN (and each
+    // issues FCLOSE at exit). Naively re-fopen'ing per wave would truncate the
+    // file and leak handles. So make open/close idempotent for the whole launch:
+    // open exactly once, keep it open (never re-truncate), treat FCLOSE as a
+    // flush, and close once at teardown. Any number of waves then share one file
+    // and every write survives. `opens`/`closes` are tracked only for reporting.
+    FILE* fp = nullptr;
+    long opens = 0, closes = 0, writes = 0;
+    while (g_run.load(std::memory_order_acquire)) {
+        if (__atomic_load_n(&mb->status, __ATOMIC_ACQUIRE) != 1) {
+            std::this_thread::yield();
+            continue;
+        }
+        switch (mb->opcode) {
+        case HC_OP_FOPEN:
+            // DIAGNOSTIC: dump what the GPU actually marshalled into the mailbox.
+            fprintf(stderr, "[host] FOPEN req: opcode=%d size=%d  path[0..15]=",
+                    mb->opcode, mb->size);
+            for (int i = 0; i < 16; i++) fprintf(stderr, "%02x ", (unsigned char)mb->path[i]);
+            fprintf(stderr, " mode[0..3]=");
+            for (int i = 0; i < 4; i++) fprintf(stderr, "%02x ", (unsigned char)mb->mode[i]);
+            fprintf(stderr, "\n");
+            if (!fp) {                                   // open exactly once
+                fp = fopen(mb->path, mb->mode);
+                fprintf(stderr, "[host] fopen('%s','%s') -> %p\n", mb->path, mb->mode, (void*)fp);
+            }
+            opens++;
+            mb->handle = (int64_t)(uintptr_t)fp;
+            mb->retval = fp ? 0 : -1;
+            break;
+        case HC_OP_FWRITE: {
+            int n = fp ? (int)fwrite(mb->data, 1, mb->size, fp) : -1;
+            if (fp) fflush(fp);
+            writes++;
+            mb->retval = n;
+            break; }
+        case HC_OP_FREAD: {
+            int n = fp ? (int)fread(mb->data, 1, mb->size, fp) : -1;
+            mb->retval = n;
+            break; }
+        case HC_OP_FCLOSE:
+            if (fp) fflush(fp);                          // defer real close to teardown
+            closes++;
+            mb->retval = 0;
+            break;
+        default:
+            mb->retval = -1;
+            break;
+        }
+        __atomic_thread_fence(__ATOMIC_RELEASE);
+        __atomic_store_n(&mb->status, 2, __ATOMIC_RELEASE);   // done -> release GPU
+    }
+    if (fp) fclose(fp);                                  // single real close at teardown
+    fprintf(stderr, "[host] serviced %ld fopen / %ld fwrite / %ld fclose across all waves\n",
+            opens, writes, closes);
+    fprintf(stderr, "[host] final ticket_next=%u ticket_now=%u status=%d (should be equal / 0)\n",
+            mb->ticket_next, mb->ticket_now, mb->status);
+}
+
+int main(int argc, char** argv) {
+    const char* mutatee = (argc > 1) ? argv[1] : "vectoradd.inst.co";
+    const char* instlib = (argc > 2) ? argv[2] : "hostcall_lib.aliased.elf";
+    const char* kd_name = (argc > 3) ? argv[3] : "_Z9vectoraddPfPKfS1_i.kd";
+    const int   N       = getenv("HOSTCALL_N") ? atoi(getenv("HOSTCALL_N")) : 64;    // 1 wave (wave64). N=256 (4 waves) exposes the
+                                 // separate multi-wave hostcall/mailbox bug.
+
+    HSA_CHECK(hsa_init());
+    AgentSearch gpu={}, cpu={};
+    hsa_iterate_agents(find_gpu, &gpu);
+    hsa_iterate_agents(find_cpu, &cpu);
+    if (!gpu.found || !cpu.found) { fprintf(stderr, "no gfx908 GPU / CPU agent\n"); return 1; }
+    PoolSearch fg={};
+    hsa_amd_agent_iterate_memory_pools(cpu.agent, find_fine_grained, &fg);
+    if (!fg.found) { fprintf(stderr, "no fine-grained pool\n"); return 1; }
+    PoolSearch cg={};
+    hsa_amd_agent_iterate_memory_pools(gpu.agent, find_coarse_grained, &cg);
+    if (!cg.found) { fprintf(stderr, "no coarse-grained device-local pool\n"); return 1; }
+    printf("[host] found gfx908 agent + fine-grained + device-local pools\n");
+
+    // Mailbox in host-coherent fine-grained memory; grant the GPU access.
+    HostcallMailbox* mbox = nullptr;
+    HSA_CHECK(hsa_amd_memory_pool_allocate(fg.pool, sizeof(HostcallMailbox), 0, (void**)&mbox));
+    HSA_CHECK(hsa_amd_agents_allow_access(1, &gpu.agent, nullptr, mbox));
+    memset(mbox, 0, sizeof(*mbox));
+
+    // Build the executable: define `mailbox`, load BOTH objects, freeze.
+    hsa_executable_t exe;
+    HSA_CHECK(hsa_executable_create_alt(HSA_PROFILE_FULL,
+              HSA_DEFAULT_FLOAT_ROUNDING_MODE_DEFAULT, "", &exe));
+    HSA_CHECK(hsa_executable_agent_global_variable_define(exe, gpu.agent, "mailbox", mbox));
+    printf("[host] defined 'mailbox' -> %p\n", (void*)mbox);
+
+    auto load = [&](const char* path) {
+        int fd = open(path, O_RDONLY);
+        if (fd < 0) { perror(path); exit(1); }
+        hsa_code_object_reader_t r;
+        HSA_CHECK(hsa_code_object_reader_create_from_file(fd, &r));
+        HSA_CHECK(hsa_executable_load_agent_code_object(exe, gpu.agent, r, "", nullptr));
+        close(fd);
+        printf("[host] loaded %s\n", path);
+    };
+    load(instlib);    // provides hc_* + .dyninst.hc_* OBJECT aliases; references mailbox
+    load(mutatee);    // references .dyninst.hc_* (the inserted calls)
+
+    HSA_CHECK(hsa_executable_freeze(exe, ""));
+    printf("[host] executable frozen (cross-object relocs resolved)\n");
+
+    // Kernel descriptor + resources.
+    hsa_executable_symbol_t ksym;
+    HSA_CHECK(hsa_executable_get_symbol_by_name(exe, kd_name, &gpu.agent, &ksym));
+    uint64_t kobj; uint32_t ksize, psize, gsize;
+    HSA_CHECK(hsa_executable_symbol_get_info(ksym, HSA_EXECUTABLE_SYMBOL_INFO_KERNEL_OBJECT, &kobj));
+    HSA_CHECK(hsa_executable_symbol_get_info(ksym, HSA_EXECUTABLE_SYMBOL_INFO_KERNEL_KERNARG_SEGMENT_SIZE, &ksize));
+    HSA_CHECK(hsa_executable_symbol_get_info(ksym, HSA_EXECUTABLE_SYMBOL_INFO_KERNEL_PRIVATE_SEGMENT_SIZE, &psize));
+    HSA_CHECK(hsa_executable_symbol_get_info(ksym, HSA_EXECUTABLE_SYMBOL_INFO_KERNEL_GROUP_SEGMENT_SIZE, &gsize));
+    printf("[host] kernel: kobj=%#lx ksize=%u psize=%u gsize=%u\n", kobj, ksize, psize, gsize);
+
+    // Data buffers (fine-grained, GPU-accessible). vectoradd(C, A, B, N).
+    float *A, *B, *C;
+    HSA_CHECK(hsa_amd_memory_pool_allocate(fg.pool, N*sizeof(float), 0, (void**)&A));
+    HSA_CHECK(hsa_amd_memory_pool_allocate(fg.pool, N*sizeof(float), 0, (void**)&B));
+    HSA_CHECK(hsa_amd_memory_pool_allocate(fg.pool, N*sizeof(float), 0, (void**)&C));
+    hsa_agent_t agents[1] = { gpu.agent };
+    HSA_CHECK(hsa_amd_agents_allow_access(1, agents, nullptr, A));
+    HSA_CHECK(hsa_amd_agents_allow_access(1, agents, nullptr, B));
+    HSA_CHECK(hsa_amd_agents_allow_access(1, agents, nullptr, C));
+    for (int i=0;i<N;i++){ A[i]=(float)i; B[i]=(float)(2*i); C[i]=0; }
+    printf("[host] bufs A=%p B=%p C=%p mailbox=%p  (each %zu bytes)\n",
+           (void*)A, (void*)B, (void*)C, (void*)mbox, N*sizeof(float));
+
+    // Instrumentation scratch buffer for dyninst's per-wave register save/restore.
+    // Layout: [HEADER: u32 wave counter @0][ n_waves * SLOT_SIZE save slots ].
+    // dyninst's prologue loads this base from kernarg+(ksize-8), atomically grabs
+    // a per-wave id from the counter, and sets s[94:95] = base + HEADER + id*SLOT.
+    // These constants MUST match the dyninst prologue/spill codegen.
+    const uint32_t INST_SLOT_SIZE = 4096;
+    const uint32_t INST_HEADER    = 64;
+    uint32_t n_waves = (uint32_t)((N + 63) / 64);          // wave64
+    size_t   instbuf_sz = INST_HEADER + (size_t)n_waves * INST_SLOT_SIZE;
+    void*    instbuf = nullptr;
+    // Device-local (VRAM) so the SGPR spill's scalar accesses are K$/L2-coherent
+    // within the wave (see find_coarse_grained). It is NOT CPU-accessible, so zero
+    // it with a device fill instead of memset.
+    HSA_CHECK(hsa_amd_memory_pool_allocate(cg.pool, instbuf_sz, 0, &instbuf));
+    HSA_CHECK(hsa_amd_agents_allow_access(1, agents, nullptr, instbuf));
+    HSA_CHECK(hsa_amd_memory_fill(instbuf, 0, instbuf_sz / sizeof(uint32_t)));  // zero counter + slots
+    printf("[host] inst scratch buf @ %p  (%u waves x %u + %u hdr = %zu bytes)\n",
+           instbuf, n_waves, INST_SLOT_SIZE, INST_HEADER, instbuf_sz);
+
+    // Kernarg: C, A, B, N  (explicit args at the front of the segment).
+    void* kernargs = nullptr;
+    uint32_t ka_sz = ksize < 64 ? 64 : ksize;
+    HSA_CHECK(hsa_amd_memory_pool_allocate(fg.pool, ka_sz, 0, &kernargs));
+    HSA_CHECK(hsa_amd_agents_allow_access(1, agents, nullptr, kernargs));
+    memset(kernargs, 0, ka_sz);
+    *(float**)((char*)kernargs + 0)  = C;
+    *(const float**)((char*)kernargs + 8)  = A;
+    *(const float**)((char*)kernargs + 16) = B;
+    *(int*)((char*)kernargs + 24) = N;
+    // The instrumentation prologue loads its scratch base from the 8 bytes that
+    // maximizeSgprAllocationIfKernel appended at the end of the kernarg segment.
+    if (ksize >= 8)
+        *(void**)((char*)kernargs + (ksize - 8)) = instbuf;
+
+    // Queue + completion signal.
+    hsa_queue_t* queue = nullptr;
+    HSA_CHECK(hsa_queue_create(gpu.agent, 256, HSA_QUEUE_TYPE_SINGLE, nullptr, nullptr,
+                               UINT32_MAX, UINT32_MAX, &queue));
+    hsa_signal_t done;
+    HSA_CHECK(hsa_signal_create(1, 0, nullptr, &done));
+
+    // Start the CPU hostcall service thread BEFORE dispatch.
+    std::thread svc(service_loop, mbox);
+    printf("[host] service thread started; dispatching kernel (N=%d, 1 workgroup)\n", N);
+
+    // Enqueue a 1-workgroup dispatch of N threads.
+    uint64_t idx = hsa_queue_load_write_index_relaxed(queue);
+    const uint32_t mask = queue->size - 1;
+    hsa_kernel_dispatch_packet_t* slot =
+        &((hsa_kernel_dispatch_packet_t*)queue->base_address)[idx & mask];
+    memset((void*)((uintptr_t)slot + 4), 0, sizeof(*slot) - 4);
+    slot->setup = 1 << HSA_KERNEL_DISPATCH_PACKET_SETUP_DIMENSIONS;
+    slot->workgroup_size_x = N; slot->workgroup_size_y = 1; slot->workgroup_size_z = 1;
+    slot->grid_size_x = N; slot->grid_size_y = 1; slot->grid_size_z = 1;
+    slot->private_segment_size = psize;
+    slot->group_segment_size = gsize;
+    slot->kernel_object = kobj;
+    slot->kernarg_address = kernargs;
+    slot->completion_signal = done;
+    uint16_t header =
+        (HSA_PACKET_TYPE_KERNEL_DISPATCH << HSA_PACKET_HEADER_TYPE) |
+        (1 << HSA_PACKET_HEADER_BARRIER) |
+        (HSA_FENCE_SCOPE_SYSTEM << HSA_PACKET_HEADER_ACQUIRE_FENCE_SCOPE) |
+        (HSA_FENCE_SCOPE_SYSTEM << HSA_PACKET_HEADER_RELEASE_FENCE_SCOPE);
+    __atomic_store_n(&slot->header, header, __ATOMIC_RELEASE);
+    hsa_queue_store_write_index_relaxed(queue, idx + 1);
+    hsa_signal_store_screlease(queue->doorbell_signal, idx);
+
+    // Wait for the kernel (it makes hostcalls the service thread handles).
+    hsa_signal_value_t v = hsa_signal_wait_scacquire(done, HSA_SIGNAL_CONDITION_LT, 1,
+                                                     (uint64_t)10e9, HSA_WAIT_STATE_BLOCKED);
+    printf("[host] kernel completion = %ld\n", (long)v);
+
+    // Stop the service thread.
+    g_run.store(false, std::memory_order_release);
+    svc.join();
+
+    // Verify vectoradd result.
+    int errors = 0;
+    for (int i=0;i<N;i++) if (C[i] != A[i]+B[i]) { if (errors<5)
+        fprintf(stderr, "  mismatch @%d: %f != %f\n", i, C[i], A[i]+B[i]); errors++; }
+    printf(errors ? "[host] vectoradd FAILED (%d errors)\n" : "[host] vectoradd PASSED (%d elems)\n",
+           errors ? errors : N);
+
+    hsa_signal_destroy(done);
+    hsa_queue_destroy(queue);
+    hsa_executable_destroy(exe);
+    hsa_shut_down();
+    printf("[host] done. trace file: dyninst_trace.txt\n");
+    return errors ? 1 : 0;
+}

@@ -41,6 +41,8 @@
 
 // Our wrapper around it
 #include "AmdgpuKernelDescriptor.h"
+#include "amdgpu-scratch-abi.h"
+#include <cstdlib>
 
 #include "ASTs/ast.h"
 #include "debug.h"
@@ -158,8 +160,25 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
   std::vector<BPatch_point *> entryPoints;
   function->getEntryPoints(entryPoints);
 
-  auto prologuePtr =
-      boost::make_shared<AmdgpuPrologue>(regPair, kd.getKernargPtrRegisterPair(), kd.getKernargSize());
+  boost::shared_ptr<AmdgpuPrologue> prologuePtr;
+  if (getenv("DYNINST_SPILL_SCRATCH") != nullptr) {
+    // Give this (possibly non-scratch) kernel a hardware scratch region for
+    // register spilling: rewrite its KD (enable flat_scratch_init + wave_offset,
+    // bump user_sgpr_count, set private_segment_fixed_size) and write it back;
+    // the entry prologue will set up FLAT_SCRATCH and relocate the shifted SGPRs.
+    // The launcher forwards the KD's private_segment_size to the dispatch packet,
+    // so ROCr backs the scratch automatically.
+    const uint32_t kScratchSlotBytes = 256;  // per-lane: SGPR pack dword + VGPR spill
+    DyninstAPI::gfx908ScratchAbi().enableScratchInKD(kd, kScratchSlotBytes);
+    llvm::amdhsa::kernel_descriptor_t newRaw;
+    kd.writeToMemory(reinterpret_cast<uint8_t *>(&newRaw));
+    bool wrote = kdVariable->writeValue(&newRaw, sizeof newRaw, false);
+    assert(wrote);
+    prologuePtr = boost::make_shared<AmdgpuPrologue>(kd, this->eflag);
+  } else {
+    prologuePtr = boost::make_shared<AmdgpuPrologue>(
+        regPair, kd.getKernargPtrRegisterPair(), kd.getKernargSize());
+  }
 
   DyninstAPI::codeGenASTPtr prologueNodePtr =
         boost::make_shared<AmdgpuPrologueNode>(prologuePtr);

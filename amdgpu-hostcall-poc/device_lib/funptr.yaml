@@ -1,0 +1,177 @@
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS64
+  Data:            ELFDATA2LSB
+  OSABI:           ELFOSABI_AMDGPU_HSA
+  ABIVersion:      0x4
+  Type:            ET_DYN
+  Machine:         EM_AMDGPU
+  Flags:           [ EF_AMDGPU_MACH_AMDGCN_GFX908, EF_AMDGPU_FEATURE_XNACK_V3 ]
+ProgramHeaders:
+  - Type:            PT_PHDR
+    Flags:           [ PF_R ]
+    VAddr:           0x40
+    Align:           0x8
+  - Type:            PT_LOAD
+    Flags:           [ PF_R ]
+    FirstSec:        .note
+    LastSec:         .dynstr
+    Align:           0x1000
+  - Type:            PT_LOAD
+    Flags:           [ PF_X, PF_R ]
+    FirstSec:        .text
+    LastSec:         .text
+    VAddr:           0x1320
+    Align:           0x1000
+  - Type:            PT_LOAD
+    Flags:           [ PF_W, PF_R ]
+    FirstSec:        .dynamic
+    LastSec:         .relro_padding
+    VAddr:           0x2328
+    Align:           0x1000
+  - Type:            PT_LOAD
+    Flags:           [ PF_W, PF_R ]
+    FirstSec:        .bss
+    LastSec:         .bss
+    VAddr:           0x3398
+    Align:           0x1000
+  - Type:            PT_DYNAMIC
+    Flags:           [ PF_W, PF_R ]
+    FirstSec:        .dynamic
+    LastSec:         .relro_padding
+    VAddr:           0x2328
+    Align:           0x8
+  - Type:            PT_GNU_RELRO
+    Flags:           [ PF_R ]
+    FirstSec:        .dynamic
+    LastSec:         .relro_padding
+    VAddr:           0x2328
+  - Type:            PT_GNU_STACK
+    Flags:           [ PF_W, PF_R ]
+    Align:           0x0
+  - Type:            PT_NOTE
+    Flags:           [ PF_R ]
+    FirstSec:        .note
+    LastSec:         .note
+    VAddr:           0x238
+    Align:           0x4
+Sections:
+  - Name:            .note
+    Type:            SHT_NOTE
+    Flags:           [ SHF_ALLOC ]
+    Address:         0x238
+    AddressAlign:    0x4
+    Notes:
+      - Name:            AMDGPU
+        Desc:            83AE616D646873612E6B65726E656C7390AD616D646873612E746172676574B9616D6467636E2D616D642D616D646873612D2D676678393038AE616D646873612E76657273696F6E920102
+        Type:            NT_AMDGPU_METADATA
+  - Name:            .dynsym
+    Type:            SHT_DYNSYM
+    Flags:           [ SHF_ALLOC ]
+    Address:         0x298
+    Link:            .dynstr
+    AddressAlign:    0x8
+  - Name:            .gnu.hash
+    Type:            SHT_GNU_HASH
+    Flags:           [ SHF_ALLOC ]
+    Address:         0x2C8
+    Link:            .dynsym
+    AddressAlign:    0x8
+    Header:
+      SymNdx:          0x1
+      Shift2:          0x1A
+    BloomFilter:     [ 0x8040000 ]
+    HashBuckets:     [ 0x1 ]
+    HashValues:      [ 0x6D4E05D3 ]
+  - Name:            .hash
+    Type:            SHT_HASH
+    Flags:           [ SHF_ALLOC ]
+    Address:         0x2E8
+    Link:            .dynsym
+    AddressAlign:    0x4
+    Bucket:          [ 1, 0 ]
+    Chain:           [ 0, 0 ]
+  - Name:            .dynstr
+    Type:            SHT_STRTAB
+    Flags:           [ SHF_ALLOC ]
+    Address:         0x300
+    AddressAlign:    0x1
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    Address:         0x1320
+    AddressAlign:    0x4
+    Content:         00008CBF1E1D80BE
+  - Name:            .dynamic
+    Type:            SHT_DYNAMIC
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    Address:         0x2328
+    Link:            .dynstr
+    AddressAlign:    0x8
+    Entries:
+      - Tag:             DT_SYMTAB
+        Value:           0x298
+      - Tag:             DT_SYMENT
+        Value:           0x18
+      - Tag:             DT_STRTAB
+        Value:           0x300
+      - Tag:             DT_STRSZ
+        Value:           0x1D
+      - Tag:             DT_GNU_HASH
+        Value:           0x2C8
+      - Tag:             DT_HASH
+        Value:           0x2E8
+      - Tag:             DT_NULL
+        Value:           0x0
+  - Name:            .relro_padding
+    Type:            SHT_NOBITS
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    Address:         0x2398
+    AddressAlign:    0x1
+    Size:            0xC68
+  - Name:            .bss
+    Type:            SHT_NOBITS
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    Address:         0x3398
+    AddressAlign:    0x1
+    Size:            0x1
+  - Name:            .AMDGPU.gpr_maximums
+    Type:            SHT_PROGBITS
+    AddressAlign:    0x1
+  - Name:            .comment
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_MERGE, SHF_STRINGS ]
+    AddressAlign:    0x1
+    EntSize:         0x1
+    Content:         4C696E6B65723A20414D44204C4C442032302E302E3020282F6C6F6E6765725F706174686E616D655F736F5F746861745F72706D735F63616E5F737570706F72745F7061636B6167696E675F7468655F64656275675F696E666F5F666F725F616C6C5F6F735F70726F66696C65732F7372632F6C6C766D2D70726F6A6563742F6C6C766D2030646461336164663536373636653061616330643033313733636564333735396531666665636263290000414D4420636C616E672076657273696F6E2032302E302E30676974202868747470733A2F2F6769746875622E636F6D2F526164656F6E4F70656E436F6D707574652F6C6C766D2D70726F6A65637420726F632D372E302E3220323533383520306464613361646635363736366530616163306430333137336365643337353965316666656362632900
+Symbols:
+  - Name:            _DYNAMIC
+    Section:         .dynamic
+    Value:           0x2328
+    Other:           [ STV_HIDDEN ]
+  - Name:            __hip_cuid_39746c9e7d7b1e1b
+    Type:            STT_OBJECT
+    Section:         .bss
+    Binding:         STB_GLOBAL
+    Value:           0x3398
+    Size:            0x1
+  - Name:            funptr1
+    Type:            STT_FUNC
+    Section:         .text
+    Value:           0x1320
+    Size:            0x8
+    Binding:         STB_GLOBAL
+DynamicSymbols:
+  - Name:            __hip_cuid_39746c9e7d7b1e1b
+    Type:            STT_OBJECT
+    Section:         .bss
+    Binding:         STB_GLOBAL
+    Value:           0x3398
+    Size:            0x1
+  - Name:            funptr1
+    Type:            STT_FUNC
+    Section:         .text
+    Value:           0x1320
+    Size:            0x8
+    Binding:         STB_GLOBAL
+...

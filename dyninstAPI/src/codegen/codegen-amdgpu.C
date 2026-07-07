@@ -34,6 +34,11 @@
 #include "codegen/codegen.h"
 #include "dyninstAPI/src/emit-amdgpu.h"
 #include "dyninstAPI/src/registerSpace/registerSpace.h"
+#include "registerSpace/registerSlot.h"
+#include "mapped_object.h"
+#include "AmdgpuKernelDescriptor.h"
+#include "amdgpu-abi-sgpr.h"
+#include "external/amdgpu/AMDGPUEFlags.h"
 #include <cstdint>
 #include <stdlib.h>
 
@@ -78,6 +83,42 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
 
     registerSpace *regSpace = registerSpace::actualRegSpace(blockExitPoint);
     assert(regSpace);
+
+    // The entry springboard's long-jump grabs a 4-SGPR block via s_getpc. Dyninst's
+    // liveness marks the ORIGINAL live inputs (kernarg etc.) live so the allocator
+    // skips them, but when we ENABLE scratch on a kernel that shipped without it
+    // (DYNINST_SPILL_SCRATCH), the flat_scratch_init user-SGPR pair shifts the
+    // SYSTEM SGPRs up (wgid/wave_offset land at s[user_sgpr_count..]). Those hold
+    // live per-wave inputs at kernel entry, but the original liveness doesn't know
+    // they moved, so allocateGprBlock would hand them to the springboard and the
+    // s_getpc would clobber the scratch wave-offset BEFORE the prologue captures it
+    // (→ all waves share one scratch base → multi-wave corruption). Reserve that
+    // live system-SGPR range so the springboard allocates above it.
+    if (getenv("DYNINST_SPILL_SCRATCH")) {
+      mapped_object *fobj = funcInstance->obj();
+      int_symbol kdSym;
+      if (fobj &&
+          fobj->getSymbolInfo(funcInstance->symTabName() + ".kd", kdSym)) {
+        const size_t kdSize = sizeof(llvm::amdhsa::kernel_descriptor_t);
+        uint8_t kdBytes[sizeof(llvm::amdhsa::kernel_descriptor_t)];
+        if (as->readDataSpace(reinterpret_cast<const void *>(kdSym.getAddr()),
+                              static_cast<u_int>(kdSize), kdBytes, true)) {
+          Dyninst::AmdgpuKernelDescriptor kd(kdBytes, kdSize,
+                                             EF_AMDGPU_MACH_AMDGCN_GFX908);
+          Dyninst::DyninstAPI::AbiSgprLayout L =
+              Dyninst::DyninstAPI::computeAbiSgprLayout(kd);
+          if (L.scratchEnabled()) {
+            for (uint32_t n = L.userSgprCount; n < L.liveSgprEnd; n++) {
+              Dyninst::Register r = Dyninst::Register::makeScalarRegister(
+                  Dyninst::OperandRegId(n), Dyninst::BlockSize(1));
+              registerSlot *slot = (*regSpace)[r];
+              if (slot)
+                slot->liveState = registerSlot::live;
+            }
+          }
+        }
+      }
+    }
 
     // We relax the alignment to pair because we will use the 4 registers as 2 pairs.
     Dyninst::Register regBlock = regSpace->allocateGprBlock(Dyninst::RegKind::SCALAR, /* numRegs */4, NS_amdgpu::PAIR_ALIGNMENT);

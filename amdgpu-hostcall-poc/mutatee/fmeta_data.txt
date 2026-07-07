@@ -1,0 +1,7 @@
+./a.out
+5
+8192 0 1-host-x86_64-unknown-linux--
+8192 23288 1-hipv4-amdgcn-amd-amdhsa--gfx906
+32768 23288 1-hipv4-amdgcn-amd-amdhsa--gfx908
+57344 25368 1-hipv4-amdgcn-amd-amdhsa--gfx90a
+86016 25112 1-hipv4-amdgcn-amd-amdhsa--gfx940
