@@ -2562,6 +2562,18 @@ bool indep_lwp_control_process::plat_syncRunState()
     	  if(thr->plat_handle_ghost_thread()) {
     		  thr->getHandlerState().setState(int_thread::running);
     	  }
+    	  else {
+             // ESRCH with the thread still alive: the kernel is in a
+             // transitional stop state (see plat_handle_ghost_thread) and the
+             // continue/stop will succeed once it settles.  Retry via a nop
+             // event rather than silently swallowing the failure -- otherwise
+             // the run-state divergence is left with no event in flight and
+             // the event loop parks forever.
+             pthrd_printf("Ptrace op failed on live thread %d/%d; scheduling retry\n",
+                          getPid(), thr->getLWP());
+             usleep(500);
+             throwNopEvent();
+    	  }
       }
       else if (!result) {
          pthrd_printf("Error changing process state from plat_syncRunState\n");
@@ -2982,6 +2994,23 @@ void int_thread::publishExitState(Thread::ptr w, Process::ptr proc_wrapper)
 bool int_thread::intStop()
 {
    pthrd_printf("intStop on thread %d/%d\n", llproc()->getPid(), getLWP());
+   {
+      int_thread::State gen_state = getGeneratorState().getState();
+      if (gen_state == int_thread::stopped || gen_state == int_thread::exited) {
+         // The generator has already observed this thread stop: its stop
+         // event is decoded and queued, and the handler will mark it stopped
+         // imminently.  Sending SIGSTOP now is unnecessary (the thread is
+         // already stopped) and harmful: the signal cannot be delivered while
+         // the thread is stopped, pinning the PendingStop state desync'd
+         // forever, and on Linux a STOP signal sent to an already
+         // ptrace-stopped thread can put it in a transitional state in which
+         // PTRACE_CONT persistently fails with ESRCH (see
+         // plat_handle_ghost_thread).  Treat the request as satisfied.
+         pthrd_printf("Not stopping %d/%d: generator already saw it stop\n",
+                      llproc()->getPid(), getLWP());
+         return true;
+      }
+   }
    if (!llproc()->plat_processGroupContinues()) {
       assert(!RUNNING_STATE(target_state));
       assert(RUNNING_STATE(getHandlerState().getState()));
