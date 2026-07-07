@@ -4519,7 +4519,18 @@ int_thread *int_threadPool::initialThread() const
 bool int_threadPool::allHandlerStopped()
 {
    for (iterator i = begin(); i != end(); i++) {
-      if ((*i)->getHandlerState().getState() != int_thread::stopped)
+      int_thread *thr = *i;
+      // A thread that has exited, or is in the process of exiting, cannot run
+      // and will be reaped once its (still pending) exit event is handled.  Its
+      // handler state can transiently still read 'running' in that window.
+      // Such a thread poses no risk to operations that only require the live
+      // threads to be quiesced (e.g. thread_db memory reads), so don't let it
+      // block them.  Mirrors the exiting-thread handling in syncRunState().
+      if (thr->getHandlerState().getState() == int_thread::exited ||
+          thr->getGeneratorState().getState() == int_thread::exited ||
+          thr->isExiting() || thr->isExitingInGenerator())
+         continue;
+      if (thr->getHandlerState().getState() != int_thread::stopped)
          return false;
    }
    return true;

@@ -1167,6 +1167,23 @@ Handler::handler_ret_t ThreadDBDispatchHandler::handleEvent(Event::ptr ev)
       pthrd_printf("Dropping dispatch event, another is in progress\n");
       return ret_success;
    }
+
+   // getEventForThread() reads the process's thread list out of memory, which
+   // must not race with a running thread.  The proc-stopping breakpoint that
+   // released this event only guaranteed the threads that existed when it was
+   // satisfied were stopped; a thread can be created (and left running) in the
+   // window before this handler runs.  Its ThreadCreate event is still pending
+   // in the mailbox and will stop it (see HandleThreadCreate).  Re-handle this
+   // event after that so the read happens only once every live thread is
+   // stopped.  allHandlerStopped() ignores exiting/exited threads, so this
+   // only defers for genuinely-running ones and converges as the pending
+   // create/stop events drain.  This check sits after the duplicate-drop so a
+   // redundant dispatch is discarded immediately instead of churning.
+   if (!int_ev->completed_new_evs && !proc->threadPool()->allHandlerStopped()) {
+      pthrd_printf("thread_db dispatch: not all threads stopped yet, deferring\n");
+      return ret_again;
+   }
+
    proc->dispatch_event = etdb;
 
    if (!int_ev->completed_new_evs) {
