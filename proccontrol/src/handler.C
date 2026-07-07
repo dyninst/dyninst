@@ -1026,6 +1026,21 @@ Handler::handler_ret_t HandleThreadDestroy::handleEvent(Event::ptr ev)
    return ret_success;
 }
 
+// Find any live thread in proc's pool.  Proc-wide state restores
+// (restoreStateProc) just walk the pool and only need a live thread as their
+// handle; used when the event's own thread has been destroyed.  The pool only
+// contains live threads (rmThread removes them before deletion), unlike
+// initialThread(), which can be stale during teardown.
+static int_thread *anyLiveThread(int_process *proc)
+{
+   if (!proc)
+      return NULL;
+   int_threadPool *pool = proc->threadPool();
+   if (!pool || pool->empty())
+      return NULL;
+   return *pool->begin();
+}
+
 HandleThreadCleanup::HandleThreadCleanup() :
    Handler("Thread Cleanup")
 {
@@ -1088,7 +1103,39 @@ Handler::handler_ret_t HandleThreadCleanup::handleEvent(Event::ptr ev)
 	   pthrd_printf("Thread for thread cleanup event is NULL. We have no work we can do.\n");
 	   return ret_success;
    }
-   pthrd_printf("Cleaning thread %d/%d from HandleThreadCleanup handler.\n", 
+   /**
+    * If this thread died while single-stepping over a cleared (suspended)
+    * breakpoint, the BreakpointRestore event that normally finishes the
+    * step-over is never generated -- the decoder only creates it on the
+    * thread's single-step trap, and this thread will never trap again.
+    * Without intervention the breakpoint stays out of memory and, for sw
+    * breakpoints, every other thread is left desync'd to stopped at the
+    * BreakpointResumeState level, permanently stopping the process.
+    * Perform the restore duties here, mirroring HandleBreakpointRestore.
+    * The dying thread is still in the pool, so one restoreStateProc walk
+    * exactly balances the one desync each thread received when the
+    * breakpoint was cleared.
+    **/
+   bp_instance *clearing_bp = thrd->isClearingBreakpoint();
+   if (clearing_bp) {
+      pthrd_printf("Thread %d/%d died mid breakpoint-clear; re-arming bp at 0x%lx and restoring states\n",
+                   proc->getPid(), thrd->getLWP(), clearing_bp->getAddr());
+      thrd->markClearingBreakpoint(NULL);
+      thrd->setSingleStepMode(false);
+
+      set<response::ptr> bp_resume_resps;
+      if (!clearing_bp->resume(proc, bp_resume_resps)) {
+         pthrd_printf("Failed to re-arm breakpoint after thread exit; continuing cleanup\n");
+      }
+
+      if (clearing_bp->swBP()) {
+         int_thread *live = anyLiveThread(proc);
+         if (live)
+            live->getBreakpointResumeState().restoreStateProc();
+      }
+   }
+
+   pthrd_printf("Cleaning thread %d/%d from HandleThreadCleanup handler.\n",
                 proc->getPid(), thrd->getLWP());
    int_thread::cleanFromHandler(thrd, should_delete);
    return ret_success;
@@ -1549,9 +1596,24 @@ Handler::handler_ret_t HandleBreakpointContinue::handleEvent(Event::ptr ev)
     **/
    EventBreakpoint *ebp = static_cast<EventBreakpoint *>(ev.get());
    int_eventBreakpoint *int_bp = ebp->getInternal();
-   
+
    if (int_bp->stopped_proc) {
-      ebp->getThread()->llthrd()->getBreakpointHoldState().restoreStateProc();
+      // procStopper() desync'd the proc-wide BreakpointHoldState; it MUST be
+      // restored or every surviving thread stays force-stopped and the
+      // process hangs.  The restore is a proc-wide walk that only needs a
+      // live thread as its handle: the event's thread may have been torn
+      // down (mutatee exiting) while this continue was in flight, so fall
+      // back to any live thread in the pool.  Only if the whole process is
+      // gone (state trackers destroyed with it) is skipping safe.
+      int_thread *thrd = ebp->getThread() ? ebp->getThread()->llthrd() : NULL;
+      if (!thrd) {
+         thrd = anyLiveThread(ev->getProcess() ? ev->getProcess()->llproc() : NULL);
+         pthrd_printf("Breakpoint-continue: event thread exited; restoring "
+                      "proc-wide hold via %s\n",
+                      thrd ? "another live thread" : "nothing (process gone)");
+      }
+      if (thrd)
+         thrd->getBreakpointHoldState().restoreStateProc();
    }
    return Handler::ret_success;
 }
@@ -1577,6 +1639,21 @@ Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
 {
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thrd = ev->getThread()->llthrd();
+
+   if (!proc || !thrd) {
+      // Thread (or process) torn down while this event was in flight.  If the
+      // proc-wide BreakpointState desync was taken (stopped_proc), it must
+      // still be undone via a surviving thread or every survivor stays
+      // force-stopped; a per-thread desync died with the thread.  Every other
+      // exit path of this handler restores this state -- so must this one.
+      EventBreakpointClear *evbpc_g = static_cast<EventBreakpointClear *>(ev.get());
+      int_eventBreakpointClear *int_bpc_g = evbpc_g->getInternal();
+      int_thread *live = anyLiveThread(proc);
+      if (int_bpc_g->stopped_proc && live)
+         live->getBreakpointState().restoreStateProc();
+      pthrd_printf("Breakpoint-clear for exited process/thread; restored state, ignoring.\n");
+      return ret_success;
+   }
 
    EventBreakpointClear *evbpc = static_cast<EventBreakpointClear *>(ev.get());
    int_eventBreakpointClear *int_bpc = evbpc->getInternal();
@@ -1692,6 +1769,19 @@ Handler::handler_ret_t HandleBreakpointRestore::handleEvent(Event::ptr ev)
 {
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thrd = ev->getThread()->llthrd();
+   if (!proc || !thrd) {
+      // Thread (or process) torn down mid-restore.  The proc-wide
+      // BreakpointResumeState desyncs taken when the breakpoint was cleared
+      // for single-stepping (sw breakpoints only) must still be undone via a
+      // surviving thread, or every survivor stays force-stopped.
+      EventBreakpointRestore *bpc_g = static_cast<EventBreakpointRestore *>(ev.get());
+      int_eventBreakpointRestore *int_bpc_g = bpc_g->getInternal();
+      int_thread *live = anyLiveThread(proc);
+      if (live && int_bpc_g->bp && int_bpc_g->bp->swBP())
+         live->getBreakpointResumeState().restoreStateProc();
+      pthrd_printf("Breakpoint-restore for exited process/thread; restored state, ignoring.\n");
+      return ret_success;
+   }
    EventBreakpointRestore *bpc = static_cast<EventBreakpointRestore *>(ev.get());
    int_eventBreakpointRestore *int_bpc = bpc->getInternal();
    bp_instance *bp = int_bpc->bp;
