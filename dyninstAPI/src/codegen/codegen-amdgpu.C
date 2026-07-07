@@ -115,6 +115,29 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
               if (slot)
                 slot->liveState = registerSlot::live;
             }
+            // Also reserve the trampoline's SGPR spill block. In scratch mode the
+            // grant is sized tight (maximizeSgprAllocationIfKernel) and emitCall
+            // places EXEC-save + SADDR just BELOW the special regs: reservedBase =
+            // grantTop-10. The wavefront SGPR count INCLUDES the special regs, and
+            // when FLAT_SCRATCH is used that's SIX at the top (VCC + XNACK slot +
+            // FLAT_SCRATCH, per LLVM getNumExtraSGPRs) — even with xnack- the xnack
+            // pair stays a reserved gap, so treat all 6 (grantTop-6..grantTop-1) as
+            // off-limits and put the 4-reg block below them. These must survive the
+            // whole kernel, so the springboard/call-target block this long-jump
+            // allocates must not land on them. (With the old maxed grant the block sat
+            // at s[92:95], far above anything the allocator picked; a tight grant
+            // brings it into reach, so reserve it.)
+            const uint32_t grantTop =
+                ((kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() / 2) + 1) * 16;
+            if (grantTop >= 10) {
+              for (uint32_t n = grantTop - 10; n < grantTop - 6; n++) {
+                Dyninst::Register r = Dyninst::Register::makeScalarRegister(
+                    Dyninst::OperandRegId(n), Dyninst::BlockSize(1));
+                registerSlot *slot = (*regSpace)[r];
+                if (slot)
+                  slot->liveState = registerSlot::live;
+              }
+            }
           }
         }
       }

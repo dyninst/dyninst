@@ -693,6 +693,28 @@ static uint32_t readCallerGrantedVgpr(func_instance *caller, codeGen &gen) {
   return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount() + 1) * 4;
 }
 
+// Number of numbered SGPRs granted to the caller kernel (= one past the highest
+// allocatable SGPR id). SGPR blocks are 16 wide: granulated = 2*((count/16)-1) =>
+// count = ((granulated/2)+1)*16. In scratch mode the reserved spill registers live
+// at the TOP of this grant (grantTop-4 .. grantTop-1), so emitCall and
+// generateBranch both derive the same reservedBase from it (maximizeSgprAlloc-
+// IfKernel sizes the grant for scratch). Returns 0 if the KD can't be read.
+static uint32_t readCallerGrantedSgprTop(func_instance *caller, codeGen &gen) {
+  AddressSpace *aSpace = gen.addrSpace();
+  if (!caller || !caller->obj() || !aSpace)
+    return 0;
+  int_symbol kdSym;
+  if (!caller->obj()->getSymbolInfo(caller->symTabName() + ".kd", kdSym))
+    return 0;
+  const size_t kdSize = sizeof(llvm::amdhsa::kernel_descriptor_t);
+  uint8_t kdBytes[sizeof(llvm::amdhsa::kernel_descriptor_t)];
+  if (!aSpace->readDataSpace(reinterpret_cast<const void *>(kdSym.getAddr()),
+                             static_cast<u_int>(kdSize), kdBytes, true))
+    return 0;
+  Dyninst::AmdgpuKernelDescriptor kd(kdBytes, kdSize, EF_AMDGPU_MACH_AMDGCN_GFX908);
+  return ((kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() / 2) + 1) * 16;
+}
+
 // ===========================================================================
 // gfx908 (CDNA1) ScratchAbi — the per-arch seam for scratch-based register spill
 // (see amdgpu-scratch-abi.h). gfx908 is the worst case: manual FLAT_SCRATCH init
@@ -744,11 +766,11 @@ public:
     // MUST be an ADD (base + per-wave offset), not a mov, or every wave aliases.
     emitSop2Raw(S_ADD_U32,  GFX908_FLAT_SCRATCH_LO, fsi,     waveoff,         gen); // FS_LO = fsi_lo + wave_off
     emitSop2Raw(S_ADDC_U32, GFX908_FLAT_SCRATCH_HI, fsi + 1, GFX908_INLINE_0, gen); // FS_HI = fsi_hi + carry
-
-    // gfx908 scratch addressing requires a SADDR *register* (both-operands-off is
-    // illegal). With the whole per-wave base in FLAT_SCRATCH, SADDR just has to be a
-    // constant 0 — one reserved SGPR (s94) instead of the old s[94:95] base pair.
-    emitSop1Raw(/*S_MOV_B32=*/0, GFX908_SADDR_BASE, GFX908_INLINE_0, gen);          // s94 = 0
+    // NOTE: the scratch SADDR register (=0) is NOT set here — it lives at the top of
+    // the tight grant (reservedBase+2, kernel-relative) and is zeroed per-trampoline
+    // in emitCall, so the prologue stays decoupled from reservedBase (FLAT_SCRATCH is
+    // a fixed special reg). This is what lets the grant be sized down to the actual
+    // requirement without the prologue needing to know it.
 
     // Enabling flat_scratch_init shifted the SYSTEM SGPRs up by 2 (Flat Scratch
     // Init occupies 2 user SGPRs). Move the ones the un-shifted kernel body reads
@@ -762,18 +784,18 @@ public:
     emitSopP(S_WAITCNT, /*simm16=*/0, gen);
   }
 
-  void emitScratchStore(uint32_t vreg, int32_t offset, codeGen &gen) override {
+  void emitScratchStore(uint32_t vreg, int32_t offset, uint32_t saddr, codeGen &gen) override {
     using namespace AmdgpuGfx908;
-    // SADDR = s94 (a reserved SGPR the prologue sets to 0); the per-wave 64-bit base
+    // SADDR = a reserved SGPR the trampoline sets to 0; the per-wave 64-bit base
     // comes implicitly from FLAT_SCRATCH; per-lane swizzle is automatic. addr(VADDR)
     // is ignored in SADDR mode (SADDR != 0x7f). glc for L2-coherence across the call.
     emitFlatGlobal(GLOBAL_STORE_DWORD, /*vdst=*/0, /*addr=*/0, /*data=*/vreg,
-                   GFX908_SADDR_BASE, offset, gen, /*glc=*/true, /*seg=*/1);
+                   saddr, offset, gen, /*glc=*/true, /*seg=*/1);
   }
-  void emitScratchLoad(uint32_t vreg, int32_t offset, codeGen &gen) override {
+  void emitScratchLoad(uint32_t vreg, int32_t offset, uint32_t saddr, codeGen &gen) override {
     using namespace AmdgpuGfx908;
     emitFlatGlobal(GLOBAL_LOAD_DWORD, /*vdst=*/vreg, /*addr=*/0, /*data=*/0,
-                   GFX908_SADDR_BASE, offset, gen, /*glc=*/true, /*seg=*/1);
+                   saddr, offset, gen, /*glc=*/true, /*seg=*/1);
   }
 };
 }  // namespace
@@ -857,7 +879,23 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   const uint32_t vBase = (kernelVgpr > nvgpr ? kernelVgpr : nvgpr);
   const uint32_t vAddr = vBase;                          // global: lane-offset reg
   const uint32_t vPack = useScratch ? vBase : vBase + 1; // scratch reclaims vAddr
-  const uint32_t SADDR_S94 = 94;    // scratch SADDR (=0) / global s[94:95] base
+
+  // Reserved SGPRs for the trampoline. GLOBAL: fixed high s[92:93] (EXEC save) +
+  // s[94:95] (base) — safe only because the SGPR grant is MAXED (nothing is that
+  // high). SCRATCH: no maxing — the reserved block sits near the TOP of a TIGHT
+  // grant sized by maximizeSgprAllocationIfKernel (gran 4 = 48 SGPRs). CRITICAL: the
+  // wavefront SGPR count INCLUDES the special regs (per AMDGPU ABI) — FLAT_SCRATCH =
+  // s[grantTop-4:grantTop-3], VCC = s[grantTop-2:grantTop-1] (xnack- => no XNACK
+  // pair). So the reserved block must go BELOW those 4 specials: reservedBase =
+  // grantTop-8. EXEC save at [reservedBase,+1], SADDR at reservedBase+2 (zeroed in
+  // the trampoline below). generateBranch reserves the SAME [reservedBase,+3] block
+  // so the springboard/call-target allocation can't collide. reservedBase is above
+  // the callee's clobber range because the grant top is sized above it.
+  const uint32_t sgprTop = useScratch ? readCallerGrantedSgprTop(caller, gen) : 0;
+  const uint32_t reservedBase = useScratch ? (sgprTop >= 10 ? sgprTop - 10 : 0) : 92;
+  const uint32_t EXEC_SAVE_REG = reservedBase;               // scratch top-4 / global 92
+  const uint32_t SADDR_REG = useScratch ? reservedBase + 2 : 94; // scratch SADDR=0 / global base
+  const uint32_t SADDR_S94 = SADDR_REG;  // global s[94:95] base name
   const uint32_t SGPR_AREA = 0;     // global: SGPR pack area  [0, 256)  (64 lanes * 4B)
   const uint32_t VGPR_AREA = 512;   // global: VGPR spill area [512, ...)
   const uint32_t S_SGPR_SLOT = 0;   // scratch: SGPR pack dword (per-lane, 4B)
@@ -894,7 +932,7 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
       emitVop3a(V_WRITELANE_B32, vPack, /*src0=*/106, /*src1=*/128 + nsave,     /*src2=*/0, gen); // vcc_lo
       emitVop3a(V_WRITELANE_B32, vPack, /*src0=*/107, /*src1=*/128 + nsave + 1, /*src2=*/0, gen); // vcc_hi
       if (useScratch) {
-        sabi.emitScratchStore(vPack, S_SGPR_SLOT, gen);   // FLAT_SCRATCH + SADDR(s94=0)
+        sabi.emitScratchStore(vPack, S_SGPR_SLOT, SADDR_REG, gen); // FLAT_SCRATCH + SADDR(=0)
       } else {
         emitLaneByteOffset();
         emitFlatGlobal(GLOBAL_STORE_DWORD, /*vdst=*/0, /*addr=*/vAddr, /*data=*/vPack,
@@ -903,7 +941,7 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
       emitSopP(S_WAITCNT, /*simm16=*/0, gen);
     } else {
       if (useScratch) {
-        sabi.emitScratchLoad(vPack, S_SGPR_SLOT, gen);
+        sabi.emitScratchLoad(vPack, S_SGPR_SLOT, SADDR_REG, gen);
       } else {
         emitLaneByteOffset();
         emitFlatGlobal(GLOBAL_LOAD_DWORD, /*vdst=*/vPack, /*addr=*/vAddr, /*data=*/0,
@@ -927,8 +965,8 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
       emitLaneByteOffset();
     for (uint32_t i = 0; i < nvgpr && i < 256; i++) {
       if (useScratch) {
-        if (save) sabi.emitScratchStore(/*vreg=*/i, S_VGPR_SLOT + i * 4, gen);
-        else      sabi.emitScratchLoad(/*vreg=*/i, S_VGPR_SLOT + i * 4, gen);
+        if (save) sabi.emitScratchStore(/*vreg=*/i, S_VGPR_SLOT + i * 4, SADDR_REG, gen);
+        else      sabi.emitScratchLoad(/*vreg=*/i, S_VGPR_SLOT + i * 4, SADDR_REG, gen);
       } else if (save) {
         emitFlatGlobal(GLOBAL_STORE_DWORD, /*vdst=*/0, /*addr=*/vAddr, /*data=*/i,
                        SADDR_S94, VGPR_AREA + i * 256, gen, /*glc=*/true);
@@ -959,14 +997,23 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // the callee's clobber range), run the spill under EXEC=-1, restore the caller
   // EXEC for the call and again for the post-call continuation. (No-op at full
   // EXEC, e.g. single-wave N<=64.)  S_MOV_B64=1; EXEC_LO=126; inline -1=193.
-  const uint32_t S_MOV_B64_OP = 1, EXEC_LO = 126, EXEC_SAVE = 92, INLINE_NEG1 = 193;
-  AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_SAVE, EXEC_LO,    gen);  // s[92:93] = exec
+  // EXEC_SAVE_REG is the reserved pair: s[92:93] (global, maxed grant) or the top
+  // of the tight scratch grant (reservedBase).
+  const uint32_t S_MOV_B64_OP = 1, EXEC_LO = 126, INLINE_NEG1 = 193;
+
+  // Scratch SADDR must be 0 (whole per-wave base is in FLAT_SCRATCH). Set it in the
+  // trampoline (reservedBase+2, above the callee clobber range so it survives the
+  // call). S_MOV_B32=0; inline 0=128.
+  if (useScratch)
+    AmdgpuGfx908::emitSop1Raw(/*S_MOV_B32=*/0, SADDR_REG, /*inline 0=*/128, gen);
+
+  AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_SAVE_REG, EXEC_LO,    gen);  // save exec
   AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO,   INLINE_NEG1, gen); // exec = -1 (all lanes)
 
   spillFill(/*save=*/true);
   vgprSpill(/*save=*/true);
 
-  AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO, EXEC_SAVE, gen);     // exec = caller (for call)
+  AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO, EXEC_SAVE_REG, gen);     // exec = caller (for call)
   Address slot = getInterModuleFuncAddr(callee, gen);
   emitIndirectCall(slot, lrPair, gen);
   AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO, INLINE_NEG1, gen);   // exec = -1 (for restore)
@@ -974,7 +1021,7 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   vgprSpill(/*save=*/false);
   spillFill(/*save=*/false);
 
-  AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO, EXEC_SAVE, gen);     // exec = caller (continue)
+  AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO, EXEC_SAVE_REG, gen);     // exec = caller (continue)
 
   // Grow the caller kernel's register/scratch grant to fit the callee.
   bumpCallerKdForCallee(caller, callee, gen);

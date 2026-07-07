@@ -81,10 +81,16 @@ BPatch_variableExpr* AmdgpuGfx908PointHandler::getKernelDescriptorVariable(BPatc
   return nullptr;
 }
 
+// Granulated wavefront SGPR count needed to make `sgprCount` numbered SGPRs (s0..)
+// physically allocated. Blocks are 16 SGPRs wide (per the LLVM AMDGPUUsage math:
+// numBlocks = 2 * ((sgprCount / 16) - 1)); round the request up to a 16 multiple.
+uint32_t AmdgpuGfx908PointHandler::granulatedSgprCountFor(uint32_t sgprCount) const {
+  const uint32_t rounded = ((sgprCount + 15) / 16) * 16;   // round up to 16
+  return 2 * ((rounded / 16) - 1);
+}
+
 uint32_t AmdgpuGfx908PointHandler::getMaxGranulatedWavefrontSgprCount() const {
-  // This math comes from LLVM AMDGPUUsage documentation
-  const uint32_t maxSgprCount = 112; // Set SGPRs to 112 (max value)
-  return 2 * ((maxSgprCount / 16) - 1);
+  return granulatedSgprCountFor(112); // 112 = architectural max
 }
 
 // This returns the maximum SGPR ID by looking at the number of SGPR blocks allocated in the
@@ -223,7 +229,24 @@ void AmdgpuGfx908PointHandler::maximizeSgprAllocationIfKernel(BPatch_function *f
 
   AmdgpuKernelDescriptor kd(rawKd, this->eflag);
 
-  uint32_t newValue = this->getMaxGranulatedWavefrontSgprCount();
+  // GLOBAL path: max the SGPR grant (the reserved highs s[92:95] are safe only
+  // because nothing is granted that high). SCRATCH path: size to the ACTUAL
+  // requirement — the reserved spill block (EXEC pair + SADDR pair = 4) sits at the
+  // TOP of a tight grant, and emitCall/generateBranch derive reservedBase =
+  // grantTop-4 from it. 48 SGPRs (gran 4) => reservedBase 44, above the kernel's
+  // usage and the callee's transitive footprint (<= 44; our library uses 32). A
+  // kernel that itself uses more gets max(its usage + 8, 48). VCC (s106:107) and
+  // FLAT_SCRATCH (s102:103) are SPECIAL regs, allocated independently of the count.
+  uint32_t newValue;
+  if (getenv("DYNINST_SPILL_SCRATCH") != nullptr) {
+    const uint32_t kScratchGrant = 48;   // gran 4; reserved block at s44..s47
+    const uint32_t kernelUsed = getMaxUsedSgprId(kd);
+    uint32_t required = kernelUsed + 8;  // keep reserved block above kernel usage
+    if (required < kScratchGrant) required = kScratchGrant;
+    newValue = granulatedSgprCountFor(required);
+  } else {
+    newValue = this->getMaxGranulatedWavefrontSgprCount();
+  }
   kd.setCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount(newValue);
 
   uint32_t kernargSize = kd.getKernargSize();

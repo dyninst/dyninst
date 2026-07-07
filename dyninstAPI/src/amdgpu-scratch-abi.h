@@ -57,9 +57,12 @@ public:
 
   // Per-lane spill of a single VGPR to/from private byte `offset`. Hardware
   // swizzles per lane; the per-wave base was established by the prologue. With
-  // per-lane swizzle each register occupies only 4 bytes of the slot.
-  virtual void emitScratchStore(uint32_t vreg, int32_t offset, codeGen &gen) = 0;
-  virtual void emitScratchLoad(uint32_t vreg, int32_t offset, codeGen &gen) = 0;
+  // per-lane swizzle each register occupies only 4 bytes of the slot. `saddr` is
+  // the SGPR holding the intra-wave byte offset (must be 0 for our base) — gfx908
+  // requires a SADDR register (both-operands-off is illegal); the caller reserves
+  // it just above the live register range and zeroes it in the trampoline.
+  virtual void emitScratchStore(uint32_t vreg, int32_t offset, uint32_t saddr, codeGen &gen) = 0;
+  virtual void emitScratchLoad(uint32_t vreg, int32_t offset, uint32_t saddr, codeGen &gen) = 0;
 };
 
 // gfx908 (CDNA1) implementation (defined in emit-amdgpu.C).
