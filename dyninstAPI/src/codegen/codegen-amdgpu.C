@@ -61,10 +61,8 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
 
   Emitter *emitter = gen.emitter();
 
-  if (wordOffset > INT16_MIN && wordOffset <= INT16_MAX) {
-    // S_BRANCH target = (PC_of_branch + 4) + SIMM16*4, so SIMM16 = disp/4 - 1
-    // (the -1 is the +4 in dword units; same for forward and backward jumps).
-    emitter->emitShortJump(wordOffset - 1, gen);
+  if (wordOffset >= INT16_MIN && wordOffset <= INT16_MAX) {
+    emitter->emitShortJump(wordOffset, gen);
   } else {
     auto as = gen.addrSpace();
     block_instance *blockInstance = as->findBlockByEntry(from);
