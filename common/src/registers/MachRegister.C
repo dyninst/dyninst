@@ -172,56 +172,23 @@ namespace Dyninst {
         return *this;
       }
 
-      case Arch_amdgpu_gfx908: {
-        if(category == amdgpu_gfx908::MISC) {
-          switch(val()) {
-            case amdgpu_gfx908::ivcc_lo:
-            case amdgpu_gfx908::ivcc_hi:
-              return amdgpu_gfx908::vcc;
-            case amdgpu_gfx908::iexec_lo:
-            case amdgpu_gfx908::iexec_hi:
-              return amdgpu_gfx908::exec;
-            case amdgpu_gfx908::iflat_scratch_lo:
-            case amdgpu_gfx908::iflat_scratch_hi:
-              return amdgpu_gfx908::flat_scratch_all;
-          }
-        }
+      case Arch_amdgpu_gfx908:
+      case Arch_amdgpu_gfx90a:
+      case Arch_amdgpu_gfx940:
+        // On AMDGPU each of vcc_lo/vcc_hi, exec_lo/exec_hi and
+        // flat_scratch_lo/flat_scratch_hi IS a base register: an independently
+        // addressable 32-bit SGPR, and exactly the entries used by the liveness
+        // index map (machRegIndex_amdgpu_*) and the register-conversion maps.
+        // These must NOT alias to the combined 64-bit vcc/exec/flat_scratch_all:
+        // those combined registers are absent from those maps, so aliasing made
+        //   - LivenessAnalyzer::calcRWSets getIndex() return -1 -> VCC/EXEC/
+        //     FLAT_SCRATCH reads AND writes were silently dropped, so e.g. VCC was
+        //     reported dead across a live carry chain (v_add_co/v_addc_co) and a
+        //     liveness-driven register spill would clobber it, and
+        //   - convertRegID() miss the lookup and return "ignored".
+        // A 64-bit VCC/EXEC operand is already emitted by the decoder as a
+        // MultiRegister of its two halves, so nothing needs the combined form here.
         return *this;
-      }
-
-      case Arch_amdgpu_gfx90a: {
-        if(category == amdgpu_gfx90a::MISC) {
-          switch(val()) {
-            case amdgpu_gfx90a::ivcc_lo:
-            case amdgpu_gfx90a::ivcc_hi:
-              return amdgpu_gfx90a::vcc;
-            case amdgpu_gfx90a::iexec_lo:
-            case amdgpu_gfx90a::iexec_hi:
-              return amdgpu_gfx90a::exec;
-            case amdgpu_gfx90a::iflat_scratch_lo:
-            case amdgpu_gfx90a::iflat_scratch_hi:
-              return amdgpu_gfx90a::flat_scratch_all;
-          }
-        }
-        return *this;
-      }
-
-      case Arch_amdgpu_gfx940: {
-        if(category == amdgpu_gfx940::MISC) {
-          switch(val()) {
-            case amdgpu_gfx940::ivcc_lo:
-            case amdgpu_gfx940::ivcc_hi:
-              return amdgpu_gfx940::vcc;
-            case amdgpu_gfx940::iexec_lo:
-            case amdgpu_gfx940::iexec_hi:
-              return amdgpu_gfx940::exec;
-            case amdgpu_gfx940::iflat_scratch_lo:
-            case amdgpu_gfx940::iflat_scratch_hi:
-              return amdgpu_gfx940::flat_scratch_all;
-          }
-        }
-        return *this;
-      }
 
       case Arch_ppc32: {
         auto ppc_id = [](MachRegister r) {
