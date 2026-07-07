@@ -983,12 +983,57 @@ bool int_process::waitAndHandleForProc(bool block, int_process *proc, bool &proc
 #define UNSET_CHECK        -8
 #define printCheck(VAL)    (((int) VAL) == UNSET_CHECK ? '?' : (VAL ? 'T' : 'F'))
 
+// for_each callback: note processes with a thread whose computed run target
+// diverges from its actual handler state (e.g. handler-stopped but targeted
+// running so an in-flight SIGSTOP can be delivered).  Runs under the ProcPool
+// lock, so it must not call syncRunState itself.
+static bool collectDivergentRunStateProcs(int_process *p, void *data)
+{
+   std::vector<int_process *> *out = (std::vector<int_process *> *) data;
+   if (p->getState() == int_process::exited || p->getState() == int_process::errorstate)
+      return true;
+   int_threadPool *tp = p->threadPool();
+   if (!tp)
+      return true;
+   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
+      int_thread *thr = *i;
+      int_thread::State active = thr->getActiveState().getState();
+      if (active == int_thread::ditto)
+         active = thr->getHandlerState().getState();
+      if (RUNNING_STATE(active) != RUNNING_STATE(thr->getHandlerState().getState())) {
+         out->push_back(p);
+         return true;
+      }
+   }
+   return true;
+}
+
+// Re-run syncRunState for any process left with a divergent thread; returns
+// true if any process needed it.  See the self-heal comments in
+// waitAndHandleEvents.
+bool int_process::syncDivergentRunStates()
+{
+   std::vector<int_process *> divergent;
+   ProcPool()->for_each(collectDivergentRunStateProcs, &divergent);
+   if (divergent.empty())
+      return false;
+   pthrd_printf("Self-heal: %d proc(s) have divergent run states, re-syncing\n",
+                (int) divergent.size());
+   for (std::vector<int_process *>::iterator i = divergent.begin();
+        i != divergent.end(); i++) {
+      if (!(*i)->syncRunState())
+         pthrd_printf("Self-heal syncRunState failed on %d\n", (*i)->getPid());
+   }
+   return true;
+}
+
 bool int_process::waitAndHandleEvents(bool block)
 {
    pthrd_printf("Top of waitAndHandleEvents.  Block = %s\n", block ? "true" : "false");
    bool gotEvent = false;
    assert(!int_process::in_callback);
    bool error = false;
+   bool preblock_synced = false;
 
    static bool recurse = false;
    assert(!recurse);
@@ -1044,6 +1089,24 @@ bool int_process::waitAndHandleEvents(bool block)
       //      over it while (should_block == true), with a condition variable signaling when the
       //      should_block would go to false (so we don't just spin).
 
+      /**
+       * Self-heal before parking: a thread can be left with an actionable
+       * run-state divergence -- e.g. handler-stopped but targeted running so
+       * that an in-flight SIGSTOP can be delivered (PendingStop state) -- with
+       * no event in flight to drive another syncRunState pass.  Parking now
+       * would deadlock: the mailbox stays empty precisely because the thread
+       * was never continued.  Re-run syncRunState once for such processes;
+       * it is idempotent, and any action it takes (e.g. continuing the thread
+       * so the pending stop is delivered) produces the event that wakes the
+       * dequeue below.  If the divergence is not resolvable we park exactly
+       * as before -- the sweep runs at most once per park.
+       **/
+      if (should_block && !preblock_synced) {
+         preblock_synced = true;
+         if (syncDivergentRunStates())
+            continue;
+      }
+
       if (should_block && Counter::globalCount(Counter::ForceGeneratorBlock)) {
          // Entirely possible we didn't continue anything, but we want the generator to
          // wake up anyway
@@ -1054,6 +1117,18 @@ bool int_process::waitAndHandleEvents(bool block)
 
       if (ev == Event::ptr())
       {
+         /**
+          * Mailbox drained.  This is the other park point: the handler thread
+          * services events with block=false and returns here when done, and a
+          * divergence formed during its handling (see above) would otherwise
+          * be left for nobody -- the main thread may already be blocked in
+          * its own dequeue.  Sweep once before giving up.
+          **/
+         if (!preblock_synced) {
+            preblock_synced = true;
+            if (syncDivergentRunStates())
+               continue;
+         }
          if (gotEvent) {
             pthrd_printf("Returning after handling events\n");
             goto done;
@@ -1088,6 +1163,7 @@ bool int_process::waitAndHandleEvents(bool block)
       }
 
       gotEvent = true;
+      preblock_synced = false;
 
       bool terminating = (ev->getProcess()->isTerminated());
 

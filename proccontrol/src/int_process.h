@@ -359,6 +359,7 @@ class int_process
    virtual void freeExecMemory(Dyninst::Address addr);
 
    static bool waitAndHandleEvents(bool block);
+   static bool syncDivergentRunStates();
    static bool waitAndHandleForProc(bool block, int_process *proc, bool &proc_exited);
    static bool waitForAsyncEvent(response::ptr resp);
    static bool waitForAsyncEvent(std::set<response::ptr> resp);
