@@ -496,6 +496,16 @@ static uint32_t readCalleeMaxAbsSym(func_instance *callee, const char *key);
 // granted VGPR count the first time we see it, and derive both the bump target
 // and vAddr from that fixed value rather than the live (growing) grant.
 static std::map<func_instance *, uint32_t> g_origGrantedVgpr;
+
+// Scalars packed per pack-VGPR in the SGPR spill = wavefront width (wave64 = 64
+// lanes; one v_writelane per lane). Overridable (clamped to <=64) purely to force
+// numPacks>1 for testing the multi-pack path with a small callee; production = 64.
+static uint32_t spillPackLanes() {
+  const char *e = getenv("DYNINST_PACK_LANES");
+  if (!e) return 64;
+  uint32_t v = (uint32_t)atoi(e);
+  return (v == 0 || v > 64) ? 64 : v;
+}
 static uint32_t readCallerOriginalGrantedVgpr(func_instance *caller, codeGen &gen) {
   auto it = g_origGrantedVgpr.find(caller);
   if (it != g_origGrantedVgpr.end())
@@ -577,25 +587,37 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
 
   Dyninst::AmdgpuKernelDescriptor kd(kdBytes, kdSize, EF_AMDGPU_MACH_AMDGCN_GFX908);
 
+  // 0.4: the SGPR spill packs {calleeSgpr numbered SGPRs, VCC_lo, VCC_hi} one-per-
+  // lane across ceil((calleeSgpr+2)/64) pack VGPRs (must match numPacks in emitCall).
+  // The spill ALWAYS runs (VCC alone needs a pack even if calleeSgpr==0).
+  const uint32_t calleeSgpr = readCalleeMaxAbsSym(callee, "numbered_sgpr");
+  const uint32_t packLanes  = spillPackLanes();   // must match emitCall
+  const uint32_t numPacks   = (calleeSgpr + 2u + packLanes - 1u) / packLanes;
+  const bool useScratch     = (getenv("DYNINST_SPILL_SCRATCH") != nullptr);
+
   // VGPR: gfx9/wave64 granule = 4; granted = (granulated + 1) * 4. To fit N regs,
-  // granulated = ceil(N/4) - 1. Only ever raise the grant. The grant must cover
-  // the callee's VGPRs, the kernel's own VGPRs, AND one extra scratch VGPR
-  // (vAddr) that the per-lane VGPR spill in emitCall uses for addressing — vAddr
-  // = max(kernelVgpr, calleeVgpr), so reserve max(...)+1.
-  if (calleeVgpr > 0) {
-    // Use the kernel's ORIGINAL granted VGPR count (cached), NOT the live grant
-    // read from kdBytes — otherwise each inserted call reads the previously-
-    // raised grant and ratchets the count upward (→ gran 31 / 128 VGPRs).
+  // granulated = ceil(N/4) - 1. Only ever raise. The grant must cover the callee's
+  // and kernel's VGPRs plus the spill's scratch VGPRs: numPacks SGPR-pack regs, and
+  // (global path only) the vAddr lane-offset reg (the scratch path reclaims it).
+  {
+    // Use the kernel's ORIGINAL granted VGPR count (cached), NOT the live grant read
+    // from kdBytes — otherwise each inserted call reads the previously-raised grant
+    // and ratchets the count upward.
     const uint32_t curVgpr = readCallerOriginalGrantedVgpr(caller, gen);
     const uint32_t vAddr   = (curVgpr > calleeVgpr ? curVgpr : calleeVgpr);
-    // Reserve the scratch VGPR(s) above the usage. Global path needs TWO (vAddr lane
-    // offset + vPack SGPR-pack reg); the scratch path reclaims vAddr (hardware
-    // per-lane swizzle) so it needs only ONE (vPack).
-    const bool useScratch = (getenv("DYNINST_SPILL_SCRATCH") != nullptr);
-    const uint32_t needVgpr = vAddr + (useScratch ? 1 : 2);
+    const uint32_t needVgpr = vAddr + (useScratch ? numPacks : 1u + numPacks);
     const uint32_t neededGran = (needVgpr + 3u) / 4u - 1u;
     if (neededGran > kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount())
       kd.setCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount(neededGran);
+
+    // 0.3: size the scratch spill slot to the footprint = numPacks SGPR-pack dwords +
+    // calleeVgpr VGPR dwords = 4*(numPacks+nvgpr) bytes/lane. The hardcoded 256 in
+    // enableScratchInKD overflows for large footprints -> scratch aperture violation.
+    if (useScratch) {
+      const uint32_t spillSlot = 4u * (numPacks + calleeVgpr);
+      if (spillSlot > kd.getPrivateSegmentFixedSize())
+        kd.setPrivateSegmentFixedSize(spillSlot);
+    }
   }
 
   // Scratch: reserve only if the callee actually uses private/scratch memory.
@@ -878,7 +900,13 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   const uint32_t kernelVgpr = readCallerOriginalGrantedVgpr(caller, gen);
   const uint32_t vBase = (kernelVgpr > nvgpr ? kernelVgpr : nvgpr);
   const uint32_t vAddr = vBase;                          // global: lane-offset reg
-  const uint32_t vPack = useScratch ? vBase : vBase + 1; // scratch reclaims vAddr
+  const uint32_t vPack = useScratch ? vBase : vBase + 1; // scratch reclaims vAddr; base of the pack VGPRs
+  // The SGPR spill packs {nsgpr numbered SGPRs, vcc_lo, vcc_hi} one-per-lane. Each
+  // pack VGPR holds 64 lanes, so cover them with ceil((nsgpr+2)/64) pack VGPRs
+  // (vPack .. vPack+numPacks-1) — no 62-SGPR limit; each just needs one more dword
+  // of scratch. numPacks==1 for typical callees, reproducing the single-pack path.
+  const uint32_t packLanes = spillPackLanes();   // 64 (wave64); overridable for testing
+  const uint32_t numPacks = (nsgpr + 2u + packLanes - 1u) / packLanes;
 
   // Reserved SGPRs for the trampoline. GLOBAL: fixed high s[92:93] (EXEC save) +
   // s[94:95] (base) — safe only because the SGPR grant is MAXED (nothing is that
@@ -897,9 +925,9 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   const uint32_t SADDR_REG = useScratch ? reservedBase + 2 : 94; // scratch SADDR=0 / global base
   const uint32_t SADDR_S94 = SADDR_REG;  // global s[94:95] base name
   const uint32_t SGPR_AREA = 0;     // global: SGPR pack area  [0, 256)  (64 lanes * 4B)
-  const uint32_t VGPR_AREA = 512;   // global: VGPR spill area [512, ...)
+  const uint32_t VGPR_AREA = numPacks * 256;   // global: VGPR spill area, after the packs (256B/pack)
   const uint32_t S_SGPR_SLOT = 0;   // scratch: SGPR pack dword (per-lane, 4B)
-  const uint32_t S_VGPR_SLOT = 4;   // scratch: VGPR spill area (v_i at +i*4)
+  const uint32_t S_VGPR_SLOT = numPacks * 4; // scratch: VGPR spill area, after the packs
 
   // vAddr = lane*4 (absolute lane id via mbcnt over an all-ones mask: -1=193, 0=128).
   auto emitLaneByteOffset = [&]() {
@@ -924,34 +952,52 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // per-wave base in s[94:95] (scratch mode) gives INTER-wave separation. Same
   // code for both modes; only the prologue differs in what base it puts in
   // s[94:95] (per-wave scratch region vs. the launcher's shared buffer).
-  const uint32_t nsave = (nsgpr < 62 ? nsgpr : 62);   // keep the 2 vcc lanes < 64
+  // Pack the callee-clobbered scalars {s0..s(nsgpr-1), vcc_lo, vcc_hi} one-per-lane
+  // across numPacks VGPRs (64 lanes each): scalar index i -> s_i (i<nsgpr), else
+  // vcc_lo (i==nsgpr) / vcc_hi (i==nsgpr+1). Each pack VGPR spills to its own dword
+  // slot, so there is no 62-SGPR limit. VCC(106/107) and s_i are fixed operand
+  // encodings the HW maps to the wave's physical SGPRs regardless of the grant.
+  const uint32_t nScalars = nsgpr + 2;
+  auto packSrc = [&](uint32_t idx) -> uint32_t {
+    return (idx < nsgpr) ? idx : (idx == nsgpr ? 106u : 107u);
+  };
   auto spillFill = [&](bool save) {
     if (save) {
-      for (uint32_t s = 0; s < nsave; s++)                                   // s0..s(nsave-1)
-        emitVop3a(V_WRITELANE_B32, /*vdst=*/vPack, /*src0=*/s, /*src1=*/128 + s, /*src2=*/0, gen);
-      emitVop3a(V_WRITELANE_B32, vPack, /*src0=*/106, /*src1=*/128 + nsave,     /*src2=*/0, gen); // vcc_lo
-      emitVop3a(V_WRITELANE_B32, vPack, /*src0=*/107, /*src1=*/128 + nsave + 1, /*src2=*/0, gen); // vcc_hi
-      if (useScratch) {
-        sabi.emitScratchStore(vPack, S_SGPR_SLOT, SADDR_REG, gen); // FLAT_SCRATCH + SADDR(=0)
-      } else {
+      for (uint32_t p = 0; p < numPacks; p++)
+        for (uint32_t l = 0; l < packLanes; l++) {
+          const uint32_t idx = p * packLanes + l;
+          if (idx >= nScalars) break;
+          emitVop3a(V_WRITELANE_B32, /*vdst=*/vPack + p, /*src0=*/packSrc(idx),
+                    /*src1=*/128 + l, /*src2=*/0, gen);
+        }
+      if (!useScratch)
         emitLaneByteOffset();
-        emitFlatGlobal(GLOBAL_STORE_DWORD, /*vdst=*/0, /*addr=*/vAddr, /*data=*/vPack,
-                       SADDR_S94, SGPR_AREA, gen, /*glc=*/true);
+      for (uint32_t p = 0; p < numPacks; p++) {
+        if (useScratch)
+          sabi.emitScratchStore(vPack + p, S_SGPR_SLOT + p * 4, SADDR_REG, gen);
+        else
+          emitFlatGlobal(GLOBAL_STORE_DWORD, /*vdst=*/0, /*addr=*/vAddr, /*data=*/vPack + p,
+                         SADDR_S94, SGPR_AREA + p * 256, gen, /*glc=*/true);
       }
       emitSopP(S_WAITCNT, /*simm16=*/0, gen);
     } else {
-      if (useScratch) {
-        sabi.emitScratchLoad(vPack, S_SGPR_SLOT, SADDR_REG, gen);
-      } else {
+      if (!useScratch)
         emitLaneByteOffset();
-        emitFlatGlobal(GLOBAL_LOAD_DWORD, /*vdst=*/vPack, /*addr=*/vAddr, /*data=*/0,
-                       SADDR_S94, SGPR_AREA, gen, /*glc=*/true);
+      for (uint32_t p = 0; p < numPacks; p++) {
+        if (useScratch)
+          sabi.emitScratchLoad(vPack + p, S_SGPR_SLOT + p * 4, SADDR_REG, gen);
+        else
+          emitFlatGlobal(GLOBAL_LOAD_DWORD, /*vdst=*/vPack + p, /*addr=*/vAddr, /*data=*/0,
+                         SADDR_S94, SGPR_AREA + p * 256, gen, /*glc=*/true);
       }
       emitSopP(S_WAITCNT, /*simm16=*/0, gen);
-      for (uint32_t s = 0; s < nsave; s++)                                   // vsrc = 256+vPack
-        emitVop3a(V_READLANE_B32, /*vdst=*/s, /*src0=*/256 + vPack, /*src1=*/128 + s, /*src2=*/0, gen);
-      emitVop3a(V_READLANE_B32, /*vdst=*/106, 256 + vPack, /*src1=*/128 + nsave,     /*src2=*/0, gen); // vcc_lo
-      emitVop3a(V_READLANE_B32, /*vdst=*/107, 256 + vPack, /*src1=*/128 + nsave + 1, /*src2=*/0, gen); // vcc_hi
+      for (uint32_t p = 0; p < numPacks; p++)
+        for (uint32_t l = 0; l < packLanes; l++) {
+          const uint32_t idx = p * packLanes + l;
+          if (idx >= nScalars) break;
+          emitVop3a(V_READLANE_B32, /*vdst=*/packSrc(idx), /*src0=*/256 + (vPack + p),
+                    /*src1=*/128 + l, /*src2=*/0, gen);
+        }
     }
   };
 
