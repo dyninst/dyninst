@@ -61,8 +61,10 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
 
   Emitter *emitter = gen.emitter();
 
-  if (wordOffset >= INT16_MIN && wordOffset <= INT16_MAX) {
-    emitter->emitShortJump(wordOffset, gen);
+  if (wordOffset > INT16_MIN && wordOffset <= INT16_MAX) {
+    // S_BRANCH target = (PC_of_branch + 4) + SIMM16*4, so SIMM16 = disp/4 - 1
+    // (the -1 is the +4 in dword units; same for forward and backward jumps).
+    emitter->emitShortJump(wordOffset - 1, gen);
   } else {
     auto as = gen.addrSpace();
     block_instance *blockInstance = as->findBlockByEntry(from);
@@ -210,9 +212,11 @@ bool insnCodeGen::modifyJcc(Dyninst::Address target, NS_amdgpu::instruction &ins
   emitter->emitShortJump(1, gen); // GPU does (1)*4 + 4 and computes target = <X+4> + 8 = X+12 i.e C
 
   // Now emit jump A, the original target.
-  // S_BRANCH target = (PC_of_branch + 4) + SIMM16*4, so SIMM16 = disp/4 - 1;
-  // without the -1 the branch lands one instruction past the target (e.g. a loop
-  // back-edge would skip the loop head's first instruction).
+  // S_BRANCH computes its destination as (PC_of_branch + 4) + SIMM16*4, so the
+  // encoded SIMM16 must be (disp/4 - 1), NOT disp/4. Without the -1 the branch
+  // lands ONE instruction (4 bytes) past the target. For a loop back-edge that
+  // skips the loop head's first instruction — e.g. it dropped the induction
+  // variable's decrement out of the loop, giving an infinite loop.
   long from = gen.currAddr();
   long disp = target - from;
   int16_t wordOffset = disp / 4 - 1;
