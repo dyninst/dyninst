@@ -8655,9 +8655,12 @@ bool ProcStopEventManager::prepEvent(Event::ptr ev)
       return true;
    }
 
+   // The event's thread may already have exited (llthrd() NULL): don't crash
+   // in debug logging.
    pthrd_printf("Adding event %s on %d/%d to pending proc stopper list\n",
                 ev->name().c_str(), ev->getProcess()->llproc()->getPid(),
-                ev->getThread()->llthrd()->getLWP());
+                (ev->getThread() && ev->getThread()->llthrd()) ?
+                   ev->getThread()->llthrd()->getLWP() : (Dyninst::LWP)-1);
    pair<set<Event::ptr>::iterator, bool> result = held_pstop_events.insert(ev);
    assert(result.second);
    return false;
@@ -8674,7 +8677,8 @@ void ProcStopEventManager::checkEvents()
 
       pthrd_printf("ProcStop event %s on %d/%d is ready, adding to queue\n",
                 ev->name().c_str(), ev->getProcess()->llproc()->getPid(),
-                ev->getThread()->llthrd()->getLWP());
+                (ev->getThread() && ev->getThread()->llthrd()) ?
+                   ev->getThread()->llthrd()->getLWP() : (Dyninst::LWP)-1);
 
       i = held_pstop_events.erase(i);
       mbox()->enqueue(ev);
