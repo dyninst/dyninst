@@ -588,9 +588,11 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
     // raised grant and ratchets the count upward (→ gran 31 / 128 VGPRs).
     const uint32_t curVgpr = readCallerOriginalGrantedVgpr(caller, gen);
     const uint32_t vAddr   = (curVgpr > calleeVgpr ? curVgpr : calleeVgpr);
-    // Reserve TWO scratch VGPRs above the usage: vAddr (lane offset) and
-    // vPack = vAddr+1 (SGPR packing reg for the vector-path SGPR spill).
-    const uint32_t needVgpr = vAddr + 2;
+    // Reserve the scratch VGPR(s) above the usage. Global path needs TWO (vAddr lane
+    // offset + vPack SGPR-pack reg); the scratch path reclaims vAddr (hardware
+    // per-lane swizzle) so it needs only ONE (vPack).
+    const bool useScratch = (getenv("DYNINST_SPILL_SCRATCH") != nullptr);
+    const uint32_t needVgpr = vAddr + (useScratch ? 1 : 2);
     const uint32_t neededGran = (needVgpr + 3u) / 4u - 1u;
     if (neededGran > kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount())
       kd.setCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount(neededGran);
@@ -732,13 +734,21 @@ public:
     const uint32_t fsi     = (uint32_t)L.flatScratchInit;   // e.g. s[6:7]
     const uint32_t waveoff = (uint32_t)L.waveOffset;        // e.g. s9
 
-    // Build a PER-WAVE 64-bit scratch base in s[94:95] = flat_scratch_init +
-    // wave_offset (per ABI: flat_scratch_init is per-queue, wave_offset per-wave).
-    // The spill uses s[94:95] as the global-memory base (proven path) + per-lane
-    // vAddr, so each wave writes its own region — the multi-wave fix. MUST be an
-    // ADD (base + offset), not a mov, or every wave aliases the same address.
-    emitSop2Raw(S_ADD_U32,  GFX908_SADDR_BASE,     fsi,     waveoff,         gen); // s94 = fsi_lo + wave_off
-    emitSop2Raw(S_ADDC_U32, GFX908_SADDR_BASE + 1, fsi + 1, GFX908_INLINE_0, gen); // s95 = fsi_hi + carry
+    // Set FLAT_SCRATCH (s[102:103]) = flat_scratch_init + wave_offset — the exact
+    // per-wave base the compiler computes (verified vs scratch_probe:
+    // `s_add_u32 flat_scratch_lo, s6, s9`). gfx908 does NOT pre-init FLAT_SCRATCH, so
+    // we compute it here. It's a SPECIAL register (above MAX_SGPR_ID), NOT from the
+    // allocatable pool, so it costs zero GP SGPRs. wave_offset (s9) is CONSUMED here
+    // and dead afterward — the scratch_* spills read the base implicitly from
+    // FLAT_SCRATCH, so no s[94:95] pair and no per-lane vAddr are needed.
+    // MUST be an ADD (base + per-wave offset), not a mov, or every wave aliases.
+    emitSop2Raw(S_ADD_U32,  GFX908_FLAT_SCRATCH_LO, fsi,     waveoff,         gen); // FS_LO = fsi_lo + wave_off
+    emitSop2Raw(S_ADDC_U32, GFX908_FLAT_SCRATCH_HI, fsi + 1, GFX908_INLINE_0, gen); // FS_HI = fsi_hi + carry
+
+    // gfx908 scratch addressing requires a SADDR *register* (both-operands-off is
+    // illegal). With the whole per-wave base in FLAT_SCRATCH, SADDR just has to be a
+    // constant 0 — one reserved SGPR (s94) instead of the old s[94:95] base pair.
+    emitSop1Raw(/*S_MOV_B32=*/0, GFX908_SADDR_BASE, GFX908_INLINE_0, gen);          // s94 = 0
 
     // Enabling flat_scratch_init shifted the SYSTEM SGPRs up by 2 (Flat Scratch
     // Init occupies 2 user SGPRs). Move the ones the un-shifted kernel body reads
@@ -754,13 +764,16 @@ public:
 
   void emitScratchStore(uint32_t vreg, int32_t offset, codeGen &gen) override {
     using namespace AmdgpuGfx908;
+    // SADDR = s94 (a reserved SGPR the prologue sets to 0); the per-wave 64-bit base
+    // comes implicitly from FLAT_SCRATCH; per-lane swizzle is automatic. addr(VADDR)
+    // is ignored in SADDR mode (SADDR != 0x7f). glc for L2-coherence across the call.
     emitFlatGlobal(GLOBAL_STORE_DWORD, /*vdst=*/0, /*addr=*/0, /*data=*/vreg,
-                   GFX908_SADDR_BASE, offset, gen, /*glc=*/false, /*seg=*/1);
+                   GFX908_SADDR_BASE, offset, gen, /*glc=*/true, /*seg=*/1);
   }
   void emitScratchLoad(uint32_t vreg, int32_t offset, codeGen &gen) override {
     using namespace AmdgpuGfx908;
     emitFlatGlobal(GLOBAL_LOAD_DWORD, /*vdst=*/vreg, /*addr=*/0, /*data=*/0,
-                   GFX908_SADDR_BASE, offset, gen, /*glc=*/false, /*seg=*/1);
+                   GFX908_SADDR_BASE, offset, gen, /*glc=*/true, /*seg=*/1);
   }
 };
 }  // namespace
@@ -819,28 +832,35 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   const uint32_t nsgpr = readCalleeMaxAbsSym(callee, "numbered_sgpr");
   const uint32_t nvgpr = readCalleeMaxAbsSym(callee, "num_vgpr");
 
-  // Scratch VGPRs for the spill machinery, placed ABOVE both the kernel's and the
-  // callee's VGPR usage (bumpCallerKdForCallee grows the grant to cover them):
-  //   vAddr = this lane's byte offset (lane*4), addresses the wave's scratch
-  //   vPack = holds SGPRs packed one-per-lane for the SGPR spill (below)
-  // ORIGINAL granted VGPR (cached) keeps these the same fixed regs for every call.
-  const uint32_t kernelVgpr = readCallerOriginalGrantedVgpr(caller, gen);
-  const uint32_t vAddr = (kernelVgpr > nvgpr ? kernelVgpr : nvgpr);
-  const uint32_t vPack = vAddr + 1;
-  const uint32_t SADDR_S94 = 94;    // s[94:95] scratch base
-  const uint32_t SGPR_AREA = 0;     // SGPR pack area  [0, 256)  (64 lanes * 4B)
-  const uint32_t VGPR_AREA = 512;   // VGPR spill area [512, ...)
-
   // Two spill backends (env-gated, so the proven global-buffer path stays default
   // while the scratch path is brought up):
   //   default        : global_store/load into the launcher's per-wave buffer via
   //                     s[94:95] base + mbcnt lane offset (vAddr).
-  //   DYNINST_SPILL_SCRATCH : hardware SCRATCH via the ScratchAbi seam — per-lane
-  //                     swizzle + per-wave base are hardware-provided, so no mbcnt
-  //                     lane math and each register needs only 4 bytes of the slot.
+  //   DYNINST_SPILL_SCRATCH : hardware SCRATCH via the ScratchAbi seam. The per-wave
+  //                     base lives in FLAT_SCRATCH (s[102:103], a SPECIAL register —
+  //                     not from the allocatable pool, so 0 GP cost) and the per-lane
+  //                     swizzle is hardware-provided, so there is NO mbcnt lane math
+  //                     (no vAddr) and each register needs only 4 bytes of the slot.
+  //                     gfx908 scratch still needs a SADDR *register* (both-operands-
+  //                     off is illegal), but it's just a constant 0 in s94 (set by the
+  //                     entry prologue) — one SGPR instead of the s[94:95] pair.
   const bool useScratch = (getenv("DYNINST_SPILL_SCRATCH") != nullptr);
   Dyninst::DyninstAPI::ScratchAbi &sabi = Dyninst::DyninstAPI::gfx908ScratchAbi();
-  const uint32_t S_SGPR_SLOT = 0;   // scratch: SGPR pack dword (per-lane)
+
+  // Scratch VGPRs for the spill machinery, placed ABOVE both the kernel's and the
+  // callee's VGPR usage (bumpCallerKdForCallee grows the grant to cover them):
+  //   vPack = holds SGPRs packed one-per-lane for the SGPR spill (below)
+  //   vAddr = this lane's byte offset (lane*4) — GLOBAL path only; the scratch path
+  //           gets per-lane addressing from hardware, so it reuses vBase for vPack.
+  // ORIGINAL granted VGPR (cached) keeps these the same fixed regs for every call.
+  const uint32_t kernelVgpr = readCallerOriginalGrantedVgpr(caller, gen);
+  const uint32_t vBase = (kernelVgpr > nvgpr ? kernelVgpr : nvgpr);
+  const uint32_t vAddr = vBase;                          // global: lane-offset reg
+  const uint32_t vPack = useScratch ? vBase : vBase + 1; // scratch reclaims vAddr
+  const uint32_t SADDR_S94 = 94;    // scratch SADDR (=0) / global s[94:95] base
+  const uint32_t SGPR_AREA = 0;     // global: SGPR pack area  [0, 256)  (64 lanes * 4B)
+  const uint32_t VGPR_AREA = 512;   // global: VGPR spill area [512, ...)
+  const uint32_t S_SGPR_SLOT = 0;   // scratch: SGPR pack dword (per-lane, 4B)
   const uint32_t S_VGPR_SLOT = 4;   // scratch: VGPR spill area (v_i at +i*4)
 
   // vAddr = lane*4 (absolute lane id via mbcnt over an all-ones mask: -1=193, 0=128).
@@ -873,14 +893,22 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
         emitVop3a(V_WRITELANE_B32, /*vdst=*/vPack, /*src0=*/s, /*src1=*/128 + s, /*src2=*/0, gen);
       emitVop3a(V_WRITELANE_B32, vPack, /*src0=*/106, /*src1=*/128 + nsave,     /*src2=*/0, gen); // vcc_lo
       emitVop3a(V_WRITELANE_B32, vPack, /*src0=*/107, /*src1=*/128 + nsave + 1, /*src2=*/0, gen); // vcc_hi
-      emitLaneByteOffset();
-      emitFlatGlobal(GLOBAL_STORE_DWORD, /*vdst=*/0, /*addr=*/vAddr, /*data=*/vPack,
-                     SADDR_S94, SGPR_AREA, gen, /*glc=*/true);
+      if (useScratch) {
+        sabi.emitScratchStore(vPack, S_SGPR_SLOT, gen);   // FLAT_SCRATCH + SADDR(s94=0)
+      } else {
+        emitLaneByteOffset();
+        emitFlatGlobal(GLOBAL_STORE_DWORD, /*vdst=*/0, /*addr=*/vAddr, /*data=*/vPack,
+                       SADDR_S94, SGPR_AREA, gen, /*glc=*/true);
+      }
       emitSopP(S_WAITCNT, /*simm16=*/0, gen);
     } else {
-      emitLaneByteOffset();
-      emitFlatGlobal(GLOBAL_LOAD_DWORD, /*vdst=*/vPack, /*addr=*/vAddr, /*data=*/0,
-                     SADDR_S94, SGPR_AREA, gen, /*glc=*/true);
+      if (useScratch) {
+        sabi.emitScratchLoad(vPack, S_SGPR_SLOT, gen);
+      } else {
+        emitLaneByteOffset();
+        emitFlatGlobal(GLOBAL_LOAD_DWORD, /*vdst=*/vPack, /*addr=*/vAddr, /*data=*/0,
+                       SADDR_S94, SGPR_AREA, gen, /*glc=*/true);
+      }
       emitSopP(S_WAITCNT, /*simm16=*/0, gen);
       for (uint32_t s = 0; s < nsave; s++)                                   // vsrc = 256+vPack
         emitVop3a(V_READLANE_B32, /*vdst=*/s, /*src0=*/256 + vPack, /*src1=*/128 + s, /*src2=*/0, gen);
@@ -895,14 +923,19 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   auto vgprSpill = [&](bool save) {
     if (nvgpr == 0)
       return;
-    emitLaneByteOffset();
+    if (!useScratch)
+      emitLaneByteOffset();
     for (uint32_t i = 0; i < nvgpr && i < 256; i++) {
-      if (save)
+      if (useScratch) {
+        if (save) sabi.emitScratchStore(/*vreg=*/i, S_VGPR_SLOT + i * 4, gen);
+        else      sabi.emitScratchLoad(/*vreg=*/i, S_VGPR_SLOT + i * 4, gen);
+      } else if (save) {
         emitFlatGlobal(GLOBAL_STORE_DWORD, /*vdst=*/0, /*addr=*/vAddr, /*data=*/i,
                        SADDR_S94, VGPR_AREA + i * 256, gen, /*glc=*/true);
-      else
+      } else {
         emitFlatGlobal(GLOBAL_LOAD_DWORD, /*vdst=*/i, /*addr=*/vAddr, /*data=*/0,
                        SADDR_S94, VGPR_AREA + i * 256, gen, /*glc=*/true);
+      }
     }
     emitSopP(S_WAITCNT, /*simm16=*/0, gen);   // let the VMEM group complete
   };
