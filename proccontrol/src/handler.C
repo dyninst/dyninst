@@ -1269,9 +1269,14 @@ void HandleSingleStep::getEventTypesHandled(vector<EventType> &etypes)
 
 Handler::handler_ret_t HandleSingleStep::handleEvent(Event::ptr ev)
 {
-   pthrd_printf("Handling event single step on %d/%d\n", 
-                ev->getProcess()->llproc()->getPid(), 
-                ev->getThread()->llthrd()->getLWP());
+   int_process *proc = ev->getProcess()->llproc();
+   int_thread *thrd = ev->getThread() ? ev->getThread()->llthrd() : NULL;
+   if (!proc || !thrd) {
+      pthrd_printf("Single-step for exited process/thread; ignoring.\n");
+      return ret_success;
+   }
+   pthrd_printf("Handling event single step on %d/%d\n",
+                proc->getPid(), thrd->getLWP());
    return ret_success;
 }
 
@@ -1342,6 +1347,14 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
 {
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thrd = ev->getThread()->llthrd();
+
+   if (!proc || !thrd) {
+      // The process or thread was torn down (e.g. the mutatee exited) while
+      // this breakpoint event was still in flight.  There is nothing left to
+      // act on, and dereferencing the stale handle would crash.
+      pthrd_printf("Breakpoint event for exited process/thread; ignoring.\n");
+      return ret_success;
+   }
 
    EventBreakpoint *ebp = static_cast<EventBreakpoint *>(ev.get());
    pthrd_printf("Handling breakpoint at %lx\n", ebp->getAddress());
@@ -1737,6 +1750,13 @@ Handler::handler_ret_t HandleEmulatedSingleStep::handleEvent(Event::ptr ev)
 {
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thrd = ev->getThread()->llthrd();
+
+   if (!proc || !thrd) {
+      // The process or thread was torn down (e.g. the mutatee exited) while
+      // this event was still in flight.  Nothing left to single-step over.
+      pthrd_printf("Emulated single-step event for exited process/thread; ignoring.\n");
+      return ret_success;
+   }
 
    emulated_singlestep *em_singlestep = thrd->getEmulatedSingleStep();
    if (!em_singlestep)

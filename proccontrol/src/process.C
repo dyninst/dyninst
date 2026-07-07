@@ -2105,6 +2105,11 @@ bool int_process::removeBreakpoint(Dyninst::Address addr, int_breakpoint *bp, se
 
 sw_breakpoint *int_process::getBreakpoint(Dyninst::Address addr)
 {
+   // The process may already have been torn down (mem is reset to NULL in
+   // cleanupProcess) while a breakpoint event for it is still in flight.
+   // Guard against the resulting NULL dereference; the breakpoint is gone.
+   if (!mem)
+      return NULL;
    std::map<Dyninst::Address, sw_breakpoint *>::iterator  i = mem->breakpoints.find(addr);
    if (i == mem->breakpoints.end())
       return NULL;
