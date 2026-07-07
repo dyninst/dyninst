@@ -875,6 +875,38 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   const uint32_t nsgpr = readCalleeMaxAbsSym(callee, "numbered_sgpr");
   const uint32_t nvgpr = readCalleeMaxAbsSym(callee, "num_vgpr");
 
+  // --- roadmap 1.0/1.1: liveness probe -------------------------------------
+  // AMDGPU register liveness IS wired in this dyninst (ABI.C dispatches the
+  // gfx908 register->bitArray map; the decoder marks per-operand read/written;
+  // registerSpace::actualRegSpace(point) -> instPoint::liveRegisters() populates
+  // liveState). This diagnostic dumps, at each insertion point, which of the
+  // callee-clobbered registers s0..s(nsgpr-1)/vcc/v0..v(nvgpr-1) are actually
+  // LIVE in the caller — the set the efficient spill (1.1) may restrict itself
+  // to. Env-gated so it costs nothing by default.
+  if (getenv("DYNINST_DUMP_LIVE") && gen.point()) {
+    registerSpace *lrs = registerSpace::actualRegSpace(gen.point());
+    if (lrs) {
+      auto isLive = [&](Register r) -> bool {
+        registerSlot *sl = (*lrs)[r];
+        return sl && sl->liveState == registerSlot::live;
+      };
+      std::string liveS, liveV;
+      for (uint32_t i = 0; i < nsgpr; i++)
+        if (isLive(Register::makeScalarRegister(OperandRegId(i), BlockSize(1))))
+          liveS += " s" + std::to_string(i);
+      if (isLive(Register::makeScalarRegister(OperandRegId(106), BlockSize(1)))) liveS += " vcc_lo";
+      if (isLive(Register::makeScalarRegister(OperandRegId(107), BlockSize(1)))) liveS += " vcc_hi";
+      for (uint32_t i = 0; i < nvgpr; i++)
+        if (isLive(Register::makeVectorRegister(OperandRegId(i), BlockSize(1))))
+          liveV += " v" + std::to_string(i);
+      fprintf(stderr,
+              "[amdgpu][live] call %s: callee clobbers s0..s%u,vcc,v0..v%u; "
+              "LIVE-at-point SGPR:{%s } VGPR:{%s }\n",
+              callee ? callee->symTabName().c_str() : "?", nsgpr ? nsgpr - 1 : 0,
+              nvgpr ? nvgpr - 1 : 0, liveS.c_str(), liveV.c_str());
+    }
+  }
+
   // Two spill backends (env-gated, so the proven global-buffer path stays default
   // while the scratch path is brought up):
   //   default        : global_store/load into the launcher's per-wave buffer via
@@ -956,13 +988,57 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // vcc_lo (i==nsgpr) / vcc_hi (i==nsgpr+1). Each pack VGPR spills to its own dword
   // slot, so there is no 62-SGPR limit. VCC(106/107) and s_i are fixed operand
   // encodings the HW maps to the wave's physical SGPRs regardless of the grant.
-  const uint32_t nScalars = nsgpr + 2;
-  auto packSrc = [&](uint32_t idx) -> uint32_t {
-    return (idx < nsgpr) ? idx : (idx == nsgpr ? 106u : 107u);
-  };
+  // roadmap 1.1: restrict the spill to registers actually LIVE at the insertion
+  // point (intersect the callee clobber footprint with actualRegSpace liveness).
+  // Default (no DYNINST_LIVE_SPILL, or no point liveness) builds the FULL clobber
+  // list -> byte-identical to the proven full-footprint spill. When enabled,
+  // liveScalars/liveVgprs hold only the live subset, so a point with nothing live
+  // (e.g. kernel exit) emits ZERO spill traffic. The LAYOUT/reservation sizing
+  // above (numPacks, VGPR_AREA, S_VGPR_SLOT, reservedBase, the KD grant) stays
+  // conservative — computed from nsgpr/nvgpr — so all the delicate grant and
+  // reserved-block logic is untouched; only the emitted save/restore ops shrink.
+  // liveScalars holds SGPR operand ids (0..nsgpr-1, then 106/107 for vcc_lo/hi);
+  // liveVgprs holds VGPR ids. See [[dyninst-amdgpu-liveness-works]].
+  // DYNINST_LIVE_SPILL: reduce the VGPR spill to VGPRs LIVE at the point. This is
+  // the SAFE half — AMDGPU *VGPR* liveness is reliable here (validated: all three
+  // vectoradd address pairs v[0:1]/v[2:3]/v[4:5] are correctly preserved, exit
+  // points spill nothing, data PASSES). AMDGPU *SGPR* liveness UNDER-REPORTS in
+  // this dyninst (the never-redefined kernarg pointer s[4:5] is reported dead then
+  // live again across sites -> reducing SGPRs clobbers a live scalar pointer ->
+  // address fault). So SGPR reduction is gated separately behind the experimental
+  // DYNINST_LIVE_SPILL_SGPR and stays OFF by default. See [[dyninst-amdgpu-liveness-works]].
+  const bool reduceVgpr = (getenv("DYNINST_LIVE_SPILL") != nullptr);
+  const bool reduceSgpr = (getenv("DYNINST_LIVE_SPILL_SGPR") != nullptr);
+  const bool liveSpill = reduceVgpr || reduceSgpr;
+  std::vector<uint32_t> liveScalars, liveVgprs;
+  {
+    registerSpace *lrs = (liveSpill && gen.point())
+                             ? registerSpace::actualRegSpace(gen.point())
+                             : nullptr;
+    auto live = [&](registerSpace *rs, Register r) -> bool {
+      if (!rs) return true;                // no liveness -> conservative: save all
+      registerSlot *sl = (*rs)[r];
+      return sl && sl->liveState == registerSlot::live;
+    };
+    for (uint32_t i = 0; i < nsgpr; i++)
+      if (live(reduceSgpr ? lrs : nullptr, Register::makeScalarRegister(OperandRegId(i), BlockSize(1))))
+        liveScalars.push_back(i);
+    if (live(reduceSgpr ? lrs : nullptr, Register::makeScalarRegister(OperandRegId(106), BlockSize(1)))) liveScalars.push_back(106);
+    if (live(reduceSgpr ? lrs : nullptr, Register::makeScalarRegister(OperandRegId(107), BlockSize(1)))) liveScalars.push_back(107);
+    for (uint32_t i = 0; i < nvgpr; i++)
+      if (live(reduceVgpr ? lrs : nullptr, Register::makeVectorRegister(OperandRegId(i), BlockSize(1))))
+        liveVgprs.push_back(i);
+  }
+  const uint32_t nScalars = (uint32_t)liveScalars.size();
+  // Packs actually needed for the LIVE scalars (<= numPacks reserved above), so the
+  // pack VGPRs vPack..vPack+numPacksLive-1 and scratch slots p*4 stay a subset of
+  // the conservatively reserved region.
+  const uint32_t numPacksLive = (nScalars + packLanes - 1u) / packLanes;
+  auto packSrc = [&](uint32_t idx) -> uint32_t { return liveScalars[idx]; };
   auto spillFill = [&](bool save) {
+    if (nScalars == 0) return;             // nothing live to preserve (e.g. exit)
     if (save) {
-      for (uint32_t p = 0; p < numPacks; p++)
+      for (uint32_t p = 0; p < numPacksLive; p++)
         for (uint32_t l = 0; l < packLanes; l++) {
           const uint32_t idx = p * packLanes + l;
           if (idx >= nScalars) break;
@@ -971,7 +1047,7 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
         }
       if (!useScratch)
         emitLaneByteOffset();
-      for (uint32_t p = 0; p < numPacks; p++) {
+      for (uint32_t p = 0; p < numPacksLive; p++) {
         if (useScratch)
           sabi.emitScratchStore(vPack + p, S_SGPR_SLOT + p * 4, SADDR_REG, gen);
         else
@@ -982,7 +1058,7 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
     } else {
       if (!useScratch)
         emitLaneByteOffset();
-      for (uint32_t p = 0; p < numPacks; p++) {
+      for (uint32_t p = 0; p < numPacksLive; p++) {
         if (useScratch)
           sabi.emitScratchLoad(vPack + p, S_SGPR_SLOT + p * 4, SADDR_REG, gen);
         else
@@ -990,7 +1066,7 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
                          SADDR_S94, SGPR_AREA + p * 256, gen, /*glc=*/true);
       }
       emitSopP(S_WAITCNT, /*simm16=*/0, gen);
-      for (uint32_t p = 0; p < numPacks; p++)
+      for (uint32_t p = 0; p < numPacksLive; p++)
         for (uint32_t l = 0; l < packLanes; l++) {
           const uint32_t idx = p * packLanes + l;
           if (idx >= nScalars) break;
@@ -1004,11 +1080,12 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // the global path. TRANSITIVE footprint (whole-object max): the wrapper's own
   // num_vgpr undercounts what it clobbers via nested calls.
   auto vgprSpill = [&](bool save) {
-    if (nvgpr == 0)
+    if (liveVgprs.empty())                 // roadmap 1.1: only live VGPRs
       return;
     if (!useScratch)
       emitLaneByteOffset();
-    for (uint32_t i = 0; i < nvgpr && i < 256; i++) {
+    for (uint32_t i : liveVgprs) {
+      if (i >= 256) continue;
       if (useScratch) {
         if (save) sabi.emitScratchStore(/*vreg=*/i, S_VGPR_SLOT + i * 4, SADDR_REG, gen);
         else      sabi.emitScratchLoad(/*vreg=*/i, S_VGPR_SLOT + i * 4, SADDR_REG, gen);
