@@ -900,8 +900,9 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
         if (isLive(Register::makeVectorRegister(OperandRegId(i), BlockSize(1))))
           liveV += " v" + std::to_string(i);
       fprintf(stderr,
-              "[amdgpu][live] call %s: callee clobbers s0..s%u,vcc,v0..v%u; "
+              "[amdgpu][live] @0x%lx call %s: callee clobbers s0..s%u,vcc,v0..v%u; "
               "LIVE-at-point SGPR:{%s } VGPR:{%s }\n",
+              (unsigned long)gen.point()->insnAddr(),
               callee ? callee->symTabName().c_str() : "?", nsgpr ? nsgpr - 1 : 0,
               nvgpr ? nvgpr - 1 : 0, liveS.c_str(), liveV.c_str());
     }
@@ -999,17 +1000,19 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // reserved-block logic is untouched; only the emitted save/restore ops shrink.
   // liveScalars holds SGPR operand ids (0..nsgpr-1, then 106/107 for vcc_lo/hi);
   // liveVgprs holds VGPR ids. See [[dyninst-amdgpu-liveness-works]].
-  // DYNINST_LIVE_SPILL: reduce the VGPR spill to VGPRs LIVE at the point. This is
-  // the SAFE half — AMDGPU *VGPR* liveness is reliable here (validated: all three
-  // vectoradd address pairs v[0:1]/v[2:3]/v[4:5] are correctly preserved, exit
-  // points spill nothing, data PASSES). AMDGPU *SGPR* liveness UNDER-REPORTS in
-  // this dyninst (the never-redefined kernarg pointer s[4:5] is reported dead then
-  // live again across sites -> reducing SGPRs clobbers a live scalar pointer ->
-  // address fault). So SGPR reduction is gated separately behind the experimental
-  // DYNINST_LIVE_SPILL_SGPR and stays OFF by default. See [[dyninst-amdgpu-liveness-works]].
-  const bool reduceVgpr = (getenv("DYNINST_LIVE_SPILL") != nullptr);
-  const bool reduceSgpr = (getenv("DYNINST_LIVE_SPILL_SGPR") != nullptr);
-  const bool liveSpill = reduceVgpr || reduceSgpr;
+  // DYNINST_LIVE_SPILL: reduce the register spill to the callee clobber footprint
+  // INTERSECTED with the registers LIVE at the insertion point. Both SGPR and VGPR
+  // liveness are reliable now that the aliased special-register liveness bug is
+  // fixed (dataflowAPI/src/liveness.C: getBaseRegister maps vcc_lo/hi -> vcc,
+  // exec_lo/hi -> exec, flat_scratch_lo/hi -> flat_scratch_all, none of which are
+  // in the liveness index map, so their reads/writes were silently dropped and VCC
+  // was reported dead across a live carry chain -> a reduced SGPR spill clobbered
+  // VCC -> address fault). Validated: SGPR+VGPR reduction PASSES N=64/256/1024.
+  // DYNINST_FULL_SGPR / DYNINST_FULL_VGPR force-spill that class in full (escape
+  // hatches for A/B testing). See [[dyninst-amdgpu-liveness-works]].
+  const bool liveSpill = (getenv("DYNINST_LIVE_SPILL") != nullptr);
+  const bool reduceSgpr = liveSpill && !getenv("DYNINST_FULL_SGPR");
+  const bool reduceVgpr = liveSpill && !getenv("DYNINST_FULL_VGPR");
   std::vector<uint32_t> liveScalars, liveVgprs;
   {
     registerSpace *lrs = (liveSpill && gen.point())
