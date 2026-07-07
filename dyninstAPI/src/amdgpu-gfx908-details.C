@@ -146,6 +146,18 @@ void emitSop1Raw(unsigned opcode, uint32_t sdst, uint32_t ssrc0, codeGen &gen) {
   gen.update(p);
 }
 
+// VOP1 with a trailing 32-bit literal: e.g. v_mov_b32 vdst, <literal>. Encoding:
+// [31:25]=0x3F (VOP1), [24:17]=VDST, [16:9]=OP, [8:0]=SRC0=0xFF (=> literal word
+// follows). Verified vs llvm-mc: v_mov_b32 v0,0x12345678 = 0x7E0002FF 0x12345678.
+// Used to materialize an immediate call argument into the CC arg VGPR (v0, v1, ...).
+void emitVop1Imm(unsigned opcode, uint32_t vdst, uint32_t literal, codeGen &gen) {
+  uint32_t raw = 0x7E000000u | ((vdst & 0xFFu) << 17) | ((opcode & 0xFFu) << 9) | 0xFFu;
+  auto p = gen.cur_ptr();
+  append_memory_as(p, raw);
+  append_memory_as(p, literal);
+  gen.update(p);
+}
+
 void emitSop2WithSrc1Literal(unsigned opcode, Register dest, Register src0, uint32_t src1Literal,
                              codeGen &gen) {
   emitSop2(opcode, dest, src0, /* src1 = */ 255, gen);

@@ -832,9 +832,8 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   assert(op == callOp);
   assert(callee && "emitCall: callee is null");
 
-  // Parameter passing on AMDGPU has no agreed convention in dyninst yet; the
-  // external-call path here only emits the control transfer itself.
-  assert(operands.empty() && "AMDGPU emitCall: argument passing not implemented yet");
+  // Immediate call arguments (if any) are materialized into the AMDGPU function-CC
+  // argument registers just before the call — see below, after the register spill.
 
   // Determine whether the callee lives in a different mapped object (i.e.
   // a different module / shared object). The static-rewriting flow has us
@@ -1060,6 +1059,23 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   vgprSpill(/*save=*/true);
 
   AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO, EXEC_SAVE_REG, gen);     // exec = caller (for call)
+
+  // Materialize immediate call arguments into the AMDGPU function-CC arg registers.
+  // Per the ABI, VGPR args are consecutive from v0 (a plain `int` lands in v0). HIP
+  // can't express inreg/SGPR args, so we pass a uniform per-wave value in the arg
+  // VGPR (v_mov writes the same immediate to every active lane; the callee may
+  // readfirstlane it to a true scalar). v0.. are saved/restored by the spill above,
+  // so overwriting them here (after save, before call) is safe. Done under the
+  // caller EXEC so the active lanes the callee runs see the value. Only compile-time
+  // Constant operands are supported for now.
+  for (uint32_t i = 0; i < operands.size(); i++) {
+    const auto &op = operands[i];
+    assert(op && op->getoType() == operandType::Constant &&
+           "AMDGPU emitCall: only immediate (Constant) call arguments are supported");
+    const uint32_t imm = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(op->getOValue()));
+    AmdgpuGfx908::emitVop1Imm(/*V_MOV_B32=*/1u, /*vdst=*/i, imm, gen);
+  }
+
   Address slot = getInterModuleFuncAddr(callee, gen);
   emitIndirectCall(slot, lrPair, gen);
   AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO, INLINE_NEG1, gen);   // exec = -1 (for restore)

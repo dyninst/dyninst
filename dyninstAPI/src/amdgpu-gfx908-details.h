@@ -109,6 +109,9 @@ void emitSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral,
 // needed to write special SGPRs like flat_scratch_lo/hi (102/103) and to move
 // system SGPRs that live above MAX_SGPR_ID during the scratch prologue.
 void emitSop1Raw(unsigned opcode, uint32_t sdst, uint32_t ssrc0, codeGen &gen);
+
+// v_mov_b32-style VOP1 with a 32-bit literal (opcode 1 = V_MOV_B32).
+void emitVop1Imm(unsigned opcode, uint32_t vdst, uint32_t literal, codeGen &gen);
 void emitSop2Raw(unsigned opcode, uint32_t sdst, uint32_t ssrc0, uint32_t ssrc1,
                  codeGen &gen);
 
