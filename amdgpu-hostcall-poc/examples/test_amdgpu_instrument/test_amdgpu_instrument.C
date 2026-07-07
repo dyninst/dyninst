@@ -115,11 +115,12 @@ int main(int argc, char* argv[]) {
   BPatch_image* appImage = appBin->getImage();
 
   /* Resolve the three nullary hostcall wrappers in the loaded library. */
-  BPatch_function* fnOpen  = findFuncByName(appImage, "hc_open");
-  BPatch_function* fnWrite = findFuncByName(appImage, "hc_write");
-  BPatch_function* fnClose = findFuncByName(appImage, "hc_close");
-  if(!fnOpen || !fnWrite || !fnClose) {
-    cerr << "Instrumentation library is missing hc_open/hc_write/hc_close" << endl;
+  BPatch_function* fnOpen    = findFuncByName(appImage, "hc_open");
+  BPatch_function* fnWrite   = findFuncByName(appImage, "hc_write");
+  BPatch_function* fnWriteId = findFuncByName(appImage, "hc_write_id");
+  BPatch_function* fnClose   = findFuncByName(appImage, "hc_close");
+  if(!fnOpen || !fnWrite || !fnWriteId || !fnClose) {
+    cerr << "Instrumentation library is missing hc_open/hc_write/hc_write_id/hc_close" << endl;
     return EXIT_FAILURE;
   }
 
@@ -167,11 +168,16 @@ int main(int argc, char* argv[]) {
         BPatch_point* pt = kernel->findPoint(addr);
         if(!pt)
           continue;
-        BPatch_Vector<BPatch_snippet*> noArgs;
-        BPatch_funcCallExpr call(*fnWrite, noArgs);
+        // Pass the site index as a scalar call argument (demonstrates 2.1 arg
+        // passing): the trampoline materialises `instrumented` into the CC arg
+        // register v0 before the call, and hc_write_id logs it per wave.
+        BPatch_constExpr siteId(instrumented);
+        BPatch_Vector<BPatch_snippet*> args;
+        args.push_back(&siteId);
+        BPatch_funcCallExpr call(*fnWriteId, args);
         if(appBin->insertSnippet(call, *pt, BPatch_callBefore, BPatch_lastSnippet)) {
-          cout << "Inserting hc_write before instruction @ 0x" << std::hex << addr
-               << std::dec << endl;
+          cout << "Inserting hc_write_id(" << instrumented << ") before instruction @ 0x"
+               << std::hex << addr << std::dec << endl;
           instrumented++;
         }
       }

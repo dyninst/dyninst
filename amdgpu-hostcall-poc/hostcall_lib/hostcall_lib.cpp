@@ -166,6 +166,20 @@ void hc_write() {
     }
 }
 
+// Like hc_write, but takes a per-site scalar id as a CALL ARGUMENT (demonstrates
+// dyninst AMDGPU argument passing). `id` arrives in the CC arg register v0; it is
+// uniform per wave (the trampoline materialises the same immediate into every
+// lane). readfirstlane makes that explicit (a true scalar) before marshalling.
+extern "C" __device__ __noinline__ __attribute__((used))
+void hc_write_id(int id) {
+    if (hc_first_active_lane()) {
+        hc_acquire();
+        mailbox.arg = __builtin_amdgcn_readfirstlane(id);
+        hc_call_and_wait(HC_OP_WRITE_ID);
+        hc_release();
+    }
+}
+
 extern "C" __device__ __noinline__ __attribute__((used))
 void hc_close() {
     if (hc_first_active_lane()) {

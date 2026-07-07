@@ -125,6 +125,11 @@ static void service_loop(HostcallMailbox* mb) {
             closes++;
             mb->retval = 0;
             break;
+        case HC_OP_WRITE_ID:                             // per-site scalar id (call arg)
+            if (fp) { fprintf(fp, "[gpu] site %d\n", mb->arg); fflush(fp); }
+            writes++;
+            mb->retval = 0;
+            break;
         default:
             mb->retval = -1;
             break;
