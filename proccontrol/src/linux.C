@@ -243,9 +243,23 @@ void GeneratorLinux::evictFromWaitpid()
    }
    on_sigusr2_hit = 0;
    bool bresult = t_kill(generator_lwp, SIGUSR2);
+   // The generator may exit on its own initiative (e.g. no live processes
+   // left) concurrently with this eviction.  If the SIGUSR2 was queued to the
+   // dying thread it is discarded and on_sigusr2_hit never fires, which used
+   // to leave this loop spinning forever inside exit().  Bound the wait: this
+   // eviction is best-effort (we are exiting; exit_group() will reap the
+   // generator thread regardless), so give up after a couple of seconds.
+   struct timespec evict_start, evict_now;
+   clock_gettime(CLOCK_MONOTONIC, &evict_start);
    while (bresult && !on_sigusr2_hit) {
       //Don't use a lock because pthread_mutex_unlock is not signal safe
       sched_yield();
+      clock_gettime(CLOCK_MONOTONIC, &evict_now);
+      if (evict_now.tv_sec - evict_start.tv_sec >= 2) {
+         pthrd_printf("Timed out evicting generator from waitpid; "
+                      "it likely exited on its own\n");
+         break;
+      }
    }
 
    result = sigaction(SIGUSR2, &oldact, NULL);
