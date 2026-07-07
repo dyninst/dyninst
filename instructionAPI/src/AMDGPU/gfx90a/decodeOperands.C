@@ -533,7 +533,7 @@ namespace InstructionAPI {
     Expression::Ptr InstructionDecoder_amdgpu_gfx90a::decodeOPR_FLAT_SCRATCH(uint64_t input, uint32_t output_vec_len)
     {
         switch (input)  {
-            case 0:  return makeRegisterExpression(amdgpu_gfx90a::flat_scratch_all, output_vec_len );
+            case 0:  return makeRegisterExpression(amdgpu_gfx90a::flat_scratch_lo, output_vec_len );
             default: return makeRegisterExpression(amdgpu_gfx90a::invalid);
         }
     }
@@ -5551,7 +5551,7 @@ namespace InstructionAPI {
     Expression::Ptr InstructionDecoder_amdgpu_gfx90a::decodeOPR_VCC(uint64_t input, uint32_t )
     {
         switch (input)  {
-            case 0:  return makeRegisterExpression(amdgpu_gfx90a::vcc);
+            case 0:  return makeRegisterExpression(amdgpu_gfx90a::vcc_lo);
             default: return makeRegisterExpression(amdgpu_gfx90a::invalid);
         }
     }

@@ -39,10 +39,8 @@ int main() {
   TYPE_QUERIES_CHECK_FALSE(Dyninst::amdgpu_gfx90a::v255, isControlStatus);
   TYPE_QUERIES_CHECK_FALSE(Dyninst::amdgpu_gfx90a::acc0, isControlStatus);
   TYPE_QUERIES_CHECK_FALSE(Dyninst::amdgpu_gfx90a::acc255, isControlStatus);
-  TYPE_QUERIES_CHECK(Dyninst::amdgpu_gfx90a::vcc, isControlStatus);
   TYPE_QUERIES_CHECK(Dyninst::amdgpu_gfx90a::vcc_lo, isControlStatus);
   TYPE_QUERIES_CHECK(Dyninst::amdgpu_gfx90a::vcc_hi, isControlStatus);
-  TYPE_QUERIES_CHECK(Dyninst::amdgpu_gfx90a::exec, isControlStatus);
   TYPE_QUERIES_CHECK(Dyninst::amdgpu_gfx90a::exec_lo, isControlStatus);
   TYPE_QUERIES_CHECK(Dyninst::amdgpu_gfx90a::exec_hi, isControlStatus);
   TYPE_QUERIES_CHECK(Dyninst::amdgpu_gfx90a::src_scc, isControlStatus);

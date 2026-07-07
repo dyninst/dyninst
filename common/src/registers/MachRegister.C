@@ -958,10 +958,8 @@ namespace Dyninst {
 
       case Arch_amdgpu_gfx908: {
         switch(val()) {
-        case amdgpu_gfx908::ivcc:
         case amdgpu_gfx908::ivcc_lo:
         case amdgpu_gfx908::ivcc_hi:
-        case amdgpu_gfx908::iexec:
         case amdgpu_gfx908::iexec_lo:
         case amdgpu_gfx908::iexec_hi:
         case amdgpu_gfx908::isrc_scc:
@@ -976,10 +974,8 @@ namespace Dyninst {
 
       case Arch_amdgpu_gfx90a: {
         switch(val()) {
-        case amdgpu_gfx90a::ivcc:
         case amdgpu_gfx90a::ivcc_lo:
         case amdgpu_gfx90a::ivcc_hi:
-        case amdgpu_gfx90a::iexec:
         case amdgpu_gfx90a::iexec_lo:
         case amdgpu_gfx90a::iexec_hi:
         case amdgpu_gfx90a::isrc_scc:
@@ -995,10 +991,8 @@ namespace Dyninst {
 
       case Arch_amdgpu_gfx940: {
         switch(val()) {
-        case amdgpu_gfx940::ivcc:
         case amdgpu_gfx940::ivcc_lo:
         case amdgpu_gfx940::ivcc_hi:
-        case amdgpu_gfx940::iexec:
         case amdgpu_gfx940::iexec_lo:
         case amdgpu_gfx940::iexec_hi:
         case amdgpu_gfx940::isrc_scc:
@@ -1052,10 +1046,8 @@ namespace Dyninst {
 
       case Arch_amdgpu_gfx908: {
         switch(val()) {
-        case amdgpu_gfx908::ivcc:
         case amdgpu_gfx908::ivcc_lo:
         case amdgpu_gfx908::ivcc_hi:
-        case amdgpu_gfx908::iexec:
         case amdgpu_gfx908::iexec_lo:
         case amdgpu_gfx908::iexec_hi:
         case amdgpu_gfx908::isrc_scc:
@@ -1071,10 +1063,8 @@ namespace Dyninst {
 
       case Arch_amdgpu_gfx90a: {
         switch(val()) {
-        case amdgpu_gfx90a::ivcc:
         case amdgpu_gfx90a::ivcc_lo:
         case amdgpu_gfx90a::ivcc_hi:
-        case amdgpu_gfx90a::iexec:
         case amdgpu_gfx90a::iexec_lo:
         case amdgpu_gfx90a::iexec_hi:
         case amdgpu_gfx90a::isrc_scc:
@@ -1090,10 +1080,8 @@ namespace Dyninst {
 
       case Arch_amdgpu_gfx940: {
         switch(val()) {
-        case amdgpu_gfx940::ivcc:
         case amdgpu_gfx940::ivcc_lo:
         case amdgpu_gfx940::ivcc_hi:
-        case amdgpu_gfx940::iexec:
         case amdgpu_gfx940::iexec_lo:
         case amdgpu_gfx940::iexec_hi:
         case amdgpu_gfx940::isrc_scc:

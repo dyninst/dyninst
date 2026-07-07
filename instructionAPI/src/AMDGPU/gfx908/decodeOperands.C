@@ -573,7 +573,7 @@ namespace InstructionAPI {
     Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_FLAT_SCRATCH(uint64_t input, uint32_t output_vec_len)
     {
         switch (input)  {
-            case 0:  return makeRegisterExpression(amdgpu_gfx908::flat_scratch_all, output_vec_len );
+            case 0:  return makeRegisterExpression(amdgpu_gfx908::flat_scratch_lo, output_vec_len );
             default: return makeRegisterExpression(amdgpu_gfx908::invalid);
         }
     }
