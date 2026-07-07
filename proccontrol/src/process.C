@@ -2940,6 +2940,17 @@ int_thread::~int_thread()
 bool int_thread::intStop()
 {
    pthrd_printf("intStop on thread %d/%d\n", llproc()->getPid(), getLWP());
+   if (isExiting() || isExitingInGenerator()) {
+      // The thread's exit event has already been observed: a SIGSTOP sent now
+      // can never be delivered (pre-destroyed threads never report the stop),
+      // which would leave the PendingStop state permanently desync'd and
+      // deadlock any proc-stop waiter.  The thread's destroy event is already
+      // queued/in flight and will mark it stopped; treat the request as
+      // satisfied.  (LinuxHandleLWPDestroy covers the case where the pending
+      // stop was created before the exit was observed.)
+      pthrd_printf("Not stopping exiting thread %d/%d\n", llproc()->getPid(), getLWP());
+      return true;
+   }
    if (!llproc()->plat_processGroupContinues()) {
       assert(!RUNNING_STATE(target_state));
       assert(RUNNING_STATE(getHandlerState().getState()));

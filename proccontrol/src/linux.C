@@ -3193,7 +3193,11 @@ LinuxHandleLWPDestroy::~LinuxHandleLWPDestroy()
 }
 
 Handler::handler_ret_t LinuxHandleLWPDestroy::handleEvent(Event::ptr ev) {
-    int_thread *thrd = ev->getThread()->llthrd();
+    int_thread *thrd = ev->getThread() ? ev->getThread()->llthrd() : NULL;
+    if (!thrd) {
+       // Thread object already torn down; nothing to clean.
+       return ret_success;
+    }
 
     // This handler is necessary because SIGSTOPS cannot be sent to pre-destroyed
     // threads -- these stops will never be delivered to the debugger
@@ -3252,13 +3256,20 @@ HandlerPool *linux_createDefaultHandlerPool(HandlerPool *hpool)
    static bool initialized = false;
    static LinuxHandleNewThr *lbootstrap = NULL;
    static LinuxHandleForceTerminate *lterm = NULL;
+   static LinuxHandleLWPDestroy *llwpdestroy = NULL;
    if (!initialized) {
       lbootstrap = new LinuxHandleNewThr();
       lterm = new LinuxHandleForceTerminate();
+      llwpdestroy = new LinuxHandleLWPDestroy();
       initialized = true;
    }
    hpool->addHandler(lbootstrap);
    hpool->addHandler(lterm);
+   // Clears pending stops on dying threads (a SIGSTOP sent to a
+   // pre-destroyed thread is never delivered, which otherwise leaves the
+   // PendingStop state permanently desync'd and deadlocks any proc-stop
+   // waiter).  The handler existed but was never registered.
+   hpool->addHandler(llwpdestroy);
    thread_db_process::addThreadDBHandlers(hpool);
    sysv_process::addSysVHandlers(hpool);
    return hpool;
