@@ -265,12 +265,23 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
                         versionSymTable.push_back(index);
                     }
                     else {
-                        unsigned short index = curVersionNum;
+                        // The library's own SONAME version is the base definition and
+                        // must use VER_NDX_GLOBAL (1) -- both in its verdef (vd_ndx) and
+                        // in the symbols' version table -- rather than a sequentially
+                        // allocated index. Otherwise the emitted base verdef has the
+                        // wrong index (eu-elflint: "no BASE definition") and the loader
+                        // builds a version table with a hole at the base index, killing
+                        // the process in _dl_relocate_object before main.
+                        const char *soname = object ? object->getSoname() : NULL;
+                        bool isBase = (soname && (*vers)[0] == soname);
+                        unsigned short verndx = isBase ? VER_NDX_GLOBAL
+                                                       : (unsigned short) curVersionNum;
+                        unsigned short index = verndx;
                         if (symbol->getVersionHidden()) index += 0x8000;
                         versionSymTable.push_back(index);
 
-                        verdefEntries[(*vers)[0]] = curVersionNum;
-                        curVersionNum++;
+                        verdefEntries[(*vers)[0]] = verndx;
+                        if (!isBase) curVersionNum++;
                     }
                 }
                 // add all versions to the verdef entry
@@ -2122,6 +2133,25 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
                                                unsigned &verdefSecSize, unsigned &dynSymbolNamesLength,
                                                std::vector<std::string> &dynStrs) {
 
+    // A shared object that defines symbol versions must also carry a BASE
+    // version definition: its own SONAME at vd_ndx VER_NDX_GLOBAL (1) with
+    // VER_FLG_BASE. That entry is not recoverable from symbol versions -- e.g.
+    // libc's defined symbols are all GLIBC_2.x-versioned, none carries the
+    // SONAME -- so the symbol-driven reconstruction below loses it, leaving the
+    // loader's version table with a hole at index 1 (referenced by every
+    // unversioned global, versym==1): any process mapping the rewritten
+    // library then dies in _dl_relocate_object before main. Synthesize it.
+    {
+        const char *soname = object ? object->getSoname() : NULL;
+        if (soname && !verdefEntries.empty() &&
+            verdefEntries.find(soname) == verdefEntries.end()) {
+            verdefEntries[soname] = VER_NDX_GLOBAL;
+            verdauxEntries[VER_NDX_GLOBAL].push_back(soname);
+            if (versionNames.find(soname) == versionNames.end())
+                versionNames[soname] = 0;
+        }
+    }
+
     //Add all names to the new .dynstr section
     map<string, unsigned>::iterator iter = versionNames.begin();
     for (; iter != versionNames.end(); iter++) {
@@ -2221,7 +2251,14 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
     for (iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++) {
         Elf_Verdef *verdef = reinterpret_cast<Elf_Verdef *>(verdefSecData + curpos);
         verdef->vd_version = 1;
-        verdef->vd_flags = 0;
+        // The base version definition -- the library's own SONAME version -- must
+        // carry VER_FLG_BASE. This reconstruction has set vd_flags = 0 unconditionally
+        // since it was written, so the emitted defined-version table had no base and
+        // eu-elflint reported "no BASE definition". Mark the SONAME version as base.
+        {
+            const char *soname = object ? object->getSoname() : NULL;
+            verdef->vd_flags = (soname && iter->first == soname) ? VER_FLG_BASE : 0;
+        }
         verdef->vd_ndx = iter->second;
         verdef->vd_cnt = verdauxEntries[iter->second].size();
         verdef->vd_hash = elfHash(iter->first.c_str());
