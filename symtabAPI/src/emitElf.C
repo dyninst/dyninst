@@ -37,6 +37,21 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "unaligned_memory_access.h"
 
+/* RELR packed relative relocations (glibc >= 2.36); the constants are absent
+ * from older systems' elf.h */
+#ifndef SHT_RELR
+#define SHT_RELR 19
+#endif
+#ifndef DT_RELRSZ
+#define DT_RELRSZ 35
+#endif
+#ifndef DT_RELR
+#define DT_RELR 36
+#endif
+#ifndef DT_RELRENT
+#define DT_RELRENT 37
+#endif
+
 
 #if defined(os_freebsd)
 #include "common/src/freebsdKludges.h"
@@ -265,12 +280,23 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
                         versionSymTable.push_back(index);
                     }
                     else {
-                        unsigned short index = curVersionNum;
+                        // The library's own SONAME version is the base definition and
+                        // must use VER_NDX_GLOBAL (1) -- both in its verdef (vd_ndx) and
+                        // in the symbols' version table -- rather than a sequentially
+                        // allocated index. Otherwise the emitted base verdef has the
+                        // wrong index (eu-elflint: "no BASE definition") and the loader
+                        // builds a version table with a hole at the base index, killing
+                        // the process in _dl_relocate_object before main.
+                        const char *soname = object ? object->getSoname() : NULL;
+                        bool isBase = (soname && (*vers)[0] == soname);
+                        unsigned short verndx = isBase ? VER_NDX_GLOBAL
+                                                       : (unsigned short) curVersionNum;
+                        unsigned short index = verndx;
                         if (symbol->getVersionHidden()) index += 0x8000;
                         versionSymTable.push_back(index);
 
-                        verdefEntries[(*vers)[0]] = curVersionNum;
-                        curVersionNum++;
+                        verdefEntries[(*vers)[0]] = verndx;
+                        if (!isBase) curVersionNum++;
                     }
                 }
                 // add all versions to the verdef entry
@@ -498,6 +524,17 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         ".dynsym", /*".dynstr",*/ ".rela.dyn", ".rela.plt", ".dynamic", ".symtab"};
     std::unordered_map<string, pair<unsigned, unsigned>> dataLinkInfo;
 
+    // RELR support (glibc >= 2.36 packed relative relocations). Everything the
+    // loader computes from .relr.dyn is in link-time vaddrs, so a library_adjust
+    // shift must rewrite (a) the DT_RELR pointer (done in createDynamicSection),
+    // (b) every address entry in the section, and (c) the contents of every slot
+    // the entries cover -- RELR is REL-style: the addend (the link-time address
+    // of the relocation target) is stored in the slot itself. The copy loop
+    // below records the section buffers; the pass after it does the rewriting.
+    Elf_Data *relrData = NULL;
+    struct RelrPatchSec { Elf_Addr origAddr; Elf_Off size; Elf_Data *data; bool preAdjusted; };
+    std::vector<RelrPatchSec> relrPatchSecs;
+
     bool createdLoadableSections = false;
     unsigned scncount;
     unsigned sectionNumber = 0;
@@ -627,10 +664,26 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
         }
 
-        if (library_adjust > 0 &&
+        bool contentsPreAdjusted =
                 (strcmp(name, ".init_array") == 0 || strcmp(name, ".fini_array") == 0 ||
                  strcmp(name, "__libc_subfreeres") == 0 || strcmp(name, "__libc_atexit") == 0 ||
-                 strcmp(name, "__libc_thread_subfreeres") == 0 || strcmp(name, "__libc_IO_vtables") == 0)) {
+                 strcmp(name, "__libc_thread_subfreeres") == 0 || strcmp(name, "__libc_IO_vtables") == 0);
+
+        if (library_adjust > 0 && shdr->sh_type == SHT_RELR)
+            relrData = newdata;
+        if (library_adjust > 0 && (shdr->sh_flags & SHF_ALLOC) && shdr->sh_type != SHT_NOBITS &&
+            shdr->sh_addr && newdata->d_buf) {
+            // Bound by the buffer actually allocated above: a dirty section's
+            // buffer is foundSec->getDiskSize() long, which may be smaller than
+            // the original sh_size the RELR entries were laid out against.
+            Elf_Off patchSize = (Elf_Off) shdr->sh_size;
+            if ((Elf_Off) newdata->d_size < patchSize)
+                patchSize = (Elf_Off) newdata->d_size;
+            relrPatchSecs.push_back(RelrPatchSec{(Elf_Addr) shdr->sh_addr, patchSize,
+                                                 newdata, contentsPreAdjusted});
+        }
+
+        if (library_adjust > 0 && contentsPreAdjusted) {
             for(std::size_t off = 0; off < newdata->d_size; off += sizeof(void*)) {
                 char *loc = static_cast<char*>(newdata->d_buf) + off;
                 size_t val{};
@@ -710,6 +763,47 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             return false;
         }
     } // end of for each elf section
+
+    // Rewrite the RELR data for the library_adjust shift (see the comment at
+    // relrData's declaration). Address entries (bit 0 clear) shift with the
+    // sections they point into; bitmap entries (bit 0 set) encode word deltas
+    // and are invariant under a uniform shift. Each covered slot holds the
+    // link-time vaddr of its relocation target (the loader adds the load base
+    // in place), so the slot contents shift too -- except in the sections whose
+    // pointer contents the copy loop above already adjusted.
+    if (relrData && relrData->d_buf) {
+        const Elf_Addr wordsz = sizeof(Elf_Addr);
+        const unsigned nbits = 8 * (unsigned) wordsz - 1;
+        auto patchSlot = [&](Elf_Addr slotVaddr) {
+            for (auto &ps : relrPatchSecs) {
+                if (slotVaddr < ps.origAddr || slotVaddr + wordsz > ps.origAddr + ps.size)
+                    continue;
+                if (!ps.preAdjusted) {
+                    char *loc = (char *) ps.data->d_buf + (slotVaddr - ps.origAddr);
+                    Elf_Addr v{};
+                    memcpy(&v, loc, wordsz);
+                    if (v) { v += library_adjust; memcpy(loc, &v, wordsz); }
+                }
+                return;
+            }
+        };
+        Elf_Addr *entries = (Elf_Addr *) relrData->d_buf;
+        size_t nent = relrData->d_size / wordsz;
+        Elf_Addr where = 0;
+        for (size_t i = 0; i < nent; ++i) {
+            Elf_Addr e = entries[i];
+            if ((e & 1) == 0) {
+                patchSlot(e);
+                where = e + wordsz;
+                entries[i] = e + library_adjust;
+            } else {
+                for (unsigned b = 0; b < nbits; ++b)
+                    if (e & ((Elf_Addr) 1 << (b + 1)))
+                        patchSlot(where + b * wordsz);
+                where += nbits * wordsz;
+            }
+        }
+    }
 
     // Add non-loadable sections at the end of object file
     if (!createNonLoadableSections(newshdr))
@@ -1996,6 +2090,25 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
                                                unsigned &verdefSecSize, unsigned &dynSymbolNamesLength,
                                                std::vector<std::string> &dynStrs) {
 
+    // A shared object that defines symbol versions must also carry a BASE
+    // version definition: its own SONAME at vd_ndx VER_NDX_GLOBAL (1) with
+    // VER_FLG_BASE. That entry is not recoverable from symbol versions -- e.g.
+    // libc's defined symbols are all GLIBC_2.x-versioned, none carries the
+    // SONAME -- so the symbol-driven reconstruction below loses it, leaving the
+    // loader's version table with a hole at index 1 (referenced by every
+    // unversioned global, versym==1): any process mapping the rewritten
+    // library then dies in _dl_relocate_object before main. Synthesize it.
+    {
+        const char *soname = object ? object->getSoname() : NULL;
+        if (soname && !verdefEntries.empty() &&
+            verdefEntries.find(soname) == verdefEntries.end()) {
+            verdefEntries[soname] = VER_NDX_GLOBAL;
+            verdauxEntries[VER_NDX_GLOBAL].push_back(soname);
+            if (versionNames.find(soname) == versionNames.end())
+                versionNames[soname] = 0;
+        }
+    }
+
     //Add all names to the new .dynstr section
     map<string, unsigned>::iterator iter = versionNames.begin();
     for (; iter != versionNames.end(); iter++) {
@@ -2072,7 +2185,14 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
     for (iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++) {
         Elf_Verdef *verdef = reinterpret_cast<Elf_Verdef *>(verdefSecData + curpos);
         verdef->vd_version = 1;
-        verdef->vd_flags = 0;
+        // The base version definition -- the library's own SONAME version -- must
+        // carry VER_FLG_BASE. This reconstruction has set vd_flags = 0 unconditionally
+        // since it was written, so the emitted defined-version table had no base and
+        // eu-elflint reported "no BASE definition". Mark the SONAME version as base.
+        {
+            const char *soname = object ? object->getSoname() : NULL;
+            verdef->vd_flags = (soname && iter->first == soname) ? VER_FLG_BASE : 0;
+        }
         verdef->vd_ndx = iter->second;
         verdef->vd_cnt = verdauxEntries[iter->second].size();
         verdef->vd_hash = elfHash(iter->first.c_str());
@@ -2284,6 +2404,7 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
             case DT_PREINIT_ARRAY:
             case DT_INIT_ARRAY:
             case DT_FINI_ARRAY:
+            case DT_RELR:
 #if defined(DYNINST_CODEGEN_ARCH_POWER) && defined(DYNINST_CODEGEN_ARCH_64BIT)
             // DT_PPC64_GLINK specifies the addres of the
             // PLT resolver in Power ABI V2.
