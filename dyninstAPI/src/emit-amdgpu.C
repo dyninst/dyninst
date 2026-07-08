@@ -1140,21 +1140,48 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
 
   AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO, EXEC_SAVE_REG, gen);     // exec = caller (for call)
 
-  // Materialize immediate call arguments into the AMDGPU function-CC arg registers.
-  // Per the ABI, VGPR args are consecutive from v0 (a plain `int` lands in v0). HIP
-  // can't express inreg/SGPR args, so we pass a uniform per-wave value in the arg
-  // VGPR (v_mov writes the same immediate to every active lane; the callee may
-  // readfirstlane it to a true scalar). v0.. are saved/restored by the spill above,
-  // so overwriting them here (after save, before call) is safe. Done under the
-  // caller EXEC so the active lanes the callee runs see the value. Only compile-time
-  // Constant operands are supported for now.
+  // Materialize call arguments into the AMDGPU function-CC arg registers. Per the
+  // ABI, VGPR args are consecutive from v0 (a plain `int` lands in v0); HIP can't
+  // express inreg/SGPR params, so every arg ends in a VGPR. Two lowering paths:
+  //   * Constant  -> uniform immediate straight into v(i): v_mov_b32 v(i), imm.
+  //   * otherwise -> evaluate the operand AST with generateCode_phase2 (the same
+  //     path the other emitters use) into a register, then move it into v(i). AMDGPU
+  //     AST codegen is SGPR-based, so a computed arg is uniform-per-wave and is
+  //     broadcast (v_mov_b32 v(i), s(res)); a VGPR result is copied per-lane.
+  // v0.. are saved/restored by the spill above, so overwriting them here (after
+  // save, before the call, under caller EXEC) is safe. generateCode_phase2 allocates
+  // scratch registers from gen.rs(), which does NOT know about the trampoline's
+  // hardcoded spill SGPRs (EXEC save at reservedBase / SADDR base) that the post-call
+  // restore reads — so reserve that block across argument lowering to keep the
+  // allocator off it.
+  std::vector<Register> argReserved;
+  if (!operands.empty()) {
+    const uint32_t rb = useScratch ? reservedBase : 92u;
+    for (uint32_t r = rb; r < rb + 4u; r++) {
+      Register rr = Register::makeScalarRegister(OperandRegId(r), BlockSize(1));
+      if (rs->allocateSpecificRegister(gen, rr))
+        argReserved.push_back(rr);
+    }
+  }
   for (uint32_t i = 0; i < operands.size(); i++) {
     const auto &op = operands[i];
-    assert(op && op->getoType() == operandType::Constant &&
-           "AMDGPU emitCall: only immediate (Constant) call arguments are supported");
-    const uint32_t imm = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(op->getOValue()));
-    AmdgpuGfx908::emitVop1Imm(/*V_MOV_B32=*/1u, /*vdst=*/i, imm, gen);
+    assert(op && "AMDGPU emitCall: null call argument");
+    if (op->getoType() == operandType::Constant) {
+      const uint32_t imm = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(op->getOValue()));
+      AmdgpuGfx908::emitVop1Imm(/*V_MOV_B32=*/1u, /*vdst=*/i, imm, gen);
+    } else {
+      Dyninst::Address unusedAddr = 0;
+      Register res = Dyninst::Null_Register;
+      if (!op->generateCode_phase2(gen, unusedAddr, res) || res == Dyninst::Null_Register)
+        assert(!"AMDGPU emitCall: could not lower non-constant call argument");
+      // src0 encoding: SGPR n -> n, VGPR n -> 256+n.
+      const uint32_t src0 = res.isScalar() ? res.getId() : (256u + res.getId());
+      AmdgpuGfx908::emitVop1Reg(/*V_MOV_B32=*/1u, /*vdst=*/i, src0, gen);
+      rs->freeRegister(res);
+    }
   }
+  for (Register &rr : argReserved)
+    rs->freeRegister(rr);
 
   Address slot = getInterModuleFuncAddr(callee, gen);
   emitIndirectCall(slot, lrPair, gen);

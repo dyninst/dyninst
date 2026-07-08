@@ -158,6 +158,13 @@ void emitVop1Imm(unsigned opcode, uint32_t vdst, uint32_t literal, codeGen &gen)
   gen.update(p);
 }
 
+void emitVop1Reg(unsigned opcode, uint32_t vdst, uint32_t src0, codeGen &gen) {
+  uint32_t raw = 0x7E000000u | ((vdst & 0xFFu) << 17) | ((opcode & 0xFFu) << 9) | (src0 & 0x1FFu);
+  auto p = gen.cur_ptr();
+  append_memory_as(p, raw);
+  gen.update(p);
+}
+
 void emitSop2WithSrc1Literal(unsigned opcode, Register dest, Register src0, uint32_t src1Literal,
                              codeGen &gen) {
   emitSop2(opcode, dest, src0, /* src1 = */ 255, gen);

@@ -168,12 +168,18 @@ int main(int argc, char* argv[]) {
         BPatch_point* pt = kernel->findPoint(addr);
         if(!pt)
           continue;
-        // Pass the site index as a scalar call argument (demonstrates 2.1 arg
-        // passing): the trampoline materialises `instrumented` into the CC arg
-        // register v0 before the call, and hc_write_id logs it per wave.
-        BPatch_constExpr siteId(instrumented);
+        // Pass the site index as a scalar call argument. Default: a plain
+        // BPatch_constExpr (the immediate fast path). With HC_ARG_EXPR set, pass a
+        // computed BPatch_arithExpr (site*100) instead, to exercise the general
+        // generate-then-move argument path (Tier 1): the trampoline evaluates the
+        // AST into a scalar register and broadcasts it into the CC arg VGPR.
+        BPatch_constExpr siteConst(instrumented);
+        BPatch_constExpr hundred(100);
+        BPatch_arithExpr siteExpr(BPatch_times, siteConst, hundred);
+        BPatch_snippet* arg =
+            getenv("HC_ARG_EXPR") ? (BPatch_snippet*)&siteExpr : (BPatch_snippet*)&siteConst;
         BPatch_Vector<BPatch_snippet*> args;
-        args.push_back(&siteId);
+        args.push_back(arg);
         BPatch_funcCallExpr call(*fnWriteId, args);
         if(appBin->insertSnippet(call, *pt, BPatch_callBefore, BPatch_lastSnippet)) {
           cout << "Inserting hc_write_id(" << instrumented << ") before instruction @ 0x"

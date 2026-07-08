@@ -99,9 +99,29 @@ Address EmitterAmdgpuGfx908::getInterModuleFuncAddr(func_instance *func, codeGen
   return relocation_address;
 }
 
-void EmitterAmdgpuGfx908::emitImm(opCode /* op */, Register /* src1 */, RegValue /* src2imm */, Register /* dest */,
-             codeGen & /* gen */, bool /* s */) {
-  assert(!"Not implemented for AMDGPU");
+void EmitterAmdgpuGfx908::emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
+             codeGen &gen, bool s) {
+  // dest = src1 OP imm (scalar/SGPR). Comparisons go through the SOPK path; for
+  // arithmetic/logic (incl. the orOp,0 "move" the AST uses), materialize the
+  // immediate into a scratch SGPR and reuse emitOp (SOP2). Enables computed
+  // call arguments of the form <value> OP <constant>.
+  switch (op) {
+  case lessOp:
+  case leOp:
+  case greaterOp:
+  case geOp:
+  case eqOp:
+  case neOp:
+    emitRelOpImm(op, dest, src1, src2imm, gen, s);
+    return;
+  default:
+    break;
+  }
+  Register tmp = gen.rs()->allocateRegister(gen);
+  assert(tmp != Dyninst::Null_Register && "emitImm: no scratch SGPR available");
+  emitMovLiteral(tmp, (uint32_t)src2imm, gen);   // 32-bit literal into a single SGPR
+  emitOp(op, dest, src1, tmp, gen);
+  gen.rs()->freeRegister(tmp);
 }
 
 codeBufIndex_t EmitterAmdgpuGfx908::emitA(opCode /* op */, Register /* src1 */, long /* dest */,

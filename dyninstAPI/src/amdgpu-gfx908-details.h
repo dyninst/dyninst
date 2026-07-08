@@ -112,6 +112,11 @@ void emitSop1Raw(unsigned opcode, uint32_t sdst, uint32_t ssrc0, codeGen &gen);
 
 // v_mov_b32-style VOP1 with a 32-bit literal (opcode 1 = V_MOV_B32).
 void emitVop1Imm(unsigned opcode, uint32_t vdst, uint32_t literal, codeGen &gen);
+// VOP1 with a register/operand source (no trailing literal): v_<op> v(vdst), <src0>.
+// src0 is the 9-bit VOP1 source encoding: SGPR n -> n, VGPR n -> 256+n, plus the
+// usual inline-constant encodings. Used to broadcast a scalar result into a CC arg
+// VGPR (v_mov_b32 v(i), s(res)) or copy a per-lane VGPR into it.
+void emitVop1Reg(unsigned opcode, uint32_t vdst, uint32_t src0, codeGen &gen);
 void emitSop2Raw(unsigned opcode, uint32_t sdst, uint32_t ssrc0, uint32_t ssrc1,
                  codeGen &gen);
 
