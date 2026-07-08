@@ -1624,12 +1624,19 @@ bool ProcessSet::terminate() const
    int_process::waitAndHandleEvents(false);
 #endif
 
-   // Clean out the event queue before we terminate; otherwise we can race
-   set<int_process *> procs;
+   // Clean out the event queue before we terminate; otherwise we can race.
+   // Hold the reference-counted Process wrappers rather than raw int_process*:
+   // the waitAndHandleEvents() calls below can finish an in-flight exit and
+   // delete the underlying int_process, which nulls the wrapper's llproc_.
+   // Re-derive llproc() after each such call and skip any process that was
+   // freed, so we neither terminate nor delete a dangling int_process.
+   set<Process::ptr> procs;
    procset_iter iter("terminate", had_error, ERR_CHCK_NORM);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = *i;
       int_process *proc = p->llproc();
+      if (!proc)
+         continue;
 
       pthrd_printf("User terminating process %d\n", proc->getPid());
 
@@ -1639,7 +1646,7 @@ bool ProcessSet::terminate() const
          had_error = true;
          continue;
       }
-      procs.insert(proc);
+      procs.insert(p);
    }
 
    // Handle anything from preTerminate
@@ -1649,8 +1656,13 @@ bool ProcessSet::terminate() const
 
    ProcPool()->condvar()->lock();
 
-   for (set<int_process *>::iterator i = procs.begin(); i != procs.end();) {
-      int_process *proc = *i;
+   for (set<Process::ptr>::iterator i = procs.begin(); i != procs.end();) {
+      int_process *proc = (*i)->llproc();
+      if (!proc) {
+         // Process exited and was deleted during the event handling above.
+         procs.erase(i++);
+         continue;
+      }
 
       bool needsSync = false;
       bool result = proc->terminate(needsSync);
@@ -1683,8 +1695,10 @@ bool ProcessSet::terminate() const
          had_error = true;
       }
    }
-   for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
-      int_process *proc = *i;
+   for (auto &p : procs) {
+      int_process *proc = p->llproc();
+      if (!proc)
+         continue;   // already deleted during terminate/waitAndHandleEvents
       HandlerPool *hp = proc->handlerPool();
       delete proc;
       delete hp;
