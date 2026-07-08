@@ -195,6 +195,19 @@ std::string phdrTypeStr(Elf64_Word phdr_type) {
 
 }
 
+// The name of the object's BASE version definition: the verdef at
+// VER_NDX_GLOBAL, conventionally the object's SONAME. Falls back to
+// DT_SONAME when the object carried no verdefs (e.g. versions are being
+// introduced into a previously unversioned object).
+static const char *baseVersionName(ObjectELF *object) {
+    if (!object) return NULL;
+    const auto &vm = object->getVersionMapping();
+    auto it = vm.find(VER_NDX_GLOBAL);
+    if (it != vm.end() && !it->second.empty())
+        return it->second[0].c_str();
+    return object->getSoname();
+}
+
 template<class ElfTypes>
 bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf_Sym *> &symbols,
                                           bool dynSymFlag) {
@@ -265,12 +278,21 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
                         versionSymTable.push_back(index);
                     }
                     else {
-                        unsigned short index = curVersionNum;
+                        // A version equal to the object's BASE definition -- the
+                        // verdef at VER_NDX_GLOBAL (1), whose name a symbol picks up
+                        // when its versym index is 1 -- must keep VER_NDX_GLOBAL in
+                        // both the verdef (vd_ndx) and the symbol's version table
+                        // rather than consume a sequentially allocated index.
+                        const char *base = baseVersionName(object);
+                        bool isBase = (base && (*vers)[0] == base);
+                        unsigned short verndx = isBase ? VER_NDX_GLOBAL
+                                                       : (unsigned short) curVersionNum;
+                        unsigned short index = verndx;
                         if (symbol->getVersionHidden()) index += 0x8000;
                         versionSymTable.push_back(index);
 
-                        verdefEntries[(*vers)[0]] = curVersionNum;
-                        curVersionNum++;
+                        verdefEntries[(*vers)[0]] = verndx;
+                        if (!isBase) curVersionNum++;
                     }
                 }
                 // add all versions to the verdef entry
@@ -2158,6 +2180,36 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
         }
     }
 
+    // Preserve original .gnu.version_d entries that were not recreated through
+    // symbol version references. Verdef-side version indices are exactly those
+    // with no provider-file mapping (verneed aux indices always have one). The
+    // BASE definition -- the verdef at VER_NDX_GLOBAL, which no symbol
+    // references in e.g. glibc's libc.so.6 since every export carries a
+    // GLIBC_2.x version -- keeps VER_NDX_GLOBAL so the emitted table stays
+    // ELF-gABI-conformant (eu-elflint: "no BASE definition" otherwise); any
+    // other unreferenced definition gets a fresh index. Aux name chains (the
+    // version name followed by its predecessors) are preserved verbatim.
+    for (const auto &versionEntry : originalVersionMapping) {
+        if (originalVersionFileNameMapping.count(versionEntry.first)) continue;
+        if (versionEntry.second.empty()) continue;
+        const string &defName = versionEntry.second[0];
+        if (verdefEntries.find(defName) != verdefEntries.end()) continue;
+        unsigned short verndx = (versionEntry.first == VER_NDX_GLOBAL)
+                                ? (unsigned short) VER_NDX_GLOBAL
+                                : (unsigned short) curVersionNum++;
+        verdefEntries[defName] = verndx;
+        for (const auto &auxName : versionEntry.second) {
+            if (versionNames.find(auxName) == versionNames.end()) {
+                versionNames[auxName] = dynSymbolNamesLength;
+                dynStrs.push_back(auxName);
+                dynSymbolNamesLength += auxName.size() + 1;
+            }
+            if (find(verdauxEntries[verndx].begin(), verdauxEntries[verndx].end(), auxName) ==
+                verdauxEntries[verndx].end())
+                verdauxEntries[verndx].push_back(auxName);
+        }
+    }
+
     //reconstruct .gnu.version_r section
     verneedSecSize = 0;
     map<string, map<string, unsigned> >::iterator it = verneedEntries.begin();
@@ -2221,7 +2273,11 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
     for (iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++) {
         Elf_Verdef *verdef = reinterpret_cast<Elf_Verdef *>(verdefSecData + curpos);
         verdef->vd_version = 1;
-        verdef->vd_flags = 0;
+        // The BASE definition -- the verdef at VER_NDX_GLOBAL, the version of the
+        // object itself -- must carry VER_FLG_BASE. This reconstruction had set
+        // vd_flags = 0 unconditionally since it was written, so eu-elflint
+        // reported "no BASE definition" even when the entry survived.
+        verdef->vd_flags = (iter->second == VER_NDX_GLOBAL) ? VER_FLG_BASE : 0;
         verdef->vd_ndx = iter->second;
         verdef->vd_cnt = verdauxEntries[iter->second].size();
         verdef->vd_hash = elfHash(iter->first.c_str());
