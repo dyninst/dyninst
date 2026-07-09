@@ -87,13 +87,18 @@ void Process::version(int& major, int& minor, int& maintenance)
 
 bool int_process::create(int_processSet *ps) {
    bool had_error = false;
-   set<int_process *> procs;
-   transform(ps->begin(), ps->end(), inserter(procs, procs.end()), ProcToIntProc());
+   // Hold reference-counted Process wrappers, not raw int_process*: a process
+   // can exit/crash during bootstrap and be deleted inside the
+   // waitForAsyncEvent() below (post_create), which nulls the wrapper's
+   // llproc_.  Re-derive llproc() after each event-handling point and skip
+   // any process that was freed.
+   set<Process::ptr> procs(ps->begin(), ps->end());
 
    //Should be called with procpool lock held
    pthrd_printf("Calling plat_create for %d processes\n", (int) procs.size());
-   for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
-      int_process *proc = *i;
+   for (set<Process::ptr>::iterator i = procs.begin(); i != procs.end(); ) {
+      int_process *proc = (*i)->llproc();
+      if (!proc) { i = procs.erase(i); had_error = true; continue; }
       bool result = proc->plat_create();
       if (!result) {
          pthrd_printf("Could not create debuggee, %s\n", proc->executable.c_str());
@@ -106,8 +111,9 @@ bool int_process::create(int_processSet *ps) {
    }
 
    pthrd_printf("Creating initial threads for %d processes\n", (int) procs.size());
-   for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
-      int_process *proc = *i;
+   for (set<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
+      int_process *proc = (*i)->llproc();
+      if (!proc) continue;
 	  // Because yo, windows processes have threads when they're created...
 	  if (proc->threadPool()->empty()) {
         int_thread::createThread(proc, NULL_THR_ID, NULL_LWP, true, int_thread::as_created_attached);
@@ -122,8 +128,9 @@ bool int_process::create(int_processSet *ps) {
 
 
    pthrd_printf("Waiting for startup for %d processes\n", (int) procs.size());
-   for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
-      int_process *proc = *i;
+   for (set<Process::ptr>::iterator i = procs.begin(); i != procs.end(); ) {
+      int_process *proc = (*i)->llproc();
+      if (!proc) { i = procs.erase(i); continue; }
       string executable = proc->executable;
       Dyninst::PID pid = proc->pid;
 
@@ -142,8 +149,13 @@ bool int_process::create(int_processSet *ps) {
    while (!procs.empty()) {
       set<response::ptr> async_responses;
       bool ret_async = false;
-      for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
-         int_process *proc = *i;
+      for (set<Process::ptr>::iterator i = procs.begin(); i != procs.end(); ) {
+         int_process *proc = (*i)->llproc();
+         if (!proc) {
+            // Process exited during a prior post_create waitForAsyncEvent.
+            i = procs.erase(i);
+            continue;
+         }
 
          async_ret_t result = proc->post_create(async_responses);
          if (result == aret_error) {
@@ -265,17 +277,21 @@ bool int_process::plat_attachThreadsSync()
 bool int_process::attach(int_processSet *ps, bool reattach)
 {
    bool had_error = false, should_sync = false;
-   set<int_process *> procs;
+   // Hold reference-counted Process wrappers, not raw int_process*: a process
+   // can exit during attach bootstrap and be deleted inside the
+   // waitAndHandleEvents/waitForAsyncEvent/waitfor_startup calls below, which
+   // nulls the wrapper's llproc_.  Re-derive llproc() after each such point
+   // and skip any process that was freed.
+   set<Process::ptr> procs(ps->begin(), ps->end());
    vector<Event::ptr> observedEvents;
    set<response::ptr> async_responses;
-   transform(ps->begin(), ps->end(), inserter(procs, procs.end()), ProcToIntProc());
 
    //Should be called with procpool lock held
 
 	pthrd_printf("Calling plat_attach for %d processes\n", (int) procs.size());
    map<pair<int_process *, Dyninst::LWP>, bool> runningStates;
-   for (set<int_process *>::iterator i = procs.begin(); i != procs.end();) {
-	   int_process *proc = *i;
+   for (set<Process::ptr>::iterator i = procs.begin(); i != procs.end();) {
+	   int_process *proc = (*i)->llproc();
       if (!proc) {
          i = procs.erase(i);
          continue;
@@ -324,8 +340,9 @@ bool int_process::attach(int_processSet *ps, bool reattach)
 
    //Create the int_thread objects via attach_threads
    if (!reattach) {
-      for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
-         int_process *proc = *i;
+      for (set<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
+         int_process *proc = (*i)->llproc();
+         if (!proc) continue;
          ProcPool()->addProcess(proc);
          int_thread::createThread(proc, NULL_THR_ID, NULL_LWP, true,
                                   int_thread::as_created_attached); //initial thread
@@ -337,9 +354,9 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       ProcPool()->condvar()->unlock();
       for (;;) {
          bool have_neonatal = false;
-         for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
-            int_process *proc = *i;
-            if (proc->getState() == neonatal) {
+         for (set<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
+            int_process *proc = (*i)->llproc();
+            if (proc && proc->getState() == neonatal) {
                have_neonatal = true;
                break;
             }
@@ -356,15 +373,17 @@ bool int_process::attach(int_processSet *ps, bool reattach)
    }
    else {
       pthrd_printf("Attach done, moving processes to neonatal_intermediate\n");
-      for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
-         int_process *proc = *i;
+      for (set<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
+         int_process *proc = (*i)->llproc();
+         if (!proc) continue;
          proc->setState(neonatal_intermediate);
       }
    }
 
 
-   for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
-      int_process *proc = *i;
+   for (set<Process::ptr>::iterator i = procs.begin(); i != procs.end(); ) {
+      int_process *proc = (*i)->llproc();
+      if (!proc) { i = procs.erase(i); continue; }
       if (proc->getState() == errorstate) {
          pthrd_printf("Removing process %d in error state\n", proc->getPid());
          i = procs.erase(i);
@@ -439,13 +458,15 @@ bool int_process::attach(int_processSet *ps, bool reattach)
    ProcPool()->condvar()->unlock();
 
    //Wait for each process to make it to the 'running' state.
-   for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
-      int_process *proc = *i;
-      pthrd_printf("Wait for attach from process %d\n", proc->pid);
+   for (set<Process::ptr>::iterator i = procs.begin(); i != procs.end(); ) {
+      int_process *proc = (*i)->llproc();
+      if (!proc) { i = procs.erase(i); continue; }
+      Dyninst::PID pid = proc->pid;   // save: waitfor_startup can delete proc
+      pthrd_printf("Wait for attach from process %d\n", pid);
 
       bool result = proc->waitfor_startup();
       if (!result) {
-         pthrd_printf("Error waiting for attach to %d\n", proc->pid);
+         pthrd_printf("Error waiting for attach to %d\n", pid);
          i = procs.erase(i);
          had_error = true;
          continue;
@@ -455,10 +476,13 @@ bool int_process::attach(int_processSet *ps, bool reattach)
 
    //Some OSs need to do their attachThreads here.  Since the operation is supposed to be
    //idempotent after success, then just do it again.
-   for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
-      int_process *proc = *i;
-      if (proc->getState() == errorstate)
+   for (set<Process::ptr>::iterator i = procs.begin(); i != procs.end(); ) {
+      int_process *proc = (*i)->llproc();
+      if (!proc) { i = procs.erase(i); continue; }
+      if (proc->getState() == errorstate) {
+         i = procs.erase(i);   // was: continue (no advance -> would loop forever)
          continue;
+      }
       bool result = proc->plat_attachThreadsSync();
       if (!result) {
          pthrd_printf("Failed to attach to threads in %d\n", proc->pid);
@@ -487,12 +511,17 @@ bool int_process::attach(int_processSet *ps, bool reattach)
    }
 
    pthrd_printf("Triggering post-attach for %d processes\n", (int) procs.size());
-   std::set<int_process *> pa_procs = procs;
+   std::set<Process::ptr> pa_procs = procs;
    while (!pa_procs.empty()) {
       async_responses.clear();
       bool ret_async = false;
-      for (set<int_process *>::iterator i = pa_procs.begin(); i != pa_procs.end(); ) {
-         int_process *proc = *i;
+      for (set<Process::ptr>::iterator i = pa_procs.begin(); i != pa_procs.end(); ) {
+         int_process *proc = (*i)->llproc();
+         if (!proc) {
+            // Process exited during a prior post_attach waitForAsyncEvent.
+            i = pa_procs.erase(i);
+            continue;
+         }
 
          async_ret_t result = proc->post_attach(false, async_responses);
          if (result == aret_error) {
@@ -523,9 +552,10 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       return !had_error;
 
    async_responses.clear();
-   for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
+   for (set<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
       // Resume all breakpoints
-      int_process *proc = *i;
+      int_process *proc = (*i)->llproc();
+      if (!proc) continue;
       for(std::map<Dyninst::Address, sw_breakpoint *>::iterator j = proc->mem->breakpoints.begin();
           j != proc->mem->breakpoints.end(); j++)
       {
@@ -543,6 +573,8 @@ bool int_process::attach(int_processSet *ps, bool reattach)
    for(vector<Event::ptr>::iterator i = observedEvents.begin(); i!= observedEvents.end(); i++)
    {
        int_thread *thrd = (*i)->getThread()->llthrd();
+       if (!thrd)
+          continue;   // thread deleted during the resume wait above
        pthrd_printf("Queuing event %s for thread %d/%d\n",
                     (*i)->getEventType().name().c_str(), (*i)->getProcess()->getPid(),
                     (*i)->getThread()->getLWP());
