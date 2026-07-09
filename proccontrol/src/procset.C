@@ -3410,10 +3410,15 @@ bool LWPTrackingSet::refreshLWPs() const
    int_processSet *procset = wps.lock()->getIntProcessSet();
    procset_iter iter("setTrackLWPs", had_error, ERR_CHCK_ALL);
    set<response::ptr> all_resps;
-   set<int_process *> all_procs;
-   set<int_process *> change_procs;
+   // Hold reference-counted Process wrappers, not raw int_process*: the
+   // waitForAsyncEvent/waitAndHandleEvents calls below can finish an in-flight
+   // exit and delete an int_process.  Re-derive llproc() (and getLWPTracking)
+   // after each such call and skip any process that was freed.
+   set<Process::ptr> all_procs;
+   set<Process::ptr> change_procs;
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_LWPTracking *proc = (*i)->llproc()->getLWPTracking();
+      Process::ptr p = *i;
+      int_LWPTracking *proc = p->llproc()->getLWPTracking();
       if (!proc) {
          perr_printf("LWP tracking not supported on process\n");
          had_error = true;
@@ -3427,13 +3432,16 @@ bool LWPTrackingSet::refreshLWPs() const
       if (resp) {
          all_resps.insert(resp);
       }
-      all_procs.insert(proc);
+      all_procs.insert(p);
    }
 
    int_process::waitForAsyncEvent(all_resps);
 
-   for (set<int_process *>::iterator i = all_procs.begin(); i != all_procs.end(); i++) {
-      int_LWPTracking *proc = (*i)->getLWPTracking();
+   for (set<Process::ptr>::iterator i = all_procs.begin(); i != all_procs.end(); i++) {
+      int_process *llp = (*i)->llproc();
+      if (!llp)
+         continue;   // process exited during the wait
+      int_LWPTracking *proc = llp->getLWPTracking();
       if (!proc)
          continue;
       bool changed;
@@ -3443,7 +3451,7 @@ bool LWPTrackingSet::refreshLWPs() const
          had_error = true;
       }
       if (changed) {
-         change_procs.insert(proc);
+         change_procs.insert(*i);
          proc->setForceGeneratorBlock(true);
       }
    }
@@ -3458,9 +3466,11 @@ bool LWPTrackingSet::refreshLWPs() const
 
    int_process::waitAndHandleEvents(false);
 
-   for (set<int_process *>::iterator i = change_procs.begin(); i != change_procs.end(); i++) {
-      int_process *proc = *i;
-      proc->setForceGeneratorBlock(false);      
+   for (set<Process::ptr>::iterator i = change_procs.begin(); i != change_procs.end(); i++) {
+      int_process *proc = (*i)->llproc();
+      if (!proc)
+         continue;   // process exited during the wait
+      proc->setForceGeneratorBlock(false);
    }
    return !had_error;
 }
