@@ -16,18 +16,12 @@ int main() {
 
   BASEREG_CHECK(amdgpu_gfx90a::acc0, amdgpu_gfx90a::acc0);
   BASEREG_CHECK(amdgpu_gfx90a::acc255, amdgpu_gfx90a::acc255);
-
-  BASEREG_CHECK(amdgpu_gfx90a::vcc, amdgpu_gfx90a::vcc);
-  BASEREG_CHECK(amdgpu_gfx90a::vcc_lo, amdgpu_gfx90a::vcc);
-  BASEREG_CHECK(amdgpu_gfx90a::vcc_hi, amdgpu_gfx90a::vcc);
-
-  BASEREG_CHECK(amdgpu_gfx90a::exec, amdgpu_gfx90a::exec);
-  BASEREG_CHECK(amdgpu_gfx90a::exec_lo, amdgpu_gfx90a::exec);
-  BASEREG_CHECK(amdgpu_gfx90a::exec_hi, amdgpu_gfx90a::exec);
-
-  BASEREG_CHECK(amdgpu_gfx90a::flat_scratch_all, amdgpu_gfx90a::flat_scratch_all);
-  BASEREG_CHECK(amdgpu_gfx90a::flat_scratch_lo, amdgpu_gfx90a::flat_scratch_all);
-  BASEREG_CHECK(amdgpu_gfx90a::flat_scratch_hi, amdgpu_gfx90a::flat_scratch_all);
+  BASEREG_CHECK(amdgpu_gfx90a::vcc_lo, amdgpu_gfx90a::vcc_lo);
+  BASEREG_CHECK(amdgpu_gfx90a::vcc_hi, amdgpu_gfx90a::vcc_hi);
+  BASEREG_CHECK(amdgpu_gfx90a::exec_lo, amdgpu_gfx90a::exec_lo);
+  BASEREG_CHECK(amdgpu_gfx90a::exec_hi, amdgpu_gfx90a::exec_hi);
+  BASEREG_CHECK(amdgpu_gfx90a::flat_scratch_lo, amdgpu_gfx90a::flat_scratch_lo);
+  BASEREG_CHECK(amdgpu_gfx90a::flat_scratch_hi, amdgpu_gfx90a::flat_scratch_hi);
 
   return EXIT_SUCCESS;
 }

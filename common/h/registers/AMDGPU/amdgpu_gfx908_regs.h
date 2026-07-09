@@ -120,16 +120,13 @@ namespace Dyninst { namespace amdgpu_gfx908 {
   DEF_REGISTER(                src_vccz,   1 |  BITS_1 |      MISC |Arch_amdgpu_gfx908);
   DEF_REGISTER(                  vcc_lo,   2 | BITS_32 |      MISC |Arch_amdgpu_gfx908);
   DEF_REGISTER(                  vcc_hi,   3 | BITS_32 |      MISC |Arch_amdgpu_gfx908);
-  DEF_REGISTER(                     vcc,   2 | BITS_64 |      MISC |Arch_amdgpu_gfx908);
 
   DEF_REGISTER(               src_execz,   4 |  BITS_1 |      MISC |Arch_amdgpu_gfx908);
   DEF_REGISTER(                 exec_lo,   5 | BITS_32 |      MISC |Arch_amdgpu_gfx908);
   DEF_REGISTER(                 exec_hi,   6 | BITS_32 |      MISC |Arch_amdgpu_gfx908);
-  DEF_REGISTER(                    exec,   5 | BITS_64 |      MISC |Arch_amdgpu_gfx908);
 
-  DEF_REGISTER(         flat_scratch_lo,   7 | BITS_64 |      MISC |Arch_amdgpu_gfx908);
+  DEF_REGISTER(         flat_scratch_lo,   7 | BITS_32 |      MISC |Arch_amdgpu_gfx908);
   DEF_REGISTER(         flat_scratch_hi,   8 | BITS_32 |      MISC |Arch_amdgpu_gfx908);
-  DEF_REGISTER(        flat_scratch_all,   7 | BITS_32 |      MISC |Arch_amdgpu_gfx908);
 
   DEF_REGISTER(                      m0,   9 | BITS_32 |      MISC |Arch_amdgpu_gfx908);
 

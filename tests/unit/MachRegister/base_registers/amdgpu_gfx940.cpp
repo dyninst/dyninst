@@ -16,18 +16,12 @@ int main() {
 
   BASEREG_CHECK(amdgpu_gfx940::acc0, amdgpu_gfx940::acc0);
   BASEREG_CHECK(amdgpu_gfx940::acc255, amdgpu_gfx940::acc255);
-
-  BASEREG_CHECK(amdgpu_gfx940::vcc, amdgpu_gfx940::vcc);
-  BASEREG_CHECK(amdgpu_gfx940::vcc_lo, amdgpu_gfx940::vcc);
-  BASEREG_CHECK(amdgpu_gfx940::vcc_hi, amdgpu_gfx940::vcc);
-
-  BASEREG_CHECK(amdgpu_gfx940::exec, amdgpu_gfx940::exec);
-  BASEREG_CHECK(amdgpu_gfx940::exec_lo, amdgpu_gfx940::exec);
-  BASEREG_CHECK(amdgpu_gfx940::exec_hi, amdgpu_gfx940::exec);
-
-  BASEREG_CHECK(amdgpu_gfx940::flat_scratch_all, amdgpu_gfx940::flat_scratch_all);
-  BASEREG_CHECK(amdgpu_gfx940::flat_scratch_lo, amdgpu_gfx940::flat_scratch_all);
-  BASEREG_CHECK(amdgpu_gfx940::flat_scratch_hi, amdgpu_gfx940::flat_scratch_all);
+  BASEREG_CHECK(amdgpu_gfx940::vcc_lo, amdgpu_gfx940::vcc_lo);
+  BASEREG_CHECK(amdgpu_gfx940::vcc_hi, amdgpu_gfx940::vcc_hi);
+  BASEREG_CHECK(amdgpu_gfx940::exec_lo, amdgpu_gfx940::exec_lo);
+  BASEREG_CHECK(amdgpu_gfx940::exec_hi, amdgpu_gfx940::exec_hi);
+  BASEREG_CHECK(amdgpu_gfx940::flat_scratch_lo, amdgpu_gfx940::flat_scratch_lo);
+  BASEREG_CHECK(amdgpu_gfx940::flat_scratch_hi, amdgpu_gfx940::flat_scratch_hi);
 
   return EXIT_SUCCESS;
 }
