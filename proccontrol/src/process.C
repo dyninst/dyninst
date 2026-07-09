@@ -1633,7 +1633,10 @@ bool int_process::infFree(Address addr) {
 bool int_process::infMalloc(unsigned long size, int_addressSet *aset, bool use_addr)
 {
    bool had_error = false;
-   set<pair<int_process *, int_iRPC::ptr> > active_mallocs;
+   // Hold reference-counted Process wrappers, not raw int_process*: the
+   // waitAndHandleEvents() below runs the inferior RPCs and can finish an
+   // in-flight exit, deleting an int_process (see infFree for the template).
+   set<pair<Process::ptr, int_iRPC::ptr> > active_mallocs;
    int_addressSet direct_results;
 
    for (int_addressSet::iterator i = aset->begin(); i != aset->end(); i++) {
@@ -1670,7 +1673,7 @@ bool int_process::infMalloc(unsigned long size, int_addressSet *aset, bool use_a
 
       int_thread *thr = rpc->thread();
       assert(thr);
-      active_mallocs.insert(make_pair(proc, rpc));
+      active_mallocs.insert(make_pair(p, rpc));
       thr->getInternalState().desyncState(int_thread::running);
       rpc->setRestoreInternal(true);
       proc->throwNopEvent();
@@ -1692,11 +1695,18 @@ bool int_process::infMalloc(unsigned long size, int_addressSet *aset, bool use_a
       aset->insert(direct_results.begin(), direct_results.end());
 
 
-   for (set<pair<int_process *, int_iRPC::ptr> >::iterator i = active_mallocs.begin();
+   for (set<pair<Process::ptr, int_iRPC::ptr> >::iterator i = active_mallocs.begin();
         i != active_mallocs.end(); i++)
    {
-      int_process *proc = i->first;
+      Process::ptr p = i->first;
       int_iRPC::ptr rpc = i->second;
+      int_process *proc = p->llproc();
+      if (!proc) {
+         perr_printf("Process %d exited during infMalloc\n", p->getPid());
+         p->setLastError(err_exited, "Process exited during infMalloc\n");
+         had_error = true;
+         continue;
+      }
       assert(rpc->getState() == int_iRPC::Finished);
       Dyninst::Address aresult = rpc->infMallocResult();
       pthrd_printf("Inferior malloc returning %lx on %d\n", aresult, proc->getPid());
