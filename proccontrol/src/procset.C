@@ -1987,18 +1987,23 @@ bool ProcessSet::writeMemory(multimap<Process::const_ptr, write_t> &addrs) const
    return !had_error;
 }
 
-static bool addBreakpointWorker(set<pair<int_process *, bp_install_state *> > &bp_installs)
+static bool addBreakpointWorker(set<pair<Process::ptr, bp_install_state *> > &bp_installs)
 {
    bool had_error = false;
    bool result;
 
    set<response::ptr> all_responses;
-   for (set<pair<int_process *, bp_install_state *> >::iterator i = bp_installs.begin(); 
+   for (set<pair<Process::ptr, bp_install_state *> >::iterator i = bp_installs.begin(); 
         i != bp_installs.end();) 
    {
-      int_process *proc = i->first;
+      int_process *proc = i->first->llproc();
       bp_install_state *is = i->second;
-      
+      if (!proc) {
+         // Process exited (e.g. during a prior phase's waitForAsyncEvent).
+         delete is;
+         bp_installs.erase(i++);
+         continue;
+      }
       result = proc->addBreakpoint_phase1(is);
       if (!result) {
          had_error = true;
@@ -2017,12 +2022,17 @@ static bool addBreakpointWorker(set<pair<int_process *, bp_install_state *> > &b
    }
    all_responses.clear();
 
-   for (set<pair<int_process *, bp_install_state *> >::iterator i = bp_installs.begin(); 
+   for (set<pair<Process::ptr, bp_install_state *> >::iterator i = bp_installs.begin(); 
         i != bp_installs.end();) 
    {
-      int_process *proc = i->first;
+      int_process *proc = i->first->llproc();
       bp_install_state *is = i->second;
-      
+      if (!proc) {
+         // Process exited (e.g. during a prior phase's waitForAsyncEvent).
+         delete is;
+         bp_installs.erase(i++);
+         continue;
+      }
       result = proc->addBreakpoint_phase2(is);
       if (!result) {
          had_error = true;
@@ -2040,11 +2050,16 @@ static bool addBreakpointWorker(set<pair<int_process *, bp_install_state *> > &b
       had_error = true;
    }
 
-   for (set<pair<int_process *, bp_install_state *> >::iterator i = bp_installs.begin(); 
+   for (set<pair<Process::ptr, bp_install_state *> >::iterator i = bp_installs.begin(); 
         i != bp_installs.end();) {
-      int_process *proc = i->first;
+      int_process *proc = i->first->llproc();
       bp_install_state *is = i->second;
-      
+      if (!proc) {
+         // Process exited (e.g. during a prior phase's waitForAsyncEvent).
+         delete is;
+         bp_installs.erase(i++);
+         continue;
+      }
       result = proc->addBreakpoint_phase3(is);
       if (!result) {
          had_error = true;
@@ -2062,17 +2077,16 @@ bool ProcessSet::addBreakpoint(AddressSet::ptr addrset, Breakpoint::ptr bp) cons
    MTLock lock_this_func;
    bool had_error = false;
 
-   set<pair<int_process *, bp_install_state *> > bp_installs;
+   set<pair<Process::ptr, bp_install_state *> > bp_installs;
    addrset_iter iter("Breakpoint add", had_error, ERR_CHCK_ALL);
    for (int_addressSet::iterator i = iter.begin(addrset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = i->second;
-      int_process *proc = p->llproc();
       Address addr = i->first;
-      
+
       bp_install_state *is = new bp_install_state();
       is->addr = addr;
       is->bp = bp->llbp();
-      bp_installs.insert(make_pair(proc, is));
+      bp_installs.insert(make_pair(p, is));
    }
 
    return addBreakpointWorker(bp_installs) && !had_error;
@@ -3137,7 +3151,7 @@ bool LibraryTrackingSet::setTrackLibraries(bool b) const
    }
    int_processSet *procset = ps->getIntProcessSet();
 
-   set<pair<int_process *, bp_install_state *> > bps_to_install;
+   set<pair<Process::ptr, bp_install_state *> > bps_to_install;
    set<response::ptr> all_responses;
 
    procset_iter iter("setTrackLibraries", had_error, ERR_CHCK_NORM);
@@ -3168,7 +3182,7 @@ bool LibraryTrackingSet::setTrackLibraries(bool b) const
          is->addr = addr;
          is->bp = bp;
          is->do_install = true;
-         bps_to_install.insert(make_pair(proc, is));
+         bps_to_install.insert(make_pair(p, is));
       }
       else {
          result = proc->removeBreakpoint(addr, bp, all_responses);
@@ -3278,7 +3292,7 @@ bool ThreadTrackingSet::setTrackThreads(bool b) const
    MTLock lock_this_func;
    bool had_error = false;
 
-   set<pair<int_process *, bp_install_state *> > bps_to_install;
+   set<pair<Process::ptr, bp_install_state *> > bps_to_install;
    set<response::ptr> all_responses;
 
    ProcessSet::ptr ps = wps.lock();
@@ -3315,7 +3329,7 @@ bool ThreadTrackingSet::setTrackThreads(bool b) const
             is->addr = j->second;
             is->bp = j->first;
             is->do_install = true;
-            bps_to_install.insert(make_pair(proc, is));
+            bps_to_install.insert(make_pair(p, is));
          }
       }
       else {

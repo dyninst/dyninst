@@ -5068,6 +5068,12 @@ sw_breakpoint *sw_breakpoint::create(int_process *proc, int_breakpoint *bp, Dyni
    is.addr = addr;
    is.bp = bp;
 
+   // The waitForAsyncEvent calls below can finish an in-flight exit of this
+   // process and delete it; hold the wrapper and check liveness after each
+   // wait.  (While the wrapper's llproc() is non-NULL it is still this same
+   // int_process; ~int_process nulls it on deletion.)
+   Process::ptr wrapper = proc->proc();
+
    result = proc->addBreakpoint_phase1(&is);
    if (!result)
       return NULL;
@@ -5075,6 +5081,10 @@ sw_breakpoint *sw_breakpoint::create(int_process *proc, int_breakpoint *bp, Dyni
       result = int_process::waitForAsyncEvent(is.mem_resp);
       if (!result) {
          perr_printf("Error waiting for result of memory response\n");
+         return NULL;
+      }
+      if (!wrapper->llproc()) {
+         perr_printf("Process exited during breakpoint install\n");
          return NULL;
       }
    }
@@ -5086,6 +5096,10 @@ sw_breakpoint *sw_breakpoint::create(int_process *proc, int_breakpoint *bp, Dyni
       result = int_process::waitForAsyncEvent(is.res_resp);
       if (!result) {
          perr_printf("Error waiting for result of result response\n");
+         return NULL;
+      }
+      if (!wrapper->llproc()) {
+         perr_printf("Process exited during breakpoint install\n");
          return NULL;
       }
    }
