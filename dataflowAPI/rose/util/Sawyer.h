@@ -8,6 +8,22 @@
 #ifndef Sawyer_H
 #define Sawyer_H
 
+// Dyninst: define _REENTRANT before any system header so Sawyer selects its
+// thread-safe path (the SAWYER_MULTI_THREADED / SAWYER_THREAD_LOCAL block
+// below keys on _REENTRANT). Dyninst runs its parser in parallel (OpenMP), so
+// Sawyer's pool allocator, shared-pointer reference counting, and per-thread
+// PRNG (fastRandomIndex) must be thread-safe. The compiler only defines
+// _REENTRANT when invoked with -pthread, and Dyninst cannot rely on that:
+// CMake's Threads::Threads adds -pthread as a *compile* flag only when
+// THREADS_HAVE_PTHREAD_ARG is true, which is false whenever pthread lives in
+// libc (glibc >= 2.34), leaving Threads::Threads an empty target. When
+// _REENTRANT is undefined these classes compile with no-op locks and shared
+// "thread-local" state, which crashed the parallel parser under clang.
+// Guarded so it is a no-op where -pthread already defined it.
+#ifndef _REENTRANT
+#define _REENTRANT 1
+#endif
+
 #include <stddef.h>
 #include <stdint.h>
 #include <vector>
