@@ -51,6 +51,7 @@
 #include "relocationEntry.h"
 #include "ExceptionBlock.h"
 #include "dyninstversion.h"
+#include "VariableLocation.h"
 
 #include "boost/shared_ptr.hpp"
 
@@ -73,6 +74,27 @@ class Type;
 struct symtab_impl;
 
 typedef Dyninst::ProcessReader MemRegReader;
+
+// BUGB/#1437: decoded C++ exception-handling info for one function, extracted
+// from .eh_frame (FDE->LSDA linkage) + .gcc_except_table. Used to regenerate a
+// valid LSDA for relocated/instrumented code. All addresses are in the input
+// binary's (original) vaddr space.
+struct EHCallSite {
+   Dyninst::Offset region_start;  // absolute; the try region [start, start+size)
+   Dyninst::Offset region_size;
+   Dyninst::Offset landing_pad;   // absolute; 0 = no landing pad
+   uint64_t        action;        // 1-based byte index into action_table (0 = none)
+};
+struct EHFunctionInfo {
+   Dyninst::Offset func_low_pc{0};        // FDE initial_location
+   Dyninst::Offset lpstart{0};            // landing-pad base (== low_pc if LPStart omitted)
+   unsigned char   ttype_format{0xff};    // DW_EH_PE_* encoding of type-table entries
+   unsigned char   personality_format{0xff};
+   Dyninst::Offset personality_target{0}; // absolute target the CIE 'P' aug resolves to
+   std::vector<EHCallSite>       callsites;
+   std::vector<unsigned char>    action_table;  // raw bytes, verbatim
+   std::vector<Dyninst::Offset>  type_targets;  // abs targets; index 0 == filter value 1
+};
 
 class DYNINST_EXPORT Symtab : public LookupInterface,
                public AnnotatableSparse
@@ -539,6 +561,13 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
  public:
    Object *getObject();
    const Object *getObject() const;
+   // BUGB/#1437: CFA (canonical frame address) rules over [low,high) from the
+   // binary's .eh_frame, used to synthesize unwind info for relocated code.
+   DYNINST_EXPORT bool getCFALocations(Offset low, Offset high,
+                                       std::vector<VariableLocation> &locs);
+   // BUGB/#1437: decoded LSDA/eh info per function (see EHFunctionInfo), used to
+   // regenerate exception tables for relocated code.
+   DYNINST_EXPORT bool getEHFrameInfo(std::vector<EHFunctionInfo> &out);
    void dumpModRanges();
    void dumpFuncRanges();
 

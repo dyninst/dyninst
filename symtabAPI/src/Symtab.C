@@ -52,6 +52,10 @@
 #include "debug.h"
 
 #include "symtabAPI/src/Object.h"
+// BUGB/#1437: CFA query for relocated-code unwind-info synthesis
+#include "symtabAPI/src/Object-elf.h"
+#include "dwarfFrameParser.h"
+#include "registers/abstract_regs.h"
 #include "symtab_impl.hpp"
 
 
@@ -2005,6 +2009,37 @@ Object *Symtab::getObject()
 const Object *Symtab::getObject() const
 {
     return obj_private;
+}
+
+// BUGB/#1437: return the CFA (canonical frame address) rules over [low,high)
+// from this binary's .eh_frame. Each returned VariableLocation gives, for a
+// PC sub-range, the base register (mr_reg) and offset (frameOffset) such that
+// CFA = mr_reg + frameOffset. Used to synthesize FDEs for relocated code.
+bool Symtab::getCFALocations(Offset low, Offset high,
+                             std::vector<VariableLocation> &locs)
+{
+    using namespace Dyninst::DwarfDyninst;
+    ObjectELF *obj_elf = dynamic_cast<ObjectELF *>(getObject());
+    if (!obj_elf || !obj_elf->dwarf)
+        return false;
+    DwarfFrameParser::Ptr fp = DwarfFrameParser::create(
+        *obj_elf->dwarf->frame_dbg(), obj_elf->dwarf->origFile()->e_elfp(),
+        obj_elf->getArch());
+    if (!fp)
+        return false;
+    FrameErrors_t err;
+    return fp->getRegsForFunction(std::make_pair(low, high), Dyninst::CFA,
+                                  locs, err);
+}
+
+// BUGB/#1437: decoded per-function LSDA info (see EHFunctionInfo), used to
+// regenerate exception tables for relocated code.
+bool Symtab::getEHFrameInfo(std::vector<EHFunctionInfo> &out)
+{
+    ObjectELF *obj_elf = dynamic_cast<ObjectELF *>(getObject());
+    if (!obj_elf)
+        return false;
+    return obj_elf->getEHFrameInfo(out);
 }
 
 void Symtab::parseTypesNow()

@@ -39,6 +39,7 @@ DYNINST_EXPORT extern int common_debug_dwarf;
 DYNINST_EXPORT extern int common_debug_addrtranslate;
 DYNINST_EXPORT extern int common_debug_lineinfo;
 DYNINST_EXPORT extern int common_debug_parsing;
+DYNINST_EXPORT extern int common_debug_eh;
 DYNINST_EXPORT extern int common_debug_initialized;
 
 #define common_debug_printf(debug_sys_var, debug_sys_printf, ...) \
@@ -53,6 +54,7 @@ DYNINST_EXPORT extern int common_debug_initialized;
 #define translate_printf(...)         common_debug_printf(addrtranslate, translate, __VA_ARGS__)
 #define lineinfo_printf(...)          common_debug_printf(lineinfo, lineinfo, __VA_ARGS__)
 #define common_parsing_printf(...)    common_debug_printf(parsing, common_parsing, __VA_ARGS__)
+#define eh_printf(...)                common_debug_printf(eh, eh, __VA_ARGS__)
 
 DYNINST_EXPORT int dwarf_printf_int(const char *format, ...)
         DYNINST_PRINTF_ANNOTATION(1, 2);
@@ -61,6 +63,8 @@ DYNINST_EXPORT int translate_printf_int(const char *format, ...)
 DYNINST_EXPORT int lineinfo_printf_int(const char *format, ...)
         DYNINST_PRINTF_ANNOTATION(1, 2);
 DYNINST_EXPORT int common_parsing_printf_int(const char *format, ...)
+        DYNINST_PRINTF_ANNOTATION(1, 2);
+DYNINST_EXPORT int eh_printf_int(const char *format, ...)
         DYNINST_PRINTF_ANNOTATION(1, 2);
 
 // And initialization

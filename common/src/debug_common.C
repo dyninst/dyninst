@@ -38,6 +38,7 @@ int common_debug_dwarf = 0;
 int common_debug_addrtranslate = 0;
 int common_debug_lineinfo = 0;
 int common_debug_parsing = 0;
+int common_debug_eh = 0;
 int common_debug_initialized = 0;
 
 bool init_debug_common() {
@@ -59,6 +60,10 @@ bool init_debug_common() {
     
     if(getenv("COMMON_DEBUG_PARSING")){
         common_debug_parsing = 1;  
+    }
+
+    if (getenv("DYNINST_DEBUG_EH")) {
+        common_debug_eh = 1;
     }
 
     return true;
@@ -111,6 +116,20 @@ int common_parsing_printf_int(const char *format, ...)
 {
    init_debug_common();
   if (!common_debug_parsing) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
+
+int eh_printf_int(const char *format, ...)
+{
+   init_debug_common();
+  if (!common_debug_eh) return 0;
   if (NULL == format) return -1;
 
   va_list va;

@@ -33,6 +33,7 @@
 #include "Architecture.h"
 #include "binaryEdit.h"
 #include "common/src/headers.h"
+#include "common/src/debug_common.h"
 #include "mapped_object.h"
 #include "mapped_module.h"
 #include "debug.h"
@@ -45,10 +46,15 @@
 #include "image.h"
 #include "Symbol.h"
 #include "Archive.h"
+// BUGB/#1437: synthesize .eh_frame for relocated code
+#include "VariableLocation.h"
+#include "registers/x86_64_regs.h"
+#include "Relocation/CodeTracker.h"
 
 #include <cstdio>
 #include <iostream>
 #include <map>
+#include <algorithm>
 #include <tuple>
 
 using namespace Dyninst::SymtabAPI;
@@ -556,7 +562,318 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       symObj->findRegion(newSec, ".dyninstInst");
       assert(newSec);
 
-      
+      // ==== BUGB / issue #1437: synthesize .eh_frame (+ .gcc_except_table) for
+      // relocated code ====
+      // For each relocated function emit one FDE spanning its whole extent, with
+      // CFI (CFA rules) sampled from the original .eh_frame. Functions that carry
+      // a C++ LSDA in the original binary also get: a "zPLR" CIE (personality +
+      // LSDA pointer) and a regenerated .gcc_except_table whose call-site table is
+      // the union of the function's original LSDAs, remapped block-by-block to the
+      // relocated layout (a relocated function merges hot + cold partitions, so
+      // both original LSDAs feed one merged table). Both blobs are pcrel-encoded so
+      // they are immune to the +0x1000 library_adjust shift and the PIE load base;
+      // the RT lib __register_frame's the .eh_frame at startup. This is the LSDA
+      // half of #1437 -- it lets exceptions be *caught* in relocated frames.
+      //
+      // DYNAMIC rewriting only. In a static-rewritten binary the RT is linked at
+      // emit and the rewriter mis-relocates the RT's reference to the region (to a
+      // bad address), so registration is compiled out of the static RT (see
+      // RTcommon.c) -- generating the region here would just be dead weight. A
+      // rewriter-aware delivery for static binaries is a separate effort.
+      if (!symObj->isStaticBinary()) {
+        // ---- byte emitters (buffer-parameterized) ----
+        typedef std::vector<unsigned char> Bytes;
+        auto pU8  = [](Bytes&b, unsigned char v){ b.push_back(v); };
+        auto pU32 = [](Bytes&b, uint32_t v){ for(int i=0;i<4;i++) b.push_back((unsigned char)((v>>(8*i))&0xff)); };
+        auto pS32 = [&](Bytes&b, int32_t v){ pU32(b,(uint32_t)v); };
+        auto pUleb= [](Bytes&b, uint64_t v){ do{ unsigned char c=v&0x7f; v>>=7; if(v)c|=0x80; b.push_back(c);}while(v); };
+        auto pSleb= [](Bytes&b, int64_t v){ bool more=true; while(more){ unsigned char c=v&0x7f; v>>=7;
+                       if((v==0&&!(c&0x40))||(v==-1&&(c&0x40))) more=false; else c|=0x80; b.push_back(c);} };
+        auto dwreg= [&](Dyninst::MachRegister r)->unsigned { return (r==Dyninst::x86_64::rbp)?6u:7u; };
+        auto rdSleb=[](const Bytes&b, size_t p, int64_t*out)->size_t {
+                       int64_t r=0; int sh=0; size_t n=0; unsigned char c;
+                       do{ if(p+n>=b.size()){*out=0;return n?n:1;} c=b[p+n]; r|=(int64_t)(c&0x7f)<<sh; sh+=7; n++; }while(c&0x80);
+                       if(sh<64 && (c&0x40)) r|=-((int64_t)1<<sh); *out=r; return n; };
+
+        // ---- Pass 1: gather trackers -> per-func original trackers, global
+        //      orig->reloc map, and the overall relocated span. ----
+        struct OTrk { Address rs, os; unsigned sz; };
+        struct MapEnt { Address os, rs; unsigned sz; bool orig; };
+        struct FuncRec { void* fp; Address relocStart, relocEnd, origLo, origHi;
+                         std::vector<OTrk> otrks; std::vector<EHFunctionInfo*> eh; };
+        std::map<void*, FuncRec> byFunc;
+        std::vector<MapEnt> omap;
+        Address hi = 0;
+        for (CodeTrackers::iterator ci = relocatedCode_.begin(); ci != relocatedCode_.end(); ++ci) {
+          for (Relocation::CodeTracker::TrackerList::const_iterator ti = (*ci)->trackers().begin();
+               ti != (*ci)->trackers().end(); ++ti) {
+            Relocation::TrackerElement *te = *ti;
+            Address rs = te->reloc(); unsigned sz = te->size();
+            if (!rs || !sz) continue;
+            if (rs + sz > hi) hi = rs + sz;
+            bool isOrig = (te->type() == Relocation::TrackerElement::original);
+            omap.push_back({ te->orig(), rs, sz, isOrig });
+            if (isOrig && te->func()) {
+              void* fp = (void*)te->func();
+              FuncRec &fr = byFunc[fp];
+              if (fr.otrks.empty()) { fr.fp=fp; fr.relocStart=rs; fr.origLo=te->orig(); fr.origHi=te->orig()+sz; }
+              if (rs < fr.relocStart) fr.relocStart = rs;
+              if (te->orig() < fr.origLo) fr.origLo = te->orig();
+              if (te->orig()+sz > fr.origHi) fr.origHi = te->orig()+sz;
+              fr.otrks.push_back({ rs, te->orig(), sz });
+            }
+          }
+        }
+        std::sort(omap.begin(), omap.end(), [](const MapEnt&a,const MapEnt&b){ return a.os < b.os; });
+        // orig -> reloc lookup (exact for verbatim original trackers; start-of-tracker for others).
+        auto o2r = [&](Address a)->Address {
+          if (omap.empty()) return 0;
+          size_t lo2=0, hi2=omap.size(); // first ent with os > a
+          while (lo2<hi2){ size_t m=(lo2+hi2)/2; if(omap[m].os<=a) lo2=m+1; else hi2=m; }
+          if (lo2==0) return 0;
+          const MapEnt&e = omap[lo2-1];
+          if (e.orig && a < e.os + e.sz) return e.rs + (a - e.os);
+          return e.rs;
+        };
+
+        // sorted function list; relocEnd = next func's start (contiguous, disjoint FDEs).
+        std::vector<FuncRec*> funcs;
+        for (auto &kv : byFunc) funcs.push_back(&kv.second);
+        std::sort(funcs.begin(), funcs.end(),
+                  [](const FuncRec*a,const FuncRec*b){ return a->relocStart < b->relocStart; });
+        for (size_t i=0;i<funcs.size();i++)
+          funcs[i]->relocEnd = (i+1<funcs.size()) ? funcs[i+1]->relocStart : hi;
+
+        // ---- Extract + assign original LSDA info to relocated functions. ----
+        std::vector<EHFunctionInfo> ehInfos;
+        symObj->getEHFrameInfo(ehInfos);
+        Address personality_target = 0;
+        unsigned char ttype_format = 0x9b;
+        unsigned char personality_format = 0x9b;
+        for (auto &info : ehInfos) {
+          for (auto f : funcs) {
+            if (info.func_low_pc >= f->origLo && info.func_low_pc < f->origHi) {
+              f->eh.push_back(&info);
+              if (!personality_target && info.personality_target) {
+                personality_target = info.personality_target;
+                personality_format = info.personality_format;
+                if (info.ttype_format != 0xff) ttype_format = info.ttype_format;
+              }
+              break;
+            }
+          }
+        }
+        // How many bytes a DW_EH_PE_* value occupies, and whether it is pcrel.
+        // PIE binaries use pcrel/indirect-pcrel type & personality encodings;
+        // non-PIE binaries use absolute (udata4) -- we must honor whichever the
+        // original .eh_frame used, or the personality reads a bogus pointer.
+        auto encSize = [](unsigned char enc)->int {
+          switch (enc & 0x0f) {
+            case 0x02: case 0x0a: return 2;   // [s]data2
+            case 0x03: case 0x0b: return 4;   // [s]data4
+            case 0x04: case 0x0c: return 8;   // [s]data8
+            case 0x00: return 8;              // absptr (x86-64)
+            default: return 4;
+          }
+        };
+        auto isPcrel = [](unsigned char enc)->bool { return (enc & 0x70) == 0x10; };
+
+        // ---- Pass 2: build the merged LSDA for each LSDA-bearing function into
+        //      the .gcc_except_table blob. Region goes just past .dyninstInst; the
+        //      .eh_frame region follows it. ----
+        Address exVaddr = (highWaterMark_ + 0xfffUL) & ~((Address)0xfffUL);
+        Bytes ex;
+        std::map<FuncRec*, size_t> lsdaOff;   // offset of each func's LSDA in ex
+        const int esize = encSize(ttype_format);   // type-table entry width
+        for (auto f : funcs) {
+          if (f->eh.empty()) continue;
+          // Merged types + remapped call sites.
+          std::vector<Address> mtypes;
+          auto typeFilter = [&](Address tgt)->unsigned {
+            for (size_t i=0;i<mtypes.size();i++) if (mtypes[i]==tgt) return (unsigned)(i+1);
+            mtypes.push_back(tgt); return (unsigned)mtypes.size();
+          };
+          struct NCS { Address rstart, rend, lp; std::vector<unsigned> filters; };
+          std::vector<NCS> ncs;
+          for (auto info : f->eh) {
+            for (auto &cs : info->callsites) {
+              NCS n; n.rstart=o2r(cs.region_start); n.rend=o2r(cs.region_start+cs.region_size);
+              n.lp = cs.landing_pad ? o2r(cs.landing_pad) : 0;
+              if (cs.action != 0) {           // walk the original action chain
+                uint64_t a=cs.action; int guard=0;
+                while (a && guard++<64) {
+                  size_t p=a-1; if (p>=info->action_table.size()) break;
+                  int64_t filter; size_t fs=rdSleb(info->action_table,p,&filter);
+                  int64_t next;   size_t np=p+fs; rdSleb(info->action_table,np,&next);
+                  if (filter>0 && (size_t)filter<=info->type_targets.size()) {
+                    Address tgt=info->type_targets[filter-1];
+                    if (tgt) n.filters.push_back(typeFilter(tgt));
+                  }
+                  if (next==0) break;
+                  long npos=(long)np+next; if (npos<0) break; a=(uint64_t)npos+1;
+                }
+              }
+              if (!n.lp && n.filters.empty()) continue;  // nothing actionable
+              ncs.push_back(n);
+            }
+          }
+          if (ncs.empty()) { f->eh.clear(); continue; }  // treat as non-LSDA
+          // action table + per-call-site action index
+          Bytes action; std::vector<unsigned> csAction(ncs.size(), 0);
+          for (size_t i=0;i<ncs.size();i++) {
+            if (ncs[i].filters.empty()) { csAction[i]=0; continue; }  // cleanup: action 0
+            csAction[i] = (unsigned)(action.size()+1);
+            for (size_t k=0;k<ncs[i].filters.size();k++) {
+              pSleb(action,(int64_t)ncs[i].filters[k]);
+              pSleb(action, (k+1<ncs[i].filters.size()) ? 1 : 0);
+            }
+          }
+          // call-site records (offsets relative to LPStart == funcRelocStart)
+          Bytes csrec;
+          for (size_t i=0;i<ncs.size();i++) {
+            pUleb(csrec, ncs[i].rstart - f->relocStart);
+            pUleb(csrec, (ncs[i].rend>ncs[i].rstart) ? (ncs[i].rend-ncs[i].rstart) : 1);
+            pUleb(csrec, ncs[i].lp ? (ncs[i].lp - f->relocStart) : 0);
+            pUleb(csrec, csAction[i]);
+          }
+          Bytes body; pU8(body,0x01); pUleb(body,csrec.size());
+          body.insert(body.end(), csrec.begin(), csrec.end());
+          body.insert(body.end(), action.begin(), action.end());
+          size_t M = mtypes.size();
+          size_t bdSize = body.size() + M*esize;   // == TType base offset
+          lsdaOff[f] = ex.size();
+          pU8(ex, 0xff);                            // LPStart: omit -> FDE initial_location
+          pU8(ex, M ? ttype_format : 0xff);         // TType encoding
+          if (M) pUleb(ex, bdSize);                 // TType base offset
+          ex.insert(ex.end(), body.begin(), body.end());
+          for (long fk=(long)M; fk>=1; fk--) {      // type table: filter M..1
+            Address tgt = mtypes[fk-1];
+            size_t eoff = ex.size();
+            // Honor the original TType encoding: pcrel (PIE) vs absolute (non-PIE).
+            // For absolute, tgt is the direct value the personality expects; for
+            // pcrel it is target - (address of this entry).
+            if (isPcrel(ttype_format))
+              pS32(ex, (int32_t)((int64_t)tgt - (int64_t)(exVaddr + eoff)));
+            else if (esize == 8)
+              for (int b=0;b<8;b++) ex.push_back((unsigned char)((tgt>>(8*b))&0xff));
+            else
+              pU32(ex, (uint32_t)tgt);
+          }
+        }
+
+        // ---- Pass 3: build .eh_frame (CIEs + one FDE per function). ----
+        Address ehVaddr = exVaddr + ((ex.size()+0xfffUL) & ~((Address)0xfffUL));
+        if (ex.empty()) ehVaddr = exVaddr;   // no LSDAs -> reuse the page
+        Bytes eh;
+        // CIE #0: "zR" (FDE ptr enc pcrel|sdata4), for functions without an LSDA.
+        size_t cieZR = eh.size();
+        { size_t lp=eh.size(); pU32(eh,0); size_t b=eh.size();
+          pU32(eh,0); pU8(eh,1); pU8(eh,0x7a); pU8(eh,0x52); pU8(eh,0);   // "zR"
+          pUleb(eh,1); pU8(eh,0x78); pUleb(eh,16);                        // caf=1 daf=-8 ra=16
+          pUleb(eh,1); pU8(eh,0x1b);                                     // aug data: R=pcrel|sdata4
+          pU8(eh,0x0c); pU8(eh,7); pU8(eh,8); pU8(eh,0x90); pU8(eh,1);   // def_cfa rsp+8; ra@cfa-8
+          while ((eh.size()-b)&3) eh.push_back(0);
+          uint32_t l=(uint32_t)(eh.size()-b); memcpy(&eh[lp],&l,4); }
+        // CIE #1: "zPLR" (personality + LSDA), for LSDA-bearing functions.
+        size_t cieZPLR = (size_t)-1;
+        if (!ex.empty() && personality_target) {
+          cieZPLR = eh.size();
+          size_t lp=eh.size(); pU32(eh,0); size_t b=eh.size();
+          pU32(eh,0); pU8(eh,1);
+          pU8(eh,0x7a); pU8(eh,0x50); pU8(eh,0x4c); pU8(eh,0x52); pU8(eh,0); // "zPLR"
+          pUleb(eh,1); pU8(eh,0x78); pUleb(eh,16);
+          // aug data = [P_enc][P_val][L_enc][R_enc]; P_val width follows P_enc.
+          // Preserve the original personality encoding (pcrel for PIE, absolute
+          // for non-PIE) so it points at exactly what the original CIE did.
+          int psz = encSize(personality_format);
+          pUleb(eh, (uint64_t)(1 + psz + 1 + 1));
+          pU8(eh, personality_format);                     // P enc (as in original)
+          { size_t pf=eh.size();
+            if (isPcrel(personality_format))
+              pS32(eh,(int32_t)((int64_t)personality_target-(int64_t)(ehVaddr+pf)));
+            else if (psz == 8)
+              for (int b2=0;b2<8;b2++) eh.push_back((unsigned char)((personality_target>>(8*b2))&0xff));
+            else
+              pU32(eh,(uint32_t)personality_target); }
+          pU8(eh, 0x1b);                                   // L enc: pcrel|sdata4 (we own the FDE ptr)
+          pU8(eh, 0x1b);                                   // R enc: pcrel|sdata4
+          pU8(eh,0x0c); pU8(eh,7); pU8(eh,8); pU8(eh,0x90); pU8(eh,1);
+          while ((eh.size()-b)&3) eh.push_back(0);
+          uint32_t l=(uint32_t)(eh.size()-b); memcpy(&eh[lp],&l,4);
+        }
+        unsigned nfde=0, nlsda=0;
+        for (auto f : funcs) {
+          bool hasL = !f->eh.empty() && lsdaOff.count(f);
+          size_t cieOff = hasL ? cieZPLR : cieZR;
+          if (cieOff == (size_t)-1) { hasL=false; cieOff=cieZR; }
+          // CFA transitions for this function.
+          struct Tr { Address rpc; unsigned reg; int64_t off; };
+          std::vector<Tr> trs;
+          for (auto &t : f->otrks) {
+            std::vector<VariableLocation> cfa;
+            if (!symObj->getCFALocations(t.os, t.os+t.sz, cfa)) continue;
+            for (auto &L : cfa) {
+              Address clo = (L.lowPC < t.os) ? t.os : L.lowPC;
+              if (clo >= t.os + t.sz) continue;
+              trs.push_back({ t.rs + (clo - t.os), dwreg(L.mr_reg), (int64_t)L.frameOffset });
+            }
+          }
+          std::sort(trs.begin(), trs.end(), [](const Tr&a,const Tr&b){ return a.rpc<b.rpc; });
+
+          size_t fdeLenPos=eh.size(); pU32(eh,0);
+          size_t fdeBody=eh.size();
+          pU32(eh,(uint32_t)(fdeBody - cieOff));                     // CIE pointer
+          pS32(eh,(int32_t)((int64_t)f->relocStart - (int64_t)(ehVaddr+eh.size())));  // initial_location
+          pU32(eh,(uint32_t)(f->relocEnd - f->relocStart));          // range
+          if (hasL) { pUleb(eh,4);
+            size_t lf=eh.size();
+            pS32(eh,(int32_t)((int64_t)(exVaddr+lsdaOff[f]) - (int64_t)(ehVaddr+lf))); // LSDA ptr
+            nlsda++;
+          } else pUleb(eh,0);
+          Address cur=f->relocStart; unsigned lastReg=0xffffffffu; int64_t lastOff=0x7fffffffLL;
+          for (auto &t : trs) {
+            if (t.reg==lastReg && t.off==lastOff) continue;
+            Address at = t.rpc < f->relocStart ? f->relocStart : t.rpc;
+            if (at > cur) { Address d=at-cur;
+              if (d<0x40) eh.push_back((unsigned char)(0x40|d));
+              else if (d<0x100){ eh.push_back(0x02); eh.push_back((unsigned char)d); }
+              else { eh.push_back(0x04); pU32(eh,(uint32_t)d); }
+              cur=at; }
+            pU8(eh,0x0c); pUleb(eh,t.reg); pUleb(eh,(uint64_t)t.off);
+            lastReg=t.reg; lastOff=t.off;
+          }
+          while ((eh.size()-fdeBody)&3) eh.push_back(0);
+          uint32_t l=(uint32_t)(eh.size()-fdeBody); memcpy(&eh[fdeLenPos],&l,4);
+          nfde++;
+        }
+        pU32(eh,0);   // terminator
+
+        eh_printf(".eh_frame: %u FDEs (%u w/LSDA), %zu bytes @0x%lx; "
+                  ".gcc_except_table %zu bytes @0x%lx\n",
+                  nfde, nlsda, eh.size(), (unsigned long)ehVaddr, ex.size(), (unsigned long)exVaddr);
+
+        // ---- Deliver: loadable regions + exported __dyninst_eh_frame for the RT lib. ----
+        if (nfde) {
+          Module *mod = symObj->getContainingModule(lowWaterMark_);
+          if (!ex.empty()) {
+            void *exCopy = malloc(ex.size()); memcpy(exCopy, ex.data(), ex.size());
+            symObj->addRegion(exVaddr, exCopy, ex.size(), ".dyninst_gcc_except",
+                              Region::RT_DATA, true);
+          }
+          void *ehCopy = malloc(eh.size()); memcpy(ehCopy, eh.data(), eh.size());
+          symObj->addRegion(ehVaddr, ehCopy, eh.size(), ".dyninst_ehframe",
+                            Region::RT_DATA, true);
+          // Export the region symbol; the RT (a separate .so) reads it via the
+          // loader-resolved GOT slot. (Static binaries never reach here.)
+          Region *ehSec=NULL; symObj->findRegion(ehSec, ".dyninst_ehframe");
+          Symbol *ehSym = new Symbol("__dyninst_eh_frame", Symbol::ST_OBJECT,
+                                     Symbol::SL_GLOBAL, Symbol::SV_DEFAULT,
+                                     ehVaddr, mod, ehSec, eh.size());
+          ehSym->setDynamic(true);
+          symObj->addSymbol(ehSym);
+        }
+      }
+
       if (mobj == getAOut()) {
          // Add dynamic symbol relocations
          for (unsigned i=0; i < dependentRelocations.size(); i++) {
