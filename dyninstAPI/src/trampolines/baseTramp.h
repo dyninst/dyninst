@@ -38,6 +38,7 @@
 #include "dyntypes.h"
 #include "bitArray.h"
 #include "ASTs/ast.h"
+#include "codegen/codegen.h"
 
 class AddressSpace;
 
@@ -127,7 +128,24 @@ private:
     // Code generation methods
     virtual bool generateSaves(codeGen &, registerSpace *) { return false; }
     virtual bool generateRestores(codeGen &, registerSpace *) { return false; }
-    
+
+    // Record every register (including condition flags) that the
+    // just-generated instrumentation body [bodyStart, gen.getIndex())
+    // writes, through codeGen::markRegDefined, so that unneeded saves can
+    // be dropped when the tramp is regenerated.
+    // Default: record nothing; conservative saves are kept.
+    virtual void accumulateBodyClobbers(codeGen &, codeBufIndex_t) {}
+
+    // True if this generation pass saved volatile registers (condition
+    // flags) that the generated body never writes, i.e. a regeneration
+    // pass would drop the save. Default: no.
+    virtual bool savedUnneededVolatileRegs(registerSpace *) { return false; }
+
+    // False only when the generated body provably never writes a volatile
+    // register (condition flag), so its save can be skipped. Default:
+    // assume it may. Meaningful once validOptimizationInfo() is set.
+    virtual bool mayClobberVolatileRegs() { return true; }
+
     // Generated state methods
     bitArray definedRegs;
 

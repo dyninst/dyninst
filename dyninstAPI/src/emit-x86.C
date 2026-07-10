@@ -1622,7 +1622,15 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
         //bt->saveFPRs()               &&
         bt->makesCall() );
    bool alignStack = useFPRs || !bt || bt->checkForFuncCalls();
-   bool saveFlags = gen.rs()->checkVolatileRegisters(gen, registerSlot::live);
+   // Live flags only need to be preserved if the instrumentation can
+   // actually change them. On the first generation pass there is no
+   // optimization info yet, so mayClobberVolatileRegs() reports true. Once
+   // the body has been generated, definedRegs records every flag it writes
+   // (see baseTramp_x86::accumulateBodyClobbers), so a body that provably
+   // leaves the flags alone -- e.g. a bare ptwrite snippet -- skips the
+   // lahf/seto/%rax spill entirely.
+   bool saveFlags = gen.rs()->checkVolatileRegisters(gen, registerSlot::live)
+                    && (!bt || bt->mayClobberVolatileRegs());
    bool createFrame = !bt || bt->needsFrame() || useFPRs;
    bool saveOrigAddr = createFrame && bt->instP();
    // Stores the offset to the location of the previous SP stored 
