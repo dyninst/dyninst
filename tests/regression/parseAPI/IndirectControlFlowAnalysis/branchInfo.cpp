@@ -10,7 +10,6 @@
    version 2.1 of the License, or (at your option) any later version.
    */
 #include <iostream>
-#include <set>
 #include <fstream>
 #include "CodeObject.h"
 #include "InstructionDecoder.h"
@@ -27,61 +26,42 @@ int main(int argc, char **argv){
     std::ofstream of(argv[2]);
     if(!of){
       std::cerr << "Cannot open output file !" << std::endl;
+      return -1;
     }
-    SymtabCodeSource *sts;
-    CodeObject *co;
-    SymtabAPI::Symtab *symTab;
     std::string binaryPathStr(binaryPath);
+    SymtabAPI::Symtab *symTab = nullptr;
     bool isParsable = SymtabAPI::Symtab::openFile(symTab, binaryPathStr);
     if(isParsable == false){
         const char *error = "error: file can not be parsed";
         of << error;
         return - 1;
     }
-    sts = new SymtabCodeSource(binaryPath);
-    co = new CodeObject(sts);
+    auto sts = new SymtabCodeSource(binaryPath);
+    auto co = new CodeObject(sts);
     //parse the binary given as a command line arg
     co->parse();
 
     //get list of all functions in the binary
-    const CodeObject::funclist &all = co->funcs();
-    if(all.size() == 0){
+    const CodeObject::funclist &funcs = co->funcs();
+    if(funcs.size() == 0){
         const char *error = "error: no functions in file";
         of << error;
         return - 1;
     }
-    auto fit = all.begin();
-    std::set<Address> bb_addrs;
-    Function *f = *fit;
-    //create an Instruction decoder which will convert the binary opcodes to strings
-    InstructionDecoder decoder(f->isrc()->getPtrToInstruction(f->addr()),
-            InstructionDecoder::maxInstructionLength,
-            f->region()->getArch());
-    Instruction instr;;
-    for(;fit != all.end(); ++fit){
-        f = *fit;
-        //get address of entry point for current function
-        //
-        auto bit = f->blocks().begin();
-        for(; bit != f->blocks().end(); bit++){
-            Block * b = * bit;
-            bb_addrs.insert(b->start());
-        }
-    }
-    fit = all.begin();
-    for(;fit != all.end(); ++fit){
-        f = *fit;
+    for(auto f : funcs){
+        //create an Instruction decoder which will convert the binary opcodes to strings
+        InstructionDecoder decoder(f->isrc()->getPtrToInstruction(f->addr()),
+                InstructionDecoder::maxInstructionLength,
+                f->region()->getArch());
         //get address of entry point for current function
         of << "Parsing function " << f->name() << " at addreess 0x" << std::hex << f->addr() << std::endl;
-        auto bit = f->blocks().begin();
-        for(; bit != f->blocks().end(); bit++){
-            Block * b = * bit;
+        for(auto b : f->blocks()){
             of << "Parsing block ( " << std::hex << b->start() << "," << b->end() << ")" << std::endl;
             for (auto & edges : b->targets() ){
                 Address branch_addr = edges->src()->lastInsnAddr();
 
                 void * insn_ptr = f->isrc()->getPtrToInstruction(branch_addr);
-                instr = decoder.decode((unsigned char * ) insn_ptr);
+                auto instr = decoder.decode((unsigned char * ) insn_ptr);
                 std::string instr_str = instr.format(branch_addr);
                 if( edges->type() == COND_TAKEN || edges->type() == DIRECT || edges->type() == CALL || edges->type() == INDIRECT){
                     std::locale loc;
@@ -90,7 +70,6 @@ int main(int argc, char **argv){
                         of << std::tolower(instr_str[i],loc) ;
                     }
                     of << " ( " << edges->trg()->start() << " ) " ;
-                    vector<Operand> operands = instr.getAllOperands();
                     of << std::endl;
                 }
             }
