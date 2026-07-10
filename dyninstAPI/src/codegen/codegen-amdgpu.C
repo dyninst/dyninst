@@ -50,7 +50,9 @@ void insnCodeGen::generateIllegal(codeGen & /* gen */) {
 void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to,
                                  bool /* link */) {
   long disp = (to - from);
-  long wordOffset = disp / 4;
+  // S_BRANCH target = (PC_of_branch + 4) + SIMM16*4, so SIMM16 = disp/4 - 1
+  // (the -1 is the +4 in dword units; same for forward and backward jumps).
+  long wordOffset = disp / 4 - 1;
 
   Emitter *emitter = gen.emitter();
 
@@ -104,7 +106,8 @@ bool insnCodeGen::modifyJump(Dyninst::Address target, NS_amdgpu::instruction & /
                              codeGen &gen) {
   long disp = target - gen.currAddr();
   Emitter *emitter = gen.emitter();
-  int16_t wordOffset = disp / 4;
+  // S_BRANCH target = (PC_of_branch + 4) + SIMM16*4, so SIMM16 = disp/4 - 1.
+  int16_t wordOffset = disp / 4 - 1;
 
   assert(wordOffset > INT16_MIN && wordOffset < INT16_MAX &&
          "wordOffset must fit in a 16-bit signed value");
@@ -142,10 +145,13 @@ bool insnCodeGen::modifyJcc(Dyninst::Address target, NS_amdgpu::instruction &ins
   Emitter *emitter = gen.emitter();
   emitter->emitShortJump(1, gen); // GPU does (1)*4 + 4 and computes target = <X+4> + 8 = X+12 i.e C
 
-  // Now emit jump A, the original target
+  // Now emit jump A, the original target.
+  // S_BRANCH target = (PC_of_branch + 4) + SIMM16*4, so SIMM16 = disp/4 - 1;
+  // without the -1 the branch lands one instruction past the target (e.g. a loop
+  // back-edge would skip the loop head's first instruction).
   long from = gen.currAddr();
   long disp = target - from;
-  int16_t wordOffset = disp / 4;
+  int16_t wordOffset = disp / 4 - 1;
 
   assert(wordOffset > INT16_MIN && wordOffset < INT16_MAX &&
          "wordOffset must fit in a 16-bit signed value");
