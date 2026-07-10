@@ -46,7 +46,7 @@ int main(int argc, char **argv){
     if(funcs.size() == 0){
         const char *error = "error: no functions in file";
         of << error;
-        return - 1;
+        return 1;
     }
     for(auto f : funcs){
         //create an Instruction decoder which will convert the binary opcodes to strings
