@@ -26,7 +26,7 @@ int main(int argc, char **argv){
     std::ofstream of(argv[2]);
     if(!of){
       std::cerr << "Cannot open output file !" << std::endl;
-      return -1;
+      return 1;
     }
     std::string binaryPathStr(binaryPath);
     SymtabAPI::Symtab *symTab = nullptr;
