@@ -185,7 +185,8 @@ namespace Dyninst {
             void cleanup_frames();
             void parse_gap_heuristic(CodeRegion *cr);
 
-            bool getGapRange(CodeRegion*, Address, Address&, Address&);
+            bool getGapRange(CodeRegion*, Address, Address&, Address&,
+                             const std::set<std::pair<Address, Address> >& known_extents);
             void probabilistic_gap_parsing(CodeRegion *cr);
 
             ParseFrame::Status frame_status(CodeRegion *cr, Address addr);
