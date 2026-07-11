@@ -199,11 +199,17 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
     getAS(as);
     bool ret = true;
 
+    // Rewrite-progress reporting (DYNINST_DEBUG_PROGRESS). Committing pending
+    // instrumentation and then writing each output file are otherwise silent and
+    // dominate wall time on a large rewrite.
+    progress_printf("write: committing pending instrumentation to %s\n", outFile);
+
     /* PatchAPI stuffs */
     if (as.size() > 0) {
       ret = AddressSpace::patch(as[0]);
     }
     /* end of PatchAPI stuffs */
+    progress_printf("write: instrumentation committed\n");
 
 
    // Now that we've instrumented we can see if we need to replace the
@@ -217,6 +223,7 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
    }
 
 
+   progress_printf("write: writing primary output file %s\n", outFile);
    if( !origBinEdit->writeFile(outFile) ) return false;
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
    std::string inputFileName = this->getImage()->getProgramFileName();
@@ -235,8 +242,10 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
        continue;
 
      std::string newname = bin->getMappedObject()->fileName();
+     progress_printf("write: writing dependent library %s\n", newname.c_str());
      if( !bin->writeFile(newname) ) return false;
    }
+   progress_printf("write: writeFile complete\n");
    return ret;
 }
 

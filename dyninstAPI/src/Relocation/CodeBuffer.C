@@ -258,6 +258,12 @@ bool CodeBuffer::generate(Address baseAddr) {
       gen_.allocate(size_);
       totalPadding = 0;
 
+      // Rewrite-progress reporting (DYNINST_DEBUG_PROGRESS). This do/while is a
+      // fixpoint: a branch whose displacement grew forces a full re-emit, so on a
+      // large rewrite (millions of buffer elements) this can take many silent
+      // passes. Report each pass.
+      progress_printf("relocate: emit codebuffer pass %d over %zu buffer elements\n",
+                      curIteration_, buffers_.size());
       for (Buffers::iterator iter = buffers_.begin();
            iter != buffers_.end(); ++iter) {
 	bool regenerate = false;
@@ -266,8 +272,10 @@ bool CodeBuffer::generate(Address baseAddr) {
          }
          doOver |= regenerate;
       }
-      
+
    } while (doOver);
+   progress_printf("relocate: emit codebuffer converged after %d pass(es), %u bytes\n",
+                   curIteration_, gen_.used());
 
    shift_ = 0;
    size_ = gen_.used();

@@ -42,12 +42,26 @@
 
 #include "Parser.h"
 #include "debug_parse.h"
+#include "common/src/debug_common.h"   // shared progress channel (progress_printf / DYNINST_DEBUG_PROGRESS)
 
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
 #if defined(cap_stripped_binaries)
+
+// One-line progress report for the speculative gap-parsing phase, routed through
+// the shared progress channel (progress_printf / DYNINST_DEBUG_PROGRESS, implemented
+// in common). progress_printf adds the wall-clock timestamp and self-gates on the
+// env var, so dyninstAPI and parseAPI progress line up on one timeline.
+static void gap_progress_report(const char *what, Dyninst::Address at,
+                                Dyninst::Address regBeg, Dyninst::Address regEnd) {
+    unsigned long span = (regEnd > regBeg) ? (unsigned long)(regEnd - regBeg) : 0;
+    unsigned long done = (at > regBeg && at <= regEnd) ? (unsigned long)(at - regBeg) : 0;
+    double pct = span ? (100.0 * (double)done / (double)span) : 0.0;
+    progress_printf("gap-parse: %s at %lx (~%.1f%% of region [%lx,%lx))\n",
+            what, (unsigned long)at, pct, (unsigned long)regBeg, (unsigned long)regEnd);
+}
 
 static bool isStackFramePrecheck_msvs( const unsigned char *buffer );
 static bool isStackFramePrecheck_gcc( const unsigned char *buffer );
@@ -380,6 +394,14 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
     Address gapStart;
     Address gapEnd;
     Address curAddr = cr->offset();
+    // Rewrite/parse-progress reporting via the shared progress channel
+    // (progress_printf / DYNINST_DEBUG_PROGRESS, implemented in common). This
+    // gap-parsing loop is the dominant cost on large binaries and is otherwise
+    // silent; progress_printf self-gates on the env var, so these calls are no-ops
+    // unless DYNINST_DEBUG_PROGRESS is set.
+    const Address regBeg = cr->offset();
+    const Address regEnd = cr->offset() + cr->length();
+    gap_progress_report("starting speculative gap parsing", regBeg, regBeg, regEnd);
     while (getGapRange(cr, curAddr, gapStart, gapEnd)) {
         parsing_printf("[%s] scanning for FEP in [%lx,%lx)\n",
             FILE__,gapStart,gapEnd);
@@ -396,6 +418,7 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
         }
         finalize();
     }
+    gap_progress_report("speculative gap parsing done", regEnd, regBeg, regEnd);
 }
 
 bool isStackFramePrecheck_gcc( const unsigned char *buffer )

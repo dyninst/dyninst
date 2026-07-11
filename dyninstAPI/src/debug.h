@@ -33,6 +33,7 @@
 
 #include <string>
 #include "compiler_annotations.h"
+#include "common/src/debug_common.h"  // shared progress channel (progress_printf / DYNINST_DEBUG_PROGRESS)
 
 #define BPFATAL(x) bpfatal_lf(__FILE__, __LINE__, x)
 extern void logLine(const char *line);

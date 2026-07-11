@@ -42,6 +42,8 @@
 #include "CodeTracker.h"
 #include "CFG/RelocGraph.h"
 
+#include <iterator>  // std::distance (rewrite-progress reporting)
+
 using namespace std;
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -70,6 +72,11 @@ CodeMover::~CodeMover() {
 
 bool CodeMover::addFunctions(FuncSet::const_iterator begin, 
 			     FuncSet::const_iterator end) {
+   // Rewrite-progress reporting (DYNINST_DEBUG_PROGRESS). The per-function build
+   // loop and the per-block codegen loop are otherwise silent, so a large binary
+   // rewrite (e.g. a multi-hundred-MB shared library) can look hung for a long time.
+   progress_printf("relocate: building reloc blocks for %zu functions\n",
+                   (size_t)std::distance(begin, end));
    // A vector of Functions is just an extended vector of basic blocks...
    for (; begin != end; ++begin) {
       func_instance *func = *begin;
@@ -168,12 +175,13 @@ bool CodeMover::initialize(const codeGen &templ) {
    // Tell all the blocks to do their generation thang...
    for (RelocBlock *iter = cfg_->begin(); iter != cfg_->end(); iter = iter->next()) {
       if (!iter->finalizeCF()) return false;
-      
+
       if (!iter->generate(templ, buffer_)) {
          cerr << "ERROR: failed to generate RelocBlock!" << endl;
          return false; // Catastrophic failure
       }
    }
+   progress_printf("relocate: reloc block code generation done\n");
    return true;
 }
 
