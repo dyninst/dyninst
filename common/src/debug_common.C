@@ -143,16 +143,16 @@ int progress_printf_int(const char *format, ...)
   time_t now = time(NULL);
   struct tm tmv;
   char ts[40];
-#if defined(os_windows)
-  if (localtime_s(&tmv, &now) == 0 && strftime(ts, sizeof(ts), "[%Y-%m-%d %H:%M:%S] ", &tmv))
-#else
-  if (localtime_r(&now, &tmv) && strftime(ts, sizeof(ts), "[%Y-%m-%d %H:%M:%S] ", &tmv))
-#endif
-    fputs(ts, stderr);
 
   va_list va;
   va_start(va, format);
+  // Hold the stream lock across the timestamp and the message so concurrent
+  // writers cannot interleave output between the two.
+  flockfile(stderr);
+  if (localtime_r(&now, &tmv) && strftime(ts, sizeof(ts), "[%Y-%m-%d %H:%M:%S] ", &tmv))
+    fputs(ts, stderr);
   int ret = vfprintf(stderr, format, va);
+  funlockfile(stderr);
   va_end(va);
 
   return ret;
