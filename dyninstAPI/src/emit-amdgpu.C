@@ -926,6 +926,14 @@ public:
       const uint32_t vtmp  =
           (kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount() + 1) * 4;  // above kernel VGPRs
       emitSop1Raw(/*S_MOV_B32=*/0, saddr, GFX908_INLINE_0, gen);           // SADDR = 0
+
+      // Packed workitem-id (3c: threadIdx). v0 holds the per-lane packed workitem-id
+      // (x[9:0]/y[19:10]/z[29:20]) ONLY at kernel entry; the kernel body clobbers it.
+      // Capture it FIRST (before anything here could touch v0) into the IACR per-lane
+      // slot — scratch is hardware-swizzled per lane, so each lane stores its own id.
+      // Retrieved into v31 (the callee's workitem-id ABI VGPR) at the call site.
+      emitScratchStore(/*v0=*/0u, IAL::OFF_WITEMID, saddr, gen);           // IACR[+12] = v0 (per-lane)
+
       const int     wsrc[3] = { L.wgidX, L.wgidY, L.wgidZ };  // relocated to p-SHIFT above
       const int32_t woff[3] = { IAL::OFF_WGID_X, IAL::OFF_WGID_Y, IAL::OFF_WGID_Z };
       for (int i = 0; i < 3; i++)
@@ -1411,6 +1419,14 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
       AmdgpuGfx908::emitVop1Reg(/*V_READFIRSTLANE_B32=*/2u, /*sdst=*/sdst,
                                 /*vsrc=*/256u + vImplTmp, gen);   // first active lane
     };
+    // 3c threadIdx: per-lane packed workitem-id -> v31 (the callee's ABI VGPR). Unlike
+    // the uniform args, this is a straight per-lane scratch_load (each active lane
+    // gets its own id) — no readfirstlane. v31 is a VGPR so it can't collide with
+    // emitIndirectCall's SGPR target block; the kernel's v31 (if live) is preserved
+    // by the caller-save VGPR spill. Always available (workitem-id is an ABI input).
+    sabi.emitScratchLoad(/*v31=*/IAL::ABI_WITEMID_VGPR, IAL::OFF_WITEMID, SADDR_REG, gen);
+    AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+
     // 3a blockIdx: wgid x/y/z -> s12/13/14 (only the components the kernel provides)
     const int32_t  woff[3]   = { IAL::OFF_WGID_X, IAL::OFF_WGID_Y, IAL::OFF_WGID_Z };
     const uint32_t abiReg[3] = { IAL::ABI_BLOCKIDX_X, IAL::ABI_BLOCKIDX_Y, IAL::ABI_BLOCKIDX_Z };
