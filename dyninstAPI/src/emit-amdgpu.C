@@ -48,6 +48,7 @@
 #include "external/amdgpu/AMDGPUEFlags.h"
 #include "amdgpu-scratch-abi.h"
 #include "amdgpu-abi-sgpr.h"
+#include "amdgpu-implicit-args.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -603,18 +604,24 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
     // Use the kernel's ORIGINAL granted VGPR count (cached), NOT the live grant read
     // from kdBytes — otherwise each inserted call reads the previously-raised grant
     // and ratchets the count upward.
+    // Implicit-arg forwarding reserves the IACR at the bottom of scratch and one
+    // extra transient VGPR (vImplTmp) for the retrieve — grow both grants for it.
+    const uint32_t implBase =
+        getenv("DYNINST_IMPLICIT_ARGS") ? Dyninst::DyninstAPI::ImplicitArgLayout::BYTES : 0u;
+    const uint32_t implVgpr = implBase ? 1u : 0u;
     const uint32_t curVgpr = readCallerOriginalGrantedVgpr(caller, gen);
     const uint32_t vAddr   = (curVgpr > calleeVgpr ? curVgpr : calleeVgpr);
-    const uint32_t needVgpr = vAddr + (useScratch ? numPacks : 1u + numPacks);
+    const uint32_t needVgpr = vAddr + (useScratch ? numPacks : 1u + numPacks) + implVgpr;
     const uint32_t neededGran = (needVgpr + 3u) / 4u - 1u;
     if (neededGran > kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount())
       kd.setCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount(neededGran);
 
     // 0.3: size the scratch spill slot to the footprint = numPacks SGPR-pack dwords +
-    // calleeVgpr VGPR dwords = 4*(numPacks+nvgpr) bytes/lane. The hardcoded 256 in
-    // enableScratchInKD overflows for large footprints -> scratch aperture violation.
+    // calleeVgpr VGPR dwords = 4*(numPacks+nvgpr) bytes/lane, PLUS the IACR reserved
+    // below it. The hardcoded 256 in enableScratchInKD overflows for large footprints
+    // -> scratch aperture violation.
     if (useScratch) {
-      const uint32_t spillSlot = 4u * (numPacks + calleeVgpr);
+      const uint32_t spillSlot = implBase + 4u * (numPacks + calleeVgpr);
       if (spillSlot > kd.getPrivateSegmentFixedSize())
         kd.setPrivateSegmentFixedSize(spillSlot);
     }
@@ -630,7 +637,9 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
       // per-lane base (s32/64) clears our region. private_segment_fixed_size is
       // PER-LANE: our region (s32Base/64) + the callee's own per-lane frame + margin.
       // Must match the s32Base arithmetic in emitCall.
-      const uint32_t spillR  = 4u * (numPacks + calleeVgpr);
+      const uint32_t iacr    = getenv("DYNINST_IMPLICIT_ARGS")
+                                   ? Dyninst::DyninstAPI::ImplicitArgLayout::BYTES : 0u;
+      const uint32_t spillR  = iacr + 4u * (numPacks + calleeVgpr);   // IACR + spill (per-lane)
       const uint32_t s32Base = ((spillR * 64u) + 0x3FFu) & ~0x3FFu;   // per-wave
       need = (s32Base / 64u) + calleeScratch + 256u;                  // per-lane
     }
@@ -749,6 +758,40 @@ static uint32_t readCallerGrantedSgprTop(func_instance *caller, codeGen &gen) {
   return ((kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() / 2) + 1) * 16;
 }
 
+// Mid-kernel SGPR index holding the caller's workgroup-id (blockIdx) component
+// `which` (0=x,1=y,2=z), or -1 if that component isn't provided by the kernel.
+// Used by the implicit-arg forwarding (Phase 3a): the value must be copied into
+// the callee's blockIdx ABI register before an inserted call.
+//
+// After the scratch entry prologue relocates the (flat_scratch_init-shifted)
+// system SGPRs back down, wgid sits at its ORIGINAL position. We read the KD as-is:
+// if flat_scratch_init is set (we enabled it for scratch), the computed layout is
+// shifted up by 2 and the prologue moved wgid back by 2 -> L.wgid-2; if unset,
+// L.wgid is already the original position. (Caveat: a kernel that ORIGINALLY
+// shipped WITH scratch would need its pristine user_sgpr_count to disambiguate;
+// our scratch-enabled mutatee ships without, so this is exact for that pipeline.)
+static int readCallerWgidReg(func_instance *caller, codeGen &gen, int which) {
+  AddressSpace *aSpace = gen.addrSpace();
+  if (!caller || !caller->obj() || !aSpace)
+    return -1;
+  int_symbol kdSym;
+  if (!caller->obj()->getSymbolInfo(caller->symTabName() + ".kd", kdSym))
+    return -1;
+  const size_t kdSize = sizeof(llvm::amdhsa::kernel_descriptor_t);
+  uint8_t kdBytes[sizeof(llvm::amdhsa::kernel_descriptor_t)];
+  if (!aSpace->readDataSpace(reinterpret_cast<const void *>(kdSym.getAddr()),
+                             static_cast<u_int>(kdSize), kdBytes, true))
+    return -1;
+  Dyninst::AmdgpuKernelDescriptor kd(kdBytes, kdSize, EF_AMDGPU_MACH_AMDGCN_GFX908);
+  Dyninst::DyninstAPI::AbiSgprLayout L = Dyninst::DyninstAPI::computeAbiSgprLayout(kd);
+  const uint32_t shift =
+      kd.getKernelCodeProperty_EnableSgprFlatScratchInit() ? 2u : 0u;
+  const int reg = (which == 0) ? L.wgidX : (which == 1) ? L.wgidY : L.wgidZ;
+  if (reg < 0)
+    return -1;
+  return (int)((uint32_t)reg - shift);
+}
+
 // ===========================================================================
 // gfx908 (CDNA1) ScratchAbi — the per-arch seam for scratch-based register spill
 // (see amdgpu-scratch-abi.h). gfx908 is the worst case: manual FLAT_SCRATCH init
@@ -816,6 +859,33 @@ public:
       if (p >= 0)
         emitSop1Raw(/*S_MOV_B32=*/0, (uint32_t)p - SHIFT, (uint32_t)p, gen);
     emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+
+    // Implicit-Arg Capture Region (IACR): capture the implicit ABI inputs HERE, at
+    // entry, where they are still valid, into a fixed read-only scratch region the
+    // kernel body never touches (offsets [0,IACR_BYTES); spill/callee frames sit
+    // above it). An inserted call retrieves them at the call site (emitCall) —
+    // reading the LIVE wgid register there is unreliable because the kernel reuses
+    // it (rocgdb-proven). Only wgid (3a) for now; 3b/3c/3d add more slots.
+    // SADDR (=reservedBase+2, matches emitCall's derivation) is set to 0 here; a
+    // temp VGPR above the kernel's own usage broadcasts each scalar wgid before the
+    // per-lane scratch_store (uniform value written to every lane's slot).
+    if (getenv("DYNINST_IMPLICIT_ARGS")) {
+      using IAL = Dyninst::DyninstAPI::ImplicitArgLayout;
+      const uint32_t grantTop =
+          ((kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() / 2) + 1) * 16;
+      const uint32_t saddr = (grantTop >= 10) ? grantTop - 8 : 0;   // = reservedBase+2
+      const uint32_t vtmp  =
+          (kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount() + 1) * 4;  // above kernel VGPRs
+      emitSop1Raw(/*S_MOV_B32=*/0, saddr, GFX908_INLINE_0, gen);           // SADDR = 0
+      const int     wsrc[3] = { L.wgidX, L.wgidY, L.wgidZ };  // relocated to p-SHIFT above
+      const int32_t woff[3] = { IAL::OFF_WGID_X, IAL::OFF_WGID_Y, IAL::OFF_WGID_Z };
+      for (int i = 0; i < 3; i++)
+        if (wsrc[i] >= 0) {
+          emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, (uint32_t)wsrc[i] - SHIFT, gen);  // wgid -> vtmp (bcast)
+          emitScratchStore(vtmp, woff[i], saddr, gen);                          // IACR[woff] = wgid
+        }
+      emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+    }
   }
 
   void emitScratchStore(uint32_t vreg, int32_t offset, uint32_t saddr, codeGen &gen) override {
@@ -953,6 +1023,14 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   const bool useScratch = (getenv("DYNINST_SPILL_SCRATCH") != nullptr);
   Dyninst::DyninstAPI::ScratchAbi &sabi = Dyninst::DyninstAPI::gfx908ScratchAbi();
 
+  // Implicit-Arg Capture Region (IACR): when implicit-arg forwarding is enabled, a
+  // fixed, write-once-at-entry / read-only region occupies per-lane scratch offsets
+  // [0, IACR_BYTES); the caller-save spill and the callee frame shift UP by this so
+  // they can't overwrite it. Retrieved (below) into the callee's ABI registers. See
+  // amdgpu-implicit-args.h and the entry-capture in emitScratchEntryPrologue.
+  const uint32_t implBase =
+      getenv("DYNINST_IMPLICIT_ARGS") ? Dyninst::DyninstAPI::ImplicitArgLayout::BYTES : 0u;
+
   // Non-leaf call-ABI: the setupCalleeStack path (below) reconstructs s[0:3] and
   // OVERWRITES s32 (SP = s32Base). Per the AMDGPU ABI the callee restores s32 to
   // its INCOMING value (our s32Base), NOT the kernel's — so across the call s32 is
@@ -980,6 +1058,10 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // of scratch. numPacks==1 for typical callees, reproducing the single-pack path.
   const uint32_t packLanes = spillPackLanes();   // 64 (wave64); overridable for testing
   const uint32_t numPacks = (nsgpr + 2u + packLanes - 1u) / packLanes;
+  // Transient VGPR for the implicit-arg retrieve (scratch_load of an IACR slot,
+  // then v_readfirstlane into the callee's ABI SGPR). Placed one above the pack
+  // VGPRs; the KD VGPR grant is grown by 1 for it (bumpCallerKdForCallee).
+  const uint32_t vImplTmp = vPack + numPacks;
 
   // Reserved SGPRs for the trampoline. GLOBAL: fixed high s[92:93] (EXEC save) +
   // s[94:95] (base) — safe only because the SGPR grant is MAXED (nothing is that
@@ -999,8 +1081,8 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   const uint32_t SADDR_S94 = SADDR_REG;  // global s[94:95] base name
   const uint32_t SGPR_AREA = 0;     // global: SGPR pack area  [0, 256)  (64 lanes * 4B)
   const uint32_t VGPR_AREA = numPacks * 256;   // global: VGPR spill area, after the packs (256B/pack)
-  const uint32_t S_SGPR_SLOT = 0;   // scratch: SGPR pack dword (per-lane, 4B)
-  const uint32_t S_VGPR_SLOT = numPacks * 4; // scratch: VGPR spill area, after the packs
+  const uint32_t S_SGPR_SLOT = implBase;   // scratch: SGPR pack dword (per-lane, 4B), above the IACR
+  const uint32_t S_VGPR_SLOT = implBase + numPacks * 4; // scratch: VGPR spill area, after the packs
 
   // vAddr = lane*4 (absolute lane id via mbcnt over an all-ones mask: -1=193, 0=128).
   auto emitLaneByteOffset = [&]() {
@@ -1234,6 +1316,32 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   for (Register &rr : argReserved)
     rs->freeRegister(rr);
 
+  // --- Implicit ABI args (env-gated DYNINST_IMPLICIT_ARGS) ---------------------
+  // Phase 3a: forward the kernel's workgroup-id (blockIdx) into the callee's ABI
+  // blockIdx registers (s12/s13/s14 on gfx908) so a NON-self-contained callee that
+  // reads blockIdx gets the correct per-block value (a dyninst-inserted s_swappc
+  // sets up none of the ABI context otherwise). The value is RETRIEVED from the
+  // IACR (captured at entry) — NOT read from the live wgid SGPR here, which the
+  // kernel reuses mid-kernel (rocgdb-proven: correct only at early sites). Per
+  // component: scratch_load the IACR slot into vImplTmp, then v_readfirstlane into
+  // the ABI SGPR (uniform value; readfirstlane picks the first active lane, so it
+  // is correct under the site's narrowed EXEC). SADDR_REG is already 0 (set above).
+  // Emitted BEFORE setupCalleeStack (harmless ordering; touches neither s0..3 nor
+  // s32). Only forwards the wgid components the kernel actually provides.
+  if (getenv("DYNINST_IMPLICIT_ARGS")) {
+    using IAL = Dyninst::DyninstAPI::ImplicitArgLayout;
+    const int32_t  woff[3]   = { IAL::OFF_WGID_X, IAL::OFF_WGID_Y, IAL::OFF_WGID_Z };
+    const uint32_t abiReg[3] = { IAL::ABI_BLOCKIDX_X, IAL::ABI_BLOCKIDX_Y, IAL::ABI_BLOCKIDX_Z };
+    for (int i = 0; i < 3; i++) {
+      if (readCallerWgidReg(caller, gen, i) < 0)   // only wgid the kernel actually enables
+        continue;
+      sabi.emitScratchLoad(vImplTmp, woff[i], SADDR_REG, gen);
+      AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);              // wait for the load
+      AmdgpuGfx908::emitVop1Reg(/*V_READFIRSTLANE_B32=*/2u, /*sdst=*/abiReg[i],
+                                /*vsrc=*/256u + vImplTmp, gen);          // s[abiReg] = IACR slot
+    }
+  }
+
   // --- Non-leaf call-ABI (env-gated DYNINST_CALL_ABI) --------------------------
   // A hipcc-compiled NON-LEAF callee addresses its own stack frame as buffer_* off
   // the scratch V# descriptor s[0:3] + stack pointer s32. Our flat-scratch spill
@@ -1246,7 +1354,7 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   if (useScratch && getenv("DYNINST_CALL_ABI")) {
     const uint32_t calleeScratch = readCalleeMaxAbsSym(callee, "private_seg_size");
     if (calleeScratch > 0) {
-      const uint32_t spillR  = 4u * (numPacks + nvgpr);   // our flat region top (PER-LANE bytes)
+      const uint32_t spillR  = implBase + 4u * (numPacks + nvgpr);   // IACR + spill top (PER-LANE bytes)
       // s32 (buffer soffset) is PER-WAVEFRONT bytes: the reconstructed HIP scratch
       // descriptor swizzles per lane, so the callee's per-lane frame offset = s32/64
       // (wave64). To seat the callee frame ABOVE our flat spill's per-lane region
