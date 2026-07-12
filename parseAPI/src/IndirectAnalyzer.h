@@ -39,6 +39,7 @@ class IndirectControlFlowAnalyzer {
 
 public:
     bool NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
+    bool ResolveCallTargetBySlicing(Dyninst::Address& target);
     IndirectControlFlowAnalyzer(ParseAPI::Function *f, ParseAPI::Block *b): func(f), block(b) {}
 
 };

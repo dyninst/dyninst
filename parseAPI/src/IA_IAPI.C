@@ -536,9 +536,11 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
     // Only call this on control flow instructions!
     if(ci.isCall())
     {
-        bool success; 
+        bool success;
         Address target;
         boost::tie(success, target) = getCFT();
+        if (!success)
+            boost::tie(success, target) = resolveDynamicCallTarget(context, currBlk);
         bool callEdge = true;
         bool ftEdge = true;
         if( success && !isDynamicCall() )
