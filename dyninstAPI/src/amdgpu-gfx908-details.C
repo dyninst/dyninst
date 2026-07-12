@@ -134,6 +134,14 @@ void emitSop2Raw(unsigned opcode, uint32_t sdst, uint32_t ssrc0, uint32_t ssrc1,
   gen.update(p);
 }
 
+void emitSop2RawWithLiteral(unsigned opcode, uint32_t sdst, uint32_t ssrc0,
+                            uint32_t literal, codeGen &gen) {
+  emitSop2Raw(opcode, sdst, ssrc0, /*ssrc1 = literal marker*/ 255, gen);
+  auto p = gen.cur_ptr();
+  append_memory_as(p, literal);
+  gen.update(p);
+}
+
 void emitSop1Raw(unsigned opcode, uint32_t sdst, uint32_t ssrc0, codeGen &gen) {
   uint32_t newRawInst = 0xFFFFFFFF;
   setEncodingSop1(newRawInst);

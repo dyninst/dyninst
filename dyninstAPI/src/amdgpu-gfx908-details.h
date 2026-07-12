@@ -119,6 +119,11 @@ void emitVop1Imm(unsigned opcode, uint32_t vdst, uint32_t literal, codeGen &gen)
 void emitVop1Reg(unsigned opcode, uint32_t vdst, uint32_t src0, codeGen &gen);
 void emitSop2Raw(unsigned opcode, uint32_t sdst, uint32_t ssrc0, uint32_t ssrc1,
                  codeGen &gen);
+// SOP2 with a 32-bit literal src1 (raw operand ids, ssrc1 encoded as the literal
+// marker + the following literal word). Raw counterpart of emitSop2WithSrc1Literal;
+// usable with operands outside the allocatable SGPR range (e.g. flat_scratch_hi).
+void emitSop2RawWithLiteral(unsigned opcode, uint32_t sdst, uint32_t ssrc0,
+                            uint32_t literal, codeGen &gen);
 
 // === SOP1 END ===
 

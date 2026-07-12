@@ -63,6 +63,16 @@ public:
   // it just above the live register range and zeroes it in the trampoline.
   virtual void emitScratchStore(uint32_t vreg, int32_t offset, uint32_t saddr, codeGen &gen) = 0;
   virtual void emitScratchLoad(uint32_t vreg, int32_t offset, uint32_t saddr, codeGen &gen) = 0;
+
+  // For calling a NON-LEAF callee (one with its own stack frame): set up the
+  // callee's stack ABI just before the s_swappc. On gfx908 the callee's frame is
+  // addressed as buffer_store/load off the scratch V# descriptor s[0:3] + stack
+  // pointer s32. A leaf mutatee clobbers s[0:3], but the descriptor is derivable
+  // from FLAT_SCRATCH (already set up, per-wave) plus constant fields, so this
+  // reconstructs s[0:3] and sets s32 = s32Base (placed above our flat-scratch
+  // spill region so the callee's frame can't collide with it). Later arches
+  // (gfx940+ architected/absolute flat scratch) provide their own variant.
+  virtual void setupCalleeStack(uint32_t s32Base, codeGen &gen) = 0;
 };
 
 // gfx908 (CDNA1) implementation (defined in emit-amdgpu.C).

@@ -622,15 +622,27 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
 
   // Scratch: reserve only if the callee actually uses private/scratch memory.
   if (calleeScratch > 0) {
-    if (calleeScratch > kd.getPrivateSegmentFixedSize())
-      kd.setPrivateSegmentFixedSize(calleeScratch);
+    const bool callAbi = getenv("DYNINST_CALL_ABI") != nullptr;
+    uint32_t need = calleeScratch;                    // default (pre-call-ABI) behavior
+    if (callAbi && useScratch) {
+      // Non-leaf call ABI: our flat spill occupies per-lane [0,spillR); the callee's
+      // buffer frame is seated at s32 base (PER-WAVE) = spillR*64 aligned, so its
+      // per-lane base (s32/64) clears our region. private_segment_fixed_size is
+      // PER-LANE: our region (s32Base/64) + the callee's own per-lane frame + margin.
+      // Must match the s32Base arithmetic in emitCall.
+      const uint32_t spillR  = 4u * (numPacks + calleeVgpr);
+      const uint32_t s32Base = ((spillR * 64u) + 0x3FFu) & ~0x3FFu;   // per-wave
+      need = (s32Base / 64u) + calleeScratch + 256u;                  // per-lane
+    }
+    if (need > kd.getPrivateSegmentFixedSize())
+      kd.setPrivateSegmentFixedSize(need);
     kd.setKernelCodeProperty_EnableSgprFlatScratchInit(true);
-    fprintf(stderr,
-            "[amdgpu] warning: callee '%s' uses %u bytes of scratch; caller '%s' "
-            "ALSO needs call-ABI prologue setup (FLAT_SCRATCH/s32/scratch "
-            "descriptor) which is NOT emitted here — scratch-using callees are not "
-            "yet fully supported.\n",
-            callee->symTabName().c_str(), calleeScratch, caller->symTabName().c_str());
+    if (!callAbi)
+      fprintf(stderr,
+              "[amdgpu] warning: callee '%s' uses %u bytes of scratch; set "
+              "DYNINST_CALL_ABI to emit the non-leaf call-ABI setup "
+              "(FLAT_SCRATCH-derived s[0:3] + s32) — otherwise unsupported.\n",
+              callee->symTabName().c_str(), calleeScratch);
   }
 
   // Write the modified descriptor back.
@@ -819,6 +831,24 @@ public:
     emitFlatGlobal(GLOBAL_LOAD_DWORD, /*vdst=*/vreg, /*addr=*/0, /*data=*/0,
                    saddr, offset, gen, /*glc=*/true, /*seg=*/1);
   }
+
+  void setupCalleeStack(uint32_t s32Base, codeGen &gen) override {
+    using namespace AmdgpuGfx908;
+    // Reconstruct the scratch V# descriptor s[0:3] from FLAT_SCRATCH (already set
+    // up by the entry prologue, per-wave) + the constant descriptor fields measured
+    // on gfx908/ROCm7.0.2 (see memory dyninst-amdgpu-call-abi). A leaf mutatee
+    // clobbers s[0:3], but a hipcc-compiled non-leaf callee addresses its frame as
+    // buffer_*(off s[0:3], soffset=s32). FLAT_SCRATCH already includes wave_offset,
+    // so s0 is per-wave-correct (matches the compiler's `s0 += wave_offset`).
+    emitSop1Raw(/*S_MOV_B32=*/0, /*s0=*/0, GFX908_FLAT_SCRATCH_LO, gen);              // s0 = base_lo = FLAT_lo
+    emitSop2RawWithLiteral(S_OR_B32, /*s1=*/1, GFX908_FLAT_SCRATCH_HI, 0x80000000u, gen); // s1 = base_hi | swizzle_enable
+    emitSop2RawWithLiteral(S_OR_B32, /*s2=*/2, GFX908_INLINE_0, 0x00400000u, gen);        // s2 = num_records
+    emitSop2RawWithLiteral(S_OR_B32, /*s3=*/3, GFX908_INLINE_0, 0x00ea4facu, gen);        // s3 = format/swizzle flags
+    // s32 = stack pointer base, placed ABOVE our flat-scratch spill region (offset
+    // R) so the callee's frame (buffer soffset >= R) can't collide with our spill
+    // (flat offset < R); flat-offset-K == buffer-soffset-K (validated 1:1).
+    emitSop2RawWithLiteral(S_OR_B32, /*s32=*/32u, GFX908_INLINE_0, s32Base, gen);
+  }
 };
 }  // namespace
 
@@ -922,6 +952,17 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   //                     entry prologue) — one SGPR instead of the s[94:95] pair.
   const bool useScratch = (getenv("DYNINST_SPILL_SCRATCH") != nullptr);
   Dyninst::DyninstAPI::ScratchAbi &sabi = Dyninst::DyninstAPI::gfx908ScratchAbi();
+
+  // Non-leaf call-ABI: the setupCalleeStack path (below) reconstructs s[0:3] and
+  // OVERWRITES s32 (SP = s32Base). Per the AMDGPU ABI the callee restores s32 to
+  // its INCOMING value (our s32Base), NOT the kernel's — so across the call s32 is
+  // effectively clobbered. s32 lies OUTSIDE the callee register footprint [0,nsgpr)
+  // that the caller-save spill covers, so it must be added to the save set
+  // explicitly ("liveness for the ABI"): a kernel that uses s32 (vectoradd
+  // allocates s0..s39) would otherwise read garbage after the call -> wild pointer.
+  const bool nonLeafCallAbi =
+      useScratch && getenv("DYNINST_CALL_ABI") &&
+      readCalleeMaxAbsSym(callee, "private_seg_size") > 0;
 
   // Scratch VGPRs for the spill machinery, placed ABOVE both the kernel's and the
   // callee's VGPR usage (bumpCallerKdForCallee grows the grant to cover them):
@@ -1031,6 +1072,16 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
     for (uint32_t i = 0; i < nvgpr; i++)
       if (live(reduceVgpr ? lrs : nullptr, Register::makeVectorRegister(OperandRegId(i), BlockSize(1))))
         liveVgprs.push_back(i);
+    // "liveness for the ABI": s32 (SP) is clobbered by setupCalleeStack and left at
+    // our s32Base by the callee (not the kernel's value), and lies outside the
+    // [0,nsgpr) footprint the loop above covers — save/restore it unconditionally
+    // for a non-leaf call so the kernel's SP survives. (No-op unless nsgpr<=32,
+    // which holds for our callees; guard avoids a duplicate if nsgpr>32.)
+    if (nonLeafCallAbi) {
+      bool have = false;
+      for (uint32_t s : liveScalars) if (s == 32u) { have = true; break; }
+      if (!have) liveScalars.push_back(32u);
+    }
   }
   const uint32_t nScalars = (uint32_t)liveScalars.size();
   // Packs actually needed for the LIVE scalars (<= numPacks reserved above), so the
@@ -1182,6 +1233,31 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   }
   for (Register &rr : argReserved)
     rs->freeRegister(rr);
+
+  // --- Non-leaf call-ABI (env-gated DYNINST_CALL_ABI) --------------------------
+  // A hipcc-compiled NON-LEAF callee addresses its own stack frame as buffer_* off
+  // the scratch V# descriptor s[0:3] + stack pointer s32. Our flat-scratch spill
+  // occupies flat offsets [0,R); reconstruct s[0:3] from FLAT_SCRATCH (kept live)
+  // and place the callee's stack base s32 = R (buffer soffset == flat offset,
+  // validated 1:1) so the callee's frame sits ABOVE our spill and can't collide.
+  // Only when the callee is non-leaf (its private_seg_size > 0); leaf callees need
+  // no stack. Runs AFTER the caller-save spill (which preserved s0..s3 if live) and
+  // arg materialization, and BEFORE the call; s0..s3 are restored afterward.
+  if (useScratch && getenv("DYNINST_CALL_ABI")) {
+    const uint32_t calleeScratch = readCalleeMaxAbsSym(callee, "private_seg_size");
+    if (calleeScratch > 0) {
+      const uint32_t spillR  = 4u * (numPacks + nvgpr);   // our flat region top (PER-LANE bytes)
+      // s32 (buffer soffset) is PER-WAVEFRONT bytes: the reconstructed HIP scratch
+      // descriptor swizzles per lane, so the callee's per-lane frame offset = s32/64
+      // (wave64). To seat the callee frame ABOVE our flat spill's per-lane region
+      // [0,spillR), s32Base must satisfy s32Base/64 >= spillR, i.e. >= spillR*64.
+      // (The prior "buffer soffset == flat offset 1:1" held only for the hand-written
+      // NON-swizzled test descriptor; rocgdb proved that at s32=256 the callee's
+      // locals landed on our flat slots at per-lane offset 4, corrupting saved VGPRs.)
+      const uint32_t s32Base = ((spillR * 64u) + 0x3FFu) & ~0x3FFu; // per-wave, 0x400-aligned
+      sabi.setupCalleeStack(s32Base, gen);
+    }
+  }
 
   Address slot = getInterModuleFuncAddr(callee, gen);
   emitIndirectCall(slot, lrPair, gen);
