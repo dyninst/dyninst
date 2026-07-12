@@ -792,6 +792,55 @@ static int readCallerWgidReg(func_instance *caller, codeGen &gen, int which) {
   return (int)((uint32_t)reg - shift);
 }
 
+// Whether the caller kernel provides a kernarg-segment pointer AND carries a COV5+
+// implicit-args block (kernarg_size >= 256) — i.e. whether the entry prologue
+// captured the implicit-args pointer into the IACR, so an inserted call can forward
+// it (blockDim/gridDim, Phase 3b). Returns the kernarg-ptr SGPR index, or -1.
+// kernarg_ptr precedes flat_scratch_init in ABI order, so it is not shifted by
+// scratch-enable; L.kernargPtr is its entry position directly.
+static int readCallerKernargReg(func_instance *caller, codeGen &gen) {
+  AddressSpace *aSpace = gen.addrSpace();
+  if (!caller || !caller->obj() || !aSpace)
+    return -1;
+  int_symbol kdSym;
+  if (!caller->obj()->getSymbolInfo(caller->symTabName() + ".kd", kdSym))
+    return -1;
+  const size_t kdSize = sizeof(llvm::amdhsa::kernel_descriptor_t);
+  uint8_t kdBytes[sizeof(llvm::amdhsa::kernel_descriptor_t)];
+  if (!aSpace->readDataSpace(reinterpret_cast<const void *>(kdSym.getAddr()),
+                             static_cast<u_int>(kdSize), kdBytes, true))
+    return -1;
+  Dyninst::AmdgpuKernelDescriptor kd(kdBytes, kdSize, EF_AMDGPU_MACH_AMDGCN_GFX908);
+  Dyninst::DyninstAPI::AbiSgprLayout L = Dyninst::DyninstAPI::computeAbiSgprLayout(kd);
+  if (L.kernargPtr < 0 || kd.getKernargSize() < 256)
+    return -1;
+  return L.kernargPtr;
+}
+
+// Byte offset from the kernarg-segment base to the COV5 implicit-args block (the
+// fixed 256B tail): offset = original_kernarg_size - 256. dyninst grew the KD's
+// kernarg_size by 8 for the appended instrumentation pointer (AmdgpuPointHandler:
+// roundUpTo8(size)+8; the original is 8-aligned so original == getKernargSize()-8).
+// => offset = getKernargSize() - 8 - 256 = getKernargSize() - 264. Added to the
+// captured kernarg pointer to form the implicit-args pointer. -1 if unavailable.
+// (A metadata-driven version would read the first hidden-arg .offset directly.)
+static int readCallerImplicitOffset(func_instance *caller, codeGen &gen) {
+  AddressSpace *aSpace = gen.addrSpace();
+  if (!caller || !caller->obj() || !aSpace)
+    return -1;
+  int_symbol kdSym;
+  if (!caller->obj()->getSymbolInfo(caller->symTabName() + ".kd", kdSym))
+    return -1;
+  const size_t kdSize = sizeof(llvm::amdhsa::kernel_descriptor_t);
+  uint8_t kdBytes[sizeof(llvm::amdhsa::kernel_descriptor_t)];
+  if (!aSpace->readDataSpace(reinterpret_cast<const void *>(kdSym.getAddr()),
+                             static_cast<u_int>(kdSize), kdBytes, true))
+    return -1;
+  Dyninst::AmdgpuKernelDescriptor kd(kdBytes, kdSize, EF_AMDGPU_MACH_AMDGCN_GFX908);
+  const uint32_t ks = kd.getKernargSize();
+  return (ks >= 264) ? (int)(ks - 264u) : -1;
+}
+
 // ===========================================================================
 // gfx908 (CDNA1) ScratchAbi — the per-arch seam for scratch-based register spill
 // (see amdgpu-scratch-abi.h). gfx908 is the worst case: manual FLAT_SCRATCH init
@@ -884,6 +933,23 @@ public:
           emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, (uint32_t)wsrc[i] - SHIFT, gen);  // wgid -> vtmp (bcast)
           emitScratchStore(vtmp, woff[i], saddr, gen);                          // IACR[woff] = wgid
         }
+
+      // Kernarg-segment pointer (3b: blockDim/gridDim source). A device function reads
+      // block/grid dims by dereferencing the implicit-args pointer (offsets 0/12/18 =
+      // block_count/group_size/remainder). In COV5 the implicit args are a fixed
+      // 256-byte block at the END of the kernarg segment: implicitarg_ptr =
+      // kernarg_ptr + (kernarg_size - 256). kernarg_ptr precedes flat_scratch_init in
+      // ABI order so it is NOT shifted by scratch-enable. We store the RAW kernarg
+      // pointer here (no temp SGPRs — a scalar add in the prologue would need scratch
+      // regs that collide with the relocated system SGPRs); the +offset is applied at
+      // retrieve time in emitCall using the reserved s[8:9].
+      if (L.kernargPtr >= 0 && kd.getKernargSize() >= 256) {
+        const uint32_t kp = (uint32_t)L.kernargPtr;                   // s[kp:kp+1] = kernarg ptr
+        emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, kp, gen);
+        emitScratchStore(vtmp, IAL::OFF_KERNARG,     saddr, gen);     // IACR[+24] = kernarg lo
+        emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, kp + 1, gen);
+        emitScratchStore(vtmp, IAL::OFF_KERNARG + 4, saddr, gen);     // IACR[+28] = kernarg hi
+      }
       emitSopP(S_WAITCNT, /*simm16=*/0, gen);
     }
   }
@@ -1328,17 +1394,39 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // is correct under the site's narrowed EXEC). SADDR_REG is already 0 (set above).
   // Emitted BEFORE setupCalleeStack (harmless ordering; touches neither s0..3 nor
   // s32). Only forwards the wgid components the kernel actually provides.
+  // The forwarded ABI registers (blockIdx s12/13/14, implicit-args ptr s[8:9]) are
+  // RESERVED so emitIndirectCall's call-target block allocation lands elsewhere —
+  // the values live in the IACR, so we materialize them here and just keep the
+  // allocator off these regs until after the swappc. Freed below.
+  std::vector<Register> abiReserved;
   if (getenv("DYNINST_IMPLICIT_ARGS")) {
     using IAL = Dyninst::DyninstAPI::ImplicitArgLayout;
+    auto reserve = [&](uint32_t r) {
+      Register rr = Register::makeScalarRegister(OperandRegId(r), BlockSize(1));
+      if (rs->allocateSpecificRegister(gen, rr)) abiReserved.push_back(rr);
+    };
+    auto loadToSgpr = [&](int32_t off, uint32_t sdst) {          // IACR slot -> SGPR (uniform)
+      sabi.emitScratchLoad(vImplTmp, off, SADDR_REG, gen);
+      AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);       // wait for the load
+      AmdgpuGfx908::emitVop1Reg(/*V_READFIRSTLANE_B32=*/2u, /*sdst=*/sdst,
+                                /*vsrc=*/256u + vImplTmp, gen);   // first active lane
+    };
+    // 3a blockIdx: wgid x/y/z -> s12/13/14 (only the components the kernel provides)
     const int32_t  woff[3]   = { IAL::OFF_WGID_X, IAL::OFF_WGID_Y, IAL::OFF_WGID_Z };
     const uint32_t abiReg[3] = { IAL::ABI_BLOCKIDX_X, IAL::ABI_BLOCKIDX_Y, IAL::ABI_BLOCKIDX_Z };
-    for (int i = 0; i < 3; i++) {
-      if (readCallerWgidReg(caller, gen, i) < 0)   // only wgid the kernel actually enables
-        continue;
-      sabi.emitScratchLoad(vImplTmp, woff[i], SADDR_REG, gen);
-      AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);              // wait for the load
-      AmdgpuGfx908::emitVop1Reg(/*V_READFIRSTLANE_B32=*/2u, /*sdst=*/abiReg[i],
-                                /*vsrc=*/256u + vImplTmp, gen);          // s[abiReg] = IACR slot
+    for (int i = 0; i < 3; i++)
+      if (readCallerWgidReg(caller, gen, i) >= 0) { reserve(abiReg[i]); loadToSgpr(woff[i], abiReg[i]); }
+    // 3b blockDim/gridDim: implicit-args pointer -> s[8:9]. The captured value is the
+    // RAW kernarg pointer (IACR OFF_KERNARG); add the COV5 implicit-block offset here,
+    // in-place on the reserved s[8:9] (no extra temps needed).
+    const int implOff = readCallerImplicitOffset(caller, gen);
+    if (readCallerKernargReg(caller, gen) >= 0 && implOff >= 0) {
+      reserve(8u); reserve(9u);
+      loadToSgpr(IAL::OFF_KERNARG,     8u);       // kernarg ptr lo -> s8
+      loadToSgpr(IAL::OFF_KERNARG + 4, 9u);       // kernarg ptr hi -> s9
+      AmdgpuGfx908::emitSop2RawWithLiteral(S_ADD_U32, /*s8=*/8u, /*s8=*/8u,
+                                           (uint32_t)implOff, gen);  // s8 += implOff (sets SCC)
+      AmdgpuGfx908::emitSop2Raw(S_ADDC_U32, /*s9=*/9u, /*s9=*/9u, /*inline 0=*/128u, gen); // s9 += carry
     }
   }
 
@@ -1369,6 +1457,8 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
 
   Address slot = getInterModuleFuncAddr(callee, gen);
   emitIndirectCall(slot, lrPair, gen);
+  for (Register &rr : abiReserved)   // release the forwarded ABI regs now the call is emitted
+    rs->freeRegister(rr);
   AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO, INLINE_NEG1, gen);   // exec = -1 (for restore)
 
   vgprSpill(/*save=*/false);
