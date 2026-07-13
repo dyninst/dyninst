@@ -110,6 +110,11 @@ class IA_IAPI : public InstructionAdapter {
                                 unsigned int,
                                 const std::set<Address> &) const = 0;
         virtual std::pair<bool, Address> getCFT() const;
+        virtual std::pair<bool, Address> resolveDynamicCallTarget(Dyninst::ParseAPI::Function *,
+                                                                  Dyninst::ParseAPI::Block *) const
+        {
+            return std::make_pair(false, 0);
+        }
         virtual bool isStackFramePreamble() const = 0;
         virtual bool savesFP() const = 0;
         virtual bool cleansStack() const = 0;

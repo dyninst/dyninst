@@ -48,6 +48,12 @@ namespace Dyninst { namespace InstructionAPI {
       case e_call:
       case aarch64_op_bl:
       case aarch64_op_blr:
+      case amdgpu_gfx908_op_S_SWAPPC_B64:
+      case amdgpu_gfx908_op_S_CALL_B64:
+      case amdgpu_gfx90a_op_S_SWAPPC_B64:
+      case amdgpu_gfx90a_op_S_CALL_B64:
+      case amdgpu_gfx940_op_S_SWAPPC_B64:
+      case amdgpu_gfx940_op_S_CALL_B64:
         return c_CallInsn;
 
       case e_jmp:

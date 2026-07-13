@@ -58,6 +58,70 @@ static bool IsVariableArgumentFormat(AST::Ptr t, AbsRegion &index) {
     return IsIndexing(rt->child(1), index);
 
 }
+namespace {
+class CallTargetPred : public Slicer::Predicates {
+public:
+    virtual bool endAtPoint(AssignmentPtr a) {
+        switch (a->insn().getOperation().getID()) {
+            case amdgpu_gfx908_op_S_ADD_U32:
+            case amdgpu_gfx908_op_S_ADDC_U32:
+            case amdgpu_gfx908_op_S_MOV_B32:
+            case amdgpu_gfx908_op_S_MOV_B64:
+            case amdgpu_gfx90a_op_S_ADD_U32:
+            case amdgpu_gfx90a_op_S_ADDC_U32:
+            case amdgpu_gfx90a_op_S_MOV_B32:
+            case amdgpu_gfx90a_op_S_MOV_B64:
+            case amdgpu_gfx940_op_S_ADD_U32:
+            case amdgpu_gfx940_op_S_ADDC_U32:
+            case amdgpu_gfx940_op_S_MOV_B32:
+            case amdgpu_gfx940_op_S_MOV_B64:
+                return false;
+            default:
+                return true;
+        }
+    }
+};
+}
+
+bool IndirectControlFlowAnalyzer::ResolveCallTargetBySlicing(Dyninst::Address& target) {
+
+    parsing_printf("Apply call target slicing at %lx for function %s\n", block->last(), func->name().c_str());
+
+    boost::make_lock_guard(*func);
+
+    const unsigned char * buf = (const unsigned char*) block->region()->getPtrToInstruction(block->last());
+    InstructionDecoder dec(buf, InstructionDecoder::maxInstructionLength, block->obj()->cs()->getArch());
+
+    Instruction insn = dec.decode();
+    AssignmentConverter ac(true, false);
+    vector<Assignment::Ptr> assignments;
+    ac.convert(insn, block->last(), func, block, assignments);
+    if (assignments.empty()) return false;
+
+    Slicer formatSlicer(assignments[0], block, func, true, false);
+
+    SymbolicExpression se;
+    se.cs = block->obj()->cs();
+    se.cr = block->region();
+    CallTargetPred pred;
+
+    GraphPtr slice = formatSlicer.backwardSlice(pred);
+
+    Result_t symRet;
+    SymEval::expand(slice, symRet);
+
+    auto old_ast = symRet[assignments[0]];
+    if (!old_ast) return false;
+
+    auto new_ast = se.SimplifyAnAST(old_ast, 0, false);
+    if (!new_ast || new_ast->getID() != AST::V_ConstantAST) return false;
+
+    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(new_ast);
+    target = Address(constAST->val().val);
+    parsing_printf("\t call target resolved to %lx\n", target);
+    return true;
+}
+
 /*
  * Insert edges found into the edges vector, and return true if the vector is non-empty
  *
@@ -96,43 +160,6 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     JumpTableFormatPred jtfp(func, block, rf, thunks, se);
 
     GraphPtr slice = formatSlicer.backwardSlice(jtfp);
-    if ((se.cs->getArch() == Arch_amdgpu_gfx908 && insn.getOperation().getID() == amdgpu_gfx908_op_S_SETPC_B64) ||
-        (se.cs->getArch() == Arch_amdgpu_gfx908 && insn.getOperation().getID() == amdgpu_gfx908_op_S_SWAPPC_B64) ||
-        (se.cs->getArch() == Arch_amdgpu_gfx90a && insn.getOperation().getID() == amdgpu_gfx90a_op_S_SETPC_B64 ) ||
-        (se.cs->getArch() == Arch_amdgpu_gfx90a && insn.getOperation().getID() == amdgpu_gfx90a_op_S_SWAPPC_B64 ) ||
-        (se.cs->getArch() == Arch_amdgpu_gfx940 && insn.getOperation().getID() == amdgpu_gfx940_op_S_SETPC_B64 ) ||
-        (se.cs->getArch() == Arch_amdgpu_gfx940 && insn.getOperation().getID() == amdgpu_gfx940_op_S_SWAPPC_B64 )){
-
-        Result_t symRet;
-        SymEval::expand(slice,symRet);
-        
-        //for (auto const & cd : symRet) {
-        //    std::cout << " f: " << cd.first << " " << cd.second << std::endl; 
-        //}
-
-        auto old_ast = symRet[assignments[0]];
-
-	if (!old_ast) return false;
-
-        auto new_ast = se.SimplifyAnAST(old_ast,0,false);
-
-        /*do {
-            old_ast = new_ast; 
-            new_ast = se.SimplifyAnAST(old_ast, 0, false);
-            std::cout  << " simplified: =  " << new_ast->format() << std::endl;
-        }while(old_ast -> format() != new_ast->format());*/
-
-        if( new_ast->getID() == AST::V_ConstantAST) {
-            ConstantAST::Ptr constAST = 
-                boost::static_pointer_cast<ConstantAST>(new_ast);
-            uint64_t val = constAST->val().val;
-            //std::cerr << " resolved, value = " <<  std::hex <<val <<std::endl;
-            outEdges.push_back(std::make_pair(Address(val),CALL));
-            Address ft_addr =  Address(block->last() +insn.size());
-            outEdges.push_back(std::make_pair(Address(ft_addr),CALL_FT));
-            return true;
-        }
-    }
     // If the jump target expression is not in a form we recognize,
     // we do not try to resolve it
     //

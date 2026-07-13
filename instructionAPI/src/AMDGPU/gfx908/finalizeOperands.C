@@ -1607,8 +1607,9 @@ namespace InstructionAPI {
                 appendOPR_SDST(layout.SDST,true,false);
                 break;
             case 21:   // S_CALL_B64,
+                setCall();
                 appendOPR_SDST(layout.SDST,false,true,2);
-                insn_in_progress->appendOperand(decodeOPR_LABEL(layout.SIMM16),true,false);
+                makeBranchTarget(isCall,isConditional,layout.SIMM16);
                 appendOPR_PC(0,false,true,1,true);
                 appendOPR_PC(0,true,false,1,true);
                 break;

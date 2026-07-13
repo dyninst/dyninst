@@ -33,6 +33,7 @@
 #include "Immediate.h"
 #include "BinaryFunction.h"
 
+#include "parseAPI/src/IndirectAnalyzer.h"
 #include "parseAPI/src/debug_parse.h"
 
 #include <deque>
@@ -139,6 +140,19 @@ bool IA_amdgpu::isLinkerStub() const
 bool IA_amdgpu::isNopJump() const
 {
     return false;
+}
+
+std::pair<bool, Address> IA_amdgpu::resolveDynamicCallTarget(Dyninst::ParseAPI::Function * context,
+                                                             Dyninst::ParseAPI::Block* currBlk) const
+{
+    Address target = 0;
+    IndirectControlFlowAnalyzer icfa(context, currBlk);
+    if (icfa.ResolveCallTargetBySlicing(target)) {
+        cachedCFT = std::make_pair(true, target);
+        validCFT = true;
+        return cachedCFT;
+    }
+    return std::make_pair(false, 0);
 }
 
 bool IA_amdgpu::isSoftwareException() const

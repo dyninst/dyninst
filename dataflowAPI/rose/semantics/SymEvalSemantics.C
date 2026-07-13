@@ -124,8 +124,9 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateAST_amdgpu_gfx908::convert(const 
         break;
     }
     case amdgpu_regclass_misc : {
-        Dyninst::MachRegister base = Dyninst::amdgpu_gfx908::src_scc;
-        mreg  = Dyninst::MachRegister(base.val() + minor) ;
+        Dyninst::MachRegister base = (size == 1) ? Dyninst::amdgpu_gfx908::src_scc
+                                                 : Dyninst::amdgpu_gfx908::vcc_lo;
+        mreg = Dyninst::MachRegister((base.val() & 0xffffff00) | minor);
         found = true;
         break;
     }
@@ -164,8 +165,9 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateAST_amdgpu_gfx90a::convert(const 
         break;
     }
     case amdgpu_regclass_misc : {
-        Dyninst::MachRegister base = Dyninst::amdgpu_gfx90a::src_scc;
-        mreg  = Dyninst::MachRegister(base.val() + minor) ;
+        Dyninst::MachRegister base = (size == 1) ? Dyninst::amdgpu_gfx90a::src_scc
+                                                 : Dyninst::amdgpu_gfx90a::vcc_lo;
+        mreg = Dyninst::MachRegister((base.val() & 0xffffff00) | minor);
         found = true;
         break;
     }
@@ -197,8 +199,9 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateAST_amdgpu_gfx940::convert(const 
         break;
     }
     case amdgpu_regclass_misc : {
-        Dyninst::MachRegister base = Dyninst::amdgpu_gfx940::src_scc;
-        mreg  = Dyninst::MachRegister(base.val() + minor) ;
+        Dyninst::MachRegister base = (size == 1) ? Dyninst::amdgpu_gfx940::src_scc
+                                                 : Dyninst::amdgpu_gfx940::vcc_lo;
+        mreg = Dyninst::MachRegister((base.val() & 0xffffff00) | minor);
         found = true;
         break;
     }
