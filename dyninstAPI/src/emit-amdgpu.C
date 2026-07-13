@@ -594,7 +594,6 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
   const uint32_t calleeSgpr = readCalleeMaxAbsSym(callee, "numbered_sgpr");
   const uint32_t packLanes  = spillPackLanes();   // must match emitCall
   const uint32_t numPacks   = (calleeSgpr + 2u + packLanes - 1u) / packLanes;
-  const bool useScratch     = true;   // HW-scratch spill is the default backend
 
   // VGPR: gfx9/wave64 granule = 4; granted = (granulated + 1) * 4. To fit N regs,
   // granulated = ceil(N/4) - 1. Only ever raise. The grant must cover the callee's
@@ -612,8 +611,8 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
     const uint32_t implBase = Dyninst::DyninstAPI::ImplicitArgLayout::BYTES;
     const uint32_t implVgpr = implBase ? 1u : 0u;
     const uint32_t curVgpr = readCallerOriginalGrantedVgpr(caller, gen);
-    const uint32_t vAddr   = (curVgpr > calleeVgpr ? curVgpr : calleeVgpr);
-    const uint32_t needVgpr = vAddr + (useScratch ? numPacks : 1u + numPacks) + implVgpr;
+    const uint32_t vBase    = (curVgpr > calleeVgpr ? curVgpr : calleeVgpr);
+    const uint32_t needVgpr = vBase + numPacks + implVgpr;  // pack VGPRs + implicit-arg temp
     const uint32_t neededGran = (needVgpr + 3u) / 4u - 1u;
     if (neededGran > kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount())
       kd.setCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount(neededGran);
@@ -622,27 +621,22 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
     // calleeVgpr VGPR dwords = 4*(numPacks+nvgpr) bytes/lane, PLUS the IACR reserved
     // below it. The hardcoded 256 in enableScratchInKD overflows for large footprints
     // -> scratch aperture violation.
-    if (useScratch) {
-      const uint32_t spillSlot = implBase + 4u * (numPacks + calleeVgpr);
-      if (spillSlot > kd.getPrivateSegmentFixedSize())
-        kd.setPrivateSegmentFixedSize(spillSlot);
-    }
+    const uint32_t spillSlot = implBase + 4u * (numPacks + calleeVgpr);
+    if (spillSlot > kd.getPrivateSegmentFixedSize())
+      kd.setPrivateSegmentFixedSize(spillSlot);
   }
 
   // Scratch: reserve only if the callee actually uses private/scratch memory.
-  if (calleeScratch > 0) {
-    uint32_t need = calleeScratch;                    // fallback if scratch is unavailable
-    if (useScratch) {                                 // non-leaf call ABI (auto: calleeScratch>0)
-      // Non-leaf call ABI: our flat spill occupies per-lane [0,spillR); the callee's
-      // buffer frame is seated at s32 base (PER-WAVE) = spillR*64 aligned, so its
-      // per-lane base (s32/64) clears our region. private_segment_fixed_size is
-      // PER-LANE: our region (s32Base/64) + the callee's own per-lane frame + margin.
-      // Must match the s32Base arithmetic in emitCall.
-      const uint32_t iacr    = Dyninst::DyninstAPI::ImplicitArgLayout::BYTES;
-      const uint32_t spillR  = iacr + 4u * (numPacks + calleeVgpr);   // IACR + spill (per-lane)
-      const uint32_t s32Base = ((spillR * 64u) + 0x3FFu) & ~0x3FFu;   // per-wave
-      need = (s32Base / 64u) + calleeScratch + 256u;                  // per-lane
-    }
+  if (calleeScratch > 0) {   // non-leaf callee (auto-detected) -> size for its buffer frame
+    // Non-leaf call ABI: our flat spill occupies per-lane [0,spillR); the callee's
+    // buffer frame is seated at s32 base (PER-WAVE) = spillR*64 aligned, so its
+    // per-lane base (s32/64) clears our region. private_segment_fixed_size is
+    // PER-LANE: our region (s32Base/64) + the callee's own per-lane frame + margin.
+    // Must match the s32Base arithmetic in emitCall.
+    const uint32_t iacr    = Dyninst::DyninstAPI::ImplicitArgLayout::BYTES;
+    const uint32_t spillR  = iacr + 4u * (numPacks + calleeVgpr);   // IACR + spill (per-lane)
+    const uint32_t s32Base = ((spillR * 64u) + 0x3FFu) & ~0x3FFu;   // per-wave
+    const uint32_t need    = (s32Base / 64u) + calleeScratch + 256u; // per-lane
     if (need > kd.getPrivateSegmentFixedSize())
       kd.setPrivateSegmentFixedSize(need);
     kd.setKernelCodeProperty_EnableSgprFlatScratchInit(true);
@@ -1076,20 +1070,13 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
     }
   }
 
-  // Two spill backends (env-gated, so the proven global-buffer path stays default
-  // while the scratch path is brought up):
-  //   default        : global_store/load into the launcher's per-wave buffer via
-  //                     s[94:95] base + mbcnt lane offset (vAddr).
-  //   DYNINST_SPILL_SCRATCH : hardware SCRATCH via the ScratchAbi seam. The per-wave
-  //                     base lives in FLAT_SCRATCH (s[102:103], a SPECIAL register —
-  //                     not from the allocatable pool, so 0 GP cost) and the per-lane
-  //                     swizzle is hardware-provided, so there is NO mbcnt lane math
-  //                     (no vAddr) and each register needs only 4 bytes of the slot.
-  //                     gfx908 scratch still needs a SADDR *register* (both-operands-
-  //                     off is illegal), but it's just a constant 0 in s94 (set by the
-  //                     entry prologue) — one SGPR instead of the s[94:95] pair.
-  const bool useScratch = true;   // HW-scratch spill is the default backend (was env-gated
-                                  // DYNINST_SPILL_SCRATCH; the global-buffer path is legacy)
+  // Register spill uses hardware SCRATCH via the ScratchAbi seam: the per-wave base
+  // lives in FLAT_SCRATCH (s[102:103], a SPECIAL register — not from the allocatable
+  // pool, so 0 GP cost) and the per-lane swizzle is hardware-provided, so there is no
+  // lane-offset math and each register needs only 4 bytes of the slot. gfx908 scratch
+  // still needs a SADDR *register* (both-operands-off is illegal), but it's just a
+  // constant 0 in a reserved SGPR (set per-trampoline). (An older global-buffer spill
+  // backend existed behind DYNINST_SPILL_SCRATCH; it has been removed.)
   Dyninst::DyninstAPI::ScratchAbi &sabi = Dyninst::DyninstAPI::gfx908ScratchAbi();
 
   // Implicit-Arg Capture Region (IACR): when implicit-arg forwarding is enabled, a
@@ -1112,18 +1099,16 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // Auto-detected: a callee is non-leaf (needs its own stack frame set up) iff it
   // declares private/scratch use. No env gate — the callee's metadata decides.
   const bool nonLeafCallAbi =
-      useScratch && readCalleeMaxAbsSym(callee, "private_seg_size") > 0;
+      readCalleeMaxAbsSym(callee, "private_seg_size") > 0;
 
   // Scratch VGPRs for the spill machinery, placed ABOVE both the kernel's and the
   // callee's VGPR usage (bumpCallerKdForCallee grows the grant to cover them):
   //   vPack = holds SGPRs packed one-per-lane for the SGPR spill (below)
-  //   vAddr = this lane's byte offset (lane*4) — GLOBAL path only; the scratch path
-  //           gets per-lane addressing from hardware, so it reuses vBase for vPack.
+  // Hardware scratch provides per-lane addressing, so no lane-offset VGPR is needed.
   // ORIGINAL granted VGPR (cached) keeps these the same fixed regs for every call.
   const uint32_t kernelVgpr = readCallerOriginalGrantedVgpr(caller, gen);
   const uint32_t vBase = (kernelVgpr > nvgpr ? kernelVgpr : nvgpr);
-  const uint32_t vAddr = vBase;                          // global: lane-offset reg
-  const uint32_t vPack = useScratch ? vBase : vBase + 1; // scratch reclaims vAddr; base of the pack VGPRs
+  const uint32_t vPack = vBase;                          // base of the pack VGPRs
   // The SGPR spill packs {nsgpr numbered SGPRs, vcc_lo, vcc_hi} one-per-lane. Each
   // pack VGPR holds 64 lanes, so cover them with ceil((nsgpr+2)/64) pack VGPRs
   // (vPack .. vPack+numPacks-1) — no 62-SGPR limit; each just needs one more dword
@@ -1135,33 +1120,21 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // VGPRs; the KD VGPR grant is grown by 1 for it (bumpCallerKdForCallee).
   const uint32_t vImplTmp = vPack + numPacks;
 
-  // Reserved SGPRs for the trampoline. GLOBAL: fixed high s[92:93] (EXEC save) +
-  // s[94:95] (base) — safe only because the SGPR grant is MAXED (nothing is that
-  // high). SCRATCH: no maxing — the reserved block sits near the TOP of a TIGHT
-  // grant sized by maximizeSgprAllocationIfKernel (gran 4 = 48 SGPRs). CRITICAL: the
-  // wavefront SGPR count INCLUDES the special regs (per AMDGPU ABI) — FLAT_SCRATCH =
-  // s[grantTop-4:grantTop-3], VCC = s[grantTop-2:grantTop-1] (xnack- => no XNACK
+  // Reserved SGPRs for the trampoline: the reserved block sits near the TOP of the
+  // TIGHT grant sized by maximizeSgprAllocationIfKernel (gran 4 = 48 SGPRs). CRITICAL:
+  // the wavefront SGPR count INCLUDES the special regs (per AMDGPU ABI) — FLAT_SCRATCH
+  // = s[grantTop-4:grantTop-3], VCC = s[grantTop-2:grantTop-1] (xnack- => no XNACK
   // pair). So the reserved block must go BELOW those 4 specials: reservedBase =
   // grantTop-8. EXEC save at [reservedBase,+1], SADDR at reservedBase+2 (zeroed in
   // the trampoline below). generateBranch reserves the SAME [reservedBase,+3] block
   // so the springboard/call-target allocation can't collide. reservedBase is above
   // the callee's clobber range because the grant top is sized above it.
-  const uint32_t sgprTop = useScratch ? readCallerGrantedSgprTop(caller, gen) : 0;
-  const uint32_t reservedBase = useScratch ? (sgprTop >= 10 ? sgprTop - 10 : 0) : 92;
-  const uint32_t EXEC_SAVE_REG = reservedBase;               // scratch top-4 / global 92
-  const uint32_t SADDR_REG = useScratch ? reservedBase + 2 : 94; // scratch SADDR=0 / global base
-  const uint32_t SADDR_S94 = SADDR_REG;  // global s[94:95] base name
-  const uint32_t SGPR_AREA = 0;     // global: SGPR pack area  [0, 256)  (64 lanes * 4B)
-  const uint32_t VGPR_AREA = numPacks * 256;   // global: VGPR spill area, after the packs (256B/pack)
-  const uint32_t S_SGPR_SLOT = implBase;   // scratch: SGPR pack dword (per-lane, 4B), above the IACR
+  const uint32_t sgprTop = readCallerGrantedSgprTop(caller, gen);
+  const uint32_t reservedBase = (sgprTop >= 10 ? sgprTop - 10 : 0);
+  const uint32_t EXEC_SAVE_REG = reservedBase;          // top-4 of the tight grant
+  const uint32_t SADDR_REG = reservedBase + 2;          // scratch SADDR (set to 0 per-trampoline)
+  const uint32_t S_SGPR_SLOT = implBase;                // scratch: SGPR pack dword (per-lane, 4B), above the IACR
   const uint32_t S_VGPR_SLOT = implBase + numPacks * 4; // scratch: VGPR spill area, after the packs
-
-  // vAddr = lane*4 (absolute lane id via mbcnt over an all-ones mask: -1=193, 0=128).
-  auto emitLaneByteOffset = [&]() {
-    emitVop3a(V_MBCNT_LO_U32_B32, vAddr, /*src0=*/193, /*src1=*/128, /*src2=*/0, gen);
-    emitVop3a(V_MBCNT_HI_U32_B32, vAddr, /*src0=*/193, /*src1=*/256 + vAddr, /*src2=*/0, gen);
-    emitVop2(V_LSHLREV_B32, vAddr, /*vsrc1=*/vAddr, /*src0=*/130 /*inline 2*/, gen);
-  };
 
   // SGPR (+VCC) preservation the way LLVM does it — NEVER through SMEM/K$. A
   // scalar-cache spill is corrupted by the callee's s_dcache_inv (issued for the
@@ -1186,13 +1159,12 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // encodings the HW maps to the wave's physical SGPRs regardless of the grant.
   // roadmap 1.1: restrict the spill to registers actually LIVE at the insertion
   // point (intersect the callee clobber footprint with actualRegSpace liveness).
-  // Default (no DYNINST_LIVE_SPILL, or no point liveness) builds the FULL clobber
-  // list -> byte-identical to the proven full-footprint spill. When enabled,
-  // liveScalars/liveVgprs hold only the live subset, so a point with nothing live
-  // (e.g. kernel exit) emits ZERO spill traffic. The LAYOUT/reservation sizing
-  // above (numPacks, VGPR_AREA, S_VGPR_SLOT, reservedBase, the KD grant) stays
-  // conservative — computed from nsgpr/nvgpr — so all the delicate grant and
-  // reserved-block logic is untouched; only the emitted save/restore ops shrink.
+  // With no point liveness it builds the FULL clobber list -> byte-identical to the
+  // proven full-footprint spill; otherwise liveScalars/liveVgprs hold only the live
+  // subset, so a point with nothing live (e.g. kernel exit) emits ZERO spill traffic.
+  // The LAYOUT/reservation sizing above (numPacks, S_VGPR_SLOT, reservedBase, the KD
+  // grant) stays conservative — computed from nsgpr/nvgpr — so all the delicate grant
+  // and reserved-block logic is untouched; only the emitted save/restore ops shrink.
   // liveScalars holds SGPR operand ids (0..nsgpr-1, then 106/107 for vcc_lo/hi);
   // liveVgprs holds VGPR ids. See [[dyninst-amdgpu-liveness-works]].
   // DYNINST_LIVE_SPILL: reduce the register spill to the callee clobber footprint
@@ -1253,26 +1225,12 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
           emitVop3a(V_WRITELANE_B32, /*vdst=*/vPack + p, /*src0=*/packSrc(idx),
                     /*src1=*/128 + l, /*src2=*/0, gen);
         }
-      if (!useScratch)
-        emitLaneByteOffset();
-      for (uint32_t p = 0; p < numPacksLive; p++) {
-        if (useScratch)
-          sabi.emitScratchStore(vPack + p, S_SGPR_SLOT + p * 4, SADDR_REG, gen);
-        else
-          emitFlatGlobal(GLOBAL_STORE_DWORD, /*vdst=*/0, /*addr=*/vAddr, /*data=*/vPack + p,
-                         SADDR_S94, SGPR_AREA + p * 256, gen, /*glc=*/true);
-      }
+      for (uint32_t p = 0; p < numPacksLive; p++)
+        sabi.emitScratchStore(vPack + p, S_SGPR_SLOT + p * 4, SADDR_REG, gen);
       emitSopP(S_WAITCNT, /*simm16=*/0, gen);
     } else {
-      if (!useScratch)
-        emitLaneByteOffset();
-      for (uint32_t p = 0; p < numPacksLive; p++) {
-        if (useScratch)
-          sabi.emitScratchLoad(vPack + p, S_SGPR_SLOT + p * 4, SADDR_REG, gen);
-        else
-          emitFlatGlobal(GLOBAL_LOAD_DWORD, /*vdst=*/vPack + p, /*addr=*/vAddr, /*data=*/0,
-                         SADDR_S94, SGPR_AREA + p * 256, gen, /*glc=*/true);
-      }
+      for (uint32_t p = 0; p < numPacksLive; p++)
+        sabi.emitScratchLoad(vPack + p, S_SGPR_SLOT + p * 4, SADDR_REG, gen);
       emitSopP(S_WAITCNT, /*simm16=*/0, gen);
       for (uint32_t p = 0; p < numPacksLive; p++)
         for (uint32_t l = 0; l < packLanes; l++) {
@@ -1285,25 +1243,15 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   };
 
   // Preserve the callee-clobbered VGPRs (e.g. v[4:5] address pair). Per-lane, via
-  // the global path. TRANSITIVE footprint (whole-object max): the wrapper's own
+  // hardware scratch. TRANSITIVE footprint (whole-object max): the wrapper's own
   // num_vgpr undercounts what it clobbers via nested calls.
   auto vgprSpill = [&](bool save) {
     if (liveVgprs.empty())                 // roadmap 1.1: only live VGPRs
       return;
-    if (!useScratch)
-      emitLaneByteOffset();
     for (uint32_t i : liveVgprs) {
       if (i >= 256) continue;
-      if (useScratch) {
-        if (save) sabi.emitScratchStore(/*vreg=*/i, S_VGPR_SLOT + i * 4, SADDR_REG, gen);
-        else      sabi.emitScratchLoad(/*vreg=*/i, S_VGPR_SLOT + i * 4, SADDR_REG, gen);
-      } else if (save) {
-        emitFlatGlobal(GLOBAL_STORE_DWORD, /*vdst=*/0, /*addr=*/vAddr, /*data=*/i,
-                       SADDR_S94, VGPR_AREA + i * 256, gen, /*glc=*/true);
-      } else {
-        emitFlatGlobal(GLOBAL_LOAD_DWORD, /*vdst=*/i, /*addr=*/vAddr, /*data=*/0,
-                       SADDR_S94, VGPR_AREA + i * 256, gen, /*glc=*/true);
-      }
+      if (save) sabi.emitScratchStore(/*vreg=*/i, S_VGPR_SLOT + i * 4, SADDR_REG, gen);
+      else      sabi.emitScratchLoad(/*vreg=*/i, S_VGPR_SLOT + i * 4, SADDR_REG, gen);
     }
     emitSopP(S_WAITCNT, /*simm16=*/0, gen);   // let the VMEM group complete
   };
@@ -1334,8 +1282,7 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // Scratch SADDR must be 0 (whole per-wave base is in FLAT_SCRATCH). Set it in the
   // trampoline (reservedBase+2, above the callee clobber range so it survives the
   // call). S_MOV_B32=0; inline 0=128.
-  if (useScratch)
-    AmdgpuGfx908::emitSop1Raw(/*S_MOV_B32=*/0, SADDR_REG, /*inline 0=*/128, gen);
+  AmdgpuGfx908::emitSop1Raw(/*S_MOV_B32=*/0, SADDR_REG, /*inline 0=*/128, gen);
 
   AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_SAVE_REG, EXEC_LO,    gen);  // save exec
   AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO,   INLINE_NEG1, gen); // exec = -1 (all lanes)
@@ -1361,7 +1308,7 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // allocator off it.
   std::vector<Register> argReserved;
   if (!operands.empty()) {
-    const uint32_t rb = useScratch ? reservedBase : 92u;
+    const uint32_t rb = reservedBase;
     for (uint32_t r = rb; r < rb + 4u; r++) {
       Register rr = Register::makeScalarRegister(OperandRegId(r), BlockSize(1));
       if (rs->allocateSpecificRegister(gen, rr))
@@ -1453,7 +1400,7 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // Only when the callee is non-leaf (its private_seg_size > 0); leaf callees need
   // no stack. Runs AFTER the caller-save spill (which preserved s0..s3 if live) and
   // arg materialization, and BEFORE the call; s0..s3 are restored afterward.
-  if (useScratch) {
+  {
     const uint32_t calleeScratch = readCalleeMaxAbsSym(callee, "private_seg_size");
     if (calleeScratch > 0) {   // non-leaf callee -> set up its buffer-scratch frame
       const uint32_t spillR  = implBase + 4u * (numPacks + nvgpr);   // IACR + spill top (PER-LANE bytes)
