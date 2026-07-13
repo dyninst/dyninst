@@ -1317,12 +1317,29 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
         argReserved.push_back(rr);
     }
   }
+  // Each explicit arg's DESTINATION register comes from the callee's arg CC — an
+  // InputArg slot in the RegisterContext model (same abstraction as the implicit
+  // inputs and the spill set). Default (HIP) CC: every explicit arg in a VGPR, arg i
+  // -> v(i). An SGPR/inreg arg would be RegClass::SGPR here; that lands once the
+  // callee's per-arg register assignment is derived (deferred data-population, like
+  // the saturation verdict) — the destination model below already routes on class_.
+  auto argDest = [&](uint32_t i) -> Dyninst::DyninstAPI::RegInfo {
+    Dyninst::DyninstAPI::RegInfo d;
+    d.role = Dyninst::DyninstAPI::Role::InputArg;
+    d.class_ = Dyninst::DyninstAPI::RegClass::VGPR;   // TODO: SGPR for inreg args (arg-CC derivation)
+    d.index = (uint16_t)i; d.dwords = 1; d.uniform = false;
+    return d;
+  };
   for (uint32_t i = 0; i < operands.size(); i++) {
     const auto &op = operands[i];
     assert(op && "AMDGPU emitCall: null call argument");
+    const Dyninst::DyninstAPI::RegInfo dst = argDest(i);
+    assert(dst.class_ == Dyninst::DyninstAPI::RegClass::VGPR &&
+           "AMDGPU emitCall: SGPR/inreg explicit args not yet lowered "
+           "(needs callee arg-CC derivation to populate the InputArg slot)");
     if (op->getoType() == operandType::Constant) {
       const uint32_t imm = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(op->getOValue()));
-      AmdgpuGfx908::emitVop1Imm(/*V_MOV_B32=*/1u, /*vdst=*/i, imm, gen);
+      AmdgpuGfx908::emitVop1Imm(/*V_MOV_B32=*/1u, /*vdst=*/dst.index, imm, gen);
     } else {
       Dyninst::Address unusedAddr = 0;
       Register res = Dyninst::Null_Register;
@@ -1330,7 +1347,7 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
         assert(!"AMDGPU emitCall: could not lower non-constant call argument");
       // src0 encoding: SGPR n -> n, VGPR n -> 256+n.
       const uint32_t src0 = res.isScalar() ? res.getId() : (256u + res.getId());
-      AmdgpuGfx908::emitVop1Reg(/*V_MOV_B32=*/1u, /*vdst=*/i, src0, gen);
+      AmdgpuGfx908::emitVop1Reg(/*V_MOV_B32=*/1u, /*vdst=*/dst.index, src0, gen);
       rs->freeRegister(res);
     }
   }
