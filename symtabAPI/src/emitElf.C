@@ -2057,10 +2057,53 @@ template<class ElfTypes>
 void emitElf<ElfTypes>::createRelrRelocationSection(std::vector<Offset> &relr_table) {
     if (relr_table.empty()) return;
 
-    Elf_Relr *relrs = (Elf_Relr *) malloc(sizeof(Elf_Relr) * relr_table.size());
-    for (unsigned i = 0; i < relr_table.size(); ++i) {
-        relrs[i] = static_cast<Elf_Relr>(relr_table[i] + library_adjust);
+    // Re-encode the decoded relr table into compact RELR format
+    // Inverse of decodeRelrEntries()
+    // Entries alternate by their LSB:
+    //  - even = an absolute address
+    //  - odd  = a bitmap whose bits 1..bits_per_entry mark relocated words
+    //           following the last address
+    std::vector<Offset> addrs(relr_table);
+    for (auto &a : addrs)
+        a += library_adjust;
+    std::sort(addrs.begin(), addrs.end());
+    addrs.erase(std::unique(addrs.begin(), addrs.end()), addrs.end());
+
+    const Offset word_size = sizeof(Elf_Relr);
+    const Offset bits_per_entry = 8 * word_size - 1;
+
+    std::vector<Elf_Relr> packed;
+    size_t i = 0;
+    while (i < addrs.size()) {
+        Offset base = addrs[i++];
+        packed.push_back(static_cast<Elf_Relr>(base));
+
+        // Cover the words following the anchor with successive bitmap entries.
+        Offset next = base + word_size;
+        while (i < addrs.size()) {
+            Elf_Relr bits = 0;
+            size_t j = i;
+            for (; j < addrs.size(); ++j) {
+                if (addrs[j] < next)
+                    break;
+                Offset delta = addrs[j] - next;
+                if (delta % word_size != 0)
+                    break;                       // unaligned: needs its own anchor
+                Offset idx = delta / word_size;
+                if (idx >= bits_per_entry)
+                    break;                       // beyond this bitmap window
+                bits |= static_cast<Elf_Relr>(1) << (idx + 1);
+            }
+            if (!bits)
+                break;
+            packed.push_back(bits | 1);
+            next += bits_per_entry * word_size;
+            i = j;
+        }
     }
+
+    Elf_Relr *relrs = (Elf_Relr *) malloc(sizeof(Elf_Relr) * packed.size());
+    memcpy(relrs, packed.data(), sizeof(Elf_Relr) * packed.size());
 
     dyn_hash_map<int, Region *> secTagRegionMapping = object->getTagRegionMapping();
     string name;
@@ -2069,7 +2112,7 @@ void emitElf<ElfTypes>::createRelrRelocationSection(std::vector<Offset> &relr_ta
     else
         name = ".relr.dyn";
 
-    obj->addRegion(0, relrs, relr_table.size() * sizeof(Elf_Relr), name,
+    obj->addRegion(0, relrs, packed.size() * sizeof(Elf_Relr), name,
                    Region::RT_RELR, true);
 }
 
