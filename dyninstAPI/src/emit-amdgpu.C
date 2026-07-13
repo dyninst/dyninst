@@ -1340,6 +1340,22 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
     if (op->getoType() == operandType::Constant) {
       const uint32_t imm = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(op->getOValue()));
       AmdgpuGfx908::emitVop1Imm(/*V_MOV_B32=*/1u, /*vdst=*/dst.index, imm, gen);
+    } else if (op->getoType() == operandType::GpuValue) {
+      // A GPU hardware/execution value read at the site: emit its recipe into the
+      // reserved arg-scratch SGPR (reservedBase, held by argReserved), then broadcast
+      // that uniform value into the arg VGPR. (Site-valid kinds only; entry-only kinds
+      // will read from an IACR slot once added — see amdgpu user-arg ASTs.)
+      const long kind = (long)reinterpret_cast<uintptr_t>(op->getOValue());
+      // Recipe scratch = the SPARE reserved SGPR (reservedBase+3). The reserved block
+      // [reservedBase..+3] is EXEC-save (rb, rb+1), SADDR (rb+2), spare (rb+3); using
+      // rb (EXEC save) here would clobber the saved EXEC and corrupt the post-call
+      // restore. rb+3 is reserved (argReserved) so generateCode_phase2 won't take it.
+      const uint32_t sc = reservedBase + 3;   // uniform scratch SGPR for the read
+      if (kind == (long)GpuValueKind::ExecMask)
+        AmdgpuGfx908::emitSop1Raw(/*S_MOV_B32=*/0u, sc, /*exec_lo=*/126u, gen);
+      else /* HwWaveId */
+        AmdgpuGfx908::emitSopK(AmdgpuGfx908::S_GETREG_B32, sc, /*hwreg(HW_ID)=*/(int16_t)0xF804, gen);
+      AmdgpuGfx908::emitVop1Reg(/*V_MOV_B32=*/1u, /*vdst=*/dst.index, /*src0(SGPR)=*/sc, gen);
     } else {
       Dyninst::Address unusedAddr = 0;
       Register res = Dyninst::Null_Register;

@@ -240,7 +240,8 @@ enum SOPK_Opcode {
   S_CMPK_LE_U32 = 13,
 
   S_ADDK_I32 = 14,
-  S_MULK_I32 = 15
+  S_MULK_I32 = 15,
+  S_GETREG_B32 = 17   // s_getreg_b32 sdst, hwreg(...); simm16 = id|((size-1)<<11)|(off<<6)
 };
 
 void setEncodingSopK(uint32_t &rawInst);

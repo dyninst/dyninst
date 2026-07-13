@@ -250,6 +250,22 @@ class DYNINST_EXPORT BPatch_constExpr : public BPatch_snippet {
 
 };
 
+// GPU hardware/execution values, read at the instrumentation site, for use as call
+// arguments (e.g. record EXEC or wave id via an inserted hostcall). These are the
+// GPU analogue of BPatch_tidExpr etc.; each is uniform per-wave and read in place.
+// (AMDGPU/gfx908.)
+class DYNINST_EXPORT BPatch_gpuExecMaskExpr : public BPatch_snippet {
+ public:
+    // EXEC mask (active-lane bitmask) at the site. Low 32 lanes on the 32-bit path.
+    BPatch_gpuExecMaskExpr();
+};
+
+class DYNINST_EXPORT BPatch_gpuHwWaveIdExpr : public BPatch_snippet {
+ public:
+    // HW_ID register: hardware wave-slot / SIMD / CU / SE (for hardware profiling).
+    BPatch_gpuHwWaveIdExpr();
+};
+
 class DYNINST_EXPORT BPatch_whileExpr : public BPatch_snippet {
   public:
    // BPatch_whileExpr::BPatch_whileExpr (while loop)
