@@ -1183,32 +1183,33 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   const bool reduceVgpr = liveSpill && !getenv("DYNINST_FULL_VGPR");
   std::vector<uint32_t> liveScalars, liveVgprs;
   {
+    // The caller-save spill set = caller-saved(callee) ∩ live(point), expressed via
+    // RegisterContext. Callee clobber footprint: s0..nsgpr-1, v0..nvgpr-1, vcc, and —
+    // "liveness for the ABI" — s32 (SP), which the non-leaf call ABI overwrites and
+    // the callee restores to OUR s32Base (not the kernel's), so it must be preserved
+    // for a non-leaf call even though it's outside [0,nsgpr).
+    namespace DA = Dyninst::DyninstAPI;
     registerSpace *lrs = (liveSpill && gen.point())
                              ? registerSpace::actualRegSpace(gen.point())
                              : nullptr;
-    auto live = [&](registerSpace *rs, Register r) -> bool {
-      if (!rs) return true;                // no liveness -> conservative: save all
-      registerSlot *sl = (*rs)[r];
+    DA::RegisterContext spillCallee, spillPoint;
+    spillCallee.clobber.sgprCount = nsgpr;
+    spillCallee.clobber.vgprCount = nvgpr;
+    spillCallee.clobber.vcc = true;               // the SGPR pack always covers vcc_lo/hi
+    if (nonLeafCallAbi) spillCallee.clobber.extraSgpr.push_back(32u);
+    spillPoint.reduceSgpr = reduceSgpr;
+    spillPoint.reduceVgpr = reduceVgpr;
+    spillPoint.live = [&](DA::RegClass cls, uint32_t i) -> bool {
+      if (!lrs) return true;                      // no liveness -> conservative: save all
+      Register r = (cls == DA::RegClass::SGPR)
+                       ? Register::makeScalarRegister(OperandRegId(i), BlockSize(1))
+                       : Register::makeVectorRegister(OperandRegId(i), BlockSize(1));
+      registerSlot *sl = (*lrs)[r];
       return sl && sl->liveState == registerSlot::live;
     };
-    for (uint32_t i = 0; i < nsgpr; i++)
-      if (live(reduceSgpr ? lrs : nullptr, Register::makeScalarRegister(OperandRegId(i), BlockSize(1))))
-        liveScalars.push_back(i);
-    if (live(reduceSgpr ? lrs : nullptr, Register::makeScalarRegister(OperandRegId(106), BlockSize(1)))) liveScalars.push_back(106);
-    if (live(reduceSgpr ? lrs : nullptr, Register::makeScalarRegister(OperandRegId(107), BlockSize(1)))) liveScalars.push_back(107);
-    for (uint32_t i = 0; i < nvgpr; i++)
-      if (live(reduceVgpr ? lrs : nullptr, Register::makeVectorRegister(OperandRegId(i), BlockSize(1))))
-        liveVgprs.push_back(i);
-    // "liveness for the ABI": s32 (SP) is clobbered by setupCalleeStack and left at
-    // our s32Base by the callee (not the kernel's value), and lies outside the
-    // [0,nsgpr) footprint the loop above covers — save/restore it unconditionally
-    // for a non-leaf call so the kernel's SP survives. (No-op unless nsgpr<=32,
-    // which holds for our callees; guard avoids a duplicate if nsgpr>32.)
-    if (nonLeafCallAbi) {
-      bool have = false;
-      for (uint32_t s : liveScalars) if (s == 32u) { have = true; break; }
-      if (!have) liveScalars.push_back(32u);
-    }
+    DA::SpillPlan plan = DA::lowerSpill(spillCallee, spillPoint);
+    liveScalars = std::move(plan.sgprs);
+    liveVgprs   = std::move(plan.vgprs);
   }
   const uint32_t nScalars = (uint32_t)liveScalars.size();
   // Packs actually needed for the LIVE scalars (<= numPacks reserved above), so the

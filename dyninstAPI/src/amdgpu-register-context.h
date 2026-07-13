@@ -21,6 +21,7 @@
 #define AMDGPU_REGISTER_CONTEXT_H
 
 #include <cstdint>
+#include <functional>
 #include <vector>
 
 namespace Dyninst {
@@ -71,14 +72,32 @@ struct SourceLoc {
   int32_t addend     = 0;    // added after load, e.g. ImplicitArgPtr = KernargPtr capture + implicit-block offset
 };
 
+// Callee side: the bulk of caller-saved registers the call clobbers, in compact form
+// (the named RegInfo slots cover the handful of ABI inputs; this covers the many
+// numbered registers). "The call clobbers s0..sgprCount-1, v0..vgprCount-1, vcc, plus
+// extraSgpr" — extraSgpr is for caller-saved registers outside the [0,count) footprint,
+// e.g. s32 (SP) which the non-leaf call ABI overwrites.
+struct ClobberSet {
+  uint32_t sgprCount = 0;
+  uint32_t vgprCount = 0;
+  bool     vcc = false;                 // clobbers vcc_lo/hi (s106/107)
+  std::vector<uint16_t> extraSgpr;      // caller-saved SGPRs outside [0,sgprCount)
+};
+
 // A single register-boundary description. Instanced for the callee AND the point.
 struct RegisterContext {
-  // Callee side: its register contract (implicit inputs now; explicit args / return /
-  // caller-callee-saved as those migrate). Point side: TODO — live set for the spill.
+  // Callee side: its register contract — the named implicit/explicit input slots, and
+  // the bulk caller-saved footprint (`clobber`). Explicit args / return / callee-saved
+  // join here as those paths migrate.
   std::vector<RegInfo> regs;
+  ClobberSet clobber;
 
-  // Point side: for each ImplicitSource, whether and how the mutatee supplies it.
+  // Point side: how the mutatee supplies each implicit source, and its liveness (for
+  // the caller-saved ∩ live spill decision). `live` empty => unknown (save-all).
   SourceLoc sources[(int)ImplicitSource::Count] = {};
+  std::function<bool(RegClass, uint32_t)> live;   // is register (class,index) live here?
+  bool reduceSgpr = true;   // honor liveness for SGPRs (false = save-all; debug hatch)
+  bool reduceVgpr = true;   // honor liveness for VGPRs
 
   // TODO (join as paths migrate): register/scratch budget headroom (saturation
   // verdict), EXEC state (per-lane correctness), frame info (leaf / private_seg).
@@ -86,6 +105,37 @@ struct RegisterContext {
   SourceLoc &source(ImplicitSource s) { return sources[(int)s]; }
   const SourceLoc &source(ImplicitSource s) const { return sources[(int)s]; }
 };
+
+// The registers that must be preserved across the call = caller-saved(callee) ∩
+// live(point). This IS the calling-convention-meets-liveness relation the whole
+// abstraction is built around. Order matches the historical spill: s0..sgprCount-1,
+// then vcc_lo/hi, then the extra caller-saved SGPRs (deduped).
+struct SpillPlan {
+  std::vector<uint32_t> sgprs;   // operand ids: 0..n, 106/107 for vcc_lo/hi
+  std::vector<uint32_t> vgprs;
+};
+
+inline SpillPlan lowerSpill(const RegisterContext &callee, const RegisterContext &point) {
+  const ClobberSet &c = callee.clobber;
+  auto saved = [&](RegClass cls, uint32_t i, bool reduce) -> bool {
+    return !reduce || !point.live || point.live(cls, i);   // no liveness => save-all
+  };
+  SpillPlan p;
+  for (uint32_t i = 0; i < c.sgprCount; i++)
+    if (saved(RegClass::SGPR, i, point.reduceSgpr)) p.sgprs.push_back(i);
+  if (c.vcc) {
+    if (saved(RegClass::SGPR, 106, point.reduceSgpr)) p.sgprs.push_back(106);
+    if (saved(RegClass::SGPR, 107, point.reduceSgpr)) p.sgprs.push_back(107);
+  }
+  for (uint32_t i = 0; i < c.vgprCount; i++)
+    if (saved(RegClass::VGPR, i, point.reduceVgpr)) p.vgprs.push_back(i);
+  for (uint16_t e : c.extraSgpr) {
+    bool have = false;
+    for (uint32_t s : p.sgprs) if (s == e) { have = true; break; }
+    if (!have) p.sgprs.push_back(e);
+  }
+  return p;
+}
 
 // One marshalling action produced by lowering: place an implicit source into the
 // callee's expected register. (Explicit-arg / spill / return steps join as those
