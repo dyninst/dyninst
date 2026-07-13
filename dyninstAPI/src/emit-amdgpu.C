@@ -594,7 +594,7 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
   const uint32_t calleeSgpr = readCalleeMaxAbsSym(callee, "numbered_sgpr");
   const uint32_t packLanes  = spillPackLanes();   // must match emitCall
   const uint32_t numPacks   = (calleeSgpr + 2u + packLanes - 1u) / packLanes;
-  const bool useScratch     = (getenv("DYNINST_SPILL_SCRATCH") != nullptr);
+  const bool useScratch     = true;   // HW-scratch spill is the default backend
 
   // VGPR: gfx9/wave64 granule = 4; granted = (granulated + 1) * 4. To fit N regs,
   // granulated = ceil(N/4) - 1. Only ever raise. The grant must cover the callee's
@@ -606,8 +606,10 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
     // and ratchets the count upward.
     // Implicit-arg forwarding reserves the IACR at the bottom of scratch and one
     // extra transient VGPR (vImplTmp) for the retrieve — grow both grants for it.
-    const uint32_t implBase =
-        getenv("DYNINST_IMPLICIT_ARGS") ? Dyninst::DyninstAPI::ImplicitArgLayout::BYTES : 0u;
+    // Implicit-arg forwarding is on by default (an inserted call may need blockIdx/
+    // blockDim/threadIdx); the IACR + retrieve are cheap and forwarded values are
+    // preserved by the caller-save spill when unused.
+    const uint32_t implBase = Dyninst::DyninstAPI::ImplicitArgLayout::BYTES;
     const uint32_t implVgpr = implBase ? 1u : 0u;
     const uint32_t curVgpr = readCallerOriginalGrantedVgpr(caller, gen);
     const uint32_t vAddr   = (curVgpr > calleeVgpr ? curVgpr : calleeVgpr);
@@ -629,16 +631,14 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
 
   // Scratch: reserve only if the callee actually uses private/scratch memory.
   if (calleeScratch > 0) {
-    const bool callAbi = getenv("DYNINST_CALL_ABI") != nullptr;
-    uint32_t need = calleeScratch;                    // default (pre-call-ABI) behavior
-    if (callAbi && useScratch) {
+    uint32_t need = calleeScratch;                    // fallback if scratch is unavailable
+    if (useScratch) {                                 // non-leaf call ABI (auto: calleeScratch>0)
       // Non-leaf call ABI: our flat spill occupies per-lane [0,spillR); the callee's
       // buffer frame is seated at s32 base (PER-WAVE) = spillR*64 aligned, so its
       // per-lane base (s32/64) clears our region. private_segment_fixed_size is
       // PER-LANE: our region (s32Base/64) + the callee's own per-lane frame + margin.
       // Must match the s32Base arithmetic in emitCall.
-      const uint32_t iacr    = getenv("DYNINST_IMPLICIT_ARGS")
-                                   ? Dyninst::DyninstAPI::ImplicitArgLayout::BYTES : 0u;
+      const uint32_t iacr    = Dyninst::DyninstAPI::ImplicitArgLayout::BYTES;
       const uint32_t spillR  = iacr + 4u * (numPacks + calleeVgpr);   // IACR + spill (per-lane)
       const uint32_t s32Base = ((spillR * 64u) + 0x3FFu) & ~0x3FFu;   // per-wave
       need = (s32Base / 64u) + calleeScratch + 256u;                  // per-lane
@@ -646,12 +646,6 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
     if (need > kd.getPrivateSegmentFixedSize())
       kd.setPrivateSegmentFixedSize(need);
     kd.setKernelCodeProperty_EnableSgprFlatScratchInit(true);
-    if (!callAbi)
-      fprintf(stderr,
-              "[amdgpu] warning: callee '%s' uses %u bytes of scratch; set "
-              "DYNINST_CALL_ABI to emit the non-leaf call-ABI setup "
-              "(FLAT_SCRATCH-derived s[0:3] + s32) — otherwise unsupported.\n",
-              callee->symTabName().c_str(), calleeScratch);
   }
 
   // Write the modified descriptor back.
@@ -918,7 +912,7 @@ public:
     // SADDR (=reservedBase+2, matches emitCall's derivation) is set to 0 here; a
     // temp VGPR above the kernel's own usage broadcasts each scalar wgid before the
     // per-lane scratch_store (uniform value written to every lane's slot).
-    if (getenv("DYNINST_IMPLICIT_ARGS")) {
+    {   // implicit-arg capture is on by default (see emitCall's implBase note)
       using IAL = Dyninst::DyninstAPI::ImplicitArgLayout;
       const uint32_t grantTop =
           ((kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() / 2) + 1) * 16;
@@ -1094,7 +1088,8 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   //                     gfx908 scratch still needs a SADDR *register* (both-operands-
   //                     off is illegal), but it's just a constant 0 in s94 (set by the
   //                     entry prologue) — one SGPR instead of the s[94:95] pair.
-  const bool useScratch = (getenv("DYNINST_SPILL_SCRATCH") != nullptr);
+  const bool useScratch = true;   // HW-scratch spill is the default backend (was env-gated
+                                  // DYNINST_SPILL_SCRATCH; the global-buffer path is legacy)
   Dyninst::DyninstAPI::ScratchAbi &sabi = Dyninst::DyninstAPI::gfx908ScratchAbi();
 
   // Implicit-Arg Capture Region (IACR): when implicit-arg forwarding is enabled, a
@@ -1102,8 +1097,10 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // [0, IACR_BYTES); the caller-save spill and the callee frame shift UP by this so
   // they can't overwrite it. Retrieved (below) into the callee's ABI registers. See
   // amdgpu-implicit-args.h and the entry-capture in emitScratchEntryPrologue.
-  const uint32_t implBase =
-      getenv("DYNINST_IMPLICIT_ARGS") ? Dyninst::DyninstAPI::ImplicitArgLayout::BYTES : 0u;
+  // On by default: an inserted callee may be ordinary HIP device code reading
+  // blockIdx/blockDim/threadIdx. (A future optimization could gate this per-callee
+  // on whether the callee actually reads any implicit ABI register.)
+  const uint32_t implBase = Dyninst::DyninstAPI::ImplicitArgLayout::BYTES;
 
   // Non-leaf call-ABI: the setupCalleeStack path (below) reconstructs s[0:3] and
   // OVERWRITES s32 (SP = s32Base). Per the AMDGPU ABI the callee restores s32 to
@@ -1112,9 +1109,10 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // that the caller-save spill covers, so it must be added to the save set
   // explicitly ("liveness for the ABI"): a kernel that uses s32 (vectoradd
   // allocates s0..s39) would otherwise read garbage after the call -> wild pointer.
+  // Auto-detected: a callee is non-leaf (needs its own stack frame set up) iff it
+  // declares private/scratch use. No env gate — the callee's metadata decides.
   const bool nonLeafCallAbi =
-      useScratch && getenv("DYNINST_CALL_ABI") &&
-      readCalleeMaxAbsSym(callee, "private_seg_size") > 0;
+      useScratch && readCalleeMaxAbsSym(callee, "private_seg_size") > 0;
 
   // Scratch VGPRs for the spill machinery, placed ABOVE both the kernel's and the
   // callee's VGPR usage (bumpCallerKdForCallee grows the grant to cover them):
@@ -1207,8 +1205,8 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // VCC -> address fault). Validated: SGPR+VGPR reduction PASSES N=64/256/1024.
   // DYNINST_FULL_SGPR / DYNINST_FULL_VGPR force-spill that class in full (escape
   // hatches for A/B testing). See [[dyninst-amdgpu-liveness-works]].
-  const bool liveSpill = (getenv("DYNINST_LIVE_SPILL") != nullptr);
-  const bool reduceSgpr = liveSpill && !getenv("DYNINST_FULL_SGPR");
+  const bool liveSpill = true;   // liveness-driven spill reduction is always correct + a win
+  const bool reduceSgpr = liveSpill && !getenv("DYNINST_FULL_SGPR");  // FULL_* = debug escape hatches
   const bool reduceVgpr = liveSpill && !getenv("DYNINST_FULL_VGPR");
   std::vector<uint32_t> liveScalars, liveVgprs;
   {
@@ -1407,7 +1405,7 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // the values live in the IACR, so we materialize them here and just keep the
   // allocator off these regs until after the swappc. Freed below.
   std::vector<Register> abiReserved;
-  if (getenv("DYNINST_IMPLICIT_ARGS")) {
+  {   // implicit-arg forwarding is on by default (see implBase note above)
     using IAL = Dyninst::DyninstAPI::ImplicitArgLayout;
     auto reserve = [&](uint32_t r) {
       Register rr = Register::makeScalarRegister(OperandRegId(r), BlockSize(1));
@@ -1455,9 +1453,9 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // Only when the callee is non-leaf (its private_seg_size > 0); leaf callees need
   // no stack. Runs AFTER the caller-save spill (which preserved s0..s3 if live) and
   // arg materialization, and BEFORE the call; s0..s3 are restored afterward.
-  if (useScratch && getenv("DYNINST_CALL_ABI")) {
+  if (useScratch) {
     const uint32_t calleeScratch = readCalleeMaxAbsSym(callee, "private_seg_size");
-    if (calleeScratch > 0) {
+    if (calleeScratch > 0) {   // non-leaf callee -> set up its buffer-scratch frame
       const uint32_t spillR  = implBase + 4u * (numPacks + nvgpr);   // IACR + spill top (PER-LANE bytes)
       // s32 (buffer soffset) is PER-WAVEFRONT bytes: the reconstructed HIP scratch
       // descriptor swizzles per lane, so the callee's per-lane frame offset = s32/64

@@ -167,13 +167,14 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
   function->getEntryPoints(entryPoints);
 
   boost::shared_ptr<AmdgpuPrologue> prologuePtr;
-  if (getenv("DYNINST_SPILL_SCRATCH") != nullptr) {
-    // Give this (possibly non-scratch) kernel a hardware scratch region for
-    // register spilling: rewrite its KD (enable flat_scratch_init + wave_offset,
-    // bump user_sgpr_count, set private_segment_fixed_size) and write it back;
-    // the entry prologue will set up FLAT_SCRATCH and relocate the shifted SGPRs.
-    // The launcher forwards the KD's private_segment_size to the dispatch packet,
-    // so ROCr backs the scratch automatically.
+  // Give this (possibly non-scratch) kernel a hardware scratch region for register
+  // spilling: rewrite its KD (enable flat_scratch_init + wave_offset, bump
+  // user_sgpr_count, set private_segment_fixed_size) and write it back; the entry
+  // prologue will set up FLAT_SCRATCH and relocate the shifted SGPRs. The launcher
+  // forwards the KD's private_segment_size to the dispatch packet, so ROCr backs the
+  // scratch automatically. HW scratch is the default spill backend (was env-gated
+  // DYNINST_SPILL_SCRATCH); the old global-buffer prologue is legacy.
+  {
     const uint32_t kScratchSlotBytes = 256;  // per-lane: SGPR pack dword + VGPR spill
     DyninstAPI::gfx908ScratchAbi().enableScratchInKD(kd, kScratchSlotBytes);
     llvm::amdhsa::kernel_descriptor_t newRaw;
@@ -181,9 +182,6 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
     bool wrote = kdVariable->writeValue(&newRaw, sizeof newRaw, false);
     assert(wrote);
     prologuePtr = boost::make_shared<AmdgpuPrologue>(kd, this->eflag);
-  } else {
-    prologuePtr = boost::make_shared<AmdgpuPrologue>(
-        regPair, kd.getKernargPtrRegisterPair(), kd.getKernargSize());
   }
 
   DyninstAPI::codeGenASTPtr prologueNodePtr =
@@ -237,16 +235,15 @@ void AmdgpuGfx908PointHandler::maximizeSgprAllocationIfKernel(BPatch_function *f
   // usage and the callee's transitive footprint (<= 44; our library uses 32). A
   // kernel that itself uses more gets max(its usage + 8, 48). VCC (s106:107) and
   // FLAT_SCRATCH (s102:103) are SPECIAL regs, allocated independently of the count.
-  uint32_t newValue;
-  if (getenv("DYNINST_SPILL_SCRATCH") != nullptr) {
-    const uint32_t kScratchGrant = 48;   // gran 4; reserved block at s44..s47
-    const uint32_t kernelUsed = getMaxUsedSgprId(kd);
-    uint32_t required = kernelUsed + 8;  // keep reserved block above kernel usage
-    if (required < kScratchGrant) required = kScratchGrant;
-    newValue = granulatedSgprCountFor(required);
-  } else {
-    newValue = this->getMaxGranulatedWavefrontSgprCount();
-  }
+  // Scratch spill (the default): size the SGPR grant just above the kernel's own
+  // usage so the trampoline's reserved block sits at the top of a tight grant.
+  // (Was env-gated DYNINST_SPILL_SCRATCH; the else-branch maxed the grant for the
+  // legacy global-buffer path.)
+  const uint32_t kScratchGrant = 48;   // gran 4; reserved block at s44..s47
+  const uint32_t kernelUsed = getMaxUsedSgprId(kd);
+  uint32_t required = kernelUsed + 8;  // keep reserved block above kernel usage
+  if (required < kScratchGrant) required = kScratchGrant;
+  const uint32_t newValue = granulatedSgprCountFor(required);
   kd.setCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount(newValue);
 
   uint32_t kernargSize = kd.getKernargSize();

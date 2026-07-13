@@ -93,8 +93,9 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
     // they moved, so allocateGprBlock would hand them to the springboard and the
     // s_getpc would clobber the scratch wave-offset BEFORE the prologue captures it
     // (→ all waves share one scratch base → multi-wave corruption). Reserve that
-    // live system-SGPR range so the springboard allocates above it.
-    if (getenv("DYNINST_SPILL_SCRATCH")) {
+    // live system-SGPR range so the springboard allocates above it. (Scratch is the
+    // default spill backend now; the inner scratchEnabled() check still guards it.)
+    {
       mapped_object *fobj = funcInstance->obj();
       int_symbol kdSym;
       if (fobj &&
