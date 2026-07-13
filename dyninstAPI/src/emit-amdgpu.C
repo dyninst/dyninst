@@ -49,6 +49,7 @@
 #include "amdgpu-scratch-abi.h"
 #include "amdgpu-abi-sgpr.h"
 #include "amdgpu-implicit-args.h"
+#include "amdgpu-register-context.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -1335,59 +1336,80 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   for (Register &rr : argReserved)
     rs->freeRegister(rr);
 
-  // --- Implicit ABI args (env-gated DYNINST_IMPLICIT_ARGS) ---------------------
-  // Phase 3a: forward the kernel's workgroup-id (blockIdx) into the callee's ABI
-  // blockIdx registers (s12/s13/s14 on gfx908) so a NON-self-contained callee that
-  // reads blockIdx gets the correct per-block value (a dyninst-inserted s_swappc
-  // sets up none of the ABI context otherwise). The value is RETRIEVED from the
-  // IACR (captured at entry) — NOT read from the live wgid SGPR here, which the
-  // kernel reuses mid-kernel (rocgdb-proven: correct only at early sites). Per
-  // component: scratch_load the IACR slot into vImplTmp, then v_readfirstlane into
-  // the ABI SGPR (uniform value; readfirstlane picks the first active lane, so it
-  // is correct under the site's narrowed EXEC). SADDR_REG is already 0 (set above).
-  // Emitted BEFORE setupCalleeStack (harmless ordering; touches neither s0..3 nor
-  // s32). Only forwards the wgid components the kernel actually provides.
-  // The forwarded ABI registers (blockIdx s12/13/14, implicit-args ptr s[8:9]) are
-  // RESERVED so emitIndirectCall's call-target block allocation lands elsewhere —
-  // the values live in the IACR, so we materialize them here and just keep the
-  // allocator off these regs until after the swappc. Freed below.
+  // --- Implicit ABI args, via a RegisterContext relation -----------------------
+  // An inserted call sets up none of the callee's implicit ABI context, so we build
+  // the callee's implicit-input CONTRACT and the mutatee point's AVAILABILITY as two
+  // RegisterContexts and let lowerImplicitArgs() relate them into marshalling steps.
+  // Each value comes from the IACR (captured at kernel entry) — NOT the live ABI
+  // register, which the kernel reuses mid-kernel (rocgdb-proven). SGPR (uniform)
+  // destinations are RESERVED so emitIndirectCall's call-target block avoids them,
+  // then materialized here and kept live to the swappc (freed below). Emitted BEFORE
+  // setupCalleeStack (touches neither s0..3 nor s32). SADDR_REG is already 0.
   std::vector<Register> abiReserved;
-  {   // implicit-arg forwarding is on by default (see implBase note above)
-    using IAL = Dyninst::DyninstAPI::ImplicitArgLayout;
+  {
+    namespace DA = Dyninst::DyninstAPI;
+    using IAL = DA::ImplicitArgLayout;
+
+    // Callee contract — the implicit inputs this callee may read and their ABI regs.
+    // (Full set for now = forward-always; per-callee need-detection is a later
+    // refinement the RegisterContext enables.)
+    DA::RegisterContext callee;
+    auto want = [&](DA::RegClass c, uint16_t idx, uint8_t dw, bool uni, DA::ImplicitSource s) {
+      DA::RegInfo ri; ri.class_ = c; ri.index = idx; ri.dwords = dw; ri.uniform = uni;
+      ri.role = DA::Role::InputImplicit; ri.implicit = s; callee.regs.push_back(ri);
+    };
+    want(DA::RegClass::VGPR, IAL::ABI_WITEMID_VGPR, 1, /*uniform=*/false, DA::ImplicitSource::WorkitemId);
+    want(DA::RegClass::SGPR, IAL::ABI_BLOCKIDX_X,   1, /*uniform=*/true,  DA::ImplicitSource::WgidX);
+    want(DA::RegClass::SGPR, IAL::ABI_BLOCKIDX_Y,   1, /*uniform=*/true,  DA::ImplicitSource::WgidY);
+    want(DA::RegClass::SGPR, IAL::ABI_BLOCKIDX_Z,   1, /*uniform=*/true,  DA::ImplicitSource::WgidZ);
+    want(DA::RegClass::SGPR, /*s8*/8u,              2, /*uniform=*/true,  DA::ImplicitSource::ImplicitArgPtr);
+
+    // Point availability — what this mutatee kernel can supply, and from which IACR
+    // slot (captured by emitScratchEntryPrologue). blockIdx components only if the
+    // kernel enables them; the implicit-args pointer = captured kernarg ptr + the
+    // COV5 implicit-block offset.
+    DA::RegisterContext point;
+    auto provide = [&](DA::ImplicitSource s, int32_t off, uint8_t dw, bool uni, int32_t add) {
+      DA::SourceLoc &sl = point.source(s);
+      sl.available = true; sl.iacrOffset = off; sl.dwords = dw; sl.uniform = uni; sl.addend = add;
+    };
+    provide(DA::ImplicitSource::WorkitemId, IAL::OFF_WITEMID, 1, /*uniform=*/false, 0);
+    for (int i = 0; i < 3; i++) {
+      if (readCallerWgidReg(caller, gen, i) < 0) continue;
+      const DA::ImplicitSource s = (i == 0) ? DA::ImplicitSource::WgidX
+                                 : (i == 1) ? DA::ImplicitSource::WgidY
+                                            : DA::ImplicitSource::WgidZ;
+      const int32_t off = (i == 0) ? IAL::OFF_WGID_X : (i == 1) ? IAL::OFF_WGID_Y : IAL::OFF_WGID_Z;
+      provide(s, off, 1, /*uniform=*/true, 0);
+    }
+    const int implOff = readCallerImplicitOffset(caller, gen);
+    if (readCallerKernargReg(caller, gen) >= 0 && implOff >= 0)
+      provide(DA::ImplicitSource::ImplicitArgPtr, IAL::OFF_KERNARG, 2, /*uniform=*/true, implOff);
+
+    // Lower the callee contract against point availability -> ordered steps, and emit.
     auto reserve = [&](uint32_t r) {
       Register rr = Register::makeScalarRegister(OperandRegId(r), BlockSize(1));
       if (rs->allocateSpecificRegister(gen, rr)) abiReserved.push_back(rr);
     };
-    auto loadToSgpr = [&](int32_t off, uint32_t sdst) {          // IACR slot -> SGPR (uniform)
-      sabi.emitScratchLoad(vImplTmp, off, SADDR_REG, gen);
-      AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);       // wait for the load
-      AmdgpuGfx908::emitVop1Reg(/*V_READFIRSTLANE_B32=*/2u, /*sdst=*/sdst,
-                                /*vsrc=*/256u + vImplTmp, gen);   // first active lane
-    };
-    // 3c threadIdx: per-lane packed workitem-id -> v31 (the callee's ABI VGPR). Unlike
-    // the uniform args, this is a straight per-lane scratch_load (each active lane
-    // gets its own id) — no readfirstlane. v31 is a VGPR so it can't collide with
-    // emitIndirectCall's SGPR target block; the kernel's v31 (if live) is preserved
-    // by the caller-save VGPR spill. Always available (workitem-id is an ABI input).
-    sabi.emitScratchLoad(/*v31=*/IAL::ABI_WITEMID_VGPR, IAL::OFF_WITEMID, SADDR_REG, gen);
-    AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);
-
-    // 3a blockIdx: wgid x/y/z -> s12/13/14 (only the components the kernel provides)
-    const int32_t  woff[3]   = { IAL::OFF_WGID_X, IAL::OFF_WGID_Y, IAL::OFF_WGID_Z };
-    const uint32_t abiReg[3] = { IAL::ABI_BLOCKIDX_X, IAL::ABI_BLOCKIDX_Y, IAL::ABI_BLOCKIDX_Z };
-    for (int i = 0; i < 3; i++)
-      if (readCallerWgidReg(caller, gen, i) >= 0) { reserve(abiReg[i]); loadToSgpr(woff[i], abiReg[i]); }
-    // 3b blockDim/gridDim: implicit-args pointer -> s[8:9]. The captured value is the
-    // RAW kernarg pointer (IACR OFF_KERNARG); add the COV5 implicit-block offset here,
-    // in-place on the reserved s[8:9] (no extra temps needed).
-    const int implOff = readCallerImplicitOffset(caller, gen);
-    if (readCallerKernargReg(caller, gen) >= 0 && implOff >= 0) {
-      reserve(8u); reserve(9u);
-      loadToSgpr(IAL::OFF_KERNARG,     8u);       // kernarg ptr lo -> s8
-      loadToSgpr(IAL::OFF_KERNARG + 4, 9u);       // kernarg ptr hi -> s9
-      AmdgpuGfx908::emitSop2RawWithLiteral(S_ADD_U32, /*s8=*/8u, /*s8=*/8u,
-                                           (uint32_t)implOff, gen);  // s8 += implOff (sets SCC)
-      AmdgpuGfx908::emitSop2Raw(S_ADDC_U32, /*s9=*/9u, /*s9=*/9u, /*inline 0=*/128u, gen); // s9 += carry
+    for (const DA::MarshalStep &st : DA::lowerImplicitArgs(callee, point)) {
+      if (st.uniform) {   // SGPR dest via readfirstlane; reserve so the call target avoids it
+        for (uint8_t d = 0; d < st.dwords; d++) reserve(st.dstIndex + d);
+        for (uint8_t d = 0; d < st.dwords; d++) {
+          sabi.emitScratchLoad(vImplTmp, st.iacrOffset + 4 * d, SADDR_REG, gen);
+          AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+          AmdgpuGfx908::emitVop1Reg(/*V_READFIRSTLANE_B32=*/2u, /*sdst=*/st.dstIndex + d,
+                                    /*vsrc=*/256u + vImplTmp, gen);
+        }
+        if (st.addend) {  // pointer fix-up (kernarg -> implicit-args ptr): dst += addend
+          AmdgpuGfx908::emitSop2RawWithLiteral(S_ADD_U32, st.dstIndex, st.dstIndex,
+                                               (uint32_t)st.addend, gen);
+          AmdgpuGfx908::emitSop2Raw(S_ADDC_U32, st.dstIndex + 1, st.dstIndex + 1,
+                                    /*inline 0=*/128u, gen);
+        }
+      } else {            // per-lane VGPR dest: straight scratch_load (no readfirstlane / reserve)
+        sabi.emitScratchLoad(st.dstIndex, st.iacrOffset, SADDR_REG, gen);
+        AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+      }
     }
   }
 
