@@ -49,3 +49,14 @@ the main thread of a process
 * Stackwalker is fragile on Windows
 
 * Parsing a binary with no functions (typically a single object file) will crash at CodeObject destruction time.
+
+## Contacting the Dyninst Project
+
+Below are the mechanisms that are available for you to contact us about any
+concerns and to keep in touch with announcements related to Dyyninst.
+
+| Contact | Description |
+| :---: | :--- |
+| [Github issues](/dyninst/dyninst/issues) | Dyninst's issue tracker for problems wth building or the functioning of the Dyninst libraries including bugs or new feature requests. |
+| [Dyninst Announcements](https://groups.google.com/a/g-groups.wisc.edu/g/dyninst-announce/) | Mailing list of announcements related to Dyyninst. |
+| dyninst-team@g-groups.wisc.edu           | Email address to privately contact the Dyninst Team. |
