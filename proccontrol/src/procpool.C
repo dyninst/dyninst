@@ -200,21 +200,8 @@ void ProcessPool::rmThread(Thread::ptr thr)
 
 // ---- destruction: check+unregister under the lock, publish+delete outside -
 
-// Per-process migration lock (design 1, step 1).  RAII, null-tolerant.
-// proc_lock_ lives on the Process wrapper (stable lifetime), so it may be
-// held across the impl delete; ordering is proc_lock > map_lock, and it is
-// never held while acquiring an outer lock (the delete path takes none).
-namespace {
-struct ProcScopeLock {
-   Mutex<true> *m;
-   explicit ProcScopeLock(Process::ptr p) : m(p ? p->procLock() : NULL) {
-      if (m) m->lock();
-   }
-   ~ProcScopeLock() { if (m) m->unlock(); }
-   ProcScopeLock(const ProcScopeLock &) = delete;
-   ProcScopeLock &operator=(const ProcScopeLock &) = delete;
-};
-}
+// ProcScopeLock (the per-process migration lock, design 1) is defined in
+// int_process.h so the generator (linux.C) can take the same lock.
 
 void ProcessPool::destroyProcess(Process::ptr proc)
 {
