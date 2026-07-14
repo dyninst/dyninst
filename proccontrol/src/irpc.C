@@ -587,7 +587,7 @@ bool int_iRPC::isAsync() const {
 
 int_thread *int_iRPC::thread() const {
    // Transient deref: NULL iff the thread died with this RPC outstanding.
-   return thrd ? thrd->llthrd() : NULL;
+   return thrd ? ThreadImplRef(thrd).get() : NULL;
 }
 
 IRPC::weak_ptr int_iRPC::getIRPC() const {
@@ -1026,8 +1026,10 @@ int iRPCHandler::getPriority() const
 Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
 {
    //An RPC has completed, clean-up
-   int_thread *thr = ev->getThread()->llthrd();
-   int_process *proc = ev->getProcess()->llproc();
+   ThreadImplRef thr_ref(ev->getThread());
+   int_thread *thr = thr_ref.get();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
    EventRPC *event = static_cast<EventRPC *>(ev.get());
    int_eventRPC *ievent = event->getInternal();
    int_iRPC::ptr rpc = event->getllRPC()->rpc;
@@ -1184,7 +1186,8 @@ Handler::handler_ret_t iRPCPreCallbackHandler::handleEvent(Event::ptr ev)
    if (newstate == int_thread::none)
       return ret_success;
 
-   int_thread *thr = ev->getThread()->llthrd();
+   ThreadImplRef thr_ref(ev->getThread());
+   int_thread *thr = thr_ref.get();
    thr->getUserState().setState(newstate);
    return ret_success;
 }
@@ -1210,8 +1213,10 @@ void iRPCLaunchHandler::getEventTypesHandled(std::vector<EventType> &etypes)
 
 Handler::handler_ret_t iRPCLaunchHandler::handleEvent(Event::ptr ev)
 {
-   int_process *proc = ev->getProcess()->llproc();
-   int_thread *thr = ev->getThread()->llthrd();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
+   ThreadImplRef thr_ref(ev->getThread());
+   int_thread *thr = thr_ref.get();
 
    int_iRPC::ptr posted_rpc = thr->nextPostedIRPC();
    if (!posted_rpc || thr->runningRPC())
