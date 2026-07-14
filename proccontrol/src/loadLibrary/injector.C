@@ -27,7 +27,9 @@ Injector::Injector(ProcControlAPI::Process *proc) :
 Injector::~Injector() {}
 
 bool Injector::inject(std::string libname) {
-   int_process *proc = proc_->llproc();
+   ProcImplRef proc(proc_);
+   if (!proc)
+      return false;   // process already gone
    pthrd_printf("Injecting %s into process %d\n", libname.c_str(), proc->getPid());
    if (!checkIfExists(libname)) {
       perr_printf("Library %s doesn't exist\n", libname.c_str());
@@ -76,7 +78,7 @@ bool Injector::inject(std::string libname) {
 #endif
 
    //Post, but doesn't start running yet.
-   bool result = rpcMgr()->postRPCToProc(proc, irpc);
+   bool result = rpcMgr()->postRPCToProc(proc.get(), irpc);
    if (!result) {
       pthrd_printf("Error posting RPC to process %d\n", proc->getPid());
       return false;
@@ -100,7 +102,10 @@ bool Injector::inject(std::string libname) {
 }                                                   
 
 bool Injector::checkIfExists(std::string name) {
-   SymReader *objSymReader = proc_->llproc()->getSymReader()->openSymbolReader(name);
+   ProcImplRef proc(proc_);
+   if (!proc)
+      return false;
+   SymReader *objSymReader = proc->getSymReader()->openSymbolReader(name);
    return (objSymReader != NULL);
 }
 

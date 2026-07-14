@@ -40,6 +40,17 @@ impl is dereferenced transiently at the point of use. If the impl has been
 destroyed, `llproc()`/`llthrd()` return `NULL` — a checkable condition, never a
 dangling pointer.
 
+> **Encapsulation revamp (in progress).** Naked `llproc()`/`llthrd()` calls
+> outside `Process`/`Thread` and the impl layer itself are being retired in
+> favor of the checked RAII accessors **`ProcImplRef`/`ThreadImplRef`**
+> (int_process.h): pin the wrapper, resolve the impl once, boolean-false when
+> it is gone. This funnels every boundary access through one idiom — the
+> choke point where per-process locking lands when `work_lock` retires. The
+> endgame makes `llproc()`/`llthrd()` private with an audited friend list, so
+> the compiler enforces the boundary. Phases: leaves (generator, response,
+> loadLibrary — done) → events/handlers → public API (procset, irpc) →
+> platform decode entries → private-and-friends enforcement.
+
 ### Ownership and lifetime (a DAG)
 
 ```

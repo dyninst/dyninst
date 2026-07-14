@@ -250,18 +250,18 @@ bool Generator::getAndQueueEventInt(bool block)
       Event::ptr event = *i;
 	  if(event) {
 	      // Top-down refactor: events are stamped with their Process::ptr at
-	      // decode.  A null process here means the process was torn down
-	      // mid-decode (only reachable via the paired fork/clone path, where
-	      // the decode proc_lock pins a different process) -- drop the event
-	      // rather than dereference.  Tripwire kept loud: this should be
-	      // vanishingly rare.
-	      if (!event->getProcess() || !event->getProcess()->llproc()) {
+	      // decode.  A dead process here means it was torn down mid-decode
+	      // (only reachable via the paired fork/clone path, where the decode
+	      // proc_lock pins a different process) -- drop the event rather than
+	      // dereference.  Tripwire kept loud: this should be vanishingly rare.
+	      ProcImplRef proc(event->getProcess());
+	      if (!proc) {
 	         fprintf(stderr, "PROTOTYPE: dropping decoded %s event with dead process\n",
 	                 event->getEventType().name().c_str());
 	         *i = Event::ptr();
 	         continue;
 	      }
-	      event->getProcess()->llproc()->updateSyncState(event, true);
+	      proc->updateSyncState(event, true);
 	  }
    }
 
