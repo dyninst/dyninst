@@ -43,12 +43,12 @@ dangling pointer.
 ### Ownership and lifetime (a DAG)
 
 ```
-ProcessPool ──strong──▶ Process ──owns──▶ int_process ──owns──▶ int_threadPool
-                          ▲                                            │
-Event/response/RPC ─strong┤                              holds a Thread::ptr each
-                          │                                            │
-Thread  ◀──────────────── stored in int_threadPool ◀─────────────────┘
-  └─caches its owning Process::ptr (proc_wrapper_)
+ProcessPool ─strong─▶ Process ─owns─▶ int_threadPool ─holds Thread::ptr each─▶ Thread
+                        │                   ▲                                     │
+                        └─llproc_─▶ int_process ─(raw, non-owning cache)──────────┘
+                                     └─int_thread reached via llthrd_
+Event/response/RPC ─strong─▶ Process / Thread (the wrappers)
+Thread ─proc_wrapper_ (strong)─▶ Process   [redundant up-ref; slated for removal]
 ```
 
 - **`ProcessPool` owns the wrappers.** Its strong `Process::ptr`/`Thread::ptr`
@@ -58,11 +58,19 @@ Thread  ◀──────────────── stored in int_thread
   alive its wrapper is too; after the impl is destroyed the wrapper lives on
   (holding the exit state) as long as a user handle or an in-flight event
   references it.
+- **`Process` owns the `int_threadPool`** (the container of `Thread::ptr`), not
+  `int_process`. `int_process` keeps a raw, non-owning cache of it for hot
+  `threadPool()` access; since the wrapper outlives the impl, the pool (and
+  `Process::threads()`) stays valid after the process exits. Note this is
+  container ownership only — threads are still torn down deterministically at
+  exit, so a dead thread still reads as `NULL llthrd()`.
 - **The impls point only *downward or sideways*, never up.** `int_thread` knows
-  its `int_process` (`proc_`); an `int_process` owns its `int_threadPool`.
-  Helper objects owned by an impl (handler pool, library pool, register pool,
-  breakpoints) hold a raw back-pointer to their owner — safe, because the owner
-  outlives them by construction. No impl holds a reference *up* to a wrapper.
+  its `int_process` (`proc_`). Helper objects owned by an impl (handler pool,
+  library pool, register pool, breakpoints) hold a raw back-pointer to their
+  owner — safe, because the owner outlives them by construction. No impl holds
+  a reference *up* to a wrapper. (The one exception, `Thread::proc_wrapper_` — a
+  strong `Process::ptr` cached for lock-free thread→process resolution — is a
+  known wart that creates a `Process`↔threads cycle; it is slated for removal.)
 - **Deletion is wrapper-centric and single-homed.** `ProcessPool::destroyProcess`
   / `destroyThread` are the only ways an impl is destroyed: they unregister,
   publish exit state into the wrapper, sever the `llproc_`/`llthread_` link,
@@ -113,30 +121,44 @@ deletion is synchronous with (not concurrent to) the bootstrap loops.
 
 ## 3. Locking
 
-There are three locks, with a strict order (outermost first):
+> **In flux.** The lock model is mid-migration toward per-process parallelism
+> (retiring the global `work_lock` in favor of a per-process `proc_lock`).
+> This section describes the current, transitional state.
+
+The locks, outermost first:
 
 ```
-work_lock  (MTManager)   >   ProcPool condvar (var)   >   map_lock (ProcessPool)
+work_lock (MTManager)  >  ProcPool condvar (var)  >  proc_lock  >  map_lock
+                          gen_wait_cv (generator signaling; leaf, off to the side)
 ```
 
 - **`work_lock`** — held for the length of an API call (via `MTLock`);
-  serializes user threads against the handler thread.
-- **ProcPool condvar (`var`)** — a *condition variable*: the generator `wait()`s
-  on it for "a process changed state / a live process exists," handlers
-  `broadcast()`. Callers also bracket it around multi-step lifecycle sequences
-  (create/attach bootstrap). It is held across blocking waits. It is **not** the
+  serializes user threads against the handler thread. The migration is
+  shrinking its scope; the end goal is to remove it.
+- **`proc_lock`** (per-`Process`, recursive) — the per-process mutual-exclusion
+  lock, held on the `Process` wrapper (stable lifetime, so it can guard the
+  impl it protects). Taken by the generator across decode and by
+  `destroyProcess`/`destroyThread`. As `work_lock` shrinks, this becomes the
+  primary serializer; operations that touch only `proc_lock` (memory, registers,
+  breakpoints) will run in parallel across processes.
+- **ProcPool condvar (`var`)** — now a plain **mutex** (its signaling role was
+  split out). Callers bracket it around multi-step lifecycle sequences. Not the
   container guardian.
+- **`gen_wait_cv`** (generator.C) — the dedicated condition variable the
+  generator idles on; `wakeGenerator()` notifies it. Split off the ProcPool
+  condvar so no code waits on a lock others hold recursively.
 - **`map_lock`** — the sole guardian of `ProcessPool`'s registry containers
-  (`procs`, `lwps`, `deadThreads`). A **leaf** lock: held only for the duration
-  of a container operation, and **never** across a wait, a user callback, an
-  impl `delete`, or the acquisition of an outer lock. Public pool methods take
-  it once and delegate to `_nolock` helpers, so it can be a plain
-  (non-recursive) mutex. Because it is a leaf, it cannot participate in a cycle.
+  (`procs`, `lwps`, `deadThreads`). A **leaf** lock: held only for a container
+  operation, never across a wait, callback, impl `delete`, or an outer lock.
+  Public pool methods take it once and delegate to `_nolock` helpers, so it is a
+  plain (non-recursive) mutex and cannot participate in a cycle.
 
-Impl→wrapper resolution (`ProcessPool::wrapperFor`) is the fallback path that
-takes `map_lock`; on the steady-state paths it is not called at all — wrappers
-travel with the control flow (events carry them, `int_thread` caches its
-`Process::ptr`), so the lock stays off the hot paths.
+Impl→wrapper resolution (`ProcessPool::wrapperFor`) is a guarded fallback that
+takes `map_lock`; on steady-state paths it is called **zero** times — wrappers
+travel with the control flow (events carry them; a `Thread` caches its
+`Process::ptr`). That cache (`proc_wrapper_`) is itself slated for removal (see
+§1), after which thread→process resolution moves fully top-down / to pool
+lookups.
 
 ---
 
