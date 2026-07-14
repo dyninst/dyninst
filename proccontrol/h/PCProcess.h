@@ -305,8 +305,20 @@ class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
 
    static void version(int& major, int& minor, int& maintenance);
 
-   //These four functions are not for end-users.  
+   //These four functions are not for end-users.
    int_process *llproc() const { return llproc_; }
+
+   // Wrapper-layer factories: mint the Process wrapper together with its
+   // int_process impl and initialize the pair, returning the wrapper (NOT
+   // yet bootstrapped -- create()/attach() do that).  int_process::create-
+   // Process is now just the impl-construction primitive these call, so no
+   // caller assembles a process out of raw impl pieces.
+   static Process::ptr makeProcess(std::string exec,
+                                   const std::vector<std::string> &argv,
+                                   const std::vector<std::string> &envp,
+                                   const std::map<int,int> &fds);
+   static Process::ptr makeProcess(Dyninst::PID pid, std::string exec); // attach
+   static Process::ptr makeProcess(Dyninst::PID pid, Process::ptr parent); // fork
    // PROTOTYPE (pool-owns-wrapper): severs the wrapper->impl link at the
    // detach point (ProcessPool::rmProcess).  Internal use only.
    void clearLLProc() { llproc_ = NULL; }
@@ -593,6 +605,16 @@ class DYNINST_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    // PROTOTYPE (pool-owns-wrapper): severs the wrapper->impl link at the
    // detach point (ProcessPool::rmThread).  Internal use only.
    void clearLLThread() { llthread_ = NULL; }
+
+   // Wrapper-layer thread factory (mirror of Process::makeProcess): builds
+   // the int_thread + its Thread wrapper, registers with the ProcessPool and
+   // the owning process's threadpool, and attaches.  Returns the wrapper --
+   // no caller holds a raw int_thread*.  `proc` is transient creation
+   // context (an impl pointer used only within the call, never stored), and
+   // `astatus` widens int_thread::attach_status_t to int to keep that
+   // impl-internal enum out of the public header.
+   static Thread::ptr makeThread(int_process *proc, Dyninst::THR_ID thr_id,
+                                 Dyninst::LWP lwp_id, bool initial_thrd, int astatus);
    // PROTOTYPE (interior refactor): lock-free access to the cached process
    // wrapper.  Internal use only (no MTLock; callable from the generator).
    Process::ptr procWrapperInternal() const { return proc_wrapper_; }

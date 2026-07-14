@@ -96,6 +96,11 @@ class ProcessPool
    void destroyProcess(Dyninst::ProcControlAPI::Process::ptr proc);
    void destroyThread(Dyninst::ProcControlAPI::Thread::ptr thr);
 
+   // Post-creation bootstrap orchestration (was int_process::create/attach).
+   // Operates on a set of already-minted wrappers (see Process::makeProcess).
+   bool createProcs(std::set<Dyninst::ProcControlAPI::Process::ptr> *ps);
+   bool attachProcs(std::set<Dyninst::ProcControlAPI::Process::ptr> *ps, bool reattach);
+
    // impl -> wrapper resolution (live maps; identity-checked).
    Dyninst::ProcControlAPI::Process::ptr wrapperFor(int_process *proc);
    Dyninst::ProcControlAPI::Thread::ptr wrapperFor(int_thread *thr);
