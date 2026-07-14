@@ -57,6 +57,12 @@
 
 class int_process;
 class ProcessPool;
+struct ProcImplRef;
+struct ThreadImplRef;
+class windows_process;
+class windows_thread;
+class freebsd_process;
+class freebsd_thread;
 class int_breakpoint;
 class proc_exitstate;
 class thread_exitstate;
@@ -312,6 +318,22 @@ class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
    ~Process();
    friend void boost::checked_delete<Process>(Process *) CHECKED_DELETE_NOEXCEPT;
    friend void boost::checked_delete<const Process>(const Process *) CHECKED_DELETE_NOEXCEPT;
+
+   // Encapsulation enforcement (E5): the wrapper->impl bridge is private.
+   // Boundary code reaches the impl ONLY through the checked accessors
+   // (ProcImplRef/ThreadImplRef, int_process.h); everything else on this
+   // audited list is the wrapper/pool/impl layer itself.  Unconverted
+   // platforms (no compile check on this branch's CI) are friended wholesale
+   // until their conversion pass.
+   friend struct ::ProcImplRef;
+   friend class ::ProcessPool;
+   friend class ::int_thread;
+   friend class ::int_threadPool;
+   friend class ::windows_process;
+   friend class ::windows_thread;
+   friend class ::freebsd_process;
+   friend class ::freebsd_thread;
+   int_process *llproc() const { return llproc_; }
  public:
    typedef boost::shared_ptr<Process> ptr;
    typedef boost::shared_ptr<const Process> const_ptr;
@@ -319,9 +341,6 @@ class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
    typedef boost::weak_ptr<const Process> const_weak_ptr;
 
    static void version(int& major, int& minor, int& maintenance);
-
-   //These four functions are not for end-users.
-   int_process *llproc() const { return llproc_; }
    // Per-process migration lock (see proc_lock_).  Internal use only.
    Mutex<true> *procLock() const { return proc_lock_; }
 
@@ -614,15 +633,24 @@ class DYNINST_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    friend void boost::checked_delete<Thread>(Thread *) CHECKED_DELETE_NOEXCEPT;
    friend void boost::checked_delete<const Thread>(const Thread *) CHECKED_DELETE_NOEXCEPT;
 
+   // Encapsulation enforcement (E5): see the Process note.  The bridge and
+   // the severing hook are private; ThreadImplRef is the boundary idiom.
+   friend struct ::ThreadImplRef;
+   friend class ::int_process;
+   friend class ::windows_process;
+   friend class ::windows_thread;
+   friend class ::freebsd_process;
+   friend class ::freebsd_thread;
+   int_thread *llthrd() const;
+   // PROTOTYPE (pool-owns-wrapper): severs the wrapper->impl link at the
+   // detach point (ProcessPool::rmThread).  Internal use only.
+   void clearLLThread() { llthread_ = NULL; }
+
  public:
    typedef boost::shared_ptr<Thread> ptr;
    typedef boost::shared_ptr<const Thread> const_ptr;
    typedef boost::weak_ptr<Thread> weak_ptr;
    typedef boost::weak_ptr<const Thread> const_weak_ptr;
-   int_thread *llthrd() const;
-   // PROTOTYPE (pool-owns-wrapper): severs the wrapper->impl link at the
-   // detach point (ProcessPool::rmThread).  Internal use only.
-   void clearLLThread() { llthread_ = NULL; }
    // Lock-free thread->process fast path (safe from the generator: reads the
    // weak cache only, never the impl).  Returns NULL once the Process wrapper
    // is destructing/destroyed -- callers fall back to the pool registry or

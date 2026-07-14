@@ -170,7 +170,7 @@ void LWPTracking::setTrackLWPs(bool b) const
 {
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
-   if (!p || !p->llproc()) {
+   if (!p || !ProcImplRef(p)) {
       perr_printf("setTrackLWPs attempted on exited process\n");
       globalSetLastError(err_exited, "Process is exited\n");
       return;
@@ -1042,7 +1042,7 @@ bool int_remoteIO::getFileStatData(FileSet &files)
    bool had_error = false;
 
    for (FileSet::iterator i = files.begin(); i != files.end(); i++) {
-      if (static_cast<int_process *>(this) != i->first->llproc()) {
+      if (static_cast<int_process *>(this) != ProcImplRef(i->first).get()) {
          perr_printf("Non-local process in fileset, %d specified for %d\n",
                      ProcImplRef(i->first)->getPid(), getPid());
          setLastError(err_badparam, "Non-local process specified in FileSet");
@@ -1082,7 +1082,7 @@ bool int_remoteIO::getFileDataAsync(const FileSet &files)
 
    for (FileSet::const_iterator i = files.begin(); i != files.end(); i++) {
       int_fileInfo_ptr fi = i->second.getInfo();
-      if (static_cast<int_process *>(this) != i->first->llproc()) {
+      if (static_cast<int_process *>(this) != ProcImplRef(i->first).get()) {
          perr_printf("Non-local process in fileset, %d specified for %d\n",
                      ProcImplRef(i->first)->getPid(), getPid());
          setLastError(err_badparam, "Non-local process specified in FileSet\n");
