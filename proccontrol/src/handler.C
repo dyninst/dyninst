@@ -185,7 +185,7 @@ Event::ptr HandlerPool::curEvent()
       //Lazily create a NOP event as the current event.
       EventNop::ptr nop_event = EventNop::ptr(new EventNop());
       Thread::ptr itw = proc->threadPool()->initialThreadWrapper();
-      nop_event->setProcess(itw->procWrapperInternal());
+      nop_event->setProcess(proc->proc());
       nop_event->setThread(itw);
       nop_event->setSyncType(Event::async);
       cur_event = nop_event;
@@ -1877,7 +1877,7 @@ Handler::handler_ret_t HandleEmulatedSingleStep::handleEvent(Event::ptr ev)
    EventSingleStep::ptr ev_ss = EventSingleStep::ptr(new EventSingleStep());
    {
       Thread::ptr tw = proc->threadPool()->hlFor(thrd);
-      ev_ss->setProcess(tw->procWrapperInternal());
+      ev_ss->setProcess(proc->proc());
       ev_ss->setThread(tw);
    }
    ev_ss->setSyncType(ev->getSyncType());

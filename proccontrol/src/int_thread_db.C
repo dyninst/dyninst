@@ -885,7 +885,7 @@ bool thread_db_process::decodeTdbLWPExit(EventLWPDestroy::ptr lwp_ev)
    EventUserThreadDestroy::ptr new_ev = EventUserThreadDestroy::ptr(new EventUserThreadDestroy(EventType::Post));
    {
       Thread::ptr tw = db_thread->llproc()->threadPool()->hlFor(db_thread);
-      new_ev->setProcess(tw->procWrapperInternal());
+      new_ev->setProcess(db_thread->llproc()->proc());
       new_ev->setThread(tw);
    }
    new_ev->setSyncType(Event::async);
@@ -1254,7 +1254,7 @@ Handler::handler_ret_t ThreadDBDispatchHandler::handleEvent(Event::ptr ev)
          EventNewUserThread::ptr new_ev = EventNewUserThread::ptr(new EventNewUserThread());
          {
             Thread::ptr tw = proc->threadPool()->hlFor(main_thread);
-            new_ev->setProcess(tw->procWrapperInternal());
+            new_ev->setProcess(proc->proc());
             new_ev->setThread(tw);
          }
          new_ev->setSyncType(Event::sync_process);

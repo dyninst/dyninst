@@ -306,16 +306,23 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 
    int_process *proc = NULL;
    linux_process *lproc = NULL;
-   Thread::ptr thread_wrapper = ProcPool()->findThread(archevent->pid);
-   int_thread *thread = thread_wrapper ? thread_wrapper->llthrd() : NULL;
+   // Top-down refactor: resolve the thread wrapper AND its owning process
+   // wrapper in one atomic pool lookup (archevent->pid is the OS LWP id;
+   // the process is keyed off the thread's impl, safely, inside the pool's
+   // map_lock where "registered implies impl alive" holds).  Every event this
+   // decode produces is stamped with `pw`.
+   Thread::ptr thread_wrapper;
+   Process::ptr pw;
+   ProcPool()->findThreadAndProc(archevent->pid, thread_wrapper, pw);
    // Step 2 (work_lock retirement): hold the decoded process's proc_lock
    // across the whole decode, so the generator and the handler's destroy are
    // mutually exclusive on this process -- closing the generator/handler
-   // use-vs-delete race.  Lock-free wrapper lookup (never getProcess(), which
-   // would take an MTLock under the condvar and invert).  Null-tolerant for
-   // events whose process is unknown or already gone.
-   ProcScopeLock decode_plock(thread_wrapper ? thread_wrapper->procWrapperInternal()
-                                             : Process::ptr());
+   // use-vs-delete race.  Null-tolerant for events whose process is unknown
+   // or already gone.
+   ProcScopeLock decode_plock(pw);
+   // Impl derefs only under the proc_lock: teardown for this process is now
+   // excluded, so the llthrd() read is stable across the whole decode.
+   int_thread *thread = thread_wrapper ? thread_wrapper->llthrd() : NULL;
    linux_thread *lthread = NULL;
    if (thread) {
       proc = thread->llproc();
@@ -368,7 +375,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                if( lthread->isSet_fakeSyscallExitBp &&
                    lthread->addr_fakeSyscallExitBp == addr){
                    // do not handle the bp and clear the bp.
-                    bool rst = thread_wrapper->procWrapperInternal()->rmBreakpoint(addr, lthread->BPptr_fakeSyscallExitBp );
+                    bool rst = pw->rmBreakpoint(addr, lthread->BPptr_fakeSyscallExitBp );
                     if( !rst){
                         perr_printf("ARM-error: Failed to remove inserted BP, addr %p.\n",
                                 (void*)addr);
@@ -571,7 +578,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                 event = Event::ptr(new EventBreakpointRestore(new int_eventBreakpointRestore(clearingbp)));
                 if (thread->singleStepUserMode()) {
                    Event::ptr subservient_ss = EventSingleStep::ptr(new EventSingleStep());
-                   subservient_ss->setProcess(thread_wrapper->procWrapperInternal());
+                   subservient_ss->setProcess(pw);
                    subservient_ss->setThread(thread_wrapper);
                    subservient_ss->setSyncType(Event::sync_thread);
                    event->addSubservientEvent(subservient_ss);
@@ -615,7 +622,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 
                if (thread->singleStepUserMode() && !proc->plat_breakpointAdvancesPC()) {
                   Event::ptr subservient_ss = EventSingleStep::ptr(new EventSingleStep());
-                  subservient_ss->setProcess(thread_wrapper->procWrapperInternal());
+                  subservient_ss->setProcess(pw);
                   subservient_ss->setThread(thread_wrapper);
                   subservient_ss->setSyncType(Event::sync_thread);
                   event->addSubservientEvent(subservient_ss);
@@ -625,7 +632,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                   pthrd_printf("Breakpoint is library load/unload\n");
                   EventLibrary::ptr lib_event = EventLibrary::ptr(new EventLibrary());
                   lib_event->setThread(thread_wrapper);
-                  lib_event->setProcess(thread_wrapper->procWrapperInternal());
+                  lib_event->setProcess(pw);
                   lib_event->setSyncType(Event::sync_thread);
                   event->addSubservientEvent(lib_event);
                   break;
@@ -733,10 +740,10 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
    {
       //Paired event decoded
       assert(!event);
-      thread_wrapper = ProcPool()->findThread(parent->pid);
-      thread = thread_wrapper ? thread_wrapper->llthrd() : NULL;
-      assert(thread);
-      proc = thread->llproc();
+      // Paired (fork/clone) events re-route to the parent thread, so the
+      // wrappers resolved at the top of decode (from archevent->pid) no
+      // longer apply -- re-resolve both atomically off the parent's LWP.
+      ProcPool()->findThreadAndProc(parent->pid, thread_wrapper, pw);
       if (parent->event_ext == PTRACE_EVENT_FORK)
          event = Event::ptr(new EventFork(EventType::Post, child->pid));
       else if (parent->event_ext == PTRACE_EVENT_CLONE)
@@ -759,13 +766,13 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
        assert(!parent);
        assert(!child);
        assert(thread_wrapper);
-       assert(thread_wrapper->procWrapperInternal());
+       assert(pw);
        delete archevent;
    }
-   // Boundary refactor: the thread wrapper is already in hand from routing;
-   // only the proc wrapper needs one resolution.
+   // Top-down: both wrappers were resolved once at the top of decode and
+   // travel with the control flow -- stamp them onto the event directly.
    event->setThread(thread_wrapper);
-   event->setProcess(thread_wrapper->procWrapperInternal());
+   event->setProcess(pw);
    events.push_back(event);
 
    return true;

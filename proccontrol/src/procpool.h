@@ -96,12 +96,24 @@ class ProcessPool
    void rmProcess(Dyninst::ProcControlAPI::Process::ptr proc);
    void rmThread(Dyninst::ProcControlAPI::Thread::ptr thr);
    Dyninst::ProcControlAPI::Thread::ptr findThread(Dyninst::LWP lwp);
+   // Atomic thread + owning-process lookup (one map_lock hold): safe
+   // thread->process resolution for callers outside the work_lock (the
+   // decoder), where a findThread() + impl-deref sequence could race a
+   // concurrent destroyThread/destroyProcess.
+   void findThreadAndProc(Dyninst::LWP lwp,
+                          Dyninst::ProcControlAPI::Thread::ptr &thr,
+                          Dyninst::ProcControlAPI::Process::ptr &proc);
 
    // The only deletion points for the impls: unregister (links intact),
    // publish exit state into the wrappers (passed down, never resolved
    // post-unregistration), sever the ll links, delete the impl.
    void destroyProcess(Dyninst::ProcControlAPI::Process::ptr proc);
-   void destroyThread(Dyninst::ProcControlAPI::Thread::ptr thr);
+   // `proc` is the owning process wrapper, supplied by the caller (top-down):
+   // it survives this thread's -- and the process's own -- unregistration, so
+   // the exit state is published against the real process even during full
+   // process teardown, when the registry no longer resolves it.
+   void destroyThread(Dyninst::ProcControlAPI::Thread::ptr thr,
+                      Dyninst::ProcControlAPI::Process::ptr proc);
 
    // Post-creation bootstrap orchestration (was int_process::create/attach).
    // Operates on a set of already-minted wrappers (see Process::makeProcess).

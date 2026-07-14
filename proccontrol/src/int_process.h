@@ -77,8 +77,9 @@ typedef std::set<Dyninst::ProcControlAPI::Thread::ptr> int_threadSet;
 // Null-tolerant, and it pins the Process wrapper (holds a Process::ptr) for
 // the lock's lifetime so the mutex -- which lives on the wrapper -- cannot be
 // freed while held.  Ordering: work_lock > ProcPool condvar > proc_lock >
-// map_lock.  Use procWrapperInternal() (lock-free), never getProcess()
-// (which takes an MTLock/work_lock and would invert under the condvar).
+// map_lock.  Pass in a Process::ptr already carried by the control flow
+// (e.g. the wrapper the decoder resolved), never getProcess() (which takes
+// an MTLock/work_lock and would invert under the condvar).
 // Wake the generator from its idle wait.  Signaling now lives on a
 // dedicated condition variable (generator.C), separate from the ProcPool
 // condvar's mutual-exclusion role -- so nothing waits on a lock that other

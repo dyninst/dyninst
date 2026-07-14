@@ -435,7 +435,7 @@ bool ProcessPool::attachProcs(int_processSet *ps, bool reattach)
 
                {
                   Thread::ptr tw = proc->threadPool()->hlFor(thr);
-                  destroyEv->setProcess(tw->procWrapperInternal());
+                  destroyEv->setProcess(proc->proc());
                   destroyEv->setThread(tw);
                }
                destroyEv->setSyncType(Event::async);
@@ -602,12 +602,16 @@ bool int_process::execed()
    int_thread::State gen_initial_thrd_state = threadpool->initialThread()->getGeneratorState().getState();
    int_thread::State handler_initial_thrd_state = threadpool->initialThread()->getHandlerState().getState();
 
+   // Resolve the owning process wrapper once and pass it down (top-down):
+   // the process is still registered here, but destroyThread no longer
+   // resolves impl->wrapper itself.
+   Process::ptr pw = proc();
    int_threadPool::iterator i = threadpool->begin();
    for (; i != threadpool->end(); ++i) {
       int_thread *thrd = *i;
       thrd->getUserState().setState(int_thread::exited);
       thrd->getGeneratorState().setState(int_thread::exited);
-      ProcPool()->destroyThread(threadpool->hlFor(thrd));
+      ProcPool()->destroyThread(threadpool->hlFor(thrd), pw);
    }
    threadpool->clear();
 
@@ -817,15 +821,9 @@ int_threadPool *int_process::threadPool() const
 
 Process::ptr int_process::proc() const
 {
-   // Interior refactor: resolve lock-free through the initial thread's
-   // cached Process wrapper (threadpool vectors are only mutated under the
-   // work_lock, and the generator no longer calls this).  Fall back to the
-   // pool for pre-thread bootstrap or post-severing windows.
-   if (threadpool) {
-      Thread::ptr itw = threadpool->initialThreadWrapper();
-      if (itw && itw->llthrd() && itw->procWrapperInternal())
-         return itw->procWrapperInternal();
-   }
+   // Top-down refactor: no impl caches its wrapper, so impl->wrapper
+   // resolution goes through the pool registry.  Hot paths never reach here
+   // -- they carry the Process::ptr with the control flow (events stamp it).
    return ProcPool()->wrapperFor(const_cast<int_process *>(this));
 }
 
@@ -1194,7 +1192,7 @@ void int_process::throwDetachEvent(bool temporary, bool leaveStopped)
    detach_ev->getInternal()->leave_stopped = leaveStopped;
    {
       Thread::ptr itw = threadPool()->initialThreadWrapper();
-      detach_ev->setProcess(itw->procWrapperInternal());
+      detach_ev->setProcess(proc());
       detach_ev->setThread(itw);
    }
    detach_ev->setSyncType(Event::async);
@@ -1546,7 +1544,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
          pthrd_printf("Enqueueing new EventAsyncRead into mailbox on synchronous platform\n");
          EventAsyncRead::ptr ev = EventAsyncRead::ptr(new EventAsyncRead(iev));
          Thread::ptr itw = threadPool()->initialThreadWrapper();
-         ev->setProcess(itw->procWrapperInternal());
+         ev->setProcess(proc());
          ev->setThread(itw);
          ev->setSyncType(Event::async);
          mbox()->enqueue(ev);
@@ -1603,7 +1601,7 @@ bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t si
          pthrd_printf("Enqueueing new EventAsyncWrite into mailbox on synchronous platform\n");
          EventAsyncWrite::ptr ev = EventAsyncWrite::ptr(new EventAsyncWrite(iev));
          Thread::ptr itw = threadPool()->initialThreadWrapper();
-         ev->setProcess(itw->procWrapperInternal());
+         ev->setProcess(proc());
          ev->setThread(itw);
          ev->setSyncType(Event::async);
          mbox()->enqueue(ev);
@@ -1759,7 +1757,7 @@ bool int_process::infMalloc(unsigned long size, int_addressSet *aset, bool use_a
       proc->memory()->inf_malloced_memory.insert(make_pair(aresult, size));
       if (use_addr)
          continue;
-      aset->insert(make_pair(aresult, proc->threadPool()->initialThreadWrapper()->procWrapperInternal()));
+      aset->insert(make_pair(aresult, proc->proc()));
    }
 
    return !had_error;
@@ -2305,7 +2303,7 @@ void int_process::throwNopEvent()
    EventNop::ptr ev = EventNop::ptr(new EventNop());
    {
       Thread::ptr itw = threadPool()->initialThreadWrapper();
-      ev->setProcess(itw->procWrapperInternal());
+      ev->setProcess(proc());
       ev->setThread(itw);
    }
    ev->setSyncType(Event::async);
@@ -3245,13 +3243,10 @@ void int_thread::setRunningWhenAttached(bool b) {
 
 Process::ptr int_thread::proc() const
 {
-   // Interior refactor: prefer this thread's cached Process wrapper.
-   if (proc_ && proc_->threadPool()) {
-      Thread::ptr tw = proc_->threadPool()->hlFor(const_cast<int_thread *>(this));
-      if (tw && tw->procWrapperInternal())
-         return tw->procWrapperInternal();
-   }
-   return proc_->proc();
+   // Top-down refactor: resolve the process wrapper through the pool (no
+   // cached up-pointer on the thread).  Hot paths carry the Process::ptr and
+   // never reach here.
+   return ProcPool()->wrapperFor(proc_);
 }
 
 int_process *int_thread::llproc() const
@@ -3700,8 +3695,11 @@ void int_thread::cleanFromHandler(int_thread *thrd, bool should_delete)
       // thread is already unregistered from the global pool); destroy()
       // publishes, severs, unregisters if needed, and deletes.
       Thread::ptr tw = thrd->llproc()->threadPool()->hlFor(thrd);
+      // Resolve the process wrapper up front (still registered) and pass it
+      // down; destroyThread no longer resolves impl->wrapper itself.
+      Process::ptr pw = thrd->llproc()->proc();
       thrd->llproc()->threadPool()->rmThread(tw);
-      ProcPool()->destroyThread(tw);
+      ProcPool()->destroyThread(tw, pw);
    }
    else {
       //If we're not yet deleting this thread, then we're dealing with
@@ -4785,18 +4783,21 @@ Thread::ptr int_threadPool::hlFor(int_thread *thr)
    return Thread::ptr();
 }
 
-void int_threadPool::destroyAllThreads(Process::ptr /*pw*/)
+void int_threadPool::destroyAllThreads(Process::ptr pw)
 {
    // Route every thread through the single, Thread-homed deletion path
    // (ProcessPool::destroyThread) so int_thread deletion has one deterministic
-   // home.  Snapshot first: destroyThread does not touch our vector, but the
-   // trailing clear() drops the now-severed wrappers regardless.  destroyThread
-   // no-ops on an already-severed wrapper (llthrd NULL).
+   // home.  The process wrapper `pw` is passed down (top-down): by the time
+   // this runs during teardown the process is already unregistered, so
+   // destroyThread cannot re-resolve it from the registry.  Snapshot first:
+   // destroyThread does not touch our vector, but the trailing clear() drops
+   // the now-severed wrappers regardless.  destroyThread no-ops on an
+   // already-severed wrapper (llthrd NULL).
    std::vector<Thread::ptr> snapshot(threads.begin(), threads.end());
    for (size_t i = 0; i < snapshot.size(); i++) {
       Thread::ptr w = snapshot[i];
       if (w)
-         ProcPool()->destroyThread(w);
+         ProcPool()->destroyThread(w, pw);
    }
    clear();
 }
@@ -4807,7 +4808,9 @@ int_threadPool::~int_threadPool()
    delete up_pool;
 
    // Normally destroyProcess has already run destroyAllThreads; this covers
-   // threadpools torn down outside that path.
+   // threadpools torn down outside that path -- notably permanent detach,
+   // which unregisters the process (rmProcess) but leaves impl teardown to
+   // ~Process when the last user reference drops.
    for (size_t j = 0; j < threads.size(); j++)
    {
       Thread::ptr w = threads[j];
@@ -4816,8 +4819,11 @@ int_threadPool::~int_threadPool()
       int_thread *thr = w->llthread_;
       if (ProcPool()->findThread(thr->getLWP()) == w)
          ProcPool()->rmThread(w);
+      // We are running inside Process::~Process (it owns this pool), so a
+      // strong Process::ptr here would resurrect the dying wrapper.  NULL is
+      // the only correct exit-state process for this path.
       if (!w->exitstate_)
-         thr->publishExitState(w, w->procWrapperInternal());
+         thr->publishExitState(w, Process::ptr());
       w->clearLLThread();
       delete thr;
    }
@@ -7499,8 +7505,6 @@ Process::const_ptr Thread::getProcess() const
       assert(exitstate_);
       return exitstate_->proc_ptr;
    }
-   if (proc_wrapper_)
-      return proc_wrapper_;
    return llthread_->proc();
 }
 
@@ -7511,8 +7515,6 @@ Process::ptr Thread::getProcess()
       assert(exitstate_);
       return exitstate_->proc_ptr;
    }
-   if (proc_wrapper_)
-      return proc_wrapper_;
    return llthread_->proc();
 }
 
@@ -8335,9 +8337,6 @@ ThreadPool::const_iterator ThreadPool::find(Dyninst::LWP lwp) const
 Process::const_ptr ThreadPool::getProcess() const
 {
    MTLock lock_this_func;
-   Thread::ptr itw = threadpool->initialThreadWrapper();
-   if (itw && itw->procWrapperInternal())
-      return itw->procWrapperInternal();
    if (!threadpool->proc())
       return Process::ptr();   // process exited; pool back-ref severed
    return threadpool->proc()->proc();
@@ -8346,9 +8345,6 @@ Process::const_ptr ThreadPool::getProcess() const
 Process::ptr ThreadPool::getProcess()
 {
    MTLock lock_this_func;
-   Thread::ptr itw = threadpool->initialThreadWrapper();
-   if (itw && itw->procWrapperInternal())
-      return itw->procWrapperInternal();
    if (!threadpool->proc())
       return Process::ptr();   // process exited; pool back-ref severed
    return threadpool->proc()->proc();
