@@ -1060,7 +1060,7 @@ bool linux_process::plat_attachThreadsSync()
       ProcPool()->condvar()->lock();
       bool result = attachThreads(found_new_threads);
       if (found_new_threads)
-         ProcPool()->condvar()->broadcast();
+         wakeGenerator();
       ProcPool()->condvar()->unlock();
 
       if (!result) {

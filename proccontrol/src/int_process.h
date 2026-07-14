@@ -79,6 +79,12 @@ typedef std::set<Dyninst::ProcControlAPI::Thread::ptr> int_threadSet;
 // freed while held.  Ordering: work_lock > ProcPool condvar > proc_lock >
 // map_lock.  Use procWrapperInternal() (lock-free), never getProcess()
 // (which takes an MTLock/work_lock and would invert under the condvar).
+// Wake the generator from its idle wait.  Signaling now lives on a
+// dedicated condition variable (generator.C), separate from the ProcPool
+// condvar's mutual-exclusion role -- so nothing waits on a lock that other
+// code holds recursively.  Callers need not hold any particular lock.
+void wakeGenerator();
+
 struct ProcScopeLock {
    Dyninst::ProcControlAPI::Process::ptr p_;
    Mutex<true> *m_;

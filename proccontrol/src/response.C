@@ -411,9 +411,7 @@ void responses_pending::noteResponse()
       // so we don't want to retake it.
       return;
    }
-   ProcPool()->condvar()->lock();
-   ProcPool()->condvar()->broadcast();
-   ProcPool()->condvar()->unlock();
+   wakeGenerator();
 }
 
 responses_pending &getResponses()

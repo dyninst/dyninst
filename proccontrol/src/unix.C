@@ -133,7 +133,7 @@ bool unix_process::post_forked()
    thrd->getHandlerState().setState(int_thread::stopped);
    thrd->getUserState().setState(int_thread::running);
 
-   ProcPool()->condvar()->broadcast();
+   wakeGenerator();
    ProcPool()->condvar()->unlock();
 
    //TODO: Remove this and make have the translate layers' fork

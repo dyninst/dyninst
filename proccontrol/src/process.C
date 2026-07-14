@@ -125,7 +125,7 @@ bool ProcessPool::createProcs(int_processSet *ps) {
       pthrd_printf("Created debugged %s on pid %d\n", proc->executable.c_str(), proc->pid);
    }
 
-   ProcPool()->condvar()->broadcast();
+   wakeGenerator();
    ProcPool()->condvar()->unlock();
 
 
@@ -343,7 +343,7 @@ bool ProcessPool::attachProcs(int_processSet *ps, bool reattach)
    }
 
    if (should_sync) {
-      ProcPool()->condvar()->broadcast();
+      wakeGenerator();
       ProcPool()->condvar()->unlock();
       for (;;) {
          bool have_neonatal = false;
@@ -448,7 +448,7 @@ bool ProcessPool::attachProcs(int_processSet *ps, bool reattach)
       i++;
    }
 
-   ProcPool()->condvar()->broadcast();
+   wakeGenerator();
    ProcPool()->condvar()->unlock();
 
    //Wait for each process to make it to the 'int_process::running' state.
@@ -618,7 +618,7 @@ bool int_process::execed()
    initial_thread->getGeneratorState().setState(gen_initial_thrd_state);
    initial_thread->getHandlerState().setState(handler_initial_thrd_state);
 
-   ProcPool()->condvar()->broadcast();
+   wakeGenerator();
    ProcPool()->condvar()->unlock();
 
    bool result = plat_execed();
@@ -655,7 +655,7 @@ bool int_process::forked()
       goto error;
    }
 
-   ProcPool()->condvar()->broadcast();
+   wakeGenerator();
    ProcPool()->condvar()->unlock();
 
    result = post_forked();
@@ -1085,7 +1085,7 @@ bool int_process::waitAndHandleEvents(bool block)
       if (should_block && Counter::globalCount(Counter::ForceGeneratorBlock)) {
          // Entirely possible we didn't continue anything, but we want the generator to
          // wake up anyway
-         ProcPool()->condvar()->broadcast();
+         wakeGenerator();
       }
 
       Event::ptr ev = mbox()->dequeue(should_block);
@@ -3083,7 +3083,7 @@ bool int_thread::intCont()
    }
 
 
-   ProcPool()->condvar()->broadcast();
+   wakeGenerator();
    ProcPool()->condvar()->unlock();
 
    if (!result) {
@@ -3714,7 +3714,7 @@ void int_thread::cleanFromHandler(int_thread *thrd, bool should_delete)
       thrd->getExitingState().setState(int_thread::running);
 #endif
    }
-   ProcPool()->condvar()->broadcast();
+   wakeGenerator();
    ProcPool()->condvar()->unlock();
 }
 
