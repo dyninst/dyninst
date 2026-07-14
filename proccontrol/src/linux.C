@@ -322,7 +322,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
    ProcScopeLock decode_plock(pw);
    // Impl derefs only under the proc_lock: teardown for this process is now
    // excluded, so the llthrd() read is stable across the whole decode.
-   int_thread *thread = thread_wrapper ? thread_wrapper->llthrd() : NULL;
+   ThreadImplRef thread_ref(thread_wrapper);
+   int_thread *thread = thread_ref.get();
    linux_thread *lthread = NULL;
    if (thread) {
       proc = thread->llproc();
@@ -3176,13 +3177,13 @@ Handler::handler_ret_t LinuxHandleNewThr::handleEvent(Event::ptr ev)
 {
    linux_thread *thr = NULL;
    if (ev->getEventType().code() == EventType::Bootstrap) {
-      thr = dynamic_cast<linux_thread *>(ev->getThread()->llthrd());
+      thr = dynamic_cast<linux_thread *>(ThreadImplRef(ev->getThread()).get());
    }
    else if (ev->getEventType().code() == EventType::ThreadCreate) {
       Dyninst::LWP lwp = static_cast<EventNewThread *>(ev.get())->getLWP();
       ProcPool()->condvar()->lock();
       Thread::ptr lwp_wrapper = ProcPool()->findThread(lwp);
-      thr = lwp_wrapper ? dynamic_cast<linux_thread *>(lwp_wrapper->llthrd()) : NULL;
+      thr = lwp_wrapper ? dynamic_cast<linux_thread *>(ThreadImplRef(lwp_wrapper).get()) : NULL;
       ProcPool()->condvar()->unlock();
    }
    assert(thr);
@@ -3213,7 +3214,8 @@ LinuxHandleLWPDestroy::~LinuxHandleLWPDestroy()
 }
 
 Handler::handler_ret_t LinuxHandleLWPDestroy::handleEvent(Event::ptr ev) {
-    int_thread *thrd = ev->getThread()->llthrd();
+    ThreadImplRef thrd_ref(ev->getThread());
+    int_thread *thrd = thrd_ref.get();
 
     // This handler is necessary because SIGSTOPS cannot be sent to pre-destroyed
     // threads -- these stops will never be delivered to the debugger
@@ -3248,7 +3250,8 @@ LinuxHandleForceTerminate::LinuxHandleForceTerminate() :
 LinuxHandleForceTerminate::~LinuxHandleForceTerminate() {}
 
 Handler::handler_ret_t LinuxHandleForceTerminate::handleEvent(Event::ptr ev) {
-   int_process *proc = ev->getProcess()->llproc();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
 
    for (int_threadPool::iterator iter = proc->threadPool()->begin();
         iter != proc->threadPool()->end(); ++iter) {
@@ -3468,7 +3471,8 @@ void linux_process::plat_adjustSyncType(Event::ptr ev, bool gen_)
        ev->getEventType().time() != EventType::Pre)
       return;
 
-   int_thread *thrd = ev->getThread()->llthrd();
+   ThreadImplRef thrd_ref(ev->getThread());
+   int_thread *thrd = thrd_ref.get();
    if(!thrd) return;
    if (thrd->getGeneratorState().getState() != int_thread::running)
       return;

@@ -873,7 +873,7 @@ const char *thread_db_process::getThreadLibName(const char *)
 
 bool thread_db_process::decodeTdbLWPExit(EventLWPDestroy::ptr lwp_ev)
 {
-   thread_db_thread *db_thread = dynamic_cast<thread_db_thread *>(lwp_ev->getThread()->llthrd());
+   thread_db_thread *db_thread = dynamic_cast<thread_db_thread *>(ThreadImplRef(lwp_ev->getThread()).get());
    assert(db_thread);
 
    if (db_thread->destroyed || !db_thread->thread_initialized)
@@ -1383,7 +1383,7 @@ Handler::handler_ret_t ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
    thread_db_process *tdb_proc = dynamic_cast<thread_db_process *>(threadEv->getProcess()->llproc());
    Thread::const_ptr new_thr = threadEv->getNewThread();
    thread_db_thread *tdb_thread =
-      dynamic_cast<thread_db_thread *>(new_thr ? new_thr->llthrd() : NULL);
+      dynamic_cast<thread_db_thread *>(new_thr ? ThreadImplRef(new_thr).get() : NULL);
 
    if (!tdb_proc || !tdb_thread) {
       // The new thread (or process) already exited before this create event
@@ -1439,7 +1439,7 @@ Handler::handler_ret_t ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
       return Handler::ret_success;
    }
    thread_db_process *proc = dynamic_cast<thread_db_process *>(ev->getProcess()->llproc());
-   thread_db_thread *thrd = dynamic_cast<thread_db_thread *>(ev->getThread()->llthrd());
+   thread_db_thread *thrd = dynamic_cast<thread_db_thread *>(ThreadImplRef(ev->getThread()).get());
 
    if(thrd) {
       pthrd_printf("Running ThreadDBDestroyHandler on %d/%d\n", proc->getPid(), thrd->getLWP());
