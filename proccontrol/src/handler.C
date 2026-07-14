@@ -265,8 +265,8 @@ void HandlerPool::markEventAsyncPending(Event::ptr ev)
    set<Event::ptr>::iterator i = pending_async_events.find(ev);
    if (i != pending_async_events.end()) {
       pthrd_printf("Async event %s on %d/%d has already been marked, leaving alone.\n",
-                   ev->name().c_str(), ev->getProcess()->llproc()->getPid(), 
-                   ev->getThread()->llthrd()->getLWP());
+                   ev->name().c_str(), ProcImplRef(ev->getProcess())->getPid(), 
+                   ThreadImplRef(ev->getThread())->getLWP());
       return;
    }
    bool was_empty = insertAsyncPendingEvent(ev);
@@ -311,7 +311,8 @@ bool HandlerPool::insertAsyncPendingEvent(Event::ptr ev)
        * stopped while we handle the async event.
        **/
       if (ev->getSyncType() == Event::sync_thread) {
-         int_thread *thr = ev->getThread()->llthrd();
+         ThreadImplRef thr_ref(ev->getThread());
+         int_thread *thr = thr_ref.get();
          pthrd_printf("Desync'ing async thread state of %d/%d\n", proc->getPid(), thr->getLWP());
          thr->getAsyncState().desyncState(int_thread::ditto);
       }
@@ -337,7 +338,8 @@ bool HandlerPool::removeAsyncPendingEvent(Event::ptr ev)
     * should be able to run again.
     **/
    if (ev->getSyncType() == Event::sync_thread) {
-      int_thread *thr = ev->getThread()->llthrd();
+      ThreadImplRef thr_ref(ev->getThread());
+      int_thread *thr = thr_ref.get();
       pthrd_printf("Restoring'ing async thread state of %d/%d\n", proc->getPid(), thr->getLWP());
       thr->getAsyncState().restoreState();
    }
@@ -531,7 +533,7 @@ void HandlePreBootstrap::getEventTypesHandled(std::vector<EventType> &etypes)
 
 Handler::handler_ret_t HandlePreBootstrap::handleEvent(Event::ptr)
 {
-	//int_process* p = ev->getProcess()->llproc();
+	//ProcImplRef p(ev->getProcess());
 	//p->setForceGeneratorBlock(true);
 	return ret_success;
 }
@@ -553,8 +555,10 @@ void HandleBootstrap::getEventTypesHandled(std::vector<EventType> &etypes)
 
 Handler::handler_ret_t HandleBootstrap::handleEvent(Event::ptr ev)
 {
-   int_process *proc = ev->getProcess()->llproc();
-   int_thread *thrd = ev->getThread()->llthrd();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
+   ThreadImplRef thrd_ref(ev->getThread());
+   int_thread *thrd = thrd_ref.get();
 
    assert(proc);
    pthrd_printf("Handling bootstrap for %d\n", proc->getPid());
@@ -606,8 +610,10 @@ void HandleSignal::getEventTypesHandled(std::vector<EventType> &etypes)
 
 Handler::handler_ret_t HandleSignal::handleEvent(Event::ptr ev)
 {
-   int_thread *thrd = ev->getThread()->llthrd();
-   int_process *proc = ev->getProcess()->llproc();
+   ThreadImplRef thrd_ref(ev->getThread());
+   int_thread *thrd = thrd_ref.get();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
    
    EventSignal *sigev = static_cast<EventSignal *>(ev.get());
    int signal_no = sigev->getSignal();
@@ -640,10 +646,12 @@ void HandlePostExit::getEventTypesHandled(std::vector<EventType> &etypes)
 
 Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
 {
-   int_process *proc = ev->getProcess()->llproc();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
    assert(proc);
    if(ev->getThread()) {
-	   int_thread *thrd = ev->getThread()->llthrd();
+	   ThreadImplRef thrd_ref(ev->getThread());
+	   int_thread *thrd = thrd_ref.get();
 	   assert(thrd);
 	   pthrd_printf("Handling post-exit for process %d on thread %d\n",
 		   proc->getPid(), thrd->getLWP());
@@ -694,8 +702,10 @@ void HandlePostExitCleanup::getEventTypesHandled(std::vector<EventType> &etypes)
 
 Handler::handler_ret_t HandlePostExitCleanup::handleEvent(Event::ptr ev)
 {
-   int_process *proc = ev->getProcess()->llproc();
-   int_thread *thrd = ev->getThread() ? ev->getThread()->llthrd() : NULL;
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
+   ThreadImplRef thrd_ref(ev->getThread());
+   int_thread *thrd = thrd_ref.get();
    assert(proc);
 
 #if defined(os_windows)
@@ -746,8 +756,10 @@ Handler::handler_ret_t HandleCrash::handleEvent(Event::ptr ev)
    pthrd_printf("Handling crash for process %d on thread %d\n",
                 ev->getProcess()->getPid(), ev->getThread()->getLWP());
 //                evproc->getPid(), thrd->getLWP());   
-   int_process *proc = ev->getProcess()->llproc();
-   int_thread *thrd = ev->getThread()->llthrd();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
+   ThreadImplRef thrd_ref(ev->getThread());
+   int_thread *thrd = thrd_ref.get();
    assert(proc);
    assert(thrd);
    if( !proc || !thrd) return ret_error;
@@ -789,11 +801,12 @@ void HandleForceTerminate::getEventTypesHandled(std::vector<EventType> &etypes)
 
 
 Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
-   int_process *proc = ev->getProcess()->llproc();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
    Thread::const_ptr t = ev->getThread();
    int_thread* thrd = NULL;
    if(t)
-      thrd = t->llthrd();
+      thrd = ThreadImplRef(t).get();
 
    assert(proc);
    // assert(thrd);
@@ -845,8 +858,10 @@ void HandlePreExit::getEventTypesHandled(std::vector<EventType> &etypes)
 
 Handler::handler_ret_t HandlePreExit::handleEvent(Event::ptr ev)
 {
-   int_process *proc = ev->getProcess()->llproc();
-   int_thread *thread = ev->getThread()->llthrd();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
+   ThreadImplRef thread_ref(ev->getThread());
+   int_thread *thread = thread_ref.get();
    pthrd_printf("Handling pre-exit for process %d on thread %d\n",
                 proc->getPid(), thread->getLWP());
    // Sometimes when the mutator attempts to stop the mutatee,
@@ -890,10 +905,11 @@ void HandleThreadCreate::getEventTypesHandled(std::vector<EventType> &etypes)
 
 Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
 {
-   int_process *proc = ev->getProcess()->llproc();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
    Thread::const_ptr hl_thrd = ev->getThread();
    int_thread* thrd = NULL;
-   if(hl_thrd) thrd = hl_thrd->llthrd();
+   if(hl_thrd) thrd = ThreadImplRef(hl_thrd).get();
    EventNewThread *threadev = static_cast<EventNewThread *>(ev.get());
 
    pthrd_printf("Handle thread create for %d/%d with new thread %d\n",
@@ -918,7 +934,8 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
       astatus = lwp_create->getInternalEvent()->attach_status;
    }
    Thread::ptr newthr_wrapper = Thread::makeThread(proc, NULL_THR_ID, threadev->getLWP(), false, astatus);
-   int_thread *newthr = newthr_wrapper ? newthr_wrapper->llthrd() : NULL;
+   ThreadImplRef newthr_ref(newthr_wrapper);
+   int_thread *newthr = newthr_ref.get();
 
    newthr->getGeneratorState().setState(int_thread::stopped);
    newthr->getHandlerState().setState(int_thread::stopped);
@@ -983,7 +1000,8 @@ int HandleThreadDestroy::getPriority() const
 
 Handler::handler_ret_t HandleThreadDestroy::handleEvent(Event::ptr ev)
 {
-   int_thread *thrd = ev->getThread()->llthrd();
+   ThreadImplRef thrd_ref(ev->getThread());
+   int_thread *thrd = thrd_ref.get();
 
    /* The internal thread can be NULL if we receive multiple ThreadDestroy events
     * for the same thread. This can happen when handling "ghost" threads.
@@ -998,7 +1016,8 @@ Handler::handler_ret_t HandleThreadDestroy::handleEvent(Event::ptr ev)
       ev->setSuppressCB(true);
    }
 
-   int_process *proc = ev->getProcess()->llproc();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
 
    if (ev->getEventType().time() == EventType::Pre && proc->plat_supportLWPPostDestroy()) {
       pthrd_printf("Handling pre-thread destroy for %d\n", thrd->getLWP());
@@ -1070,7 +1089,8 @@ Handler::handler_ret_t HandleThreadCleanup::handleEvent(Event::ptr ev)
     * This is a seperate handler so that the cleanup happens after any
     * user callback.
     **/
-   int_process *proc = ev->getProcess()->llproc();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
    if(!proc) {
 	   pthrd_printf("Process for thread cleanup event is NULL. We have no work we can do.\n");
 	   return ret_success;
@@ -1099,7 +1119,8 @@ Handler::handler_ret_t HandleThreadCleanup::handleEvent(Event::ptr ev)
    }
 
 
-   int_thread *thrd = ev->getThread()->llthrd();
+   ThreadImplRef thrd_ref(ev->getThread());
+   int_thread *thrd = thrd_ref.get();
    if(!thrd) {
 	   pthrd_printf("Thread for thread cleanup event is NULL. We have no work we can do.\n");
 	   return ret_success;
@@ -1163,7 +1184,8 @@ void HandleThreadStop::getEventTypesHandled(std::vector<EventType> &etypes)
 
 Handler::handler_ret_t HandleThreadStop::handleEvent(Event::ptr ev)
 {
-   int_process *proc = ev->getProcess()->llproc();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
 
    if (ev->getSyncType() == Event::sync_process) {
       pthrd_printf("Handling process stop for %d\n", proc->getPid());
@@ -1187,7 +1209,8 @@ Handler::handler_ret_t HandleThreadStop::handleEvent(Event::ptr ev)
       assert(found_pending_stop);
    }
    else {
-      int_thread *thrd = ev->getThread()->llthrd();
+      ThreadImplRef thrd_ref(ev->getThread());
+      int_thread *thrd = thrd_ref.get();
       pthrd_printf("Handling thread stop for %d/%d\n", proc->getPid(), thrd->getLWP());
       assert(thrd->hasPendingStop());
       thrd->setPendingStop(false);
@@ -1214,7 +1237,8 @@ Handler::handler_ret_t HandlePostFork::handleEvent(Event::ptr ev)
 {
    EventFork *efork = static_cast<EventFork *>(ev.get());
    Dyninst::PID child_pid = efork->getPID();
-   int_process *parent_proc = ev->getProcess()->llproc();
+   ProcImplRef parent_proc_ref(ev->getProcess());
+   int_process *parent_proc = parent_proc_ref.get();
    pthrd_printf("Handling fork for parent %d to child %d\n",
                 parent_proc->getPid(), child_pid);
 
@@ -1223,7 +1247,8 @@ Handler::handler_ret_t HandlePostFork::handleEvent(Event::ptr ev)
        child_wrapper = Process::makeProcess(child_pid,
                           pc_const_cast<Process>(ev->getProcess()));
    }
-   int_process *child_proc = child_wrapper->llproc();
+   ProcImplRef child_proc_ref(child_wrapper);
+   int_process *child_proc = child_proc_ref.get();
 
    int_followFork *fork_proc = parent_proc->getFollowFork();
    if (fork_proc->fork_isTracking() == FollowFork::DisableBreakpointsDetach) {
@@ -1231,7 +1256,8 @@ Handler::handler_ret_t HandlePostFork::handleEvent(Event::ptr ev)
       ev->setSuppressCB(true);
    }
 
-   int_thread *thrd = ev->getThread()->llthrd();
+   ThreadImplRef thrd_ref(ev->getThread());
+   int_thread *thrd = thrd_ref.get();
    if (thrd && thrd->getPostponedSyscallState().isDesynced())
       thrd->getPostponedSyscallState().restoreState();
 
@@ -1258,8 +1284,10 @@ Handler::handler_ret_t HandlePostForkCont::handleEvent(Event::ptr ev)
    EventFork *efork = static_cast<EventFork *>(ev.get());
    Dyninst::PID child_pid = efork->getPID();
    Process::ptr child_wrapper = ProcPool()->findProcByPid(child_pid);
-   int_process *child_proc = child_wrapper ? child_wrapper->llproc() : NULL;
-   int_process *parent_proc = ev->getProcess()->llproc();
+   ProcImplRef child_proc_ref(child_wrapper);
+   int_process *child_proc = child_proc_ref.get();
+   ProcImplRef parent_proc_ref(ev->getProcess());
+   int_process *parent_proc = parent_proc_ref.get();
    pthrd_printf("Handling post-fork continue for child %d\n", child_pid);
    assert(child_proc);
 
@@ -1296,7 +1324,8 @@ void HandlePostExec::getEventTypesHandled(std::vector<EventType> &etypes)
 Handler::handler_ret_t HandlePostExec::handleEvent(Event::ptr ev)
 {
    EventExec *eexec = static_cast<EventExec *>(ev.get());
-   int_process *proc = ev->getProcess()->llproc();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
    pthrd_printf("Handling exec for process %d\n",
                 proc->getPid());
 
@@ -1325,8 +1354,10 @@ void HandleSingleStep::getEventTypesHandled(vector<EventType> &etypes)
 
 Handler::handler_ret_t HandleSingleStep::handleEvent(Event::ptr ev)
 {
-   int_process *proc = ev->getProcess()->llproc();
-   int_thread *thrd = ev->getThread() ? ev->getThread()->llthrd() : NULL;
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
+   ThreadImplRef thrd_ref(ev->getThread());
+   int_thread *thrd = thrd_ref.get();
    if (!proc || !thrd) {
       pthrd_printf("Single-step for exited process/thread; ignoring.\n");
       return ret_success;
@@ -1353,8 +1384,8 @@ void HandlePreSyscall::getEventTypesHandled(vector<EventType> &etypes)
 Handler::handler_ret_t HandlePreSyscall::handleEvent(Event::ptr ev)
 {
    pthrd_printf("Handling event pre-syscall on %d/%d\n", 
-                ev->getProcess()->llproc()->getPid(), 
-                ev->getThread()->llthrd()->getLWP());
+                ProcImplRef(ev->getProcess())->getPid(), 
+                ThreadImplRef(ev->getThread())->getLWP());
    return ret_success;
 }
 
@@ -1375,8 +1406,8 @@ void HandlePostSyscall::getEventTypesHandled(vector<EventType> &etypes)
 Handler::handler_ret_t HandlePostSyscall::handleEvent(Event::ptr ev)
 {
    pthrd_printf("Handling event post-syscall on %d/%d\n", 
-                ev->getProcess()->llproc()->getPid(), 
-                ev->getThread()->llthrd()->getLWP());
+                ProcImplRef(ev->getProcess())->getPid(), 
+                ThreadImplRef(ev->getThread())->getLWP());
    return ret_success;
 }
 
@@ -1401,8 +1432,10 @@ void HandleBreakpoint::getEventTypesHandled(vector<EventType> &etypes)
 
 Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
 {
-   int_process *proc = ev->getProcess()->llproc();
-   int_thread *thrd = ev->getThread()->llthrd();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
+   ThreadImplRef thrd_ref(ev->getThread());
+   int_thread *thrd = thrd_ref.get();
 
    if (!proc || !thrd) {
       // The process or thread was torn down (e.g. the mutatee exited) while
@@ -1607,9 +1640,9 @@ Handler::handler_ret_t HandleBreakpointContinue::handleEvent(Event::ptr ev)
       // down (mutatee exiting) while this continue was in flight, so fall
       // back to any live thread in the pool.  Only if the whole process is
       // gone (state trackers destroyed with it) is skipping safe.
-      int_thread *thrd = ebp->getThread() ? ebp->getThread()->llthrd() : NULL;
+      int_thread *thrd = ThreadImplRef(ebp->getThread()).get();
       if (!thrd) {
-         thrd = anyLiveThread(ev->getProcess() ? ev->getProcess()->llproc() : NULL);
+         thrd = anyLiveThread(ProcImplRef(ev->getProcess()).get());
          pthrd_printf("Breakpoint-continue: event thread exited; restoring "
                       "proc-wide hold via %s\n",
                       thrd ? "another live thread" : "nothing (process gone)");
@@ -1639,8 +1672,10 @@ void HandleBreakpointClear::getEventTypesHandled(vector<EventType> &etypes)
  **/
 Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
 {
-   int_process *proc = ev->getProcess()->llproc();
-   int_thread *thrd = ev->getThread()->llthrd();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
+   ThreadImplRef thrd_ref(ev->getThread());
+   int_thread *thrd = thrd_ref.get();
 
    if (!proc || !thrd) {
       // Thread (or process) torn down while this event was in flight.  If the
@@ -1769,8 +1804,10 @@ void HandleBreakpointRestore::getEventTypesHandled(vector<EventType> &etypes)
 
 Handler::handler_ret_t HandleBreakpointRestore::handleEvent(Event::ptr ev)
 {
-   int_process *proc = ev->getProcess()->llproc();
-   int_thread *thrd = ev->getThread()->llthrd();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
+   ThreadImplRef thrd_ref(ev->getThread());
+   int_thread *thrd = thrd_ref.get();
    if (!proc || !thrd) {
       // Thread (or process) torn down mid-restore.  The proc-wide
       // BreakpointResumeState desyncs taken when the breakpoint was cleared
@@ -1847,8 +1884,10 @@ void HandleEmulatedSingleStep::getEventTypesHandled(vector<EventType> &etypes)
 
 Handler::handler_ret_t HandleEmulatedSingleStep::handleEvent(Event::ptr ev)
 {
-   int_process *proc = ev->getProcess()->llproc();
-   int_thread *thrd = ev->getThread()->llthrd();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
+   ThreadImplRef thrd_ref(ev->getThread());
+   int_thread *thrd = thrd_ref.get();
 
    if (!proc || !thrd) {
       // The process or thread was torn down (e.g. the mutatee exited) while
@@ -1915,7 +1954,7 @@ Handler::handler_ret_t HandleLibrary::handleEvent(Event::ptr ev)
 		   lib != lev->libsAdded().end();
 		   ++lib)
 	   {
-              ev->getProcess()->llproc()->memory()->addLibrary((*lib)->debug());
+              ProcImplRef(ev->getProcess())->memory()->addLibrary((*lib)->debug());
 	   }
    }
    if(!lev->libsRemoved().empty())
@@ -1925,13 +1964,14 @@ Handler::handler_ret_t HandleLibrary::handleEvent(Event::ptr ev)
 		   lib != lev->libsRemoved().end();
 		   ++lib)
 	   {
-              ev->getProcess()->llproc()->memory()->rmLibrary((*lib)->debug());
+              ProcImplRef(ev->getProcess())->memory()->rmLibrary((*lib)->debug());
 	   }
    }
    if(!lev->libsAdded().empty() || !lev->libsRemoved().empty())
 	   return ret_success;
 
-   int_process *proc = ev->getProcess()->llproc();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
    set<int_library *> ll_added, ll_rmd;
    set<response::ptr> async_responses;
    bool async_pending = false;
@@ -1980,7 +2020,8 @@ HandleDetach::~HandleDetach()
    
 Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
 {
-   int_process *proc = ev->getProcess()->llproc();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
    EventDetach::ptr detach_ev = ev->getEventDetach();
    int_eventDetach *int_detach_ev = detach_ev->getInternal();
    bool temporary = int_detach_ev->temporary_detach;
@@ -2098,10 +2139,10 @@ Handler::handler_ret_t HandleAsync::handleEvent(Event::ptr ev)
 
    pthrd_printf("Handling %lu async event(s) on %d/%d\n", 
                 (unsigned long) resps.size(),
-                eAsync->getProcess()->llproc()->getPid(),
-                eAsync->getThread()->llthrd()->getLWP());
+                ProcImplRef(eAsync->getProcess())->getPid(),
+                ThreadImplRef(eAsync->getThread())->getLWP());
 
-   assert(eAsync->getProcess()->llproc()->plat_needsAsyncIO());
+   assert(ProcImplRef(eAsync->getProcess())->plat_needsAsyncIO());
    for (set<response::ptr>::iterator i = resps.begin(); i != resps.end(); i++) {
       response::ptr resp = *i;
       resp->markReady();
@@ -2160,7 +2201,8 @@ Handler::handler_ret_t HandleAsyncFileRead::handleEvent(Event::ptr ev)
    EventAsyncFileRead::ptr fileev = ev->getEventAsyncFileRead();
    assert(fileev);
    int_eventAsyncFileRead *iev = fileev->getInternal();
-   int_process *proc = ev->getProcess()->llproc();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
    
    if (iev->resp)
       delete iev->resp;
@@ -2256,8 +2298,9 @@ bool HandleCallbacks::requiresCB(Event::const_ptr ev)
 Handler::handler_ret_t HandleCallbacks::handleEvent(Event::ptr ev)
 {
    int_thread *thr = NULL;
-   if(ev->getThread()) thr = ev->getThread()->llthrd();
-   int_process *proc = ev->getProcess()->llproc();
+   if(ev->getThread()) thr = ThreadImplRef(ev->getThread()).get();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
    
    if (ev->noted_event) {
       //Reset the event status here if the callback already had a delivery attempt
@@ -2337,28 +2380,28 @@ bool HandleCallbacks::handleCBReturn(Process::const_ptr proc, Thread::const_ptr 
                                      Process::cb_action_t ret)
 {
    if (!thrd) {
-      thrd = proc->llproc()->threadPool()->initialThreadWrapper();
+      thrd = ProcImplRef(proc)->threadPool()->initialThreadWrapper();
    }
    switch (ret) {
       case Process::cbThreadContinue:
-		  if (!thrd->llthrd()->isUser()) break;
+		  if (!ThreadImplRef(thrd)->isUser()) break;
 		  if (thrd == Thread::const_ptr()) {
             perr_printf("User returned invalid action %s for event\n", 
                         action_str(ret));
             return false;
          }
          pthrd_printf("Callbacks returned thread continue\n");
-         thrd->llthrd()->getUserState().setState(int_thread::running);
+         ThreadImplRef(thrd)->getUserState().setState(int_thread::running);
          break;
       case Process::cbThreadStop:
-		  if (!thrd->llthrd()->isUser()) break;
+		  if (!ThreadImplRef(thrd)->isUser()) break;
          if (thrd == Thread::const_ptr()) {
             perr_printf("User returned invalid action %s for event\n", 
                         action_str(ret));
             return false;
          }
          pthrd_printf("Callbacks returned thread stop\n");
-         thrd->llthrd()->getUserState().setState(int_thread::stopped);
+         ThreadImplRef(thrd)->getUserState().setState(int_thread::stopped);
          break;
       case Process::cbProcContinue: {
          if (proc == Process::const_ptr()) {
@@ -2367,7 +2410,7 @@ bool HandleCallbacks::handleCBReturn(Process::const_ptr proc, Thread::const_ptr 
             return false;
          }
          pthrd_printf("Callbacks returned process continue\n");
-         thrd->llthrd()->getUserState().setStateProc(int_thread::running);
+         ThreadImplRef(thrd)->getUserState().setStateProc(int_thread::running);
          break;
       }
       case Process::cbProcStop: {
@@ -2377,7 +2420,7 @@ bool HandleCallbacks::handleCBReturn(Process::const_ptr proc, Thread::const_ptr 
             return false;
          }
          pthrd_printf("Callbacks returned process stop\n");
-         thrd->llthrd()->getUserState().setStateProc(int_thread::stopped);
+         ThreadImplRef(thrd)->getUserState().setStateProc(int_thread::stopped);
          break;
       }
       case Process::cbDefault:
@@ -2390,8 +2433,10 @@ bool HandleCallbacks::handleCBReturn(Process::const_ptr proc, Thread::const_ptr 
 Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_t> &cbset)
 {
    //We want the thread to remain in its appropriate state while the CB is in flight.
-	int_thread *thr = ev->getThread() ? ev->getThread()->llthrd() : NULL;
-   int_process *proc = ev->getProcess()->llproc();
+	ThreadImplRef thr_ref(ev->getThread());
+	int_thread *thr = thr_ref.get();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
    assert(proc);
 
    pthrd_printf("Changing callback state of %d before CB\n", proc->getPid());
@@ -2411,7 +2456,7 @@ Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set
    // But if this is a PostCrash or PostExit, the underlying process and
    // threads are already gone and thus no operations on them really make sense
    if (!ev->getProcess()->isTerminated()) {
-      ev->getProcess()->llproc()->threadPool()->saveUserState(ev);
+      ProcImplRef(ev->getProcess())->threadPool()->saveUserState(ev);
    }
 
    //The following code loops over each callback registered for this event type
@@ -2437,7 +2482,9 @@ Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set
    }
 
    // Don't allow the user to change the state of forced terminated processes 
-   if( ev->getProcess()->llproc() && ev->getProcess()->llproc()->wasForcedTerminated() ) {
+   ProcImplRef cbproc_ref(ev->getProcess());
+   int_process *cbproc = cbproc_ref.get();
+   if( cbproc && cbproc->wasForcedTerminated() ) {
       pthrd_printf("Process is in forced termination, overriding result to cbThreadContinue\n");
       parent_result = Process::cbThreadContinue;
       child_result = Process::cbDefault;
@@ -2446,9 +2493,9 @@ Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set
    // Now that the callback is over, return the state to what it was before the
    // callback so the return value from the callback can be used to update the state
    if (!ev->getProcess()->isTerminated()) {
-      ev->getProcess()->llproc()->threadPool()->restoreUserState();
+      ProcImplRef(ev->getProcess())->threadPool()->restoreUserState();
       
-      if (ev->getThread()->llthrd() != NULL) {
+      if (ThreadImplRef(ev->getThread()).get() != NULL) {
          //Given the callback return result, change the user state to the appropriate
          // setting.
          pthrd_printf("Handling return value for main process\n");
@@ -2676,7 +2723,8 @@ void HandlePostponedSyscall::getEventTypesHandled(vector<EventType> &etypes)
 
 Handler::handler_ret_t HandlePostponedSyscall::handleEvent(Event::ptr ev)
 {
-   int_thread *thrd = ev->getThread()->llthrd();
+   ThreadImplRef thrd_ref(ev->getThread());
+   int_thread *thrd = thrd_ref.get();
    thrd->getPostponedSyscallState().desyncState(int_thread::running);
    return ret_success;
 }
