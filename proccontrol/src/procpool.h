@@ -66,14 +66,21 @@ class ProcessPool
    std::set<Dyninst::LWP> deadThreads;
    std::map<Dyninst::PID, Dyninst::ProcControlAPI::Process::ptr> procs;
    std::map<Dyninst::LWP, Dyninst::ProcControlAPI::Thread::ptr> lwps;
-   // PROTOTYPE: the old code resolved impl->wrapper via a lock-free field
-   // read (up_proc/up_thread); the pool's maps are read from threads that do
-   // NOT all hold the ProcPool condvar (e.g. the generator's decoder), so
-   // the maps get their own leaf-level recursive mutex.  Recursive because
-   // destroy-side helpers nest rmProcess/rmThread.
-   Mutex<true> map_lock;
+   // map_lock is the sole guardian of procs/lwps/deadThreads (see the
+   // discipline note in procpool.C).  Leaf lock: held only for a container
+   // op, never across a wait/callback/delete/other-lock, so it can be plain
+   // (non-recursive) -- public methods take it once and delegate to the
+   // _nolock helpers below, which is where the methods reach each other.
+   Mutex<> map_lock;
    ProcessPool();
    CondVar<> var;
+
+   // Container primitives; callers must hold map_lock.
+   Dyninst::ProcControlAPI::Process::ptr findProcByPid_nolock(Dyninst::PID pid);
+   Dyninst::ProcControlAPI::Thread::ptr findThread_nolock(Dyninst::LWP lwp);
+   void rmProcess_nolock(Dyninst::ProcControlAPI::Process::ptr proc);
+   void rmThread_nolock(Dyninst::ProcControlAPI::Thread::ptr thr);
+   void addDeadThread_nolock(Dyninst::LWP lwp);
  public:
    ~ProcessPool();
    typedef bool(*ifunc)(int_process *, void *data);
