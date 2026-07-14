@@ -73,6 +73,22 @@ typedef std::multimap<Dyninst::Address, Dyninst::ProcControlAPI::Process::ptr> i
 typedef std::set<Dyninst::ProcControlAPI::Process::ptr> int_processSet;
 typedef std::set<Dyninst::ProcControlAPI::Thread::ptr> int_threadSet;
 
+// RAII per-process migration lock (work_lock retirement, design 1).
+// Null-tolerant, and it pins the Process wrapper (holds a Process::ptr) for
+// the lock's lifetime so the mutex -- which lives on the wrapper -- cannot be
+// freed while held.  Ordering: work_lock > ProcPool condvar > proc_lock >
+// map_lock.  Use procWrapperInternal() (lock-free), never getProcess()
+// (which takes an MTLock/work_lock and would invert under the condvar).
+struct ProcScopeLock {
+   Dyninst::ProcControlAPI::Process::ptr p_;
+   Mutex<true> *m_;
+   explicit ProcScopeLock(Dyninst::ProcControlAPI::Process::ptr p)
+      : p_(p), m_(p ? p->procLock() : NULL) { if (m_) m_->lock(); }
+   ~ProcScopeLock() { if (m_) m_->unlock(); }
+   ProcScopeLock(const ProcScopeLock &) = delete;
+   ProcScopeLock &operator=(const ProcScopeLock &) = delete;
+};
+
 typedef boost::shared_ptr<int_iRPC> int_iRPC_ptr;
 typedef std::map<Dyninst::MachRegister, std::pair<unsigned int, unsigned int> > dynreg_to_user_t;
 

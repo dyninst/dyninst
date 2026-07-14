@@ -308,6 +308,14 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
    linux_process *lproc = NULL;
    Thread::ptr thread_wrapper = ProcPool()->findThread(archevent->pid);
    int_thread *thread = thread_wrapper ? thread_wrapper->llthrd() : NULL;
+   // Step 2 (work_lock retirement): hold the decoded process's proc_lock
+   // across the whole decode, so the generator and the handler's destroy are
+   // mutually exclusive on this process -- closing the generator/handler
+   // use-vs-delete race.  Lock-free wrapper lookup (never getProcess(), which
+   // would take an MTLock under the condvar and invert).  Null-tolerant for
+   // events whose process is unknown or already gone.
+   ProcScopeLock decode_plock(thread_wrapper ? thread_wrapper->procWrapperInternal()
+                                             : Process::ptr());
    linux_thread *lthread = NULL;
    if (thread) {
       proc = thread->llproc();
