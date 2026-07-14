@@ -1483,7 +1483,8 @@ void int_process::initializeProcess(Process::ptr p)
    // known gap of this prototype.
    if (pid != 0)
       ProcPool()->addProcess(p);
-   threadpool = new int_threadPool(this);
+   p->threadpool_ = new int_threadPool(this);   // wrapper owns it
+   threadpool = p->threadpool_;                 // impl keeps a raw cache
    handlerpool = createDefaultHandlerPool(this);
    libpool.proc = this;
    if (!mem)
@@ -2506,10 +2507,11 @@ int_process::~int_process()
    // PROTOTYPE (wrapper-centric deletion): all pool interaction (publish,
    // sever, unregister) happened in int_process::destroy before delete.
 
-   if (threadpool) {
-      delete threadpool;
-      threadpool = NULL;
-   }
+   // The Process wrapper owns the threadpool now; don't delete it here.
+   // Just sever the pool's back-pointer so it can't dangle to this dying
+   // impl (the pool outlives us).
+   if (threadpool)
+      threadpool->clearProc();
 
    //Do not delete handlerpool yet, we're currently under
    // an event handler.  We do want to delete this if called
@@ -4705,6 +4707,11 @@ int_process *int_threadPool::proc() const
    return proc_;
 }
 
+void int_threadPool::clearProc()
+{
+   proc_ = NULL;
+}
+
 unsigned int_threadPool::size() const
 {
    return threads.size();
@@ -6408,7 +6415,8 @@ Process::ptr Process::attachProcess(Dyninst::PID pid, std::string executable)
 Process::Process() :
    llproc_(NULL),
    exitstate_(NULL),
-   proc_lock_(new Mutex<true>())
+   proc_lock_(new Mutex<true>()),
+   threadpool_(NULL)
 {
 }
 
@@ -6420,6 +6428,10 @@ Process::~Process()
    }
    delete proc_lock_;
    proc_lock_ = NULL;
+   if (threadpool_) {
+      delete threadpool_;   // frees the container (+ its public ThreadPool)
+      threadpool_ = NULL;
+   }
 }
 
 void *Process::getData() const {
@@ -6455,32 +6467,28 @@ const ThreadPool &Process::threads() const
 {
    MTLock lock_this_func;
    static ThreadPool *err_pool;
-   if (!llproc_) {
-      perr_printf("threads on deleted process\n");
+   // The wrapper owns the pool, so this stays valid after the process exits
+   // (the pool is empty then, but a real pool, not an error sentinel).
+   if (!threadpool_) {
+      perr_printf("threads on uninitialized process\n");
       setLastError(err_exited, "Process is exited\n");
-      if (!err_pool) {
-         err_pool = new ThreadPool();
-      }
+      if (!err_pool) err_pool = new ThreadPool();
       return *err_pool;
    }
-
-   return *(llproc_->threadPool()->pool());
+   return *(threadpool_->pool());
 }
 
 ThreadPool &Process::threads()
 {
    MTLock lock_this_func;
    static ThreadPool *err_pool;
-   if (!llproc_) {
-      perr_printf("threads on deleted process\n");
+   if (!threadpool_) {
+      perr_printf("threads on uninitialized process\n");
       setLastError(err_exited, "Process is exited\n");
-      if (!err_pool) {
-         err_pool = new ThreadPool();
-      }
+      if (!err_pool) err_pool = new ThreadPool();
       return *err_pool;
    }
-
-   return *(llproc_->threadPool()->pool());
+   return *(threadpool_->pool());
 }
 
 const LibraryPool &Process::libraries() const
@@ -8331,6 +8339,8 @@ Process::const_ptr ThreadPool::getProcess() const
    Thread::ptr itw = threadpool->initialThreadWrapper();
    if (itw && itw->procWrapperInternal())
       return itw->procWrapperInternal();
+   if (!threadpool->proc())
+      return Process::ptr();   // process exited; pool back-ref severed
    return threadpool->proc()->proc();
 }
 
@@ -8340,6 +8350,8 @@ Process::ptr ThreadPool::getProcess()
    Thread::ptr itw = threadpool->initialThreadWrapper();
    if (itw && itw->procWrapperInternal())
       return itw->procWrapperInternal();
+   if (!threadpool->proc())
+      return Process::ptr();   // process exited; pool back-ref severed
    return threadpool->proc()->proc();
 }
 

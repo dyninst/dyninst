@@ -590,6 +590,8 @@ class int_process
    // PROTOTYPE (pool-owns-wrapper): no up_proc.  The canonical wrapper is
    // held by ProcessPool for the session; resolve it via proc()
    // (ProcPool()->wrapperFor(this)).
+   // NOTE: `threadpool` above is a raw, NON-owning cache -- the Process
+   // wrapper owns the int_threadPool (see Process::threadpool_).
    HandlerPool *handlerpool;
    LibraryPool libpool;
    bool hasCrashSignal;
@@ -1200,6 +1202,9 @@ class int_threadPool {
    // thread is unregistered from the global ProcessPool.
    Thread::ptr hlFor(int_thread *thr);
    Thread::ptr initialThreadWrapper();
+   // Sever the pool's back-pointer to its int_process when that impl is
+   // destroyed (the pool, owned by the Process wrapper, outlives it).
+   void clearProc();
    // Publish exit state, sever, and delete every impl still in this pool
    // (proc wrapper passed down), then clear.  With wrapper-only storage the
    // impls are unreachable after severing, so deletion must ride in the
