@@ -71,7 +71,7 @@ response::response() :
    isSyncHandled(false),
    error(false),
    errorcode(0),
-   proc(NULL),
+   proc(),
    aio(NULL),
    resp_type((resp_type_t)-1),
    decoder_event(NULL),
@@ -229,12 +229,14 @@ ArchEvent *response::getDecoderEvent()
 
 int_process *response::getProcess() const
 {
-  return proc;
+  // Transient deref: NULL iff the process died while this response was
+  // pending -- a checkable condition, not freed memory.
+  return proc ? proc->llproc() : NULL;
 }
 
 void response::setProcess(int_process *p)
 {
-  proc = p;
+  proc = p ? p->proc() : Process::ptr();
 }
 
 result_response::ptr response::getResultResponse()
@@ -464,7 +466,7 @@ reg_response::ptr reg_response::createRegResponse()
 
 reg_response::reg_response() :
    val(0),
-   thr(NULL)
+   thr()
 {
    resp_type = rt_reg;
 }
@@ -476,7 +478,7 @@ reg_response::~reg_response()
 void reg_response::setRegThread(Dyninst::MachRegister r, int_thread *t)
 {
    reg = r;
-   thr = t;
+   thr = t ? t->thread() : Thread::ptr();
 }
 
 void reg_response::setResponse(Dyninst::MachRegisterVal v)
@@ -488,7 +490,8 @@ void reg_response::setResponse(Dyninst::MachRegisterVal v)
 void reg_response::postResponse(Dyninst::MachRegisterVal v)
 {
    assert(reg && thr);
-   thr->updateRegCache(reg, v);
+   if (thr->llthrd())
+      thr->llthrd()->updateRegCache(reg, v);   // dead thread: nothing to cache
    val = v;
 }
 
@@ -510,7 +513,7 @@ allreg_response::ptr allreg_response::createAllRegResponse(int_registerPool *reg
 
 allreg_response::allreg_response() :
    regpool(NULL),
-   thr(NULL)
+   thr()
 {
    resp_type = rt_allreg;
 }
@@ -521,7 +524,7 @@ allreg_response::~allreg_response()
 
 void allreg_response::setThread(int_thread *t)
 {
-   thr = t;
+   thr = t ? t->thread() : Thread::ptr();
 }
 
 void allreg_response::setRegPool(int_registerPool *p)
@@ -542,7 +545,8 @@ void allreg_response::postResponse()
       multi_resp_recvd++;
    }
    if (isMultiResponseComplete()) {
-      thr->updateRegCache(*regpool);
+      if (thr->llthrd())
+         thr->llthrd()->updateRegCache(*regpool);
    }
 }
 
@@ -666,7 +670,7 @@ stack_response::ptr stack_response::createStackResponse(int_thread *t)
 
 stack_response::stack_response(int_thread *t) :
    data(NULL),
-   thr(t)
+   thr(t ? t->thread() : Thread::ptr())
 {
    resp_type = rt_stack;
 }
@@ -682,7 +686,7 @@ void *stack_response::getData()
 
 int_thread *stack_response::getThread()
 {
-   return thr;
+   return thr ? thr->llthrd() : NULL;
 }
 
 void stack_response::postResponse(void *d)
