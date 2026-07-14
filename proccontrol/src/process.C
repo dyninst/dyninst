@@ -821,9 +821,17 @@ int_threadPool *int_process::threadPool() const
 
 Process::ptr int_process::proc() const
 {
-   // Top-down refactor: no impl caches its wrapper, so impl->wrapper
-   // resolution goes through the pool registry.  Hot paths never reach here
-   // -- they carry the Process::ptr with the control flow (events stamp it).
+   // Fast path: the initial thread's wrapper carries a weak cache of the
+   // process wrapper (lock-free).  Fall back to the pool registry for
+   // pre-thread bootstrap windows.
+   if (threadpool) {
+      Thread::ptr itw = threadpool->initialThreadWrapper();
+      if (itw) {
+         Process::ptr pw = itw->procWrapper();
+         if (pw)
+            return pw;
+      }
+   }
    return ProcPool()->wrapperFor(const_cast<int_process *>(this));
 }
 
@@ -3243,9 +3251,17 @@ void int_thread::setRunningWhenAttached(bool b) {
 
 Process::ptr int_thread::proc() const
 {
-   // Top-down refactor: resolve the process wrapper through the pool (no
-   // cached up-pointer on the thread).  Hot paths carry the Process::ptr and
-   // never reach here.
+   // Fast path: this thread's wrapper carries a weak cache of its process
+   // wrapper (lock-free).  Fall back to the pool registry for pre-seed
+   // bootstrap windows.
+   if (proc_ && proc_->threadPool()) {
+      Thread::ptr tw = proc_->threadPool()->hlFor(const_cast<int_thread *>(this));
+      if (tw) {
+         Process::ptr pw = tw->procWrapper();
+         if (pw)
+            return pw;
+      }
+   }
    return ProcPool()->wrapperFor(proc_);
 }
 
@@ -7505,6 +7521,9 @@ Process::const_ptr Thread::getProcess() const
       assert(exitstate_);
       return exitstate_->proc_ptr;
    }
+   Process::ptr pw = procWrapper();
+   if (pw)
+      return pw;
    return llthread_->proc();
 }
 
@@ -7515,6 +7534,9 @@ Process::ptr Thread::getProcess()
       assert(exitstate_);
       return exitstate_->proc_ptr;
    }
+   Process::ptr pw = procWrapper();
+   if (pw)
+      return pw;
    return llthread_->proc();
 }
 

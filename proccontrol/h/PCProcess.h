@@ -599,6 +599,14 @@ class DYNINST_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    friend class ::int_threadPool;
    friend class ::ProcessPool;
    int_thread *llthread_;
+   // Non-owning cache of the owning process's wrapper, seeded once by
+   // ProcessPool::addThread.  A wrapper->wrapper edge (no impl names a
+   // wrapper) that is WEAK on purpose: it cannot keep the Process alive, so
+   // there is no Process<->threads cycle -- a permanently detached process
+   // still destructs when the last user reference drops.  lock() is the
+   // lock-free thread->process fast path; the ProcessPool registry
+   // (wrapperFor) is the cold fallback.
+   Process::weak_ptr proc_wrapper_;
    thread_exitstate *exitstate_;
 
    Thread();
@@ -615,10 +623,11 @@ class DYNINST_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    // PROTOTYPE (pool-owns-wrapper): severs the wrapper->impl link at the
    // detach point (ProcessPool::rmThread).  Internal use only.
    void clearLLThread() { llthread_ = NULL; }
-   // Top-down refactor: the thread wrapper no longer caches its process
-   // wrapper.  thread->process resolution goes through the impl
-   // (llthrd()->proc(), i.e. ProcessPool::wrapperFor), and hot paths carry
-   // the Process::ptr with the control flow (events stamp it directly).
+   // Lock-free thread->process fast path (safe from the generator: reads the
+   // weak cache only, never the impl).  Returns NULL once the Process wrapper
+   // is destructing/destroyed -- callers fall back to the pool registry or
+   // treat the process as gone.  Internal use only.
+   Process::ptr procWrapper() const { return proc_wrapper_.lock(); }
 
    // Wrapper-layer thread factory (mirror of Process::makeProcess): builds
    // the int_thread + its Thread wrapper, registers with the ProcessPool and
