@@ -6408,7 +6408,8 @@ Process::ptr Process::attachProcess(Dyninst::PID pid, std::string executable)
 
 Process::Process() :
    llproc_(NULL),
-   exitstate_(NULL)
+   exitstate_(NULL),
+   proc_lock_(new Mutex<true>())
 {
 }
 
@@ -6418,6 +6419,8 @@ Process::~Process()
       delete exitstate_;
       exitstate_ = NULL;
    }
+   delete proc_lock_;
+   proc_lock_ = NULL;
 }
 
 void *Process::getData() const {
