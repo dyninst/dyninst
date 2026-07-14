@@ -300,6 +300,13 @@ class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
    // multiple processes are locked in ascending-pid order.  Held by a
    // pointer to keep dthread.h off this (very widely included) header.
    Mutex<true> *proc_lock_;
+   // The Process wrapper OWNS the int_threadPool (container of Thread::ptr).
+   // int_process keeps a raw, non-owning cache of it for hot access; since
+   // the wrapper outlives the impl, the pool (and Process::threads()) stays
+   // valid after the process exits.  Thread teardown is still deterministic
+   // at exit (destroyProcess); only the container's lifetime is the
+   // wrapper's.
+   int_threadPool *threadpool_;
 
    Process();
    ~Process();
