@@ -77,7 +77,7 @@ bool LibraryTracking::getTrackLibraries() const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getTrackLibraries", false);
-   int_libraryTracking *llproc = p->llproc()->getLibraryTracking();
+   int_libraryTracking *llproc = ProcImplRef(p)->getLibraryTracking();
    assert(llproc);
    return llproc->isTrackingLibraries();
 }
@@ -129,7 +129,7 @@ bool ThreadTracking::getTrackThreads() const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    assert(p);
-   int_threadTracking *llproc = p->llproc()->getThreadTracking();
+   int_threadTracking *llproc = ProcImplRef(p)->getThreadTracking();
    assert(llproc);
    return llproc->isTrackingThreads();
 }
@@ -175,7 +175,7 @@ void LWPTracking::setTrackLWPs(bool b) const
       globalSetLastError(err_exited, "Process is exited\n");
       return;
    }
-   int_LWPTracking *llproc = p->llproc()->getLWPTracking();;
+   int_LWPTracking *llproc = ProcImplRef(p)->getLWPTracking();;
    llproc->lwp_setTracking(b);
 }
 
@@ -184,7 +184,7 @@ bool LWPTracking::getTrackLWPs() const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getTrackLWPs", false);
-   int_LWPTracking *llproc = p->llproc()->getLWPTracking();;
+   int_LWPTracking *llproc = ProcImplRef(p)->getLWPTracking();;
    return llproc->lwp_getTracking();
 }
 
@@ -193,7 +193,7 @@ bool LWPTracking::refreshLWPs()
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "refreshLWPs", false);
-   int_LWPTracking *llproc = p->llproc()->getLWPTracking();;
+   int_LWPTracking *llproc = ProcImplRef(p)->getLWPTracking();;
    return llproc->lwp_refresh();
 }
 
@@ -225,7 +225,7 @@ bool FollowFork::setFollowFork(FollowFork::follow_t f) const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "setFollowFork", false);
-   int_followFork *llproc = p->llproc()->getFollowFork();
+   int_followFork *llproc = ProcImplRef(p)->getFollowFork();
    return llproc->fork_setTracking(f);
 }
 
@@ -234,7 +234,7 @@ FollowFork::follow_t FollowFork::getFollowFork() const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "setFollowFork", None);
-   int_followFork *llproc = p->llproc()->getFollowFork();
+   int_followFork *llproc = ProcImplRef(p)->getFollowFork();
    return llproc->fork_isTracking();
 }
 
@@ -311,7 +311,7 @@ std::string MultiToolControl::getToolName() const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getToolName", string());
-   int_multiToolControl *llproc = p->llproc()->getMultiToolControl();
+   int_multiToolControl *llproc = ProcImplRef(p)->getMultiToolControl();
    return llproc->mtool_getName();
 }
 
@@ -320,7 +320,7 @@ MultiToolControl::priority_t MultiToolControl::getToolPriority() const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getToolPriority", 0);
-   int_multiToolControl *llproc = p->llproc()->getMultiToolControl();
+   int_multiToolControl *llproc = ProcImplRef(p)->getMultiToolControl();
    return llproc->mtool_getPriority();
 }
 
@@ -339,7 +339,7 @@ bool MemoryUsage::sharedUsed(unsigned long &used) const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "sharedUsed", false);
-   int_memUsage *llproc = p->llproc()->getMemUsage();
+   int_memUsage *llproc = ProcImplRef(p)->getMemUsage();
    unsigned long val;
 
    MemUsageResp_t mem_response(&val, llproc);
@@ -359,7 +359,7 @@ bool MemoryUsage::heapUsed(unsigned long &used) const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "heapUsed", false);
-   int_memUsage *llproc = p->llproc()->getMemUsage();
+   int_memUsage *llproc = ProcImplRef(p)->getMemUsage();
    unsigned long val;
 
    MemUsageResp_t mem_response(&val, llproc);
@@ -379,7 +379,7 @@ bool MemoryUsage::stackUsed(unsigned long &used) const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "stackUsed", false);
-   int_memUsage *llproc = p->llproc()->getMemUsage();
+   int_memUsage *llproc = ProcImplRef(p)->getMemUsage();
    unsigned long val;
 
    MemUsageResp_t mem_response(&val, llproc);
@@ -399,7 +399,7 @@ bool MemoryUsage::resident(unsigned long &resident) const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "resident", false);
-   int_memUsage *llproc = p->llproc()->getMemUsage();
+   int_memUsage *llproc = ProcImplRef(p)->getMemUsage();
 
    if (!llproc->plat_residentNeedsMemVals()) {
       unsigned long val;
@@ -474,7 +474,7 @@ dyn_sigset_t SignalMask::getSigMask() const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getSigMask", SignalMask::default_sigset);
-   int_signalMask *llproc = p->llproc()->getSignalMask();
+   int_signalMask *llproc = ProcImplRef(p)->getSignalMask();
    return llproc->getSigMask();
 }
 
@@ -483,7 +483,7 @@ bool SignalMask::setSigMask(dyn_sigset_t s)
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getSigMask", false);
-   int_signalMask *llproc = p->llproc()->getSignalMask();
+   int_signalMask *llproc = ProcImplRef(p)->getSignalMask();
    llproc->setSigMask(s);
    return true;
 }
@@ -591,7 +591,7 @@ bool RemoteIO::getFileNames(FileSet *fset) const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getFileNames", false);
-   int_remoteIO *remoteIO = p->llproc()->getRemoteIO();
+   int_remoteIO *remoteIO = ProcImplRef(p)->getRemoteIO();
    return remoteIO->getFileNames(fset);
 }
 
@@ -600,7 +600,7 @@ bool RemoteIO::getFileStatData(FileSet *fset) const
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getStatData", false);
-   int_remoteIO *remoteIO = p->llproc()->getRemoteIO();
+   int_remoteIO *remoteIO = ProcImplRef(p)->getRemoteIO();
    return remoteIO->getFileStatData(*fset);
 }
 
@@ -609,7 +609,7 @@ bool RemoteIO::readFileContents(const FileSet *fset)
    MTLock lock_this_func;
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getStatData", false);
-   int_remoteIO *remoteIO = p->llproc()->getRemoteIO();
+   int_remoteIO *remoteIO = ProcImplRef(p)->getRemoteIO();
    return remoteIO->getFileDataAsync(*fset);
 }
 
@@ -820,7 +820,7 @@ bool int_LWPTracking::lwp_refreshCheck(bool &change)
          continue;
       pthrd_printf("Found new thread %d/%d during refresh\n", getPid(), lwp);
       Thread::ptr tw = Thread::makeThread(this, NULL_THR_ID, *i, false, int_thread::as_needs_attach);
-      thr = tw ? tw->llthrd() : NULL;
+      thr = tw ? ThreadImplRef(tw).get() : NULL;
       new_lwps_found++;
       change = true;
       plat_lwpRefreshNoteNewThread(thr);
@@ -1044,7 +1044,7 @@ bool int_remoteIO::getFileStatData(FileSet &files)
    for (FileSet::iterator i = files.begin(); i != files.end(); i++) {
       if (static_cast<int_process *>(this) != i->first->llproc()) {
          perr_printf("Non-local process in fileset, %d specified for %d\n",
-                     i->first->llproc()->getPid(), getPid());
+                     ProcImplRef(i->first)->getPid(), getPid());
          setLastError(err_badparam, "Non-local process specified in FileSet");
          had_error = true;
          continue;
@@ -1084,7 +1084,7 @@ bool int_remoteIO::getFileDataAsync(const FileSet &files)
       int_fileInfo_ptr fi = i->second.getInfo();
       if (static_cast<int_process *>(this) != i->first->llproc()) {
          perr_printf("Non-local process in fileset, %d specified for %d\n",
-                     i->first->llproc()->getPid(), getPid());
+                     ProcImplRef(i->first)->getPid(), getPid());
          setLastError(err_badparam, "Non-local process specified in FileSet\n");
          had_error = true;
          continue;
