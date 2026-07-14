@@ -917,7 +917,8 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
       EventNewLWP::ptr lwp_create = ev->getEventNewLWP();
       astatus = lwp_create->getInternalEvent()->attach_status;
    }
-   int_thread *newthr = int_thread::createThread(proc, NULL_THR_ID, threadev->getLWP(), false, astatus);
+   Thread::ptr newthr_wrapper = Thread::makeThread(proc, NULL_THR_ID, threadev->getLWP(), false, astatus);
+   int_thread *newthr = newthr_wrapper ? newthr_wrapper->llthrd() : NULL;
 
    newthr->getGeneratorState().setState(int_thread::stopped);
    newthr->getHandlerState().setState(int_thread::stopped);
@@ -1218,10 +1219,11 @@ Handler::handler_ret_t HandlePostFork::handleEvent(Event::ptr ev)
                 parent_proc->getPid(), child_pid);
 
    Process::ptr child_wrapper = ProcPool()->findProcByPid(child_pid);
-   int_process *child_proc = child_wrapper ? child_wrapper->llproc() : NULL;
-   if( child_proc == NULL ) {
-       child_proc = int_process::createProcess(child_pid, parent_proc);
+   if( !child_wrapper ) {
+       child_wrapper = Process::makeProcess(child_pid,
+                          pc_const_cast<Process>(ev->getProcess()));
    }
+   int_process *child_proc = child_wrapper->llproc();
 
    int_followFork *fork_proc = parent_proc->getFollowFork();
    if (fork_proc->fork_isTracking() == FollowFork::DisableBreakpointsDetach) {

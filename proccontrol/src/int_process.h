@@ -255,6 +255,7 @@ class int_process
 {
    friend class Dyninst::ProcControlAPI::Process;
    friend class Dyninst::ProcControlAPI::ProcessSet;
+   friend class ::ProcessPool;
  protected:
    int_process(Dyninst::PID p, std::string e, std::vector<std::string> a,
            std::vector<std::string> envp, std::map<int,int> f);
@@ -266,11 +267,12 @@ class int_process
    static int_process *createProcess(Dyninst::PID pid_, int_process *p);
    virtual ~int_process();
  protected:
-   static bool create(int_processSet *ps);
+   // create()/attach() orchestration moved to ProcessPool (post-creation
+   // bootstrap belongs to the lifecycle owner).  plat_create/post_create
+   // remain here as the per-process impl primitives they drive.
    virtual bool plat_create() = 0;
    virtual async_ret_t post_create(std::set<response::ptr> &async_responses);
 
-   static bool attach(int_processSet *ps, bool reattach);
    static bool reattach(int_processSet *pset);
    virtual bool plat_attach(bool allStopped, bool &should_sync) = 0;
 
@@ -751,11 +753,9 @@ public:
       as_needs_attach          // however they want.
    };
 
-   static int_thread *createThread(int_process *proc,
-                                   Dyninst::THR_ID thr_id,
-                                   Dyninst::LWP lwp_id,
-                                   bool initial_thrd,
-                                   attach_status_t astatus = as_unknown);
+   // createThread moved to Thread::makeThread (wrapper-layer factory).
+   // createThreadPlat (above) remains as the impl-construction primitive it
+   // calls -- the thread analogue of int_process::createProcess.
    static int_thread *createRPCThread(int_process *p);
    Process::ptr proc() const;
    int_process *llproc() const;

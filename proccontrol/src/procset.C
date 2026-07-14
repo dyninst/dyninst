@@ -784,15 +784,13 @@ ProcessSet::ptr ProcessSet::createProcessSet(vector<CreateInfo> &cinfo)
 
    pthrd_printf("Creating new process objects\n");
    for (vector<CreateInfo>::iterator i = cinfo.begin(); i != cinfo.end(); i++) {
-      Process::ptr newproc(new Process());
-      int_process *llproc = int_process::createProcess(i->executable, i->argv, i->envp, i->fds);
-      llproc->initializeProcess(newproc);
-      info_map[llproc] = i;
+      Process::ptr newproc = Process::makeProcess(i->executable, i->argv, i->envp, i->fds);
+      info_map[newproc->llproc()] = i;
       newset.insert(newproc);
    }
 
    pthrd_printf("Triggering create on new process objects\n");
-   int_process::create(&newset); //Releases procpool lock
+   ProcPool()->createProcs(&newset); //Releases procpool lock
 
    for (ProcessSet::iterator i = newps->begin(); i != newps->end();) {
       int_process *proc = (*i)->llproc();
@@ -836,14 +834,12 @@ ProcessSet::ptr ProcessSet::attachProcessSet(vector<AttachInfo> &ainfo)
    int_processSet &newset = *newps->procset;
 
    for (vector<AttachInfo>::iterator i = ainfo.begin(); i != ainfo.end(); i++) {
-      Process::ptr newproc(new Process());
-      int_process *llproc = int_process::createProcess(i->pid, i->executable);
-      llproc->initializeProcess(newproc);
-      info_map[llproc] = i;
+      Process::ptr newproc = Process::makeProcess(i->pid, i->executable);
+      info_map[newproc->llproc()] = i;
       newset.insert(newproc);
    }
 
-   int_process::attach(&newset, false); //Releases procpool lock
+   ProcPool()->attachProcs(&newset, false); //Releases procpool lock
 
    for (ProcessSet::iterator i = newps->begin(); i != newps->end(); ) {
       int_process *proc = (*i)->llproc();
@@ -1601,7 +1597,7 @@ bool ProcessSet::reAttach() const
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc());
 
    ProcPool()->condvar()->lock();
-   bool attach_okay = int_process::attach(procset, true);
+   bool attach_okay = ProcPool()->attachProcs(procset, true);
 
    return !had_error && attach_okay;
 }

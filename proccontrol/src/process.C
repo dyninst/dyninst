@@ -85,7 +85,7 @@ void Process::version(int& major, int& minor, int& maintenance)
     maintenance = ProcControl_maintenance_version;
 }
 
-bool int_process::create(int_processSet *ps) {
+bool ProcessPool::createProcs(int_processSet *ps) {
    bool had_error = false;
    set<int_process *> procs;
    transform(ps->begin(), ps->end(), inserter(procs, procs.end()), ProcToIntProc());
@@ -119,9 +119,9 @@ bool int_process::create(int_processSet *ps) {
 	  ProcPool()->addProcess(*i);
 	  // Because yo, windows processes have threads when they're created...
 	  if (proc->threadPool()->empty()) {
-        int_thread::createThread(proc, NULL_THR_ID, NULL_LWP, true, int_thread::as_created_attached);
+        Thread::makeThread(proc, NULL_THR_ID, NULL_LWP, true, int_thread::as_created_attached);
 	  }
-      proc->setState(neonatal_intermediate);
+      proc->setState(int_process::neonatal_intermediate);
       pthrd_printf("Created debugged %s on pid %d\n", proc->executable.c_str(), proc->pid);
    }
 
@@ -138,7 +138,7 @@ bool int_process::create(int_processSet *ps) {
       bool result = proc->waitfor_startup();
       if (!result) {
          // At this point, proc has been deleted
-         pthrd_printf("Process %s/%d exited during create\n", executable.c_str(), pid);
+         pthrd_printf("Process %s/%d int_process::exited during create\n", executable.c_str(), pid);
          i = procs.erase(i);
          had_error = true;
          continue;
@@ -160,7 +160,7 @@ bool int_process::create(int_processSet *ps) {
             i = procs.erase(i);
          }
          else if (result == aret_success) {
-            assert(proc->getState() == running);
+            assert(proc->getState() == int_process::running);
             pthrd_printf("Finished post-create for %d.  Process is ready\n", proc->pid);
             i = procs.erase(i);
          }
@@ -171,7 +171,7 @@ bool int_process::create(int_processSet *ps) {
          }
       }
       if (ret_async) {
-         waitForAsyncEvent(async_responses);
+         int_process::waitForAsyncEvent(async_responses);
       }
    }
 
@@ -244,7 +244,8 @@ bool int_process::attachThreads(bool &found_new_threads)
             continue;
          }
          pthrd_printf("Creating new thread for %d/%d during attach\n", pid, *i);
-         thr = int_thread::createThread(this, NULL_THR_ID, *i, false, int_thread::as_needs_attach);
+         Thread::ptr tw = Thread::makeThread(this, NULL_THR_ID, *i, false, int_thread::as_needs_attach);
+         thr = tw ? tw->llthrd() : NULL;
          found_new_threads = loop_new_threads = true;
       }
    } while (loop_new_threads);
@@ -270,7 +271,7 @@ bool int_process::plat_attachThreadsSync()
    return true;
 }
 
-bool int_process::attach(int_processSet *ps, bool reattach)
+bool ProcessPool::attachProcs(int_processSet *ps, bool reattach)
 {
    bool had_error = false, should_sync = false;
    set<int_process *> procs;
@@ -296,16 +297,16 @@ bool int_process::attach(int_processSet *ps, bool reattach)
          continue;
       }
 
-      // Determine the running state of all threads before attaching
+      // Determine the int_process::running state of all threads before attaching
       map<Dyninst::LWP, bool> temp_runningStates;
       if (!proc->plat_getOSRunningStates(temp_runningStates)) {
-         pthrd_printf("Could not get OS running states for %d\n", proc->getPid());
+         pthrd_printf("Could not get OS int_process::running states for %d\n", proc->getPid());
          i = procs.erase(i);
          had_error = true;
          continue;
       }
 
-      //Keep track of the initial running states for each thread.  We'll fill them in latter
+      //Keep track of the initial int_process::running states for each thread.  We'll fill them in latter
       // after we create the int_thread objects.
       bool allStopped = true;
       for(map<Dyninst::LWP, bool>::iterator j = temp_runningStates.begin(); j != temp_runningStates.end(); ++j) {
@@ -336,8 +337,8 @@ bool int_process::attach(int_processSet *ps, bool reattach)
          int_process *proc = *i;
          // PROTOTYPE: pool registration already happened in initializeProcess
          // (attach pids are known at init time).
-         int_thread::createThread(proc, NULL_THR_ID, NULL_LWP, true,
-                                  int_thread::as_created_attached); //initial thread
+         Thread::makeThread(proc, NULL_THR_ID, NULL_LWP, true,
+                            int_thread::as_created_attached); //initial thread
       }
    }
 
@@ -348,14 +349,14 @@ bool int_process::attach(int_processSet *ps, bool reattach)
          bool have_neonatal = false;
          for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
             int_process *proc = *i;
-            if (proc->getState() == neonatal) {
+            if (proc->getState() == int_process::neonatal) {
                have_neonatal = true;
                break;
             }
          }
          if (!have_neonatal)
             break;
-         bool result = waitAndHandleEvents(true);
+         bool result = int_process::waitAndHandleEvents(true);
          if (!result) {
             pthrd_printf("Error during waitAndHandleEvents during attach\n");
             return false;
@@ -364,17 +365,17 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       ProcPool()->condvar()->lock();
    }
    else {
-      pthrd_printf("Attach done, moving processes to neonatal_intermediate\n");
+      pthrd_printf("Attach done, moving processes to int_process::neonatal_intermediate\n");
       for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
          int_process *proc = *i;
-         proc->setState(neonatal_intermediate);
+         proc->setState(int_process::neonatal_intermediate);
       }
    }
 
 
    for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
       int_process *proc = *i;
-      if (proc->getState() == errorstate) {
+      if (proc->getState() == int_process::errorstate) {
          pthrd_printf("Removing process %d in error state\n", proc->getPid());
          i = procs.erase(i);
          had_error = true;
@@ -450,7 +451,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 
-   //Wait for each process to make it to the 'running' state.
+   //Wait for each process to make it to the 'int_process::running' state.
    for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
       int_process *proc = *i;
       pthrd_printf("Wait for attach from process %d\n", proc->pid);
@@ -469,7 +470,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
    //idempotent after success, then just do it again.
    for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
       int_process *proc = *i;
-      if (proc->getState() == errorstate)
+      if (proc->getState() == int_process::errorstate)
          continue;
       bool result = proc->plat_attachThreadsSync();
       if (!result) {
@@ -479,7 +480,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
          continue;
       }
 
-      // Now that all the threads are created, set their running states
+      // Now that all the threads are created, set their int_process::running states
       int_threadPool *tp = proc->threadPool();
       for(int_threadPool::iterator j = tp->begin(); j != tp->end(); j++) {
          int_thread *thr = *j;
@@ -487,9 +488,9 @@ bool int_process::attach(int_processSet *ps, bool reattach)
          map<pair<int_process *, LWP>, bool>::iterator findIter = runningStates.find(key);
 
          // There is a race that could be visible here where we are not
-         // guaranteed to determine the running state of all threads in a process
-         // before we attach -- if for some reason we don't know the running
-         // state, assume it was running
+         // guaranteed to determine the int_process::running state of all threads in a process
+         // before we attach -- if for some reason we don't know the int_process::running
+         // state, assume it was int_process::running
          thr->setRunningWhenAttached(findIter == runningStates.end() ? true : findIter->second);
       }
 
@@ -513,7 +514,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
             i = pa_procs.erase(i);
          }
          else if (result == aret_success) {
-            assert(proc->getState() == running);
+            assert(proc->getState() == int_process::running);
             pthrd_printf("Finished post-attach for %d.  Process is ready\n", proc->pid);
             i = pa_procs.erase(i);
          }
@@ -524,7 +525,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
          }
       }
       if (ret_async) {
-         waitForAsyncEvent(async_responses);
+         int_process::waitForAsyncEvent(async_responses);
       }
    }
 
@@ -549,7 +550,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
          }
       }
    }
-   waitForAsyncEvent(async_responses);
+   int_process::waitForAsyncEvent(async_responses);
 
    // Report all events for observed process state changes
    for(vector<Event::ptr>::iterator i = observedEvents.begin(); i!= observedEvents.end(); i++)
@@ -570,7 +571,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
 
    if (!observedEvents.empty()) {
       // As a sanity check, don't block
-      bool result = waitAndHandleEvents(false);
+      bool result = int_process::waitAndHandleEvents(false);
       if (!result) {
          perr_printf("Internal error in waitAndHandleEvents under reattach\n");
       }
@@ -581,7 +582,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
 
 bool int_process::reattach(int_processSet *pset)
 {
-   return attach(pset, true);
+   return ProcPool()->attachProcs(pset, true);
 }
 
 bool int_process::execed()
@@ -610,8 +611,9 @@ bool int_process::execed()
    }
    threadpool->clear();
 
-   int_thread *initial_thread = int_thread::createThread(this, NULL_THR_ID, NULL_LWP,
-                                                         true, int_thread::as_created_attached);
+   Thread::ptr itw = Thread::makeThread(this, NULL_THR_ID, NULL_LWP,
+                                        true, int_thread::as_created_attached);
+   int_thread *initial_thread = itw ? itw->llthrd() : NULL;
    initial_thread->getUserState().setState(user_initial_thrd_state);
    initial_thread->getGeneratorState().setState(gen_initial_thrd_state);
    initial_thread->getHandlerState().setState(handler_initial_thrd_state);
@@ -641,9 +643,7 @@ bool int_process::forked()
       return false;
    }
 
-   int_thread *initial_thread;
-   initial_thread = int_thread::createThread(this, NULL_THR_ID, NULL_LWP, true, int_thread::as_created_attached);
-   (void)initial_thread; // suppress unused warning
+   Thread::makeThread(this, NULL_THR_ID, NULL_LWP, true, int_thread::as_created_attached);
 
    // PROTOTYPE: pool registration already happened in initializeProcess
    // (fork-child ctor knows its pid).
@@ -3554,21 +3554,19 @@ int int_thread::getContSignal() {
     return continueSig_;
 }
 
-int_thread *int_thread::createThread(int_process *proc,
-                                     Dyninst::THR_ID thr_id,
-                                     Dyninst::LWP lwp_id,
-                                     bool initial_thrd,
-                                     attach_status_t astatus)
+Thread::ptr Thread::makeThread(int_process *proc, Dyninst::THR_ID thr_id,
+                               Dyninst::LWP lwp_id, bool initial_thrd, int astatus_int)
 {
+   int_thread::attach_status_t astatus = (int_thread::attach_status_t) astatus_int;
    // See if we already created a skeleton/dummy thread for this thread ID.
    int_thread *newthr = proc->threadPool()->findThreadByLWP(lwp_id);
-   if (newthr) return newthr;
+   if (newthr) return proc->threadPool()->hlFor(newthr);
 
-   newthr = createThreadPlat(proc, thr_id, lwp_id, initial_thrd);
+   newthr = int_thread::createThreadPlat(proc, thr_id, lwp_id, initial_thrd);
    if(!newthr)
    {
 	   pthrd_printf("createThreadPlat failed, returning NULL\n");
-	   return NULL;
+	   return Thread::ptr();
    }
    pthrd_printf("Creating %s thread %d/%d, thr_id = 0x%lx\n",
                 initial_thrd ? "initial" : "new",
@@ -3589,21 +3587,21 @@ int_thread *int_thread::createThread(int_process *proc,
    bool result = newthr->attach();
    if (!result) {
       pthrd_printf("Failed to attach to new thread %d/%d\n", proc->getPid(), lwp_id);
-      newthr->getUserState().setState(errorstate);
-      newthr->getHandlerState().setState(errorstate);
-      newthr->getGeneratorState().setState(errorstate);
+      newthr->getUserState().setState(int_thread::errorstate);
+      newthr->getHandlerState().setState(int_thread::errorstate);
+      newthr->getGeneratorState().setState(int_thread::errorstate);
       ProcPool()->rmThread(newthr_wrapper);
       proc->threadPool()->rmThread(newthr_wrapper);
-      return NULL;
+      return Thread::ptr();
    }
 
-   if (newthr->isUser() && newthr->getUserState().getState() == neonatal) {
-	   newthr->getUserState().setState(neonatal_intermediate);
-	   newthr->getHandlerState().setState(neonatal_intermediate);
-		newthr->getGeneratorState().setState(neonatal_intermediate);
+   if (newthr->isUser() && newthr->getUserState().getState() == int_thread::neonatal) {
+	   newthr->getUserState().setState(int_thread::neonatal_intermediate);
+	   newthr->getHandlerState().setState(int_thread::neonatal_intermediate);
+		newthr->getGeneratorState().setState(int_thread::neonatal_intermediate);
    }
 
-   return newthr;
+   return newthr_wrapper;
 }
 
 void int_thread::throwEventsBeforeContinue()
@@ -6323,6 +6321,34 @@ bool Process::setThreadingMode(thread_mode_t tm)
    return mt()->setThreadMode(tm);
 }
 
+Process::ptr Process::makeProcess(std::string exec,
+                                  const std::vector<std::string> &argv,
+                                  const std::vector<std::string> &envp,
+                                  const std::map<int,int> &fds)
+{
+   int_process *llproc = int_process::createProcess(exec, argv, envp, fds);
+   Process::ptr w(new Process());
+   llproc->initializeProcess(w);
+   return w;
+}
+
+Process::ptr Process::makeProcess(Dyninst::PID pid, std::string exec)
+{
+   int_process *llproc = int_process::createProcess(pid, exec);
+   Process::ptr w(new Process());
+   llproc->initializeProcess(w);
+   return w;
+}
+
+Process::ptr Process::makeProcess(Dyninst::PID pid, Process::ptr parent)
+{
+   // The fork-child ctor mints + registers its own wrapper (it is born
+   // during event handling, with no user caller); recover it from the pool
+   // by pid -- a direct map lookup, not an impl->wrapper resolution.
+   int_process *llproc = int_process::createProcess(pid, parent->llproc());
+   return ProcPool()->findProcByPid(llproc->getPid());
+}
+
 Process::ptr Process::createProcess(std::string executable,
                                     const std::vector<std::string> &argv,
                                     const std::vector<std::string> &envp,
@@ -6339,13 +6365,11 @@ Process::ptr Process::createProcess(std::string executable,
 
    ProcPool()->condvar()->lock();
 
-   Process::ptr newproc(new Process());
-   int_process *llproc = int_process::createProcess(executable, argv, envp, fds);
-   llproc->initializeProcess(newproc);
+   Process::ptr newproc = Process::makeProcess(executable, argv, envp, fds);
 
    int_processSet the_proc;
    the_proc.insert(newproc);
-   bool result = int_process::create(&the_proc); //Releases procpool lock
+   bool result = ProcPool()->createProcs(&the_proc); //Releases procpool lock
    if (!result) {
       pthrd_printf("Unable to create process %s\n", executable.c_str());
       return Process::ptr();
@@ -6365,14 +6389,12 @@ Process::ptr Process::attachProcess(Dyninst::PID pid, std::string executable)
    }
 
    ProcPool()->condvar()->lock();
-   Process::ptr newproc(new Process());
-   int_process *llproc = int_process::createProcess(pid, executable);
-   llproc->initializeProcess(newproc);
+   Process::ptr newproc = Process::makeProcess(pid, executable);
 
    int_processSet the_proc;
    the_proc.insert(newproc);
 
-   bool result = llproc->attach(&the_proc, false); //Releases procpool lock
+   bool result = ProcPool()->attachProcs(&the_proc, false); //Releases procpool lock
 
    if (!result) {
       pthrd_printf("Unable to attach to process %d\n", pid);

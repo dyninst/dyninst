@@ -819,7 +819,8 @@ bool int_LWPTracking::lwp_refreshCheck(bool &change)
       if (thr)
          continue;
       pthrd_printf("Found new thread %d/%d during refresh\n", getPid(), lwp);
-      thr = int_thread::createThread(this, NULL_THR_ID, *i, false, int_thread::as_needs_attach);
+      Thread::ptr tw = Thread::makeThread(this, NULL_THR_ID, *i, false, int_thread::as_needs_attach);
+      thr = tw ? tw->llthrd() : NULL;
       new_lwps_found++;
       change = true;
       plat_lwpRefreshNoteNewThread(thr);
