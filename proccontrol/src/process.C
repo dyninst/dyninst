@@ -5420,7 +5420,7 @@ hw_breakpoint *hw_breakpoint::create(int_process *proc, int_breakpoint *bp, Dyni
    bool proc_wide = bp->thread_specific.empty();
    if (!proc_wide) {
       for (set<Thread::const_ptr>::iterator i = bp->thread_specific.begin(); i != bp->thread_specific.end(); i++) {
-         int_thread *llthrd = (*i)->llthrd();
+         int_thread *llthrd = ThreadImplRef(*i).get();
          thrds.insert(llthrd);
          pthrd_printf("Adding thread-specific hardware breakpoint to %d/%d at %lx\n",
                       proc->getPid(), llthrd->getLWP(), addr);
@@ -8189,9 +8189,9 @@ ThreadPool::iterator ThreadPool::iterator::operator++() // prefix
          return *this;
       }
       curh = curp->threads[curi];
-      if (!curh->llthrd())
+      if (!ThreadImplRef(curh).get())
          continue;
-      if (curh->llthrd()->getUserState().getState() == int_thread::exited)
+      if (ThreadImplRef(curh)->getUserState().getState() == int_thread::exited)
          continue;
 	  if (!curh->isUser())
 		  continue;
@@ -8213,9 +8213,9 @@ ThreadPool::iterator ThreadPool::iterator::operator++(int) // postfix
          return orig;
       }
       curh = curp->threads[curi];
-      if (!curh->llthrd())
+      if (!ThreadImplRef(curh).get())
          continue;
-      if (curh->llthrd()->getUserState().getState() == int_thread::exited)
+      if (ThreadImplRef(curh)->getUserState().getState() == int_thread::exited)
          continue;
       if (!curh->isUser())
          continue;
@@ -8300,9 +8300,9 @@ ThreadPool::const_iterator ThreadPool::const_iterator::operator++() // prefix
          return *this;
       }
       curh = curp->threads[curi];
-      if (!curh->llthrd())
+      if (!ThreadImplRef(curh).get())
          continue;
-      if (curh->llthrd()->getUserState().getState() == int_thread::exited)
+      if (ThreadImplRef(curh)->getUserState().getState() == int_thread::exited)
          continue;
 	  if (!curh->isUser())
 		  continue;
@@ -8324,9 +8324,9 @@ ThreadPool::const_iterator ThreadPool::const_iterator::operator++(int) // postfi
          return orig;
       }
       curh = curp->threads[curi];
-      if (!curh->llthrd())
+      if (!ThreadImplRef(curh).get())
          continue;
-      if (curh->llthrd()->getUserState().getState() == int_thread::exited)
+      if (ThreadImplRef(curh)->getUserState().getState() == int_thread::exited)
          continue;
 	  if (!curh->isUser())
 		  continue;
@@ -8873,9 +8873,9 @@ bool ProcStopEventManager::prepEvent(Event::ptr ev)
    // The event's thread may already have exited (llthrd() NULL): don't crash
    // in debug logging.
    pthrd_printf("Adding event %s on %d/%d to pending proc stopper list\n",
-                ev->name().c_str(), ev->getProcess()->llproc()->getPid(),
-                (ev->getThread() && ev->getThread()->llthrd()) ?
-                   ev->getThread()->llthrd()->getLWP() : (Dyninst::LWP)-1);
+                ev->name().c_str(), ProcImplRef(ev->getProcess())->getPid(),
+                ThreadImplRef(ev->getThread()).get() ?
+                   ThreadImplRef(ev->getThread())->getLWP() : (Dyninst::LWP)-1);
    pair<set<Event::ptr>::iterator, bool> result = held_pstop_events.insert(ev);
    assert(result.second);
    return false;
@@ -8891,9 +8891,9 @@ void ProcStopEventManager::checkEvents()
       }
 
       pthrd_printf("ProcStop event %s on %d/%d is ready, adding to queue\n",
-                ev->name().c_str(), ev->getProcess()->llproc()->getPid(),
-                (ev->getThread() && ev->getThread()->llthrd()) ?
-                   ev->getThread()->llthrd()->getLWP() : (Dyninst::LWP)-1);
+                ev->name().c_str(), ProcImplRef(ev->getProcess())->getPid(),
+                ThreadImplRef(ev->getThread()).get() ?
+                   ThreadImplRef(ev->getThread())->getLWP() : (Dyninst::LWP)-1);
 
       i = held_pstop_events.erase(i);
       mbox()->enqueue(ev);

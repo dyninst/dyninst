@@ -1245,7 +1245,7 @@ struct test_terminate {
    bool operator()(Thread::ptr t) {
       Process::ptr p = t->getProcess();
       p->clearLastError();
-      return (!p->llproc() || !ThreadImplRef(t).get());
+      return (!ProcImplRef(p) || !ThreadImplRef(t).get());
    }
 };
 
@@ -3244,7 +3244,7 @@ bool LibraryTrackingSet::refreshLibraries() const
 
    procset_iter iter("refreshLibraries", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(ps->getIntProcessSet()); i != iter.end(); i = iter.inc()) {
-      procs.insert((*i)->llproc());
+      procs.insert(ProcImplRef(*i).get());
    }
       
    while (!procs.empty()) {
@@ -3391,7 +3391,7 @@ bool ThreadTrackingSet::refreshThreads() const
    int_processSet *procset = ps->getIntProcessSet();
    procset_iter iter("refreshThreads", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_threadTracking *proc = (*i)->llproc()->getThreadTracking();
+      int_threadTracking *proc = ProcImplRef(*i)->getThreadTracking();
       if (!proc) {
          perr_printf("Thread tracking not supported on process\n");
          had_error = true;
@@ -3449,7 +3449,7 @@ bool LWPTrackingSet::refreshLWPs() const
    set<int_process *> all_procs;
    set<int_process *> change_procs;
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_LWPTracking *proc = (*i)->llproc()->getLWPTracking();
+      int_LWPTracking *proc = ProcImplRef(*i)->getLWPTracking();
       if (!proc) {
          perr_printf("LWP tracking not supported on process\n");
          had_error = true;
@@ -3525,7 +3525,7 @@ bool FollowForkSet::setFollowFork(FollowFork::follow_t f) const
    int_processSet *procset = ps->getIntProcessSet();
    procset_iter iter("setFollowFork", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_followFork *proc = (*i)->llproc()->getFollowFork();
+      int_followFork *proc = ProcImplRef(*i)->getFollowFork();
       if (!proc) {
          perr_printf("Follow Fork not supported on process\n");
          had_error = true;
@@ -3654,7 +3654,7 @@ bool RemoteIOSet::getFileNames(FileSet *fset)
    int_processSet *procset = procs->getIntProcessSet();
    procset_iter iter("getFileNames", had_error, ERR_CHCK_NORM);   
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_remoteIO *proc = (*i)->llproc()->getRemoteIO();
+      int_remoteIO *proc = ProcImplRef(*i)->getRemoteIO();
       if (!proc) {
          perr_printf("getFileNames attempted on non RemoteIO process\n");
          had_error = true;
@@ -3706,7 +3706,7 @@ bool RemoteIOSet::getFileStatData(FileSet *fset)
    set<StatResp_t *> all_resps;
 
    for (FileSet::iterator i = fset->begin(); i != fset->end(); i++) {
-      pthrd_printf("About to access proc %p\n", (void*)i->first->llproc());
+      pthrd_printf("About to access proc %p\n", (void*)ProcImplRef(i->first).get());
       fflush(stderr);
       int_remoteIO *proc = ProcImplRef(i->first)->getRemoteIO();
       if (!proc) {
@@ -3825,7 +3825,7 @@ bool MemoryUsageSet::usedX(std::map<Process::const_ptr, unsigned long> &used, Me
    procset_iter iter(mu_str, had_error, ERR_CHCK_ALL);
    unsigned int cur = 0;
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_memUsage *proc = (*i)->llproc()->getMemUsage();
+      int_memUsage *proc = ProcImplRef(*i)->getMemUsage();
       if (!proc) {
          perr_printf("GetMemUsage not supported\n");
          had_error = true;
@@ -3893,7 +3893,7 @@ bool MemoryUsageSet::usedX(std::map<Process::const_ptr, unsigned long> &used, Me
 
    if (mu == mus_resident) { 
       for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-         int_memUsage *proc = (*i)->llproc()->getMemUsage();
+         int_memUsage *proc = ProcImplRef(*i)->getMemUsage();
          if (!proc)
             continue;
          if (!proc->plat_residentNeedsMemVals())
@@ -3927,7 +3927,7 @@ bool MemoryUsageSet::usedX(std::map<Process::const_ptr, unsigned long> &used, Me
    }
 
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_memUsage *proc = (*i)->llproc()->getMemUsage();
+      int_memUsage *proc = ProcImplRef(*i)->getMemUsage();
       if (!proc)
          continue;   
       map<int_memUsage *, MemUsageResp_t *> *the_results = NULL;

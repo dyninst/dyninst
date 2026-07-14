@@ -1161,7 +1161,7 @@ Handler::handler_ret_t ThreadDBDispatchHandler::handleEvent(Event::ptr ev)
    int_eventThreadDB *int_ev = etdb->getInternal();
    assert(int_ev);
 
-   thread_db_process *proc = dynamic_cast<thread_db_process *>(etdb->getProcess()->llproc());
+   thread_db_process *proc = dynamic_cast<thread_db_process *>(ProcImplRef(etdb->getProcess()).get());
    assert(proc);
 
    if (proc->dispatch_event && proc->dispatch_event != etdb) {
@@ -1297,7 +1297,7 @@ Handler::handler_ret_t ThreadDBLibHandler::handleEvent(Event::ptr ev) {
       return Handler::ret_success;
    }
    EventLibrary::const_ptr libEv = ev->getEventLibrary();
-   thread_db_process *proc = dynamic_cast<thread_db_process *>(ev->getProcess()->llproc());
+   thread_db_process *proc = dynamic_cast<thread_db_process *>(ProcImplRef(ev->getProcess()).get());
 
    //Check if we need to clear the library->tls cache on library unload
    const set<Library::ptr> &rmLibs = libEv->libsRemoved();
@@ -1380,7 +1380,7 @@ Handler::handler_ret_t ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
    }
 
    EventNewUserThread::ptr threadEv = ev->getEventNewUserThread();
-   thread_db_process *tdb_proc = dynamic_cast<thread_db_process *>(threadEv->getProcess()->llproc());
+   thread_db_process *tdb_proc = dynamic_cast<thread_db_process *>(ProcImplRef(threadEv->getProcess()).get());
    Thread::const_ptr new_thr = threadEv->getNewThread();
    thread_db_thread *tdb_thread =
       dynamic_cast<thread_db_thread *>(new_thr ? ThreadImplRef(new_thr).get() : NULL);
@@ -1438,7 +1438,7 @@ Handler::handler_ret_t ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
       pthrd_printf("Failed to load thread_db.  Not running handlers\n");
       return Handler::ret_success;
    }
-   thread_db_process *proc = dynamic_cast<thread_db_process *>(ev->getProcess()->llproc());
+   thread_db_process *proc = dynamic_cast<thread_db_process *>(ProcImplRef(ev->getProcess()).get());
    thread_db_thread *thrd = dynamic_cast<thread_db_thread *>(ThreadImplRef(ev->getThread()).get());
 
    if(thrd) {

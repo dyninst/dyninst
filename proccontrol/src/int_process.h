@@ -680,7 +680,10 @@ class int_process
 };
 
 struct ProcToIntProc {
-   int_process *operator()(const Process::ptr &p) const { return p->llproc(); }
+   int_process *operator()(const Process::ptr &p) const {
+      ProcImplRef pi(p);
+      return pi.get();
+   }
 };
 
 /**
@@ -1912,7 +1915,7 @@ class int_cleanup {
    THREAD_STOP_TEST(STR, RET)
 
 #define PTR_EXIT_TEST(P, STR, RET)                       \
-   if (!P || !P->llproc()) {                             \
+   if (!P || !ProcImplRef(P)) {                          \
       perr_printf(STR " on exited process\n");           \
       P->setLastError(err_exited, "Process is exited");  \
       return RET;                                        \
