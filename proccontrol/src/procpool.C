@@ -157,20 +157,13 @@ void ProcessPool::findThreadAndProc(Dyninst::LWP lwp,
                                     Thread::ptr &thr, Process::ptr &proc)
 {
    // Atomic thread->process resolution for lock-free contexts (the decoder).
-   // Under one map_lock hold, "registered implies impl alive" is an
-   // invariant: destroyThread/destroyProcess unregister under this lock
-   // strictly before deleting the impl, so if the thread is still in the
-   // registry its llthrd()/llproc() derefs below are safe.  A caller doing
-   // findThread() then dereferencing the impl outside the lock has no such
-   // guarantee -- that is the race this method exists to close.
+   // The process comes from the thread wrapper's weak cache -- a wrapper
+   // field read, never an impl deref, so it cannot race impl teardown.  A
+   // registered thread's cache always resolves (seeded at addThread; the
+   // pool's own strong ref keeps the Process lockable while registered).
    ScopeLock<Mutex<> > guard(map_lock);
    thr = findThread_nolock(lwp);
-   proc = Process::ptr();
-   if (!thr)
-      return;
-   int_thread *llthrd = thr->llthrd();
-   if (llthrd && llthrd->llproc())
-      proc = findProcByPid_nolock(llthrd->llproc()->getPid());
+   proc = thr ? thr->procWrapper() : Process::ptr();
 }
 
 void ProcessPool::addProcess(Process::ptr proc)
@@ -202,6 +195,11 @@ void ProcessPool::addThread(Thread::ptr wrapper)
    auto i = lwps.find(thr->getLWP());
    assert(i == lwps.end());
    lwps[thr->getLWP()] = wrapper;
+   // Seed the weak thread->process cache (wrapper->wrapper edge).  Weak, so
+   // it cannot keep the Process alive -- no cycle; see the member comment.
+   auto pi = procs.find(thr->llproc()->getPid());
+   if (pi != procs.end())
+      wrapper->proc_wrapper_ = pi->second;
    // Un-kill if a LWP has been recycled (because we've run long enough?)
    auto found = deadThreads.find(thr->getLWP());
    if(found != deadThreads.end()) deadThreads.erase(found);

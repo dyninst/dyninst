@@ -589,8 +589,9 @@ class int_process
    Dyninst::Architecture arch;
    int_threadPool *threadpool;
    // PROTOTYPE (pool-owns-wrapper): no up_proc.  The canonical wrapper is
-   // held by ProcessPool for the session; resolve it via proc()
-   // (ProcPool()->wrapperFor(this)).
+   // held by ProcessPool for the session; resolve it via proc() (weak-cache
+   // fast path on the initial thread's wrapper, ProcPool()->wrapperFor(this)
+   // as the cold fallback).
    // NOTE: `threadpool` above is a raw, NON-owning cache -- the Process
    // wrapper owns the int_threadPool (see Process::threadpool_).
    HandlerPool *handlerpool;

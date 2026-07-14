@@ -48,6 +48,7 @@ ProcessPool ─strong─▶ Process ─owns─▶ int_threadPool ─holds Thread
                         └─llproc_─▶ int_process ─(raw, non-owning cache)──────────┘
                                      └─int_thread reached via llthrd_
 Event/response/RPC ─strong─▶ Process / Thread (the wrappers)
+Thread ─proc_wrapper_ (weak)─▶ Process   [non-owning fast-path cache; no cycle]
 ```
 
 - **`ProcessPool` owns the wrappers.** Its strong `Process::ptr`/`Thread::ptr`
@@ -66,11 +67,16 @@ Event/response/RPC ─strong─▶ Process / Thread (the wrappers)
 - **The impls point only *downward or sideways*, never up.** `int_thread` knows
   its `int_process` (`proc_`). Helper objects owned by an impl (handler pool,
   library pool, register pool, breakpoints) hold a raw back-pointer to their
-  owner — safe, because the owner outlives them by construction. No impl (and
-  no wrapper) holds a reference *up* to its `Process` wrapper: thread→process
-  resolution is **top-down** — the decoder resolves the `Process::ptr` once per
-  event (`ProcessPool::findThreadAndProc`, an atomic pool lookup) and stamps it
-  onto the event; everything downstream reads it off the control flow.
+  owner — safe, because the owner outlives them by construction. No impl holds
+  a reference up to a wrapper. The `Thread` wrapper carries a **weak**
+  `Process::ptr` cache (`proc_wrapper_`, a wrapper→wrapper edge seeded at
+  registration): the lock-free thread→process fast path. Weak on purpose — it
+  cannot keep the `Process` alive, so there is no `Process`↔threads cycle, and
+  a permanently *detached* process (unregistered without `destroyProcess`)
+  still destructs when the last user reference drops. Resolution is otherwise
+  **top-down**: the decoder resolves the `Process::ptr` once per event
+  (`ProcessPool::findThreadAndProc`) and stamps it onto the event; everything
+  downstream reads it off the control flow.
 - **Deletion is wrapper-centric and single-homed.** `ProcessPool::destroyProcess`
   / `destroyThread` are the only ways an impl is destroyed: they unregister,
   publish exit state into the wrapper, sever the `llproc_`/`llthread_` link,
@@ -155,13 +161,15 @@ work_lock (MTManager)  >  ProcPool condvar (var)  >  proc_lock  >  map_lock
   Public pool methods take it once and delegate to `_nolock` helpers, so it is a
   plain (non-recursive) mutex and cannot participate in a cycle.
 
-Impl→wrapper resolution (`ProcessPool::wrapperFor`) is the canonical **cold
-path**: a `map_lock` registry lookup used by `proc()`/`getProcess()`. Hot paths
-(decode, handlers) never reach it — the decoder resolves both wrappers once per
-event via `ProcessPool::findThreadAndProc` (atomic under one `map_lock` hold,
-where *registered ⟹ impl alive* is an invariant) and stamps them onto the
-event. A `wrapperFor` miss means resolution after unregistration — a lifetime
-bug — and trips a loud diagnostic.
+Thread→process resolution has three tiers: the **weak cache** on the `Thread`
+wrapper (`procWrapper()`, lock-free — safe from the generator; what
+`proc()`/`getProcess()` try first), the **registry** (`ProcessPool::wrapperFor`,
+a `map_lock` lookup — the cold fallback for pre-seed bootstrap windows; a miss
+there means resolution after unregistration and trips a loud diagnostic), and
+**top-down stamping** (the decoder resolves both wrappers once per event via
+`ProcessPool::findThreadAndProc` and stamps them on; handlers read them off the
+control flow). Hot paths use the first and third; nothing on a steady-state
+path touches `map_lock` to resolve a wrapper.
 
 ---
 
