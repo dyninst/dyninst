@@ -153,6 +153,26 @@ Thread::ptr ProcessPool::findThread(Dyninst::LWP lwp)
    return findThread_nolock(lwp);
 }
 
+void ProcessPool::findThreadAndProc(Dyninst::LWP lwp,
+                                    Thread::ptr &thr, Process::ptr &proc)
+{
+   // Atomic thread->process resolution for lock-free contexts (the decoder).
+   // Under one map_lock hold, "registered implies impl alive" is an
+   // invariant: destroyThread/destroyProcess unregister under this lock
+   // strictly before deleting the impl, so if the thread is still in the
+   // registry its llthrd()/llproc() derefs below are safe.  A caller doing
+   // findThread() then dereferencing the impl outside the lock has no such
+   // guarantee -- that is the race this method exists to close.
+   ScopeLock<Mutex<> > guard(map_lock);
+   thr = findThread_nolock(lwp);
+   proc = Process::ptr();
+   if (!thr)
+      return;
+   int_thread *llthrd = thr->llthrd();
+   if (llthrd && llthrd->llproc())
+      proc = findProcByPid_nolock(llthrd->llproc()->getPid());
+}
+
 void ProcessPool::addProcess(Process::ptr proc)
 {
    ScopeLock<Mutex<> > guard(map_lock);
@@ -182,11 +202,6 @@ void ProcessPool::addThread(Thread::ptr wrapper)
    auto i = lwps.find(thr->getLWP());
    assert(i == lwps.end());
    lwps[thr->getLWP()] = wrapper;
-   // Interior refactor: seed the wrapper->wrapper cache (Thread knows its
-   // Process) so downstream code never resolves impl->wrapper.
-   auto pi = procs.find(thr->llproc()->getPid());
-   if (pi != procs.end())
-      wrapper->proc_wrapper_ = pi->second;
    // Un-kill if a LWP has been recycled (because we've run long enough?)
    auto found = deadThreads.find(thr->getLWP());
    if(found != deadThreads.end()) deadThreads.erase(found);
@@ -234,52 +249,44 @@ void ProcessPool::destroyProcess(Process::ptr proc)
    delete llproc;
 }
 
-void ProcessPool::destroyThread(Thread::ptr thr)
+void ProcessPool::destroyThread(Thread::ptr thr, Process::ptr proc)
 {
    assert(thr);
    int_thread *llthrd = thr->llthrd();
    if (!llthrd)
       return;   // already destroyed
-   // Per-process granularity: a thread teardown takes its process's lock
-   // (the wrapper is cached on the thread, resolved lock-free).
-   ProcScopeLock plock(thr->procWrapperInternal());
+   // Top-down refactor: the process wrapper is passed in by the caller, not
+   // resolved from the impl -- during full process teardown the process is
+   // already unregistered, so a registry lookup here would fail.  It pins the
+   // Process::ptr for the ProcScopeLock and the exit-state publish.
+   ProcScopeLock plock(proc);
    {
       ScopeLock<Mutex<> > guard(map_lock);
       if (findThread_nolock(llthrd->getLWP()) == thr)
          rmThread_nolock(thr);
    }
    // Outside map_lock (see destroyProcess).
-   Process::ptr pw = thr->proc_wrapper_ ? thr->proc_wrapper_ : llthrd->proc();
-   llthrd->publishExitState(thr, pw);
+   llthrd->publishExitState(thr, proc);
    thr->clearLLThread();
    delete llthrd;
 }
 
-// ---- impl -> wrapper resolution (starved to zero on the hot paths) --------
-
-// PROTOTYPE-MEASURE: runtime starvation counters for the interior refactor.
-// Goal: zero calls -- every wrapper should travel with the control flow.
-static long wrapperfor_proc_calls = 0;
-static long wrapperfor_thread_calls = 0;
-static void report_wrapperfor_calls()
-{
-   // Silent when fully starved; any output is a starvation regression.
-   if (wrapperfor_proc_calls || wrapperfor_thread_calls)
-      fprintf(stderr, "PROTOTYPE-COUNT: wrapperFor calls proc=%ld thread=%ld\n",
-              wrapperfor_proc_calls, wrapperfor_thread_calls);
-}
-static struct wrapperfor_reporter_t {
-   wrapperfor_reporter_t() { atexit(report_wrapperfor_calls); }
-} wrapperfor_reporter;
+// ---- impl -> wrapper resolution -------------------------------------------
+//
+// The canonical impl->wrapper resolver.  Under the top-down model no impl
+// caches its wrapper, so proc()/getProcess() come here (a cold path: a
+// map_lock registry lookup).  Steady-state hot paths -- decode and handlers
+// -- never do: they carry the Process::ptr with the control flow and stamp
+// it onto events directly.  A miss here means the impl was already
+// unregistered, which is a genuine lifetime bug, hence the tripwire.
 
 Process::ptr ProcessPool::wrapperFor(int_process *proc)
 {
    ScopeLock<Mutex<> > guard(map_lock);
-   wrapperfor_proc_calls++;
    auto i = procs.find(proc->getPid());
    if (i != procs.end() && i->second->llproc() == proc)
       return i->second;
-   // PROTOTYPE tripwire: impl->wrapper resolution after unregistration.
+   // Tripwire: impl->wrapper resolution after unregistration.
    fprintf(stderr, "PROTOTYPE: post-unregister proc() for pid %d\n",
            proc->getPid());
    return Process::ptr();
@@ -288,13 +295,12 @@ Process::ptr ProcessPool::wrapperFor(int_process *proc)
 Thread::ptr ProcessPool::wrapperFor(int_thread *thr)
 {
    ScopeLock<Mutex<> > guard(map_lock);
-   wrapperfor_thread_calls++;
    if (LWPIDsAreUnique()) {
       auto i = lwps.find(thr->getLWP());
       if (i != lwps.end() && i->second->llthrd() == thr)
          return i->second;
    }
-   // PROTOTYPE tripwire (see the proc overload).
+   // Tripwire (see the proc overload).
    fprintf(stderr, "PROTOTYPE: post-unregister thread() for lwp %d\n",
            (int)thr->getLWP());
    abort();

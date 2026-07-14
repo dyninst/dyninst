@@ -3242,7 +3242,7 @@ bool LibraryTrackingSet::refreshLibraries() const
             EventLibrary::ptr evlib = EventLibrary::ptr(new EventLibrary(libs_added, libs_rmd));
             {
                Thread::ptr itw = proc->threadPool()->initialThreadWrapper();
-               evlib->setProcess(itw->procWrapperInternal());
+               evlib->setProcess(proc->proc());
                evlib->setThread(itw);
             }
             evlib->setSyncType(Event::async);
@@ -3911,7 +3911,7 @@ bool MemoryUsageSet::usedX(std::map<Process::const_ptr, unsigned long> &used, Me
       if (j == the_results->end())
          continue;
       MemUsageResp_t *resp = j->second;
-      used.insert(make_pair(resp->getProc()->threadPool()->initialThreadWrapper()->procWrapperInternal(), *resp->get()));         
+      used.insert(make_pair(resp->getProc()->proc(), *resp->get()));
    }
 
    map<int_memUsage *, MemUsageResp_t *>::iterator i;

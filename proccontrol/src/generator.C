@@ -249,6 +249,18 @@ bool Generator::getAndQueueEventInt(bool block)
    for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); i++) {
       Event::ptr event = *i;
 	  if(event) {
+	      // Top-down refactor: events are stamped with their Process::ptr at
+	      // decode.  A null process here means the process was torn down
+	      // mid-decode (only reachable via the paired fork/clone path, where
+	      // the decode proc_lock pins a different process) -- drop the event
+	      // rather than dereference.  Tripwire kept loud: this should be
+	      // vanishingly rare.
+	      if (!event->getProcess() || !event->getProcess()->llproc()) {
+	         fprintf(stderr, "PROTOTYPE: dropping decoded %s event with dead process\n",
+	                 event->getEventType().name().c_str());
+	         *i = Event::ptr();
+	         continue;
+	      }
 	      event->getProcess()->llproc()->updateSyncState(event, true);
 	  }
    }
@@ -257,6 +269,8 @@ bool Generator::getAndQueueEventInt(bool block)
 
    setState(queueing);
    for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); ++i) {
+      if (!*i)
+         continue;   // dropped above (dead process)
       mbox()->enqueue(*i);
       Generator::cb_lock->lock();
       for (set<gen_cb_func_t>::iterator j = CBs.begin(); j != CBs.end(); ++j) {

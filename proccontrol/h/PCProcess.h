@@ -599,13 +599,6 @@ class DYNINST_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    friend class ::int_threadPool;
    friend class ::ProcessPool;
    int_thread *llthread_;
-   // PROTOTYPE (interior refactor): the thread wrapper caches its process's
-   // wrapper -- a wrapper->wrapper edge (no impl names a wrapper), set once
-   // by ProcessPool::addThread.  Strong ref is correct: it matches the
-   // existing exitstate_->proc_ptr semantics, and the apparent cycle
-   // (Thread -> Process -> llproc_ -> threadpool -> hl_threads -> Thread)
-   // is broken deterministically when destroyProcess deletes the impl.
-   Process::ptr proc_wrapper_;
    thread_exitstate *exitstate_;
 
    Thread();
@@ -622,6 +615,10 @@ class DYNINST_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    // PROTOTYPE (pool-owns-wrapper): severs the wrapper->impl link at the
    // detach point (ProcessPool::rmThread).  Internal use only.
    void clearLLThread() { llthread_ = NULL; }
+   // Top-down refactor: the thread wrapper no longer caches its process
+   // wrapper.  thread->process resolution goes through the impl
+   // (llthrd()->proc(), i.e. ProcessPool::wrapperFor), and hot paths carry
+   // the Process::ptr with the control flow (events stamp it directly).
 
    // Wrapper-layer thread factory (mirror of Process::makeProcess): builds
    // the int_thread + its Thread wrapper, registers with the ProcessPool and
@@ -632,9 +629,6 @@ class DYNINST_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    // impl-internal enum out of the public header.
    static Thread::ptr makeThread(int_process *proc, Dyninst::THR_ID thr_id,
                                  Dyninst::LWP lwp_id, bool initial_thrd, int astatus);
-   // PROTOTYPE (interior refactor): lock-free access to the cached process
-   // wrapper.  Internal use only (no MTLock; callable from the generator).
-   Process::ptr procWrapperInternal() const { return proc_wrapper_; }
    void setLastError(err_t ec, const char *es) const;
 
    Dyninst::LWP getLWP() const;
