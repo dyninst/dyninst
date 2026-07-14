@@ -77,10 +77,19 @@ Thread ─proc_wrapper_ (weak)─▶ Process   [non-owning fast-path cache; no c
   **top-down**: the decoder resolves the `Process::ptr` once per event
   (`ProcessPool::findThreadAndProc`) and stamps it onto the event; everything
   downstream reads it off the control flow.
-- **Deletion is wrapper-centric and single-homed.** `ProcessPool::destroyProcess`
-  / `destroyThread` are the only ways an impl is destroyed: they unregister,
-  publish exit state into the wrapper, sever the `llproc_`/`llthread_` link,
-  then `delete` the impl. Impl destructors never call back into the pool.
+- **Deletion is wrapper-centric and single-homed, with an RAII backstop.**
+  `ProcessPool::destroyProcess` / `destroyThread` are the deterministic
+  deletion paths: they unregister, publish exit state into the wrapper, sever
+  the `llproc_`/`llthread_` link, then `delete` the impl — eagerly, on the
+  exit event. For impls that escape those paths (permanent **detach**
+  unregisters without destroying; creation-failure wrappers are simply
+  dropped), the wrapper destructors are the safety net: `~Process` runs the
+  same teardown (threads first, NULL exit-state publish — a strong ref from
+  inside its own destructor would resurrect it) and `~Thread` deletes a
+  never-pooled impl. So the wrapper *owns* the impl in the RAII sense — no
+  impl can outlive its wrapper or leak — while deletion timing on live
+  processes stays deterministic. Impl destructors never call back into the
+  pool.
 
 ### Creation
 
