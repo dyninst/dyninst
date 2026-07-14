@@ -41,6 +41,19 @@
 
 using namespace std;
 
+// Dedicated generator-wake condition variable (step: signaling/mutex split).
+// This carries ONLY the generator's idle-wait signaling that used to ride on
+// the ProcPool condvar.  It owns its own mutex; nobody holds it recursively
+// and nobody holds it while taking another lock, so it is a clean leaf CV.
+static CondVar<> gen_wait_cv;
+
+void wakeGenerator()
+{
+   gen_wait_cv.lock();
+   gen_wait_cv.broadcast();
+   gen_wait_cv.unlock();
+}
+
 std::set<Generator::gen_cb_func_t> Generator::CBs;
 Mutex<> *Generator::cb_lock;
 
@@ -83,7 +96,7 @@ Generator::~Generator()
 void Generator::forceEventBlock() {
    pthrd_printf("Forcing generator to block in waitpid\n");
    eventBlock_ = true;
-   ProcPool()->condvar()->broadcast();
+   wakeGenerator();
 }
 
 void Generator::stopDefaultGenerator() {
@@ -376,9 +389,7 @@ GeneratorMT::~GeneratorMT()
    setState(exiting);
 
    // Wake up the generator thread if it is waiting for processes
-   ProcPool()->condvar()->lock();
-   ProcPool()->condvar()->signal();
-   ProcPool()->condvar()->unlock();
+   wakeGenerator();
 
    sync->thrd.join();
    delete sync;
@@ -424,21 +435,18 @@ void GeneratorMT::main()
 
 bool GeneratorMT::processWait(bool block)
 {
-   ProcessPool *pp = ProcPool();
-   pp->condvar()->lock();
+   gen_wait_cv.lock();
    pthrd_printf("Checking for live processes\n");
    while (!hasLiveProc() && !isExitingState()) {
       pthrd_printf("Checked and found no live processes\n");
       if (!block) {
          pthrd_printf("Returning from non-blocking processWait\n");
-         pp->condvar()->broadcast();
-         pp->condvar()->unlock();
+         gen_wait_cv.unlock();
          return false;
       }
-      pp->condvar()->wait();
+      gen_wait_cv.wait();
    }
-   pp->condvar()->broadcast();
-   pp->condvar()->unlock();
+   gen_wait_cv.unlock();
    pthrd_printf("processWait returning true\n");
    return true;
 }

@@ -671,7 +671,7 @@ Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
    {
 	   proc->setExitCode(event->getExitCode());
    }
-   ProcPool()->condvar()->broadcast();
+   wakeGenerator();
    ProcPool()->condvar()->unlock();
 
    return ret_success;
@@ -767,7 +767,7 @@ Handler::handler_ret_t HandleCrash::handleEvent(Event::ptr ev)
    proc->setState(int_process::exited);
    // PROTOTYPE: unregistration deferred to destroy (see HandlePostExit).
 
-   ProcPool()->condvar()->broadcast();
+   wakeGenerator();
    ProcPool()->condvar()->unlock();
 
    return ret_success;
@@ -811,7 +811,7 @@ Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
 
    // PROTOTYPE: unregistration happens inside destroy() below.
 
-   ProcPool()->condvar()->broadcast();
+   wakeGenerator();
    ProcPool()->condvar()->unlock();
 
    proc->getStartupTeardownProcs().dec();
@@ -954,7 +954,7 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    pthrd_printf("finished initializing thread %d/%d\n",
                 proc->getPid(), newthr->getLWP());
 
-   ProcPool()->condvar()->broadcast();
+   wakeGenerator();
    ProcPool()->condvar()->unlock();
 
    return ret_success;
@@ -2066,7 +2066,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
       proc->setState(int_process::exited);
       ProcPool()->rmProcess(pc_const_cast<Process>(ev->getProcess()));
 
-      ProcPool()->condvar()->broadcast();
+      wakeGenerator();
       ProcPool()->condvar()->unlock();
    }
 

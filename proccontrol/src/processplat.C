@@ -763,7 +763,7 @@ bool int_LWPTracking::lwp_refresh()
 
    setForceGeneratorBlock(true);
    ProcPool()->condvar()->lock();
-   ProcPool()->condvar()->broadcast();
+   wakeGenerator();
    ProcPool()->condvar()->unlock();
    int_process::waitAndHandleEvents(false);
    setForceGeneratorBlock(false);

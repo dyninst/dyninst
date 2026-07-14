@@ -1677,7 +1677,7 @@ bool ProcessSet::terminate() const
       i++;
    }
 
-   ProcPool()->condvar()->broadcast();
+   wakeGenerator();
    ProcPool()->condvar()->unlock();
    pthrd_printf("Processes terminated: sync is %d\n", run_sync);
    if (run_sync) {
@@ -3452,7 +3452,7 @@ bool LWPTrackingSet::refreshLWPs() const
 
    pthrd_printf("Found changes to thread in refresh.  Handling events.\n");
    ProcPool()->condvar()->lock();
-   ProcPool()->condvar()->broadcast();
+   wakeGenerator();
    ProcPool()->condvar()->unlock();
 
    int_process::waitAndHandleEvents(false);
