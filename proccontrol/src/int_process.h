@@ -96,6 +96,44 @@ struct ProcScopeLock {
    ProcScopeLock &operator=(const ProcScopeLock &) = delete;
 };
 
+// Checked impl access (encapsulation revamp).  Pins the wrapper and resolves
+// the impl once; the sanctioned way for boundary code (handlers, events,
+// responses, the public API) to reach an impl -- naked llproc()/llthrd()
+// derefs outside Process/Thread and the impl layer are being retired.
+// Boolean-false when the impl is gone (process/thread exited): callers handle
+// "gone" explicitly instead of dereferencing a checkable NULL.  Purely
+// mechanical today; the work_lock retirement will add per-process locking
+// here (one line) so every boundary access serializes against teardown.
+struct ProcImplRef {
+   Dyninst::ProcControlAPI::Process::const_ptr pin_;
+   int_process *impl_;
+   explicit ProcImplRef(Dyninst::ProcControlAPI::Process::const_ptr p)
+      : pin_(p), impl_(p ? p->llproc() : NULL) {}
+   // For code that holds a raw wrapper pointer (must be externally owned by a
+   // shared_ptr, which every live Process is).
+   explicit ProcImplRef(const Dyninst::ProcControlAPI::Process *p)
+      : pin_(p ? p->shared_from_this()
+               : Dyninst::ProcControlAPI::Process::const_ptr()),
+        impl_(pin_ ? pin_->llproc() : NULL) {}
+   explicit operator bool() const { return impl_ != NULL; }
+   int_process *operator->() const { return impl_; }
+   int_process *get() const { return impl_; }
+   ProcImplRef(const ProcImplRef &) = delete;
+   ProcImplRef &operator=(const ProcImplRef &) = delete;
+};
+
+struct ThreadImplRef {
+   Dyninst::ProcControlAPI::Thread::const_ptr pin_;
+   int_thread *impl_;
+   explicit ThreadImplRef(Dyninst::ProcControlAPI::Thread::const_ptr t)
+      : pin_(t), impl_(t ? t->llthrd() : NULL) {}
+   explicit operator bool() const { return impl_ != NULL; }
+   int_thread *operator->() const { return impl_; }
+   int_thread *get() const { return impl_; }
+   ThreadImplRef(const ThreadImplRef &) = delete;
+   ThreadImplRef &operator=(const ThreadImplRef &) = delete;
+};
+
 typedef boost::shared_ptr<int_iRPC> int_iRPC_ptr;
 typedef std::map<Dyninst::MachRegister, std::pair<unsigned int, unsigned int> > dynreg_to_user_t;
 

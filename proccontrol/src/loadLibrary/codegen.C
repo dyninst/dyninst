@@ -14,15 +14,15 @@ Codegen::Codegen(Process *proc, std::string libname)
    : proc_(proc), libname_(libname), codeStart_(0) {}
 
 Codegen::~Codegen() {
-   int_process *llproc = proc_->llproc();
-   if (codeStart_ && llproc) {
-      llproc->infFree(buffer_.startAddr());
+   ProcImplRef proc(proc_);
+   if (codeStart_ && proc) {
+      proc->infFree(buffer_.startAddr());
    }
 }
 
 bool Codegen::generate() {
    unsigned size = estimateSize();
-   int_process *proc = proc_->llproc();
+   ProcImplRef proc(proc_);
    if (!proc)
       return false;
 
@@ -35,7 +35,7 @@ bool Codegen::generate() {
 
    abimajversion_ = abiminversion_ = 0;
    auto exe = proc_->libraries().getExecutable();
-   SymReader *objSymReader = proc_->llproc()->getSymReader()->openSymbolReader(exe->getName());
+   SymReader *objSymReader = proc->getSymReader()->openSymbolReader(exe->getName());
    if (objSymReader)
       objSymReader->getABIVersion(abimajversion_, abiminversion_);
 
@@ -60,10 +60,13 @@ unsigned Codegen::estimateSize() {
 
 Address Codegen::findSymbolAddr(const std::string name, bool saveTOC) {
    LibraryPool& libs = proc_->libraries();
+   ProcImplRef proc(proc_);
+   if (!proc)
+      return 0;
    for (auto li = libs.begin(); li != libs.end(); li++) {
       if ((*li)->getName().empty()) continue;
 
-      SymReader *objSymReader = proc_->llproc()->getSymReader()->openSymbolReader((*li)->getName());
+      SymReader *objSymReader = proc->getSymReader()->openSymbolReader((*li)->getName());
       if (!objSymReader) continue;
 
       Symbol_t lookupSym = objSymReader->getSymbolByName(name);

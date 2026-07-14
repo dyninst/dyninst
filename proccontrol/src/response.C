@@ -236,9 +236,11 @@ ArchEvent *response::getDecoderEvent()
 
 int_process *response::getProcess() const
 {
-  // Transient deref: NULL iff the process died while this response was
-  // pending -- a checkable condition, not freed memory.
-  return proc ? proc->llproc() : NULL;
+  // Conduit accessor: still hands a raw impl to callers (they null-check).
+  // NULL iff the process died while this response was pending.  Callers
+  // migrate to ProcImplRef as the encapsulation revamp reaches them.
+  ProcImplRef pi(proc);
+  return pi.get();
 }
 
 void response::setProcess(int_process *p)
@@ -495,8 +497,9 @@ void reg_response::setResponse(Dyninst::MachRegisterVal v)
 void reg_response::postResponse(Dyninst::MachRegisterVal v)
 {
    assert(reg && thr);
-   if (thr->llthrd())
-      thr->llthrd()->updateRegCache(reg, v);   // dead thread: nothing to cache
+   ThreadImplRef ti(thr);
+   if (ti)
+      ti->updateRegCache(reg, v);   // dead thread: nothing to cache
    val = v;
 }
 
@@ -550,8 +553,9 @@ void allreg_response::postResponse()
       multi_resp_recvd++;
    }
    if (isMultiResponseComplete()) {
-      if (thr->llthrd())
-         thr->llthrd()->updateRegCache(*regpool);
+      ThreadImplRef ti(thr);
+      if (ti)
+         ti->updateRegCache(*regpool);
    }
 }
 
@@ -691,7 +695,10 @@ void *stack_response::getData()
 
 int_thread *stack_response::getThread()
 {
-   return thr ? thr->llthrd() : NULL;
+   // Conduit accessor (see response::getProcess): callers migrate to
+   // ThreadImplRef as the encapsulation revamp reaches them.
+   ThreadImplRef ti(thr);
+   return ti.get();
 }
 
 void stack_response::postResponse(void *d)
