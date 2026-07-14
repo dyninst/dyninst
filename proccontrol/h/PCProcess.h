@@ -56,6 +56,7 @@
 
 
 class int_process;
+class ProcessPool;
 class int_breakpoint;
 class proc_exitstate;
 class thread_exitstate;
@@ -306,6 +307,9 @@ class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
 
    //These four functions are not for end-users.  
    int_process *llproc() const { return llproc_; }
+   // PROTOTYPE (pool-owns-wrapper): severs the wrapper->impl link at the
+   // detach point (ProcessPool::rmProcess).  Internal use only.
+   void clearLLProc() { llproc_ = NULL; }
    proc_exitstate *exitstate() const { return exitstate_; }
    void setLastError(ProcControlAPI::err_t err_code, const char *err_str) const;
    void clearLastError() const;
@@ -563,7 +567,16 @@ class DYNINST_EXPORT Thread : public boost::enable_shared_from_this<Thread>
 {
  protected:
    friend class ::int_thread;
+   friend class ::int_threadPool;
+   friend class ::ProcessPool;
    int_thread *llthread_;
+   // PROTOTYPE (interior refactor): the thread wrapper caches its process's
+   // wrapper -- a wrapper->wrapper edge (no impl names a wrapper), set once
+   // by ProcessPool::addThread.  Strong ref is correct: it matches the
+   // existing exitstate_->proc_ptr semantics, and the apparent cycle
+   // (Thread -> Process -> llproc_ -> threadpool -> hl_threads -> Thread)
+   // is broken deterministically when destroyProcess deletes the impl.
+   Process::ptr proc_wrapper_;
    thread_exitstate *exitstate_;
 
    Thread();
@@ -577,6 +590,12 @@ class DYNINST_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    typedef boost::weak_ptr<Thread> weak_ptr;
    typedef boost::weak_ptr<const Thread> const_weak_ptr;
    int_thread *llthrd() const;
+   // PROTOTYPE (pool-owns-wrapper): severs the wrapper->impl link at the
+   // detach point (ProcessPool::rmThread).  Internal use only.
+   void clearLLThread() { llthread_ = NULL; }
+   // PROTOTYPE (interior refactor): lock-free access to the cached process
+   // wrapper.  Internal use only (no MTLock; callable from the generator).
+   Process::ptr procWrapperInternal() const { return proc_wrapper_; }
    void setLastError(err_t ec, const char *es) const;
 
    Dyninst::LWP getLWP() const;

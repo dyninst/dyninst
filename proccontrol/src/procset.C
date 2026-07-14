@@ -181,7 +181,7 @@ AddressSet::ptr AddressSet::newAddressSet(Process::const_ptr p, Address addr)
 {
    AddressSet::ptr newset = AddressSet::ptr(new AddressSet);
    newset->iaddrs = new int_addressSet();
-   newset->iaddrs->insert(value_type(addr, p->llproc()->proc()));
+   newset->iaddrs->insert(value_type(addr, pc_const_cast<Process>(p)));
    return newset;
 }
 
@@ -217,7 +217,7 @@ AddressSet::ptr AddressSet::newAddressSet(Process::ptr p, Address addr)
 {
    AddressSet::ptr newset = AddressSet::ptr(new AddressSet);
    newset->iaddrs = new int_addressSet();
-   newset->iaddrs->insert(value_type(addr, p->llproc()->proc()));
+   newset->iaddrs->insert(value_type(addr, pc_const_cast<Process>(p)));
    return newset;
 }
 
@@ -802,7 +802,7 @@ ProcessSet::ptr ProcessSet::createProcessSet(vector<CreateInfo> &cinfo)
 
       err_t last_error = proc->getLastError();
       if (last_error == err_none) {
-         ci.proc = proc->proc();
+         ci.proc = *i;
          ci.error_ret = err_none;
          i++;
          continue;
@@ -856,7 +856,7 @@ ProcessSet::ptr ProcessSet::attachProcessSet(vector<AttachInfo> &ainfo)
          last_error = err_noproc;
       }
       if (last_error == err_none) {
-         ai.proc = proc->proc();
+         ai.proc = *i;
          ai.error_ret = err_none;
          i++;
          continue;
@@ -925,10 +925,10 @@ ProcessSet::iterator ProcessSet::find(Process::const_ptr p)
 ProcessSet::iterator ProcessSet::find(PID p)
 {
    ProcPool()->condvar()->lock();
-   int_process *llproc = ProcPool()->findProcByPid(p);
+   Process::ptr proc = ProcPool()->findProcByPid(p);
    ProcPool()->condvar()->unlock();
-   if (!llproc) return end();
-   return iterator(procset->find(llproc->proc()));
+   if (!proc) return end();
+   return iterator(procset->find(proc));
 }
 
 ProcessSet::const_iterator ProcessSet::begin() const
@@ -949,10 +949,10 @@ ProcessSet::const_iterator ProcessSet::find(Process::const_ptr p) const
 ProcessSet::const_iterator ProcessSet::find(PID p) const
 {
    ProcPool()->condvar()->lock();
-   int_process *llproc = ProcPool()->findProcByPid(p);
+   Process::ptr proc = ProcPool()->findProcByPid(p);
    ProcPool()->condvar()->unlock();
-   if (!llproc) return end();
-   return const_iterator(procset->find(llproc->proc()));
+   if (!proc) return end();
+   return const_iterator(procset->find(proc));
 }
 
 bool ProcessSet::empty() const
@@ -1700,7 +1700,7 @@ bool ProcessSet::terminate() const
       if (!proc)
          continue;   // already deleted during terminate/waitAndHandleEvents
       HandlerPool *hp = proc->handlerPool();
-      delete proc;
+      ProcPool()->destroyProcess(p);
       delete hp;
    }
 
@@ -1785,7 +1785,7 @@ bool ProcessSet::readMemory(AddressSet::ptr addrset, multimap<Process::ptr, void
          had_error = true;
          continue;
       }
-      mem_result.insert(make_pair(p->llproc()->proc(), r.buffer));
+      mem_result.insert(make_pair(pc_const_cast<Process>(p), r.buffer));
    }
    return !had_error;
 }
@@ -2825,7 +2825,7 @@ bool ThreadSet::setRegister(Dyninst::MachRegister reg, const map<Thread::const_p
          continue;
       }
 
-      thr_to_response.insert(make_pair(thr->thread(), response));
+      thr_to_response.insert(make_pair(thr->llproc()->threadPool()->hlFor(thr), response));
       all_responses.insert(response);
    }
 
@@ -2950,7 +2950,7 @@ bool ThreadSet::setAllRegisters(const map<Thread::const_ptr, RegisterPool> &reg_
          continue;
       }
 
-      thr_to_response.insert(make_pair(thr->thread(), response));
+      thr_to_response.insert(make_pair(thr->llproc()->threadPool()->hlFor(thr), response));
       all_responses.insert(response);      
    }
 
@@ -3244,8 +3244,11 @@ bool LibraryTrackingSet::refreshLibraries() const
             transform(added.begin(), added.end(), inserter(libs_added, libs_added.end()), lib_converter::c);
             transform(rmd.begin(), rmd.end(), inserter(libs_rmd, libs_rmd.end()), lib_converter::c);
             EventLibrary::ptr evlib = EventLibrary::ptr(new EventLibrary(libs_added, libs_rmd));
-            evlib->setProcess(proc->proc());
-            evlib->setThread(proc->threadPool()->initialThread()->thread());
+            {
+               Thread::ptr itw = proc->threadPool()->initialThreadWrapper();
+               evlib->setProcess(itw->procWrapperInternal());
+               evlib->setThread(itw);
+            }
             evlib->setSyncType(Event::async);
             mbox()->enqueue(evlib);
             continue;
@@ -3912,7 +3915,7 @@ bool MemoryUsageSet::usedX(std::map<Process::const_ptr, unsigned long> &used, Me
       if (j == the_results->end())
          continue;
       MemUsageResp_t *resp = j->second;
-      used.insert(make_pair(resp->getProc()->proc(), *resp->get()));         
+      used.insert(make_pair(resp->getProc()->threadPool()->initialThreadWrapper()->procWrapperInternal(), *resp->get()));         
    }
 
    map<int_memUsage *, MemUsageResp_t *>::iterator i;

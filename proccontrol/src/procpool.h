@@ -34,31 +34,71 @@
 #include <map>
 #include "dyntypes.h"
 #include "common/src/dthread.h"
+#include "PCProcess.h"
 
 using namespace Dyninst;
 
 class int_process;
 class int_thread;
 
+// PROTOTYPE (pool-owns-wrapper): the pool holds the reference-counted
+// Process/Thread wrappers instead of raw impl pointers.  The pool's strong
+// ref is what keeps a wrapper alive for the debugging session; the impl
+// (int_process/int_thread) holds no up-pointer at all.
+//
+// Lifecycle:
+//  - Registration happens at birth (initializeProcess/createThread) once the
+//    OS id is known.
+//  - rmProcess/rmThread only unregister (drop the pool's strong ref).  The
+//    wrapper<->impl link is NOT severed there: post-exit handlers and the
+//    callback layer still traverse wrapper->llproc() after rmProcess.
+//  - Publish-exit-state + sever + delete happen together in
+//    int_process::destroy(Process::ptr) / int_thread::destroy(Thread::ptr),
+//    which every impl deletion site calls with the wrapper in hand.
+//    Measured across the full testsuite: the only post-unregister
+//    impl->wrapper resolution was the thread dtors' exitstate publish, which
+//    destroy() satisfies by passing the wrapper down -- so no zombie
+//    bookkeeping is needed, and the impl dtors never talk to the pool.
 class ProcessPool
 {
    friend ProcessPool *ProcPool();
  protected:
    std::set<Dyninst::LWP> deadThreads;
-   std::map<Dyninst::PID, int_process *> procs;
-   std::map<Dyninst::LWP, int_thread *> lwps;
+   std::map<Dyninst::PID, Dyninst::ProcControlAPI::Process::ptr> procs;
+   std::map<Dyninst::LWP, Dyninst::ProcControlAPI::Thread::ptr> lwps;
+   // PROTOTYPE: the old code resolved impl->wrapper via a lock-free field
+   // read (up_proc/up_thread); the pool's maps are read from threads that do
+   // NOT all hold the ProcPool condvar (e.g. the generator's decoder), so
+   // the maps get their own leaf-level recursive mutex.  Recursive because
+   // destroy-side helpers nest rmProcess/rmThread.
+   Mutex<true> map_lock;
    ProcessPool();
    CondVar<> var;
  public:
    ~ProcessPool();
    typedef bool(*ifunc)(int_process *, void *data);
 
-   int_process *findProcByPid(Dyninst::PID pid);
-   void addProcess(int_process *proc);
-   void addThread(int_process *proc, int_thread *thr);
-   void rmProcess(int_process *proc);
-   void rmThread(int_thread *thr);
-   int_thread *findThread(Dyninst::LWP lwp);
+   // The pool API traffics exclusively in wrappers: OS ids in, wrappers out.
+   // Raw impl pointers never cross this interface.
+   Dyninst::ProcControlAPI::Process::ptr findProcByPid(Dyninst::PID pid);
+   void addProcess(Dyninst::ProcControlAPI::Process::ptr proc);
+   // Registers a newborn wrapper (and thereby establishes the impl->wrapper
+   // mapping -- before this call, wrapperFor() cannot resolve it, so the
+   // creator must hand the wrapper in).  The impl is derived via llthrd().
+   void addThread(Dyninst::ProcControlAPI::Thread::ptr wrapper);
+   void rmProcess(Dyninst::ProcControlAPI::Process::ptr proc);
+   void rmThread(Dyninst::ProcControlAPI::Thread::ptr thr);
+   Dyninst::ProcControlAPI::Thread::ptr findThread(Dyninst::LWP lwp);
+
+   // The only deletion points for the impls: unregister (links intact),
+   // publish exit state into the wrappers (passed down, never resolved
+   // post-unregistration), sever the ll links, delete the impl.
+   void destroyProcess(Dyninst::ProcControlAPI::Process::ptr proc);
+   void destroyThread(Dyninst::ProcControlAPI::Thread::ptr thr);
+
+   // impl -> wrapper resolution (live maps; identity-checked).
+   Dyninst::ProcControlAPI::Process::ptr wrapperFor(int_process *proc);
+   Dyninst::ProcControlAPI::Thread::ptr wrapperFor(int_thread *thr);
    // On Linux, we can get notifications for dead threads. Fun. 
    bool deadThread(Dyninst::LWP lwp);
    void addDeadThread(Dyninst::LWP lwp);

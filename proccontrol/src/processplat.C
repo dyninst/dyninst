@@ -842,7 +842,7 @@ bool int_LWPTracking::lwp_refreshCheck(bool &change)
          pthrd_printf("Found thread %d/%d is dead during refresh\n", getPid(), thr->getLWP());
          EventLWPDestroy::ptr newev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
          newev->setProcess(proc());
-         newev->setThread(thr->thread());
+         newev->setThread(thr->llproc()->threadPool()->hlFor(thr));
          newev->setSyncType(Event::async);
          mbox()->enqueue(newev);
       }

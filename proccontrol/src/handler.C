@@ -184,8 +184,9 @@ Event::ptr HandlerPool::curEvent()
    if (!cur_event && nop_cur_event) {
       //Lazily create a NOP event as the current event.
       EventNop::ptr nop_event = EventNop::ptr(new EventNop());
-      nop_event->setProcess(proc->proc());
-      nop_event->setThread(proc->threadPool()->initialThread()->thread());
+      Thread::ptr itw = proc->threadPool()->initialThreadWrapper();
+      nop_event->setProcess(itw->procWrapperInternal());
+      nop_event->setThread(itw);
       nop_event->setSyncType(Event::async);
       cur_event = nop_event;
    }
@@ -656,7 +657,11 @@ Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
    ProcPool()->condvar()->lock();
 
    proc->setState(int_process::exited);
-   ProcPool()->rmProcess(proc);
+   // PROTOTYPE (wrapper-centric deletion): unregistration is deferred to
+   // int_process::destroy (HandlePostExitCleanup).  HandleCallbacks runs
+   // between here and there, and callback-window code (Thread::getProcess et
+   // al.) still resolves impl->wrapper -- so the pool entry must survive
+   // until destroy.
    if(proc->wasForcedTerminated())
    {
 	   proc->getStartupTeardownProcs().dec();
@@ -711,7 +716,7 @@ Handler::handler_ret_t HandlePostExitCleanup::handleEvent(Event::ptr ev)
    if (int_process::in_waitHandleProc == proc) {
       pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
    } else {
-      delete proc;
+      ProcPool()->destroyProcess(pc_const_cast<Process>(ev->getProcess()));
    }
 
    return ret_success;
@@ -760,7 +765,7 @@ Handler::handler_ret_t HandleCrash::handleEvent(Event::ptr ev)
    ProcPool()->condvar()->lock();
 
    proc->setState(int_process::exited);
-   ProcPool()->rmProcess(proc);
+   // PROTOTYPE: unregistration deferred to destroy (see HandlePostExit).
 
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
@@ -804,7 +809,7 @@ Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
    }
 
 
-   ProcPool()->rmProcess(proc);
+   // PROTOTYPE: unregistration happens inside destroy() below.
 
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
@@ -814,7 +819,7 @@ Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
    if (int_process::in_waitHandleProc == proc) {
       pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
    } else {
-      delete proc;
+      ProcPool()->destroyProcess(pc_const_cast<Process>(ev->getProcess()));
    }
 
    return ret_success;
@@ -920,7 +925,7 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    if (!thrd) {
       //This happens on BG/P with user thread events.
       pthrd_printf("Setting new event to have occured on new thread\n");
-      ev->setThread(newthr->thread());
+      ev->setThread(proc->threadPool()->hlFor(newthr));
       thrd = newthr;
    }
 
@@ -1165,7 +1170,8 @@ Handler::handler_ret_t HandlePostFork::handleEvent(Event::ptr ev)
    pthrd_printf("Handling fork for parent %d to child %d\n",
                 parent_proc->getPid(), child_pid);
 
-   int_process *child_proc = ProcPool()->findProcByPid(child_pid);
+   Process::ptr child_wrapper = ProcPool()->findProcByPid(child_pid);
+   int_process *child_proc = child_wrapper ? child_wrapper->llproc() : NULL;
    if( child_proc == NULL ) {
        child_proc = int_process::createProcess(child_pid, parent_proc);
    }
@@ -1202,7 +1208,8 @@ Handler::handler_ret_t HandlePostForkCont::handleEvent(Event::ptr ev)
 {
    EventFork *efork = static_cast<EventFork *>(ev.get());
    Dyninst::PID child_pid = efork->getPID();
-   int_process *child_proc = ProcPool()->findProcByPid(child_pid);
+   Process::ptr child_wrapper = ProcPool()->findProcByPid(child_pid);
+   int_process *child_proc = child_wrapper ? child_wrapper->llproc() : NULL;
    int_process *parent_proc = ev->getProcess()->llproc();
    pthrd_printf("Handling post-fork continue for child %d\n", child_pid);
    assert(child_proc);
@@ -1249,7 +1256,7 @@ Handler::handler_ret_t HandlePostExec::handleEvent(Event::ptr ev)
       return ret_error;
    
    eexec->setExecPath(proc->getExecutable());
-   eexec->setThread(proc->threadPool()->initialThread()->thread());
+   eexec->setThread(proc->threadPool()->initialThreadWrapper());
    return ret_success;
 }
 
@@ -1269,9 +1276,14 @@ void HandleSingleStep::getEventTypesHandled(vector<EventType> &etypes)
 
 Handler::handler_ret_t HandleSingleStep::handleEvent(Event::ptr ev)
 {
-   pthrd_printf("Handling event single step on %d/%d\n", 
-                ev->getProcess()->llproc()->getPid(), 
-                ev->getThread()->llthrd()->getLWP());
+   int_process *proc = ev->getProcess()->llproc();
+   int_thread *thrd = ev->getThread() ? ev->getThread()->llthrd() : NULL;
+   if (!proc || !thrd) {
+      pthrd_printf("Single-step for exited process/thread; ignoring.\n");
+      return ret_success;
+   }
+   pthrd_printf("Handling event single step on %d/%d\n",
+                proc->getPid(), thrd->getLWP());
    return ret_success;
 }
 
@@ -1342,6 +1354,14 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
 {
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thrd = ev->getThread()->llthrd();
+
+   if (!proc || !thrd) {
+      // The process or thread was torn down (e.g. the mutatee exited) while
+      // this breakpoint event was still in flight.  There is nothing left to
+      // act on, and dereferencing the stale handle would crash.
+      pthrd_printf("Breakpoint event for exited process/thread; ignoring.\n");
+      return ret_success;
+   }
 
    EventBreakpoint *ebp = static_cast<EventBreakpoint *>(ev.get());
    pthrd_printf("Handling breakpoint at %lx\n", ebp->getAddress());
@@ -1738,6 +1758,13 @@ Handler::handler_ret_t HandleEmulatedSingleStep::handleEvent(Event::ptr ev)
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thrd = ev->getThread()->llthrd();
 
+   if (!proc || !thrd) {
+      // The process or thread was torn down (e.g. the mutatee exited) while
+      // this event was still in flight.  Nothing left to single-step over.
+      pthrd_printf("Emulated single-step event for exited process/thread; ignoring.\n");
+      return ret_success;
+   }
+
    emulated_singlestep *em_singlestep = thrd->getEmulatedSingleStep();
    if (!em_singlestep)
       return ret_success;
@@ -1756,8 +1783,11 @@ Handler::handler_ret_t HandleEmulatedSingleStep::handleEvent(Event::ptr ev)
    }
 
    EventSingleStep::ptr ev_ss = EventSingleStep::ptr(new EventSingleStep());
-   ev_ss->setProcess(proc->proc());
-   ev_ss->setThread(thrd->thread());
+   {
+      Thread::ptr tw = proc->threadPool()->hlFor(thrd);
+      ev_ss->setProcess(tw->procWrapperInternal());
+      ev_ss->setThread(tw);
+   }
    ev_ss->setSyncType(ev->getSyncType());
    proc->handlerPool()->addLateEvent(ev_ss);
 
@@ -1942,7 +1972,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
       ProcPool()->condvar()->lock();
 
       proc->setState(int_process::exited);
-      ProcPool()->rmProcess(proc);
+      ProcPool()->rmProcess(pc_const_cast<Process>(ev->getProcess()));
 
       ProcPool()->condvar()->broadcast();
       ProcPool()->condvar()->unlock();
@@ -2215,7 +2245,7 @@ bool HandleCallbacks::handleCBReturn(Process::const_ptr proc, Thread::const_ptr 
                                      Process::cb_action_t ret)
 {
    if (!thrd) {
-      thrd = proc->llproc()->threadPool()->initialThread()->thread();
+      thrd = proc->llproc()->threadPool()->initialThreadWrapper();
    }
    switch (ret) {
       case Process::cbThreadContinue:

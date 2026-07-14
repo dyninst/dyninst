@@ -292,7 +292,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 
    int_process *proc = NULL;
    linux_process *lproc = NULL;
-   int_thread *thread = ProcPool()->findThread(archevent->pid);
+   Thread::ptr thread_wrapper = ProcPool()->findThread(archevent->pid);
+   int_thread *thread = thread_wrapper ? thread_wrapper->llthrd() : NULL;
    linux_thread *lthread = NULL;
    if (thread) {
       proc = thread->llproc();
@@ -345,7 +346,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                if( lthread->isSet_fakeSyscallExitBp &&
                    lthread->addr_fakeSyscallExitBp == addr){
                    // do not handle the bp and clear the bp.
-                    bool rst = lthread->proc()->rmBreakpoint(addr, lthread->BPptr_fakeSyscallExitBp );
+                    bool rst = thread_wrapper->procWrapperInternal()->rmBreakpoint(addr, lthread->BPptr_fakeSyscallExitBp );
                     if( !rst){
                         perr_printf("ARM-error: Failed to remove inserted BP, addr %p.\n",
                                 (void*)addr);
@@ -462,7 +463,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                     else {
                         EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
                         event = lwp_ev;
-                        event->setThread(thread->thread());
+                        event->setThread(thread_wrapper);
                         lproc->decodeTdbLWPExit(lwp_ev);
                         lthread->setGeneratorExiting();
                     }
@@ -548,8 +549,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                 event = Event::ptr(new EventBreakpointRestore(new int_eventBreakpointRestore(clearingbp)));
                 if (thread->singleStepUserMode()) {
                    Event::ptr subservient_ss = EventSingleStep::ptr(new EventSingleStep());
-                   subservient_ss->setProcess(proc->proc());
-                   subservient_ss->setThread(thread->thread());
+                   subservient_ss->setProcess(thread_wrapper->procWrapperInternal());
+                   subservient_ss->setThread(thread_wrapper);
                    subservient_ss->setSyncType(Event::sync_thread);
                    event->addSubservientEvent(subservient_ss);
                 }
@@ -588,12 +589,12 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                             thread->getLWP(), adjusted_addr);
                EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(new int_eventBreakpoint(adjusted_addr, ibp, thread)));
                event = event_bp;
-               event->setThread(thread->thread());
+               event->setThread(thread_wrapper);
 
                if (thread->singleStepUserMode() && !proc->plat_breakpointAdvancesPC()) {
                   Event::ptr subservient_ss = EventSingleStep::ptr(new EventSingleStep());
-                  subservient_ss->setProcess(proc->proc());
-                  subservient_ss->setThread(thread->thread());
+                  subservient_ss->setProcess(thread_wrapper->procWrapperInternal());
+                  subservient_ss->setThread(thread_wrapper);
                   subservient_ss->setSyncType(Event::sync_thread);
                   event->addSubservientEvent(subservient_ss);
                }
@@ -601,8 +602,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                if (adjusted_addr == lproc->getLibBreakpointAddr()) {
                   pthrd_printf("Breakpoint is library load/unload\n");
                   EventLibrary::ptr lib_event = EventLibrary::ptr(new EventLibrary());
-                  lib_event->setThread(thread->thread());
-                  lib_event->setProcess(proc->proc());
+                  lib_event->setThread(thread_wrapper);
+                  lib_event->setProcess(thread_wrapper->procWrapperInternal());
                   lib_event->setSyncType(Event::sync_thread);
                   event->addSubservientEvent(lib_event);
                   break;
@@ -676,7 +677,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
       event = lwp_ev;
       event->setSyncType(Event::async);
-      event->setThread(thread->thread());
+      event->setThread(thread_wrapper);
       lproc->decodeTdbLWPExit(lwp_ev);
       thread->getGeneratorState().setState(int_thread::exited);
    }
@@ -710,7 +711,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
    {
       //Paired event decoded
       assert(!event);
-      thread = ProcPool()->findThread(parent->pid);
+      thread_wrapper = ProcPool()->findThread(parent->pid);
+      thread = thread_wrapper ? thread_wrapper->llthrd() : NULL;
       assert(thread);
       proc = thread->llproc();
       if (parent->event_ext == PTRACE_EVENT_FORK)
@@ -734,12 +736,14 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
        assert(event);
        assert(!parent);
        assert(!child);
-       assert(proc->proc());
-       assert(thread->thread());
+       assert(thread_wrapper);
+       assert(thread_wrapper->procWrapperInternal());
        delete archevent;
    }
-   event->setThread(thread->thread());
-   event->setProcess(proc->proc());
+   // Boundary refactor: the thread wrapper is already in hand from routing;
+   // only the proc wrapper needs one resolution.
+   event->setThread(thread_wrapper);
+   event->setProcess(thread_wrapper->procWrapperInternal());
    events.push_back(event);
 
    return true;
@@ -2807,7 +2811,7 @@ bool linux_thread::plat_setRegisterAsync(Dyninst::MachRegister reg,
 }
 
 bool linux_thread::plat_handle_ghost_thread() {
-	std::string loc = "/proc/" + std::to_string(proc()->getPid()) + "/task/" + std::to_string(getLWP());
+	std::string loc = "/proc/" + std::to_string(llproc()->getPid()) + "/task/" + std::to_string(getLWP());
 	struct stat dummy;
 	int res = stat(loc.c_str(), &dummy);
 	pthrd_printf("GHOST_THREAD: stat=%d, loc=%s\n", res, loc.c_str());
@@ -2824,14 +2828,14 @@ bool linux_thread::plat_handle_ghost_thread() {
 	auto *initial_thread = llproc()->threadPool()->initialThread();
 
 	// Do not create a destroy event for the thread executed from 'main'
-	if(initial_thread != thread()->llthrd()) {
+	if(initial_thread != this) {
 		EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
 		lwp_ev->setSyncType(Event::async);
 		lwp_ev->setThread(thread());
 		lwp_ev->setProcess(proc());
-		dynamic_cast<linux_process*>(proc()->llproc())->decodeTdbLWPExit(lwp_ev);
+		dynamic_cast<linux_process*>(llproc())->decodeTdbLWPExit(lwp_ev);
 		pthrd_printf("GHOST THREAD: Enqueueing event for %d/%d\n",
-				proc()->getPid(), getLWP());
+				llproc()->getPid(), getLWP());
 		mbox()->enqueue(lwp_ev, true);
 	}
 	return true;
@@ -3148,7 +3152,8 @@ Handler::handler_ret_t LinuxHandleNewThr::handleEvent(Event::ptr ev)
    else if (ev->getEventType().code() == EventType::ThreadCreate) {
       Dyninst::LWP lwp = static_cast<EventNewThread *>(ev.get())->getLWP();
       ProcPool()->condvar()->lock();
-      thr = dynamic_cast<linux_thread *>(ProcPool()->findThread(lwp));
+      Thread::ptr lwp_wrapper = ProcPool()->findThread(lwp);
+      thr = lwp_wrapper ? dynamic_cast<linux_thread *>(lwp_wrapper->llthrd()) : NULL;
       ProcPool()->condvar()->unlock();
    }
    assert(thr);

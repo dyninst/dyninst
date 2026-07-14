@@ -71,7 +71,9 @@ class response : public boost::enable_shared_from_this<response> {
 
    bool error;
    int errorcode;
-   int_process *proc;
+   // Phase A: async responses outlive processes by design; hold the
+   // refcounted wrapper, deref transiently at point of use.
+   Process::ptr proc;
    int_eventAsyncIO *aio;
 
   protected:
@@ -193,7 +195,8 @@ class reg_response : public response
    reg_response();
 
    Dyninst::MachRegister reg;
-   int_thread *thr;
+   // Phase A: see response::proc.
+   Thread::ptr thr;
 
   public:
    typedef boost::shared_ptr<reg_response> ptr;
@@ -215,7 +218,8 @@ class allreg_response : public response
    friend void boost::checked_delete<const allreg_response>(const allreg_response *) CHECKED_DELETE_NOEXCEPT;
   private:
    int_registerPool *regpool;
-   int_thread *thr;
+   // Phase A: see response::proc.
+   Thread::ptr thr;
    reg_response::ptr indiv_access;
    Dyninst::MachRegister indiv_reg;
    allreg_response();
@@ -280,7 +284,8 @@ class stack_response : public response
    friend void boost::checked_delete<const stack_response>(const stack_response *) CHECKED_DELETE_NOEXCEPT;
   private:
    void *data;
-   int_thread *thr;
+   // Phase A: see response::proc.
+   Thread::ptr thr;
    stack_response(int_thread *t);
 
   public:

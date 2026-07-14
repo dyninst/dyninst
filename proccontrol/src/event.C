@@ -335,6 +335,22 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::const_ptr> &bps) co
    if (!int_bp)
       return;
    bp_instance *ibp = int_bp->lookupInstalledBreakpoint();
+   if (!ibp) {
+      // Distinguish the two ways the lookup can miss.  A dead event thread is
+      // the expected (stale-event) case; a miss for a live thread is
+      // near-impossible by construction -- HandleBreakpoint verified the
+      // bp_instance before any consumer runs -- and indicates a user-deleted
+      // breakpoint or broken bookkeeping, so keep it visible rather than
+      // silently masking it.
+      int_thread *evthr = int_bp->thrd ? int_bp->thrd->llthrd() : NULL;
+      if (evthr && evthr->llproc())
+         pthrd_printf("getBreakpoints: no bp_instance for LIVE thread %d -- "
+                      "deleted breakpoint or broken bookkeeping\n",
+                      (int) evthr->getLWP());
+      else
+         pthrd_printf("getBreakpoints on event whose thread exited; empty result\n");
+      return;
+   }
    std::set<Breakpoint::ptr>::iterator i;
    for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); ++i) {
       bps.push_back(*i);
@@ -346,6 +362,22 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::ptr> &bps)
    if (!int_bp)
       return;
    bp_instance *ibp = int_bp->lookupInstalledBreakpoint();
+   if (!ibp) {
+      // Distinguish the two ways the lookup can miss.  A dead event thread is
+      // the expected (stale-event) case; a miss for a live thread is
+      // near-impossible by construction -- HandleBreakpoint verified the
+      // bp_instance before any consumer runs -- and indicates a user-deleted
+      // breakpoint or broken bookkeeping, so keep it visible rather than
+      // silently masking it.
+      int_thread *evthr = int_bp->thrd ? int_bp->thrd->llthrd() : NULL;
+      if (evthr && evthr->llproc())
+         pthrd_printf("getBreakpoints: no bp_instance for LIVE thread %d -- "
+                      "deleted breakpoint or broken bookkeeping\n",
+                      (int) evthr->getLWP());
+      else
+         pthrd_printf("getBreakpoints on event whose thread exited; empty result\n");
+      return;
+   }
    std::set<Breakpoint::ptr>::iterator i;
    for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); i++) {
       bps.push_back(*i);
@@ -498,14 +530,17 @@ Dyninst::LWP EventNewUserThread::getLWP() const
 
 Thread::const_ptr EventNewUserThread::getNewThread() const
 {
+   // Phase A: iev->thr is a Thread::const_ptr -- it cannot dangle, and a
+   // dead thread reads as llthrd()==NULL instead of freed memory.
    if (iev->thr)
-      return iev->thr->thread();
+      return iev->thr;
    if (iev->lwp == NULL_LWP)
       return Thread::const_ptr();
 
-   iev->thr = getProcess()->llproc()->threadPool()->findThreadByLWP(iev->lwp);
-   assert(iev->thr);
-   return iev->thr->thread();
+   int_thread *t = getProcess()->llproc()->threadPool()->findThreadByLWP(iev->lwp);
+   assert(t);
+   iev->thr = t->thread();
+   return iev->thr;
 }
 
 int_eventNewUserThread *EventNewUserThread::getInternalEvent() const
@@ -547,7 +582,7 @@ Thread::const_ptr EventNewLWP::getNewThread() const
 #endif
 
    assert(thr);
-   return thr->thread();
+   return getProcess()->llproc()->threadPool()->hlFor(thr);
 }
 
 int_eventNewLWP *EventNewLWP::getInternalEvent()
@@ -599,9 +634,9 @@ Dyninst::PID EventFork::getPID() const
 
 Process::const_ptr EventFork::getChildProcess() const
 {
-   int_process *iproc = ProcPool()->findProcByPid(pid);
-   assert(iproc);
-   return iproc->proc();
+   Process::ptr proc = ProcPool()->findProcByPid(pid);
+   assert(proc);
+   return proc;
 }
 
 EventRPC::EventRPC(rpc_wrapper *wrapper_) :
@@ -1162,7 +1197,7 @@ EventPostponedSyscall::~EventPostponedSyscall()
 int_eventBreakpoint::int_eventBreakpoint(Address a, sw_breakpoint *, int_thread *thr) :
    addr(a),
    hwbp(NULL),
-   thrd(thr),
+   thrd(thr ? thr->thread() : Thread::const_ptr()),
    stopped_proc(false)
 {
 }
@@ -1170,7 +1205,7 @@ int_eventBreakpoint::int_eventBreakpoint(Address a, sw_breakpoint *, int_thread 
 int_eventBreakpoint::int_eventBreakpoint(hw_breakpoint *i, int_thread *thr) :
    addr(i->getAddr()),
    hwbp(i),
-   thrd(thr),
+   thrd(thr ? thr->thread() : Thread::const_ptr()),
    stopped_proc(false)
 {
 }
@@ -1183,8 +1218,14 @@ bp_instance *int_eventBreakpoint::lookupInstalledBreakpoint()
 {
    if (hwbp)
       return static_cast<bp_instance *>(hwbp);
-   else
-      return static_cast<bp_instance *>(thrd->llproc()->getBreakpoint(addr));
+   // The thread or its process may already have been torn down (the mutatee
+   // exited) while this breakpoint event was still in flight.  The wrapper
+   // survives, but llthrd() returns NULL once the int_thread is destroyed, so
+   // there is no installed breakpoint to find.
+   int_thread *t = thrd ? thrd->llthrd() : NULL;
+   if (!t || !t->llproc())
+      return NULL;
+   return static_cast<bp_instance *>(t->llproc()->getBreakpoint(addr));
 }
 
 int_eventBreakpointClear::int_eventBreakpointClear() :
@@ -1261,7 +1302,7 @@ void int_eventAsync::addResp(response::ptr r)
 }
 
 int_eventNewUserThread::int_eventNewUserThread() :
-   thr(NULL),
+   thr(),
    lwp(NULL_LWP),
    raw_data(NULL),
    needs_update(true)

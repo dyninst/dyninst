@@ -337,6 +337,9 @@ class int_process
    int_threadPool *threadPool() const;
 
    Process::ptr proc() const;
+   // PROTOTYPE: snapshot exit info into the wrapper.  Deletion itself lives
+   // in ProcessPool::destroyProcess (wrapper-centric).
+   void publishExitState(Process::ptr w);
    mem_state::ptr memory() const;
 
    err_t getLastError();
@@ -560,7 +563,9 @@ class int_process
    std::map<int,int> fds;
    Dyninst::Architecture arch;
    int_threadPool *threadpool;
-   Process::ptr up_proc;
+   // PROTOTYPE (pool-owns-wrapper): no up_proc.  The canonical wrapper is
+   // held by ProcessPool for the session; resolve it via proc()
+   // (ProcPool()->wrapperFor(this)).
    HandlerPool *handlerpool;
    LibraryPool libpool;
    bool hasCrashSignal;
@@ -754,6 +759,10 @@ public:
    static int_thread *createRPCThread(int_process *p);
    Process::ptr proc() const;
    int_process *llproc() const;
+   // PROTOTYPE: snapshot exit info into the wrapper.  proc_wrapper is passed
+   // in because at publish time this impl may already be unregistered.
+   // Deletion lives in ProcessPool::destroyThread (wrapper-centric).
+   void publishExitState(Thread::ptr w, Process::ptr proc_wrapper);
 
    Dyninst::LWP getLWP() const;
 
@@ -1062,7 +1071,7 @@ public:
    Dyninst::THR_ID tid;
    Dyninst::LWP lwp;
    int_process *proc_;
-   Thread::ptr up_thread;
+   // PROTOTYPE (pool-owns-wrapper): no up_thread; see int_process note.
    int continueSig_;
    attach_status_t attach_status;
 
@@ -1143,11 +1152,14 @@ class int_threadPool {
    friend class Dyninst::ProcControlAPI::ThreadPool::iterator;
    friend class int_thread;
  private:
-   std::vector<int_thread *> threads;
-   std::vector<Thread::ptr> hl_threads;
-   std::map<Dyninst::LWP, int_thread *> thrds_by_lwp;
+   // PROTOTYPE (unified storage): one vector of Thread wrappers -- the
+   // impls are reached via llthrd().  Replaces the old parallel
+   // threads/hl_threads vectors whose index-sync the upstream FIXME in
+   // rmThread already called out as a consistency hazard.
+   std::vector<Thread::ptr> threads;
+   std::map<Dyninst::LWP, Thread::ptr> thrds_by_lwp;
 
-   mutable int_thread *initial_thread; // may be updated by side effect on Windows
+   mutable Thread::ptr initial_thread; // may be updated by side effect on Windows
    int_process *proc_;
    ThreadPool *up_pool;
    bool had_multiple_threads;
@@ -1155,16 +1167,38 @@ class int_threadPool {
    int_threadPool(int_process *p);
    ~int_threadPool();
 
-   void setInitialThread(int_thread *thrd);
-   void addThread(int_thread *thrd);
-   void rmThread(int_thread *thrd);
+   void setInitialThread(Thread::ptr thrd);
+   void addThread(Thread::ptr wrapper);
+   void rmThread(Thread::ptr thrd);
    void noteUpdatedLWP(int_thread *thrd);
    void clear();
    bool hadMultipleThreads() const;
 
-   typedef std::vector<int_thread *>::iterator iterator;
-   iterator begin() { return threads.begin(); }
-   iterator end() { return threads.end(); }
+   // PROTOTYPE: wrapper for a thread in this pool; valid even after the
+   // thread is unregistered from the global ProcessPool.
+   Thread::ptr hlFor(int_thread *thr);
+   Thread::ptr initialThreadWrapper();
+   // Publish exit state, sever, and delete every impl still in this pool
+   // (proc wrapper passed down), then clear.  With wrapper-only storage the
+   // impls are unreachable after severing, so deletion must ride in the
+   // same pass.  Used by ProcessPool::destroyProcess.
+   void destroyAllThreads(Process::ptr pw);
+
+   // Compatibility iterator: yields int_thread* like the old
+   // vector<int_thread*> iterator, so iteration sites are unchanged.
+   class iterator {
+      std::vector<Thread::ptr>::iterator it;
+    public:
+      iterator() {}
+      explicit iterator(std::vector<Thread::ptr>::iterator i) : it(i) {}
+      int_thread *operator*() const { return (*it)->llthrd(); }
+      bool operator==(const iterator &o) const { return it == o.it; }
+      bool operator!=(const iterator &o) const { return it != o.it; }
+      iterator &operator++() { ++it; return *this; }
+      iterator operator++(int) { iterator t = *this; ++it; return t; }
+   };
+   iterator begin() { return iterator(threads.begin()); }
+   iterator end() { return iterator(threads.end()); }
    bool empty() { return threads.empty(); }
 
    unsigned size() const;

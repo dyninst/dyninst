@@ -61,7 +61,7 @@ int_iRPC::int_iRPC(void *binary_blob_,
    binary_blob(binary_blob_),
    binary_size(binary_size_),
    start_offset(0),
-   thrd(NULL),
+   thrd(),
    inffree_target(0),
    async(async_),
    freeBinaryBlob(false),
@@ -95,10 +95,10 @@ bool int_iRPC::isRPCPrepped()
 
    assert(state == Prepping);
 	// Ephemeral thread doesn't exist, so it doesn't need to stop.
-   if(thrd->isRPCEphemeral())
+   if(thread()->isRPCEphemeral())
 	   return true;
    if (isProcStopRPC()) {
-      int_threadPool *pool = thrd->llproc()->threadPool();
+      int_threadPool *pool = thread()->llproc()->threadPool();
       for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
          if (!(*i)->isStopped(int_thread::IRPCSetupStateID) &&
              (*i)->getActiveState().getID() != int_thread::IRPCStateID)
@@ -109,7 +109,7 @@ bool int_iRPC::isRPCPrepped()
       return true;
    }
    else {
-      return thrd->isStopped(int_thread::IRPCSetupStateID);
+      return thread()->isStopped(int_thread::IRPCSetupStateID);
    }
 }
 
@@ -162,7 +162,7 @@ void int_iRPC::setAsync(bool a)
 
 void int_iRPC::setThread(int_thread *t)
 {
-   thrd = t;
+   thrd = t ? t->thread() : Thread::ptr();
 }
 
 void int_iRPC::setIRPC(IRPC::weak_ptr o)
@@ -221,7 +221,7 @@ bool int_iRPC::fillInAllocation()
       // approiate amount of memory.
       pthrd_printf("Setting up allocation snippet %lu to allocate memory of "
                    "size %lu\n", id(), target_allocation->size);
-      result = thrd->llproc()->plat_createAllocationSnippet((Dyninst::Address) 0,
+      result = thread()->llproc()->plat_createAllocationSnippet((Dyninst::Address) 0,
                                                             false,
                                                             target_allocation->size,
                                                             binary_blob,
@@ -234,7 +234,7 @@ bool int_iRPC::fillInAllocation()
       pthrd_printf("Setting up deallocation snippet %lu to clear memory %lx of "
                    "size %lu\n", id(), target_allocation->addr,
                    target_allocation->size);
-      result = thrd->llproc()->plat_createDeallocationSnippet(target_allocation->addr,
+      result = thread()->llproc()->plat_createDeallocationSnippet(target_allocation->addr,
                                                               target_allocation->size,
                                                               binary_blob,
                                                               binary_size,
@@ -256,7 +256,7 @@ bool int_iRPC::fillInAllocation()
       setAllocation(iRPCAllocation::ptr(new iRPCAllocation()));
    }
    cur_allocation->size = binary_size;
-   cur_allocation->addr = thrd->llproc()->mallocExecMemory(binary_size);
+   cur_allocation->addr = thread()->llproc()->mallocExecMemory(binary_size);
    setShouldSaveData(true);
 
    return true;
@@ -586,7 +586,8 @@ bool int_iRPC::isAsync() const {
 }
 
 int_thread *int_iRPC::thread() const {
-   return thrd;
+   // Transient deref: NULL iff the thread died with this RPC outstanding.
+   return thrd ? thrd->llthrd() : NULL;
 }
 
 IRPC::weak_ptr int_iRPC::getIRPC() const {
@@ -722,7 +723,7 @@ bool int_iRPC::saveRPCState()
       // lazily filled in, rather than at post time.  This allows us
       // to delay the creation until we know how big they will be.
       pthrd_printf("Creating allocation for Alloc or Dealloc RPC %lu on %d/%d\n",
-                   id(), thrd->llproc()->getPid(), thrd->getLWP());
+                   id(), thread()->llproc()->getPid(), thread()->getLWP());
       bool result = fillInAllocation();
       assert(result);
       if(!result) return false;
@@ -733,7 +734,7 @@ bool int_iRPC::saveRPCState()
    if (!thread()->hasSavedRPCRegs() && !regsave_result) {
       regsave_result = allreg_response::createAllRegResponse();
       pthrd_printf("Saving original application registers for %d/%d\n",
-                   thrd->llproc()->getPid(), thrd->getLWP());
+                   thread()->llproc()->getPid(), thread()->getLWP());
       bool result = thread()->saveRegsForRPC(regsave_result);
       assert(result);
       if(!result) return false;
@@ -746,10 +747,10 @@ bool int_iRPC::saveRPCState()
       assert(!memsave_result);
       pthrd_printf("Saving original %lu bytes of memory at %lx from application "
                    "for %d/%d\n", (unsigned long) allocSize(), addr(),
-                   thrd->llproc()->getPid(), thrd->getLWP());
+                   thread()->llproc()->getPid(), thread()->getLWP());
       allocation()->orig_data = (char *) malloc(allocSize());
       memsave_result = mem_response::createMemResponse((char *) allocation()->orig_data, allocSize());
-      bool result = thrd->llproc()->readMem(addr(), memsave_result, (thrd->isRPCEphemeral() ? thrd : NULL));
+      bool result = thread()->llproc()->readMem(addr(), memsave_result, (thread()->isRPCEphemeral() ? thread() : NULL));
       assert(result);
       if(!result) return false;
 
@@ -826,45 +827,47 @@ bool int_iRPC::checkRPCFinishedWrite()
 bool int_iRPC::runIRPC()
 {
    pthrd_printf("Moving next iRPC for %d/%d to running\n",
-                thrd->llproc()->getPid(), thrd->getLWP());
+                thread()->llproc()->getPid(), thread()->getLWP());
 
    //Remove rpc from thread list
-   rpc_list_t *posted = thrd->getPostedRPCs();
+   rpc_list_t *posted = thread()->getPostedRPCs();
    assert(shared_from_this() == posted->front());
    posted->pop_front();
 
    //Set in running state
-   thrd->setRunningRPC(shared_from_this());
+   thread()->setRunningRPC(shared_from_this());
    setState(Running);
 
    assert(allocation());
    assert(!allocSize() || (binarySize() <= allocSize()));
    assert(binaryBlob());
 
-   if (thrd->isRPCEphemeral()) {
-      thrd->getUserRPCState().desyncState(int_thread::running);
+   if (thread()->isRPCEphemeral()) {
+      thread()->getUserRPCState().desyncState(int_thread::running);
 	   // Create it if necessary
-	   thrd->llproc()->instantiateRPCThread();
+	   thread()->llproc()->instantiateRPCThread();
 	   pthrd_printf("\tInstantiated iRPC thread\n");
 	   // And the threadpool needs to know about us so that we will ContinueDebugEvent. Ugh.
-	   if(thrd->llproc()->threadPool()->findThreadByLWP(thrd->getLWP()) == NULL)
+	   if(thread()->llproc()->threadPool()->findThreadByLWP(thread()->getLWP()) == NULL)
 	   {
-		   thrd->llproc()->threadPool()->addThread(thrd);
-		   ProcPool()->addThread(thrd->llproc(), thrd);
+		   // PROTOTYPE: re-attach the existing wrapper.
+		   Thread::ptr tw = thread()->thread();
+		   thread()->llproc()->threadPool()->addThread(tw);
+		   ProcPool()->addThread(tw);
 	   }
    }
 
 
    if (isProcStopRPC()) {
-      thrd->getIRPCWaitState().desyncStateProc(int_thread::stopped);
-      thrd->getIRPCState().desyncState(int_thread::running);
-      thrd->getIRPCSetupState().restoreStateProc();
+      thread()->getIRPCWaitState().desyncStateProc(int_thread::stopped);
+      thread()->getIRPCState().desyncState(int_thread::running);
+      thread()->getIRPCSetupState().restoreStateProc();
    }
-   else if (thrd->llproc()->plat_threadOpsNeedProcStop()) {
-      thrd->getIRPCSetupState().restoreStateProc();
+   else if (thread()->llproc()->plat_threadOpsNeedProcStop()) {
+      thread()->getIRPCSetupState().restoreStateProc();
    }
    else {
-      thrd->getIRPCSetupState().restoreState();
+      thread()->getIRPCSetupState().restoreState();
    }
 
    return true;

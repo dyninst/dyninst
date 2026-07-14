@@ -349,8 +349,11 @@ EventBreakpoint::ptr x86_thread::decodeHWBreakpoint(response::ptr &,
          result = evbp;
       }
       else {
-         evbp->setProcess(proc->proc());
-         evbp->setThread(thread());
+         {
+            Thread::ptr tw = proc->threadPool()->hlFor(this);
+            evbp->setProcess(tw->procWrapperInternal());
+            evbp->setThread(tw);
+         }
          evbp->setSyncType(Event::sync_thread);
          result->addSubservientEvent(evbp);
       }
