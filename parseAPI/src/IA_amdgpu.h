@@ -66,8 +66,7 @@ class IA_amdgpu : public IA_IAPI {
 	virtual bool isLinkerStub() const;
 	virtual bool isNopJump() const;
 	virtual bool isSoftwareException() const;
-	virtual std::pair<bool, Address> resolveDynamicCallTarget(Dyninst::ParseAPI::Function * context,
-	                                                          Dyninst::ParseAPI::Block* currBlk) const;
+	virtual bool isMultiInsnJump() const;
     private:
     using IA_IAPI::isFrameSetupInsn;
 };

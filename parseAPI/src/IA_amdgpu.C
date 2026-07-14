@@ -36,6 +36,10 @@
 #include "parseAPI/src/IndirectAnalyzer.h"
 #include "parseAPI/src/debug_parse.h"
 
+#include "registers/AMDGPU/amdgpu_gfx908_regs.h"
+#include "registers/AMDGPU/amdgpu_gfx90a_regs.h"
+#include "registers/AMDGPU/amdgpu_gfx940_regs.h"
+
 #include <deque>
 #include <iostream>
 #include <sstream>
@@ -117,7 +121,23 @@ bool IA_amdgpu::isReturnAddrSave(Address& ) const
 
 bool IA_amdgpu::isReturn(Dyninst::ParseAPI::Function * , Dyninst::ParseAPI::Block*) const
 {
-    return curInsn().isReturn();
+    Instruction ci = curInsn();
+    auto id = ci.getOperation().getID();
+    if (id == amdgpu_gfx908_op_S_SETPC_B64 ||
+        id == amdgpu_gfx90a_op_S_SETPC_B64 ||
+        id == amdgpu_gfx940_op_S_SETPC_B64) {
+        std::set<RegisterAST::Ptr> reads;
+        ci.getReadSet(reads);
+        for (auto const& r : reads) {
+            MachRegister mr = r->getID();
+            if (mr == amdgpu_gfx908::s30 ||
+                mr == amdgpu_gfx90a::s30 ||
+                mr == amdgpu_gfx940::s30)
+                return true;
+        }
+        return false;
+    }
+    return ci.isReturn();
 }
 
 bool IA_amdgpu::isFakeCall() const
@@ -142,17 +162,16 @@ bool IA_amdgpu::isNopJump() const
     return false;
 }
 
-std::pair<bool, Address> IA_amdgpu::resolveDynamicCallTarget(Dyninst::ParseAPI::Function * context,
-                                                             Dyninst::ParseAPI::Block* currBlk) const
+bool IA_amdgpu::isMultiInsnJump() const
 {
-    Address target = 0;
-    IndirectControlFlowAnalyzer icfa(context, currBlk);
-    if (icfa.ResolveCallTargetBySlicing(target)) {
-        cachedCFT = std::make_pair(true, target);
-        validCFT = true;
-        return cachedCFT;
+    switch (curInsn().getOperation().getID()) {
+        case amdgpu_gfx908_op_S_SWAPPC_B64:
+        case amdgpu_gfx90a_op_S_SWAPPC_B64:
+        case amdgpu_gfx940_op_S_SWAPPC_B64:
+            return true;
+        default:
+            return false;
     }
-    return std::make_pair(false, 0);
 }
 
 bool IA_amdgpu::isSoftwareException() const

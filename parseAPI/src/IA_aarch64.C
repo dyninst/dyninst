@@ -29,6 +29,7 @@
  */
 
 #include "IA_aarch64.h"
+#include "IndirectAnalyzer.h"
 #include "instructionAPI/h/syscalls.h"
 #include "common/src/arch-aarch64.h"
 #include "registers/aarch64_regs.h"
@@ -255,3 +256,4 @@ bool IA_aarch64::isNopJump() const
 {
     return false;
 }
+
