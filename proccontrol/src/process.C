@@ -4785,19 +4785,18 @@ Thread::ptr int_threadPool::hlFor(int_thread *thr)
    return Thread::ptr();
 }
 
-void int_threadPool::destroyAllThreads(Process::ptr pw)
+void int_threadPool::destroyAllThreads(Process::ptr /*pw*/)
 {
-   // Publish + sever + delete in one pass: with wrapper-only storage the
-   // impl is unreachable once its link is severed.
-   for (size_t i = 0; i < threads.size(); i++) {
-      Thread::ptr w = threads[i];
-      if (!w || !w->llthread_)
-         continue;   // already destroyed
-      int_thread *thr = w->llthread_;
-      if (!w->exitstate_)
-         thr->publishExitState(w, pw);
-      w->clearLLThread();
-      delete thr;
+   // Route every thread through the single, Thread-homed deletion path
+   // (ProcessPool::destroyThread) so int_thread deletion has one deterministic
+   // home.  Snapshot first: destroyThread does not touch our vector, but the
+   // trailing clear() drops the now-severed wrappers regardless.  destroyThread
+   // no-ops on an already-severed wrapper (llthrd NULL).
+   std::vector<Thread::ptr> snapshot(threads.begin(), threads.end());
+   for (size_t i = 0; i < snapshot.size(); i++) {
+      Thread::ptr w = snapshot[i];
+      if (w)
+         ProcPool()->destroyThread(w);
    }
    clear();
 }
