@@ -200,12 +200,33 @@ void ProcessPool::rmThread(Thread::ptr thr)
 
 // ---- destruction: check+unregister under the lock, publish+delete outside -
 
+// Per-process migration lock (design 1, step 1).  RAII, null-tolerant.
+// proc_lock_ lives on the Process wrapper (stable lifetime), so it may be
+// held across the impl delete; ordering is proc_lock > map_lock, and it is
+// never held while acquiring an outer lock (the delete path takes none).
+namespace {
+struct ProcScopeLock {
+   Mutex<true> *m;
+   explicit ProcScopeLock(Process::ptr p) : m(p ? p->procLock() : NULL) {
+      if (m) m->lock();
+   }
+   ~ProcScopeLock() { if (m) m->unlock(); }
+   ProcScopeLock(const ProcScopeLock &) = delete;
+   ProcScopeLock &operator=(const ProcScopeLock &) = delete;
+};
+}
+
 void ProcessPool::destroyProcess(Process::ptr proc)
 {
    assert(proc);
    int_process *llproc = proc->llproc();
    if (!llproc)
       return;   // already destroyed
+   // Hold this process's migration lock across the whole teardown.  Today
+   // this is always under work_lock (uncontended); it becomes load-bearing
+   // once the generator refactor (step 2) has the generator take the same
+   // lock around its decode-time use of the impl.
+   ProcScopeLock plock(proc);
    // Atomic check-and-unregister: the whole find-then-remove is one locked
    // step (no TOCTOU with a concurrent mutation).  The wrapper<->impl links
    // stay intact through this -- rmProcess's sweep needs them.
@@ -232,6 +253,9 @@ void ProcessPool::destroyThread(Thread::ptr thr)
    int_thread *llthrd = thr->llthrd();
    if (!llthrd)
       return;   // already destroyed
+   // Per-process granularity: a thread teardown takes its process's lock
+   // (the wrapper is cached on the thread, resolved lock-free).
+   ProcScopeLock plock(thr->procWrapperInternal());
    {
       ScopeLock<Mutex<> > guard(map_lock);
       if (findThread_nolock(llthrd->getLWP()) == thr)

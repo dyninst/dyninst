@@ -69,6 +69,7 @@ class int_iRPC;
 class int_notify;
 class HandlerPool;
 class MTLock;
+template <bool isRecursive> class Mutex;   // common/src/dthread.h
 
 #define PC_VERSION_8_0_0
 #define PC_VERSION_8_1_0
@@ -292,7 +293,14 @@ class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
 
    int_process *llproc_;
    proc_exitstate *exitstate_;
-   
+   // Per-process lock for the work_lock-retirement migration (design 1).
+   // Lives on the wrapper (stable, ref-counted lifetime) so it can be held
+   // while dereferencing / deleting the impl it guards.  Ordering:
+   //   work_lock > ProcPool condvar > proc_lock > map_lock
+   // multiple processes are locked in ascending-pid order.  Held by a
+   // pointer to keep dthread.h off this (very widely included) header.
+   Mutex<true> *proc_lock_;
+
    Process();
    ~Process();
    friend void boost::checked_delete<Process>(Process *) CHECKED_DELETE_NOEXCEPT;
@@ -307,6 +315,8 @@ class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
 
    //These four functions are not for end-users.
    int_process *llproc() const { return llproc_; }
+   // Per-process migration lock (see proc_lock_).  Internal use only.
+   Mutex<true> *procLock() const { return proc_lock_; }
 
    // Wrapper-layer factories: mint the Process wrapper together with its
    // int_process impl and initialize the pair, returning the wrapper (NOT
