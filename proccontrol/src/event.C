@@ -342,7 +342,8 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::const_ptr> &bps) co
       // bp_instance before any consumer runs -- and indicates a user-deleted
       // breakpoint or broken bookkeeping, so keep it visible rather than
       // silently masking it.
-      int_thread *evthr = int_bp->thrd ? int_bp->thrd->llthrd() : NULL;
+      ThreadImplRef evthr_ref(int_bp->thrd);
+      int_thread *evthr = evthr_ref.get();
       if (evthr && evthr->llproc())
          pthrd_printf("getBreakpoints: no bp_instance for LIVE thread %d -- "
                       "deleted breakpoint or broken bookkeeping\n",
@@ -369,7 +370,8 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::ptr> &bps)
       // bp_instance before any consumer runs -- and indicates a user-deleted
       // breakpoint or broken bookkeeping, so keep it visible rather than
       // silently masking it.
-      int_thread *evthr = int_bp->thrd ? int_bp->thrd->llthrd() : NULL;
+      ThreadImplRef evthr_ref(int_bp->thrd);
+      int_thread *evthr = evthr_ref.get();
       if (evthr && evthr->llproc())
          pthrd_printf("getBreakpoints: no bp_instance for LIVE thread %d -- "
                       "deleted breakpoint or broken bookkeeping\n",
@@ -441,8 +443,10 @@ bool EventBreakpoint::procStopper() const
       return false;
    }
 
-   int_process *p = getProcess()->llproc();
-   int_thread *thrd = getThread()->llthrd();
+   ProcImplRef p_ref(getProcess());
+   int_process *p = p_ref.get();
+   ThreadImplRef thrd_ref(getThread());
+   int_thread *thrd = thrd_ref.get();
    if (!int_bp->stopped_proc) {
       //Move the BreakpointHold state of the process to be stopped.
       thrd->getBreakpointHoldState().desyncStateProc(int_thread::stopped);
@@ -470,13 +474,15 @@ int EventSignal::getSignal() const
 
 void EventSignal::clearThreadSignal() const
 {
-    int_thread *thr = getThread()->llthrd();
+    ThreadImplRef thr_ref(getThread());
+    int_thread *thr = thr_ref.get();
     thr->setContSignal(0);
 }
 
 void EventSignal::setThreadSignal(int newSignal) const 
 {
-    int_thread *thr = getThread()->llthrd();
+    ThreadImplRef thr_ref(getThread());
+    int_thread *thr = thr_ref.get();
     thr->setContSignal(newSignal);
 }
 
@@ -537,7 +543,7 @@ Thread::const_ptr EventNewUserThread::getNewThread() const
    if (iev->lwp == NULL_LWP)
       return Thread::const_ptr();
 
-   int_thread *t = getProcess()->llproc()->threadPool()->findThreadByLWP(iev->lwp);
+   int_thread *t = ProcImplRef(getProcess())->threadPool()->findThreadByLWP(iev->lwp);
    assert(t);
    iev->thr = t->thread();
    return iev->thr;
@@ -569,11 +575,11 @@ Dyninst::LWP EventNewLWP::getLWP() const
 
 Thread::const_ptr EventNewLWP::getNewThread() const
 {
-   int_thread *thr = getProcess()->llproc()->threadPool()->findThreadByLWP(lwp);
+   int_thread *thr = ProcImplRef(getProcess())->threadPool()->findThreadByLWP(lwp);
    
 #if defined(os_linux) || defined(os_freebsd)
    if (!thr) {
-      int pid = getProcess()->llproc()->getPid();
+      int pid = ProcImplRef(getProcess())->getPid();
       if (lwp != pid) {
          pthrd_printf("Non-main thread %d/%d not found\n", pid, lwp);
          return Thread::const_ptr();
@@ -582,7 +588,7 @@ Thread::const_ptr EventNewLWP::getNewThread() const
 #endif
 
    assert(thr);
-   return getProcess()->llproc()->threadPool()->hlFor(thr);
+   return ProcImplRef(getProcess())->threadPool()->hlFor(thr);
 }
 
 int_eventNewLWP *EventNewLWP::getInternalEvent()
@@ -680,8 +686,10 @@ int_eventRPC *EventRPC::getInternal() const
 
 bool EventRPCLaunch::procStopper() const
 {
-   int_process *p = getProcess()->llproc();
-   int_thread *thrd = getThread()->llthrd();
+   ProcImplRef p_ref(getProcess());
+   int_process *p = p_ref.get();
+   ThreadImplRef thrd_ref(getThread());
+   int_thread *thrd = thrd_ref.get();
 
    if (!handled_by.empty())
       return false;
@@ -801,7 +809,8 @@ bool EventBreakpointClear::procStopper() const
    if (!handled_by.empty())
       return false;
 
-   int_process *p = getProcess()->llproc();
+   ProcImplRef p_ref(getProcess());
+   int_process *p = p_ref.get();
    return !p->getProcStopManager().processStoppedTo(int_thread::BreakpointStateID);
 }
 
@@ -912,7 +921,8 @@ bool EventDetach::procStopper() const
    if (getInternal()->removed_bps)
       return false;
 
-   int_process *p = getProcess()->llproc();
+   ProcImplRef p_ref(getProcess());
+   int_process *p = p_ref.get();
    return !p->getProcStopManager().processStoppedTo(int_thread::DetachStateID);
 }
 
@@ -1098,8 +1108,10 @@ bool EventControlAuthority::procStopper() const
    if (iev->unset_desync)
       return false;
 
-   int_process *p = getProcess()->llproc();
-   int_thread *thr = getThread()->llthrd();
+   ProcImplRef p_ref(getProcess());
+   int_process *p = p_ref.get();
+   ThreadImplRef thr_ref(getThread());
+   int_thread *thr = thr_ref.get();
 
    if (!iev->did_desync) {
       pthrd_printf("Desyncing control authority state for EventControlAuthority\n");
@@ -1222,7 +1234,8 @@ bp_instance *int_eventBreakpoint::lookupInstalledBreakpoint()
    // exited) while this breakpoint event was still in flight.  The wrapper
    // survives, but llthrd() returns NULL once the int_thread is destroyed, so
    // there is no installed breakpoint to find.
-   int_thread *t = thrd ? thrd->llthrd() : NULL;
+   ThreadImplRef t_ref(thrd);
+   int_thread *t = t_ref.get();
    if (!t || !t->llproc())
       return NULL;
    return static_cast<bp_instance *>(t->llproc()->getBreakpoint(addr));
