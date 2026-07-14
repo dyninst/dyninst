@@ -4823,21 +4823,18 @@ int_threadPool::~int_threadPool()
    assert(up_pool);
    delete up_pool;
 
-   // Normally destroyProcess has already run destroyAllThreads; this covers
-   // threadpools torn down outside that path -- notably permanent detach,
-   // which unregisters the process (rmProcess) but leaves impl teardown to
-   // ~Process when the last user reference drops.
+   // Live threads cannot reach this point: destroyProcess (exit paths) or
+   // the ~Process RAII backstop (detach / dropped wrappers) always runs
+   // destroyAllThreads before the pool is deleted.  Tripwire, then clean up
+   // anyway so a bug here degrades to a diagnostic, not a leak.
    for (size_t j = 0; j < threads.size(); j++)
    {
       Thread::ptr w = threads[j];
       if (!w || !w->llthread_)
          continue;
+      fprintf(stderr, "PROTOTYPE: ~int_threadPool found live thread %d\n",
+              (int)w->llthread_->getLWP());
       int_thread *thr = w->llthread_;
-      if (ProcPool()->findThread(thr->getLWP()) == w)
-         ProcPool()->rmThread(w);
-      // We are running inside Process::~Process (it owns this pool), so a
-      // strong Process::ptr here would resurrect the dying wrapper.  NULL is
-      // the only correct exit-state process for this path.
       if (!w->exitstate_)
          thr->publishExitState(w, Process::ptr());
       w->clearLLThread();
@@ -6443,6 +6440,22 @@ Process::Process() :
 
 Process::~Process()
 {
+   // RAII backstop (2a): if the impl escaped the deterministic teardown
+   // paths (destroyProcess never ran -- permanent detach unregisters via
+   // rmProcess only, and dropped creation-failure wrappers never register),
+   // run the same teardown here so no impl can leak.  Exit states publish a
+   // NULL process: we ARE the dying Process wrapper, and a strong ref to it
+   // from inside its own destructor would resurrect it.
+   // Order matters: threads first (mirrors destroyProcess), then the process
+   // impl (~int_process severs the pool back-pointer, so threadpool_ must
+   // still be alive), then the container itself.
+   if (llproc_) {
+      if (threadpool_)
+         threadpool_->destroyAllThreads(Process::ptr());
+      int_process *llproc = llproc_;
+      llproc_ = NULL;
+      delete llproc;
+   }
    if (exitstate_) {
       delete exitstate_;
       exitstate_ = NULL;
@@ -7491,6 +7504,16 @@ Thread::Thread() :
 
 Thread::~Thread()
 {
+   // RAII backstop (2a): only reachable for a wrapper that never made it
+   // into a threadpool (creation-failure drops) -- pooled threads are always
+   // severed by destroyThread/destroyAllThreads before the wrapper dies.
+   // ~int_thread touches nothing (empty body), so this is safe even if the
+   // owning process impl is already gone.
+   if (llthread_) {
+      int_thread *llthread = llthread_;
+      llthread_ = NULL;
+      delete llthread;
+   }
    if (exitstate_) {
       delete exitstate_;
       exitstate_ = NULL;
