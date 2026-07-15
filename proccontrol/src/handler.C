@@ -2475,6 +2475,11 @@ Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set
    Process::cb_action_t parent_result = Process::cbDefault;
    Process::cb_action_t child_result = Process::cbDefault;
    std::set<Process::cb_func_t>::const_iterator j;
+   // work_lock retirement (S1): hold the global callback slot across all user
+   // callback invocations for this event, so "one callback at a time" holds
+   // independently of work_lock.  Redundant while work_lock still serializes
+   // (this is a behavioral no-op until MTLock shrinks); load-bearing after.
+   mt()->takeCallbackSlot();
    for (j = cbset.begin(); j != cbset.end(); j++, k++) {
       pthrd_printf("Triggering callback #%u for event '%s'\n", k, ev->name().c_str());
       int_process::setInCB(true);
@@ -2489,6 +2494,7 @@ Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set
       pthrd_printf("Callback #%u return %s/%s\n", k, action_str(ret.parent),
                    action_str(ret.child));
    }
+   mt()->releaseCallbackSlot();
 
    // Don't allow the user to change the state of forced terminated processes 
    ProcImplRef cbproc_ref(ev->getProcess());
