@@ -1771,6 +1771,14 @@ private:
   DThread evhandler_thread;
   CondVar<> pending_event_lock;
   Mutex < true > work_lock;
+  // work_lock retirement (S1): the global callback slot -- the API contract's
+  // "at most one callback at a time".  Held across callback invocation in
+  // HandleCallbacks::deliverCallback so the guarantee survives once work_lock
+  // stops serializing callbacks.  Recursive so const-cast abuse (a callback
+  // re-entering a deliver_callbacks API) hits the existing in_callback/recurse
+  // assert rather than self-deadlocking.  Order: work_lock > cb_lock (> the
+  // callback's own proc_lock, which delivery has already dropped).
+  Mutex < true > cb_lock;
   bool have_queued_events;
   bool is_running;
   bool should_exit;
@@ -1794,6 +1802,9 @@ public:
 
   void startWork();
   void endWork();
+  // Callback slot (see cb_lock).  No-op outside the threading modes.
+  void takeCallbackSlot()    { if (handlerThreading()) cb_lock.lock(); }
+  void releaseCallbackSlot() { if (handlerThreading()) cb_lock.unlock(); }
 
   bool handlerThreading();
   Process::thread_mode_t getThreadMode();
