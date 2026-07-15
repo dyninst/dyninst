@@ -98,23 +98,49 @@ struct ProcScopeLock {
 
 // Checked impl access (encapsulation revamp).  Pins the wrapper and resolves
 // the impl once; the sanctioned way for boundary code (handlers, events,
-// responses, the public API) to reach an impl -- naked llproc()/llthrd()
-// derefs outside Process/Thread and the impl layer are being retired.
-// Boolean-false when the impl is gone (process/thread exited): callers handle
-// "gone" explicitly instead of dereferencing a checkable NULL.  Purely
-// mechanical today; the work_lock retirement will add per-process locking
-// here (one line) so every boundary access serializes against teardown.
+// responses, the public API) to reach an impl -- llproc()/llthrd() are
+// private, these accessors are the boundary.  Boolean-false when the impl is
+// gone (process/thread exited): callers handle "gone" explicitly instead of
+// dereferencing a checkable NULL.
+//
+// work_lock retirement: the accessors CAN take the per-process proc_lock for
+// their lifetime (implref_locked tag; recursive, impl resolved AFTER the
+// lock, serialized against teardown).  Locking is OPT-IN, not the default:
+// a default-on experiment deadlocked -- with the documented order
+// (condvar > proc_lock), a locked boundary scope that transitively reaches a
+// ProcPool-condvar acquisition (int_thread::intCont, cleanFromHandler,
+// forked/execed/post_forked, lwp_refresh...) inverts against the generator,
+// which holds the condvar across decode's proc_lock.  Flipping the default
+// requires first narrowing the generator's condvar hold (order becomes
+// proc_lock > condvar); until then, opt in only where the scope provably
+// takes no condvar and spans no blocking wait.
+enum implref_nolock_t { implref_nolock };   // documents audited hazard sites
+enum implref_locked_t { implref_locked };   // opt-in per-process locking
+
 struct ProcImplRef {
    Dyninst::ProcControlAPI::Process::const_ptr pin_;
+   Mutex<true> *lk_;
    int_process *impl_;
    explicit ProcImplRef(Dyninst::ProcControlAPI::Process::const_ptr p)
-      : pin_(p), impl_(p ? p->llproc() : NULL) {}
+      : pin_(p), lk_(NULL), impl_(NULL) { lock_and_resolve(); }
+   ProcImplRef(Dyninst::ProcControlAPI::Process::const_ptr p, implref_nolock_t)
+      : pin_(p), lk_(NULL), impl_(p ? p->llproc() : NULL) {}
+   void lock_and_resolve() {
+      if (!pin_) return;
+      pthrd_printf("proc_lock: acquiring for %d\n", pin_->getPid());
+      lk_ = pin_->procLock(); lk_->lock();
+      pthrd_printf("proc_lock: acquired for %d\n", pin_->getPid());
+      impl_ = pin_->llproc();
+   }
    // For code that holds a raw wrapper pointer (must be externally owned by a
    // shared_ptr, which every live Process is).
    explicit ProcImplRef(const Dyninst::ProcControlAPI::Process *p)
       : pin_(p ? p->shared_from_this()
                : Dyninst::ProcControlAPI::Process::const_ptr()),
-        impl_(pin_ ? pin_->llproc() : NULL) {}
+        lk_(NULL), impl_(NULL) { lock_and_resolve(); }
+   ~ProcImplRef() {
+      if (lk_) { lk_->unlock(); pthrd_printf("proc_lock: released for %d\n", pin_->getPid()); }
+   }
    explicit operator bool() const { return impl_ != NULL; }
    int_process *operator->() const { return impl_; }
    int_process *get() const { return impl_; }
@@ -124,9 +150,26 @@ struct ProcImplRef {
 
 struct ThreadImplRef {
    Dyninst::ProcControlAPI::Thread::const_ptr pin_;
+   Dyninst::ProcControlAPI::Process::const_ptr ppin_;   // pins the lock target
+   Mutex<true> *lk_;
    int_thread *impl_;
    explicit ThreadImplRef(Dyninst::ProcControlAPI::Thread::const_ptr t)
-      : pin_(t), impl_(t ? t->llthrd() : NULL) {}
+      : pin_(t), lk_(NULL), impl_(NULL) {
+      if (pin_) {
+         ppin_ = pin_->procWrapper();
+         if (ppin_) {
+            pthrd_printf("proc_lock: acquiring for %d (via thread)\n", ppin_->getPid());
+            lk_ = ppin_->procLock(); lk_->lock();
+            pthrd_printf("proc_lock: acquired for %d (via thread)\n", ppin_->getPid());
+         }
+         impl_ = pin_->llthrd();
+      }
+   }
+   ThreadImplRef(Dyninst::ProcControlAPI::Thread::const_ptr t, implref_nolock_t)
+      : pin_(t), lk_(NULL), impl_(t ? t->llthrd() : NULL) {}
+   ~ThreadImplRef() {
+      if (lk_) { lk_->unlock(); pthrd_printf("proc_lock: released for %d (via thread)\n", ppin_->getPid()); }
+   }
    explicit operator bool() const { return impl_ != NULL; }
    int_thread *operator->() const { return impl_; }
    int_thread *get() const { return impl_; }

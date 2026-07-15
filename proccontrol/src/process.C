@@ -587,7 +587,9 @@ bool int_process::reattach(int_processSet *pset)
 
 bool int_process::execed()
 {
-   ProcPool()->condvar()->lock();
+   // condvar retirement: per-process bracket (option ii)
+   Process::ptr bracket_pin = proc();
+   if (bracket_pin) bracket_pin->procLock()->lock();
 
    bool should_clean = false;
    mem->rmProc(this, should_clean);
@@ -623,7 +625,7 @@ bool int_process::execed()
    initial_thread->getHandlerState().setState(handler_initial_thrd_state);
 
    wakeGenerator();
-   ProcPool()->condvar()->unlock();
+   if (bracket_pin) bracket_pin->procLock()->unlock();
 
    bool result = plat_execed();
 
@@ -637,13 +639,16 @@ bool int_process::plat_execed()
 
 bool int_process::forked()
 {
-   ProcPool()->condvar()->lock();
+   // condvar retirement: per-process bracket (option ii)
+   Process::ptr bracket_pin = proc();
+   if (bracket_pin) bracket_pin->procLock()->lock();
 
    pthrd_printf("Setting up forked process %d\n", pid);
    creation_mode = ct_fork;
    bool result = plat_forked();
    if (!result) {
       pthrd_printf("Could not handle forked debuggee, %d\n", pid);
+      if (bracket_pin) bracket_pin->procLock()->unlock();
       return false;
    }
 
@@ -660,7 +665,7 @@ bool int_process::forked()
    }
 
    wakeGenerator();
-   ProcPool()->condvar()->unlock();
+   if (bracket_pin) bracket_pin->procLock()->unlock();
 
    result = post_forked();
    if (!result) {
@@ -3070,7 +3075,9 @@ bool int_thread::intCont()
       return false;
    }
 
-   ProcPool()->condvar()->lock();
+   // condvar retirement: per-process bracket (option ii)
+   Process::ptr bracket_pin = proc();
+   if (bracket_pin) bracket_pin->procLock()->lock();
 
    bool result = plat_cont();
    if (result) {
@@ -3092,7 +3099,7 @@ bool int_thread::intCont()
 
 
    wakeGenerator();
-   ProcPool()->condvar()->unlock();
+   if (bracket_pin) bracket_pin->procLock()->unlock();
 
    if (!result) {
       pthrd_printf("Failed to plat_cont %d/%d\n", llproc()->getPid(), getLWP());
@@ -3697,7 +3704,9 @@ void int_thread::setExitingInGenerator(bool b)
 
 void int_thread::cleanFromHandler(int_thread *thrd, bool should_delete)
 {
-   ProcPool()->condvar()->lock();
+   // condvar retirement: per-process bracket (option ii)
+   Process::ptr bracket_pin = thrd->proc();
+   if (bracket_pin) bracket_pin->procLock()->lock();
 
 #if !defined(os_freebsd)
    thrd->getUserState().setState(int_thread::exited);
@@ -3731,7 +3740,7 @@ void int_thread::cleanFromHandler(int_thread *thrd, bool should_delete)
 #endif
    }
    wakeGenerator();
-   ProcPool()->condvar()->unlock();
+   if (bracket_pin) bracket_pin->procLock()->unlock();
 }
 
 Thread::ptr int_thread::thread()

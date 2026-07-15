@@ -483,15 +483,19 @@ PCEventMailbox::~PCEventMailbox()
 }
 
 void PCEventMailbox::enqueue(Event::const_ptr ev) {
+	// Resolve the process (a ProcControl call that takes work_lock) BEFORE
+	// taking queueCond -- never nest a ProcControl call under the mailbox lock.
+	PCProcess *evProc = static_cast<PCProcess *>(ev->getProcess()->getData());
+	int const pid = evProc ? evProc->getPid() : -1;
+
 	std::lock_guard<CondVar<>> l{queueCond};
 
-    PCProcess *evProc = static_cast<PCProcess *>(ev->getProcess()->getData());
 	if(evProc) {
 	    // Only add the event to the queue if the underlying process is still valid
-	    eventQueue.push(ev);
-	    procCount[evProc->getPid()]++;
+	    eventQueue.push(std::make_pair(ev, pid));
+	    procCount[pid]++;
 		proccontrol_printf("%s[%d]: Added event %s from process %d to mailbox, size now %lu\n",
-						   FILE__, __LINE__, ev->name().c_str(), evProc->getPid(), eventQueue.size());
+						   FILE__, __LINE__, ev->name().c_str(), pid, eventQueue.size());
 	} else {
 		proccontrol_printf("%s[%d]: Got bad process: event %s not added\n",
 						   FILE__, __LINE__, ev->name().c_str());
@@ -510,27 +514,35 @@ void PCEventMailbox::enqueue(Event::const_ptr ev) {
 Event::const_ptr PCEventMailbox::dequeue(bool block) {
     /* NB: This procedure assumes the queue is not modified while we are dequeueing an event */
 
-	/* Holding the lock the entire time isn't efficient, but it's needed to
-	 * guarantee that the process-count table is updated synchronously with
-	 * the queue.
-	 */
-	std::lock_guard<CondVar<>> l{queueCond};
+	Event::const_ptr event_ptr;
+	int pid = -1;
+	{
+		// queueCond guards ONLY the queue + procCount table -- pop the event
+		// and its stored pid and update the count atomically, with NO call
+		// back into ProcControl under the lock (that nesting is the ABBA).
+		std::lock_guard<CondVar<>> l{queueCond};
 
-    if(!block && eventQueue.empty()) {
-		proccontrol_printf("%s[%d]: Event queue is empty, but not blocking\n", FILE__, __LINE__);
-		return Event::const_ptr{};
-    }
+		if(!block && eventQueue.empty()) {
+			proccontrol_printf("%s[%d]: Event queue is empty, but not blocking\n", FILE__, __LINE__);
+			return Event::const_ptr{};
+		}
 
-    while( eventQueue.empty() ) {
-        proccontrol_printf("%s[%d]: Blocking for events from mailbox\n", FILE__, __LINE__);
-        queueCond.wait();
-    }
+		while( eventQueue.empty() ) {
+			proccontrol_printf("%s[%d]: Blocking for events from mailbox\n", FILE__, __LINE__);
+			queueCond.wait();
+		}
 
-    // Dequeue an event
-    Event::const_ptr event_ptr = eventQueue.front();
-	eventQueue.pop();
+		event_ptr = eventQueue.front().first;
+		pid       = eventQueue.front().second;
+		eventQueue.pop();
+		procCount[pid]--;
+		assert(procCount[pid] >= 0);
+	}   // release queueCond before touching ProcControl
 
-	// Update the process-count table
+	// Validity check OUTSIDE the mailbox lock (getData takes the ProcControl
+	// work_lock): if the process was destroyed between enqueue and dequeue,
+	// drop a stale post-exit event.  The count is already decremented -- the
+	// event did leave the queue regardless of whether we deliver it.
 	auto* evProc = static_cast<PCProcess *>(event_ptr->getProcess()->getData());
 	if(!evProc) {
 		proccontrol_printf("%s[%d]: Found event %s, but process is invalid\n",
@@ -546,16 +558,8 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
 			assert(false);
 		}
 	}
-	procCount[evProc->getPid()]--;
-	assert(procCount[evProc->getPid()] >= 0);
     proccontrol_printf("%s[%d]: Returning event %s from mailbox for process %d\n",
-    				   FILE__, __LINE__, event_ptr->name().c_str(), evProc->getPid());
-
-	proccontrol_printf("--------- Dequeue for Process ID [%d] -------------\n", evProc->getPid());
-	for(auto const& p : procCount) {
-		proccontrol_printf("\t%d -> %d\n", p.first, p.second);
-	}
-	proccontrol_printf("---------------------------------------------------\n");
+    				   FILE__, __LINE__, event_ptr->name().c_str(), pid);
 
 	return event_ptr;
 }

@@ -313,7 +313,16 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
    // decode produces is stamped with `pw`.
    Thread::ptr thread_wrapper;
    Process::ptr pw;
+   // Registration barrier (condvar retirement, option ii): bootstrap
+   // (create/attach) holds the ProcPool condvar across [plat_create/attach ..
+   // registration].  Taking it briefly around the lookup delays decoding a
+   // just-born pid until it is registered -- the per-process lock cannot do
+   // this (an unregistered process cannot be found to be locked).  Released
+   // BEFORE decode_plock: the generator never holds it while acquiring a
+   // proc_lock, so no cycle with bootstrap (which takes proc_locks under it).
+   ProcPool()->condvar()->lock();
    ProcPool()->findThreadAndProc(archevent->pid, thread_wrapper, pw);
+   ProcPool()->condvar()->unlock();
    // Step 2 (work_lock retirement): hold the decoded process's proc_lock
    // across the whole decode, so the generator and the handler's destroy are
    // mutually exclusive on this process -- closing the generator/handler
@@ -1065,11 +1074,13 @@ bool linux_process::plat_attachThreadsSync()
    while (true) {
       bool found_new_threads = false;
 
-      ProcPool()->condvar()->lock();
+      // condvar retirement: per-process bracket (option ii)
+      Process::ptr bracket_pin = proc();
+      if (bracket_pin) bracket_pin->procLock()->lock();
       bool result = attachThreads(found_new_threads);
       if (found_new_threads)
          wakeGenerator();
-      ProcPool()->condvar()->unlock();
+      if (bracket_pin) bracket_pin->procLock()->unlock();
 
       if (!result) {
          pthrd_printf("Failed to attach to threads in %d\n", pid);
@@ -3181,10 +3192,10 @@ Handler::handler_ret_t LinuxHandleNewThr::handleEvent(Event::ptr ev)
    }
    else if (ev->getEventType().code() == EventType::ThreadCreate) {
       Dyninst::LWP lwp = static_cast<EventNewThread *>(ev.get())->getLWP();
-      ProcPool()->condvar()->lock();
+      // condvar retirement: the ThreadImplRef below takes the proc_lock;
+      // the pool lookup is guarded by map_lock.
       Thread::ptr lwp_wrapper = ProcPool()->findThread(lwp);
       thr = lwp_wrapper ? dynamic_cast<linux_thread *>(ThreadImplRef(lwp_wrapper).get()) : NULL;
-      ProcPool()->condvar()->unlock();
    }
    assert(thr);
 

@@ -662,7 +662,6 @@ Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
 
    EventExit *event = static_cast<EventExit *>(ev.get());
    
-   ProcPool()->condvar()->lock();
 
    proc->setState(int_process::exited);
    // PROTOTYPE (wrapper-centric deletion): unregistration is deferred to
@@ -680,7 +679,6 @@ Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
 	   proc->setExitCode(event->getExitCode());
    }
    wakeGenerator();
-   ProcPool()->condvar()->unlock();
 
    return ret_success;
 }
@@ -774,13 +772,11 @@ Handler::handler_ret_t HandleCrash::handleEvent(Event::ptr ev)
       proc->setCrashSignal(event->getTermSignal());
    }
    
-   ProcPool()->condvar()->lock();
 
    proc->setState(int_process::exited);
    // PROTOTYPE: unregistration deferred to destroy (see HandlePostExit).
 
    wakeGenerator();
-   ProcPool()->condvar()->unlock();
 
    return ret_success;
 }
@@ -813,7 +809,6 @@ Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
    pthrd_printf("Handling force terminate for process %d on thread %d\n",
 	   proc->getPid(), thrd ? thrd->getLWP() : (Dyninst::LWP)(-1));
 
-   ProcPool()->condvar()->lock();
 
    proc->setState(int_process::exited);
    for (int_threadPool::iterator iter = proc->threadPool()->begin(); 
@@ -825,7 +820,6 @@ Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
    // PROTOTYPE: unregistration happens inside destroy() below.
 
    wakeGenerator();
-   ProcPool()->condvar()->unlock();
 
    proc->getStartupTeardownProcs().dec();
 
@@ -927,7 +921,7 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
          return ret_success;
       }
    }
-   ProcPool()->condvar()->lock();
+   // condvar retirement (option ii): the locked handler prologue provides the per-process bracket
    int_thread::attach_status_t astatus = int_thread::as_unknown;
    if (ev->getEventType().code() == EventType::LWPCreate) {
       EventNewLWP::ptr lwp_create = ev->getEventNewLWP();
@@ -972,7 +966,6 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
                 proc->getPid(), newthr->getLWP());
 
    wakeGenerator();
-   ProcPool()->condvar()->unlock();
 
    return ret_success;
 }
@@ -1237,18 +1230,26 @@ Handler::handler_ret_t HandlePostFork::handleEvent(Event::ptr ev)
 {
    EventFork *efork = static_cast<EventFork *>(ev.get());
    Dyninst::PID child_pid = efork->getPID();
-   ProcImplRef parent_proc_ref(ev->getProcess());
-   int_process *parent_proc = parent_proc_ref.get();
-   pthrd_printf("Handling fork for parent %d to child %d\n",
-                parent_proc->getPid(), child_pid);
+   Process::ptr parent_wrapper = pc_const_cast<Process>(ev->getProcess());
 
    Process::ptr child_wrapper = ProcPool()->findProcByPid(child_pid);
    if( !child_wrapper ) {
-       child_wrapper = Process::makeProcess(child_pid,
-                          pc_const_cast<Process>(ev->getProcess()));
+       child_wrapper = Process::makeProcess(child_pid, parent_wrapper);
    }
-   ProcImplRef child_proc_ref(child_wrapper);
+
+   // Fork touches TWO processes.  Lock both proc_locks in ascending-pid order
+   // (the ProcScopeLock discipline) so this cannot ABBA with
+   // HandlePostForkCont, which locks the same pair (TSan-found deadlock).
+   // The ImplRefs are nolock -- the ordered ProcScopeLocks hold both locks.
+   Dyninst::PID parent_pid = parent_wrapper->getPid();
+   ProcScopeLock fork_lk_lo(parent_pid <= child_pid ? parent_wrapper : child_wrapper);
+   ProcScopeLock fork_lk_hi(parent_pid <= child_pid ? child_wrapper : parent_wrapper);
+   ProcImplRef parent_proc_ref(parent_wrapper, implref_nolock);
+   int_process *parent_proc = parent_proc_ref.get();
+   ProcImplRef child_proc_ref(child_wrapper, implref_nolock);
    int_process *child_proc = child_proc_ref.get();
+   pthrd_printf("Handling fork for parent %d to child %d\n",
+                parent_proc->getPid(), child_pid);
 
    int_followFork *fork_proc = parent_proc->getFollowFork();
    if (fork_proc->fork_isTracking() == FollowFork::DisableBreakpointsDetach) {
@@ -1283,10 +1284,17 @@ Handler::handler_ret_t HandlePostForkCont::handleEvent(Event::ptr ev)
 {
    EventFork *efork = static_cast<EventFork *>(ev.get());
    Dyninst::PID child_pid = efork->getPID();
+   Process::ptr parent_wrapper = pc_const_cast<Process>(ev->getProcess());
    Process::ptr child_wrapper = ProcPool()->findProcByPid(child_pid);
-   ProcImplRef child_proc_ref(child_wrapper);
+
+   // Ascending-pid order, matching HandlePostFork (TSan-found ABBA on the
+   // parent/child pair).  ImplRefs nolock; ordered ProcScopeLocks hold both.
+   Dyninst::PID parent_pid = parent_wrapper->getPid();
+   ProcScopeLock fork_lk_lo(parent_pid <= child_pid ? parent_wrapper : child_wrapper);
+   ProcScopeLock fork_lk_hi(parent_pid <= child_pid ? child_wrapper : parent_wrapper);
+   ProcImplRef child_proc_ref(child_wrapper, implref_nolock);
    int_process *child_proc = child_proc_ref.get();
-   ProcImplRef parent_proc_ref(ev->getProcess());
+   ProcImplRef parent_proc_ref(parent_wrapper, implref_nolock);
    int_process *parent_proc = parent_proc_ref.get();
    pthrd_printf("Handling post-fork continue for child %d\n", child_pid);
    assert(child_proc);
@@ -2102,13 +2110,11 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
       proc->threadPool()->initialThread()->getDetachState().setStateProc(int_thread::detached);
    }
    else {
-      ProcPool()->condvar()->lock();
 
       proc->setState(int_process::exited);
       ProcPool()->rmProcess(pc_const_cast<Process>(ev->getProcess()));
 
       wakeGenerator();
-      ProcPool()->condvar()->unlock();
    }
 
    err = false;
@@ -2299,7 +2305,7 @@ Handler::handler_ret_t HandleCallbacks::handleEvent(Event::ptr ev)
 {
    int_thread *thr = NULL;
    if(ev->getThread()) thr = ThreadImplRef(ev->getThread()).get();
-   ProcImplRef proc_ref(ev->getProcess());
+   ProcImplRef proc_ref(ev->getProcess(), implref_nolock);
    int_process *proc = proc_ref.get();
    
    if (ev->noted_event) {
@@ -2433,9 +2439,12 @@ bool HandleCallbacks::handleCBReturn(Process::const_ptr proc, Thread::const_ptr 
 Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_t> &cbset)
 {
    //We want the thread to remain in its appropriate state while the CB is in flight.
-	ThreadImplRef thr_ref(ev->getThread());
+	// nolock: this scope delivers USER CALLBACKS -- foreign code that takes
+	// its own locks (dyninstAPI) and may block; holding proc_lock across it
+	// inverts against client->API paths (TSan-found).  Same rule as parks.
+	ThreadImplRef thr_ref(ev->getThread(), implref_nolock);
 	int_thread *thr = thr_ref.get();
-   ProcImplRef proc_ref(ev->getProcess());
+   ProcImplRef proc_ref(ev->getProcess(), implref_nolock);
    int_process *proc = proc_ref.get();
    assert(proc);
 
