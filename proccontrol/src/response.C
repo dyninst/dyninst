@@ -239,7 +239,7 @@ int_process *response::getProcess() const
   // Conduit accessor: still hands a raw impl to callers (they null-check).
   // NULL iff the process died while this response was pending.  Callers
   // migrate to ProcImplRef as the encapsulation revamp reaches them.
-  ProcImplRef pi(proc);
+  ProcImplRef pi(proc, implref_nolock);   // plumbing: callers may hold leaf locks
   return pi.get();
 }
 
@@ -497,7 +497,10 @@ void reg_response::setResponse(Dyninst::MachRegisterVal v)
 void reg_response::postResponse(Dyninst::MachRegisterVal v)
 {
    assert(reg && thr);
-   ThreadImplRef ti(thr);
+   // nolock: response plumbing runs with caller locks held (e.g. the
+   // caller's regpool_lock in int_thread::getRegister) -- taking proc_lock
+   // here inverts against decode (proc_lock -> register reads).  TSan-found.
+   ThreadImplRef ti(thr, implref_nolock);
    if (ti)
       ti->updateRegCache(reg, v);   // dead thread: nothing to cache
    val = v;
@@ -553,7 +556,7 @@ void allreg_response::postResponse()
       multi_resp_recvd++;
    }
    if (isMultiResponseComplete()) {
-      ThreadImplRef ti(thr);
+      ThreadImplRef ti(thr, implref_nolock);   // see reg_response::postResponse
       if (ti)
          ti->updateRegCache(*regpool);
    }
@@ -697,7 +700,7 @@ int_thread *stack_response::getThread()
 {
    // Conduit accessor (see response::getProcess): callers migrate to
    // ThreadImplRef as the encapsulation revamp reaches them.
-   ThreadImplRef ti(thr);
+   ThreadImplRef ti(thr, implref_nolock);   // plumbing: callers may hold leaf locks
    return ti.get();
 }
 

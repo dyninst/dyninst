@@ -233,7 +233,14 @@ bool Generator::getAndQueueEventInt(bool block)
 
    setState(decoding);
    //mbox()->lock_queue();
-   ProcPool()->condvar()->lock();
+   // Lock-order fix (work_lock retirement): decode is NOT under the ProcPool
+   // condvar anymore -- decode takes the per-process proc_lock, and holding
+   // the condvar across it inverted against boundary scopes that hold
+   // proc_lock and transitively take the condvar (intCont, cleanFromHandler,
+   // forked/execed...).  The generator now NEVER takes proc_lock while
+   // holding the condvar, making the effective order proc_lock > condvar.
+   // Decode's per-process atomicity comes from decode_plock; the registry is
+   // guarded by map_lock.
 
    for (vector<ArchEvent *>::iterator i = archEvents.begin(); i != archEvents.end(); i++) {
 	   arch_event = *i;
@@ -246,6 +253,7 @@ bool Generator::getAndQueueEventInt(bool block)
    }
 
    setState(statesync);
+   // condvar retirement (option ii): statesync accessors take the per-process lock
    for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); i++) {
       Event::ptr event = *i;
 	  if(event) {
@@ -265,7 +273,6 @@ bool Generator::getAndQueueEventInt(bool block)
 	  }
    }
 
-   ProcPool()->condvar()->unlock();
 
    setState(queueing);
    for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); ++i) {

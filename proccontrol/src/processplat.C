@@ -762,9 +762,8 @@ bool int_LWPTracking::lwp_refresh()
       return true;
 
    setForceGeneratorBlock(true);
-   ProcPool()->condvar()->lock();
+   // condvar retirement: wakeGenerator signals gen_wait_cv; no bracket needed.
    wakeGenerator();
-   ProcPool()->condvar()->unlock();
    int_process::waitAndHandleEvents(false);
    setForceGeneratorBlock(false);
    return true;

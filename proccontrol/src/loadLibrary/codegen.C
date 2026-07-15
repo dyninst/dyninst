@@ -14,7 +14,8 @@ Codegen::Codegen(Process *proc, std::string libname)
    : proc_(proc), libname_(libname), codeStart_(0) {}
 
 Codegen::~Codegen() {
-   ProcImplRef proc(proc_);
+   // nolock: infFree waits internally (waitAndHandleEvents)
+   ProcImplRef proc(proc_->shared_from_this(), implref_nolock);
    if (codeStart_ && proc) {
       proc->infFree(buffer_.startAddr());
    }
@@ -22,7 +23,9 @@ Codegen::~Codegen() {
 
 bool Codegen::generate() {
    unsigned size = estimateSize();
-   ProcImplRef proc(proc_);
+   // nolock: infMalloc waits internally (waitAndHandleEvents) -- holding the
+   // proc_lock here deadlocks the generator decoding this process's events.
+   ProcImplRef proc(proc_->shared_from_this(), implref_nolock);
    if (!proc)
       return false;
 
@@ -60,7 +63,7 @@ unsigned Codegen::estimateSize() {
 
 Address Codegen::findSymbolAddr(const std::string name, bool saveTOC) {
    LibraryPool& libs = proc_->libraries();
-   ProcImplRef proc(proc_);
+   ProcImplRef proc(proc_->shared_from_this(), implref_nolock);
    if (!proc)
       return 0;
    for (auto li = libs.begin(); li != libs.end(); li++) {

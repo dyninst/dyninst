@@ -27,7 +27,9 @@ Injector::Injector(ProcControlAPI::Process *proc) :
 Injector::~Injector() {}
 
 bool Injector::inject(std::string libname) {
-   ProcImplRef proc(proc_);
+   // nolock: this scope spans waitAndHandleEvents below -- holding the
+   // proc_lock would deadlock the generator decoding this process's events.
+   ProcImplRef proc(proc_->shared_from_this(), implref_nolock);
    if (!proc)
       return false;   // process already gone
    pthrd_printf("Injecting %s into process %d\n", libname.c_str(), proc->getPid());

@@ -925,9 +925,7 @@ ProcessSet::iterator ProcessSet::find(Process::const_ptr p)
 
 ProcessSet::iterator ProcessSet::find(PID p)
 {
-   ProcPool()->condvar()->lock();
    Process::ptr proc = ProcPool()->findProcByPid(p);
-   ProcPool()->condvar()->unlock();
    if (!proc) return end();
    return iterator(procset->find(proc));
 }
@@ -949,9 +947,7 @@ ProcessSet::const_iterator ProcessSet::find(Process::const_ptr p) const
 
 ProcessSet::const_iterator ProcessSet::find(PID p) const
 {
-   ProcPool()->condvar()->lock();
    Process::ptr proc = ProcPool()->findProcByPid(p);
-   ProcPool()->condvar()->unlock();
    if (!proc) return end();
    return const_iterator(procset->find(proc));
 }
@@ -1646,7 +1642,10 @@ bool ProcessSet::terminate() const
    procset_iter iter("terminate", had_error, ERR_CHCK_NORM);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = *i;
-      ProcImplRef proc_ref(p);
+      // nolock: preTerminate -> waitAndHandleForProc parks on the mailbox;
+      // holding proc_lock would deadlock the generator decoding this
+      // process's own exit event (gdb-caught).
+      ProcImplRef proc_ref(p, implref_nolock);
       int_process *proc = proc_ref.get();
       if (!proc)
          continue;
@@ -1667,10 +1666,11 @@ bool ProcessSet::terminate() const
    int_process::waitAndHandleEvents(false);
 #endif
 
-   ProcPool()->condvar()->lock();
+   // condvar retirement (option ii): per-iteration locked ProcImplRef brackets each process
 
    for (set<Process::ptr>::iterator i = procs.begin(); i != procs.end();) {
-      ProcImplRef proc_ref((*i));
+      ProcImplRef proc_ref((*i), implref_nolock);   // parity with the old
+      // global-bracket semantics; terminate() may reach blocking paths.
       int_process *proc = proc_ref.get();
       if (!proc) {
          // Process exited and was deleted during the event handling above.
@@ -1696,7 +1696,6 @@ bool ProcessSet::terminate() const
    }
 
    wakeGenerator();
-   ProcPool()->condvar()->unlock();
    pthrd_printf("Processes terminated: sync is %d\n", run_sync);
    if (run_sync) {
      pthrd_printf("Process: waiting on waitAndHandleEvents\n");
@@ -3488,9 +3487,7 @@ bool LWPTrackingSet::refreshLWPs() const
       return !had_error;
 
    pthrd_printf("Found changes to thread in refresh.  Handling events.\n");
-   ProcPool()->condvar()->lock();
    wakeGenerator();
-   ProcPool()->condvar()->unlock();
 
    int_process::waitAndHandleEvents(false);
 
