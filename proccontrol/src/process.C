@@ -7712,18 +7712,26 @@ bool Thread::stopThread()
    int_thread *thrd = llthrd();
    int_process *proc = thrd->llproc();
 
-   pthrd_printf("User stopping thread %d/%d\n", proc->getPid(), thrd->getLWP());
-   bool result = thrd->getUserState().setState(int_thread::running);
-   if (!result) {
-      perr_printf("Thread %d/%d was not in a stoppable state, error return from setState\n",
-                  proc->getPid(), thrd->getLWP());
-      setLastError(err_internal, "Could not set user state while stopping thread\n");
-      return false;
+   {
+      // work_lock retirement (D-2): the user-side state-machine mutation must
+      // hold proc_lock so it excludes the handler's per-event syncRunState on
+      // this process -- both writers of the run-state / pending-stop machinery
+      // now share proc_lock (work_lock still serializes on top until removed).
+      // RELEASED before waitAndHandleForProc (clause 2: no park under proc_lock).
+      ProcScopeLock plock(procWrapper());
+      pthrd_printf("User stopping thread %d/%d\n", proc->getPid(), thrd->getLWP());
+      bool result = thrd->getUserState().setState(int_thread::running);
+      if (!result) {
+         perr_printf("Thread %d/%d was not in a stoppable state, error return from setState\n",
+                     proc->getPid(), thrd->getLWP());
+         setLastError(err_internal, "Could not set user state while stopping thread\n");
+         return false;
+      }
+      proc->throwNopEvent();
    }
-   proc->throwNopEvent();
 
    bool proc_exited = false;
-   result = int_process::waitAndHandleForProc(false, proc, proc_exited);
+   bool result = int_process::waitAndHandleForProc(false, proc, proc_exited);
    if (proc_exited) {
       perr_printf("Process exited while waiting for user thread stop, erroring\n");
       setLastError(err_exited, "Process exited while thread being stopped.\n");
@@ -7745,6 +7753,10 @@ bool Thread::continueThread()
    int_thread *thrd = llthrd();
    int_process *proc = thrd->llproc();
 
+   // work_lock retirement (D-2): hold proc_lock across the state mutation so it
+   // excludes the handler's syncRunState on this process (see stopThread).  No
+   // park here, so whole-remaining-method scope is fine.
+   ProcScopeLock plock(procWrapper());
    pthrd_printf("User continuing thread %d/%d\n", proc->getPid(), thrd->getLWP());
    bool result = thrd->getUserState().setState(int_thread::running);
    if (!result) {
