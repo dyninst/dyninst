@@ -7201,9 +7201,8 @@ bool Process::writeMemoryAsync(Dyninst::Address addr, const void *buffer, size_t
 
 bool Process::readMemoryAsync(void *buffer, Dyninst::Address addr, size_t size, void *opaque_val) const
 {
-   MTLock lock_this_func;
-   // Roadblock #1 correction: proc_lock so async I/O serializes with the
-   // proc_lock-only readers (no inline wait here, so whole-method scope).
+   // Parallelized (option b): proc_lock only; whole-method (no inline wait).
+   // Serializes with the proc_lock-only sync readMemory and the async writes.
    ProcScopeLock plock(pc_const_cast<Process>(shared_from_this()));
    PROC_EXIT_DETACH_TEST("readMemoryAsync", false);
 
@@ -7861,9 +7860,8 @@ bool Thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val
 
 bool Thread::getAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
 {
-   MTLock lock_this_func;
-   // Roadblock #1 correction: proc_lock so async I/O serializes with the
-   // proc_lock-only readers (no inline wait here, so whole-method scope).
+   // Parallelized (option b): proc_lock only; whole-method (no inline wait).
+   // Serializes with the proc_lock-only sync getAllRegisters and the async writes.
    ProcScopeLock plock(procWrapper());
    THREAD_EXIT_DETACH_STOP_TEST("getAllRegistersAsync", false);
 
