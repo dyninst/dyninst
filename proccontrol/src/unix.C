@@ -124,7 +124,7 @@ bool unix_process::post_forked()
 {
    // condvar retirement: per-process bracket (option ii)
    Process::ptr bracket_pin = proc();
-   if (bracket_pin) bracket_pin->procLock()->lock();
+   if (bracket_pin) bracket_pin->lockImpl();
 
    int_thread *thrd = threadPool()->initialThread();
    //The new process is currently stopped, but should be moved to
@@ -136,7 +136,7 @@ bool unix_process::post_forked()
    thrd->getUserState().setState(int_thread::running);
 
    wakeGenerator();
-   if (bracket_pin) bracket_pin->procLock()->unlock();
+   if (bracket_pin) bracket_pin->unlockImpl();
 
    //TODO: Remove this and make have the translate layers' fork
    // constructors do the work.

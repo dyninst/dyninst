@@ -41,6 +41,37 @@ Scopes matching these use `ProcImplRef(x, implref_nolock)` with a comment
 naming the reason. Danger pattern: waits/locks hidden in *callees* — all
 seven deadlocks were transitive escapes that body-level audits missed.
 
+### Partial work_lock retirement (option b) — rules for converting methods
+
+We are dropping `work_lock` **per method**, only for **ordering-free
+per-process ops** (reads first: `readMemory`, `getRegister`,
+`getAllRegisters`). A converted method holds `proc_lock` *instead of*
+`work_lock`. Rules, each a real hazard:
+
+1. **Every `proc_lock` acquisition must go through `Process::lockImpl`/
+   `unlockImpl`** (via `ProcScopeLock` or the ImplRef accessors), never
+   `procLock()->lock()` directly — otherwise `proc_lock_depth_` is wrong and
+   `suspendImplLock` (callback delivery) under-unwinds → clause-3 violation or
+   a wedged lock.
+2. **Inside a converted method's `proc_lock` scope, no re-entry into a public
+   API method** (which takes `MTLock`) — that is `proc_lock → work_lock`,
+   inverting against the whole rest of the codebase (`work_lock → proc_lock`).
+   Resolve everything needed, then release before any such call.
+3. **A reader may only drop `work_lock` once its paired *mutators* also take
+   `proc_lock`.** A `proc_lock`-only reader vs. a `work_lock`-only mutator
+   share no lock → race. E.g. converting `getRegister` required
+   `setRegister`/`setAllRegisters` (+ async) to take `proc_lock` too; reads
+   and writes of the same per-process state must share `proc_lock`.
+4. **Only ordering-free ops qualify.** Anything that validates state → waits →
+   acts on that state (continue/stop/breakpoint/iRPC) carries a cross-wait
+   invariant that `work_lock`'s global serialization provided and per-process
+   `proc_lock` does not (this is what broke the full-removal attempt, S5).
+   Those stay under `work_lock` pending an event-state-machine redesign.
+
+Validation caveat: the suite is largely single-user-thread, so the *new*
+interleavings (reader-on-P vs handler-on-P, two user threads) are lightly
+exercised — a green gate understates coverage. TSan flags orders from any run.
+
 ## Status
 
 - Landed: encapsulation E1–E5 (accessors + private bridge), 2a/2b deletion
