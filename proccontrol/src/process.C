@@ -7133,25 +7133,35 @@ bool Process::writeMemory(Dyninst::Address addr, const void *buffer, size_t size
 
 bool Process::readMemory(void *buffer, Dyninst::Address addr, size_t size) const
 {
-   MTLock lock_this_func;
-   PROC_EXIT_DETACH_TEST("readMemory", false);
+   // work_lock retirement, partial (option b): a memory read is a per-process
+   // data op with no cross-op state-machine ordering dependency, so it needs
+   // only proc_lock (around the impl access), NOT the global work_lock --
+   // letting reads on different processes run concurrently.  proc_lock scopes
+   // the llproc_ access + the platform read; it is RELEASED before
+   // waitForAsyncEvent (clause 2: never hold proc_lock across a blocking
+   // wait).  The response object is synchronized by getResponses()'s condvar,
+   // independent of work_lock.
+   mem_response::ptr memresult;
+   {
+      ProcScopeLock lock_this_func(pc_const_cast<Process>(shared_from_this()));
+      PROC_EXIT_DETACH_TEST("readMemory", false);
 
-   pthrd_printf("User wants to read memory from 0x%lx to 0x%p of size %lu\n",
-                addr, buffer, (unsigned long) size);
-   mem_response::ptr memresult = mem_response::createMemResponse((char *) buffer, size);
-   bool result = llproc_->readMem(addr, memresult);
-   if (!result) {
-      pthrd_printf("Error reading from memory %lx on target process %d\n",
-                   addr, llproc_->getPid());
-      (void)memresult->isReady();
-      return false;
+      pthrd_printf("User wants to read memory from 0x%lx to 0x%p of size %lu\n",
+                   addr, buffer, (unsigned long) size);
+      memresult = mem_response::createMemResponse((char *) buffer, size);
+      bool result = llproc_->readMem(addr, memresult);
+      if (!result) {
+         pthrd_printf("Error reading from memory %lx on target process %d\n",
+                      addr, llproc_->getPid());
+         (void)memresult->isReady();
+         return false;
+      }
    }
 
    int_process::waitForAsyncEvent(memresult);
 
    if (memresult->hasError()) {
-      pthrd_printf("Error reading from memory %lx on target process %d\n",
-                   addr, llproc_->getPid());
+      pthrd_printf("Error reading from memory %lx (async)\n", addr);
       return false;
    }
    return true;
