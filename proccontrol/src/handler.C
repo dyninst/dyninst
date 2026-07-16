@@ -2490,7 +2490,7 @@ Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set
    // handling; FULLY suspend it here so the user callback runs holding no
    // proc_lock (clause 3 -- foreign code that takes client locks), then
    // restore.  Order during the callback: (work_lock still, for now) >
-   // cb_lock; proc_lock NOT held.  Redundant/no-op while work_lock serializes.
+   // callback_slot_lock; proc_lock NOT held.  Redundant while work_lock serializes.
    Process::const_ptr cb_proc = ev->getProcess();
    int cb_proc_depth = cb_proc ? cb_proc->suspendImplLock() : 0;
    mt()->takeCallbackSlot();
