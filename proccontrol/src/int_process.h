@@ -1776,9 +1776,11 @@ private:
   // HandleCallbacks::deliverCallback so the guarantee survives once work_lock
   // stops serializing callbacks.  Recursive so const-cast abuse (a callback
   // re-entering a deliver_callbacks API) hits the existing in_callback/recurse
-  // assert rather than self-deadlocking.  Order: work_lock > cb_lock (> the
+  // assert rather than self-deadlocking.  Order: work_lock > callback_slot_lock
   // callback's own proc_lock, which delivery has already dropped).
-  Mutex < true > cb_lock;
+  // (named callback_slot_lock, not cb_lock, to avoid confusion with the
+  //  unrelated Generator::cb_lock that guards the new-event notify CB set.)
+  Mutex < true > callback_slot_lock;
   bool have_queued_events;
   bool is_running;
   bool should_exit;
@@ -1802,9 +1804,9 @@ public:
 
   void startWork();
   void endWork();
-  // Callback slot (see cb_lock).  No-op outside the threading modes.
-  void takeCallbackSlot()    { if (handlerThreading()) cb_lock.lock(); }
-  void releaseCallbackSlot() { if (handlerThreading()) cb_lock.unlock(); }
+  // Callback slot (see callback_slot_lock).  No-op outside threading modes.
+  void takeCallbackSlot()    { if (handlerThreading()) callback_slot_lock.lock(); }
+  void releaseCallbackSlot() { if (handlerThreading()) callback_slot_lock.unlock(); }
 
   bool handlerThreading();
   Process::thread_mode_t getThreadMode();
