@@ -7734,17 +7734,20 @@ bool Thread::continueThread()
 
 bool Thread::getAllRegisters(RegisterPool &pool) const
 {
-   MTLock lock_this_func;
-   THREAD_EXIT_DETACH_STOP_TEST("getAllRegisters", false);
+   // Partial work_lock retirement (option b): see Thread::getRegister.
+   allreg_response::ptr response;
+   {
+      ProcScopeLock lock_this_func(procWrapper());
+      THREAD_EXIT_DETACH_STOP_TEST("getAllRegisters", false);
 
-   allreg_response::ptr response = allreg_response::createAllRegResponse(pool.llregpool);
-   bool result = llthread_->getAllRegisters(response);
-   if (!result) {
-      pthrd_printf("Error getting all registers\n");
-      return false;
+      response = allreg_response::createAllRegResponse(pool.llregpool);
+      bool result = llthread_->getAllRegisters(response);
+      if (!result) {
+         pthrd_printf("Error getting all registers\n");
+         return false;
+      }
    }
-
-   result = llthread_->llproc()->waitForAsyncEvent(response);
+   bool result = int_process::waitForAsyncEvent(response);
    if (!result) {
       pthrd_printf("Error waiting for async events\n");
       return false;
@@ -7784,16 +7787,23 @@ bool Thread::setAllRegisters(RegisterPool &pool) const
 
 bool Thread::getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) const
 {
-   MTLock lock_this_func;
-   THREAD_EXIT_DETACH_STOP_TEST("getRegister", false);
+   // Partial work_lock retirement (option b): a register read is a per-process
+   // data op with no cross-wait invariant -> needs proc_lock, not work_lock.
+   // proc_lock scopes the impl access and is released before the async wait
+   // (clause 2).  See Process::readMemory for the pattern.
+   reg_response::ptr response;
+   {
+      ProcScopeLock lock_this_func(procWrapper());
+      THREAD_EXIT_DETACH_STOP_TEST("getRegister", false);
 
-   reg_response::ptr response = reg_response::createRegResponse();
-   bool result = llthread_->getRegister(reg, response);
-   if (!result) {
-      pthrd_printf("Error getting register\n");
-      return false;
+      response = reg_response::createRegResponse();
+      bool result = llthread_->getRegister(reg, response);
+      if (!result) {
+         pthrd_printf("Error getting register\n");
+         return false;
+      }
    }
-   result = llthread_->llproc()->waitForAsyncEvent(response);
+   bool result = int_process::waitForAsyncEvent(response);
    if (!result) {
       pthrd_printf("Error waiting for async events\n");
       return false;
