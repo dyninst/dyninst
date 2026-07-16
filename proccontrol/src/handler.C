@@ -2450,7 +2450,15 @@ Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set
 
    pthrd_printf("Changing callback state of %d before CB\n", proc->getPid());
    int_thread::StateTracker &cb_state = thr ? thr->getCallbackState() : proc->threadPool()->initialThread()->getCallbackState();
-   cb_state.desyncStateProc(int_thread::ditto);
+   // work_lock retirement (S3): the callback-state desync/restore are the
+   // only per-process mutations in delivery not already under proc_lock (the
+   // saveUserState/restoreUserState/handleCBReturn paths lock via their
+   // ImplRef temporaries).  Bracket them; NOT held across the callback loop
+   // (clause 3 -- foreign code).
+   {
+      ProcScopeLock cbstate_lock(pc_const_cast<Process>(ev->getProcess()));
+      cb_state.desyncStateProc(int_thread::ditto);
+   }
 
    if (isHandlerThread() && mt()->getThreadMode() != Process::CallbackThreading) {
       //We're not going to allow a handler thread to deliver a callback in this mode
@@ -2537,9 +2545,12 @@ Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set
    if (event_has_child)
       handleCBReturn(child_proc, child_thread, child_result);
 
-   pthrd_printf("Restoring callback state of %d/%d after CB\n", ev->getProcess()->getPid(), 
+   pthrd_printf("Restoring callback state of %d/%d after CB\n", ev->getProcess()->getPid(),
                 ev->getThread()->getLWP());
-   cb_state.restoreStateProc();
+   {
+      ProcScopeLock cbstate_lock(pc_const_cast<Process>(ev->getProcess()));
+      cb_state.restoreStateProc();
+   }
 
    return ret_success;
 }
