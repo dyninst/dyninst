@@ -589,7 +589,7 @@ bool int_process::execed()
 {
    // condvar retirement: per-process bracket (option ii)
    Process::ptr bracket_pin = proc();
-   if (bracket_pin) bracket_pin->procLock()->lock();
+   if (bracket_pin) bracket_pin->lockImpl();
 
    bool should_clean = false;
    mem->rmProc(this, should_clean);
@@ -625,7 +625,7 @@ bool int_process::execed()
    initial_thread->getHandlerState().setState(handler_initial_thrd_state);
 
    wakeGenerator();
-   if (bracket_pin) bracket_pin->procLock()->unlock();
+   if (bracket_pin) bracket_pin->unlockImpl();
 
    bool result = plat_execed();
 
@@ -641,14 +641,14 @@ bool int_process::forked()
 {
    // condvar retirement: per-process bracket (option ii)
    Process::ptr bracket_pin = proc();
-   if (bracket_pin) bracket_pin->procLock()->lock();
+   if (bracket_pin) bracket_pin->lockImpl();
 
    pthrd_printf("Setting up forked process %d\n", pid);
    creation_mode = ct_fork;
    bool result = plat_forked();
    if (!result) {
       pthrd_printf("Could not handle forked debuggee, %d\n", pid);
-      if (bracket_pin) bracket_pin->procLock()->unlock();
+      if (bracket_pin) bracket_pin->unlockImpl();
       return false;
    }
 
@@ -665,7 +665,7 @@ bool int_process::forked()
    }
 
    wakeGenerator();
-   if (bracket_pin) bracket_pin->procLock()->unlock();
+   if (bracket_pin) bracket_pin->unlockImpl();
 
    result = post_forked();
    if (!result) {
@@ -3092,7 +3092,7 @@ bool int_thread::intCont()
 
    // condvar retirement: per-process bracket (option ii)
    Process::ptr bracket_pin = proc();
-   if (bracket_pin) bracket_pin->procLock()->lock();
+   if (bracket_pin) bracket_pin->lockImpl();
 
    bool result = plat_cont();
    if (result) {
@@ -3114,7 +3114,7 @@ bool int_thread::intCont()
 
 
    wakeGenerator();
-   if (bracket_pin) bracket_pin->procLock()->unlock();
+   if (bracket_pin) bracket_pin->unlockImpl();
 
    if (!result) {
       pthrd_printf("Failed to plat_cont %d/%d\n", llproc()->getPid(), getLWP());
@@ -3721,7 +3721,7 @@ void int_thread::cleanFromHandler(int_thread *thrd, bool should_delete)
 {
    // condvar retirement: per-process bracket (option ii)
    Process::ptr bracket_pin = thrd->proc();
-   if (bracket_pin) bracket_pin->procLock()->lock();
+   if (bracket_pin) bracket_pin->lockImpl();
 
 #if !defined(os_freebsd)
    thrd->getUserState().setState(int_thread::exited);
@@ -3755,7 +3755,7 @@ void int_thread::cleanFromHandler(int_thread *thrd, bool should_delete)
 #endif
    }
    wakeGenerator();
-   if (bracket_pin) bracket_pin->procLock()->unlock();
+   if (bracket_pin) bracket_pin->unlockImpl();
 }
 
 Thread::ptr int_thread::thread()
@@ -7111,16 +7111,23 @@ bool Process::freeMemory(Dyninst::Address addr)
 bool Process::writeMemory(Dyninst::Address addr, const void *buffer, size_t size) const
 {
    MTLock lock_this_func;
-   PROC_EXIT_DETACH_TEST("writeMemory", false);
+   // Roadblock #1 correction (see Thread::setRegister): work_lock + narrow
+   // proc_lock around the impl access, released before the async wait, so
+   // this serializes against the proc_lock-only Process::readMemory.
+   result_response::ptr resp;
+   {
+      ProcScopeLock plock(pc_const_cast<Process>(shared_from_this()));
+      PROC_EXIT_DETACH_TEST("writeMemory", false);
 
-   pthrd_printf("User wants to write memory to remote addr 0x%lx from buffer 0x%p of size %lu\n",
-                addr, buffer, (unsigned long) size);
-   result_response::ptr resp = result_response::createResultResponse();
-   bool result = llproc_->writeMem(buffer, addr, size, resp);
-   if (!result) {
-      pthrd_printf("Error writing to memory\n");
-      (void)resp->isReady();
-      return false;
+      pthrd_printf("User wants to write memory to remote addr 0x%lx from buffer 0x%p of size %lu\n",
+                   addr, buffer, (unsigned long) size);
+      resp = result_response::createResultResponse();
+      bool result = llproc_->writeMem(buffer, addr, size, resp);
+      if (!result) {
+         pthrd_printf("Error writing to memory\n");
+         (void)resp->isReady();
+         return false;
+      }
    }
 
    int_process::waitForAsyncEvent(resp);
@@ -7170,6 +7177,9 @@ bool Process::readMemory(void *buffer, Dyninst::Address addr, size_t size) const
 bool Process::writeMemoryAsync(Dyninst::Address addr, const void *buffer, size_t size, void *opaque_val) const
 {
    MTLock lock_this_func;
+   // Roadblock #1 correction: proc_lock so async I/O serializes with the
+   // proc_lock-only readers (no inline wait here, so whole-method scope).
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this()));
    PROC_EXIT_DETACH_TEST("writeMemoryAsync", false);
    pthrd_printf("User wants to async write memory to remote addr 0x%lx from buffer 0x%p of size %lu\n",
                 addr, buffer, (unsigned long) size);
@@ -7195,6 +7205,9 @@ bool Process::writeMemoryAsync(Dyninst::Address addr, const void *buffer, size_t
 bool Process::readMemoryAsync(void *buffer, Dyninst::Address addr, size_t size, void *opaque_val) const
 {
    MTLock lock_this_func;
+   // Roadblock #1 correction: proc_lock so async I/O serializes with the
+   // proc_lock-only readers (no inline wait here, so whole-method scope).
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this()));
    PROC_EXIT_DETACH_TEST("readMemoryAsync", false);
 
    pthrd_printf("User wants to async read memory from 0x%lx to 0x%p of size %lu\n",
@@ -7763,15 +7776,20 @@ bool Thread::getAllRegisters(RegisterPool &pool) const
 bool Thread::setAllRegisters(RegisterPool &pool) const
 {
    MTLock lock_this_func;
-   THREAD_EXIT_DETACH_STOP_TEST("setAllRegisters", false);
-
-   result_response::ptr response = result_response::createResultResponse();
-   bool result = llthread_->setAllRegisters(*pool.llregpool, response);
-   if (!result) {
-      pthrd_printf("Error setting all registers\n");
-      return false;
+   // Roadblock #1 correction (see Thread::setRegister): work_lock + narrow
+   // proc_lock around the impl access, released before the async wait.
+   result_response::ptr response;
+   {
+      ProcScopeLock plock(procWrapper());
+      THREAD_EXIT_DETACH_STOP_TEST("setAllRegisters", false);
+      response = result_response::createResultResponse();
+      bool result = llthread_->setAllRegisters(*pool.llregpool, response);
+      if (!result) {
+         pthrd_printf("Error setting all registers\n");
+         return false;
+      }
    }
-   result = llthread_->llproc()->waitForAsyncEvent(response);
+   bool result = int_process::waitForAsyncEvent(response);
    if (!result) {
       pthrd_printf("Error waiting for async events\n");
       return false;
@@ -7820,15 +7838,22 @@ bool Thread::getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &va
 bool Thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const
 {
    MTLock lock_this_func;
-   THREAD_EXIT_DETACH_STOP_TEST("setRegister", false);
-
-   result_response::ptr response = result_response::createResultResponse();
-   bool result = llthread_->setRegister(reg, val, response);
-   if (!result) {
-      pthrd_printf("Error setting register value\n");
-      return false;
+   // Roadblock #1 correction: this mutator keeps work_lock (not being
+   // parallelized), but must also take proc_lock around the impl access so it
+   // serializes against the now-proc_lock-only readers (getRegister etc.).
+   // Released before the async wait (clause 2), like the readers.
+   result_response::ptr response;
+   {
+      ProcScopeLock plock(procWrapper());
+      THREAD_EXIT_DETACH_STOP_TEST("setRegister", false);
+      response = result_response::createResultResponse();
+      bool result = llthread_->setRegister(reg, val, response);
+      if (!result) {
+         pthrd_printf("Error setting register value\n");
+         return false;
+      }
    }
-   result = llthread_->llproc()->waitForAsyncEvent(response);
+   bool result = int_process::waitForAsyncEvent(response);
    if (!result) {
       pthrd_printf("Error waiting for async events\n");
       return false;
@@ -7844,6 +7869,9 @@ bool Thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val
 bool Thread::getAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
 {
    MTLock lock_this_func;
+   // Roadblock #1 correction: proc_lock so async I/O serializes with the
+   // proc_lock-only readers (no inline wait here, so whole-method scope).
+   ProcScopeLock plock(procWrapper());
    THREAD_EXIT_DETACH_STOP_TEST("getAllRegistersAsync", false);
 
    pthrd_printf("User wants to async read registers on %d/%d\n",
@@ -7866,6 +7894,9 @@ bool Thread::getAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
 bool Thread::setAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
 {
    MTLock lock_this_func;
+   // Roadblock #1 correction: proc_lock so async I/O serializes with the
+   // proc_lock-only readers (no inline wait here, so whole-method scope).
+   ProcScopeLock plock(procWrapper());
    THREAD_EXIT_DETACH_STOP_TEST("getAllRegistersAsync", false);
    pthrd_printf("User wants to async set registers on %d/%d\n",
                 llthread_->llproc()->getPid(), llthread_->getLWP());

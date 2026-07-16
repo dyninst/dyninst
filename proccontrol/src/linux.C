@@ -1076,11 +1076,11 @@ bool linux_process::plat_attachThreadsSync()
 
       // condvar retirement: per-process bracket (option ii)
       Process::ptr bracket_pin = proc();
-      if (bracket_pin) bracket_pin->procLock()->lock();
+      if (bracket_pin) bracket_pin->lockImpl();
       bool result = attachThreads(found_new_threads);
       if (found_new_threads)
          wakeGenerator();
-      if (bracket_pin) bracket_pin->procLock()->unlock();
+      if (bracket_pin) bracket_pin->unlockImpl();
 
       if (!result) {
          pthrd_printf("Failed to attach to threads in %d\n", pid);
