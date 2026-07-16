@@ -1743,6 +1743,13 @@ class int_notify {
    std::set<EventNotify::notify_cb_t> cbs;
    int events_noted;
    details_t my_internals;
+   // work_lock retirement (S2): guards events_noted, the coupled edge-
+   // triggered pipe op (my_internals note/clear), and the cbs set -- today
+   // all serialized by work_lock.  A leaf (notify callbacks are snapshotted
+   // and invoked WITHOUT it held, since they are foreign code).  events_noted
+   // and its pipe op must transition together or note/clear can interleave
+   // into a missed wakeup, so a lock, not a bare atomic.
+   Mutex<> notify_lock;
  public:
    int_notify();
    void noteEvent();

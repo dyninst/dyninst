@@ -1039,7 +1039,11 @@ bool int_process::waitAndHandleEvents(bool block)
    assert(!int_process::in_callback);
    bool error = false;
 
-   static bool recurse = false;
+   // work_lock retirement (S2): per-thread re-entry guard (catches a thread
+   // re-entering its own waitAndHandleEvents).  thread_local so it stays
+   // correct once multiple threads run the event loop (was a global static,
+   // correct only under work_lock's single-active-thread guarantee).
+   static thread_local bool recurse = false;
    assert(!recurse);
    recurse = true;
 
@@ -5838,14 +5842,21 @@ int_notify *notify()
 
 void int_notify::noteEvent()
 {
-//MATT TODO lock around event pipe write/read when/if we move to process locks
    assert(isHandlerThread());
-   if (events_noted == 0)
-      my_internals.noteEvent();
-   events_noted++;
-   pthrd_printf("noteEvent - %d\n", events_noted);
+   // Counter + coupled pipe edge under the lock; snapshot the callbacks and
+   // invoke them AFTER releasing it (they are user code -- clause 3).
+   std::set<EventNotify::notify_cb_t> cbs_snapshot;
+   {
+      notify_lock.lock();
+      if (events_noted == 0)
+         my_internals.noteEvent();
+      events_noted++;
+      pthrd_printf("noteEvent - %d\n", events_noted);
+      cbs_snapshot = cbs;
+      notify_lock.unlock();
+   }
    set<EventNotify::notify_cb_t>::iterator i;
-   for (i = cbs.begin(); i != cbs.end(); ++i) {
+   for (i = cbs_snapshot.begin(); i != cbs_snapshot.end(); ++i) {
       pthrd_printf("Calling notification CB\n");
       (*i)();
    }
@@ -5860,28 +5871,36 @@ static void notifyNewEvent()
 void int_notify::clearEvent()
 {
    assert(!isHandlerThread());
+   notify_lock.lock();
    events_noted--;
    pthrd_printf("clearEvent - %d\n", events_noted);
    if (events_noted == 0)
       my_internals.clearEvent();
+   notify_lock.unlock();
 }
 
 bool int_notify::hasEvents()
 {
-   return (events_noted > 0);
+   notify_lock.lock();
+   bool result = (events_noted > 0);
+   notify_lock.unlock();
+   return result;
 }
 
 void int_notify::registerCB(EventNotify::notify_cb_t cb)
 {
+   notify_lock.lock();
    cbs.insert(cb);
+   notify_lock.unlock();
 }
 
 void int_notify::removeCB(EventNotify::notify_cb_t cb)
 {
+   notify_lock.lock();
    set<EventNotify::notify_cb_t>::iterator i = cbs.find(cb);
-   if (i == cbs.end())
-      return;
-   cbs.erase(i);
+   if (i != cbs.end())
+      cbs.erase(i);
+   notify_lock.unlock();
 }
 
 int_notify::details_t::wait_object_t int_notify::getWaitable()
