@@ -66,7 +66,7 @@ using namespace std;
 const map<int,int> Process::emptyFDs;
 const vector<string> Process::emptyEnvp;
 Process::thread_mode_t threadingMode = Process::GeneratorThreading;
-bool int_process::in_callback = false;
+thread_local bool int_process::in_callback = false;
 std::set<int_thread::continue_cb_t> int_thread::continue_cbs;
 SymbolReaderFactory *int_process::user_set_symbol_reader = NULL;
 
@@ -1167,32 +1167,43 @@ bool int_process::waitAndHandleEvents(bool block)
          ev->handling_started = true;
       }
 
-      llproc->plat_preHandleEvent();
-
-      bool should_handle_ev = llproc->getProcStopManager().prepEvent(ev);
-      if (should_handle_ev) {
-         hpool->handleEvent(ev);
-      }
-
-      llproc = proc->llproc();
-
-      if (llproc) {
-         bool result = llproc->syncRunState();
-         if (!result) {
-            pthrd_printf("syncRunState failed.  Returning error from waitAndHandleEvents\n");
-            error = true;
-            goto done;
-         }
-         llproc->plat_postHandleEvent();
-      }
-      else
       {
-         //Special case event handling, the process cleaned itself
-         // under this event (likely post-exit or post-crash), but was
-         // unable to clean its handlerpool (as we were using it).
-         // Clean this for the process now.
-			pthrd_printf("Process is gone, skipping syncRunState and deleting handler pool\n");
-		  delete hpool;
+         // work_lock retirement (S4, Change A): hold this event's process
+         // lock across the whole per-event handling unit (pre/handle/sync/
+         // post), so a user thread taking only proc_lock cannot race the
+         // handler mid-handle -- proven necessary by the model's
+         // AtMostOneWriterPerProc.  deliverCallback suspends this lock around
+         // the user callback (clause 3).  Redundant while work_lock still
+         // serializes; load-bearing after S5.  RAII releases on the goto too.
+         ProcScopeLock handle_plock(pc_const_cast<Process>(proc));
+
+         llproc->plat_preHandleEvent();
+
+         bool should_handle_ev = llproc->getProcStopManager().prepEvent(ev);
+         if (should_handle_ev) {
+            hpool->handleEvent(ev);
+         }
+
+         llproc = proc->llproc();
+
+         if (llproc) {
+            bool result = llproc->syncRunState();
+            if (!result) {
+               pthrd_printf("syncRunState failed.  Returning error from waitAndHandleEvents\n");
+               error = true;
+               goto done;
+            }
+            llproc->plat_postHandleEvent();
+         }
+         else
+         {
+            //Special case event handling, the process cleaned itself
+            // under this event (likely post-exit or post-crash), but was
+            // unable to clean its handlerpool (as we were using it).
+            // Clean this for the process now.
+            pthrd_printf("Process is gone, skipping syncRunState and deleting handler pool\n");
+            delete hpool;
+         }
       }
    }
   done:
@@ -6462,8 +6473,39 @@ Process::Process() :
    llproc_(NULL),
    exitstate_(NULL),
    proc_lock_(new Mutex<true>()),
+   proc_lock_depth_(0),
    threadpool_(NULL)
 {
+}
+
+// Depth-tracked proc_lock (see PCProcess.h).  proc_lock_depth_ is only
+// touched by the lock's current owner, so it needs no separate guard.
+void Process::lockImpl() const
+{
+   proc_lock_->lock();
+   proc_lock_depth_++;
+}
+
+void Process::unlockImpl() const
+{
+   proc_lock_depth_--;
+   proc_lock_->unlock();
+}
+
+int Process::suspendImplLock() const
+{
+   int d = proc_lock_depth_;
+   for (int i = 0; i < d; i++)
+      proc_lock_->unlock();
+   proc_lock_depth_ = 0;
+   return d;
+}
+
+void Process::resumeImplLock(int d) const
+{
+   for (int i = 0; i < d; i++)
+      proc_lock_->lock();
+   proc_lock_depth_ = d;
 }
 
 Process::~Process()

@@ -88,10 +88,9 @@ void wakeGenerator();
 
 struct ProcScopeLock {
    Dyninst::ProcControlAPI::Process::ptr p_;
-   Mutex<true> *m_;
    explicit ProcScopeLock(Dyninst::ProcControlAPI::Process::ptr p)
-      : p_(p), m_(p ? p->procLock() : NULL) { if (m_) m_->lock(); }
-   ~ProcScopeLock() { if (m_) m_->unlock(); }
+      : p_(p) { if (p_) p_->lockImpl(); }   // depth-tracked (see Process)
+   ~ProcScopeLock() { if (p_) p_->unlockImpl(); }
    ProcScopeLock(const ProcScopeLock &) = delete;
    ProcScopeLock &operator=(const ProcScopeLock &) = delete;
 };
@@ -119,28 +118,23 @@ enum implref_locked_t { implref_locked };   // opt-in per-process locking
 
 struct ProcImplRef {
    Dyninst::ProcControlAPI::Process::const_ptr pin_;
-   Mutex<true> *lk_;
+   bool locked_;
    int_process *impl_;
    explicit ProcImplRef(Dyninst::ProcControlAPI::Process::const_ptr p)
-      : pin_(p), lk_(NULL), impl_(NULL) { lock_and_resolve(); }
-   ProcImplRef(Dyninst::ProcControlAPI::Process::const_ptr p, implref_nolock_t)
-      : pin_(p), lk_(NULL), impl_(p ? p->llproc() : NULL) {}
-   void lock_and_resolve() {
-      if (!pin_) return;
-      pthrd_printf("proc_lock: acquiring for %d\n", pin_->getPid());
-      lk_ = pin_->procLock(); lk_->lock();
-      pthrd_printf("proc_lock: acquired for %d\n", pin_->getPid());
-      impl_ = pin_->llproc();
+      : pin_(p), locked_(false), impl_(NULL) {
+      if (pin_) { pin_->lockImpl(); locked_ = true; impl_ = pin_->llproc(); }
    }
+   ProcImplRef(Dyninst::ProcControlAPI::Process::const_ptr p, implref_nolock_t)
+      : pin_(p), locked_(false), impl_(p ? p->llproc() : NULL) {}
    // For code that holds a raw wrapper pointer (must be externally owned by a
    // shared_ptr, which every live Process is).
    explicit ProcImplRef(const Dyninst::ProcControlAPI::Process *p)
       : pin_(p ? p->shared_from_this()
                : Dyninst::ProcControlAPI::Process::const_ptr()),
-        lk_(NULL), impl_(NULL) { lock_and_resolve(); }
-   ~ProcImplRef() {
-      if (lk_) { lk_->unlock(); pthrd_printf("proc_lock: released for %d\n", pin_->getPid()); }
+        locked_(false), impl_(NULL) {
+      if (pin_) { pin_->lockImpl(); locked_ = true; impl_ = pin_->llproc(); }
    }
+   ~ProcImplRef() { if (locked_) pin_->unlockImpl(); }
    explicit operator bool() const { return impl_ != NULL; }
    int_process *operator->() const { return impl_; }
    int_process *get() const { return impl_; }
@@ -151,25 +145,19 @@ struct ProcImplRef {
 struct ThreadImplRef {
    Dyninst::ProcControlAPI::Thread::const_ptr pin_;
    Dyninst::ProcControlAPI::Process::const_ptr ppin_;   // pins the lock target
-   Mutex<true> *lk_;
+   bool locked_;
    int_thread *impl_;
    explicit ThreadImplRef(Dyninst::ProcControlAPI::Thread::const_ptr t)
-      : pin_(t), lk_(NULL), impl_(NULL) {
+      : pin_(t), locked_(false), impl_(NULL) {
       if (pin_) {
          ppin_ = pin_->procWrapper();
-         if (ppin_) {
-            pthrd_printf("proc_lock: acquiring for %d (via thread)\n", ppin_->getPid());
-            lk_ = ppin_->procLock(); lk_->lock();
-            pthrd_printf("proc_lock: acquired for %d (via thread)\n", ppin_->getPid());
-         }
+         if (ppin_) { ppin_->lockImpl(); locked_ = true; }
          impl_ = pin_->llthrd();
       }
    }
    ThreadImplRef(Dyninst::ProcControlAPI::Thread::const_ptr t, implref_nolock_t)
-      : pin_(t), lk_(NULL), impl_(t ? t->llthrd() : NULL) {}
-   ~ThreadImplRef() {
-      if (lk_) { lk_->unlock(); pthrd_printf("proc_lock: released for %d (via thread)\n", ppin_->getPid()); }
-   }
+      : pin_(t), locked_(false), impl_(t ? t->llthrd() : NULL) {}
+   ~ThreadImplRef() { if (locked_) ppin_->unlockImpl(); }
    explicit operator bool() const { return impl_ != NULL; }
    int_thread *operator->() const { return impl_; }
    int_thread *get() const { return impl_; }
@@ -683,7 +671,12 @@ class int_process
    bool forcedTermination;
    bool silent_mode;
    int exitCode;
-   static bool in_callback;
+   // work_lock retirement (S4): thread-local, not global.  Its job is to
+   // reject an API call made FROM a callback; once user threads run in
+   // parallel, thread A being in a callback must not make thread B's
+   // unrelated API reject.  (Global was correct only under work_lock's
+   // single-active-thread guarantee.)
+   static thread_local bool in_callback;
    mem_state::ptr mem;
    std::map<Dyninst::Address, unsigned> exec_mem_cache;
    int continueSig;
