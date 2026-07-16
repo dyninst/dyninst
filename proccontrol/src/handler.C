@@ -2485,8 +2485,14 @@ Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set
    std::set<Process::cb_func_t>::const_iterator j;
    // work_lock retirement (S1): hold the global callback slot across all user
    // callback invocations for this event, so "one callback at a time" holds
-   // independently of work_lock.  Redundant while work_lock still serializes
-   // (this is a behavioral no-op until MTLock shrinks); load-bearing after.
+   // independently of work_lock.
+   // (S4, Change A): the handler holds this process's proc_lock across
+   // handling; FULLY suspend it here so the user callback runs holding no
+   // proc_lock (clause 3 -- foreign code that takes client locks), then
+   // restore.  Order during the callback: (work_lock still, for now) >
+   // cb_lock; proc_lock NOT held.  Redundant/no-op while work_lock serializes.
+   Process::const_ptr cb_proc = ev->getProcess();
+   int cb_proc_depth = cb_proc ? cb_proc->suspendImplLock() : 0;
    mt()->takeCallbackSlot();
    for (j = cbset.begin(); j != cbset.end(); j++, k++) {
       pthrd_printf("Triggering callback #%u for event '%s'\n", k, ev->name().c_str());
@@ -2503,6 +2509,7 @@ Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set
                    action_str(ret.child));
    }
    mt()->releaseCallbackSlot();
+   if (cb_proc) cb_proc->resumeImplLock(cb_proc_depth);
 
    // Don't allow the user to change the state of forced terminated processes 
    ProcImplRef cbproc_ref(ev->getProcess());

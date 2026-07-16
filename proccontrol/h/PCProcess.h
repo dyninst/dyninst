@@ -306,6 +306,13 @@ class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
    // multiple processes are locked in ascending-pid order.  Held by a
    // pointer to keep dthread.h off this (very widely included) header.
    Mutex<true> *proc_lock_;
+   // work_lock retirement (S4): recursion depth of proc_lock_ for the owning
+   // thread.  Only mutated while the lock is held (single-owner-safe, like
+   // MTManager::work_depth) via lockImpl/unlockImpl.  Lets callback delivery
+   // fully unwind a recursively-held proc_lock (suspendImplLock) so the user
+   // callback runs holding no proc_lock (clause 3), then restore it.  mutable
+   // + const methods so the const-ptr accessors (ProcImplRef) can drive it.
+   mutable int proc_lock_depth_;
    // The Process wrapper OWNS the int_threadPool (container of Thread::ptr).
    // int_process keeps a raw, non-owning cache of it for hot access; since
    // the wrapper outlives the impl, the pool (and Process::threads()) stays
@@ -343,6 +350,16 @@ class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
    static void version(int& major, int& minor, int& maintenance);
    // Per-process migration lock (see proc_lock_).  Internal use only.
    Mutex<true> *procLock() const { return proc_lock_; }
+   // Depth-tracked proc_lock acquire/release -- the single path ProcScopeLock
+   // and the ImplRef accessors go through, so proc_lock_depth_ always equals
+   // this thread's true recursion depth.  Bodies in process.C (Mutex<true> is
+   // incomplete here).  Internal use only.
+   void lockImpl() const;
+   void unlockImpl() const;
+   // Fully release a recursively-held proc_lock (for callback delivery) and
+   // restore it.  suspendImplLock returns the depth to pass back to resume.
+   int  suspendImplLock() const;
+   void resumeImplLock(int d) const;
 
    // Wrapper-layer factories: mint the Process wrapper together with its
    // int_process impl and initialize the pair, returning the wrapper (NOT
