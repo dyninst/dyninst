@@ -7054,6 +7054,9 @@ std::string Process::mem_perm::getPermName() const {
 }
 
 unsigned Process::getMemoryPageSize() const {
+    // Lock-consistency (option b): proc_lock guards the llproc_ access against
+    // teardown; getTargetPageSize is ordering-free (cached page size, no wait).
+    ProcScopeLock plock(pc_const_cast<Process>(shared_from_this()));
     if (!llproc_) {
         perr_printf("getMemoryPageSize on deleted process\n");
         setLastError(err_exited, "Process is exited\n");
@@ -7095,6 +7098,9 @@ Dyninst::Address Process::mallocMemory(size_t size)
 
 Dyninst::Address Process::findFreeMemory(size_t size)
 {
+   // Lock-consistency (option b): proc_lock guards llproc_ against teardown;
+   // plat_findFreeMemory is an ordering-free /proc-maps read (no wait).
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this()));
    PROC_EXIT_DETACH_TEST("findFreeMemory", 0);
 	return llproc()->plat_findFreeMemory(size);
 }
@@ -7230,6 +7236,9 @@ bool Process::readMemoryAsync(void *buffer, Dyninst::Address addr, size_t size, 
 }
 
 bool Process::getMemoryAccessRights(Dyninst::Address addr, mem_perm& rights) {
+    // Lock-consistency (option b): proc_lock, shared with setMemoryAccessRights
+    // below so the perm get/set pair serialize; ordering-free /proc read, no wait.
+    ProcScopeLock plock(pc_const_cast<Process>(shared_from_this()));
     if (!llproc_) {
         perr_printf("getMemoryAccessRights on deleted process\n");
         setLastError(err_exited, "Process is exited\n");
@@ -7255,7 +7264,11 @@ bool Process::getMemoryAccessRights(Dyninst::Address addr, mem_perm& rights) {
 
 bool Process::setMemoryAccessRights(Dyninst::Address addr, size_t size,
                                     mem_perm rights, mem_perm& oldrights) {
-    MTLock lock_this_func;
+    // Parallelized (option b): proc_lock only (shared with getMemoryAccessRights).
+    // plat_setMemoryAccessRights is a direct mprotect syscall -- ordering-free,
+    // no async wait -- so it joins the same rule-3 writer class as the other
+    // converted writes (register/memory sets).
+    ProcScopeLock plock(pc_const_cast<Process>(shared_from_this()));
     if (!llproc_) {
         perr_printf("setMemoryAccessRights on deleted process\n");
         setLastError(err_exited, "Process is exited\n");
@@ -7282,6 +7295,9 @@ bool Process::setMemoryAccessRights(Dyninst::Address addr, size_t size,
 
 bool Process::findAllocatedRegionAround(Dyninst::Address addr,
                                         MemoryRegion& memRegion) {
+    // Lock-consistency (option b): proc_lock guards llproc_ against teardown;
+    // findAllocatedRegionAround is an ordering-free /proc-maps read (no wait).
+    ProcScopeLock plock(pc_const_cast<Process>(shared_from_this()));
     if (!llproc_) {
         perr_printf("findAllocatedRegionAround on deleted process\n");
         setLastError(err_exited, "Process is exited\n");
