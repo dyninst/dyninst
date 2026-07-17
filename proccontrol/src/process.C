@@ -6931,6 +6931,11 @@ bool Process::postIRPC(IRPC::ptr irpc) const
 {
    MTLock lock_this_func;
    PROC_EXIT_DETACH_TEST("postIRPC", false);
+   // work_lock retirement (D-2): posting mutates the per-process iRPC queue
+   // state consumed by the iRPC handlers (iRPCLaunch/iRPCHandler); hold
+   // proc_lock so the post and the handler share a lock.  postRPCToProc does
+   // not park, so whole-method scope is safe.
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this()));
 
    int_process *proc = llproc();
    int_iRPC::ptr rpc = irpc->llrpc()->rpc;
@@ -8085,6 +8090,10 @@ bool Thread::setSingleStepMode(bool s) const
 {
    MTLock lock_this_func;
    THREAD_EXIT_DETACH_STOP_TEST("setSingleStepMode", false);
+   // work_lock retirement (D-2): the single-step mode flag is consumed by the
+   // handler's syncRunState on continue; hold proc_lock so this write and the
+   // handler's read share a lock once work_lock is removed.
+   ProcScopeLock plock(procWrapper());
    llthread_->setSingleStepUserMode(s);
    return true;
 }
@@ -8093,6 +8102,7 @@ bool Thread::getSingleStepMode() const
 {
    MTLock lock_this_func;
    THREAD_EXIT_TEST("getSingleStepMode", false);
+   ProcScopeLock plock(procWrapper());
    return llthread_->singleStepUserMode();
 }
 
@@ -8100,6 +8110,9 @@ bool Thread::setSyscallMode(bool s) const
 {
     MTLock lock_this_func;
     THREAD_EXIT_DETACH_STOP_TEST("getSyscallMode", false);
+    // work_lock retirement (D-2): syscall mode is consumed by the handler on
+    // continue; share proc_lock between this write and the handler's read.
+    ProcScopeLock plock(procWrapper());
     llthread_->setSyscallUserMode(s);
     return true;
 }
@@ -8112,6 +8125,7 @@ bool Thread::getSyscallMode() const
       setLastError(err_exited, "Thread is exited\n");
       return false;
    }
+   ProcScopeLock plock(procWrapper());
    return llthread_->syscallUserMode();
 }
 
@@ -8129,6 +8143,10 @@ bool Thread::postIRPC(IRPC::ptr irpc) const
 {
    MTLock lock_this_func;
    THREAD_EXIT_DETACH_TEST("postIRPC", false);
+   // work_lock retirement (D-2): posting mutates per-thread iRPC queue state
+   // consumed by the iRPC handlers; share proc_lock.  postRPCToThread does not
+   // park.
+   ProcScopeLock plock(procWrapper());
 
    int_thread *thr = llthread_;
    int_process *proc = thr->llproc();
