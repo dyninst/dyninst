@@ -1,6 +1,8 @@
 # ProcControl re-architecture — working notes (branch `prototype-pool-owns-wrapper`)
 
-Read `README.md` first for the object model, ownership DAG, and event flow.
+Read `README.md` for the object model and ownership DAG, and `model.md` for how
+the runtime classes interact (MTManager/Process/Thread/Mailbox/Event/Generator/
+HandlerPool, the three-thread model, and the end-to-end event flow).
 This file covers the *active* work: the lock migration, its verification
 harness, and the rules changes must follow.
 
