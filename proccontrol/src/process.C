@@ -8030,10 +8030,19 @@ bool Thread::readThreadLocalMemory(void *buffer, Library::const_ptr lib, Dyninst
    int_thread *llthrd = llthread_;
    int_library *intlib = lib->debug();
 
-   if (!intlib || !intlib->inProcess(llproc)) {
-      perr_printf("Library %s is not loaded in process %d\n", lib->getName().c_str(), llproc->getPid());
-      setLastError(err_badparam, "Library object is not loaded in specified process\n");
-      return false;
+   // work_lock retirement (D-2): proc_lock scopes each impl access (validation,
+   // the TLS-address issue, the readMem issue); it is RELEASED across every
+   // waitForAsyncEvent park (clause 2 -- the handler completes the response
+   // under proc_lock(P), so holding it across the wait would self-deadlock).
+   // Waits use the static int_process::waitForAsyncEvent (matching readMemory):
+   // it derives its process from the response and reads no instance state.
+   {
+      ProcScopeLock plock(procWrapper());
+      if (!intlib || !intlib->inProcess(llproc)) {
+         perr_printf("Library %s is not loaded in process %d\n", lib->getName().c_str(), llproc->getPid());
+         setLastError(err_badparam, "Library object is not loaded in specified process\n");
+         return false;
+      }
    }
 
    pthrd_printf("User wants to read TLS memory on thread %d/%d from library %s at offset %lu of size %lu\n",
@@ -8044,22 +8053,29 @@ bool Thread::readThreadLocalMemory(void *buffer, Library::const_ptr lib, Dyninst
    async_ret_t ret;
    do {
       set<response::ptr> resps;
-      ret = llproc->plat_calcTLSAddress(llthrd, intlib, tls_symbol_offset,
-                                        var_address, resps);
+      {
+         ProcScopeLock plock(procWrapper());
+         ret = llproc->plat_calcTLSAddress(llthrd, intlib, tls_symbol_offset,
+                                           var_address, resps);
+      }
       if (ret == aret_error) {
          pthrd_printf("Failed calculate memory address of TLS variable");
          return false;
       }
       if (ret == aret_async) {
-         llproc->waitForAsyncEvent(resps);
+         int_process::waitForAsyncEvent(resps);
       }
    } while (ret != aret_success);
 
 
    mem_response::ptr memresp = mem_response::createMemResponse((char *) buffer, size);
-   bool result = llproc->readMem(var_address, memresp, llthrd);
+   bool result;
+   {
+      ProcScopeLock plock(procWrapper());
+      result = llproc->readMem(var_address, memresp, llthrd);
+   }
    if (result)
-      llproc->waitForAsyncEvent(memresp);
+      int_process::waitForAsyncEvent(memresp);
    if (!result || memresp->hasError()) {
       pthrd_printf("Failed to read TLS memory at address %lx of size %lu\n", var_address, size);
       (void)memresp->isReady();
@@ -8080,10 +8096,15 @@ bool Thread::writeThreadLocalMemory(Library::const_ptr lib, Dyninst::Offset tls_
    int_thread *llthrd = llthread_;
    int_library *intlib = lib->debug();
 
-   if (!intlib || !intlib->inProcess(llproc)) {
-      perr_printf("Library %s is not loaded in process %d\n", lib->getName().c_str(), llproc->getPid());
-      setLastError(err_badparam, "Library object is not loaded in specified process\n");
-      return false;
+   // work_lock retirement (D-2): proc_lock scopes each impl access, released
+   // across every waitForAsyncEvent park (clause 2); static waitForAsyncEvent.
+   {
+      ProcScopeLock plock(procWrapper());
+      if (!intlib || !intlib->inProcess(llproc)) {
+         perr_printf("Library %s is not loaded in process %d\n", lib->getName().c_str(), llproc->getPid());
+         setLastError(err_badparam, "Library object is not loaded in specified process\n");
+         return false;
+      }
    }
 
    pthrd_printf("User wants to write to TLS memory on thread %d/%d in library %s at offset %lu of size %lu\n",
@@ -8094,21 +8115,28 @@ bool Thread::writeThreadLocalMemory(Library::const_ptr lib, Dyninst::Offset tls_
    async_ret_t ret;
    do {
       set<response::ptr> resps;
-      ret = llproc->plat_calcTLSAddress(llthrd, intlib, tls_symbol_offset,
-                                        var_address, resps);
+      {
+         ProcScopeLock plock(procWrapper());
+         ret = llproc->plat_calcTLSAddress(llthrd, intlib, tls_symbol_offset,
+                                           var_address, resps);
+      }
       if (ret == aret_error) {
          pthrd_printf("Failed calculate memory address of TLS variable");
          return false;
       }
       if (ret == aret_async) {
-         llproc->waitForAsyncEvent(resps);
+         int_process::waitForAsyncEvent(resps);
       }
    } while (ret != aret_success);
 
    result_response::ptr resp = result_response::createResultResponse();
-   bool result = llproc->writeMem(buffer, var_address, size, resp);
+   bool result;
+   {
+      ProcScopeLock plock(procWrapper());
+      result = llproc->writeMem(buffer, var_address, size, resp);
+   }
    if (result)
-      llproc->waitForAsyncEvent(resp);
+      int_process::waitForAsyncEvent(resp);
    if (!result || !resp->getResult() || resp->hasError()) {
       pthrd_printf("Failed to write to TLS memory at address %lx of size %lu\n", var_address, size);
       return false;
@@ -8127,10 +8155,15 @@ bool Thread::getThreadLocalAddress(Library::const_ptr lib, Dyninst::Offset tls_s
    int_thread *llthrd = llthread_;
    int_library *intlib = lib->debug();
 
-   if (!intlib || !intlib->inProcess(llproc)) {
-      perr_printf("Library %s is not loaded in process %d\n", lib->getName().c_str(), llproc->getPid());
-      setLastError(err_badparam, "Library object is not loaded in specified process\n");
-      return false;
+   // work_lock retirement (D-2): proc_lock scopes each impl access, released
+   // across every waitForAsyncEvent park (clause 2); static waitForAsyncEvent.
+   {
+      ProcScopeLock plock(procWrapper());
+      if (!intlib || !intlib->inProcess(llproc)) {
+         perr_printf("Library %s is not loaded in process %d\n", lib->getName().c_str(), llproc->getPid());
+         setLastError(err_badparam, "Library object is not loaded in specified process\n");
+         return false;
+      }
    }
 
    pthrd_printf("User wants to get TLS address on thread %d/%d in library %s at offset %lu\n",
@@ -8141,14 +8174,17 @@ bool Thread::getThreadLocalAddress(Library::const_ptr lib, Dyninst::Offset tls_s
    async_ret_t ret;
    do {
       set<response::ptr> resps;
-      ret = llproc->plat_calcTLSAddress(llthrd, intlib, tls_symbol_offset,
-                                        var_address, resps);
+      {
+         ProcScopeLock plock(procWrapper());
+         ret = llproc->plat_calcTLSAddress(llthrd, intlib, tls_symbol_offset,
+                                           var_address, resps);
+      }
       if (ret == aret_error) {
          pthrd_printf("Failed calculate memory address of TLS variable");
          return false;
       }
       if (ret == aret_async) {
-         llproc->waitForAsyncEvent(resps);
+         int_process::waitForAsyncEvent(resps);
       }
    } while (ret != aret_success);
    result_addr = var_address;
