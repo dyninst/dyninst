@@ -208,7 +208,8 @@ enum {
   SSEE0, SSEE1, SSEE2, SSEE3, SSEE4, SSEE5, SSEE6, SSEE7,
   SSEE8, SSEE9, SSEEA, SSEEB, SSEEC, SSEED, SSEEE, SSEEF,
   SSEF0, SSEF1, SSEF2, SSEF3, SSEF4, SSEF5, SSEF6, SSEF7,
-  SSEF8, SSEF9, SSEFA, SSEFB, SSEFC, SSEFD, SSEFE
+  SSEF8, SSEF9, SSEFA, SSEFB, SSEFC, SSEFD, SSEFE,
+  SSEAE04M, SSEAE04R
 };
 /** END_DYNINST_TABLE_DEF */
 
@@ -2590,7 +2591,7 @@ static ia32_entry groupMap2[][2][8] = {
       { e_fxrstor, t_done, 0, true, { M512, Zz, Zz }, 0, s1R | (fFXRSTOR << FPOS), 0 },
       { e_ldmxcsr, t_done, 0, true, { Md, Zz, Zz }, 0, s1R, 0 },
       { e_stmxcsr, t_done, 0, true, { Md, Zz, Zz }, 0, s1W, 0 },
-      { e_xsave, t_done, 0, true, { Md, Zz, Zz }, 0, s1W, 0 },
+      { e_No_Entry, t_sse, SSEAE04M, true, { Zz, Zz, Zz }, 0, 0, 0 },
 	  { e_xrstor, t_done, 0, true, { Md, Zz, Zz }, 0, s1R, 0 },
       { e_clwb, t_done, 0, true, { Mb, Zz, Zz }, 0, s1W | (fCLFLUSH << FPOS), 0 },
       { e_clflush, t_done, 0, true, { Mb, Zz, Zz }, 0, s1W | (fCLFLUSH << FPOS), 0 },
@@ -2600,7 +2601,7 @@ static ia32_entry groupMap2[][2][8] = {
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+      { e_No_Entry, t_sse, SSEAE04R, true, { Zz, Zz, Zz }, 0, 0, 0 },
       { e_lfence, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
       { e_mfence, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
       { e_sfence, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
@@ -3561,6 +3562,21 @@ static ia32_entry sseMap[][4] = {
     { e_paddd, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_paddd, t_sse_mult, SSEFE_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEAE04M: group 15 /4, memory form. F3 selects ptwrite m32/m64
+       (SDM Vol 2B: PTWRITE r/m32|r/m64, F3 0F AE /4); otherwise xsave.
+       ptwrite only reads its operand -- it writes no register or flag. */
+    { e_xsave, t_done, 0, true, { Md, Zz, Zz }, 0, s1W, 0 },
+    { e_ptwrite, t_done, 0, true, { Ey, Zz, Zz }, 0, s1R, 0 },
+    { e_xsave, t_done, 0, true, { Md, Zz, Zz }, 0, s1W, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEAE04R: group 15 /4, register form (mod == 11). Only the F3 form
+       (ptwrite r32/r64) is defined. */
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_ptwrite, t_done, 0, true, { Ey, Zz, Zz }, 0, s1R, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   }
 };
@@ -9850,7 +9866,7 @@ static const unsigned char sse_prefix[256] = {
    /* 7x */ 1,1,1,1,1,1,1,0,1,1,0,0,1,1,1,1, // Grp12-14 are SSE groups
    /* 8x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
    /* 9x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-   /* Ax */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* Ax */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0, // AE: Grp15 is F3-discriminated (ptwrite vs xsave)
    /* Bx */ 0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,
    /* Cx */ 0,0,1,0,1,1,1,0,0,0,0,0,0,0,0,0,
    /* Dx */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,

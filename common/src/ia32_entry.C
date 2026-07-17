@@ -449,6 +449,7 @@ DYNINST_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = boost::assig
   (e_psubusw, "psubusw")
   (e_psubw, "psubw")
   (e_ptest, "ptest")
+  (e_ptwrite, "ptwrite")
   (e_punpckhbw, "punpckhbw")
   (e_punpckhdq, "punpckhdq")
   (e_punpckhqdq, "punpckhqdq")
