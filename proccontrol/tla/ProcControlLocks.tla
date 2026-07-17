@@ -1,545 +1,571 @@
 ------------------------- MODULE ProcControlLocks -------------------------
 (***************************************************************************)
-(* Phase A+B model of the proccontrol threading/locking design on the     *)
-(* prototype-pool-owns-wrapper branch (option (ii): condvar retired to a  *)
-(* registration lock; per-process proc_lock via ImplRef accessors), plus  *)
-(* Phase B: callback delivery under a new global cb_lock.                 *)
+(* Phase C model of the proccontrol threading/locking design.  This       *)
+(* extends the earlier phases to model the ACTUAL removal of work_lock     *)
+(* (the S4/S5 concurrency flip) so the design can be proven deadlock- and  *)
+(* race-free before it is implemented.                                     *)
 (*                                                                        *)
-(* Actors:                                                                *)
-(*   os         - once the debuggee is registered and running (bootstrap  *)
-(*                handled), it keeps generating events (threads, signals) *)
-(*                bounded by MaxInFlight so the state space is finite     *)
-(*   generator  - waitpid -> registration-barrier lookup -> proc_lock     *)
-(*                across decode -> statesync -> enqueue                   *)
-(*   handler    - work_lock -> dequeue -> locked prologue -> handle       *)
-(*   user (usr) - bootstrap (registration lock across create+register,   *)
-(*                then park for the bootstrap event), then a loop (at     *)
-(*                most MaxUsrIter iterations) of: an infMalloc-style op   *)
-(*                (post request, park for response) followed by a         *)
-(*                getRegister-style op (leaf lock + response plumbing).   *)
-(*                Each time a park is resolved, the thread DELIVERS the   *)
-(*                corresponding user CALLBACK before proceeding.          *)
-(*   client (usr2) - the client-side path (PCEventMuxer::dequeue ->       *)
-(*                getData): loop (bounded MaxUsrIter): take its own       *)
-(*                clientLock (its event-mailbox mutex), call a const      *)
-(*                proccontrol API (blocks until workLock free,            *)
-(*                take+release), release clientLock, then deliver one     *)
-(*                callback per iteration under the same delivery rules.   *)
+(* S4/S5 design under test:                                               *)
+(*   - work_lock is REMOVED entirely.  Boundary access serializes         *)
+(*     per-process on proc_lock (the accessors' job).  Two API calls on    *)
+(*     DIFFERENT processes now run truly concurrently, so we model TWO     *)
+(*     processes P and Q (ascending "pid" order P < Q), each with its own  *)
+(*     recursive proc_lock (owner + count).                               *)
+(*   - The HANDLER holds proc_lock(proc) ACROSS its per-event handling of  *)
+(*     proc, so a user path taking only proc_lock(proc) cannot race it     *)
+(*     mid-handle.  deliverCallback RELEASES proc_lock around the callback *)
+(*     invocation and re-acquires afterwards.                             *)
+(*   - cb_lock gives one-callback-at-a-time globally.                      *)
+(*   - in_callback is THREAD-LOCAL: thread A being inside a callback must  *)
+(*     not make thread B's unrelated API reject.                          *)
 (*                                                                        *)
-(* Callback delivery (HandleCallbacks::deliverCallback):                  *)
-(*   design (BUG8 off): assert workLock/procLock NOT held by the caller,  *)
-(*     take cbLock, enter in_cb, acquire+release clientLock (the client's *)
-(*     callback code enqueues into its mailbox), leave in_cb, release     *)
-(*     cbLock.  cbLock also enforces the documented one-callback-at-a-    *)
-(*     time contract.                                                     *)
-(*   BUG8_CallbackUnderWorkLock: the OLD code - deliver while HOLDING     *)
-(*     workLock, acquire clientLock inside.  Inverts the client path's    *)
-(*     clientLock -> workLock order: ABBA against usr2.  (The old code    *)
-(*     had no cbLock / in_cb notion, so those states are not marked       *)
-(*     in_cb; the new-design invariants range over design-path states.)   *)
+(* Actors / threads:                                                      *)
+(*   os        - a bounded event source (spawnBudget per process)         *)
+(*   generator - waitpid -> registration-barrier lookup -> proc_lock       *)
+(*               across decode -> statesync -> enqueue (either process)   *)
+(*   handler   - dequeues an event for either process and holds THAT       *)
+(*               process's proc_lock across handling; delivers the         *)
+(*               callback (releasing proc_lock around the invocation)      *)
+(*   usr       - operates on P: bootstrap, infMalloc, a proc_lock-guarded  *)
+(*               modify, getRegister (leaf lock + plumbing), then a fork   *)
+(*               that locks P then Q (ascending)                          *)
+(*   usr2      - operates on Q: bootstrap, the client-side PCEventMuxer    *)
+(*               dequeue -> getData path (clientLock then const API that   *)
+(*               takes proc_lock(Q)), then a fork that also touches both   *)
+(*               processes (ascending P then Q; BUG9 flips it)            *)
 (*                                                                        *)
-(* Lock acquisitions are in hold-and-wait form: an actor first acquires   *)
-(* the outer lock (its own PC state), then a SEPARATE action blocks       *)
-(* until the inner lock is free.  This makes ABBA inversions              *)
-(* representable as real deadlocks.                                       *)
-(*                                                                        *)
-(* Each historical failure is a Boolean knob; TLC must find the bug when  *)
-(* the knob is on, and prove the current design (all knobs off) sound:    *)
-(*   BUG1_GenHoldsRegLockAcrossDecode - attempt 1's ABBA (generator takes *)
-(*        regLock, THEN blocks on decode's proc_lock while handlers take  *)
-(*        regLock transitively inside their locked prologue).             *)
-(*   BUG2_NoLookupBarrier - attempt 2's attach hang (decode of an         *)
-(*        unregistered pid is dropped; bootstrap waits forever; a         *)
-(*        never-started debuggee produces no further events).             *)
-(*   BUG3_MallocHoldsProcLock - attempt 3 (Codegen held proc_lock across  *)
-(*        infMalloc's blocking wait; generator needs it to decode).       *)
-(*        Also caught statically by NoParkWhileHoldingProcLock.           *)
-(*   BUG5_PlumbingTakesProcLock - the TSan-found regpool inversion        *)
-(*        (leaf lock held, response plumbing blocks on proc_lock; decode  *)
-(*        takes them in the opposite order).                              *)
-(*   BUG8_CallbackUnderWorkLock - callbacks delivered under workLock      *)
-(*        (see above): workLock/clientLock ABBA.                          *)
+(* Boolean knobs (regressions + new S4/S5 bugs):                          *)
+(*   BUG1_GenHoldsRegLockAcrossDecode - generator takes regLock then       *)
+(*       blocks on decode's proc_lock while the handler takes regLock      *)
+(*       inside its (proc_lock-holding) handle body: regLock/proc ABBA.    *)
+(*   BUG2_NoLookupBarrier - decode of an unregistered pid is dropped;      *)
+(*       the bootstrap event is lost and usr waits forever.               *)
+(*   BUG3_MallocHoldsProcLock - usr holds proc_lock(P) across the malloc   *)
+(*       park; caught by NoParkWhileHoldingProcLock, and deadlocks.        *)
+(*   BUG5_PlumbingTakesProcLock - getRegister holds the leaf map_lock and  *)
+(*       blocks on proc_lock(P); decode takes them the other way: ABBA.    *)
+(*   BUG8_CallbackUnderWorkLock - now "handler holds proc_lock(proc)       *)
+(*       ACROSS the callback invocation" (work_lock is gone).  Inverts     *)
+(*       the client path's clientLock -> proc_lock order: ABBA vs usr2.    *)
+(*       Caught by NoProcControlLockAcrossCallback, and deadlocks.        *)
+(*   BUG9_ForkLockOrder - usr2's fork locks Q then P (descending) while    *)
+(*       usr locks P then Q: the HandlePostFork/HandlePostForkCont ABBA.   *)
+(*   BUG10_HandlerNoProcLock - the handler does NOT hold proc_lock(proc)   *)
+(*       across handling, so it can mutate proc concurrently with a user   *)
+(*       thread that holds proc_lock(proc): AtMostOneWriterPerProc.        *)
+(*   BUG11_GlobalInCallback - in_callback is GLOBAL, so a user thread's    *)
+(*       API is wrongly rejected while ANOTHER thread is in a callback:    *)
+(*       SpuriousRejectFree (and/or a Termination hazard).                *)
 (*                                                                        *)
 (* Check with TLC: deadlock detection on; invariants LockInv,             *)
 (* NoParkWhileHoldingProcLock, NoProcControlLockAcrossCallback,           *)
-(* OneCallbackAtATime; liveness property Termination.  Fairness: weak     *)
-(* fairness per thread for gen/han/usr, STRONG fairness for usr2 (its     *)
-(* const-API wait sees workLock flicker as the handler loops forever on   *)
-(* spawned events, so WF alone would let usr2 starve and spuriously       *)
-(* violate Termination).  OsSpawn is environment and stays unfair.        *)
+(* OneGlobalCallbackViaCbLock, AtMostOneWriterPerProc, SpuriousRejectFree; *)
+(* liveness Termination.  Fairness: strong fairness per thread group (the  *)
+(* threads wait on locks/flags that flicker under contention); the OS      *)
+(* source is bounded and left unfair.                                     *)
 (***************************************************************************)
-EXTENDS Naturals, Sequences, TLC
+EXTENDS Naturals
 
 CONSTANTS
   BUG1_GenHoldsRegLockAcrossDecode,
   BUG2_NoLookupBarrier,
   BUG3_MallocHoldsProcLock,
   BUG5_PlumbingTakesProcLock,
-  BUG8_CallbackUnderWorkLock
+  BUG8_CallbackUnderWorkLock,
+  BUG9_ForkLockOrder,
+  BUG10_HandlerNoProcLock,
+  BUG11_GlobalInCallback
 
 NoOne == "none"
-P == "p1"    \* one target process suffices for every known failure class
+Procs == {"P", "Q"}
+Threads == {"usr", "usr2", "han"}
 
-MaxInFlight == 3   \* OS spawner bound on osEvents + mailbox
-HandledCap  == 3   \* handled saturates here (only thresholds 1 and 2 matter)
-MaxUsrIter  == 2   \* loop bound for BOTH user threads
+MaxInFlight     == 2   \* per-process bound on osEvents + mailbox
+HandledCap      == 3   \* handled[p] saturates here (only 1 and 2 matter)
+MaxSpawnPerProc == 1   \* bounded OS event source (keeps the space finite)
 
 VARIABLES
-  \* --- locks: owner name, or NoOne.  procLock is recursive: (owner,count).
-  workLock, regLock, leafLock,
+  \* --- per-process recursive proc_lock: owner name or NoOne, plus count.
   procOwner, procCount,
-  cbLock,          \* Phase B: global callback-delivery lock
-  clientLock,      \* Phase B: the CLIENT's own mutex (its event mailbox)
-  \* --- protocol state
-  registered,      \* BOOLEAN: P is in the ProcessPool registry
-  osEvents,        \* Nat: pending OS events for P (waitpid supply)
-  mailbox,         \* Nat: decoded events awaiting the handler
-  handled,         \* Nat: events fully handled (saturates at HandledCap)
-  bootstrapDone,   \* BOOLEAN: bootstrap event handled
-  mallocDone,      \* BOOLEAN: infMalloc response event handled
-  \* --- thread program counters
-  genPC, hanPC,
-  usrPC, usrIter,
-  usrRet,          \* where usr resumes after a callback delivery
-  usr2PC, usr2Iter
+  \* --- global locks (owner name or NoOne).
+  regLock,     \* registration / ProcessPool lock
+  leafLock,    \* the map_lock leaf (regpool)
+  cbLock,      \* global callback-delivery lock (one callback at a time)
+  clientLock,  \* the CLIENT's own mutex (its event mailbox)
+  inCb,        \* [Threads -> BOOLEAN]: thread-local in_callback flag
+  \* --- per-process protocol state
+  registered, osEvents, mailbox, handled, bootstrapDone, mallocDone,
+  spawnBudget,
+  \* --- thread program counters (+ which process each is working on)
+  genPC, genProc, hanPC, hanProc, usrPC, usr2PC
 
-vars == << workLock, regLock, leafLock, procOwner, procCount,
-           cbLock, clientLock,
+vars == << procOwner, procCount, regLock, leafLock, cbLock, clientLock, inCb,
            registered, osEvents, mailbox, handled, bootstrapDone, mallocDone,
-           genPC, hanPC, usrPC, usrIter, usrRet, usr2PC, usr2Iter >>
+           spawnBudget, genPC, genProc, hanPC, hanProc, usrPC, usr2PC >>
 
-\* Grouped tuples for UNCHANGED terseness.
-protoVars == << registered, osEvents, mailbox, handled,
-                bootstrapDone, mallocDone >>
-cbVars    == << cbLock, clientLock >>
-usrVars   == << usrPC, usrIter, usrRet >>
-usr2Vars  == << usr2PC, usr2Iter >>
-
---------------------------------------------------------------------------
-\* Lock helpers.  Acquire actions are enabled only when the lock is free
-\* (or, for the recursive procLock, already owned by the acquirer).
-AcqProc(t)  == \/ /\ procOwner = NoOne /\ procOwner' = t /\ procCount' = 1
-               \/ /\ procOwner = t     /\ procOwner' = t /\ procCount' = procCount + 1
-RelProc(t)  == /\ procOwner = t
-               /\ IF procCount = 1
-                  THEN procOwner' = NoOne /\ procCount' = 0
-                  ELSE procOwner' = t /\ procCount' = procCount - 1
+\* Grouped tuples for terse UNCHANGED (used only when a whole group is idle).
+allLocks == << procOwner, procCount, regLock, leafLock, cbLock, clientLock,
+               inCb >>
+allProc  == << registered, osEvents, mailbox, handled, bootstrapDone,
+               mallocDone, spawnBudget >>
+allPC    == << genPC, genProc, hanPC, hanProc, usrPC, usr2PC >>
 
 --------------------------------------------------------------------------
-\* OS: a registered, running debuggee keeps generating events.  Gated on
-\* bootstrapDone: a debuggee whose bootstrap event was dropped never got
-\* continued, so it produces nothing further (preserves BUG2's hang).
-\* Bounded by MaxInFlight to keep the state space finite.
+\* Per-process recursive lock helpers (assign procOwner and procCount).
+AcqProc(t, p) ==
+  \/ /\ procOwner[p] = NoOne
+     /\ procOwner' = [procOwner EXCEPT ![p] = t]
+     /\ procCount' = [procCount EXCEPT ![p] = 1]
+  \/ /\ procOwner[p] = t
+     /\ procOwner' = [procOwner EXCEPT ![p] = t]
+     /\ procCount' = [procCount EXCEPT ![p] = procCount[p] + 1]
+
+RelProc(t, p) ==
+  /\ procOwner[p] = t
+  /\ IF procCount[p] = 1
+     THEN /\ procOwner' = [procOwner EXCEPT ![p] = NoOne]
+          /\ procCount' = [procCount EXCEPT ![p] = 0]
+     ELSE /\ procOwner' = [procOwner EXCEPT ![p] = t]
+          /\ procCount' = [procCount EXCEPT ![p] = procCount[p] - 1]
+
+ProcUnchanged == UNCHANGED << procOwner, procCount >>
+
+\* Release both process locks at once (fork exit; caller holds both, count 1).
+RelBoth(t) ==
+  /\ procOwner["P"] = t /\ procOwner["Q"] = t
+  /\ procOwner' = [procOwner EXCEPT !["P"] = NoOne, !["Q"] = NoOne]
+  /\ procCount' = [procCount EXCEPT !["P"] = 0,     !["Q"] = 0]
+
+\* API rejection: in_callback is thread-local (design) or global (BUG11).
+ApiBlocked(t) == IF BUG11_GlobalInCallback
+                 THEN \E s \in Threads : inCb[s]
+                 ELSE inCb[t]
+ApiAllowed(t) == ~ApiBlocked(t)
+
+--------------------------------------------------------------------------
+\* OS: bounded per-process event source, gated on a running debuggee.
 OsSpawn ==
-  /\ registered /\ bootstrapDone
-  /\ osEvents + mailbox < MaxInFlight
-  /\ osEvents' = osEvents + 1
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  registered, mailbox, handled, bootstrapDone, mallocDone,
-                  genPC, hanPC, cbVars, usrVars, usr2Vars >>
+  /\ \E p \in Procs :
+        /\ spawnBudget[p] > 0
+        /\ registered[p] /\ bootstrapDone[p]
+        /\ osEvents[p] + mailbox[p] < MaxInFlight
+        /\ osEvents' = [osEvents EXCEPT ![p] = osEvents[p] + 1]
+        /\ spawnBudget' = [spawnBudget EXCEPT ![p] = spawnBudget[p] - 1]
+  /\ UNCHANGED allLocks
+  /\ UNCHANGED << registered, mailbox, handled, bootstrapDone, mallocDone >>
+  /\ UNCHANGED allPC
 
 --------------------------------------------------------------------------
-\* GENERATOR: g0 wait -> g1 lookup(reg barrier) -> [g2a take regLock under
-\*            BUG1] -> g2b decode(proc_lock) -> g3 statesync(proc_lock)
-\*            -> enqueue -> g0
+\* GENERATOR (works genProc): g0 wait -> g1 lookup(reg barrier) ->
+\* [g2a take regLock under BUG1] -> g2b decode(proc_lock) -> g3 statesync
+\* -> enqueue -> g0.
 GenWait ==
-  /\ genPC = "g0" /\ osEvents > 0
+  /\ genPC = "g0"
+  /\ \E p \in Procs : osEvents[p] > 0 /\ genProc' = p
   /\ genPC' = "g1"
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  protoVars, hanPC, cbVars, usrVars, usr2Vars >>
+  /\ UNCHANGED allLocks /\ UNCHANGED allProc
+  /\ UNCHANGED << hanPC, hanProc, usrPC, usr2PC >>
 
-\* Lookup: under the registration barrier unless BUG2 disables it.
-\* Unregistered pid -> event dropped (current code's decode behavior).
 GenLookup ==
   /\ genPC = "g1"
   /\ IF BUG2_NoLookupBarrier
-     THEN /\ IF registered
-             THEN genPC' = "g2" /\ UNCHANGED osEvents
-             ELSE genPC' = "g0" /\ osEvents' = osEvents - 1  \* DROPPED
-          /\ UNCHANGED << regLock >>
-     ELSE /\ regLock = NoOne              \* blocks while bootstrap holds it
-          /\ regLock' = NoOne             \* take + release around the lookup
-          /\ IF registered
-             THEN genPC' = "g2" /\ UNCHANGED osEvents
-             ELSE genPC' = "g0" /\ osEvents' = osEvents - 1  \* stray pid
-  /\ UNCHANGED << workLock, leafLock, procOwner, procCount, registered,
-                  mailbox, handled, bootstrapDone, mallocDone,
-                  hanPC, cbVars, usrVars, usr2Vars >>
+     THEN /\ regLock' = regLock                 \* no barrier taken
+          /\ IF registered[genProc]
+             THEN genPC' = "g2" /\ osEvents' = osEvents
+             ELSE /\ genPC' = "g0"               \* DROPPED (stray/early pid)
+                  /\ osEvents' = [osEvents EXCEPT ![genProc]=osEvents[genProc]-1]
+     ELSE /\ regLock = NoOne /\ regLock' = NoOne \* take+release around lookup
+          /\ IF registered[genProc]
+             THEN genPC' = "g2" /\ osEvents' = osEvents
+             ELSE /\ genPC' = "g0"
+                  /\ osEvents' = [osEvents EXCEPT ![genProc]=osEvents[genProc]-1]
+  /\ UNCHANGED << procOwner, procCount, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED << registered, mailbox, handled, bootstrapDone, mallocDone,
+                  spawnBudget >>
+  /\ UNCHANGED << genProc, hanPC, hanProc, usrPC, usr2PC >>
 
-\* BUG1 only: the generator FIRST takes regLock (the old condvar held
-\* across decode), entering hold-and-wait before it blocks on proc_lock.
-GenDecodeRegAcq ==
+GenDecodeRegAcq ==                    \* BUG1 only: grab regLock before decode
   /\ BUG1_GenHoldsRegLockAcrossDecode
   /\ genPC = "g2"
   /\ regLock = NoOne /\ regLock' = "gen"
   /\ genPC' = "g2a"
-  /\ UNCHANGED << workLock, leafLock, procOwner, procCount,
-                  protoVars, hanPC, cbVars, usrVars, usr2Vars >>
+  /\ UNCHANGED << procOwner, procCount, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genProc, hanPC, hanProc, usrPC, usr2PC >>
 
-\* Decode: blocks on proc_lock.  Under BUG1 the generator is already
-\* holding regLock (from g2a) while it waits here - the ABBA half.
-GenDecodeAcq ==
+GenDecodeAcq ==                       \* block on proc_lock(genProc)
   /\ \/ (~BUG1_GenHoldsRegLockAcrossDecode /\ genPC = "g2")
-     \/ (BUG1_GenHoldsRegLockAcrossDecode /\ genPC = "g2a")
-  /\ AcqProc("gen")
+     \/ (BUG1_GenHoldsRegLockAcrossDecode  /\ genPC = "g2a")
+  /\ AcqProc("gen", genProc)
   /\ genPC' = "g2b"
-  /\ UNCHANGED << workLock, regLock, leafLock,
-                  protoVars, hanPC, cbVars, usrVars, usr2Vars >>
+  /\ UNCHANGED << regLock, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genProc, hanPC, hanProc, usrPC, usr2PC >>
 
-\* Decode body reads registers: leaf lock inside proc_lock (decode order).
-GenDecodeBody ==
+GenDecodeBody ==                      \* leaf under proc (decode order)
   /\ genPC = "g2b" /\ leafLock = NoOne
   /\ genPC' = "g3"
-  /\ RelProc("gen")
-  /\ IF BUG1_GenHoldsRegLockAcrossDecode
-     THEN regLock' = NoOne ELSE UNCHANGED regLock
-  /\ UNCHANGED << workLock, leafLock,
-                  protoVars, hanPC, cbVars, usrVars, usr2Vars >>
+  /\ RelProc("gen", genProc)
+  /\ IF BUG1_GenHoldsRegLockAcrossDecode THEN regLock' = NoOne
+                                         ELSE regLock' = regLock
+  /\ UNCHANGED << leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genProc, hanPC, hanProc, usrPC, usr2PC >>
 
-\* Statesync: brief proc_lock (the locked accessor), then enqueue.
-GenStatesync ==
-  /\ genPC = "g3"
-  /\ procOwner = NoOne \* acquire+release modeled atomically (no nesting here)
+GenStatesync ==                       \* brief locked accessor, then enqueue
+  /\ genPC = "g3" /\ procOwner[genProc] = NoOne
   /\ genPC' = "g0"
-  /\ osEvents' = osEvents - 1
-  /\ mailbox' = mailbox + 1
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  registered, handled, bootstrapDone, mallocDone,
-                  hanPC, cbVars, usrVars, usr2Vars >>
+  /\ osEvents' = [osEvents EXCEPT ![genProc] = osEvents[genProc] - 1]
+  /\ mailbox'  = [mailbox  EXCEPT ![genProc] = mailbox[genProc] + 1]
+  /\ UNCHANGED allLocks
+  /\ UNCHANGED << registered, handled, bootstrapDone, mallocDone, spawnBudget >>
+  /\ UNCHANGED << genProc, hanPC, hanProc, usrPC, usr2PC >>
 
 --------------------------------------------------------------------------
-\* HANDLER: h0 take work_lock+dequeue -> h1 locked prologue -> h2 handle
-\*          (BUG1: blocks on regLock inside; models intCont's old condvar)
-\*          -> h3 release, publish outcome
-HanDequeue ==
-  /\ hanPC = "h0" /\ mailbox > 0 /\ workLock = NoOne
-  /\ workLock' = "han" /\ hanPC' = "h1"
-  /\ UNCHANGED << regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, cbVars, usrVars, usr2Vars >>
+\* HANDLER (works hanProc): holds proc_lock(hanProc) across handling; the
+\* callback invocation releases it (design) and re-acquires afterwards.
+HanPick ==
+  /\ hanPC = "h0"
+  /\ \E p \in Procs :
+        /\ mailbox[p] > 0
+        /\ hanProc' = p
+        /\ IF BUG10_HandlerNoProcLock THEN ProcUnchanged ELSE AcqProc("han", p)
+  /\ hanPC' = "h1"
+  /\ UNCHANGED << regLock, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, usrPC, usr2PC >>
 
-HanPrologue ==
+HanHandle ==                          \* handle body: WRITER region for hanProc
   /\ hanPC = "h1"
-  /\ AcqProc("han")
-  /\ hanPC' = "h2"
-  /\ UNCHANGED << workLock, regLock, leafLock,
-                  protoVars, genPC, cbVars, usrVars, usr2Vars >>
-
-\* Handle body: register reads (leaf under proc - decode order), and under
-\* BUG1 an intCont-style regLock acquisition while holding proc_lock.
-HanHandle ==
-  /\ hanPC = "h2"
   /\ leafLock = NoOne
-  /\ IF BUG1_GenHoldsRegLockAcrossDecode
-     THEN regLock = NoOne   \* blocks if generator holds it: the ABBA
-     ELSE TRUE
-  /\ hanPC' = "h3"
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, cbVars, usrVars, usr2Vars >>
+  /\ IF BUG1_GenHoldsRegLockAcrossDecode THEN regLock = NoOne ELSE TRUE
+  /\ hanPC' = "h2"
+  /\ UNCHANGED allLocks /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanProc, usrPC, usr2PC >>
 
-HanFinish ==
+HanCbBegin ==                         \* deliverCallback: release proc, take cb
+  /\ hanPC = "h2"
+  /\ IF ~BUG8_CallbackUnderWorkLock /\ ~BUG10_HandlerNoProcLock
+     THEN RelProc("han", hanProc)     \* clause 3: release around the callback
+     ELSE ProcUnchanged               \* BUG8 keeps it held (BUG10 never held)
+  /\ cbLock = NoOne /\ cbLock' = "han"
+  /\ inCb' = [inCb EXCEPT !["han"] = TRUE]
+  /\ hanPC' = "hcb"
+  /\ UNCHANGED << regLock, leafLock, clientLock >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanProc, usrPC, usr2PC >>
+
+HanCbClient ==                        \* the user fn enqueues via clientLock
+  /\ hanPC = "hcb"
+  /\ clientLock = NoOne /\ clientLock' = "han"
+  /\ hanPC' = "hcb2"
+  /\ UNCHANGED << procOwner, procCount, regLock, leafLock, cbLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanProc, usrPC, usr2PC >>
+
+HanCbFinish ==
+  /\ hanPC = "hcb2"
+  /\ clientLock' = NoOne
+  /\ inCb' = [inCb EXCEPT !["han"] = FALSE]
+  /\ cbLock' = NoOne
+  /\ hanPC' = "h3"
+  /\ UNCHANGED << procOwner, procCount, regLock, leafLock >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanProc, usrPC, usr2PC >>
+
+HanFinish ==                          \* re-acquire proc, publish, release
   /\ hanPC = "h3"
-  /\ RelProc("han")
-  /\ workLock' = NoOne
-  /\ mailbox' = mailbox - 1
-  /\ handled' = IF handled < HandledCap THEN handled + 1 ELSE handled
+  /\ IF BUG10_HandlerNoProcLock
+     THEN ProcUnchanged                          \* never held it
+     ELSE IF BUG8_CallbackUnderWorkLock
+          THEN RelProc("han", hanProc)            \* held through cb; drop now
+          ELSE /\ procOwner[hanProc] = NoOne      \* design: re-acquire+release
+               /\ ProcUnchanged
+  /\ mailbox' = [mailbox EXCEPT ![hanProc] = mailbox[hanProc] - 1]
+  /\ handled' = [handled EXCEPT ![hanProc] =
+                   IF handled[hanProc] < HandledCap THEN handled[hanProc] + 1
+                                                    ELSE handled[hanProc]]
+  /\ bootstrapDone' = [bootstrapDone EXCEPT ![hanProc] = TRUE]
+  /\ mallocDone' = [mallocDone EXCEPT ![hanProc] =
+                      mallocDone[hanProc] \/ (handled[hanProc] + 1 >= 2)]
   /\ hanPC' = "h0"
-  \* handled events resolve whichever wait the user is parked on:
-  \* bootstrapDone once >= 1 handled in total, mallocDone once >= 2.
-  /\ bootstrapDone' = TRUE
-  /\ mallocDone' = (handled + 1 >= 2)
-  /\ UNCHANGED << regLock, leafLock, registered, osEvents,
-                  genPC, cbVars, usrVars, usr2Vars >>
+  /\ UNCHANGED << regLock, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED << registered, osEvents, spawnBudget >>
+  /\ UNCHANGED << genPC, genProc, hanProc, usrPC, usr2PC >>
 
 --------------------------------------------------------------------------
-\* USER (usr): u0 bootstrap (regLock held across create+register)
-\*       u1 park for bootstrap event (holding NOTHING)
-\*       u2 infMalloc (BUG3: holds proc_lock across the park)
-\*       u3 park for malloc response
-\*       u4 getRegister: leaf lock; BUG5: plumbing blocks on proc_lock
-\*          while still holding the leaf (hold-and-wait)
-\*       u5 iteration done; loop back to u2 up to MaxUsrIter times
-\* Each park-resolution routes through the callback delivery states
-\* (cb0 -> ... -> usrRet); see the header for the knob-dependent shape.
+\* USER usr (operates on P).
 UsrBootstrapBegin ==
   /\ usrPC = "u0" /\ regLock = NoOne
   /\ regLock' = "usr"
-  /\ osEvents' = osEvents + 1      \* plat_create: OS can now deliver events
+  /\ osEvents' = [osEvents EXCEPT !["P"] = osEvents["P"] + 1]
   /\ usrPC' = "u0b"
-  /\ UNCHANGED << workLock, leafLock, procOwner, procCount, registered,
-                  mailbox, handled, bootstrapDone, mallocDone,
-                  genPC, hanPC, cbVars, usrIter, usrRet, usr2Vars >>
+  /\ UNCHANGED << procOwner, procCount, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED << registered, mailbox, handled, bootstrapDone, mallocDone,
+                  spawnBudget >>
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usr2PC >>
 
 UsrBootstrapRegister ==
   /\ usrPC = "u0b"
-  /\ registered' = TRUE
-  /\ regLock' = NoOne              \* release before any wait
+  /\ registered' = [registered EXCEPT !["P"] = TRUE]
+  /\ regLock' = NoOne
   /\ usrPC' = "u1"
-  /\ UNCHANGED << workLock, leafLock, procOwner, procCount, osEvents,
-                  mailbox, handled, bootstrapDone, mallocDone,
-                  genPC, hanPC, cbVars, usrIter, usrRet, usr2Vars >>
+  /\ UNCHANGED << procOwner, procCount, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED << osEvents, mailbox, handled, bootstrapDone, mallocDone,
+                  spawnBudget >>
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usr2PC >>
 
-UsrBootstrapPark ==                 \* waitfor_startup: holds nothing.
-  /\ usrPC = "u1" /\ bootstrapDone  \* wakes -> deliver the bootstrap cb
-  /\ usrPC' = "cb0" /\ usrRet' = "u2"
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, cbVars, usrIter, usr2Vars >>
+UsrBootstrapPark ==
+  /\ usrPC = "u1" /\ bootstrapDone["P"]
+  /\ usrPC' = "u2"
+  /\ UNCHANGED allLocks /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usr2PC >>
 
-UsrMallocPost ==
-  /\ usrPC = "u2"
-  /\ IF BUG3_MallocHoldsProcLock
-     THEN AcqProc("usr")
-     ELSE UNCHANGED << procOwner, procCount >>
-  /\ osEvents' = osEvents + 1      \* the RPC completion arrives as an event
+UsrMallocPost ==                      \* API entry: guarded by ApiAllowed
+  /\ usrPC = "u2" /\ ApiAllowed("usr")
+  /\ IF BUG3_MallocHoldsProcLock THEN AcqProc("usr", "P") ELSE ProcUnchanged
+  /\ osEvents' = [osEvents EXCEPT !["P"] = osEvents["P"] + 1]
   /\ usrPC' = "u3"
-  /\ UNCHANGED << workLock, regLock, leafLock, registered, mailbox,
-                  handled, bootstrapDone, mallocDone,
-                  genPC, hanPC, cbVars, usrIter, usrRet, usr2Vars >>
+  /\ UNCHANGED << regLock, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED << registered, mailbox, handled, bootstrapDone, mallocDone,
+                  spawnBudget >>
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usr2PC >>
 
-UsrMallocPark ==                    \* waitAndHandleEvents for the response;
-  /\ usrPC = "u3" /\ mallocDone     \* wakes -> deliver the response cb
-  /\ IF BUG3_MallocHoldsProcLock
-     THEN RelProc("usr")
-     ELSE UNCHANGED << procOwner, procCount >>
-  /\ usrPC' = "cb0" /\ usrRet' = "u4"
-  /\ UNCHANGED << workLock, regLock, leafLock, registered, osEvents,
-                  mailbox, handled, bootstrapDone, mallocDone,
-                  genPC, hanPC, cbVars, usrIter, usr2Vars >>
+UsrMallocPark ==
+  /\ usrPC = "u3" /\ mallocDone["P"]
+  /\ IF BUG3_MallocHoldsProcLock THEN RelProc("usr", "P") ELSE ProcUnchanged
+  /\ usrPC' = "um0"
+  /\ UNCHANGED << regLock, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usr2PC >>
 
-\* --- usr callback delivery, design path (BUG8 off): caller must hold no
-\* proccontrol lock; cbLock brackets the in_cb section (states cb1, cb2).
-UsrCbAcq ==
-  /\ usrPC = "cb0" /\ ~BUG8_CallbackUnderWorkLock
-  /\ workLock /= "usr" /\ procOwner /= "usr"   \* the design's assertion
-  /\ cbLock = NoOne /\ cbLock' = "usr"
-  /\ usrPC' = "cb1"
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, clientLock,
-                  usrIter, usrRet, usr2Vars >>
+UsrModifyAcq ==                       \* take proc_lock(P) for a mutation
+  /\ usrPC = "um0"
+  /\ AcqProc("usr", "P")
+  /\ usrPC' = "um1"
+  /\ UNCHANGED << regLock, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usr2PC >>
 
-UsrCbClientAcq ==                   \* the user fn takes the client's mutex
-  /\ usrPC = "cb1"
-  /\ clientLock = NoOne /\ clientLock' = "usr"
-  /\ usrPC' = "cb2"
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, cbLock,
-                  usrIter, usrRet, usr2Vars >>
+UsrModifyRel ==                       \* um1 is a WRITER region for P
+  /\ usrPC = "um1"
+  /\ RelProc("usr", "P")
+  /\ usrPC' = "u4"
+  /\ UNCHANGED << regLock, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usr2PC >>
 
-UsrCbFinish ==
-  /\ usrPC = "cb2"
-  /\ clientLock' = NoOne /\ cbLock' = NoOne
-  /\ usrPC' = usrRet
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, usrIter, usrRet, usr2Vars >>
-
-\* --- usr callback delivery, BUG8 path (the OLD code): deliver while
-\* HOLDING workLock; the user fn takes the client's mutex inside.
-UsrCbWlAcq ==
-  /\ usrPC = "cb0" /\ BUG8_CallbackUnderWorkLock
-  /\ workLock = NoOne /\ workLock' = "usr"
-  /\ usrPC' = "wb1"
-  /\ UNCHANGED << regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, cbVars,
-                  usrIter, usrRet, usr2Vars >>
-
-UsrCbWlClientAcq ==                 \* ABBA half: clientLock inside workLock
-  /\ usrPC = "wb1"
-  /\ clientLock = NoOne /\ clientLock' = "usr"
-  /\ usrPC' = "wb2"
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, cbLock,
-                  usrIter, usrRet, usr2Vars >>
-
-UsrCbWlFinish ==
-  /\ usrPC = "wb2"
-  /\ clientLock' = NoOne /\ workLock' = NoOne
-  /\ usrPC' = usrRet
-  /\ UNCHANGED << regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, cbLock,
-                  usrIter, usrRet, usr2Vars >>
-
-\* getRegister: leaf regpool_lock, then response plumbing.  BUG5 makes the
-\* plumbing block on proc_lock INSIDE the leaf lock - inverting decode's
-\* order (the leaf was taken in the previous action: hold-and-wait).
 UsrGetRegAcqLeaf ==
   /\ usrPC = "u4" /\ leafLock = NoOne
   /\ leafLock' = "usr"
   /\ usrPC' = "u4b"
-  /\ UNCHANGED << workLock, regLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, cbVars,
-                  usrIter, usrRet, usr2Vars >>
+  /\ UNCHANGED << procOwner, procCount, regLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usr2PC >>
 
-UsrGetRegPlumbing ==
+UsrGetRegPlumbing ==                  \* BUG5: proc_lock INSIDE the leaf lock
   /\ usrPC = "u4b"
-  /\ IF BUG5_PlumbingTakesProcLock
-     THEN AcqProc("usr")            \* blocks if generator holds proc_lock
-     ELSE UNCHANGED << procOwner, procCount >>
+  /\ IF BUG5_PlumbingTakesProcLock THEN AcqProc("usr", "P") ELSE ProcUnchanged
   /\ usrPC' = "u4c"
-  /\ UNCHANGED << workLock, regLock, leafLock,
-                  protoVars, genPC, hanPC, cbVars,
-                  usrIter, usrRet, usr2Vars >>
+  /\ UNCHANGED << regLock, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usr2PC >>
 
 UsrGetRegRelease ==
   /\ usrPC = "u4c"
-  /\ IF BUG5_PlumbingTakesProcLock
-     THEN RelProc("usr")
-     ELSE UNCHANGED << procOwner, procCount >>
+  /\ IF BUG5_PlumbingTakesProcLock THEN RelProc("usr", "P") ELSE ProcUnchanged
   /\ leafLock' = NoOne
-  /\ usrPC' = "u5"
-  /\ UNCHANGED << workLock, regLock,
-                  protoVars, genPC, hanPC, cbVars,
-                  usrIter, usrRet, usr2Vars >>
+  /\ usrPC' = "uf0"
+  /\ UNCHANGED << regLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usr2PC >>
 
-UsrLoop ==                          \* re-run malloc+getRegister (bounded)
-  /\ usrPC = "u5" /\ usrIter < MaxUsrIter
-  /\ usrIter' = usrIter + 1
-  /\ usrPC' = "u2"
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, cbVars, usrRet, usr2Vars >>
+UsrForkAcqP ==                        \* fork: ascending P then Q
+  /\ usrPC = "uf0"
+  /\ AcqProc("usr", "P")
+  /\ usrPC' = "uf1"
+  /\ UNCHANGED << regLock, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usr2PC >>
+
+UsrForkAcqQ ==
+  /\ usrPC = "uf1"
+  /\ AcqProc("usr", "Q")
+  /\ usrPC' = "uf2"
+  /\ UNCHANGED << regLock, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usr2PC >>
+
+UsrForkRel ==
+  /\ usrPC = "uf2"
+  /\ RelBoth("usr")
+  /\ usrPC' = "uDone"
+  /\ UNCHANGED << regLock, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usr2PC >>
 
 --------------------------------------------------------------------------
-\* CLIENT (usr2): the dyninstAPI-side loop, bounded MaxUsrIter iterations:
-\*   v0 take clientLock -> v1 const proccontrol API (getData: blocks until
-\*   workLock free, take+release) -> v2 release clientLock -> v3 deliver
-\*   one callback (same knob-dependent rules; in_cb states v4, v5 on the
-\*   design path, x4, x5 on the BUG8 path) -> v6 loop or done (vD).
-Usr2ClientAcq ==
-  /\ usr2PC = "v0"
-  /\ clientLock = NoOne /\ clientLock' = "usr2"
-  /\ usr2PC' = "v1"
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, cbLock, usrVars, usr2Iter >>
+\* CLIENT usr2 (operates on Q): bootstrap, PCEventMuxer client path, fork.
+Usr2BootstrapBegin ==
+  /\ usr2PC = "v0" /\ regLock = NoOne
+  /\ regLock' = "usr2"
+  /\ osEvents' = [osEvents EXCEPT !["Q"] = osEvents["Q"] + 1]
+  /\ usr2PC' = "v0b"
+  /\ UNCHANGED << procOwner, procCount, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED << registered, mailbox, handled, bootstrapDone, mallocDone,
+                  spawnBudget >>
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usrPC >>
 
-Usr2ConstAPI ==                     \* getData: workLock inside clientLock
-  /\ usr2PC = "v1"
-  /\ workLock = NoOne /\ workLock' = NoOne  \* take+release, atomically
+Usr2BootstrapRegister ==
+  /\ usr2PC = "v0b"
+  /\ registered' = [registered EXCEPT !["Q"] = TRUE]
+  /\ regLock' = NoOne
+  /\ usr2PC' = "v1"
+  /\ UNCHANGED << procOwner, procCount, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED << osEvents, mailbox, handled, bootstrapDone, mallocDone,
+                  spawnBudget >>
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usrPC >>
+
+Usr2BootstrapPark ==
+  /\ usr2PC = "v1" /\ bootstrapDone["Q"]
   /\ usr2PC' = "v2"
-  /\ UNCHANGED << regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, cbVars, usrVars, usr2Iter >>
+  /\ UNCHANGED allLocks /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usrPC >>
+
+Usr2ClientAcq ==                      \* take the client's own mutex
+  /\ usr2PC = "v2"
+  /\ clientLock = NoOne /\ clientLock' = "usr2"
+  /\ usr2PC' = "v3"
+  /\ UNCHANGED << procOwner, procCount, regLock, leafLock, cbLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usrPC >>
+
+Usr2ConstAPI ==                       \* getData: const API takes proc_lock(Q)
+  /\ usr2PC = "v3" /\ ApiAllowed("usr2")   \* API entry guard
+  /\ procOwner["Q"] = NoOne             \* take+release proc_lock(Q) (blocking)
+  /\ usr2PC' = "v4"
+  /\ UNCHANGED allLocks /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usrPC >>
 
 Usr2ClientRel ==
-  /\ usr2PC = "v2"
-  /\ clientLock' = NoOne
-  /\ usr2PC' = "v3"
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, cbLock, usrVars, usr2Iter >>
-
-\* --- usr2 callback delivery, design path (states v4, v5 are in_cb).
-Usr2CbAcq ==
-  /\ usr2PC = "v3" /\ ~BUG8_CallbackUnderWorkLock
-  /\ workLock /= "usr2" /\ procOwner /= "usr2" \* the design's assertion
-  /\ cbLock = NoOne /\ cbLock' = "usr2"
-  /\ usr2PC' = "v4"
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, clientLock, usrVars, usr2Iter >>
-
-Usr2CbClientAcq ==
   /\ usr2PC = "v4"
-  /\ clientLock = NoOne /\ clientLock' = "usr2"
-  /\ usr2PC' = "v5"
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, cbLock, usrVars, usr2Iter >>
+  /\ clientLock' = NoOne
+  /\ usr2PC' = "vf0"
+  /\ UNCHANGED << procOwner, procCount, regLock, leafLock, cbLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usrPC >>
 
-Usr2CbFinish ==
-  /\ usr2PC = "v5"
-  /\ clientLock' = NoOne /\ cbLock' = NoOne
-  /\ usr2PC' = "v6"
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, usrVars, usr2Iter >>
+\* Fork: ascending (P then Q) by design; BUG9 flips usr2 to (Q then P).
+Usr2ForkAcqA ==
+  /\ usr2PC = "vf0"
+  /\ AcqProc("usr2", IF BUG9_ForkLockOrder THEN "Q" ELSE "P")
+  /\ usr2PC' = "vf1"
+  /\ UNCHANGED << regLock, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usrPC >>
 
-\* --- usr2 callback delivery, BUG8 path (old code, under workLock).
-Usr2CbWlAcq ==
-  /\ usr2PC = "v3" /\ BUG8_CallbackUnderWorkLock
-  /\ workLock = NoOne /\ workLock' = "usr2"
-  /\ usr2PC' = "x4"
-  /\ UNCHANGED << regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, cbVars, usrVars, usr2Iter >>
+Usr2ForkAcqB ==
+  /\ usr2PC = "vf1"
+  /\ AcqProc("usr2", IF BUG9_ForkLockOrder THEN "P" ELSE "Q")
+  /\ usr2PC' = "vf2"
+  /\ UNCHANGED << regLock, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usrPC >>
 
-Usr2CbWlClientAcq ==
-  /\ usr2PC = "x4"
-  /\ clientLock = NoOne /\ clientLock' = "usr2"
-  /\ usr2PC' = "x5"
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, cbLock, usrVars, usr2Iter >>
-
-Usr2CbWlFinish ==
-  /\ usr2PC = "x5"
-  /\ clientLock' = NoOne /\ workLock' = NoOne
-  /\ usr2PC' = "v6"
-  /\ UNCHANGED << regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, cbLock, usrVars, usr2Iter >>
-
-Usr2Loop ==
-  /\ usr2PC = "v6" /\ usr2Iter < MaxUsrIter
-  /\ usr2Iter' = usr2Iter + 1
-  /\ usr2PC' = "v0"
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, cbVars, usrVars >>
-
-Usr2Done ==
-  /\ usr2PC = "v6" /\ usr2Iter = MaxUsrIter
-  /\ usr2PC' = "vD"
-  /\ UNCHANGED << workLock, regLock, leafLock, procOwner, procCount,
-                  protoVars, genPC, hanPC, cbVars, usrVars, usr2Iter >>
+Usr2ForkRel ==
+  /\ usr2PC = "vf2"
+  /\ RelBoth("usr2")
+  /\ usr2PC' = "vDone"
+  /\ UNCHANGED << regLock, leafLock, cbLock, clientLock, inCb >>
+  /\ UNCHANGED allProc
+  /\ UNCHANGED << genPC, genProc, hanPC, hanProc, usrPC >>
 
 --------------------------------------------------------------------------
 Init ==
-  /\ workLock = NoOne /\ regLock = NoOne /\ leafLock = NoOne
-  /\ procOwner = NoOne /\ procCount = 0
-  /\ cbLock = NoOne /\ clientLock = NoOne
-  /\ registered = FALSE /\ osEvents = 0 /\ mailbox = 0 /\ handled = 0
-  /\ bootstrapDone = FALSE /\ mallocDone = FALSE
-  /\ genPC = "g0" /\ hanPC = "h0"
-  /\ usrPC = "u0" /\ usrIter = 1 /\ usrRet = "u2"
-  /\ usr2PC = "v0" /\ usr2Iter = 1
+  /\ procOwner = [p \in Procs |-> NoOne] /\ procCount = [p \in Procs |-> 0]
+  /\ regLock = NoOne /\ leafLock = NoOne /\ cbLock = NoOne /\ clientLock = NoOne
+  /\ inCb = [t \in Threads |-> FALSE]
+  /\ registered = [p \in Procs |-> FALSE]
+  /\ osEvents = [p \in Procs |-> 0] /\ mailbox = [p \in Procs |-> 0]
+  /\ handled = [p \in Procs |-> 0]
+  /\ bootstrapDone = [p \in Procs |-> FALSE]
+  /\ mallocDone = [p \in Procs |-> FALSE]
+  /\ spawnBudget = [p \in Procs |-> MaxSpawnPerProc]
+  /\ genPC = "g0" /\ genProc = "P"
+  /\ hanPC = "h0" /\ hanProc = "P"
+  /\ usrPC = "u0" /\ usr2PC = "v0"
 
-GenNext  == GenWait \/ GenLookup \/ GenDecodeRegAcq \/ GenDecodeAcq
-            \/ GenDecodeBody \/ GenStatesync
-HanNext  == HanDequeue \/ HanPrologue \/ HanHandle \/ HanFinish
-UsrNext  == UsrBootstrapBegin \/ UsrBootstrapRegister \/ UsrBootstrapPark
-            \/ UsrMallocPost \/ UsrMallocPark
-            \/ UsrCbAcq \/ UsrCbClientAcq \/ UsrCbFinish
-            \/ UsrCbWlAcq \/ UsrCbWlClientAcq \/ UsrCbWlFinish
-            \/ UsrGetRegAcqLeaf \/ UsrGetRegPlumbing \/ UsrGetRegRelease
-            \/ UsrLoop
-Usr2Next == Usr2ClientAcq \/ Usr2ConstAPI \/ Usr2ClientRel
-            \/ Usr2CbAcq \/ Usr2CbClientAcq \/ Usr2CbFinish
-            \/ Usr2CbWlAcq \/ Usr2CbWlClientAcq \/ Usr2CbWlFinish
-            \/ Usr2Loop \/ Usr2Done
+GenNext ==
+  \/ GenWait \/ GenLookup \/ GenDecodeRegAcq \/ GenDecodeAcq
+  \/ GenDecodeBody \/ GenStatesync
+
+HanNext ==
+  \/ HanPick \/ HanHandle \/ HanCbBegin \/ HanCbClient
+  \/ HanCbFinish \/ HanFinish
+
+UsrNext ==
+  \/ UsrBootstrapBegin \/ UsrBootstrapRegister \/ UsrBootstrapPark
+  \/ UsrMallocPost \/ UsrMallocPark \/ UsrModifyAcq \/ UsrModifyRel
+  \/ UsrGetRegAcqLeaf \/ UsrGetRegPlumbing \/ UsrGetRegRelease
+  \/ UsrForkAcqP \/ UsrForkAcqQ \/ UsrForkRel
+
+Usr2Next ==
+  \/ Usr2BootstrapBegin \/ Usr2BootstrapRegister \/ Usr2BootstrapPark
+  \/ Usr2ClientAcq \/ Usr2ConstAPI \/ Usr2ClientRel
+  \/ Usr2ForkAcqA \/ Usr2ForkAcqB \/ Usr2ForkRel
+
+Done == usrPC = "uDone" /\ usr2PC = "vDone" /\ UNCHANGED vars
 
 Next ==
-  \/ OsSpawn
-  \/ GenNext \/ HanNext \/ UsrNext \/ Usr2Next
-  \/ (usrPC = "u5" /\ usrIter = MaxUsrIter /\ usr2PC = "vD"
-      /\ UNCHANGED vars)
-     \* stutter when both user threads are fully done (TLC deadlock)
+  \/ OsSpawn \/ GenNext \/ HanNext \/ UsrNext \/ Usr2Next
+  \/ Done
 
-\* Per-thread fairness: WF for gen/han/usr; SF for usr2 because its
-\* const-API wait sees workLock flicker under the handler's endless
-\* spawner-fed loop (WF alone would let usr2 starve).  OsSpawn unfair.
+\* Strong fairness per thread group: each waits on locks/flags that flicker
+\* under contention, so WF could permit spurious starvation; SF forces
+\* progress only when the group is enabled infinitely often (so it does NOT
+\* mask a genuinely disabled thread, e.g. usr under BUG2).  OsSpawn is a
+\* bounded environment source and is left unfair.
 Spec == Init /\ [][Next]_vars
-        /\ WF_vars(GenNext) /\ WF_vars(HanNext) /\ WF_vars(UsrNext)
-        /\ SF_vars(Usr2Next)
+        /\ SF_vars(GenNext) /\ SF_vars(HanNext)
+        /\ SF_vars(UsrNext) /\ SF_vars(Usr2Next)
 
-\* Liveness: both user threads' whole scenarios complete.
-Termination == <>(usrPC = "u5") /\ <>(usr2PC = "vD")
+--------------------------------------------------------------------------
+\* Liveness: both user threads' scenarios complete.  (Each awaits events
+\* that only get handled if the handler drains its process, so this also
+\* captures "an enqueued event is eventually handled".)
+Termination == <>(usrPC = "uDone") /\ <>(usr2PC = "vDone")
 
-\* Safety: recursive procLock consistency.
-LockInv == (procOwner = NoOne) <=> (procCount = 0)
+\* Safety: recursive proc_lock consistency, per process.
+LockInv == \A p \in Procs : (procOwner[p] = NoOne) <=> (procCount[p] = 0)
 
-\* Safety: the entry-point-lock design rule - never park waiting for an
-\* event outcome while holding the per-process proc_lock.
-NoParkWhileHoldingProcLock == (usrPC \in {"u1", "u3"}) => (procOwner /= "usr")
+\* The entry-point-lock rule: never park for an event outcome while holding
+\* proc_lock(P) (usr's parks are u1 and u3).
+NoParkWhileHoldingProcLock ==
+  (usrPC \in {"u1", "u3"}) => (procOwner["P"] /= "usr")
 
-\* Phase B design rules.  in_cb = the design-path delivery states (the old
-\* BUG8 code predates the cbLock/in_cb notion, so wb*/x* do not count).
-InCbUsr  == usrPC  \in {"cb1", "cb2"}
-InCbUsr2 == usr2PC \in {"v4", "v5"}
+\* Callback invocation region (design path) for the delivering thread.
+HanInCb == hanPC \in {"hcb", "hcb2"}
 
-\* No proccontrol lock may be held across a user callback.
+\* No proccontrol lock (proc_lock; work_lock is gone) may be held across a
+\* user callback invocation.  BUG8 makes the handler hold proc_lock here.
 NoProcControlLockAcrossCallback ==
-  /\ InCbUsr  => (workLock /= "usr"  /\ procOwner /= "usr")
-  /\ InCbUsr2 => (workLock /= "usr2" /\ procOwner /= "usr2")
+  HanInCb => (procOwner["P"] /= "han" /\ procOwner["Q"] /= "han")
 
-\* The documented contract: at most one callback in flight at a time.
-OneCallbackAtATime == ~(InCbUsr /\ InCbUsr2)
+\* The documented contract: whoever is in a callback owns cb_lock (so
+\* cb_lock enforces one-callback-at-a-time globally).
+OneGlobalCallbackViaCbLock == \A t \in Threads : inCb[t] => (cbLock = t)
+
+\* Data-race rule: for each process at most one thread is in a "mutating"
+\* region unless serialized by proc_lock.  The handler's handle body (h1)
+\* and usr's modify body (um1, on P) are the mutators; the design keeps
+\* proc_lock held throughout both, so they exclude.  BUG10 drops the
+\* handler's proc_lock, allowing a concurrent mutation of P.
+AtMostOneWriterPerProc ==
+  ~( (hanPC = "h1" /\ hanProc = "P") /\ (usrPC = "um1") )
+
+\* in_callback is thread-local: a thread's API may be blocked ONLY by its
+\* own callback, never by another thread's.  BUG11 (global flag) breaks it.
+SpuriousRejectFree ==
+  /\ (usrPC  = "u2" /\ ApiBlocked("usr"))  => inCb["usr"]
+  /\ (usr2PC = "v3" /\ ApiBlocked("usr2")) => inCb["usr2"]
 =============================================================================

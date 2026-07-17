@@ -169,27 +169,33 @@ Separate trees: `~/dynmaster/build-tsan` → `~/bin/dynmaster-tsan`, and
 
 ### TLA+ model checking
 
-`tla/ProcControlLocks.tla` + `.cfg` — the lock/protocol design model.
-Generator, handler, user threads; registration barrier; parks; recurring
-event source. Every historical failure class is a constant knob
-(`BUG1/2/3/5_...`); the design rule is a checked invariant
-(`NoParkWhileHoldingProcLock`).
+`tla/ProcControlLocks.tla` + `.cfg` — the lock/protocol design model, now
+Phase C: work_lock removed, TWO processes (P<Q) each with a recursive
+proc_lock, handler holds proc_lock(proc) across handling but releases it
+around callback invocation, global cb_lock, thread-local in_callback.
+Every historical failure class is a constant knob (`BUG1/2/3/5/8/9/10/11_...`);
+each design rule is a checked invariant (`NoParkWhileHoldingProcLock`,
+`NoProcControlLockAcrossCallback`, `OneGlobalCallbackViaCbLock`,
+`AtMostOneWriterPerProc`, `SpuriousRejectFree`).
 
-Run (needs Java 11+; a portable Temurin JRE works, no root):
+Run (needs Java 11+; portable Temurin JRE at `~/tools/jdk-17.0.19+10-jre/`,
+no root — re-download from adoptium.net if missing, it is NOT in /tmp):
 
     cd ~/dynmaster/proccontrol/tla
-    java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -workers 4 ProcControlLocks.tla
+    ~/tools/jdk-17.0.19+10-jre/bin/java -XX:+UseParallelGC -cp tla2tools.jar \
+        tlc2.TLC -workers 4 ProcControlLocks.tla   # default: must be clean
+    ./check_knobs.sh                               # each knob TRUE: must fail
 
 (`tla2tools.jar` from https://github.com/tlaplus/tlaplus/releases; deadlock
 checking is on by default — do NOT pass `-deadlock`, it disables it.)
 
-Expected: all knobs FALSE → clean (~4.6k distinct states); each knob TRUE →
-deadlock (BUG1/2/5) or invariant violation (BUG3). Changing the lock design?
-Update the model FIRST and keep all five configs behaving — the model is the
-regression suite for design decisions. Phase B additions queued: callback
-clause (BUG7 knob + `NoProcLockAcrossCallback`), one-callback-at-a-time
-invariant, a separate `ProcControlLifetime` module for the pool/impl
-lifecycle.
+Expected: all knobs FALSE → clean (~27.3k distinct states); each knob TRUE →
+deadlock (BUG1/2/5/9) or invariant violation (BUG3/8/10/11).
+`check_knobs.sh` runs the whole knob sweep and fails if any knob is not
+caught. Changing the lock design? Update the model FIRST and keep the default
+config clean and every knob caught — the model is the regression suite for
+design decisions. Still queued: a separate `ProcControlLifetime` module for
+the pool/impl lifecycle.
 
 ## Change rules
 
