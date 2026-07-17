@@ -117,6 +117,10 @@ bool ProcessPool::createProcs(int_processSet *ps) {
 	  // Register the process first: ProcPool()->addThread seeds each new
 	  // thread's cached Process wrapper from the live map.
 	  ProcPool()->addProcess(*i);
+	  // Launch assigns the pid in plat_create (above), after initializeProcess
+	  // stamped the wrapper's cached_pid_ with 0.  Re-stamp now that the pid is
+	  // known, so the lock-free getPid() returns the real pid.
+	  (*i)->cached_pid_ = proc->getPid();
 	  // Because yo, windows processes have threads when they're created...
 	  if (proc->threadPool()->empty()) {
         Thread::makeThread(proc, NULL_THR_ID, NULL_LWP, true, int_thread::as_created_attached);
@@ -812,6 +816,9 @@ void int_process::setPid(Dyninst::PID p)
 {
    pthrd_printf("Setting int_process %p to pid %d\n", (void*)this, p);
    pid = p;
+   // NB: if this ever gains callers, also re-stamp the wrapper's cached_pid_
+   // (see Process::getPid / createProcs) -- currently unused (launch sets pid
+   // in plat_create, stamped in ProcessPool::createProcs).
 }
 
 Dyninst::PID int_process::getPid() const
@@ -1501,6 +1508,7 @@ void int_process::initializeProcess(Process::ptr p)
 {
    assert(!p->llproc_);
    p->llproc_ = this;
+   p->cached_pid_ = pid;   // lock-free getPid() cache; setPid() keeps it current
    // PROTOTYPE (pool-owns-wrapper): the pool, not the impl, holds the
    // wrapper.  Register now if the OS pid is already known (attach, fork
    // child); create() registers in its post-plat_create loop once a pid
@@ -6472,6 +6480,7 @@ Process::ptr Process::attachProcess(Dyninst::PID pid, std::string executable)
 Process::Process() :
    llproc_(NULL),
    exitstate_(NULL),
+   cached_pid_(0),
    proc_lock_(new Mutex<true>()),
    proc_lock_depth_(0),
    threadpool_(NULL)
@@ -6560,17 +6569,13 @@ void Process::setData(void *p) const {
 
 Dyninst::PID Process::getPid() const
 {
-   // getPid is allow_generator (callable from the generator thread) -- do NOT
-   // take proc_lock here (generator-deadlock class #3/#6).  The pid is immutable
-   // after registration; at the flip this becomes lock-free (read the cached
-   // pid), not proc_lock.
-   MTLock lock_this_func(MTLock::allow_generator);
-   if (!llproc_) {
-      assert(exitstate_);
-	  if(!exitstate_) return 0;
-      return exitstate_->pid;
-   }
-   return llproc_->getPid();
+   // Lock-free (work_lock retirement): the pid is immutable after bootstrap and
+   // cached on the wrapper (stamped in int_process::initializeProcess + setPid).
+   // getPid is generator-callable, so it cannot take proc_lock (generator-
+   // deadlock class #3/#6); and once work_lock is gone it must not deref llproc_
+   // (teardown-UAF).  cached_pid_ needs neither -- it equals llproc_->getPid()
+   // while live and exitstate_->pid after exit (both derive from the same pid).
+   return cached_pid_;
 }
 
 const ThreadPool &Process::threads() const
