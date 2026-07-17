@@ -299,6 +299,13 @@ class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
 
    int_process *llproc_;
    proc_exitstate *exitstate_;
+   // Immutable-after-bootstrap pid cached on the wrapper so getPid() is
+   // lock-free (work_lock retirement): it must not deref llproc_ (teardown-UAF)
+   // and cannot take proc_lock (getPid is generator-callable).  Stamped in
+   // int_process::initializeProcess (attach/fork: pid known at bind) and
+   // ProcessPool::createProcs (launch: pid set late in plat_create); read
+   // post-bootstrap by the user.
+   Dyninst::PID cached_pid_;
    // Per-process lock for the work_lock-retirement migration (design 1).
    // Lives on the wrapper (stable, ref-counted lifetime) so it can be held
    // while dereferencing / deleting the impl it guards.  Ordering:
