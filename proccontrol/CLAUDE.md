@@ -140,7 +140,9 @@ exercised — a green gate understates coverage. TSan flags orders from any run.
   run loop, waitAndHandleEvents): implement the Phase C protocol the model
   proves (handler holds proc_lock(proc) across handling, released around
   callback delivery), then Phase B (dissolve work_lock into cb_lock + the
-  static registration surface).
+  static registration surface).  **Scope + increment plan: `d4.md`**
+  (inventory of the ~87 remaining MTLock sites, categories, D-4a–d order,
+  open questions).
 
 ## Verification — run these before any commit
 
