@@ -191,11 +191,21 @@ checking is on by default — do NOT pass `-deadlock`, it disables it.)
 
 Expected: all knobs FALSE → clean (~27.3k distinct states); each knob TRUE →
 deadlock (BUG1/2/5/9) or invariant violation (BUG3/8/10/11).
-`check_knobs.sh` runs the whole knob sweep and fails if any knob is not
-caught. Changing the lock design? Update the model FIRST and keep the default
-config clean and every knob caught — the model is the regression suite for
-design decisions. Still queued: a separate `ProcControlLifetime` module for
-the pool/impl lifecycle.
+`check_knobs.sh [module]` runs the whole knob sweep for a model and fails if
+any knob is not caught. Changing the lock design? Update the model FIRST and
+keep the default config clean and every knob caught — the model is the
+regression suite for design decisions.
+
+`tla/ProcControlLifetime.tla` + `.cfg` — the companion pool/impl LIFECYCLE
+model (the object-lifetime rules the lock model takes for granted): one
+process post-registration, teardown by exit event with a straggler signal
+event; checks the checked-accessor protocol (pin ref → proc_lock → re-check
+llproc → deref), teardown order (publish exitstate → sever → free under
+proc_lock), wrapper-outlives-impl, and leak-freedom. Knobs: BUGL1 unlocked
+user deref (the master-native UAF class), BUGL2 free-before-sever, BUGL3
+pool-ref leak (the detach-leak class) → deadlock, BUGL4 generator decode
+without proc_lock. Default clean (~563 states); sweep via
+`./check_knobs.sh ProcControlLifetime`.
 
 ## Change rules
 
