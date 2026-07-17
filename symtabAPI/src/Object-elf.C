@@ -108,23 +108,27 @@ static bool pdelf_check_ehdr(Elf_X &elf) {
 }
 
 template <typename RelrT>
-static void decodeRelrEntries(const RelrT *entries, size_t count,
-                              std::vector<Offset> &relocs) {
-    Offset next = 0;
+static std::vector<Offset> decodeRelrEntries(const RelrT *entries, size_t count) {
+    std::vector<Offset> relocs;
+    Offset relAddr = 0;  // last address added
     for (size_t i = 0; i < count; ++i) {
         RelrT entry = entries[i];
         if ((entry & 1) == 0) {
-            relocs.push_back(static_cast<Offset>(entry));
-            next = static_cast<Offset>(entry + sizeof(RelrT));
+            relAddr = static_cast<Offset>(entry);  // even entry: an address
+            relocs.push_back(relAddr);
         } else {
-            entry >>= 1;
-            for (size_t bit = 0; entry != 0; ++bit, entry >>= 1) {
+            // odd entry: a bitmap for the (8 * sizeof - 1) words after relAddr
+            auto lastBitRelAddr = relAddr + sizeof(RelrT) * (8 * sizeof(RelrT) - 1);
+            // skip bit 0 (the tag), add an address for every other set bit
+            while (entry >>= 1) {
+                relAddr += sizeof(RelrT);
                 if (entry & 1)
-                    relocs.push_back(next + bit * sizeof(RelrT));
+                    relocs.push_back(relAddr);
             }
-            next += (sizeof(RelrT) * 8 - 1) * sizeof(RelrT);
+            relAddr = lastBitRelAddr;
         }
     }
+    return relocs;
 }
 
 const char *pdelf_get_shnames(Elf_X *elf) {
@@ -1040,13 +1044,13 @@ bool ObjectELF::get_relocationRelr_entries(unsigned relr_scnp_index) {
 
     size_t entry_count = relr_size_ / entry_size;
     if (entry_size == sizeof(uint32_t)) {
-        decodeRelrEntries(reinterpret_cast<uint32_t *>(relrdata.d_buf()),
-                          entry_count,
-                          relr_relocation_table_);
+        relr_relocation_table_ =
+            decodeRelrEntries(reinterpret_cast<uint32_t *>(relrdata.d_buf()),
+                              entry_count);
     } else {
-        decodeRelrEntries(reinterpret_cast<uint64_t *>(relrdata.d_buf()),
-                          entry_count,
-                          relr_relocation_table_);
+        relr_relocation_table_ =
+            decodeRelrEntries(reinterpret_cast<uint64_t *>(relrdata.d_buf()),
+                              entry_count);
     }
 
     return true;
