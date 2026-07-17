@@ -6540,6 +6540,7 @@ Process::~Process()
 
 void *Process::getData() const {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    if (exitstate_) {
       return exitstate_->user_data;
    }
@@ -6548,6 +6549,7 @@ void *Process::getData() const {
 
 void Process::setData(void *p) const {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    if (exitstate_) {
       exitstate_->user_data = p;
    }
@@ -6558,6 +6560,10 @@ void Process::setData(void *p) const {
 
 Dyninst::PID Process::getPid() const
 {
+   // getPid is allow_generator (callable from the generator thread) -- do NOT
+   // take proc_lock here (generator-deadlock class #3/#6).  The pid is immutable
+   // after registration; at the flip this becomes lock-free (read the cached
+   // pid), not proc_lock.
    MTLock lock_this_func(MTLock::allow_generator);
    if (!llproc_) {
       assert(exitstate_);
@@ -6570,6 +6576,7 @@ Dyninst::PID Process::getPid() const
 const ThreadPool &Process::threads() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    static ThreadPool *err_pool;
    // The wrapper owns the pool, so this stays valid after the process exits
    // (the pool is empty then, but a real pool, not an error sentinel).
@@ -6585,6 +6592,7 @@ const ThreadPool &Process::threads() const
 ThreadPool &Process::threads()
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    static ThreadPool *err_pool;
    if (!threadpool_) {
       perr_printf("threads on uninitialized process\n");
@@ -6598,6 +6606,7 @@ ThreadPool &Process::threads()
 const LibraryPool &Process::libraries() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    static LibraryPool *err_pool;
    if (!llproc_) {
       perr_printf("libraries on deleted process\n");
@@ -6615,6 +6624,7 @@ const LibraryPool &Process::libraries() const
 LibraryPool &Process::libraries()
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    static LibraryPool *err_pool;
    if (!llproc_) {
       perr_printf("libraries on deleted process\n");
@@ -6666,6 +6676,7 @@ bool Process::continueProc()
 bool Process::isCrashed() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    if (!llproc_) {
       assert(exitstate_);
       return exitstate_->crashed;
@@ -6677,6 +6688,7 @@ bool Process::isCrashed() const
 bool Process::isExited() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    int exitCode = 0;
    if (!llproc_) {
       assert(exitstate_);
@@ -6688,6 +6700,7 @@ bool Process::isExited() const
 int Process::getCrashSignal() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    if (!llproc_) {
       assert(exitstate_);
       return exitstate_->crashed ? exitstate_->crash_signal : 0;
@@ -6702,6 +6715,7 @@ int Process::getCrashSignal() const
 int Process::getExitCode() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    if (!llproc_) {
       assert(exitstate_);
       return !exitstate_->crashed ? exitstate_->exit_code : 0;
@@ -6716,6 +6730,7 @@ int Process::getExitCode() const
 bool Process::isDetached() const
 {
     MTLock lock_this_func;
+    ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
     PROC_EXIT_TEST("isDetached", false);
 
     return llproc_->getState() == int_process::detached;
@@ -6756,6 +6771,7 @@ bool Process::terminate()
 bool Process::isTerminated() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    if (!llproc_) {
       return true;
    }
@@ -6765,6 +6781,7 @@ bool Process::isTerminated() const
 bool Process::hasStoppedThread() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("hasStoppedThread", false);
 
    int_threadPool::iterator i;
@@ -6778,6 +6795,7 @@ bool Process::hasStoppedThread() const
 bool Process::hasRunningThread() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("hasRunningThread", false);
 
    int_threadPool::iterator i;
@@ -6793,6 +6811,7 @@ bool Process::hasRunningThread() const
 bool Process::allThreadsStopped() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("allThreadsStopped", false);
 
    int_threadPool::iterator i;
@@ -6806,6 +6825,7 @@ bool Process::allThreadsStopped() const
 bool Process::allThreadsRunning() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("allThreadsRunning", false);
 
    int_threadPool::iterator i;
@@ -6819,6 +6839,7 @@ bool Process::allThreadsRunning() const
 bool Process::allThreadsRunningWhenAttached() const
 {
     MTLock lock_this_func;
+    ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
     PROC_EXIT_TEST("allThreadsRunningWhenAttached", false);
 
     for(int_threadPool::iterator i = llproc_->threadPool()->begin();
@@ -6956,6 +6977,7 @@ bool Process::postIRPC(IRPC::ptr irpc) const
 bool Process::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_DETACH_TEST("getPostedIRPCs", false);
    int_threadPool *tp = llproc()->threadPool();
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i)
@@ -6975,6 +6997,7 @@ bool Process::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
 Dyninst::Architecture Process::getArchitecture() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getArchitecture", Dyninst::Arch_none);
    return llproc_->getTargetArch();
 }
@@ -6982,6 +7005,7 @@ Dyninst::Architecture Process::getArchitecture() const
 Dyninst::OSType Process::getOS() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getOS", Dyninst::OSNone);
 
    return llproc_->getOS();
@@ -6990,6 +7014,7 @@ Dyninst::OSType Process::getOS() const
 bool Process::supportsLWPEvents() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("supportsLWPEvents", false);
    //Intentionally not testing plat_supportLWP*Destroy, which is complicated on BG
    return llproc_->plat_supportLWPCreate();
@@ -6998,6 +7023,7 @@ bool Process::supportsLWPEvents() const
 bool Process::supportsUserThreadEvents() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("supportsUserThreadEvents", false);
    return llproc_->plat_supportThreadEvents();
 }
@@ -7005,6 +7031,7 @@ bool Process::supportsUserThreadEvents() const
 bool Process::supportsFork() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("supportsFork", false);
    return llproc_->plat_supportFork();
 }
@@ -7012,6 +7039,7 @@ bool Process::supportsFork() const
 bool Process::supportsExec() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("supportsExec", false);
    return llproc_->plat_supportExec();
 }
@@ -7401,6 +7429,7 @@ bool Process::rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
 unsigned Process::numHardwareBreakpointsAvail(unsigned mode)
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_DETACH_TEST("numHardwareBreakpointAvail", 0);
 
    unsigned min = INT_MAX;
@@ -7427,6 +7456,7 @@ SymbolReaderFactory *Process::getDefaultSymbolReader()
 void Process::setSymbolReader(SymbolReaderFactory *f) const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    if (!llproc_) {
       perr_printf("setSymbolReader on exited process\n");
       setLastError(err_exited, "Process is exited\n");
@@ -7438,6 +7468,7 @@ void Process::setSymbolReader(SymbolReaderFactory *f) const
 SymbolReaderFactory *Process::getSymbolReader() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getSymbolReader", NULL);
    return llproc_->getSymReader();
 }
@@ -7445,6 +7476,7 @@ SymbolReaderFactory *Process::getSymbolReader() const
 LibraryTracking *Process::getLibraryTracking()
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getLibraryTracking", NULL);
    int_libraryTracking *proc = llproc_->getLibraryTracking();
    if (!proc) return NULL;
@@ -7454,6 +7486,7 @@ LibraryTracking *Process::getLibraryTracking()
 ThreadTracking *Process::getThreadTracking()
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getThreadTracking", NULL);
    int_threadTracking *proc = llproc_->getThreadTracking();
    if (!proc) return NULL;
@@ -7463,6 +7496,7 @@ ThreadTracking *Process::getThreadTracking()
 LWPTracking *Process::getLWPTracking()
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getLWPTracking", NULL);
    int_LWPTracking *proc = llproc_->getLWPTracking();
    if (!proc) return NULL;
@@ -7472,6 +7506,7 @@ LWPTracking *Process::getLWPTracking()
 CallStackUnwinding *Thread::getCallStackUnwinding()
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    THREAD_EXIT_TEST("getCallStackUnwinding", NULL);
    int_callStackUnwinding *uwproc = llthread_->llproc()->getCallStackUnwinding();
    if (!uwproc)
@@ -7485,6 +7520,7 @@ CallStackUnwinding *Thread::getCallStackUnwinding()
 FollowFork *Process::getFollowFork()
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getFollowFork", NULL);
    int_followFork *proc = llproc_->getFollowFork();
    if (!proc) return NULL;
@@ -7494,6 +7530,7 @@ FollowFork *Process::getFollowFork()
 SignalMask *Process::getSignalMask()
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getSignalMask", NULL);
    int_signalMask *proc = llproc_->getSignalMask();
    if (!proc) return NULL;
@@ -7503,6 +7540,7 @@ SignalMask *Process::getSignalMask()
 RemoteIO *Process::getRemoteIO()
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getRemoteIO", NULL);
    int_remoteIO *proc = llproc_->getRemoteIO();
    if (!proc) return NULL;
@@ -7512,6 +7550,7 @@ RemoteIO *Process::getRemoteIO()
 MemoryUsage *Process::getMemoryUsage()
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getMemoryUsage", NULL);
    int_memUsage *proc = llproc_->getMemUsage();
    if (!proc) return NULL;
@@ -7521,6 +7560,7 @@ MemoryUsage *Process::getMemoryUsage()
 const LibraryTracking *Process::getLibraryTracking() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getLibraryTracking", NULL);
    int_libraryTracking *proc = llproc_->getLibraryTracking();
    if (!proc) return NULL;
@@ -7530,6 +7570,7 @@ const LibraryTracking *Process::getLibraryTracking() const
 const ThreadTracking *Process::getThreadTracking() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getThreadTracking", NULL);
    int_threadTracking *proc = llproc_->getThreadTracking();
    if (!proc) return NULL;
@@ -7539,6 +7580,7 @@ const ThreadTracking *Process::getThreadTracking() const
 const LWPTracking *Process::getLWPTracking() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getLWPTracking", NULL);
    int_LWPTracking *proc = llproc_->getLWPTracking();
    if (!proc) return NULL;
@@ -7548,6 +7590,7 @@ const LWPTracking *Process::getLWPTracking() const
 const SignalMask *Process::getSignalMask() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getSignalMask", NULL);
    int_signalMask *proc = llproc_->getSignalMask();
    if (!proc) return NULL;
@@ -7557,6 +7600,7 @@ const SignalMask *Process::getSignalMask() const
 const RemoteIO *Process::getRemoteIO() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getRemoteIO", NULL);
    int_remoteIO *proc = llproc_->getRemoteIO();
    if (!proc) return NULL;
@@ -7566,6 +7610,7 @@ const RemoteIO *Process::getRemoteIO() const
 const MemoryUsage *Process::getMemoryUsage() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getMemoryUsage", NULL);
    int_memUsage *proc = llproc_->getMemUsage();
    if (!proc) return NULL;
@@ -7574,6 +7619,7 @@ const MemoryUsage *Process::getMemoryUsage() const
 
 err_t Process::getLastError() const {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    if (!llproc_) {
       return exitstate_->last_error;
    }
@@ -7582,6 +7628,7 @@ err_t Process::getLastError() const {
 
 const char *Process::getLastErrorMsg() const {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    if (!llproc_) {
       return exitstate_->last_error_msg;
    }
@@ -7590,6 +7637,11 @@ const char *Process::getLastErrorMsg() const {
 
 void Process::setLastError(err_t ec, const char *es) const {
    MTLock lock_this_func;
+   // proc_lock is on the WRAPPER -> valid even when llproc_==NULL (exited).
+   // globalSetLastError writes plain statics lock-free (last-write-wins); the
+   // local write is last-write-wins under proc_lock.  Public form only reached
+   // from user/handler contexts (leaf/generator use int_process::setLastError).
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    if (!llproc_) {
       exitstate_->last_error = ec;
       exitstate_->last_error_msg = es;
@@ -7602,6 +7654,7 @@ void Process::setLastError(err_t ec, const char *es) const {
 
 void Process::clearLastError() const {
   MTLock lock_this_func;
+  ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
   if (!llproc_) {
      exitstate_->last_error = err_none;
      exitstate_->last_error_msg = "ok";
@@ -7614,6 +7667,7 @@ void Process::clearLastError() const {
 ExecFileInfo* Process::getExecutableInfo() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getExecutableInfo", NULL);
 
    return llproc()->plat_getExecutableInfo();
@@ -7622,6 +7676,7 @@ ExecFileInfo* Process::getExecutableInfo() const
 unsigned int Process::getCapabilities() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this())); // D-3 prep
    PROC_EXIT_TEST("getCapabilities", 0);
    return llproc()->plat_getCapabilities();
 }
@@ -7652,6 +7707,7 @@ Thread::~Thread()
 
 void *Thread::getData() const {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    if (exitstate_)
       return exitstate_->user_data;
    return llthread_->user_data;
@@ -7659,6 +7715,7 @@ void *Thread::getData() const {
 
 void Thread::setData(void *p) const {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    if (exitstate_) {
       exitstate_->user_data = p;
    }
@@ -7670,6 +7727,7 @@ void Thread::setData(void *p) const {
 Process::const_ptr Thread::getProcess() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    if (!llthread_) {
       assert(exitstate_);
       return exitstate_->proc_ptr;
@@ -7683,6 +7741,7 @@ Process::const_ptr Thread::getProcess() const
 Process::ptr Thread::getProcess()
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    if (!llthread_) {
       assert(exitstate_);
       return exitstate_->proc_ptr;
@@ -7701,6 +7760,7 @@ int_thread *Thread::llthrd() const
 bool Thread::isStopped() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    THREAD_EXIT_TEST("isStopped", false);
    return llthread_->getUserState().getState() == int_thread::stopped;
 }
@@ -7708,6 +7768,7 @@ bool Thread::isStopped() const
 bool Thread::isRunning() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    THREAD_EXIT_TEST("isRunning", false);
    return llthread_->getUserState().getState() == int_thread::running;
 }
@@ -7715,6 +7776,7 @@ bool Thread::isRunning() const
 bool Thread::isLive() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    if (!llthread_) {
       return false;
    }
@@ -7725,6 +7787,7 @@ bool Thread::isLive() const
 bool Thread::isDetached() const
 {
     MTLock lock_this_func;
+    ProcScopeLock plock(procWrapper()); // D-3 prep
     THREAD_EXIT_TEST("isDetached", false);
     return llthread_->getUserState().getState() == int_thread::detached;
 }
@@ -8095,6 +8158,7 @@ bool Thread::getThreadLocalAddress(Library::const_ptr lib, Dyninst::Offset tls_s
 bool Thread::isInitialThread() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    THREAD_EXIT_TEST("isInitialThread", false);
    return llthread_->llproc()->threadPool()->initialThread() == llthread_;
 }
@@ -8102,6 +8166,7 @@ bool Thread::isInitialThread() const
 bool Thread::isUser() const
 {
 	MTLock lock_this_func;
+	ProcScopeLock plock(procWrapper()); // D-3 prep
    THREAD_EXIT_TEST("isUser", false);
 	return llthread_->isUser();
 }
@@ -8152,6 +8217,7 @@ bool Thread::getSyscallMode() const
 Dyninst::LWP Thread::getLWP() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    if (!llthread_) {
       assert(exitstate_);
       return exitstate_->lwp;
@@ -8183,6 +8249,7 @@ bool Thread::postIRPC(IRPC::ptr irpc) const
 bool Thread::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    THREAD_EXIT_TEST("getPostedIRPCs", false);
 
    rpc_list_t *rpc_list = llthread_->getPostedRPCs();
@@ -8198,6 +8265,7 @@ bool Thread::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
 bool Thread::haveUserThreadInfo() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    THREAD_EXIT_TEST("haveUserThreadInfo", false);
    return llthread_->haveUserThreadInfo();
 }
@@ -8205,6 +8273,7 @@ bool Thread::haveUserThreadInfo() const
 Dyninst::THR_ID Thread::getTID() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    if (!llthread_) {
       if (exitstate_ && exitstate_->thr_id != NULL_THR_ID) {
          return exitstate_->thr_id;
@@ -8226,6 +8295,7 @@ Dyninst::THR_ID Thread::getTID() const
 Dyninst::Address Thread::getStartFunction() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    THREAD_EXIT_TEST("getStartFunction", 0);
 
    Dyninst::Address addr;
@@ -8239,6 +8309,7 @@ Dyninst::Address Thread::getStartFunction() const
 Dyninst::Address Thread::getStackBase() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    THREAD_EXIT_TEST("getStackBase", 0);
 
    Dyninst::Address addr;
@@ -8252,6 +8323,7 @@ Dyninst::Address Thread::getStackBase() const
 unsigned long Thread::getStackSize() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    THREAD_EXIT_TEST("getStackSize", 0);
 
    unsigned long size;
@@ -8265,6 +8337,7 @@ unsigned long Thread::getStackSize() const
 Dyninst::Address Thread::getTLS() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    THREAD_EXIT_TEST("getTLS", 0);
 
    Dyninst::Address addr;
@@ -8278,6 +8351,7 @@ Dyninst::Address Thread::getTLS() const
 Dyninst::Address Thread::getThreadInfoBlockAddr() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    if (!llthread_) {
       perr_printf("getThreadInfoBlockAddr on deleted thread\n");
       setLastError(err_exited, "Thread is exited");
@@ -8290,6 +8364,7 @@ Dyninst::Address Thread::getThreadInfoBlockAddr() const
 IRPC::const_ptr Thread::getRunningIRPC() const
 {
    MTLock lock_this_func;
+   ProcScopeLock plock(procWrapper()); // D-3 prep
    THREAD_EXIT_DETACH_TEST("getRunningIRPC", IRPC::const_ptr());
 
    int_iRPC::ptr running = llthread_->runningRPC();
