@@ -76,10 +76,53 @@ exercised — a green gate understates coverage. TSan flags orders from any run.
 
 - Landed: encapsulation E1–E5 (accessors + private bridge), 2a/2b deletion
   model, weak thread→process cache, detach-leak fix. Each validated 1534/1534.
-- **Uncommitted working tree**: option-(ii) condvar retirement + default-ON
-  accessor locking + lock-attempt logging + the nolock tags + `tla/` model.
-  Gate: full native validation AND zero TSan lock-order-inversions in the
-  same iteration.
+- **Option (b) — per-method work_lock retirement (landed, each gated
+  1534/1534 + 0 TSan inversions):**
+  - `401cf2149` correction: depth-routed proc_lock (lockImpl/unlockImpl),
+    mutators take proc_lock, 13 manual brackets routed through lockImpl.
+  - Per-process data I/O family now proc_lock-only (work_lock dropped),
+    all four corners {sync,async}×{read,write}: `6ba158e8a` readMemory,
+    `7ddb09d27` register reads, `52b4ce295` writes, `aa748bd39` async reads.
+  - `921064ee3` memory-perm/region family (getMemoryPageSize, findFreeMemory,
+    getMemoryAccessRights/setMemoryAccessRights, findAllocatedRegionAround) →
+    proc_lock; this also closed a pre-existing (master-native) llproc_-vs-
+    teardown UAF on the four lock-free readers.
+  - Option-(b) surface for ordering-free ops is exhausted.
+- **State-machine redesign (D-series) — diagnosis + D-2 groundwork landed:**
+  - S5 post-mortem, corrected: the `⚠(b)` handler asserts (HandleThreadStop
+    pending-stop, HandleBreakpointClear all-stopped, the desync/restore count
+    chains, iRPC state asserts) are NOT a fundamental cross-thread ordering
+    problem — the arm→SIGSTOP→stop→decode→handle causality is provided by the
+    kernel round-trip.  What was missing is mutual exclusion + memory
+    visibility between the user-side state-machine mutator and the handler's
+    syncRunState.  The handler already holds proc_lock (S4 handle_plock); the
+    user state-machine methods held only work_lock.  Fix = give them proc_lock
+    too (closes the rule-3 gap).
+  - **D-2 (proc_lock the state-machine mutators, keep work_lock; no-op until
+    removal):** `34873317f` stop/continueThread; `9016d2b1d` setSingleStep/
+    SyscallMode + postIRPC; `0d6199fcd` addBreakpoint/rmBreakpoint/runIRPCAsync.
+    (ProcessSet stop/continue paths were already proc_lock-covered via default-
+    locking ProcImplRef.)  Each gated native 1534/1534 + targeted TSan (the
+    on-target pc_* / test1_13-create sweep — NOT the slow test1_* sweep, which
+    times out before reaching the changed paths; see verify notes).
+  - **D-3 plan (remove work_lock) — the KEY design decision:** convert the
+    remaining PUBLIC work_lock helper methods (getPid, getLWP, isTerminated,
+    is{Running,Stopped,Exited,Detached,Crashed}, hasRunningThread,
+    setLastError/getLastError/clearLastError, ...) to take **proc_lock**, NOT
+    route their call sites to internal overloads.  Rationale: proc_lock is
+    recursive, so a handler/state-machine method already holding proc_lock that
+    calls one of these just re-locks (no proc_lock→work_lock edge); the internal
+    int_process/int_thread overloads stay lock-free for leaf/generator callers
+    (the two-form split is preserved).  Method-conversion is fewer changes and
+    null-safe (proc_lock is on the WRAPPER, valid even when llproc_==NULL —
+    matters for setLastError's exited branch).  setLastError specifically needs
+    NO lock beyond proc_lock: globalSetLastError already writes plain statics
+    lock-free (last-write-wins, pcerrors.C:40/155) and the local write is
+    last-write-wins under proc_lock.
+  - **Gate before D-3:** a "no PUBLIC helper is ever called under a leaf lock
+    or on the generator/decode path" audit (else proc_lock there = clause-1
+    deadlock).  Sweep PART 3 indicates leaf/generator uniformly use the
+    lock-free internal overloads; a confirming audit is in flight.
 
 ## Verification — run these before any commit
 
