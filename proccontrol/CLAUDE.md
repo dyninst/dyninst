@@ -107,24 +107,40 @@ exercised — a green gate understates coverage. TSan flags orders from any run.
     locking ProcImplRef.)  Each gated native 1534/1534 + targeted TSan (the
     on-target pc_* / test1_13-create sweep — NOT the slow test1_* sweep, which
     times out before reaching the changed paths; see verify notes).
-  - **D-3 plan (remove work_lock) — the KEY design decision:** convert the
-    remaining PUBLIC work_lock helper methods (getPid, getLWP, isTerminated,
-    is{Running,Stopped,Exited,Detached,Crashed}, hasRunningThread,
-    setLastError/getLastError/clearLastError, ...) to take **proc_lock**, NOT
-    route their call sites to internal overloads.  Rationale: proc_lock is
-    recursive, so a handler/state-machine method already holding proc_lock that
-    calls one of these just re-locks (no proc_lock→work_lock edge); the internal
-    int_process/int_thread overloads stay lock-free for leaf/generator callers
-    (the two-form split is preserved).  Method-conversion is fewer changes and
-    null-safe (proc_lock is on the WRAPPER, valid even when llproc_==NULL —
-    matters for setLastError's exited branch).  setLastError specifically needs
-    NO lock beyond proc_lock: globalSetLastError already writes plain statics
-    lock-free (last-write-wins, pcerrors.C:40/155) and the local write is
-    last-write-wins under proc_lock.
-  - **Gate before D-3:** a "no PUBLIC helper is ever called under a leaf lock
-    or on the generator/decode path" audit (else proc_lock there = clause-1
-    deadlock).  Sweep PART 3 indicates leaf/generator uniformly use the
-    lock-free internal overloads; a confirming audit is in flight.
+  - **D-3 design (method-conversion, NOT call-site routing):** convert the
+    PUBLIC work_lock helper methods to take **proc_lock** in place.  Rationale:
+    proc_lock is recursive, so a handler/state-machine method already holding
+    proc_lock that calls one of these just re-locks (no proc_lock→work_lock
+    edge); the internal int_process/int_thread overloads stay lock-free for
+    leaf/generator callers (the two-form split is preserved).  Null-safe
+    (proc_lock is on the WRAPPER, valid even when llproc_==NULL).
+    setLastError needs NO lock beyond proc_lock: globalSetLastError writes
+    plain statics lock-free (last-write-wins, pcerrors.C:40/155).
+- **D-3 — LANDED (each step gated 1534/1534 + 0 TSan inversions):**
+  - `2f8f436a7` prep: proc_lock added (alongside work_lock) to the ~67 public
+    query/error helpers; leaf-lock audit cleared (leaf/generator contexts
+    uniformly use the internal receivers).  `1c8a69f39` prep: the 3 TLS
+    parkers got clause-2 proc_lock brackets (released across each park).
+  - `32bd69c99` getPid → LOCK-FREE via wrapper-cached pid (`cached_pid_`,
+    stamped in initializeProcess + re-stamped in createProcs for launch):
+    generator-callable, so it can take neither proc_lock nor deref llproc_.
+  - `05cc593bc` **the flip**: MTLock deleted from the 67 helpers; proc_lock
+    is now their ONLY lock.  Audit that cleared it: no converted body calls
+    a public MTLock API (setLastError family + *_EXIT_TEST macros resolve to
+    converted methods = recursive re-lock); all paired mutators already hold
+    proc_lock (S4 handler, D-2 user mutators, ProcessSet via ImplRef).
+  - In flight: the 3 TLS parkers drop MTLock (post-park brackets re-validate
+    via THREAD_EXIT_TEST + re-derive the impl — never reuse impl pointers
+    across a park).  `handleEvents` is NOT per-process convertible: it is
+    global event handling; its work_lock belongs to Phase B (cb_lock).
+- **TLA models landed:** `71d2f1b8e` Phase C ProcControlLocks (work_lock
+  removed, two processes, BUG9/10/11) and `a9943331d` ProcControlLifetime
+  (pool/impl lifecycle, BUGL1–4) — see the TLA section.
+- **Next: D-4** — the ordering-dependent ops (continue/stop/breakpoint/iRPC
+  run loop, waitAndHandleEvents): implement the Phase C protocol the model
+  proves (handler holds proc_lock(proc) across handling, released around
+  callback delivery), then Phase B (dissolve work_lock into cb_lock + the
+  static registration surface).
 
 ## Verification — run these before any commit
 
