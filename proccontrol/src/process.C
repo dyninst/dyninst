@@ -6834,7 +6834,12 @@ bool Process::runIRPCAsync(IRPC::ptr irpc)
 {
    MTLock lock_this_func;
    PROC_EXIT_DETACH_TEST("runIRPCAsync", false);
-
+   // work_lock retirement (D-2): the iRPC post + the running-state transition
+   // must be atomic vs the handler on this process; hold proc_lock.  No park;
+   // postRPCTo* take no locks (verified).  runIRPCSync drives this and then
+   // parks in waitAndHandleForProc holding no proc_lock, so it needs no lock
+   // of its own.
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this()));
 
    int_process *proc = llproc();
    int_iRPC::ptr rpc = irpc->llrpc()->rpc;
@@ -7330,6 +7335,13 @@ bool Process::addBreakpoint(Address addr, Breakpoint::ptr bp) const
 {
    MTLock lock_this_func;
    PROC_EXIT_DETACH_TEST("addBreakpoint", false);
+   // work_lock retirement (D-2): the running-thread check and the breakpoint
+   // install must be atomic vs the handler's per-event unit on this process;
+   // hold proc_lock across both.  No park.  Internal work_lock-taking callees
+   // (hasRunningThread, setLastError) re-enter work_lock recursively while it
+   // is still held here -- no proc_lock->work_lock edge (see stopThread); at
+   // D-3 those callees convert to proc_lock (recursive, same process).
+   ProcScopeLock plock(pc_const_cast<Process>(shared_from_this()));
 
    if (hasRunningThread()) {
       perr_printf("User attempted to add breakpoint to running process\n");
@@ -7351,17 +7363,25 @@ bool Process::rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
    MTLock lock_this_func;
    PROC_EXIT_DETACH_TEST("rmBreakpoint", false);
 
-   if (hasRunningThread()) {
-      perr_printf("User attempted to remove breakpoint on running process\n");
-      setLastError(err_notstopped, "Attempted to remove breakpoint on running process\n");
-      return false;
-   }
-
    set<response::ptr> resps;
-   bool result = llproc_->removeBreakpoint(addr, bp->llbp(), resps);
-   if (!result) {
-      pthrd_printf("Failed to removeBreakpoint\n");
-      return false;
+   {
+      // work_lock retirement (D-2): the running-thread check + breakpoint
+      // removal are atomic vs the handler under proc_lock; RELEASED before
+      // waitForAsyncEvent (clause 2: no park under proc_lock).  Internal
+      // work_lock callees re-enter recursively (see addBreakpoint).
+      ProcScopeLock plock(pc_const_cast<Process>(shared_from_this()));
+
+      if (hasRunningThread()) {
+         perr_printf("User attempted to remove breakpoint on running process\n");
+         setLastError(err_notstopped, "Attempted to remove breakpoint on running process\n");
+         return false;
+      }
+
+      bool result = llproc_->removeBreakpoint(addr, bp->llbp(), resps);
+      if (!result) {
+         pthrd_printf("Failed to removeBreakpoint\n");
+         return false;
+      }
    }
 
    int_process::waitForAsyncEvent(resps);
