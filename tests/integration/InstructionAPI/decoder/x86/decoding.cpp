@@ -143,6 +143,11 @@ bool run_reserved_encodings() {
     {"swapgs in 32-bit mode", {0x0f, 0x01, 0xf8}, Dyninst::Arch_x86},
     // Group 7 mod == 11 slots Table A-6 leaves reserved.
     {"group 7 reserved mod=11 slot (0F 01 FA)", {0x0f, 0x01, 0xfa}, Dyninst::Arch_x86_64},
+    // Group 9 slots Table A-6 leaves reserved.
+    {"group 9 F2 /6 memory form", {0xf2, 0x0f, 0xc7, 0x37}, Dyninst::Arch_x86_64},
+    {"group 9 F3 /7 memory form", {0xf3, 0x0f, 0xc7, 0x3f}, Dyninst::Arch_x86_64},
+    {"group 9 /1 register form (cmpxchg8b slot)", {0x0f, 0xc7, 0xc8}, Dyninst::Arch_x86_64},
+    {"group 9 F2 /7 register form", {0xf2, 0x0f, 0xc7, 0xf8}, Dyninst::Arch_x86_64},
     // FMA4 requires a VEX prefix with pp = 66 (AMD APM Vol 6).
     {"legacy (non-VEX) FMA4 opcode", {0x66, 0x0f, 0x3a, 0x68, 0xca, 0x30}, Dyninst::Arch_x86_64},
     {"FMA4 with VEX.pp = F2", {0xc4, 0xe3, 0x73, 0x68, 0xca, 0x30}, Dyninst::Arch_x86_64},
@@ -498,6 +503,97 @@ std::vector<decoding_test> make_tests64() {
         reg_set{rax} | status_flags
       },
       no_mem
+    },
+    { // rdrand r16 (66 0F C7 /6: the 66 prefix is the operand-size
+      // variant; SDM Vol 2B, RDRAND).
+      {0x66, 0x0f, 0xc7, 0xf0},
+      di::opcode_test(e_rdrand, "rdrand %ax"),
+      di::register_rw_test{
+        reg_set{},
+        reg_set{Dyninst::x86_64::ax} | status_flags
+      },
+      no_mem
+    },
+    { // rdseed r32 (NP 0F C7 /7, mod == 11; SDM Vol 2B, RDSEED).
+      {0x0f, 0xc7, 0xf8},
+      di::opcode_test(e_rdseed, "rdseed %eax"),
+      di::register_rw_test{
+        reg_set{},
+        reg_set{eax} | status_flags
+      },
+      no_mem
+    },
+    { // rdpid (F3 0F C7 /7, mod == 11; SDM Vol 2B, RDPID). The operand
+      // is always r64 in 64-bit mode, which the tables cannot express
+      // without REX.W; the register identity is correct.
+      {0xf3, 0x0f, 0xc7, 0xf9},
+      di::opcode_test(e_rdpid, "rdpid %ecx"),
+      di::register_rw_test{
+        reg_set{},
+        reg_set{ecx}
+      },
+      no_mem
+    },
+    { // vmptrld m64 (NP 0F C7 /6, mem; SDM Vol 2C): reads the pointer
+      // and reports success through the status flags (SDM Vol 3C).
+      {0x0f, 0xc7, 0x37},
+      di::opcode_test(e_vmptrld, "vmptrld (%rdi)"),
+      di::register_rw_test{
+        reg_set{rdi},
+        status_flags
+      },
+      di::mem_test{
+        reads_memory, !writes_memory,
+        di::register_rw_test{
+          reg_set{rdi},
+          reg_set{}
+        }
+      }
+    },
+    { // vmxon m64 (F3 0F C7 /6, mem; SDM Vol 2C).
+      {0xf3, 0x0f, 0xc7, 0x37},
+      di::opcode_test(e_vmxon, "vmxon (%rdi)"),
+      di::register_rw_test{
+        reg_set{rdi},
+        status_flags
+      },
+      di::mem_test{
+        reads_memory, !writes_memory,
+        di::register_rw_test{
+          reg_set{rdi},
+          reg_set{}
+        }
+      }
+    },
+    { // vmclear m64 (66 0F C7 /6, mem; SDM Vol 2C).
+      {0x66, 0x0f, 0xc7, 0x37},
+      di::opcode_test(e_vmclear, "vmclear (%rdi)"),
+      di::register_rw_test{
+        reg_set{rdi},
+        status_flags
+      },
+      di::mem_test{
+        !reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{},
+          reg_set{rdi}
+        }
+      }
+    },
+    { // vmptrst m64 (NP 0F C7 /7, mem; SDM Vol 2C).
+      {0x0f, 0xc7, 0x3f},
+      di::opcode_test(e_vmptrst, "vmptrst (%rdi)"),
+      di::register_rw_test{
+        reg_set{rdi},
+        status_flags
+      },
+      di::mem_test{
+        !reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{},
+          reg_set{rdi}
+        }
+      }
     },
     // -------- group 7 (0F 01), mod == 11 --------
     { // rdtscp (0F 01 F9; SDM Vol 2B): writes EDX:EAX and ECX.

@@ -598,11 +598,19 @@ namespace Dyninst { namespace InstructionAPI {
       case e_pcmpistri: return standardFlags;
       case e_pcmpistrm: return standardFlags;
       case e_ptest: return standardFlags;
-      // SDM Vol 2B RDRAND and Vol 2B TPAUSE/UMWAIT: CF reports the result;
-      // OF, SF, ZF, AF, and PF are cleared.
+      // SDM Vol 2B RDRAND/RDSEED and TPAUSE/UMWAIT: CF reports the
+      // result; OF, SF, ZF, AF, and PF are cleared.
       case e_rdrand: return standardFlags;
+      case e_rdseed: return standardFlags;
       case e_tpause: return standardFlags;
       case e_umwait: return standardFlags;
+      // VMX instructions report success through ZF and CF and clear the
+      // other status flags (SDM Vol 3C, "Conventions" under VM
+      // instruction error numbers).
+      case e_vmptrld: return standardFlags;
+      case e_vmptrst: return standardFlags;
+      case e_vmclear: return standardFlags;
+      case e_vmxon: return standardFlags;
       // SDM Vol 2B TZCNT / LZCNT: ZF and CF are defined results; OF, SF,
       // PF, and AF are undefined, so all six are conservatively written
       // (matching the bsf/bsr entries above).

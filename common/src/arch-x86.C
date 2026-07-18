@@ -210,7 +210,8 @@ enum {
   SSEF0, SSEF1, SSEF2, SSEF3, SSEF4, SSEF5, SSEF6, SSEF7,
   SSEF8, SSEF9, SSEFA, SSEFB, SSEFC, SSEFD, SSEFE,
   SSEAE00M, SSEAE01M, SSEAE02M, SSEAE03M, SSEAE04M, SSEAE05M, SSEAE06M, SSEAE07M,
-  SSEAE00R, SSEAE01R, SSEAE02R, SSEAE03R, SSEAE04R, SSEAE05R, SSEAE06R, SSEAE07R
+  SSEAE00R, SSEAE01R, SSEAE02R, SSEAE03R, SSEAE04R, SSEAE05R, SSEAE06R, SSEAE07R,
+  SSEC706M, SSEC707M, SSEC706R, SSEC707R
 };
 /** END_DYNINST_TABLE_DEF */
 
@@ -2471,21 +2472,15 @@ static ia32_entry groupMap[][8] = {
   { e_btc, t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R, 0 },
  },
 
- { /* group 9 - operands are defined here.
-      SDM Vol 2D, Table A-6 (Group 9). The xsaves/xrstors/xsavec forms
-      read the requested-feature bitmap in EDX:EAX (SDM Vol 1, 13.7);
-      like the group 15 xsave family, the variable-size XSAVE area is
-      approximated as Md. This group does not yet discriminate on mod or
-      mandatory prefix, so vmptrld/vmclear/vmxon/vmptrst (mem /6, /7),
-      rdseed (reg /7), and rdpid (F3 reg /7) are not decoded. */
+ { /* group 9 - dispatched through grp9Map below, which discriminates
+      on ModRM.mod and the mandatory prefix; this row is unused. */
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-  // see comments for cmpxch
-  { e_cmpxchg8b, t_done, 0, true, { EDXEAX, Mq, ECXEBX }, 0, s1RW2RW3R | (fCMPXCH8 << FPOS), s2I },
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-  { e_xrstors, t_done, 0, true, { Md, EDX, EAX }, 0, s1R2R3R, s2I | s3I },
-  { e_xsavec, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
-  { e_xsaves, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
-  { e_rdrand, t_done, 0, true, { Ev, Zz, Zz }, 0, s1W, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 }
  },
 
@@ -2519,6 +2514,38 @@ static ia32_entry groupMap[][8] = {
 
 };
 
+
+/* Group 9 (0F C7): ModRM.mod and the mandatory prefix select among
+   cmpxchg8b, the compacted-xsave family, the VMX pointer instructions,
+   and rdrand/rdseed/rdpid (SDM Vol 2D, Table A-6, Group 9). The
+   xsavec/xsaves/xrstors forms read the requested-feature bitmap in
+   EDX:EAX (SDM Vol 1, 13.7); like the group 15 xsave family, the
+   variable-size XSAVE area is approximated as Md. With REX.W,
+   0F C7 /1 is cmpxchg16b on RDX:RAX/RCX:RBX; the tables cannot select
+   an entry on REX.W, so it reports as cmpxchg8b with the 32-bit pair. */
+static ia32_entry grp9Map[2][8] = {
+  { /* mod != 11 (memory forms) */
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    // see comments for cmpxch
+    { e_cmpxchg8b, t_done, 0, true, { EDXEAX, Mq, ECXEBX }, 0, s1RW2RW3R | (fCMPXCH8 << FPOS), s2I },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_xrstors, t_done, 0, true, { Md, EDX, EAX }, 0, s1R2R3R, s2I | s3I },
+    { e_xsavec, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
+    { e_xsaves, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
+    { e_No_Entry, t_sse, SSEC706M, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_sse, SSEC707M, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* mod == 11 (register forms) */
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_sse, SSEC706R, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_sse, SSEC707R, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+};
 
 /* Group 7 (0F 01) with mod == 11: the reg and r/m fields together select
    individual instructions (SDM Vol 2D, Table A-6, Group 7). reg = 4
@@ -3851,6 +3878,37 @@ static ia32_entry sseMap[][4] = {
     { e_sfence, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEC706M: group 9 /6, memory form. NP vmptrld m64, F3 vmxon m64,
+       66 vmclear m64 (SDM Vol 2C). Each reports success through the
+       status flags (SDM Vol 3C, "VM Instruction Error Numbers"). */
+    { e_vmptrld, t_done, 0, true, { Mq, Zz, Zz }, 0, s1R, 0 },
+    { e_vmxon, t_done, 0, true, { Mq, Zz, Zz }, 0, s1R, 0 },
+    { e_vmclear, t_done, 0, true, { Mq, Zz, Zz }, 0, s1W, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEC707M: group 9 /7, memory form. NP vmptrst m64 (SDM Vol 2C). */
+    { e_vmptrst, t_done, 0, true, { Mq, Zz, Zz }, 0, s1W, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEC706R: group 9 /6, register form. rdrand r16/r32/r64
+       (SDM Vol 2B, RDRAND: NP 0F C7 /6; the 66 form is the r16
+       operand-size variant, which Ev picks up from the prefix). */
+    { e_rdrand, t_done, 0, true, { Ev, Zz, Zz }, 0, s1W, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_rdrand, t_done, 0, true, { Ev, Zz, Zz }, 0, s1W, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEC707R: group 9 /7, register form. NP/66 rdseed r16/r32/r64
+       (SDM Vol 2B, RDSEED); F3 rdpid r32/r64 (SDM Vol 2B, RDPID: the
+       operand is always r64 in 64-bit mode, which op_y cannot express
+       without REX.W; the register identity is correct). */
+    { e_rdseed, t_done, 0, true, { Ev, Zz, Zz }, 0, s1W, 0 },
+    { e_rdpid, t_done, 0, true, { Ey, Zz, Zz }, 0, s1W, 0 },
+    { e_rdseed, t_done, 0, true, { Ev, Zz, Zz }, 0, s1W, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   }
 };
@@ -9029,6 +9087,14 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                         nxtab = gotit->otable;
                         break;
                     }
+                    if(idx == Grp9)
+                    {
+                        /* Group 9 discriminates on mod (and, via t_sse
+                           rows, the mandatory prefix). */
+                        gotit = &grp9Map[(addr[0] >> 6) == 3][reg];
+                        nxtab = gotit->otable;
+                        break;
+                    }
                     if(idx < Grp12)
                         switch(idx)
                         {
@@ -10245,7 +10311,7 @@ static const unsigned char sse_prefix[256] = {
    /* 9x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
    /* Ax */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0, // AE: every Grp15 slot is prefix-discriminated (SDM Table A-6)
    /* Bx */ 0,0,0,0,0,0,0,0,1,0,0,0,1,1,0,0, // B8 popcnt, BC tzcnt, BD lzcnt (F3-discriminated)
-   /* Cx */ 0,0,1,0,1,1,1,0,0,0,0,0,0,0,0,0,
+   /* Cx */ 0,0,1,0,1,1,1,1,0,0,0,0,0,0,0,0, // C7: Grp9 /6 and /7 are prefix-discriminated (SDM Table A-6)
    /* Dx */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
    /* Ex */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
    /* Fx */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
