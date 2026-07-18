@@ -2455,14 +2455,20 @@ static ia32_entry groupMap[][8] = {
   { e_btc, t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R, 0 },
  },
 
- { /* group 9 - operands are defined here */
+ { /* group 9 - operands are defined here.
+      SDM Vol 2D, Table A-6 (Group 9). The xsaves/xrstors/xsavec forms
+      read the requested-feature bitmap in EDX:EAX (SDM Vol 1, 13.7);
+      like the group 15 xsave family, the variable-size XSAVE area is
+      approximated as Md. This group does not yet discriminate on mod or
+      mandatory prefix, so vmptrld/vmclear/vmxon/vmptrst (mem /6, /7),
+      rdseed (reg /7), and rdpid (F3 reg /7) are not decoded. */
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   // see comments for cmpxch
   { e_cmpxchg8b, t_done, 0, true, { EDXEAX, Mq, ECXEBX }, 0, s1RW2RW3R | (fCMPXCH8 << FPOS), s2I },
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-  { e_xrstors, t_done, 0, true, { Wps, Zz, Zz }, 0, 0, 0 },
-  { e_xsavec, t_done, 0, true, { Md, Zz, Zz }, s1W, 0, 0 },
-  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  { e_xrstors, t_done, 0, true, { Md, EDX, EAX }, 0, s1R2R3R, s2I | s3I },
+  { e_xsavec, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
+  { e_xsaves, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
   { e_rdrand, t_done, 0, true, { Ev, Zz, Zz }, 0, s1W, 0 },
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 }
  },
@@ -3543,10 +3549,11 @@ static ia32_entry sseMap[][4] = {
     { e_psubd, t_sse_mult, SSEFA_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
-  { /* SSEFB */ // FIXME: Same????
-    { e_psubd, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R, 0 },
+  { /* SSEFB: psubq (SDM Vol 2B, PSUBQ: NP 0F FB /r and 66 0F FB /r);
+       the VEX forms below already decode as vpsubq. */
+    { e_psubq, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_psubd, t_sse_mult, SSEFB_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
+    { e_psubq, t_sse_mult, SSEFB_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSEFC */

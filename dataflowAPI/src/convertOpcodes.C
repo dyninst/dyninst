@@ -741,6 +741,8 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_psubb;
         case e_psubd:
             return x86_psubd;
+        case e_psubq:
+            return x86_psubq;
         case e_psubsb:
             return x86_psubsb;
         case e_psubsw:
