@@ -183,7 +183,8 @@ namespace NS_x86 {
 // groups
 enum {
   Grp1a=0, Grp1b, Grp1c, Grp1d, Grp1A, Grp2, Grp3a, Grp3b, Grp4, Grp5, Grp6, Grp7,
-  Grp8, Grp9, Grp11, Grp11b, Grp12, Grp13, Grp14, Grp15, Grp16, Grp17, GrpEXTRQ, GrpAMD
+  Grp8, Grp9, Grp11, Grp11b, Grp12, Grp13, Grp14, Grp15, Grp16, Grp17, GrpEXTRQ,
+  GrpCLDEMOTE, GrpF31E, GrpAMD
 };
 
 // SSE
@@ -212,7 +213,7 @@ enum {
   SSEAE00M, SSEAE01M, SSEAE02M, SSEAE03M, SSEAE04M, SSEAE05M, SSEAE06M, SSEAE07M,
   SSEAE00R, SSEAE01R, SSEAE02R, SSEAE03R, SSEAE04R, SSEAE05R, SSEAE06R, SSEAE07R,
   SSEC706M, SSEC707M, SSEC706R, SSEC707R,
-  SSE09
+  SSE09, SSE1C, SSE1E
 };
 /** END_DYNINST_TABLE_DEF */
 
@@ -1262,9 +1263,9 @@ static ia32_entry twoByteMap[256] = {
   { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0, 0 }, // 19-1F according to sandpile and AMD are NOPs with an Ev operand
   { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0, 0 }, // Can we go out on a limb that the 'operand' of a NOP is never read?
   { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0, 0 }, // I think we can...so nullary operand semantics, but consume the
-  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0, 0 }, // mod/rm byte operand.
+  { e_No_Entry, t_sse, SSE1C, 0, { Zz, Zz, Zz }, 0, 0, 0 }, // 1C: cldemote / reserved NOP
   { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0, 0 }, // -- BW 1/08
-  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0, 0 },
+  { e_No_Entry, t_sse, SSE1E, 0, { Zz, Zz, Zz }, 0, 0, 0 }, // 1E: rdssp/endbr under F3, reserved NOP otherwise
   { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0, 0 },
   /* 20 */
   { e_mov, t_done, 0, true, { Rd, Cd, Zz }, 0, s1W2R, 0 },
@@ -2837,6 +2838,60 @@ static ia32_entry groupMap2[][2][8] = {
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
     }
   },
+  { /* cldemote m8 (NP 0F 1C /0, mem; SDM Vol 2A, CLDEMOTE): a cache
+       hint whose operand supplies only the address, treated like the
+       prefetch family. Every other NP 0F 1C encoding is a reserved NOP
+       (SDM Vol 2B, NOP). */
+    {
+      { e_cldemote, t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fCLFLUSH << FPOS), 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+    },
+    {
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+    }
+  },
+  { /* F3 0F 1E: rdsspd r32 / rdsspq r64 with REX.W at /1 with mod == 11
+       (SDM Vol 2B, RDSSPD/RDSSPQ: reads the shadow-stack pointer, which
+       has no register representation, into the operand; the tables
+       cannot select a mnemonic on REX.W, so both widths report
+       e_rdsspd). endbr32/endbr64 (F3 0F 1E FB/FA; SDM Vol 2A) are
+       recognized before table dispatch in InstructionDecoder-x86.C.
+       Every other F3 0F 1E encoding is a reserved NOP (SDM Vol 2B,
+       NOP). */
+    {
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+    },
+    {
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_rdsspd, t_done, 0, true, { Ey, Zz, Zz }, 0, s1W, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+      { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+    }
+  },
   { /* AMD prefetch group */
     {
       { e_prefetch,   t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHAMDE << FPOS), 0 },
@@ -3919,6 +3974,20 @@ static ia32_entry sseMap[][4] = {
     { e_wbnoinvd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSE1C: NP routes to the cldemote group; the prefixed forms are
+       reserved NOPs (SDM Vol 2A, CLDEMOTE, and Vol 2B, NOP). */
+    { e_No_Entry, t_grp, GrpCLDEMOTE, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+    { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+    { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+  },
+  { /* SSE1E: F3 routes to the rdssp/endbr group; the other forms are
+       reserved NOPs (SDM Vol 2B, NOP, and Vol 2B RDSSPD/RDSSPQ). */
+    { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+    { e_No_Entry, t_grp, GrpF31E, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+    { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
   }
 };
 /** END_DYNINST_TABLE_VERIFICATION */
@@ -8992,8 +9061,9 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 /* If there is no vex prefix, we're done -- except when the
                    entry continues into a VEX-multiplexing table, whose
                    first column describes the non-VEX instruction (e.g.
-                   66 0F 78: non-VEX extrq vs. EVEX conversions). */
-                if(!pref.vex_present && nxtab != t_sse_vex_mult)
+                   66 0F 78: non-VEX extrq vs. EVEX conversions), or into
+                   an opcode-extension group (e.g. 0F 1C: cldemote). */
+                if(!pref.vex_present && nxtab != t_sse_vex_mult && nxtab != t_grp)
                     nxtab = t_done;
                 break;
             case t_sse_mult:
@@ -10309,7 +10379,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
 static const unsigned char sse_prefix[256] = {
    /*       0 1 2 3 4 5 6 7 8 9 A B C D E F  */
    /* 0x */ 0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0, // 09: wbinvd/wbnoinvd is F3-discriminated
-   /* 1x */ 1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,
+   /* 1x */ 1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,0, // 1C cldemote, 1E rdssp/endbr (F3-discriminated)
    /* 2x */ 0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,
    /* 3x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
    /* 4x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

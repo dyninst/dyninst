@@ -1763,10 +1763,11 @@ namespace Dyninst { namespace InstructionAPI {
             this->m_EntryID = e_No_Entry;
             return;
         }
-      } else if(decodedInstruction->getPrefix()->getPrefix(0) == PREFIX_REP &&
+      } else if(decodedInstruction->getPrefix()->getOpcodePrefix() == 0xF3 &&
                 *(b.start + 1) == (unsigned char)(0x0F) &&
                 *(b.start + 2) == (unsigned char)(0x1E)) {
-        // handling ENDBR family
+        // handling ENDBR family: 0F 1E is prefix-discriminated, so the
+        // F3 is filed as the opcode-selecting prefix
         if(*(b.start + 3) == (unsigned char)(0xFB)) {
           m_EntryID = e_endbr32;
           m_Mnemonic = entryNames_IAPI[e_endbr32];

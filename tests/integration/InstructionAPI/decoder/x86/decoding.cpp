@@ -757,6 +757,93 @@ test_list group7_11_16_tests() {
   // clang-format on
 }
 
+// hint space: cldemote (0F 1C), rdssp/endbr (F3 0F 1E), reserved NOPs
+test_list hint_cet_tests() {
+  auto rax = Dyninst::x86_64::rax;
+  auto eax = Dyninst::x86_64::eax;
+
+  using reg_set = Dyninst::register_set;
+
+  // clang-format off
+  return {
+    { // cldemote m8 (NP 0F 1C /0, mem; SDM Vol 2A, CLDEMOTE): the
+      // operand supplies only the address, like the prefetch family.
+      {0x0f, 0x1c, 0x00},
+      di::opcode_test(e_cldemote, "cldemote (%rax)"),
+      di::register_rw_test{
+        reg_set{rax},
+        reg_set{}
+      },
+      di::mem_test{
+        reads_memory, !writes_memory,
+        di::register_rw_test{
+          reg_set{rax},
+          reg_set{}
+        }
+      }
+    },
+    { // 0F 1C with mod == 11 is a reserved NOP (SDM Vol 2B, NOP).
+      {0x0f, 0x1c, 0xc0},
+      di::opcode_test(e_nop, "nop"),
+      di::register_rw_test{
+        reg_set{},
+        reg_set{}
+      },
+      no_mem
+    },
+    { // rdsspd r32 (F3 0F 1E /1, mod == 11; SDM Vol 2B, RDSSPD): reads
+      // the shadow-stack pointer, which has no register representation,
+      // into the operand.
+      {0xf3, 0x0f, 0x1e, 0xc8},
+      di::opcode_test(e_rdsspd, "rdsspd %eax"),
+      di::register_rw_test{
+        reg_set{},
+        reg_set{eax}
+      },
+      no_mem
+    },
+    { // rdsspq r64 (F3 REX.W 0F 1E /1; SDM Vol 2B). The tables cannot
+      // select a mnemonic on REX.W, so the ID stays e_rdsspd; the
+      // operand width follows REX.W and is correct.
+      {0xf3, 0x48, 0x0f, 0x1e, 0xc8},
+      di::opcode_test(e_rdsspd, "rdsspd %rax"),
+      di::register_rw_test{
+        reg_set{},
+        reg_set{rax}
+      },
+      no_mem
+    },
+    { // endbr64 (F3 0F 1E FA; SDM Vol 2A).
+      {0xf3, 0x0f, 0x1e, 0xfa},
+      di::opcode_test(e_endbr64, "endbr64"),
+      di::register_rw_test{
+        reg_set{},
+        reg_set{}
+      },
+      no_mem
+    },
+    { // endbr32 (F3 0F 1E FB; SDM Vol 2A).
+      {0xf3, 0x0f, 0x1e, 0xfb},
+      di::opcode_test(e_endbr32, "endbr32"),
+      di::register_rw_test{
+        reg_set{},
+        reg_set{}
+      },
+      no_mem
+    },
+    { // Undefined F3 0F 1E slots are reserved NOPs (SDM Vol 2B, NOP).
+      {0xf3, 0x0f, 0x1e, 0xc0},
+      di::opcode_test(e_nop, "nop"),
+      di::register_rw_test{
+        reg_set{},
+        reg_set{}
+      },
+      no_mem
+    },
+  };
+  // clang-format on
+}
+
 // two-byte map identities and SSE4A (AMD APM Vol 4)
 test_list twobyte_sse4a_tests() {
   auto rax = Dyninst::x86_64::rax;
@@ -1067,6 +1154,7 @@ test_list make_tests64() {
   append(tests, group9_xsave_rand_tests());
   append(tests, group9_vmx_tests());
   append(tests, group7_11_16_tests());
+  append(tests, hint_cet_tests());
   append(tests, twobyte_sse4a_tests());
   append(tests, vex_mov_fma_tests());
   append(tests, vex_blend_fma4_tests());

@@ -546,6 +546,8 @@ DYNINST_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = boost::assig
   (e_sarx, "sarx")
   (e_clflushopt, "clflushopt")
   (e_clwb, "clwb")
+  (e_cldemote, "cldemote")
+  (e_rdsspd, "rdsspd")
   (e_clrssbsy, "clrssbsy")
   (e_incsspd, "incsspd")
   (e_incsspq, "incsspq")
