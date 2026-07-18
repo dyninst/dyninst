@@ -611,6 +611,9 @@ namespace Dyninst { namespace InstructionAPI {
       case e_vmptrst: return standardFlags;
       case e_vmclear: return standardFlags;
       case e_vmxon: return standardFlags;
+      // SDM Vol 2C XTEST: ZF reports whether the processor is executing
+      // transactionally; the other status flags are cleared.
+      case e_xtest: return standardFlags;
       // SDM Vol 2B TZCNT / LZCNT: ZF and CF are defined results; OF, SF,
       // PF, and AF are undefined, so all six are conservatively written
       // (matching the bsf/bsr entries above).

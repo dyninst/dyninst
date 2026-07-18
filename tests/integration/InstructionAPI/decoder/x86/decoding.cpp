@@ -144,6 +144,10 @@ bool run_reserved_encodings() {
     {"swapgs in 32-bit mode", {0x0f, 0x01, 0xf8}, Dyninst::Arch_x86},
     // Group 7 mod == 11 slots Table A-6 leaves reserved.
     {"group 7 reserved mod=11 slot (0F 01 FA)", {0x0f, 0x01, 0xfa}, Dyninst::Arch_x86_64},
+    {"F2-prefixed serialize slot (0F 01 E8)", {0xf2, 0x0f, 0x01, 0xe8}, Dyninst::Arch_x86_64},
+    {"66-prefixed serialize slot (0F 01 E8)", {0x66, 0x0f, 0x01, 0xe8}, Dyninst::Arch_x86_64},
+    {"F3-prefixed reserved slot (0F 01 E9)", {0xf3, 0x0f, 0x01, 0xe9}, Dyninst::Arch_x86_64},
+    {"unprefixed group 7 /5 memory form", {0x0f, 0x01, 0x28}, Dyninst::Arch_x86_64},
     // wbinvd/wbnoinvd slots the SDM leaves reserved.
     {"66 0F 09", {0x66, 0x0f, 0x09}, Dyninst::Arch_x86_64},
     {"F2 0F 09", {0xf2, 0x0f, 0x09}, Dyninst::Arch_x86_64},
@@ -757,6 +761,121 @@ test_list group7_11_16_tests() {
   // clang-format on
 }
 
+// group 7 (0F 01) mod == 11: serialize/CET, TSX, VMX/SVM/SGX leaves
+test_list group7_system_tests() {
+  auto rax = Dyninst::x86_64::rax;
+  auto eax = Dyninst::x86_64::eax;
+  auto ecx = Dyninst::x86_64::ecx;
+
+  using reg_set = Dyninst::register_set;
+  const reg_set status_flags = status_flags64();
+
+  // clang-format off
+  return {
+    { // serialize (NP 0F 01 E8; SDM Vol 2B).
+      {0x0f, 0x01, 0xe8},
+      di::opcode_test(e_serialize, "serialize"),
+      di::register_rw_test{
+        reg_set{},
+        reg_set{}
+      },
+      no_mem
+    },
+    { // setssbsy (F3 0F 01 E8; SDM Vol 2B): the shadow-stack token and
+      // SSP accesses have no register representation.
+      {0xf3, 0x0f, 0x01, 0xe8},
+      di::opcode_test(e_setssbsy, "setssbsy"),
+      di::register_rw_test{
+        reg_set{},
+        reg_set{}
+      },
+      no_mem
+    },
+    { // saveprevssp (F3 0F 01 EA; SDM Vol 2B).
+      {0xf3, 0x0f, 0x01, 0xea},
+      di::opcode_test(e_saveprevssp, "saveprevssp"),
+      di::register_rw_test{
+        reg_set{},
+        reg_set{}
+      },
+      no_mem
+    },
+    { // rstorssp m64 (F3 0F 01 /5, mem; SDM Vol 2B): validates the
+      // restore token and replaces it, so memory is read and written.
+      {0xf3, 0x0f, 0x01, 0x28},
+      di::opcode_test(e_rstorssp, "rstorssp (%rax)"),
+      di::register_rw_test{
+        reg_set{rax},
+        reg_set{}
+      },
+      di::mem_test{
+        reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{rax},
+          reg_set{rax}
+        }
+      }
+    },
+    { // vmfunc (NP 0F 01 D4; SDM Vol 2C): the function is selected by EAX.
+      {0x0f, 0x01, 0xd4},
+      di::opcode_test(e_vmfunc, "vmfunc"),
+      di::register_rw_test{
+        reg_set{eax},
+        reg_set{}
+      },
+      no_mem
+    },
+    { // xend (NP 0F 01 D5; SDM Vol 2C).
+      {0x0f, 0x01, 0xd5},
+      di::opcode_test(e_xend, "xend"),
+      di::register_rw_test{
+        reg_set{},
+        reg_set{}
+      },
+      no_mem
+    },
+    { // xtest (NP 0F 01 D6; SDM Vol 2C): ZF reports the result and the
+      // other status flags are cleared.
+      {0x0f, 0x01, 0xd6},
+      di::opcode_test(e_xtest, "xtest"),
+      di::register_rw_test{
+        reg_set{},
+        status_flags
+      },
+      no_mem
+    },
+    { // vmrun (AMD APM Vol 3; 0F 01 D8): the VMCB address is in rAX.
+      {0x0f, 0x01, 0xd8},
+      di::opcode_test(e_vmrun, "vmrun"),
+      di::register_rw_test{
+        reg_set{eax},
+        reg_set{}
+      },
+      no_mem
+    },
+    { // invlpga (AMD APM Vol 3; 0F 01 DF): address in rAX, ASID in ECX.
+      {0x0f, 0x01, 0xdf},
+      di::opcode_test(e_invlpga, "invlpga"),
+      di::register_rw_test{
+        reg_set{eax, ecx},
+        reg_set{}
+      },
+      no_mem
+    },
+    { // enclv (NP 0F 01 C0; SDM Vol 3D): the leaf and its arguments in
+      // EAX/RBX/RCX/RDX are not modeled.
+      {0x0f, 0x01, 0xc0},
+      di::opcode_test(e_enclv, "enclv"),
+      di::register_rw_test{
+        reg_set{},
+        reg_set{}
+      },
+      no_mem
+    },
+  };
+  // clang-format on
+}
+
 // hint space: cldemote (0F 1C), rdssp/endbr (F3 0F 1E), reserved NOPs
 test_list hint_cet_tests() {
   auto rax = Dyninst::x86_64::rax;
@@ -1154,6 +1273,7 @@ test_list make_tests64() {
   append(tests, group9_xsave_rand_tests());
   append(tests, group9_vmx_tests());
   append(tests, group7_11_16_tests());
+  append(tests, group7_system_tests());
   append(tests, hint_cet_tests());
   append(tests, twobyte_sse4a_tests());
   append(tests, vex_mov_fma_tests());

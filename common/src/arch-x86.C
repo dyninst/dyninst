@@ -213,7 +213,8 @@ enum {
   SSEAE00M, SSEAE01M, SSEAE02M, SSEAE03M, SSEAE04M, SSEAE05M, SSEAE06M, SSEAE07M,
   SSEAE00R, SSEAE01R, SSEAE02R, SSEAE03R, SSEAE04R, SSEAE05R, SSEAE06R, SSEAE07R,
   SSEC706M, SSEC707M, SSEC706R, SSEC707R,
-  SSE09, SSE1C, SSE1E
+  SSE09, SSE1C, SSE1E,
+  SSE01E8, SSE01EA, SSE0105M
 };
 /** END_DYNINST_TABLE_DEF */
 
@@ -2457,7 +2458,7 @@ static ia32_entry groupMap[][8] = {
   { e_lgdt, t_done, 0, true, { Ms, Zz, Zz }, 0, s1R, 0 },
   { e_lidt, t_done, 0, true, { Ms, Zz, Zz }, 0, s1R, 0 },
   { e_smsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 },
-  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  { e_No_Entry, t_sse, SSE0105M, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_lmsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1R, 0 },
   { e_invlpg, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
  },
@@ -2556,18 +2557,22 @@ static ia32_entry grp9Map[2][8] = {
    and vendor extensions without entry IDs (AMD SVM, Intel SGX/TXT,
    vmfunc/xend/xtest, pconfig) are reserved here and decode as invalid. */
 static ia32_entry grp7RegMap[8][8] = {
-  { /* /0: C1 vmcall, C2 vmlaunch, C3 vmresume, C4 vmxoff (SDM Vol 2C) */
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  { /* /0: C0 enclv (SDM Vol 3D: leaf/arguments in EAX/RBX/RCX/RDX are
+       not modeled, matching the syscall-style entries), C1 vmcall,
+       C2 vmlaunch, C3 vmresume, C4 vmxoff (SDM Vol 2C), C5 pconfig
+       (SDM Vol 2B: leaf/arguments in EAX/RBX/RCX/RDX not modeled) */
+    { e_enclv, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
     { e_vmcall, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
     { e_vmlaunch, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
     { e_vmresume, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
     { e_vmxoff, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_pconfig, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
     { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* /1: C8 monitor (reads the address in rAX plus ECX/EDX hints),
-       C9 mwait (reads EAX/ECX), CA clac, CB stac (SDM Vol 2B/2A) */
+       C9 mwait (reads EAX/ECX), CA clac, CB stac (SDM Vol 2B/2A),
+       CF encls (SDM Vol 3D: leaf/arguments not modeled) */
     { e_monitor, t_done, 0, true, { EAX, ECX, EDX }, 0, s1R2R3R, s1I | s2I | s3I },
     { e_mwait, t_done, 0, true, { EAX, ECX, Zz }, 0, s1R2R, s1I | s2I },
     { e_clac, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
@@ -2575,28 +2580,32 @@ static ia32_entry grp7RegMap[8][8] = {
     { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_encls, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
   },
   { /* /2: D0 xgetbv (writes EDX:EAX, reads ECX), D1 xsetbv (reads
-       ECX and EDX:EAX) (SDM Vol 2C) */
+       ECX and EDX:EAX) (SDM Vol 2C), D4 vmfunc (selected by EAX; SDM
+       Vol 2C), D5 xend, D6 xtest (SDM Vol 2C: ZF reports the result
+       and the other status flags are cleared), D7 enclu (SDM Vol 3D) */
     { e_xgetbv, t_done, 0, true, { EDX, EAX, ECX }, 0, s1W2W3R, s1I | s2I | s3I },
     { e_xsetbv, t_done, 0, true, { ECX, EDX, EAX }, 0, s1R2R3R, s1I | s2I | s3I },
     { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_vmfunc, t_done, 0, true, { EAX, Zz, Zz }, 0, s1R, s1I },
+    { e_xend, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_xtest, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_enclu, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
   },
-  { /* /3: AMD SVM (vmrun etc.); no entry IDs yet */
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  { /* /3: AMD SVM (APM Vol 3): D8 vmrun, DA vmload, and DB vmsave take
+       the VMCB address in rAX; DE skinit takes the SLB address in EAX;
+       DF invlpga takes the address in rAX and the ASID in ECX. */
+    { e_vmrun, t_done, 0, true, { EAX, Zz, Zz }, 0, s1R, s1I },
+    { e_vmmcall, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_vmload, t_done, 0, true, { EAX, Zz, Zz }, 0, s1R, s1I },
+    { e_vmsave, t_done, 0, true, { EAX, Zz, Zz }, 0, s1R, s1I },
+    { e_stgi, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_clgi, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_skinit, t_done, 0, true, { EAX, Zz, Zz }, 0, s1R, s1I },
+    { e_invlpga, t_done, 0, true, { EAX, ECX, Zz }, 0, s1R2R, s1I | s2I },
   },
   { /* /4: smsw r (SDM Vol 2B, SMSW: any r/m) */
     { e_smsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 },
@@ -2608,11 +2617,12 @@ static ia32_entry grp7RegMap[8][8] = {
     { e_smsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 },
     { e_smsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 },
   },
-  { /* /5: EE rdpkru (writes EDX:EAX, reads ECX), EF wrpkru (reads
-       EAX/ECX/EDX) (SDM Vol 2B/2C) */
+  { /* /5: E8 serialize / F3 setssbsy, EA F3 saveprevssp (both
+       prefix-discriminated), EE rdpkru (writes EDX:EAX, reads ECX),
+       EF wrpkru (reads EAX/ECX/EDX) (SDM Vol 2B/2C) */
+    { e_No_Entry, t_sse, SSE01E8, true, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_sse, SSE01EA, true, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -3988,6 +3998,29 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_grp, GrpF31E, true, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
     { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
+  },
+  { /* SSE01E8 (0F 01 E8): NP serialize (SDM Vol 2B, SERIALIZE);
+       F3 setssbsy (SDM Vol 2B, SETSSBSY: marks the shadow-stack token
+       busy; the SSP and token accesses have no register
+       representation). */
+    { e_serialize, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_setssbsy, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSE01EA (0F 01 EA): F3 saveprevssp (SDM Vol 2B, SAVEPREVSSP). */
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_saveprevssp, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSE0105M (0F 01 /5, memory form): F3 rstorssp m64 (SDM Vol 2B,
+       RSTORSSP: validates the shadow-stack-restore token and replaces
+       it with a previous-ssp token, so the m64 is read and written). */
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_rstorssp, t_done, 0, true, { Mq, Zz, Zz }, 0, s1RW, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   }
 };
 /** END_DYNINST_TABLE_VERIFICATION */
@@ -10378,7 +10411,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
 
 static const unsigned char sse_prefix[256] = {
    /*       0 1 2 3 4 5 6 7 8 9 A B C D E F  */
-   /* 0x */ 0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0, // 09: wbinvd/wbnoinvd is F3-discriminated
+   /* 0x */ 0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0, // 01: Grp7 CET slots, 09: wbinvd/wbnoinvd (F3-discriminated)
    /* 1x */ 1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,0, // 1C cldemote, 1E rdssp/endbr (F3-discriminated)
    /* 2x */ 0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,
    /* 3x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
