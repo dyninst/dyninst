@@ -289,6 +289,7 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
        s1RW2RW3R, // [i]div, cmpxch8b
        s1RW2R3RW, // v[p]gather[ps, pd, qq, qd]
        s1R2R3R,
+       s1W2W3W, // rdtscp (EDX, EAX, and ECX all written)
 
 /* Only 4 operands below here */
        s1W2R3R4R,

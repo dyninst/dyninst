@@ -129,6 +129,7 @@ namespace Dyninst { namespace InstructionAPI {
         return i == 1 || i == 2 || i == 3;
       case s1RW2R3R4R:
         return i == 0 || i == 1 || i == 2 || i == 3;
+      case s1W2W3W:
       case sNONE:
         return false;
       default:
@@ -165,6 +166,8 @@ namespace Dyninst { namespace InstructionAPI {
         return i == 0 || i == 2;
       case s1RW2R3RW:
         return i == 0 || i == 2;
+      case s1W2W3W:
+        return i == 0 || i == 1 || i == 2;
       case sNONE:
       default:
         return false;

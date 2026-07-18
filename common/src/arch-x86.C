@@ -2446,8 +2446,9 @@ static ia32_entry groupMap[][8] = {
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
  },
 
- { /* group 7 - operands are defined here */
-   // idem
+ { /* group 7 - operands are defined here. These are the memory (and
+      Ew) forms; the mod == 11 encodings are selected by reg AND r/m and
+      live in grp7RegMap below (SDM Vol 2D, Table A-6, Group 7). */
   { e_sgdt, t_done, 0, true, { Ms, Zz, Zz }, 0, s1W, 0 },
   { e_sidt, t_done, 0, true, { Ms, Zz, Zz }, 0, s1W, 0 },
   { e_lgdt, t_done, 0, true, { Ms, Zz, Zz }, 0, s1R, 0 },
@@ -2455,7 +2456,7 @@ static ia32_entry groupMap[][8] = {
   { e_smsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 },
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_lmsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1R, 0 },
-  { e_invlpg, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 }, // 64-bit: swapgs also uses this encoding (w/ mod=11)
+  { e_invlpg, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
  },
 
  { /* group 8 - only opcode is defined here, 
@@ -2518,6 +2519,99 @@ static ia32_entry groupMap[][8] = {
 
 };
 
+
+/* Group 7 (0F 01) with mod == 11: the reg and r/m fields together select
+   individual instructions (SDM Vol 2D, Table A-6, Group 7). reg = 4
+   (smsw r) and reg = 6 (lmsw r) accept any r/m as a register operand.
+   Encodings with mandatory prefixes (F3 CET setssbsy/saveprevssp, etc.)
+   and vendor extensions without entry IDs (AMD SVM, Intel SGX/TXT,
+   vmfunc/xend/xtest, pconfig) are reserved here and decode as invalid. */
+static ia32_entry grp7RegMap[8][8] = {
+  { /* /0: C1 vmcall, C2 vmlaunch, C3 vmresume, C4 vmxoff (SDM Vol 2C) */
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_vmcall, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_vmlaunch, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_vmresume, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_vmxoff, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* /1: C8 monitor (reads the address in rAX plus ECX/EDX hints),
+       C9 mwait (reads EAX/ECX), CA clac, CB stac (SDM Vol 2B/2A) */
+    { e_monitor, t_done, 0, true, { EAX, ECX, EDX }, 0, s1R2R3R, s1I | s2I | s3I },
+    { e_mwait, t_done, 0, true, { EAX, ECX, Zz }, 0, s1R2R, s1I | s2I },
+    { e_clac, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_stac, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* /2: D0 xgetbv (writes EDX:EAX, reads ECX), D1 xsetbv (reads
+       ECX and EDX:EAX) (SDM Vol 2C) */
+    { e_xgetbv, t_done, 0, true, { EDX, EAX, ECX }, 0, s1W2W3R, s1I | s2I | s3I },
+    { e_xsetbv, t_done, 0, true, { ECX, EDX, EAX }, 0, s1R2R3R, s1I | s2I | s3I },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* /3: AMD SVM (vmrun etc.); no entry IDs yet */
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* /4: smsw r (SDM Vol 2B, SMSW: any r/m) */
+    { e_smsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 },
+    { e_smsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 },
+    { e_smsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 },
+    { e_smsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 },
+    { e_smsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 },
+    { e_smsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 },
+    { e_smsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 },
+    { e_smsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1W, 0 },
+  },
+  { /* /5: EE rdpkru (writes EDX:EAX, reads ECX), EF wrpkru (reads
+       EAX/ECX/EDX) (SDM Vol 2B/2C) */
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_rdpkru, t_done, 0, true, { EDX, EAX, ECX }, 0, s1W2W3R, s1I | s2I | s3I },
+    { e_wrpkru, t_done, 0, true, { EAX, ECX, EDX }, 0, s1R2R3R, s1I | s2I | s3I },
+  },
+  { /* /6: lmsw r (SDM Vol 2B, LMSW: any r/m) */
+    { e_lmsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1R, 0 },
+    { e_lmsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1R, 0 },
+    { e_lmsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1R, 0 },
+    { e_lmsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1R, 0 },
+    { e_lmsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1R, 0 },
+    { e_lmsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1R, 0 },
+    { e_lmsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1R, 0 },
+    { e_lmsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1R, 0 },
+  },
+  { /* /7: F8 swapgs (64-bit mode only; SDM Vol 2B), F9 rdtscp (writes
+       EDX:EAX and ECX; SDM Vol 2B) */
+    { e_swapgs, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_rdtscp, t_done, 0, true, { rAX, rDX, rCX }, 0, s1W2W3W, s1I | s2I | s3I },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+};
 
 /**
  * This table is very similar to `groupMap`. Each row in this table actually
@@ -8927,6 +9021,14 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 {
                     idx = gotit->tabidx;
                     unsigned int reg  = (addr[0] >> 3) & 7;
+                    if(idx == Grp7 && (addr[0] >> 6) == 3)
+                    {
+                        /* Group 7 mod == 11 encodings are selected by reg
+                           and r/m together (SDM Vol 2D, Table A-6). */
+                        gotit = &grp7RegMap[reg][addr[0] & 7];
+                        nxtab = gotit->otable;
+                        break;
+                    }
                     if(idx < Grp12)
                         switch(idx)
                         {
@@ -9182,6 +9284,8 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
             case e_rdgsbase:
             case e_wrfsbase:
             case e_wrgsbase:
+            /* swapgs (0F 01 F8) is also 64-bit-mode only (SDM Vol 2B). */
+            case e_swapgs:
                 gotit = &invalid;
                 break;
             default:
