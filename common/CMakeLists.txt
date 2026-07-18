@@ -175,8 +175,7 @@ if(debugMaxFrameSizeOverrideEntryNames)
     src/ia32_entry.C
     PROPERTIES
       COMPILE_FLAGS
-      $<$<CONFIG:DEBUG>:-Wframe-larger-than=${debugMaxFrameSizeOverrideEntryNames}>
-    )
+      $<$<CONFIG:DEBUG>:-Wframe-larger-than=${debugMaxFrameSizeOverrideEntryNames}>)
 endif()
 if(nonDebugMaxFrameSizeOverrideEntryNames)
   set_source_files_properties(
