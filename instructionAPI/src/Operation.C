@@ -597,6 +597,10 @@ namespace Dyninst { namespace InstructionAPI {
       case e_pcmpistri: return standardFlags;
       case e_pcmpistrm: return standardFlags;
       case e_ptest: return standardFlags;
+      // SDM Vol 2B TPAUSE/UMWAIT: CF reports the result; OF, SF, ZF, AF,
+      // and PF are cleared.
+      case e_tpause: return standardFlags;
+      case e_umwait: return standardFlags;
       default:
         return {};
     }

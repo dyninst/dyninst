@@ -209,7 +209,8 @@ enum {
   SSEE8, SSEE9, SSEEA, SSEEB, SSEEC, SSEED, SSEEE, SSEEF,
   SSEF0, SSEF1, SSEF2, SSEF3, SSEF4, SSEF5, SSEF6, SSEF7,
   SSEF8, SSEF9, SSEFA, SSEFB, SSEFC, SSEFD, SSEFE,
-  SSEAE04M, SSEAE04R
+  SSEAE00M, SSEAE01M, SSEAE02M, SSEAE03M, SSEAE04M, SSEAE05M, SSEAE06M, SSEAE07M,
+  SSEAE00R, SSEAE01R, SSEAE02R, SSEAE03R, SSEAE04R, SSEAE05R, SSEAE06R, SSEAE07R
 };
 /** END_DYNINST_TABLE_DEF */
 
@@ -2585,26 +2586,28 @@ static ia32_entry groupMap2[][2][8] = {
       { e_No_Entry, t_grpsse, G14SSE111B, true, { Zz, Zz, Zz }, 0, 0, 0 },
     }
   },
-  { /* group 15 */
+  { /* group 15: every slot is discriminated by the mandatory prefix
+       (none/F3/66/F2), so all of them route through t_sse rows.
+       See SDM Vol 2D, Table A-6 (Opcode Extensions, Group 15). */
     {
-      { e_fxsave,  t_done, 0, true, { M512, Zz, Zz }, 0, s1W | (fFXSAVE << FPOS), 0 },
-      { e_fxrstor, t_done, 0, true, { M512, Zz, Zz }, 0, s1R | (fFXRSTOR << FPOS), 0 },
-      { e_ldmxcsr, t_done, 0, true, { Md, Zz, Zz }, 0, s1R, 0 },
-      { e_stmxcsr, t_done, 0, true, { Md, Zz, Zz }, 0, s1W, 0 },
+      { e_No_Entry, t_sse, SSEAE00M, true, { Zz, Zz, Zz }, 0, 0, 0 },
+      { e_No_Entry, t_sse, SSEAE01M, true, { Zz, Zz, Zz }, 0, 0, 0 },
+      { e_No_Entry, t_sse, SSEAE02M, true, { Zz, Zz, Zz }, 0, 0, 0 },
+      { e_No_Entry, t_sse, SSEAE03M, true, { Zz, Zz, Zz }, 0, 0, 0 },
       { e_No_Entry, t_sse, SSEAE04M, true, { Zz, Zz, Zz }, 0, 0, 0 },
-	  { e_xrstor, t_done, 0, true, { Md, Zz, Zz }, 0, s1R, 0 },
-      { e_clwb, t_done, 0, true, { Mb, Zz, Zz }, 0, s1W | (fCLFLUSH << FPOS), 0 },
-      { e_clflush, t_done, 0, true, { Mb, Zz, Zz }, 0, s1W | (fCLFLUSH << FPOS), 0 },
+      { e_No_Entry, t_sse, SSEAE05M, true, { Zz, Zz, Zz }, 0, 0, 0 },
+      { e_No_Entry, t_sse, SSEAE06M, true, { Zz, Zz, Zz }, 0, 0, 0 },
+      { e_No_Entry, t_sse, SSEAE07M, true, { Zz, Zz, Zz }, 0, 0, 0 },
     },
     {
-      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
+      { e_No_Entry, t_sse, SSEAE00R, true, { Zz, Zz, Zz }, 0, 0, 0 },
+      { e_No_Entry, t_sse, SSEAE01R, true, { Zz, Zz, Zz }, 0, 0, 0 },
+      { e_No_Entry, t_sse, SSEAE02R, true, { Zz, Zz, Zz }, 0, 0, 0 },
+      { e_No_Entry, t_sse, SSEAE03R, true, { Zz, Zz, Zz }, 0, 0, 0 },
       { e_No_Entry, t_sse, SSEAE04R, true, { Zz, Zz, Zz }, 0, 0, 0 },
-      { e_lfence, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
-      { e_mfence, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
-      { e_sfence, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+      { e_No_Entry, t_sse, SSEAE05R, true, { Zz, Zz, Zz }, 0, 0, 0 },
+      { e_No_Entry, t_sse, SSEAE06R, true, { Zz, Zz, Zz }, 0, 0, 0 },
+      { e_No_Entry, t_sse, SSEAE07R, true, { Zz, Zz, Zz }, 0, 0, 0 },
     }
   },
   { /* group 16 */
@@ -3564,18 +3567,123 @@ static ia32_entry sseMap[][4] = {
     { e_paddd, t_sse_mult, SSEFE_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
-  { /* SSEAE04M: group 15 /4, memory form. F3 selects ptwrite m32/m64
-       (SDM Vol 2B: PTWRITE r/m32|r/m64, F3 0F AE /4); otherwise xsave.
-       ptwrite only reads its operand -- it writes no register or flag. */
-    { e_xsave, t_done, 0, true, { Md, Zz, Zz }, 0, s1W, 0 },
-    { e_ptwrite, t_done, 0, true, { Ey, Zz, Zz }, 0, s1R, 0 },
-    { e_xsave, t_done, 0, true, { Md, Zz, Zz }, 0, s1W, 0 },
+  /* Group 15 (0F AE), one row per /r slot and mod form, columns are the
+     mandatory prefix {none, F3, 66, F2} per SDM Vol 2D, Table A-6.
+     Encodings the SDM leaves reserved are t_ill.
+     The xsave family reads the requested-feature bitmap in EDX:EAX
+     (SDM Vol 1, Section 13.7); the memory operand is the variable-size
+     XSAVE area, which the fixed-size operand types here cannot express,
+     so the pre-existing Md convention is kept. */
+  { /* SSEAE00M: NP fxsave m512byte (SDM Vol 2A, FXSAVE). */
+    { e_fxsave,  t_done, 0, true, { M512, Zz, Zz }, 0, s1W | (fFXSAVE << FPOS), 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
-  { /* SSEAE04R: group 15 /4, register form (mod == 11). Only the F3 form
-       (ptwrite r32/r64) is defined. */
+  { /* SSEAE01M: NP fxrstor m512byte (SDM Vol 2A, FXRSTOR). */
+    { e_fxrstor, t_done, 0, true, { M512, Zz, Zz }, 0, s1R | (fFXRSTOR << FPOS), 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEAE02M: NP ldmxcsr m32 (SDM Vol 2A, LDMXCSR). */
+    { e_ldmxcsr, t_done, 0, true, { Md, Zz, Zz }, 0, s1R, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEAE03M: NP stmxcsr m32 (SDM Vol 2B, STMXCSR). */
+    { e_stmxcsr, t_done, 0, true, { Md, Zz, Zz }, 0, s1W, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEAE04M: NP xsave mem (SDM Vol 2C, XSAVE); F3 ptwrite m32/m64
+       (SDM Vol 2B, PTWRITE). ptwrite only reads its operand -- it writes
+       no register or flag. */
+    { e_xsave, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
+    { e_ptwrite, t_done, 0, true, { Ey, Zz, Zz }, 0, s1R, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEAE05M: NP xrstor mem (SDM Vol 2C, XRSTOR). */
+    { e_xrstor, t_done, 0, true, { Md, EDX, EAX }, 0, s1R2R3R, s2I | s3I },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEAE06M: NP xsaveopt mem (SDM Vol 2C, XSAVEOPT); F3 clrssbsy m64
+       (SDM Vol 2A, CLRSSBSY: reads the shadow-stack token and clears its
+       busy bit, so the m64 is read and written; the SSP write is not
+       representable); 66 clwb m8 (SDM Vol 2A, CLWB). */
+    { e_xsaveopt, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
+    { e_clrssbsy, t_done, 0, true, { Mq, Zz, Zz }, 0, s1RW, 0 },
+    { e_clwb, t_done, 0, true, { Mb, Zz, Zz }, 0, s1W | (fCLFLUSH << FPOS), 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEAE07M: NP clflush m8 (SDM Vol 2A, CLFLUSH); 66 clflushopt m8
+       (SDM Vol 2A, CLFLUSHOPT). */
+    { e_clflush, t_done, 0, true, { Mb, Zz, Zz }, 0, s1W | (fCLFLUSH << FPOS), 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_clflushopt, t_done, 0, true, { Mb, Zz, Zz }, 0, s1W | (fCLFLUSH << FPOS), 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEAE00R: F3 rdfsbase r32/r64 (SDM Vol 2B, RDFSBASE). */
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_rdfsbase, t_done, 0, true, { Ey, Zz, Zz }, 0, s1W, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEAE01R: F3 rdgsbase r32/r64 (SDM Vol 2B, RDGSBASE). */
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_rdgsbase, t_done, 0, true, { Ey, Zz, Zz }, 0, s1W, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEAE02R: F3 wrfsbase r32/r64 (SDM Vol 2C, WRFSBASE). */
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_wrfsbase, t_done, 0, true, { Ey, Zz, Zz }, 0, s1R, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEAE03R: F3 wrgsbase r32/r64 (SDM Vol 2C, WRGSBASE). */
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_wrgsbase, t_done, 0, true, { Ey, Zz, Zz }, 0, s1R, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEAE04R: F3 ptwrite r32/r64 (SDM Vol 2B, PTWRITE). */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_ptwrite, t_done, 0, true, { Ey, Zz, Zz }, 0, s1R, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEAE05R: NP lfence (SDM Vol 2A, LFENCE); F3 incsspd r32 /
+       incsspq r64 with REX.W (SDM Vol 2A, INCSSPD/INCSSPQ: reads the
+       shift count from the register; the SSP update is not
+       representable). The tables cannot select a mnemonic on REX.W, so
+       both widths report e_incsspd; the operand width is still correct
+       via op_y. */
+    { e_lfence, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_incsspd, t_done, 0, true, { Ey, Zz, Zz }, 0, s1R, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSEAE06R: NP mfence (SDM Vol 2B, MFENCE); F3 umonitor r16/r32/r64
+       (SDM Vol 2B, UMONITOR: the register holds a linear address; its
+       width follows the address size, which op_y cannot express, but the
+       register identity is correct); 66 tpause r32 and F2 umwait r32
+       (SDM Vol 2B, TPAUSE/UMWAIT: implicitly read the deadline from
+       EDX:EAX and write the status flags). */
+    { e_mfence, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_umonitor, t_done, 0, true, { Ey, Zz, Zz }, 0, s1R, 0 },
+    { e_tpause, t_done, 0, true, { Rd, EDX, EAX }, 0, s1R2R3R, s2I | s3I },
+    { e_umwait, t_done, 0, true, { Rd, EDX, EAX }, 0, s1R2R3R, s2I | s3I },
+  },
+  { /* SSEAE07R: NP sfence (SDM Vol 2B, SFENCE); F3/66/F2 are reserved
+       (SDM Vol 2D, Table A-6). */
+    { e_sfence, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   }
@@ -8914,7 +9022,25 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
     if(mode_64)
     {
         ia32_translate_for_64(&gotit);
-    } 
+    }
+    else
+    {
+        /* FSGSBASE (F3 0F AE /0../3, mod == 11) is valid in 64-bit mode
+           only (SDM Vol 2B RDFSBASE/RDGSBASE and Vol 2C
+           WRFSBASE/WRGSBASE: invalid/#UD in compatibility and legacy
+           modes). */
+        switch(gotit->id)
+        {
+            case e_rdfsbase:
+            case e_rdgsbase:
+            case e_wrfsbase:
+            case e_wrgsbase:
+                gotit = &invalid;
+                break;
+            default:
+                break;
+        }
+    }
 
     /* Set the condition bits if we need to */
     if(capa & IA32_DECODE_CONDITION)
@@ -9866,7 +9992,7 @@ static const unsigned char sse_prefix[256] = {
    /* 7x */ 1,1,1,1,1,1,1,0,1,1,0,0,1,1,1,1, // Grp12-14 are SSE groups
    /* 8x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
    /* 9x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-   /* Ax */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0, // AE: Grp15 is F3-discriminated (ptwrite vs xsave)
+   /* Ax */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0, // AE: every Grp15 slot is prefix-discriminated (SDM Table A-6)
    /* Bx */ 0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,
    /* Cx */ 0,0,1,0,1,1,1,0,0,0,0,0,0,0,0,0,
    /* Dx */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
