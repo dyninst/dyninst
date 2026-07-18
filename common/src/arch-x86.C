@@ -211,7 +211,8 @@ enum {
   SSEF8, SSEF9, SSEFA, SSEFB, SSEFC, SSEFD, SSEFE,
   SSEAE00M, SSEAE01M, SSEAE02M, SSEAE03M, SSEAE04M, SSEAE05M, SSEAE06M, SSEAE07M,
   SSEAE00R, SSEAE01R, SSEAE02R, SSEAE03R, SSEAE04R, SSEAE05R, SSEAE06R, SSEAE07R,
-  SSEC706M, SSEC707M, SSEC706R, SSEC707R
+  SSEC706M, SSEC707M, SSEC706R, SSEC707R,
+  SSE09
 };
 /** END_DYNINST_TABLE_DEF */
 
@@ -1237,7 +1238,7 @@ static ia32_entry twoByteMap[256] = {
   { e_sysret,     t_done, 0, false, { eCX, Zz, Zz }, 0, s1R, 0 }, // AMD; reads return address from eCX; unlikely to occur in Dyninst use cases but we'll be paranoid
   /* 08 */
   { e_invd,   t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE, 0 }, // only in priviledge 0, so ignored
-  { e_wbinvd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE, 0 }, // idem
+  { e_No_Entry, t_sse, SSE09, 0, { Zz, Zz, Zz }, 0, 0, 0 }, // wbinvd/wbnoinvd; privilege 0 only
   { e_No_Entry,        t_ill,  0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_ud2,    t_done,  0, 0, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry,        t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -3909,6 +3910,14 @@ static ia32_entry sseMap[][4] = {
     { e_rdseed, t_done, 0, true, { Ev, Zz, Zz }, 0, s1W, 0 },
     { e_rdpid, t_done, 0, true, { Ey, Zz, Zz }, 0, s1W, 0 },
     { e_rdseed, t_done, 0, true, { Ev, Zz, Zz }, 0, s1W, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+  },
+  { /* SSE09: NP wbinvd (SDM Vol 2C); F3 wbnoinvd (SDM Vol 2C,
+       WBNOINVD). Both are privileged cache writebacks with no
+       architectural operands. */
+    { e_wbinvd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_wbnoinvd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   }
 };
@@ -10299,7 +10308,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
 
 static const unsigned char sse_prefix[256] = {
    /*       0 1 2 3 4 5 6 7 8 9 A B C D E F  */
-   /* 0x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 0x */ 0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0, // 09: wbinvd/wbnoinvd is F3-discriminated
    /* 1x */ 1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,
    /* 2x */ 0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,
    /* 3x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

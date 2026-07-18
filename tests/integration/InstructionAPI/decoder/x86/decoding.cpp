@@ -144,6 +144,9 @@ bool run_reserved_encodings() {
     {"swapgs in 32-bit mode", {0x0f, 0x01, 0xf8}, Dyninst::Arch_x86},
     // Group 7 mod == 11 slots Table A-6 leaves reserved.
     {"group 7 reserved mod=11 slot (0F 01 FA)", {0x0f, 0x01, 0xfa}, Dyninst::Arch_x86_64},
+    // wbinvd/wbnoinvd slots the SDM leaves reserved.
+    {"66 0F 09", {0x66, 0x0f, 0x09}, Dyninst::Arch_x86_64},
+    {"F2 0F 09", {0xf2, 0x0f, 0x09}, Dyninst::Arch_x86_64},
     // Group 9 slots Table A-6 leaves reserved.
     {"group 9 F2 /6 memory form", {0xf2, 0x0f, 0xc7, 0x37}, Dyninst::Arch_x86_64},
     {"group 9 F3 /7 memory form", {0xf3, 0x0f, 0xc7, 0x3f}, Dyninst::Arch_x86_64},
@@ -817,7 +820,55 @@ test_list twobyte_sse4a_tests() {
       },
       no_mem
     },
+    { // wbinvd (NP 0F 09; SDM Vol 2C).
+      {0x0f, 0x09},
+      di::opcode_test(e_wbinvd, "wbinvd"),
+      di::register_rw_test{
+        reg_set{},
+        reg_set{}
+      },
+      no_mem
+    },
+    { // wbnoinvd (F3 0F 09; SDM Vol 2C, WBNOINVD).
+      {0xf3, 0x0f, 0x09},
+      di::opcode_test(e_wbnoinvd, "wbnoinvd"),
+      di::register_rw_test{
+        reg_set{},
+        reg_set{}
+      },
+      no_mem
+    },
     // -------- SSE4A (AMD APM Vol 4) --------
+    { // movntss m32, xmm (F3 0F 2B /r; AMD APM Vol 4, MOVNTSS).
+      {0xf3, 0x0f, 0x2b, 0x08},
+      di::opcode_test(e_movntss, "movntss %xmm1,(%rax)"),
+      di::register_rw_test{
+        reg_set{rax, xmm1},
+        reg_set{}
+      },
+      di::mem_test{
+        !reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{},
+          reg_set{rax}
+        }
+      }
+    },
+    { // movntsd m64, xmm (F2 0F 2B /r; AMD APM Vol 4, MOVNTSD).
+      {0xf2, 0x0f, 0x2b, 0x08},
+      di::opcode_test(e_movntsd, "movntsd %xmm1,(%rax)"),
+      di::register_rw_test{
+        reg_set{rax, xmm1},
+        reg_set{}
+      },
+      di::mem_test{
+        !reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{},
+          reg_set{rax}
+        }
+      }
+    },
     { // extrq xmm, imm8, imm8 (66 0F 78 /0 ib ib): the xmm is in
       // ModRM.rm; the length includes both immediates.
       {0x66, 0x0f, 0x78, 0xc1, 0x11, 0x22},
