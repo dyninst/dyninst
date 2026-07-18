@@ -5828,6 +5828,10 @@ void mem_state::addLibrary(int_library *lib)
 {
    libs.insert(lib);
    lib->memory = this;
+   // Publication point: stamp the library's route to the Process wrapper so
+   // the public Library readers can take proc_lock (see int_library).
+   if (!procs.empty() && *procs.begin())
+      lib->bindProcWrapper((*procs.begin())->proc());
 }
 
 void mem_state::rmLibrary(int_library *lib)
@@ -6111,7 +6115,12 @@ Library::Library() : lib(NULL)
 
 Library::~Library()
 {
-   MTLock lock_this_func(MTLock::allow_generator);
+   // D-4a: lock-free (was MTLock allow_generator).  Reaching this dtor means
+   // every Library::ptr is gone -- including up_lib, which the impl releases
+   // only at unpublication (markAsCleanable, after removal from the library
+   // set) -- so no reader or handler can still reach `lib`.  A dtor can run
+   // in arbitrary contexts (generator, under leaf locks), so taking
+   // proc_lock here would risk a clause-1 inversion for zero protection.
    if (lib) {
       delete lib;
       lib = NULL;
@@ -6120,34 +6129,43 @@ Library::~Library()
 
 std::string Library::getName() const
 {
-   MTLock lock_this_func;
+   // D-4a: proc_lock replaces work_lock -- refresh_libraries (handler, under
+   // handle_plock) mutates published libraries (deferred addr fill-in, marks).
+   ProcScopeLock plock(lib ? lib->procWrapper() : Process::ptr());
    return lib->getName();
 }
 
 std::string Library::getAbsoluteName() const
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(lib ? lib->procWrapper() : Process::ptr()); // D-4a: see getName
    return lib->getAbsName();
 }
 
 Dyninst::Address Library::getLoadAddress() const
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(lib ? lib->procWrapper() : Process::ptr()); // D-4a: see getName
    return lib->getAddr();
 }
 
 Dyninst::Address Library::getDataLoadAddress() const
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(lib ? lib->procWrapper() : Process::ptr()); // D-4a: see getName
    return lib->getDataAddr();
 }
 
 Dyninst::Address Library::getDynamicAddress() const
 {
+   // D-4a: this reader was LOCK-FREE (master-native) yet dynamic_address is
+   // mutated by refresh_libraries' deferred fill-in -- close the pre-existing
+   // race by locking like the other readers.
+   ProcScopeLock plock(lib ? lib->procWrapper() : Process::ptr());
    return lib->getDynamicAddr();
 }
 
 bool Library::isSharedLib() const {
+   // D-4a: was lock-free; is_shared_lib is mutated by markAOut (a.out
+   // identification during refresh) -- same pre-existing race, same fix.
+   ProcScopeLock plock(lib ? lib->procWrapper() : Process::ptr());
    return lib->isSharedLib();
 }
 

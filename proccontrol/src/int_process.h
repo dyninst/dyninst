@@ -1352,7 +1352,16 @@ class int_library
    Library::ptr up_lib;
    bool is_shared_lib;
    mem_state::ptr memory;
+   // Weak route to the owning Process wrapper so Library readers can take
+   // proc_lock without an impl deref.  Stamped at PUBLICATION
+   // (mem_state::addLibrary -- the single point every platform's load path
+   // crosses); pre-publication construction is single-threaded and needs no
+   // lock.  One process per library: fork COPIES mem_state (the child
+   // refreshes its own libraries), so a single proc_lock covers each lib.
+   Dyninst::ProcControlAPI::Process::weak_ptr proc_wrapper_;
   public:
+   void bindProcWrapper(Dyninst::ProcControlAPI::Process::ptr pw) { proc_wrapper_ = pw; }
+   Dyninst::ProcControlAPI::Process::ptr procWrapper() const { return proc_wrapper_.lock(); }
    int_library(std::string n,
                bool shared_lib,
                Dyninst::Address load_addr,
