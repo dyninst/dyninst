@@ -11,6 +11,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <iterator>
 #include <utility>
 #include <vector>
 
@@ -166,39 +167,40 @@ bool run_reserved_encodings() {
   return !failed;
 }
 
-std::vector<decoding_test> make_tests64() {
-  auto rax = Dyninst::x86_64::rax;
+// The 64-bit test table is assembled from chunks: the compiler
+// materializes every temporary of a braced initializer list in the
+// enclosing function's stack frame, so one function holding every test
+// would exceed -Wframe-larger-than (see cmake/DyninstWarnings.cmake).
+using test_list = std::vector<decoding_test>;
+
+void append(test_list &tests, test_list chunk) {
+  tests.insert(tests.end(), std::make_move_iterator(chunk.begin()),
+               std::make_move_iterator(chunk.end()));
+}
+
+Dyninst::register_set status_flags64() {
+  return Dyninst::register_set{Dyninst::x86_64::cf, Dyninst::x86_64::pf,
+                               Dyninst::x86_64::af, Dyninst::x86_64::zf,
+                               Dyninst::x86_64::sf, Dyninst::x86_64::of};
+}
+
+// CMOVcc reads OF/SF/ZF/PF/CF (SDM Vol 2A, CMOVcc).
+Dyninst::register_set cc_flags64() {
+  return Dyninst::register_set{Dyninst::x86_64::cf, Dyninst::x86_64::pf,
+                               Dyninst::x86_64::zf, Dyninst::x86_64::sf,
+                               Dyninst::x86_64::of};
+}
+
+// group 15 (0F AE), memory forms
+test_list group15_memory_tests() {
   auto eax = Dyninst::x86_64::eax;
-  auto ax = Dyninst::x86_64::ax;
-  auto rcx = Dyninst::x86_64::rcx;
-  auto ecx = Dyninst::x86_64::ecx;
   auto edx = Dyninst::x86_64::edx;
-  auto dx = Dyninst::x86_64::dx;
   auto rdi = Dyninst::x86_64::rdi;
-  auto edi = Dyninst::x86_64::edi;
-  auto r13 = Dyninst::x86_64::r13;
-  auto rip = Dyninst::x86_64::rip;
-  auto xmm1 = Dyninst::x86_64::xmm1;
-  auto xmm2 = Dyninst::x86_64::xmm2;
-  auto xmm3 = Dyninst::x86_64::xmm3;
-  auto mm1 = Dyninst::x86_64::mm1;
-  auto mm2 = Dyninst::x86_64::mm2;
-  auto cf = Dyninst::x86_64::cf;
-  auto pf = Dyninst::x86_64::pf;
-  auto af = Dyninst::x86_64::af;
-  auto zf = Dyninst::x86_64::zf;
-  auto sf = Dyninst::x86_64::sf;
-  auto of = Dyninst::x86_64::of;
 
   using reg_set = Dyninst::register_set;
 
-  const reg_set status_flags{cf, pf, af, zf, sf, of};
-  // CMOVcc reads OF/SF/ZF/PF/CF (SDM Vol 2A, CMOVcc).
-  const reg_set cc_flags{cf, pf, zf, sf, of};
-
   // clang-format off
   return {
-    // -------- group 15 (0F AE), memory forms --------
     { // xsaveopt mem (NP 0F AE /6; SDM Vol 2C, XSAVEOPT). The xsave
       // family reads the requested-feature bitmap in EDX:EAX
       // (SDM Vol 1, 13.7).
@@ -308,7 +310,22 @@ std::vector<decoding_test> make_tests64() {
         }
       }
     },
-    // -------- group 15 (0F AE), register forms --------
+  };
+  // clang-format on
+}
+
+// group 15 (0F AE), register forms: FSGSBASE and CET
+test_list group15_register_tests() {
+  auto rax = Dyninst::x86_64::rax;
+  auto eax = Dyninst::x86_64::eax;
+  auto rdi = Dyninst::x86_64::rdi;
+  auto edi = Dyninst::x86_64::edi;
+  auto r13 = Dyninst::x86_64::r13;
+
+  using reg_set = Dyninst::register_set;
+
+  // clang-format off
+  return {
     { // rdfsbase r32 (F3 0F AE /0; SDM Vol 2B).
       {0xf3, 0x0f, 0xae, 0xc0},
       di::opcode_test(e_rdfsbase, "rdfsbase %eax"),
@@ -385,6 +402,23 @@ std::vector<decoding_test> make_tests64() {
       },
       no_mem
     },
+  };
+  // clang-format on
+}
+
+// group 15 (0F AE), register forms: fences and WAITPKG
+test_list group15_fence_tests() {
+  auto eax = Dyninst::x86_64::eax;
+  auto ax = Dyninst::x86_64::ax;
+  auto edx = Dyninst::x86_64::edx;
+  auto dx = Dyninst::x86_64::dx;
+  auto edi = Dyninst::x86_64::edi;
+
+  using reg_set = Dyninst::register_set;
+  const reg_set status_flags = status_flags64();
+
+  // clang-format off
+  return {
     { // mfence (NP 0F AE /6, mod == 11; SDM Vol 2B).
       {0x0f, 0xae, 0xf0},
       di::opcode_test(e_mfence, "mfence"),
@@ -439,7 +473,23 @@ std::vector<decoding_test> make_tests64() {
       },
       no_mem
     },
-    // -------- group 9 (0F C7) --------
+  };
+  // clang-format on
+}
+
+// group 9 (0F C7): compacted-xsave family and rdrand/rdseed/rdpid
+test_list group9_xsave_rand_tests() {
+  auto rax = Dyninst::x86_64::rax;
+  auto eax = Dyninst::x86_64::eax;
+  auto ecx = Dyninst::x86_64::ecx;
+  auto edx = Dyninst::x86_64::edx;
+  auto rdi = Dyninst::x86_64::rdi;
+
+  using reg_set = Dyninst::register_set;
+  const reg_set status_flags = status_flags64();
+
+  // clang-format off
+  return {
     { // xrstors mem (NP 0F C7 /3; SDM Vol 2C, XRSTORS).
       {0x0f, 0xc7, 0x1f},
       di::opcode_test(e_xrstors, "xrstors (%rdi)"),
@@ -534,6 +584,19 @@ std::vector<decoding_test> make_tests64() {
       },
       no_mem
     },
+  };
+  // clang-format on
+}
+
+// group 9 (0F C7): VMX pointer instructions
+test_list group9_vmx_tests() {
+  auto rdi = Dyninst::x86_64::rdi;
+
+  using reg_set = Dyninst::register_set;
+  const reg_set status_flags = status_flags64();
+
+  // clang-format off
+  return {
     { // vmptrld m64 (NP 0F C7 /6, mem; SDM Vol 2C): reads the pointer
       // and reports success through the status flags (SDM Vol 3C).
       {0x0f, 0xc7, 0x37},
@@ -595,7 +658,21 @@ std::vector<decoding_test> make_tests64() {
         }
       }
     },
-    // -------- group 7 (0F 01), mod == 11 --------
+  };
+  // clang-format on
+}
+
+// group 7 (0F 01) mod == 11, group 11 (C6/C7 F8), and group 16 (0F 18)
+test_list group7_11_16_tests() {
+  auto eax = Dyninst::x86_64::eax;
+  auto ecx = Dyninst::x86_64::ecx;
+  auto edx = Dyninst::x86_64::edx;
+  auto rip = Dyninst::x86_64::rip;
+
+  using reg_set = Dyninst::register_set;
+
+  // clang-format off
+  return {
     { // rdtscp (0F 01 F9; SDM Vol 2B): writes EDX:EAX and ECX.
       {0x0f, 0x01, 0xf9},
       di::opcode_test(e_rdtscp, "rdtscp"),
@@ -673,7 +750,27 @@ std::vector<decoding_test> make_tests64() {
       },
       no_mem
     },
-    // -------- two-byte map identities --------
+  };
+  // clang-format on
+}
+
+// two-byte map identities and SSE4A (AMD APM Vol 4)
+test_list twobyte_sse4a_tests() {
+  auto rax = Dyninst::x86_64::rax;
+  auto eax = Dyninst::x86_64::eax;
+  auto rcx = Dyninst::x86_64::rcx;
+  auto ecx = Dyninst::x86_64::ecx;
+  auto mm1 = Dyninst::x86_64::mm1;
+  auto mm2 = Dyninst::x86_64::mm2;
+  auto xmm1 = Dyninst::x86_64::xmm1;
+  auto xmm2 = Dyninst::x86_64::xmm2;
+
+  using reg_set = Dyninst::register_set;
+  const reg_set status_flags = status_flags64();
+  const reg_set cc_flags = cc_flags64();
+
+  // clang-format off
+  return {
     { // cmovg (0F 4F /r; SDM Vol 2A, CMOVcc, tttn = 1111).
       {0x0f, 0x4f, 0xc8},
       di::opcode_test(e_cmovg, "cmovg %eax,%ecx"),
@@ -749,7 +846,21 @@ std::vector<decoding_test> make_tests64() {
       },
       no_mem
     },
-    // -------- VEX space --------
+  };
+  // clang-format on
+}
+
+// VEX space: vmovd/vmovq, vpand, and the FMA3 vfnmsub forms
+test_list vex_mov_fma_tests() {
+  auto rcx = Dyninst::x86_64::rcx;
+  auto ecx = Dyninst::x86_64::ecx;
+  auto xmm1 = Dyninst::x86_64::xmm1;
+  auto xmm2 = Dyninst::x86_64::xmm2;
+
+  using reg_set = Dyninst::register_set;
+
+  // clang-format off
+  return {
     { // vmovq r64 -> xmm (VEX.66.0F.W1 6E; SDM Vol 2B, MOVD/MOVQ).
       {0xc4, 0xe1, 0xf9, 0x6e, 0xc9},
       di::opcode_test(e_vmovq, "vmovq %rcx,%xmm1"),
@@ -823,6 +934,20 @@ std::vector<decoding_test> make_tests64() {
       },
       no_mem
     },
+  };
+  // clang-format on
+}
+
+// VEX space: AES, blendv write sets, vmpsadbw, and FMA4 (AMD APM Vol 6)
+test_list vex_blend_fma4_tests() {
+  auto xmm1 = Dyninst::x86_64::xmm1;
+  auto xmm2 = Dyninst::x86_64::xmm2;
+  auto xmm3 = Dyninst::x86_64::xmm3;
+
+  using reg_set = Dyninst::register_set;
+
+  // clang-format off
+  return {
     { // vaesdeclast (VEX.128.66.0F38.WIG DF /r; SDM Vol 2A): the
       // destination register is written.
       {0xc4, 0xe2, 0x71, 0xdf, 0xca},
@@ -881,6 +1006,20 @@ std::vector<decoding_test> make_tests64() {
     },
   };
   // clang-format on
+}
+
+test_list make_tests64() {
+  test_list tests;
+  append(tests, group15_memory_tests());
+  append(tests, group15_register_tests());
+  append(tests, group15_fence_tests());
+  append(tests, group9_xsave_rand_tests());
+  append(tests, group9_vmx_tests());
+  append(tests, group7_11_16_tests());
+  append(tests, twobyte_sse4a_tests());
+  append(tests, vex_mov_fma_tests());
+  append(tests, vex_blend_fma4_tests());
+  return tests;
 }
 
 std::vector<decoding_test> make_tests32() {
