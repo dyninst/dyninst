@@ -547,6 +547,7 @@ namespace Dyninst { namespace InstructionAPI {
       case e_cmpsw: return standardFlags;
       case e_cmpxchg: return standardFlags;
       case e_cmpxchg8b: return {x86::zf};
+      case e_cmpxchg16b: return {x86::zf};
       case e_comisd: return standardFlags;
       case e_comiss: return standardFlags;
       case e_daa: return standardFlags;

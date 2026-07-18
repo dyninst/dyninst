@@ -216,6 +216,15 @@ enum {
   SSE09, SSE1C, SSE1E,
   SSE01E8, SSE01EA, SSE0105M
 };
+
+/* Legacy encodings where REX.W selects a distinct instruction or
+   mnemonic (indexes into rexWMap). */
+enum {
+  REXW_CMPXCHG8B = 0,
+  REXW_XSAVE, REXW_XRSTOR, REXW_XSAVEOPT,
+  REXW_XSAVEC, REXW_XSAVES, REXW_XRSTORS,
+  REXW_INCSSP, REXW_RDSSP
+};
 /** END_DYNINST_TABLE_DEF */
 
 /** Table that multiplexes between VEX and non VEX sse instructions */
@@ -2522,23 +2531,71 @@ static ia32_entry groupMap[][8] = {
 };
 
 
+/* Legacy encodings where REX.W selects a distinct instruction or
+   mnemonic, in the same way t_vexw selects on VEX.W. Column 0 is the
+   form without REX.W (and the only reachable one outside 64-bit mode);
+   column 1 is the REX.W form.
+
+   cmpxchg16b (SDM Vol 2B, CMPXCHG8B/CMPXCHG16B: REX.W 0F C7 /1)
+   compares RDX:RAX with m128 and uses RCX:RBX; the implicit-pair
+   operand expressions retain the 32-bit register names of the
+   cmpxchg8b encoding, so dependence analyses see the correct register
+   identities at reduced width. The xsave family's 64-bit forms differ
+   only in the layout they store (SDM Vol 2C). */
+static ia32_entry rexWMap[][2] = {
+  { /* REXW_CMPXCHG8B */
+    { e_cmpxchg8b, t_done, 0, true, { EDXEAX, Mq, ECXEBX }, 0, s1RW2RW3R | (fCMPXCH8 << FPOS), s2I },
+    { e_cmpxchg16b, t_done, 0, true, { EDXEAX, Mdq, ECXEBX }, 0, s1RW2RW3R | (fCMPXCH8 << FPOS), s2I },
+  },
+  { /* REXW_XSAVE */
+    { e_xsave, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
+    { e_xsave64, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
+  },
+  { /* REXW_XRSTOR */
+    { e_xrstor, t_done, 0, true, { Md, EDX, EAX }, 0, s1R2R3R, s2I | s3I },
+    { e_xrstor64, t_done, 0, true, { Md, EDX, EAX }, 0, s1R2R3R, s2I | s3I },
+  },
+  { /* REXW_XSAVEOPT */
+    { e_xsaveopt, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
+    { e_xsaveopt64, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
+  },
+  { /* REXW_XSAVEC */
+    { e_xsavec, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
+    { e_xsavec64, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
+  },
+  { /* REXW_XSAVES */
+    { e_xsaves, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
+    { e_xsaves64, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
+  },
+  { /* REXW_XRSTORS */
+    { e_xrstors, t_done, 0, true, { Md, EDX, EAX }, 0, s1R2R3R, s2I | s3I },
+    { e_xrstors64, t_done, 0, true, { Md, EDX, EAX }, 0, s1R2R3R, s2I | s3I },
+  },
+  { /* REXW_INCSSP (SDM Vol 2A, INCSSPD/INCSSPQ) */
+    { e_incsspd, t_done, 0, true, { Ey, Zz, Zz }, 0, s1R, 0 },
+    { e_incsspq, t_done, 0, true, { Ey, Zz, Zz }, 0, s1R, 0 },
+  },
+  { /* REXW_RDSSP (SDM Vol 2B, RDSSPD/RDSSPQ) */
+    { e_rdsspd, t_done, 0, true, { Ey, Zz, Zz }, 0, s1W, 0 },
+    { e_rdsspq, t_done, 0, true, { Ey, Zz, Zz }, 0, s1W, 0 },
+  },
+};
+
 /* Group 9 (0F C7): ModRM.mod and the mandatory prefix select among
    cmpxchg8b, the compacted-xsave family, the VMX pointer instructions,
    and rdrand/rdseed/rdpid (SDM Vol 2D, Table A-6, Group 9). The
    xsavec/xsaves/xrstors forms read the requested-feature bitmap in
    EDX:EAX (SDM Vol 1, 13.7); like the group 15 xsave family, the
-   variable-size XSAVE area is approximated as Md. With REX.W,
-   0F C7 /1 is cmpxchg16b on RDX:RAX/RCX:RBX; the tables cannot select
-   an entry on REX.W, so it reports as cmpxchg8b with the 32-bit pair. */
+   variable-size XSAVE area is approximated as Md. REX.W-selected
+   variants (cmpxchg16b, the 64-bit xsave layouts) live in rexWMap. */
 static ia32_entry grp9Map[2][8] = {
   { /* mod != 11 (memory forms) */
     { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-    // see comments for cmpxch
-    { e_cmpxchg8b, t_done, 0, true, { EDXEAX, Mq, ECXEBX }, 0, s1RW2RW3R | (fCMPXCH8 << FPOS), s2I },
+    { e_No_Entry, t_rexw, REXW_CMPXCHG8B, true, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_xrstors, t_done, 0, true, { Md, EDX, EAX }, 0, s1R2R3R, s2I | s3I },
-    { e_xsavec, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
-    { e_xsaves, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
+    { e_No_Entry, t_rexw, REXW_XRSTORS, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_rexw, REXW_XSAVEC, true, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_No_Entry, t_rexw, REXW_XSAVES, true, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_sse, SSEC706M, true, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_sse, SSEC707M, true, { Zz, Zz, Zz }, 0, 0, 0 },
   },
@@ -2879,9 +2936,7 @@ static ia32_entry groupMap2[][2][8] = {
   },
   { /* F3 0F 1E: rdsspd r32 / rdsspq r64 with REX.W at /1 with mod == 11
        (SDM Vol 2B, RDSSPD/RDSSPQ: reads the shadow-stack pointer, which
-       has no register representation, into the operand; the tables
-       cannot select a mnemonic on REX.W, so both widths report
-       e_rdsspd). endbr32/endbr64 (F3 0F 1E FB/FA; SDM Vol 2A) are
+       has no register representation, into the operand). endbr32/endbr64 (F3 0F 1E FB/FA; SDM Vol 2A) are
        recognized before table dispatch in InstructionDecoder-x86.C.
        Every other F3 0F 1E encoding is a reserved NOP (SDM Vol 2B,
        NOP). */
@@ -2897,7 +2952,7 @@ static ia32_entry groupMap2[][2][8] = {
     },
     {
       { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
-      { e_rdsspd, t_done, 0, true, { Ey, Zz, Zz }, 0, s1W, 0 },
+      { e_No_Entry, t_rexw, REXW_RDSSP, true, { Zz, Zz, Zz }, 0, 0, 0 },
       { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
       { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
       { e_nop, t_done, 0, true, { Zz, Zz, Zz }, IS_NOP, sNONE, 0 },
@@ -3864,13 +3919,13 @@ static ia32_entry sseMap[][4] = {
   { /* SSEAE04M: NP xsave mem (SDM Vol 2C, XSAVE); F3 ptwrite m32/m64
        (SDM Vol 2B, PTWRITE). ptwrite only reads its operand -- it writes
        no register or flag. */
-    { e_xsave, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
+    { e_No_Entry, t_rexw, REXW_XSAVE, true, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_ptwrite, t_done, 0, true, { Ey, Zz, Zz }, 0, s1R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSEAE05M: NP xrstor mem (SDM Vol 2C, XRSTOR). */
-    { e_xrstor, t_done, 0, true, { Md, EDX, EAX }, 0, s1R2R3R, s2I | s3I },
+    { e_No_Entry, t_rexw, REXW_XRSTOR, true, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -3879,7 +3934,7 @@ static ia32_entry sseMap[][4] = {
        (SDM Vol 2A, CLRSSBSY: reads the shadow-stack token and clears its
        busy bit, so the m64 is read and written; the SSP write is not
        representable); 66 clwb m8 (SDM Vol 2A, CLWB). */
-    { e_xsaveopt, t_done, 0, true, { Md, EDX, EAX }, 0, s1W2R3R, s2I | s3I },
+    { e_No_Entry, t_rexw, REXW_XSAVEOPT, true, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_clrssbsy, t_done, 0, true, { Mq, Zz, Zz }, 0, s1RW, 0 },
     { e_clwb, t_done, 0, true, { Mb, Zz, Zz }, 0, s1W | (fCLFLUSH << FPOS), 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -3924,11 +3979,9 @@ static ia32_entry sseMap[][4] = {
   { /* SSEAE05R: NP lfence (SDM Vol 2A, LFENCE); F3 incsspd r32 /
        incsspq r64 with REX.W (SDM Vol 2A, INCSSPD/INCSSPQ: reads the
        shift count from the register; the SSP update is not
-       representable). The tables cannot select a mnemonic on REX.W, so
-       both widths report e_incsspd; the operand width is still correct
-       via op_y. */
+       representable). */
     { e_lfence, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE, 0 },
-    { e_incsspd, t_done, 0, true, { Ey, Zz, Zz }, 0, s1R, 0 },
+    { e_No_Entry, t_rexw, REXW_INCSSP, true, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
@@ -9141,7 +9194,8 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                    first column describes the non-VEX instruction (e.g.
                    66 0F 78: non-VEX extrq vs. EVEX conversions), or into
                    an opcode-extension group (e.g. 0F 1C: cldemote). */
-                if(!pref.vex_present && nxtab != t_sse_vex_mult && nxtab != t_grp)
+                if(!pref.vex_present && nxtab != t_sse_vex_mult && nxtab != t_grp
+                   && nxtab != t_rexw)
                     nxtab = t_done;
                 break;
             case t_sse_mult:
@@ -9451,6 +9505,15 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 gotit = &XOP9_W[idx][pref.vex_w];
                 nxtab = gotit->otable;
                 vextab = true;
+                break;
+            case t_rexw:
+                /* Legacy encodings where REX.W selects a distinct
+                   instruction (cmpxchg8b vs cmpxchg16b, xsave vs
+                   xsave64, ...). REX prefixes only exist in 64-bit
+                   mode. */
+                idx = gotit->tabidx;
+                gotit = &rexWMap[idx][(mode_64 && pref.rexW()) ? 1 : 0];
+                nxtab = gotit->otable;
                 break;
             case t_ill:
                 if(pref.vex_present)

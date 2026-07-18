@@ -307,6 +307,22 @@ test_list group15_memory_tests() {
         }
       }
     },
+    { // xsave64 mem (NP REX.W 0F AE /4; SDM Vol 2C, XSAVE): REX.W
+      // selects the 64-bit layout and promotes the implicit mask pair.
+      {0x48, 0x0f, 0xae, 0x27},
+      di::opcode_test(e_xsave64, "xsave64 (%rdi)"),
+      di::register_rw_test{
+        reg_set{rdi, Dyninst::x86_64::rdx, Dyninst::x86_64::rax},
+        reg_set{}
+      },
+      di::mem_test{
+        !reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{},
+          reg_set{rdi}
+        }
+      }
+    },
     { // xrstor mem (NP 0F AE /5; SDM Vol 2C, XRSTOR): reads EDX:EAX and
       // the XSAVE area.
       {0x0f, 0xae, 0x2f},
@@ -404,11 +420,9 @@ test_list group15_register_tests() {
       },
       no_mem
     },
-    { // incsspq r64 (F3 REX.W 0F AE /5; SDM Vol 2A). The tables cannot
-      // select a mnemonic on REX.W, so the ID stays e_incsspd; the
-      // operand width follows REX.W and is correct.
+    { // incsspq r64 (F3 REX.W 0F AE /5; SDM Vol 2A).
       {0xf3, 0x48, 0x0f, 0xae, 0xef},
-      di::opcode_test(e_incsspd, "incsspd %rdi"),
+      di::opcode_test(e_incsspq, "incsspq %rdi"),
       di::register_rw_test{
         reg_set{rdi},
         reg_set{}
@@ -538,6 +552,40 @@ test_list group9_xsave_rand_tests() {
       di::opcode_test(e_xsaves, "xsaves (%rdi)"),
       di::register_rw_test{
         reg_set{rdi, edx, eax},
+        reg_set{}
+      },
+      di::mem_test{
+        !reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{},
+          reg_set{rdi}
+        }
+      }
+    },
+    { // cmpxchg16b m128 (REX.W 0F C7 /1; SDM Vol 2B, CMPXCHG8B/
+      // CMPXCHG16B): compares RDX:RAX with the m128 and uses RCX:RBX.
+      // The implicit-pair expressions retain the 32-bit register names
+      // of the cmpxchg8b encoding, so the read/write sets report the
+      // correct register identities at reduced width.
+      {0x48, 0x0f, 0xc7, 0x0f},
+      di::opcode_test(e_cmpxchg16b, "cmpxchg16b ebx(%ecx,100000000),eax(%edx,100000000)"),
+      di::register_rw_test{
+        reg_set{rdi, eax, Dyninst::x86_64::ebx, ecx, edx},
+        reg_set{Dyninst::x86_64::zf}
+      },
+      di::mem_test{
+        reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{rdi, eax, Dyninst::x86_64::ebx, ecx, edx},
+          reg_set{rdi, eax, edx}
+        }
+      }
+    },
+    { // xsaves64 mem (NP REX.W 0F C7 /5; SDM Vol 2C, XSAVES).
+      {0x48, 0x0f, 0xc7, 0x2f},
+      di::opcode_test(e_xsaves64, "xsaves64 (%rdi)"),
+      di::register_rw_test{
+        reg_set{rdi, Dyninst::x86_64::rdx, rax},
         reg_set{}
       },
       di::mem_test{
@@ -927,11 +975,9 @@ test_list hint_cet_tests() {
       },
       no_mem
     },
-    { // rdsspq r64 (F3 REX.W 0F 1E /1; SDM Vol 2B). The tables cannot
-      // select a mnemonic on REX.W, so the ID stays e_rdsspd; the
-      // operand width follows REX.W and is correct.
+    { // rdsspq r64 (F3 REX.W 0F 1E /1; SDM Vol 2B).
       {0xf3, 0x48, 0x0f, 0x1e, 0xc8},
-      di::opcode_test(e_rdsspd, "rdsspd %rax"),
+      di::opcode_test(e_rdsspq, "rdsspq %rax"),
       di::register_rw_test{
         reg_set{},
         reg_set{rax}
