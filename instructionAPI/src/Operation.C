@@ -442,6 +442,7 @@ namespace Dyninst { namespace InstructionAPI {
       case e_cmovne: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
       case e_cmovle: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
       case e_cmovl: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
+      case e_cmovg: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
       case e_cmovge: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
       case e_cmovno: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
       case e_cmovns: return {x86::of,x86::sf,x86::zf,x86::pf,x86::cf};
@@ -602,6 +603,11 @@ namespace Dyninst { namespace InstructionAPI {
       case e_rdrand: return standardFlags;
       case e_tpause: return standardFlags;
       case e_umwait: return standardFlags;
+      // SDM Vol 2B TZCNT / LZCNT: ZF and CF are defined results; OF, SF,
+      // PF, and AF are undefined, so all six are conservatively written
+      // (matching the bsf/bsr entries above).
+      case e_tzcnt: return standardFlags;
+      case e_lzcnt: return standardFlags;
       default:
         return {};
     }

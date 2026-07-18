@@ -150,6 +150,7 @@ namespace Dyninst { namespace InstructionAPI {
       case s1RW2R:   // two operands read, first written (e.g. add)
       case s1W2R3R:  // e.g. imul
       case s1RW2R3R: // shld/shrd
+      case s1W2R3R4R: // blendv/FMA4/XOP: dest written, all sources read
       case s1RW2R3R4R:
         return i == 0;
       case s1R2RW:
