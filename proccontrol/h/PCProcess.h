@@ -182,6 +182,12 @@ class DYNINST_EXPORT LibraryPool
    friend class Dyninst::ProcControlAPI::Process;
  private:
    int_process *proc;
+   // Weak route to the owning Process wrapper: pool methods lock proc_lock
+   // through this without dereferencing `proc` first (check-then-deref UAF).
+   // Empty on the error sentinel (no lock taken; sentinel is immutable).
+   // NB: unlike the thread pool, this pool is EMBEDDED in int_process --
+   // a LibraryPool& held across process teardown dangles (pre-existing).
+   boost::weak_ptr<Process> proc_wrapper_;
    LibraryPool();
    ~LibraryPool();
  public:

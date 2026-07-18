@@ -1522,6 +1522,7 @@ void int_process::initializeProcess(Process::ptr p)
    threadpool = p->threadpool_;                 // impl keeps a raw cache
    handlerpool = createDefaultHandlerPool(this);
    libpool.proc = this;
+   libpool.proc_wrapper_ = p;   // pool -> wrapper route for proc_lock
    if (!mem)
       mem = new mem_state(this);
    Generator::getDefaultGenerator(); //May create generator thread
@@ -6172,7 +6173,7 @@ LibraryPool::~LibraryPool()
 
 size_t LibraryPool::size() const
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(proc_wrapper_.lock()); // D-4a: pool reads under proc_lock
    if (!proc) {
       perr_printf("getExecutable on deleted process\n");
       globalSetLastError(err_exited, "Process is exited\n");
@@ -6183,7 +6184,7 @@ size_t LibraryPool::size() const
 
 Library::ptr LibraryPool::getLibraryByName(std::string s)
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(proc_wrapper_.lock()); // D-4a: pool reads under proc_lock
    if (!proc) {
       perr_printf("getLibraryByName on deleted process\n");
       globalSetLastError(err_exited, "Process is exited\n");
@@ -6198,7 +6199,7 @@ Library::ptr LibraryPool::getLibraryByName(std::string s)
 
 Library::const_ptr LibraryPool::getLibraryByName(std::string s) const
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(proc_wrapper_.lock()); // D-4a: pool reads under proc_lock
    if (!proc) {
       perr_printf("getLibraryByName on deleted process\n");
       globalSetLastError(err_exited, "Process is exited\n");
@@ -6213,7 +6214,7 @@ Library::const_ptr LibraryPool::getLibraryByName(std::string s) const
 
 Library::ptr LibraryPool::getExecutable()
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(proc_wrapper_.lock()); // D-4a: pool reads under proc_lock
    if (!proc) {
       perr_printf("getExecutable on deleted process\n");
       globalSetLastError(err_exited, "Process is exited\n");
@@ -6224,7 +6225,7 @@ Library::ptr LibraryPool::getExecutable()
 
 Library::const_ptr LibraryPool::getExecutable() const
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(proc_wrapper_.lock()); // D-4a: pool reads under proc_lock
    if (!proc) {
       perr_printf("getExecutable on deleted process\n");
       globalSetLastError(err_exited, "Process is exited\n");
