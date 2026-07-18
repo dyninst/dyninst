@@ -156,6 +156,12 @@ bool run_reserved_encodings() {
     {"group 9 F3 /7 memory form", {0xf3, 0x0f, 0xc7, 0x3f}, Dyninst::Arch_x86_64},
     {"group 9 /1 register form (cmpxchg8b slot)", {0x0f, 0xc7, 0xc8}, Dyninst::Arch_x86_64},
     {"group 9 F2 /7 register form", {0xf2, 0x0f, 0xc7, 0xf8}, Dyninst::Arch_x86_64},
+    // GFNI: unprefixed/F3 legacy forms and wrong-W VEX forms are
+    // reserved (SDM Vol 2A).
+    {"unprefixed 0F 38 CF", {0x0f, 0x38, 0xcf, 0xc8}, Dyninst::Arch_x86_64},
+    {"F3-prefixed 0F 38 CF", {0xf3, 0x0f, 0x38, 0xcf, 0xc8}, Dyninst::Arch_x86_64},
+    {"vgf2p8mulb with W1", {0xc4, 0xe2, 0xf1, 0xcf, 0xca}, Dyninst::Arch_x86_64},
+    {"vgf2p8affineqb with W0", {0xc4, 0xe3, 0x71, 0xce, 0xca, 0x07}, Dyninst::Arch_x86_64},
     // FMA4 requires a VEX prefix with pp = 66 (AMD APM Vol 6).
     {"legacy (non-VEX) FMA4 opcode", {0x66, 0x0f, 0x3a, 0x68, 0xca, 0x30}, Dyninst::Arch_x86_64},
     {"FMA4 with VEX.pp = F2", {0xc4, 0xe3, 0x73, 0x68, 0xca, 0x30}, Dyninst::Arch_x86_64},
@@ -1195,6 +1201,76 @@ test_list vex_mov_fma_tests() {
   // clang-format on
 }
 
+// GFNI (SDM Vol 2A, GF2P8MULB/GF2P8AFFINEQB/GF2P8AFFINEINVQB): the
+// legacy forms take the 66 prefix; the VEX forms are W-gated (mulb
+// requires W0, the affine forms W1).
+test_list gfni_tests() {
+  auto xmm0 = Dyninst::x86_64::xmm0;
+  auto xmm1 = Dyninst::x86_64::xmm1;
+  auto xmm2 = Dyninst::x86_64::xmm2;
+
+  using reg_set = Dyninst::register_set;
+
+  // clang-format off
+  return {
+    { // gf2p8mulb xmm1, xmm2/m128 (66 0F 38 CF /r).
+      {0x66, 0x0f, 0x38, 0xcf, 0xc8},
+      di::opcode_test(e_gf2p8mulb, "gf2p8mulb %xmm0,%xmm1"),
+      di::register_rw_test{
+        reg_set{xmm0, xmm1},
+        reg_set{xmm1}
+      },
+      no_mem
+    },
+    { // gf2p8affineqb xmm1, xmm2/m128, imm8 (66 0F 3A CE /r ib).
+      {0x66, 0x0f, 0x3a, 0xce, 0xc8, 0x07},
+      di::opcode_test(e_gf2p8affineqb, "gf2p8affineqb $0x7,%xmm0,%xmm1"),
+      di::register_rw_test{
+        reg_set{xmm0, xmm1},
+        reg_set{xmm1}
+      },
+      no_mem
+    },
+    { // gf2p8affineinvqb xmm1, xmm2/m128, imm8 (66 0F 3A CF /r ib).
+      {0x66, 0x0f, 0x3a, 0xcf, 0xc8, 0x07},
+      di::opcode_test(e_gf2p8affineinvqb, "gf2p8affineinvqb $0x7,%xmm0,%xmm1"),
+      di::register_rw_test{
+        reg_set{xmm0, xmm1},
+        reg_set{xmm1}
+      },
+      no_mem
+    },
+    { // vgf2p8mulb (VEX.128.66.0F38.W0 CF /r).
+      {0xc4, 0xe2, 0x71, 0xcf, 0xca},
+      di::opcode_test(e_vgf2p8mulb, "vgf2p8mulb %xmm2,%xmm1,%xmm1"),
+      di::register_rw_test{
+        reg_set{xmm1, xmm2},
+        reg_set{xmm1}
+      },
+      no_mem
+    },
+    { // vgf2p8affineqb (VEX.128.66.0F3A.W1 CE /r ib).
+      {0xc4, 0xe3, 0xf1, 0xce, 0xca, 0x07},
+      di::opcode_test(e_vgf2p8affineqb, "vgf2p8affineqb $0x7,%xmm2,%xmm1,%xmm1"),
+      di::register_rw_test{
+        reg_set{xmm1, xmm2},
+        reg_set{xmm1}
+      },
+      no_mem
+    },
+    { // vgf2p8affineinvqb (VEX.128.66.0F3A.W1 CF /r ib).
+      {0xc4, 0xe3, 0xf1, 0xcf, 0xca, 0x07},
+      di::opcode_test(e_vgf2p8affineinvqb, "vgf2p8affineinvqb $0x7,%xmm2,%xmm1,%xmm1"),
+      di::register_rw_test{
+        reg_set{xmm1, xmm2},
+        reg_set{xmm1}
+      },
+      no_mem
+    },
+  };
+  // clang-format on
+}
+
 // VEX space: AES, blendv write sets, vmpsadbw, and FMA4 (AMD APM Vol 6)
 test_list vex_blend_fma4_tests() {
   auto xmm1 = Dyninst::x86_64::xmm1;
@@ -1277,6 +1353,7 @@ test_list make_tests64() {
   append(tests, hint_cet_tests());
   append(tests, twobyte_sse4a_tests());
   append(tests, vex_mov_fma_tests());
+  append(tests, gfni_tests());
   append(tests, vex_blend_fma4_tests());
   return tests;
 }
