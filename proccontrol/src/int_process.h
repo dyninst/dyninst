@@ -102,19 +102,16 @@ struct ProcScopeLock {
 // gone (process/thread exited): callers handle "gone" explicitly instead of
 // dereferencing a checkable NULL.
 //
-// work_lock retirement: the accessors CAN take the per-process proc_lock for
-// their lifetime (implref_locked tag; recursive, impl resolved AFTER the
-// lock, serialized against teardown).  Locking is OPT-IN, not the default:
-// a default-on experiment deadlocked -- with the documented order
-// (condvar > proc_lock), a locked boundary scope that transitively reaches a
-// ProcPool-condvar acquisition (int_thread::intCont, cleanFromHandler,
-// forked/execed/post_forked, lwp_refresh...) inverts against the generator,
-// which holds the condvar across decode's proc_lock.  Flipping the default
-// requires first narrowing the generator's condvar hold (order becomes
-// proc_lock > condvar); until then, opt in only where the scope provably
-// takes no condvar and spans no blocking wait.
+// work_lock retirement: the accessors take the per-process proc_lock BY
+// DEFAULT for their lifetime (recursive; the impl is resolved AFTER the
+// lock, so resolution is serialized against teardown).  This became safe
+// once the generator's condvar hold was narrowed to the registration lookup
+// (order: work_lock > registration lock (lookup only) | proc_lock >
+// map_lock).  implref_nolock is the audited OPT-OUT for scopes that must
+// not lock -- plumbing reachable under leaf locks, generator/decode paths,
+// scopes spanning a blocking park (the proc_lock discipline clauses,
+// CLAUDE.md) -- always with a comment citing the clause.
 enum implref_nolock_t { implref_nolock };   // documents audited hazard sites
-enum implref_locked_t { implref_locked };   // opt-in per-process locking
 
 struct ProcImplRef {
    Dyninst::ProcControlAPI::Process::const_ptr pin_;
@@ -1264,11 +1261,20 @@ class int_threadPool {
 
    mutable Thread::ptr initial_thread; // may be updated by side effect on Windows
    int_process *proc_;
+   // Weak route to the owning Process wrapper (mirrors Thread::proc_wrapper_):
+   // the pool is wrapper-owned, so public ThreadPool methods/iterators lock
+   // proc_lock through this WITHOUT dereferencing proc_ (which is impl-owned
+   // and would be a check-then-deref UAF -- the BUGL1 shape).  Stamped at
+   // pool creation (int_process::initializeProcess).
+   Dyninst::ProcControlAPI::Process::weak_ptr proc_wrapper_;
    ThreadPool *up_pool;
    bool had_multiple_threads;
  public:
    int_threadPool(int_process *p);
    ~int_threadPool();
+
+   void bindProcWrapper(Dyninst::ProcControlAPI::Process::ptr pw) { proc_wrapper_ = pw; }
+   Dyninst::ProcControlAPI::Process::ptr procWrapper() const { return proc_wrapper_.lock(); }
 
    void setInitialThread(Thread::ptr thrd);
    void addThread(Thread::ptr wrapper);
