@@ -1518,6 +1518,7 @@ void int_process::initializeProcess(Process::ptr p)
    if (pid != 0)
       ProcPool()->addProcess(p);
    p->threadpool_ = new int_threadPool(this);   // wrapper owns it
+   p->threadpool_->bindProcWrapper(p);   // pool -> wrapper route for proc_lock
    threadpool = p->threadpool_;                 // impl keeps a raw cache
    handlerpool = createDefaultHandlerPool(this);
    libpool.proc = this;
@@ -8391,7 +8392,7 @@ bool ThreadPool::iterator::operator!=(const iterator &i) const
 
 Thread::ptr ThreadPool::iterator::operator*() const
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(curp ? curp->procWrapper() : Process::ptr()); // D-4a: pool reads under proc_lock
    assert(curp);
    //assert(curi >= 0 && ((curi < (signed) curp->threads.size()) || !curh->llthrd()) ); //Likely dereferenced bad thread iterator
    return curh;
@@ -8399,7 +8400,7 @@ Thread::ptr ThreadPool::iterator::operator*() const
 
 ThreadPool::iterator ThreadPool::iterator::operator++() // prefix
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(curp ? curp->procWrapper() : Process::ptr()); // D-4a: pool reads under proc_lock
 
    assert(curi >= 0); //If this fails, you incremented a bad iterator
    for (;;) {
@@ -8422,7 +8423,7 @@ ThreadPool::iterator ThreadPool::iterator::operator++() // prefix
 
 ThreadPool::iterator ThreadPool::iterator::operator++(int) // postfix
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(curp ? curp->procWrapper() : Process::ptr()); // D-4a: pool reads under proc_lock
    ThreadPool::iterator orig = *this;
 
    assert(curi >= 0); //If this fails, you incremented a bad iterator
@@ -8446,7 +8447,7 @@ ThreadPool::iterator ThreadPool::iterator::operator++(int) // postfix
 
 ThreadPool::iterator ThreadPool::begin()
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(threadpool->procWrapper()); // D-4a: pool reads under proc_lock
    ThreadPool::iterator i{};
    i.curp = threadpool;
    i.curi = 0;
@@ -8461,7 +8462,7 @@ ThreadPool::iterator ThreadPool::begin()
 
 ThreadPool::iterator ThreadPool::end()
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(threadpool->procWrapper()); // D-4a: pool reads under proc_lock
    ThreadPool::iterator i{};
    i.curp = threadpool;
    i.curi = iterator::end_val;
@@ -8471,7 +8472,7 @@ ThreadPool::iterator ThreadPool::end()
 
 ThreadPool::iterator ThreadPool::find(Dyninst::LWP lwp)
 {
-    MTLock lock_this_func;
+   ProcScopeLock plock(threadpool->procWrapper()); // D-4a: pool reads under proc_lock
     ThreadPool::iterator i{};
     int_thread *thread = threadpool->findThreadByLWP(lwp);
     if( !thread ) return end();
@@ -8502,7 +8503,7 @@ bool ThreadPool::const_iterator::operator!=(const const_iterator &i) const
 
 Thread::const_ptr ThreadPool::const_iterator::operator*() const
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(curp ? curp->procWrapper() : Process::ptr()); // D-4a: pool reads under proc_lock
    assert(curp);
    assert(curi >= 0 && curi < (signed) curp->threads.size());
    return curh;
@@ -8510,7 +8511,7 @@ Thread::const_ptr ThreadPool::const_iterator::operator*() const
 
 ThreadPool::const_iterator ThreadPool::const_iterator::operator++() // prefix
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(curp ? curp->procWrapper() : Process::ptr()); // D-4a: pool reads under proc_lock
 
    assert(curi >= 0); //If this fails, you incremented a bad iterator
    for (;;) {
@@ -8533,7 +8534,7 @@ ThreadPool::const_iterator ThreadPool::const_iterator::operator++() // prefix
 
 ThreadPool::const_iterator ThreadPool::const_iterator::operator++(int) // postfix
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(curp ? curp->procWrapper() : Process::ptr()); // D-4a: pool reads under proc_lock
    ThreadPool::const_iterator orig = *this;
 
    assert(curi >= 0); //If this fails, you incremented a bad iterator
@@ -8557,7 +8558,7 @@ ThreadPool::const_iterator ThreadPool::const_iterator::operator++(int) // postfi
 
 ThreadPool::const_iterator ThreadPool::begin() const
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(threadpool->procWrapper()); // D-4a: pool reads under proc_lock
    ThreadPool::const_iterator i{};
    i.curp = threadpool;
    i.curi = 0;
@@ -8578,7 +8579,7 @@ ThreadPool::const_iterator ThreadPool::begin() const
 
 ThreadPool::const_iterator ThreadPool::end() const
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(threadpool->procWrapper()); // D-4a: pool reads under proc_lock
    ThreadPool::const_iterator i{};
    i.curp = threadpool;
    i.curi = const_iterator::end_val;
@@ -8588,7 +8589,7 @@ ThreadPool::const_iterator ThreadPool::end() const
 
 ThreadPool::const_iterator ThreadPool::find(Dyninst::LWP lwp) const
 {
-    MTLock lock_this_func;
+   ProcScopeLock plock(threadpool->procWrapper()); // D-4a: pool reads under proc_lock
     ThreadPool::const_iterator i{};
     int_thread *thread = threadpool->findThreadByLWP(lwp);
     if( !thread ) return end();
@@ -8602,23 +8603,23 @@ ThreadPool::const_iterator ThreadPool::find(Dyninst::LWP lwp) const
 
 Process::const_ptr ThreadPool::getProcess() const
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(threadpool->procWrapper()); // D-4a: pool reads under proc_lock
    if (!threadpool->proc())
       return Process::ptr();   // process exited; pool back-ref severed
-   return threadpool->proc()->proc();
+   return threadpool->procWrapper();
 }
 
 Process::ptr ThreadPool::getProcess()
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(threadpool->procWrapper()); // D-4a: pool reads under proc_lock
    if (!threadpool->proc())
       return Process::ptr();   // process exited; pool back-ref severed
-   return threadpool->proc()->proc();
+   return threadpool->procWrapper();
 }
 
 size_t ThreadPool::size() const
 {
-   MTLock lock_this_func;
+   ProcScopeLock plock(threadpool->procWrapper()); // D-4a: pool reads under proc_lock
    return threadpool->size();
 }
 
