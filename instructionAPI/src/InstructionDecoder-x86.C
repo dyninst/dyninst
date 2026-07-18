@@ -1301,6 +1301,11 @@ namespace Dyninst { namespace InstructionAPI {
             isImplicit);
         break;
 
+      case am_N: { /* MMX register selected by ModRM.rm */
+        Expression::Ptr op(
+            makeRegisterExpression(IntelRegTable(m_Arch, b_mm, locs->modrm_rm)));
+        add_operand(op, isRead, isWritten, isImplicit);
+      } break;
       case am_U: /* Could be XMM, YMM, or ZMM (or possibly non VEX)*/
 
         /* Is this a vex prefixed instruction? */

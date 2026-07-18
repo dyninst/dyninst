@@ -781,7 +781,11 @@ static int vex3_simdop_convert[3][4] = {
 #define Mfd  { am_M, op_dbl }
 #define M14  { am_M, op_14 }
 #define Mv   { am_M, op_v }
+#define Mps  { am_M, op_ps }
+#define Mpd  { am_M, op_pd }
 #define Nss  { am_N, op_ss }
+#define Nq   { am_N, op_q }
+#define Npi  { am_N, op_pi }
 #define Ob   { am_O, op_b }
 #define Ov   { am_O, op_v }
 #define Pd   { am_P, op_d }
@@ -1469,7 +1473,7 @@ static ia32_entry twoByteMap[256] = {
   { e_xadd, t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2RW, 0 },
   { e_xadd, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2RW, 0 },
   { e_No_Entry, t_sse, SSEC2, true, { Zz, Zz, Zz }, 0, 0, 0 },
-  { e_movnti , t_done, 0, true, { Ev, Gv, Zz }, 0, s1W2R | (fNT << FPOS), 0 },
+  { e_movnti , t_done, 0, true, { Mv, Gv, Zz }, 0, s1W2R | (fNT << FPOS), 0 },
   { e_No_Entry, t_sse, SSEC4, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_sse, SSEC5, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_sse, SSEC6, true, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -3155,9 +3159,9 @@ static ia32_entry sseMap[][4] = {
     { e_cvtsi2sd, t_sse_mult, SSE2A_F2, true, { Vsd, Ev, Zz }, 0, s1W2R, 0 },
   },
   { /* SSE2B */
-    { e_movntps, t_sse_mult, SSE2B_NO, true, { Wps, Vps, Zz }, 0, s1W2R | (fNT << FPOS), 0 },
+    { e_movntps, t_sse_mult, SSE2B_NO, true, { Mps, Vps, Zz }, 0, s1W2R | (fNT << FPOS), 0 },
     { e_movntss, t_done, 0, true, { Md, Vd, Zz }, 0, s1W2R | (fNT << FPOS), 0 },
-    { e_movntpd, t_sse_mult, SSE2B_66, true, { Wpd, Vpd, Zz }, 0, s1W2R | (fNT << FPOS), 0 }, // bug in book
+    { e_movntpd, t_sse_mult, SSE2B_66, true, { Mpd, Vpd, Zz }, 0, s1W2R | (fNT << FPOS), 0 },
     { e_movntsd, t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R | (fNT << FPOS), 0 },
   },
   { /* SSE2C */
@@ -3233,9 +3237,9 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSE50 */
-    { e_movmskps, t_done, 0, true, { Ed, Vps, Zz }, 0, s1W2R, 0 },
+    { e_movmskps, t_done, 0, true, { Gd, Ups, Zz }, 0, s1W2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_movmskpd, t_done, 0, true, { Ed, Vpd, Zz }, 0, s1W2R, 0 },
+    { e_movmskpd, t_done, 0, true, { Gd, Upd, Zz }, 0, s1W2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSE51 */
@@ -3476,15 +3480,15 @@ static ia32_entry sseMap[][4] = {
     { e_vmread, t_sse_mult, SSE78_NO, true, { Ed, Gd, Zz }, 0, s1W2R, 0 },
     { e_No_Entry, t_sse_mult, SSE78_F3, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_sse_vex_mult, SSEVEX78, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_insertq, t_sse_mult, SSE78_F2, true, {Vdq, Wdq, Ib}, 0, s1RW2R3R4R, 0 }
+    { e_insertq, t_sse_mult, SSE78_F2, true, {Vdq, Udq, Ib}, 0, s1RW2R3R4R, 0 }
   },
   { /* SSE79: the register-pair SSE4A forms take no immediates
        (AMD APM Vol 4: EXTRQ xmm1, xmm2 = 66 0F 79 /r;
        INSERTQ xmm1, xmm2 = F2 0F 79 /r). */
     { e_vmwrite, t_sse_mult, SSE79_NO, true, { Ed, Gd, Zz }, 0, s1W2R, 0 },
     { e_No_Entry, t_sse_mult, SSE79_F3, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_extrq, t_sse_mult, SSE79_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
-    { e_insertq, t_sse_mult, SSE79_F2, true, { Vdq, Wdq, Zz }, 0, s1RW2R, 0 },
+    { e_extrq, t_sse_mult, SSE79_66, true, { Vdq, Udq, Zz }, 0, s1RW2R, 0 },
+    { e_insertq, t_sse_mult, SSE79_F2, true, { Vdq, Udq, Zz }, 0, s1RW2R, 0 },
   },
   { /* SSE7A */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -3640,14 +3644,14 @@ static ia32_entry sseMap[][4] = {
   },
   { /* SSED6 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_movq2dq, t_done, 0, true, { Vdq, Qq, Zz }, 0, s1W2R, 0 }, // lines jumbled in book
+    { e_movq2dq, t_done, 0, true, { Vdq, Nq, Zz }, 0, s1W2R, 0 },
     { e_movq, t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R, 0 },
-    { e_movdq2q, t_done, 0, true, { Pq, Wq, Zz }, 0, s1W2R, 0 },
+    { e_movdq2q, t_done, 0, true, { Pq, Udq, Zz }, 0, s1W2R, 0 },
   },
   { /* SSED7 */
-    { e_pmovmskb, t_done, 0, true, { Gd, Pq, Zz }, 0, s1W2R, 0 },
+    { e_pmovmskb, t_done, 0, true, { Gd, Nq, Zz }, 0, s1W2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_pmovmskb, t_done, 0, true, { Gd, Vdq, Zz }, 0, s1W2R, 0 },
+    { e_pmovmskb, t_done, 0, true, { Gd, Udq, Zz }, 0, s1W2R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSED8 */
@@ -3741,9 +3745,9 @@ static ia32_entry sseMap[][4] = {
     { e_cvtpd2dq, t_sse_mult, SSEE6_F2, true, { Vdq, Wpd, Zz }, 0, s1W2R, 0 },
   },
   { /* SSEE7 */
-    { e_movntq, t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R | (fNT << FPOS), 0 },
+    { e_movntq, t_done, 0, true, { Mq, Pq, Zz }, 0, s1W2R | (fNT << FPOS), 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_movntdq, t_sse_mult, SSEE7_66, true, { Wdq, Vdq, Zz }, 0, s1W2R | (fNT << FPOS), 0 },
+    { e_movntdq, t_sse_mult, SSEE7_66, true, { Mdq, Vdq, Zz }, 0, s1W2R | (fNT << FPOS), 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSEE8 */
@@ -3837,9 +3841,9 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSEF7 */
-    { e_maskmovq, t_done, 0, true, { Ppi, Qpi, Zz }, 0, s1W2R | (fNT << FPOS), 0 },
+    { e_maskmovq, t_done, 0, true, { Ppi, Npi, Zz }, 0, s1W2R | (fNT << FPOS), 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_maskmovdqu, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R | (fNT << FPOS), 0 }, // bug in book
+    { e_maskmovdqu, t_done, 0, true, { Vdq, Udq, Zz }, 0, s1W2R | (fNT << FPOS), 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
   { /* SSEF8 */
@@ -10341,12 +10345,26 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
             case am_reg: /* register implicitely encoded in opcode */
             case am_allgprs:
                break;
-            case am_R:   /* general purpose register, selected by r/m field */
+            case am_M:  /* memory operand, decoding needed; size includes modRM byte */
+               /* A memory-only operand with mod == 11 is an undefined
+                  encoding (SDM Vol 2, section 3.1.1.3 and the per-
+                  instruction operand-encoding tables). */
+               if ((addr[0] >> 6) == 3)
+                  instruct.legacy_type = ILLEGAL;
+               goto decode_modrm_operand;
             case am_U:   /* XMM, YMM or ZMM register (from R/M of ModR/M) */
             case am_XU:  /* XMM register (from R/M of ModR/M) */
             case am_YU:  /* XMM or YMM register (from R/M of ModR/M) */
+            case am_N:   /* MMX register (from R/M of ModR/M) */
+               /* A register-only operand with a memory mod is an
+                  undefined encoding. (am_R is intentionally excluded:
+                  MOV to/from CR/DR, 0F 20-23, ignores ModRM.mod and
+                  always addresses a register.) */
+               if ((addr[0] >> 6) != 3)
+                  instruct.legacy_type = ILLEGAL;
+               /* FALLTHROUGH */
+            case am_R:   /* general purpose register, selected by r/m field */
             case am_E:  /* register or memory location, so decoding needed */
-            case am_M:  /* memory operand, decoding needed; size includes modRM byte */
             case am_Q:  /* MMX register or memory location */
             case am_RM: /* register or memory location, so decoding needed */
             case am_UM: /* XMM register or memory location */
@@ -10354,6 +10372,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
             case am_YW: /* XMM or YMM register or memory location */
             case am_W:  /* XMM, YMM or ZMM register or memory location */
             case am_WK:  /* K register (vvvv of prefix) */
+            decode_modrm_operand:
                if (loc)
                {
                   loc->modrm_position = loc->opcode_size + loc->opcode_position;

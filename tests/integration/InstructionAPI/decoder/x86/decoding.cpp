@@ -156,6 +156,14 @@ bool run_reserved_encodings() {
     {"group 9 F3 /7 memory form", {0xf3, 0x0f, 0xc7, 0x3f}, Dyninst::Arch_x86_64},
     {"group 9 /1 register form (cmpxchg8b slot)", {0x0f, 0xc7, 0xc8}, Dyninst::Arch_x86_64},
     {"group 9 F2 /7 register form", {0xf2, 0x0f, 0xc7, 0xf8}, Dyninst::Arch_x86_64},
+    // Memory-only operand forms reject a register ModRM (mod == 11),
+    // and register-only forms reject a memory ModRM (SDM Vol 2).
+    {"movnti with register operand", {0x0f, 0xc3, 0xc8}, Dyninst::Arch_x86_64},
+    {"movntps with register operand", {0x0f, 0x2b, 0xc8}, Dyninst::Arch_x86_64},
+    {"movntq with register operand", {0x0f, 0xe7, 0xc8}, Dyninst::Arch_x86_64},
+    {"movmskps with memory operand", {0x0f, 0x50, 0x08}, Dyninst::Arch_x86_64},
+    {"pmovmskb with memory operand", {0x0f, 0xd7, 0x08}, Dyninst::Arch_x86_64},
+    {"maskmovdqu with memory operand", {0x66, 0x0f, 0xf7, 0x08}, Dyninst::Arch_x86_64},
     // GFNI: unprefixed/F3 legacy forms and wrong-W VEX forms are
     // reserved (SDM Vol 2A).
     {"unprefixed 0F 38 CF", {0x0f, 0x38, 0xcf, 0xc8}, Dyninst::Arch_x86_64},
@@ -1015,6 +1023,84 @@ test_list hint_cet_tests() {
   // clang-format on
 }
 
+// memory-only and register-only operand forms (SDM Vol 2 operand
+// encoding tables): the ModRM.rm field is constrained to one kind.
+test_list operand_form_tests() {
+  auto rax = Dyninst::x86_64::rax;
+  auto ecx = Dyninst::x86_64::ecx;
+  auto mm0 = Dyninst::x86_64::mm0;
+  auto mm1 = Dyninst::x86_64::mm1;
+  auto xmm0 = Dyninst::x86_64::xmm0;
+  auto xmm1 = Dyninst::x86_64::xmm1;
+
+  using reg_set = Dyninst::register_set;
+
+  // clang-format off
+  return {
+    { // movnti m32, r32 (NP 0F C3 /r; SDM Vol 2B): memory destination.
+      {0x0f, 0xc3, 0x08},
+      di::opcode_test(e_movnti, "movnti %ecx,(%rax)"),
+      di::register_rw_test{
+        reg_set{ecx, rax},
+        reg_set{}
+      },
+      di::mem_test{
+        !reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{},
+          reg_set{rax}
+        }
+      }
+    },
+    { // movntq m64, mm (NP 0F E7 /r; SDM Vol 2B): the source is an MMX
+      // register, not XMM.
+      {0x0f, 0xe7, 0x08},
+      di::opcode_test(e_movntq, "movntq %mm1,(%rax)"),
+      di::register_rw_test{
+        reg_set{mm1, rax},
+        reg_set{}
+      },
+      di::mem_test{
+        !reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{},
+          reg_set{rax}
+        }
+      }
+    },
+    { // movmskps r32, xmm (NP 0F 50 /r; SDM Vol 2B): the source xmm is
+      // in ModRM.rm and the form is register-only.
+      {0x0f, 0x50, 0xc8},
+      di::opcode_test(e_movmskps, "movmskps %xmm0,%ecx"),
+      di::register_rw_test{
+        reg_set{xmm0},
+        reg_set{ecx}
+      },
+      no_mem
+    },
+    { // pmovmskb r32, mm (NP 0F D7 /r; SDM Vol 2B): register-only MMX
+      // source.
+      {0x0f, 0xd7, 0xc8},
+      di::opcode_test(e_pmovmskb, "pmovmskb %mm0,%ecx"),
+      di::register_rw_test{
+        reg_set{mm0},
+        reg_set{ecx}
+      },
+      no_mem
+    },
+    { // movq2dq xmm, mm (F3 0F D6 /r; SDM Vol 2B): register-only.
+      {0xf3, 0x0f, 0xd6, 0xc8},
+      di::opcode_test(e_movq2dq, "movq2dq %mm0,%xmm1"),
+      di::register_rw_test{
+        reg_set{mm0},
+        reg_set{xmm1}
+      },
+      no_mem
+    },
+  };
+  // clang-format on
+}
+
 // two-byte map identities and SSE4A (AMD APM Vol 4)
 test_list twobyte_sse4a_tests() {
   auto rax = Dyninst::x86_64::rax;
@@ -1397,6 +1483,7 @@ test_list make_tests64() {
   append(tests, group7_11_16_tests());
   append(tests, group7_system_tests());
   append(tests, hint_cet_tests());
+  append(tests, operand_form_tests());
   append(tests, twobyte_sse4a_tests());
   append(tests, vex_mov_fma_tests());
   append(tests, gfni_tests());
