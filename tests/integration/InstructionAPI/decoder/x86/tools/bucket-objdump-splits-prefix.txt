@@ -1,0 +1,4294 @@
+2b-66-00-r0-mem | sldt | data16 sldt (%rax)
+2b-66-00-r1-mem | str | data16 str (%rax)
+2b-66-00-r2-reg | lldt | data16 lldt %ax
+2b-66-00-r2-mem | lldt | data16 lldt (%rax)
+2b-66-00-r3-reg | ltr | data16 ltr %ax
+2b-66-00-r3-mem | ltr | data16 ltr (%rax)
+2b-66-00-r4-reg | verr | data16 verr %ax
+2b-66-00-r4-mem | verr | data16 verr (%rax)
+2b-66-00-r5-reg | verw | data16 verw %ax
+2b-66-00-r5-mem | verw | data16 verw (%rax)
+2b-f3-00-r0-reg | REP | repz sldt %eax
+2b-f3-00-r0-mem | REP | repz sldt (%rax)
+2b-f3-00-r1-reg | REP | repz str %eax
+2b-f3-00-r1-mem | REP | repz str (%rax)
+2b-f3-00-r2-reg | REP | repz lldt %ax
+2b-f3-00-r2-mem | REP | repz lldt (%rax)
+2b-f3-00-r3-reg | REP | repz ltr %ax
+2b-f3-00-r3-mem | REP | repz ltr (%rax)
+2b-f3-00-r4-reg | REP | repz verr %ax
+2b-f3-00-r4-mem | REP | repz verr (%rax)
+2b-f3-00-r5-reg | REP | repz verw %ax
+2b-f3-00-r5-mem | REP | repz verw (%rax)
+2b-f2-00-r0-reg | REPNZ | repnz sldt %eax
+2b-f2-00-r0-mem | REPNZ | repnz sldt (%rax)
+2b-f2-00-r1-reg | REPNZ | repnz str %eax
+2b-f2-00-r1-mem | REPNZ | repnz str (%rax)
+2b-f2-00-r2-reg | REPNZ | repnz lldt %ax
+2b-f2-00-r2-mem | REPNZ | repnz lldt (%rax)
+2b-f2-00-r3-reg | REPNZ | repnz ltr %ax
+2b-f2-00-r3-mem | REPNZ | repnz ltr (%rax)
+2b-f2-00-r4-reg | REPNZ | repnz verr %ax
+2b-f2-00-r4-mem | REPNZ | repnz verr (%rax)
+2b-f2-00-r5-reg | REPNZ | repnz verw %ax
+2b-f2-00-r5-mem | REPNZ | repnz verw (%rax)
+2b-66-01-r0-reg | enclv | data16 enclv
+2b-66-01-r0-mem | sgdt | data16 sgdt (%rax)
+2b-66-01-r1-reg | monitor | data16 monitor %rax,%rcx,%rdx
+2b-66-01-r1-mem | sidt | data16 sidt (%rax)
+2b-66-01-r2-reg | xgetbv | data16 xgetbv
+2b-66-01-r2-mem | lgdt | data16 lgdt (%rax)
+2b-66-01-r3-reg | vmrun | data16 vmrun
+2b-66-01-r3-mem | lidt | data16 lidt (%rax)
+2b-66-01-r4-mem | smsw | data16 smsw (%rax)
+2b-66-01-r6-reg | lmsw | data16 lmsw %ax
+2b-66-01-r6-mem | lmsw | data16 lmsw (%rax)
+2b-66-01-r7-reg | swapgs | data16 swapgs
+2b-66-01-r7-mem | invlpg | data16 invlpg (%rax)
+2b-f3-01-r0-reg | enclv | repz enclv
+2b-f3-01-r0-mem | sgdt | repz sgdt (%rax)
+2b-f3-01-r1-reg | monitor | repz monitor %rax,%rcx,%rdx
+2b-f3-01-r1-mem | sidt | repz sidt (%rax)
+2b-f3-01-r2-reg | xgetbv | repz xgetbv
+2b-f3-01-r2-mem | lgdt | repz lgdt (%rax)
+2b-f3-01-r3-reg | vmrun | repz vmrun
+2b-f3-01-r3-mem | lidt | repz lidt (%rax)
+2b-f3-01-r4-reg | smsw | repz smsw %eax
+2b-f3-01-r4-mem | smsw | repz smsw (%rax)
+2b-f3-01-r6-reg | lmsw | repz lmsw %ax
+2b-f3-01-r6-mem | lmsw | repz lmsw (%rax)
+2b-f3-01-r7-reg | swapgs | repz swapgs
+2b-f3-01-r7-mem | invlpg | repz invlpg (%rax)
+2b-f2-01-r0-reg | enclv | repnz enclv
+2b-f2-01-r0-mem | sgdt | repnz sgdt (%rax)
+2b-f2-01-r1-reg | monitor | repnz monitor %rax,%rcx,%rdx
+2b-f2-01-r1-mem | sidt | repnz sidt (%rax)
+2b-f2-01-r2-reg | xgetbv | repnz xgetbv
+2b-f2-01-r2-mem | lgdt | repnz lgdt (%rax)
+2b-f2-01-r3-reg | vmrun | repnz vmrun
+2b-f2-01-r3-mem | lidt | repnz lidt (%rax)
+2b-f2-01-r4-reg | smsw | repnz smsw %eax
+2b-f2-01-r4-mem | smsw | repnz smsw (%rax)
+2b-f2-01-r6-reg | lmsw | repnz lmsw %ax
+2b-f2-01-r6-mem | lmsw | repnz lmsw (%rax)
+2b-f2-01-r7-reg | swapgs | repnz swapgs
+2b-f2-01-r7-mem | invlpg | repnz invlpg (%rax)
+2b-f3-02-r0-reg | REP | repz lar %ax,%eax
+2b-f3-02-r0-mem | REP | repz lar (%rax),%eax
+2b-f3-02-r1-reg | REP | repz lar %ax,%ecx
+2b-f3-02-r1-mem | REP | repz lar (%rax),%ecx
+2b-f3-02-r2-reg | REP | repz lar %ax,%edx
+2b-f3-02-r2-mem | REP | repz lar (%rax),%edx
+2b-f3-02-r3-reg | REP | repz lar %ax,%ebx
+2b-f3-02-r3-mem | REP | repz lar (%rax),%ebx
+2b-f3-02-r4-reg | REP | repz lar %ax,%esp
+2b-f3-02-r4-mem | REP | repz lar (%rax),%esp
+2b-f3-02-r5-reg | REP | repz lar %ax,%ebp
+2b-f3-02-r5-mem | REP | repz lar (%rax),%ebp
+2b-f3-02-r6-reg | REP | repz lar %ax,%esi
+2b-f3-02-r6-mem | REP | repz lar (%rax),%esi
+2b-f3-02-r7-reg | REP | repz lar %ax,%edi
+2b-f3-02-r7-mem | REP | repz lar (%rax),%edi
+2b-f2-02-r0-reg | REPNZ | repnz lar %ax,%eax
+2b-f2-02-r0-mem | REPNZ | repnz lar (%rax),%eax
+2b-f2-02-r1-reg | REPNZ | repnz lar %ax,%ecx
+2b-f2-02-r1-mem | REPNZ | repnz lar (%rax),%ecx
+2b-f2-02-r2-reg | REPNZ | repnz lar %ax,%edx
+2b-f2-02-r2-mem | REPNZ | repnz lar (%rax),%edx
+2b-f2-02-r3-reg | REPNZ | repnz lar %ax,%ebx
+2b-f2-02-r3-mem | REPNZ | repnz lar (%rax),%ebx
+2b-f2-02-r4-reg | REPNZ | repnz lar %ax,%esp
+2b-f2-02-r4-mem | REPNZ | repnz lar (%rax),%esp
+2b-f2-02-r5-reg | REPNZ | repnz lar %ax,%ebp
+2b-f2-02-r5-mem | REPNZ | repnz lar (%rax),%ebp
+2b-f2-02-r6-reg | REPNZ | repnz lar %ax,%esi
+2b-f2-02-r6-mem | REPNZ | repnz lar (%rax),%esi
+2b-f2-02-r7-reg | REPNZ | repnz lar %ax,%edi
+2b-f2-02-r7-mem | REPNZ | repnz lar (%rax),%edi
+2b-f3-03-r0-reg | REP | repz lsl %ax,%eax
+2b-f3-03-r0-mem | REP | repz lsl (%rax),%eax
+2b-f3-03-r1-reg | REP | repz lsl %ax,%ecx
+2b-f3-03-r1-mem | REP | repz lsl (%rax),%ecx
+2b-f3-03-r2-reg | REP | repz lsl %ax,%edx
+2b-f3-03-r2-mem | REP | repz lsl (%rax),%edx
+2b-f3-03-r3-reg | REP | repz lsl %ax,%ebx
+2b-f3-03-r3-mem | REP | repz lsl (%rax),%ebx
+2b-f3-03-r4-reg | REP | repz lsl %ax,%esp
+2b-f3-03-r4-mem | REP | repz lsl (%rax),%esp
+2b-f3-03-r5-reg | REP | repz lsl %ax,%ebp
+2b-f3-03-r5-mem | REP | repz lsl (%rax),%ebp
+2b-f3-03-r6-reg | REP | repz lsl %ax,%esi
+2b-f3-03-r6-mem | REP | repz lsl (%rax),%esi
+2b-f3-03-r7-reg | REP | repz lsl %ax,%edi
+2b-f3-03-r7-mem | REP | repz lsl (%rax),%edi
+2b-f2-03-r0-reg | REPNZ | repnz lsl %ax,%eax
+2b-f2-03-r0-mem | REPNZ | repnz lsl (%rax),%eax
+2b-f2-03-r1-reg | REPNZ | repnz lsl %ax,%ecx
+2b-f2-03-r1-mem | REPNZ | repnz lsl (%rax),%ecx
+2b-f2-03-r2-reg | REPNZ | repnz lsl %ax,%edx
+2b-f2-03-r2-mem | REPNZ | repnz lsl (%rax),%edx
+2b-f2-03-r3-reg | REPNZ | repnz lsl %ax,%ebx
+2b-f2-03-r3-mem | REPNZ | repnz lsl (%rax),%ebx
+2b-f2-03-r4-reg | REPNZ | repnz lsl %ax,%esp
+2b-f2-03-r4-mem | REPNZ | repnz lsl (%rax),%esp
+2b-f2-03-r5-reg | REPNZ | repnz lsl %ax,%ebp
+2b-f2-03-r5-mem | REPNZ | repnz lsl (%rax),%ebp
+2b-f2-03-r6-reg | REPNZ | repnz lsl %ax,%esi
+2b-f2-03-r6-mem | REPNZ | repnz lsl (%rax),%esi
+2b-f2-03-r7-reg | REPNZ | repnz lsl %ax,%edi
+2b-f2-03-r7-mem | REPNZ | repnz lsl (%rax),%edi
+2b-66-05-r0-reg | syscall | data16 syscall
+2b-66-05-r0-mem | syscall | data16 syscall
+2b-66-05-r1-reg | syscall | data16 syscall
+2b-66-05-r1-mem | syscall | data16 syscall
+2b-66-05-r2-reg | syscall | data16 syscall
+2b-66-05-r2-mem | syscall | data16 syscall
+2b-66-05-r3-reg | syscall | data16 syscall
+2b-66-05-r3-mem | syscall | data16 syscall
+2b-66-05-r4-reg | syscall | data16 syscall
+2b-66-05-r4-mem | syscall | data16 syscall
+2b-66-05-r5-reg | syscall | data16 syscall
+2b-66-05-r5-mem | syscall | data16 syscall
+2b-66-05-r6-reg | syscall | data16 syscall
+2b-66-05-r6-mem | syscall | data16 syscall
+2b-66-05-r7-reg | syscall | data16 syscall
+2b-66-05-r7-mem | syscall | data16 syscall
+2b-f3-05-r0-reg | REP | repz syscall
+2b-f3-05-r0-mem | REP | repz syscall
+2b-f3-05-r1-reg | REP | repz syscall
+2b-f3-05-r1-mem | REP | repz syscall
+2b-f3-05-r2-reg | REP | repz syscall
+2b-f3-05-r2-mem | REP | repz syscall
+2b-f3-05-r3-reg | REP | repz syscall
+2b-f3-05-r3-mem | REP | repz syscall
+2b-f3-05-r4-reg | REP | repz syscall
+2b-f3-05-r4-mem | REP | repz syscall
+2b-f3-05-r5-reg | REP | repz syscall
+2b-f3-05-r5-mem | REP | repz syscall
+2b-f3-05-r6-reg | REP | repz syscall
+2b-f3-05-r6-mem | REP | repz syscall
+2b-f3-05-r7-reg | REP | repz syscall
+2b-f3-05-r7-mem | REP | repz syscall
+2b-f2-05-r0-reg | REPNZ | repnz syscall
+2b-f2-05-r0-mem | REPNZ | repnz syscall
+2b-f2-05-r1-reg | REPNZ | repnz syscall
+2b-f2-05-r1-mem | REPNZ | repnz syscall
+2b-f2-05-r2-reg | REPNZ | repnz syscall
+2b-f2-05-r2-mem | REPNZ | repnz syscall
+2b-f2-05-r3-reg | REPNZ | repnz syscall
+2b-f2-05-r3-mem | REPNZ | repnz syscall
+2b-f2-05-r4-reg | REPNZ | repnz syscall
+2b-f2-05-r4-mem | REPNZ | repnz syscall
+2b-f2-05-r5-reg | REPNZ | repnz syscall
+2b-f2-05-r5-mem | REPNZ | repnz syscall
+2b-f2-05-r6-reg | REPNZ | repnz syscall
+2b-f2-05-r6-mem | REPNZ | repnz syscall
+2b-f2-05-r7-reg | REPNZ | repnz syscall
+2b-f2-05-r7-mem | REPNZ | repnz syscall
+2b-66-06-r0-reg | clts | data16 clts
+2b-66-06-r0-mem | clts | data16 clts
+2b-66-06-r1-reg | clts | data16 clts
+2b-66-06-r1-mem | clts | data16 clts
+2b-66-06-r2-reg | clts | data16 clts
+2b-66-06-r2-mem | clts | data16 clts
+2b-66-06-r3-reg | clts | data16 clts
+2b-66-06-r3-mem | clts | data16 clts
+2b-66-06-r4-reg | clts | data16 clts
+2b-66-06-r4-mem | clts | data16 clts
+2b-66-06-r5-reg | clts | data16 clts
+2b-66-06-r5-mem | clts | data16 clts
+2b-66-06-r6-reg | clts | data16 clts
+2b-66-06-r6-mem | clts | data16 clts
+2b-66-06-r7-reg | clts | data16 clts
+2b-66-06-r7-mem | clts | data16 clts
+2b-f3-06-r0-reg | REP | repz clts
+2b-f3-06-r0-mem | REP | repz clts
+2b-f3-06-r1-reg | REP | repz clts
+2b-f3-06-r1-mem | REP | repz clts
+2b-f3-06-r2-reg | REP | repz clts
+2b-f3-06-r2-mem | REP | repz clts
+2b-f3-06-r3-reg | REP | repz clts
+2b-f3-06-r3-mem | REP | repz clts
+2b-f3-06-r4-reg | REP | repz clts
+2b-f3-06-r4-mem | REP | repz clts
+2b-f3-06-r5-reg | REP | repz clts
+2b-f3-06-r5-mem | REP | repz clts
+2b-f3-06-r6-reg | REP | repz clts
+2b-f3-06-r6-mem | REP | repz clts
+2b-f3-06-r7-reg | REP | repz clts
+2b-f3-06-r7-mem | REP | repz clts
+2b-f2-06-r0-reg | REPNZ | repnz clts
+2b-f2-06-r0-mem | REPNZ | repnz clts
+2b-f2-06-r1-reg | REPNZ | repnz clts
+2b-f2-06-r1-mem | REPNZ | repnz clts
+2b-f2-06-r2-reg | REPNZ | repnz clts
+2b-f2-06-r2-mem | REPNZ | repnz clts
+2b-f2-06-r3-reg | REPNZ | repnz clts
+2b-f2-06-r3-mem | REPNZ | repnz clts
+2b-f2-06-r4-reg | REPNZ | repnz clts
+2b-f2-06-r4-mem | REPNZ | repnz clts
+2b-f2-06-r5-reg | REPNZ | repnz clts
+2b-f2-06-r5-mem | REPNZ | repnz clts
+2b-f2-06-r6-reg | REPNZ | repnz clts
+2b-f2-06-r6-mem | REPNZ | repnz clts
+2b-f2-06-r7-reg | REPNZ | repnz clts
+2b-f2-06-r7-mem | REPNZ | repnz clts
+2b-f3-07-r0-reg | REP | repz sysret
+2b-f3-07-r0-mem | REP | repz sysret
+2b-f3-07-r1-reg | REP | repz sysret
+2b-f3-07-r1-mem | REP | repz sysret
+2b-f3-07-r2-reg | REP | repz sysret
+2b-f3-07-r2-mem | REP | repz sysret
+2b-f3-07-r3-reg | REP | repz sysret
+2b-f3-07-r3-mem | REP | repz sysret
+2b-f3-07-r4-reg | REP | repz sysret
+2b-f3-07-r4-mem | REP | repz sysret
+2b-f3-07-r5-reg | REP | repz sysret
+2b-f3-07-r5-mem | REP | repz sysret
+2b-f3-07-r6-reg | REP | repz sysret
+2b-f3-07-r6-mem | REP | repz sysret
+2b-f3-07-r7-reg | REP | repz sysret
+2b-f3-07-r7-mem | REP | repz sysret
+2b-f2-07-r0-reg | REPNZ | repnz sysret
+2b-f2-07-r0-mem | REPNZ | repnz sysret
+2b-f2-07-r1-reg | REPNZ | repnz sysret
+2b-f2-07-r1-mem | REPNZ | repnz sysret
+2b-f2-07-r2-reg | REPNZ | repnz sysret
+2b-f2-07-r2-mem | REPNZ | repnz sysret
+2b-f2-07-r3-reg | REPNZ | repnz sysret
+2b-f2-07-r3-mem | REPNZ | repnz sysret
+2b-f2-07-r4-reg | REPNZ | repnz sysret
+2b-f2-07-r4-mem | REPNZ | repnz sysret
+2b-f2-07-r5-reg | REPNZ | repnz sysret
+2b-f2-07-r5-mem | REPNZ | repnz sysret
+2b-f2-07-r6-reg | REPNZ | repnz sysret
+2b-f2-07-r6-mem | REPNZ | repnz sysret
+2b-f2-07-r7-reg | REPNZ | repnz sysret
+2b-f2-07-r7-mem | REPNZ | repnz sysret
+2b-66-08-r0-reg | invd | data16 invd
+2b-66-08-r0-mem | invd | data16 invd
+2b-66-08-r1-reg | invd | data16 invd
+2b-66-08-r1-mem | invd | data16 invd
+2b-66-08-r2-reg | invd | data16 invd
+2b-66-08-r2-mem | invd | data16 invd
+2b-66-08-r3-reg | invd | data16 invd
+2b-66-08-r3-mem | invd | data16 invd
+2b-66-08-r4-reg | invd | data16 invd
+2b-66-08-r4-mem | invd | data16 invd
+2b-66-08-r5-reg | invd | data16 invd
+2b-66-08-r5-mem | invd | data16 invd
+2b-66-08-r6-reg | invd | data16 invd
+2b-66-08-r6-mem | invd | data16 invd
+2b-66-08-r7-reg | invd | data16 invd
+2b-66-08-r7-mem | invd | data16 invd
+2b-f3-08-r0-reg | REP | repz invd
+2b-f3-08-r0-mem | REP | repz invd
+2b-f3-08-r1-reg | REP | repz invd
+2b-f3-08-r1-mem | REP | repz invd
+2b-f3-08-r2-reg | REP | repz invd
+2b-f3-08-r2-mem | REP | repz invd
+2b-f3-08-r3-reg | REP | repz invd
+2b-f3-08-r3-mem | REP | repz invd
+2b-f3-08-r4-reg | REP | repz invd
+2b-f3-08-r4-mem | REP | repz invd
+2b-f3-08-r5-reg | REP | repz invd
+2b-f3-08-r5-mem | REP | repz invd
+2b-f3-08-r6-reg | REP | repz invd
+2b-f3-08-r6-mem | REP | repz invd
+2b-f3-08-r7-reg | REP | repz invd
+2b-f3-08-r7-mem | REP | repz invd
+2b-f2-08-r0-reg | REPNZ | repnz invd
+2b-f2-08-r0-mem | REPNZ | repnz invd
+2b-f2-08-r1-reg | REPNZ | repnz invd
+2b-f2-08-r1-mem | REPNZ | repnz invd
+2b-f2-08-r2-reg | REPNZ | repnz invd
+2b-f2-08-r2-mem | REPNZ | repnz invd
+2b-f2-08-r3-reg | REPNZ | repnz invd
+2b-f2-08-r3-mem | REPNZ | repnz invd
+2b-f2-08-r4-reg | REPNZ | repnz invd
+2b-f2-08-r4-mem | REPNZ | repnz invd
+2b-f2-08-r5-reg | REPNZ | repnz invd
+2b-f2-08-r5-mem | REPNZ | repnz invd
+2b-f2-08-r6-reg | REPNZ | repnz invd
+2b-f2-08-r6-mem | REPNZ | repnz invd
+2b-f2-08-r7-reg | REPNZ | repnz invd
+2b-f2-08-r7-mem | REPNZ | repnz invd
+2b-66-0b-r0-reg | ud2 | data16 ud2
+2b-66-0b-r0-mem | ud2 | data16 ud2
+2b-66-0b-r1-reg | ud2 | data16 ud2
+2b-66-0b-r1-mem | ud2 | data16 ud2
+2b-66-0b-r2-reg | ud2 | data16 ud2
+2b-66-0b-r2-mem | ud2 | data16 ud2
+2b-66-0b-r3-reg | ud2 | data16 ud2
+2b-66-0b-r3-mem | ud2 | data16 ud2
+2b-66-0b-r4-reg | ud2 | data16 ud2
+2b-66-0b-r4-mem | ud2 | data16 ud2
+2b-66-0b-r5-reg | ud2 | data16 ud2
+2b-66-0b-r5-mem | ud2 | data16 ud2
+2b-66-0b-r6-reg | ud2 | data16 ud2
+2b-66-0b-r6-mem | ud2 | data16 ud2
+2b-66-0b-r7-reg | ud2 | data16 ud2
+2b-66-0b-r7-mem | ud2 | data16 ud2
+2b-f3-0b-r0-reg | REP | repz ud2
+2b-f3-0b-r0-mem | REP | repz ud2
+2b-f3-0b-r1-reg | REP | repz ud2
+2b-f3-0b-r1-mem | REP | repz ud2
+2b-f3-0b-r2-reg | REP | repz ud2
+2b-f3-0b-r2-mem | REP | repz ud2
+2b-f3-0b-r3-reg | REP | repz ud2
+2b-f3-0b-r3-mem | REP | repz ud2
+2b-f3-0b-r4-reg | REP | repz ud2
+2b-f3-0b-r4-mem | REP | repz ud2
+2b-f3-0b-r5-reg | REP | repz ud2
+2b-f3-0b-r5-mem | REP | repz ud2
+2b-f3-0b-r6-reg | REP | repz ud2
+2b-f3-0b-r6-mem | REP | repz ud2
+2b-f3-0b-r7-reg | REP | repz ud2
+2b-f3-0b-r7-mem | REP | repz ud2
+2b-f2-0b-r0-reg | REPNZ | repnz ud2
+2b-f2-0b-r0-mem | REPNZ | repnz ud2
+2b-f2-0b-r1-reg | REPNZ | repnz ud2
+2b-f2-0b-r1-mem | REPNZ | repnz ud2
+2b-f2-0b-r2-reg | REPNZ | repnz ud2
+2b-f2-0b-r2-mem | REPNZ | repnz ud2
+2b-f2-0b-r3-reg | REPNZ | repnz ud2
+2b-f2-0b-r3-mem | REPNZ | repnz ud2
+2b-f2-0b-r4-reg | REPNZ | repnz ud2
+2b-f2-0b-r4-mem | REPNZ | repnz ud2
+2b-f2-0b-r5-reg | REPNZ | repnz ud2
+2b-f2-0b-r5-mem | REPNZ | repnz ud2
+2b-f2-0b-r6-reg | REPNZ | repnz ud2
+2b-f2-0b-r6-mem | REPNZ | repnz ud2
+2b-f2-0b-r7-reg | REPNZ | repnz ud2
+2b-f2-0b-r7-mem | REPNZ | repnz ud2
+2b-66-0d-r0-mem | prefetch | data16 prefetch (%rax)
+2b-66-0d-r1-mem | prefetchw | data16 prefetchw (%rax)
+2b-66-0d-r2-mem | prefetchwt1 | data16 prefetchwt1 (%rax)
+2b-f3-0d-r0-mem | REP | repz prefetch (%rax)
+2b-f3-0d-r1-mem | REP | repz prefetchw (%rax)
+2b-f3-0d-r2-mem | REP | repz prefetchwt1 (%rax)
+2b-f2-0d-r0-mem | REPNZ | repnz prefetch (%rax)
+2b-f2-0d-r1-mem | REPNZ | repnz prefetchw (%rax)
+2b-f2-0d-r2-mem | REPNZ | repnz prefetchwt1 (%rax)
+2b-66-0e-r0-reg | femms | data16 femms
+2b-66-0e-r0-mem | femms | data16 femms
+2b-66-0e-r1-reg | femms | data16 femms
+2b-66-0e-r1-mem | femms | data16 femms
+2b-66-0e-r2-reg | femms | data16 femms
+2b-66-0e-r2-mem | femms | data16 femms
+2b-66-0e-r3-reg | femms | data16 femms
+2b-66-0e-r3-mem | femms | data16 femms
+2b-66-0e-r4-reg | femms | data16 femms
+2b-66-0e-r4-mem | femms | data16 femms
+2b-66-0e-r5-reg | femms | data16 femms
+2b-66-0e-r5-mem | femms | data16 femms
+2b-66-0e-r6-reg | femms | data16 femms
+2b-66-0e-r6-mem | femms | data16 femms
+2b-66-0e-r7-reg | femms | data16 femms
+2b-66-0e-r7-mem | femms | data16 femms
+2b-f3-0e-r0-reg | REP | repz femms
+2b-f3-0e-r0-mem | REP | repz femms
+2b-f3-0e-r1-reg | REP | repz femms
+2b-f3-0e-r1-mem | REP | repz femms
+2b-f3-0e-r2-reg | REP | repz femms
+2b-f3-0e-r2-mem | REP | repz femms
+2b-f3-0e-r3-reg | REP | repz femms
+2b-f3-0e-r3-mem | REP | repz femms
+2b-f3-0e-r4-reg | REP | repz femms
+2b-f3-0e-r4-mem | REP | repz femms
+2b-f3-0e-r5-reg | REP | repz femms
+2b-f3-0e-r5-mem | REP | repz femms
+2b-f3-0e-r6-reg | REP | repz femms
+2b-f3-0e-r6-mem | REP | repz femms
+2b-f3-0e-r7-reg | REP | repz femms
+2b-f3-0e-r7-mem | REP | repz femms
+2b-f2-0e-r0-reg | REPNZ | repnz femms
+2b-f2-0e-r0-mem | REPNZ | repnz femms
+2b-f2-0e-r1-reg | REPNZ | repnz femms
+2b-f2-0e-r1-mem | REPNZ | repnz femms
+2b-f2-0e-r2-reg | REPNZ | repnz femms
+2b-f2-0e-r2-mem | REPNZ | repnz femms
+2b-f2-0e-r3-reg | REPNZ | repnz femms
+2b-f2-0e-r3-mem | REPNZ | repnz femms
+2b-f2-0e-r4-reg | REPNZ | repnz femms
+2b-f2-0e-r4-mem | REPNZ | repnz femms
+2b-f2-0e-r5-reg | REPNZ | repnz femms
+2b-f2-0e-r5-mem | REPNZ | repnz femms
+2b-f2-0e-r6-reg | REPNZ | repnz femms
+2b-f2-0e-r6-mem | REPNZ | repnz femms
+2b-f2-0e-r7-reg | REPNZ | repnz femms
+2b-f2-0e-r7-mem | REPNZ | repnz femms
+2b-66-13-r0-reg | movlpd | data16 (bad)
+2b-66-13-r1-reg | movlpd | data16 (bad)
+2b-66-13-r2-reg | movlpd | data16 (bad)
+2b-66-13-r3-reg | movlpd | data16 (bad)
+2b-66-13-r4-reg | movlpd | data16 (bad)
+2b-66-13-r5-reg | movlpd | data16 (bad)
+2b-66-13-r6-reg | movlpd | data16 (bad)
+2b-66-13-r7-reg | movlpd | data16 (bad)
+2b-66-17-r0-reg | movhpd | data16 (bad)
+2b-66-17-r1-reg | movhpd | data16 (bad)
+2b-66-17-r2-reg | movhpd | data16 (bad)
+2b-66-17-r3-reg | movhpd | data16 (bad)
+2b-66-17-r4-reg | movhpd | data16 (bad)
+2b-66-17-r5-reg | movhpd | data16 (bad)
+2b-66-17-r6-reg | movhpd | data16 (bad)
+2b-66-17-r7-reg | movhpd | data16 (bad)
+2b-66-18-r0-mem | prefetchnta | data16 prefetchnta (%rax)
+2b-66-18-r1-mem | prefetcht0 | data16 prefetcht0 (%rax)
+2b-66-18-r2-mem | prefetchT1 | data16 prefetcht1 (%rax)
+2b-66-18-r3-mem | prefetchT2 | data16 prefetcht2 (%rax)
+2b-66-18-r4-mem | nop | data16 nop/reserved (%rax)
+2b-66-18-r5-mem | nop | data16 nop/reserved (%rax)
+2b-66-18-r6-mem | nop | data16 nop/reserved (%rax)
+2b-66-18-r7-mem | nop | data16 nop/reserved (%rax)
+2b-f3-18-r0-mem | REP | repz prefetchnta (%rax)
+2b-f3-18-r1-mem | REP | repz prefetcht0 (%rax)
+2b-f3-18-r2-mem | REP | repz prefetcht1 (%rax)
+2b-f3-18-r3-mem | REP | repz prefetcht2 (%rax)
+2b-f3-18-r4-mem | REP | repz nop/reserved (%rax)
+2b-f3-18-r5-mem | REP | repz nop/reserved (%rax)
+2b-f3-18-r6-mem | REP | repz nop/reserved (%rax)
+2b-f3-18-r7-mem | REP | repz nop/reserved (%rax)
+2b-f2-18-r0-mem | REPNZ | repnz prefetchnta (%rax)
+2b-f2-18-r1-mem | REPNZ | repnz prefetcht0 (%rax)
+2b-f2-18-r2-mem | REPNZ | repnz prefetcht1 (%rax)
+2b-f2-18-r3-mem | REPNZ | repnz prefetcht2 (%rax)
+2b-f2-18-r4-mem | REPNZ | repnz nop/reserved (%rax)
+2b-f2-18-r5-mem | REPNZ | repnz nop/reserved (%rax)
+2b-f2-18-r6-mem | REPNZ | repnz nop/reserved (%rax)
+2b-f2-18-r7-mem | REPNZ | repnz nop/reserved (%rax)
+2b-f3-19-r0-reg | REP | repz nop %eax
+2b-f3-19-r0-mem | REP | repz nopl (%rax)
+2b-f3-19-r1-reg | REP | repz nop %eax
+2b-f3-19-r1-mem | REP | repz nopl (%rax)
+2b-f3-19-r2-reg | REP | repz nop %eax
+2b-f3-19-r2-mem | REP | repz nopl (%rax)
+2b-f3-19-r3-reg | REP | repz nop %eax
+2b-f3-19-r3-mem | REP | repz nopl (%rax)
+2b-f3-19-r4-reg | REP | repz nop %eax
+2b-f3-19-r4-mem | REP | repz nopl (%rax)
+2b-f3-19-r5-reg | REP | repz nop %eax
+2b-f3-19-r5-mem | REP | repz nopl (%rax)
+2b-f3-19-r6-reg | REP | repz nop %eax
+2b-f3-19-r6-mem | REP | repz nopl (%rax)
+2b-f3-19-r7-reg | REP | repz nop %eax
+2b-f3-19-r7-mem | REP | repz nopl (%rax)
+2b-f2-19-r0-reg | REPNZ | repnz nop %eax
+2b-f2-19-r0-mem | REPNZ | repnz nopl (%rax)
+2b-f2-19-r1-reg | REPNZ | repnz nop %eax
+2b-f2-19-r1-mem | REPNZ | repnz nopl (%rax)
+2b-f2-19-r2-reg | REPNZ | repnz nop %eax
+2b-f2-19-r2-mem | REPNZ | repnz nopl (%rax)
+2b-f2-19-r3-reg | REPNZ | repnz nop %eax
+2b-f2-19-r3-mem | REPNZ | repnz nopl (%rax)
+2b-f2-19-r4-reg | REPNZ | repnz nop %eax
+2b-f2-19-r4-mem | REPNZ | repnz nopl (%rax)
+2b-f2-19-r5-reg | REPNZ | repnz nop %eax
+2b-f2-19-r5-mem | REPNZ | repnz nopl (%rax)
+2b-f2-19-r6-reg | REPNZ | repnz nop %eax
+2b-f2-19-r6-mem | REPNZ | repnz nopl (%rax)
+2b-f2-19-r7-reg | REPNZ | repnz nop %eax
+2b-f2-19-r7-mem | REPNZ | repnz nopl (%rax)
+2b-f3-1d-r0-reg | REP | repz nop %eax
+2b-f3-1d-r0-mem | REP | repz nopl (%rax)
+2b-f3-1d-r1-reg | REP | repz nop %eax
+2b-f3-1d-r1-mem | REP | repz nopl (%rax)
+2b-f3-1d-r2-reg | REP | repz nop %eax
+2b-f3-1d-r2-mem | REP | repz nopl (%rax)
+2b-f3-1d-r3-reg | REP | repz nop %eax
+2b-f3-1d-r3-mem | REP | repz nopl (%rax)
+2b-f3-1d-r4-reg | REP | repz nop %eax
+2b-f3-1d-r4-mem | REP | repz nopl (%rax)
+2b-f3-1d-r5-reg | REP | repz nop %eax
+2b-f3-1d-r5-mem | REP | repz nopl (%rax)
+2b-f3-1d-r6-reg | REP | repz nop %eax
+2b-f3-1d-r6-mem | REP | repz nopl (%rax)
+2b-f3-1d-r7-reg | REP | repz nop %eax
+2b-f3-1d-r7-mem | REP | repz nopl (%rax)
+2b-f2-1d-r0-reg | REPNZ | repnz nop %eax
+2b-f2-1d-r0-mem | REPNZ | repnz nopl (%rax)
+2b-f2-1d-r1-reg | REPNZ | repnz nop %eax
+2b-f2-1d-r1-mem | REPNZ | repnz nopl (%rax)
+2b-f2-1d-r2-reg | REPNZ | repnz nop %eax
+2b-f2-1d-r2-mem | REPNZ | repnz nopl (%rax)
+2b-f2-1d-r3-reg | REPNZ | repnz nop %eax
+2b-f2-1d-r3-mem | REPNZ | repnz nopl (%rax)
+2b-f2-1d-r4-reg | REPNZ | repnz nop %eax
+2b-f2-1d-r4-mem | REPNZ | repnz nopl (%rax)
+2b-f2-1d-r5-reg | REPNZ | repnz nop %eax
+2b-f2-1d-r5-mem | REPNZ | repnz nopl (%rax)
+2b-f2-1d-r6-reg | REPNZ | repnz nop %eax
+2b-f2-1d-r6-mem | REPNZ | repnz nopl (%rax)
+2b-f2-1d-r7-reg | REPNZ | repnz nop %eax
+2b-f2-1d-r7-mem | REPNZ | repnz nopl (%rax)
+2b-f3-1f-r0-reg | REP | repz nop %eax
+2b-f3-1f-r0-mem | REP | repz nopl (%rax)
+2b-f3-1f-r1-reg | REP | repz nop %eax
+2b-f3-1f-r1-mem | REP | repz nopl (%rax)
+2b-f3-1f-r2-reg | REP | repz nop %eax
+2b-f3-1f-r2-mem | REP | repz nopl (%rax)
+2b-f3-1f-r3-reg | REP | repz nop %eax
+2b-f3-1f-r3-mem | REP | repz nopl (%rax)
+2b-f3-1f-r4-reg | REP | repz nop %eax
+2b-f3-1f-r4-mem | REP | repz nopl (%rax)
+2b-f3-1f-r5-reg | REP | repz nop %eax
+2b-f3-1f-r5-mem | REP | repz nopl (%rax)
+2b-f3-1f-r6-reg | REP | repz nop %eax
+2b-f3-1f-r6-mem | REP | repz nopl (%rax)
+2b-f3-1f-r7-reg | REP | repz nop %eax
+2b-f3-1f-r7-mem | REP | repz nopl (%rax)
+2b-f2-1f-r0-reg | REPNZ | repnz nop %eax
+2b-f2-1f-r0-mem | REPNZ | repnz nopl (%rax)
+2b-f2-1f-r1-reg | REPNZ | repnz nop %eax
+2b-f2-1f-r1-mem | REPNZ | repnz nopl (%rax)
+2b-f2-1f-r2-reg | REPNZ | repnz nop %eax
+2b-f2-1f-r2-mem | REPNZ | repnz nopl (%rax)
+2b-f2-1f-r3-reg | REPNZ | repnz nop %eax
+2b-f2-1f-r3-mem | REPNZ | repnz nopl (%rax)
+2b-f2-1f-r4-reg | REPNZ | repnz nop %eax
+2b-f2-1f-r4-mem | REPNZ | repnz nopl (%rax)
+2b-f2-1f-r5-reg | REPNZ | repnz nop %eax
+2b-f2-1f-r5-mem | REPNZ | repnz nopl (%rax)
+2b-f2-1f-r6-reg | REPNZ | repnz nop %eax
+2b-f2-1f-r6-mem | REPNZ | repnz nopl (%rax)
+2b-f2-1f-r7-reg | REPNZ | repnz nop %eax
+2b-f2-1f-r7-mem | REPNZ | repnz nopl (%rax)
+2b-66-20-r0-reg | mov | data16 mov %cr0,%rax
+2b-66-20-r0-mem | mov | data16 mov %cr0,%rax
+2b-66-20-r1-reg | mov | data16 mov %cr1,%rax
+2b-66-20-r1-mem | mov | data16 mov %cr1,%rax
+2b-66-20-r2-reg | mov | data16 mov %cr2,%rax
+2b-66-20-r2-mem | mov | data16 mov %cr2,%rax
+2b-66-20-r3-reg | mov | data16 mov %cr3,%rax
+2b-66-20-r3-mem | mov | data16 mov %cr3,%rax
+2b-66-20-r4-reg | mov | data16 mov %cr4,%rax
+2b-66-20-r4-mem | mov | data16 mov %cr4,%rax
+2b-66-20-r5-reg | mov | data16 mov %cr5,%rax
+2b-66-20-r5-mem | mov | data16 mov %cr5,%rax
+2b-66-20-r6-reg | mov | data16 mov %cr6,%rax
+2b-66-20-r6-mem | mov | data16 mov %cr6,%rax
+2b-66-20-r7-reg | mov | data16 mov %cr7,%rax
+2b-66-20-r7-mem | mov | data16 mov %cr7,%rax
+2b-f3-20-r0-reg | REP | repz mov %cr0,%rax
+2b-f3-20-r0-mem | REP | repz mov %cr0,%rax
+2b-f3-20-r1-reg | REP | repz mov %cr1,%rax
+2b-f3-20-r1-mem | REP | repz mov %cr1,%rax
+2b-f3-20-r2-reg | REP | repz mov %cr2,%rax
+2b-f3-20-r2-mem | REP | repz mov %cr2,%rax
+2b-f3-20-r3-reg | REP | repz mov %cr3,%rax
+2b-f3-20-r3-mem | REP | repz mov %cr3,%rax
+2b-f3-20-r4-reg | REP | repz mov %cr4,%rax
+2b-f3-20-r4-mem | REP | repz mov %cr4,%rax
+2b-f3-20-r5-reg | REP | repz mov %cr5,%rax
+2b-f3-20-r5-mem | REP | repz mov %cr5,%rax
+2b-f3-20-r6-reg | REP | repz mov %cr6,%rax
+2b-f3-20-r6-mem | REP | repz mov %cr6,%rax
+2b-f3-20-r7-reg | REP | repz mov %cr7,%rax
+2b-f3-20-r7-mem | REP | repz mov %cr7,%rax
+2b-f2-20-r0-reg | REPNZ | repnz mov %cr0,%rax
+2b-f2-20-r0-mem | REPNZ | repnz mov %cr0,%rax
+2b-f2-20-r1-reg | REPNZ | repnz mov %cr1,%rax
+2b-f2-20-r1-mem | REPNZ | repnz mov %cr1,%rax
+2b-f2-20-r2-reg | REPNZ | repnz mov %cr2,%rax
+2b-f2-20-r2-mem | REPNZ | repnz mov %cr2,%rax
+2b-f2-20-r3-reg | REPNZ | repnz mov %cr3,%rax
+2b-f2-20-r3-mem | REPNZ | repnz mov %cr3,%rax
+2b-f2-20-r4-reg | REPNZ | repnz mov %cr4,%rax
+2b-f2-20-r4-mem | REPNZ | repnz mov %cr4,%rax
+2b-f2-20-r5-reg | REPNZ | repnz mov %cr5,%rax
+2b-f2-20-r5-mem | REPNZ | repnz mov %cr5,%rax
+2b-f2-20-r6-reg | REPNZ | repnz mov %cr6,%rax
+2b-f2-20-r6-mem | REPNZ | repnz mov %cr6,%rax
+2b-f2-20-r7-reg | REPNZ | repnz mov %cr7,%rax
+2b-f2-20-r7-mem | REPNZ | repnz mov %cr7,%rax
+2b-66-21-r0-reg | mov | data16 mov %db0,%rax
+2b-66-21-r0-mem | mov | data16 mov %db0,%rax
+2b-66-21-r1-reg | mov | data16 mov %db1,%rax
+2b-66-21-r1-mem | mov | data16 mov %db1,%rax
+2b-66-21-r2-reg | mov | data16 mov %db2,%rax
+2b-66-21-r2-mem | mov | data16 mov %db2,%rax
+2b-66-21-r3-reg | mov | data16 mov %db3,%rax
+2b-66-21-r3-mem | mov | data16 mov %db3,%rax
+2b-66-21-r4-reg | mov | data16 mov %db4,%rax
+2b-66-21-r4-mem | mov | data16 mov %db4,%rax
+2b-66-21-r5-reg | mov | data16 mov %db5,%rax
+2b-66-21-r5-mem | mov | data16 mov %db5,%rax
+2b-66-21-r6-reg | mov | data16 mov %db6,%rax
+2b-66-21-r6-mem | mov | data16 mov %db6,%rax
+2b-66-21-r7-reg | mov | data16 mov %db7,%rax
+2b-66-21-r7-mem | mov | data16 mov %db7,%rax
+2b-f3-21-r0-reg | REP | repz mov %db0,%rax
+2b-f3-21-r0-mem | REP | repz mov %db0,%rax
+2b-f3-21-r1-reg | REP | repz mov %db1,%rax
+2b-f3-21-r1-mem | REP | repz mov %db1,%rax
+2b-f3-21-r2-reg | REP | repz mov %db2,%rax
+2b-f3-21-r2-mem | REP | repz mov %db2,%rax
+2b-f3-21-r3-reg | REP | repz mov %db3,%rax
+2b-f3-21-r3-mem | REP | repz mov %db3,%rax
+2b-f3-21-r4-reg | REP | repz mov %db4,%rax
+2b-f3-21-r4-mem | REP | repz mov %db4,%rax
+2b-f3-21-r5-reg | REP | repz mov %db5,%rax
+2b-f3-21-r5-mem | REP | repz mov %db5,%rax
+2b-f3-21-r6-reg | REP | repz mov %db6,%rax
+2b-f3-21-r6-mem | REP | repz mov %db6,%rax
+2b-f3-21-r7-reg | REP | repz mov %db7,%rax
+2b-f3-21-r7-mem | REP | repz mov %db7,%rax
+2b-f2-21-r0-reg | REPNZ | repnz mov %db0,%rax
+2b-f2-21-r0-mem | REPNZ | repnz mov %db0,%rax
+2b-f2-21-r1-reg | REPNZ | repnz mov %db1,%rax
+2b-f2-21-r1-mem | REPNZ | repnz mov %db1,%rax
+2b-f2-21-r2-reg | REPNZ | repnz mov %db2,%rax
+2b-f2-21-r2-mem | REPNZ | repnz mov %db2,%rax
+2b-f2-21-r3-reg | REPNZ | repnz mov %db3,%rax
+2b-f2-21-r3-mem | REPNZ | repnz mov %db3,%rax
+2b-f2-21-r4-reg | REPNZ | repnz mov %db4,%rax
+2b-f2-21-r4-mem | REPNZ | repnz mov %db4,%rax
+2b-f2-21-r5-reg | REPNZ | repnz mov %db5,%rax
+2b-f2-21-r5-mem | REPNZ | repnz mov %db5,%rax
+2b-f2-21-r6-reg | REPNZ | repnz mov %db6,%rax
+2b-f2-21-r6-mem | REPNZ | repnz mov %db6,%rax
+2b-f2-21-r7-reg | REPNZ | repnz mov %db7,%rax
+2b-f2-21-r7-mem | REPNZ | repnz mov %db7,%rax
+2b-66-22-r0-reg | mov | data16 mov %rax,%cr0
+2b-66-22-r0-mem | mov | data16 mov %rax,%cr0
+2b-66-22-r1-reg | mov | data16 mov %rax,%cr1
+2b-66-22-r1-mem | mov | data16 mov %rax,%cr1
+2b-66-22-r2-reg | mov | data16 mov %rax,%cr2
+2b-66-22-r2-mem | mov | data16 mov %rax,%cr2
+2b-66-22-r3-reg | mov | data16 mov %rax,%cr3
+2b-66-22-r3-mem | mov | data16 mov %rax,%cr3
+2b-66-22-r4-reg | mov | data16 mov %rax,%cr4
+2b-66-22-r4-mem | mov | data16 mov %rax,%cr4
+2b-66-22-r5-reg | mov | data16 mov %rax,%cr5
+2b-66-22-r5-mem | mov | data16 mov %rax,%cr5
+2b-66-22-r6-reg | mov | data16 mov %rax,%cr6
+2b-66-22-r6-mem | mov | data16 mov %rax,%cr6
+2b-66-22-r7-reg | mov | data16 mov %rax,%cr7
+2b-66-22-r7-mem | mov | data16 mov %rax,%cr7
+2b-f3-22-r0-reg | REP | repz mov %rax,%cr0
+2b-f3-22-r0-mem | REP | repz mov %rax,%cr0
+2b-f3-22-r1-reg | REP | repz mov %rax,%cr1
+2b-f3-22-r1-mem | REP | repz mov %rax,%cr1
+2b-f3-22-r2-reg | REP | repz mov %rax,%cr2
+2b-f3-22-r2-mem | REP | repz mov %rax,%cr2
+2b-f3-22-r3-reg | REP | repz mov %rax,%cr3
+2b-f3-22-r3-mem | REP | repz mov %rax,%cr3
+2b-f3-22-r4-reg | REP | repz mov %rax,%cr4
+2b-f3-22-r4-mem | REP | repz mov %rax,%cr4
+2b-f3-22-r5-reg | REP | repz mov %rax,%cr5
+2b-f3-22-r5-mem | REP | repz mov %rax,%cr5
+2b-f3-22-r6-reg | REP | repz mov %rax,%cr6
+2b-f3-22-r6-mem | REP | repz mov %rax,%cr6
+2b-f3-22-r7-reg | REP | repz mov %rax,%cr7
+2b-f3-22-r7-mem | REP | repz mov %rax,%cr7
+2b-f2-22-r0-reg | REPNZ | repnz mov %rax,%cr0
+2b-f2-22-r0-mem | REPNZ | repnz mov %rax,%cr0
+2b-f2-22-r1-reg | REPNZ | repnz mov %rax,%cr1
+2b-f2-22-r1-mem | REPNZ | repnz mov %rax,%cr1
+2b-f2-22-r2-reg | REPNZ | repnz mov %rax,%cr2
+2b-f2-22-r2-mem | REPNZ | repnz mov %rax,%cr2
+2b-f2-22-r3-reg | REPNZ | repnz mov %rax,%cr3
+2b-f2-22-r3-mem | REPNZ | repnz mov %rax,%cr3
+2b-f2-22-r4-reg | REPNZ | repnz mov %rax,%cr4
+2b-f2-22-r4-mem | REPNZ | repnz mov %rax,%cr4
+2b-f2-22-r5-reg | REPNZ | repnz mov %rax,%cr5
+2b-f2-22-r5-mem | REPNZ | repnz mov %rax,%cr5
+2b-f2-22-r6-reg | REPNZ | repnz mov %rax,%cr6
+2b-f2-22-r6-mem | REPNZ | repnz mov %rax,%cr6
+2b-f2-22-r7-reg | REPNZ | repnz mov %rax,%cr7
+2b-f2-22-r7-mem | REPNZ | repnz mov %rax,%cr7
+2b-66-23-r0-reg | mov | data16 mov %rax,%db0
+2b-66-23-r0-mem | mov | data16 mov %rax,%db0
+2b-66-23-r1-reg | mov | data16 mov %rax,%db1
+2b-66-23-r1-mem | mov | data16 mov %rax,%db1
+2b-66-23-r2-reg | mov | data16 mov %rax,%db2
+2b-66-23-r2-mem | mov | data16 mov %rax,%db2
+2b-66-23-r3-reg | mov | data16 mov %rax,%db3
+2b-66-23-r3-mem | mov | data16 mov %rax,%db3
+2b-66-23-r4-reg | mov | data16 mov %rax,%db4
+2b-66-23-r4-mem | mov | data16 mov %rax,%db4
+2b-66-23-r5-reg | mov | data16 mov %rax,%db5
+2b-66-23-r5-mem | mov | data16 mov %rax,%db5
+2b-66-23-r6-reg | mov | data16 mov %rax,%db6
+2b-66-23-r6-mem | mov | data16 mov %rax,%db6
+2b-66-23-r7-reg | mov | data16 mov %rax,%db7
+2b-66-23-r7-mem | mov | data16 mov %rax,%db7
+2b-f3-23-r0-reg | REP | repz mov %rax,%db0
+2b-f3-23-r0-mem | REP | repz mov %rax,%db0
+2b-f3-23-r1-reg | REP | repz mov %rax,%db1
+2b-f3-23-r1-mem | REP | repz mov %rax,%db1
+2b-f3-23-r2-reg | REP | repz mov %rax,%db2
+2b-f3-23-r2-mem | REP | repz mov %rax,%db2
+2b-f3-23-r3-reg | REP | repz mov %rax,%db3
+2b-f3-23-r3-mem | REP | repz mov %rax,%db3
+2b-f3-23-r4-reg | REP | repz mov %rax,%db4
+2b-f3-23-r4-mem | REP | repz mov %rax,%db4
+2b-f3-23-r5-reg | REP | repz mov %rax,%db5
+2b-f3-23-r5-mem | REP | repz mov %rax,%db5
+2b-f3-23-r6-reg | REP | repz mov %rax,%db6
+2b-f3-23-r6-mem | REP | repz mov %rax,%db6
+2b-f3-23-r7-reg | REP | repz mov %rax,%db7
+2b-f3-23-r7-mem | REP | repz mov %rax,%db7
+2b-f2-23-r0-reg | REPNZ | repnz mov %rax,%db0
+2b-f2-23-r0-mem | REPNZ | repnz mov %rax,%db0
+2b-f2-23-r1-reg | REPNZ | repnz mov %rax,%db1
+2b-f2-23-r1-mem | REPNZ | repnz mov %rax,%db1
+2b-f2-23-r2-reg | REPNZ | repnz mov %rax,%db2
+2b-f2-23-r2-mem | REPNZ | repnz mov %rax,%db2
+2b-f2-23-r3-reg | REPNZ | repnz mov %rax,%db3
+2b-f2-23-r3-mem | REPNZ | repnz mov %rax,%db3
+2b-f2-23-r4-reg | REPNZ | repnz mov %rax,%db4
+2b-f2-23-r4-mem | REPNZ | repnz mov %rax,%db4
+2b-f2-23-r5-reg | REPNZ | repnz mov %rax,%db5
+2b-f2-23-r5-mem | REPNZ | repnz mov %rax,%db5
+2b-f2-23-r6-reg | REPNZ | repnz mov %rax,%db6
+2b-f2-23-r6-mem | REPNZ | repnz mov %rax,%db6
+2b-f2-23-r7-reg | REPNZ | repnz mov %rax,%db7
+2b-f2-23-r7-mem | REPNZ | repnz mov %rax,%db7
+2b-66-24-r0-reg | mov | data16 mov %tr0,%eax
+2b-66-24-r0-mem | mov | data16 (bad)
+2b-66-24-r1-reg | mov | data16 mov %tr1,%eax
+2b-66-24-r1-mem | mov | data16 (bad)
+2b-66-24-r2-reg | mov | data16 mov %tr2,%eax
+2b-66-24-r2-mem | mov | data16 (bad)
+2b-66-24-r3-reg | mov | data16 mov %tr3,%eax
+2b-66-24-r3-mem | mov | data16 (bad)
+2b-66-24-r4-reg | mov | data16 mov %tr4,%eax
+2b-66-24-r4-mem | mov | data16 (bad)
+2b-66-24-r5-reg | mov | data16 mov %tr5,%eax
+2b-66-24-r5-mem | mov | data16 (bad)
+2b-66-24-r6-reg | mov | data16 mov %tr6,%eax
+2b-66-24-r6-mem | mov | data16 (bad)
+2b-66-24-r7-reg | mov | data16 mov %tr7,%eax
+2b-66-24-r7-mem | mov | data16 (bad)
+2b-f3-24-r0-reg | REP | repz mov %tr0,%eax
+2b-f3-24-r0-mem | REP | repz (bad)
+2b-f3-24-r1-reg | REP | repz mov %tr1,%eax
+2b-f3-24-r1-mem | REP | repz (bad)
+2b-f3-24-r2-reg | REP | repz mov %tr2,%eax
+2b-f3-24-r2-mem | REP | repz (bad)
+2b-f3-24-r3-reg | REP | repz mov %tr3,%eax
+2b-f3-24-r3-mem | REP | repz (bad)
+2b-f3-24-r4-reg | REP | repz mov %tr4,%eax
+2b-f3-24-r4-mem | REP | repz (bad)
+2b-f3-24-r5-reg | REP | repz mov %tr5,%eax
+2b-f3-24-r5-mem | REP | repz (bad)
+2b-f3-24-r6-reg | REP | repz mov %tr6,%eax
+2b-f3-24-r6-mem | REP | repz (bad)
+2b-f3-24-r7-reg | REP | repz mov %tr7,%eax
+2b-f3-24-r7-mem | REP | repz (bad)
+2b-f2-24-r0-reg | REPNZ | repnz mov %tr0,%eax
+2b-f2-24-r0-mem | REPNZ | repnz (bad)
+2b-f2-24-r1-reg | REPNZ | repnz mov %tr1,%eax
+2b-f2-24-r1-mem | REPNZ | repnz (bad)
+2b-f2-24-r2-reg | REPNZ | repnz mov %tr2,%eax
+2b-f2-24-r2-mem | REPNZ | repnz (bad)
+2b-f2-24-r3-reg | REPNZ | repnz mov %tr3,%eax
+2b-f2-24-r3-mem | REPNZ | repnz (bad)
+2b-f2-24-r4-reg | REPNZ | repnz mov %tr4,%eax
+2b-f2-24-r4-mem | REPNZ | repnz (bad)
+2b-f2-24-r5-reg | REPNZ | repnz mov %tr5,%eax
+2b-f2-24-r5-mem | REPNZ | repnz (bad)
+2b-f2-24-r6-reg | REPNZ | repnz mov %tr6,%eax
+2b-f2-24-r6-mem | REPNZ | repnz (bad)
+2b-f2-24-r7-reg | REPNZ | repnz mov %tr7,%eax
+2b-f2-24-r7-mem | REPNZ | repnz (bad)
+2b-66-26-r0-reg | mov | data16 mov %eax,%tr0
+2b-66-26-r0-mem | mov | data16 (bad)
+2b-66-26-r1-reg | mov | data16 mov %eax,%tr1
+2b-66-26-r1-mem | mov | data16 (bad)
+2b-66-26-r2-reg | mov | data16 mov %eax,%tr2
+2b-66-26-r2-mem | mov | data16 (bad)
+2b-66-26-r3-reg | mov | data16 mov %eax,%tr3
+2b-66-26-r3-mem | mov | data16 (bad)
+2b-66-26-r4-reg | mov | data16 mov %eax,%tr4
+2b-66-26-r4-mem | mov | data16 (bad)
+2b-66-26-r5-reg | mov | data16 mov %eax,%tr5
+2b-66-26-r5-mem | mov | data16 (bad)
+2b-66-26-r6-reg | mov | data16 mov %eax,%tr6
+2b-66-26-r6-mem | mov | data16 (bad)
+2b-66-26-r7-reg | mov | data16 mov %eax,%tr7
+2b-66-26-r7-mem | mov | data16 (bad)
+2b-f3-26-r0-reg | REP | repz mov %eax,%tr0
+2b-f3-26-r0-mem | REP | repz (bad)
+2b-f3-26-r1-reg | REP | repz mov %eax,%tr1
+2b-f3-26-r1-mem | REP | repz (bad)
+2b-f3-26-r2-reg | REP | repz mov %eax,%tr2
+2b-f3-26-r2-mem | REP | repz (bad)
+2b-f3-26-r3-reg | REP | repz mov %eax,%tr3
+2b-f3-26-r3-mem | REP | repz (bad)
+2b-f3-26-r4-reg | REP | repz mov %eax,%tr4
+2b-f3-26-r4-mem | REP | repz (bad)
+2b-f3-26-r5-reg | REP | repz mov %eax,%tr5
+2b-f3-26-r5-mem | REP | repz (bad)
+2b-f3-26-r6-reg | REP | repz mov %eax,%tr6
+2b-f3-26-r6-mem | REP | repz (bad)
+2b-f3-26-r7-reg | REP | repz mov %eax,%tr7
+2b-f3-26-r7-mem | REP | repz (bad)
+2b-f2-26-r0-reg | REPNZ | repnz mov %eax,%tr0
+2b-f2-26-r0-mem | REPNZ | repnz (bad)
+2b-f2-26-r1-reg | REPNZ | repnz mov %eax,%tr1
+2b-f2-26-r1-mem | REPNZ | repnz (bad)
+2b-f2-26-r2-reg | REPNZ | repnz mov %eax,%tr2
+2b-f2-26-r2-mem | REPNZ | repnz (bad)
+2b-f2-26-r3-reg | REPNZ | repnz mov %eax,%tr3
+2b-f2-26-r3-mem | REPNZ | repnz (bad)
+2b-f2-26-r4-reg | REPNZ | repnz mov %eax,%tr4
+2b-f2-26-r4-mem | REPNZ | repnz (bad)
+2b-f2-26-r5-reg | REPNZ | repnz mov %eax,%tr5
+2b-f2-26-r5-mem | REPNZ | repnz (bad)
+2b-f2-26-r6-reg | REPNZ | repnz mov %eax,%tr6
+2b-f2-26-r6-mem | REPNZ | repnz (bad)
+2b-f2-26-r7-reg | REPNZ | repnz mov %eax,%tr7
+2b-f2-26-r7-mem | REPNZ | repnz (bad)
+2b-66-30-r0-reg | wrmsr | data16 wrmsr
+2b-66-30-r0-mem | wrmsr | data16 wrmsr
+2b-66-30-r1-reg | wrmsr | data16 wrmsr
+2b-66-30-r1-mem | wrmsr | data16 wrmsr
+2b-66-30-r2-reg | wrmsr | data16 wrmsr
+2b-66-30-r2-mem | wrmsr | data16 wrmsr
+2b-66-30-r3-reg | wrmsr | data16 wrmsr
+2b-66-30-r3-mem | wrmsr | data16 wrmsr
+2b-66-30-r4-reg | wrmsr | data16 wrmsr
+2b-66-30-r4-mem | wrmsr | data16 wrmsr
+2b-66-30-r5-reg | wrmsr | data16 wrmsr
+2b-66-30-r5-mem | wrmsr | data16 wrmsr
+2b-66-30-r6-reg | wrmsr | data16 wrmsr
+2b-66-30-r6-mem | wrmsr | data16 wrmsr
+2b-66-30-r7-reg | wrmsr | data16 wrmsr
+2b-66-30-r7-mem | wrmsr | data16 wrmsr
+2b-f3-30-r0-reg | REP | repz wrmsr
+2b-f3-30-r0-mem | REP | repz wrmsr
+2b-f3-30-r1-reg | REP | repz wrmsr
+2b-f3-30-r1-mem | REP | repz wrmsr
+2b-f3-30-r2-reg | REP | repz wrmsr
+2b-f3-30-r2-mem | REP | repz wrmsr
+2b-f3-30-r3-reg | REP | repz wrmsr
+2b-f3-30-r3-mem | REP | repz wrmsr
+2b-f3-30-r4-reg | REP | repz wrmsr
+2b-f3-30-r4-mem | REP | repz wrmsr
+2b-f3-30-r5-reg | REP | repz wrmsr
+2b-f3-30-r5-mem | REP | repz wrmsr
+2b-f3-30-r6-reg | REP | repz wrmsr
+2b-f3-30-r6-mem | REP | repz wrmsr
+2b-f3-30-r7-reg | REP | repz wrmsr
+2b-f3-30-r7-mem | REP | repz wrmsr
+2b-f2-30-r0-reg | REPNZ | repnz wrmsr
+2b-f2-30-r0-mem | REPNZ | repnz wrmsr
+2b-f2-30-r1-reg | REPNZ | repnz wrmsr
+2b-f2-30-r1-mem | REPNZ | repnz wrmsr
+2b-f2-30-r2-reg | REPNZ | repnz wrmsr
+2b-f2-30-r2-mem | REPNZ | repnz wrmsr
+2b-f2-30-r3-reg | REPNZ | repnz wrmsr
+2b-f2-30-r3-mem | REPNZ | repnz wrmsr
+2b-f2-30-r4-reg | REPNZ | repnz wrmsr
+2b-f2-30-r4-mem | REPNZ | repnz wrmsr
+2b-f2-30-r5-reg | REPNZ | repnz wrmsr
+2b-f2-30-r5-mem | REPNZ | repnz wrmsr
+2b-f2-30-r6-reg | REPNZ | repnz wrmsr
+2b-f2-30-r6-mem | REPNZ | repnz wrmsr
+2b-f2-30-r7-reg | REPNZ | repnz wrmsr
+2b-f2-30-r7-mem | REPNZ | repnz wrmsr
+2b-66-31-r0-reg | rdtsc | data16 rdtsc
+2b-66-31-r0-mem | rdtsc | data16 rdtsc
+2b-66-31-r1-reg | rdtsc | data16 rdtsc
+2b-66-31-r1-mem | rdtsc | data16 rdtsc
+2b-66-31-r2-reg | rdtsc | data16 rdtsc
+2b-66-31-r2-mem | rdtsc | data16 rdtsc
+2b-66-31-r3-reg | rdtsc | data16 rdtsc
+2b-66-31-r3-mem | rdtsc | data16 rdtsc
+2b-66-31-r4-reg | rdtsc | data16 rdtsc
+2b-66-31-r4-mem | rdtsc | data16 rdtsc
+2b-66-31-r5-reg | rdtsc | data16 rdtsc
+2b-66-31-r5-mem | rdtsc | data16 rdtsc
+2b-66-31-r6-reg | rdtsc | data16 rdtsc
+2b-66-31-r6-mem | rdtsc | data16 rdtsc
+2b-66-31-r7-reg | rdtsc | data16 rdtsc
+2b-66-31-r7-mem | rdtsc | data16 rdtsc
+2b-f3-31-r0-reg | REP | repz rdtsc
+2b-f3-31-r0-mem | REP | repz rdtsc
+2b-f3-31-r1-reg | REP | repz rdtsc
+2b-f3-31-r1-mem | REP | repz rdtsc
+2b-f3-31-r2-reg | REP | repz rdtsc
+2b-f3-31-r2-mem | REP | repz rdtsc
+2b-f3-31-r3-reg | REP | repz rdtsc
+2b-f3-31-r3-mem | REP | repz rdtsc
+2b-f3-31-r4-reg | REP | repz rdtsc
+2b-f3-31-r4-mem | REP | repz rdtsc
+2b-f3-31-r5-reg | REP | repz rdtsc
+2b-f3-31-r5-mem | REP | repz rdtsc
+2b-f3-31-r6-reg | REP | repz rdtsc
+2b-f3-31-r6-mem | REP | repz rdtsc
+2b-f3-31-r7-reg | REP | repz rdtsc
+2b-f3-31-r7-mem | REP | repz rdtsc
+2b-f2-31-r0-reg | REPNZ | repnz rdtsc
+2b-f2-31-r0-mem | REPNZ | repnz rdtsc
+2b-f2-31-r1-reg | REPNZ | repnz rdtsc
+2b-f2-31-r1-mem | REPNZ | repnz rdtsc
+2b-f2-31-r2-reg | REPNZ | repnz rdtsc
+2b-f2-31-r2-mem | REPNZ | repnz rdtsc
+2b-f2-31-r3-reg | REPNZ | repnz rdtsc
+2b-f2-31-r3-mem | REPNZ | repnz rdtsc
+2b-f2-31-r4-reg | REPNZ | repnz rdtsc
+2b-f2-31-r4-mem | REPNZ | repnz rdtsc
+2b-f2-31-r5-reg | REPNZ | repnz rdtsc
+2b-f2-31-r5-mem | REPNZ | repnz rdtsc
+2b-f2-31-r6-reg | REPNZ | repnz rdtsc
+2b-f2-31-r6-mem | REPNZ | repnz rdtsc
+2b-f2-31-r7-reg | REPNZ | repnz rdtsc
+2b-f2-31-r7-mem | REPNZ | repnz rdtsc
+2b-66-32-r0-reg | rdmsr | data16 rdmsr
+2b-66-32-r0-mem | rdmsr | data16 rdmsr
+2b-66-32-r1-reg | rdmsr | data16 rdmsr
+2b-66-32-r1-mem | rdmsr | data16 rdmsr
+2b-66-32-r2-reg | rdmsr | data16 rdmsr
+2b-66-32-r2-mem | rdmsr | data16 rdmsr
+2b-66-32-r3-reg | rdmsr | data16 rdmsr
+2b-66-32-r3-mem | rdmsr | data16 rdmsr
+2b-66-32-r4-reg | rdmsr | data16 rdmsr
+2b-66-32-r4-mem | rdmsr | data16 rdmsr
+2b-66-32-r5-reg | rdmsr | data16 rdmsr
+2b-66-32-r5-mem | rdmsr | data16 rdmsr
+2b-66-32-r6-reg | rdmsr | data16 rdmsr
+2b-66-32-r6-mem | rdmsr | data16 rdmsr
+2b-66-32-r7-reg | rdmsr | data16 rdmsr
+2b-66-32-r7-mem | rdmsr | data16 rdmsr
+2b-f3-32-r0-reg | REP | repz rdmsr
+2b-f3-32-r0-mem | REP | repz rdmsr
+2b-f3-32-r1-reg | REP | repz rdmsr
+2b-f3-32-r1-mem | REP | repz rdmsr
+2b-f3-32-r2-reg | REP | repz rdmsr
+2b-f3-32-r2-mem | REP | repz rdmsr
+2b-f3-32-r3-reg | REP | repz rdmsr
+2b-f3-32-r3-mem | REP | repz rdmsr
+2b-f3-32-r4-reg | REP | repz rdmsr
+2b-f3-32-r4-mem | REP | repz rdmsr
+2b-f3-32-r5-reg | REP | repz rdmsr
+2b-f3-32-r5-mem | REP | repz rdmsr
+2b-f3-32-r6-reg | REP | repz rdmsr
+2b-f3-32-r6-mem | REP | repz rdmsr
+2b-f3-32-r7-reg | REP | repz rdmsr
+2b-f3-32-r7-mem | REP | repz rdmsr
+2b-f2-32-r0-reg | REPNZ | repnz rdmsr
+2b-f2-32-r0-mem | REPNZ | repnz rdmsr
+2b-f2-32-r1-reg | REPNZ | repnz rdmsr
+2b-f2-32-r1-mem | REPNZ | repnz rdmsr
+2b-f2-32-r2-reg | REPNZ | repnz rdmsr
+2b-f2-32-r2-mem | REPNZ | repnz rdmsr
+2b-f2-32-r3-reg | REPNZ | repnz rdmsr
+2b-f2-32-r3-mem | REPNZ | repnz rdmsr
+2b-f2-32-r4-reg | REPNZ | repnz rdmsr
+2b-f2-32-r4-mem | REPNZ | repnz rdmsr
+2b-f2-32-r5-reg | REPNZ | repnz rdmsr
+2b-f2-32-r5-mem | REPNZ | repnz rdmsr
+2b-f2-32-r6-reg | REPNZ | repnz rdmsr
+2b-f2-32-r6-mem | REPNZ | repnz rdmsr
+2b-f2-32-r7-reg | REPNZ | repnz rdmsr
+2b-f2-32-r7-mem | REPNZ | repnz rdmsr
+2b-66-33-r0-reg | rdpmc | data16 rdpmc
+2b-66-33-r0-mem | rdpmc | data16 rdpmc
+2b-66-33-r1-reg | rdpmc | data16 rdpmc
+2b-66-33-r1-mem | rdpmc | data16 rdpmc
+2b-66-33-r2-reg | rdpmc | data16 rdpmc
+2b-66-33-r2-mem | rdpmc | data16 rdpmc
+2b-66-33-r3-reg | rdpmc | data16 rdpmc
+2b-66-33-r3-mem | rdpmc | data16 rdpmc
+2b-66-33-r4-reg | rdpmc | data16 rdpmc
+2b-66-33-r4-mem | rdpmc | data16 rdpmc
+2b-66-33-r5-reg | rdpmc | data16 rdpmc
+2b-66-33-r5-mem | rdpmc | data16 rdpmc
+2b-66-33-r6-reg | rdpmc | data16 rdpmc
+2b-66-33-r6-mem | rdpmc | data16 rdpmc
+2b-66-33-r7-reg | rdpmc | data16 rdpmc
+2b-66-33-r7-mem | rdpmc | data16 rdpmc
+2b-f3-33-r0-reg | REP | repz rdpmc
+2b-f3-33-r0-mem | REP | repz rdpmc
+2b-f3-33-r1-reg | REP | repz rdpmc
+2b-f3-33-r1-mem | REP | repz rdpmc
+2b-f3-33-r2-reg | REP | repz rdpmc
+2b-f3-33-r2-mem | REP | repz rdpmc
+2b-f3-33-r3-reg | REP | repz rdpmc
+2b-f3-33-r3-mem | REP | repz rdpmc
+2b-f3-33-r4-reg | REP | repz rdpmc
+2b-f3-33-r4-mem | REP | repz rdpmc
+2b-f3-33-r5-reg | REP | repz rdpmc
+2b-f3-33-r5-mem | REP | repz rdpmc
+2b-f3-33-r6-reg | REP | repz rdpmc
+2b-f3-33-r6-mem | REP | repz rdpmc
+2b-f3-33-r7-reg | REP | repz rdpmc
+2b-f3-33-r7-mem | REP | repz rdpmc
+2b-f2-33-r0-reg | REPNZ | repnz rdpmc
+2b-f2-33-r0-mem | REPNZ | repnz rdpmc
+2b-f2-33-r1-reg | REPNZ | repnz rdpmc
+2b-f2-33-r1-mem | REPNZ | repnz rdpmc
+2b-f2-33-r2-reg | REPNZ | repnz rdpmc
+2b-f2-33-r2-mem | REPNZ | repnz rdpmc
+2b-f2-33-r3-reg | REPNZ | repnz rdpmc
+2b-f2-33-r3-mem | REPNZ | repnz rdpmc
+2b-f2-33-r4-reg | REPNZ | repnz rdpmc
+2b-f2-33-r4-mem | REPNZ | repnz rdpmc
+2b-f2-33-r5-reg | REPNZ | repnz rdpmc
+2b-f2-33-r5-mem | REPNZ | repnz rdpmc
+2b-f2-33-r6-reg | REPNZ | repnz rdpmc
+2b-f2-33-r6-mem | REPNZ | repnz rdpmc
+2b-f2-33-r7-reg | REPNZ | repnz rdpmc
+2b-f2-33-r7-mem | REPNZ | repnz rdpmc
+2b-66-34-r0-reg | sysenter | data16 sysenter
+2b-66-34-r0-mem | sysenter | data16 sysenter
+2b-66-34-r1-reg | sysenter | data16 sysenter
+2b-66-34-r1-mem | sysenter | data16 sysenter
+2b-66-34-r2-reg | sysenter | data16 sysenter
+2b-66-34-r2-mem | sysenter | data16 sysenter
+2b-66-34-r3-reg | sysenter | data16 sysenter
+2b-66-34-r3-mem | sysenter | data16 sysenter
+2b-66-34-r4-reg | sysenter | data16 sysenter
+2b-66-34-r4-mem | sysenter | data16 sysenter
+2b-66-34-r5-reg | sysenter | data16 sysenter
+2b-66-34-r5-mem | sysenter | data16 sysenter
+2b-66-34-r6-reg | sysenter | data16 sysenter
+2b-66-34-r6-mem | sysenter | data16 sysenter
+2b-66-34-r7-reg | sysenter | data16 sysenter
+2b-66-34-r7-mem | sysenter | data16 sysenter
+2b-f3-34-r0-reg | REP | repz sysenter
+2b-f3-34-r0-mem | REP | repz sysenter
+2b-f3-34-r1-reg | REP | repz sysenter
+2b-f3-34-r1-mem | REP | repz sysenter
+2b-f3-34-r2-reg | REP | repz sysenter
+2b-f3-34-r2-mem | REP | repz sysenter
+2b-f3-34-r3-reg | REP | repz sysenter
+2b-f3-34-r3-mem | REP | repz sysenter
+2b-f3-34-r4-reg | REP | repz sysenter
+2b-f3-34-r4-mem | REP | repz sysenter
+2b-f3-34-r5-reg | REP | repz sysenter
+2b-f3-34-r5-mem | REP | repz sysenter
+2b-f3-34-r6-reg | REP | repz sysenter
+2b-f3-34-r6-mem | REP | repz sysenter
+2b-f3-34-r7-reg | REP | repz sysenter
+2b-f3-34-r7-mem | REP | repz sysenter
+2b-f2-34-r0-reg | REPNZ | repnz sysenter
+2b-f2-34-r0-mem | REPNZ | repnz sysenter
+2b-f2-34-r1-reg | REPNZ | repnz sysenter
+2b-f2-34-r1-mem | REPNZ | repnz sysenter
+2b-f2-34-r2-reg | REPNZ | repnz sysenter
+2b-f2-34-r2-mem | REPNZ | repnz sysenter
+2b-f2-34-r3-reg | REPNZ | repnz sysenter
+2b-f2-34-r3-mem | REPNZ | repnz sysenter
+2b-f2-34-r4-reg | REPNZ | repnz sysenter
+2b-f2-34-r4-mem | REPNZ | repnz sysenter
+2b-f2-34-r5-reg | REPNZ | repnz sysenter
+2b-f2-34-r5-mem | REPNZ | repnz sysenter
+2b-f2-34-r6-reg | REPNZ | repnz sysenter
+2b-f2-34-r6-mem | REPNZ | repnz sysenter
+2b-f2-34-r7-reg | REPNZ | repnz sysenter
+2b-f2-34-r7-mem | REPNZ | repnz sysenter
+2b-66-35-r0-reg | sysexit | data16 sysexit
+2b-66-35-r0-mem | sysexit | data16 sysexit
+2b-66-35-r1-reg | sysexit | data16 sysexit
+2b-66-35-r1-mem | sysexit | data16 sysexit
+2b-66-35-r2-reg | sysexit | data16 sysexit
+2b-66-35-r2-mem | sysexit | data16 sysexit
+2b-66-35-r3-reg | sysexit | data16 sysexit
+2b-66-35-r3-mem | sysexit | data16 sysexit
+2b-66-35-r4-reg | sysexit | data16 sysexit
+2b-66-35-r4-mem | sysexit | data16 sysexit
+2b-66-35-r5-reg | sysexit | data16 sysexit
+2b-66-35-r5-mem | sysexit | data16 sysexit
+2b-66-35-r6-reg | sysexit | data16 sysexit
+2b-66-35-r6-mem | sysexit | data16 sysexit
+2b-66-35-r7-reg | sysexit | data16 sysexit
+2b-66-35-r7-mem | sysexit | data16 sysexit
+2b-f3-35-r0-reg | REP | repz sysexit
+2b-f3-35-r0-mem | REP | repz sysexit
+2b-f3-35-r1-reg | REP | repz sysexit
+2b-f3-35-r1-mem | REP | repz sysexit
+2b-f3-35-r2-reg | REP | repz sysexit
+2b-f3-35-r2-mem | REP | repz sysexit
+2b-f3-35-r3-reg | REP | repz sysexit
+2b-f3-35-r3-mem | REP | repz sysexit
+2b-f3-35-r4-reg | REP | repz sysexit
+2b-f3-35-r4-mem | REP | repz sysexit
+2b-f3-35-r5-reg | REP | repz sysexit
+2b-f3-35-r5-mem | REP | repz sysexit
+2b-f3-35-r6-reg | REP | repz sysexit
+2b-f3-35-r6-mem | REP | repz sysexit
+2b-f3-35-r7-reg | REP | repz sysexit
+2b-f3-35-r7-mem | REP | repz sysexit
+2b-f2-35-r0-reg | REPNZ | repnz sysexit
+2b-f2-35-r0-mem | REPNZ | repnz sysexit
+2b-f2-35-r1-reg | REPNZ | repnz sysexit
+2b-f2-35-r1-mem | REPNZ | repnz sysexit
+2b-f2-35-r2-reg | REPNZ | repnz sysexit
+2b-f2-35-r2-mem | REPNZ | repnz sysexit
+2b-f2-35-r3-reg | REPNZ | repnz sysexit
+2b-f2-35-r3-mem | REPNZ | repnz sysexit
+2b-f2-35-r4-reg | REPNZ | repnz sysexit
+2b-f2-35-r4-mem | REPNZ | repnz sysexit
+2b-f2-35-r5-reg | REPNZ | repnz sysexit
+2b-f2-35-r5-mem | REPNZ | repnz sysexit
+2b-f2-35-r6-reg | REPNZ | repnz sysexit
+2b-f2-35-r6-mem | REPNZ | repnz sysexit
+2b-f2-35-r7-reg | REPNZ | repnz sysexit
+2b-f2-35-r7-mem | REPNZ | repnz sysexit
+2b-66-37-r0-reg | getsec | data16 getsec
+2b-66-37-r0-mem | getsec | data16 getsec
+2b-66-37-r1-reg | getsec | data16 getsec
+2b-66-37-r1-mem | getsec | data16 getsec
+2b-66-37-r2-reg | getsec | data16 getsec
+2b-66-37-r2-mem | getsec | data16 getsec
+2b-66-37-r3-reg | getsec | data16 getsec
+2b-66-37-r3-mem | getsec | data16 getsec
+2b-66-37-r4-reg | getsec | data16 getsec
+2b-66-37-r4-mem | getsec | data16 getsec
+2b-66-37-r5-reg | getsec | data16 getsec
+2b-66-37-r5-mem | getsec | data16 getsec
+2b-66-37-r6-reg | getsec | data16 getsec
+2b-66-37-r6-mem | getsec | data16 getsec
+2b-66-37-r7-reg | getsec | data16 getsec
+2b-66-37-r7-mem | getsec | data16 getsec
+2b-f3-37-r0-reg | REP | repz getsec
+2b-f3-37-r0-mem | REP | repz getsec
+2b-f3-37-r1-reg | REP | repz getsec
+2b-f3-37-r1-mem | REP | repz getsec
+2b-f3-37-r2-reg | REP | repz getsec
+2b-f3-37-r2-mem | REP | repz getsec
+2b-f3-37-r3-reg | REP | repz getsec
+2b-f3-37-r3-mem | REP | repz getsec
+2b-f3-37-r4-reg | REP | repz getsec
+2b-f3-37-r4-mem | REP | repz getsec
+2b-f3-37-r5-reg | REP | repz getsec
+2b-f3-37-r5-mem | REP | repz getsec
+2b-f3-37-r6-reg | REP | repz getsec
+2b-f3-37-r6-mem | REP | repz getsec
+2b-f3-37-r7-reg | REP | repz getsec
+2b-f3-37-r7-mem | REP | repz getsec
+2b-f2-37-r0-reg | REPNZ | repnz getsec
+2b-f2-37-r0-mem | REPNZ | repnz getsec
+2b-f2-37-r1-reg | REPNZ | repnz getsec
+2b-f2-37-r1-mem | REPNZ | repnz getsec
+2b-f2-37-r2-reg | REPNZ | repnz getsec
+2b-f2-37-r2-mem | REPNZ | repnz getsec
+2b-f2-37-r3-reg | REPNZ | repnz getsec
+2b-f2-37-r3-mem | REPNZ | repnz getsec
+2b-f2-37-r4-reg | REPNZ | repnz getsec
+2b-f2-37-r4-mem | REPNZ | repnz getsec
+2b-f2-37-r5-reg | REPNZ | repnz getsec
+2b-f2-37-r5-mem | REPNZ | repnz getsec
+2b-f2-37-r6-reg | REPNZ | repnz getsec
+2b-f2-37-r6-mem | REPNZ | repnz getsec
+2b-f2-37-r7-reg | REPNZ | repnz getsec
+2b-f2-37-r7-mem | REPNZ | repnz getsec
+2b-66-38-r3-mem | vbroadcastss | data16 (bad)
+2b-66-3a-r0-mem | vpermq | data16 (bad)
+2b-66-3a-r3-mem | vinsertf128 | data16 (bad)
+2b-66-3a-r7-mem | vinserti128 | data16 (bad)
+2b-f3-40-r0-reg | REP | repz cmovo %eax,%eax
+2b-f3-40-r0-mem | REP | repz cmovo (%rax),%eax
+2b-f3-40-r1-reg | REP | repz cmovo %eax,%ecx
+2b-f3-40-r1-mem | REP | repz cmovo (%rax),%ecx
+2b-f3-40-r2-reg | REP | repz cmovo %eax,%edx
+2b-f3-40-r2-mem | REP | repz cmovo (%rax),%edx
+2b-f3-40-r3-reg | REP | repz cmovo %eax,%ebx
+2b-f3-40-r3-mem | REP | repz cmovo (%rax),%ebx
+2b-f3-40-r4-reg | REP | repz cmovo %eax,%esp
+2b-f3-40-r4-mem | REP | repz cmovo (%rax),%esp
+2b-f3-40-r5-reg | REP | repz cmovo %eax,%ebp
+2b-f3-40-r5-mem | REP | repz cmovo (%rax),%ebp
+2b-f3-40-r6-reg | REP | repz cmovo %eax,%esi
+2b-f3-40-r6-mem | REP | repz cmovo (%rax),%esi
+2b-f3-40-r7-reg | REP | repz cmovo %eax,%edi
+2b-f3-40-r7-mem | REP | repz cmovo (%rax),%edi
+2b-f2-40-r0-reg | REPNZ | repnz cmovo %eax,%eax
+2b-f2-40-r0-mem | REPNZ | repnz cmovo (%rax),%eax
+2b-f2-40-r1-reg | REPNZ | repnz cmovo %eax,%ecx
+2b-f2-40-r1-mem | REPNZ | repnz cmovo (%rax),%ecx
+2b-f2-40-r2-reg | REPNZ | repnz cmovo %eax,%edx
+2b-f2-40-r2-mem | REPNZ | repnz cmovo (%rax),%edx
+2b-f2-40-r3-reg | REPNZ | repnz cmovo %eax,%ebx
+2b-f2-40-r3-mem | REPNZ | repnz cmovo (%rax),%ebx
+2b-f2-40-r4-reg | REPNZ | repnz cmovo %eax,%esp
+2b-f2-40-r4-mem | REPNZ | repnz cmovo (%rax),%esp
+2b-f2-40-r5-reg | REPNZ | repnz cmovo %eax,%ebp
+2b-f2-40-r5-mem | REPNZ | repnz cmovo (%rax),%ebp
+2b-f2-40-r6-reg | REPNZ | repnz cmovo %eax,%esi
+2b-f2-40-r6-mem | REPNZ | repnz cmovo (%rax),%esi
+2b-f2-40-r7-reg | REPNZ | repnz cmovo %eax,%edi
+2b-f2-40-r7-mem | REPNZ | repnz cmovo (%rax),%edi
+2b-f3-41-r0-reg | REP | repz cmovno %eax,%eax
+2b-f3-41-r0-mem | REP | repz cmovno (%rax),%eax
+2b-f3-41-r1-reg | REP | repz cmovno %eax,%ecx
+2b-f3-41-r1-mem | REP | repz cmovno (%rax),%ecx
+2b-f3-41-r2-reg | REP | repz cmovno %eax,%edx
+2b-f3-41-r2-mem | REP | repz cmovno (%rax),%edx
+2b-f3-41-r3-reg | REP | repz cmovno %eax,%ebx
+2b-f3-41-r3-mem | REP | repz cmovno (%rax),%ebx
+2b-f3-41-r4-reg | REP | repz cmovno %eax,%esp
+2b-f3-41-r4-mem | REP | repz cmovno (%rax),%esp
+2b-f3-41-r5-reg | REP | repz cmovno %eax,%ebp
+2b-f3-41-r5-mem | REP | repz cmovno (%rax),%ebp
+2b-f3-41-r6-reg | REP | repz cmovno %eax,%esi
+2b-f3-41-r6-mem | REP | repz cmovno (%rax),%esi
+2b-f3-41-r7-reg | REP | repz cmovno %eax,%edi
+2b-f3-41-r7-mem | REP | repz cmovno (%rax),%edi
+2b-f2-41-r0-reg | REPNZ | repnz cmovno %eax,%eax
+2b-f2-41-r0-mem | REPNZ | repnz cmovno (%rax),%eax
+2b-f2-41-r1-reg | REPNZ | repnz cmovno %eax,%ecx
+2b-f2-41-r1-mem | REPNZ | repnz cmovno (%rax),%ecx
+2b-f2-41-r2-reg | REPNZ | repnz cmovno %eax,%edx
+2b-f2-41-r2-mem | REPNZ | repnz cmovno (%rax),%edx
+2b-f2-41-r3-reg | REPNZ | repnz cmovno %eax,%ebx
+2b-f2-41-r3-mem | REPNZ | repnz cmovno (%rax),%ebx
+2b-f2-41-r4-reg | REPNZ | repnz cmovno %eax,%esp
+2b-f2-41-r4-mem | REPNZ | repnz cmovno (%rax),%esp
+2b-f2-41-r5-reg | REPNZ | repnz cmovno %eax,%ebp
+2b-f2-41-r5-mem | REPNZ | repnz cmovno (%rax),%ebp
+2b-f2-41-r6-reg | REPNZ | repnz cmovno %eax,%esi
+2b-f2-41-r6-mem | REPNZ | repnz cmovno (%rax),%esi
+2b-f2-41-r7-reg | REPNZ | repnz cmovno %eax,%edi
+2b-f2-41-r7-mem | REPNZ | repnz cmovno (%rax),%edi
+2b-f3-42-r0-reg | REP | repz cmovb %eax,%eax
+2b-f3-42-r0-mem | REP | repz cmovb (%rax),%eax
+2b-f3-42-r1-reg | REP | repz cmovb %eax,%ecx
+2b-f3-42-r1-mem | REP | repz cmovb (%rax),%ecx
+2b-f3-42-r2-reg | REP | repz cmovb %eax,%edx
+2b-f3-42-r2-mem | REP | repz cmovb (%rax),%edx
+2b-f3-42-r3-reg | REP | repz cmovb %eax,%ebx
+2b-f3-42-r3-mem | REP | repz cmovb (%rax),%ebx
+2b-f3-42-r4-reg | REP | repz cmovb %eax,%esp
+2b-f3-42-r4-mem | REP | repz cmovb (%rax),%esp
+2b-f3-42-r5-reg | REP | repz cmovb %eax,%ebp
+2b-f3-42-r5-mem | REP | repz cmovb (%rax),%ebp
+2b-f3-42-r6-reg | REP | repz cmovb %eax,%esi
+2b-f3-42-r6-mem | REP | repz cmovb (%rax),%esi
+2b-f3-42-r7-reg | REP | repz cmovb %eax,%edi
+2b-f3-42-r7-mem | REP | repz cmovb (%rax),%edi
+2b-f2-42-r0-reg | REPNZ | repnz cmovb %eax,%eax
+2b-f2-42-r0-mem | REPNZ | repnz cmovb (%rax),%eax
+2b-f2-42-r1-reg | REPNZ | repnz cmovb %eax,%ecx
+2b-f2-42-r1-mem | REPNZ | repnz cmovb (%rax),%ecx
+2b-f2-42-r2-reg | REPNZ | repnz cmovb %eax,%edx
+2b-f2-42-r2-mem | REPNZ | repnz cmovb (%rax),%edx
+2b-f2-42-r3-reg | REPNZ | repnz cmovb %eax,%ebx
+2b-f2-42-r3-mem | REPNZ | repnz cmovb (%rax),%ebx
+2b-f2-42-r4-reg | REPNZ | repnz cmovb %eax,%esp
+2b-f2-42-r4-mem | REPNZ | repnz cmovb (%rax),%esp
+2b-f2-42-r5-reg | REPNZ | repnz cmovb %eax,%ebp
+2b-f2-42-r5-mem | REPNZ | repnz cmovb (%rax),%ebp
+2b-f2-42-r6-reg | REPNZ | repnz cmovb %eax,%esi
+2b-f2-42-r6-mem | REPNZ | repnz cmovb (%rax),%esi
+2b-f2-42-r7-reg | REPNZ | repnz cmovb %eax,%edi
+2b-f2-42-r7-mem | REPNZ | repnz cmovb (%rax),%edi
+2b-f3-43-r0-reg | REP | repz cmovae %eax,%eax
+2b-f3-43-r0-mem | REP | repz cmovae (%rax),%eax
+2b-f3-43-r1-reg | REP | repz cmovae %eax,%ecx
+2b-f3-43-r1-mem | REP | repz cmovae (%rax),%ecx
+2b-f3-43-r2-reg | REP | repz cmovae %eax,%edx
+2b-f3-43-r2-mem | REP | repz cmovae (%rax),%edx
+2b-f3-43-r3-reg | REP | repz cmovae %eax,%ebx
+2b-f3-43-r3-mem | REP | repz cmovae (%rax),%ebx
+2b-f3-43-r4-reg | REP | repz cmovae %eax,%esp
+2b-f3-43-r4-mem | REP | repz cmovae (%rax),%esp
+2b-f3-43-r5-reg | REP | repz cmovae %eax,%ebp
+2b-f3-43-r5-mem | REP | repz cmovae (%rax),%ebp
+2b-f3-43-r6-reg | REP | repz cmovae %eax,%esi
+2b-f3-43-r6-mem | REP | repz cmovae (%rax),%esi
+2b-f3-43-r7-reg | REP | repz cmovae %eax,%edi
+2b-f3-43-r7-mem | REP | repz cmovae (%rax),%edi
+2b-f2-43-r0-reg | REPNZ | repnz cmovae %eax,%eax
+2b-f2-43-r0-mem | REPNZ | repnz cmovae (%rax),%eax
+2b-f2-43-r1-reg | REPNZ | repnz cmovae %eax,%ecx
+2b-f2-43-r1-mem | REPNZ | repnz cmovae (%rax),%ecx
+2b-f2-43-r2-reg | REPNZ | repnz cmovae %eax,%edx
+2b-f2-43-r2-mem | REPNZ | repnz cmovae (%rax),%edx
+2b-f2-43-r3-reg | REPNZ | repnz cmovae %eax,%ebx
+2b-f2-43-r3-mem | REPNZ | repnz cmovae (%rax),%ebx
+2b-f2-43-r4-reg | REPNZ | repnz cmovae %eax,%esp
+2b-f2-43-r4-mem | REPNZ | repnz cmovae (%rax),%esp
+2b-f2-43-r5-reg | REPNZ | repnz cmovae %eax,%ebp
+2b-f2-43-r5-mem | REPNZ | repnz cmovae (%rax),%ebp
+2b-f2-43-r6-reg | REPNZ | repnz cmovae %eax,%esi
+2b-f2-43-r6-mem | REPNZ | repnz cmovae (%rax),%esi
+2b-f2-43-r7-reg | REPNZ | repnz cmovae %eax,%edi
+2b-f2-43-r7-mem | REPNZ | repnz cmovae (%rax),%edi
+2b-f3-44-r0-reg | REP | repz cmove %eax,%eax
+2b-f3-44-r0-mem | REP | repz cmove (%rax),%eax
+2b-f3-44-r1-reg | REP | repz cmove %eax,%ecx
+2b-f3-44-r1-mem | REP | repz cmove (%rax),%ecx
+2b-f3-44-r2-reg | REP | repz cmove %eax,%edx
+2b-f3-44-r2-mem | REP | repz cmove (%rax),%edx
+2b-f3-44-r3-reg | REP | repz cmove %eax,%ebx
+2b-f3-44-r3-mem | REP | repz cmove (%rax),%ebx
+2b-f3-44-r4-reg | REP | repz cmove %eax,%esp
+2b-f3-44-r4-mem | REP | repz cmove (%rax),%esp
+2b-f3-44-r5-reg | REP | repz cmove %eax,%ebp
+2b-f3-44-r5-mem | REP | repz cmove (%rax),%ebp
+2b-f3-44-r6-reg | REP | repz cmove %eax,%esi
+2b-f3-44-r6-mem | REP | repz cmove (%rax),%esi
+2b-f3-44-r7-reg | REP | repz cmove %eax,%edi
+2b-f3-44-r7-mem | REP | repz cmove (%rax),%edi
+2b-f2-44-r0-reg | REPNZ | repnz cmove %eax,%eax
+2b-f2-44-r0-mem | REPNZ | repnz cmove (%rax),%eax
+2b-f2-44-r1-reg | REPNZ | repnz cmove %eax,%ecx
+2b-f2-44-r1-mem | REPNZ | repnz cmove (%rax),%ecx
+2b-f2-44-r2-reg | REPNZ | repnz cmove %eax,%edx
+2b-f2-44-r2-mem | REPNZ | repnz cmove (%rax),%edx
+2b-f2-44-r3-reg | REPNZ | repnz cmove %eax,%ebx
+2b-f2-44-r3-mem | REPNZ | repnz cmove (%rax),%ebx
+2b-f2-44-r4-reg | REPNZ | repnz cmove %eax,%esp
+2b-f2-44-r4-mem | REPNZ | repnz cmove (%rax),%esp
+2b-f2-44-r5-reg | REPNZ | repnz cmove %eax,%ebp
+2b-f2-44-r5-mem | REPNZ | repnz cmove (%rax),%ebp
+2b-f2-44-r6-reg | REPNZ | repnz cmove %eax,%esi
+2b-f2-44-r6-mem | REPNZ | repnz cmove (%rax),%esi
+2b-f2-44-r7-reg | REPNZ | repnz cmove %eax,%edi
+2b-f2-44-r7-mem | REPNZ | repnz cmove (%rax),%edi
+2b-f3-45-r0-reg | REP | repz cmovne %eax,%eax
+2b-f3-45-r0-mem | REP | repz cmovne (%rax),%eax
+2b-f3-45-r1-reg | REP | repz cmovne %eax,%ecx
+2b-f3-45-r1-mem | REP | repz cmovne (%rax),%ecx
+2b-f3-45-r2-reg | REP | repz cmovne %eax,%edx
+2b-f3-45-r2-mem | REP | repz cmovne (%rax),%edx
+2b-f3-45-r3-reg | REP | repz cmovne %eax,%ebx
+2b-f3-45-r3-mem | REP | repz cmovne (%rax),%ebx
+2b-f3-45-r4-reg | REP | repz cmovne %eax,%esp
+2b-f3-45-r4-mem | REP | repz cmovne (%rax),%esp
+2b-f3-45-r5-reg | REP | repz cmovne %eax,%ebp
+2b-f3-45-r5-mem | REP | repz cmovne (%rax),%ebp
+2b-f3-45-r6-reg | REP | repz cmovne %eax,%esi
+2b-f3-45-r6-mem | REP | repz cmovne (%rax),%esi
+2b-f3-45-r7-reg | REP | repz cmovne %eax,%edi
+2b-f3-45-r7-mem | REP | repz cmovne (%rax),%edi
+2b-f2-45-r0-reg | REPNZ | repnz cmovne %eax,%eax
+2b-f2-45-r0-mem | REPNZ | repnz cmovne (%rax),%eax
+2b-f2-45-r1-reg | REPNZ | repnz cmovne %eax,%ecx
+2b-f2-45-r1-mem | REPNZ | repnz cmovne (%rax),%ecx
+2b-f2-45-r2-reg | REPNZ | repnz cmovne %eax,%edx
+2b-f2-45-r2-mem | REPNZ | repnz cmovne (%rax),%edx
+2b-f2-45-r3-reg | REPNZ | repnz cmovne %eax,%ebx
+2b-f2-45-r3-mem | REPNZ | repnz cmovne (%rax),%ebx
+2b-f2-45-r4-reg | REPNZ | repnz cmovne %eax,%esp
+2b-f2-45-r4-mem | REPNZ | repnz cmovne (%rax),%esp
+2b-f2-45-r5-reg | REPNZ | repnz cmovne %eax,%ebp
+2b-f2-45-r5-mem | REPNZ | repnz cmovne (%rax),%ebp
+2b-f2-45-r6-reg | REPNZ | repnz cmovne %eax,%esi
+2b-f2-45-r6-mem | REPNZ | repnz cmovne (%rax),%esi
+2b-f2-45-r7-reg | REPNZ | repnz cmovne %eax,%edi
+2b-f2-45-r7-mem | REPNZ | repnz cmovne (%rax),%edi
+2b-f3-46-r0-reg | REP | repz cmovbe %eax,%eax
+2b-f3-46-r0-mem | REP | repz cmovbe (%rax),%eax
+2b-f3-46-r1-reg | REP | repz cmovbe %eax,%ecx
+2b-f3-46-r1-mem | REP | repz cmovbe (%rax),%ecx
+2b-f3-46-r2-reg | REP | repz cmovbe %eax,%edx
+2b-f3-46-r2-mem | REP | repz cmovbe (%rax),%edx
+2b-f3-46-r3-reg | REP | repz cmovbe %eax,%ebx
+2b-f3-46-r3-mem | REP | repz cmovbe (%rax),%ebx
+2b-f3-46-r4-reg | REP | repz cmovbe %eax,%esp
+2b-f3-46-r4-mem | REP | repz cmovbe (%rax),%esp
+2b-f3-46-r5-reg | REP | repz cmovbe %eax,%ebp
+2b-f3-46-r5-mem | REP | repz cmovbe (%rax),%ebp
+2b-f3-46-r6-reg | REP | repz cmovbe %eax,%esi
+2b-f3-46-r6-mem | REP | repz cmovbe (%rax),%esi
+2b-f3-46-r7-reg | REP | repz cmovbe %eax,%edi
+2b-f3-46-r7-mem | REP | repz cmovbe (%rax),%edi
+2b-f2-46-r0-reg | REPNZ | repnz cmovbe %eax,%eax
+2b-f2-46-r0-mem | REPNZ | repnz cmovbe (%rax),%eax
+2b-f2-46-r1-reg | REPNZ | repnz cmovbe %eax,%ecx
+2b-f2-46-r1-mem | REPNZ | repnz cmovbe (%rax),%ecx
+2b-f2-46-r2-reg | REPNZ | repnz cmovbe %eax,%edx
+2b-f2-46-r2-mem | REPNZ | repnz cmovbe (%rax),%edx
+2b-f2-46-r3-reg | REPNZ | repnz cmovbe %eax,%ebx
+2b-f2-46-r3-mem | REPNZ | repnz cmovbe (%rax),%ebx
+2b-f2-46-r4-reg | REPNZ | repnz cmovbe %eax,%esp
+2b-f2-46-r4-mem | REPNZ | repnz cmovbe (%rax),%esp
+2b-f2-46-r5-reg | REPNZ | repnz cmovbe %eax,%ebp
+2b-f2-46-r5-mem | REPNZ | repnz cmovbe (%rax),%ebp
+2b-f2-46-r6-reg | REPNZ | repnz cmovbe %eax,%esi
+2b-f2-46-r6-mem | REPNZ | repnz cmovbe (%rax),%esi
+2b-f2-46-r7-reg | REPNZ | repnz cmovbe %eax,%edi
+2b-f2-46-r7-mem | REPNZ | repnz cmovbe (%rax),%edi
+2b-f3-47-r0-reg | REP | repz cmova %eax,%eax
+2b-f3-47-r0-mem | REP | repz cmova (%rax),%eax
+2b-f3-47-r1-reg | REP | repz cmova %eax,%ecx
+2b-f3-47-r1-mem | REP | repz cmova (%rax),%ecx
+2b-f3-47-r2-reg | REP | repz cmova %eax,%edx
+2b-f3-47-r2-mem | REP | repz cmova (%rax),%edx
+2b-f3-47-r3-reg | REP | repz cmova %eax,%ebx
+2b-f3-47-r3-mem | REP | repz cmova (%rax),%ebx
+2b-f3-47-r4-reg | REP | repz cmova %eax,%esp
+2b-f3-47-r4-mem | REP | repz cmova (%rax),%esp
+2b-f3-47-r5-reg | REP | repz cmova %eax,%ebp
+2b-f3-47-r5-mem | REP | repz cmova (%rax),%ebp
+2b-f3-47-r6-reg | REP | repz cmova %eax,%esi
+2b-f3-47-r6-mem | REP | repz cmova (%rax),%esi
+2b-f3-47-r7-reg | REP | repz cmova %eax,%edi
+2b-f3-47-r7-mem | REP | repz cmova (%rax),%edi
+2b-f2-47-r0-reg | REPNZ | repnz cmova %eax,%eax
+2b-f2-47-r0-mem | REPNZ | repnz cmova (%rax),%eax
+2b-f2-47-r1-reg | REPNZ | repnz cmova %eax,%ecx
+2b-f2-47-r1-mem | REPNZ | repnz cmova (%rax),%ecx
+2b-f2-47-r2-reg | REPNZ | repnz cmova %eax,%edx
+2b-f2-47-r2-mem | REPNZ | repnz cmova (%rax),%edx
+2b-f2-47-r3-reg | REPNZ | repnz cmova %eax,%ebx
+2b-f2-47-r3-mem | REPNZ | repnz cmova (%rax),%ebx
+2b-f2-47-r4-reg | REPNZ | repnz cmova %eax,%esp
+2b-f2-47-r4-mem | REPNZ | repnz cmova (%rax),%esp
+2b-f2-47-r5-reg | REPNZ | repnz cmova %eax,%ebp
+2b-f2-47-r5-mem | REPNZ | repnz cmova (%rax),%ebp
+2b-f2-47-r6-reg | REPNZ | repnz cmova %eax,%esi
+2b-f2-47-r6-mem | REPNZ | repnz cmova (%rax),%esi
+2b-f2-47-r7-reg | REPNZ | repnz cmova %eax,%edi
+2b-f2-47-r7-mem | REPNZ | repnz cmova (%rax),%edi
+2b-f3-48-r0-reg | REP | repz cmovs %eax,%eax
+2b-f3-48-r0-mem | REP | repz cmovs (%rax),%eax
+2b-f3-48-r1-reg | REP | repz cmovs %eax,%ecx
+2b-f3-48-r1-mem | REP | repz cmovs (%rax),%ecx
+2b-f3-48-r2-reg | REP | repz cmovs %eax,%edx
+2b-f3-48-r2-mem | REP | repz cmovs (%rax),%edx
+2b-f3-48-r3-reg | REP | repz cmovs %eax,%ebx
+2b-f3-48-r3-mem | REP | repz cmovs (%rax),%ebx
+2b-f3-48-r4-reg | REP | repz cmovs %eax,%esp
+2b-f3-48-r4-mem | REP | repz cmovs (%rax),%esp
+2b-f3-48-r5-reg | REP | repz cmovs %eax,%ebp
+2b-f3-48-r5-mem | REP | repz cmovs (%rax),%ebp
+2b-f3-48-r6-reg | REP | repz cmovs %eax,%esi
+2b-f3-48-r6-mem | REP | repz cmovs (%rax),%esi
+2b-f3-48-r7-reg | REP | repz cmovs %eax,%edi
+2b-f3-48-r7-mem | REP | repz cmovs (%rax),%edi
+2b-f2-48-r0-reg | REPNZ | repnz cmovs %eax,%eax
+2b-f2-48-r0-mem | REPNZ | repnz cmovs (%rax),%eax
+2b-f2-48-r1-reg | REPNZ | repnz cmovs %eax,%ecx
+2b-f2-48-r1-mem | REPNZ | repnz cmovs (%rax),%ecx
+2b-f2-48-r2-reg | REPNZ | repnz cmovs %eax,%edx
+2b-f2-48-r2-mem | REPNZ | repnz cmovs (%rax),%edx
+2b-f2-48-r3-reg | REPNZ | repnz cmovs %eax,%ebx
+2b-f2-48-r3-mem | REPNZ | repnz cmovs (%rax),%ebx
+2b-f2-48-r4-reg | REPNZ | repnz cmovs %eax,%esp
+2b-f2-48-r4-mem | REPNZ | repnz cmovs (%rax),%esp
+2b-f2-48-r5-reg | REPNZ | repnz cmovs %eax,%ebp
+2b-f2-48-r5-mem | REPNZ | repnz cmovs (%rax),%ebp
+2b-f2-48-r6-reg | REPNZ | repnz cmovs %eax,%esi
+2b-f2-48-r6-mem | REPNZ | repnz cmovs (%rax),%esi
+2b-f2-48-r7-reg | REPNZ | repnz cmovs %eax,%edi
+2b-f2-48-r7-mem | REPNZ | repnz cmovs (%rax),%edi
+2b-f3-49-r0-reg | REP | repz cmovns %eax,%eax
+2b-f3-49-r0-mem | REP | repz cmovns (%rax),%eax
+2b-f3-49-r1-reg | REP | repz cmovns %eax,%ecx
+2b-f3-49-r1-mem | REP | repz cmovns (%rax),%ecx
+2b-f3-49-r2-reg | REP | repz cmovns %eax,%edx
+2b-f3-49-r2-mem | REP | repz cmovns (%rax),%edx
+2b-f3-49-r3-reg | REP | repz cmovns %eax,%ebx
+2b-f3-49-r3-mem | REP | repz cmovns (%rax),%ebx
+2b-f3-49-r4-reg | REP | repz cmovns %eax,%esp
+2b-f3-49-r4-mem | REP | repz cmovns (%rax),%esp
+2b-f3-49-r5-reg | REP | repz cmovns %eax,%ebp
+2b-f3-49-r5-mem | REP | repz cmovns (%rax),%ebp
+2b-f3-49-r6-reg | REP | repz cmovns %eax,%esi
+2b-f3-49-r6-mem | REP | repz cmovns (%rax),%esi
+2b-f3-49-r7-reg | REP | repz cmovns %eax,%edi
+2b-f3-49-r7-mem | REP | repz cmovns (%rax),%edi
+2b-f2-49-r0-reg | REPNZ | repnz cmovns %eax,%eax
+2b-f2-49-r0-mem | REPNZ | repnz cmovns (%rax),%eax
+2b-f2-49-r1-reg | REPNZ | repnz cmovns %eax,%ecx
+2b-f2-49-r1-mem | REPNZ | repnz cmovns (%rax),%ecx
+2b-f2-49-r2-reg | REPNZ | repnz cmovns %eax,%edx
+2b-f2-49-r2-mem | REPNZ | repnz cmovns (%rax),%edx
+2b-f2-49-r3-reg | REPNZ | repnz cmovns %eax,%ebx
+2b-f2-49-r3-mem | REPNZ | repnz cmovns (%rax),%ebx
+2b-f2-49-r4-reg | REPNZ | repnz cmovns %eax,%esp
+2b-f2-49-r4-mem | REPNZ | repnz cmovns (%rax),%esp
+2b-f2-49-r5-reg | REPNZ | repnz cmovns %eax,%ebp
+2b-f2-49-r5-mem | REPNZ | repnz cmovns (%rax),%ebp
+2b-f2-49-r6-reg | REPNZ | repnz cmovns %eax,%esi
+2b-f2-49-r6-mem | REPNZ | repnz cmovns (%rax),%esi
+2b-f2-49-r7-reg | REPNZ | repnz cmovns %eax,%edi
+2b-f2-49-r7-mem | REPNZ | repnz cmovns (%rax),%edi
+2b-f3-4a-r0-reg | REP | repz cmovp %eax,%eax
+2b-f3-4a-r0-mem | REP | repz cmovp (%rax),%eax
+2b-f3-4a-r1-reg | REP | repz cmovp %eax,%ecx
+2b-f3-4a-r1-mem | REP | repz cmovp (%rax),%ecx
+2b-f3-4a-r2-reg | REP | repz cmovp %eax,%edx
+2b-f3-4a-r2-mem | REP | repz cmovp (%rax),%edx
+2b-f3-4a-r3-reg | REP | repz cmovp %eax,%ebx
+2b-f3-4a-r3-mem | REP | repz cmovp (%rax),%ebx
+2b-f3-4a-r4-reg | REP | repz cmovp %eax,%esp
+2b-f3-4a-r4-mem | REP | repz cmovp (%rax),%esp
+2b-f3-4a-r5-reg | REP | repz cmovp %eax,%ebp
+2b-f3-4a-r5-mem | REP | repz cmovp (%rax),%ebp
+2b-f3-4a-r6-reg | REP | repz cmovp %eax,%esi
+2b-f3-4a-r6-mem | REP | repz cmovp (%rax),%esi
+2b-f3-4a-r7-reg | REP | repz cmovp %eax,%edi
+2b-f3-4a-r7-mem | REP | repz cmovp (%rax),%edi
+2b-f2-4a-r0-reg | REPNZ | repnz cmovp %eax,%eax
+2b-f2-4a-r0-mem | REPNZ | repnz cmovp (%rax),%eax
+2b-f2-4a-r1-reg | REPNZ | repnz cmovp %eax,%ecx
+2b-f2-4a-r1-mem | REPNZ | repnz cmovp (%rax),%ecx
+2b-f2-4a-r2-reg | REPNZ | repnz cmovp %eax,%edx
+2b-f2-4a-r2-mem | REPNZ | repnz cmovp (%rax),%edx
+2b-f2-4a-r3-reg | REPNZ | repnz cmovp %eax,%ebx
+2b-f2-4a-r3-mem | REPNZ | repnz cmovp (%rax),%ebx
+2b-f2-4a-r4-reg | REPNZ | repnz cmovp %eax,%esp
+2b-f2-4a-r4-mem | REPNZ | repnz cmovp (%rax),%esp
+2b-f2-4a-r5-reg | REPNZ | repnz cmovp %eax,%ebp
+2b-f2-4a-r5-mem | REPNZ | repnz cmovp (%rax),%ebp
+2b-f2-4a-r6-reg | REPNZ | repnz cmovp %eax,%esi
+2b-f2-4a-r6-mem | REPNZ | repnz cmovp (%rax),%esi
+2b-f2-4a-r7-reg | REPNZ | repnz cmovp %eax,%edi
+2b-f2-4a-r7-mem | REPNZ | repnz cmovp (%rax),%edi
+2b-f3-4b-r0-reg | REP | repz cmovnp %eax,%eax
+2b-f3-4b-r0-mem | REP | repz cmovnp (%rax),%eax
+2b-f3-4b-r1-reg | REP | repz cmovnp %eax,%ecx
+2b-f3-4b-r1-mem | REP | repz cmovnp (%rax),%ecx
+2b-f3-4b-r2-reg | REP | repz cmovnp %eax,%edx
+2b-f3-4b-r2-mem | REP | repz cmovnp (%rax),%edx
+2b-f3-4b-r3-reg | REP | repz cmovnp %eax,%ebx
+2b-f3-4b-r3-mem | REP | repz cmovnp (%rax),%ebx
+2b-f3-4b-r4-reg | REP | repz cmovnp %eax,%esp
+2b-f3-4b-r4-mem | REP | repz cmovnp (%rax),%esp
+2b-f3-4b-r5-reg | REP | repz cmovnp %eax,%ebp
+2b-f3-4b-r5-mem | REP | repz cmovnp (%rax),%ebp
+2b-f3-4b-r6-reg | REP | repz cmovnp %eax,%esi
+2b-f3-4b-r6-mem | REP | repz cmovnp (%rax),%esi
+2b-f3-4b-r7-reg | REP | repz cmovnp %eax,%edi
+2b-f3-4b-r7-mem | REP | repz cmovnp (%rax),%edi
+2b-f2-4b-r0-reg | REPNZ | repnz cmovnp %eax,%eax
+2b-f2-4b-r0-mem | REPNZ | repnz cmovnp (%rax),%eax
+2b-f2-4b-r1-reg | REPNZ | repnz cmovnp %eax,%ecx
+2b-f2-4b-r1-mem | REPNZ | repnz cmovnp (%rax),%ecx
+2b-f2-4b-r2-reg | REPNZ | repnz cmovnp %eax,%edx
+2b-f2-4b-r2-mem | REPNZ | repnz cmovnp (%rax),%edx
+2b-f2-4b-r3-reg | REPNZ | repnz cmovnp %eax,%ebx
+2b-f2-4b-r3-mem | REPNZ | repnz cmovnp (%rax),%ebx
+2b-f2-4b-r4-reg | REPNZ | repnz cmovnp %eax,%esp
+2b-f2-4b-r4-mem | REPNZ | repnz cmovnp (%rax),%esp
+2b-f2-4b-r5-reg | REPNZ | repnz cmovnp %eax,%ebp
+2b-f2-4b-r5-mem | REPNZ | repnz cmovnp (%rax),%ebp
+2b-f2-4b-r6-reg | REPNZ | repnz cmovnp %eax,%esi
+2b-f2-4b-r6-mem | REPNZ | repnz cmovnp (%rax),%esi
+2b-f2-4b-r7-reg | REPNZ | repnz cmovnp %eax,%edi
+2b-f2-4b-r7-mem | REPNZ | repnz cmovnp (%rax),%edi
+2b-f3-4c-r0-reg | REP | repz cmovl %eax,%eax
+2b-f3-4c-r0-mem | REP | repz cmovl (%rax),%eax
+2b-f3-4c-r1-reg | REP | repz cmovl %eax,%ecx
+2b-f3-4c-r1-mem | REP | repz cmovl (%rax),%ecx
+2b-f3-4c-r2-reg | REP | repz cmovl %eax,%edx
+2b-f3-4c-r2-mem | REP | repz cmovl (%rax),%edx
+2b-f3-4c-r3-reg | REP | repz cmovl %eax,%ebx
+2b-f3-4c-r3-mem | REP | repz cmovl (%rax),%ebx
+2b-f3-4c-r4-reg | REP | repz cmovl %eax,%esp
+2b-f3-4c-r4-mem | REP | repz cmovl (%rax),%esp
+2b-f3-4c-r5-reg | REP | repz cmovl %eax,%ebp
+2b-f3-4c-r5-mem | REP | repz cmovl (%rax),%ebp
+2b-f3-4c-r6-reg | REP | repz cmovl %eax,%esi
+2b-f3-4c-r6-mem | REP | repz cmovl (%rax),%esi
+2b-f3-4c-r7-reg | REP | repz cmovl %eax,%edi
+2b-f3-4c-r7-mem | REP | repz cmovl (%rax),%edi
+2b-f2-4c-r0-reg | REPNZ | repnz cmovl %eax,%eax
+2b-f2-4c-r0-mem | REPNZ | repnz cmovl (%rax),%eax
+2b-f2-4c-r1-reg | REPNZ | repnz cmovl %eax,%ecx
+2b-f2-4c-r1-mem | REPNZ | repnz cmovl (%rax),%ecx
+2b-f2-4c-r2-reg | REPNZ | repnz cmovl %eax,%edx
+2b-f2-4c-r2-mem | REPNZ | repnz cmovl (%rax),%edx
+2b-f2-4c-r3-reg | REPNZ | repnz cmovl %eax,%ebx
+2b-f2-4c-r3-mem | REPNZ | repnz cmovl (%rax),%ebx
+2b-f2-4c-r4-reg | REPNZ | repnz cmovl %eax,%esp
+2b-f2-4c-r4-mem | REPNZ | repnz cmovl (%rax),%esp
+2b-f2-4c-r5-reg | REPNZ | repnz cmovl %eax,%ebp
+2b-f2-4c-r5-mem | REPNZ | repnz cmovl (%rax),%ebp
+2b-f2-4c-r6-reg | REPNZ | repnz cmovl %eax,%esi
+2b-f2-4c-r6-mem | REPNZ | repnz cmovl (%rax),%esi
+2b-f2-4c-r7-reg | REPNZ | repnz cmovl %eax,%edi
+2b-f2-4c-r7-mem | REPNZ | repnz cmovl (%rax),%edi
+2b-f3-4d-r0-reg | REP | repz cmovge %eax,%eax
+2b-f3-4d-r0-mem | REP | repz cmovge (%rax),%eax
+2b-f3-4d-r1-reg | REP | repz cmovge %eax,%ecx
+2b-f3-4d-r1-mem | REP | repz cmovge (%rax),%ecx
+2b-f3-4d-r2-reg | REP | repz cmovge %eax,%edx
+2b-f3-4d-r2-mem | REP | repz cmovge (%rax),%edx
+2b-f3-4d-r3-reg | REP | repz cmovge %eax,%ebx
+2b-f3-4d-r3-mem | REP | repz cmovge (%rax),%ebx
+2b-f3-4d-r4-reg | REP | repz cmovge %eax,%esp
+2b-f3-4d-r4-mem | REP | repz cmovge (%rax),%esp
+2b-f3-4d-r5-reg | REP | repz cmovge %eax,%ebp
+2b-f3-4d-r5-mem | REP | repz cmovge (%rax),%ebp
+2b-f3-4d-r6-reg | REP | repz cmovge %eax,%esi
+2b-f3-4d-r6-mem | REP | repz cmovge (%rax),%esi
+2b-f3-4d-r7-reg | REP | repz cmovge %eax,%edi
+2b-f3-4d-r7-mem | REP | repz cmovge (%rax),%edi
+2b-f2-4d-r0-reg | REPNZ | repnz cmovge %eax,%eax
+2b-f2-4d-r0-mem | REPNZ | repnz cmovge (%rax),%eax
+2b-f2-4d-r1-reg | REPNZ | repnz cmovge %eax,%ecx
+2b-f2-4d-r1-mem | REPNZ | repnz cmovge (%rax),%ecx
+2b-f2-4d-r2-reg | REPNZ | repnz cmovge %eax,%edx
+2b-f2-4d-r2-mem | REPNZ | repnz cmovge (%rax),%edx
+2b-f2-4d-r3-reg | REPNZ | repnz cmovge %eax,%ebx
+2b-f2-4d-r3-mem | REPNZ | repnz cmovge (%rax),%ebx
+2b-f2-4d-r4-reg | REPNZ | repnz cmovge %eax,%esp
+2b-f2-4d-r4-mem | REPNZ | repnz cmovge (%rax),%esp
+2b-f2-4d-r5-reg | REPNZ | repnz cmovge %eax,%ebp
+2b-f2-4d-r5-mem | REPNZ | repnz cmovge (%rax),%ebp
+2b-f2-4d-r6-reg | REPNZ | repnz cmovge %eax,%esi
+2b-f2-4d-r6-mem | REPNZ | repnz cmovge (%rax),%esi
+2b-f2-4d-r7-reg | REPNZ | repnz cmovge %eax,%edi
+2b-f2-4d-r7-mem | REPNZ | repnz cmovge (%rax),%edi
+2b-f3-4e-r0-reg | REP | repz cmovle %eax,%eax
+2b-f3-4e-r0-mem | REP | repz cmovle (%rax),%eax
+2b-f3-4e-r1-reg | REP | repz cmovle %eax,%ecx
+2b-f3-4e-r1-mem | REP | repz cmovle (%rax),%ecx
+2b-f3-4e-r2-reg | REP | repz cmovle %eax,%edx
+2b-f3-4e-r2-mem | REP | repz cmovle (%rax),%edx
+2b-f3-4e-r3-reg | REP | repz cmovle %eax,%ebx
+2b-f3-4e-r3-mem | REP | repz cmovle (%rax),%ebx
+2b-f3-4e-r4-reg | REP | repz cmovle %eax,%esp
+2b-f3-4e-r4-mem | REP | repz cmovle (%rax),%esp
+2b-f3-4e-r5-reg | REP | repz cmovle %eax,%ebp
+2b-f3-4e-r5-mem | REP | repz cmovle (%rax),%ebp
+2b-f3-4e-r6-reg | REP | repz cmovle %eax,%esi
+2b-f3-4e-r6-mem | REP | repz cmovle (%rax),%esi
+2b-f3-4e-r7-reg | REP | repz cmovle %eax,%edi
+2b-f3-4e-r7-mem | REP | repz cmovle (%rax),%edi
+2b-f2-4e-r0-reg | REPNZ | repnz cmovle %eax,%eax
+2b-f2-4e-r0-mem | REPNZ | repnz cmovle (%rax),%eax
+2b-f2-4e-r1-reg | REPNZ | repnz cmovle %eax,%ecx
+2b-f2-4e-r1-mem | REPNZ | repnz cmovle (%rax),%ecx
+2b-f2-4e-r2-reg | REPNZ | repnz cmovle %eax,%edx
+2b-f2-4e-r2-mem | REPNZ | repnz cmovle (%rax),%edx
+2b-f2-4e-r3-reg | REPNZ | repnz cmovle %eax,%ebx
+2b-f2-4e-r3-mem | REPNZ | repnz cmovle (%rax),%ebx
+2b-f2-4e-r4-reg | REPNZ | repnz cmovle %eax,%esp
+2b-f2-4e-r4-mem | REPNZ | repnz cmovle (%rax),%esp
+2b-f2-4e-r5-reg | REPNZ | repnz cmovle %eax,%ebp
+2b-f2-4e-r5-mem | REPNZ | repnz cmovle (%rax),%ebp
+2b-f2-4e-r6-reg | REPNZ | repnz cmovle %eax,%esi
+2b-f2-4e-r6-mem | REPNZ | repnz cmovle (%rax),%esi
+2b-f2-4e-r7-reg | REPNZ | repnz cmovle %eax,%edi
+2b-f2-4e-r7-mem | REPNZ | repnz cmovle (%rax),%edi
+2b-f3-4f-r0-reg | REP | repz cmovg %eax,%eax
+2b-f3-4f-r0-mem | REP | repz cmovg (%rax),%eax
+2b-f3-4f-r1-reg | REP | repz cmovg %eax,%ecx
+2b-f3-4f-r1-mem | REP | repz cmovg (%rax),%ecx
+2b-f3-4f-r2-reg | REP | repz cmovg %eax,%edx
+2b-f3-4f-r2-mem | REP | repz cmovg (%rax),%edx
+2b-f3-4f-r3-reg | REP | repz cmovg %eax,%ebx
+2b-f3-4f-r3-mem | REP | repz cmovg (%rax),%ebx
+2b-f3-4f-r4-reg | REP | repz cmovg %eax,%esp
+2b-f3-4f-r4-mem | REP | repz cmovg (%rax),%esp
+2b-f3-4f-r5-reg | REP | repz cmovg %eax,%ebp
+2b-f3-4f-r5-mem | REP | repz cmovg (%rax),%ebp
+2b-f3-4f-r6-reg | REP | repz cmovg %eax,%esi
+2b-f3-4f-r6-mem | REP | repz cmovg (%rax),%esi
+2b-f3-4f-r7-reg | REP | repz cmovg %eax,%edi
+2b-f3-4f-r7-mem | REP | repz cmovg (%rax),%edi
+2b-f2-4f-r0-reg | REPNZ | repnz cmovg %eax,%eax
+2b-f2-4f-r0-mem | REPNZ | repnz cmovg (%rax),%eax
+2b-f2-4f-r1-reg | REPNZ | repnz cmovg %eax,%ecx
+2b-f2-4f-r1-mem | REPNZ | repnz cmovg (%rax),%ecx
+2b-f2-4f-r2-reg | REPNZ | repnz cmovg %eax,%edx
+2b-f2-4f-r2-mem | REPNZ | repnz cmovg (%rax),%edx
+2b-f2-4f-r3-reg | REPNZ | repnz cmovg %eax,%ebx
+2b-f2-4f-r3-mem | REPNZ | repnz cmovg (%rax),%ebx
+2b-f2-4f-r4-reg | REPNZ | repnz cmovg %eax,%esp
+2b-f2-4f-r4-mem | REPNZ | repnz cmovg (%rax),%esp
+2b-f2-4f-r5-reg | REPNZ | repnz cmovg %eax,%ebp
+2b-f2-4f-r5-mem | REPNZ | repnz cmovg (%rax),%ebp
+2b-f2-4f-r6-reg | REPNZ | repnz cmovg %eax,%esi
+2b-f2-4f-r6-mem | REPNZ | repnz cmovg (%rax),%esi
+2b-f2-4f-r7-reg | REPNZ | repnz cmovg %eax,%edi
+2b-f2-4f-r7-mem | REPNZ | repnz cmovg (%rax),%edi
+2b-f3-71-r2-reg | psrlw | repz psrlw $0x11,%mm0
+2b-f3-71-r4-reg | psraw | repz psraw $0x11,%mm0
+2b-f3-71-r6-reg | psllw | repz psllw $0x11,%mm0
+2b-f2-71-r2-reg | psrlw | repnz psrlw $0x11,%mm0
+2b-f2-71-r4-reg | psraw | repnz psraw $0x11,%mm0
+2b-f2-71-r6-reg | psllw | repnz psllw $0x11,%mm0
+2b-f3-72-r2-reg | psrld | repz psrld $0x11,%mm0
+2b-f3-72-r4-reg | psrad | repz psrad $0x11,%mm0
+2b-f3-72-r6-reg | pslld | repz pslld $0x11,%mm0
+2b-f2-72-r2-reg | psrld | repnz psrld $0x11,%mm0
+2b-f2-72-r4-reg | psrad | repnz psrad $0x11,%mm0
+2b-f2-72-r6-reg | pslld | repnz pslld $0x11,%mm0
+2b-f3-73-r2-reg | psrlq | repz psrlq $0x11,%mm0
+2b-f3-73-r6-reg | psllq | repz psllq $0x11,%mm0
+2b-f2-73-r2-reg | psrlq | repnz psrlq $0x11,%mm0
+2b-f2-73-r6-reg | psllq | repnz psllq $0x11,%mm0
+2b-f3-77-r0-reg | REP | repz (bad)
+2b-f3-77-r0-mem | REP | repz (bad)
+2b-f3-77-r1-reg | REP | repz (bad)
+2b-f3-77-r1-mem | REP | repz (bad)
+2b-f3-77-r2-reg | REP | repz (bad)
+2b-f3-77-r2-mem | REP | repz (bad)
+2b-f3-77-r3-reg | REP | repz (bad)
+2b-f3-77-r3-mem | REP | repz (bad)
+2b-f3-77-r4-reg | REP | repz (bad)
+2b-f3-77-r4-mem | REP | repz (bad)
+2b-f3-77-r5-reg | REP | repz (bad)
+2b-f3-77-r5-mem | REP | repz (bad)
+2b-f3-77-r6-reg | REP | repz (bad)
+2b-f3-77-r6-mem | REP | repz (bad)
+2b-f3-77-r7-reg | REP | repz (bad)
+2b-f3-77-r7-mem | REP | repz (bad)
+2b-f2-77-r0-reg | REPNZ | repnz (bad)
+2b-f2-77-r0-mem | REPNZ | repnz (bad)
+2b-f2-77-r1-reg | REPNZ | repnz (bad)
+2b-f2-77-r1-mem | REPNZ | repnz (bad)
+2b-f2-77-r2-reg | REPNZ | repnz (bad)
+2b-f2-77-r2-mem | REPNZ | repnz (bad)
+2b-f2-77-r3-reg | REPNZ | repnz (bad)
+2b-f2-77-r3-mem | REPNZ | repnz (bad)
+2b-f2-77-r4-reg | REPNZ | repnz (bad)
+2b-f2-77-r4-mem | REPNZ | repnz (bad)
+2b-f2-77-r5-reg | REPNZ | repnz (bad)
+2b-f2-77-r5-mem | REPNZ | repnz (bad)
+2b-f2-77-r6-reg | REPNZ | repnz (bad)
+2b-f2-77-r6-mem | REPNZ | repnz (bad)
+2b-f2-77-r7-reg | REPNZ | repnz (bad)
+2b-f2-77-r7-mem | REPNZ | repnz (bad)
+2b-f3-80-r0-reg | REP | repz jo 0x33253927
+2b-f3-80-r0-mem | REP | repz jo 0x3325387f
+2b-f3-80-r1-reg | REP | repz jo 0x3325395f
+2b-f3-80-r1-mem | REP | repz jo 0x332538b7
+2b-f3-80-r2-reg | REP | repz jo 0x33253997
+2b-f3-80-r2-mem | REP | repz jo 0x332538ef
+2b-f3-80-r3-reg | REP | repz jo 0x332539cf
+2b-f3-80-r3-mem | REP | repz jo 0x33253927
+2b-f3-80-r4-reg | REP | repz jo 0x33253a07
+2b-f3-80-r4-mem | REP | repz jo 0x3325395f
+2b-f3-80-r5-reg | REP | repz jo 0x33253a3f
+2b-f3-80-r5-mem | REP | repz jo 0x33253997
+2b-f3-80-r6-reg | REP | repz jo 0x33253a77
+2b-f3-80-r6-mem | REP | repz jo 0x332539cf
+2b-f3-80-r7-reg | REP | repz jo 0x33253aaf
+2b-f3-80-r7-mem | REP | repz jo 0x33253a07
+2b-f2-80-r0-reg | REPNZ | bnd jo 0x33253aa7
+2b-f2-80-r0-mem | REPNZ | bnd jo 0x332539ff
+2b-f2-80-r1-reg | REPNZ | bnd jo 0x33253adf
+2b-f2-80-r1-mem | REPNZ | bnd jo 0x33253a37
+2b-f2-80-r2-reg | REPNZ | bnd jo 0x33253b17
+2b-f2-80-r2-mem | REPNZ | bnd jo 0x33253a6f
+2b-f2-80-r3-reg | REPNZ | bnd jo 0x33253b4f
+2b-f2-80-r3-mem | REPNZ | bnd jo 0x33253aa7
+2b-f2-80-r4-reg | REPNZ | bnd jo 0x33253b87
+2b-f2-80-r4-mem | REPNZ | bnd jo 0x33253adf
+2b-f2-80-r5-reg | REPNZ | bnd jo 0x33253bbf
+2b-f2-80-r5-mem | REPNZ | bnd jo 0x33253b17
+2b-f2-80-r6-reg | REPNZ | bnd jo 0x33253bf7
+2b-f2-80-r6-mem | REPNZ | bnd jo 0x33253b4f
+2b-f2-80-r7-reg | REPNZ | bnd jo 0x33253c2f
+2b-f2-80-r7-mem | REPNZ | bnd jo 0x33253b87
+2b-f3-81-r0-reg | REP | repz jno 0x33253f27
+2b-f3-81-r0-mem | REP | repz jno 0x33253e7f
+2b-f3-81-r1-reg | REP | repz jno 0x33253f5f
+2b-f3-81-r1-mem | REP | repz jno 0x33253eb7
+2b-f3-81-r2-reg | REP | repz jno 0x33253f97
+2b-f3-81-r2-mem | REP | repz jno 0x33253eef
+2b-f3-81-r3-reg | REP | repz jno 0x33253fcf
+2b-f3-81-r3-mem | REP | repz jno 0x33253f27
+2b-f3-81-r4-reg | REP | repz jno 0x33254007
+2b-f3-81-r4-mem | REP | repz jno 0x33253f5f
+2b-f3-81-r5-reg | REP | repz jno 0x3325403f
+2b-f3-81-r5-mem | REP | repz jno 0x33253f97
+2b-f3-81-r6-reg | REP | repz jno 0x33254077
+2b-f3-81-r6-mem | REP | repz jno 0x33253fcf
+2b-f3-81-r7-reg | REP | repz jno 0x332540af
+2b-f3-81-r7-mem | REP | repz jno 0x33254007
+2b-f2-81-r0-reg | REPNZ | bnd jno 0x332540a7
+2b-f2-81-r0-mem | REPNZ | bnd jno 0x33253fff
+2b-f2-81-r1-reg | REPNZ | bnd jno 0x332540df
+2b-f2-81-r1-mem | REPNZ | bnd jno 0x33254037
+2b-f2-81-r2-reg | REPNZ | bnd jno 0x33254117
+2b-f2-81-r2-mem | REPNZ | bnd jno 0x3325406f
+2b-f2-81-r3-reg | REPNZ | bnd jno 0x3325414f
+2b-f2-81-r3-mem | REPNZ | bnd jno 0x332540a7
+2b-f2-81-r4-reg | REPNZ | bnd jno 0x33254187
+2b-f2-81-r4-mem | REPNZ | bnd jno 0x332540df
+2b-f2-81-r5-reg | REPNZ | bnd jno 0x332541bf
+2b-f2-81-r5-mem | REPNZ | bnd jno 0x33254117
+2b-f2-81-r6-reg | REPNZ | bnd jno 0x332541f7
+2b-f2-81-r6-mem | REPNZ | bnd jno 0x3325414f
+2b-f2-81-r7-reg | REPNZ | bnd jno 0x3325422f
+2b-f2-81-r7-mem | REPNZ | bnd jno 0x33254187
+2b-f3-82-r0-reg | REP | repz jb 0x33254527
+2b-f3-82-r0-mem | REP | repz jb 0x3325447f
+2b-f3-82-r1-reg | REP | repz jb 0x3325455f
+2b-f3-82-r1-mem | REP | repz jb 0x332544b7
+2b-f3-82-r2-reg | REP | repz jb 0x33254597
+2b-f3-82-r2-mem | REP | repz jb 0x332544ef
+2b-f3-82-r3-reg | REP | repz jb 0x332545cf
+2b-f3-82-r3-mem | REP | repz jb 0x33254527
+2b-f3-82-r4-reg | REP | repz jb 0x33254607
+2b-f3-82-r4-mem | REP | repz jb 0x3325455f
+2b-f3-82-r5-reg | REP | repz jb 0x3325463f
+2b-f3-82-r5-mem | REP | repz jb 0x33254597
+2b-f3-82-r6-reg | REP | repz jb 0x33254677
+2b-f3-82-r6-mem | REP | repz jb 0x332545cf
+2b-f3-82-r7-reg | REP | repz jb 0x332546af
+2b-f3-82-r7-mem | REP | repz jb 0x33254607
+2b-f2-82-r0-reg | REPNZ | bnd jb 0x332546a7
+2b-f2-82-r0-mem | REPNZ | bnd jb 0x332545ff
+2b-f2-82-r1-reg | REPNZ | bnd jb 0x332546df
+2b-f2-82-r1-mem | REPNZ | bnd jb 0x33254637
+2b-f2-82-r2-reg | REPNZ | bnd jb 0x33254717
+2b-f2-82-r2-mem | REPNZ | bnd jb 0x3325466f
+2b-f2-82-r3-reg | REPNZ | bnd jb 0x3325474f
+2b-f2-82-r3-mem | REPNZ | bnd jb 0x332546a7
+2b-f2-82-r4-reg | REPNZ | bnd jb 0x33254787
+2b-f2-82-r4-mem | REPNZ | bnd jb 0x332546df
+2b-f2-82-r5-reg | REPNZ | bnd jb 0x332547bf
+2b-f2-82-r5-mem | REPNZ | bnd jb 0x33254717
+2b-f2-82-r6-reg | REPNZ | bnd jb 0x332547f7
+2b-f2-82-r6-mem | REPNZ | bnd jb 0x3325474f
+2b-f2-82-r7-reg | REPNZ | bnd jb 0x3325482f
+2b-f2-82-r7-mem | REPNZ | bnd jb 0x33254787
+2b-f3-83-r0-reg | REP | repz jae 0x33254b27
+2b-f3-83-r0-mem | REP | repz jae 0x33254a7f
+2b-f3-83-r1-reg | REP | repz jae 0x33254b5f
+2b-f3-83-r1-mem | REP | repz jae 0x33254ab7
+2b-f3-83-r2-reg | REP | repz jae 0x33254b97
+2b-f3-83-r2-mem | REP | repz jae 0x33254aef
+2b-f3-83-r3-reg | REP | repz jae 0x33254bcf
+2b-f3-83-r3-mem | REP | repz jae 0x33254b27
+2b-f3-83-r4-reg | REP | repz jae 0x33254c07
+2b-f3-83-r4-mem | REP | repz jae 0x33254b5f
+2b-f3-83-r5-reg | REP | repz jae 0x33254c3f
+2b-f3-83-r5-mem | REP | repz jae 0x33254b97
+2b-f3-83-r6-reg | REP | repz jae 0x33254c77
+2b-f3-83-r6-mem | REP | repz jae 0x33254bcf
+2b-f3-83-r7-reg | REP | repz jae 0x33254caf
+2b-f3-83-r7-mem | REP | repz jae 0x33254c07
+2b-f2-83-r0-reg | REPNZ | bnd jae 0x33254ca7
+2b-f2-83-r0-mem | REPNZ | bnd jae 0x33254bff
+2b-f2-83-r1-reg | REPNZ | bnd jae 0x33254cdf
+2b-f2-83-r1-mem | REPNZ | bnd jae 0x33254c37
+2b-f2-83-r2-reg | REPNZ | bnd jae 0x33254d17
+2b-f2-83-r2-mem | REPNZ | bnd jae 0x33254c6f
+2b-f2-83-r3-reg | REPNZ | bnd jae 0x33254d4f
+2b-f2-83-r3-mem | REPNZ | bnd jae 0x33254ca7
+2b-f2-83-r4-reg | REPNZ | bnd jae 0x33254d87
+2b-f2-83-r4-mem | REPNZ | bnd jae 0x33254cdf
+2b-f2-83-r5-reg | REPNZ | bnd jae 0x33254dbf
+2b-f2-83-r5-mem | REPNZ | bnd jae 0x33254d17
+2b-f2-83-r6-reg | REPNZ | bnd jae 0x33254df7
+2b-f2-83-r6-mem | REPNZ | bnd jae 0x33254d4f
+2b-f2-83-r7-reg | REPNZ | bnd jae 0x33254e2f
+2b-f2-83-r7-mem | REPNZ | bnd jae 0x33254d87
+2b-f3-84-r0-reg | REP | repz je 0x33255127
+2b-f3-84-r0-mem | REP | repz je 0x3325507f
+2b-f3-84-r1-reg | REP | repz je 0x3325515f
+2b-f3-84-r1-mem | REP | repz je 0x332550b7
+2b-f3-84-r2-reg | REP | repz je 0x33255197
+2b-f3-84-r2-mem | REP | repz je 0x332550ef
+2b-f3-84-r3-reg | REP | repz je 0x332551cf
+2b-f3-84-r3-mem | REP | repz je 0x33255127
+2b-f3-84-r4-reg | REP | repz je 0x33255207
+2b-f3-84-r4-mem | REP | repz je 0x3325515f
+2b-f3-84-r5-reg | REP | repz je 0x3325523f
+2b-f3-84-r5-mem | REP | repz je 0x33255197
+2b-f3-84-r6-reg | REP | repz je 0x33255277
+2b-f3-84-r6-mem | REP | repz je 0x332551cf
+2b-f3-84-r7-reg | REP | repz je 0x332552af
+2b-f3-84-r7-mem | REP | repz je 0x33255207
+2b-f2-84-r0-reg | REPNZ | bnd je 0x332552a7
+2b-f2-84-r0-mem | REPNZ | bnd je 0x332551ff
+2b-f2-84-r1-reg | REPNZ | bnd je 0x332552df
+2b-f2-84-r1-mem | REPNZ | bnd je 0x33255237
+2b-f2-84-r2-reg | REPNZ | bnd je 0x33255317
+2b-f2-84-r2-mem | REPNZ | bnd je 0x3325526f
+2b-f2-84-r3-reg | REPNZ | bnd je 0x3325534f
+2b-f2-84-r3-mem | REPNZ | bnd je 0x332552a7
+2b-f2-84-r4-reg | REPNZ | bnd je 0x33255387
+2b-f2-84-r4-mem | REPNZ | bnd je 0x332552df
+2b-f2-84-r5-reg | REPNZ | bnd je 0x332553bf
+2b-f2-84-r5-mem | REPNZ | bnd je 0x33255317
+2b-f2-84-r6-reg | REPNZ | bnd je 0x332553f7
+2b-f2-84-r6-mem | REPNZ | bnd je 0x3325534f
+2b-f2-84-r7-reg | REPNZ | bnd je 0x3325542f
+2b-f2-84-r7-mem | REPNZ | bnd je 0x33255387
+2b-f3-85-r0-reg | REP | repz jne 0x33255727
+2b-f3-85-r0-mem | REP | repz jne 0x3325567f
+2b-f3-85-r1-reg | REP | repz jne 0x3325575f
+2b-f3-85-r1-mem | REP | repz jne 0x332556b7
+2b-f3-85-r2-reg | REP | repz jne 0x33255797
+2b-f3-85-r2-mem | REP | repz jne 0x332556ef
+2b-f3-85-r3-reg | REP | repz jne 0x332557cf
+2b-f3-85-r3-mem | REP | repz jne 0x33255727
+2b-f3-85-r4-reg | REP | repz jne 0x33255807
+2b-f3-85-r4-mem | REP | repz jne 0x3325575f
+2b-f3-85-r5-reg | REP | repz jne 0x3325583f
+2b-f3-85-r5-mem | REP | repz jne 0x33255797
+2b-f3-85-r6-reg | REP | repz jne 0x33255877
+2b-f3-85-r6-mem | REP | repz jne 0x332557cf
+2b-f3-85-r7-reg | REP | repz jne 0x332558af
+2b-f3-85-r7-mem | REP | repz jne 0x33255807
+2b-f2-85-r0-reg | REPNZ | bnd jne 0x332558a7
+2b-f2-85-r0-mem | REPNZ | bnd jne 0x332557ff
+2b-f2-85-r1-reg | REPNZ | bnd jne 0x332558df
+2b-f2-85-r1-mem | REPNZ | bnd jne 0x33255837
+2b-f2-85-r2-reg | REPNZ | bnd jne 0x33255917
+2b-f2-85-r2-mem | REPNZ | bnd jne 0x3325586f
+2b-f2-85-r3-reg | REPNZ | bnd jne 0x3325594f
+2b-f2-85-r3-mem | REPNZ | bnd jne 0x332558a7
+2b-f2-85-r4-reg | REPNZ | bnd jne 0x33255987
+2b-f2-85-r4-mem | REPNZ | bnd jne 0x332558df
+2b-f2-85-r5-reg | REPNZ | bnd jne 0x332559bf
+2b-f2-85-r5-mem | REPNZ | bnd jne 0x33255917
+2b-f2-85-r6-reg | REPNZ | bnd jne 0x332559f7
+2b-f2-85-r6-mem | REPNZ | bnd jne 0x3325594f
+2b-f2-85-r7-reg | REPNZ | bnd jne 0x33255a2f
+2b-f2-85-r7-mem | REPNZ | bnd jne 0x33255987
+2b-f3-86-r0-reg | REP | repz jbe 0x33255d27
+2b-f3-86-r0-mem | REP | repz jbe 0x33255c7f
+2b-f3-86-r1-reg | REP | repz jbe 0x33255d5f
+2b-f3-86-r1-mem | REP | repz jbe 0x33255cb7
+2b-f3-86-r2-reg | REP | repz jbe 0x33255d97
+2b-f3-86-r2-mem | REP | repz jbe 0x33255cef
+2b-f3-86-r3-reg | REP | repz jbe 0x33255dcf
+2b-f3-86-r3-mem | REP | repz jbe 0x33255d27
+2b-f3-86-r4-reg | REP | repz jbe 0x33255e07
+2b-f3-86-r4-mem | REP | repz jbe 0x33255d5f
+2b-f3-86-r5-reg | REP | repz jbe 0x33255e3f
+2b-f3-86-r5-mem | REP | repz jbe 0x33255d97
+2b-f3-86-r6-reg | REP | repz jbe 0x33255e77
+2b-f3-86-r6-mem | REP | repz jbe 0x33255dcf
+2b-f3-86-r7-reg | REP | repz jbe 0x33255eaf
+2b-f3-86-r7-mem | REP | repz jbe 0x33255e07
+2b-f2-86-r0-reg | REPNZ | bnd jbe 0x33255ea7
+2b-f2-86-r0-mem | REPNZ | bnd jbe 0x33255dff
+2b-f2-86-r1-reg | REPNZ | bnd jbe 0x33255edf
+2b-f2-86-r1-mem | REPNZ | bnd jbe 0x33255e37
+2b-f2-86-r2-reg | REPNZ | bnd jbe 0x33255f17
+2b-f2-86-r2-mem | REPNZ | bnd jbe 0x33255e6f
+2b-f2-86-r3-reg | REPNZ | bnd jbe 0x33255f4f
+2b-f2-86-r3-mem | REPNZ | bnd jbe 0x33255ea7
+2b-f2-86-r4-reg | REPNZ | bnd jbe 0x33255f87
+2b-f2-86-r4-mem | REPNZ | bnd jbe 0x33255edf
+2b-f2-86-r5-reg | REPNZ | bnd jbe 0x33255fbf
+2b-f2-86-r5-mem | REPNZ | bnd jbe 0x33255f17
+2b-f2-86-r6-reg | REPNZ | bnd jbe 0x33255ff7
+2b-f2-86-r6-mem | REPNZ | bnd jbe 0x33255f4f
+2b-f2-86-r7-reg | REPNZ | bnd jbe 0x3325602f
+2b-f2-86-r7-mem | REPNZ | bnd jbe 0x33255f87
+2b-f3-87-r0-reg | REP | repz ja 0x33256327
+2b-f3-87-r0-mem | REP | repz ja 0x3325627f
+2b-f3-87-r1-reg | REP | repz ja 0x3325635f
+2b-f3-87-r1-mem | REP | repz ja 0x332562b7
+2b-f3-87-r2-reg | REP | repz ja 0x33256397
+2b-f3-87-r2-mem | REP | repz ja 0x332562ef
+2b-f3-87-r3-reg | REP | repz ja 0x332563cf
+2b-f3-87-r3-mem | REP | repz ja 0x33256327
+2b-f3-87-r4-reg | REP | repz ja 0x33256407
+2b-f3-87-r4-mem | REP | repz ja 0x3325635f
+2b-f3-87-r5-reg | REP | repz ja 0x3325643f
+2b-f3-87-r5-mem | REP | repz ja 0x33256397
+2b-f3-87-r6-reg | REP | repz ja 0x33256477
+2b-f3-87-r6-mem | REP | repz ja 0x332563cf
+2b-f3-87-r7-reg | REP | repz ja 0x332564af
+2b-f3-87-r7-mem | REP | repz ja 0x33256407
+2b-f2-87-r0-reg | REPNZ | bnd ja 0x332564a7
+2b-f2-87-r0-mem | REPNZ | bnd ja 0x332563ff
+2b-f2-87-r1-reg | REPNZ | bnd ja 0x332564df
+2b-f2-87-r1-mem | REPNZ | bnd ja 0x33256437
+2b-f2-87-r2-reg | REPNZ | bnd ja 0x33256517
+2b-f2-87-r2-mem | REPNZ | bnd ja 0x3325646f
+2b-f2-87-r3-reg | REPNZ | bnd ja 0x3325654f
+2b-f2-87-r3-mem | REPNZ | bnd ja 0x332564a7
+2b-f2-87-r4-reg | REPNZ | bnd ja 0x33256587
+2b-f2-87-r4-mem | REPNZ | bnd ja 0x332564df
+2b-f2-87-r5-reg | REPNZ | bnd ja 0x332565bf
+2b-f2-87-r5-mem | REPNZ | bnd ja 0x33256517
+2b-f2-87-r6-reg | REPNZ | bnd ja 0x332565f7
+2b-f2-87-r6-mem | REPNZ | bnd ja 0x3325654f
+2b-f2-87-r7-reg | REPNZ | bnd ja 0x3325662f
+2b-f2-87-r7-mem | REPNZ | bnd ja 0x33256587
+2b-f3-88-r0-reg | REP | repz js 0x33256927
+2b-f3-88-r0-mem | REP | repz js 0x3325687f
+2b-f3-88-r1-reg | REP | repz js 0x3325695f
+2b-f3-88-r1-mem | REP | repz js 0x332568b7
+2b-f3-88-r2-reg | REP | repz js 0x33256997
+2b-f3-88-r2-mem | REP | repz js 0x332568ef
+2b-f3-88-r3-reg | REP | repz js 0x332569cf
+2b-f3-88-r3-mem | REP | repz js 0x33256927
+2b-f3-88-r4-reg | REP | repz js 0x33256a07
+2b-f3-88-r4-mem | REP | repz js 0x3325695f
+2b-f3-88-r5-reg | REP | repz js 0x33256a3f
+2b-f3-88-r5-mem | REP | repz js 0x33256997
+2b-f3-88-r6-reg | REP | repz js 0x33256a77
+2b-f3-88-r6-mem | REP | repz js 0x332569cf
+2b-f3-88-r7-reg | REP | repz js 0x33256aaf
+2b-f3-88-r7-mem | REP | repz js 0x33256a07
+2b-f2-88-r0-reg | REPNZ | bnd js 0x33256aa7
+2b-f2-88-r0-mem | REPNZ | bnd js 0x332569ff
+2b-f2-88-r1-reg | REPNZ | bnd js 0x33256adf
+2b-f2-88-r1-mem | REPNZ | bnd js 0x33256a37
+2b-f2-88-r2-reg | REPNZ | bnd js 0x33256b17
+2b-f2-88-r2-mem | REPNZ | bnd js 0x33256a6f
+2b-f2-88-r3-reg | REPNZ | bnd js 0x33256b4f
+2b-f2-88-r3-mem | REPNZ | bnd js 0x33256aa7
+2b-f2-88-r4-reg | REPNZ | bnd js 0x33256b87
+2b-f2-88-r4-mem | REPNZ | bnd js 0x33256adf
+2b-f2-88-r5-reg | REPNZ | bnd js 0x33256bbf
+2b-f2-88-r5-mem | REPNZ | bnd js 0x33256b17
+2b-f2-88-r6-reg | REPNZ | bnd js 0x33256bf7
+2b-f2-88-r6-mem | REPNZ | bnd js 0x33256b4f
+2b-f2-88-r7-reg | REPNZ | bnd js 0x33256c2f
+2b-f2-88-r7-mem | REPNZ | bnd js 0x33256b87
+2b-f3-89-r0-reg | REP | repz jns 0x33256f27
+2b-f3-89-r0-mem | REP | repz jns 0x33256e7f
+2b-f3-89-r1-reg | REP | repz jns 0x33256f5f
+2b-f3-89-r1-mem | REP | repz jns 0x33256eb7
+2b-f3-89-r2-reg | REP | repz jns 0x33256f97
+2b-f3-89-r2-mem | REP | repz jns 0x33256eef
+2b-f3-89-r3-reg | REP | repz jns 0x33256fcf
+2b-f3-89-r3-mem | REP | repz jns 0x33256f27
+2b-f3-89-r4-reg | REP | repz jns 0x33257007
+2b-f3-89-r4-mem | REP | repz jns 0x33256f5f
+2b-f3-89-r5-reg | REP | repz jns 0x3325703f
+2b-f3-89-r5-mem | REP | repz jns 0x33256f97
+2b-f3-89-r6-reg | REP | repz jns 0x33257077
+2b-f3-89-r6-mem | REP | repz jns 0x33256fcf
+2b-f3-89-r7-reg | REP | repz jns 0x332570af
+2b-f3-89-r7-mem | REP | repz jns 0x33257007
+2b-f2-89-r0-reg | REPNZ | bnd jns 0x332570a7
+2b-f2-89-r0-mem | REPNZ | bnd jns 0x33256fff
+2b-f2-89-r1-reg | REPNZ | bnd jns 0x332570df
+2b-f2-89-r1-mem | REPNZ | bnd jns 0x33257037
+2b-f2-89-r2-reg | REPNZ | bnd jns 0x33257117
+2b-f2-89-r2-mem | REPNZ | bnd jns 0x3325706f
+2b-f2-89-r3-reg | REPNZ | bnd jns 0x3325714f
+2b-f2-89-r3-mem | REPNZ | bnd jns 0x332570a7
+2b-f2-89-r4-reg | REPNZ | bnd jns 0x33257187
+2b-f2-89-r4-mem | REPNZ | bnd jns 0x332570df
+2b-f2-89-r5-reg | REPNZ | bnd jns 0x332571bf
+2b-f2-89-r5-mem | REPNZ | bnd jns 0x33257117
+2b-f2-89-r6-reg | REPNZ | bnd jns 0x332571f7
+2b-f2-89-r6-mem | REPNZ | bnd jns 0x3325714f
+2b-f2-89-r7-reg | REPNZ | bnd jns 0x3325722f
+2b-f2-89-r7-mem | REPNZ | bnd jns 0x33257187
+2b-f3-8a-r0-reg | REP | repz jp 0x33257527
+2b-f3-8a-r0-mem | REP | repz jp 0x3325747f
+2b-f3-8a-r1-reg | REP | repz jp 0x3325755f
+2b-f3-8a-r1-mem | REP | repz jp 0x332574b7
+2b-f3-8a-r2-reg | REP | repz jp 0x33257597
+2b-f3-8a-r2-mem | REP | repz jp 0x332574ef
+2b-f3-8a-r3-reg | REP | repz jp 0x332575cf
+2b-f3-8a-r3-mem | REP | repz jp 0x33257527
+2b-f3-8a-r4-reg | REP | repz jp 0x33257607
+2b-f3-8a-r4-mem | REP | repz jp 0x3325755f
+2b-f3-8a-r5-reg | REP | repz jp 0x3325763f
+2b-f3-8a-r5-mem | REP | repz jp 0x33257597
+2b-f3-8a-r6-reg | REP | repz jp 0x33257677
+2b-f3-8a-r6-mem | REP | repz jp 0x332575cf
+2b-f3-8a-r7-reg | REP | repz jp 0x332576af
+2b-f3-8a-r7-mem | REP | repz jp 0x33257607
+2b-f2-8a-r0-reg | REPNZ | bnd jp 0x332576a7
+2b-f2-8a-r0-mem | REPNZ | bnd jp 0x332575ff
+2b-f2-8a-r1-reg | REPNZ | bnd jp 0x332576df
+2b-f2-8a-r1-mem | REPNZ | bnd jp 0x33257637
+2b-f2-8a-r2-reg | REPNZ | bnd jp 0x33257717
+2b-f2-8a-r2-mem | REPNZ | bnd jp 0x3325766f
+2b-f2-8a-r3-reg | REPNZ | bnd jp 0x3325774f
+2b-f2-8a-r3-mem | REPNZ | bnd jp 0x332576a7
+2b-f2-8a-r4-reg | REPNZ | bnd jp 0x33257787
+2b-f2-8a-r4-mem | REPNZ | bnd jp 0x332576df
+2b-f2-8a-r5-reg | REPNZ | bnd jp 0x332577bf
+2b-f2-8a-r5-mem | REPNZ | bnd jp 0x33257717
+2b-f2-8a-r6-reg | REPNZ | bnd jp 0x332577f7
+2b-f2-8a-r6-mem | REPNZ | bnd jp 0x3325774f
+2b-f2-8a-r7-reg | REPNZ | bnd jp 0x3325782f
+2b-f2-8a-r7-mem | REPNZ | bnd jp 0x33257787
+2b-f3-8b-r0-reg | REP | repz jnp 0x33257b27
+2b-f3-8b-r0-mem | REP | repz jnp 0x33257a7f
+2b-f3-8b-r1-reg | REP | repz jnp 0x33257b5f
+2b-f3-8b-r1-mem | REP | repz jnp 0x33257ab7
+2b-f3-8b-r2-reg | REP | repz jnp 0x33257b97
+2b-f3-8b-r2-mem | REP | repz jnp 0x33257aef
+2b-f3-8b-r3-reg | REP | repz jnp 0x33257bcf
+2b-f3-8b-r3-mem | REP | repz jnp 0x33257b27
+2b-f3-8b-r4-reg | REP | repz jnp 0x33257c07
+2b-f3-8b-r4-mem | REP | repz jnp 0x33257b5f
+2b-f3-8b-r5-reg | REP | repz jnp 0x33257c3f
+2b-f3-8b-r5-mem | REP | repz jnp 0x33257b97
+2b-f3-8b-r6-reg | REP | repz jnp 0x33257c77
+2b-f3-8b-r6-mem | REP | repz jnp 0x33257bcf
+2b-f3-8b-r7-reg | REP | repz jnp 0x33257caf
+2b-f3-8b-r7-mem | REP | repz jnp 0x33257c07
+2b-f2-8b-r0-reg | REPNZ | bnd jnp 0x33257ca7
+2b-f2-8b-r0-mem | REPNZ | bnd jnp 0x33257bff
+2b-f2-8b-r1-reg | REPNZ | bnd jnp 0x33257cdf
+2b-f2-8b-r1-mem | REPNZ | bnd jnp 0x33257c37
+2b-f2-8b-r2-reg | REPNZ | bnd jnp 0x33257d17
+2b-f2-8b-r2-mem | REPNZ | bnd jnp 0x33257c6f
+2b-f2-8b-r3-reg | REPNZ | bnd jnp 0x33257d4f
+2b-f2-8b-r3-mem | REPNZ | bnd jnp 0x33257ca7
+2b-f2-8b-r4-reg | REPNZ | bnd jnp 0x33257d87
+2b-f2-8b-r4-mem | REPNZ | bnd jnp 0x33257cdf
+2b-f2-8b-r5-reg | REPNZ | bnd jnp 0x33257dbf
+2b-f2-8b-r5-mem | REPNZ | bnd jnp 0x33257d17
+2b-f2-8b-r6-reg | REPNZ | bnd jnp 0x33257df7
+2b-f2-8b-r6-mem | REPNZ | bnd jnp 0x33257d4f
+2b-f2-8b-r7-reg | REPNZ | bnd jnp 0x33257e2f
+2b-f2-8b-r7-mem | REPNZ | bnd jnp 0x33257d87
+2b-f3-8c-r0-reg | REP | repz jl 0x33258127
+2b-f3-8c-r0-mem | REP | repz jl 0x3325807f
+2b-f3-8c-r1-reg | REP | repz jl 0x3325815f
+2b-f3-8c-r1-mem | REP | repz jl 0x332580b7
+2b-f3-8c-r2-reg | REP | repz jl 0x33258197
+2b-f3-8c-r2-mem | REP | repz jl 0x332580ef
+2b-f3-8c-r3-reg | REP | repz jl 0x332581cf
+2b-f3-8c-r3-mem | REP | repz jl 0x33258127
+2b-f3-8c-r4-reg | REP | repz jl 0x33258207
+2b-f3-8c-r4-mem | REP | repz jl 0x3325815f
+2b-f3-8c-r5-reg | REP | repz jl 0x3325823f
+2b-f3-8c-r5-mem | REP | repz jl 0x33258197
+2b-f3-8c-r6-reg | REP | repz jl 0x33258277
+2b-f3-8c-r6-mem | REP | repz jl 0x332581cf
+2b-f3-8c-r7-reg | REP | repz jl 0x332582af
+2b-f3-8c-r7-mem | REP | repz jl 0x33258207
+2b-f2-8c-r0-reg | REPNZ | bnd jl 0x332582a7
+2b-f2-8c-r0-mem | REPNZ | bnd jl 0x332581ff
+2b-f2-8c-r1-reg | REPNZ | bnd jl 0x332582df
+2b-f2-8c-r1-mem | REPNZ | bnd jl 0x33258237
+2b-f2-8c-r2-reg | REPNZ | bnd jl 0x33258317
+2b-f2-8c-r2-mem | REPNZ | bnd jl 0x3325826f
+2b-f2-8c-r3-reg | REPNZ | bnd jl 0x3325834f
+2b-f2-8c-r3-mem | REPNZ | bnd jl 0x332582a7
+2b-f2-8c-r4-reg | REPNZ | bnd jl 0x33258387
+2b-f2-8c-r4-mem | REPNZ | bnd jl 0x332582df
+2b-f2-8c-r5-reg | REPNZ | bnd jl 0x332583bf
+2b-f2-8c-r5-mem | REPNZ | bnd jl 0x33258317
+2b-f2-8c-r6-reg | REPNZ | bnd jl 0x332583f7
+2b-f2-8c-r6-mem | REPNZ | bnd jl 0x3325834f
+2b-f2-8c-r7-reg | REPNZ | bnd jl 0x3325842f
+2b-f2-8c-r7-mem | REPNZ | bnd jl 0x33258387
+2b-f3-8d-r0-reg | REP | repz jge 0x33258727
+2b-f3-8d-r0-mem | REP | repz jge 0x3325867f
+2b-f3-8d-r1-reg | REP | repz jge 0x3325875f
+2b-f3-8d-r1-mem | REP | repz jge 0x332586b7
+2b-f3-8d-r2-reg | REP | repz jge 0x33258797
+2b-f3-8d-r2-mem | REP | repz jge 0x332586ef
+2b-f3-8d-r3-reg | REP | repz jge 0x332587cf
+2b-f3-8d-r3-mem | REP | repz jge 0x33258727
+2b-f3-8d-r4-reg | REP | repz jge 0x33258807
+2b-f3-8d-r4-mem | REP | repz jge 0x3325875f
+2b-f3-8d-r5-reg | REP | repz jge 0x3325883f
+2b-f3-8d-r5-mem | REP | repz jge 0x33258797
+2b-f3-8d-r6-reg | REP | repz jge 0x33258877
+2b-f3-8d-r6-mem | REP | repz jge 0x332587cf
+2b-f3-8d-r7-reg | REP | repz jge 0x332588af
+2b-f3-8d-r7-mem | REP | repz jge 0x33258807
+2b-f2-8d-r0-reg | REPNZ | bnd jge 0x332588a7
+2b-f2-8d-r0-mem | REPNZ | bnd jge 0x332587ff
+2b-f2-8d-r1-reg | REPNZ | bnd jge 0x332588df
+2b-f2-8d-r1-mem | REPNZ | bnd jge 0x33258837
+2b-f2-8d-r2-reg | REPNZ | bnd jge 0x33258917
+2b-f2-8d-r2-mem | REPNZ | bnd jge 0x3325886f
+2b-f2-8d-r3-reg | REPNZ | bnd jge 0x3325894f
+2b-f2-8d-r3-mem | REPNZ | bnd jge 0x332588a7
+2b-f2-8d-r4-reg | REPNZ | bnd jge 0x33258987
+2b-f2-8d-r4-mem | REPNZ | bnd jge 0x332588df
+2b-f2-8d-r5-reg | REPNZ | bnd jge 0x332589bf
+2b-f2-8d-r5-mem | REPNZ | bnd jge 0x33258917
+2b-f2-8d-r6-reg | REPNZ | bnd jge 0x332589f7
+2b-f2-8d-r6-mem | REPNZ | bnd jge 0x3325894f
+2b-f2-8d-r7-reg | REPNZ | bnd jge 0x33258a2f
+2b-f2-8d-r7-mem | REPNZ | bnd jge 0x33258987
+2b-f3-8e-r0-reg | REP | repz jle 0x33258d27
+2b-f3-8e-r0-mem | REP | repz jle 0x33258c7f
+2b-f3-8e-r1-reg | REP | repz jle 0x33258d5f
+2b-f3-8e-r1-mem | REP | repz jle 0x33258cb7
+2b-f3-8e-r2-reg | REP | repz jle 0x33258d97
+2b-f3-8e-r2-mem | REP | repz jle 0x33258cef
+2b-f3-8e-r3-reg | REP | repz jle 0x33258dcf
+2b-f3-8e-r3-mem | REP | repz jle 0x33258d27
+2b-f3-8e-r4-reg | REP | repz jle 0x33258e07
+2b-f3-8e-r4-mem | REP | repz jle 0x33258d5f
+2b-f3-8e-r5-reg | REP | repz jle 0x33258e3f
+2b-f3-8e-r5-mem | REP | repz jle 0x33258d97
+2b-f3-8e-r6-reg | REP | repz jle 0x33258e77
+2b-f3-8e-r6-mem | REP | repz jle 0x33258dcf
+2b-f3-8e-r7-reg | REP | repz jle 0x33258eaf
+2b-f3-8e-r7-mem | REP | repz jle 0x33258e07
+2b-f2-8e-r0-reg | REPNZ | bnd jle 0x33258ea7
+2b-f2-8e-r0-mem | REPNZ | bnd jle 0x33258dff
+2b-f2-8e-r1-reg | REPNZ | bnd jle 0x33258edf
+2b-f2-8e-r1-mem | REPNZ | bnd jle 0x33258e37
+2b-f2-8e-r2-reg | REPNZ | bnd jle 0x33258f17
+2b-f2-8e-r2-mem | REPNZ | bnd jle 0x33258e6f
+2b-f2-8e-r3-reg | REPNZ | bnd jle 0x33258f4f
+2b-f2-8e-r3-mem | REPNZ | bnd jle 0x33258ea7
+2b-f2-8e-r4-reg | REPNZ | bnd jle 0x33258f87
+2b-f2-8e-r4-mem | REPNZ | bnd jle 0x33258edf
+2b-f2-8e-r5-reg | REPNZ | bnd jle 0x33258fbf
+2b-f2-8e-r5-mem | REPNZ | bnd jle 0x33258f17
+2b-f2-8e-r6-reg | REPNZ | bnd jle 0x33258ff7
+2b-f2-8e-r6-mem | REPNZ | bnd jle 0x33258f4f
+2b-f2-8e-r7-reg | REPNZ | bnd jle 0x3325902f
+2b-f2-8e-r7-mem | REPNZ | bnd jle 0x33258f87
+2b-f3-8f-r0-reg | REP | repz jg 0x33259327
+2b-f3-8f-r0-mem | REP | repz jg 0x3325927f
+2b-f3-8f-r1-reg | REP | repz jg 0x3325935f
+2b-f3-8f-r1-mem | REP | repz jg 0x332592b7
+2b-f3-8f-r2-reg | REP | repz jg 0x33259397
+2b-f3-8f-r2-mem | REP | repz jg 0x332592ef
+2b-f3-8f-r3-reg | REP | repz jg 0x332593cf
+2b-f3-8f-r3-mem | REP | repz jg 0x33259327
+2b-f3-8f-r4-reg | REP | repz jg 0x33259407
+2b-f3-8f-r4-mem | REP | repz jg 0x3325935f
+2b-f3-8f-r5-reg | REP | repz jg 0x3325943f
+2b-f3-8f-r5-mem | REP | repz jg 0x33259397
+2b-f3-8f-r6-reg | REP | repz jg 0x33259477
+2b-f3-8f-r6-mem | REP | repz jg 0x332593cf
+2b-f3-8f-r7-reg | REP | repz jg 0x332594af
+2b-f3-8f-r7-mem | REP | repz jg 0x33259407
+2b-f2-8f-r0-reg | REPNZ | bnd jg 0x332594a7
+2b-f2-8f-r0-mem | REPNZ | bnd jg 0x332593ff
+2b-f2-8f-r1-reg | REPNZ | bnd jg 0x332594df
+2b-f2-8f-r1-mem | REPNZ | bnd jg 0x33259437
+2b-f2-8f-r2-reg | REPNZ | bnd jg 0x33259517
+2b-f2-8f-r2-mem | REPNZ | bnd jg 0x3325946f
+2b-f2-8f-r3-reg | REPNZ | bnd jg 0x3325954f
+2b-f2-8f-r3-mem | REPNZ | bnd jg 0x332594a7
+2b-f2-8f-r4-reg | REPNZ | bnd jg 0x33259587
+2b-f2-8f-r4-mem | REPNZ | bnd jg 0x332594df
+2b-f2-8f-r5-reg | REPNZ | bnd jg 0x332595bf
+2b-f2-8f-r5-mem | REPNZ | bnd jg 0x33259517
+2b-f2-8f-r6-reg | REPNZ | bnd jg 0x332595f7
+2b-f2-8f-r6-mem | REPNZ | bnd jg 0x3325954f
+2b-f2-8f-r7-reg | REPNZ | bnd jg 0x3325962f
+2b-f2-8f-r7-mem | REPNZ | bnd jg 0x33259587
+2b-66-90-r0-reg | seto | data16 seto %al
+2b-66-90-r0-mem | seto | data16 seto (%rax)
+2b-66-90-r1-reg | seto | data16 seto %al
+2b-66-90-r1-mem | seto | data16 seto (%rax)
+2b-66-90-r2-reg | seto | data16 seto %al
+2b-66-90-r2-mem | seto | data16 seto (%rax)
+2b-66-90-r3-reg | seto | data16 seto %al
+2b-66-90-r3-mem | seto | data16 seto (%rax)
+2b-66-90-r4-reg | seto | data16 seto %al
+2b-66-90-r4-mem | seto | data16 seto (%rax)
+2b-66-90-r5-reg | seto | data16 seto %al
+2b-66-90-r5-mem | seto | data16 seto (%rax)
+2b-66-90-r6-reg | seto | data16 seto %al
+2b-66-90-r6-mem | seto | data16 seto (%rax)
+2b-66-90-r7-reg | seto | data16 seto %al
+2b-66-90-r7-mem | seto | data16 seto (%rax)
+2b-f3-90-r0-reg | REP | repz seto %al
+2b-f3-90-r0-mem | REP | repz seto (%rax)
+2b-f3-90-r1-reg | REP | repz seto %al
+2b-f3-90-r1-mem | REP | repz seto (%rax)
+2b-f3-90-r2-reg | REP | repz seto %al
+2b-f3-90-r2-mem | REP | repz seto (%rax)
+2b-f3-90-r3-reg | REP | repz seto %al
+2b-f3-90-r3-mem | REP | repz seto (%rax)
+2b-f3-90-r4-reg | REP | repz seto %al
+2b-f3-90-r4-mem | REP | repz seto (%rax)
+2b-f3-90-r5-reg | REP | repz seto %al
+2b-f3-90-r5-mem | REP | repz seto (%rax)
+2b-f3-90-r6-reg | REP | repz seto %al
+2b-f3-90-r6-mem | REP | repz seto (%rax)
+2b-f3-90-r7-reg | REP | repz seto %al
+2b-f3-90-r7-mem | REP | repz seto (%rax)
+2b-f2-90-r0-reg | REPNZ | repnz seto %al
+2b-f2-90-r0-mem | REPNZ | repnz seto (%rax)
+2b-f2-90-r1-reg | REPNZ | repnz seto %al
+2b-f2-90-r1-mem | REPNZ | repnz seto (%rax)
+2b-f2-90-r2-reg | REPNZ | repnz seto %al
+2b-f2-90-r2-mem | REPNZ | repnz seto (%rax)
+2b-f2-90-r3-reg | REPNZ | repnz seto %al
+2b-f2-90-r3-mem | REPNZ | repnz seto (%rax)
+2b-f2-90-r4-reg | REPNZ | repnz seto %al
+2b-f2-90-r4-mem | REPNZ | repnz seto (%rax)
+2b-f2-90-r5-reg | REPNZ | repnz seto %al
+2b-f2-90-r5-mem | REPNZ | repnz seto (%rax)
+2b-f2-90-r6-reg | REPNZ | repnz seto %al
+2b-f2-90-r6-mem | REPNZ | repnz seto (%rax)
+2b-f2-90-r7-reg | REPNZ | repnz seto %al
+2b-f2-90-r7-mem | REPNZ | repnz seto (%rax)
+2b-66-91-r0-reg | setno | data16 setno %al
+2b-66-91-r0-mem | setno | data16 setno (%rax)
+2b-66-91-r1-reg | setno | data16 setno %al
+2b-66-91-r1-mem | setno | data16 setno (%rax)
+2b-66-91-r2-reg | setno | data16 setno %al
+2b-66-91-r2-mem | setno | data16 setno (%rax)
+2b-66-91-r3-reg | setno | data16 setno %al
+2b-66-91-r3-mem | setno | data16 setno (%rax)
+2b-66-91-r4-reg | setno | data16 setno %al
+2b-66-91-r4-mem | setno | data16 setno (%rax)
+2b-66-91-r5-reg | setno | data16 setno %al
+2b-66-91-r5-mem | setno | data16 setno (%rax)
+2b-66-91-r6-reg | setno | data16 setno %al
+2b-66-91-r6-mem | setno | data16 setno (%rax)
+2b-66-91-r7-reg | setno | data16 setno %al
+2b-66-91-r7-mem | setno | data16 setno (%rax)
+2b-f3-91-r0-reg | REP | repz setno %al
+2b-f3-91-r0-mem | REP | repz setno (%rax)
+2b-f3-91-r1-reg | REP | repz setno %al
+2b-f3-91-r1-mem | REP | repz setno (%rax)
+2b-f3-91-r2-reg | REP | repz setno %al
+2b-f3-91-r2-mem | REP | repz setno (%rax)
+2b-f3-91-r3-reg | REP | repz setno %al
+2b-f3-91-r3-mem | REP | repz setno (%rax)
+2b-f3-91-r4-reg | REP | repz setno %al
+2b-f3-91-r4-mem | REP | repz setno (%rax)
+2b-f3-91-r5-reg | REP | repz setno %al
+2b-f3-91-r5-mem | REP | repz setno (%rax)
+2b-f3-91-r6-reg | REP | repz setno %al
+2b-f3-91-r6-mem | REP | repz setno (%rax)
+2b-f3-91-r7-reg | REP | repz setno %al
+2b-f3-91-r7-mem | REP | repz setno (%rax)
+2b-f2-91-r0-reg | REPNZ | repnz setno %al
+2b-f2-91-r0-mem | REPNZ | repnz setno (%rax)
+2b-f2-91-r1-reg | REPNZ | repnz setno %al
+2b-f2-91-r1-mem | REPNZ | repnz setno (%rax)
+2b-f2-91-r2-reg | REPNZ | repnz setno %al
+2b-f2-91-r2-mem | REPNZ | repnz setno (%rax)
+2b-f2-91-r3-reg | REPNZ | repnz setno %al
+2b-f2-91-r3-mem | REPNZ | repnz setno (%rax)
+2b-f2-91-r4-reg | REPNZ | repnz setno %al
+2b-f2-91-r4-mem | REPNZ | repnz setno (%rax)
+2b-f2-91-r5-reg | REPNZ | repnz setno %al
+2b-f2-91-r5-mem | REPNZ | repnz setno (%rax)
+2b-f2-91-r6-reg | REPNZ | repnz setno %al
+2b-f2-91-r6-mem | REPNZ | repnz setno (%rax)
+2b-f2-91-r7-reg | REPNZ | repnz setno %al
+2b-f2-91-r7-mem | REPNZ | repnz setno (%rax)
+2b-66-92-r0-reg | setb | data16 setb %al
+2b-66-92-r0-mem | setb | data16 setb (%rax)
+2b-66-92-r1-reg | setb | data16 setb %al
+2b-66-92-r1-mem | setb | data16 setb (%rax)
+2b-66-92-r2-reg | setb | data16 setb %al
+2b-66-92-r2-mem | setb | data16 setb (%rax)
+2b-66-92-r3-reg | setb | data16 setb %al
+2b-66-92-r3-mem | setb | data16 setb (%rax)
+2b-66-92-r4-reg | setb | data16 setb %al
+2b-66-92-r4-mem | setb | data16 setb (%rax)
+2b-66-92-r5-reg | setb | data16 setb %al
+2b-66-92-r5-mem | setb | data16 setb (%rax)
+2b-66-92-r6-reg | setb | data16 setb %al
+2b-66-92-r6-mem | setb | data16 setb (%rax)
+2b-66-92-r7-reg | setb | data16 setb %al
+2b-66-92-r7-mem | setb | data16 setb (%rax)
+2b-f3-92-r0-reg | REP | repz setb %al
+2b-f3-92-r0-mem | REP | repz setb (%rax)
+2b-f3-92-r1-reg | REP | repz setb %al
+2b-f3-92-r1-mem | REP | repz setb (%rax)
+2b-f3-92-r2-reg | REP | repz setb %al
+2b-f3-92-r2-mem | REP | repz setb (%rax)
+2b-f3-92-r3-reg | REP | repz setb %al
+2b-f3-92-r3-mem | REP | repz setb (%rax)
+2b-f3-92-r4-reg | REP | repz setb %al
+2b-f3-92-r4-mem | REP | repz setb (%rax)
+2b-f3-92-r5-reg | REP | repz setb %al
+2b-f3-92-r5-mem | REP | repz setb (%rax)
+2b-f3-92-r6-reg | REP | repz setb %al
+2b-f3-92-r6-mem | REP | repz setb (%rax)
+2b-f3-92-r7-reg | REP | repz setb %al
+2b-f3-92-r7-mem | REP | repz setb (%rax)
+2b-f2-92-r0-reg | REPNZ | repnz setb %al
+2b-f2-92-r0-mem | REPNZ | repnz setb (%rax)
+2b-f2-92-r1-reg | REPNZ | repnz setb %al
+2b-f2-92-r1-mem | REPNZ | repnz setb (%rax)
+2b-f2-92-r2-reg | REPNZ | repnz setb %al
+2b-f2-92-r2-mem | REPNZ | repnz setb (%rax)
+2b-f2-92-r3-reg | REPNZ | repnz setb %al
+2b-f2-92-r3-mem | REPNZ | repnz setb (%rax)
+2b-f2-92-r4-reg | REPNZ | repnz setb %al
+2b-f2-92-r4-mem | REPNZ | repnz setb (%rax)
+2b-f2-92-r5-reg | REPNZ | repnz setb %al
+2b-f2-92-r5-mem | REPNZ | repnz setb (%rax)
+2b-f2-92-r6-reg | REPNZ | repnz setb %al
+2b-f2-92-r6-mem | REPNZ | repnz setb (%rax)
+2b-f2-92-r7-reg | REPNZ | repnz setb %al
+2b-f2-92-r7-mem | REPNZ | repnz setb (%rax)
+2b-66-93-r0-reg | setae | data16 setae %al
+2b-66-93-r0-mem | setae | data16 setae (%rax)
+2b-66-93-r1-reg | setae | data16 setae %al
+2b-66-93-r1-mem | setae | data16 setae (%rax)
+2b-66-93-r2-reg | setae | data16 setae %al
+2b-66-93-r2-mem | setae | data16 setae (%rax)
+2b-66-93-r3-reg | setae | data16 setae %al
+2b-66-93-r3-mem | setae | data16 setae (%rax)
+2b-66-93-r4-reg | setae | data16 setae %al
+2b-66-93-r4-mem | setae | data16 setae (%rax)
+2b-66-93-r5-reg | setae | data16 setae %al
+2b-66-93-r5-mem | setae | data16 setae (%rax)
+2b-66-93-r6-reg | setae | data16 setae %al
+2b-66-93-r6-mem | setae | data16 setae (%rax)
+2b-66-93-r7-reg | setae | data16 setae %al
+2b-66-93-r7-mem | setae | data16 setae (%rax)
+2b-f3-93-r0-reg | REP | repz setae %al
+2b-f3-93-r0-mem | REP | repz setae (%rax)
+2b-f3-93-r1-reg | REP | repz setae %al
+2b-f3-93-r1-mem | REP | repz setae (%rax)
+2b-f3-93-r2-reg | REP | repz setae %al
+2b-f3-93-r2-mem | REP | repz setae (%rax)
+2b-f3-93-r3-reg | REP | repz setae %al
+2b-f3-93-r3-mem | REP | repz setae (%rax)
+2b-f3-93-r4-reg | REP | repz setae %al
+2b-f3-93-r4-mem | REP | repz setae (%rax)
+2b-f3-93-r5-reg | REP | repz setae %al
+2b-f3-93-r5-mem | REP | repz setae (%rax)
+2b-f3-93-r6-reg | REP | repz setae %al
+2b-f3-93-r6-mem | REP | repz setae (%rax)
+2b-f3-93-r7-reg | REP | repz setae %al
+2b-f3-93-r7-mem | REP | repz setae (%rax)
+2b-f2-93-r0-reg | REPNZ | repnz setae %al
+2b-f2-93-r0-mem | REPNZ | repnz setae (%rax)
+2b-f2-93-r1-reg | REPNZ | repnz setae %al
+2b-f2-93-r1-mem | REPNZ | repnz setae (%rax)
+2b-f2-93-r2-reg | REPNZ | repnz setae %al
+2b-f2-93-r2-mem | REPNZ | repnz setae (%rax)
+2b-f2-93-r3-reg | REPNZ | repnz setae %al
+2b-f2-93-r3-mem | REPNZ | repnz setae (%rax)
+2b-f2-93-r4-reg | REPNZ | repnz setae %al
+2b-f2-93-r4-mem | REPNZ | repnz setae (%rax)
+2b-f2-93-r5-reg | REPNZ | repnz setae %al
+2b-f2-93-r5-mem | REPNZ | repnz setae (%rax)
+2b-f2-93-r6-reg | REPNZ | repnz setae %al
+2b-f2-93-r6-mem | REPNZ | repnz setae (%rax)
+2b-f2-93-r7-reg | REPNZ | repnz setae %al
+2b-f2-93-r7-mem | REPNZ | repnz setae (%rax)
+2b-66-94-r0-reg | sete | data16 sete %al
+2b-66-94-r0-mem | sete | data16 sete (%rax)
+2b-66-94-r1-reg | sete | data16 sete %al
+2b-66-94-r1-mem | sete | data16 sete (%rax)
+2b-66-94-r2-reg | sete | data16 sete %al
+2b-66-94-r2-mem | sete | data16 sete (%rax)
+2b-66-94-r3-reg | sete | data16 sete %al
+2b-66-94-r3-mem | sete | data16 sete (%rax)
+2b-66-94-r4-reg | sete | data16 sete %al
+2b-66-94-r4-mem | sete | data16 sete (%rax)
+2b-66-94-r5-reg | sete | data16 sete %al
+2b-66-94-r5-mem | sete | data16 sete (%rax)
+2b-66-94-r6-reg | sete | data16 sete %al
+2b-66-94-r6-mem | sete | data16 sete (%rax)
+2b-66-94-r7-reg | sete | data16 sete %al
+2b-66-94-r7-mem | sete | data16 sete (%rax)
+2b-f3-94-r0-reg | REP | repz sete %al
+2b-f3-94-r0-mem | REP | repz sete (%rax)
+2b-f3-94-r1-reg | REP | repz sete %al
+2b-f3-94-r1-mem | REP | repz sete (%rax)
+2b-f3-94-r2-reg | REP | repz sete %al
+2b-f3-94-r2-mem | REP | repz sete (%rax)
+2b-f3-94-r3-reg | REP | repz sete %al
+2b-f3-94-r3-mem | REP | repz sete (%rax)
+2b-f3-94-r4-reg | REP | repz sete %al
+2b-f3-94-r4-mem | REP | repz sete (%rax)
+2b-f3-94-r5-reg | REP | repz sete %al
+2b-f3-94-r5-mem | REP | repz sete (%rax)
+2b-f3-94-r6-reg | REP | repz sete %al
+2b-f3-94-r6-mem | REP | repz sete (%rax)
+2b-f3-94-r7-reg | REP | repz sete %al
+2b-f3-94-r7-mem | REP | repz sete (%rax)
+2b-f2-94-r0-reg | REPNZ | repnz sete %al
+2b-f2-94-r0-mem | REPNZ | repnz sete (%rax)
+2b-f2-94-r1-reg | REPNZ | repnz sete %al
+2b-f2-94-r1-mem | REPNZ | repnz sete (%rax)
+2b-f2-94-r2-reg | REPNZ | repnz sete %al
+2b-f2-94-r2-mem | REPNZ | repnz sete (%rax)
+2b-f2-94-r3-reg | REPNZ | repnz sete %al
+2b-f2-94-r3-mem | REPNZ | repnz sete (%rax)
+2b-f2-94-r4-reg | REPNZ | repnz sete %al
+2b-f2-94-r4-mem | REPNZ | repnz sete (%rax)
+2b-f2-94-r5-reg | REPNZ | repnz sete %al
+2b-f2-94-r5-mem | REPNZ | repnz sete (%rax)
+2b-f2-94-r6-reg | REPNZ | repnz sete %al
+2b-f2-94-r6-mem | REPNZ | repnz sete (%rax)
+2b-f2-94-r7-reg | REPNZ | repnz sete %al
+2b-f2-94-r7-mem | REPNZ | repnz sete (%rax)
+2b-66-95-r0-reg | setne | data16 setne %al
+2b-66-95-r0-mem | setne | data16 setne (%rax)
+2b-66-95-r1-reg | setne | data16 setne %al
+2b-66-95-r1-mem | setne | data16 setne (%rax)
+2b-66-95-r2-reg | setne | data16 setne %al
+2b-66-95-r2-mem | setne | data16 setne (%rax)
+2b-66-95-r3-reg | setne | data16 setne %al
+2b-66-95-r3-mem | setne | data16 setne (%rax)
+2b-66-95-r4-reg | setne | data16 setne %al
+2b-66-95-r4-mem | setne | data16 setne (%rax)
+2b-66-95-r5-reg | setne | data16 setne %al
+2b-66-95-r5-mem | setne | data16 setne (%rax)
+2b-66-95-r6-reg | setne | data16 setne %al
+2b-66-95-r6-mem | setne | data16 setne (%rax)
+2b-66-95-r7-reg | setne | data16 setne %al
+2b-66-95-r7-mem | setne | data16 setne (%rax)
+2b-f3-95-r0-reg | REP | repz setne %al
+2b-f3-95-r0-mem | REP | repz setne (%rax)
+2b-f3-95-r1-reg | REP | repz setne %al
+2b-f3-95-r1-mem | REP | repz setne (%rax)
+2b-f3-95-r2-reg | REP | repz setne %al
+2b-f3-95-r2-mem | REP | repz setne (%rax)
+2b-f3-95-r3-reg | REP | repz setne %al
+2b-f3-95-r3-mem | REP | repz setne (%rax)
+2b-f3-95-r4-reg | REP | repz setne %al
+2b-f3-95-r4-mem | REP | repz setne (%rax)
+2b-f3-95-r5-reg | REP | repz setne %al
+2b-f3-95-r5-mem | REP | repz setne (%rax)
+2b-f3-95-r6-reg | REP | repz setne %al
+2b-f3-95-r6-mem | REP | repz setne (%rax)
+2b-f3-95-r7-reg | REP | repz setne %al
+2b-f3-95-r7-mem | REP | repz setne (%rax)
+2b-f2-95-r0-reg | REPNZ | repnz setne %al
+2b-f2-95-r0-mem | REPNZ | repnz setne (%rax)
+2b-f2-95-r1-reg | REPNZ | repnz setne %al
+2b-f2-95-r1-mem | REPNZ | repnz setne (%rax)
+2b-f2-95-r2-reg | REPNZ | repnz setne %al
+2b-f2-95-r2-mem | REPNZ | repnz setne (%rax)
+2b-f2-95-r3-reg | REPNZ | repnz setne %al
+2b-f2-95-r3-mem | REPNZ | repnz setne (%rax)
+2b-f2-95-r4-reg | REPNZ | repnz setne %al
+2b-f2-95-r4-mem | REPNZ | repnz setne (%rax)
+2b-f2-95-r5-reg | REPNZ | repnz setne %al
+2b-f2-95-r5-mem | REPNZ | repnz setne (%rax)
+2b-f2-95-r6-reg | REPNZ | repnz setne %al
+2b-f2-95-r6-mem | REPNZ | repnz setne (%rax)
+2b-f2-95-r7-reg | REPNZ | repnz setne %al
+2b-f2-95-r7-mem | REPNZ | repnz setne (%rax)
+2b-66-96-r0-reg | setbe | data16 setbe %al
+2b-66-96-r0-mem | setbe | data16 setbe (%rax)
+2b-66-96-r1-reg | setbe | data16 setbe %al
+2b-66-96-r1-mem | setbe | data16 setbe (%rax)
+2b-66-96-r2-reg | setbe | data16 setbe %al
+2b-66-96-r2-mem | setbe | data16 setbe (%rax)
+2b-66-96-r3-reg | setbe | data16 setbe %al
+2b-66-96-r3-mem | setbe | data16 setbe (%rax)
+2b-66-96-r4-reg | setbe | data16 setbe %al
+2b-66-96-r4-mem | setbe | data16 setbe (%rax)
+2b-66-96-r5-reg | setbe | data16 setbe %al
+2b-66-96-r5-mem | setbe | data16 setbe (%rax)
+2b-66-96-r6-reg | setbe | data16 setbe %al
+2b-66-96-r6-mem | setbe | data16 setbe (%rax)
+2b-66-96-r7-reg | setbe | data16 setbe %al
+2b-66-96-r7-mem | setbe | data16 setbe (%rax)
+2b-f3-96-r0-reg | REP | repz setbe %al
+2b-f3-96-r0-mem | REP | repz setbe (%rax)
+2b-f3-96-r1-reg | REP | repz setbe %al
+2b-f3-96-r1-mem | REP | repz setbe (%rax)
+2b-f3-96-r2-reg | REP | repz setbe %al
+2b-f3-96-r2-mem | REP | repz setbe (%rax)
+2b-f3-96-r3-reg | REP | repz setbe %al
+2b-f3-96-r3-mem | REP | repz setbe (%rax)
+2b-f3-96-r4-reg | REP | repz setbe %al
+2b-f3-96-r4-mem | REP | repz setbe (%rax)
+2b-f3-96-r5-reg | REP | repz setbe %al
+2b-f3-96-r5-mem | REP | repz setbe (%rax)
+2b-f3-96-r6-reg | REP | repz setbe %al
+2b-f3-96-r6-mem | REP | repz setbe (%rax)
+2b-f3-96-r7-reg | REP | repz setbe %al
+2b-f3-96-r7-mem | REP | repz setbe (%rax)
+2b-f2-96-r0-reg | REPNZ | repnz setbe %al
+2b-f2-96-r0-mem | REPNZ | repnz setbe (%rax)
+2b-f2-96-r1-reg | REPNZ | repnz setbe %al
+2b-f2-96-r1-mem | REPNZ | repnz setbe (%rax)
+2b-f2-96-r2-reg | REPNZ | repnz setbe %al
+2b-f2-96-r2-mem | REPNZ | repnz setbe (%rax)
+2b-f2-96-r3-reg | REPNZ | repnz setbe %al
+2b-f2-96-r3-mem | REPNZ | repnz setbe (%rax)
+2b-f2-96-r4-reg | REPNZ | repnz setbe %al
+2b-f2-96-r4-mem | REPNZ | repnz setbe (%rax)
+2b-f2-96-r5-reg | REPNZ | repnz setbe %al
+2b-f2-96-r5-mem | REPNZ | repnz setbe (%rax)
+2b-f2-96-r6-reg | REPNZ | repnz setbe %al
+2b-f2-96-r6-mem | REPNZ | repnz setbe (%rax)
+2b-f2-96-r7-reg | REPNZ | repnz setbe %al
+2b-f2-96-r7-mem | REPNZ | repnz setbe (%rax)
+2b-66-97-r0-reg | seta | data16 seta %al
+2b-66-97-r0-mem | seta | data16 seta (%rax)
+2b-66-97-r1-reg | seta | data16 seta %al
+2b-66-97-r1-mem | seta | data16 seta (%rax)
+2b-66-97-r2-reg | seta | data16 seta %al
+2b-66-97-r2-mem | seta | data16 seta (%rax)
+2b-66-97-r3-reg | seta | data16 seta %al
+2b-66-97-r3-mem | seta | data16 seta (%rax)
+2b-66-97-r4-reg | seta | data16 seta %al
+2b-66-97-r4-mem | seta | data16 seta (%rax)
+2b-66-97-r5-reg | seta | data16 seta %al
+2b-66-97-r5-mem | seta | data16 seta (%rax)
+2b-66-97-r6-reg | seta | data16 seta %al
+2b-66-97-r6-mem | seta | data16 seta (%rax)
+2b-66-97-r7-reg | seta | data16 seta %al
+2b-66-97-r7-mem | seta | data16 seta (%rax)
+2b-f3-97-r0-reg | REP | repz seta %al
+2b-f3-97-r0-mem | REP | repz seta (%rax)
+2b-f3-97-r1-reg | REP | repz seta %al
+2b-f3-97-r1-mem | REP | repz seta (%rax)
+2b-f3-97-r2-reg | REP | repz seta %al
+2b-f3-97-r2-mem | REP | repz seta (%rax)
+2b-f3-97-r3-reg | REP | repz seta %al
+2b-f3-97-r3-mem | REP | repz seta (%rax)
+2b-f3-97-r4-reg | REP | repz seta %al
+2b-f3-97-r4-mem | REP | repz seta (%rax)
+2b-f3-97-r5-reg | REP | repz seta %al
+2b-f3-97-r5-mem | REP | repz seta (%rax)
+2b-f3-97-r6-reg | REP | repz seta %al
+2b-f3-97-r6-mem | REP | repz seta (%rax)
+2b-f3-97-r7-reg | REP | repz seta %al
+2b-f3-97-r7-mem | REP | repz seta (%rax)
+2b-f2-97-r0-reg | REPNZ | repnz seta %al
+2b-f2-97-r0-mem | REPNZ | repnz seta (%rax)
+2b-f2-97-r1-reg | REPNZ | repnz seta %al
+2b-f2-97-r1-mem | REPNZ | repnz seta (%rax)
+2b-f2-97-r2-reg | REPNZ | repnz seta %al
+2b-f2-97-r2-mem | REPNZ | repnz seta (%rax)
+2b-f2-97-r3-reg | REPNZ | repnz seta %al
+2b-f2-97-r3-mem | REPNZ | repnz seta (%rax)
+2b-f2-97-r4-reg | REPNZ | repnz seta %al
+2b-f2-97-r4-mem | REPNZ | repnz seta (%rax)
+2b-f2-97-r5-reg | REPNZ | repnz seta %al
+2b-f2-97-r5-mem | REPNZ | repnz seta (%rax)
+2b-f2-97-r6-reg | REPNZ | repnz seta %al
+2b-f2-97-r6-mem | REPNZ | repnz seta (%rax)
+2b-f2-97-r7-reg | REPNZ | repnz seta %al
+2b-f2-97-r7-mem | REPNZ | repnz seta (%rax)
+2b-66-98-r0-reg | sets | data16 sets %al
+2b-66-98-r0-mem | sets | data16 sets (%rax)
+2b-66-98-r1-reg | sets | data16 sets %al
+2b-66-98-r1-mem | sets | data16 sets (%rax)
+2b-66-98-r2-reg | sets | data16 sets %al
+2b-66-98-r2-mem | sets | data16 sets (%rax)
+2b-66-98-r3-reg | sets | data16 sets %al
+2b-66-98-r3-mem | sets | data16 sets (%rax)
+2b-66-98-r4-reg | sets | data16 sets %al
+2b-66-98-r4-mem | sets | data16 sets (%rax)
+2b-66-98-r5-reg | sets | data16 sets %al
+2b-66-98-r5-mem | sets | data16 sets (%rax)
+2b-66-98-r6-reg | sets | data16 sets %al
+2b-66-98-r6-mem | sets | data16 sets (%rax)
+2b-66-98-r7-reg | sets | data16 sets %al
+2b-66-98-r7-mem | sets | data16 sets (%rax)
+2b-f3-98-r0-reg | REP | repz sets %al
+2b-f3-98-r0-mem | REP | repz sets (%rax)
+2b-f3-98-r1-reg | REP | repz sets %al
+2b-f3-98-r1-mem | REP | repz sets (%rax)
+2b-f3-98-r2-reg | REP | repz sets %al
+2b-f3-98-r2-mem | REP | repz sets (%rax)
+2b-f3-98-r3-reg | REP | repz sets %al
+2b-f3-98-r3-mem | REP | repz sets (%rax)
+2b-f3-98-r4-reg | REP | repz sets %al
+2b-f3-98-r4-mem | REP | repz sets (%rax)
+2b-f3-98-r5-reg | REP | repz sets %al
+2b-f3-98-r5-mem | REP | repz sets (%rax)
+2b-f3-98-r6-reg | REP | repz sets %al
+2b-f3-98-r6-mem | REP | repz sets (%rax)
+2b-f3-98-r7-reg | REP | repz sets %al
+2b-f3-98-r7-mem | REP | repz sets (%rax)
+2b-f2-98-r0-reg | REPNZ | repnz sets %al
+2b-f2-98-r0-mem | REPNZ | repnz sets (%rax)
+2b-f2-98-r1-reg | REPNZ | repnz sets %al
+2b-f2-98-r1-mem | REPNZ | repnz sets (%rax)
+2b-f2-98-r2-reg | REPNZ | repnz sets %al
+2b-f2-98-r2-mem | REPNZ | repnz sets (%rax)
+2b-f2-98-r3-reg | REPNZ | repnz sets %al
+2b-f2-98-r3-mem | REPNZ | repnz sets (%rax)
+2b-f2-98-r4-reg | REPNZ | repnz sets %al
+2b-f2-98-r4-mem | REPNZ | repnz sets (%rax)
+2b-f2-98-r5-reg | REPNZ | repnz sets %al
+2b-f2-98-r5-mem | REPNZ | repnz sets (%rax)
+2b-f2-98-r6-reg | REPNZ | repnz sets %al
+2b-f2-98-r6-mem | REPNZ | repnz sets (%rax)
+2b-f2-98-r7-reg | REPNZ | repnz sets %al
+2b-f2-98-r7-mem | REPNZ | repnz sets (%rax)
+2b-66-99-r0-reg | setns | data16 setns %al
+2b-66-99-r0-mem | setns | data16 setns (%rax)
+2b-66-99-r1-reg | setns | data16 setns %al
+2b-66-99-r1-mem | setns | data16 setns (%rax)
+2b-66-99-r2-reg | setns | data16 setns %al
+2b-66-99-r2-mem | setns | data16 setns (%rax)
+2b-66-99-r3-reg | setns | data16 setns %al
+2b-66-99-r3-mem | setns | data16 setns (%rax)
+2b-66-99-r4-reg | setns | data16 setns %al
+2b-66-99-r4-mem | setns | data16 setns (%rax)
+2b-66-99-r5-reg | setns | data16 setns %al
+2b-66-99-r5-mem | setns | data16 setns (%rax)
+2b-66-99-r6-reg | setns | data16 setns %al
+2b-66-99-r6-mem | setns | data16 setns (%rax)
+2b-66-99-r7-reg | setns | data16 setns %al
+2b-66-99-r7-mem | setns | data16 setns (%rax)
+2b-f3-99-r0-reg | REP | repz setns %al
+2b-f3-99-r0-mem | REP | repz setns (%rax)
+2b-f3-99-r1-reg | REP | repz setns %al
+2b-f3-99-r1-mem | REP | repz setns (%rax)
+2b-f3-99-r2-reg | REP | repz setns %al
+2b-f3-99-r2-mem | REP | repz setns (%rax)
+2b-f3-99-r3-reg | REP | repz setns %al
+2b-f3-99-r3-mem | REP | repz setns (%rax)
+2b-f3-99-r4-reg | REP | repz setns %al
+2b-f3-99-r4-mem | REP | repz setns (%rax)
+2b-f3-99-r5-reg | REP | repz setns %al
+2b-f3-99-r5-mem | REP | repz setns (%rax)
+2b-f3-99-r6-reg | REP | repz setns %al
+2b-f3-99-r6-mem | REP | repz setns (%rax)
+2b-f3-99-r7-reg | REP | repz setns %al
+2b-f3-99-r7-mem | REP | repz setns (%rax)
+2b-f2-99-r0-reg | REPNZ | repnz setns %al
+2b-f2-99-r0-mem | REPNZ | repnz setns (%rax)
+2b-f2-99-r1-reg | REPNZ | repnz setns %al
+2b-f2-99-r1-mem | REPNZ | repnz setns (%rax)
+2b-f2-99-r2-reg | REPNZ | repnz setns %al
+2b-f2-99-r2-mem | REPNZ | repnz setns (%rax)
+2b-f2-99-r3-reg | REPNZ | repnz setns %al
+2b-f2-99-r3-mem | REPNZ | repnz setns (%rax)
+2b-f2-99-r4-reg | REPNZ | repnz setns %al
+2b-f2-99-r4-mem | REPNZ | repnz setns (%rax)
+2b-f2-99-r5-reg | REPNZ | repnz setns %al
+2b-f2-99-r5-mem | REPNZ | repnz setns (%rax)
+2b-f2-99-r6-reg | REPNZ | repnz setns %al
+2b-f2-99-r6-mem | REPNZ | repnz setns (%rax)
+2b-f2-99-r7-reg | REPNZ | repnz setns %al
+2b-f2-99-r7-mem | REPNZ | repnz setns (%rax)
+2b-66-9a-r0-reg | setp | data16 setp %al
+2b-66-9a-r0-mem | setp | data16 setp (%rax)
+2b-66-9a-r1-reg | setp | data16 setp %al
+2b-66-9a-r1-mem | setp | data16 setp (%rax)
+2b-66-9a-r2-reg | setp | data16 setp %al
+2b-66-9a-r2-mem | setp | data16 setp (%rax)
+2b-66-9a-r3-reg | setp | data16 setp %al
+2b-66-9a-r3-mem | setp | data16 setp (%rax)
+2b-66-9a-r4-reg | setp | data16 setp %al
+2b-66-9a-r4-mem | setp | data16 setp (%rax)
+2b-66-9a-r5-reg | setp | data16 setp %al
+2b-66-9a-r5-mem | setp | data16 setp (%rax)
+2b-66-9a-r6-reg | setp | data16 setp %al
+2b-66-9a-r6-mem | setp | data16 setp (%rax)
+2b-66-9a-r7-reg | setp | data16 setp %al
+2b-66-9a-r7-mem | setp | data16 setp (%rax)
+2b-f3-9a-r0-reg | REP | repz setp %al
+2b-f3-9a-r0-mem | REP | repz setp (%rax)
+2b-f3-9a-r1-reg | REP | repz setp %al
+2b-f3-9a-r1-mem | REP | repz setp (%rax)
+2b-f3-9a-r2-reg | REP | repz setp %al
+2b-f3-9a-r2-mem | REP | repz setp (%rax)
+2b-f3-9a-r3-reg | REP | repz setp %al
+2b-f3-9a-r3-mem | REP | repz setp (%rax)
+2b-f3-9a-r4-reg | REP | repz setp %al
+2b-f3-9a-r4-mem | REP | repz setp (%rax)
+2b-f3-9a-r5-reg | REP | repz setp %al
+2b-f3-9a-r5-mem | REP | repz setp (%rax)
+2b-f3-9a-r6-reg | REP | repz setp %al
+2b-f3-9a-r6-mem | REP | repz setp (%rax)
+2b-f3-9a-r7-reg | REP | repz setp %al
+2b-f3-9a-r7-mem | REP | repz setp (%rax)
+2b-f2-9a-r0-reg | REPNZ | repnz setp %al
+2b-f2-9a-r0-mem | REPNZ | repnz setp (%rax)
+2b-f2-9a-r1-reg | REPNZ | repnz setp %al
+2b-f2-9a-r1-mem | REPNZ | repnz setp (%rax)
+2b-f2-9a-r2-reg | REPNZ | repnz setp %al
+2b-f2-9a-r2-mem | REPNZ | repnz setp (%rax)
+2b-f2-9a-r3-reg | REPNZ | repnz setp %al
+2b-f2-9a-r3-mem | REPNZ | repnz setp (%rax)
+2b-f2-9a-r4-reg | REPNZ | repnz setp %al
+2b-f2-9a-r4-mem | REPNZ | repnz setp (%rax)
+2b-f2-9a-r5-reg | REPNZ | repnz setp %al
+2b-f2-9a-r5-mem | REPNZ | repnz setp (%rax)
+2b-f2-9a-r6-reg | REPNZ | repnz setp %al
+2b-f2-9a-r6-mem | REPNZ | repnz setp (%rax)
+2b-f2-9a-r7-reg | REPNZ | repnz setp %al
+2b-f2-9a-r7-mem | REPNZ | repnz setp (%rax)
+2b-66-9b-r0-reg | setnp | data16 setnp %al
+2b-66-9b-r0-mem | setnp | data16 setnp (%rax)
+2b-66-9b-r1-reg | setnp | data16 setnp %al
+2b-66-9b-r1-mem | setnp | data16 setnp (%rax)
+2b-66-9b-r2-reg | setnp | data16 setnp %al
+2b-66-9b-r2-mem | setnp | data16 setnp (%rax)
+2b-66-9b-r3-reg | setnp | data16 setnp %al
+2b-66-9b-r3-mem | setnp | data16 setnp (%rax)
+2b-66-9b-r4-reg | setnp | data16 setnp %al
+2b-66-9b-r4-mem | setnp | data16 setnp (%rax)
+2b-66-9b-r5-reg | setnp | data16 setnp %al
+2b-66-9b-r5-mem | setnp | data16 setnp (%rax)
+2b-66-9b-r6-reg | setnp | data16 setnp %al
+2b-66-9b-r6-mem | setnp | data16 setnp (%rax)
+2b-66-9b-r7-reg | setnp | data16 setnp %al
+2b-66-9b-r7-mem | setnp | data16 setnp (%rax)
+2b-f3-9b-r0-reg | REP | repz setnp %al
+2b-f3-9b-r0-mem | REP | repz setnp (%rax)
+2b-f3-9b-r1-reg | REP | repz setnp %al
+2b-f3-9b-r1-mem | REP | repz setnp (%rax)
+2b-f3-9b-r2-reg | REP | repz setnp %al
+2b-f3-9b-r2-mem | REP | repz setnp (%rax)
+2b-f3-9b-r3-reg | REP | repz setnp %al
+2b-f3-9b-r3-mem | REP | repz setnp (%rax)
+2b-f3-9b-r4-reg | REP | repz setnp %al
+2b-f3-9b-r4-mem | REP | repz setnp (%rax)
+2b-f3-9b-r5-reg | REP | repz setnp %al
+2b-f3-9b-r5-mem | REP | repz setnp (%rax)
+2b-f3-9b-r6-reg | REP | repz setnp %al
+2b-f3-9b-r6-mem | REP | repz setnp (%rax)
+2b-f3-9b-r7-reg | REP | repz setnp %al
+2b-f3-9b-r7-mem | REP | repz setnp (%rax)
+2b-f2-9b-r0-reg | REPNZ | repnz setnp %al
+2b-f2-9b-r0-mem | REPNZ | repnz setnp (%rax)
+2b-f2-9b-r1-reg | REPNZ | repnz setnp %al
+2b-f2-9b-r1-mem | REPNZ | repnz setnp (%rax)
+2b-f2-9b-r2-reg | REPNZ | repnz setnp %al
+2b-f2-9b-r2-mem | REPNZ | repnz setnp (%rax)
+2b-f2-9b-r3-reg | REPNZ | repnz setnp %al
+2b-f2-9b-r3-mem | REPNZ | repnz setnp (%rax)
+2b-f2-9b-r4-reg | REPNZ | repnz setnp %al
+2b-f2-9b-r4-mem | REPNZ | repnz setnp (%rax)
+2b-f2-9b-r5-reg | REPNZ | repnz setnp %al
+2b-f2-9b-r5-mem | REPNZ | repnz setnp (%rax)
+2b-f2-9b-r6-reg | REPNZ | repnz setnp %al
+2b-f2-9b-r6-mem | REPNZ | repnz setnp (%rax)
+2b-f2-9b-r7-reg | REPNZ | repnz setnp %al
+2b-f2-9b-r7-mem | REPNZ | repnz setnp (%rax)
+2b-66-9c-r0-reg | setl | data16 setl %al
+2b-66-9c-r0-mem | setl | data16 setl (%rax)
+2b-66-9c-r1-reg | setl | data16 setl %al
+2b-66-9c-r1-mem | setl | data16 setl (%rax)
+2b-66-9c-r2-reg | setl | data16 setl %al
+2b-66-9c-r2-mem | setl | data16 setl (%rax)
+2b-66-9c-r3-reg | setl | data16 setl %al
+2b-66-9c-r3-mem | setl | data16 setl (%rax)
+2b-66-9c-r4-reg | setl | data16 setl %al
+2b-66-9c-r4-mem | setl | data16 setl (%rax)
+2b-66-9c-r5-reg | setl | data16 setl %al
+2b-66-9c-r5-mem | setl | data16 setl (%rax)
+2b-66-9c-r6-reg | setl | data16 setl %al
+2b-66-9c-r6-mem | setl | data16 setl (%rax)
+2b-66-9c-r7-reg | setl | data16 setl %al
+2b-66-9c-r7-mem | setl | data16 setl (%rax)
+2b-f3-9c-r0-reg | REP | repz setl %al
+2b-f3-9c-r0-mem | REP | repz setl (%rax)
+2b-f3-9c-r1-reg | REP | repz setl %al
+2b-f3-9c-r1-mem | REP | repz setl (%rax)
+2b-f3-9c-r2-reg | REP | repz setl %al
+2b-f3-9c-r2-mem | REP | repz setl (%rax)
+2b-f3-9c-r3-reg | REP | repz setl %al
+2b-f3-9c-r3-mem | REP | repz setl (%rax)
+2b-f3-9c-r4-reg | REP | repz setl %al
+2b-f3-9c-r4-mem | REP | repz setl (%rax)
+2b-f3-9c-r5-reg | REP | repz setl %al
+2b-f3-9c-r5-mem | REP | repz setl (%rax)
+2b-f3-9c-r6-reg | REP | repz setl %al
+2b-f3-9c-r6-mem | REP | repz setl (%rax)
+2b-f3-9c-r7-reg | REP | repz setl %al
+2b-f3-9c-r7-mem | REP | repz setl (%rax)
+2b-f2-9c-r0-reg | REPNZ | repnz setl %al
+2b-f2-9c-r0-mem | REPNZ | repnz setl (%rax)
+2b-f2-9c-r1-reg | REPNZ | repnz setl %al
+2b-f2-9c-r1-mem | REPNZ | repnz setl (%rax)
+2b-f2-9c-r2-reg | REPNZ | repnz setl %al
+2b-f2-9c-r2-mem | REPNZ | repnz setl (%rax)
+2b-f2-9c-r3-reg | REPNZ | repnz setl %al
+2b-f2-9c-r3-mem | REPNZ | repnz setl (%rax)
+2b-f2-9c-r4-reg | REPNZ | repnz setl %al
+2b-f2-9c-r4-mem | REPNZ | repnz setl (%rax)
+2b-f2-9c-r5-reg | REPNZ | repnz setl %al
+2b-f2-9c-r5-mem | REPNZ | repnz setl (%rax)
+2b-f2-9c-r6-reg | REPNZ | repnz setl %al
+2b-f2-9c-r6-mem | REPNZ | repnz setl (%rax)
+2b-f2-9c-r7-reg | REPNZ | repnz setl %al
+2b-f2-9c-r7-mem | REPNZ | repnz setl (%rax)
+2b-66-9d-r0-reg | setge | data16 setge %al
+2b-66-9d-r0-mem | setge | data16 setge (%rax)
+2b-66-9d-r1-reg | setge | data16 setge %al
+2b-66-9d-r1-mem | setge | data16 setge (%rax)
+2b-66-9d-r2-reg | setge | data16 setge %al
+2b-66-9d-r2-mem | setge | data16 setge (%rax)
+2b-66-9d-r3-reg | setge | data16 setge %al
+2b-66-9d-r3-mem | setge | data16 setge (%rax)
+2b-66-9d-r4-reg | setge | data16 setge %al
+2b-66-9d-r4-mem | setge | data16 setge (%rax)
+2b-66-9d-r5-reg | setge | data16 setge %al
+2b-66-9d-r5-mem | setge | data16 setge (%rax)
+2b-66-9d-r6-reg | setge | data16 setge %al
+2b-66-9d-r6-mem | setge | data16 setge (%rax)
+2b-66-9d-r7-reg | setge | data16 setge %al
+2b-66-9d-r7-mem | setge | data16 setge (%rax)
+2b-f3-9d-r0-reg | REP | repz setge %al
+2b-f3-9d-r0-mem | REP | repz setge (%rax)
+2b-f3-9d-r1-reg | REP | repz setge %al
+2b-f3-9d-r1-mem | REP | repz setge (%rax)
+2b-f3-9d-r2-reg | REP | repz setge %al
+2b-f3-9d-r2-mem | REP | repz setge (%rax)
+2b-f3-9d-r3-reg | REP | repz setge %al
+2b-f3-9d-r3-mem | REP | repz setge (%rax)
+2b-f3-9d-r4-reg | REP | repz setge %al
+2b-f3-9d-r4-mem | REP | repz setge (%rax)
+2b-f3-9d-r5-reg | REP | repz setge %al
+2b-f3-9d-r5-mem | REP | repz setge (%rax)
+2b-f3-9d-r6-reg | REP | repz setge %al
+2b-f3-9d-r6-mem | REP | repz setge (%rax)
+2b-f3-9d-r7-reg | REP | repz setge %al
+2b-f3-9d-r7-mem | REP | repz setge (%rax)
+2b-f2-9d-r0-reg | REPNZ | repnz setge %al
+2b-f2-9d-r0-mem | REPNZ | repnz setge (%rax)
+2b-f2-9d-r1-reg | REPNZ | repnz setge %al
+2b-f2-9d-r1-mem | REPNZ | repnz setge (%rax)
+2b-f2-9d-r2-reg | REPNZ | repnz setge %al
+2b-f2-9d-r2-mem | REPNZ | repnz setge (%rax)
+2b-f2-9d-r3-reg | REPNZ | repnz setge %al
+2b-f2-9d-r3-mem | REPNZ | repnz setge (%rax)
+2b-f2-9d-r4-reg | REPNZ | repnz setge %al
+2b-f2-9d-r4-mem | REPNZ | repnz setge (%rax)
+2b-f2-9d-r5-reg | REPNZ | repnz setge %al
+2b-f2-9d-r5-mem | REPNZ | repnz setge (%rax)
+2b-f2-9d-r6-reg | REPNZ | repnz setge %al
+2b-f2-9d-r6-mem | REPNZ | repnz setge (%rax)
+2b-f2-9d-r7-reg | REPNZ | repnz setge %al
+2b-f2-9d-r7-mem | REPNZ | repnz setge (%rax)
+2b-66-9e-r0-reg | setle | data16 setle %al
+2b-66-9e-r0-mem | setle | data16 setle (%rax)
+2b-66-9e-r1-reg | setle | data16 setle %al
+2b-66-9e-r1-mem | setle | data16 setle (%rax)
+2b-66-9e-r2-reg | setle | data16 setle %al
+2b-66-9e-r2-mem | setle | data16 setle (%rax)
+2b-66-9e-r3-reg | setle | data16 setle %al
+2b-66-9e-r3-mem | setle | data16 setle (%rax)
+2b-66-9e-r4-reg | setle | data16 setle %al
+2b-66-9e-r4-mem | setle | data16 setle (%rax)
+2b-66-9e-r5-reg | setle | data16 setle %al
+2b-66-9e-r5-mem | setle | data16 setle (%rax)
+2b-66-9e-r6-reg | setle | data16 setle %al
+2b-66-9e-r6-mem | setle | data16 setle (%rax)
+2b-66-9e-r7-reg | setle | data16 setle %al
+2b-66-9e-r7-mem | setle | data16 setle (%rax)
+2b-f3-9e-r0-reg | REP | repz setle %al
+2b-f3-9e-r0-mem | REP | repz setle (%rax)
+2b-f3-9e-r1-reg | REP | repz setle %al
+2b-f3-9e-r1-mem | REP | repz setle (%rax)
+2b-f3-9e-r2-reg | REP | repz setle %al
+2b-f3-9e-r2-mem | REP | repz setle (%rax)
+2b-f3-9e-r3-reg | REP | repz setle %al
+2b-f3-9e-r3-mem | REP | repz setle (%rax)
+2b-f3-9e-r4-reg | REP | repz setle %al
+2b-f3-9e-r4-mem | REP | repz setle (%rax)
+2b-f3-9e-r5-reg | REP | repz setle %al
+2b-f3-9e-r5-mem | REP | repz setle (%rax)
+2b-f3-9e-r6-reg | REP | repz setle %al
+2b-f3-9e-r6-mem | REP | repz setle (%rax)
+2b-f3-9e-r7-reg | REP | repz setle %al
+2b-f3-9e-r7-mem | REP | repz setle (%rax)
+2b-f2-9e-r0-reg | REPNZ | repnz setle %al
+2b-f2-9e-r0-mem | REPNZ | repnz setle (%rax)
+2b-f2-9e-r1-reg | REPNZ | repnz setle %al
+2b-f2-9e-r1-mem | REPNZ | repnz setle (%rax)
+2b-f2-9e-r2-reg | REPNZ | repnz setle %al
+2b-f2-9e-r2-mem | REPNZ | repnz setle (%rax)
+2b-f2-9e-r3-reg | REPNZ | repnz setle %al
+2b-f2-9e-r3-mem | REPNZ | repnz setle (%rax)
+2b-f2-9e-r4-reg | REPNZ | repnz setle %al
+2b-f2-9e-r4-mem | REPNZ | repnz setle (%rax)
+2b-f2-9e-r5-reg | REPNZ | repnz setle %al
+2b-f2-9e-r5-mem | REPNZ | repnz setle (%rax)
+2b-f2-9e-r6-reg | REPNZ | repnz setle %al
+2b-f2-9e-r6-mem | REPNZ | repnz setle (%rax)
+2b-f2-9e-r7-reg | REPNZ | repnz setle %al
+2b-f2-9e-r7-mem | REPNZ | repnz setle (%rax)
+2b-66-9f-r0-reg | setg | data16 setg %al
+2b-66-9f-r0-mem | setg | data16 setg (%rax)
+2b-66-9f-r1-reg | setg | data16 setg %al
+2b-66-9f-r1-mem | setg | data16 setg (%rax)
+2b-66-9f-r2-reg | setg | data16 setg %al
+2b-66-9f-r2-mem | setg | data16 setg (%rax)
+2b-66-9f-r3-reg | setg | data16 setg %al
+2b-66-9f-r3-mem | setg | data16 setg (%rax)
+2b-66-9f-r4-reg | setg | data16 setg %al
+2b-66-9f-r4-mem | setg | data16 setg (%rax)
+2b-66-9f-r5-reg | setg | data16 setg %al
+2b-66-9f-r5-mem | setg | data16 setg (%rax)
+2b-66-9f-r6-reg | setg | data16 setg %al
+2b-66-9f-r6-mem | setg | data16 setg (%rax)
+2b-66-9f-r7-reg | setg | data16 setg %al
+2b-66-9f-r7-mem | setg | data16 setg (%rax)
+2b-f3-9f-r0-reg | REP | repz setg %al
+2b-f3-9f-r0-mem | REP | repz setg (%rax)
+2b-f3-9f-r1-reg | REP | repz setg %al
+2b-f3-9f-r1-mem | REP | repz setg (%rax)
+2b-f3-9f-r2-reg | REP | repz setg %al
+2b-f3-9f-r2-mem | REP | repz setg (%rax)
+2b-f3-9f-r3-reg | REP | repz setg %al
+2b-f3-9f-r3-mem | REP | repz setg (%rax)
+2b-f3-9f-r4-reg | REP | repz setg %al
+2b-f3-9f-r4-mem | REP | repz setg (%rax)
+2b-f3-9f-r5-reg | REP | repz setg %al
+2b-f3-9f-r5-mem | REP | repz setg (%rax)
+2b-f3-9f-r6-reg | REP | repz setg %al
+2b-f3-9f-r6-mem | REP | repz setg (%rax)
+2b-f3-9f-r7-reg | REP | repz setg %al
+2b-f3-9f-r7-mem | REP | repz setg (%rax)
+2b-f2-9f-r0-reg | REPNZ | repnz setg %al
+2b-f2-9f-r0-mem | REPNZ | repnz setg (%rax)
+2b-f2-9f-r1-reg | REPNZ | repnz setg %al
+2b-f2-9f-r1-mem | REPNZ | repnz setg (%rax)
+2b-f2-9f-r2-reg | REPNZ | repnz setg %al
+2b-f2-9f-r2-mem | REPNZ | repnz setg (%rax)
+2b-f2-9f-r3-reg | REPNZ | repnz setg %al
+2b-f2-9f-r3-mem | REPNZ | repnz setg (%rax)
+2b-f2-9f-r4-reg | REPNZ | repnz setg %al
+2b-f2-9f-r4-mem | REPNZ | repnz setg (%rax)
+2b-f2-9f-r5-reg | REPNZ | repnz setg %al
+2b-f2-9f-r5-mem | REPNZ | repnz setg (%rax)
+2b-f2-9f-r6-reg | REPNZ | repnz setg %al
+2b-f2-9f-r6-mem | REPNZ | repnz setg (%rax)
+2b-f2-9f-r7-reg | REPNZ | repnz setg %al
+2b-f2-9f-r7-mem | REPNZ | repnz setg (%rax)
+2b-f3-a0-r0-reg | REP | repz pushq %fs
+2b-f3-a0-r0-mem | REP | repz pushq %fs
+2b-f3-a0-r1-reg | REP | repz pushq %fs
+2b-f3-a0-r1-mem | REP | repz pushq %fs
+2b-f3-a0-r2-reg | REP | repz pushq %fs
+2b-f3-a0-r2-mem | REP | repz pushq %fs
+2b-f3-a0-r3-reg | REP | repz pushq %fs
+2b-f3-a0-r3-mem | REP | repz pushq %fs
+2b-f3-a0-r4-reg | REP | repz pushq %fs
+2b-f3-a0-r4-mem | REP | repz pushq %fs
+2b-f3-a0-r5-reg | REP | repz pushq %fs
+2b-f3-a0-r5-mem | REP | repz pushq %fs
+2b-f3-a0-r6-reg | REP | repz pushq %fs
+2b-f3-a0-r6-mem | REP | repz pushq %fs
+2b-f3-a0-r7-reg | REP | repz pushq %fs
+2b-f3-a0-r7-mem | REP | repz pushq %fs
+2b-f2-a0-r0-reg | REPNZ | repnz pushq %fs
+2b-f2-a0-r0-mem | REPNZ | repnz pushq %fs
+2b-f2-a0-r1-reg | REPNZ | repnz pushq %fs
+2b-f2-a0-r1-mem | REPNZ | repnz pushq %fs
+2b-f2-a0-r2-reg | REPNZ | repnz pushq %fs
+2b-f2-a0-r2-mem | REPNZ | repnz pushq %fs
+2b-f2-a0-r3-reg | REPNZ | repnz pushq %fs
+2b-f2-a0-r3-mem | REPNZ | repnz pushq %fs
+2b-f2-a0-r4-reg | REPNZ | repnz pushq %fs
+2b-f2-a0-r4-mem | REPNZ | repnz pushq %fs
+2b-f2-a0-r5-reg | REPNZ | repnz pushq %fs
+2b-f2-a0-r5-mem | REPNZ | repnz pushq %fs
+2b-f2-a0-r6-reg | REPNZ | repnz pushq %fs
+2b-f2-a0-r6-mem | REPNZ | repnz pushq %fs
+2b-f2-a0-r7-reg | REPNZ | repnz pushq %fs
+2b-f2-a0-r7-mem | REPNZ | repnz pushq %fs
+2b-f3-a1-r0-reg | REP | repz popq %fs
+2b-f3-a1-r0-mem | REP | repz popq %fs
+2b-f3-a1-r1-reg | REP | repz popq %fs
+2b-f3-a1-r1-mem | REP | repz popq %fs
+2b-f3-a1-r2-reg | REP | repz popq %fs
+2b-f3-a1-r2-mem | REP | repz popq %fs
+2b-f3-a1-r3-reg | REP | repz popq %fs
+2b-f3-a1-r3-mem | REP | repz popq %fs
+2b-f3-a1-r4-reg | REP | repz popq %fs
+2b-f3-a1-r4-mem | REP | repz popq %fs
+2b-f3-a1-r5-reg | REP | repz popq %fs
+2b-f3-a1-r5-mem | REP | repz popq %fs
+2b-f3-a1-r6-reg | REP | repz popq %fs
+2b-f3-a1-r6-mem | REP | repz popq %fs
+2b-f3-a1-r7-reg | REP | repz popq %fs
+2b-f3-a1-r7-mem | REP | repz popq %fs
+2b-f2-a1-r0-reg | REPNZ | repnz popq %fs
+2b-f2-a1-r0-mem | REPNZ | repnz popq %fs
+2b-f2-a1-r1-reg | REPNZ | repnz popq %fs
+2b-f2-a1-r1-mem | REPNZ | repnz popq %fs
+2b-f2-a1-r2-reg | REPNZ | repnz popq %fs
+2b-f2-a1-r2-mem | REPNZ | repnz popq %fs
+2b-f2-a1-r3-reg | REPNZ | repnz popq %fs
+2b-f2-a1-r3-mem | REPNZ | repnz popq %fs
+2b-f2-a1-r4-reg | REPNZ | repnz popq %fs
+2b-f2-a1-r4-mem | REPNZ | repnz popq %fs
+2b-f2-a1-r5-reg | REPNZ | repnz popq %fs
+2b-f2-a1-r5-mem | REPNZ | repnz popq %fs
+2b-f2-a1-r6-reg | REPNZ | repnz popq %fs
+2b-f2-a1-r6-mem | REPNZ | repnz popq %fs
+2b-f2-a1-r7-reg | REPNZ | repnz popq %fs
+2b-f2-a1-r7-mem | REPNZ | repnz popq %fs
+2b-66-a2-r0-reg | cpuid | data16 cpuid
+2b-66-a2-r0-mem | cpuid | data16 cpuid
+2b-66-a2-r1-reg | cpuid | data16 cpuid
+2b-66-a2-r1-mem | cpuid | data16 cpuid
+2b-66-a2-r2-reg | cpuid | data16 cpuid
+2b-66-a2-r2-mem | cpuid | data16 cpuid
+2b-66-a2-r3-reg | cpuid | data16 cpuid
+2b-66-a2-r3-mem | cpuid | data16 cpuid
+2b-66-a2-r4-reg | cpuid | data16 cpuid
+2b-66-a2-r4-mem | cpuid | data16 cpuid
+2b-66-a2-r5-reg | cpuid | data16 cpuid
+2b-66-a2-r5-mem | cpuid | data16 cpuid
+2b-66-a2-r6-reg | cpuid | data16 cpuid
+2b-66-a2-r6-mem | cpuid | data16 cpuid
+2b-66-a2-r7-reg | cpuid | data16 cpuid
+2b-66-a2-r7-mem | cpuid | data16 cpuid
+2b-f3-a2-r0-reg | REP | repz cpuid
+2b-f3-a2-r0-mem | REP | repz cpuid
+2b-f3-a2-r1-reg | REP | repz cpuid
+2b-f3-a2-r1-mem | REP | repz cpuid
+2b-f3-a2-r2-reg | REP | repz cpuid
+2b-f3-a2-r2-mem | REP | repz cpuid
+2b-f3-a2-r3-reg | REP | repz cpuid
+2b-f3-a2-r3-mem | REP | repz cpuid
+2b-f3-a2-r4-reg | REP | repz cpuid
+2b-f3-a2-r4-mem | REP | repz cpuid
+2b-f3-a2-r5-reg | REP | repz cpuid
+2b-f3-a2-r5-mem | REP | repz cpuid
+2b-f3-a2-r6-reg | REP | repz cpuid
+2b-f3-a2-r6-mem | REP | repz cpuid
+2b-f3-a2-r7-reg | REP | repz cpuid
+2b-f3-a2-r7-mem | REP | repz cpuid
+2b-f2-a2-r0-reg | REPNZ | repnz cpuid
+2b-f2-a2-r0-mem | REPNZ | repnz cpuid
+2b-f2-a2-r1-reg | REPNZ | repnz cpuid
+2b-f2-a2-r1-mem | REPNZ | repnz cpuid
+2b-f2-a2-r2-reg | REPNZ | repnz cpuid
+2b-f2-a2-r2-mem | REPNZ | repnz cpuid
+2b-f2-a2-r3-reg | REPNZ | repnz cpuid
+2b-f2-a2-r3-mem | REPNZ | repnz cpuid
+2b-f2-a2-r4-reg | REPNZ | repnz cpuid
+2b-f2-a2-r4-mem | REPNZ | repnz cpuid
+2b-f2-a2-r5-reg | REPNZ | repnz cpuid
+2b-f2-a2-r5-mem | REPNZ | repnz cpuid
+2b-f2-a2-r6-reg | REPNZ | repnz cpuid
+2b-f2-a2-r6-mem | REPNZ | repnz cpuid
+2b-f2-a2-r7-reg | REPNZ | repnz cpuid
+2b-f2-a2-r7-mem | REPNZ | repnz cpuid
+2b-f3-a3-r0-reg | REP | repz bt %eax,%eax
+2b-f3-a3-r0-mem | REP | repz bt %eax,(%rax)
+2b-f3-a3-r1-reg | REP | repz bt %ecx,%eax
+2b-f3-a3-r1-mem | REP | repz bt %ecx,(%rax)
+2b-f3-a3-r2-reg | REP | repz bt %edx,%eax
+2b-f3-a3-r2-mem | REP | repz bt %edx,(%rax)
+2b-f3-a3-r3-reg | REP | repz bt %ebx,%eax
+2b-f3-a3-r3-mem | REP | repz bt %ebx,(%rax)
+2b-f3-a3-r4-reg | REP | repz bt %esp,%eax
+2b-f3-a3-r4-mem | REP | repz bt %esp,(%rax)
+2b-f3-a3-r5-reg | REP | repz bt %ebp,%eax
+2b-f3-a3-r5-mem | REP | repz bt %ebp,(%rax)
+2b-f3-a3-r6-reg | REP | repz bt %esi,%eax
+2b-f3-a3-r6-mem | REP | repz bt %esi,(%rax)
+2b-f3-a3-r7-reg | REP | repz bt %edi,%eax
+2b-f3-a3-r7-mem | REP | repz bt %edi,(%rax)
+2b-f2-a3-r0-reg | REPNZ | repnz bt %eax,%eax
+2b-f2-a3-r0-mem | REPNZ | repnz bt %eax,(%rax)
+2b-f2-a3-r1-reg | REPNZ | repnz bt %ecx,%eax
+2b-f2-a3-r1-mem | REPNZ | repnz bt %ecx,(%rax)
+2b-f2-a3-r2-reg | REPNZ | repnz bt %edx,%eax
+2b-f2-a3-r2-mem | REPNZ | repnz bt %edx,(%rax)
+2b-f2-a3-r3-reg | REPNZ | repnz bt %ebx,%eax
+2b-f2-a3-r3-mem | REPNZ | repnz bt %ebx,(%rax)
+2b-f2-a3-r4-reg | REPNZ | repnz bt %esp,%eax
+2b-f2-a3-r4-mem | REPNZ | repnz bt %esp,(%rax)
+2b-f2-a3-r5-reg | REPNZ | repnz bt %ebp,%eax
+2b-f2-a3-r5-mem | REPNZ | repnz bt %ebp,(%rax)
+2b-f2-a3-r6-reg | REPNZ | repnz bt %esi,%eax
+2b-f2-a3-r6-mem | REPNZ | repnz bt %esi,(%rax)
+2b-f2-a3-r7-reg | REPNZ | repnz bt %edi,%eax
+2b-f2-a3-r7-mem | REPNZ | repnz bt %edi,(%rax)
+2b-f3-a4-r0-reg | REP | repz shld $0x11,%eax,%eax
+2b-f3-a4-r0-mem | REP | repz shld $0x11,%eax,(%rax)
+2b-f3-a4-r1-reg | REP | repz shld $0x11,%ecx,%eax
+2b-f3-a4-r1-mem | REP | repz shld $0x11,%ecx,(%rax)
+2b-f3-a4-r2-reg | REP | repz shld $0x11,%edx,%eax
+2b-f3-a4-r2-mem | REP | repz shld $0x11,%edx,(%rax)
+2b-f3-a4-r3-reg | REP | repz shld $0x11,%ebx,%eax
+2b-f3-a4-r3-mem | REP | repz shld $0x11,%ebx,(%rax)
+2b-f3-a4-r4-reg | REP | repz shld $0x11,%esp,%eax
+2b-f3-a4-r4-mem | REP | repz shld $0x11,%esp,(%rax)
+2b-f3-a4-r5-reg | REP | repz shld $0x11,%ebp,%eax
+2b-f3-a4-r5-mem | REP | repz shld $0x11,%ebp,(%rax)
+2b-f3-a4-r6-reg | REP | repz shld $0x11,%esi,%eax
+2b-f3-a4-r6-mem | REP | repz shld $0x11,%esi,(%rax)
+2b-f3-a4-r7-reg | REP | repz shld $0x11,%edi,%eax
+2b-f3-a4-r7-mem | REP | repz shld $0x11,%edi,(%rax)
+2b-f2-a4-r0-reg | REPNZ | repnz shld $0x11,%eax,%eax
+2b-f2-a4-r0-mem | REPNZ | repnz shld $0x11,%eax,(%rax)
+2b-f2-a4-r1-reg | REPNZ | repnz shld $0x11,%ecx,%eax
+2b-f2-a4-r1-mem | REPNZ | repnz shld $0x11,%ecx,(%rax)
+2b-f2-a4-r2-reg | REPNZ | repnz shld $0x11,%edx,%eax
+2b-f2-a4-r2-mem | REPNZ | repnz shld $0x11,%edx,(%rax)
+2b-f2-a4-r3-reg | REPNZ | repnz shld $0x11,%ebx,%eax
+2b-f2-a4-r3-mem | REPNZ | repnz shld $0x11,%ebx,(%rax)
+2b-f2-a4-r4-reg | REPNZ | repnz shld $0x11,%esp,%eax
+2b-f2-a4-r4-mem | REPNZ | repnz shld $0x11,%esp,(%rax)
+2b-f2-a4-r5-reg | REPNZ | repnz shld $0x11,%ebp,%eax
+2b-f2-a4-r5-mem | REPNZ | repnz shld $0x11,%ebp,(%rax)
+2b-f2-a4-r6-reg | REPNZ | repnz shld $0x11,%esi,%eax
+2b-f2-a4-r6-mem | REPNZ | repnz shld $0x11,%esi,(%rax)
+2b-f2-a4-r7-reg | REPNZ | repnz shld $0x11,%edi,%eax
+2b-f2-a4-r7-mem | REPNZ | repnz shld $0x11,%edi,(%rax)
+2b-f3-a5-r0-reg | REP | repz shld %cl,%eax,%eax
+2b-f3-a5-r0-mem | REP | repz shld %cl,%eax,(%rax)
+2b-f3-a5-r1-reg | REP | repz shld %cl,%ecx,%eax
+2b-f3-a5-r1-mem | REP | repz shld %cl,%ecx,(%rax)
+2b-f3-a5-r2-reg | REP | repz shld %cl,%edx,%eax
+2b-f3-a5-r2-mem | REP | repz shld %cl,%edx,(%rax)
+2b-f3-a5-r3-reg | REP | repz shld %cl,%ebx,%eax
+2b-f3-a5-r3-mem | REP | repz shld %cl,%ebx,(%rax)
+2b-f3-a5-r4-reg | REP | repz shld %cl,%esp,%eax
+2b-f3-a5-r4-mem | REP | repz shld %cl,%esp,(%rax)
+2b-f3-a5-r5-reg | REP | repz shld %cl,%ebp,%eax
+2b-f3-a5-r5-mem | REP | repz shld %cl,%ebp,(%rax)
+2b-f3-a5-r6-reg | REP | repz shld %cl,%esi,%eax
+2b-f3-a5-r6-mem | REP | repz shld %cl,%esi,(%rax)
+2b-f3-a5-r7-reg | REP | repz shld %cl,%edi,%eax
+2b-f3-a5-r7-mem | REP | repz shld %cl,%edi,(%rax)
+2b-f2-a5-r0-reg | REPNZ | repnz shld %cl,%eax,%eax
+2b-f2-a5-r0-mem | REPNZ | repnz shld %cl,%eax,(%rax)
+2b-f2-a5-r1-reg | REPNZ | repnz shld %cl,%ecx,%eax
+2b-f2-a5-r1-mem | REPNZ | repnz shld %cl,%ecx,(%rax)
+2b-f2-a5-r2-reg | REPNZ | repnz shld %cl,%edx,%eax
+2b-f2-a5-r2-mem | REPNZ | repnz shld %cl,%edx,(%rax)
+2b-f2-a5-r3-reg | REPNZ | repnz shld %cl,%ebx,%eax
+2b-f2-a5-r3-mem | REPNZ | repnz shld %cl,%ebx,(%rax)
+2b-f2-a5-r4-reg | REPNZ | repnz shld %cl,%esp,%eax
+2b-f2-a5-r4-mem | REPNZ | repnz shld %cl,%esp,(%rax)
+2b-f2-a5-r5-reg | REPNZ | repnz shld %cl,%ebp,%eax
+2b-f2-a5-r5-mem | REPNZ | repnz shld %cl,%ebp,(%rax)
+2b-f2-a5-r6-reg | REPNZ | repnz shld %cl,%esi,%eax
+2b-f2-a5-r6-mem | REPNZ | repnz shld %cl,%esi,(%rax)
+2b-f2-a5-r7-reg | REPNZ | repnz shld %cl,%edi,%eax
+2b-f2-a5-r7-mem | REPNZ | repnz shld %cl,%edi,(%rax)
+2b-f3-a8-r0-reg | REP | repz pushq %gs
+2b-f3-a8-r0-mem | REP | repz pushq %gs
+2b-f3-a8-r1-reg | REP | repz pushq %gs
+2b-f3-a8-r1-mem | REP | repz pushq %gs
+2b-f3-a8-r2-reg | REP | repz pushq %gs
+2b-f3-a8-r2-mem | REP | repz pushq %gs
+2b-f3-a8-r3-reg | REP | repz pushq %gs
+2b-f3-a8-r3-mem | REP | repz pushq %gs
+2b-f3-a8-r4-reg | REP | repz pushq %gs
+2b-f3-a8-r4-mem | REP | repz pushq %gs
+2b-f3-a8-r5-reg | REP | repz pushq %gs
+2b-f3-a8-r5-mem | REP | repz pushq %gs
+2b-f3-a8-r6-reg | REP | repz pushq %gs
+2b-f3-a8-r6-mem | REP | repz pushq %gs
+2b-f3-a8-r7-reg | REP | repz pushq %gs
+2b-f3-a8-r7-mem | REP | repz pushq %gs
+2b-f2-a8-r0-reg | REPNZ | repnz pushq %gs
+2b-f2-a8-r0-mem | REPNZ | repnz pushq %gs
+2b-f2-a8-r1-reg | REPNZ | repnz pushq %gs
+2b-f2-a8-r1-mem | REPNZ | repnz pushq %gs
+2b-f2-a8-r2-reg | REPNZ | repnz pushq %gs
+2b-f2-a8-r2-mem | REPNZ | repnz pushq %gs
+2b-f2-a8-r3-reg | REPNZ | repnz pushq %gs
+2b-f2-a8-r3-mem | REPNZ | repnz pushq %gs
+2b-f2-a8-r4-reg | REPNZ | repnz pushq %gs
+2b-f2-a8-r4-mem | REPNZ | repnz pushq %gs
+2b-f2-a8-r5-reg | REPNZ | repnz pushq %gs
+2b-f2-a8-r5-mem | REPNZ | repnz pushq %gs
+2b-f2-a8-r6-reg | REPNZ | repnz pushq %gs
+2b-f2-a8-r6-mem | REPNZ | repnz pushq %gs
+2b-f2-a8-r7-reg | REPNZ | repnz pushq %gs
+2b-f2-a8-r7-mem | REPNZ | repnz pushq %gs
+2b-f3-a9-r0-reg | REP | repz popq %gs
+2b-f3-a9-r0-mem | REP | repz popq %gs
+2b-f3-a9-r1-reg | REP | repz popq %gs
+2b-f3-a9-r1-mem | REP | repz popq %gs
+2b-f3-a9-r2-reg | REP | repz popq %gs
+2b-f3-a9-r2-mem | REP | repz popq %gs
+2b-f3-a9-r3-reg | REP | repz popq %gs
+2b-f3-a9-r3-mem | REP | repz popq %gs
+2b-f3-a9-r4-reg | REP | repz popq %gs
+2b-f3-a9-r4-mem | REP | repz popq %gs
+2b-f3-a9-r5-reg | REP | repz popq %gs
+2b-f3-a9-r5-mem | REP | repz popq %gs
+2b-f3-a9-r6-reg | REP | repz popq %gs
+2b-f3-a9-r6-mem | REP | repz popq %gs
+2b-f3-a9-r7-reg | REP | repz popq %gs
+2b-f3-a9-r7-mem | REP | repz popq %gs
+2b-f2-a9-r0-reg | REPNZ | repnz popq %gs
+2b-f2-a9-r0-mem | REPNZ | repnz popq %gs
+2b-f2-a9-r1-reg | REPNZ | repnz popq %gs
+2b-f2-a9-r1-mem | REPNZ | repnz popq %gs
+2b-f2-a9-r2-reg | REPNZ | repnz popq %gs
+2b-f2-a9-r2-mem | REPNZ | repnz popq %gs
+2b-f2-a9-r3-reg | REPNZ | repnz popq %gs
+2b-f2-a9-r3-mem | REPNZ | repnz popq %gs
+2b-f2-a9-r4-reg | REPNZ | repnz popq %gs
+2b-f2-a9-r4-mem | REPNZ | repnz popq %gs
+2b-f2-a9-r5-reg | REPNZ | repnz popq %gs
+2b-f2-a9-r5-mem | REPNZ | repnz popq %gs
+2b-f2-a9-r6-reg | REPNZ | repnz popq %gs
+2b-f2-a9-r6-mem | REPNZ | repnz popq %gs
+2b-f2-a9-r7-reg | REPNZ | repnz popq %gs
+2b-f2-a9-r7-mem | REPNZ | repnz popq %gs
+2b-66-aa-r0-reg | rsm | data16 rsm
+2b-66-aa-r0-mem | rsm | data16 rsm
+2b-66-aa-r1-reg | rsm | data16 rsm
+2b-66-aa-r1-mem | rsm | data16 rsm
+2b-66-aa-r2-reg | rsm | data16 rsm
+2b-66-aa-r2-mem | rsm | data16 rsm
+2b-66-aa-r3-reg | rsm | data16 rsm
+2b-66-aa-r3-mem | rsm | data16 rsm
+2b-66-aa-r4-reg | rsm | data16 rsm
+2b-66-aa-r4-mem | rsm | data16 rsm
+2b-66-aa-r5-reg | rsm | data16 rsm
+2b-66-aa-r5-mem | rsm | data16 rsm
+2b-66-aa-r6-reg | rsm | data16 rsm
+2b-66-aa-r6-mem | rsm | data16 rsm
+2b-66-aa-r7-reg | rsm | data16 rsm
+2b-66-aa-r7-mem | rsm | data16 rsm
+2b-f3-aa-r0-reg | REP | repz rsm
+2b-f3-aa-r0-mem | REP | repz rsm
+2b-f3-aa-r1-reg | REP | repz rsm
+2b-f3-aa-r1-mem | REP | repz rsm
+2b-f3-aa-r2-reg | REP | repz rsm
+2b-f3-aa-r2-mem | REP | repz rsm
+2b-f3-aa-r3-reg | REP | repz rsm
+2b-f3-aa-r3-mem | REP | repz rsm
+2b-f3-aa-r4-reg | REP | repz rsm
+2b-f3-aa-r4-mem | REP | repz rsm
+2b-f3-aa-r5-reg | REP | repz rsm
+2b-f3-aa-r5-mem | REP | repz rsm
+2b-f3-aa-r6-reg | REP | repz rsm
+2b-f3-aa-r6-mem | REP | repz rsm
+2b-f3-aa-r7-reg | REP | repz rsm
+2b-f3-aa-r7-mem | REP | repz rsm
+2b-f2-aa-r0-reg | REPNZ | repnz rsm
+2b-f2-aa-r0-mem | REPNZ | repnz rsm
+2b-f2-aa-r1-reg | REPNZ | repnz rsm
+2b-f2-aa-r1-mem | REPNZ | repnz rsm
+2b-f2-aa-r2-reg | REPNZ | repnz rsm
+2b-f2-aa-r2-mem | REPNZ | repnz rsm
+2b-f2-aa-r3-reg | REPNZ | repnz rsm
+2b-f2-aa-r3-mem | REPNZ | repnz rsm
+2b-f2-aa-r4-reg | REPNZ | repnz rsm
+2b-f2-aa-r4-mem | REPNZ | repnz rsm
+2b-f2-aa-r5-reg | REPNZ | repnz rsm
+2b-f2-aa-r5-mem | REPNZ | repnz rsm
+2b-f2-aa-r6-reg | REPNZ | repnz rsm
+2b-f2-aa-r6-mem | REPNZ | repnz rsm
+2b-f2-aa-r7-reg | REPNZ | repnz rsm
+2b-f2-aa-r7-mem | REPNZ | repnz rsm
+2b-f3-ab-r0-reg | REP | repz bts %eax,%eax
+2b-f3-ab-r0-mem | REP | repz bts %eax,(%rax)
+2b-f3-ab-r1-reg | REP | repz bts %ecx,%eax
+2b-f3-ab-r1-mem | REP | repz bts %ecx,(%rax)
+2b-f3-ab-r2-reg | REP | repz bts %edx,%eax
+2b-f3-ab-r2-mem | REP | repz bts %edx,(%rax)
+2b-f3-ab-r3-reg | REP | repz bts %ebx,%eax
+2b-f3-ab-r3-mem | REP | repz bts %ebx,(%rax)
+2b-f3-ab-r4-reg | REP | repz bts %esp,%eax
+2b-f3-ab-r4-mem | REP | repz bts %esp,(%rax)
+2b-f3-ab-r5-reg | REP | repz bts %ebp,%eax
+2b-f3-ab-r5-mem | REP | repz bts %ebp,(%rax)
+2b-f3-ab-r6-reg | REP | repz bts %esi,%eax
+2b-f3-ab-r6-mem | REP | repz bts %esi,(%rax)
+2b-f3-ab-r7-reg | REP | repz bts %edi,%eax
+2b-f3-ab-r7-mem | REP | repz bts %edi,(%rax)
+2b-f2-ab-r0-reg | REPNZ | repnz bts %eax,%eax
+2b-f2-ab-r0-mem | REPNZ | repnz bts %eax,(%rax)
+2b-f2-ab-r1-reg | REPNZ | repnz bts %ecx,%eax
+2b-f2-ab-r1-mem | REPNZ | repnz bts %ecx,(%rax)
+2b-f2-ab-r2-reg | REPNZ | repnz bts %edx,%eax
+2b-f2-ab-r2-mem | REPNZ | repnz bts %edx,(%rax)
+2b-f2-ab-r3-reg | REPNZ | repnz bts %ebx,%eax
+2b-f2-ab-r3-mem | REPNZ | repnz bts %ebx,(%rax)
+2b-f2-ab-r4-reg | REPNZ | repnz bts %esp,%eax
+2b-f2-ab-r4-mem | REPNZ | repnz bts %esp,(%rax)
+2b-f2-ab-r5-reg | REPNZ | repnz bts %ebp,%eax
+2b-f2-ab-r5-mem | REPNZ | repnz bts %ebp,(%rax)
+2b-f2-ab-r6-reg | REPNZ | repnz bts %esi,%eax
+2b-f2-ab-r6-mem | REPNZ | repnz bts %esi,(%rax)
+2b-f2-ab-r7-reg | REPNZ | repnz bts %edi,%eax
+2b-f2-ab-r7-mem | REPNZ | repnz bts %edi,(%rax)
+2b-f3-ac-r0-reg | REP | repz shrd $0x11,%eax,%eax
+2b-f3-ac-r0-mem | REP | repz shrd $0x11,%eax,(%rax)
+2b-f3-ac-r1-reg | REP | repz shrd $0x11,%ecx,%eax
+2b-f3-ac-r1-mem | REP | repz shrd $0x11,%ecx,(%rax)
+2b-f3-ac-r2-reg | REP | repz shrd $0x11,%edx,%eax
+2b-f3-ac-r2-mem | REP | repz shrd $0x11,%edx,(%rax)
+2b-f3-ac-r3-reg | REP | repz shrd $0x11,%ebx,%eax
+2b-f3-ac-r3-mem | REP | repz shrd $0x11,%ebx,(%rax)
+2b-f3-ac-r4-reg | REP | repz shrd $0x11,%esp,%eax
+2b-f3-ac-r4-mem | REP | repz shrd $0x11,%esp,(%rax)
+2b-f3-ac-r5-reg | REP | repz shrd $0x11,%ebp,%eax
+2b-f3-ac-r5-mem | REP | repz shrd $0x11,%ebp,(%rax)
+2b-f3-ac-r6-reg | REP | repz shrd $0x11,%esi,%eax
+2b-f3-ac-r6-mem | REP | repz shrd $0x11,%esi,(%rax)
+2b-f3-ac-r7-reg | REP | repz shrd $0x11,%edi,%eax
+2b-f3-ac-r7-mem | REP | repz shrd $0x11,%edi,(%rax)
+2b-f2-ac-r0-reg | REPNZ | repnz shrd $0x11,%eax,%eax
+2b-f2-ac-r0-mem | REPNZ | repnz shrd $0x11,%eax,(%rax)
+2b-f2-ac-r1-reg | REPNZ | repnz shrd $0x11,%ecx,%eax
+2b-f2-ac-r1-mem | REPNZ | repnz shrd $0x11,%ecx,(%rax)
+2b-f2-ac-r2-reg | REPNZ | repnz shrd $0x11,%edx,%eax
+2b-f2-ac-r2-mem | REPNZ | repnz shrd $0x11,%edx,(%rax)
+2b-f2-ac-r3-reg | REPNZ | repnz shrd $0x11,%ebx,%eax
+2b-f2-ac-r3-mem | REPNZ | repnz shrd $0x11,%ebx,(%rax)
+2b-f2-ac-r4-reg | REPNZ | repnz shrd $0x11,%esp,%eax
+2b-f2-ac-r4-mem | REPNZ | repnz shrd $0x11,%esp,(%rax)
+2b-f2-ac-r5-reg | REPNZ | repnz shrd $0x11,%ebp,%eax
+2b-f2-ac-r5-mem | REPNZ | repnz shrd $0x11,%ebp,(%rax)
+2b-f2-ac-r6-reg | REPNZ | repnz shrd $0x11,%esi,%eax
+2b-f2-ac-r6-mem | REPNZ | repnz shrd $0x11,%esi,(%rax)
+2b-f2-ac-r7-reg | REPNZ | repnz shrd $0x11,%edi,%eax
+2b-f2-ac-r7-mem | REPNZ | repnz shrd $0x11,%edi,(%rax)
+2b-f3-ad-r0-reg | REP | repz shrd %cl,%eax,%eax
+2b-f3-ad-r0-mem | REP | repz shrd %cl,%eax,(%rax)
+2b-f3-ad-r1-reg | REP | repz shrd %cl,%ecx,%eax
+2b-f3-ad-r1-mem | REP | repz shrd %cl,%ecx,(%rax)
+2b-f3-ad-r2-reg | REP | repz shrd %cl,%edx,%eax
+2b-f3-ad-r2-mem | REP | repz shrd %cl,%edx,(%rax)
+2b-f3-ad-r3-reg | REP | repz shrd %cl,%ebx,%eax
+2b-f3-ad-r3-mem | REP | repz shrd %cl,%ebx,(%rax)
+2b-f3-ad-r4-reg | REP | repz shrd %cl,%esp,%eax
+2b-f3-ad-r4-mem | REP | repz shrd %cl,%esp,(%rax)
+2b-f3-ad-r5-reg | REP | repz shrd %cl,%ebp,%eax
+2b-f3-ad-r5-mem | REP | repz shrd %cl,%ebp,(%rax)
+2b-f3-ad-r6-reg | REP | repz shrd %cl,%esi,%eax
+2b-f3-ad-r6-mem | REP | repz shrd %cl,%esi,(%rax)
+2b-f3-ad-r7-reg | REP | repz shrd %cl,%edi,%eax
+2b-f3-ad-r7-mem | REP | repz shrd %cl,%edi,(%rax)
+2b-f2-ad-r0-reg | REPNZ | repnz shrd %cl,%eax,%eax
+2b-f2-ad-r0-mem | REPNZ | repnz shrd %cl,%eax,(%rax)
+2b-f2-ad-r1-reg | REPNZ | repnz shrd %cl,%ecx,%eax
+2b-f2-ad-r1-mem | REPNZ | repnz shrd %cl,%ecx,(%rax)
+2b-f2-ad-r2-reg | REPNZ | repnz shrd %cl,%edx,%eax
+2b-f2-ad-r2-mem | REPNZ | repnz shrd %cl,%edx,(%rax)
+2b-f2-ad-r3-reg | REPNZ | repnz shrd %cl,%ebx,%eax
+2b-f2-ad-r3-mem | REPNZ | repnz shrd %cl,%ebx,(%rax)
+2b-f2-ad-r4-reg | REPNZ | repnz shrd %cl,%esp,%eax
+2b-f2-ad-r4-mem | REPNZ | repnz shrd %cl,%esp,(%rax)
+2b-f2-ad-r5-reg | REPNZ | repnz shrd %cl,%ebp,%eax
+2b-f2-ad-r5-mem | REPNZ | repnz shrd %cl,%ebp,(%rax)
+2b-f2-ad-r6-reg | REPNZ | repnz shrd %cl,%esi,%eax
+2b-f2-ad-r6-mem | REPNZ | repnz shrd %cl,%esi,(%rax)
+2b-f2-ad-r7-reg | REPNZ | repnz shrd %cl,%edi,%eax
+2b-f2-ad-r7-mem | REPNZ | repnz shrd %cl,%edi,(%rax)
+2b-f3-af-r0-reg | REP | repz imul %eax,%eax
+2b-f3-af-r0-mem | REP | repz imul (%rax),%eax
+2b-f3-af-r1-reg | REP | repz imul %eax,%ecx
+2b-f3-af-r1-mem | REP | repz imul (%rax),%ecx
+2b-f3-af-r2-reg | REP | repz imul %eax,%edx
+2b-f3-af-r2-mem | REP | repz imul (%rax),%edx
+2b-f3-af-r3-reg | REP | repz imul %eax,%ebx
+2b-f3-af-r3-mem | REP | repz imul (%rax),%ebx
+2b-f3-af-r4-reg | REP | repz imul %eax,%esp
+2b-f3-af-r4-mem | REP | repz imul (%rax),%esp
+2b-f3-af-r5-reg | REP | repz imul %eax,%ebp
+2b-f3-af-r5-mem | REP | repz imul (%rax),%ebp
+2b-f3-af-r6-reg | REP | repz imul %eax,%esi
+2b-f3-af-r6-mem | REP | repz imul (%rax),%esi
+2b-f3-af-r7-reg | REP | repz imul %eax,%edi
+2b-f3-af-r7-mem | REP | repz imul (%rax),%edi
+2b-f2-af-r0-reg | REPNZ | repnz imul %eax,%eax
+2b-f2-af-r0-mem | REPNZ | repnz imul (%rax),%eax
+2b-f2-af-r1-reg | REPNZ | repnz imul %eax,%ecx
+2b-f2-af-r1-mem | REPNZ | repnz imul (%rax),%ecx
+2b-f2-af-r2-reg | REPNZ | repnz imul %eax,%edx
+2b-f2-af-r2-mem | REPNZ | repnz imul (%rax),%edx
+2b-f2-af-r3-reg | REPNZ | repnz imul %eax,%ebx
+2b-f2-af-r3-mem | REPNZ | repnz imul (%rax),%ebx
+2b-f2-af-r4-reg | REPNZ | repnz imul %eax,%esp
+2b-f2-af-r4-mem | REPNZ | repnz imul (%rax),%esp
+2b-f2-af-r5-reg | REPNZ | repnz imul %eax,%ebp
+2b-f2-af-r5-mem | REPNZ | repnz imul (%rax),%ebp
+2b-f2-af-r6-reg | REPNZ | repnz imul %eax,%esi
+2b-f2-af-r6-mem | REPNZ | repnz imul (%rax),%esi
+2b-f2-af-r7-reg | REPNZ | repnz imul %eax,%edi
+2b-f2-af-r7-mem | REPNZ | repnz imul (%rax),%edi
+2b-66-b0-r0-reg | cmpxchg | data16 cmpxchg %al,%al
+2b-66-b0-r0-mem | cmpxchg | data16 cmpxchg %al,(%rax)
+2b-66-b0-r1-reg | cmpxchg | data16 cmpxchg %cl,%al
+2b-66-b0-r1-mem | cmpxchg | data16 cmpxchg %cl,(%rax)
+2b-66-b0-r2-reg | cmpxchg | data16 cmpxchg %dl,%al
+2b-66-b0-r2-mem | cmpxchg | data16 cmpxchg %dl,(%rax)
+2b-66-b0-r3-reg | cmpxchg | data16 cmpxchg %bl,%al
+2b-66-b0-r3-mem | cmpxchg | data16 cmpxchg %bl,(%rax)
+2b-66-b0-r4-reg | cmpxchg | data16 cmpxchg %ah,%al
+2b-66-b0-r4-mem | cmpxchg | data16 cmpxchg %ah,(%rax)
+2b-66-b0-r5-reg | cmpxchg | data16 cmpxchg %ch,%al
+2b-66-b0-r5-mem | cmpxchg | data16 cmpxchg %ch,(%rax)
+2b-66-b0-r6-reg | cmpxchg | data16 cmpxchg %dh,%al
+2b-66-b0-r6-mem | cmpxchg | data16 cmpxchg %dh,(%rax)
+2b-66-b0-r7-reg | cmpxchg | data16 cmpxchg %bh,%al
+2b-66-b0-r7-mem | cmpxchg | data16 cmpxchg %bh,(%rax)
+2b-f3-b0-r0-reg | REP | repz cmpxchg %al,%al
+2b-f3-b0-r0-mem | REP | repz cmpxchg %al,(%rax)
+2b-f3-b0-r1-reg | REP | repz cmpxchg %cl,%al
+2b-f3-b0-r1-mem | REP | repz cmpxchg %cl,(%rax)
+2b-f3-b0-r2-reg | REP | repz cmpxchg %dl,%al
+2b-f3-b0-r2-mem | REP | repz cmpxchg %dl,(%rax)
+2b-f3-b0-r3-reg | REP | repz cmpxchg %bl,%al
+2b-f3-b0-r3-mem | REP | repz cmpxchg %bl,(%rax)
+2b-f3-b0-r4-reg | REP | repz cmpxchg %ah,%al
+2b-f3-b0-r4-mem | REP | repz cmpxchg %ah,(%rax)
+2b-f3-b0-r5-reg | REP | repz cmpxchg %ch,%al
+2b-f3-b0-r5-mem | REP | repz cmpxchg %ch,(%rax)
+2b-f3-b0-r6-reg | REP | repz cmpxchg %dh,%al
+2b-f3-b0-r6-mem | REP | repz cmpxchg %dh,(%rax)
+2b-f3-b0-r7-reg | REP | repz cmpxchg %bh,%al
+2b-f3-b0-r7-mem | REP | repz cmpxchg %bh,(%rax)
+2b-f2-b0-r0-reg | REPNZ | repnz cmpxchg %al,%al
+2b-f2-b0-r0-mem | REPNZ | repnz cmpxchg %al,(%rax)
+2b-f2-b0-r1-reg | REPNZ | repnz cmpxchg %cl,%al
+2b-f2-b0-r1-mem | REPNZ | repnz cmpxchg %cl,(%rax)
+2b-f2-b0-r2-reg | REPNZ | repnz cmpxchg %dl,%al
+2b-f2-b0-r2-mem | REPNZ | repnz cmpxchg %dl,(%rax)
+2b-f2-b0-r3-reg | REPNZ | repnz cmpxchg %bl,%al
+2b-f2-b0-r3-mem | REPNZ | repnz cmpxchg %bl,(%rax)
+2b-f2-b0-r4-reg | REPNZ | repnz cmpxchg %ah,%al
+2b-f2-b0-r4-mem | REPNZ | repnz cmpxchg %ah,(%rax)
+2b-f2-b0-r5-reg | REPNZ | repnz cmpxchg %ch,%al
+2b-f2-b0-r5-mem | REPNZ | repnz cmpxchg %ch,(%rax)
+2b-f2-b0-r6-reg | REPNZ | repnz cmpxchg %dh,%al
+2b-f2-b0-r6-mem | REPNZ | repnz cmpxchg %dh,(%rax)
+2b-f2-b0-r7-reg | REPNZ | repnz cmpxchg %bh,%al
+2b-f2-b0-r7-mem | REPNZ | repnz cmpxchg %bh,(%rax)
+2b-f3-b1-r0-reg | REP | repz cmpxchg %eax,%eax
+2b-f3-b1-r0-mem | REP | repz cmpxchg %eax,(%rax)
+2b-f3-b1-r1-reg | REP | repz cmpxchg %ecx,%eax
+2b-f3-b1-r1-mem | REP | repz cmpxchg %ecx,(%rax)
+2b-f3-b1-r2-reg | REP | repz cmpxchg %edx,%eax
+2b-f3-b1-r2-mem | REP | repz cmpxchg %edx,(%rax)
+2b-f3-b1-r3-reg | REP | repz cmpxchg %ebx,%eax
+2b-f3-b1-r3-mem | REP | repz cmpxchg %ebx,(%rax)
+2b-f3-b1-r4-reg | REP | repz cmpxchg %esp,%eax
+2b-f3-b1-r4-mem | REP | repz cmpxchg %esp,(%rax)
+2b-f3-b1-r5-reg | REP | repz cmpxchg %ebp,%eax
+2b-f3-b1-r5-mem | REP | repz cmpxchg %ebp,(%rax)
+2b-f3-b1-r6-reg | REP | repz cmpxchg %esi,%eax
+2b-f3-b1-r6-mem | REP | repz cmpxchg %esi,(%rax)
+2b-f3-b1-r7-reg | REP | repz cmpxchg %edi,%eax
+2b-f3-b1-r7-mem | REP | repz cmpxchg %edi,(%rax)
+2b-f2-b1-r0-reg | REPNZ | repnz cmpxchg %eax,%eax
+2b-f2-b1-r0-mem | REPNZ | repnz cmpxchg %eax,(%rax)
+2b-f2-b1-r1-reg | REPNZ | repnz cmpxchg %ecx,%eax
+2b-f2-b1-r1-mem | REPNZ | repnz cmpxchg %ecx,(%rax)
+2b-f2-b1-r2-reg | REPNZ | repnz cmpxchg %edx,%eax
+2b-f2-b1-r2-mem | REPNZ | repnz cmpxchg %edx,(%rax)
+2b-f2-b1-r3-reg | REPNZ | repnz cmpxchg %ebx,%eax
+2b-f2-b1-r3-mem | REPNZ | repnz cmpxchg %ebx,(%rax)
+2b-f2-b1-r4-reg | REPNZ | repnz cmpxchg %esp,%eax
+2b-f2-b1-r4-mem | REPNZ | repnz cmpxchg %esp,(%rax)
+2b-f2-b1-r5-reg | REPNZ | repnz cmpxchg %ebp,%eax
+2b-f2-b1-r5-mem | REPNZ | repnz cmpxchg %ebp,(%rax)
+2b-f2-b1-r6-reg | REPNZ | repnz cmpxchg %esi,%eax
+2b-f2-b1-r6-mem | REPNZ | repnz cmpxchg %esi,(%rax)
+2b-f2-b1-r7-reg | REPNZ | repnz cmpxchg %edi,%eax
+2b-f2-b1-r7-mem | REPNZ | repnz cmpxchg %edi,(%rax)
+2b-f3-b2-r0-mem | REP | repz lss (%rax),%eax
+2b-f3-b2-r1-mem | REP | repz lss (%rax),%ecx
+2b-f3-b2-r2-mem | REP | repz lss (%rax),%edx
+2b-f3-b2-r3-mem | REP | repz lss (%rax),%ebx
+2b-f3-b2-r4-mem | REP | repz lss (%rax),%esp
+2b-f3-b2-r5-mem | REP | repz lss (%rax),%ebp
+2b-f3-b2-r6-mem | REP | repz lss (%rax),%esi
+2b-f3-b2-r7-mem | REP | repz lss (%rax),%edi
+2b-f2-b2-r0-mem | REPNZ | repnz lss (%rax),%eax
+2b-f2-b2-r1-mem | REPNZ | repnz lss (%rax),%ecx
+2b-f2-b2-r2-mem | REPNZ | repnz lss (%rax),%edx
+2b-f2-b2-r3-mem | REPNZ | repnz lss (%rax),%ebx
+2b-f2-b2-r4-mem | REPNZ | repnz lss (%rax),%esp
+2b-f2-b2-r5-mem | REPNZ | repnz lss (%rax),%ebp
+2b-f2-b2-r6-mem | REPNZ | repnz lss (%rax),%esi
+2b-f2-b2-r7-mem | REPNZ | repnz lss (%rax),%edi
+2b-f3-b3-r0-reg | REP | repz btr %eax,%eax
+2b-f3-b3-r0-mem | REP | repz btr %eax,(%rax)
+2b-f3-b3-r1-reg | REP | repz btr %ecx,%eax
+2b-f3-b3-r1-mem | REP | repz btr %ecx,(%rax)
+2b-f3-b3-r2-reg | REP | repz btr %edx,%eax
+2b-f3-b3-r2-mem | REP | repz btr %edx,(%rax)
+2b-f3-b3-r3-reg | REP | repz btr %ebx,%eax
+2b-f3-b3-r3-mem | REP | repz btr %ebx,(%rax)
+2b-f3-b3-r4-reg | REP | repz btr %esp,%eax
+2b-f3-b3-r4-mem | REP | repz btr %esp,(%rax)
+2b-f3-b3-r5-reg | REP | repz btr %ebp,%eax
+2b-f3-b3-r5-mem | REP | repz btr %ebp,(%rax)
+2b-f3-b3-r6-reg | REP | repz btr %esi,%eax
+2b-f3-b3-r6-mem | REP | repz btr %esi,(%rax)
+2b-f3-b3-r7-reg | REP | repz btr %edi,%eax
+2b-f3-b3-r7-mem | REP | repz btr %edi,(%rax)
+2b-f2-b3-r0-reg | REPNZ | repnz btr %eax,%eax
+2b-f2-b3-r0-mem | REPNZ | repnz btr %eax,(%rax)
+2b-f2-b3-r1-reg | REPNZ | repnz btr %ecx,%eax
+2b-f2-b3-r1-mem | REPNZ | repnz btr %ecx,(%rax)
+2b-f2-b3-r2-reg | REPNZ | repnz btr %edx,%eax
+2b-f2-b3-r2-mem | REPNZ | repnz btr %edx,(%rax)
+2b-f2-b3-r3-reg | REPNZ | repnz btr %ebx,%eax
+2b-f2-b3-r3-mem | REPNZ | repnz btr %ebx,(%rax)
+2b-f2-b3-r4-reg | REPNZ | repnz btr %esp,%eax
+2b-f2-b3-r4-mem | REPNZ | repnz btr %esp,(%rax)
+2b-f2-b3-r5-reg | REPNZ | repnz btr %ebp,%eax
+2b-f2-b3-r5-mem | REPNZ | repnz btr %ebp,(%rax)
+2b-f2-b3-r6-reg | REPNZ | repnz btr %esi,%eax
+2b-f2-b3-r6-mem | REPNZ | repnz btr %esi,(%rax)
+2b-f2-b3-r7-reg | REPNZ | repnz btr %edi,%eax
+2b-f2-b3-r7-mem | REPNZ | repnz btr %edi,(%rax)
+2b-f3-b4-r0-mem | REP | repz lfs (%rax),%eax
+2b-f3-b4-r1-mem | REP | repz lfs (%rax),%ecx
+2b-f3-b4-r2-mem | REP | repz lfs (%rax),%edx
+2b-f3-b4-r3-mem | REP | repz lfs (%rax),%ebx
+2b-f3-b4-r4-mem | REP | repz lfs (%rax),%esp
+2b-f3-b4-r5-mem | REP | repz lfs (%rax),%ebp
+2b-f3-b4-r6-mem | REP | repz lfs (%rax),%esi
+2b-f3-b4-r7-mem | REP | repz lfs (%rax),%edi
+2b-f2-b4-r0-mem | REPNZ | repnz lfs (%rax),%eax
+2b-f2-b4-r1-mem | REPNZ | repnz lfs (%rax),%ecx
+2b-f2-b4-r2-mem | REPNZ | repnz lfs (%rax),%edx
+2b-f2-b4-r3-mem | REPNZ | repnz lfs (%rax),%ebx
+2b-f2-b4-r4-mem | REPNZ | repnz lfs (%rax),%esp
+2b-f2-b4-r5-mem | REPNZ | repnz lfs (%rax),%ebp
+2b-f2-b4-r6-mem | REPNZ | repnz lfs (%rax),%esi
+2b-f2-b4-r7-mem | REPNZ | repnz lfs (%rax),%edi
+2b-f3-b5-r0-mem | REP | repz lgs (%rax),%eax
+2b-f3-b5-r1-mem | REP | repz lgs (%rax),%ecx
+2b-f3-b5-r2-mem | REP | repz lgs (%rax),%edx
+2b-f3-b5-r3-mem | REP | repz lgs (%rax),%ebx
+2b-f3-b5-r4-mem | REP | repz lgs (%rax),%esp
+2b-f3-b5-r5-mem | REP | repz lgs (%rax),%ebp
+2b-f3-b5-r6-mem | REP | repz lgs (%rax),%esi
+2b-f3-b5-r7-mem | REP | repz lgs (%rax),%edi
+2b-f2-b5-r0-mem | REPNZ | repnz lgs (%rax),%eax
+2b-f2-b5-r1-mem | REPNZ | repnz lgs (%rax),%ecx
+2b-f2-b5-r2-mem | REPNZ | repnz lgs (%rax),%edx
+2b-f2-b5-r3-mem | REPNZ | repnz lgs (%rax),%ebx
+2b-f2-b5-r4-mem | REPNZ | repnz lgs (%rax),%esp
+2b-f2-b5-r5-mem | REPNZ | repnz lgs (%rax),%ebp
+2b-f2-b5-r6-mem | REPNZ | repnz lgs (%rax),%esi
+2b-f2-b5-r7-mem | REPNZ | repnz lgs (%rax),%edi
+2b-f3-b6-r0-reg | REP | repz movzbl %al,%eax
+2b-f3-b6-r0-mem | REP | repz movzbl (%rax),%eax
+2b-f3-b6-r1-reg | REP | repz movzbl %al,%ecx
+2b-f3-b6-r1-mem | REP | repz movzbl (%rax),%ecx
+2b-f3-b6-r2-reg | REP | repz movzbl %al,%edx
+2b-f3-b6-r2-mem | REP | repz movzbl (%rax),%edx
+2b-f3-b6-r3-reg | REP | repz movzbl %al,%ebx
+2b-f3-b6-r3-mem | REP | repz movzbl (%rax),%ebx
+2b-f3-b6-r4-reg | REP | repz movzbl %al,%esp
+2b-f3-b6-r4-mem | REP | repz movzbl (%rax),%esp
+2b-f3-b6-r5-reg | REP | repz movzbl %al,%ebp
+2b-f3-b6-r5-mem | REP | repz movzbl (%rax),%ebp
+2b-f3-b6-r6-reg | REP | repz movzbl %al,%esi
+2b-f3-b6-r6-mem | REP | repz movzbl (%rax),%esi
+2b-f3-b6-r7-reg | REP | repz movzbl %al,%edi
+2b-f3-b6-r7-mem | REP | repz movzbl (%rax),%edi
+2b-f2-b6-r0-reg | REPNZ | repnz movzbl %al,%eax
+2b-f2-b6-r0-mem | REPNZ | repnz movzbl (%rax),%eax
+2b-f2-b6-r1-reg | REPNZ | repnz movzbl %al,%ecx
+2b-f2-b6-r1-mem | REPNZ | repnz movzbl (%rax),%ecx
+2b-f2-b6-r2-reg | REPNZ | repnz movzbl %al,%edx
+2b-f2-b6-r2-mem | REPNZ | repnz movzbl (%rax),%edx
+2b-f2-b6-r3-reg | REPNZ | repnz movzbl %al,%ebx
+2b-f2-b6-r3-mem | REPNZ | repnz movzbl (%rax),%ebx
+2b-f2-b6-r4-reg | REPNZ | repnz movzbl %al,%esp
+2b-f2-b6-r4-mem | REPNZ | repnz movzbl (%rax),%esp
+2b-f2-b6-r5-reg | REPNZ | repnz movzbl %al,%ebp
+2b-f2-b6-r5-mem | REPNZ | repnz movzbl (%rax),%ebp
+2b-f2-b6-r6-reg | REPNZ | repnz movzbl %al,%esi
+2b-f2-b6-r6-mem | REPNZ | repnz movzbl (%rax),%esi
+2b-f2-b6-r7-reg | REPNZ | repnz movzbl %al,%edi
+2b-f2-b6-r7-mem | REPNZ | repnz movzbl (%rax),%edi
+2b-f3-b7-r0-reg | REP | repz movzwl %ax,%eax
+2b-f3-b7-r0-mem | REP | repz movzwl (%rax),%eax
+2b-f3-b7-r1-reg | REP | repz movzwl %ax,%ecx
+2b-f3-b7-r1-mem | REP | repz movzwl (%rax),%ecx
+2b-f3-b7-r2-reg | REP | repz movzwl %ax,%edx
+2b-f3-b7-r2-mem | REP | repz movzwl (%rax),%edx
+2b-f3-b7-r3-reg | REP | repz movzwl %ax,%ebx
+2b-f3-b7-r3-mem | REP | repz movzwl (%rax),%ebx
+2b-f3-b7-r4-reg | REP | repz movzwl %ax,%esp
+2b-f3-b7-r4-mem | REP | repz movzwl (%rax),%esp
+2b-f3-b7-r5-reg | REP | repz movzwl %ax,%ebp
+2b-f3-b7-r5-mem | REP | repz movzwl (%rax),%ebp
+2b-f3-b7-r6-reg | REP | repz movzwl %ax,%esi
+2b-f3-b7-r6-mem | REP | repz movzwl (%rax),%esi
+2b-f3-b7-r7-reg | REP | repz movzwl %ax,%edi
+2b-f3-b7-r7-mem | REP | repz movzwl (%rax),%edi
+2b-f2-b7-r0-reg | REPNZ | repnz movzwl %ax,%eax
+2b-f2-b7-r0-mem | REPNZ | repnz movzwl (%rax),%eax
+2b-f2-b7-r1-reg | REPNZ | repnz movzwl %ax,%ecx
+2b-f2-b7-r1-mem | REPNZ | repnz movzwl (%rax),%ecx
+2b-f2-b7-r2-reg | REPNZ | repnz movzwl %ax,%edx
+2b-f2-b7-r2-mem | REPNZ | repnz movzwl (%rax),%edx
+2b-f2-b7-r3-reg | REPNZ | repnz movzwl %ax,%ebx
+2b-f2-b7-r3-mem | REPNZ | repnz movzwl (%rax),%ebx
+2b-f2-b7-r4-reg | REPNZ | repnz movzwl %ax,%esp
+2b-f2-b7-r4-mem | REPNZ | repnz movzwl (%rax),%esp
+2b-f2-b7-r5-reg | REPNZ | repnz movzwl %ax,%ebp
+2b-f2-b7-r5-mem | REPNZ | repnz movzwl (%rax),%ebp
+2b-f2-b7-r6-reg | REPNZ | repnz movzwl %ax,%esi
+2b-f2-b7-r6-mem | REPNZ | repnz movzwl (%rax),%esi
+2b-f2-b7-r7-reg | REPNZ | repnz movzwl %ax,%edi
+2b-f2-b7-r7-mem | REPNZ | repnz movzwl (%rax),%edi
+2b-f3-b9-r0-reg | REP | repz ud1 %eax,%eax
+2b-f3-b9-r0-mem | REP | repz ud1 (%rax),%eax
+2b-f3-b9-r1-reg | REP | repz ud1 %eax,%ecx
+2b-f3-b9-r1-mem | REP | repz ud1 (%rax),%ecx
+2b-f3-b9-r2-reg | REP | repz ud1 %eax,%edx
+2b-f3-b9-r2-mem | REP | repz ud1 (%rax),%edx
+2b-f3-b9-r3-reg | REP | repz ud1 %eax,%ebx
+2b-f3-b9-r3-mem | REP | repz ud1 (%rax),%ebx
+2b-f3-b9-r4-reg | REP | repz ud1 %eax,%esp
+2b-f3-b9-r4-mem | REP | repz ud1 (%rax),%esp
+2b-f3-b9-r5-reg | REP | repz ud1 %eax,%ebp
+2b-f3-b9-r5-mem | REP | repz ud1 (%rax),%ebp
+2b-f3-b9-r6-reg | REP | repz ud1 %eax,%esi
+2b-f3-b9-r6-mem | REP | repz ud1 (%rax),%esi
+2b-f3-b9-r7-reg | REP | repz ud1 %eax,%edi
+2b-f3-b9-r7-mem | REP | repz ud1 (%rax),%edi
+2b-f2-b9-r0-reg | REPNZ | repnz ud1 %eax,%eax
+2b-f2-b9-r0-mem | REPNZ | repnz ud1 (%rax),%eax
+2b-f2-b9-r1-reg | REPNZ | repnz ud1 %eax,%ecx
+2b-f2-b9-r1-mem | REPNZ | repnz ud1 (%rax),%ecx
+2b-f2-b9-r2-reg | REPNZ | repnz ud1 %eax,%edx
+2b-f2-b9-r2-mem | REPNZ | repnz ud1 (%rax),%edx
+2b-f2-b9-r3-reg | REPNZ | repnz ud1 %eax,%ebx
+2b-f2-b9-r3-mem | REPNZ | repnz ud1 (%rax),%ebx
+2b-f2-b9-r4-reg | REPNZ | repnz ud1 %eax,%esp
+2b-f2-b9-r4-mem | REPNZ | repnz ud1 (%rax),%esp
+2b-f2-b9-r5-reg | REPNZ | repnz ud1 %eax,%ebp
+2b-f2-b9-r5-mem | REPNZ | repnz ud1 (%rax),%ebp
+2b-f2-b9-r6-reg | REPNZ | repnz ud1 %eax,%esi
+2b-f2-b9-r6-mem | REPNZ | repnz ud1 (%rax),%esi
+2b-f2-b9-r7-reg | REPNZ | repnz ud1 %eax,%edi
+2b-f2-b9-r7-mem | REPNZ | repnz ud1 (%rax),%edi
+2b-f3-ba-r4-reg | REP | repz bt $0x11,%eax
+2b-f3-ba-r4-mem | REP | repz btl $0x11,(%rax)
+2b-f3-ba-r5-reg | REP | repz bts $0x11,%eax
+2b-f3-ba-r5-mem | REP | repz btsl $0x11,(%rax)
+2b-f3-ba-r6-reg | REP | repz btr $0x11,%eax
+2b-f3-ba-r6-mem | REP | repz btrl $0x11,(%rax)
+2b-f3-ba-r7-reg | REP | repz btc $0x11,%eax
+2b-f3-ba-r7-mem | REP | repz btcl $0x11,(%rax)
+2b-f2-ba-r4-reg | REPNZ | repnz bt $0x11,%eax
+2b-f2-ba-r4-mem | REPNZ | repnz btl $0x11,(%rax)
+2b-f2-ba-r5-reg | REPNZ | repnz bts $0x11,%eax
+2b-f2-ba-r5-mem | REPNZ | repnz btsl $0x11,(%rax)
+2b-f2-ba-r6-reg | REPNZ | repnz btr $0x11,%eax
+2b-f2-ba-r6-mem | REPNZ | repnz btrl $0x11,(%rax)
+2b-f2-ba-r7-reg | REPNZ | repnz btc $0x11,%eax
+2b-f2-ba-r7-mem | REPNZ | repnz btcl $0x11,(%rax)
+2b-f3-bb-r0-reg | REP | repz btc %eax,%eax
+2b-f3-bb-r0-mem | REP | repz btc %eax,(%rax)
+2b-f3-bb-r1-reg | REP | repz btc %ecx,%eax
+2b-f3-bb-r1-mem | REP | repz btc %ecx,(%rax)
+2b-f3-bb-r2-reg | REP | repz btc %edx,%eax
+2b-f3-bb-r2-mem | REP | repz btc %edx,(%rax)
+2b-f3-bb-r3-reg | REP | repz btc %ebx,%eax
+2b-f3-bb-r3-mem | REP | repz btc %ebx,(%rax)
+2b-f3-bb-r4-reg | REP | repz btc %esp,%eax
+2b-f3-bb-r4-mem | REP | repz btc %esp,(%rax)
+2b-f3-bb-r5-reg | REP | repz btc %ebp,%eax
+2b-f3-bb-r5-mem | REP | repz btc %ebp,(%rax)
+2b-f3-bb-r6-reg | REP | repz btc %esi,%eax
+2b-f3-bb-r6-mem | REP | repz btc %esi,(%rax)
+2b-f3-bb-r7-reg | REP | repz btc %edi,%eax
+2b-f3-bb-r7-mem | REP | repz btc %edi,(%rax)
+2b-f2-bb-r0-reg | REPNZ | repnz btc %eax,%eax
+2b-f2-bb-r0-mem | REPNZ | repnz btc %eax,(%rax)
+2b-f2-bb-r1-reg | REPNZ | repnz btc %ecx,%eax
+2b-f2-bb-r1-mem | REPNZ | repnz btc %ecx,(%rax)
+2b-f2-bb-r2-reg | REPNZ | repnz btc %edx,%eax
+2b-f2-bb-r2-mem | REPNZ | repnz btc %edx,(%rax)
+2b-f2-bb-r3-reg | REPNZ | repnz btc %ebx,%eax
+2b-f2-bb-r3-mem | REPNZ | repnz btc %ebx,(%rax)
+2b-f2-bb-r4-reg | REPNZ | repnz btc %esp,%eax
+2b-f2-bb-r4-mem | REPNZ | repnz btc %esp,(%rax)
+2b-f2-bb-r5-reg | REPNZ | repnz btc %ebp,%eax
+2b-f2-bb-r5-mem | REPNZ | repnz btc %ebp,(%rax)
+2b-f2-bb-r6-reg | REPNZ | repnz btc %esi,%eax
+2b-f2-bb-r6-mem | REPNZ | repnz btc %esi,(%rax)
+2b-f2-bb-r7-reg | REPNZ | repnz btc %edi,%eax
+2b-f2-bb-r7-mem | REPNZ | repnz btc %edi,(%rax)
+2b-f3-be-r0-reg | REP | repz movsbl %al,%eax
+2b-f3-be-r0-mem | REP | repz movsbl (%rax),%eax
+2b-f3-be-r1-reg | REP | repz movsbl %al,%ecx
+2b-f3-be-r1-mem | REP | repz movsbl (%rax),%ecx
+2b-f3-be-r2-reg | REP | repz movsbl %al,%edx
+2b-f3-be-r2-mem | REP | repz movsbl (%rax),%edx
+2b-f3-be-r3-reg | REP | repz movsbl %al,%ebx
+2b-f3-be-r3-mem | REP | repz movsbl (%rax),%ebx
+2b-f3-be-r4-reg | REP | repz movsbl %al,%esp
+2b-f3-be-r4-mem | REP | repz movsbl (%rax),%esp
+2b-f3-be-r5-reg | REP | repz movsbl %al,%ebp
+2b-f3-be-r5-mem | REP | repz movsbl (%rax),%ebp
+2b-f3-be-r6-reg | REP | repz movsbl %al,%esi
+2b-f3-be-r6-mem | REP | repz movsbl (%rax),%esi
+2b-f3-be-r7-reg | REP | repz movsbl %al,%edi
+2b-f3-be-r7-mem | REP | repz movsbl (%rax),%edi
+2b-f2-be-r0-reg | REPNZ | repnz movsbl %al,%eax
+2b-f2-be-r0-mem | REPNZ | repnz movsbl (%rax),%eax
+2b-f2-be-r1-reg | REPNZ | repnz movsbl %al,%ecx
+2b-f2-be-r1-mem | REPNZ | repnz movsbl (%rax),%ecx
+2b-f2-be-r2-reg | REPNZ | repnz movsbl %al,%edx
+2b-f2-be-r2-mem | REPNZ | repnz movsbl (%rax),%edx
+2b-f2-be-r3-reg | REPNZ | repnz movsbl %al,%ebx
+2b-f2-be-r3-mem | REPNZ | repnz movsbl (%rax),%ebx
+2b-f2-be-r4-reg | REPNZ | repnz movsbl %al,%esp
+2b-f2-be-r4-mem | REPNZ | repnz movsbl (%rax),%esp
+2b-f2-be-r5-reg | REPNZ | repnz movsbl %al,%ebp
+2b-f2-be-r5-mem | REPNZ | repnz movsbl (%rax),%ebp
+2b-f2-be-r6-reg | REPNZ | repnz movsbl %al,%esi
+2b-f2-be-r6-mem | REPNZ | repnz movsbl (%rax),%esi
+2b-f2-be-r7-reg | REPNZ | repnz movsbl %al,%edi
+2b-f2-be-r7-mem | REPNZ | repnz movsbl (%rax),%edi
+2b-f3-bf-r0-reg | REP | repz movswl %ax,%eax
+2b-f3-bf-r0-mem | REP | repz movswl (%rax),%eax
+2b-f3-bf-r1-reg | REP | repz movswl %ax,%ecx
+2b-f3-bf-r1-mem | REP | repz movswl (%rax),%ecx
+2b-f3-bf-r2-reg | REP | repz movswl %ax,%edx
+2b-f3-bf-r2-mem | REP | repz movswl (%rax),%edx
+2b-f3-bf-r3-reg | REP | repz movswl %ax,%ebx
+2b-f3-bf-r3-mem | REP | repz movswl (%rax),%ebx
+2b-f3-bf-r4-reg | REP | repz movswl %ax,%esp
+2b-f3-bf-r4-mem | REP | repz movswl (%rax),%esp
+2b-f3-bf-r5-reg | REP | repz movswl %ax,%ebp
+2b-f3-bf-r5-mem | REP | repz movswl (%rax),%ebp
+2b-f3-bf-r6-reg | REP | repz movswl %ax,%esi
+2b-f3-bf-r6-mem | REP | repz movswl (%rax),%esi
+2b-f3-bf-r7-reg | REP | repz movswl %ax,%edi
+2b-f3-bf-r7-mem | REP | repz movswl (%rax),%edi
+2b-f2-bf-r0-reg | REPNZ | repnz movswl %ax,%eax
+2b-f2-bf-r0-mem | REPNZ | repnz movswl (%rax),%eax
+2b-f2-bf-r1-reg | REPNZ | repnz movswl %ax,%ecx
+2b-f2-bf-r1-mem | REPNZ | repnz movswl (%rax),%ecx
+2b-f2-bf-r2-reg | REPNZ | repnz movswl %ax,%edx
+2b-f2-bf-r2-mem | REPNZ | repnz movswl (%rax),%edx
+2b-f2-bf-r3-reg | REPNZ | repnz movswl %ax,%ebx
+2b-f2-bf-r3-mem | REPNZ | repnz movswl (%rax),%ebx
+2b-f2-bf-r4-reg | REPNZ | repnz movswl %ax,%esp
+2b-f2-bf-r4-mem | REPNZ | repnz movswl (%rax),%esp
+2b-f2-bf-r5-reg | REPNZ | repnz movswl %ax,%ebp
+2b-f2-bf-r5-mem | REPNZ | repnz movswl (%rax),%ebp
+2b-f2-bf-r6-reg | REPNZ | repnz movswl %ax,%esi
+2b-f2-bf-r6-mem | REPNZ | repnz movswl (%rax),%esi
+2b-f2-bf-r7-reg | REPNZ | repnz movswl %ax,%edi
+2b-f2-bf-r7-mem | REPNZ | repnz movswl (%rax),%edi
+2b-66-c0-r0-reg | xadd | data16 xadd %al,%al
+2b-66-c0-r0-mem | xadd | data16 xadd %al,(%rax)
+2b-66-c0-r1-reg | xadd | data16 xadd %cl,%al
+2b-66-c0-r1-mem | xadd | data16 xadd %cl,(%rax)
+2b-66-c0-r2-reg | xadd | data16 xadd %dl,%al
+2b-66-c0-r2-mem | xadd | data16 xadd %dl,(%rax)
+2b-66-c0-r3-reg | xadd | data16 xadd %bl,%al
+2b-66-c0-r3-mem | xadd | data16 xadd %bl,(%rax)
+2b-66-c0-r4-reg | xadd | data16 xadd %ah,%al
+2b-66-c0-r4-mem | xadd | data16 xadd %ah,(%rax)
+2b-66-c0-r5-reg | xadd | data16 xadd %ch,%al
+2b-66-c0-r5-mem | xadd | data16 xadd %ch,(%rax)
+2b-66-c0-r6-reg | xadd | data16 xadd %dh,%al
+2b-66-c0-r6-mem | xadd | data16 xadd %dh,(%rax)
+2b-66-c0-r7-reg | xadd | data16 xadd %bh,%al
+2b-66-c0-r7-mem | xadd | data16 xadd %bh,(%rax)
+2b-f3-c0-r0-reg | REP | repz xadd %al,%al
+2b-f3-c0-r0-mem | REP | repz xadd %al,(%rax)
+2b-f3-c0-r1-reg | REP | repz xadd %cl,%al
+2b-f3-c0-r1-mem | REP | repz xadd %cl,(%rax)
+2b-f3-c0-r2-reg | REP | repz xadd %dl,%al
+2b-f3-c0-r2-mem | REP | repz xadd %dl,(%rax)
+2b-f3-c0-r3-reg | REP | repz xadd %bl,%al
+2b-f3-c0-r3-mem | REP | repz xadd %bl,(%rax)
+2b-f3-c0-r4-reg | REP | repz xadd %ah,%al
+2b-f3-c0-r4-mem | REP | repz xadd %ah,(%rax)
+2b-f3-c0-r5-reg | REP | repz xadd %ch,%al
+2b-f3-c0-r5-mem | REP | repz xadd %ch,(%rax)
+2b-f3-c0-r6-reg | REP | repz xadd %dh,%al
+2b-f3-c0-r6-mem | REP | repz xadd %dh,(%rax)
+2b-f3-c0-r7-reg | REP | repz xadd %bh,%al
+2b-f3-c0-r7-mem | REP | repz xadd %bh,(%rax)
+2b-f2-c0-r0-reg | REPNZ | repnz xadd %al,%al
+2b-f2-c0-r0-mem | REPNZ | repnz xadd %al,(%rax)
+2b-f2-c0-r1-reg | REPNZ | repnz xadd %cl,%al
+2b-f2-c0-r1-mem | REPNZ | repnz xadd %cl,(%rax)
+2b-f2-c0-r2-reg | REPNZ | repnz xadd %dl,%al
+2b-f2-c0-r2-mem | REPNZ | repnz xadd %dl,(%rax)
+2b-f2-c0-r3-reg | REPNZ | repnz xadd %bl,%al
+2b-f2-c0-r3-mem | REPNZ | repnz xadd %bl,(%rax)
+2b-f2-c0-r4-reg | REPNZ | repnz xadd %ah,%al
+2b-f2-c0-r4-mem | REPNZ | repnz xadd %ah,(%rax)
+2b-f2-c0-r5-reg | REPNZ | repnz xadd %ch,%al
+2b-f2-c0-r5-mem | REPNZ | repnz xadd %ch,(%rax)
+2b-f2-c0-r6-reg | REPNZ | repnz xadd %dh,%al
+2b-f2-c0-r6-mem | REPNZ | repnz xadd %dh,(%rax)
+2b-f2-c0-r7-reg | REPNZ | repnz xadd %bh,%al
+2b-f2-c0-r7-mem | REPNZ | repnz xadd %bh,(%rax)
+2b-f3-c1-r0-reg | REP | repz xadd %eax,%eax
+2b-f3-c1-r0-mem | REP | repz xadd %eax,(%rax)
+2b-f3-c1-r1-reg | REP | repz xadd %ecx,%eax
+2b-f3-c1-r1-mem | REP | repz xadd %ecx,(%rax)
+2b-f3-c1-r2-reg | REP | repz xadd %edx,%eax
+2b-f3-c1-r2-mem | REP | repz xadd %edx,(%rax)
+2b-f3-c1-r3-reg | REP | repz xadd %ebx,%eax
+2b-f3-c1-r3-mem | REP | repz xadd %ebx,(%rax)
+2b-f3-c1-r4-reg | REP | repz xadd %esp,%eax
+2b-f3-c1-r4-mem | REP | repz xadd %esp,(%rax)
+2b-f3-c1-r5-reg | REP | repz xadd %ebp,%eax
+2b-f3-c1-r5-mem | REP | repz xadd %ebp,(%rax)
+2b-f3-c1-r6-reg | REP | repz xadd %esi,%eax
+2b-f3-c1-r6-mem | REP | repz xadd %esi,(%rax)
+2b-f3-c1-r7-reg | REP | repz xadd %edi,%eax
+2b-f3-c1-r7-mem | REP | repz xadd %edi,(%rax)
+2b-f2-c1-r0-reg | REPNZ | repnz xadd %eax,%eax
+2b-f2-c1-r0-mem | REPNZ | repnz xadd %eax,(%rax)
+2b-f2-c1-r1-reg | REPNZ | repnz xadd %ecx,%eax
+2b-f2-c1-r1-mem | REPNZ | repnz xadd %ecx,(%rax)
+2b-f2-c1-r2-reg | REPNZ | repnz xadd %edx,%eax
+2b-f2-c1-r2-mem | REPNZ | repnz xadd %edx,(%rax)
+2b-f2-c1-r3-reg | REPNZ | repnz xadd %ebx,%eax
+2b-f2-c1-r3-mem | REPNZ | repnz xadd %ebx,(%rax)
+2b-f2-c1-r4-reg | REPNZ | repnz xadd %esp,%eax
+2b-f2-c1-r4-mem | REPNZ | repnz xadd %esp,(%rax)
+2b-f2-c1-r5-reg | REPNZ | repnz xadd %ebp,%eax
+2b-f2-c1-r5-mem | REPNZ | repnz xadd %ebp,(%rax)
+2b-f2-c1-r6-reg | REPNZ | repnz xadd %esi,%eax
+2b-f2-c1-r6-mem | REPNZ | repnz xadd %esi,(%rax)
+2b-f2-c1-r7-reg | REPNZ | repnz xadd %edi,%eax
+2b-f2-c1-r7-mem | REPNZ | repnz xadd %edi,(%rax)
+2b-66-c7-r1-mem | cmpxchg8b | data16 cmpxchg8b (%rax)
+2b-66-c7-r3-mem | xrstors | data16 xrstors (%rax)
+2b-66-c7-r4-mem | xsavec | data16 xsavec (%rax)
+2b-66-c7-r5-mem | xsaves | data16 xsaves (%rax)
+2b-f3-c7-r1-mem | cmpxchg8b | repz cmpxchg8b (%rax)
+2b-f3-c7-r3-mem | xrstors | repz xrstors (%rax)
+2b-f3-c7-r4-mem | xsavec | repz xsavec (%rax)
+2b-f3-c7-r5-mem | xsaves | repz xsaves (%rax)
+2b-f2-c7-r1-mem | cmpxchg8b | repnz cmpxchg8b (%rax)
+2b-f2-c7-r3-mem | xrstors | repnz xrstors (%rax)
+2b-f2-c7-r4-mem | xsavec | repnz xsavec (%rax)
+2b-f2-c7-r5-mem | xsaves | repnz xsaves (%rax)
+2b-f3-c8-r0-reg | REP | repz bswap %eax
+2b-f3-c8-r0-mem | REP | repz bswap %eax
+2b-f3-c8-r1-reg | REP | repz bswap %eax
+2b-f3-c8-r1-mem | REP | repz bswap %eax
+2b-f3-c8-r2-reg | REP | repz bswap %eax
+2b-f3-c8-r2-mem | REP | repz bswap %eax
+2b-f3-c8-r3-reg | REP | repz bswap %eax
+2b-f3-c8-r3-mem | REP | repz bswap %eax
+2b-f3-c8-r4-reg | REP | repz bswap %eax
+2b-f3-c8-r4-mem | REP | repz bswap %eax
+2b-f3-c8-r5-reg | REP | repz bswap %eax
+2b-f3-c8-r5-mem | REP | repz bswap %eax
+2b-f3-c8-r6-reg | REP | repz bswap %eax
+2b-f3-c8-r6-mem | REP | repz bswap %eax
+2b-f3-c8-r7-reg | REP | repz bswap %eax
+2b-f3-c8-r7-mem | REP | repz bswap %eax
+2b-f2-c8-r0-reg | REPNZ | repnz bswap %eax
+2b-f2-c8-r0-mem | REPNZ | repnz bswap %eax
+2b-f2-c8-r1-reg | REPNZ | repnz bswap %eax
+2b-f2-c8-r1-mem | REPNZ | repnz bswap %eax
+2b-f2-c8-r2-reg | REPNZ | repnz bswap %eax
+2b-f2-c8-r2-mem | REPNZ | repnz bswap %eax
+2b-f2-c8-r3-reg | REPNZ | repnz bswap %eax
+2b-f2-c8-r3-mem | REPNZ | repnz bswap %eax
+2b-f2-c8-r4-reg | REPNZ | repnz bswap %eax
+2b-f2-c8-r4-mem | REPNZ | repnz bswap %eax
+2b-f2-c8-r5-reg | REPNZ | repnz bswap %eax
+2b-f2-c8-r5-mem | REPNZ | repnz bswap %eax
+2b-f2-c8-r6-reg | REPNZ | repnz bswap %eax
+2b-f2-c8-r6-mem | REPNZ | repnz bswap %eax
+2b-f2-c8-r7-reg | REPNZ | repnz bswap %eax
+2b-f2-c8-r7-mem | REPNZ | repnz bswap %eax
+2b-f3-c9-r0-reg | REP | repz bswap %ecx
+2b-f3-c9-r0-mem | REP | repz bswap %ecx
+2b-f3-c9-r1-reg | REP | repz bswap %ecx
+2b-f3-c9-r1-mem | REP | repz bswap %ecx
+2b-f3-c9-r2-reg | REP | repz bswap %ecx
+2b-f3-c9-r2-mem | REP | repz bswap %ecx
+2b-f3-c9-r3-reg | REP | repz bswap %ecx
+2b-f3-c9-r3-mem | REP | repz bswap %ecx
+2b-f3-c9-r4-reg | REP | repz bswap %ecx
+2b-f3-c9-r4-mem | REP | repz bswap %ecx
+2b-f3-c9-r5-reg | REP | repz bswap %ecx
+2b-f3-c9-r5-mem | REP | repz bswap %ecx
+2b-f3-c9-r6-reg | REP | repz bswap %ecx
+2b-f3-c9-r6-mem | REP | repz bswap %ecx
+2b-f3-c9-r7-reg | REP | repz bswap %ecx
+2b-f3-c9-r7-mem | REP | repz bswap %ecx
+2b-f2-c9-r0-reg | REPNZ | repnz bswap %ecx
+2b-f2-c9-r0-mem | REPNZ | repnz bswap %ecx
+2b-f2-c9-r1-reg | REPNZ | repnz bswap %ecx
+2b-f2-c9-r1-mem | REPNZ | repnz bswap %ecx
+2b-f2-c9-r2-reg | REPNZ | repnz bswap %ecx
+2b-f2-c9-r2-mem | REPNZ | repnz bswap %ecx
+2b-f2-c9-r3-reg | REPNZ | repnz bswap %ecx
+2b-f2-c9-r3-mem | REPNZ | repnz bswap %ecx
+2b-f2-c9-r4-reg | REPNZ | repnz bswap %ecx
+2b-f2-c9-r4-mem | REPNZ | repnz bswap %ecx
+2b-f2-c9-r5-reg | REPNZ | repnz bswap %ecx
+2b-f2-c9-r5-mem | REPNZ | repnz bswap %ecx
+2b-f2-c9-r6-reg | REPNZ | repnz bswap %ecx
+2b-f2-c9-r6-mem | REPNZ | repnz bswap %ecx
+2b-f2-c9-r7-reg | REPNZ | repnz bswap %ecx
+2b-f2-c9-r7-mem | REPNZ | repnz bswap %ecx
+2b-f3-ca-r0-reg | REP | repz bswap %edx
+2b-f3-ca-r0-mem | REP | repz bswap %edx
+2b-f3-ca-r1-reg | REP | repz bswap %edx
+2b-f3-ca-r1-mem | REP | repz bswap %edx
+2b-f3-ca-r2-reg | REP | repz bswap %edx
+2b-f3-ca-r2-mem | REP | repz bswap %edx
+2b-f3-ca-r3-reg | REP | repz bswap %edx
+2b-f3-ca-r3-mem | REP | repz bswap %edx
+2b-f3-ca-r4-reg | REP | repz bswap %edx
+2b-f3-ca-r4-mem | REP | repz bswap %edx
+2b-f3-ca-r5-reg | REP | repz bswap %edx
+2b-f3-ca-r5-mem | REP | repz bswap %edx
+2b-f3-ca-r6-reg | REP | repz bswap %edx
+2b-f3-ca-r6-mem | REP | repz bswap %edx
+2b-f3-ca-r7-reg | REP | repz bswap %edx
+2b-f3-ca-r7-mem | REP | repz bswap %edx
+2b-f2-ca-r0-reg | REPNZ | repnz bswap %edx
+2b-f2-ca-r0-mem | REPNZ | repnz bswap %edx
+2b-f2-ca-r1-reg | REPNZ | repnz bswap %edx
+2b-f2-ca-r1-mem | REPNZ | repnz bswap %edx
+2b-f2-ca-r2-reg | REPNZ | repnz bswap %edx
+2b-f2-ca-r2-mem | REPNZ | repnz bswap %edx
+2b-f2-ca-r3-reg | REPNZ | repnz bswap %edx
+2b-f2-ca-r3-mem | REPNZ | repnz bswap %edx
+2b-f2-ca-r4-reg | REPNZ | repnz bswap %edx
+2b-f2-ca-r4-mem | REPNZ | repnz bswap %edx
+2b-f2-ca-r5-reg | REPNZ | repnz bswap %edx
+2b-f2-ca-r5-mem | REPNZ | repnz bswap %edx
+2b-f2-ca-r6-reg | REPNZ | repnz bswap %edx
+2b-f2-ca-r6-mem | REPNZ | repnz bswap %edx
+2b-f2-ca-r7-reg | REPNZ | repnz bswap %edx
+2b-f2-ca-r7-mem | REPNZ | repnz bswap %edx
+2b-f3-cb-r0-reg | REP | repz bswap %ebx
+2b-f3-cb-r0-mem | REP | repz bswap %ebx
+2b-f3-cb-r1-reg | REP | repz bswap %ebx
+2b-f3-cb-r1-mem | REP | repz bswap %ebx
+2b-f3-cb-r2-reg | REP | repz bswap %ebx
+2b-f3-cb-r2-mem | REP | repz bswap %ebx
+2b-f3-cb-r3-reg | REP | repz bswap %ebx
+2b-f3-cb-r3-mem | REP | repz bswap %ebx
+2b-f3-cb-r4-reg | REP | repz bswap %ebx
+2b-f3-cb-r4-mem | REP | repz bswap %ebx
+2b-f3-cb-r5-reg | REP | repz bswap %ebx
+2b-f3-cb-r5-mem | REP | repz bswap %ebx
+2b-f3-cb-r6-reg | REP | repz bswap %ebx
+2b-f3-cb-r6-mem | REP | repz bswap %ebx
+2b-f3-cb-r7-reg | REP | repz bswap %ebx
+2b-f3-cb-r7-mem | REP | repz bswap %ebx
+2b-f2-cb-r0-reg | REPNZ | repnz bswap %ebx
+2b-f2-cb-r0-mem | REPNZ | repnz bswap %ebx
+2b-f2-cb-r1-reg | REPNZ | repnz bswap %ebx
+2b-f2-cb-r1-mem | REPNZ | repnz bswap %ebx
+2b-f2-cb-r2-reg | REPNZ | repnz bswap %ebx
+2b-f2-cb-r2-mem | REPNZ | repnz bswap %ebx
+2b-f2-cb-r3-reg | REPNZ | repnz bswap %ebx
+2b-f2-cb-r3-mem | REPNZ | repnz bswap %ebx
+2b-f2-cb-r4-reg | REPNZ | repnz bswap %ebx
+2b-f2-cb-r4-mem | REPNZ | repnz bswap %ebx
+2b-f2-cb-r5-reg | REPNZ | repnz bswap %ebx
+2b-f2-cb-r5-mem | REPNZ | repnz bswap %ebx
+2b-f2-cb-r6-reg | REPNZ | repnz bswap %ebx
+2b-f2-cb-r6-mem | REPNZ | repnz bswap %ebx
+2b-f2-cb-r7-reg | REPNZ | repnz bswap %ebx
+2b-f2-cb-r7-mem | REPNZ | repnz bswap %ebx
+2b-f3-cc-r0-reg | REP | repz bswap %esp
+2b-f3-cc-r0-mem | REP | repz bswap %esp
+2b-f3-cc-r1-reg | REP | repz bswap %esp
+2b-f3-cc-r1-mem | REP | repz bswap %esp
+2b-f3-cc-r2-reg | REP | repz bswap %esp
+2b-f3-cc-r2-mem | REP | repz bswap %esp
+2b-f3-cc-r3-reg | REP | repz bswap %esp
+2b-f3-cc-r3-mem | REP | repz bswap %esp
+2b-f3-cc-r4-reg | REP | repz bswap %esp
+2b-f3-cc-r4-mem | REP | repz bswap %esp
+2b-f3-cc-r5-reg | REP | repz bswap %esp
+2b-f3-cc-r5-mem | REP | repz bswap %esp
+2b-f3-cc-r6-reg | REP | repz bswap %esp
+2b-f3-cc-r6-mem | REP | repz bswap %esp
+2b-f3-cc-r7-reg | REP | repz bswap %esp
+2b-f3-cc-r7-mem | REP | repz bswap %esp
+2b-f2-cc-r0-reg | REPNZ | repnz bswap %esp
+2b-f2-cc-r0-mem | REPNZ | repnz bswap %esp
+2b-f2-cc-r1-reg | REPNZ | repnz bswap %esp
+2b-f2-cc-r1-mem | REPNZ | repnz bswap %esp
+2b-f2-cc-r2-reg | REPNZ | repnz bswap %esp
+2b-f2-cc-r2-mem | REPNZ | repnz bswap %esp
+2b-f2-cc-r3-reg | REPNZ | repnz bswap %esp
+2b-f2-cc-r3-mem | REPNZ | repnz bswap %esp
+2b-f2-cc-r4-reg | REPNZ | repnz bswap %esp
+2b-f2-cc-r4-mem | REPNZ | repnz bswap %esp
+2b-f2-cc-r5-reg | REPNZ | repnz bswap %esp
+2b-f2-cc-r5-mem | REPNZ | repnz bswap %esp
+2b-f2-cc-r6-reg | REPNZ | repnz bswap %esp
+2b-f2-cc-r6-mem | REPNZ | repnz bswap %esp
+2b-f2-cc-r7-reg | REPNZ | repnz bswap %esp
+2b-f2-cc-r7-mem | REPNZ | repnz bswap %esp
+2b-f3-cd-r0-reg | REP | repz bswap %ebp
+2b-f3-cd-r0-mem | REP | repz bswap %ebp
+2b-f3-cd-r1-reg | REP | repz bswap %ebp
+2b-f3-cd-r1-mem | REP | repz bswap %ebp
+2b-f3-cd-r2-reg | REP | repz bswap %ebp
+2b-f3-cd-r2-mem | REP | repz bswap %ebp
+2b-f3-cd-r3-reg | REP | repz bswap %ebp
+2b-f3-cd-r3-mem | REP | repz bswap %ebp
+2b-f3-cd-r4-reg | REP | repz bswap %ebp
+2b-f3-cd-r4-mem | REP | repz bswap %ebp
+2b-f3-cd-r5-reg | REP | repz bswap %ebp
+2b-f3-cd-r5-mem | REP | repz bswap %ebp
+2b-f3-cd-r6-reg | REP | repz bswap %ebp
+2b-f3-cd-r6-mem | REP | repz bswap %ebp
+2b-f3-cd-r7-reg | REP | repz bswap %ebp
+2b-f3-cd-r7-mem | REP | repz bswap %ebp
+2b-f2-cd-r0-reg | REPNZ | repnz bswap %ebp
+2b-f2-cd-r0-mem | REPNZ | repnz bswap %ebp
+2b-f2-cd-r1-reg | REPNZ | repnz bswap %ebp
+2b-f2-cd-r1-mem | REPNZ | repnz bswap %ebp
+2b-f2-cd-r2-reg | REPNZ | repnz bswap %ebp
+2b-f2-cd-r2-mem | REPNZ | repnz bswap %ebp
+2b-f2-cd-r3-reg | REPNZ | repnz bswap %ebp
+2b-f2-cd-r3-mem | REPNZ | repnz bswap %ebp
+2b-f2-cd-r4-reg | REPNZ | repnz bswap %ebp
+2b-f2-cd-r4-mem | REPNZ | repnz bswap %ebp
+2b-f2-cd-r5-reg | REPNZ | repnz bswap %ebp
+2b-f2-cd-r5-mem | REPNZ | repnz bswap %ebp
+2b-f2-cd-r6-reg | REPNZ | repnz bswap %ebp
+2b-f2-cd-r6-mem | REPNZ | repnz bswap %ebp
+2b-f2-cd-r7-reg | REPNZ | repnz bswap %ebp
+2b-f2-cd-r7-mem | REPNZ | repnz bswap %ebp
+2b-f3-ce-r0-reg | REP | repz bswap %esi
+2b-f3-ce-r0-mem | REP | repz bswap %esi
+2b-f3-ce-r1-reg | REP | repz bswap %esi
+2b-f3-ce-r1-mem | REP | repz bswap %esi
+2b-f3-ce-r2-reg | REP | repz bswap %esi
+2b-f3-ce-r2-mem | REP | repz bswap %esi
+2b-f3-ce-r3-reg | REP | repz bswap %esi
+2b-f3-ce-r3-mem | REP | repz bswap %esi
+2b-f3-ce-r4-reg | REP | repz bswap %esi
+2b-f3-ce-r4-mem | REP | repz bswap %esi
+2b-f3-ce-r5-reg | REP | repz bswap %esi
+2b-f3-ce-r5-mem | REP | repz bswap %esi
+2b-f3-ce-r6-reg | REP | repz bswap %esi
+2b-f3-ce-r6-mem | REP | repz bswap %esi
+2b-f3-ce-r7-reg | REP | repz bswap %esi
+2b-f3-ce-r7-mem | REP | repz bswap %esi
+2b-f2-ce-r0-reg | REPNZ | repnz bswap %esi
+2b-f2-ce-r0-mem | REPNZ | repnz bswap %esi
+2b-f2-ce-r1-reg | REPNZ | repnz bswap %esi
+2b-f2-ce-r1-mem | REPNZ | repnz bswap %esi
+2b-f2-ce-r2-reg | REPNZ | repnz bswap %esi
+2b-f2-ce-r2-mem | REPNZ | repnz bswap %esi
+2b-f2-ce-r3-reg | REPNZ | repnz bswap %esi
+2b-f2-ce-r3-mem | REPNZ | repnz bswap %esi
+2b-f2-ce-r4-reg | REPNZ | repnz bswap %esi
+2b-f2-ce-r4-mem | REPNZ | repnz bswap %esi
+2b-f2-ce-r5-reg | REPNZ | repnz bswap %esi
+2b-f2-ce-r5-mem | REPNZ | repnz bswap %esi
+2b-f2-ce-r6-reg | REPNZ | repnz bswap %esi
+2b-f2-ce-r6-mem | REPNZ | repnz bswap %esi
+2b-f2-ce-r7-reg | REPNZ | repnz bswap %esi
+2b-f2-ce-r7-mem | REPNZ | repnz bswap %esi
+2b-f3-cf-r0-reg | REP | repz bswap %edi
+2b-f3-cf-r0-mem | REP | repz bswap %edi
+2b-f3-cf-r1-reg | REP | repz bswap %edi
+2b-f3-cf-r1-mem | REP | repz bswap %edi
+2b-f3-cf-r2-reg | REP | repz bswap %edi
+2b-f3-cf-r2-mem | REP | repz bswap %edi
+2b-f3-cf-r3-reg | REP | repz bswap %edi
+2b-f3-cf-r3-mem | REP | repz bswap %edi
+2b-f3-cf-r4-reg | REP | repz bswap %edi
+2b-f3-cf-r4-mem | REP | repz bswap %edi
+2b-f3-cf-r5-reg | REP | repz bswap %edi
+2b-f3-cf-r5-mem | REP | repz bswap %edi
+2b-f3-cf-r6-reg | REP | repz bswap %edi
+2b-f3-cf-r6-mem | REP | repz bswap %edi
+2b-f3-cf-r7-reg | REP | repz bswap %edi
+2b-f3-cf-r7-mem | REP | repz bswap %edi
+2b-f2-cf-r0-reg | REPNZ | repnz bswap %edi
+2b-f2-cf-r0-mem | REPNZ | repnz bswap %edi
+2b-f2-cf-r1-reg | REPNZ | repnz bswap %edi
+2b-f2-cf-r1-mem | REPNZ | repnz bswap %edi
+2b-f2-cf-r2-reg | REPNZ | repnz bswap %edi
+2b-f2-cf-r2-mem | REPNZ | repnz bswap %edi
+2b-f2-cf-r3-reg | REPNZ | repnz bswap %edi
+2b-f2-cf-r3-mem | REPNZ | repnz bswap %edi
+2b-f2-cf-r4-reg | REPNZ | repnz bswap %edi
+2b-f2-cf-r4-mem | REPNZ | repnz bswap %edi
+2b-f2-cf-r5-reg | REPNZ | repnz bswap %edi
+2b-f2-cf-r5-mem | REPNZ | repnz bswap %edi
+2b-f2-cf-r6-reg | REPNZ | repnz bswap %edi
+2b-f2-cf-r6-mem | REPNZ | repnz bswap %edi
+2b-f2-cf-r7-reg | REPNZ | repnz bswap %edi
+2b-f2-cf-r7-mem | REPNZ | repnz bswap %edi
+2b-f3-ff-r0-reg | ud0 | repz ud0 %eax,%eax
+2b-f3-ff-r0-mem | ud0 | repz ud0 (%rax),%eax
+2b-f3-ff-r1-reg | ud0 | repz ud0 %eax,%ecx
+2b-f3-ff-r1-mem | ud0 | repz ud0 (%rax),%ecx
+2b-f3-ff-r2-reg | ud0 | repz ud0 %eax,%edx
+2b-f3-ff-r2-mem | ud0 | repz ud0 (%rax),%edx
+2b-f3-ff-r3-reg | ud0 | repz ud0 %eax,%ebx
+2b-f3-ff-r3-mem | ud0 | repz ud0 (%rax),%ebx
+2b-f3-ff-r4-reg | ud0 | repz ud0 %eax,%esp
+2b-f3-ff-r4-mem | ud0 | repz ud0 (%rax),%esp
+2b-f3-ff-r5-reg | ud0 | repz ud0 %eax,%ebp
+2b-f3-ff-r5-mem | ud0 | repz ud0 (%rax),%ebp
+2b-f3-ff-r6-reg | ud0 | repz ud0 %eax,%esi
+2b-f3-ff-r6-mem | ud0 | repz ud0 (%rax),%esi
+2b-f3-ff-r7-reg | ud0 | repz ud0 %eax,%edi
+2b-f3-ff-r7-mem | ud0 | repz ud0 (%rax),%edi
+2b-f2-ff-r0-reg | ud0 | repnz ud0 %eax,%eax
+2b-f2-ff-r0-mem | ud0 | repnz ud0 (%rax),%eax
+2b-f2-ff-r1-reg | ud0 | repnz ud0 %eax,%ecx
+2b-f2-ff-r1-mem | ud0 | repnz ud0 (%rax),%ecx
+2b-f2-ff-r2-reg | ud0 | repnz ud0 %eax,%edx
+2b-f2-ff-r2-mem | ud0 | repnz ud0 (%rax),%edx
+2b-f2-ff-r3-reg | ud0 | repnz ud0 %eax,%ebx
+2b-f2-ff-r3-mem | ud0 | repnz ud0 (%rax),%ebx
+2b-f2-ff-r4-reg | ud0 | repnz ud0 %eax,%esp
+2b-f2-ff-r4-mem | ud0 | repnz ud0 (%rax),%esp
+2b-f2-ff-r5-reg | ud0 | repnz ud0 %eax,%ebp
+2b-f2-ff-r5-mem | ud0 | repnz ud0 (%rax),%ebp
+2b-f2-ff-r6-reg | ud0 | repnz ud0 %eax,%esi
+2b-f2-ff-r6-mem | ud0 | repnz ud0 (%rax),%esi
+2b-f2-ff-r7-reg | ud0 | repnz ud0 %eax,%edi
+2b-f2-ff-r7-mem | ud0 | repnz ud0 (%rax),%edi
+3b38-66-0c-reg | vpermilps | data16 (bad)
+3b38-66-0c-mem | vpermilps | data16 (bad)
+3b38-66-0d-reg | vpermilpd | data16 (bad)
+3b38-66-0d-mem | vpermilpd | data16 (bad)
+3b38-66-0e-reg | vtestps | data16 (bad)
+3b38-66-0e-mem | vtestps | data16 (bad)
+3b38-66-0f-reg | vtestpd | data16 (bad)
+3b38-66-0f-mem | vtestpd | data16 (bad)
+3b38-66-13-reg | vcvtph2ps | data16 (bad)
+3b38-66-13-mem | vcvtph2ps | data16 (bad)
+3b38-66-16-reg | vpermps | data16 (bad)
+3b38-66-16-mem | vpermps | data16 (bad)
+3b38-66-18-reg | vbroadcastss | data16 (bad)
+3b38-66-18-mem | vbroadcastss | data16 (bad)
+3b38-66-19-reg | vbroadcastsd | data16 (bad)
+3b38-66-19-mem | vbroadcastsd | data16 (bad)
+3b38-66-2c-reg | vmaskmovps | data16 (bad)
+3b38-66-2c-mem | vmaskmovps | data16 (bad)
+3b38-66-2d-reg | vmaskmovpd | data16 (bad)
+3b38-66-2d-mem | vmaskmovpd | data16 (bad)
+3b38-66-2e-reg | vmaskmovps | data16 (bad)
+3b38-66-2e-mem | vmaskmovps | data16 (bad)
+3b38-66-2f-reg | vmaskmovpd | data16 (bad)
+3b38-66-2f-mem | vmaskmovpd | data16 (bad)
+3b38-66-36-reg | vpermd | data16 (bad)
+3b38-66-36-mem | vpermd | data16 (bad)
+3b38-66-46-reg | vpsravd | data16 (bad)
+3b38-66-46-mem | vpsravd | data16 (bad)
+3b38-66-58-reg | vpbroadcastd | data16 (bad)
+3b38-66-58-mem | vpbroadcastd | data16 (bad)
+3b38-66-59-reg | vpbroadcastq | data16 (bad)
+3b38-66-59-mem | vpbroadcastq | data16 (bad)
+3b38-66-5a-reg | vbroadcastf128 | data16 (bad)
+3b38-66-5a-mem | vbroadcastf128 | data16 (bad)
+3b38-66-78-reg | vpbroadcastb | data16 (bad)
+3b38-66-78-mem | vpbroadcastb | data16 (bad)
+3b38-66-79-reg | vpbroadcastw | data16 (bad)
+3b38-66-79-mem | vpbroadcastw | data16 (bad)
+3b38-66-f3-reg | blsr | data16 (bad)
+3b38-66-f3-mem | blsr | data16 (bad)
+3b38-f3-f3-reg | REP | repz (bad)
+3b38-f3-f3-mem | REP | repz (bad)
+3b38-f2-f3-reg | REPNZ | repnz (bad)
+3b38-f2-f3-mem | REPNZ | repnz (bad)
+3b3a-66-00-reg | vpermq | data16 (bad)
+3b3a-66-00-mem | vpermq | data16 (bad)
+3b3a-66-01-reg | vpermpd | data16 (bad)
+3b3a-66-01-mem | vpermpd | data16 (bad)
+3b3a-66-02-reg | vpblendd | data16 (bad)
+3b3a-66-02-mem | vpblendd | data16 (bad)
+3b3a-66-04-reg | vpermilps | data16 (bad)
+3b3a-66-04-mem | vpermilps | data16 (bad)
+3b3a-66-05-reg | vpermilpd | data16 (bad)
+3b3a-66-05-mem | vpermilpd | data16 (bad)
+3b3a-66-06-reg | vperm2f128 | data16 (bad)
+3b3a-66-06-mem | vperm2f128 | data16 (bad)
+3b3a-f3-0f-reg | palignr | repz (bad)
+3b3a-f3-0f-mem | palignr | repz (bad)
+3b3a-f2-0f-reg | palignr | repnz (bad)
+3b3a-f2-0f-mem | palignr | repnz (bad)
+3b3a-66-18-reg | vinsertf128 | data16 (bad)
+3b3a-66-18-mem | vinsertf128 | data16 (bad)
+3b3a-66-19-reg | vextractf128 | data16 (bad)
+3b3a-66-19-mem | vextractf128 | data16 (bad)
+3b3a-66-1d-reg | vcvtps2ph | data16 (bad)
+3b3a-66-1d-mem | vcvtps2ph | data16 (bad)
+3b3a-66-23-reg | pinsrd/pinsrq | data16 (bad)
+3b3a-66-23-mem | pinsrd/pinsrq | data16 (bad)
+3b3a-66-38-reg | vinserti128 | data16 (bad)
+3b3a-66-38-mem | vinserti128 | data16 (bad)
+3b3a-66-39-reg | vextracti128 | data16 (bad)
+3b3a-66-39-mem | vextracti128 | data16 (bad)
+3b3a-66-46-reg | vperm2i128 | data16 (bad)
+3b3a-66-46-mem | vperm2i128 | data16 (bad)
