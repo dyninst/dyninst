@@ -32,10 +32,6 @@
 #include "capstone/capstone.h"
 #include "capstone/riscv.h"
 
-#ifndef CS_MODE_RISCV_C
-#define CS_MODE_RISCV_C CS_MODE_RISCVC
-#endif
-
 #include "categories.h"
 #include "debug.h"
 #include "decoder/riscv/decoder.h"
@@ -79,7 +75,7 @@ InstructionDecoder_riscv64::InstructionDecoder_riscv64(Dyninst::Architecture a)
     : InstructionDecoderImpl(a) {
 
   // Currently we only support RV64
-  mode = (cs_mode)(CS_MODE_RISCV64 | CS_MODE_RISCV_C);
+  mode = (cs_mode)(CS_MODE_RISCV64); // | CS_MODE_RISCV_C);
 
   cs_open(CS_ARCH_RISCV, this->mode, &disassembler.handle);
   cs_option(disassembler.handle, CS_OPT_DETAIL, CS_OPT_ON);

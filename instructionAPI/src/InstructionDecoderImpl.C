@@ -32,9 +32,7 @@
 #include "InstructionDecoder-power.h"
 #include "InstructionDecoder-x86.h"
 #include "InstructionDecoderImpl.h"
-#ifdef DYNINST_ENABLE_CAPSTONE
 #include "decoder/riscv/decoder.h"
-#endif
 #include "AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h"
 #include "AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h"
 #include "AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h"
@@ -67,12 +65,7 @@ namespace Dyninst { namespace InstructionAPI {
       case Arch_aarch64:
         return Ptr(new InstructionDecoder_aarch64(a));
       case Arch_riscv64:
-#if defined(DYNINST_ENABLE_CAPSTONE)
         return Ptr(new InstructionDecoder_riscv64(a));
-#else
-        assert(!"Dyninst must be configured with -DDYNINST_ENABLE_CAPSTONE=ON to parse RISC-V instructions.");
-        return Ptr();
-#endif
       case Arch_amdgpu_gfx908:
         return Ptr(new InstructionDecoder_amdgpu_gfx908(a));
       case Arch_amdgpu_gfx90a:
