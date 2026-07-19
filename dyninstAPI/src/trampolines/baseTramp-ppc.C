@@ -3,7 +3,9 @@
 #include "debug.h"
 #include "codegen/codegen.h"
 #include "BPatch.h"
-#include "codegen/emitters/PowerPC/ppc64/generators.h"
+#include "codegen/emitters/PowerPC/generators.h"
+
+namespace ppc = Dyninst::DyninstAPI::ppc;
 
 bool baseTramp_ppc::generateSaves(codeGen &gen, registerSpace *) {
   regalloc_printf("========== baseTramp::generateSaves\n");
@@ -14,20 +16,20 @@ bool baseTramp_ppc::generateSaves(codeGen &gen, registerSpace *) {
   fpr_off = TRAMP_FPR_OFFSET(width);
 
   // Make a stack frame.
-  Dyninst::DyninstAPI::ppc64::pushStack(gen);
+  ppc::pushStack(gen);
 
   // Save GPRs
-  saveGPRegisters(gen, gen.rs(), gpr_off);
+  ppc::saveGPRegisters(gen, gen.rs(), gpr_off);
 
   if (BPatch::bpatch->isSaveFPROn() || // Save FPRs
       BPatch::bpatch->isForceSaveFPROn())
-    saveFPRegisters(gen, gen.rs(), fpr_off);
+    ppc::saveFPRegisters(gen, gen.rs(), fpr_off);
 
   // Save LR
-  saveLR(gen, REG_SCRATCH /* register to use */,
+  ppc::saveLR(gen, REG_SCRATCH /* register to use */,
          TRAMP_SPR_OFFSET(width) + STK_LR);
 
-  saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width),
+  ppc::saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width),
                   true); // FIXME get liveness fixed
   return true;
 }
@@ -42,19 +44,19 @@ bool baseTramp_ppc::generateRestores(codeGen &gen, registerSpace *) {
   fpr_off = TRAMP_FPR_OFFSET(width);
 
   // Restore possible SPR saves
-  restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
+  ppc::restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
 
   // LR
-  restoreLR(gen, REG_SCRATCH, TRAMP_SPR_OFFSET(width) + STK_LR);
+  ppc::restoreLR(gen, REG_SCRATCH, TRAMP_SPR_OFFSET(width) + STK_LR);
 
   // FPRs
   if (BPatch::bpatch->isSaveFPROn() || BPatch::bpatch->isForceSaveFPROn())
-    restoreFPRegisters(gen, gen.rs(), fpr_off);
+    ppc::restoreFPRegisters(gen, gen.rs(), fpr_off);
 
   // GPRs
-  restoreGPRegisters(gen, gen.rs(), gpr_off);
+  ppc::restoreGPRegisters(gen, gen.rs(), gpr_off);
 
-  Dyninst::DyninstAPI::ppc64::popStack(gen);
+  Dyninst::DyninstAPI::ppc::popStack(gen);
 
   return true;
 }

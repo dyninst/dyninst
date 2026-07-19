@@ -9,6 +9,22 @@
 #include "opcode.h"
 #include "RegisterConversion.h"
 
+/*
+ * Saving and restoring registers
+ * We create a new stack frame in the base tramp and save registers
+ * above it. Currently, the plan is this:
+ *          < 220 bytes as per system spec      > + 4 for 64-bit alignment
+ *          < 14 GPR slots @ 4 bytes each       >
+ *          < 14 FPR slots @ 8 bytes each       >
+ *          < 6 SPR slots @ 4 bytes each        >
+ *          < 1 FP SPR slot @ 8 bytes           >
+ *          < Space to save live regs at func call >
+ *          < Func call overflow area, 32 bytes >
+ *          < Linkage area, 24 bytes            >
+ *
+ * Of course, change all the 4's to 8's for 64-bit mode.
+ */
+
 namespace {
   /* Pseudoregisters definitions */
   constexpr int POWER_XER2531 = 9999;
@@ -92,7 +108,8 @@ namespace Dyninst { namespace DyninstAPI { namespace ppc {
   }
 
   // Dest != reg : optimizate away a load/move pair
-  void saveRegister(codeGen &gen, Dyninst::Register source, Dyninst::Register dest, int save_off) {
+  void saveRegister(codeGen &gen, Dyninst::Register source, Dyninst::Register dest,
+                    int save_off) {
     ppc::saveRegisterAtOffset(gen, source, save_off + (dest * gen.width()));
   }
 
@@ -119,58 +136,471 @@ namespace Dyninst { namespace DyninstAPI { namespace ppc {
     XFORM_XO_SET(insn, MFSPRxop);
     insnCodeGen::generate(gen, insn);
 
-    if (gen.width() == 4) {
+    if(gen.width() == 4) {
       insnCodeGen::generateImm(gen, STop, scratchReg, REG_SP, stkOffset);
-    } else /* gen.width() == 8 */{
+    } else /* gen.width() == 8 */ {
       insnCodeGen::generateMemAccess64(gen, STDop, STDxop, scratchReg, REG_SP, stkOffset);
     }
   }
 
-  ppc::parsed_regs calcUsedRegs(parse_func *func) {
-    ppc::parsed_regs usedRegisters;
-    using namespace Dyninst::InstructionAPI;
-    std::set<RegisterAST::Ptr> writtenRegs;
+  void popStack(codeGen &gen) {
+    if(gen.width() == 4) {
+      insnCodeGen::generateImm(gen, CALop, REG_SP, REG_SP, TRAMP_FRAME_SIZE_32);
+    } else /* gen.width() == 8 */ {
+      insnCodeGen::generateImm(gen, CALop, REG_SP, REG_SP, TRAMP_FRAME_SIZE_64);
+    }
+  }
 
-    auto bl = func->blocks();
-    auto curBlock = bl.begin();
-    for(; curBlock != bl.end(); ++curBlock) {
-      InstructionDecoder d(func->getPtrToInstruction((*curBlock)->start()), (*curBlock)->size(),
-                           func->isrc()->getArch());
-      Instruction i;
-      unsigned size = 0;
-      while(size < (*curBlock)->size()) {
-        i = d.decode();
-        size += i.size();
-        i.getWriteSet(writtenRegs);
+  void pushStack(codeGen &gen) {
+    if(gen.width() == 4) {
+      insnCodeGen::generateImm(gen, STUop, REG_SP, REG_SP, -TRAMP_FRAME_SIZE_32);
+    } else /* gen.width() == 8 */ {
+      insnCodeGen::generateMemAccess64(gen, STDop, STDUxop, REG_SP, REG_SP,
+                                       -TRAMP_FRAME_SIZE_64);
+    }
+  }
+
+  ////////////////////////////////////////////////////////////////////
+  // Generates instructions to restore a special purpose register from
+  // the stack.
+  //   Returns the number of bytes needed to store the generated
+  //     instructions.
+  //   The instruction storage pointer is advanced the number of
+  //     instructions generated.
+  //
+  void restoreSPR(codeGen &gen,                 // Instruction storage pointer
+                  Dyninst::Register scratchReg, // Scratch register
+                  int sprnum,                   // SPR number
+                  int stkOffset)                // Offset from stack pointer
+  {
+    if(gen.width() == 4) {
+      insnCodeGen::generateImm(gen, Lop, scratchReg, REG_SP, stkOffset);
+    } else /* gen.width() == 8 */ {
+      insnCodeGen::generateMemAccess64(gen, LDop, LDxop, scratchReg, REG_SP, stkOffset);
+    }
+
+    instruction insn;
+    insn.clear();
+
+    // mtspr:  mtlr scratchReg
+    XFORM_OP_SET(insn, EXTop);
+    XFORM_RT_SET(insn, scratchReg);
+    XFORM_RA_SET(insn, sprnum & 0x1f);
+    XFORM_RB_SET(insn, (sprnum >> 5) & 0x1f);
+    XFORM_XO_SET(insn, MTSPRxop);
+    insnCodeGen::generate(gen, insn);
+  }
+
+  ////////////////////////////////////////////////////////////////////
+  // Generates instructions to save link register onto stack.
+  //   Returns the number of bytes needed to store the generated
+  //     instructions.
+  //   The instruction storage pointer is advanced the number of
+  //     instructions generated.
+  void saveLR(codeGen &gen,                 // Instruction storage pointer
+              Dyninst::Register scratchReg, // Scratch register
+              int stkOffset)                // Offset from stack pointer
+  {
+    saveSPR(gen, scratchReg, SPR_LR, stkOffset);
+    gen.rs()->markSavedRegister(registerSpace::lr, stkOffset);
+  }
+
+  ////////////////////////////////////////////////////////////////////
+  // Generates instructions to restore link register from stack.
+  //   Returns the number of bytes needed to store the generated
+  //    instructions.
+  //  The instruction storage pointer is advanced the number of
+  //    instructions generated.
+  //
+  void restoreLR(codeGen &gen,                 // Instruction storage pointer
+                 Dyninst::Register scratchReg, // Scratch register
+                 int stkOffset)                // Offset from stack pointer
+  {
+    restoreSPR(gen, scratchReg, SPR_LR, stkOffset);
+  }
+
+  ////////////////////////////////////////////////////////////////////
+  // Generates instructions to place a given value into link register.
+  //  The entire instruction sequence consists of the generated
+  //    instructions followed by a given (tail) instruction.
+  //  Returns the number of bytes needed to store the entire
+  //    instruction sequence.
+  //  The instruction storage pointer is advanced the number of
+  //    instructions in the sequence.
+  //
+  void setBRL(codeGen &gen,                 // Instruction storage pointer
+              Dyninst::Register scratchReg, // Scratch register
+              long val,                     // Value to set link register to
+              instruction ti)               // Tail instruction
+  {
+    insnCodeGen::loadImmIntoReg(gen, scratchReg, val);
+
+    instruction insn;
+
+    // mtspr:  mtlr scratchReg
+    insn.clear();
+    XFORM_OP_SET(insn, EXTop);
+    XFORM_RT_SET(insn, scratchReg);
+    XFORM_RA_SET(insn, SPR_LR);
+    XFORM_XO_SET(insn, MTSPRxop);
+    insnCodeGen::generate(gen, insn);
+
+    insn = ti;
+    insnCodeGen::generate(gen, insn);
+  }
+
+  /////////////////////////////////////////////////////////////////////////
+  // Generates instructions to save the condition codes register onto stack.
+  //   Returns the number of bytes needed to store the generated
+  //     instructions.
+  //   The instruction storage pointer is advanced the number of
+  //     instructions generated.
+  //
+  void saveCR(codeGen &gen,                 // Instruction storage pointer
+              Dyninst::Register scratchReg, // Scratch register
+              int stkOffset)                // Offset from stack pointer
+  {
+    instruction insn;
+
+    // mfcr:  mflr scratchReg
+    insn.clear();
+    XFXFORM_OP_SET(insn, EXTop);
+    XFXFORM_RT_SET(insn, scratchReg);
+    XFXFORM_XO_SET(insn, MFCRxop);
+    insnCodeGen::generate(gen, insn);
+
+    if(gen.width() == 4) {
+      insnCodeGen::generateImm(gen, STop, scratchReg, REG_SP, stkOffset);
+    } else /* gen.width() == 8 */ {
+      insnCodeGen::generateMemAccess64(gen, STDop, STDxop, scratchReg, REG_SP, stkOffset);
+    }
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // Generates instructions to restore the condition codes register from stack.
+  //   Returns the number of bytes needed to store the generated
+  //     instructions.
+  //   The instruction storage pointer is advanced the number of
+  //     instructions generated.
+  //
+  void restoreCR(codeGen &gen,                 // Instruction storage pointer
+                 Dyninst::Register scratchReg, // Scratch register
+                 int stkOffset)                // Offset from stack pointer
+  {
+    instruction insn;
+
+    if(gen.width() == 4) {
+      insnCodeGen::generateImm(gen, Lop, scratchReg, REG_SP, stkOffset);
+    } else /* gen.width() == 8 */ {
+      insnCodeGen::generateMemAccess64(gen, LDop, LDxop, scratchReg, REG_SP, stkOffset);
+    }
+
+    // mtcrf:  scratchReg
+    insn.clear();
+    XFXFORM_OP_SET(insn, EXTop);
+    XFXFORM_RT_SET(insn, scratchReg);
+    XFXFORM_SPR_SET(insn, 0xff << 1);
+    XFXFORM_XO_SET(insn, MTCRFxop);
+    insnCodeGen::generate(gen, insn);
+  }
+
+  /////////////////////////////////////////////////////////////////////////
+  // Generates instructions to save the floating point status and control
+  // register on the stack.
+  //   Returns the number of bytes needed to store the generated
+  //     instructions.
+  //   The instruction storage pointer is advanced the number of
+  //     instructions generated.
+  //
+  void saveFPSCR(codeGen &gen,                 // Instruction storage pointer
+                 Dyninst::Register scratchReg, // Scratch fp register
+                 int stkOffset)                // Offset from stack pointer
+  {
+    instruction mffs;
+
+    // mffs scratchReg
+    mffs.clear();
+    XFORM_OP_SET(mffs, X_FP_EXTENDEDop);
+    XFORM_RT_SET(mffs, scratchReg);
+    XFORM_XO_SET(mffs, MFFSxop);
+    insnCodeGen::generate(gen, mffs);
+
+    // st:     st scratchReg, stkOffset(r1)
+    insnCodeGen::generateImm(gen, STFDop, scratchReg, REG_SP, stkOffset);
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // Generates instructions to restore the floating point status and control
+  // register from the stack.
+  //   Returns the number of bytes needed to store the generated
+  //     instructions.
+  //   The instruction storage pointer is advanced the number of
+  //     instructions generated.
+  //
+  void restoreFPSCR(codeGen &gen,                 // Instruction storage pointer
+                    Dyninst::Register scratchReg, // Scratch fp register
+                    int stkOffset)                // Offset from stack pointer
+  {
+    insnCodeGen::generateImm(gen, LFDop, scratchReg, REG_SP, stkOffset);
+
+    instruction mtfsf;
+
+    // mtfsf:  scratchReg
+    mtfsf.clear();
+    XFLFORM_OP_SET(mtfsf, X_FP_EXTENDEDop);
+    XFLFORM_FLM_SET(mtfsf, 0xff);
+    XFLFORM_FRB_SET(mtfsf, scratchReg);
+    XFLFORM_XO_SET(mtfsf, MTFSFxop);
+    insnCodeGen::generate(gen, mtfsf);
+  }
+
+  //////////////////////////////////////////////////////////////////////////
+  // Writes out a `br' instruction
+  //
+  void resetBR(AddressSpace *p, // Process to write instruction into
+               Address loc)     // Address in process to write into
+  {
+    instruction i = BRraw;
+    if(!p->writeDataSpace((void *)loc, instruction::size(), i.ptr())) {
+      fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+    }
+  }
+
+  void saveFPRegister(codeGen &gen, Dyninst::Register reg, int save_off) {
+    assert("WE SHOULD NOT BE HERE" == 0);
+
+    insnCodeGen::generateImm(gen, STFDop, reg, REG_SP, save_off + reg * FPRSIZE);
+  }
+
+  void restoreFPRegister(codeGen &gen, Dyninst::Register source, Dyninst::Register dest,
+                         int save_off) {
+    assert("WE SHOULD NOT BE HERE" == 0);
+
+    insnCodeGen::generateImm(gen, LFDop, dest, REG_SP, save_off + source * FPRSIZE);
+  }
+
+  void restoreFPRegister(codeGen &gen, Dyninst::Register reg, int save_off) {
+    restoreFPRegister(gen, reg, reg, save_off);
+  }
+
+  /*
+   * Save necessary registers on the stack
+   * insn, base: for code generation. Offset: regs saved at offset + reg
+   * Returns: number of registers saved.
+   * Side effects: instruction pointer and base param are shifted to
+   *   next free slot.
+   */
+  unsigned saveGPRegisters(codeGen &gen, registerSpace *theRegSpace, int save_off,
+                           int numReqGPRs) {
+    int numRegs = 0;
+    if(numReqGPRs == -1) {
+      numReqGPRs = theRegSpace->numGPRs();
+    }
+    for(int i = 0; i < theRegSpace->numGPRs(); i++) {
+      registerSlot *reg = theRegSpace->GPRs()[i];
+      if(reg->liveState == registerSlot::live) {
+        saveRegister(gen, reg->encoding(), save_off);
+        // saveRegister implicitly adds in (reg * word size)
+        // Do that by hand here.
+
+        int actual_save_off = save_off;
+
+        actual_save_off += (reg->encoding() * gen.width());
+
+        gen.rs()->markSavedRegister(reg->number, actual_save_off);
+        numRegs++;
+        if(numRegs == numReqGPRs) {
+          break;
+        }
+      }
+    }
+    return numRegs;
+  }
+
+  /*
+   * Restore necessary registers from the stack
+   * insn, base: for code generation. Offset: regs restored from offset + reg
+   * Returns: number of registers restored.
+   * Side effects: instruction pointer and base param are shifted to
+   *   next free slot.
+   */
+
+  unsigned restoreGPRegisters(codeGen &gen, registerSpace *theRegSpace, int save_off) {
+    unsigned numRegs = 0;
+    for(int i = 0; i < theRegSpace->numGPRs(); i++) {
+      registerSlot *reg = theRegSpace->GPRs()[i];
+      if(reg->liveState == registerSlot::spilled) {
+        restoreRegister(gen, reg->encoding(), save_off);
+        numRegs++;
       }
     }
 
-    for(auto const &reg : writtenRegs) {
-      MachRegister r = reg->getID();
-      auto regID = convertRegID(r);
-      if(regID == registerSpace::ignored) {
-        logLine("parse_func::calcUsedRegs: unknown written register\n");
-        continue;
-      }
-      auto const category = r.regClass();
+    return numRegs;
+  }
 
-      // ppc{32,64}::{G,F}PR can be the same value, so avoid a -Wlogical-op
-      // warning
-      auto const is_gpr32 = (category == ppc32::GPR);
-      auto const is_gpr64 = (category == ppc64::GPR);
-      auto const is_gpr = (is_gpr32 || is_gpr64);
+  /*
+   * Save FPR registers on the stack. (0-13)
+   * insn, base: for code generation. Offset: regs saved at offset + reg
+   * Returns: number of regs saved.
+   */
 
-      auto const is_fpr32 = (category == ppc32::FPR);
-      auto const is_fpr64 = (category == ppc64::FPR);
-      auto const is_fpr = (is_fpr32 || is_fpr64);
+  unsigned saveFPRegisters(codeGen &gen, registerSpace *, int save_off) {
+    insnCodeGen::saveVectors(gen, save_off);
+    return 32;
+  }
 
-      if(is_gpr) {
-        usedRegisters.gprs.insert(regID);
-      } else if(is_fpr) {
-        usedRegisters.fprs.insert(regID);
-      }
+  /*
+   * Restore FPR registers from the stack. (0-13)
+   * insn, base: for code generation. Offset: regs restored from offset + reg
+   * Returns: number of regs restored.
+   */
+
+  unsigned restoreFPRegisters(codeGen &gen, registerSpace *, int save_off) {
+
+    insnCodeGen::restoreVectors(gen, save_off);
+    return 32;
+  }
+
+  /*
+   * Save the special purpose registers (for Dyninst conservative tramp)
+   * CTR, CR, XER, SPR0, FPSCR
+   */
+  unsigned saveSPRegisters(codeGen &gen, registerSpace *, int save_off, int force_save) {
+    unsigned num_saved = 0;
+    int cr_off, ctr_off, xer_off, fpscr_off;
+
+    if(gen.width() == 4) {
+      cr_off = STK_CR_32;
+      ctr_off = STK_CTR_32;
+      xer_off = STK_XER_32;
+      fpscr_off = STK_FP_CR_32;
+    } else /* gen.width() == 8 */ {
+      cr_off = STK_CR_64;
+      ctr_off = STK_CTR_64;
+      xer_off = STK_XER_64;
+      fpscr_off = STK_FP_CR_64;
     }
-    return usedRegisters;
+
+    registerSlot *regCR = (*(gen.rs()))[registerSpace::cr];
+    assert(regCR != NULL);
+    if(force_save || regCR->liveState == registerSlot::live) {
+      saveCR(gen, 10, save_off + cr_off);
+      num_saved++;
+      gen.rs()->markSavedRegister(registerSpace::cr, save_off + cr_off);
+    }
+    registerSlot *regCTR = (*(gen.rs()))[registerSpace::ctr];
+    assert(regCTR != NULL);
+    if(force_save || regCTR->liveState == registerSlot::live) {
+      saveSPR(gen, 10, SPR_CTR, save_off + ctr_off);
+      num_saved++;
+      gen.rs()->markSavedRegister(registerSpace::ctr, save_off + ctr_off);
+    }
+
+    registerSlot *regXER = (*(gen.rs()))[registerSpace::xer];
+    assert(regXER != NULL);
+    if(force_save || regXER->liveState == registerSlot::live) {
+      saveSPR(gen, 10, SPR_XER, save_off + xer_off);
+      num_saved++;
+      gen.rs()->markSavedRegister(registerSpace::xer, save_off + xer_off);
+    }
+
+    saveFPSCR(gen, 10, save_off + fpscr_off);
+    num_saved++;
+
+    return num_saved;
+  }
+
+  /*
+   * Restore the special purpose registers (for Dyninst conservative tramp)
+   * CTR, CR, XER, SPR0, FPSCR
+   */
+
+  unsigned restoreSPRegisters(codeGen &gen, registerSpace *, int save_off, int force_save) {
+    int cr_off, ctr_off, xer_off, fpscr_off;
+    unsigned num_restored = 0;
+
+    if(gen.width() == 4) {
+      cr_off = STK_CR_32;
+      ctr_off = STK_CTR_32;
+      xer_off = STK_XER_32;
+      fpscr_off = STK_FP_CR_32;
+    } else /* gen.width() == 8 */ {
+      cr_off = STK_CR_64;
+      ctr_off = STK_CTR_64;
+      xer_off = STK_XER_64;
+      fpscr_off = STK_FP_CR_64;
+    }
+
+    restoreFPSCR(gen, 10, save_off + fpscr_off);
+    num_restored++;
+
+    registerSlot *regXER = (*(gen.rs()))[registerSpace::xer];
+    assert(regXER != NULL);
+    if(force_save || regXER->liveState == registerSlot::spilled) {
+      restoreSPR(gen, 10, SPR_XER, save_off + xer_off);
+      num_restored++;
+    }
+    registerSlot *regCTR = (*(gen.rs()))[registerSpace::ctr];
+    assert(regCTR != NULL);
+    if(force_save || regCTR->liveState == registerSlot::spilled) {
+      restoreSPR(gen, 10, SPR_CTR, save_off + ctr_off);
+      num_restored++;
+    }
+    registerSlot *regCR = (*(gen.rs()))[registerSpace::cr];
+    assert(regCR != NULL);
+    if(force_save || regCR->liveState == registerSlot::spilled) {
+      restoreCR(gen, 10, save_off + cr_off);
+      num_restored++;
+    }
+
+    return num_restored;
+  }
+
+  void emitLoadPreviousStackFrameRegister(Address register_num, Dyninst::Register dest,
+                                          codeGen &gen, int /*size*/) {
+    // As of 10/24/2007, the size parameter is still incorrect.
+    // Luckily, we know implicitly what size they actually want.
+
+    // Offset if needed
+    int offset;
+    // Unused, 3OCT03
+    // instruction *insn_ptr = (instruction *)insn;
+    // We need values to define special registers.
+
+    switch((int)register_num) {
+      case registerSpace::lr:
+        // LR is saved on the stack
+        // Note: this is only valid for non-function entry/exit instru.
+        // Once we've entered a function, the LR is stomped to point
+        // at the exit tramp!
+        offset = TRAMP_SPR_OFFSET(gen.width()) + STK_LR;
+
+        // Get address (SP + offset) and stick in register dest.
+        gen.emitter()->emitImm(plusOp, (Dyninst::Register)REG_SP, (RegValue)offset, dest, gen);
+        // Load LR into register dest
+        gen.emitter()->emitV(loadIndirOp, dest, 0, dest, gen, gen.width(), gen.addrSpace());
+        break;
+
+      case registerSpace::ctr:
+        // CTR is saved down the stack
+        if(gen.width() == 4) {
+          offset = TRAMP_SPR_OFFSET(gen.width()) + STK_CTR_32;
+        } else {
+          offset = TRAMP_SPR_OFFSET(gen.width()) + STK_CTR_64;
+        }
+
+        // Get address (SP + offset) and stick in register dest.
+        gen.emitter()->emitImm(plusOp, (Dyninst::Register)REG_SP, (RegValue)offset, dest, gen);
+        // Load LR into register dest
+        gen.emitter()->emitV(loadIndirOp, dest, 0, dest, gen, gen.width(), gen.addrSpace());
+        break;
+
+      default:
+        cerr << "Fallthrough in emitLoadPreviousStackFrameRegister\n";
+        cerr << "Unexpected register " << register_num << '\n';
+        assert(0);
+        break;
+    }
   }
 
 }}}

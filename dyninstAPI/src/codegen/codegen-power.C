@@ -35,8 +35,7 @@
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/inst-power.h"
 #include "patching/function.h"
-#include "codegen/emitters/PowerPC/ppc64/generators.h"
-
+#include "codegen/emitters/PowerPC/generators.h"
 #include <execinfo.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -796,9 +795,9 @@ int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, std::vector<Dyninst
               int gpr_off, stack_size;
                 //create new stack frame
                 gpr_off = TRAMP_GPR_OFFSET_32;
-                Dyninst::DyninstAPI::ppc64::pushStack(gen);
+                Dyninst::DyninstAPI::ppc::pushStack(gen);
                 // Save GPRs
-                stack_size = saveGPRegisters(gen, gen.rs(), gpr_off, numRegs);
+                stack_size = Dyninst::DyninstAPI::ppc::saveGPRegisters(gen, gen.rs(), gpr_off, numRegs);
 		assert (stack_size == numRegs);
 		for (int i = 0; i < numRegs; i++){
 			Dyninst::Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg);
@@ -811,8 +810,8 @@ int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, std::vector<Dyninst
 
 void insnCodeGen::removeStackFrame(codeGen &gen) {
                 int gpr_off = TRAMP_GPR_OFFSET_32;
-                restoreGPRegisters(gen, gen.rs(), gpr_off);
-                Dyninst::DyninstAPI::ppc64::popStack(gen);
+                Dyninst::DyninstAPI::ppc::restoreGPRegisters(gen, gen.rs(), gpr_off);
+                Dyninst::DyninstAPI::ppc::popStack(gen);
 }
 
 void insnCodeGen::generateMoveFromLR(codeGen &gen, Dyninst::Register rt) {

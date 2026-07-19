@@ -1371,11 +1371,11 @@ namespace Dyninst { namespace DyninstAPI {
           insnCodeGen::generateImm(gen, CALop, dest, REG_SP, offset);
         } break;
         case loadRegRelativeAddr:
-          gen.rs()->readProgramRegister(gen, src2, dest, size);
+          gen.rs()->readProgramRegister(gen, src2, dest);
           gen.emitter()->emitImm(plusOp, dest, src1, dest, gen);
           break;
         case loadRegRelativeOp:
-          gen.rs()->readProgramRegister(gen, src2, dest, size);
+          gen.rs()->readProgramRegister(gen, src2, dest);
 
           if(size == 1) {
             insnCodeGen::generateImm(gen, LBZop, dest, dest, src1);

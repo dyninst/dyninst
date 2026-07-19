@@ -1,7 +1,6 @@
 #include "codegen/codegen-power.h"
 #include "codegen/emitters/PowerPC/generators.h"
 #include "codegen/emitters/PowerPC/ppc64/EmitterPowerPC64Stat.h"
-#include "codegen/emitters/PowerPC/ppc64/generators.h"
 #include "inst-power.h"
 
 namespace Dyninst { namespace DyninstAPI {
@@ -68,7 +67,7 @@ namespace Dyninst { namespace DyninstAPI {
     // Because modification can also call this function, there may not
     // be an instrumentation frame. So, we move down the stack before the
     // call and move up the stack after the call
-    ppc64::pushStack(gen);
+    ppc::pushStack(gen);
 
     unsigned r_tmp = 12; // R12 ; We need to put callee address into R12
 
@@ -112,7 +111,7 @@ namespace Dyninst { namespace DyninstAPI {
     insnCodeGen::generateMemAccess64(gen, LDop, LDxop, TOCreg, REG_SP, 5 * wordsize);
 
     // Move back the stack
-    ppc64::popStack(gen);
+    ppc::popStack(gen);
 
     if(!call) {
       // We genearte a return here for jump case,

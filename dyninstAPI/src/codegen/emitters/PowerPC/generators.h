@@ -38,33 +38,63 @@
 
 namespace Dyninst { namespace DyninstAPI { namespace ppc {
 
-  struct parsed_regs {
-    std::set<Dyninst::Register> gprs, fprs;
-  };
-
-  parsed_regs calcUsedRegs(parse_func *func);
-
   void emitAddOriginal(Dyninst::Register src, Dyninst::Register acc, codeGen &gen);
 
   bool needsRestore(Dyninst::Register x);
 
+  void popStack(codeGen &gen);
+
+  void pushStack(codeGen &gen);
+
+  void restoreCR(codeGen &gen, Dyninst::Register scratchReg, int stkOffset);
+
+  void restoreFPRegister(codeGen &gen, Dyninst::Register reg, int save_off);
+
+  unsigned restoreFPRegisters(codeGen &gen, registerSpace *theRegSpace, int save_off);
+
+  void restoreFPSCR(codeGen &gen, Dyninst::Register scratchReg, int stkOffset);
+
+  unsigned restoreGPRegisters(codeGen &gen, registerSpace *theRegSpace, int save_off);
+
+  void restoreLR(codeGen &gen, Dyninst::Register scratchReg, int stkOffset);
+
   void restoreRegister(codeGen &gen, Dyninst::Register reg, int save_off);
 
-  // We may want to restore a _logical_ register N
-  // (that is, the save slot for N) into a different reg.
-  // This avoids using a temporary
+  // We may want to restore a _logical_ register N (i.e., the save slot for N) into a
+  // different reg. This avoids using a temporary.
   void restoreRegister(codeGen &gen, Dyninst::Register source, Dyninst::Register dest,
                        int save_off);
 
   void restoreRegisterAtOffset(codeGen &gen, Dyninst::Register dest, int saved_off);
 
-  void saveRegister(codeGen &gen, Dyninst::Register reg, int save_off);
+  void restoreSPR(codeGen &gen, Dyninst::Register scratchReg, int sprnum, int stkOffset);
 
-  void saveRegisterAtOffset(codeGen &gen, Dyninst::Register reg, int save_off);
+  unsigned restoreSPRegisters(codeGen &gen, registerSpace *, int save_off, int force_save);
+
+  void saveCR(codeGen &gen, Dyninst::Register scratchReg, int stkOffset);
+
+  void saveFPRegister(codeGen &gen, Dyninst::Register reg, int save_off);
+
+  unsigned saveFPRegisters(codeGen &gen, registerSpace *theRegSpace, int save_off);
+
+  void saveFPSCR(codeGen &gen, Dyninst::Register scratchReg, int stkOffset);
+
+  unsigned saveGPRegisters(codeGen &gen, registerSpace *theRegSpace, int save_off,
+                           int numReqGPRs = -1);
+
+  void saveLR(codeGen &gen, Dyninst::Register scratchReg, int stkOffset);
+
+  void saveRegister(codeGen &gen, Dyninst::Register reg, int save_off);
 
   void saveRegister(codeGen &gen, Dyninst::Register source, Dyninst::Register dest, int save_off);
 
+  void saveRegisterAtOffset(codeGen &gen, Dyninst::Register reg, int save_off);
+
   void saveSPR(codeGen &gen, Dyninst::Register scratchReg, int sprnum, int stkOffset);
+
+  unsigned saveSPRegisters(codeGen &gen, registerSpace *, int save_off, int force_save);
+
+  void setBRL(codeGen &gen, Dyninst::Register scratchReg, long val, unsigned ti);
 
 }}}
 

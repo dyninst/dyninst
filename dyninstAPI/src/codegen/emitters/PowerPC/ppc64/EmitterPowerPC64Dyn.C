@@ -1,7 +1,6 @@
 #include "codegen/codegen-power.h"
 #include "codegen/emitters/PowerPC/generators.h"
 #include "codegen/emitters/PowerPC/ppc64/EmitterPowerPC64Dyn.h"
-#include "codegen/emitters/PowerPC/ppc64/generators.h"
 #include "inst-power.h"
 
 namespace Dyninst { namespace DyninstAPI {
@@ -44,7 +43,7 @@ namespace Dyninst { namespace DyninstAPI {
     unsigned r12 = 12;
 
     // Move down the stack to create space for saving registers
-    ppc64::pushStack(gen);
+    ppc::pushStack(gen);
 
     // Save R12 and LR
     insnCodeGen::generateMoveFromLR(gen, TOCreg);
@@ -70,7 +69,7 @@ namespace Dyninst { namespace DyninstAPI {
     insnCodeGen::loadImmIntoReg(gen, TOCreg, caller_toc);
 
     // Move up the stack
-    ppc64::popStack(gen);
+    ppc::popStack(gen);
 
     if(!call) {
       instruction ret(BRraw);
