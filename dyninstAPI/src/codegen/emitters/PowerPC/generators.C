@@ -108,8 +108,7 @@ namespace Dyninst { namespace DyninstAPI { namespace ppc {
   }
 
   // Dest != reg : optimizate away a load/move pair
-  void saveRegister(codeGen &gen, Dyninst::Register source, Dyninst::Register dest,
-                    int save_off) {
+  void saveRegister(codeGen &gen, Dyninst::Register source, Dyninst::Register dest, int save_off) {
     ppc::saveRegisterAtOffset(gen, source, save_off + (dest * gen.width()));
   }
 
@@ -155,8 +154,7 @@ namespace Dyninst { namespace DyninstAPI { namespace ppc {
     if(gen.width() == 4) {
       insnCodeGen::generateImm(gen, STUop, REG_SP, REG_SP, -TRAMP_FRAME_SIZE_32);
     } else /* gen.width() == 8 */ {
-      insnCodeGen::generateMemAccess64(gen, STDop, STDUxop, REG_SP, REG_SP,
-                                       -TRAMP_FRAME_SIZE_64);
+      insnCodeGen::generateMemAccess64(gen, STDop, STDUxop, REG_SP, REG_SP, -TRAMP_FRAME_SIZE_64);
     }
   }
 
@@ -390,8 +388,7 @@ namespace Dyninst { namespace DyninstAPI { namespace ppc {
    * Side effects: instruction pointer and base param are shifted to
    *   next free slot.
    */
-  unsigned saveGPRegisters(codeGen &gen, registerSpace *theRegSpace, int save_off,
-                           int numReqGPRs) {
+  unsigned saveGPRegisters(codeGen &gen, registerSpace *theRegSpace, int save_off, int numReqGPRs) {
     int numRegs = 0;
     if(numReqGPRs == -1) {
       numReqGPRs = theRegSpace->numGPRs();
@@ -514,7 +511,6 @@ namespace Dyninst { namespace DyninstAPI { namespace ppc {
    * Restore the special purpose registers (for Dyninst conservative tramp)
    * CTR, CR, XER, SPR0, FPSCR
    */
-
   unsigned restoreSPRegisters(codeGen &gen, registerSpace *, int save_off, int force_save) {
     int cr_off, ctr_off, xer_off, fpscr_off;
     unsigned num_restored = 0;
