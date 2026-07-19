@@ -49,7 +49,7 @@ namespace Dyninst { namespace InstructionAPI {
                                                                          const char *mnem,
                                                                          unsigned int decodedSize,
                                                                          const unsigned char *raw) {
-    Operation tmp(opcode, mnem, m_Arch);
+    Operation tmp(opcode, mnem);
     return boost::make_shared<Instruction>(tmp, decodedSize, raw, m_Arch);
   }
 

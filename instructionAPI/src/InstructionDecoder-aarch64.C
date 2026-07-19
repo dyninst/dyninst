@@ -3047,7 +3047,7 @@ add_operand(makeRnExpr(), true, true);
 
     decodeOperands();
 
-    Operation oper(operationID, mnemonic, m_Arch);
+    Operation oper(operationID, mnemonic);
     if(insn_table_entry.operands[0] != nullptr) {
       oper.isVectorInsn =
           (insn_table_entry.operands[0] == &InstructionDecoder_aarch64::setSIMDMode);
