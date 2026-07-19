@@ -37,12 +37,11 @@ set(_sources
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
     src/InstructionDecoderImpl.C
     src/syscalls.C
-    src/interrupts.C)
-
-if(DYNINST_ENABLE_CAPSTONE)
-  list(APPEND _sources src/decoder/riscv/decoder.C src/decoder/riscv/mem_xlat.C
-       src/decoder/riscv/opcode_xlat.C src/decoder/riscv/register_xlat.C)
-endif()
+    src/interrupts.C
+    src/decoder/riscv/decoder.C
+    src/decoder/riscv/mem_xlat.C
+    src/decoder/riscv/opcode_xlat.C
+    src/decoder/riscv/register_xlat.C)
 
 set(_public_headers
     h/ArchSpecificFormatters.h
@@ -75,18 +74,12 @@ set(_private_headers
     src/InstructionDecoder-x86.h
     src/power_opcode_tables.h
     h/syscalls.h
-    h/interrupts.h)
-
-if(DYNINST_ENABLE_CAPSTONE)
-  list(
-    APPEND
-    _private_headers
+    h/interrupts.h
     src/decoder/riscv/categories.h
     src/decoder/riscv/decoder.h
     src/decoder/riscv/mem_xlat.h
     src/decoder/riscv/opcode_xlat.h
     src/decoder/riscv/register_xlat.h)
-endif()
 
 set(instructionDecoderPowerExtraFlags "")
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
@@ -147,12 +140,6 @@ if(NOT finalizeOperandsExtraFlags STREQUAL "")
                               PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
 endif()
 
-if(DYNINST_ENABLE_CAPSTONE)
-  set(_capstone_dep Dyninst::Capstone)
-else()
-  set(_capstone_dep)
-endif()
-
 # Optional decoder used by the built-in "unknown instruction" callback to
 # recover the length of x86-64 instructions InstructionAPI cannot decode.
 if(DYNINST_ENABLE_ZYDIS)
@@ -169,7 +156,7 @@ dyninst_library(
   DEFINES INSTRUCTION_LIB ${_unknown_insn_defines}
   DYNINST_DEPS common
   PUBLIC_DEPS Dyninst::Boost_headers
-  PRIVATE_DEPS ${_capstone_dep} ${_unknown_insn_deps}
+  PRIVATE_DEPS Dyninst::Capstone ${_unknown_insn_deps}
 )
 # cmake-format: on
 
