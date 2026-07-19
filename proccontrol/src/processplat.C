@@ -74,10 +74,18 @@ bool LibraryTracking::setTrackLibraries(bool b) const
 
 bool LibraryTracking::getTrackLibraries() const
 {
-   MTLock lock_this_func;
+   // D-4a: proc_lock (held for the whole body via the named accessor)
+   // replaces work_lock; also closes the temporary-accessor TOCTOU (lock
+   // dropped before the impl deref) and the missing impl-gone check.
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getTrackLibraries", false);
-   int_libraryTracking *llproc = ProcImplRef(p)->getLibraryTracking();
+   ProcImplRef ref(p);
+   if (!ref) {
+      perr_printf("getTrackLibraries on exited process\n");
+      p->setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+   int_libraryTracking *llproc = ref->getLibraryTracking();
    assert(llproc);
    return llproc->isTrackingLibraries();
 }
@@ -126,10 +134,17 @@ bool ThreadTracking::setTrackThreads(bool b) const
 
 bool ThreadTracking::getTrackThreads() const
 {
-   MTLock lock_this_func;
+   // D-4a: named accessor holds proc_lock for the whole body (see
+   // LibraryTracking::getTrackLibraries).
    Process::ptr p = proc.lock();
    assert(p);
-   int_threadTracking *llproc = ProcImplRef(p)->getThreadTracking();
+   ProcImplRef ref(p);
+   if (!ref) {
+      perr_printf("getTrackThreads on exited process\n");
+      p->setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+   int_threadTracking *llproc = ref->getThreadTracking();
    assert(llproc);
    return llproc->isTrackingThreads();
 }
@@ -168,24 +183,30 @@ bool LWPTracking::getDefaultTrackLWPs()
 
 void LWPTracking::setTrackLWPs(bool b) const
 {
-   MTLock lock_this_func;
+   // D-4a: ONE named accessor for check + use (the old double temporary was
+   // a TOCTOU: the impl could die between the two ProcImplRef constructions).
    Process::ptr p = proc.lock();
-   if (!p || !ProcImplRef(p)) {
+   ProcImplRef ref(p);
+   if (!p || !ref) {
       perr_printf("setTrackLWPs attempted on exited process\n");
       globalSetLastError(err_exited, "Process is exited\n");
       return;
    }
-   int_LWPTracking *llproc = ProcImplRef(p)->getLWPTracking();;
-   llproc->lwp_setTracking(b);
+   ref->getLWPTracking()->lwp_setTracking(b);
 }
 
 bool LWPTracking::getTrackLWPs() const
 {
-   MTLock lock_this_func;
+   // D-4a: named accessor holds proc_lock for the whole body.
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getTrackLWPs", false);
-   int_LWPTracking *llproc = ProcImplRef(p)->getLWPTracking();;
-   return llproc->lwp_getTracking();
+   ProcImplRef ref(p);
+   if (!ref) {
+      perr_printf("getTrackLWPs on exited process\n");
+      p->setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+   return ref->getLWPTracking()->lwp_getTracking();
 }
 
 bool LWPTracking::refreshLWPs()
@@ -222,20 +243,32 @@ FollowFork::follow_t FollowFork::getDefaultFollowFork()
 
 bool FollowFork::setFollowFork(FollowFork::follow_t f) const
 {
-   MTLock lock_this_func;
+   // D-4a: named accessor holds proc_lock across validate+act
+   // (fork_setTracking's all-stopped check stays valid: continueThread is
+   // proc_lock'd, so no thread can be resumed under us).
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "setFollowFork", false);
-   int_followFork *llproc = ProcImplRef(p)->getFollowFork();
-   return llproc->fork_setTracking(f);
+   ProcImplRef ref(p);
+   if (!ref) {
+      perr_printf("setFollowFork on exited process\n");
+      p->setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+   return ref->getFollowFork()->fork_setTracking(f);
 }
 
 FollowFork::follow_t FollowFork::getFollowFork() const
 {
-   MTLock lock_this_func;
+   // D-4a: named accessor holds proc_lock for the whole body.
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "setFollowFork", None);
-   int_followFork *llproc = ProcImplRef(p)->getFollowFork();
-   return llproc->fork_isTracking();
+   ProcImplRef ref(p);
+   if (!ref) {
+      perr_printf("getFollowFork on exited process\n");
+      p->setLastError(err_exited, "Process is exited\n");
+      return None;
+   }
+   return ref->getFollowFork()->fork_isTracking();
 }
 
 CallStackUnwinding::CallStackUnwinding(Thread::ptr t) :
@@ -308,20 +341,30 @@ MultiToolControl::priority_t MultiToolControl::getDefaultToolPriority()
 
 std::string MultiToolControl::getToolName() const
 {
-   MTLock lock_this_func;
+   // D-4a: named accessor holds proc_lock for the whole body.
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getToolName", string());
-   int_multiToolControl *llproc = ProcImplRef(p)->getMultiToolControl();
-   return llproc->mtool_getName();
+   ProcImplRef ref(p);
+   if (!ref) {
+      perr_printf("getToolName on exited process\n");
+      p->setLastError(err_exited, "Process is exited\n");
+      return string();
+   }
+   return ref->getMultiToolControl()->mtool_getName();
 }
 
 MultiToolControl::priority_t MultiToolControl::getToolPriority() const
 {
-   MTLock lock_this_func;
+   // D-4a: named accessor holds proc_lock for the whole body.
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getToolPriority", 0);
-   int_multiToolControl *llproc = ProcImplRef(p)->getMultiToolControl();
-   return llproc->mtool_getPriority();
+   ProcImplRef ref(p);
+   if (!ref) {
+      perr_printf("getToolPriority on exited process\n");
+      p->setLastError(err_exited, "Process is exited\n");
+      return 0;
+   }
+   return ref->getMultiToolControl()->mtool_getPriority();
 }
 
 MemoryUsage::MemoryUsage(Process::ptr proc_) :
@@ -471,20 +514,30 @@ SignalMask::~SignalMask()
 
 dyn_sigset_t SignalMask::getSigMask() const
 {
-   MTLock lock_this_func;
+   // D-4a: named accessor holds proc_lock for the whole body.
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getSigMask", SignalMask::default_sigset);
-   int_signalMask *llproc = ProcImplRef(p)->getSignalMask();
-   return llproc->getSigMask();
+   ProcImplRef ref(p);
+   if (!ref) {
+      perr_printf("getSigMask on exited process\n");
+      p->setLastError(err_exited, "Process is exited\n");
+      return SignalMask::default_sigset;
+   }
+   return ref->getSignalMask()->getSigMask();
 }
 
 bool SignalMask::setSigMask(dyn_sigset_t s)
 {
-   MTLock lock_this_func;
+   // D-4a: named accessor holds proc_lock for the whole body.
    Process::ptr p = proc.lock();
    PTR_EXIT_TEST(p, "getSigMask", false);
-   int_signalMask *llproc = ProcImplRef(p)->getSignalMask();
-   llproc->setSigMask(s);
+   ProcImplRef ref(p);
+   if (!ref) {
+      perr_printf("setSigMask on exited process\n");
+      p->setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+   ref->getSignalMask()->setSigMask(s);
    return true;
 }
 
