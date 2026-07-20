@@ -129,6 +129,7 @@ namespace Dyninst { namespace InstructionAPI {
         return i == 1 || i == 2 || i == 3;
       case s1RW2R3R4R:
         return i == 0 || i == 1 || i == 2 || i == 3;
+      case s1W2W3W:
       case sNONE:
         return false;
       default:
@@ -150,6 +151,7 @@ namespace Dyninst { namespace InstructionAPI {
       case s1RW2R:   // two operands read, first written (e.g. add)
       case s1W2R3R:  // e.g. imul
       case s1RW2R3R: // shld/shrd
+      case s1W2R3R4R: // blendv/FMA4/XOP: dest written, all sources read
       case s1RW2R3R4R:
         return i == 0;
       case s1R2RW:
@@ -164,6 +166,8 @@ namespace Dyninst { namespace InstructionAPI {
         return i == 0 || i == 2;
       case s1RW2R3RW:
         return i == 0 || i == 2;
+      case s1W2W3W:
+        return i == 0 || i == 1 || i == 2;
       case sNONE:
       default:
         return false;
@@ -1297,6 +1301,11 @@ namespace Dyninst { namespace InstructionAPI {
             isImplicit);
         break;
 
+      case am_N: { /* MMX register selected by ModRM.rm */
+        Expression::Ptr op(
+            makeRegisterExpression(IntelRegTable(m_Arch, b_mm, locs->modrm_rm)));
+        add_operand(op, isRead, isWritten, isImplicit);
+      } break;
       case am_U: /* Could be XMM, YMM, or ZMM (or possibly non VEX)*/
 
         /* Is this a vex prefixed instruction? */
@@ -1744,6 +1753,7 @@ namespace Dyninst { namespace InstructionAPI {
           case e_bts:
           case e_cmpxchg:
           case e_cmpxchg8b:
+          case e_cmpxchg16b:
           case e_dec:
           case e_inc:
           case e_neg:
@@ -1759,10 +1769,11 @@ namespace Dyninst { namespace InstructionAPI {
             this->m_EntryID = e_No_Entry;
             return;
         }
-      } else if(decodedInstruction->getPrefix()->getPrefix(0) == PREFIX_REP &&
+      } else if(decodedInstruction->getPrefix()->getOpcodePrefix() == 0xF3 &&
                 *(b.start + 1) == (unsigned char)(0x0F) &&
                 *(b.start + 2) == (unsigned char)(0x1E)) {
-        // handling ENDBR family
+        // handling ENDBR family: 0F 1E is prefix-discriminated, so the
+        // F3 is filed as the opcode-selecting prefix
         if(*(b.start + 3) == (unsigned char)(0xFB)) {
           m_EntryID = e_endbr32;
           m_Mnemonic = entryNames_IAPI[e_endbr32];

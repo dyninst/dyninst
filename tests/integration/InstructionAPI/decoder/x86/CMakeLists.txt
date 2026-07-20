@@ -13,3 +13,10 @@ target_link_libraries(ptwrite_tests PRIVATE instructionAPI cft_tests memory_test
                                             register_tests opcode_tests)
 add_test(NAME instructionAPI_ptwrite_tests COMMAND ptwrite_tests)
 set_tests_properties(instructionAPI_ptwrite_tests PROPERTIES LABELS "integration")
+
+add_executable(decoding_tests decoding.cpp)
+target_compile_options(decoding_tests PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(decoding_tests PRIVATE instructionAPI cft_tests memory_tests
+                                             register_tests opcode_tests)
+add_test(NAME instructionAPI_decoding_tests COMMAND decoding_tests)
+set_tests_properties(instructionAPI_decoding_tests PROPERTIES LABELS "integration")

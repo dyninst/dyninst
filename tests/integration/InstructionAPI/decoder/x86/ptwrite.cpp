@@ -207,11 +207,13 @@ std::vector<ptwrite_test> make_tests64() {
         }
       }
     },
-    { // xsave (%rdi): the unprefixed neighbor in the same group 15 /4 slot
+    { // xsave (%rdi): the unprefixed neighbor in the same group 15 /4 slot.
+      // xsave also reads the requested-feature bitmap in EDX:EAX
+      // (SDM Vol 1, Section 13.7).
       {0x0f, 0xae, 0x27},
       di::opcode_test(e_xsave, "xsave (%rdi)"),
       di::register_rw_test{
-        reg_set{rdi},
+        reg_set{rdi, Dyninst::x86_64::edx, Dyninst::x86_64::eax},
         reg_set{}
       },
       di::mem_test{

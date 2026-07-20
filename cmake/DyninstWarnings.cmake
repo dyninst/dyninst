@@ -138,6 +138,7 @@ endif()
 # instructionAPI/src/InstructionDecoder-power.C (includes instructionAPI/src/power-opcode-table.C)
 # instructionAPI/src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C (includes instructionAPI/src/AMDGPU/gfx90a/finalizeOperands.C)
 # common/src/MachSyscall.C (includes common/src/SyscallInformation.C)
+# common/src/ia32_entry.C (the entryNames_IAPI mnemonic map is one static initializer)
 # cmake-format: on
 #
 if(HAS_CPP_FLAG_Wframe_larger_than AND NOT DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
@@ -173,6 +174,15 @@ if(HAS_CPP_FLAG_Wframe_larger_than AND NOT DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIO
     set(nonDebugMaxFrameSizeOverrideFinalizeOperands 29000)
   endif()
   set(maxFrameSizeOverrideRiscvInstructionApiTests 49152)
+
+  # ia32_entry.C is a single static initializer for the x86 mnemonic
+  # map (entryNames_IAPI); its frame is built once before main, so the
+  # -Wframe-larger-than heuristic is a false positive here. Allow room
+  # for the map to keep growing as more instructions are decoded. This
+  # is compiler-independent because the frame scales with the number of
+  # map entries, not the code generator.
+  set(debugMaxFrameSizeOverrideEntryNames 65536)
+  set(nonDebugMaxFrameSizeOverrideEntryNames 65536)
 endif()
 
 # clang >17.0 doesn't detect /usr/include/boost as a system directory

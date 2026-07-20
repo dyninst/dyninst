@@ -170,6 +170,21 @@ if(nonDebugMaxFrameSizeOverrideSyscallInformation)
       $<$<NOT:$<CONFIG:DEBUG>>:-Wframe-larger-than=${nonDebugMaxFrameSizeOverrideSyscallInformation}>
     )
 endif()
+if(debugMaxFrameSizeOverrideEntryNames)
+  set_source_files_properties(
+    src/ia32_entry.C
+    PROPERTIES
+      COMPILE_FLAGS
+      $<$<CONFIG:DEBUG>:-Wframe-larger-than=${debugMaxFrameSizeOverrideEntryNames}>)
+endif()
+if(nonDebugMaxFrameSizeOverrideEntryNames)
+  set_source_files_properties(
+    src/ia32_entry.C
+    PROPERTIES
+      COMPILE_FLAGS
+      $<$<NOT:$<CONFIG:DEBUG>>:-Wframe-larger-than=${nonDebugMaxFrameSizeOverrideEntryNames}>
+    )
+endif()
 
 # cmake-format: off
 dyninst_library(

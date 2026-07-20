@@ -248,7 +248,7 @@ enum {
   t_ill=0, t_oneB, t_twoB, t_threeB, t_threeB2, t_prefixedSSE, t_coprocEsc,
   t_grp, t_sse, t_sse_mult, t_sse_bis, t_sse_bis_mult,
   t_sse_ter, t_sse_ter_mult, t_grpsse, t_3dnow, t_vexl, t_vexw, t_sse_vex_mult, t_fma4,
-  t_xop_8_w, t_xop_9_w,
+  t_xop_8_w, t_xop_9_w, t_rexw,
   t_done=99
 };
 
@@ -289,6 +289,7 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
        s1RW2RW3R, // [i]div, cmpxch8b
        s1RW2R3RW, // v[p]gather[ps, pd, qq, qd]
        s1R2R3R,
+       s1W2W3W, // rdtscp (EDX, EAX, and ECX all written)
 
 /* Only 4 operands below here */
        s1W2R3R4R,
