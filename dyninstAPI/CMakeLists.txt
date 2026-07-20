@@ -43,7 +43,6 @@ set(_private_headers
     src/codeRange.h
     src/debug.h
     src/emit-amdgpu.h
-    src/emit-power.h
     src/emitter.h
     src/emit-x86.h
     src/freebsd.h

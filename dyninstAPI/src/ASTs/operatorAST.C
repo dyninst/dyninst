@@ -12,6 +12,7 @@
 #include "mapped_object.h"
 #include "operatorAST.h"
 #include "registerSpace/registerSpace.h"
+#include "codegen/RegControl.h"
 
 #include <iomanip>
 #include <limits>

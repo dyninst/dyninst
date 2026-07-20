@@ -32,6 +32,8 @@
 #define DYNINST_DYNINSTAPI_PARSE_FUNC_H
 
 #include "codeRange.h"
+#include "DynParseCallback.h"
+#include "Symtab.h"
 #include "Function.h"
 #include "parsing/parse_block.h"
 #include "Symbol.h"

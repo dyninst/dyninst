@@ -2,13 +2,13 @@
 #define DYNINST_DYNINSTAPI_AST_HELPERS_H
 
 #include "codegen/codegen.h"
+#include "emitter.h"
 #include "registerSpace/registerSpace.h"
 
 #include <cstdint>
 #include <cstdio>
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
-#include "emit-power.h"
 #include "inst-power.h"
 #elif defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "emit-x86.h"

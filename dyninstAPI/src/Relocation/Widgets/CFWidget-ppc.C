@@ -32,7 +32,7 @@
 #include "CFWidget.h"
 #include "Widget.h"
 #include "../CFG/RelocTarget.h"
-
+#include "emitter.h"
 #include "instructionAPI/h/Instruction.h"
 
 #include "dyninstAPI/src/debug.h"
@@ -40,7 +40,6 @@
 #include "../CodeTracker.h"
 #include "../CodeBuffer.h"
 #include "dyninstAPI/src/addressSpace.h"
-#include "dyninstAPI/src/emit-power.h"
 #include "registerSpace/registerSpace.h"
 
 using namespace Dyninst;
