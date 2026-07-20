@@ -14,6 +14,7 @@
 // The probe MAY be non-leaf: calling our wrappers makes it non-leaf, and the
 // inserted-call ABI sets up the scratch frame + return-address register for it.
 
+#include <cstdint>
 #include "hip/hip_runtime.h"
 
 // The runtime we provide. DEFINED in hostcall_lib.cpp, which is compiled into the
@@ -42,15 +43,18 @@ void pw_probe(void* slice) {
     unsigned long long ex = __builtin_amdgcn_read_exec();
     unsigned lo  = __builtin_amdgcn_mbcnt_lo((unsigned)ex, 0u);
     unsigned pos = __builtin_amdgcn_mbcnt_hi((unsigned)(ex >> 32), lo);
+    // Per-wave slice layout (bytes): [0:7]=file handle  [8]=hits  [12]=lanes  [16..]=name/text.
     if (pos == 0) {
-        volatile int* s = (volatile int*)slice;
-        s[0] += 1;                                    // [0] = # probe sites this wave hit
-        s[1]  = __builtin_popcountll(ex);             // [1] = active lanes at the last hit
+        char* b = (char*)slice;
+        *(volatile int*)(b + 8) += 1;                 // hits: # probe sites this wave hit
+        *(volatile int*)(b + 12) = __builtin_popcountll(ex);  // active lanes at last hit
     }
 }
 
-// Our fwrite runtime (defined in hostcall_lib.cpp, same code object).
-extern "C" __device__ int gpu_fwrite(long long handle, const char* data, int size);
+// Our fopen/fwrite runtime (defined in hostcall_lib.cpp, same code object). Match
+// its exact signatures (int64_t handle) so the single-TU reg-usage compile agrees.
+extern "C" __device__ int64_t gpu_fopen(const char* filename, const char* mode);
+extern "C" __device__ int     gpu_fwrite(int64_t handle, const char* data, int size);
 
 static __device__ int put_str(char* b, int i, const char* s) { while (*s) b[i++] = *s++; return i; }
 static __device__ int put_uint(char* b, int i, unsigned v) {
@@ -59,6 +63,29 @@ static __device__ int put_uint(char* b, int i, unsigned v) {
     while (v) { t[n++] = char('0' + v % 10); v /= 10; }
     while (n) b[i++] = t[--n];
     return i;
+}
+
+// PER-WAVE OPEN: each wave opens its OWN file "wave_<wid>.txt" and stashes the
+// returned handle in its slice, so later writes go to that file. gpu_fopen returns
+// the handle only on its elected lane; we do the format+open+store under a single
+// elected lane so the stored handle is the real one (not the -1 other lanes see).
+// The filename is built in the (global) slice — gpu_fopen reads its path via flat
+// loads, so a private/stack buffer would marshal garbage. Inserted at kernel ENTRY.
+extern "C" __device__ __noinline__ __attribute__((used))
+void pw_open(void* slice) {
+    unsigned long long ex = __builtin_amdgcn_read_exec();
+    unsigned lo  = __builtin_amdgcn_mbcnt_lo((unsigned)ex, 0u);
+    unsigned pos = __builtin_amdgcn_mbcnt_hi((unsigned)(ex >> 32), lo);
+    if (pos != 0) return;
+    unsigned wid = (blockIdx.x * blockDim.x + threadIdx.x) / 64u;
+    char* b = (char*)slice;
+    int i = 16;                                        // name buffer at slice+16
+    i = put_str(b, i, "wave_"); i = put_uint(b, i, wid); i = put_str(b, i, ".txt");
+    b[i] = '\0';
+    long long h = gpu_fopen(b + 16, "w");              // this wave's file
+    *(volatile long long*)(b + 0) = h;                 // stash handle for pw_flush
+    *(volatile int*)(b + 8)  = 0;                      // reset hits
+    *(volatile int*)(b + 12) = 0;                      // reset lanes
 }
 
 // PER-WAVE FLUSH: read this wave's accumulated slice, format a human-readable line,
@@ -73,16 +100,17 @@ void pw_flush(void* slice) {
     unsigned lo  = __builtin_amdgcn_mbcnt_lo((unsigned)ex, 0u);
     unsigned pos = __builtin_amdgcn_mbcnt_hi((unsigned)(ex >> 32), lo);
     if (pos != 0) return;                             // one lane per wave writes the line
-    volatile int* s = (volatile int*)slice;
-    int hits = s[0], lanes = s[1];                    // read BEFORE reformatting the slice
+    char* b = (char*)slice;
+    long long h  = *(volatile long long*)(b + 0);     // this wave's file handle (from pw_open)
+    int hits     = *(volatile int*)(b + 8);
+    int lanes    = *(volatile int*)(b + 12);          // read stats BEFORE reformatting
     unsigned wid = (blockIdx.x * blockDim.x + threadIdx.x) / 64u;
-    // Format into the SLICE itself (global device memory). gpu_fwrite reads its data
-    // pointer via flat loads; a private/stack buffer would read back as garbage, but
-    // the per-wave slice is global and per-wave-exclusive, so it's a safe scratch line.
-    char* b = (char*)slice; int i = 0;
+    // Format into the (global) slice text area; gpu_fwrite reads its data via flat
+    // loads, so it must be global, not a private/stack buffer.
+    int i = 16;
     i = put_str(b, i, "wave ");    i = put_uint(b, i, wid);
     i = put_str(b, i, ": hits=");  i = put_uint(b, i, (unsigned)hits);
     i = put_str(b, i, " lanes=");  i = put_uint(b, i, (unsigned)lanes);
     b[i++] = '\n';
-    gpu_fwrite(0, b, i);                              // -> dyninst_trace.txt
+    gpu_fwrite(h, b + 16, i - 16);                    // -> this wave's own file
 }

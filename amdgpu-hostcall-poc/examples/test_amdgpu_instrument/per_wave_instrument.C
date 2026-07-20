@@ -54,33 +54,31 @@ int main(int argc, char **argv) {
   }
   BPatch_image *img = bin->getImage();
 
+  BPatch_function *pwOpen  = find(img, "pw_open");
   BPatch_function *pwProbe = find(img, "pw_probe");
   BPatch_function *pwFlush = find(img, "pw_flush");
-  BPatch_function *hcOpen  = find(img, "hc_open");
-  BPatch_function *hcClose = find(img, "hc_close");
   BPatch_function *kernel  = find(img, kernelName);
-  if (!pwProbe || !pwFlush || !hcOpen || !hcClose || !kernel) {
-    std::cerr << "missing pw_probe/pw_flush/hc_open/hc_close or kernel '" << kernelName << "'\n";
+  if (!pwOpen || !pwProbe || !pwFlush || !kernel) {
+    std::cerr << "missing pw_open/pw_probe/pw_flush or kernel '" << kernelName << "'\n";
     return EXIT_FAILURE;
   }
 
-  // Allocate a per-wave variable (256 bytes/wave here). Each wave accumulates into
-  // its own slice during the kernel, then flushes one line to the trace file.
+  // Allocate a per-wave variable (256 bytes/wave). Each wave opens its OWN file at
+  // entry (handle stashed in the slice), accumulates during the kernel, and flushes
+  // one line to that file at exit. All three inserted calls get this wave's slice.
   BPatch_perWaveVar pw(/*bytesPerWave=*/256);
 
-  // Bracket the trace file: open at entry, close at exit (nullary runtime calls).
-  BPatch_Vector<BPatch_snippet *> noArgs;
-  BPatch_funcCallExpr openCall(*hcOpen, noArgs);
-  if (auto *e = kernel->findPoint(BPatch_entry))
-    bin->insertSnippet(openCall, *e, BPatch_callBefore, BPatch_lastSnippet);
-
-  // At exit: flush THIS wave's accumulated slice to the trace file, then close.
+  // Entry: open this wave's file.
+  if (auto *e = kernel->findPoint(BPatch_entry)) {
+    BPatch_snippet opSlice = pw.address();
+    BPatch_Vector<BPatch_snippet *> opArgs{ &opSlice };
+    bin->insertSnippet(BPatch_funcCallExpr(*pwOpen, opArgs), *e, BPatch_callBefore, BPatch_lastSnippet);
+  }
+  // Exit: flush this wave's accumulated stats to its file.
   if (auto *x = kernel->findPoint(BPatch_exit)) {
     BPatch_snippet flSlice = pw.address();
     BPatch_Vector<BPatch_snippet *> flArgs{ &flSlice };
     bin->insertSnippet(BPatch_funcCallExpr(*pwFlush, flArgs), *x, BPatch_callBefore, BPatch_lastSnippet);
-    BPatch_funcCallExpr closeCall(*hcClose, noArgs);
-    bin->insertSnippet(closeCall, *x, BPatch_callBefore, BPatch_lastSnippet);
   }
 
   BPatch_flowGraph *cfg = kernel->getCFG();

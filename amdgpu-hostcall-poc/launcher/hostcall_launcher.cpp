@@ -12,6 +12,8 @@
 #include <hsa/hsa.h>
 #include <hsa/hsa_ext_amd.h>
 #include <atomic>
+#include <map>
+#include <string>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -80,13 +82,13 @@ static hsa_status_t find_coarse_grained(hsa_amd_memory_pool_t pool, void* d) {
 static std::atomic<bool> g_run{true};
 
 static void service_loop(HostcallMailbox* mb) {
-    // hc_open is inserted at KERNEL ENTRY, so EVERY wave issues FOPEN (and each
-    // issues FCLOSE at exit). Naively re-fopen'ing per wave would truncate the
-    // file and leak handles. So make open/close idempotent for the whole launch:
-    // open exactly once, keep it open (never re-truncate), treat FCLOSE as a
-    // flush, and close once at teardown. Any number of waves then share one file
-    // and every write survives. `opens`/`closes` are tracked only for reporting.
-    FILE* fp = nullptr;
+    // Files are keyed by HANDLE so different waves can open different files: FOPEN
+    // opens the requested path (deduped by name) and returns its FILE* as the handle;
+    // FWRITE/FCLOSE act on (FILE*)mb->handle. Files stay open until teardown. A
+    // `primary` (the first file opened) preserves the legacy single-file WRITE_ID
+    // path used by the hc_write_id-based examples, which don't thread a handle.
+    std::map<std::string, FILE*> files;
+    FILE* primary = nullptr;
     long opens = 0, closes = 0, writes = 0;
     while (g_run.load(std::memory_order_acquire)) {
         if (__atomic_load_n(&mb->status, __ATOMIC_ACQUIRE) != 1) {
@@ -94,39 +96,39 @@ static void service_loop(HostcallMailbox* mb) {
             continue;
         }
         switch (mb->opcode) {
-        case HC_OP_FOPEN:
-            // DIAGNOSTIC: dump what the GPU actually marshalled into the mailbox.
-            fprintf(stderr, "[host] FOPEN req: opcode=%d size=%d  path[0..15]=",
-                    mb->opcode, mb->size);
-            for (int i = 0; i < 16; i++) fprintf(stderr, "%02x ", (unsigned char)mb->path[i]);
-            fprintf(stderr, " mode[0..3]=");
-            for (int i = 0; i < 4; i++) fprintf(stderr, "%02x ", (unsigned char)mb->mode[i]);
-            fprintf(stderr, "\n");
-            if (!fp) {                                   // open exactly once
-                fp = fopen(mb->path, mb->mode);
-                fprintf(stderr, "[host] fopen('%s','%s') -> %p\n", mb->path, mb->mode, (void*)fp);
+        case HC_OP_FOPEN: {
+            std::string name(mb->path);
+            FILE*& f = files[name];                      // open each distinct name once
+            if (!f) {
+                f = fopen(mb->path, mb->mode);
+                if (!primary) primary = f;
+                fprintf(stderr, "[host] fopen('%s','%s') -> %p\n", mb->path, mb->mode, (void*)f);
             }
             opens++;
-            mb->handle = (int64_t)(uintptr_t)fp;
-            mb->retval = fp ? 0 : -1;
-            break;
+            mb->handle = (int64_t)(uintptr_t)f;          // return the handle to the device
+            mb->retval = f ? 0 : -1;
+            break; }
         case HC_OP_FWRITE: {
-            int n = fp ? (int)fwrite(mb->data, 1, mb->size, fp) : -1;
-            if (fp) fflush(fp);
+            FILE* f = (FILE*)(uintptr_t)mb->handle;       // per-wave file (from gpu_fopen)
+            int n = f ? (int)fwrite(mb->data, 1, mb->size, f) : -1;
+            if (f) fflush(f);
             writes++;
             mb->retval = n;
             break; }
         case HC_OP_FREAD: {
-            int n = fp ? (int)fread(mb->data, 1, mb->size, fp) : -1;
+            FILE* f = (FILE*)(uintptr_t)mb->handle;
+            int n = f ? (int)fread(mb->data, 1, mb->size, f) : -1;
             mb->retval = n;
             break; }
-        case HC_OP_FCLOSE:
-            if (fp) fflush(fp);                          // defer real close to teardown
+        case HC_OP_FCLOSE: {
+            FILE* f = (FILE*)(uintptr_t)mb->handle;
+            if (f) fflush(f);                             // defer real close to teardown
+            else if (primary) fflush(primary);
             closes++;
             mb->retval = 0;
-            break;
-        case HC_OP_WRITE_ID:                             // per-site scalar id (call arg)
-            if (fp) { fprintf(fp, "[gpu] site %d\n", mb->arg); fflush(fp); }
+            break; }
+        case HC_OP_WRITE_ID:                             // legacy per-site scalar id -> primary file
+            if (primary) { fprintf(primary, "[gpu] site %d\n", mb->arg); fflush(primary); }
             writes++;
             mb->retval = 0;
             break;
@@ -137,9 +139,9 @@ static void service_loop(HostcallMailbox* mb) {
         __atomic_thread_fence(__ATOMIC_RELEASE);
         __atomic_store_n(&mb->status, 2, __ATOMIC_RELEASE);   // done -> release GPU
     }
-    if (fp) fclose(fp);                                  // single real close at teardown
-    fprintf(stderr, "[host] serviced %ld fopen / %ld fwrite / %ld fclose across all waves\n",
-            opens, writes, closes);
+    for (auto& kv : files) if (kv.second) fclose(kv.second);  // close every opened file
+    fprintf(stderr, "[host] serviced %ld fopen / %ld fwrite / %ld fclose (%zu distinct files)\n",
+            opens, writes, closes, files.size());
     fprintf(stderr, "[host] final ticket_next=%u ticket_now=%u status=%d (should be equal / 0)\n",
             mb->ticket_next, mb->ticket_now, mb->status);
 }
