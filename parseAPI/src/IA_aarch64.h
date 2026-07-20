@@ -65,6 +65,7 @@ class IA_aarch64 : public IA_IAPI {
 	virtual bool isIATcall(std::string &) const;
 	virtual bool isLinkerStub() const;
 	virtual bool isNopJump() const;
+	virtual bool isMultiInsnJump() const { return curInsn().getOperation().getID() == aarch64_op_blr; }
     private:
     using IA_IAPI::isFrameSetupInsn;
 };

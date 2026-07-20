@@ -30,6 +30,7 @@
 
 
 #include "IA_x86.h"
+#include "IndirectAnalyzer.h"
 #include "Dereference.h"
 #include "Immediate.h"
 #include "BinaryFunction.h"
@@ -825,3 +826,4 @@ bool IA_x86::isLinkerStub() const
     // No need for linker stubs on x86 platforms.
     return false;
 }
+

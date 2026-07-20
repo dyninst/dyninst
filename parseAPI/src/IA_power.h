@@ -95,6 +95,7 @@ class IA_power : public IA_IAPI {
 	virtual bool isIATcall(std::string &) const;
 	virtual bool isLinkerStub() const;
 	virtual bool isNopJump() const;
+	virtual bool isMultiInsnJump() const { return curInsn().getOperation().getID() == power_op_bcctr; }
     private:
     using IA_IAPI::isFrameSetupInsn;
 };
