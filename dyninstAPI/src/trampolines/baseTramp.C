@@ -204,6 +204,17 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
                          "App liveness?\n",  __FILE__, __LINE__, reg->number.getId());         
       }
    }
+   // Parallel of the unneeded-GPR check above for the volatile
+   // registers (condition flags). The save decision is made before the body
+   // exists, so on the first pass live flags are always saved. If the
+   // generated body never wrote a flag (see accumulateBodyClobbers),
+   // regenerate: with validOptimizationInfo set, the emitter skips the save.
+   if (savedUnneededVolatileRegs(rs)) {
+      regalloc_printf("[%s:%d] - baseTramp saved volatile registers the body "
+                      "never writes, suggesting regen\n", __FILE__, __LINE__);
+      saved_unneeded++;
+   }
+
    regalloc_printf("[%s:%d] - Should regen found %d unneeded saves\n",
                    __FILE__, __LINE__, saved_unneeded);
 #if defined(DYNINST_HOST_ARCH_X86_64) || defined(DYNINST_HOST_ARCH_X86)
@@ -395,10 +406,12 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
        generateSaves(gen, gen.rs());
    }
 
+   codeBufIndex_t bodyStart = gen.getIndex();
    if (!baseTrampAST->generateCode(gen)) {
       fprintf(stderr, "Gripe: base tramp creation failed\n");
       retval = false;
    }
+   accumulateBodyClobbers(gen, bodyStart);
 
    if (!gen.insertNaked()) {
        generateRestores(gen, gen.rs());
