@@ -55,15 +55,33 @@ int main(int argc, char **argv) {
   BPatch_image *img = bin->getImage();
 
   BPatch_function *pwProbe = find(img, "pw_probe");
+  BPatch_function *pwFlush = find(img, "pw_flush");
+  BPatch_function *hcOpen  = find(img, "hc_open");
+  BPatch_function *hcClose = find(img, "hc_close");
   BPatch_function *kernel  = find(img, kernelName);
-  if (!pwProbe || !kernel) {
-    std::cerr << "missing pw_probe or kernel '" << kernelName << "'\n";
+  if (!pwProbe || !pwFlush || !hcOpen || !hcClose || !kernel) {
+    std::cerr << "missing pw_probe/pw_flush/hc_open/hc_close or kernel '" << kernelName << "'\n";
     return EXIT_FAILURE;
   }
 
-  // Allocate a per-wave variable (256 bytes/wave here) and insert calls that pass
-  // THIS wave's slice as pw_probe's void* argument.
+  // Allocate a per-wave variable (256 bytes/wave here). Each wave accumulates into
+  // its own slice during the kernel, then flushes one line to the trace file.
   BPatch_perWaveVar pw(/*bytesPerWave=*/256);
+
+  // Bracket the trace file: open at entry, close at exit (nullary runtime calls).
+  BPatch_Vector<BPatch_snippet *> noArgs;
+  BPatch_funcCallExpr openCall(*hcOpen, noArgs);
+  if (auto *e = kernel->findPoint(BPatch_entry))
+    bin->insertSnippet(openCall, *e, BPatch_callBefore, BPatch_lastSnippet);
+
+  // At exit: flush THIS wave's accumulated slice to the trace file, then close.
+  if (auto *x = kernel->findPoint(BPatch_exit)) {
+    BPatch_snippet flSlice = pw.address();
+    BPatch_Vector<BPatch_snippet *> flArgs{ &flSlice };
+    bin->insertSnippet(BPatch_funcCallExpr(*pwFlush, flArgs), *x, BPatch_callBefore, BPatch_lastSnippet);
+    BPatch_funcCallExpr closeCall(*hcClose, noArgs);
+    bin->insertSnippet(closeCall, *x, BPatch_callBefore, BPatch_lastSnippet);
+  }
 
   BPatch_flowGraph *cfg = kernel->getCFG();
   std::set<BPatch_basicBlock *> blockSet;

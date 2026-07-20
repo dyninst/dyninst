@@ -48,3 +48,41 @@ void pw_probe(void* slice) {
         s[1]  = __builtin_popcountll(ex);             // [1] = active lanes at the last hit
     }
 }
+
+// Our fwrite runtime (defined in hostcall_lib.cpp, same code object).
+extern "C" __device__ int gpu_fwrite(long long handle, const char* data, int size);
+
+static __device__ int put_str(char* b, int i, const char* s) { while (*s) b[i++] = *s++; return i; }
+static __device__ int put_uint(char* b, int i, unsigned v) {
+    char t[10]; int n = 0;
+    if (!v) t[n++] = '0';
+    while (v) { t[n++] = char('0' + v % 10); v /= 10; }
+    while (n) b[i++] = t[--n];
+    return i;
+}
+
+// PER-WAVE FLUSH: read this wave's accumulated slice, format a human-readable line,
+// and stream it to the trace file via gpu_fwrite (the fopen/fwrite hostcall path).
+// Inserted at kernel EXIT, so each wave emits exactly one grouped line; the mailbox
+// ticket lock serializes waves, so lines don't interleave. wid is the wave's logical
+// flattened id, computed from the forwarded implicit ABI args (blockIdx/blockDim/
+// threadIdx). Non-leaf (calls gpu_fwrite, has a local buffer) — inserted-call ABI.
+extern "C" __device__ __noinline__ __attribute__((used))
+void pw_flush(void* slice) {
+    unsigned long long ex = __builtin_amdgcn_read_exec();
+    unsigned lo  = __builtin_amdgcn_mbcnt_lo((unsigned)ex, 0u);
+    unsigned pos = __builtin_amdgcn_mbcnt_hi((unsigned)(ex >> 32), lo);
+    if (pos != 0) return;                             // one lane per wave writes the line
+    volatile int* s = (volatile int*)slice;
+    int hits = s[0], lanes = s[1];                    // read BEFORE reformatting the slice
+    unsigned wid = (blockIdx.x * blockDim.x + threadIdx.x) / 64u;
+    // Format into the SLICE itself (global device memory). gpu_fwrite reads its data
+    // pointer via flat loads; a private/stack buffer would read back as garbage, but
+    // the per-wave slice is global and per-wave-exclusive, so it's a safe scratch line.
+    char* b = (char*)slice; int i = 0;
+    i = put_str(b, i, "wave ");    i = put_uint(b, i, wid);
+    i = put_str(b, i, ": hits=");  i = put_uint(b, i, (unsigned)hits);
+    i = put_str(b, i, " lanes=");  i = put_uint(b, i, (unsigned)lanes);
+    b[i++] = '\n';
+    gpu_fwrite(0, b, i);                              // -> dyninst_trace.txt
+}
