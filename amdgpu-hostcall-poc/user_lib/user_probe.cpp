@@ -29,3 +29,13 @@ void user_probe() {
     int active_lanes = __builtin_popcountll(exec);   // user's metric
     hc_write_id(active_lanes);                        // our runtime wrapper
 }
+
+// PER-WAVE-BUFFER probe: dyninst passes THIS wave's slice of a per-wave buffer as
+// the `slice` pointer (a BPatch_perWaveVar). The probe keeps per-wave state there —
+// here it just writes a marker to prove the 64-bit pointer arg arrives and points at
+// writable, per-wave-distinct memory the host can read back. A real probe would
+// accumulate (e.g. a counter/histogram) and periodically flush via gpu_fwrite.
+extern "C" __device__ __noinline__ __attribute__((used))
+void pw_probe(void* slice) {
+    ((volatile int*)slice)[0] = 0xABCD1234;          // marker at this wave's slice[0]
+}

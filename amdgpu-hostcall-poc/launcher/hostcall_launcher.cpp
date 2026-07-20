@@ -215,24 +215,29 @@ int main(int argc, char** argv) {
     printf("[host] bufs A=%p B=%p C=%p mailbox=%p  (each %zu bytes)\n",
            (void*)A, (void*)B, (void*)C, (void*)mbox, N*sizeof(float));
 
-    // Instrumentation scratch buffer for dyninst's per-wave register save/restore.
-    // Layout: [HEADER: u32 wave counter @0][ n_waves * SLOT_SIZE save slots ].
-    // dyninst's prologue loads this base from kernarg+(ksize-8), atomically grabs
-    // a per-wave id from the counter, and sets s[94:95] = base + HEADER + id*SLOT.
-    // These constants MUST match the dyninst prologue/spill codegen.
-    const uint32_t INST_SLOT_SIZE = 4096;
-    const uint32_t INST_HEADER    = 64;
+    // Per-wave user buffer (per-wave variable). dyninst captures this base from
+    // kernarg[ksize-8] at kernel entry into the IACR; an inserted call passes THIS
+    // wave's slice (base + wid*stride) as a void* arg to the user probe. Sized to one
+    // SLOT per grid wave. FINE-GRAINED (host-coherent) so the host can read what the
+    // probes wrote after the kernel finishes. [M1a: probes write the base (offset 0);
+    // per-wave wid*stride slicing lands in M1b.]
+    const uint32_t INST_SLOT_SIZE = 4096;                  // bytes per wave (stride; matches emitter)
+    const uint32_t INST_HEADER    = 0;                     // logical wid => slot at wid*SLOT (no counter)
     uint32_t n_waves = (uint32_t)((N + 63) / 64);          // wave64
     size_t   instbuf_sz = INST_HEADER + (size_t)n_waves * INST_SLOT_SIZE;
     void*    instbuf = nullptr;
-    // Device-local (VRAM) so the SGPR spill's scalar accesses are K$/L2-coherent
-    // within the wave (see find_coarse_grained). It is NOT CPU-accessible, so zero
-    // it with a device fill instead of memset.
-    HSA_CHECK(hsa_amd_memory_pool_allocate(cg.pool, instbuf_sz, 0, &instbuf));
+    HSA_CHECK(hsa_amd_memory_pool_allocate(fg.pool, instbuf_sz, 0, &instbuf));
     HSA_CHECK(hsa_amd_agents_allow_access(1, agents, nullptr, instbuf));
-    HSA_CHECK(hsa_amd_memory_fill(instbuf, 0, instbuf_sz / sizeof(uint32_t)));  // zero counter + slots
-    printf("[host] inst scratch buf @ %p  (%u waves x %u + %u hdr = %zu bytes)\n",
+    memset(instbuf, 0, instbuf_sz);                        // fine-grained: CPU-zeroable
+    printf("[host] per-wave buffer @ %p  (%u waves x %u + %u hdr = %zu bytes)\n",
            instbuf, n_waves, INST_SLOT_SIZE, INST_HEADER, instbuf_sz);
+
+    // Workgroup size: default = N (single workgroup, historical behavior).
+    // HOSTCALL_WG=<n> splits the grid into ceil(N/n) workgroups so blockIdx.x
+    // varies — needed to validate implicit-arg (blockIdx) forwarding.
+    uint32_t wg = (uint32_t)N;
+    if (const char* e = getenv("HOSTCALL_WG")) { uint32_t v = (uint32_t)atoi(e); if (v) wg = v; }
+    const uint32_t n_blocks = ((uint32_t)N + wg - 1) / wg;
 
     // Kernarg: C, A, B, N  (explicit args at the front of the segment).
     void* kernargs = nullptr;
@@ -244,6 +249,17 @@ int main(int argc, char** argv) {
     *(const float**)((char*)kernargs + 8)  = A;
     *(const float**)((char*)kernargs + 16) = B;
     *(int*)((char*)kernargs + 24) = N;
+    // Hidden (implicit) kernargs the HIP runtime normally fills — COV5/6 reads
+    // blockDim/gridDim from here, NOT the dispatch packet. Layout from the kernel
+    // metadata (llvm-readelf --notes): block_count_x @32 (u32), group_size_x @44
+    // (u16 = blockDim.x), remainder_x @50 (u16). Without these, blockDim.x reads 0
+    // and a multi-block kernel (i = blockIdx*blockDim + threadIdx) is wrong for
+    // every block but block 0. (Harmless at 1 workgroup since blockIdx==0.)
+    if (ka_sz >= 52) {
+        *(uint32_t*)((char*)kernargs + 32) = n_blocks;          // hidden_block_count_x
+        *(uint16_t*)((char*)kernargs + 44) = (uint16_t)wg;      // hidden_group_size_x = blockDim.x
+        *(uint16_t*)((char*)kernargs + 50) = (uint16_t)((uint32_t)N % wg); // hidden_remainder_x
+    }
     // The instrumentation prologue loads its scratch base from the 8 bytes that
     // maximizeSgprAllocationIfKernel appended at the end of the kernarg segment.
     if (ksize >= 8)
@@ -258,16 +274,17 @@ int main(int argc, char** argv) {
 
     // Start the CPU hostcall service thread BEFORE dispatch.
     std::thread svc(service_loop, mbox);
-    printf("[host] service thread started; dispatching kernel (N=%d, 1 workgroup)\n", N);
+    printf("[host] service thread started; dispatching kernel (N=%d, wg=%u, %u workgroup(s))\n",
+           N, wg, (unsigned)n_blocks);
 
-    // Enqueue a 1-workgroup dispatch of N threads.
+    // Enqueue the dispatch: grid = N threads, workgroup = wg threads.
     uint64_t idx = hsa_queue_load_write_index_relaxed(queue);
     const uint32_t mask = queue->size - 1;
     hsa_kernel_dispatch_packet_t* slot =
         &((hsa_kernel_dispatch_packet_t*)queue->base_address)[idx & mask];
     memset((void*)((uintptr_t)slot + 4), 0, sizeof(*slot) - 4);
     slot->setup = 1 << HSA_KERNEL_DISPATCH_PACKET_SETUP_DIMENSIONS;
-    slot->workgroup_size_x = N; slot->workgroup_size_y = 1; slot->workgroup_size_z = 1;
+    slot->workgroup_size_x = (uint16_t)wg; slot->workgroup_size_y = 1; slot->workgroup_size_z = 1;
     slot->grid_size_x = N; slot->grid_size_y = 1; slot->grid_size_z = 1;
     slot->private_segment_size = psize;
     slot->group_segment_size = gsize;
@@ -291,6 +308,18 @@ int main(int argc, char** argv) {
     // Stop the service thread.
     g_run.store(false, std::memory_order_release);
     svc.join();
+
+    // Per-wave buffer dump (per-wave variable). M1a: probes wrote through the base
+    // pointer (offset 0), so word[0] holds the marker. M1b: each wave writes its own
+    // slot at base + HEADER + wid*SLOT, so distinct slots become non-zero.
+    {
+        const uint32_t* pw = (const uint32_t*)instbuf;
+        printf("[host] per-wave buffer word[0] = 0x%08x\n", pw[0]);
+        int nonzero = 0;
+        for (uint32_t w = 0; w < n_waves; w++)
+            if (pw[(INST_HEADER + (size_t)w * INST_SLOT_SIZE) / 4]) nonzero++;
+        printf("[host] per-wave slots written: %d / %u\n", nonzero, n_waves);
+    }
 
     // Verify vectoradd result.
     int errors = 0;

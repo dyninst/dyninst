@@ -712,6 +712,10 @@ BPatch_gpuHwWaveIdExpr::BPatch_gpuHwWaveIdExpr() {
     initGpuValueSnippet(ast_wrapper, GpuValueKind::HwWaveId);
 }
 
+BPatch_gpuPerWaveBufExpr::BPatch_gpuPerWaveBufExpr() {
+    initGpuValueSnippet(ast_wrapper, GpuValueKind::PerWaveBuf);
+}
+
 /*
  * BPatch_whileExpr::BPatch_whileExpr
  *

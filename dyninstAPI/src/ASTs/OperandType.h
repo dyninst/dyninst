@@ -65,7 +65,9 @@ enum class operandType {
 // Kinds of GpuValue operand. The value fits in the operand's oValue (a void* slot).
 enum class GpuValueKind : long {
   ExecMask = 1,   // uniform, site-read: exec (low 32 lanes on the 32-bit arg path)
-  HwWaveId = 2    // uniform, site-read: HW_ID register (wave-slot/SIMD/CU/SE)
+  HwWaveId = 2,   // uniform, site-read: HW_ID register (wave-slot/SIMD/CU/SE)
+  PerWaveBuf = 3  // uniform, 64-bit PTR: this wave's slice of a per-wave buffer,
+                  // captured at entry (IACR OFF_PWBASE), lowered into a VGPR pair
 };
 
 // clang-format off

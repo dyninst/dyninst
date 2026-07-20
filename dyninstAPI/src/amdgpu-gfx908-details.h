@@ -142,6 +142,8 @@ enum SOP2_Opcode {
   S_ADDC_U32 = 4,
   S_SUBB_U32 = 5,
   S_MUL_I32 = 36,
+  S_LSHL_B32 = 28,   // 0x1c (verified via objdump: 30 decodes as s_lshr, 32 as s_ashr)
+  S_LSHR_B32 = 30,   // 0x1e
   S_CSELE3CT_B32 = 10,
   S_CSELECT_B64 = 11,
 

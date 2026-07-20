@@ -16,3 +16,8 @@ add_executable(user_probe_instrument user_probe_instrument.C)
 target_compile_options(user_probe_instrument PRIVATE ${EXAMPLES_WARNING_FLAGS})
 target_link_libraries(user_probe_instrument PRIVATE Dyninst::dyninstAPI)
 
+# Per-wave variable: pass THIS wave's slice of a per-wave buffer as a pointer arg.
+add_executable(per_wave_instrument per_wave_instrument.C)
+target_compile_options(per_wave_instrument PRIVATE ${EXAMPLES_WARNING_FLAGS})
+target_link_libraries(per_wave_instrument PRIVATE Dyninst::dyninstAPI)
+

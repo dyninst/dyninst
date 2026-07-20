@@ -50,11 +50,12 @@ struct ImplicitArgLayout {
     OFF_WITEMID  = 12,  // per-lane : packed workitem-id (v0 at entry)        4B  [3c]
     OFF_DISPATCH = 16,  // uniform  : dispatch ptr (lo@16, hi@20)             8B  [3b]
     OFF_KERNARG  = 24,  // uniform  : kernarg ptr  (lo@24, hi@28)             8B  [3d]
+    OFF_PWBASE   = 32,  // uniform  : per-wave buffer base ptr (lo@32,hi@36)  8B  [per-wave var]
   };
   // Total reserved size (per lane). The spill region and callee frames shift up by
   // this amount when implicit-arg forwarding is enabled. Keep 4-byte aligned; a
   // little headroom above the highest slot leaves room to grow.
-  static const uint32_t BYTES = 32;
+  static const uint32_t BYTES = 40;
 
   // Callee ABI registers the retrieved values are forwarded INTO (gfx908 device-fn
   // calling convention, empirically pinned): blockIdx x/y/z -> s12/s13/s14; packed

@@ -266,6 +266,32 @@ class DYNINST_EXPORT BPatch_gpuHwWaveIdExpr : public BPatch_snippet {
     BPatch_gpuHwWaveIdExpr();
 };
 
+// This wave's slice of a per-wave buffer, as a 64-bit pointer, for use as a call
+// argument. Each wavefront gets a distinct slice, so an inserted user probe can keep
+// per-wave state (e.g. accumulate then flush via gpu_fwrite). Prefer the first-class
+// BPatch_perWaveVar below, which owns the buffer's size; this is its address snippet.
+// (AMDGPU/gfx908.)
+class DYNINST_EXPORT BPatch_gpuPerWaveBufExpr : public BPatch_snippet {
+ public:
+    BPatch_gpuPerWaveBufExpr();
+};
+
+// A first-class per-wave variable: per-wave-distinct storage the framework backs and
+// hands to an inserted call. Allocate one (giving the per-wave byte size), then pass
+// address() as a BPatch_funcCallExpr argument; the callee receives this wave's slice
+// base as a void*. Mirrors CPU Dyninst's BPatch_variableExpr, but per-wavefront.
+// (AMDGPU/gfx908.)
+class DYNINST_EXPORT BPatch_perWaveVar {
+    unsigned bytes_;
+ public:
+    explicit BPatch_perWaveVar(unsigned bytesPerWave) : bytes_(bytesPerWave) {}
+    // Bytes reserved per wavefront (used by the launcher to size the backing buffer).
+    unsigned bytesPerWave() const { return bytes_; }
+    // Snippet resolving to THIS wave's slice base (a 64-bit pointer). Store it in a
+    // local and pass its address in the call's argument vector.
+    BPatch_snippet address() const { return BPatch_gpuPerWaveBufExpr(); }
+};
+
 class DYNINST_EXPORT BPatch_whileExpr : public BPatch_snippet {
   public:
    // BPatch_whileExpr::BPatch_whileExpr (while loop)

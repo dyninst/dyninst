@@ -947,6 +947,57 @@ public:
         emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, kp + 1, gen);
         emitScratchStore(vtmp, IAL::OFF_KERNARG + 4, saddr, gen);     // IACR[+28] = kernarg hi
       }
+
+      // Per-wave variable base. The launcher appends a device buffer pointer at the
+      // END of the kernarg segment (repurposing the vestigial instrumentation ptr);
+      // getKernargSize() is the ORIGINAL (pre-growth) size == that appended offset.
+      // Dereference it here, add THIS wave's slice offset, and capture the result into
+      // the IACR so an inserted call passes it as a 64-bit pointer arg (emitCall).
+      //
+      // Slice offset = wid * STRIDE, where wid is the LOGICAL flattened wave id
+      // (blockIdx.x*blockDim.x + threadIdx.x)/64 — uniform per wave (a wavefront is 64
+      // consecutive flattened thread ids). blockIdx.x = wgid_x entry SGPR (relocated to
+      // p-SHIFT); blockDim.x = hidden group_size_x (u16 @ kernarg + (ksize-256) + 12,
+      // COV5 implicit block); threadIdx.x = readfirstlane(v0) & 0x3ff (v0 is the packed
+      // workitem id at entry, still intact here). STRIDE is fixed to the launcher's
+      // per-wave SLOT (4096B) for now; a user-declared stride (BPatch_perWaveVar bytes)
+      // is future work. Scratch SGPRs are the free upper half of the reserved block.
+      if (L.kernargPtr >= 0 && kd.getKernargSize() >= 8) {
+        const uint32_t kp   = (uint32_t)L.kernargPtr;                 // s[kp:kp+1] = kernarg ptr
+        const uint32_t pwr  = saddr + 2;                             // base pair (reservedBase+4:+5)
+        const uint32_t sBd  = saddr + 4, sBi = saddr + 5;           // blockDim.x, blockIdx.x
+        const uint32_t sTid = saddr + 6, sWid = saddr + 7;          // threadIdx.x, wid/scratch
+        emitSmem(S_LOAD_DWORDX2, /*sdata=*/pwr, /*sbase=*/kp >> 1,
+                 /*offset=*/kd.getKernargSize(), gen);              // base = *(kernarg + ksize)
+        // blockDim.x (only if the COV5 implicit block is present; else single-wg => 0)
+        if (kd.getKernargSize() >= 256) {
+          emitSmem(S_LOAD_DWORD, /*sdata=*/sBd, /*sbase=*/kp >> 1,
+                   /*offset=*/(kd.getKernargSize() - 256) + 12, gen);
+          emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+          emitSop2RawWithLiteral(S_AND_B32, sBd, sBd, 0xFFFFu, gen);  // low 16 = blockDim.x
+        } else {
+          emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+          emitSop1Raw(/*S_MOV_B32=*/0, sBd, GFX908_INLINE_0, gen);    // 0
+        }
+        // blockIdx.x (uniform) from its entry SGPR, else 0 (single workgroup)
+        if (L.wgidX >= 0) emitSop1Raw(/*S_MOV_B32=*/0, sBi, (uint32_t)L.wgidX - SHIFT, gen);
+        else              emitSop1Raw(/*S_MOV_B32=*/0, sBi, GFX908_INLINE_0, gen);
+        // threadIdx.x = readfirstlane(v0) & 0x3ff  (uniform: first active lane's id)
+        emitVop1Reg(/*V_READFIRSTLANE_B32=*/2u, sTid, /*v0=*/256u + 0u, gen);
+        emitSop2RawWithLiteral(S_AND_B32, sTid, sTid, 0x3FFu, gen);
+        // wid = (blockIdx*blockDim + threadIdx) >> 6 ; off = wid << 12 (wid*4096)
+        emitSop2Raw(S_MUL_I32, sWid, sBi, sBd, gen);
+        emitSop2Raw(S_ADD_U32, sWid, sWid, sTid, gen);
+        emitSop2RawWithLiteral(S_LSHR_B32, sWid, sWid, 6u, gen);      // /64
+        emitSop2RawWithLiteral(S_LSHL_B32, sWid, sWid, 12u, gen);     // *4096 (STRIDE)
+        emitSop2Raw(S_ADD_U32,  pwr,     pwr,     sWid,            gen);  // base_lo += off
+        emitSop2Raw(S_ADDC_U32, pwr + 1, pwr + 1, GFX908_INLINE_0, gen); // carry
+        // capture this wave's slice base into the IACR (uniform: broadcast then store)
+        emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, pwr,     gen);
+        emitScratchStore(vtmp, IAL::OFF_PWBASE,     saddr, gen);      // IACR[+32] = slice lo
+        emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, pwr + 1, gen);
+        emitScratchStore(vtmp, IAL::OFF_PWBASE + 4, saddr, gen);      // IACR[+36] = slice hi
+      }
       emitSopP(S_WAITCNT, /*simm16=*/0, gen);
     }
   }
@@ -1330,6 +1381,10 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
     d.index = (uint16_t)i; d.dwords = 1; d.uniform = false;
     return d;
   };
+  // VGPR cursor: HIP passes args in consecutive VGPRs from v0; a 32-bit arg takes
+  // one VGPR, a 64-bit pointer arg (per-wave buffer) takes a pair. Advance by the
+  // arg's dword width so a following arg lands in the right register.
+  uint32_t vreg = 0;
   for (uint32_t i = 0; i < operands.size(); i++) {
     const auto &op = operands[i];
     assert(op && "AMDGPU emitCall: null call argument");
@@ -1339,23 +1394,33 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
            "(needs callee arg-CC derivation to populate the InputArg slot)");
     if (op->getoType() == operandType::Constant) {
       const uint32_t imm = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(op->getOValue()));
-      AmdgpuGfx908::emitVop1Imm(/*V_MOV_B32=*/1u, /*vdst=*/dst.index, imm, gen);
+      AmdgpuGfx908::emitVop1Imm(/*V_MOV_B32=*/1u, /*vdst=*/vreg, imm, gen);
+      vreg += 1;
     } else if (op->getoType() == operandType::GpuValue) {
-      // A GPU hardware/execution value read at the site: emit its recipe into the
-      // reserved arg-scratch SGPR (reservedBase, held by argReserved), then broadcast
-      // that uniform value into the arg VGPR. (Site-valid kinds only; entry-only kinds
-      // will read from an IACR slot once added — see amdgpu user-arg ASTs.)
       const long kind = (long)reinterpret_cast<uintptr_t>(op->getOValue());
-      // Recipe scratch = the SPARE reserved SGPR (reservedBase+3). The reserved block
-      // [reservedBase..+3] is EXEC-save (rb, rb+1), SADDR (rb+2), spare (rb+3); using
-      // rb (EXEC save) here would clobber the saved EXEC and corrupt the post-call
-      // restore. rb+3 is reserved (argReserved) so generateCode_phase2 won't take it.
-      const uint32_t sc = reservedBase + 3;   // uniform scratch SGPR for the read
-      if (kind == (long)GpuValueKind::ExecMask)
-        AmdgpuGfx908::emitSop1Raw(/*S_MOV_B32=*/0u, sc, /*exec_lo=*/126u, gen);
-      else /* HwWaveId */
-        AmdgpuGfx908::emitSopK(AmdgpuGfx908::S_GETREG_B32, sc, /*hwreg(HW_ID)=*/(int16_t)0xF804, gen);
-      AmdgpuGfx908::emitVop1Reg(/*V_MOV_B32=*/1u, /*vdst=*/dst.index, /*src0(SGPR)=*/sc, gen);
+      if (kind == (long)GpuValueKind::PerWaveBuf) {
+        // This wave's per-wave buffer slice: a 64-bit pointer captured at entry into
+        // the IACR (OFF_PWBASE). Load both dwords straight into the pointer arg's VGPR
+        // pair v(vreg):v(vreg+1). Uniform per wave (every lane's IACR slot holds the
+        // same base), so the per-lane scratch_load gives every lane the same pointer.
+        using IAL = Dyninst::DyninstAPI::ImplicitArgLayout;
+        sabi.emitScratchLoad(vreg,     IAL::OFF_PWBASE,     SADDR_REG, gen);
+        sabi.emitScratchLoad(vreg + 1, IAL::OFF_PWBASE + 4, SADDR_REG, gen);
+        AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+        vreg += 2;
+      } else {
+        // A GPU hardware/execution value read at the site: emit its recipe into the
+        // reserved arg-scratch SGPR, then broadcast that uniform value into the arg VGPR.
+        // Recipe scratch = the SPARE reserved SGPR (reservedBase+3); [reservedBase..+3]
+        // is EXEC-save (rb,rb+1), SADDR (rb+2), spare (rb+3); rb+3 is held by argReserved.
+        const uint32_t sc = reservedBase + 3;
+        if (kind == (long)GpuValueKind::ExecMask)
+          AmdgpuGfx908::emitSop1Raw(/*S_MOV_B32=*/0u, sc, /*exec_lo=*/126u, gen);
+        else /* HwWaveId */
+          AmdgpuGfx908::emitSopK(AmdgpuGfx908::S_GETREG_B32, sc, /*hwreg(HW_ID)=*/(int16_t)0xF804, gen);
+        AmdgpuGfx908::emitVop1Reg(/*V_MOV_B32=*/1u, /*vdst=*/vreg, /*src0(SGPR)=*/sc, gen);
+        vreg += 1;
+      }
     } else {
       Dyninst::Address unusedAddr = 0;
       Register res = Dyninst::Null_Register;
@@ -1363,8 +1428,9 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
         assert(!"AMDGPU emitCall: could not lower non-constant call argument");
       // src0 encoding: SGPR n -> n, VGPR n -> 256+n.
       const uint32_t src0 = res.isScalar() ? res.getId() : (256u + res.getId());
-      AmdgpuGfx908::emitVop1Reg(/*V_MOV_B32=*/1u, /*vdst=*/dst.index, src0, gen);
+      AmdgpuGfx908::emitVop1Reg(/*V_MOV_B32=*/1u, /*vdst=*/vreg, src0, gen);
       rs->freeRegister(res);
+      vreg += 1;
     }
   }
   for (Register &rr : argReserved)
