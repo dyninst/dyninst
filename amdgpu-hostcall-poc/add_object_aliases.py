@@ -42,6 +42,8 @@ Notes / assumptions:
     references are skipped.
 """
 import argparse
+import functools
+import operator
 import re
 import struct
 import subprocess
@@ -167,23 +169,91 @@ REGUSAGE_KEYS = (
     "uses_vcc", "uses_flat_scratch",
 )
 
-_REGUSAGE_RE = re.compile(
-    r"^\s*\.set\s+\.L(?P<fn>.+?)\.(?P<key>" + "|".join(REGUSAGE_KEYS) +
-    r")\s*,\s*(?P<val>\d+)\s*$")
+# A '.set NAME, EXPR' directive. NAME may be a '.L' assembler-local; EXPR is a
+# plain int for a leaf function, or an expression for a NON-LEAF one.
+_SET_RE = re.compile(r"^\s*\.set\s+(?P<name>[.\w$@]+)\s*,\s*(?P<expr>.+?)\s*$")
+# Reg-usage '.set' names look like '.L<fn>.<key>'.
+_REGUSAGE_NAME_RE = re.compile(
+    r"^\.L(?P<fn>.+)\.(?P<key>" + "|".join(REGUSAGE_KEYS) + r")$")
+# A symbol reference inside an expression (LLVM uses the '.L' local prefix).
+_SYM_REF_RE = re.compile(r"\.L[.\w$@]+")
+
+
+def _make_regusage_evaluator(defs: dict):
+    """Return a memoized evaluator resolving a '.set' symbol to an integer.
+
+    A NON-LEAF function's resource usage is emitted as an EXPRESSION over its
+    callees' symbols, e.g. (when the callee is visible in the same compile):
+        .set .Lfoo.num_vgpr,         max(1, .Lbar.num_vgpr)
+        .set .Lfoo.private_seg_size, 16+(max(.Lbar.private_seg_size))
+        .set .Lfoo.uses_flat_scratch, or(0, .Lbar.uses_flat_scratch)
+    The value we want is exactly what the compiler already computed; evaluate it
+    by substituting each referenced '.L' symbol with its resolved integer and
+    evaluating the small max/min/or/and/arith grammar. A reference to a symbol
+    that is not defined here (e.g. 'amdgpu.max_num_vgpr', which a STANDALONE
+    compile emits for an unresolved external call) raises, so the caller falls
+    back to the whole-object-max heuristic rather than exporting a bogus value.
+    """
+    memo = {}
+    # LLVM uses max(x)/max(a,b,...) with one OR many args, so accept varargs
+    # (Python's builtin max() rejects a single scalar).
+    env = {
+        "max": lambda *a: max(a), "min": lambda *a: min(a),
+        "or": lambda *a: functools.reduce(operator.or_, (int(x) for x in a), 0),
+        "and": lambda *a: functools.reduce(operator.and_, (int(x) for x in a), ~0),
+    }
+
+    def ev(name: str) -> int:
+        if name in memo:
+            if memo[name] is None:
+                raise ValueError(f"cyclic .set reference: {name}")
+            return memo[name]
+        if name not in defs:
+            raise KeyError(name)
+        memo[name] = None  # cycle guard
+        expr = defs[name]
+        # Substitute referenced symbols with their resolved integer values.
+        expr = _SYM_REF_RE.sub(lambda m: f"({ev(m.group(0))})", expr)
+        # 'or'/'and' are Python keywords; rewrite the call forms to helper names.
+        expr = re.sub(r"\bor\s*\(", "or_(", expr)
+        expr = re.sub(r"\band\s*\(", "and_(", expr)
+        local = dict(env, or_=env["or"], and_=env["and"])
+        val = int(eval(expr, {"__builtins__": {}}, local))  # trusted compiler asm
+        memo[name] = val
+        return val
+
+    return ev
 
 
 def parse_asm_regusage(path: str) -> dict:
-    """Parse '.set .L<fn>.<key>, <N>' lines from compiler assembly (-S output).
+    """Parse per-function resource usage from compiler assembly (-S output).
 
     Returns { func_name: { key: int } }. func_name matches the object's STT_FUNC
     symbol name (e.g. 'gpu_fopen' for extern "C", or the mangled name otherwise).
+
+    Leaf functions emit '.set .L<fn>.<key>, <N>'; non-leaf functions emit an
+    expression over their callees' '.L' symbols. Both are handled: all '.set'
+    directives are collected first, then each reg-usage symbol is evaluated. A
+    symbol whose expression references something undefined in this file (worst-case
+    marker from a standalone compile) is skipped, leaving the emitter's
+    whole-object-max fallback to cover it.
     """
-    out = {}
+    defs = {}
     with open(path) as fh:
         for line in fh:
-            m = _REGUSAGE_RE.match(line)
+            m = _SET_RE.match(line)
             if m:
-                out.setdefault(m.group("fn"), {})[m.group("key")] = int(m.group("val"))
+                defs[m.group("name")] = m.group("expr")
+    ev = _make_regusage_evaluator(defs)
+    out = {}
+    for name in defs:
+        rm = _REGUSAGE_NAME_RE.match(name)
+        if not rm:
+            continue
+        try:
+            out.setdefault(rm.group("fn"), {})[rm.group("key")] = ev(name)
+        except Exception as e:  # unresolved/cyclic/parse -> fall back to object-max
+            sys.stderr.write(f"  note: unresolved reg-usage {name}: {e}\n")
     return out
 
 
