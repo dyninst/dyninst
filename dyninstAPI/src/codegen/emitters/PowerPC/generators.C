@@ -217,36 +217,6 @@ namespace Dyninst { namespace DyninstAPI { namespace ppc {
     restoreSPR(gen, scratchReg, SPR_LR, stkOffset);
   }
 
-  ////////////////////////////////////////////////////////////////////
-  // Generates instructions to place a given value into link register.
-  //  The entire instruction sequence consists of the generated
-  //    instructions followed by a given (tail) instruction.
-  //  Returns the number of bytes needed to store the entire
-  //    instruction sequence.
-  //  The instruction storage pointer is advanced the number of
-  //    instructions in the sequence.
-  //
-  void setBRL(codeGen &gen,                 // Instruction storage pointer
-              Dyninst::Register scratchReg, // Scratch register
-              long val,                     // Value to set link register to
-              instruction ti)               // Tail instruction
-  {
-    insnCodeGen::loadImmIntoReg(gen, scratchReg, val);
-
-    instruction insn;
-
-    // mtspr:  mtlr scratchReg
-    insn.clear();
-    XFORM_OP_SET(insn, EXTop);
-    XFORM_RT_SET(insn, scratchReg);
-    XFORM_RA_SET(insn, SPR_LR);
-    XFORM_XO_SET(insn, MTSPRxop);
-    insnCodeGen::generate(gen, insn);
-
-    insn = ti;
-    insnCodeGen::generate(gen, insn);
-  }
-
   /////////////////////////////////////////////////////////////////////////
   // Generates instructions to save the condition codes register onto stack.
   //   Returns the number of bytes needed to store the generated
