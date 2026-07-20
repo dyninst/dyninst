@@ -314,10 +314,14 @@ int main(int argc, char** argv) {
     // slot at base + HEADER + wid*SLOT, so distinct slots become non-zero.
     {
         const uint32_t* pw = (const uint32_t*)instbuf;
-        printf("[host] per-wave buffer word[0] = 0x%08x\n", pw[0]);
         int nonzero = 0;
-        for (uint32_t w = 0; w < n_waves; w++)
-            if (pw[(INST_HEADER + (size_t)w * INST_SLOT_SIZE) / 4]) nonzero++;
+        printf("[host] per-wave buffer (one slice per wave):\n");
+        for (uint32_t w = 0; w < n_waves; w++) {
+            size_t o = (INST_HEADER + (size_t)w * INST_SLOT_SIZE) / 4;
+            printf("[host]   wave %2u slice[0]=%d (probe hits)  slice[1]=%d (active lanes)\n",
+                   w, (int)pw[o], (int)pw[o + 1]);
+            if (pw[o]) nonzero++;
+        }
         printf("[host] per-wave slots written: %d / %u\n", nonzero, n_waves);
     }
 

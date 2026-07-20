@@ -37,5 +37,14 @@ void user_probe() {
 // accumulate (e.g. a counter/histogram) and periodically flush via gpu_fwrite.
 extern "C" __device__ __noinline__ __attribute__((used))
 void pw_probe(void* slice) {
-    ((volatile int*)slice)[0] = 0xABCD1234;          // marker at this wave's slice[0]
+    // Elect the first active lane so exactly ONE lane per wave updates the slice
+    // (each wave owns its slice, so a plain RMW is race-free — no atomics needed).
+    unsigned long long ex = __builtin_amdgcn_read_exec();
+    unsigned lo  = __builtin_amdgcn_mbcnt_lo((unsigned)ex, 0u);
+    unsigned pos = __builtin_amdgcn_mbcnt_hi((unsigned)(ex >> 32), lo);
+    if (pos == 0) {
+        volatile int* s = (volatile int*)slice;
+        s[0] += 1;                                    // [0] = # probe sites this wave hit
+        s[1]  = __builtin_popcountll(ex);             // [1] = active lanes at the last hit
+    }
 }
