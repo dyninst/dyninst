@@ -61,7 +61,8 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
     emitters/PowerPC/generators.h
     emitters/PowerPC/ppc32/EmitterPowerPC32Dyn.h
     emitters/PowerPC/ppc32/EmitterPowerPC32Stat.h
-    emitters/PowerPC/ppc64/EmitterPowerPC64Dyn.h)
+    emitters/PowerPC/ppc64/EmitterPowerPC64Dyn.h
+    emitters/PowerPC/ppc64/EmitterPowerPC64Stat.h)
 
   list(
     APPEND
