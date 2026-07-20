@@ -30,11 +30,8 @@
 
 #include "InstructionDecoder-aarch64.h"
 #include "InstructionDecoder-power.h"
-#include "InstructionDecoder-x86.h"
 #include "InstructionDecoderImpl.h"
-#ifdef DYNINST_ENABLE_CAPSTONE
 #include "decoder/riscv/decoder.h"
-#endif
 #include "AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h"
 #include "AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h"
 #include "AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h"
@@ -42,6 +39,7 @@
 #include "Dereference.h"
 #include "MultiRegister.h"
 #include "Ternary.h"
+#include "x86/decoder.h"
 
 #include <boost/make_shared.hpp>
 
@@ -51,7 +49,7 @@ namespace Dyninst { namespace InstructionAPI {
                                                                          const char *mnem,
                                                                          unsigned int decodedSize,
                                                                          const unsigned char *raw) {
-    Operation tmp(opcode, mnem, m_Arch);
+    Operation tmp(opcode, mnem);
     return boost::make_shared<Instruction>(tmp, decodedSize, raw, m_Arch);
   }
 
@@ -59,7 +57,7 @@ namespace Dyninst { namespace InstructionAPI {
     switch(a) {
       case Arch_x86:
       case Arch_x86_64:
-        return Ptr(new InstructionDecoder_x86(a));
+        return Ptr(new x86_decoder(a));
       case Arch_ppc32:
       case Arch_ppc64:
         return Ptr(new InstructionDecoder_power(a));
@@ -67,12 +65,7 @@ namespace Dyninst { namespace InstructionAPI {
       case Arch_aarch64:
         return Ptr(new InstructionDecoder_aarch64(a));
       case Arch_riscv64:
-#if defined(DYNINST_ENABLE_CAPSTONE)
         return Ptr(new InstructionDecoder_riscv64(a));
-#else
-        assert(!"Dyninst must be configured with -DDYNINST_ENABLE_CAPSTONE=ON to parse RISC-V instructions.");
-        return Ptr();
-#endif
       case Arch_amdgpu_gfx908:
         return Ptr(new InstructionDecoder_amdgpu_gfx908(a));
       case Arch_amdgpu_gfx90a:
