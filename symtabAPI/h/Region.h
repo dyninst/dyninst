@@ -84,6 +84,7 @@ class DYNINST_EXPORT Region : public AnnotatableSparse {
       RT_GNU_HASH,
       RT_DYNSYM,
       RT_OTHER,
+      RT_RELR,
       RT_INVALID = -1
    };
 

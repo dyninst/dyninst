@@ -559,6 +559,24 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             newshdr->sh_entsize = 0x0;
         }
 
+        if (library_adjust > 0 && newdata->d_buf && newdata->d_size) {
+            for (Offset relr_addr : object->getRelrDynRelocs()) {
+                if (relr_addr < shdr->sh_addr ||
+                    relr_addr + sizeof(Elf_Relr) > shdr->sh_addr + shdr->sh_size)
+                    continue;
+
+                Offset relr_off = relr_addr - shdr->sh_addr;
+                if (relr_off + sizeof(Elf_Relr) > newdata->d_size)
+                    continue;
+
+                char *loc = static_cast<char *>(newdata->d_buf) + relr_off;
+                auto val = Dyninst::read_memory_as<Elf_Relr>(loc);
+                if (!val) continue;
+                val += library_adjust;
+                Dyninst::write_memory_as(loc, val);
+            }
+        }
+
         vector<vector<unsigned long> > moveSecAddrRange = object->getMoveSecAddrRange();
 
         for (unsigned i = 0; i != moveSecAddrRange.size(); i++) {
@@ -631,7 +649,15 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                 (strcmp(name, ".init_array") == 0 || strcmp(name, ".fini_array") == 0 ||
                  strcmp(name, "__libc_subfreeres") == 0 || strcmp(name, "__libc_atexit") == 0 ||
                  strcmp(name, "__libc_thread_subfreeres") == 0 || strcmp(name, "__libc_IO_vtables") == 0)) {
+            std::vector<Offset> &relr_relocs = object->getRelrDynRelocs();
+            // Every pointer-sized word in this section is shifted by library_adjust.
+            // A word that is also a RELR relocation target was already shifted by the
+            // earlier RELR loop, so skip to avoid offsetting it twice
+            std::unordered_set<Offset> relr_addrs(relr_relocs.begin(), relr_relocs.end());
             for(std::size_t off = 0; off < newdata->d_size; off += sizeof(void*)) {
+                Offset addr = shdr->sh_addr + off;
+                if (relr_addrs.count(addr)) continue;  // already adjusted as a RELR reloc
+
                 char *loc = static_cast<char*>(newdata->d_buf) + off;
                 size_t val{};
                 // The calls to memcpy are required to not break the aliasing rules.
@@ -952,6 +978,19 @@ void emitElf<ElfTypes>::fixPhdrs() {
 #if !defined(DT_TLSDESC_GOT)
 #define DT_TLSDESC_GOT 0x6ffffef7
 #endif
+// Older elf.h headers may not define RELR dynamic tag constants
+#if !defined(DT_RELRSZ)
+#define DT_RELRSZ 35
+#endif
+#if !defined(DT_RELR)
+#define DT_RELR 36
+#endif
+#if !defined(DT_RELRENT)
+#define DT_RELRENT 37
+#endif
+#if !defined(SHT_RELR)
+#define SHT_RELR 19
+#endif
 
 //This method updates the .dynamic section to reflect the changes to the relocation section
 template<class ElfTypes>
@@ -965,10 +1004,12 @@ void emitElf<ElfTypes>::updateDynamic(unsigned tag, Elf_Addr val) {
         case DT_STRSZ:
         case DT_RELSZ:
         case DT_RELASZ:
+        case DT_RELRSZ:
         case DT_PLTRELSZ:
         case DT_RELACOUNT:
         case DT_RELENT:
         case DT_RELAENT:
+        case DT_RELRENT:
             dynamicSecData[tag][0]->d_un.d_val = val;
             break;
         case DT_HASH:
@@ -977,6 +1018,7 @@ void emitElf<ElfTypes>::updateDynamic(unsigned tag, Elf_Addr val) {
         case DT_STRTAB:
         case DT_REL:
         case DT_RELA:
+        case DT_RELR:
         case DT_VERSYM:
         case DT_JMPREL:
             dynamicSecData[tag][0]->d_un.d_ptr = val;
@@ -1155,6 +1197,20 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
                 updateDynamic(DT_RELA, newshdr->sh_addr);
             else if (newSecs[i]->getRegionType() == Region::RT_PLTRELA)
                 updateDynamic(DT_JMPREL, newshdr->sh_addr);
+        }
+        else if (newSecs[i]->getRegionType() == Region::RT_RELR)
+        {
+            newshdr->sh_type = SHT_RELR;
+            newshdr->sh_flags = SHF_ALLOC;
+            newshdr->sh_entsize = sizeof(Elf_Relr);
+            // SHT_RELR entries are Elf32_Word for ELFCLASS32 and Elf64_Xword
+            // for ELFCLASS64
+            newdata->d_type =
+                (sizeof(Elf_Relr) == sizeof(Elf32_Word)) ? ELF_T_WORD : ELF_T_XWORD;
+            newdata->d_align = sizeof(Elf_Relr);
+            updateDynamic(DT_RELR, newshdr->sh_addr);
+            updateDynamic(DT_RELRSZ, newSecs[i]->getDiskSize());
+            updateDynamic(DT_RELRENT, sizeof(Elf_Relr));
         }
         else if (newSecs[i]->getRegionType() == Region::RT_STRTAB)    //String table Section
         {
@@ -1775,6 +1831,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
             createRelocationSections(object->getDynRelocs(), true, dynSymNameMapping);
             createRelocationSections(object->getPLTRelocs(), false, dynSymNameMapping);
         }
+        createRelrRelocationSection(object->getRelrDynRelocs());
 
         //add .dynamic section
         if (dynsecSize)
@@ -1991,6 +2048,75 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
 }
 
 template<class ElfTypes>
+void emitElf<ElfTypes>::createRelrRelocationSection(std::vector<Offset> &relr_table) {
+    if (relr_table.empty()) return;
+
+    // Re-encode the decoded relr table into compact RELR format
+    // Inverse of decodeRelrEntries()
+    // Entries alternate by their LSB:
+    //  - even = an absolute address
+    //  - odd  = a bitmap whose set bits mark relocated words following the
+    //           last address
+    std::vector<Offset> addrs(relr_table);
+    for (auto &a : addrs)
+        a += library_adjust;
+    std::sort(addrs.begin(), addrs.end());
+    addrs.erase(std::unique(addrs.begin(), addrs.end()), addrs.end());
+
+    const Offset word_size = sizeof(Elf_Relr);
+    const Offset addrBytesPerRelrBitmap = (8 * word_size - 1) * word_size;
+
+    std::vector<Elf_Relr> packed;
+    Offset bitmapBeginAddr = 0;  // first addr covered by bitmap
+    Offset bitmapEndAddr = 0;    // first addr not covered by bitmap
+    Elf_Relr bitmap = 0;
+    for (size_t i = 0; i < addrs.size(); ) {
+        auto a = addrs[i];
+        if (bitmapBeginAddr <= a && a < bitmapEndAddr) {
+            auto offset = a - bitmapBeginAddr;
+            if ((offset % word_size) == 0) {                 // check if aligned
+                ++i;                                         // consume addr
+                bitmap |= 1UL << ((offset / word_size) + 1); // set bit
+            } else {
+                bitmapBeginAddr = bitmapEndAddr;  // unaligned, invalidate bitmap, try again
+            }
+            continue;
+        }
+        if (bitmap) {
+            bitmap |= 1;                             // set bit 0, indicating a bitmap
+            packed.push_back(bitmap);                // add RELR entry
+            bitmap = 0;
+            if (bitmapBeginAddr != bitmapEndAddr) {  // set new bitmap range, if valid
+                bitmapBeginAddr = bitmapEndAddr;
+                bitmapEndAddr += addrBytesPerRelrBitmap;
+            }
+            continue;  // try again, the value might be in new bitmap range
+        }
+        ++i;                              // consume addr
+        packed.push_back(a);              // add RELR entry
+        bitmapBeginAddr = a + word_size;  // set new bitmap range
+        bitmapEndAddr = bitmapBeginAddr + addrBytesPerRelrBitmap;
+    }
+    if (bitmap) {                         // if final bitmap
+        bitmap |= 1;                      // set bit 0, indicating a bitmap
+        packed.push_back(bitmap);         // add RELR entry
+    }
+
+    Elf_Relr *relrs = (Elf_Relr *) malloc(sizeof(Elf_Relr) * packed.size());
+    memcpy(relrs, packed.data(), sizeof(Elf_Relr) * packed.size());
+
+    dyn_hash_map<int, Region *> secTagRegionMapping = object->getTagRegionMapping();
+    string name;
+    if (secTagRegionMapping.find(DT_RELR) != secTagRegionMapping.end())
+        name = secTagRegionMapping[DT_RELR]->getRegionName();
+    else
+        name = ".relr.dyn";
+
+    obj->addRegion(0, relrs, packed.size() * sizeof(Elf_Relr), std::move(name),
+                   Region::RT_RELR, true);
+}
+
+template<class ElfTypes>
 void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedSecData, unsigned &verneedSecSize,
                                                char *&verdefSecData,
                                                unsigned &verdefSecSize, unsigned &dynSymbolNamesLength,
@@ -2008,6 +2134,29 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
     symVers = (Elf_Half *) malloc(versionSymTable.size() * sizeof(Elf_Half));
     for (unsigned i = 0; i < versionSymTable.size(); i++)
         symVers[i] = versionSymTable[i];
+
+    // Preserve original .gnu.version_r entries that were not recreated through
+    // symbol version references, unless their provider library was removed
+    const auto &originalVersionMapping = object->getVersionMapping();
+    const auto &originalVersionFileNameMapping = object->getVersionFileNameMapping();
+    const auto &removedLibraries = object->libsRMd();
+    for (const auto &versionEntry : originalVersionMapping) {
+        auto fileEntry = originalVersionFileNameMapping.find(versionEntry.first);
+        if (fileEntry == originalVersionFileNameMapping.end()) continue;
+        if (find(removedLibraries.begin(), removedLibraries.end(), fileEntry->second) !=
+            removedLibraries.end()) continue;
+
+        auto &versionEntries = verneedEntries[fileEntry->second];
+        for (const auto &versionName : versionEntry.second) {
+            if (versionEntries.find(versionName) != versionEntries.end()) continue;
+            if (versionNames.find(versionName) == versionNames.end()) {
+                versionNames[versionName] = dynSymbolNamesLength;
+                dynStrs.push_back(versionName);
+                dynSymbolNamesLength += versionName.size() + 1;
+            }
+            versionEntries[versionName] = curVersionNum++;
+        }
+    }
 
     //reconstruct .gnu.version_r section
     verneedSecSize = 0;
