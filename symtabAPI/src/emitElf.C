@@ -560,9 +560,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         }
 
         if (library_adjust > 0 && newdata->d_buf && newdata->d_size) {
-            std::vector<Offset> &relr_relocs = object->getRelrDynRelocs();
-            for (unsigned ri = 0; ri < relr_relocs.size(); ++ri) {
-                Offset relr_addr = relr_relocs[ri];
+            for (Offset relr_addr : object->getRelrDynRelocs()) {
                 if (relr_addr < shdr->sh_addr ||
                     relr_addr + sizeof(Elf_Relr) > shdr->sh_addr + shdr->sh_size)
                     continue;
@@ -572,11 +570,10 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                     continue;
 
                 char *loc = static_cast<char *>(newdata->d_buf) + relr_off;
-                Elf_Relr val = 0;
-                memcpy(&val, loc, sizeof(val));
+                auto val = Dyninst::read_memory_as<Elf_Relr>(loc);
                 if (!val) continue;
                 val += library_adjust;
-                memcpy(loc, &val, sizeof(val));
+                Dyninst::write_memory_as(loc, val);
             }
         }
 
@@ -2115,7 +2112,7 @@ void emitElf<ElfTypes>::createRelrRelocationSection(std::vector<Offset> &relr_ta
     else
         name = ".relr.dyn";
 
-    obj->addRegion(0, relrs, packed.size() * sizeof(Elf_Relr), name,
+    obj->addRegion(0, relrs, packed.size() * sizeof(Elf_Relr), std::move(name),
                    Region::RT_RELR, true);
 }
 
