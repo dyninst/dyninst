@@ -983,12 +983,58 @@ bool int_process::waitAndHandleForProc(bool block, int_process *proc, bool &proc
 #define UNSET_CHECK        -8
 #define printCheck(VAL)    (((int) VAL) == UNSET_CHECK ? '?' : (VAL ? 'T' : 'F'))
 
+// for_each callback: note processes with a thread whose computed run target
+// diverges from its actual handler state (e.g. handler-stopped but targeted
+// running so an in-flight SIGSTOP can be delivered).  Runs under the ProcPool
+// lock, so it must not call syncRunState itself.
+static bool collectDivergentRunStateProcs(int_process *p, void *data)
+{
+   std::vector<int_process *> *out = (std::vector<int_process *> *) data;
+   if (p->getState() == int_process::exited || p->getState() == int_process::errorstate)
+      return true;
+   int_threadPool *tp = p->threadPool();
+   if (!tp)
+      return true;
+   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
+      int_thread *thr = *i;
+      int_thread::State active = thr->getActiveState().getState();
+      if (active == int_thread::ditto)
+         active = thr->getHandlerState().getState();
+      if (RUNNING_STATE(active) != RUNNING_STATE(thr->getHandlerState().getState())) {
+         out->push_back(p);
+         return true;
+      }
+   }
+   return true;
+}
+
+// Re-run syncRunState for any process left with a divergent thread; returns
+// true if any process needed it.  See the self-heal comments in
+// waitAndHandleEvents.
+bool int_process::syncDivergentRunStates()
+{
+   std::vector<int_process *> divergent;
+   ProcPool()->for_each(collectDivergentRunStateProcs, &divergent);
+   if (divergent.empty()) {
+      return false;
+   }
+   pthrd_printf("Self-heal: %d proc(s) have divergent run states, re-syncing\n",
+                (int) divergent.size());
+   for (std::vector<int_process *>::iterator i = divergent.begin();
+        i != divergent.end(); i++) {
+      if (!(*i)->syncRunState())
+         pthrd_printf("Self-heal syncRunState failed on %d\n", (*i)->getPid());
+   }
+   return true;
+}
+
 bool int_process::waitAndHandleEvents(bool block)
 {
    pthrd_printf("Top of waitAndHandleEvents.  Block = %s\n", block ? "true" : "false");
    bool gotEvent = false;
    assert(!int_process::in_callback);
    bool error = false;
+   bool preblock_synced = false;
 
    static bool recurse = false;
    assert(!recurse);
@@ -1044,6 +1090,24 @@ bool int_process::waitAndHandleEvents(bool block)
       //      over it while (should_block == true), with a condition variable signaling when the
       //      should_block would go to false (so we don't just spin).
 
+      /**
+       * Self-heal before parking: a thread can be left with an actionable
+       * run-state divergence -- e.g. handler-stopped but targeted running so
+       * that an in-flight SIGSTOP can be delivered (PendingStop state) -- with
+       * no event in flight to drive another syncRunState pass.  Parking now
+       * would deadlock: the mailbox stays empty precisely because the thread
+       * was never continued.  Re-run syncRunState once for such processes;
+       * it is idempotent, and any action it takes (e.g. continuing the thread
+       * so the pending stop is delivered) produces the event that wakes the
+       * dequeue below.  If the divergence is not resolvable we park exactly
+       * as before -- the sweep runs at most once per park.
+       **/
+      if (should_block && !preblock_synced) {
+         preblock_synced = true;
+         if (syncDivergentRunStates())
+            continue;
+      }
+
       if (should_block && Counter::globalCount(Counter::ForceGeneratorBlock)) {
          // Entirely possible we didn't continue anything, but we want the generator to
          // wake up anyway
@@ -1054,6 +1118,18 @@ bool int_process::waitAndHandleEvents(bool block)
 
       if (ev == Event::ptr())
       {
+         /**
+          * Mailbox drained.  This is the other park point: the handler thread
+          * services events with block=false and returns here when done, and a
+          * divergence formed during its handling (see above) would otherwise
+          * be left for nobody -- the main thread may already be blocked in
+          * its own dequeue.  Sweep once before giving up.
+          **/
+         if (!preblock_synced) {
+            preblock_synced = true;
+            if (syncDivergentRunStates())
+               continue;
+         }
          if (gotEvent) {
             pthrd_printf("Returning after handling events\n");
             goto done;
@@ -1088,6 +1164,7 @@ bool int_process::waitAndHandleEvents(bool block)
       }
 
       gotEvent = true;
+      preblock_synced = false;
 
       bool terminating = (ev->getProcess()->isTerminated());
 
@@ -2105,6 +2182,11 @@ bool int_process::removeBreakpoint(Dyninst::Address addr, int_breakpoint *bp, se
 
 sw_breakpoint *int_process::getBreakpoint(Dyninst::Address addr)
 {
+   // The process may already have been torn down (mem is reset to NULL in
+   // cleanupProcess) while a breakpoint event for it is still in flight.
+   // Guard against the resulting NULL dereference; the breakpoint is gone.
+   if (!mem)
+      return NULL;
    std::map<Dyninst::Address, sw_breakpoint *>::iterator  i = mem->breakpoints.find(addr);
    if (i == mem->breakpoints.end())
       return NULL;
@@ -2516,6 +2598,18 @@ bool indep_lwp_control_process::plat_syncRunState()
     	  pthrd_printf("Suppressing error of continue/stop on exited process\n");
     	  if(thr->plat_handle_ghost_thread()) {
     		  thr->getHandlerState().setState(int_thread::running);
+    	  }
+    	  else {
+             // ESRCH with the thread still alive: the kernel is in a
+             // transitional stop state (see plat_handle_ghost_thread) and the
+             // continue/stop will succeed once it settles.  Retry via a nop
+             // event rather than silently swallowing the failure -- otherwise
+             // the run-state divergence is left with no event in flight and
+             // the event loop parks forever.
+             pthrd_printf("Ptrace op failed on live thread %d/%d; scheduling retry\n",
+                          getPid(), thr->getLWP());
+             usleep(500);
+             throwNopEvent();
     	  }
       }
       else if (!result) {
@@ -2935,6 +3029,34 @@ int_thread::~int_thread()
 bool int_thread::intStop()
 {
    pthrd_printf("intStop on thread %d/%d\n", llproc()->getPid(), getLWP());
+   if (isExiting() || isExitingInGenerator()) {
+      // The thread's exit event has already been observed: a SIGSTOP sent now
+      // can never be delivered (pre-destroyed threads never report the stop),
+      // which would leave the PendingStop state permanently desync'd and
+      // deadlock any proc-stop waiter.  The thread's destroy event is already
+      // queued/in flight and will mark it stopped; treat the request as
+      // satisfied.  (LinuxHandleLWPDestroy covers the case where the pending
+      // stop was created before the exit was observed.)
+      pthrd_printf("Not stopping exiting thread %d/%d\n", llproc()->getPid(), getLWP());
+      return true;
+   }
+   {
+      int_thread::State gen_state = getGeneratorState().getState();
+      if (gen_state == int_thread::stopped || gen_state == int_thread::exited) {
+         // The generator has already observed this thread stop: its stop
+         // event is decoded and queued, and the handler will mark it stopped
+         // imminently.  Sending SIGSTOP now is unnecessary (the thread is
+         // already stopped) and harmful: the signal cannot be delivered while
+         // the thread is stopped, pinning the PendingStop state desync'd
+         // forever, and on Linux a STOP signal sent to an already
+         // ptrace-stopped thread can put it in a transitional state in which
+         // PTRACE_CONT persistently fails with ESRCH (see
+         // plat_handle_ghost_thread).  Treat the request as satisfied.
+         pthrd_printf("Not stopping %d/%d: generator already saw it stop\n",
+                      llproc()->getPid(), getLWP());
+         return true;
+      }
+   }
    if (!llproc()->plat_processGroupContinues()) {
       assert(!RUNNING_STATE(target_state));
       assert(RUNNING_STATE(getHandlerState().getState()));
@@ -4514,7 +4636,18 @@ int_thread *int_threadPool::initialThread() const
 bool int_threadPool::allHandlerStopped()
 {
    for (iterator i = begin(); i != end(); i++) {
-      if ((*i)->getHandlerState().getState() != int_thread::stopped)
+      int_thread *thr = *i;
+      // A thread that has exited, or is in the process of exiting, cannot run
+      // and will be reaped once its (still pending) exit event is handled.  Its
+      // handler state can transiently still read 'running' in that window.
+      // Such a thread poses no risk to operations that only require the live
+      // threads to be quiesced (e.g. thread_db memory reads), so don't let it
+      // block them.  Mirrors the exiting-thread handling in syncRunState().
+      if (thr->getHandlerState().getState() == int_thread::exited ||
+          thr->getGeneratorState().getState() == int_thread::exited ||
+          thr->isExiting() || thr->isExitingInGenerator())
+         continue;
+      if (thr->getHandlerState().getState() != int_thread::stopped)
          return false;
    }
    return true;
@@ -8650,9 +8783,12 @@ bool ProcStopEventManager::prepEvent(Event::ptr ev)
       return true;
    }
 
+   // The event's thread may already have exited (llthrd() NULL): don't crash
+   // in debug logging.
    pthrd_printf("Adding event %s on %d/%d to pending proc stopper list\n",
                 ev->name().c_str(), ev->getProcess()->llproc()->getPid(),
-                ev->getThread()->llthrd()->getLWP());
+                (ev->getThread() && ev->getThread()->llthrd()) ?
+                   ev->getThread()->llthrd()->getLWP() : (Dyninst::LWP)-1);
    pair<set<Event::ptr>::iterator, bool> result = held_pstop_events.insert(ev);
    assert(result.second);
    return false;
@@ -8669,7 +8805,8 @@ void ProcStopEventManager::checkEvents()
 
       pthrd_printf("ProcStop event %s on %d/%d is ready, adding to queue\n",
                 ev->name().c_str(), ev->getProcess()->llproc()->getPid(),
-                ev->getThread()->llthrd()->getLWP());
+                (ev->getThread() && ev->getThread()->llthrd()) ?
+                   ev->getThread()->llthrd()->getLWP() : (Dyninst::LWP)-1);
 
       i = held_pstop_events.erase(i);
       mbox()->enqueue(ev);
