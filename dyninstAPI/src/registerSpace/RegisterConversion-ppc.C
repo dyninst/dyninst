@@ -35,7 +35,6 @@
 #include <boost/assign/list_of.hpp>
 
 #include "Register.h"
-#include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
 #include "registers/abstract_regs.h"
 #include "registerSpace/registerSpace.h"
@@ -44,77 +43,6 @@ using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace std;
 using namespace boost::assign;
-
-multimap<Register, MachRegister> regToMachReg32 = map_list_of
-  (registerSpace::r0, ppc32::r0)
-  (registerSpace::r1, ppc32::r1)
-  (registerSpace::r2, ppc32::r2)
-  (registerSpace::r3, ppc32::r3)
-  (registerSpace::r4, ppc32::r4)
-  (registerSpace::r5, ppc32::r5)
-  (registerSpace::r6, ppc32::r6)
-  (registerSpace::r7, ppc32::r7)
-  (registerSpace::r8, ppc32::r8)
-  (registerSpace::r9, ppc32::r9)
-  (registerSpace::r10, ppc32::r10)
-  (registerSpace::r11, ppc32::r11)
-  (registerSpace::r12, ppc32::r12)
-  (registerSpace::r13, ppc32::r13)
-  (registerSpace::r14, ppc32::r14)
-  (registerSpace::r15, ppc32::r15)
-  (registerSpace::r16, ppc32::r16)
-  (registerSpace::r17, ppc32::r17)
-  (registerSpace::r18, ppc32::r18)
-  (registerSpace::r19, ppc32::r19)
-  (registerSpace::r20, ppc32::r20)
-  (registerSpace::r21, ppc32::r21)
-  (registerSpace::r22, ppc32::r22)
-  (registerSpace::r23, ppc32::r23)
-  (registerSpace::r24, ppc32::r24)
-  (registerSpace::r25, ppc32::r25)
-  (registerSpace::r26, ppc32::r26)
-  (registerSpace::r27, ppc32::r27)
-  (registerSpace::r28, ppc32::r28)
-  (registerSpace::r29, ppc32::r29)
-  (registerSpace::r30, ppc32::r30)
-  (registerSpace::r31, ppc32::r31)
-  (registerSpace::fpr0, ppc32::fpr0)
-  (registerSpace::fpr1, ppc32::fpr1)
-  (registerSpace::fpr2, ppc32::fpr2)
-  (registerSpace::fpr3, ppc32::fpr3)
-  (registerSpace::fpr4, ppc32::fpr4)
-  (registerSpace::fpr5, ppc32::fpr5)
-  (registerSpace::fpr6, ppc32::fpr6)
-  (registerSpace::fpr7, ppc32::fpr7)
-  (registerSpace::fpr8, ppc32::fpr8)
-  (registerSpace::fpr9, ppc32::fpr9)
-  (registerSpace::fpr10, ppc32::fpr10)
-  (registerSpace::fpr11, ppc32::fpr11)
-  (registerSpace::fpr12, ppc32::fpr12)
-  (registerSpace::fpr13, ppc32::fpr13)
-  (registerSpace::fpr14, ppc32::fpr14)
-  (registerSpace::fpr15, ppc32::fpr15)
-  (registerSpace::fpr16, ppc32::fpr16)
-  (registerSpace::fpr17, ppc32::fpr17)
-  (registerSpace::fpr18, ppc32::fpr18)
-  (registerSpace::fpr19, ppc32::fpr19)
-  (registerSpace::fpr20, ppc32::fpr20)
-  (registerSpace::fpr21, ppc32::fpr21)
-  (registerSpace::fpr22, ppc32::fpr22)
-  (registerSpace::fpr23, ppc32::fpr23)
-  (registerSpace::fpr24, ppc32::fpr24)
-  (registerSpace::fpr25, ppc32::fpr25)
-  (registerSpace::fpr26, ppc32::fpr26)
-  (registerSpace::fpr27, ppc32::fpr27)
-  (registerSpace::fpr28, ppc32::fpr28)
-  (registerSpace::fpr29, ppc32::fpr29)
-  (registerSpace::fpr30, ppc32::fpr30)
-  (registerSpace::fpr31, ppc32::fpr31)
-  (registerSpace::xer, ppc32::xer)
-  (registerSpace::lr, ppc32::lr)
-  (registerSpace::ctr, ppc32::ctr)
-  (registerSpace::mq, ppc32::mq)
-  (registerSpace::cr, ppc32::cr);
 
 multimap<Register, MachRegister> regToMachReg64 = map_list_of
   (registerSpace::r0, ppc64::r0)
@@ -290,81 +218,7 @@ Register convertRegID(RegisterAST* toBeConverted)
 }
 
 MachRegister convertRegID(Register r, Dyninst::Architecture arch) {
-    if( arch == Arch_ppc32 ) {
-        switch(r) {
-            case registerSpace::r0: return ppc32::r0;
-            case registerSpace::r1: return ppc32::r1;
-            case registerSpace::r2: return ppc32::r2;
-            case registerSpace::r3: return ppc32::r3;
-            case registerSpace::r4: return ppc32::r4;
-            case registerSpace::r5: return ppc32::r5;
-            case registerSpace::r6: return ppc32::r6;
-            case registerSpace::r7: return ppc32::r7;
-            case registerSpace::r8: return ppc32::r8;
-            case registerSpace::r9: return ppc32::r9;
-            case registerSpace::r10: return ppc32::r10;
-            case registerSpace::r11: return ppc32::r11;
-            case registerSpace::r12: return ppc32::r12;
-            case registerSpace::r13: return ppc32::r13;
-            case registerSpace::r14: return ppc32::r14;
-            case registerSpace::r15: return ppc32::r15;
-            case registerSpace::r16: return ppc32::r16;
-            case registerSpace::r17: return ppc32::r17;
-            case registerSpace::r18: return ppc32::r18;
-            case registerSpace::r19: return ppc32::r19;
-            case registerSpace::r20: return ppc32::r20;
-            case registerSpace::r21: return ppc32::r21;
-            case registerSpace::r22: return ppc32::r22;
-            case registerSpace::r23: return ppc32::r23;
-            case registerSpace::r24: return ppc32::r24;
-            case registerSpace::r25: return ppc32::r25;
-            case registerSpace::r26: return ppc32::r26;
-            case registerSpace::r27: return ppc32::r27;
-            case registerSpace::r28: return ppc32::r28;
-            case registerSpace::r29: return ppc32::r29;
-            case registerSpace::r30: return ppc32::r30;
-            case registerSpace::r31: return ppc32::r31;
-            case registerSpace::fpr0: return ppc32::fpr0;
-            case registerSpace::fpr1: return ppc32::fpr1;
-            case registerSpace::fpr2: return ppc32::fpr2;
-            case registerSpace::fpr3: return ppc32::fpr3;
-            case registerSpace::fpr4: return ppc32::fpr4;
-            case registerSpace::fpr5: return ppc32::fpr5;
-            case registerSpace::fpr6: return ppc32::fpr6;
-            case registerSpace::fpr7: return ppc32::fpr7;
-            case registerSpace::fpr8: return ppc32::fpr8;
-            case registerSpace::fpr9: return ppc32::fpr9;
-            case registerSpace::fpr10: return ppc32::fpr10;
-            case registerSpace::fpr11: return ppc32::fpr11;
-            case registerSpace::fpr12: return ppc32::fpr12;
-            case registerSpace::fpr13: return ppc32::fpr13;
-            case registerSpace::fpr14: return ppc32::fpr14;
-            case registerSpace::fpr15: return ppc32::fpr15;
-            case registerSpace::fpr16: return ppc32::fpr16;
-            case registerSpace::fpr17: return ppc32::fpr17;
-            case registerSpace::fpr18: return ppc32::fpr18;
-            case registerSpace::fpr19: return ppc32::fpr19;
-            case registerSpace::fpr20: return ppc32::fpr20;
-            case registerSpace::fpr21: return ppc32::fpr21;
-            case registerSpace::fpr22: return ppc32::fpr22;
-            case registerSpace::fpr23: return ppc32::fpr23;
-            case registerSpace::fpr24: return ppc32::fpr24;
-            case registerSpace::fpr25: return ppc32::fpr25;
-            case registerSpace::fpr26: return ppc32::fpr26;
-            case registerSpace::fpr27: return ppc32::fpr27;
-            case registerSpace::fpr28: return ppc32::fpr28;
-            case registerSpace::fpr29: return ppc32::fpr29;
-            case registerSpace::fpr30: return ppc32::fpr30;
-            case registerSpace::fpr31: return ppc32::fpr31;
-            case registerSpace::xer: return ppc32::xer;
-            case registerSpace::lr: return ppc32::lr;
-            case registerSpace::ctr: return ppc32::ctr;
-            case registerSpace::mq: return ppc32::mq;
-            case registerSpace::cr: return ppc32::cr0;
-            default:
-                break;
-        }
-    }else if( arch == Arch_ppc64 ) {
+    if( arch == Arch_ppc64 ) {
         switch(r) {
             case registerSpace::r0: return ppc64::r0;
             case registerSpace::r1: return ppc64::r1;

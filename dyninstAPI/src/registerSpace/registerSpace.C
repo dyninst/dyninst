@@ -1306,9 +1306,9 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 	std::pair<std::multimap<Register, MachRegister>::iterator, std::multimap<Register, MachRegister>::iterator> range;
 	LivenessAnalyzer *live;
 	if (addr_width == 4){
-#if defined(DYNINST_CODEGEN_ARCH_AARCH64)
+#if defined(DYNINST_CODEGEN_ARCH_AARCH64) || defined(DYNINST_CODEGEN_ARCH_POWER)
+	// aarch64 and ppc64 are 64-bit only; there is no 32-bit register map.
 	assert(0);
-	//#error "aarch64 should not be 32bit long"
 #else
 		range = regToMachReg32.equal_range(reg);
 		live = &live1;
