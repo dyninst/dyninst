@@ -1,0 +1,21 @@
+##============================================================================
+##  The contents of this file are covered by the Dyninst license. See
+##  LICENSE.txt for details.
+##
+##  By contributing to this file, all contributors agree to the Developer
+##  Certificate of Origin Version 1.1 (DCO 1.1) as stated in DCO.txt.
+##============================================================================
+
+# Include the github-sync component
+include:
+  - component: $CI_SERVER_FQDN/dav-sdk/gh-gl-sync/github-sync@~latest
+    inputs:
+      github_project: hainest/dyninst
+      gitlab_repo: git@ssh.gitlab.spack.io:tools-sdk/dyninst.git
+      gitlab_host: https://gitlab.spack.io/
+      gitlab_project: tools-sdk/dyninst
+      sync_draft_prs: false
+      sync_image: ghcr.io/spack/ci-bridge:0.0.46
+      status_context: "GitLab CI on Frank"
+    rules:
+      - if: $CI_SERVER_HOST == "gitlab.spack.io"
