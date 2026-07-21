@@ -69,8 +69,19 @@ static size_t                   g_pw_bytes = 0;     // its size (HOSTCALL_PW_BYT
 static std::thread              g_svc;
 static std::atomic<bool>        g_run{true};
 static std::atomic<bool>        g_svc_started{false};
-static std::vector<uint8_t>     g_orig_co, g_inst_co, g_lib_co;   // file contents cached
-static std::vector<uint8_t>     g_bundle;                          // substitute fatbin bundle
+// One code-object substitution: match the app's original co, swap in the instrumented
+// bundle. A manifest holds several so a multi-code-object app (exe + HIP .so's, each its
+// own fatbin/executable) is fully covered.
+struct Sub { std::vector<uint8_t> orig, inst, bundle; std::string tag; };
+
+// These are accessed from __hipRegisterFatBinary, which a HIP shared library fires
+// during DSO init — possibly BEFORE this .so's own static constructors run. A file-scope
+// `static std::vector` would be populated by the early call and then RE-CONSTRUCTED
+// (emptied) when its own ctor finally runs (static-init-order fiasco, observed: 2 subs on
+// the first registration, 0 on the second). Function-local statics construct on first use
+// and are never reset, so they survive the early call.
+static std::vector<Sub>&     g_subs()   { static std::vector<Sub> v; return v; }
+static std::vector<uint8_t>& g_lib_co() { static std::vector<uint8_t> v; return v; }
 
 // HIP's fat-binary wrapper: __hipRegisterFatBinary(data) receives a pointer to this;
 // `binary` points at a __CLANG_OFFLOAD_BUNDLE__ that HIP parses for kernel metadata
@@ -90,22 +101,45 @@ static bool slurp(const char* path, std::vector<uint8_t>& out) {
     return true;
 }
 
-static bool load_config() {
-    const char* orig   = getenv("HOSTCALL_ORIG_CO");
-    const char* inst   = getenv("HOSTCALL_INST_CO");
-    const char* lib    = getenv("HOSTCALL_LIB");
-    const char* bundle = getenv("HOSTCALL_BUNDLE");
-    if (!orig || !inst || !lib || !bundle) {
-        fprintf(stderr, "[preload] set HOSTCALL_ORIG_CO / HOSTCALL_INST_CO / HOSTCALL_LIB / HOSTCALL_BUNDLE\n");
-        return false;
-    }
-    if (!slurp(orig, g_orig_co) || !slurp(inst, g_inst_co) ||
-        !slurp(lib, g_lib_co)  || !slurp(bundle, g_bundle)) return false;
-    fprintf(stderr, "[preload] target co=%s (%zu B) -> inst=%s (%zu B); lib=%s (%zu B); bundle=%s (%zu B)\n",
-            orig, g_orig_co.size(), inst, g_inst_co.size(), lib, g_lib_co.size(), bundle, g_bundle.size());
+static bool add_sub(const char* orig, const char* inst, const char* bundle) {
+    Sub s; s.tag = orig;
+    if (!slurp(orig, s.orig) || !slurp(inst, s.inst) || !slurp(bundle, s.bundle)) return false;
+    fprintf(stderr, "[preload] sub[%zu]: %s (%zu B) -> inst %zu B / bundle %zu B\n",
+            g_subs().size(), orig, s.orig.size(), s.inst.size(), s.bundle.size());
+    g_subs().push_back(std::move(s));
     return true;
 }
-static bool g_cfg_ok = load_config();
+static bool load_config() {
+    const char* lib = getenv("HOSTCALL_LIB");
+    if (!lib || !slurp(lib, g_lib_co())) {
+        fprintf(stderr, "[preload] set HOSTCALL_LIB\n"); return false;
+    }
+    // Multi-code-object: HOSTCALL_MANIFEST is a file of "orig_co inst_co bundle" lines.
+    if (const char* mf = getenv("HOSTCALL_MANIFEST")) {
+        FILE* f = fopen(mf, "r"); if (!f) { perror(mf); return false; }
+        char a[1024], b[1024], c[1024];
+        while (fscanf(f, "%1023s %1023s %1023s", a, b, c) == 3) add_sub(a, b, c);
+        fclose(f);
+    } else {
+        const char* orig = getenv("HOSTCALL_ORIG_CO");
+        const char* inst = getenv("HOSTCALL_INST_CO");
+        const char* bundle = getenv("HOSTCALL_BUNDLE");
+        if (!orig || !inst || !bundle) {
+            fprintf(stderr, "[preload] set HOSTCALL_ORIG_CO/INST_CO/BUNDLE (or HOSTCALL_MANIFEST)\n");
+            return false;
+        }
+        add_sub(orig, inst, bundle);
+    }
+    fprintf(stderr, "[preload] %zu substitution(s); lib=%s (%zu B)\n", g_subs().size(), lib, g_lib_co().size());
+    return !g_subs().empty();
+}
+// LAZY, once: a HIP shared library's __hipRegisterFatBinary can fire before this .so's
+// static initializers run (init order across DSOs is not guaranteed), so we must NOT
+// gate on a `static bool = load_config()` — that leaves g_cfg_ok=false for the earliest
+// registration (the .so's), silently skipping its substitution. Initialize on first use.
+static std::once_flag g_cfg_once;
+static bool           g_cfg_ok_v = false;
+static bool cfg() { std::call_once(g_cfg_once, []{ g_cfg_ok_v = load_config(); }); return g_cfg_ok_v; }
 
 // ------------------------------------------------------------------ bundle parse
 // Locate the AMDGPU device code object inside a __CLANG_OFFLOAD_BUNDLE__: returns its
@@ -252,7 +286,7 @@ static void augment_executable(hsa_executable_t exe, hsa_agent_t agent) {
     }
 
     hsa_code_object_reader_t r{};
-    s = real_hsa_code_object_reader_create_from_memory(g_lib_co.data(), g_lib_co.size(), &r);
+    s = real_hsa_code_object_reader_create_from_memory(g_lib_co().data(), g_lib_co().size(), &r);
     if (s != HSA_STATUS_SUCCESS) { fprintf(stderr, "[preload] lib reader status=%d\n", s); return; }
     s = real_hsa_executable_load_agent_code_object(exe, agent, r, "", nullptr);
     if (s != HSA_STATUS_SUCCESS) fprintf(stderr, "[preload] load(lib) status=%d\n", s);
@@ -265,16 +299,20 @@ static void augment_executable(hsa_executable_t exe, hsa_agent_t agent) {
 // it. Matches by the device co embedded in the incoming bundle == the original app co.
 extern "C" void** __hipRegisterFatBinary(void* data) {
     static auto real = (void**(*)(void*))dlsym(RTLD_NEXT, "__hipRegisterFatBinary");
-    if (g_cfg_ok && data) {
+    if (cfg() && data) {
         auto* w = (FatBinaryWrapper*)data;
         const uint8_t* co; uint64_t co_sz, total;
-        if (w->binary && bundle_device_co(w->binary, co, co_sz, total) &&
-            co_sz == g_orig_co.size() && memcmp(co, g_orig_co.data(), co_sz) == 0) {
-            FatBinaryWrapper* nw = new FatBinaryWrapper(*w);
-            nw->binary = g_bundle.data();
-            fprintf(stderr, "[preload] __hipRegisterFatBinary: SUBSTITUTED app fatbin "
-                    "(device co %lu B -> instrumented bundle %zu B)\n", co_sz, g_bundle.size());
-            return real(nw);
+        if (w->binary && bundle_device_co(w->binary, co, co_sz, total)) {
+            for (auto& s : g_subs()) {
+                if (co_sz == s.orig.size() && memcmp(co, s.orig.data(), co_sz) == 0) {
+                    FatBinaryWrapper* nw = new FatBinaryWrapper(*w);
+                    nw->binary = s.bundle.data();
+                    fprintf(stderr, "[preload] __hipRegisterFatBinary: SUBSTITUTED %s "
+                            "(device co %lu B -> instrumented bundle %zu B)\n",
+                            s.tag.c_str(), co_sz, s.bundle.size());
+                    return real(nw);
+                }
+            }
         }
     }
     return real(data);
@@ -287,15 +325,19 @@ hsa_status_t hsa_code_object_reader_create_from_memory(const void* data, size_t 
                                                        hsa_code_object_reader_t* reader) {
     BIND(hsa_code_object_reader_create_from_memory);
     hsa_status_t s = real_hsa_code_object_reader_create_from_memory(data, size, reader);
-    if (s == HSA_STATUS_SUCCESS && g_cfg_ok && size == g_inst_co.size() &&
-        memcmp(data, g_inst_co.data(), size) == 0) {
-        std::lock_guard<std::mutex> lk(g_mtx);
-        g_inst_readers.insert(reader->handle);
-        fprintf(stderr, "[preload] detected instrumented co load (%zu B); reader=%lu\n",
-                size, reader->handle);
-    } else {
-        LOG("[preload] passthrough co_reader size=%zu\n", size);
+    bool matched = false;
+    if (s == HSA_STATUS_SUCCESS && cfg()) {
+        for (auto& sub : g_subs()) {
+            if (size == sub.inst.size() && memcmp(data, sub.inst.data(), size) == 0) {
+                std::lock_guard<std::mutex> lk(g_mtx);
+                g_inst_readers.insert(reader->handle);
+                fprintf(stderr, "[preload] detected instrumented co load %s (%zu B); reader=%lu\n",
+                        sub.tag.c_str(), size, reader->handle);
+                matched = true; break;
+            }
+        }
     }
+    if (!matched) LOG("[preload] passthrough co_reader size=%zu\n", size);
     return s;
 }
 
