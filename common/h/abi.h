@@ -46,14 +46,43 @@ namespace Dyninst {
     std::unique_ptr<Dyninst::abi::abi_impl> impl{};
   public:
     explicit ABI(Dyninst::Architecture a);
+    ~ABI();
+    ABI(ABI&&) noexcept;
+    ABI& operator=(ABI&&) noexcept;
 
-  //  const bitArray &getCallReadRegisters() const;
-  //  const bitArray &getCallWrittenRegisters() const;
-  //  const bitArray &getReturnReadRegisters() const;
-  //  const bitArray &getReturnRegisters() const;
-  //  const bitArray &getParameterRegisters() const;
-  //  const bitArray &getSyscallReadRegisters() const;
-  //  const bitArray &getSyscallWrittenRegisters() const;
+    // Address width (in bytes) of the modelled architecture.
+    int addressWidth() const;
+
+    /*
+     * The accessors below return registerSets rather than the bitArrays used
+     * by the previous ABI class. bitArray and its per-architecture index maps
+     * live in dataflowAPI, which depends on common, so this common-layer class
+     * cannot use them. Consumers that need a bitArray (e.g. LivenessAnalyzer)
+     * convert these sets using their own index map.
+     */
+
+    // Registers used to pass parameters to a function.
+    Dyninst::abi::registerSet const& getParameterRegisters() const;
+
+    // Registers that hold a function's return value(s).
+    Dyninst::abi::registerSet const& getReturnRegisters() const;
+
+    // Registers live (read) at a function return: return values, callee-saved
+    // registers, and ABI globals.
+    Dyninst::abi::registerSet const& getReturnReadRegisters() const;
+
+    // Registers a call may read: parameter registers and ABI globals.
+    Dyninst::abi::registerSet const& getCallReadRegisters() const;
+
+    // Registers a call may clobber (caller-saved): everything that is neither
+    // callee-saved nor an ABI global.
+    Dyninst::abi::registerSet const& getCallWrittenRegisters() const;
+
+    // Registers a system call may read: syscall arguments and ABI globals.
+    Dyninst::abi::registerSet const& getSyscallReadRegisters() const;
+
+    // Registers a system call may clobber.
+    Dyninst::abi::registerSet const& getSyscallWrittenRegisters() const;
   };
 
 }
