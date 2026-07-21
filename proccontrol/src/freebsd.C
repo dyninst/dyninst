@@ -1015,7 +1015,7 @@ Dyninst::Architecture freebsd_process::getTargetArch() {
     arch = (addr_width == 4) ? Dyninst::Arch_x86 : Dyninst::Arch_x86_64;
 #elif defined(DYNINST_HOST_ARCH_POWER)
     assert(addr_width == 4 || addr_width == 8);
-    arch = (addr_width == 4) ? Dyninst::Arch_ppc32 : Dyninst::Arch_ppc64;
+    arch = Dyninst::Arch_ppc64;
 #else
     assert(!"Unknown architecture");
 #endif

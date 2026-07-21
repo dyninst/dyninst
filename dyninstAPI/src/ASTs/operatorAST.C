@@ -892,7 +892,6 @@ namespace {
         return (value >= 0) && (value <= 0xFFFF);
       }
 
-      case Dyninst::Arch_ppc32:
       case Dyninst::Arch_ppc64:
         return (value <= 32767) && (value >= -32768);
 

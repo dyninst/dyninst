@@ -1924,7 +1924,6 @@ int int_process::getAddressWidth()
 {
    switch (getTargetArch()) {
       case Arch_x86:
-      case Arch_ppc32:
       case Arch_aarch32:
          return 4;
       case Arch_x86_64:
