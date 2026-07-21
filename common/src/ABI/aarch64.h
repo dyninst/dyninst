@@ -189,7 +189,10 @@ architecture make_aarch64() {
     aarch64::s14,
     aarch64::q15,
     aarch64::d15,
-    aarch64::s15
+    aarch64::s15,
+
+    aarch64::x29, // Frame pointer (FP) - callee-saved
+    aarch64::w29
   };
 
   arch.function.globals = {
@@ -211,9 +214,7 @@ architecture make_aarch64() {
     aarch64::w18,
 
     aarch64::x30, // Link register (LR)
-    aarch64::w30,
-    aarch64::x29, // Frame pointer (FP)
-    aarch64::w29
+    aarch64::w30
 
     // Note: The N, Z, C and V flags are undefined on entry to and return
     //       from a public interface. We don't need to do anything with them.

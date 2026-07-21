@@ -42,9 +42,9 @@ namespace Dyninst { namespace abi {
     Dyninst::Architecture arch{};
     Dyninst::abi::architecture machine;
 
-    // Registers of the architecture, and the semantic sets derived from the
-    // per-architecture interface_definitions.
-    registerSet allRegs;
+    // The architecture's computational registers, and the semantic sets
+    // derived from the per-architecture interface_definitions.
+    registerSet computational;
     registerSet params;
     registerSet returnRegs;
     registerSet returnRead;
@@ -84,11 +84,15 @@ namespace Dyninst { namespace abi {
     // consumes. Unsupported architectures leave every set empty.
     //
     // Every set is expressed in terms of *base* registers (e.g. rbx rather than
-    // ebx/bx/bl). This is what makes the "written" sets correct: without it,
-    // subtracting a preserved register (rbx) from the full register list would
-    // leave its sub-registers (ebx, ...) behind and wrongly mark them clobbered.
-    // Consumers must likewise canonicalize a register to its base before
-    // querying these sets (MachRegister::getBaseRegister()).
+    // ebx/bx/bl); consumers must canonicalize a register to its base before
+    // querying (MachRegister::getBaseRegister()).
+    //
+    // The "written" sets are the computational registers (general-purpose,
+    // vector, floating-point and flag registers) that are not callee-saved.
+    // Restricting to computational registers keeps control/status, segment and
+    // other system registers - which an ordinary call/syscall never touches -
+    // out of the clobber sets, while still capturing scratch registers such as
+    // x86_64 %r10 and the arithmetic flags.
     void derive() {
       auto baseSet = [](registerSet const& s) {
         registerSet out;
@@ -99,7 +103,9 @@ namespace Dyninst { namespace abi {
       };
 
       for(auto const& r : MachRegister::getAllRegistersForArch(arch)) {
-        allRegs.insert(r.getBaseRegister());
+        if(r.isGeneralPurpose() || r.isVector() || r.isFloatingPoint() || r.isFlag()) {
+          computational.insert(r.getBaseRegister());
+        }
       }
 
       auto const params_    = baseSet(machine.function.params);
@@ -119,11 +125,11 @@ namespace Dyninst { namespace abi {
       // A call may read its argument registers and the ABI globals.
       callRead    = params_ | globals_;
 
-      // A call may clobber anything that is not callee-saved or an ABI global.
-      callWritten = allRegs - (preserved_ | globals_);
+      // A call may clobber any computational register that is not callee-saved.
+      callWritten = computational - preserved_;
 
       syscallRead    = scParams_ | globals_;
-      syscallWritten = allRegs - (scPreserved_ | globals_);
+      syscallWritten = computational - scPreserved_;
     }
   };
 
