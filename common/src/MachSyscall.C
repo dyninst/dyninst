@@ -31,9 +31,6 @@ class SyscallInformation
         syscallNumbersMap Linux_Arch_x86_64_syscallNumbers;
         syscallNamesMap Linux_Arch_x86_64_syscallNames;
 
-        syscallNumbersMap Linux_Arch_ppc32_syscallNumbers;
-        syscallNamesMap Linux_Arch_ppc32_syscallNames;
-
         syscallNumbersMap Linux_Arch_ppc64_syscallNumbers;
         syscallNamesMap Linux_Arch_ppc64_syscallNames;
 
@@ -58,8 +55,6 @@ MachSyscall::SyscallName SyscallInformation::findName(Platform plat, MachSyscall
         curMap = Linux_Arch_x86_syscallNames;
     } else if (plat == Platform(Arch_x86_64, Linux)) {
         curMap = Linux_Arch_x86_64_syscallNames;
-    } else if (plat == Platform(Arch_ppc32, Linux)) {
-        curMap = Linux_Arch_ppc32_syscallNames;
     } else if (plat == Platform(Arch_ppc64, Linux)) {
         curMap = Linux_Arch_ppc64_syscallNames;
     } else if (plat == Platform(Arch_aarch64, Linux)) {
@@ -86,8 +81,6 @@ MachSyscall::SyscallIDPlatform SyscallInformation::findIDPlatform(Platform plat,
         curMap = Linux_Arch_x86_syscallNumbers;
     } else if (plat == Platform(Arch_x86_64, Linux)) {
         curMap = Linux_Arch_x86_64_syscallNumbers;
-    } else if (plat == Platform(Arch_ppc32, Linux)) {
-        curMap = Linux_Arch_ppc32_syscallNumbers;
     } else if (plat == Platform(Arch_ppc64, Linux)) {
         curMap = Linux_Arch_ppc64_syscallNumbers;
     } else if (plat == Platform(Arch_aarch64, Linux)) {
