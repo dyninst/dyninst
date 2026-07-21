@@ -76,16 +76,30 @@ namespace Dyninst { namespace abi {
       tmp |= rhs;
       return tmp;
     }
+    // Intersection: keep only the registers present in both sets.
     void operator&=(registerSet const& rhs) {
-      for(auto r : regs) {
-        if(rhs.contains(r)) {
-          regs.erase(r);
+      for(auto it = regs.begin(); it != regs.end();) {
+        if(rhs.contains(*it)) {
+          ++it;
+        } else {
+          it = regs.erase(it);
         }
       }
     }
     registerSet operator&(registerSet const& rhs) const {
       auto tmp = *this;
       tmp &= rhs;
+      return tmp;
+    }
+    // Difference: remove from this set every register present in rhs.
+    void operator-=(registerSet const& rhs) {
+      for(auto r : rhs) {
+        regs.erase(r);
+      }
+    }
+    registerSet operator-(registerSet const& rhs) const {
+      auto tmp = *this;
+      tmp -= rhs;
       return tmp;
     }
   };

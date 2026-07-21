@@ -245,13 +245,14 @@ architecture make_aarch64() {
   };
 
   // Everything except the return value in x0 is preserved across the syscall.
+  // Exclude x0 and all of its sub-registers (w0) from the preserved set.
   {
-    auto const& all_regs = MachRegister::getAllRegistersForArch(Arch_aarch64);
-    for(auto r : all_regs) {
-      arch.syscall.preserved.insert(r);
+    registerSet const clobbered = { aarch64::x0 };
+    for(auto r : MachRegister::getAllRegistersForArch(Arch_aarch64)) {
+      if(!clobbered.contains(r.getBaseRegister())) {
+        arch.syscall.preserved.insert(r);
+      }
     }
-    arch.syscall.preserved.remove(aarch64::x0);
-    arch.syscall.preserved.remove(aarch64::w0);
   }
 
   arch.syscall.globals = {};
