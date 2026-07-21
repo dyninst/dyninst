@@ -836,8 +836,8 @@ void AssignmentConverter::convert(const Instruction &I,
     assignments.push_back(fpA);
     break;
   }
-  case e_ret_near:
-  case e_ret_far: {
+  case e_ret:
+  case e_retf: {
     // PC = *SP
     // SP = SP + 4/8
     // Like pop, except it's all implicit.

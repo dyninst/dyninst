@@ -265,8 +265,8 @@ bool getAccesses(ParseAPI::Function *func,
     sa.findDefinedHeights(block, addr, heights);
     sa.findDefHeightPairs(block, addr, defHeights);
 
-    if (insn.getOperation().getID() == e_ret_far ||
-        insn.getOperation().getID() == e_ret_near) {
+    if (insn.getOperation().getID() == e_retf ||
+        insn.getOperation().getID() == e_ret) {
         return true;
     }
 
