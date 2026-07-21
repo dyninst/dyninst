@@ -477,12 +477,20 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
         }
     }
 
-    // Assume all SETxx entry ids are contiguous
-    if (id >= e_setb && id <= e_sete) {
-        newFact->GenFact(outAST, new StridedInterval(1,0,1), false);
-	parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
-	newFact->Print();
-	return;
+    // SETcc writes 0 or 1 to its (byte) destination, so the result is
+    // bounded to [0, 1]. Enumerate the condition codes explicitly rather
+    // than assuming the entry ids are contiguous.
+    switch (id) {
+        case e_seta:  case e_setae: case e_setb:  case e_setbe:
+        case e_sete:  case e_setg:  case e_setge: case e_setl:
+        case e_setle: case e_setne: case e_setno: case e_setnp:
+        case e_setns: case e_seto:  case e_setp:  case e_sets:
+            newFact->GenFact(outAST, new StridedInterval(1,0,1), false);
+	    parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
+	    newFact->Print();
+	    return;
+        default:
+            break;
     }
 
     bool findBound = false;
