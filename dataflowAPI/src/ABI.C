@@ -30,6 +30,7 @@
 
 #include "dataflowAPI/h/ABI.h"
 #include "dataflowAPI/src/RegisterMap.h"
+#include "dataflowAPI/src/ABIBridge.h"
 #include <stdio.h>
 
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
@@ -248,172 +249,21 @@ bitArray ABI::getBitArray()  {
   return bitArray(index->size());
 }
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+
+// The x86/x86_64 ABI register sets are now produced by the architecture-
+// independent common ABI (Dyninst::ABI) and bridged to bitArrays in
+// ABIBridge.C. See buildABIBitArrays for the register-set semantics.
 void ABI::initialize32(){
-
-   returnRegs_ = new bitArray(machRegIndex_x86().size());
-   (*returnRegs_)[machRegIndex_x86()[x86::eax]] = true;
-
-   callParam_ = new bitArray(machRegIndex_x86().size());
-
-   returnRead_ = new bitArray(machRegIndex_x86().size());
-   // Callee-save registers...
-   (*returnRead_)[machRegIndex_x86()[x86::ebx]] = true;
-   (*returnRead_)[machRegIndex_x86()[x86::esi]] = true;
-   (*returnRead_)[machRegIndex_x86()[x86::edi]] = true;
-   // And return value
-   (*returnRead_)[machRegIndex_x86()[x86::eax]] = true;
-   // Return reads no registers
-
-   callRead_ = new bitArray(machRegIndex_x86().size());
-   // CallRead reads no registers
-   // We wish...
-   (*callRead_)[machRegIndex_x86()[x86::ecx]] = true;
-   (*callRead_)[machRegIndex_x86()[x86::edx]] = true;
-
-   // PLT entries use ebx
-   (*callRead_)[machRegIndex_x86()[x86::ebx]] = true;
-
-   // TODO: Fix this for platform-specific calling conventions
-   
-   callWritten_ = new bitArray(machRegIndex_x86().size());
-   // Assume calls write flags
-   (*callWritten_)[machRegIndex_x86()[x86::of]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::sf]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::zf]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::af]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::pf]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::cf]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::tf]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::if_]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::df]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::nt_]] = true;
-   (*callWritten_)[machRegIndex_x86()[x86::rf]] = true;
-
-    // And scratch registers: eax, ecx, edx
-    (*callWritten_)[machRegIndex_x86()[x86::eax]] = true;
-    (*callWritten_)[machRegIndex_x86()[x86::ecx]] = true;
-    (*callWritten_)[machRegIndex_x86()[x86::edx]] = true;
-	
-    // And assume a syscall reads or writes _everything_
-    syscallRead_ = new bitArray(machRegIndex_x86().size());
-    syscallRead_->set();
-    syscallWritten_ = new bitArray(machRegIndex_x86().size());
-    *syscallWritten_ = *syscallRead_;
-
-#if defined(os_windows)
-    // VERY conservative, but it's safe wrt the ABI.
-    // Let's set everything and unset flags
-    (*callRead_) = syscallRead_;
-    (*callRead_)[machRegIndex_x86()[x86::of]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::sf]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::zf]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::af]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::pf]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::cf]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::tf]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::if_]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::df]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::nt_]] = false;
-    (*callRead_)[machRegIndex_x86()[x86::rf]] = false;
-
-
-    *callWritten_ = *syscallWritten_;
-
-// IF DEFINED KEVIN FUNKY MODE
-	(*returnRead_) = (*callRead_);
-	// Doesn't exist, but should
-	//returnWritten_ = callWritten_;
-// ENDIF DEFINED KEVIN FUNKY MODE
-
-
-#endif
-
-        allRegs_ = new bitArray(machRegIndex_x86().size());
-        allRegs_->set();
-
+  DataflowAPI::buildABIBitArrays(Arch_x86, machRegIndex_x86(),
+                  returnRegs_, callParam_, returnRead_, callRead_,
+                  callWritten_, syscallRead_, syscallWritten_, allRegs_);
 }
 
 void ABI::initialize64(){
-
-    returnRegs64_ = new bitArray(machRegIndex_x86_64().size());
-    (*returnRegs64_)[machRegIndex_x86_64()[x86_64::rax]] = true;
-    (*returnRegs64_)[machRegIndex_x86_64()[x86_64::rdx]] = true;
-
-    callParam64_ = new bitArray(machRegIndex_x86_64().size());
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::rdi]] = true;
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::rsi]] = true;
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::rdx]] = true;
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::rcx]] = true;
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::r8]] = true;
-    (*callParam64_)[machRegIndex_x86_64()[x86_64::r9]] = true;
-
-    returnRead64_ = new bitArray(machRegIndex_x86_64().size());
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::rax]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::rcx]] = true; //Not correct, temporary
-    // Returns also "read" any callee-saved registers
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::rbx]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::rdx]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::r12]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::r13]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::r14]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::r15]] = true;
-
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::xmm0]] = true;
-    (*returnRead64_)[machRegIndex_x86_64()[x86_64::xmm1]] = true;
-
-
-    callRead64_ = new bitArray(machRegIndex_x86_64().size());
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::rax]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::rcx]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::rdx]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::r8]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::r9]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::rdi]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::rsi]] = true;
-
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm0]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm1]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm2]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm3]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm4]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm5]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm6]] = true;
-    (*callRead64_)[machRegIndex_x86_64()[x86_64::xmm7]] = true;
-
-    // Anything in those four is not preserved across a call...
-    // So we copy this as a shorthand then augment it
-    callWritten64_ = new bitArray(machRegIndex_x86_64().size());
-    (*callWritten64_) = (*callRead64_);
-
-    // As well as RAX, R10, R11
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::rax]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::r10]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::r11]] = true;
-    // And flags
-
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::of]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::sf]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::zf]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::af]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::pf]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::cf]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::tf]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::if_]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::df]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::nt_]] = true;
-    (*callWritten64_)[machRegIndex_x86_64()[x86_64::rf]] = true;
-
-
-    // And assume a syscall reads or writes _everything_
-    syscallRead64_ = new bitArray(machRegIndex_x86_64().size());
-    syscallRead64_->set();
-    syscallWritten64_ = new bitArray(machRegIndex_x86_64().size());
-    syscallWritten64_ = syscallRead64_;
-
-    allRegs64_ = new bitArray(machRegIndex_x86_64().size());
-    allRegs64_->set();
+  DataflowAPI::buildABIBitArrays(Arch_x86_64, machRegIndex_x86_64(),
+                  returnRegs64_, callParam64_, returnRead64_, callRead64_,
+                  callWritten64_, syscallRead64_, syscallWritten64_, allRegs64_);
 }
-
 #endif
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
