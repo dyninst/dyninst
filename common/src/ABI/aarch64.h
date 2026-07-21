@@ -219,9 +219,41 @@ architecture make_aarch64() {
     //       from a public interface. We don't need to do anything with them.
   };
 
-  arch.syscall.params = {};
-  arch.syscall.returns = {};
-  arch.syscall.preserved = {};
+  /*
+   * Linux arm64 system call convention
+   *
+   *   https://man7.org/linux/man-pages/man2/syscall.2.html
+   *
+   * A syscall is made with `svc #0`. The syscall number is in w8 and the
+   * arguments are in x0-x5. The kernel restores the full user register set on
+   * return, so every register except the return value in x0 is preserved.
+   */
+  arch.syscall.params = {
+    aarch64::x8, aarch64::w8,  // syscall number
+    aarch64::x0, aarch64::w0,  // arg1
+    aarch64::x1, aarch64::w1,  // arg2
+    aarch64::x2, aarch64::w2,  // arg3
+    aarch64::x3, aarch64::w3,  // arg4
+    aarch64::x4, aarch64::w4,  // arg5
+    aarch64::x5, aarch64::w5   // arg6
+  };
+
+  arch.syscall.returns = {
+    // x1 additionally holds a second return value for a small number of
+    // syscalls (e.g. pipe), but x0 is the canonical result register.
+    aarch64::x0, aarch64::w0
+  };
+
+  // Everything except the return value in x0 is preserved across the syscall.
+  {
+    auto const& all_regs = MachRegister::getAllRegistersForArch(Arch_aarch64);
+    for(auto r : all_regs) {
+      arch.syscall.preserved.insert(r);
+    }
+    arch.syscall.preserved.remove(aarch64::x0);
+    arch.syscall.preserved.remove(aarch64::w0);
+  }
+
   arch.syscall.globals = {};
 
   return arch;

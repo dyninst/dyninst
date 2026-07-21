@@ -133,6 +133,24 @@ architecture make_ppc64() {
   arch.function.preserved = {
     ppc64::r1,    // stack pointer
     ppc64::r2,    // TOC pointer (only saved between calls in same compilation unti)
+    ppc64::r14,   // GPRs for local variables (nonvolatile)
+    ppc64::r15,
+    ppc64::r16,
+    ppc64::r17,
+    ppc64::r18,
+    ppc64::r19,
+    ppc64::r20,
+    ppc64::r21,
+    ppc64::r22,
+    ppc64::r23,
+    ppc64::r24,
+    ppc64::r25,
+    ppc64::r26,
+    ppc64::r27,
+    ppc64::r28,
+    ppc64::r29,
+    ppc64::r30,
+    ppc64::r31,
     ppc64::cr2,   // Condition register fields
     ppc64::cr3,
     ppc64::cr4,
@@ -178,10 +196,45 @@ architecture make_ppc64() {
 //    VSCR see 2.2.2.2 Limited-Access bits
   };
 
-  // https://github.com/torvalds/linux/blob/v6.8/Documentation/arch/powerpc/syscall64-abi.rst
-  arch.syscall.params = {};
-  arch.syscall.returns = {};
-  arch.syscall.preserved = {};
+  /*
+   * Power Architecture 64-bit Linux system call ABI (sc instruction)
+   *
+   *   Linux v6.8 Documentation/arch/powerpc/syscall64-abi.rst
+   *   https://github.com/torvalds/linux/blob/v6.8/Documentation/arch/powerpc/syscall64-abi.rst
+   *
+   * The syscall number is in r0 and up to six arguments are passed in r3-r8.
+   * r3 holds the return value and cr0.SO is set when the call fails.
+   *
+   * Register preservation matches the ELF v2 ABI calling sequence with these
+   * differences: r0, r3-r8 and cr0 are volatile, while lr and cr1/cr5-cr7 are
+   * preserved (they are volatile in the function calling sequence).
+   */
+  arch.syscall.params = {
+    ppc64::r0,   // syscall number
+    ppc64::r3,   // arg1
+    ppc64::r4,   // arg2
+    ppc64::r5,   // arg3
+    ppc64::r6,   // arg4
+    ppc64::r7,   // arg5
+    ppc64::r8    // arg6
+  };
+
+  arch.syscall.returns = {
+    ppc64::r3    // return value (cr0.SO signals an error)
+  };
+
+  // Start from the function-call preserved set and add the registers that the
+  // syscall sequence preserves but the function sequence does not.
+  arch.syscall.preserved = arch.function.preserved;
+  arch.syscall.preserved |= {
+    ppc64::r13,   // thread pointer (dedicated, nonvolatile)
+    ppc64::lr,    // sc preserves the link register
+    ppc64::cr1,   // sc preserves cr1 and cr5-cr7; only cr0 is volatile
+    ppc64::cr5,
+    ppc64::cr6,
+    ppc64::cr7
+  };
+
   arch.syscall.globals = {};
 
   return arch;
