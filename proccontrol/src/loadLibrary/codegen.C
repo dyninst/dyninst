@@ -123,8 +123,6 @@ bool Codegen::generateCall(Address addr, const std::vector<Address> &args) {
          return generateCallIA32(addr, args);
       case Arch_x86_64:
          return generateCallAMD64(addr, args);
-	  case Arch_ppc32:
-         return generateCallPPC32(addr, args);
       case Arch_ppc64:
          return generateCallPPC64(addr, args);
       case Arch_aarch64:
@@ -143,7 +141,6 @@ bool Codegen::generateNoops() {
          copyInt(0x90909090);
          copyInt(0x90909090);
          break;
-      case Arch_ppc32:
       case Arch_ppc64:  // MJMTODO - Assumes HostArch == TargetArch
          copyInt(0x60000000);
          copyInt(0x60000000);
@@ -164,7 +161,6 @@ bool Codegen::generateTrap() {
       case Arch_x86_64:
          copyByte(0xcc);
          break;
-      case Arch_ppc32:
       case Arch_ppc64:
          copyInt(0x7d821008); // MJMTODO - Assumes HostArch == TargetArch
          break;
@@ -186,8 +182,6 @@ bool Codegen::generatePreamble() {
       case Arch_x86_64:
          return generatePreambleAMD64();
 #if !defined(os_windows)
-      case Arch_ppc32:
-         return generatePreamblePPC32();
       case Arch_ppc64:
          return generatePreamblePPC64();
 #endif //!defined(os_windows)

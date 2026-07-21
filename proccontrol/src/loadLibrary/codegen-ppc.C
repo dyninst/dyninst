@@ -18,29 +18,7 @@ using namespace std;
 // To be safe, we move down the stack pointer by 512
 #define STACKSKIP 512
 
-bool Codegen::generateCallPPC32(Address addr, const std::vector<Address> &args) {
-   // PPC32 on Linux is basically the same thing as x86; we do indirect because
-   // we can
-
-   // First, arguments
-   unsigned reg = 3;
-   for (auto iter = args.begin(); iter != args.end(); ++iter) {
-      generatePPC32(*iter, reg);
-      reg++;      
-   }
-
-   // And the call. We're going indirect, r0 -> LR -> call
-   generatePPC32(addr, 0);
-
-   instruction mtlr(MTLR0raw);
-   copyInt(mtlr.asInt());
-
-   instruction brl(BRLraw);
-   copyInt(brl.asInt());
-   return true;
-}
-
-bool Codegen::generateCallPPC64(Address addr, const std::vector<Address> &args) 
+bool Codegen::generateCallPPC64(Address addr, const std::vector<Address> &args)
 {
    // PPC64 is a little more complicated, because we also need a TOC register value.
    // That... is tricky. 
@@ -79,7 +57,7 @@ bool Codegen::generateCallPPC64(Address addr, const std::vector<Address> &args)
    return true;
 }
 
-void Codegen::generatePPC32(Address val, unsigned reg) {
+void Codegen::generatePPCImm(Address val, unsigned reg) {
 
       instruction insn;
       insn.clear();
@@ -98,7 +76,7 @@ void Codegen::generatePPC32(Address val, unsigned reg) {
 }
 
 void Codegen::generatePPC64(Address val, unsigned reg) {
-   generatePPC32((uint64_t)val >> 32, reg);
+   generatePPCImm((uint64_t)val >> 32, reg);
 
    instruction insn;
    insn.clear();
@@ -133,7 +111,7 @@ void Codegen::generatePPC64(Address val, unsigned reg) {
 
 }
 
-bool Codegen::generatePreamblePPC32() {
+bool Codegen::generatePreamblePPC64() {
   instruction insn;
   insn.clear();
 
@@ -144,8 +122,4 @@ bool Codegen::generatePreamblePPC32() {
   copyInt(insn.asInt());
 
   return true;
-}
-
-bool Codegen::generatePreamblePPC64() {
-  return generatePreamblePPC32();
 }
