@@ -45,7 +45,6 @@ set(_rose_headers
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/aarch64.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/amdgpu.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/convert.h
-    ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/ppc32.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/ppc64.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/riscv64.h
     ${PROJECT_SOURCE_DIR}/dataflowAPI/rose/registers/x86.h
