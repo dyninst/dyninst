@@ -2,7 +2,6 @@
 
 #include "dataflowAPI/rose/registers/aarch64.h"
 #include "dataflowAPI/rose/registers/amdgpu.h"
-#include "dataflowAPI/rose/registers/ppc32.h"
 #include "dataflowAPI/rose/registers/ppc64.h"
 #include "dataflowAPI/rose/registers/riscv64.h"
 #include "dataflowAPI/rose/registers/x86.h"
@@ -84,9 +83,6 @@ namespace Dyninst { namespace DataflowAPI {
         }
         return x8664Rose(category, baseID, lengthID, num_bits);
       }
-      case Arch_ppc32: {
-        return ppc32Rose(category, reg, num_bits);
-      }
       case Arch_ppc64: {
         return ppc64Rose(category, reg, num_bits);
       }
@@ -118,6 +114,7 @@ namespace Dyninst { namespace DataflowAPI {
         }
         return riscv64Rose(category, baseID, num_bits);
       }
+      case Arch_ppc32:
       case Arch_aarch32:
       case Arch_cuda:
       case Arch_intelGen9:
