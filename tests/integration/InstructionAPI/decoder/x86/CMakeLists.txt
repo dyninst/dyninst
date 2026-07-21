@@ -43,6 +43,13 @@ target_link_libraries(x86_sse PRIVATE instructionAPI cft_tests memory_tests opco
 add_test(NAME instructionAPI_x86_sse COMMAND x86_sse)
 set_tests_properties(instructionAPI_x86_sse PROPERTIES LABELS "integration")
 
+add_executable(x86_prefetch prefetch.cpp)
+target_compile_options(x86_prefetch PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(x86_prefetch PRIVATE instructionAPI memory_tests opcode_tests
+                                           register_tests)
+add_test(NAME instructionAPI_x86_prefetch COMMAND x86_prefetch)
+set_tests_properties(instructionAPI_x86_prefetch PROPERTIES LABELS "integration")
+
 add_executable(x86_stack stack.cpp)
 target_compile_options(x86_stack PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
 target_link_libraries(x86_stack PRIVATE instructionAPI memory_tests

@@ -102,24 +102,27 @@ namespace Dyninst { namespace InstructionAPI { namespace x86 {
           categories.push_back(di::c_ConditionalInsn);
       }
 
+      // Capstone currently only sets PFI for AVX-512PF instructions
       if(groups[i] == X86_GRP_PFI) {
-        // Capstone currently only sets this for AVX-512PF instructions
         categories.push_back(di::c_PrefetchInsn);
-      } else {
-        switch(insn.getOperation().getID()) {
-          case e_prefetch:
-          case e_prefetchnta:
-          case e_prefetcht0:
-          case e_prefetcht1:
-          case e_prefetcht2:
-          case e_prefetchw:
-          case e_prefetchwt1:
-            categories.push_back(di::c_PrefetchInsn);
-            break;
-          default:
-            break;
-        }
       }
+    }
+
+    // Prefetch instructions. Checked by mnemonic (outside the group loop)
+    // because some prefetches, e.g. prefetchw, are not assigned a Capstone
+    // instruction group and would otherwise go uncategorized.
+    switch(insn.getOperation().getID()) {
+      case e_prefetch:
+      case e_prefetchnta:
+      case e_prefetcht0:
+      case e_prefetcht1:
+      case e_prefetcht2:
+      case e_prefetchw:
+      case e_prefetchwt1:
+        categories.push_back(di::c_PrefetchInsn);
+        break;
+      default:
+        break;
     }
 
     // Relative calls aren't branches

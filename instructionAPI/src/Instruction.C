@@ -243,6 +243,9 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   bool Instruction::writesMemory() const {
+    if(isPrefetch()) {
+      return false;
+    }
     for(auto const& op : m_Operands) {
       if(op.writesMemory()) {
         return true;
