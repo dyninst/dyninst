@@ -5,7 +5,6 @@
 #include "codegen/emitters/PowerPC/ppc64/EmitterPowerPC64Dyn.h"
 #include "codegen/emitters/PowerPC/ppc64/EmitterPowerPC64Stat.h"
 #include "registerSpace/registerSpace.h"
-#include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
 
 #include <vector>
@@ -16,9 +15,7 @@ namespace da = Dyninst::DyninstAPI;
 bool AddressSpace::getDynamicCallSiteArgs(di::Instruction i, Address addr,
                                           std::vector<da::codeGenASTPtr> &args) {
 
-  static di::RegisterAST::Ptr ctr32(new di::RegisterAST(ppc32::ctr));
   static di::RegisterAST::Ptr ctr64(new di::RegisterAST(ppc64::ctr));
-  static di::RegisterAST::Ptr lr32(new di::RegisterAST(ppc32::lr));
   static di::RegisterAST::Ptr lr64(new di::RegisterAST(ppc64::lr));
 
   Dyninst::Register branch_target = registerSpace::ignored;
@@ -27,10 +24,10 @@ bool AddressSpace::getDynamicCallSiteArgs(di::Instruction i, Address addr,
   // BCLR uses the xlform (6,5,5,5,10,1)
   for (di::Instruction::cftConstIter curCFT = i.cft_begin(); curCFT != i.cft_end();
        ++curCFT) {
-    if (curCFT->target->isUsed(ctr32) || curCFT->target->isUsed(ctr64)) {
+    if (curCFT->target->isUsed(ctr64)) {
       branch_target = registerSpace::ctr;
       break;
-    } else if (curCFT->target->isUsed(lr32) || curCFT->target->isUsed(lr64)) {
+    } else if (curCFT->target->isUsed(lr64)) {
       fprintf(stderr, "setting lr\n");
       branch_target = registerSpace::lr;
       break;

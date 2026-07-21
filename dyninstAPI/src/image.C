@@ -279,8 +279,8 @@ namespace {
             b->end()-b->start(),
             b->region()->getArch());
 
-        RegisterAST::Ptr r2( new RegisterAST(ppc32::r2) );
-        RegisterAST::Ptr r8( new RegisterAST(ppc32::r8) );
+        RegisterAST::Ptr r2( new RegisterAST(ppc64::r2) );
+        RegisterAST::Ptr r8( new RegisterAST(ppc64::r8) );
 
         Address cur_addr = b->start();
         while(cur_addr < b->end()) {

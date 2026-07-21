@@ -34,7 +34,6 @@
 #include "instructionAPI/h/syscalls.h"
 
 #include "common/src/arch-power.h"
-#include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
 #include "parseAPI/src/debug_parse.h"
 
@@ -50,10 +49,6 @@ using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InsnAdapter;
-
-static RegisterAST::Ptr ppc32_R11 (new RegisterAST (ppc32::r11));
-static RegisterAST::Ptr ppc32_LR  (new RegisterAST (ppc32::lr));
-static RegisterAST::Ptr ppc32_SP  (new RegisterAST (ppc32::r1));
 
 static RegisterAST::Ptr ppc64_R11 (new RegisterAST (ppc64::r11));
 static RegisterAST::Ptr ppc64_LR  (new RegisterAST (ppc64::lr));
@@ -253,7 +248,7 @@ bool IA_power::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Fun
 bool IA_power::isReturnAddrSave(Address& retAddr) const
 {
   RegisterAST::Ptr regLR, regSP;
-  regLR = ppc32_LR; regSP = ppc32_SP;
+  regLR = ppc64_LR; regSP = ppc64_SP;
 
   std::set < RegisterAST::Ptr > regs;
   RegisterAST::Ptr destLRReg;
@@ -348,7 +343,7 @@ AST::Ptr PPC_BLR_Visitor::visit(DataflowAPI::ConstantAST *c) {
 }
 
 AST::Ptr PPC_BLR_Visitor::visit(DataflowAPI::VariableAST *v) {
-  if ((v->val().reg == AbsRegion(ppc32::lr)) &&
+  if ((v->val().reg == AbsRegion(ppc64::lr)) &&
       (v->val().addr == ret_)) {
     return_ = PPC_BLR_RETURN;
   }

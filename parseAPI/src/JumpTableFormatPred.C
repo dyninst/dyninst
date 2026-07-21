@@ -5,7 +5,6 @@
 #include "CodeObject.h"
 #include "CodeSource.h"
 #include "debug_parse.h"
-#include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
 
 using namespace Dyninst;
@@ -499,7 +498,7 @@ bool JumpTableFormatPred::isTOCRead(Slicer::SliceFrame &frame, SliceNode::Ptr n)
     std::vector<AbsRegion>& inputs = n->assign()->inputs();
     bool findR2 = false;
     for (auto iit = inputs.begin(); iit != inputs.end(); ++iit) {
-        if (*iit == AbsRegion(Absloc(ppc32::r2)) || *iit == AbsRegion(Absloc(ppc64::r2))) {
+        if (*iit == AbsRegion(Absloc(ppc64::r2))) {
             findR2 = true;
             break;
         }

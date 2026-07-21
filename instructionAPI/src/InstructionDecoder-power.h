@@ -34,7 +34,7 @@
 #include "dyninst_visibility.h"
 #include "Immediate.h"
 #include "InstructionDecoderImpl.h"
-#include "registers/ppc32_regs.h"
+#include "registers/ppc64_regs.h"
 
 #include <iostream>
 #include <stddef.h>
@@ -264,7 +264,7 @@ namespace Dyninst { namespace InstructionAPI {
 
     template <int size> int sign_extend(int in) { return (in << (32 - size)) >> (32 - size); }
 
-    template <unsigned int low, unsigned int high, unsigned int base = ppc32::icr0,
+    template <unsigned int low, unsigned int high, unsigned int base = ppc64::icr0,
               unsigned int curCR = high - low>
     struct translateBitFieldToCR {
       translateBitFieldToCR(InstructionDecoder_power& dec) : m_dec(dec) {}
@@ -307,7 +307,7 @@ namespace Dyninst { namespace InstructionAPI {
       if(field<31, 31>(insn) == 1) {
         insn_in_progress->getOperation().mnemonic.insert(where, "l");
         where++;
-        insn_in_progress->appendOperand(makeRegisterExpression(ppc32::lr), false, true);
+        insn_in_progress->appendOperand(makeRegisterExpression(ppc64::lr), false, true);
       }
       // absolute address
       if(field<30, 30>(insn) == 1) {
@@ -317,7 +317,7 @@ namespace Dyninst { namespace InstructionAPI {
       } else {
         Expression::Ptr displacement = Immediate::makeImmediate(
             Result(s32, sign_extend<(highBit - lowBit + 1)>(field<lowBit, highBit>(insn)) << 2));
-        return makeAddExpression(makeRegisterExpression(ppc32::pc), displacement, s32);
+        return makeAddExpression(makeRegisterExpression(ppc64::pc), displacement, s32);
       }
     }
 
