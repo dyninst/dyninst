@@ -2249,7 +2249,6 @@ Riscv64InstructionKind RoseInsnRiscv64Factory::convertKind(entryID opcode) {
         case riscv64_op_subw: return rose_riscv64_op_subw;
         case riscv64_op_sw: return rose_riscv64_op_sw;
         case riscv64_op_unimp: return rose_riscv64_op_unimp;
-        case riscv64_op_uret: return rose_riscv64_op_uret;
         case riscv64_op_wfi: return rose_riscv64_op_wfi;
         case riscv64_op_xor: return rose_riscv64_op_xor;
         case riscv64_op_xori: return rose_riscv64_op_xori;
