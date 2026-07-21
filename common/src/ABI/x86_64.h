@@ -145,12 +145,18 @@ architecture make_x86_64() {
     x86_64::rax   // The result of the system-call
   };
 
-  // The kernel clobbers %rcx and %r11 but preserves all others except %rax.
-  auto const& all_regs = MachRegister::getAllRegistersForArch(Arch_x86_64);
-  for(auto r : all_regs) {
-    arch.syscall.preserved.insert(r);
+  // The kernel preserves all registers except %rax (the return value).
+  // Additionally, the SYSCALL instruction itself destroys %rcx (return
+  // address) and %r11 (saved RFLAGS). Exclude those and all of their
+  // sub-registers so none of them is treated as preserved.
+  {
+    registerSet const clobbered = { x86_64::rax, x86_64::rcx, x86_64::r11 };
+    for(auto r : MachRegister::getAllRegistersForArch(Arch_x86_64)) {
+      if(!clobbered.contains(r.getBaseRegister())) {
+        arch.syscall.preserved.insert(r);
+      }
+    }
   }
-  arch.syscall.preserved.remove(x86_64::rax);
 
   return arch;
 }
