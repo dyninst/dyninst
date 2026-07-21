@@ -39,7 +39,6 @@
 #endif
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
-#  include "registers/ppc32_regs.h"
 #  include "registers/ppc64_regs.h"
 #endif
 
@@ -126,12 +125,12 @@ ABI* ABI::getABI(int addr_width){
 #endif
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
-	// The 64-bit PowerPC ABI must use the ppc64 register map. Previously it used
-	// the ppc32 map (machRegIndex_ppc), so getIndex() returned -1 for ppc64
-	// registers and downstream bitArray accesses crashed (#1142, #1165). ppc32
-	// itself is no longer supported (see #1145).
+	// PowerPC is 64-bit only (ppc32 is unsupported, #1145), so both slots use
+	// the ppc64 register map. Using the ppc32 map for the 64-bit ABI is what
+	// made getIndex() return -1 for ppc64 registers, crashing liveness and
+	// registerSpace (#1142, #1165).
 	globalABI64_->addr_width = 8;
-	globalABI_->index = &machRegIndex_ppc();
+	globalABI_->index = &machRegIndex_ppc_64();
 	globalABI64_->index = &machRegIndex_ppc_64();
 
 #endif
@@ -271,107 +270,6 @@ void ABI::initialize64(){
 #endif
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
-void ABI::initialize32(){
-    returnRegs_ = new bitArray(machRegIndex_ppc().size());
-    (*returnRegs_)[machRegIndex_ppc()[ppc32::r3]] = true;
-
-    callParam_ = new bitArray(machRegIndex_ppc().size());
-    (*callParam_)[machRegIndex_ppc()[ppc32::r3]] = true;
-    (*callParam_)[machRegIndex_ppc()[ppc32::r4]] = true;
-    (*callParam_)[machRegIndex_ppc()[ppc32::r5]] = true;
-    (*callParam_)[machRegIndex_ppc()[ppc32::r6]] = true;
-    (*callParam_)[machRegIndex_ppc()[ppc32::r7]] = true;
-    (*callParam_)[machRegIndex_ppc()[ppc32::r8]] = true;
-    (*callParam_)[machRegIndex_ppc()[ppc32::r9]] = true;
-    (*callParam_)[machRegIndex_ppc()[ppc32::r10]] = true;
-
-
-    returnRead_ = new bitArray(machRegIndex_ppc().size());
-    // Return reads r3, r4, fpr1, fpr2
-    (*returnRead_)[machRegIndex_ppc()[ppc32::r3]] = true;
-    (*returnRead_)[machRegIndex_ppc()[ppc32::r4]] = true;
-    (*returnRead_)[machRegIndex_ppc()[ppc32::fpr1]] = true;
-    (*returnRead_)[machRegIndex_ppc()[ppc32::fpr2]] = true;
-
-    // Calls
-    callRead_ = new bitArray(machRegIndex_ppc().size());
-    // Calls read r3 -> r10 (parameters), fpr1 -> fpr13 (volatile FPRs)
-/*    for (unsigned i = r3; i <= r10; i++)
-        callRead_[i] = true;
-    for (unsigned i = fpr1; i <= fpr13; i++)
-        callRead_[i] = true;*/
-
-    (*callRead_)[machRegIndex_ppc()[ppc32::r3]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::r4]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::r5]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::r6]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::r7]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::r8]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::r9]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::r10]] = true;
-
-    (*callRead_)[machRegIndex_ppc()[ppc32::fpr1]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::fpr2]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::fpr3]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::fpr4]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::fpr5]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::fpr6]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::fpr7]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::fpr8]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::fpr9]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::fpr10]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::fpr11]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::fpr12]] = true;
-    (*callRead_)[machRegIndex_ppc()[ppc32::fpr13]] = true;
-
-    callWritten_ = new bitArray(machRegIndex_ppc().size());
-    // Calls write to pretty much every register we use for code generation
-    (*callWritten_)[machRegIndex_ppc()[ppc32::r0]] = true;
-/*    for (unsigned i = r3; i <= r12; i++)
-        callWritten_[i] = true;
-    // FPRs 0->13 are volatile
-    for (unsigned i = fpr0; i <= fpr13; i++)
-        callWritten_[i] = true;*/
-
-    (*callWritten_)[machRegIndex_ppc()[ppc32::r3]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::r4]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::r5]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::r6]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::r7]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::r8]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::r9]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::r10]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::r11]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::r12]] = true;
-
-    (*callWritten_)[machRegIndex_ppc()[ppc32::fpr0]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::fpr1]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::fpr2]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::fpr3]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::fpr4]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::fpr5]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::fpr6]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::fpr7]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::fpr8]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::fpr9]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::fpr10]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::fpr11]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::fpr12]] = true;
-    (*callWritten_)[machRegIndex_ppc()[ppc32::fpr13]] = true;
-
-    // Syscall - assume the same as call
-    //syscallRead_ = new bitArray().set();
-    //syscallWritten_ = new bitArray().set();
-    syscallRead_ = new bitArray(machRegIndex_ppc().size());
-    (*syscallRead_) = (*callRead_);
-    (*syscallRead_)[machRegIndex_ppc()[ppc32::r0]] = true;
-    syscallWritten_ = new bitArray(machRegIndex_ppc().size());
-    *syscallWritten_ = (*callWritten_);
-
-    allRegs_ = new bitArray(machRegIndex_ppc().size());
-    allRegs_->set();
-}
-
 void ABI::initialize64(){
     returnRegs64_ = new bitArray(machRegIndex_ppc_64().size());
     (*returnRegs64_)[machRegIndex_ppc_64()[ppc64::r3]] = true;

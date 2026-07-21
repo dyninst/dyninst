@@ -45,7 +45,8 @@ elseif(DYNINST_CODEGEN_ARCH_X86_64)
 
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   set(ARCH_DEFINES_CODEGEN -Darch_power -Darch_64bit)
-  set(CAP_DEFINES ${CAP_DEFINES} -Dcap_32_64 -Dcap_registers -Dcap_toc_64)
+  # ppc32 is unsupported (#1145), so PowerPC is 64-bit only: no cap_32_64.
+  set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers -Dcap_toc_64)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   set(ARCH_DEFINES_CODEGEN -Darch_aarch64 -Darch_64bit)
   set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
