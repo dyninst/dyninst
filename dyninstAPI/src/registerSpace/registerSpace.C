@@ -560,7 +560,6 @@ bool registerSpace::readProgramRegister(codeGen &gen,
     return true;
   }
 
-  case Arch_ppc32:
   case Arch_ppc64:
     // Implemented below
     break;

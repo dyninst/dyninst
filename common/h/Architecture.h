@@ -42,7 +42,6 @@ namespace Dyninst {
     Arch_none = 0x00000000,
     Arch_x86 = 0x14000000,
     Arch_x86_64 = 0x18000000,
-    Arch_ppc32 = 0x24000000,
     Arch_ppc64 = 0x28000000,
     Arch_aarch32 = 0x44000000, // for later use
     Arch_aarch64 = 0x48000000,
@@ -56,8 +55,7 @@ namespace Dyninst {
 
   inline unsigned getArchAddressWidth(Architecture arch) {
     switch(arch) {
-      case Arch_x86:
-      case Arch_ppc32: return 4;
+      case Arch_x86: return 4;
       case Arch_x86_64:
       case Arch_ppc64:
       case Arch_aarch64:
@@ -79,7 +77,6 @@ namespace Dyninst {
       case Arch_none: return "none"; break;
       case Arch_x86: return "x86"; break;
       case Arch_x86_64: return "x86_64"; break;
-      case Arch_ppc32: return "ppc32"; break;
       case Arch_ppc64: return "ppc64"; break;
       case Arch_aarch32: return "aarch32"; break;
       case Arch_aarch64: return "aarch64"; break;
@@ -104,7 +101,6 @@ namespace Dyninst {
       case Arch_none: return false;
       case Arch_x86: return true;
       case Arch_x86_64: return true;
-      case Arch_ppc32: return ismo4;
       case Arch_ppc64: return ismo4;
       case Arch_aarch32: return ismo4;
       case Arch_aarch64: return ismo4;

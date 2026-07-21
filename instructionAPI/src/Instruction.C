@@ -54,7 +54,6 @@ namespace Dyninst { namespace InstructionAPI {
         case Arch_aarch64:
           return id != aarch64_op_INVALID;
 
-        case Arch_ppc32:
         case Arch_ppc64:
           return id != power_op_INVALID;
 
@@ -393,7 +392,7 @@ namespace Dyninst { namespace InstructionAPI {
     if(m_InsnOp.isVectorInsn)
       return c_VectorInsn;
     InsnCategory c = entryToCategory(m_InsnOp.getID());
-    if(c == c_BranchInsn && (arch_decoded_from == Arch_ppc32 || arch_decoded_from == Arch_ppc64)) {
+    if(c == c_BranchInsn && (arch_decoded_from == Arch_ppc64)) {
       for(auto const& cft : m_Successors) {
         if(cft.isCall) {
           return c_CallInsn;

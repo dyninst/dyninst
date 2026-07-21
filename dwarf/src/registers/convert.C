@@ -29,7 +29,6 @@ namespace DwarfDyninst {
       case Dyninst::Arch_riscv64:
         return riscv64_from_dwarf(encoding);
 
-      case Dyninst::Arch_ppc32:
       case Dyninst::Arch_aarch32:
       case Dyninst::Arch_none:
       case Dyninst::Arch_cuda:
@@ -63,7 +62,6 @@ namespace DwarfDyninst {
       case Dyninst::Arch_riscv64:
         return riscv64_to_dwarf(reg);
 
-      case Dyninst::Arch_ppc32:
       case Dyninst::Arch_aarch32:
       case Dyninst::Arch_none:
       case Dyninst::Arch_cuda:

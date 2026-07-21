@@ -49,7 +49,6 @@ namespace Dyninst { namespace DyninstAPI {
     case Arch_intelGen9:
       return;
     case Arch_aarch64:
-    case Arch_ppc32:
     case Arch_ppc64:
       break;
     }

@@ -1537,10 +1537,6 @@ bool Slicer::kills(AbsRegion const&reg, Assignment::Ptr &assign) {
 
   if (assign->insn().getOperation().getID() == e_call && reg.absloc().type() == Absloc::Register) {
       MachRegister r = reg.absloc().reg();
-      // PowerPC liveness/ABI work in the ppc64 register namespace; normalize
-      // ppc32-namespace registers so getIndex() can find them.
-      if (r.getArchitecture() == Arch_ppc32)
-          r = MachRegister((r.val() & ~Arch_ppc32) | Arch_ppc64);
       ABI* abi = ABI::getABI(b_->obj()->cs()->getAddressWidth());
       int index = abi->getIndex(r);
       if (index >= 0)

@@ -177,34 +177,6 @@ namespace Dyninst {
       case Arch_amdgpu_gfx940: {
               return *this;
       }
-      case Arch_ppc32: {
-        auto ppc_id = [](MachRegister r) {
-          return r.val() & 0x0000FFFF;
-        };
-
-        auto const id = ppc_id(*this);
-
-        if(category == ppc32::FSR) {
-          // fsr<N> -> fpr<N>[0:31]
-          auto const base_id = ppc_id(ppc32::fsr0);
-          auto const offset = id - base_id;
-          auto const new_id = ppc_id(ppc32::fpr0) + offset;
-          auto const r = new_id | ppc32::FPR | Arch_ppc32;
-          return MachRegister(r);
-        }
-
-        // Condition register (cr<N>, cr<N><len>)
-        if((id >= 621 && id <= 628) || (id >= 700 && id <= 731)) {
-          return ppc32::cr;
-        }
-
-        // Floating-point Control/Status
-        if(id >= 602 && id <= 609) {
-          return ppc32::fpscw;
-        }
-        return *this;
-      }
-
       case Arch_ppc64: {
         auto ppc_id = [](MachRegister r) {
           return r.val() & 0x0000FFFF;
@@ -310,12 +282,6 @@ namespace Dyninst {
             return 0;  // Xiaozhu: return 0 as an indication of parsing junk.
         }
         break;
-      case Arch_ppc32: {
-        int reg_class = reg & 0x00ff0000;
-        if(reg_class == ppc32::FPR || reg_class == ppc32::FSR)
-          return 8;
-        return 4;
-      }
       case Arch_ppc64: {
         if((reg & 0x00ff0000) == ppc64::FPR)
           return 16;
@@ -464,7 +430,6 @@ namespace Dyninst {
     switch(arch) {
       case Arch_x86: return x86::eip;
       case Arch_x86_64: return x86_64::rip;
-      case Arch_ppc32: return ppc32::pc;
       case Arch_ppc64: return ppc64::pc;
       case Arch_aarch64: // aarch64: pc is not writable
         return aarch64::pc;
@@ -484,7 +449,6 @@ namespace Dyninst {
     switch(arch) {
       case Arch_x86: assert(0); break;    // not implemented
       case Arch_x86_64: assert(0); break; // not implemented
-      case Arch_ppc32: assert(0); break;  // not implemented
       case Arch_ppc64: assert(0); break;  // not implemented
       case Arch_aarch64:           // aarch64: x30 stores the RA for current frame
         return aarch64::x30;
@@ -505,7 +469,6 @@ namespace Dyninst {
     switch(arch) {
       case Arch_x86: return x86::ebp;
       case Arch_x86_64: return x86_64::rbp;
-      case Arch_ppc32: return ppc32::r1;
       case Arch_ppc64: return ppc64::r1;
       case Arch_aarch64: return aarch64::x29; // aarch64: frame pointer is X29 by convention
       case Arch_riscv64: return riscv64::fp;
@@ -524,7 +487,6 @@ namespace Dyninst {
     switch(arch) {
       case Arch_x86: return x86::esp;
       case Arch_x86_64: return x86_64::rsp;
-      case Arch_ppc32: return ppc32::r1;
       case Arch_ppc64: return ppc64::r1;
       case Arch_aarch64: return aarch64::sp; // aarch64: stack pointer is an independent register
       case Arch_riscv64: return riscv64::sp;
@@ -545,7 +507,6 @@ namespace Dyninst {
     switch(arch) {
       case Arch_x86: return x86::eax;
       case Arch_x86_64: return x86_64::rax;
-      case Arch_ppc32: return ppc32::r0;
       case Arch_ppc64: return ppc64::r0;
       case Arch_aarch64: return aarch64::x8;
       case Arch_riscv64: return riscv64::a7;
@@ -564,7 +525,6 @@ namespace Dyninst {
     switch(arch) {
       case Arch_x86: return x86::oeax;
       case Arch_x86_64: return x86_64::orax;
-      case Arch_ppc32: return ppc32::r0;
       case Arch_ppc64: return ppc64::r0;
       case Arch_aarch64: return aarch64::x8;
       case Arch_riscv64: return riscv64::a7;
@@ -585,7 +545,6 @@ namespace Dyninst {
     switch(arch) {
       case Arch_x86: return x86::eax;
       case Arch_x86_64: return x86_64::rax;
-      case Arch_ppc32: return ppc32::r3;
       case Arch_ppc64: return ppc64::r3;
       case Arch_aarch64: return aarch64::x0; // returned value is save in x0
       case Arch_riscv64: return riscv64::a0;
@@ -604,7 +563,6 @@ namespace Dyninst {
     switch(arch) {
       case Arch_x86: return x86::zf;
       case Arch_x86_64: return x86_64::zf;
-      case Arch_ppc32: return ppc32::cr0e;
       case Arch_ppc64: return ppc64::cr0e;
       case Arch_aarch64: return aarch64::z;
       case Arch_aarch32:
@@ -630,7 +588,7 @@ namespace Dyninst {
   bool MachRegister::isFramePointer() const {
     if(*this == InvalidReg) return false;
     auto const arch = getArchitecture();
-    auto const is_ppc = (arch == Arch_ppc32 || arch == Arch_ppc64);
+    auto const is_ppc = (arch == Arch_ppc64);
 
     // ppc uses a specific GPR as its frame pointer
     auto const base = (is_ppc) ? *this : getBaseRegister();
@@ -640,7 +598,7 @@ namespace Dyninst {
   bool MachRegister::isStackPointer() const {
     if(*this == InvalidReg) return false;
     auto const arch = getArchitecture();
-    auto const is_ppc = (arch == Arch_ppc32 || arch == Arch_ppc64);
+    auto const is_ppc = (arch == Arch_ppc64);
 
     // ppc uses a specific GPR as its stack pointer
     auto const base = (is_ppc) ? *this : getBaseRegister();
@@ -650,7 +608,7 @@ namespace Dyninst {
   bool MachRegister::isSyscallNumberReg() const {
     if(*this == InvalidReg) return false;
     auto const arch = getArchitecture();
-    auto const is_ppc = (arch == Arch_ppc32 || arch == Arch_ppc64);
+    auto const is_ppc = (arch == Arch_ppc64);
 
     // ppc uses a specific GPR as its syscall reg
     auto const base = (is_ppc) ? *this : getBaseRegister();
@@ -660,7 +618,7 @@ namespace Dyninst {
   bool MachRegister::isSyscallReturnValueReg() const {
     if(*this == InvalidReg) return false;
     auto const arch = getArchitecture();
-    auto const is_ppc = (arch == Arch_ppc32 || arch == Arch_ppc64);
+    auto const is_ppc = (arch == Arch_ppc64);
 
     // ppc uses a specific GPR as its return value reg
     auto const base = (is_ppc) ? *this : getBaseRegister();
@@ -678,7 +636,6 @@ namespace Dyninst {
                regC == aarch64::PSTATE;
       }
       case Arch_riscv64: return regC == riscv64::CSR;
-      case Arch_ppc32:
       case Arch_ppc64: {
         // For power, we have a different register representation.
         // We do not use the subrange field for MachReigsters
@@ -701,23 +658,6 @@ namespace Dyninst {
   bool MachRegister::isZeroFlag() const {
     if(*this == InvalidReg) return false;
     auto const arch = getArchitecture();
-    if(arch == Arch_ppc32) {
-      /*Power ISA
-       * Version 3.1C, May 26, 2024
-       * 2.3.1 Condition Register
-       */
-      switch(reg) {
-        case Dyninst::ppc32::icr0e:
-        case Dyninst::ppc32::icr1e:
-        case Dyninst::ppc32::icr2e:
-        case Dyninst::ppc32::icr3e:
-        case Dyninst::ppc32::icr4e:
-        case Dyninst::ppc32::icr5e:
-        case Dyninst::ppc32::icr6e:
-        case Dyninst::ppc32::icr7e:
-          return true;
-      }
-    }
     if(arch == Arch_ppc64) {
       switch(reg) {
         case Dyninst::ppc64::icr0e:
@@ -749,9 +689,6 @@ namespace Dyninst {
 
       case Arch_riscv64:
         return category == riscv64::GPR;
-
-      case Arch_ppc32:
-        return category == ppc32::GPR;
 
       case Arch_ppc64:
         return category == ppc64::GPR;
@@ -836,13 +773,6 @@ namespace Dyninst {
         return is_vec || is_fpr || is_fcsr;
       }
 
-      case Arch_ppc32: {
-        auto const is_fpr = (category == ppc32::FPR);
-        auto const is_fsr = (category == ppc32::FSR);
-        auto const is_ctr = (getBaseRegister() == ppc32::fpscw);
-        return is_fpr || is_fsr || is_ctr;
-      }
-
       case Arch_ppc64: {
         auto const is_vec = isVector();
         auto const is_fpr = (category == ppc64::FPR);
@@ -921,16 +851,6 @@ namespace Dyninst {
 
       case Arch_riscv64: {
         return category == riscv64::CSR;
-      }
-
-      case Arch_ppc32: {
-        // Most of the current control-like registers aren't part
-        // of the ISA after v2.07 (Power8+). In particular, the FSR
-        // registers are associated with instructions like 'qvfxxmadds',
-        // but those are no longer in the ISA.
-        auto const is_ctr = (*this == ppc32::ctr);
-        auto const is_scw = (getBaseRegister() == ppc32::fpscw);
-        return is_ctr || is_scw;
       }
 
       case Arch_ppc64: {
@@ -1088,7 +1008,6 @@ namespace Dyninst {
       case Arch_intelGen9:
       case Arch_aarch32:
       case Arch_none:
-      case Arch_ppc32:
       case Arch_cuda:
         return false;
     }

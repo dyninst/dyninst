@@ -115,7 +115,6 @@ IA_IAPI* IA_IAPI::makePlatformIA_IAPI(Architecture arch,
         case Arch_x86:
         case Arch_x86_64:
             return new IA_x86(dec_, where_, o, r, isrc, curBlk_);	    
-        case Arch_ppc32:
         case Arch_ppc64:
             return new IA_power(dec_, where_, o, r, isrc, curBlk_);
         case Arch_aarch64:
@@ -143,7 +142,6 @@ void IA_IAPI::initASTs()
             {
                 framePtr[Arch_x86] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
                 framePtr[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
-                framePtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc32)));
                 framePtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc64)));
                 framePtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_aarch64)));
                 framePtr[Arch_riscv64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_riscv64)));
@@ -155,7 +153,6 @@ void IA_IAPI::initASTs()
             {
                 stackPtr[Arch_x86] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_x86)));
                 stackPtr[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_x86_64)));
-                stackPtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc32)));
                 stackPtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc64)));
                 stackPtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_aarch64)));
                 stackPtr[Arch_riscv64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_riscv64)));
@@ -167,7 +164,6 @@ void IA_IAPI::initASTs()
             {
                 thePC[Arch_x86] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_x86)));
                 thePC[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
-                thePC[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
                 thePC[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
                 thePC[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_aarch64)));
                 thePC[Arch_riscv64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_riscv64)));

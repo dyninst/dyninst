@@ -523,7 +523,6 @@ ArchSpecificFormatter& ArchSpecificFormatter::getFormatter(Architecture a)
         case Arch_aarch64:
             theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new ArmFormatter());
             break;
-        case Arch_ppc32:
         case Arch_ppc64:
             theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new PPCFormatter());
             break;

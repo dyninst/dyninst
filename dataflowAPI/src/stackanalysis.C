@@ -53,7 +53,6 @@
 #include "debug_dataflow.h"
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
-#include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
 
 using namespace std;
@@ -2538,9 +2537,6 @@ bool StackAnalysis::handleNormalCall(Instruction insn, Block *block,
          case Arch_x86_64:
             gpr = x86_64::GPR;
             break;
-         case Arch_ppc32:
-            gpr = ppc32::GPR;
-            break;
          case Arch_ppc64:
             gpr = ppc64::GPR;
             break;
@@ -2716,9 +2712,6 @@ bool StackAnalysis::handleJump(Instruction insn, Block *block, Offset off,
             break;
          case Arch_x86_64:
             gpr = x86_64::GPR;
-            break;
-         case Arch_ppc32:
-            gpr = ppc32::GPR;
             break;
          case Arch_ppc64:
             gpr = ppc64::GPR;
