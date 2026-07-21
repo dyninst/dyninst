@@ -265,7 +265,6 @@ namespace Dyninst {
 
             void createRelocationSections(std::vector<relocationEntry> &relocation_table, bool isDynRelocs,
                                           std::unordered_map<std::string, unsigned long> &dynSymNameMapping);
-            
             void createRelrRelocationSection(std::vector<Offset> &relr_table);
 
             void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);

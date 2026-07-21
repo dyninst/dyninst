@@ -31,6 +31,7 @@
 
 #include <cstring>
 #include <algorithm>
+#include <unordered_set>
 #include "emitElf.h"
 #include "emitElfStatic.h"
 #include "common/src/pathName.h"
@@ -702,16 +703,14 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                  strcmp(name, "__libc_subfreeres") == 0 || strcmp(name, "__libc_atexit") == 0 ||
                  strcmp(name, "__libc_thread_subfreeres") == 0 || strcmp(name, "__libc_IO_vtables") == 0)) {
             std::vector<Offset> &relr_relocs = object->getRelrDynRelocs();
+            // Every pointer-sized word in this section is shifted by library_adjust.
+            // A word that is also a RELR relocation target was already shifted by the
+            // earlier RELR loop, so skip to avoid offsetting it twice
+            std::unordered_set<Offset> relr_addrs(relr_relocs.begin(), relr_relocs.end());
             for(std::size_t off = 0; off < newdata->d_size; off += sizeof(void*)) {
                 Offset addr = shdr->sh_addr + off;
-                bool is_relr_location = false;
-                for (unsigned ri = 0; ri < relr_relocs.size(); ++ri) {
-                    if (relr_relocs[ri] == addr) {
-                        is_relr_location = true;
-                        break;
-                    }
-                }
-                if (is_relr_location) continue;
+                if (relr_addrs.count(addr)) continue;  // already adjusted as a RELR reloc
+
                 char *loc = static_cast<char*>(newdata->d_buf) + off;
                 size_t val{};
                 // The calls to memcpy are required to not break the aliasing rules.
@@ -2260,10 +2259,59 @@ template<class ElfTypes>
 void emitElf<ElfTypes>::createRelrRelocationSection(std::vector<Offset> &relr_table) {
     if (relr_table.empty()) return;
 
-    Elf_Relr *relrs = (Elf_Relr *) malloc(sizeof(Elf_Relr) * relr_table.size());
-    for (unsigned i = 0; i < relr_table.size(); ++i) {
-        relrs[i] = static_cast<Elf_Relr>(relr_table[i] + library_adjust);
+    // Re-encode the decoded relr table into compact RELR format
+    // Inverse of decodeRelrEntries()
+    // Entries alternate by their LSB:
+    //  - even = an absolute address
+    //  - odd  = a bitmap whose set bits mark relocated words following the
+    //           last address
+    std::vector<Offset> addrs(relr_table);
+    for (auto &a : addrs)
+        a += library_adjust;
+    std::sort(addrs.begin(), addrs.end());
+    addrs.erase(std::unique(addrs.begin(), addrs.end()), addrs.end());
+
+    const Offset word_size = sizeof(Elf_Relr);
+    const Offset addrBytesPerRelrBitmap = (8 * word_size - 1) * word_size;
+
+    std::vector<Elf_Relr> packed;
+    Offset bitmapBeginAddr = 0;  // first addr covered by bitmap
+    Offset bitmapEndAddr = 0;    // first addr not covered by bitmap
+    Elf_Relr bitmap = 0;
+    for (size_t i = 0; i < addrs.size(); ) {
+        auto a = addrs[i];
+        if (bitmapBeginAddr <= a && a < bitmapEndAddr) {
+            auto offset = a - bitmapBeginAddr;
+            if ((offset % word_size) == 0) {                 // check if aligned
+                ++i;                                         // consume addr
+                bitmap |= 1UL << ((offset / word_size) + 1); // set bit
+            } else {
+                bitmapBeginAddr = bitmapEndAddr;  // unaligned, invalidate bitmap, try again
+            }
+            continue;
+        }
+        if (bitmap) {
+            bitmap |= 1;                             // set bit 0, indicating a bitmap
+            packed.push_back(bitmap);                // add RELR entry
+            bitmap = 0;
+            if (bitmapBeginAddr != bitmapEndAddr) {  // set new bitmap range, if valid
+                bitmapBeginAddr = bitmapEndAddr;
+                bitmapEndAddr += addrBytesPerRelrBitmap;
+            }
+            continue;  // try again, the value might be in new bitmap range
+        }
+        ++i;                              // consume addr
+        packed.push_back(a);              // add RELR entry
+        bitmapBeginAddr = a + word_size;  // set new bitmap range
+        bitmapEndAddr = bitmapBeginAddr + addrBytesPerRelrBitmap;
     }
+    if (bitmap) {                         // if final bitmap
+        bitmap |= 1;                      // set bit 0, indicating a bitmap
+        packed.push_back(bitmap);         // add RELR entry
+    }
+
+    Elf_Relr *relrs = (Elf_Relr *) malloc(sizeof(Elf_Relr) * packed.size());
+    memcpy(relrs, packed.data(), sizeof(Elf_Relr) * packed.size());
 
     dyn_hash_map<int, Region *> secTagRegionMapping = object->getTagRegionMapping();
     string name;
@@ -2272,7 +2320,7 @@ void emitElf<ElfTypes>::createRelrRelocationSection(std::vector<Offset> &relr_ta
     else
         name = ".relr.dyn";
 
-    obj->addRegion(0, relrs, relr_table.size() * sizeof(Elf_Relr), name,
+    obj->addRegion(0, relrs, packed.size() * sizeof(Elf_Relr), std::move(name),
                    Region::RT_RELR, true);
 }
 
