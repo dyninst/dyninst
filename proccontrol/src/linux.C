@@ -44,7 +44,6 @@
 
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
-#include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
 #include "registers/aarch64_regs.h"
 #include "common/h/dyntypes.h"
@@ -1209,8 +1208,8 @@ Dyninst::Architecture linux_ppc_process::getTargetArch()
    if (arch != Dyninst::Arch_none) {
       return arch;
    }
-   int addr_width = computeAddrWidth();
-   arch = (addr_width == 4) ? Dyninst::Arch_ppc32 : Dyninst::Arch_ppc64;
+   // ppc32 is unsupported (#1145); PowerPC targets are 64-bit.
+   arch = Dyninst::Arch_ppc64;
    return arch;
 }
 
@@ -2053,96 +2052,6 @@ static void init_dynreg_to_user()
    dynreg_to_user[x86_64::dr7]   = make_pair(cur+=8, 8);
 
    cur = 0;
-   if(sizeof(void *) == 8 ) {
-       dynreg_to_user[ppc32::r0]        = make_pair(cur, 4);
-       dynreg_to_user[ppc32::r1]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r2]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r3]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r4]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r5]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r6]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r7]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r8]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r9]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r10]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r11]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r12]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r13]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r14]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r15]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r16]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r17]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r18]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r19]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r20]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r21]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r22]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r23]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r24]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r25]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r26]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r27]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r28]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r29]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r30]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::r31]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::pc]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::msr]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::or3]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::ctr]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::lr]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::xer]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::cr]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::mq]         = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::trap]       = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::dar]        = make_pair(cur+=8, 4);
-       dynreg_to_user[ppc32::dsisr]      = make_pair(cur+=8, 4);
-   }else{
-       dynreg_to_user[ppc32::r0]        = make_pair(cur, 4);
-       dynreg_to_user[ppc32::r1]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r2]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r3]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r4]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r5]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r6]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r7]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r8]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r9]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r10]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r11]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r12]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r13]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r14]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r15]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r16]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r17]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r18]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r19]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r20]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r21]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r22]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r23]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r24]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r25]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r26]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r27]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r28]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r29]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r30]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::r31]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::pc]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::msr]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::or3]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::ctr]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::lr]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::xer]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::cr]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::mq]         = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::trap]       = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::dar]        = make_pair(cur+=4, 4);
-       dynreg_to_user[ppc32::dsisr]      = make_pair(cur+=4, 4);
-   }
-   cur = 0;
    dynreg_to_user[ppc64::r0]        = make_pair(cur, 8);
    dynreg_to_user[ppc64::r1]        = make_pair(cur+=8, 8);
    dynreg_to_user[ppc64::r2]        = make_pair(cur+=8, 8);
@@ -2546,10 +2455,6 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
 
          //Don't treat errors on these registers as real errors.
          bool not_present = true;
-         if (curplat == Arch_ppc32)
-            not_present = (i->first == ppc32::mq || i->first == ppc32::dar ||
-                           i->first == ppc32::dsisr || i->first == ppc32::trap ||
-                           i->first == ppc32::or3);
 
          if (not_present)
             continue;
@@ -2611,9 +2516,6 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
             case Dyninst::Arch_x86_64:
                is_gpr = (reg.isGeneralPurpose() || (rclass == x86_64::FLAG) ||
                          (rclass == x86_64::MISC) || (rclass == x86_64::SEG) || !rclass);
-               break;
-            case Dyninst::Arch_ppc32:
-               is_gpr = true;
                break;
             case Dyninst::Arch_ppc64:
                is_gpr = true;

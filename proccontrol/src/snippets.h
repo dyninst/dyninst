@@ -58,24 +58,6 @@ extern const unsigned int x86_munmap_start_position;
 extern const unsigned char x86_call_munmap[];
 extern const unsigned int x86_call_munmap_size;
 
-extern const unsigned int ppc32_mmap_flags_hi_position;
-extern const unsigned int ppc32_mmap_flags_lo_position;
-extern const unsigned int ppc32_mmap_size_hi_position;
-extern const unsigned int ppc32_mmap_size_lo_position;
-extern const unsigned int ppc32_mmap_addr_hi_position;
-extern const unsigned int ppc32_mmap_addr_lo_position;
-extern const unsigned int ppc32_mmap_start_position;
-extern const unsigned char ppc32_call_mmap[];
-extern const unsigned int ppc32_call_mmap_size;
-
-extern const unsigned int ppc32_munmap_size_hi_position;
-extern const unsigned int ppc32_munmap_size_lo_position;
-extern const unsigned int ppc32_munmap_addr_hi_position;
-extern const unsigned int ppc32_munmap_addr_lo_position;
-extern const unsigned int ppc32_munmap_start_position;
-extern const unsigned char ppc32_call_munmap[];
-extern const unsigned int ppc32_call_munmap_size;
-
 extern const unsigned int ppc64_mmap_flags_highest_position;
 extern const unsigned int ppc64_mmap_flags_higher_position;
 extern const unsigned int ppc64_mmap_flags_hi_position;

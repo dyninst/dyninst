@@ -32,7 +32,6 @@
 #include <sys/mman.h>
 #include <string.h>
 #include "unaligned_memory_access.h"
-#include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
@@ -111,51 +110,6 @@ static const unsigned char linux_x86_call_munmap[] = {
    0x90                                   //nop
 };
 static const unsigned int linux_x86_call_munmap_size = sizeof(linux_x86_call_munmap);
-
-static const unsigned int linux_ppc32_mmap_flags_hi_position = 34;
-static const unsigned int linux_ppc32_mmap_flags_lo_position = 38;
-static const unsigned int linux_ppc32_mmap_size_hi_position = 18;
-static const unsigned int linux_ppc32_mmap_size_lo_position = 22;
-static const unsigned int linux_ppc32_mmap_addr_hi_position = 10;
-static const unsigned int linux_ppc32_mmap_addr_lo_position = 14;
-static const unsigned int linux_ppc32_mmap_start_position = 4;
-static const unsigned char linux_ppc32_call_mmap[] = {
-   0x60, 0x00, 0x00, 0x00,            // nop
-   0x38, 0x00, 0x00, 0x5a,            // li      r0,<syscall>
-   0x3c, 0x60, 0x00, 0x00,            // lis     r3,<addr_hi>
-   0x60, 0x63, 0x00, 0x00,            // ori     r3,r3,<addr_lo>
-   0x3c, 0x80, 0x00, 0x00,            // lis     r4,<size_hi>
-   0x60, 0x84, 0x00, 0x00,            // ori     r4,r4,<size_lo>
-   0x3c, 0xa0, 0x00, 0x00,            // lis     r5,<perms_hi>
-   0x60, 0xa5, 0x00, 0x07,            // ori     r5,r5,<perms_lo>
-   0x3c, 0xc0, 0x00, 0x00,            // lis     r6,<flags_hi>
-   0x60, 0xc6, 0x00, 0x00,            // ori     r6,r6,<flags_lo>
-   0x3c, 0xe0, 0xff, 0xff,            // lis     r7,<fd_hi>
-   0x60, 0xe7, 0xff, 0xff,            // ori     r7,r7,<fd_lo>
-   0x3d, 0x00, 0x00, 0x00,            // lis     r8,<offset>
-   0x44, 0x00, 0x00, 0x02,            // sc
-   0x7d, 0x82, 0x10, 0x08,            // trap
-   0x60, 0x00, 0x00, 0x00             // nop
-};
-static const unsigned int linux_ppc32_call_mmap_size = sizeof(linux_ppc32_call_mmap);
-
-static const unsigned int linux_ppc32_munmap_size_hi_position = 18;
-static const unsigned int linux_ppc32_munmap_size_lo_position = 22;
-static const unsigned int linux_ppc32_munmap_addr_hi_position = 10;
-static const unsigned int linux_ppc32_munmap_addr_lo_position = 14;
-static const unsigned int linux_ppc32_munmap_start_position = 4;
-static const unsigned char linux_ppc32_call_munmap[] = {
-   0x60, 0x60, 0x60, 0x60,              // nop
-   0x38, 0x00, 0x00, 0x5b,              // li      r0,<syscall>
-   0x3c, 0x60, 0x00, 0x00,              // lis     r3,<addr_hi>
-   0x60, 0x63, 0x00, 0x00,              // ori     r3,r3,<addr_lo>
-   0x3c, 0x80, 0x00, 0x00,              // lis     r4,<size_hi>
-   0x60, 0x84, 0x00, 0x00,              // ori     r4,r4,<size_lo>
-   0x44, 0x00, 0x00, 0x02,              // sc
-   0x7d, 0x82, 0x10, 0x08,              // trap
-   0x60, 0x00, 0x00, 0x00               // nop
-};
-static const unsigned int linux_ppc32_call_munmap_size = sizeof(linux_ppc32_call_munmap);
 
 static const unsigned int linux_ppc64_mmap_start_position = 4;
 static const unsigned int linux_ppc64_mmap_addr_highest_position =    2;
@@ -404,12 +358,6 @@ bool mmap_alloc_process::plat_collectAllocationResult(int_thread *thr, reg_respo
 	    if(!result) return false;
             break;
         }
-        case Arch_ppc32: {
-            bool result = thr->getRegister(ppc32::r3, resp);
-            assert(result);
-	    if(!result) return false;
-            break;
-        }
         case Arch_ppc64: {
             bool result = thr->getRegister(ppc64::r3, resp);
             assert(result);
@@ -505,43 +453,6 @@ bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, boo
         }  else  {
             assert(0);
         }
-   }
-    else  if (getTargetArch() == Arch_ppc32) {
-        unsigned int flags_hi_position;
-        unsigned int flags_lo_position;
-        unsigned int size_hi_position;
-        unsigned int size_lo_position;
-        unsigned int addr_hi_position;
-        unsigned int addr_lo_position;
-        const void *buf_tmp;
-
-        bool use_linux = (getOS() == Linux);
-
-        if (use_linux) {
-           flags_hi_position = linux_ppc32_mmap_flags_hi_position;
-           flags_lo_position = linux_ppc32_mmap_flags_lo_position;
-           size_hi_position = linux_ppc32_mmap_size_hi_position;
-           size_lo_position = linux_ppc32_mmap_size_lo_position;
-           addr_hi_position = linux_ppc32_mmap_addr_hi_position;
-           addr_lo_position = linux_ppc32_mmap_addr_lo_position;
-           start_offset = linux_ppc32_mmap_start_position;
-           buffer_size = linux_ppc32_call_mmap_size;
-           buf_tmp = linux_ppc32_call_mmap;
-        }
-        else {
-           assert(0); //Fill in the entry in mmapalloc.h for this system
-        }
-
-        buffer = malloc(buffer_size);
-        memcpy(buffer, buf_tmp, buffer_size);
-
-        // Assuming endianess of debugger and debuggee match
-        write_memory_as(static_cast<char *>(buffer)+size_hi_position, static_cast<uint16_t>(size >> 16));
-        write_memory_as(static_cast<char *>(buffer)+size_lo_position, static_cast<uint16_t>(size));
-        write_memory_as(static_cast<char *>(buffer)+flags_hi_position, static_cast<uint16_t>(flags >> 16));
-        write_memory_as(static_cast<char *>(buffer)+flags_lo_position, static_cast<uint16_t>(flags));
-        write_memory_as(static_cast<char *>(buffer)+addr_hi_position, static_cast<uint16_t>(addr >> 16));
-        write_memory_as(static_cast<char *>(buffer)+addr_lo_position, static_cast<uint16_t>(addr));
    }
    else if (getTargetArch() == Arch_ppc64) {
       unsigned int flags_highest_position;
@@ -739,36 +650,6 @@ bool mmap_alloc_process::plat_createDeallocationSnippet(Dyninst::Address addr,
        }  else  {
           assert(0);
        }
-   }
-   else if (getTargetArch() == Arch_ppc32) {
-      unsigned int size_hi_position;
-      unsigned int size_lo_position;
-      unsigned int addr_hi_position;
-      unsigned int addr_lo_position;
-      const void *buf_tmp = NULL;
-
-      bool use_linux = (getOS() == Linux);
-      if (use_linux) {
-         buf_tmp = linux_ppc32_call_munmap;
-         size_hi_position = linux_ppc32_munmap_size_hi_position;
-         size_lo_position = linux_ppc32_munmap_size_lo_position;
-         addr_hi_position = linux_ppc32_munmap_addr_hi_position;
-         addr_lo_position = linux_ppc32_munmap_addr_lo_position;
-         buffer_size = linux_ppc32_call_munmap_size;
-         start_offset = linux_ppc32_munmap_start_position;
-      }
-      else {
-         assert(0);
-      }
-
-       buffer = malloc(buffer_size);
-       memcpy(buffer, buf_tmp, buffer_size);
-
-       // Assuming endianess of debugger and debuggee match
-       write_memory_as(static_cast<char *>(buffer)+size_hi_position, static_cast<uint16_t>(size >> 16));
-       write_memory_as(static_cast<char *>(buffer)+size_lo_position, static_cast<uint16_t>(size));
-       write_memory_as(static_cast<char *>(buffer)+addr_hi_position, static_cast<uint16_t>(addr >> 16));
-       write_memory_as(static_cast<char *>(buffer)+addr_lo_position, static_cast<uint16_t>(addr));
    }
    else if( getTargetArch() == Arch_ppc64 ) {
       unsigned int size_highest_position;
