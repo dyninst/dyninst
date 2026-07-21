@@ -93,6 +93,7 @@ set_source_files_properties(${_rose_headers} PROPERTIES COMPILE_FLAGS -w)
 
 set(_dataflow_sources
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ABI.C
+    ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ABIBridge.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Absloc.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/AbslocInterface.C
     ${PROJECT_SOURCE_DIR}/dataflowAPI/src/AST.C
