@@ -339,14 +339,14 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC32::convert(const RegisterD
     switch (major) {
         case powerpc_regclass_gpr: {
             unsigned int minor = reg.get_minor();
-	    Dyninst::MachRegister base = Dyninst::ppc32::r0;
+	    Dyninst::MachRegister base = Dyninst::ppc64::r0;
 
 	    // For some reason, ROSE does not provide a enum representation for power registers
 	    mreg = Dyninst::MachRegister(base.val() + minor);
         }
             break;
         case powerpc_regclass_fpr: {
-            Dyninst::MachRegister base = Dyninst::ppc32::fpr0;
+            Dyninst::MachRegister base = Dyninst::ppc64::fpr0;
             unsigned int minor = reg.get_minor();
             mreg = Dyninst::MachRegister(base.val() + minor);
         }
@@ -355,12 +355,12 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC32::convert(const RegisterD
 	case powerpc_regclass_cr: {
 	    unsigned int offset = reg.get_offset();
 	    if (size == 32) {
-	        mreg = Dyninst::ppc32::cr;
+	        mreg = Dyninst::ppc64::cr;
 	    }if (size == 4) {
-	        Dyninst::MachRegister base = Dyninst::ppc32::cr0;
+	        Dyninst::MachRegister base = Dyninst::ppc64::cr0;
 		mreg = Dyninst::MachRegister(base.val() + offset / 4);
 	    } else if (size == 1) {
-	        Dyninst::MachRegister base = Dyninst::ppc32::cr0l;
+	        Dyninst::MachRegister base = Dyninst::ppc64::cr0l;
 		mreg = Dyninst::MachRegister(base.val() + offset);
 	    } else {
 	        throw RoseException("bad cr register size", nullptr);
@@ -376,22 +376,22 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC32::convert(const RegisterD
 	    unsigned int minor = reg.get_minor();
 	    switch (minor) {
 	        case powerpc_spr_xer: 
-		    mreg = Dyninst::ppc32::xer;
+		    mreg = Dyninst::ppc64::xer;
 		    break;
 		case powerpc_spr_lr:
-		    mreg = Dyninst::ppc32::lr;
+		    mreg = Dyninst::ppc64::lr;
 		    break;
 		case powerpc_spr_ctr:
-		    mreg = Dyninst::ppc32::ctr;
+		    mreg = Dyninst::ppc64::ctr;
 		    break;
 		case powerpc_spr_dsisr:
-		    mreg = Dyninst::ppc32::dsisr;
+		    mreg = Dyninst::ppc64::dsisr;
 		    break;
 		case powerpc_spr_dar:
-		    mreg = Dyninst::ppc32::dar;
+		    mreg = Dyninst::ppc64::dar;
 		    break;
 		case powerpc_spr_dec:
-		    mreg = Dyninst::ppc32::dec;
+		    mreg = Dyninst::ppc64::dec;
 		    break;
 		default:
 		    throw RoseException("not implemented special register", nullptr);
@@ -403,7 +403,7 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC32::convert(const RegisterD
 	    break;
 	
 	case powerpc_regclass_msr:
-	    mreg = Dyninst::ppc32::msr;
+	    mreg = Dyninst::ppc64::msr;
 	    break;
 	    
 	case powerpc_regclass_sr:
@@ -411,11 +411,11 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC32::convert(const RegisterD
 	    break;
 
         case powerpc_regclass_iar:
-            mreg = Dyninst::ppc32::pc;
+            mreg = Dyninst::ppc64::pc;
             break;
 	    
 	case powerpc_regclass_pvr:
-	    mreg = Dyninst::ppc32::pvr;
+	    mreg = Dyninst::ppc64::pvr;
 	    break;
         default:
             ASSERT_always_forbid("Unexpected register major type.");
