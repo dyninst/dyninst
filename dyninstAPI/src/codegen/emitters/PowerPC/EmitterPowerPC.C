@@ -1590,15 +1590,10 @@ static parsed_regs calcUsedRegs(parse_func *func) {
     }
     auto const category = r.regClass();
 
-    // ppc{32,64}::{G,F}PR can be the same value, so avoid a -Wlogical-op
-    // warning
-    auto const is_gpr32 = (category == ppc32::GPR);
-    auto const is_gpr64 = (category == ppc64::GPR);
-    auto const is_gpr = (is_gpr32 || is_gpr64);
-
-    auto const is_fpr32 = (category == ppc32::FPR);
-    auto const is_fpr64 = (category == ppc64::FPR);
-    auto const is_fpr = (is_fpr32 || is_fpr64);
+    // Register category is architecture-independent (ppc64::GPR/FPR have the
+    // same values as the old ppc32 constants).
+    auto const is_gpr = (category == ppc64::GPR);
+    auto const is_fpr = (category == ppc64::FPR);
 
     if(is_gpr) {
       usedRegisters.gprs.insert(regID);
