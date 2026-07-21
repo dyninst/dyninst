@@ -81,69 +81,75 @@ static hsa_status_t find_coarse_grained(hsa_amd_memory_pool_t pool, void* d) {
 // ---- CPU-side hostcall service loop -----------------------------------------
 static std::atomic<bool> g_run{true};
 
-static void service_loop(HostcallMailbox* mb) {
-    // Files are keyed by HANDLE so different waves can open different files: FOPEN
-    // opens the requested path (deduped by name) and returns its FILE* as the handle;
-    // FWRITE/FCLOSE act on (FILE*)mb->handle. Files stay open until teardown. A
-    // `primary` (the first file opened) preserves the legacy single-file WRITE_ID
-    // path used by the hc_write_id-based examples, which don't thread a handle.
+// Service ONE ring slot (handle-keyed files; `primary` preserves the single-file
+// WRITE_ID path used by the hc_write_id examples that don't thread a handle).
+static void service_slot(HostcallSlot* s, std::map<std::string, FILE*>& files,
+                         FILE*& primary, long& opens, long& closes, long& writes) {
+    switch (s->opcode) {
+    case HC_OP_FOPEN: {
+        std::string name(s->path);
+        FILE*& f = files[name];                      // open each distinct name once
+        if (!f) {
+            f = fopen(s->path, s->mode);
+            if (!primary) primary = f;
+            fprintf(stderr, "[host] fopen('%s','%s') -> %p\n", s->path, s->mode, (void*)f);
+        }
+        opens++;
+        s->handle = (int64_t)(uintptr_t)f;           // return the handle to the device
+        s->retval = f ? 0 : -1;
+        break; }
+    case HC_OP_FWRITE: {
+        FILE* f = (FILE*)(uintptr_t)s->handle;        // per-wave file (from gpu_fopen)
+        int n = f ? (int)fwrite(s->data, 1, s->size, f) : -1;
+        if (f) fflush(f);
+        writes++;
+        s->retval = n;
+        break; }
+    case HC_OP_FREAD: {
+        FILE* f = (FILE*)(uintptr_t)s->handle;
+        int n = f ? (int)fread(s->data, 1, s->size, f) : -1;
+        s->retval = n;
+        break; }
+    case HC_OP_FCLOSE: {
+        FILE* f = (FILE*)(uintptr_t)s->handle;
+        if (f) fflush(f);                             // defer real close to teardown
+        else if (primary) fflush(primary);
+        closes++;
+        s->retval = 0;
+        break; }
+    case HC_OP_WRITE_ID:                             // legacy per-site scalar id -> primary file
+        if (primary) { fprintf(primary, "[gpu] site %d\n", s->arg); fflush(primary); }
+        writes++;
+        s->retval = 0;
+        break;
+    default:
+        s->retval = -1;
+        break;
+    }
+}
+
+// Scan the ring, servicing request-ready slots OUT OF ORDER (see hostcalls.h — this
+// is what avoids the FIFO ticket-lock deadlock at high wave counts).
+static void service_loop(HostcallQueue* q) {
     std::map<std::string, FILE*> files;
     FILE* primary = nullptr;
     long opens = 0, closes = 0, writes = 0;
     while (g_run.load(std::memory_order_acquire)) {
-        if (__atomic_load_n(&mb->status, __ATOMIC_ACQUIRE) != 1) {
-            std::this_thread::yield();
-            continue;
+        bool any = false;
+        for (uint32_t i = 0; i < HC_NSLOTS; i++) {
+            HostcallSlot* s = &q->slots[i];
+            if (__atomic_load_n(&s->status, __ATOMIC_ACQUIRE) != 1) continue;
+            any = true;
+            service_slot(s, files, primary, opens, closes, writes);
+            __atomic_thread_fence(__ATOMIC_RELEASE);
+            __atomic_store_n(&s->status, 2, __ATOMIC_RELEASE);   // done -> release the wave
         }
-        switch (mb->opcode) {
-        case HC_OP_FOPEN: {
-            std::string name(mb->path);
-            FILE*& f = files[name];                      // open each distinct name once
-            if (!f) {
-                f = fopen(mb->path, mb->mode);
-                if (!primary) primary = f;
-                fprintf(stderr, "[host] fopen('%s','%s') -> %p\n", mb->path, mb->mode, (void*)f);
-            }
-            opens++;
-            mb->handle = (int64_t)(uintptr_t)f;          // return the handle to the device
-            mb->retval = f ? 0 : -1;
-            break; }
-        case HC_OP_FWRITE: {
-            FILE* f = (FILE*)(uintptr_t)mb->handle;       // per-wave file (from gpu_fopen)
-            int n = f ? (int)fwrite(mb->data, 1, mb->size, f) : -1;
-            if (f) fflush(f);
-            writes++;
-            mb->retval = n;
-            break; }
-        case HC_OP_FREAD: {
-            FILE* f = (FILE*)(uintptr_t)mb->handle;
-            int n = f ? (int)fread(mb->data, 1, mb->size, f) : -1;
-            mb->retval = n;
-            break; }
-        case HC_OP_FCLOSE: {
-            FILE* f = (FILE*)(uintptr_t)mb->handle;
-            if (f) fflush(f);                             // defer real close to teardown
-            else if (primary) fflush(primary);
-            closes++;
-            mb->retval = 0;
-            break; }
-        case HC_OP_WRITE_ID:                             // legacy per-site scalar id -> primary file
-            if (primary) { fprintf(primary, "[gpu] site %d\n", mb->arg); fflush(primary); }
-            writes++;
-            mb->retval = 0;
-            break;
-        default:
-            mb->retval = -1;
-            break;
-        }
-        __atomic_thread_fence(__ATOMIC_RELEASE);
-        __atomic_store_n(&mb->status, 2, __ATOMIC_RELEASE);   // done -> release GPU
+        if (!any) std::this_thread::yield();
     }
     for (auto& kv : files) if (kv.second) fclose(kv.second);  // close every opened file
     fprintf(stderr, "[host] serviced %ld fopen / %ld fwrite / %ld fclose (%zu distinct files)\n",
             opens, writes, closes, files.size());
-    fprintf(stderr, "[host] final ticket_next=%u ticket_now=%u status=%d (should be equal / 0)\n",
-            mb->ticket_next, mb->ticket_now, mb->status);
+    fprintf(stderr, "[host] final enqueue_pos=%u\n", q->enqueue_pos);
 }
 
 int main(int argc, char** argv) {
@@ -171,6 +177,7 @@ int main(int argc, char** argv) {
     HSA_CHECK(hsa_amd_memory_pool_allocate(fg.pool, sizeof(HostcallMailbox), 0, (void**)&mbox));
     HSA_CHECK(hsa_amd_agents_allow_access(1, &gpu.agent, nullptr, mbox));
     memset(mbox, 0, sizeof(*mbox));
+    for (uint32_t i = 0; i < HC_NSLOTS; i++) mbox->slots[i].turn = i;  // ring generation gates
 
     // Build the executable: define `mailbox`, load BOTH objects, freeze.
     hsa_executable_t exe;

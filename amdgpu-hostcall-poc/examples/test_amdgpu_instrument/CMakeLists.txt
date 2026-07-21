@@ -26,3 +26,7 @@ add_executable(capture_return_instrument capture_return_instrument.C)
 target_compile_options(capture_return_instrument PRIVATE ${EXAMPLES_WARNING_FLAGS})
 target_link_libraries(capture_return_instrument PRIVATE Dyninst::dyninstAPI)
 
+
+add_executable(preload_perwave_instrument preload_perwave_instrument.C)
+target_compile_options(preload_perwave_instrument PRIVATE ${EXAMPLES_WARNING_FLAGS})
+target_link_libraries(preload_perwave_instrument PRIVATE Dyninst::dyninstAPI)
