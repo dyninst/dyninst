@@ -2,8 +2,6 @@
 #include "Instruction.h"
 #include "Register.h"
 #include "addressSpace.h"
-#include "codegen/emitters/PowerPC/ppc32/EmitterPowerPC32Dyn.h"
-#include "codegen/emitters/PowerPC/ppc32/EmitterPowerPC32Stat.h"
 #include "codegen/emitters/PowerPC/ppc64/EmitterPowerPC64Dyn.h"
 #include "codegen/emitters/PowerPC/ppc64/EmitterPowerPC64Stat.h"
 #include "registerSpace/registerSpace.h"
@@ -52,19 +50,14 @@ bool AddressSpace::getDynamicCallSiteArgs(di::Instruction i, Address addr,
 }
 
 Emitter *AddressSpace::getEmitter() {
-  static Dyninst::DyninstAPI::EmitterPowerPC32Dyn emitter32Dyn;
+  // 32-bit PowerPC is no longer supported (see #1145); ppc is always 64-bit.
+  assert(getAddressWidth() == 8);
+
   static Dyninst::DyninstAPI::EmitterPowerPC64Dyn emitter64Dyn;
-  static Dyninst::DyninstAPI::EmitterPowerPC32Stat emitter32Stat;
   static Dyninst::DyninstAPI::EmitterPowerPC64Stat emitter64Stat;
 
-  if (getAddressWidth() == 8) {
-    if (proc()) {
-      return &emitter64Dyn;
-    } else
-      return &emitter64Stat;
-  }
   if (proc())
-    return &emitter32Dyn;
+    return &emitter64Dyn;
   else
-    return &emitter32Stat;
+    return &emitter64Stat;
 }
