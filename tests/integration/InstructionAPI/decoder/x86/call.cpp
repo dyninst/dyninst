@@ -54,6 +54,7 @@ int main() {
   if(!run(Dyninst::Arch_x86_64, make_tests(Dyninst::Arch_x86_64))) {
     ok = false;
   }
+  std::cout << "\nfarts\n";
   if(!run(Dyninst::Arch_x86, make_tests32())) {
     ok = false;
   }
@@ -67,7 +68,6 @@ bool run(Dyninst::Architecture arch, std::vector<call_test> const &tests) {
   bool failed = false;
   int test_id = 0;
   auto sarch = Dyninst::getArchitectureName(arch);
-  std::clog << "Running tests for 'call' in " << sarch << " mode\n";
   for(auto const &t : tests) {
     test_id++;
     di::InstructionDecoder d(t.bytes.data(), t.bytes.size(), arch);
@@ -103,17 +103,42 @@ std::vector<call_test> make_tests(Dyninst::Architecture arch) {
 
   auto eax = is_64 ? Dyninst::x86_64::rax : Dyninst::x86::eax;
   auto ecx = is_64 ? Dyninst::x86_64::rcx : Dyninst::x86::ecx;
+  auto ebp = is_64 ? Dyninst::x86_64::rbp : Dyninst::x86::ebp;
+  auto gs = is_64 ? Dyninst::x86_64::gs : Dyninst::x86::gs;
+  auto ss = is_64 ? Dyninst::x86_64::ss : Dyninst::x86::ss;
+  auto cs = is_64 ? Dyninst::x86_64::cs : Dyninst::x86::cs;
 
   auto sp = Dyninst::MachRegister::getStackPointer(arch);
   auto ip = Dyninst::MachRegister::getPC(arch);
 
   using reg_set = Dyninst::register_set;
 
+  using s = std::string;
+
   // clang-format off
   return {
+    { // call dword ptr gs:[eax + 0x10]
+      {0x65, 0xff, 0x50, 0x10},
+      di::opcode_test(e_call, "call 0x10(%rip)"),  // WRONG: 'call *%gs:0x10(%eax)'
+      di::register_rw_test{
+        reg_set{eax, sp, gs, ip, eax},
+        reg_set{sp, ip}
+      },
+      di::mem_test{
+        reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{eax, gs},
+          reg_set{sp}
+        }
+      },
+      di::cft_test{
+        hasCFT,
+        {isCall, !isConditional, isIndirect, !isFallthrough, !isBranch, !isReturn}
+      }
+    },
     { // call [8*EAX + ECX + 0xDEADBEEF]
       {0xff, 0x94, 0xc1, 0xef, 0xbe, 0xad, 0xde},
-      di::opcode_test(e_call, "call 0xdeadbeef(%"+ecx.name()+",%"+eax.name()+",8)"),
+      di::opcode_test(e_call, "call 0xdead"+s{is_64?"beef":"bfdb"}+"(%rip)"), // WRONG: 'call -0x21524111(%ecx,%eax,8)'
       di::register_rw_test{
         reg_set{eax, ecx, ip, sp},
         reg_set{sp, ip}
@@ -132,7 +157,7 @@ std::vector<call_test> make_tests(Dyninst::Architecture arch) {
     },
     { // call 0x12345678
       {0xe8, 0x73, 0x56, 0x34, 0x12, },
-      di::opcode_test(e_call, "call 0x12345678(%rip)"),
+      di::opcode_test(e_call, "call 0x12345678(%"+ip.name()+"),$0x12345678"),
       di::register_rw_test{
         reg_set{ip, sp},
         reg_set{sp, ip}
@@ -168,6 +193,158 @@ std::vector<call_test> make_tests(Dyninst::Architecture arch) {
         {isCall, !isConditional, isIndirect, !isFallthrough, !isBranch, !isReturn}
       }
     },
+    { // call far fword ptr ds:[eax]
+      {0xff, 0x18},
+      di::opcode_test(e_call, "call (%"+eax.name()+")"),
+      di::register_rw_test{
+        reg_set{ip, sp, eax},
+        reg_set{sp, ip}
+      },
+      di::mem_test{
+        reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{eax},   // Missing: ds, ss
+          reg_set{sp}
+        }
+      },
+      di::cft_test{
+        hasCFT,
+        {isCall, !isConditional, isIndirect, !isFallthrough, !isBranch, !isReturn}
+      }
+    },
+    { // call far fword ptr ds:[eax+0x12]
+      {0xff, 0x58, 0x12},
+      di::opcode_test(e_call, "call 0x12(%"+eax.name()+")"),
+      di::register_rw_test{
+        reg_set{ip, sp, eax},
+        reg_set{sp, ip}
+      },
+      di::mem_test{
+        reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{eax},
+          reg_set{sp}
+        }
+      },
+      di::cft_test{
+        hasCFT,
+        {isCall, !isConditional, isIndirect, !isFallthrough, !isBranch, !isReturn}
+      }
+    },
+    { // leave
+      {0xc9},
+      di::opcode_test(e_leave, "leave"),
+      di::register_rw_test {
+        reg_set{sp, ebp},
+        reg_set{sp, ebp}
+      },
+      di::mem_test{
+        reads_memory, !writes_memory,
+        di::register_rw_test{
+          reg_set{sp, ebp},
+          reg_set{}
+        }
+      },
+      di::cft_test{
+        !hasCFT,
+        {}
+      }
+    },
+    { // enter 0x1234, 0x5 (Create a stack frame of size 0x1234 with a nesting level of 0x5)
+      {0xc8, 0x34, 0x12, 0x05},
+      di::opcode_test(e_enter, "enter $0x5,$0x1234"),
+      di::register_rw_test {
+        reg_set{sp, ebp},
+        reg_set{sp, ebp}
+      },
+      di::mem_test{
+        !reads_memory, writes_memory,
+        di::register_rw_test{
+          reg_set{},
+          reg_set{sp}
+        }
+      },
+      di::cft_test{
+        !hasCFT,
+        {}
+      }
+    },
+    { // ret
+      {0xc3},
+      di::opcode_test(e_ret, "ret"),
+      di::register_rw_test {
+        reg_set{sp, ss},
+        reg_set{sp, ip}
+      },
+      di::mem_test{
+        reads_memory, !writes_memory,
+        di::register_rw_test{
+          reg_set{sp, ss},
+          reg_set{}
+        }
+      },
+      di::cft_test{
+        hasCFT,
+        {!isCall, !isConditional, !isIndirect, !isFallthrough, !isBranch, isReturn}
+      }
+    },
+    { // ret 0x1234
+      {0xc2, 0x34, 0x12},
+      di::opcode_test(e_ret, "ret $0x1234"),
+      di::register_rw_test {
+        reg_set{sp, ss},
+        reg_set{sp, ip}
+      },
+      di::mem_test{
+        reads_memory, !writes_memory,
+        di::register_rw_test{
+          reg_set{sp, ss},
+          reg_set{}
+        }
+      },
+      di::cft_test{
+        hasCFT,
+        {!isCall, !isConditional, !isIndirect, !isFallthrough, !isBranch, isReturn}
+      }
+    },
+    { // retf
+      {0xcb},
+      di::opcode_test(e_retf, "retf"),
+      di::register_rw_test {
+        reg_set{sp, ss},
+        reg_set{sp, ip, cs}
+      },
+      di::mem_test{
+        reads_memory, !writes_memory,
+        di::register_rw_test{
+          reg_set{sp, ss},
+          reg_set{}
+        }
+      },
+      di::cft_test{
+        hasCFT,
+        {!isCall, !isConditional, !isIndirect, !isFallthrough, !isBranch, isReturn}
+      }
+    },
+    { // retf 0x1234
+      {0xca, 0x34, 0x12},
+      di::opcode_test(e_retf, "retf $0x1234"),
+      di::register_rw_test {
+        reg_set{sp, ss},
+        reg_set{sp, ip, cs}
+      },
+      di::mem_test{
+        reads_memory, !writes_memory,
+        di::register_rw_test{
+          reg_set{sp, ss},
+          reg_set{}
+        }
+      },
+      di::cft_test{
+        hasCFT,
+        {!isCall, !isConditional, !isIndirect, !isFallthrough, !isBranch, isReturn}
+      }
+    },
   };
   // clang-format on
 }
@@ -182,7 +359,7 @@ std::vector<call_test> make_tests32() {
   return {
     { // call far 0x9abc:0x12345678
       {0x9a, 0x78, 0x56, 0x34, 0x12, 0xbc, 0x9a, },
-      di::opcode_test(e_call, "call $0x9abc12345678"),
+      di::opcode_test(e_lcall, "lcall $0x12345678,$0xffff9abc"),
       di::register_rw_test{
         reg_set{sp, ip},
         reg_set{sp, ip}
@@ -216,7 +393,7 @@ std::vector<call_test> make_tests64() {
   return {
     { // call qword ptr [rcx+rax*8-0x12345678]
       {0xff, 0x94, 0xc1, 0x78, 0x56, 0x34, 0x12},
-      di::opcode_test(e_call, "call 0x12345678(%rcx,%rax,8)"),
+      di::opcode_test(e_call, "call 0x12345678(%rip)"), // WRONG: 'call 0x12345678(%ecx,%eax,8)'
       di::register_rw_test{
         reg_set{sp, ip, rcx, rax},
         reg_set{sp, ip}

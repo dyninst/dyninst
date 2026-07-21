@@ -355,14 +355,6 @@ namespace DwarfDyninst {
       case 1195: return Dyninst::x86_64::zmm30;
       case 1196: return Dyninst::x86_64::zmm31;
       case 1197: return Dyninst::x86_64::orax;
-      case 1198: return Dyninst::x86_64::tr0;
-      case 1199: return Dyninst::x86_64::tr1;
-      case 1200: return Dyninst::x86_64::tr2;
-      case 1201: return Dyninst::x86_64::tr3;
-      case 1202: return Dyninst::x86_64::tr4;
-      case 1203: return Dyninst::x86_64::tr5;
-      case 1204: return Dyninst::x86_64::tr6;
-      case 1205: return Dyninst::x86_64::tr7;
       default: return Dyninst::InvalidReg;
     }
   }
@@ -676,14 +668,6 @@ namespace DwarfDyninst {
       case Dyninst::x86_64::izmm30: return 1195;
       case Dyninst::x86_64::izmm31: return 1196;
       case Dyninst::x86_64::iorax: return 1197;
-      case Dyninst::x86_64::itr0: return 1198;
-      case Dyninst::x86_64::itr1: return 1199;
-      case Dyninst::x86_64::itr2: return 1200;
-      case Dyninst::x86_64::itr3: return 1201;
-      case Dyninst::x86_64::itr4: return 1202;
-      case Dyninst::x86_64::itr5: return 1203;
-      case Dyninst::x86_64::itr6: return 1204;
-      case Dyninst::x86_64::itr7: return 1205;
       default: return -1;
     }
   }

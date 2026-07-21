@@ -628,6 +628,7 @@ bool IA_x86::isFakeCall() const
                 //FALLTHROUGH
             case e_popf:
             case e_popfd:
+            case e_popfq:
                 stackDelta += sign * 4;
                 if (1 == sign) {
                     mal_printf("popf ins'n at %lx in func at %lx changes sp "

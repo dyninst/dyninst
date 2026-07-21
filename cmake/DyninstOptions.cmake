@@ -55,8 +55,6 @@ set_property(CACHE DYNINST_ENABLE_TESTS PROPERTY STRINGS ${_dyninst_test_types})
 
 option(DYNINST_ENABLE_FILEFORMAT_PE "Enable PE (Windows .exe/.dll) parsing" OFF)
 
-option(DYNINST_ENABLE_CAPSTONE "Enable Capstone" OFF)
-
 option(
   DYNINST_ENABLE_ZYDIS
   "Use Zydis to recover the length of x86-64 instructions InstructionAPI cannot decode. The option may be removed in the future without further notice."

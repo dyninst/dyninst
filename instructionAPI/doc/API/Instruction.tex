@@ -196,11 +196,14 @@ void getReadSet(std::set<RegisterAST::Ptr> & regsRead) const
   A register is considered read if it 1) is an explicit source operand
   or 2) is implicitly read as a side effect of executing the instruction.
   
-  For example on x86, \code{jc [eax]} explicitly reads \code{eax} but also
-  implicitly reads \code{flags} to check the carry bit (subregister cf).
-  The set of read registers is then \code{eax}, \code{flags}, and \code{cf}.
-  
+  For example on x86, a conditional jump such as \code{jc 0x1234} explicitly
+  reads the instruction pointer (\code{ip}) to form the relative target and
+  also implicitly reads \code{flags} to check the carry bit (subregister
+  \code{cf}). The set of read registers is then \code{ip}, \code{flags}, and
+  \code{cf}.
+
   NOTE: Registers used in an address calculation are considered explicitly read.
+  For example, \code{jmp [eax]} explicitly reads \code{eax}.
 }
 
 \begin{apient}

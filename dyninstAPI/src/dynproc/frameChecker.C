@@ -66,7 +66,7 @@ frameChecker::~frameChecker()
 bool frameChecker::isReturn() const
 {
   entryID firstOpcode = m_Insns[0].getOperation().getID();
-  return (firstOpcode == e_ret_far) || (firstOpcode == e_ret_near);
+  return (firstOpcode == e_retf) || (firstOpcode == e_ret);
 }
 
 bool frameChecker::isStackPreamble() const

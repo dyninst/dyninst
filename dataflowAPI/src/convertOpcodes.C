@@ -155,9 +155,9 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_cmpxchg;
         case e_cmpxchg8b:
             return x86_cmpxchg8b;
-        case e_ret_far:
+        case e_retf:
             return x86_retf;
-        case e_ret_near:
+        case e_ret:
             return x86_ret;
         case e_prefetch:
             return x86_prefetch;
@@ -703,6 +703,8 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_popf;
         case e_popfd:
             return x86_popfd;
+        case e_popfq:
+            return x86_popfq;
         case e_popcnt:
             return x86_popcnt;
         case e_por:
@@ -2249,7 +2251,6 @@ Riscv64InstructionKind RoseInsnRiscv64Factory::convertKind(entryID opcode) {
         case riscv64_op_subw: return rose_riscv64_op_subw;
         case riscv64_op_sw: return rose_riscv64_op_sw;
         case riscv64_op_unimp: return rose_riscv64_op_unimp;
-        case riscv64_op_uret: return rose_riscv64_op_uret;
         case riscv64_op_wfi: return rose_riscv64_op_wfi;
         case riscv64_op_xor: return rose_riscv64_op_xor;
         case riscv64_op_xori: return rose_riscv64_op_xori;

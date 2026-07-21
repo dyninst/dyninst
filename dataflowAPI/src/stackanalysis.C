@@ -667,8 +667,8 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
       case e_pop:
          handlePushPop(insn, block, off, sign, xferFuncs);
          break;
-      case e_ret_near:
-      case e_ret_far:
+      case e_ret:
+      case e_retf:
          handleReturn(insn, xferFuncs);
          break;
       case e_lea:
@@ -687,7 +687,9 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
       case e_pushf:
          sign = -1;
          //FALLTHROUGH
+      case e_popf:
       case e_popfd:
+      case e_popfq:
          handlePushPopFlags(sign, xferFuncs);
          break;
       case e_pushal:
@@ -764,7 +766,7 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func_) {
       Instruction insn = decoder.decode(cur);
 
       entryID what = insn.getOperation().getID();
-      if (what != e_ret_near) continue;
+      if (what != e_ret) continue;
 
       int val;
       std::vector<Operand> ops = insn.getAllOperands();

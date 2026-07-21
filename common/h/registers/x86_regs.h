@@ -283,14 +283,6 @@ namespace Dyninst { namespace x86 {
   DEF_REGISTER(      oeax,    0x0 |  FULL |  MISC | Arch_x86);
   DEF_REGISTER(    fsbase,    0x1 |  FULL |  MISC | Arch_x86);
   DEF_REGISTER(    gsbase,    0x2 |  FULL |  MISC | Arch_x86);
-  DEF_REGISTER(       tr0,    0x0 |  FULL |   TST | Arch_x86);
-  DEF_REGISTER(       tr1,    0x1 |  FULL |   TST | Arch_x86);
-  DEF_REGISTER(       tr2,    0x2 |  FULL |   TST | Arch_x86);
-  DEF_REGISTER(       tr3,    0x3 |  FULL |   TST | Arch_x86);
-  DEF_REGISTER(       tr4,    0x4 |  FULL |   TST | Arch_x86);
-  DEF_REGISTER(       tr5,    0x5 |  FULL |   TST | Arch_x86);
-  DEF_REGISTER(       tr6,    0x6 |  FULL |   TST | Arch_x86);
-  DEF_REGISTER(       tr7,    0x7 |  FULL |   TST | Arch_x86);
 }
 
 inline bool isSegmentRegister(int regClass) {

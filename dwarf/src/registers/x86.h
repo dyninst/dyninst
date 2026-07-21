@@ -229,14 +229,6 @@ namespace DwarfDyninst {
       case 1106: return Dyninst::x86::oeax;
       case 1107: return Dyninst::x86::fsbase;
       case 1108: return Dyninst::x86::gsbase;
-      case 1109: return Dyninst::x86::tr0;
-      case 1110: return Dyninst::x86::tr1;
-      case 1111: return Dyninst::x86::tr2;
-      case 1112: return Dyninst::x86::tr3;
-      case 1113: return Dyninst::x86::tr4;
-      case 1114: return Dyninst::x86::tr5;
-      case 1115: return Dyninst::x86::tr6;
-      case 1116: return Dyninst::x86::tr7;
       default: return Dyninst::InvalidReg;
     }
   }
@@ -424,14 +416,6 @@ namespace DwarfDyninst {
       case Dyninst::x86::ioeax: return 1106;
       case Dyninst::x86::ifsbase: return 1107;
       case Dyninst::x86::igsbase: return 1108;
-      case Dyninst::x86::itr0: return 1109;
-      case Dyninst::x86::itr1: return 1110;
-      case Dyninst::x86::itr2: return 1111;
-      case Dyninst::x86::itr3: return 1112;
-      case Dyninst::x86::itr4: return 1113;
-      case Dyninst::x86::itr5: return 1114;
-      case Dyninst::x86::itr6: return 1115;
-      case Dyninst::x86::itr7: return 1116;
       default: return -1;
     }
 
