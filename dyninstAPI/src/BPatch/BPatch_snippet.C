@@ -716,6 +716,14 @@ BPatch_gpuPerWaveBufExpr::BPatch_gpuPerWaveBufExpr() {
     initGpuValueSnippet(ast_wrapper, GpuValueKind::PerWaveBuf);
 }
 
+BPatch_gpuPerWaveValExpr::BPatch_gpuPerWaveValExpr() {
+    initGpuValueSnippet(ast_wrapper, GpuValueKind::PerWaveVal);
+}
+
+BPatch_gpuPerWaveCaptureExpr::BPatch_gpuPerWaveCaptureExpr() {
+    initGpuValueSnippet(ast_wrapper, GpuValueKind::CaptureRet);
+}
+
 /*
  * BPatch_whileExpr::BPatch_whileExpr
  *

@@ -114,3 +114,30 @@ void pw_flush(void* slice) {
     b[i++] = '\n';
     gpu_fwrite(h, b + 16, i - 16);                    // -> this wave's own file
 }
+
+// ---- COMPOSABLE model: per-wave variable HOLDS a call's return value ----------
+// These demonstrate the general "per-wave variable holds the return value, later
+// passed into fwrite as its first parameter" idea WITHOUT a hand-written wrapper doing
+// the store: dyninst inserts `hv = pw_openfile()` (the call SITE captures the ABI
+// return into the per-wave var) and later `pw_writeln(hv.value())` (the var's held
+// value passed as an argument). The wrappers just follow the ABI return contract.
+
+// Returns a fixed sentinel in the ABI return registers (uniform) — isolates call-site
+// return capture from any file/string dependency, for validating the mechanism.
+extern "C" __device__ __noinline__ __attribute__((used))
+int64_t pw_magic() {
+    return 0xABCDE;
+}
+
+// Returns a file handle in the ABI return registers (gpu_fopen broadcasts it uniform).
+extern "C" __device__ __noinline__ __attribute__((used))
+int64_t pw_openfile() {
+    return gpu_fopen("captured.txt", "w");
+}
+
+// Writes one line to the file identified by `handle` (supplied from a per-wave var's
+// value()). Shows the held handle used as fwrite's first parameter.
+extern "C" __device__ __noinline__ __attribute__((used))
+void pw_writeln(int64_t handle) {
+    gpu_fwrite(handle, "hello from a wave\n", 18);
+}

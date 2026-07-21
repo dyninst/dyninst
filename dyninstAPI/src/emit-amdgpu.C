@@ -1385,6 +1385,7 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // one VGPR, a 64-bit pointer arg (per-wave buffer) takes a pair. Advance by the
   // arg's dword width so a following arg lands in the right register.
   uint32_t vreg = 0;
+  bool captureReturnToPerWave = false;   // set by a CaptureRet marker operand; handled post-call
   for (uint32_t i = 0; i < operands.size(); i++) {
     const auto &op = operands[i];
     assert(op && "AMDGPU emitCall: null call argument");
@@ -1408,6 +1409,30 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
         sabi.emitScratchLoad(vreg + 1, IAL::OFF_PWBASE + 4, SADDR_REG, gen);
         AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);
         vreg += 2;
+      } else if (kind == (long)GpuValueKind::PerWaveVal) {
+        // This wave's stored 64-bit VALUE (slice[0], e.g. a captured file handle):
+        // load the per-wave base (IACR) into a VGPR PAIR and global-load the value into
+        // the arg VGPR pair via NULL-saddr addressing (address = v[vImplTmp:vImplTmp+1]).
+        // Do NOT readfirstlane the base into an SGPR pair for a SADDR form: on gfx9 an
+        // SGPR written by v_readfirstlane can't be safely read by the very next global's
+        // SADDR (a wait-state hazard) — at full speed the store/load used a STALE base
+        // and faulted (single-stepping hid it; rocgdb-diagnosed). The VGPR path is
+        // vmcnt-ordered by the s_waitcnt, so no such hazard. (SGPR grant is 48 and would
+        // have held the pair fine — the bug was the hazard, not an overstep.)
+        using IAL = Dyninst::DyninstAPI::ImplicitArgLayout;
+        sabi.emitScratchLoad(vImplTmp,     IAL::OFF_PWBASE,     SADDR_REG, gen);
+        sabi.emitScratchLoad(vImplTmp + 1, IAL::OFF_PWBASE + 4, SADDR_REG, gen);
+        AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+        AmdgpuGfx908::emitFlatGlobal(AmdgpuGfx908::GLOBAL_LOAD_DWORD, /*vdst=*/vreg,
+                                     /*addr=*/vImplTmp, /*data=*/0, /*saddr=*/0x7fu /*NULL*/,
+                                     /*offset=*/0, gen, /*glc=*/true, /*seg=*/2u);
+        AmdgpuGfx908::emitFlatGlobal(AmdgpuGfx908::GLOBAL_LOAD_DWORD, /*vdst=*/vreg + 1,
+                                     /*addr=*/vImplTmp, /*data=*/0, /*saddr=*/0x7fu /*NULL*/,
+                                     /*offset=*/4, gen, /*glc=*/true, /*seg=*/2u);
+        AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+        vreg += 2;
+      } else if (kind == (long)GpuValueKind::CaptureRet) {
+        captureReturnToPerWave = true;   // MARKER: capture the return post-call, not an arg
       } else {
         // A GPU hardware/execution value read at the site: emit its recipe into the
         // reserved arg-scratch SGPR, then broadcast that uniform value into the arg VGPR.
@@ -1542,6 +1567,32 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   emitIndirectCall(slot, lrPair, gen);
   for (Register &rr : abiReserved)   // release the forwarded ABI regs now the call is emitted
     rs->freeRegister(rr);
+
+  // Capture the callee's ABI return value (v0:v1) into this wave's slice[0]. Done HERE
+  // — after the call, while EXEC is still the caller's and v0:v1 hold the return — and
+  // BEFORE the caller-save restore below (vgprSpill(false) reloads v0:v1). The wrapper
+  // broadcast the value so v0:v1 are uniform across lanes; store via the per-wave base
+  // (IACR -> SGPR pair rb+4:+5) with a zero VGPR offset. Enables: pw = gpu_fopen(...).
+  if (captureReturnToPerWave) {
+    // Store v0:v1 to this wave's slice[0] via a VGPR-PAIR address (NULL saddr). The
+    // base is loaded into v[vImplTmp:vImplTmp+1] and used directly as the address — NOT
+    // readfirstlane'd into an SGPR SADDR, which hits a gfx9 v_readfirstlane->global-SADDR
+    // wait-state hazard (store used a STALE base at full speed; rocgdb single-step showed
+    // the same store succeeding once the write settled). The scratch loads are
+    // vmcnt-ordered by the s_waitcnt, so the address is committed before the store.
+    using IAL = Dyninst::DyninstAPI::ImplicitArgLayout;
+    sabi.emitScratchLoad(vImplTmp,     IAL::OFF_PWBASE,     SADDR_REG, gen);
+    sabi.emitScratchLoad(vImplTmp + 1, IAL::OFF_PWBASE + 4, SADDR_REG, gen);
+    AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+    AmdgpuGfx908::emitFlatGlobal(AmdgpuGfx908::GLOBAL_STORE_DWORD, /*vdst=*/0,
+                                 /*addr=*/vImplTmp, /*data=*/0 /*v0*/, /*saddr=*/0x7fu /*NULL*/,
+                                 /*offset=*/0, gen, /*glc=*/true, /*seg=*/2u);
+    AmdgpuGfx908::emitFlatGlobal(AmdgpuGfx908::GLOBAL_STORE_DWORD, /*vdst=*/0,
+                                 /*addr=*/vImplTmp, /*data=*/1 /*v1*/, /*saddr=*/0x7fu /*NULL*/,
+                                 /*offset=*/4, gen, /*glc=*/true, /*seg=*/2u);
+    AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+  }
+
   AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO, INLINE_NEG1, gen);   // exec = -1 (for restore)
 
   vgprSpill(/*save=*/false);

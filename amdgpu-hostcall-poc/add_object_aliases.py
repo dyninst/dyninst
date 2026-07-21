@@ -424,6 +424,42 @@ def regen_sysv_hash(sections: list, dynsyms: list) -> None:
     h["Chain"] = chain
 
 
+# ---- preserve original allocable-section file offsets -----------------------
+def read_alloc_section_offsets(path: str) -> dict:
+    """Map {section_name: sh_offset} for every SHF_ALLOC section in the input ELF.
+
+    obj2yaml records only Address/AddressAlign, so yaml2obj recomputes file offsets
+    from scratch — and packs them more loosely than the original linker (which uses a
+    tighter, sometimes overlapping, layout). That drifts loadable sections' file offsets
+    away from their addresses (sh_offset != sh_addr), and since the RO PT_LOAD maps
+    file->vaddr 1:1 (delta 0; see fix_load_segment), a byte the GPU reads at vaddr V then
+    comes from the wrong file offset — e.g. .rodata string constants (whose vaddr is
+    baked into the code as an s_getpc-relative offset) read back as zeros. Pinning
+    ShOffset = original offset for allocable sections makes yaml2obj reproduce the
+    original delta-0 loadable layout. ELF64 little-endian.
+    """
+    d = open(path, "rb").read()
+    if len(d) < 0x40 or d[:4] != b"\x7fELF" or d[4] != 2:
+        return {}
+    u16 = lambda o: struct.unpack_from("<H", d, o)[0]
+    u32 = lambda o: struct.unpack_from("<I", d, o)[0]
+    u64 = lambda o: struct.unpack_from("<Q", d, o)[0]
+    e_shoff, e_shentsize = u64(0x28), u16(0x3a)
+    e_shnum, e_shstrndx = u16(0x3c), u16(0x3e)
+    sh = lambda i: e_shoff + i * e_shentsize
+    strtab = u64(sh(e_shstrndx) + 24)
+    SHF_ALLOC = 0x2
+    out = {}
+    for i in range(e_shnum):
+        b = sh(i)
+        flags, off = u64(b + 8), u64(b + 24)
+        if flags & SHF_ALLOC:
+            no = u32(b + 0)
+            end = d.index(b"\x00", strtab + no)
+            out[d[strtab + no:end].decode("latin-1")] = off
+    return out
+
+
 # ---- driver -----------------------------------------------------------------
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
@@ -447,8 +483,10 @@ def main() -> int:
 
     funcs = collect_defined_funcs(doc)
     added = 0
+    dynsym_added = 0
     if args.tables in ("dynsym", "both") and doc.get("DynamicSymbols") is not None:
-        added += add_aliases(doc["DynamicSymbols"], funcs, args.prefix)
+        dynsym_added = add_aliases(doc["DynamicSymbols"], funcs, args.prefix)
+        added += dynsym_added
     if args.tables in ("symtab", "both") and doc.get("Symbols") is not None:
         added += add_aliases(doc["Symbols"], funcs, args.prefix)
 
@@ -459,10 +497,25 @@ def main() -> int:
             doc["Symbols"] = []
         reg_added = add_regusage_symbols(doc["Symbols"], funcs, regusage, args.prefix)
 
-    if doc.get("DynamicSymbols"):
+    # Regenerate the dynamic hash tables ONLY when we actually changed .dynsym. When we
+    # add symbols to .symtab only (the common path), .dynsym and its hashes are untouched
+    # and already valid — regenerating them would rewrite .gnu.hash to a different size,
+    # and since the original layout has .gnu.hash/.hash at overlapping offsets (which we
+    # preserve via ShOffset below), a size change corrupts the overlap -> invalid object.
+    if dynsym_added and doc.get("DynamicSymbols"):
         ordered = regen_gnu_hash(sections, doc["DynamicSymbols"])
         doc["DynamicSymbols"] = ordered
         regen_sysv_hash(sections, ordered)
+
+    # Pin allocable sections to their original file offsets so yaml2obj reproduces the
+    # original delta-0 loadable layout (otherwise .rodata drifts off its baked vaddr and
+    # GPU string reads return zeros). Non-allocable tables (.symtab/.strtab) float — they
+    # grow with the added symbols and sit after the loadable image.
+    alloc_off = read_alloc_section_offsets(args.input)
+    for s in sections:
+        nm = s.get("Name")
+        if nm in alloc_off and "ShOffset" not in s:
+            s["ShOffset"] = alloc_off[nm]
 
     out_yaml = dump_elf_yaml(doc)
     proc = subprocess.run([args.yaml2obj, "-o", args.output],

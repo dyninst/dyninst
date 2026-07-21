@@ -21,3 +21,8 @@ add_executable(per_wave_instrument per_wave_instrument.C)
 target_compile_options(per_wave_instrument PRIVATE ${EXAMPLES_WARNING_FLAGS})
 target_link_libraries(per_wave_instrument PRIVATE Dyninst::dyninstAPI)
 
+# Per-wave variable that HOLDS a call's return value (capture) + passes it as an arg.
+add_executable(capture_return_instrument capture_return_instrument.C)
+target_compile_options(capture_return_instrument PRIVATE ${EXAMPLES_WARNING_FLAGS})
+target_link_libraries(capture_return_instrument PRIVATE Dyninst::dyninstAPI)
+

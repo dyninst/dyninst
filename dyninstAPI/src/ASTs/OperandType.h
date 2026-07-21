@@ -66,8 +66,12 @@ enum class operandType {
 enum class GpuValueKind : long {
   ExecMask = 1,   // uniform, site-read: exec (low 32 lanes on the 32-bit arg path)
   HwWaveId = 2,   // uniform, site-read: HW_ID register (wave-slot/SIMD/CU/SE)
-  PerWaveBuf = 3  // uniform, 64-bit PTR: this wave's slice of a per-wave buffer,
+  PerWaveBuf = 3, // uniform, 64-bit PTR: this wave's slice of a per-wave buffer,
                   // captured at entry (IACR OFF_PWBASE), lowered into a VGPR pair
+  PerWaveVal = 4, // uniform, 64-bit VALUE stored in this wave's slice[0]: load it
+                  // (global-load from the captured base) into a VGPR pair as an arg
+  CaptureRet = 5  // MARKER (not a real arg): tells emitCall to store this call's ABI
+                  // return value (v0:v1) into this wave's slice[0] after the call
 };
 
 // clang-format off
