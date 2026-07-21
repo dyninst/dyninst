@@ -6,13 +6,13 @@ YAML2OBJ = /usr/bin/yaml2obj
 # flags 0xE30). Every co-loaded object must agree on arch + COV + features.
 ARCH     = gfx908:sramecc+:xnack-
 COV      = 6
-# -fno-optimize-sibling-calls: a probe like `return gpu_fopen(...)` tail-calls by
-# default (s_setpc straight into the callee, no s_swappc). Dyninst's ParseAPI follows
-# that jump into the callee's body and corrupts its CFG (segfault at parse). Disabling
-# sibling-call opt makes probes emit real calls that return via s[30:31] — parseable,
-# and required for the inserted-call ABI + return-value capture to work.
+# NOTE: we used to pass -fno-optimize-sibling-calls here. A probe like
+# `return gpu_fopen(...)` tail-calls by default (s_setpc straight into the callee, no
+# s_swappc), and older ParseAPI followed that jump into the callee's body and corrupted
+# its CFG (segfault at parse). Upstream #2326 (AMDGPU indirect control-flow parsing) fixed
+# that, so the workaround is gone: tail-called probes now parse cleanly and instrument
+# end-to-end (verified: capture pw_openfile()@entry -> pw_writeln(value())@sites).
 HIPFLAGS = --offload-arch=$(ARCH) -mcode-object-version=$(COV) \
-           -fno-optimize-sibling-calls \
            -Xoffload-linker --unresolved-symbols=ignore-all
 HCDIR    = ../hostcall_lib
 SRCS     = user_probe.cpp $(HCDIR)/hostcall_lib.cpp
