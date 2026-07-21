@@ -126,9 +126,13 @@ ABI* ABI::getABI(int addr_width){
 #endif
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
-	globalABI64_->addr_width = 4;
+	// The 64-bit PowerPC ABI must use the ppc64 register map. Previously it used
+	// the ppc32 map (machRegIndex_ppc), so getIndex() returned -1 for ppc64
+	// registers and downstream bitArray accesses crashed (#1142, #1165). ppc32
+	// itself is no longer supported (see #1145).
+	globalABI64_->addr_width = 8;
 	globalABI_->index = &machRegIndex_ppc();
-	globalABI64_->index = &machRegIndex_ppc();
+	globalABI64_->index = &machRegIndex_ppc_64();
 
 #endif
 
