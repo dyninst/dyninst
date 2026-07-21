@@ -133,6 +133,7 @@ architecture make_ppc64() {
   arch.function.preserved = {
     ppc64::r1,    // stack pointer
     ppc64::r2,    // TOC pointer (only saved between calls in same compilation unti)
+    ppc64::r13,   // thread pointer (dedicated, nonvolatile)
     ppc64::r14,   // GPRs for local variables (nonvolatile)
     ppc64::r15,
     ppc64::r16,
@@ -189,7 +190,6 @@ architecture make_ppc64() {
 
   arch.function.globals = {
     ppc64::r12,     // Optional use in function linkage
-    ppc64::r13,     // Thread pointer (reserved use)
 //    TAR    // Reserved for system use
     ppc64::vrsave,  // Reserved for system use
 //    FPSCR see 2.2.2.2 Limited-Access bits
