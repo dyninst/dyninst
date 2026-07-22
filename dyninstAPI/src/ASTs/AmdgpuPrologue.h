@@ -35,6 +35,9 @@
 #include "ASTs/ast.h"
 #include "common/src/dyn_register.h"
 #include "patchAPI/h/Snippet.h"
+#include "AmdgpuKernelDescriptor.h"
+#include <vector>
+#include <cstdint>
 
 namespace Dyninst { namespace DyninstAPI {
 
@@ -53,12 +56,24 @@ public:
   AmdgpuPrologue(Dyninst::Register dest, Dyninst::Register base, unsigned offset)
       : dest_(dest), base_(base), offset_(offset) {}
 
+  // Scratch-mode prologue: instead of loading a global buffer pointer into
+  // s[94:95], set up FLAT_SCRATCH and relocate any shifted system SGPRs (the
+  // "record the register update" step). Carries the already-rewritten KD
+  // serialized to bytes (reconstructed in generate()).
+  AmdgpuPrologue(const Dyninst::AmdgpuKernelDescriptor &kd, unsigned eflag)
+      : scratch_(true), eflag_(eflag), kdBytes_(64) {
+    kd.writeToMemory(kdBytes_.data());
+  }
+
   bool generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer);
 
 private:
-  Dyninst::Register dest_;
-  Dyninst::Register base_;
-  unsigned offset_;
+  Dyninst::Register dest_{};
+  Dyninst::Register base_{};
+  unsigned offset_ = 0;
+  bool scratch_ = false;
+  unsigned eflag_ = 0;
+  std::vector<uint8_t> kdBytes_;
 };
 
 // The AST node for the above PatchAPI snippet.

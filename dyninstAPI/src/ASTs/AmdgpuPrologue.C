@@ -30,6 +30,7 @@
 
 #include "AmdgpuPrologue.h"
 #include "emit-amdgpu.h"
+#include "amdgpu-scratch-abi.h"
 
 namespace Dyninst { namespace DyninstAPI {
 
@@ -38,11 +39,19 @@ bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::B
   // object to generate the code and copy what we get there into the
   // 'Dyninst::Buffer' object passed here.
 
-  // We need 12 bytes for the prologue (a s_load_dwordx2, followed by a waitcnt)
-  codeGen gen(20);
-  EmitterAmdgpuGfx908 emitter;
+  // Scratch mode needs room for FLAT_SCRATCH setup + a few relocation movs.
+  codeGen gen(scratch_ ? 64 : 20);
 
-  emitter.emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);
+  if (scratch_) {
+    // Reconstruct the (already-rewritten) KD and emit the arch-specific scratch
+    // entry setup: FLAT_SCRATCH = flat_scratch_init + wave_offset, then relocate
+    // the shifted system SGPRs back where the un-shifted kernel expects them.
+    AmdgpuKernelDescriptor kd(kdBytes_.data(), kdBytes_.size(), eflag_);
+    gfx908ScratchAbi().emitScratchEntryPrologue(kd, gen);
+  } else {
+    EmitterAmdgpuGfx908 emitter;
+    emitter.emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);
+  }
 
   buffer.copy(gen.start_ptr(), gen.used());
 
