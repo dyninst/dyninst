@@ -1197,17 +1197,23 @@ which are both 0).
      */
     auto const bo_field = field<6,10>(insn);
 
-    bool const writes_ctr = [this, bo_field](){
+    // BO is a 5-bit field whose most-significant bit is BO[0]. field<> uses
+    // 32-bit instruction-word bit numbering (raw >> (31 - end)), so it must
+    // NOT be applied to the already-extracted 5-bit bo_field value -- doing so
+    // reads high-order bits that are always zero. Extract BO bits directly.
+    auto const bo_bit = [bo_field](int i){ return (bo_field >> (4 - i)) & 1u; };
+
+    bool const writes_ctr = [this, bo_bit](){
       // ctr is not written for bcctr, even when the BO table indicates it does
       auto const id = field<0,5>(insn);
       auto const xo = field<21,30>(insn);
       if(id == 19 && xo == 528) return false;
 
       // Otherwise, check BO_2
-      return field<2, 2>(bo_field) == 0;
+      return bo_bit(2) == 0;
     }();
 
-    bool const branch_always = (!writes_ctr && field<0,0>(bo_field) == 1);
+    bool const branch_always = (!writes_ctr && bo_bit(0) == 1);
     bcIsConditional = !branch_always;
 
     invertBranchCondition = [bo_field](){
@@ -1233,14 +1239,14 @@ which are both 0).
 
     auto &mnemonic = insn_in_progress->getOperation().mnemonic;
     if(writes_ctr) {
-      if(field<4, 4>(bo_field) != 0) {
+      if(bo_bit(4) != 0) {
         mnemonic = "bdz";
       } else {
         mnemonic = "bdn";
       }
     }
 
-    bool const reads_crbi = (field<0,0>(bo_field) == 0);
+    bool const reads_crbi = (bo_bit(0) == 0);
     if(reads_crbi) {
       if(mnemonic == "bc") {
         mnemonic = "b";
