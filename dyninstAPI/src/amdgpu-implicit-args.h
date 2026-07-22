@@ -59,8 +59,8 @@ struct ImplicitArgLayout {
 
   // Callee ABI registers the retrieved values are forwarded INTO (gfx908 device-fn
   // calling convention, empirically pinned): blockIdx x/y/z -> s12/s13/s14; packed
-  // workitem-id -> v31; dispatch ptr / kernarg ptr -> callee-metadata-dependent SGPR
-  // pairs (filled in when 3b/3d land).
+  // workitem-id -> v31; the kernarg/implicit-args ptr (3b) -> the callee's
+  // metadata-dependent SGPR pair, from which the callee derives blockDim/gridDim.
   enum { ABI_BLOCKIDX_X = 12, ABI_BLOCKIDX_Y = 13, ABI_BLOCKIDX_Z = 14,
          ABI_WITEMID_VGPR = 31 };
 };
