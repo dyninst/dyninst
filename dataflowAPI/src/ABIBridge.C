@@ -51,6 +51,26 @@ namespace {
       auto it = idx.find(r);
       if(it != idx.end()) b[it->second] = true;
     };
+    // Set the bit for `r` and every index-map register that aliases the same
+    // physical register (i.e. shares a base register). The common ABI reports
+    // its read/written sets at base-register granularity (e.g. zmm0), but the
+    // dataflowAPI index map holds a *distinct* index for each width view of a
+    // register (xmm0, ymm0, zmm0 are three separate indices). Setting only the
+    // base-register bit would leave the narrow-view bits clear, so a consumer
+    // that queries liveness with the narrow view (e.g. a live xmm0 across an
+    // instrumentation point) would miss it and fail to preserve the register.
+    // Expanding to all aliases is safe: every width view of a written/read
+    // physical register is itself written/read, and we only expand registers
+    // that are already members of the set (so preserved registers, which were
+    // excluded during base-register canonicalization, are never re-introduced).
+    auto setWithAliases = [&](Dyninst::MachRegister r) {
+      Dyninst::MachRegister const base = r.getBaseRegister();
+      bool any = false;
+      for(auto const& kv : idx) {
+        if(kv.first.getBaseRegister() == base) { b[kv.second] = true; any = true; }
+      }
+      if(!any) set(r);
+    };
     for(Dyninst::MachRegister r : regs) {
       if(is64 && r == Dyninst::x86_64::flags) {
         set(Dyninst::x86_64::of); set(Dyninst::x86_64::cf); set(Dyninst::x86_64::pf);
@@ -61,7 +81,7 @@ namespace {
         set(Dyninst::x86::af); set(Dyninst::x86::zf); set(Dyninst::x86::sf);
         set(Dyninst::x86::df); set(Dyninst::x86::tf); set(Dyninst::x86::nt_);
       } else {
-        set(r);
+        setWithAliases(r);
       }
     }
     return b;
