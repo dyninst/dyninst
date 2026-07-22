@@ -132,15 +132,20 @@ bool parse_func::hasUnresolvedCF() {
 
 bool parse_func::isInstrumentable() {
   if(!isInstrumentableByFunctionName() || img()->isUnlinkedObjectFile()) {
+    fprintf(stderr,"Uninstrumentable case 1\n");
     return false;
   } else {
     // Create instrumentation points for non-plt functions
     if(obj()->cs()->linkage().find(addr()) != obj()->cs()->linkage().end()) {
+
+    fprintf(stderr,"Uninstrumentable case 2\n");
       return false;
     }
   }
 
   if(hasUnresolvedCF()) {
+
+    fprintf(stderr,"Uninstrumentable case 3\n");
     return false;
   }
   return true;

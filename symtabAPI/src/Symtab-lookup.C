@@ -150,6 +150,9 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
            sType == (*iter)->getType() ||
            (sType == Symbol::ST_OBJECT && (*iter)->getType() == Symbol::ST_TLS)) //Treat TLS as variables
        {
+       fprintf(stderr,"In func %s, symbol name %s, looking for stype %u, got %u\n",
+                            __func__,(*iter)->getPrettyName().c_str(), sType,(*iter)->getType());
+
           matches.insert(*iter);
        }
     }
@@ -161,6 +164,7 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
         return false;
     }
     else {
+      fprintf(stderr," %s return true\n",__func__);
         return true;
     }
 }

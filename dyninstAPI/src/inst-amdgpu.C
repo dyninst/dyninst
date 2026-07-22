@@ -35,6 +35,14 @@
 #include "arch-amdgpu.h"
 #include "emit-amdgpu.h"
 #include "dyn_register.h"
+#include "Architecture.h"
+#include "addressSpace.h"
+#include "binaryEdit.h"
+#include "patching/function.h"
+#include "Symbol.h"
+
+#include <cstdlib>
+#include <cstring>
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
@@ -55,14 +63,65 @@ Address EmitterAmdgpuGfx908::getInterModuleVarAddr(const image_variable * /* var
   return 0;
 }
 
-Address EmitterAmdgpuGfx908::getInterModuleFuncAddr(func_instance * /* func */, codeGen & /* gen */) {
-  assert(!"Not implemented for AMDGPU");
-  return 0;
+Address EmitterAmdgpuGfx908::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
+  // Reserve a zero-initialized slot in the rewritten binary and register a
+  // dependent relocation against the callee's symbol. The loader will fill
+  // the slot with the resolved address at load time; emitCall reads it
+  // back via SMEM and jumps through it with S_SWAPPC_B64.
+  //
+  // Mirrors Emitterx86::getInterModuleFuncAddr (codegen/emitters/x86/Emitterx86.C).
+
+  AddressSpace *addrSpace = gen.addrSpace();
+  BinaryEdit *binEdit = addrSpace ? addrSpace->edit() : nullptr;
+
+  // Live-process indirect call is not supported on AMDGPU yet; only the
+  // static-rewriter path goes through here.
+  assert(binEdit && "AMDGPU getInterModuleFuncAddr: only supported under static rewriting");
+  assert(func && "AMDGPU getInterModuleFuncAddr: callee is null");
+
+  SymtabAPI::Symbol *referring = func->getRelocSymbol();
+
+  // If we've already minted a slot for this symbol, reuse it.
+  Address relocation_address = binEdit->getDependentRelocationAddr(referring);
+  if(relocation_address) {
+    return relocation_address;
+  }
+
+  const unsigned int jump_slot_size = getArchAddressWidth(gen.getArch());
+  relocation_address = binEdit->inferiorMalloc(jump_slot_size);
+
+  std::vector<unsigned char> zero(jump_slot_size, 0);
+  binEdit->writeDataSpace(reinterpret_cast<void*>(relocation_address),
+                          jump_slot_size, zero.data());
+
+  binEdit->addDependentRelocation(relocation_address, referring);
+
+  return relocation_address;
 }
 
-void EmitterAmdgpuGfx908::emitImm(opCode /* op */, Register /* src1 */, RegValue /* src2imm */, Register /* dest */,
-             codeGen & /* gen */, bool /* s */) {
-  assert(!"Not implemented for AMDGPU");
+void EmitterAmdgpuGfx908::emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
+             codeGen &gen, bool s) {
+  // dest = src1 OP imm (scalar/SGPR). Comparisons go through the SOPK path; for
+  // arithmetic/logic (incl. the orOp,0 "move" the AST uses), materialize the
+  // immediate into a scratch SGPR and reuse emitOp (SOP2). Enables computed
+  // call arguments of the form <value> OP <constant>.
+  switch (op) {
+  case lessOp:
+  case leOp:
+  case greaterOp:
+  case geOp:
+  case eqOp:
+  case neOp:
+    emitRelOpImm(op, dest, src1, src2imm, gen, s);
+    return;
+  default:
+    break;
+  }
+  Register tmp = gen.rs()->allocateRegister(gen);
+  assert(tmp != Dyninst::Null_Register && "emitImm: no scratch SGPR available");
+  emitMovLiteral(tmp, (uint32_t)src2imm, gen);   // 32-bit literal into a single SGPR
+  emitOp(op, dest, src1, tmp, gen);
+  gen.rs()->freeRegister(tmp);
 }
 
 codeBufIndex_t EmitterAmdgpuGfx908::emitA(opCode /* op */, Register /* src1 */, long /* dest */,

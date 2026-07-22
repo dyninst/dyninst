@@ -588,10 +588,29 @@ bool BPatchToInternalArgs(BPatch_point *point,
   //      a subroutine which is what the other combinations of BPatch_entry
   //      and BPatch_exit refer to.
   //
+  //  Exception: on AMDGPU, BPatch_callBefore at an exit point IS allowed. It
+  //  is the only meaningful exit timing there (instrument before the wave's
+  //  terminating s_endpgm; there is no "after" once the wave has ended). The
+  //  exit-point handling just below forces ipWhen = callPreInsn, placing the
+  //  snippet before the exit instruction, which is exactly "before return".
+  bool isAmdgpuPoint = false;
+  {
+    BPatch_function *bpf = point->getFunction();
+    if (bpf && bpf->lowlevel_func()) {
+      Dyninst::Architecture a =
+          bpf->lowlevel_func()->ifunc()->obj()->cs()->getArch();
+      isAmdgpuPoint = (a == Dyninst::Arch_amdgpu_gfx908 ||
+                       a == Dyninst::Arch_amdgpu_gfx90a ||
+                       a == Dyninst::Arch_amdgpu_gfx940);
+    }
+  }
+
   if (when == BPatch_callBefore && point->getPointType() == BPatch_exit) {
-      BPatch_reportError(BPatchSerious, 113,
-                         "BPatch_callBefore at BPatch_exit not supported yet");
-      return false;
+      if (!isAmdgpuPoint) {
+        BPatch_reportError(BPatchSerious, 113,
+                           "BPatch_callBefore at BPatch_exit not supported yet");
+        return false;
+      }
   }
   if (when == BPatch_callAfter && point->getPointType() == BPatch_entry) {
       BPatch_reportError(BPatchSerious, 113,
