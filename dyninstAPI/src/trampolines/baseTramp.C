@@ -540,6 +540,16 @@ bool baseTramp::guarded() const {
    if (suppressGuards) return false;
    if (!point_) return false; // iRPCs never guarded
 
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) || \
+    defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A) || \
+    defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
+   // AMDGPU has no recursion-guard runtime: the guard expands to
+   // DYNINST_lock/unlock_tramp_guard() (libdyninstAPI_RT, host-only) and its
+   // If-condition needs emitCall to return a register, which AMDGPU emitCall
+   // does not yet provide (no calling convention pinned). Treat all points as
+   // unguarded until both exist. See AMDGPU_CALL_SUPPORT_NOTES.md item #8.
+   return false;
+#else
    bool guarded = false;
    bool recursive = false;
 
@@ -571,4 +581,5 @@ bool baseTramp::guarded() const {
    }
    if (guarded) return true;
    return false;
+#endif
 }

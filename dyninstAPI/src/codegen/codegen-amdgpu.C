@@ -34,6 +34,11 @@
 #include "codegen/codegen.h"
 #include "dyninstAPI/src/emit-amdgpu.h"
 #include "dyninstAPI/src/registerSpace/registerSpace.h"
+#include "registerSpace/registerSlot.h"
+#include "mapped_object.h"
+#include "AmdgpuKernelDescriptor.h"
+#include "amdgpu-abi-sgpr.h"
+#include "external/amdgpu/AMDGPUEFlags.h"
 #include <cstdint>
 #include <stdlib.h>
 
@@ -78,6 +83,66 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
 
     registerSpace *regSpace = registerSpace::actualRegSpace(blockExitPoint);
     assert(regSpace);
+
+    // The entry springboard's long-jump grabs a 4-SGPR block via s_getpc. Dyninst's
+    // liveness marks the ORIGINAL live inputs (kernarg etc.) live so the allocator
+    // skips them, but when we ENABLE scratch on a kernel that shipped without it
+    // (DYNINST_SPILL_SCRATCH), the flat_scratch_init user-SGPR pair shifts the
+    // SYSTEM SGPRs up (wgid/wave_offset land at s[user_sgpr_count..]). Those hold
+    // live per-wave inputs at kernel entry, but the original liveness doesn't know
+    // they moved, so allocateGprBlock would hand them to the springboard and the
+    // s_getpc would clobber the scratch wave-offset BEFORE the prologue captures it
+    // (→ all waves share one scratch base → multi-wave corruption). Reserve that
+    // live system-SGPR range so the springboard allocates above it. (Scratch is the
+    // default spill backend now; the inner scratchEnabled() check still guards it.)
+    {
+      mapped_object *fobj = funcInstance->obj();
+      int_symbol kdSym;
+      if (fobj &&
+          fobj->getSymbolInfo(funcInstance->symTabName() + ".kd", kdSym)) {
+        const size_t kdSize = sizeof(llvm::amdhsa::kernel_descriptor_t);
+        uint8_t kdBytes[sizeof(llvm::amdhsa::kernel_descriptor_t)];
+        if (as->readDataSpace(reinterpret_cast<const void *>(kdSym.getAddr()),
+                              static_cast<u_int>(kdSize), kdBytes, true)) {
+          Dyninst::AmdgpuKernelDescriptor kd(kdBytes, kdSize,
+                                             EF_AMDGPU_MACH_AMDGCN_GFX908);
+          Dyninst::DyninstAPI::AbiSgprLayout L =
+              Dyninst::DyninstAPI::computeAbiSgprLayout(kd);
+          if (L.scratchEnabled()) {
+            for (uint32_t n = L.userSgprCount; n < L.liveSgprEnd; n++) {
+              Dyninst::Register r = Dyninst::Register::makeScalarRegister(
+                  Dyninst::OperandRegId(n), Dyninst::BlockSize(1));
+              registerSlot *slot = (*regSpace)[r];
+              if (slot)
+                slot->liveState = registerSlot::live;
+            }
+            // Also reserve the trampoline's SGPR spill block. In scratch mode the
+            // grant is sized tight (maximizeSgprAllocationIfKernel) and emitCall
+            // places EXEC-save + SADDR just BELOW the special regs: reservedBase =
+            // grantTop-10. The wavefront SGPR count INCLUDES the special regs, and
+            // when FLAT_SCRATCH is used that's SIX at the top (VCC + XNACK slot +
+            // FLAT_SCRATCH, per LLVM getNumExtraSGPRs) — even with xnack- the xnack
+            // pair stays a reserved gap, so treat all 6 (grantTop-6..grantTop-1) as
+            // off-limits and put the 4-reg block below them. These must survive the
+            // whole kernel, so the springboard/call-target block this long-jump
+            // allocates must not land on them. (With the old maxed grant the block sat
+            // at s[92:95], far above anything the allocator picked; a tight grant
+            // brings it into reach, so reserve it.)
+            const uint32_t grantTop =
+                ((kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() / 2) + 1) * 16;
+            if (grantTop >= 10) {
+              for (uint32_t n = grantTop - 10; n < grantTop - 6; n++) {
+                Dyninst::Register r = Dyninst::Register::makeScalarRegister(
+                    Dyninst::OperandRegId(n), Dyninst::BlockSize(1));
+                registerSlot *slot = (*regSpace)[r];
+                if (slot)
+                  slot->liveState = registerSlot::live;
+              }
+            }
+          }
+        }
+      }
+    }
 
     // We relax the alignment to pair because we will use the 4 registers as 2 pairs.
     Dyninst::Register regBlock = regSpace->allocateGprBlock(Dyninst::RegKind::SCALAR, /* numRegs */4, NS_amdgpu::PAIR_ALIGNMENT);
@@ -146,9 +211,11 @@ bool insnCodeGen::modifyJcc(Dyninst::Address target, NS_amdgpu::instruction &ins
   emitter->emitShortJump(1, gen); // GPU does (1)*4 + 4 and computes target = <X+4> + 8 = X+12 i.e C
 
   // Now emit jump A, the original target.
-  // S_BRANCH target = (PC_of_branch + 4) + SIMM16*4, so SIMM16 = disp/4 - 1;
-  // without the -1 the branch lands one instruction past the target (e.g. a loop
-  // back-edge would skip the loop head's first instruction).
+  // S_BRANCH computes its destination as (PC_of_branch + 4) + SIMM16*4, so the
+  // encoded SIMM16 must be (disp/4 - 1), NOT disp/4. Without the -1 the branch
+  // lands ONE instruction (4 bytes) past the target. For a loop back-edge that
+  // skips the loop head's first instruction — e.g. it dropped the induction
+  // variable's decrement out of the loop, giving an infinite loop.
   long from = gen.currAddr();
   long disp = target - from;
   int16_t wordOffset = disp / 4 - 1;

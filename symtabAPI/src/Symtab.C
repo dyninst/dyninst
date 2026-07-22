@@ -2114,12 +2114,41 @@ DYNINST_EXPORT bool Symtab::addExternalSymbolReference(Symbol *externalSym, Regi
     // Adjust this to the correct value
     localRel.setRegionType(getObject()->getRelType());
 
+    // Name and type the placeholder takes in the rewritten object's symbol
+    // tables, plus the name the relocation resolves against.
+    //
+    // On AMDGPU we MUST force ST_NOTYPE and retarget the reference to a
+    // ".dyninst.<callee>" name. The ROCr code-object loader's
+    // ApplyDynamicRelocation (rocr-runtime loader/executable.cpp) only does a
+    // name-based cross-module lookup (agent_symbols_) for STT_NOTYPE relocation
+    // symbols. For STT_FUNC/STT_OBJECT it instead resolves the symbol's value
+    // *locally* as segment_base + st_value; an undefined function placeholder
+    // (st_value 0) therefore resolves to a segment base, not the real callee.
+    // The loader also only registers STT_OBJECT/kernel symbols, never STT_FUNC,
+    // so the callee function symbol is never resolvable by name. A separate
+    // build step exports, for each callee, an STT_OBJECT ".dyninst.<callee>"
+    // aliasing the entry address; we point the relocation at that name so the
+    // loader's agent_symbols_ lookup hits. See AMDGPU_CALL_SUPPORT_NOTES.md.
+    Symbol::SymbolType refType = externalSym->getType();
+    std::string refName = externalSym->getMangledName();
+    switch (getArchitecture()) {
+       case Arch_amdgpu_gfx908:
+       case Arch_amdgpu_gfx90a:
+       case Arch_amdgpu_gfx940:
+          refType = Symbol::ST_NOTYPE;
+          refName = ".dyninst." + refName;
+          localRel.setName(refName);   // emitElf resolves r_info by reloc name
+          break;
+       default:
+          break;
+    }
+
     // Create placeholder Symbol for external Symbol reference
     // Bernat, 7SEP2010 - according to Matt, these symbols should have
     // type "undefined", which means a region of NULL. Changing
-    // from "localRegion" to NULL. 
-    Symbol *symRef = new Symbol(externalSym->getMangledName(),
-                                externalSym->getType(),
+    // from "localRegion" to NULL.
+    Symbol *symRef = new Symbol(refName,
+                                refType,
                                 Symbol::SL_GLOBAL,
                                 Symbol::SV_DEFAULT,
                                 (Address)0,
@@ -2130,6 +2159,34 @@ DYNINST_EXPORT bool Symtab::addExternalSymbolReference(Symbol *externalSym, Regi
                                 false);
 
    if( !addSymbol(symRef, externalSym) ) return false;
+
+   // Mirror the reference into .symtab as well on AMDGPU. The .rela.dyn
+   // relocation resolves against .dynsym (above), but the loader's symbol
+   // registration pass (AmdHsaCode::PullElf) reads the object's symbol table
+   // independently; keeping a matching static placeholder avoids a table
+   // mismatch. isInSymtab()/isInDynSymtab() are mutually exclusive on a single
+   // Symbol (Symbol.h:164-165), hence the separate object.
+   switch (getArchitecture()) {
+      case Arch_amdgpu_gfx908:
+      case Arch_amdgpu_gfx90a:
+      case Arch_amdgpu_gfx940: {
+         Symbol *symtabRef = new Symbol(refName,           // ".dyninst.<callee>"
+                                        refType,            // ST_NOTYPE on AMDGPU
+                                        Symbol::SL_GLOBAL,
+                                        Symbol::SV_DEFAULT,
+                                        (Address)0,
+                                        getDefaultModule(),
+                                        NULL,            // undefined: no region
+                                        externalSym->getSize(),
+                                        false,           // isDynamic=false -> .symtab
+                                        false);
+         symtabRef->setReferringSymbol(externalSym);
+         addSymbol(symtabRef);
+         break;
+      }
+      default:
+         break;
+   }
 
    localRegion->addRelocationEntry(localRel);
 

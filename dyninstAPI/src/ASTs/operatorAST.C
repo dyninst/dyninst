@@ -896,13 +896,20 @@ namespace {
       case Dyninst::Arch_ppc64:
         return (value <= 32767) && (value >= -32768);
 
+      case Dyninst::Arch_amdgpu_gfx908:
+      case Dyninst::Arch_amdgpu_gfx90a:
+      case Dyninst::Arch_amdgpu_gfx940: {
+        // emitImm materializes the immediate into a 32-bit scratch SGPR (via
+        // emitLoadConst), so any 32-bit constant can be used as a direct RHS.
+        constexpr auto min = std::numeric_limits<int32_t>::min();
+        constexpr auto max = std::numeric_limits<int32_t>::max();
+        return (min <= value) && (value <= max);
+      }
+
       case Dyninst::Arch_riscv64:
       case Dyninst::Arch_none:
       case Dyninst::Arch_aarch32:
       case Dyninst::Arch_cuda:
-      case Dyninst::Arch_amdgpu_gfx908:
-      case Dyninst::Arch_amdgpu_gfx90a:
-      case Dyninst::Arch_amdgpu_gfx940:
       case Dyninst::Arch_intelGen9:
         return false;
     }

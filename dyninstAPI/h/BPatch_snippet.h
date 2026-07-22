@@ -250,6 +250,68 @@ class DYNINST_EXPORT BPatch_constExpr : public BPatch_snippet {
 
 };
 
+// GPU hardware/execution values, read at the instrumentation site, for use as call
+// arguments (e.g. record EXEC or wave id via an inserted hostcall). These are the
+// GPU analogue of BPatch_tidExpr etc.; each is uniform per-wave and read in place.
+// (AMDGPU/gfx908.)
+class DYNINST_EXPORT BPatch_gpuExecMaskExpr : public BPatch_snippet {
+ public:
+    // EXEC mask (active-lane bitmask) at the site. Low 32 lanes on the 32-bit path.
+    BPatch_gpuExecMaskExpr();
+};
+
+class DYNINST_EXPORT BPatch_gpuHwWaveIdExpr : public BPatch_snippet {
+ public:
+    // HW_ID register: hardware wave-slot / SIMD / CU / SE (for hardware profiling).
+    BPatch_gpuHwWaveIdExpr();
+};
+
+// This wave's slice of a per-wave buffer, as a 64-bit pointer, for use as a call
+// argument. Each wavefront gets a distinct slice, so an inserted user probe can keep
+// per-wave state (e.g. accumulate then flush via gpu_fwrite). Prefer the first-class
+// BPatch_perWaveVar below, which owns the buffer's size; this is its address snippet.
+// (AMDGPU/gfx908.)
+class DYNINST_EXPORT BPatch_gpuPerWaveBufExpr : public BPatch_snippet {
+ public:
+    BPatch_gpuPerWaveBufExpr();
+};
+
+// The 64-bit VALUE held in this wave's slice[0] (e.g. a file handle captured from an
+// inserted call's return), for use as a call argument. Loaded at the site.
+class DYNINST_EXPORT BPatch_gpuPerWaveValExpr : public BPatch_snippet {
+ public:
+    BPatch_gpuPerWaveValExpr();
+};
+
+// A MARKER operand: append it to an inserted call's argument vector to tell the
+// emitter to store that call's ABI return value (v0:v1) into this wave's slice[0].
+// It is not itself an argument.
+class DYNINST_EXPORT BPatch_gpuPerWaveCaptureExpr : public BPatch_snippet {
+ public:
+    BPatch_gpuPerWaveCaptureExpr();
+};
+
+// A first-class per-wave variable: per-wave-distinct storage the framework backs and
+// hands to an inserted call. Allocate one (giving the per-wave byte size). It behaves
+// like a variable: assign it from an inserted call's return value (append
+// captureReturn() to that call's args), read its held value() as an argument to a
+// later call, or pass address() to hand the callee a pointer to the slice. Mirrors CPU
+// Dyninst's BPatch_variableExpr, but per-wavefront. (AMDGPU/gfx908.)
+class DYNINST_EXPORT BPatch_perWaveVar {
+    unsigned bytes_;
+ public:
+    explicit BPatch_perWaveVar(unsigned bytesPerWave) : bytes_(bytesPerWave) {}
+    // Bytes reserved per wavefront (used by the launcher to size the backing buffer).
+    unsigned bytesPerWave() const { return bytes_; }
+    // THIS wave's slice base as a 64-bit pointer (pass to a callee wanting a buffer).
+    BPatch_snippet address() const { return BPatch_gpuPerWaveBufExpr(); }
+    // THIS wave's held 64-bit value (slice[0]) — e.g. pass a captured handle as an arg.
+    BPatch_snippet value() const { return BPatch_gpuPerWaveValExpr(); }
+    // Marker to append to a call's args so its return value is captured into slice[0]:
+    //   args = { ..., pw.captureReturn() };  ->  pw = call(...).
+    BPatch_snippet captureReturn() const { return BPatch_gpuPerWaveCaptureExpr(); }
+};
+
 class DYNINST_EXPORT BPatch_whileExpr : public BPatch_snippet {
   public:
    // BPatch_whileExpr::BPatch_whileExpr (while loop)

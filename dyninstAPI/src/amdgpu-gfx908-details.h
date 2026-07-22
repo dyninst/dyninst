@@ -105,6 +105,26 @@ void setSrc0Sop1(uint32_t value, uint32_t &rawInst);
 void emitSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral,
               uint32_t literal, codeGen &gen);
 
+// Raw-operand SOP1/SOP2 emit (ids passed directly, no Register validity check) —
+// needed to write special SGPRs like flat_scratch_lo/hi (102/103) and to move
+// system SGPRs that live above MAX_SGPR_ID during the scratch prologue.
+void emitSop1Raw(unsigned opcode, uint32_t sdst, uint32_t ssrc0, codeGen &gen);
+
+// v_mov_b32-style VOP1 with a 32-bit literal (opcode 1 = V_MOV_B32).
+void emitVop1Imm(unsigned opcode, uint32_t vdst, uint32_t literal, codeGen &gen);
+// VOP1 with a register/operand source (no trailing literal): v_<op> v(vdst), <src0>.
+// src0 is the 9-bit VOP1 source encoding: SGPR n -> n, VGPR n -> 256+n, plus the
+// usual inline-constant encodings. Used to broadcast a scalar result into a CC arg
+// VGPR (v_mov_b32 v(i), s(res)) or copy a per-lane VGPR into it.
+void emitVop1Reg(unsigned opcode, uint32_t vdst, uint32_t src0, codeGen &gen);
+void emitSop2Raw(unsigned opcode, uint32_t sdst, uint32_t ssrc0, uint32_t ssrc1,
+                 codeGen &gen);
+// SOP2 with a 32-bit literal src1 (raw operand ids, ssrc1 encoded as the literal
+// marker + the following literal word). Raw counterpart of emitSop2WithSrc1Literal;
+// usable with operands outside the allocatable SGPR range (e.g. flat_scratch_hi).
+void emitSop2RawWithLiteral(unsigned opcode, uint32_t sdst, uint32_t ssrc0,
+                            uint32_t literal, codeGen &gen);
+
 // === SOP1 END ===
 
 // === SOP2 BEGIN ===
@@ -122,6 +142,8 @@ enum SOP2_Opcode {
   S_ADDC_U32 = 4,
   S_SUBB_U32 = 5,
   S_MUL_I32 = 36,
+  S_LSHL_B32 = 28,   // 0x1c (verified via objdump: 30 decodes as s_lshr, 32 as s_ashr)
+  S_LSHR_B32 = 30,   // 0x1e
   S_CSELE3CT_B32 = 10,
   S_CSELECT_B64 = 11,
 
@@ -220,7 +242,8 @@ enum SOPK_Opcode {
   S_CMPK_LE_U32 = 13,
 
   S_ADDK_I32 = 14,
-  S_MULK_I32 = 15
+  S_MULK_I32 = 15,
+  S_GETREG_B32 = 17   // s_getreg_b32 sdst, hwreg(...); simm16 = id|((size-1)<<11)|(off<<6)
 };
 
 void setEncodingSopK(uint32_t &rawInst);
@@ -285,6 +308,7 @@ enum SMEM_Opcode {
   S_STORE_DWORDX2 = 17,
   S_STORE_DWORDX4 = 18,
 
+  S_DCACHE_INV = 32,
   S_DCACHE_WB = 33,
   S_ATOMIC_ADD = 130,
   S_ATOMIC_SUB = 131
@@ -321,6 +345,50 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset,
               codeGen &gen);
 
 // === SMEM END ===
+
+// === VOP2 BEGIN ===
+// VOP2 (32-bit): [ENCODING=0][OP:6][VDST:8][VSRC1:8][SRC0:9]
+//   bit 31 = 0 ; OP[30:25] ; VDST[24:17] ; VSRC1[16:9] ; SRC0[8:0]
+// VDST/VSRC1 are plain VGPR numbers (0-255). SRC0 is a 9-bit operand
+// (VGPR = 256+n ; inline const 0 = 128 ; inline int k(1..64) = 128+k).
+enum VOP2_Opcode {
+  V_LSHLREV_B32 = 0x12
+};
+void emitVop2(unsigned opcode, uint32_t vdst, uint32_t vsrc1, uint32_t src0, codeGen &gen);
+// === VOP2 END ===
+
+// === VOP3A BEGIN ===
+// VOP3A (64-bit, ISA p.249 Table 77):
+//   VDST[7:0] ABS[10:8] OPSEL[14:11] CLMP[15] OP[25:16] ENCODING[31:26]=110100
+//   SRC0[40:32] SRC1[49:41] SRC2[58:50] OMOD[60:59] NEG[63:61]
+// VDST is a plain VGPR number. SRC0/1/2 are 9-bit operands (VGPR = 256+n ;
+// inline const 0 = 128 ; -1 = 193). ABS/OPSEL/CLMP/OMOD/NEG all 0 for our use.
+enum VOP3A_Opcode {
+  V_READLANE_B32     = 649,   // 0x289  sdst <- vsrc[lane]   (SGPR spill/fill)
+  V_WRITELANE_B32    = 650,   // 0x28A  vdst[lane] <- ssrc
+  V_MBCNT_LO_U32_B32 = 652,   // 0x28C
+  V_MBCNT_HI_U32_B32 = 653    // 0x28D
+};
+void emitVop3a(unsigned opcode, uint32_t vdst, uint32_t src0, uint32_t src1, uint32_t src2,
+               codeGen &gen);
+// === VOP3A END ===
+
+// === FLAT/GLOBAL BEGIN ===
+// FLAT (64-bit, ISA p.279 Table 97): OFFSET[12:0] LDS[13] SEG[15:14] GLC[16]
+//   SLC[17] OP[24:18] ENCODING[31:26]=110111 ADDR[39:32] DATA[47:40]
+//   SADDR[54:48] NV[55] VDST[63:56]
+// For GLOBAL_* with an SGPR base: SEG=2, SADDR = SGPR-pair base number,
+//   ADDR = VGPR holding a per-lane 32-bit byte offset. DATA = data VGPR (store),
+//   VDST = dest VGPR (load). All VGPR fields are plain numbers (0-255).
+enum FLAT_Global_Opcode {
+  GLOBAL_LOAD_DWORD = 0x14,
+  GLOBAL_STORE_DWORD = 0x1C
+};
+// seg: 2 = global (default), 1 = scratch/private (per-lane swizzled by hardware).
+void emitFlatGlobal(unsigned opcode, uint32_t vdst, uint32_t addr, uint32_t data,
+                    uint32_t saddr, int32_t offset, codeGen &gen, bool glc = false,
+                    uint32_t seg = 2);
+// === FLAT/GLOBAL END ===
 
 } // namespace AmdgpuGfx908
 
