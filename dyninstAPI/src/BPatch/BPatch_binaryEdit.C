@@ -225,13 +225,14 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
 
    progress_printf("write: writing primary output file %s\n", outFile);
    if( !origBinEdit->writeFile(outFile) ) return false;
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-   std::string inputFileName = this->getImage()->getProgramFileName();
-   auto *amdgpuPointHandler = dynamic_cast<Dyninst::DyninstAPI::AmdgpuGfx908PointHandler* >(pointHandler.get());
-   assert(amdgpuPointHandler);
-   amdgpuPointHandler->writeInstrumentedKernelNames(inputFileName + ".instrumentedKernelNames");
-   amdgpuPointHandler->writeInstrumentationVarTable(inputFileName + ".instrumentationVarTable");
-#endif
+   // NOTE: the AMDGPU path used to dump <input>.instrumentedKernelNames and
+   // <input>.instrumentationVarTable here (serialized instrumented-kernel kernarg sizes
+   // + the operandAST::allocTable offset layout) for an early kernarg-based host loader.
+   // Nothing consumes them now (the preload delivers instrumentation memory via a global
+   // define, not an appended kernarg slot), so they're not written. If a real AMDGPU
+   // inferiorMalloc revives this contract, re-emit an enriched table (size/align/scope)
+   // rather than these two files. writeInstrumented{KernelNames,VarTable} remain in
+   // AmdgpuPointHandler for that.
 
    std::map<std::string, BinaryEdit *>::iterator curBinEdit;
    for (curBinEdit = llBinEdits.begin(); curBinEdit != llBinEdits.end(); curBinEdit++) {

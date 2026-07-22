@@ -57,6 +57,11 @@ public:
   static Ptr Constant(void *v) {
     return boost::make_shared<operandAST>(operandType::Constant, v);
   }
+  // A GPU hardware/execution value; the kind is stashed in the operand's value slot.
+  static Ptr GpuValue(GpuValueKind kind) {
+    return boost::make_shared<operandAST>(operandType::GpuValue,
+                                          (void *)(uintptr_t)(long)kind);
+  }
 
   static Ptr ConstantString(const char *str) {
     auto val = static_cast<void *>(const_cast<char *>(str));

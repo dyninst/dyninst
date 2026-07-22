@@ -692,6 +692,38 @@ BPatch_constExpr::BPatch_constExpr(long long value)
     ast_wrapper->setType(type);
 }
 
+// GPU hardware/execution value snippets — each wraps a GpuValue operand AST carrying
+// the kind; the (AMDGPU) emitter supplies the read recipe at codegen time.
+static void initGpuValueSnippet(Dyninst::BPatch_codeGenASTPtr &ast_wrapper,
+                                GpuValueKind kind) {
+    assert(BPatch::bpatch != NULL);
+    ast_wrapper = operandAST::GpuValue(kind);
+    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+    BPatch_type *type = BPatch::bpatch->stdTypes->findType("unsigned int");
+    assert(type != NULL);
+    ast_wrapper->setType(type);
+}
+
+BPatch_gpuExecMaskExpr::BPatch_gpuExecMaskExpr() {
+    initGpuValueSnippet(ast_wrapper, GpuValueKind::ExecMask);
+}
+
+BPatch_gpuHwWaveIdExpr::BPatch_gpuHwWaveIdExpr() {
+    initGpuValueSnippet(ast_wrapper, GpuValueKind::HwWaveId);
+}
+
+BPatch_gpuPerWaveBufExpr::BPatch_gpuPerWaveBufExpr() {
+    initGpuValueSnippet(ast_wrapper, GpuValueKind::PerWaveBuf);
+}
+
+BPatch_gpuPerWaveValExpr::BPatch_gpuPerWaveValExpr() {
+    initGpuValueSnippet(ast_wrapper, GpuValueKind::PerWaveVal);
+}
+
+BPatch_gpuPerWaveCaptureExpr::BPatch_gpuPerWaveCaptureExpr() {
+    initGpuValueSnippet(ast_wrapper, GpuValueKind::CaptureRet);
+}
+
 /*
  * BPatch_whileExpr::BPatch_whileExpr
  *

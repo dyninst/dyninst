@@ -55,7 +55,23 @@ enum class operandType {
   // Specific to AMDGPU. This represents an address in the form of (PlaceholderReg + offset).
   // Codegen may assing the same or a different register in different contexts.
   // Offset must be a constant.
-  AddressAsPlaceholderRegAndOffset
+  AddressAsPlaceholderRegAndOffset,
+  // A GPU hardware/execution VALUE read at codegen time (EXEC mask, HW_ID, wave id,
+  // …). oValue holds a GpuValueKind. The emitter supplies the per-kind read recipe;
+  // uniformity/validity are carried by the kind (see amdgpu user-arg ASTs).
+  GpuValue
+};
+
+// Kinds of GpuValue operand. The value fits in the operand's oValue (a void* slot).
+enum class GpuValueKind : long {
+  ExecMask = 1,   // uniform, site-read: exec (low 32 lanes on the 32-bit arg path)
+  HwWaveId = 2,   // uniform, site-read: HW_ID register (wave-slot/SIMD/CU/SE)
+  PerWaveBuf = 3, // uniform, 64-bit PTR: this wave's slice of a per-wave buffer,
+                  // captured at entry (IACR OFF_PWBASE), lowered into a VGPR pair
+  PerWaveVal = 4, // uniform, 64-bit VALUE stored in this wave's slice[0]: load it
+                  // (global-load from the captured base) into a VGPR pair as an arg
+  CaptureRet = 5  // MARKER (not a real arg): tells emitCall to store this call's ABI
+                  // return value (v0:v1) into this wave's slice[0] after the call
 };
 
 // clang-format off
@@ -77,6 +93,7 @@ inline std::string format_operand(operandType type) {
     case operandType::variableValue: return "variableValue";
     case operandType::undefOperandType: return "undefOperandType";
     case operandType::AddressAsPlaceholderRegAndOffset: return "AddressAsPlaceholderRegAndOffset";
+    case operandType::GpuValue: return "GpuValue";
   }
   return "UnknownOperand";
 }
