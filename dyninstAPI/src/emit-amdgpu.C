@@ -1196,8 +1196,8 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // (global_store), and reverse with global_load + v_readlane. The vector pipe
   // (vmcnt / L1-L2) is untouched by s_dcache_inv — the same path the VGPR spill
   // already uses successfully. Lanes: s0..s(nsave-1) in lanes 0.., VCC_LO/HI next.
-  // NOTE: assumes EXEC is full at the insertion point (true here); a narrowed EXEC
-  // would drop the store/load of inactive packing lanes (future: force EXEC=-1).
+  // The per-lane pack store/load run under a forced EXEC=-1 (see the EXEC save/force
+  // below, ~L1340), so inactive lanes at a narrowed-EXEC insertion point are covered.
   // Spill through the global-memory path: s[94:95] is the base and vAddr = lane*4
   // gives each lane its own slice (INTRA-wave separation — required because
   // global_store is per-lane and vPack holds a different value per lane). The
@@ -1538,7 +1538,7 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
     }
   }
 
-  // --- Non-leaf call-ABI (env-gated DYNINST_CALL_ABI) --------------------------
+  // --- Non-leaf call-ABI (auto-detected from callee private_seg_size > 0) -------
   // A hipcc-compiled NON-LEAF callee addresses its own stack frame as buffer_* off
   // the scratch V# descriptor s[0:3] + stack pointer s32. Our flat-scratch spill
   // occupies flat offsets [0,R); reconstruct s[0:3] from FLAT_SCRATCH (kept live)
