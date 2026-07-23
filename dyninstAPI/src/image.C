@@ -282,10 +282,27 @@ namespace {
         RegisterAST::Ptr r2( new RegisterAST(ppc64::r2) );
         RegisterAST::Ptr r8( new RegisterAST(ppc64::r8) );
 
+        // Register operands produced by the decoder are normalized to the
+        // decoding architecture (ppc64) but do not necessarily carry the
+        // same bit range as a RegisterAST built directly from a ppc64
+        // register. RegisterAST equality -- used by Instruction::isWritten/
+        // isRead and Expression::bind -- compares the register id AND the
+        // bit range, so those queries silently never match here. Match and
+        // bind registers by id instead.
+        auto usesRegID = [](std::set<RegisterAST::Ptr> const& regs,
+                            MachRegister reg) {
+            for (std::set<RegisterAST::Ptr>::const_iterator i = regs.begin();
+                 i != regs.end(); ++i)
+                if ((*i)->getID() == reg) return true;
+            return false;
+        };
+
         Address cur_addr = b->start();
         while(cur_addr < b->end()) {
             Instruction cur = dec.decode();
-            if(cur.isWritten(r8)) {
+            std::set<RegisterAST::Ptr> written;
+            cur.getWriteSet(written);
+            if(usesRegID(written, ppc64::r8)) {
                 find = true;
                 r8_def = cur;
                 r8_def_addr = cur_addr;  
@@ -298,13 +315,44 @@ namespace {
         Address ss_addr = 0;
 
         // Try a TOC-based lookup first
-        if (r8_def.isRead(r2)) {
+        std::set<RegisterAST::Ptr> readRegs;
+        r8_def.getReadSet(readRegs);
+        if (usesRegID(readRegs, ppc64::r2)) {
             set<Expression::Ptr> memReads;
             r8_def.getMemoryReadOperands(memReads);
             Address TOC = f->obj()->cs()->getTOC(r8_def_addr);
+            // ELFv2 (ppc64le) has no .opd section, so the code source's TOC
+            // table is empty and getTOC() returns 0 for every address.
+            // Derive the TOC from the function's global entry point instead:
+            // the ABI-prescribed entry sequence
+            //     addis r2,r12,H ; addi r2,r2,L
+            // with r12 holding the entry address gives
+            //     TOC = entry + (H << 16) + L.
+            if (TOC == 0) {
+                const uint32_t *entry_code = (const uint32_t *)
+                    b->region()->getPtrToInstruction(f->addr());
+                if (entry_code
+                    && (entry_code[0] & 0xffff0000) == 0x3c4c0000  // addis r2,r12,H
+                    && (entry_code[1] & 0xffff0000) == 0x38420000) // addi  r2,r2,L
+                {
+                    TOC = f->addr()
+                        + ((Address)(int16_t)(entry_code[0] & 0xffff) << 16)
+                        + (Address)(int16_t)(entry_code[1] & 0xffff);
+                }
+            }
             if (TOC != 0 && memReads.size() == 1) {
                 Expression::Ptr expr = *memReads.begin();
-                expr->bind(r2.get(), Result(u64, TOC));
+                // Bind the r2 instance used by the expression itself so the
+                // bind's equality test matches it.
+                std::set<InstructionAST::Ptr> uses;
+                expr->getUses(uses);
+                for (std::set<InstructionAST::Ptr>::const_iterator u = uses.begin();
+                     u != uses.end(); ++u) {
+                    RegisterAST::Ptr ru =
+                        boost::dynamic_pointer_cast<RegisterAST>(*u);
+                    if (ru && ru->getID() == ppc64::r2)
+                        expr->bind(ru.get(), Result(u64, TOC));
+                }
                 const Result &res = expr->eval();
                 if (res.defined) {
                     void *res_addr =
