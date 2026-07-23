@@ -291,19 +291,18 @@ which are both 0).
       }
       else {
         // 2. The conventional return sequence is to use `bclr` with BH=0b00
-        bool const is_subroutine_return = [this]() {
-          auto const bh_field = field<19,20>(insn);
-          return bh_field == 0;
-        }();
-
-        if(is_subroutine_return) {
-          // This is _not_ a fallthrough conditional
-          this->bcIsConditional = false;
-
-          // Indirectly branch through the link register
-          auto lr = makeRegisterExpression(ppc32::lr);
-          insn_in_progress->addSuccessor(lr, !is_call, is_indirect, !is_conditional, !is_fallthrough);
-        }
+        //
+        // BH is only a usage hint, though: whether the branch is taken is
+        // governed solely by BO (and BI). Conditional returns -- beqlr,
+        // bnelr, bdnzlr, etc. -- also use BH=0b00, so classifying every
+        // BH=0b00 bclr as an unconditional return would drop the fallthrough
+        // successor of conditional returns. That truncates parsing of any
+        // function at its first conditional return, and the binary rewriter
+        // then lays out unrelated code where the not-taken path falls
+        // through. Use the conditionality derived from BO in BO() instead.
+        auto lr = makeRegisterExpression(ppc32::lr);
+        insn_in_progress->addSuccessor(std::move(lr), !is_call, is_indirect,
+                                       this->bcIsConditional, !is_fallthrough);
       }
 
       if(bcIsConditional) {

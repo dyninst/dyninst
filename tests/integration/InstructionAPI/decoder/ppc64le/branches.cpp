@@ -329,13 +329,13 @@ std::vector<test_insn> make_tests() {
       {},
       test_cft{pc_value + 4, {!is_call, !is_conditional, !is_indirect, is_fallthrough}},
     },
-    { //  bnslr
-      0x4ca30020, !is_branch, is_return,
+    { //  bnslr  (conditional return: keeps its fallthrough successor)
+      0x4ca30020, is_branch, !is_return,
       {},
       {},
-      test_cft{lr_value, {!is_call, !is_conditional, is_indirect, !is_fallthrough}},
+      test_cft{lr_value, {!is_call, is_conditional, is_indirect, !is_fallthrough}},
       {},
-      {}
+      test_cft{pc_value + 4, {!is_call, !is_conditional, !is_indirect, is_fallthrough}}
     },
 
     /*
