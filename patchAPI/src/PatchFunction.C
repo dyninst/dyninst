@@ -95,10 +95,21 @@ PatchFunction::entry() {
 
 const PatchFunction::Blockset&
 PatchFunction::exitBlocks() {
-  for (auto iter = func_->exitBlocks().begin();
-       iter != func_->exitBlocks().end(); ++iter) {
-    PatchBlock* pblk = obj()->getBlock(*iter);
-    exit_blocks_.insert(pblk);
+  // Build the set only when it is empty (never built, or invalidated by
+  // blocks()/invalidateBlocks()); addBlock/removeBlock/splitBlock maintain
+  // it incrementally afterwards, exactly like call_blocks_. Rebuilding on
+  // every call made each lookup O(|exits| log |exits|), and verifyExit()
+  // -- run twice per untrusted-Location findPoint() -- sits on the hot
+  // path of function-exit instrumentation: relocating a large binary
+  // became quadratic in its block count. On ppc64le, where conditional
+  // returns make exit blocks plentiful, instrumenting all functions of a
+  // process burned hours of CPU and presented as a hang.
+  if (exit_blocks_.empty()) {
+    for (auto iter = func_->exitBlocks().begin();
+         iter != func_->exitBlocks().end(); ++iter) {
+      PatchBlock* pblk = obj()->getBlock(*iter);
+      exit_blocks_.insert(pblk);
+    }
   }
   return exit_blocks_;
 }
