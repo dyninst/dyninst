@@ -43,7 +43,12 @@ namespace Dyninst {
   }
 
   class DYNINST_EXPORT ABI {
-    std::unique_ptr<Dyninst::abi::abi_impl> impl{};
+    // No default member initializer here: gcc 8 instantiates the
+    // unique_ptr destructor (requiring a complete abi_impl) while
+    // processing an NSDMI, even though the destructor and all
+    // constructors are defined out-of-line where abi_impl is complete.
+    // Every constructor initializes impl in its mem-init list.
+    std::unique_ptr<Dyninst::abi::abi_impl> impl;
   public:
     explicit ABI(Dyninst::Architecture a);
     ~ABI();
