@@ -962,6 +962,19 @@ which are both 0).
         return invalid_entry;
       return entry_it->second;
     }
+    // isel is A-form: its extended opcode is only bits 26-30 (value 15);
+    // bits 21-25 hold the BC (condition-bit) operand, and per the ISA the
+    // whole 10-bit-XO column 0b01111 belongs to isel. The generic 9/10-bit
+    // XO lookups below therefore only match the table's isel entry when
+    // BC == 0, and every other condition decoded as INVALID -- which
+    // ParseAPI conservatively treats as an unknown control transfer,
+    // truncating the enclosing function at a plain conditional move.
+    if(field<26, 30>(insn) == 15) {
+      const power_table::const_iterator entry_it = power_entry::extended_op_31.find(15);
+      if(entry_it == power_entry::extended_op_31.end())
+        return invalid_entry;
+      return entry_it->second;
+    }
     const power_entry* xoform_entry;
     const power_table::const_iterator entry_it =
         power_entry::extended_op_31.find(field<22, 30>(insn));
