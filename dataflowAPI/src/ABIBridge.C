@@ -40,13 +40,28 @@
 
 namespace {
 
+  // Number of bits a liveness bitArray must hold for this index map: the
+  // largest index VALUE plus one, NOT the entry count. The x86 (i386) map is
+  // sparse -- it leaves gaps where the 64-bit-only vector registers
+  // (xmm/ymm/zmm 8-31) would sit, so xmm/ymm/zmm alias arithmetic matches
+  // x86_64 -- so its max index (163) far exceeds its entry count (92). Sizing
+  // to the count made getIndex()-driven writes (e.g. cr0 at index 140) land in
+  // the bitset's unused tail, tripping dynamic_bitset's invariant check and
+  // aborting liveness on 32-bit targets. (x86_64's map is dense, count == max+1,
+  // so it was correct by accident.)
+  unsigned bitArrayWidth(Dyninst::DataflowAPI::RegisterMap const& idx) {
+    int maxIdx = -1;
+    for(auto const& kv : idx) if(kv.second > maxIdx) maxIdx = kv.second;
+    return static_cast<unsigned>(maxIdx + 1);
+  }
+
   // Convert a base-register set from the common ABI into a bitArray indexed by
   // `idx`. The x86/x86_64 flags register is expanded into the individual flag
   // bits that LivenessAnalyzer::calcRWSets tracks. Registers absent from the
   // index map (e.g. x87 st*, mxcsr) are skipped, matching the previous behavior.
   bitArray toBitArray(Dyninst::abi::registerSet const& regs,
                       Dyninst::DataflowAPI::RegisterMap& idx, bool is64) {
-    bitArray b(idx.size());
+    bitArray b(bitArrayWidth(idx));
     auto set = [&](Dyninst::MachRegister r) {
       auto it = idx.find(r);
       if(it != idx.end()) b[it->second] = true;
@@ -107,7 +122,7 @@ namespace Dyninst { namespace DataflowAPI {
     syscallRead    = new bitArray(toBitArray(newAbi.getSyscallReadRegisters(),    idx, is64));
     syscallWritten = new bitArray(toBitArray(newAbi.getSyscallWrittenRegisters(), idx, is64));
 
-    allRegs = new bitArray(idx.size());
+    allRegs = new bitArray(bitArrayWidth(idx));
     allRegs->set();
   }
 
