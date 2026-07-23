@@ -249,7 +249,17 @@ const bitArray &ABI::getAllRegs() const
 }
 
 bitArray ABI::getBitArray()  {
-  return bitArray(index->size());
+  // A fresh all-zero liveness vector sized to match this architecture's
+  // register bitArrays. Use the width already established for allRegs (built
+  // once per arch in ABIBridge, sized to max-index-value + 1): index maps are
+  // sparse -- the x86/i386 map leaves gaps for the 64-bit-only vector
+  // registers so xmm/ymm/zmm alias arithmetic matches x86_64 -- so the entry
+  // count (92 on i386) is NOT the right width (max index 163). This width must
+  // equal that of the getXxxRegisters() sets, since calcRWSets combines them
+  // with operator|= (whose operands must be equal-sized); an earlier
+  // index->size() here both drove getIndex() writes out of bounds and produced
+  // |= size mismatches, aborting liveness on 32-bit targets.
+  return bitArray(getAllRegs().size());
 }
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 
