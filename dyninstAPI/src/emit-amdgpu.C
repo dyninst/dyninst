@@ -1078,8 +1078,8 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // Preserve the caller's registers across the call. The AMDGPU function ABI
   // lets a callee clobber any caller-saved SGPR (e.g. hc_open uses s[4:5] for
   // its exec-mask save, but the kernel holds its kernarg pointer there). So
-  // spill the SGPRs the callee will clobber to this wave's scratch slot (base in
-  // s[94:95], set up by the prologue) before the call, and reload them after.
+  // spill the SGPRs the callee will clobber to this wave's hardware-scratch slot (via
+  // FLAT_SCRATCH, set up by the entry prologue) before the call, and reload them after.
   // The clobber count is the callee's TRANSITIVE "numbered_sgpr" — the whole-
   // object max, not just this wrapper's frame, because the wrapper may call
   // other functions in its library that clobber more SGPRs (see
@@ -1198,12 +1198,9 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // already uses successfully. Lanes: s0..s(nsave-1) in lanes 0.., VCC_LO/HI next.
   // The per-lane pack store/load run under a forced EXEC=-1 (see the EXEC save/force
   // below, ~L1340), so inactive lanes at a narrowed-EXEC insertion point are covered.
-  // Spill through the global-memory path: s[94:95] is the base and vAddr = lane*4
-  // gives each lane its own slice (INTRA-wave separation — required because
-  // global_store is per-lane and vPack holds a different value per lane). The
-  // per-wave base in s[94:95] (scratch mode) gives INTER-wave separation. Same
-  // code for both modes; only the prologue differs in what base it puts in
-  // s[94:95] (per-wave scratch region vs. the launcher's shared buffer).
+  // Spill goes through hardware SCRATCH via the ScratchAbi (scratch_store/scratch_load off
+  // FLAT_SCRATCH): the per-wave base and per-lane swizzle are hardware-provided, so there is
+  // no explicit base register and no lane-offset math — SADDR is a reserved SGPR held at 0.
   // Pack the callee-clobbered scalars {s0..s(nsgpr-1), vcc_lo, vcc_hi} one-per-lane
   // across numPacks VGPRs (64 lanes each): scalar index i -> s_i (i<nsgpr), else
   // vcc_lo (i==nsgpr) / vcc_hi (i==nsgpr+1). Each pack VGPR spills to its own dword
