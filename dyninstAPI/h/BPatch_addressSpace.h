@@ -376,6 +376,16 @@ class DYNINST_EXPORT BPatch_addressSpace {
   
   bool free(BPatch_variableExpr &ptr);
 
+  //  BPatch_addressSpace::allocatePerWave  (AMDGPU)
+  //
+  //  Reserve `bytes` of per-wavefront storage from the per-wave arena (a bump
+  //  allocator over the launch-time PerWaveBuf). Returns this variable's byte offset
+  //  within each wave's slice. The running total, rounded to a power of two, is
+  //  perWaveStride() — the value the emitter lowers as wid*STRIDE and the host
+  //  allocates per wave (published in the co as the absolute symbol __dyninst_pw_stride).
+  unsigned allocatePerWave(unsigned bytes);
+  unsigned perWaveStride();
+
   // BPatch_addressSpace::createVariable
   // 
   // Wrap an existing piece of allocated memory with a BPatch_variableExpr.
