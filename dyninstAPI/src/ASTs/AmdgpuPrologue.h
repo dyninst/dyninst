@@ -41,15 +41,13 @@
 
 namespace Dyninst { namespace DyninstAPI {
 
-// The prologue loads a register pair with address of the buffer containing instrumentation
-// variables.
-// PatchAPI snippet is used to insert the following prologue:
+// The active prologue is the SCRATCH-mode form (KD-carrying constructor below): it sets up
+// FLAT_SCRATCH and relocates the shifted system SGPRs for hardware-scratch register spilling.
 //
-// Example when dest = 94, base = 4, offset = 0xabc; address_of_buffer is at s[4:5] + 0xabc.
-// Load it into s[94:95].
-//
-// s_load_dwordx2 s[94:95], s[4:5], 0xabc
-// s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
+// LEGACY (no longer used): the dest/base/offset constructor originally loaded a per-wave
+// buffer pointer from a kernarg slot into a register pair (s[94:95]) via
+// `s_load_dwordx2 s[94:95], s[4:5], <offset>`. The scratch backend replaced this; s[94:95]
+// is no longer used anywhere.
 //
 class AmdgpuPrologue : public Dyninst::PatchAPI::Snippet {
 public:

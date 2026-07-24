@@ -236,8 +236,42 @@ bool insnCodeGen::modifyCall(Dyninst::Address /* target */, NS_amdgpu::instructi
   return false;
 }
 
+// Relocate a PC-reading instruction (S_GETPC_B64). `target` is the VALUE the getpc must
+// produce at its new location (an absolute address in the rewritten object's space). We
+// re-emit the getpc and add a corrective delta so the destination pair holds exactly
+// `target`, position-independently (delta is a code-offset difference, valid wherever the
+// loader places the object). Mirrors the aarch64 ADR/ADRP relocation (patch the constant to
+// reach the resolved target) and the emitLongJump/emitIndirectCall getpc+add idiom.
+//
+// The caller (RelDataPatch::apply) supplies `target`. For the getpc-as-call case it computes
+// target = predictedAddr(callee) - baked_immediate, so that after this reproduces `target`
+// the UNTOUCHED downstream S_ADD/S_ADDC (baked) lands on the relocated callee. For a
+// self-referential getpc (target unchanged) it passes the original produced value.
+// Relocating a getpc-based PC-relative reference is NOT correct yet -> reject loudly.
+//
+// The emit primitive itself is solved (aarch64-style: reproduce a resolved target `V` via
+// getpc + a corrective add; the untouched downstream add then lands on it). What's missing is
+// resolving the callee's RELOCATED address at transform time. GPU-verified failure (2026-07-21):
+// for `vaddcall` calling a __noinline__ addf, the callee moved 0x1900->0x2900 but cfg->find in
+// the transform returned NO RelocBlock (label=0) -> addf is relocated by the WHOLE-IMAGE
+// mechanism, not the per-function transform RelocGraph, so predictedAddr can't reach it during
+// generation. Its relocated address is only known post-transform (AddressSpace::origToReloc).
+// The widget plumbing to carry a resolved callee label + baked immediate is in place
+// (RelDataWidget/RelDataPatch + Movement-adhoc); it just can't obtain a valid label here.
+// The correct completion is a POST-relocation fixup pass (or image-layout integration) that
+// patches the getpc+add constants using origToReloc once the final layout exists.
+// Relocating a getpc-based PC-relative reference is NOT correct yet -> reject loudly.
+// The emit primitive is solved (reproduce a resolved value V via getpc+corrective; the kept
+// downstream add finishes it). What's unsolved is obtaining the callee's AUTHORITATIVE final
+// address. GPU-tested negatives (2026-07): (a) reproduce original produced value -> lands on
+// stale pre-shift callee; (b) reproduce target_addr + 0x1000 (uniform .text shift) -> lands
+// 0xC00 off (target_addr in the transform is NOT the clean original produced value -- it's a
+// relocated/estimated value, so no fixed offset corrects it). The correct fix must use the
+// callee's final address from the output layout/symtab (only authoritative POST-layout) and
+// patch the getpc+add idiom to reach exactly it -- a write-phase/post-layout pass, not this
+// in-transform hook. Widget/transform plumbing to carry a resolved target is in place but
+// can't get a valid one here.
 bool insnCodeGen::modifyData(Dyninst::Address /* target */, NS_amdgpu::instruction & /* insn */,
                              codeGen & /* gen */) {
-  assert(!"Not implemented for AMDGPU");
-  return false;
+  return false;   // loud failure (aborts the rewrite) -- never silently corrupt the target
 }
