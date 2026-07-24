@@ -110,34 +110,12 @@ bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) c
   return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() != getMaxGranulatedWavefrontSgprCount());
 }
 
-bool AmdgpuGfx908PointHandler::isScalarRegAvailable(Register reg, const AmdgpuKernelDescriptor &kd) const {
-  // Since we max out register usage, the maximum SPGR is 101. AMDGPU GFX908
-  // aliases the VCC (opcode register ids 106 and 107) to highest allocated
-  // register pair (100 and 101 in this case), so the actual maximum available
-  // is 99.
-
-  assert(reg.isScalar() && "reg must be scalar");
-
-  // We can only use upto s99
-  const uint32_t maxUsableSgprId = 99;
-
-  const uint32_t firstRegId = reg.getId();
-  const uint32_t numRegs = reg.getCount();
-  const uint32_t lastRegId = firstRegId + numRegs - 1;
-
-  const uint32_t maxUsedSgprIdInKernel = getMaxUsedSgprId(kd);
-
-  const bool isPair = numRegs == 2;
-  const bool isEvenAligned = firstRegId % 2 == 0;
-  const bool isNotUsedInKernel = firstRegId > maxUsedSgprIdInKernel && lastRegId <= maxUsableSgprId;
-
-  return isPair && isEvenAligned && isNotUsedInKernel;
-}
 
 void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function) {
-  // If this function is a kernel, insert a prologue that loads s[94:95] with the address of memory
-  // for instrumentation variables. This address is at address [kernargPtrRegister] + kernargBufferSize.
-  // We get this information from the kernel descriptor. Each kernel has a kernel descriptor.
+  // If this function is a kernel, insert an entry prologue that gives it per-wave HARDWARE
+  // SCRATCH for register spilling: set up FLAT_SCRATCH, relocate the shifted system SGPRs,
+  // and rewrite the KD. (Historically this prologue loaded a per-wave base into s[94:95]
+  // from a kernarg slot; the scratch backend replaced that, so s[94:95] is no longer used.)
 
   BPatch_variableExpr *kdVariable = getKernelDescriptorVariable(function);
   if (!kdVariable) {
@@ -152,14 +130,6 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
 
   if (!canInstrument(kd)) {
     std::cerr << "Can't instrument " << function->getMangledName() << '\n' << "exiting...\n";
-    exit(1);
-  }
-
-  Register regPair = Register::makeScalarRegister(OperandRegId(94), BlockSize(2));
-  if (!isScalarRegAvailable(regPair, kd)) {
-    std::cerr << "Can't instrument " << function->getMangledName()
-              << " as s94 and s95 are not available.\n"
-              << "exiting...\n";
     exit(1);
   }
 
