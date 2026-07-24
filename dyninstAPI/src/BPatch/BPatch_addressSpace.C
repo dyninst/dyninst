@@ -697,13 +697,13 @@ bool BPatch_addressSpace::free(BPatch_variableExpr &ptr)
 // SAME allocation sequence to every backing AddressSpace so their arenas stay in lock-
 // step (the emitter reads the stride off whichever AddressSpace it is lowering into),
 // and return the offset (identical across them).
-unsigned BPatch_addressSpace::allocatePerWave(unsigned bytes)
+unsigned BPatch_addressSpace::allocatePerWave(unsigned bytes, unsigned align)
 {
    std::vector<AddressSpace *> as;
    getAS(as);
    unsigned off = 0;
    for (unsigned i = 0; i < as.size(); i++) {
-      unsigned o = as[i]->allocatePerWaveBytes(bytes);
+      unsigned o = as[i]->allocatePerWaveBytes(bytes, align);
       if (i == 0) off = o;
    }
    // Bridge the finalized stride to the emitter (the entry-capture prologue can't read it

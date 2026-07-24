@@ -695,9 +695,9 @@ BPatch_constExpr::BPatch_constExpr(long long value)
 // GPU hardware/execution value snippets — each wraps a GpuValue operand AST carrying
 // the kind; the (AMDGPU) emitter supplies the read recipe at codegen time.
 static void initGpuValueSnippet(Dyninst::BPatch_codeGenASTPtr &ast_wrapper,
-                                GpuValueKind kind) {
+                                GpuValueKind kind, unsigned offset = 0) {
     assert(BPatch::bpatch != NULL);
-    ast_wrapper = operandAST::GpuValue(kind);
+    ast_wrapper = operandAST::GpuValue(kind, offset);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
     BPatch_type *type = BPatch::bpatch->stdTypes->findType("unsigned int");
     assert(type != NULL);
@@ -712,16 +712,19 @@ BPatch_gpuHwWaveIdExpr::BPatch_gpuHwWaveIdExpr() {
     initGpuValueSnippet(ast_wrapper, GpuValueKind::HwWaveId);
 }
 
-BPatch_gpuPerWaveBufExpr::BPatch_gpuPerWaveBufExpr() {
-    initGpuValueSnippet(ast_wrapper, GpuValueKind::PerWaveBuf);
+// PerWave* carry a per-variable byte offset within the wave's slice (0 for the first /
+// only variable). The emitter adds it to the slice base (address) or folds it into the
+// load/store immediate (value/capture).
+BPatch_gpuPerWaveBufExpr::BPatch_gpuPerWaveBufExpr(unsigned offset) {
+    initGpuValueSnippet(ast_wrapper, GpuValueKind::PerWaveBuf, offset);
 }
 
-BPatch_gpuPerWaveValExpr::BPatch_gpuPerWaveValExpr() {
-    initGpuValueSnippet(ast_wrapper, GpuValueKind::PerWaveVal);
+BPatch_gpuPerWaveValExpr::BPatch_gpuPerWaveValExpr(unsigned offset) {
+    initGpuValueSnippet(ast_wrapper, GpuValueKind::PerWaveVal, offset);
 }
 
-BPatch_gpuPerWaveCaptureExpr::BPatch_gpuPerWaveCaptureExpr() {
-    initGpuValueSnippet(ast_wrapper, GpuValueKind::CaptureRet);
+BPatch_gpuPerWaveCaptureExpr::BPatch_gpuPerWaveCaptureExpr(unsigned offset) {
+    initGpuValueSnippet(ast_wrapper, GpuValueKind::CaptureRet, offset);
 }
 
 /*
