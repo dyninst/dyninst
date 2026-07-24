@@ -22,6 +22,12 @@ target_link_libraries(aarch64_branches_test PRIVATE instructionAPI register_test
 add_test(NAME instructionAPI_aarch64_branches_test COMMAND aarch64_branches_test)
 set_tests_properties(instructionAPI_aarch64_branches_test PROPERTIES LABELS "integration")
 
+add_executable(aarch64_cft_test cft.cpp)
+target_compile_options(aarch64_cft_test PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(aarch64_cft_test PRIVATE instructionAPI)
+add_test(NAME instructionAPI_aarch64_cft_test COMMAND aarch64_cft_test)
+set_tests_properties(instructionAPI_aarch64_cft_test PROPERTIES LABELS "integration")
+
 add_executable(aarch64_comparisons_test comparisons.cpp)
 target_compile_options(aarch64_comparisons_test PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
 target_link_libraries(aarch64_comparisons_test PRIVATE instructionAPI register_tests
