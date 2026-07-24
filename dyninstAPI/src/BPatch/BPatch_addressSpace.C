@@ -693,6 +693,32 @@ bool BPatch_addressSpace::free(BPatch_variableExpr &ptr)
    return true;
 }
 
+// AMDGPU per-wave arena: bump-allocate `bytes` of per-wavefront storage. We apply the
+// SAME allocation sequence to every backing AddressSpace so their arenas stay in lock-
+// step (the emitter reads the stride off whichever AddressSpace it is lowering into),
+// and return the offset (identical across them).
+unsigned BPatch_addressSpace::allocatePerWave(unsigned bytes)
+{
+   std::vector<AddressSpace *> as;
+   getAS(as);
+   unsigned off = 0;
+   for (unsigned i = 0; i < as.size(); i++) {
+      unsigned o = as[i]->allocatePerWaveBytes(bytes);
+      if (i == 0) off = o;
+   }
+   // Bridge the finalized stride to the emitter (the entry-capture prologue can't read it
+   // off its codeGen's addrSpace). Uses the primary AddressSpace's rounded stride.
+   if (!as.empty()) AddressSpace::publishPerWaveStrideToEmitter(as[0]->perWaveStride());
+   return off;
+}
+
+unsigned BPatch_addressSpace::perWaveStride()
+{
+   std::vector<AddressSpace *> as;
+   getAS(as);
+   return as.empty() ? 4096u : as[0]->perWaveStride();
+}
+
 BPatch_variableExpr *BPatch_addressSpace::createVariable(std::string name,
                                                             Dyninst::Address addr,
                                                             BPatch_type *type) {
