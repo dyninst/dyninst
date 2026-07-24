@@ -499,6 +499,17 @@ static uint32_t readCalleeMaxAbsSym(func_instance *callee, const char *key);
 // and vAddr from that fixed value rather than the live (growing) grant.
 static std::map<func_instance *, uint32_t> g_origGrantedVgpr;
 
+// Per-wave arena STRIDE bridge. The entry-capture prologue needs the stride to lower
+// wid*STRIDE, but the prologue's codeGen->addrSpace() can be null there (unlike emitCall),
+// so it can't be read off the AddressSpace. BPatch_addressSpace::allocatePerWave sets this
+// process-global (one mutator run instruments one binary = one arena, so a global is
+// correct); the prologue reads it. Default 4096 keeps un-instrumented / non-perWaveVar
+// kernels at the old fixed stride.
+static uint32_t g_amdgpuPerWaveStride = 4096;
+void AddressSpace::publishPerWaveStrideToEmitter(unsigned bytes) {
+  g_amdgpuPerWaveStride = bytes ? bytes : 1u;
+}
+
 // Scalars packed per pack-VGPR in the SGPR spill = wavefront width (wave64 = 64
 // lanes; one v_writelane per lane). Overridable (clamped to <=64) purely to force
 // numPacks>1 for testing the multi-pack path with a small callee; production = 64.
@@ -959,9 +970,10 @@ public:
       // consecutive flattened thread ids). blockIdx.x = wgid_x entry SGPR (relocated to
       // p-SHIFT); blockDim.x = hidden group_size_x (u16 @ kernarg + (ksize-256) + 12,
       // COV5 implicit block); threadIdx.x = readfirstlane(v0) & 0x3ff (v0 is the packed
-      // workitem id at entry, still intact here). STRIDE is fixed to the launcher's
-      // per-wave SLOT (4096B) for now; a user-declared stride (BPatch_perWaveVar bytes)
-      // is future work. Scratch SGPRs are the free upper half of the reserved block.
+      // workitem id at entry, still intact here). STRIDE is the per-wave arena stride (the
+      // EXACT 8-aligned arena size from the bump-allocator; 4096 if none), applied with a
+      // scalar multiply (S_MULK_I32) — no power-of-two constraint, so no wasted slack.
+      // Scratch SGPRs are the free upper half of the reserved block.
       if (L.kernargPtr >= 0 && kd.getKernargSize() >= 8) {
         const uint32_t kp   = (uint32_t)L.kernargPtr;                 // s[kp:kp+1] = kernarg ptr
         const uint32_t pwr  = saddr + 2;                             // base pair (reservedBase+4:+5)
@@ -988,8 +1000,8 @@ public:
         // wid = (blockIdx*blockDim + threadIdx) >> 6 ; off = wid << 12 (wid*4096)
         emitSop2Raw(S_MUL_I32, sWid, sBi, sBd, gen);
         emitSop2Raw(S_ADD_U32, sWid, sWid, sTid, gen);
-        emitSop2RawWithLiteral(S_LSHR_B32, sWid, sWid, 6u, gen);      // /64
-        emitSop2RawWithLiteral(S_LSHL_B32, sWid, sWid, 12u, gen);     // *4096 (STRIDE)
+        emitSop2RawWithLiteral(S_LSHR_B32, sWid, sWid, 6u, gen);      // /64 -> logical wave id
+        emitSopK(S_MULK_I32, sWid, (int16_t)g_amdgpuPerWaveStride, gen); // wid *= STRIDE (scalar mul)
         emitSop2Raw(S_ADD_U32,  pwr,     pwr,     sWid,            gen);  // base_lo += off
         emitSop2Raw(S_ADDC_U32, pwr + 1, pwr + 1, GFX908_INLINE_0, gen); // carry
         // capture this wave's slice base into the IACR (uniform: broadcast then store)

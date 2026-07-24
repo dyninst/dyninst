@@ -181,6 +181,27 @@ class AddressSpace : public InstructionSource {
     // instrumentation is incredibly wasteful.
     virtual bool inferiorRealloc(Address item, unsigned newSize) = 0;
     bool inferiorReallocInternal(Address item, unsigned newSize);
+
+    // --- Per-wave arena (AMDGPU) ----------------------------------------------
+    // A bump allocator over each wavefront's slice of the launch-time PerWaveBuf.
+    // allocatePerWaveBytes reserves `bytes` and returns this variable's byte offset within
+    // the slice; the running high-water, aligned to 8, is perWaveStride() — the STRIDE the
+    // emitter lowers as wid*STRIDE with a scalar multiply (so it is the EXACT arena size,
+    // NOT rounded up to a power of two) and the host allocates per wave (published as the
+    // absolute symbol __dyninst_pw_stride). Defaults to 4096 (back-compat) when no per-wave
+    // variable was declared. NOTE: the emitter's S_MULK_I32 takes a signed 16-bit immediate,
+    // so the per-wave arena is capped at 32767 B (ample — ~8000 u32 counters/wave).
+    unsigned allocatePerWaveBytes(unsigned bytes, unsigned align = 8) {
+        if (align < 1) align = 1;
+        unsigned off = (pwArenaHigh_ + (align - 1)) & ~(align - 1);
+        pwArenaHigh_ = off + bytes;
+        pwStride_ = (pwArenaHigh_ + 7u) & ~7u;       // exact 8-aligned size (no pow2 rounding)
+        return off;
+    }
+    unsigned perWaveStride() const { return pwStride_; }
+    // Bridge the stride to the AMDGPU emitter's entry-capture prologue (its codeGen has no
+    // reliable addrSpace there); defined in emit-amdgpu.C.
+    static void publishPerWaveStrideToEmitter(unsigned bytes);
     bool inferiorShrinkBlock(heapItem *h, Address block, unsigned newSize);
     bool inferiorExpandBlock(heapItem *h, Address block, unsigned newSize);
 
@@ -376,6 +397,8 @@ class AddressSpace : public InstructionSource {
     // Callbacks for higher level code (like BPatch) to learn about new 
     //  functions and InstPoints.
  private:
+    unsigned pwArenaHigh_ = 0;   // per-wave arena bump high-water (bytes)
+    unsigned pwStride_ = 4096;   // per-wave stride = pow2(high-water); 4096 if unused
     BPatch_function *(*new_func_cb)(AddressSpace *a, Dyninst::PatchAPI::PatchFunction *f);
     BPatch_point *(*new_instp_cb)(AddressSpace *a, Dyninst::PatchAPI::PatchFunction *f, 
                                   Dyninst::PatchAPI::Point *ip, 
