@@ -383,7 +383,7 @@ class DYNINST_EXPORT BPatch_addressSpace {
   //  within each wave's slice. The running total, rounded to a power of two, is
   //  perWaveStride() — the value the emitter lowers as wid*STRIDE and the host
   //  allocates per wave (published in the co as the absolute symbol __dyninst_pw_stride).
-  unsigned allocatePerWave(unsigned bytes);
+  unsigned allocatePerWave(unsigned bytes, unsigned align = 8);
   unsigned perWaveStride();
 
   // BPatch_addressSpace::createVariable

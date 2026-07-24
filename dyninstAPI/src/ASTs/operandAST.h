@@ -57,10 +57,11 @@ public:
   static Ptr Constant(void *v) {
     return boost::make_shared<operandAST>(operandType::Constant, v);
   }
-  // A GPU hardware/execution value; the kind is stashed in the operand's value slot.
-  static Ptr GpuValue(GpuValueKind kind) {
-    return boost::make_shared<operandAST>(operandType::GpuValue,
-                                          (void *)(uintptr_t)(long)kind);
+  // A GPU hardware/execution value; the operand's value slot packs the GpuValueKind in the
+  // low 8 bits and a per-wave-variable byte offset (within the wave's slice) in the rest.
+  static Ptr GpuValue(GpuValueKind kind, unsigned offset = 0) {
+    uintptr_t packed = ((uintptr_t)(long)kind & 0xFF) | ((uintptr_t)offset << 8);
+    return boost::make_shared<operandAST>(operandType::GpuValue, (void *)packed);
   }
 
   static Ptr ConstantString(const char *str) {

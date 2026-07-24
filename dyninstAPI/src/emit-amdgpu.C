@@ -1394,7 +1394,8 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // one VGPR, a 64-bit pointer arg (per-wave buffer) takes a pair. Advance by the
   // arg's dword width so a following arg lands in the right register.
   uint32_t vreg = 0;
-  bool captureReturnToPerWave = false;   // set by a CaptureRet marker operand; handled post-call
+  bool     captureReturnToPerWave = false; // set by a CaptureRet marker operand; handled post-call
+  uint32_t captureOff = 0;                  // slice offset for the captured return
   for (uint32_t i = 0; i < operands.size(); i++) {
     const auto &op = operands[i];
     assert(op && "AMDGPU emitCall: null call argument");
@@ -1407,7 +1408,9 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
       AmdgpuGfx908::emitVop1Imm(/*V_MOV_B32=*/1u, /*vdst=*/vreg, imm, gen);
       vreg += 1;
     } else if (op->getoType() == operandType::GpuValue) {
-      const long kind = (long)reinterpret_cast<uintptr_t>(op->getOValue());
+      const uintptr_t packed = reinterpret_cast<uintptr_t>(op->getOValue());
+      const long     kind  = (long)(packed & 0xFF);
+      const uint32_t pwOff = (uint32_t)(packed >> 8);   // per-wave var byte offset in the slice
       if (kind == (long)GpuValueKind::PerWaveBuf) {
         // This wave's per-wave buffer slice: a 64-bit pointer captured at entry into
         // the IACR (OFF_PWBASE). Load both dwords straight into the pointer arg's VGPR
@@ -1417,6 +1420,14 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
         sabi.emitScratchLoad(vreg,     IAL::OFF_PWBASE,     SADDR_REG, gen);
         sabi.emitScratchLoad(vreg + 1, IAL::OFF_PWBASE + 4, SADDR_REG, gen);
         AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+        if (pwOff) {
+          // Multi-var: this variable sits at slice+pwOff, so the pointer is base+pwOff.
+          // 64-bit add-with-carry: VCC is dead here (the spill already saved it) and
+          // vImplTmp is a free scratch VGPR. Offset -> VGPR (handles any 32-bit offset).
+          AmdgpuGfx908::emitVop1Imm(/*V_MOV_B32=*/1u, /*vdst=*/vImplTmp, pwOff, gen);
+          AmdgpuGfx908::emitVop2(AmdgpuGfx908::V_ADD_CO_U32,  /*vdst=*/vreg,     /*vsrc1=*/vreg,     /*src0=*/256u + vImplTmp, gen); // lo += off, carry->vcc
+          AmdgpuGfx908::emitVop2(AmdgpuGfx908::V_ADDC_CO_U32, /*vdst=*/vreg + 1, /*vsrc1=*/vreg + 1, /*src0=*/128u /*inline 0*/,   gen); // hi += carry
+        }
         vreg += 2;
       } else if (kind == (long)GpuValueKind::PerWaveVal) {
         // This wave's stored 64-bit VALUE (slice[0], e.g. a captured file handle):
@@ -1432,16 +1443,19 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
         sabi.emitScratchLoad(vImplTmp,     IAL::OFF_PWBASE,     SADDR_REG, gen);
         sabi.emitScratchLoad(vImplTmp + 1, IAL::OFF_PWBASE + 4, SADDR_REG, gen);
         AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+        // Multi-var: value lives at slice+pwOff — fold pwOff into the load immediate
+        // (13-bit signed => pwOff must be <= 4091; ample for value/capture vars).
         AmdgpuGfx908::emitFlatGlobal(AmdgpuGfx908::GLOBAL_LOAD_DWORD, /*vdst=*/vreg,
                                      /*addr=*/vImplTmp, /*data=*/0, /*saddr=*/0x7fu /*NULL*/,
-                                     /*offset=*/0, gen, /*glc=*/true, /*seg=*/2u);
+                                     /*offset=*/(int)pwOff, gen, /*glc=*/true, /*seg=*/2u);
         AmdgpuGfx908::emitFlatGlobal(AmdgpuGfx908::GLOBAL_LOAD_DWORD, /*vdst=*/vreg + 1,
                                      /*addr=*/vImplTmp, /*data=*/0, /*saddr=*/0x7fu /*NULL*/,
-                                     /*offset=*/4, gen, /*glc=*/true, /*seg=*/2u);
+                                     /*offset=*/(int)pwOff + 4, gen, /*glc=*/true, /*seg=*/2u);
         AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);
         vreg += 2;
       } else if (kind == (long)GpuValueKind::CaptureRet) {
         captureReturnToPerWave = true;   // MARKER: capture the return post-call, not an arg
+        captureOff = pwOff;              // ...into slice[pwOff]
       } else {
         // A GPU hardware/execution value read at the site: emit its recipe into the
         // reserved arg-scratch SGPR, then broadcast that uniform value into the arg VGPR.
@@ -1595,10 +1609,10 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
     AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);
     AmdgpuGfx908::emitFlatGlobal(AmdgpuGfx908::GLOBAL_STORE_DWORD, /*vdst=*/0,
                                  /*addr=*/vImplTmp, /*data=*/0 /*v0*/, /*saddr=*/0x7fu /*NULL*/,
-                                 /*offset=*/0, gen, /*glc=*/true, /*seg=*/2u);
+                                 /*offset=*/(int)captureOff, gen, /*glc=*/true, /*seg=*/2u);
     AmdgpuGfx908::emitFlatGlobal(AmdgpuGfx908::GLOBAL_STORE_DWORD, /*vdst=*/0,
                                  /*addr=*/vImplTmp, /*data=*/1 /*v1*/, /*saddr=*/0x7fu /*NULL*/,
-                                 /*offset=*/4, gen, /*glc=*/true, /*seg=*/2u);
+                                 /*offset=*/(int)captureOff + 4, gen, /*glc=*/true, /*seg=*/2u);
     AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);
   }
 
