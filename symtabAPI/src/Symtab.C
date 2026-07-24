@@ -2047,13 +2047,15 @@ DYNINST_EXPORT bool Symtab::addLibraryPrereq(std::string const& name)
 		return false;
 	}
    // remove forward slashes and back slashes
-   size_t size = name.find_last_of("/");
-   size_t lastBS = name.find_last_of("\\");
-   if (lastBS > size) {
-      size = lastBS;
-   }
+   // NB: find_last_of with a set matches the last occurrence of ANY listed
+   // character, and returns npos only when neither separator is present. The
+   // previous (size_t)npos > size comparison mishandled "./lib.so"-style names
+   // (a leading "./" left the path unstripped), which then leaked into the
+   // rewritten binary as a "./lib.so" DT_NEEDED that the loader resolved
+   // CWD-relative to the original, un-rewritten library.
+   size_t size = name.find_last_of("/\\");
 
-   string filename = name.substr(size+1);
+   string filename = (size == string::npos) ? name : name.substr(size+1);
 
 #if ! defined(os_windows) 
    obj->insertPrereqLibrary(filename);
