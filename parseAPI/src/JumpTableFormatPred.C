@@ -213,6 +213,29 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
             inputs.insert(make_pair(VariableAST::create(Variable(AbsRegion(Absloc(ppc64::r2)))),
                         ConstantAST::create(Constant(toc_address, 64))));
         }
+        else if (block->obj()->cs()->getArch() == Arch_x86 && !g->isExitNode(n)) {
+            // i386 position-independent code loads the GOT/anchor base into a
+            // register via a get-PC thunk ("call __x86.get_pc_thunk.REG; add
+            // $imm, %REG"), and GOT-relative jump tables compute their target
+            // as base_reg + table[index]. Substitute the thunk register with
+            // its constant value so the table base resolves to a concrete
+            // address -- the i386 analogue of the r2->TOC substitution above.
+            // Only apply a thunk whose defining block reaches this indirect
+            // jump (rf.thunk_outs), so an unrelated thunk value is not used.
+            // Skip the exit node (the indirect jump itself): there the thunk
+            // register holds the fully-computed target (base + table[index]),
+            // not the base, so substituting the base value would collapse the
+            // target to a constant and hide the jump table.
+            for (auto tit = thunks.begin(); tit != thunks.end(); ++tit) {
+                ParseAPI::Block *tb = tit->second.block;
+                auto oit = rf.thunk_outs.find(tb);
+                if (oit != rf.thunk_outs.end() && oit->second.count(block)) {
+                    inputs.insert(make_pair(
+                        VariableAST::create(Variable(AbsRegion(Absloc(tit->second.reg)))),
+                        ConstantAST::create(Constant(tit->second.value, 32))));
+                }
+            }
+        }
         if (aliases.find(n->assign()) != aliases.end()) {
             inputs.insert(aliases[n->assign()]);
             parsing_printf("\t Replacing %s with %s\n", aliases[n->assign()].first->format().c_str(),aliases[n->assign()].second->format().c_str());
