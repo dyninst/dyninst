@@ -1,0 +1,13 @@
+include_guard(GLOBAL)
+
+add_executable(ppc64le_decode_test decode.cpp)
+target_compile_options(ppc64le_decode_test PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(ppc64le_decode_test PRIVATE instructionAPI register_tests)
+add_test(NAME instructionAPI_ppc64le_decode_test COMMAND ppc64le_decode_test)
+set_tests_properties(instructionAPI_ppc64le_decode_test PROPERTIES LABELS "integration")
+
+add_executable(ppc64le_branches_test branches.cpp)
+target_compile_options(ppc64le_branches_test PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(ppc64le_branches_test PRIVATE instructionAPI)
+add_test(NAME instructionAPI_ppc64le_branches_test COMMAND ppc64le_branches_test)
+set_tests_properties(instructionAPI_ppc64le_branches_test PROPERTIES LABELS "integration")
