@@ -352,7 +352,9 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset,
 // VDST/VSRC1 are plain VGPR numbers (0-255). SRC0 is a 9-bit operand
 // (VGPR = 256+n ; inline const 0 = 128 ; inline int k(1..64) = 128+k).
 enum VOP2_Opcode {
-  V_LSHLREV_B32 = 0x12
+  V_LSHLREV_B32  = 0x12,
+  V_ADD_CO_U32   = 0x19,   // vdst = src0 + vsrc1, carry-out -> VCC   (gfx9)
+  V_ADDC_CO_U32  = 0x1c    // vdst = src0 + vsrc1 + VCC, carry-out -> VCC
 };
 void emitVop2(unsigned opcode, uint32_t vdst, uint32_t vsrc1, uint32_t src0, codeGen &gen);
 // === VOP2 END ===
