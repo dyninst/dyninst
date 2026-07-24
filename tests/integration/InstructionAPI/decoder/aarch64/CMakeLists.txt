@@ -51,6 +51,12 @@ target_link_libraries(aarch64_move_test PRIVATE instructionAPI register_tests
 add_test(NAME instructionAPI_aarch64_move_test COMMAND aarch64_move_test)
 set_tests_properties(instructionAPI_aarch64_move_test PROPERTIES LABELS "integration")
 
+add_executable(aarch64_simd_test simd.cpp)
+target_compile_options(aarch64_simd_test PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(aarch64_simd_test PRIVATE instructionAPI register_tests)
+add_test(NAME instructionAPI_aarch64_simd_test COMMAND aarch64_simd_test)
+set_tests_properties(instructionAPI_aarch64_simd_test PROPERTIES LABELS "integration")
+
 add_executable(aarch64_sysctl_test sysctl.cpp)
 target_compile_options(aarch64_sysctl_test PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
 target_link_libraries(aarch64_sysctl_test PRIVATE instructionAPI register_tests
