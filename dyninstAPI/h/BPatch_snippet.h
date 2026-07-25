@@ -303,8 +303,13 @@ class DYNINST_EXPORT BPatch_perWaveVar {
     unsigned bytes_;
     unsigned offset_;   // byte offset within the wave's slice (from the arena allocator)
  public:
-    // offset = this variable's byte offset within the per-wave slice; pass the value
-    // returned by BPatch_addressSpace::allocatePerWave() so multiple vars are distinct.
+    // Recommended: self-allocating. Reserves `bytes` (aligned) from `as`'s per-wave arena
+    // and takes the returned offset, so the variable owns its slot with no separate
+    // allocatePerWave call or offset threading (mirrors CPU Dyninst's malloc). Defined in
+    // BPatch_snippet.C.
+    BPatch_perWaveVar(BPatch_addressSpace *as, unsigned bytes, unsigned align = 8);
+    // Low-level: bind to an explicit byte offset within the slice WITHOUT allocating — for
+    // aliasing an existing slot (e.g. the slice base at offset 0). No arena reservation.
     explicit BPatch_perWaveVar(unsigned bytesPerWave, unsigned offset = 0)
         : bytes_(bytesPerWave), offset_(offset) {}
     unsigned bytesPerWave() const { return bytes_; }
