@@ -727,6 +727,10 @@ BPatch_gpuPerWaveCaptureExpr::BPatch_gpuPerWaveCaptureExpr(unsigned offset) {
     initGpuValueSnippet(ast_wrapper, GpuValueKind::CaptureRet, offset);
 }
 
+// Self-allocating per-wave variable: reserve `bytes` from the arena and take the offset.
+BPatch_perWaveVar::BPatch_perWaveVar(BPatch_addressSpace *as, unsigned bytes, unsigned align)
+    : bytes_(bytes), offset_(as ? as->allocatePerWave(bytes, align) : 0u) {}
+
 /*
  * BPatch_whileExpr::BPatch_whileExpr
  *
