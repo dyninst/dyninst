@@ -355,9 +355,7 @@ jobs:
           apt update
           apt install -y wget libxml2-dev autoconf m4 libtool gcc-13 g++-13 gfortran-13 libiberty-dev binutils-dev
 
-        # extrae does not build with gcc-14 (the default compiler on the latest fedora)
       - name: Build extrae
-        if: ${{ startsWith(matrix.os, 'ubuntu')}}
         shell: bash
         run: |
           set -ex
@@ -373,8 +371,6 @@ jobs:
           fi
           
           lib_dir="/usr/lib${lib_dir_suffix}"
-          
-          export CC=gcc-13 CXX=g++-13 FC=gfortran-13
           
           ./configure                               \
             --disable-doc                           \
