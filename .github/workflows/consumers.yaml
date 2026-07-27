@@ -357,7 +357,7 @@ jobs:
 
       - name: Build extrae
         env:
-          - FC: gfortran-13
+          FC: gfortran-13
         shell: bash
         run: |
           set -ex
