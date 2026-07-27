@@ -356,6 +356,8 @@ jobs:
           apt install -y wget libxml2-dev autoconf m4 libtool gcc-13 g++-13 gfortran-13 libiberty-dev binutils-dev
 
       - name: Build extrae
+        env:
+          - FC: gfortran-13
         shell: bash
         run: |
           set -ex
