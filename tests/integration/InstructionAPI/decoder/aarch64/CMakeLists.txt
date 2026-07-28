@@ -3,7 +3,7 @@ include_guard(GLOBAL)
 set(_flags ${SUPPORTED_CXX_WARNING_FLAGS})
 
 # Disable warnings for stack frame sizes
-list(APPEND _flags "-Wframe-larger-than=‘SIZE_MAX’")
+list(APPEND _flags "-Wno-frame-larger-than=")
 
 add_executable(aarch64_addressing_test addressing.cpp)
 target_compile_options(aarch64_addressing_test PRIVATE ${_flags})
