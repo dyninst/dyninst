@@ -457,12 +457,20 @@ bool BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
    return true;
 }
 
-bool BinaryEdit::writeFile(const std::string &newFileName) 
+bool BinaryEdit::writeFile(const std::string &newFileName)
 {
-   // Step 1: changes. 
+   // Step 1: changes.
 
 
       inst_printf(" writing %s ... \n", newFileName.c_str());
+
+      // AMDGPU (pillar B): commit the canonical per-kernel KD metadata back to the
+      // ".kd" data ONCE, here at ELF-emit — after all instrumentation codegen (which
+      // may have mutated a KD, e.g. bumpCallerKdForCallee) and BEFORE the output image
+      // is assembled below. This is the sole KD write-back; the instrument-time sites
+      // only mutate the in-memory KernelMeta. No-op when there are no kernels.
+      if (mobj)
+         mobj->flushAmdgpuKernelMeta();
 
       Symtab *symObj = mobj->parse_img()->getObject();
 

@@ -41,7 +41,11 @@
 
 // Our wrapper around it
 #include "AmdgpuKernelDescriptor.h"
+#include "amdgpu-kernel-meta.h"
 #include "amdgpu-scratch-abi.h"
+#include "mapped_object.h"
+#include "mapped_module.h"
+#include "patching/function.h"
 #include <cstdlib>
 
 #include "ASTs/ast.h"
@@ -117,18 +121,14 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
   // and rewrite the KD. (Historically this prologue loaded a per-wave base into s[94:95]
   // from a kernarg slot; the scratch backend replaced that, so s[94:95] is no longer used.)
 
-  BPatch_variableExpr *kdVariable = getKernelDescriptorVariable(function);
-  if (!kdVariable) {
+  // Pillar B: the canonical per-kernel KD metadata, sourced once from the ".kd"
+  // symbol. Absent => not a kernel; nothing to do.
+  Dyninst::DyninstAPI::KernelMeta *km =
+      function->lowlevel_func()->obj()->getAmdgpuKernelMeta(function->getMangledName());
+  if (!km)
     return;
-  }
 
-  llvm::amdhsa::kernel_descriptor_t rawKd;
-  bool success = kdVariable->readValue(&rawKd, sizeof rawKd);
-  assert(success);
-
-  AmdgpuKernelDescriptor kd(rawKd, this->eflag);
-
-  if (!canInstrument(kd)) {
+  if (!canInstrument(km->kd)) {
     std::cerr << "Can't instrument " << function->getMangledName() << '\n' << "exiting...\n";
     exit(1);
   }
@@ -139,19 +139,22 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
   boost::shared_ptr<AmdgpuPrologue> prologuePtr;
   // Give this (possibly non-scratch) kernel a hardware scratch region for register
   // spilling: rewrite its KD (enable flat_scratch_init + wave_offset, bump
-  // user_sgpr_count, set private_segment_fixed_size) and write it back; the entry
-  // prologue will set up FLAT_SCRATCH and relocate the shifted SGPRs. The launcher
-  // forwards the KD's private_segment_size to the dispatch packet, so ROCr backs the
-  // scratch automatically. HW scratch is the default spill backend (was env-gated
-  // DYNINST_SPILL_SCRATCH); the old global-buffer prologue is legacy.
+  // user_sgpr_count, set private_segment_fixed_size); the entry prologue will set up
+  // FLAT_SCRATCH and relocate the shifted SGPRs. The launcher forwards the KD's
+  // private_segment_size to the dispatch packet, so ROCr backs the scratch
+  // automatically. The KD is mutated IN MEMORY on the canonical KernelMeta and
+  // committed once at ELF-emit (BinaryEdit::writeFile) — no eager write-back here.
   {
     const uint32_t kScratchSlotBytes = 256;  // per-lane: SGPR pack dword + VGPR spill
-    DyninstAPI::gfx908ScratchAbi().enableScratchInKD(kd, kScratchSlotBytes);
-    llvm::amdhsa::kernel_descriptor_t newRaw;
-    kd.writeToMemory(reinterpret_cast<uint8_t *>(&newRaw));
-    bool wrote = kdVariable->writeValue(&newRaw, sizeof newRaw, false);
-    assert(wrote);
-    prologuePtr = boost::make_shared<AmdgpuPrologue>(kd, this->eflag);
+    DyninstAPI::gfx908ScratchAbi().enableScratchInKD(km->kd, kScratchSlotBytes);
+    km->refreshLayout();   // enabling flat_scratch_init shifts the system SGPRs
+    km->dirty = true;
+    // Snapshot the (scratch-enabled) KD into the prologue AST. Taken BEFORE
+    // maximizeSgprAllocationIfKernel grows the grant/kernarg (same as before), so the
+    // prologue carries the original grant/kernarg — the emitter reads the grown values
+    // from the KernelMeta independently.
+    prologuePtr = boost::make_shared<AmdgpuPrologue>(km->kd, this->eflag,
+                                                     km->originalKernargSize);
   }
 
   DyninstAPI::codeGenASTPtr prologueNodePtr =
@@ -185,17 +188,11 @@ static constexpr uint32_t roundUpTo8(uint32_t x) {
 }
 
 void AmdgpuGfx908PointHandler::maximizeSgprAllocationIfKernel(BPatch_function *function) {
-  BPatch_variableExpr *kdVariable = getKernelDescriptorVariable(function);
-  assert(kdVariable);
-
-  llvm::amdhsa::kernel_descriptor_t rawKd;
-  bool success = kdVariable->readValue(&rawKd, sizeof rawKd);
-  if(!success) {
-    inst_printf("Unable to read kernel descriptor for %s\n", kdVariable->getName());
-    assert(0);
-  }
-
-  AmdgpuKernelDescriptor kd(rawKd, this->eflag);
+  Dyninst::DyninstAPI::KernelMeta *km =
+      function->lowlevel_func()->obj()->getAmdgpuKernelMeta(function->getMangledName());
+  if (!km)
+    return;
+  Dyninst::AmdgpuKernelDescriptor &kd = km->kd;
 
   // GLOBAL path: max the SGPR grant (the reserved highs s[92:95] are safe only
   // because nothing is granted that high). SCRATCH path: size to the ACTUAL
@@ -216,21 +213,16 @@ void AmdgpuGfx908PointHandler::maximizeSgprAllocationIfKernel(BPatch_function *f
   const uint32_t newValue = granulatedSgprCountFor(required);
   kd.setCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount(newValue);
 
+  // Grow the kernarg segment by 8 (the appended instrumentation pointer slot). This is
+  // the ONLY kernarg mutation, so km->originalKernargSize (captured at parse) stays the
+  // pristine value; kd.getKernargSize() is now the grown value. The two are DISTINCT and
+  // both remembered — removing the original-vs-grown ambiguity behind the 2D offset bug.
   uint32_t kernargSize = kd.getKernargSize();
   uint32_t newKernargSize = roundUpTo8(kernargSize) + 8;
   kd.setKernargSize(newKernargSize);
 
-  // We have modified the kernel descriptor. Now overwrite the original one with it.
-  success = kdVariable->writeValue(kd.getRawPtr(), sizeof(rawKd), false);
-  // false is passed explicitly only so the compiler can do overload resolution between:
-  // writeValue(const void *src, bool saveWorld=false)
-  //      and
-  // writeValue(const void *src, int len,bool saveWorld=false)
-
-  if(!success) {
-    inst_printf("Unable to write kernel descriptor for %s\n", kdVariable->getName());
-    assert(0);
-  }
+  // KD mutated in memory only; committed once at ELF-emit (BinaryEdit::writeFile).
+  km->dirty = true;
 }
 
 void AmdgpuGfx908PointHandler::insertPrologueAtPoints(AmdgpuPrologueSnippet &snippet,
@@ -255,16 +247,11 @@ void AmdgpuGfx908PointHandler::writeInstrumentedKernelNames(const std::string &f
   std::ofstream outFile(filePath);
 
   for (auto *function : instrumentedFunctions) {
-    BPatch_variableExpr *kdVar = getKernelDescriptorVariable(function);
-    if(!kdVar)
+    Dyninst::DyninstAPI::KernelMeta *km =
+        function->lowlevel_func()->obj()->getAmdgpuKernelMeta(function->getMangledName());
+    if (!km)
       continue;
-
-    llvm::amdhsa::kernel_descriptor_t rawKd;
-    bool success = kdVar->readValue(&rawKd, sizeof rawKd);
-    assert(success);
-
-    AmdgpuKernelDescriptor kd(rawKd, this->eflag);
-    outFile << function->getMangledName() << ' ' << kd.getKernargSize() << '\n';
+    outFile << function->getMangledName() << ' ' << km->kd.getKernargSize() << '\n';
   }
 
   outFile.close();
