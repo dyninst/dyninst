@@ -40,6 +40,7 @@
 #include "stackwalk/src/sw.h"
 
 #include "get_trap_instruction.h"
+#include <cstdint>
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
