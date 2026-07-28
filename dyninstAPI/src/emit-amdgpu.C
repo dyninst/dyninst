@@ -599,28 +599,32 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
   const uint32_t packLanes  = spillPackLanes();   // must match emitCall
   const uint32_t numPacks   = (calleeSgpr + 2u + packLanes - 1u) / packLanes;
 
-  // VGPR: gfx9/wave64 granule = 4; granted = (granulated + 1) * 4. To fit N regs,
-  // granulated = ceil(N/4) - 1. Only ever raise. The grant must cover the callee's
-  // and kernel's VGPRs plus the spill's scratch VGPRs: numPacks SGPR-pack regs, and
-  // (global path only) the vAddr lane-offset reg (the scratch path reclaims it).
+  // VGPR grant (gfx9/wave64 granule = 4; granted = (granulated+1)*4; only ever raise).
+  // PRESERVE-OCCUPANCY (pillar A): size the grant to the CALLEE FOOTPRINT ONLY —
+  // max(caller_orig_vgpr, callee_nvgpr) — with NO extra growth for the trampoline temps.
+  // The callee's compiled code clobbers v0..nvgpr-1 in the shared register file, so
+  // grant >= nvgpr is a legitimate, required occupancy cost of calling a bigger function
+  // (not what we're removing). The trampoline's vPack/vImplTmp temps do NOT need room
+  // above that: emitCall ALLOCATES them from dead registers within this grant via the
+  // point-specialized register space (their data lives in scratch across the call). ONLY
+  // emitCall's small-callee last resort — when the allocator can't find room and the
+  // footprint is too tight to host the temps below nvgpr — needs growth; this test
+  // (vgprTempsFit) matches that fallback so the grant covers it when it triggers. In the
+  // normal case both agree on max(orig, nvgpr) with no temp growth.
   {
     // Use the kernel's ORIGINAL granted VGPR count (cached), NOT the live grant read
-    // from kdBytes — otherwise each inserted call reads the previously-raised grant
-    // and ratchets the count upward.
-    // Implicit-arg forwarding reserves the IACR at the bottom of scratch and one
-    // extra transient VGPR (vImplTmp) for the retrieve — grow both grants for it.
-    // Implicit-arg forwarding is on by default (an inserted call may need blockIdx/
-    // blockDim/threadIdx); the IACR + retrieve are cheap and forwarded values are
-    // preserved by the caller-save spill when unused.
-    const uint32_t implBase = Dyninst::DyninstAPI::ImplicitArgLayout::BYTES;
-    const uint32_t implVgpr = implBase ? 1u : 0u;
+    // from kdBytes — otherwise each inserted call reads the previously-raised grant and
+    // ratchets the count upward.
     const uint32_t curVgpr = readCallerOriginalGrantedVgpr(caller, gen);
-    const uint32_t vBase    = (curVgpr > calleeVgpr ? curVgpr : calleeVgpr);
-    const uint32_t needVgpr = vBase + numPacks + implVgpr;  // pack VGPRs + implicit-arg temp
+    const uint32_t vBase    = (curVgpr > calleeVgpr ? curVgpr : calleeVgpr);  // = max(orig, nvgpr)
+    const bool vgprTempsFit = (calleeVgpr >= curVgpr + numPacks + 2u);
+    const uint32_t needVgpr = vgprTempsFit ? vBase              // temps fit in [orig,nvgpr): no growth
+                                           : vBase + numPacks + 2u;  // small-callee fallback: grow
     const uint32_t neededGran = (needVgpr + 3u) / 4u - 1u;
     if (neededGran > kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount())
       kd.setCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount(neededGran);
 
+    const uint32_t implBase = Dyninst::DyninstAPI::ImplicitArgLayout::BYTES;
     // 0.3: size the scratch spill slot to the footprint = numPacks SGPR-pack dwords +
     // calleeVgpr VGPR dwords = 4*(numPacks+nvgpr) bytes/lane, PLUS the IACR reserved
     // below it. The hardcoded 256 in enableScratchInKD overflows for large footprints
@@ -1235,24 +1239,75 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   const bool nonLeafCallAbi =
       readCalleeMaxAbsSym(callee, "private_seg_size") > 0;
 
-  // Scratch VGPRs for the spill machinery, placed ABOVE both the kernel's and the
-  // callee's VGPR usage (bumpCallerKdForCallee grows the grant to cover them):
-  //   vPack = holds SGPRs packed one-per-lane for the SGPR spill (below)
-  // Hardware scratch provides per-lane addressing, so no lane-offset VGPR is needed.
-  // ORIGINAL granted VGPR (cached) keeps these the same fixed regs for every call.
-  const uint32_t kernelVgpr = readCallerOriginalGrantedVgpr(caller, gen);
-  const uint32_t vBase = (kernelVgpr > nvgpr ? kernelVgpr : nvgpr);
-  const uint32_t vPack = vBase;                          // base of the pack VGPRs
-  // The SGPR spill packs {nsgpr numbered SGPRs, vcc_lo, vcc_hi} one-per-lane. Each
-  // pack VGPR holds 64 lanes, so cover them with ceil((nsgpr+2)/64) pack VGPRs
-  // (vPack .. vPack+numPacks-1) — no 62-SGPR limit; each just needs one more dword
-  // of scratch. numPacks==1 for typical callees, reproducing the single-pack path.
+  // Scratch VGPRs for the spill machinery:
+  //   vPack    = holds SGPRs packed one-per-lane for the SGPR spill (below)
+  //   vImplTmp = a pair for implicit-arg marshalling / per-wave-buf loads / captureRet
+  // The SGPR spill packs {nsgpr numbered SGPRs, vcc_lo, vcc_hi} one-per-lane; each pack
+  // VGPR holds 64 lanes -> ceil((nsgpr+2)/64) pack VGPRs (numPacks==1 for typical callees).
+  const uint32_t kernelVgpr = readCallerOriginalGrantedVgpr(caller, gen);  // caller's ORIGINAL grant
   const uint32_t packLanes = spillPackLanes();   // 64 (wave64); overridable for testing
   const uint32_t numPacks = (nsgpr + 2u + packLanes - 1u) / packLanes;
-  // Transient VGPR for the implicit-arg retrieve (scratch_load of an IACR slot,
-  // then v_readfirstlane into the callee's ABI SGPR). Placed one above the pack
-  // VGPRs; the KD VGPR grant is grown by 1 for it (bumpCallerKdForCallee).
-  const uint32_t vImplTmp = vPack + numPacks;
+
+  // Pillar A (final): allocate the trampoline's VGPR temps (vPack = the SGPR-pack VGPRs,
+  // vImplTmp = a consecutive PAIR for implicit-arg marshalling / per-wave-buf loads /
+  // captureRet) from the REAL register allocator on the point-specialized register space
+  // (gen.rs() = actualRegSpace(gen.point()) — the same space used for the SGPR block and
+  // the spill set). KEY: these temps do NOT need to survive the call — vPack's data lives
+  // in hardware scratch (S_SGPR_SLOT) across it and vImplTmp is transient within one
+  // pre-/post-call step — so they only need to be DEAD AT THE POINT, not above the callee
+  // footprint. The caller-dead tail [kernelVgpr, nvgpr) (and any dead low VGPR) reads as
+  // dead in the point liveness, so allocateGprBlock hands it out with NO grant growth
+  // (grant stays max(caller_orig, callee_nvgpr)). We mark OFF-LIMITS only what the
+  // trampoline must keep intact:
+  //   * everything at/above the grant (those VGPRs don't physically exist in the wave),
+  //   * v31 = the workitem-id ABI reg the implicit marshalling writes — reserving it
+  //     STRUCTURALLY removes the old "vImplTmp+1 == v31, safe only by ordering" landmine,
+  //   * the per-arg VGPRs the call materializes into v0.. and v0:v1 (the return value
+  //     captureReturn reads) — so a temp never lands on an arg or the return.
+  // Caller-live VGPRs are already live in the space, so the allocator stays off them.
+  // Freed after the post-call restore so the arg/return codegen can reuse the registers.
+  using DA_IAL = Dyninst::DyninstAPI::ImplicitArgLayout;
+  const uint32_t vgprGrant = (kernelVgpr > nvgpr ? kernelVgpr : nvgpr);   // = max(orig, nvgpr)
+  // Bound the per-arg VGPRs (materialized into v0..argDwords-1) + the v0:v1 return, by
+  // pre-scanning operands with the SAME advance rule as the materialization loop below.
+  uint32_t argDwords = 0; bool hasCaptureRet = false;
+  for (const auto &opnd : operands) {
+    if (!opnd) continue;
+    if (opnd->getoType() == operandType::Constant) { argDwords += 1; continue; }
+    if (opnd->getoType() == operandType::GpuValue) {
+      const long k = (long)(reinterpret_cast<uintptr_t>(opnd->getOValue()) & 0xFF);
+      if (k == (long)GpuValueKind::PerWaveBuf || k == (long)GpuValueKind::PerWaveVal) argDwords += 2;
+      else if (k == (long)GpuValueKind::CaptureRet) hasCaptureRet = true;
+      else argDwords += 1;
+    } else argDwords += 1;
+  }
+  const uint32_t argVEnd = (hasCaptureRet && argDwords < 2u) ? 2u : argDwords;  // cover v0:v1 return
+
+  uint32_t vPack, vImplTmp;
+  Register vTmpBlk; bool vTmpOk = false;
+  {
+    auto liveV = [&](uint32_t id) {
+      Register r = Register::makeVectorRegister(OperandRegId(id), BlockSize(1));
+      if (registerSlot *s = (*rs)[r]) s->liveState = registerSlot::live;
+    };
+    for (uint32_t i = vgprGrant; i <= NS_amdgpu::MAX_VGPR_ID; i++) liveV(i);  // beyond the grant
+    liveV(DA_IAL::ABI_WITEMID_VGPR);                                          // v31 (workitem ABI)
+    for (uint32_t i = 0; i < argVEnd; i++) liveV(i);                          // per-arg + return v0:v1
+    vTmpBlk = rs->allocateGprBlock(RegKind::VECTOR, numPacks + 2u, NS_amdgpu::SINGLE_ALIGNMENT);
+    vTmpOk = !(vTmpBlk == Null_Register);
+  }
+  if (vTmpOk) {
+    vPack    = vTmpBlk.getId();          // numPacks SGPR-pack VGPRs
+    vImplTmp = vPack + numPacks;         // + the marshalling pair (vImplTmp, vImplTmp+1)
+  } else {
+    // Last resort: no dead block of numPacks+2 fits within the grant (extreme VGPR
+    // pressure). Place in the caller-dead footprint tail by arithmetic if it fits (still
+    // NO grant bump); only the truly-tight small-callee case grows via bumpCallerKdForCallee
+    // (its independent vgprTempsFit test agrees). Not reached by these kernels; a spill-reuse
+    // borrow (of an already-scratch-saved VGPR) would preserve occupancy here too.
+    if (nvgpr >= kernelVgpr + numPacks + 2u) { vImplTmp = nvgpr - 2u; vPack = nvgpr - 2u - numPacks; }
+    else { vPack = vgprGrant; vImplTmp = vgprGrant + numPacks; }
+  }
 
   // Reserved SGPRs for the trampoline: a pair-aligned 4-SGPR block — EXEC save (pair),
   // scratch SADDR (=0), spare — that must SURVIVE the call.
@@ -1721,8 +1776,10 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // Grow the caller kernel's register/scratch grant to fit the callee.
   bumpCallerKdForCallee(caller, callee, gen);
 
-  // Release the liveness-allocated trampoline reserved block (pillar A).
+  // Release the liveness-allocated trampoline scratch (pillar A): the reserved SGPR block
+  // and the VGPR spill temps (vPack/vImplTmp).
   if (resBlockOk) rs->freeGprBlock(resBlock);
+  if (vTmpOk)     rs->freeGprBlock(vTmpBlk);
 
   // No return-value convention pinned down yet for AMDGPU calls.
   return Null_Register;
