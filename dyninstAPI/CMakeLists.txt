@@ -103,6 +103,7 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/emit-amdgpu.C
     src/AmdgpuKernelDescriptor.C
     src/AmdgpuPointHandler.C
+    src/amdgpu-kernel-meta.C
     src/amdgpu-gfx908-details.C)
 endif()
 

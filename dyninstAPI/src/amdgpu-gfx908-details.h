@@ -366,6 +366,8 @@ void emitVop2(unsigned opcode, uint32_t vdst, uint32_t vsrc1, uint32_t src0, cod
 // VDST is a plain VGPR number. SRC0/1/2 are 9-bit operands (VGPR = 256+n ;
 // inline const 0 = 128 ; -1 = 193). ABS/OPSEL/CLMP/OMOD/NEG all 0 for our use.
 enum VOP3A_Opcode {
+  V_LSHL_OR_B32      = 0x200, // 512  vdst = (src0 << src1[4:0]) | src2  (bitfield pack;
+                              //       verified vs llvm-mc gfx908 -> VOP3 op 0x200)
   V_READLANE_B32     = 649,   // 0x289  sdst <- vsrc[lane]   (SGPR spill/fill)
   V_WRITELANE_B32    = 650,   // 0x28A  vdst[lane] <- ssrc
   V_MBCNT_LO_U32_B32 = 652,   // 0x28C
