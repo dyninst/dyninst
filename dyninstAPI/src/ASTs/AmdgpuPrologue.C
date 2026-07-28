@@ -31,23 +31,38 @@
 #include "AmdgpuPrologue.h"
 #include "emit-amdgpu.h"
 #include "amdgpu-scratch-abi.h"
+#include "registerSpace/registerSpace.h"
+#include "patching/instPoint.h"
 
 namespace Dyninst { namespace DyninstAPI {
 
-bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::Buffer &buffer) {
+bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer) {
   // To avoid any code duplication or refactoring right now, we use a 'codeGen'
   // object to generate the code and copy what we get there into the
   // 'Dyninst::Buffer' object passed here.
 
-  // Scratch mode needs room for FLAT_SCRATCH setup + a few relocation movs.
-  codeGen gen(scratch_ ? 64 : 20);
+  // Scratch mode needs room for FLAT_SCRATCH setup, the relocation movs, and the
+  // (2D/3D) block-linear wid math.
+  codeGen gen(scratch_ ? 128 : 20);
 
   if (scratch_) {
+    // Pillar A: give the entry codeGen a POINT-SPECIALIZED registerSpace so the scratch
+    // prologue allocates its temps by LIVENESS (via gen.rs()->allocateGprBlock), exactly
+    // like emitCall's reserved block and the springboard long-jump. At kernel entry only
+    // the ABI-preloaded regs are live; emitScratchEntryPrologue marks those (and v0/v1/v2)
+    // off-limits and allocates the rest. If there is no instPoint / liveness is off, it
+    // falls back to computed placement.
+    if (instPoint *iP = dynamic_cast<instPoint *>(point)) {
+      gen.setPoint(iP);
+      gen.setAddrSpace(iP->proc());
+      if (registerSpace *rs = registerSpace::actualRegSpace(iP))
+        gen.setRegisterSpace(rs);
+    }
     // Reconstruct the (already-rewritten) KD and emit the arch-specific scratch
     // entry setup: FLAT_SCRATCH = flat_scratch_init + wave_offset, then relocate
     // the shifted system SGPRs back where the un-shifted kernel expects them.
     AmdgpuKernelDescriptor kd(kdBytes_.data(), kdBytes_.size(), eflag_);
-    gfx908ScratchAbi().emitScratchEntryPrologue(kd, gen);
+    gfx908ScratchAbi().emitScratchEntryPrologue(kd, originalKernargSize_, gen);
   } else {
     EmitterAmdgpuGfx908 emitter;
     emitter.emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);

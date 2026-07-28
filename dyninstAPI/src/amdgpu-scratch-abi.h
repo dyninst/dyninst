@@ -51,8 +51,11 @@ public:
   // Emit, at kernel entry, the code that makes scratch usable for the rest of
   // the kernel: set up the scratch base (e.g. FLAT_SCRATCH) and undo any system-
   // SGPR shift caused by enableScratchInKD. Reads the (already-rewritten) KD to
-  // recover the layout.
+  // recover the layout. `originalKernargSize` is the PRISTINE kernarg_segment_size
+  // (before dyninst grew it by 8) — the per-wave buffer pointer / COV5 implicit-args
+  // block are addressed off THAT, kept distinct from the KD's grown value (pillar B).
   virtual void emitScratchEntryPrologue(const AmdgpuKernelDescriptor &kd,
+                                        uint32_t originalKernargSize,
                                         codeGen &gen) = 0;
 
   // Per-lane spill of a single VGPR to/from private byte `offset`. Hardware

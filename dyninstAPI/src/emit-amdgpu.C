@@ -45,6 +45,7 @@
 #include "Symtab.h"
 #include "Symbol.h"
 #include "AmdgpuKernelDescriptor.h"
+#include "amdgpu-kernel-meta.h"
 #include "external/amdgpu/AMDGPUEFlags.h"
 #include "amdgpu-scratch-abi.h"
 #include "amdgpu-abi-sgpr.h"
@@ -485,19 +486,18 @@ bool EmitterAmdgpuGfx908::emitMoveRegToReg(registerSlot * /* src */, registerSlo
   return false;
 }
 
-// Live granted-VGPR reader (reads the possibly-mutated .kd); defined below.
-static uint32_t readCallerGrantedVgpr(func_instance *caller, codeGen &gen);
 // Whole-object max of ".dyninst.*.<key>" (transitive footprint); defined below.
 static uint32_t readCalleeMaxAbsSym(func_instance *callee, const char *key);
 
-// bumpCallerKdForCallee MUTATES the caller's .kd VGPR grant. Multiple inserted
-// calls into the same kernel (hc_open/hc_write/hc_close) would each read the
-// already-raised grant and raise it again — the grant ratchets up to gran 31
-// (128 VGPRs) and the spill scratch register (vAddr) drifts call-to-call.
-// To keep the bump idempotent and vAddr stable, cache each caller's ORIGINAL
-// granted VGPR count the first time we see it, and derive both the bump target
-// and vAddr from that fixed value rather than the live (growing) grant.
-static std::map<func_instance *, uint32_t> g_origGrantedVgpr;
+// Pillar B: the caller kernel's canonical KD metadata (parsed once, cached on the
+// mapped_object, committed at ELF-emit). All KD reads/mutations below go through it —
+// no site re-parses the ELF or eagerly writes the KD. Returns nullptr for a non-kernel
+// caller (ordinary device function with no ".kd").
+static Dyninst::DyninstAPI::KernelMeta *callerMeta(func_instance *caller) {
+  if (!caller || !caller->obj())
+    return nullptr;
+  return caller->obj()->getAmdgpuKernelMeta(caller->symTabName());
+}
 
 // Per-wave arena STRIDE bridge. The entry-capture prologue needs the stride to lower
 // wid*STRIDE, but the prologue's codeGen->addrSpace() can be null there (unlike emitCall),
@@ -519,13 +519,13 @@ static uint32_t spillPackLanes() {
   uint32_t v = (uint32_t)atoi(e);
   return (v == 0 || v > 64) ? 64 : v;
 }
-static uint32_t readCallerOriginalGrantedVgpr(func_instance *caller, codeGen &gen) {
-  auto it = g_origGrantedVgpr.find(caller);
-  if (it != g_origGrantedVgpr.end())
-    return it->second;
-  uint32_t v = readCallerGrantedVgpr(caller, gen);
-  g_origGrantedVgpr[caller] = v;
-  return v;
+// The caller kernel's ORIGINAL (pristine, pre-bump) granted VGPR count, captured once
+// at parse in the KernelMeta. Using the pristine value (not the live, growing grant)
+// keeps the per-call spill's scratch VGPRs at the same fixed registers across the
+// multiple inserted calls that each raise the grant.
+static uint32_t readCallerOriginalGrantedVgpr(func_instance *caller, codeGen & /*gen*/) {
+  Dyninst::DyninstAPI::KernelMeta *km = callerMeta(caller);
+  return km ? km->originalGrantedVgpr : 0;
 }
 
 // When we splice an inter-module call into a kernel, the callee (a separately
@@ -553,9 +553,11 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
     return;
 
   // Only kernels have a descriptor "<mangled>.kd". If it's absent, the caller is
-  // an ordinary device function and there is no descriptor to size.
-  int_symbol kdSym;
-  if (!callerObj->getSymbolInfo(caller->symTabName() + ".kd", kdSym))
+  // an ordinary device function and there is no descriptor to size. Route through the
+  // canonical KernelMeta (mutate in memory; committed at ELF-emit) — no re-parse / no
+  // eager write-back.
+  Dyninst::DyninstAPI::KernelMeta *km = callerMeta(caller);
+  if (!km)
     return;
 
   SymtabAPI::Symtab *calleeSymtab = calleeObj->parse_img()->getObject();
@@ -587,18 +589,8 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
   readAbs("private_seg_size", calleeScratch);  // optional; absent => 0
   { uint32_t m = readCalleeMaxAbsSym(callee, "private_seg_size"); if (m > calleeScratch) calleeScratch = m; }
 
-  // Read the caller's kernel descriptor from the binary being rewritten.
-  const Address kdAddr = kdSym.getAddr();
-  const size_t kdSize = sizeof(llvm::amdhsa::kernel_descriptor_t);
-  uint8_t kdBytes[sizeof(llvm::amdhsa::kernel_descriptor_t)];
-  if (!aSpace->readDataSpace(reinterpret_cast<const void *>(kdAddr),
-                             static_cast<u_int>(kdSize), kdBytes, true)) {
-    fprintf(stderr, "[amdgpu] warning: failed to read kernel descriptor for '%s'\n",
-            caller->symTabName().c_str());
-    return;
-  }
-
-  Dyninst::AmdgpuKernelDescriptor kd(kdBytes, kdSize, EF_AMDGPU_MACH_AMDGCN_GFX908);
+  // The caller's kernel descriptor — the canonical in-memory copy.
+  Dyninst::AmdgpuKernelDescriptor &kd = km->kd;
 
   // 0.4: the SGPR spill packs {calleeSgpr numbered SGPRs, VCC_lo, VCC_hi} one-per-
   // lane across ceil((calleeSgpr+2)/64) pack VGPRs (must match numPacks in emitCall).
@@ -654,13 +646,8 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
     kd.setKernelCodeProperty_EnableSgprFlatScratchInit(true);
   }
 
-  // Write the modified descriptor back.
-  kd.writeToMemory(kdBytes);
-  if (!aSpace->writeDataSpace(reinterpret_cast<void *>(kdAddr),
-                             static_cast<u_int>(kdSize), kdBytes)) {
-    fprintf(stderr, "[amdgpu] warning: failed to write kernel descriptor for '%s'\n",
-            caller->symTabName().c_str());
-  }
+  // KD mutated in memory only; committed once at ELF-emit (BinaryEdit::writeFile).
+  km->dirty = true;
 }
 
 // Read a callee's exported ".dyninst.<callee>.<key>" SHN_ABS value (the
@@ -718,127 +705,42 @@ static uint32_t readCalleeMaxAbsSym(func_instance *callee, const char *key) {
   return maxVal;
 }
 
-// Granted VGPR count of the caller kernel (from its .kd), or 0 if not a kernel.
-// Used to place the VGPR-spill scratch register above the kernel's own usage.
-static uint32_t readCallerGrantedVgpr(func_instance *caller, codeGen &gen) {
-  AddressSpace *aSpace = gen.addrSpace();
-  if (!caller || !caller->obj() || !aSpace)
-    return 0;
-  int_symbol kdSym;
-  if (!caller->obj()->getSymbolInfo(caller->symTabName() + ".kd", kdSym))
-    return 0;
-  const size_t kdSize = sizeof(llvm::amdhsa::kernel_descriptor_t);
-  uint8_t kdBytes[sizeof(llvm::amdhsa::kernel_descriptor_t)];
-  if (!aSpace->readDataSpace(reinterpret_cast<const void *>(kdSym.getAddr()),
-                             static_cast<u_int>(kdSize), kdBytes, true))
-    return 0;
-  Dyninst::AmdgpuKernelDescriptor kd(kdBytes, kdSize, EF_AMDGPU_MACH_AMDGCN_GFX908);
-  return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount() + 1) * 4;
-}
-
 // Number of numbered SGPRs granted to the caller kernel (= one past the highest
-// allocatable SGPR id). SGPR blocks are 16 wide: granulated = 2*((count/16)-1) =>
-// count = ((granulated/2)+1)*16. In scratch mode the reserved spill registers live
-// at the TOP of this grant (grantTop-4 .. grantTop-1), so emitCall and
-// generateBranch both derive the same reservedBase from it (maximizeSgprAlloc-
-// IfKernel sizes the grant for scratch). Returns 0 if the KD can't be read.
-static uint32_t readCallerGrantedSgprTop(func_instance *caller, codeGen &gen) {
-  AddressSpace *aSpace = gen.addrSpace();
-  if (!caller || !caller->obj() || !aSpace)
-    return 0;
-  int_symbol kdSym;
-  if (!caller->obj()->getSymbolInfo(caller->symTabName() + ".kd", kdSym))
-    return 0;
-  const size_t kdSize = sizeof(llvm::amdhsa::kernel_descriptor_t);
-  uint8_t kdBytes[sizeof(llvm::amdhsa::kernel_descriptor_t)];
-  if (!aSpace->readDataSpace(reinterpret_cast<const void *>(kdSym.getAddr()),
-                             static_cast<u_int>(kdSize), kdBytes, true))
-    return 0;
-  Dyninst::AmdgpuKernelDescriptor kd(kdBytes, kdSize, EF_AMDGPU_MACH_AMDGCN_GFX908);
-  return ((kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() / 2) + 1) * 16;
-}
-
-// Mid-kernel SGPR index holding the caller's workgroup-id (blockIdx) component
-// `which` (0=x,1=y,2=z), or -1 if that component isn't provided by the kernel.
-// Used by the implicit-arg forwarding (Phase 3a): the value must be copied into
-// the callee's blockIdx ABI register before an inserted call.
-//
-// After the scratch entry prologue relocates the (flat_scratch_init-shifted)
-// system SGPRs back down, wgid sits at its ORIGINAL position. We read the KD as-is:
-// if flat_scratch_init is set (we enabled it for scratch), the computed layout is
-// shifted up by 2 and the prologue moved wgid back by 2 -> L.wgid-2; if unset,
-// L.wgid is already the original position. (Caveat: a kernel that ORIGINALLY
-// shipped WITH scratch would need its pristine user_sgpr_count to disambiguate;
-// our scratch-enabled mutatee ships without, so this is exact for that pipeline.)
-static int readCallerWgidReg(func_instance *caller, codeGen &gen, int which) {
-  AddressSpace *aSpace = gen.addrSpace();
-  if (!caller || !caller->obj() || !aSpace)
-    return -1;
-  int_symbol kdSym;
-  if (!caller->obj()->getSymbolInfo(caller->symTabName() + ".kd", kdSym))
-    return -1;
-  const size_t kdSize = sizeof(llvm::amdhsa::kernel_descriptor_t);
-  uint8_t kdBytes[sizeof(llvm::amdhsa::kernel_descriptor_t)];
-  if (!aSpace->readDataSpace(reinterpret_cast<const void *>(kdSym.getAddr()),
-                             static_cast<u_int>(kdSize), kdBytes, true))
-    return -1;
-  Dyninst::AmdgpuKernelDescriptor kd(kdBytes, kdSize, EF_AMDGPU_MACH_AMDGCN_GFX908);
-  Dyninst::DyninstAPI::AbiSgprLayout L = Dyninst::DyninstAPI::computeAbiSgprLayout(kd);
-  const uint32_t shift =
-      kd.getKernelCodeProperty_EnableSgprFlatScratchInit() ? 2u : 0u;
-  const int reg = (which == 0) ? L.wgidX : (which == 1) ? L.wgidY : L.wgidZ;
-  if (reg < 0)
-    return -1;
-  return (int)((uint32_t)reg - shift);
+// allocatable SGPR id). In scratch mode the reserved spill registers live at the TOP
+// of this grant, so emitCall and generateBranch both derive the same reservedBase
+// from it (maximizeSgprAllocationIfKernel sizes the grant for scratch). 0 if not a
+// kernel.
+static uint32_t readCallerGrantedSgprTop(func_instance *caller, codeGen & /*gen*/) {
+  Dyninst::DyninstAPI::KernelMeta *km = callerMeta(caller);
+  return km ? km->grantedSgprTop() : 0;
 }
 
 // Whether the caller kernel provides a kernarg-segment pointer AND carries a COV5+
-// implicit-args block (kernarg_size >= 256) — i.e. whether the entry prologue
-// captured the implicit-args pointer into the IACR, so an inserted call can forward
-// it (blockDim/gridDim, Phase 3b). Returns the kernarg-ptr SGPR index, or -1.
-// kernarg_ptr precedes flat_scratch_init in ABI order, so it is not shifted by
-// scratch-enable; L.kernargPtr is its entry position directly.
-static int readCallerKernargReg(func_instance *caller, codeGen &gen) {
-  AddressSpace *aSpace = gen.addrSpace();
-  if (!caller || !caller->obj() || !aSpace)
+// implicit-args block (ORIGINAL kernarg_size >= 256) — i.e. whether the entry prologue
+// captured the implicit-args pointer into the IACR, so an inserted call can forward it
+// (blockDim/gridDim, Phase 3b). Returns the kernarg-ptr SGPR index, or -1. kernarg_ptr
+// precedes flat_scratch_init in ABI order, so it is not shifted by scratch-enable.
+static int readCallerKernargReg(func_instance *caller, codeGen & /*gen*/) {
+  Dyninst::DyninstAPI::KernelMeta *km = callerMeta(caller);
+  if (!km)
     return -1;
-  int_symbol kdSym;
-  if (!caller->obj()->getSymbolInfo(caller->symTabName() + ".kd", kdSym))
-    return -1;
-  const size_t kdSize = sizeof(llvm::amdhsa::kernel_descriptor_t);
-  uint8_t kdBytes[sizeof(llvm::amdhsa::kernel_descriptor_t)];
-  if (!aSpace->readDataSpace(reinterpret_cast<const void *>(kdSym.getAddr()),
-                             static_cast<u_int>(kdSize), kdBytes, true))
-    return -1;
-  Dyninst::AmdgpuKernelDescriptor kd(kdBytes, kdSize, EF_AMDGPU_MACH_AMDGCN_GFX908);
-  Dyninst::DyninstAPI::AbiSgprLayout L = Dyninst::DyninstAPI::computeAbiSgprLayout(kd);
-  if (L.kernargPtr < 0 || kd.getKernargSize() < 256)
+  const Dyninst::DyninstAPI::AbiSgprLayout &L = km->layout();
+  if (L.kernargPtr < 0 || km->originalKernargSize < 256)
     return -1;
   return L.kernargPtr;
 }
 
-// Byte offset from the kernarg-segment base to the COV5 implicit-args block (the
-// fixed 256B tail): offset = original_kernarg_size - 256. dyninst grew the KD's
-// kernarg_size by 8 for the appended instrumentation pointer (AmdgpuPointHandler:
-// roundUpTo8(size)+8; the original is 8-aligned so original == getKernargSize()-8).
-// => offset = getKernargSize() - 8 - 256 = getKernargSize() - 264. Added to the
+// Byte offset from the kernarg-segment base to the COV5 implicit-args block (the fixed
+// 256B tail): offset = originalKernargSize - 256. Uses the PRISTINE kernarg size cached
+// in the KernelMeta — NOT the grown value in the KD — so the original-vs-grown ambiguity
+// is gone (pillar B; formerly computed as grownSize-264 = originalSize-256). Added to the
 // captured kernarg pointer to form the implicit-args pointer. -1 if unavailable.
-// (A metadata-driven version would read the first hidden-arg .offset directly.)
-static int readCallerImplicitOffset(func_instance *caller, codeGen &gen) {
-  AddressSpace *aSpace = gen.addrSpace();
-  if (!caller || !caller->obj() || !aSpace)
+static int readCallerImplicitOffset(func_instance *caller, codeGen & /*gen*/) {
+  Dyninst::DyninstAPI::KernelMeta *km = callerMeta(caller);
+  if (!km)
     return -1;
-  int_symbol kdSym;
-  if (!caller->obj()->getSymbolInfo(caller->symTabName() + ".kd", kdSym))
-    return -1;
-  const size_t kdSize = sizeof(llvm::amdhsa::kernel_descriptor_t);
-  uint8_t kdBytes[sizeof(llvm::amdhsa::kernel_descriptor_t)];
-  if (!aSpace->readDataSpace(reinterpret_cast<const void *>(kdSym.getAddr()),
-                             static_cast<u_int>(kdSize), kdBytes, true))
-    return -1;
-  Dyninst::AmdgpuKernelDescriptor kd(kdBytes, kdSize, EF_AMDGPU_MACH_AMDGCN_GFX908);
-  const uint32_t ks = kd.getKernargSize();
-  return (ks >= 264) ? (int)(ks - 264u) : -1;
+  const uint32_t ks = km->originalKernargSize;
+  return (ks >= 256) ? (int)(ks - 256u) : -1;
 }
 
 // ===========================================================================
@@ -874,6 +776,7 @@ public:
   }
 
   void emitScratchEntryPrologue(const Dyninst::AmdgpuKernelDescriptor &kd,
+                                uint32_t originalKernargSize,
                                 codeGen &gen) override {
     using namespace AmdgpuGfx908;
     // Read the ABI SGPR layout from the (already scratch-enabled) KD: exact indices
@@ -920,27 +823,107 @@ public:
     // per-lane scratch_store (uniform value written to every lane's slot).
     {   // implicit-arg capture is on by default (see emitCall's implBase note)
       using IAL = Dyninst::DyninstAPI::ImplicitArgLayout;
-      const uint32_t grantTop =
-          ((kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() / 2) + 1) * 16;
-      const uint32_t saddr = (grantTop >= 10) ? grantTop - 8 : 0;   // = reservedBase+2
-      const uint32_t vtmp  =
-          (kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount() + 1) * 4;  // above kernel VGPRs
+
+      // --- Pillar A: allocate the prologue's scratch temps by LIVENESS -------------
+      // The entry codeGen carries a POINT-SPECIALIZED registerSpace (AmdgpuPrologue::
+      // generate). At kernel entry only the ABI-preloaded regs are live; we mark those
+      // (and the workitem-id VGPRs v0/v1/v2) off-limits — the prologue itself READS the
+      // kernarg pointer (SMEM base/dim loads), the relocated workgroup-id SGPRs
+      // (blockIdx), FLAT_SCRATCH/wave_offset (already consumed), and v0/v1/v2 (threadIdx),
+      // so they must not be handed out as scratch — then allocateGprBlock the temps:
+      //   saddr  1 SGPR  (scratch SADDR, held at 0 for every IACR store)
+      //   pwr    2 SGPR  (per-wave slice base pair; even/PAIR-aligned for S_LOAD_DWORDX2)
+      //   w[0..] up to 11 SGPR working temps (the 2D/3D block-linear wid math)
+      //   vtmp   1 VGPR  (broadcast scalar->lane + the v0|v1<<10|v2<<20 packing)
+      // No grant bump is needed: the allocator picks dead-at-entry regs already inside
+      // the wave's grant, low-first (the kernel body recomputes them). FALLBACK to
+      // computed placement (a temp window above the ABI live-in ceiling) when there is
+      // no point / liveness is off / the allocator can't satisfy — the grant is never
+      // bumped just for these.
+      registerSpace *prs = gen.rs();
+      instPoint *ppt = gen.point();
+      uint32_t saddr = 0, vtmp = 0, pwr = 0, w[11] = {0};
+      Register bSaddr, bPwr, bWork, bVtmp;
+      bool okS = false, okP = false, okW = false, okV = false, allocated = false;
+      if (prs && ppt) {
+        auto liveS = [&](uint32_t id) {
+          Register r = Register::makeScalarRegister(OperandRegId(id), BlockSize(1));
+          if (registerSlot *s = (*prs)[r]) s->liveState = registerSlot::live;
+        };
+        auto liveV = [&](uint32_t id) {
+          Register r = Register::makeVectorRegister(OperandRegId(id), BlockSize(1));
+          if (registerSlot *s = (*prs)[r]) s->liveState = registerSlot::live;
+        };
+        // ABI user+system SGPRs (covers kernarg, flat_scratch_init, wave_offset, and the
+        // wgid/wginfo both pre- and post-relocation, since L.liveSgprEnd > relocated pos).
+        for (uint32_t i = 0; i < L.liveSgprEnd; i++) liveS(i);
+        liveV(0); liveV(1); liveV(2);              // workitem-id VGPRs (threadIdx sources)
+        bVtmp  = prs->allocateGprBlock(RegKind::VECTOR, 1,  NS_amdgpu::SINGLE_ALIGNMENT); okV = !(bVtmp  == Null_Register);
+        bSaddr = prs->allocateGprBlock(RegKind::SCALAR, 1,  NS_amdgpu::SINGLE_ALIGNMENT); okS = !(bSaddr == Null_Register);
+        bPwr   = prs->allocateGprBlock(RegKind::SCALAR, 2,  NS_amdgpu::PAIR_ALIGNMENT); okP = !(bPwr == Null_Register);
+        bWork  = prs->allocateGprBlock(RegKind::SCALAR, 11, NS_amdgpu::SINGLE_ALIGNMENT); okW = !(bWork  == Null_Register);
+        if (okV && okS && okP && okW) {
+          allocated = true;
+          vtmp = bVtmp.getId(); saddr = bSaddr.getId(); pwr = bPwr.getId();
+          for (uint32_t i = 0; i < 11; i++) w[i] = bWork.getId() + i;
+        } else {                                    // partial failure -> release + fall back
+          if (okV) prs->freeGprBlock(bVtmp);
+          if (okS) prs->freeGprBlock(bSaddr);
+          if (okP) prs->freeGprBlock(bPwr);
+          if (okW) prs->freeGprBlock(bWork);
+        }
+      }
+      if (!allocated) {
+        // Computed fallback: a temp window just above the ABI live-in ceiling (kernarg +
+        // relocated wgid), even-aligned base; vtmp above the kernel's own VGPRs.
+        int liveInCeil = 0;
+        auto bumpCeil = [&](int r) { if (r + 1 > liveInCeil) liveInCeil = r + 1; };
+        if (L.kernargPtr >= 0) bumpCeil(L.kernargPtr + 1);
+        const int relWg[4] = { L.wgidX, L.wgidY, L.wgidZ, L.wgInfo };
+        for (int p : relWg) if (p >= 0) bumpCeil(p - (int)SHIFT);
+        uint32_t base = ((uint32_t)liveInCeil + 1u) & ~1u;   // even
+        saddr = base;
+        pwr   = base + 2;                                    // even pair for S_LOAD_DWORDX2
+        for (uint32_t i = 0; i < 11; i++) w[i] = base + 4 + i;
+        vtmp = (kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount() + 1) * 4;
+      }
+
       emitSop1Raw(/*S_MOV_B32=*/0, saddr, GFX908_INLINE_0, gen);           // SADDR = 0
 
-      // Packed workitem-id (3c: threadIdx). v0 holds the per-lane packed workitem-id
-      // (x[9:0]/y[19:10]/z[29:20]) ONLY at kernel entry; the kernel body clobbers it.
-      // Capture it FIRST (before anything here could touch v0) into the IACR per-lane
-      // slot — scratch is hardware-swizzled per lane, so each lane stores its own id.
-      // Retrieved into v31 (the callee's workitem-id ABI VGPR) at the call site.
-      emitScratchStore(/*v0=*/0u, IAL::OFF_WITEMID, saddr, gen);           // IACR[+12] = v0 (per-lane)
+      // Packed workitem-id (3c: threadIdx). CRITICAL gfx908 fact: gfx908 (CDNA1) has NO
+      // "Packed work-item IDs" target property, so the kernel receives the work-item id
+      // in SEPARATE VGPRs at entry: v0=id_x, v1=id_y, v2=id_z (only the dims that
+      // ENABLE_VGPR_WORKITEM_ID enables exist: 0=>x, 1=>x,y, 2=>x,y,z). A separately-
+      // compiled device-fn callee, however, reads threadIdx.{x,y,z} from a PACKED v31
+      // (x[9:0]/y[19:10]/z[29:20]). So BUILD the packed value per-lane (v0 | v1<<10 |
+      // v2<<20 via V_LSHL_OR_B32 — the 10-bit fields don't overlap) and capture THAT into
+      // the IACR. Do it FIRST, before anything here touches v0/v1/v2. Scratch is hardware-
+      // swizzled per lane, so each lane stores its own packed id. Retrieved into v31 at
+      // the call site. [On gfx942/MI300 v0 is already packed — read v0 directly there.]
+      const uint32_t witid = kd.getCOMPUTE_PGM_RSRC2_EnableVgprWorkitemId();
+      emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, /*v0=*/256u + 0u, gen);           // vtmp = id_x
+      if (witid >= 1)   // vtmp |= id_y << 10
+        emitVop3a(V_LSHL_OR_B32, vtmp, /*src0=v1*/256u + 1u, /*src1=10*/128u + 10u,
+                  /*src2=vtmp*/256u + vtmp, gen);
+      if (witid >= 2)   // vtmp |= id_z << 20
+        emitVop3a(V_LSHL_OR_B32, vtmp, /*src0=v2*/256u + 2u, /*src1=20*/128u + 20u,
+                  /*src2=vtmp*/256u + vtmp, gen);
+      emitScratchStore(vtmp, IAL::OFF_WITEMID, saddr, gen);                // IACR[+12] = packed id
 
+      // Capture blockIdx.{x,y,z}. Write EVERY slot: the real relocated wgid for a dim the
+      // kernel enables, else 0. Zeroing disabled dims makes blockIdx.y/z a valid 0 on a
+      // lower-rank launch, so a forwarded call's general global_wavefront_id() collapses
+      // correctly (the emitter is the only place that can tell — a disabled wgid SGPR
+      // would hold garbage).
       const int     wsrc[3] = { L.wgidX, L.wgidY, L.wgidZ };  // relocated to p-SHIFT above
       const int32_t woff[3] = { IAL::OFF_WGID_X, IAL::OFF_WGID_Y, IAL::OFF_WGID_Z };
-      for (int i = 0; i < 3; i++)
-        if (wsrc[i] >= 0) {
-          emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, (uint32_t)wsrc[i] - SHIFT, gen);  // wgid -> vtmp (bcast)
-          emitScratchStore(vtmp, woff[i], saddr, gen);                          // IACR[woff] = wgid
-        }
+      for (int i = 0; i < 3; i++) {
+        if (wsrc[i] >= 0)
+          emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, (uint32_t)wsrc[i] - SHIFT, gen);  // real wgid
+        else
+          emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, GFX908_INLINE_0, gen);            // disabled -> 0
+        emitScratchStore(vtmp, woff[i], saddr, gen);                           // IACR[woff]
+      }
 
       // Kernarg-segment pointer (3b: blockDim/gridDim source). A device function reads
       // block/grid dims by dereferencing the implicit-args pointer (offsets 0/12/18 =
@@ -951,7 +934,7 @@ public:
       // pointer here (no temp SGPRs — a scalar add in the prologue would need scratch
       // regs that collide with the relocated system SGPRs); the +offset is applied at
       // retrieve time in emitCall using the reserved s[8:9].
-      if (L.kernargPtr >= 0 && kd.getKernargSize() >= 256) {
+      if (L.kernargPtr >= 0 && originalKernargSize >= 256) {
         const uint32_t kp = (uint32_t)L.kernargPtr;                   // s[kp:kp+1] = kernarg ptr
         emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, kp, gen);
         emitScratchStore(vtmp, IAL::OFF_KERNARG,     saddr, gen);     // IACR[+24] = kernarg lo
@@ -974,17 +957,27 @@ public:
       // EXACT 8-aligned arena size from the bump-allocator; 4096 if none), applied with a
       // scalar multiply (S_MULK_I32) — no power-of-two constraint, so no wasted slack.
       // Scratch SGPRs are the free upper half of the reserved block.
-      if (L.kernargPtr >= 0 && kd.getKernargSize() >= 8) {
+      //
+      // DETECTION: pick the wid form from the kernel's own configuration. A kernel that
+      // enables workgroup_id_y (2D/3D) or a higher workitem-id dim, launched WITH a COV5
+      // implicit-args block, takes the GENERAL block-linear form; otherwise the cheap 1D
+      // form (byte-identical to the validated 1D path). Both compute the SAME flattened
+      // wave id as the probe's global_wavefront_id() and the host's nwaves.
+      const bool hasY    = (L.wgidY >= 0);
+      const bool hasZ    = (L.wgidZ >= 0);
+      const bool general = (hasY || witid >= 1) && (originalKernargSize >= 256);
+
+      if (L.kernargPtr >= 0 && originalKernargSize >= 8 && !general) {
+        // ---- 1D wid : wid = (blockIdx.x*blockDim.x + threadIdx.x) >> 6 --------------
         const uint32_t kp   = (uint32_t)L.kernargPtr;                 // s[kp:kp+1] = kernarg ptr
-        const uint32_t pwr  = saddr + 2;                             // base pair (reservedBase+4:+5)
-        const uint32_t sBd  = saddr + 4, sBi = saddr + 5;           // blockDim.x, blockIdx.x
-        const uint32_t sTid = saddr + 6, sWid = saddr + 7;          // threadIdx.x, wid/scratch
+        const uint32_t sBd  = w[0], sBi = w[1];                       // blockDim.x, blockIdx.x
+        const uint32_t sTid = w[2], sWid = w[3];                      // threadIdx.x, wid/scratch
         emitSmem(S_LOAD_DWORDX2, /*sdata=*/pwr, /*sbase=*/kp >> 1,
-                 /*offset=*/kd.getKernargSize(), gen);              // base = *(kernarg + ksize)
+                 /*offset=*/originalKernargSize, gen);              // base = *(kernarg + orig ksize)
         // blockDim.x (only if the COV5 implicit block is present; else single-wg => 0)
-        if (kd.getKernargSize() >= 256) {
+        if (originalKernargSize >= 256) {
           emitSmem(S_LOAD_DWORD, /*sdata=*/sBd, /*sbase=*/kp >> 1,
-                   /*offset=*/(kd.getKernargSize() - 256) + 12, gen);
+                   /*offset=*/(originalKernargSize - 256) + 12, gen);
           emitSopP(S_WAITCNT, /*simm16=*/0, gen);
           emitSop2RawWithLiteral(S_AND_B32, sBd, sBd, 0xFFFFu, gen);  // low 16 = blockDim.x
         } else {
@@ -997,7 +990,7 @@ public:
         // threadIdx.x = readfirstlane(v0) & 0x3ff  (uniform: first active lane's id)
         emitVop1Reg(/*V_READFIRSTLANE_B32=*/2u, sTid, /*v0=*/256u + 0u, gen);
         emitSop2RawWithLiteral(S_AND_B32, sTid, sTid, 0x3FFu, gen);
-        // wid = (blockIdx*blockDim + threadIdx) >> 6 ; off = wid << 12 (wid*4096)
+        // wid = (blockIdx*blockDim + threadIdx) >> 6 ; off = wid*STRIDE
         emitSop2Raw(S_MUL_I32, sWid, sBi, sBd, gen);
         emitSop2Raw(S_ADD_U32, sWid, sWid, sTid, gen);
         emitSop2RawWithLiteral(S_LSHR_B32, sWid, sWid, 6u, gen);      // /64 -> logical wave id
@@ -1009,8 +1002,85 @@ public:
         emitScratchStore(vtmp, IAL::OFF_PWBASE,     saddr, gen);      // IACR[+32] = slice lo
         emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, pwr + 1, gen);
         emitScratchStore(vtmp, IAL::OFF_PWBASE + 4, saddr, gen);      // IACR[+36] = slice hi
+      } else if (L.kernargPtr >= 0 && general) {
+        // ---- GENERAL (2D/3D) block-linear wid --------------------------------------
+        //   wid          = block_linear * wpb + (local_tid >> 6)
+        //   block_linear = (bz*GDy + by)*GDx + bx        local_tid = (tz*BDy + ty)*BDx + tx
+        //   wpb          = ceil(BDx*BDy*BDz / 64)         (waves per block)
+        // Matches the probe's global_wavefront_id() and the host's
+        // nwaves = numBlocks * ceil(blockDim/64). z/y terms collapse when the kernel is
+        // 2D/1D (blockIdx.{y,z}=0, threadIdx.{y,z}=0, no BDz factor).
+        // blockIdx.{x,y,z} = the relocated wgid SGPRs; blockDim = group_size (u16 @
+        // io+12/14/16); gridDim = block_count (u32 @ io+0/4); threadIdx = SEPARATE v0/v1/v2
+        // first-lane (gfx908, NOT packed). io = COV5 implicit-args offset = originalKernarg
+        // Size-256.
+        //
+        // TEMP SGPRs come from the liveness allocation above: pwr (even pair, kept to the
+        // final PWBASE store) + w[0..10] working regs. All are dead-at-entry (the kernel
+        // body recomputes them) and inside the wave's grant.
+        const uint32_t kp  = (uint32_t)L.kernargPtr;
+        const uint32_t io  = originalKernargSize - 256;            // COV5 implicit-args offset
+        const uint32_t sBDx = w[0], sBDy = w[1], sBDz = w[2];      // blockDim x/y/z
+        const uint32_t sGDx = w[3], sGDy = w[4];                   // gridDim x/y (block_count)
+        const uint32_t sTx  = w[5], sTy  = w[6], sTz  = w[7];      // threadIdx x/y/z (1st lane)
+        const uint32_t sWpb = w[8], sWib = w[9], sAcc = w[10];     // waves/blk, wave-in-blk, acc
+        emitSmem(S_LOAD_DWORDX2, pwr,  kp >> 1, originalKernargSize, gen);  // slice base ptr
+        emitSmem(S_LOAD_DWORD,   sBDx, kp >> 1, io + 12, gen);      // group_size x|y (u16 pair)
+        if (hasZ) emitSmem(S_LOAD_DWORD, sBDz, kp >> 1, io + 16, gen);  // group_size z (low16)
+        emitSmem(S_LOAD_DWORD,   sGDx, kp >> 1, io + 0, gen);       // block_count x
+        emitSmem(S_LOAD_DWORD,   sGDy, kp >> 1, io + 4, gen);       // block_count y
+        // threadIdx first active lane — gfx908 SEPARATE v0/v1/v2; absent dim -> 0.
+        emitVop1Reg(/*V_READFIRSTLANE_B32=*/2u, sTx, /*v0=*/256u + 0u, gen);
+        if (witid >= 1) emitVop1Reg(/*V_READFIRSTLANE_B32=*/2u, sTy, /*v1=*/256u + 1u, gen);
+        else            emitSop1Raw(/*S_MOV_B32=*/0, sTy, GFX908_INLINE_0, gen);
+        if (witid >= 2) emitVop1Reg(/*V_READFIRSTLANE_B32=*/2u, sTz, /*v2=*/256u + 2u, gen);
+        else            emitSop1Raw(/*S_MOV_B32=*/0, sTz, GFX908_INLINE_0, gen);
+        emitSopP(S_WAITCNT, /*simm16=*/0, gen);                     // SMEM dims ready
+        emitSop2RawWithLiteral(S_LSHR_B32, sBDy, sBDx, 16u, gen);      // BDy = high16
+        emitSop2RawWithLiteral(S_AND_B32,  sBDx, sBDx, 0xFFFFu, gen);  // BDx = low16
+        if (hasZ) emitSop2RawWithLiteral(S_AND_B32, sBDz, sBDz, 0xFFFFu, gen);  // BDz = low16
+        // wpb = ceil(BDx*BDy*BDz / 64)   (z factor only when the kernel is 3D)
+        emitSop2Raw(S_MUL_I32, sWpb, sBDx, sBDy, gen);
+        if (hasZ) emitSop2Raw(S_MUL_I32, sWpb, sWpb, sBDz, gen);
+        emitSop2RawWithLiteral(S_ADD_U32,  sWpb, sWpb, 63u, gen);
+        emitSop2RawWithLiteral(S_LSHR_B32, sWpb, sWpb, 6u, gen);
+        // local_tid = (tz*BDy + ty)*BDx + tx ; wave-in-block = local_tid >> 6
+        emitSop2Raw(S_MUL_I32, sAcc, sTz,  sBDy, gen);   // tz*BDy  (0 if no z)
+        emitSop2Raw(S_ADD_U32, sAcc, sAcc, sTy,  gen);   // + ty    (0 if no y)
+        emitSop2Raw(S_MUL_I32, sAcc, sAcc, sBDx, gen);   // * BDx
+        emitSop2Raw(S_ADD_U32, sAcc, sAcc, sTx,  gen);   // + tx  (= local_tid)
+        emitSop2RawWithLiteral(S_LSHR_B32, sWib, sAcc, 6u, gen);       // wave-in-block
+        // block_linear = (bz*GDy + by)*GDx + bx  (bx/by/bz = relocated wgid; absent -> 0)
+        if (hasZ) {
+          emitSop1Raw(/*S_MOV_B32=*/0, sAcc, (uint32_t)L.wgidZ - SHIFT, gen);  // bz
+          emitSop2Raw(S_MUL_I32, sAcc, sAcc, sGDy, gen);                       // bz*GDy
+        } else {
+          emitSop1Raw(/*S_MOV_B32=*/0, sAcc, GFX908_INLINE_0, gen);           // 0
+        }
+        if (hasY) emitSop2Raw(S_ADD_U32, sAcc, sAcc, (uint32_t)L.wgidY - SHIFT, gen);  // + by
+        emitSop2Raw(S_MUL_I32, sAcc, sAcc, sGDx, gen);                                 // * GDx
+        if (L.wgidX >= 0) emitSop2Raw(S_ADD_U32, sAcc, sAcc, (uint32_t)L.wgidX - SHIFT, gen);  // + bx
+        // wid = block_linear*wpb + wave-in-block ; slice offset = wid*STRIDE ; base += off
+        emitSop2Raw(S_MUL_I32, sAcc, sAcc, sWpb, gen);
+        emitSop2Raw(S_ADD_U32, sAcc, sAcc, sWib, gen);
+        emitSopK(S_MULK_I32, sAcc, (int16_t)g_amdgpuPerWaveStride, gen);
+        emitSop2Raw(S_ADD_U32,  pwr,     pwr,     sAcc,            gen);  // base_lo += off
+        emitSop2Raw(S_ADDC_U32, pwr + 1, pwr + 1, GFX908_INLINE_0, gen); // carry
+        // capture this wave's slice base into the IACR (uniform: broadcast then store)
+        emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, pwr,     gen);
+        emitScratchStore(vtmp, IAL::OFF_PWBASE,     saddr, gen);      // IACR[+32] = slice lo
+        emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, pwr + 1, gen);
+        emitScratchStore(vtmp, IAL::OFF_PWBASE + 4, saddr, gen);      // IACR[+36] = slice hi
       }
       emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+
+      // Release the liveness-allocated prologue temps (pillar A). No-op in the fallback.
+      if (allocated) {
+        prs->freeGprBlock(bVtmp);
+        prs->freeGprBlock(bSaddr);
+        prs->freeGprBlock(bPwr);
+        prs->freeGprBlock(bWork);
+      }
     }
   }
 
@@ -1184,18 +1254,43 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // VGPRs; the KD VGPR grant is grown by 1 for it (bumpCallerKdForCallee).
   const uint32_t vImplTmp = vPack + numPacks;
 
-  // Reserved SGPRs for the trampoline: the reserved block sits near the TOP of the
-  // TIGHT grant sized by maximizeSgprAllocationIfKernel (gran 4 = 48 SGPRs). CRITICAL:
-  // the wavefront SGPR count INCLUDES the special regs (per AMDGPU ABI) — FLAT_SCRATCH
-  // = s[grantTop-4:grantTop-3], VCC = s[grantTop-2:grantTop-1] (xnack- => no XNACK
-  // pair). So the reserved block must go BELOW those 4 specials: reservedBase =
-  // grantTop-8. EXEC save at [reservedBase,+1], SADDR at reservedBase+2 (zeroed in
-  // the trampoline below). generateBranch reserves the SAME [reservedBase,+3] block
-  // so the springboard/call-target allocation can't collide. reservedBase is above
-  // the callee's clobber range because the grant top is sized above it.
+  // Reserved SGPRs for the trampoline: a pair-aligned 4-SGPR block — EXEC save (pair),
+  // scratch SADDR (=0), spare — that must SURVIVE the call.
+  //
+  // Pillar A: ALLOCATE this block from the register allocator (gen.rs(), already
+  // specialized to this insertion point's liveness) instead of hardcoding grantTop-10.
+  // The block must avoid registers that are live or that the call destroys, so we mark
+  // those OFF-LIMITS by holding them across the allocation: the callee clobber range
+  // s0..nsgpr-1 (caller-saved), the ABI link pair s30/31, the SP s32 for a non-leaf
+  // call, the forwarded implicit-arg ABI SGPRs (s8 / s12 / s13 / s14 — written after,
+  // so the block must not land on them), and everything from grantTop-6 up (the
+  // special-reg-accounting slots per LLVM getNumExtraSGPRs, plus the SGPRs above the
+  // wave's actual grant, which don't physically exist). FLAT_SCRATCH / VCC / EXEC /
+  // XNACK are already off-limits in the register pool. The pinned regs held here are
+  // released at the end. FALLBACK to the old fixed grantTop-10 if the allocator can't
+  // satisfy the request — the grant is NEVER bumped just to make room for this block.
   const uint32_t sgprTop = readCallerGrantedSgprTop(caller, gen);
-  const uint32_t reservedBase = (sgprTop >= 10 ? sgprTop - 10 : 0);
-  const uint32_t EXEC_SAVE_REG = reservedBase;          // top-4 of the tight grant
+  std::vector<Register> pinnedSgpr;
+  auto holdSgpr = [&](uint32_t id) {
+    Register r = Register::makeScalarRegister(OperandRegId(id), BlockSize(1));
+    if (rs->allocateSpecificRegister(gen, r)) pinnedSgpr.push_back(r);
+  };
+  for (uint32_t i = 0; i < nsgpr; i++) holdSgpr(i);        // callee clobber range (caller-saved)
+  holdSgpr(30); holdSgpr(31);                              // ABI link pair s[30:31] (pinned)
+  if (nonLeafCallAbi) holdSgpr(32);                        // SP (non-leaf ABI)
+  holdSgpr(8); holdSgpr(12); holdSgpr(13); holdSgpr(14);   // forwarded implicit-arg ABI SGPRs
+  for (uint32_t i = (sgprTop >= 6 ? sgprTop - 6 : 0);      // special-accounting slots + beyond-grant
+       i <= NS_amdgpu::MAX_ALLOCATABLE_SGPR_ID; i++) holdSgpr(i);
+  Register resBlock = rs->allocateGprBlock(RegKind::SCALAR, 4, NS_amdgpu::PAIR_ALIGNMENT);
+  const bool resBlockOk = !(resBlock == Null_Register);
+  const uint32_t reservedBase =
+      resBlockOk ? resBlock.getId() : (sgprTop >= 10 ? sgprTop - 10 : 0);
+  // The pinned regs only STEERED the block allocation; release them now (the block
+  // itself stays held to protect EXEC-save/SADDR/spare during arg lowering and the
+  // call). In the fallback (no block), the later argReserved reservation guards the
+  // fixed block, exactly as before.
+  for (Register &r : pinnedSgpr) rs->freeRegister(r);
+  const uint32_t EXEC_SAVE_REG = reservedBase;          // EXEC save pair
   const uint32_t SADDR_REG = reservedBase + 2;          // scratch SADDR (set to 0 per-trampoline)
   const uint32_t S_SGPR_SLOT = implBase;                // scratch: SGPR pack dword (per-lane, 4B), above the IACR
   const uint32_t S_VGPR_SLOT = implBase + numPacks * 4; // scratch: VGPR spill area, after the packs
@@ -1522,14 +1617,14 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
       sl.available = true; sl.iacrOffset = off; sl.dwords = dw; sl.uniform = uni; sl.addend = add;
     };
     provide(DA::ImplicitSource::WorkitemId, IAL::OFF_WITEMID, 1, /*uniform=*/false, 0);
-    for (int i = 0; i < 3; i++) {
-      if (readCallerWgidReg(caller, gen, i) < 0) continue;
-      const DA::ImplicitSource s = (i == 0) ? DA::ImplicitSource::WgidX
-                                 : (i == 1) ? DA::ImplicitSource::WgidY
-                                            : DA::ImplicitSource::WgidZ;
-      const int32_t off = (i == 0) ? IAL::OFF_WGID_X : (i == 1) ? IAL::OFF_WGID_Y : IAL::OFF_WGID_Z;
-      provide(s, off, 1, /*uniform=*/true, 0);
-    }
+    // blockIdx.{x,y,z}: ALWAYS forwarded from the IACR. The entry prologue writes EVERY
+    // slot (the real relocated wgid where the kernel enables it, 0 otherwise), so a
+    // callee's general global_wavefront_id() sees by=bz=0 on a lower-rank launch instead
+    // of a garbage register. (Previously only kernel-provided components were forwarded,
+    // leaving blockIdx.y/z unset — fine when probes read only .x, wrong for 2D/3D.)
+    provide(DA::ImplicitSource::WgidX, IAL::OFF_WGID_X, 1, /*uniform=*/true, 0);
+    provide(DA::ImplicitSource::WgidY, IAL::OFF_WGID_Y, 1, /*uniform=*/true, 0);
+    provide(DA::ImplicitSource::WgidZ, IAL::OFF_WGID_Z, 1, /*uniform=*/true, 0);
     const int implOff = readCallerImplicitOffset(caller, gen);
     if (readCallerKernargReg(caller, gen) >= 0 && implOff >= 0)
       provide(DA::ImplicitSource::ImplicitArgPtr, IAL::OFF_KERNARG, 2, /*uniform=*/true, implOff);
@@ -1625,6 +1720,9 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
 
   // Grow the caller kernel's register/scratch grant to fit the callee.
   bumpCallerKdForCallee(caller, callee, gen);
+
+  // Release the liveness-allocated trampoline reserved block (pillar A).
+  if (resBlockOk) rs->freeGprBlock(resBlock);
 
   // No return-value convention pinned down yet for AMDGPU calls.
   return Null_Register;
