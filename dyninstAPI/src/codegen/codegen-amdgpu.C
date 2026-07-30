@@ -79,10 +79,19 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
       return;
     }
 
-    instPoint *blockExitPoint = instPoint::blockExit(funcInstance, blockInstance);
-    assert(blockExitPoint);
+    // The long-jump is emitted AT the block ENTRY (`from` is a block-entry address, per
+    // findBlockByEntry above) and jumps to the relocated copy, which then overwrites the
+    // block's own registers. So the only registers live when the long-jump runs are the
+    // block's LIVE-IN set (the ABI inputs at a kernel entry), NOT the block's live-OUT.
+    // Using blockExit here made the springboard's scratch allocation see the whole
+    // mid-computation live set of a big entry block (e.g. spillcall's 1837-instr unrolled
+    // first block) as unavailable, pushing the 4-SGPR block ABOVE the SGPR grant
+    // (s[64:65] vs grant top 64) -> the hardware returns garbage -> s_setpc jumps wild.
+    // blockEntry gives the correct (tiny) live-in set, so the block lands in a low dead pair.
+    instPoint *blockEntryPoint = instPoint::blockEntry(funcInstance, blockInstance);
+    assert(blockEntryPoint);
 
-    registerSpace *regSpace = registerSpace::actualRegSpace(blockExitPoint);
+    registerSpace *regSpace = registerSpace::actualRegSpace(blockEntryPoint);
     assert(regSpace);
 
     // The entry springboard's long-jump grabs a 4-SGPR block via s_getpc. Dyninst's

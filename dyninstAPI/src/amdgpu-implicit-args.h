@@ -51,11 +51,18 @@ struct ImplicitArgLayout {
     OFF_DISPATCH = 16,  // uniform  : dispatch ptr (lo@16, hi@20)             8B  [3b]
     OFF_KERNARG  = 24,  // uniform  : kernarg ptr  (lo@24, hi@28)             8B  [3d]
     OFF_PWBASE   = 32,  // uniform  : per-wave buffer base ptr (lo@32,hi@36)  8B  [per-wave var]
+    OFF_VDESC    = 40,  // uniform  : scratch V# descriptor s[0:3] (s0@40..s3@52) 16B
   };
   // Total reserved size (per lane). The spill region and callee frames shift up by
   // this amount when implicit-arg forwarding is enabled. Keep 4-byte aligned; a
   // little headroom above the highest slot leaves room to grow.
-  static const uint32_t BYTES = 40;
+  //
+  // OFF_VDESC captures the caller kernel's scratch Buffer-resource (V#) descriptor
+  // s[0:3] — the ABI Private-Segment-Buffer a buffer-scratch kernel keeps live for its
+  // whole body. A scratch-using callee (buffer_load/store off s[0:3]) EXPECTS it as an
+  // ABI input, so we capture the REAL descriptor at entry and reload it into s[0:3] at
+  // the call site (setupCalleeStack) instead of fabricating one from FLAT_SCRATCH.
+  static const uint32_t BYTES = 56;
 
   // Callee ABI registers the retrieved values are forwarded INTO (gfx908 device-fn
   // calling convention, empirically pinned): blockIdx x/y/z -> s12/s13/s14; packed

@@ -62,7 +62,8 @@ bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &
     // entry setup: FLAT_SCRATCH = flat_scratch_init + wave_offset, then relocate
     // the shifted system SGPRs back where the un-shifted kernel expects them.
     AmdgpuKernelDescriptor kd(kdBytes_.data(), kdBytes_.size(), eflag_);
-    gfx908ScratchAbi().emitScratchEntryPrologue(kd, originalKernargSize_, gen);
+    gfx908ScratchAbi().emitScratchEntryPrologue(kd, originalKernargSize_, systemSgprShift_,
+                                                originalPrivateSegment_, gen);
   } else {
     EmitterAmdgpuGfx908 emitter;
     emitter.emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);

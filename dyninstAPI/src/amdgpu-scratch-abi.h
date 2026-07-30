@@ -54,8 +54,17 @@ public:
   // recover the layout. `originalKernargSize` is the PRISTINE kernarg_segment_size
   // (before dyninst grew it by 8) — the per-wave buffer pointer / COV5 implicit-args
   // block are addressed off THAT, kept distinct from the KD's grown value (pillar B).
+  // `systemSgprShift` is how far enableScratchInKD shifted the system SGPRs: 2 when
+  // it enabled flat_scratch_init on a leaf kernel (so the prologue must move wgid/info
+  // back down by 2 for the un-shifted body), 0 when the compiler had already enabled
+  // flat_scratch_init (non-leaf — no shift, so the relocation movs must be no-ops).
+  // `originalPrivateSegment` is the caller kernel's OWN scratch frame size [0,O); the
+  // IACR (and, in emitCall, the spill + callee frame) are seated ABOVE it (SADDR=O) so
+  // they don't alias the caller's live frame. 0 for a kernel with no frame of its own.
   virtual void emitScratchEntryPrologue(const AmdgpuKernelDescriptor &kd,
                                         uint32_t originalKernargSize,
+                                        uint32_t systemSgprShift,
+                                        uint32_t originalPrivateSegment,
                                         codeGen &gen) = 0;
 
   // Per-lane spill of a single VGPR to/from private byte `offset`. Hardware
@@ -75,7 +84,11 @@ public:
   // reconstructs s[0:3] and sets s32 = s32Base (placed above our flat-scratch
   // spill region so the callee's frame can't collide with it). Later arches
   // (gfx940+ architected/absolute flat scratch) provide their own variant.
-  virtual void setupCalleeStack(uint32_t s32Base, codeGen &gen) = 0;
+  // `reconstructDescriptor`: true for a LEAF caller (no scratch frame of its own) —
+  // fabricate the scratch V# descriptor s[0:3] from FLAT_SCRATCH. false for a caller that
+  // uses buffer scratch — emitCall has already reloaded the caller's REAL descriptor
+  // (captured in IACR[OFF_VDESC] at entry) into s[0:3]; only set the stack pointer s32.
+  virtual void setupCalleeStack(uint32_t s32Base, bool reconstructDescriptor, codeGen &gen) = 0;
 };
 
 // gfx908 (CDNA1) implementation (defined in emit-amdgpu.C).

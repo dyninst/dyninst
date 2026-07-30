@@ -88,8 +88,15 @@ unsigned IPPatch::estimate(codeGen &) {
    // should be the minimum required since we expand
    // but never contract
 
-   // In the process case we always just generate it 
+   // In the process case we always just generate it
    // straight out, because we know the original address.
+
+   // AMDGPU reproduces the original PC as: s_getpc_b64 (4B) +
+   // s_add_u32 imm (8B) + s_addc_u32 imm (8B) = 20 bytes. See PCWidget-amdgpu.C.
+   if (insn.getArch() == Arch_amdgpu_gfx908 ||
+       insn.getArch() == Arch_amdgpu_gfx90a ||
+       insn.getArch() == Arch_amdgpu_gfx940)
+     return 4 + 8 + 8;
 
    // It's gonna be a big one...
    return 1+4+1+1+1+4 + ((type == Reg) ? 1 : 0);

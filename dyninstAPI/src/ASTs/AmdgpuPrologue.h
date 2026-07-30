@@ -59,9 +59,12 @@ public:
   // "record the register update" step). Carries the already-rewritten KD
   // serialized to bytes (reconstructed in generate()).
   AmdgpuPrologue(const Dyninst::AmdgpuKernelDescriptor &kd, unsigned eflag,
-                 uint32_t originalKernargSize = 0)
+                 uint32_t originalKernargSize = 0, uint32_t systemSgprShift = 2,
+                 uint32_t originalPrivateSegment = 0)
       : scratch_(true), eflag_(eflag),
-        originalKernargSize_(originalKernargSize), kdBytes_(64) {
+        originalKernargSize_(originalKernargSize),
+        systemSgprShift_(systemSgprShift),
+        originalPrivateSegment_(originalPrivateSegment), kdBytes_(64) {
     kd.writeToMemory(kdBytes_.data());
   }
 
@@ -77,6 +80,11 @@ private:
   // needs the ORIGINAL size for the per-wave-buffer pointer load / COV5 implicit-args
   // offset, kept distinct from the grown value in the KD (pillar B).
   uint32_t originalKernargSize_ = 0;
+  // System-SGPR shift enableScratchInKD applied (2 = leaf, just-enabled; 0 = non-leaf,
+  // compiler already had flat_scratch_init). Drives the wgid relocation in the prologue.
+  uint32_t systemSgprShift_ = 2;
+  // Caller kernel's own scratch frame size; the IACR is seated above it (SADDR=O).
+  uint32_t originalPrivateSegment_ = 0;
   std::vector<uint8_t> kdBytes_;
 };
 
