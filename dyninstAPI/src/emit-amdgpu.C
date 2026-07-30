@@ -528,6 +528,14 @@ static uint32_t readCallerOriginalGrantedVgpr(func_instance *caller, codeGen & /
   return km ? km->originalGrantedVgpr : 0;
 }
 
+// The caller kernel's OWN scratch frame size [0,O). Our IACR/spill (SADDR=O) and the
+// inserted callee frame (s32Base += O) sit above it so they don't alias it. 0 for a
+// kernel with no frame of its own.
+static uint32_t readCallerOriginalPrivate(func_instance *caller) {
+  Dyninst::DyninstAPI::KernelMeta *km = callerMeta(caller);
+  return km ? km->originalPrivateSegment : 0;
+}
+
 // When we splice an inter-module call into a kernel, the callee (a separately
 // compiled device function) may use more registers/scratch than the caller
 // kernel's descriptor granted for its own code. The wave's register allocation
@@ -624,26 +632,31 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
     if (neededGran > kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount())
       kd.setCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount(neededGran);
 
+    // The caller kernel's OWN scratch frame occupies per-lane [0, origPriv). Our IACR +
+    // spill region and (below) the callee frame are stacked ABOVE it: region + original +
+    // callee. origPriv==0 (no caller frame) reduces to the old formula exactly.
+    const uint32_t origPriv = km->originalPrivateSegment;
     const uint32_t implBase = Dyninst::DyninstAPI::ImplicitArgLayout::BYTES;
     // 0.3: size the scratch spill slot to the footprint = numPacks SGPR-pack dwords +
     // calleeVgpr VGPR dwords = 4*(numPacks+nvgpr) bytes/lane, PLUS the IACR reserved
-    // below it. The hardcoded 256 in enableScratchInKD overflows for large footprints
-    // -> scratch aperture violation.
-    const uint32_t spillSlot = implBase + 4u * (numPacks + calleeVgpr);
+    // below it, PLUS the caller's own frame it sits above. The hardcoded 256 in
+    // enableScratchInKD overflows for large footprints -> scratch aperture violation.
+    const uint32_t spillSlot = origPriv + implBase + 4u * (numPacks + calleeVgpr);
     if (spillSlot > kd.getPrivateSegmentFixedSize())
       kd.setPrivateSegmentFixedSize(spillSlot);
   }
 
   // Scratch: reserve only if the callee actually uses private/scratch memory.
   if (calleeScratch > 0) {   // non-leaf callee (auto-detected) -> size for its buffer frame
-    // Non-leaf call ABI: our flat spill occupies per-lane [0,spillR); the callee's
-    // buffer frame is seated at s32 base (PER-WAVE) = spillR*64 aligned, so its
-    // per-lane base (s32/64) clears our region. private_segment_fixed_size is
-    // PER-LANE: our region (s32Base/64) + the callee's own per-lane frame + margin.
-    // Must match the s32Base arithmetic in emitCall.
+    // Frames STACK: [0,origPriv) caller's own frame, [origPriv,origPriv+spillR) our flat
+    // IACR+spill (SADDR=origPriv), then the callee's buffer frame at s32 base (PER-WAVE) =
+    // (origPriv+spillR)*64 aligned, so its per-lane base (s32/64) clears both. total
+    // per-lane = (s32Base/64) + callee frame + margin. Must match the s32Base arithmetic
+    // in emitCall.
+    const uint32_t origPriv = km->originalPrivateSegment;
     const uint32_t iacr    = Dyninst::DyninstAPI::ImplicitArgLayout::BYTES;
-    const uint32_t spillR  = iacr + 4u * (numPacks + calleeVgpr);   // IACR + spill (per-lane)
-    const uint32_t s32Base = ((spillR * 64u) + 0x3FFu) & ~0x3FFu;   // per-wave
+    const uint32_t spillR  = iacr + 4u * (numPacks + calleeVgpr);   // our region (per-lane)
+    const uint32_t s32Base = (((origPriv + spillR) * 64u) + 0x3FFu) & ~0x3FFu;  // per-wave
     const uint32_t need    = (s32Base / 64u) + calleeScratch + 256u; // per-lane
     if (need > kd.getPrivateSegmentFixedSize())
       kd.setPrivateSegmentFixedSize(need);
@@ -769,9 +782,19 @@ public:
     if (slotBytes > kd.getPrivateSegmentFixedSize())
       kd.setPrivateSegmentFixedSize(slotBytes);
     // Already scratch-enabled (compiler set flat_scratch_init up): reuse its
-    // FLAT_SCRATCH, only grew the size, no new shift.
-    if (kd.getKernelCodeProperty_EnableSgprFlatScratchInit())
+    // FLAT_SCRATCH, only grew the size, no new (user-SGPR) shift. BUT a kernel that
+    // originally used 0 private scratch (e.g. a non-leaf kernel whose call spilled
+    // nothing) can have flat_scratch_init enabled yet the per-wave scratch WAVEFRONT
+    // OFFSET SGPR disabled (EnablePrivateSegment=0) — its own FLAT_SCRATCH setup was
+    // dead. Now that instrumentation spills to FLAT_SCRATCH we need ROCr to actually
+    // provide the per-wave offset, so enable it if absent. This appends ONE system
+    // SGPR (the wave offset, after the work-group IDs) and does NOT shift the user
+    // SGPRs, so the relocated body's register expectations are unchanged.
+    if (kd.getKernelCodeProperty_EnableSgprFlatScratchInit()) {
+      if (!kd.getCOMPUTE_PGM_RSRC2_EnablePrivateSegment())
+        kd.setCOMPUTE_PGM_RSRC2_EnablePrivateSegment(true);
       return false;
+    }
     const uint32_t uc = kd.getCOMPUTE_PGM_RSRC2_UserSgprCount();
     kd.setKernelCodeProperty_EnableSgprFlatScratchInit(true);  // +2 user SGPRs at s[uc:uc+1]
     kd.setCOMPUTE_PGM_RSRC2_UserSgprCount(uc + 2);
@@ -781,6 +804,8 @@ public:
 
   void emitScratchEntryPrologue(const Dyninst::AmdgpuKernelDescriptor &kd,
                                 uint32_t originalKernargSize,
+                                uint32_t systemSgprShift,
+                                uint32_t originalPrivateSegment,
                                 codeGen &gen) override {
     using namespace AmdgpuGfx908;
     // Read the ABI SGPR layout from the (already scratch-enabled) KD: exact indices
@@ -809,10 +834,13 @@ public:
     // Init occupies 2 user SGPRs). Move the ones the un-shifted kernel body reads
     // (wgid/info) back down by 2. Do AFTER the add (which consumes s[fsi],
     // s[waveoff]); ascending order is collision-free.
-    const uint32_t SHIFT = 2;
+    // 0 for a non-leaf kernel (compiler already had flat_scratch_init: no shift; the
+    // movs would otherwise relocate wgid onto the flat_scratch_init SGPRs and desync the
+    // relocated body). 2 for the leaf case enableScratchInKD just shifted.
+    const uint32_t SHIFT = systemSgprShift;
     const int sysRegs[4] = { L.wgidX, L.wgidY, L.wgidZ, L.wgInfo };
     for (int p : sysRegs)
-      if (p >= 0)
+      if (p >= 0 && SHIFT > 0)
         emitSop1Raw(/*S_MOV_B32=*/0, (uint32_t)p - SHIFT, (uint32_t)p, gen);
     emitSopP(S_WAITCNT, /*simm16=*/0, gen);
 
@@ -892,7 +920,13 @@ public:
         vtmp = (kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount() + 1) * 4;
       }
 
-      emitSop1Raw(/*S_MOV_B32=*/0, saddr, GFX908_INLINE_0, gen);           // SADDR = 0
+      // SADDR = originalPrivateSegment: our IACR/spill region is seated ABOVE the caller
+      // kernel's own scratch frame [0,O) so it can't alias it. O==0 (no caller frame)
+      // emits the exact same s_mov SADDR,0 as before (strict no-op for those kernels).
+      if (originalPrivateSegment == 0)
+        emitSop1Raw(/*S_MOV_B32=*/0, saddr, GFX908_INLINE_0, gen);          // SADDR = 0
+      else
+        emitSop2RawWithLiteral(S_OR_B32, saddr, GFX908_INLINE_0, originalPrivateSegment, gen); // SADDR = O
 
       // Packed workitem-id (3c: threadIdx). CRITICAL gfx908 fact: gfx908 (CDNA1) has NO
       // "Packed work-item IDs" target property, so the kernel receives the work-item id
@@ -927,6 +961,20 @@ public:
         else
           emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, GFX908_INLINE_0, gen);            // disabled -> 0
         emitScratchStore(vtmp, woff[i], saddr, gen);                           // IACR[woff]
+      }
+
+      // Capture the scratch V# descriptor s[0:3] (Private Segment Buffer) — the ABI
+      // input a buffer-scratch callee (buffer_load/store off s[0:3]) expects. Only when
+      // the caller has its OWN scratch frame (originalPrivateSegment>0): then setupCalleeStack
+      // reloads THIS captured descriptor at the call site instead of fabricating one from
+      // FLAT_SCRATCH. A leaf caller (O==0) keeps the fabricated path (unchanged, no
+      // regression). s[0:3] is still pristine here — the prologue's liveness allocator holds
+      // [0,liveSgprEnd) (which covers privSegBuf) off-limits, so nothing above clobbered it.
+      if (originalPrivateSegment > 0 && L.privSegBuf >= 0) {
+        for (uint32_t d = 0; d < 4u; d++) {
+          emitVop1Reg(/*V_MOV_B32=*/1u, vtmp, (uint32_t)L.privSegBuf + d, gen);   // s(psb+d) -> vtmp
+          emitScratchStore(vtmp, IAL::OFF_VDESC + 4 * (int32_t)d, saddr, gen);    // IACR[+VDESC+4d]
+        }
       }
 
       // Kernarg-segment pointer (3b: blockDim/gridDim source). A device function reads
@@ -1102,21 +1150,24 @@ public:
                    saddr, offset, gen, /*glc=*/true, /*seg=*/1);
   }
 
-  void setupCalleeStack(uint32_t s32Base, codeGen &gen) override {
+  void setupCalleeStack(uint32_t s32Base, bool reconstructDescriptor, codeGen &gen) override {
     using namespace AmdgpuGfx908;
-    // Reconstruct the scratch V# descriptor s[0:3] from FLAT_SCRATCH (already set
-    // up by the entry prologue, per-wave) + the constant descriptor fields measured
-    // on gfx908/ROCm7.0.2 (see memory dyninst-amdgpu-call-abi). A leaf mutatee
-    // clobbers s[0:3], but a hipcc-compiled non-leaf callee addresses its frame as
-    // buffer_*(off s[0:3], soffset=s32). FLAT_SCRATCH already includes wave_offset,
-    // so s0 is per-wave-correct (matches the compiler's `s0 += wave_offset`).
-    emitSop1Raw(/*S_MOV_B32=*/0, /*s0=*/0, GFX908_FLAT_SCRATCH_LO, gen);              // s0 = base_lo = FLAT_lo
-    emitSop2RawWithLiteral(S_OR_B32, /*s1=*/1, GFX908_FLAT_SCRATCH_HI, 0x80000000u, gen); // s1 = base_hi | swizzle_enable
-    emitSop2RawWithLiteral(S_OR_B32, /*s2=*/2, GFX908_INLINE_0, 0x00400000u, gen);        // s2 = num_records
-    emitSop2RawWithLiteral(S_OR_B32, /*s3=*/3, GFX908_INLINE_0, 0x00ea4facu, gen);        // s3 = format/swizzle flags
-    // s32 = stack pointer base, placed ABOVE our flat-scratch spill region (offset
-    // R) so the callee's frame (buffer soffset >= R) can't collide with our spill
-    // (flat offset < R); flat-offset-K == buffer-soffset-K (validated 1:1).
+    // The scratch V# descriptor s[0:3] the non-leaf callee needs. Two sources:
+    //  * reconstructDescriptor=true (LEAF caller, no real descriptor of its own):
+    //    fabricate one from FLAT_SCRATCH + the constant fields measured on gfx908/
+    //    ROCm7.0.2. FLAT_SCRATCH already includes wave_offset so s0 is per-wave-correct.
+    //  * reconstructDescriptor=false (caller that USES buffer scratch): emitCall has
+    //    already reloaded the caller's REAL descriptor (captured in IACR[OFF_VDESC] at
+    //    entry) into s[0:3] — do NOT overwrite it with a fabricated one (wrong
+    //    num_records, and it would clobber the caller's live descriptor).
+    if (reconstructDescriptor) {
+      emitSop1Raw(/*S_MOV_B32=*/0, /*s0=*/0, GFX908_FLAT_SCRATCH_LO, gen);              // s0 = base_lo = FLAT_lo
+      emitSop2RawWithLiteral(S_OR_B32, /*s1=*/1, GFX908_FLAT_SCRATCH_HI, 0x80000000u, gen); // s1 = base_hi | swizzle_enable
+      emitSop2RawWithLiteral(S_OR_B32, /*s2=*/2, GFX908_INLINE_0, 0x00400000u, gen);        // s2 = num_records
+      emitSop2RawWithLiteral(S_OR_B32, /*s3=*/3, GFX908_INLINE_0, 0x00ea4facu, gen);        // s3 = format/swizzle flags
+    }
+    // s32 = stack pointer base, placed ABOVE the caller frame + our flat-scratch spill
+    // region so the callee's frame (buffer soffset >= that) can't collide.
     emitSop2RawWithLiteral(S_OR_B32, /*s32=*/32u, GFX908_INLINE_0, s32Base, gen);
   }
 };
@@ -1160,6 +1211,27 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   registerSpace *rs = gen.rs();
   assert(rs && "AMDGPU emitCall: codeGen has no registerSpace");
   Register lrPair(OperandRegId(30), RegKind::SCALAR, BlockSize(2));
+
+  // ABI live-in: a caller kernel that uses its OWN buffer scratch keeps the scratch V#
+  // descriptor LIVE in the Private-Segment-Buffer SGPRs (s[0:3]) for the whole body
+  // (buffer_load/store off s[0:3] address its frame). It is an ABI register the
+  // trampoline must not hand out — otherwise the inter-module GOT idiom (getpc s[0:1];
+  // s_load s[2:3],s[0:1]; swappc ,s[2:3]) gets allocated s[0:1]/s[2:3] == the live
+  // descriptor and the call jumps to the descriptor base (rocgdb: faulting PC == s[0:1]).
+  // Reserve it here so allocateGprBlock (GOT idiom, arg lowering) skips it. Only when the
+  // kernel actually uses scratch (O>0); O==0 leaves s[0:3] free exactly as before, so
+  // every leaf/getpc-free case is byte-identical (no regression).
+  std::vector<Register> abiScratchReserved;
+  if (readCallerOriginalPrivate(caller) > 0) {
+    Dyninst::DyninstAPI::KernelMeta *ckm = callerMeta(caller);
+    int psb = ckm ? ckm->layout().privSegBuf : -1;   // Private Segment Buffer = s[psb:psb+3]
+    if (psb >= 0)
+      for (uint32_t r = (uint32_t)psb; r < (uint32_t)psb + 4u; r++) {
+        Register rr = Register::makeScalarRegister(OperandRegId(r), BlockSize(1));
+        if (rs->allocateSpecificRegister(gen, rr))
+          abiScratchReserved.push_back(rr);
+      }
+  }
 
   // Preserve the caller's registers across the call. The AMDGPU function ABI
   // lets a callee clobber any caller-saved SGPR (e.g. hc_open uses s[4:5] for
@@ -1491,10 +1563,15 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   // of the tight scratch grant (reservedBase).
   const uint32_t S_MOV_B64_OP = 1, EXEC_LO = 126, INLINE_NEG1 = 193;
 
-  // Scratch SADDR must be 0 (whole per-wave base is in FLAT_SCRATCH). Set it in the
-  // trampoline (reservedBase+2, above the callee clobber range so it survives the
-  // call). S_MOV_B32=0; inline 0=128.
-  AmdgpuGfx908::emitSop1Raw(/*S_MOV_B32=*/0, SADDR_REG, /*inline 0=*/128, gen);
+  // Scratch SADDR = the caller kernel's own private-frame size O, so our IACR+spill sit
+  // ABOVE the caller's frame [0,O) (matches emitScratchEntryPrologue's SADDR and the
+  // s32Base seating below). O==0 emits the exact same s_mov SADDR,0 as before. Set in the
+  // trampoline (reservedBase+2, above the callee clobber range so it survives the call).
+  const uint32_t origPriv = readCallerOriginalPrivate(caller);
+  if (origPriv == 0)
+    AmdgpuGfx908::emitSop1Raw(/*S_MOV_B32=*/0, SADDR_REG, /*inline 0=*/128, gen);
+  else
+    AmdgpuGfx908::emitSop2RawWithLiteral(S_OR_B32, SADDR_REG, /*inline 0=*/128, origPriv, gen);
 
   AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_SAVE_REG, EXEC_LO,    gen);  // save exec
   AmdgpuGfx908::emitSop1Raw(S_MOV_B64_OP, EXEC_LO,   INLINE_NEG1, gen); // exec = -1 (all lanes)
@@ -1723,21 +1800,53 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   {
     const uint32_t calleeScratch = readCalleeMaxAbsSym(callee, "private_seg_size");
     if (calleeScratch > 0) {   // non-leaf callee -> set up its buffer-scratch frame
-      const uint32_t spillR  = implBase + 4u * (numPacks + nvgpr);   // IACR + spill top (PER-LANE bytes)
+      // Frames STACK: [0,O) caller's own frame, [O,O+spillR) our IACR+spill (SADDR=O),
+      // then the callee frame above. spillRfull = O + spillR is our region's per-lane top.
+      const uint32_t spillR  = implBase + 4u * (numPacks + nvgpr);   // IACR + spill (per-lane)
+      const uint32_t origPriv = readCallerOriginalPrivate(caller);
+      const uint32_t spillRfull = origPriv + spillR;
       // s32 (buffer soffset) is PER-WAVEFRONT bytes: the reconstructed HIP scratch
       // descriptor swizzles per lane, so the callee's per-lane frame offset = s32/64
-      // (wave64). To seat the callee frame ABOVE our flat spill's per-lane region
-      // [0,spillR), s32Base must satisfy s32Base/64 >= spillR, i.e. >= spillR*64.
-      // (The prior "buffer soffset == flat offset 1:1" held only for the hand-written
-      // NON-swizzled test descriptor; rocgdb proved that at s32=256 the callee's
-      // locals landed on our flat slots at per-lane offset 4, corrupting saved VGPRs.)
-      const uint32_t s32Base = ((spillR * 64u) + 0x3FFu) & ~0x3FFu; // per-wave, 0x400-aligned
-      sabi.setupCalleeStack(s32Base, gen);
+      // (wave64). To seat the callee frame ABOVE our region [0,spillRfull) per-lane,
+      // s32Base must satisfy s32Base/64 >= spillRfull, i.e. >= spillRfull*64. Must match
+      // bumpCallerKdForCallee. (The prior "buffer soffset == flat offset 1:1" held only
+      // for the hand-written NON-swizzled test descriptor; rocgdb proved that at s32=256
+      // the callee's locals landed on our flat slots at per-lane offset 4.)
+      const uint32_t s32Base = ((spillRfull * 64u) + 0x3FFu) & ~0x3FFu; // per-wave, 0x400-aligned
+      if (origPriv > 0) {
+        // Caller uses its OWN buffer scratch: the scratch V# descriptor is an ABI live-in
+        // captured in IACR[OFF_VDESC] at entry. Reload the REAL descriptor into s[0:3] and
+        // pass it to the callee (readfirstlane, same as implicit-arg retrieval) — do NOT
+        // fabricate one (wrong num_records; clobbers the caller's live descriptor).
+        const int32_t vdescOff = Dyninst::DyninstAPI::ImplicitArgLayout::OFF_VDESC;
+        for (uint32_t d = 0; d < 4u; d++) {
+          sabi.emitScratchLoad(vImplTmp, vdescOff + 4 * (int32_t)d, SADDR_REG, gen);
+          AmdgpuGfx908::emitSopP(S_WAITCNT, /*simm16=*/0, gen);
+          AmdgpuGfx908::emitVop1Reg(/*V_READFIRSTLANE_B32=*/2u, /*sdst=s(d)*/d, 256u + vImplTmp, gen);
+        }
+        sabi.setupCalleeStack(s32Base, /*reconstructDescriptor=*/false, gen);  // s[0:3] loaded; set s32 only
+      } else {
+        sabi.setupCalleeStack(s32Base, /*reconstructDescriptor=*/true, gen);   // leaf caller: fabricate s[0:3]+s32
+      }
     }
   }
 
   Address slot = getInterModuleFuncAddr(callee, gen);
+  // Hold the reserved trampoline block (EXEC-save pair + SADDR, at reservedBase..+3)
+  // across the call so emitIndirectCall's GOT idiom block CANNOT land on it. gen.rs()
+  // does not track resBlock (see the reservedBase comment above — it is re-specialized
+  // to the point liveness during arg lowering), and argReserved, which re-held this
+  // block on the current rs, was already released after arg lowering. Without this
+  // re-hold the GOT idiom's target pair aliased SADDR (both s[reservedBase+2]) and the
+  // s_swappc clobbered the spill SADDR, faulting the post-call restore. Same live-across-
+  // the-call pattern as abiReserved; freed immediately after emitIndirectCall.
+  std::vector<Register> resHold;
+  for (uint32_t r = reservedBase; r < reservedBase + 4u; r++) {
+    Register rr = Register::makeScalarRegister(OperandRegId(r), BlockSize(1));
+    if (rs->allocateSpecificRegister(gen, rr)) resHold.push_back(rr);
+  }
   emitIndirectCall(slot, lrPair, gen);
+  for (Register &rr : resHold)     rs->freeRegister(rr);   // reserved block survived the call
   for (Register &rr : abiReserved)   // release the forwarded ABI regs now the call is emitted
     rs->freeRegister(rr);
 
@@ -1962,10 +2071,49 @@ void EmitterAmdgpuGfx908::emitIndirectCall(Address slotAddr, Register lrPair, co
   registerSpace *rs = gen.rs();
   assert(rs && "emitIndirectCall: codeGen has no registerSpace");
 
+  // A caller kernel that uses its OWN buffer scratch keeps the scratch V# descriptor in
+  // s[0:3]; emitCall has just reloaded the callee's descriptor there (from IACR[OFF_VDESC]).
+  // s[0:3] is NOT in the register-space's allocated set (we wrote it via readfirstlane, not
+  // via allocation), so at a site where the caller's s[0:3] is dead (e.g. the exit call) the
+  // block allocator below would grab s[0:3] and clobber that descriptor before the swappc.
+  // Reserve s[0:3] across THIS allocation so the GOT idiom's pair lands elsewhere; then free.
+  std::vector<Register> vdescReserved;
+  if (func_instance *caller = gen.func())
+    if (readCallerOriginalPrivate(caller) > 0)
+      for (uint32_t r = 0; r < 4u; r++) {
+        Register rr = Register::makeScalarRegister(OperandRegId(r), BlockSize(1));
+        if (rs->allocateSpecificRegister(gen, rr)) vdescReserved.push_back(rr);
+      }
+
+  // The GOT idiom's 4-SGPR block MUST lie within the caller kernel's SGPR grant.
+  // allocateGprBlock draws from the architectural SGPR file (102 numbered SGPRs),
+  // NOT from the wave's grant, so with no steering it can land the block ABOVE
+  // grantedSgprTop — those SGPRs don't physically exist for the wave and read
+  // garbage, so the s_load_dwordx2 below reads a wild address (scratch-aperture
+  // violation). At a HIGH-PRESSURE mid-block point the caller's live registers fill
+  // the low SGPRs, making the beyond-grant landing the common case. Hold everything
+  // from grantTop-6 up (mirrors emitCall's reserved-block steering at ~L1409) so the
+  // block lands WITHIN the grant. emitCall's reserved block (resBlock: EXEC-save +
+  // SADDR) is still held here, so the GOT block also lands BELOW it — without this,
+  // the GOT idiom's target pair aliased SADDR (both ~s66) and the call clobbered the
+  // spill SADDR. Freed right after the allocation (the block stays held to the swappc).
+  std::vector<Register> beyondGrant;
+  if (func_instance *caller = gen.func()) {
+    const uint32_t sgprTop = readCallerGrantedSgprTop(caller, gen);
+    if (sgprTop > 0)
+      for (uint32_t i = (sgprTop >= 6 ? sgprTop - 6 : 0);
+           i <= NS_amdgpu::MAX_ALLOCATABLE_SGPR_ID; i++) {
+        Register rr = Register::makeScalarRegister(OperandRegId(i), BlockSize(1));
+        if (rs->allocateSpecificRegister(gen, rr)) beyondGrant.push_back(rr);
+      }
+  }
+
   Register block = rs->allocateGprBlock(Dyninst::RegKind::SCALAR,
                                         /*numRegs=*/4,
                                         NS_amdgpu::PAIR_ALIGNMENT);
   assert(block != Null_Register && "emitIndirectCall: failed to allocate scratch SGPR block");
+  for (Register &rr : beyondGrant)   rs->freeRegister(rr);   // grant limit steered the block
+  for (Register &rr : vdescReserved) rs->freeRegister(rr);   // block chosen; descriptor stays put
 
   Register slotAddrPair(OperandRegId(block.getId()),     RegKind::SCALAR, BlockSize(2));
   Register tgtPair     (OperandRegId(block.getId() + 2), RegKind::SCALAR, BlockSize(2));

@@ -49,6 +49,11 @@ struct KernelMeta {
   uint32_t originalKernargSize = 0;
   uint32_t originalGrantedVgpr = 0;    // pristine granted VGPR count = (gran+1)*4
   bool     originalScratchEnabled = false;
+  // Pristine private_segment_fixed_size = the caller kernel's OWN scratch frame [0,O).
+  // Our IACR/spill region and the inserted callee's frame are seated ABOVE it (SADDR=O,
+  // s32Base += O) so they don't alias the caller's live frame; 0 for a kernel with no
+  // frame of its own (every leaf/getpc-free case so far).
+  uint32_t originalPrivateSegment = 0;
 
   uint32_t perWaveStride = 4096;       // per-wave arena stride (bump-allocator)
   bool     dirty = false;              // KD mutated since parse -> committed at flush
@@ -60,6 +65,7 @@ struct KernelMeta {
     originalKernargSize    = kd.getKernargSize();
     originalGrantedVgpr    = (kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount() + 1) * 4;
     originalScratchEnabled = kd.getKernelCodeProperty_EnableSgprFlatScratchInit();
+    originalPrivateSegment = kd.getPrivateSegmentFixedSize();
     layoutCache_           = computeAbiSgprLayout(kd);
   }
 

@@ -34,6 +34,8 @@
 #include "../CodeBuffer.h"
 #include "CFWidget.h"
 #include "dyninstAPI/src/debug.h"
+#include "instructionAPI/h/Instruction.h"
+#include "dyninstAPI/src/codegen/codegen.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -41,16 +43,28 @@ using namespace InstructionAPI;
 
 using namespace NS_amdgpu;
 
-bool CFWidget::generateIndirect(CodeBuffer & /* buffer */, Register, const RelocBlock * /* trace */,
-                                Instruction /* insn */) {
-  // Called by CFWidget::generate
+// AMDGPU indirect control flow — s_swappc_b64 / s_setpc_b64 with a register target — is
+// position-INDEPENDENT: the target address already lives in an SGPR pair (materialized
+// by the relocated + corrected getpc idiom; see PCWidget-amdgpu.C). So relocating such
+// an instruction is simply re-emitting it verbatim. Without this the swappc/setpc that
+// TERMINATES the block would be dropped (the old no-op stub), silently deleting the
+// call/tail-jump — which is exactly what broke getpc-call relocation.
+bool CFWidget::generateIndirect(CodeBuffer &buffer, Register, const RelocBlock *trace,
+                                Instruction insn) {
+  codeGen gen(insn.size());
+  gen.copy(insn.ptr(), insn.size());
+  buffer.addPIC(gen, tracker(trace));
   return true;
 }
 
-bool CFWidget::generateIndirectCall(CodeBuffer & /* buffer */, Register /*reg*/,
-                                    Instruction /* insn */, const RelocBlock * /* trace */,
-                                    Address /*origAddr*/) {
-  // Called by CFWidget::generate
+bool CFWidget::generateIndirectCall(CodeBuffer &buffer, Register /*reg*/, Instruction insn,
+                                    const RelocBlock *trace, Address /*origAddr*/) {
+  // For an indirect CALL (s_swappc_b64 lr, target) the return address written to the
+  // link pair is PC+4 == the address immediately after THIS relocated swappc, so control
+  // returns into the relocated block. Re-emit verbatim.
+  codeGen gen(insn.size());
+  gen.copy(insn.ptr(), insn.size());
+  buffer.addPIC(gen, tracker(trace));
   return true;
 }
 
