@@ -91,7 +91,19 @@ inline AbiSgprLayout computeAbiSgprLayout(const Dyninst::AmdgpuKernelDescriptor 
   place(kd.getCOMPUTE_PGM_RSRC2_EnableSgprWorkgroupIdY(),  1, L.wgidY);
   place(kd.getCOMPUTE_PGM_RSRC2_EnableSgprWorkgroupIdZ(),  1, L.wgidZ);
   place(kd.getCOMPUTE_PGM_RSRC2_EnableSgprWorkgroupInfo(), 1, L.wgInfo);
-  place(kd.getCOMPUTE_PGM_RSRC2_EnablePrivateSegment(),    1, L.waveOffset);  // wave offset
+  // Scratch wavefront offset (per-wave). It is present whenever the kernel uses
+  // scratch: either because we enabled it (EnablePrivateSegment, set by
+  // enableScratchInKD on a leaf kernel) OR because the compiler already set up
+  // flat_scratch_init (non-leaf kernels leave EnablePrivateSegment=0 in the KD but
+  // the wave offset IS still delivered as the system SGPR right after the work-group
+  // IDs, and the compiler prologue consumes it, e.g. `s_add flat_scratch_lo, s6, s9`).
+  // Gating only on EnablePrivateSegment left waveOffset=-1 for the flat_scratch_init
+  // case, which emitScratchEntryPrologue then mis-encoded as ssrc1=0xFF (a literal
+  // marker) -> garbage FLAT_SCRATCH -> faulting entry-prologue spills.
+  const bool waveOffsetPresent =
+      kd.getCOMPUTE_PGM_RSRC2_EnablePrivateSegment() ||
+      kd.getKernelCodeProperty_EnableSgprFlatScratchInit();
+  place(waveOffsetPresent, 1, L.waveOffset);
   L.liveSgprEnd = s;
   return L;
 }
