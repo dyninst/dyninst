@@ -153,8 +153,14 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
     // maximizeSgprAllocationIfKernel grows the grant/kernarg (same as before), so the
     // prologue carries the original grant/kernarg — the emitter reads the grown values
     // from the KernelMeta independently.
+    // systemSgprShift = 0 when the compiler already had flat_scratch_init (non-leaf:
+    // enableScratchInKD made no shift), else 2 (leaf: it just enabled it). The prologue
+    // uses this to relocate the shifted system SGPRs (wgid/info) — a hardcoded 2 wrongly
+    // moved them for non-leaf kernels.
+    const uint32_t sysSgprShift = km->originalScratchEnabled ? 0u : 2u;
     prologuePtr = boost::make_shared<AmdgpuPrologue>(km->kd, this->eflag,
-                                                     km->originalKernargSize);
+                                                     km->originalKernargSize, sysSgprShift,
+                                                     km->originalPrivateSegment);
   }
 
   DyninstAPI::codeGenASTPtr prologueNodePtr =
@@ -208,7 +214,20 @@ void AmdgpuGfx908PointHandler::maximizeSgprAllocationIfKernel(BPatch_function *f
   // legacy global-buffer path.)
   const uint32_t kScratchGrant = 48;   // gran 4; reserved block at s44..s47
   const uint32_t kernelUsed = getMaxUsedSgprId(kd);
-  uint32_t required = kernelUsed + 8;  // keep reserved block above kernel usage
+  // Headroom above the kernel's own SGPR usage for the call trampoline. At a
+  // HIGH-PRESSURE mid-block instrumentation point the caller's live registers reach
+  // up to kernelUsed, and ABOVE them the trampoline must simultaneously seat, all
+  // WITHIN the grant (allocateGprBlock/emitIndirectCall steer everything from
+  // grantTop-6 up off-limits, so the usable window is [kernelUsed, grantTop-6)):
+  //   reserved block (EXEC-save pair + SADDR + spare) .... 4 SGPRs   (held to the call)
+  //   inter-module GOT idiom pair-block ................... 4 SGPRs
+  //   forwarded arg destinations + slack ................ ~10 SGPRs
+  // => ~18 above kernelUsed, plus the 6 accounting slots at the top. +8 (entry/exit,
+  // low pressure) was fine but left only a 6-SGPR window at a mid-block call, so the
+  // GOT block could not be allocated within the grant (assert) and, when forced high,
+  // its target pair aliased the spill SADDR. +24 lifts a kernelUsed=48 kernel to
+  // grantTop 80 (22-SGPR window). Capped at the architectural max by the grant field.
+  uint32_t required = kernelUsed + 24; // reserved block + GOT idiom + arg dests + accounting
   if (required < kScratchGrant) required = kScratchGrant;
   const uint32_t newValue = granulatedSgprCountFor(required);
   kd.setCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount(newValue);

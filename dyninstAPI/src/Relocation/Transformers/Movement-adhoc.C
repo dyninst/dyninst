@@ -294,6 +294,17 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
   }
   if (insn.getControlFlowTarget()) return false;
 
+  // AMDGPU s_getpc_b64 reads the PC but is a get-PC-into-register idiom, not a
+  // PC-relative *data* access. Let isGetPC/PCWidget handle it (PCtoReg path) rather
+  // than routing it to RelDataWidget/modifyData.
+  {
+    entryID gpc = insn.getOperation().getID();
+    if (gpc == amdgpu_gfx908_op_S_GETPC_B64 ||
+        gpc == amdgpu_gfx90a_op_S_GETPC_B64 ||
+        gpc == amdgpu_gfx940_op_S_GETPC_B64)
+      return false;
+  }
+
 
   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn.getArch())));
 
@@ -403,6 +414,30 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
   // Check for call + size;
   // Check for call to thunk.
   // TODO: need a return register parameter.
+
+  // AMDGPU: s_getpc_b64 s[a:a+1] materializes (address-of-next-insn) into an SGPR
+  // pair. It is not a "call", so match it explicitly and route to the PCtoReg path
+  // (PCWidget -> IPPatch). The exact destination pair is re-derived from the getpc
+  // encoding at apply time; here we only need a Register-typed Absloc so that
+  // PCWidget::generate() dispatches to PCtoReg.
+  {
+    entryID gpc = insn.getOperation().getID();
+    if (gpc == amdgpu_gfx908_op_S_GETPC_B64 ||
+        gpc == amdgpu_gfx90a_op_S_GETPC_B64 ||
+        gpc == amdgpu_gfx940_op_S_GETPC_B64) {
+      std::set<RegisterAST::Ptr> writes;
+      insn.getWriteSet(writes);
+      if (writes.empty()) {
+        relocation_cerr << "      ... s_getpc_b64 with empty write set, skipping" << endl;
+        return false;
+      }
+      aloc = Absloc((*writes.begin())->getID());
+      thunk = 0;
+      relocation_cerr << "      ... AMDGPU s_getpc_b64 at " << std::hex << ptr->addr()
+                      << std::dec << ", routing to PCtoReg" << endl;
+      return true;
+    }
+  }
 
    if (!insn.isCall()) return false;
 
