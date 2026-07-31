@@ -31,6 +31,7 @@
 #include "eh_frame_arch.h"
 
 #include "registers/x86_64_regs.h"
+#include "registers/aarch64_regs.h"
 
 namespace Dyninst {
 
@@ -46,8 +47,20 @@ const EHFrameArch* ehFrameArchFor(Architecture arch) {
     /* stackPtrDwarf       */ 7,
   };
 
+  // aarch64: link-register architecture. lr(x30) is sampled like any other
+  // callee-saved register. Initial CFI: def_cfa sp(31),0.
+  static const EHFrameArch k_aarch64 = {
+    /* returnAddrReg       */ 30,
+    /* cieInitialCFI       */ { 0x0c, 31, 0 },
+    /* calleeSavedDwarfRegs*/ { 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30 },  // x19-x28, fp, lr
+    /* framePtr            */ aarch64::x29,
+    /* framePtrDwarf       */ 29,
+    /* stackPtrDwarf       */ 31,
+  };
+
   switch (arch) {
     case Arch_x86_64:  return &k_x86_64;
+    case Arch_aarch64: return &k_aarch64;
     default:           return nullptr;
   }
 }
