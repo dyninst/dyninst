@@ -296,6 +296,7 @@ void cleanupFinal()
 void sigintHandler(int signal)
 {
     assert(signal == SIGINT);
+    (void)signal;
 
     if (config.pid > 0) {
 	// Monitor received SIGINT.
@@ -362,6 +363,7 @@ void sigchldHandler(int signal)
 {
     int pid, status, options = 0;
     assert(signal == SIGCHLD);
+    (void)signal;
     if (config.pid) dlog(DEBUG, "Monitor received SIGCHLD\n");
 
     do {
@@ -406,6 +408,7 @@ void sigchldHandler(int signal)
 void sigalrmHandler(int signal)
 {
     assert(signal == SIGALRM);
+    (void)signal;
 
     if (config.state == NORMAL)
 	dlog(ERR, "\n*\n* Abnormal case: Dyninst mutator exceeded time limit.  Forcing mutator/mutatee termination.\n*\n");
