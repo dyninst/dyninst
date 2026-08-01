@@ -221,6 +221,7 @@ int dyn_debug_proccontrol = 0;
 int dyn_debug_stackwalk = 0;
 int dyn_debug_inst = 0;
 int dyn_debug_reloc = 0;
+int dyn_debug_eh = 0;
 int dyn_debug_springboard = 0;
 int dyn_debug_sensitivity = 0;
 int dyn_debug_dyn_unw = 0;
@@ -265,6 +266,10 @@ bool init_debug() {
   if (check_env_value("DYNINST_DEBUG_SPRINGBOARD")) {
     fprintf(stderr, "Enabling DyninstAPI springboard debug\n");
     dyn_debug_springboard = 1;
+  }
+  if (check_env_value("DYNINST_DEBUG_EH")) {
+    fprintf(stderr, "Enabling DyninstAPI exception-handling (.eh_frame synthesis) debug\n");
+    dyn_debug_eh = 1;
   }
   if (check_env_value("DYNINST_DEBUG_STARTUP")) {
     fprintf(stderr, "Enabling DyninstAPI startup debug\n");
@@ -532,6 +537,24 @@ int inst_printf_int(const char *format, ...)
 int reloc_printf_int(const char *format, ...)
 {
   if (!dyn_debug_reloc) return 0;
+  if (NULL == format) return -1;
+
+  debugPrintLock->lock();
+
+  fprintf(stderr, "[%lu]", getExecThreadID());
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  debugPrintLock->unlock();
+
+  return ret;
+}
+
+int eh_printf_int(const char *format, ...)
+{
+  if (!dyn_debug_eh) return 0;
   if (NULL == format) return -1;
 
   debugPrintLock->lock();

@@ -169,6 +169,12 @@ void DYNINSTBaseInit(void)
 #if defined(cap_mutatee_traps)
    DYNINSTinitializeTrapHandler();
 #endif
+#if !defined(DYNINST_RT_STATIC_LIB) && defined(os_linux)
+   /* register every rewritten object's synthesized .eh_frame,
+    * delivered via a DT_DYNINST_EH_FRAME dynamic tag (rationale and the
+    * static-RT exclusion are explained at the definition in RTlinux.c). */
+   DYNINSTregisterEHFrames();
+#endif
    DYNINST_unlock_tramp_guard();
    DYNINSThasInitialized = 1;
 }
