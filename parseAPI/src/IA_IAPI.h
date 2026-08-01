@@ -110,6 +110,11 @@ class IA_IAPI : public InstructionAdapter {
                                 unsigned int,
                                 const std::set<Address> &) const = 0;
         virtual std::pair<bool, Address> getCFT() const;
+        // True if the current instruction has a control-flow target whose
+        // bytes are covered by an unapplied relocation (unlinked object
+        // files only): the encoded target is a placeholder, the real one
+        // is unknowable until link time.
+        bool cftHasUnresolvedReloc() const;
         virtual std::pair<bool, Address> resolveDynamicCallTarget(Dyninst::ParseAPI::Function *,
                                                                   Dyninst::ParseAPI::Block *) const
         {

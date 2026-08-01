@@ -90,6 +90,7 @@ SymtabCodeRegion::SymtabCodeRegion(
             knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
             parsing_printf("Add known data range [%lx, %lx) from symbol %s\n", (*sit)->getOffset(), (*sit)->getOffset() + (*sit)->getSize(), (*sit)->getMangledName().c_str());
         }
+    initRelocOffsets();
 }
 
 
@@ -106,6 +107,31 @@ SymtabCodeRegion::SymtabCodeRegion(
             knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
             parsing_printf("Add known data range [%lx, %lx) from symbol %s\n", (*sit)->getOffset(), (*sit)->getOffset() + (*sit)->getSize(), (*sit)->getMangledName().c_str());
         }
+    initRelocOffsets();
+}
+
+void
+SymtabCodeRegion::initRelocOffsets()
+{
+    // Only unlinked object files (e.g. archive members) contain
+    // relocations that have not yet been applied to the section bytes;
+    // in linked binaries (including those produced with --emit-relocs)
+    // the bytes already hold their final values.
+    if(!_symtab->isUnlinkedObjectFile()) return;
+
+    // In ET_REL files r_offset is relative to the start of the section
+    // the relocation applies to; rebase it into this region's address
+    // space (in practice unlinked sections live at 0, so low() == 0).
+    for(auto const& rel : _region->getRelocations())
+        _reloc_offsets.push_back(low() + rel.rel_addr());
+    std::sort(_reloc_offsets.begin(), _reloc_offsets.end());
+}
+
+bool
+SymtabCodeRegion::hasUnresolvedRelocs(Address lo, Address hi) const
+{
+    auto it = std::lower_bound(_reloc_offsets.begin(), _reloc_offsets.end(), lo);
+    return it != _reloc_offsets.end() && *it < hi;
 }
 
 void
