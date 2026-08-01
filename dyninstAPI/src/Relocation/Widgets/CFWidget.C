@@ -236,7 +236,7 @@ bool CFWidget::generate(const codeGen &,
          if (destMap_.find(Fallthrough) != destMap_.end()) {
             TargetInt *ft = destMap_[Fallthrough];
             if (ft->necessary()) {
-               if (!generateBranch(buffer, 
+               if (!generateBranch(buffer,
                                    ft,
                                    insn_,
                                    trace,
@@ -244,6 +244,13 @@ bool CFWidget::generate(const codeGen &,
                   return false;
                }
             }
+         }
+         else if (isCall_) {
+            // A call with no fallthrough edge does not return (e.g. __cxa_throw,
+            // abort). Some architectures place an instruction after such a call
+            // that the CFG treats as unreachable and drops, but that the
+            // unwinder still relies on; let the target arch re-emit it.
+            emitArchNonReturningCallFixup(buffer, trace);
          }
          break;
       }

@@ -194,6 +194,13 @@ class CFWidget : public Widget {
 							InstructionAPI::Instruction insn,
 							const RelocBlock *trace,
 							Address origAddr);
+
+  // Per-architecture hook (defined in CFWidget-<arch>.C) invoked after a
+  // relocated call that does not return. On most architectures this is a no-op;
+  // ppc64le uses it to re-emit the ELFv2 TOC-restore (`ld r2,24(r1)`) that the
+  // CFG dropped as unreachable but that libgcc's unwinder needs at the call's
+  // return address.
+  void emitArchNonReturningCallFixup(CodeBuffer &gens, const RelocBlock *trace);
 };
 
 struct CFPatch : public Patch {

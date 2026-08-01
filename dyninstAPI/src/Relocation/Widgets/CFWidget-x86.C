@@ -153,6 +153,9 @@ bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
    return true;
 }
 
+// No architecture-specific fixup is needed after a non-returning call on x86/x86-64.
+void CFWidget::emitArchNonReturningCallFixup(CodeBuffer & /*buffer*/, const RelocBlock * /*trace*/) {}
+
 bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
    // Question 1: are we doing an inter-module static control transfer?
    // If so, things get... complicated
