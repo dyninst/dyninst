@@ -130,6 +130,39 @@ void DYNINSTregisterEHFrames(void)
    else if (getenv("DYNINST_DEBUG_EH"))
       fprintf(stderr, "[dyninst-eh] RT register: __register_frame absent, skipping\n");
 }
+
+/* Dynamic-instrumentation delivery. Unlike the rewriter, a live process has no
+ * output ELF / DT tag: dyninstAPI synthesizes the .eh_frame for the in-process
+ * relocated code, writes it into the target, and inferior-RPCs this function
+ * with the region's live address so libgcc's unwinder can unwind through and
+ * catch in the relocated frames. No load base to add -- the address is already
+ * the runtime one. */
+void DYNINSTregisterEHFrame(void *frames)
+{
+   if (__register_frame) {
+      __register_frame(frames);
+      if (getenv("DYNINST_DEBUG_EH"))
+         fprintf(stderr, "[dyninst-eh] RT register (dynamic): eh_frame=%p\n", frames);
+   } else if (getenv("DYNINST_DEBUG_EH")) {
+      fprintf(stderr, "[dyninst-eh] RT register (dynamic): __register_frame absent\n");
+   }
+}
+
+/* Drop a previously-registered dynamic .eh_frame. Each round of dynamic
+ * instrumentation re-relocates the affected functions and synthesizes a fresh
+ * .eh_frame for them; without removing the superseded one, libgcc would keep
+ * stale FDEs covering the same code and could unwind with them. dyninstAPI
+ * deregisters the prior region before registering the new one. */
+extern void __deregister_frame(void *) __attribute__((weak));
+
+void DYNINSTderegisterEHFrame(void *frames)
+{
+   if (__deregister_frame) {
+      __deregister_frame(frames);
+      if (getenv("DYNINST_DEBUG_EH"))
+         fprintf(stderr, "[dyninst-eh] RT deregister (dynamic): eh_frame=%p\n", frames);
+   }
+}
 #endif /* !DYNINST_RT_STATIC_LIB */
 
 /************************************************************************

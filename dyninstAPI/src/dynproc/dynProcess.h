@@ -200,9 +200,18 @@ public:
 		PCThread* thread, 
 		bool synchronous, 
 		void** result, 
-		bool userRPC, 
-		bool isMemAlloc = false, 
+		bool userRPC,
+		bool isMemAlloc = false,
 		Address addr = 0);
+
+    // Synthesize and register (via iRPC) .eh_frame for code just relocated into
+    // this live process, so C++ exceptions can unwind through/catch in it.
+    // Called from BPatch_process::finalizeInsertionSet while the process is
+    // stopped, after the relocated code has been installed.
+    void registerRelocatedExceptionFrames();
+    // Live address of the .eh_frame currently registered with libgcc for
+    // relocated code, or 0 if none; deregistered before each re-registration.
+    Address lastRelocatedEHFrame_ = 0;
 private:
         bool postIRPC_internal(void *buffer,
                                unsigned size,

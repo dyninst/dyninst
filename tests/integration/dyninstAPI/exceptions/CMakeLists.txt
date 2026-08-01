@@ -23,6 +23,12 @@ message(STATUS "Enabling dyninstAPI exception-handling integration tests")
 add_executable(eh_rewrite_driver eh_rewrite_driver.cpp)
 target_link_libraries(eh_rewrite_driver PRIVATE dyninstAPI)
 
+# --- dynamic driver: create the mutatee as a live process and instrument every
+#     basic block, forcing relocation in-process (the original issue reproducer's
+#     path) rather than via the static rewriter ---
+add_executable(eh_dynamic_driver eh_dynamic_driver.cpp)
+target_link_libraries(eh_dynamic_driver PRIVATE dyninstAPI)
+
 # --- mutatees: self-checking C++ programs that throw and catch ---
 set(_eh_mutatees
     eh_single    # single class-type try/catch
@@ -60,14 +66,33 @@ foreach(m ${_eh_mutatees})
       FIXTURES_SETUP eh_fx_${m}
       ENVIRONMENT "${_eh_env}")
 
-  # Phase 2: run the rewritten mutatee; it must still CATCH (print "CAUGHT").
-  # If the synthesized unwind info is wrong the exception escapes and the
-  # process terminates before printing, so the regex fails -> test fails.
+  # Phase 2: run the rewritten mutatee; it must still CATCH the RIGHT exception
+  # and run its cleanups, which each mutatee reports by printing "CAUGHT-<n>"
+  # only on full success (a wrong handler prints "WRONG-...", a skipped cleanup
+  # "NO-CLEANUP-<n>", an escaped exception "MISSED-<n>", and a bad unwind
+  # terminates before printing anything). Matching the success sentinel alone is
+  # therefore sufficient: any failure -- wrong catch, crash, terminate, timeout
+  # -- simply fails to print it. No FAIL_REGULAR_EXPRESSION is needed, and using
+  # one would be a hazard (it takes precedence, so an incidental substring in
+  # e.what() could fail a genuinely-passing run). The "-[0-9]" anchor is load-
+  # bearing: a bare "CAUGHT" is a substring of the "MISSED-<n>" sentinel's
+  # historical spelling, so keep success sentinels disjoint from failure ones.
   add_test(NAME eh_catch_${m} COMMAND "${_rw}")
   set_tests_properties(eh_catch_${m} PROPERTIES
       LABELS "integration;exceptions"
       FIXTURES_REQUIRED eh_fx_${m}
-      PASS_REGULAR_EXPRESSION "CAUGHT"
-      FAIL_REGULAR_EXPRESSION "NOT-CAUGHT|terminate called|WRONG-|NO-CLEANUP"
+      PASS_REGULAR_EXPRESSION "CAUGHT-[0-9]"
+      ENVIRONMENT "${_eh_env}")
+
+  # Dynamic-instrumentation path: create the mutatee live, instrument every basic
+  # block (forcing relocation), and run it. Same pass/fail contract as eh_catch;
+  # the driver create+instrument+runs in one shot (no fixture). Like any Dyninst
+  # mutator it needs the RT at load time (DYNINSTAPI_RT_LIB).
+  add_test(NAME eh_dyncatch_${m}
+           COMMAND eh_dynamic_driver "$<TARGET_FILE:${m}>")
+  set_tests_properties(eh_dyncatch_${m} PROPERTIES
+      LABELS "integration;exceptions"
+      PASS_REGULAR_EXPRESSION "CAUGHT-[0-9]"
+      TIMEOUT 180
       ENVIRONMENT "${_eh_env}")
 endforeach()

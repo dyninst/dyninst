@@ -11,6 +11,6 @@ int main() {
     std::printf("CAUGHT-7 %s\n", b.tag());
     return 0;
   }
-  std::printf("NOT-CAUGHT-7\n");
+  std::printf("MISSED-7\n");
   return 2;
 }

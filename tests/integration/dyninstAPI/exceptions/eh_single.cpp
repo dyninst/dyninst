@@ -9,6 +9,6 @@ int main() {
     std::printf("CAUGHT-1 %s\n", e.what());
     return 0;
   }
-  std::printf("NOT-CAUGHT-1\n");
+  std::printf("MISSED-1\n");
   return 2;
 }
