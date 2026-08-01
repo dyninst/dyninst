@@ -397,7 +397,7 @@ jobs:
     strategy:
       matrix:
         os: ${{ fromJson(needs.get-oses.outputs.latest) }}
-        bt: ${{ fromJson(needs.get-build-types.outputs.all }}
+        bt: ${{ fromJson(needs.get-build-types.outputs.all) }}
     steps:
     - name: Checkout Dyninst
       uses: actions/checkout@v4

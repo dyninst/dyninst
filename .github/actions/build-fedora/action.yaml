@@ -47,7 +47,7 @@ runs:
         esac
         echo "value={ \"c\" : \"${cc}\", \"cxx\" : \"${cxx}\" }" >> $GITHUB_OUTPUT
 
-    - name: Build Dyninst (${{ fromJson(steps.compiler-name.outputs).c }}, ${{ inputs.build-type }} ${{ inputs.extra-cmake-flags }})
+    - name: Build Dyninst (${{ fromJson(steps.compiler-name.outputs.value).c }}, ${{ inputs.build-type }} ${{ inputs.extra-cmake-flags }})
       shell: bash
       run: |
         cmake_args="-DCMAKE_C_COMPILER=${{ fromJson(steps.compiler-name.outputs.value).c }} "
