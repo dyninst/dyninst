@@ -1495,6 +1495,15 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             } else {
                 ct = _parse_data->findFunc(frame.codereg, work->target());
             }
+            if (!ct) {
+                // The target is not code in this frame's region and no
+                // function exists there: e.g. a bogus cross-region target
+                // in a binary with overlapping regions. Skip the work
+                // element rather than dereference a NULL function.
+                parsing_printf("[%s] call target %lx has no function in frame's region; skipping work element\n",
+                        FILE__, work->target());
+                continue;
+            }
             bool frame_not_created = (frame_status(ct->region(),ct->addr())==ParseFrame::BAD_LOOKUP);
             parsing_printf("\tframe %lx, not created %d\n", ct->addr(), frame_not_created);
 
