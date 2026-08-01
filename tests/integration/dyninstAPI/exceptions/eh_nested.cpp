@@ -18,6 +18,6 @@ int main() {
     std::printf("CAUGHT-3 %s\n", o.w);
     return 0;
   }
-  std::printf("NOT-CAUGHT-3\n");
+  std::printf("MISSED-3\n");
   return 2;
 }

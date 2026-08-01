@@ -16,6 +16,6 @@ int main() {
     std::printf("CAUGHT-2 %s\n", p.w);
     return 0;
   }
-  std::printf("NOT-CAUGHT-2\n");
+  std::printf("MISSED-2\n");
   return 2;
 }
