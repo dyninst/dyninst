@@ -32,6 +32,7 @@
 
 #include "registers/x86_64_regs.h"
 #include "registers/aarch64_regs.h"
+#include "registers/ppc64_regs.h"
 
 namespace Dyninst {
 
@@ -58,9 +59,23 @@ const EHFrameArch* ehFrameArchFor(Architecture arch) {
     /* stackPtrDwarf       */ 31,
   };
 
+  // ppc64le (ELFv2): link-register architecture. The link register is DWARF
+  // number 65 and is sampled like a callee-saved register. Initial CFI:
+  // def_cfa r1(sp),0.
+  static const EHFrameArch k_ppc64 = {
+    /* returnAddrReg       */ 65,
+    /* cieInitialCFI       */ { 0x0c, 1, 0 },
+    /* calleeSavedDwarfRegs*/ { 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+                                24, 25, 26, 27, 28, 29, 30, 31, 65 },  // r14-r31, lr(65)
+    /* framePtr            */ ppc64::r31,
+    /* framePtrDwarf       */ 31,
+    /* stackPtrDwarf       */ 1,
+  };
+
   switch (arch) {
     case Arch_x86_64:  return &k_x86_64;
     case Arch_aarch64: return &k_aarch64;
+    case Arch_ppc64:   return &k_ppc64;
     default:           return nullptr;
   }
 }
