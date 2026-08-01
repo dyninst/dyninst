@@ -57,7 +57,8 @@ void synthesizeRelocatedEHFrame(SymtabAPI::Symtab *symObj,
                                 std::list<Relocation::CodeTracker *> &relocatedCode,
                                 const EHFrameArch &arch,
                                 Address regionHighWaterMark,
-                                Address ownLo = 0, Address ownHi = 0);
+                                Address ownLo = 0, Address ownHi = 0,
+                                Address loadBias = 0);
 
 // Build the .eh_frame / .gcc_except_table bytes for the relocated code, placed
 // at addresses derived from `regionBase`, WITHOUT delivering them. Pure and
@@ -83,7 +84,14 @@ unsigned buildRelocatedEHFrame(SymtabAPI::Symtab *symObj,
                                std::vector<unsigned char> &exOut,
                                Address &ehVaddrOut,
                                Address &exVaddrOut,
-                               Address ownLo = 0, Address ownHi = 0);
+                               Address ownLo = 0, Address ownHi = 0,
+                               // Load bias (mapped_object::codeBase()): runtime = link + loadBias.
+                               // The CodeTrackers carry RUNTIME original addresses, but the DWARF
+                               // CFI (getCFALocations) and LSDA (getEHFrameInfo) are read at
+                               // LINK-time addresses. For a PIE they differ; without the bias every
+                               // CFA lookup and LSDA assignment misses (0 rules, 0 landing pads) and
+                               // exceptions escape. 0 for non-PIE / the static rewriter.
+                               Address loadBias = 0);
 
 }  // namespace Dyninst
 
