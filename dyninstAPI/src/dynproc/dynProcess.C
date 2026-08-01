@@ -1644,13 +1644,17 @@ void PCProcess::registerRelocatedExceptionFrames() {
    // to std::terminate). Pass the a.out's runtime code range as the filter.
    Address ownLo = ao->codeAbs();
    Address ownHi = ownLo + ao->imageSize();
+   // The trackers carry RUNTIME original addresses; the a.out's DWARF CFI and
+   // LSDA are read at LINK-time addresses. codeBase() is the load bias (0 for a
+   // non-PIE ET_EXEC, the mapped base for a PIE), so runtime = link + codeBase().
+   Address loadBias = ao->codeBase();
 
    // Pass 1: size the blobs (their byte lengths do not depend on placement).
    std::vector<unsigned char> eh, ex;
    Address ehV = 0, exV = 0;
    unsigned nfde = Dyninst::buildRelocatedEHFrame(symObj, relocatedCode_, *arch,
                                                   0 /*placeholder base*/, eh, ex, ehV, exV,
-                                                  ownLo, ownHi);
+                                                  ownLo, ownHi, loadBias);
    if (!nfde) return;                          // nothing exception-bearing was relocated
 
    // The RT entrypoint must be present (it lives in the injected RT library).
@@ -1675,7 +1679,7 @@ void PCProcess::registerRelocatedExceptionFrames() {
    // Pass 2: rebuild at the real base and write the bytes into the target.
    eh.clear(); ex.clear(); ehV = exV = 0;
    Dyninst::buildRelocatedEHFrame(symObj, relocatedCode_, *arch, base, eh, ex, ehV, exV,
-                                  ownLo, ownHi);
+                                  ownLo, ownHi, loadBias);
    if (!ex.empty())
       writeDataSpace((void *)exV, (u_int)ex.size(), ex.data());
    writeDataSpace((void *)ehV, (u_int)eh.size(), eh.data());

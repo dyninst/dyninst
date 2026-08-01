@@ -68,7 +68,8 @@ unsigned Dyninst::buildRelocatedEHFrame(Symtab *symObj,
                                         std::vector<unsigned char> &exOut,
                                         Address &ehVaddrOut,
                                         Address &exVaddrOut,
-                                        Address ownLo, Address ownHi) {
+                                        Address ownLo, Address ownHi,
+                                        Address loadBias) {
   typedef std::list<Relocation::CodeTracker *> CodeTrackers;
 
   // ---- byte emitters (buffer-parameterized) ----
@@ -244,6 +245,23 @@ unsigned Dyninst::buildRelocatedEHFrame(Symtab *symObj,
   // ---- Extract + assign original LSDA info to relocated functions. ----
   std::vector<EHFunctionInfo> ehInfos;
   symObj->getEHFrameInfo(ehInfos);
+  // getEHFrameInfo reports LINK-time addresses; the CodeTrackers (origRuns,
+  // origToReloc, the ownership range) are in RUNTIME space. Rebase the LSDA by
+  // the load bias so overlap-assignment and origToReloc resolve in one space.
+  // Code addresses (func_low_pc, call-site region/pad) and the mutatee's own GOT
+  // slots (personality/type targets, via indirect encodings) all shift by the
+  // same bias. Bias 0 for non-PIE / the static rewriter.
+  if (loadBias) {
+    for (auto &info : ehInfos) {
+      info.func_low_pc += loadBias;
+      if (info.personality_target) info.personality_target += loadBias;
+      for (auto &cs : info.callsites) {
+        cs.region_start += loadBias;
+        if (cs.landing_pad) cs.landing_pad += loadBias;
+      }
+      for (auto &t : info.type_targets) if (t) t += loadBias;
+    }
+  }
   // Type-table entry encoding, from the first LSDA that has a type table (PIE:
   // indirect|pcrel|sdata4 = 0x9b). Personality is looked up per-function at
   // CIE-emit time (funcPers), not tracked globally.
@@ -589,18 +607,21 @@ unsigned Dyninst::buildRelocatedEHFrame(Symtab *symObj,
     // relocated runs; the per-run FDE filter below selects each run's rules.
     std::vector<RuleEvent> ruleEvents;
     for (auto &orun : f->origRuns) {
+      // origRuns are RUNTIME addresses; the DWARF frame parser reads LINK-time
+      // PCs. Query in link space (-loadBias) and map each result PC back to
+      // runtime (+loadBias) before origToReloc. No-op for non-PIE (bias 0).
       std::vector<VariableLocation> cfa;
-      if (symObj->getCFALocations(orun.first, orun.second+1, cfa))
+      if (symObj->getCFALocations(orun.first - loadBias, orun.second+1 - loadBias, cfa))
         for (auto &L : cfa) {
-          Address r = origToReloc(L.lowPC);
+          Address r = origToReloc(L.lowPC + loadBias);
           if (!r) continue;
           ruleEvents.push_back({ r, -1, 0, dwreg(L.mr_reg), (int64_t)L.frameOffset });
         }
       for (size_t k = 0; k < calleeSavedRegs.size(); ++k) {
         std::vector<Symtab::FrameRegRule> rr;
-        if (!symObj->getFrameRegRulesByDwarf(orun.first, orun.second+1, calleeSavedRegs[k], rr)) continue;
+        if (!symObj->getFrameRegRulesByDwarf(orun.first - loadBias, orun.second+1 - loadBias, calleeSavedRegs[k], rr)) continue;
         for (auto &R : rr) {
-          Address r = origToReloc(R.lowPC);
+          Address r = origToReloc(R.lowPC + loadBias);
           if (!r) continue;
           int64_t v = (R.kind == Symtab::FrameRegRule::InRegister)
                       ? (int64_t)R.regnum : (int64_t)R.offset;
@@ -725,12 +746,13 @@ void Dyninst::synthesizeRelocatedEHFrame(Symtab *symObj,
                                          std::list<Relocation::CodeTracker *> &relocatedCode,
                                          const EHFrameArch &arch,
                                          Address regionHighWaterMark,
-                                         Address ownLo, Address ownHi) {
+                                         Address ownLo, Address ownHi,
+                                         Address loadBias) {
   std::vector<unsigned char> eh, ex;
   Address ehVaddr = 0, exVaddr = 0;
   unsigned nfde = buildRelocatedEHFrame(symObj, relocatedCode, arch,
                                         regionHighWaterMark, eh, ex, ehVaddr, exVaddr,
-                                        ownLo, ownHi);
+                                        ownLo, ownHi, loadBias);
   if (!nfde) return;
   if (!ex.empty()) {
     void *exCopy = malloc(ex.size()); memcpy(exCopy, ex.data(), ex.size());
