@@ -166,6 +166,10 @@ typedef struct {
 
 #define TRAP_HEADER_SIG 0x759191D6
 #define DT_DYNINST 0x6D191957
+/* dynamic tag carrying the link-time vaddr of the synthesized
+ * .dyninst_ehframe region; the RT adds the object's load base (the loader does
+ * not relocate unknown OS-specific tags -- same convention as DT_DYNINST). */
+#define DT_DYNINST_EH_FRAME 0x6D191958
 
 // Suppress warning about flexible array members not valid in C++
 // FIXME: invalid flexible array member, traps[], in structure below

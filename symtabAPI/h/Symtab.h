@@ -51,6 +51,7 @@
 #include "relocationEntry.h"
 #include "ExceptionBlock.h"
 #include "dyninstversion.h"
+#include "VariableLocation.h"
 
 #include "boost/shared_ptr.hpp"
 
@@ -73,6 +74,27 @@ class Type;
 struct symtab_impl;
 
 typedef Dyninst::ProcessReader MemRegReader;
+
+// decoded C++ exception-handling info for one function, extracted
+// from .eh_frame (FDE->LSDA linkage) + .gcc_except_table. Used to regenerate a
+// valid LSDA for relocated/instrumented code. All addresses are in the input
+// binary's (original) vaddr space.
+struct EHCallSite {
+   Dyninst::Offset region_start;  // absolute; the try region [start, start+size)
+   Dyninst::Offset region_size;
+   Dyninst::Offset landing_pad;   // absolute; 0 = no landing pad
+   uint64_t        action;        // 1-based byte index into action_table (0 = none)
+};
+struct EHFunctionInfo {
+   Dyninst::Offset func_low_pc{0};        // FDE initial_location
+   Dyninst::Offset lpstart{0};            // landing-pad base (== low_pc if LPStart omitted)
+   unsigned char   ttype_format{0xff};    // DW_EH_PE_* encoding of type-table entries
+   unsigned char   personality_format{0xff};
+   Dyninst::Offset personality_target{0}; // absolute target the CIE 'P' aug resolves to
+   std::vector<EHCallSite>       callsites;
+   std::vector<unsigned char>    action_table;  // raw bytes, verbatim
+   std::vector<Dyninst::Offset>  type_targets;  // abs targets; index 0 == filter value 1
+};
 
 class DYNINST_EXPORT Symtab : public LookupInterface,
                public AnnotatableSparse
@@ -539,6 +561,34 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
  public:
    Object *getObject();
    const Object *getObject() const;
+   // CFA (canonical frame address) rules over [low,high) from the
+   // binary's .eh_frame, used to synthesize unwind info for relocated code.
+   DYNINST_EXPORT bool getCFALocations(Offset low, Offset high,
+                                       std::vector<VariableLocation> &locs);
+   // the classified CFI rule for one register over [low,high),
+   // one entry per CFI row: where the caller's value of `reg` lives at each
+   // PC sub-range (unchanged, saved at CFA+offset, moved to another register,
+   // or undefined). Rules that cannot be expressed as one of these kinds
+   // (DWARF expressions, val_offset) are reported Undefined. Used with
+   // getCFALocations to synthesize unwind info for relocated code.
+   struct FrameRegRule {
+      Offset lowPC, hiPC;
+      enum Kind { SameValue = 0, AtCFAOffset = 1, InRegister = 2,
+                  Undefined = 3 } kind;
+      long offset;      // AtCFAOffset: value is stored at CFA+offset
+      unsigned regnum;  // InRegister: DWARF number of the holding register
+   };
+   DYNINST_EXPORT bool getFrameRegRules(Offset low, Offset high,
+                                        Dyninst::MachRegister reg,
+                                        std::vector<FrameRegRule> &rules);
+   // As above, keyed on a raw DWARF register number (reaches columns with no
+   // Dyninst MachRegister, e.g. ppc64 return address = DWARF 65).
+   DYNINST_EXPORT bool getFrameRegRulesByDwarf(Offset low, Offset high,
+                                               unsigned dwarfReg,
+                                               std::vector<FrameRegRule> &rules);
+   // decoded LSDA/eh info per function (see EHFunctionInfo), used to
+   // regenerate exception tables for relocated code.
+   DYNINST_EXPORT bool getEHFrameInfo(std::vector<EHFunctionInfo> &out);
    void dumpModRanges();
    void dumpFuncRanges();
 

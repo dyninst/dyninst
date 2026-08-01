@@ -33,6 +33,7 @@
 #include "Architecture.h"
 #include "binaryEdit.h"
 #include "common/src/headers.h"
+#include "common/src/debug_common.h"
 #include "mapped_object.h"
 #include "mapped_module.h"
 #include "debug.h"
@@ -45,10 +46,15 @@
 #include "image.h"
 #include "Symbol.h"
 #include "Archive.h"
+// synthesize .eh_frame for relocated code (machinery in eh_frame_gen.{h,C})
+#include "eh_frame_arch.h"   // per-arch CFI parameters, ehFrameArchFor()
+#include "eh_frame_gen.h"    // synthesizeRelocatedEHFrame()
+#include "Relocation/CodeTracker.h"
 
 #include <cstdio>
 #include <iostream>
 #include <map>
+#include <algorithm>
 #include <tuple>
 
 using namespace Dyninst::SymtabAPI;
@@ -568,7 +574,17 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       symObj->findRegion(newSec, ".dyninstInst");
       assert(newSec);
 
-      
+      // Synthesize .eh_frame (+ .gcc_except_table) for the relocated code and
+      // register it at load, so C++ exceptions can be unwound through and caught
+      // in relocated frames. All the CIE/FDE/LSDA machinery lives in
+      // synthesizeRelocatedEHFrame(); the per-arch CFI parameters come from
+      // ehFrameArchFor() (nullptr => unsupported arch, skipped). Dynamic
+      // rewriting only -- the static RT does not register the region (see
+      // RTcommon.c), so generating it there would be dead weight.
+      const EHFrameArch* ehArch = ehFrameArchFor(getArch());
+      if (!symObj->isStaticBinary() && ehArch)
+        synthesizeRelocatedEHFrame(symObj, relocatedCode_, *ehArch, highWaterMark_);
+
       if (mobj == getAOut()) {
          // Add dynamic symbol relocations
          for (unsigned i=0; i < dependentRelocations.size(); i++) {
