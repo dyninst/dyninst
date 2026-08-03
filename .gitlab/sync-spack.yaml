@@ -1,7 +1,7 @@
 include:
   - component: $CI_SERVER_FQDN/dav-sdk/gh-gl-sync/github-sync@~latest
     inputs:
-      github_project: hainest/dyninst
+      github_project: dyninst/dyninst
       gitlab_repo: git@ssh.gitlab.spack.io:tools-sdk/dyninst
       gitlab_host: https://gitlab.spack.io
       gitlab_project: tools-sdk/dyninst
