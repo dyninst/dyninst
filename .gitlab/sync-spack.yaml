@@ -8,5 +8,4 @@ include:
       sync_draft_prs: false
       environment: ghgl-bridge
       status_context: "GitLab CI on Frank"
-      job_stage: sync
       sync_image: ghcr.io/spack/ci-bridge:0.0.51
