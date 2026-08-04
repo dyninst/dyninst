@@ -286,8 +286,13 @@ which are both 0).
 
       if(LK == 1) {
         // 1. Do not use bclrl as a subroutine call
+        //
+        // As with the LK=0 case below, whether the branch is taken is
+        // governed by BO, so use the conditionality derived in BO() rather
+        // than marking the LR successor unconditionally conditional.
         auto lr = makeRegisterExpression(ppc32::lr);
-        insn_in_progress->addSuccessor(std::move(lr), !is_call, is_indirect, is_conditional, !is_fallthrough);
+        insn_in_progress->addSuccessor(std::move(lr), !is_call, is_indirect, this->bcIsConditional,
+                                       !is_fallthrough);
       }
       else {
         // 2. The conventional return sequence is to use `bclr` with BH=0b00

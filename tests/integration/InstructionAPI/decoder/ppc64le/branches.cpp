@@ -303,13 +303,10 @@ std::vector<test_insn> make_tests() {
       {}
     },
     { // bclrl  (LK=1; BO=branch-always)
-      // The LR target is still marked conditional even though BO says
-      // branch-always (there is no fallthrough successor, so the flag is
-      // inconsistent); this documents current decoder behavior.
       0x4e800021, !is_branch, is_return,
       {},
       {},
-      test_cft{lr_value, {!is_call, is_conditional, is_indirect, !is_fallthrough}},
+      test_cft{lr_value, {!is_call, !is_conditional, is_indirect, !is_fallthrough}},
       {},
       {}
     },
