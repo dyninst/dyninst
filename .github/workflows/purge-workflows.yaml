@@ -18,7 +18,7 @@ jobs:
         with:
           token: ${{ secrets.github_token }}
           repository: ${{ github.repository }}
-          # remove anything older than two weeks
-          retain_days: 14
+          # remove anything older than two months
+          retain_days: 60
           # keep at least one run of any workflow
           keep_minimum_runs: 1
