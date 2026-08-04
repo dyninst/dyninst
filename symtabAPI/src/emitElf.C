@@ -70,52 +70,15 @@ unsigned int elfHash(const char *name) {
 template<class ElfTypes>
 emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *obj_, void (*err_func)(const char *),
                                Symtab *st) :
-        oldElfHandle(oldElfHandle_), newElf(NULL), oldElf(NULL),
-        obj(st),
-        newEhdr(NULL), oldEhdr(NULL),
-        newPhdr(NULL), oldPhdr(NULL), phdr_offset(0),
-        textData(NULL), symStrData(NULL), dynStrData(NULL),
-        olddynStrData(NULL), olddynStrSize(0),
-        symTabData(NULL), dynsymData(NULL), dynData(NULL),
-        phdrs_scn(NULL), verneednum(0), verdefnum(0),
-        newSegmentStart(0), firstNewLoadSec(NULL),
-        dynSegOff(0), dynSegAddr(0),
-        phdrSegOff(0), phdrSegAddr(0), dynSegSize(0),
-        secNameIndex(0), currEndOffset(0), currEndAddress(0),
-        linkedStaticData(NULL), loadSecTotalSize(0),
-        isStripped(isStripped_), library_adjust(0),
-        object(obj_), err_func_(err_func),
-        hasRewrittenTLS(false), TLSExists(false), newTLSData(NULL) {
-    oldElf = oldElfHandle->e_elfp();
-    curVersionNum = 2;
-
-    //Set variable based on the mechanism to add new load segment
-    // 1) createNewPhdr (Total program headers + 1) - default
-    //    library_adjust - create room for a new program header in a position-indepdent library
-    //    by increasing all virtual addresses for the library
-
-    //If we're dealing with a library that can be loaded anywhere,
-    // then load the program headers into the later part of the binary,
-    // this may trigger a kernel bug that was fixed in Summer 2007,
-    // but is the only reliable way to modify these libraries.
-    //If we're dealing with a library/executable that loads at a specific
-    // address we'll put the phdrs into the page before that address.  This
-    // works and will avoid the kernel bug.
-
-    isStaticBinary = obj_->isStaticBinary();
-
-    //If we want to try a mode where we add the program headers to a library
-    // that can be loaded anywhere, and put the program headers in the first
-    // page (avoiding the kernel bug), then set library_adjust to getpagesize().
-    // This will shift all addresses in the library down by a page, accounting
-    // for the extra page for program headers.  This causes some significant
-    // changes to the binary, and isn't well tested.
-
-    library_adjust = 0;
-    if (!(object && object->getLoadAddress())) {
-        library_adjust = getpagesize();
-    }
-
+    oldElfHandle{oldElfHandle_},
+    oldElf{oldElfHandle->e_elfp()},
+    obj(st),
+    isStripped(isStripped_),
+    library_adjust{getpagesize()},
+    object(obj_),
+    err_func_(err_func),
+    isStaticBinary{obj_->isStaticBinary()}
+{
     assert(obj && object && object == dynamic_cast<ObjectELF*>(obj->getObject()));
 }
 

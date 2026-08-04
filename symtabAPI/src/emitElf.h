@@ -175,30 +175,30 @@ namespace Dyninst {
             bool driver(std::string fName);
 
         private:
-            Elf_X *oldElfHandle;
-            Elf *newElf;
-            Elf *oldElf;
-            Symtab *obj;
+            Elf_X *oldElfHandle{};
+            Elf *newElf{};
+            Elf *oldElf{};
+            Symtab *obj{};
             //New Section & Program Headers
-            Elf_Ehdr *newEhdr;
-            Elf_Ehdr *oldEhdr;
+            Elf_Ehdr *newEhdr{};
+            Elf_Ehdr *oldEhdr{};
 
-            Elf_Phdr *newPhdr;
-            Elf_Phdr *oldPhdr;
-            Offset phdr_offset;
+            Elf_Phdr *newPhdr{};
+            Elf_Phdr *oldPhdr{};
+            Offset phdr_offset{};
 
             //important data sections in the
             //new Elf that need updated
-            Elf_Data *textData;
-            Elf_Data *symStrData;
-            Elf_Data *dynStrData;
-            char *olddynStrData;
-            unsigned olddynStrSize;
-            Elf_Data *symTabData;
-            Elf_Data *dynsymData;
-            Elf_Data *dynData;
+            Elf_Data *textData{};
+            Elf_Data *symStrData{};
+            Elf_Data *dynStrData{};
+            char *olddynStrData{};
+            unsigned olddynStrSize{};
+            Elf_Data *symTabData{};
+            Elf_Data *dynsymData{};
+            Elf_Data *dynData{};
 
-            Elf_Scn *phdrs_scn;
+            Elf_Scn *phdrs_scn{};
 
             std::vector<Region *>nonLoadableSecs;
             std::vector<Region *> newSecs;
@@ -213,31 +213,36 @@ namespace Dyninst {
             std::map<unsigned, std::vector<std::string> > verdauxEntries;
             std::map<std::string, unsigned> versionNames;
             std::vector<Elf_Half> versionSymTable;
-            int curVersionNum, verneednum, verdefnum{};
+            int curVersionNum{2};
+            int verneednum{};
+            int verdefnum{};
 
             // Needed when adding a new segment
-            Elf_Off newSegmentStart;
-            Elf_Shdr *firstNewLoadSec;// initialize to NULL
+            Elf_Off newSegmentStart{};
+            Elf_Shdr *firstNewLoadSec{};
 
-            Elf_Off dynSegOff, dynSegAddr, phdrSegOff, phdrSegAddr;
-            unsigned dynSegSize;
+            Elf_Off dynSegOff{};
+            Elf_Off dynSegAddr{};
+            Elf_Off phdrSegOff{};
+            Elf_Off phdrSegAddr{};
+            unsigned dynSegSize{};
 
             //Section Names for all sections
             vector<std::string> secNames;
-            unsigned secNameIndex;
-            Offset currEndOffset;
-            Address currEndAddress;
+            unsigned secNameIndex{};
+            Offset currEndOffset{};
+            Address currEndAddress{};
 
             // Pointer to all relocatable code and data allocated during a static link,
             // to be deleted after written out
-            char *linkedStaticData;
+            char *linkedStaticData{};
 
             //flags
             // Expand NOBITS sections within the object file to their size
-            unsigned loadSecTotalSize;
+            unsigned loadSecTotalSize{};
 
-            bool isStripped;
-            int library_adjust;
+            bool isStripped{};
+            int library_adjust{};
             ObjectELF *object;
 
             void (*err_func_)(const char*);
@@ -265,9 +270,9 @@ namespace Dyninst {
 
             void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
 
-            bool hasRewrittenTLS;
-            bool TLSExists;
-            Elf_Shdr *newTLSData;
+            bool hasRewrittenTLS{};
+            bool TLSExists{};
+            Elf_Shdr *newTLSData{};
 
             void updateDynamic(unsigned tag, Elf_Addr val);
 
@@ -285,7 +290,7 @@ namespace Dyninst {
 
             void log_elferror(void (*err_func)(const char *), const char* msg);
 
-            bool isStaticBinary;
+            bool isStaticBinary{};
             std::vector<void*> buffers;
             char* allocate_buffer(size_t);
 
