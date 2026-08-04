@@ -45,11 +45,6 @@
 #include <unordered_set>
 #include <vector>
 
-using std::cerr;
-using std::cout;
-using std::endl;
-using std::vector;
-
 extern const char *STRTAB_NAME;
 extern const char *SYMTAB_NAME;
 extern const char *INTERP_NAME;
@@ -228,7 +223,7 @@ namespace Dyninst {
             unsigned dynSegSize{};
 
             //Section Names for all sections
-            vector<std::string> secNames;
+            std::vector<std::string> secNames;
             unsigned secNameIndex{};
             Offset currEndOffset{};
             Address currEndAddress{};
@@ -247,7 +242,7 @@ namespace Dyninst {
 
             void (*err_func_)(const char*);
 
-            bool createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf_Sym *> &symbols,
+            bool createElfSymbol(Symbol *symbol, unsigned strIndex, std::vector<Elf_Sym *> &symbols,
                                  bool dynSymFlag = false);
             // Find the start address of the last section that falls within the
             // last loadable (PT_LOAD) segment. This is where new loadable
