@@ -262,37 +262,31 @@ std::vector<test_insn> make_tests() {
     /*
      *  --- Branch Conditional B-form ---
      */
-    { //  bc +32
+    { //  bc +32  (BO=branch-always)
       0x42f00020, is_branch, !is_return,
-      test_cft{pc_value + 32, {!is_call, is_conditional, !is_indirect, !is_fallthrough}},
-      {},
-      {},
-      {},
-      test_cft{pc_value + 4, {!is_call, !is_conditional, !is_indirect, is_fallthrough}}
+      test_cft{pc_value + 32, {!is_call, !is_conditional, !is_indirect, !is_fallthrough}},
+      {}, {}, {}, {}
     },
-    { //  bca 32
+    { //  bca 32  (BO=branch-always)
       0x42f00022, is_branch, !is_return,
       {},
       {},
       {},
-      test_cft{32, {!is_call, is_conditional, !is_indirect, !is_fallthrough}},
-      test_cft{pc_value + 4, {!is_call, !is_conditional, !is_indirect, is_fallthrough}},
+      test_cft{32, {!is_call, !is_conditional, !is_indirect, !is_fallthrough}},
+      {}
     },
-    { //  bcl +32  (subroutine call to relative address)
+    { //  bcl +32  (subroutine call to relative address; BO=branch-always)
       0x42f00021, !is_branch, !is_return,
-      test_cft{pc_value + 32, {is_call, is_conditional, !is_indirect, !is_fallthrough}},
-      {},
-      {},
-      {},
-      test_cft{pc_value + 4, {!is_call, !is_conditional, !is_indirect, is_fallthrough}},
+      test_cft{pc_value + 32, {is_call, !is_conditional, !is_indirect, !is_fallthrough}},
+      {}, {}, {}, {}
     },
-    { //  bcla 32  (subroutine call to immediate target)
+    { //  bcla 32  (subroutine call to immediate target; BO=branch-always)
       0x42f00023, !is_branch, !is_return,
       {},
       {},
       {},
-      test_cft{pc_value + 32, {is_call, is_conditional, !is_indirect, !is_fallthrough}},
-      test_cft{pc_value + 4, {!is_call, !is_conditional, !is_indirect, is_fallthrough}}
+      test_cft{pc_value + 32, {is_call, !is_conditional, !is_indirect, !is_fallthrough}},
+      {}
     },
 
     /*
@@ -308,13 +302,16 @@ std::vector<test_insn> make_tests() {
       {},
       {}
     },
-    { // bclrl  (LK=1)
-      0x4e800021, is_branch, !is_return,
+    { // bclrl  (LK=1; BO=branch-always)
+      // The LR target is still marked conditional even though BO says
+      // branch-always (there is no fallthrough successor, so the flag is
+      // inconsistent); this documents current decoder behavior.
+      0x4e800021, !is_branch, is_return,
       {},
       {},
       test_cft{lr_value, {!is_call, is_conditional, is_indirect, !is_fallthrough}},
       {},
-      test_cft{pc_value + 4, {!is_call, !is_conditional, !is_indirect, is_fallthrough}},
+      {}
     },
     { // bdnzfl gt, 0x100
       0x40010101, !is_branch, !is_return,

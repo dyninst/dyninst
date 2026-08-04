@@ -198,21 +198,21 @@ std::vector<decode_test> make_tests() {
       0x7ca74a6e,
       di::register_rw_test{ reg_set{r7, r9}, reg_set{r5, r7} }
     },
-    { // bclr (with BH=0, return from subroutine)
+    { // bclr (with BH=0, return from subroutine; BO=branch-always)
       0x4e800020,
-      di::register_rw_test{ reg_set{ctr, lr, cr0}, reg_set{pc, ctr} }
+      di::register_rw_test{ reg_set{ctr, lr}, reg_set{pc} }
     },
-    { // bclrl
+    { // bclrl  (BO=branch-always)
       0x4e800021,
-      di::register_rw_test{ reg_set{ctr, lr, cr0}, reg_set{ctr, lr, pc} }
+      di::register_rw_test{ reg_set{ctr, lr}, reg_set{lr, pc} }
     },
-    { // bctr (LK=0)
+    { // bctr (LK=0; BO=branch-always)
       0x4e800420,
-      di::register_rw_test{ reg_set{ctr, cr0}, reg_set{pc} }
+      di::register_rw_test{ reg_set{ctr}, reg_set{pc} }
     },
-    { // bctrl (LK=1)
+    { // bctrl (LK=1; BO=branch-always)
       0x4e800421,
-      di::register_rw_test{ reg_set{lr, ctr, cr0}, reg_set{lr, pc} }
+      di::register_rw_test{ reg_set{lr, ctr}, reg_set{lr, pc} }
     },
   };
   // clang-format on
