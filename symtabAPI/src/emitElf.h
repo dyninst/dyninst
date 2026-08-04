@@ -258,7 +258,7 @@ namespace Dyninst {
             // last loadable (PT_LOAD) segment. This is where new loadable
             // sections are appended. Also sets TLSExists as a side effect.
             Elf_Off findLastLoadableSec();
-            void renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll=true);
+            void renameSection(const std::string &oldName);
             void fixPhdrs();
 
             bool addSectionHeaderTable(Elf_Shdr *shdr);
