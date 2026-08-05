@@ -5,6 +5,8 @@ on:
     - cron: '0 3 25 * *'  # 3AM on the 25th of every month
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
 
   get-oses:
@@ -102,3 +104,4 @@ jobs:
     uses: ./.github/workflows/dev-containers.yaml
     permissions:
       packages: write
+      actions: read
