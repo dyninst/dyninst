@@ -42,7 +42,7 @@ jobs:
       latest: ${{ steps.all.outputs.latest }}
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.02
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - id: all
         uses: ./.github/actions/os-versions
@@ -54,7 +54,7 @@ jobs:
       all: ${{ steps.compilers.outputs.value }}
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.02
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         
       - id: compilers
         shell: bash
@@ -82,7 +82,7 @@ jobs:
     name: Binary tests (${{ matrix.os }}, ${{ matrix.compiler }})
     steps:
       - name: Checkout Dyninst
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.02
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: "src"  # relative to ${GITHUB_WORKSPACE}
 

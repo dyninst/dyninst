@@ -13,7 +13,7 @@ jobs:
       all: ${{ steps.all.outputs.all }}
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.02
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - id: all
         uses: ./.github/actions/os-versions
@@ -60,7 +60,7 @@ jobs:
       packages: write
     name: Update base containers
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.02
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: GHCR Login
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f  # v4.6.0
