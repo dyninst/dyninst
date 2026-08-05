@@ -22,7 +22,7 @@ jobs:
       value: ${{ steps.version.outputs.release }}
     steps:
       - id: version
-        uses: pozetroninc/github-action-get-latest-release@53d33d213ee71c72360e3c829caf7cee94ec21e2 # master
+        uses: pozetroninc/github-action-get-latest-release@5ac6001ed175b443484c81ab32a20e12132be99c # master
         with:
           repository: "dyninst/dyninst"
           excludes: "prerelease, draft"
