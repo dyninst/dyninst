@@ -2046,14 +2046,10 @@ DYNINST_EXPORT bool Symtab::addLibraryPrereq(std::string const& name)
 	{
 		return false;
 	}
-   // remove forward slashes and back slashes
-   size_t size = name.find_last_of("/");
-   size_t lastBS = name.find_last_of("\\");
-   if (lastBS > size) {
-      size = lastBS;
-   }
-
-   string filename = name.substr(size+1);
+   // Record only the basename: a path-qualified DT_NEEDED entry (e.g.,
+   // "./lib.so") is resolved by the loader relative to the CWD instead of
+   // through the normal search path.
+   string filename = Dyninst::filesystem::extract_filename(name);
 
 #if ! defined(os_windows) 
    obj->insertPrereqLibrary(filename);
