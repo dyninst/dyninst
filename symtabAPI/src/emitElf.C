@@ -410,15 +410,13 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     }
 
     // Write the Elf header first!
-    newEhdr = ElfTypes::elf_newehdr(
-            newElf);
+    newEhdr = ElfTypes::elf_newehdr(newElf);
     if (!newEhdr) {
         log_elferror(err_func_, "newEhdr failed\n");
         return false;
     }
-    oldEhdr = ElfTypes::elf_getehdr(
-            oldElf);
-    memcpy(newEhdr, oldEhdr, sizeof(Elf_Ehdr));
+    oldEhdr = ElfTypes::elf_getehdr(oldElf);
+    *newEhdr = *oldEhdr;
 
     newEhdr->e_shnum += newSecs.size();
 
@@ -472,8 +470,8 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         newshdr = ElfTypes::elf_getshdr(newscn);
         newdata = elf_newdata(newscn);
         olddata = elf_getdata(scn, NULL);
-        memcpy(newshdr, shdr, sizeof(Elf_Shdr));
-        memcpy(newdata, olddata, sizeof(Elf_Data));
+        *newshdr = *shdr;
+        *newdata = *olddata;
 
         secNames.push_back(name);
         newshdr->sh_name = secNameIndex;
@@ -2386,13 +2384,13 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
                  * we're dealing with a library without a fixed load address.  We'll be shifting
                  * the addresses of that library by a page.
                  **/
-                memcpy(dynsecData + curpos, dyns + i, sizeof(Elf_Dyn));
+                dynsecData[curpos] = dyns[i];
                 dynsecData[curpos].d_un.d_ptr += library_adjust;
                 dynamicSecData[dyns[i].d_tag].push_back(dynsecData + curpos);
                 curpos++;
                 break;
             default:
-                memcpy(dynsecData + curpos, dyns + i, sizeof(Elf_Dyn));
+                dynsecData[curpos] = dyns[i];
                 dynamicSecData[dyns[i].d_tag].push_back(dynsecData + curpos);
                 curpos++;
                 break;
