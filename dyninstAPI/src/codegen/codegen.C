@@ -390,22 +390,6 @@ std::string patchTarget::get_name() const {
    return std::string("UNNAMED");
 }
 
-toAddressPatch::~toAddressPatch() {
-}
-
-Dyninst::Address toAddressPatch::get_address() const
-{ 
-  return addr; 
-}
-
-unsigned toAddressPatch::get_size() const { 
-  return 0; 
-}
-
-void toAddressPatch::set_address(Dyninst::Address a) {
-   addr = a;
-}
-
 unsigned codeGen::width() const {
   return addrSpace()->getAddressWidth();
 }

@@ -50,18 +50,6 @@ class patchTarget {
    virtual ~patchTarget() = default;
 };
 
-class toAddressPatch : public patchTarget {
- private:
-   Dyninst::Address addr;
- public:
-   toAddressPatch(Dyninst::Address a) : addr(a) {}
-   virtual ~toAddressPatch();
-
-   virtual Dyninst::Address get_address() const;
-   virtual unsigned get_size() const;
-   void set_address(Dyninst::Address a);
-};
-
 class relocPatch {
 public:
    enum class patch_type_t {
