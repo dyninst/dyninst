@@ -301,6 +301,9 @@ public:
 
     func_instance *findFunction(ParseAPI::Function *img_func);
 
+    // Builds the CFG of an image whose parse was deferred. No-op otherwise.
+    void analyzeIfDeferred();
+
     int_variable *findVariable(image_variable *img_var);
 
     block_instance *findBlock(ParseAPI::Block *);
@@ -321,6 +324,10 @@ public:
     void destroy(PatchAPI::PatchFunction *f);
     void destroy(PatchAPI::PatchBlock *b);
     // void destroy(PatchAPI::PatchEdge *e); // don't need to destroy anything
+
+  protected:
+    // Builds the CFG of a deferred image before PatchObject walks its functions.
+    void ensureParsed() override;
 
   private:
     //
