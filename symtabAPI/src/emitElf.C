@@ -394,10 +394,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         return false;
     }
 
-    //Section name index for all sections
-    secNames.push_back("");
-    secNameIndex = 1;
-    //Section name index for new sections
+    addSectionName("");  // section 0 is always ST_NULL with an empty name
     loadSecTotalSize = 0;
     int dirtySecsChange = 0;
     unsigned extraAlignSize = 0;
@@ -473,9 +470,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         *newshdr = *shdr;
         *newdata = *olddata;
 
-        secNames.push_back(name);
-        newshdr->sh_name = secNameIndex;
-        secNameIndex += strlen(name) + 1;
+        newshdr->sh_name = addSectionName(name);
 
         if (newshdr->sh_addr) {
             newshdr->sh_addr += library_adjust;
@@ -1036,9 +1031,6 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
             nonLoadableSecs.push_back(newSec);
             continue;
         }
-        secNames.push_back(newSec->getRegionName());
-        auto thisSectionIndex = secNames.size() - 1;
-        newNameIndexMapping[newSec->getRegionName()] = thisSectionIndex;
         sectionNumber++;
         // Add a new loadable section
         if ((newscn = elf_newscn(newElf)) == NULL) {
@@ -1053,7 +1045,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
 
         // Fill out the new section header
         newshdr = ElfTypes::elf_getshdr(newscn);
-        newshdr->sh_name = secNameIndex;
+        newshdr->sh_name = addSectionName(newSec->getRegionName());
         newshdr->sh_flags = 0;
         newshdr->sh_type = SHT_PROGBITS;
         switch (newSec->getRegionType()) {
@@ -1073,6 +1065,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
                 break;
         }
 
+        auto thisSectionIndex = secNames.size() - 1;
         newNameIndexMapping[newSec->getRegionName()] = thisSectionIndex;
 
         if (shdr->sh_type == SHT_NOBITS) {
@@ -1171,7 +1164,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
             newdata->d_type = ELF_T_SYM;
             newdata->d_align = 4;
             dynsymData = newdata;
-            newshdr->sh_link = secNames.size();   //.symtab section should have sh_link = index of .strtab for .dynsym
+            newshdr->sh_link = thisSectionIndex + 1;   //.symtab section should have sh_link = index of .strtab for .dynsym
             newshdr->sh_flags = SHF_ALLOC;
             dynsymIndex = thisSectionIndex;
             updateDynamic(DT_SYMTAB, newshdr->sh_addr);
@@ -1273,7 +1266,6 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
         shdr = newshdr;
         if (!firstNewLoadSec)
             firstNewLoadSec = shdr;
-        secNameIndex += newSec->getRegionName().size() + 1;
         prevshdr = newshdr;
     }
 
@@ -1305,9 +1297,7 @@ bool emitElf<ElfTypes>::addSectionHeaderTable(Elf_Shdr *shdr) {
     }
     //Fill out the new section header
     newshdr = ElfTypes::elf_getshdr(newscn);
-    newshdr->sh_name = secNameIndex;
-    secNames.push_back(".shstrtab");
-    secNameIndex += 10;
+    newshdr->sh_name = addSectionName(".shstrtab");
     newshdr->sh_type = SHT_STRTAB;
     newshdr->sh_entsize = 1;
     newdata->d_type = ELF_T_BYTE;
@@ -1320,15 +1310,15 @@ bool emitElf<ElfTypes>::addSectionHeaderTable(Elf_Shdr *shdr) {
     newshdr->sh_addralign = 4;
 
     //Set up the data
-    newdata->d_buf = allocate_buffer(secNameIndex);
+    newdata->d_buf = allocate_buffer(secNameTableTotalBytes);
     char *ptr = (char *) newdata->d_buf;
     for (const auto &secName : secNames) {
-        memcpy(ptr, secName.c_str(), secName.length());
-        memcpy(ptr + secName.length(), "\0", 1);
-        ptr += secName.length() + 1;
+        auto bytesToCopy(secName.length() + 1);     // string plus null byte
+        memcpy(ptr, secName.c_str(), bytesToCopy);
+        ptr += bytesToCopy;
     }
 
-    newdata->d_size = secNameIndex;
+    newdata->d_size = secNameTableTotalBytes;
     newshdr->sh_size = newdata->d_size;
 
     newdata->d_align = 4;
@@ -1345,7 +1335,6 @@ bool emitElf<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
     Elf_Shdr *prevshdr = shdr;
     //All of them that are left are non-loadable. stack'em up at the end.
     for (const auto &sec : nonLoadableSecs) {
-        secNames.push_back(sec->getRegionName());
         // Add a new non-loadable section
         if ((newscn = elf_newscn(newElf)) == NULL) {
             log_elferror(err_func_, "unable to create new section");
@@ -1358,8 +1347,7 @@ bool emitElf<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
 
         //Fill out the new section header
         newshdr = ElfTypes::elf_getshdr(newscn);
-        newshdr->sh_name = secNameIndex;
-        secNameIndex += sec->getRegionName().length() + 1;
+        newshdr->sh_name = addSectionName(sec->getRegionName());
         if (sec->getRegionType() == Region::RT_TEXT)        //Text Section
         {
             newshdr->sh_type = SHT_PROGBITS;
