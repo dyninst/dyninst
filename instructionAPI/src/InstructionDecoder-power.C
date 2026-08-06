@@ -696,8 +696,11 @@ which are both 0).
   }
 
   void InstructionDecoder_power::BC() {
-    //        fprintf(stderr, "Unimplemented operand type BC. Please create an issue at
-    //        https://github.com/dyninst/dyninst/issues\n");
+    // BC (bits 21-25) selects the condition-register bit tested by isel;
+    // model it as a read of the containing CR field, as BFA does.
+    Expression::Ptr condReg =
+        makeRegisterExpression(makePowerRegID(ppc32::cr0, field<21, 25>(insn) >> 2));
+    insn_in_progress->appendOperand(std::move(condReg), true, false);
   }
 
   void InstructionDecoder_power::RC() {
@@ -962,6 +965,19 @@ which are both 0).
     // sradi is a special instruction. Its xop is from 21 to 29 and its xop value is 413
     if(field<21, 29>(insn) == 413) {
       const power_table::const_iterator entry_it = power_entry::extended_op_31.find(413);
+      if(entry_it == power_entry::extended_op_31.end())
+        return invalid_entry;
+      return entry_it->second;
+    }
+    // isel is A-form: its extended opcode is only bits 26-30 (value 15);
+    // bits 21-25 hold the BC (condition-bit) operand, and per the ISA the
+    // whole 10-bit-XO column 0b01111 belongs to isel. The generic 9/10-bit
+    // XO lookups below therefore only match the table's isel entry when
+    // BC == 0, and every other condition decoded as INVALID -- which
+    // ParseAPI conservatively treats as an unknown control transfer,
+    // truncating the enclosing function at a plain conditional move.
+    if(field<26, 30>(insn) == 15) {
+      const power_table::const_iterator entry_it = power_entry::extended_op_31.find(15);
       if(entry_it == power_entry::extended_op_31.end())
         return invalid_entry;
       return entry_it->second;

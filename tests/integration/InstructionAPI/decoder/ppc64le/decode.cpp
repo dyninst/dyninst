@@ -76,11 +76,15 @@ std::vector<decode_test> make_tests() {
   auto r0 = Dyninst::ppc32::r0;
   auto r1 = Dyninst::ppc32::r1;
   auto r2 = Dyninst::ppc32::r2;
+  auto r3 = Dyninst::ppc32::r3;
+  auto r4 = Dyninst::ppc32::r4;
   auto r5 = Dyninst::ppc32::r5;
   auto r7 = Dyninst::ppc32::r7;
   auto r8 = Dyninst::ppc32::r8;
   auto r9 = Dyninst::ppc32::r9;
+  auto r10 = Dyninst::ppc32::r10;
   auto cr0 = Dyninst::ppc32::cr0;
+  auto cr1 = Dyninst::ppc32::cr1;
   auto cr2 = Dyninst::ppc32::cr2;
   auto cr4 = Dyninst::ppc32::cr4;
   auto cr6 = Dyninst::ppc32::cr6;
@@ -213,6 +217,28 @@ std::vector<decode_test> make_tests() {
     { // bctrl (LK=1; BO=branch-always)
       0x4e800421,
       di::register_rw_test{ reg_set{lr, ctr}, reg_set{lr, pc} }
+    },
+    /*
+     *  isel is A-form: XO is only bits 26-30 (value 15) and bits 21-25 are
+     *  the BC (condition-bit) operand, so only the BC=0 encoding is found by
+     *  the generic 9/10-bit XO lookups; the others decoded as INVALID until
+     *  the dispatch handled the A-form split.
+     *
+     *  The BC operand is modeled as a read of the containing CR field;
+     *  RA=0 is decoded as a read of r0 (documents current decoder
+     *  behavior).
+     */
+    { // isel r3, r4, r5, 0  (isellt; BC=0 -> cr0)
+      0x7c64281e,
+      di::register_rw_test{ reg_set{r4, r5, cr0}, reg_set{r3} }
+    },
+    { // isel r10, 0, r10, 30  (BC=30 -> cr7; glibc _IO_old_init)
+      0x7d40579e,
+      di::register_rw_test{ reg_set{r0, r10, cr7}, reg_set{r10} }
+    },
+    { // isel r7, r8, r9, 6  (BC=6 -> cr1)
+      0x7ce8499e,
+      di::register_rw_test{ reg_set{r8, r9, cr1}, reg_set{r7} }
     },
   };
   // clang-format on
