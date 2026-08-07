@@ -202,9 +202,9 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     const std::string debugString() const;
 
     // Used for codeRange ONLY! DON'T USE THIS! BAD USER!
-    Address get_address() const { return codeAbs(); }
-    void *get_local_ptr() const;
-    unsigned get_size() const { return imageSize(); }
+    Address get_address() const override { return codeAbs(); }
+    void *get_local_ptr() const override;
+    unsigned get_size() const override { return imageSize(); }
 
     AddressSpace *proc() const;
 
@@ -225,7 +225,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     block_instance *findOneBlockByAddr(const Address addr);
 
     // codeRange method
-    void *getPtrToInstruction(Address addr) const;
+    void *getPtrToInstruction(Address addr) const override;
     void *getPtrToData(Address addr) const;
 
     // Try to avoid using these if you can, since they'll trigger
