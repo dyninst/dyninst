@@ -324,21 +324,29 @@ namespace {
             Address TOC = f->obj()->cs()->getTOC(r8_def_addr);
             // ELFv2 (ppc64le) has no .opd section, so the code source's TOC
             // table is empty and getTOC() returns 0 for every address.
-            // Derive the TOC from the function's global entry point instead:
-            // the ABI-prescribed entry sequence
+            // Derive the TOC from the function's global entry point instead.
+            // The ABI-prescribed entry sequence
             //     addis r2,r12,H ; addi r2,r2,L
             // with r12 holding the entry address gives
-            //     TOC = entry + (H << 16) + L.
+            //     TOC = entry + (H << 16) + L,
+            // and the linker may relax it (static links below 2 GB) to the
+            // absolute form
+            //     lis r2,H ; addi r2,r2,L    =>    TOC = (H << 16) + L.
+            // (POWER10 pc-relative code sets up no TOC at all; its r8 load
+            // does not read r2, so this branch is never reached for it.)
             if (TOC == 0) {
                 const uint32_t *entry_code = (const uint32_t *)
                     b->region()->getPtrToInstruction(f->addr());
                 if (entry_code
-                    && (entry_code[0] & 0xffff0000) == 0x3c4c0000  // addis r2,r12,H
-                    && (entry_code[1] & 0xffff0000) == 0x38420000) // addi  r2,r2,L
+                    && f->addr() + 8 <= b->region()->high()
+                    && (entry_code[1] & 0xffff0000) == 0x38420000) // addi r2,r2,L
                 {
-                    TOC = f->addr()
-                        + ((Address)(int16_t)(entry_code[0] & 0xffff) << 16)
-                        + (Address)(int16_t)(entry_code[1] & 0xffff);
+                    Address hi = (Address)(int16_t)(entry_code[0] & 0xffff) << 16;
+                    Address lo = (Address)(int16_t)(entry_code[1] & 0xffff);
+                    if ((entry_code[0] & 0xffff0000) == 0x3c4c0000)      // addis r2,r12,H
+                        TOC = f->addr() + hi + lo;
+                    else if ((entry_code[0] & 0xffff0000) == 0x3c400000) // lis r2,H
+                        TOC = hi + lo;
                 }
             }
             if (TOC != 0 && memReads.size() == 1) {
