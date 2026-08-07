@@ -367,22 +367,21 @@ void emitElf<ElfTypes>::renameSection(const std::string &oldName) {
 
 template<class ElfTypes>
 bool emitElf<ElfTypes>::driver(std::string fName) {
-    int newfd;
     Region *foundSec = NULL;
     unsigned pgSize = getpagesize();
     rewrite_printf("::driver for emitElf\n");
 
-    string strtmpl = fName + "XXXXXX";
-    auto buf = std::unique_ptr<char[]>(new char[strtmpl.length() + 1]);
-    strncpy(buf.get(), strtmpl.c_str(), strtmpl.length() + 1);
+    string newFName = fName + "XXXXXX";
+    auto buf = std::unique_ptr<char[]>(new char[newFName.length() + 1]);
+    strncpy(buf.get(), newFName.c_str(), newFName.length() + 1);
 
-    newfd = mkstemp(buf.get());
+    auto newfd = mkstemp(buf.get());
 
     if (newfd == -1) {
         log_elferror(err_func_, "error opening file to write symbols");
         return false;
     }
-    strtmpl = buf.get();
+    newFName = buf.get();
 
     fchmod(newfd, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP);
     rewrite_printf("Emitting to temporary file %s\n", buf.get());
@@ -713,7 +712,9 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     elf_end(newElf);
     close(newfd);
 
-    if (rename(strtmpl.c_str(), fName.c_str())) {
+    if (rename(newFName.c_str(), fName.c_str())) {
+        auto msg{"rename of new elf file (" + newFName + " -> " +  fName + ") failed"};
+        log_elferror(err_func_, msg.c_str());
         return false;
     }
 
