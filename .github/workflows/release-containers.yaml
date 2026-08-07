@@ -3,6 +3,8 @@ name: Build and deploy release containers
 on:
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
 
   get-oses:

@@ -5,6 +5,8 @@ on:
     - cron: '0 5 1 * *'  # 5AM on the first of the month
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
 
   purge:
