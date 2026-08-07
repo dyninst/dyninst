@@ -383,7 +383,14 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     }
     newFName = buf.get();
 
-    fchmod(newfd, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP);
+    struct stat statBuf;
+    decltype(statBuf.st_mode) origFdMode{};
+    if (fstat(object->getFD(), &statBuf) == 0) {
+        origFdMode = statBuf.st_mode & 0777;  // clear sticky, setXid bits
+    } else {
+        origFdMode = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP;
+    }
+    fchmod(newfd, S_IRUSR | S_IWUSR);  // just user while updating
     rewrite_printf("Emitting to temporary file %s\n", buf.get());
 
     if ((newElf = elf_begin(newfd, ELF_C_WRITE, NULL)) == NULL) {
@@ -710,6 +717,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         return false;
     }
     elf_end(newElf);
+    fchmod(newfd, origFdMode);  // set permission to original file
     close(newfd);
 
     if (rename(newFName.c_str(), fName.c_str())) {
