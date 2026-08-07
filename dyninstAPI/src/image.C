@@ -544,26 +544,34 @@ int image::findMain()
                 return -1;
             }
 
-            Block * b = NULL;
+            // Candidate blocks for the __libc_start_main call setup:
+            // glibc's dynamic _start makes the call from its entry block,
+            // but a tail-branching _start (static link) parses into one
+            // function with several call edges further in.
+            // evaluate_main_address() is fail-to-zero per block, so rather
+            // than guessing the one right block, try the entry block and
+            // then each call-edge source until one yields a valid address.
+            std::vector<Block *> candidates;
+            Block * entryBlock = tco.findBlockByEntry(reg,eAddr);
+            if (entryBlock)
+                candidates.push_back(entryBlock);
             const Function::edgelist & calls = func->callEdges();
-            if (calls.empty()) {
-                // when there are no calls, let's hope the entry block is it
-                b = tco.findBlockByEntry(reg,eAddr);
-            } else if(calls.size() == 1) {
-                Function::edgelist::iterator cit = calls.begin();
-                b = (*cit)->src();
-            } else {
-                startup_printf("%s[%d] _start has unexpected number (%lu) of"
-                        " call edges, bailing on findMain()\n",
-                        FILE__,__LINE__,calls.size());
-                return -1;
+            for (Function::edgelist::const_iterator cit = calls.begin();
+                 cit != calls.end(); ++cit) {
+                if ((*cit)->src() && (*cit)->src() != entryBlock)
+                    candidates.push_back((*cit)->src());
             }
-            if (!b) return -1;
 
-            Address mainAddress = evaluate_main_address(linkedFile,func,b);
-            mainAddress = deref_opd(linkedFile, mainAddress);
+            Address mainAddress = 0;
+            for (std::vector<Block *>::const_iterator bit = candidates.begin();
+                 bit != candidates.end() && mainAddress == 0; ++bit) {
+                Address cand = evaluate_main_address(linkedFile,func,*bit);
+                cand = deref_opd(linkedFile, cand);
+                if (cand != 0 && scs.isValidAddress(cand))
+                    mainAddress = cand;
+            }
 
-            if(0 == mainAddress || !scs.isValidAddress(mainAddress)) {
+            if(0 == mainAddress) {
                 startup_printf("%s[%d] failed to find main\n",FILE__,__LINE__);
                 return -1;
             } else {
