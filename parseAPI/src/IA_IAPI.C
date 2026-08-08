@@ -52,6 +52,7 @@
 #include "IA_aarch64.h"
 #include "IA_riscv64.h"
 #include "IA_amdgpu.h"
+#include "IndirectAnalyzer.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -539,8 +540,20 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
         bool success;
         Address target;
         boost::tie(success, target) = getCFT();
-        if (!success)
-            boost::tie(success, target) = resolveDynamicCallTarget(context, currBlk);
+        if (!success && isMultiInsnJump()) {
+            Address materialized = 0;
+            if (resolveTargetForMultiInsnJump(&materialized, context, currBlk)) {
+                CodeSource *cs = currBlk->obj()->cs();
+                if (cs->symtab_linkage().find(materialized) != cs->symtab_linkage().end() ||
+                    plt_entries->find(materialized) != plt_entries->end() ||
+                    cs->isCode(materialized)) {
+                    success = true;
+                    target = materialized;
+                    cachedCFT = std::make_pair(true, materialized);
+                    validCFT = true;
+                }
+            }
+        }
         bool callEdge = true;
         bool ftEdge = true;
         if( success && !isDynamicCall() )
@@ -567,22 +580,6 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             else if ( ! _isrc->isValidAddress(target) )
             {
                 ftEdge = false;
-            }
-        }
-
-        if (isMultiInsnJump(&target, context, currBlk)) {
-            CodeSource *cs = currBlk->obj()->cs();
-            const std::map<Dyninst::Address, std::string>& symtab_entries = cs->symtab_linkage();
-            // If the target address points to the entry point of a function,
-            // It is identified as a function call.
-            if (symtab_entries.find(target) != symtab_entries.end() ||
-                    plt_entries->find(target) != plt_entries->end()) {
-                parsing_printf("%s[%d]: multi instruction call from %lx to %lx\n",
-                        FILE__, __LINE__, current, target);
-                //outEdges.push_back(std::make_pair(target, CALL));
-                //outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
-                success = true;
-                ftEdge = true;
             }
         }
 
@@ -658,7 +655,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             }
             return;
         }
-        else if (isMultiInsnJump(&target, context, currBlk))
+        else if (isMultiInsnJump() && resolveTargetForMultiInsnJump(&target, context, currBlk))
         {
             // If the target address lies within the current context
             // It is an unconditional jump
@@ -846,14 +843,18 @@ bool IA_IAPI::simulateJump() const
     return false;
 }
 
-bool IA_IAPI::isMultiInsnJump(Address *, Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block *) const
-{
-    return false;
-}
-
-std::pair<bool, Address> IA_IAPI::getFallthrough() const 
+std::pair<bool, Address> IA_IAPI::getFallthrough() const
 {
     return make_pair(true, curInsnIter->first + curInsnIter->second.size());
+}
+
+bool IA_IAPI::resolveTargetForMultiInsnJump(Address* target,
+                                            Dyninst::ParseAPI::Function* ctx,
+                                            Dyninst::ParseAPI::Block* blk) const
+{
+    MaterializedTargetPred pred;
+    IndirectControlFlowAnalyzer icfa(ctx, blk);
+    return icfa.ResolveTargetBySlicing(pred, *target);
 }
 
 std::pair<bool, Address> IA_IAPI::getCFT() const

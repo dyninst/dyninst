@@ -347,7 +347,7 @@ bool IA_riscv64::isNopJump() const
     return false;
 }
 
-bool IA_riscv64::isMultiInsnJump(Address *target, Function *context, Block *currBlk) const {
+bool IA_riscv64::resolveTargetForMultiInsnJump(Address *target, Function *context, Block *currBlk) const {
     Instruction insn = curInsn();
 
     // Basic Instruction Matching

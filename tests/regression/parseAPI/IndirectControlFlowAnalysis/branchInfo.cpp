@@ -11,6 +11,8 @@
    */
 #include <iostream>
 #include <fstream>
+#include <vector>
+#include <algorithm>
 #include "CodeObject.h"
 #include "InstructionDecoder.h"
 using namespace Dyninst;
@@ -57,21 +59,25 @@ int main(int argc, char **argv){
         of << "Parsing function " << f->name() << " at addreess 0x" << std::hex << f->addr() << std::endl;
         for(auto b : f->blocks()){
             of << "Parsing block ( " << std::hex << b->start() << "," << b->end() << ")" << std::endl;
+            std::vector<std::pair<Address, Address> > edgesToReport;
             for (auto & edges : b->targets() ){
-                Address branch_addr = edges->src()->lastInsnAddr();
-
+                if( edges->type() == COND_TAKEN || edges->type() == DIRECT || edges->type() == CALL || edges->type() == INDIRECT || edges->type() == RET){
+                    edgesToReport.push_back(std::make_pair(edges->src()->lastInsnAddr(), edges->trg()->start()));
+                }
+            }
+            std::sort(edgesToReport.begin(), edgesToReport.end());
+            for (auto & e : edgesToReport ){
+                Address branch_addr = e.first;
                 void * insn_ptr = f->isrc()->getPtrToInstruction(branch_addr);
                 auto instr = decoder.decode((unsigned char * ) insn_ptr);
                 std::string instr_str = instr.format(branch_addr);
-                if( edges->type() == COND_TAKEN || edges->type() == DIRECT || edges->type() == CALL || edges->type() == INDIRECT){
-                    std::locale loc;
-                    of << std::hex << branch_addr << " : ";
-                    for (std::string::size_type i =0 ; i < instr_str.length(); i++){
-                        of << std::tolower(instr_str[i],loc) ;
-                    }
-                    of << " ( " << edges->trg()->start() << " ) " ;
-                    of << std::endl;
+                std::locale loc;
+                of << std::hex << branch_addr << " : ";
+                for (std::string::size_type i =0 ; i < instr_str.length(); i++){
+                    of << std::tolower(instr_str[i],loc) ;
                 }
+                of << " ( " << e.second << " ) " ;
+                of << std::endl;
             }
         }
         //of << std::endl;

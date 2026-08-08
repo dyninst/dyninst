@@ -110,11 +110,14 @@ class IA_IAPI : public InstructionAdapter {
                                 unsigned int,
                                 const std::set<Address> &) const = 0;
         virtual std::pair<bool, Address> getCFT() const;
-        virtual std::pair<bool, Address> resolveDynamicCallTarget(Dyninst::ParseAPI::Function *,
-                                                                  Dyninst::ParseAPI::Block *) const
-        {
-            return std::make_pair(false, 0);
-        }
+        // Resolve a control-transfer target materialized across multiple
+        // instructions (register-materialized call/jump) by backward slicing.
+        // Returns true and sets *target when it folds to a constant. Arches may
+        // override with a faster idiom-based strategy (e.g. RISC-V) that falls
+        // back to this slice.
+        virtual bool resolveTargetForMultiInsnJump(Address* target,
+                                                   Dyninst::ParseAPI::Function *,
+                                                   Dyninst::ParseAPI::Block *) const;
         virtual bool isStackFramePreamble() const = 0;
         virtual bool savesFP() const = 0;
         virtual bool cleansStack() const = 0;
@@ -124,7 +127,11 @@ class IA_IAPI : public InstructionAdapter {
         virtual bool isCall() const;
         virtual bool isReturnAddrSave(Address &ret_addr) const = 0;
         virtual bool isNopJump() const = 0;
-        virtual bool isMultiInsnJump(Address *, Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block *) const;
+        // Detection: is this a register-materialized call/jump whose target we
+        // should try to recover (via resolveTargetForMultiInsnJump)? Decided by
+        // the instruction (opcode/operand), independent of call vs branch
+        // context. Base: no.
+        virtual bool isMultiInsnJump() const { return false; }
         virtual bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const = 0;
         virtual bool isIATcall(std::string &calleeName) const = 0;
         virtual bool isThunk() const = 0;

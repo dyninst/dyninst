@@ -64,7 +64,8 @@ class IA_riscv64 : public IA_IAPI {
 	bool isIATcall(std::string &) const override;
 	bool isLinkerStub() const override;
 	bool isNopJump() const override;
-    bool isMultiInsnJump(Address *, Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block *) const override;
+    bool isMultiInsnJump() const override { return curInsn().getOperation().getID() == riscv64_op_jalr; }
+    bool resolveTargetForMultiInsnJump(Address *, Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block *) const override;
     private:
     using IA_IAPI::isFrameSetupInsn;
 };

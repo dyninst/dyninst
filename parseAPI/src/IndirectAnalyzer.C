@@ -58,34 +58,9 @@ static bool IsVariableArgumentFormat(AST::Ptr t, AbsRegion &index) {
     return IsIndexing(rt->child(1), index);
 
 }
-namespace {
-class CallTargetPred : public Slicer::Predicates {
-public:
-    virtual bool endAtPoint(AssignmentPtr a) {
-        switch (a->insn().getOperation().getID()) {
-            case amdgpu_gfx908_op_S_ADD_U32:
-            case amdgpu_gfx908_op_S_ADDC_U32:
-            case amdgpu_gfx908_op_S_MOV_B32:
-            case amdgpu_gfx908_op_S_MOV_B64:
-            case amdgpu_gfx90a_op_S_ADD_U32:
-            case amdgpu_gfx90a_op_S_ADDC_U32:
-            case amdgpu_gfx90a_op_S_MOV_B32:
-            case amdgpu_gfx90a_op_S_MOV_B64:
-            case amdgpu_gfx940_op_S_ADD_U32:
-            case amdgpu_gfx940_op_S_ADDC_U32:
-            case amdgpu_gfx940_op_S_MOV_B32:
-            case amdgpu_gfx940_op_S_MOV_B64:
-                return false;
-            default:
-                return true;
-        }
-    }
-};
-}
+bool IndirectControlFlowAnalyzer::ResolveTargetBySlicing(MaterializedTargetPred& pred, Dyninst::Address& target) {
 
-bool IndirectControlFlowAnalyzer::ResolveCallTargetBySlicing(Dyninst::Address& target) {
-
-    parsing_printf("Apply call target slicing at %lx for function %s\n", block->last(), func->name().c_str());
+    parsing_printf("Apply materialized target slicing at %lx for function %s\n", block->last(), func->name().c_str());
 
     boost::make_lock_guard(*func);
 
@@ -98,19 +73,26 @@ bool IndirectControlFlowAnalyzer::ResolveCallTargetBySlicing(Dyninst::Address& t
     ac.convert(insn, block->last(), func, block, assignments);
     if (assignments.empty()) return false;
 
-    Slicer formatSlicer(assignments[0], block, func, true, false);
+    // A call may assign several ablocs (e.g. x86 also writes the stack/return
+    // address); slice the one that defines the PC -- the control-flow target.
+    Assignment::Ptr pcAssign;
+    for (auto& a : assignments) {
+        if (a->out().absloc().isPC()) { pcAssign = a; break; }
+    }
+    if (!pcAssign) pcAssign = assignments[0];
+
+    Slicer formatSlicer(pcAssign, block, func, true, false);
 
     SymbolicExpression se;
     se.cs = block->obj()->cs();
     se.cr = block->region();
-    CallTargetPred pred;
 
     GraphPtr slice = formatSlicer.backwardSlice(pred);
 
     Result_t symRet;
     SymEval::expand(slice, symRet);
 
-    auto old_ast = symRet[assignments[0]];
+    auto old_ast = symRet[pcAssign];
     if (!old_ast) return false;
 
     auto new_ast = se.SimplifyAnAST(old_ast, 0, false);

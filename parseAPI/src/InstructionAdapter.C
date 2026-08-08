@@ -105,6 +105,13 @@ Address InstructionAdapter::getNextAddr() const
 FuncReturnStatus InstructionAdapter::getReturnStatus(Function * context ,
         unsigned int num_insns) const
 {
+    // A return is a return regardless of instruction category; check it first
+    // so an architecture whose return is branch-encoded (e.g. AMDGPU
+    // s_setpc s[30:31]) is not misclassified by the indirect-branch logic below.
+    if(isReturn(context, _curBlk))
+    {
+        return RETURN;
+    }
     // Branch that's not resolvable by binding IP,
     // therefore indirect...
    bool valid; Address addr;
@@ -127,11 +134,7 @@ FuncReturnStatus InstructionAdapter::getReturnStatus(Function * context ,
         {
             return UNKNOWN;
         }
-            
-    }
-    if(isReturn(context, _curBlk))
-    {
-        return RETURN;
+
     }
     return UNSET;
 }

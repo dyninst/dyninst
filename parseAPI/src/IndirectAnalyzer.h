@@ -10,7 +10,22 @@
 #include "CFG.h"
 #include "slicing.h"
 #include "BoundFactCalculator.h"
+#include "Instruction.h"
 using namespace Dyninst;
+
+// Backward-slicing predicate for resolving a control-transfer target that is
+// materialized across multiple instructions (register-materialized call/jump).
+// Arch-independent: the slice follows register def-use (unlimited bound,
+// inherited) and stops at a memory read -- a genuinely indirect target loaded
+// from a table/GOT cannot fold to a constant, and stopping bounds the slice.
+// Whatever the arch's SymEval can fold (as exercised by jump-table analysis)
+// resolves; everything else stays unresolved (sink).
+class MaterializedTargetPred : public Slicer::Predicates {
+public:
+    virtual bool endAtPoint(AssignmentPtr a) {
+        return a->insn().readsMemory();
+    }
+};
 
 class IndirectControlFlowAnalyzer {
     // The function and block that contain the indirect jump
@@ -39,7 +54,7 @@ class IndirectControlFlowAnalyzer {
 
 public:
     bool NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
-    bool ResolveCallTargetBySlicing(Dyninst::Address& target);
+    bool ResolveTargetBySlicing(MaterializedTargetPred& pred, Dyninst::Address& target);
     IndirectControlFlowAnalyzer(ParseAPI::Function *f, ParseAPI::Block *b): func(f), block(b) {}
 
 };
