@@ -38,8 +38,8 @@ public:
   bool generateSaves(codeGen &gen, registerSpace *) override;
   bool generateRestores(codeGen &gen, registerSpace *) override;
   void accumulateBodyClobbers(codeGen &gen, codeBufIndex_t bodyStart) override;
-  bool savedUnneededVolatileRegs(registerSpace *) override;
-  bool mayClobberVolatileRegs() override;
+  bool savedUnneededFlags(registerSpace *) override;
+  bool mayClobberFlags() override;
 };
 
 #endif

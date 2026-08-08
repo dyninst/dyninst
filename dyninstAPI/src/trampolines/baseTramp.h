@@ -136,15 +136,15 @@ private:
     // Default: record nothing; conservative saves are kept.
     virtual void accumulateBodyClobbers(codeGen &, codeBufIndex_t) {}
 
-    // True if this generation pass saved volatile registers (condition
-    // flags) that the generated body never writes, i.e. a regeneration
-    // pass would drop the save. Default: no.
-    virtual bool savedUnneededVolatileRegs(registerSpace *) { return false; }
+    // True if this generation pass saved the condition flags but the
+    // generated body never writes them, i.e. a regeneration pass would drop
+    // the save. Default: no.
+    virtual bool savedUnneededFlags(registerSpace *) { return false; }
 
-    // False only when the generated body provably never writes a volatile
-    // register (condition flag), so its save can be skipped. Default:
-    // assume it may. Meaningful once validOptimizationInfo() is set.
-    virtual bool mayClobberVolatileRegs() { return true; }
+    // False only when the generated body provably never writes a condition
+    // flag, so the flags save can be skipped. Default: assume it may.
+    // Meaningful once validOptimizationInfo() is set.
+    virtual bool mayClobberFlags() { return true; }
 
     // Generated state methods
     bitArray definedRegs;

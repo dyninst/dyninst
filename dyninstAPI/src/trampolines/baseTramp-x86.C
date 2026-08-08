@@ -47,14 +47,15 @@ bool baseTramp_x86::generateRestores(codeGen &gen, registerSpace *) {
 // here does not apply and those tramps keep the conservative saves.
 namespace {
 
-// The individual flag slots the x86-64 register space tracks, plus
-// REGNUM_EFLAGS, the whole-flags-register aggregate that liveness overrides
-// and decoded aggregate writes use (see registerSpace::checkVolatileRegisters
-// and saveVolatileRegisters, which handle the same aggregate-vs-individual
-// split). Listed explicitly: no assumption about enum ordering.
+// The condition flags the tramp's spill saves and restores: the six that
+// lahf + seto %al (registerSpace::saveVolatileRegisters) covers, plus
+// REGNUM_EFLAGS, the whole-register aggregate that liveness overrides and
+// decoded aggregate writes use. A body that writes any of these makes the
+// spill needed; one that writes none makes it unneeded. Listed explicitly --
+// no assumption about enum ordering.
 const Dyninst::Register x86_64FlagSlots[] = {
     REGNUM_OF, REGNUM_SF, REGNUM_ZF, REGNUM_AF, REGNUM_PF, REGNUM_CF,
-    REGNUM_TF, REGNUM_IF, REGNUM_DF, REGNUM_NT, REGNUM_RF, REGNUM_EFLAGS};
+    REGNUM_EFLAGS};
 
 template <size_t N>
 void markClobbers(codeGen &gen, const Dyninst::MachRegister (&regs)[N]) {
@@ -64,11 +65,12 @@ void markClobbers(codeGen &gen, const Dyninst::MachRegister (&regs)[N]) {
   }
 }
 
-// All condition flags: no ABI preserves them across a call.
+// The condition flags a call clobbers -- the same set the spill saves (see
+// x86_64FlagSlots): no ABI preserves them across a call.
 void markFlagClobbers(codeGen &gen) {
   namespace dr = Dyninst::x86_64;
   static const Dyninst::MachRegister flags[] = {
-      dr::of, dr::sf, dr::zf, dr::af, dr::pf, dr::cf, dr::df, dr::flags};
+      dr::of, dr::sf, dr::zf, dr::af, dr::pf, dr::cf, dr::flags};
   markClobbers(gen, flags);
 }
 
@@ -123,15 +125,16 @@ void baseTramp_x86::accumulateBodyClobbers(codeGen &gen, codeBufIndex_t bodyStar
       case di::c_SyscallInsn:
       case di::c_InterruptInsn:
         markCallClobbers(gen);
-        continue;
-      default:
         break;
-    }
-    std::set<di::RegisterAST::Ptr> writes;
-    insn.getWriteSet(writes);
-    for (const auto &w : writes) {
-      Dyninst::Register r = convertRegID(w->getID());
-      if (r != REGNUM_IGNORED) gen.markRegDefined(r);
+      default: {
+        std::set<di::RegisterAST::Ptr> writes;
+        insn.getWriteSet(writes);
+        for (const auto &w : writes) {
+          Dyninst::Register r = convertRegID(w->getID());
+          if (r != REGNUM_IGNORED) gen.markRegDefined(r);
+        }
+        break;
+      }
     }
   }
 }
@@ -140,7 +143,7 @@ void baseTramp_x86::accumulateBodyClobbers(codeGen &gen, codeBufIndex_t bodyStar
 // flag slot (and the EFLAGS aggregate) is clear in definedRegs, which
 // baseTramp_x86::accumulateBodyClobbers filled from the generated code.
 // Conservative (true) until the body has been generated once.
-bool baseTramp_x86::mayClobberVolatileRegs() {
+bool baseTramp_x86::mayClobberFlags() {
   if (!validOptimizationInfo()) return true;
   for (auto r : x86_64FlagSlots)
     if (definedRegs[r]) return true;
@@ -153,7 +156,7 @@ bool baseTramp_x86::mayClobberVolatileRegs() {
 // generated body never wrote a flag (see accumulateBodyClobbers above),
 // report the save as unneeded so the tramp regenerates; with
 // validOptimizationInfo set, emitBTSaves then skips the save.
-bool baseTramp_x86::savedUnneededVolatileRegs(registerSpace *rs) {
+bool baseTramp_x86::savedUnneededFlags(registerSpace *rs) {
   if (rs->getAddressWidth() != 8) return false;
 
   bool flagsSaved = false;
@@ -163,5 +166,5 @@ bool baseTramp_x86::savedUnneededVolatileRegs(registerSpace *rs) {
       break;
     }
 
-  return flagsSaved && !mayClobberVolatileRegs();
+  return flagsSaved && !mayClobberFlags();
 }
