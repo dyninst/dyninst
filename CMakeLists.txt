@@ -48,12 +48,7 @@ include(DyninstThread_DB)
 include(DyninstValgrind)
 include(DyninstOpenMP)
 include(DyninstPeParse)
-
-# Search for DYNINST_ENABLE_CAPSTONE to find all the locations to remove once
-# Capstone got updated to 6.0.0
-if(DYNINST_ENABLE_CAPSTONE)
-  include(DyninstCapstone)
-endif()
+include(DyninstCapstone)
 
 if(DYNINST_ENABLE_ZYDIS)
   include(DyninstZydis)

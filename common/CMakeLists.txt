@@ -55,6 +55,7 @@ set(_public_headers
     )
 
 set(_private_headers
+    h/registers/register_set.h
     src/addrtranslate.h
     src/addrtranslate-sysv.h
     src/arch-amdgpu.h

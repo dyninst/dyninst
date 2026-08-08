@@ -28,53 +28,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_INSTRUCTIONAPI_OPERATION_IMPL_H
-#define DYNINST_INSTRUCTIONAPI_OPERATION_IMPL_H
+#ifndef INSTRUCTIONAPI_X86_OPCODE_XLAT_H
+#define INSTRUCTIONAPI_X86_OPCODE_XLAT_H
 
-#include "Architecture.h"
+#include "capstone/x86.h"
 #include "entryIDs.h"
-#include "dyninst_visibility.h"
 
-#include <string>
+namespace Dyninst { namespace InstructionAPI { namespace x86 {
 
-namespace Dyninst { namespace InstructionAPI {
+  entryID translate_opcode(x86_insn);
 
-  class DYNINST_EXPORT Operation {
-  public:
-    friend class InstructionDecoder_power; // for editing mnemonics after creation
-    friend class InstructionDecoder_aarch64;
-    friend class InstructionDecoder_amdgpu_gfx908;
-    friend class InstructionDecoder_amdgpu_gfx90a;
-    friend class InstructionDecoder_amdgpu_gfx940;
-
-  public:
-    Operation() = default;
-
-    Operation(entryID id, std::string m) : operationID(id), mnemonic{std::move(m)} {}
-
-    Operation(entryID id, prefixEntryID pid, std::string m) : Operation(id, std::move(m)) {
-      prefixID = pid;
-    }
-
-    std::string format() const { return mnemonic; }
-
-    entryID getID() const { return operationID; }
-    prefixEntryID getPrefixID() const { return prefixID; }
-
-    void updateMnemonic(std::string new_mnemonic) { mnemonic = std::move(new_mnemonic); }
-
-    bool operator==(Operation const& rhs) const {
-      return operationID == rhs.operationID &&
-             mnemonic == rhs.mnemonic;
-    }
-
-    bool isVectorInsn{};
-
-  private:
-    mutable entryID operationID{};
-    prefixEntryID prefixID{};
-    mutable std::string mnemonic;
-  };
-}}
+}}}
 
 #endif

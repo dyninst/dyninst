@@ -28,53 +28,67 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_INSTRUCTIONAPI_OPERATION_IMPL_H
-#define DYNINST_INSTRUCTIONAPI_OPERATION_IMPL_H
+#ifndef INSTRUCTIONAPI_TYPE_CONVERSION_H
+#define INSTRUCTIONAPI_TYPE_CONVERSION_H
 
-#include "Architecture.h"
-#include "entryIDs.h"
-#include "dyninst_visibility.h"
-
-#include <string>
+#include "Result.h"
 
 namespace Dyninst { namespace InstructionAPI {
 
-  class DYNINST_EXPORT Operation {
-  public:
-    friend class InstructionDecoder_power; // for editing mnemonics after creation
-    friend class InstructionDecoder_aarch64;
-    friend class InstructionDecoder_amdgpu_gfx908;
-    friend class InstructionDecoder_amdgpu_gfx90a;
-    friend class InstructionDecoder_amdgpu_gfx940;
-
-  public:
-    Operation() = default;
-
-    Operation(entryID id, std::string m) : operationID(id), mnemonic{std::move(m)} {}
-
-    Operation(entryID id, prefixEntryID pid, std::string m) : Operation(id, std::move(m)) {
-      prefixID = pid;
+  // clang-format off
+  inline Result_Type size_to_type_unsigned(uint8_t cap_size) {
+    switch (cap_size) {
+      case 1:  return u8;
+      case 2:  return u16;
+      case 3:  return u24;
+      case 4:  return u32;
+      case 6:  return u48;
+      case 8:  return u64;
+      default: return invalid_type;
     }
-
-    std::string format() const { return mnemonic; }
-
-    entryID getID() const { return operationID; }
-    prefixEntryID getPrefixID() const { return prefixID; }
-
-    void updateMnemonic(std::string new_mnemonic) { mnemonic = std::move(new_mnemonic); }
-
-    bool operator==(Operation const& rhs) const {
-      return operationID == rhs.operationID &&
-             mnemonic == rhs.mnemonic;
+  }
+  inline Result_Type size_to_type_signed(uint8_t cap_size) {
+    switch (cap_size) {
+      case 1:  return s8;
+      case 2:  return s16;
+      case 4:  return s32;
+      case 6:  return s48;
+      case 8:  return s64;
+      default: return invalid_type;
     }
+  }
+  inline Result_Type size_to_type_float(uint8_t cap_size) {
+    switch (cap_size) {
+      case 4:  return sp_float;
+      case 8:  return dp_float;
+      case 16: return dbl128;
+      default: return invalid_type;
+    }
+  }
+  inline Result_Type size_to_type_memory(uint8_t cap_size) {
+    switch (cap_size) {
+      case 10: return m80;
+      case 12: return m96;
+      case 14: return m14;
+      case 16: return m128;
+      case 20: return m160;
+      case 24: return m192;
+      case 28: return m224;
+      case 32: return m256;
+      case 36: return m288;
+      case 40: return m320;
+      case 44: return m352;
+      case 48: return m384;
+      case 52: return m416;
+      case 56: return m448;
+      case 60: return m480;
+      case 64: return m512;
+      default: return invalid_type;
+    }
+  }
 
-    bool isVectorInsn{};
+  // clang-format on
 
-  private:
-    mutable entryID operationID{};
-    prefixEntryID prefixID{};
-    mutable std::string mnemonic;
-  };
 }}
 
 #endif
