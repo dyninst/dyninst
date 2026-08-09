@@ -29,6 +29,7 @@ set(_public_headers
     h/mnemonics/AMDGPU/gfx908_entryIDs.h
     h/mnemonics/AMDGPU/gfx90a_entryIDs.h
     h/mnemonics/AMDGPU/gfx940_entryIDs.h
+    h/mnemonics/AMDGPU/gfx950_entryIDs.h
     h/mnemonics/IntelGPU/generic_entryIDs.h
     h/mnemonics/NVIDIA/generic_entryIDs.h
     h/Node.h
@@ -39,6 +40,7 @@ set(_public_headers
     h/registers/AMDGPU/amdgpu_gfx908_regs.h
     h/registers/AMDGPU/amdgpu_gfx90a_regs.h
     h/registers/AMDGPU/amdgpu_gfx940_regs.h
+    h/registers/AMDGPU/amdgpu_gfx950_regs.h
     h/registers/cuda_regs.h
     h/registers/ppc32_regs.h
     h/registers/ppc64_regs.h

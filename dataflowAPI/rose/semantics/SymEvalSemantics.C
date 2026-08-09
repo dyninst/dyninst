@@ -220,6 +220,45 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateAST_amdgpu_gfx940::convert(const 
     ASSERT_always_forbid("Unexpected register major type.");
 }
 
+Dyninst::Absloc SymEvalSemantics::RegisterStateAST_amdgpu_gfx950::convert(const RegisterDescriptor &reg) {
+    Dyninst::MachRegister mreg;
+
+    unsigned int major = reg.get_major();
+    unsigned int minor = reg.get_minor();
+    unsigned int size = reg.get_nbits();
+    unsigned int offset = reg.get_offset();
+    //std::cout << "in func " << __func__ << " major = " << major  << " minor = " << minor << std::std::endl;
+    bool found = false;
+    switch (major) {
+    case amdgpu_regclass_sgpr : {
+        Dyninst::MachRegister base = Dyninst::amdgpu_gfx950::s0;
+        //std::cout << "dealing with sgpr pair in , offset = " << minor << std::std::endl;
+        mreg  = Dyninst::MachRegister(base.val() + minor) ;
+        found = true;
+        break;
+    }
+    case amdgpu_regclass_misc : {
+        Dyninst::MachRegister base = (size == 1) ? Dyninst::amdgpu_gfx950::src_scc
+                                                 : Dyninst::amdgpu_gfx950::vcc_lo;
+        mreg = Dyninst::MachRegister((base.val() & 0xffffff00) | minor);
+        found = true;
+        break;
+    }
+
+    case amdgpu_regclass_pc : {
+        mreg = Dyninst::amdgpu_gfx950::pc_all;
+        found = true;
+        break;
+    }
+    default:
+        std::cerr << "Unhandled register major type" << major << " " << minor << " " << size << " " << offset << std::endl;
+        ASSERT_always_forbid("Unexpected register major type.");
+    }
+    if(found)
+        return Dyninst::Absloc(mreg);
+    ASSERT_always_forbid("Unexpected register major type.");
+}
+
 
 Dyninst::Absloc SymEvalSemantics::RegisterStateASTARM64::convert(const RegisterDescriptor &reg) {
     Dyninst::MachRegister mreg;

@@ -40,3 +40,17 @@ case amdgpu_gfx940_op_S_SETPC_B64:
 case amdgpu_gfx940_op_S_RFE_B64:
 case amdgpu_gfx940_op_S_CBRANCH_G_FORK:
 case amdgpu_gfx940_op_S_CBRANCH_I_FORK:
+case amdgpu_gfx950_op_S_BRANCH:
+case amdgpu_gfx950_op_S_CBRANCH_SCC0:
+case amdgpu_gfx950_op_S_CBRANCH_SCC1:
+case amdgpu_gfx950_op_S_CBRANCH_VCCZ:
+case amdgpu_gfx950_op_S_CBRANCH_VCCNZ:
+case amdgpu_gfx950_op_S_CBRANCH_EXECZ:
+case amdgpu_gfx950_op_S_CBRANCH_EXECNZ:
+case amdgpu_gfx950_op_S_CBRANCH_CDBGSYS:
+case amdgpu_gfx950_op_S_CBRANCH_CDBGUSER:
+case amdgpu_gfx950_op_S_CBRANCH_CDBGSYS_AND_USER:
+case amdgpu_gfx950_op_S_SETPC_B64:
+case amdgpu_gfx950_op_S_RFE_B64:
+case amdgpu_gfx950_op_S_CBRANCH_G_FORK:
+case amdgpu_gfx950_op_S_CBRANCH_I_FORK:

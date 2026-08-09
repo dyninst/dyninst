@@ -59,6 +59,9 @@ namespace Dyninst { namespace DataflowAPI {
       case Arch_amdgpu_gfx940: {
         return AmdgpuGfx940Rose(category, baseID, lengthID, num_bits);
       }
+      case Arch_amdgpu_gfx950: {
+        return AmdgpuGfx950Rose(category, baseID, lengthID, num_bits);
+      }
       case Arch_x86: {
         if(reg.isPC()) {
           // ROSE docs: only minor value allowed is 0

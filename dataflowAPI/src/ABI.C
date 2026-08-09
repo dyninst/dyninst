@@ -97,13 +97,16 @@ ABI* ABI::getABI(Architecture arch){
             case Arch_amdgpu_gfx940:
                 globalABI64_->index = &machRegIndex_amdgpu_gfx940();
                 break;
+            case Arch_amdgpu_gfx950:
+                globalABI64_->index = &machRegIndex_amdgpu_gfx950();
+                break;
             default:
                 assert(0 && "getABI(arch) currently only support AMDGPU!");
                 break;
         }
         initialize64(arch);
     }
-    if (arch != Arch_amdgpu_gfx908 && arch!= Arch_amdgpu_gfx90a && arch != Arch_amdgpu_gfx940){
+    if (arch != Arch_amdgpu_gfx908 && arch!= Arch_amdgpu_gfx90a && arch != Arch_amdgpu_gfx940 && arch != Arch_amdgpu_gfx950){
         assert(0 && "getABI(arch) currently only support AMDGPU!");
     }
     return globalABI64_;
@@ -791,6 +794,11 @@ void ABI::initialize64(Architecture arch){
         case Arch_amdgpu_gfx940:{
             RegisterMap amdgpu_gfx940_map = machRegIndex_amdgpu_gfx940();
             sz = amdgpu_gfx940_map.size();
+            break;
+        }
+        case Arch_amdgpu_gfx950:{
+            RegisterMap amdgpu_gfx950_map = machRegIndex_amdgpu_gfx950();
+            sz = amdgpu_gfx950_map.size();
             break;
         }
         default:

@@ -55,7 +55,7 @@ void ExpressionConversionVisitor::visit(InstructionAPI::Immediate *immed) {
     // TODO rose doesn't handle large values (XMM?)
 
     // build different kind of rose value object based on type
-    if(arch == Arch_aarch64 || arch == Arch_ppc32 || arch == Arch_ppc64 || arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940) {
+    if(arch == Arch_aarch64 || arch == Arch_ppc32 || arch == Arch_ppc64 || arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940 || arch == Arch_amdgpu_gfx950) {
         bool isSigned = false;
         switch (value.type) {
             case s8:
@@ -178,7 +178,7 @@ void ExpressionConversionVisitor::visit(Dereference *deref) {
 
     // TODO fix some mismatched types?
     // pick correct type
-    if(arch == Arch_aarch64 || arch == Arch_ppc32 || arch == Arch_ppc64 || arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940) {
+    if(arch == Arch_aarch64 || arch == Arch_ppc32 || arch == Arch_ppc64 || arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940 || arch == Arch_amdgpu_gfx950) {
         bool isSigned = false;
         switch (deref->eval().type) {
             case s8:
@@ -295,6 +295,12 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
     case Arch_amdgpu_gfx908:
     case Arch_amdgpu_gfx90a:
     case Arch_amdgpu_gfx940: {
+      // TODO, AMDGPU: it is not clear how regsize and such should be set, for now we just follow the default implementation
+      auto* dre = new SgAsmDirectRegisterExpression(regDesc);
+      dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, regDesc.get_nbits(), false));
+      return dre;
+    }
+    case Arch_amdgpu_gfx950: {
       // TODO, AMDGPU: it is not clear how regsize and such should be set, for now we just follow the default implementation
       auto* dre = new SgAsmDirectRegisterExpression(regDesc);
       dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, regDesc.get_nbits(), false));

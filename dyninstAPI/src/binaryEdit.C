@@ -1002,6 +1002,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
   case Arch_amdgpu_gfx908:
   case Arch_amdgpu_gfx90a:
   case Arch_amdgpu_gfx940:
+  case Arch_amdgpu_gfx950:
   case Arch_intelGen9:
     write_printf("Static rewriting unsupported for '%s'",
                  getArchitectureName(this->getArch()));

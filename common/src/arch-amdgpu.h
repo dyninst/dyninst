@@ -38,6 +38,7 @@
 #include "registers/AMDGPU/amdgpu_gfx908_regs.h"
 #include "registers/AMDGPU/amdgpu_gfx90a_regs.h"
 #include "registers/AMDGPU/amdgpu_gfx940_regs.h"
+#include "registers/AMDGPU/amdgpu_gfx950_regs.h"
 #include "dyn_register.h"
 #include <assert.h>
 #include <vector>

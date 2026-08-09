@@ -39,6 +39,7 @@ namespace DwarfDyninst {
       case Dyninst::Arch_amdgpu_gfx908:
       case Dyninst::Arch_amdgpu_gfx90a:
       case Dyninst::Arch_amdgpu_gfx940:
+      case Dyninst::Arch_amdgpu_gfx950:
       case Dyninst::Arch_intelGen9: {
         dwarf_printf("No known register for '%d' on '%u'\n", encoding, arch);
         return Dyninst::InvalidReg;
@@ -75,6 +76,7 @@ namespace DwarfDyninst {
       case Dyninst::Arch_amdgpu_gfx908:
       case Dyninst::Arch_amdgpu_gfx90a:
       case Dyninst::Arch_amdgpu_gfx940:
+      case Dyninst::Arch_amdgpu_gfx950:
       case Dyninst::Arch_intelGen9: {
         dwarf_printf("No known DWARF encoding for '%s'\n", reg.name().c_str());
         return Dyninst::InvalidReg;
