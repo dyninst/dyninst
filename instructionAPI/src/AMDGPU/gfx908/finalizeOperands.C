@@ -3111,40 +3111,40 @@ namespace InstructionAPI {
         switch (layout.OP)  {
             case 64:  case 80:  case 104:   // V_MFMA_F32_32X32X1F32,V_MFMA_I32_32X32X4I8,V_MFMA_F32_32X32X2BF16,
                 appendOPR_ACCVGPR(layout.VDST,false,true,32);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,true,false);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,true,false);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false);
                 appendOPR_SRC_ACCVGPR_OR_CONST(layout.SRC2,true,false,32);
                 break;
             case 65:  case 68:  case 81:   // V_MFMA_F32_16X16X1F32,V_MFMA_F32_32X32X2F32,V_MFMA_I32_16X16X4I8,
             case 84:  case 105:  case 108:   // V_MFMA_I32_32X32X8I8,V_MFMA_F32_16X16X2BF16,V_MFMA_F32_32X32X4BF16,
                 appendOPR_ACCVGPR(layout.VDST,false,true,16);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,true,false);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,true,false);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false);
                 appendOPR_SRC_ACCVGPR_OR_CONST(layout.SRC2,true,false,16);
                 break;
             case 66:  case 69:  case 82:   // V_MFMA_F32_4X4X1F32,V_MFMA_F32_16X16X4F32,V_MFMA_I32_4X4X4I8,
             case 85:  case 107:  case 109:   // V_MFMA_I32_16X16X16I8,V_MFMA_F32_4X4X2BF16,V_MFMA_F32_16X16X8BF16,
                 appendOPR_ACCVGPR(layout.VDST,false,true,4);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,true,false);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,true,false);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false);
                 appendOPR_SRC_ACCVGPR_OR_CONST(layout.SRC2,true,false,4);
                 break;
             case 72:   // V_MFMA_F32_32X32X4F16,
                 appendOPR_ACCVGPR(layout.VDST,false,true,32);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,2);
                 appendOPR_SRC_ACCVGPR_OR_CONST(layout.SRC2,true,false,32);
                 break;
             case 73:  case 76:   // V_MFMA_F32_16X16X4F16,V_MFMA_F32_32X32X8F16,
                 appendOPR_ACCVGPR(layout.VDST,false,true,16);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,2);
                 appendOPR_SRC_ACCVGPR_OR_CONST(layout.SRC2,true,false,16);
                 break;
             case 74:  case 77:   // V_MFMA_F32_4X4X4F16,V_MFMA_F32_16X16X16F16,
                 appendOPR_ACCVGPR(layout.VDST,false,true,4);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,2);
                 appendOPR_SRC_ACCVGPR_OR_CONST(layout.SRC2,true,false,4);
                 break;
         }

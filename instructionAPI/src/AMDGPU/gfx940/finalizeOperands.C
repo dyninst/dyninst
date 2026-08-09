@@ -3036,71 +3036,71 @@ namespace InstructionAPI {
             case 87:  case 95:  case 97:   // V_MFMA_I32_16X16X32_I8,V_MFMA_F32_4X4X4_16B_BF16,V_MFMA_F32_16X16X16_BF16,
             case 112:  case 113:  case 114:   // V_MFMA_F32_16X16X32_BF8_BF8,V_MFMA_F32_16X16X32_BF8_FP8,V_MFMA_F32_16X16X32_FP8_BF8,
             case 115:   // V_MFMA_F32_16X16X32_FP8_FP8,
-                appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,4);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,true,false,4);
+                appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,4);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,4);
                 break;
             case 63:  case 73:  case 76:   // V_MFMA_F32_32X32X4_XF32,V_MFMA_F32_16X16X4_4B_F16,V_MFMA_F32_32X32X8_F16,
             case 86:  case 94:  case 96:   // V_MFMA_I32_32X32X16_I8,V_MFMA_F32_16X16X4_4B_BF16,V_MFMA_F32_32X32X8_BF16,
             case 116:  case 117:  case 118:   // V_MFMA_F32_32X32X16_BF8_BF8,V_MFMA_F32_32X32X16_BF8_FP8,V_MFMA_F32_32X32X16_FP8_BF8,
             case 119:   // V_MFMA_F32_32X32X16_FP8_FP8,
-                appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,16);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,true,false,16);
+                appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,16);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,16);
                 break;
             case 64:  case 80:   // V_MFMA_F32_32X32X1_2B_F32,V_MFMA_I32_32X32X4_2B_I8,
-                appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,32);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,true,false);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,true,false);
-                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,true,false,32);
+                appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,32);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false);
+                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,32);
                 break;
             case 65:  case 68:  case 81:   // V_MFMA_F32_16X16X1_4B_F32,V_MFMA_F32_32X32X2_F32,V_MFMA_I32_16X16X4_4B_I8,
-                appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,16);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,true,false);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,true,false);
-                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,true,false,16);
+                appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,16);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false);
+                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,16);
                 break;
             case 66:  case 69:  case 82:   // V_MFMA_F32_4X4X1_16B_F32,V_MFMA_F32_16X16X4_F32,V_MFMA_I32_4X4X4_16B_I8,
-                appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,4);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,true,false);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,true,false);
-                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,true,false,4);
+                appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,4);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false);
+                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,4);
                 break;
             case 72:  case 93:   // V_MFMA_F32_32X32X4_2B_F16,V_MFMA_F32_32X32X4_2B_BF16,
-                appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,32);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,true,false,32);
+                appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,32);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,32);
                 break;
             case 98:  case 102:  case 106:   // V_SMFMAC_F32_16X16X32_F16,V_SMFMAC_F32_16X16X32_BF16,V_SMFMAC_I32_16X16X64_I8,
             case 120:  case 121:   // V_SMFMAC_F32_16X16X64_BF8_BF8,V_SMFMAC_F32_16X16X64_BF8_FP8,
             case 122:  case 123:   // V_SMFMAC_F32_16X16X64_FP8_BF8,V_SMFMAC_F32_16X16X64_FP8_FP8,
-                appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,4);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,true,false,4);
+                appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,4);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,4);
                 appendOPR_SRC_VGPR(layout.SRC2,true,false);
                 break;
             case 100:  case 104:  case 108:   // V_SMFMAC_F32_32X32X16_F16,V_SMFMAC_F32_32X32X16_BF16,V_SMFMAC_I32_32X32X32_I8,
             case 124:  case 125:   // V_SMFMAC_F32_32X32X32_BF8_BF8,V_SMFMAC_F32_32X32X32_BF8_FP8,
             case 126:  case 127:   // V_SMFMAC_F32_32X32X32_FP8_BF8,V_SMFMAC_F32_32X32X32_FP8_FP8,
-                appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,16);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,true,false,4);
+                appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,16);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,4);
                 appendOPR_SRC_VGPR(layout.SRC2,true,false);
                 break;
             case 110:   // V_MFMA_F64_16X16X4_F64,
-                appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,8);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,true,false,8);
+                appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,8);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,8);
                 break;
             case 111:   // V_MFMA_F64_4X4X4_4B_F64,
-                appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC0,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(layout.SRC1,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST(layout.SRC2,true,false,2);
+                appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,2);
                 break;
         }
     }
