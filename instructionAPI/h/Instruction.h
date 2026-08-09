@@ -180,7 +180,12 @@ namespace Dyninst { namespace InstructionAPI {
       return this->m_size == rhs.m_size && this->m_RawInsn == rhs.m_RawInsn;
     }
 
-    void updateMnemonic(std::string new_mnemonic) { m_InsnOp.updateMnemonic(new_mnemonic); }
+    void updateMnemonic(std::string new_mnemonic) {
+      // update both views: they only ever differ for RISCV compressed
+      // instructions, and isCompressed() relies on that
+      m_InsnOp.updateMnemonic(new_mnemonic);
+      m_EncodedInsnOp.updateMnemonic(new_mnemonic);
+    }
 
     typedef boost::shared_ptr<Instruction> Ptr;
 
