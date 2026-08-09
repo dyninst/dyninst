@@ -130,19 +130,6 @@ namespace Dyninst {
 
             return immLiteral;
         }
-        Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_SDWA(){
-            useImm = true;
-            immLen = 4;
-            if(insn_size == 4)
-                immLiteral = imm_at_32;
-            else if(insn_size ==8)
-                immLiteral = imm_at_64;
-            else
-                assert(0 && "unsupported instruction size");
-            uint8_t reg_idx = immLiteral & 0xff;
-            extension = std::string("_SDWA");
-            return makeRegisterExpression(makeAmdgpuRegID(amdgpu_gfx908::v0,reg_idx));
-        }
 
         Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_LABEL(uint64_t input){
         	Expression::Ptr lhs = makeAddExpression(makePCExpr(),Immediate::makeImmediate(Result(s48,4)),s48);

@@ -88,7 +88,6 @@ namespace Dyninst {
             // the main process of decoding an instruciton, won't advance buffer
             void mainDecode(); 
 
-            void mainDecodeOpcode(); 
 
 
             void setupInsnWord(InstructionDecoder::buffer &b); 
@@ -169,7 +168,6 @@ namespace Dyninst {
             int _szField{}, size{};
             int _typeField{};
             int cmode{};
-            int op{};
             int simdAlphabetImm{};
 
             void processAlphabetImm();
@@ -275,7 +273,6 @@ namespace Dyninst {
             void debug_instr();
             
             uint32_t decodeOPR_LITERAL();
-            Expression::Ptr decodeOPR_SDWA();
             Expression::Ptr decodeOPR_LABEL(uint64_t input);
             using InstructionDecoderImpl::makeRegisterExpression;
             Expression::Ptr makeRegisterExpression(MachRegister registerID, uint32_t num_elements = 1);
