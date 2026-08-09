@@ -107,7 +107,7 @@ namespace Dyninst {
                 }
 
             template<int start, int end>
-                int longfield(unsigned long long int raw)  {
+                uint64_t longfield(unsigned long long int raw)  {
 #if defined DEBUG_FIELD
                     std::cerr << start << "-" << end << ":" << std::dec << (raw >> (start) &
                             (0xFFFFFFFFFFFFFFFF >> (63 - (end - start)))) << " ";
