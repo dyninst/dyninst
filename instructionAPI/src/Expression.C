@@ -56,6 +56,8 @@ namespace Dyninst { namespace InstructionAPI {
         return Result(m256);
       case 64:
         return Result(m512);
+      case 128:
+        return Result(m1024);
       case 0:
         return Result(bit_flag);
       default:
