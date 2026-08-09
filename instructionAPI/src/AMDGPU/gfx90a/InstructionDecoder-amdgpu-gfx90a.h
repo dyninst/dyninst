@@ -83,6 +83,7 @@ namespace Dyninst {
             unsigned int insn{}; // the first 32 bit
             unsigned int insn_high{}; // the second 32 bit
             unsigned long long int insn_long{}; // the combined 64 bit: insn_high << 32 | insn
+            unsigned long long int insn_long2{}; // bits 127:64, only used by 128-bit encodings (ENC_VOP3PX2)
 
             // the main process of decoding an instruciton, won't advance buffer
             void mainDecode(); 
@@ -299,10 +300,44 @@ namespace Dyninst {
             static bool IS_ENC_FLAT(uint64_t I);
             static bool IS_ENC_FLAT_GLBL(uint64_t I);
             static bool IS_ENC_FLAT_SCRATCH(uint64_t I);
-            static bool IS_SOPK_INST_LITERAL_(uint64_t I);
-            static bool IS_ENC_VOP2_LITERAL(uint64_t I);
-            static bool IS_ENC_VOP3B(uint64_t I);
-            static bool IS_ENC_VOP3P_MFMA(uint64_t I);
+            static bool IS_SOP1_INST_LITERAL(uint64_t I);
+            static bool IS_SOP2_INST_LITERAL(uint64_t I);
+            static bool IS_SOPC_INST_LITERAL(uint64_t I);
+            static bool IS_SOPK_INST_LITERAL(uint64_t I);
+            static bool IS_VOP1_INST_LITERAL(uint64_t I);
+            static bool IS_VOP1_VOP_DPP(uint64_t I);
+            static bool IS_VOP1_VOP_SDWA(uint64_t I);
+            static bool IS_VOP2_INST_LITERAL(uint64_t I);
+            static bool IS_VOP2_VOP_DPP(uint64_t I);
+            static bool IS_VOP2_VOP_SDWA(uint64_t I);
+            static bool IS_VOP2_VOP_SDWA_SDST_ENC(uint64_t I);
+            static bool IS_VOP3_SDST_ENC(uint64_t I);
+            static bool IS_VOP3P_MFMA(uint64_t I);
+            static bool IS_VOPC_INST_LITERAL(uint64_t I);
+            static bool IS_VOPC_VOP_SDWA_SDST_ENC(uint64_t I);
+            bool COND_ENC_SOP1_default(uint64_t I);
+            bool COND_ENC_SOPC_default(uint64_t I);
+            bool COND_ENC_SOP2_default(uint64_t I);
+            bool COND_ENC_VOP1_default(uint64_t I);
+            bool COND_ENC_VOPC_default(uint64_t I);
+            bool COND_ENC_VOP2_default(uint64_t I);
+            bool COND_SOP1_INST_LITERAL_has_lit_0(uint64_t I);
+            bool COND_SOP2_INST_LITERAL_has_lit_0(uint64_t I);
+            bool COND_SOP2_INST_LITERAL_has_lit_1(uint64_t I);
+            bool COND_SOP2_INST_LITERAL_has_lit_0_has_lit_1(uint64_t I);
+            bool COND_SOPC_INST_LITERAL_has_lit_0(uint64_t I);
+            bool COND_SOPC_INST_LITERAL_has_lit_1(uint64_t I);
+            bool COND_SOPC_INST_LITERAL_has_lit_0_has_lit_1(uint64_t I);
+            bool COND_VOP1_INST_LITERAL_has_lit(uint64_t I);
+            bool COND_VOP1_VOP_DPP_has_dpp(uint64_t I);
+            bool COND_VOP1_VOP_SDWA_has_sdwa(uint64_t I);
+            bool COND_VOP2_INST_LITERAL_has_lit(uint64_t I);
+            bool COND_VOP2_INST_LITERAL_default(uint64_t I);
+            bool COND_VOP2_VOP_DPP_has_dpp(uint64_t I);
+            bool COND_VOP2_VOP_SDWA_has_sdwa(uint64_t I);
+            bool COND_VOP2_VOP_SDWA_SDST_ENC_has_sdwa(uint64_t I);
+            bool COND_VOPC_INST_LITERAL_has_lit(uint64_t I);
+            bool COND_VOPC_VOP_SDWA_SDST_ENC_has_sdwa(uint64_t I);
             enum InstructionFamily
             {
                 ENC_SOP1 = -1,
@@ -323,10 +358,21 @@ namespace Dyninst {
                 ENC_FLAT = 16,
                 ENC_FLAT_GLBL = 17,
                 ENC_FLAT_SCRATCH = 18,
-                SOPK_INST_LITERAL_ = 19,
-                ENC_VOP2_LITERAL = 20,
-                ENC_VOP3B = 21,
-                ENC_VOP3P_MFMA = 22,
+                SOP1_INST_LITERAL = 19,
+                SOP2_INST_LITERAL = 20,
+                SOPC_INST_LITERAL = 21,
+                SOPK_INST_LITERAL = 22,
+                VOP1_INST_LITERAL = 23,
+                VOP1_VOP_DPP = 24,
+                VOP1_VOP_SDWA = 25,
+                VOP2_INST_LITERAL = 26,
+                VOP2_VOP_DPP = 27,
+                VOP2_VOP_SDWA = 28,
+                VOP2_VOP_SDWA_SDST_ENC = 29,
+                VOP3_SDST_ENC = 30,
+                VOP3P_MFMA = 31,
+                VOPC_INST_LITERAL = 32,
+                VOPC_VOP_SDWA_SDST_ENC = 33,
             };
             InstructionFamily instr_family;
             struct layout_ENC_SOP1 {
@@ -397,8 +443,7 @@ namespace Dyninst {
                 uint8_t NEG_HI : 3;
                 uint8_t OP : 7;
                 uint8_t OP_SEL : 3;
-                uint8_t OP_SEL_HI : 2;
-                uint8_t OP_SEL_HI_2 : 1;
+                uint8_t OP_SEL_HI : 3;
                 uint16_t SRC0 : 9;
                 uint16_t SRC1 : 9;
                 uint16_t SRC2 : 9;
@@ -471,8 +516,7 @@ namespace Dyninst {
                 uint8_t ENCODING : 6;
                 uint8_t GLC : 1;
                 uint8_t LWE : 1;
-                uint8_t OP : 7;
-                uint8_t OPM : 1;
+                uint8_t OP : 8;
                 uint8_t SCC : 1;
                 uint8_t SLC : 1;
                 uint8_t SRSRC : 7;
@@ -526,22 +570,145 @@ namespace Dyninst {
                 uint8_t SLC : 1;
                 uint8_t VDST : 8;
             };
-            struct layout_SOPK_INST_LITERAL_ {
+            struct layout_SOP1_INST_LITERAL {
+                uint16_t ENCODING : 9;
+                uint32_t LITERAL : 32;
+                uint8_t OP : 8;
+                uint8_t SDST : 7;
+                uint8_t SSRC0 : 8;
+            };
+            struct layout_SOP2_INST_LITERAL {
+                uint8_t ENCODING : 2;
+                uint32_t LITERAL : 32;
+                uint8_t OP : 7;
+                uint8_t SDST : 7;
+                uint8_t SSRC0 : 8;
+                uint8_t SSRC1 : 8;
+            };
+            struct layout_SOPC_INST_LITERAL {
+                uint16_t ENCODING : 9;
+                uint32_t LITERAL : 32;
+                uint8_t OP : 7;
+                uint8_t SSRC0 : 8;
+                uint8_t SSRC1 : 8;
+            };
+            struct layout_SOPK_INST_LITERAL {
                 uint8_t ENCODING : 4;
+                uint32_t LITERAL : 32;
                 uint8_t OP : 5;
                 uint8_t SDST : 7;
                 uint16_t SIMM16 : 16;
-                uint32_t SIMM32 : 32;
             };
-            struct layout_ENC_VOP2_LITERAL {
+            struct layout_VOP1_INST_LITERAL {
+                uint8_t ENCODING : 7;
+                uint32_t LITERAL : 32;
+                uint8_t OP : 8;
+                uint16_t SRC0 : 9;
+                uint8_t VDST : 8;
+            };
+            struct layout_VOP1_VOP_DPP {
+                uint8_t BANK_MASK : 4;
+                uint8_t BOUND_CTRL : 1;
+                uint16_t DPP_CTRL : 9;
+                uint8_t ENCODING : 7;
+                uint8_t OP : 8;
+                uint8_t ROW_MASK : 4;
+                uint16_t SRC0 : 9;
+                uint8_t SRC0_ABS : 1;
+                uint8_t SRC0_NEG : 1;
+                uint8_t SRC1_ABS : 1;
+                uint8_t SRC1_NEG : 1;
+                uint8_t VDST : 8;
+                uint8_t VSRC0 : 8;
+            };
+            struct layout_VOP1_VOP_SDWA {
+                uint8_t CLAMP : 1;
+                uint8_t DST_SEL : 3;
+                uint8_t DST_UNUSED : 2;
+                uint8_t ENCODING : 7;
+                uint8_t OMOD : 2;
+                uint8_t OP : 8;
+                uint8_t S0 : 1;
+                uint8_t S1 : 1;
+                uint16_t SRC0 : 9;
+                uint8_t SRC0_ABS : 1;
+                uint8_t SRC0_NEG : 1;
+                uint8_t SRC0_SEL : 3;
+                uint8_t SRC0_SEXT : 1;
+                uint8_t SRC1_ABS : 1;
+                uint8_t SRC1_NEG : 1;
+                uint8_t SRC1_SEL : 3;
+                uint8_t SRC1_SEXT : 1;
+                uint8_t VDST : 8;
+                uint8_t VSRC0 : 8;
+            };
+            struct layout_VOP2_INST_LITERAL {
                 uint8_t ENCODING : 1;
+                uint32_t LITERAL : 32;
                 uint8_t OP : 6;
-                uint32_t SIMM32 : 32;
                 uint16_t SRC0 : 9;
                 uint8_t VDST : 8;
                 uint8_t VSRC1 : 8;
             };
-            struct layout_ENC_VOP3B {
+            struct layout_VOP2_VOP_DPP {
+                uint8_t BANK_MASK : 4;
+                uint8_t BOUND_CTRL : 1;
+                uint16_t DPP_CTRL : 9;
+                uint8_t ENCODING : 1;
+                uint8_t OP : 6;
+                uint8_t ROW_MASK : 4;
+                uint16_t SRC0 : 9;
+                uint8_t SRC0_ABS : 1;
+                uint8_t SRC0_NEG : 1;
+                uint8_t SRC1_ABS : 1;
+                uint8_t SRC1_NEG : 1;
+                uint8_t VDST : 8;
+                uint8_t VSRC0 : 8;
+                uint8_t VSRC1 : 8;
+            };
+            struct layout_VOP2_VOP_SDWA {
+                uint8_t CLAMP : 1;
+                uint8_t DST_SEL : 3;
+                uint8_t DST_UNUSED : 2;
+                uint8_t ENCODING : 1;
+                uint8_t OMOD : 2;
+                uint8_t OP : 6;
+                uint8_t S0 : 1;
+                uint8_t S1 : 1;
+                uint16_t SRC0 : 9;
+                uint8_t SRC0_ABS : 1;
+                uint8_t SRC0_NEG : 1;
+                uint8_t SRC0_SEL : 3;
+                uint8_t SRC0_SEXT : 1;
+                uint8_t SRC1_ABS : 1;
+                uint8_t SRC1_NEG : 1;
+                uint8_t SRC1_SEL : 3;
+                uint8_t SRC1_SEXT : 1;
+                uint8_t VDST : 8;
+                uint8_t VSRC0 : 8;
+                uint8_t VSRC1 : 8;
+            };
+            struct layout_VOP2_VOP_SDWA_SDST_ENC {
+                uint8_t ENCODING : 1;
+                uint8_t OP : 6;
+                uint8_t S0 : 1;
+                uint8_t S1 : 1;
+                uint8_t SD : 1;
+                uint8_t SDST : 7;
+                uint16_t SRC0 : 9;
+                uint8_t SRC0_ABS : 1;
+                uint8_t SRC0_NEG : 1;
+                uint8_t SRC0_SEL : 3;
+                uint8_t SRC0_SEXT : 1;
+                uint8_t SRC1_ABS : 1;
+                uint8_t SRC1_NEG : 1;
+                uint8_t SRC1_SEL : 3;
+                uint8_t SRC1_SEXT : 1;
+                uint8_t VDST : 8;
+                uint8_t VSRC0 : 8;
+                uint8_t VSRC1 : 8;
+            };
+            struct layout_VOP3_SDST_ENC {
                 uint8_t CLAMP : 1;
                 uint8_t ENCODING : 6;
                 uint8_t NEG : 3;
@@ -553,7 +720,7 @@ namespace Dyninst {
                 uint16_t SRC2 : 9;
                 uint8_t VDST : 8;
             };
-            struct layout_ENC_VOP3P_MFMA {
+            struct layout_VOP3P_MFMA {
                 uint8_t ABID : 4;
                 uint8_t ACC : 2;
                 uint8_t ACC_CD : 1;
@@ -565,6 +732,32 @@ namespace Dyninst {
                 uint16_t SRC1 : 9;
                 uint16_t SRC2 : 9;
                 uint8_t VDST : 8;
+            };
+            struct layout_VOPC_INST_LITERAL {
+                uint8_t ENCODING : 7;
+                uint32_t LITERAL : 32;
+                uint8_t OP : 8;
+                uint16_t SRC0 : 9;
+                uint8_t VSRC1 : 8;
+            };
+            struct layout_VOPC_VOP_SDWA_SDST_ENC {
+                uint8_t ENCODING : 7;
+                uint8_t OP : 8;
+                uint8_t S0 : 1;
+                uint8_t S1 : 1;
+                uint8_t SD : 1;
+                uint8_t SDST : 7;
+                uint16_t SRC0 : 9;
+                uint8_t SRC0_ABS : 1;
+                uint8_t SRC0_NEG : 1;
+                uint8_t SRC0_SEL : 3;
+                uint8_t SRC0_SEXT : 1;
+                uint8_t SRC1_ABS : 1;
+                uint8_t SRC1_NEG : 1;
+                uint8_t SRC1_SEL : 3;
+                uint8_t SRC1_SEXT : 1;
+                uint8_t VSRC0 : 8;
+                uint8_t VSRC1 : 8;
             };
             union insn_layout{
 
@@ -586,10 +779,21 @@ namespace Dyninst {
                 layout_ENC_FLAT ENC_FLAT;
                 layout_ENC_FLAT_GLBL ENC_FLAT_GLBL;
                 layout_ENC_FLAT_SCRATCH ENC_FLAT_SCRATCH;
-                layout_SOPK_INST_LITERAL_ SOPK_INST_LITERAL_;
-                layout_ENC_VOP2_LITERAL ENC_VOP2_LITERAL;
-                layout_ENC_VOP3B ENC_VOP3B;
-                layout_ENC_VOP3P_MFMA ENC_VOP3P_MFMA;
+                layout_SOP1_INST_LITERAL SOP1_INST_LITERAL;
+                layout_SOP2_INST_LITERAL SOP2_INST_LITERAL;
+                layout_SOPC_INST_LITERAL SOPC_INST_LITERAL;
+                layout_SOPK_INST_LITERAL SOPK_INST_LITERAL;
+                layout_VOP1_INST_LITERAL VOP1_INST_LITERAL;
+                layout_VOP1_VOP_DPP VOP1_VOP_DPP;
+                layout_VOP1_VOP_SDWA VOP1_VOP_SDWA;
+                layout_VOP2_INST_LITERAL VOP2_INST_LITERAL;
+                layout_VOP2_VOP_DPP VOP2_VOP_DPP;
+                layout_VOP2_VOP_SDWA VOP2_VOP_SDWA;
+                layout_VOP2_VOP_SDWA_SDST_ENC VOP2_VOP_SDWA_SDST_ENC;
+                layout_VOP3_SDST_ENC VOP3_SDST_ENC;
+                layout_VOP3P_MFMA VOP3P_MFMA;
+                layout_VOPC_INST_LITERAL VOPC_INST_LITERAL;
+                layout_VOPC_VOP_SDWA_SDST_ENC VOPC_VOP_SDWA_SDST_ENC;
             }insn_layout;
             void decodeENC_SOP1();
             void finalizeENC_SOP1Operands();
@@ -627,19 +831,42 @@ namespace Dyninst {
             void finalizeENC_FLAT_GLBLOperands();
             void decodeENC_FLAT_SCRATCH();
             void finalizeENC_FLAT_SCRATCHOperands();
-            void decodeSOPK_INST_LITERAL_();
-            void finalizeSOPK_INST_LITERAL_Operands();
-            void decodeENC_VOP2_LITERAL();
-            void finalizeENC_VOP2_LITERALOperands();
-            void decodeENC_VOP3B();
-            void finalizeENC_VOP3BOperands();
-            void decodeENC_VOP3P_MFMA();
-            void finalizeENC_VOP3P_MFMAOperands();
+            void decodeSOP1_INST_LITERAL();
+            void finalizeSOP1_INST_LITERALOperands();
+            void decodeSOP2_INST_LITERAL();
+            void finalizeSOP2_INST_LITERALOperands();
+            void decodeSOPC_INST_LITERAL();
+            void finalizeSOPC_INST_LITERALOperands();
+            void decodeSOPK_INST_LITERAL();
+            void finalizeSOPK_INST_LITERALOperands();
+            void decodeVOP1_INST_LITERAL();
+            void finalizeVOP1_INST_LITERALOperands();
+            void decodeVOP1_VOP_DPP();
+            void finalizeVOP1_VOP_DPPOperands();
+            void decodeVOP1_VOP_SDWA();
+            void finalizeVOP1_VOP_SDWAOperands();
+            void decodeVOP2_INST_LITERAL();
+            void finalizeVOP2_INST_LITERALOperands();
+            void decodeVOP2_VOP_DPP();
+            void finalizeVOP2_VOP_DPPOperands();
+            void decodeVOP2_VOP_SDWA();
+            void finalizeVOP2_VOP_SDWAOperands();
+            void decodeVOP2_VOP_SDWA_SDST_ENC();
+            void finalizeVOP2_VOP_SDWA_SDST_ENCOperands();
+            void decodeVOP3_SDST_ENC();
+            void finalizeVOP3_SDST_ENCOperands();
+            void decodeVOP3P_MFMA();
+            void finalizeVOP3P_MFMAOperands();
+            void decodeVOPC_INST_LITERAL();
+            void finalizeVOPC_INST_LITERALOperands();
+            void decodeVOPC_VOP_SDWA_SDST_ENC();
+            void finalizeVOPC_VOP_SDWA_SDST_ENCOperands();
  
             
             Expression::Ptr decodeOPR_ACCVGPR(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_DSMEM(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_FLAT_SCRATCH(uint64_t input, uint32_t output_vec_len = 1 );
+            Expression::Ptr decodeOPR_GPUMEM(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_HWREG_ID(uint64_t input, uint32_t start, uint32_t end);
             Expression::Ptr decodeOPR_PC(uint64_t input, uint32_t output_vec_len = 1 );
             Expression::Ptr decodeOPR_SDST(uint64_t input, uint32_t output_vec_len = 1 );
@@ -667,27 +894,29 @@ namespace Dyninst {
             Expression::Ptr decodeOPR_VGPR_OR_LDS(uint64_t input, uint32_t output_vec_len = 1 );
 
             
-            void appendOPR_SIMM16(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
-
-            void appendOPR_SIMM4(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
-
             void appendOPR_HWREG(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
-
-            void appendOPR_WAITCNT(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
             void appendOPR_LABEL(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
             void appendOPR_SENDMSG(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
-            void appendOPR_SIMM8(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
+            void appendOPR_SIMM16(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
             void appendOPR_SIMM32(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
+
+            void appendOPR_SIMM4(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
+
+            void appendOPR_SIMM8(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
+
+            void appendOPR_WAITCNT(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
             void appendOPR_ACCVGPR(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
             void appendOPR_DSMEM(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
             void appendOPR_FLAT_SCRATCH(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
+
+            void appendOPR_GPUMEM(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
             void appendOPR_PC(uint64_t input, bool isRead, bool isWritten, uint32_t _num_elements = 1, bool isImplicit = false);
 
@@ -1669,6 +1898,65 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_S_ANDN2_WREXEC_B64,"S_ANDN2_WREXEC_B64"}, // 54
                 {amdgpu_gfx90a_op_S_BITREPLICATE_B64_B32,"S_BITREPLICATE_B64_B32"}, // 55
             }; // end ENC_SOP1_insn_table
+            const amdgpu_gfx90a_insn_entry SOP1_INST_LITERAL_insn_table[56] = 
+            {
+                {amdgpu_gfx90a_op_S_MOV_B32,"S_MOV_B32"}, // 0
+                {amdgpu_gfx90a_op_S_MOV_B64,"S_MOV_B64"}, // 1
+                {amdgpu_gfx90a_op_S_CMOV_B32,"S_CMOV_B32"}, // 2
+                {amdgpu_gfx90a_op_S_CMOV_B64,"S_CMOV_B64"}, // 3
+                {amdgpu_gfx90a_op_S_NOT_B32,"S_NOT_B32"}, // 4
+                {amdgpu_gfx90a_op_S_NOT_B64,"S_NOT_B64"}, // 5
+                {amdgpu_gfx90a_op_S_WQM_B32,"S_WQM_B32"}, // 6
+                {amdgpu_gfx90a_op_S_WQM_B64,"S_WQM_B64"}, // 7
+                {amdgpu_gfx90a_op_S_BREV_B32,"S_BREV_B32"}, // 8
+                {amdgpu_gfx90a_op_S_BREV_B64,"S_BREV_B64"}, // 9
+                {amdgpu_gfx90a_op_S_BCNT0_I32_B32,"S_BCNT0_I32_B32"}, // 10
+                {amdgpu_gfx90a_op_S_BCNT0_I32_B64,"S_BCNT0_I32_B64"}, // 11
+                {amdgpu_gfx90a_op_S_BCNT1_I32_B32,"S_BCNT1_I32_B32"}, // 12
+                {amdgpu_gfx90a_op_S_BCNT1_I32_B64,"S_BCNT1_I32_B64"}, // 13
+                {amdgpu_gfx90a_op_S_FF0_I32_B32,"S_FF0_I32_B32"}, // 14
+                {amdgpu_gfx90a_op_S_FF0_I32_B64,"S_FF0_I32_B64"}, // 15
+                {amdgpu_gfx90a_op_S_FF1_I32_B32,"S_FF1_I32_B32"}, // 16
+                {amdgpu_gfx90a_op_S_FF1_I32_B64,"S_FF1_I32_B64"}, // 17
+                {amdgpu_gfx90a_op_S_FLBIT_I32_B32,"S_FLBIT_I32_B32"}, // 18
+                {amdgpu_gfx90a_op_S_FLBIT_I32_B64,"S_FLBIT_I32_B64"}, // 19
+                {amdgpu_gfx90a_op_S_FLBIT_I32,"S_FLBIT_I32"}, // 20
+                {amdgpu_gfx90a_op_S_FLBIT_I32_I64,"S_FLBIT_I32_I64"}, // 21
+                {amdgpu_gfx90a_op_S_SEXT_I32_I8,"S_SEXT_I32_I8"}, // 22
+                {amdgpu_gfx90a_op_S_SEXT_I32_I16,"S_SEXT_I32_I16"}, // 23
+                {amdgpu_gfx90a_op_S_BITSET0_B32,"S_BITSET0_B32"}, // 24
+                {amdgpu_gfx90a_op_S_BITSET0_B64,"S_BITSET0_B64"}, // 25
+                {amdgpu_gfx90a_op_S_BITSET1_B32,"S_BITSET1_B32"}, // 26
+                {amdgpu_gfx90a_op_S_BITSET1_B64,"S_BITSET1_B64"}, // 27
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 28
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 29
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 30
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 31
+                {amdgpu_gfx90a_op_S_AND_SAVEEXEC_B64,"S_AND_SAVEEXEC_B64"}, // 32
+                {amdgpu_gfx90a_op_S_OR_SAVEEXEC_B64,"S_OR_SAVEEXEC_B64"}, // 33
+                {amdgpu_gfx90a_op_S_XOR_SAVEEXEC_B64,"S_XOR_SAVEEXEC_B64"}, // 34
+                {amdgpu_gfx90a_op_S_ANDN2_SAVEEXEC_B64,"S_ANDN2_SAVEEXEC_B64"}, // 35
+                {amdgpu_gfx90a_op_S_ORN2_SAVEEXEC_B64,"S_ORN2_SAVEEXEC_B64"}, // 36
+                {amdgpu_gfx90a_op_S_NAND_SAVEEXEC_B64,"S_NAND_SAVEEXEC_B64"}, // 37
+                {amdgpu_gfx90a_op_S_NOR_SAVEEXEC_B64,"S_NOR_SAVEEXEC_B64"}, // 38
+                {amdgpu_gfx90a_op_S_XNOR_SAVEEXEC_B64,"S_XNOR_SAVEEXEC_B64"}, // 39
+                {amdgpu_gfx90a_op_S_QUADMASK_B32,"S_QUADMASK_B32"}, // 40
+                {amdgpu_gfx90a_op_S_QUADMASK_B64,"S_QUADMASK_B64"}, // 41
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 42
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 43
+                {amdgpu_gfx90a_op_S_MOVRELD_B32,"S_MOVRELD_B32"}, // 44
+                {amdgpu_gfx90a_op_S_MOVRELD_B64,"S_MOVRELD_B64"}, // 45
+                {amdgpu_gfx90a_op_S_CBRANCH_JOIN,"S_CBRANCH_JOIN"}, // 46
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 47
+                {amdgpu_gfx90a_op_S_ABS_I32,"S_ABS_I32"}, // 48
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 49
+                {amdgpu_gfx90a_op_S_SET_GPR_IDX_IDX,"S_SET_GPR_IDX_IDX"}, // 50
+                {amdgpu_gfx90a_op_S_ANDN1_SAVEEXEC_B64,"S_ANDN1_SAVEEXEC_B64"}, // 51
+                {amdgpu_gfx90a_op_S_ORN1_SAVEEXEC_B64,"S_ORN1_SAVEEXEC_B64"}, // 52
+                {amdgpu_gfx90a_op_S_ANDN1_WREXEC_B64,"S_ANDN1_WREXEC_B64"}, // 53
+                {amdgpu_gfx90a_op_S_ANDN2_WREXEC_B64,"S_ANDN2_WREXEC_B64"}, // 54
+                {amdgpu_gfx90a_op_S_BITREPLICATE_B64_B32,"S_BITREPLICATE_B64_B32"}, // 55
+            }; // end SOP1_INST_LITERAL_insn_table
             const amdgpu_gfx90a_insn_entry ENC_SOP2_insn_table[53] = 
             {
                 {amdgpu_gfx90a_op_S_ADD_U32,"S_ADD_U32"}, // 0
@@ -1725,6 +2013,62 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_S_PACK_LH_B32_B16,"S_PACK_LH_B32_B16"}, // 51
                 {amdgpu_gfx90a_op_S_PACK_HH_B32_B16,"S_PACK_HH_B32_B16"}, // 52
             }; // end ENC_SOP2_insn_table
+            const amdgpu_gfx90a_insn_entry SOP2_INST_LITERAL_insn_table[53] = 
+            {
+                {amdgpu_gfx90a_op_S_ADD_U32,"S_ADD_U32"}, // 0
+                {amdgpu_gfx90a_op_S_SUB_U32,"S_SUB_U32"}, // 1
+                {amdgpu_gfx90a_op_S_ADD_I32,"S_ADD_I32"}, // 2
+                {amdgpu_gfx90a_op_S_SUB_I32,"S_SUB_I32"}, // 3
+                {amdgpu_gfx90a_op_S_ADDC_U32,"S_ADDC_U32"}, // 4
+                {amdgpu_gfx90a_op_S_SUBB_U32,"S_SUBB_U32"}, // 5
+                {amdgpu_gfx90a_op_S_MIN_I32,"S_MIN_I32"}, // 6
+                {amdgpu_gfx90a_op_S_MIN_U32,"S_MIN_U32"}, // 7
+                {amdgpu_gfx90a_op_S_MAX_I32,"S_MAX_I32"}, // 8
+                {amdgpu_gfx90a_op_S_MAX_U32,"S_MAX_U32"}, // 9
+                {amdgpu_gfx90a_op_S_CSELECT_B32,"S_CSELECT_B32"}, // 10
+                {amdgpu_gfx90a_op_S_CSELECT_B64,"S_CSELECT_B64"}, // 11
+                {amdgpu_gfx90a_op_S_AND_B32,"S_AND_B32"}, // 12
+                {amdgpu_gfx90a_op_S_AND_B64,"S_AND_B64"}, // 13
+                {amdgpu_gfx90a_op_S_OR_B32,"S_OR_B32"}, // 14
+                {amdgpu_gfx90a_op_S_OR_B64,"S_OR_B64"}, // 15
+                {amdgpu_gfx90a_op_S_XOR_B32,"S_XOR_B32"}, // 16
+                {amdgpu_gfx90a_op_S_XOR_B64,"S_XOR_B64"}, // 17
+                {amdgpu_gfx90a_op_S_ANDN2_B32,"S_ANDN2_B32"}, // 18
+                {amdgpu_gfx90a_op_S_ANDN2_B64,"S_ANDN2_B64"}, // 19
+                {amdgpu_gfx90a_op_S_ORN2_B32,"S_ORN2_B32"}, // 20
+                {amdgpu_gfx90a_op_S_ORN2_B64,"S_ORN2_B64"}, // 21
+                {amdgpu_gfx90a_op_S_NAND_B32,"S_NAND_B32"}, // 22
+                {amdgpu_gfx90a_op_S_NAND_B64,"S_NAND_B64"}, // 23
+                {amdgpu_gfx90a_op_S_NOR_B32,"S_NOR_B32"}, // 24
+                {amdgpu_gfx90a_op_S_NOR_B64,"S_NOR_B64"}, // 25
+                {amdgpu_gfx90a_op_S_XNOR_B32,"S_XNOR_B32"}, // 26
+                {amdgpu_gfx90a_op_S_XNOR_B64,"S_XNOR_B64"}, // 27
+                {amdgpu_gfx90a_op_S_LSHL_B32,"S_LSHL_B32"}, // 28
+                {amdgpu_gfx90a_op_S_LSHL_B64,"S_LSHL_B64"}, // 29
+                {amdgpu_gfx90a_op_S_LSHR_B32,"S_LSHR_B32"}, // 30
+                {amdgpu_gfx90a_op_S_LSHR_B64,"S_LSHR_B64"}, // 31
+                {amdgpu_gfx90a_op_S_ASHR_I32,"S_ASHR_I32"}, // 32
+                {amdgpu_gfx90a_op_S_ASHR_I64,"S_ASHR_I64"}, // 33
+                {amdgpu_gfx90a_op_S_BFM_B32,"S_BFM_B32"}, // 34
+                {amdgpu_gfx90a_op_S_BFM_B64,"S_BFM_B64"}, // 35
+                {amdgpu_gfx90a_op_S_MUL_I32,"S_MUL_I32"}, // 36
+                {amdgpu_gfx90a_op_S_BFE_U32,"S_BFE_U32"}, // 37
+                {amdgpu_gfx90a_op_S_BFE_I32,"S_BFE_I32"}, // 38
+                {amdgpu_gfx90a_op_S_BFE_U64,"S_BFE_U64"}, // 39
+                {amdgpu_gfx90a_op_S_BFE_I64,"S_BFE_I64"}, // 40
+                {amdgpu_gfx90a_op_S_CBRANCH_G_FORK,"S_CBRANCH_G_FORK"}, // 41
+                {amdgpu_gfx90a_op_S_ABSDIFF_I32,"S_ABSDIFF_I32"}, // 42
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 43
+                {amdgpu_gfx90a_op_S_MUL_HI_U32,"S_MUL_HI_U32"}, // 44
+                {amdgpu_gfx90a_op_S_MUL_HI_I32,"S_MUL_HI_I32"}, // 45
+                {amdgpu_gfx90a_op_S_LSHL1_ADD_U32,"S_LSHL1_ADD_U32"}, // 46
+                {amdgpu_gfx90a_op_S_LSHL2_ADD_U32,"S_LSHL2_ADD_U32"}, // 47
+                {amdgpu_gfx90a_op_S_LSHL3_ADD_U32,"S_LSHL3_ADD_U32"}, // 48
+                {amdgpu_gfx90a_op_S_LSHL4_ADD_U32,"S_LSHL4_ADD_U32"}, // 49
+                {amdgpu_gfx90a_op_S_PACK_LL_B32_B16,"S_PACK_LL_B32_B16"}, // 50
+                {amdgpu_gfx90a_op_S_PACK_LH_B32_B16,"S_PACK_LH_B32_B16"}, // 51
+                {amdgpu_gfx90a_op_S_PACK_HH_B32_B16,"S_PACK_HH_B32_B16"}, // 52
+            }; // end SOP2_INST_LITERAL_insn_table
             const amdgpu_gfx90a_insn_entry ENC_SOPC_insn_table[20] = 
             {
                 {amdgpu_gfx90a_op_S_CMP_EQ_I32,"S_CMP_EQ_I32"}, // 0
@@ -1748,6 +2092,29 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_S_CMP_EQ_U64,"S_CMP_EQ_U64"}, // 18
                 {amdgpu_gfx90a_op_S_CMP_LG_U64,"S_CMP_LG_U64"}, // 19
             }; // end ENC_SOPC_insn_table
+            const amdgpu_gfx90a_insn_entry SOPC_INST_LITERAL_insn_table[20] = 
+            {
+                {amdgpu_gfx90a_op_S_CMP_EQ_I32,"S_CMP_EQ_I32"}, // 0
+                {amdgpu_gfx90a_op_S_CMP_LG_I32,"S_CMP_LG_I32"}, // 1
+                {amdgpu_gfx90a_op_S_CMP_GT_I32,"S_CMP_GT_I32"}, // 2
+                {amdgpu_gfx90a_op_S_CMP_GE_I32,"S_CMP_GE_I32"}, // 3
+                {amdgpu_gfx90a_op_S_CMP_LT_I32,"S_CMP_LT_I32"}, // 4
+                {amdgpu_gfx90a_op_S_CMP_LE_I32,"S_CMP_LE_I32"}, // 5
+                {amdgpu_gfx90a_op_S_CMP_EQ_U32,"S_CMP_EQ_U32"}, // 6
+                {amdgpu_gfx90a_op_S_CMP_LG_U32,"S_CMP_LG_U32"}, // 7
+                {amdgpu_gfx90a_op_S_CMP_GT_U32,"S_CMP_GT_U32"}, // 8
+                {amdgpu_gfx90a_op_S_CMP_GE_U32,"S_CMP_GE_U32"}, // 9
+                {amdgpu_gfx90a_op_S_CMP_LT_U32,"S_CMP_LT_U32"}, // 10
+                {amdgpu_gfx90a_op_S_CMP_LE_U32,"S_CMP_LE_U32"}, // 11
+                {amdgpu_gfx90a_op_S_BITCMP0_B32,"S_BITCMP0_B32"}, // 12
+                {amdgpu_gfx90a_op_S_BITCMP1_B32,"S_BITCMP1_B32"}, // 13
+                {amdgpu_gfx90a_op_S_BITCMP0_B64,"S_BITCMP0_B64"}, // 14
+                {amdgpu_gfx90a_op_S_BITCMP1_B64,"S_BITCMP1_B64"}, // 15
+                {amdgpu_gfx90a_op_S_SETVSKIP,"S_SETVSKIP"}, // 16
+                {amdgpu_gfx90a_op_S_SET_GPR_IDX_ON,"S_SET_GPR_IDX_ON"}, // 17
+                {amdgpu_gfx90a_op_S_CMP_EQ_U64,"S_CMP_EQ_U64"}, // 18
+                {amdgpu_gfx90a_op_S_CMP_LG_U64,"S_CMP_LG_U64"}, // 19
+            }; // end SOPC_INST_LITERAL_insn_table
             const amdgpu_gfx90a_insn_entry ENC_SOPK_insn_table[22] = 
             {
                 {amdgpu_gfx90a_op_S_MOVK_I32,"S_MOVK_I32"}, // 0
@@ -1773,6 +2140,30 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 20
                 {amdgpu_gfx90a_op_S_CALL_B64,"S_CALL_B64"}, // 21
             }; // end ENC_SOPK_insn_table
+            const amdgpu_gfx90a_insn_entry SOPK_INST_LITERAL_insn_table[21] = 
+            {
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 0
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 1
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 2
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 3
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 4
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 5
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 6
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 7
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 8
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 9
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 10
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 11
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 12
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 13
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 14
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 15
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 16
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 17
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 18
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 19
+                {amdgpu_gfx90a_op_S_SETREG_IMM32_B32,"S_SETREG_IMM32_B32"}, // 20
+            }; // end SOPK_INST_LITERAL_insn_table
             const amdgpu_gfx90a_insn_entry ENC_SOPP_insn_table[31] = 
             {
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 0
@@ -1884,8 +2275,8 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_V_FRACT_F16,"V_FRACT_F16"}, // 72
                 {amdgpu_gfx90a_op_V_SIN_F16,"V_SIN_F16"}, // 73
                 {amdgpu_gfx90a_op_V_COS_F16,"V_COS_F16"}, // 74
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 75
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 76
+                {amdgpu_gfx90a_op_V_EXP_LEGACY_F32,"V_EXP_LEGACY_F32"}, // 75
+                {amdgpu_gfx90a_op_V_LOG_LEGACY_F32,"V_LOG_LEGACY_F32"}, // 76
                 {amdgpu_gfx90a_op_V_CVT_NORM_I16_F16,"V_CVT_NORM_I16_F16"}, // 77
                 {amdgpu_gfx90a_op_V_CVT_NORM_U16_F16,"V_CVT_NORM_U16_F16"}, // 78
                 {amdgpu_gfx90a_op_V_SAT_PK_U8_I16,"V_SAT_PK_U8_I16"}, // 79
@@ -1893,6 +2284,264 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_V_SWAP_B32,"V_SWAP_B32"}, // 81
                 {amdgpu_gfx90a_op_V_ACCVGPR_MOV_B32,"V_ACCVGPR_MOV_B32"}, // 82
             }; // end ENC_VOP1_insn_table
+            const amdgpu_gfx90a_insn_entry VOP1_INST_LITERAL_insn_table[83] = 
+            {
+                {amdgpu_gfx90a_op_V_NOP,"V_NOP"}, // 0
+                {amdgpu_gfx90a_op_V_MOV_B32,"V_MOV_B32"}, // 1
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 2
+                {amdgpu_gfx90a_op_V_CVT_I32_F64,"V_CVT_I32_F64"}, // 3
+                {amdgpu_gfx90a_op_V_CVT_F64_I32,"V_CVT_F64_I32"}, // 4
+                {amdgpu_gfx90a_op_V_CVT_F32_I32,"V_CVT_F32_I32"}, // 5
+                {amdgpu_gfx90a_op_V_CVT_F32_U32,"V_CVT_F32_U32"}, // 6
+                {amdgpu_gfx90a_op_V_CVT_U32_F32,"V_CVT_U32_F32"}, // 7
+                {amdgpu_gfx90a_op_V_CVT_I32_F32,"V_CVT_I32_F32"}, // 8
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 9
+                {amdgpu_gfx90a_op_V_CVT_F16_F32,"V_CVT_F16_F32"}, // 10
+                {amdgpu_gfx90a_op_V_CVT_F32_F16,"V_CVT_F32_F16"}, // 11
+                {amdgpu_gfx90a_op_V_CVT_RPI_I32_F32,"V_CVT_RPI_I32_F32"}, // 12
+                {amdgpu_gfx90a_op_V_CVT_FLR_I32_F32,"V_CVT_FLR_I32_F32"}, // 13
+                {amdgpu_gfx90a_op_V_CVT_OFF_F32_I4,"V_CVT_OFF_F32_I4"}, // 14
+                {amdgpu_gfx90a_op_V_CVT_F32_F64,"V_CVT_F32_F64"}, // 15
+                {amdgpu_gfx90a_op_V_CVT_F64_F32,"V_CVT_F64_F32"}, // 16
+                {amdgpu_gfx90a_op_V_CVT_F32_UBYTE0,"V_CVT_F32_UBYTE0"}, // 17
+                {amdgpu_gfx90a_op_V_CVT_F32_UBYTE1,"V_CVT_F32_UBYTE1"}, // 18
+                {amdgpu_gfx90a_op_V_CVT_F32_UBYTE2,"V_CVT_F32_UBYTE2"}, // 19
+                {amdgpu_gfx90a_op_V_CVT_F32_UBYTE3,"V_CVT_F32_UBYTE3"}, // 20
+                {amdgpu_gfx90a_op_V_CVT_U32_F64,"V_CVT_U32_F64"}, // 21
+                {amdgpu_gfx90a_op_V_CVT_F64_U32,"V_CVT_F64_U32"}, // 22
+                {amdgpu_gfx90a_op_V_TRUNC_F64,"V_TRUNC_F64"}, // 23
+                {amdgpu_gfx90a_op_V_CEIL_F64,"V_CEIL_F64"}, // 24
+                {amdgpu_gfx90a_op_V_RNDNE_F64,"V_RNDNE_F64"}, // 25
+                {amdgpu_gfx90a_op_V_FLOOR_F64,"V_FLOOR_F64"}, // 26
+                {amdgpu_gfx90a_op_V_FRACT_F32,"V_FRACT_F32"}, // 27
+                {amdgpu_gfx90a_op_V_TRUNC_F32,"V_TRUNC_F32"}, // 28
+                {amdgpu_gfx90a_op_V_CEIL_F32,"V_CEIL_F32"}, // 29
+                {amdgpu_gfx90a_op_V_RNDNE_F32,"V_RNDNE_F32"}, // 30
+                {amdgpu_gfx90a_op_V_FLOOR_F32,"V_FLOOR_F32"}, // 31
+                {amdgpu_gfx90a_op_V_EXP_F32,"V_EXP_F32"}, // 32
+                {amdgpu_gfx90a_op_V_LOG_F32,"V_LOG_F32"}, // 33
+                {amdgpu_gfx90a_op_V_RCP_F32,"V_RCP_F32"}, // 34
+                {amdgpu_gfx90a_op_V_RCP_IFLAG_F32,"V_RCP_IFLAG_F32"}, // 35
+                {amdgpu_gfx90a_op_V_RSQ_F32,"V_RSQ_F32"}, // 36
+                {amdgpu_gfx90a_op_V_RCP_F64,"V_RCP_F64"}, // 37
+                {amdgpu_gfx90a_op_V_RSQ_F64,"V_RSQ_F64"}, // 38
+                {amdgpu_gfx90a_op_V_SQRT_F32,"V_SQRT_F32"}, // 39
+                {amdgpu_gfx90a_op_V_SQRT_F64,"V_SQRT_F64"}, // 40
+                {amdgpu_gfx90a_op_V_SIN_F32,"V_SIN_F32"}, // 41
+                {amdgpu_gfx90a_op_V_COS_F32,"V_COS_F32"}, // 42
+                {amdgpu_gfx90a_op_V_NOT_B32,"V_NOT_B32"}, // 43
+                {amdgpu_gfx90a_op_V_BFREV_B32,"V_BFREV_B32"}, // 44
+                {amdgpu_gfx90a_op_V_FFBH_U32,"V_FFBH_U32"}, // 45
+                {amdgpu_gfx90a_op_V_FFBL_B32,"V_FFBL_B32"}, // 46
+                {amdgpu_gfx90a_op_V_FFBH_I32,"V_FFBH_I32"}, // 47
+                {amdgpu_gfx90a_op_V_FREXP_EXP_I32_F64,"V_FREXP_EXP_I32_F64"}, // 48
+                {amdgpu_gfx90a_op_V_FREXP_MANT_F64,"V_FREXP_MANT_F64"}, // 49
+                {amdgpu_gfx90a_op_V_FRACT_F64,"V_FRACT_F64"}, // 50
+                {amdgpu_gfx90a_op_V_FREXP_EXP_I32_F32,"V_FREXP_EXP_I32_F32"}, // 51
+                {amdgpu_gfx90a_op_V_FREXP_MANT_F32,"V_FREXP_MANT_F32"}, // 52
+                {amdgpu_gfx90a_op_V_CLREXCP,"V_CLREXCP"}, // 53
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 54
+                {amdgpu_gfx90a_op_V_SCREEN_PARTITION_4SE_B32,"V_SCREEN_PARTITION_4SE_B32"}, // 55
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 56
+                {amdgpu_gfx90a_op_V_CVT_F16_U16,"V_CVT_F16_U16"}, // 57
+                {amdgpu_gfx90a_op_V_CVT_F16_I16,"V_CVT_F16_I16"}, // 58
+                {amdgpu_gfx90a_op_V_CVT_U16_F16,"V_CVT_U16_F16"}, // 59
+                {amdgpu_gfx90a_op_V_CVT_I16_F16,"V_CVT_I16_F16"}, // 60
+                {amdgpu_gfx90a_op_V_RCP_F16,"V_RCP_F16"}, // 61
+                {amdgpu_gfx90a_op_V_SQRT_F16,"V_SQRT_F16"}, // 62
+                {amdgpu_gfx90a_op_V_RSQ_F16,"V_RSQ_F16"}, // 63
+                {amdgpu_gfx90a_op_V_LOG_F16,"V_LOG_F16"}, // 64
+                {amdgpu_gfx90a_op_V_EXP_F16,"V_EXP_F16"}, // 65
+                {amdgpu_gfx90a_op_V_FREXP_MANT_F16,"V_FREXP_MANT_F16"}, // 66
+                {amdgpu_gfx90a_op_V_FREXP_EXP_I16_F16,"V_FREXP_EXP_I16_F16"}, // 67
+                {amdgpu_gfx90a_op_V_FLOOR_F16,"V_FLOOR_F16"}, // 68
+                {amdgpu_gfx90a_op_V_CEIL_F16,"V_CEIL_F16"}, // 69
+                {amdgpu_gfx90a_op_V_TRUNC_F16,"V_TRUNC_F16"}, // 70
+                {amdgpu_gfx90a_op_V_RNDNE_F16,"V_RNDNE_F16"}, // 71
+                {amdgpu_gfx90a_op_V_FRACT_F16,"V_FRACT_F16"}, // 72
+                {amdgpu_gfx90a_op_V_SIN_F16,"V_SIN_F16"}, // 73
+                {amdgpu_gfx90a_op_V_COS_F16,"V_COS_F16"}, // 74
+                {amdgpu_gfx90a_op_V_EXP_LEGACY_F32,"V_EXP_LEGACY_F32"}, // 75
+                {amdgpu_gfx90a_op_V_LOG_LEGACY_F32,"V_LOG_LEGACY_F32"}, // 76
+                {amdgpu_gfx90a_op_V_CVT_NORM_I16_F16,"V_CVT_NORM_I16_F16"}, // 77
+                {amdgpu_gfx90a_op_V_CVT_NORM_U16_F16,"V_CVT_NORM_U16_F16"}, // 78
+                {amdgpu_gfx90a_op_V_SAT_PK_U8_I16,"V_SAT_PK_U8_I16"}, // 79
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 80
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 81
+                {amdgpu_gfx90a_op_V_ACCVGPR_MOV_B32,"V_ACCVGPR_MOV_B32"}, // 82
+            }; // end VOP1_INST_LITERAL_insn_table
+            const amdgpu_gfx90a_insn_entry VOP1_VOP_DPP_insn_table[83] = 
+            {
+                {amdgpu_gfx90a_op_V_NOP,"V_NOP"}, // 0
+                {amdgpu_gfx90a_op_V_MOV_B32,"V_MOV_B32"}, // 1
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 2
+                {amdgpu_gfx90a_op_V_CVT_I32_F64,"V_CVT_I32_F64"}, // 3
+                {amdgpu_gfx90a_op_V_CVT_F64_I32,"V_CVT_F64_I32"}, // 4
+                {amdgpu_gfx90a_op_V_CVT_F32_I32,"V_CVT_F32_I32"}, // 5
+                {amdgpu_gfx90a_op_V_CVT_F32_U32,"V_CVT_F32_U32"}, // 6
+                {amdgpu_gfx90a_op_V_CVT_U32_F32,"V_CVT_U32_F32"}, // 7
+                {amdgpu_gfx90a_op_V_CVT_I32_F32,"V_CVT_I32_F32"}, // 8
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 9
+                {amdgpu_gfx90a_op_V_CVT_F16_F32,"V_CVT_F16_F32"}, // 10
+                {amdgpu_gfx90a_op_V_CVT_F32_F16,"V_CVT_F32_F16"}, // 11
+                {amdgpu_gfx90a_op_V_CVT_RPI_I32_F32,"V_CVT_RPI_I32_F32"}, // 12
+                {amdgpu_gfx90a_op_V_CVT_FLR_I32_F32,"V_CVT_FLR_I32_F32"}, // 13
+                {amdgpu_gfx90a_op_V_CVT_OFF_F32_I4,"V_CVT_OFF_F32_I4"}, // 14
+                {amdgpu_gfx90a_op_V_CVT_F32_F64,"V_CVT_F32_F64"}, // 15
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 16
+                {amdgpu_gfx90a_op_V_CVT_F32_UBYTE0,"V_CVT_F32_UBYTE0"}, // 17
+                {amdgpu_gfx90a_op_V_CVT_F32_UBYTE1,"V_CVT_F32_UBYTE1"}, // 18
+                {amdgpu_gfx90a_op_V_CVT_F32_UBYTE2,"V_CVT_F32_UBYTE2"}, // 19
+                {amdgpu_gfx90a_op_V_CVT_F32_UBYTE3,"V_CVT_F32_UBYTE3"}, // 20
+                {amdgpu_gfx90a_op_V_CVT_U32_F64,"V_CVT_U32_F64"}, // 21
+                {amdgpu_gfx90a_op_V_CVT_F64_U32,"V_CVT_F64_U32"}, // 22
+                {amdgpu_gfx90a_op_V_TRUNC_F64,"V_TRUNC_F64"}, // 23
+                {amdgpu_gfx90a_op_V_CEIL_F64,"V_CEIL_F64"}, // 24
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 25
+                {amdgpu_gfx90a_op_V_FLOOR_F64,"V_FLOOR_F64"}, // 26
+                {amdgpu_gfx90a_op_V_FRACT_F32,"V_FRACT_F32"}, // 27
+                {amdgpu_gfx90a_op_V_TRUNC_F32,"V_TRUNC_F32"}, // 28
+                {amdgpu_gfx90a_op_V_CEIL_F32,"V_CEIL_F32"}, // 29
+                {amdgpu_gfx90a_op_V_RNDNE_F32,"V_RNDNE_F32"}, // 30
+                {amdgpu_gfx90a_op_V_FLOOR_F32,"V_FLOOR_F32"}, // 31
+                {amdgpu_gfx90a_op_V_EXP_F32,"V_EXP_F32"}, // 32
+                {amdgpu_gfx90a_op_V_LOG_F32,"V_LOG_F32"}, // 33
+                {amdgpu_gfx90a_op_V_RCP_F32,"V_RCP_F32"}, // 34
+                {amdgpu_gfx90a_op_V_RCP_IFLAG_F32,"V_RCP_IFLAG_F32"}, // 35
+                {amdgpu_gfx90a_op_V_RSQ_F32,"V_RSQ_F32"}, // 36
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 37
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 38
+                {amdgpu_gfx90a_op_V_SQRT_F32,"V_SQRT_F32"}, // 39
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 40
+                {amdgpu_gfx90a_op_V_SIN_F32,"V_SIN_F32"}, // 41
+                {amdgpu_gfx90a_op_V_COS_F32,"V_COS_F32"}, // 42
+                {amdgpu_gfx90a_op_V_NOT_B32,"V_NOT_B32"}, // 43
+                {amdgpu_gfx90a_op_V_BFREV_B32,"V_BFREV_B32"}, // 44
+                {amdgpu_gfx90a_op_V_FFBH_U32,"V_FFBH_U32"}, // 45
+                {amdgpu_gfx90a_op_V_FFBL_B32,"V_FFBL_B32"}, // 46
+                {amdgpu_gfx90a_op_V_FFBH_I32,"V_FFBH_I32"}, // 47
+                {amdgpu_gfx90a_op_V_FREXP_EXP_I32_F64,"V_FREXP_EXP_I32_F64"}, // 48
+                {amdgpu_gfx90a_op_V_FREXP_MANT_F64,"V_FREXP_MANT_F64"}, // 49
+                {amdgpu_gfx90a_op_V_FRACT_F64,"V_FRACT_F64"}, // 50
+                {amdgpu_gfx90a_op_V_FREXP_EXP_I32_F32,"V_FREXP_EXP_I32_F32"}, // 51
+                {amdgpu_gfx90a_op_V_FREXP_MANT_F32,"V_FREXP_MANT_F32"}, // 52
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 53
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 54
+                {amdgpu_gfx90a_op_V_SCREEN_PARTITION_4SE_B32,"V_SCREEN_PARTITION_4SE_B32"}, // 55
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 56
+                {amdgpu_gfx90a_op_V_CVT_F16_U16,"V_CVT_F16_U16"}, // 57
+                {amdgpu_gfx90a_op_V_CVT_F16_I16,"V_CVT_F16_I16"}, // 58
+                {amdgpu_gfx90a_op_V_CVT_U16_F16,"V_CVT_U16_F16"}, // 59
+                {amdgpu_gfx90a_op_V_CVT_I16_F16,"V_CVT_I16_F16"}, // 60
+                {amdgpu_gfx90a_op_V_RCP_F16,"V_RCP_F16"}, // 61
+                {amdgpu_gfx90a_op_V_SQRT_F16,"V_SQRT_F16"}, // 62
+                {amdgpu_gfx90a_op_V_RSQ_F16,"V_RSQ_F16"}, // 63
+                {amdgpu_gfx90a_op_V_LOG_F16,"V_LOG_F16"}, // 64
+                {amdgpu_gfx90a_op_V_EXP_F16,"V_EXP_F16"}, // 65
+                {amdgpu_gfx90a_op_V_FREXP_MANT_F16,"V_FREXP_MANT_F16"}, // 66
+                {amdgpu_gfx90a_op_V_FREXP_EXP_I16_F16,"V_FREXP_EXP_I16_F16"}, // 67
+                {amdgpu_gfx90a_op_V_FLOOR_F16,"V_FLOOR_F16"}, // 68
+                {amdgpu_gfx90a_op_V_CEIL_F16,"V_CEIL_F16"}, // 69
+                {amdgpu_gfx90a_op_V_TRUNC_F16,"V_TRUNC_F16"}, // 70
+                {amdgpu_gfx90a_op_V_RNDNE_F16,"V_RNDNE_F16"}, // 71
+                {amdgpu_gfx90a_op_V_FRACT_F16,"V_FRACT_F16"}, // 72
+                {amdgpu_gfx90a_op_V_SIN_F16,"V_SIN_F16"}, // 73
+                {amdgpu_gfx90a_op_V_COS_F16,"V_COS_F16"}, // 74
+                {amdgpu_gfx90a_op_V_EXP_LEGACY_F32,"V_EXP_LEGACY_F32"}, // 75
+                {amdgpu_gfx90a_op_V_LOG_LEGACY_F32,"V_LOG_LEGACY_F32"}, // 76
+                {amdgpu_gfx90a_op_V_CVT_NORM_I16_F16,"V_CVT_NORM_I16_F16"}, // 77
+                {amdgpu_gfx90a_op_V_CVT_NORM_U16_F16,"V_CVT_NORM_U16_F16"}, // 78
+                {amdgpu_gfx90a_op_V_SAT_PK_U8_I16,"V_SAT_PK_U8_I16"}, // 79
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 80
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 81
+                {amdgpu_gfx90a_op_V_ACCVGPR_MOV_B32,"V_ACCVGPR_MOV_B32"}, // 82
+            }; // end VOP1_VOP_DPP_insn_table
+            const amdgpu_gfx90a_insn_entry VOP1_VOP_SDWA_insn_table[83] = 
+            {
+                {amdgpu_gfx90a_op_V_NOP,"V_NOP"}, // 0
+                {amdgpu_gfx90a_op_V_MOV_B32,"V_MOV_B32"}, // 1
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 2
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 3
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 4
+                {amdgpu_gfx90a_op_V_CVT_F32_I32,"V_CVT_F32_I32"}, // 5
+                {amdgpu_gfx90a_op_V_CVT_F32_U32,"V_CVT_F32_U32"}, // 6
+                {amdgpu_gfx90a_op_V_CVT_U32_F32,"V_CVT_U32_F32"}, // 7
+                {amdgpu_gfx90a_op_V_CVT_I32_F32,"V_CVT_I32_F32"}, // 8
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 9
+                {amdgpu_gfx90a_op_V_CVT_F16_F32,"V_CVT_F16_F32"}, // 10
+                {amdgpu_gfx90a_op_V_CVT_F32_F16,"V_CVT_F32_F16"}, // 11
+                {amdgpu_gfx90a_op_V_CVT_RPI_I32_F32,"V_CVT_RPI_I32_F32"}, // 12
+                {amdgpu_gfx90a_op_V_CVT_FLR_I32_F32,"V_CVT_FLR_I32_F32"}, // 13
+                {amdgpu_gfx90a_op_V_CVT_OFF_F32_I4,"V_CVT_OFF_F32_I4"}, // 14
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 15
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 16
+                {amdgpu_gfx90a_op_V_CVT_F32_UBYTE0,"V_CVT_F32_UBYTE0"}, // 17
+                {amdgpu_gfx90a_op_V_CVT_F32_UBYTE1,"V_CVT_F32_UBYTE1"}, // 18
+                {amdgpu_gfx90a_op_V_CVT_F32_UBYTE2,"V_CVT_F32_UBYTE2"}, // 19
+                {amdgpu_gfx90a_op_V_CVT_F32_UBYTE3,"V_CVT_F32_UBYTE3"}, // 20
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 21
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 22
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 23
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 24
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 25
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 26
+                {amdgpu_gfx90a_op_V_FRACT_F32,"V_FRACT_F32"}, // 27
+                {amdgpu_gfx90a_op_V_TRUNC_F32,"V_TRUNC_F32"}, // 28
+                {amdgpu_gfx90a_op_V_CEIL_F32,"V_CEIL_F32"}, // 29
+                {amdgpu_gfx90a_op_V_RNDNE_F32,"V_RNDNE_F32"}, // 30
+                {amdgpu_gfx90a_op_V_FLOOR_F32,"V_FLOOR_F32"}, // 31
+                {amdgpu_gfx90a_op_V_EXP_F32,"V_EXP_F32"}, // 32
+                {amdgpu_gfx90a_op_V_LOG_F32,"V_LOG_F32"}, // 33
+                {amdgpu_gfx90a_op_V_RCP_F32,"V_RCP_F32"}, // 34
+                {amdgpu_gfx90a_op_V_RCP_IFLAG_F32,"V_RCP_IFLAG_F32"}, // 35
+                {amdgpu_gfx90a_op_V_RSQ_F32,"V_RSQ_F32"}, // 36
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 37
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 38
+                {amdgpu_gfx90a_op_V_SQRT_F32,"V_SQRT_F32"}, // 39
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 40
+                {amdgpu_gfx90a_op_V_SIN_F32,"V_SIN_F32"}, // 41
+                {amdgpu_gfx90a_op_V_COS_F32,"V_COS_F32"}, // 42
+                {amdgpu_gfx90a_op_V_NOT_B32,"V_NOT_B32"}, // 43
+                {amdgpu_gfx90a_op_V_BFREV_B32,"V_BFREV_B32"}, // 44
+                {amdgpu_gfx90a_op_V_FFBH_U32,"V_FFBH_U32"}, // 45
+                {amdgpu_gfx90a_op_V_FFBL_B32,"V_FFBL_B32"}, // 46
+                {amdgpu_gfx90a_op_V_FFBH_I32,"V_FFBH_I32"}, // 47
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 48
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 49
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 50
+                {amdgpu_gfx90a_op_V_FREXP_EXP_I32_F32,"V_FREXP_EXP_I32_F32"}, // 51
+                {amdgpu_gfx90a_op_V_FREXP_MANT_F32,"V_FREXP_MANT_F32"}, // 52
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 53
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 54
+                {amdgpu_gfx90a_op_V_SCREEN_PARTITION_4SE_B32,"V_SCREEN_PARTITION_4SE_B32"}, // 55
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 56
+                {amdgpu_gfx90a_op_V_CVT_F16_U16,"V_CVT_F16_U16"}, // 57
+                {amdgpu_gfx90a_op_V_CVT_F16_I16,"V_CVT_F16_I16"}, // 58
+                {amdgpu_gfx90a_op_V_CVT_U16_F16,"V_CVT_U16_F16"}, // 59
+                {amdgpu_gfx90a_op_V_CVT_I16_F16,"V_CVT_I16_F16"}, // 60
+                {amdgpu_gfx90a_op_V_RCP_F16,"V_RCP_F16"}, // 61
+                {amdgpu_gfx90a_op_V_SQRT_F16,"V_SQRT_F16"}, // 62
+                {amdgpu_gfx90a_op_V_RSQ_F16,"V_RSQ_F16"}, // 63
+                {amdgpu_gfx90a_op_V_LOG_F16,"V_LOG_F16"}, // 64
+                {amdgpu_gfx90a_op_V_EXP_F16,"V_EXP_F16"}, // 65
+                {amdgpu_gfx90a_op_V_FREXP_MANT_F16,"V_FREXP_MANT_F16"}, // 66
+                {amdgpu_gfx90a_op_V_FREXP_EXP_I16_F16,"V_FREXP_EXP_I16_F16"}, // 67
+                {amdgpu_gfx90a_op_V_FLOOR_F16,"V_FLOOR_F16"}, // 68
+                {amdgpu_gfx90a_op_V_CEIL_F16,"V_CEIL_F16"}, // 69
+                {amdgpu_gfx90a_op_V_TRUNC_F16,"V_TRUNC_F16"}, // 70
+                {amdgpu_gfx90a_op_V_RNDNE_F16,"V_RNDNE_F16"}, // 71
+                {amdgpu_gfx90a_op_V_FRACT_F16,"V_FRACT_F16"}, // 72
+                {amdgpu_gfx90a_op_V_SIN_F16,"V_SIN_F16"}, // 73
+                {amdgpu_gfx90a_op_V_COS_F16,"V_COS_F16"}, // 74
+                {amdgpu_gfx90a_op_V_EXP_LEGACY_F32,"V_EXP_LEGACY_F32"}, // 75
+                {amdgpu_gfx90a_op_V_LOG_LEGACY_F32,"V_LOG_LEGACY_F32"}, // 76
+                {amdgpu_gfx90a_op_V_CVT_NORM_I16_F16,"V_CVT_NORM_I16_F16"}, // 77
+                {amdgpu_gfx90a_op_V_CVT_NORM_U16_F16,"V_CVT_NORM_U16_F16"}, // 78
+                {amdgpu_gfx90a_op_V_SAT_PK_U8_I16,"V_SAT_PK_U8_I16"}, // 79
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 80
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 81
+                {amdgpu_gfx90a_op_V_ACCVGPR_MOV_B32,"V_ACCVGPR_MOV_B32"}, // 82
+            }; // end VOP1_VOP_SDWA_insn_table
             const amdgpu_gfx90a_insn_entry ENC_VOP3_insn_table[674] = 
             {
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 0
@@ -2290,8 +2939,8 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_V_FRACT_F16,"V_FRACT_F16"}, // 392
                 {amdgpu_gfx90a_op_V_SIN_F16,"V_SIN_F16"}, // 393
                 {amdgpu_gfx90a_op_V_COS_F16,"V_COS_F16"}, // 394
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 395
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 396
+                {amdgpu_gfx90a_op_V_EXP_LEGACY_F32,"V_EXP_LEGACY_F32"}, // 395
+                {amdgpu_gfx90a_op_V_LOG_LEGACY_F32,"V_LOG_LEGACY_F32"}, // 396
                 {amdgpu_gfx90a_op_V_CVT_NORM_I16_F16,"V_CVT_NORM_I16_F16"}, // 397
                 {amdgpu_gfx90a_op_V_CVT_NORM_U16_F16,"V_CVT_NORM_U16_F16"}, // 398
                 {amdgpu_gfx90a_op_V_SAT_PK_U8_I16,"V_SAT_PK_U8_I16"}, // 399
@@ -2635,7 +3284,202 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_V_PK_FMAC_F16,"V_PK_FMAC_F16"}, // 60
                 {amdgpu_gfx90a_op_V_XNOR_B32,"V_XNOR_B32"}, // 61
             }; // end ENC_VOP2_insn_table
-            const amdgpu_gfx90a_insn_entry ENC_VOP2_LITERAL_insn_table[38] = 
+            const amdgpu_gfx90a_insn_entry VOP2_INST_LITERAL_insn_table[62] = 
+            {
+                {amdgpu_gfx90a_op_V_CNDMASK_B32,"V_CNDMASK_B32"}, // 0
+                {amdgpu_gfx90a_op_V_ADD_F32,"V_ADD_F32"}, // 1
+                {amdgpu_gfx90a_op_V_SUB_F32,"V_SUB_F32"}, // 2
+                {amdgpu_gfx90a_op_V_SUBREV_F32,"V_SUBREV_F32"}, // 3
+                {amdgpu_gfx90a_op_V_FMAC_F64,"V_FMAC_F64"}, // 4
+                {amdgpu_gfx90a_op_V_MUL_F32,"V_MUL_F32"}, // 5
+                {amdgpu_gfx90a_op_V_MUL_I32_I24,"V_MUL_I32_I24"}, // 6
+                {amdgpu_gfx90a_op_V_MUL_HI_I32_I24,"V_MUL_HI_I32_I24"}, // 7
+                {amdgpu_gfx90a_op_V_MUL_U32_U24,"V_MUL_U32_U24"}, // 8
+                {amdgpu_gfx90a_op_V_MUL_HI_U32_U24,"V_MUL_HI_U32_U24"}, // 9
+                {amdgpu_gfx90a_op_V_MIN_F32,"V_MIN_F32"}, // 10
+                {amdgpu_gfx90a_op_V_MAX_F32,"V_MAX_F32"}, // 11
+                {amdgpu_gfx90a_op_V_MIN_I32,"V_MIN_I32"}, // 12
+                {amdgpu_gfx90a_op_V_MAX_I32,"V_MAX_I32"}, // 13
+                {amdgpu_gfx90a_op_V_MIN_U32,"V_MIN_U32"}, // 14
+                {amdgpu_gfx90a_op_V_MAX_U32,"V_MAX_U32"}, // 15
+                {amdgpu_gfx90a_op_V_LSHRREV_B32,"V_LSHRREV_B32"}, // 16
+                {amdgpu_gfx90a_op_V_ASHRREV_I32,"V_ASHRREV_I32"}, // 17
+                {amdgpu_gfx90a_op_V_LSHLREV_B32,"V_LSHLREV_B32"}, // 18
+                {amdgpu_gfx90a_op_V_AND_B32,"V_AND_B32"}, // 19
+                {amdgpu_gfx90a_op_V_OR_B32,"V_OR_B32"}, // 20
+                {amdgpu_gfx90a_op_V_XOR_B32,"V_XOR_B32"}, // 21
+                {amdgpu_gfx90a_op_V_MAC_F32,"V_MAC_F32"}, // 22
+                {amdgpu_gfx90a_op_V_MADMK_F32,"V_MADMK_F32"}, // 23
+                {amdgpu_gfx90a_op_V_MADAK_F32,"V_MADAK_F32"}, // 24
+                {amdgpu_gfx90a_op_V_ADD_CO_U32,"V_ADD_CO_U32"}, // 25
+                {amdgpu_gfx90a_op_V_SUB_CO_U32,"V_SUB_CO_U32"}, // 26
+                {amdgpu_gfx90a_op_V_SUBREV_CO_U32,"V_SUBREV_CO_U32"}, // 27
+                {amdgpu_gfx90a_op_V_ADDC_CO_U32,"V_ADDC_CO_U32"}, // 28
+                {amdgpu_gfx90a_op_V_SUBB_CO_U32,"V_SUBB_CO_U32"}, // 29
+                {amdgpu_gfx90a_op_V_SUBBREV_CO_U32,"V_SUBBREV_CO_U32"}, // 30
+                {amdgpu_gfx90a_op_V_ADD_F16,"V_ADD_F16"}, // 31
+                {amdgpu_gfx90a_op_V_SUB_F16,"V_SUB_F16"}, // 32
+                {amdgpu_gfx90a_op_V_SUBREV_F16,"V_SUBREV_F16"}, // 33
+                {amdgpu_gfx90a_op_V_MUL_F16,"V_MUL_F16"}, // 34
+                {amdgpu_gfx90a_op_V_MAC_F16,"V_MAC_F16"}, // 35
+                {amdgpu_gfx90a_op_V_MADMK_F16,"V_MADMK_F16"}, // 36
+                {amdgpu_gfx90a_op_V_MADAK_F16,"V_MADAK_F16"}, // 37
+                {amdgpu_gfx90a_op_V_ADD_U16,"V_ADD_U16"}, // 38
+                {amdgpu_gfx90a_op_V_SUB_U16,"V_SUB_U16"}, // 39
+                {amdgpu_gfx90a_op_V_SUBREV_U16,"V_SUBREV_U16"}, // 40
+                {amdgpu_gfx90a_op_V_MUL_LO_U16,"V_MUL_LO_U16"}, // 41
+                {amdgpu_gfx90a_op_V_LSHLREV_B16,"V_LSHLREV_B16"}, // 42
+                {amdgpu_gfx90a_op_V_LSHRREV_B16,"V_LSHRREV_B16"}, // 43
+                {amdgpu_gfx90a_op_V_ASHRREV_I16,"V_ASHRREV_I16"}, // 44
+                {amdgpu_gfx90a_op_V_MAX_F16,"V_MAX_F16"}, // 45
+                {amdgpu_gfx90a_op_V_MIN_F16,"V_MIN_F16"}, // 46
+                {amdgpu_gfx90a_op_V_MAX_U16,"V_MAX_U16"}, // 47
+                {amdgpu_gfx90a_op_V_MAX_I16,"V_MAX_I16"}, // 48
+                {amdgpu_gfx90a_op_V_MIN_U16,"V_MIN_U16"}, // 49
+                {amdgpu_gfx90a_op_V_MIN_I16,"V_MIN_I16"}, // 50
+                {amdgpu_gfx90a_op_V_LDEXP_F16,"V_LDEXP_F16"}, // 51
+                {amdgpu_gfx90a_op_V_ADD_U32,"V_ADD_U32"}, // 52
+                {amdgpu_gfx90a_op_V_SUB_U32,"V_SUB_U32"}, // 53
+                {amdgpu_gfx90a_op_V_SUBREV_U32,"V_SUBREV_U32"}, // 54
+                {amdgpu_gfx90a_op_V_DOT2C_F32_F16,"V_DOT2C_F32_F16"}, // 55
+                {amdgpu_gfx90a_op_V_DOT2C_I32_I16,"V_DOT2C_I32_I16"}, // 56
+                {amdgpu_gfx90a_op_V_DOT4C_I32_I8,"V_DOT4C_I32_I8"}, // 57
+                {amdgpu_gfx90a_op_V_DOT8C_I32_I4,"V_DOT8C_I32_I4"}, // 58
+                {amdgpu_gfx90a_op_V_FMAC_F32,"V_FMAC_F32"}, // 59
+                {amdgpu_gfx90a_op_V_PK_FMAC_F16,"V_PK_FMAC_F16"}, // 60
+                {amdgpu_gfx90a_op_V_XNOR_B32,"V_XNOR_B32"}, // 61
+            }; // end VOP2_INST_LITERAL_insn_table
+            const amdgpu_gfx90a_insn_entry VOP2_VOP_DPP_insn_table[62] = 
+            {
+                {amdgpu_gfx90a_op_V_CNDMASK_B32,"V_CNDMASK_B32"}, // 0
+                {amdgpu_gfx90a_op_V_ADD_F32,"V_ADD_F32"}, // 1
+                {amdgpu_gfx90a_op_V_SUB_F32,"V_SUB_F32"}, // 2
+                {amdgpu_gfx90a_op_V_SUBREV_F32,"V_SUBREV_F32"}, // 3
+                {amdgpu_gfx90a_op_V_FMAC_F64,"V_FMAC_F64"}, // 4
+                {amdgpu_gfx90a_op_V_MUL_F32,"V_MUL_F32"}, // 5
+                {amdgpu_gfx90a_op_V_MUL_I32_I24,"V_MUL_I32_I24"}, // 6
+                {amdgpu_gfx90a_op_V_MUL_HI_I32_I24,"V_MUL_HI_I32_I24"}, // 7
+                {amdgpu_gfx90a_op_V_MUL_U32_U24,"V_MUL_U32_U24"}, // 8
+                {amdgpu_gfx90a_op_V_MUL_HI_U32_U24,"V_MUL_HI_U32_U24"}, // 9
+                {amdgpu_gfx90a_op_V_MIN_F32,"V_MIN_F32"}, // 10
+                {amdgpu_gfx90a_op_V_MAX_F32,"V_MAX_F32"}, // 11
+                {amdgpu_gfx90a_op_V_MIN_I32,"V_MIN_I32"}, // 12
+                {amdgpu_gfx90a_op_V_MAX_I32,"V_MAX_I32"}, // 13
+                {amdgpu_gfx90a_op_V_MIN_U32,"V_MIN_U32"}, // 14
+                {amdgpu_gfx90a_op_V_MAX_U32,"V_MAX_U32"}, // 15
+                {amdgpu_gfx90a_op_V_LSHRREV_B32,"V_LSHRREV_B32"}, // 16
+                {amdgpu_gfx90a_op_V_ASHRREV_I32,"V_ASHRREV_I32"}, // 17
+                {amdgpu_gfx90a_op_V_LSHLREV_B32,"V_LSHLREV_B32"}, // 18
+                {amdgpu_gfx90a_op_V_AND_B32,"V_AND_B32"}, // 19
+                {amdgpu_gfx90a_op_V_OR_B32,"V_OR_B32"}, // 20
+                {amdgpu_gfx90a_op_V_XOR_B32,"V_XOR_B32"}, // 21
+                {amdgpu_gfx90a_op_V_MAC_F32,"V_MAC_F32"}, // 22
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 23
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 24
+                {amdgpu_gfx90a_op_V_ADD_CO_U32,"V_ADD_CO_U32"}, // 25
+                {amdgpu_gfx90a_op_V_SUB_CO_U32,"V_SUB_CO_U32"}, // 26
+                {amdgpu_gfx90a_op_V_SUBREV_CO_U32,"V_SUBREV_CO_U32"}, // 27
+                {amdgpu_gfx90a_op_V_ADDC_CO_U32,"V_ADDC_CO_U32"}, // 28
+                {amdgpu_gfx90a_op_V_SUBB_CO_U32,"V_SUBB_CO_U32"}, // 29
+                {amdgpu_gfx90a_op_V_SUBBREV_CO_U32,"V_SUBBREV_CO_U32"}, // 30
+                {amdgpu_gfx90a_op_V_ADD_F16,"V_ADD_F16"}, // 31
+                {amdgpu_gfx90a_op_V_SUB_F16,"V_SUB_F16"}, // 32
+                {amdgpu_gfx90a_op_V_SUBREV_F16,"V_SUBREV_F16"}, // 33
+                {amdgpu_gfx90a_op_V_MUL_F16,"V_MUL_F16"}, // 34
+                {amdgpu_gfx90a_op_V_MAC_F16,"V_MAC_F16"}, // 35
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 36
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 37
+                {amdgpu_gfx90a_op_V_ADD_U16,"V_ADD_U16"}, // 38
+                {amdgpu_gfx90a_op_V_SUB_U16,"V_SUB_U16"}, // 39
+                {amdgpu_gfx90a_op_V_SUBREV_U16,"V_SUBREV_U16"}, // 40
+                {amdgpu_gfx90a_op_V_MUL_LO_U16,"V_MUL_LO_U16"}, // 41
+                {amdgpu_gfx90a_op_V_LSHLREV_B16,"V_LSHLREV_B16"}, // 42
+                {amdgpu_gfx90a_op_V_LSHRREV_B16,"V_LSHRREV_B16"}, // 43
+                {amdgpu_gfx90a_op_V_ASHRREV_I16,"V_ASHRREV_I16"}, // 44
+                {amdgpu_gfx90a_op_V_MAX_F16,"V_MAX_F16"}, // 45
+                {amdgpu_gfx90a_op_V_MIN_F16,"V_MIN_F16"}, // 46
+                {amdgpu_gfx90a_op_V_MAX_U16,"V_MAX_U16"}, // 47
+                {amdgpu_gfx90a_op_V_MAX_I16,"V_MAX_I16"}, // 48
+                {amdgpu_gfx90a_op_V_MIN_U16,"V_MIN_U16"}, // 49
+                {amdgpu_gfx90a_op_V_MIN_I16,"V_MIN_I16"}, // 50
+                {amdgpu_gfx90a_op_V_LDEXP_F16,"V_LDEXP_F16"}, // 51
+                {amdgpu_gfx90a_op_V_ADD_U32,"V_ADD_U32"}, // 52
+                {amdgpu_gfx90a_op_V_SUB_U32,"V_SUB_U32"}, // 53
+                {amdgpu_gfx90a_op_V_SUBREV_U32,"V_SUBREV_U32"}, // 54
+                {amdgpu_gfx90a_op_V_DOT2C_F32_F16,"V_DOT2C_F32_F16"}, // 55
+                {amdgpu_gfx90a_op_V_DOT2C_I32_I16,"V_DOT2C_I32_I16"}, // 56
+                {amdgpu_gfx90a_op_V_DOT4C_I32_I8,"V_DOT4C_I32_I8"}, // 57
+                {amdgpu_gfx90a_op_V_DOT8C_I32_I4,"V_DOT8C_I32_I4"}, // 58
+                {amdgpu_gfx90a_op_V_FMAC_F32,"V_FMAC_F32"}, // 59
+                {amdgpu_gfx90a_op_V_PK_FMAC_F16,"V_PK_FMAC_F16"}, // 60
+                {amdgpu_gfx90a_op_V_XNOR_B32,"V_XNOR_B32"}, // 61
+            }; // end VOP2_VOP_DPP_insn_table
+            const amdgpu_gfx90a_insn_entry VOP2_VOP_SDWA_insn_table[62] = 
+            {
+                {amdgpu_gfx90a_op_V_CNDMASK_B32,"V_CNDMASK_B32"}, // 0
+                {amdgpu_gfx90a_op_V_ADD_F32,"V_ADD_F32"}, // 1
+                {amdgpu_gfx90a_op_V_SUB_F32,"V_SUB_F32"}, // 2
+                {amdgpu_gfx90a_op_V_SUBREV_F32,"V_SUBREV_F32"}, // 3
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 4
+                {amdgpu_gfx90a_op_V_MUL_F32,"V_MUL_F32"}, // 5
+                {amdgpu_gfx90a_op_V_MUL_I32_I24,"V_MUL_I32_I24"}, // 6
+                {amdgpu_gfx90a_op_V_MUL_HI_I32_I24,"V_MUL_HI_I32_I24"}, // 7
+                {amdgpu_gfx90a_op_V_MUL_U32_U24,"V_MUL_U32_U24"}, // 8
+                {amdgpu_gfx90a_op_V_MUL_HI_U32_U24,"V_MUL_HI_U32_U24"}, // 9
+                {amdgpu_gfx90a_op_V_MIN_F32,"V_MIN_F32"}, // 10
+                {amdgpu_gfx90a_op_V_MAX_F32,"V_MAX_F32"}, // 11
+                {amdgpu_gfx90a_op_V_MIN_I32,"V_MIN_I32"}, // 12
+                {amdgpu_gfx90a_op_V_MAX_I32,"V_MAX_I32"}, // 13
+                {amdgpu_gfx90a_op_V_MIN_U32,"V_MIN_U32"}, // 14
+                {amdgpu_gfx90a_op_V_MAX_U32,"V_MAX_U32"}, // 15
+                {amdgpu_gfx90a_op_V_LSHRREV_B32,"V_LSHRREV_B32"}, // 16
+                {amdgpu_gfx90a_op_V_ASHRREV_I32,"V_ASHRREV_I32"}, // 17
+                {amdgpu_gfx90a_op_V_LSHLREV_B32,"V_LSHLREV_B32"}, // 18
+                {amdgpu_gfx90a_op_V_AND_B32,"V_AND_B32"}, // 19
+                {amdgpu_gfx90a_op_V_OR_B32,"V_OR_B32"}, // 20
+                {amdgpu_gfx90a_op_V_XOR_B32,"V_XOR_B32"}, // 21
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 22
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 23
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 24
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 25
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 26
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 27
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 28
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 29
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 30
+                {amdgpu_gfx90a_op_V_ADD_F16,"V_ADD_F16"}, // 31
+                {amdgpu_gfx90a_op_V_SUB_F16,"V_SUB_F16"}, // 32
+                {amdgpu_gfx90a_op_V_SUBREV_F16,"V_SUBREV_F16"}, // 33
+                {amdgpu_gfx90a_op_V_MUL_F16,"V_MUL_F16"}, // 34
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 35
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 36
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 37
+                {amdgpu_gfx90a_op_V_ADD_U16,"V_ADD_U16"}, // 38
+                {amdgpu_gfx90a_op_V_SUB_U16,"V_SUB_U16"}, // 39
+                {amdgpu_gfx90a_op_V_SUBREV_U16,"V_SUBREV_U16"}, // 40
+                {amdgpu_gfx90a_op_V_MUL_LO_U16,"V_MUL_LO_U16"}, // 41
+                {amdgpu_gfx90a_op_V_LSHLREV_B16,"V_LSHLREV_B16"}, // 42
+                {amdgpu_gfx90a_op_V_LSHRREV_B16,"V_LSHRREV_B16"}, // 43
+                {amdgpu_gfx90a_op_V_ASHRREV_I16,"V_ASHRREV_I16"}, // 44
+                {amdgpu_gfx90a_op_V_MAX_F16,"V_MAX_F16"}, // 45
+                {amdgpu_gfx90a_op_V_MIN_F16,"V_MIN_F16"}, // 46
+                {amdgpu_gfx90a_op_V_MAX_U16,"V_MAX_U16"}, // 47
+                {amdgpu_gfx90a_op_V_MAX_I16,"V_MAX_I16"}, // 48
+                {amdgpu_gfx90a_op_V_MIN_U16,"V_MIN_U16"}, // 49
+                {amdgpu_gfx90a_op_V_MIN_I16,"V_MIN_I16"}, // 50
+                {amdgpu_gfx90a_op_V_LDEXP_F16,"V_LDEXP_F16"}, // 51
+                {amdgpu_gfx90a_op_V_ADD_U32,"V_ADD_U32"}, // 52
+                {amdgpu_gfx90a_op_V_SUB_U32,"V_SUB_U32"}, // 53
+                {amdgpu_gfx90a_op_V_SUBREV_U32,"V_SUBREV_U32"}, // 54
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 55
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 56
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 57
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 58
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 59
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 60
+                {amdgpu_gfx90a_op_V_XNOR_B32,"V_XNOR_B32"}, // 61
+            }; // end VOP2_VOP_SDWA_insn_table
+            const amdgpu_gfx90a_insn_entry VOP2_VOP_SDWA_SDST_ENC_insn_table[31] = 
             {
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 0
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 1
@@ -2660,23 +3504,16 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 20
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 21
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 22
-                {amdgpu_gfx90a_op_V_MADMK_F32,"V_MADMK_F32"}, // 23
-                {amdgpu_gfx90a_op_V_MADAK_F32,"V_MADAK_F32"}, // 24
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 25
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 26
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 27
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 28
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 29
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 30
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 31
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 32
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 33
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 34
-                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 35
-                {amdgpu_gfx90a_op_V_MADMK_F16,"V_MADMK_F16"}, // 36
-                {amdgpu_gfx90a_op_V_MADAK_F16,"V_MADAK_F16"}, // 37
-            }; // end ENC_VOP2_LITERAL_insn_table
-            const amdgpu_gfx90a_insn_entry ENC_VOP3B_insn_table[490] = 
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 23
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 24
+                {amdgpu_gfx90a_op_V_ADD_CO_U32,"V_ADD_CO_U32"}, // 25
+                {amdgpu_gfx90a_op_V_SUB_CO_U32,"V_SUB_CO_U32"}, // 26
+                {amdgpu_gfx90a_op_V_SUBREV_CO_U32,"V_SUBREV_CO_U32"}, // 27
+                {amdgpu_gfx90a_op_V_ADDC_CO_U32,"V_ADDC_CO_U32"}, // 28
+                {amdgpu_gfx90a_op_V_SUBB_CO_U32,"V_SUBB_CO_U32"}, // 29
+                {amdgpu_gfx90a_op_V_SUBBREV_CO_U32,"V_SUBBREV_CO_U32"}, // 30
+            }; // end VOP2_VOP_SDWA_SDST_ENC_insn_table
+            const amdgpu_gfx90a_insn_entry VOP3_SDST_ENC_insn_table[490] = 
             {
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 0
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 1
@@ -3168,7 +4005,7 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 487
                 {amdgpu_gfx90a_op_V_MAD_U64_U32,"V_MAD_U64_U32"}, // 488
                 {amdgpu_gfx90a_op_V_MAD_I64_I32,"V_MAD_I64_I32"}, // 489
-            }; // end ENC_VOP3B_insn_table
+            }; // end VOP3_SDST_ENC_insn_table
             const amdgpu_gfx90a_insn_entry ENC_VOP3P_insn_table[90] = 
             {
                 {amdgpu_gfx90a_op_V_PK_MAD_I16,"V_PK_MAD_I16"}, // 0
@@ -3262,7 +4099,7 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_V_ACCVGPR_READ,"V_ACCVGPR_READ"}, // 88
                 {amdgpu_gfx90a_op_V_ACCVGPR_WRITE,"V_ACCVGPR_WRITE"}, // 89
             }; // end ENC_VOP3P_insn_table
-            const amdgpu_gfx90a_insn_entry ENC_VOP3P_MFMA_insn_table[112] = 
+            const amdgpu_gfx90a_insn_entry VOP3P_MFMA_insn_table[112] = 
             {
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 0
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 1
@@ -3376,7 +4213,7 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_V_MFMA_F32_16X16X8BF16,"V_MFMA_F32_16X16X8BF16"}, // 109
                 {amdgpu_gfx90a_op_V_MFMA_F64_16X16X4F64,"V_MFMA_F64_16X16X4F64"}, // 110
                 {amdgpu_gfx90a_op_V_MFMA_F64_4X4X4F64,"V_MFMA_F64_4X4X4F64"}, // 111
-            }; // end ENC_VOP3P_MFMA_insn_table
+            }; // end VOP3P_MFMA_insn_table
             const amdgpu_gfx90a_insn_entry ENC_VOPC_insn_table[256] = 
             {
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 0
@@ -3636,10 +4473,492 @@ namespace Dyninst {
                 {amdgpu_gfx90a_op_V_CMPX_GE_U64,"V_CMPX_GE_U64"}, // 254
                 {amdgpu_gfx90a_op_V_CMPX_T_U64,"V_CMPX_T_U64"}, // 255
             }; // end ENC_VOPC_insn_table
-            const amdgpu_gfx90a_insn_entry SOPK_INST_LITERAL__insn_table[1] = 
+            const amdgpu_gfx90a_insn_entry VOPC_INST_LITERAL_insn_table[256] = 
             {
                 {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 0
-            }; // end SOPK_INST_LITERAL__insn_table
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 1
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 2
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 3
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 4
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 5
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 6
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 7
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 8
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 9
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 10
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 11
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 12
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 13
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 14
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 15
+                {amdgpu_gfx90a_op_V_CMP_CLASS_F32,"V_CMP_CLASS_F32"}, // 16
+                {amdgpu_gfx90a_op_V_CMPX_CLASS_F32,"V_CMPX_CLASS_F32"}, // 17
+                {amdgpu_gfx90a_op_V_CMP_CLASS_F64,"V_CMP_CLASS_F64"}, // 18
+                {amdgpu_gfx90a_op_V_CMPX_CLASS_F64,"V_CMPX_CLASS_F64"}, // 19
+                {amdgpu_gfx90a_op_V_CMP_CLASS_F16,"V_CMP_CLASS_F16"}, // 20
+                {amdgpu_gfx90a_op_V_CMPX_CLASS_F16,"V_CMPX_CLASS_F16"}, // 21
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 22
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 23
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 24
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 25
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 26
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 27
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 28
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 29
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 30
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 31
+                {amdgpu_gfx90a_op_V_CMP_F_F16,"V_CMP_F_F16"}, // 32
+                {amdgpu_gfx90a_op_V_CMP_LT_F16,"V_CMP_LT_F16"}, // 33
+                {amdgpu_gfx90a_op_V_CMP_EQ_F16,"V_CMP_EQ_F16"}, // 34
+                {amdgpu_gfx90a_op_V_CMP_LE_F16,"V_CMP_LE_F16"}, // 35
+                {amdgpu_gfx90a_op_V_CMP_GT_F16,"V_CMP_GT_F16"}, // 36
+                {amdgpu_gfx90a_op_V_CMP_LG_F16,"V_CMP_LG_F16"}, // 37
+                {amdgpu_gfx90a_op_V_CMP_GE_F16,"V_CMP_GE_F16"}, // 38
+                {amdgpu_gfx90a_op_V_CMP_O_F16,"V_CMP_O_F16"}, // 39
+                {amdgpu_gfx90a_op_V_CMP_U_F16,"V_CMP_U_F16"}, // 40
+                {amdgpu_gfx90a_op_V_CMP_NGE_F16,"V_CMP_NGE_F16"}, // 41
+                {amdgpu_gfx90a_op_V_CMP_NLG_F16,"V_CMP_NLG_F16"}, // 42
+                {amdgpu_gfx90a_op_V_CMP_NGT_F16,"V_CMP_NGT_F16"}, // 43
+                {amdgpu_gfx90a_op_V_CMP_NLE_F16,"V_CMP_NLE_F16"}, // 44
+                {amdgpu_gfx90a_op_V_CMP_NEQ_F16,"V_CMP_NEQ_F16"}, // 45
+                {amdgpu_gfx90a_op_V_CMP_NLT_F16,"V_CMP_NLT_F16"}, // 46
+                {amdgpu_gfx90a_op_V_CMP_TRU_F16,"V_CMP_TRU_F16"}, // 47
+                {amdgpu_gfx90a_op_V_CMPX_F_F16,"V_CMPX_F_F16"}, // 48
+                {amdgpu_gfx90a_op_V_CMPX_LT_F16,"V_CMPX_LT_F16"}, // 49
+                {amdgpu_gfx90a_op_V_CMPX_EQ_F16,"V_CMPX_EQ_F16"}, // 50
+                {amdgpu_gfx90a_op_V_CMPX_LE_F16,"V_CMPX_LE_F16"}, // 51
+                {amdgpu_gfx90a_op_V_CMPX_GT_F16,"V_CMPX_GT_F16"}, // 52
+                {amdgpu_gfx90a_op_V_CMPX_LG_F16,"V_CMPX_LG_F16"}, // 53
+                {amdgpu_gfx90a_op_V_CMPX_GE_F16,"V_CMPX_GE_F16"}, // 54
+                {amdgpu_gfx90a_op_V_CMPX_O_F16,"V_CMPX_O_F16"}, // 55
+                {amdgpu_gfx90a_op_V_CMPX_U_F16,"V_CMPX_U_F16"}, // 56
+                {amdgpu_gfx90a_op_V_CMPX_NGE_F16,"V_CMPX_NGE_F16"}, // 57
+                {amdgpu_gfx90a_op_V_CMPX_NLG_F16,"V_CMPX_NLG_F16"}, // 58
+                {amdgpu_gfx90a_op_V_CMPX_NGT_F16,"V_CMPX_NGT_F16"}, // 59
+                {amdgpu_gfx90a_op_V_CMPX_NLE_F16,"V_CMPX_NLE_F16"}, // 60
+                {amdgpu_gfx90a_op_V_CMPX_NEQ_F16,"V_CMPX_NEQ_F16"}, // 61
+                {amdgpu_gfx90a_op_V_CMPX_NLT_F16,"V_CMPX_NLT_F16"}, // 62
+                {amdgpu_gfx90a_op_V_CMPX_TRU_F16,"V_CMPX_TRU_F16"}, // 63
+                {amdgpu_gfx90a_op_V_CMP_F_F32,"V_CMP_F_F32"}, // 64
+                {amdgpu_gfx90a_op_V_CMP_LT_F32,"V_CMP_LT_F32"}, // 65
+                {amdgpu_gfx90a_op_V_CMP_EQ_F32,"V_CMP_EQ_F32"}, // 66
+                {amdgpu_gfx90a_op_V_CMP_LE_F32,"V_CMP_LE_F32"}, // 67
+                {amdgpu_gfx90a_op_V_CMP_GT_F32,"V_CMP_GT_F32"}, // 68
+                {amdgpu_gfx90a_op_V_CMP_LG_F32,"V_CMP_LG_F32"}, // 69
+                {amdgpu_gfx90a_op_V_CMP_GE_F32,"V_CMP_GE_F32"}, // 70
+                {amdgpu_gfx90a_op_V_CMP_O_F32,"V_CMP_O_F32"}, // 71
+                {amdgpu_gfx90a_op_V_CMP_U_F32,"V_CMP_U_F32"}, // 72
+                {amdgpu_gfx90a_op_V_CMP_NGE_F32,"V_CMP_NGE_F32"}, // 73
+                {amdgpu_gfx90a_op_V_CMP_NLG_F32,"V_CMP_NLG_F32"}, // 74
+                {amdgpu_gfx90a_op_V_CMP_NGT_F32,"V_CMP_NGT_F32"}, // 75
+                {amdgpu_gfx90a_op_V_CMP_NLE_F32,"V_CMP_NLE_F32"}, // 76
+                {amdgpu_gfx90a_op_V_CMP_NEQ_F32,"V_CMP_NEQ_F32"}, // 77
+                {amdgpu_gfx90a_op_V_CMP_NLT_F32,"V_CMP_NLT_F32"}, // 78
+                {amdgpu_gfx90a_op_V_CMP_TRU_F32,"V_CMP_TRU_F32"}, // 79
+                {amdgpu_gfx90a_op_V_CMPX_F_F32,"V_CMPX_F_F32"}, // 80
+                {amdgpu_gfx90a_op_V_CMPX_LT_F32,"V_CMPX_LT_F32"}, // 81
+                {amdgpu_gfx90a_op_V_CMPX_EQ_F32,"V_CMPX_EQ_F32"}, // 82
+                {amdgpu_gfx90a_op_V_CMPX_LE_F32,"V_CMPX_LE_F32"}, // 83
+                {amdgpu_gfx90a_op_V_CMPX_GT_F32,"V_CMPX_GT_F32"}, // 84
+                {amdgpu_gfx90a_op_V_CMPX_LG_F32,"V_CMPX_LG_F32"}, // 85
+                {amdgpu_gfx90a_op_V_CMPX_GE_F32,"V_CMPX_GE_F32"}, // 86
+                {amdgpu_gfx90a_op_V_CMPX_O_F32,"V_CMPX_O_F32"}, // 87
+                {amdgpu_gfx90a_op_V_CMPX_U_F32,"V_CMPX_U_F32"}, // 88
+                {amdgpu_gfx90a_op_V_CMPX_NGE_F32,"V_CMPX_NGE_F32"}, // 89
+                {amdgpu_gfx90a_op_V_CMPX_NLG_F32,"V_CMPX_NLG_F32"}, // 90
+                {amdgpu_gfx90a_op_V_CMPX_NGT_F32,"V_CMPX_NGT_F32"}, // 91
+                {amdgpu_gfx90a_op_V_CMPX_NLE_F32,"V_CMPX_NLE_F32"}, // 92
+                {amdgpu_gfx90a_op_V_CMPX_NEQ_F32,"V_CMPX_NEQ_F32"}, // 93
+                {amdgpu_gfx90a_op_V_CMPX_NLT_F32,"V_CMPX_NLT_F32"}, // 94
+                {amdgpu_gfx90a_op_V_CMPX_TRU_F32,"V_CMPX_TRU_F32"}, // 95
+                {amdgpu_gfx90a_op_V_CMP_F_F64,"V_CMP_F_F64"}, // 96
+                {amdgpu_gfx90a_op_V_CMP_LT_F64,"V_CMP_LT_F64"}, // 97
+                {amdgpu_gfx90a_op_V_CMP_EQ_F64,"V_CMP_EQ_F64"}, // 98
+                {amdgpu_gfx90a_op_V_CMP_LE_F64,"V_CMP_LE_F64"}, // 99
+                {amdgpu_gfx90a_op_V_CMP_GT_F64,"V_CMP_GT_F64"}, // 100
+                {amdgpu_gfx90a_op_V_CMP_LG_F64,"V_CMP_LG_F64"}, // 101
+                {amdgpu_gfx90a_op_V_CMP_GE_F64,"V_CMP_GE_F64"}, // 102
+                {amdgpu_gfx90a_op_V_CMP_O_F64,"V_CMP_O_F64"}, // 103
+                {amdgpu_gfx90a_op_V_CMP_U_F64,"V_CMP_U_F64"}, // 104
+                {amdgpu_gfx90a_op_V_CMP_NGE_F64,"V_CMP_NGE_F64"}, // 105
+                {amdgpu_gfx90a_op_V_CMP_NLG_F64,"V_CMP_NLG_F64"}, // 106
+                {amdgpu_gfx90a_op_V_CMP_NGT_F64,"V_CMP_NGT_F64"}, // 107
+                {amdgpu_gfx90a_op_V_CMP_NLE_F64,"V_CMP_NLE_F64"}, // 108
+                {amdgpu_gfx90a_op_V_CMP_NEQ_F64,"V_CMP_NEQ_F64"}, // 109
+                {amdgpu_gfx90a_op_V_CMP_NLT_F64,"V_CMP_NLT_F64"}, // 110
+                {amdgpu_gfx90a_op_V_CMP_TRU_F64,"V_CMP_TRU_F64"}, // 111
+                {amdgpu_gfx90a_op_V_CMPX_F_F64,"V_CMPX_F_F64"}, // 112
+                {amdgpu_gfx90a_op_V_CMPX_LT_F64,"V_CMPX_LT_F64"}, // 113
+                {amdgpu_gfx90a_op_V_CMPX_EQ_F64,"V_CMPX_EQ_F64"}, // 114
+                {amdgpu_gfx90a_op_V_CMPX_LE_F64,"V_CMPX_LE_F64"}, // 115
+                {amdgpu_gfx90a_op_V_CMPX_GT_F64,"V_CMPX_GT_F64"}, // 116
+                {amdgpu_gfx90a_op_V_CMPX_LG_F64,"V_CMPX_LG_F64"}, // 117
+                {amdgpu_gfx90a_op_V_CMPX_GE_F64,"V_CMPX_GE_F64"}, // 118
+                {amdgpu_gfx90a_op_V_CMPX_O_F64,"V_CMPX_O_F64"}, // 119
+                {amdgpu_gfx90a_op_V_CMPX_U_F64,"V_CMPX_U_F64"}, // 120
+                {amdgpu_gfx90a_op_V_CMPX_NGE_F64,"V_CMPX_NGE_F64"}, // 121
+                {amdgpu_gfx90a_op_V_CMPX_NLG_F64,"V_CMPX_NLG_F64"}, // 122
+                {amdgpu_gfx90a_op_V_CMPX_NGT_F64,"V_CMPX_NGT_F64"}, // 123
+                {amdgpu_gfx90a_op_V_CMPX_NLE_F64,"V_CMPX_NLE_F64"}, // 124
+                {amdgpu_gfx90a_op_V_CMPX_NEQ_F64,"V_CMPX_NEQ_F64"}, // 125
+                {amdgpu_gfx90a_op_V_CMPX_NLT_F64,"V_CMPX_NLT_F64"}, // 126
+                {amdgpu_gfx90a_op_V_CMPX_TRU_F64,"V_CMPX_TRU_F64"}, // 127
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 128
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 129
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 130
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 131
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 132
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 133
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 134
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 135
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 136
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 137
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 138
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 139
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 140
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 141
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 142
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 143
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 144
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 145
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 146
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 147
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 148
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 149
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 150
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 151
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 152
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 153
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 154
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 155
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 156
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 157
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 158
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 159
+                {amdgpu_gfx90a_op_V_CMP_F_I16,"V_CMP_F_I16"}, // 160
+                {amdgpu_gfx90a_op_V_CMP_LT_I16,"V_CMP_LT_I16"}, // 161
+                {amdgpu_gfx90a_op_V_CMP_EQ_I16,"V_CMP_EQ_I16"}, // 162
+                {amdgpu_gfx90a_op_V_CMP_LE_I16,"V_CMP_LE_I16"}, // 163
+                {amdgpu_gfx90a_op_V_CMP_GT_I16,"V_CMP_GT_I16"}, // 164
+                {amdgpu_gfx90a_op_V_CMP_NE_I16,"V_CMP_NE_I16"}, // 165
+                {amdgpu_gfx90a_op_V_CMP_GE_I16,"V_CMP_GE_I16"}, // 166
+                {amdgpu_gfx90a_op_V_CMP_T_I16,"V_CMP_T_I16"}, // 167
+                {amdgpu_gfx90a_op_V_CMP_F_U16,"V_CMP_F_U16"}, // 168
+                {amdgpu_gfx90a_op_V_CMP_LT_U16,"V_CMP_LT_U16"}, // 169
+                {amdgpu_gfx90a_op_V_CMP_EQ_U16,"V_CMP_EQ_U16"}, // 170
+                {amdgpu_gfx90a_op_V_CMP_LE_U16,"V_CMP_LE_U16"}, // 171
+                {amdgpu_gfx90a_op_V_CMP_GT_U16,"V_CMP_GT_U16"}, // 172
+                {amdgpu_gfx90a_op_V_CMP_NE_U16,"V_CMP_NE_U16"}, // 173
+                {amdgpu_gfx90a_op_V_CMP_GE_U16,"V_CMP_GE_U16"}, // 174
+                {amdgpu_gfx90a_op_V_CMP_T_U16,"V_CMP_T_U16"}, // 175
+                {amdgpu_gfx90a_op_V_CMPX_F_I16,"V_CMPX_F_I16"}, // 176
+                {amdgpu_gfx90a_op_V_CMPX_LT_I16,"V_CMPX_LT_I16"}, // 177
+                {amdgpu_gfx90a_op_V_CMPX_EQ_I16,"V_CMPX_EQ_I16"}, // 178
+                {amdgpu_gfx90a_op_V_CMPX_LE_I16,"V_CMPX_LE_I16"}, // 179
+                {amdgpu_gfx90a_op_V_CMPX_GT_I16,"V_CMPX_GT_I16"}, // 180
+                {amdgpu_gfx90a_op_V_CMPX_NE_I16,"V_CMPX_NE_I16"}, // 181
+                {amdgpu_gfx90a_op_V_CMPX_GE_I16,"V_CMPX_GE_I16"}, // 182
+                {amdgpu_gfx90a_op_V_CMPX_T_I16,"V_CMPX_T_I16"}, // 183
+                {amdgpu_gfx90a_op_V_CMPX_F_U16,"V_CMPX_F_U16"}, // 184
+                {amdgpu_gfx90a_op_V_CMPX_LT_U16,"V_CMPX_LT_U16"}, // 185
+                {amdgpu_gfx90a_op_V_CMPX_EQ_U16,"V_CMPX_EQ_U16"}, // 186
+                {amdgpu_gfx90a_op_V_CMPX_LE_U16,"V_CMPX_LE_U16"}, // 187
+                {amdgpu_gfx90a_op_V_CMPX_GT_U16,"V_CMPX_GT_U16"}, // 188
+                {amdgpu_gfx90a_op_V_CMPX_NE_U16,"V_CMPX_NE_U16"}, // 189
+                {amdgpu_gfx90a_op_V_CMPX_GE_U16,"V_CMPX_GE_U16"}, // 190
+                {amdgpu_gfx90a_op_V_CMPX_T_U16,"V_CMPX_T_U16"}, // 191
+                {amdgpu_gfx90a_op_V_CMP_F_I32,"V_CMP_F_I32"}, // 192
+                {amdgpu_gfx90a_op_V_CMP_LT_I32,"V_CMP_LT_I32"}, // 193
+                {amdgpu_gfx90a_op_V_CMP_EQ_I32,"V_CMP_EQ_I32"}, // 194
+                {amdgpu_gfx90a_op_V_CMP_LE_I32,"V_CMP_LE_I32"}, // 195
+                {amdgpu_gfx90a_op_V_CMP_GT_I32,"V_CMP_GT_I32"}, // 196
+                {amdgpu_gfx90a_op_V_CMP_NE_I32,"V_CMP_NE_I32"}, // 197
+                {amdgpu_gfx90a_op_V_CMP_GE_I32,"V_CMP_GE_I32"}, // 198
+                {amdgpu_gfx90a_op_V_CMP_T_I32,"V_CMP_T_I32"}, // 199
+                {amdgpu_gfx90a_op_V_CMP_F_U32,"V_CMP_F_U32"}, // 200
+                {amdgpu_gfx90a_op_V_CMP_LT_U32,"V_CMP_LT_U32"}, // 201
+                {amdgpu_gfx90a_op_V_CMP_EQ_U32,"V_CMP_EQ_U32"}, // 202
+                {amdgpu_gfx90a_op_V_CMP_LE_U32,"V_CMP_LE_U32"}, // 203
+                {amdgpu_gfx90a_op_V_CMP_GT_U32,"V_CMP_GT_U32"}, // 204
+                {amdgpu_gfx90a_op_V_CMP_NE_U32,"V_CMP_NE_U32"}, // 205
+                {amdgpu_gfx90a_op_V_CMP_GE_U32,"V_CMP_GE_U32"}, // 206
+                {amdgpu_gfx90a_op_V_CMP_T_U32,"V_CMP_T_U32"}, // 207
+                {amdgpu_gfx90a_op_V_CMPX_F_I32,"V_CMPX_F_I32"}, // 208
+                {amdgpu_gfx90a_op_V_CMPX_LT_I32,"V_CMPX_LT_I32"}, // 209
+                {amdgpu_gfx90a_op_V_CMPX_EQ_I32,"V_CMPX_EQ_I32"}, // 210
+                {amdgpu_gfx90a_op_V_CMPX_LE_I32,"V_CMPX_LE_I32"}, // 211
+                {amdgpu_gfx90a_op_V_CMPX_GT_I32,"V_CMPX_GT_I32"}, // 212
+                {amdgpu_gfx90a_op_V_CMPX_NE_I32,"V_CMPX_NE_I32"}, // 213
+                {amdgpu_gfx90a_op_V_CMPX_GE_I32,"V_CMPX_GE_I32"}, // 214
+                {amdgpu_gfx90a_op_V_CMPX_T_I32,"V_CMPX_T_I32"}, // 215
+                {amdgpu_gfx90a_op_V_CMPX_F_U32,"V_CMPX_F_U32"}, // 216
+                {amdgpu_gfx90a_op_V_CMPX_LT_U32,"V_CMPX_LT_U32"}, // 217
+                {amdgpu_gfx90a_op_V_CMPX_EQ_U32,"V_CMPX_EQ_U32"}, // 218
+                {amdgpu_gfx90a_op_V_CMPX_LE_U32,"V_CMPX_LE_U32"}, // 219
+                {amdgpu_gfx90a_op_V_CMPX_GT_U32,"V_CMPX_GT_U32"}, // 220
+                {amdgpu_gfx90a_op_V_CMPX_NE_U32,"V_CMPX_NE_U32"}, // 221
+                {amdgpu_gfx90a_op_V_CMPX_GE_U32,"V_CMPX_GE_U32"}, // 222
+                {amdgpu_gfx90a_op_V_CMPX_T_U32,"V_CMPX_T_U32"}, // 223
+                {amdgpu_gfx90a_op_V_CMP_F_I64,"V_CMP_F_I64"}, // 224
+                {amdgpu_gfx90a_op_V_CMP_LT_I64,"V_CMP_LT_I64"}, // 225
+                {amdgpu_gfx90a_op_V_CMP_EQ_I64,"V_CMP_EQ_I64"}, // 226
+                {amdgpu_gfx90a_op_V_CMP_LE_I64,"V_CMP_LE_I64"}, // 227
+                {amdgpu_gfx90a_op_V_CMP_GT_I64,"V_CMP_GT_I64"}, // 228
+                {amdgpu_gfx90a_op_V_CMP_NE_I64,"V_CMP_NE_I64"}, // 229
+                {amdgpu_gfx90a_op_V_CMP_GE_I64,"V_CMP_GE_I64"}, // 230
+                {amdgpu_gfx90a_op_V_CMP_T_I64,"V_CMP_T_I64"}, // 231
+                {amdgpu_gfx90a_op_V_CMP_F_U64,"V_CMP_F_U64"}, // 232
+                {amdgpu_gfx90a_op_V_CMP_LT_U64,"V_CMP_LT_U64"}, // 233
+                {amdgpu_gfx90a_op_V_CMP_EQ_U64,"V_CMP_EQ_U64"}, // 234
+                {amdgpu_gfx90a_op_V_CMP_LE_U64,"V_CMP_LE_U64"}, // 235
+                {amdgpu_gfx90a_op_V_CMP_GT_U64,"V_CMP_GT_U64"}, // 236
+                {amdgpu_gfx90a_op_V_CMP_NE_U64,"V_CMP_NE_U64"}, // 237
+                {amdgpu_gfx90a_op_V_CMP_GE_U64,"V_CMP_GE_U64"}, // 238
+                {amdgpu_gfx90a_op_V_CMP_T_U64,"V_CMP_T_U64"}, // 239
+                {amdgpu_gfx90a_op_V_CMPX_F_I64,"V_CMPX_F_I64"}, // 240
+                {amdgpu_gfx90a_op_V_CMPX_LT_I64,"V_CMPX_LT_I64"}, // 241
+                {amdgpu_gfx90a_op_V_CMPX_EQ_I64,"V_CMPX_EQ_I64"}, // 242
+                {amdgpu_gfx90a_op_V_CMPX_LE_I64,"V_CMPX_LE_I64"}, // 243
+                {amdgpu_gfx90a_op_V_CMPX_GT_I64,"V_CMPX_GT_I64"}, // 244
+                {amdgpu_gfx90a_op_V_CMPX_NE_I64,"V_CMPX_NE_I64"}, // 245
+                {amdgpu_gfx90a_op_V_CMPX_GE_I64,"V_CMPX_GE_I64"}, // 246
+                {amdgpu_gfx90a_op_V_CMPX_T_I64,"V_CMPX_T_I64"}, // 247
+                {amdgpu_gfx90a_op_V_CMPX_F_U64,"V_CMPX_F_U64"}, // 248
+                {amdgpu_gfx90a_op_V_CMPX_LT_U64,"V_CMPX_LT_U64"}, // 249
+                {amdgpu_gfx90a_op_V_CMPX_EQ_U64,"V_CMPX_EQ_U64"}, // 250
+                {amdgpu_gfx90a_op_V_CMPX_LE_U64,"V_CMPX_LE_U64"}, // 251
+                {amdgpu_gfx90a_op_V_CMPX_GT_U64,"V_CMPX_GT_U64"}, // 252
+                {amdgpu_gfx90a_op_V_CMPX_NE_U64,"V_CMPX_NE_U64"}, // 253
+                {amdgpu_gfx90a_op_V_CMPX_GE_U64,"V_CMPX_GE_U64"}, // 254
+                {amdgpu_gfx90a_op_V_CMPX_T_U64,"V_CMPX_T_U64"}, // 255
+            }; // end VOPC_INST_LITERAL_insn_table
+            const amdgpu_gfx90a_insn_entry VOPC_VOP_SDWA_SDST_ENC_insn_table[224] = 
+            {
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 0
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 1
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 2
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 3
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 4
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 5
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 6
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 7
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 8
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 9
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 10
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 11
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 12
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 13
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 14
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 15
+                {amdgpu_gfx90a_op_V_CMP_CLASS_F32,"V_CMP_CLASS_F32"}, // 16
+                {amdgpu_gfx90a_op_V_CMPX_CLASS_F32,"V_CMPX_CLASS_F32"}, // 17
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 18
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 19
+                {amdgpu_gfx90a_op_V_CMP_CLASS_F16,"V_CMP_CLASS_F16"}, // 20
+                {amdgpu_gfx90a_op_V_CMPX_CLASS_F16,"V_CMPX_CLASS_F16"}, // 21
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 22
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 23
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 24
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 25
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 26
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 27
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 28
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 29
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 30
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 31
+                {amdgpu_gfx90a_op_V_CMP_F_F16,"V_CMP_F_F16"}, // 32
+                {amdgpu_gfx90a_op_V_CMP_LT_F16,"V_CMP_LT_F16"}, // 33
+                {amdgpu_gfx90a_op_V_CMP_EQ_F16,"V_CMP_EQ_F16"}, // 34
+                {amdgpu_gfx90a_op_V_CMP_LE_F16,"V_CMP_LE_F16"}, // 35
+                {amdgpu_gfx90a_op_V_CMP_GT_F16,"V_CMP_GT_F16"}, // 36
+                {amdgpu_gfx90a_op_V_CMP_LG_F16,"V_CMP_LG_F16"}, // 37
+                {amdgpu_gfx90a_op_V_CMP_GE_F16,"V_CMP_GE_F16"}, // 38
+                {amdgpu_gfx90a_op_V_CMP_O_F16,"V_CMP_O_F16"}, // 39
+                {amdgpu_gfx90a_op_V_CMP_U_F16,"V_CMP_U_F16"}, // 40
+                {amdgpu_gfx90a_op_V_CMP_NGE_F16,"V_CMP_NGE_F16"}, // 41
+                {amdgpu_gfx90a_op_V_CMP_NLG_F16,"V_CMP_NLG_F16"}, // 42
+                {amdgpu_gfx90a_op_V_CMP_NGT_F16,"V_CMP_NGT_F16"}, // 43
+                {amdgpu_gfx90a_op_V_CMP_NLE_F16,"V_CMP_NLE_F16"}, // 44
+                {amdgpu_gfx90a_op_V_CMP_NEQ_F16,"V_CMP_NEQ_F16"}, // 45
+                {amdgpu_gfx90a_op_V_CMP_NLT_F16,"V_CMP_NLT_F16"}, // 46
+                {amdgpu_gfx90a_op_V_CMP_TRU_F16,"V_CMP_TRU_F16"}, // 47
+                {amdgpu_gfx90a_op_V_CMPX_F_F16,"V_CMPX_F_F16"}, // 48
+                {amdgpu_gfx90a_op_V_CMPX_LT_F16,"V_CMPX_LT_F16"}, // 49
+                {amdgpu_gfx90a_op_V_CMPX_EQ_F16,"V_CMPX_EQ_F16"}, // 50
+                {amdgpu_gfx90a_op_V_CMPX_LE_F16,"V_CMPX_LE_F16"}, // 51
+                {amdgpu_gfx90a_op_V_CMPX_GT_F16,"V_CMPX_GT_F16"}, // 52
+                {amdgpu_gfx90a_op_V_CMPX_LG_F16,"V_CMPX_LG_F16"}, // 53
+                {amdgpu_gfx90a_op_V_CMPX_GE_F16,"V_CMPX_GE_F16"}, // 54
+                {amdgpu_gfx90a_op_V_CMPX_O_F16,"V_CMPX_O_F16"}, // 55
+                {amdgpu_gfx90a_op_V_CMPX_U_F16,"V_CMPX_U_F16"}, // 56
+                {amdgpu_gfx90a_op_V_CMPX_NGE_F16,"V_CMPX_NGE_F16"}, // 57
+                {amdgpu_gfx90a_op_V_CMPX_NLG_F16,"V_CMPX_NLG_F16"}, // 58
+                {amdgpu_gfx90a_op_V_CMPX_NGT_F16,"V_CMPX_NGT_F16"}, // 59
+                {amdgpu_gfx90a_op_V_CMPX_NLE_F16,"V_CMPX_NLE_F16"}, // 60
+                {amdgpu_gfx90a_op_V_CMPX_NEQ_F16,"V_CMPX_NEQ_F16"}, // 61
+                {amdgpu_gfx90a_op_V_CMPX_NLT_F16,"V_CMPX_NLT_F16"}, // 62
+                {amdgpu_gfx90a_op_V_CMPX_TRU_F16,"V_CMPX_TRU_F16"}, // 63
+                {amdgpu_gfx90a_op_V_CMP_F_F32,"V_CMP_F_F32"}, // 64
+                {amdgpu_gfx90a_op_V_CMP_LT_F32,"V_CMP_LT_F32"}, // 65
+                {amdgpu_gfx90a_op_V_CMP_EQ_F32,"V_CMP_EQ_F32"}, // 66
+                {amdgpu_gfx90a_op_V_CMP_LE_F32,"V_CMP_LE_F32"}, // 67
+                {amdgpu_gfx90a_op_V_CMP_GT_F32,"V_CMP_GT_F32"}, // 68
+                {amdgpu_gfx90a_op_V_CMP_LG_F32,"V_CMP_LG_F32"}, // 69
+                {amdgpu_gfx90a_op_V_CMP_GE_F32,"V_CMP_GE_F32"}, // 70
+                {amdgpu_gfx90a_op_V_CMP_O_F32,"V_CMP_O_F32"}, // 71
+                {amdgpu_gfx90a_op_V_CMP_U_F32,"V_CMP_U_F32"}, // 72
+                {amdgpu_gfx90a_op_V_CMP_NGE_F32,"V_CMP_NGE_F32"}, // 73
+                {amdgpu_gfx90a_op_V_CMP_NLG_F32,"V_CMP_NLG_F32"}, // 74
+                {amdgpu_gfx90a_op_V_CMP_NGT_F32,"V_CMP_NGT_F32"}, // 75
+                {amdgpu_gfx90a_op_V_CMP_NLE_F32,"V_CMP_NLE_F32"}, // 76
+                {amdgpu_gfx90a_op_V_CMP_NEQ_F32,"V_CMP_NEQ_F32"}, // 77
+                {amdgpu_gfx90a_op_V_CMP_NLT_F32,"V_CMP_NLT_F32"}, // 78
+                {amdgpu_gfx90a_op_V_CMP_TRU_F32,"V_CMP_TRU_F32"}, // 79
+                {amdgpu_gfx90a_op_V_CMPX_F_F32,"V_CMPX_F_F32"}, // 80
+                {amdgpu_gfx90a_op_V_CMPX_LT_F32,"V_CMPX_LT_F32"}, // 81
+                {amdgpu_gfx90a_op_V_CMPX_EQ_F32,"V_CMPX_EQ_F32"}, // 82
+                {amdgpu_gfx90a_op_V_CMPX_LE_F32,"V_CMPX_LE_F32"}, // 83
+                {amdgpu_gfx90a_op_V_CMPX_GT_F32,"V_CMPX_GT_F32"}, // 84
+                {amdgpu_gfx90a_op_V_CMPX_LG_F32,"V_CMPX_LG_F32"}, // 85
+                {amdgpu_gfx90a_op_V_CMPX_GE_F32,"V_CMPX_GE_F32"}, // 86
+                {amdgpu_gfx90a_op_V_CMPX_O_F32,"V_CMPX_O_F32"}, // 87
+                {amdgpu_gfx90a_op_V_CMPX_U_F32,"V_CMPX_U_F32"}, // 88
+                {amdgpu_gfx90a_op_V_CMPX_NGE_F32,"V_CMPX_NGE_F32"}, // 89
+                {amdgpu_gfx90a_op_V_CMPX_NLG_F32,"V_CMPX_NLG_F32"}, // 90
+                {amdgpu_gfx90a_op_V_CMPX_NGT_F32,"V_CMPX_NGT_F32"}, // 91
+                {amdgpu_gfx90a_op_V_CMPX_NLE_F32,"V_CMPX_NLE_F32"}, // 92
+                {amdgpu_gfx90a_op_V_CMPX_NEQ_F32,"V_CMPX_NEQ_F32"}, // 93
+                {amdgpu_gfx90a_op_V_CMPX_NLT_F32,"V_CMPX_NLT_F32"}, // 94
+                {amdgpu_gfx90a_op_V_CMPX_TRU_F32,"V_CMPX_TRU_F32"}, // 95
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 96
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 97
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 98
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 99
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 100
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 101
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 102
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 103
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 104
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 105
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 106
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 107
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 108
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 109
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 110
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 111
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 112
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 113
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 114
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 115
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 116
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 117
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 118
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 119
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 120
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 121
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 122
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 123
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 124
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 125
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 126
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 127
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 128
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 129
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 130
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 131
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 132
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 133
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 134
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 135
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 136
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 137
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 138
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 139
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 140
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 141
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 142
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 143
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 144
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 145
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 146
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 147
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 148
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 149
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 150
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 151
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 152
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 153
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 154
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 155
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 156
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 157
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 158
+                {amdgpu_gfx90a_op_S_NOP,"S_NOP"}, // 159
+                {amdgpu_gfx90a_op_V_CMP_F_I16,"V_CMP_F_I16"}, // 160
+                {amdgpu_gfx90a_op_V_CMP_LT_I16,"V_CMP_LT_I16"}, // 161
+                {amdgpu_gfx90a_op_V_CMP_EQ_I16,"V_CMP_EQ_I16"}, // 162
+                {amdgpu_gfx90a_op_V_CMP_LE_I16,"V_CMP_LE_I16"}, // 163
+                {amdgpu_gfx90a_op_V_CMP_GT_I16,"V_CMP_GT_I16"}, // 164
+                {amdgpu_gfx90a_op_V_CMP_NE_I16,"V_CMP_NE_I16"}, // 165
+                {amdgpu_gfx90a_op_V_CMP_GE_I16,"V_CMP_GE_I16"}, // 166
+                {amdgpu_gfx90a_op_V_CMP_T_I16,"V_CMP_T_I16"}, // 167
+                {amdgpu_gfx90a_op_V_CMP_F_U16,"V_CMP_F_U16"}, // 168
+                {amdgpu_gfx90a_op_V_CMP_LT_U16,"V_CMP_LT_U16"}, // 169
+                {amdgpu_gfx90a_op_V_CMP_EQ_U16,"V_CMP_EQ_U16"}, // 170
+                {amdgpu_gfx90a_op_V_CMP_LE_U16,"V_CMP_LE_U16"}, // 171
+                {amdgpu_gfx90a_op_V_CMP_GT_U16,"V_CMP_GT_U16"}, // 172
+                {amdgpu_gfx90a_op_V_CMP_NE_U16,"V_CMP_NE_U16"}, // 173
+                {amdgpu_gfx90a_op_V_CMP_GE_U16,"V_CMP_GE_U16"}, // 174
+                {amdgpu_gfx90a_op_V_CMP_T_U16,"V_CMP_T_U16"}, // 175
+                {amdgpu_gfx90a_op_V_CMPX_F_I16,"V_CMPX_F_I16"}, // 176
+                {amdgpu_gfx90a_op_V_CMPX_LT_I16,"V_CMPX_LT_I16"}, // 177
+                {amdgpu_gfx90a_op_V_CMPX_EQ_I16,"V_CMPX_EQ_I16"}, // 178
+                {amdgpu_gfx90a_op_V_CMPX_LE_I16,"V_CMPX_LE_I16"}, // 179
+                {amdgpu_gfx90a_op_V_CMPX_GT_I16,"V_CMPX_GT_I16"}, // 180
+                {amdgpu_gfx90a_op_V_CMPX_NE_I16,"V_CMPX_NE_I16"}, // 181
+                {amdgpu_gfx90a_op_V_CMPX_GE_I16,"V_CMPX_GE_I16"}, // 182
+                {amdgpu_gfx90a_op_V_CMPX_T_I16,"V_CMPX_T_I16"}, // 183
+                {amdgpu_gfx90a_op_V_CMPX_F_U16,"V_CMPX_F_U16"}, // 184
+                {amdgpu_gfx90a_op_V_CMPX_LT_U16,"V_CMPX_LT_U16"}, // 185
+                {amdgpu_gfx90a_op_V_CMPX_EQ_U16,"V_CMPX_EQ_U16"}, // 186
+                {amdgpu_gfx90a_op_V_CMPX_LE_U16,"V_CMPX_LE_U16"}, // 187
+                {amdgpu_gfx90a_op_V_CMPX_GT_U16,"V_CMPX_GT_U16"}, // 188
+                {amdgpu_gfx90a_op_V_CMPX_NE_U16,"V_CMPX_NE_U16"}, // 189
+                {amdgpu_gfx90a_op_V_CMPX_GE_U16,"V_CMPX_GE_U16"}, // 190
+                {amdgpu_gfx90a_op_V_CMPX_T_U16,"V_CMPX_T_U16"}, // 191
+                {amdgpu_gfx90a_op_V_CMP_F_I32,"V_CMP_F_I32"}, // 192
+                {amdgpu_gfx90a_op_V_CMP_LT_I32,"V_CMP_LT_I32"}, // 193
+                {amdgpu_gfx90a_op_V_CMP_EQ_I32,"V_CMP_EQ_I32"}, // 194
+                {amdgpu_gfx90a_op_V_CMP_LE_I32,"V_CMP_LE_I32"}, // 195
+                {amdgpu_gfx90a_op_V_CMP_GT_I32,"V_CMP_GT_I32"}, // 196
+                {amdgpu_gfx90a_op_V_CMP_NE_I32,"V_CMP_NE_I32"}, // 197
+                {amdgpu_gfx90a_op_V_CMP_GE_I32,"V_CMP_GE_I32"}, // 198
+                {amdgpu_gfx90a_op_V_CMP_T_I32,"V_CMP_T_I32"}, // 199
+                {amdgpu_gfx90a_op_V_CMP_F_U32,"V_CMP_F_U32"}, // 200
+                {amdgpu_gfx90a_op_V_CMP_LT_U32,"V_CMP_LT_U32"}, // 201
+                {amdgpu_gfx90a_op_V_CMP_EQ_U32,"V_CMP_EQ_U32"}, // 202
+                {amdgpu_gfx90a_op_V_CMP_LE_U32,"V_CMP_LE_U32"}, // 203
+                {amdgpu_gfx90a_op_V_CMP_GT_U32,"V_CMP_GT_U32"}, // 204
+                {amdgpu_gfx90a_op_V_CMP_NE_U32,"V_CMP_NE_U32"}, // 205
+                {amdgpu_gfx90a_op_V_CMP_GE_U32,"V_CMP_GE_U32"}, // 206
+                {amdgpu_gfx90a_op_V_CMP_T_U32,"V_CMP_T_U32"}, // 207
+                {amdgpu_gfx90a_op_V_CMPX_F_I32,"V_CMPX_F_I32"}, // 208
+                {amdgpu_gfx90a_op_V_CMPX_LT_I32,"V_CMPX_LT_I32"}, // 209
+                {amdgpu_gfx90a_op_V_CMPX_EQ_I32,"V_CMPX_EQ_I32"}, // 210
+                {amdgpu_gfx90a_op_V_CMPX_LE_I32,"V_CMPX_LE_I32"}, // 211
+                {amdgpu_gfx90a_op_V_CMPX_GT_I32,"V_CMPX_GT_I32"}, // 212
+                {amdgpu_gfx90a_op_V_CMPX_NE_I32,"V_CMPX_NE_I32"}, // 213
+                {amdgpu_gfx90a_op_V_CMPX_GE_I32,"V_CMPX_GE_I32"}, // 214
+                {amdgpu_gfx90a_op_V_CMPX_T_I32,"V_CMPX_T_I32"}, // 215
+                {amdgpu_gfx90a_op_V_CMPX_F_U32,"V_CMPX_F_U32"}, // 216
+                {amdgpu_gfx90a_op_V_CMPX_LT_U32,"V_CMPX_LT_U32"}, // 217
+                {amdgpu_gfx90a_op_V_CMPX_EQ_U32,"V_CMPX_EQ_U32"}, // 218
+                {amdgpu_gfx90a_op_V_CMPX_LE_U32,"V_CMPX_LE_U32"}, // 219
+                {amdgpu_gfx90a_op_V_CMPX_GT_U32,"V_CMPX_GT_U32"}, // 220
+                {amdgpu_gfx90a_op_V_CMPX_NE_U32,"V_CMPX_NE_U32"}, // 221
+                {amdgpu_gfx90a_op_V_CMPX_GE_U32,"V_CMPX_GE_U32"}, // 222
+                {amdgpu_gfx90a_op_V_CMPX_T_U32,"V_CMPX_T_U32"}, // 223
+            }; // end VOPC_VOP_SDWA_SDST_ENC_insn_table
 
 
         };
