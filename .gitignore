@@ -121,6 +121,8 @@ doxyfiles/*
 .vscode/*
 build*/
 cmake-build-*/
+# Staging prefix produced by scripts/build-tpls.sh
+.tpls/
 .project
 .cproject
 .settings

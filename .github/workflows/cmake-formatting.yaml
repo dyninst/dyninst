@@ -1,33 +1,46 @@
-
 name: CMake Formatting
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: [dyninst_13]
     paths:
-       - '**.cmake'
-       - '**CMakeLists.txt'
+      - '**.cmake'
+      - '**CMakeLists.txt'
+      - '.cmake-format.yaml'
+      - '.github/workflows/cmake-formatting.yaml'
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   cmake-formatting:
+    name: cmake-format
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y python3-pip
-        python3 -m pip install cmake-format
-    - name: cmake-format
-      run: |
-        set +e
-        cmake-format -i $(find . -type f | egrep 'CMakeLists.txt|\.cmake$')
-        if [ $(git diff | wc -l) -gt 0 ]; then
-          echo -e "\nError! CMake files not formatted."
-          echo -e "\nRun the following to fix:"
-          for f in $(git diff --name-only); do echo -e "  cmake-format -i $f"; done
-          echo
-          exit 1
-        fi
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      # Pinned: an unpinned cmake-format can start formatting differently and turn
+      # every PR red without any change to this repository.
+      - name: Install cmake-format
+        run: python3 -m pip install cmake-format==0.6.13
+
+      - name: Check formatting
+        run: |
+          cmake-format -i $(find . -type f | grep -E 'CMakeLists.txt|\.cmake$')
+          if [ -n "$(git diff --name-only)" ]; then
+            echo "Error! CMake files are not formatted."
+            echo "Run the following to fix:"
+            for f in $(git diff --name-only); do echo "  cmake-format -i $f"; done
+            git diff
+            exit 1
+          fi

@@ -1,75 +1,197 @@
 name: Build Dyninst
 
+# Reusable builder. Builds Dyninst's third-party libraries from source (see
+# scripts/build-tpls.sh for why), then builds, installs and smoke-tests Dyninst.
+#
+# The TPLs are built in a separate job so that the parallel build-type jobs share
+# one build rather than racing to populate the same cache key.
+
 on:
   workflow_call:
     inputs:
       name:
+        description: Display name for this configuration
         required: true
         type: string
-      os:
+      image:
+        description: Container image to build in
         required: true
         type: string
-      extra-libs:
+      cc:
         required: false
         type: string
-      extra-cmake-flags:
+        default: gcc
+      cxx:
         required: false
         type: string
-      c-compiler:
-        required: true
-        type: string
-      cxx-compiler:
-        required: true
-        type: string
-      is-clang:
+        default: g++
+      build-types:
+        description: JSON array of CMAKE_BUILD_TYPE values
         required: false
-        type: boolean
-        default: false
+        type: string
+        default: '["RELEASE"]'
+      container-options:
+        required: false
+        type: string
+        default: '--shm-size=512m'
+
+permissions:
+  contents: read
+
+env:
+  TPL_PREFIX: ${{ github.workspace }}/.tpls
+  INSTALL_PREFIX: ${{ github.workspace }}/install
 
 jobs:
+  tpls:
+    name: ${{ inputs.name }} / third-party libs
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ inputs.image }}
+      options: ${{ inputs.container-options }}
+    steps:
+      - uses: actions/checkout@v6
+
+      # The prefix bakes absolute paths (elfutils is built with an absolute
+      # RPATH), so the cache is only valid for an identical workspace path and
+      # image. Both are part of the key.
+      - name: Cache third-party libs
+        id: tpl-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.TPL_PREFIX }}
+          key: tpls-${{ inputs.image }}-${{ hashFiles('scripts/tpl-versions.env', 'scripts/build-tpls.sh') }}
+
+      - name: Build third-party libs
+        if: steps.tpl-cache.outputs.cache-hit != 'true'
+        run: bash scripts/build-tpls.sh --prefix "${TPL_PREFIX}" --jobs "$(nproc)"
+
   build:
-    permissions:
-      packages: read
+    name: ${{ inputs.name }} (${{ matrix.build-type }})
+    needs: tpls
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ inputs.image }}
+      options: ${{ inputs.container-options }}
+
     strategy:
       fail-fast: false
       matrix:
-         build-type: ['DEBUG', 'RELWITHDEBINFO', 'RELEASE']
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/dyninst/amd64/${{ inputs.os }}:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.github_token }}
-    name: ${{ inputs.name }} (${{ matrix.build-type }})
+        build-type: ${{ fromJSON(inputs.build-types) }}
+
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+
     steps:
-      # Clang doesn't allow for multiple libomp installations
-      - name: Clean libomp install
-        if: ${{ inputs.is-clang }}
-        run: apt remove --purge -y "libomp*"
-        
-      - name: Install C compiler (${{ inputs.c-compiler }})
+      - uses: actions/checkout@v6
+
+      - name: Restore third-party libs
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.TPL_PREFIX }}
+          key: tpls-${{ inputs.image }}-${{ hashFiles('scripts/tpl-versions.env', 'scripts/build-tpls.sh') }}
+          fail-on-cache-miss: true
+
+      - name: Restore ccache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ inputs.image }}-${{ matrix.build-type }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ inputs.image }}-${{ matrix.build-type }}-
+
+      - name: Configure ccache
         run: |
-          apt update -qq
-          apt install -qq --no-install-recommends -y ${{ inputs.c-compiler }}
+          mkdir -p "${CCACHE_DIR}"
+          ccache --max-size=1G
+          ccache --set-config=sloppiness=time_macros,include_file_mtime,include_file_ctime,pch_defines
+          ccache -z
 
-      # There is no apt package for clang++
-      - name: Install ${{ inputs.cxx-compiler }}
-        if: ${{ !inputs.is-clang }}
-        run: apt install -qq --no-install-recommends -y ${{ inputs.cxx-compiler }}
-
-      - name: Install extra libs (${{ inputs.extra-libs }})
-        if: ${{ inputs.extra-libs != '' }}
-        run: apt install -qq --no-install-recommends -y ${{ inputs.extra-libs }}
-
-      - name: Configure Dyninst (${{ matrix.build-type }})
-        shell: bash
+      - name: Configure
         run: |
-          cmake /dyninst/src \
-            -DCMAKE_BUILD_TYPE="${{ matrix.build-type }}" \
-            -DCMAKE_C_COMPILER="${{ inputs.c-compiler }}" \
-            -DCMAKE_CXX_COMPILER="${{ inputs.cxx-compiler }}" \
-            -DDYNINST_WARNINGS_AS_ERRORS=ON ${{ inputs.extra-cmake-flags }}
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+          cmake --version
+          ${{ inputs.cxx }} --version
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+            -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
+            -DCMAKE_C_COMPILER=${{ inputs.cc }} \
+            -DCMAKE_CXX_COMPILER=${{ inputs.cxx }} \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DDYNINST_WARNINGS_AS_ERRORS=ON \
+            -DTBB_ROOT_DIR="${TPL_PREFIX}/tbb" \
+            -DElfUtils_ROOT_DIR="${TPL_PREFIX}/elfutils" \
+            -DLibIberty_ROOT_DIR="${TPL_PREFIX}/binutils"
 
-      - name: Build Dyninst
+      # A silent fallback to the distro's TBB/elfutils/libiberty would make this
+      # job green while testing the wrong dependency versions. LibIberty in
+      # particular does not reliably exclude system paths, so assert explicitly.
+      - name: Verify third-party libs resolved to the built prefix
         run: |
-          cmake --build . --parallel 2
+          fail=0
+          check() {
+            val=$(grep -E "^$1:" build/CMakeCache.txt | head -1 | cut -d= -f2-)
+            if [ -z "${val}" ]; then
+              echo "MISSING  $1 is not set in CMakeCache.txt"
+              fail=1
+            elif [ "${val#"${TPL_PREFIX}"}" != "${val}" ]; then
+              echo "ok       $1 = ${val}"
+            else
+              echo "WRONG    $1 = ${val}"
+              echo "         expected a path under ${TPL_PREFIX}"
+              fail=1
+            fi
+          }
+          check Elfutils_LIBRARIES
+          check LibIberty_LIBRARIES
+          check TBB_DIR
+          exit "${fail}"
+
+      - name: Build
+        run: cmake --build build --parallel "$(nproc)"
+
+      - name: Install
+        run: cmake --install build
+
+      # Proves the install can parse, instrument and rewrite a real binary, and
+      # that the rewritten binary still runs. A link-only check would not.
+      - name: Smoke test (parseThat binary rewrite)
+        run: |
+          set -x
+          export DYNINSTAPI_RT_LIB="${INSTALL_PREFIX}/lib/libdyninstAPI_RT.so"
+          export LD_LIBRARY_PATH="${INSTALL_PREFIX}/lib:${TPL_PREFIX}/elfutils/lib:${TPL_PREFIX}/tbb/lib:${LD_LIBRARY_PATH:-}"
+          test -f "${DYNINSTAPI_RT_LIB}"
+
+          mkdir -p /tmp/smoke && cd /tmp/smoke
+          cat > hello.c <<'EOF'
+          #include <stdio.h>
+          int work(int x) { return x * 2; }
+          int main(void) { printf("dyninst-smoke-ok %d\n", work(21)); return 0; }
+          EOF
+          ${{ inputs.cc }} -g -O0 -o hello hello.c
+          ./hello | tee baseline.txt
+          grep -q 'dyninst-smoke-ok 42' baseline.txt
+
+          # -i 1 instruments function entries, so this exercises instrumentation
+          # rather than only parse-and-write-back.
+          "${INSTALL_PREFIX}/bin/parseThat" -i 1 --binary-edit=./hello.rewritten ./hello
+
+          test -x ./hello.rewritten
+          ./hello.rewritten | tee rewritten.txt
+          grep -q 'dyninst-smoke-ok 42' rewritten.txt
+
+      - name: ccache stats
+        if: always()
+        run: ccache -s
+
+      - name: Upload CMake logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cmake-logs-${{ inputs.name }}-${{ matrix.build-type }}
+          path: |
+            build/CMakeCache.txt
+            build/CMakeFiles/CMakeConfigureLog.yaml
+            build/CMakeFiles/*.log
+          if-no-files-found: ignore
