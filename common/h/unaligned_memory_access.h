@@ -49,6 +49,18 @@
 namespace Dyninst {
 
 /*
+ * read_memory_as(r, addr)
+ *
+ * Assign to r the object of r's TYPE created by reading sizeof(r) bytes at addr.
+ * The address addr does not have to be properly aligned for the type.
+ */
+template <typename ResultType>
+inline void read_memory_as(ResultType &r, const void *addr)
+{
+    std::memcpy(static_cast<void *>(&r), addr, sizeof r);
+}
+
+/*
  * read_memory_as<TYPE>(addr)
  *
  * Return an object of TYPE created by reading sizeof(TYPE) bytes at addr.
@@ -58,15 +70,15 @@ template <typename ResultType>
 inline ResultType read_memory_as(const void *addr)
 {
     ResultType r;
-    std::memcpy(static_cast<void *>(&r), addr, sizeof r);
+    read_memory_as(r, addr);
     return r;
 }
 
 
 /*
- * write_memory_as<TYPE>(adrr, &data)
+ * write_memory_as(addr, data)
  *
- * Write sizeof(TYPE) bytes to the memory pointed to by addr by copying the
+ * Write sizeof(data) bytes to the memory pointed to by addr by copying the
  * bytes of the supplied parameter.  The address addr does not have to be
  * properly aligned for the type.
  */
@@ -78,10 +90,10 @@ inline void write_memory_as(void *addr, const DataType &data)
 
 
 /*
- * append_memory_as<TYPE>(adrr, &data)
+ * append_memory_as(addr, data)
  *
- * Write sizeof(TYPE) bytes to the memory pointed to by addr by copying the
- * bytes of the supplied parameter, and adjust addr by sizeof(TYPE).  The
+ * Write sizeof(data) bytes to the memory pointed to by addr by copying the
+ * bytes of the supplied parameter, and adjust addr by sizeof(data).  The
  * address addr does not have to be properly aligned for the type.
  */
 template <typename PointerType, typename DataType>
@@ -93,10 +105,10 @@ inline void append_memory_as(PointerType *&addr, const DataType &data)
 
 
 /*
- * append_memory_as_byte(adrr, data)
+ * append_memory_as_byte(addr, data)
  *
  * Convenience function to avoid uint8_t cast when calling append_memory_as
- * with a uint8_t type.
+ * with a parameter that should be cast to a uint8_t type.
  */
 template <typename PointerType>
 inline void append_memory_as_byte(PointerType *&addr, std::uint8_t data)

@@ -591,17 +591,16 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
             // A word that is also a RELR relocation target was already shifted by the
             // earlier RELR loop, so skip to avoid offsetting it twice
             std::unordered_set<Offset> relr_addrs(relr_relocs.begin(), relr_relocs.end());
-            for(std::size_t off = 0; off < newdata->d_size; off += sizeof(void*)) {
+            for(std::size_t off = 0; off < newdata->d_size; off += sizeof(Elf_Relr)) {
                 Offset addr = shdr->sh_addr + off;
                 if (relr_addrs.count(addr)) continue;  // already adjusted as a RELR reloc
 
                 char *loc = static_cast<char*>(newdata->d_buf) + off;
-                size_t val{};
-                // The calls to memcpy are required to not break the aliasing rules.
-                memcpy(&val, loc, sizeof(val));
+                Elf_Relr val{};
+                read_memory_as(val, loc);
                 if(val == 0) continue;
                 val += library_adjust;
-                memcpy(loc, &val, sizeof(val));
+                write_memory_as(loc, val);
             }
         }
         // Change offsets of sections based on the newly added sections
