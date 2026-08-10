@@ -1,5 +1,7 @@
 # Dyninst
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/dyninst/dyninst/badge)](https://scorecard.dev/viewer/?uri=github.com/dyninst/dyninst)
+
 ## Notes
 
 * Known issues should have open issues associated with them.
