@@ -48,9 +48,10 @@ namespace Dyninst {
     Arch_aarch64 = 0x48000000,
     Arch_riscv64 = 0x68000000,
     Arch_cuda = 0x88000000,
-    Arch_amdgpu_gfx908 = 0x94000000, // future support for gfx908
-    Arch_amdgpu_gfx90a = 0x98000000, // future support for gfx90a
-    Arch_amdgpu_gfx940 = 0x9c000000, // future support for gfx940
+    Arch_amdgpu_gfx908 = 0x94000000,
+    Arch_amdgpu_gfx90a = 0x98000000,
+    Arch_amdgpu_gfx940 = 0x9c000000,
+    Arch_amdgpu_gfx950 = 0xa0000000,
     Arch_intelGen9 = 0xb6000000      // same as machine no. retrevied from eu-readelf
   } Architecture;
 
@@ -67,7 +68,8 @@ namespace Dyninst {
       case Arch_intelGen9:
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
-      case Arch_amdgpu_gfx940: return 8;
+      case Arch_amdgpu_gfx940:
+      case Arch_amdgpu_gfx950: return 8;
       default: assert(0); return 0;
     }
     return 0;
@@ -86,6 +88,7 @@ namespace Dyninst {
       case Arch_amdgpu_gfx908: return "amdgpu_gfx908"; break;
       case Arch_amdgpu_gfx90a: return "amdgpu_gfx90a"; break;
       case Arch_amdgpu_gfx940: return "amdgpu_gfx940"; break;
+      case Arch_amdgpu_gfx950: return "amdgpu_gfx950"; break;
       case Arch_riscv64: return "riscv64"; break;
       case Arch_intelGen9: return "intelGen9"; break;
     }
@@ -112,6 +115,7 @@ namespace Dyninst {
       case Arch_amdgpu_gfx908: return true;
       case Arch_amdgpu_gfx90a: return true;
       case Arch_amdgpu_gfx940: return true;
+      case Arch_amdgpu_gfx950: return true;
       case Arch_intelGen9: return true;
     }
     return false;

@@ -13,7 +13,7 @@ cmake_host_system_information(RESULT _host_arch QUERY OS_PLATFORM)
 
 set(_32bit_x86_arches "i386" "i686")
 set(_64bit_x86_arches "x86_64" "amd64")
-set(_amdgpu_arches "amdgpu_gfx908" "amdgpu_gfx90a" "amdgpu_gfx940")
+set(_amdgpu_arches "amdgpu_gfx908" "amdgpu_gfx90a" "amdgpu_gfx940" "amdgpu_gfx950")
 set(_known_arches "ppc64le" "aarch64" "riscv64" ${_32bit_x86_arches} ${_64bit_x86_arches}
                   ${_amdgpu_arches})
 
@@ -93,6 +93,8 @@ elseif(${_codegen_arch} STREQUAL "amdgpu_gfx90a")
   set(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A TRUE)
 elseif(${_codegen_arch} STREQUAL "amdgpu_gfx940")
   set(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940 TRUE)
+elseif(${_codegen_arch} STREQUAL "amdgpu_gfx950")
+  set(DYNINST_CODEGEN_ARCH_AMDGPU_GFX950 TRUE)
 else()
   message(FATAL_ERROR "Missing CODEGEN ARCH")
 endif()

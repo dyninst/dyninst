@@ -572,6 +572,7 @@ bool registerSpace::readProgramRegister(codeGen &gen,
   case Arch_amdgpu_gfx908:
   case Arch_amdgpu_gfx90a:
   case Arch_amdgpu_gfx940:
+  case Arch_amdgpu_gfx950:
   case Arch_intelGen9:
     regalloc_printf("readProgramRegister not supported for %s\n",
                     Dyninst::getArchitectureName(gen.getArch()));

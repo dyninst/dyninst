@@ -43,6 +43,7 @@ enum entryID : unsigned int {
   #include "mnemonics/AMDGPU/gfx908_entryIDs.h"
   #include "mnemonics/AMDGPU/gfx90a_entryIDs.h"
   #include "mnemonics/AMDGPU/gfx940_entryIDs.h"
+  #include "mnemonics/AMDGPU/gfx950_entryIDs.h"
   #include "mnemonics/NVIDIA/generic_entryIDs.h"
   #include "mnemonics/IntelGPU/generic_entryIDs.h"
   #include "mnemonics/riscv64_entryIDs.h"

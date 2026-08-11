@@ -174,7 +174,8 @@ namespace Dyninst {
 
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
-      case Arch_amdgpu_gfx940: {
+      case Arch_amdgpu_gfx940:
+      case Arch_amdgpu_gfx950: {
               return *this;
       }
       case Arch_ppc32: {
@@ -328,89 +329,98 @@ namespace Dyninst {
 
       case Arch_cuda: return 8;
       case Arch_amdgpu_gfx908: {
-        int reg_class = (reg & 0x00ff0000);
-        if(reg_class == amdgpu_gfx908::SGPR || reg_class == amdgpu_gfx908::VGPR) {
-          return 4;
-        } else {
-          switch(reg & 0x00007f00) {
-            case amdgpu_gfx908::BITS_1:
-            case amdgpu_gfx908::BITS_2:
-            case amdgpu_gfx908::BITS_3:
-            case amdgpu_gfx908::BITS_4:
-            case amdgpu_gfx908::BITS_6:
-            case amdgpu_gfx908::BITS_7:
-            case amdgpu_gfx908::BITS_8: return 1;
-            case amdgpu_gfx908::BITS_9:
-            case amdgpu_gfx908::BITS_15:
-            case amdgpu_gfx908::BITS_16: return 2;
-            case amdgpu_gfx908::BITS_32: return 4;
-            case amdgpu_gfx908::BITS_48: return 6;
-            case amdgpu_gfx908::BITS_64: return 8;
-            case amdgpu_gfx908::BITS_128: return 16;
-            case amdgpu_gfx908::BITS_256: return 32;
-            case amdgpu_gfx908::BITS_512: return 64;
-            default:
+        switch(reg & 0x00007f00) {
+          case amdgpu_gfx908::BITS_1:
+          case amdgpu_gfx908::BITS_2:
+          case amdgpu_gfx908::BITS_3:
+          case amdgpu_gfx908::BITS_4:
+          case amdgpu_gfx908::BITS_6:
+          case amdgpu_gfx908::BITS_7:
+          case amdgpu_gfx908::BITS_8: return 1;
+          case amdgpu_gfx908::BITS_9:
+          case amdgpu_gfx908::BITS_15:
+          case amdgpu_gfx908::BITS_16: return 2;
+          case amdgpu_gfx908::BITS_32: return 4;
+          case amdgpu_gfx908::BITS_48: return 6;
+          case amdgpu_gfx908::BITS_64: return 8;
+          case amdgpu_gfx908::BITS_128: return 16;
+          case amdgpu_gfx908::BITS_256: return 32;
+          case amdgpu_gfx908::BITS_512: return 64;
+          default:
         	common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
         	assert(0);
-          }
         }
       }
       break;
       case Arch_amdgpu_gfx90a: {
-        int reg_class = (reg & 0x00ff0000);
-        if(reg_class == amdgpu_gfx90a::SGPR || reg_class == amdgpu_gfx90a::VGPR) {
-          return 4;
-        } else {
-          switch(reg & 0x00007f00) {
-            case amdgpu_gfx90a::BITS_1:
-            case amdgpu_gfx90a::BITS_2:
-            case amdgpu_gfx90a::BITS_3:
-            case amdgpu_gfx90a::BITS_4:
-            case amdgpu_gfx90a::BITS_6:
-            case amdgpu_gfx90a::BITS_7:
-            case amdgpu_gfx90a::BITS_8: return 1;
-            case amdgpu_gfx90a::BITS_9:
-            case amdgpu_gfx90a::BITS_15:
-            case amdgpu_gfx90a::BITS_16: return 2;
-            case amdgpu_gfx90a::BITS_32: return 4;
-            case amdgpu_gfx90a::BITS_48: return 6;
-            case amdgpu_gfx90a::BITS_64: return 8;
-            case amdgpu_gfx90a::BITS_128: return 16;
-            case amdgpu_gfx90a::BITS_256: return 32;
-            case amdgpu_gfx90a::BITS_512: return 64;
-            default:
-              common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
-              assert(0);
-          }
+        switch(reg & 0x00007f00) {
+          case amdgpu_gfx90a::BITS_1:
+          case amdgpu_gfx90a::BITS_2:
+          case amdgpu_gfx90a::BITS_3:
+          case amdgpu_gfx90a::BITS_4:
+          case amdgpu_gfx90a::BITS_6:
+          case amdgpu_gfx90a::BITS_7:
+          case amdgpu_gfx90a::BITS_8: return 1;
+          case amdgpu_gfx90a::BITS_9:
+          case amdgpu_gfx90a::BITS_15:
+          case amdgpu_gfx90a::BITS_16: return 2;
+          case amdgpu_gfx90a::BITS_32: return 4;
+          case amdgpu_gfx90a::BITS_48: return 6;
+          case amdgpu_gfx90a::BITS_64: return 8;
+          case amdgpu_gfx90a::BITS_128: return 16;
+          case amdgpu_gfx90a::BITS_256: return 32;
+          case amdgpu_gfx90a::BITS_512: return 64;
+          default:
+            common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
+            assert(0);
         }
       }
       break;
       case Arch_amdgpu_gfx940: {
-        int reg_class = (reg & 0x00ff0000);
-        if(reg_class == amdgpu_gfx940::SGPR || reg_class == amdgpu_gfx940::VGPR) {
-          return 4;
-        } else {
-          switch(reg & 0x00007f00) {
-            case amdgpu_gfx940::BITS_1:
-            case amdgpu_gfx940::BITS_2:
-            case amdgpu_gfx940::BITS_3:
-            case amdgpu_gfx940::BITS_4:
-            case amdgpu_gfx940::BITS_6:
-            case amdgpu_gfx940::BITS_7:
-            case amdgpu_gfx940::BITS_8: return 1;
-            case amdgpu_gfx940::BITS_9:
-            case amdgpu_gfx940::BITS_15:
-            case amdgpu_gfx940::BITS_16: return 2;
-            case amdgpu_gfx940::BITS_32: return 4;
-            case amdgpu_gfx940::BITS_48: return 6;
-            case amdgpu_gfx940::BITS_64: return 8;
-            case amdgpu_gfx940::BITS_128: return 16;
-            case amdgpu_gfx940::BITS_256: return 32;
-            case amdgpu_gfx940::BITS_512: return 64;
-            default:
-              common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
-              assert(0);
-          }
+        switch(reg & 0x00007f00) {
+          case amdgpu_gfx940::BITS_1:
+          case amdgpu_gfx940::BITS_2:
+          case amdgpu_gfx940::BITS_3:
+          case amdgpu_gfx940::BITS_4:
+          case amdgpu_gfx940::BITS_6:
+          case amdgpu_gfx940::BITS_7:
+          case amdgpu_gfx940::BITS_8: return 1;
+          case amdgpu_gfx940::BITS_9:
+          case amdgpu_gfx940::BITS_15:
+          case amdgpu_gfx940::BITS_16: return 2;
+          case amdgpu_gfx940::BITS_32: return 4;
+          case amdgpu_gfx940::BITS_48: return 6;
+          case amdgpu_gfx940::BITS_64: return 8;
+          case amdgpu_gfx940::BITS_128: return 16;
+          case amdgpu_gfx940::BITS_256: return 32;
+          case amdgpu_gfx940::BITS_512: return 64;
+          default:
+            common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
+            assert(0);
+        }
+      }
+      break;
+      case Arch_amdgpu_gfx950: {
+        switch(reg & 0x00007f00) {
+          case amdgpu_gfx950::BITS_1:
+          case amdgpu_gfx950::BITS_2:
+          case amdgpu_gfx950::BITS_3:
+          case amdgpu_gfx950::BITS_4:
+          case amdgpu_gfx950::BITS_6:
+          case amdgpu_gfx950::BITS_7:
+          case amdgpu_gfx950::BITS_8: return 1;
+          case amdgpu_gfx950::BITS_9:
+          case amdgpu_gfx950::BITS_15:
+          case amdgpu_gfx950::BITS_16: return 2;
+          case amdgpu_gfx950::BITS_32: return 4;
+          case amdgpu_gfx950::BITS_48: return 6;
+          case amdgpu_gfx950::BITS_64: return 8;
+          case amdgpu_gfx950::BITS_128: return 16;
+          case amdgpu_gfx950::BITS_256: return 32;
+          case amdgpu_gfx950::BITS_512: return 64;
+          default:
+            common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
+            assert(0);
         }
       }
       break;
@@ -475,6 +485,7 @@ namespace Dyninst {
       case Arch_amdgpu_gfx908: return amdgpu_gfx908::pc_all;
       case Arch_amdgpu_gfx90a: return amdgpu_gfx90a::pc_all;
       case Arch_amdgpu_gfx940: return amdgpu_gfx940::pc_all;
+      case Arch_amdgpu_gfx950: return amdgpu_gfx950::pc_all;
       case Arch_none: return InvalidReg;
     }
     return InvalidReg;
@@ -495,6 +506,7 @@ namespace Dyninst {
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
+      case Arch_amdgpu_gfx950:
       case Arch_intelGen9: assert(0); break;
       case Arch_none: return InvalidReg;
     }
@@ -515,6 +527,7 @@ namespace Dyninst {
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
+      case Arch_amdgpu_gfx950:
       case Arch_none: return InvalidReg;
     }
     return InvalidReg;
@@ -534,6 +547,7 @@ namespace Dyninst {
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
+      case Arch_amdgpu_gfx950:
       case Arch_none: return InvalidReg;
     }
     return InvalidReg;
@@ -555,6 +569,7 @@ namespace Dyninst {
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
+      case Arch_amdgpu_gfx950:
       case Arch_none: return InvalidReg;
     }
     return InvalidReg;
@@ -574,6 +589,7 @@ namespace Dyninst {
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
+      case Arch_amdgpu_gfx950:
       case Arch_intelGen9:
         return InvalidReg;
       default: assert(0); return InvalidReg;
@@ -595,6 +611,7 @@ namespace Dyninst {
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
+      case Arch_amdgpu_gfx950:
       case Arch_none: return InvalidReg;
     }
     return InvalidReg;
@@ -615,6 +632,7 @@ namespace Dyninst {
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
       case Arch_amdgpu_gfx940:
+      case Arch_amdgpu_gfx950:
       case Arch_none: return InvalidReg;
     }
 
@@ -688,7 +706,8 @@ namespace Dyninst {
       }
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
-      case Arch_amdgpu_gfx940: {
+      case Arch_amdgpu_gfx940:
+      case Arch_amdgpu_gfx950: {
         return (base.val() & 0x0000F000);
       }
       case Arch_cuda: return false;
@@ -791,6 +810,16 @@ namespace Dyninst {
         }
         return false;
       }
+      case Arch_amdgpu_gfx950: {
+        switch(category) {
+          case amdgpu_gfx950::SGPR:
+          case amdgpu_gfx950::VGPR:
+          case amdgpu_gfx950::ACC_VGPR:
+          case amdgpu_gfx950::TTMP_SGPR:
+            return true;
+        }
+        return false;
+      }
 
       case Arch_intelGen9:
       case Arch_aarch32:
@@ -866,6 +895,11 @@ namespace Dyninst {
         return category == amdgpu_gfx940::SGPR ||
                category == amdgpu_gfx940::VGPR ||
                category == amdgpu_gfx940::ACC_VGPR;
+
+      case Arch_amdgpu_gfx950:
+        return category == amdgpu_gfx950::SGPR ||
+               category == amdgpu_gfx950::VGPR ||
+               category == amdgpu_gfx950::ACC_VGPR;
 
       case Arch_intelGen9:
       case Arch_aarch32:
@@ -992,6 +1026,22 @@ namespace Dyninst {
         }
         return false;
       }
+      case Arch_amdgpu_gfx950: {
+        switch(val()) {
+        case amdgpu_gfx950::ivcc_lo:
+        case amdgpu_gfx950::ivcc_hi:
+        case amdgpu_gfx950::iexec_lo:
+        case amdgpu_gfx950::iexec_hi:
+        case amdgpu_gfx950::isrc_scc:
+        case amdgpu_gfx950::isrc_vccz:
+        case amdgpu_gfx950::isrc_execz:
+        case amdgpu_gfx950::ixnack_mask_lo:
+        case amdgpu_gfx950::ixnack_mask_hi:
+        case amdgpu_gfx950::ihw_reg_status:
+            return true;
+        }
+        return false;
+      }
 
       case Arch_cuda:
       case Arch_intelGen9:
@@ -1080,6 +1130,22 @@ namespace Dyninst {
         }
         return category == amdgpu_gfx940::VGPR ||
                category == amdgpu_gfx940::ACC_VGPR;
+      }
+      case Arch_amdgpu_gfx950: {
+        switch(val()) {
+        case amdgpu_gfx950::ivcc_lo:
+        case amdgpu_gfx950::ivcc_hi:
+        case amdgpu_gfx950::iexec_lo:
+        case amdgpu_gfx950::iexec_hi:
+        case amdgpu_gfx950::isrc_scc:
+        case amdgpu_gfx950::isrc_vccz:
+        case amdgpu_gfx950::isrc_execz:
+        case amdgpu_gfx950::ixnack_mask_lo:
+        case amdgpu_gfx950::ixnack_mask_hi:
+            return true;
+        }
+        return category == amdgpu_gfx950::VGPR ||
+               category == amdgpu_gfx950::ACC_VGPR;
       }
 
       case Arch_ppc64:

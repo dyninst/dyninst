@@ -35,6 +35,11 @@ set(_sources
     src/AMDGPU/gfx940/finalizeOperands.C
     src/AMDGPU/gfx940/amdgpu_gfx940_decoder_impl.C
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
+    src/AMDGPU/gfx950/decodeOperands.C
+    src/AMDGPU/gfx950/appendOperands.C
+    src/AMDGPU/gfx950/finalizeOperands.C
+    src/AMDGPU/gfx950/amdgpu_gfx950_decoder_impl.C
+    src/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.C
     src/InstructionDecoderImpl.C
     src/syscalls.C
     src/interrupts.C)
@@ -65,9 +70,10 @@ set(_public_headers
 set(_private_headers
     src/debug.h
     src/amdgpu_branchinsn_table.h
-    src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h
-    src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h
     src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h
+    src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h
+    src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h
+    src/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.h
     src/decoder/type_conversion.h
     src/InstructionDecoder-aarch64.h
     src/InstructionDecoderImpl.h
@@ -139,11 +145,13 @@ if(nonDebugMaxFrameSizeOverrideFinalizeOperands)
 endif()
 
 if(NOT finalizeOperandsExtraFlags STREQUAL "")
-  set_source_files_properties(src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
+  set_source_files_properties(src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
                               PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
   set_source_files_properties(src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C
                               PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
-  set_source_files_properties(src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
+  set_source_files_properties(src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
+                              PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
+  set_source_files_properties(src/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.C
                               PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
 endif()
 
@@ -174,9 +182,10 @@ dyninst_library(
 # cmake-format: on
 
 set(_inc_dirs
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx940
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx908
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx90a
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx908)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx940
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx950)
 
 foreach(t ${instructionAPI_TARGETS})
   target_include_directories(${t} PUBLIC "$<BUILD_INTERFACE:${_inc_dirs}>")

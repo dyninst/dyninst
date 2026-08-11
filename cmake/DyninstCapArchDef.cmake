@@ -64,6 +64,10 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_64bit)
   set(CAP_DEFINES -Dcap_fixpoint_gen -Dcap_noaddr_gen -Dcap_registers
                   -Dcap_tramp_liveness)
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX950)
+  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx950 -Darch_64bit)
+  set(CAP_DEFINES -Dcap_fixpoint_gen -Dcap_noaddr_gen -Dcap_registers
+                  -Dcap_tramp_liveness)
 endif()
 
 if(DYNINST_OS_Linux)
