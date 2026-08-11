@@ -147,6 +147,7 @@ const signed int BITS_512 = 0x00001000;
 
   DEF_REGISTER(          src_lds_direct,  18 | BITS_32 |      MISC |Arch_amdgpu_gfx940);
   DEF_REGISTER(                   dsmem,  19 | BITS_32 |      MISC |Arch_amdgpu_gfx940);
+  DEF_REGISTER(                  gpumem,  20 | BITS_32 |      MISC |Arch_amdgpu_gfx940);
 
   DEF_REGISTER(                   vmcnt,   0 | BITS_32 |   WAITCNT |Arch_amdgpu_gfx940);
   DEF_REGISTER(                  expcnt,   1 | BITS_32 |   WAITCNT |Arch_amdgpu_gfx940);

@@ -538,6 +538,14 @@ namespace InstructionAPI {
         }
     }
 
+    Expression::Ptr InstructionDecoder_amdgpu_gfx90a::decodeOPR_GPUMEM(uint64_t input, uint32_t output_vec_len)
+    {
+        switch (input)  {
+            case 0:  return makeRegisterExpression(amdgpu_gfx90a::gpumem, output_vec_len );
+            default: return makeRegisterExpression(amdgpu_gfx90a::invalid);
+        }
+    }
+
     Expression::Ptr InstructionDecoder_amdgpu_gfx90a::decodeOPR_HWREG_ID(uint64_t input, uint32_t start, uint32_t end)
     {
         switch (input)  {
@@ -726,10 +734,10 @@ namespace InstructionAPI {
     Expression::Ptr InstructionDecoder_amdgpu_gfx90a::decodeOPR_SENDMSG_GSOP(uint64_t input, uint32_t )
     {
         switch (input)  {
-            case 0: return NamedImmediate::makeNamedImmediate(std::string("gs_op_nop"),Result(u16,input));
-            case 1: return NamedImmediate::makeNamedImmediate(std::string("gs_op_cut"),Result(u16,input));
-            case 2: return NamedImmediate::makeNamedImmediate(std::string("gs_op_emit"),Result(u16,input));
-            case 3: return NamedImmediate::makeNamedImmediate(std::string("gs_op_emit_cut"),Result(u16,input));
+            case 0: return NamedImmediate::makeNamedImmediate(std::string("GS_OP_NOP"),Result(u16,input));
+            case 1: return NamedImmediate::makeNamedImmediate(std::string("GS_OP_CUT"),Result(u16,input));
+            case 2: return NamedImmediate::makeNamedImmediate(std::string("GS_OP_EMIT"),Result(u16,input));
+            case 3: return NamedImmediate::makeNamedImmediate(std::string("GS_OP_EMIT_CUT"),Result(u16,input));
             default: return makeRegisterExpression(amdgpu_gfx90a::invalid);
         }
     }
@@ -737,17 +745,17 @@ namespace InstructionAPI {
     Expression::Ptr InstructionDecoder_amdgpu_gfx90a::decodeOPR_SENDMSG_MSG(uint64_t input, uint32_t )
     {
         switch (input)  {
-            case 1: return NamedImmediate::makeNamedImmediate(std::string("msg_interrupt"),Result(u16,input));
-            case 2: return NamedImmediate::makeNamedImmediate(std::string("msg_gs"),Result(u16,input));
-            case 3: return NamedImmediate::makeNamedImmediate(std::string("msg_gs_done"),Result(u16,input));
-            case 4: return NamedImmediate::makeNamedImmediate(std::string("msg_savewave"),Result(u16,input));
-            case 5: return NamedImmediate::makeNamedImmediate(std::string("msg_stall_wave_gen"),Result(u16,input));
-            case 6: return NamedImmediate::makeNamedImmediate(std::string("msg_halt_waves"),Result(u16,input));
-            case 7: return NamedImmediate::makeNamedImmediate(std::string("msg_ordered_ps_done"),Result(u16,input));
-            case 8: return NamedImmediate::makeNamedImmediate(std::string("msg_early_prim_dealloc"),Result(u16,input));
-            case 9: return NamedImmediate::makeNamedImmediate(std::string("msg_gs_alloc_req"),Result(u16,input));
-            case 10: return NamedImmediate::makeNamedImmediate(std::string("msg_get_doorbell"),Result(u16,input));
-            case 15: return NamedImmediate::makeNamedImmediate(std::string("msg_sysmsg"),Result(u16,input));
+            case 1: return NamedImmediate::makeNamedImmediate(std::string("MSG_INTERRUPT"),Result(u16,input));
+            case 2: return NamedImmediate::makeNamedImmediate(std::string("MSG_GS"),Result(u16,input));
+            case 3: return NamedImmediate::makeNamedImmediate(std::string("MSG_GS_DONE"),Result(u16,input));
+            case 4: return NamedImmediate::makeNamedImmediate(std::string("MSG_SAVEWAVE"),Result(u16,input));
+            case 5: return NamedImmediate::makeNamedImmediate(std::string("MSG_STALL_WAVE_GEN"),Result(u16,input));
+            case 6: return NamedImmediate::makeNamedImmediate(std::string("MSG_HALT_WAVES"),Result(u16,input));
+            case 7: return NamedImmediate::makeNamedImmediate(std::string("MSG_ORDERED_PS_DONE"),Result(u16,input));
+            case 8: return NamedImmediate::makeNamedImmediate(std::string("MSG_EARLY_PRIM_DEALLOC"),Result(u16,input));
+            case 9: return NamedImmediate::makeNamedImmediate(std::string("MSG_GS_ALLOC_REQ"),Result(u16,input));
+            case 10: return NamedImmediate::makeNamedImmediate(std::string("MSG_GET_DOORBELL"),Result(u16,input));
+            case 15: return NamedImmediate::makeNamedImmediate(std::string("MSG_SYSMSG"),Result(u16,input));
             default: return makeRegisterExpression(amdgpu_gfx90a::invalid);
         }
     }
@@ -1237,7 +1245,6 @@ namespace InstructionAPI {
             case 510:  return makeRegisterExpression(amdgpu_gfx90a::v254, output_vec_len );
             case 511:  return makeRegisterExpression(amdgpu_gfx90a::v255, output_vec_len );
             case 255:  return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
-            case 249 :  return decodeOPR_SDWA();
             default: return makeRegisterExpression(amdgpu_gfx90a::invalid);
         }
     }
@@ -2246,7 +2253,6 @@ namespace InstructionAPI {
             case 510:  return makeRegisterExpression(amdgpu_gfx90a::v254, output_vec_len );
             case 511:  return makeRegisterExpression(amdgpu_gfx90a::v255, output_vec_len );
             case 255:  return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
-            case 249 :  return decodeOPR_SDWA();
             default: return makeRegisterExpression(amdgpu_gfx90a::invalid);
         }
     }
@@ -5107,7 +5113,6 @@ namespace InstructionAPI {
             case 238:  return makeRegisterExpression(amdgpu_gfx90a::src_private_limit, output_vec_len );
             case 239:  return makeRegisterExpression(amdgpu_gfx90a::src_pops_exiting_wave_id, output_vec_len );
             case 255:  return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
-            case 249 :  return decodeOPR_SDWA();
             default: return makeRegisterExpression(amdgpu_gfx90a::invalid);
         }
     }

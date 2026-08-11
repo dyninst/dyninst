@@ -78,6 +78,7 @@ namespace Dyninst
             void * m448val;
             void * m480val;
             void * m512val;
+            void * m1024val;
         };
 
         // The order of these enumerations is important.
@@ -117,6 +118,7 @@ namespace Dyninst
             m448,
             m480,
             m512,
+            m1024,
             invalid_type
         };
 
@@ -223,6 +225,7 @@ namespace Dyninst
         /// - \c m448: a 448-bit memory value
         /// - \c m480: a 480-bit memory value
         /// - \c m512: a 512-bit memory value
+        /// - \c m1024: a 1024-bit memory value
 
         // The %Instruction API's model of %Results is a simple one, and may seem overly aggressive about
         // making an %Expression's %Result undefined.  It follows the same basic rule as the rest of the API:
@@ -373,6 +376,9 @@ namespace Dyninst
                     case m512:
                         val.m512val = (void *)(intptr_t) v;
                         break;
+                    case m1024:
+                        val.m1024val = (void *)(intptr_t) v;
+                        break;
                     default:
                     // Floats should be constructed with float types
                     case sp_float:
@@ -507,6 +513,9 @@ namespace Dyninst
                         case m512:
                             return memcmp(val.m512val, o.val.m512val, 64) < 0;
                             break;
+                        case m1024:
+                            return memcmp(val.m1024val, o.val.m1024val, 128) < 0;
+                            break;
                         default:
                             assert(!"Invalid type!");
                             break;
@@ -637,6 +646,9 @@ namespace Dyninst
                             case m512:
                                 snprintf(hex, 20, "%p", val.m512val);
                                 break;
+                            case m1024:
+                                snprintf(hex, 20, "%p", val.m1024val);
+                                break;
                             default:
                                 snprintf(hex, 20, "[invalid type]");
                                 break;
@@ -699,6 +711,7 @@ namespace Dyninst
                             case m448:
                             case m480:
                             case m512:
+                            case m1024:
                                 assert(!"Memory types cannot be converted yet");
                                 return to_type(0);
                             default:
@@ -774,6 +787,8 @@ namespace Dyninst
                             return 60;
                         case m512:
                             return 64;
+                        case m1024:
+                            return 128;
                         default:
                             // In probabilistic gap parsing,
                             // we could start to decode at any byte and reach here.

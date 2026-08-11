@@ -40,6 +40,7 @@ enum AMDGPUMiscRegister{
     amdgpu_xnack_mask_hi,
     amdgpu_src_lds_direct,
     amdgpu_dsmem,
+    amdgpu_gpumem,
 };
 enum AMDGPUHardwareRegister{
 	amdgpu_address_mode_32,

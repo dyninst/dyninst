@@ -578,6 +578,40 @@ namespace InstructionAPI {
         }
     }
 
+    Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_GPUMEM(uint64_t input, uint32_t output_vec_len)
+    {
+        switch (input)  {
+            case 0:  return makeRegisterExpression(amdgpu_gfx908::gpumem, output_vec_len );
+            default: return makeRegisterExpression(amdgpu_gfx908::invalid);
+        }
+    }
+
+    Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_HWREG_ID(uint64_t input, uint32_t start, uint32_t end)
+    {
+        switch (input)  {
+            case 1:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_mode, start, end);
+            case 2:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_status, start, end);
+            case 3:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_trapsts, start, end);
+            case 4:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_hw_id, start, end);
+            case 5:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_gpr_alloc, start, end);
+            case 6:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_lds_alloc, start, end);
+            case 7:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_ib_sts, start, end);
+            case 8:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_pc_lo, start, end);
+            case 9:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_pc_hi, start, end);
+            case 10:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_inst_dw0, start, end);
+            case 11:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_inst_dw1, start, end);
+            case 12:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_ib_dbg0, start, end);
+            case 13:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_ib_dbg1, start, end);
+            case 14:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_flush_ib, start, end);
+            case 15:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_sh_mem_bases, start, end);
+            case 16:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_sq_shader_tba_lo, start, end);
+            case 17:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_sq_shader_tba_hi, start, end);
+            case 18:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_sq_shader_tma_lo, start, end);
+            case 19:  return makeRegisterExpression(amdgpu_gfx908::hw_reg_sq_shader_tma_hi, start, end);
+            default: return makeRegisterExpression(amdgpu_gfx908::invalid);
+        }
+    }
+
     Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_PARAM(uint64_t input, uint32_t output_vec_len)
     {
         switch (input)  {
@@ -743,6 +777,35 @@ namespace InstructionAPI {
     {
         switch (input)  {
             case 124:  return makeRegisterExpression(amdgpu_gfx908::m0, output_vec_len );
+            default: return makeRegisterExpression(amdgpu_gfx908::invalid);
+        }
+    }
+
+    Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_SENDMSG_GSOP(uint64_t input, uint32_t )
+    {
+        switch (input)  {
+            case 0: return NamedImmediate::makeNamedImmediate(std::string("GS_OP_NOP"),Result(u16,input));
+            case 1: return NamedImmediate::makeNamedImmediate(std::string("GS_OP_CUT"),Result(u16,input));
+            case 2: return NamedImmediate::makeNamedImmediate(std::string("GS_OP_EMIT"),Result(u16,input));
+            case 3: return NamedImmediate::makeNamedImmediate(std::string("GS_OP_EMIT_CUT"),Result(u16,input));
+            default: return makeRegisterExpression(amdgpu_gfx908::invalid);
+        }
+    }
+
+    Expression::Ptr InstructionDecoder_amdgpu_gfx908::decodeOPR_SENDMSG_MSG(uint64_t input, uint32_t )
+    {
+        switch (input)  {
+            case 1: return NamedImmediate::makeNamedImmediate(std::string("MSG_INTERRUPT"),Result(u16,input));
+            case 2: return NamedImmediate::makeNamedImmediate(std::string("MSG_GS"),Result(u16,input));
+            case 3: return NamedImmediate::makeNamedImmediate(std::string("MSG_GS_DONE"),Result(u16,input));
+            case 4: return NamedImmediate::makeNamedImmediate(std::string("MSG_SAVEWAVE"),Result(u16,input));
+            case 5: return NamedImmediate::makeNamedImmediate(std::string("MSG_STALL_WAVE_GEN"),Result(u16,input));
+            case 6: return NamedImmediate::makeNamedImmediate(std::string("MSG_HALT_WAVES"),Result(u16,input));
+            case 7: return NamedImmediate::makeNamedImmediate(std::string("MSG_ORDERED_PS_DONE"),Result(u16,input));
+            case 8: return NamedImmediate::makeNamedImmediate(std::string("MSG_EARLY_PRIM_DEALLOC"),Result(u16,input));
+            case 9: return NamedImmediate::makeNamedImmediate(std::string("MSG_GS_ALLOC_REQ"),Result(u16,input));
+            case 10: return NamedImmediate::makeNamedImmediate(std::string("MSG_GET_DOORBELL"),Result(u16,input));
+            case 15: return NamedImmediate::makeNamedImmediate(std::string("MSG_SYSMSG"),Result(u16,input));
             default: return makeRegisterExpression(amdgpu_gfx908::invalid);
         }
     }
@@ -1233,7 +1296,6 @@ namespace InstructionAPI {
             case 511:  return makeRegisterExpression(amdgpu_gfx908::v255, output_vec_len );
             case 254:  return makeRegisterExpression(amdgpu_gfx908::src_lds_direct, output_vec_len );
             case 255:  return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
-            case 249 :  return decodeOPR_SDWA();
             default: return makeRegisterExpression(amdgpu_gfx908::invalid);
         }
     }
@@ -2851,7 +2913,6 @@ namespace InstructionAPI {
             case 510:  return makeRegisterExpression(amdgpu_gfx908::v254, output_vec_len );
             case 511:  return makeRegisterExpression(amdgpu_gfx908::v255, output_vec_len );
             case 255:  return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
-            case 249 :  return decodeOPR_SDWA();
             default: return makeRegisterExpression(amdgpu_gfx908::invalid);
         }
     }
@@ -5104,7 +5165,6 @@ namespace InstructionAPI {
             case 238:  return makeRegisterExpression(amdgpu_gfx908::src_private_limit, output_vec_len );
             case 239:  return makeRegisterExpression(amdgpu_gfx908::src_pops_exiting_wave_id, output_vec_len );
             case 255:  return Immediate::makeImmediate(Result(u32,decodeOPR_LITERAL()));
-            case 249 :  return decodeOPR_SDWA();
             default: return makeRegisterExpression(amdgpu_gfx908::invalid);
         }
     }
