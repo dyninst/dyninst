@@ -174,9 +174,7 @@ namespace Dyninst {
 
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
-      case Arch_amdgpu_gfx940: {
-              return *this;
-      }
+      case Arch_amdgpu_gfx940:
       case Arch_amdgpu_gfx950: {
               return *this;
       }
@@ -418,31 +416,26 @@ namespace Dyninst {
       }
       break;
       case Arch_amdgpu_gfx950: {
-        int reg_class = (reg & 0x00ff0000);
-        if(reg_class == amdgpu_gfx950::SGPR || reg_class == amdgpu_gfx950::VGPR) {
-          return 4;
-        } else {
-          switch(reg & 0x00007f00) {
-            case amdgpu_gfx950::BITS_1:
-            case amdgpu_gfx950::BITS_2:
-            case amdgpu_gfx950::BITS_3:
-            case amdgpu_gfx950::BITS_4:
-            case amdgpu_gfx950::BITS_6:
-            case amdgpu_gfx950::BITS_7:
-            case amdgpu_gfx950::BITS_8: return 1;
-            case amdgpu_gfx950::BITS_9:
-            case amdgpu_gfx950::BITS_15:
-            case amdgpu_gfx950::BITS_16: return 2;
-            case amdgpu_gfx950::BITS_32: return 4;
-            case amdgpu_gfx950::BITS_48: return 6;
-            case amdgpu_gfx950::BITS_64: return 8;
-            case amdgpu_gfx950::BITS_128: return 16;
-            case amdgpu_gfx950::BITS_256: return 32;
-            case amdgpu_gfx950::BITS_512: return 64;
-            default:
-              common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
-              assert(0);
-          }
+        switch(reg & 0x00007f00) {
+          case amdgpu_gfx950::BITS_1:
+          case amdgpu_gfx950::BITS_2:
+          case amdgpu_gfx950::BITS_3:
+          case amdgpu_gfx950::BITS_4:
+          case amdgpu_gfx950::BITS_6:
+          case amdgpu_gfx950::BITS_7:
+          case amdgpu_gfx950::BITS_8: return 1;
+          case amdgpu_gfx950::BITS_9:
+          case amdgpu_gfx950::BITS_15:
+          case amdgpu_gfx950::BITS_16: return 2;
+          case amdgpu_gfx950::BITS_32: return 4;
+          case amdgpu_gfx950::BITS_48: return 6;
+          case amdgpu_gfx950::BITS_64: return 8;
+          case amdgpu_gfx950::BITS_128: return 16;
+          case amdgpu_gfx950::BITS_256: return 32;
+          case amdgpu_gfx950::BITS_512: return 64;
+          default:
+            common_parsing_printf(" unknown reg size %x\n", (unsigned int)reg);
+            assert(0);
         }
       }
       break;
@@ -728,9 +721,7 @@ namespace Dyninst {
       }
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
-      case Arch_amdgpu_gfx940: {
-        return (base.val() & 0x0000F000);
-      }
+      case Arch_amdgpu_gfx940:
       case Arch_amdgpu_gfx950: {
         return (base.val() & 0x0000F000);
       }

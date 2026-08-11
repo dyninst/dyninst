@@ -48,9 +48,9 @@ namespace Dyninst {
     Arch_aarch64 = 0x48000000,
     Arch_riscv64 = 0x68000000,
     Arch_cuda = 0x88000000,
-    Arch_amdgpu_gfx908 = 0x94000000, // future support for gfx908
-    Arch_amdgpu_gfx90a = 0x98000000, // future support for gfx90a
-    Arch_amdgpu_gfx940 = 0x9c000000, // future support for gfx940
+    Arch_amdgpu_gfx908 = 0x94000000,
+    Arch_amdgpu_gfx90a = 0x98000000,
+    Arch_amdgpu_gfx940 = 0x9c000000,
     Arch_amdgpu_gfx950 = 0xa0000000,
     Arch_intelGen9 = 0xb6000000      // same as machine no. retrevied from eu-readelf
   } Architecture;

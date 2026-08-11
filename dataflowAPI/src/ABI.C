@@ -802,7 +802,7 @@ void ABI::initialize64(Architecture arch){
             break;
         }
         default:
-        assert(0 && "This call is currently implemented for AMDGPU gfx908,gfx90a and gfx940 only");
+        assert(0 && "This call is currently implemented for AMDGPU gfx908, gfx90a, gfx940 and gfx950 only");
     }
     returnRegs64_ = getBitArray(sz);
     returnRead64_ = getBitArray(sz);
