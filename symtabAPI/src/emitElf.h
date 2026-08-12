@@ -257,17 +257,20 @@ namespace Dyninst {
             unsigned loadSecTotalSize{};
 
             bool isStripped{};
+
+            const char *sectionNameTable{};
+            const char *getSectionName(Elf_Shdr *shdr)
+                        {return sectionNameTable ? &sectionNameTable[shdr->sh_name] : nullptr;}
             int library_adjust{};
+            unsigned lastLoadedSectionIndex{};  // last section contained in last LOAD segment
+            Elf_Word maxSegmentAlignment{};
             ObjectELF *object;
 
             void (*err_func_)(const char*);
 
             bool createElfSymbol(Symbol *symbol, unsigned strIndex, std::vector<Elf_Sym *> &symbols,
                                  bool dynSymFlag = false);
-            // Find the start address of the last section that falls within the
-            // last loadable (PT_LOAD) segment. This is where new loadable
-            // sections are appended. Also sets TLSExists as a side effect.
-            Elf_Off findLastLoadableSec();
+            void getSectionAndSegmentInfo();
             void renameSection(const std::string &oldName);
             void fixPhdrs();
 

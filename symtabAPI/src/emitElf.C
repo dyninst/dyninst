@@ -49,7 +49,6 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-
 unsigned int elfHash(const char *name) {
     unsigned int h = 0, g;
 
@@ -69,7 +68,6 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, ObjectELF *ob
     oldElf{oldElfHandle->e_elfp()},
     obj(st),
     isStripped(isStripped_),
-    library_adjust{getpagesize()},
     object(obj_),
     err_func_(err_func),
     isStaticBinary{obj_->isStaticBinary()}
@@ -306,51 +304,50 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
     return true;
 }
 
-// Find the start address of the last section that lies within the last
-// loadable (PT_LOAD) segment. This is the section after which dyninst appends
-// the newly created loadable sections.
-//
-// The old implementation (findSegmentEnds) assumed that some section ended
-// exactly on the boundary of the last loadable segment (p_vaddr + p_memsz).
-// That does not hold for all binaries: e.g. when the highest-addressed
-// loadable segment holds relocated read-only metadata (.gnu.hash/.dynstr) and
-// the segment's memsz is padded past the final section, no section ends on the
-// boundary. In that case the insertion point was never found,
-// createLoadableSections() was never called, and the rewritten file came out
-// without a .dynamic section / new code segment (see issue #2081).
-//
-// Instead, find the boundaries of the last loadable segment and return the
-// start address of the highest-addressed section contained within it.
-template<class ElfTypes>
-typename emitElf<ElfTypes>::Elf_Off emitElf<ElfTypes>::findLastLoadableSec() {
-    Elf_Phdr *tmp = ElfTypes::elf_getphdr(oldElf);
-    Elf_Off lastDataSegStart = 0, lastDataSegEnd = 0, lastLoadableSecStart = 0;
 
-    // Find the boundaries of the last (highest-addressed) loadable segment.
+// Get section name table from .shstrtab section, find the last loaded section,
+// maximum segment alignment and if TLS is used
+template<class ElfTypes>
+void emitElf<ElfTypes>::getSectionAndSegmentInfo() {
+    sectionNameTable = pdelf_get_shnames(oldElfHandle);
+    if (sectionNameTable == NULL) {
+        log_elferror(err_func_, ".shstrtab section not found");
+    }
+
+    Elf_Phdr *phdrs = ElfTypes::elf_getphdr(oldElf);
+
+    // Find the maximum of the loaded segment end addresses, and if TLS exists
+    Elf_Off maxSegmentEndAddr{};
     for (unsigned i = 0; i < oldEhdr->e_phnum; i++) {
-        if (tmp->p_type == PT_LOAD) {
-            if (tmp->p_vaddr + tmp->p_memsz > lastDataSegEnd) {
-                lastDataSegStart = tmp->p_vaddr;
-                lastDataSegEnd = tmp->p_vaddr + tmp->p_memsz;
-            }
-        } else if (PT_TLS == tmp->p_type) {
+        auto phdr{&phdrs[i]};
+        if (phdr->p_type == PT_LOAD) {
+            auto segmentEndAddr{phdr->p_vaddr + phdr->p_memsz};
+            if (maxSegmentEndAddr < segmentEndAddr)
+                maxSegmentEndAddr = segmentEndAddr;
+            if (maxSegmentAlignment < phdr->p_align)
+                maxSegmentAlignment = phdr->p_align;
+        } else if (PT_TLS == phdr->p_type) {
             TLSExists = true;
         }
-        tmp++;
     }
 
-    // Find the section with the highest start address that falls within the
-    // last loadable segment.
-    Elf_Scn *scn = NULL;
-    while ((scn = elf_nextscn(oldElf, scn))) {
-        Elf_Shdr *shdr = ElfTypes::elf_getshdr(scn);
-        Elf_Off secStart = shdr->sh_addr;
-        if (lastDataSegStart <= secStart && secStart < lastDataSegEnd &&
-            secStart > lastLoadableSecStart)
-            lastLoadableSecStart = secStart;
+    // Find the section index containing the max section end address, that is
+    // contained in the max loaded segment.  Ignore the shstrndx section since
+    // this section is always moved to the end.
+    Elf_Off maxSectionEndAddr{};
+    for (unsigned i = 0; i < oldEhdr->e_shnum; ++i)  {
+        if (i == oldEhdr->e_shstrndx)
+            continue;                   // .shstrtab shstrndx section always moved, ignore
+        auto scn{elf_getscn(oldElf, i)};
+        auto shdr{ElfTypes::elf_getshdr(scn)};
+        if (!(shdr->sh_flags & SHF_ALLOC))
+            continue;                   // not allocated, so no address
+        auto endAddr{shdr->sh_addr + shdr->sh_size};
+        if (maxSectionEndAddr <= endAddr && endAddr <= maxSegmentEndAddr)  {
+            maxSectionEndAddr = endAddr;
+            lastLoadedSectionIndex = i;
+        }
     }
-
-    return lastLoadableSecStart;
 }
 
 // Renames 1st oldName section by changing 2nd char to 'o'
@@ -405,13 +402,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     int dirtySecsChange = 0;
     unsigned extraAlignSize = 0;
 
-    // ".shstrtab" section: string table for section header names
-    const char *shnames = pdelf_get_shnames(oldElfHandle);
-    if (shnames == NULL) {
-        log_elferror(err_func_, ".shstrtab section not found");
-        return false;
-    }
-
     // Write the Elf header first!
     newEhdr = ElfTypes::elf_newehdr(newElf);
     if (!newEhdr) {
@@ -421,11 +411,17 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     oldEhdr = ElfTypes::elf_getehdr(oldElf);
     *newEhdr = *oldEhdr;
 
+    getSectionAndSegmentInfo();
+    if (!sectionNameTable)  {
+        return false;
+    }
+    if (object->getLoadAddress() == 0)  {
+        library_adjust = std::max(static_cast<unsigned>(getpagesize()), maxSegmentAlignment);
+    }
+
     newEhdr->e_shnum += newSecs.size();
 
-    // Find the section after which new loadable sections will be appended
-    Elf_Off lastLoadableSecStart = findLastLoadableSec();
-    unsigned insertPoint = oldEhdr->e_shnum;
+    unsigned insertPoint = oldEhdr->e_shnum + 1;
     unsigned insertPointOffset = 0;
 
     newEhdr->e_phoff = sizeof(Elf_Ehdr);
@@ -447,22 +443,21 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     std::unordered_map<string, pair<unsigned, unsigned>> dataLinkInfo;
 
     bool createdLoadableSections = false;
-    unsigned scncount;
     unsigned sectionNumber = 0;
 
-    for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
+    for (unsigned scncount = 1; (scn = elf_nextscn(oldElf, scn)); scncount++) {
         //copy sections from oldElf to newElf
         shdr = ElfTypes::elf_getshdr(scn);
 
         // resolve section name
-        const char *name = &shnames[shdr->sh_name];
+        const char *name = getSectionName(shdr);
         bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
         if (!result || foundSec->isDirty()) {
             result = obj->findRegion(foundSec, name);
         }
 
         // write the shstrtabsection at the end
-        if (!strcmp(name, ".shstrtab"))
+        if (scncount == oldEhdr->e_shstrndx)
             continue;
 
         sectionNumber++;
@@ -650,7 +645,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
         //Insert new loadable sections after the last section of the last
         //loadable segment
-        if (shdr->sh_addr == lastLoadableSecStart && !createdLoadableSections) {
+        if (scncount == lastLoadedSectionIndex && !createdLoadableSections) {
             createdLoadableSections = true;
             insertPoint = scncount;
             if (SHT_NOBITS == shdr->sh_type) {
@@ -686,6 +681,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
     // Second iteration to fix the link fields to point to the correct section
     scn = NULL;
+    unsigned scncount;
     for (scncount = 1; (scn = elf_nextscn(newElf, scn)); scncount++) {
         shdr = ElfTypes::elf_getshdr(scn);
         if(dataLinkInfo.count(secNames[scncount]))
