@@ -1153,13 +1153,82 @@ namespace Dyninst {
     // clang-format: on
   }
 
-  std::vector<MachRegister> const& MachRegister::getAllRegistersForArch(Dyninst::Architecture) {
-    // TODO(prototype): regenerate statically; all_regs no longer self-populated.
-    // The register constants are now `inline constexpr` and no longer register
-    // themselves in a runtime cache at static-init time, so this cache is empty.
-    // The only callers are the MachRegister unit tests, which are outside the
-    // dyninstAPI build.
-    static const std::vector<MachRegister> empty;
-    return empty;
+  std::vector<MachRegister> const& MachRegister::getAllRegistersForArch(Dyninst::Architecture arch) {
+    // Built once (per arch) from the arch's `inline constexpr all_regs[]` array
+    // -- a cold, lazy copy, decoupled from register construction (so the
+    // constants stay constexpr; no static-init self-registration). Each arch
+    // needs its own function-local static, so the cases can't share one helper.
+    switch (arch) {
+      case Arch_x86_64: {
+        static const std::vector<MachRegister> v(
+            x86_64::all_regs,
+            x86_64::all_regs + sizeof(x86_64::all_regs) / sizeof(*x86_64::all_regs));
+        return v;
+      }
+      case Arch_x86: {
+        static const std::vector<MachRegister> v(
+            x86::all_regs,
+            x86::all_regs + sizeof(x86::all_regs) / sizeof(*x86::all_regs));
+        return v;
+      }
+      case Arch_aarch64: {
+        static const std::vector<MachRegister> v(
+            aarch64::all_regs,
+            aarch64::all_regs + sizeof(aarch64::all_regs) / sizeof(*aarch64::all_regs));
+        return v;
+      }
+      case Arch_ppc32: {
+        static const std::vector<MachRegister> v(
+            ppc32::all_regs,
+            ppc32::all_regs + sizeof(ppc32::all_regs) / sizeof(*ppc32::all_regs));
+        return v;
+      }
+      case Arch_ppc64: {
+        static const std::vector<MachRegister> v(
+            ppc64::all_regs,
+            ppc64::all_regs + sizeof(ppc64::all_regs) / sizeof(*ppc64::all_regs));
+        return v;
+      }
+      case Arch_riscv64: {
+        static const std::vector<MachRegister> v(
+            riscv64::all_regs,
+            riscv64::all_regs + sizeof(riscv64::all_regs) / sizeof(*riscv64::all_regs));
+        return v;
+      }
+      case Arch_cuda: {
+        static const std::vector<MachRegister> v(
+            cuda::all_regs,
+            cuda::all_regs + sizeof(cuda::all_regs) / sizeof(*cuda::all_regs));
+        return v;
+      }
+      case Arch_amdgpu_gfx908: {
+        static const std::vector<MachRegister> v(
+            amdgpu_gfx908::all_regs,
+            amdgpu_gfx908::all_regs + sizeof(amdgpu_gfx908::all_regs) / sizeof(*amdgpu_gfx908::all_regs));
+        return v;
+      }
+      case Arch_amdgpu_gfx90a: {
+        static const std::vector<MachRegister> v(
+            amdgpu_gfx90a::all_regs,
+            amdgpu_gfx90a::all_regs + sizeof(amdgpu_gfx90a::all_regs) / sizeof(*amdgpu_gfx90a::all_regs));
+        return v;
+      }
+      case Arch_amdgpu_gfx940: {
+        static const std::vector<MachRegister> v(
+            amdgpu_gfx940::all_regs,
+            amdgpu_gfx940::all_regs + sizeof(amdgpu_gfx940::all_regs) / sizeof(*amdgpu_gfx940::all_regs));
+        return v;
+      }
+      case Arch_amdgpu_gfx950: {
+        static const std::vector<MachRegister> v(
+            amdgpu_gfx950::all_regs,
+            amdgpu_gfx950::all_regs + sizeof(amdgpu_gfx950::all_regs) / sizeof(*amdgpu_gfx950::all_regs));
+        return v;
+      }
+      default: {
+        static const std::vector<MachRegister> empty;
+        return empty;
+      }
+    }
   }
 }
