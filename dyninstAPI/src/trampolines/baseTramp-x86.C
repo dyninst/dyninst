@@ -69,7 +69,7 @@ void markClobbers(codeGen &gen, const Dyninst::MachRegister (&regs)[N]) {
 // x86_64FlagSlots): no ABI preserves them across a call.
 void markFlagClobbers(codeGen &gen) {
   namespace dr = Dyninst::x86_64;
-  static const Dyninst::MachRegister flags[] = {
+  const Dyninst::MachRegister flags[] = {
       dr::of, dr::sf, dr::zf, dr::af, dr::pf, dr::cf, dr::flags};
   markClobbers(gen, flags);
 }
@@ -78,7 +78,7 @@ void markFlagClobbers(codeGen &gen) {
 // leave modified.
 void markCallClobbers(codeGen &gen) {
   namespace dr = Dyninst::x86_64;
-  static const Dyninst::MachRegister volatiles[] = {
+  const Dyninst::MachRegister volatiles[] = {
       dr::rax, dr::rcx, dr::rdx, dr::rsi, dr::rdi,
       dr::r8,  dr::r9,  dr::r10, dr::r11};
   markFlagClobbers(gen);
@@ -89,7 +89,7 @@ void markCallClobbers(codeGen &gen) {
 // included for completeness; the save logic never saves it.)
 void markAllClobbers(codeGen &gen) {
   namespace dr = Dyninst::x86_64;
-  static const Dyninst::MachRegister gprs[] = {
+  const Dyninst::MachRegister gprs[] = {
       dr::rax, dr::rcx, dr::rdx, dr::rbx, dr::rsp, dr::rbp, dr::rsi, dr::rdi,
       dr::r8,  dr::r9,  dr::r10, dr::r11, dr::r12, dr::r13, dr::r14, dr::r15};
   markFlagClobbers(gen);
@@ -98,7 +98,7 @@ void markAllClobbers(codeGen &gen) {
 
 } // namespace
 
-void baseTramp_x86::accumulateBodyClobbers(codeGen &gen, codeBufIndex_t bodyStart) {
+void baseTramp_x86::accumulateBodyClobbers(codeGen &gen, codeBufIndex_t bodyStart) const {
   namespace di = Dyninst::InstructionAPI;
 
   if (gen.getArch() != Dyninst::Arch_x86_64) return;
@@ -119,21 +119,14 @@ void baseTramp_x86::accumulateBodyClobbers(codeGen &gen, codeBufIndex_t bodyStar
       return;
     }
     consumed += insn.size();
-    switch (insn.getCategory()) {
-      case di::c_CallInsn:
-      case di::c_SysEnterInsn:
-      case di::c_SyscallInsn:
-      case di::c_InterruptInsn:
-        markCallClobbers(gen);
-        break;
-      default: {
-        std::set<di::RegisterAST::Ptr> writes;
-        insn.getWriteSet(writes);
-        for (const auto &w : writes) {
-          Dyninst::Register r = convertRegID(w->getID());
-          if (r != REGNUM_IGNORED) gen.markRegDefined(r);
-        }
-        break;
+    if (insn.isCall() || insn.isSysEnter() || insn.isSyscall() || insn.isInterrupt()) {
+      markCallClobbers(gen);
+    } else {
+      std::set<di::RegisterAST::Ptr> writes;
+      insn.getWriteSet(writes);
+      for (const auto &w : writes) {
+        Dyninst::Register r = convertRegID(w->getID());
+        if (r != REGNUM_IGNORED) gen.markRegDefined(r);
       }
     }
   }
@@ -143,7 +136,7 @@ void baseTramp_x86::accumulateBodyClobbers(codeGen &gen, codeBufIndex_t bodyStar
 // flag slot (and the EFLAGS aggregate) is clear in definedRegs, which
 // baseTramp_x86::accumulateBodyClobbers filled from the generated code.
 // Conservative (true) until the body has been generated once.
-bool baseTramp_x86::mayClobberFlags() {
+bool baseTramp_x86::mayClobberFlags() const {
   if (!validOptimizationInfo()) return true;
   for (auto r : x86_64FlagSlots)
     if (definedRegs[r]) return true;
@@ -156,7 +149,7 @@ bool baseTramp_x86::mayClobberFlags() {
 // generated body never wrote a flag (see accumulateBodyClobbers above),
 // report the save as unneeded so the tramp regenerates; with
 // validOptimizationInfo set, emitBTSaves then skips the save.
-bool baseTramp_x86::savedUnneededFlags(registerSpace *rs) {
+bool baseTramp_x86::savedUnneededFlags(registerSpace *rs) const {
   if (rs->getAddressWidth() != 8) return false;
 
   bool flagsSaved = false;
