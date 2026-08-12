@@ -22,11 +22,25 @@ namespace Dyninst { namespace registers {
   extern register_cache all_regs;
 }}
 
+// ---------------------------------------------------------------------------
+// Prototype demonstration: MachRegister's integer handle is now a literal type.
+// Every assertion below is evaluated by the compiler -- proving register
+// handles are usable in constant expressions (constexpr values, arrays, switch
+// labels) with no runtime construction and no static-init-order dependency.
+// This is the enabling step for making the register constants themselves
+// constexpr; migrating name()/getAllRegistersForArch off their runtime caches
+// (see PR notes) is the remaining work.
+namespace {
+  constexpr Dyninst::MachRegister proto_a{0x14000000};   // illustrative handles
+  constexpr Dyninst::MachRegister proto_b{0x14000001};
+  static_assert(proto_a.val() == 0x14000000, "constexpr MachRegister::val()");
+  static_assert(proto_a < proto_b,           "constexpr MachRegister::operator<");
+  static_assert(proto_a == proto_a,          "constexpr MachRegister::operator==");
+  constexpr Dyninst::MachRegister proto_set[] = {proto_a, proto_b};
+  static_assert(proto_set[1].val() == 0x14000001, "constexpr MachRegister array");
+}
+
 namespace Dyninst {
-
-  MachRegister::MachRegister() : reg(0) {}
-
-  MachRegister::MachRegister(signed int r) : reg(r) {}
 
   MachRegister::MachRegister(signed int r, std::string n) : MachRegister(r) {
     registers::names.emplace(r, std::move(n));
@@ -462,13 +476,6 @@ namespace Dyninst {
     return 0; // Unreachable, but disable warnings
   }
 
-  bool MachRegister::operator<(const MachRegister& a) const { return (reg < a.reg); }
-
-  bool MachRegister::operator==(const MachRegister& a) const { return (reg == a.reg); }
-
-  MachRegister::operator signed int() const { return reg; }
-
-  signed int MachRegister::val() const { return reg; }
 
   MachRegister MachRegister::getPC(Dyninst::Architecture arch) {
     switch(arch) {

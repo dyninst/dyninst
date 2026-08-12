@@ -46,8 +46,14 @@ namespace Dyninst {
     int32_t reg;
 
   public:
-    MachRegister();
-    explicit MachRegister(int32_t r);
+    // Prototype (constexpr MachRegister): the integer handle makes MachRegister
+    // a literal type -- usable in constant expressions, so register constants
+    // can eventually be constexpr with no static-init/name-map dependency.
+    // Only the int-handle path is constexpr here; the name-populating
+    // constructor and name()/getAllRegistersForArch caches are unchanged (their
+    // migration to a static, generated table is the follow-up -- see PR notes).
+    constexpr MachRegister() : reg(0) {}
+    constexpr explicit MachRegister(int32_t r) : reg(r) {}
     explicit MachRegister(int32_t r, std::string n);
 
     MachRegister getBaseRegister() const;
@@ -56,10 +62,10 @@ namespace Dyninst {
 
     std::string const& name() const;
     unsigned int size() const;
-    bool operator<(const MachRegister& a) const;
-    bool operator==(const MachRegister& a) const;
-    operator int32_t() const;
-    int32_t val() const;
+    constexpr bool operator<(const MachRegister& a) const { return reg < a.reg; }
+    constexpr bool operator==(const MachRegister& a) const { return reg == a.reg; }
+    constexpr operator int32_t() const { return reg; }
+    constexpr int32_t val() const { return reg; }
 
     // Return the category of the MachRegister
     unsigned int regClass() const;
