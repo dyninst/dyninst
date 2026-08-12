@@ -44,6 +44,11 @@ namespace Dyninst {
   class DYNINST_EXPORT MachRegister {
   private:
     int32_t reg;
+    // Prototype (store-the-name): the register name is stored directly in the
+    // object (pointing at a string literal from DEF_REGISTER), which removes the
+    // dependency on the runtime registers::names map and lets the register
+    // constants be constexpr.
+    const char* reg_name = nullptr;
 
   public:
     // Prototype (constexpr MachRegister): the integer handle makes MachRegister
@@ -54,13 +59,17 @@ namespace Dyninst {
     // migration to a static, generated table is the follow-up -- see PR notes).
     constexpr MachRegister() : reg(0) {}
     constexpr explicit MachRegister(int32_t r) : reg(r) {}
-    explicit MachRegister(int32_t r, std::string n);
+    constexpr MachRegister(int32_t r, const char* n) : reg(r), reg_name(n) {}
 
     MachRegister getBaseRegister() const;
     Architecture getArchitecture() const;
     bool isValid() const;
 
-    std::string const& name() const;
+    // Returns by value (was `std::string const&`): the name now lives in the
+    // object as a `const char*`, so there is no long-lived std::string to
+    // reference. Returning by value keeps `const std::string& x = r.name();`
+    // working via lifetime extension.
+    std::string name() const { return reg_name ? std::string(reg_name) : std::string("<INVALID_REG>"); }
     unsigned int size() const;
     constexpr bool operator<(const MachRegister& a) const { return reg < a.reg; }
     constexpr bool operator==(const MachRegister& a) const { return reg == a.reg; }

@@ -9,18 +9,10 @@
 #include <vector>
 
 namespace {
-  const std::string invalid_reg_name{"<INVALID_REG>"};
-
   int32_t getID(Dyninst::MachRegister r) {
     return r.val() & 0x000000ff;
   }
 }
-
-namespace Dyninst { namespace registers {
-  // These are defined in dyn_regs.C to ensure global constructor initialization ordering
-  extern name_cache names;
-  extern register_cache all_regs;
-}}
 
 // ---------------------------------------------------------------------------
 // Prototype demonstration: MachRegister's integer handle is now a literal type.
@@ -38,14 +30,15 @@ namespace {
   static_assert(proto_a == proto_a,          "constexpr MachRegister::operator==");
   constexpr Dyninst::MachRegister proto_set[] = {proto_a, proto_b};
   static_assert(proto_set[1].val() == 0x14000001, "constexpr MachRegister array");
+
+  // Prove that a REAL register constant (not just a bare handle) is now
+  // constexpr: rax is an `inline constexpr MachRegister` whose handle equals
+  // the irax value, all evaluated at compile time.
+  static_assert(Dyninst::x86_64::rax.val() == Dyninst::x86_64::irax,
+                "register constants are constexpr");
 }
 
 namespace Dyninst {
-
-  MachRegister::MachRegister(signed int r, std::string n) : MachRegister(r) {
-    registers::names.emplace(r, std::move(n));
-    registers::all_regs[getArchitecture()].push_back(*this);
-  }
 
   unsigned int MachRegister::regClass() const { return reg & 0x00ff0000; }
 
@@ -278,15 +271,6 @@ namespace Dyninst {
   Architecture MachRegister::getArchitecture() const { return (Architecture)(reg & 0xff000000); }
 
   bool MachRegister::isValid() const { return (reg != InvalidReg.reg); }
-
-  std::string const& MachRegister::name() const {
-    auto iter = registers::names.find(reg);
-    if(iter != registers::names.end()) {
-	return iter->second;
-    }
-    common_parsing_printf("No MachRegister found with value %x\n", static_cast<unsigned int>(reg));
-    return invalid_reg_name;
-  }
 
   unsigned int MachRegister::size() const {
     switch(getArchitecture()) {
@@ -1169,7 +1153,13 @@ namespace Dyninst {
     // clang-format: on
   }
 
-  std::vector<MachRegister> const& MachRegister::getAllRegistersForArch(Dyninst::Architecture arch) {
-    return registers::all_regs[arch];
+  std::vector<MachRegister> const& MachRegister::getAllRegistersForArch(Dyninst::Architecture) {
+    // TODO(prototype): regenerate statically; all_regs no longer self-populated.
+    // The register constants are now `inline constexpr` and no longer register
+    // themselves in a runtime cache at static-init time, so this cache is empty.
+    // The only callers are the MachRegister unit tests, which are outside the
+    // dyninstAPI build.
+    static const std::vector<MachRegister> empty;
+    return empty;
   }
 }
