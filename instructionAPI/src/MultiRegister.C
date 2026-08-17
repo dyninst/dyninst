@@ -31,7 +31,6 @@
 #include "../../common/h/compiler_diagnostics.h"
 #include "ArchSpecificFormatters.h"
 #include "Architecture.h"
-#include "InstructionDecoder-power.h"
 #include "MultiRegister.h"
 #include "Visitor.h"
 #include "registers/MachRegister.h"

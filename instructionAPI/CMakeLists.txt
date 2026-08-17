@@ -5,6 +5,8 @@ include(DyninstLibrary)
 set(_sources
     src/debug.C
     src/decoder/aarch64/InstructionDecoder-aarch64.C
+    src/decoder/PowerPC/InstructionDecoder-power.C
+    src/decoder/PowerPC/power_opcode_tables.C
     src/Instruction.C
     src/Operation.C
     src/Operand.C
@@ -18,8 +20,6 @@ set(_sources
     src/Immediate.C
     src/InstructionDecoder.C
     src/InstructionDecoder-x86.C
-    src/InstructionDecoder-power.C
-    src/power_opcode_tables.C
     src/AMDGPU/gfx908/decodeOperands.C
     src/AMDGPU/gfx908/appendOperands.C
     src/AMDGPU/gfx908/finalizeOperands.C
@@ -70,6 +70,8 @@ set(_public_headers
 set(_private_headers
     src/debug.h
     src/decoder/aarch64/InstructionDecoder-aarch64.h
+    src/decoder/PowerPC/InstructionDecoder-power.h
+    src/decoder/PowerPC/power_opcode_tables.h
     src/amdgpu_branchinsn_table.h
     src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h
     src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h
@@ -77,9 +79,7 @@ set(_private_headers
     src/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.h
     src/decoder/type_conversion.h
     src/InstructionDecoderImpl.h
-    src/InstructionDecoder-power.h
     src/InstructionDecoder-x86.h
-    src/power_opcode_tables.h
     h/syscalls.h
     h/interrupts.h)
 
@@ -125,8 +125,8 @@ endif()
 
 if(NOT instructionDecoderPowerExtraFlags STREQUAL "")
   set_source_files_properties(
-    src/power_opcode_tables.C PROPERTIES COMPILE_FLAGS
-                                         "${instructionDecoderPowerExtraFlags}")
+    src/decoder/PowerPC/power_opcode_tables.C
+    PROPERTIES COMPILE_FLAGS "${instructionDecoderPowerExtraFlags}")
 endif()
 
 set(finalizeOperandsExtraFlags "")

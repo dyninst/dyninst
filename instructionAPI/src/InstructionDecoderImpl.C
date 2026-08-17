@@ -29,7 +29,7 @@
  */
 
 #include "decoder/aarch64/InstructionDecoder-aarch64.h"
-#include "InstructionDecoder-power.h"
+#include "decoder/PowerPC/InstructionDecoder-power.h"
 #include "InstructionDecoder-x86.h"
 #include "InstructionDecoderImpl.h"
 #ifdef DYNINST_ENABLE_CAPSTONE

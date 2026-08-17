@@ -29,7 +29,6 @@
  */
 
 #include "ArchSpecificFormatters.h"
-#include "InstructionDecoder-power.h"
 #include "Ternary.h"
 #include "Visitor.h"
 
