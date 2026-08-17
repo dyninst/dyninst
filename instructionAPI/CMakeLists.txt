@@ -3,6 +3,12 @@ include_guard(GLOBAL)
 include(DyninstLibrary)
 
 set(_sources
+    src/ASTs/BinaryFunction.C
+    src/ASTs/Expression.C
+    src/ASTs/Immediate.C
+    src/ASTs/MultiRegister.C
+    src/ASTs/Register.C
+    src/ASTs/Ternary.C
     src/debug.C
     src/decoder/aarch64/InstructionDecoder-aarch64.C
     src/decoder/AMDGPU/gfx908/decodeOperands.C
@@ -34,13 +40,7 @@ set(_sources
     src/Instruction.C
     src/Operation.C
     src/Operand.C
-    src/Register.C
-    src/MultiRegister.C
-    src/Ternary.C
-    src/Expression.C
-    src/BinaryFunction.C
     src/ArchSpecificFormatters.C
-    src/Immediate.C
     src/syscalls.C
     src/interrupts.C)
 
