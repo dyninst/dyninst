@@ -28,17 +28,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "InstructionDecoder-aarch64.h"
-#include "InstructionDecoder-power.h"
-#include "InstructionDecoder-x86.h"
-#include "InstructionDecoderImpl.h"
+#include "decoder/aarch64/InstructionDecoder-aarch64.h"
+#include "decoder/PowerPC/InstructionDecoder-power.h"
+#include "decoder/x86/InstructionDecoder-x86.h"
+#include "decoder/InstructionDecoderImpl.h"
 #ifdef DYNINST_ENABLE_CAPSTONE
 #include "decoder/riscv/decoder.h"
 #endif
-#include "AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h"
-#include "AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h"
-#include "AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h"
-#include "AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.h"
+#include "decoder/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h"
+#include "decoder/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h"
+#include "decoder/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h"
+#include "decoder/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.h"
 #include "BinaryFunction.h"
 #include "Dereference.h"
 #include "MultiRegister.h"

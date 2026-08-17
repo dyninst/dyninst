@@ -33,7 +33,7 @@
 
 #include "dyninst_visibility.h"
 #include "Immediate.h"
-#include "InstructionDecoderImpl.h"
+#include "decoder/InstructionDecoderImpl.h"
 #include "registers/ppc32_regs.h"
 
 #include <iostream>

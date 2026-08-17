@@ -32,7 +32,6 @@
 #include "Instruction.h"
 #include "Dereference.h"
 #include "Immediate.h"
-#include "instructionAPI/src/InstructionDecoderImpl.h"
 #include "MultiRegister.h"
 
 #include "../rose/SgAsmInstruction.h"

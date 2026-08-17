@@ -31,7 +31,7 @@
 #if !defined(INSTRUCTION_DECODER_X86_H)
 #define INSTRUCTION_DECODER_X86_H
 
-#include "InstructionDecoderImpl.h"
+#include "decoder/InstructionDecoderImpl.h"
 #include "common/src/ia32_locations.h"
 
 namespace NS_x86 {

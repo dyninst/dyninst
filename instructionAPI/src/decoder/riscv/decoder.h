@@ -31,7 +31,7 @@
 #ifndef INSTRUCTIONAPI_RISCV_DECODER_H
 #define INSTRUCTIONAPI_RISCV_DECODER_H
 
-#include "InstructionDecoderImpl.h"
+#include "decoder/InstructionDecoderImpl.h"
 #include "capstone/capstone.h"
 #include "capstone/riscv.h"
 

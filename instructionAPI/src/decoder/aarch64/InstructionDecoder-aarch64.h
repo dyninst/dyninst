@@ -29,7 +29,7 @@
  */
 
 #include "Immediate.h"
-#include "InstructionDecoderImpl.h"
+#include "decoder/InstructionDecoderImpl.h"
 #include "registers/MachRegister.h"
 
 #include <array>

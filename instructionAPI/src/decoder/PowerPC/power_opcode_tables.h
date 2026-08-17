@@ -31,8 +31,8 @@
 #ifndef DYNINST_INSTRUCTIONAPI_POWER_OPCODE_TABLES_H
 #define DYNINST_INSTRUCTIONAPI_POWER_OPCODE_TABLES_H
 
+#include "decoder/PowerPC/InstructionDecoder-power.h"
 #include "dyninst_visibility.h"
-#include "InstructionDecoder-power.h"
 
 #include <map>
 #include <vector>
