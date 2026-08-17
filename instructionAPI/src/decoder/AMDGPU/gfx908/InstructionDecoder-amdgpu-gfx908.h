@@ -33,7 +33,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string>
-#include "InstructionDecoderImpl.h"
+#include "decoder/InstructionDecoderImpl.h"
 #include <iostream>
 #include "Immediate.h"
 #include "Architecture.h"

@@ -28,6 +28,9 @@ set(_sources
     src/decoder/PowerPC/InstructionDecoder-power.C
     src/decoder/PowerPC/power_opcode_tables.C
     src/decoder/x86/InstructionDecoder-x86.C
+    src/decoder/InstructionCategories.C
+    src/decoder/InstructionDecoder.C
+    src/decoder/InstructionDecoderImpl.C
     src/Instruction.C
     src/Operation.C
     src/Operand.C
@@ -36,11 +39,8 @@ set(_sources
     src/Ternary.C
     src/Expression.C
     src/BinaryFunction.C
-    src/InstructionCategories.C
     src/ArchSpecificFormatters.C
     src/Immediate.C
-    src/InstructionDecoder.C
-    src/InstructionDecoderImpl.C
     src/syscalls.C
     src/interrupts.C)
 
@@ -79,7 +79,7 @@ set(_private_headers
     src/decoder/PowerPC/power_opcode_tables.h
     src/decoder/x86/InstructionDecoder-x86.h
     src/decoder/type_conversion.h
-    src/InstructionDecoderImpl.h
+    src/decoder/InstructionDecoderImpl.h
     h/syscalls.h
     h/interrupts.h)
 
