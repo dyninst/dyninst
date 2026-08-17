@@ -38,6 +38,7 @@
 #include "dyntypes.h"
 #include "bitArray.h"
 #include "ASTs/ast.h"
+#include "codegen/codegen.h"
 
 class AddressSpace;
 
@@ -121,13 +122,30 @@ private:
     bool wasFullFPRSave;
     
     
-    bool validOptimizationInfo() { return optimizationInfo_; }
+    bool validOptimizationInfo() const { return optimizationInfo_; }
 
  public:
     // Code generation methods
     virtual bool generateSaves(codeGen &, registerSpace *) { return false; }
     virtual bool generateRestores(codeGen &, registerSpace *) { return false; }
-    
+
+    // Record every register (including condition flags) that the
+    // just-generated instrumentation body [bodyStart, gen.getIndex())
+    // writes, through codeGen::markRegDefined, so that unneeded saves can
+    // be dropped when the tramp is regenerated.
+    // Default: record nothing; conservative saves are kept.
+    virtual void accumulateBodyClobbers(codeGen &, codeBufIndex_t) const {}
+
+    // True if this generation pass saved the condition flags but the
+    // generated body never writes them, i.e. a regeneration pass would drop
+    // the save. Default: no.
+    virtual bool savedUnneededFlags(registerSpace *) const { return false; }
+
+    // False only when the generated body provably never writes a condition
+    // flag, so the flags save can be skipped. Default: assume it may.
+    // Meaningful once validOptimizationInfo() is set.
+    virtual bool mayClobberFlags() const { return true; }
+
     // Generated state methods
     bitArray definedRegs;
 
