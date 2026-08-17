@@ -5,6 +5,26 @@ include(DyninstLibrary)
 set(_sources
     src/debug.C
     src/decoder/aarch64/InstructionDecoder-aarch64.C
+    src/decoder/AMDGPU/gfx908/decodeOperands.C
+    src/decoder/AMDGPU/gfx908/appendOperands.C
+    src/decoder/AMDGPU/gfx908/finalizeOperands.C
+    src/decoder/AMDGPU/gfx908/amdgpu_gfx908_decoder_impl.C
+    src/decoder/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
+    src/decoder/AMDGPU/gfx90a/decodeOperands.C
+    src/decoder/AMDGPU/gfx90a/appendOperands.C
+    src/decoder/AMDGPU/gfx90a/finalizeOperands.C
+    src/decoder/AMDGPU/gfx90a/amdgpu_gfx90a_decoder_impl.C
+    src/decoder/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C
+    src/decoder/AMDGPU/gfx940/decodeOperands.C
+    src/decoder/AMDGPU/gfx940/appendOperands.C
+    src/decoder/AMDGPU/gfx940/finalizeOperands.C
+    src/decoder/AMDGPU/gfx940/amdgpu_gfx940_decoder_impl.C
+    src/decoder/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
+    src/decoder/AMDGPU/gfx950/decodeOperands.C
+    src/decoder/AMDGPU/gfx950/appendOperands.C
+    src/decoder/AMDGPU/gfx950/finalizeOperands.C
+    src/decoder/AMDGPU/gfx950/amdgpu_gfx950_decoder_impl.C
+    src/decoder/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.C
     src/decoder/PowerPC/InstructionDecoder-power.C
     src/decoder/PowerPC/power_opcode_tables.C
     src/decoder/x86/InstructionDecoder-x86.C
@@ -20,26 +40,6 @@ set(_sources
     src/ArchSpecificFormatters.C
     src/Immediate.C
     src/InstructionDecoder.C
-    src/AMDGPU/gfx908/decodeOperands.C
-    src/AMDGPU/gfx908/appendOperands.C
-    src/AMDGPU/gfx908/finalizeOperands.C
-    src/AMDGPU/gfx908/amdgpu_gfx908_decoder_impl.C
-    src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
-    src/AMDGPU/gfx90a/decodeOperands.C
-    src/AMDGPU/gfx90a/appendOperands.C
-    src/AMDGPU/gfx90a/finalizeOperands.C
-    src/AMDGPU/gfx90a/amdgpu_gfx90a_decoder_impl.C
-    src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C
-    src/AMDGPU/gfx940/decodeOperands.C
-    src/AMDGPU/gfx940/appendOperands.C
-    src/AMDGPU/gfx940/finalizeOperands.C
-    src/AMDGPU/gfx940/amdgpu_gfx940_decoder_impl.C
-    src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
-    src/AMDGPU/gfx950/decodeOperands.C
-    src/AMDGPU/gfx950/appendOperands.C
-    src/AMDGPU/gfx950/finalizeOperands.C
-    src/AMDGPU/gfx950/amdgpu_gfx950_decoder_impl.C
-    src/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.C
     src/InstructionDecoderImpl.C
     src/syscalls.C
     src/interrupts.C)
@@ -70,14 +70,14 @@ set(_public_headers
 set(_private_headers
     src/debug.h
     src/decoder/aarch64/InstructionDecoder-aarch64.h
+    src/decoder/AMDGPU/amdgpu_branchinsn_table.h
+    src/decoder/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h
+    src/decoder/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h
+    src/decoder/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h
+    src/decoder/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.h
     src/decoder/PowerPC/InstructionDecoder-power.h
     src/decoder/PowerPC/power_opcode_tables.h
     src/decoder/x86/InstructionDecoder-x86.h
-    src/amdgpu_branchinsn_table.h
-    src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h
-    src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h
-    src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h
-    src/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.h
     src/decoder/type_conversion.h
     src/InstructionDecoderImpl.h
     h/syscalls.h
@@ -145,13 +145,13 @@ if(nonDebugMaxFrameSizeOverrideFinalizeOperands)
 endif()
 
 if(NOT finalizeOperandsExtraFlags STREQUAL "")
-  set_source_files_properties(src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
+  set_source_files_properties(src/decoder/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
                               PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
-  set_source_files_properties(src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C
+  set_source_files_properties(src/decoder/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C
                               PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
-  set_source_files_properties(src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
+  set_source_files_properties(src/decoder/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
                               PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
-  set_source_files_properties(src/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.C
+  set_source_files_properties(src/decoder/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.C
                               PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
 endif()
 
@@ -182,10 +182,10 @@ dyninst_library(
 # cmake-format: on
 
 set(_inc_dirs
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx908
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx90a
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx940
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/AMDGPU/gfx950)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/decoder/AMDGPU/gfx908
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/decoder/AMDGPU/gfx90a
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/decoder/AMDGPU/gfx940
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/decoder/AMDGPU/gfx950)
 
 foreach(t ${instructionAPI_TARGETS})
   target_include_directories(${t} PUBLIC "$<BUILD_INTERFACE:${_inc_dirs}>")

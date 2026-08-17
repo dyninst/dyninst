@@ -93,7 +93,7 @@ namespace Dyninst { namespace InstructionAPI {
       case power_op_bc:
       case power_op_bcctr:
       case power_op_bclr:
-#include "amdgpu_branchinsn_table.h"
+#include "decoder/AMDGPU/amdgpu_branchinsn_table.h"
         return c_BranchInsn;
 
       case e_cmp:
