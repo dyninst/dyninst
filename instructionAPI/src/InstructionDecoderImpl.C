@@ -30,7 +30,7 @@
 
 #include "decoder/aarch64/InstructionDecoder-aarch64.h"
 #include "decoder/PowerPC/InstructionDecoder-power.h"
-#include "InstructionDecoder-x86.h"
+#include "decoder/x86/InstructionDecoder-x86.h"
 #include "InstructionDecoderImpl.h"
 #ifdef DYNINST_ENABLE_CAPSTONE
 #include "decoder/riscv/decoder.h"

@@ -7,6 +7,7 @@ set(_sources
     src/decoder/aarch64/InstructionDecoder-aarch64.C
     src/decoder/PowerPC/InstructionDecoder-power.C
     src/decoder/PowerPC/power_opcode_tables.C
+    src/decoder/x86/InstructionDecoder-x86.C
     src/Instruction.C
     src/Operation.C
     src/Operand.C
@@ -19,7 +20,6 @@ set(_sources
     src/ArchSpecificFormatters.C
     src/Immediate.C
     src/InstructionDecoder.C
-    src/InstructionDecoder-x86.C
     src/AMDGPU/gfx908/decodeOperands.C
     src/AMDGPU/gfx908/appendOperands.C
     src/AMDGPU/gfx908/finalizeOperands.C
@@ -72,6 +72,7 @@ set(_private_headers
     src/decoder/aarch64/InstructionDecoder-aarch64.h
     src/decoder/PowerPC/InstructionDecoder-power.h
     src/decoder/PowerPC/power_opcode_tables.h
+    src/decoder/x86/InstructionDecoder-x86.h
     src/amdgpu_branchinsn_table.h
     src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h
     src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h
@@ -79,7 +80,6 @@ set(_private_headers
     src/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.h
     src/decoder/type_conversion.h
     src/InstructionDecoderImpl.h
-    src/InstructionDecoder-x86.h
     h/syscalls.h
     h/interrupts.h)
 
