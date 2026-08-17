@@ -37,12 +37,16 @@
 
 #include "dyninstAPI/src/addressSpace.h" // Also for debug
 #include "patching/function.h"
+#include "dyninstAPI/src/mapped_object.h"  // func_instance::obj() -> parse_img()
+#include "dyninstAPI/src/image.h"          // image::getObject() -> SymtabAPI::Symtab
 
 #include "dyninstAPI/src/debug.h"
 #include "CodeTracker.h"
 #include "CFG/RelocGraph.h"
 
 #include <iterator>  // std::distance (rewrite-progress reporting)
+#include <map>       // ifunc-resolver exclusion cache
+#include <set>
 
 using namespace std;
 using namespace Dyninst;
@@ -77,11 +81,47 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
    // rewrite (e.g. a multi-hundred-MB shared library) can look hung for a long time.
    progress_printf("relocate: building reloc blocks for %zu functions\n",
                    (size_t)std::distance(begin, end));
+
+   // Per-object cache of ifunc-resolver entry offsets (STT_GNU_IFUNC symbols,
+   // Symbol::ST_INDIRECT). ifunc resolvers are invoked by ld.so during dynamic
+   // relocation (before main, before the PLT/GOT is filled and before any
+   // Dyninst runtime/base-tramp exists). Relocating one produces a copy that
+   // calls through an unfilled PLT stub -> branch to 0 -> SIGSEGV at startup
+   // (observed rewriting libc on ppc64le ELFv2). They must stay at their
+   // original addresses, unrelocated and un-springboarded; the IRELATIVE reloc
+   // keeps pointing at the original resolver, and ld.so runs it correctly so
+   // callers still reach the resolved implementation.
+   std::map<mapped_object *, std::set<Offset> > ifuncResolverOffsets;
+   auto isIfuncResolver = [&ifuncResolverOffsets](func_instance *func) -> bool {
+      mapped_object *obj = func->obj();
+      if (!obj) return false;
+      auto it = ifuncResolverOffsets.find(obj);
+      if (it == ifuncResolverOffsets.end()) {
+         std::set<Offset> offs;
+         image *img = obj->parse_img();
+         SymtabAPI::Symtab *symtab = img ? img->getObject() : NULL;
+         if (symtab) {
+            std::vector<SymtabAPI::Symbol *> syms;
+            if (symtab->getAllSymbolsByType(syms, SymtabAPI::Symbol::ST_INDIRECT)) {
+               for (SymtabAPI::Symbol *s : syms) offs.insert(s->getOffset());
+            }
+         }
+         it = ifuncResolverOffsets.emplace(obj, std::move(offs)).first;
+      }
+      if (it->second.empty()) return false;
+      return it->second.count(func->ifunc()->addr()) != 0;
+   };
+
    // A vector of Functions is just an extended vector of basic blocks...
    for (; begin != end; ++begin) {
       func_instance *func = *begin;
       if (!func->isInstrumentable()) {
 	relocation_cerr << "\tFunction " << func->symTabName() << " is non-instrumentable, skipping" << endl;
+         continue;
+      }
+      if (isIfuncResolver(func)) {
+         relocation_cerr << "\tFunction " << func->symTabName()
+                         << " is an ifunc resolver; leaving in place (runs in ld.so before instrumentation is live)" << endl;
          continue;
       }
       relocation_cerr << "\tAdding function " << func->symTabName() << endl;
