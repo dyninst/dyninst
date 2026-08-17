@@ -4,6 +4,7 @@ include(DyninstLibrary)
 
 set(_sources
     src/debug.C
+    src/decoder/aarch64/InstructionDecoder-aarch64.C
     src/Instruction.C
     src/Operation.C
     src/Operand.C
@@ -19,7 +20,6 @@ set(_sources
     src/InstructionDecoder-x86.C
     src/InstructionDecoder-power.C
     src/power_opcode_tables.C
-    src/InstructionDecoder-aarch64.C
     src/AMDGPU/gfx908/decodeOperands.C
     src/AMDGPU/gfx908/appendOperands.C
     src/AMDGPU/gfx908/finalizeOperands.C
@@ -69,13 +69,13 @@ set(_public_headers
 
 set(_private_headers
     src/debug.h
+    src/decoder/aarch64/InstructionDecoder-aarch64.h
     src/amdgpu_branchinsn_table.h
     src/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h
     src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h
     src/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h
     src/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.h
     src/decoder/type_conversion.h
-    src/InstructionDecoder-aarch64.h
     src/InstructionDecoderImpl.h
     src/InstructionDecoder-power.h
     src/InstructionDecoder-x86.h
