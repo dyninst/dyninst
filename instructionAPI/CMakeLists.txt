@@ -2,52 +2,31 @@ include_guard(GLOBAL)
 
 include(DyninstLibrary)
 
+add_subdirectory(src/ASTs)
+add_subdirectory(src/decoder/aarch64)
+add_subdirectory(src/decoder/AMDGPU)
+add_subdirectory(src/decoder/PowerPC)
+add_subdirectory(src/decoder/riscv)
+add_subdirectory(src/decoder/x86)
+add_subdirectory(src/decoder)
+
+set(_subprojects
+    instructionAPI_aarch64
+    instructionAPI_amdgpu
+    instructionAPI_powerpc
+    instructionAPI_riscv
+    instructionAPI_x86
+    instructionAPI_decoder
+    instructionAPI_ASTs)
+
 set(_sources
-    src/ASTs/BinaryFunction.C
-    src/ASTs/Expression.C
-    src/ASTs/Immediate.C
-    src/ASTs/MultiRegister.C
-    src/ASTs/Register.C
-    src/ASTs/Ternary.C
     src/debug.C
-    src/decoder/aarch64/InstructionDecoder-aarch64.C
-    src/decoder/AMDGPU/gfx908/decodeOperands.C
-    src/decoder/AMDGPU/gfx908/appendOperands.C
-    src/decoder/AMDGPU/gfx908/finalizeOperands.C
-    src/decoder/AMDGPU/gfx908/amdgpu_gfx908_decoder_impl.C
-    src/decoder/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
-    src/decoder/AMDGPU/gfx90a/decodeOperands.C
-    src/decoder/AMDGPU/gfx90a/appendOperands.C
-    src/decoder/AMDGPU/gfx90a/finalizeOperands.C
-    src/decoder/AMDGPU/gfx90a/amdgpu_gfx90a_decoder_impl.C
-    src/decoder/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C
-    src/decoder/AMDGPU/gfx940/decodeOperands.C
-    src/decoder/AMDGPU/gfx940/appendOperands.C
-    src/decoder/AMDGPU/gfx940/finalizeOperands.C
-    src/decoder/AMDGPU/gfx940/amdgpu_gfx940_decoder_impl.C
-    src/decoder/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
-    src/decoder/AMDGPU/gfx950/decodeOperands.C
-    src/decoder/AMDGPU/gfx950/appendOperands.C
-    src/decoder/AMDGPU/gfx950/finalizeOperands.C
-    src/decoder/AMDGPU/gfx950/amdgpu_gfx950_decoder_impl.C
-    src/decoder/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.C
-    src/decoder/PowerPC/InstructionDecoder-power.C
-    src/decoder/PowerPC/power_opcode_tables.C
-    src/decoder/x86/InstructionDecoder-x86.C
-    src/decoder/InstructionCategories.C
-    src/decoder/InstructionDecoder.C
-    src/decoder/InstructionDecoderImpl.C
     src/Instruction.C
     src/Operation.C
     src/Operand.C
     src/ArchSpecificFormatters.C
     src/syscalls.C
     src/interrupts.C)
-
-if(DYNINST_ENABLE_CAPSTONE)
-  list(APPEND _sources src/decoder/riscv/decoder.C src/decoder/riscv/mem_xlat.C
-       src/decoder/riscv/opcode_xlat.C src/decoder/riscv/register_xlat.C)
-endif()
 
 set(_public_headers
     h/ArchSpecificFormatters.h
@@ -67,99 +46,7 @@ set(_public_headers
     h/Ternary.h
     h/Visitor.h)
 
-set(_private_headers
-    src/debug.h
-    src/decoder/aarch64/InstructionDecoder-aarch64.h
-    src/decoder/AMDGPU/amdgpu_branchinsn_table.h
-    src/decoder/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.h
-    src/decoder/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h
-    src/decoder/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h
-    src/decoder/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.h
-    src/decoder/PowerPC/InstructionDecoder-power.h
-    src/decoder/PowerPC/power_opcode_tables.h
-    src/decoder/x86/InstructionDecoder-x86.h
-    src/decoder/type_conversion.h
-    src/decoder/InstructionDecoderImpl.h
-    h/syscalls.h
-    h/interrupts.h)
-
-if(DYNINST_ENABLE_CAPSTONE)
-  list(
-    APPEND
-    _private_headers
-    src/decoder/riscv/categories.h
-    src/decoder/riscv/decoder.h
-    src/decoder/riscv/mem_xlat.h
-    src/decoder/riscv/opcode_xlat.h
-    src/decoder/riscv/register_xlat.h)
-endif()
-
-set(instructionDecoderPowerExtraFlags "")
-if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-  if(${CMAKE_CXX_COMPILER_VERSION} MATCHES "^([1-9]|1[01])(\.|$)")
-    # Disable var-tracking-assignments for InstructionDecoder-power.C for all known
-    # versions of gcc..  The default max size is too small so it fails, and adjusting
-    # it using
-    #
-    # PROPERTIES COMPILE_FLAGS "--param=max-vartrack-size=900000000"
-    #
-    # succeeds, but the object file produced is >1GB, so disable it.
-    string(APPEND instructionDecoderPowerExtraFlags "-fno-var-tracking-assignments")
-  endif()
-endif()
-
-# adjust warning threshold if set in cmake/warnings.cmake
-if(debugMaxFrameSizeOverridePowerOpcodeTable)
-  string(
-    APPEND instructionDecoderPowerExtraFlags
-    " $<$<CONFIG:DEBUG>:-Wframe-larger-than=${debugMaxFrameSizeOverridePowerOpcodeTable}>"
-    )
-endif()
-if(nonDebugMaxFrameSizeOverridePowerOpcodeTable)
-  string(
-    APPEND
-    instructionDecoderPowerExtraFlags
-    " $<$<NOT:$<CONFIG:DEBUG>>:-Wframe-larger-than=${nonDebugMaxFrameSizeOverridePowerOpcodeTable}>"
-    )
-endif()
-
-if(NOT instructionDecoderPowerExtraFlags STREQUAL "")
-  set_source_files_properties(
-    src/decoder/PowerPC/power_opcode_tables.C
-    PROPERTIES COMPILE_FLAGS "${instructionDecoderPowerExtraFlags}")
-endif()
-
-set(finalizeOperandsExtraFlags "")
-if(debugMaxFrameSizeOverrideFinalizeOperands)
-  string(
-    APPEND finalizeOperandsExtraFlags
-    " $<$<CONFIG:DEBUG>:-Wframe-larger-than=${debugMaxFrameSizeOverrideFinalizeOperands}>"
-    )
-endif()
-if(nonDebugMaxFrameSizeOverrideFinalizeOperands)
-  string(
-    APPEND
-    finalizeOperandsExtraFlags
-    " $<$<NOT:$<CONFIG:DEBUG>>:-Wframe-larger-than=${nonDebugMaxFrameSizeOverrideFinalizeOperands}>"
-    )
-endif()
-
-if(NOT finalizeOperandsExtraFlags STREQUAL "")
-  set_source_files_properties(src/decoder/AMDGPU/gfx908/InstructionDecoder-amdgpu-gfx908.C
-                              PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
-  set_source_files_properties(src/decoder/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C
-                              PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
-  set_source_files_properties(src/decoder/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.C
-                              PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
-  set_source_files_properties(src/decoder/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.C
-                              PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
-endif()
-
-if(DYNINST_ENABLE_CAPSTONE)
-  set(_capstone_dep Dyninst::Capstone)
-else()
-  set(_capstone_dep)
-endif()
+set(_private_headers src/debug.h h/syscalls.h h/interrupts.h)
 
 # Optional decoder used by the built-in "unknown instruction" callback to
 # recover the length of x86-64 instructions InstructionAPI cannot decode.
@@ -177,17 +64,8 @@ dyninst_library(
   DEFINES INSTRUCTION_LIB ${_unknown_insn_defines}
   DYNINST_DEPS common
   PUBLIC_DEPS Dyninst::Boost_headers
-  PRIVATE_DEPS ${_capstone_dep} ${_unknown_insn_deps}
+  PRIVATE_DEPS ${_unknown_insn_deps} ${_subprojects}
 )
 # cmake-format: on
 
-set(_inc_dirs
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/decoder/AMDGPU/gfx908
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/decoder/AMDGPU/gfx90a
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/decoder/AMDGPU/gfx940
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/decoder/AMDGPU/gfx950)
-
-foreach(t ${instructionAPI_TARGETS})
-  target_include_directories(${t} PUBLIC "$<BUILD_INTERFACE:${_inc_dirs}>")
-endforeach()
-unset(_inc_dirs)
+unset(_subprojects)
