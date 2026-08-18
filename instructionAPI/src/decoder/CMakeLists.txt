@@ -15,7 +15,13 @@ dyninst_library(
   INTERNAL_LIBRARY
   SOURCE_FILES ${_sources}
   PRIVATE_HEADER_FILES ${_headers}
-  DYNINST_INTERNAL_DEPS common
+  DYNINST_INTERNAL_DEPS
+    common
+    instructionAPI_aarch64
+    instructionAPI_amdgpu
+    instructionAPI_powerpc
+    instructionAPI_riscv
+    instructionAPI_x86
 )
 
 set(_inc_dirs

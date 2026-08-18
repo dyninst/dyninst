@@ -21,7 +21,7 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   PRIVATE_HEADER_FILES ${_headers}
   DYNINST_INTERNAL_DEPS common
-  PRIVATE_DEPS Dyninst::Capstone
+  PUBLIC_DEPS Dyninst::Capstone
 )
 
 set(_inc_dirs
