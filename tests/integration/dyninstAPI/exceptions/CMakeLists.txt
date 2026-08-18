@@ -10,7 +10,10 @@ include_guard(GLOBAL)
 if(NOT UNIX)
   return()
 endif()
-if(NOT (DYNINST_HOST_ARCH_X86_64 OR DYNINST_HOST_ARCH_AARCH64 OR DYNINST_HOST_ARCH_PPC64LE))
+if(NOT
+   (DYNINST_HOST_ARCH_X86_64
+    OR DYNINST_HOST_ARCH_AARCH64
+    OR DYNINST_HOST_ARCH_PPC64LE))
   return()
 endif()
 if(NOT (TARGET dyninstAPI AND TARGET dyninstAPI_RT))
@@ -54,14 +57,14 @@ endif()
 
 # --- mutatees: self-checking C++ programs that throw and catch ---
 set(_eh_mutatees
-    eh_single    # single class-type try/catch
-    eh_multi     # multiple catch clauses; matching (non-first) one fires
-    eh_nested    # nested try/catch, type discrimination
-    eh_rethrow   # catch + re-throw caught by an outer frame
-    eh_cleanup   # destructor runs during unwind before the handler
+    eh_single # single class-type try/catch
+    eh_multi # multiple catch clauses; matching (non-first) one fires
+    eh_nested # nested try/catch, type discrimination
+    eh_rethrow # catch + re-throw caught by an outer frame
+    eh_cleanup # destructor runs during unwind before the handler
     eh_basecatch # throw derived, catch by base reference
-    eh_deep      # deep (9-frame) non-tail-call unwind
-    eh_align)    # alignas(64) -> stack realign + hot/cold split (SPEC omnetpp shape)
+    eh_deep # deep (9-frame) non-tail-call unwind
+    eh_align) # alignas(64) -> stack realign + hot/cold split (SPEC omnetpp shape)
 
 # Runtime environment shared by both phases: the rewrite driver must know which
 # RT to bind into the output (DYNINSTAPI_RT_LIB), and the rewritten mutatee must
@@ -69,9 +72,8 @@ set(_eh_mutatees
 # tree via generator expressions.
 set(_rt_lib "$<TARGET_FILE:dyninstAPI_RT>")
 set(_ld_path "$<TARGET_FILE_DIR:dyninstAPI_RT>:$<TARGET_FILE_DIR:dyninstAPI>")
-set(_eh_env
-    "DYNINSTAPI_RT_LIB=${_rt_lib}"
-    "LD_LIBRARY_PATH=${_ld_path}:$ENV{LD_LIBRARY_PATH}")
+set(_eh_env "DYNINSTAPI_RT_LIB=${_rt_lib}"
+            "LD_LIBRARY_PATH=${_ld_path}:$ENV{LD_LIBRARY_PATH}")
 
 # Build each mutatee BOTH position-independent (PIE, ET_DYN -- the default on
 # modern distros) and not (ET_EXEC), and run each variant through both the static
@@ -99,9 +101,11 @@ set(_eh_env
 # _eh_dynamic_supported from the enclosing scope.
 function(eh_register_mutatee t src opt variant)
   add_executable(${t} ${src})
-  set_target_properties(${t} PROPERTIES
-      CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON
-      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/mutatees")
+  set_target_properties(
+    ${t}
+    PROPERTIES CXX_STANDARD 11
+               CXX_STANDARD_REQUIRED ON
+               RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/mutatees")
   target_compile_options(${t} PRIVATE ${opt})
   if(variant STREQUAL "pie")
     set_target_properties(${t} PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -122,39 +126,51 @@ function(eh_register_mutatee t src opt variant)
   # can't leave a stale binary for the catch phase to false-pass on. Unlabeled --
   # fixture plumbing, kept out of the -L exceptions count but still run
   # automatically whenever a test requiring eh_fx_${t} runs.
-  add_test(NAME eh_prep_${t}
-           COMMAND ${CMAKE_COMMAND} -DDIR=${_adir}
-                   -P "${CMAKE_CURRENT_SOURCE_DIR}/eh_clean_dir.cmake")
+  add_test(NAME eh_prep_${t} COMMAND ${CMAKE_COMMAND} -DDIR=${_adir} -P
+                                     "${CMAKE_CURRENT_SOURCE_DIR}/eh_clean_dir.cmake")
   set_tests_properties(eh_prep_${t} PROPERTIES FIXTURES_SETUP eh_fx_${t})
 
   # Phase 1: rewrite the mutatee (relocate all functions -> regenerate EH info).
-  add_test(NAME eh_rewrite_${t}
-           COMMAND eh_rewrite_driver "$<TARGET_FILE:${t}>" "${_rw}")
-  set_tests_properties(eh_rewrite_${t} PROPERTIES
-      LABELS "integration;exceptions"
-      FIXTURES_SETUP eh_fx_${t}
-      DEPENDS eh_prep_${t}
-      ENVIRONMENT "${_eh_env}")
+  add_test(NAME eh_rewrite_${t} COMMAND eh_rewrite_driver "$<TARGET_FILE:${t}>" "${_rw}")
+  set_tests_properties(
+    eh_rewrite_${t}
+    PROPERTIES LABELS
+               "integration;exceptions"
+               FIXTURES_SETUP
+               eh_fx_${t}
+               DEPENDS
+               eh_prep_${t}
+               ENVIRONMENT
+               "${_eh_env}")
 
   # Phase 2 (static): run the rewritten mutatee; it must still CATCH.
   add_test(NAME eh_catch_${t} COMMAND "${_rw}")
-  set_tests_properties(eh_catch_${t} PROPERTIES
-      LABELS "integration;exceptions"
-      FIXTURES_REQUIRED eh_fx_${t}
-      PASS_REGULAR_EXPRESSION "CAUGHT-[0-9]"
-      ENVIRONMENT "${_eh_env}")
+  set_tests_properties(
+    eh_catch_${t}
+    PROPERTIES LABELS
+               "integration;exceptions"
+               FIXTURES_REQUIRED
+               eh_fx_${t}
+               PASS_REGULAR_EXPRESSION
+               "CAUGHT-[0-9]"
+               ENVIRONMENT
+               "${_eh_env}")
 
   # Dynamic path: create the mutatee live, instrument every basic block (forcing
   # relocation), and run it -- the issue reproducer's path. Skipped where dynamic
   # delivery is unavailable (aarch64 #449; ppc64le unported -- see above).
   if(_eh_dynamic_supported)
-    add_test(NAME eh_dyncatch_${t}
-             COMMAND eh_dynamic_driver "$<TARGET_FILE:${t}>")
-    set_tests_properties(eh_dyncatch_${t} PROPERTIES
-        LABELS "integration;exceptions"
-        PASS_REGULAR_EXPRESSION "CAUGHT-[0-9]"
-        TIMEOUT 180
-        ENVIRONMENT "${_eh_env}")
+    add_test(NAME eh_dyncatch_${t} COMMAND eh_dynamic_driver "$<TARGET_FILE:${t}>")
+    set_tests_properties(
+      eh_dyncatch_${t}
+      PROPERTIES LABELS
+                 "integration;exceptions"
+                 PASS_REGULAR_EXPRESSION
+                 "CAUGHT-[0-9]"
+                 TIMEOUT
+                 180
+                 ENVIRONMENT
+                 "${_eh_env}")
   endif()
 endfunction()
 
@@ -171,6 +187,7 @@ endforeach()
 # -- differ between the two levels, so each is worth its own coverage.
 foreach(opt O2 O3)
   foreach(variant nopie pie)
-    eh_register_mutatee("eh_hotcold_${opt}_${variant}" "eh_hotcold.cpp" "-${opt}" "${variant}")
+    eh_register_mutatee("eh_hotcold_${opt}_${variant}" "eh_hotcold.cpp" "-${opt}"
+                        "${variant}")
   endforeach()
 endforeach()
