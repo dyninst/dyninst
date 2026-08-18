@@ -3297,7 +3297,7 @@ bool ObjectELF::getEHFrameInfo(std::vector<EHFunctionInfo> &out)
         unsigned char personality_encoding = DW_EH_PE_omit;
         unsigned char range_encoding = DW_EH_PE_absptr;
         Address personality_target = 0;
-        unsigned char *cur_augdata = const_cast<unsigned char *>(thisCIE.cie.augmentation_data);
+        const unsigned char *cur_augdata = thisCIE.cie.augmentation_data;
         for (unsigned j = 0; j < augmentor_len; j++) {
             if (augmentor[j] == 'L') { lsda_encoding = *cur_augdata++; }
             else if (augmentor[j] == 'P') {
@@ -3327,7 +3327,7 @@ bool ObjectELF::getEHFrameInfo(std::vector<EHFunctionInfo> &out)
         mi.pc = fde_addr + (unsigned long)(aug_length_start - fde_bytes);
         int aug_length_size = read_val_of_type(DW_EH_PE_uleb128, &aug_length_value, aug_length_start, mi);
 
-        unsigned char *fde_aug = (unsigned char *) aug_length_start + aug_length_size;
+        const unsigned char *fde_aug = aug_length_start + aug_length_size;
         unsigned char *lsda_ptr = NULL;
         cur_augdata = fde_aug;
         for (unsigned j = 0; j < augmentor_len; j++) {
