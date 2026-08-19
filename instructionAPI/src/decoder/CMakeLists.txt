@@ -43,7 +43,10 @@ dyninst_library(
 )
 
 foreach(s ${_subprojects})
-  target_link_libraries(instructionAPI_decoder PUBLIC $<TARGET_OBJECTS:${s}>)
+  get_target_property(_type ${s} TYPE)
+  if(NOT _type STREQUAL "INTERFACE_LIBRARY")
+      target_link_libraries(instructionAPI_decoder PUBLIC $<TARGET_OBJECTS:${s}>)
+  endif()
 endforeach()
 
 set(_inc_dirs
