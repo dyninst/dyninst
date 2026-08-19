@@ -4,16 +4,22 @@ include_guard(GLOBAL)
 # regeneration and the DT_DYNINST_EH_FRAME + __register_frame delivery, which
 # are ELF- and glibc/libgcc-specific. The unwind-info synthesis is implemented
 # for x86-64, aarch64, and ppc64le; on any other architecture BinaryEdit does
-# not synthesize it (ehFrameArchFor() returns null), so the feature is
-# unsupported there and the tests do not apply. Gate on the supported set to
-# avoid spurious failures on e.g. RISC-V or AMDGPU.
+# not synthesize it (ehFrameArchFor() returns null).
+#
+# These tests build native mutatees and then rewrite AND execute them, so the
+# code generator must target the host architecture. A cross-architecture codegen
+# build (the CI "codegen cross-build" matrix retargets the generator -- i386,
+# aarch64, ppc64le, ... -- while the mutatees stay native to the x86-64 host)
+# cannot rewrite the native mutatees at all: a 32-bit generator has no 64-bit
+# register space, and a foreign generator aborts mid-rewrite. Require codegen
+# arch == host arch, restricted to the arches whose EH-info synthesis exists.
 if(NOT UNIX)
   return()
 endif()
 if(NOT
-   (DYNINST_HOST_ARCH_X86_64
-    OR DYNINST_HOST_ARCH_AARCH64
-    OR DYNINST_HOST_ARCH_PPC64LE))
+   ((DYNINST_CODEGEN_ARCH_X86_64 AND DYNINST_HOST_ARCH_X86_64)
+    OR (DYNINST_CODEGEN_ARCH_AARCH64 AND DYNINST_HOST_ARCH_AARCH64)
+    OR (DYNINST_CODEGEN_ARCH_PPC64LE AND DYNINST_HOST_ARCH_PPC64LE)))
   return()
 endif()
 if(NOT (TARGET dyninstAPI AND TARGET dyninstAPI_RT))
