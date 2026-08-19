@@ -5,6 +5,20 @@ if(POLICY CMP0076)
   cmake_policy(SET CMP0076 NEW)
 endif()
 
+add_subdirectory(aarch64)
+add_subdirectory(AMDGPU)
+add_subdirectory(PowerPC)
+add_subdirectory(riscv)
+add_subdirectory(x86)
+
+set(_subprojects
+    instructionAPI_aarch64
+    instructionAPI_amdgpu
+    instructionAPI_powerpc
+    instructionAPI_riscv
+    instructionAPI_x86
+)
+
 set(_headers type_conversion.h InstructionDecoderImpl.h)
 
 set(_sources InstructionCategories.C InstructionDecoder.C InstructionDecoderImpl.C)
@@ -23,15 +37,14 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   PRIVATE_HEADER_FILES ${_headers}
   DEFINES ${_unknown_insn_defines}
-  DYNINST_INTERNAL_DEPS
-    common
-    instructionAPI_aarch64
-    instructionAPI_amdgpu
-    instructionAPI_powerpc
-    instructionAPI_riscv
-    instructionAPI_x86
+  DYNINST_INTERNAL_DEPS common
   PRIVATE_DEPS ${_unknown_insn_deps}
+  PUBLIC_DEPS ${_subprojects}
 )
+
+foreach(s ${_subprojects})
+  target_link_libraries(instructionAPI_decoder PUBLIC $<TARGET_OBJECTS:${s}>)
+endforeach()
 
 set(_inc_dirs
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -45,3 +58,4 @@ unset(_headers)
 unset(_sources)
 unset(_unknown_insn_deps)
 unset(_unknown_insn_defines)
+unset(_subprojects)
