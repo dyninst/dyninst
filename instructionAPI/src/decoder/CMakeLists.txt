@@ -43,5 +43,5 @@ target_include_directories(instructionAPI_decoder PRIVATE $<BUILD_INTERFACE:${_i
 
 unset(_headers)
 unset(_sources)
-set(_unknown_insn_deps)
-set(_unknown_insn_defines)
+unset(_unknown_insn_deps)
+unset(_unknown_insn_defines)
