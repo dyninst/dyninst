@@ -2,6 +2,7 @@ include_guard(GLOBAL)
 
 if(NOT DYNINST_ENABLE_CAPSTONE)
   add_library(instructionAPI_riscv INTERFACE)
+  install(TARGETS instructionAPI_riscv EXPORT dyninst-targets)
   return()
 endif()
 
