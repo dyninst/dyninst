@@ -5,9 +5,7 @@ include(DyninstLibrary)
 add_subdirectory(src/ASTs)
 add_subdirectory(src/decoder)
 
-set(_subprojects
-    instructionAPI_decoder
-    instructionAPI_ASTs)
+set(_subprojects instructionAPI_decoder instructionAPI_ASTs)
 
 set(_sources
     src/debug.C

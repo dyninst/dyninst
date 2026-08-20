@@ -11,13 +11,8 @@ add_subdirectory(PowerPC)
 add_subdirectory(riscv)
 add_subdirectory(x86)
 
-set(_subprojects
-    instructionAPI_aarch64
-    instructionAPI_amdgpu
-    instructionAPI_powerpc
-    instructionAPI_riscv
-    instructionAPI_x86
-)
+set(_subprojects instructionAPI_aarch64 instructionAPI_amdgpu instructionAPI_powerpc
+                 instructionAPI_riscv instructionAPI_x86)
 
 set(_headers type_conversion.h InstructionDecoderImpl.h)
 
