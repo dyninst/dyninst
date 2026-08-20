@@ -334,19 +334,20 @@ bool DwarfFrameParser::getRegAtFrame(
             // case of undefined
             if(nops == 0 && ops == ops_mem)
             {
-                dwarf_printf("\t case of undefined rule, treats as same_value\n");
+                dwarf_printf("\t case of undefined rule\n");
+                // An undefined return address terminates the walk; check the
+                // abstract register before AArch64 converts it to x30.
+                const bool is_return_address = (reg == Dyninst::ReturnAddr);
+                if (is_return_address)
+                    return false;
                 if(this->arch == Arch_aarch64) {
                   reg = convert_abstract(reg);
                   dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
                 }
 
                 // Dyninst treats as same_value ???
-                if (reg != Dyninst::ReturnAddr) {
-                    cons.readReg(reg);
-                    return true; // true because undefined is a valid output
-                } else {
-                    return false;
-                }
+                cons.readReg(reg);
+                return true; // true because undefined is a valid output
             }
 
             // case of same_value
