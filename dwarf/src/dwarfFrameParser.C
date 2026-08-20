@@ -74,10 +74,14 @@ namespace {
       return aarch64::x29;
     if(abstract == StackTop)
       return aarch64::sp;
-    if(abstract == CFA)
+    if(abstract == CFA) {
       dwarf_printf("No aarch64 register for abstract CFA");
+      return Dyninst::InvalidReg;
+    }
 
-    return Dyninst::InvalidReg;
+    // Preserve concrete AArch64 registers used by same_value rules, such as
+    // sp and x29, while reconstructing non-top frames.
+    return abstract;
   }
 }
 
@@ -478,4 +482,3 @@ void DwarfFrameParser::setupCFIData()
     });
     ANNOTATE_HAPPENS_AFTER(&fde_dwarf_once);
 }
-
