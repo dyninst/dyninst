@@ -44,7 +44,6 @@ dyninst_library(
   PUBLIC_HEADER_FILES ${_public_headers}
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
-  DEFINES INSTRUCTION_LIB
   DYNINST_DEPS common
   PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS ${_subprojects}
