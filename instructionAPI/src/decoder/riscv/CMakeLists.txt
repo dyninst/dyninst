@@ -2,6 +2,7 @@ include_guard(GLOBAL)
 
 if(NOT DYNINST_ENABLE_CAPSTONE)
   add_library(instructionAPI_riscv INTERFACE)
+  install(TARGETS instructionAPI_riscv EXPORT dyninst-targets)
   return()
 endif()
 
@@ -21,7 +22,7 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   PRIVATE_HEADER_FILES ${_headers}
   DYNINST_INTERNAL_DEPS common
-  PRIVATE_DEPS Dyninst::Capstone
+  PUBLIC_DEPS Dyninst::Capstone
 )
 
 set(_inc_dirs
