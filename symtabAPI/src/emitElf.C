@@ -308,19 +308,35 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
 // Get section name table from .shstrtab section, find the last loaded section,
 // maximum segment alignment and if TLS is used
 template<class ElfTypes>
-void emitElf<ElfTypes>::getSectionAndSegmentInfo() {
+bool emitElf<ElfTypes>::getSectionAndSegmentInfo() {
+    oldNumSections = oldElfHandle->e_shnum();
+    oldShstrndx = oldElfHandle->e_shstrndx();
+    oldNumSegments = oldElfHandle->e_phnum();
+
+    if (oldNumSegments + 2 >= PN_XNUM)  {
+        log_elferror(err_func_, "Too many segments, libelf fails if > PN_XNUM");
+        return false;
+    }
+
     sectionNameTable = pdelf_get_shnames(oldElfHandle);
     if (sectionNameTable == NULL) {
         log_elferror(err_func_, ".shstrtab section not found");
+        return false;
     }
 
     Elf_Phdr *phdrs = ElfTypes::elf_getphdr(oldElf);
+    if (oldNumSegments && !phdrs)  {
+        log_elferror(err_func_, "program header table missing or corrupted");
+        return false;
+    }
 
     // Find the maximum of the loaded segment end addresses, and if TLS exists
     Elf_Off maxSegmentEndAddr{};
-    for (unsigned i = 0; i < oldEhdr->e_phnum; i++) {
+    bool foundLoadSegment{};
+    for (unsigned i = 0; i < oldNumSegments; ++i) {
         auto phdr{&phdrs[i]};
         if (phdr->p_type == PT_LOAD) {
+            foundLoadSegment = true;
             auto segmentEndAddr{phdr->p_vaddr + phdr->p_memsz};
             if (maxSegmentEndAddr < segmentEndAddr)
                 maxSegmentEndAddr = segmentEndAddr;
@@ -331,16 +347,21 @@ void emitElf<ElfTypes>::getSectionAndSegmentInfo() {
         }
     }
 
+    if (!foundLoadSegment)  {
+        log_elferror(err_func_, "no loadable segments found");
+        return false;
+    }
+
     // Find the section index containing the max section end address, that is
     // contained in the max loaded segment.  Ignore the shstrndx section since
     // this section is always moved to the end.
     Elf_Off maxSectionEndAddr{};
-    for (unsigned i = 0; i < oldEhdr->e_shnum; ++i)  {
-        if (i == oldEhdr->e_shstrndx)
+    for (unsigned i = 0; i < oldNumSections; ++i)  {
+        if (i == oldShstrndx)
             continue;                   // .shstrtab shstrndx section always moved, ignore
         auto scn{elf_getscn(oldElf, i)};
         auto shdr{ElfTypes::elf_getshdr(scn)};
-        if (!(shdr->sh_flags & SHF_ALLOC))
+        if (!shdr || !(shdr->sh_flags & SHF_ALLOC))
             continue;                   // not allocated, so no address
         auto endAddr{shdr->sh_addr + shdr->sh_size};
         if (maxSectionEndAddr <= endAddr && endAddr <= maxSegmentEndAddr)  {
@@ -348,6 +369,13 @@ void emitElf<ElfTypes>::getSectionAndSegmentInfo() {
             lastLoadedSectionIndex = i;
         }
     }
+
+    if (!lastLoadedSectionIndex)  {
+        log_elferror(err_func_, "no loadable sections found to insert after");
+        return false;
+    }
+
+    return true;
 }
 
 // Renames 1st oldName section by changing 2nd char to 'o'
@@ -368,10 +396,8 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
 
     oldEhdr = ElfTypes::elf_getehdr(oldElf);
 
-    getSectionAndSegmentInfo();
-    if (!sectionNameTable)  {
+    if (!getSectionAndSegmentInfo())
         return false;
-    }
     if (object->getLoadAddress() == 0)  {
         library_adjust = std::max(static_cast<unsigned>(getpagesize()), maxSegmentAlignment);
     }
@@ -424,9 +450,7 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
     }
     *newEhdr = *oldEhdr;
 
-    newEhdr->e_shnum += newSecs.size();
-
-    unsigned insertPoint = oldEhdr->e_shnum + 1;
+    unsigned insertPoint = oldNumSections + 1;  // value if loop below fails to set
     unsigned insertPointOffset = 0;
 
     newEhdr->e_phoff = sizeof(Elf_Ehdr);
@@ -462,7 +486,7 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         }
 
         // write the shstrtabsection at the end
-        if (scncount == oldEhdr->e_shstrndx)
+        if (scncount == oldShstrndx)
             continue;
 
         sectionNumber++;
@@ -698,7 +722,24 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         }
     }
 
-    newEhdr->e_shstrndx = scncount - 1;
+    // libelf does not handle the extended for e_shstrndx, so manually do it here
+    unsigned newShstrndx = scncount - 1;
+    if (newShstrndx >= SHN_LORESERVE) {
+        newEhdr->e_shstrndx = SHN_XINDEX;
+        if (auto scn0 = elf_getscn(newElf, 0))  {
+            if (auto shdr0 = ElfTypes::elf_getshdr(scn0))  {
+                shdr0->sh_link = newShstrndx;
+            }  else  {
+                log_elferror(err_func_, "elf_getshdr(scn0) failed");
+                return false;
+            }
+        }  else  {
+            log_elferror(err_func_, "elf_getscn(newElf, 0) failed");
+            return false;
+        }
+    } else {
+        newEhdr->e_shstrndx = newShstrndx;
+    }
 
     // Move the section header to the end
     newEhdr->e_shoff = shdr->sh_offset + shdr->sh_size;
@@ -747,7 +788,7 @@ void emitElf<ElfTypes>::fixPhdrs() {
     rewrite_printf("::fixPhdrs():\n");
     unsigned pgSize = getpagesize();
 
-    newEhdr->e_phnum = oldEhdr->e_phnum;
+    newEhdr->e_phnum = oldNumSegments;
     newEhdr->e_phentsize = oldEhdr->e_phentsize;
 
     newEhdr->e_phnum++;
@@ -757,7 +798,7 @@ void emitElf<ElfTypes>::fixPhdrs() {
     Elf_Phdr *old = oldPhdr;
     vector<Elf_Phdr> segments;
 
-    for (unsigned i = 0; i < oldEhdr->e_phnum; i++)
+    for (unsigned i = 0; i < oldNumSegments; i++)
     {
         segments.push_back(*old);
 

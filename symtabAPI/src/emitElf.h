@@ -256,6 +256,9 @@ namespace Dyninst {
 
             bool isStripped{};
 
+            unsigned oldNumSections{};
+            unsigned oldShstrndx{};
+            unsigned oldNumSegments{};
             const char *sectionNameTable{};
             const char *getSectionName(Elf_Shdr *shdr)
                         {return sectionNameTable ? &sectionNameTable[shdr->sh_name] : nullptr;}
@@ -269,7 +272,7 @@ namespace Dyninst {
             bool createSymbolTables(std::set<Symbol *> &allSymbols);
             bool createElfSymbol(Symbol *symbol, unsigned strIndex, std::vector<Elf_Sym *> &symbols,
                                  bool dynSymFlag = false);
-            void getSectionAndSegmentInfo();
+            bool getSectionAndSegmentInfo();
             void renameSection(const std::string &oldName);
             void fixPhdrs();
 
