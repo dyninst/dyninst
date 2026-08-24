@@ -830,37 +830,19 @@ void emitElf<ElfTypes>::fixPhdrs() {
         newSeg.p_flags = PF_R + PF_W + PF_X;
         newSeg.p_align = pgSize;
 
-        // Search position to insert new segment.
-        //
-        // The ELF spec requires loadable segments to appear in the program
-        // header table sorted by ascending p_vaddr. PT_LOAD entries are NOT
-        // necessarily contiguous in the table -- other segment types (e.g.
-        // GNU_STACK) can appear between them -- so we cannot detect "the end
-        // of the loadable phdrs" by looking for the first LOAD->non-LOAD
-        // transition (issue #2081: libtorch_python.so has GNU_STACK as the
-        // second program header, right after the first LOAD).
-        //
-        // Insert the new segment immediately before the first PT_LOAD whose
-        // p_vaddr is greater than newSegmentStart; if there is none (the new
-        // segment has the highest address, which is the common case since it
-        // is appended past the end of the last loadable segment), append it at
-        // the end of the table. Non-loadable entries keep their relative
-        // order, and the PT_LOAD entries stay sorted by p_vaddr.
-        unsigned int position = segments.size();
-        for( unsigned i = 0; i < segments.size(); i++ )
-        {
-            if (segments[i].p_type == PT_LOAD &&
-                segments[i].p_vaddr > newSegmentStart) {
-                position = i;
+        // Insert the new segment(s) before the first segment with a vaddr greater than this one
+        unsigned int insertAt = segments.size();
+        for (unsigned i = 0; i < segments.size(); ++i)   {
+            if (segments[i].p_type == PT_LOAD && segments[i].p_vaddr > newSegmentStart)  {
+                insertAt = i;
                 break;
             }
         }
 
-        // Insert new Segment at position
-        if( position == segments.size() )
+        if( insertAt == segments.size() )
             segments.push_back( newSeg );
         else
-            segments.insert( segments.begin() + position, newSeg );
+            segments.insert( segments.begin() + insertAt, newSeg );
     }
 
     // Create newPhdr and copy segments to it
