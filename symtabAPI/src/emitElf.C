@@ -363,10 +363,24 @@ void emitElf<ElfTypes>::renameSection(const std::string &oldName) {
 }
 
 template<class ElfTypes>
-bool emitElf<ElfTypes>::driver(std::string fName) {
+bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols) {
+    rewrite_printf("::driver for emitElf\n");
+
+    oldEhdr = ElfTypes::elf_getehdr(oldElf);
+
+    getSectionAndSegmentInfo();
+    if (!sectionNameTable)  {
+        return false;
+    }
+    if (object->getLoadAddress() == 0)  {
+        library_adjust = std::max(static_cast<unsigned>(getpagesize()), maxSegmentAlignment);
+    }
+    if (!createSymbolTables(allSymbols))  {
+        return false;  // createSymbolTables failed
+    }
+
     Region *foundSec = NULL;
     unsigned pgSize = getpagesize();
-    rewrite_printf("::driver for emitElf\n");
 
     string newFName = fName + "XXXXXX";
     auto buf = std::unique_ptr<char[]>(new char[newFName.length() + 1]);
@@ -408,16 +422,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         log_elferror(err_func_, "newEhdr failed\n");
         return false;
     }
-    oldEhdr = ElfTypes::elf_getehdr(oldElf);
     *newEhdr = *oldEhdr;
-
-    getSectionAndSegmentInfo();
-    if (!sectionNameTable)  {
-        return false;
-    }
-    if (object->getLoadAddress() == 0)  {
-        library_adjust = std::max(static_cast<unsigned>(getpagesize()), maxSegmentAlignment);
-    }
 
     newEhdr->e_shnum += newSecs.size();
 

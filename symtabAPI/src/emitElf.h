@@ -175,9 +175,7 @@ namespace Dyninst {
                 for(auto *b : buffers) free(b);
             }
 
-            bool createSymbolTables(std::set<Symbol *> &allSymbols);
-
-            bool driver(std::string fName);
+            bool driver(std::string fName, std::set<Symbol *> &allSymbols);
 
         private:
             Elf_X *oldElfHandle{};
@@ -268,6 +266,7 @@ namespace Dyninst {
 
             void (*err_func_)(const char*);
 
+            bool createSymbolTables(std::set<Symbol *> &allSymbols);
             bool createElfSymbol(Symbol *symbol, unsigned strIndex, std::vector<Elf_Sym *> &symbols,
                                  bool dynSymFlag = false);
             void getSectionAndSegmentInfo();
