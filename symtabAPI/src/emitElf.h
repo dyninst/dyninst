@@ -262,9 +262,13 @@ namespace Dyninst {
             const char *sectionNameTable{};
             const char *getSectionName(Elf_Shdr *shdr)
                         {return sectionNameTable ? &sectionNameTable[shdr->sh_name] : nullptr;}
-            int library_adjust{};
+            Elf_Off  address_adjust{}; // amount every address from old image moves
+            Elf_Off offset_adjust{};   // amount every file offset from old image moves
             unsigned lastLoadedSectionIndex{};  // last section contained in last LOAD segment
-            Elf_Word maxSegmentAlignment{};
+            Elf_Off maxSegmentAlignment{};
+            Elf_Off maxSectionAlignment{};
+            unsigned offset0LoadSegmentIndex{};   // index of first LOAD segment
+            bool foundOffset0LoadSegment() const { return offset0LoadSegmentIndex < oldNumSegments; }
             ObjectELF *object;
 
             void (*err_func_)(const char*);

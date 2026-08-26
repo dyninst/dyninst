@@ -176,7 +176,7 @@ bool emitElfStatic::updateTOC(Symtab *, LinkMap &, Offset){
 }
 
 inline
-static bool adjustValInRegion(Region *reg, Offset offInReg, Offset addressWidth, int adjust) {
+static bool adjustValInRegion(Region *reg, Offset offInReg, Offset addressWidth, Offset adjust) {
     Offset newValue;
     unsigned char *oldValues;
 
@@ -186,7 +186,7 @@ static bool adjustValInRegion(Region *reg, Offset offInReg, Offset addressWidth,
     return reg->patchData(offInReg, &newValue, addressWidth);
 }
 
-bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int library_adjust) {
+bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, Offset address_adjust) {
     Region *targetRegion = obj->findEnclosingRegion(rel.rel_addr());
     if (targetRegion == NULL) {
         rewrite_printf("Failed to find enclosing Region for relocation");
@@ -196,11 +196,11 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
     switch (rel.getRelType()) {
         case R_RISCV_RELATIVE:
         case R_RISCV_IRELATIVE:
-            rel.setAddend(rel.addend() + library_adjust);
+            rel.setAddend(rel.addend() + address_adjust);
             break;
         case R_RISCV_JUMP_SLOT:
             if (!adjustValInRegion(targetRegion, rel.rel_addr() - targetRegion->getDiskOffset(),
-                        addressWidth, library_adjust))
+                        addressWidth, address_adjust))
             {
                 rewrite_printf("Failed to update relocation\n");
                 return false;

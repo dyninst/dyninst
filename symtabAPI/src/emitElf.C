@@ -28,7 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-
 #include <cstring>
 #include <algorithm>
 #include "emitElf.h"
@@ -155,18 +154,18 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
     Elf_Sym *sym = new Elf_Sym();
     sym->st_name = strIndex;
 
-    int offset_adjust;
+    Elf_Off addr_adjust{};
     if(elfSymType(symbol) == STT_TLS) {
-        offset_adjust = 0; // offset relative to TLS section, any new entries go at end
+        addr_adjust = 0; // offset relative to TLS section, any new entries go at end
     } else {
-        offset_adjust = library_adjust;
+        addr_adjust = address_adjust;
     }
     // OPD-based systems
     if (symbol->getPtrOffset()) {
-        sym->st_value = symbol->getPtrOffset() + offset_adjust;
+        sym->st_value = symbol->getPtrOffset() + addr_adjust;
     }
     else if (symbol->getOffset()) {
-        sym->st_value = symbol->getOffset() + offset_adjust;
+        sym->st_value = symbol->getOffset() + addr_adjust;
     }
 
     sym->st_size = symbol->getSize();
@@ -306,7 +305,8 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
 
 
 // Get section name table from .shstrtab section, find the last loaded section,
-// maximum segment alignment and if TLS is used
+// maximum section/segment alignment and if TLS is used, compute address_adjust
+// and offset_adjust
 template<class ElfTypes>
 bool emitElf<ElfTypes>::getSectionAndSegmentInfo() {
     oldNumSections = oldElfHandle->e_shnum();
@@ -330,9 +330,11 @@ bool emitElf<ElfTypes>::getSectionAndSegmentInfo() {
         return false;
     }
 
-    // Find the maximum of the loaded segment end addresses, and if TLS exists
+    // Find the maximum of the loaded segment end addresses, the max segment alignment
+    // LOAD segment containing offset 0, and if TLS exists
     Elf_Off maxSegmentEndAddr{};
     bool foundLoadSegment{};
+    offset0LoadSegmentIndex = oldNumSegments;  // not found value
     for (unsigned i = 0; i < oldNumSegments; ++i) {
         auto phdr{&phdrs[i]};
         if (phdr->p_type == PT_LOAD) {
@@ -342,6 +344,8 @@ bool emitElf<ElfTypes>::getSectionAndSegmentInfo() {
                 maxSegmentEndAddr = segmentEndAddr;
             if (maxSegmentAlignment < phdr->p_align)
                 maxSegmentAlignment = phdr->p_align;
+            if (!phdr->p_offset && !foundOffset0LoadSegment())
+                offset0LoadSegmentIndex = i;
         } else if (PT_TLS == phdr->p_type) {
             TLSExists = true;
         }
@@ -363,7 +367,11 @@ bool emitElf<ElfTypes>::getSectionAndSegmentInfo() {
         auto shdr{ElfTypes::elf_getshdr(scn)};
         if (!shdr || !(shdr->sh_flags & SHF_ALLOC))
             continue;                   // not allocated, so no address
+        if (maxSectionAlignment < shdr->sh_addralign)
+            maxSectionAlignment = shdr->sh_addralign;
         auto endAddr{shdr->sh_addr + shdr->sh_size};
+        if ((shdr->sh_flags & SHF_TLS) && shdr->sh_type == SHT_NOBITS)
+            continue;                   // .tbss does not occupy address space
         if (maxSectionEndAddr <= endAddr && endAddr <= maxSegmentEndAddr)  {
             maxSectionEndAddr = endAddr;
             lastLoadedSectionIndex = i;
@@ -375,13 +383,54 @@ bool emitElf<ElfTypes>::getSectionAndSegmentInfo() {
         return false;
     }
 
+    /* Room has to be made at the front of the file for the new program header
+     * table, which shifts every file offset of the old image by offset_adjust
+     * and, for a PIE/shared object, every address by address_adjust.  There
+     * are two requirements that must be maintained:
+     *
+     *  - a LOAD segment requires p_vaddr == p_offset (mod p_align), so
+     *    address_adjust == offset_adjust (mod p_align) for every segment
+     *  - data alignment requirements of basic types or from alignas implies
+     *    address_adjust must be a multiple of the section alignment holding it
+     *
+     * For a PIE/shared object the whole image moves up, so using one value for
+     * both shifts satisfies the first requirement for any p_align, and it only
+     * has to be a multiple of the largest section alignment.
+     *
+     * An executable loaded at a fixed address keeps its addresses instead: the
+     * segment at file offset 0 grows downwards to cover the new space, leaving
+     * every address unchanged.  Nothing moves, so section alignment is not a
+     * concern, but the file shift alone has to keep every segment congruent,
+     * which makes it a multiple of the largest segment alignment.
+     */
+    auto pageSize = static_cast<Elf_Off>(getpagesize());
+    if (oldEhdr->e_type == ET_DYN)  {
+        address_adjust = std::max(pageSize, maxSectionAlignment); // address can be adjusted for ET_DYN
+        offset_adjust = address_adjust;
+    }  else  {
+        offset_adjust = std::max(pageSize, maxSegmentAlignment);  // addresses fixed so don't move addrs
+    }
+
+    if (offset_adjust % pageSize)  {
+        log_elferror(err_func_, "segment or section alignment is not a multiple of the pagesize");
+        return false;
+    }
+    if (!foundOffset0LoadSegment())  {
+        log_elferror(err_func_, "no loaded segment at file offset 0 to cover the program table");
+        return false;
+    }
+    if (address_adjust == 0 && phdrs[offset0LoadSegmentIndex].p_vaddr <= offset_adjust)  {
+        log_elferror(err_func_, "no room below the first loaded segment for the program headers");
+        return false;
+    }
+
     return true;
 }
 
 // Renames 1st oldName section by changing 2nd char to 'o'
 template<class ElfTypes>
 void emitElf<ElfTypes>::renameSection(const std::string &oldName) {
-    assert(oldName.length() >= 2);
+    assert(oldName.length() >= 2 && oldName[1] != 'o');
     for (auto &secName : secNames)  {
         if (secName == oldName)  {
             secName[1] = 'o';
@@ -398,15 +447,12 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
 
     if (!getSectionAndSegmentInfo())
         return false;
-    if (object->getLoadAddress() == 0)  {
-        library_adjust = std::max(static_cast<unsigned>(getpagesize()), maxSegmentAlignment);
-    }
+
     if (!createSymbolTables(allSymbols))  {
         return false;  // createSymbolTables failed
     }
 
     Region *foundSec = NULL;
-    unsigned pgSize = getpagesize();
 
     string newFName = fName + "XXXXXX";
     auto buf = std::unique_ptr<char[]>(new char[newFName.length() + 1]);
@@ -450,11 +496,11 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
     }
     *newEhdr = *oldEhdr;
 
-    unsigned insertPoint = oldNumSections + 1;  // value if loop below fails to set
-    unsigned insertPointOffset = 0;
+    unsigned insertPoint = oldNumSections + 1;  // section index of inserted sections
+    Elf_Off insertPointOffset{};                // file offset of inserted sections
 
     newEhdr->e_phoff = sizeof(Elf_Ehdr);
-    newEhdr->e_entry += library_adjust;
+    newEhdr->e_entry += address_adjust;
 
     /* flag the file for no auto-layout */
     elf_flagelf(newElf, ELF_C_SET, ELF_F_LAYOUT);
@@ -473,6 +519,8 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
 
     bool createdLoadableSections = false;
     unsigned sectionNumber = 0;
+
+    auto moveSecAddrRange = object->getMoveSecAddrRange();
 
     for (unsigned scncount = 1; (scn = elf_nextscn(oldElf, scn)); scncount++) {
         //copy sections from oldElf to newElf
@@ -503,13 +551,13 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         newshdr->sh_name = addSectionName(name);
 
         if (newshdr->sh_addr) {
-            newshdr->sh_addr += library_adjust;
+            newshdr->sh_addr += address_adjust;
 
 #if defined(DYNINST_CODEGEN_ARCH_AARCH64)
             if (strcmp(name, ".plt")==0)
-                updateDynamic(DT_TLSDESC_PLT, library_adjust);
+                updateDynamic(DT_TLSDESC_PLT, address_adjust);
             if (strcmp(name, ".got")==0)
-                updateDynamic(DT_TLSDESC_GOT, library_adjust);
+                updateDynamic(DT_TLSDESC_GOT, address_adjust);
 #endif
         }
 
@@ -529,7 +577,7 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
             newshdr->sh_entsize = 0x0;
         }
 
-        if (library_adjust > 0 && newdata->d_buf && newdata->d_size) {
+        if (address_adjust != 0 && newdata->d_buf && newdata->d_size) {
             for (auto relr_addr : object->getRelrDynRelocs()) {
                 if (relr_addr < shdr->sh_addr ||
                     relr_addr + sizeof(Elf_Relr) > shdr->sh_addr + shdr->sh_size)
@@ -542,12 +590,10 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
                 char *loc = static_cast<char *>(newdata->d_buf) + relr_off;
                 auto val = Dyninst::read_memory_as<Elf_Relr>(loc);
                 if (!val) continue;
-                val += library_adjust;
+                val += address_adjust;
                 Dyninst::write_memory_as(loc, val);
             }
         }
-
-        auto moveSecAddrRange = object->getMoveSecAddrRange();
 
         for (const auto &m : moveSecAddrRange) {
             if ((m[0] == shdr->sh_addr) ||
@@ -606,12 +652,12 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
 
         }
 
-        if (library_adjust > 0 &&
+        if (address_adjust != 0 &&
                 (strcmp(name, ".init_array") == 0 || strcmp(name, ".fini_array") == 0 ||
                  strcmp(name, "__libc_subfreeres") == 0 || strcmp(name, "__libc_atexit") == 0 ||
                  strcmp(name, "__libc_thread_subfreeres") == 0 || strcmp(name, "__libc_IO_vtables") == 0)) {
             std::vector<Offset> &relr_relocs = object->getRelrDynRelocs();
-            // Every pointer-sized word in this section is shifted by library_adjust.
+            // Every pointer-sized word in this section is shifted by address_adjust.
             // A word that is also a RELR relocation target was already shifted by the
             // earlier RELR loop, so skip to avoid offsetting it twice
             std::unordered_set<Offset> relr_addrs(relr_relocs.begin(), relr_relocs.end());
@@ -623,7 +669,7 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
                 Elf_Relr val{};
                 read_memory_as(val, loc);
                 if(val == 0) continue;
-                val += library_adjust;
+                val += address_adjust;
                 write_memory_as(loc, val);
             }
         }
@@ -639,23 +685,20 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
          * by the difference in size of the new PHDR segment.
          */
         if (newshdr->sh_offset > 0) {
-            if (newshdr->sh_offset < pgSize && !strcmp(name, INTERP_NAME)) {
-                newshdr->sh_addr -= pgSize;
+            if (newshdr->sh_offset < offset_adjust && !strcmp(name, INTERP_NAME)) {
+                newshdr->sh_addr -= offset_adjust;
                 newshdr->sh_addr += oldEhdr->e_phentsize;
                 newshdr->sh_offset += oldEhdr->e_phentsize;
             } else
-                newshdr->sh_offset += pgSize;
+                newshdr->sh_offset += offset_adjust;
         }
 
-        if (scncount > insertPoint && newshdr->sh_offset >= insertPointOffset)
-            newshdr->sh_offset += loadSecTotalSize;
+        // shift section offsets after the insertPoint that come after the insertPoint's offset
+        if (scncount > insertPoint && shdr->sh_offset >= insertPointOffset)
+            newshdr->sh_offset += loadSecTotalSize + extraAlignSize;
 
         if (newshdr->sh_offset > 0)
             newshdr->sh_offset += dirtySecsChange;
-
-        if (newshdr->sh_offset >= insertPointOffset) {
-            newshdr->sh_offset += extraAlignSize;
-        }
 
         if (foundSec->isDirty())
             dirtySecsChange += newshdr->sh_size - shdr->sh_size;
@@ -677,11 +720,10 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         if (scncount == lastLoadedSectionIndex && !createdLoadableSections) {
             createdLoadableSections = true;
             insertPoint = scncount;
-            if (SHT_NOBITS == shdr->sh_type) {
-                insertPointOffset = shdr->sh_offset;
-            } else {
-                insertPointOffset = shdr->sh_offset + shdr->sh_size;
-            }
+            insertPointOffset = shdr->sh_offset;
+            if (shdr->sh_type != SHT_NOBITS)
+                insertPointOffset += shdr->sh_size;
+
 
             if (!createLoadableSections(newshdr, extraAlignSize, newNameIndexMapping,
                        sectionNumber))
@@ -786,7 +828,6 @@ void emitElf<ElfTypes>::fixPhdrs() {
      * ascending order, sorted on the p_vaddr member.'
      */
     rewrite_printf("::fixPhdrs():\n");
-    unsigned pgSize = getpagesize();
 
     newEhdr->e_phnum = oldNumSegments;
     newEhdr->e_phentsize = oldEhdr->e_phentsize;
@@ -810,7 +851,7 @@ void emitElf<ElfTypes>::fixPhdrs() {
             segments[i].p_filesz = segments[i].p_memsz;
         }
         else if (old->p_type == PT_PHDR) {
-            segments[i].p_vaddr = old->p_vaddr - pgSize + library_adjust;
+            segments[i].p_vaddr = old->p_vaddr - offset_adjust + address_adjust;
             segments[i].p_offset = newEhdr->e_phoff;
             segments[i].p_paddr = segments[i].p_vaddr;
             segments[i].p_filesz = sizeof(Elf_Phdr) * newEhdr->e_phnum;
@@ -823,39 +864,35 @@ void emitElf<ElfTypes>::fixPhdrs() {
             segments[i].p_memsz = newTLSData->sh_size + old->p_memsz - old->p_filesz;
             segments[i].p_align = newTLSData->sh_addralign;
         } else if (old->p_type == PT_LOAD) {
-            if (!old->p_offset) {
-                if (segments[i].p_vaddr) {
-                    segments[i].p_vaddr = old->p_vaddr - pgSize;
-                    segments[i].p_align = pgSize;
-                }
+            if (i == offset0LoadSegmentIndex) {
+                if (segments[i].p_vaddr)
+                    segments[i].p_vaddr = old->p_vaddr - offset_adjust;
 
                 segments[i].p_paddr = segments[i].p_vaddr;
-                segments[i].p_filesz += pgSize;
+                segments[i].p_filesz += offset_adjust;
                 segments[i].p_memsz = segments[i].p_filesz;
             } else {
-                segments[i].p_offset += pgSize;
-                segments[i].p_align = pgSize;
+                segments[i].p_offset += offset_adjust;
             }
             if (segments[i].p_vaddr) {
-                segments[i].p_vaddr += library_adjust;
-                segments[i].p_paddr += library_adjust;
+                segments[i].p_vaddr += address_adjust;
+                segments[i].p_paddr += address_adjust;
             }
         } else if (old->p_type == PT_INTERP && old->p_offset) {
-            Elf_Off addr_shift = library_adjust;
-            Elf_Off offset_shift = pgSize;
-            if (old->p_offset < pgSize) {
+            Elf_Off addr_shift = address_adjust;
+            Elf_Off offset_shift = offset_adjust;
+            if (old->p_offset < offset_adjust) {
                 offset_shift = oldEhdr->e_phentsize;
-                addr_shift -= pgSize - offset_shift;
+                addr_shift -= offset_adjust - offset_shift;
             }
             segments[i].p_offset += offset_shift;
             segments[i].p_vaddr += addr_shift;
             segments[i].p_paddr += addr_shift;
-        }
-        else if (old->p_offset) {
-            segments[i].p_offset += pgSize;
+        } else if (old->p_offset) {
+            segments[i].p_offset += offset_adjust;
             if (segments[i].p_vaddr) {
-                segments[i].p_vaddr += library_adjust;
-                segments[i].p_paddr += library_adjust;
+                segments[i].p_vaddr += address_adjust;
+                segments[i].p_paddr += address_adjust;
             }
         }
 
@@ -874,7 +911,7 @@ void emitElf<ElfTypes>::fixPhdrs() {
         newSeg.p_memsz = (currEndAddress - firstNewLoadSec->sh_addr) -
             (newSegmentStart - firstNewLoadSec->sh_addr);
         newSeg.p_flags = PF_R + PF_W + PF_X;
-        newSeg.p_align = pgSize;
+        newSeg.p_align = getpagesize();
 
         // Insert the new segment(s) before the first segment with a vaddr greater than this one
         unsigned int insertAt = segments.size();
@@ -1107,7 +1144,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
         } else {
             // The offset can be computed by determining the difference from
             // the first new loadable section
-            newshdr->sh_offset = firstNewLoadSec->sh_offset + library_adjust +
+            newshdr->sh_offset = firstNewLoadSec->sh_offset + address_adjust +
                                  (newSec->getDiskOffset() - firstNewLoadSec->sh_addr);
 
             // Account for inter-section spacing due to alignment constraints
@@ -1115,9 +1152,9 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
         }
 
         if (newSec->getDiskOffset())
-            newshdr->sh_addr = newSec->getDiskOffset() + library_adjust;
+            newshdr->sh_addr = newSec->getDiskOffset() + address_adjust;
         else if (!prevshdr) {
-            newshdr->sh_addr = zstart + library_adjust;
+            newshdr->sh_addr = zstart + address_adjust;
         }
         else {
             newshdr->sh_addr = prevshdr->sh_addr + prevshdr->sh_size;
@@ -1589,7 +1626,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
 
         if (s->getStrIndex() == -1) {
             // New Symbol - append to the list of strings
-            dynsymbolStrs.push_back(s->getMangledName().c_str());
+            dynsymbolStrs.push_back(s->getMangledName());
             s->setStrIndex(dynsymbolNamesLength);
             dynsymbolNamesLength += s->getMangledName().length() + 1;
         }
@@ -1634,7 +1671,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     i = 0;
     for (const auto &s : allDynSymbols) {
         createElfSymbol(s, s->getStrIndex(), dynsymbols, true);
-        dynSymNameMapping[s->getMangledName().c_str()] = i + nTmp;
+        dynSymNameMapping[s->getMangledName()] = i + nTmp;
         ++i;
         dynsymVector.push_back(s);
     }
@@ -1809,7 +1846,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
         //  This "segment" contains the .dynamic section. A special symbol,
         //  _DYNAMIC, labels the section
         if (newSec->getDiskOffset())
-          sec_addr = newSec->getDiskOffset() + library_adjust;
+          sec_addr = newSec->getDiskOffset() + address_adjust;
         else
           sec_addr += prev_size;
         prev_size = newSec->getDiskSize();
@@ -1853,17 +1890,17 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
     //reconstruct .rel
     for (auto &reloc : relocation_table) {
 
-        if (library_adjust) {
+        if (address_adjust) {
             // If we are shifting the library down in memory, we need to update
             // any relative offsets in the library. These relative offsets are 
             // found via relocations
 
             // XXX ...ignore the return value
-            emitElfUtils::updateRelocation(obj, reloc, library_adjust);
+            emitElfUtils::updateRelocation(obj, reloc, address_adjust);
         }
 
         if ((object->getRelType() == Region::RT_REL) && (reloc.regionType() == Region::RT_REL)) {
-            rels[j].r_offset = reloc.rel_addr() + library_adjust;
+            rels[j].r_offset = reloc.rel_addr() + address_adjust;
             unsigned long sym_offset = 0;
             std::string sym_name = reloc.name();
             if (!sym_name.empty()) {
@@ -1884,10 +1921,10 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
             }
             j++;
         } else if ((object->getRelType() == Region::RT_RELA) && (reloc.regionType() == Region::RT_RELA)) {
-            relas[k].r_offset = reloc.rel_addr() + library_adjust;
+            relas[k].r_offset = reloc.rel_addr() + address_adjust;
             relas[k].r_addend = reloc.addend();
             //if (relas[k].r_addend)
-            //   relas[k].r_addend += library_adjust;
+            //   relas[k].r_addend += address_adjust;
             unsigned long sym_offset = 0;
             std::string sym_name = reloc.name();
             if (!sym_name.empty()) {
@@ -1914,7 +1951,7 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
     }
     for (const auto &newRel : newRels) {
         if ((object->getRelType() == Region::RT_REL) && (newRel.regionType() == Region::RT_REL)) {
-            rels[j].r_offset = newRel.rel_addr() + library_adjust;
+            rels[j].r_offset = newRel.rel_addr() + address_adjust;
             if (dynSymNameMapping.find(newRel.name()) != dynSymNameMapping.end()) {
                 rels[j].r_info = ElfTypes::makeRelocInfo(dynSymNameMapping[newRel.name()],
                                                          newRel.getRelType());
@@ -1925,9 +1962,9 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
             j++;
             l++;
         } else if ((object->getRelType() == Region::RT_RELA) && (newRel.regionType() == Region::RT_RELA)) {
-            relas[k].r_offset = newRel.rel_addr() + library_adjust;
+            relas[k].r_offset = newRel.rel_addr() + address_adjust;
             relas[k].r_addend = newRel.addend();
-            //if( relas[k].r_addend ) relas[k].r_addend += library_adjust;
+            //if( relas[k].r_addend ) relas[k].r_addend += address_adjust;
             if (dynSymNameMapping.find(newRel.name()) != dynSymNameMapping.end()) {
                 relas[k].r_info = ElfTypes::makeRelocInfo(dynSymNameMapping[newRel.name()],
                                                           newRel.getRelType());
@@ -2018,7 +2055,7 @@ void emitElf<ElfTypes>::createRelrRelocationSection(std::vector<Offset> &relr_ta
     //           last address
     std::vector<Offset> addrs(relr_table);
     for (auto &a : addrs)
-        a += library_adjust;
+        a += address_adjust;
     std::sort(addrs.begin(), addrs.end());
     addrs.erase(std::unique(addrs.begin(), addrs.end()), addrs.end());
 
@@ -2298,7 +2335,7 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
         long name = entry.first;
         long value = entry.second;
         dynsecData[curpos].d_tag = name;
-        long adjust = 0;
+        Elf_Off adjust = 0;
         switch(name)
         {
 
@@ -2306,7 +2343,7 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
             case DT_INIT:
             case DT_FINI:
             case DT_DYNINST:
-                adjust = library_adjust;
+                adjust = address_adjust;
                 break;
             default:
                 break;
@@ -2318,15 +2355,15 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
         if (name == DT_DYNINST) {
             // If we find the .dyninstInst section and DT_DYNINST dynamic entry, 
             // it means we are doing binary rewriting with trap springboards. 
-            // If library_adjust is non-zero, then we also need to adjust springboard traps
+            // If address_adjust is non-zero, then we also need to adjust springboard traps
             Region *dyninstReg = NULL;
-            if (obj->findRegion(dyninstReg, ".dyninstInst") && library_adjust) {
+            if (obj->findRegion(dyninstReg, ".dyninstInst") && address_adjust) {
                 // The trap mapping header's in-memory offset is specified by the dynamic entry
                 // We now need to get raw section data, and the raw sectiond data offset of the header
                 auto header = alignas_cast<trap_mapping_header>(((char*)dyninstReg->getPtrToRawData() + value - dyninstReg->getMemOffset()));
                 for (unsigned i = 0; i < header->num_entries; i++) {
-                    header->traps[i].source = (void*) ((char*)header->traps[i].source + library_adjust);
-                    header->traps[i].target = (void*) ((char*)header->traps[i].target + library_adjust);
+                    header->traps[i].source = (void*) ((char*)header->traps[i].source + address_adjust);
+                    header->traps[i].target = (void*) ((char*)header->traps[i].target + address_adjust);
                 }
             }
         }
@@ -2400,12 +2437,12 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
 #endif
                 /**
                  * List every dynamic entry that references an address and isn't already
-                 * updated here.  library_adjust will be a page size if
+                 * updated here.  address_adjust will be a page size if
                  * we're dealing with a library without a fixed load address.  We'll be shifting
                  * the addresses of that library by a page.
                  **/
                 dynsecData[curpos] = dyns[i];
-                dynsecData[curpos].d_un.d_ptr += library_adjust;
+                dynsecData[curpos].d_un.d_ptr += address_adjust;
                 dynamicSecData[dyns[i].d_tag].push_back(dynsecData + curpos);
                 curpos++;
                 break;

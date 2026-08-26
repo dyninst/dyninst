@@ -153,7 +153,7 @@ bool emitElfStatic::updateTOC(Symtab *, LinkMap &, Offset ) {
     assert(!EMIT_STATIC_ASSERT);
     return false;
 }
-bool emitElfUtils::updateRelocation(Symtab *, relocationEntry &, int) {
+bool emitElfUtils::updateRelocation(Symtab *, relocationEntry &, Offset) {
     assert(!EMIT_STATIC_ASSERT);
     return false;
 }
