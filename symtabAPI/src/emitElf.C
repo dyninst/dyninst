@@ -439,6 +439,26 @@ void emitElf<ElfTypes>::renameSection(const std::string &oldName) {
     }
 }
 
+class emitElfResourceMgr
+{
+    private:
+        int  fd{-1};
+        std::string fn;
+        Elf* elf{};
+    public:
+        emitElfResourceMgr(int f, std::string s) : fd(f), fn(s) {}
+        ~emitElfResourceMgr() { closeElf(); closeFd(); unlink(); }
+        emitElfResourceMgr(const emitElfResourceMgr&) = delete;
+        emitElfResourceMgr(const emitElfResourceMgr&&) = delete;
+        emitElfResourceMgr& operator=(const emitElfResourceMgr&) = delete;
+        emitElfResourceMgr& operator=(const emitElfResourceMgr&&) = delete;
+        void setElf(Elf *e) { elf = e; }
+        void noUnlink() { fn = ""; }
+        void closeFd()  { if (fd == -1) return;   close(fd);            fd = -1; }
+        void unlink()   { if (fn.empty()) return; ::unlink(fn.c_str()); noUnlink(); }
+        void closeElf() { if (!elf) return;       elf_end(elf);         elf = nullptr; }
+};
+
 template<class ElfTypes>
 bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols) {
     rewrite_printf("::driver for emitElf\n");
@@ -459,12 +479,13 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
     strncpy(buf.get(), newFName.c_str(), newFName.length() + 1);
 
     auto newfd = mkstemp(buf.get());
+    newFName = buf.get();
 
     if (newfd == -1) {
         log_elferror(err_func_, "error opening file to write symbols");
         return false;
     }
-    newFName = buf.get();
+    emitElfResourceMgr emitElfResources(newfd, newFName);
 
     struct stat statBuf;
     decltype(statBuf.st_mode) origFdMode{};
@@ -482,6 +503,7 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         cerr << "Failed to elf_begin" << endl;
         return false;
     }
+    emitElfResources.setElf(newElf);
 
     addSectionName("");  // section 0 is always ST_NULL with an empty name
     loadSecTotalSize = 0;
@@ -799,15 +821,15 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         log_elferror(err_func_, "elf_update failed");
         return false;
     }
-    elf_end(newElf);
+    emitElfResources.closeElf();
     fchmod(newfd, origFdMode);  // set permission to original file
-    close(newfd);
 
     if (rename(newFName.c_str(), fName.c_str())) {
         auto msg{"rename of new elf file (" + newFName + " -> " +  fName + ") failed"};
         log_elferror(err_func_, msg.c_str());
         return false;
     }
+    emitElfResources.noUnlink();
 
     return true;
 }
