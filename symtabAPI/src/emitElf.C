@@ -48,11 +48,11 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-unsigned int elfHash(const char *name) {
+unsigned int elfHash(const std::string &name) {
     unsigned int h = 0, g;
 
-    while (*name) {
-        h = (h << 4) + *name++;
+    for (auto c : name) {
+        h = (h << 4) + c;
         if ((g = h & 0xf0000000))
             h ^= g >> 24;
         h &= ~g;
@@ -2166,7 +2166,7 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
         for (const auto &ver : verneedEntry.second) {
             Elf_Vernaux *vernaux = reinterpret_cast<Elf_Vernaux *>(
                     verneedSecData + curpos + verneed->vn_aux + i * sizeof(Elf_Vernaux));
-            vernaux->vna_hash = elfHash(ver.first.c_str());
+            vernaux->vna_hash = elfHash(ver.first);
             vernaux->vna_flags = 0;
             vernaux->vna_other = ver.second;
             vernaux->vna_name = versionNames[ver.first];
@@ -2194,7 +2194,7 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
         verdef->vd_flags = 0;
         verdef->vd_ndx = verdefEntry.second;
         verdef->vd_cnt = verdauxEntries[verdefEntry.second].size();
-        verdef->vd_hash = elfHash(verdefEntry.first.c_str());
+        verdef->vd_hash = elfHash(verdefEntry.first);
         verdef->vd_aux = sizeof(Elf_Verdef);
         verdef->vd_next = sizeof(Elf_Verdef) + verdauxEntries[verdefEntry.second].size() * sizeof(Elf_Verdaux);
         if (curpos + verdef->vd_next == verdefSecSize)
@@ -2277,7 +2277,7 @@ void emitElf<ElfTypes>::createHashSection(Elf_Word *&hashsecData, unsigned &hash
             (index < object->getDynsymSize())) {
             continue;
         }
-        key = elfHash((*iter)->getMangledName().c_str()) % nbuckets;
+        key = elfHash((*iter)->getMangledName()) % nbuckets;
         if (lastHash.find(key) != lastHash.end()) {
             hashsecData[2 + nbuckets + lastHash[key]] = i;
         } else {
