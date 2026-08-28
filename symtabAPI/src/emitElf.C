@@ -1857,112 +1857,93 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
         }
     }
 
-    unsigned j, k, l, m;
 
     Elf_Rel *rels = (Elf_Rel *) malloc(sizeof(Elf_Rel) * (relocation_table.size() + newRels.size()));
     Elf_Rela *relas = (Elf_Rela *) malloc(sizeof(Elf_Rela) * (relocation_table.size() + newRels.size()));
-    j = 0;
-    k = 0;
-    l = 0;
-    m = 0;
+    unsigned numRels{};
+    unsigned numRelas{};
+
+    // new dynsym index for a relocation's symbol, STN_UNDEF if none.
+    // The three lookup strategies preserve the historical per-path behavior.
+    enum class SymLookup { Rel, Rela, NewSection };
+    auto dynSymIndex = [&](const relocationEntry &reloc, SymLookup how) -> unsigned long {
+        const std::string &name{reloc.name()};
+        if (how == SymLookup::NewSection) {
+            auto it = dynSymNameMapping.find(name);
+            return it != dynSymNameMapping.end() ? it->second : STN_UNDEF;
+        }
+        if (name.empty())
+            return STN_UNDEF;
+        auto it = dynSymNameMapping.find(name);
+        if (it != dynSymNameMapping.end())
+            return it->second;
+        Symbol *sym = reloc.getDynSym();
+        if (!sym)
+            return STN_UNDEF;
+        if (how == SymLookup::Rel)
+            return sym->getIndex();     // index 0 is STN_UNDEF
+        it = dynSymNameMapping.find(sym->getMangledName());
+        return it != dynSymNameMapping.end() ? it->second : STN_UNDEF;
+    };
+
     //reconstruct .rel
     for (auto &reloc : relocation_table) {
-
         if (address_adjust) {
             // If we are shifting the library down in memory, we need to update
-            // any relative offsets in the library. These relative offsets are 
+            // any relative offsets in the library. These relative offsets are
             // found via relocations
-
+ 
             // XXX ...ignore the return value
             emitElfUtils::updateRelocation(obj, reloc, address_adjust);
         }
+ 
+        if (object->getRelType() != reloc.regionType())
+            continue;
 
-        if ((object->getRelType() == Region::RT_REL) && (reloc.regionType() == Region::RT_REL)) {
-            rels[j].r_offset = reloc.rel_addr() + address_adjust;
-            unsigned long sym_offset = 0;
-            std::string sym_name = reloc.name();
-            if (!sym_name.empty()) {
-                std::unordered_map<string, unsigned long>::iterator it = dynSymNameMapping.find(sym_name);
-                if (it != dynSymNameMapping.end())
-                    sym_offset = it->second;
-                else {
-                    Symbol *sym = reloc.getDynSym();
-                    if (sym)
-                        sym_offset = sym->getIndex();
-                }
-            }
+        SymLookup how = reloc.regionType() == Region::RT_REL ? SymLookup::Rel : SymLookup::Rela;
+        auto r_info = ElfTypes::makeRelocInfo(dynSymIndex(reloc, how), reloc.getRelType());
 
-            if (sym_offset) {
-                rels[j].r_info = ElfTypes::makeRelocInfo(sym_offset, reloc.getRelType());
-            } else {
-                rels[j].r_info = ElfTypes::makeRelocInfo((unsigned long) STN_UNDEF, reloc.getRelType());
-            }
-            j++;
-        } else if ((object->getRelType() == Region::RT_RELA) && (reloc.regionType() == Region::RT_RELA)) {
-            relas[k].r_offset = reloc.rel_addr() + address_adjust;
-            relas[k].r_addend = reloc.addend();
-            //if (relas[k].r_addend)
-            //   relas[k].r_addend += address_adjust;
-            unsigned long sym_offset = 0;
-            std::string sym_name = reloc.name();
-            if (!sym_name.empty()) {
-                std::unordered_map<string, unsigned long>::iterator it = dynSymNameMapping.find(sym_name);
-                if (it != dynSymNameMapping.end()) {
-                    sym_offset = it->second;
-                } else {
-                    Symbol *sym = reloc.getDynSym();
-                    if (sym) {
-                        it = dynSymNameMapping.find(sym->getMangledName());
-                        if (it != dynSymNameMapping.end())
-                            sym_offset = it->second;
-                    }
-                }
-            }
-            if (sym_offset) {
-                relas[k].r_info = ElfTypes::makeRelocInfo(sym_offset, reloc.getRelType());
-            } else {
-                relas[k].r_info = ElfTypes::makeRelocInfo((unsigned long) STN_UNDEF, reloc.getRelType());
-            }
-            k++;
-        }
+        if (reloc.regionType() == Region::RT_REL) {
+            rels[numRels].r_offset = reloc.rel_addr() + address_adjust;
+            rels[numRels].r_info = r_info;
+            numRels++;
+        } else if (reloc.regionType() == Region::RT_RELA) {
+            relas[numRelas].r_offset = reloc.rel_addr() + address_adjust;
+            relas[numRelas].r_addend = reloc.addend();
+            relas[numRelas].r_info = r_info;
+            numRelas++;
+         }
     }
+    // relocations for the new sections; these grow DT_RELSZ/DT_RELASZ
+    const unsigned numOldRels{numRels};
+    const unsigned numOldRelas{numRelas};
     for (const auto &newRel : newRels) {
-        if ((object->getRelType() == Region::RT_REL) && (newRel.regionType() == Region::RT_REL)) {
-            rels[j].r_offset = newRel.rel_addr() + address_adjust;
-            if (dynSymNameMapping.find(newRel.name()) != dynSymNameMapping.end()) {
-                rels[j].r_info = ElfTypes::makeRelocInfo(dynSymNameMapping[newRel.name()],
-                                                         newRel.getRelType());
-            } else {
-                rels[j].r_info = ElfTypes::makeRelocInfo((unsigned long) (STN_UNDEF),
-                                                         newRel.getRelType());
-            }
-            j++;
-            l++;
-        } else if ((object->getRelType() == Region::RT_RELA) && (newRel.regionType() == Region::RT_RELA)) {
-            relas[k].r_offset = newRel.rel_addr() + address_adjust;
-            relas[k].r_addend = newRel.addend();
-            //if( relas[k].r_addend ) relas[k].r_addend += address_adjust;
-            if (dynSymNameMapping.find(newRel.name()) != dynSymNameMapping.end()) {
-                relas[k].r_info = ElfTypes::makeRelocInfo(dynSymNameMapping[newRel.name()],
-                                                          newRel.getRelType());
-            } else {
-                relas[k].r_info = ElfTypes::makeRelocInfo((unsigned long) (STN_UNDEF),
-                                                          newRel.getRelType());
-            }
-            k++;
-            m++;
+        if (object->getRelType() != newRel.regionType())
+            continue;
+
+       auto r_info = ElfTypes::makeRelocInfo(dynSymIndex(newRel, SymLookup::NewSection), newRel.getRelType());
+
+       if (newRel.regionType() == Region::RT_REL) {
+           rels[numRels].r_offset = newRel.rel_addr() + address_adjust;
+           rels[numRels].r_info = r_info;
+           numRels++;
+       } else if (newRel.regionType() == Region::RT_RELA) {
+           relas[numRelas].r_offset = newRel.rel_addr() + address_adjust;
+           relas[numRelas].r_addend = newRel.addend();
+           relas[numRelas].r_info = r_info;
+           numRelas++;
         }
     }
 
     dyn_hash_map<int, Region *> secTagRegionMapping = object->getTagRegionMapping();
-    int reloc_size, old_reloc_size, dynamic_reloc_size;
+    int old_reloc_size;
     const char *new_name;
     Region::RegionType rtype;
     int dtype;
     int dsize_type;
     void *buffer = NULL;
 
-    reloc_size = j * sizeof(Elf_Rel) + k * sizeof(Elf_Rela);
+    unsigned long reloc_size{numRels * sizeof(Elf_Rel) + numRelas * sizeof(Elf_Rela)};
     if (!reloc_size) {
         return;
     }
@@ -2010,7 +1991,8 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
         old_reloc_size = dynamicSecData[dsize_type][0]->d_un.d_val;
     else
         old_reloc_size = 0;
-    dynamic_reloc_size = old_reloc_size + l * sizeof(Elf64_Rel) + m * sizeof(Elf64_Rela);
+    unsigned long dynamic_reloc_size{old_reloc_size + (numRels - numOldRels) * sizeof(Elf64_Rel)
+                                               + (numRelas - numOldRelas) * sizeof(Elf64_Rela)};
     string name;
     if (secTagRegionMapping.find(dtype) != secTagRegionMapping.end())
         name = secTagRegionMapping[dtype]->getRegionName();
