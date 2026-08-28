@@ -215,6 +215,10 @@ namespace Dyninst {
             std::vector<Region *> dynsymSymRegions;
             // Region -> its section index in the new file
             std::unordered_map<Region *, unsigned> regionNewIndex;
+            // when .dynamic is regenerated, symbols in the original (_DYNAMIC)
+            // are retargeted to the new one
+            Region *oldDynamicRegion{};
+            Region *newDynamicRegion{};
 
             std::vector<Region *>nonLoadableSecs;
             std::vector<Region *> newSecs;

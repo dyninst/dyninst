@@ -1251,6 +1251,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
             dynsymIndex = thisSectionIndex;
             updateDynamic(DT_SYMTAB, newshdr->sh_addr);
         } else if (newSec->getRegionType() == Region::RT_DYNAMIC) {
+            newDynamicRegion = newSec;
             newshdr->sh_entsize = sizeof(Elf_Dyn);
             newshdr->sh_type = SHT_DYNAMIC;
             newdata->d_type = ELF_T_DYN;
@@ -1843,38 +1844,14 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
         createRelrRelocationSection(object->getRelrDynRelocs());
 
         //add .dynamic section
-        if (dynsecSize)
+        if (dynsecSize) {
+            obj->findRegion(oldDynamicRegion, ".dynamic");   // before the new one exists
             obj->addRegion(0, dynsecData, dynsecSize * sizeof(Elf_Dyn), ".dynamic", Region::RT_DYNAMIC, true);
+        }
     }
 
     if (!obj->getAllNewRegions(newSecs))
         log_elferror(err_func_, "No new sections to add");
-
-    unsigned int prev_size = 0;
-    unsigned long sec_addr = 0;
-    for (const auto &newSec : newSecs) {
-        // Update the _DYNAMIC symbol; described in the elf standard as:
-        //  The program header table will have an element of type PT_DYNAMIC.
-        //  This "segment" contains the .dynamic section. A special symbol,
-        //  _DYNAMIC, labels the section
-        if (newSec->getDiskOffset())
-          sec_addr = newSec->getDiskOffset() + address_adjust;
-        else
-          sec_addr += prev_size;
-        prev_size = newSec->getDiskSize();
-        if (".dynamic" == newSec->getRegionName()) {
-            // Found the .dynamic section
-            for (unsigned long symi = 0; symi < symbolStrs.size(); symi++)
-              if ("_DYNAMIC" == symbolStrs[symi]) {
-                  // Found the _DYNAMIC symbol
-                  rewrite_printf("update _DYNAMIC symbol from %#lx to %#lx\n",
-                                 (unsigned long) syms[symi].st_value, (unsigned long) sec_addr);
-                  syms[symi].st_value = sec_addr;
-                  break;
-              }
-            break;
-        }
-    }
 
     return true;
 }
@@ -2500,14 +2477,24 @@ void emitElf<ElfTypes>::updateSymbolSectionIndices(Elf_Scn *scn, const std::vect
         Region *region = symRegions[k];
         if (!region)
             continue;
+        bool isSectionSym = ELF64_ST_TYPE(syms[k].st_info) == STT_SECTION;
+        // .dynamic was regenerated elsewhere: symbols into the old one must
+        // follow it, keeping their offset within the section.  In particular
+        // _DYNAMIC, which the ELF standard defines as labeling the .dynamic
+        // section and which glibc's r_debug support relies on.
+        Offset offsetInRegion = 0;
+        if (region == oldDynamicRegion && newDynamicRegion && !isSectionSym) {
+            offsetInRegion = syms[k].st_value - address_adjust - region->getMemOffset();
+            region = newDynamicRegion;
+        }
         auto it = regionNewIndex.find(region);
         if (it == regionNewIndex.end())
             continue;
         syms[k].st_shndx = it->second;
-        if (ELF64_ST_TYPE(syms[k].st_info) == STT_SECTION) {
+        if (isSectionSym || region == newDynamicRegion) {
             if (Elf_Scn *target = elf_getscn(newElf, it->second))
                 if (Elf_Shdr *targetShdr = ElfTypes::elf_getshdr(target))
-                    syms[k].st_value = targetShdr->sh_addr;
+                    syms[k].st_value = targetShdr->sh_addr + offsetInRegion;
         }
     }
 }
