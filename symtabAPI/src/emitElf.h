@@ -203,6 +203,10 @@ namespace Dyninst {
 
             Elf_Scn *phdrs_scn{};
 
+            // index in the new file of the string table used by .symtab;
+            // SHN_UNDEF (0) until the section is seen or created
+            unsigned symtabStrIndex{};
+
             std::vector<Region *>nonLoadableSecs;
             std::vector<Region *> newSecs;
             std::map<unsigned, std::vector<Elf_Dyn *> > dynamicSecData;

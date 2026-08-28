@@ -614,14 +614,14 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
              object->getStrtabAddr() == shdr->sh_addr) ||
             !strcmp(name, STRTAB_NAME)) {
             symStrData = newdata;
+            symtabStrIndex = sectionNumber;
             updateSymbols(symTabData, symStrData, loadSecTotalSize);
         }
 
-        //Change sh_link for .symtab to point to .strtab
+        // .symtab's sh_link is set to .strtab's index in the link fixup pass below
         if ((object->getSymtabAddr() != 0 &&
              object->getSymtabAddr() == shdr->sh_addr) ||
             !strcmp(name, SYMTAB_NAME)) {
-            newshdr->sh_link = secNames.size();
             changeMapping[sectionNumber] = true;
             symTabData = newdata;
         }
@@ -760,6 +760,8 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
     unsigned scncount;
     for (scncount = 1; (scn = elf_nextscn(newElf, scn)); scncount++) {
         shdr = ElfTypes::elf_getshdr(scn);
+        if (shdr->sh_type == SHT_SYMTAB)
+            shdr->sh_link = symtabStrIndex;     // .symtab -> .strtab, wherever it ended up
         if(dataLinkInfo.count(secNames[scncount]))
         {
             rewrite_printf("update link info of %s\n", secNames[scncount].c_str());
@@ -1230,7 +1232,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
             newdata->d_type = ELF_T_SYM;
             newdata->d_align = 4;
             dynsymData = newdata;
-            newshdr->sh_link = thisSectionIndex + 1;   //.symtab section should have sh_link = index of .strtab for .dynsym
+            updateStrLinkShdr.push_back(newshdr);   // .dynsym -> .dynstr, resolved once .dynstr is created
             newshdr->sh_flags = SHF_ALLOC;
             dynsymIndex = thisSectionIndex;
             updateDynamic(DT_SYMTAB, newshdr->sh_addr);
@@ -1433,14 +1435,14 @@ bool emitElf<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
             newshdr->sh_type = SHT_SYMTAB;
             newshdr->sh_entsize = sizeof(Elf_Sym);
             newdata->d_type = ELF_T_SYM;
-            newshdr->sh_link = secNames.size();   //.symtab section should have sh_link = index of .strtab
-            newshdr->sh_flags = 0;
+            newshdr->sh_flags = 0;   // sh_link -> .strtab is set in driver's link fixup pass
         } else if (sec->getRegionType() == Region::RT_STRTAB) {  //String table Section
             newshdr->sh_type = SHT_STRTAB;
             newshdr->sh_entsize = 1;
             newdata->d_type = ELF_T_BYTE;
             newshdr->sh_link = SHN_UNDEF;
             newshdr->sh_flags = 0;
+            symtabStrIndex = secNames.size() - 1;   // index of this section
         }
 
         newshdr->sh_offset = prevshdr->sh_offset + prevshdr->sh_size;
