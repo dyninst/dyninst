@@ -1991,8 +1991,8 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
         old_reloc_size = dynamicSecData[dsize_type][0]->d_un.d_val;
     else
         old_reloc_size = 0;
-    unsigned long dynamic_reloc_size{old_reloc_size + (numRels - numOldRels) * sizeof(Elf64_Rel)
-                                               + (numRelas - numOldRelas) * sizeof(Elf64_Rela)};
+    unsigned long dynamic_reloc_size{old_reloc_size + (numRels - numOldRels) * sizeof(Elf_Rel)
+                                               + (numRelas - numOldRelas) * sizeof(Elf_Rela)};
     string name;
     if (secTagRegionMapping.find(dtype) != secTagRegionMapping.end())
         name = secTagRegionMapping[dtype]->getRegionName();
