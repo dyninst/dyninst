@@ -294,7 +294,7 @@ namespace Dyninst {
             bool createElfSymbol(Symbol *symbol, unsigned strIndex, std::vector<Elf_Sym *> &symbols,
                                  bool dynSymFlag = false);
             bool getSectionAndSegmentInfo();
-            void updateSymbolSectionIndices(Elf_Scn *scn, const std::vector<Region *> &symRegions);
+            bool updateSymbolSectionIndices(Elf_Scn *scn, const std::vector<Region *> &symRegions);
             void renameSection(const std::string &oldName);
             void fixPhdrs();
 

@@ -592,15 +592,15 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         if (address_adjust != 0 && newdata->d_buf && newdata->d_size) {
             for (auto relr_addr : object->getRelrDynRelocs()) {
                 if (relr_addr < shdr->sh_addr ||
-                    relr_addr + sizeof(Elf_Relr) > shdr->sh_addr + shdr->sh_size)
+                    relr_addr + sizeof(Elf_Addr) > shdr->sh_addr + shdr->sh_size)
                     continue;
 
                 Offset relr_off = relr_addr - shdr->sh_addr;
-                if (relr_off + sizeof(Elf_Relr) > newdata->d_size)
+                if (relr_off + sizeof(Elf_Addr) > newdata->d_size)
                     continue;
 
                 char *loc = static_cast<char *>(newdata->d_buf) + relr_off;
-                auto val = Dyninst::read_memory_as<Elf_Relr>(loc);
+                auto val = Dyninst::read_memory_as<Elf_Addr>(loc);
                 if (!val) continue;
                 val += address_adjust;
                 Dyninst::write_memory_as(loc, val);
@@ -672,12 +672,12 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
             // A word that is also a RELR relocation target was already shifted by the
             // earlier RELR loop, so skip to avoid offsetting it twice
             std::unordered_set<Offset> relr_addrs(relr_relocs.begin(), relr_relocs.end());
-            for(std::size_t off = 0; off < newdata->d_size; off += sizeof(Elf_Relr)) {
+            for(std::size_t off = 0; off < newdata->d_size; off += sizeof(Elf_Addr)) {
                 Offset addr = shdr->sh_addr + off;
                 if (relr_addrs.count(addr)) continue;  // already adjusted as a RELR reloc
 
                 char *loc = static_cast<char*>(newdata->d_buf) + off;
-                Elf_Relr val{};
+                Elf_Addr val{};
                 read_memory_as(val, loc);
                 if(val == 0) continue;
                 val += address_adjust;
@@ -770,8 +770,8 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         shdr = ElfTypes::elf_getshdr(scn);
         if (shdr->sh_type == SHT_SYMTAB) {
             shdr->sh_link = symtabStrIndex;     // .symtab -> .strtab, wherever it ended up
-            shdr->sh_info = symtabNumLocals;    // index of first non-local symbol
-            updateSymbolSectionIndices(scn, symtabSymRegions);
+            if (updateSymbolSectionIndices(scn, symtabSymRegions))
+                shdr->sh_info = symtabNumLocals;    // index of first non-local symbol
         } else if (shdr->sh_type == SHT_DYNSYM) {
             updateSymbolSectionIndices(scn, dynsymSymRegions);
         }
@@ -2459,19 +2459,20 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
 // Symbols were emitted with st_shndx = the Region's number in the original
 // file.  Inserting the new sections renumbers everything after the insertion
 // point, so point each symbol at its Region's index in the new file, and give
-// section symbols the section's new address.
+// section symbols the section's new address.  Returns false if the table is
+// not one this emitter generated (left untouched).
 template<class ElfTypes>
-void emitElf<ElfTypes>::updateSymbolSectionIndices(Elf_Scn *scn, const std::vector<Region *> &symRegions) {
+bool emitElf<ElfTypes>::updateSymbolSectionIndices(Elf_Scn *scn, const std::vector<Region *> &symRegions) {
     Elf_Data *data = elf_getdata(scn, NULL);
     if (!data || !data->d_buf)
-        return;
+        return false;
     Elf_Sym *syms = static_cast<Elf_Sym *>(data->d_buf);
     size_t numSyms = data->d_size / sizeof(Elf_Sym);
     if (numSyms != symRegions.size()) {
         // not a table we generated (e.g. .dynsym copied unchanged), leave it alone
         rewrite_printf("symbol table has %zu entries, %zu regions recorded; st_shndx not updated\n",
                        numSyms, symRegions.size());
-        return;
+        return false;
     }
     for (size_t k = 0; k < numSyms; ++k) {
         Region *region = symRegions[k];
@@ -2497,6 +2498,7 @@ void emitElf<ElfTypes>::updateSymbolSectionIndices(Elf_Scn *scn, const std::vect
                     syms[k].st_value = targetShdr->sh_addr + offsetInRegion;
         }
     }
+    return true;
 }
 
 template<class ElfTypes>
