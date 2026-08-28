@@ -206,6 +206,8 @@ namespace Dyninst {
             // index in the new file of the string table used by .symtab;
             // SHN_UNDEF (0) until the section is seen or created
             unsigned symtabStrIndex{};
+            // number of STB_LOCAL symbols at the start of the new .symtab (its sh_info)
+            unsigned symtabNumLocals{};
 
             std::vector<Region *>nonLoadableSecs;
             std::vector<Region *> newSecs;

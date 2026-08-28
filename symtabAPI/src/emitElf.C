@@ -760,8 +760,10 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
     unsigned scncount;
     for (scncount = 1; (scn = elf_nextscn(newElf, scn)); scncount++) {
         shdr = ElfTypes::elf_getshdr(scn);
-        if (shdr->sh_type == SHT_SYMTAB)
+        if (shdr->sh_type == SHT_SYMTAB) {
             shdr->sh_link = symtabStrIndex;     // .symtab -> .strtab, wherever it ended up
+            shdr->sh_info = symtabNumLocals;    // index of first non-local symbol
+        }
         if(dataLinkInfo.count(secNames[scncount]))
         {
             rewrite_printf("update link info of %s\n", secNames[scncount].c_str());
@@ -1662,6 +1664,13 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     }
 
     //reconstruct .symtab section
+    // ELF requires all STB_LOCAL symbols to precede the others, with sh_info
+    // holding the index of the first non-local.  New symbols were appended
+    // after the originals regardless of binding, so partition them here.
+    auto firstNonLocal = std::stable_partition(symbols.begin(), symbols.end(),
+        [](const Elf_Sym *es) { return ELF64_ST_BIND(es->st_info) == STB_LOCAL; });
+    symtabNumLocals = firstNonLocal - symbols.begin();
+
     Elf_Sym *syms = (Elf_Sym *) malloc(symbols.size() * sizeof(Elf_Sym));
     i = 0;
     for (const auto &s : symbols)
