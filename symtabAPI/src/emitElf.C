@@ -30,6 +30,7 @@
 
 #include <cstring>
 #include <algorithm>
+#include <numeric>
 #include "emitElf.h"
 #include "emitElfStatic.h"
 #include "common/src/dyninst_filesystem.h"
@@ -459,6 +460,7 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
     }
 
     Region *foundSec = NULL;
+    Region *shstrtabRegion = NULL;
 
     string newFName = fName + "XXXXXX";
     auto buf = std::unique_ptr<char[]>(new char[newFName.length() + 1]);
@@ -542,12 +544,16 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         }
 
         // write the shstrtabsection at the end
-        if (scncount == oldShstrndx)
+        if (scncount == oldShstrndx) {
+            shstrtabRegion = foundSec;
             continue;
+        }
 
         sectionNumber++;
         changeMapping[sectionNumber] = false;
         newNameIndexMapping[name] = sectionNumber;
+        if (foundSec)
+            regionNewIndex[foundSec] = sectionNumber;
 
         newscn = elf_newscn(newElf);
         newshdr = ElfTypes::elf_getshdr(newscn);
@@ -754,6 +760,8 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
 
     //Add the section header table right at the end
     addSectionHeaderTable(newshdr);
+    if (shstrtabRegion)
+        regionNewIndex[shstrtabRegion] = secNames.size() - 1;   // .shstrtab is the last section
 
     // Second iteration to fix the link fields to point to the correct section
     scn = NULL;
@@ -763,6 +771,9 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         if (shdr->sh_type == SHT_SYMTAB) {
             shdr->sh_link = symtabStrIndex;     // .symtab -> .strtab, wherever it ended up
             shdr->sh_info = symtabNumLocals;    // index of first non-local symbol
+            updateSymbolSectionIndices(scn, symtabSymRegions);
+        } else if (shdr->sh_type == SHT_DYNSYM) {
+            updateSymbolSectionIndices(scn, dynsymSymRegions);
         }
         if(dataLinkInfo.count(secNames[scncount]))
         {
@@ -1145,6 +1156,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
 
         auto thisSectionIndex = secNames.size() - 1;
         newNameIndexMapping[newSec->getRegionName()] = thisSectionIndex;
+        regionNewIndex[newSec] = thisSectionIndex;
 
         if (shdr->sh_type == SHT_NOBITS) {
             newshdr->sh_offset = shdr->sh_offset;
@@ -1413,6 +1425,7 @@ bool emitElf<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
         //Fill out the new section header
         newshdr = ElfTypes::elf_getshdr(newscn);
         newshdr->sh_name = addSectionName(sec->getRegionName());
+        regionNewIndex[sec] = secNames.size() - 1;
         if (sec->getRegionType() == Region::RT_TEXT)  {        //Text Section
             newshdr->sh_type = SHT_PROGBITS;
             newshdr->sh_flags = SHF_EXECINSTR | SHF_WRITE;
@@ -1539,8 +1552,10 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     sym->st_shndx = SHN_UNDEF;
 
     symbols.push_back(sym);
+    symtabSymRegions.push_back(nullptr);
     if (!obj->isStaticBinary()) {
         dynsymbols.push_back(sym);
+        dynsymSymRegions.push_back(nullptr);
         dynsymVector.push_back(Symbol::magicEmitElfSymbol());
         versionSymTable.push_back(0);
     }
@@ -1651,6 +1666,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
 
     for (const auto &s : allSymSymbols) {
         createElfSymbol(s, symbolNamesLength, symbols);
+        symtabSymRegions.push_back(s->getRegion());
         symbolStrs.push_back(s->getMangledName());
         symbolNamesLength += s->getMangledName().length() + 1;
     }
@@ -1658,6 +1674,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     i = 0;
     for (const auto &s : allDynSymbols) {
         createElfSymbol(s, s->getStrIndex(), dynsymbols, true);
+        dynsymSymRegions.push_back(s->getRegion());
         dynSymNameMapping[s->getMangledName()] = i + nTmp;
         ++i;
         dynsymVector.push_back(s);
@@ -1667,14 +1684,20 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     // ELF requires all STB_LOCAL symbols to precede the others, with sh_info
     // holding the index of the first non-local.  New symbols were appended
     // after the originals regardless of binding, so partition them here.
-    auto firstNonLocal = std::stable_partition(symbols.begin(), symbols.end(),
-        [](const Elf_Sym *es) { return ELF64_ST_BIND(es->st_info) == STB_LOCAL; });
-    symtabNumLocals = firstNonLocal - symbols.begin();
+    std::vector<size_t> order(symbols.size());
+    std::iota(order.begin(), order.end(), 0);
+    auto firstNonLocal = std::stable_partition(order.begin(), order.end(),
+        [&](size_t k) { return ELF64_ST_BIND(symbols[k]->st_info) == STB_LOCAL; });
+    symtabNumLocals = firstNonLocal - order.begin();
 
     Elf_Sym *syms = (Elf_Sym *) malloc(symbols.size() * sizeof(Elf_Sym));
-    i = 0;
-    for (const auto &s : symbols)
-        syms[i++] = *s;
+    std::vector<Region *> orderedRegions;
+    orderedRegions.reserve(order.size());
+    for (size_t k = 0; k < order.size(); ++k) {
+        syms[k] = *symbols[order[k]];
+        orderedRegions.push_back(symtabSymRegions[order[k]]);
+    }
+    symtabSymRegions = std::move(orderedRegions);
 
     char *str = (char *) malloc(symbolNamesLength);
     unsigned cur = 0;
@@ -2455,6 +2478,39 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
     dynsecSize = curpos;
 }
 
+
+// Symbols were emitted with st_shndx = the Region's number in the original
+// file.  Inserting the new sections renumbers everything after the insertion
+// point, so point each symbol at its Region's index in the new file, and give
+// section symbols the section's new address.
+template<class ElfTypes>
+void emitElf<ElfTypes>::updateSymbolSectionIndices(Elf_Scn *scn, const std::vector<Region *> &symRegions) {
+    Elf_Data *data = elf_getdata(scn, NULL);
+    if (!data || !data->d_buf)
+        return;
+    Elf_Sym *syms = static_cast<Elf_Sym *>(data->d_buf);
+    size_t numSyms = data->d_size / sizeof(Elf_Sym);
+    if (numSyms != symRegions.size()) {
+        // not a table we generated (e.g. .dynsym copied unchanged), leave it alone
+        rewrite_printf("symbol table has %zu entries, %zu regions recorded; st_shndx not updated\n",
+                       numSyms, symRegions.size());
+        return;
+    }
+    for (size_t k = 0; k < numSyms; ++k) {
+        Region *region = symRegions[k];
+        if (!region)
+            continue;
+        auto it = regionNewIndex.find(region);
+        if (it == regionNewIndex.end())
+            continue;
+        syms[k].st_shndx = it->second;
+        if (ELF64_ST_TYPE(syms[k].st_info) == STT_SECTION) {
+            if (Elf_Scn *target = elf_getscn(newElf, it->second))
+                if (Elf_Shdr *targetShdr = ElfTypes::elf_getshdr(target))
+                    syms[k].st_value = targetShdr->sh_addr;
+        }
+    }
+}
 
 template<class ElfTypes>
 void emitElf<ElfTypes>::log_elferror(void (*err_func)(const char *), const char *msg) {

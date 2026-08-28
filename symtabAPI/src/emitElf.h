@@ -208,6 +208,13 @@ namespace Dyninst {
             unsigned symtabStrIndex{};
             // number of STB_LOCAL symbols at the start of the new .symtab (its sh_info)
             unsigned symtabNumLocals{};
+            // Region each emitted .symtab / .dynsym entry refers to (nullptr if none),
+            // parallel to the emitted symbol arrays; used to fix st_shndx once the
+            // new file's section indices are known
+            std::vector<Region *> symtabSymRegions;
+            std::vector<Region *> dynsymSymRegions;
+            // Region -> its section index in the new file
+            std::unordered_map<Region *, unsigned> regionNewIndex;
 
             std::vector<Region *>nonLoadableSecs;
             std::vector<Region *> newSecs;
@@ -283,6 +290,7 @@ namespace Dyninst {
             bool createElfSymbol(Symbol *symbol, unsigned strIndex, std::vector<Elf_Sym *> &symbols,
                                  bool dynSymFlag = false);
             bool getSectionAndSegmentInfo();
+            void updateSymbolSectionIndices(Elf_Scn *scn, const std::vector<Region *> &symRegions);
             void renameSection(const std::string &oldName);
             void fixPhdrs();
 
