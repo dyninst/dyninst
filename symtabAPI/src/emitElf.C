@@ -1863,27 +1863,21 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
     unsigned numRels{};
     unsigned numRelas{};
 
-    // new dynsym index for a relocation's symbol, STN_UNDEF if none.
-    // The three lookup strategies preserve the historical per-path behavior.
-    enum class SymLookup { Rel, Rela, NewSection };
-    auto dynSymIndex = [&](const relocationEntry &reloc, SymLookup how) -> unsigned long {
+    // new dynsym index for a relocation's symbol, STN_UNDEF if none
+    auto dynSymIndex = [&](const relocationEntry &reloc) -> unsigned long {
         const std::string &name{reloc.name()};
-        if (how == SymLookup::NewSection) {
-            auto it = dynSymNameMapping.find(name);
-            return it != dynSymNameMapping.end() ? it->second : STN_UNDEF;
-        }
         if (name.empty())
             return STN_UNDEF;
         auto it = dynSymNameMapping.find(name);
-        if (it != dynSymNameMapping.end())
-            return it->second;
-        Symbol *sym = reloc.getDynSym();
-        if (!sym)
-            return STN_UNDEF;
-        if (how == SymLookup::Rel)
-            return sym->getIndex();     // index 0 is STN_UNDEF
-        it = dynSymNameMapping.find(sym->getMangledName());
-        return it != dynSymNameMapping.end() ? it->second : STN_UNDEF;
+        if (it == dynSymNameMapping.end()) {
+            Symbol *sym = reloc.getDynSym();
+            if (!sym)
+                return STN_UNDEF;
+            it = dynSymNameMapping.find(sym->getMangledName());
+            if (it == dynSymNameMapping.end())
+                return sym->getIndex() > 0 ? sym->getIndex() : STN_UNDEF;
+        }
+        return it->second;
     };
 
     //reconstruct .rel
@@ -1900,8 +1894,7 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
         if (object->getRelType() != reloc.regionType())
             continue;
 
-        SymLookup how = reloc.regionType() == Region::RT_REL ? SymLookup::Rel : SymLookup::Rela;
-        auto r_info = ElfTypes::makeRelocInfo(dynSymIndex(reloc, how), reloc.getRelType());
+        auto r_info = ElfTypes::makeRelocInfo(dynSymIndex(reloc), reloc.getRelType());
 
         if (reloc.regionType() == Region::RT_REL) {
             rels[numRels].r_offset = reloc.rel_addr() + address_adjust;
@@ -1921,7 +1914,7 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
         if (object->getRelType() != newRel.regionType())
             continue;
 
-       auto r_info = ElfTypes::makeRelocInfo(dynSymIndex(newRel, SymLookup::NewSection), newRel.getRelType());
+       auto r_info = ElfTypes::makeRelocInfo(dynSymIndex(newRel), newRel.getRelType());
 
        if (newRel.regionType() == Region::RT_REL) {
            rels[numRels].r_offset = newRel.rel_addr() + address_adjust;
