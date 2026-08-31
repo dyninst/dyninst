@@ -414,13 +414,14 @@ bool emitElf<ElfTypes>::getSectionAndSegmentInfo() {
     return true;
 }
 
-// Renames 1st oldName section by changing 2nd char to 'o'
+// Renames 1st oldName section by changing 2nd char to '#' (never compiler/linker generated)
 template<class ElfTypes>
 void emitElf<ElfTypes>::renameSection(const std::string &oldName) {
-    assert(oldName.length() >= 2 && oldName[1] != 'o');
+    const auto renameChar{'#'};
+    assert(oldName.length() >= 2 && oldName[1] != renameChar);
     for (auto &secName : secNames)  {
         if (secName == oldName)  {
-            secName[1] = 'o';
+            secName[1] = renameChar;
             break;
         }
     }
