@@ -1123,11 +1123,11 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
         sectionNumber++;
         // Add a new loadable section
         if ((newscn = elf_newscn(newElf)) == NULL) {
-            log_elferror(err_func_, "unable to create new section");
+            log_elferror(err_func_, "unable to create new loabable section");
             return false;
         }
         if ((newdata = elf_newdata(newscn)) == NULL) {
-            log_elferror(err_func_, "unable to create section data");
+            log_elferror(err_func_, "unable to create loabable section data");
             return false;
         }
         memset(newdata, 0, sizeof(Elf_Data));
@@ -1366,11 +1366,11 @@ bool emitElf<ElfTypes>::addSectionHeaderTable(Elf_Shdr *shdr) {
     Elf_Shdr *newshdr;
 
     if ((newscn = elf_newscn(newElf)) == NULL) {
-        log_elferror(err_func_, "unable to create new section");
+        log_elferror(err_func_, "unable to create new section header table");
         return false;
     }
     if ((newdata = elf_newdata(newscn)) == NULL) {
-        log_elferror(err_func_, "unable to create section data");
+        log_elferror(err_func_, "unable to create section header table data");
         return false;
     }
     //Fill out the new section header
@@ -1415,11 +1415,11 @@ bool emitElf<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
     for (const auto &sec : nonLoadableSecs) {
         // Add a new non-loadable section
         if ((newscn = elf_newscn(newElf)) == NULL) {
-            log_elferror(err_func_, "unable to create new section");
+            log_elferror(err_func_, "unable to create new nonloadable section");
             return false;
         }
         if ((newdata = elf_newdata(newscn)) == NULL) {
-            log_elferror(err_func_, "unable to create section data");
+            log_elferror(err_func_, "unable to create nonloadable section data");
             return false;
         }
 
