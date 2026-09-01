@@ -580,13 +580,30 @@ namespace Dyninst { namespace DyninstAPI {
     gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EDX), gen);
     gen.rs()->noteVirtualInReal(scratch, RealRegister(REGNUM_EDX));
     RealRegister src2_r = gen.rs()->loadVirtual(src2, gen);
-    gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EAX), gen);
-    emitSimpleInsn(0x99, gen); // cdq (src1 -> eax:edx)
+    // EAX holds the dividend (src1, loaded above): cdq sign-extends it into
+    // edx:eax and idiv divides that pair. Do NOT makeRegisterAvail(EAX) here --
+    // that spills src1 out of EAX (makeRegisterAvail -> spillReal), leaving a
+    // garbage dividend and, with a valid nonzero divisor, a #DE / SIGFPE.
+    // Just mark EAX defined (it is written by the divide) without evicting it.
+    gen.markRegDefined(REGNUM_EAX);
     if(s) {
-      emitOpExtReg(0xF7, 0x7, src2_r, gen); // idiv eax:edx,src2 -> eax
+      emitSimpleInsn(0x99, gen); // cdq: sign-extend eax into edx for signed idiv
+      emitOpExtReg(0xF7, 0x7, src2_r, gen); // idiv edx:eax, src2 -> eax
     } else {
-      emitOpExtReg(0xF7, 0x6, src2_r, gen); // div eax:edx,src2 -> eax
+      // Unsigned divide: the dividend is 0:eax, so edx must be ZEROED, not
+      // sign-extended. The old code emitted cdq unconditionally before both
+      // idiv AND div; for an unsigned div with eax's top bit set (e.g. 0xffffffff)
+      // cdq set edx=0xffffffff, making div compute 0xffffffff`eax / src2, whose
+      // quotient overflows 32 bits -> #DE / SIGFPE.
+      emitMovImmToReg(RealRegister(REGNUM_EDX), 0, gen); // edx = 0
+      emitOpExtReg(0xF7, 0x6, src2_r, gen); // div edx:eax, src2 -> eax
     }
+    // The quotient is now in EAX; src1 has been consumed by the divide. Release
+    // src1's claim on EAX (freeRegister -> markVirtualDead clears the mapping)
+    // BEFORE assigning EAX to dest, otherwise noteVirtualInReal(dest, EAX) trips
+    // its "reg already occupied" assert. Mirrors the src1-reused-as-dest pattern
+    // elsewhere in this emitter (freeRegister(src1); noteVirtualInReal(dest,...)).
+    gen.rs()->freeRegister(src1);
     gen.rs()->noteVirtualInReal(dest, RealRegister(REGNUM_EAX));
     gen.rs()->freeRegister(scratch);
   }
