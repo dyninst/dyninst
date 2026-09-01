@@ -1,0 +1,18 @@
+variables:
+  CDASH_SERVER: "https://open.cdash.org/submit.php?project=TOOLS-SDK"
+
+stages:
+  - sync
+  - test
+
+# Synchronize GitHub with GitLab
+# Only runs when scheduled on gitlab.spack.io
+include:
+  - local: '/.gitlab/sync-spack.yaml'
+    stage: sync
+    rules:
+    - if: $CI_SERVER_HOST == "gitlab.spack.io" && $CI_PIPELINE_SOURCE == "schedule"
+  - local: '/.gitlab/.uofrank.gary.yaml'
+    stage: test
+    rules:
+      - if: $CI_SERVER_HOST == "gitlab.spack.io" && $CI_PIPELINE_SOURCE != "schedule"
