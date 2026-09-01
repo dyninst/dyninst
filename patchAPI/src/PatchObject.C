@@ -134,6 +134,7 @@ Address PatchObject::codeOffsetToAddr(Address offset) const {
 }
 
 void PatchObject::createFuncs() {
+   ensureParsed();
    for (auto iter = co()->funcs().begin(); iter != co()->funcs().end(); ++iter) {
       getFunc(*iter, true);
    }
