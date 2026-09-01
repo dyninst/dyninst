@@ -535,16 +535,20 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
 	if(!evProc) {
 		proccontrol_printf("%s[%d]: Found event %s, but process is invalid\n",
 							FILE__, __LINE__, event_ptr->name().c_str());
-		namespace pc = Dyninst::ProcControlAPI;
-		auto const& et = event_ptr->getEventType();
-		bool const is_exit = et.code() == pc::EventType::Exit;
-		bool const is_post = et.time() == pc::EventType::Time::Post;
-		if(is_exit && is_post) {
-			// post-exit events handled after process destruction are irrelevant
-			return Event::const_ptr{};
-		} else {
-			assert(false);
+		// The process's dyninstAPI-side data is already destroyed: this
+		// event lost the race with process teardown and has no consumer
+		// anymore.  Post-exit events have always been dropped here; other
+		// late events from the same race (e.g. a SIGTRAP-derived event
+		// decoded after the handler thread finished tearing the process
+		// down in a multithreaded create-mode mutatee) are equally
+		// unconsumable, so drop them too instead of asserting.
+		auto evPcProc = event_ptr->getProcess();
+		if (evPcProc) {
+			auto pcnt = procCount.find(evPcProc->getPid());
+			if (pcnt != procCount.end() && pcnt->second > 0)
+				pcnt->second--;
 		}
+		return Event::const_ptr{};
 	}
 	procCount[evProc->getPid()]--;
 	assert(procCount[evProc->getPid()] >= 0);

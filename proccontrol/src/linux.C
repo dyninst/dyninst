@@ -243,9 +243,23 @@ void GeneratorLinux::evictFromWaitpid()
    }
    on_sigusr2_hit = 0;
    bool bresult = t_kill(generator_lwp, SIGUSR2);
+   // The generator may exit on its own initiative (e.g. no live processes
+   // left) concurrently with this eviction.  If the SIGUSR2 was queued to the
+   // dying thread it is discarded and on_sigusr2_hit never fires, which used
+   // to leave this loop spinning forever inside exit().  Bound the wait: this
+   // eviction is best-effort (we are exiting; exit_group() will reap the
+   // generator thread regardless), so give up after a couple of seconds.
+   struct timespec evict_start, evict_now;
+   clock_gettime(CLOCK_MONOTONIC, &evict_start);
    while (bresult && !on_sigusr2_hit) {
       //Don't use a lock because pthread_mutex_unlock is not signal safe
       sched_yield();
+      clock_gettime(CLOCK_MONOTONIC, &evict_now);
+      if (evict_now.tv_sec - evict_start.tv_sec >= 2) {
+         pthrd_printf("Timed out evicting generator from waitpid; "
+                      "it likely exited on its own\n");
+         break;
+      }
    }
 
    result = sigaction(SIGUSR2, &oldact, NULL);
@@ -3179,7 +3193,11 @@ LinuxHandleLWPDestroy::~LinuxHandleLWPDestroy()
 }
 
 Handler::handler_ret_t LinuxHandleLWPDestroy::handleEvent(Event::ptr ev) {
-    int_thread *thrd = ev->getThread()->llthrd();
+    int_thread *thrd = ev->getThread() ? ev->getThread()->llthrd() : NULL;
+    if (!thrd) {
+       // Thread object already torn down; nothing to clean.
+       return ret_success;
+    }
 
     // This handler is necessary because SIGSTOPS cannot be sent to pre-destroyed
     // threads -- these stops will never be delivered to the debugger
@@ -3238,13 +3256,20 @@ HandlerPool *linux_createDefaultHandlerPool(HandlerPool *hpool)
    static bool initialized = false;
    static LinuxHandleNewThr *lbootstrap = NULL;
    static LinuxHandleForceTerminate *lterm = NULL;
+   static LinuxHandleLWPDestroy *llwpdestroy = NULL;
    if (!initialized) {
       lbootstrap = new LinuxHandleNewThr();
       lterm = new LinuxHandleForceTerminate();
+      llwpdestroy = new LinuxHandleLWPDestroy();
       initialized = true;
    }
    hpool->addHandler(lbootstrap);
    hpool->addHandler(lterm);
+   // Clears pending stops on dying threads (a SIGSTOP sent to a
+   // pre-destroyed thread is never delivered, which otherwise leaves the
+   // PendingStop state permanently desync'd and deadlocks any proc-stop
+   // waiter).  The handler existed but was never registered.
+   hpool->addHandler(llwpdestroy);
    thread_db_process::addThreadDBHandlers(hpool);
    sysv_process::addSysVHandlers(hpool);
    return hpool;
