@@ -438,6 +438,14 @@ bool IA_IAPI::isDynamicCall() const
         bool success;
         boost::tie(success, addr) = getCFT();
         if (!success) {
+            if (cftHasUnresolvedReloc()) {
+                // A direct call whose displacement awaits link-time
+                // relocation (unlinked object file): the callee is
+                // statically unknown, but the call is not through a
+                // register or memory operand.
+                parsing_printf("... Call 0x%lx has an unresolved relocation, not dynamic\n", current);
+                return false;
+            }
             parsing_printf("... Call 0x%lx is indirect\n", current);
             return true;
         }
@@ -490,6 +498,14 @@ bool IA_IAPI::isIndirectJump() const {
     Address target;
     boost::tie(valid, target) = getCFT(); 
     if (valid) return false;
+    if (cftHasUnresolvedReloc()) {
+        // Not a jump table: the target carries an unapplied relocation
+        // (unlinked object file), so any bytes an indirect-target
+        // analysis would read are placeholders. Handled as a tail call
+        // to an unknown target in getNewEdges instead.
+        parsing_printf("... jump with unresolved relocation at 0x%lx, not treating as indirect\n", current);
+        return false;
+    }
     parsing_printf("... indirect jump at 0x%lx, delay parsing it\n", current);
     return true;
 }
@@ -616,7 +632,14 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
     {
         if(ci.allowsFallThrough())
         {
-            outEdges.push_back(std::make_pair(getCFT().second,
+            bool takenValid;
+            Address takenTarget;
+            boost::tie(takenValid, takenTarget) = getCFT();
+            // An undefined taken-target (e.g. an unapplied relocation on
+            // the displacement in an unlinked object file) must go to the
+            // sink, not to whatever placeholder constant was encoded.
+            outEdges.push_back(std::make_pair(
+                        takenValid ? takenTarget : Dyninst::ADDRESS_INVALID,
                         COND_TAKEN));
             outEdges.push_back(std::make_pair(getNextAddr(), COND_NOT_TAKEN));
             return;
@@ -650,6 +673,19 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                         FILE__, __LINE__, target);
                 outEdges.push_back(std::make_pair(target, DIRECT));
             }
+            return;
+        }
+        else if(cftHasUnresolvedReloc())
+        {
+            // Branch whose target bytes carry an unapplied relocation
+            // (unlinked object file): the real target is another section
+            // or an external symbol and is unknowable until link time.
+            // Treat it as a tail call to an unknown target.
+            parsing_printf("%s[%d]: tail call to unresolved relocation target at 0x%lx\n",
+                    FILE__, __LINE__, current);
+            outEdges.push_back(std::make_pair(Dyninst::ADDRESS_INVALID, INDIRECT));
+            tailCalls[INDIRECT] = true;
+            tailCalls[DIRECT] = true;
             return;
         }
         else if(isReturn(context, currBlk))
@@ -860,6 +896,12 @@ std::pair<bool, Address> IA_IAPI::getFallthrough() const
     return make_pair(true, curInsnIter->first + curInsnIter->second.size());
 }
 
+bool IA_IAPI::cftHasUnresolvedReloc() const
+{
+    if(!curInsn().getControlFlowTarget()) return false;
+    return _cr->hasUnresolvedRelocs(current, current + curInsn().size());
+}
+
 std::pair<bool, Address> IA_IAPI::getCFT() const
 {
     if(validCFT) return cachedCFT;
@@ -872,7 +914,20 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
 
     Result actualTarget = callTarget->eval();
 
-    if(actualTarget.defined)
+    if(actualTarget.defined
+       && _cr->hasUnresolvedRelocs(current, current + curInsn().size()))
+    {
+        // The target bytes are placeholders awaiting link-time relocation
+        // (e.g. a call or tail call in a .o naming another section or an
+        // external symbol); the placeholder-derived constant is
+        // meaningless — typically the next instruction or one past the
+        // end of the section.
+        cachedCFT = std::make_pair(false, 0);
+        parsing_printf("REJECTED: CF target of '%s' at 0x%lx carries an unapplied relocation (placeholder target 0x%lx)\n",
+                curInsn().format().c_str(), current,
+                actualTarget.convert<Address>());
+    }
+    else if(actualTarget.defined)
     {
         cachedCFT = std::make_pair(true, actualTarget.convert<Address>());
         parsing_printf("SUCCESS (CFT=0x%lx)\n", cachedCFT.second);
@@ -902,8 +957,10 @@ bool IA_IAPI::isRelocatable(InstrumentableLevel lvl) const
         {
             bool valid; Address addr;
             boost::tie(valid, addr) = getCFT();
-            assert(valid);
-            if(!_isrc->isValidAddress(addr))
+            // An undefined CFT here means the target is unknown (e.g. an
+            // unapplied relocation in an unlinked object file), not that
+            // it is invalid; only validate targets we actually know.
+            if(valid && !_isrc->isValidAddress(addr))
             {
                 parsing_printf("... Call to 0x%lx is invalid (outside code or data)\n",
                         addr);

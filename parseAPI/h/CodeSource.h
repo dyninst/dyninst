@@ -86,6 +86,16 @@ class DYNINST_EXPORT CodeRegion : public Dyninst::InstructionSource, public Dyni
 
     virtual bool wasUserAdded() const { return false; }
 
+    /* True if any byte in [lo,hi) is covered by an unapplied static
+       relocation, meaning the raw bytes are placeholder values rather
+       than final values. Only possible in relocatable (unlinked) files,
+       where control-flow displacements naming other sections or external
+       symbols have not been resolved by a linker yet.
+
+       Optional */
+    virtual bool hasUnresolvedRelocs(Address /* lo */, Address /* hi */) const
+    { return false; }
+
 };
 
 template <typename OS>
@@ -243,6 +253,11 @@ class DYNINST_EXPORT SymtabCodeRegion : public CodeRegion {
     SymtabAPI::Symtab * _symtab;
     SymtabAPI::Region * _region;
     std::map<Address, Address> knownData;
+    // sorted offsets of unapplied relocations in this region; only
+    // populated for unlinked object files
+    std::vector<Address> _reloc_offsets;
+
+    void initRelocOffsets();
  public:
     SymtabCodeRegion(SymtabAPI::Symtab *, SymtabAPI::Region *);
     SymtabCodeRegion(SymtabAPI::Symtab *, SymtabAPI::Region *,
@@ -267,6 +282,8 @@ class DYNINST_EXPORT SymtabCodeRegion : public CodeRegion {
     /** interval **/
     Address low() const { return offset(); }
     Address high() const { return offset() + length(); }
+
+    bool hasUnresolvedRelocs(Address lo, Address hi) const;
 
     SymtabAPI::Region * symRegion() const { return _region; }
 };
