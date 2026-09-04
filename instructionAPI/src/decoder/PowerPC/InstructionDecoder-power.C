@@ -698,7 +698,7 @@ which are both 0).
     // BC (bits 21-25) selects the condition-register bit tested by isel;
     // model it as a read of the containing CR field, as BFA does.
     Expression::Ptr condReg =
-        makeRegisterExpression(makePowerRegID(ppc32::cr0, field<21, 25>(insn) >> 2));
+        makeRegisterExpression(makePowerRegID(ppc64::cr0, field<21, 25>(insn) >> 2));
     insn_in_progress->appendOperand(std::move(condReg), true, false);
   }
 
