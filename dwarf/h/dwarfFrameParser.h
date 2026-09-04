@@ -98,6 +98,30 @@ public:
             std::vector<VariableLocation> &locs,
             FrameErrors_t &err_result);
 
+    // the classified CFI rule for one register over
+    // [range.first, range.second), one entry per CFI row. Says where the
+    // caller's value of `reg` lives at each PC sub-range; used to re-emit
+    // unwind info for relocated code. Rules that cannot be expressed as one
+    // of the simple kinds (DWARF expressions, val_offset) report Undefined.
+    struct FrameRegRule {
+        Address lowPC, hiPC;
+        enum Kind { SameValue = 0, AtCFAOffset = 1, InRegister = 2,
+                    Undefined = 3 } kind;
+        long offset;      // AtCFAOffset: value is stored at CFA+offset
+        unsigned regnum;  // InRegister: DWARF number of the holding register
+    };
+    bool getRegRulesForFunction(
+            std::pair<Address, Address> range,
+            MachRegister reg,
+            std::vector<FrameRegRule> &rules,
+            FrameErrors_t &err_result);
+    // As above but keyed on a raw DWARF register number, so a CFI column with
+    // no Dyninst MachRegister (e.g. ppc64 return address, DWARF 65) is reachable.
+    bool getRegRulesForDwarf(
+            std::pair<Address, Address> range,
+            int dwarf_reg,
+            std::vector<FrameRegRule> &rules,
+            FrameErrors_t &err_result);
 
 private:
 

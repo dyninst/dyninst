@@ -29,6 +29,8 @@
  */
 // ppc-specific methods for generating control flow
 
+#include <cstring>
+
 #include "CFWidget.h"
 #include "Widget.h"
 #include "../CFG/RelocTarget.h"
@@ -84,6 +86,33 @@ bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
    buffer.addPIC(gen, tracker(trace));
 
    return true;
+}
+
+// ppc64le ELFv2 keeps a TOC-restore `ld r2,24(r1)` at the instruction after a
+// cross-module call. After a non-returning call (e.g. `bl __cxa_throw`) that
+// instruction never executes on the (absent) return path, so the CFG has no
+// edge to it and relocation drops it as unreachable. It is not dead: libgcc's
+// unwinder (frob_update_context in config/rs6000/linux-unwind.h) pattern-matches
+// this exact instruction at a frame's return address to recover the caller's
+// TOC (r2) while unwinding an exception through the frame. Dropped, a C++ catch
+// handler reached through relocated code runs with a stale TOC and crashes.
+// Re-emit it verbatim when the original had one; a local non-returning call gets
+// a `nop` there instead, which we leave alone.
+void CFWidget::emitArchNonReturningCallFixup(CodeBuffer &buffer, const RelocBlock *trace) {
+  static const unsigned char ld_r2_24_r1[4] = {0x18, 0x00, 0x41, 0xe8};
+  block_instance *b = trace->block();
+  if (!b || !b->obj()) return;
+  Address postAddr = addr_ + insn_.size();
+  const unsigned char *post = static_cast<const unsigned char *>(
+      b->obj()->getPtrToInstruction(postAddr));
+  if (!post || memcmp(post, ld_r2_24_r1, sizeof(ld_r2_24_r1)) != 0) return;
+  // Attribute the re-emitted instruction to its true original address (the
+  // call's return point, where the original `ld r2,24(r1)` lived), not to the
+  // call itself. That keeps the orig->reloc map's entry for the call site clean;
+  // otherwise the synthesized .gcc_except_table maps the throw call-site region
+  // onto this inserted instruction (call+4), leaving the throw's return IP
+  // uncovered and breaking the phase-1 handler search.
+  buffer.addPIC(ld_r2_24_r1, sizeof(ld_r2_24_r1), addrTracker(postAddr, trace));
 }
 
 bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {

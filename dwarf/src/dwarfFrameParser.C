@@ -218,28 +218,136 @@ bool DwarfFrameParser::getRegsForFunction(
         {
             Dwarf_Frame * frame = NULL;
             int result = dwarf_cfi_addrframe(cfi_data[i], next_pc, &frame);
-            if(result==-1) break;
+            // No FDE covers next_pc: a padding gap between functions. When the
+            // caller's range legitimately spans more than one function (e.g.
+            // sampling a hot/cold-split function whose partitions bracket other
+            // functions), such gaps must be skipped, not treated as the end of
+            // the range -- otherwise rows past the first gap are lost. Advancing
+            // one byte is fine: inter-function padding is tiny.
+            if(result==-1) { next_pc++; continue; }
 
             Dwarf_Addr start_pc, end_pc;
             dwarf_frame_info(frame, &start_pc, &end_pc, NULL);
+            Dwarf_Addr row_next = (end_pc > next_pc) ? end_pc : next_pc + 1;
 
             Dwarf_Op * ops;
             size_t nops;
             result = dwarf_frame_cfa(frame, &ops, &nops);
-            if (result != 0) break;
-
-            VariableLocation loc2;
-            DwarfDyninst::SymbolicDwarfResult cons(loc2, arch);
-            if (!DwarfDyninst::decodeDwarfExpression(ops, nops, NULL, cons, arch)) break;
-            loc2.lowPC = next_pc;
-            loc2.hiPC = end_pc;
-
-            locs.push_back(cons.val());
-            next_pc = end_pc;
+            if (result == 0) {
+                VariableLocation loc2;
+                DwarfDyninst::SymbolicDwarfResult cons(loc2, arch);
+                // A row we cannot decode (e.g. an expression CFA in a foreign
+                // function within a spanning range) is skipped, not fatal.
+                if (DwarfDyninst::decodeDwarfExpression(ops, nops, NULL, cons, arch)) {
+                    loc2.lowPC = next_pc;
+                    loc2.hiPC = end_pc;
+                    locs.push_back(cons.val());
+                }
+            }
+            free(frame);   // dwarf_cfi_addrframe allocates; free every row (the
+                           // gap-skipping walk visits many) as getRegRulesForFunction does
+            next_pc = row_next;
         }
     }
 
     return !locs.empty();
+}
+
+// convenience wrapper -- map the MachRegister to its DWARF number.
+// Callers that need a CFI column with no Dyninst MachRegister (notably ppc64's
+// link register, DWARF 65, which Dyninst's register map assigns to 108) must
+// use getRegRulesForDwarf directly.
+bool DwarfFrameParser::getRegRulesForFunction(
+        std::pair<Address, Address> range,
+        Dyninst::MachRegister reg,
+        std::vector<FrameRegRule> &rules,
+        FrameErrors_t &err_result)
+{
+    return getRegRulesForDwarf(range, DwarfDyninst::register_to_dwarf(reg), rules, err_result);
+}
+
+// classify dwarf_frame_register's location description for the DWARF
+// column `dwarf_reg` across `range`. Same row-walk as getRegsForFunction, but
+// keyed on a raw DWARF register number so any column (e.g. a return-address
+// register that has no MachRegister) is reachable.
+bool DwarfFrameParser::getRegRulesForDwarf(
+        std::pair<Address, Address> range,
+        int dwarf_reg,
+        std::vector<FrameRegRule> &rules,
+        FrameErrors_t &err_result)
+{
+    rules.clear();
+    dwarf_printf("Entry to getRegRulesForDwarf at 0x%lx, range end 0x%lx, dwarf_reg %d\n",
+                 range.first, range.second, dwarf_reg);
+    err_result = FE_No_Error;
+
+    setupCFIData();
+    if (!cfi_data.size()) {
+        err_result = FE_Bad_Frame_Data;
+        return false;
+    }
+
+    boost::unique_lock<dyn_mutex> l(cfi_lock);
+    for (size_t i = 0; i < cfi_data.size(); i++)
+    {
+        auto next_pc = range.first;
+        while (next_pc < range.second)
+        {
+            Dwarf_Frame *frame = NULL;
+            // Skip padding gaps between functions (no FDE) rather than ending
+            // the walk, so a range spanning a hot/cold-split function's
+            // partitions still yields the rows past the gap.
+            if (dwarf_cfi_addrframe(cfi_data[i], next_pc, &frame) == -1) { next_pc++; continue; }
+
+            Dwarf_Addr start_pc, end_pc;
+            dwarf_frame_info(frame, &start_pc, &end_pc, NULL);
+            Dwarf_Addr row_next = (end_pc > next_pc) ? end_pc : next_pc + 1;
+
+            Dwarf_Op ops_mem[3];
+            Dwarf_Op *ops = NULL;
+            size_t nops = 0;
+            int result = dwarf_frame_register(frame, dwarf_reg, ops_mem, &ops, &nops);
+            if (result != 0) { free(frame); next_pc = row_next; continue; }
+
+            FrameRegRule r;
+            r.lowPC = next_pc;
+            r.hiPC = end_pc;
+            r.offset = 0;
+            r.regnum = 0;
+            if (nops == 0) {
+                // libdw: *ops == ops_mem means "undefined"; *ops == NULL means
+                // "same_value" (this frame does not modify the register).
+                r.kind = (ops == ops_mem) ? FrameRegRule::Undefined
+                                          : FrameRegRule::SameValue;
+            }
+            else if (ops[0].atom == DW_OP_call_frame_cfa &&
+                     ops[nops-1].atom != DW_OP_stack_value &&
+                     (nops == 1 ||
+                      (nops == 2 && ops[1].atom == DW_OP_plus_uconst))) {
+                r.kind = FrameRegRule::AtCFAOffset;
+                r.offset = (nops == 2) ? (long)(int64_t)ops[1].number : 0;
+            }
+            else if (nops == 1 && ops[0].atom >= DW_OP_reg0 &&
+                     ops[0].atom <= DW_OP_reg31) {
+                r.kind = FrameRegRule::InRegister;
+                r.regnum = (unsigned)(ops[0].atom - DW_OP_reg0);
+            }
+            else if (nops == 1 && ops[0].atom == DW_OP_regx) {
+                r.kind = FrameRegRule::InRegister;
+                r.regnum = (unsigned)ops[0].number;
+            }
+            else {
+                // DWARF expression / val_offset rules are not representable in
+                // the simple re-emission; report Undefined so callers stay safe.
+                r.kind = FrameRegRule::Undefined;
+            }
+            rules.push_back(r);
+            free(frame);
+            next_pc = row_next;
+        }
+    }
+
+    return !rules.empty();
 }
 
 bool DwarfFrameParser::getRegAtFrame(

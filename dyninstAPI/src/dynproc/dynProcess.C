@@ -42,6 +42,8 @@
 #include "registerSpace/registerSpace.h"
 #include "mapped_object.h"
 #include "image.h"
+#include "eh_frame_arch.h"   // ehFrameArchFor()
+#include "eh_frame_gen.h"    // buildRelocatedEHFrame()
 #include "common/src/headers.h"
 #include "common/src/dyninst_filesystem.h"
 
@@ -1611,6 +1613,118 @@ void alignUp(int &val, int align) {
     if (val % align != 0) {
         val = ((val / align) + 1) * align;
     }
+}
+
+// Dynamic (live-process) delivery of synthesized .eh_frame for relocated code.
+// The rewriter bakes the blob into the output ELF behind a DT tag; a running
+// process has neither, so once relocation has installed the new code (process
+// stopped, called from BPatch_process::finalizeInsertionSet) we build the
+// .eh_frame/.gcc_except_table for the in-process relocated code, stage it in the
+// target, and inferior-RPC the RT's DYNINSTregisterEHFrame with its live address
+// so libgcc can unwind through and catch in relocated frames. This is what lets
+// C++ exceptions survive dynamic instrumentation.
+//
+// Only the main executable's Symtab is used to sample the original CFI, so
+// relocated code originating in a shared library is not yet covered.
+void PCProcess::registerRelocatedExceptionFrames() {
+   const Dyninst::EHFrameArch *arch = Dyninst::ehFrameArchFor(getArch());
+   if (!arch) return;                          // architecture not supported
+   if (relocatedCode_.empty()) return;
+
+   mapped_object *ao = getAOut();
+   if (!ao || !ao->parse_img()) return;
+   Dyninst::SymtabAPI::Symtab *symObj = ao->parse_img()->getObject();
+   if (!symObj) return;
+
+   // Restrict synthesis to the mutatee's own code. Dynamic instrumentation can
+   // relocate foreign libc helpers (fork/vfork, pulled in by the iRPC/runtime
+   // machinery) into relocatedCode_; we have no CFI for those, so a synthesized
+   // FDE would be a fabricated CIE-default descriptor that corrupts the whole
+   // __register_frame batch (observed: a stack-realigning catch then escaping
+   // to std::terminate). Pass the a.out's runtime code range as the filter.
+   Address ownLo = ao->codeAbs();
+   Address ownHi = ownLo + ao->imageSize();
+   // The trackers carry RUNTIME original addresses; the a.out's DWARF CFI and
+   // LSDA are read at LINK-time addresses. codeBase() is the load bias (0 for a
+   // non-PIE ET_EXEC, the mapped base for a PIE), so runtime = link + codeBase().
+   Address loadBias = ao->codeBase();
+
+   // Pass 1: size the blobs (their byte lengths do not depend on placement).
+   std::vector<unsigned char> eh, ex;
+   Address ehV = 0, exV = 0;
+   unsigned nfde = Dyninst::buildRelocatedEHFrame(symObj, relocatedCode_, *arch,
+                                                  0 /*placeholder base*/, eh, ex, ehV, exV,
+                                                  ownLo, ownHi, loadBias);
+   if (!nfde) return;                          // nothing exception-bearing was relocated
+
+   // The RT entrypoint must be present (it lives in the injected RT library).
+   if (!findOnlyOneFunction("DYNINSTregisterEHFrame")) return;
+
+   // Allocate one target-process region for the page-aligned layout that
+   // buildRelocatedEHFrame produces (exVaddr page-aligned, then eh after ex).
+   unsigned long exPad = (ex.size() + 0xfffUL) & ~0xfffUL;
+   unsigned long ehPad = (eh.size() + 0xfffUL) & ~0xfffUL;
+   Address base = inferiorMalloc((unsigned)(0x1000 + exPad + ehPad));
+   if (!base) return;
+
+   // inferiorMalloc'd memory is uninitialized. A file-delivered .eh_frame sits
+   // in a zero-filled region, so libgcc reading a byte past our data still reads
+   // zero; in-process it would read heap garbage (flaky catches). Zero the whole
+   // region first so the padding beyond the blobs is deterministic.
+   {
+      std::vector<unsigned char> zeros((size_t)(0x1000 + exPad + ehPad), 0);
+      writeDataSpace((void *)base, (u_int)zeros.size(), zeros.data());
+   }
+
+   // Pass 2: rebuild at the real base and write the bytes into the target.
+   eh.clear(); ex.clear(); ehV = exV = 0;
+   Dyninst::buildRelocatedEHFrame(symObj, relocatedCode_, *arch, base, eh, ex, ehV, exV,
+                                  ownLo, ownHi, loadBias);
+   if (!ex.empty())
+      writeDataSpace((void *)exV, (u_int)ex.size(), ex.data());
+   writeDataSpace((void *)ehV, (u_int)eh.size(), eh.data());
+
+   eh_printf("EHREG: pid=%d base=0x%lx exV=0x%lx ehV=0x%lx ex.sz=%lu eh.sz=%lu nfde=%u\n",
+             getPid(), (unsigned long)base, (unsigned long)exV, (unsigned long)ehV,
+             (unsigned long)ex.size(), (unsigned long)eh.size(), nfde);
+   // Gate the /proc/maps dump (real I/O) on the debug flag.
+   if (dyn_debug_eh) {
+      char pth[64]; snprintf(pth, sizeof pth, "/proc/%d/maps", getPid());
+      FILE *mf = fopen(pth, "r");
+      if (mf) {
+         char ln[512];
+         while (fgets(ln, sizeof ln, mf)) {
+            unsigned long a = 0, b = 0;
+            if (sscanf(ln, "%lx-%lx", &a, &b) == 2 &&
+                ((ehV >= a && ehV < b) || (exV >= a && exV < b) ||
+                 (base >= a && base < b) || strstr(ln, "r-xp")))
+               eh_printf("MAP %s", ln);
+         }
+         fclose(mf);
+      }
+   }
+
+   // libgcc must hold only the current FDEs. Dynamic instrumentation commits
+   // incrementally: each round re-relocates the affected functions and lands
+   // here again, so drop the previous registration (a now-superseded relocation
+   // of the same code) before adding this one -- otherwise stale FDEs pile up
+   // and the unwinder may pick one.
+   if (lastRelocatedEHFrame_) {
+      std::vector<codeGenASTPtr> dargs(1);
+      dargs[0] = operandAST::Constant((void *)lastRelocatedEHFrame_);
+      codeGenASTPtr dcode = functionCallAST::namedCall("DYNINSTderegisterEHFrame", dargs);
+      void *dres = 0;
+      postIRPC(dcode, NULL, false, NULL, true, &dres, false);
+   }
+
+   // Register with libgcc in the target: iRPC DYNINSTregisterEHFrame(ehV).
+   std::vector<codeGenASTPtr> args(1);
+   args[0] = operandAST::Constant((void *)ehV);
+   codeGenASTPtr code = functionCallAST::namedCall("DYNINSTregisterEHFrame", args);
+   void *result = 0;
+   postIRPC(code, NULL, /*runProcessWhenDone=*/false, /*thread=*/NULL,
+            /*synchronous=*/true, &result, /*userRPC=*/false);
+   lastRelocatedEHFrame_ = ehV;
 }
 
 bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
