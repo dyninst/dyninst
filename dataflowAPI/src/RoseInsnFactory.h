@@ -158,7 +158,7 @@ namespace Dyninst {
 
             PowerpcInstructionKind makeRoseBranchOpcode(entryID iapi_opcode, bool isAbsolute, bool isLink);
 
-            virtual Architecture arch() { return Arch_ppc64; }
+            virtual Architecture arch() { return Arch_ppc32; }
             PowerpcInstructionKind kind;
         };
 

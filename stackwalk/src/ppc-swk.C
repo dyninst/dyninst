@@ -36,6 +36,7 @@
 #include "stackwalk/h/walker.h"
 #include "registers/abstract_regs.h"
 #include "registers/ppc64_regs.h"
+#include "registers/ppc32_regs.h"
 #include "stackwalk/src/sw.h"
 
 #include "get_trap_instruction.h"
@@ -105,7 +106,7 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
 
 Dyninst::Architecture ProcSelf::getArchitecture()
 {
-   return Arch_ppc64;
+   return Arch_ppc32;
 }
 
 bool Walker::checkValidFrame(const Frame & /*in*/, const Frame & /*out*/)
@@ -206,7 +207,7 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
     }
     else
     {
-      result = getProcessState()->getRegValue(ppc64::lr, in.getThread(), out_ra);
+      result = getProcessState()->getRegValue(ppc32::lr, in.getThread(), out_ra);
     }
     if (!result) {
         sw_printf("[%s:%d] - Error getting PC value for thrd %d\n",

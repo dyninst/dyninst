@@ -67,6 +67,7 @@ namespace Dyninst { namespace abi {
         case Dyninst::Arch_aarch64:
           machine = abi::make_aarch64();
           break;
+        case Dyninst::Arch_ppc32:
         case Dyninst::Arch_aarch32:
         case Dyninst::Arch_amdgpu_gfx908:
         case Dyninst::Arch_amdgpu_gfx90a:

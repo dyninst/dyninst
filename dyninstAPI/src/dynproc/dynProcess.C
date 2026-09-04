@@ -1194,6 +1194,7 @@ void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
         case Arch_x86_64:
             write_printf("amd64_");
             break;
+        case Arch_ppc32:
         case Arch_ppc64:
             write_printf("power_");
             break;

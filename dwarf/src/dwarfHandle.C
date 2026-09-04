@@ -186,7 +186,7 @@ bool DwarfHandle::init_dbg()
             arch = Arch_x86_64;
             break;
         case EM_PPC:
-            arch = Arch_none;
+            arch = Arch_ppc32;
             break;
         case EM_PPC64:
             arch = Arch_ppc64;

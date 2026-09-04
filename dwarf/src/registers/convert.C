@@ -20,6 +20,7 @@ namespace DwarfDyninst {
       case Dyninst::Arch_x86_64:
         return x8664_from_dwarf(encoding);
 
+      case Dyninst::Arch_ppc32:  // analyze-only alias of ppc64 (same DWARF reg numbers)
       case Dyninst::Arch_ppc64:
         return ppc64_from_dwarf(encoding);
 
@@ -54,6 +55,7 @@ namespace DwarfDyninst {
       case Dyninst::Arch_x86_64:
         return x8664_to_dwarf(reg);
 
+      case Dyninst::Arch_ppc32:  // analyze-only alias of ppc64 (same DWARF reg numbers)
       case Dyninst::Arch_ppc64:
         return ppc64_to_dwarf(reg);
 

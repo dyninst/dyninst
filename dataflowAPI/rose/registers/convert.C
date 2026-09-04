@@ -86,7 +86,10 @@ namespace Dyninst { namespace DataflowAPI {
         }
         return x8664Rose(category, baseID, lengthID, num_bits);
       }
+      case Arch_ppc32:
       case Arch_ppc64: {
+        // ppc32 is an analyze-only alias of ppc64: it shares the ppc64
+        // register namespace, so it uses the same ROSE conversion.
         return ppc64Rose(category, reg, num_bits);
       }
       case Arch_aarch64: {
