@@ -2,12 +2,9 @@
 #include "Instruction.h"
 #include "Register.h"
 #include "addressSpace.h"
-#include "codegen/emitters/PowerPC/ppc32/EmitterPowerPC32Dyn.h"
-#include "codegen/emitters/PowerPC/ppc32/EmitterPowerPC32Stat.h"
 #include "codegen/emitters/PowerPC/ppc64/EmitterPowerPC64Dyn.h"
 #include "codegen/emitters/PowerPC/ppc64/EmitterPowerPC64Stat.h"
 #include "registerSpace/registerSpace.h"
-#include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
 
 #include <vector>
@@ -18,9 +15,7 @@ namespace da = Dyninst::DyninstAPI;
 bool AddressSpace::getDynamicCallSiteArgs(di::Instruction i, Address addr,
                                           std::vector<da::codeGenASTPtr> &args) {
 
-  static di::RegisterAST::Ptr ctr32(new di::RegisterAST(ppc32::ctr));
   static di::RegisterAST::Ptr ctr64(new di::RegisterAST(ppc64::ctr));
-  static di::RegisterAST::Ptr lr32(new di::RegisterAST(ppc32::lr));
   static di::RegisterAST::Ptr lr64(new di::RegisterAST(ppc64::lr));
 
   Dyninst::Register branch_target = registerSpace::ignored;
@@ -29,10 +24,10 @@ bool AddressSpace::getDynamicCallSiteArgs(di::Instruction i, Address addr,
   // BCLR uses the xlform (6,5,5,5,10,1)
   for (di::Instruction::cftConstIter curCFT = i.cft_begin(); curCFT != i.cft_end();
        ++curCFT) {
-    if (curCFT->target->isUsed(ctr32) || curCFT->target->isUsed(ctr64)) {
+    if (curCFT->target->isUsed(ctr64)) {
       branch_target = registerSpace::ctr;
       break;
-    } else if (curCFT->target->isUsed(lr32) || curCFT->target->isUsed(lr64)) {
+    } else if (curCFT->target->isUsed(lr64)) {
       fprintf(stderr, "setting lr\n");
       branch_target = registerSpace::lr;
       break;
@@ -52,19 +47,14 @@ bool AddressSpace::getDynamicCallSiteArgs(di::Instruction i, Address addr,
 }
 
 Emitter *AddressSpace::getEmitter() {
-  static Dyninst::DyninstAPI::EmitterPowerPC32Dyn emitter32Dyn;
+  // 32-bit PowerPC is no longer supported (see #1145); ppc is always 64-bit.
+  assert(getAddressWidth() == 8);
+
   static Dyninst::DyninstAPI::EmitterPowerPC64Dyn emitter64Dyn;
-  static Dyninst::DyninstAPI::EmitterPowerPC32Stat emitter32Stat;
   static Dyninst::DyninstAPI::EmitterPowerPC64Stat emitter64Stat;
 
-  if (getAddressWidth() == 8) {
-    if (proc()) {
-      return &emitter64Dyn;
-    } else
-      return &emitter64Stat;
-  }
   if (proc())
-    return &emitter32Dyn;
+    return &emitter64Dyn;
   else
-    return &emitter32Stat;
+    return &emitter64Stat;
 }

@@ -27,39 +27,28 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#ifndef DYNINST_DATAFLOW_ABI_BRIDGE_H
+#define DYNINST_DATAFLOW_ABI_BRIDGE_H
 
-#ifndef DYNINST_DYNINSTAPI_CODEGEN_EMITTERS_PPC32_EMITTERPPC32STAT_H
-#define DYNINST_DYNINSTAPI_CODEGEN_EMITTERS_PPC32_EMITTERPPC32STAT_H
+#include "Architecture.h"
+#include "dataflowAPI/h/bitArray.h"
+#include "dataflowAPI/src/RegisterMap.h"
 
-#include "codegen/emitters/PowerPC/EmitterPowerPC.h"
+// Bridge between the architecture-independent common ABI (Dyninst::ABI,
+// common/h/abi.h) and the bitArray representation used by the dataflow ABI
+// class. Lives in its own translation unit so that including abi.h does not
+// make Dyninst::ABI collide with the dataflowAPI ::ABI class under the
+// file-scope `using namespace Dyninst` in ABI.C.
+namespace Dyninst { namespace DataflowAPI {
 
-/*
- *  Instruction emitter for static instrumentation on 32-bit PowerPC
- */
-
-namespace Dyninst { namespace DyninstAPI {
-
-  class EmitterPowerPC32Stat : public EmitterPowerPC {
-  public:
-    virtual ~EmitterPowerPC32Stat() = default;
-
-    bool emitPLTCall(func_instance *dest, codeGen &gen) override;
-
-    bool emitPLTJump(func_instance *dest, codeGen &gen) override;
-
-    bool emitTOCCall(block_instance *dest, codeGen &gen) override;
-
-    bool emitTOCJump(block_instance *dest, codeGen &gen) override;
-
-  private:
-    bool emitCallInstruction(codeGen &, func_instance *, bool, Address) override;
-
-    Register emitCallReplacement(opCode, codeGen &, func_instance *);
-
-    bool emitPLTCommon(func_instance *dest, bool call, codeGen &gen);
-
-    bool emitTOCCommon(block_instance *dest, bool call, codeGen &gen);
-  };
+  // Allocate (with new) and populate the seven ABI register bitArrays plus the
+  // all-registers bitArray for `arch`, mapping registers through `idx`.
+  // Supported: Arch_x86 and Arch_x86_64.
+  void buildABIBitArrays(Dyninst::Architecture arch, RegisterMap& idx,
+                         bitArray*& returnRegs, bitArray*& callParam,
+                         bitArray*& returnRead, bitArray*& callRead,
+                         bitArray*& callWritten, bitArray*& syscallRead,
+                         bitArray*& syscallWritten, bitArray*& allRegs);
 
 }}
 
