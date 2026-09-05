@@ -283,193 +283,24 @@ void ABI::initialize64(){
 #endif
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
+// The ppc64 ABI register sets are now produced by the architecture-independent
+// common ABI (Dyninst::ABI) and bridged to bitArrays in ABIBridge.C. See
+// buildABIBitArrays for the register-set semantics.
 void ABI::initialize64(){
-    returnRegs64_ = new bitArray(machRegIndex_ppc_64().size());
-    (*returnRegs64_)[machRegIndex_ppc_64()[ppc64::r3]] = true;
-
-    callParam64_ = new bitArray(machRegIndex_ppc_64().size());
-    (*callParam64_)[machRegIndex_ppc_64()[ppc64::r3]] = true;
-    (*callParam64_)[machRegIndex_ppc_64()[ppc64::r4]] = true;
-    (*callParam64_)[machRegIndex_ppc_64()[ppc64::r5]] = true;
-    (*callParam64_)[machRegIndex_ppc_64()[ppc64::r6]] = true;
-    (*callParam64_)[machRegIndex_ppc_64()[ppc64::r7]] = true;
-    (*callParam64_)[machRegIndex_ppc_64()[ppc64::r8]] = true;
-    (*callParam64_)[machRegIndex_ppc_64()[ppc64::r9]] = true;
-    (*callParam64_)[machRegIndex_ppc_64()[ppc64::r10]] = true;
-
-    returnRead64_ = new bitArray(machRegIndex_ppc_64().size());
-    // Return reads r3, r4, fpr1, fpr2
-    (*returnRead64_)[machRegIndex_ppc_64()[ppc64::r3]] = true;
-    (*returnRead64_)[machRegIndex_ppc_64()[ppc64::r4]] = true;
-    (*returnRead64_)[machRegIndex_ppc_64()[ppc64::fpr3]] = true;
-    (*returnRead64_)[machRegIndex_ppc_64()[ppc64::fpr2]] = true;
-
-    // Calls
-    callRead64_ = new bitArray(machRegIndex_ppc_64().size());
-    // Calls read r3 -> r10 (parameters), fpr1 -> fpr13 (volatile FPRs)
-
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::r3]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::r4]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::r5]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::r6]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::r7]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::r8]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::r9]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::r10]] = true;
-
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr1]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr2]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr3]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr4]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr5]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr6]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr7]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr8]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr9]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr10]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr11]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr12]] = true;
-    (*callRead64_)[machRegIndex_ppc_64()[ppc64::fpr13]] = true;
-
-
-    callWritten64_ = new bitArray(machRegIndex_ppc_64().size());
-    // Calls write to pretty much every register we use for code generation
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r0]] = true;
-
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r3]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r4]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r5]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r6]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r7]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r8]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r9]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r10]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r11]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::r12]] = true;
-
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr0]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr1]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr2]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr3]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr4]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr5]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr6]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr7]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr8]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr9]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr10]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr11]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr12]] = true;
-    (*callWritten64_)[machRegIndex_ppc_64()[ppc64::fpr13]] = true;
-
-    // Syscall - assume the same as call
-    syscallRead64_ = new bitArray(machRegIndex_ppc_64().size());
-    syscallRead64_->set();
-    syscallWritten64_ = new bitArray(machRegIndex_ppc_64().size());
-    syscallWritten64_->set();
-
-    allRegs64_ = new bitArray(machRegIndex_ppc_64().size());
-    allRegs64_->set();
+  DataflowAPI::buildABIBitArrays(Arch_ppc64, machRegIndex_ppc_64(),
+                  returnRegs64_, callParam64_, returnRead64_, callRead64_,
+                  callWritten64_, syscallRead64_, syscallWritten64_, allRegs64_);
 }
 #endif
 
-//#warning "This is not verified!"
 #if defined(DYNINST_CODEGEN_ARCH_AARCH64)
+// The aarch64 ABI register sets are now produced by the architecture-independent
+// common ABI (Dyninst::ABI) and bridged to bitArrays in ABIBridge.C. See
+// buildABIBitArrays for the register-set semantics.
 void ABI::initialize64(){
-    RegisterMap aarch64Map = machRegIndex_aarch64();
-	int sz = aarch64Map.size();
-
-	returnRegs64_ = getBitArray(sz);
-    (*returnRegs64_)[aarch64Map[aarch64::x0]] = true;
-    (*returnRegs64_)[aarch64Map[aarch64::q0]] = true;
-
-	returnRead64_ = getBitArray(sz);
-    (*returnRead64_)[aarch64Map[aarch64::x0]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::q0]] = true;
-    //Callee-saved registers
-    //First, GPRs...
-    (*returnRead64_)[aarch64Map[aarch64::x19]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::x20]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::x21]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::x22]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::x23]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::x24]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::x25]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::x26]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::x27]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::x28]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::sp]] = true;
-    //Now, SIMD regs...
-    (*returnRead64_)[aarch64Map[aarch64::q8]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::q9]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::q10]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::q11]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::q12]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::q13]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::q14]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::q15]] = true;
-
-    callParam64_ = getBitArray(sz);
-    (*callParam64_)[aarch64Map[aarch64::x0]] = true;
-    (*callParam64_)[aarch64Map[aarch64::x1]] = true;
-    (*callParam64_)[aarch64Map[aarch64::x2]] = true;
-    (*callParam64_)[aarch64Map[aarch64::x3]] = true;
-    (*callParam64_)[aarch64Map[aarch64::x4]] = true;
-    (*callParam64_)[aarch64Map[aarch64::x5]] = true;
-    (*callParam64_)[aarch64Map[aarch64::x6]] = true;
-    (*callParam64_)[aarch64Map[aarch64::x7]] = true;
-
-	callRead64_ = getBitArray(sz);
-	//First, GPRs...
-	(*callRead64_)[aarch64Map[aarch64::x0]] = true;
-	(*callRead64_)[aarch64Map[aarch64::x1]] = true;
-	(*callRead64_)[aarch64Map[aarch64::x2]] = true;
-	(*callRead64_)[aarch64Map[aarch64::x3]] = true;
-	(*callRead64_)[aarch64Map[aarch64::x4]] = true;
-	(*callRead64_)[aarch64Map[aarch64::x5]] = true;
-	(*callRead64_)[aarch64Map[aarch64::x6]] = true;
-	(*callRead64_)[aarch64Map[aarch64::x7]] = true;
-	//Now, SIMD regs...
-	(*callRead64_)[aarch64Map[aarch64::q0]] = true;
-	(*callRead64_)[aarch64Map[aarch64::q1]] = true;
-	(*callRead64_)[aarch64Map[aarch64::q2]] = true;
-	(*callRead64_)[aarch64Map[aarch64::q3]] = true;
-	(*callRead64_)[aarch64Map[aarch64::q4]] = true;
-	(*callRead64_)[aarch64Map[aarch64::q5]] = true;
-	(*callRead64_)[aarch64Map[aarch64::q6]] = true;
-	(*callRead64_)[aarch64Map[aarch64::q7]] = true;
-
-	callWritten64_ = callRead64_;
-	//First, GPRs...
-	(*callWritten64_)[aarch64Map[aarch64::x9]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::x10]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::x11]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::x12]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::x13]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::x14]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::x15]] = true;
-	//Now, SIMD regs...
-	(*callWritten64_)[aarch64Map[aarch64::q16]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q17]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q18]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q19]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q20]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q21]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q22]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q23]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q24]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q25]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q26]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q27]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q28]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q29]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q30]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q31]] = true;
-
-	syscallRead64_ = &getBitArray(sz)->set();
-	syscallWritten64_ = &getBitArray(sz)->set();
-
-	allRegs64_ = &getBitArray(sz)->set();
+  DataflowAPI::buildABIBitArrays(Arch_aarch64, machRegIndex_aarch64(),
+                  returnRegs64_, callParam64_, returnRead64_, callRead64_,
+                  callWritten64_, syscallRead64_, syscallWritten64_, allRegs64_);
 }
 #endif
 
