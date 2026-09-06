@@ -67,6 +67,6 @@ class mnemonics:
     self.dyninst_prefix = "riscv64_op"
     self.missing = None
     self.pseudo = None
-    self.capstone = _read_capstone_mnemonics(cap_dir + "/arch/RISCV/RISCVGenInsnNameMaps.inc")
+    self.external = _read_capstone_mnemonics(cap_dir + "/arch/RISCV/RISCVGenInsnNameMaps.inc")
     self.dyninst = _read_dyninst_mnemonics(dyn_dir + "/common/h/mnemonics/riscv64_entryIDs.h", self.dyninst_prefix)
     self.aliases = None

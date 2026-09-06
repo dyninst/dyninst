@@ -9,6 +9,6 @@ class mnemonics:
     self.dyninst_prefix = "power_op"
     self.missing = None
     self.pseudo = None
-    self.capstone = _read_capstone_mnemonics(cap_dir + "/arch/PowerPC/PPCGenCSMappingInsnName.inc")
+    self.external = _read_capstone_mnemonics(cap_dir + "/arch/PowerPC/PPCGenCSMappingInsnName.inc")
     self.dyninst = _read_dyninst_mnemonics(dyn_dir + "/common/h/mnemonics/ppc_entryIDs.h")
     self.aliases = None
