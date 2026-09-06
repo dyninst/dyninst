@@ -957,8 +957,6 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_xorps;
         case e_fp_generic:
             return x86_unknown_instruction;
-        case e_3dnow_generic:
-            return x86_unknown_instruction;
         default:
             return x86_unknown_instruction;
         }

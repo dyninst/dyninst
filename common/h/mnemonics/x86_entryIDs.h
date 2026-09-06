@@ -1,5 +1,4 @@
 e_No_Entry, /* pseudo mnemonic */
-e_3dnow_generic, /* pseudo mnemonic */
 e_fp_generic, /* pseudo mnemonic */
 e_int80, /* pseudo mnemonic */
 e_jb_jnaej_j, /* pseudo mnemonic */

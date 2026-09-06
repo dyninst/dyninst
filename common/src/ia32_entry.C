@@ -1190,7 +1190,6 @@ DYNINST_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = boost::assig
   (e_vphsubdq, "vphsubdq")
 
   (e_fp_generic, "[FIXME: GENERIC FPU INSN]")
-  (e_3dnow_generic, "[FIXME: GENERIC 3DNow INSN]")
   (e_No_Entry, "No_Entry");
 
 dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI = boost::assign::map_list_of

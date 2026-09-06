@@ -44,7 +44,6 @@ class mnemonics:
         # Pseudo-mnemonics used in Dyninst
         self.pseudo = [
             "No_Entry",  # needs to be first
-            "3dnow_generic",
             "fp_generic",
             "int80",
             "jb_jnaej_j",
