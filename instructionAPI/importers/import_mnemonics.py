@@ -63,32 +63,31 @@ dynset = set(mnemonics.dyninst)
 new_mnemonics = externalset - dynset
 if len(new_mnemonics) > 0:
   for m in sorted(new_mnemonics):
-    print("\t{0:s}".format(m))
+    print("    {0:s}".format(m))
 else:
   print("None")
 
 # Missing aliases
 if mnemonics.aliases is not None:
-  print("Known aliases not in third-party decoder: ")
+  print("\nKnown aliases not in third-party decoder: ")
   unseen_aliases = [a for a in mnemonics.aliases if not mnemonics.aliases[a]["seen"]]
   if len(unseen_aliases) > 0:
     for a in sorted(unseen_aliases):
-      print("\tDidn't find '{0:s}', aliased with ".format(a), mnemonics.aliases[a]["values"])
+      print("    Didn't find '{0:s}', aliased with ".format(a), mnemonics.aliases[a]["values"])
   else:
     print("None")
 
 # Known mnemonics missing from third-party decoder
 if mnemonics.missing is not None:
-  print("Mnemonics known to be missing from third-party decoder: ")
+  print("\nMnemonics known to be missing from third-party decoder: ")
   if len(mnemonics.missing) > 0:
-    print()
     for m in sorted(mnemonics.missing):
-      print("\t{0:s}".format(m))
+      print("    {0:s}".format(m))
   else:
     print("None")
 
 # In Dyninst, but not third-party decoder
-print("Mnemonics found in Dyninst, but not third-party decoder (likely an error!!): ")
+print("\nMnemonics found in Dyninst, but not third-party decoder (likely an error!!): ")
 missing = dynset - externalset # implicitly ignores pseudo registers
 
 if mnemonics.aliases is not None:
@@ -102,6 +101,6 @@ if mnemonics.missing is not None:
 if len(missing) > 0:
   print()
   for m in sorted(missing):
-    print("\t{0:s}".format(m))
+    print("    {0:s}".format(m))
 else:
   print("None")
