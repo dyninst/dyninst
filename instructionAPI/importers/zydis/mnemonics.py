@@ -39,7 +39,7 @@ class mnemonics:
         self.dyninst_prefix = "e"
 
         # Mnemonics missing in Zydis
-        self.missing = []
+        self.missing = ["retf"]
 
         # Pseudo-mnemonics used in Dyninst
         self.pseudo = [
