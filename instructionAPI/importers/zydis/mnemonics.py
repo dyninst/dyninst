@@ -59,7 +59,6 @@ class mnemonics:
             "ret_far",
             "ret_near",
             "lcall",
-            "clzero",
         ]
 
         _ignored = [
