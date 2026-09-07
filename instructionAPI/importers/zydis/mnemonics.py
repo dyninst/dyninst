@@ -184,8 +184,6 @@ class mnemonics:
             "pushf" : { "seen" : False, "values" : ["pushfd", "pushfq",] },
             "pushfd" : { "seen" : False, "values" : ["pushf", "pushfq",] },
             "pushfq" : { "seen" : False, "values" : ["pushf", "pushfd",] },
-            "retfq" : { "seen" : False, "values" : ["retf",] },
-            "retf" : { "seen" : False, "values" : ["retfq",] },
             "setb" : { "seen" : False, "values" : ["setc", "setnae",] },
             "setc" : { "seen" : False, "values" : ["setb", "setnae",] },
             "setnae" : { "seen" : False, "values" : ["setb", "setc",] },
