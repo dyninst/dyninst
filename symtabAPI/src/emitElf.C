@@ -344,6 +344,8 @@ bool emitElf<ElfTypes>::getSectionAndSegmentInfo() {
             continue;                   // .shstrtab shstrndx section always moved, ignore
         auto scn{elf_getscn(oldElf, i)};
         auto shdr{ElfTypes::elf_getshdr(scn)};
+        if (shdr && shdr->sh_type == SHT_SYMTAB)
+            oldSymtabIndex = i;
         if (!shdr || !(shdr->sh_flags & SHF_ALLOC))
             continue;                   // not allocated, so no address
         if (maxSectionAlignment < shdr->sh_addralign)
@@ -576,6 +578,7 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         } else if (olddata->d_buf) {    //copy the data buffer from oldElf
             newdata->d_buf = allocate_buffer(olddata->d_size);
             memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
+            remapSymtabRefs(shdr, newshdr, newdata);
         }
 
         if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0)) {
@@ -1639,8 +1642,10 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
             max_index = s->getIndex();
     }
 
+    std::unordered_set<Symbol *> newSymSymbols;
     for (const auto &s : allSymSymbols) {
         if (s->getIndex() == -1) {
+            newSymSymbols.insert(s);
             max_index++;
             s->setIndex(max_index);
         }
@@ -1678,18 +1683,29 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     // ELF requires all STB_LOCAL symbols to precede the others, with sh_info
     // holding the index of the first non-local.  New symbols were appended
     // after the originals regardless of binding, so partition them here.
-    std::vector<size_t> order(symbols.size());
-    std::iota(order.begin(), order.end(), 0);
-    auto firstNonLocal = std::stable_partition(order.begin(), order.end(),
+    symtabOrder.assign(symbols.size(), 0);
+    std::iota(symtabOrder.begin(), symtabOrder.end(), 0);
+    auto firstNonLocal = std::stable_partition(symtabOrder.begin(), symtabOrder.end(),
         [&](size_t k) { return ELF64_ST_BIND(symbols[k]->st_info) == STB_LOCAL; });
-    symtabNumLocals = firstNonLocal - order.begin();
+    symtabNumLocals = firstNonLocal - symtabOrder.begin();
+
+    // Sections that index into .symtab (.rela.* from --emit-relocs, SHT_GROUP,
+    // .symtab_shndx) are copied verbatim by the driver, which uses this map to
+    // follow the renumbering.  getIndex() is still the old st index here.
+    // symbols[0] is the null entry, not in allSymSymbols; it stays at index 0.
+    symtabIndexMap.clear();
+    for (size_t k = 1; k < symtabOrder.size(); ++k) {
+        Symbol *s = allSymSymbols[symtabOrder[k] - 1];
+        if (!newSymSymbols.count(s))
+            symtabIndexMap[s->getIndex()] = k;
+    }
 
     Elf_Sym *syms = (Elf_Sym *) malloc(symbols.size() * sizeof(Elf_Sym));
     std::vector<Region *> orderedRegions;
-    orderedRegions.reserve(order.size());
-    for (size_t k = 0; k < order.size(); ++k) {
-        syms[k] = *symbols[order[k]];
-        orderedRegions.push_back(symtabSymRegions[order[k]]);
+    orderedRegions.reserve(symtabOrder.size());
+    for (size_t k = 0; k < symtabOrder.size(); ++k) {
+        syms[k] = *symbols[symtabOrder[k]];
+        orderedRegions.push_back(symtabSymRegions[symtabOrder[k]]);
     }
     symtabSymRegions = std::move(orderedRegions);
 
@@ -2492,6 +2508,62 @@ bool emitElf<ElfTypes>::updateSymbolSectionIndices(Elf_Scn *scn, const std::vect
         }
     }
     return true;
+}
+
+// A copied section that indexes into the old .symtab must follow the
+// renumbering done when locals were partitioned to the front of the new one.
+template<class ElfTypes>
+void emitElf<ElfTypes>::remapSymtabRefs(const Elf_Shdr *shdr, Elf_Shdr *newshdr, Elf_Data *newdata) {
+    if (!oldSymtabIndex || shdr->sh_link != oldSymtabIndex || !newdata->d_buf)
+        return;
+
+    auto newIndex = [&](unsigned old) -> unsigned {
+        if (old == STN_UNDEF)
+            return STN_UNDEF;
+        auto it = symtabIndexMap.find(old);
+        if (it == symtabIndexMap.end()) {
+            rewrite_printf("symbol %u referenced by %s is no longer in .symtab\n",
+                           old, getSectionName(shdr));
+            return STN_UNDEF;
+        }
+        return it->second;
+    };
+
+    switch (shdr->sh_type) {
+    case SHT_REL: {
+        auto *rels = static_cast<Elf_Rel *>(newdata->d_buf);
+        for (size_t k = 0; k < newdata->d_size / sizeof(Elf_Rel); ++k)
+            rels[k].r_info = ElfTypes::makeRelocInfo(newIndex(ElfTypes::relocSym(rels[k].r_info)),
+                                                     ElfTypes::relocType(rels[k].r_info));
+        break;
+    }
+    case SHT_RELA: {
+        auto *relas = static_cast<Elf_Rela *>(newdata->d_buf);
+        for (size_t k = 0; k < newdata->d_size / sizeof(Elf_Rela); ++k)
+            relas[k].r_info = ElfTypes::makeRelocInfo(newIndex(ElfTypes::relocSym(relas[k].r_info)),
+                                                      ElfTypes::relocType(relas[k].r_info));
+        break;
+    }
+    case SHT_GROUP:
+        newshdr->sh_info = newIndex(shdr->sh_info);     // the group signature symbol
+        break;
+    case SHT_SYMTAB_SHNDX: {
+        // parallel to .symtab: permute it the same way; new symbols get SHN_UNDEF
+        auto *old = static_cast<const Elf32_Word *>(newdata->d_buf);
+        size_t oldCount = newdata->d_size / sizeof(Elf32_Word);
+        std::vector<Elf32_Word> shndx(symtabOrder.size(), SHN_UNDEF);
+        for (size_t k = 0; k < symtabOrder.size(); ++k)
+            if (symtabOrder[k] < oldCount)
+                shndx[k] = old[symtabOrder[k]];
+        newdata->d_size = shndx.size() * sizeof(Elf32_Word);
+        newshdr->sh_size = newdata->d_size;
+        newdata->d_buf = allocate_buffer(newdata->d_size);
+        memcpy(newdata->d_buf, shndx.data(), newdata->d_size);
+        break;
+    }
+    default:
+        break;
+    }
 }
 
 template<class ElfTypes>

@@ -114,6 +114,8 @@ namespace Dyninst {
             Elf_Shdr *elf_getshdr(Elf_Scn *scn) { return elf32_getshdr(scn); }
 
             Elf32_Word makeRelocInfo(Elf32_Word sym, Elf32_Word type) { return ELF32_R_INFO(sym, type); }
+            static Elf32_Word relocSym(Elf32_Word info)  { return ELF32_R_SYM(info); }
+            static Elf32_Word relocType(Elf32_Word info) { return ELF32_R_TYPE(info); }
         };
 
         struct ElfTypes64 {
@@ -146,6 +148,8 @@ namespace Dyninst {
             Elf_Shdr *elf_getshdr(Elf_Scn *scn) { return elf64_getshdr(scn); }
 
             Elf64_Xword makeRelocInfo(Elf64_Word sym, Elf64_Word type) { return ELF64_R_INFO(sym, type); }
+            static Elf64_Word relocSym(Elf64_Xword info)  { return ELF64_R_SYM(info); }
+            static Elf64_Word relocType(Elf64_Xword info) { return ELF64_R_TYPE(info); }
         };
 
         template<class ElfTypes = ElfTypes64> class emitElf : public ElfTypes {
@@ -208,6 +212,13 @@ namespace Dyninst {
             unsigned symtabStrIndex{};
             // number of STB_LOCAL symbols at the start of the new .symtab (its sh_info)
             unsigned symtabNumLocals{};
+            // section index of .symtab in the old file, 0 if none
+            unsigned oldSymtabIndex{};
+            // old .symtab index -> index in the regenerated .symtab, for every
+            // original symbol that survived
+            std::unordered_map<unsigned, unsigned> symtabIndexMap;
+            // new .symtab position -> position before the local-first partition
+            std::vector<size_t> symtabOrder;
             // Region each emitted .symtab / .dynsym entry refers to (nullptr if none),
             // parallel to the emitted symbol arrays; used to fix st_shndx once the
             // new file's section indices are known
@@ -277,7 +288,7 @@ namespace Dyninst {
             unsigned oldShstrndx{};
             unsigned oldNumSegments{};
             const char *sectionNameTable{};
-            const char *getSectionName(Elf_Shdr *shdr)
+            const char *getSectionName(const Elf_Shdr *shdr)
                         {return sectionNameTable ? &sectionNameTable[shdr->sh_name] : nullptr;}
             Elf_Off  address_adjust{}; // amount every address from old image moves
             Elf_Off offset_adjust{};   // amount every file offset from old image moves
@@ -295,6 +306,7 @@ namespace Dyninst {
                                  bool dynSymFlag = false);
             bool getSectionAndSegmentInfo();
             bool updateSymbolSectionIndices(Elf_Scn *scn, const std::vector<Region *> &symRegions);
+            void remapSymtabRefs(const Elf_Shdr *shdr, Elf_Shdr *newshdr, Elf_Data *newdata);
             void renameSection(const std::string &oldName);
             void fixPhdrs();
 
