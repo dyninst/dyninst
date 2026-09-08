@@ -490,7 +490,6 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
 
     addSectionName("");  // section 0 is always ST_NULL with an empty name
     loadSecTotalSize = 0;
-    int dirtySecsChange = 0;
     unsigned extraAlignSize = 0;
 
     // Write the Elf header first!
@@ -501,7 +500,6 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
     }
     *newEhdr = *oldEhdr;
 
-    unsigned insertPoint = oldNumSections + 1;  // section index of inserted sections
     Elf_Off insertPointOffset{};                // file offset of inserted sections
 
     newEhdr->e_phoff = sizeof(Elf_Ehdr);
@@ -527,21 +525,65 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
 
     auto moveSecAddrRange = object->getMoveSecAddrRange();
 
+    // Region of an old section: by (addr, size), falling back to the name when
+    // that is ambiguous or the match is dirty
+    auto regionForSection = [&](Elf_Shdr *sh) -> Region * {
+        Region *r{};
+        if (!obj->findRegion(r, sh->sh_addr, sh->sh_size) || r->isDirty())
+            obj->findRegion(r, getSectionName(sh));
+        return r;
+    };
+
+    /* File layout is decided by offset, not by section index: the .rela.*
+     * sections of an --emit-relocs link have low indices but sit at the end
+     * of the file, after .symtab and .strtab.  So determine up front where the
+     * new loadable sections are inserted and how much each regenerated (dirty)
+     * section grows, and shift every copied section by exactly the changes
+     * that precede it in the file.
+     */
+    {
+        auto lastScn = elf_getscn(oldElf, lastLoadedSectionIndex);
+        auto lastShdr = lastScn ? ElfTypes::elf_getshdr(lastScn) : nullptr;
+        if (!lastShdr) {
+            log_elferror(err_func_, "cannot read the last loaded section header");
+            return false;
+        }
+        insertPointOffset = lastShdr->sh_offset;
+        if (lastShdr->sh_type != SHT_NOBITS)
+            insertPointOffset += lastShdr->sh_size;
+    }
+    std::vector<std::pair<Elf_Off, long>> dirtyDeltas;   // (old file offset, size change)
+    for (unsigned i = 1; i < oldNumSections; ++i) {
+        if (i == oldShstrndx)
+            continue;                                   // moved to the end, leaves a gap
+        auto s = elf_getscn(oldElf, i);
+        auto sh = s ? ElfTypes::elf_getshdr(s) : nullptr;
+        if (!sh || sh->sh_type == SHT_NOBITS || !sh->sh_offset)
+            continue;                                   // occupies no file space
+        Region *r = regionForSection(sh);
+        if (r && r->isDirty() && r->getDiskSize() != sh->sh_size)
+            dirtyDeltas.emplace_back(sh->sh_offset, long(r->getDiskSize()) - long(sh->sh_size));
+    }
+    // copied before the new loadable sections are created, but placed after
+    // them in the file; shifted once their total size is known
+    std::vector<Elf_Shdr *> shiftAfterInsert;
+
     for (unsigned scncount = 1; (scn = elf_nextscn(oldElf, scn)); scncount++) {
         //copy sections from oldElf to newElf
         shdr = ElfTypes::elf_getshdr(scn);
 
         // resolve section name
         const char *name = getSectionName(shdr);
-        bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
-        if (!result || foundSec->isDirty()) {
-            result = obj->findRegion(foundSec, name);
-        }
+        foundSec = regionForSection(shdr);
 
         // write the shstrtabsection at the end
         if (scncount == oldShstrndx) {
             shstrtabRegion = foundSec;
             continue;
+        }
+        if (!foundSec) {
+            log_elferror(err_func_, (std::string{"no region for section "} + (name ? name : "")).c_str());
+            return false;
         }
 
         sectionNumber++;
@@ -700,16 +742,22 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
                 newshdr->sh_offset += offset_adjust;
         }
 
-        // shift section offsets after the insertPoint that come after the insertPoint's offset
-        if (scncount > insertPoint && shdr->sh_offset >= insertPointOffset)
-            newshdr->sh_offset += loadSecTotalSize + extraAlignSize;
+        if (newshdr->sh_offset > 0) {
+            // make room for the new loadable sections inserted at insertPointOffset
+            if (scncount != lastLoadedSectionIndex && shdr->sh_offset >= insertPointOffset) {
+                if (createdLoadableSections)
+                    newshdr->sh_offset += loadSecTotalSize + extraAlignSize;
+                else
+                    shiftAfterInsert.push_back(newshdr);
+            }
+            // and for every regenerated section that grew or shrank ahead of this one
+            for (const auto &d : dirtyDeltas)
+                if (d.first < shdr->sh_offset)
+                    newshdr->sh_offset += d.second;
+        }
+        if (newshdr->sh_type != SHT_NOBITS && currEndOffset < newshdr->sh_offset + newshdr->sh_size)
+            currEndOffset = newshdr->sh_offset + newshdr->sh_size;
 
-        if (newshdr->sh_offset > 0)
-            newshdr->sh_offset += dirtySecsChange;
-
-        if (foundSec->isDirty())
-            dirtySecsChange += newshdr->sh_size - shdr->sh_size;
-        
         secLinkMapping[sectionNumber] = shdr->sh_link;
         secInfoMapping[sectionNumber] = shdr->sh_info;
 
@@ -726,15 +774,17 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         //loadable segment
         if (scncount == lastLoadedSectionIndex && !createdLoadableSections) {
             createdLoadableSections = true;
-            insertPoint = scncount;
-            insertPointOffset = shdr->sh_offset;
-            if (shdr->sh_type != SHT_NOBITS)
-                insertPointOffset += shdr->sh_size;
-
 
             if (!createLoadableSections(newshdr, extraAlignSize, newNameIndexMapping,
                        sectionNumber))
                 return false;
+
+            // earlier-indexed sections that live past the insert point in the file
+            for (auto *late : shiftAfterInsert) {
+                late->sh_offset += loadSecTotalSize + extraAlignSize;
+                if (late->sh_type != SHT_NOBITS && currEndOffset < late->sh_offset + late->sh_size)
+                    currEndOffset = late->sh_offset + late->sh_size;
+            }
 
             // Update the heap symbols, now that loadSecTotalSize is set
             updateSymbols(dynsymData, dynStrData, loadSecTotalSize);
@@ -1378,7 +1428,10 @@ bool emitElf<ElfTypes>::addSectionHeaderTable(Elf_Shdr *shdr) {
     newshdr->sh_link = SHN_UNDEF;
     newshdr->sh_flags = 0;
 
+    // after the last section by index, and after the last one by file offset
     newshdr->sh_offset = shdr->sh_offset + shdr->sh_size;
+    if (newshdr->sh_offset < currEndOffset)
+        newshdr->sh_offset = currEndOffset;
     newshdr->sh_addr = 0;
     newshdr->sh_info = 0;
     newshdr->sh_addralign = 4;
