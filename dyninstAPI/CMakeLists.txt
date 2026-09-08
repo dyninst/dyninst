@@ -45,6 +45,7 @@ set(_private_headers
     src/emit-amdgpu.h
     src/emitter.h
     src/emit-x86.h
+    src/find_main.h
     src/freebsd.h
     src/function_cache.h
     src/hybridAnalysis.h
@@ -72,6 +73,9 @@ set(_sources
     src/binaryEdit.C
     src/codeRange.C
     src/debug.C
+    src/find_main.C
+    src/find_main_ppc.C
+    src/find_main_x86.C
     src/hybridCallbacks.C
     src/hybridInstrumentation.C
     src/hybridOverwrites.C
