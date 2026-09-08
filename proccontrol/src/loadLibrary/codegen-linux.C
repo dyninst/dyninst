@@ -115,8 +115,7 @@ Address Codegen::buildLinuxArgStruct(Address libbase, unsigned mode) {
    unsigned argsSize = 0;
    void *argsPtr = NULL;
 
-   if (proc_->getArchitecture() == Arch_x86 ||
-       proc_->getArchitecture() == Arch_ppc32) {
+   if (proc_->getArchitecture() == Arch_x86) {
       args32.namePtr = (uint32_t) libbase;
       args32.mode = mode;
       args32.linkMapPtr = 0;

@@ -28,19 +28,30 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DYNINST_DYNINSTAPI_CODEGEN_EMITTERS_PPC32_EMITTERPPC32DYN_H
-#define DYNINST_DYNINSTAPI_CODEGEN_EMITTERS_PPC32_EMITTERPPC32DYN_H
+#ifndef DYNINST_COMMON_ABI_INTERFACE_DEFINITION_H
+#define DYNINST_COMMON_ABI_INTERFACE_DEFINITION_H
 
-#include "codegen/emitters/PowerPC/EmitterPowerPC.h"
+#include "registers/registerSet.h"
 
-/*
- *  Instruction emitter for dynamic instrumentation on 32-bit PowerPC
- */
+namespace Dyninst { namespace abi {
 
-namespace Dyninst { namespace DyninstAPI {
+  struct interface_definition {
 
-  class EmitterPowerPC32Dyn : public EmitterPowerPC {};
+    // registers used to pass parameters to a function
+    registerSet params;
 
+    // registers used to return parameters from a function
+    registerSet returns;
+
+    // registers whose value is preserved on function return
+    // Also referred to as 'callee-saved' in the ABI docs
+    registerSet preserved;
+
+    // Registers that act as global variable by the ABI/runtime system
+    // that are possibly read & written in the function and are valid after
+    // a function such as `%rsp`, `%rip` and `%fs`.
+    registerSet globals;
+  };
 }}
 
 #endif

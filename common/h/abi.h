@@ -1,0 +1,95 @@
+/*
+ * See the dyninst/COPYRIGHT file for copyright information.
+ *
+ * We provide the Paradyn Tools (below described as "Paradyn")
+ * on an AS IS basis, and do not warrant its validity or performance.
+ * We reserve the right to update, modify, or discontinue this
+ * software at any time.  We shall have no obligation to supply such
+ * updates or modifications or any other form of support to you.
+ *
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
+#ifndef DYNINST_COMMON_ABI_H
+#define DYNINST_COMMON_ABI_H
+
+#include "Architecture.h"
+#include "registers/registerSet.h"
+#include "dyninst_visibility.h"
+#include <memory>
+
+namespace Dyninst {
+
+  namespace abi {
+    struct abi_impl;
+  }
+
+  class DYNINST_EXPORT ABI {
+    // No default member initializer here: gcc 8 instantiates the
+    // unique_ptr destructor (requiring a complete abi_impl) while
+    // processing an NSDMI, even though the destructor and all
+    // constructors are defined out-of-line where abi_impl is complete.
+    // Every constructor initializes impl in its mem-init list.
+    std::unique_ptr<Dyninst::abi::abi_impl> impl;
+  public:
+    explicit ABI(Dyninst::Architecture a);
+    ~ABI();
+    ABI(ABI&&) noexcept;
+    ABI& operator=(ABI&&) noexcept;
+
+    // Address width (in bytes) of the modelled architecture.
+    int addressWidth() const;
+
+    /*
+     * The accessors below return registerSets rather than the bitArrays used
+     * by the previous ABI class. bitArray and its per-architecture index maps
+     * live in dataflowAPI, which depends on common, so this common-layer class
+     * cannot use them. Consumers that need a bitArray (e.g. LivenessAnalyzer)
+     * convert these sets using their own index map.
+     */
+
+    // Registers used to pass parameters to a function.
+    Dyninst::abi::registerSet const& getParameterRegisters() const;
+
+    // Registers that hold a function's return value(s).
+    Dyninst::abi::registerSet const& getReturnRegisters() const;
+
+    // Registers live (read) at a function return: return values, callee-saved
+    // registers, and ABI globals.
+    Dyninst::abi::registerSet const& getReturnReadRegisters() const;
+
+    // Registers a call may read: parameter registers and ABI globals.
+    Dyninst::abi::registerSet const& getCallReadRegisters() const;
+
+    // Registers a call may clobber (caller-saved): everything that is neither
+    // callee-saved nor an ABI global.
+    Dyninst::abi::registerSet const& getCallWrittenRegisters() const;
+
+    // Registers a system call may read: syscall arguments and ABI globals.
+    Dyninst::abi::registerSet const& getSyscallReadRegisters() const;
+
+    // Registers a system call may clobber.
+    Dyninst::abi::registerSet const& getSyscallWrittenRegisters() const;
+  };
+
+}
+
+#endif

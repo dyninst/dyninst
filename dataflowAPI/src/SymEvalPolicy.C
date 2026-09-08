@@ -31,7 +31,6 @@
 
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
-#include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
 
 
@@ -105,31 +104,31 @@ Absloc SymEvalPolicy::convert(PowerpcRegisterClass regtype, int regNum)
     switch(regtype)
     {
         case powerpc_regclass_gpr:
-            return Absloc(MachRegister(ppc32::GPR | regNum | arch));
+            return Absloc(MachRegister(ppc64::GPR | regNum | arch));
         case powerpc_regclass_spr:
-            return Absloc(MachRegister(ppc32::SPR | regNum | arch));
+            return Absloc(MachRegister(ppc64::SPR | regNum | arch));
         case powerpc_regclass_cr:
         {
             if(regNum == -1)
-                return Absloc(ppc32::cr);
+                return Absloc(ppc64::cr);
             switch(regNum)
             {
                 case 0:
-                    return Absloc(ppc32::cr0);
+                    return Absloc(ppc64::cr0);
                 case 1:
-                    return Absloc(ppc32::cr1);
+                    return Absloc(ppc64::cr1);
                 case 2:
-                    return Absloc(ppc32::cr2);
+                    return Absloc(ppc64::cr2);
                 case 3:
-                    return Absloc(ppc32::cr3);
+                    return Absloc(ppc64::cr3);
                 case 4:
-                    return Absloc(ppc32::cr4);
+                    return Absloc(ppc64::cr4);
                 case 5:
-                    return Absloc(ppc32::cr5);
+                    return Absloc(ppc64::cr5);
                 case 6:
-                    return Absloc(ppc32::cr6);
+                    return Absloc(ppc64::cr6);
                 case 7:
-                    return Absloc(ppc32::cr7);
+                    return Absloc(ppc64::cr7);
                 default:
                     assert(!"bad CR field!");
                     return Absloc();
@@ -319,9 +318,9 @@ Absloc SymEvalPolicy_64::convert(PowerpcRegisterClass regtype, int regNum)
             // PPC register classes (gpr/spr/whatever) are identical 32/64, and must maintain this
             //  invariant, so we're using 32 here
         case powerpc_regclass_gpr:
-            return Absloc(MachRegister(ppc32::GPR | regNum | arch));
+            return Absloc(MachRegister(ppc64::GPR | regNum | arch));
         case powerpc_regclass_spr:
-            return Absloc(MachRegister(ppc32::SPR | regNum | arch));
+            return Absloc(MachRegister(ppc64::SPR | regNum | arch));
         case powerpc_regclass_cr:
         {
             if(arch == Arch_ppc64)
@@ -333,12 +332,12 @@ Absloc SymEvalPolicy_64::convert(PowerpcRegisterClass regtype, int regNum)
                 }
                 return Absloc(ppc64::cr0 + regNum);
             } else {
-                if(regNum < 0) return Absloc(ppc32::cr);
+                if(regNum < 0) return Absloc(ppc64::cr);
                 if(regNum > 7) {
                     assert(!"bad CR field");
                     return Absloc();
                 }
-                return Absloc(ppc32::cr0 + regNum);
+                return Absloc(ppc64::cr0 + regNum);
 
             }
         }
