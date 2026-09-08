@@ -585,6 +585,18 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
     // them in the file; shifted once their total size is known
     std::vector<Elf_Shdr *> shiftAfterInsert;
 
+    // Inserting and moving sections renumbers everything after them; headers
+    // copied from the old file still name sections by their old index.
+    std::vector<unsigned> oldToNewIndex(oldNumSections, 0);
+    std::vector<unsigned> newToOldIndex(1, 0);
+    auto remapIndex = [&](unsigned old) -> unsigned {
+        if (old == SHN_UNDEF || old >= oldNumSections)
+            return old;                     // SHN_XINDEX and friends pass through
+        if (!oldToNewIndex[old])
+            rewrite_printf("old section %u has no counterpart in the new file\n", old);
+        return oldToNewIndex[old] ? oldToNewIndex[old] : old;
+    };
+
     for (unsigned scncount = 1; (scn = elf_nextscn(oldElf, scn)); scncount++) {
         //copy sections from oldElf to newElf
         shdr = ElfTypes::elf_getshdr(scn);
@@ -608,6 +620,10 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         newNameIndexMapping[name] = sectionNumber;
         if (foundSec)
             regionNewIndex[foundSec] = sectionNumber;
+        oldToNewIndex[scncount] = sectionNumber;
+        if (newToOldIndex.size() <= sectionNumber)
+            newToOldIndex.resize(sectionNumber + 1, 0);
+        newToOldIndex[sectionNumber] = scncount;
 
         newscn = elf_newscn(newElf);
         newshdr = ElfTypes::elf_getshdr(newscn);
@@ -665,7 +681,11 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         for (const auto &m : moveSecAddrRange) {
             if ((m[0] == shdr->sh_addr) ||
                 (m[0] <= shdr->sh_addr && shdr->sh_addr < m[1])) {
+                // superseded by a regenerated section; keep the bytes, drop the meaning
                 newshdr->sh_type = SHT_PROGBITS;
+                newshdr->sh_link = SHN_UNDEF;
+                newshdr->sh_info = 0;
+                newshdr->sh_flags &= ~SHF_INFO_LINK;
                 changeMapping[sectionNumber] = true;
                 renameSection(name);
             }
@@ -699,6 +719,8 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
             dynSegAddr = newshdr->sh_addr;
             // Change the data to update the relocation addr
             newshdr->sh_type = SHT_PROGBITS;
+            newshdr->sh_link = SHN_UNDEF;
+            newshdr->sh_info = 0;
             changeMapping[sectionNumber] = true;
             renameSection(name);
         }
@@ -715,6 +737,9 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
             renameSection(name);
             // The old sections are no longer REL or RELA, change to PROGBITS
             newshdr->sh_type = SHT_PROGBITS;
+            newshdr->sh_link = SHN_UNDEF;
+            newshdr->sh_info = 0;
+            newshdr->sh_flags &= ~SHF_INFO_LINK;
 
         }
 
@@ -827,12 +852,23 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
     addSectionHeaderTable(newshdr);
     if (shstrtabRegion)
         regionNewIndex[shstrtabRegion] = secNames.size() - 1;   // .shstrtab is the last section
+    oldToNewIndex[oldShstrndx] = secNames.size() - 1;
 
     // Second iteration to fix the link fields to point to the correct section
     scn = NULL;
     unsigned scncount;
     for (scncount = 1; (scn = elf_nextscn(newElf, scn)); scncount++) {
         shdr = ElfTypes::elf_getshdr(scn);
+
+        // a copied header still names its sh_link section, and for a relocation
+        // section the sh_info target, by old index
+        if (scncount < newToOldIndex.size() && newToOldIndex[scncount]) {
+            shdr->sh_link = remapIndex(shdr->sh_link);
+            if ((shdr->sh_flags & SHF_INFO_LINK) ||
+                shdr->sh_type == SHT_REL || shdr->sh_type == SHT_RELA)
+                shdr->sh_info = remapIndex(shdr->sh_info);
+        }
+
         if (shdr->sh_type == SHT_SYMTAB) {
             shdr->sh_link = symtabStrIndex;     // .symtab -> .strtab, wherever it ended up
             if (updateSymbolSectionIndices(scn, symtabSymRegions))
@@ -842,10 +878,13 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         }
         if(dataLinkInfo.count(secNames[scncount]))
         {
+            // a regenerated section inherits the sh_info of the one it replaces:
+            // a section index for relocation sections, a count otherwise
             rewrite_printf("update link info of %s\n", secNames[scncount].c_str());
             auto & data = dataLinkInfo[secNames[scncount]];
             //shdr->sh_link = data.first;
-            shdr->sh_info = data.second;
+            shdr->sh_info = (shdr->sh_type == SHT_REL || shdr->sh_type == SHT_RELA)
+                            ? remapIndex(data.second) : data.second;
         }
     }
 
