@@ -564,6 +564,23 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         if (r && r->isDirty() && r->getDiskSize() != sh->sh_size)
             dirtyDeltas.emplace_back(sh->sh_offset, long(r->getDiskSize()) - long(sh->sh_size));
     }
+    // Shifted sections stay aligned if every shift is a multiple of the
+    // strictest alignment among them (offset_adjust is a page multiple already).
+    Elf_Off firstShifted = insertPointOffset;
+    for (const auto &d : dirtyDeltas)
+        firstShifted = std::min<Elf_Off>(firstShifted, d.first);
+    Elf_Off tailAlign = 1;
+    for (unsigned i = 1; i < oldNumSections; ++i) {
+        auto s = elf_getscn(oldElf, i);
+        auto sh = s ? ElfTypes::elf_getshdr(s) : nullptr;
+        if (sh && sh->sh_type != SHT_NOBITS && sh->sh_offset >= firstShifted && sh->sh_addralign > tailAlign)
+            tailAlign = sh->sh_addralign;
+    }
+    auto alignUp = [](Elf_Off v, Elf_Off a) { return a > 1 ? (v + a - 1) / a * a : v; };
+    for (auto &d : dirtyDeltas)     // a shrink rounds toward zero so nothing overlaps
+        d.second = d.second >= 0 ? long(alignUp(d.second, tailAlign))
+                                 : -long(Elf_Off(-d.second) / tailAlign * tailAlign);
+    Elf_Off insertShift{};          // aligned file space taken by the new loadable sections
     // copied before the new loadable sections are created, but placed after
     // them in the file; shifted once their total size is known
     std::vector<Elf_Shdr *> shiftAfterInsert;
@@ -746,7 +763,7 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
             // make room for the new loadable sections inserted at insertPointOffset
             if (scncount != lastLoadedSectionIndex && shdr->sh_offset >= insertPointOffset) {
                 if (createdLoadableSections)
-                    newshdr->sh_offset += loadSecTotalSize + extraAlignSize;
+                    newshdr->sh_offset += insertShift;
                 else
                     shiftAfterInsert.push_back(newshdr);
             }
@@ -779,9 +796,11 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
                        sectionNumber))
                 return false;
 
+            insertShift = alignUp(loadSecTotalSize + extraAlignSize, tailAlign);
+
             // earlier-indexed sections that live past the insert point in the file
             for (auto *late : shiftAfterInsert) {
-                late->sh_offset += loadSecTotalSize + extraAlignSize;
+                late->sh_offset += insertShift;
                 if (late->sh_type != SHT_NOBITS && currEndOffset < late->sh_offset + late->sh_size)
                     currEndOffset = late->sh_offset + late->sh_size;
             }
@@ -1225,9 +1244,22 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
         else
             newshdr->sh_addr = prevshdr->sh_addr + prevshdr->sh_size;
 
+        // A section with no address of its own directly follows the previous
+        // one; pad address and offset alike up to its alignment, which keeps
+        // the sh_addr == sh_offset (mod page) relation established below.
+        Elf_Word align = std::max<Elf_Word>(newSec->getMemAlignment(), newSectionAlignment(newSec));
+        if (!newSec->getDiskOffset() && align > 1) {
+            Offset pad = (align - newshdr->sh_addr % align) % align;
+            newshdr->sh_addr += pad;
+            if (prevshdr && newshdr->sh_type != SHT_NOBITS) {
+                newshdr->sh_offset += pad;
+                loadSecTotalSize += pad;
+            }
+        }
+
         newshdr->sh_link = SHN_UNDEF;
         newshdr->sh_info = 0;
-        newshdr->sh_addralign = newSec->getMemAlignment();
+        newshdr->sh_addralign = align;
         newshdr->sh_entsize = 0;
 
         // TLS section
@@ -1330,7 +1362,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
             newshdr->sh_entsize = 0;
             newshdr->sh_addralign = 4;
             newdata->d_type = ELF_T_VNEED;
-            newdata->d_align = 8;
+            newdata->d_align = 4;
             updateStrLinkShdr.push_back(newshdr);
             newshdr->sh_flags = SHF_ALLOC;
             newshdr->sh_info = verneednum;
@@ -1339,7 +1371,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
             newshdr->sh_type = SHT_GNU_verdef;
             newshdr->sh_entsize = 0;
             newdata->d_type = ELF_T_VDEF;
-            newdata->d_align = 8;
+            newdata->d_align = 4;
             updateStrLinkShdr.push_back(newshdr);
             newshdr->sh_flags = SHF_ALLOC;
             newshdr->sh_info = verdefnum;
@@ -1434,7 +1466,7 @@ bool emitElf<ElfTypes>::addSectionHeaderTable(Elf_Shdr *shdr) {
         newshdr->sh_offset = currEndOffset;
     newshdr->sh_addr = 0;
     newshdr->sh_info = 0;
-    newshdr->sh_addralign = 4;
+    newshdr->sh_addralign = 1;      // a string table has no alignment requirement
 
     //Set up the data
     newdata->d_buf = allocate_buffer(secNameTableTotalBytes);
@@ -1448,7 +1480,7 @@ bool emitElf<ElfTypes>::addSectionHeaderTable(Elf_Shdr *shdr) {
     newdata->d_size = secNameTableTotalBytes;
     newshdr->sh_size = newdata->d_size;
 
-    newdata->d_align = 4;
+    newdata->d_align = 1;
     newdata->d_version = 1;
     return true;
 }
@@ -1519,9 +1551,11 @@ bool emitElf<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
         if (newshdr->sh_offset < currEndOffset) {
             newshdr->sh_offset = currEndOffset;
         }
+        newshdr->sh_addralign = std::max<Elf_Word>(4, newSectionAlignment(sec));
+        if (auto rem = newshdr->sh_offset % newshdr->sh_addralign)
+            newshdr->sh_offset += newshdr->sh_addralign - rem;
         newshdr->sh_addr = 0;
         newshdr->sh_info = 0;
-        newshdr->sh_addralign = 4;
 
         //Set up the data
         newdata->d_buf = sec->getPtrToRawData();
@@ -2616,6 +2650,31 @@ void emitElf<ElfTypes>::remapSymtabRefs(const Elf_Shdr *shdr, Elf_Shdr *newshdr,
     }
     default:
         break;
+    }
+}
+
+// natural alignment of a section this emitter generates, from its entry type
+template<class ElfTypes>
+auto emitElf<ElfTypes>::newSectionAlignment(const Region *sec) -> Elf_Word {
+    switch (sec->getRegionType()) {
+    case Region::RT_REL:
+    case Region::RT_PLTREL:
+    case Region::RT_RELA:
+    case Region::RT_PLTRELA:
+    case Region::RT_SYMTAB:
+    case Region::RT_DYNAMIC:
+        return sizeof(Elf_Addr);
+    case Region::RT_RELR:
+        return sizeof(Elf_Relr);
+    case Region::RT_HASH:
+        return sizeof(Elf_Word);
+    case Region::RT_SYMVERSIONS:
+        return sizeof(Elf_Half);
+    case Region::RT_SYMVERNEEDED:
+    case Region::RT_SYMVERDEF:
+        return 4;               // Elf_Verneed/Elf_Verdef hold only 32-bit fields
+    default:
+        return 1;
     }
 }
 

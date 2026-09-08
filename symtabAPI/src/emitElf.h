@@ -307,6 +307,7 @@ namespace Dyninst {
             bool getSectionAndSegmentInfo();
             bool updateSymbolSectionIndices(Elf_Scn *scn, const std::vector<Region *> &symRegions);
             void remapSymtabRefs(const Elf_Shdr *shdr, Elf_Shdr *newshdr, Elf_Data *newdata);
+            static Elf_Word newSectionAlignment(const Region *sec);
             void renameSection(const std::string &oldName);
             void fixPhdrs();
 
