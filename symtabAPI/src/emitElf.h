@@ -202,6 +202,7 @@ namespace Dyninst {
             char *olddynStrData{};
             unsigned olddynStrSize{};
             Elf_Data *symTabData{};
+            Elf_Data *symtabShndxData{};   // .symtab_shndx of the new file, if it has one
             Elf_Data *dynsymData{};
             Elf_Data *dynData{};
 
@@ -305,7 +306,8 @@ namespace Dyninst {
             bool createElfSymbol(Symbol *symbol, unsigned strIndex, std::vector<Elf_Sym *> &symbols,
                                  bool dynSymFlag = false);
             bool getSectionAndSegmentInfo();
-            bool updateSymbolSectionIndices(Elf_Scn *scn, const std::vector<Region *> &symRegions);
+            bool updateSymbolSectionIndices(Elf_Scn *scn, const std::vector<Region *> &symRegions,
+                                            Elf_Data *shndxData = nullptr);
             void remapSymtabRefs(const Elf_Shdr *shdr, Elf_Shdr *newshdr, Elf_Data *newdata);
             static Elf_Word newSectionAlignment(const Region *sec);
             void renameSection(const std::string &oldName);

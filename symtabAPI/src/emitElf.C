@@ -560,6 +560,13 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         auto sh = s ? ElfTypes::elf_getshdr(s) : nullptr;
         if (!sh || sh->sh_type == SHT_NOBITS || !sh->sh_offset)
             continue;                                   // occupies no file space
+        if (sh->sh_type == SHT_SYMTAB_SHNDX && sh->sh_link == oldSymtabIndex) {
+            // resized to the regenerated .symtab by remapSymtabRefs
+            long delta = long(symtabOrder.size() * sizeof(Elf32_Word)) - long(sh->sh_size);
+            if (delta)
+                dirtyDeltas.emplace_back(sh->sh_offset, delta);
+            continue;
+        }
         Region *r = regionForSection(sh);
         if (r && r->isDirty() && r->getDiskSize() != sh->sh_size)
             dirtyDeltas.emplace_back(sh->sh_offset, long(r->getDiskSize()) - long(sh->sh_size));
@@ -857,6 +864,7 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
     // Second iteration to fix the link fields to point to the correct section
     scn = NULL;
     unsigned scncount;
+    unsigned newSymtabIndex{};
     for (scncount = 1; (scn = elf_nextscn(newElf, scn)); scncount++) {
         shdr = ElfTypes::elf_getshdr(scn);
 
@@ -870,8 +878,9 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
         }
 
         if (shdr->sh_type == SHT_SYMTAB) {
+            newSymtabIndex = scncount;
             shdr->sh_link = symtabStrIndex;     // .symtab -> .strtab, wherever it ended up
-            if (updateSymbolSectionIndices(scn, symtabSymRegions))
+            if (updateSymbolSectionIndices(scn, symtabSymRegions, symtabShndxData))
                 shdr->sh_info = symtabNumLocals;    // index of first non-local symbol
         } else if (shdr->sh_type == SHT_DYNSYM) {
             updateSymbolSectionIndices(scn, dynsymSymRegions);
@@ -886,6 +895,14 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
             shdr->sh_info = (shdr->sh_type == SHT_REL || shdr->sh_type == SHT_RELA)
                             ? remapIndex(data.second) : data.second;
         }
+    }
+
+    // a .symtab_shndx created above still has to be linked to .symtab
+    scn = NULL;
+    while ((scn = elf_nextscn(newElf, scn))) {
+        shdr = ElfTypes::elf_getshdr(scn);
+        if (shdr->sh_type == SHT_SYMTAB_SHNDX && shdr->sh_link == SHN_UNDEF)
+            shdr->sh_link = newSymtabIndex;
     }
 
     // libelf does not handle the extended for e_shstrndx, so manually do it here
@@ -1608,6 +1625,47 @@ bool emitElf<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
 
         prevshdr = newshdr;
     }
+    // A symbol in a section indexed SHN_LORESERVE or higher needs SHN_XINDEX
+    // and a .symtab_shndx entry.  Make sure the table exists when the file is
+    // that large; the fixup pass fills it along with st_shndx.
+    if (!symtabShndxData && !symtabSymRegions.empty() && secNames.size() + 1 >= SHN_LORESERVE) {
+        if ((newscn = elf_newscn(newElf)) == NULL) {
+            log_elferror(err_func_, "unable to create .symtab_shndx");
+            return false;
+        }
+        if ((newdata = elf_newdata(newscn)) == NULL) {
+            log_elferror(err_func_, "unable to create .symtab_shndx data");
+            return false;
+        }
+        newshdr = ElfTypes::elf_getshdr(newscn);
+        newshdr->sh_name = addSectionName(".symtab_shndx");
+        newshdr->sh_type = SHT_SYMTAB_SHNDX;
+        newshdr->sh_flags = 0;
+        newshdr->sh_addr = 0;
+        newshdr->sh_link = SHN_UNDEF;       // -> .symtab, set in the fixup pass
+        newshdr->sh_info = 0;
+        newshdr->sh_entsize = sizeof(Elf32_Word);
+        newshdr->sh_addralign = sizeof(Elf32_Word);
+        newshdr->sh_offset = prevshdr->sh_type == SHT_NOBITS ? prevshdr->sh_offset
+                                                             : prevshdr->sh_offset + prevshdr->sh_size;
+        if (newshdr->sh_offset < currEndOffset)
+            newshdr->sh_offset = currEndOffset;
+        if (auto rem = newshdr->sh_offset % newshdr->sh_addralign)
+            newshdr->sh_offset += newshdr->sh_addralign - rem;
+
+        newdata->d_size = symtabSymRegions.size() * sizeof(Elf32_Word);
+        newdata->d_buf = allocate_buffer(newdata->d_size);
+        memset(newdata->d_buf, 0, newdata->d_size);
+        newdata->d_type = ELF_T_WORD;
+        newdata->d_align = sizeof(Elf32_Word);
+        newdata->d_off = 0;
+        newdata->d_version = 1;
+        newshdr->sh_size = newdata->d_size;
+        currEndOffset = newshdr->sh_offset + newshdr->sh_size;
+        symtabShndxData = newdata;
+        prevshdr = newshdr;
+    }
+
     shdr = prevshdr;
     return true;
 }
@@ -2597,7 +2655,8 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
 // section symbols the section's new address.  Returns false if the table is
 // not one this emitter generated (left untouched).
 template<class ElfTypes>
-bool emitElf<ElfTypes>::updateSymbolSectionIndices(Elf_Scn *scn, const std::vector<Region *> &symRegions) {
+bool emitElf<ElfTypes>::updateSymbolSectionIndices(Elf_Scn *scn, const std::vector<Region *> &symRegions,
+                                                     Elf_Data *shndxData) {
     Elf_Data *data = elf_getdata(scn, NULL);
     if (!data || !data->d_buf)
         return false;
@@ -2626,7 +2685,22 @@ bool emitElf<ElfTypes>::updateSymbolSectionIndices(Elf_Scn *scn, const std::vect
         auto it = regionNewIndex.find(region);
         if (it == regionNewIndex.end())
             continue;
-        syms[k].st_shndx = it->second;
+        unsigned newIndex = it->second;
+        Elf32_Word *shndx = shndxData && shndxData->d_size >= (k + 1) * sizeof(Elf32_Word)
+                            ? static_cast<Elf32_Word *>(shndxData->d_buf) : nullptr;
+        if (newIndex >= SHN_LORESERVE) {
+            // does not fit st_shndx: SHN_XINDEX there, the index in the parallel table
+            syms[k].st_shndx = SHN_XINDEX;
+            if (shndx)
+                shndx[k] = newIndex;
+            else
+                rewrite_printf("symbol %zu is in section %u but its table has no SHT_SYMTAB_SHNDX\n",
+                               k, newIndex);
+        } else {
+            syms[k].st_shndx = newIndex;
+            if (shndx)
+                shndx[k] = 0;
+        }
         if (isSectionSym || region == newDynamicRegion) {
             if (Elf_Scn *target = elf_getscn(newElf, it->second))
                 if (Elf_Shdr *targetShdr = ElfTypes::elf_getshdr(target))
@@ -2674,17 +2748,13 @@ void emitElf<ElfTypes>::remapSymtabRefs(const Elf_Shdr *shdr, Elf_Shdr *newshdr,
         newshdr->sh_info = newIndex(shdr->sh_info);     // the group signature symbol
         break;
     case SHT_SYMTAB_SHNDX: {
-        // parallel to .symtab: permute it the same way; new symbols get SHN_UNDEF
-        auto *old = static_cast<const Elf32_Word *>(newdata->d_buf);
-        size_t oldCount = newdata->d_size / sizeof(Elf32_Word);
-        std::vector<Elf32_Word> shndx(symtabOrder.size(), SHN_UNDEF);
-        for (size_t k = 0; k < symtabOrder.size(); ++k)
-            if (symtabOrder[k] < oldCount)
-                shndx[k] = old[symtabOrder[k]];
-        newdata->d_size = shndx.size() * sizeof(Elf32_Word);
+        // parallel to .symtab, so resize it to the regenerated table; the
+        // entries are old section indices and are rewritten in the fixup pass
+        newdata->d_size = symtabOrder.size() * sizeof(Elf32_Word);
         newshdr->sh_size = newdata->d_size;
         newdata->d_buf = allocate_buffer(newdata->d_size);
-        memcpy(newdata->d_buf, shndx.data(), newdata->d_size);
+        memset(newdata->d_buf, 0, newdata->d_size);
+        symtabShndxData = newdata;
         break;
     }
     default:
