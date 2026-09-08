@@ -1879,7 +1879,7 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
                 return STN_UNDEF;
             it = dynSymNameMapping.find(sym->getMangledName());
             if (it == dynSymNameMapping.end())
-                return sym->getIndex() > 0 ? sym->getIndex() : STN_UNDEF;
+                return STN_UNDEF;
         }
         return it->second;
     };
