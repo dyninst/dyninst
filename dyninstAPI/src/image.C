@@ -280,9 +280,6 @@ namespace {
             b->end()-b->start(),
             b->region()->getArch());
 
-        RegisterAST::Ptr r2( new RegisterAST(ppc32::r2) );
-        RegisterAST::Ptr r8( new RegisterAST(ppc32::r8) );
-
         // Register operands produced by the decoder are normalized to the
         // decoding architecture (ppc64) but do not necessarily carry the
         // same bit range as a RegisterAST built directly from a ppc64
@@ -292,9 +289,8 @@ namespace {
         // bind registers by id instead.
         auto usesRegID = [](std::set<RegisterAST::Ptr> const& regs,
                             MachRegister reg) {
-            for (std::set<RegisterAST::Ptr>::const_iterator i = regs.begin();
-                 i != regs.end(); ++i)
-                if ((*i)->getID() == reg) return true;
+            for (auto const& i : regs)
+                if (i->getID() == reg) return true;
             return false;
         };
 
@@ -377,7 +373,7 @@ namespace {
             for( ; ait != assigns.end(); ++ait) {
                 AbsRegion & outReg = (*ait)->out();
                 Absloc const& loc = outReg.absloc();
-                if(loc.reg() == r8->getID())
+                if(loc.reg() == ppc64::r8)
                     break;
             }
             if(ait == assigns.end()) {
