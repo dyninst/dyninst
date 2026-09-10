@@ -202,9 +202,9 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     const std::string debugString() const;
 
     // Used for codeRange ONLY! DON'T USE THIS! BAD USER!
-    Address get_address() const { return codeAbs(); }
-    void *get_local_ptr() const;
-    unsigned get_size() const { return imageSize(); }
+    Address get_address() const override { return codeAbs(); }
+    void *get_local_ptr() const override;
+    unsigned get_size() const override { return imageSize(); }
 
     AddressSpace *proc() const;
 
@@ -225,7 +225,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     block_instance *findOneBlockByAddr(const Address addr);
 
     // codeRange method
-    void *getPtrToInstruction(Address addr) const;
+    void *getPtrToInstruction(Address addr) const override;
     void *getPtrToData(Address addr) const;
 
     // Try to avoid using these if you can, since they'll trigger
@@ -301,6 +301,9 @@ public:
 
     func_instance *findFunction(ParseAPI::Function *img_func);
 
+    // Builds the CFG of an image whose parse was deferred. No-op otherwise.
+    void analyzeIfDeferred();
+
     int_variable *findVariable(image_variable *img_var);
 
     block_instance *findBlock(ParseAPI::Block *);
@@ -321,6 +324,10 @@ public:
     void destroy(PatchAPI::PatchFunction *f);
     void destroy(PatchAPI::PatchBlock *b);
     // void destroy(PatchAPI::PatchEdge *e); // don't need to destroy anything
+
+  protected:
+    // Builds the CFG of a deferred image before PatchObject walks its functions.
+    void ensureParsed() override;
 
   private:
     //
