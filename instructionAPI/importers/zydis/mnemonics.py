@@ -178,8 +178,6 @@ class mnemonics:
             "monitorx" : { "seen" : False, "values" : ["monitor"] },
             "mwait" : { "seen" : False, "values" : ["mwaitx"] },
             "mwaitx" : { "seen" : False, "values" : ["mwait"] },
-            "pusha" : { "seen" : False, "values" : ["pushad"] },
-            "pushad" : { "seen" : False, "values" : ["pusha"] },
             "pushf" : { "seen" : False, "values" : ["pushfd", "pushfq",] },
             "pushfd" : { "seen" : False, "values" : ["pushf", "pushfq",] },
             "pushfq" : { "seen" : False, "values" : ["pushf", "pushfd",] },
