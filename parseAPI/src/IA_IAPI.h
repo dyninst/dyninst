@@ -82,6 +82,11 @@ class IA_IAPI : public InstructionAdapter {
         virtual const Dyninst::InstructionAPI::Instruction& getInstruction() const;
     
         virtual bool hasCFT() const;
+        // SIMT (AMDGPU): true if this instruction changes the EXEC mask and should therefore START a
+        // new basic block, so divergence points (saveexec), mask flips, and reconvergence (or exec)
+        // are single-entry blocks in the parse. Default false (non-SIMT arches). Overridden in
+        // IA_amdgpu. Checked in the Parser.C block-building loop, like hasCFT/isNop.
+        virtual bool isModifyExecMask() const { return false; }
         virtual size_t getSize() const;
         virtual bool isFrameSetupInsn() const;
         virtual bool isSoftwareException() const;

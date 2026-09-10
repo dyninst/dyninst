@@ -1845,6 +1845,33 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 break;
             }
 
+            // SIMT (AMDGPU): an EXEC-changing instruction STARTS a new basic block, so divergence
+            // (s_and_saveexec), mask flips, and reconvergence (s_or exec) are single-entry blocks —
+            // UNLESS it is already this block's leader (curAddr == cur->start()), which both avoids a
+            // no-op split and guarantees termination (a fresh split block's first insn is the writer).
+            // Mirrors the nop-block split above: back the adapter up so the writer is not in this
+            // block, end the block, fall through, and re-parse starting AT the writer.
+            if (ahPtr->isModifyExecMask() && curAddr != cur->start()) {
+                ahPtr->retreat();
+
+                end_block(cur,ahPtr);
+                if (!set_edge_parsing_status(frame,cur->last(), cur)) break;
+                ParseAPI::Edge* newedge = link_tempsink(cur, FALLTHROUGH);
+
+                parsing_printf("[%s:%d] SIMT exec-split: block ended before exec-writer at %lx\n",
+                        FILE__,__LINE__,curAddr);
+                frame.pushWork(
+                        frame.mkWork(
+                            NULL,
+                            newedge,
+                            ahPtr->getAddr(),
+                            curAddr,
+                            true,
+                            false)
+                        );
+                break;
+            }
+
             /** Particular instruction handling (calls, branches, etc) **/
             ++num_insns;
 

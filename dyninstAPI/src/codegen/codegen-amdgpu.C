@@ -65,34 +65,40 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
   if (wordOffset >= INT16_MIN && wordOffset <= INT16_MAX) {
     emitter->emitShortJump(wordOffset, gen);
   } else {
+    // A long jump needs a s_getpc veneer, which needs 4 scratch SGPRs — so we need the register
+    // liveness at the jump's SOURCE to pick a dead block. There are two callers, and they present
+    // `from` differently:
+    //
+    //  (1) Springboard: `from` is an ORIGINAL block entry. The long-jump is emitted AT the entry and
+    //      jumps to the relocated copy, which then overwrites the block's own registers — so the only
+    //      registers live when the jump runs are the block's LIVE-IN set (the ABI inputs at a kernel
+    //      entry), NOT the live-OUT. Using blockExit here made the scratch allocation see the whole
+    //      mid-computation live set of a big entry block (e.g. spillcall's 1837-instr unrolled first
+    //      block), pushing the 4-SGPR block ABOVE the grant (s[64:65] vs grant top 64) -> garbage ->
+    //      s_setpc jumps wild. blockEntry gives the correct tiny live-in set, so use it.
+    //
+    //  (2) Relocated code (CFWidget): `from` is a codeBuffer address, NOT a registered block entry, so
+    //      findBlockByEntry returns null. Take the liveness from the instrumentation point currently
+    //      being generated (gen.point()) — exactly as codegen-aarch64.C's generateLongBranch does.
+    //      This is what lets us instrument mid-block / EXEC-branch blocks (SIMT conditions) and
+    //      CFGModifier-split blocks, whose relocated internal branches can be far.
     auto as = gen.addrSpace();
-    block_instance *blockInstance = as->findBlockByEntry(from);
-    assert(blockInstance);
-
-    func_instance *funcInstance = blockInstance->entryOfFunc();
-    if (!funcInstance) {
-      // FIXME:
-      // This happens because springboard generates jumps twice and in the second round the basic block
-      // doesn't have a parent function.
-      //
-      // The branches are inserted in the first time the code is generated.
-      return;
+    func_instance *funcInstance = nullptr;
+    registerSpace *regSpace = nullptr;
+    if (block_instance *blockInstance = as->findBlockByEntry(from)) {
+      funcInstance = blockInstance->entryOfFunc();
+      if (!funcInstance) {
+        // springboard generates jumps twice; in the second round the block has no parent function.
+        return;
+      }
+      instPoint *blockEntryPoint = instPoint::blockEntry(funcInstance, blockInstance);
+      assert(blockEntryPoint);
+      regSpace = registerSpace::actualRegSpace(blockEntryPoint);
+    } else if (instPoint *point = gen.point()) {
+      funcInstance = point->func();
+      regSpace = registerSpace::actualRegSpace(point);
     }
-
-    // The long-jump is emitted AT the block ENTRY (`from` is a block-entry address, per
-    // findBlockByEntry above) and jumps to the relocated copy, which then overwrites the
-    // block's own registers. So the only registers live when the long-jump runs are the
-    // block's LIVE-IN set (the ABI inputs at a kernel entry), NOT the block's live-OUT.
-    // Using blockExit here made the springboard's scratch allocation see the whole
-    // mid-computation live set of a big entry block (e.g. spillcall's 1837-instr unrolled
-    // first block) as unavailable, pushing the 4-SGPR block ABOVE the SGPR grant
-    // (s[64:65] vs grant top 64) -> the hardware returns garbage -> s_setpc jumps wild.
-    // blockEntry gives the correct (tiny) live-in set, so the block lands in a low dead pair.
-    instPoint *blockEntryPoint = instPoint::blockEntry(funcInstance, blockInstance);
-    assert(blockEntryPoint);
-
-    registerSpace *regSpace = registerSpace::actualRegSpace(blockEntryPoint);
-    assert(regSpace);
+    assert(regSpace && "generateBranch long-jump: no block-entry and no instPoint for liveness");
 
     // The entry springboard's long-jump grabs a 4-SGPR block via s_getpc. Dyninst's
     // liveness marks the ORIGINAL live inputs (kernarg etc.) live so the allocator
@@ -109,7 +115,7 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
       // Pillar B: read the caller kernel's ABI layout + grant from the canonical
       // KernelMeta (parsed once, scratch-enabled + maximized in handlePoints) — not a
       // fresh ELF re-parse. Null => not a kernel.
-      mapped_object *fobj = funcInstance->obj();
+      mapped_object *fobj = funcInstance ? funcInstance->obj() : nullptr;
       Dyninst::DyninstAPI::KernelMeta *km =
           fobj ? fobj->getAmdgpuKernelMeta(funcInstance->symTabName()) : nullptr;
       if (km) {

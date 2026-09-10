@@ -73,10 +73,33 @@ bool IA_amdgpu::isNop() const
 {
     Instruction ci = curInsn();
     auto id = ci.getOperation().getID();
-    if(id == amdgpu_gfx908_op_S_NOP || 
+    if(id == amdgpu_gfx908_op_S_NOP ||
         id == amdgpu_gfx90a_op_S_NOP || id == amdgpu_gfx940_op_S_NOP ||
         id == amdgpu_gfx950_op_S_NOP)
         return true;
+    return false;
+}
+
+// SIMT block-split trigger: this instruction changes the EXEC mask, so it should START a new basic
+// block (divergence saveexec, mask flips, or the s_or-exec reconvergence). We detect a WRITE to EXEC
+// by register identity in the write set — this catches every exec-writer regardless of opcode
+// (saveexec, s_or/s_xor/s_and exec, ...), matching the analysis's isExecSplitPoint. A plain mov into
+// EXEC is excluded (a benign save/restore, not a divergence transition — the "except mov" case).
+bool IA_amdgpu::isModifyExecMask() const
+{
+    Instruction ci = curInsn();
+    auto id = ci.getOperation().getID();
+    if(id == amdgpu_gfx908_op_S_MOV_B64 ||
+       id == amdgpu_gfx90a_op_S_MOV_B64 || id == amdgpu_gfx940_op_S_MOV_B64)
+        return false;
+    std::set<RegisterAST::Ptr> written;
+    ci.getWriteSet(written);
+    for(const auto &w : written) {
+        std::string n = w->getID().name();
+        for(char &c : n) c = std::tolower((unsigned char)c);
+        if(n.find("exec") != std::string::npos)   // exec_lo / exec_hi (only EXEC contains "exec")
+            return true;
+    }
     return false;
 }
 
