@@ -1,7 +1,7 @@
 import argparse
-import x86.registers
-import aarch64.registers
-import ppc.registers
+import zydis.registers
+import capstone.aarch64.registers
+import capstone.ppc.registers
 
 parser = argparse.ArgumentParser(
     description="Translate Capstone's registers into Dyninst registers",

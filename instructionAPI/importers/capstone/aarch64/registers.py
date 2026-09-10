@@ -1,6 +1,6 @@
 import re
-import aarch64.sysregs
-import aarch64.dwarf
+from .sysregs import *
+from .dwarf import *
 
 
 class registers:
