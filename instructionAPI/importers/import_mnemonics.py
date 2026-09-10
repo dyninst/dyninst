@@ -41,37 +41,32 @@ elif args.arch == "riscv64":
     mnemonics = capstone.riscv64.mnemonics.mnemonics(args.decoder_dir, args.dyninst_dir)
 
 with open("mnemonics.{0:s}".format(args.arch), "w") as f:
-    if mnemonics.pseudo is not None:
-        for p in mnemonics.pseudo:
-            f.write(
-                "{0:s}_{1:s}, /* pseudo mnemonic */\n".format(
-                    mnemonics.dyninst_prefix, p
-                )
+    for p in mnemonics.pseudo:
+        f.write(
+            "{0:s}_{1:s}, /* pseudo mnemonic */\n".format(
+                mnemonics.dyninst_prefix, p
             )
+        )
 
     all_mnemonics = sorted(
         set(mnemonics.external) | set(mnemonics.missing) - set(mnemonics.pseudo)
     )
 
-    if mnemonics.aliases is not None:
-        for m in all_mnemonics:
-            if m not in mnemonics.aliases:
-                f.write("{0:s}_{1:s},\n".format(mnemonics.dyninst_prefix, m))
-                continue
-
-            if not mnemonics.aliases[m]["seen"]:
-                f.write("{0:s}_{1:s},\n".format(mnemonics.dyninst_prefix, m))
-                mnemonics.aliases[m]["seen"] = True
-                for a in mnemonics.aliases[m]["values"]:
-                    f.write(
-                        "{0:s}_{1:s} = {0:s}_{2:s},\n".format(
-                            mnemonics.dyninst_prefix, a, m
-                        )
-                    )
-                    mnemonics.aliases[a]["seen"] = True
-    else:
-        for m in all_mnemonics:
+    for m in all_mnemonics:
+        if m not in mnemonics.aliases:
             f.write("{0:s}_{1:s},\n".format(mnemonics.dyninst_prefix, m))
+            continue
+
+        if not mnemonics.aliases[m]["seen"]:
+            f.write("{0:s}_{1:s},\n".format(mnemonics.dyninst_prefix, m))
+            mnemonics.aliases[m]["seen"] = True
+            for a in mnemonics.aliases[m]["values"]:
+                f.write(
+                    "{0:s}_{1:s} = {0:s}_{2:s},\n".format(
+                        mnemonics.dyninst_prefix, a, m
+                    )
+                )
+                mnemonics.aliases[a]["seen"] = True
 
 # New mnemonics added from third-party decoder
 print("New mnemonics added from third-party decoder: ")

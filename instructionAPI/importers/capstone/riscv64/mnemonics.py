@@ -68,12 +68,12 @@ def _read_dyninst_mnemonics(file: str, dyninst_prefix: str):
 class mnemonics:
     def __init__(self, cap_dir: str, dyn_dir: str):
         self.dyninst_prefix = "riscv64_op"
-        self.missing = None
-        self.pseudo = None
+        self.missing = []
+        self.pseudo = []
         self.external = _read_capstone_mnemonics(
             cap_dir + "/arch/RISCV/RISCVGenInsnNameMaps.inc"
         )
         self.dyninst = _read_dyninst_mnemonics(
             dyn_dir + "/common/h/mnemonics/riscv64_entryIDs.h", self.dyninst_prefix
         )
-        self.aliases = None
+        self.aliases = []
