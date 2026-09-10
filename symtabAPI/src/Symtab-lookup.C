@@ -488,6 +488,7 @@ bool Symtab::findCatchBlock(ExceptionBlock &excp, Offset addr, unsigned size)
  
 bool Symtab::findRegionByEntry(Region *&ret, const Offset offset)
 {
+    ret = nullptr;
     if(regionsByEntryAddr.find(offset) != regionsByEntryAddr.end())
     {
         ret = regionsByEntryAddr[offset];
@@ -524,11 +525,12 @@ Region *Symtab::findEnclosingRegion(const Offset where)
             first = ((first + last) / 2) + 1;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 bool Symtab::findRegion(Region *&ret, std::string const& secName)
 {
+    ret = nullptr;
     for(unsigned index=0;index<regions_.size();index++)
     {
         if(regions_[index]->getRegionName() == secName)
@@ -544,7 +546,7 @@ bool Symtab::findRegion(Region *&ret, std::string const& secName)
 
 bool Symtab::findRegion(Region *&ret, const Offset addr, const unsigned long size)
 {
-   ret = NULL;
+   ret = nullptr;
    for(unsigned index=0;index<regions_.size();index++) {
       if(regions_[index]->getMemOffset() == addr && regions_[index]->getMemSize() == size) {
          if (ret) {

@@ -3288,20 +3288,14 @@ bool ObjectELF::emitDriver(string fName, std::set<Symbol *> &allSymbols, unsigne
         Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32> *em =
                 new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32>(elfHdr, isStripped, this, err_func_,
                                                                                 associated_symtab);
-        bool ok = em->createSymbolTables(allSymbols);
-        if (ok) {
-            ok = em->driver(fName);
-        }
+        bool ok{em->driver(fName, allSymbols)};
         delete em;
         return ok;
     } else if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS64) {
         Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes64> *em =
                 new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes64>(elfHdr, isStripped, this, err_func_,
                                                                                 associated_symtab);
-        bool ok = em->createSymbolTables(allSymbols);
-        if (ok) {
-            ok = em->driver(fName);
-        }
+        bool ok{em->driver(fName, allSymbols)};
         delete em;
         return ok;
     }

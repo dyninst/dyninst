@@ -655,7 +655,7 @@ Offset emitElfStatic::allocStubRegions(LinkMap &lmap, Offset) {
 }
 
 inline
-static bool adjustValInRegion(Region *reg, Offset offInReg, Offset addressWidth, int adjust) {
+static bool adjustValInRegion(Region *reg, Offset offInReg, Offset addressWidth, Offset adjust) {
     Offset newValue;
     unsigned char *oldValues;
 
@@ -665,7 +665,7 @@ static bool adjustValInRegion(Region *reg, Offset offInReg, Offset addressWidth,
     return reg->patchData(offInReg, &newValue, addressWidth);
 }
 
-bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int library_adjust) {
+bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, Offset address_adjust) {
     // Currently, only verified on x86 and x86_64 -- this may work on other architectures
     Region *targetRegion = obj->findEnclosingRegion(rel.rel_addr());
     if( NULL == targetRegion ) {
@@ -678,12 +678,12 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
         switch(rel.getRelType()) {
             case R_X86_64_IRELATIVE:
             case R_X86_64_RELATIVE:
-                rel.setAddend(rel.addend() + library_adjust);
+                rel.setAddend(rel.addend() + address_adjust);
                 break;
             case R_X86_64_JUMP_SLOT:
                 if( !adjustValInRegion(targetRegion,
                            rel.rel_addr() - targetRegion->getDiskOffset(),
-                           addressWidth, library_adjust) )
+                           addressWidth, address_adjust) )
                 {
                     rewrite_printf("Failed to update relocation\n");
                     return false;
@@ -701,7 +701,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
                 // On x86, addends are stored in their target location
                 if( !adjustValInRegion(targetRegion,
                            rel.rel_addr() - targetRegion->getDiskOffset(),
-                           addressWidth, library_adjust) )
+                           addressWidth, address_adjust) )
                 {
                     rewrite_printf("Failed to update relocation\n");
                     return false;
@@ -710,7 +710,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
             case R_386_JMP_SLOT:
                 if( !adjustValInRegion(targetRegion,
                            rel.rel_addr() - targetRegion->getDiskOffset(),
-                           addressWidth, library_adjust) )
+                           addressWidth, address_adjust) )
                 {
                     rewrite_printf("Failed to update relocation\n");
                     return false;
@@ -738,7 +738,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
     // section before outputting the patched GOT data -- this will require some refactoring.
 
     //rewrite_printf("WARNING: updateRelocation is not implemented on this architecture\n");
-    //(void) obj; (void) rel; (void) library_adjust; //silence warnings
+    //(void) obj; (void) rel; (void) address_adjust; //silence warnings
 
     return true;
 }

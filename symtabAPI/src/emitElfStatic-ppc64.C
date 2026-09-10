@@ -1181,7 +1181,7 @@ void emitElfStatic::createStub(unsigned *stub, Offset stubOffset, Offset newTOC,
   
 }
 
-bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int library_adjust) {
+bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, Offset address_adjust) {
     // Currently, only verified on x86 and x86_64 -- this may work on other architectures
     Region *targetRegion = obj->findEnclosingRegion(rel.rel_addr());
     if( NULL == targetRegion ) {
@@ -1196,7 +1196,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
         switch(rel.getRelType()) {
             case R_PPC64_IRELATIVE:
             case R_PPC64_RELATIVE:
-                rel.setAddend(rel.addend() + library_adjust);
+                rel.setAddend(rel.addend() + address_adjust);
                 break;
             default:
                 break;
