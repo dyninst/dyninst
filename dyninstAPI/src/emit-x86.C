@@ -1477,6 +1477,65 @@ static bool isCloneFunc(baseTramp *inst)
    return false;
 }
 
+// True unless every way of reaching the instrumented function is bound by the
+// standard ABI, i.e. unless intra-procedural liveness can be trusted for its
+// caller-saved registers.
+//
+// A caller that binds to the function directly -- a direct call or tail jump
+// inside the module -- may have been compiled against the function's body:
+// GCC's -fipa-ra (on at -O2, aggressive under LTO) narrows the callee's
+// clobber set from that caller's point of view, letting the caller keep a
+// value in a caller-saved register across the call. The callee's own liveness
+// cannot see that value, so a register it reports dead may still need
+// preserving. This applies to any directly-called function, local or global
+// (in an executable or under LTO, intra-module bindings to globals are not
+// interposable either), so linkage is not consulted at all.
+//
+// Calls that are forced through the standard ABI cannot carry such
+// assumptions: indirect calls (the compiler does not know the target) and
+// PLT-mediated calls (the binding is interposable). Neither produces a direct
+// edge into the function's entry block -- an unresolved indirect call has no
+// edge here, and a call through the PLT targets the stub -- so the unsafe
+// evidence is exactly a call or interprocedural-branch (tail call) edge
+// reaching the entry block.
+//
+// Conservative in three ways: a call edge ParseAPI created by resolving an
+// indirect call counts as direct (the edge does not record the distinction);
+// iRPCs and functions without parse information report unsafe; and a direct
+// call hiding in unparsed code is missed -- accepted, since parsed direct
+// calls are exactly what builds the call graph.
+static bool mayHaveABIExemptCaller(baseTramp *inst)
+{
+   if (!inst || !inst->point() || !inst->point()->func())
+      return true;
+
+   // GCC local clones (.isra/.constprop/...) additionally use non-standard
+   // parameter passing; treat them as unsafe without consulting edges.
+   if (isCloneFunc(inst))
+      return true;
+
+   block_instance *entry = inst->point()->func()->entryBlock();
+   if (!entry)
+      return true;
+
+   const PatchBlock::edgelist &ins = entry->sources();
+   for (PatchBlock::edgelist::const_iterator iter = ins.begin();
+        iter != ins.end(); ++iter) {
+      switch ((*iter)->type()) {
+         case ParseAPI::CALL:
+            return true;
+         case ParseAPI::DIRECT:
+         case ParseAPI::COND_TAKEN:
+            if ((*iter)->interproc())
+               return true;  // tail call bound directly
+            break;
+         default:
+            break;
+      }
+   }
+   return false;
+}
+
 bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
 {
   if (reg->encoding() == REGNUM_RSP) {
@@ -1492,23 +1551,24 @@ bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
    if (reg->liveState != registerSlot::live) {
       // A register that is dead at this point normally need not be preserved.
       // EXCEPTION: intra-procedural liveness cannot see a caller that keeps a
-      // caller-saved register (e.g. %r10/%r11) live across the call under a
-      // non-standard ABI -- only GCC local clones (.isra/.constprop/...) have
-      // such an ABI. For a clone callee, preserve any caller-saved register the
-      // inserted snippet clobbers even when dead here, or we silently corrupt
-      // the caller. isCloneFunc() is checked first: it is false for almost every
-      // function, so non-clones take the normal "dead -> don't save" path
-      // immediately (and we avoid the per-register clobbered/caller-saved work).
-      bool needSave = isCloneFunc(inst)
-                      && isCallerSavedGPR(reg->encoding())
+      // caller-saved register (e.g. %r10/%r11) live across the call -- legal
+      // whenever the caller binds directly to this function and was compiled
+      // against its body (GCC -fipa-ra; see mayHaveABIExemptCaller). Preserve
+      // any caller-saved register the inserted instrumentation clobbers even
+      // when dead here, or we silently corrupt such a caller. Callee-saved
+      // registers need no exception: the ABI return-read set keeps them live
+      // through any function that does not kill them, so a caller's value in
+      // them takes the normal live path above.
+      bool needSave = isCallerSavedGPR(reg->encoding())
                       && (!(inst && inst->validOptimizationInfo())
-                          || inst->definedRegs[reg->encoding()]);
+                          || inst->definedRegs[reg->encoding()])
+                      && mayHaveABIExemptCaller(inst);
       if (!needSave) {
          regalloc_printf("\t Reg %u not live, concluding don't save\n", reg->number.getId());
          return false;
       }
-      regalloc_printf("\t Reg %u dead but caller-saved & clobbered on a clone; "
-                      "saving conservatively for non-standard-ABI safety\n", reg->number.getId());
+      regalloc_printf("\t Reg %u dead but caller-saved, clobbered, and reachable "
+                      "by a direct call; saving conservatively\n", reg->number.getId());
       // fall through to save
    }
    if (saveFlags) {
