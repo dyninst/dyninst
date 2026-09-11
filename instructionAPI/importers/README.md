@@ -25,32 +25,32 @@ Register processing is done with `import_registers.py`. Its options are describe
 
 Mnemonic processing is done with `import_mnemonics.py`. Its options are described below.
 
->   --capstone-dir CAPSTONE_DIR
->                         Capstone source directory (e.g., /capstone-engine/capstone/)
+>   --decoder-dir DECODER_DIR
+>         Source directory for the third-party decoder (e.g., /capstone-engine/capstone/)
 >
 >   --dyninst-dir DYNINST_DIR
->                         Dyninst source directory (e.g., /dyninst/src/)
+>         Dyninst source directory (e.g., /dyninst/src/)
 >
->   --arch {x86,aarch64,ppc}
+>   --arch {x86,aarch64,ppc,riscv64}
 
 The x86 register processor doesn't do anything yet because they were previously manually imported.
 
 
 ## Adding a new architecture
 
-### Registers
-
 1. Add a new directory <arch>
 2. Under this directory, add the files
   a. __init__.py  (can be empty)
-  b. register.py
+  b. registers.py
   c. mnemonics.py
 3. Add `<arch>.registers` import at top of `import_registers.py`
-4. In <arch>/register.py, implement a class called `registers`
 
-This class has the following structure:
 
-```
+### Registers
+
+In <arch>/registers.py, implement a class called `registers` with the following structure:
+
+```python
 class registers:
   def __init__(self, cap_dir:str, dyn_dir:str)
   
@@ -138,4 +138,34 @@ class registers:
 
 ### Mnemonics
 
+In <arch>/mnemonics.py, implement a class called `mnemonics` with the following structure:
 
+```python
+class mnemonics:
+  def __init__(self, ext_dir:str, dyn_dir:str):
+  
+    ext_dir - path to external decoder
+    dyn_dir - path to Dyninst
+
+    # Prefix used in <arch>_entryIDs.h (e.g., aarch64_op)
+    self.dyninst_prefix
+    
+    # Mnemonics known to be missing from the external decoder
+    # that are needed by Dyninst.
+    self.missing
+    
+    # Pseudo mnemonics present in Dyninst
+    self.pseudo
+    
+    # `list` of mnemonics from the external decoder normalized to remove prefixes
+    # and be lowercase.
+    self.external
+    
+    # `list` of mnemonics from Dyninst normalized to remove prefixes and be lowercase.
+    self.dyninst
+    
+    # `list` of mnemonics that alias each other (i.e., share an opcode)
+    # See zydis/mnemonics.py for an example
+    self.aliases
+
+```

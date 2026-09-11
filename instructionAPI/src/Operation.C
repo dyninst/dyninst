@@ -215,10 +215,10 @@ namespace Dyninst { namespace InstructionAPI {
       nonOperandRegisterWrites.insert(make_pair(e_je, thePC));
 
       nonOperandMemoryReads.insert(make_pair(e_pop, stackPointerAsExpr));
-      nonOperandMemoryReads.insert(make_pair(e_popal, stackPointerAsExpr));
-      nonOperandMemoryReads.insert(make_pair(e_popaw, stackPointerAsExpr));
+      nonOperandMemoryReads.insert(make_pair(e_popa, stackPointerAsExpr));
+      nonOperandMemoryReads.insert(make_pair(e_popad, stackPointerAsExpr));
       nonOperandMemoryWrites.insert(make_pair(e_push, stackPointerAsExpr));
-      nonOperandMemoryWrites.insert(make_pair(e_pushal, stackPointerAsExpr));
+      nonOperandMemoryWrites.insert(make_pair(e_pusha, stackPointerAsExpr));
       nonOperandMemoryWrites.insert(make_pair(e_call, stackPointerAsExpr));
       nonOperandMemoryReads.insert(make_pair(e_ret_near, stackPointerAsExpr));
       nonOperandMemoryReads.insert(make_pair(e_ret_far, stackPointerAsExpr));

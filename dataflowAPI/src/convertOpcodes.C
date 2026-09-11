@@ -695,9 +695,9 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_pmuludq;
         case e_pop:
             return x86_pop;
-        case e_popal:
+        case e_popa:
             return x86_popa;
-        case e_popaw:
+        case e_popad:
             return x86_popad;
         case e_popf:
             return x86_popf;
@@ -769,7 +769,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
             return x86_punpcklwd;
         case e_push:
             return x86_push;
-        case e_pushal:
+        case e_pusha:
             return x86_pushad;
         case e_pushf:
             return x86_pushf;
@@ -956,8 +956,6 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID
         case e_xorps:
             return x86_xorps;
         case e_fp_generic:
-            return x86_unknown_instruction;
-        case e_3dnow_generic:
             return x86_unknown_instruction;
         default:
             return x86_unknown_instruction;
