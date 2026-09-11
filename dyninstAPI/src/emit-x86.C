@@ -41,6 +41,11 @@
 #include "codegen/codegen.h"
 #include "patching/function.h"
 #include "Symbol.h"
+#include "Function.h"
+#include "Instruction.h"
+#include "registers/x86_64_regs.h"
+#include <unordered_map>
+#include <set>
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/debug.h"
@@ -1477,6 +1482,164 @@ static bool isCloneFunc(baseTramp *inst)
    return false;
 }
 
+// True if calls to the instrumented function bind directly to this definition
+// -- no dynamic interposition -- so a caller may hold a narrowed -fipa-ra
+// contract with it. GCC -fipa-ra (interprocedural register allocation, on at
+// -O2 and aggressive under LTO) narrows a callee's clobber set from a caller's
+// point of view when the callee's body is fully visible and the call cannot be
+// interposed. A direct caller may then keep a caller-saved register live across
+// the call because the callee provably never writes it. This is BROADER than
+// isCloneFunc(): the callee need not be a .isra/.constprop clone. Example: a
+// plain local "real_inf" that only touches {rax,rcx,rdx,rdi} lets its caller
+// keep &local in %rsi across the call; dyninst's intra-procedural liveness
+// marks %rsi dead inside real_inf and would skip saving it, so the inserted
+// coverage call clobbers %rsi and corrupts the caller.
+//
+// The gate fires when every symbol name of the function is direct-binding, or
+// when there is no symbol at all:
+//
+// - SL_LOCAL linkage: the name is internal to the object; all calls bind here.
+//
+// - GLOBAL/WEAK binding but NON-DEFAULT visibility (hidden / protected /
+//   internal): not preemptible by another object, so same-object callers bind
+//   directly and -fipa-ra may narrow it. This matters especially for LTO:
+//   gcc internalizes symbols as GLOBAL/HIDDEN in .symtab rather than LOCAL
+//   (~31% of the functions in an LTO-built SPEC CPU 2017 binary), and those
+//   hidden globals are prime narrowing targets -- a linkage-only check would
+//   wrongly put them on the fast path.
+//
+// - NO symbol in the binary at all: such functions are discovered by parsing
+//   (recursive traversal, gap heuristics, on-demand), and the absence of a
+//   symbol says nothing about how it is called -- in a stripped or
+//   partially-stripped binary the local victims above are precisely the
+//   functions whose symbols are gone. ParseAPI records provenance in src():
+//   only HINT functions come from a real symbol-table symbol; for everything
+//   else dyninst synthesizes a "targXXX" symbol with SL_GLOBAL linkage, so the
+//   linkage check alone would wrongly take the unsafe fast path.
+//
+// A default-visibility global (interposable) keeps the normal liveness-pruned
+// path: it can be preempted, so -fipa-ra does not narrow calls to it.
+static bool isLocalFunc(baseTramp *inst)
+{
+   if (!inst || !inst->point() || !inst->point()->func())
+      return false;
+   func_instance *f = inst->point()->func();
+   parse_func *pf = f->ifunc();
+   if (!pf)
+      return true;   // no parse-level info: be conservative and save
+   if (pf->src() != Dyninst::ParseAPI::HINT)
+      return true;   // discovered by parsing: no symbol in the binary
+   Dyninst::SymtabAPI::Function *sf = pf->getSymtabFunction();
+   if (!sf)
+      return true;   // no symtab function: no symbol
+   std::vector<Dyninst::SymtabAPI::Symbol *> syms;
+   if (!sf->getSymbols(syms) || syms.empty())
+      return true;   // symbol-less
+   for (auto *s : syms) {
+      if (!s) continue;
+      if (s->getLinkage() == Dyninst::SymtabAPI::Symbol::SL_LOCAL)
+         return true;   // internal linkage: binds directly
+      if (s->getVisibility() != Dyninst::SymtabAPI::Symbol::SV_DEFAULT)
+         return true;   // hidden/protected/internal: non-interposable
+   }
+   return false;
+}
+
+// Map a MachRegister (or any of its sub-registers) to the REGNUM_* encoding
+// of its full 64-bit GPR, or -1 for anything that is not an x86-64 GPR.
+static int gprEncodingOf(Dyninst::MachRegister r)
+{
+   namespace R = Dyninst::x86_64;
+   r = r.getBaseRegister();
+   if (r == R::rax) return REGNUM_RAX;
+   if (r == R::rcx) return REGNUM_RCX;
+   if (r == R::rdx) return REGNUM_RDX;
+   if (r == R::rbx) return REGNUM_RBX;
+   if (r == R::rsp) return REGNUM_RSP;
+   if (r == R::rbp) return REGNUM_RBP;
+   if (r == R::rsi) return REGNUM_RSI;
+   if (r == R::rdi) return REGNUM_RDI;
+   if (r == R::r8)  return REGNUM_R8;
+   if (r == R::r9)  return REGNUM_R9;
+   if (r == R::r10) return REGNUM_R10;
+   if (r == R::r11) return REGNUM_R11;
+   if (r == R::r12) return REGNUM_R12;
+   if (r == R::r13) return REGNUM_R13;
+   if (r == R::r14) return REGNUM_R14;
+   if (r == R::r15) return REGNUM_R15;
+   return -1;
+}
+
+// Caller-saved GPRs written anywhere by the instrumented function's OWN
+// instructions, as a bitmask over REGNUM_* encodings. This is the callee half
+// of gcc's -fipa-ra applicability rule: the compiler may only let a caller
+// keep register R live across a call if the callee (transitively) never
+// writes R. If the callee's own code writes R, no caller can rely on R and
+// the liveness-pruned fast path is safe for R.
+//
+// Direction of conservatism: an OMISSION from this mask only causes an extra
+// (harmless) save; an incorrect ADDITION can suppress a required save and
+// silently corrupt a caller. Therefore only registers written by confidently
+// decoded, non-transfer instructions are added:
+//  - call/syscall/interrupt instructions add NOTHING: the transitive callee
+//    may preserve R and gcc's interprocedural summary may know it, letting a
+//    caller rely on R even though we cannot resolve the target;
+//  - an undecodable instruction adds nothing for the same reason (whatever it
+//    writes, gcc knew; saving more than needed is the safe failure mode).
+static uint32_t calleeWrittenCallerSavedGPRs(parse_func *pf)
+{
+   namespace di = Dyninst::InstructionAPI;
+   uint32_t mask = 0;
+   for (const auto *blk : pf->blocks()) {
+      Dyninst::ParseAPI::Block::Insns insns;
+      blk->getInsns(insns);
+      for (const auto &bi : insns) {
+         const di::Instruction &insn = bi.second;
+         if (!insn.isValid())
+            continue;
+         switch (insn.getCategory()) {
+            case di::c_CallInsn:
+            case di::c_SysEnterInsn:
+            case di::c_SyscallInsn:
+            case di::c_InterruptInsn:
+               continue;
+            default:
+               break;
+         }
+         std::set<di::RegisterAST::Ptr> writes;
+         insn.getWriteSet(writes);
+         for (const auto &w : writes) {
+            int enc = gprEncodingOf(w->getID());
+            if (enc >= 0 && isCallerSavedGPR(enc))
+               mask |= 1u << enc;
+         }
+      }
+   }
+   return mask;
+}
+
+// True unless the instrumented function's own code provably writes the
+// register -- in which case no caller may rely on it surviving the call and
+// the conservative save is unnecessary. Cached per parse_func: the scan runs
+// once per instrumented function, and only for functions that reach the
+// conservative gate at all. (Instrumentation is single-threaded, as is the
+// rest of this file's static state.)
+static bool calleeNeverWritesGPR(baseTramp *inst, int enc)
+{
+   if (!inst || !inst->point() || !inst->point()->func())
+      return true;   // no info: keep the save
+   parse_func *pf = inst->point()->func()->ifunc();
+   if (!pf)
+      return true;
+   if (pf->obj()->cs()->getArch() != Dyninst::Arch_x86_64)
+      return true;   // scan is x86-64 only; keep the save elsewhere
+   static std::unordered_map<parse_func *, uint32_t> cache;
+   auto it = cache.find(pf);
+   if (it == cache.end())
+      it = cache.emplace(pf, calleeWrittenCallerSavedGPRs(pf)).first;
+   return (it->second & (1u << enc)) == 0;
+}
+
 bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
 {
   if (reg->encoding() == REGNUM_RSP) {
@@ -1496,19 +1659,34 @@ bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
       // non-standard ABI -- only GCC local clones (.isra/.constprop/...) have
       // such an ABI. For a clone callee, preserve any caller-saved register the
       // inserted snippet clobbers even when dead here, or we silently corrupt
-      // the caller. isCloneFunc() is checked first: it is false for almost every
-      // function, so non-clones take the normal "dead -> don't save" path
-      // immediately (and we avoid the per-register clobbered/caller-saved work).
-      bool needSave = isCloneFunc(inst)
+      // the caller. This applies to GCC local clones (isCloneFunc) AND, more
+      // generally, to any LOCAL callee affected by -fipa-ra (isLocalFunc): the
+      // compiler can narrow a fully-visible local callee's clobber set and let a
+      // direct caller keep a caller-saved register live across the call even
+      // when the callee is not a .isra/.constprop clone (e.g. a plain local
+      // "real_inf" that never touches %rsi). The name/linkage check is done
+      // first and short-circuits, so standard-ABI global functions take the
+      // normal "dead -> don't save" path and keep the liveness optimization.
+      //
+      // The save set is then narrowed by gcc's own promise condition
+      // (calleeNeverWritesGPR): -fipa-ra can only let a caller rely on R
+      // surviving if the callee never writes R, so a register the callee's
+      // own code writes needs no conservative save. For a callee that uses
+      // the usual scratch registers this empties the save set entirely;
+      // for the real_inf pattern it keeps exactly the registers callers
+      // might rely on.
+      bool needSave = (isCloneFunc(inst) || isLocalFunc(inst))
                       && isCallerSavedGPR(reg->encoding())
                       && (!(inst && inst->validOptimizationInfo())
-                          || inst->definedRegs[reg->encoding()]);
+                          || inst->definedRegs[reg->encoding()])
+                      && calleeNeverWritesGPR(inst, reg->encoding());
       if (!needSave) {
          regalloc_printf("\t Reg %u not live, concluding don't save\n", reg->number.getId());
          return false;
       }
-      regalloc_printf("\t Reg %u dead but caller-saved & clobbered on a clone; "
-                      "saving conservatively for non-standard-ABI safety\n", reg->number.getId());
+      regalloc_printf("\t Reg %u dead but caller-saved, clobbered by the snippet, "
+                      "and never written by this callee; saving conservatively "
+                      "for non-standard-ABI (-fipa-ra) safety\n", reg->number.getId());
       // fall through to save
    }
    if (saveFlags) {
