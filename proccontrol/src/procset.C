@@ -166,7 +166,8 @@ AddressSet::ptr AddressSet::newAddressSet(ProcessSet::const_ptr ps, string libra
    AddressSet::ptr newset = AddressSet::ptr(new AddressSet);
    newset->iaddrs = new int_addressSet();
    for (ProcessSet::const_iterator i = ps->begin(); i != ps->end(); i++) {
-      int_process *p = (*i)->llproc();
+      ProcImplRef p_ref((*i));
+      int_process *p = p_ref.get();
       if (!p) 
          continue;
       int_library *lib = p->getLibraryByName(library_name);
@@ -181,7 +182,7 @@ AddressSet::ptr AddressSet::newAddressSet(Process::const_ptr p, Address addr)
 {
    AddressSet::ptr newset = AddressSet::ptr(new AddressSet);
    newset->iaddrs = new int_addressSet();
-   newset->iaddrs->insert(value_type(addr, p->llproc()->proc()));
+   newset->iaddrs->insert(value_type(addr, pc_const_cast<Process>(p)));
    return newset;
 }
 
@@ -202,7 +203,8 @@ AddressSet::ptr AddressSet::newAddressSet(ProcessSet::ptr ps, string library_nam
    AddressSet::ptr newset = AddressSet::ptr(new AddressSet);
    newset->iaddrs = new int_addressSet();
    for (ProcessSet::iterator i = ps->begin(); i != ps->end(); i++) {
-      int_process *p = (*i)->llproc();
+      ProcImplRef p_ref((*i));
+      int_process *p = p_ref.get();
       if (!p) 
          continue;
       int_library *lib = p->getLibraryByName(library_name);
@@ -217,7 +219,7 @@ AddressSet::ptr AddressSet::newAddressSet(Process::ptr p, Address addr)
 {
    AddressSet::ptr newset = AddressSet::ptr(new AddressSet);
    newset->iaddrs = new int_addressSet();
-   newset->iaddrs->insert(value_type(addr, p->llproc()->proc()));
+   newset->iaddrs->insert(value_type(addr, pc_const_cast<Process>(p)));
    return newset;
 }
 
@@ -519,21 +521,21 @@ static void thread_err_check(int_thread *ithr, err_t *thread_error) {
 static Process::const_ptr get_proc(const map<Thread::const_ptr, MachRegisterVal>::const_iterator &i, err_t *thread_error)
 {
    if (thread_error)
-      thread_err_check(i->first->llthrd(), thread_error);
+      thread_err_check(ThreadImplRef(i->first).get(), thread_error);
    return i->first->getProcess();
 }
 
 static Process::const_ptr get_proc(const map<Thread::const_ptr, RegisterPool>::const_iterator &i, err_t *thread_error)
 {
    if (thread_error)
-      thread_err_check(i->first->llthrd(), thread_error);
+      thread_err_check(ThreadImplRef(i->first).get(), thread_error);
    return i->first->getProcess();
 }
 
 static Process::const_ptr get_proc(const multimap<Thread::const_ptr, IRPC::ptr>::const_iterator &i, err_t *thread_error = NULL) 
 {
    if (thread_error)
-      thread_err_check(i->first->llthrd(), thread_error);
+      thread_err_check(ThreadImplRef(i->first).get(), thread_error);
    return i->first->getProcess();
 }
 
@@ -543,7 +545,7 @@ static Process::const_ptr get_proc(const int_processSet::iterator &i, err_t *) {
 
 static Process::const_ptr get_proc(const int_threadSet::iterator &i, err_t *thread_error = NULL) {
    if (thread_error)
-      thread_err_check((*i)->llthrd(), thread_error);
+      thread_err_check(ThreadImplRef(*i).get(), thread_error);
    return (*i)->getProcess();
 }
 
@@ -570,7 +572,8 @@ private:
    bool did_begin;
 
    bool proc_check(Process::const_ptr p, err_t thr_error) {
-      int_process *proc = p ? p->llproc() : NULL;
+      ProcImplRef proc_ref(p);
+      int_process *proc = proc_ref.get();
       if (!proc) {
          perr_printf("%s attempted on exited process\n", msg);
          if (p) p->setLastError(err_exited, "Operation attempted on exited process");
@@ -784,25 +787,24 @@ ProcessSet::ptr ProcessSet::createProcessSet(vector<CreateInfo> &cinfo)
 
    pthrd_printf("Creating new process objects\n");
    for (vector<CreateInfo>::iterator i = cinfo.begin(); i != cinfo.end(); i++) {
-      Process::ptr newproc(new Process());
-      int_process *llproc = int_process::createProcess(i->executable, i->argv, i->envp, i->fds);
-      llproc->initializeProcess(newproc);
-      info_map[llproc] = i;
+      Process::ptr newproc = Process::makeProcess(i->executable, i->argv, i->envp, i->fds);
+      info_map[newproc->llproc()] = i;
       newset.insert(newproc);
    }
 
    pthrd_printf("Triggering create on new process objects\n");
-   int_process::create(&newset); //Releases procpool lock
+   ProcPool()->createProcs(&newset); //Releases procpool lock
 
    for (ProcessSet::iterator i = newps->begin(); i != newps->end();) {
-      int_process *proc = (*i)->llproc();
+      ProcImplRef proc_ref((*i));
+      int_process *proc = proc_ref.get();
       map<int_process *, vector<CreateInfo>::iterator>::iterator j = info_map.find(proc);
       assert(j != info_map.end());
       CreateInfo &ci = *(j->second);
 
       err_t last_error = proc->getLastError();
       if (last_error == err_none) {
-         ci.proc = proc->proc();
+         ci.proc = *i;
          ci.error_ret = err_none;
          i++;
          continue;
@@ -836,17 +838,16 @@ ProcessSet::ptr ProcessSet::attachProcessSet(vector<AttachInfo> &ainfo)
    int_processSet &newset = *newps->procset;
 
    for (vector<AttachInfo>::iterator i = ainfo.begin(); i != ainfo.end(); i++) {
-      Process::ptr newproc(new Process());
-      int_process *llproc = int_process::createProcess(i->pid, i->executable);
-      llproc->initializeProcess(newproc);
-      info_map[llproc] = i;
+      Process::ptr newproc = Process::makeProcess(i->pid, i->executable);
+      info_map[newproc->llproc()] = i;
       newset.insert(newproc);
    }
 
-   int_process::attach(&newset, false); //Releases procpool lock
+   ProcPool()->attachProcs(&newset, false); //Releases procpool lock
 
    for (ProcessSet::iterator i = newps->begin(); i != newps->end(); ) {
-      int_process *proc = (*i)->llproc();
+      ProcImplRef proc_ref((*i));
+      int_process *proc = proc_ref.get();
       map<int_process *, vector<AttachInfo>::iterator>::iterator j = info_map.find(proc);
       assert(j != info_map.end());
       AttachInfo &ai = *(j->second);
@@ -856,7 +857,7 @@ ProcessSet::ptr ProcessSet::attachProcessSet(vector<AttachInfo> &ainfo)
          last_error = err_noproc;
       }
       if (last_error == err_none) {
-         ai.proc = proc->proc();
+         ai.proc = *i;
          ai.error_ret = err_none;
          i++;
          continue;
@@ -924,11 +925,9 @@ ProcessSet::iterator ProcessSet::find(Process::const_ptr p)
 
 ProcessSet::iterator ProcessSet::find(PID p)
 {
-   ProcPool()->condvar()->lock();
-   int_process *llproc = ProcPool()->findProcByPid(p);
-   ProcPool()->condvar()->unlock();
-   if (!llproc) return end();
-   return iterator(procset->find(llproc->proc()));
+   Process::ptr proc = ProcPool()->findProcByPid(p);
+   if (!proc) return end();
+   return iterator(procset->find(proc));
 }
 
 ProcessSet::const_iterator ProcessSet::begin() const
@@ -948,11 +947,9 @@ ProcessSet::const_iterator ProcessSet::find(Process::const_ptr p) const
 
 ProcessSet::const_iterator ProcessSet::find(PID p) const
 {
-   ProcPool()->condvar()->lock();
-   int_process *llproc = ProcPool()->findProcByPid(p);
-   ProcPool()->condvar()->unlock();
-   if (!llproc) return end();
-   return const_iterator(procset->find(llproc->proc()));
+   Process::ptr proc = ProcPool()->findProcByPid(p);
+   if (!proc) return end();
+   return const_iterator(procset->find(proc));
 }
 
 bool ProcessSet::empty() const
@@ -1233,7 +1230,8 @@ static ThreadSet::ptr create_thrsubset(iter b, iter e, pred p) {
 struct test_terminate {
    bool operator()(Process::ptr p) {
       p->clearLastError();
-      int_process *llproc = p->llproc();
+      ProcImplRef llproc_ref(p);
+      int_process *llproc = llproc_ref.get();
       if (!llproc)
          return true;
       return false;
@@ -1243,7 +1241,7 @@ struct test_terminate {
    bool operator()(Thread::ptr t) {
       Process::ptr p = t->getProcess();
       p->clearLastError();
-      return (!p->llproc() || !t->llthrd());
+      return (!ProcImplRef(p) || !ThreadImplRef(t).get());
    }
 };
 
@@ -1268,7 +1266,8 @@ ProcessSet::ptr ProcessSet::getTerminatedSubset() const
 struct test_exited {
    bool operator()(Process::ptr p) {
       p->clearLastError();
-      int_process *llproc = p->llproc();
+      ProcImplRef llproc_ref(p);
+      int_process *llproc = llproc_ref.get();
       if (!llproc)
          return p->exitstate()->exited;
       return false;
@@ -1300,7 +1299,8 @@ ProcessSet::ptr ProcessSet::getExitedSubset() const
 struct test_crashed {
    bool operator()(Process::ptr p) {
       p->clearLastError();
-      int_process *llproc = p->llproc();
+      ProcImplRef llproc_ref(p);
+      int_process *llproc = llproc_ref.get();
       if (!llproc)
          return p->exitstate()->crashed;
       return false;
@@ -1328,7 +1328,8 @@ ProcessSet::ptr ProcessSet::getCrashedSubset() const
 struct test_detached {
    bool operator()(Process::ptr p) {
       p->clearLastError();
-      int_process *llproc = p->llproc();
+      ProcImplRef llproc_ref(p);
+      int_process *llproc = llproc_ref.get();
       if (!llproc)
          return false;
       return llproc->getState() == int_process::detached;
@@ -1365,7 +1366,8 @@ struct test_thr {
 
    bool operator()(Process::ptr p) {
       p->clearLastError();
-      int_process *llproc = p->llproc();
+      ProcImplRef llproc_ref(p);
+      int_process *llproc = llproc_ref.get();
       if (!llproc)
          return false;
       int_threadPool *tp = llproc->threadPool();
@@ -1380,7 +1382,8 @@ struct test_thr {
    }
 
    bool operator()(Thread::ptr t) {
-      int_thread *llthrd = t->llthrd();
+      ThreadImplRef llthrd_ref(t);
+      int_thread *llthrd = llthrd_ref.get();
       if (!llthrd)
          return false;
       int_process *llproc = llthrd->llproc();
@@ -1456,7 +1459,8 @@ bool ProcessSet::continueProcs() const
    procset_iter iter("continueProc", had_error, ERR_CHCK_NORM);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = *i;
-      int_process *proc = p->llproc();
+      ProcImplRef proc_ref(p);
+      int_process *proc = proc_ref.get();
 
       pthrd_printf("User continuing entire process %d\n", proc->getPid());
       proc->threadPool()->initialThread()->getUserState().setStateProc(int_thread::running);
@@ -1479,7 +1483,8 @@ bool ProcessSet::stopProcs() const
    procset_iter iter("stopProc", had_error, ERR_CHCK_NORM);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = *i;
-      int_process *proc = p->llproc();
+      ProcImplRef proc_ref(p);
+      int_process *proc = proc_ref.get();
       pthrd_printf("User stopping entire process %d\n", proc->getPid());
       proc->threadPool()->initialThread()->getUserState().setStateProc(int_thread::stopped);
       proc->throwNopEvent();
@@ -1498,7 +1503,8 @@ bool ProcessSet::stopProcs() const
    }
 
    for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
-      int_process *proc = (*i)->llproc();
+      ProcImplRef proc_ref((*i));
+      int_process *proc = proc_ref.get();
       if (!proc) {
          perr_printf("Process %d exited while waiting for user stop, erroring\n", (*i)->getPid());
          (*i)->setLastError(err_exited, "Process exited while being stopped.\n");
@@ -1524,7 +1530,8 @@ static bool do_detach(int_processSet *procset, bool temporary, bool leaveStopped
    procset_iter iter("detach", had_error, ERR_CHCK_NORM);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = *i;
-      int_process *proc = p->llproc();
+      ProcImplRef proc_ref(p);
+      int_process *proc = proc_ref.get();
 
       if (temporary && !proc->plat_supportDOTF()) {
          perr_printf("Temporary detach not supported on this platform\n");
@@ -1564,7 +1571,8 @@ static bool do_detach(int_processSet *procset, bool temporary, bool leaveStopped
    
    for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
       Process::ptr p = *i;
-      int_process *proc = p->llproc();
+      ProcImplRef proc_ref(p);
+      int_process *proc = proc_ref.get();
       
       if (!proc && temporary) {
          perr_printf("Process exited during temporary detach\n");
@@ -1601,7 +1609,7 @@ bool ProcessSet::reAttach() const
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc());
 
    ProcPool()->condvar()->lock();
-   bool attach_okay = int_process::attach(procset, true);
+   bool attach_okay = ProcPool()->attachProcs(procset, true);
 
    return !had_error && attach_okay;
 }
@@ -1634,7 +1642,11 @@ bool ProcessSet::terminate() const
    procset_iter iter("terminate", had_error, ERR_CHCK_NORM);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = *i;
-      int_process *proc = p->llproc();
+      // nolock: preTerminate -> waitAndHandleForProc parks on the mailbox;
+      // holding proc_lock would deadlock the generator decoding this
+      // process's own exit event (gdb-caught).
+      ProcImplRef proc_ref(p, implref_nolock);
+      int_process *proc = proc_ref.get();
       if (!proc)
          continue;
 
@@ -1654,10 +1666,12 @@ bool ProcessSet::terminate() const
    int_process::waitAndHandleEvents(false);
 #endif
 
-   ProcPool()->condvar()->lock();
+   // condvar retirement (option ii): per-iteration locked ProcImplRef brackets each process
 
    for (set<Process::ptr>::iterator i = procs.begin(); i != procs.end();) {
-      int_process *proc = (*i)->llproc();
+      ProcImplRef proc_ref((*i), implref_nolock);   // parity with the old
+      // global-bracket semantics; terminate() may reach blocking paths.
+      int_process *proc = proc_ref.get();
       if (!proc) {
          // Process exited and was deleted during the event handling above.
          procs.erase(i++);
@@ -1681,8 +1695,7 @@ bool ProcessSet::terminate() const
       i++;
    }
 
-   ProcPool()->condvar()->broadcast();
-   ProcPool()->condvar()->unlock();
+   wakeGenerator();
    pthrd_printf("Processes terminated: sync is %d\n", run_sync);
    if (run_sync) {
      pthrd_printf("Process: waiting on waitAndHandleEvents\n");
@@ -1696,11 +1709,12 @@ bool ProcessSet::terminate() const
       }
    }
    for (auto &p : procs) {
-      int_process *proc = p->llproc();
+      ProcImplRef proc_ref(p);
+      int_process *proc = proc_ref.get();
       if (!proc)
          continue;   // already deleted during terminate/waitAndHandleEvents
       HandlerPool *hp = proc->handlerPool();
-      delete proc;
+      ProcPool()->destroyProcess(p);
       delete hp;
    }
 
@@ -1785,7 +1799,7 @@ bool ProcessSet::readMemory(AddressSet::ptr addrset, multimap<Process::ptr, void
          had_error = true;
          continue;
       }
-      mem_result.insert(make_pair(p->llproc()->proc(), r.buffer));
+      mem_result.insert(make_pair(pc_const_cast<Process>(p), r.buffer));
    }
    return !had_error;
 }
@@ -1863,7 +1877,8 @@ bool ProcessSet::readMemory(multimap<Process::const_ptr, read_t> &addrs) const
    readmap_iter iter("read memory", had_error, ERR_CHCK_ALL);
    for (readmap_iter::i_t i = iter.begin(&addrs); i != iter.end(); i = iter.inc()) {
       Process::const_ptr p = i->first;
-      int_process *proc = p->llproc();
+      ProcImplRef proc_ref(p);
+      int_process *proc = proc_ref.get();
       const read_t &r = i->second;
       
       Address addr = r.addr;
@@ -1891,7 +1906,8 @@ bool ProcessSet::readMemory(multimap<Process::const_ptr, read_t> &addrs) const
    for (i = resps_to_procs.begin(); i != resps_to_procs.end(); i++) {
       mem_response::ptr resp = i->first->getMemResponse();
       Process::const_ptr p = i->second->first;
-      int_process *proc = p->llproc();
+      ProcImplRef proc_ref(p);
+      int_process *proc = proc_ref.get();
       read_t &read_result = const_cast<read_t &>(i->second->second);
       if (resp->hasError()) {
          pthrd_printf("Error reading from memory %lx on target process %d\n",
@@ -1915,7 +1931,8 @@ bool ProcessSet::writeMemory(AddressSet::ptr addrset, const void *buffer, size_t
    addrset_iter iter("write memory", had_error, ERR_CHCK_ALL);
    for (int_addressSet::iterator i = iter.begin(addrset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = i->second;
-      int_process *proc = p->llproc();
+      ProcImplRef proc_ref(p);
+      int_process *proc = proc_ref.get();
       Address addr = i->first;
 
       result_response::ptr resp = result_response::createResultResponse();
@@ -1951,7 +1968,8 @@ bool ProcessSet::writeMemory(multimap<Process::const_ptr, write_t> &addrs) const
    writemap_iter iter("read memory", had_error, ERR_CHCK_ALL);
    for (writemap_iter::i_t i = iter.begin(&addrs); i != iter.end(); i = iter.inc()) {
       Process::const_ptr p = i->first;
-      int_process *proc = p->llproc();
+      ProcImplRef proc_ref(p);
+      int_process *proc = proc_ref.get();
       const write_t &w = i->second;
 
       result_response::ptr resp = result_response::createResultResponse();
@@ -1972,7 +1990,8 @@ bool ProcessSet::writeMemory(multimap<Process::const_ptr, write_t> &addrs) const
    for (i = resps_to_procs.begin(); i != resps_to_procs.end(); i++) {
       result_response::ptr resp = i->first->getResultResponse();
       Process::const_ptr p = i->second->first;
-      int_process *proc = p->llproc();
+      ProcImplRef proc_ref(p);
+      int_process *proc = proc_ref.get();
       write_t &write_result = const_cast<write_t &>(i->second->second);
 
       if (resp->hasError()) {
@@ -2066,7 +2085,8 @@ bool ProcessSet::addBreakpoint(AddressSet::ptr addrset, Breakpoint::ptr bp) cons
    addrset_iter iter("Breakpoint add", had_error, ERR_CHCK_ALL);
    for (int_addressSet::iterator i = iter.begin(addrset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = i->second;
-      int_process *proc = p->llproc();
+      ProcImplRef proc_ref(p);
+      int_process *proc = proc_ref.get();
       Address addr = i->first;
       
       bp_install_state *is = new bp_install_state();
@@ -2090,7 +2110,8 @@ bool ProcessSet::rmBreakpoint(AddressSet::ptr addrset, Breakpoint::ptr bp) const
    addrset_iter iter("Breakpoint remove", had_error, ERR_CHCK_ALL);
    for (int_addressSet::iterator i = iter.begin(addrset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = i->second;
-      int_process *proc = p->llproc();
+      ProcImplRef proc_ref(p);
+      int_process *proc = proc_ref.get();
       Address addr = i->first;
 
       set<response::ptr> resps;
@@ -2135,7 +2156,8 @@ bool ProcessSet::postIRPC(const multimap<Process::const_ptr, IRPC::ptr> &rpcs) c
       i != iter.end();
       i = iter.inc()) {
       Process::const_ptr p = i->first;
-      int_process *proc = p->llproc();
+      ProcImplRef proc_ref(p);
+      int_process *proc = proc_ref.get();
       IRPC::ptr rpc = i->second;
 
       bool result = rpcMgr()->postRPCToProc(proc, rpc->llrpc()->rpc);
@@ -2155,7 +2177,8 @@ bool ProcessSet::postIRPC(IRPC::ptr irpc, multimap<Process::ptr, IRPC::ptr> *res
    procset_iter iter("post RPC", had_error, ERR_CHCK_NORM);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = *i;
-      int_process *proc = p->llproc();
+      ProcImplRef proc_ref(p);
+      int_process *proc = proc_ref.get();
       IRPC::ptr local_rpc = IRPC::createIRPC(irpc);
       
       bool bresult = rpcMgr()->postRPCToProc(proc, local_rpc->llrpc()->rpc);
@@ -2179,7 +2202,8 @@ bool ProcessSet::postIRPC(IRPC::ptr irpc, AddressSet::ptr addrset, multimap<Proc
    addrset_iter iter("post RPC", had_error, ERR_CHCK_NORM);
    for (int_addressSet::iterator i = iter.begin(addrset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = i->second;
-      int_process *proc = p->llproc();
+      ProcImplRef proc_ref(p);
+      int_process *proc = proc_ref.get();
       Address addr = i->first;
       IRPC::ptr local_rpc = IRPC::createIRPC(irpc, addr);
       
@@ -2598,7 +2622,7 @@ bool ThreadSet::getStartFunctions(AddressSet::ptr result) const
       Thread::ptr t = *i;
       Process::ptr p = t->getProcess();
       Address addr;
-      bool bresult = t->llthrd()->getStartFuncAddress(addr);
+      bool bresult = ThreadImplRef(t)->getStartFuncAddress(addr);
       if (bresult)
          result->insert(addr, p);
    }
@@ -2614,7 +2638,7 @@ bool ThreadSet::getStackBases(AddressSet::ptr result) const
       Thread::ptr t = *i;
       Process::ptr p = t->getProcess();
       Address addr;
-      bool bresult = t->llthrd()->getStackBase(addr);
+      bool bresult = ThreadImplRef(t)->getStackBase(addr);
       if (bresult)
          result->insert(addr, p);
    }
@@ -2630,7 +2654,7 @@ bool ThreadSet::getTLSs(AddressSet::ptr result) const
       Thread::ptr t = *i;
       Process::ptr p = t->getProcess();
       Address addr;
-      bool bresult = t->llthrd()->getTLSPtr(addr);
+      bool bresult = ThreadImplRef(t)->getTLSPtr(addr);
       if (bresult)
          result->insert(addr, p);
    }
@@ -2646,7 +2670,8 @@ bool ThreadSet::stopThreads() const
    thrset_iter iter("stop thread", had_error, ERR_CHCK_THRD);
    for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
       Thread::ptr t = *i;
-      int_thread *thr = t->llthrd();
+      ThreadImplRef thr_ref(t);
+      int_thread *thr = thr_ref.get();
       int_process *proc = thr->llproc();
 
       thr->getUserState().setState(int_thread::stopped);
@@ -2669,7 +2694,8 @@ bool ThreadSet::continueThreads() const
    thrset_iter iter("continue thread", had_error, ERR_CHCK_THRD);
    for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
       Thread::ptr t = *i;
-      int_thread *thr = t->llthrd();
+      ThreadImplRef thr_ref(t);
+      int_thread *thr = thr_ref.get();
       int_process *proc = thr->llproc();
 
       thr->getUserState().setState(int_thread::running);
@@ -2705,7 +2731,8 @@ static bool getRegisterWorker(Dyninst::MachRegister reg, int_threadSet *ithrset,
    thrset_iter iter("getRegister", had_error, ERR_CHCK_THRD | ERR_CHCK_THRD_STOPPED);
    for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
       Thread::ptr t = *i;
-      int_thread *thr = t->llthrd();
+      ThreadImplRef thr_ref(t);
+      int_thread *thr = thr_ref.get();
       reg_response::ptr response = reg_response::createRegResponse();
       bool result = thr->getRegister(reg, response);
       if (!result) {
@@ -2734,8 +2761,8 @@ static bool getRegisterWorker(Dyninst::MachRegister reg, int_threadSet *ithrset,
 
       if (resp->hasError()) {
          thr->getProcess()->setLastError(resp->errorCode(), thr->getProcess()->getLastErrorMsg());
-         pthrd_printf("Error in response from %d/%d\n", thr->llthrd()->llproc()->getPid(),
-                      thr->llthrd()->getLWP());
+         pthrd_printf("Error in response from %d/%d\n", ThreadImplRef(thr)->llproc()->getPid(),
+                      ThreadImplRef(thr)->getLWP());
          had_error = true;
          thr_to_response.erase(i++);
          continue;
@@ -2814,7 +2841,8 @@ bool ThreadSet::setRegister(Dyninst::MachRegister reg, const map<Thread::const_p
    for (setreg_iter::i_t i = iter.begin(&vals); i != iter.end(); i = iter.inc()) {
       Thread::const_ptr t = i->first;
       MachRegisterVal val = i->second;
-      int_thread *thr = t->llthrd();
+      ThreadImplRef thr_ref(t);
+      int_thread *thr = thr_ref.get();
       result_response::ptr response = result_response::createResultResponse();
 
       bool result = thr->setRegister(reg, val, response);
@@ -2825,7 +2853,7 @@ bool ThreadSet::setRegister(Dyninst::MachRegister reg, const map<Thread::const_p
          continue;
       }
 
-      thr_to_response.insert(make_pair(thr->thread(), response));
+      thr_to_response.insert(make_pair(thr->llproc()->threadPool()->hlFor(thr), response));
       all_responses.insert(response);
    }
 
@@ -2844,8 +2872,8 @@ bool ThreadSet::setRegister(Dyninst::MachRegister reg, const map<Thread::const_p
 
       if (resp->hasError() || !resp->getResult()) {
          thr->getProcess()->setLastError(resp->errorCode(), thr->getProcess()->getLastErrorMsg());
-         pthrd_printf("Error in response from %d/%d\n", thr->llthrd()->llproc()->getPid(),
-                      thr->llthrd()->getLWP());
+         pthrd_printf("Error in response from %d/%d\n", ThreadImplRef(thr)->llproc()->getPid(),
+                      ThreadImplRef(thr)->getLWP());
          had_error = true;
       }
    }
@@ -2877,7 +2905,8 @@ bool ThreadSet::getAllRegisters(map<Thread::ptr, RegisterPool> &results) const
    thrset_iter iter("getAllRegisters", had_error, ERR_CHCK_THRD | ERR_CHCK_THRD_STOPPED);
    for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
       Thread::ptr t = *i;
-      int_thread *thr = t->llthrd();
+      ThreadImplRef thr_ref(t);
+      int_thread *thr = thr_ref.get();
       int_registerPool *newpool = new int_registerPool();
       allreg_response::ptr response = allreg_response::createAllRegResponse(newpool);
       bool result = thr->getAllRegisters(response);
@@ -2912,8 +2941,8 @@ bool ThreadSet::getAllRegisters(map<Thread::ptr, RegisterPool> &results) const
 
       if (resp->hasError()) {
          thr->getProcess()->setLastError(resp->errorCode(), thr->getProcess()->getLastErrorMsg());
-         pthrd_printf("Error in response from %d/%d\n", thr->llthrd()->llproc()->getPid(),
-                      thr->llthrd()->getLWP());
+         pthrd_printf("Error in response from %d/%d\n", ThreadImplRef(thr)->llproc()->getPid(),
+                      ThreadImplRef(thr)->getLWP());
          had_error = true;
          delete pool;
          continue;
@@ -2939,7 +2968,8 @@ bool ThreadSet::setAllRegisters(const map<Thread::const_ptr, RegisterPool> &reg_
    for (setallreg_iter::i_t i = iter.begin(&reg_vals); i != iter.end(); i = iter.inc()) {
       Thread::const_ptr t = i->first;
       RegisterPool pool = i->second;
-      int_thread *thr = t->llthrd();
+      ThreadImplRef thr_ref(t);
+      int_thread *thr = thr_ref.get();
       result_response::ptr response = result_response::createResultResponse();
 
       bool result = thr->setAllRegisters(*pool.llregpool, response);
@@ -2950,7 +2980,7 @@ bool ThreadSet::setAllRegisters(const map<Thread::const_ptr, RegisterPool> &reg_
          continue;
       }
 
-      thr_to_response.insert(make_pair(thr->thread(), response));
+      thr_to_response.insert(make_pair(thr->llproc()->threadPool()->hlFor(thr), response));
       all_responses.insert(response);      
    }
 
@@ -2968,8 +2998,8 @@ bool ThreadSet::setAllRegisters(const map<Thread::const_ptr, RegisterPool> &reg_
 
       if (resp->hasError() || !resp->getResult()) {
          thr->getProcess()->setLastError(resp->errorCode(), thr->getProcess()->getLastErrorMsg());
-         pthrd_printf("Error in response from %d/%d\n", thr->llthrd()->llproc()->getPid(),
-                      thr->llthrd()->getLWP());
+         pthrd_printf("Error in response from %d/%d\n", ThreadImplRef(thr)->llproc()->getPid(),
+                      ThreadImplRef(thr)->getLWP());
          had_error = true;
       }
    }
@@ -2985,7 +3015,8 @@ bool ThreadSet::postIRPC(const multimap<Thread::const_ptr, IRPC::ptr> &rpcs) con
    for (rpcmap_thr_iter::i_t i = iter.begin(&rpcs); i != iter.end(); i = iter.inc()) {
       IRPC::ptr rpc = i->second;
       Thread::const_ptr t = i->first;
-      int_thread *thread = t->llthrd();
+      ThreadImplRef thread_ref(t);
+      int_thread *thread = thread_ref.get();
 
       bool result = rpcMgr()->postRPCToThread(thread, rpc->llrpc()->rpc);
       if (!result) {
@@ -3004,7 +3035,8 @@ bool ThreadSet::postIRPC(IRPC::ptr irpc, multimap<Thread::ptr, IRPC::ptr> *resul
    thrset_iter iter("Post RPC", had_error, ERR_CHCK_NORM);
    for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
       Thread::ptr t = *i;
-      int_thread *thread = t->llthrd();
+      ThreadImplRef thread_ref(t);
+      int_thread *thread = thread_ref.get();
       IRPC::ptr local_rpc = IRPC::createIRPC(irpc);
 
       bool result = rpcMgr()->postRPCToThread(thread, local_rpc->llrpc()->rpc);
@@ -3143,7 +3175,7 @@ bool LibraryTrackingSet::setTrackLibraries(bool b) const
    procset_iter iter("setTrackLibraries", had_error, ERR_CHCK_NORM);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = *i;
-      int_libraryTracking *proc = p->llproc()->getLibraryTracking();
+      int_libraryTracking *proc = ProcImplRef(p)->getLibraryTracking();
       if (!proc) {
          perr_printf("Library tracking not supported on process %d\n", p->getPid());
          p->setLastError(err_unsupported, "No library tracking on this platform\n");
@@ -3211,7 +3243,7 @@ bool LibraryTrackingSet::refreshLibraries() const
 
    procset_iter iter("refreshLibraries", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(ps->getIntProcessSet()); i != iter.end(); i = iter.inc()) {
-      procs.insert((*i)->llproc());
+      procs.insert(ProcImplRef(*i).get());
    }
       
    while (!procs.empty()) {
@@ -3244,8 +3276,11 @@ bool LibraryTrackingSet::refreshLibraries() const
             transform(added.begin(), added.end(), inserter(libs_added, libs_added.end()), lib_converter::c);
             transform(rmd.begin(), rmd.end(), inserter(libs_rmd, libs_rmd.end()), lib_converter::c);
             EventLibrary::ptr evlib = EventLibrary::ptr(new EventLibrary(libs_added, libs_rmd));
-            evlib->setProcess(proc->proc());
-            evlib->setThread(proc->threadPool()->initialThread()->thread());
+            {
+               Thread::ptr itw = proc->threadPool()->initialThreadWrapper();
+               evlib->setProcess(proc->proc());
+               evlib->setThread(itw);
+            }
             evlib->setSyncType(Event::async);
             mbox()->enqueue(evlib);
             continue;
@@ -3291,7 +3326,7 @@ bool ThreadTrackingSet::setTrackThreads(bool b) const
    procset_iter iter("setTrackThreads", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = *i;
-      int_threadTracking *proc = p->llproc()->getThreadTracking();
+      int_threadTracking *proc = ProcImplRef(p)->getThreadTracking();
       if (!proc) {
          perr_printf("Thread tracking not supported on process %d\n", p->getPid());
          p->setLastError(err_unsupported, "No thread tracking on this platform\n");
@@ -3355,7 +3390,7 @@ bool ThreadTrackingSet::refreshThreads() const
    int_processSet *procset = ps->getIntProcessSet();
    procset_iter iter("refreshThreads", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_threadTracking *proc = (*i)->llproc()->getThreadTracking();
+      int_threadTracking *proc = ProcImplRef(*i)->getThreadTracking();
       if (!proc) {
          perr_printf("Thread tracking not supported on process\n");
          had_error = true;
@@ -3413,7 +3448,7 @@ bool LWPTrackingSet::refreshLWPs() const
    set<int_process *> all_procs;
    set<int_process *> change_procs;
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_LWPTracking *proc = (*i)->llproc()->getLWPTracking();
+      int_LWPTracking *proc = ProcImplRef(*i)->getLWPTracking();
       if (!proc) {
          perr_printf("LWP tracking not supported on process\n");
          had_error = true;
@@ -3452,9 +3487,7 @@ bool LWPTrackingSet::refreshLWPs() const
       return !had_error;
 
    pthrd_printf("Found changes to thread in refresh.  Handling events.\n");
-   ProcPool()->condvar()->lock();
-   ProcPool()->condvar()->broadcast();
-   ProcPool()->condvar()->unlock();
+   wakeGenerator();
 
    int_process::waitAndHandleEvents(false);
 
@@ -3489,7 +3522,7 @@ bool FollowForkSet::setFollowFork(FollowFork::follow_t f) const
    int_processSet *procset = ps->getIntProcessSet();
    procset_iter iter("setFollowFork", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_followFork *proc = (*i)->llproc()->getFollowFork();
+      int_followFork *proc = ProcImplRef(*i)->getFollowFork();
       if (!proc) {
          perr_printf("Follow Fork not supported on process\n");
          had_error = true;
@@ -3532,7 +3565,8 @@ bool CallStackUnwindingSet::walkStack(CallStackCallback *stk_cb)
    getResponses().lock();
    for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
       Thread::ptr t = *i;
-      int_thread *thr = t->llthrd();
+      ThreadImplRef thr_ref(t);
+      int_thread *thr = thr_ref.get();
       int_callStackUnwinding *proc = thr->llproc()->getCallStackUnwinding();
       if (!proc) {
          perr_printf("Stack unwinding not supported on process %d\n", t->getProcess()->getPid());
@@ -3617,7 +3651,7 @@ bool RemoteIOSet::getFileNames(FileSet *fset)
    int_processSet *procset = procs->getIntProcessSet();
    procset_iter iter("getFileNames", had_error, ERR_CHCK_NORM);   
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_remoteIO *proc = (*i)->llproc()->getRemoteIO();
+      int_remoteIO *proc = ProcImplRef(*i)->getRemoteIO();
       if (!proc) {
          perr_printf("getFileNames attempted on non RemoteIO process\n");
          had_error = true;
@@ -3669,9 +3703,9 @@ bool RemoteIOSet::getFileStatData(FileSet *fset)
    set<StatResp_t *> all_resps;
 
    for (FileSet::iterator i = fset->begin(); i != fset->end(); i++) {
-      pthrd_printf("About to access proc %p\n", (void*)i->first->llproc());
+      pthrd_printf("About to access proc %p\n", (void*)ProcImplRef(i->first).get());
       fflush(stderr);
-      int_remoteIO *proc = i->first->llproc()->getRemoteIO();
+      int_remoteIO *proc = ProcImplRef(i->first)->getRemoteIO();
       if (!proc) {
          perr_printf("getFileStatData attempted on non RemoteIO process\n");
          had_error = true;
@@ -3717,7 +3751,7 @@ bool RemoteIOSet::readFileContents(const FileSet *fset)
    set<FileReadResp_t *> resps;
 
    for (FileSet::const_iterator i = fset->begin(); i != fset->end(); i++) {
-      int_remoteIO *proc = i->first->llproc()->getRemoteIO();
+      int_remoteIO *proc = ProcImplRef(i->first)->getRemoteIO();
       if (!proc) {
          perr_printf("getFileStatData attempted on non RemoteIO\n");
          had_error = true;
@@ -3788,7 +3822,7 @@ bool MemoryUsageSet::usedX(std::map<Process::const_ptr, unsigned long> &used, Me
    procset_iter iter(mu_str, had_error, ERR_CHCK_ALL);
    unsigned int cur = 0;
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_memUsage *proc = (*i)->llproc()->getMemUsage();
+      int_memUsage *proc = ProcImplRef(*i)->getMemUsage();
       if (!proc) {
          perr_printf("GetMemUsage not supported\n");
          had_error = true;
@@ -3856,7 +3890,7 @@ bool MemoryUsageSet::usedX(std::map<Process::const_ptr, unsigned long> &used, Me
 
    if (mu == mus_resident) { 
       for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-         int_memUsage *proc = (*i)->llproc()->getMemUsage();
+         int_memUsage *proc = ProcImplRef(*i)->getMemUsage();
          if (!proc)
             continue;
          if (!proc->plat_residentNeedsMemVals())
@@ -3890,7 +3924,7 @@ bool MemoryUsageSet::usedX(std::map<Process::const_ptr, unsigned long> &used, Me
    }
 
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_memUsage *proc = (*i)->llproc()->getMemUsage();
+      int_memUsage *proc = ProcImplRef(*i)->getMemUsage();
       if (!proc)
          continue;   
       map<int_memUsage *, MemUsageResp_t *> *the_results = NULL;
@@ -3912,7 +3946,7 @@ bool MemoryUsageSet::usedX(std::map<Process::const_ptr, unsigned long> &used, Me
       if (j == the_results->end())
          continue;
       MemUsageResp_t *resp = j->second;
-      used.insert(make_pair(resp->getProc()->proc(), *resp->get()));         
+      used.insert(make_pair(resp->getProc()->proc(), *resp->get()));
    }
 
    map<int_memUsage *, MemUsageResp_t *>::iterator i;

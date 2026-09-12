@@ -56,6 +56,13 @@
 
 
 class int_process;
+class ProcessPool;
+struct ProcImplRef;
+struct ThreadImplRef;
+class windows_process;
+class windows_thread;
+class freebsd_process;
+class freebsd_thread;
 class int_breakpoint;
 class proc_exitstate;
 class thread_exitstate;
@@ -68,6 +75,7 @@ class int_iRPC;
 class int_notify;
 class HandlerPool;
 class MTLock;
+template <bool isRecursive> class Mutex;   // common/src/dthread.h
 
 #define PC_VERSION_8_0_0
 #define PC_VERSION_8_1_0
@@ -174,6 +182,12 @@ class DYNINST_EXPORT LibraryPool
    friend class Dyninst::ProcControlAPI::Process;
  private:
    int_process *proc;
+   // Weak route to the owning Process wrapper: pool methods lock proc_lock
+   // through this without dereferencing `proc` first (check-then-deref UAF).
+   // Empty on the error sentinel (no lock taken; sentinel is immutable).
+   // NB: unlike the thread pool, this pool is EMBEDDED in int_process --
+   // a LibraryPool& held across process teardown dangles (pre-existing).
+   boost::weak_ptr<Process> proc_wrapper_;
    LibraryPool();
    ~LibraryPool();
  public:
@@ -291,11 +305,55 @@ class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
 
    int_process *llproc_;
    proc_exitstate *exitstate_;
-   
+   // Immutable-after-bootstrap pid cached on the wrapper so getPid() is
+   // lock-free (work_lock retirement): it must not deref llproc_ (teardown-UAF)
+   // and cannot take proc_lock (getPid is generator-callable).  Stamped in
+   // int_process::initializeProcess (attach/fork: pid known at bind) and
+   // ProcessPool::createProcs (launch: pid set late in plat_create); read
+   // post-bootstrap by the user.
+   Dyninst::PID cached_pid_;
+   // Per-process lock for the work_lock-retirement migration (design 1).
+   // Lives on the wrapper (stable, ref-counted lifetime) so it can be held
+   // while dereferencing / deleting the impl it guards.  Ordering:
+   //   work_lock > ProcPool condvar > proc_lock > map_lock
+   // multiple processes are locked in ascending-pid order.  Held by a
+   // pointer to keep dthread.h off this (very widely included) header.
+   Mutex<true> *proc_lock_;
+   // work_lock retirement (S4): recursion depth of proc_lock_ for the owning
+   // thread.  Only mutated while the lock is held (single-owner-safe, like
+   // MTManager::work_depth) via lockImpl/unlockImpl.  Lets callback delivery
+   // fully unwind a recursively-held proc_lock (suspendImplLock) so the user
+   // callback runs holding no proc_lock (clause 3), then restore it.  mutable
+   // + const methods so the const-ptr accessors (ProcImplRef) can drive it.
+   mutable int proc_lock_depth_;
+   // The Process wrapper OWNS the int_threadPool (container of Thread::ptr).
+   // int_process keeps a raw, non-owning cache of it for hot access; since
+   // the wrapper outlives the impl, the pool (and Process::threads()) stays
+   // valid after the process exits.  Thread teardown is still deterministic
+   // at exit (destroyProcess); only the container's lifetime is the
+   // wrapper's.
+   int_threadPool *threadpool_;
+
    Process();
    ~Process();
    friend void boost::checked_delete<Process>(Process *) CHECKED_DELETE_NOEXCEPT;
    friend void boost::checked_delete<const Process>(const Process *) CHECKED_DELETE_NOEXCEPT;
+
+   // Encapsulation enforcement (E5): the wrapper->impl bridge is private.
+   // Boundary code reaches the impl ONLY through the checked accessors
+   // (ProcImplRef/ThreadImplRef, int_process.h); everything else on this
+   // audited list is the wrapper/pool/impl layer itself.  Unconverted
+   // platforms (no compile check on this branch's CI) are friended wholesale
+   // until their conversion pass.
+   friend struct ::ProcImplRef;
+   friend class ::ProcessPool;
+   friend class ::int_thread;
+   friend class ::int_threadPool;
+   friend class ::windows_process;
+   friend class ::windows_thread;
+   friend class ::freebsd_process;
+   friend class ::freebsd_thread;
+   int_process *llproc() const { return llproc_; }
  public:
    typedef boost::shared_ptr<Process> ptr;
    typedef boost::shared_ptr<const Process> const_ptr;
@@ -303,9 +361,33 @@ class DYNINST_EXPORT Process : public boost::enable_shared_from_this<Process>
    typedef boost::weak_ptr<const Process> const_weak_ptr;
 
    static void version(int& major, int& minor, int& maintenance);
+   // Per-process migration lock (see proc_lock_).  Internal use only.
+   Mutex<true> *procLock() const { return proc_lock_; }
+   // Depth-tracked proc_lock acquire/release -- the single path ProcScopeLock
+   // and the ImplRef accessors go through, so proc_lock_depth_ always equals
+   // this thread's true recursion depth.  Bodies in process.C (Mutex<true> is
+   // incomplete here).  Internal use only.
+   void lockImpl() const;
+   void unlockImpl() const;
+   // Fully release a recursively-held proc_lock (for callback delivery) and
+   // restore it.  suspendImplLock returns the depth to pass back to resume.
+   int  suspendImplLock() const;
+   void resumeImplLock(int d) const;
 
-   //These four functions are not for end-users.  
-   int_process *llproc() const { return llproc_; }
+   // Wrapper-layer factories: mint the Process wrapper together with its
+   // int_process impl and initialize the pair, returning the wrapper (NOT
+   // yet bootstrapped -- create()/attach() do that).  int_process::create-
+   // Process is now just the impl-construction primitive these call, so no
+   // caller assembles a process out of raw impl pieces.
+   static Process::ptr makeProcess(std::string exec,
+                                   const std::vector<std::string> &argv,
+                                   const std::vector<std::string> &envp,
+                                   const std::map<int,int> &fds);
+   static Process::ptr makeProcess(Dyninst::PID pid, std::string exec); // attach
+   static Process::ptr makeProcess(Dyninst::PID pid, Process::ptr parent); // fork
+   // PROTOTYPE (pool-owns-wrapper): severs the wrapper->impl link at the
+   // detach point (ProcessPool::rmProcess).  Internal use only.
+   void clearLLProc() { llproc_ = NULL; }
    proc_exitstate *exitstate() const { return exitstate_; }
    void setLastError(ProcControlAPI::err_t err_code, const char *err_str) const;
    void clearLastError() const;
@@ -563,7 +645,17 @@ class DYNINST_EXPORT Thread : public boost::enable_shared_from_this<Thread>
 {
  protected:
    friend class ::int_thread;
+   friend class ::int_threadPool;
+   friend class ::ProcessPool;
    int_thread *llthread_;
+   // Non-owning cache of the owning process's wrapper, seeded once by
+   // ProcessPool::addThread.  A wrapper->wrapper edge (no impl names a
+   // wrapper) that is WEAK on purpose: it cannot keep the Process alive, so
+   // there is no Process<->threads cycle -- a permanently detached process
+   // still destructs when the last user reference drops.  lock() is the
+   // lock-free thread->process fast path; the ProcessPool registry
+   // (wrapperFor) is the cold fallback.
+   Process::weak_ptr proc_wrapper_;
    thread_exitstate *exitstate_;
 
    Thread();
@@ -571,12 +663,39 @@ class DYNINST_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    friend void boost::checked_delete<Thread>(Thread *) CHECKED_DELETE_NOEXCEPT;
    friend void boost::checked_delete<const Thread>(const Thread *) CHECKED_DELETE_NOEXCEPT;
 
+   // Encapsulation enforcement (E5): see the Process note.  The bridge and
+   // the severing hook are private; ThreadImplRef is the boundary idiom.
+   friend struct ::ThreadImplRef;
+   friend class ::int_process;
+   friend class ::windows_process;
+   friend class ::windows_thread;
+   friend class ::freebsd_process;
+   friend class ::freebsd_thread;
+   int_thread *llthrd() const;
+   // PROTOTYPE (pool-owns-wrapper): severs the wrapper->impl link at the
+   // detach point (ProcessPool::rmThread).  Internal use only.
+   void clearLLThread() { llthread_ = NULL; }
+
  public:
    typedef boost::shared_ptr<Thread> ptr;
    typedef boost::shared_ptr<const Thread> const_ptr;
    typedef boost::weak_ptr<Thread> weak_ptr;
    typedef boost::weak_ptr<const Thread> const_weak_ptr;
-   int_thread *llthrd() const;
+   // Lock-free thread->process fast path (safe from the generator: reads the
+   // weak cache only, never the impl).  Returns NULL once the Process wrapper
+   // is destructing/destroyed -- callers fall back to the pool registry or
+   // treat the process as gone.  Internal use only.
+   Process::ptr procWrapper() const { return proc_wrapper_.lock(); }
+
+   // Wrapper-layer thread factory (mirror of Process::makeProcess): builds
+   // the int_thread + its Thread wrapper, registers with the ProcessPool and
+   // the owning process's threadpool, and attaches.  Returns the wrapper --
+   // no caller holds a raw int_thread*.  `proc` is transient creation
+   // context (an impl pointer used only within the call, never stored), and
+   // `astatus` widens int_thread::attach_status_t to int to keep that
+   // impl-internal enum out of the public header.
+   static Thread::ptr makeThread(int_process *proc, Dyninst::THR_ID thr_id,
+                                 Dyninst::LWP lwp_id, bool initial_thrd, int astatus);
    void setLastError(err_t ec, const char *es) const;
 
    Dyninst::LWP getLWP() const;

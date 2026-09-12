@@ -43,24 +43,31 @@ using namespace std;
 
 unsigned int response::next_id = 1;
 
-static Mutex<> id_lock;
+// Intentionally heap-allocated and leaked: static destructor order across
+// translation units is unspecified, so a plain static here could be destroyed
+// before int_cleanup (generator.C) stops the handler thread.  The handler
+// thread may still be creating responses during process teardown and would
+// then lock a destroyed mutex (glibc marks it __kind = -1, so lock() throws
+// lock_error -> terminate).  Never destroying it avoids the race.  Mirrors
+// Counter::locks in process.C.
+static Mutex<> *id_lock = new Mutex<>();
 
 unsigned newResponseID()
 {
   unsigned id;
-  id_lock.lock();
+  id_lock->lock();
   id = response::next_id++;
-  id_lock.unlock();
+  id_lock->unlock();
   return id;
 }
 
 unsigned newResponseID(unsigned size)
 {
   unsigned id;
-  id_lock.lock();
+  id_lock->lock();
   id = response::next_id;
   response::next_id += size;
-  id_lock.unlock();
+  id_lock->unlock();
   return id;
 }
 
@@ -71,7 +78,7 @@ response::response() :
    isSyncHandled(false),
    error(false),
    errorcode(0),
-   proc(NULL),
+   proc(),
    aio(NULL),
    resp_type((resp_type_t)-1),
    decoder_event(NULL),
@@ -192,10 +199,10 @@ unsigned int response::markAsMultiResponse(int num_resps)
 {
    assert(num_resps);
    assert(state == unset);
-   id_lock.lock();
+   id_lock->lock();
    id = next_id;
    next_id += num_resps;
-   id_lock.unlock();
+   id_lock->unlock();
 
    multi_resp_size = num_resps;
 
@@ -229,12 +236,16 @@ ArchEvent *response::getDecoderEvent()
 
 int_process *response::getProcess() const
 {
-  return proc;
+  // Conduit accessor: still hands a raw impl to callers (they null-check).
+  // NULL iff the process died while this response was pending.  Callers
+  // migrate to ProcImplRef as the encapsulation revamp reaches them.
+  ProcImplRef pi(proc, implref_nolock);   // plumbing: callers may hold leaf locks
+  return pi.get();
 }
 
 void response::setProcess(int_process *p)
 {
-  proc = p;
+  proc = p ? p->proc() : Process::ptr();
 }
 
 result_response::ptr response::getResultResponse()
@@ -402,9 +413,7 @@ void responses_pending::noteResponse()
       // so we don't want to retake it.
       return;
    }
-   ProcPool()->condvar()->lock();
-   ProcPool()->condvar()->broadcast();
-   ProcPool()->condvar()->unlock();
+   wakeGenerator();
 }
 
 responses_pending &getResponses()
@@ -464,7 +473,7 @@ reg_response::ptr reg_response::createRegResponse()
 
 reg_response::reg_response() :
    val(0),
-   thr(NULL)
+   thr()
 {
    resp_type = rt_reg;
 }
@@ -476,7 +485,7 @@ reg_response::~reg_response()
 void reg_response::setRegThread(Dyninst::MachRegister r, int_thread *t)
 {
    reg = r;
-   thr = t;
+   thr = t ? t->thread() : Thread::ptr();
 }
 
 void reg_response::setResponse(Dyninst::MachRegisterVal v)
@@ -488,7 +497,12 @@ void reg_response::setResponse(Dyninst::MachRegisterVal v)
 void reg_response::postResponse(Dyninst::MachRegisterVal v)
 {
    assert(reg && thr);
-   thr->updateRegCache(reg, v);
+   // nolock: response plumbing runs with caller locks held (e.g. the
+   // caller's regpool_lock in int_thread::getRegister) -- taking proc_lock
+   // here inverts against decode (proc_lock -> register reads).  TSan-found.
+   ThreadImplRef ti(thr, implref_nolock);
+   if (ti)
+      ti->updateRegCache(reg, v);   // dead thread: nothing to cache
    val = v;
 }
 
@@ -510,7 +524,7 @@ allreg_response::ptr allreg_response::createAllRegResponse(int_registerPool *reg
 
 allreg_response::allreg_response() :
    regpool(NULL),
-   thr(NULL)
+   thr()
 {
    resp_type = rt_allreg;
 }
@@ -521,7 +535,7 @@ allreg_response::~allreg_response()
 
 void allreg_response::setThread(int_thread *t)
 {
-   thr = t;
+   thr = t ? t->thread() : Thread::ptr();
 }
 
 void allreg_response::setRegPool(int_registerPool *p)
@@ -542,7 +556,9 @@ void allreg_response::postResponse()
       multi_resp_recvd++;
    }
    if (isMultiResponseComplete()) {
-      thr->updateRegCache(*regpool);
+      ThreadImplRef ti(thr, implref_nolock);   // see reg_response::postResponse
+      if (ti)
+         ti->updateRegCache(*regpool);
    }
 }
 
@@ -666,7 +682,7 @@ stack_response::ptr stack_response::createStackResponse(int_thread *t)
 
 stack_response::stack_response(int_thread *t) :
    data(NULL),
-   thr(t)
+   thr(t ? t->thread() : Thread::ptr())
 {
    resp_type = rt_stack;
 }
@@ -682,7 +698,10 @@ void *stack_response::getData()
 
 int_thread *stack_response::getThread()
 {
-   return thr;
+   // Conduit accessor (see response::getProcess): callers migrate to
+   // ThreadImplRef as the encapsulation revamp reaches them.
+   ThreadImplRef ti(thr, implref_nolock);   // plumbing: callers may hold leaf locks
+   return ti.get();
 }
 
 void stack_response::postResponse(void *d)
@@ -721,17 +740,19 @@ void data_response::postResponse(void *d)
 }
 
 unsigned int ResponseSet::next_id = 1;
-Mutex<> ResponseSet::id_lock;
+// Heap-allocated and intentionally leaked; see the note on the file-static
+// id_lock above (avoids a static-destruction race with the handler thread).
+Mutex<> *ResponseSet::id_lock = new Mutex<>();
 std::map<unsigned int, ResponseSet *> ResponseSet::all_respsets;
 
 ResponseSet::ResponseSet()
 {
-  id_lock.lock();
+  id_lock->lock();
   myid = next_id++;
   if (!myid)
     myid = next_id++;
   all_respsets.insert(make_pair(myid, this));
-  id_lock.unlock();
+  id_lock->unlock();
 }
 
 void ResponseSet::addID(unsigned id, unsigned index)
@@ -757,13 +778,13 @@ unsigned int ResponseSet::getID() const {
 ResponseSet *ResponseSet::getResponseSetByID(unsigned int id) {
   map<unsigned int, ResponseSet *>::iterator i;
   ResponseSet *respset = NULL;
-  id_lock.lock();
+  id_lock->lock();
   i = all_respsets.find(id);
   if (i != all_respsets.end()) {
     respset = i->second;
     all_respsets.erase(i);
   }
-  id_lock.unlock();
+  id_lock->unlock();
   return respset;
 }
 
