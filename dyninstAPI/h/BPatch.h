@@ -142,12 +142,6 @@ class DYNINST_EXPORT BPatch {
        polling instead */
     bool asyncActive;
 
-    /* If true, deep parsing (anything beyond symtab info) is delayed until
-       accessed */
-    /* Note: several bpatch constructs have "access everything" behavior, 
-       which will trigger full parsing. This should be looked into. */
-    bool delayedParsing_;
-
     /* Wildcard patterns naming shared objects that are loaded but not
        analyzed.  Static so that adding one does not change sizeof(BPatch). */
     static std::vector<std::string> analysisExcludePatterns_;
@@ -308,12 +302,6 @@ public:
 
     bool autoRelocationOn();
 
-
-    // BPatch::delayedParsingOn:
-    // returns whether inst info is parsed a priori, or on demand
-    
-
-    bool delayedParsingOn();
 
     // Liveness...
     
@@ -512,11 +500,6 @@ public:
 
     void setAutoRelocation_NP(bool x);
 
-    //  BPatch::setDelayedParsing:
-    //  Turn on/off delayed parsing
-    
-
-    void setDelayedParsing(bool x);
 
     // Liveness...
     

@@ -80,7 +80,6 @@ dynHandle *mutatorInit(void)
     /*
      * BPatch class level flags.
      */
-    dh->bpatch->setDelayedParsing(true);
     if (config.use_merge_tramp) {
 	sendMsg(config.outfd, ID_INIT_MERGE_TRAMP, INFO);
 	dh->bpatch->setMergeTramp(true);

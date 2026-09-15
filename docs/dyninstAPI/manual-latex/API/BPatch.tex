@@ -154,28 +154,6 @@ loop, because waitForStatusChange blocks the mutator process while waiting.
 }
 
 \begin{apient}
-void setDelayedParsing(bool);
-\end{apient}
-
-\apidesc{
-Turn on or off delayed parsing. When it is activated Dyninst will initially parse only the symbol table information in
-any new modules loaded by the program, and will postpone more thorough analysis (instrumentation point analysis,
-variable analysis, and discovery of new functions in stripped binaries). This analysis will automatically occur when
-the information is necessary.
-Users which require small run-time perturbation of a program should not delay parsing; the overhead for analysis may
-occur at unexpected times if it is triggered by internal Dyninst behavior. Users who desire instrumentation of a
-small number of functions will benefit from delayed parsing.
-}
-
-\begin{apient}
-bool delayedParsingOn();
-\end{apient}
-
-\apidesc{
-Return true if delayed parsing is enabled, or false otherwise.
-}
-
-\begin{apient}
 void addAnalysisExcludePattern(const char *pattern);
 \end{apient}
 
