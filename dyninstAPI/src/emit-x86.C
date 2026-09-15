@@ -553,14 +553,19 @@ void EmitterAMD64::emitDiv(Register dest, Register src1, Register src2, codeGen 
    emitMovRegToReg64(REGNUM_RAX, src1, true, gen);
    gen.markRegDefined(REGNUM_RAX);
    
-   // cqo (sign extend RAX into RDX)
-   emitSimpleInsn(0x48, gen); // REX.W
-   emitSimpleInsn(0x99, gen);
-  
+   // The dividend is RDX:RAX. Sign-extend RAX into RDX for a signed divide;
+   // for an unsigned divide RDX must be zero, since sign-extending a dividend
+   // with its top bit set gives a 128-bit value whose quotient does not fit
+   // in 64 bits and faults with #DE.
    if (s) {
+       // cqo
+       emitSimpleInsn(0x48, gen); // REX.W
+       emitSimpleInsn(0x99, gen);
        // idiv %src2
        emitOpRegReg64(0xF7, 0x7, scratchReg, true, gen);
    } else {
+       // mov $0, %rdx
+       emitMovImmToReg64(REGNUM_RDX, 0, true, gen);
        // div %src2
        emitOpRegReg64(0xF7, 0x6, scratchReg, true, gen);
    }

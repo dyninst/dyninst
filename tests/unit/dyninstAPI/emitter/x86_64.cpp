@@ -99,12 +99,20 @@ int main() {
     0x48, 0x69, 0xc0, 0x03, 0x0, 0x0, 0x0   // imul rax, rax, 3
   }});
 
-  //  Divide rdx by rcx
-  emitter->emitDiv(REGNUM_EAX, REGNUM_EDX, REGNUM_ECX, gen, false);
+  // Signed divide rdx by rcx: sign-extend rax into rdx:rax
+  emitter->emitDiv(REGNUM_EAX, REGNUM_EDX, REGNUM_ECX, gen, true);
   failed |= !verify_emitter(gen, emitter_buffer_t<8>{{
     0x48, 0x8b, 0xc2,   // mov rax, rdx
-    0x48, 0x99,         // cqo  # sign-extend rax
-    0x48, 0xf7, 0xf1    // div rcx
+    0x48, 0x99,         // cqo
+    0x48, 0xf7, 0xf9    // idiv rcx
+  }});
+
+  // Unsigned divide rdx by rcx: the dividend is 0:rax, so rdx is zeroed
+  emitter->emitDiv(REGNUM_EAX, REGNUM_EDX, REGNUM_ECX, gen, false);
+  failed |= !verify_emitter(gen, emitter_buffer_t<16>{{
+    0x48, 0x8b, 0xc2,                                     // mov rax, rdx
+    0x48, 0xba, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,   // mov rdx, 0x0
+    0x48, 0xf7, 0xf1                                      // div rcx
   }});
 
   // Divide rsi by 0x12345678, store results in rdx
