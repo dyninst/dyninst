@@ -30,6 +30,7 @@
 
 #include "dataflowAPI/h/ABI.h"
 #include "dataflowAPI/src/RegisterMap.h"
+#include "registers/loongarch64_regs.h"
 #include <stdio.h>
 
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
@@ -775,6 +776,68 @@ void ABI::initialize64(){
 	syscallWritten64_ = &getBitArray(sz)->set();
 
 	allRegs64_ = &getBitArray(sz)->set();
+}
+#endif
+
+#if defined(DYNINST_CODEGEN_ARCH_LOONGARCH64)
+void ABI::initialize64(){
+    RegisterMap loongarch64Map = machRegIndex_loongarch64();
+    int sz = loongarch64Map.size();
+
+    returnRegs64_ = getBitArray(sz);
+    (*returnRegs64_)[loongarch64Map[Dyninst::loongarch64::r4]] = true;
+    (*returnRegs64_)[loongarch64Map[Dyninst::loongarch64::r5]] = true;
+
+    returnRead64_ = getBitArray(sz);
+    (*returnRegs64_)[loongarch64Map[Dyninst::loongarch64::r4]] = true;
+    (*returnRegs64_)[loongarch64Map[Dyninst::loongarch64::r5]] = true;
+    (*returnRead64_)[loongarch64Map[Dyninst::loongarch64::r22]] = true;
+    (*returnRead64_)[loongarch64Map[Dyninst::loongarch64::r23]] = true;
+    (*returnRead64_)[loongarch64Map[Dyninst::loongarch64::r24]] = true;
+    (*returnRead64_)[loongarch64Map[Dyninst::loongarch64::r25]] = true;
+    (*returnRead64_)[loongarch64Map[Dyninst::loongarch64::r26]] = true;
+    (*returnRead64_)[loongarch64Map[Dyninst::loongarch64::r27]] = true;
+    (*returnRead64_)[loongarch64Map[Dyninst::loongarch64::r28]] = true;
+    (*returnRead64_)[loongarch64Map[Dyninst::loongarch64::r29]] = true;
+    (*returnRead64_)[loongarch64Map[Dyninst::loongarch64::r30]] = true;
+    (*returnRead64_)[loongarch64Map[Dyninst::loongarch64::r31]] = true;
+    (*returnRead64_)[loongarch64Map[Dyninst::loongarch64::r3]] = true;
+
+    callParam64_ = getBitArray(sz);
+    (*callParam64_)[loongarch64Map[Dyninst::loongarch64::r4]] = true;
+    (*callParam64_)[loongarch64Map[Dyninst::loongarch64::r5]] = true;
+    (*callParam64_)[loongarch64Map[Dyninst::loongarch64::r6]] = true;
+    (*callParam64_)[loongarch64Map[Dyninst::loongarch64::r7]] = true;
+    (*callParam64_)[loongarch64Map[Dyninst::loongarch64::r8]] = true;
+    (*callParam64_)[loongarch64Map[Dyninst::loongarch64::r9]] = true;
+    (*callParam64_)[loongarch64Map[Dyninst::loongarch64::r10]] = true;
+    (*callParam64_)[loongarch64Map[Dyninst::loongarch64::r11]] = true;
+
+    callRead64_ = getBitArray(sz);
+    (*callRead64_)[loongarch64Map[Dyninst::loongarch64::r4]] = true;
+    (*callRead64_)[loongarch64Map[Dyninst::loongarch64::r5]] = true;
+    (*callRead64_)[loongarch64Map[Dyninst::loongarch64::r6]] = true;
+    (*callRead64_)[loongarch64Map[Dyninst::loongarch64::r7]] = true;
+    (*callRead64_)[loongarch64Map[Dyninst::loongarch64::r8]] = true;
+    (*callRead64_)[loongarch64Map[Dyninst::loongarch64::r9]] = true;
+    (*callRead64_)[loongarch64Map[Dyninst::loongarch64::r10]] = true;
+    (*callRead64_)[loongarch64Map[Dyninst::loongarch64::r11]] = true;
+
+    callWritten64_ = callRead64_;
+    (*callWritten64_)[loongarch64Map[Dyninst::loongarch64::r12]] = true;
+    (*callWritten64_)[loongarch64Map[Dyninst::loongarch64::r13]] = true;
+    (*callWritten64_)[loongarch64Map[Dyninst::loongarch64::r14]] = true;
+    (*callWritten64_)[loongarch64Map[Dyninst::loongarch64::r15]] = true;
+    (*callWritten64_)[loongarch64Map[Dyninst::loongarch64::r16]] = true;
+    (*callWritten64_)[loongarch64Map[Dyninst::loongarch64::r17]] = true;
+    (*callWritten64_)[loongarch64Map[Dyninst::loongarch64::r18]] = true;
+    (*callWritten64_)[loongarch64Map[Dyninst::loongarch64::r19]] = true;
+    (*callWritten64_)[loongarch64Map[Dyninst::loongarch64::r20]] = true;
+
+    syscallRead64_ = &getBitArray(sz)->set();
+    syscallWritten64_ = &getBitArray(sz)->set();
+
+    allRegs64_ = &getBitArray(sz)->set();
 }
 #endif
 

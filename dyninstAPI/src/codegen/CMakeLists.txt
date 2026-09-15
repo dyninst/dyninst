@@ -52,6 +52,19 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     emitters/aarch64/EmitterAarch64SaveRegs.C
     emitters/aarch64/generators.C)
 
+elseif(DYNINST_CODEGEN_ARCH_LOONGARCH64)
+  list(
+    APPEND
+    _headers
+    codegen-loongarch64.h
+    emitters/loongarch64/EmitterLoongarch64.h)
+
+  list(
+    APPEND
+    _sources
+    codegen-loongarch64.C
+    emitters/loongarch64/EmitterLoongarch64.C)
+
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(
     APPEND

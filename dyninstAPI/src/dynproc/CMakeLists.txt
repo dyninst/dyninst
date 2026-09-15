@@ -39,6 +39,8 @@ elseif(DYNINST_HOST_ARCH_PPC64LE)
   list(APPEND _sources dynProcess-power.C stackwalk-ppc.C)
 elseif(DYNINST_HOST_ARCH_AARCH64)
   list(APPEND _sources dynProcess-aarch64.C stackwalk-aarch64.C)
+elseif(DYNINST_HOST_ARCH_LOONGARCH64)
+  list(APPEND _sources stackwalk-loongarch64.C)
 endif()
 
 # cmake-format: off

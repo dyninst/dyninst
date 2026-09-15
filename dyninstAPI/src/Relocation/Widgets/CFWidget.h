@@ -35,6 +35,9 @@
 #include <string>
 #include "Widget.h"
 #include "common/src/dyn_register.h"
+#if defined(DYNINST_CODEGEN_ARCH_LOONGARCH64)
+#include "common/src/arch-loongarch64.h"
+#endif
 
 class block_instance;
 class func_instance;
@@ -62,6 +65,8 @@ typedef NS_x86::instruction arch_insn;
 typedef NS_power::instruction arch_insn;
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 typedef NS_aarch64::instruction arch_insn;
+#elif defined(DYNINST_CODEGEN_ARCH_LOONGARCH64)
+typedef NS_loongarch64::instruction arch_insn;
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 typedef NS_amdgpu::instruction arch_insn;
 #else
