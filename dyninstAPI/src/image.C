@@ -1861,7 +1861,8 @@ const std::vector<parse_func *> *image::findFuncVectorByPretty(const std::string
 // Return the vector of functions associated with a mangled name
 // Very well might be more than one! -- multiple static functions in different .o files
 
-const std::vector <parse_func *> *image::findFuncVectorByMangled(const std::string &name)
+const std::vector <parse_func *> *image::findFuncVectorByMangled(const std::string &name,
+                                                                 bool includePLTStubs)
 {
     std::vector<parse_func *>* res = new std::vector<parse_func *>;
 
@@ -1877,7 +1878,7 @@ const std::vector <parse_func *> *image::findFuncVectorByMangled(const std::stri
         }
     }
 
-    if (res->empty()) {
+    if (res->empty() && includePLTStubs)  {
         // Lookup PLT stubs
         auto it = plt_parse_funcs.find(name);
         if (it != plt_parse_funcs.end()) {

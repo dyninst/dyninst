@@ -691,7 +691,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 func_instance* block_instance::callee(std::string const& target_name) {
    if (dynamic_cast<PCProcess *>(proc())) {
 	  std::vector<func_instance *> pdfv;
-	  if (proc()->findFuncsByMangled(target_name, pdfv)) {
+	  if (proc()->findFuncsByMangled(target_name, pdfv, "", true)) {
 		 obj()->setCallee(this, pdfv[0]);
 		 updateCallTarget(pdfv[0]);
 		 return pdfv[0];
@@ -699,13 +699,13 @@ func_instance* block_instance::callee(std::string const& target_name) {
    }
    if (auto *bedit = dynamic_cast<BinaryEdit *>(proc())) {
 	  std::vector<func_instance *> pdfv;
-	  if (bedit->findFuncsByMangled(target_name, pdfv)) {
+	  if (bedit->findFuncsByMangled(target_name, pdfv, "", true)) {
          obj()->setCallee(this, pdfv[0]);
 		 updateCallTarget(pdfv[0]);
 		 return pdfv[0];
 	  }
 	  for (auto *sib : bedit->getSiblings()) {
-		 if (sib->findFuncsByMangled(target_name, pdfv)) {
+		 if (sib->findFuncsByMangled(target_name, pdfv, "", true)) {
 			obj()->setCallee(this, pdfv[0]);
 			updateCallTarget(pdfv[0]);
 			return pdfv[0];
