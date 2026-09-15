@@ -690,11 +690,11 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
       case e_popfd:
          handlePushPopFlags(sign, xferFuncs);
          break;
-      case e_pushal:
+      case e_pusha:
          sign = -1;
          handlePushPopRegs(sign, xferFuncs);
          break;
-      case e_popaw:
+      case e_popad:
          // This nukes all registers
          handleDefault(insn, block, off, xferFuncs);
          break;

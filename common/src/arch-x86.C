@@ -1016,8 +1016,8 @@ static ia32_entry oneByteMap[256] = {
   { e_pop, t_done, 0, false, { rSI, eSP, Zz }, 0, s1W2RW, s2I },
   { e_pop, t_done, 0, false, { rDI, eSP, Zz }, 0, s1W2RW, s2I },
   /* 60 */
-  { e_pushal, t_done, 0, false, { GPRS, eSP, Zz }, 0, s1R2RW, s2I },
-  { e_popaw,  t_done, 0, false, { GPRS, eSP, Zz }, 0, s1W2RW, s2I },
+  { e_pusha, t_done, 0, false, { GPRS, eSP, Zz }, 0, s1R2RW, s2I },
+  { e_popad,  t_done, 0, false, { GPRS, eSP, Zz }, 0, s1W2RW, s2I },
   { e_bound, t_done, 0, true, { Gv, Ma, Zz }, 0, s1R2R, 0 }, // or VEX
   { e_arpl, t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R, 0 }, /* No REX */
   { e_No_Entry,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0, 0 }, // PREFIX_SEG_OVR
@@ -10576,8 +10576,6 @@ entryID ia32_entry::getID(ia32_locations* l) const
 	 break;
       case t_coprocEsc:
          return e_fp_generic;
-      case t_3dnow:
-         return e_3dnow_generic;
       default:
          break;
    }
