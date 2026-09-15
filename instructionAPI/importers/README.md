@@ -1,6 +1,4 @@
-# Capstone importer for registers and instructions
-
-Imports for PowerPC are not yet supported.
+# Third-party importers for registers and instructions
 
 ## Usage
 
@@ -32,9 +30,6 @@ Mnemonic processing is done with `import_mnemonics.py`. Its options are describe
 >         Dyninst source directory (e.g., /dyninst/src/)
 >
 >   --arch {x86,aarch64,ppc,riscv64}
-
-The x86 register processor doesn't do anything yet because they were previously manually imported.
-
 
 ## Adding a new architecture
 
@@ -169,3 +164,12 @@ class mnemonics:
     self.aliases
 
 ```
+
+## Architecture Support
+
+| architecture  | Mnemonics | Registers | DWARF | ROSE |
+| ------------- | --------- | --------- | ----- | ----- |
+| aarch64  | :x:  | :heavy_check_mark: | :heavy_check_mark: | :x: |
+| PowerPC  | :x:  | :x: | :x: | :x: |
+| RISCV64  | :heavy_check_mark:  | :x: | :x: | :x: |
+| x86  | :heavy_check_mark:  | :heavy_check_mark: | :x: | :x: |
