@@ -295,7 +295,12 @@ class image : public codeRange {
    // Find the vector of functions associated with a (demangled) name
    // Returns internal pointer, so label as const
    const std::vector <parse_func *> *findFuncVectorByPretty(const std::string &name);
-   const std::vector <parse_func *> *findFuncVectorByMangled(const std::string &name);
+   // includePLTStubs: also match external linkage (PLT) stubs, which are not
+   // in the Symtab and are tracked separately in plt_parse_funcs.  A stub is
+   // a forwarder, not a definition, and it is not instrumentable, so only a
+   // caller that has asked for uninstrumentable functions gets one.
+   const std::vector <parse_func *> *findFuncVectorByMangled(const std::string &name,
+                                                             bool includePLTStubs = false);
    // Variables: nearly identical
    const std::vector <image_variable *> *findVarVectorByPretty(const std::string &name);
    const std::vector <image_variable *> *findVarVectorByMangled(const std::string &name);
