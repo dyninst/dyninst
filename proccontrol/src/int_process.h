@@ -73,6 +73,95 @@ typedef std::multimap<Dyninst::Address, Dyninst::ProcControlAPI::Process::ptr> i
 typedef std::set<Dyninst::ProcControlAPI::Process::ptr> int_processSet;
 typedef std::set<Dyninst::ProcControlAPI::Thread::ptr> int_threadSet;
 
+// RAII per-process migration lock (work_lock retirement, design 1).
+// Null-tolerant, and it pins the Process wrapper (holds a Process::ptr) for
+// the lock's lifetime so the mutex -- which lives on the wrapper -- cannot be
+// freed while held.  Ordering: work_lock > ProcPool condvar > proc_lock >
+// map_lock.  Pass in a Process::ptr already carried by the control flow
+// (e.g. the wrapper the decoder resolved), never getProcess() (which takes
+// an MTLock/work_lock and would invert under the condvar).
+// Wake the generator from its idle wait.  Signaling now lives on a
+// dedicated condition variable (generator.C), separate from the ProcPool
+// condvar's mutual-exclusion role -- so nothing waits on a lock that other
+// code holds recursively.  Callers need not hold any particular lock.
+void wakeGenerator();
+
+struct ProcScopeLock {
+   Dyninst::ProcControlAPI::Process::ptr p_;
+   explicit ProcScopeLock(Dyninst::ProcControlAPI::Process::ptr p)
+      : p_(p) { if (p_) p_->lockImpl(); }   // depth-tracked (see Process)
+   ~ProcScopeLock() { if (p_) p_->unlockImpl(); }
+   ProcScopeLock(const ProcScopeLock &) = delete;
+   ProcScopeLock &operator=(const ProcScopeLock &) = delete;
+};
+
+// Checked impl access (encapsulation revamp).  Pins the wrapper and resolves
+// the impl once; the sanctioned way for boundary code (handlers, events,
+// responses, the public API) to reach an impl -- llproc()/llthrd() are
+// private, these accessors are the boundary.  Boolean-false when the impl is
+// gone (process/thread exited): callers handle "gone" explicitly instead of
+// dereferencing a checkable NULL.
+//
+// work_lock retirement: the accessors take the per-process proc_lock BY
+// DEFAULT for their lifetime (recursive; the impl is resolved AFTER the
+// lock, so resolution is serialized against teardown).  This became safe
+// once the generator's condvar hold was narrowed to the registration lookup
+// (order: work_lock > registration lock (lookup only) | proc_lock >
+// map_lock).  implref_nolock is the audited OPT-OUT for scopes that must
+// not lock -- plumbing reachable under leaf locks, generator/decode paths,
+// scopes spanning a blocking park (the proc_lock discipline clauses,
+// CLAUDE.md) -- always with a comment citing the clause.
+enum implref_nolock_t { implref_nolock };   // documents audited hazard sites
+
+struct ProcImplRef {
+   Dyninst::ProcControlAPI::Process::const_ptr pin_;
+   bool locked_;
+   int_process *impl_;
+   explicit ProcImplRef(Dyninst::ProcControlAPI::Process::const_ptr p)
+      : pin_(p), locked_(false), impl_(NULL) {
+      if (pin_) { pin_->lockImpl(); locked_ = true; impl_ = pin_->llproc(); }
+   }
+   ProcImplRef(Dyninst::ProcControlAPI::Process::const_ptr p, implref_nolock_t)
+      : pin_(p), locked_(false), impl_(p ? p->llproc() : NULL) {}
+   // For code that holds a raw wrapper pointer (must be externally owned by a
+   // shared_ptr, which every live Process is).
+   explicit ProcImplRef(const Dyninst::ProcControlAPI::Process *p)
+      : pin_(p ? p->shared_from_this()
+               : Dyninst::ProcControlAPI::Process::const_ptr()),
+        locked_(false), impl_(NULL) {
+      if (pin_) { pin_->lockImpl(); locked_ = true; impl_ = pin_->llproc(); }
+   }
+   ~ProcImplRef() { if (locked_) pin_->unlockImpl(); }
+   explicit operator bool() const { return impl_ != NULL; }
+   int_process *operator->() const { return impl_; }
+   int_process *get() const { return impl_; }
+   ProcImplRef(const ProcImplRef &) = delete;
+   ProcImplRef &operator=(const ProcImplRef &) = delete;
+};
+
+struct ThreadImplRef {
+   Dyninst::ProcControlAPI::Thread::const_ptr pin_;
+   Dyninst::ProcControlAPI::Process::const_ptr ppin_;   // pins the lock target
+   bool locked_;
+   int_thread *impl_;
+   explicit ThreadImplRef(Dyninst::ProcControlAPI::Thread::const_ptr t)
+      : pin_(t), locked_(false), impl_(NULL) {
+      if (pin_) {
+         ppin_ = pin_->procWrapper();
+         if (ppin_) { ppin_->lockImpl(); locked_ = true; }
+         impl_ = pin_->llthrd();
+      }
+   }
+   ThreadImplRef(Dyninst::ProcControlAPI::Thread::const_ptr t, implref_nolock_t)
+      : pin_(t), locked_(false), impl_(t ? t->llthrd() : NULL) {}
+   ~ThreadImplRef() { if (locked_) ppin_->unlockImpl(); }
+   explicit operator bool() const { return impl_ != NULL; }
+   int_thread *operator->() const { return impl_; }
+   int_thread *get() const { return impl_; }
+   ThreadImplRef(const ThreadImplRef &) = delete;
+   ThreadImplRef &operator=(const ThreadImplRef &) = delete;
+};
+
 typedef boost::shared_ptr<int_iRPC> int_iRPC_ptr;
 typedef std::map<Dyninst::MachRegister, std::pair<unsigned int, unsigned int> > dynreg_to_user_t;
 
@@ -255,6 +344,7 @@ class int_process
 {
    friend class Dyninst::ProcControlAPI::Process;
    friend class Dyninst::ProcControlAPI::ProcessSet;
+   friend class ::ProcessPool;
  protected:
    int_process(Dyninst::PID p, std::string e, std::vector<std::string> a,
            std::vector<std::string> envp, std::map<int,int> f);
@@ -266,11 +356,12 @@ class int_process
    static int_process *createProcess(Dyninst::PID pid_, int_process *p);
    virtual ~int_process();
  protected:
-   static bool create(int_processSet *ps);
+   // create()/attach() orchestration moved to ProcessPool (post-creation
+   // bootstrap belongs to the lifecycle owner).  plat_create/post_create
+   // remain here as the per-process impl primitives they drive.
    virtual bool plat_create() = 0;
    virtual async_ret_t post_create(std::set<response::ptr> &async_responses);
 
-   static bool attach(int_processSet *ps, bool reattach);
    static bool reattach(int_processSet *pset);
    virtual bool plat_attach(bool allStopped, bool &should_sync) = 0;
 
@@ -337,6 +428,9 @@ class int_process
    int_threadPool *threadPool() const;
 
    Process::ptr proc() const;
+   // PROTOTYPE: snapshot exit info into the wrapper.  Deletion itself lives
+   // in ProcessPool::destroyProcess (wrapper-centric).
+   void publishExitState(Process::ptr w);
    mem_state::ptr memory() const;
 
    err_t getLastError();
@@ -560,7 +654,12 @@ class int_process
    std::map<int,int> fds;
    Dyninst::Architecture arch;
    int_threadPool *threadpool;
-   Process::ptr up_proc;
+   // PROTOTYPE (pool-owns-wrapper): no up_proc.  The canonical wrapper is
+   // held by ProcessPool for the session; resolve it via proc() (weak-cache
+   // fast path on the initial thread's wrapper, ProcPool()->wrapperFor(this)
+   // as the cold fallback).
+   // NOTE: `threadpool` above is a raw, NON-owning cache -- the Process
+   // wrapper owns the int_threadPool (see Process::threadpool_).
    HandlerPool *handlerpool;
    LibraryPool libpool;
    bool hasCrashSignal;
@@ -569,7 +668,12 @@ class int_process
    bool forcedTermination;
    bool silent_mode;
    int exitCode;
-   static bool in_callback;
+   // work_lock retirement (S4): thread-local, not global.  Its job is to
+   // reject an API call made FROM a callback; once user threads run in
+   // parallel, thread A being in a callback must not make thread B's
+   // unrelated API reject.  (Global was correct only under work_lock's
+   // single-active-thread guarantee.)
+   static thread_local bool in_callback;
    mem_state::ptr mem;
    std::map<Dyninst::Address, unsigned> exec_mem_cache;
    int continueSig;
@@ -609,7 +713,10 @@ class int_process
 };
 
 struct ProcToIntProc {
-   int_process *operator()(const Process::ptr &p) const { return p->llproc(); }
+   int_process *operator()(const Process::ptr &p) const {
+      ProcImplRef pi(p);
+      return pi.get();
+   }
 };
 
 /**
@@ -746,14 +853,16 @@ public:
       as_needs_attach          // however they want.
    };
 
-   static int_thread *createThread(int_process *proc,
-                                   Dyninst::THR_ID thr_id,
-                                   Dyninst::LWP lwp_id,
-                                   bool initial_thrd,
-                                   attach_status_t astatus = as_unknown);
+   // createThread moved to Thread::makeThread (wrapper-layer factory).
+   // createThreadPlat (above) remains as the impl-construction primitive it
+   // calls -- the thread analogue of int_process::createProcess.
    static int_thread *createRPCThread(int_process *p);
    Process::ptr proc() const;
    int_process *llproc() const;
+   // PROTOTYPE: snapshot exit info into the wrapper.  proc_wrapper is passed
+   // in because at publish time this impl may already be unregistered.
+   // Deletion lives in ProcessPool::destroyThread (wrapper-centric).
+   void publishExitState(Thread::ptr w, Process::ptr proc_wrapper);
 
    Dyninst::LWP getLWP() const;
 
@@ -1062,7 +1171,7 @@ public:
    Dyninst::THR_ID tid;
    Dyninst::LWP lwp;
    int_process *proc_;
-   Thread::ptr up_thread;
+   // PROTOTYPE (pool-owns-wrapper): no up_thread; see int_process note.
    int continueSig_;
    attach_status_t attach_status;
 
@@ -1143,28 +1252,65 @@ class int_threadPool {
    friend class Dyninst::ProcControlAPI::ThreadPool::iterator;
    friend class int_thread;
  private:
-   std::vector<int_thread *> threads;
-   std::vector<Thread::ptr> hl_threads;
-   std::map<Dyninst::LWP, int_thread *> thrds_by_lwp;
+   // PROTOTYPE (unified storage): one vector of Thread wrappers -- the
+   // impls are reached via llthrd().  Replaces the old parallel
+   // threads/hl_threads vectors whose index-sync the upstream FIXME in
+   // rmThread already called out as a consistency hazard.
+   std::vector<Thread::ptr> threads;
+   std::map<Dyninst::LWP, Thread::ptr> thrds_by_lwp;
 
-   mutable int_thread *initial_thread; // may be updated by side effect on Windows
+   mutable Thread::ptr initial_thread; // may be updated by side effect on Windows
    int_process *proc_;
+   // Weak route to the owning Process wrapper (mirrors Thread::proc_wrapper_):
+   // the pool is wrapper-owned, so public ThreadPool methods/iterators lock
+   // proc_lock through this WITHOUT dereferencing proc_ (which is impl-owned
+   // and would be a check-then-deref UAF -- the BUGL1 shape).  Stamped at
+   // pool creation (int_process::initializeProcess).
+   Dyninst::ProcControlAPI::Process::weak_ptr proc_wrapper_;
    ThreadPool *up_pool;
    bool had_multiple_threads;
  public:
    int_threadPool(int_process *p);
    ~int_threadPool();
 
-   void setInitialThread(int_thread *thrd);
-   void addThread(int_thread *thrd);
-   void rmThread(int_thread *thrd);
+   void bindProcWrapper(Dyninst::ProcControlAPI::Process::ptr pw) { proc_wrapper_ = pw; }
+   Dyninst::ProcControlAPI::Process::ptr procWrapper() const { return proc_wrapper_.lock(); }
+
+   void setInitialThread(Thread::ptr thrd);
+   void addThread(Thread::ptr wrapper);
+   void rmThread(Thread::ptr thrd);
    void noteUpdatedLWP(int_thread *thrd);
    void clear();
    bool hadMultipleThreads() const;
 
-   typedef std::vector<int_thread *>::iterator iterator;
-   iterator begin() { return threads.begin(); }
-   iterator end() { return threads.end(); }
+   // PROTOTYPE: wrapper for a thread in this pool; valid even after the
+   // thread is unregistered from the global ProcessPool.
+   Thread::ptr hlFor(int_thread *thr);
+   Thread::ptr initialThreadWrapper();
+   // Sever the pool's back-pointer to its int_process when that impl is
+   // destroyed (the pool, owned by the Process wrapper, outlives it).
+   void clearProc();
+   // Publish exit state, sever, and delete every impl still in this pool
+   // (proc wrapper passed down), then clear.  With wrapper-only storage the
+   // impls are unreachable after severing, so deletion must ride in the
+   // same pass.  Used by ProcessPool::destroyProcess.
+   void destroyAllThreads(Process::ptr pw);
+
+   // Compatibility iterator: yields int_thread* like the old
+   // vector<int_thread*> iterator, so iteration sites are unchanged.
+   class iterator {
+      std::vector<Thread::ptr>::iterator it;
+    public:
+      iterator() {}
+      explicit iterator(std::vector<Thread::ptr>::iterator i) : it(i) {}
+      int_thread *operator*() const { return (*it)->llthrd(); }
+      bool operator==(const iterator &o) const { return it == o.it; }
+      bool operator!=(const iterator &o) const { return it != o.it; }
+      iterator &operator++() { ++it; return *this; }
+      iterator operator++(int) { iterator t = *this; ++it; return t; }
+   };
+   iterator begin() { return iterator(threads.begin()); }
+   iterator end() { return iterator(threads.end()); }
    bool empty() { return threads.empty(); }
 
    unsigned size() const;
@@ -1206,7 +1352,16 @@ class int_library
    Library::ptr up_lib;
    bool is_shared_lib;
    mem_state::ptr memory;
+   // Weak route to the owning Process wrapper so Library readers can take
+   // proc_lock without an impl deref.  Stamped at PUBLICATION
+   // (mem_state::addLibrary -- the single point every platform's load path
+   // crosses); pre-publication construction is single-threaded and needs no
+   // lock.  One process per library: fork COPIES mem_state (the child
+   // refreshes its own libraries), so a single proc_lock covers each lib.
+   Dyninst::ProcControlAPI::Process::weak_ptr proc_wrapper_;
   public:
+   void bindProcWrapper(Dyninst::ProcControlAPI::Process::ptr pw) { proc_wrapper_ = pw; }
+   Dyninst::ProcControlAPI::Process::ptr procWrapper() const { return proc_wrapper_.lock(); }
    int_library(std::string n,
                bool shared_lib,
                Dyninst::Address load_addr,
@@ -1596,6 +1751,13 @@ class int_notify {
    std::set<EventNotify::notify_cb_t> cbs;
    int events_noted;
    details_t my_internals;
+   // work_lock retirement (S2): guards events_noted, the coupled edge-
+   // triggered pipe op (my_internals note/clear), and the cbs set -- today
+   // all serialized by work_lock.  A leaf (notify callbacks are snapshotted
+   // and invoked WITHOUT it held, since they are foreign code).  events_noted
+   // and its pipe op must transition together or note/clear can interleave
+   // into a missed wakeup, so a lock, not a bare atomic.
+   Mutex<> notify_lock;
  public:
    int_notify();
    void noteEvent();
@@ -1624,6 +1786,16 @@ private:
   DThread evhandler_thread;
   CondVar<> pending_event_lock;
   Mutex < true > work_lock;
+  // work_lock retirement (S1): the global callback slot -- the API contract's
+  // "at most one callback at a time".  Held across callback invocation in
+  // HandleCallbacks::deliverCallback so the guarantee survives once work_lock
+  // stops serializing callbacks.  Recursive so const-cast abuse (a callback
+  // re-entering a deliver_callbacks API) hits the existing in_callback/recurse
+  // assert rather than self-deadlocking.  Order: work_lock > callback_slot_lock
+  // callback's own proc_lock, which delivery has already dropped).
+  // (named callback_slot_lock, not cb_lock, to avoid confusion with the
+  //  unrelated Generator::cb_lock that guards the new-event notify CB set.)
+  Mutex < true > callback_slot_lock;
   bool have_queued_events;
   bool is_running;
   bool should_exit;
@@ -1647,6 +1819,9 @@ public:
 
   void startWork();
   void endWork();
+  // Callback slot (see callback_slot_lock).  No-op outside threading modes.
+  void takeCallbackSlot()    { if (handlerThreading()) callback_slot_lock.lock(); }
+  void releaseCallbackSlot() { if (handlerThreading()) callback_slot_lock.unlock(); }
 
   bool handlerThreading();
   Process::thread_mode_t getThreadMode();
@@ -1811,7 +1986,7 @@ class int_cleanup {
    THREAD_STOP_TEST(STR, RET)
 
 #define PTR_EXIT_TEST(P, STR, RET)                       \
-   if (!P || !P->llproc()) {                             \
+   if (!P || !ProcImplRef(P)) {                          \
       perr_printf(STR " on exited process\n");           \
       P->setLastError(err_exited, "Process is exited");  \
       return RET;                                        \
