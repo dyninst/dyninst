@@ -51,6 +51,7 @@ name & string & Name of the function. \\
 addr & Address & Entry address of the function.  \\
 entry & Block * & Entry block of the function. \\
 parsed & bool & Whether the function has been parsed. \\
+isPLTStub & bool & True if the function is an external linkage stub (an entry in the PLT on ELF) rather than a definition. Such a function forwards to a definition supplied by another object at run time. \\
 blocks & blocklist \& & List of blocks contained by this function sorted by entry address. \\
 callEdges & const edgelist \& & List of outgoing call edges from this function. \\
 returnBlocks & const\_blocklist \& & List of all blocks ending in return edges. \\
