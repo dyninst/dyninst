@@ -49,7 +49,7 @@ with open("mnemonics.{0:s}".format(args.arch), "w") as f:
         )
 
     all_mnemonics = sorted(
-        set(mnemonics.external) | set(mnemonics.missing) - set(mnemonics.pseudo)
+        (set(mnemonics.external) | set(mnemonics.missing)) - set(mnemonics.pseudo)
     )
 
     for m in all_mnemonics:
