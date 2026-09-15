@@ -1701,6 +1701,30 @@ void PCProcess::installInstrRequests(const std::vector<dapi::instMapping*> &requ
                         FILE__, __LINE__, matchingFuncs.size(), req->func.c_str());
         }
 
+        // Matches in libraries that import the symbol are PLT stubs that
+        // jump to the definition, so instrumenting the definition covers them.
+        // Dropping them also avoids relocate()'s overlap check, whose
+        // Block::getFuncs() forces a full CFG parse of the stub's library.
+        // If nothing is left, every match was a stub and we keep them all,
+        // since then only the stub can carry the probe. Static binaries have
+        // no stubs and are unaffected.
+        if (!matchingFuncs.empty()) {
+            std::vector<func_instance *> definitions;
+            for (func_instance *func : matchingFuncs) {
+                if (func && func->ifunc() && !func->ifunc()->isPLTFunction())
+                    definitions.push_back(func);
+            }
+
+            if (!definitions.empty() && definitions.size() < matchingFuncs.size()) {
+                inst_printf("%s[%d]: %lu of %lu matches for %s are PLT stubs, "
+                            "instrumenting the definition(s) only\n",
+                            FILE__, __LINE__,
+                            matchingFuncs.size() - definitions.size(),
+                            matchingFuncs.size(), req->func.c_str());
+                matchingFuncs.swap(definitions);
+            }
+        }
+
         for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
            func_instance *func = matchingFuncs[funcIter];
            if (!func) {
