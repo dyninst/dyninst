@@ -2272,7 +2272,13 @@ boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
 
   Dwarf_Off subrangeOffset = dwarf_dieoffset(entry);
   bool is_info = !dwarf_hasattr_integrate(entry, DW_TAG_type_unit);
-  typeId_t type_id = get_type_id(subrangeOffset, is_info, false);
+  // The subrange DIE may live in a DWZ supplementary file (its DW_AT_type/dimension
+  // resolved through .gnu_debugaltlink). Compute is_sup from the DIE's own CU rather
+  // than hardcoding false: a supplementary-file subrange and a main-file type can share
+  // the same section offset, and keying both as is_sup=false collides their type_ids
+  // (get_type_id key is {offset, is_sup, module}), handing a struct back a subrange.
+  Dwarf *desc = dwarf_cu_getdwarf(entry->cu);
+  typeId_t type_id = get_type_id(subrangeOffset, is_info, dbg() != desc);
 
   // `typeSubrange` expects numeric values for the bounds
   DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_MAYBE_UNINITIALIZED
