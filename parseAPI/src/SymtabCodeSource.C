@@ -587,7 +587,8 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
         }
     }
 
-    if (!foundEntrySymbol && _symtab->isExecutable())  {
+    if (!foundEntrySymbol && _symtab->isExecutable() &&
+        !(filt && filt->filterEntryPoint()))  {
       // add entry point as this object is an executable
       // and no symbol referenced the entry point
       parsing_printf("Adding exectable entry point at %lx\n", entryOffset);
