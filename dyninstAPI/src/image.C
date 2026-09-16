@@ -1346,6 +1346,42 @@ static bool CheckForPowerPreamble(parse_block* entryBlock, Address &tocBase) {
 }
 
 
+// Power ABI v2 gives a function two entry points: a global one that establishes
+// the TOC and a local one 8 bytes later that skips it.  Record the TOC base and
+// link the global entry to its local counterpart.
+//
+// When the whole object has been parsed the caller has already indexed every
+// function by address and passes that map.  A function parsed on demand has no
+// such index, so pass NULL and the counterpart is looked up in whatever has
+// been parsed so far.
+void image::checkPowerPreamble(parse_func *funct,
+                               const std::map<uint64_t, parse_func *> *overlaps)
+{
+   if (funct == NULL || funct->entry() == NULL)  {
+      return;
+   }
+
+   Address tocBase = 0;
+   if (!CheckForPowerPreamble(static_cast<parse_block*>(funct->entry()), tocBase))  {
+      return;
+   }
+   funct->setPowerTOCBaseAddress(tocBase);
+   funct->setContainsPowerPreamble(true);
+
+   parse_func *localEntry = NULL;
+   if (overlaps != NULL)  {
+      auto iter = overlaps->find(funct->addr() + 0x8);
+      if (iter != overlaps->end())  {
+         localEntry = iter->second;
+      }
+   }  else  {
+      localEntry = findFuncByEntry(funct->addr() + 0x8);
+   }
+   if (localEntry != NULL)  {
+      funct->setNoPowerPreambleFunc(localEntry);
+   }
+}
+
 
 void image::analyzeImage() {
 #if defined(TIMED_PARSE)
@@ -1551,7 +1587,10 @@ image::image(fileDescriptor &desc,
    obj_ = new CodeObject(cs_,img_fact_,parse_cb_,BPatch_defensiveMode == mode,
                          analysisExcluded_);
 
-     if (obj_->cs()->getArch() == Arch_ppc64) {
+     // An excluded object has no functions yet, and the ones it acquires are
+     // parsed one at a time later; each is checked as it appears, in
+     // parseExcludedFunction.
+     if (!analysisExcluded_ && obj_->cs()->getArch() == Arch_ppc64)  {
         // The PowerPC new ABI typically generate two entries per function.
         // Need special hanlding for them
         std::map<uint64_t, parse_func *> _findPower8Overlaps;
@@ -1560,16 +1599,7 @@ image::image(fileDescriptor &desc,
             _findPower8Overlaps[funct->addr()] = funct;
         }
         for (auto fit = obj_->funcs().begin(); fit != obj_->funcs().end(); ++fit) {
-            parse_func* funct = static_cast<parse_func*>(*fit);
-            Address tocBase = 0;
-            if(CheckForPowerPreamble(static_cast<parse_block*>(funct->entry()), tocBase)){
-                funct->setPowerTOCBaseAddress(tocBase);
-                funct->setContainsPowerPreamble(true);
-                auto iter = _findPower8Overlaps.find(funct->addr() + 0x8);
-                if (iter != _findPower8Overlaps.end()) {
-                    funct->setNoPowerPreambleFunc(iter->second);
-                } 
-            }
+            checkPowerPreamble(static_cast<parse_func*>(*fit), &_findPower8Overlaps);
         }
     }
 
@@ -1889,7 +1919,12 @@ parse_func *image::parseExcludedFunction(SymtabAPI::Function *symFunc)
    parsing_printf("[%s:%d] on-demand parse of %s in excluded image %s\n",
                   FILE__, __LINE__, symFunc->getName().c_str(), file().c_str());
    obj_->parse(symFunc->getOffset(), true);
-   return static_cast<parse_func *>(symFunc->getData());
+
+   parse_func *ret = static_cast<parse_func *>(symFunc->getData());
+   if (obj_->cs()->getArch() == Arch_ppc64)  {
+      checkPowerPreamble(ret, NULL);
+   }
+   return ret;
 }
 
 

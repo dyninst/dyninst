@@ -283,6 +283,8 @@ class image : public codeRange {
    void analyzeIfNeeded();
    bool analysisExcluded() const { return analysisExcluded_; }
    parse_func *parseExcludedFunction(Dyninst::SymtabAPI::Function *symFunc);
+   void checkPowerPreamble(parse_func *funct,
+                           const std::map<uint64_t, parse_func *> *overlaps);
    bool isParsed() { return parseState_ == analyzed; }
    parse_func* addFunction(Address functionEntryAddr, const char *name=NULL);
 
