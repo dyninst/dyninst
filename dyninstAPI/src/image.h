@@ -285,6 +285,7 @@ class image : public codeRange {
 
    void analyzeIfNeeded();
    bool analysisExcluded() const { return analysisExcluded_; }
+   parse_func *parseExcludedFunction(Dyninst::SymtabAPI::Function *symFunc);
    bool isParsed() { return parseState_ == analyzed; }
    parse_func* addFunction(Address functionEntryAddr, const char *name=NULL);
 
@@ -506,7 +507,8 @@ class image : public codeRange {
 
    int refCount;
    imageParseState_t parseState_;
-   // Excluded from analysis: no CFG was built and none will be.
+   // Excluded from analysis: no CFG was built up front.  A function is
+   // parsed on demand when it is looked up by name.
    bool analysisExcluded_;
    bool parseGaps_;
    BPatch_hybridMode mode_;
