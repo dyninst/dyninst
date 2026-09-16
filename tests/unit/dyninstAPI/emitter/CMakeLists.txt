@@ -3,6 +3,15 @@ include_guard(GLOBAL)
 add_library(emitter_test INTERFACE)
 target_sources(emitter_test INTERFACE emitter_test.h)
 
+# The IA-32 emitter is built for both 32- and 64-bit x86
+if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
+  add_executable(i386 i386.cpp)
+  target_compile_options(i386 PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+  target_compile_definitions(i386 PRIVATE ${DYNINST_PLATFORM_CAPABILITIES})
+  target_link_libraries(i386 PRIVATE emitter_test dyninstAPI)
+  add_test(NAME dyninstAPI_emitter_i386 COMMAND i386)
+endif()
+
 if(DYNINST_CODEGEN_ARCH_X86_64)
   add_executable(x86_64 x86_64.cpp)
   target_compile_options(x86_64 PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
