@@ -61,6 +61,24 @@ namespace Dyninst { namespace DwarfDyninst {
     }
     return !(version < 5 && unit_type == DW_UT_type);
   }
+
+  /*
+   * The 8-byte type signature of the type unit headed by `die`, as DW_FORM_ref_sig8
+   * spells it. Returns false, leaving `signature` untouched, if `die` does not head a
+   * type unit.
+   */
+  inline bool type_unit_signature(Dwarf_Die die, uint64_t &signature) {
+    uint8_t unit_type{};
+    uint64_t unit_id{};
+    if(!die.cu || dwarf_cu_info(die.cu, NULL, &unit_type, NULL, NULL, &unit_id, NULL, NULL) != 0) {
+      return false;
+    }
+    if(unit_type != DW_UT_type) {
+      return false;
+    }
+    signature = unit_id;
+    return true;
+  }
 }}
 
 #endif

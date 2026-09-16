@@ -95,8 +95,6 @@ DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf *dbg, std::shared_ptr<ParsedFun
    addr_size(0),
    offset_size(0),
    extension_size(0),
-   signature(),
-   typeoffset(0),
    next_cu_header(0),
    compile_offset(0)
 {
@@ -125,9 +123,6 @@ bool DwarfWalker::parse() {
     Module *fixUnknownMod = NULL;
     mod() = NULL;
 
-    /* Prepopulate type signatures for DW_FORM_ref_sig8 */
-    findAllSig8Types();
-
     /* First .debug_types (0), then .debug_info (1).
      * In DWARF4, only .debug_types contains DW_TAG_type_unit,
      * but DWARF5 is considering them for .debug_info too.*/
@@ -142,12 +137,14 @@ bool DwarfWalker::parse() {
     compile_offset = next_cu_header = 0;
 
     /* Iterate over the compilation-unit headers for .debug_types. */
-    uint64_t type_signaturep;
     std::vector<Dwarf_Die> module_dies;
+    // Unused, but not optional: a non-NULL signature pointer is what makes
+    // dwarf_next_unit() read .debug_types instead of .debug_info.
+    uint64_t type_signature;
     for(Dwarf_Off cu_off = 0;
             dwarf_next_unit(dbg(), cu_off, &next_cu_header, &cu_header_length,
                 NULL, &abbrev_offset, &addr_size, &offset_size,
-                &type_signaturep, NULL) == 0;
+                &type_signature, NULL) == 0;
             cu_off = next_cu_header)
     {
         if(!dwarf_offdie_types(dbg(), cu_off + cu_header_length, &current_cu_die))
@@ -234,7 +231,8 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
 
     auto moduleTag = dwarf_tag(&moduleDIE);
     if (moduleName.empty() && moduleTag == DW_TAG_type_unit) {
-      uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
+      uint64_t sig8 = 0;
+      DwarfDyninst::type_unit_signature(moduleDIE, sig8);
       char buf[20];
       snprintf(buf, sizeof(buf), "{%016llx}", (unsigned long long)sig8);
       moduleName = buf;
@@ -1780,6 +1778,9 @@ bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
         case DW_FORM_data4:
         case DW_FORM_data8:
         case DW_FORM_GNU_ref_alt:
+        /* libdw resolves a signature to the defining DIE inside the type unit it names,
+         * so it reaches a DIE like any other reference form. */
+        case DW_FORM_ref_sig8:
             {
                 //TODO debug to compare values of offset
                 Dwarf_Die die;
@@ -1800,16 +1801,6 @@ bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
 
 bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute, boost::shared_ptr<Type>&type)
 {
-    /* If this is a ref_sig8, look for the type elsewhere. */
-    Dwarf_Half form = dwarf_whatform(&typeAttribute);
-    if (form == DW_FORM_ref_sig8) {
-        Dwarf_Sig8 sig8;
-        const char * sig = dwarf_formstring(&typeAttribute);
-        if(!sig) return false;
-        memcpy(sig8.signature, sig, 8);
-        return findSig8Type(&sig8, type);
-    }
-
     Dwarf_Off typeOffset;
     if (!findDieOffset( typeAttribute, typeOffset)) return false;
 
@@ -2508,81 +2499,6 @@ typeId_t DwarfWalker::type_id()
     Dwarf_Die e(entry());
     Dwarf * desc = dwarf_cu_getdwarf(e.cu);
     return get_type_id(offset(), DwarfDyninst::is_in_debug_info(e), dbg()!=desc);
-}
-
-void DwarfWalker::findAllSig8Types()
-{
-    /* First .debug_types (0), then .debug_info (1).
-     * In DWARF4, only .debug_types contains DW_TAG_type_unit,
-     * but DWARF5 is considering them for .debug_info too.*/
-    compile_offset = next_cu_header = 0;
-
-    /* Iterate over the compilation-unit headers for .debug_types. */
-    uint64_t type_signaturep;
-    for(Dwarf_Off cu_off = 0;
-            dwarf_next_unit(dbg(), cu_off, &next_cu_header, &cu_header_length,
-                NULL, &abbrev_offset, &addr_size, &offset_size,
-                &type_signaturep, NULL) == 0;
-            cu_off = next_cu_header)
-    {
-        if(!dwarf_offdie_types(dbg(), cu_off + cu_header_length, &current_cu_die))
-            continue;
-
-        if (DwarfDyninst::is_partial_unit(current_cu_die)) {
-            continue;
-        }
-        parseModuleSig8(false);
-        compile_offset = next_cu_header;
-    }
-
-    /* Iterate over the compilation-unit headers for .debug_info. */
-    for(Dwarf_Off cu_off = 0;
-            dwarf_nextcu(dbg(), cu_off, &next_cu_header, &cu_header_length,
-                &abbrev_offset, &addr_size, &offset_size) == 0;
-            cu_off = next_cu_header)
-    {
-        if(!dwarf_offdie(dbg(), cu_off + cu_header_length, &current_cu_die))
-            continue;
-        if (DwarfDyninst::is_partial_unit(current_cu_die)) {
-            continue;
-        }
-        parseModuleSig8(true);
-        compile_offset = next_cu_header;
-    }
-}
-
-bool DwarfWalker::parseModuleSig8(bool is_info)
-{
-    if (!DwarfDyninst::is_type_unit(current_cu_die))
-        return false;
-    uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
-    typeId_t type_id = get_type_id(typeoffset, is_info, false);
-
-    {
-      dyn_c_hash_map<uint64_t, typeId_t>::accessor a;
-      sig8_type_ids_.insert(a, std::make_pair(sig8, type_id));
-    }
-    dwarf_printf("Mapped Sig8 {%016llx} to type id 0x%x\n", (unsigned long long) sig8, (unsigned int)type_id);
-    return true;
-}
-
-bool DwarfWalker::findSig8Type(Dwarf_Sig8 * s, boost::shared_ptr<Type>&returnType)
-{
-   uint64_t sig8 = * reinterpret_cast<uint64_t*>(s);
-   typeId_t type_id = 0;
-   {
-     dyn_c_hash_map<uint64_t, typeId_t>::const_accessor a;
-     if(sig8_type_ids_.find(a, sig8)) type_id = a->second;
-   }
-
-   if(type_id){
-     returnType = tc()->findOrCreateType(type_id, Type::share);
-     dwarf_printf("Found Sig8 {%016llx} as type id 0x%x\n", (unsigned long long) sig8, (unsigned int)type_id);
-     return true;
-   }
-
-   dwarf_printf("Couldn't find Sig8 {%016llx}!\n", (unsigned long long) sig8);
-   return false;
 }
 
 Object *DwarfParseActions::obj() const {
