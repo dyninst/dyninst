@@ -74,8 +74,8 @@ typedef void (*BPatchDynLibraryCallback)(BPatch_thread *proc,
 // shared object as it is loaded, after its symbol table has been read but
 // before any CFG is built, so that the decision can be based on the
 // object's contents -- its name, its size, how many functions it has.
-// Returning false leaves the object loaded but unparsed, exactly as
-// BPatch::addAnalysisExcludePattern does.
+// Returning false leaves the object loaded but not parsed up front,
+// exactly as BPatch::addAnalysisExcludePattern does.
 typedef bool (*BPatchAnalyzeObjectCallback)(Dyninst::SymtabAPI::Symtab *symtab);
 
 typedef void (*BPatchForkCallback)(BPatch_thread *parent, 

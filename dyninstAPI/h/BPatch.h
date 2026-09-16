@@ -653,8 +653,15 @@ public:
     //  Shared objects whose name matches this shell-style wildcard pattern
     //  (see fnmatch(3): '*', '?', '[...]') are still loaded -- their symbols,
     //  address ranges and modules remain available -- but no CFG is built for
-    //  them, so they contain no functions or blocks.  This avoids the cost of
-    //  parsing libraries that will never be instrumented.
+    //  them up front.  This avoids the cost of parsing libraries that will
+    //  never be instrumented.
+    //
+    //  Their functions are not lost.  Looking one up by name parses that
+    //  function, and whatever it reaches, at the point it is asked for, and it
+    //  can then be instrumented like any other.  What exclusion costs is what
+    //  depends on having parsed the object up front: a lookup by address finds
+    //  nothing there, and the queries that enumerate rather than name, such as
+    //  BPatch_module::getProcedures, report only what has been parsed so far.
     //
     //  The pattern is matched against both the object's full path and its base
     //  name, so "libLLVM.so*" matches "/usr/lib64/libLLVM.so.23.0git".
