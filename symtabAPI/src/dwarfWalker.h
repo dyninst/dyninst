@@ -223,7 +223,6 @@ public:
 
     DwarfWalker(const DwarfWalker& o) :
             DwarfParseActions(o),
-            current_cu_die(o.current_cu_die),
             parsedFuncs(o.parsedFuncs),
             name_(o.name_),
             is_mangled_name_(o.is_mangled_name_),
@@ -257,8 +256,6 @@ public:
             bool dissociate_context=false);
     
 private:
-    Dwarf_Die current_cu_die;
-
     enum inline_t {
         NormalFunc,
         InlinedFunc
