@@ -193,6 +193,13 @@ that enumerate rather than name -- \code{BPatch\_module::getProcedures}, and so 
 function list -- report only those functions already parsed on demand, which is normally none of
 them. Neither recovers by parsing the object, because neither has a particular function to ask
 for.
+
+A call site inside a function parsed on demand may also report an unnamed callee until that
+callee is itself looked up by name, because a function the parser discovers is named only when a
+symbol sits at its exact entry address. On ppc64 this is the ordinary case for a call within the
+object, which targets the callee's local entry point rather than the global one the symbol names.
+Looking the callee up by name links the two entry points, after which the call site reports it as
+usual; instrumenting the callee by name applies to calls through either entry point either way.
 }
 
 \begin{apient}
