@@ -326,7 +326,7 @@ private:
     bool isStaticStructMember(std::vector<VariableLocation> &locs, bool &isStatic);
     virtual bool findType(boost::shared_ptr<Type>&, bool defaultToVoid);
     bool findAnyType(Dwarf_Attribute typeAttribute, boost::shared_ptr<Type>&type);
-    bool findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset);
+    bool findReferencedDie(Dwarf_Attribute attr, Dwarf_Die &die);
     bool getLineInformation(Dwarf_Word &variableLineNo,
             bool &hasLineNumber,
             std::string &filename);

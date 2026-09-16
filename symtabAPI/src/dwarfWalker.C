@@ -1327,6 +1327,24 @@ bool DwarfWalker::parseStructUnionClass() {
     curName() = die_name();
     dwarf_printf("(0x%lx) Struct/Union/Class name from dwarf: %s\n", id(), curName().c_str());
 
+    {
+        // Two kinds of declaration carry no members and no size, and are skipped along
+        // with their children (method and static member declarations):
+        //  - A DW_AT_signature stand-in. Parsing it would register an empty type under
+        //    the definition's id (see definition_die).
+        //  - Any declaration inside a type unit. Type units all land in the default
+        //    module, where an empty declaration would compete by name with the type
+        //    unit that defines the same type, and typesByName keeps the first one.
+        Dwarf_Die e = entry();
+        bool stand_in = dwarf_hasattr(&e, DW_AT_signature);
+        if(stand_in || (dwarf_hasattr(&e, DW_AT_declaration) && DwarfDyninst::is_in_type_unit(e))) {
+            dwarf_printf("(0x%lx) Skipping %s declaration of %s\n", id(),
+                    stand_in ? "DW_AT_signature" : "type unit", curName().c_str());
+            setParseChild(false);
+            return true;
+        }
+    }
+
     if (!nameDefined()) {
         /* anonymous unions, structs and classes are explicitely labelled */
         Dwarf_Word lineNumber;
@@ -1765,10 +1783,10 @@ bool DwarfWalker::findType(boost::shared_ptr<Type>&type, bool defaultToVoid) {
     return ret;
 }
 
-bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
+bool DwarfWalker::findReferencedDie(Dwarf_Attribute attr, Dwarf_Die &die) {
     Dwarf_Half form = dwarf_whatform(&attr);
     switch (form) {
-        /* These forms are suitable as direct DIE offsets */
+        /* These forms are suitable as direct DIE references */
         case DW_FORM_ref1:
         case DW_FORM_ref2:
         case DW_FORM_ref4:
@@ -1781,42 +1799,46 @@ bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
         /* libdw resolves a signature to the defining DIE inside the type unit it names,
          * so it reaches a DIE like any other reference form. */
         case DW_FORM_ref_sig8:
-            {
-                //TODO debug to compare values of offset
-                Dwarf_Die die;
-                auto ret_p = dwarf_formref_die(&attr, &die);
-                if(!ret_p) return false;
-                offset = dwarf_dieoffset(&die);
-                return true;
-            }
-            /* Then there's DW_FORM_sec_offset which refer other sections, or
-             * DW_FORM_GNU_ref_alt that refers to a whole different file.  We can't
-             * use such forms as a die offset, even if dwarf_global_formref is
-             * willing to decode it. */
+            return dwarf_formref_die(&attr, &die) != NULL;
         default:
-            dwarf_printf("(0x%lx) error Can't use form 0x%x as a die offset\n", id(), static_cast<std::uint32_t>(form));
+            /* Anything else, such as DW_FORM_sec_offset, which refers to another
+             * section, is not a DIE reference, even where dwarf_global_formref()
+             * would decode it. */
+            dwarf_printf("(0x%lx) error Can't use form 0x%x as a die reference\n", id(), static_cast<std::uint32_t>(form));
             return false;
     }
 }
 
+/*
+ * The DIE that actually defines the type `die` names.
+ *
+ * With -fdebug-types-section a type is emitted once, in a type unit, and every other
+ * unit carries a memberless DW_AT_declaration stand-in holding DW_AT_signature. The
+ * stand-in and the definition are one type and must share one type_id, or the
+ * stand-in becomes a second, empty copy that can displace the real one.
+ *
+ * Returns `die` unchanged when it is not such a stand-in.
+ */
+static Dwarf_Die definition_die(Dwarf_Die die) {
+    Dwarf_Attribute sig;
+    Dwarf_Die def;
+    if(dwarf_attr(&die, DW_AT_signature, &sig) && dwarf_formref_die(&sig, &def)) {
+        return def;
+    }
+    return die;
+}
+
 bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute, boost::shared_ptr<Type>&type)
 {
-    Dwarf_Off typeOffset;
-    if (!findDieOffset( typeAttribute, typeOffset)) return false;
-
-    /* NB: It's possible for an incomplete type to have a DW_AT_signature
-     * reference to a complete definition.  For example, GCC may output just the
-     * subprograms for a struct's methods in one CU, with the full struct
-     * defined in a type unit.
-     *
-     * No DW_AT_type has been found referencing an incomplete type this way,
-     * but if it did, here's the place to look for that DW_AT_signature and
-     * recurse into findAnyType again.
-     */
-
     Dwarf_Die dieType;
-    auto ret_p = dwarf_formref_die(&typeAttribute, &dieType);
-    if(!ret_p) return false;
+    if (!findReferencedDie( typeAttribute, dieType)) return false;
+
+    /* An incomplete type may carry a DW_AT_signature reference to the complete
+     * definition.  For example, GCC may output just the subprograms for a struct's
+     * methods in one CU, with the full struct defined in a type unit.
+     */
+    dieType = definition_die(dieType);
+    Dwarf_Off typeOffset = dwarf_dieoffset(&dieType);
 
     // Derive both halves of the offset's namespace from the referenced DIE, not from the
     // DIE doing the referencing: a type_id key is only meaningful against the section and
@@ -2496,9 +2518,9 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info, bool is_sup)
 
 typeId_t DwarfWalker::type_id()
 {
-    Dwarf_Die e(entry());
+    Dwarf_Die e = definition_die(entry());
     Dwarf * desc = dwarf_cu_getdwarf(e.cu);
-    return get_type_id(offset(), DwarfDyninst::is_in_debug_info(e), dbg()!=desc);
+    return get_type_id(dwarf_dieoffset(&e), DwarfDyninst::is_in_debug_info(e), dbg()!=desc);
 }
 
 Object *DwarfParseActions::obj() const {
