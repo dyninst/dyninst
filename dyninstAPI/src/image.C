@@ -96,6 +96,9 @@ namespace {
     bool operator()(SymtabAPI::Function *) {
       return true;
     }
+    bool filterEntryPoint() {
+      return true;
+    }
   } nuke_all;
 }
 

@@ -305,6 +305,14 @@ class DYNINST_EXPORT SymtabCodeSource : public CodeSource, public boost::lockabl
     struct hint_filt {
         virtual ~hint_filt() { }
         virtual bool operator()(SymtabAPI::Function * f) =0;
+
+        // An object that is executable but whose entry point carries no symbol
+        // gets a synthetic hint at that entry point, so that a stripped binary
+        // still has somewhere to start parsing.  There is no
+        // SymtabAPI::Function to hand to operator(), so a filter that wants to
+        // drop that hint too has to say so here.  Filters that only sift real
+        // functions should leave this alone.
+        virtual bool filterEntryPoint() { return false; }
     };
 
     struct try_block {
