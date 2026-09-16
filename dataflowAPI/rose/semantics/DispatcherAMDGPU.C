@@ -128,6 +128,43 @@ namespace rose {
                     }
                 };
  
+                // s_mov_b32 DST, SRC  ->  DST = SRC (32-bit). Without a symbolic model for the
+                // mov, a getpc-relative address computed as `s_mov s_off,imm; s_add s_lo,s_lo,s_off`
+                // (the form our emit-amdgpu veneer generates) leaves s_off a free variable, so the
+                // slice never folds to a constant. Modeling mov closes that gap (compiler-emitted
+                // code folds the immediate straight into s_add and never needed it).
+                struct IP_s_mov_b32 : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr src;
+                        if(SgAsmIntegerValueExpression * ival = isSgAsmIntegerValueExpression(args[1])){
+                            src = ops->number_(32, ival->get_value() & 0xffffffffULL);
+                        }else{
+                            src = ops->extract(ops->unsignedExtend(d->read(args[1]),64),0,32);
+                        }
+                        d->write(args[0], src);
+                    }
+                };
+                // s_mov_b64 DST_PAIR, SRC  ->  DST = SRC (64-bit). massageOperands has split the
+                // destination pair into two 32-bit halves (args[0]=lo, args[1]=hi); a register-pair
+                // source is likewise split (args[2]=lo, args[3]=hi), while an immediate source is
+                // kept whole (args[2]) and sliced into halves here.
+                struct IP_s_mov_b64 : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        if(args.size() >= 4){
+                            d->write(args[0], ops->extract(ops->unsignedExtend(d->read(args[2]),64),0,32));
+                            d->write(args[1], ops->extract(ops->unsignedExtend(d->read(args[3]),64),0,32));
+                        }else if(SgAsmIntegerValueExpression * ival = isSgAsmIntegerValueExpression(args[2])){
+                            uint64_t v = (uint64_t)ival->get_value();
+                            d->write(args[0], ops->number_(32, v & 0xffffffffULL));
+                            d->write(args[1], ops->number_(32, (v >> 32) & 0xffffffffULL));
+                        }else{
+                            BaseSemantics::SValuePtr src = ops->unsignedExtend(d->read(args[2]),64);
+                            d->write(args[0], ops->extract(src,0,32));
+                            d->write(args[1], ops->extract(src,32,64));
+                        }
+                    }
+                };
+
                 struct IP_s_getpc_b64 : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
 
@@ -185,6 +222,8 @@ namespace rose {
                 iproc_set(rose_amdgpu_op_s_swappc_b64, new AMDGPU::IP_s_swappc_b64);
                 iproc_set(rose_amdgpu_op_s_add_u32, new AMDGPU::IP_s_add_u32);
                 iproc_set(rose_amdgpu_op_s_addc_u32, new AMDGPU::IP_s_addc_u32);
+                iproc_set(rose_amdgpu_op_s_mov_b32, new AMDGPU::IP_s_mov_b32);
+                iproc_set(rose_amdgpu_op_s_mov_b64, new AMDGPU::IP_s_mov_b64);
             }
 
             void
