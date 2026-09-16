@@ -177,14 +177,19 @@ never excluded, and neither is a file named outright by \code{openBinary}: rewri
 that a pattern also matches instruments it rather than copying it through untouched. Only the
 dependencies opened behind that file are eligible.
 
-Dyninst itself resolves a handful of functions by name during process creation, among them
-\code{pthread\_self} in \code{libpthread}. Excluding a library that Dyninst needs this way can
-make process creation fail; it reports the failure rather than continuing silently.
+Exclusion suppresses the parse that would otherwise happen when the object is loaded; it does
+not make the object's functions permanently unreachable. Looking one up by name still succeeds:
+that single function is parsed at the point it is requested, and can then be instrumented like
+any other. This is what lets Dyninst keep working when a library it itself depends on is
+excluded, and it means a mutator can exclude a large library wholesale and still instrument the
+handful of functions in it that it cares about.
 
-Excluding a library the mutator later queries is not an error, but lookups into it find
-nothing: its functions cannot be found by name or by address, \code{BPatch\_object::findFunction}
-returns no match, and per-module queries such as \code{BPatch\_module::getProcedures} come back
-empty. Instrumenting an excluded library is therefore not possible.
+What exclusion does cost is everything that depends on having parsed the object up front. A
+lookup by address finds nothing there, since there is no control flow graph to search. Queries
+that enumerate rather than name -- \code{BPatch\_module::getProcedures}, and so the module's
+function list -- report only those functions already parsed on demand, which is normally none of
+them. Neither recovers by parsing the object, because neither has a particular function to ask
+for.
 }
 
 \begin{apient}
