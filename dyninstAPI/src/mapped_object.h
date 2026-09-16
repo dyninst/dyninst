@@ -306,6 +306,11 @@ public:
 
     func_instance *findFunction(ParseAPI::Function *img_func);
 
+    // ppc64 only; no-op elsewhere.  Records this object's TOC base and pairs
+    // a Power ABI v2 global entry with its local entry at the func_instance
+    // layer.  Safe to call more than once for the same function.
+    void linkPowerPreamble(parse_func *f);
+
     int_variable *findVariable(image_variable *img_var);
 
     block_instance *findBlock(ParseAPI::Block *);
