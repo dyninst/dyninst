@@ -1870,6 +1870,29 @@ image::findBlocksByAddr(const Address addr, set<ParseAPI::Block *> & blocks )
 // Return the vector of functions associated with a pretty (demangled) name
 // Very well might be more than one!
 
+
+// An excluded image has no CFG, so a lookup by name finds nothing even though
+// the symbol is sitting in the symbol table.  Parse this function on demand and
+// leave the rest of the image alone, so the caller gets what it asked for
+// without the bulk parse we were told to skip.
+//
+// The parse has to be recursive.  Parser::parse_frame_one_iteration asserts
+// that the callee of a call edge already exists as a Function when it decides
+// whether the fallthrough edge survives, and a non-recursive parse never
+// creates one.  So this pulls in whatever the requested function reaches --
+// still far less than the whole object.
+parse_func *image::parseExcludedFunction(SymtabAPI::Function *symFunc)
+{
+   if (!analysisExcluded_ || symFunc == NULL)  {
+      return NULL;
+   }
+   parsing_printf("[%s:%d] on-demand parse of %s in excluded image %s\n",
+                  FILE__, __LINE__, symFunc->getName().c_str(), file().c_str());
+   obj_->parse(symFunc->getOffset(), true);
+   return static_cast<parse_func *>(symFunc->getData());
+}
+
+
 const std::vector<parse_func *> *image::findFuncVectorByPretty(const std::string &name) {
     //Have to change here
     std::vector<parse_func *>* res = new std::vector<parse_func *>;
@@ -1880,6 +1903,9 @@ const std::vector<parse_func *> *image::findFuncVectorByPretty(const std::string
     {
         SymtabAPI::Function *symFunc = funcs[index];
         parse_func *imf = static_cast<parse_func *>(symFunc->getData());
+        if (imf == NULL)  {
+            imf = parseExcludedFunction(symFunc);
+        }
         if (imf) {
             res->push_back(imf);
         }
@@ -1906,7 +1932,10 @@ const std::vector <parse_func *> *image::findFuncVectorByMangled(const std::stri
     for(unsigned index=0; index < funcs.size(); index++) {
         SymtabAPI::Function *symFunc = funcs[index];
         parse_func *imf = static_cast<parse_func *>(symFunc->getData());
-        
+
+        if (imf == NULL)  {
+            imf = parseExcludedFunction(symFunc);
+        }
         if (imf) {
             res->push_back(imf);
         }
