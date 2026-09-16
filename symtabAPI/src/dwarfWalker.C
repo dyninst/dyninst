@@ -252,21 +252,21 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
     // These may not be set.
     Address tempModLow, tempModHigh;
     modLow = modHigh = 0;
-    Dwarf_Die e;
-    bool found_entry = dwarf_offdie(dbg(),offset(), &e);
-    if(!found_entry) return false;
 
-    if (findConstant(DW_AT_low_pc, tempModLow, &e, dbg())) {
+    if (findConstant(DW_AT_low_pc, tempModLow, &moduleDIE, dbg())) {
         modLow = convertDebugOffset(tempModLow);
     }
-    if (findConstant(DW_AT_high_pc, tempModHigh, &e, dbg())) {
+    if (findConstant(DW_AT_high_pc, tempModHigh, &moduleDIE, dbg())) {
         modHigh = convertDebugOffset(tempModHigh);
     }
 
-    // Find the Symtab Module corresponding to this CU
-    mod() = [this]() {
-      SymtabAPI::Module* m = symtab()->findModuleByOffset(offset());
-      if(m) return m;
+    // Find the Symtab Module corresponding to this CU. Modules are keyed by .debug_info
+    // offset, so a .debug_types unit can only match one by coincidence.
+    mod() = [this, &moduleDIE]() {
+      if(DwarfDyninst::is_in_debug_info(moduleDIE)) {
+        SymtabAPI::Module* m = symtab()->findModuleByOffset(offset());
+        if(m) return m;
+      }
       return symtab()->getDefaultModule();
     }();
 
@@ -1697,9 +1697,7 @@ bool DwarfWalker::getReturnType(boost::shared_ptr<Type>&returnType) {
     Dwarf_Attribute typeAttribute;
     Dwarf_Attribute* status = 0;
 
-    bool is_info = true;
     Dwarf_Die e = entry();
-    is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
     status = dwarf_attr(&e, DW_AT_type, &typeAttribute);
 
     if ( status == 0) {
@@ -1710,7 +1708,7 @@ bool DwarfWalker::getReturnType(boost::shared_ptr<Type>&returnType) {
     /* There's a return type attribute. */
     dwarf_printf("(0x%lx) Return type is not void\n", id());
 
-    bool ret = findAnyType( typeAttribute, is_info, returnType );
+    bool ret = findAnyType( typeAttribute, returnType );
     return ret;
 }
 
@@ -1765,9 +1763,7 @@ bool DwarfWalker::findType(boost::shared_ptr<Type>&type, bool defaultToVoid) {
         return false;
     }
 
-    bool is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
-
-    bool ret = findAnyType( typeAttribute, is_info, type );
+    bool ret = findAnyType( typeAttribute, type );
     return ret;
 }
 
@@ -1802,8 +1798,7 @@ bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
     }
 }
 
-bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
-        bool is_info, boost::shared_ptr<Type>&type)
+bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute, boost::shared_ptr<Type>&type)
 {
     /* If this is a ref_sig8, look for the type elsewhere. */
     Dwarf_Half form = dwarf_whatform(&typeAttribute);
@@ -1832,9 +1827,12 @@ bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
     auto ret_p = dwarf_formref_die(&typeAttribute, &dieType);
     if(!ret_p) return false;
 
+    // Derive both halves of the offset's namespace from the referenced DIE, not from the
+    // DIE doing the referencing: a type_id key is only meaningful against the section and
+    // file the offset is relative to.
     Dwarf * desc = dwarf_cu_getdwarf(dieType.cu);
     bool is_sup = dbg()!=desc;
-    typeId_t type_id = get_type_id(typeOffset, is_info, is_sup);
+    typeId_t type_id = get_type_id(typeOffset, DwarfDyninst::is_in_debug_info(dieType), is_sup);
 
     dwarf_printf("(0x%lx) type offset 0x%lx, is_supplemental=%s\n", id(), (unsigned long)typeOffset, is_sup?"true":"false");
 
@@ -2271,7 +2269,7 @@ boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
   }
 
   Dwarf_Off subrangeOffset = dwarf_dieoffset(entry);
-  bool is_info = !dwarf_hasattr_integrate(entry, DW_TAG_type_unit);
+  bool is_info = DwarfDyninst::is_in_debug_info(*entry);
   // The subrange DIE may live in a DWZ supplementary file (its DW_AT_type/dimension
   // resolved through .gnu_debugaltlink). Compute is_sup from the DIE's own CU rather
   // than hardcoding false: a supplementary-file subrange and a main-file type can share
@@ -2508,9 +2506,8 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info, bool is_sup)
 typeId_t DwarfWalker::type_id()
 {
     Dwarf_Die e(entry());
-    bool is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
     Dwarf * desc = dwarf_cu_getdwarf(e.cu);
-    return get_type_id(offset(), is_info, dbg()!=desc);
+    return get_type_id(offset(), DwarfDyninst::is_in_debug_info(e), dbg()!=desc);
 }
 
 void DwarfWalker::findAllSig8Types()
