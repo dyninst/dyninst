@@ -570,6 +570,16 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 
   // A little helper to fix some clunky checks
   auto is_compatible = [this](std::string const &path, std::string const &member) {
+    // Reject candidates of the wrong word size before opening them as a BinaryEdit,
+    // which parses the whole file: the search paths mix 32- and 64-bit libraries, and
+    // a code generator built for one word size (DYNINST_CODEGEN_ARCH=i386) cannot
+    // parse binaries of the other.
+    if (member.empty()) {
+      Symtab *candidate{nullptr};
+      if (!Symtab::openFile(candidate, path) || candidate->getAddressWidth() != getAddressWidth()) {
+        return std::unique_ptr<BinaryEdit>{};
+      }
+    }
     auto temp = std::unique_ptr<BinaryEdit>{BinaryEdit::openFile(path, mgr(), patcher(), member)};
     if (temp && temp->getAddressWidth() == getAddressWidth()) {
       return temp;
