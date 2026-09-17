@@ -16,6 +16,7 @@ set(_parseapi_sources
     src/Function.C
     src/IA_aarch64.C
     src/IA_amdgpu.C
+    src/IA_loongarch64.C
     src/IA_IAPI.C
     src/IA_power.C
     src/IA_riscv64.C
@@ -60,6 +61,7 @@ set(_parseapi_private_headers
     src/dominator.h
     src/IA_aarch64.h
     src/IA_amdgpu.h
+    src/IA_loongarch64.h
     src/IA_IAPI.h
     src/IA_power.h
     src/IA_riscv64.h

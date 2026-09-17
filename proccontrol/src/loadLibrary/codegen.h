@@ -65,6 +65,8 @@ class Codegen {
 
    bool generatePreambleAARCH64();
    bool generateCallAARCH64(Address addr, const std::vector<Address> &args);
+   bool generatePreambleLOONGARCH64();
+   bool generateCallLOONGARCH64(Address addr, const std::vector<Address> &args);
 
    bool generateTrap();
    bool generateNoops();

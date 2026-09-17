@@ -39,5 +39,6 @@ namespace Dyninst { namespace registers {
 //clang-format: off
 #define DYN_DEFINE_REGS
 #include "dyn_regs.h"
+#include "registers/loongarch64_regs.h"
 #undef DYN_DEFINE_REGS
 //clang-format: on

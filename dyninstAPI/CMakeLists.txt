@@ -50,6 +50,7 @@ set(_private_headers
     src/hybridAnalysis.h
     src/image.h
     src/inst-aarch64.h
+    src/inst-loongarch64.h
     src/inst-power.h
     src/inst-x86.h
     src/linux-aarch64.h
@@ -94,6 +95,8 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(APPEND _sources src/addressSpace-ppc.C src/inst-power.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(APPEND _sources src/addressSpace-aarch64.C)
+elseif(DYNINST_CODEGEN_ARCH_LOONGARCH64)
+  list(APPEND _sources src/addressSpace-loongarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(
     APPEND
@@ -116,6 +119,8 @@ elseif(DYNINST_OS_Linux)
     list(APPEND _sources src/linux-power.C)
   elseif(DYNINST_HOST_ARCH_AARCH64)
     list(APPEND _sources src/linux-aarch64.C)
+  elseif(DYNINST_HOST_ARCH_LOONGARCH64)
+    list(APPEND _sources src/linux-loongarch64.C)
   endif()
 elseif(DYNINST_OS_Windows)
   list(

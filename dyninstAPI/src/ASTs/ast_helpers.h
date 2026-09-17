@@ -15,6 +15,8 @@
 #include "inst-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "codegen/emitters/aarch64/EmitterAarch64.h"
+#elif defined(DYNINST_CODEGEN_ARCH_LOONGARCH64)
+#include "codegen/emitters/loongarch64/EmitterLoongarch64.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 #include "emit-amdgpu.h"
 #else

@@ -47,6 +47,7 @@ namespace Dyninst {
     Arch_aarch32 = 0x44000000, // for later use
     Arch_aarch64 = 0x48000000,
     Arch_riscv64 = 0x68000000,
+    Arch_loongarch64 = 0x58000000,
     Arch_cuda = 0x88000000,
     Arch_amdgpu_gfx908 = 0x94000000,
     Arch_amdgpu_gfx90a = 0x98000000,
@@ -64,6 +65,7 @@ namespace Dyninst {
       case Arch_ppc64:
       case Arch_aarch64:
       case Arch_riscv64:
+      case Arch_loongarch64:
       case Arch_cuda:
       case Arch_intelGen9:
       case Arch_amdgpu_gfx908:
@@ -84,6 +86,7 @@ namespace Dyninst {
       case Arch_ppc64: return "ppc64"; break;
       case Arch_aarch32: return "aarch32"; break;
       case Arch_aarch64: return "aarch64"; break;
+      case Arch_loongarch64: return "loongarch64"; break;
       case Arch_cuda: return "cuda"; break;
       case Arch_amdgpu_gfx908: return "amdgpu_gfx908"; break;
       case Arch_amdgpu_gfx90a: return "amdgpu_gfx90a"; break;
@@ -110,8 +113,9 @@ namespace Dyninst {
       case Arch_ppc64: return ismo4;
       case Arch_aarch32: return ismo4;
       case Arch_aarch64: return ismo4;
-      case Arch_riscv64: return ismo2;
+      case Arch_loongarch64: return ismo4;
       case Arch_cuda: return true;
+      case Arch_riscv64: return ismo2;
       case Arch_amdgpu_gfx908: return true;
       case Arch_amdgpu_gfx90a: return true;
       case Arch_amdgpu_gfx940: return true;

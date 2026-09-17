@@ -85,6 +85,8 @@ namespace jumpTargetAST = Dyninst::DyninstAPI::jumpTargetAST;
 #include "inst-power.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "inst-aarch64.h"
+#elif defined(DYNINST_CODEGEN_ARCH_LOONGARCH64)
+#include "inst-loongarch64.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 // No inst-amdgpu.h
 #else

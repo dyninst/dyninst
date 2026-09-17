@@ -6,6 +6,7 @@ add_subdirectory(src/ASTs)
 add_subdirectory(src/decoder/aarch64)
 add_subdirectory(src/decoder/AMDGPU)
 add_subdirectory(src/decoder/PowerPC)
+add_subdirectory(src/decoder/loongarch64)
 add_subdirectory(src/decoder/riscv)
 add_subdirectory(src/decoder/x86)
 add_subdirectory(src/decoder)
@@ -13,6 +14,7 @@ add_subdirectory(src/decoder)
 set(_subprojects
     instructionAPI_aarch64
     instructionAPI_amdgpu
+    instructionAPI_loongarch64
     instructionAPI_powerpc
     instructionAPI_riscv
     instructionAPI_x86

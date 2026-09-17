@@ -36,6 +36,7 @@ set(_public_headers
     h/ProcReader.h
     h/registers/MachRegister.h
     h/registers/aarch64_regs.h
+    h/registers/loongarch64_regs.h
     h/registers/abstract_regs.h
     h/registers/AMDGPU/amdgpu_gfx908_regs.h
     h/registers/AMDGPU/amdgpu_gfx90a_regs.h
@@ -121,6 +122,7 @@ set(_sources
     src/arch-x86.C
     src/arch-power.C
     src/arch-aarch64.C
+    src/arch-loongarch64.C
     src/arch-amdgpu.C
     src/debug_common.C
     src/VariableLocation.C

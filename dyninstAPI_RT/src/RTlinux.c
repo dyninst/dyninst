@@ -339,6 +339,8 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
 	//#warning "UC_PC: in aarch64, pc is not directly accessable."
 	//aarch64 pc is not one of 31 GPRs, but an independent reg
 	#define UC_PC(x) x->uc_mcontext.pc
+#elif defined(DYNINST_HOST_ARCH_LOONGARCH64)
+	#define UC_PC(x) x->uc_mcontext.__pc
 #endif // UC_PC
 
 extern volatile unsigned long dyninstTrapTableUsed;
