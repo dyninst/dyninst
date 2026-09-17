@@ -570,6 +570,18 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 
   // A little helper to fix some clunky checks
   auto is_compatible = [this](std::string const &path, std::string const &member) {
+    // A DT_NEEDED entry can only be satisfied by a library of the same ELF class
+    // (ld.so skips wrong-class candidates), and the search path mixes 32- and
+    // 64-bit directories. Check the class before opening the candidate as a
+    // BinaryEdit, which parses the whole file: a codegen-restricted build
+    // (DYNINST_CODEGEN_ARCH=i386) has no ABI tables for the other word size and
+    // cannot parse it at all.
+    if (member.empty()) {
+      Symtab *candidate{nullptr};
+      if (!Symtab::openFile(candidate, path) || candidate->getAddressWidth() != getAddressWidth()) {
+        return std::unique_ptr<BinaryEdit>{};
+      }
+    }
     auto temp = std::unique_ptr<BinaryEdit>{BinaryEdit::openFile(path, mgr(), patcher(), member)};
     if (temp && temp->getAddressWidth() == getAddressWidth()) {
       return temp;
