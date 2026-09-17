@@ -70,7 +70,7 @@ if(DYNINST_CODEGEN_ARCH)
         "Unsupported DYNINST_CODEGEN_ARCH, expect one of `${_known_arches}`, got `${DYNINST_CODEGEN_ARCH}`"
       )
   else()
-    set(${_codegen_arch} ${DYNINST_CODEGEN_ARCH})
+    set(_codegen_arch ${DYNINST_CODEGEN_ARCH})
   endif()
 endif()
 
