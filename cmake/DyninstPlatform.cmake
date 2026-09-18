@@ -122,3 +122,7 @@ elseif(${_host_os} STREQUAL "FreeBSD")
 elseif(${_host_os} STREQUAL "Windows")
   set(DYNINST_PLATFORM i386-unknown-nt4.0)
 endif()
+
+message(STATUS "Host arch = ${_host_arch}")
+message(STATUS "Codegen arch = ${_codegen_arch}")
+message(STATUS "DYNINST_PLATFORM = ${DYNINST_PLATFORM}")
