@@ -84,7 +84,7 @@ foreach(t ${stackwalk_TARGETS})
 
   if(SW_ANALYSIS_STEPPER)
     target_compile_definitions(${t} PRIVATE USE_PARSE_API)
-    if(${t} MATCHES "static")
+    if("${t}" MATCHES "static")
       target_link_libraries(${t} PUBLIC parseAPI_static)
     else()
       target_link_libraries(${t} PUBLIC parseAPI)
