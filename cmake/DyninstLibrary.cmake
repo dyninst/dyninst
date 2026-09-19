@@ -174,7 +174,7 @@ function(dyninst_library _target)
 
     foreach(_v "PUBLIC" "PRIVATE")
       set(_d ${_target_${_v}_DEPS})
-      if(${t} MATCHES "static")
+      if("${t}" MATCHES "static")
         # OpenMP doesn't work with static libraries, so explicitly
         # remove it from link dependencies
         list(FILTER _d EXCLUDE REGEX "OpenMP")

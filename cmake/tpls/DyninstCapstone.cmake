@@ -40,7 +40,7 @@ find_package(capstone REQUIRED ${_find_path_args})
 
 # Only major versions of Capstone are compatible, but we can use anything newer than
 # the required minimum version.
-if(capstone_VERSION VERSION_LESS ${_min_version})
+if(capstone_VERSION VERSION_LESS "${_min_version}")
   message(
     FATAL_ERROR
       "Capstone: found version ${capstone_VERSION}, but need at least ${_min_version}")

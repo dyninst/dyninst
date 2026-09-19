@@ -73,7 +73,7 @@ foreach(t ${dyninstAPI_RT_TARGETS})
     target_link_libraries(${t} PRIVATE ws2_32 dbghelp psapi)
   endif()
 
-  if(${t} MATCHES "static")
+  if("${t}" MATCHES "static")
     target_sources(${t} PRIVATE ${_static_sources})
     target_compile_definitions(${t} PRIVATE DYNINST_RT_STATIC_LIB)
   endif()
@@ -137,7 +137,7 @@ if(BUILD_RTLIB_32)
       target_link_libraries(${t} PRIVATE ws2_32 dbghelp psapi)
     endif()
 
-    if(${t} MATCHES "static")
+    if("${t}" MATCHES "static")
       # Both shared and static should be named 'dyninstAPI_RT_m32'- only extension differs
       set_property(TARGET ${t} PROPERTY OUTPUT_NAME dyninstAPI_RT_m32)
 
