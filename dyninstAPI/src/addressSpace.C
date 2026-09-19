@@ -1065,11 +1065,9 @@ void trampTrapMappings::writeToBuffer(unsigned char *buffer, unsigned long val,
       //Currently only support 64-bit mutators with 32-bit mutatees
       assert(addr_width == 4);
       assert(sizeof(Address) == 8);
-#if defined(cap_32_64)
       assert(val <= numeric_limits<uint32_t>::max() && "val more than 32 bits");
       write_memory_as(buffer, static_cast<uint32_t>(val));
       return;
-#endif
    }
    write_memory_as(buffer, static_cast<uint64_t>(val));
 }
