@@ -379,7 +379,6 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    static void setSymtabError(SymtabError new_err);
    static std::string printError(SymtabError serr);
 
-   bool delSymbol(Symbol *sym) { return deleteSymbol(sym); }
    bool deleteSymbol(Symbol *sym); 
 
    /***** Private Member Functions *****/
