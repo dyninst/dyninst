@@ -317,10 +317,6 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
 
    bool getSegments(std::vector<Segment> &segs) const;
    
-   void fixup_code_and_data(Offset newImageOffset,
-                                          Offset newImageLength,
-                                          Offset newDataOffset,
-                                          Offset newDataLength);
    bool fixup_RegionAddr(const char* name, Offset memOffset, long memSize);
    Offset getFreeOffset(unsigned size);
 

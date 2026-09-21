@@ -377,19 +377,6 @@ DYNINST_EXPORT Offset Symtab::imageLength() const
     return imageLen_;
 }
 
-DYNINST_EXPORT void Symtab::fixup_code_and_data(Offset newImageOffset,
-                                               Offset newImageLength,
-                                               Offset newDataOffset,
-                                               Offset newDataLength)
-{
-    imageOffset_ = newImageOffset;
-    imageLen_ = newImageLength;
-    dataOffset_ = newDataOffset;
-    dataLen_ = newDataLength;
-
-    // Should we update the underlying Object?
-}
-
 DYNINST_EXPORT const char*  Symtab::getInterpreterName() const 
 {
    if (interpreter_name_.length())
