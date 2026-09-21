@@ -27,6 +27,7 @@ dyninst_library(
     common
     instructionAPI_aarch64
     instructionAPI_amdgpu
+    instructionAPI_loongarch64
     instructionAPI_powerpc
     instructionAPI_riscv
     instructionAPI_x86

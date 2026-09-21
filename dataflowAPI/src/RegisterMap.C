@@ -30,6 +30,7 @@
 
 #include "dataflowAPI/src/RegisterMap.h"
 #include "dyn_regs.h"
+#include "registers/loongarch64_regs.h"
 #include "dyntypes.h"
 
 // We use the singleton approach, rather than static construction, to ensure the
@@ -3386,6 +3387,80 @@ RegisterMap &machRegIndex_riscv64() {
         };
     }
     return *mrmap;
+}
+
+RegisterMap &machRegIndex_loongarch64() {
+   static dyn_tls RegisterMap* mrmap = NULL;
+   if (mrmap == NULL) {
+      mrmap = new RegisterMap();
+      *mrmap = {
+         {Dyninst::loongarch64::r0, 0},
+         {loongarch64::r1, 1},
+         {loongarch64::r2, 2},
+         {loongarch64::r3, 3},
+         {loongarch64::r4, 4},
+         {loongarch64::r5, 5},
+         {loongarch64::r6, 6},
+         {loongarch64::r7, 7},
+         {loongarch64::r8, 8},
+         {loongarch64::r9, 9},
+         {loongarch64::r10, 10},
+         {loongarch64::r11, 11},
+         {loongarch64::r12, 12},
+         {loongarch64::r13, 13},
+         {loongarch64::r14, 14},
+         {loongarch64::r15, 15},
+         {loongarch64::r16, 16},
+         {loongarch64::r17, 17},
+         {loongarch64::r18, 18},
+         {loongarch64::r19, 19},
+         {loongarch64::r20, 20},
+         {loongarch64::r21, 21},
+         {loongarch64::r22, 22},
+         {loongarch64::r23, 23},
+         {loongarch64::r24, 24},
+         {loongarch64::r25, 25},
+         {loongarch64::r26, 26},
+         {loongarch64::r27, 27},
+         {loongarch64::r28, 28},
+         {loongarch64::r29, 29},
+         {loongarch64::r30, 30},
+         {loongarch64::r31, 31},
+         {Dyninst::loongarch64::f0,  32},
+         {loongarch64::f1,  33},
+         {loongarch64::f2,  34},
+         {loongarch64::f3,  35},
+         {loongarch64::f4,  36},
+         {loongarch64::f5,  37},
+         {loongarch64::f6,  38},
+         {loongarch64::f7,  39},
+         {loongarch64::f8,  40},
+         {loongarch64::f9,  41},
+         {loongarch64::f10, 42},
+         {loongarch64::f11, 43},
+         {loongarch64::f12, 44},
+         {loongarch64::f13, 45},
+         {loongarch64::f14, 46},
+         {loongarch64::f15, 47},
+         {loongarch64::f16, 48},
+         {loongarch64::f17, 49},
+         {loongarch64::f18, 50},
+         {loongarch64::f19, 51},
+         {loongarch64::f20, 52},
+         {loongarch64::f21, 53},
+         {loongarch64::f22, 54},
+         {loongarch64::f23, 55},
+         {loongarch64::f24, 56},
+         {loongarch64::f25, 57},
+         {loongarch64::f26, 58},
+         {loongarch64::f27, 59},
+         {loongarch64::f28, 60},
+         {loongarch64::f29, 61},
+         {loongarch64::f30, 62},
+         {loongarch64::f31, 63},
+      };
+   }
+   return *mrmap;
 }
 }
 }

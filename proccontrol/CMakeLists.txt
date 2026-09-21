@@ -15,6 +15,7 @@ set(_public_headers
 
 set(_private_headers
     src/arm_process.h
+    src/loongarch64_process.h
     src/DecoderWindows.h
     src/freebsd.h
     src/GeneratorWindows.h
@@ -61,9 +62,11 @@ set(_sources
     src/loadLibrary/codegen-x86.C
     src/loadLibrary/codegen-ppc.C
     src/loadLibrary/codegen-aarch64.C
+    src/loadLibrary/codegen-loongarch64.C
     src/x86_process.C
     src/ppc_process.C
     src/arm_process.C
+    src/loongarch64_process.C
     src/pcmachsyscall.C)
 
 if(DYNINST_OS_UNIX)
