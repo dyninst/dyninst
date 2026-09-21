@@ -1,0 +1,11 @@
+include:
+  - component: $CI_SERVER_FQDN/dav-sdk/gh-gl-sync/github-sync@~latest
+    inputs:
+      github_project: dyninst/dyninst
+      gitlab_repo: git@ssh.gitlab.spack.io:tools-sdk/dyninst
+      gitlab_host: https://gitlab.spack.io
+      gitlab_project: tools-sdk/dyninst
+      sync_draft_prs: false
+      environment: ghgl-bridge
+      status_context: "GitLab CI on Frank"
+      sync_image: ghcr.io/spack/ci-bridge:0.0.51
