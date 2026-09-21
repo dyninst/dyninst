@@ -317,7 +317,6 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
 
    bool getSegments(std::vector<Segment> &segs) const;
    
-   bool fixup_RegionAddr(const char* name, Offset memOffset, long memSize);
    Offset getFreeOffset(unsigned size);
 
    bool addLibraryPrereq(std::string const& libname);
