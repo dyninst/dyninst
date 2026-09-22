@@ -47,7 +47,7 @@ set(_sources
     stackRemovalAST.C
     variableAST.C)
 
-if(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+if(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908 OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
   list(APPEND _headers AmdgpuEpilogue.h AmdgpuPrologue.h)
   list(APPEND _sources AmdgpuEpilogue.C AmdgpuPrologue.C)
 endif()

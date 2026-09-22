@@ -61,7 +61,15 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A)
   set(CAP_DEFINES -Dcap_fixpoint_gen -Dcap_noaddr_gen -Dcap_registers
                   -Dcap_tramp_liveness)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
-  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_64bit)
+  # gfx940/gfx942 (CDNA3) is GFX9 ISA: it shares 100% of the gfx908 codegen paths
+  # (identical SALU/SMEM/VOP/FLAT encodings, register file, ABI). The only two ISA
+  # deltas — architected/absolute flat scratch and the packed work-item id at entry —
+  # are handled at RUNTIME off the kernel's ELF mach (AmdgpuKernelDescriptor::
+  # supportsArchitectedFlatScratch), NOT at compile time. So we ALSO emit the gfx908
+  # codegen define, which lights up every shared `#if defined(..._GFX908)` guard
+  # (emit-amdgpu.C, registerSpace, codegen, ASTs, ABI, ...) without duplicating them.
+  # The gfx940 define stays too, for anything that must key on gfx940 specifically.
+  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_amdgpu_gfx908 -Darch_64bit)
   set(CAP_DEFINES -Dcap_fixpoint_gen -Dcap_noaddr_gen -Dcap_registers
                   -Dcap_tramp_liveness)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX950)

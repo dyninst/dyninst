@@ -74,7 +74,7 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
     emitters/PowerPC/ppc64/EmitterPowerPC64Dyn.C
     emitters/PowerPC/ppc64/EmitterPowerPC64Stat.C)
 
-elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908 OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
 
   list(APPEND _headers codegen-amdgpu.h)
 

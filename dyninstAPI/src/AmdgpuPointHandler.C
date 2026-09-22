@@ -157,8 +157,16 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
     // enableScratchInKD made no shift), else 2 (leaf: it just enabled it). The prologue
     // uses this to relocate the shifted system SGPRs (wgid/info) — a hardcoded 2 wrongly
     // moved them for non-leaf kernels.
-    const uint32_t sysSgprShift = km->originalScratchEnabled ? 0u : 2u;
-    prologuePtr = boost::make_shared<AmdgpuPrologue>(km->kd, this->eflag,
+    // Architected/absolute flat scratch (gfx942/CDNA3) appends NO user SGPR, so it never
+    // shifts the system SGPRs — shift is 0 regardless of the compiler's scratch state.
+    const uint32_t sysSgprShift =
+        (km->kd.supportsArchitectedFlatScratch() || km->originalScratchEnabled) ? 0u : 2u;
+    // Seed the prologue with the kernel's REAL machine id (from its parsed KD), NOT the
+    // hardcoded PointHandler::eflag default (GFX908). Otherwise a gfx942 kernel's entry
+    // prologue would think it is gfx908 and emit the manual FLAT_SCRATCH = flat_scratch_init
+    // + wave_offset add — reading SGPRs that don't exist under architected flat scratch,
+    // producing a garbage FLAT_SCRATCH and a scratch aperture violation at every spill.
+    prologuePtr = boost::make_shared<AmdgpuPrologue>(km->kd, km->kd.getAmdgpuMach(),
                                                      km->originalKernargSize, sysSgprShift,
                                                      km->originalPrivateSegment);
   }
