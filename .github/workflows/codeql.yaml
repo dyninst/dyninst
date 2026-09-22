@@ -1,0 +1,64 @@
+# CodeQL is GitHub's static analysis scan tool
+# https://codeql.github.com/
+#
+# Ideally, every build permuation would be scanned individually.
+# However, that would likely take days to complete. The configuration
+# here just scans a basic x86_64 build using Ubuntu 25.04.
+#
+# Results are reported in the Security tab.
+
+name: "CodeQL"
+
+on:
+  workflow_dispatch:
+#  schedule:
+#    - cron: '0 4 * * 3'  # every Wednesday at 4pm
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      # Results are posted to the Security tab
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - language: actions
+          build-mode: none
+        - language: c-cpp
+          build-mode: manual
+        - language: python
+          build-mode: none
+
+    container:
+      image: ghcr.io/dyninst/amd64/ubuntu-25.04-base:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: "src"  # relative to ${GITHUB_WORKSPACE}
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          source-root: "src"  # relative to ${GITHUB_WORKSPACE}
+
+      - name: Build Dyninst
+        if: matrix.language == 'c-cpp'
+        uses: ./src/.github/actions/build
+        with:
+          os: ubuntu
+          src-dir: "${GITHUB_WORKSPACE}/src"
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          category: "/language:${{matrix.language}}"
