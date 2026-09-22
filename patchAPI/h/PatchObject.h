@@ -121,6 +121,10 @@ class DYNINST_EXPORT PatchObject {
     void copyCFG(PatchObject* par_obj);
     bool splitBlock(PatchBlock *first, ParseAPI::Block *second);
 
+    // Allows a subclass to build its CFG before createFuncs() runs.
+    // createFuncs() walks co()->funcs(), requiring a full parse
+    virtual void ensureParsed() {}
+
     void createFuncs();
     void createBlocks();
     void createEdges();
