@@ -705,22 +705,6 @@ static void bumpCallerKdForCallee(func_instance *caller, func_instance *callee,
   km->dirty = true;
 }
 
-// Read a callee's exported ".dyninst.<callee>.<key>" SHN_ABS value (the
-// compiler's per-function register footprint, injected by add_object_aliases.py).
-// Returns 0 if absent.
-static uint32_t readCalleeAbsSym(func_instance *callee, const char *key) {
-  if (!callee || !callee->obj() || !callee->obj()->parse_img())
-    return 0;
-  SymtabAPI::Symtab *st = callee->obj()->parse_img()->getObject();
-  if (!st)
-    return 0;
-  std::vector<SymtabAPI::Symbol *> syms;
-  std::string name = ".dyninst." + callee->symTabName() + "." + key;
-  if (!st->findSymbol(syms, name) || syms.empty())
-    return 0;
-  return static_cast<uint32_t>(syms[0]->getOffset());
-}
-
 // Largest ".dyninst.*.<key>" value across ALL functions in the callee's object.
 //
 // A dyninst-inserted call transfers into the callee wrapper, which may itself
@@ -1750,18 +1734,18 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
   bool     captureReturnToPerWave = false; // set by a CaptureRet marker operand; handled post-call
   uint32_t captureOff = 0;                  // slice offset for the captured return
   for (uint32_t i = 0; i < operands.size(); i++) {
-    const auto &op = operands[i];
-    assert(op && "AMDGPU emitCall: null call argument");
+    const auto &arg = operands[i];
+    assert(arg && "AMDGPU emitCall: null call argument");
     const Dyninst::DyninstAPI::RegInfo dst = argDest(i);
     assert(dst.class_ == Dyninst::DyninstAPI::RegClass::VGPR &&
            "AMDGPU emitCall: SGPR/inreg explicit args not yet lowered "
            "(needs callee arg-CC derivation to populate the InputArg slot)");
-    if (op->getoType() == operandType::Constant) {
-      const uint32_t imm = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(op->getOValue()));
+    if (arg->getoType() == operandType::Constant) {
+      const uint32_t imm = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(arg->getOValue()));
       AmdgpuGfx908::emitVop1Imm(/*V_MOV_B32=*/1u, /*vdst=*/vreg, imm, gen);
       vreg += 1;
-    } else if (op->getoType() == operandType::GpuValue) {
-      const uintptr_t packed = reinterpret_cast<uintptr_t>(op->getOValue());
+    } else if (arg->getoType() == operandType::GpuValue) {
+      const uintptr_t packed = reinterpret_cast<uintptr_t>(arg->getOValue());
       const long     kind  = (long)(packed & 0xFF);
       const uint32_t pwOff = (uint32_t)(packed >> 8);   // per-wave var byte offset in the slice
       if (kind == (long)GpuValueKind::PerWaveBuf) {
@@ -1825,7 +1809,7 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
     } else {
       Dyninst::Address unusedAddr = 0;
       Register res = Dyninst::Null_Register;
-      if (!op->generateCode_phase2(gen, unusedAddr, res) || res == Dyninst::Null_Register)
+      if (!arg->generateCode_phase2(gen, unusedAddr, res) || res == Dyninst::Null_Register)
         assert(!"AMDGPU emitCall: could not lower non-constant call argument");
       // src0 encoding: SGPR n -> n, VGPR n -> 256+n.
       const uint32_t src0 = res.isScalar() ? res.getId() : (256u + res.getId());
@@ -1854,10 +1838,10 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
     // Callee contract — the implicit inputs this callee may read and their ABI regs.
     // (Full set for now = forward-always; per-callee need-detection is a later
     // refinement the RegisterContext enables.)
-    DA::RegisterContext callee;
+    DA::RegisterContext calleeCtx;
     auto want = [&](DA::RegClass c, uint16_t idx, uint8_t dw, bool uni, DA::ImplicitSource s) {
       DA::RegInfo ri; ri.class_ = c; ri.index = idx; ri.dwords = dw; ri.uniform = uni;
-      ri.role = DA::Role::InputImplicit; ri.implicit = s; callee.regs.push_back(ri);
+      ri.role = DA::Role::InputImplicit; ri.implicit = s; calleeCtx.regs.push_back(ri);
     };
     want(DA::RegClass::VGPR, IAL::ABI_WITEMID_VGPR, 1, /*uniform=*/false, DA::ImplicitSource::WorkitemId);
     want(DA::RegClass::SGPR, IAL::ABI_BLOCKIDX_X,   1, /*uniform=*/true,  DA::ImplicitSource::WgidX);
@@ -1892,7 +1876,7 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
       Register rr = Register::makeScalarRegister(OperandRegId(r), BlockSize(1));
       if (rs->allocateSpecificRegister(gen, rr)) abiReserved.push_back(rr);
     };
-    for (const DA::MarshalStep &st : DA::lowerImplicitArgs(callee, point)) {
+    for (const DA::MarshalStep &st : DA::lowerImplicitArgs(calleeCtx, point)) {
       if (st.uniform) {   // SGPR dest via readfirstlane; reserve so the call target avoids it
         for (uint8_t d = 0; d < st.dwords; d++) reserve(st.dstIndex + d);
         for (uint8_t d = 0; d < st.dwords; d++) {
@@ -1929,7 +1913,8 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
       // Frames STACK: [0,O) caller's own frame, [O,O+spillR) our IACR+spill (SADDR=O),
       // then the callee frame above. spillRfull = O + spillR is our region's per-lane top.
       const uint32_t spillR  = implBase + 4u * (numPacks + nvgpr);   // IACR + spill (per-lane)
-      const uint32_t origPriv = readCallerOriginalPrivate(caller);
+      // origPriv (caller's own private-frame size O) is the outer decl from the SADDR
+      // setup above — same readCallerOriginalPrivate(caller) value, reused here.
       const uint32_t spillRfull = origPriv + spillR;
       // (architected computed once at emitCall top)
       // s32 (stack pointer) units differ by arch:
