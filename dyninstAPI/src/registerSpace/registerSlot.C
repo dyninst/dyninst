@@ -52,7 +52,7 @@ unsigned registerSlot::encoding() const {
     return Dyninst::Null_Register;
     break;
   }
-#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
   switch (type) {
   case SGPR:
     return registerSpace::SGPR(number);

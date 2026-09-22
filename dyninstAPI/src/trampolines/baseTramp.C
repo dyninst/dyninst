@@ -99,7 +99,7 @@ baseTramp *baseTramp::create() {
   return new baseTramp_ppc();
 #elif DYNINST_CODEGEN_ARCH_RISCV64
   return new baseTramp_riscv64();
-#elif DYNINST_CODEGEN_ARCH_AMDGPU_GFX908
+#elif DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN
   return new baseTramp_amdgpu();
 #elif DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A
   return new baseTramp_amdgpu();
@@ -553,7 +553,7 @@ bool baseTramp::guarded() const {
    if (suppressGuards) return false;
    if (!point_) return false; // iRPCs never guarded
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) || \
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN) || \
     defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A) || \
     defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
    // AMDGPU has no recursion-guard runtime: the guard expands to

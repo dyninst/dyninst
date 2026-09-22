@@ -180,7 +180,7 @@ public:
 
   bool initRegisters(codeGen &gen) override;
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
   static int lastOffset; // Last ofsfet in our GPU memory buffer.
   static std::map<std::string, int> allocTable;
 

@@ -53,7 +53,10 @@ elseif(DYNINST_CODEGEN_ARCH_RISCV64)
   set(ARCH_DEFINES_CODEGEN -Darch_riscv64 -Darch_64bit)
   set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx908 -Darch_64bit)
+  # The shared GFX9 codegen paths are guarded by the NEUTRAL arch_amdgpu_gfx9_codegen
+  # define (not gfx908 specifically), so a gfx940 build can share them without pretending
+  # to be gfx908. The gfx908-specific define stays for anything that must key on gfx908.
+  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx908 -Darch_amdgpu_gfx9_codegen -Darch_64bit)
   set(CAP_DEFINES -Dcap_fixpoint_gen -Dcap_noaddr_gen -Dcap_registers
                   -Dcap_tramp_liveness)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A)
@@ -65,11 +68,12 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
   # (identical SALU/SMEM/VOP/FLAT encodings, register file, ABI). The only two ISA
   # deltas — architected/absolute flat scratch and the packed work-item id at entry —
   # are handled at RUNTIME off the kernel's ELF mach (AmdgpuKernelDescriptor::
-  # supportsArchitectedFlatScratch), NOT at compile time. So we ALSO emit the gfx908
-  # codegen define, which lights up every shared `#if defined(..._GFX908)` guard
-  # (emit-amdgpu.C, registerSpace, codegen, ASTs, ABI, ...) without duplicating them.
-  # The gfx940 define stays too, for anything that must key on gfx940 specifically.
-  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_amdgpu_gfx908 -Darch_64bit)
+  # supportsArchitectedFlatScratch), NOT at compile time. So we emit the NEUTRAL
+  # arch_amdgpu_gfx9_codegen define (also emitted by the gfx908 build), which lights up
+  # every shared `#if defined(..._GFX9_CODEGEN)` guard without this build pretending to be
+  # gfx908 — so a future `#elif ..._GFX940` after `#if ..._GFX908` can't silently take the
+  # gfx908 branch. The gfx940 define stays for anything that must key on gfx940 specifically.
+  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_amdgpu_gfx9_codegen -Darch_64bit)
   set(CAP_DEFINES -Dcap_fixpoint_gen -Dcap_noaddr_gen -Dcap_registers
                   -Dcap_tramp_liveness)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX950)

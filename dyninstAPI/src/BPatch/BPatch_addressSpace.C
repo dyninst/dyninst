@@ -64,7 +64,7 @@
 
 #include "PointHandler.h"
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 #include "AmdgpuPointHandler.h"
 #endif
 
@@ -79,7 +79,7 @@ namespace dapi = Dyninst::DyninstAPI;
 BPatch_addressSpace::BPatch_addressSpace() :
    pendingInsertions(NULL), image(NULL)
 {
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
   pointHandler.reset(new Dyninst::DyninstAPI::AmdgpuGfx908PointHandler());
 #else
   pointHandler.reset(new Dyninst::DyninstAPI::PointHandler());
@@ -596,7 +596,7 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
    getAS(as);
    assert(as.size());
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
    if(name.empty()){
       std::stringstream namestr;
       namestr << "dyn_malloc_0x" << std::hex << "_" << &n << "_" << n << "_bytes";
@@ -613,7 +613,7 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
 #endif
    BPatch_type *type = BPatch::bpatch->createScalar(name.c_str(), n);
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
   // FIXME : Can't outline within this file because the constructor is private.
   // This needs to be considered when we have wave and thread-level variables.
   assert(type->getSize() > 0 && type->getSize() % 4 == 0);

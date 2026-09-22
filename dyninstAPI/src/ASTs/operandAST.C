@@ -15,7 +15,7 @@
 
 namespace Dyninst { namespace DyninstAPI {
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 int operandAST::lastOffset = 0;
 std::map<std::string, int> operandAST::allocTable = {{"--init--", -1}};
 #endif
@@ -66,7 +66,7 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
   int len;
   BPatch_type *Type;
   switch(oType) {
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
     case operandType::Constant: {
       assert(oVar == NULL);
       // Move constant into retReg
