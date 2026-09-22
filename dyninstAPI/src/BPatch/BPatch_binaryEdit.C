@@ -60,7 +60,7 @@
 
 #include "boost/filesystem.hpp"
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 #include "AmdgpuPointHandler.h"
 #endif
 
