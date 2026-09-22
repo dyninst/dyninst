@@ -779,10 +779,27 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
     Symtab* linkedFile = getAOut()->parse_img()->getObject();
 
     // Disable this for .o's and static binaries
-    if( linkedFile->isStaticBinary() || 
+    if( linkedFile->isStaticBinary() ||
         linkedFile->isUnlinkedObjectFile() )
     {
         return;
+    }
+
+    // AMDGPU code objects have no SysV .init/.fini (DT_INIT/DT_FINI) C-runtime concept, and there
+    // is no AMDGPU empty-function stub in the ladders below -- so this would add a ZERO-size
+    // .init.dyninst/.fini.dyninst region plus a bogus UINT_MAX-sized _init/_fini FUNCTION symbol at
+    // the section base (0x101000). Those symbols then hijack any re-parse of the instrumented object:
+    // ParseAPI treats all of .dyninstInst as _fini and never reaches the relocated kernel body. GPU
+    // kernels are launched directly (no init/fini arrays), so skip the whole mechanism.
+    switch( linkedFile->getArchitecture() )
+    {
+        case Arch_amdgpu_gfx908:
+        case Arch_amdgpu_gfx90a:
+        case Arch_amdgpu_gfx940:
+        case Arch_amdgpu_gfx950:
+            return;
+        default:
+            break;
     }
 
     bool foundInit = false;
