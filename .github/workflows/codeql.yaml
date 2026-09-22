@@ -11,8 +11,8 @@ name: "CodeQL"
 
 on:
   workflow_dispatch:
-#  schedule:
-#    - cron: '0 4 * * 3'  # every Wednesday at 4pm
+  schedule:
+    - cron: '0 4 * * 3'  # every Wednesday at 4pm
 
 jobs:
   analyze:
