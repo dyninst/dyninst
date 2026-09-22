@@ -187,8 +187,6 @@ inline int P_connect(int socket, struct sockaddr *addr, size_t len) {
   return (connect(socket, addr, len));}
 inline struct hostent * P_gethostbyname (const char *NAME) {
   return (gethostbyname(NAME));}
-inline struct servent * P_getservbyname (const char *NAME, const char *PROTO) {
-  return (getservbyname(NAME, PROTO));}
 inline int P_getsockname (int SOCKET, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
   return (getsockname(SOCKET, ADDR, (int*) LENGTH_PTR));}
 inline int P_listen (int socket, unsigned int n) { return (listen(socket, n));}
